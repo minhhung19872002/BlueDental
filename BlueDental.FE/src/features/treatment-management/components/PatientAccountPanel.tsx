@@ -67,17 +67,17 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
   const slips = account?.plans ?? [];
 
   const tiles = [
-    { label: t("Tổng phiếu"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#171c33" },
-    { label: t("Đã thanh toán"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#0e9f6e" },
-    { label: t("Hoàn tiền"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#d98b0f" },
-    { label: t("Còn lại"), value: account?.payment.debt ?? 0, testId: "acc-due", color: "#e5484d" },
+    { label: t("Treatment:Payment:TotalSlip"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#171c33" },
+    { label: t("Treatment:Receipt:TotalPaid"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#0e9f6e" },
+    { label: t("Treatment:Refund:Refund"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#d98b0f" },
+    { label: t("Treatment:Debt:Remaining"), value: account?.payment.debt ?? 0, testId: "acc-due", color: "#e5484d" },
     {
-      label: t("Phải thu"),
+      label: t("Treatment:Payment:MustCollect"),
       value: Math.max(0, account?.payment.receivable ?? 0),
       testId: "acc-debt",
       color: "#e5484d",
     },
-    { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#6366f1" },
+    { label: t("Treatment:Payment:Holding"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#6366f1" },
   ];
 
   const handleSubmit = async () => {
@@ -94,7 +94,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
         staffId: values.staffId,
       });
 
-      toast.success(t("Đã ghi nhận giao dịch"));
+      toast.success(t("Treatment:Payment:TransactionRecorded"));
       setModalOpen(false);
       form.resetFields();
     } catch (error) {
@@ -104,15 +104,15 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
 
   const columns: TableColumnsType<PatientPaymentDto> = [
     {
-      title: t("Ngày"),
+      title: t("Treatment:Receipt:DateLabel"),
       dataIndex: "paidAt",
       key: "paidAt",
       width: 150,
       render: (value: string) => formatDateTime(value),
     },
-    { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 120 },
+    { title: t("Treatment:Payment:SlipNumber"), dataIndex: "code", key: "code", width: 120 },
     {
-      title: t("Loại"),
+      title: t("Treatment:Payment:Kind"),
       dataIndex: "kind",
       key: "kind",
       width: 110,
@@ -122,21 +122,21 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       },
     },
     {
-      title: t("Hình thức"),
+      title: t("Treatment:Payment:Form"),
       dataIndex: "method",
       key: "method",
       width: 130,
       render: (value: PaymentMethodKind) => paymentMethodLabels()[value],
     },
     {
-      title: t("Kế hoạch"),
+      title: t("Treatment:Plan:Plan"),
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
       width: 100,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: t("Số tiền"),
+      title: t("Treatment:Pricing:Amount"),
       dataIndex: "amount",
       key: "amount",
       width: 140,
@@ -144,12 +144,12 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       render: (value: number, row) => (
         <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#e5484d" : "#0e9f6e" }}>
           {row.kind === PAYMENT_KIND.Refund ? "-" : ""}
-          {formatVND(value)} {t("đ")}
+          {formatVND(value)} {t("Treatment:Pricing:CurrencyUnit")}
         </Text>
       ),
     },
     {
-      title: t("Người thu"),
+      title: t("Treatment:Payment:Collector"),
       dataIndex: "staffName",
       key: "staffName",
       width: 150,
@@ -161,7 +161,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-          {t("Ghi nhận thanh toán")}
+          {t("Treatment:Payment:RecordPayment")}
         </Button>
       </div>
 
@@ -171,14 +171,14 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
             <Card size="small" data-testid={tile.testId}>
               <div style={{ fontSize: 12, color: "#99a0bd" }}>{tile.label}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: tile.color }}>
-                {formatVND(tile.value)} {t("đ")}
+                {formatVND(tile.value)} {t("Treatment:Pricing:CurrencyUnit")}
               </div>
             </Card>
           </Col>
         ))}
       </Row>
 
-      <Card size="small" title={t("Lịch sử giao dịch")}>
+      <Card size="small" title={t("Treatment:Debt:TransactionHistory")}>
         <Table<PatientPaymentDto>
           size="small"
           rowKey="id"
@@ -186,15 +186,15 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
           columns={columns}
           dataSource={account?.payments ?? []}
           pagination={false}
-          locale={{ emptyText: <span style={{ color: "#99a0bd" }}>{t("Chưa có giao dịch")}</span> }}
+          locale={{ emptyText: <span style={{ color: "#99a0bd" }}>{t("Treatment:Debt:NoTransactions")}</span> }}
         />
       </Card>
 
       <Modal
         open={modalOpen}
-        title={t("Ghi nhận thanh toán")}
-        okText={t("Lưu")}
-        cancelText={t("Huỷ")}
+        title={t("Treatment:Payment:RecordPayment")}
+        okText={t("Common:Save")}
+        cancelText={t("Common:Cancel")}
         confirmLoading={recordPayment.isPending}
         onOk={handleSubmit}
         onCancel={() => setModalOpen(false)}
@@ -206,7 +206,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
           requiredMark
           initialValues={{ kind: PAYMENT_KIND.Payment, method: PAYMENT_METHOD.Cash, amount: 0 }}
         >
-          <Form.Item name="kind" label={t("Loại giao dịch")} rules={[{ required: true }]}>
+          <Form.Item name="kind" label={t("Treatment:Payment:TransactionType")} rules={[{ required: true }]}>
             <Select
               options={Object.entries(paymentKindConfig()).map(([value, config]) => ({
                 value: Number(value),
@@ -218,22 +218,22 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
           {kind !== PAYMENT_KIND.Prepaid && (
             <Form.Item
               name="treatmentPlanId"
-              label={t("Kế hoạch điều trị")}
-              rules={[{ required: true, message: t("Vui lòng chọn kế hoạch") }]}
+              label={t("Treatment:Plan:TreatmentPlan")}
+              rules={[{ required: true, message: t("Treatment:Plan:PlanRequired") }]}
             >
               <Select
                 placeholder={
-                  slips.length === 0 ? t("Bệnh nhân chưa có kế hoạch điều trị") : t("Chọn kế hoạch")
+                  slips.length === 0 ? t("Treatment:Plan:NoPlan") : t("Treatment:Plan:SelectPlan")
                 }
                 options={slips.map((slip) => ({
                   value: slip.id,
-                  label: t("{0} — còn lại {1} đ", slip.code, formatVND(slip.payment.debt)),
+                  label: t("Treatment:Slip:Remaining", slip.code, formatVND(slip.payment.debt)),
                 }))}
               />
             </Form.Item>
           )}
 
-          <Form.Item name="method" label={t("Hình thức")} rules={[{ required: true }]}>
+          <Form.Item name="method" label={t("Treatment:Payment:Form")} rules={[{ required: true }]}>
             <Select
               options={Object.entries(paymentMethodLabels()).map(([value, label]) => ({
                 value: Number(value),
@@ -244,10 +244,10 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
 
           <Form.Item
             name="amount"
-            label={t("Số tiền (đ)")}
+            label={t("Treatment:Pricing:AmountVnd")}
             rules={[
-              { required: true, message: t("Vui lòng nhập số tiền") },
-              { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
+              { required: true, message: t("Treatment:Pricing:AmountRequired") },
+              { type: "number", min: 1, message: t("Treatment:Pricing:AmountMin") },
             ]}
           >
             <CurrencyInput />
@@ -255,11 +255,11 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
 
           <Form.Item
             name="staffId"
-            label={t("Người thu")}
-            rules={[{ required: true, message: t("Vui lòng chọn người thu") }]}
+            label={t("Treatment:Payment:Collector")}
+            rules={[{ required: true, message: t("Treatment:Payment:CollectorRequired") }]}
           >
             <Select
-              placeholder={t("Chọn nhân viên")}
+              placeholder={t("Treatment:Common:SelectStaff")}
               options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
             />
           </Form.Item>

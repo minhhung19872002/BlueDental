@@ -22,26 +22,26 @@ function buildColumns(rows: ServiceLineDto[]): TableColumnsType<ServiceLineDto> 
   const patientSpans = groupSpans(rows, (r) => `${r.date}|${r.patientLabel}`);
   return [
     {
-      title: t("Ngày"),
+      title: t("Report:Column:Date"),
       dataIndex: "date",
       width: 110,
       render: (v: string) => formatDate(v),
       onCell: spanCell(dateSpans),
     },
     {
-      title: t("Tên khách hàng"),
+      title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
       width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
       onCell: spanCell(patientSpans),
     },
-    { title: t("Kế hoạch điều trị"), dataIndex: "ticketCode", width: 150 },
-    { title: t("Nhân sự tư vấn"), dataIndex: "counselorName", width: 180 },
-    { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", width: 170 },
-    { title: t("Dịch vụ điều trị"), dataIndex: "serviceName" },
-    { title: t("Số lượng"), dataIndex: "quantity", width: 90, align: "center" },
+    { title: t("Report:Column:TreatmentPlan"), dataIndex: "ticketCode", width: 150 },
+    { title: t("Report:Column:CounselorName"), dataIndex: "counselorName", width: 180 },
+    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 170 },
+    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceName" },
+    { title: t("Report:Column:Quantity"), dataIndex: "quantity", width: 90, align: "center" },
     {
-      title: t("Thành tiền"),
+      title: t("Report:Column:TotalAmount"),
       dataIndex: "totalAmount",
       width: 140,
       align: "right",
@@ -54,7 +54,7 @@ function buildColumns(rows: ServiceLineDto[]): TableColumnsType<ServiceLineDto> 
 export function ActualRevenueSubTabActions(range: RangeQuery) {
   const { data: lines = [], isLoading } = useServiceLines(range);
   const total = useMemo(() => liveLines(lines).reduce((sum, line) => sum + line.totalAmount, 0), [lines]);
-  return <ReportStatsBar label={t("Doanh số thực")} value={total} tone="gold" loading={isLoading} />;
+  return <ReportStatsBar label={t("Report:SubTab:ActualRevenue")} value={total} tone="gold" loading={isLoading} />;
 }
 
 /** Sub-tab "Doanh số thực": the surviving service lines with their plan code. */

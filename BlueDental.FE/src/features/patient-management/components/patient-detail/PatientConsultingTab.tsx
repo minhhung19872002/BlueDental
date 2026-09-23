@@ -195,7 +195,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
 
       <ConfirmDeleteDialog
         open={Boolean(actions.removingDiagnosis)}
-        noun={t("chẩn đoán")}
+        noun={t("Patient:Misc:Diagnosis")}
         name={actions.removingDiagnosis?.code ?? ""}
         pending={actions.cancellingDiagnosis}
         onConfirm={() => void actions.confirmCancelDiagnosis()}
@@ -204,7 +204,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
 
       <ConfirmDeleteDialog
         open={Boolean(actions.removingAdvise)}
-        noun={t("dịch vụ tư vấn")}
+        noun={t("Patient:Library:ServiceItem")}
         name={actions.removingAdvise?.serviceName ?? ""}
         pending={actions.rejectingAdvise}
         onConfirm={() => void actions.confirmRejectAdvise()}

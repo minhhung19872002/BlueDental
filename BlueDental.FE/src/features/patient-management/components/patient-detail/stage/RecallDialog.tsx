@@ -30,7 +30,7 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
   return (
     <Modal
       open={open}
-      title={t("Tạo tái khám")}
+      title={t("Patient:Care:CreateRecallLower")}
       width="calc(100vw - 32px)"
       footer={null}
       onCancel={onClose}
@@ -38,13 +38,13 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
       className="pd-recall-dialog"
     >
       <div className="pd-recall-head">
-        <strong>{t("Ngày - Nhân sự")}</strong>
-        <strong>{t("Dịch vụ đã hoàn tất")}</strong>
-        <strong>{t("Nội dung điều trị")}</strong>
+        <strong>{t("Patient:Debt:DateStaff")}</strong>
+        <strong>{t("Patient:Advise:CompletedService")}</strong>
+        <strong>{t("Patient:Stage:TreatmentContent")}</strong>
       </div>
 
       {stages.length === 0 ? (
-        <div className="pd-recall-empty">{t("Chưa có dịch vụ hoàn tất")}</div>
+        <div className="pd-recall-empty">{t("Patient:Advise:NoCompletedService")}</div>
       ) : (
         <div className="pd-recall-rows">
           {stages.map((stage) => (
@@ -59,10 +59,10 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
               <div className="pd-recall-when">
                 <p>{formatShortDate(stage.completedAt ?? stage.creationTime)}</p>
                 <p>
-                  {t("Bác sĩ")}: {stage.staffName ?? "—"}
+                  {t("Patient:Staff:Doctor")}: {stage.staffName ?? "—"}
                 </p>
                 <p>
-                  {t("Phụ tá")}: {stage.subStaffName ?? "—"}
+                  {t("Patient:Staff:Assistant")}: {stage.subStaffName ?? "—"}
                 </p>
               </div>
 
@@ -85,16 +85,16 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
 
               <div className="pd-recall-actions">
                 <Checkbox checked disabled>
-                  {t("Hoàn thành")}
+                  {t("Patient:Misc:Done")}
                 </Checkbox>
                 <Button block icon={<PictureOutlined />} disabled>
-                  {t("Tải Ảnh")}
+                  {t("Patient:Photo:UploadButton")}
                 </Button>
                 <Button block type="primary" icon={<CalendarOutlined />} onClick={() => onBook(stage)}>
-                  {t("Tái Khám")}
+                  {t("Patient:Care:Recall")}
                 </Button>
                 <Button block type="primary" icon={<EyeOutlined />} onClick={() => onDetail(stage)}>
-                  {t("Chi Tiết")}
+                  {t("Patient:Misc:DetailCaps")}
                 </Button>
               </div>
             </div>

@@ -46,31 +46,31 @@ export function buildAppointmentColumns({
 }: RowHandlers): TableColumnsType<Appointment> {
   return [
     {
-      title: t("Ngày/ Giờ"),
+      title: t("Patient:Debt:DateTime"),
       dataIndex: "startTime",
       width: 200,
       render: (value: string, row) => (
         <div className="pd-cell-stack">
-          <b>{dayjs(value).format("DD/MM/YYYY")}</b>
+          <b>{dayjs(value).format("Patient:Misc:DateFormat")}</b>
           <span>
             {dayjs(value).format("HH:mm")} – {dayjs(row.endTime).format("HH:mm")}
           </span>
         </div>
       ),
     },
-    { title: t("Bác sĩ phụ trách"), dataIndex: "doctorName", width: 220 },
+    { title: t("Patient:QuoteSheet:InChargeDoctor"), dataIndex: "doctorName", width: 220 },
     {
-      title: t("Nội dung"),
+      title: t("Patient:Library:Content"),
       dataIndex: "reason",
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: t("Ghi chú"),
+      title: t("Patient:Misc:Note"),
       dataIndex: "notes",
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: t("Trạng thái"),
+      title: t("Patient:Misc:StatusLabel"),
       dataIndex: "status",
       width: 150,
       render: (value: AppointmentStatus) => {
@@ -79,7 +79,7 @@ export function buildAppointmentColumns({
       },
     },
     ...((onEdit || onDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions" as const,
       width: 110,
       align: "center" as const,
@@ -87,22 +87,22 @@ export function buildAppointmentColumns({
       render: (_: unknown, row: Appointment) => (
         <span className="pd-icon-actions">
           {onEdit && (
-            <Tooltip title={t("Chỉnh sửa lịch hẹn")}>
+            <Tooltip title={t("Patient:Profile:EditAppointment")}>
               <Button
                 type="text"
                 icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa lịch hẹn")}
+                aria-label={t("Patient:Profile:EditAppointment")}
                 onClick={() => onEdit(row)}
               />
             </Tooltip>
           )}
           {onDelete && (
-            <Tooltip title={t("Xoá lịch hẹn")}>
+            <Tooltip title={t("Patient:Appt:Delete")}>
               <Button
                 type="text"
                 danger
                 icon={<DeleteOutlined />}
-                aria-label={t("Xoá lịch hẹn")}
+                aria-label={t("Patient:Appt:Delete")}
                 onClick={() => onDelete(row)}
               />
             </Tooltip>

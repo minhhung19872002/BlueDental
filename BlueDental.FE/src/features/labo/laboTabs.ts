@@ -45,44 +45,44 @@ export const DEFAULT_LABO_TAB = "mau-labo";
 
 export function laboTabs(): LaboTab[] {
   return [
-    { key: "mau-labo", label: t("Mẫu Labo"), subject: "laboTemplate", screen: "orders" },
+    { key: "mau-labo", label: t("Labo:Tab:Orders"), subject: "laboTemplate", screen: "orders" },
     {
       key: "supplier",
-      label: t("Nhà cung cấp Labo"),
+      label: t("Labo:Tab:Supplier"),
       subject: "laboSupplier",
       screen: "supplier",
     },
     {
       key: "bite",
-      label: t("Khớp cắn Labo"),
+      label: t("Labo:Tab:Bite"),
       subject: "laboBite",
       screen: "catalog",
       group: LABO_GROUP.Bite,
-      noun: t("khớp cắn"),
+      noun: t("Labo:Noun:Bite"),
     },
     {
       key: "finish-line",
-      label: t("Đường hoàn tất"),
+      label: t("Labo:Tab:FinishLine"),
       subject: "laboFinishLine",
       screen: "catalog",
       group: LABO_GROUP.FinishLine,
-      noun: t("đường hoàn tất"),
+      noun: t("Labo:Noun:FinishLine"),
     },
     {
       key: "nhip",
-      label: t("Kiểu nhịp Labo"),
+      label: t("Labo:Tab:Rhythm"),
       subject: "laboRhythm",
       screen: "catalog",
       group: LABO_GROUP.Rhythm,
-      noun: t("kiểu nhịp"),
+      noun: t("Labo:Noun:Rhythm"),
     },
     {
       key: "service-material",
-      label: t("Dịch vụ - vật liệu"),
+      label: t("Labo:Tab:ServiceMaterial"),
       subject: "laboMaterial",
       screen: "service-material",
       group: LABO_GROUP.Material,
-      noun: t("vật liệu"),
+      noun: t("Labo:Noun:Material"),
     },
   ];
 }

@@ -79,7 +79,7 @@ public class CreateVoucherDto
 
 /// <summary>
 /// One voucher of a batch. Every override is nullable: a null falls back to
-/// the batch-level value, so "Cấu hình tất cả" sends bare code+name items
+/// the batch-level value, so "BE:Common:ConfigureAll" sends bare code+name items
 /// while per-code configuration fills the overrides in.
 /// </summary>
 public class VoucherBatchItemDto

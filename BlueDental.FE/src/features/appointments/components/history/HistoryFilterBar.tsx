@@ -76,7 +76,7 @@ export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
       <Select<HistoryAction[]>
         {...MULTI}
         className="ah-select"
-        placeholder={t("Tất cả hành động")}
+        placeholder={t("Appointment:History:Filter:AllActions")}
         options={options.actions}
         value={values.actions}
         onChange={(actions) => onChange({ actions })}
@@ -84,7 +84,7 @@ export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
       <Select<HistoryStatusGroup[]>
         {...MULTI}
         className="ah-select"
-        placeholder={t("Tất cả trạng thái")}
+        placeholder={t("Appointment:History:Filter:AllStatuses")}
         options={options.statuses}
         value={values.statuses}
         onChange={(statuses) => onChange({ statuses })}
@@ -92,7 +92,7 @@ export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
       <Select<HistorySource[]>
         {...MULTI}
         className="ah-select"
-        placeholder={t("Tất cả nguồn")}
+        placeholder={t("Appointment:History:Filter:AllSources")}
         options={options.sources}
         value={values.sources}
         onChange={(sources) => onChange({ sources })}
@@ -101,14 +101,14 @@ export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
         allowClear
         className="ah-input"
         prefix={<SearchOutlined />}
-        placeholder={t("Tên hoặc username")}
+        placeholder={t("Appointment:History:Filter:NameOrUsername")}
         value={values.actor}
         onChange={(e) => onChange({ actor: e.target.value })}
       />
       <Input
         allowClear
         className="ah-input ah-input--wide"
-        placeholder={t("Tìm trong ghi chú, mô tả...")}
+        placeholder={t("Appointment:History:Filter:SearchNotes")}
         value={values.keyword}
         onChange={(e) => onChange({ keyword: e.target.value })}
       />
@@ -117,7 +117,7 @@ export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
           checked={values.importantOnly}
           onChange={(e) => onChange({ importantOnly: e.target.checked })}
         />
-        <span>{t("Chỉ hiển thị thay đổi quan trọng")}</span>
+        <span>{t("Appointment:History:Filter:ImportantOnly")}</span>
       </label>
       <Button
         type="text"
@@ -126,7 +126,7 @@ export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
         disabled={!dirty}
         onClick={onClear}
       >
-        {t("Xóa lọc")}
+        {t("Appointment:History:Filter:ClearFilters")}
       </Button>
     </div>
   );

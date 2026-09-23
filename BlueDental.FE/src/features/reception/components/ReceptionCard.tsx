@@ -66,19 +66,19 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const navigate = useNavigate();
 
   const badgeLabel: Record<AppointmentCounterType, string> = {
-    Scheduled: t("Đã hẹn"),
-    Arrived:   t("Đã đến"),
-    Cancelled: t("Huỷ hẹn"),
-    Late:      t("Trễ hẹn"),
-    Temporary: t("Lịch tạm"),
-    Converted: t("Chuyển đổi"),
+    Scheduled: t("Reception:StatusScheduled"),
+    Arrived:   t("Reception:StatusArrived"),
+    Cancelled: t("Reception:StatusCancelled"),
+    Late:      t("Reception:StatusLate"),
+    Temporary: t("Reception:StatusTemporary"),
+    Converted: t("Reception:StatusConverted"),
   };
 
   const outcomeLabel: Record<NonNullOutcome, string> = {
-    EndTreatment:   t("Kết thúc điều trị"),
-    FollowUp:       t("Đã hẹn tiếp"),
-    TransferDoctor: t("Chuyển bác sĩ"),
-    Revisit:        t("Hẹn tái khám"),
+    EndTreatment:   t("Reception:OutcomeEndTreatment"),
+    FollowUp:       t("Reception:OutcomeFollowUp"),
+    TransferDoctor: t("Reception:OutcomeTransferDoctor"),
+    Revisit:        t("Reception:OutcomeRevisit"),
   };
 
   const badgeStyle = item.counterStatus ? COUNTER_STATUS_STYLE[item.counterStatus] : null;
@@ -133,7 +133,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
         <button
           type="button"
           className="rc-cancel-btn"
-          aria-label={t("Hủy lịch")}
+          aria-label={t("Reception:CancelAppointment")}
           onClick={() => onCancel?.(item.id)}
         >
           <CalendarX size={16} />
@@ -180,7 +180,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 <div className="rc-detail-row">
                   <Tag size={18} className="rc-icon-top" aria-hidden />
                   <span className="rc-detail-text">
-                    {item.patientType === "New" ? t("Khách mới") : t("Khách cũ")}
+                    {item.patientType === "New" ? t("Reception:NewPatient") : t("Reception:ReturningPatient")}
                   </span>
                 </div>
                 {item.appointmentTime && (
@@ -213,7 +213,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#e7eaf6" }} />
                   </div>
                   <p className="rc-step-label" style={step1Done ? { color: STEP_COLORS[0] } : undefined}>
-                    {t("Đã đến")}
+                    {t("Reception:StatusArrived")}
                   </p>
                   <p className="rc-step-time">{item.step1Time || "--:--"}</p>
                 </button>
@@ -232,7 +232,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
                   </div>
                   <p className="rc-step-label" style={step2Done ? { color: STEP_COLORS[1] } : undefined}>
-                    {t("Đang khám")}
+                    {t("Reception:StepInProgress")}
                   </p>
                   <p className="rc-step-time">{item.step2Time || "--:--"}</p>
                 </button>
@@ -251,7 +251,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <div className="rc-step-line rc-step-line--invisible" />
                   </div>
                   <p className="rc-step-label" style={step3Done ? { color: STEP_COLORS[2] } : undefined}>
-                    {t("Hoàn tất")}
+                    {t("Reception:StepComplete")}
                   </p>
                   <p className="rc-step-time">{item.step3Time || "--:--"}</p>
                 </button>
@@ -260,7 +260,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
               <div className="rc-doctor-select">
                 <SearchSelect
                   value={item.doctorId || undefined}
-                  placeholder={t("Chọn bác sĩ")}
+                  placeholder={t("Reception:SelectDoctor")}
                   disabled={isCancelled}
                   options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                   onChange={(val) => val && onDoctorChange?.(item.id, val)}

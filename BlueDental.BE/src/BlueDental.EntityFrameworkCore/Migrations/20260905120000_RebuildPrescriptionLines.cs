@@ -7,13 +7,13 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// Đơn thuốc rebuilt to match the reference "Thêm đơn thuốc" dialog.
+    /// Đơn thuốc rebuilt to match the reference "BE:Treatment:AddPrescription" dialog.
     ///
     /// The slip loses its status (the reference has none — a slip is edited or
     /// deleted, never dispensed/cancelled) and its link to a diagnosis record
-    /// (the dialog takes free text), and gains "Điều trị" (ngoại trú / nội trú).
+    /// (the dialog takes free text), and gains "BE:Common:Treatment" (ngoại trú / nội trú).
     /// A line is now dosed like a template line — ngày uống × mỗi lần × số ngày
-    /// with the "Sử dụng" flags — instead of free-text dosage/frequency.
+    /// with the "BE:Field:Usage" flags — instead of free-text dosage/frequency.
     ///
     /// Existing lines keep their day count; the old total quantity is spread
     /// evenly over those days so the computed Số lượng stays the same.

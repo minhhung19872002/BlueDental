@@ -43,8 +43,8 @@ function ServiceGrip({ row, drag }: { row: PlanDetailRow; drag: ServiceDragHandl
       type="button"
       className={["pdt-grip", !drag.enabled && "pdt-grip--off"].filter(Boolean).join(" ")}
       disabled={!drag.enabled}
-      title={t("Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp")}
-      aria-label={t("Sắp xếp {0}", row.service.serviceName ?? row.service.code)}
+      title={t("Treatment:Service:DragHint")}
+      aria-label={t("Treatment:Service:SortLabel", row.service.serviceName ?? row.service.code)}
       {...drag.handleProps(row.service.id)}
       onKeyDown={(event) => {
         if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
@@ -114,17 +114,17 @@ export function buildServiceColumns(
     column("grip", "", 36, (row) => <ServiceGrip row={row} drag={drag} />, {
       align: "center",
     }),
-    column("service", t("Dịch vụ"), 260, (row) => <ServiceNameCell row={row} actions={actions} />),
+    column("service", t("Treatment:Service:Service"), 260, (row) => <ServiceNameCell row={row} actions={actions} />),
     text("diagnosis", "Chẩn đoán", 200, (row) => row.service.diagnosisName ?? row.advise?.diagnosisName ?? ""),
     text("dentist", "Bác sĩ điều trị", 200, (row) => row.service.dentistName ?? row.plan.dentistName ?? ""),
     text("teeth", "Răng", 120, (row) => formatTeeth(row.service.teeth)),
-    column("quantity", t("Số lượng"), 80, (row) => row.service.quantity, { align: "center" }),
-    column("price", t("Đơn giá"), 170, (row) => moneyText(row.service.price), { align: "right" }),
-    column("discount", t("Tổng giảm giá"), 160, (row) => <DiscountCell row={row} />, { align: "right" }),
-    column("amount", t("Thành tiền"), 170, (row) => <strong>{moneyText(row.service.effectiveAmount)}</strong>, {
+    column("quantity", t("Treatment:Pricing:Quantity"), 80, (row) => row.service.quantity, { align: "center" }),
+    column("price", t("Treatment:Pricing:UnitPrice"), 170, (row) => moneyText(row.service.price), { align: "right" }),
+    column("discount", t("Treatment:Pricing:TotalDiscount"), 160, (row) => <DiscountCell row={row} />, { align: "right" }),
+    column("amount", t("Treatment:Pricing:NetAmount"), 170, (row) => <strong>{moneyText(row.service.effectiveAmount)}</strong>, {
       align: "right",
     }),
-    column("advance", t("Tạm ứng"), 160, (row) => moneyText(advanceOn(row.service)), {
+    column("advance", t("Treatment:Payment:Prepaid"), 160, (row) => moneyText(advanceOn(row.service)), {
       align: "right",
     }),
     text("note", "Ghi chú", 200, (row) => row.service.note ?? row.advise?.note ?? ""),
@@ -134,10 +134,10 @@ export function buildServiceColumns(
     text("consultant2", "Nhân sự tư vấn 2", 180, (row) => row.service.secondConsultantName ?? ""),
     column(
       "actions",
-      t("Thao tác"),
+      t("Common:Actions"),
       70,
       (row) => (
-        <button type="button" className="tp-eye" aria-label={t("Xem chi tiết")} onClick={() => actions.onView(row)}>
+        <button type="button" className="tp-eye" aria-label={t("Treatment:Service:ViewDetail")} onClick={() => actions.onView(row)}>
           <Eye size={16} aria-hidden="true" />
         </button>
       ),

@@ -45,8 +45,8 @@ export function PatientBasicColumn({
       <div className="bd-patient-subtabs" role="tablist">
         {(
           [
-            { key: "basic" as const, label: t("Thông tin cơ bản") },
-            { key: "history" as const, label: t("Tiểu sử bệnh") },
+            { key: "basic" as const, label: t("Patient:Form:BasicInfo") },
+            { key: "history" as const, label: t("Patient:Tab:DiseaseHistory") },
           ]
         ).map((item) => (
           <button
@@ -70,15 +70,15 @@ export function PatientBasicColumn({
       {/* Hidden rather than unmounted: an unmounted Form.Item drops its value,
           and switching to the history list must not clear the details. */}
       <div hidden={tab !== "basic"}>
-        <Form.Item name="gender" label={t("Giới tính")} className="bd-patient-gender">
+        <Form.Item name="gender" label={t("Patient:Col:Gender")} className="bd-patient-gender">
           <Radio.Group>
             <Radio value="male">{t("Nam")}</Radio>
-            <Radio value="female">{t("Nữ")}</Radio>
-            <Radio value="other">{t("Khác")}</Radio>
+            <Radio value="female">{t("Patient:Misc:Female")}</Radio>
+            <Radio value="other">{t("Patient:Misc:OtherLabel")}</Radio>
           </Radio.Group>
         </Form.Item>
 
-        <FloatingField label={t("Ngày sinh")} name="dateOfBirth">
+        <FloatingField label={t("Patient:Col:DateOfBirth")} name="dateOfBirth">
           <DatePicker
             format="DD/MM/YYYY"
             // The reference refuses a future birth date; so does the server.
@@ -89,23 +89,23 @@ export function PatientBasicColumn({
         <FloatingField
           label={t("Email")}
           name="email"
-          rules={[{ type: "email", message: t("Email không hợp lệ") }]}
+          rules={[{ type: "email", message: t("Patient:Form:InvalidEmail") }]}
         >
           <Input type="email" />
         </FloatingField>
 
-        <FloatingField label={t("Ghi chú")} name="note">
+        <FloatingField label={t("Patient:Misc:Note")} name="note">
           <Input.TextArea rows={3} maxLength={1000} />
         </FloatingField>
 
         {/* The list cannot cover every job, so the reference puts an "Khác"
             escape hatch in the dropdown with a free-text box behind it. Ticking
             it clears the chosen entry: an occupation is one or the other. */}
-        <FloatingField label={t("Nghề nghiệp")} name="occupationEntryId">
+        <FloatingField label={t("Patient:Col:Occupation")} name="occupationEntryId">
           <SearchSelect
             options={(occupations.data ?? []).map((row) => ({ value: row.id, label: row.name }))}
-            placeholder={t("Nghề nghiệp")}
-            emptyText={t("Không tìm thấy nghề nghiệp")}
+            placeholder={t("Patient:Col:Occupation")}
+            emptyText={t("Patient:Form:OccupationNotFound")}
             allowClear
             footer={
               <>
@@ -119,12 +119,12 @@ export function PatientBasicColumn({
                     else form.setFieldValue("occupationOther", "");
                   }}
                 >
-                  {t("Khác")}
+                  {t("Patient:Misc:OtherLabel")}
                 </Checkbox>
                 <Form.Item name="occupationOther" noStyle hidden={!otherChosen}>
                   <Input
                     maxLength={100}
-                    placeholder={t("Vui lòng nhập")}
+                    placeholder={t("Patient:Form:PleaseEnter")}
                     onClick={(event) => event.stopPropagation()}
                   />
                 </Form.Item>

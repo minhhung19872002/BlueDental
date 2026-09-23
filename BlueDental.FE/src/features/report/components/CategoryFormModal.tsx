@@ -26,9 +26,9 @@ interface FormValues {
 }
 
 const TITLES: Record<CategoryVariant, { create: () => string; edit: () => string }> = {
-  income: { create: () => t("Thêm danh mục thu nhập"), edit: () => t("Chỉnh sửa danh mục thu nhập") },
-  expense: { create: () => t("Thêm danh mục chi phí"), edit: () => t("Chỉnh sửa danh mục chi phí") },
-  cashbook: { create: () => t("Thêm danh mục sổ quỹ mới"), edit: () => t("Chỉnh sửa danh mục sổ quỹ") },
+  income: { create: () => t("Report:CategoryForm:AddIncome"), edit: () => t("Report:CategoryForm:EditIncome") },
+  expense: { create: () => t("Report:CategoryForm:AddExpense"), edit: () => t("Report:CategoryForm:EditExpense") },
+  cashbook: { create: () => t("Report:CategoryForm:AddCashbook"), edit: () => t("Report:CategoryForm:EditCashbook") },
 };
 
 const VARIANT_TYPE = {
@@ -82,7 +82,7 @@ export function CategoryFormModal({ open, variant, category, onClose }: Props) {
           {
             onSuccess: () => {
               // The reference calls a sổ quỹ entry a "danh mục" and a thu/chi one a "nhóm".
-              toast.success(isCashbook ? t("Cập nhật danh mục thành công") : t("Cập nhật nhóm thành công"));
+              toast.success(isCashbook ? t("Report:CategoryForm:UpdateCashbookSuccess") : t("Report:CategoryForm:UpdateGroupSuccess"));
               onClose();
             },
           },
@@ -101,7 +101,7 @@ export function CategoryFormModal({ open, variant, category, onClose }: Props) {
         },
         {
           onSuccess: () => {
-            toast.success(isCashbook ? t("Tạo danh mục thành công") : t("Tạo nhóm thành công"));
+            toast.success(isCashbook ? t("Report:CategoryForm:CreateCashbookSuccess") : t("Report:CategoryForm:CreateGroupSuccess"));
             onClose();
           },
         },
@@ -130,10 +130,10 @@ export function CategoryFormModal({ open, variant, category, onClose }: Props) {
           initialValues={{ name: "", colorCode: DEFAULT_CATEGORY_COLOR }}
           onFinish={handleFinish}
         >
-          <FloatingField name="name" label={t("Tên danh mục sổ quỹ")} required rules={[{ required: true, whitespace: true, message: t("Vui lòng nhập tên danh mục") }]}>
+          <FloatingField name="name" label={t("Report:CategoryForm:CashbookNameLabel")} required rules={[{ required: true, whitespace: true, message: t("Report:CategoryForm:NameRequired") }]}>
             <Input autoFocus maxLength={200} />
           </FloatingField>
-          <FloatingField name="description" label={t("Ghi chú (không bắt buộc)")}>
+          <FloatingField name="description" label={t("Report:CategoryForm:NoteOptional")}>
             <Input maxLength={500} />
           </FloatingField>
           <CategoryColorFields color={color} previewName={name.trim()} onChange={handleColorChange} />
@@ -155,12 +155,12 @@ export function CategoryFormModal({ open, variant, category, onClose }: Props) {
       <Form form={form} layout="vertical" requiredMark={false} initialValues={{ priority: 0 }} onFinish={handleFinish}>
         <Row gutter={[16, 12]}>
           <Col xs={24} md={12}>
-            <FloatingField name="name" label={t("Tên phân loại")} required rules={[{ required: true, whitespace: true, message: t("Tên phân loại là trường bắt buộc.") }]}>
+            <FloatingField name="name" label={t("Report:CategoryForm:GroupNameLabel")} required rules={[{ required: true, whitespace: true, message: t("Report:CategoryForm:GroupNameRequired") }]}>
               <Input autoFocus maxLength={200} />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Report:CategoryForm:Priority")}>
               <InputNumber min={0} className="report-full-width" />
             </FloatingField>
           </Col>

@@ -319,7 +319,7 @@ export function PatientProfileTab({ patient }: Props) {
                   type="text"
                   icon={<EditOutlined />}
                   onClick={() => setEditing(true)}
-                  aria-label={t("Chỉnh sửa hồ sơ")}
+                  aria-label={t("Patient:Form:EditTitle")}
                 />
               )}
               {tagsOnRecord.map((tag) => (
@@ -331,43 +331,43 @@ export function PatientProfileTab({ patient }: Props) {
           <div className="pd-info-grid">
             <InfoItem
               icon={<CalendarOutlined />}
-              label={t("Ngày sinh")}
-              value={`${formatDate(patient.dateOfBirth)}${ageOf(patient.dateOfBirth) === null ? "" : ` (${ageOf(patient.dateOfBirth)} ${t("tuổi")})`}`}
+              label={t("Patient:Col:DateOfBirth")}
+              value={`${formatDate(patient.dateOfBirth)}${ageOf(patient.dateOfBirth) === null ? "" : ` (${ageOf(patient.dateOfBirth)} ${t("Patient:Misc:Age")})`}`}
             />
             <InfoItem
               icon={<PhoneOutlined />}
-              label={t("Số điện thoại")}
+              label={t("Patient:Col:Phone")}
               value={patient.phoneNumber}
             />
             <InfoItem icon={<MailOutlined />} label={t("Email")} value={patient.email} />
             <InfoItem
               icon={<UserOutlined />}
-              label={t("Giới tính")}
+              label={t("Patient:Col:Gender")}
               value={t(genderLabels[patient.gender])}
             />
             <InfoItem icon={<IdcardOutlined />} label={t("CCCD")} value={patient.nationalId} />
-            <InfoItem icon={<MedicineBoxOutlined />} label={t("Nghề nghiệp")} value={occupation} />
+            <InfoItem icon={<MedicineBoxOutlined />} label={t("Patient:Col:Occupation")} value={occupation} />
             <InfoItem
               wide
               icon={<EnvironmentOutlined />}
-              label={t("Địa chỉ")}
+              label={t("Patient:Col:Address")}
               value={patient.address}
             />
           </div>
         </div>
         <div className="pd-profile-column">
           <h3>
-            {t("LÝ DO ĐẾN KHÁM")}{" "}
+            {t("Patient:Source:VisitReasonLabel")}{" "}
             <Button
               type="text"
               size="small"
-              aria-label={t("Thêm lý do đến khám")}
+              aria-label={t("Patient:Source:AddReason")}
               icon={<PlusOutlined />}
               onClick={() => setReasonOpen(true)}
             />
           </h3>
           {patient.examinationReasons.length === 0 ? (
-            <p className="pd-reason-empty">{t("Chưa có lý do đến khám.")}</p>
+            <p className="pd-reason-empty">{t("Patient:Source:NoReason")}</p>
           ) : (
             <div className="pd-reason-list">
               {patient.examinationReasons.map((reason) => (
@@ -380,19 +380,19 @@ export function PatientProfileTab({ patient }: Props) {
           )}
           <FactItem
             icon={<MedicineBoxOutlined />}
-            label={t("Tiểu sử bệnh")}
-            value={disease === "—" ? t("Chưa có dữ liệu") : disease}
+            label={t("Patient:Tab:DiseaseHistory")}
+            value={disease === "—" ? t("Patient:Misc:EmptyData") : disease}
           />
           <FactItem
             icon={<EyeOutlined />}
-            label={t("Về KH")}
-            value={patient.note || t("Chưa có ghi chú")}
+            label={t("Patient:Profile:BackToCustomer")}
+            value={patient.note || t("Patient:Misc:TreatmentNote")}
           />
-          <FactItem icon={<CompassOutlined />} label={t("Nguồn đến")} value={source} />
+          <FactItem icon={<CompassOutlined />} label={t("Patient:Col:PatientSource")} value={source} />
         </div>
         <div className="pd-profile-column pd-next-appointment">
           <h3>
-            {t("LỊCH HẸN GẦN NHẤT")}{" "}
+            {t("Patient:Appt:NearestLabel")}{" "}
             {appointmentAbility.canCreate && (
               <Button
                 type="primary"
@@ -400,28 +400,28 @@ export function PatientProfileTab({ patient }: Props) {
                 size="small"
                 icon={<PlusOutlined />}
                 onClick={() => setCreatingAppointment(true)}
-                aria-label={t("Tạo lịch hẹn mới")}
+                aria-label={t("Patient:Appt:Create")}
               />
             )}
           </h3>
           {upcoming ? (
             <>
               <dl className="pd-appt-facts">
-                <dt>{t("Ngày")}:</dt>
+                <dt>{t("Patient:Misc:Date")}:</dt>
                 <dd>{formatWeekday(upcoming.startTime)}</dd>
-                <dt>{t("Giờ hẹn")}:</dt>
+                <dt>{t("Patient:Appt:Time")}:</dt>
                 <dd>
                   {formatClock(upcoming.startTime)}
                   {minutesBetween(upcoming.startTime, upcoming.endTime) > 0 &&
-                    ` (${minutesBetween(upcoming.startTime, upcoming.endTime)} ${t("phút")})`}
+                    ` (${minutesBetween(upcoming.startTime, upcoming.endTime)} ${t("Patient:Misc:Minutes")})`}
                 </dd>
-                <dt>{t("Bác sĩ")}:</dt>
+                <dt>{t("Patient:Staff:Doctor")}:</dt>
                 <dd className="pd-appt-doctor">{upcoming.doctorName ?? "—"}</dd>
-                <dt>{t("Nội dung")}:</dt>
-                <dd>{upcoming.reason || t("Khám tổng quát")}</dd>
+                <dt>{t("Patient:Library:Content")}:</dt>
+                <dd>{upcoming.reason || t("Patient:Misc:GeneralExam")}</dd>
               </dl>
 
-              <p className="pd-appt-steps-title">{t("Tiếp nhận")}</p>
+              <p className="pd-appt-steps-title">{t("Patient:Tab:Reception")}</p>
               <ReceptionSteps
                 appointment={upcoming}
                 onAdvanced={() => void appointmentsQuery.refetch()}
@@ -434,7 +434,7 @@ export function PatientProfileTab({ patient }: Props) {
           ) : (
             <div className="pd-empty-compact">
               <CalendarOutlined />
-              <span>{t("Chưa có lịch hẹn sắp tới")}</span>
+              <span>{t("Patient:Appt:NoUpcoming")}</span>
             </div>
           )}
         </div>
@@ -476,7 +476,7 @@ export function PatientProfileTab({ patient }: Props) {
           <div>
             {stageAbility.canCreate && (
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setRecallOpen(true)}>
-                {t("Tạo Tái khám")}
+                {t("Patient:Care:CreateRecall")}
               </Button>
             )}
             {paymentAbility.canCreate && (
@@ -485,7 +485,7 @@ export function PatientProfileTab({ patient }: Props) {
                 icon={<DollarOutlined />}
                 onClick={() => setPaymentOpen(true)}
               >
-                {t("Thanh toán")}
+                {t("Patient:Misc:Payment")}
               </Button>
             )}
           </div>
@@ -502,8 +502,8 @@ export function PatientProfileTab({ patient }: Props) {
           className="pd-treatment-table"
           columns={columns}
           dataSource={pageRows}
-          locale={{ emptyText: t("Chưa có điều trị") }}
-          pagination={pagination.buildConfig(visibleRows.length, countedTotal(t("điều trị")))}
+          locale={{ emptyText: t("Patient:Plan:NoTreatment") }}
+          pagination={pagination.buildConfig(visibleRows.length, countedTotal(t("Patient:Misc:Treatment")))}
         />
       </div>
       <PatientEditorDialog open={editing} patient={patient} onClose={() => setEditing(false)} />

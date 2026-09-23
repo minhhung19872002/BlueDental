@@ -23,10 +23,10 @@ public class LaboSupplier : FullAuditedAggregateRoot<Guid>
     public string? Phone { get; private set; }
     public string? Email { get; private set; }
 
-    /// <summary>"Người liên hệ" — who to call at the lab.</summary>
+    /// <summary>"BE:Field:ContactPerson" — who to call at the lab.</summary>
     public string? ContactPerson { get; private set; }
 
-    /// <summary>"Mã số thuế".</summary>
+    /// <summary>"BE:Field:TaxId".</summary>
     public string? TaxCode { get; private set; }
 
     /// <summary>Street line only; the rest of the address is the two codes.</summary>

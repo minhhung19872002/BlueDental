@@ -33,7 +33,7 @@ export function ConfirmCancelDialog({ open, name, pending, onConfirm, onClose }:
   return (
     <Modal
       open={open}
-      title={<h2 className="bd-modal-title">{t("Huỷ lịch hẹn")}</h2>}
+      title={<h2 className="bd-modal-title">{t("Common:CancelAppointment")}</h2>}
       onCancel={handleClose}
       width={440}
       destroyOnHidden
@@ -46,7 +46,7 @@ export function ConfirmCancelDialog({ open, name, pending, onConfirm, onClose }:
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={handleClose} disabled={pending}>
-            {t("Đóng")}
+            {t("Common:Close")}
           </Button>
           <Button
             danger
@@ -56,17 +56,17 @@ export function ConfirmCancelDialog({ open, name, pending, onConfirm, onClose }:
             disabled={pending}
             onClick={handleConfirm}
           >
-            {pending ? t("Đang huỷ…") : t("Xác nhận huỷ")}
+            {pending ? t("Common:Cancelling") : t("Common:ConfirmCancel")}
           </Button>
         </div>
       }
     >
       <p style={{ margin: "0 0 8px" }}>
-        {t("Bạn có chắc muốn huỷ lịch hẹn của")} <strong>{name}</strong>?
+        {t("Common:CancelAppointmentQuestion")} <strong>{name}</strong>?
       </p>
       <Input.TextArea
         rows={3}
-        placeholder={t("Nhập lý do huỷ...")}
+        placeholder={t("Common:EnterCancelReason")}
         value={reason}
         onChange={(e) => {
           setReason(e.target.value);
@@ -76,7 +76,7 @@ export function ConfirmCancelDialog({ open, name, pending, onConfirm, onClose }:
       />
       {error && (
         <p style={{ margin: "4px 0 0", color: "var(--bd-danger, #e5484d)", fontSize: 13 }}>
-          {t("Vui lòng nhập lý do huỷ")}
+          {t("Common:CancelReasonRequired")}
         </p>
       )}
     </Modal>

@@ -16,10 +16,10 @@ export const PLAN_STATUS = {
 export type TreatmentPlanStatus = (typeof PLAN_STATUS)[keyof typeof PLAN_STATUS];
 
 export const planStatusLabels = (): Record<TreatmentPlanStatus, string> => ({
-  [PLAN_STATUS.Draft]: t("Nháp"),
-  [PLAN_STATUS.PendingApproval]: t("Chờ duyệt"),
-  [PLAN_STATUS.Approved]: t("Đã duyệt"),
-  [PLAN_STATUS.InProgress]: t("Đang điều trị"),
-  [PLAN_STATUS.Completed]: t("Hoàn thành"),
-  [PLAN_STATUS.Cancelled]: t("Đã huỷ"),
+  [PLAN_STATUS.Draft]: t("Common:PlanStatus:Draft"),
+  [PLAN_STATUS.PendingApproval]: t("Common:PlanStatus:PendingApproval"),
+  [PLAN_STATUS.Approved]: t("Common:PlanStatus:Approved"),
+  [PLAN_STATUS.InProgress]: t("Common:PlanStatus:InProgress"),
+  [PLAN_STATUS.Completed]: t("Common:PlanStatus:Completed"),
+  [PLAN_STATUS.Cancelled]: t("Common:PlanStatus:Cancelled"),
 });

@@ -11,9 +11,9 @@ import { buildSalesEntryColumns } from "./cashflowColumns";
 type StatusFilter = "all" | "pending" | "approved";
 
 const STATUS_FILTERS: { key: StatusFilter; label: () => string }[] = [
-  { key: "all", label: () => t("Tất cả") },
-  { key: "pending", label: () => t("Dự chi") },
-  { key: "approved", label: () => t("Đã duyệt") },
+  { key: "all", label: () => t("Report:Filter:All") },
+  { key: "pending", label: () => t("Report:ApprovalStatus:Pending") },
+  { key: "approved", label: () => t("Report:ApprovalStatus:Approved") },
 ];
 
 interface Props {
@@ -45,9 +45,9 @@ export function CashflowExpenseView({ entries, loading, onEdit }: Props) {
 
   // The reference's "Tổng chi phí" only counts approved vouchers (it equals Đã duyệt chi).
   const cards: StatCardItem[] = [
-    { label: t("Tổng chi phí"), value: sum(approved), tone: "red", icon: <FallOutlined /> },
-    { label: t("Đã duyệt chi"), value: sum(approved), tone: "green", icon: <CheckOutlined /> },
-    { label: t("Đang dự chi"), value: sum(pending), tone: "gold", icon: <WalletOutlined /> },
+    { label: t("Report:ExpenseView:TotalExpense"), value: sum(approved), tone: "red", icon: <FallOutlined /> },
+    { label: t("Report:ExpenseView:ApprovedTotal"), value: sum(approved), tone: "green", icon: <CheckOutlined /> },
+    { label: t("Report:ExpenseView:PendingTotal"), value: sum(pending), tone: "gold", icon: <WalletOutlined /> },
   ];
 
   const segmentedOptions = STATUS_FILTERS.map((f) => ({
@@ -75,7 +75,7 @@ export function CashflowExpenseView({ entries, loading, onEdit }: Props) {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.onPageChange}
-        countUnit={t("phiếu")}
+        countUnit={t("Report:Unit:Voucher")}
       />
     </>
   );

@@ -46,13 +46,13 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               textTransform: "uppercase",
             }}
           >
-            {t("TỔNG QUAN")}
+            {t("Reception:OverviewTitle")}
           </Text>
           <Title
             level={2}
             style={{ margin: 0, fontWeight: 800, color: "var(--bd-ink)", fontSize: 26 }}
           >
-            {t("Tiếp nhận khách hàng")}
+            {t("Reception:HeaderTitle")}
           </Title>
         </div>
 
@@ -92,7 +92,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "var(--bd-muted)", fontSize: 13, fontWeight: 600 }}>
-                    {t("Khách mới")}
+                    {t("Reception:NewPatient")}
                   </Text>
                 }
                 value={metrics?.newPatientsCount ?? 0}
@@ -133,7 +133,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "var(--bd-muted)", fontSize: 13, fontWeight: 600 }}>
-                    {t("Khách cũ phát sinh")}
+                    {t("Reception:NewReturning")}
                   </Text>
                 }
                 value={metrics?.oldPatientsCount ?? 0}
@@ -174,7 +174,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "var(--bd-muted)", fontSize: 13, fontWeight: 600 }}>
-                    {t("Đã hẹn")}
+                    {t("Reception:StatusScheduled")}
                   </Text>
                 }
                 value={metrics?.scheduledCount ?? 0}
@@ -215,7 +215,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "var(--bd-muted)", fontSize: 13, fontWeight: 600 }}>
-                    {t("Khách đến")}
+                    {t("Reception:ArrivedPatients")}
                   </Text>
                 }
                 value={metrics?.arrivedCount ?? 0}

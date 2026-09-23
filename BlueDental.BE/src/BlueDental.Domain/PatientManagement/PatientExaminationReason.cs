@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities;
 namespace BlueDental.PatientManagement;
 
 /// <summary>
-/// One line of "Lý do đến khám".
+/// One line of "BE:Field:ReasonForVisit".
 ///
 /// The reference keeps a dated list rather than a single note: the profile card
 /// prints every reason the patient has arrived with, each stamped with the day
@@ -28,7 +28,7 @@ public class PatientExaminationReason : Entity<Guid>
     public string? Note { get; private set; }
 
     /// <summary>
-    /// The first reason on the record. The "Chỉnh sửa hồ sơ" dialog binds this
+    /// The first reason on the record. The "BE:Common:EditRecord" dialog binds this
     /// one — its Lý do đến khám box rewrites it rather than adding a line — so
     /// at most one reason per patient carries the flag.
     /// </summary>

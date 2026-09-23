@@ -107,7 +107,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       await removeGroup.mutateAsync(pendingGroupDelete.id);
       // The table below is the deleted group's own list, so stop showing it.
       if (selectedGroupId === pendingGroupDelete.id) selectGroup(null);
-      toast.success(t("Đã xoá nhóm vật tư"));
+      toast.success(t("Materials:GroupDeleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -120,7 +120,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
 
     try {
       await deleteSupply.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá vật tư"));
+      toast.success(t("Materials:MaterialDeleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -132,19 +132,19 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
     () => [
       {
         key: "name",
-        title: t("Tên vật liệu"),
+        title: t("Materials:NameCol"),
         width: 220,
         render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
       },
       {
         key: "group",
-        title: t("Nhóm phân loại"),
+        title: t("Materials:GroupCol"),
         width: 180,
         render: (_, row) => row.taxonomyName ?? "—",
       },
       {
         key: "stockedAt",
-        title: t("Nhập kho"),
+        title: t("Materials:StockedAtCol"),
         width: 140,
         render: (_, row) => (
           <span className="bd-cat-num">{row.stockedAt ? formatDate(row.stockedAt) : "—"}</span>
@@ -152,7 +152,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       },
       {
         key: "expiryDate",
-        title: t("Hạn sử dụng"),
+        title: t("Materials:ExpiryCol"),
         width: 140,
         render: (_, row) => (
           <span className="bd-cat-num">{row.expiryDate ? formatDate(row.expiryDate) : "—"}</span>
@@ -160,36 +160,36 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       },
       {
         key: "expiryWarningDays",
-        title: t("Cảnh báo hết hạn"),
+        title: t("Materials:ExpiryWarning"),
         width: 170,
         align: "right",
         render: (_, row) => (
-          <span className="bd-cat-num">{t("{0} ngày", row.expiryWarningDays)}</span>
+          <span className="bd-cat-num">{t("Materials:ExpiryDays", row.expiryWarningDays)}</span>
         ),
       },
       {
         key: "quantityOnHand",
-        title: t("Tồn kho"),
+        title: t("Materials:StockCol"),
         width: 120,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.quantityOnHand}</span>,
       },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Common:Status"),
         width: 170,
         render: (_, row) => <MaterialStatusTag status={row.status} />,
       },
       {
         key: "supplier",
-        title: t("Nhà cung cấp"),
+        title: t("Materials:SupplierCol"),
         width: 180,
         render: (_, row) => row.supplier ?? "—",
       },
-      { key: "origin", title: t("Xuất xứ"), width: 150, render: (_, row) => row.origin ?? "—" },
+      { key: "origin", title: t("Materials:OriginCol"), width: 150, render: (_, row) => row.origin ?? "—" },
       {
         key: "unitCost",
-        title: t("Giá nhập"),
+        title: t("Materials:CostCol"),
         width: 150,
         align: "right",
         render: (_, row) => (
@@ -198,7 +198,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       },
       {
         key: "salePrice",
-        title: t("Giá bán"),
+        title: t("Materials:SalePriceCol"),
         width: 150,
         align: "right",
         render: (_, row) => (
@@ -209,31 +209,31 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Common:Actions"),
         width: 110,
         align: "center",
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", row.name)}
+                  aria-label={t("Materials:EditAria", row.name)}
                   onClick={() => setMaterialDialog({ open: true, material: row })}
                 />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", row.name)}
+                  aria-label={t("Materials:DeleteAria", row.name)}
                   onClick={() => setPendingDelete({ id: row.id, name: row.name })}
                 />
               </Tooltip>
@@ -259,9 +259,9 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
 
   const groupPanel = (
     <GroupPanel
-      title={t("Nhóm vật tư")}
-      subtitle={t("Chọn nhóm để xem vật tư")}
-      searchPlaceholder={t("Tìm nhóm vật tư...")}
+      title={t("Materials:GroupPanel")}
+      subtitle={t("Materials:GroupSubtitle")}
+      searchPlaceholder={t("Materials:SearchGroup")}
       groups={groups}
       isLoading={groupsQuery.isLoading}
       isSearching={groupsQuery.isFetching}
@@ -292,7 +292,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
         onClose={() => setGroupsOpen(false)}
         placement="left"
         size={288}
-        title={t("Nhóm vật tư")}
+        title={t("Materials:GroupPanel")}
         className="bd-group-drawer"
         styles={{ body: { padding: 0 } }}
       >
@@ -302,7 +302,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       <main className="bd-taxonomy-main">
         <div className="bd-cat-header bd-cat-header--bar">
           <Button type="link" icon={<MenuOutlined />} onClick={() => setGroupsOpen(true)}>
-            {t("Chọn nhóm")}
+            {t("Materials:SelectGroup")}
           </Button>
         </div>
         <div className="bd-materials-toolbar">
@@ -315,15 +315,15 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
               // the panel's selection only pre-fills it.
               onClick={() => setMaterialDialog({ open: true, material: null })}
             >
-              {t("Thêm vật tư")}
+              {t("Materials:AddMaterial")}
             </Button>
           )}
 
           <Input
             className="bd-materials-search"
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm")}
-            aria-label={t("Tìm kiếm")}
+            placeholder={t("Common:Search")}
+            aria-label={t("Common:Search")}
             value={keyword}
             allowClear
             onChange={(event) => {
@@ -335,10 +335,10 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
           {/* The reference offers this and leaves it disabled too. A disabled
               button swallows its own tooltip, so the reason hangs off a
               wrapper the pointer can still reach. */}
-          <Tooltip title={t("Chưa kết nối hệ thống nguồn để đồng bộ")}>
+          <Tooltip title={t("Materials:SyncNotConnected")}>
             <span className="bd-materials-sync">
               <Button icon={<SyncOutlined />} disabled>
-                {t("Sync data hệ thống")}
+                {t("Materials:SyncData")}
               </Button>
             </span>
           </Tooltip>
@@ -364,10 +364,10 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
                 suppliesQuery.data?.totalCount ?? 0,
                 (total, shown) =>
                   total === 0
-                    ? t("Hiển thị 0 trên 0")
-                    : t("Hiển thị {0}–{1} trên {2}", shown[0], shown[1], total),
+                    ? t("Materials:ShowZero")
+                    : t("Materials:ShowRange", shown[0], shown[1], total),
               )}
-              locale={{ emptyText: t("Không có dữ liệu") }}
+              locale={{ emptyText: t("Common:NoData") }}
             />
           </div>
         </div>
@@ -413,7 +413,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
 
       <ConfirmDeleteDialog
         open={pendingGroupDelete !== null}
-        noun={t("nhóm vật tư")}
+        noun={t("Materials:GroupNoun")}
         name={pendingGroupDelete?.name ?? ""}
         pending={removeGroup.isPending}
         onConfirm={() => void confirmGroupDelete()}
@@ -422,7 +422,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("vật tư")}
+        noun={t("Materials:MaterialNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteSupply.isPending}
         onConfirm={() => void confirmDelete()}

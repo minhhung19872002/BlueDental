@@ -3,7 +3,7 @@ using System;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// The "% thuế" values the reference offers on a service. Two of them are not
+/// The "BE:Field:TaxRate" values the reference offers on a service. Two of them are not
 /// numbers at all, which is why this is an enum rather than a decimal column.
 /// </summary>
 public enum ServiceTaxRate
@@ -33,7 +33,7 @@ public static class ServiceTaxRates
 }
 
 /// <summary>
-/// "Sử dụng" on a prescription line. The reference offers these as a
+/// "BE:Field:Usage" on a prescription line. The reference offers these as a
 /// <b>multi-select</b> — one line can be both "sau khi ăn" and "trước khi ngủ" —
 /// so they are flags rather than a single choice.
 /// </summary>

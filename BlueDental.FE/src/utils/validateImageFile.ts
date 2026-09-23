@@ -20,10 +20,10 @@ export const IMAGE_ACCEPT = ACCEPTED_IMAGE_TYPES.join(",");
  */
 export function validateImageFile(file: File): string | null {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type as (typeof ACCEPTED_IMAGE_TYPES)[number])) {
-    return t("Chỉ chấp nhận ảnh PNG, JPG hoặc WEBP");
+    return t("Common:Validation:ImageTypesOnly");
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    return t("Ảnh phải nhỏ hơn 5 MB");
+    return t("Common:Validation:ImageMaxSize");
   }
   return null;
 }

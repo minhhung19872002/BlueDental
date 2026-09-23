@@ -12,7 +12,7 @@ namespace BlueDental.Migrations
     /// here does, and an article's body stops being capped.
     ///
     /// The 10,000 character ceiling refused any article carrying an image —
-    /// Postgres raised 22001 and the screen showed "Lỗi hệ thống". Rich text has
+    /// Postgres raised 22001 and the screen showed "BE:Common:SystemError". Rich text has
     /// no sensible ceiling, so the column becomes `text`.
     ///
     /// Existing rows are handed to the seeded main branch: this is demo and

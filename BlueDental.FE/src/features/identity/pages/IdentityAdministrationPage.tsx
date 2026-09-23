@@ -57,7 +57,7 @@ function UserModal({
             isActive: values.isActive ?? true,
           } as UpdateIdentityUserDto,
         });
-        toast.success(t("Cập nhật người dùng thành công"));
+        toast.success(t("Identity:UpdateUserSuccess"));
       } else {
         await createMutation.mutateAsync({
           userName: values.userName,
@@ -68,7 +68,7 @@ function UserModal({
           roleNames: values.roleNames,
           isActive: values.isActive ?? true,
         } as CreateIdentityUserDto);
-        toast.success(t("Tạo người dùng thành công"));
+        toast.success(t("Identity:CreateUserSuccess"));
       }
       form.resetFields();
       onClose();
@@ -79,13 +79,13 @@ function UserModal({
 
   return (
     <Modal
-      title={isEdit ? t("Chỉnh sửa người dùng") : t("Tạo người dùng")}
+      title={isEdit ? t("Identity:EditUser") : t("Identity:CreateUser")}
       open={open}
       onCancel={() => { form.resetFields(); onClose(); }}
       onOk={handleOk}
       confirmLoading={createMutation.isPending || updateMutation.isPending}
-      okText={isEdit ? t("Lưu thay đổi") : t("Tạo người dùng")}
-      cancelText={t("Hủy")}
+      okText={isEdit ? t("Identity:SaveChanges") : t("Identity:CreateUser")}
+      cancelText={t("Common:Cancel")}
       width={520}
       destroyOnClose
       afterOpenChange={(visible) => {
@@ -104,32 +104,32 @@ function UserModal({
       }}
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="userName" label={t("Tên đăng nhập")} rules={[{ required: true, message: t("Nhập tên đăng nhập") }]}>
+        <Form.Item name="userName" label={t("Identity:UserName")} rules={[{ required: true, message: t("Identity:UserNamePlaceholder") }]}>
           <Input placeholder="username" disabled={isEdit} />
         </Form.Item>
-        <Form.Item name="name" label={t("Họ và tên")} rules={[{ required: true, message: t("Nhập họ tên") }]}>
-          <Input placeholder={t("Nguyễn Văn A")} />
+        <Form.Item name="name" label={t("Identity:FullName")} rules={[{ required: true, message: t("Identity:FullNamePlaceholder") }]}>
+          <Input placeholder={t("Identity:FullNameExample")} />
         </Form.Item>
-        <Form.Item name="email" label={t("Email")} rules={[{ required: true, type: "email", message: t("Nhập email hợp lệ") }]}>
+        <Form.Item name="email" label={t("Identity:Email")} rules={[{ required: true, type: "email", message: t("Identity:EmailPlaceholder") }]}>
           <Input placeholder="user@example.com" />
         </Form.Item>
-        <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
+        <Form.Item name="phoneNumber" label={t("Identity:Phone")}>
           <Input placeholder="0901234567" />
         </Form.Item>
         {!isEdit && (
-          <Form.Item name="password" label={t("Mật khẩu")} rules={[{ required: true, min: 8, message: t("Tối thiểu 8 ký tự") }]}>
-            <Input.Password placeholder={t("Mật khẩu...")} />
+          <Form.Item name="password" label={t("Identity:Password")} rules={[{ required: true, min: 8, message: t("Identity:PasswordMinLength") }]}>
+            <Input.Password placeholder={t("Identity:PasswordPlaceholder")} />
           </Form.Item>
         )}
-        <Form.Item name="roleNames" label={t("Vai trò")}>
+        <Form.Item name="roleNames" label={t("Identity:Roles")}>
           <Select
             mode="multiple"
-            placeholder={t("Chọn vai trò...")}
+            placeholder={t("Identity:RolesPlaceholder")}
             options={roleNames.map((r) => ({ value: r, label: r }))}
           />
         </Form.Item>
-        <Form.Item name="isActive" label={t("Trạng thái")} valuePropName="checked">
-          <Switch checkedChildren={t("Hoạt động")} unCheckedChildren={t("Vô hiệu")} />
+        <Form.Item name="isActive" label={t("Identity:ActiveStatus")} valuePropName="checked">
+          <Switch checkedChildren={t("Identity:Active")} unCheckedChildren={t("Identity:Inactive")} />
         </Form.Item>
       </Form>
     </Modal>
@@ -146,7 +146,7 @@ function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     try {
       const values = await form.validateFields();
       await createMutation.mutateAsync(values);
-      toast.success(t("Tạo vai trò thành công"));
+      toast.success(t("Identity:CreateRoleSuccess"));
       form.resetFields();
       onClose();
     } catch {
@@ -156,25 +156,25 @@ function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   return (
     <Modal
-      title={t("Tạo vai trò")}
+      title={t("Identity:CreateRole")}
       open={open}
       onCancel={() => { form.resetFields(); onClose(); }}
       onOk={handleOk}
       confirmLoading={createMutation.isPending}
-      okText={t("Tạo vai trò")}
-      cancelText={t("Hủy")}
+      okText={t("Identity:CreateRole")}
+      cancelText={t("Common:Cancel")}
       width={420}
       destroyOnClose
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="name" label={t("Tên vai trò")} rules={[{ required: true, message: t("Nhập tên vai trò") }]}>
+        <Form.Item name="name" label={t("Identity:RoleName")} rules={[{ required: true, message: t("Identity:RoleNamePlaceholder") }]}>
           <Input placeholder={t("VD: admin, doctor, receptionist")} />
         </Form.Item>
-        <Form.Item name="isDefault" label={t("Mặc định")} valuePropName="checked">
-          <Switch checkedChildren={t("Có")} unCheckedChildren={t("Không")} />
+        <Form.Item name="isDefault" label={t("Identity:IsDefault")} valuePropName="checked">
+          <Switch checkedChildren={t("Identity:Yes")} unCheckedChildren={t("Identity:No")} />
         </Form.Item>
-        <Form.Item name="isPublic" label={t("Công khai")} valuePropName="checked" initialValue>
-          <Switch checkedChildren={t("Có")} unCheckedChildren={t("Không")} defaultChecked />
+        <Form.Item name="isPublic" label={t("Identity:IsPublic")} valuePropName="checked" initialValue>
+          <Switch checkedChildren={t("Identity:Yes")} unCheckedChildren={t("Identity:No")} defaultChecked />
         </Form.Item>
       </Form>
     </Modal>
@@ -202,19 +202,19 @@ function UsersTab() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      toast.success(t("Xóa người dùng thành công"));
+      toast.success(t("Identity:DeleteUserSuccess"));
     } catch {
-      toast.error(t("Xóa thất bại"));
+      toast.error(t("Identity:DeleteUserFailed"));
     }
   };
 
   const columns: ColumnsType<IdentityUserDto> = [
-    { title: t("Tên đăng nhập"), dataIndex: "userName", key: "userName", width: 160 },
-    { title: t("Họ và tên"), dataIndex: "name", key: "name" },
-    { title: t("Email"), dataIndex: "email", key: "email" },
-    { title: t("Số điện thoại"), dataIndex: "phoneNumber", key: "phoneNumber", render: (v: string) => v ?? "—" },
+    { title: t("Identity:ColUserName"), dataIndex: "userName", key: "userName", width: 160 },
+    { title: t("Identity:ColFullName"), dataIndex: "name", key: "name" },
+    { title: t("Identity:ColEmail"), dataIndex: "email", key: "email" },
+    { title: t("Identity:ColPhone"), dataIndex: "phoneNumber", key: "phoneNumber", render: (v: string) => v ?? "—" },
     {
-      title: t("Vai trò"),
+      title: t("Identity:ColRoles"),
       dataIndex: "roleNames",
       key: "roleNames",
       render: (roles: string[]) => (
@@ -222,19 +222,19 @@ function UsersTab() {
       ),
     },
     {
-      title: t("Trạng thái"),
+      title: t("Identity:ColStatus"),
       dataIndex: "isActive",
       key: "isActive",
-      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Hoạt động") : t("Vô hiệu")}</Tag>,
+      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Identity:Active") : t("Identity:Inactive")}</Tag>,
     },
     {
-      title: t("Ngày tạo"),
+      title: t("Identity:ColCreatedAt"),
       dataIndex: "creationTime",
       key: "creationTime",
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
     ...((canEditUser || canDeleteUser) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions" as const,
       width: 120,
       fixed: "right" as const,
@@ -245,10 +245,10 @@ function UsersTab() {
           )}
           {canDeleteUser && (
             <Popconfirm
-              title={t("Xóa người dùng này?")}
+              title={t("Identity:DeleteUserConfirm")}
               onConfirm={() => handleDelete(record.id)}
-              okText={t("Xóa")}
-              cancelText={t("Hủy")}
+              okText={t("Common:Delete")}
+              cancelText={t("Common:Cancel")}
               okButtonProps={{ danger: true }}
             >
               <Button size="small" danger icon={<DeleteOutlined />} />
@@ -269,12 +269,12 @@ function UsersTab() {
               icon={<PlusOutlined />}
               onClick={() => { setEditingUser(null); setModalOpen(true); }}
             >
-              {t("Tạo người dùng")}
+              {t("Identity:CreateUser")}
             </Button>
           )}
           <Input
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm theo tên, email...")}
+            placeholder={t("Identity:SearchPlaceholder")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
@@ -288,8 +288,8 @@ function UsersTab() {
           dataSource={usersData?.items ?? []}
           columns={columns}
           loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => t("{0} người dùng", total) }}
-          locale={{ emptyText: t("Không có người dùng") }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Identity:UserCount", total) }}
+          locale={{ emptyText: t("Identity:NoUser") }}
           scroll={{ x: "max-content" }}
           size="middle"
         />
@@ -318,46 +318,46 @@ function RolesTab() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      toast.success(t("Xóa vai trò thành công"));
+      toast.success(t("Identity:DeleteRoleSuccess"));
     } catch {
-      toast.error(t("Không thể xóa vai trò hệ thống"));
+      toast.error(t("Identity:DeleteRoleFailed"));
     }
   };
 
   const columns: ColumnsType<IdentityRoleDto> = [
-    { title: t("Tên vai trò"), dataIndex: "name", key: "name" },
+    { title: t("Identity:ColRoleName"), dataIndex: "name", key: "name" },
     {
-      title: t("Mặc định"),
+      title: t("Identity:ColIsDefault"),
       dataIndex: "isDefault",
       key: "isDefault",
-      render: (v: boolean) => v ? <Tag color="blue">{t("Mặc định")}</Tag> : "—",
+      render: (v: boolean) => v ? <Tag color="blue">{t("Identity:IsDefault")}</Tag> : "—",
     },
     {
-      title: t("Hệ thống"),
+      title: t("Identity:ColIsSystem"),
       dataIndex: "isStatic",
       key: "isStatic",
-      render: (v: boolean) => v ? <Tag color="orange">{t("Tĩnh")}</Tag> : "—",
+      render: (v: boolean) => v ? <Tag color="orange">{t("Identity:Static")}</Tag> : "—",
     },
     {
-      title: t("Công khai"),
+      title: t("Identity:ColIsPublic"),
       dataIndex: "isPublic",
       key: "isPublic",
-      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Công khai") : t("Riêng tư")}</Tag>,
+      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Identity:Public") : t("Identity:Private")}</Tag>,
     },
     {
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 100,
       fixed: "right",
       render: (_, record) =>
         record.isStatic ? (
-          <Tag>{t("Không thể xóa")}</Tag>
+          <Tag>{t("Identity:CannotDelete")}</Tag>
         ) : canDeleteRole ? (
           <Popconfirm
-            title={t("Xóa vai trò này?")}
+            title={t("Identity:DeleteRoleConfirm")}
             onConfirm={() => handleDelete(record.id)}
-            okText={t("Xóa")}
-            cancelText={t("Hủy")}
+            okText={t("Common:Delete")}
+            cancelText={t("Common:Cancel")}
             okButtonProps={{ danger: true }}
           >
             <Button size="small" danger icon={<DeleteOutlined />} />
@@ -372,7 +372,7 @@ function RolesTab() {
         <div style={{ display: "flex", gap: 8 }}>
           {canCreateRole && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-              {t("Tạo vai trò")}
+              {t("Identity:CreateRole")}
             </Button>
           )}
         </div>
@@ -384,7 +384,7 @@ function RolesTab() {
           columns={columns}
           loading={isLoading}
           pagination={false}
-          locale={{ emptyText: t("Không có vai trò") }}
+          locale={{ emptyText: t("Identity:NoRole") }}
           scroll={{ x: "max-content" }}
           size="middle"
         />
@@ -406,14 +406,14 @@ export function IdentityAdministrationPage() {
     if (canUsers) {
       all.push({
         key: "users",
-        label: <span><UserOutlined style={{ marginRight: 6 }} />{t("Người dùng")}</span>,
+        label: <span><UserOutlined style={{ marginRight: 6 }} />{t("Identity:UsersTab")}</span>,
         children: <UsersTab />,
       });
     }
     if (canRoles) {
       all.push({
         key: "roles",
-        label: <span><SafetyOutlined style={{ marginRight: 6 }} />{t("Vai trò")}</span>,
+        label: <span><SafetyOutlined style={{ marginRight: 6 }} />{t("Identity:RolesTab")}</span>,
         children: <RolesTab />,
       });
     }
@@ -423,16 +423,16 @@ export function IdentityAdministrationPage() {
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Người dùng & vai trò")}
-        subtitle={t("Tài khoản đăng nhập và phân quyền")}
+        title={t("Identity:PageTitle")}
+        subtitle={t("Identity:PageSubtitle")}
       />
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)", marginBottom: 4 }}>
-          {t("Quản trị người dùng & vai trò")}
+          {t("Identity:AdminTitle")}
         </div>
         <div style={{ fontSize: 13, color: "var(--bd-muted)" }}>
-          {t("Quản lý tài khoản, vai trò và phân quyền trong hệ thống")}
+          {t("Identity:AdminSubtitle")}
         </div>
       </div>
       <PillTabs

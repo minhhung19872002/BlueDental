@@ -57,13 +57,13 @@ export function DepartmentDialog({ open, department, onClose, onCreated }: Props
     try {
       if (department) {
         await updateDepartment.mutateAsync({ id: department.id, data: input });
-        toast.success(t("Đã cập nhật phòng ban"));
+        toast.success(t("Materials:DeptUpdated"));
         onClose();
         return;
       }
 
       const created = await createDepartment.mutateAsync(input);
-      toast.success(t("Đã thêm phòng ban"));
+      toast.success(t("Materials:DeptAdded"));
       onClose();
       onCreated(created);
     } catch {
@@ -74,7 +74,7 @@ export function DepartmentDialog({ open, department, onClose, onCreated }: Props
   return (
     <AppDialog
       open={open}
-      title={department ? t("Sửa phòng ban") : t("Tạo phòng ban")}
+      title={department ? t("Materials:EditDept") : t("Materials:CreateDept")}
       canSave={name.trim().length > 0}
       saving={createDepartment.isPending || updateDepartment.isPending}
       onSave={() => form.submit()}
@@ -90,15 +90,15 @@ export function DepartmentDialog({ open, department, onClose, onCreated }: Props
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên phòng ban")}
+              label={t("Materials:DeptName")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên phòng ban") }]}
+              rules={[{ required: true, message: t("Materials:DeptNameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="sortOrder" label={t("Số thứ tự")}>
+            <FloatingField name="sortOrder" label={t("Materials:SortOrder")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>

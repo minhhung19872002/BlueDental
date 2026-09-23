@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+﻿import { useCallback } from "react";
 import { DatePicker, Form, Input, Radio, Segmented, Switch } from "antd";
 import type { FormInstance } from "antd";
 import { t } from "@/lib/i18n";
@@ -65,17 +65,17 @@ export function VoucherFormFields({ form }: Props) {
       <div className="voucher-field-row">
         <FloatingField
           name="startDate"
-          label={t("Ngày bắt đầu")}
+          label={t("Voucher:StartDate")}
           required
-          rules={[{ required: true, message: t("Vui lòng chọn ngày") }]}
+          rules={[{ required: true, message: t("Voucher:DateRequired") }]}
         >
           <DatePicker format="DD/MM/YYYY" />
         </FloatingField>
         <FloatingField
           name="endDate"
-          label={t("Ngày hết hạn")}
+          label={t("Voucher:EndDateLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng chọn ngày") }]}
+          rules={[{ required: true, message: t("Voucher:DateRequired") }]}
         >
           <DatePicker format="DD/MM/YYYY" />
         </FloatingField>
@@ -87,20 +87,20 @@ export function VoucherFormFields({ form }: Props) {
           <Segmented
             options={[
               { label: "%", value: "percentage" },
-              { label: t("VNĐ"), value: "fixed_amount" },
+              { label: t("Voucher:CurrencyLabel"), value: "fixed_amount" },
             ]}
           />
         </Form.Item>
         <FloatingField
           name="discountValue"
-          label={t("Mức giảm")}
+          label={t("Voucher:DiscountLabel")}
           required
           className="voucher-discount-value"
           rules={[
-            { required: true, message: t("Vui lòng nhập mức giảm") },
-            { type: "number", min: 1, message: t("Mức giảm phải lớn hơn 0") },
+            { required: true, message: t("Voucher:DiscountRequired") },
+            { type: "number", min: 1, message: t("Voucher:DiscountMin") },
             ...(discountType === "percentage"
-              ? [{ type: "number" as const, max: 100, message: t("Phần trăm tối đa là 100") }]
+              ? [{ type: "number" as const, max: 100, message: t("Voucher:DiscountMax100") }]
               : []),
           ]}
         >
@@ -109,7 +109,7 @@ export function VoucherFormFields({ form }: Props) {
         {discountType === "percentage" && (
           <FloatingField
             name="maxDiscountAmount"
-            label={t("Giảm tối đa (VNĐ)")}
+            label={t("Voucher:MaxDiscountLabel")}
             className="voucher-discount-max"
           >
             <CurrencyInput />
@@ -119,13 +119,13 @@ export function VoucherFormFields({ form }: Props) {
 
       {/* ── Scope ── */}
       <div className="voucher-scope-label">
-        {t("Phạm vi áp dụng")} <span className="voucher-required-star">*</span>
+        {t("Voucher:ScopeLabel")} <span className="voucher-required-star">*</span>
       </div>
       <div className="voucher-scope-bar">
         <Form.Item name="scopeTarget" noStyle>
           <Radio.Group>
-            <Radio value="service">{t("Theo dịch vụ")}</Radio>
-            <Radio value="treatment">{t("Tổng kế hoạch")}</Radio>
+            <Radio value="service">{t("Voucher:ScopeService")}</Radio>
+            <Radio value="treatment">{t("Voucher:ScopeTreatment")}</Radio>
           </Radio.Group>
         </Form.Item>
       </div>
@@ -136,14 +136,14 @@ export function VoucherFormFields({ form }: Props) {
         <div className="voucher-min-order">
           <FloatingField
             name="minOrderValue"
-            label={t("Nhập giá trị đơn hàng tối thiểu(VNĐ)")}
+            label={t("Voucher:MinOrderLabel2")}
             required
-            rules={[{ required: true, message: t("Vui lòng nhập giá trị tối thiểu") }]}
+            rules={[{ required: true, message: t("Voucher:MinOrderRequired") }]}
           >
             <CurrencyInput />
           </FloatingField>
           <div className="voucher-form-hint">
-            {t("Voucher chỉ áp dụng khi tổng kế hoạch đạt ngưỡng này.")}
+            {t("Voucher:MinOrderHint")}
           </div>
         </div>
       )}
@@ -151,7 +151,7 @@ export function VoucherFormFields({ form }: Props) {
       {/* ── Days of week ── */}
       <div className="voucher-days-section">
         <div className="voucher-days-header">
-          <span>{t("Giới hạn theo ngày trong tuần")}</span>
+          <span>{t("Voucher:DayLimit")}</span>
           <Form.Item name="isDaysOfWeekLimited" valuePropName="checked" noStyle>
             <Switch />
           </Form.Item>
@@ -165,9 +165,9 @@ export function VoucherFormFields({ form }: Props) {
       <div className="voucher-exclusive-card">
         <div className="voucher-exclusive-row">
           <div>
-            <div className="voucher-exclusive-title">{t("Áp dụng với các voucher khác?")}</div>
+            <div className="voucher-exclusive-title">{t("Voucher:ExclusiveToggle")}</div>
             <div className="voucher-exclusive-desc">
-              {t("Bật để cho phép kết hợp với voucher khác trong cùng kế hoạch.")}
+              {t("Voucher:ExclusiveHint")}
             </div>
           </div>
           {/* The switch means "cho phép kết hợp" — ON stores isExclusive: false. */}
@@ -184,8 +184,9 @@ export function VoucherFormFields({ form }: Props) {
 
       {/* ── Description ── */}
       <Form.Item name="description">
-        <Input.TextArea rows={4} placeholder={t("Mô tả thêm cho voucher...")} />
+        <Input.TextArea rows={4} placeholder={t("Voucher:DescriptionPlaceholder")} />
       </Form.Item>
     </>
   );
 }
+

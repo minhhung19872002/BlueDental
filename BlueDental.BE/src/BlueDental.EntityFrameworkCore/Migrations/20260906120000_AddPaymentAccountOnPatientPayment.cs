@@ -10,7 +10,7 @@ namespace BlueDental.Migrations
     /// <summary>
     /// Tài khoản nhận tiền on a patient payment.
     ///
-    /// The reference's "Tạo phiếu thanh toán" validates
+    /// The reference's "BE:Perm:CreatePayment" validates
     /// <c>paymentAccountId: required when paymentMethod is "bank" or "momo"</c>
     /// and picks it from the clinic's Phương thức thanh toán catalog — the same
     /// list BlueDental keeps as <c>bd_payment_accounts</c>. Nullable, because

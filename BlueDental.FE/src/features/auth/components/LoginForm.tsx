@@ -18,29 +18,26 @@ import type { LoginResponse } from "../types";
  * words. Built per call: t() reads the language that is current now.
  */
 const LOGIN_RESULT_MESSAGES: Record<number, () => string> = {
-  2: () => t("Tên đăng nhập hoặc mật khẩu không đúng."),
-  3: () => t("Tài khoản chưa được phép đăng nhập. Vui lòng liên hệ quản trị viên."),
-  4: () => t("Tài khoản đang tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau."),
-  5: () => t("Tài khoản cần xác thực hai lớp để đăng nhập."),
+  2: () => t("Auth:UsernameOrPasswordWrong"),
+  3: () => t("Auth:AccountNotAllowed"),
+  4: () => t("Auth:AccountLockedOut"),
+  5: () => t("Auth:TwoFactorRequired"),
 };
 
 function loginResultMessage(result: LoginResponse): string {
   if (result.result === 4 && result.lockoutMinutes) {
-    return t(
-      "Tài khoản đang tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau {0} phút.",
-      result.lockoutMinutes,
-    );
+    return t("Auth:AccountLockedOutWithMinutes", result.lockoutMinutes);
   }
   return (
     LOGIN_RESULT_MESSAGES[result.result]?.() ??
-    t("Đăng nhập không thành công. Vui lòng thử lại.")
+    t("Auth:LoginFailed")
   );
 }
 
 const buildLoginSchema = () =>
   z.object({
-  userNameOrEmailAddress: z.string().min(1, t("Vui lòng nhập tên đăng nhập")),
-  password: z.string().min(1, t("Vui lòng nhập mật khẩu")),
+  userNameOrEmailAddress: z.string().min(1, t("Auth:UsernameRequired")),
+  password: z.string().min(1, t("Auth:PasswordRequired")),
   rememberMe: z.boolean().optional(),
 });
 
@@ -105,7 +102,7 @@ export function LoginForm() {
       {/* The design labels each field above the box and keeps the box itself
           plain — no icon inside — so the two rows read as one block. */}
       <Form.Item
-        label={t("Tài khoản")}
+        label={t("Auth:UsernameLabel")}
         colon={false}
         validateStatus={errors.userNameOrEmailAddress ? "error" : ""}
         help={errors.userNameOrEmailAddress?.message}
@@ -116,7 +113,7 @@ export function LoginForm() {
           render={({ field }) => (
             <Input
               {...field}
-              placeholder={t("Tên đăng nhập hoặc email")}
+              placeholder={t("Auth:UsernamePlaceholder")}
               size="large"
               autoComplete="username"
             />
@@ -125,7 +122,7 @@ export function LoginForm() {
       </Form.Item>
 
       <Form.Item
-        label={t("Mật khẩu")}
+        label={t("Auth:PasswordLabel")}
         colon={false}
         validateStatus={errors.password ? "error" : ""}
         help={errors.password?.message}
@@ -136,7 +133,7 @@ export function LoginForm() {
           render={({ field }) => (
             <Input.Password
               {...field}
-              placeholder={t("Mật khẩu")}
+              placeholder={t("Auth:PasswordPlaceholder")}
               size="large"
               autoComplete="current-password"
             />
@@ -150,7 +147,7 @@ export function LoginForm() {
           control={control}
           render={({ field }) => (
             <Checkbox checked={field.value} onChange={field.onChange}>
-              {t("Ghi nhớ đăng nhập")}
+              {t("Auth:RememberMe")}
             </Checkbox>
           )}
         />
@@ -173,7 +170,7 @@ export function LoginForm() {
         className="login-submit"
         loading={loginMutation.isPending}
       >
-        {t("Đăng nhập")}
+        {t("Auth:LoginButton")}
       </Button>
       </Form>
     </form>

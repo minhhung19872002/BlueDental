@@ -33,7 +33,7 @@ export function adaptPatientImage(dto: PatientImageDto): PatientImageViewModel {
     ordering: dto.ordering,
     takenAt: dto.takenAt,
     dayKey: takenAt.format("YYYY-MM-DD"),
-    dayLabel: takenAt.format("DD/MM/YYYY"),
+    dayLabel: takenAt.format("Patient:Misc:DateFormat"),
     takenLabel: formatDateTime(dto.takenAt),
   };
 }

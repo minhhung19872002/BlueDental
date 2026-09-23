@@ -146,9 +146,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         await _repository.InsertAsync(stage, autoSave: true);
 
         // The first công đoạn is what puts a line to work, so the line has to be
-        // moved here too. Without this the line sat at "Đã tạo" however many
-        // công đoạn it carried, and "Dịch vụ đang điều trị" stayed empty while the
-        // slip beside it already read "Đang điều trị" (R-463).
+        // moved here too. Without this the line sat at "BE:Status:Created" however many
+        // công đoạn it carried, and "BE:CareType:ServicesInTreatment" stayed empty while the
+        // slip beside it already read "BE:CareType:InTreatment" (R-463).
         await MoveServiceLineAsync(stage);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
@@ -211,7 +211,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     }
 
     /// <summary>
-    /// Ticks or unticks the steps under "Danh sách công đoạn" — the reference's
+    /// Ticks or unticks the steps under "BE:Treatment:StageList" — the reference's
     /// <c>PUT /v1/patient-stages/{id}/stage-service-items</c>. Gated by
     /// <c>update</c>, the ability the reference uses for editing a công đoạn's
     /// own fields; it has none of its own for this.
@@ -258,7 +258,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     /// Derived from the siblings rather than from the move that was just made, so
     /// completing and reverting both land on the same answer.
     ///
-    /// ASSUMED — the reference shows a per-line "Trạng thái - Tiến độ" but never
+    /// ASSUMED — the reference shows a per-line "BE:Field:StatusProgress" but never
     /// revealed what advances it.
     /// </summary>
     private async Task MoveServiceLineAsync(TreatmentStage stage)
@@ -355,7 +355,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
 
     /// <summary>
     /// The image requirement lives on the service's own configuration — the
-    /// reference keeps it on the dialog's "Cài đặt" tab with the other service
+    /// reference keeps it on the dialog's "BE:Perm:Settings" tab with the other service
     /// settings, not on the shared catalog row.
     /// </summary>
     private async Task<bool> ServiceRequiresImageAsync(Guid serviceId)
@@ -382,7 +382,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         var catalogQuery = await _catalogRepository.WithDetailsAsync(c => c.Stages);
         var entries = catalogQuery.Where(c => serviceIds.Contains(c.Id)).ToList();
         var serviceNames = entries.ToDictionary(c => c.Id, c => c.Name);
-        // "Danh sách công đoạn" is named by the service, not copied onto the
+        // "BE:Treatment:StageList" is named by the service, not copied onto the
         // công đoạn, so a rename in Danh mục shows through everywhere at once.
         var stageNames = entries
             .SelectMany(c => c.Stages)

@@ -59,7 +59,7 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
           reference: values.reference?.trim() || undefined,
         },
       });
-      toast.success(t("Đã ghi nhận thanh toán"));
+      toast.success(t("Billing:RecordPaymentSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -71,9 +71,9 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
   return (
     <Modal
       open={open}
-      title={t("Ghi nhận thanh toán")}
-      okText={t("Xác nhận thanh toán")}
-      cancelText={t("Huỷ")}
+      title={t("Billing:RecordPayment")}
+      okText={t("Billing:ConfirmPayment")}
+      cancelText={t("Common:Cancel")}
       confirmLoading={recordPayment.isPending}
       onOk={() => void handleOk()}
       onCancel={onClose}
@@ -91,15 +91,15 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
       {invoice && (
         <div className="pay-summary">
           <div className="pay-summary-row">
-            <span>{t("Phiếu")}</span>
+            <span>{t("Billing:Invoice")}</span>
             <strong>{invoice.invoiceNumber}</strong>
           </div>
           <div className="pay-summary-row">
-            <span>{t("Khách hàng")}</span>
+            <span>{t("Billing:Customer")}</span>
             <strong>{invoice.patientName || "—"}</strong>
           </div>
           <div className="pay-summary-row">
-            <span>{t("Còn lại")}</span>
+            <span>{t("Billing:Remaining")}</span>
             <strong className="pay-summary-due">{formatVND(outstanding)}</strong>
           </div>
         </div>
@@ -108,18 +108,18 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
       <Form form={form} layout="vertical" requiredMark={false}>
         <Form.Item
           name="amount"
-          label={t("Số tiền")}
+          label={t("Billing:Amount")}
           rules={[
-            { required: true, message: t("Vui lòng nhập số tiền") },
+            { required: true, message: t("Billing:AmountRequired") },
             {
               type: "number",
               min: 1,
-              message: t("Số tiền phải lớn hơn 0"),
+              message: t("Billing:AmountPositive"),
             },
             {
               type: "number",
               max: outstanding,
-              message: t("Không thu quá số còn lại"),
+              message: t("Billing:AmountExceedsRemaining"),
             },
           ]}
         >
@@ -134,8 +134,8 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
 
         <Form.Item
           name="method"
-          label={t("Phương thức thanh toán")}
-          rules={[{ required: true, message: t("Vui lòng chọn phương thức") }]}
+          label={t("Billing:PaymentMethodLabel")}
+          rules={[{ required: true, message: t("Billing:PaymentMethodRequired") }]}
         >
           <Select
             options={Object.entries(methodLabels).map(([value, label]) => ({
@@ -145,8 +145,8 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
           />
         </Form.Item>
 
-        <Form.Item name="reference" label={t("Mã tham chiếu")}>
-          <Input placeholder={t("Số giao dịch, mã chuyển khoản...")} />
+        <Form.Item name="reference" label={t("Billing:Reference")}>
+          <Input placeholder={t("Billing:ReferencePlaceholder")} />
         </Form.Item>
       </Form>
     </Modal>

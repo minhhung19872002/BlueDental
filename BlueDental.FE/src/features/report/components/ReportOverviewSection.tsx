@@ -5,21 +5,21 @@ import { OverviewPieCard } from "./OverviewPieCard";
 import { OverviewCard, type OverviewSeriesConfig } from "./OverviewCard";
 
 const VISIT_SERIES: OverviewSeriesConfig[] = [
-  { key: "a", label: () => t("Khách mới"), tone: "gold" },
-  { key: "b", label: () => t("Khách cũ"), tone: "green" },
+  { key: "a", label: () => t("Report:Overview:NewCustomer"), tone: "gold" },
+  { key: "b", label: () => t("Report:Overview:ReturnCustomer"), tone: "green" },
 ];
 const APPOINTMENT_SERIES: OverviewSeriesConfig[] = [
-  { key: "a", label: () => t("Đã hẹn"), tone: "gold" },
-  { key: "b", label: () => t("Đã đến"), tone: "green" },
-  { key: "c", label: () => t("Đã huỷ"), tone: "red" },
+  { key: "a", label: () => t("Report:Overview:Scheduled"), tone: "gold" },
+  { key: "b", label: () => t("Report:Overview:Arrived"), tone: "green" },
+  { key: "c", label: () => t("Report:Overview:Cancelled"), tone: "red" },
 ];
 const PAYMENT_SERIES: OverviewSeriesConfig[] = [
-  { key: "a", label: () => t("Hoàn tiền"), tone: "red" },
-  { key: "b", label: () => t("Tổng thanh toán"), tone: "green" },
+  { key: "a", label: () => t("Report:SubTab:Refund"), tone: "red" },
+  { key: "b", label: () => t("Report:Overview:TotalPayment"), tone: "green" },
 ];
 const INCOME_EXPENSE_SERIES: OverviewSeriesConfig[] = [
-  { key: "a", label: () => t("Thu nhập"), tone: "green" },
-  { key: "b", label: () => t("Chi phí"), tone: "red" },
+  { key: "a", label: () => t("Report:Overview:Income"), tone: "green" },
+  { key: "b", label: () => t("Report:Overview:Expense"), tone: "red" },
 ];
 
 interface Props {
@@ -42,7 +42,7 @@ export function ReportOverviewSection({ variant = "full", range }: Props) {
 
   const incomeExpenseCard = (
     <OverviewCard
-      title={t("Thông tin thu chi")}
+      title={t("Report:Overview:IncomeExpenseInfo")}
       rows={stats.incomeExpense}
       series={stats.incomeExpenseSeries}
       config={INCOME_EXPENSE_SERIES}
@@ -59,19 +59,19 @@ export function ReportOverviewSection({ variant = "full", range }: Props) {
       <OverviewPieCard received={summary?.actualReceived ?? 0} debt={summary?.debtIncurred ?? 0} />
       <div className="report-overview-grid">
         <OverviewCard
-          title={t("Thông tin lượt khách")}
+          title={t("Report:Overview:VisitInfo")}
           rows={stats.visits}
           series={stats.visitSeries}
           config={VISIT_SERIES}
         />
         <OverviewCard
-          title={t("Thông tin lịch hẹn")}
+          title={t("Report:Overview:AppointmentInfo")}
           rows={stats.appointments}
           series={stats.appointmentSeries}
           config={APPOINTMENT_SERIES}
         />
         <OverviewCard
-          title={t("Thông tin thanh toán")}
+          title={t("Report:Overview:PaymentInfo")}
           rows={stats.payments}
           series={stats.paymentSeries}
           config={PAYMENT_SERIES}

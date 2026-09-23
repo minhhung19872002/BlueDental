@@ -100,7 +100,7 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
 
     try {
       await remove.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá"));
+      toast.success(t("Common:Deleted"));
       setPendingDelete(null);
     } catch {
       // queryClient reports the failure; the dialog stays open to retry.
@@ -110,7 +110,7 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
   const columns: ColumnsType<LaboSupplierDto> = [
     {
       key: "name",
-      title: t("Tên labo"),
+      title: t("Labo:Supplier:Name"),
       render: (_, row) => (
         <div className="bd-min0">
           <p className="bd-cat-name">{row.name}</p>
@@ -120,25 +120,25 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
     },
     {
       key: "phone",
-      title: t("Số điện thoại"),
+      title: t("Common:PhoneNumber"),
       width: 170,
       render: (_, row) => row.phone || <span className="bd-cat-num">—</span>,
     },
     {
       key: "email",
-      title: t("Email"),
+      title: t("Common:Email"),
       width: 240,
       render: (_, row) => row.email || <span className="bd-cat-num">—</span>,
     },
     {
       key: "address",
-      title: t("Địa chỉ"),
+      title: t("Common:Address"),
       width: 320,
       render: (_, row) => addressOf(row) || <span className="bd-cat-num">—</span>,
     },
     {
       key: "updatedAt",
-      title: t("Lần cập nhật cuối"),
+      title: t("Labo:Supplier:LastUpdated"),
       width: 180,
       render: (_, row) => (
         <span className="bd-cat-num">
@@ -150,31 +150,31 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
       ? [
           {
             key: "actions",
-            title: t("Thao tác"),
+            title: t("Common:Actions"),
             width: 100,
             align: "center" as const,
             fixed: "right" as const,
             render: (_: unknown, row: LaboSupplierDto) => (
               <div className="bd-cat-rowactions">
                 {canUpdate && (
-                  <Tooltip title={t("Chỉnh sửa")}>
+                  <Tooltip title={t("Common:Edit")}>
                     <Button
                       type="text"
                       size="small"
                       icon={<EditOutlined />}
-                      aria-label={t("Chỉnh sửa {0}", row.name)}
+                      aria-label={t("Common:EditAriaLabel", row.name)}
                       onClick={() => setDialog({ open: true, supplier: row })}
                     />
                   </Tooltip>
                 )}
                 {canDelete && (
-                  <Tooltip title={t("Xoá")}>
+                  <Tooltip title={t("Common:Delete")}>
                     <Button
                       type="text"
                       size="small"
                       danger
                       icon={<DeleteOutlined />}
-                      aria-label={t("Xoá {0}", row.name)}
+                      aria-label={t("Common:DeleteAriaLabel", row.name)}
                       onClick={() => setPendingDelete(row)}
                     />
                   </Tooltip>
@@ -192,8 +192,8 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
         <Input
           className="bd-labo-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm Labo")}
-          aria-label={t("Tìm kiếm Labo")}
+          placeholder={t("Labo:Orders:SearchLabo")}
+          aria-label={t("Labo:Orders:SearchLabo")}
           value={keyword}
           maxLength={100}
           allowClear
@@ -206,7 +206,7 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
             icon={<PlusOutlined />}
             onClick={() => setDialog({ open: true, supplier: null })}
           >
-            {t("Tạo nhà cung cấp")}
+            {t("Labo:Supplier:CreateTitle")}
           </Button>
         )}
       </div>
@@ -220,10 +220,10 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
             loading={query.isFetching}
             locale={{
               emptyText: debouncedKeyword
-                ? t("Không tìm thấy kết quả phù hợp")
-                : t("Không tìm thấy nhà cung cấp Labo"),
+                ? t("Common:NoResultsMatch")
+                : t("Labo:Supplier:NotFound"),
             }}
-            pagination={pagination.buildConfig(totalCount, countedTotal(t("nhà cung cấp")))}
+            pagination={pagination.buildConfig(totalCount, countedTotal(t("Labo:Noun:Supplier")))}
           />
         </div>
       </div>
@@ -236,7 +236,7 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("nhà cung cấp")}
+        noun={t("Labo:Noun:Supplier")}
         name={pendingDelete?.name ?? ""}
         pending={remove.isPending}
         onConfirm={() => void confirmDelete()}

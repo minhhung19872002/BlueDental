@@ -20,7 +20,7 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
     [HttpGet("{id:guid}")]
     public Task<PatientDto> GetAsync(Guid id) => service.GetAsync(id);
 
-    /// <summary>The code the "Tạo hồ sơ" dialog opens with.</summary>
+    /// <summary>The code the "BE:Common:CreateRecord" dialog opens with.</summary>
     [HttpGet("code-estimate")]
     public Task<PatientCodeEstimateDto> GetCodeEstimateAsync() => service.GetCodeEstimateAsync();
 
@@ -43,7 +43,7 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
     public async Task<IActionResult> ExportAsync([FromQuery] GetPatientListInput input) =>
         Excel(await service.ExportAsync(input), "danh-sach-benh-nhan");
 
-    /// <summary>The + beside "Lý do đến khám" — appends one dated line.</summary>
+    /// <summary>The + beside "BE:Field:ReasonForVisit" — appends one dated line.</summary>
     [HttpPost("{id:guid}/examination-reasons")]
     public Task<PatientDto> AddExaminationReasonAsync(
         Guid id,

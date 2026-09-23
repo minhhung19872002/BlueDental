@@ -71,9 +71,9 @@ export function LaboSourcePickers({ lists }: { lists: LaboSourceLists }) {
     <>
       <FloatingField
         name="planId"
-        label={t("Kế hoạch điều trị")}
+        label={t("Patient:Plan:Title")}
         required
-        rules={requiredRule(t("Vui lòng chọn kế hoạch điều trị."))}
+        rules={requiredRule(t("Patient:Misc:RequiredPlan"))}
       >
         <SearchSelect
           allowClear
@@ -86,22 +86,22 @@ export function LaboSourcePickers({ lists }: { lists: LaboSourceLists }) {
       </FloatingField>
       <FloatingField
         name="lineId"
-        label={t("Dịch vụ điều trị")}
+        label={t("Patient:Plan:Service")}
         required
-        rules={requiredRule(t("Vui lòng chọn dịch vụ điều trị."))}
+        rules={requiredRule(t("Patient:Labo:RequiredTreatmentService"))}
       >
         <SearchSelect
           allowClear
           options={lineOptions(lists.plans, planId)}
-          emptyText={t("Không có dịch vụ đang điều trị")}
+          emptyText={t("Patient:Plan:NoActiveService")}
           onChange={pickLine}
         />
       </FloatingField>
       <FloatingField
         name="dentistId"
-        label={t("Bác sĩ chỉ định")}
+        label={t("Patient:QuoteSheet:PrescribingDoctor")}
         required
-        rules={requiredRule(t("Vui lòng chọn bác sĩ chỉ định."))}
+        rules={requiredRule(t("Patient:QuoteSheet:RequiredPrescribingDoctor"))}
       >
         <SearchSelect options={lists.dentists} />
       </FloatingField>

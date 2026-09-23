@@ -62,30 +62,30 @@ export function ConsultingLibrarySheet({
     state = (
       <div className="pd-lib-empty">
         <Spin />
-        <p className="pd-lib-empty__hint">{t("Đang tải nội dung tư vấn...")}</p>
+        <p className="pd-lib-empty__hint">{t("Patient:Advise:Loading")}</p>
       </div>
     );
   } else if (contentsError) {
     state = (
       <div className="pd-lib-empty">
-        <p className="pd-lib-empty__title">{t("Không thể tải nội dung tư vấn.")}</p>
+        <p className="pd-lib-empty__title">{t("Patient:Advise:LoadError")}</p>
         <button type="button" className="tp-btn tp-btn--outline" onClick={retryContents}>
-          {t("Thử lại")}
+          {t("Patient:Misc:Retry")}
         </button>
       </div>
     );
   } else if (content) {
     state = (
       <EmptySheet
-        title={t("Nội dung tư vấn đang trống")}
-        hint={t("Hãy cập nhật nội dung cho mục này.")}
+        title={t("Patient:Advise:ContentEmpty")}
+        hint={t("Patient:Consulting:UpdateContentHint")}
       />
     );
   } else {
     state = (
       <EmptySheet
-        title={t("Chưa có dữ liệu tư vấn")}
-        hint={t("Chọn một chủ đề để xem nội dung.")}
+        title={t("Patient:Advise:Empty")}
+        hint={t("Patient:Consulting:SelectTopicHint")}
       />
     );
   }
@@ -97,7 +97,7 @@ export function ConsultingLibrarySheet({
       <button
         type="button"
         className="pd-lib-arrow pd-lib-arrow--prev"
-        aria-label={t("Ảnh trước")}
+        aria-label={t("Patient:Photo:Before")}
         disabled={imageCount < 2}
         onClick={() => onStep(-1)}
       >
@@ -106,7 +106,7 @@ export function ConsultingLibrarySheet({
       <button
         type="button"
         className="pd-lib-arrow pd-lib-arrow--next"
-        aria-label={t("Ảnh sau")}
+        aria-label={t("Patient:Photo:After")}
         disabled={imageCount < 2}
         onClick={() => onStep(1)}
       >

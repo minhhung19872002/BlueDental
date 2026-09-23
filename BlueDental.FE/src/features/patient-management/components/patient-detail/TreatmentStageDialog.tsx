@@ -88,7 +88,7 @@ export function TreatmentStageDialog({
       open={open}
       width="calc(100vw - 32px)"
       className="pd-stage-dialog"
-      title={t("Chi tiết phiếu")}
+      title={t("Patient:Stage:SlipDetail")}
       footer={null}
       onCancel={requestClose}
       destroyOnHidden
@@ -104,11 +104,11 @@ export function TreatmentStageDialog({
 
       <div className="pd-stage-card">
         <div className="pd-stage-toolbar">
-          <div className="pd-stage-tabs" role="tablist" aria-label={t("Chọn thao tác công đoạn")}>
+          <div className="pd-stage-tabs" role="tablist" aria-label={t("Patient:Stage:SelectAction")}>
             {(
               [
-                ["add", t("THÊM CÔNG ĐOẠN"), composer.counts.add],
-                ["continue", t("TIẾP TỤC CÔNG ĐOẠN"), composer.counts.continue],
+                ["add", t("Patient:Stage:AddLabel"), composer.counts.add],
+                ["continue", t("Patient:Stage:ContinueLabel"), composer.counts.continue],
               ] as const
             ).map(([key, label, count]) => (
               <button
@@ -129,17 +129,17 @@ export function TreatmentStageDialog({
           </div>
           <div className="pd-stage-actions">
             <Button className="pd-stage-pay" icon={<DollarOutlined />} onClick={onOpenPlan}>
-              {t("Thanh toán")}
+              {t("Patient:Misc:Payment")}
             </Button>
             <Button icon={<PrinterOutlined />} onClick={() => setPrinting(true)}>
-              {t("In lịch sử điều trị")}
+              {t("Patient:MedRecord:PrintHistory")}
             </Button>
           </div>
         </div>
 
         <div className="pd-stage-grid">
           <div>
-            <ColumnHead>{t("Chi tiết")}</ColumnHead>
+            <ColumnHead>{t("Patient:Stage:Detail")}</ColumnHead>
             {composer.offered.length === 0 ? (
               <p className="pd-stage-empty">{t(EMPTY_BY_TAB[composer.tab])}</p>
             ) : (
@@ -156,7 +156,7 @@ export function TreatmentStageDialog({
                   >
                     <strong>{item.serviceName ?? item.code}</strong>
                     <span>
-                      {t("Răng")}:
+                      {t("Patient:DentalChart:Tooth")}:
                       {toothLabels(item.teeth).map((label) => (
                         <i key={label}>{label}</i>
                       ))}
@@ -169,14 +169,14 @@ export function TreatmentStageDialog({
 
           <div>
             <div className="pd-stage-colheads">
-              <ColumnHead>{t("Ngày - Nhân sự")}</ColumnHead>
-              <ColumnHead>{t("Dịch vụ đã chọn")}</ColumnHead>
-              <ColumnHead>{t("Nội dung điều trị")}</ColumnHead>
+              <ColumnHead>{t("Patient:Debt:DateStaff")}</ColumnHead>
+              <ColumnHead>{t("Patient:Plan:SelectedService")}</ColumnHead>
+              <ColumnHead>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
             </div>
 
             {composer.line === null ? (
               <p className="pd-stage-hint">
-                {t("Chọn công đoạn ở cột chi tiết để hiển thị nội dung.")}
+                {t("Patient:Stage:SelectHint")}
               </p>
             ) : (
               <StageForm
@@ -191,7 +191,7 @@ export function TreatmentStageDialog({
                 errors={composer.errors}
                 saving={composer.saving}
                 primaryLabel={
-                  composer.tab === "add" ? t("Lưu công đoạn") : t("Tiếp tục công đoạn")
+                  composer.tab === "add" ? t("Patient:Stage:SaveStage") : t("Patient:Stage:Continue")
                 }
                 onStaff={composer.setStaffId}
                 onSubStaff={composer.setSubStaffId}
@@ -249,11 +249,11 @@ export function TreatmentStageDialog({
 
       <ConfirmDeleteDialog
         open={discarding}
-        noun={t("thay đổi")}
-        title={t("Hủy thay đổi")}
-        question={t("Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu.")}
-        confirmLabel={t("Xác nhận hủy")}
-        cancelLabel={t("Tiếp tục chỉnh sửa")}
+        noun={t("Patient:Misc:Change")}
+        title={t("Patient:Misc:CancelChanges")}
+        question={t("Patient:Misc:ConfirmCancelQuestion")}
+        confirmLabel={t("Patient:Misc:ConfirmCancel")}
+        cancelLabel={t("Patient:Misc:ContinueEditing")}
         onConfirm={() => {
           setDiscarding(false);
           onClose();

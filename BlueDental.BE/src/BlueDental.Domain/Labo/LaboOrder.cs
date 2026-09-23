@@ -43,14 +43,14 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// The service line and the công đoạn the order was raised from, when it was
-    /// raised through "Tạo Labo" on a treatment row rather than from the Labo
+    /// raised through "BE:Perm:CreateLabo" on a treatment row rather than from the Labo
     /// screen. Both nullable: a standalone order names neither.
     /// </summary>
     public Guid? TreatmentServiceId { get; private set; }
     public Guid? TreatmentStageId { get; private set; }
 
     /// <summary>
-    /// The order a "Làm tiếp công đoạn" or "Bảo hành" order was raised from
+    /// The order a "BE:Treatment:ContinueStage" or "BE:Common:Warranty" order was raised from
     /// (the reference's <c>sourceLabOrderId</c>). Null on an order raised with
     /// Đặt mới. A child shares its parent's code, patient, branch and service
     /// line, so the code is only unique among the orders without a parent.
@@ -117,7 +117,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// the reference disables those fields and posts the parent's values. The
     /// caller may swap the material (Thay đổi vật liệu mới); a child with no
     /// material at all is refused, the way the reference answers
-    /// "Vui lòng chọn vật liệu.". Whether the service line is still open is the
+    /// "BE:Validation:SelectMaterial". Whether the service line is still open is the
     /// application layer's check, since the line lives on another aggregate.
     /// </summary>
     public static LaboOrder CreateChild(

@@ -46,14 +46,14 @@ export function DiagnosisPrintImages({ images, selected, onSelectedChange }: Pro
       <div className="dp-images">
         <div className="dp-images-head">
           <div>
-            <p className="dp-images-title">{t("Ảnh chẩn đoán")}</p>
-            <p className="dp-images-hint">{t("Chọn ảnh để đưa vào form in.")}</p>
+            <p className="dp-images-title">{t("Patient:Diagnosis:Images")}</p>
+            <p className="dp-images-hint">{t("Patient:Diagnosis:ImageHint")}</p>
           </div>
-          <Tooltip title={t("Danh sách ảnh")}>
+          <Tooltip title={t("Patient:Diagnosis:ImageList")}>
             <button
               type="button"
               className="dp-images-open"
-              aria-label={t("Danh sách ảnh")}
+              aria-label={t("Patient:Diagnosis:ImageList")}
               onClick={() => setListOpen(true)}
             >
               <Images size={20} />
@@ -68,12 +68,12 @@ export function DiagnosisPrintImages({ images, selected, onSelectedChange }: Pro
                 <Checkbox
                   className="dp-images-tick"
                   checked={selected.includes(image.id)}
-                  aria-label={t("Chọn {0}", image.fileName)}
+                  aria-label={t("Patient:Diagnosis:SelectImageLabel", image.fileName)}
                   onChange={() => toggleSelected(image.id)}
                 />
                 <button
                   type="button"
-                  aria-label={t("Chọn {0}", image.fileName)}
+                  aria-label={t("Patient:Diagnosis:SelectImageLabel", image.fileName)}
                   onClick={() => toggleSelected(image.id)}
                 >
                   <img src={image.url} alt={image.fileName} loading="lazy" />
@@ -84,29 +84,29 @@ export function DiagnosisPrintImages({ images, selected, onSelectedChange }: Pro
         ) : (
           <button type="button" className="dp-images-empty" onClick={() => setListOpen(true)}>
             <Images size={32} />
-            {t("Chưa có ảnh hiển thị. Bấm để mở danh sách ảnh.")}
+            {t("Patient:Diagnosis:NoImagesHint")}
           </button>
         )}
       </div>
 
       <Modal
         open={listOpen}
-        title={t("Danh sách ảnh")}
+        title={t("Patient:Diagnosis:ImageList")}
         width={1024}
         zIndex={1300}
         destroyOnHidden
         onCancel={() => setListOpen(false)}
         footer={
           <div className="dp-list-foot">
-            <Button onClick={() => setDropped([])}>{t("Chọn tất cả")}</Button>
+            <Button onClick={() => setDropped([])}>{t("Common:SelectAll")}</Button>
             <Button type="primary" onClick={() => setListOpen(false)}>
-              {t("Xong")}
+              {t("Common:Close")}
             </Button>
           </div>
         }
       >
         {images.length === 0 ? (
-          <div className="dp-list-empty">{t("Chưa có ảnh trong album.")}</div>
+          <div className="dp-list-empty">{t("Patient:Diagnosis:NoImages")}</div>
         ) : (
           <div className="dp-list-grid">
             {images.map((image) => (
@@ -121,7 +121,7 @@ export function DiagnosisPrintImages({ images, selected, onSelectedChange }: Pro
                 <Checkbox
                   className="dp-list-tick"
                   checked={!dropped.includes(image.id)}
-                  aria-label={t("Hiển thị {0}", image.fileName)}
+                  aria-label={t("Patient:Diagnosis:ShowImageLabel", image.fileName)}
                 />
                 <img src={image.url} alt={image.fileName} loading="lazy" />
                 <span>{image.fileName}</span>

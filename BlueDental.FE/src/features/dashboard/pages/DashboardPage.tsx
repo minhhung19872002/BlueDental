@@ -55,14 +55,14 @@ export function DashboardPage() {
           exports, and the appointment editor is the same one the calendar
           opens. */}
       <PageHeader
-        title={t("Tổng quan hôm nay")}
+        title={t("Dashboard:PageTitle")}
         subtitle={dayjs().format("dddd, DD/MM/YYYY")}
         actions={
           <>
-            <Button onClick={() => navigate("/report")}>{t("Xuất báo cáo")}</Button>
+            <Button onClick={() => navigate("/report")}>{t("Dashboard:ExportReport")}</Button>
             {appointmentAbility.canCreate && (
               <Button type="primary" onClick={() => setNewApptOpen(true)}>
-                + {t("Tạo lịch hẹn")}
+                + {t("Dashboard:CreateAppointment")}
               </Button>
             )}
           </>
@@ -71,33 +71,33 @@ export function DashboardPage() {
 
       <div className="kpi-grid">
         <KpiCard
-          label={t("Doanh số hôm nay")}
+          label={t("Dashboard:KpiRevenue")}
           value={`${formatVND(stat?.totalActualReceived ?? 0)} ₫`}
-          sub={t("Thực thu trong ngày")}
+          sub={t("Dashboard:KpiRevenueSubtitle")}
           icon={<BarChartOutlined />}
           color={brand.blue}
           loading={statLoading}
         />
         <KpiCard
-          label={t("Lượt khách")}
+          label={t("Dashboard:KpiVisits")}
           value={newPatients}
-          sub={t("Lượt khám ghi nhận hôm nay")}
+          sub={t("Dashboard:KpiVisitsSubtitle")}
           icon={<TeamOutlined />}
           color={brand.gold}
           loading={statLoading}
         />
         <KpiCard
-          label={t("Lịch hẹn")}
+          label={t("Dashboard:KpiAppointments")}
           value={appts?.totalCount ?? 0}
-          sub={t("{0} chờ đến", awaiting)}
+          sub={t("Dashboard:KpiAppointmentsSubtitle", awaiting)}
           icon={<CalendarOutlined />}
           color={brand.goldDeep}
           loading={apptLoading}
         />
         <KpiCard
-          label={t("Công nợ tồn")}
+          label={t("Dashboard:KpiDebt")}
           value={`${formatVND(stat?.totalOutstandingDebt ?? 0)} ₫`}
-          sub={t("Chưa thu trong ngày")}
+          sub={t("Dashboard:KpiDebtSubtitle")}
           icon={<WalletOutlined />}
           color={brand.red}
           loading={statLoading}

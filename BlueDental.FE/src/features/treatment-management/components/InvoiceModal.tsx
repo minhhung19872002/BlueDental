@@ -13,22 +13,22 @@ export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps
   const form = useInvoiceForm(open, patient, plan);
 
   const handleAction = () => {
-    toast.info(t("Chức năng đang phát triển"));
+    toast.info(t("Treatment:Common:FeaturePending"));
   };
 
   return (
     <Modal
       open={open}
-      title={t("Hóa đơn")}
+      title={t("Treatment:Invoice:Invoice")}
       width="calc(100vw - 32px)"
       className="inv-dialog"
       onCancel={onClose}
       destroyOnHidden
       footer={
         <div className="inv-footer">
-          <Button onClick={handleAction}>{t("Lưu Nháp")}</Button>
+          <Button onClick={handleAction}>{t("Treatment:Invoice:SaveDraft")}</Button>
           <Button type="primary" onClick={handleAction}>
-            {t("Phát Hành")}
+            {t("Treatment:Invoice:Issue")}
           </Button>
         </div>
       }
@@ -77,16 +77,16 @@ export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps
 
       <div className="inv-summary">
         <div className="inv-summary-row">
-          <span>{t("Tổng tiền")}</span>
-          <span className="inv-summary-total">{formatVND(form.totalAmount)} {t("đ")}</span>
+          <span>{t("Treatment:Pricing:TotalAmount")}</span>
+          <span className="inv-summary-total">{formatVND(form.totalAmount)} {t("Treatment:Pricing:CurrencyUnit")}</span>
         </div>
         <div className="inv-summary-row">
-          <span>{t("Thành tiền thuế")}</span>
-          <span>{formatVND(form.totalTax)} {t("đ")}</span>
+          <span>{t("Treatment:Invoice:TaxAmount")}</span>
+          <span>{formatVND(form.totalTax)} {t("Treatment:Pricing:CurrencyUnit")}</span>
         </div>
         <div className="inv-summary-row">
-          <span>{t("Tổng tiền")}</span>
-          <span className="inv-summary-total">{formatVND(form.grandTotal)} {t("đ")}</span>
+          <span>{t("Treatment:Pricing:TotalAmount")}</span>
+          <span className="inv-summary-total">{formatVND(form.grandTotal)} {t("Treatment:Pricing:CurrencyUnit")}</span>
         </div>
       </div>
     </Modal>

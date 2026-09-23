@@ -53,42 +53,42 @@ export function LaboDetailFacts({ facts, status }: Props) {
   return (
     <div className="pd-labo-detail">
       <Block
-        title={t("Thông tin chung")}
+        title={t("Patient:Form:GeneralInfo")}
         rows={[
-          [t("Bác sĩ chỉ định"), facts.dentist],
-          [t("Khách hàng"), facts.customer],
-          [t("Ngày sinh"), facts.birthDate],
+          [t("Patient:QuoteSheet:PrescribingDoctor"), facts.dentist],
+          [t("Patient:Col:Customer"), facts.customer],
+          [t("Patient:Col:DateOfBirth"), facts.birthDate],
         ]}
       />
       <Block
-        title={t("Thông tin labo")}
+        title={t("Patient:Labo:Info")}
         rows={[
-          [t("Nhà cung cấp"), facts.supplier],
-          [t("Ngày gửi"), facts.sentAt],
-          [t("Ngày nhận dự kiến"), facts.dueDate],
+          [t("Patient:Labo:Supplier"), facts.supplier],
+          [t("Patient:Labo:SentDate"), facts.sentAt],
+          [t("Patient:Labo:ExpectedReceiveDate"), facts.dueDate],
         ]}
       />
       <Block
-        title={t("Thông số labo")}
+        title={t("Patient:Labo:Params")}
         rows={[
-          [t("Vật liệu"), facts.material],
-          [t("Đường hoàn tất"), facts.finishLine],
-          [t("Khớp cắn"), facts.bite],
-          [t("Kiểu nhịp"), facts.rhythm],
-          [t("Chỉ định"), facts.instruction],
+          [t("Patient:Labo:Material"), facts.material],
+          [t("Patient:Viewer:CompletedPath"), facts.finishLine],
+          [t("Patient:DentalChart:Occlusion"), facts.bite],
+          [t("Patient:DentalChart:RhythmType"), facts.rhythm],
+          [t("Patient:QuoteSheet:Prescription"), facts.instruction],
         ]}
       />
       <Block
-        title={t("Chi tiết phiếu")}
+        title={t("Patient:Stage:SlipDetail")}
         rows={[
-          [t("Dịch vụ điều trị"), facts.treatmentService],
-          [t("Loại phục hình"), facts.laboService],
-          [t("Răng"), facts.teeth],
-          [t("Màu chi tiết"), facts.shade],
-          [t("Số lượng"), facts.quantity],
+          [t("Patient:Plan:Service"), facts.treatmentService],
+          [t("Patient:Labo:ProsthesisType"), facts.laboService],
+          [t("Patient:DentalChart:Tooth"), facts.teeth],
+          [t("Patient:Viewer:DetailColor"), facts.shade],
+          [t("Patient:Payment:Quantity"), facts.quantity],
         ]}
       >
-        <h3>{t("Trạng thái")}</h3>
+        <h3>{t("Patient:Misc:StatusLabel")}</h3>
         <StatusPill status={status} />
       </Block>
     </div>

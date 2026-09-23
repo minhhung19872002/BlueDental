@@ -40,7 +40,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
     /// <summary>
     /// A record stores the staff id; the board shows a person. Nothing filled
-    /// this in, so every card on a full roster read "Nhân viên".
+    /// this in, so every card on a full roster read "BE:Perm:Staff".
     /// </summary>
     private async Task FillStaffNamesAsync(List<TimeKeepingRecordDto> dtos)
     {
@@ -258,7 +258,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             x.Status == AttendanceStatus.NotStarted &&
             !x.HasAnyAttendance))
         {
-            record.MarkNoShow("Đăng ký làm việc nhưng không vào ca.");
+            record.MarkNoShow("Đã đăng ký nhưng không chấm công.");
             await _repository.UpdateAsync(record);
             count++;
         }

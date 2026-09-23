@@ -53,16 +53,16 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
   const columns: ColumnsType<PrescriptionLine> = [
     {
       key: "medicine",
-      title: t("Tên thuốc"),
+      title: t("Common:Rx:MedicineName"),
       width: 260,
       render: (_, line) => (
         <Select
           showSearch
           optionFilterProp="label"
           className="bd-rx-full"
-          aria-label={t("Tên thuốc")}
-          placeholder={t("Chọn thuốc")}
-          notFoundContent={t("Không tìm thấy dữ liệu")}
+          aria-label={t("Common:Rx:MedicineName")}
+          placeholder={t("Common:Rx:SelectMedicine")}
+          notFoundContent={t("Common:Rx:NotFound")}
           value={line.medicineEntryId || undefined}
           onChange={(next) => patch(line, { medicineEntryId: next })}
           options={medicines.map((medicine) => ({ value: medicine.id, label: medicine.name }))}
@@ -71,13 +71,13 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
     },
     {
       key: "timesPerDay",
-      title: t("Ngày uống"),
+      title: t("Common:Rx:TimesPerDay"),
       width: 120,
       render: (_, line) => (
         <InputNumber
           min={0}
           className="bd-rx-full"
-          aria-label={t("Ngày uống")}
+          aria-label={t("Common:Rx:TimesPerDay")}
           value={line.timesPerDay}
           onChange={(next) => patch(line, { timesPerDay: Number(next) || 0 })}
         />
@@ -85,7 +85,7 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
     },
     {
       key: "amountPerTime",
-      title: t("Mỗi lần"),
+      title: t("Common:Rx:AmountPerTime"),
       width: 110,
       render: (_, line) => (
         <InputNumber
@@ -93,7 +93,7 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
           step={0.5}
           formatter={(v) => v != null ? String(Number(v)) : ""}
           className="bd-rx-full"
-          aria-label={t("Mỗi lần")}
+          aria-label={t("Common:Rx:AmountPerTime")}
           value={line.amountPerTime}
           onChange={(next) => patch(line, { amountPerTime: Number(next) || 0 })}
         />
@@ -101,13 +101,13 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
     },
     {
       key: "days",
-      title: t("Số ngày"),
+      title: t("Common:Rx:NumberOfDays"),
       width: 110,
       render: (_, line) => (
         <InputNumber
           min={0}
           className="bd-rx-full"
-          aria-label={t("Số ngày")}
+          aria-label={t("Common:Rx:NumberOfDays")}
           value={line.days}
           onChange={(next) => patch(line, { days: Number(next) || 0 })}
         />
@@ -115,20 +115,20 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
     },
     {
       key: "quantity",
-      title: t("Số lượng"),
+      title: t("Common:Rx:Quantity"),
       width: 110,
       render: (_, line) => (
         <InputNumber
           disabled
           className="bd-rx-full"
-          aria-label={t("Số lượng")}
+          aria-label={t("Common:Rx:Quantity")}
           value={lineQuantity(line)}
         />
       ),
     },
     {
       key: "usage",
-      title: t("Sử dụng"),
+      title: t("Common:Rx:Usage"),
       width: 200,
       render: (_, line) => (
         <UsagePicker
@@ -143,13 +143,13 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
       width: 60,
       align: "center",
       render: (_, line) => (
-        <Tooltip title={t("Xoá dòng")}>
+        <Tooltip title={t("Common:Rx:DeleteLine")}>
           <Button
             type="text"
             danger
             size="small"
             icon={<DeleteOutlined />}
-            aria-label={t("Xoá dòng thuốc {0}", String(lines.indexOf(line) + 1))}
+            aria-label={t("Common:Rx:DeleteLineN", String(lines.indexOf(line) + 1))}
             disabled={lines.length === 1}
             onClick={() => remove(line)}
           />
@@ -162,7 +162,7 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
     <>
       <div className="bd-row-end bd-mb2">
         <Button className="bd-rx-add" icon={<PlusOutlined />} onClick={add}>
-          {t("Thêm mới")}
+          {t("Common:Add")}
         </Button>
       </div>
 
@@ -199,7 +199,7 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
                       setPageSize(nextSize);
                     },
                     showTotal: (total, range) =>
-                      t("Hiển thị {0} trên {1}", total === 0 ? 0 : range[1] - range[0] + 1, total),
+                      t("Common:PaginationShort", total === 0 ? 0 : range[1] - range[0] + 1, total),
                   }
                 : false
             }

@@ -105,13 +105,13 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         doctorId: data.doctorId ?? "",
         refType: "Self" as RefType,
         notes: data.notes,
-        services: [t("Khám tư vấn ban đầu")],
+        services: [t("Reception:DefaultService")],
         scheduledAt,
         estimatedDurationMinutes: data.durationMinutes,
       },
       {
         onSuccess: () => {
-          toast.success(t("Tạo tiếp nhận thành công!"));
+          toast.success(t("Reception:CreateSuccess"));
           form.resetFields();
           setSelectedPhone("---");
           onClose();
@@ -128,7 +128,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
 
   return (
     <Modal
-      title={t("Tạo tiếp nhận")}
+      title={t("Reception:CreateTitle")}
       open={open}
       onCancel={handleClose}
       footer={null}
@@ -153,10 +153,10 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           <div className="rn-row">
             <div className="rn-field rn-field--flex1">
               <FloatingField
-                label={t("Khách hàng")}
+                label={t("Reception:ColCustomer")}
                 name="patientId"
                 required
-                rules={[{ required: true, message: t("Vui lòng chọn khách hàng") }]}
+                rules={[{ required: true, message: t("Reception:CustomerRequired") }]}
               >
                 <Select
                   showSearch
@@ -175,21 +175,21 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
               className="rn-create-btn"
               onClick={() => setNewPatientOpen(true)}
             >
-              {t("Tạo Mới")}
+              {t("Reception:CreateNew")}
             </Button>
           </div>
 
           {/* Phone */}
           <div className="rn-phone-row">
-            <span className="rn-phone-label">{t("Số điện thoại:")}</span>
+            <span className="rn-phone-label">{t("Reception:PhoneLabel")}</span>
             <span className="rn-phone-value">{selectedPhone}</span>
           </div>
 
           {/* Doctor select */}
           <FloatingField
-            label={t("Bác sĩ điều trị")}
+            label={t("Reception:TreatingDoctor")}
             name="doctorId"
-            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
+            rules={[{ required: true, message: t("Reception:DoctorRequired") }]}
           >
             <Select
               showSearch
@@ -203,19 +203,19 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           {/* Time + duration */}
           <div className="rn-time-row">
             <div className="rn-field rn-field--flex1">
-              <FloatingField label={t("Giờ hẹn")} name="appointmentTime">
+              <FloatingField label={t("Reception:AppointmentTime")} name="appointmentTime">
                 <TimePicker format="HH:mm" style={{ width: "100%" }} />
               </FloatingField>
             </div>
             <div className="rn-field rn-field--flex1">
-              <FloatingField label={t("Phút")} name="durationMinutes">
+              <FloatingField label={t("Reception:Minutes")} name="durationMinutes">
                 <InputNumber min={5} max={480} step={5} style={{ width: "100%" }} />
               </FloatingField>
             </div>
           </div>
 
           {/* Notes */}
-          <FloatingField label={t("Nội dung đặt lịch")} name="notes">
+          <FloatingField label={t("Reception:BookingNotes")} name="notes">
             <Input.TextArea rows={4} style={{ resize: "none" }} />
           </FloatingField>
 
@@ -233,7 +233,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                 </svg>
               }
             >
-              {t("Lưu")}
+              {t("Common:Save")}
             </Button>
           </div>
         </div>

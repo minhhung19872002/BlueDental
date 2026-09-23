@@ -56,7 +56,7 @@ export function HeaderNavGroups({ groups, pathname, openGroupId, onOpenGroup }: 
   const t = useT();
 
   return (
-    <nav className="app-nav" aria-label={t("Menu chính")}>
+    <nav className="app-nav" aria-label={t("App:MainMenu")}>
       {groups.map((group) => {
         const active = isNavGroupActive(group, pathname);
         const open = openGroupId === group.id;
@@ -136,7 +136,7 @@ export function MobileNavDrawer({ open, items, pathname, onClose, onSelect }: Dr
       className="app-drawer"
       styles={{ body: { padding: 14, background: "#fff" } }}
     >
-      <div className="app-drawer-heading">{t("MENU")}</div>
+      <div className="app-drawer-heading">{t("App:MobileMenu")}</div>
       {items.map((item) => (
         <button
           key={item.path}

@@ -25,7 +25,7 @@ export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
           name="sentDate"
           label={sentLabels.date}
           required
-          rules={requiredRule(t("Vui lòng chọn {0}.", sentLabels.date.toLowerCase()))}
+          rules={requiredRule(t("Patient:Labo:RequiredField", sentLabels.date.toLowerCase()))}
         >
           <DatePicker format="DD/MM/YYYY" />
         </FloatingField>
@@ -33,7 +33,7 @@ export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
           name="sentTime"
           label={sentLabels.time}
           required
-          rules={requiredRule(t("Vui lòng chọn {0}.", sentLabels.time.toLowerCase()))}
+          rules={requiredRule(t("Patient:Labo:RequiredField", sentLabels.time.toLowerCase()))}
         >
           <TimePicker format="HH:mm" />
         </FloatingField>
@@ -41,26 +41,26 @@ export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
 
       <FloatingField
         name="supplierId"
-        label={t("Nhà cung cấp")}
+        label={t("Patient:Labo:Supplier")}
         required
-        rules={requiredRule(t("Vui lòng chọn nhà cung cấp."))}
+        rules={requiredRule(t("Patient:Labo:RequiredSupplier"))}
       >
         <SearchSelect options={suppliers} />
       </FloatingField>
       <div className="pd-labo-pair">
         <FloatingField
           name="dueDate"
-          label={t("Ngày nhận dự kiến")}
+          label={t("Patient:Labo:ExpectedReceiveDate")}
           required
-          rules={requiredRule(t("Vui lòng chọn ngày nhận dự kiến."))}
+          rules={requiredRule(t("Patient:Labo:RequiredExpectedDate"))}
         >
           <DatePicker format="DD/MM/YYYY" />
         </FloatingField>
         <FloatingField
           name="dueTime"
-          label={t("Giờ nhận")}
+          label={t("Patient:Labo:ReceiveTime")}
           required
-          rules={requiredRule(t("Vui lòng chọn giờ nhận."))}
+          rules={requiredRule(t("Patient:Labo:RequiredReceiveTime"))}
         >
           <TimePicker format="HH:mm" />
         </FloatingField>

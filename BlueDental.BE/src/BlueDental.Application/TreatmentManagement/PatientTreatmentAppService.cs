@@ -213,7 +213,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
     /// place, then moves the money already collected across.
     ///
     /// Measured on the reference 2026-09-22: the closed line keeps its own price
-    /// and goes to status `replaced` (printed "Chuyển đổi"), a fresh line is
+    /// and goes to status `replaced` (printed "BE:Status:Converted"), a fresh line is
     /// written for the new service, and the two point at each other through
     /// `replacedId`. What the reference does with công đoạn of the closed line
     /// could not be reproduced here — see docs/clone/unknowns.md.
@@ -431,25 +431,25 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             .ToList();
 
         rows.Add(new ClinicDocumentRow(
-            ["Tổng cộng", string.Empty, string.Empty, $"{dto.PlanDiscountAmount:N0}", $"{dto.TotalAmount:N0}"],
+            [L["BE:Field:GrandTotal"].Value, string.Empty, string.Empty, $"{dto.PlanDiscountAmount:N0}", $"{dto.TotalAmount:N0}"],
             IsTotal: true));
 
         var document = new ClinicDocument
         {
             ClinicName = "BlueDental",
-            Title = "Phiếu điều trị",
+            Title = L["BE:Perm:TreatmentRecords"].Value,
             Code = dto.Code,
             PrintedAt = Clock.Now,
-            SignatureLabel = "Bác sĩ tiếp nhận",
+            SignatureLabel = L["BE:Col:ReceivingDoctor"].Value,
             Fields =
             [
-                new ClinicDocumentField("Bác sĩ tiếp nhận", dto.DentistName ?? "—"),
-                new ClinicDocumentField("Ngày tạo", dto.CreationTime.ToString("dd/MM/yyyy")),
-                new ClinicDocumentField("Tiến độ", $"{dto.ProgressPercent}%"),
-                new ClinicDocumentField("Đã thanh toán", $"{dto.Payment.TotalPaid:N0} đ"),
-                new ClinicDocumentField("Còn lại", $"{dto.Payment.TotalDue:N0} đ")
+                new ClinicDocumentField(L["BE:Col:ReceivingDoctor"].Value, dto.DentistName ?? "—"),
+                new ClinicDocumentField(L["BE:Field:CreatedDate"].Value, dto.CreationTime.ToString("dd/MM/yyyy")),
+                new ClinicDocumentField(L["BE:Field:Progress"].Value, $"{dto.ProgressPercent}%"),
+                new ClinicDocumentField(L["BE:Status:Paid"].Value, $"{dto.Payment.TotalPaid:N0} đ"),
+                new ClinicDocumentField(L["BE:Field:Remaining"].Value, $"{dto.Payment.TotalDue:N0} đ")
             ],
-            Headers = ["Dịch vụ", "Số lượng", "Đơn giá", "Giảm giá", "Thành tiền"],
+            Headers = [L["BE:Common:Service"].Value, L["BE:Col:Quantity"].Value, L["BE:Field:UnitPrice"].Value, L["BE:Common:Discount"].Value, L["BE:Col:Total"].Value],
             Rows = rows
         };
 

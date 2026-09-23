@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+﻿import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,11 +24,11 @@ import { STATUS_GROUP } from "./appointmentStatusOptions";
 
 const buildSchema = () =>
   z.object({
-    patientId: z.string().min(1, t("Vui lòng chọn bệnh nhân")),
-    branchId: z.string().min(1, t("Vui lòng chọn chi nhánh")),
-    doctorId: z.string().min(1, t("Vui lòng chọn bác sĩ")),
-    date: z.string().min(1, t("Vui lòng chọn ngày")),
-    startTime: z.string().min(1, t("Vui lòng chọn giờ hẹn")),
+    patientId: z.string().min(1, t("Appointment:Form:SelectPatientRequired")),
+    branchId: z.string().min(1, t("Appointment:Form:SelectBranchRequired")),
+    doctorId: z.string().min(1, t("Appointment:Form:SelectDoctorRequired")),
+    date: z.string().min(1, t("Appointment:Form:SelectDateRequired")),
+    startTime: z.string().min(1, t("Appointment:Form:SelectTimeRequired")),
     durationMinutes: z.number().int().min(15),
     // Plain strings, not `.optional().default()`: that makes zod's input type
     // differ from its output type, and react-hook-form's resolver generics then
@@ -175,7 +175,7 @@ export function AppointmentEditorModal({
     if (data.date && data.startTime) {
       const slot = dayjs(`${data.date} ${data.startTime}`);
       if (slot.isBefore(dayjs().startOf("minute"))) {
-        toast.error(t("Không thể tạo lịch hẹn trong quá khứ"));
+        toast.error(t("Appointment:Form:CannotCreatePast"));
         return;
       }
     }
@@ -184,7 +184,7 @@ export function AppointmentEditorModal({
     } catch {
       return; // queryClient has already reported it; the dialog stays open.
     }
-    toast.success(isEdit ? t("Cập nhật lịch hẹn thành công!") : t("Tạo lịch hẹn thành công!"));
+    toast.success(isEdit ? t("Appointment:Toast:UpdateSuccess") : t("Appointment:Toast:CreateSuccess"));
     reset();
     onSuccess?.();
     onClose();
@@ -195,7 +195,7 @@ export function AppointmentEditorModal({
       open={open}
       // The reference titles the two differently: "Tạo" for a new booking,
       // "Cập nhật" once it exists.
-      title={isEdit ? t("Cập nhật lịch hẹn") : t("Tạo lịch hẹn")}
+      title={isEdit ? t("Appointment:Modal:EditTitle") : t("Appointment:Modal:CreateTitle")}
       width="calc(100vw - 80px)"
       className="appt-editor-dialog"
       canSave={isValid && !saving}

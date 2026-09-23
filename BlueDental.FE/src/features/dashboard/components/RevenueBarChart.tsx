@@ -14,9 +14,9 @@ export function RevenueBarChart() {
       <div className="dash-card-head">
         <div>
           <div className="dash-card-title">
-            {t("Doanh số {0} ngày gần nhất", REVENUE_DAYS)}
+            {t("Dashboard:RevenueChartTitle", REVENUE_DAYS)}
           </div>
-          <div className="dash-card-sub">{t("Đơn vị: triệu đồng")}</div>
+          <div className="dash-card-sub">{t("Dashboard:RevenueChartUnit")}</div>
         </div>
       </div>
 
@@ -35,7 +35,7 @@ export function RevenueBarChart() {
             return (
               <div key={bar.date} className="dash-bar-col">
                 <span className="dash-bar-value">
-                  {millions >= 1 ? `${millions.toFixed(1)} ${t("tr")}` : millions > 0 ? t("<1 tr") : "0"}
+                  {millions >= 1 ? `${millions.toFixed(1)} ${t("Dashboard:RevenueMillion")}` : millions > 0 ? t("Dashboard:RevenueLessThanMillion") : "0"}
                 </span>
                 <div
                   className={`dash-bar${isToday ? " dash-bar--today" : ""}`}
@@ -43,7 +43,7 @@ export function RevenueBarChart() {
                   title={`${bar.date}: ${bar.amount.toLocaleString(getLocale())} ₫`}
                 />
                 <span className="dash-bar-label">
-                  {isToday ? t("Hôm nay") : bar.weekday}
+                  {isToday ? t("Dashboard:RevenueToday") : bar.weekday}
                 </span>
               </div>
             );

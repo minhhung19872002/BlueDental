@@ -65,35 +65,35 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
   const columns: TableColumnsType<TreatmentStageDto> = [
     { title: "#", dataIndex: "sequenceNumber", key: "sequenceNumber", width: 50 },
     {
-      title: t("Dịch vụ"),
+      title: t("Treatment:Service:Service"),
       dataIndex: "serviceName",
       key: "serviceName",
       width: 180,
       render: (value: string | null) => value ?? "—",
     },
-    { title: t("Công đoạn"), dataIndex: "name", key: "name" },
+    { title: t("Treatment:Stage:Stage"), dataIndex: "name", key: "name" },
     {
-      title: t("Răng"),
+      title: t("Treatment:Tooth:Tooth"),
       key: "teeth",
       width: 140,
       render: (_, row) => (row.teeth.length === 0 ? "—" : formatTeeth(row.teeth)),
     },
     {
-      title: t("Bác sĩ"),
+      title: t("Treatment:Common:Doctor"),
       dataIndex: "staffName",
       key: "staffName",
       width: 140,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: t("Ngày dự kiến"),
+      title: t("Treatment:Stage:ExpectedDate"),
       dataIndex: "scheduledDate",
       key: "scheduledDate",
       width: 120,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -103,20 +103,20 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
           <Space size={4}>
             <Tag color={config.color}>{config.label}</Tag>
             {row.isImageRequired && row.imageUrls.length === 0 ? (
-              <Tag color="warning">{t("Cần ảnh")}</Tag>
+              <Tag color="warning">{t("Treatment:Stage:NeedsPhoto")}</Tag>
             ) : null}
           </Space>
         );
       },
     },
     ...(ability.canUpdate ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 190,
       fixed: "right" as const,
       render: (_: unknown, row: TreatmentStageDto) =>
         row.status === STAGE_STATUS.Completed ? (
-          <Text type="secondary">{t("Đã xong")}</Text>
+          <Text type="secondary">{t("Treatment:Stage:MarkedDone")}</Text>
         ) : (
           <Space size={4}>
             {row.status === STAGE_STATUS.Pending ? (
@@ -125,19 +125,19 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
                 type="link"
                 loading={continueStage.isPending}
                 onClick={() =>
-                  run(continueStage.mutateAsync(row.id), t("Đã tiếp tục công đoạn"))
+                  run(continueStage.mutateAsync(row.id), t("Treatment:Stage:ResumedStage"))
                 }
               >
-                {t("Tiếp tục")}
+                {t("Treatment:Stage:Resume")}
               </Button>
             ) : null}
             <Button
               size="small"
               type="link"
               loading={completeStage.isPending}
-              onClick={() => run(completeStage.mutateAsync(row.id), t("Đã hoàn thành công đoạn"))}
+              onClick={() => run(completeStage.mutateAsync(row.id), t("Treatment:Stage:CompletedStage"))}
             >
-              {t("Hoàn thành")}
+              {t("Treatment:Stage:Complete")}
             </Button>
           </Space>
         ),
@@ -148,24 +148,24 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
     <>
       <Card
         size="small"
-        title={t("Công đoạn điều trị")}
+        title={t("Treatment:Stage:TreatmentStage")}
         extra={ability.canCreate ? (
           <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            {t("Công đoạn")}
+            {t("Treatment:Stage:Stage")}
           </Button>
         ) : undefined}
         style={{ marginTop: 16 }}
       >
         <div style={{ marginBottom: 12 }} data-testid="stage-progress">
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("Tiến độ:")} {completed}/{stages.length} {t("công đoạn")}
+            {t("Treatment:Stage:Progress")} {completed}/{stages.length} {t("Treatment:Stage:StageNoun")}
           </Text>
           <Progress percent={progressPercent} size="small" />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("Công đoạn gần nhất:")}{" "}
+            {t("Treatment:Stage:LatestStage")}{" "}
             {latest
-              ? `${latest.serviceName ?? t("Dịch vụ")} — ${latest.stageNote ?? t("(không có ghi chú)")}`
-              : t("Chưa có công đoạn")}
+              ? `${latest.serviceName ?? t("Treatment:Service:Service")} — ${latest.stageNote ?? t("Treatment:Stage:NoNote")}`
+              : t("Treatment:Stage:NoStage")}
           </Text>
         </div>
 
@@ -178,7 +178,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
           scroll={{ x: "max-content" }}
           pagination={false}
           locale={{
-            emptyText: <Empty description={t("Chưa có công đoạn")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
+            emptyText: <Empty description={t("Treatment:Stage:NoStage")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
           }}
         />
       </Card>

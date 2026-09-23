@@ -33,7 +33,7 @@ export function PrescriptionPatientBlock({ patient }: { patient: PrescriptionPat
   const identity = [
     patient.genderLabel,
     patient.dateOfBirth ? formatDate(patient.dateOfBirth) : null,
-    age === null ? null : t("{0} tuổi", age),
+    age === null ? null : t("Treatment:Rx:PatientAge", age),
   ]
     .filter(Boolean)
     .join(" - ");
@@ -45,9 +45,9 @@ export function PrescriptionPatientBlock({ patient }: { patient: PrescriptionPat
       </div>
       <div className="bd-min0">
         <h3 className="rx-patient-name">{patient.fullName}</h3>
-        <p className="rx-patient-line">{t("Giới tính: {0}", identity)}</p>
-        <p className="rx-patient-line">{t("Tiểu sử bệnh: {0}", history || t("Chưa có dữ liệu"))}</p>
-        <p className="rx-patient-line">{t("Liên hệ: {0}", patient.phoneNumber || "—")}</p>
+        <p className="rx-patient-line">{t("Treatment:Rx:Gender", identity)}</p>
+        <p className="rx-patient-line">{t("Treatment:Rx:MedicalHistory", history || t("Treatment:Common:NoData"))}</p>
+        <p className="rx-patient-line">{t("Treatment:Rx:Contact", patient.phoneNumber || "—")}</p>
       </div>
     </div>
   );

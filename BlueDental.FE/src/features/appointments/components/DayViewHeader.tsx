@@ -39,12 +39,12 @@ export function DayViewHeader({ doctors, countsByDoctor, timeColWidth, canPrev, 
     <>
       <div className="cal-day-time-header" style={{ width: timeColWidth }}>
         <div className="cal-week-time-header-label">
-          {t("Giờ /")}
-          {t("Nhân viên")}
+          {t("Appointment:DayView:Hour")}
+          {t("Appointment:DayView:Staff")}
         </div>
       </div>
       {doctors.length === 0 ? (
-        <div className="cal-day-doctor-header">{t("Không có bác sĩ")}</div>
+        <div className="cal-day-doctor-header">{t("Appointment:DayView:NoDoctor")}</div>
       ) : (
         doctors.map((doc, i) => {
           const isFirst = i === 0;

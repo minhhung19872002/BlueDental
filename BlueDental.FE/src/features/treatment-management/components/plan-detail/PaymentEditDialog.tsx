@@ -79,10 +79,10 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
         paidAt: values.paidAt.toISOString(),
         note: values.note?.trim() || null,
       });
-      toast.success(t("Đã cập nhật phiếu thanh toán"));
+      toast.success(t("Treatment:Payment:UpdateSuccess"));
       onSaved();
     } catch (error) {
-      notifyError(extractApiError(error) || t("Không thể cập nhật phiếu thanh toán"));
+      notifyError(extractApiError(error) || t("Treatment:Payment:UpdateError"));
     }
   };
 
@@ -92,7 +92,7 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
       onCancel={onClose}
       width="min(560px, calc(100vw - 32px))"
       className="tp-dialog"
-      title={t("Chỉnh sửa phiếu thanh toán")}
+      title={t("Treatment:Payment:EditPayment")}
       closeIcon={<X size={20} aria-hidden="true" />}
       destroyOnHidden
       footer={
@@ -104,7 +104,7 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
             onClick={() => void handleSave()}
           >
             <Save size={16} aria-hidden="true" />
-            {t("Lưu")}
+            {t("Common:Save")}
           </button>
         </div>
       }
@@ -114,19 +114,19 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
           {/* What cannot be corrected here, stated rather than shown as a dead field. */}
           <div className="pdt-edit-facts">
             <p>
-              <span>{t("Mã thanh toán:")}</span> <b>{payment.code}</b>
+              <span>{t("Treatment:Payment:PaymentCodeColon")}</span> <b>{payment.code}</b>
             </p>
             <p>
-              <span>{t("Số tiền:")}</span> <b>{moneyText(payment.amount)}</b>
+              <span>{t("Treatment:Payment:AmountColon")}</span> <b>{moneyText(payment.amount)}</b>
             </p>
           </div>
 
           <div className="tp-create-grid">
             <FloatingField
               name="method"
-              label={t("Hình thức")}
+              label={t("Treatment:Payment:FormType")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn hình thức") }]}
+              rules={[{ required: true, message: t("Treatment:Payment:FormTypeRequired") }]}
             >
               <Select
                 options={PAYMENT_METHOD_ORDER.map((value) => ({ value, label: labels[value] }))}
@@ -135,9 +135,9 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
             </FloatingField>
             <FloatingField
               name="paidAt"
-              label={t("Ngày tạo")}
+              label={t("Treatment:Payment:DateCreated")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn ngày") }]}
+              rules={[{ required: true, message: t("Treatment:Payment:DateRequired") }]}
             >
               <DatePicker showTime format="DD/MM/YYYY HH:mm" className="tp-input-full" />
             </FloatingField>
@@ -146,9 +146,9 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
           {accountKind !== null && (
             <FloatingField
               name="paymentAccountId"
-              label={t("Tài khoản nhận tiền")}
+              label={t("Treatment:Payment:ReceivingAccount")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn tài khoản thanh toán") }]}
+              rules={[{ required: true, message: t("Treatment:Payment:ReceivingAccountRequired") }]}
             >
               <Select
                 options={accounts.map((account) => ({
@@ -163,9 +163,9 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
 
           <FloatingField
             name="note"
-            label={t("Ghi chú")}
+            label={t("Treatment:Common:Note")}
             className="tp-create-note"
-            rules={[{ max: 500, message: t("Nội dung ghi chú vượt quá 500 ký tự.") }]}
+            rules={[{ max: 500, message: t("Treatment:Payment:NoteMax500") }]}
           >
             <Input.TextArea rows={3} maxLength={500} />
           </FloatingField>

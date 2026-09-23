@@ -20,9 +20,9 @@ interface VoucherRow {
 }
 
 const HEADINGS: Record<CashTransactionType, () => string> = {
-  [CASH_TRANSACTION_TYPE.Deposit]: () => t("PHIẾU THU"),
-  [CASH_TRANSACTION_TYPE.Withdraw]: () => t("PHIẾU CHI"),
-  [CASH_TRANSACTION_TYPE.Transfer]: () => t("PHIẾU LUÂN CHUYỂN DÒNG TIỀN"),
+  [CASH_TRANSACTION_TYPE.Deposit]: () => t("Report:Voucher:IncomeTitle"),
+  [CASH_TRANSACTION_TYPE.Withdraw]: () => t("Report:Voucher:ExpenseTitle"),
+  [CASH_TRANSACTION_TYPE.Transfer]: () => t("Report:Voucher:TransferTitle"),
 };
 
 const EMPTY = "—";
@@ -37,7 +37,7 @@ function accountLabel(entry: CashflowEntryDto): string {
 }
 
 function creatorLabel(entry: CashflowEntryDto): string {
-  return entry.createdByStaffName ?? t("Không xác định");
+  return entry.createdByStaffName ?? t("Report:Unknown");
 }
 
 function RowList({ rows }: { rows: VoucherRow[] }) {
@@ -62,16 +62,16 @@ export function CashflowEntryVoucher({ entry }: Props) {
   const account = accountLabel(entry);
   const amount = formatMoneyUnit(entry.amount);
   const left: VoucherRow[] = [
-    { label: t("Ngày thực hiện"), value: formatDate(entry.entryDate) },
-    { label: t("Ngày tạo"), value: formatDate(entry.creationTime) },
-    { label: t("Người tạo"), value: creatorLabel(entry) },
-    { label: t("Phương thức"), value: formatCashMovement(entry.fromHolding, entry.toHolding) },
+    { label: t("Report:EntryModal:ExecutionDate"), value: formatDate(entry.entryDate) },
+    { label: t("Report:Column:CreatedDate"), value: formatDate(entry.creationTime) },
+    { label: t("Report:Column:Creator"), value: creatorLabel(entry) },
+    { label: t("Report:Voucher:Method"), value: formatCashMovement(entry.fromHolding, entry.toHolding) },
   ];
   const right: VoucherRow[] = [
-    { label: t("Tài khoản"), value: account },
-    { label: t("Số tiền"), value: amount, bold: true },
-    { label: t("Bằng chữ"), value: moneyInWords(entry.amount) },
-    { label: t("Ghi chú"), value: entry.note || EMPTY },
+    { label: t("Report:Voucher:Account"), value: account },
+    { label: t("Report:Column:Amount"), value: amount, bold: true },
+    { label: t("Report:Voucher:AmountInWords"), value: moneyInWords(entry.amount) },
+    { label: t("Common:Note"), value: entry.note || EMPTY },
   ];
 
   return (
@@ -85,9 +85,9 @@ export function CashflowEntryVoucher({ entry }: Props) {
         <thead>
           <tr>
             <th className="report-voucher-col--stt">{t("STT")}</th>
-            <th>{t("Nội dung")}</th>
-            <th>{t("Tài khoản")}</th>
-            <th className="report-voucher-cell--amount">{t("Số tiền")}</th>
+            <th>{t("Report:Column:Description")}</th>
+            <th>{t("Report:Voucher:Account")}</th>
+            <th className="report-voucher-cell--amount">{t("Report:Column:Amount")}</th>
           </tr>
         </thead>
         <tbody>
@@ -100,11 +100,11 @@ export function CashflowEntryVoucher({ entry }: Props) {
         </tbody>
       </table>
       <p className="report-voucher-total">
-        <span>{t("Tổng tiền")}:</span>
+        <span>{t("Report:Column:TotalMoney")}:</span>
         <span>{amount}</span>
       </p>
       <div className="report-voucher-signature">
-        <p>{t("Người lập phiếu")}</p>
+        <p>{t("Report:Voucher:Creator")}</p>
         <p>{creatorLabel(entry)}</p>
       </div>
     </div>

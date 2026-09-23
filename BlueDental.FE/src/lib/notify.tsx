@@ -18,7 +18,7 @@ function errorToastId(message: string): string {
 function showApiError(info: ApiErrorInfo): void {
   const msg =
     info.kind === "system"
-      ? `${t("Lỗi hệ thống")}: ${info.message}`
+      ? `${t("Common:Error:SystemPrefix")}: ${info.message}`
       : info.message;
   toast.error(msg, {
     id: errorToastId(info.message),

@@ -91,15 +91,15 @@ export function CatalogEntryTable({
     const list: ColumnsType<CatalogEntryDto> = [
       {
         key: "grip",
-        title: <span className="bd-sr-only">{t("Sắp xếp")}</span>,
+        title: <span className="bd-sr-only">{t("Taxonomy:Table:SortHandle")}</span>,
         width: 48,
         align: "center",
         render: (_, entry, index) => (
           <button
             type="button"
             disabled={!canReorder}
-            title={t("Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp")}
-            aria-label={t("Sắp xếp {0}", entry.name)}
+            title={t("Taxonomy:Table:SortHandleDrag")}
+            aria-label={t("Taxonomy:Table:SortAriaLabel", entry.name)}
             {...drag.handleProps(entry.id)}
             onKeyDown={(event) => {
               if (event.key === "ArrowUp" && index > 0) {
@@ -137,7 +137,7 @@ export function CatalogEntryTable({
     if (showGroupColumn) {
       list.push({
         key: "taxonomyName",
-        title: t("Nhóm phân loại"),
+        title: t("Taxonomy:Table:ClassificationGroup"),
         width: 300,
         render: (_, entry) =>
           entry.taxonomyName ? (
@@ -151,7 +151,7 @@ export function CatalogEntryTable({
     if (priced) {
       list.push({
         key: "price",
-        title: t("Giá"),
+        title: t("Taxonomy:Table:Price"),
         width: 200,
         align: "right",
         render: (_, entry) => (
@@ -165,7 +165,7 @@ export function CatalogEntryTable({
     list.push(
       {
         key: "lastModificationTime",
-        title: t("Cập nhật gần nhất"),
+        title: t("Taxonomy:Table:LastUpdated"),
         width: 280,
         render: (_, entry) => (
           <span className="bd-cat-num">
@@ -175,31 +175,31 @@ export function CatalogEntryTable({
       },
       ...((onEdit || onDelete) ? [{
         key: "actions" as const,
-        title: t("Thao tác"),
+        title: t("Common:Actions"),
         width: 100,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, entry: CatalogEntryDto) => (
           <div className="bd-cat-rowactions">
             {onEdit && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", entry.name)}
+                  aria-label={t("Common:EditAriaLabel", entry.name)}
                   onClick={() => onEdit(entry)}
                 />
               </Tooltip>
             )}
             {onDelete && !entry.isDeleted && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", entry.name)}
+                  aria-label={t("Common:DeleteAriaLabel", entry.name)}
                   onClick={() => onDelete(entry)}
                 />
               </Tooltip>
@@ -220,7 +220,7 @@ export function CatalogEntryTable({
         rowKey="id"
         loading={isLoading}
         pagination={pagination}
-        locale={{ emptyText: emptyText ?? t("Không có dữ liệu") }}
+        locale={{ emptyText: emptyText ?? t("Common:NoData") }}
         components={{ body: { row: DraggableRow } }}
       />
     </DragContext.Provider>

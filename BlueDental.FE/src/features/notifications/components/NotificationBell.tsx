@@ -87,7 +87,7 @@ export function NotificationBell({ open, onOpen, onClose }: Props) {
       <button
         type="button"
         className="app-header-icon-btn"
-        aria-label={t("Thông báo")}
+        aria-label={t("Notification:Title")}
         aria-expanded={open}
         onClick={handleOpen}
       >
@@ -108,23 +108,23 @@ export function NotificationBell({ open, onOpen, onClose }: Props) {
       </button>
 
       {open && (
-        <div className="app-notif-panel" role="dialog" aria-label={t("Thông báo")}>
+        <div className="app-notif-panel" role="dialog" aria-label={t("Notification:Title")}>
           <div className="app-notif-head">
-            <span className="app-notif-title">{t("Thông báo")}</span>
+            <span className="app-notif-title">{t("Notification:Title")}</span>
             <button
               type="button"
               className="app-notif-readall"
               disabled={unreadCount === 0 || markAllRead.isPending}
               onClick={() => markAllRead.mutate()}
             >
-              {t("Đánh dấu đã đọc")}
+              {t("Notification:MarkAllRead")}
             </button>
           </div>
 
           <div className="app-notif-list">
-            {isLoading && <div className="app-notif-empty">{t("Đang tải…")}</div>}
+            {isLoading && <div className="app-notif-empty">{t("Notification:Loading")}</div>}
             {!isLoading && items.length === 0 && (
-              <div className="app-notif-empty">{t("Chưa có thông báo nào")}</div>
+              <div className="app-notif-empty">{t("Notification:Empty")}</div>
             )}
             {items.map((item) => {
               const icon = ICON_BY_TYPE[item.type] ?? ICON_BY_TYPE[NotificationType.SystemAlert];
@@ -170,7 +170,7 @@ export function NotificationBell({ open, onOpen, onClose }: Props) {
           </div>
 
           <button type="button" className="app-notif-close" onClick={onClose}>
-            {t("Đóng")}
+            {t("Common:Close")}
           </button>
         </div>
       )}

@@ -17,26 +17,26 @@ public class CatalogServiceConfig : Entity<Guid>
 
     public ServiceTaxRate TaxRate { get; private set; }
 
-    /// <summary>The "Trước thuế" / "Sau thuế" switch over the price that was typed.</summary>
+    /// <summary>The "BE:Field:BeforeTax" / "BE:Field:AfterTax" switch over the price that was typed.</summary>
     public bool PriceIncludesTax { get; private set; }
 
-    /// <summary>The "%" / "VNĐ" switch over the discount.</summary>
+    /// <summary>The "%" / "BE:Common:VND" switch over the discount.</summary>
     public bool DiscountIsPercent { get; private set; }
 
     public decimal DiscountValue { get; private set; }
 
-    // ── tab "Cài đặt" ────────────────────────────────────────────────────────
+    // ── tab "BE:Perm:Settings" ────────────────────────────────────────────────────────
     public bool RequireImage { get; private set; }
     public bool DeductDoctorOnWarranty { get; private set; }
     public bool SeparateRevenue { get; private set; }
     public bool ShowToothOnInvoice { get; private set; }
 
-    // ── tab "Công đoạn" ──────────────────────────────────────────────────────
+    // ── tab "BE:Common:Stage" ──────────────────────────────────────────────────────
     public bool RevenueByStage { get; private set; }
     public bool RequireStageSequence { get; private set; }
 
-    // ── tab "Bảo hành" ───────────────────────────────────────────────────────
-    /// <summary>0 means "Không bảo hành"; otherwise the number of days.</summary>
+    // ── tab "BE:Common:Warranty" ───────────────────────────────────────────────────────
+    /// <summary>0 means "BE:Warranty:None"; otherwise the number of days.</summary>
     public int WarrantyDays { get; private set; }
 
     protected CatalogServiceConfig() { }
@@ -94,7 +94,7 @@ public class CatalogServiceConfig : Entity<Guid>
     }
 
     /// <summary>
-    /// "Giá sau giảm" — the listed price with the discount taken off.
+    /// "BE:Field:PriceAfterDiscount" — the listed price with the discount taken off.
     /// </summary>
     public decimal PriceAfterDiscount(decimal price)
     {
@@ -106,12 +106,12 @@ public class CatalogServiceConfig : Entity<Guid>
     }
 
     /// <summary>
-    /// "Thực thu từ khách (Đã gồm VAT)".
+    /// "BE:Field:AmountCollected".
     ///
     /// UNKNOWN_REFERENCE_BEHAVIOR: the reference computes both of these boxes on
     /// the fly and the formula could only have been confirmed by typing into its
     /// form. This is BlueDental's reading — the price already carries VAT when
-    /// "Sau thuế" is selected, and has it added when "Trước thuế" is.
+    /// "BE:Field:AfterTax" is selected, and has it added when "BE:Field:BeforeTax" is.
     /// </summary>
     public decimal AmountCollected(decimal price)
     {

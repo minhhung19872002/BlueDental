@@ -39,21 +39,21 @@ export function AuditLogPage() {
 
   const columns: ColumnsType<AuditLogDto> = [
     {
-      title: t("Thời gian"),
+      title: t("AuditLog:Time"),
       dataIndex: "executionTime",
       key: "executionTime",
       width: 160,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: t("Người dùng"),
+      title: t("AuditLog:User"),
       dataIndex: "userName",
       key: "userName",
       width: 140,
       render: (v: string) => v ?? "—",
     },
     {
-      title: t("Phương thức"),
+      title: t("AuditLog:Method"),
       dataIndex: "httpMethod",
       key: "httpMethod",
       width: 100,
@@ -76,7 +76,7 @@ export function AuditLogPage() {
       render: (v: number) => v ? <Tag color={statusColor(v)}>{v}</Tag> : "—",
     },
     {
-      title: t("Thời gian xử lý"),
+      title: t("AuditLog:Duration"),
       dataIndex: "executionDuration",
       key: "executionDuration",
       width: 130,
@@ -90,41 +90,41 @@ export function AuditLogPage() {
       render: (v: string) => v ?? "—",
     },
     {
-      title: t("Lỗi"),
+      title: t("AuditLog:Error"),
       dataIndex: "exceptions",
       key: "exceptions",
       width: 80,
-      render: (v: string) => v ? <Tag color="red">{t("Có lỗi")}</Tag> : <Tag color="green">OK</Tag>,
+      render: (v: string) => v ? <Tag color="red">{t("AuditLog:HasError")}</Tag> : <Tag color="green">OK</Tag>,
     },
   ];
 
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Nhật ký hệ thống")}
-        subtitle={t("Lịch sử thao tác trên toàn hệ thống")}
+        title={t("AuditLog:PageTitle")}
+        subtitle={t("AuditLog:PageSubtitle")}
       />
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)", marginBottom: 4 }}>
-          {t("Nhật ký hoạt động")}
+          {t("AuditLog:SectionTitle")}
         </div>
         <div style={{ fontSize: 13, color: "var(--bd-muted)" }}>
-          {t("Lịch sử các thao tác trong hệ thống")}
+          {t("AuditLog:SectionSubtitle")}
         </div>
       </div>
       <div className="reception-card reception-card--toolbar">
         <Space wrap>
           <Input
             prefix={<SearchOutlined />}
-            placeholder={t("Tên người dùng...")}
+            placeholder={t("AuditLog:UserPlaceholder")}
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             style={{ width: 200 }}
             allowClear
           />
           <Select
-            placeholder={t("Phương thức HTTP")}
+            placeholder={t("AuditLog:MethodPlaceholder")}
             allowClear
             style={{ width: 160 }}
             value={httpMethod}
@@ -143,8 +143,8 @@ export function AuditLogPage() {
           dataSource={data?.items ?? []}
           columns={columns}
           loading={isLoading}
-          pagination={{ pageSize: 50, showTotal: (total) => t("{0} bản ghi", total) }}
-          locale={{ emptyText: t("Không có dữ liệu nhật ký") }}
+          pagination={{ pageSize: 50, showTotal: (total) => t("AuditLog:RecordCount", total) }}
+          locale={{ emptyText: t("AuditLog:NoData") }}
           size="small"
           scroll={{ x: 1100 }}
         />

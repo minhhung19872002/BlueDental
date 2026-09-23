@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Button, Form, Input, Switch, Tag, Tooltip } from "antd";
 import { toast } from "sonner";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
@@ -58,14 +58,14 @@ function MessageTemplateDialog({ open, template, channel, onClose }: DialogProps
           id: template.id,
           data: { name: values.name.trim(), content: values.content.trim() },
         });
-        toast.success(t("Đã cập nhật mẫu tin"));
+        toast.success(t("Tools:TemplateUpdated"));
       } else {
         await createTemplate.mutateAsync({
           name: values.name.trim(),
           content: values.content.trim(),
           channel,
         });
-        toast.success(t("Đã tạo mẫu tin"));
+        toast.success(t("Tools:TemplateCreated"));
       }
       onClose();
     } catch {
@@ -78,7 +78,7 @@ function MessageTemplateDialog({ open, template, channel, onClose }: DialogProps
   return (
     <AppDialog
       open={open}
-      title={template ? t("Sửa mẫu tin nhắn") : t("Tạo mẫu tin nhắn")}
+      title={template ? t("Tools:EditTemplateTitle") : t("Tools:CreateTemplateTitle")}
       width={560}
       canSave={canSave}
       saving={pending}
@@ -93,18 +93,18 @@ function MessageTemplateDialog({ open, template, channel, onClose }: DialogProps
         onFinish={(values) => void submit(values)}
       >
         <div className="bd-call-dialog-fields">
-          <FloatingField name="name" label={t("Tên")} required rules={[{ required: true, message: t("Vui lòng nhập tên") }]}>
+          <FloatingField name="name" label={t("Tools:NameLabel")} required rules={[{ required: true, message: t("Tools:NameRequired") }]}>
             <Input autoFocus />
           </FloatingField>
 
-          <FloatingField name="content" label={t("Nội dung")} required rules={[{ required: true, message: t("Vui lòng nhập nội dung") }]}>
+          <FloatingField name="content" label={t("Tools:ContentLabel")} required rules={[{ required: true, message: t("Tools:ContentRequired") }]}>
             <Input.TextArea rows={4} />
           </FloatingField>
 
           <div className="bd-call-dialog-switch">
-            <span>{t("Trạng thái")}</span>
+            <span>{t("Tools:StatusLabel")}</span>
             <Form.Item name="isActive" valuePropName="checked">
-              <Switch aria-label={t("Trạng thái")} />
+              <Switch aria-label={t("Tools:StatusLabel")} />
             </Form.Item>
           </div>
         </div>
@@ -139,7 +139,7 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
     if (!pendingDelete) return;
     try {
       await deleteTemplate.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá mẫu tin"));
+      toast.success(t("Tools:TemplateDeleted"));
     } catch {
       // queryClient reports the failure
     } finally {
@@ -149,11 +149,11 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
 
   const columns = useMemo<ColumnsType<MessageTemplateDto>>(
     () => [
-      { key: "name", title: t("Tên"), dataIndex: "name" },
-      { key: "content", title: t("Nội dung"), dataIndex: "content", ellipsis: true },
+      { key: "name", title: t("Tools:NameLabel"), dataIndex: "name" },
+      { key: "content", title: t("Tools:ContentLabel"), dataIndex: "content", ellipsis: true },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 130,
         render: (_, tpl) => {
           const { label, color } = activeTag(tpl.isActive);
@@ -162,31 +162,31 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Tools:ActionsLabel"),
         width: 110,
         align: "center",
         fixed: "right",
         render: (_, tpl) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", tpl.name)}
+                  aria-label={t("Tools:EditTemplateAria", tpl.name)}
                   onClick={() => setDialog({ open: true, template: tpl })}
                 />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", tpl.name)}
+                  aria-label={t("Tools:DeleteTemplateAria", tpl.name)}
                   onClick={() => setPendingDelete(tpl)}
                 />
               </Tooltip>
@@ -204,8 +204,8 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
         <Input
           className="bd-ops-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm")}
-          aria-label={t("Tìm kiếm")}
+          placeholder={t("Tools:SearchPlaceholder")}
+          aria-label={t("Tools:SearchPlaceholder")}
           value={keyword}
           allowClear
           onChange={(e) => {
@@ -220,7 +220,7 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
             icon={<PlusOutlined />}
             onClick={() => setDialog({ open: true, template: null })}
           >
-            {t("Tạo mẫu tin nhắn")}
+            {t("Tools:CreateTemplateTitle")}
           </Button>
         )}
       </div>
@@ -231,7 +231,7 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
         rowKey="id"
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
-        locale={{ emptyText: t("Chưa có mẫu tin nhắn") }}
+        locale={{ emptyText: t("Tools:NoTemplates") }}
       />
 
       <MessageTemplateDialog
@@ -243,7 +243,7 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("mẫu tin")}
+        noun={t("Tools:TemplateNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteTemplate.isPending}
         onConfirm={() => void confirmDelete()}
@@ -252,3 +252,4 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
     </div>
   );
 }
+

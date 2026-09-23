@@ -13,12 +13,12 @@ import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 
 const STATUS_CHIPS = [
-  { key: "scheduled", label: () => t("Đã hẹn"), bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
-  { key: "arrived", label: () => t("Đã đến"), bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
-  { key: "cancelled", label: () => t("Huỷ hẹn"), bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
-  { key: "late", label: () => t("Trễ hẹn"), bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
-  { key: "temporary", label: () => t("Lịch tạm"), bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
-  { key: "converted", label: () => t("Chuyển đổi"), bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "scheduled", label: () => t("Appointment:Status:Scheduled2"), bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
+  { key: "arrived", label: () => t("Appointment:Status:Arrived"), bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
+  { key: "cancelled", label: () => t("Appointment:Status:CancelledShort"), bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
+  { key: "late", label: () => t("Appointment:Status:Late"), bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
+  { key: "temporary", label: () => t("Appointment:Status:Temporary"), bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
+  { key: "converted", label: () => t("Appointment:Status:Converted"), bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 ] as const;
 
 interface Props {
@@ -88,7 +88,7 @@ export function CalendarControlPanel({
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
             </svg>
-            <span className="cal-panel-title">{t("Bảng điều khiển")}</span>
+            <span className="cal-panel-title">{t("Appointment:Panel:Title")}</span>
           </div>
           <button type="button" className="cal-panel-close" onClick={onClose}>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -100,16 +100,16 @@ export function CalendarControlPanel({
 
         <div className="cal-panel-body">
           <div className="cal-panel-section cal-panel-section--bordered" style={{ minWidth: 480 }}>
-            <label className="cal-panel-section-label">{t("Thời gian")}</label>
+            <label className="cal-panel-section-label">{t("Appointment:Panel:Time")}</label>
             <div className="cal-panel-section-content">
               <div className="cal-panel-row">
                 <Segmented
                   value={viewMode}
                   onChange={(v) => onViewModeChange(v as ViewMode)}
                   options={[
-                    { label: t("Ngày"), value: "day" },
-                    { label: t("Tuần"), value: "week" },
-                    { label: t("Tháng"), value: "month" },
+                    { label: t("Common:Day"), value: "day" },
+                    { label: t("Common:Week"), value: "week" },
+                    { label: t("Common:Month"), value: "month" },
                   ]}
                 />
                 <DateNavigator
@@ -122,7 +122,7 @@ export function CalendarControlPanel({
           </div>
 
           <div className="cal-panel-section cal-panel-section--bordered" style={{ minWidth: 220 }}>
-            <label className="cal-panel-section-label">{t("Chế độ xem")}</label>
+            <label className="cal-panel-section-label">{t("Appointment:Panel:ViewMode")}</label>
             <div className="cal-panel-section-content">
               <Segmented
                 value={slotMinutes === 15 ? "hour" : "doctor"}
@@ -132,8 +132,8 @@ export function CalendarControlPanel({
                   }
                 }}
                 options={[
-                  { label: t("Theo giờ"), value: "hour" },
-                  { label: t("Theo bác sĩ"), value: "doctor" },
+                  { label: t("Appointment:Panel:ByHour"), value: "hour" },
+                  { label: t("Appointment:Panel:ByDoctor"), value: "doctor" },
                 ]}
                 disabled={viewMode === "month"}
               />
@@ -141,49 +141,49 @@ export function CalendarControlPanel({
           </div>
 
           <div className="cal-panel-section cal-panel-section--bordered" style={{ minWidth: 220 }}>
-            <label className="cal-panel-section-label">{t("Thao tác")}</label>
+            <label className="cal-panel-section-label">{t("Common:Actions")}</label>
             <div className="cal-panel-actions">
               {ability.canCreate && (
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => { onClose(); onCreateAppointment(); }} block>
-                  {t("Tạo lịch hẹn mới")}
+                  {t("Appointment:Action:CreateNew")}
                 </Button>
               )}
               {ability.canCreate && (
                 <Button icon={<PlusOutlined />} onClick={() => { onClose(); onCreateTemp(); }} block>
-                  {t("Tạo lịch tạm")}
+                  {t("Appointment:Action:CreateTemp")}
                 </Button>
               )}
               {ability.canExport && (
                 <Button icon={<DownloadOutlined />} onClick={() => { onClose(); onExport(); }} block>
-                  {t("Xuất File")}
+                  {t("Appointment:Action:Export")}
                 </Button>
               )}
             </div>
           </div>
 
           <div className="cal-panel-section cal-panel-section--filter" style={{ minWidth: 420, flex: 2 }}>
-            <label className="cal-panel-section-label">{t("Bộ lọc")}</label>
+            <label className="cal-panel-section-label">{t("Common:Filter")}</label>
             <div className="cal-panel-filters">
               <div className="cal-panel-filter-row">
                 <div className="cal-panel-filter-field">
-                  <span className="cal-panel-filter-label">{t("Tìm kiếm")}</span>
+                  <span className="cal-panel-filter-label">{t("Common:Search")}</span>
                   <Input
                     prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
                     value={keyword}
                     onChange={(e) => onKeywordChange(e.target.value)}
                     allowClear
-                    placeholder={t("Tìm kiếm theo tên, SĐT...")}
+                    placeholder={t("Appointment:Filter:SearchPlaceholder")}
                   />
                 </div>
                 <div className="cal-panel-filter-field">
-                  <span className="cal-panel-filter-label">{t("Bác sĩ điều trị")}</span>
+                  <span className="cal-panel-filter-label">{t("Appointment:Filter:TreatingDoctor")}</span>
                   <Select
                     mode="multiple"
                     allowClear
                     maxTagCount="responsive"
                     value={doctorIds}
                     onChange={onDoctorChange}
-                    placeholder={t("Chọn bác sĩ")}
+                    placeholder={t("Appointment:Form:SelectDoctor")}
                     style={{ width: "100%" }}
                     options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                     getPopupContainer={(trigger) => trigger.closest(".cal-panel") ?? document.body}
@@ -191,7 +191,7 @@ export function CalendarControlPanel({
                 </div>
               </div>
               <div className="cal-panel-status-section">
-                <span className="cal-panel-filter-label">{t("Trạng thái")}</span>
+                <span className="cal-panel-filter-label">{t("Common:Status")}</span>
                 <div className="cal-panel-chips">
                   {STATUS_CHIPS.map((c) => (
                     <button
@@ -217,7 +217,7 @@ export function CalendarControlPanel({
               {filterCount > 0 && (
                 <div className="cal-panel-clear-row">
                   <Button danger icon={<DeleteOutlined />} onClick={onClearFilters}>
-                    {t("Xoá bộ lọc")}
+                    {t("Common:ClearFilter")}
                   </Button>
                 </div>
               )}

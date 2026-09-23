@@ -66,7 +66,7 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
 
     try {
       await remove.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá"));
+      toast.success(t("Common:Deleted"));
       setPendingDelete(null);
     } catch {
       // queryClient reports the failure; the dialog stays open to retry.
@@ -83,7 +83,7 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
     },
     {
       key: "updatedAt",
-      title: t("Cập nhật gần nhất"),
+      title: t("Common:LastUpdated"),
       width: 280,
       render: (_, row) => (
         <span className="bd-cat-num">
@@ -95,31 +95,31 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
       ? [
           {
             key: "actions",
-            title: t("Thao tác"),
+            title: t("Common:Actions"),
             width: 100,
             align: "center" as const,
             fixed: "right" as const,
             render: (_: unknown, row: LaboCatalogItem) => (
               <div className="bd-cat-rowactions">
                 {canUpdate && (
-                  <Tooltip title={t("Chỉnh sửa")}>
+                  <Tooltip title={t("Common:Edit")}>
                     <Button
                       type="text"
                       size="small"
                       icon={<EditOutlined />}
-                      aria-label={t("Chỉnh sửa {0}", row.name)}
+                      aria-label={t("Common:EditAriaLabel", row.name)}
                       onClick={() => setDialog({ open: true, item: row })}
                     />
                   </Tooltip>
                 )}
                 {canDelete && (
-                  <Tooltip title={t("Xoá")}>
+                  <Tooltip title={t("Common:Delete")}>
                     <Button
                       type="text"
                       size="small"
                       danger
                       icon={<DeleteOutlined />}
-                      aria-label={t("Xoá {0}", row.name)}
+                      aria-label={t("Common:DeleteAriaLabel", row.name)}
                       onClick={() => setPendingDelete(row)}
                     />
                   </Tooltip>
@@ -137,8 +137,8 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
         <Input
           className="bd-labo-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm {0}", noun)}
-          aria-label={t("Tìm kiếm {0}", noun)}
+          placeholder={t("Common:SearchItem", noun)}
+          aria-label={t("Common:SearchItem", noun)}
           value={keyword}
           maxLength={100}
           allowClear
@@ -151,7 +151,7 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
             icon={<PlusOutlined />}
             onClick={() => setDialog({ open: true, item: null })}
           >
-            {t("Tạo {0}", noun)}
+            {t("Common:CreateItem", noun)}
           </Button>
         )}
       </div>
@@ -165,10 +165,10 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
             loading={query.isFetching}
             locale={{
               emptyText: debouncedKeyword
-                ? t("Không tìm thấy kết quả phù hợp")
-                : t("Không tìm thấy {0}", tab.label.toLowerCase()),
+                ? t("Common:NoResultsMatch")
+                : t("Common:NoResultsFor2", tab.label.toLowerCase()),
             }}
-            pagination={pagination.buildConfig(totalCount, countedTotal(t("mục")))}
+            pagination={pagination.buildConfig(totalCount, countedTotal(noun))}
           />
         </div>
       </div>

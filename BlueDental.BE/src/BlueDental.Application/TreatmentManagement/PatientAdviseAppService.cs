@@ -77,7 +77,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
 
         // The diagnosis carries its own pair of doctors, and they are not the
         // ones who advised: the reference prints the advisor under "Nhân sự tư
-        // vấn" and the diagnosing doctors under "Bác sĩ chẩn đoán".
+        // vấn" and the diagnosing doctors under "BE:Role:DiagnosingDentist".
         var diagnosisIds = dtos
             .Where(d => d.PatientDiagnosisId.HasValue)
             .Select(d => d.PatientDiagnosisId!.Value)

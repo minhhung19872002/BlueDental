@@ -6,7 +6,7 @@ using Volo.Abp.Application.Services;
 namespace BlueDental.Notifications;
 
 /// <summary>
-/// The two lists behind the CSKH "Lưu tin nhắn" dialog — reference:
+/// The two lists behind the CSKH "BE:Perm:SaveMessage" dialog — reference:
 /// <c>GET /sender-sms-templates</c> (Mẫu tin nhắn) and
 /// <c>GET /clinic-configure?module=sms&amp;isEnabled=true</c> (Cấu hình).
 /// </summary>

@@ -70,7 +70,7 @@ function DraftTeethCell({ draft }: DraftProps) {
   const teeth = formatToothValue(draft.values.teeth);
   return (
     <div className="pdt-draft-teeth">
-      <button type="button" className="tp-tooth-btn" aria-label={t("Chọn răng")} onClick={draft.openTeeth}>
+      <button type="button" className="tp-tooth-btn" aria-label={t("Treatment:Tooth:SelectTooth")} onClick={draft.openTeeth}>
         <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
       </button>
       {teeth && <span className="pdt-draft-teeth-text">{teeth}</span>}
@@ -84,7 +84,7 @@ function DraftActionsCell({ draft }: DraftProps) {
       <button
         type="button"
         className="pdt-row-save"
-        aria-label={t("Lưu")}
+        aria-label={t("Common:Save")}
         disabled={draft.saving}
         onClick={draft.save}
       >
@@ -97,7 +97,7 @@ function DraftActionsCell({ draft }: DraftProps) {
       <button
         type="button"
         className="pdt-row-cancel"
-        aria-label={t("Hủy")}
+        aria-label={t("Common:Cancel")}
         disabled={draft.saving}
         onClick={draft.cancel}
       >
@@ -114,10 +114,10 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
   grip: () => null,
   service: (draft) => <DraftNameCell draft={draft} />,
   diagnosis: (draft) => (
-    <IdSelect draft={draft} field="diagnosisId" useOptions={useDiagnosisOptions} placeholder={t("Chẩn đoán")} />
+    <IdSelect draft={draft} field="diagnosisId" useOptions={useDiagnosisOptions} placeholder={t("Treatment:Diagnosis:Diagnosis")} />
   ),
   dentist: (draft) => (
-    <IdSelect draft={draft} field="dentistId" useOptions={useDentistOptions} placeholder={t("Bác sĩ")} />
+    <IdSelect draft={draft} field="dentistId" useOptions={useDentistOptions} placeholder={t("Treatment:Common:Doctor")} />
   ),
   teeth: (draft) => <DraftTeethCell draft={draft} />,
   quantity: (draft) => (
@@ -125,7 +125,7 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
       className="pdt-draft-qty"
       min={1}
       precision={0}
-      aria-label={t("Số lượng")}
+      aria-label={t("Treatment:Pricing:Quantity")}
       value={draft.values.quantity}
       onChange={(value) => draft.update("quantity", value ?? 1)}
     />
@@ -133,8 +133,8 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
   price: (draft) => (
     <CurrencyInput
       className="pdt-draft-price"
-      placeholder={t("Đơn giá")}
-      aria-label={t("Đơn giá")}
+      placeholder={t("Treatment:Pricing:UnitPrice")}
+      aria-label={t("Treatment:Pricing:UnitPrice")}
       value={draft.values.price}
       onChange={(value) => draft.update("price", value ?? 0)}
     />
@@ -143,32 +143,32 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
   amount: (draft) => <strong>{moneyText(draft.values.price * draft.values.quantity)}</strong>,
   note: (draft) => (
     <Input
-      placeholder={t("Ghi chú")}
-      aria-label={t("Ghi chú")}
+      placeholder={t("Treatment:Common:Note")}
+      aria-label={t("Treatment:Common:Note")}
       value={draft.values.note}
       onChange={(event) => draft.update("note", event.target.value)}
     />
   ),
   diagnoser1: (draft) => (
-    <IdSelect draft={draft} field="diagnoserStaffId" useOptions={useStaffOptionsSearch} placeholder={t("BS chẩn đoán 1")} />
+    <IdSelect draft={draft} field="diagnoserStaffId" useOptions={useStaffOptionsSearch} placeholder={t("Treatment:Diagnosis:DiagnoserShort1")} />
   ),
   diagnoser2: (draft) => (
     <IdSelect
       draft={draft}
       field="secondDiagnoserStaffId"
       useOptions={useStaffOptionsSearch}
-      placeholder={t("BS chẩn đoán 2")}
+      placeholder={t("Treatment:Diagnosis:DiagnoserShort2")}
     />
   ),
   consultant1: (draft) => (
-    <IdSelect draft={draft} field="consultantStaffId" useOptions={useStaffOptionsSearch} placeholder={t("Tư vấn 1")} />
+    <IdSelect draft={draft} field="consultantStaffId" useOptions={useStaffOptionsSearch} placeholder={t("Treatment:Common:Advisor1Short")} />
   ),
   consultant2: (draft) => (
     <IdSelect
       draft={draft}
       field="secondConsultantStaffId"
       useOptions={useStaffOptionsSearch}
-      placeholder={t("Tư vấn 2")}
+      placeholder={t("Treatment:Common:Advisor2Short")}
     />
   ),
   actions: (draft) => <DraftActionsCell draft={draft} />,

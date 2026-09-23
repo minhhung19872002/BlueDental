@@ -139,7 +139,7 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
     handleCounterChange,
     handleExport,
     handleNote,
-    handleCall: () => toast.error(t("Chưa có cấu hình tổng đài gọi điện")),
+    handleCall: () => toast.error(t("CSKH:NoCallConfig")),
     openDialog,
     closeDialog,
   };

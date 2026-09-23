@@ -110,7 +110,7 @@ public class InventoryItem : FullAuditedAggregateRoot<Guid>
     /// The dates a material keeps, with no stock arriving alongside them.
     ///
     /// A material can be catalogued before any of it is held — the reference
-    /// leaves "Số lượng" optional — so recording when it was stocked and when
+    /// leaves "BE:Col:Quantity" optional — so recording when it was stocked and when
     /// it expires must not require a receipt. AddStock still refuses a
     /// quantity of zero; that guard belongs to stock, not to shelf life.
     /// </summary>

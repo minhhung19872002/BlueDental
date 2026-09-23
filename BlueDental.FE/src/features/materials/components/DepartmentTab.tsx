@@ -173,7 +173,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       await deleteDepartment.mutateAsync(pendingDelete.id);
       // The table beside it is that department's own list, so stop showing it.
       if (selectedId === pendingDelete.id) selectDepartment(null);
-      toast.success(t("Đã xoá phòng ban"));
+      toast.success(t("Materials:DeptDeleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -194,32 +194,32 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
     () => [
       {
         key: "allocatedAt",
-        title: t("Thời gian phân bổ"),
+        title: t("Materials:DeptAllocTimeCol"),
         width: 190,
         render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocatedAt)}</span>,
       },
       {
         key: "code",
-        title: t("Mã phân bổ"),
+        title: t("Materials:DeptAllocCodeCol"),
         width: 180,
         render: (_, row) => <span className="bd-mat-code">{row.allocationCode || "—"}</span>,
       },
       {
         key: "name",
-        title: t("Vật tư"),
+        title: t("Materials:DeptMaterialCol"),
         width: 220,
         render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
       },
       {
         key: "issued",
-        title: t("SL được phát"),
+        title: t("Materials:DeptIssuedQtyCol"),
         width: 150,
         align: "right",
         render: (_, row) => <span className="bd-cat-num bd-mat-issued">{row.quantity}</span>,
       },
       {
         key: "remaining",
-        title: t("SL còn lại (đã duyệt)"),
+        title: t("Materials:DeptRemainingApprovedCol"),
         width: 190,
         align: "right",
         render: (_, row) =>
@@ -231,25 +231,25 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       },
       {
         key: "stocktake",
-        title: t("Kiểm kho"),
+        title: t("Materials:DeptStockCheckCol"),
         width: 140,
         // The reference shows a status here. BlueDental keeps no stock-take
         // record of its own, so a line simply reads as not yet checked until a
         // remaining figure comes back for it.
         render: (_, row) =>
           row.confirmedQuantity === null ? (
-            <Tag className="bd-alloc-unchecked">{t("Chưa kiểm")}</Tag>
+            <Tag className="bd-alloc-unchecked">{t("Materials:NotChecked")}</Tag>
           ) : (
-            <Tag color="green">{t("Đã kiểm")}</Tag>
+            <Tag color="green">{t("Materials:Checked")}</Tag>
           ),
       },
       {
         key: "performer",
-        title: t("Người thực hiện"),
+        title: t("Materials:DeptExecutorCol"),
         width: 180,
         render: (_, row) => row.performerName ?? "—",
       },
-      { key: "note", title: t("Ghi chú"), render: (_, row) => row.note ?? "—" },
+      { key: "note", title: t("Common:Note"), render: (_, row) => row.note ?? "—" },
     ],
     [],
   );
@@ -258,12 +258,12 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
     () => [
       {
         key: "name",
-        title: t("Vật tư"),
+        title: t("Materials:DeptSummaryMaterialCol"),
         render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
       },
       {
         key: "totalQty",
-        title: t("Tổng SL phân bổ"),
+        title: t("Materials:DeptTotalAllocQty"),
         width: 180,
         align: "right",
         render: (_, row) => (
@@ -272,7 +272,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       },
       {
         key: "totalConfirmed",
-        title: t("Tổng còn lại (đã duyệt)"),
+        title: t("Materials:DeptTotalRemaining"),
         width: 220,
         align: "right",
         render: (_, row) =>
@@ -284,14 +284,14 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       },
       {
         key: "allocationCount",
-        title: t("Số lần phân bổ"),
+        title: t("Materials:DeptAllocCount"),
         width: 170,
         align: "right",
-        render: (_, row) => <span className="bd-cat-num">{t("{0} lần", row.allocationCount)}</span>,
+        render: (_, row) => <span className="bd-cat-num">{t("Materials:AllocCountBadge", row.allocationCount)}</span>,
       },
       {
         key: "latestAllocatedAt",
-        title: t("Lần phân bổ gần nhất"),
+        title: t("Materials:LastAllocCol"),
         width: 210,
         render: (_, row) => (
           <span className="bd-cat-num">
@@ -308,20 +308,20 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
   const shown = merged ? summaries.length : rows.length;
 
   const emptyText = selectedId
-    ? t("Phòng ban này chưa được phân bổ vật tư")
-    : t("Chọn phòng ban để xem vật tư đã phân bổ");
+    ? t("Materials:NoDeptAlloc")
+    : t("Materials:SelectDeptPrompt");
 
   return (
     <div className="bd-taxonomy-shell">
       <aside className="bd-taxonomy-aside">
         <GroupPanel
-          title={t("Phòng ban")}
-          subtitle={t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}
-          searchPlaceholder={t("Tìm phòng ban...")}
-          countNoun={t("phòng ban")}
-          emptyText={t("Chưa có phòng ban")}
-          notFoundText={t("Không tìm thấy phòng ban phù hợp")}
-          createLabel={t("Tạo phòng ban")}
+          title={t("Materials:DeptPanelTitle")}
+          subtitle={t("Materials:DeptPanelSubtitle")}
+          searchPlaceholder={t("Materials:SearchDept")}
+          countNoun={t("Materials:DeptNoun")}
+          emptyText={t("Materials:NoDepts")}
+          notFoundText={t("Materials:DeptNotFoundMsg")}
+          createLabel={t("Materials:CreateDeptLabel")}
           groups={departments}
           isLoading={departmentsQuery.isLoading}
           isSearching={departmentsQuery.isFetching}
@@ -351,8 +351,8 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
           <Input
             className="bd-materials-search"
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm vật tư...")}
-            aria-label={t("Tìm vật tư")}
+            placeholder={t("Materials:SearchMaterial")}
+            aria-label={t("Materials:SearchMaterialAria")}
             value={keyword}
             allowClear
             onChange={(event) => {
@@ -371,16 +371,16 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
           <Tooltip
             title={
               !selectedId
-                ? t("Chọn phòng ban trước khi gộp")
+                ? t("Materials:SelectDeptMerge")
                 : merged
-                  ? t("Xem chi tiết phân bổ")
-                  : t("Gộp số lượng vật tư")
+                  ? t("Materials:ViewAllocDetail")
+                  : t("Materials:MergeQty")
             }
           >
             <span className="bd-materials-sync">
               <Button
                 icon={<GroupOutlined />}
-                aria-label={t("Gộp số lượng vật tư")}
+                aria-label={t("Materials:MergeQty")}
                 aria-pressed={merged}
                 type={merged ? "primary" : "default"}
                 disabled={!selectedId}
@@ -407,8 +407,8 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
                 scroll={{ x: 1100 }}
                 pagination={pagination.buildConfig(shown, (total, range) =>
                   total === 0
-                    ? t("Hiển thị 0 trên 0")
-                    : t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+                    ? t("Materials:ShowZero")
+                    : t("Materials:ShowRange", range[0], range[1], total),
                 )}
                 locale={{ emptyText: emptyText }}
               />
@@ -421,8 +421,8 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
                 scroll={{ x: 1400 }}
                 pagination={pagination.buildConfig(shown, (total, range) =>
                   total === 0
-                    ? t("Hiển thị 0 trên 0")
-                    : t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+                    ? t("Materials:ShowZero")
+                    : t("Materials:ShowRange", range[0], range[1], total),
                 )}
                 locale={{ emptyText: emptyText }}
               />
@@ -433,7 +433,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("phòng ban")}
+        noun={t("Materials:DeptNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteDepartment.isPending}
         onConfirm={() => void confirmDelete()}

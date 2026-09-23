@@ -32,7 +32,7 @@ function groupByDay(entries: HistoryEntry[]): DayGroup[] {
   const groups = new Map<string, DayGroup>();
   // The day format is translated as a whole ("05 tháng 9 2026" / "05 Sep 2026");
   // dayjs itself follows the app language for the month name.
-  const dayFormat = t("DD [tháng] M YYYY");
+  const dayFormat = t("Appointment:History:DayFormat");
   for (const entry of entries) {
     const day = dayjs(entry.occurredAt);
     const key = day.format("YYYY-MM-DD");
@@ -69,7 +69,7 @@ function TimelineItem({
         <span className="ah-tl-main">
           <span className="ah-tl-badges">
             <ActionBadge action={entry.action} />
-            <HistoryPill>{t("Thông tin")}</HistoryPill>
+            <HistoryPill>{t("Appointment:History:Info")}</HistoryPill>
             <SourceBadge source={entry.source} />
           </span>
           <span className="ah-tl-actor">
@@ -108,7 +108,7 @@ export function HistoryTimeline({
   const sentinelRef = useLoadMoreSentinel(hasMore && !loadingMore, onLoadMore);
 
   if (!loading && groups.length === 0) {
-    return <div className="ah-empty">{t("Chưa có thay đổi nào trong khoảng thời gian này")}</div>;
+    return <div className="ah-empty">{t("Appointment:History:NoChangesInPeriod")}</div>;
   }
 
   return (
@@ -117,7 +117,7 @@ export function HistoryTimeline({
         <section key={group.key} className="ah-tl-group">
           <header className="ah-tl-head">
             <span className="ah-tl-date">{group.heading}</span>
-            <span className="ah-tl-count">{t("{0} mục", group.entries.length)}</span>
+            <span className="ah-tl-count">{t("Appointment:History:ItemCount", group.entries.length)}</span>
           </header>
           <ul className="ah-tl-list">
             {group.entries.map((entry) => (
@@ -136,7 +136,7 @@ export function HistoryTimeline({
       {loadingMore && (
         <div className="ah-tl-more" role="status">
           <Spin size="small" />
-          <span>{t("Đang tải thêm...")}</span>
+          <span>{t("Appointment:History:LoadingMore")}</span>
         </div>
       )}
     </div>

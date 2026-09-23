@@ -40,9 +40,9 @@ export function StageStepList({
 }: Props) {
   return (
     <div className={tone === "accent" ? "pd-stage-steps pd-stage-steps--accent" : "pd-stage-steps"}>
-      <p className="pd-stage-list">{t("Danh sách công đoạn")}</p>
+      <p className="pd-stage-list">{t("Patient:Stage:List")}</p>
       {steps.length === 0 ? (
-        <p className="pd-stage-listempty">{t("(Trống)")}</p>
+        <p className="pd-stage-listempty">{t("Patient:QuoteSheet:Empty")}</p>
       ) : (
         <div>
           {steps.map((step) => (

@@ -47,11 +47,11 @@ export function SalesEntryPrintSheet({ entry, labels, clinic, customer }: Props)
     formatMoneyUnit(entry.amount),
   ];
   const headers = [
-    t("Ngày tạo"),
+    t("Report:Column:CreatedDate"),
     labels.actualDate,
     labels.content,
     labels.category,
-    t("Hình thức"),
+    t("Report:SalesDetail:Method"),
     labels.staff,
     labels.amount,
   ];
@@ -63,8 +63,8 @@ export function SalesEntryPrintSheet({ entry, labels, clinic, customer }: Props)
           <PartyBlock rows={clinic.rows} className="report-print-party" />
           <header className="report-print-heading">
             <h1>{labels.title}</h1>
-            <p>{t("Ngày {0} tháng {1} năm {2}", date.format("D"), date.format("M"), date.format("YYYY"))}</p>
-            <p>{t("Số: {0}", entry.code)}</p>
+            <p>{t("Report:Voucher:Date", date.format("D"), date.format("M"), date.format("YYYY"))}</p>
+            <p>{t("Report:Voucher:Number", entry.code)}</p>
           </header>
           <PartyBlock rows={customer.rows} className="report-print-party report-print-party--end" />
         </div>
@@ -89,13 +89,13 @@ export function SalesEntryPrintSheet({ entry, labels, clinic, customer }: Props)
         </table>
 
         <p className="report-print-total">
-          <strong>{t("Tổng cộng")}:</strong> {formatMoneyUnit(entry.amount)}
+          <strong>{t("Report:SalesDetail:Total")}:</strong> {formatMoneyUnit(entry.amount)}
         </p>
 
         <div className="report-print-signatures">
           <div className="report-print-signature">
-            <strong>{t("Người lập phiếu")}</strong>
-            <span>{t("(Ký, họ tên)")}</span>
+            <strong>{t("Report:Voucher:Creator")}</strong>
+            <span>{t("Report:Voucher:SignHere")}</span>
             <span className="report-print-signature-name">{entry.staffName}</span>
           </div>
         </div>

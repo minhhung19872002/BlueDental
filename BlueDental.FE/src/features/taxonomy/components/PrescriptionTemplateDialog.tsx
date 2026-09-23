@@ -113,7 +113,7 @@ export function PrescriptionTemplateDialog({
             sortOrder,
           },
         });
-        toast.success(t("Đã cập nhật đơn thuốc mẫu"));
+        toast.success(t("Taxonomy:Rx:Updated"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -123,7 +123,7 @@ export function PrescriptionTemplateDialog({
           prescriptionLines: filled,
           sortOrder,
         });
-        toast.success(t("Đã thêm đơn thuốc mẫu"));
+        toast.success(t("Taxonomy:Rx:Created"));
       }
       onClose();
     } catch {
@@ -134,7 +134,7 @@ export function PrescriptionTemplateDialog({
   return (
     <AppDialog
       open={open}
-      title={entry ? t("Cập nhật đơn thuốc mẫu") : t("Thêm đơn thuốc mẫu")}
+      title={entry ? t("Taxonomy:Rx:UpdateTitle") : t("Taxonomy:Rx:CreateTitle")}
       width={1040}
       canSave={name.trim().length > 0}
       saving={pending}
@@ -152,15 +152,15 @@ export function PrescriptionTemplateDialog({
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên đơn thuốc mẫu")}
+              label={t("Taxonomy:Rx:NameLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên đơn thuốc mẫu") }]}
+              rules={[{ required: true, message: t("Taxonomy:Rx:NameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="advice" label={t("Lời dặn")}>
+            <FloatingField name="advice" label={t("Taxonomy:Rx:Instructions")}>
               <Input />
             </FloatingField>
           </Col>
@@ -170,7 +170,7 @@ export function PrescriptionTemplateDialog({
 
         <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
           <Col xs={24} sm={12}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Taxonomy:Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>

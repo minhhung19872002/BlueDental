@@ -43,16 +43,16 @@ export function CalendarToolbarRow2({
   const ability = useAbility("appointment");
   const isMonthView = viewMode === "month";
   const slotTitle = isMonthView
-    ? t("Chỉ khả dụng ở chế độ Ngày/Tuần")
+    ? t("Appointment:Toolbar:DayWeekOnly")
     : slotMinutes === 30
-      ? t("Xem theo giờ")
-      : t("Xem theo bác sĩ");
+      ? t("Appointment:Panel:ByHour")
+      : t("Appointment:Panel:ByDoctor");
 
   return (
     <div className="cal-toolbar-row2">
       <div className="cal-toolbar-row2-left">
         <div className="cal-search-field">
-          <FloatingLabel label={t("Tìm kiếm")} floated={Boolean(keyword)}>
+          <FloatingLabel label={t("Common:Search")} floated={Boolean(keyword)}>
             <Input
               prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
               value={keyword}
@@ -63,7 +63,7 @@ export function CalendarToolbarRow2({
           </FloatingLabel>
         </div>
         <div className="cal-doctor-field">
-          <FloatingLabel label={t("Bác sĩ")} floated={doctorIds.length > 0}>
+          <FloatingLabel label={t("Appointment:Form:Doctor")} floated={doctorIds.length > 0}>
             <Select
               mode="multiple"
               allowClear
@@ -89,17 +89,17 @@ export function CalendarToolbarRow2({
       <div className="cal-toolbar-row2-right">
         {ability.canExport && (
           <Button className="cal-btn-export" icon={<DownloadOutlined />} onClick={onExport}>
-            {t("Xuất File")}
+            {t("Appointment:Action:Export")}
           </Button>
         )}
         {ability.canCreate && (
           <Button className="cal-btn-create" type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
-            {t("Tạo lịch hẹn mới")}
+            {t("Appointment:Action:CreateNew")}
           </Button>
         )}
         {ability.canCreate && (
           <Button className="cal-btn-temp" icon={<PlusOutlined />} onClick={onCreateTemp}>
-            {t("Tạo lịch tạm")}
+            {t("Appointment:Action:CreateTempShort")}
           </Button>
         )}
         {/* Slot toggle — visible only on desktop */}
@@ -115,7 +115,7 @@ export function CalendarToolbarRow2({
         <Button
           className="cal-btn-fullscreen"
           icon={<ExpandOutlined />}
-          title={t("Toàn màn hình")}
+          title={t("Appointment:Toolbar:Fullscreen")}
           onClick={onFullscreen}
         />
       </div>

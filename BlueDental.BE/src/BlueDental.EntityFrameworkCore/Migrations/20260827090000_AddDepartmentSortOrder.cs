@@ -11,7 +11,7 @@ namespace BlueDental.Migrations
     ///
     /// The reference orders its department list by "order"
     /// (<c>GET /api/v1/departments/list?orderBy=order</c>) and its dialog
-    /// collects it as "Số thứ tự". BlueDental had nowhere to put that, so the
+    /// collects it as "BE:Field:SeqNo". BlueDental had nowhere to put that, so the
     /// number was being written into the description column — where it could
     /// not sort and would have surfaced as a description.
     ///

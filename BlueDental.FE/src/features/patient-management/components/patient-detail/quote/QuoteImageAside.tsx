@@ -64,14 +64,14 @@ export function QuoteImageAside({ images, printing, onPrintingChange }: Props) {
     <aside className="pq-aside">
       <div className="pq-aside-head">
         <div>
-          <p className="pq-aside-title">{t("Ảnh chẩn đoán")}</p>
-          <p className="pq-aside-hint">{t("Chọn ảnh để đưa vào form in.")}</p>
+          <p className="pq-aside-title">{t("Patient:Photo:Diagnostic")}</p>
+          <p className="pq-aside-hint">{t("Patient:Photo:SelectForPrint")}</p>
         </div>
-        <Tooltip title={t("Danh sách ảnh")}>
+        <Tooltip title={t("Patient:Photo:List")}>
           <button
             type="button"
             className="pq-square"
-            aria-label={t("Danh sách ảnh")}
+            aria-label={t("Patient:Photo:List")}
             onClick={() => setAlbumOpen(true)}
           >
             <Images size={20} />
@@ -82,7 +82,7 @@ export function QuoteImageAside({ images, printing, onPrintingChange }: Props) {
       {listed.length === 0 ? (
         <button type="button" className="pq-aside-empty" onClick={() => setAlbumOpen(true)}>
           <Images size={32} />
-          {t("Chưa có ảnh hiển thị. Bấm để mở danh sách ảnh.")}
+          {t("Patient:Photo:EmptyClickToOpen")}
         </button>
       ) : (
         <div className="pq-aside-list" onScroll={handleScroll}>
@@ -100,7 +100,7 @@ export function QuoteImageAside({ images, printing, onPrintingChange }: Props) {
               <img src={image.src} alt={image.alt} loading="lazy" />
               <Checkbox
                 checked={printing.has(image.id)}
-                aria-label={t("In ảnh {0}", image.alt)}
+                aria-label={t("Patient:Photo:PrintImage", image.alt)}
                 onClick={(event) => event.stopPropagation()}
                 onChange={() => togglePrint(image.id)}
               />

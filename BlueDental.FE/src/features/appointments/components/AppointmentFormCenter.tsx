@@ -17,7 +17,7 @@ export function AppointmentFormCenter({ control, errors, doctorOptions }: Props)
       {/* Doctor */}
       <div className="appt-field">
         <label className="appt-field-label">
-          {t("Chọn bác sĩ")}<span className="appt-field-required">*</span>
+          {t("Appointment:Form:SelectDoctor")}<span className="appt-field-required">*</span>
         </label>
         <Controller
           name="doctorId"
@@ -25,7 +25,7 @@ export function AppointmentFormCenter({ control, errors, doctorOptions }: Props)
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Chọn bác sĩ")}
+              placeholder={t("Appointment:Form:SelectDoctor")}
               options={doctorOptions}
               onChange={(v) => field.onChange(v ?? "")}
               status={errors.doctorId ? "error" : ""}
@@ -44,7 +44,7 @@ export function AppointmentFormCenter({ control, errors, doctorOptions }: Props)
             <Input.TextArea
               {...field}
               rows={4}
-              placeholder={t("Nội dung đặt lịch")}
+              placeholder={t("Appointment:Form:BookingContent")}
               style={{ resize: "none" }}
             />
           )}

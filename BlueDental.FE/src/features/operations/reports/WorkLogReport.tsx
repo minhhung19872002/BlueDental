@@ -77,7 +77,7 @@ export function WorkLogReport({ division }: Props) {
         <span className="bd-ops-stat-value bd-ops-stat-value--green">
           {formatMoney(query.data?.plannedSales ?? 0)}
         </span>
-        <span className="bd-ops-stat-label">{t("Doanh số chốt kế hoạch")}</span>
+        <span className="bd-ops-stat-label">{t("Operations:SalesTarget")}</span>
       </span>
     </div>
   );
@@ -99,7 +99,7 @@ export function WorkLogReport({ division }: Props) {
           <div className="bd-ops-report-filters">
             {shows("staff") ? (
               <StaffFilter
-                label={t("Người tạo")}
+                label={t("Operations:CreatorFilter")}
                 value={staffId}
                 onChange={(value) => {
                   setStaffId(value);
@@ -114,8 +114,8 @@ export function WorkLogReport({ division }: Props) {
                 mode="multiple"
                 allowClear
                 maxTagCount="responsive"
-                placeholder={t("Hành động")}
-                aria-label={t("Hành động")}
+                placeholder={t("Operations:ActionFilter")}
+                aria-label={t("Operations:ActionFilter")}
                 value={actions}
                 onChange={(value) => {
                   setActions(value);
@@ -128,8 +128,8 @@ export function WorkLogReport({ division }: Props) {
             {shows("patient") ? (
               <Input
                 className="bd-ops-search"
-                placeholder={t("Tìm kiếm khách hàng")}
-                aria-label={t("Tìm kiếm khách hàng")}
+                placeholder={t("Operations:SearchCustomer")}
+                aria-label={t("Operations:SearchCustomer")}
                 value={keyword}
                 allowClear
                 onChange={(event) => {

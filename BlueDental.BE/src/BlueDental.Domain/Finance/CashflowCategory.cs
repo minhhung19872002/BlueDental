@@ -7,7 +7,7 @@ namespace BlueDental.Finance;
 
 /// <summary>
 /// Mục thu / mục chi — the category picked on a cash voucher, and the category
-/// list on the "Danh mục" sub-tab of both cashflow report tabs.
+/// list on the "BE:Perm:Catalogs" sub-tab of both cashflow report tabs.
 ///
 /// Reference permissions: <c>reportCashflowCategory</c> and
 /// <c>reportTransferCategory</c>; <see cref="AppliesToTransfers"/> tells the two apart.
@@ -35,7 +35,7 @@ public class CashflowCategory : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Hex swatch (<c>#RRGGBB</c>) shown next to a cash-management category on the
-    /// reference "Danh mục sổ quỹ" list; sales categories carry none.
+    /// reference "BE:Common:CashBookCatalog" list; sales categories carry none.
     /// </summary>
     public string? ColorCode { get; private set; }
 

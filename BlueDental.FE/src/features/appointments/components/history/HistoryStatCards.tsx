@@ -54,7 +54,7 @@ interface Card {
  */
 function buildCards(stats: HistoryStats): Card[] {
   const cards: Card[] = [
-    { key: "total", label: t("Tổng thao tác"), value: stats.total, tone: "gray", Icon: CalendarClock },
+    { key: "total", label: t("Appointment:History:Stats:Total"), value: stats.total, tone: "gray", Icon: CalendarClock },
   ];
   for (const action of ACTION_ORDER) {
     const value = stats.byAction[action] ?? 0;
@@ -89,7 +89,7 @@ export function HistoryStatCards({ stats }: { stats: HistoryStats | undefined })
   if (stats.total === 0) {
     return (
       <div className="ah-stats-empty" data-testid="ah-stats">
-        {t("Chưa có thao tác nào trong khoảng thời gian này.")}
+        {t("Appointment:History:Stats:Empty")}
       </div>
     );
   }

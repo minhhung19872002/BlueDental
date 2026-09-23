@@ -124,7 +124,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
           <Folder className="perm-group-icon" size={16} />
         )}
         <span className="perm-group-label">{t(node.label)}</span>
-        {isSubGroup && <span className="perm-group-type-badge">{t("Mục")}</span>}
+        {isSubGroup && <span className="perm-group-type-badge">{t("Organization:PermGroupBadge")}</span>}
         <span className="perm-group-count">{checked}/{total}</span>
       </div>
       {isOpen && node.children && (
@@ -213,7 +213,7 @@ function RolePermissionEditor({
     }));
     try {
       await updatePerms.mutateAsync({ roleName, permissions });
-      toast.success(t("Lưu quyền thành công"));
+      toast.success(t("Organization:PermSaved"));
       setLocalGranted(null);
     } catch {
       // error handled globally
@@ -243,21 +243,21 @@ function RolePermissionEditor({
             {isReadonly && <Lock size={14} className="perm-editor-lock" />}
           </div>
           <div className="perm-editor-subtitle">
-            {checkedCount}/{totalPerms} {t("quyền chi tiết")}
-            {isReadonly && <span className="perm-editor-readonly-hint"> — {t("Vai trò hệ thống, không thể chỉnh sửa")}</span>}
+            {checkedCount}/{totalPerms} {t("Organization:PermCount")}
+            {isReadonly && <span className="perm-editor-readonly-hint"> — {t("Organization:ReadonlyRole")}</span>}
           </div>
         </div>
         <div className="perm-editor-actions">
           <button
             className="bd-icon-btn"
-            title={t("Mở tất cả")}
+            title={t("Organization:ExpandAll")}
             onClick={() => setAllExpanded(true)}
           >
             <ChevronsLeftRight size={16} />
           </button>
           <button
             className="bd-icon-btn"
-            title={t("Thu gọn tất cả")}
+            title={t("Organization:CollapseAll")}
             onClick={() => setAllExpanded(false)}
           >
             <ChevronsRightLeft size={16} />
@@ -270,7 +270,7 @@ function RolePermissionEditor({
               disabled={!hasChanges || updatePerms.isPending}
               onClick={() => void handleSave()}
             >
-              {t("Lưu thay đổi")}
+              {t("Organization:SavePerms")}
             </Button>
           )}
         </div>
@@ -279,7 +279,7 @@ function RolePermissionEditor({
       <div className="perm-search-wrap">
         <Input
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm quyền...")}
+          placeholder={t("Organization:SearchPerms")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           allowClear
@@ -348,7 +348,7 @@ function RoleListItem({ roleName, isActive, isStatic, treeLeafIds, onClick, onDe
       {!isStatic && (
         <button
           className="perm-role-delete-btn"
-          title={t("Xóa vai trò")}
+          title={t("Organization:DeleteRole")}
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
         >
           <Trash2 size={14} />
@@ -384,7 +384,7 @@ export function PermissionsTab() {
       if (!name) return;
       await createRole.mutateAsync({ name });
       void qc.invalidateQueries({ queryKey: ["staff"] });
-      toast.success(t("Thêm vai trò thành công"));
+      toast.success(t("Organization:RoleAdded"));
       addRoleForm.resetFields();
       setAddRoleOpen(false);
     } catch {
@@ -397,7 +397,7 @@ export function PermissionsTab() {
     try {
       await deleteRole.mutateAsync(deleteConfirm.id);
       void qc.invalidateQueries({ queryKey: ["staff"] });
-      toast.success(t("Xóa vai trò thành công"));
+      toast.success(t("Organization:RoleDeleted"));
       if (selectedRole === deleteConfirm.name) setSelectedRole(null);
       setDeleteConfirm(null);
     } catch {
@@ -422,7 +422,7 @@ export function PermissionsTab() {
           <div className="perm-role-list-title">
             <span className="perm-role-list-title-left">
               <Shield size={16} />
-              <span>{t("Vai trò")}</span>
+              <span>{t("Organization:RoleLabel")}</span>
             </span>
             <span className="perm-role-count-badge">{roles.length}</span>
           </div>
@@ -435,7 +435,7 @@ export function PermissionsTab() {
             block
             onClick={() => setAddRoleOpen(true)}
           >
-            {t("Thêm vai trò")}
+            {t("Organization:AddRole")}
           </Button>
         </div>
 
@@ -466,7 +466,7 @@ export function PermissionsTab() {
           <div className="perm-empty">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t("Chọn một vai trò để xem và chỉnh sửa quyền hạn")}
+              description={t("Organization:SelectRolePrompt")}
             />
           </div>
         )}
@@ -475,9 +475,9 @@ export function PermissionsTab() {
       {/* Add role modal */}
       <Modal
         open={addRoleOpen}
-        title={t("Thêm vai trò")}
-        okText={t("Thêm")}
-        cancelText={t("Hủy")}
+        title={t("Organization:AddRoleTitle")}
+        okText={t("Organization:AddRoleOk")}
+        cancelText={t("Organization:AddRoleCancel")}
         confirmLoading={createRole.isPending}
         onOk={() => void handleAddRole()}
         onCancel={() => { setAddRoleOpen(false); addRoleForm.resetFields(); }}
@@ -485,10 +485,10 @@ export function PermissionsTab() {
       >
         <Form form={addRoleForm} layout="vertical">
           <FloatingField
-            label={t("Tên vai trò")}
+            label={t("Organization:RoleNameLabel")}
             name="roleName"
             required
-            rules={[{ required: true, message: t("Vui lòng nhập tên vai trò") }]}
+            rules={[{ required: true, message: t("Organization:RoleNameRequired") }]}
           >
             <Input onPressEnter={() => void handleAddRole()} autoFocus />
           </FloatingField>
@@ -498,16 +498,16 @@ export function PermissionsTab() {
       {/* Delete role confirm */}
       <Modal
         open={deleteConfirm !== null}
-        title={t("Xóa vai trò")}
-        okText={t("Xóa")}
-        cancelText={t("Hủy")}
+        title={t("Organization:DeleteRoleTitle")}
+        okText={t("Organization:DeleteRoleOk")}
+        cancelText={t("Organization:DeleteRoleCancel")}
         okButtonProps={{ danger: true }}
         confirmLoading={deleteRole.isPending}
         onOk={() => void handleDeleteRole()}
         onCancel={() => setDeleteConfirm(null)}
       >
         {deleteConfirm && (
-          <p>{t("Bạn có chắc chắn muốn xóa vai trò")} <strong>{deleteConfirm.name}</strong>?</p>
+          <p>{t("Organization:DeleteRoleConfirm")} <strong>{deleteConfirm.name}</strong>?</p>
         )}
       </Modal>
     </div>

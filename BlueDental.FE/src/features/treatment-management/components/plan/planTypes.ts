@@ -186,7 +186,7 @@ export function planDetailPath(
 
 /** Every money cell on the tab carries the unit: "4.000.000 đ". */
 export function moneyText(value: number | null | undefined) {
-  return t("{0} đ", formatVND(value));
+  return t("Treatment:Pricing:MoneyFormat", formatVND(value));
 }
 
 /**

@@ -13,8 +13,8 @@ interface Props {
 export function PatientDetailDrawer({ patientId, onClose }: Props) {
   const GENDER_LABELS: Record<string, string> = {
     male: t("Nam"),
-    female: t("Nữ"),
-    other: t("Khác"),
+    female: t("Patient:Misc:Female"),
+    other: t("Patient:Misc:OtherLabel"),
   };
   const { data: patient, isLoading } = usePatient(patientId ?? "");
 
@@ -22,7 +22,7 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
     <Drawer
       open={Boolean(patientId)}
       onClose={onClose}
-      title={patient ? `${t("Hồ sơ")}: ${patient.fullName}` : t("Hồ sơ bệnh nhân")}
+      title={patient ? `${t("Patient:Profile:RecordLabel")}: ${patient.fullName}` : t("Patient:Profile:Title")}
       width={640}
     >
       {isLoading && (
@@ -49,38 +49,38 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
                 {patient.fullName}
               </div>
               <div style={{ fontSize: 13, color: brand.muted }}>
-                {t("Mã")}: {patient.code} &middot; {patient.age} {t("tuổi")}
+                {t("Patient:Misc:CodeLabel")}: {patient.code} &middot; {patient.age} {t("Patient:Misc:Age")}
               </div>
             </div>
           </div>
 
           <Descriptions column={2} size="small" bordered>
-            <Descriptions.Item label={t("Ngày sinh")}>
+            <Descriptions.Item label={t("Patient:Col:DateOfBirth")}>
               {formatDate(patient.dateOfBirth)}
             </Descriptions.Item>
-            <Descriptions.Item label={t("Giới tính")}>
+            <Descriptions.Item label={t("Patient:Col:Gender")}>
               {GENDER_LABELS[patient.gender]}
             </Descriptions.Item>
-            <Descriptions.Item label={t("Số điện thoại")}>
+            <Descriptions.Item label={t("Patient:Col:Phone")}>
               {patient.phone}
             </Descriptions.Item>
             <Descriptions.Item label={t("Email")}>
               {patient.email ?? "—"}
             </Descriptions.Item>
-            <Descriptions.Item label={t("Địa chỉ")} span={2}>
+            <Descriptions.Item label={t("Patient:Col:Address")} span={2}>
               {patient.address ?? "—"}
             </Descriptions.Item>
-            <Descriptions.Item label={t("Tiền sử bệnh")} span={2}>
-              {patient.medicalHistory ?? t("Không có")}
+            <Descriptions.Item label={t("Patient:Tab:MedicalHistory")} span={2}>
+              {patient.medicalHistory ?? t("Patient:Misc:None")}
             </Descriptions.Item>
-            <Descriptions.Item label={t("Dị ứng")} span={2}>
+            <Descriptions.Item label={t("Patient:Allergy:Title")} span={2}>
               {patient.allergies.length > 0
                 ? patient.allergies.map((a) => (
                     <Tag key={a} color="red">
                       {a}
                     </Tag>
                   ))
-                : t("Không có")}
+                : t("Patient:Misc:None")}
             </Descriptions.Item>
           </Descriptions>
 
@@ -93,7 +93,7 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
                 marginBottom: 12,
               }}
             >
-              {t("Biểu đồ răng")}
+              {t("Patient:DentalChart:Title")}
             </div>
             <DentalChartView readOnly />
           </div>

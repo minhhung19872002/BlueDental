@@ -45,22 +45,22 @@ export function ConsultingImagePicker({
   return (
     <Modal
       open={open}
-      title={t("Chọn ảnh hiển thị")}
+      title={t("Patient:Image:SelectImagePickerTitle")}
       width={1024}
       onCancel={onClose}
       destroyOnHidden
       className="pd-image-picker"
       footer={
         <div className="pd-image-list-foot">
-          <Button onClick={onShowAll}>{t("Chọn tất cả")}</Button>
+          <Button onClick={onShowAll}>{t("Common:SelectAll")}</Button>
           <Button type="primary" onClick={onClose}>
-            {t("Xong")}
+            {t("Common:Close")}
           </Button>
         </div>
       }
     >
       {images.length === 0 ? (
-        <div className="pd-image-list-empty">{t("Chưa có ảnh nào.")}</div>
+        <div className="pd-image-list-empty">{t("Common:NoImage")}</div>
       ) : (
         days.map((day) => (
           <ConsultingImageDay

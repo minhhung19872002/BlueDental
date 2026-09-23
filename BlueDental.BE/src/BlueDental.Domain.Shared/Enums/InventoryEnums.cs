@@ -12,7 +12,7 @@ public enum StockMovementType
 }
 
 /// <summary>
-/// The "Trạng thái" column of the Vật tư table, derived from stock level and
+/// The "BE:Field:Status" column of the Vật tư table, derived from stock level and
 /// expiry rather than stored — a supply is out of stock, running low, expiring
 /// soon, expired, or fine.
 /// </summary>

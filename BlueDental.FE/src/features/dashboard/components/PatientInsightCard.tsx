@@ -41,13 +41,13 @@ export function PatientInsightCard() {
   return (
     <div className="page-card">
       <div className="dash-card-head" style={{ marginBottom: 12 }}>
-        <div className="dash-card-title">{t("Khách hàng phát sinh")}</div>
+        <div className="dash-card-title">{t("Dashboard:PatientInsightTitle")}</div>
         <button
           type="button"
           className="dash-link"
           onClick={() => navigate("/operations/finance?financeSubTab=customer-report")}
         >
-          {t("Chi tiết →")}
+          {t("Dashboard:ViewDetail")}
         </button>
       </div>
 
@@ -56,7 +56,7 @@ export function PatientInsightCard() {
       ) : isError || agg.total === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("Chưa có khách hàng phát sinh hôm nay")}
+          description={t("Dashboard:NoPatientToday")}
         />
       ) : (
         <div className="dash-insight-rows">
@@ -68,7 +68,7 @@ export function PatientInsightCard() {
               {agg.newCount}
             </span>
             <span className="dash-row-main">
-              <span className="dash-row-title">{t("Khách mới")}</span>
+              <span className="dash-row-title">{t("Dashboard:NewPatients")}</span>
               <span className="dash-row-sub">
                 {formatVND(agg.newRev)} ₫
               </span>
@@ -82,7 +82,7 @@ export function PatientInsightCard() {
               {agg.retCount}
             </span>
             <span className="dash-row-main">
-              <span className="dash-row-title">{t("Khách cũ")}</span>
+              <span className="dash-row-title">{t("Dashboard:ReturningPatients")}</span>
               <span className="dash-row-sub">
                 {formatVND(agg.retRev)} ₫
               </span>

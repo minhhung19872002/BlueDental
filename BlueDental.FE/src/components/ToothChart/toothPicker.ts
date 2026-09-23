@@ -20,16 +20,16 @@ export const EMPTY_TOOTH_VALUE: ToothPickerValue = { kind: "teeth", teeth: [] };
 
 /** Tab captions as the reference capitalises them. */
 export const TOOTH_PICKER_TABS: readonly { key: ToothPickerTab; label: () => string }[] = [
-  { key: "teeth", label: () => t("Chọn Răng") },
-  { key: "upper", label: () => t("Hàm Trên") },
-  { key: "lower", label: () => t("Hàm Dưới") },
-  { key: "full", label: () => t("Nguyên Hàm") },
+  { key: "teeth", label: () => t("Common:Tooth:SelectTeeth") },
+  { key: "upper", label: () => t("Common:Tooth:UpperArch") },
+  { key: "lower", label: () => t("Common:Tooth:LowerArch") },
+  { key: "full", label: () => t("Common:Tooth:FullArch") },
 ];
 
 const JAW_LABELS: Record<JawPreset, () => string> = {
-  upper: () => t("Hàm trên"),
-  lower: () => t("Hàm dưới"),
-  full: () => t("Nguyên hàm"),
+  upper: () => t("Common:Tooth:UpperArchSummary"),
+  lower: () => t("Common:Tooth:LowerArchSummary"),
+  full: () => t("Common:Tooth:FullArchSummary"),
 };
 
 const JAW_TEETH: Record<JawPreset, readonly number[]> = {

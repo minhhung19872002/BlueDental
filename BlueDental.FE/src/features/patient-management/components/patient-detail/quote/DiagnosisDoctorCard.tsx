@@ -32,7 +32,7 @@ export function DiagnosisDoctorCard({ item, onChange }: Props) {
       <div className="pq-dx__doctor-head">
         <span className="pq-dx__doctor-name">
           <Stethoscope size={12} className="pq-print-hidden" />
-          {t("Bác sĩ")}: <b>{item.doctor}</b>
+          {t("Patient:Staff:Doctor")}: <b>{item.doctor}</b>
         </span>
         <button
           type="button"
@@ -42,15 +42,15 @@ export function DiagnosisDoctorCard({ item, onChange }: Props) {
           onClick={editing ? () => setEditing(false) : startEdit}
         >
           <PenLine size={11} />
-          {editing ? t("Đang sửa") : t("Sửa")}
+          {editing ? t("Patient:Misc:Editing") : t("Patient:Misc:Edit")}
         </button>
       </div>
       <p className="pq-dx__doctor-dx">
-        <b>{t("Chẩn đoán")}: </b>
+        <b>{t("Patient:Tab:Diagnosis")}: </b>
         <span>{item.diagnosisLabel.toUpperCase()}</span>
-        {item.teeth && <span className="pq-dx__teeth">{t("Răng {0}", item.teeth)}</span>}
+        {item.teeth && <span className="pq-dx__teeth">{t("Patient:DiagnosisInvoice:ToothLabel", item.teeth)}</span>}
       </p>
-      <p className="pq-dx__content-label">{t("Nội dung chẩn đoán:")}</p>
+      <p className="pq-dx__content-label">{t("Patient:Diagnosis:ContentLabel")}</p>
       {editing ? (
         <div className="pq-dx__editor pq-print-hidden">
           <RichTextField value={draft} onChange={setDraft} />
@@ -60,11 +60,11 @@ export function DiagnosisDoctorCard({ item, onChange }: Props) {
               className="tp-btn tp-btn--outline"
               onClick={() => setEditing(false)}
             >
-              {t("Hủy")}
+              {t("Patient:Misc:Cancel")}
             </button>
             <button type="button" className="tp-btn tp-btn--primary" onClick={save}>
               <Save size={14} />
-              {t("Lưu lại")}
+              {t("Patient:Misc:SaveAgain")}
             </button>
           </div>
         </div>

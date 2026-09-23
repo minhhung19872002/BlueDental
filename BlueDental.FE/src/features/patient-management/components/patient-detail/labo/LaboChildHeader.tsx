@@ -33,26 +33,26 @@ export function LaboChildHeader({ kind, patient, parent, dentists, form }: Props
     : "";
   return (
     <div className="pd-labo-grid">
-      <FloatingLabel label={t("Tên khách hàng")} required floated>
+      <FloatingLabel label={t("Patient:Form:CustomerName")} required floated>
         <Input disabled value={`${patient.code} - ${patient.name}`} />
       </FloatingLabel>
-      <FloatingLabel label={t("Kế hoạch điều trị")} required floated>
+      <FloatingLabel label={t("Patient:Plan:Title")} required floated>
         <Input disabled value={planLabel} />
       </FloatingLabel>
 
-      <FloatingLabel label={t("Dịch vụ điều trị")} required floated>
+      <FloatingLabel label={t("Patient:Plan:Service")} required floated>
         <Input disabled value={parent.treatmentServiceName ?? parent.workDescription ?? ""} />
       </FloatingLabel>
       <FloatingField
         name="dentistId"
-        label={t("Bác sĩ chỉ định")}
+        label={t("Patient:QuoteSheet:PrescribingDoctor")}
         required
-        rules={requiredRule(t("Vui lòng chọn bác sĩ chỉ định."))}
+        rules={requiredRule(t("Patient:QuoteSheet:RequiredPrescribingDoctor"))}
       >
         <SearchSelect options={dentists} />
       </FloatingField>
 
-      <FloatingLabel label={t("Số phiếu Labo")} required floated>
+      <FloatingLabel label={t("Patient:Labo:SlipNumber")} required floated>
         <Input disabled value={parent.orderCode} />
       </FloatingLabel>
       <LaboDeliveryFields

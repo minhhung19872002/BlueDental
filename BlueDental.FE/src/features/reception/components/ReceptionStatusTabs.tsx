@@ -56,10 +56,10 @@ const STAT_CHIP_CONFIGS: StatChipConfig[] = [
 ];
 
 const TAB_LABELS: Record<ReceptionStatus, string> = {
-  All:            "Tất cả",
-  WaitingForExam: "Chờ khám",
-  InProgress:     "Đang khám",
-  Completed:      "Hoàn thành",
+  All:            "Reception:TabAll",
+  WaitingForExam: "Reception:TabWaiting",
+  InProgress:     "Reception:TabInProgress",
+  Completed:      "Reception:TabCompleted",
 };
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
@@ -94,12 +94,12 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
   );
 
   const chipLabel: Record<keyof ReceptionCounters, string> = {
-    scheduledCount: t("Đã hẹn"),
-    arrivedCount:   t("Đã đến"),
-    cancelledCount: t("Huỷ hẹn"),
-    lateCount:      t("Trễ hẹn"),
-    temporaryCount: t("Lịch tạm"),
-    convertedCount: t("Chuyển đổi"),
+    scheduledCount: t("Reception:StatusScheduled"),
+    arrivedCount:   t("Reception:StatusArrived"),
+    cancelledCount: t("Reception:StatusCancelled"),
+    lateCount:      t("Reception:StatusLate"),
+    temporaryCount: t("Reception:StatusTemporary"),
+    convertedCount: t("Reception:StatusConverted"),
   };
 
   return (
@@ -114,7 +114,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
         <div className="reception-doctor-filter">
           <SearchSelect
             value={selectedDoctorId}
-            placeholder={t("Bác sĩ")}
+            placeholder={t("Reception:Doctor")}
             allowClear
             options={doctors.map((d) => ({ value: d.id, label: d.name }))}
             onChange={(val) => onDoctorSelect?.(val)}

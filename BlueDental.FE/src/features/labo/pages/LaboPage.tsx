@@ -91,13 +91,13 @@ export function LaboPage() {
   return (
     <div className="bd-shell-page">
       <PageHeader
-        title={t("Labo")}
-        subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
+        title={t("Labo:PageTitle")}
+        subtitle={t("Labo:PageSubtitle")}
       />
 
       <div className="bd-labo-page">
         <PageTabBar
-          label={t("Labo")}
+          label={t("Labo:PageTitle")}
           activeKey={tab.key}
           tabs={tabs.map((item) => ({ key: item.key, label: item.label, to: `/labo/${item.key}` }))}
         />

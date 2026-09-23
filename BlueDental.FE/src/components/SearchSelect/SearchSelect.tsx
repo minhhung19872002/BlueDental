@@ -60,7 +60,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   onOpenChange,
   footer,
 }) => {
-  const resolvedPlaceholder = placeholder ?? t("Tìm kiếm...");
+  const resolvedPlaceholder = placeholder ?? t("Common:Search");
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
@@ -185,14 +185,14 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 ref={searchRef}
                 className="ss-search-input"
                 value={keyword}
-                placeholder={t("Tìm kiếm...")}
+                placeholder={t("Common:Search")}
                 onChange={handleKeywordChange}
                 onKeyDown={handleKeyDown}
               />
             </div>
             <div className="ss-options">
               {filtered.length === 0 ? (
-                <div className="ss-empty">{emptyText ?? t("Không tìm thấy kết quả")}</div>
+                <div className="ss-empty">{emptyText ?? t("Common:NoResults")}</div>
               ) : (
                 filtered.map((opt) => (
                   <div
@@ -253,7 +253,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
             <span
               className="ss-icon ss-icon--clear"
               onMouseDown={handleClear}
-              title={t("Xóa")}
+              title={t("Common:Clear")}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6 6 18" /><path d="m6 6 12 12" />

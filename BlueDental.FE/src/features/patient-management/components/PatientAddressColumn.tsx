@@ -37,36 +37,36 @@ export function PatientAddressColumn({ provinceCode, onProvinceChange }: Props) 
   return (
     <>
       <FloatingField
-        label={t("Số thẻ BHYT")}
+        label={t("Patient:Form:InsuranceCardNo")}
         name="insuranceNumber"
-        rules={[{ max: 30, message: t("Tối đa 30 ký tự") }]}
+        rules={[{ max: 30, message: t("Patient:Misc:Max30Chars") }]}
       >
         <Input maxLength={30} />
       </FloatingField>
 
-      <FloatingField label={t("Quốc gia")} name="country">
-        <Input readOnly value={t("Việt Nam")} />
+      <FloatingField label={t("Patient:Form:Country")} name="country">
+        <Input readOnly value={t("Patient:Form:Vietnam")} />
       </FloatingField>
 
-      <FloatingField label={t("Số nhà/ Đường")} name="address">
+      <FloatingField label={t("Patient:Form:Street")} name="address">
         <Input maxLength={500} />
       </FloatingField>
 
-      <FloatingField label={t("Tỉnh/ Thành phố")} name="provinceCode">
+      <FloatingField label={t("Patient:Form:Province")} name="provinceCode">
         <SearchSelect
           options={provinces.map((row) => ({ value: row.code, label: row.name }))}
-          placeholder={t("Tỉnh/ Thành phố")}
-          emptyText={t("Không tìm thấy tỉnh/ thành phố")}
+          placeholder={t("Patient:Form:Province")}
+          emptyText={t("Patient:Form:ProvinceNotFound")}
           allowClear
           onChange={onProvinceChange}
         />
       </FloatingField>
 
-      <FloatingField label={t("Xã/ Phường")} name="wardCode">
+      <FloatingField label={t("Patient:Form:Ward")} name="wardCode">
         <SearchSelect
           options={wards.map((row) => ({ value: row.code, label: row.name }))}
-          placeholder={t("Xã/ Phường")}
-          emptyText={t("Không tìm thấy xã/ phường")}
+          placeholder={t("Patient:Form:Ward")}
+          emptyText={t("Patient:Form:WardNotFound")}
           disabled={!provinceCode}
           allowClear
         />

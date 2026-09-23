@@ -22,9 +22,9 @@ interface AdjustmentFormValues {
 export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
   const ADJUSTMENT_TYPE_OPTIONS = [
-    { value: "stock_in",  label: t("Nhập kho") },
-    { value: "stock_out", label: t("Xuất kho") },
-    { value: "inventory", label: t("Kiểm kê") },
+    { value: "stock_in",  label: t("Inventory:StockIn") },
+    { value: "stock_out", label: t("Inventory:StockOut") },
+    { value: "inventory", label: t("Inventory:StockCount") },
   ];
 
   const [form] = Form.useForm<AdjustmentFormValues>();
@@ -36,7 +36,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
   const itemOptions = (inventoryPage?.items ?? []).map((item) => ({
     value: item.id,
-    label: `${item.name} (${item.itemCode}) — ${t("tồn")}: ${item.currentStock} ${item.unit}`,
+    label: `${item.name} (${item.itemCode}) — ${t("Inventory:CurrentStock")}: ${item.currentStock} ${item.unit}`,
   }));
 
   const handleSubmit = async () => {
@@ -57,7 +57,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
       { id: resolvedItemId, adjustment: delta, note: values.reason },
       {
         onSuccess: () => {
-          toast.success(t("Điều chỉnh kho thành công!"));
+          toast.success(t("Inventory:AdjustSuccess"));
           form.resetFields();
           onClose();
         },
@@ -74,11 +74,11 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
     <>
       <Modal
         open={open}
-        title={t("Điều chỉnh kho")}
+        title={t("Inventory:AdjustTitle")}
         onCancel={handleCancel}
         footer={[
           <Button key="cancel" onClick={handleCancel}>
-            {t("Hủy")}
+            {t("Common:Cancel")}
           </Button>,
           <Button
             key="submit"
@@ -87,7 +87,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
             loading={adjustStock.isPending}
             style={{ background: "var(--bd-blue)" }}
           >
-            {t("Lưu điều chỉnh")}
+            {t("Inventory:SaveAdjust")}
           </Button>,
         ]}
         width={520}
@@ -102,12 +102,12 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
           {!itemId && (
             <Form.Item
               name="itemId"
-              label={t("Vật tư")}
-              rules={[{ required: true, message: t("Vui lòng chọn vật tư") }]}
+              label={t("Inventory:Material")}
+              rules={[{ required: true, message: t("Inventory:SelectMaterialRequired") }]}
             >
               <Select
                 showSearch
-                placeholder={t("Tìm và chọn vật tư...")}
+                placeholder={t("Inventory:SearchMaterial")}
                 loading={inventoryLoading}
                 options={itemOptions}
                 optionFilterProp="label"
@@ -120,21 +120,21 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
           <Form.Item
             name="adjustmentType"
-            label={t("Loại điều chỉnh")}
-            rules={[{ required: true, message: t("Vui lòng chọn loại điều chỉnh") }]}
+            label={t("Inventory:AdjustType")}
+            rules={[{ required: true, message: t("Inventory:SelectAdjustTypeRequired") }]}
           >
             <Select
-              placeholder={t("Chọn loại điều chỉnh")}
+              placeholder={t("Inventory:SelectAdjustType")}
               options={ADJUSTMENT_TYPE_OPTIONS}
             />
           </Form.Item>
 
           <Form.Item
             name="quantity"
-            label={t("Số lượng")}
+            label={t("Inventory:Quantity")}
             rules={[
-              { required: true, message: t("Vui lòng nhập số lượng") },
-              { type: "number", min: 1, message: t("Số lượng phải lớn hơn 0") },
+              { required: true, message: t("Inventory:QuantityRequired") },
+              { type: "number", min: 1, message: t("Inventory:QuantityMin") },
             ]}
           >
             <InputNumber
@@ -146,11 +146,11 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
           <Form.Item
             name="reason"
-            label={t("Lý do")}
-            rules={[{ required: true, message: t("Vui lòng nhập lý do") }]}
+            label={t("Inventory:Reason")}
+            rules={[{ required: true, message: t("Inventory:ReasonRequired") }]}
           >
             <Input.TextArea
-              placeholder={t("Nhập lý do điều chỉnh...")}
+              placeholder={t("Inventory:ReasonPlaceholder")}
               rows={3}
               showCount
               maxLength={500}

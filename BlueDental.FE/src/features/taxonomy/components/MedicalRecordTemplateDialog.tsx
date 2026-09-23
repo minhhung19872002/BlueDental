@@ -104,7 +104,7 @@ export function MedicalRecordTemplateDialog({
             sortOrder,
           },
         });
-        toast.success(t("Đã cập nhật mẫu bệnh án"));
+        toast.success(t("Taxonomy:MedRecord:Updated"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -113,7 +113,7 @@ export function MedicalRecordTemplateDialog({
           content,
           sortOrder,
         });
-        toast.success(t("Đã thêm mẫu bệnh án"));
+        toast.success(t("Taxonomy:MedRecord:Created"));
       }
       onClose();
     } catch {
@@ -124,7 +124,7 @@ export function MedicalRecordTemplateDialog({
   return (
     <AppDialog
       open={open}
-      title={entry ? t("Cập nhật mẫu bệnh án") : t("Thêm mẫu bệnh án")}
+      title={entry ? t("Taxonomy:MedRecord:UpdateTitle") : t("Taxonomy:MedRecord:CreateTitle")}
       width={1040}
       canSave={name.trim().length > 0}
       saving={pending}
@@ -142,15 +142,15 @@ export function MedicalRecordTemplateDialog({
           <Col xs={24} sm={16}>
             <FloatingField
               name="name"
-              label={t("Tiêu đề bệnh án")}
+              label={t("Taxonomy:MedRecord:TitleLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên mẫu bệnh án") }]}
+              rules={[{ required: true, message: t("Taxonomy:MedRecord:TitleRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
           </Col>
           <Col xs={24} sm={8}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Taxonomy:Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
@@ -161,14 +161,14 @@ export function MedicalRecordTemplateDialog({
             {/* The reference marks "nền vàng" with a sample of the shading it
                 is talking about. */}
             <span aria-hidden="true">💡</span>
-            {t("Nhấp vào các ô")}
-            <span className="bd-a4-swatch">{t("nền vàng")}</span>
-            {t("để chỉnh sửa trực tiếp trên bệnh án")}
+            {t("Taxonomy:MedRecord:ClickCells")}
+            <span className="bd-a4-swatch">{t("Taxonomy:MedRecord:YellowBg")}</span>
+            {t("Taxonomy:MedRecord:EditDirectly")}
           </p>
           <Space.Compact>
             <Button
               icon={<MinusOutlined />}
-              aria-label={t("Thu nhỏ")}
+              aria-label={t("Taxonomy:MedRecord:Collapse")}
               onClick={() => setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP))}
             />
             <Button className="bd-zoom-value" onClick={() => setZoom(0.9)}>
@@ -176,7 +176,7 @@ export function MedicalRecordTemplateDialog({
             </Button>
             <Button
               icon={<PlusOutlined />}
-              aria-label={t("Phóng to")}
+              aria-label={t("Taxonomy:MedRecord:Expand")}
               onClick={() => setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP))}
             />
           </Space.Compact>

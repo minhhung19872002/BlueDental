@@ -82,13 +82,13 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
             onClick={() => void state.submit()}
           >
             <Save size={16} aria-hidden="true" />
-            {t("Lưu")}
+            {t("Common:Save")}
           </button>
         </div>
       }
       width="min(772px, calc(100vw - 32px))"
       className="tp-dialog"
-      title={editing ? t("Cập nhật phiếu dịch vụ") : t("Tạo phiếu dịch vụ")}
+      title={editing ? t("Treatment:Plan:UpdatePlanDialog") : t("Treatment:Plan:CreatePlanDialog")}
       closeIcon={<X size={20} aria-hidden="true" />}
       destroyOnHidden
     >
@@ -114,21 +114,21 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
               slip raised from here files no chẩn đoán, and one opened on an
               existing line shows the doctors of the chẩn đoán it came from.
               Neither carries an asterisk or a required rule. */}
-          <FloatingField name="staffId" label={t("Bác sĩ chẩn đoán 1")}>
+          <FloatingField name="staffId" label={t("Treatment:Diagnosis:Diagnoser1")}>
             <ServerSearchSelect
               disabled
               useOptions={useDentistOptions}
               valueLabel={advise?.diagnosisStaffName}
-              notFoundText={t("Không tìm thấy bác sĩ")}
+              notFoundText={t("Treatment:Prescription:DataNotFound")}
             />
           </FloatingField>
           <div className="tp-create-field">
-            <FloatingField name="diagnosisId" label={t("Chẩn đoán 2")}>
+            <FloatingField name="diagnosisId" label={t("Treatment:Diagnosis:Diagnosis2")}>
               <ServerSearchSelect
                 disabled
                 useOptions={useDentistOptions}
                 valueLabel={advise?.diagnosisSecondStaffName}
-                notFoundText={t("Không tìm thấy bác sĩ")}
+                notFoundText={t("Treatment:Prescription:DataNotFound")}
               />
             </FloatingField>
           </div>
@@ -138,13 +138,13 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
           <div>
             <div className="tp-create-teeth">
               <p>
-                <span>{t("Răng")}:</span>{" "}
-                <span>{formatToothValue(teeth) ?? t("Chưa chọn răng")}</span>
+                <span>{t("Treatment:Tooth:Tooth")}:</span>{" "}
+                <span>{formatToothValue(teeth) ?? t("Treatment:Tooth:ToothNotSelected")}</span>
               </p>
               <button
                 type="button"
                 className="tp-tooth-btn"
-                aria-label={t("Chọn răng")}
+                aria-label={t("Treatment:Tooth:SelectTooth")}
                 onClick={() => state.setToothPickerOpen(true)}
               >
                 <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
@@ -154,13 +154,13 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
             {/* The reference prints the label with nothing after it: this
                 dialog names no condition. */}
             <p className="tp-create-condition">
-              <span>{t("Tình trạng răng")}:</span>
+              <span>{t("Treatment:Plan:ToothCondition")}:</span>
             </p>
             <FloatingField
               name="note"
-              label={t("Ghi chú")}
+              label={t("Treatment:Common:Note")}
               className="tp-create-note"
-              rules={[{ max: 255, message: t("Nội dung ghi chú vượt quá 255 ký tự.") }]}
+              rules={[{ max: 255, message: t("Treatment:Payment:NoteMax255") }]}
             >
               <Input.TextArea rows={4} maxLength={255} />
             </FloatingField>

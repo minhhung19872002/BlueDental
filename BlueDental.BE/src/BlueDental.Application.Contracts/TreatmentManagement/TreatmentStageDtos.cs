@@ -34,7 +34,7 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public List<string> ImageUrls { get; set; } = new();
 
     /// <summary>
-    /// "Danh sách công đoạn" — the service steps this công đoạn covers, in the
+    /// "BE:Treatment:StageList" — the service steps this công đoạn covers, in the
     /// service's own order, each with its tick.
     /// </summary>
     public List<StageServiceItemDto> ServiceItems { get; set; } = new();
@@ -72,7 +72,7 @@ public class CreateTreatmentStageDto
 
     /// <summary>
     /// Which of the service's own công đoạn steps this one covers — the boxes
-    /// ticked under "Danh sách công đoạn". They are stored unticked; the history
+    /// ticked under "BE:Treatment:StageList". They are stored unticked; the history
     /// row is where they get ticked off.
     /// </summary>
     public List<Guid> ServiceItemIds { get; set; } = new();
@@ -106,7 +106,7 @@ public class GetTreatmentStageListInput : PagedAndSortedResultRequestDto
 
 /// <summary>
 /// Progress of one service line, derived from its stages — the reference shows this
-/// as "Trạng thái - Tiến độ" on the treatment-plan table.
+/// as "BE:Field:StatusProgress" on the treatment-plan table.
 /// </summary>
 public class TreatmentStageProgressDto
 {
@@ -121,7 +121,7 @@ public class TreatmentStageProgressDto
 }
 
 /// <summary>
-/// "Dịch vụ có công đoạn gần nhất" card. Mirrors the reference's
+/// "BE:CareType:ServiceLatestStage" card. Mirrors the reference's
 /// <c>summary.recent[]</c> element.
 /// </summary>
 public class LatestTreatmentStageDto
@@ -138,7 +138,7 @@ public class LatestTreatmentStageDto
 /// Công đoạn điều trị. The reference guards it with the <c>treatmentStage</c>
 /// subject, whose verbs map one-to-one onto the operations below.
 /// </summary>
-/// <summary>One row of "Danh sách công đoạn", named from the service catalog.</summary>
+/// <summary>One row of "BE:Treatment:StageList", named from the service catalog.</summary>
 public class StageServiceItemDto
 {
     /// <summary>The service's own step — the reference's <c>stageServiceId</c>.</summary>
@@ -183,7 +183,7 @@ public interface ITreatmentStageAppService : IApplicationService
     Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input);
 
     /// <summary>
-    /// Ticks or unticks the steps under "Danh sách công đoạn" — the reference's
+    /// Ticks or unticks the steps under "BE:Treatment:StageList" — the reference's
     /// <c>PUT /v1/patient-stages/{id}/stage-service-items</c>.
     /// </summary>
     Task<TreatmentStageDto> UpdateServiceItemsAsync(Guid id, UpdateStageServiceItemsDto input);

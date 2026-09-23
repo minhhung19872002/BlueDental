@@ -65,7 +65,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
             sortOrder: resolvedSortOrder,
           },
         });
-        toast.success(t("Đã cập nhật nhóm"));
+        toast.success(t("Taxonomy:Group:UpdatedSuccess"));
       } else {
         const created = await createGroup.mutateAsync({
           clinicBranchId: branchId,
@@ -73,7 +73,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
           name: trimmed,
           sortOrder: resolvedSortOrder,
         });
-        toast.success(t("Đã thêm nhóm"));
+        toast.success(t("Taxonomy:Group:CreatedSuccess"));
         // Closed before the parent is told, so a hiccup while it moves the
         // selection can never leave this dialog stuck open over the result.
         onClose();
@@ -90,7 +90,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
     <AppDialog
       open={open}
       // The reference titles the edit dialog "Cập nhật nhóm", not "Sửa".
-      title={group ? t("Cập nhật nhóm") : t("Tạo nhóm")}
+      title={group ? t("Taxonomy:Group:UpdateTitle") : t("Taxonomy:Group:CreateTitle")}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -107,15 +107,15 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên phân loại")}
+              label={t("Taxonomy:Group:ClassificationName")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên phân loại") }]}
+              rules={[{ required: true, message: t("Taxonomy:Group:ClassificationNameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>

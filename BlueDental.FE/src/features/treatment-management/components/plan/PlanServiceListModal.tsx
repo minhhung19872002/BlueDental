@@ -44,7 +44,7 @@ function buildColumns({
   return [
     {
       key: "service",
-      title: t("Dịch vụ"),
+      title: t("Treatment:Service:Service"),
       width: 190,
       render: (_, { plan, service }) => (
         <>
@@ -66,7 +66,7 @@ function buildColumns({
     },
     {
       key: "diagnosis",
-      title: t("Chẩn đoán"),
+      title: t("Treatment:Diagnosis:Diagnosis"),
       width: 274,
       render: (_, { service }) =>
         service.diagnosisName ||
@@ -77,13 +77,13 @@ function buildColumns({
       key: "dentist",
       // The line's own treating dentist, not the slip's — they differ once a
       // line is reassigned, and the reference prints the line's.
-      title: t("Bác sĩ"),
+      title: t("Treatment:Common:Doctor"),
       width: 190,
       render: (_, { plan, service }) => service.dentistName || plan.dentistName || "—",
     },
     {
       key: "status",
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       width: 190,
       render: (_, { service }) => {
         const pill = SERVICE_PILL[service.status] ?? SERVICE_PILL[1];
@@ -96,7 +96,7 @@ function buildColumns({
     },
     {
       key: "price",
-      title: t("Đơn giá"),
+      title: t("Treatment:Pricing:UnitPrice"),
       width: 168,
       align: "right",
       render: (_, { service }) => (
@@ -107,7 +107,7 @@ function buildColumns({
     },
     {
       key: "amount",
-      title: t("Thành tiền"),
+      title: t("Treatment:Pricing:NetAmount"),
       width: 179,
       align: "right",
       render: (_, { service }) => (
@@ -167,7 +167,7 @@ export function PlanServiceListModal({
             columns={columns}
             dataSource={pageRows}
             pagination={pagination.buildConfig(rows.length)}
-            locale={{ emptyText: t("Không có dữ liệu") }}
+            locale={{ emptyText: t("Treatment:Common:NoData") }}
           />
         </div>
       )}

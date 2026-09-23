@@ -22,10 +22,10 @@ interface Props {
 /** The four tabs, in the reference's order. */
 export function treatmentTabs(): { key: TreatmentTab; label: string }[] {
   return [
-    { key: "All", label: t("Tất cả") },
-    { key: "Completed", label: t("Điều trị hoàn tất") },
-    { key: "InTreatment", label: t("Đang điều trị") },
-    { key: "Pending", label: t("Chưa phát sinh") },
+    { key: "All", label: t("Patient:Misc:AllItems") },
+    { key: "Completed", label: t("Patient:Filter:Completed") },
+    { key: "InTreatment", label: t("Patient:Filter:InTreatment") },
+    { key: "Pending", label: t("Patient:Filter:Pending") },
   ];
 }
 
@@ -47,42 +47,45 @@ export function PatientListFilters({ filters, options, onChange, layout = "row" 
       )}
 
       <FloatingLabel
-        label={t("Bác sĩ")}
+        label={t("Common:Doctor")}
         floated={Boolean(filters.staffId)}
         className={layout === "row" ? "bd-patient-filter" : undefined}
       >
         <SearchSelect
           value={filters.staffId}
-          options={options.doctors}
-          emptyText={t("Không tìm thấy bác sĩ")}
+          options={options.doctors}
+
+          emptyText={t("Patient:DoctorNotFound")}
           allowClear
           onChange={(staffId) => onChange({ staffId })}
         />
       </FloatingLabel>
 
       <FloatingLabel
-        label={t("Phân loại dịch vụ")}
+        label={t("Patient:Filter:ServiceGroup")}
         floated={Boolean(filters.serviceTaxonomyId)}
         className={layout === "row" ? "bd-patient-filter bd-patient-filter--wide" : undefined}
       >
         <SearchSelect
           value={filters.serviceTaxonomyId}
-          options={options.serviceGroups}
-          emptyText={t("Không tìm thấy phân loại dịch vụ")}
+          options={options.serviceGroups}
+
+          emptyText={t("Patient:Filter:ServiceGroupNotFound")}
           allowClear
           onChange={(serviceTaxonomyId) => onChange({ serviceTaxonomyId })}
         />
       </FloatingLabel>
 
       <FloatingLabel
-        label={t("Phân loại theo Tag")}
+        label={t("Patient:Filter:Tag")}
         floated={Boolean(filters.tagId)}
         className={layout === "row" ? "bd-patient-filter bd-patient-filter--wide" : undefined}
       >
         <SearchSelect
           value={filters.tagId}
-          options={options.tags}
-          emptyText={t("Không tìm thấy tag")}
+          options={options.tags}
+
+          emptyText={t("Patient:Filter:TagNotFound")}
           allowClear
           onChange={(tagId) => onChange({ tagId })}
         />

@@ -36,8 +36,8 @@ export function WorkStatusToggle({ value, disabled, onChange }: Props) {
       <button
         type="button"
         className="tk-toggle-btn tk-toggle-btn--off"
-        title={t("Nghỉ hôm nay")}
-        aria-label={t("Nghỉ hôm nay")}
+        title={t("Timekeeping:DayOffToday")}
+        aria-label={t("Timekeeping:DayOffToday")}
         disabled={disabled}
         onClick={() => onChange(WORK_REGISTRATION.DayOff)}
       >
@@ -46,8 +46,8 @@ export function WorkStatusToggle({ value, disabled, onChange }: Props) {
       <button
         type="button"
         className="tk-toggle-btn tk-toggle-btn--neutral"
-        title={t("Chưa chọn")}
-        aria-label={t("Chưa chọn")}
+        title={t("Timekeeping:NotSelected")}
+        aria-label={t("Timekeeping:NotSelected")}
         disabled={disabled}
         onClick={() => onChange(WORK_REGISTRATION.NotRegistered)}
       >
@@ -68,8 +68,8 @@ export function WorkStatusToggle({ value, disabled, onChange }: Props) {
       <button
         type="button"
         className="tk-toggle-btn tk-toggle-btn--on"
-        title={t("Làm việc hôm nay")}
-        aria-label={t("Làm việc hôm nay")}
+        title={t("Timekeeping:WorkToday")}
+        aria-label={t("Timekeeping:WorkToday")}
         disabled={disabled}
         onClick={() => onChange(WORK_REGISTRATION.Working)}
       >

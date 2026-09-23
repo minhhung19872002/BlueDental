@@ -16,14 +16,14 @@ export function TempFormRight({ control, branchOptions, watchedDate }: Props) {
     <div>
       {/* Branch */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Chi nhánh")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:Branch")}</label>
         <Controller
           name="branchId"
           control={control}
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Chọn chi nhánh")}
+              placeholder={t("Appointment:Form:SelectBranch")}
               options={branchOptions}
               onChange={(v) => field.onChange(v ?? "")}
             />
@@ -33,7 +33,7 @@ export function TempFormRight({ control, branchOptions, watchedDate }: Props) {
 
       {/* Date display (read-only echo) */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Ngày hẹn")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:AppointmentDate")}</label>
         <div className="appt-date-display">
           {watchedDate ? dayjs(watchedDate).format("DD/MM/YYYY") : "—"}
         </div>
@@ -41,7 +41,7 @@ export function TempFormRight({ control, branchOptions, watchedDate }: Props) {
 
       {/* Notes — simple textarea */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Ghi chú")}</label>
+        <label className="appt-field-label">{t("Common:Note")}</label>
         <Controller
           name="notes"
           control={control}
@@ -49,7 +49,7 @@ export function TempFormRight({ control, branchOptions, watchedDate }: Props) {
             <Input.TextArea
               {...field}
               rows={4}
-              placeholder={t("Ghi chú")}
+              placeholder={t("Common:Note")}
               style={{ resize: "none" }}
             />
           )}

@@ -35,13 +35,13 @@ export function UntreatedDiagnosisReport() {
     () => [
       {
         key: "date",
-        title: t("Ngày"),
+        title: t("Operations:DateCol"),
         width: 140,
         render: (_, row) => <span className="bd-cat-num">{formatDate(row.diagnosedAt)}</span>,
       },
       {
         key: "patient",
-        title: t("Khách hàng"),
+        title: t("Operations:PatientCol"),
         render: (_, row) => (
           <span className="bd-ops-patient">
             <span className="bd-ops-patient-name">
@@ -50,12 +50,12 @@ export function UntreatedDiagnosisReport() {
           </span>
         ),
       },
-      { key: "staff", title: t("Nhân sự"), dataIndex: "staffName", width: 180 },
-      { key: "teeth", title: t("Răng"), dataIndex: "teeth", width: 110 },
-      { key: "diagnosis", title: t("Chẩn đoán"), dataIndex: "diagnosisName", width: 220 },
+      { key: "staff", title: t("Operations:StaffCol"), dataIndex: "staffName", width: 180 },
+      { key: "teeth", title: t("Operations:TeethCol"), dataIndex: "teeth", width: 110 },
+      { key: "diagnosis", title: t("Operations:DiagnosisCol"), dataIndex: "diagnosisName", width: 220 },
       {
         key: "note",
-        title: t("Nội dung / Ghi chú"),
+        title: t("Operations:ContentNoteCol"),
         render: (_, row) => row.note ?? "—",
       },
     ],
@@ -70,7 +70,7 @@ export function UntreatedDiagnosisReport() {
 
       <div className="bd-ops-report-filters">
         <StaffFilter
-          label={t("Người tạo")}
+          label={t("Operations:CreatorFilter")}
           value={staffId}
           onChange={(value) => {
             setStaffId(value);
@@ -86,7 +86,7 @@ export function UntreatedDiagnosisReport() {
           rowKey={(row) => `${row.diagnosedAt}-${row.patientCode}-${row.diagnosisName}`}
           loading={query.isFetching}
           pagination={pagination.buildConfig(query.data?.totalCount ?? 0, operationsTotal)}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
         />
       </div>
     </div>

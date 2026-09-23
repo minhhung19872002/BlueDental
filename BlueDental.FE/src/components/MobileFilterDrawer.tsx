@@ -32,7 +32,7 @@ export function MobileFilterDrawer({
         onClick={onOpen}
       >
         <SlidersOutlined />
-        <span>{t("Bộ lọc")}</span>
+        <span>{t("Common:Filter")}</span>
       </button>
 
       <Drawer
@@ -40,7 +40,7 @@ export function MobileFilterDrawer({
         onClose={onClose}
         placement="bottom"
         closable
-        title={t("Bộ lọc")}
+        title={t("Common:Filter")}
         className="mobile-filter-drawer"
         styles={{
           wrapper: { borderRadius: "16px 16px 0 0", overflow: "hidden", height: "50vh" },
@@ -56,10 +56,10 @@ export function MobileFilterDrawer({
               className="mobile-filter-clear"
               onClick={onClear}
             >
-              {t("Xóa bộ lọc")}
+              {t("Common:ClearFilter")}
             </button>
             <Button type="primary" icon={<SaveOutlined />} onClick={handleApply}>
-              {t("Lưu")}
+              {t("Common:Save")}
             </Button>
           </div>
         }

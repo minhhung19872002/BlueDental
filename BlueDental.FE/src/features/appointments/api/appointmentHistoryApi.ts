@@ -33,7 +33,7 @@ export const appointmentHistoryApi = {
         paramsSerializer: PARAM_SERIALIZER,
       })
       .then((r) => r.data);
-    const systemActor = t("Hệ thống");
+    const systemActor = t("Appointment:History:System");
     return {
       totalCount: page.totalCount,
       items: page.items.map((dto) => adaptHistoryEntry(dto, systemActor)),

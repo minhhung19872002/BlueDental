@@ -23,7 +23,7 @@ function buildPlanRow(plan: TreatmentPlanSlipDto): InvoiceServiceRow {
   return {
     key: `invoice-${plan.id}`,
     stt: 1,
-    serviceName: t("Kế hoạch điều trị {0}", plan.code),
+    serviceName: t("Treatment:Plan:ServiceName", plan.code),
     taxType: DEFAULT_TAX_TYPE,
     unit: t(DEFAULT_UNIT_KEY),
     quantity: 1,

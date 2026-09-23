@@ -2,7 +2,7 @@ namespace BlueDental.Timekeeping;
 
 /// <summary>
 /// What the staff member registered for a given working day.
-/// Reference UI: the OFF / ON toggle on each staff card of "Lịch làm việc".
+/// Reference UI: the OFF / ON toggle on each staff card of "BE:Perm:WorkSchedule".
 /// </summary>
 public enum WorkRegistration
 {

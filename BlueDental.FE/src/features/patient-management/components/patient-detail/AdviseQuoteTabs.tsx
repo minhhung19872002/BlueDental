@@ -18,7 +18,7 @@ export function AdviseQuoteTabs({ quotes }: { quotes: AdviseQuotesState }) {
   const [dropping, setDropping] = useState<{ id: string; label: string } | null>(null);
 
   return (
-    <div className="pd-advise-tabs" role="tablist" aria-label={t("Phiếu tư vấn và báo giá")}>
+    <div className="pd-advise-tabs" role="tablist" aria-label={t("Patient:ConsultQuoteTabs")}>
       <button
         type="button"
         role="tab"
@@ -28,7 +28,7 @@ export function AdviseQuoteTabs({ quotes }: { quotes: AdviseQuotesState }) {
           .join(" ")}
         onClick={() => quotes.show(null)}
       >
-        {t("Phiếu tư vấn")}
+        {t("Patient:ConsultTab")}
       </button>
 
       {quotes.quotes.map((quote) => {
@@ -52,7 +52,7 @@ export function AdviseQuoteTabs({ quotes }: { quotes: AdviseQuotesState }) {
               <button
                 type="button"
                 className="pd-advise-tab-drop"
-                aria-label={t("Bỏ {0}", quote.label)}
+                aria-label={t("Patient:RemoveQuoteLabel", quote.label)}
                 onClick={() => setDropping({ id: quote.id, label: quote.label })}
               >
                 <CloseCircleFilled aria-hidden="true" />
@@ -64,8 +64,8 @@ export function AdviseQuoteTabs({ quotes }: { quotes: AdviseQuotesState }) {
 
       <ConfirmDeleteDialog
         open={dropping !== null}
-        noun={t("báo giá")}
-        title={t("Xóa báo giá")}
+        noun={t("Patient:ConsultQuote")}
+        title={t("Patient:DeleteQuote")}
         question={t(
           "Phiếu báo giá {0} sẽ bị xoá và thao tác này không thể khôi phục.",
           dropping?.label ?? "",

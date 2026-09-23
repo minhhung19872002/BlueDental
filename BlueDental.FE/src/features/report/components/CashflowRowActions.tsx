@@ -65,7 +65,7 @@ export function CashflowRowActions({ entry, onEdit }: Props) {
   const canApprove = isPendingExpense && mayApprove;
   const canEdit = isExpense ? isPendingExpense && mayUpdateCost : mayUpdateIncome;
   const canDelete = isPendingExpense && mayDeleteCost;
-  const printTitle = isExpense ? t("In chi phí") : t("In khoản thu");
+  const printTitle = isExpense ? t("Report:Action:PrintExpense") : t("Report:Action:PrintIncome");
 
   const approveMutation = useApproveSalesEntry();
   const deleteMutation = useDeleteSalesEntry();
@@ -81,7 +81,7 @@ export function CashflowRowActions({ entry, onEdit }: Props) {
   const handleApprove = useCallback(() => {
     approveMutation.mutate(entry.id, {
       onSuccess: () => {
-        toast.success(t("Duyệt chi phí thành công"));
+        toast.success(t("Report:Action:ApproveSuccess"));
         setApproveOpen(false);
       },
     });
@@ -90,7 +90,7 @@ export function CashflowRowActions({ entry, onEdit }: Props) {
   const handleDelete = useCallback(() => {
     deleteMutation.mutate(entry.id, {
       onSuccess: () => {
-        toast.success(t("Đã xoá phiếu thu chi"));
+        toast.success(t("Report:Action:DeleteSuccess"));
         setDeleteOpen(false);
       },
     });
@@ -100,10 +100,10 @@ export function CashflowRowActions({ entry, onEdit }: Props) {
     <>
       <div className="report-row-actions">
         {canApprove && (
-          <ActionButton title={t("Duyệt chi")} icon={<CheckCircleOutlined />} tone="approve" onClick={openApprove} />
+          <ActionButton title={t("Report:Action:ApproveExpense")} icon={<CheckCircleOutlined />} tone="approve" onClick={openApprove} />
         )}
-        {canEdit && <ActionButton title={t("Chỉnh sửa")} icon={<EditOutlined />} onClick={handleEdit} />}
-        {canDelete && <ActionButton title={t("Xoá")} icon={<DeleteOutlined />} tone="danger" onClick={openDelete} />}
+        {canEdit && <ActionButton title={t("Common:Edit")} icon={<EditOutlined />} onClick={handleEdit} />}
+        {canDelete && <ActionButton title={t("Common:Delete")} icon={<DeleteOutlined />} tone="danger" onClick={openDelete} />}
         <ActionButton title={printTitle} icon={<PrinterOutlined />} onClick={openDetail} />
       </div>
 
@@ -116,9 +116,9 @@ export function CashflowRowActions({ entry, onEdit }: Props) {
       />
       <ConfirmDeleteDialog
         open={deleteOpen}
-        noun={t("phiếu chi")}
-        title={t("Xác nhận xoá")}
-        question={tRich("Bạn có chắc muốn xoá phiếu chi {0} không?", <strong>{entry.description}</strong>)}
+        noun={t("Report:Unit:ExpenseSlip")}
+        title={t("Report:ConfirmDeleteVoucher")}
+        question={tRich("Report:Confirm:DeleteExpenseSlip", <strong>{entry.description}</strong>)}
         pending={deleteMutation.isPending}
         onConfirm={handleDelete}
         onClose={closeDelete}

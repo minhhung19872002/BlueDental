@@ -9,20 +9,20 @@ export function LaboMaterialStrips({ form }: { form: LaboOrderForm }) {
   const serviceGroupId = useLaboValue(form.form, "serviceGroupId");
   return (
     <>
-      <Form.Item name="serviceGroupId" rules={requiredRule(t("Vui lòng chọn dịch vụ Labo."))}>
+      <Form.Item name="serviceGroupId" rules={requiredRule(t("Patient:Labo:RequiredService"))}>
         <ChipStrip
-          label={t("Lựa chọn dịch vụ")}
+          label={t("Patient:Quote:ServiceSelection")}
           options={options.services}
-          empty={t("Không có dữ liệu")}
+          empty={t("Common:NoData")}
           // Runs after the Form.Item stored the group: a new group (or none), a fresh material.
           onChange={() => form.form.setFieldsValue({ materialId: undefined })}
         />
       </Form.Item>
-      <Form.Item name="materialId" rules={requiredRule(t("Vui lòng chọn vật liệu."))}>
+      <Form.Item name="materialId" rules={requiredRule(t("Patient:Misc:RequiredMaterial"))}>
         <ChipStrip
-          label={t("Vật liệu")}
+          label={t("Patient:Labo:Material")}
           options={options.materials}
-          empty={serviceGroupId ? t("Không có vật liệu") : t("Chọn dịch vụ trước")}
+          empty={serviceGroupId ? t("Patient:Labo:NoMaterial") : t("Patient:Stage:SelectServiceFirst")}
           dimmed={!serviceGroupId}
         />
       </Form.Item>

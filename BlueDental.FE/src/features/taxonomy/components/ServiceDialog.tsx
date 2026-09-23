@@ -80,10 +80,10 @@ const EMPTY: FormValues = {
 
 /** Labels for the reference's fixed row of warranty choices. */
 function warrantyLabel(days: number): string {
-  if (days === 0) return t("Không bảo hành");
-  if (days === 365) return t("Bảo hành 1 năm");
-  if (days === 730) return t("Bảo hành 2 năm");
-  return t("Bảo hành {0} tháng", String(Math.round(days / 30)));
+  if (days === 0) return t("Taxonomy:Service:WarrantyNone");
+  if (days === 365) return t("Taxonomy:Service:Warranty1Year");
+  if (days === 730) return t("Taxonomy:Service:Warranty2Years");
+  return t("Taxonomy:Service:WarrantyMonths", String(Math.round(days / 30)));
 }
 
 /** One labelled checkbox with an optional explanation under it. */
@@ -215,10 +215,10 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           input: { ...shared, isActive: values.isActive, isDeleted: values.isDeleted },
         });
 
-        toast.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật dịch vụ"));
+        toast.success(values.isDeleted ? t("Common:Deleted") : t("Taxonomy:Service:UpdatedSuccess"));
       } else {
         await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
-        toast.success(t("Đã thêm dịch vụ"));
+        toast.success(t("Taxonomy:Service:CreatedSuccess"));
       }
       onClose();
     } catch {
@@ -232,20 +232,20 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
     () => [
       {
         key: "index",
-        title: t("STT"),
+        title: t("Taxonomy:Service:StageSeqCol"),
         width: 64,
         render: (_, __, index) => <span className="bd-muted-text">{index + 1}</span>,
       },
-      { key: "name", title: t("Tên công đoạn"), dataIndex: "name" },
+      { key: "name", title: t("Taxonomy:Service:StageNameCol"), dataIndex: "name" },
       {
         key: "value",
-        title: t("Giá trị"),
+        title: t("Taxonomy:Service:StageValueCol"),
         width: 180,
         render: (_, stage, index) => (
           <InputNumber
             min={0}
             style={{ width: "100%" }}
-            aria-label={t("Giá trị công đoạn {0}", stage.name)}
+            aria-label={t("Taxonomy:Service:StageValueAria", stage.name)}
             value={stage.value}
             onChange={(next) =>
               setStages((current) =>
@@ -259,18 +259,18 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Common:Actions"),
         width: 90,
         align: "center",
         fixed: "right",
         render: (_, stage, index) => (
-          <Tooltip title={t("Xoá")}>
+          <Tooltip title={t("Common:Delete")}>
             <Button
               type="text"
               danger
               size="small"
               icon={<DeleteOutlined />}
-              aria-label={t("Xoá công đoạn {0}", stage.name)}
+              aria-label={t("Taxonomy:Service:StageDeleteAria", stage.name)}
               onClick={() => setStages((current) => current.filter((_, at) => at !== index))}
             />
           </Tooltip>
@@ -283,7 +283,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
   return (
     <AppDialog
       open={open}
-      title={entry ? t("Cập nhật dịch vụ") : t("Thêm dịch vụ")}
+      title={entry ? t("Taxonomy:Service:UpdateTitle") : t("Taxonomy:Service:CreateTitle")}
       width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
@@ -301,9 +301,9 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           <Col xs={24} sm={8}>
             <FloatingField
               name="name"
-              label={t("Dịch vụ")}
+              label={t("Taxonomy:Service:ServiceLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên dịch vụ") }]}
+              rules={[{ required: true, message: t("Taxonomy:Service:ServiceNameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
@@ -311,9 +311,9 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           <Col xs={24} sm={8}>
             <FloatingField
               name="taxonomyId"
-              label={t("Phân loại dịch vụ")}
+              label={t("Taxonomy:Service:ClassificationLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn phân loại dịch vụ") }]}
+              rules={[{ required: true, message: t("Taxonomy:Service:ClassificationRequired") }]}
             >
               <Select
                 showSearch
@@ -323,7 +323,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </FloatingField>
           </Col>
           <Col xs={24} sm={8}>
-            <FloatingField name="detailName" label={t("Tên chi tiết")}>
+            <FloatingField name="detailName" label={t("Taxonomy:Service:DetailName")}>
               <Input />
             </FloatingField>
           </Col>
@@ -337,34 +337,34 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             disabled={!entry}
             onChange={() => form.setFieldValue("isDeleted", false)}
           >
-            {t("Đang hoạt động")}
+            {t("Taxonomy:Catalog:IsActive")}
           </Checkbox>
           <Checkbox
             checked={isDeleted}
             disabled={!entry}
             onChange={() => form.setFieldValue("isDeleted", true)}
           >
-            {t("Đã xoá")}
+            {t("Taxonomy:Catalog:IsDeleted")}
           </Checkbox>
         </div>
         <Form.Item name="isDeleted" hidden>
           <Input />
         </Form.Item>
 
-        <FloatingField name="description" label={t("Mô tả")}>
+        <FloatingField name="description" label={t("Taxonomy:Catalog:Description")}>
           <Input.TextArea rows={3} />
         </FloatingField>
 
         <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={12}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
             <FloatingField
               name="code"
-              label={t("Mã dịch vụ (để trống sẽ tự động tạo mã)")}
+              label={t("Taxonomy:Service:CodeLabel")}
             >
               <Input />
             </FloatingField>
@@ -374,8 +374,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         {/* ── Cấu hình giá & thuế ─────────────────────────────────────── */}
         <div className="bd-dialog-section">
           <div className="bd-dialog-section-head">
-            <p className="bd-dialog-section-title">{t("Cấu hình giá & thuế")}</p>
-            <FloatingField name="taxRate" label={t("% thuế")} className="bd-w160">
+            <p className="bd-dialog-section-title">{t("Taxonomy:Service:PriceTaxSection")}</p>
+            <FloatingField name="taxRate" label={t("Taxonomy:Service:TaxRateLabel")} className="bd-w160">
               <Select
                 options={SERVICE_TAX_RATE_OPTIONS.map((option) => ({
                   value: option.value,
@@ -392,7 +392,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
               </Form.Item>
             </Col>
             <Col flex="auto">
-              <FloatingField name="price" label={t("Giá")}>
+              <FloatingField name="price" label={t("Taxonomy:Service:PriceLabel")}>
                 <InputNumber min={0} style={{ width: "100%" }} />
               </FloatingField>
             </Col>
@@ -402,7 +402,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
               </Form.Item>
             </Col>
             <Col flex="auto">
-              <FloatingField name="discountValue" label={t("Giảm giá")}>
+              <FloatingField name="discountValue" label={t("Taxonomy:Service:DiscountLabel")}>
                 <InputNumber min={0} style={{ width: "100%" }} />
               </FloatingField>
             </Col>
@@ -412,17 +412,17 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             {/* Read-only: these two come back from the server after a save, so
                 the formula lives in one place. */}
             <Col xs={24} sm={8}>
-              <FloatingField label={t("Giá sau giảm")}>
+              <FloatingField label={t("Taxonomy:Service:PriceAfterDiscount")}>
                 <Input readOnly value={saved ? formatVND(saved.priceAfterDiscount) : "—"} />
               </FloatingField>
             </Col>
             <Col xs={24} sm={8}>
-              <FloatingField name="unit" label={t("Đơn vị")}>
+              <FloatingField name="unit" label={t("Taxonomy:Service:Unit")}>
                 <Input />
               </FloatingField>
             </Col>
             <Col xs={24} sm={8}>
-              <FloatingField label={t("Thực thu từ khách (Đã gồm VAT)")}>
+              <FloatingField label={t("Taxonomy:Service:AmountCollected")}>
                 <Input readOnly value={saved ? formatVND(saved.amountCollected) : "—"} />
               </FloatingField>
             </Col>
@@ -435,32 +435,32 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           items={[
             {
               key: "settings",
-              label: t("Cài đặt"),
+              label: t("Taxonomy:Service:Settings"),
               children: (
                 <div className="bd-check-list">
-                  <CheckRow name="requireImage" label={t("Yêu cầu hình ảnh khi điều trị")} />
+                  <CheckRow name="requireImage" label={t("Taxonomy:Service:RequireImage")} />
                   <CheckRow
                     name="deductDoctorOnWarranty"
-                    label={t("Yêu cầu trừ tiền bác sĩ khi bảo hành")}
+                    label={t("Taxonomy:Service:DeductOnWarranty")}
                   />
-                  <CheckRow name="separateRevenue" label={t("Tính doanh số riêng")} />
-                  <CheckRow name="showToothOnInvoice" label={t("Hiển thị răng ở hóa đơn")} />
+                  <CheckRow name="separateRevenue" label={t("Taxonomy:Service:SeparateRevenue")} />
+                  <CheckRow name="showToothOnInvoice" label={t("Taxonomy:Service:ShowToothInvoice")} />
                 </div>
               ),
             },
             {
               key: "stages",
-              label: t("Công đoạn"),
+              label: t("Taxonomy:Service:Stages"),
               children: (
                 <div className="bd-check-list">
                   <CheckRow
                     name="revenueByStage"
-                    label={t("Tính doanh số trên công đoạn")}
-                    hint={t("Bác sĩ sẽ nhận hoa hồng trên toàn bộ công đoạn được hoàn thành")}
+                    label={t("Taxonomy:Service:RevenueByStage")}
+                    hint={t("Taxonomy:Service:RevenueByStageHint")}
                   />
                   <CheckRow
                     name="requireStageSequence"
-                    label={t("Yêu cầu tuần tự công đoạn")}
+                    label={t("Taxonomy:Service:RequireSequence")}
                     hint={t(
                       "Tắt: Bác sĩ chỉ nhận hoa hồng trên các công đoạn dịch vụ đã hoàn thành",
                     )}
@@ -469,8 +469,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                   <Row gutter={[8, 12]} className="bd-mt3">
                     <Col flex="auto">
                       <Input
-                        aria-label={t("Tên công đoạn")}
-                        placeholder={t("Tên công đoạn")}
+                        aria-label={t("Taxonomy:Service:StageName")}
+                        placeholder={t("Taxonomy:Service:StageName")}
                         value={stageName}
                         onChange={(event) => setStageName(event.target.value)}
                         onPressEnter={(event) => {
@@ -481,7 +481,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     </Col>
                     <Col flex="none">
                       <Button icon={<PlusOutlined />} onClick={addStage}>
-                        {t("Công đoạn")}
+                        {t("Taxonomy:Service:Stages")}
                       </Button>
                     </Col>
                   </Row>
@@ -494,14 +494,14 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     pagination={false}
                     size="small"
                     scroll={{ x: "max-content" }}
-                    locale={{ emptyText: t("Chưa có công đoạn nào") }}
+                    locale={{ emptyText: t("Taxonomy:Service:NoStages") }}
                   />
                 </div>
               ),
             },
             {
               key: "warranty",
-              label: t("Bảo hành"),
+              label: t("Taxonomy:Service:Warranty"),
               children: (
                 <div className="bd-check-list">
                   <Row gutter={[16, 8]}>
@@ -521,12 +521,12 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
 
                   <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
                     <Col xs={24} sm={12}>
-                      <FloatingField name="warrantyDays" label={t("Tuỳ chỉnh")}>
+                      <FloatingField name="warrantyDays" label={t("Taxonomy:Service:Custom")}>
                         <InputNumber min={0} style={{ width: "100%" }} />
                       </FloatingField>
                     </Col>
                   </Row>
-                  <p className="bd-cat-hint">{t("Đơn vị: Ngày")}</p>
+                  <p className="bd-cat-hint">{t("Taxonomy:Service:UnitDays")}</p>
                 </div>
               ),
             },
@@ -553,8 +553,8 @@ function TaxSegmented({
       value={value ? "after" : "before"}
       onChange={(next) => onChange?.(next === "after")}
       options={[
-        { value: "before", label: t("Trước thuế") },
-        { value: "after", label: t("Sau thuế") },
+        { value: "before", label: t("Taxonomy:Service:BeforeTax") },
+        { value: "after", label: t("Taxonomy:Service:AfterTax") },
       ]}
     />
   );

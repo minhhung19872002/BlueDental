@@ -34,7 +34,7 @@ export function useReceptionDoctors(branchId?: string) {
       return result.items.map((s) => ({
         id: s.id,
         name: s.name ?? s.userName ?? "",
-        title: s.roleNames[0] ?? t("Bác sĩ"),
+        title: s.roleNames[0] ?? t("Reception:Doctor"),
         branchIds: s.branchIds,
       }));
     },

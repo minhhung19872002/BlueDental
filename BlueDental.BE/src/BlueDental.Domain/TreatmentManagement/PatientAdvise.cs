@@ -29,7 +29,7 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Diagnosis catalog entry this advise answers, when it names one.
     ///
-    /// Null since 2026-09-22: "Tạo phiếu dịch vụ" raises a slip straight off a
+    /// Null since 2026-09-22: "BE:Perm:CreateServiceSlip" raises a slip straight off a
     /// service, and the reference does not file a chẩn đoán for it. A line
     /// raised from a diagnosis row still carries both.
     /// </summary>

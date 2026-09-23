@@ -30,8 +30,8 @@ type Quantities = Record<string, number>;
 const DEFAULT_QUANTITY = 1;
 
 function errorFor(quantity: number, onHand: number): string | null {
-  if (!quantity || quantity < 1) return t("SL phải ≥ 1");
-  if (quantity > onHand) return t("Vượt tồn kho ({0})", onHand);
+  if (!quantity || quantity < 1) return t("Materials:QtyMin1");
+  if (quantity > onHand) return t("Materials:QtyExceedsStock", onHand);
   return null;
 }
 
@@ -106,7 +106,7 @@ export function AllocationDialog({
         })),
         note: note.trim() || undefined,
       });
-      toast.success(t("Đã tạo phiếu phân bổ"));
+      toast.success(t("Materials:AllocCreated"));
       onAllocated();
       onClose();
     } catch {
@@ -117,13 +117,13 @@ export function AllocationDialog({
   return (
     <AppDialog
       open={open}
-      title={t("Phân bổ vật tư")}
-      subtitle={t("Nhập số lượng phân bổ cho từng vật tư")}
+      title={t("Materials:AllocDialogTitle")}
+      subtitle={t("Materials:AllocDialogSubtitle")}
       width={1100}
       canSave={lines.length > 0 && !invalid}
       saving={createAllocation.isPending}
-      saveLabel={t("Xác nhận")}
-      cancelLabel={t("Huỷ")}
+      saveLabel={t("Materials:SaveLabel")}
+      cancelLabel={t("Materials:CancelLabel")}
       onSave={() => void submit()}
       onClose={onClose}
       titleExtra={
@@ -131,7 +131,7 @@ export function AllocationDialog({
       }
       footerLeft={
         <span className="bd-alloc-count">
-          <strong>{lines.length}</strong> {t("vật tư")}
+          <strong>{lines.length}</strong> {t("Materials:MaterialCount")}
         </span>
       }
     >
@@ -145,7 +145,7 @@ export function AllocationDialog({
               <div className="bd-min0 bd-flex1">
                 <p className="bd-alloc-line-name">{line.name}</p>
                 <p className="bd-alloc-line-stock">
-                  {t("Tồn kho:")}{" "}
+                  {t("Materials:StockLabel")}{" "}
                   <span className={line.onHand <= 0 ? "bd-alloc-empty" : "bd-mat-issued"}>
                     {line.onHand}
                   </span>
@@ -157,14 +157,14 @@ export function AllocationDialog({
                 <Button
                   size="small"
                   icon={<MinusOutlined />}
-                  aria-label={t("Giảm")}
+                  aria-label={t("Materials:DecreaseAria")}
                   disabled={quantity <= 1}
                   onClick={() => step(line, -1)}
                 />
                 <Input
                   className="bd-alloc-qty"
                   inputMode="numeric"
-                  aria-label={t("Số lượng phân bổ {0}", line.name)}
+                  aria-label={t("Materials:AllocQtyAria", line.name)}
                   status={error ? "error" : undefined}
                   value={String(quantity)}
                   onChange={(event) => type(line, event.target.value)}
@@ -172,7 +172,7 @@ export function AllocationDialog({
                 <Button
                   size="small"
                   icon={<PlusOutlined />}
-                  aria-label={t("Tăng")}
+                  aria-label={t("Materials:IncreaseAria")}
                   disabled={quantity >= line.onHand}
                   onClick={() => step(line, 1)}
                 />
@@ -186,8 +186,8 @@ export function AllocationDialog({
         className="bd-alloc-note"
         rows={2}
         maxLength={1000}
-        placeholder={t("Ghi chú đợt phân bổ...")}
-        aria-label={t("Ghi chú đợt phân bổ")}
+        placeholder={t("Materials:AllocNotePlaceholder")}
+        aria-label={t("Materials:AllocNoteInputAria")}
         value={note}
         onChange={(event) => setNote(event.target.value)}
       />

@@ -13,9 +13,9 @@ export interface MaterialsTab {
 
 export function materialsTabs(): MaterialsTab[] {
   return [
-    { key: "clinic", label: t("Vật tư phòng khám") },
-    { key: "allocation", label: t("Phân bổ vật tư") },
-    { key: "department", label: t("Phòng ban") },
+    { key: "clinic", label: t("Materials:ClinicTab") },
+    { key: "allocation", label: t("Materials:AllocationTab") },
+    { key: "department", label: t("Materials:DepartmentTab") },
   ];
 }
 

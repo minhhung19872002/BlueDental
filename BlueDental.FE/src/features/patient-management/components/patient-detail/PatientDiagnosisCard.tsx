@@ -66,13 +66,13 @@ export function PatientDiagnosisCard({
   };
   const columns: TableColumnsType<PatientDiagnosisDto> = [
     {
-      title: t("Số phiếu"),
+      title: t("Patient:Payment:SlipNumber"),
       dataIndex: "code",
       width: 130,
       render: (value: string) => <span className="pd-code">{value}</span>,
     },
     {
-      title: t("Bác sĩ chẩn đoán 1"),
+      title: t("Patient:Diagnosis:Doctor1"),
       key: "staff",
       width: 210,
       render: (_, row) => (
@@ -83,7 +83,7 @@ export function PatientDiagnosisCard({
       ),
     },
     {
-      title: t("Chẩn đoán 2"),
+      title: t("Patient:Diagnosis:Second"),
       key: "secondStaff",
       width: 200,
       render: (_, row) => (
@@ -91,14 +91,14 @@ export function PatientDiagnosisCard({
           {row.secondStaffName ? (
             <b>{row.secondStaffName}</b>
           ) : (
-            <b className="pd-cell-missing">{t("Chưa cập nhật")}</b>
+            <b className="pd-cell-missing">{t("Patient:Misc:EmptyData")}</b>
           )}
           <span>{formatDate(row.creationTime)}</span>
         </div>
       ),
     },
     {
-      title: t("Răng"),
+      title: t("Patient:DentalChart:Tooth"),
       key: "teeth",
       width: 250,
       render: (_, row) => (
@@ -109,12 +109,12 @@ export function PatientDiagnosisCard({
       ),
     },
     {
-      title: t("Ghi chú"),
+      title: t("Common:Note"),
       dataIndex: "note",
       render: (value: string | null) => value ?? "—",
     },
     ...((onCreateService || onPrint || onDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 200,
       align: "right" as const,
@@ -123,25 +123,25 @@ export function PatientDiagnosisCard({
         <div className="bd-cat-rowactions">
           {onCreateService && (
             <Button type="primary" size="small" onClick={() => onCreateService(row)}>
-              {t("Tạo Dịch Vụ")}
+              {t("Patient:Plan:CreateService")}
             </Button>
           )}
           {onPrint && (
-            <Tooltip title={t("In chẩn đoán")}>
+            <Tooltip title={t("Patient:Diagnosis:Print")}>
               <Button
                 type="text"
-                aria-label={t("In chẩn đoán")}
+                aria-label={t("Patient:Diagnosis:Print")}
                 icon={<CalendarDays size={20} className="pd-print-icon" />}
                 onClick={() => onPrint(row)}
               />
             </Tooltip>
           )}
           {onDelete && (
-            <Tooltip title={t("Xoá chẩn đoán")}>
+            <Tooltip title={t("Patient:Diagnosis:Delete")}>
               <Button
                 type="text"
                 danger
-                aria-label={t("Xoá chẩn đoán")}
+                aria-label={t("Patient:Diagnosis:Delete")}
                 icon={<DeleteOutlined />}
                 onClick={() => onDelete(row)}
               />
@@ -156,12 +156,12 @@ export function PatientDiagnosisCard({
     <div ref={cardRef} className="bd-cat-card pd-diagnosis-card">
       <header className="pd-card-head">
         <div className="pd-card-title">
-          <h3>{t("Tạo chẩn đoán")}</h3>
+          <h3>{t("Patient:Diagnosis:Create")}</h3>
           {onToggleForm && (
             <Button
               type="primary"
               shape="circle"
-              aria-label={t("Tạo chẩn đoán")}
+              aria-label={t("Patient:Diagnosis:Create")}
               aria-expanded={expanded}
               icon={expanded ? <CloseOutlined /> : <PlusOutlined />}
               onClick={handleToggleForm}
@@ -169,8 +169,8 @@ export function PatientDiagnosisCard({
           )}
         </div>
         <div className="pd-card-note">
-          <b>{t("Bác sĩ có trách nhiệm thông báo")}</b>
-          <span>{t("Những vấn đề răng miệng đang gặp phải – Hiểu về tiến trình của bệnh lý")}</span>
+          <b>{t("Patient:QuoteSheet:NotifyDoctor")}</b>
+          <span>{t("Patient:Diagnosis:Subtitle")}</span>
         </div>
       </header>
 
@@ -190,8 +190,8 @@ export function PatientDiagnosisCard({
               revealForm(cardRef.current);
             },
           }) : undefined}
-          locale={{ emptyText: t("Chưa có chẩn đoán") }}
-          pagination={pagination.buildConfig(totalCount, countedTotal(t("chẩn đoán")))}
+          locale={{ emptyText: t("Patient:Diagnosis:Empty") }}
+          pagination={pagination.buildConfig(totalCount, countedTotal(t("Patient:Misc:Diagnosis")))}
         />
       </div>
     </div>

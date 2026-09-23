@@ -24,10 +24,10 @@ type StatusLabels = Record<ServiceLineStatus, string>;
 
 function statusLabels(): StatusLabels {
   return {
-    created: t("đã tạo"),
-    inProgress: t("đang điều trị"),
-    completed: t("hoàn thành"),
-    cancelled: t("đã hủy"),
+    created: t("Report:ServiceStatus:Created"),
+    inProgress: t("Report:ServiceStatus:InProgress"),
+    completed: t("Report:ServiceStatus:Completed"),
+    cancelled: t("Report:ServiceStatus:Cancelled"),
   };
 }
 
@@ -38,7 +38,7 @@ function toExportRow(line: ServiceLineDto, labels: StatusLabels): ServiceExportR
     patientName: line.patientName,
     counselorName: line.counselorName,
     doctorName: line.doctorName,
-    serviceName: line.cancelled ? `${line.serviceName} (${t("Đã hủy")})` : line.serviceName,
+    serviceName: line.cancelled ? `${line.serviceName} (${t("Report:ServiceStatus:Cancelled")})` : line.serviceName,
     quantity: line.quantity,
     totalAmount: line.totalAmount,
     paidAmount: line.paidAmount,
@@ -54,18 +54,18 @@ export const SERVICE_EXPORT_FILENAME = "khach-hang-phat-sinh-dich-vu";
 /** Column order and headers mirror the reference export: 12 columns, raw numbers. */
 function exportColumns(): { header: string; key: keyof ServiceExportRow }[] {
   return [
-    { header: t("Ngày"), key: "date" },
-    { header: t("Mã khách hàng"), key: "patientCode" },
-    { header: t("Tên khách hàng"), key: "patientName" },
-    { header: t("Nhân sự tư vấn"), key: "counselorName" },
-    { header: t("Bác sĩ tiếp nhận"), key: "doctorName" },
-    { header: t("Dịch vụ điều trị"), key: "serviceName" },
-    { header: t("Số lượng"), key: "quantity" },
-    { header: t("Thành tiền"), key: "totalAmount" },
-    { header: t("Đã thanh toán"), key: "paidAmount" },
-    { header: t("Mã phiếu điều trị"), key: "ticketCode" },
-    { header: t("Trạng thái dịch vụ"), key: "statusLabel" },
-    { header: t("Chi nhánh"), key: "branchName" },
+    { header: t("Report:Column:Date"), key: "date" },
+    { header: t("Report:Column:CustomerCode"), key: "patientCode" },
+    { header: t("Report:Column:CustomerName"), key: "patientName" },
+    { header: t("Report:Column:CounselorName"), key: "counselorName" },
+    { header: t("Report:Column:DoctorName"), key: "doctorName" },
+    { header: t("Report:Column:TreatmentService"), key: "serviceName" },
+    { header: t("Report:Column:Quantity"), key: "quantity" },
+    { header: t("Report:Column:TotalAmount"), key: "totalAmount" },
+    { header: t("Report:Column:PaidAmount"), key: "paidAmount" },
+    { header: t("Report:SalesDetail:TreatmentTicketCode"), key: "ticketCode" },
+    { header: t("Report:SalesDetail:ServiceStatus"), key: "statusLabel" },
+    { header: t("Report:Column:Branch"), key: "branchName" },
   ];
 }
 
@@ -83,7 +83,7 @@ export function exportServiceLines(lines: ServiceLineDto[]): void {
   const labels = statusLabels();
   const rows = lines.map((line) => toExportRow(line, labels));
   exportToExcel<ServiceExportRow>(rows, exportColumns(), SERVICE_EXPORT_FILENAME, {
-    sheetName: t("Khách hàng phát sinh dịch vụ"),
+    sheetName: t("Report:Export:ServiceSheetName"),
     columnWidths: excelColumnWidths(SERVICE_EXPORT_WIDTHS),
   });
 }

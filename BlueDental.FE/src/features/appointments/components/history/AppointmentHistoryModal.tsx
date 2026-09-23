@@ -150,8 +150,8 @@ export function AppointmentHistoryModal({ open, patientId, onClose }: Props) {
       title={
         <div className="bd-modal-head">
           <div>
-            <h2 className="bd-modal-title ah-title">{t("Lịch sử thay đổi lịch hẹn")}</h2>
-            <p className="bd-modal-subtitle">{t("Toàn bộ thao tác CR/Edit/Delete cho bệnh nhân này.")}</p>
+            <h2 className="bd-modal-title ah-title">{t("Appointment:History:ModalTitle")}</h2>
+            <p className="bd-modal-subtitle">{t("Appointment:History:ModalSubtitle")}</p>
           </div>
         </div>
       }

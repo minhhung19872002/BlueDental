@@ -21,21 +21,19 @@ export function LoginPage() {
           <div>
             <div className="login-brand-name">BlueDental</div>
             <div className="login-brand-sub">
-              {t("Phần mềm quản trị phòng khám nha khoa")}
+              {t("Auth:AppTagline")}
             </div>
           </div>
         </div>
 
         <div className="login-aside-body">
           <h1 className="login-aside-title">
-            {t("Toàn bộ phòng khám")}
+            {t("Auth:HeroHeadline1")}
             <br />
-            {t("trong một màn hình.")}
+            {t("Auth:HeroHeadline2")}
           </h1>
           <p className="login-aside-lead">
-            {t(
-              "Tiếp nhận, lịch hẹn, sơ đồ răng, kế hoạch điều trị, thu chi và vật tư — vận hành đa chi nhánh trên cùng một luồng dữ liệu.",
-            )}
+            {t("Auth:HeroLead")}
           </p>
           <div className="login-stats">
             {HIGHLIGHTS.map((item) => (
@@ -48,14 +46,14 @@ export function LoginPage() {
         </div>
 
         <div className="login-aside-foot">
-          © {new Date().getFullYear()} {t("BlueDental. Bảo lưu mọi quyền.")}
+          © {new Date().getFullYear()} {t("Auth:Copyright")}
         </div>
       </aside>
 
       <div className="login-panel">
         <div className="login-form">
-          <h2 className="login-form-title">{t("Đăng nhập hệ thống")}</h2>
-          <p className="login-form-sub">{t("Nhập thông tin tài khoản để tiếp tục")}</p>
+          <h2 className="login-form-title">{t("Auth:LoginFormTitle")}</h2>
+          <p className="login-form-sub">{t("Auth:LoginFormSubtitle")}</p>
           <LoginForm />
         </div>
       </div>

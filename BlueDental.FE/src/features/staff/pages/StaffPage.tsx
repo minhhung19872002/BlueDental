@@ -38,9 +38,9 @@ import { t } from "@/lib/i18n";
 type StatusFilter = "all" | "working" | "resigned";
 
 const statusTabs = (): { key: StatusFilter; label: string }[] => [
-  { key: "all", label: t("Tất cả") },
-  { key: "working", label: t("Đang làm việc") },
-  { key: "resigned", label: t("Đã nghỉ") },
+  { key: "all", label: t("Staff:All") },
+  { key: "working", label: t("Staff:Working") },
+  { key: "resigned", label: t("Staff:Resigned") },
 ];
 
 export function StaffPage() {
@@ -98,7 +98,7 @@ export function StaffPage() {
     if (!pendingDelete) return;
     try {
       await deleteStaff.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá nhân viên"));
+      toast.success(t("Staff:DeleteSuccess"));
     } catch {
       // Global MutationCache.onError already shows the toast
     } finally {
@@ -153,17 +153,17 @@ export function StaffPage() {
       }
 
       setModalOpen(false);
-      toast.success(editing ? t("Đã cập nhật nhân viên") : t("Đã tạo nhân viên"));
+      toast.success(editing ? t("Staff:UpdateSuccess") : t("Staff:CreateSuccess"));
 
       if (avatarFile instanceof File) {
         staffApi.uploadAvatar(staffId, avatarFile).then(
           () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
-          () => toast.error(t("Tải ảnh đại diện thất bại")),
+          () => toast.error(t("Staff:AvatarUploadFailed")),
         );
       } else if (avatarFile === null && editing?.avatarUrl) {
         staffApi.deleteAvatar(staffId).then(
           () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
-          () => toast.error(t("Xóa ảnh đại diện thất bại")),
+          () => toast.error(t("Staff:AvatarDeleteFailed")),
         );
       }
     } catch {
@@ -174,47 +174,47 @@ export function StaffPage() {
   const columns: ColumnsType<StaffDto> = [
     {
       key: "fullName",
-      title: t("Tên"),
+      title: t("Staff:ColName"),
       width: 240,
       render: (_, record) => record.fullName || record.userName,
     },
     {
       key: "phoneNumber",
-      title: t("Số điện thoại"),
+      title: t("Staff:ColPhone"),
       dataIndex: "phoneNumber",
       width: 180,
       render: (v) => v || "—",
     },
     {
       key: "email",
-      title: t("Email"),
+      title: t("Staff:ColEmail"),
       dataIndex: "email",
       width: 280,
       render: (v) => v || "—",
     },
     {
       key: "roleNames",
-      title: t("Phân quyền"),
+      title: t("Staff:ColPermission"),
       dataIndex: "roleNames",
       width: 200,
       render: (v: string[]) => (v?.length > 0 ? v.join(", ") : "—"),
     },
     {
       key: "address",
-      title: t("Địa chỉ"),
+      title: t("Staff:ColAddress"),
       width: 350,
       render: (_, record) => record.address || "—",
     },
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 110,
       align: "center",
       fixed: "right",
       render: (_, record) => (
         <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
           {ability.canUpdate && (
-            <Tooltip title={t("Chỉnh sửa")}>
+            <Tooltip title={t("Common:Edit")}>
               <Button
                 type="text"
                 size="small"
@@ -224,7 +224,7 @@ export function StaffPage() {
             </Tooltip>
           )}
           {ability.canDelete && (
-            <Tooltip title={t("Xoá")}>
+            <Tooltip title={t("Common:Delete")}>
               <Button
                 type="text"
                 size="small"
@@ -242,8 +242,8 @@ export function StaffPage() {
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Nhân sự & lịch làm việc")}
-        subtitle={t("Danh sách nhân viên, ca trực và phân công theo chi nhánh")}
+        title={t("Staff:PageTitle")}
+        subtitle={t("Staff:PageSubtitle")}
       />
 
       {/* ── Desktop: inline toolbar ── */}
@@ -251,7 +251,7 @@ export function StaffPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm theo tên, email, số điện thoại...")}
+            placeholder={t("Staff:SearchPlaceholder")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ flex: 1 }}
@@ -259,7 +259,7 @@ export function StaffPage() {
           />
           {ability.canCreate && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t("Tạo")}
+              {t("Staff:Create")}
             </Button>
           )}
         </div>
@@ -290,17 +290,17 @@ export function StaffPage() {
           onApply={() => { setKeyword(draftKeyword); setStatusFilter(draftStatus); }}
         >
           <div>
-            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+            <div className="mobile-filter-label">{t("Common:Search")}</div>
             <Input
               prefix={<SearchOutlined />}
-              placeholder={t("Tìm theo tên, email, số điện thoại...")}
+              placeholder={t("Staff:SearchPlaceholder")}
               value={draftKeyword}
               onChange={(e) => setDraftKeyword(e.target.value)}
               allowClear
             />
           </div>
           <div>
-            <div className="mobile-filter-label">{t("Trạng thái")}</div>
+            <div className="mobile-filter-label">{t("Common:Status")}</div>
             <div className="mobile-filter-pills">
               {statusTabs().map((tab) => (
                 <button
@@ -318,7 +318,7 @@ export function StaffPage() {
 
         {ability.canCreate && (
           <Button type="primary" icon={<PlusOutlined />} block onClick={openCreate}>
-            {t("Tạo")}
+            {t("Staff:Create")}
           </Button>
         )}
       </div>
@@ -345,7 +345,7 @@ export function StaffPage() {
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("nhân viên")}
+        noun={t("Staff:Noun")}
         name={pendingDelete?.fullName || pendingDelete?.userName || ""}
         pending={deleteStaff.isPending}
         onConfirm={() => void confirmDelete()}

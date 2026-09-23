@@ -45,43 +45,43 @@ export type CareAppointmentStatus =
   (typeof CARE_APPOINTMENT_STATUS)[keyof typeof CARE_APPOINTMENT_STATUS];
 
 export const careStatusLabels = (): Record<CareStatus, string> => ({
-  [CARE_STATUS.New]: t("Chưa chăm sóc"),
-  [CARE_STATUS.Contacted]: t("Đã liên hệ"),
-  [CARE_STATUS.Succeeded]: t("Thành công"),
-  [CARE_STATUS.Failed]: t("Thất bại"),
-  [CARE_STATUS.Cancelled]: t("Đã hủy"),
+  [CARE_STATUS.New]: t("CSKH:Status:New"),
+  [CARE_STATUS.Contacted]: t("CSKH:Status:Contacted"),
+  [CARE_STATUS.Succeeded]: t("CSKH:Status:Succeeded"),
+  [CARE_STATUS.Failed]: t("CSKH:Status:Failed"),
+  [CARE_STATUS.Cancelled]: t("CSKH:Status:Cancelled"),
 });
 
 export const careTypeLabels = (): Record<CareType, string> => ({
-  [CARE_TYPE.AfterTreatment]: t("Sau điều trị"),
-  [CARE_TYPE.Birthday]: t("Chúc mừng sinh nhật"),
-  [CARE_TYPE.AppointmentReminder]: t("Nhắc lịch hẹn"),
-  [CARE_TYPE.Periodic]: t("CSKH định kì"),
-  [CARE_TYPE.Special]: t("CSKH đặc biệt"),
-  [CARE_TYPE.Base]: t("Chăm sóc"),
+  [CARE_TYPE.AfterTreatment]: t("CSKH:Type:AfterTreatment"),
+  [CARE_TYPE.Birthday]: t("CSKH:Type:Birthday"),
+  [CARE_TYPE.AppointmentReminder]: t("CSKH:Type:AppointmentReminder"),
+  [CARE_TYPE.Periodic]: t("CSKH:Type:Periodic"),
+  [CARE_TYPE.Special]: t("CSKH:Type:Special"),
+  [CARE_TYPE.Base]: t("CSKH:Type:Base"),
 });
 
 export const careGenderLabels = (): Record<CareGender, string> => ({
-  [CARE_GENDER.Male]: t("Nam"),
-  [CARE_GENDER.Female]: t("Nữ"),
-  [CARE_GENDER.Other]: t("Khác"),
-  [CARE_GENDER.PreferNotToSay]: t("Không tiết lộ"),
+  [CARE_GENDER.Male]: t("Common:Gender:Male"),
+  [CARE_GENDER.Female]: t("Common:Gender:Female"),
+  [CARE_GENDER.Other]: t("Common:Gender:Other"),
+  [CARE_GENDER.PreferNotToSay]: t("Common:Gender:PreferNotToSay"),
 });
 
 export const careAppointmentStatusLabels = (): Record<CareAppointmentStatus, string> => ({
-  [CARE_APPOINTMENT_STATUS.Scheduled]: t("Đã đặt lịch"),
-  [CARE_APPOINTMENT_STATUS.Confirmed]: t("Đã xác nhận"),
-  [CARE_APPOINTMENT_STATUS.CheckedIn]: t("Đã đến"),
-  [CARE_APPOINTMENT_STATUS.InProgress]: t("Đang khám"),
-  [CARE_APPOINTMENT_STATUS.Completed]: t("Hoàn thành"),
-  [CARE_APPOINTMENT_STATUS.Cancelled]: t("Đã hủy"),
-  [CARE_APPOINTMENT_STATUS.NoShow]: t("Vắng mặt"),
+  [CARE_APPOINTMENT_STATUS.Scheduled]: t("Common:Appointment:Scheduled"),
+  [CARE_APPOINTMENT_STATUS.Confirmed]: t("Common:Appointment:Confirmed"),
+  [CARE_APPOINTMENT_STATUS.CheckedIn]: t("Common:Appointment:CheckedIn"),
+  [CARE_APPOINTMENT_STATUS.InProgress]: t("Common:Appointment:InProgress"),
+  [CARE_APPOINTMENT_STATUS.Completed]: t("Common:Appointment:Completed"),
+  [CARE_APPOINTMENT_STATUS.Cancelled]: t("Common:Appointment:Cancelled"),
+  [CARE_APPOINTMENT_STATUS.NoShow]: t("Common:Appointment:NoShow"),
 });
 
 export const treatmentStatusLabels = (): Record<CareTreatmentStatus, string> => ({
-  [CARE_TREATMENT_STATUS.Created]: t("Chưa phát sinh"),
-  [CARE_TREATMENT_STATUS.InProgress]: t("Đang điều trị"),
-  [CARE_TREATMENT_STATUS.Done]: t("Hoàn tất"),
+  [CARE_TREATMENT_STATUS.Created]: t("CSKH:Treatment:Created"),
+  [CARE_TREATMENT_STATUS.InProgress]: t("CSKH:Treatment:InProgress"),
+  [CARE_TREATMENT_STATUS.Done]: t("CSKH:Treatment:Done"),
 });
 
 /** Mirrors BlueDental.CustomerCare.CareRecordDto. */

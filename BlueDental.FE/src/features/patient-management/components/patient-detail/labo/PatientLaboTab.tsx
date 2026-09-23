@@ -102,7 +102,7 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
         </div>
         {ability.canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog("new-order")}>
-            {t("Tạo phiếu Labo")}
+            {t("Patient:Labo:CreateSlip")}
           </Button>
         )}
       </div>
@@ -112,8 +112,8 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
           loading={page.isLoading}
           columns={columns}
           dataSource={rows}
-          locale={{ emptyText: t("Không có dữ liệu") }}
-          pagination={pagination.buildConfig(totalCount, countedTotal(t("phiếu labo")))}
+          locale={{ emptyText: t("Common:NoData") }}
+          pagination={pagination.buildConfig(totalCount, countedTotal(t("Patient:Misc:LaboSlip")))}
         />
       </div>
       <LaboOrderTabsDialog

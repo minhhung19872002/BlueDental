@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// The fields only the "Loại thuốc" catalog carries. The entry's own
+/// The fields only the "BE:Common:MedicineType" catalog carries. The entry's own
 /// <c>Price</c> is the selling price the rest of the system quotes from;
 /// the buying price lives here because nothing outside this catalog needs it.
 /// </summary>

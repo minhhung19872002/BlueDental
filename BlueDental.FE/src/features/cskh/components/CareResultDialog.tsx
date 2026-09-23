@@ -23,8 +23,8 @@ interface CareResultDialogProps {
 }
 
 const RESULT_CHOICES: Array<{ value: CareStatus; label: () => string }> = [
-  { value: CARE_STATUS.Succeeded, label: () => t("Thành công") },
-  { value: CARE_STATUS.Failed, label: () => t("Thất bại") },
+  { value: CARE_STATUS.Succeeded, label: () => t("CSKH:Result:Succeeded") },
+  { value: CARE_STATUS.Failed, label: () => t("CSKH:Result:Failed") },
 ];
 
 /**
@@ -56,7 +56,7 @@ export function CareResultDialog({ open, tab, record, onClose }: CareResultDialo
     if (!record) return;
     if (!result) {
       setTouched(true);
-      toast.error(t("Vui lòng chọn trạng thái chăm sóc"));
+      toast.error(t("CSKH:SelectStatusRequired"));
       return;
     }
     try {
@@ -72,7 +72,7 @@ export function CareResultDialog({ open, tab, record, onClose }: CareResultDialo
         status: result,
         stageIds: record.stageIds,
       });
-      toast.success(t("Đã lưu kết quả chăm sóc"));
+      toast.success(t("CSKH:SavedResult"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -114,7 +114,7 @@ export function CareResultDialog({ open, tab, record, onClose }: CareResultDialo
             ))}
           </div>
 
-          <MessageField label={t("Ghi chú lần chăm sóc")} hasValue={Boolean(note)}>
+          <MessageField label={t("CSKH:NoteLabel")} hasValue={Boolean(note)}>
             <Input.TextArea
               rows={5}
               value={note}

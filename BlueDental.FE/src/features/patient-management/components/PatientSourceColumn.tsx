@@ -43,24 +43,24 @@ export function PatientSourceColumn({
   return (
     <>
       <FloatingField
-        label={t("Mã khách hàng")}
+        label={t("Patient:Col:PatientCodeLong")}
         name="codeSequence"
-        rules={[{ pattern: /^\d*$/, message: t("Mã khách hàng chỉ gồm chữ số") }]}
+        rules={[{ pattern: /^\d*$/, message: t("Patient:Form:CodeDigitsOnly") }]}
       >
         <Input
           prefix={<span className="bd-patient-codeprefix">{codePrefix}</span>}
           inputMode="numeric"
-          aria-label={t("Phần số mã khách hàng")}
+          aria-label={t("Patient:Form:CodeNumberPart")}
         />
       </FloatingField>
 
       <FloatingField
-        label={t("Họ và tên")}
+        label={t("Patient:Col:FullName")}
         name="fullName"
         required
         rules={[
-          { required: true, message: t("Vui lòng nhập họ và tên") },
-          { max: 50, message: t("Tối đa 50 ký tự") },
+          { required: true, message: t("Patient:Form:RequiredFullName") },
+          { max: 50, message: t("Patient:Misc:Max50Chars") },
         ]}
       >
         <Input maxLength={50} />
@@ -71,26 +71,26 @@ export function PatientSourceColumn({
       </Form.Item>
 
       <FloatingField
-        label={t("Điện thoại")}
+        label={t("Patient:Form:Telephone")}
         name="phone"
         required
         rules={[
-          { required: true, message: t("Vui lòng nhập số điện thoại") },
-          { pattern: /^\d{8,15}$/, message: t("Số điện thoại không hợp lệ") },
+          { required: true, message: t("Patient:Form:RequiredPhone") },
+          { pattern: /^\d{8,15}$/, message: t("Patient:Form:InvalidPhone") },
         ]}
       >
         <Input type="tel" autoComplete="off" maxLength={15} />
       </FloatingField>
 
       <div className="bd-patient-sourcerow">
-        <FloatingField label={t("Chọn loại nguồn đến")} name="sourceTaxonomyId">
+        <FloatingField label={t("Patient:Source:SelectType")} name="sourceTaxonomyId">
           <SearchSelect
             options={(sourceGroups.data ?? []).map((group) => ({
               value: group.id,
               label: group.name,
             }))}
-            placeholder={t("Chọn loại nguồn đến")}
-            emptyText={t("Không tìm thấy nguồn đến")}
+            placeholder={t("Patient:Source:SelectType")}
+            emptyText={t("Patient:Form:SourceNotFound")}
             allowClear
             onChange={onSourceGroupChange}
           />
@@ -101,26 +101,26 @@ export function PatientSourceColumn({
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          aria-label={t("Thêm loại nguồn đến")}
+          aria-label={t("Patient:Source:AddType")}
           onClick={onAddSource}
         />
       </div>
 
-      <FloatingField label={t("Kênh kết nối")} name="sourceEntryId">
+      <FloatingField label={t("Patient:Col:Channel")} name="sourceEntryId">
         <SearchSelect
           options={channels}
-          placeholder={t("Kênh kết nối")}
-          emptyText={t("Nguồn đến này chưa có kênh nào")}
+          placeholder={t("Patient:Col:Channel")}
+          emptyText={t("Patient:Source:NoChannel")}
           disabled={!sourceTaxonomyId}
           allowClear
         />
       </FloatingField>
 
-      <FloatingField label={t("Ngày tạo")} name="createdAtLabel">
-        <Input readOnly value={dayjs(createdAt ?? undefined).format("DD/MM/YYYY")} />
+      <FloatingField label={t("Patient:Col:CreatedAt")} name="createdAtLabel">
+        <Input readOnly value={dayjs(createdAt ?? undefined).format("Patient:Misc:DateFormat")} />
       </FloatingField>
 
-      <FloatingField label={t("Lý do đến khám")} name="examinationReason">
+      <FloatingField label={t("Patient:Source:VisitReason")} name="examinationReason">
         <Input.TextArea rows={3} maxLength={1000} />
       </FloatingField>
     </>

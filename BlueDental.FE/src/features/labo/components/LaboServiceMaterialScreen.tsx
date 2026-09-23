@@ -112,7 +112,7 @@ export function LaboServiceMaterialScreen({
       } else {
         await materialCommands.remove.mutateAsync(pendingDelete.id);
       }
-      toast.success(t("Đã xoá"));
+      toast.success(t("Common:Deleted"));
       setPendingDelete(null);
     } catch {
       // queryClient reports the failure; the dialog stays open to retry.
@@ -122,14 +122,14 @@ export function LaboServiceMaterialScreen({
   const columns: ColumnsType<LaboMaterialDto> = [
     {
       key: "name",
-      title: t("Vật liệu"),
+      title: t("Labo:Material:Title"),
       render: (_, row) => (
         <p className="bd-cat-name">{row.name}</p>
       ),
     },
     {
       key: "taxonomyName",
-      title: t("Nhóm phân loại"),
+      title: t("Labo:Material:GroupTitle"),
       width: 300,
       render: (_, row) =>
         row.taxonomyName ? (
@@ -140,7 +140,7 @@ export function LaboServiceMaterialScreen({
     },
     {
       key: "updatedAt",
-      title: t("Cập nhật gần nhất"),
+      title: t("Common:LastUpdated"),
       width: 240,
       render: (_, row) => (
         <span className="bd-cat-num">
@@ -152,31 +152,31 @@ export function LaboServiceMaterialScreen({
       ? [
           {
             key: "actions",
-            title: t("Thao tác"),
+            title: t("Common:Actions"),
             width: 100,
             align: "center" as const,
             fixed: "right" as const,
             render: (_: unknown, row: LaboMaterialDto) => (
               <div className="bd-cat-rowactions">
                 {canUpdate && (
-                  <Tooltip title={t("Chỉnh sửa")}>
+                  <Tooltip title={t("Common:Edit")}>
                     <Button
                       type="text"
                       size="small"
                       icon={<EditOutlined />}
-                      aria-label={t("Chỉnh sửa {0}", row.name)}
+                      aria-label={t("Common:EditAriaLabel", row.name)}
                       onClick={() => setMaterialDialog({ open: true, material: row })}
                     />
                   </Tooltip>
                 )}
                 {canDelete && (
-                  <Tooltip title={t("Xoá")}>
+                  <Tooltip title={t("Common:Delete")}>
                     <Button
                       type="text"
                       size="small"
                       danger
                       icon={<DeleteOutlined />}
-                      aria-label={t("Xoá {0}", row.name)}
+                      aria-label={t("Common:DeleteAriaLabel", row.name)}
                       onClick={() =>
                         setPendingDelete({ kind: "material", id: row.id, name: row.name })
                       }
@@ -192,8 +192,8 @@ export function LaboServiceMaterialScreen({
 
   const groupPanel = (
     <GroupPanel<LaboCatalogItem & { entryCount?: number }>
-      title={t("Nhóm phân loại")}
-      subtitle={t("Chọn nhóm để xem vật liệu bên trong")}
+      title={t("Labo:Material:GroupTitle")}
+      subtitle={t("Labo:Material:GroupSubtitle")}
       groups={groups.map((group) => ({ ...group, entryCount: group.itemCount }))}
       isLoading={groupsQuery.isLoading}
       isSearching={groupsQuery.isFetching && !groupsQuery.isLoading}
@@ -211,10 +211,10 @@ export function LaboServiceMaterialScreen({
       // The reference orders these groups by the priority its own dialog
       // collects, and offers no drag — so there is nothing to persist here.
       onReorder={() => undefined}
-      searchPlaceholder={t("Tìm nhóm phân loại...")}
-      createLabel={t("Thêm nhóm phân loại")}
-      emptyText={t("Chưa có nhóm phân loại")}
-      notFoundText={t("Không tìm thấy nhóm phù hợp")}
+      searchPlaceholder={t("Labo:Material:SearchGroup")}
+      createLabel={t("Labo:Material:AddGroup")}
+      emptyText={t("Labo:Material:NoGroup")}
+      notFoundText={t("Labo:Material:NoGroupFound")}
     />
   );
 
@@ -228,7 +228,7 @@ export function LaboServiceMaterialScreen({
           onClose={() => setGroupsOpen(false)}
           placement="left"
           size={288}
-          title={t("Nhóm phân loại")}
+          title={t("Labo:Material:GroupTitle")}
           className="bd-group-drawer"
           styles={{ body: { padding: 0 } }}
         >
@@ -244,14 +244,14 @@ export function LaboServiceMaterialScreen({
                 className="bd-labo-groupbtn"
                 onClick={() => setGroupsOpen(true)}
               >
-                {t("Chọn nhóm")}
+                {t("Common:SelectGroup")}
               </Button>
 
               <Input
                 className="bd-labo-search"
                 prefix={<SearchOutlined />}
-                placeholder={t("Tìm kiếm")}
-                aria-label={t("Tìm kiếm vật liệu")}
+                placeholder={t("Common:SearchPlaceholder")}
+                aria-label={t("Labo:Material:SearchMaterial")}
                 value={keyword}
                 maxLength={100}
                 allowClear
@@ -266,7 +266,7 @@ export function LaboServiceMaterialScreen({
                 disabled={groups.length === 0}
                 onClick={() => setMaterialDialog({ open: true, material: null })}
               >
-                {t("Tạo vật liệu")}
+                {t("Labo:Material:Create")}
               </Button>
             )}
           </div>
@@ -281,12 +281,12 @@ export function LaboServiceMaterialScreen({
                 locale={{
                   emptyText:
                     groups.length === 0
-                      ? t("Cần tạo ít nhất một nhóm phân loại trước khi thêm vật liệu.")
+                      ? t("Labo:Material:NeedGroupFirst")
                       : debouncedKeyword
-                        ? t("Không tìm thấy kết quả phù hợp")
-                        : t("Không có dữ liệu"),
+                        ? t("Common:NoResultsMatch")
+                        : t("Common:NoData"),
                 }}
-                pagination={pagination.buildConfig(totalCount, countedTotal(t("vật liệu")))}
+                pagination={pagination.buildConfig(totalCount, countedTotal(t("Labo:Noun:Material")))}
               />
             </div>
           </div>
@@ -309,7 +309,7 @@ export function LaboServiceMaterialScreen({
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={pendingDelete?.kind === "group" ? t("nhóm") : t("vật liệu")}
+        noun={pendingDelete?.kind === "group" ? t("Labo:Noun:Group") : t("Labo:Noun:Material")}
         name={pendingDelete?.name ?? ""}
         pending={groupCommands.remove.isPending || materialCommands.remove.isPending}
         onConfirm={() => void confirmDelete()}

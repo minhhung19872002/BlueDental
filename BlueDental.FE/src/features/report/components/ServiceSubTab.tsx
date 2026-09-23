@@ -19,7 +19,7 @@ export function ServiceSubTabActions(range: RangeQuery) {
 
   return (
     <ReportStatsBar
-      label={t("Doanh số")}
+      label={t("Report:StatsBar:Sales")}
       value={summary?.revenue ?? 0}
       tone="gold"
       loading={isLoading}

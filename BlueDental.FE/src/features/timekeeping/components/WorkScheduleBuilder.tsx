@@ -118,7 +118,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
     return filtered.map((s) => ({
       id: s.id,
       name: s.fullName || s.userName,
-      position: s.roleNames?.[0] ?? t("Nhân viên"),
+      position: s.roleNames?.[0] ?? t("Common:Staff"),
     }));
   }, [staffPage, keyword]);
 
@@ -280,7 +280,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
 
     try {
       await bulkRegister.mutateAsync({ items });
-      toast.success(t("Đã lưu lịch làm việc cho {0} ô.").replace("{0}", String(items.length)));
+      toast.success(t("Timekeeping:ScheduleSavedCells", items.length));
       if (saveScope === "selected") {
         setLocalChanges((prev) => {
           const next = new Map(prev);
@@ -336,11 +336,11 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       <div className="wsb-toolbar">
         <div className="wsb-toolbar-left">
           <Button icon={<LeftOutlined />} onClick={onBack}>
-            {t("Quay lại")}
+            {t("Timekeeping:GoBack")}
           </Button>
 
           <div className="wsb-toolbar-search">
-            <FloatingLabel label={t("Tìm nhân viên...")} floated={Boolean(keyword)}>
+            <FloatingLabel label={t("Timekeeping:SearchStaff")} floated={Boolean(keyword)}>
               <Input
                 prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
                 value={keyword}
@@ -356,18 +356,18 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
               type="button"
               className="wsb-month-nav-btn"
               onClick={handleMonthPrev}
-              aria-label={t("Tháng trước")}
+              aria-label={t("Timekeeping:PrevMonth")}
             >
               <ChevronLeftIcon />
             </button>
             <span className="wsb-month-nav-label">
-              {t("Tháng")} {builderMonth.month() + 1}
+              {t("Common:Month")} {builderMonth.month() + 1}
             </span>
             <button
               type="button"
               className="wsb-month-nav-btn"
               onClick={handleMonthNext}
-              aria-label={t("Tháng sau")}
+              aria-label={t("Timekeeping:NextMonth")}
             >
               <ChevronRightIcon />
             </button>
@@ -380,7 +380,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
             disabled={!hasChanges || bulkRegister.isPending}
             onClick={handleReset}
           >
-            {t("Đặt lại")}
+            {t("Timekeeping:Reset")}
           </Button>
           {workScheduleAbility.canUpdate && selectedStaff.size > 0 && (
             <Button
@@ -388,7 +388,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
               loading={bulkRegister.isPending && saveScope === "selected"}
               onClick={handleSaveSelectedClick}
             >
-              {t("Lưu lịch với nhân viên đã chọn ({0})").replace("{0}", String(selectedStaff.size))}
+              {t("Timekeeping:SaveForSelected", selectedStaff.size)}
             </Button>
           )}
           {workScheduleAbility.canUpdate && (
@@ -399,7 +399,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
               loading={bulkRegister.isPending && saveScope === "all"}
               onClick={handleSaveClick}
             >
-              {t("Lưu thay đổi")}
+              {t("Timekeeping:SaveChanges")}
             </Button>
           )}
         </div>
@@ -409,37 +409,37 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
         <div className="wsb-legend-items">
           <span className="wsb-legend-item">
             <span className="wsb-legend-dot" style={{ background: "#0e9f6e" }} />
-            {t("Làm")}
+            {t("Timekeeping:Work")}
           </span>
           <span className="wsb-legend-item">
             <span className="wsb-legend-dot" style={{ background: "#cf3c41" }} />
-            {t("Nghỉ")}
+            {t("Timekeeping:DayOff")}
           </span>
           <span className="wsb-legend-item">
             <span className="wsb-legend-dot" style={{ background: "#d98b0f" }} />
-            {t("Vắng mặt không báo trước")}
+            {t("Timekeeping:UnannounceAbsentLong")}
           </span>
           <span className="wsb-legend-item">
             <span className="wsb-legend-half">
               <SunIcon />
               <MoonIcon />
             </span>
-            {t("Làm nửa buổi (sáng / chiều)")}
+            {t("Timekeeping:HalfDayLong")}
           </span>
         </div>
       </div>
 
       <div className="wsb-help">
-        <strong style={{ color: "#0e9f6e" }}>{t("Làm")}</strong>
+        <strong style={{ color: "#0e9f6e" }}>{t("Timekeeping:Work")}</strong>
         {" / "}
-        <strong style={{ color: "#7c5ce0" }}>{t("Làm nửa buổi")}</strong>
+        <strong style={{ color: "#7c5ce0" }}>{t("Timekeeping:HalfDay")}</strong>
         {" "}
-        {t("chỉ tính khi nhân viên đã vào ca. Ngày chưa vào ca để trống; quá khứ không vào ca sẽ hiện Vắng.")}
+        {t("Timekeeping:WorkLegendHint")}
       </div>
 
       {selectedStaff.size > 0 && (
         <div className="wsb-selection-note">
-          {t("Nút nhân viên đã chọn chỉ lưu các dòng đã tick; Lưu lịch lưu tất cả thay đổi đang có trên bảng.")}
+          {t("Timekeeping:SaveScopeHint")}
         </div>
       )}
 
@@ -466,12 +466,12 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
 
       <Modal
         open={confirmOpen}
-        title={saveScope === "selected" ? t("Lưu lịch nhân viên đã chọn") : t("Lưu lịch làm việc")}
+        title={saveScope === "selected" ? t("Timekeeping:SaveSelectedTitle") : t("Timekeeping:SaveScheduleTitle")}
         width={450}
         onCancel={() => setConfirmOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setConfirmOpen(false)}>
-            {t("Hủy")}
+            {t("Common:Cancel")}
           </Button>,
           <Button
             key="confirm"
@@ -479,17 +479,17 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
             loading={bulkRegister.isPending}
             onClick={handleConfirmSave}
           >
-            {t("Xác nhận lưu")}
+            {t("Timekeeping:ConfirmSave")}
           </Button>,
         ]}
       >
         <p>
           {saveScope === "selected"
-            ? t("Bạn có chắc muốn lưu lịch cho {0} nhân viên đã chọn trong").replace("{0}", String(selectedStaff.size))
-            : t("Bạn có chắc muốn lưu toàn bộ thay đổi lịch làm việc trong")}
+            ? t("Timekeeping:ConfirmSaveSelected", selectedStaff.size)
+            : t("Timekeeping:ConfirmSaveAll")}
         </p>
         <p>
-          <strong>{t("Tháng")} {builderMonth.month() + 1} / {builderMonth.year()}</strong>?
+          <strong>{t("Common:Month")} {builderMonth.month() + 1} / {builderMonth.year()}</strong>?
         </p>
       </Modal>
     </div>

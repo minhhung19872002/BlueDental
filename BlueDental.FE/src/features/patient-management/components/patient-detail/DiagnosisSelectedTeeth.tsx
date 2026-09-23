@@ -37,7 +37,7 @@ export function DiagnosisSelectedTeeth({ value, onRemoveTooth, onClearJaw }: Pro
           <Chip
             key="jaw"
             label={jawLabel(value.jaw)}
-            removeLabel={t("Bỏ chọn {0}", jawLabel(value.jaw))}
+            removeLabel={t("Patient:Diagnosis:RemoveJaw", jawLabel(value.jaw))}
             onRemove={onClearJaw}
           />,
         ]
@@ -45,16 +45,16 @@ export function DiagnosisSelectedTeeth({ value, onRemoveTooth, onClearJaw }: Pro
           <Chip
             key={pick.fdi}
             label={formatToothPick(pick)}
-            removeLabel={t("Bỏ chọn răng {0}", pick.fdi)}
+            removeLabel={t("Patient:Diagnosis:RemoveTooth", pick.fdi)}
             onRemove={() => onRemoveTooth(pick.fdi)}
           />
         ));
 
   return (
     <div className="pd-selected-teeth" data-testid="selected-teeth">
-      <strong>{t("Răng đã chọn")}</strong>
+      <strong>{t("Patient:Diagnosis:SelectedTeeth")}</strong>
       {chips.length === 0 ? (
-        <span className="pd-selected-teeth__empty">{t("Chưa chọn răng")}</span>
+        <span className="pd-selected-teeth__empty">{t("Patient:Diagnosis:NoTeethSelected")}</span>
       ) : (
         <div className="pd-selected-teeth__chips">{chips}</div>
       )}

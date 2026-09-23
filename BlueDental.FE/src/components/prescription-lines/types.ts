@@ -40,12 +40,12 @@ export function lineQuantity(line: PrescriptionLine): number {
 /** The six choices the reference lists, in its order. */
 export function usageOptions(): { flag: number; label: string }[] {
   return [
-    { flag: PRESCRIPTION_USAGE.AfterMeal, label: t("Sau khi ăn") },
-    { flag: PRESCRIPTION_USAGE.BeforeMeal, label: t("Trước khi ăn") },
-    { flag: PRESCRIPTION_USAGE.DuringMeal, label: t("Trong khi ăn") },
-    { flag: PRESCRIPTION_USAGE.AfterWakingUp, label: t("Sau khi thức dậy") },
-    { flag: PRESCRIPTION_USAGE.BeforeSleep, label: t("Trước khi ngủ") },
-    { flag: PRESCRIPTION_USAGE.Other, label: t("Khác") },
+    { flag: PRESCRIPTION_USAGE.AfterMeal, label: t("Common:Rx:AfterMeal") },
+    { flag: PRESCRIPTION_USAGE.BeforeMeal, label: t("Common:Rx:BeforeMeal") },
+    { flag: PRESCRIPTION_USAGE.DuringMeal, label: t("Common:Rx:DuringMeal") },
+    { flag: PRESCRIPTION_USAGE.AfterWakingUp, label: t("Common:Rx:AfterWakeup") },
+    { flag: PRESCRIPTION_USAGE.BeforeSleep, label: t("Common:Rx:BeforeSleep") },
+    { flag: PRESCRIPTION_USAGE.Other, label: t("Common:Rx:Other") },
   ];
 }
 
@@ -64,5 +64,5 @@ export function usageLabel({ usage, otherUsage }: UsageValue): string {
       option.flag === PRESCRIPTION_USAGE.Other && otherUsage ? otherUsage : option.label,
     );
 
-  return picked.length === 0 ? t("Sử dụng") : picked.join(", ");
+  return picked.length === 0 ? t("Common:Rx:Usage") : picked.join(", ");
 }

@@ -49,14 +49,14 @@ export function ConfirmDeleteDialog({
   return (
     <Modal
       open={open}
-      title={<h2 className="bd-modal-title">{title ?? t("Xác nhận xoá {0}", noun)}</h2>}
+      title={<h2 className="bd-modal-title">{title ?? t("Common:ConfirmDelete", noun)}</h2>}
       onCancel={onClose}
       width={440}
       destroyOnHidden
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onClose} disabled={pending}>
-            {cancelLabel ?? t("Huỷ")}
+            {cancelLabel ?? t("Common:Cancel")}
           </Button>
           <Button
             danger
@@ -66,16 +66,16 @@ export function ConfirmDeleteDialog({
             disabled={pending}
             onClick={onConfirm}
           >
-            {pending ? t("Đang xoá…") : (confirmLabel ?? t("Xoá"))}
+            {pending ? t("Common:Deleting") : (confirmLabel ?? t("Common:Delete"))}
           </Button>
         </div>
       }
     >
       <p style={{ margin: 0 }}>
-        {question ?? tRich("Bạn có chắc muốn xoá {0} {1} không?", noun, <strong>{name}</strong>)}
+        {question ?? tRich("Common:ConfirmDeleteQuestion", noun, <strong>{name}</strong>)}
       </p>
       <p style={{ margin: "4px 0 0", color: "var(--bd-text-muted, #7d85a5)", fontSize: 13 }}>
-        {t("Hành động này không thể hoàn tác.")}
+        {t("Common:CannotUndone")}
       </p>
     </Modal>
   );

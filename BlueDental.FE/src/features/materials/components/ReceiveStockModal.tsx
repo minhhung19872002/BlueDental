@@ -55,7 +55,7 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
         },
       });
 
-      toast.success(t("Đã nhập kho"));
+      toast.success(t("Materials:StockReceived"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -65,9 +65,9 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
   return (
     <Modal
       open={open}
-      title={supply ? t("Nhập kho — {0}", supply.name) : t("Nhập kho")}
-      okText={t("Nhập kho")}
-      cancelText={t("Huỷ")}
+      title={supply ? t("Materials:ReceiveStockTitle", supply.name) : t("Materials:ReceiveStockTitleSimple")}
+      okText={t("Materials:ReceiveOkText")}
+      cancelText={t("Materials:ReceiveCancelText")}
       confirmLoading={receiveStock.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -76,27 +76,27 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
       <Form form={form} layout="vertical" requiredMark>
         <Form.Item
           name="quantity"
-          label={t("Số lượng nhập")}
+          label={t("Materials:ReceiveQtyLabel")}
           rules={[
-            { required: true, message: t("Vui lòng nhập số lượng") },
-            { type: "number", min: 1, message: t("Số lượng phải lớn hơn 0") },
+            { required: true, message: t("Materials:ReceiveQtyRequired") },
+            { type: "number", min: 1, message: t("Materials:ReceiveQtyMin") },
           ]}
         >
           <InputNumber<number> style={{ width: "100%" }} min={0} />
         </Form.Item>
 
-        <Form.Item name="stockedAt" label={t("Ngày nhập kho")} rules={[{ required: true }]}>
+        <Form.Item name="stockedAt" label={t("Materials:ReceiveStockedAtLabel")} rules={[{ required: true }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
-        <Form.Item name="expiryDate" label={t("Hạn sử dụng")}>
+        <Form.Item name="expiryDate" label={t("Materials:ReceiveExpiryLabel")}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
         <Form.Item
           name="expiryWarningDays"
-          label={t("Cảnh báo trước (ngày)")}
-          rules={[{ type: "number", min: 0, message: t("Không được âm") }]}
+          label={t("Materials:ReceiveWarningLabel")}
+          rules={[{ type: "number", min: 0, message: t("Materials:NotNegative") }]}
         >
           <InputNumber<number> style={{ width: "100%" }} min={0} />
         </Form.Item>

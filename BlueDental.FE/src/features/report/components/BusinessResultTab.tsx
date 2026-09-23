@@ -27,12 +27,12 @@ interface ResultRow {
 
 /** Same order as the reference: total, its two parts (indented), refund, expense, result. */
 const RESULT_ROWS: ResultRow[] = [
-  { key: "totalRevenue", label: () => t("Doanh thu tổng"), tone: "green" },
-  { key: "treatmentIncome", label: () => t("Thu từ dịch vụ điều trị"), tone: "ink", variant: "sub" },
-  { key: "otherIncome", label: () => t("Thu khác"), tone: "ink", variant: "sub", breakdown: "otherIncomeByCategory" },
-  { key: "treatmentRefund", label: () => t("Hoàn tiền từ dịch vụ điều trị"), tone: "red" },
-  { key: "expense", label: () => t("Chi phí"), tone: "red", breakdown: "expenseByCategory" },
-  { key: "result", label: () => t("Kết quả kinh doanh"), tone: "signed", variant: "total" },
+  { key: "totalRevenue", label: () => t("Report:BusinessResult:TotalRevenue"), tone: "green" },
+  { key: "treatmentIncome", label: () => t("Report:BusinessResult:TreatmentIncome"), tone: "ink", variant: "sub" },
+  { key: "otherIncome", label: () => t("Report:BusinessResult:OtherIncome"), tone: "ink", variant: "sub", breakdown: "otherIncomeByCategory" },
+  { key: "treatmentRefund", label: () => t("Report:BusinessResult:TreatmentRefund"), tone: "red" },
+  { key: "expense", label: () => t("Report:BusinessResult:Expense"), tone: "red", breakdown: "expenseByCategory" },
+  { key: "result", label: () => t("Report:BusinessResult:Result"), tone: "signed", variant: "total" },
 ];
 
 function resolveTone(row: ResultRow, result: number): StatTone {

@@ -7,11 +7,11 @@ export function ForbiddenResult() {
   return (
     <Result
       status="403"
-      title={t("Không có quyền truy cập")}
-      subTitle={t("Tài khoản của bạn không được cấp quyền sử dụng chức năng này.")}
+      title={t("Common:Forbidden")}
+      subTitle={t("Common:ForbiddenMessage")}
       extra={
         <Button type="primary" href="/">
-          {t("Về trang chủ")}
+          {t("Common:GoHome")}
         </Button>
       }
     />

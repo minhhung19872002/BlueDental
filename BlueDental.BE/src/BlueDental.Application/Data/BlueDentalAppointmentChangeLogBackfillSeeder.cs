@@ -14,7 +14,7 @@ namespace BlueDental.Data;
 
 /// <summary>
 /// Gives every appointment that predates the change history its opening
-/// "Tạo mới" row, dated at the appointment's real creation time and signed
+/// "BE:Common:CreateNew" row, dated at the appointment's real creation time and signed
 /// by whoever created it. Without this the history of an old appointment
 /// starts in the middle, with an update to something it never saw created.
 ///

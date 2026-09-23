@@ -42,7 +42,7 @@ export function CatalogPanelHeader({
       {onOpenGroups && (
         <div className="bd-cat-header bd-cat-header--bar">
           <Button type="link" icon={<MenuOutlined />} onClick={onOpenGroups}>
-            {t("Chọn nhóm")}
+            {t("Taxonomy:Group:SelectBtn")}
           </Button>
         </div>
       )}
@@ -52,12 +52,12 @@ export function CatalogPanelHeader({
           <div className="bd-min0">
             <div className="bd-cat-inline2">
               <h1 className="bd-cat-title">{title}</h1>
-              <span className="bd-cat-count">{t("{0} bản ghi", totalCount)}</span>
+              <span className="bd-cat-count">{t("Taxonomy:Table:RecordCount", totalCount)}</span>
             </div>
             {groupName && (
               <p className="bd-cat-sub">
                 {tRich(
-                  "Quản lý các mục thuộc nhóm {0}",
+                  "Taxonomy:Table:ManageGroupSubtitle",
                   <span className="bd-cat-medium">{groupName}</span>,
                 )}
               </p>
@@ -67,7 +67,7 @@ export function CatalogPanelHeader({
           <div className="bd-cat-headactions">
             {onExport && (
               <Button icon={<DownloadOutlined />} disabled={exportDisabled} onClick={onExport}>
-                {t("Xuất")}
+                {t("Taxonomy:Table:ExportBtn")}
               </Button>
             )}
 
@@ -78,7 +78,7 @@ export function CatalogPanelHeader({
                 disabled={createDisabled}
                 onClick={onCreate}
               >
-                {t("Thêm {0}", noun)}
+                {t("Taxonomy:Table:AddBtn", noun)}
               </Button>
             )}
           </div>
@@ -87,8 +87,8 @@ export function CatalogPanelHeader({
         <Input
           className="bd-cat-search bd-mt2"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm theo tên {0}...", noun)}
-          aria-label={t("Tìm theo tên {0}...", noun)}
+          placeholder={t("Taxonomy:Table:SearchPlaceholder", noun)}
+          aria-label={t("Taxonomy:Table:SearchPlaceholder", noun)}
           value={keyword}
           allowClear
           onChange={(event) => onKeywordChange(event.target.value)}

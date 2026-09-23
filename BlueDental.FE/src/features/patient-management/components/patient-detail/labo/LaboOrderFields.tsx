@@ -30,7 +30,7 @@ export function LaboOrderFields({ form, emptyTeeth }: Props) {
   const teethRule = {
     validator: (_: unknown, picked: string[] | undefined) =>
       teeth.length > 0 && !picked?.length
-        ? Promise.reject(new Error(t("Vui lòng chọn răng.")))
+        ? Promise.reject(new Error(t("Patient:DentalChart:RequiredToothDot")))
         : Promise.resolve(),
   };
 
@@ -55,36 +55,36 @@ export function LaboOrderFields({ form, emptyTeeth }: Props) {
 
       <div className="pd-labo-grid">
         <div className="pd-labo-col">
-          <FloatingField name="shade" label={t("Màu răng")}>
+          <FloatingField name="shade" label={t("Patient:DentalChart:ToothColor")}>
             <Input />
           </FloatingField>
-          <FloatingLabel label={t("Số lượng")} required floated>
+          <FloatingLabel label={t("Patient:Payment:Quantity")} required floated>
             {/* Counts the ticked teeth; the reference does not let it be typed. */}
             <Input disabled value={quantity} />
           </FloatingLabel>
-          <FloatingField name="biteId" label={t("Khớp cắn")}>
+          <FloatingField name="biteId" label={t("Patient:DentalChart:Occlusion")}>
             <SearchSelect allowClear options={options.bites} />
           </FloatingField>
         </div>
         <div className="pd-labo-col">
-          <FloatingField name="finishLineId" label={t("Đường hoàn tất")}>
+          <FloatingField name="finishLineId" label={t("Patient:Viewer:CompletedPath")}>
             <SearchSelect allowClear options={options.finishLines} />
           </FloatingField>
-          <FloatingField name="rhythmId" label={t("Kiểu nhịp")}>
+          <FloatingField name="rhythmId" label={t("Patient:DentalChart:RhythmType")}>
             <SearchSelect allowClear options={options.rhythms} />
           </FloatingField>
         </div>
       </div>
 
       <div className="pd-labo-notes">
-        <FloatingField name="notes" label={t("Nội dung")}>
+        <FloatingField name="notes" label={t("Patient:Library:Content")}>
           <Input.TextArea rows={2} maxLength={1000} />
         </FloatingField>
       </div>
 
       <button type="button" className="pd-labo-drop" onClick={() => fileInput.current?.click()}>
         <PictureOutlined />
-        <span>{t("Tải ảnh")}</span>
+        <span>{t("Patient:Photo:Upload")}</span>
       </button>
 
       {form.pictures.length > 0 && (
@@ -94,7 +94,7 @@ export function LaboOrderFields({ form, emptyTeeth }: Props) {
               <img src={form.previews[index]} alt={file.name} />
               <button
                 type="button"
-                aria-label={t("Bỏ ảnh {0}", file.name)}
+                aria-label={t("Patient:Photo:RemoveImage", file.name)}
                 onClick={() => form.removePicture(index)}
               >
                 <CloseOutlined />

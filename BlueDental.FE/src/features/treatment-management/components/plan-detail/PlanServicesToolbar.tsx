@@ -62,7 +62,7 @@ export function PlanServicesToolbar({
         {stageAbility.canCreate && (
           <button type="button" className="tp-btn tp-btn--primary" onClick={onAddStage}>
             <Plus size={16} aria-hidden="true" />
-            {t("Thêm công đoạn")}
+            {t("Treatment:Stage:AddStage")}
           </button>
         )}
       </div>
@@ -70,14 +70,14 @@ export function PlanServicesToolbar({
         {rxAbility.canCreate && (
           <button type="button" className="tp-btn tp-btn--outline" onClick={onPrescription}>
             <Pill size={16} aria-hidden="true" />
-            {t("Tạo Đơn Thuốc")}
+            {t("Treatment:Prescription:CreatePrescriptionButton")}
           </button>
         )}
         <button type="button" className="tp-btn tp-btn--outline" onClick={onInvoice}>
           <Receipt size={16} aria-hidden="true" />
-          {t("In Hóa Đơn")}
+          {t("Treatment:Payment:PrintInvoiceAlt")}
         </button>
-        <button type="button" className="pdt-print" aria-label={t("In phiếu điều trị")} onClick={onPrint}>
+        <button type="button" className="pdt-print" aria-label={t("Treatment:Receipt:TreatmentSlipFor")} onClick={onPrint}>
           <Printer size={16} aria-hidden="true" />
         </button>
       </div>

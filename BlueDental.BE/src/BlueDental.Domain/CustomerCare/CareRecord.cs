@@ -169,7 +169,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Thành công — records the outcome rating shown as "Nhãn màu".
+    /// Thành công — records the outcome rating shown as "BE:Field:ColorLabel".
     /// The reference lets a base task be created already-successful with only a
     /// colour label, so an outcome is optional here.
     /// </summary>

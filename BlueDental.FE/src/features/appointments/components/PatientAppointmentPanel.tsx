@@ -14,10 +14,10 @@ interface PatientAppointmentPanelProps {
 
 /** The counters the reference shows above a patient's appointment list. */
 const counters = (): { status: AppointmentStatus; label: string; color: string; bg: string }[] => [
-  { status: "scheduled", label: t("Đã hẹn"), color: "#6366f1", bg: "#eef0ff" },
-  { status: "confirmed", label: t("Đã xác nhận"), color: "#0e9f6e", bg: "#e3f6ef" },
-  { status: "cancelled", label: t("Đã huỷ"), color: "#e5484d", bg: "var(--bd-red-pale)" },
-  { status: "noShow", label: t("Trễ hẹn"), color: "#d98b0f", bg: "var(--bd-amber-pale)" },
+  { status: "scheduled", label: t("Appointment:Status:Scheduled2"), color: "#6366f1", bg: "#eef0ff" },
+  { status: "confirmed", label: t("Appointment:Status:Confirmed"), color: "#0e9f6e", bg: "#e3f6ef" },
+  { status: "cancelled", label: t("Appointment:Status:CancelledAlt"), color: "#e5484d", bg: "var(--bd-red-pale)" },
+  { status: "noShow", label: t("Appointment:Status:Late"), color: "#d98b0f", bg: "var(--bd-amber-pale)" },
 ];
 
 /** Lịch hẹn tab of a patient record. */
@@ -28,34 +28,34 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
 
   const columns: TableColumnsType<Appointment> = [
     {
-      title: t("Thời gian"),
+      title: t("Appointment:Panel:Time"),
       dataIndex: "startTime",
       key: "startTime",
       width: 170,
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: t("Bác sĩ"),
+      title: t("Appointment:Form:Doctor"),
       dataIndex: "doctorName",
       key: "doctorName",
       width: 160,
       render: (value: string) => value || "—",
     },
     {
-      title: t("Nội dung"),
+      title: t("Appointment:History:Export:Content"),
       dataIndex: "reason",
       key: "reason",
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
       width: 140,
       render: (value: AppointmentStatus) => <StatusBadge status={value} />,
     },
     {
-      title: t("Ghi chú"),
+      title: t("Common:Note"),
       dataIndex: "notes",
       key: "notes",
       width: 200,
@@ -98,7 +98,7 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
           columns={columns}
           dataSource={rows}
           pagination={false}
-          locale={{ emptyText: <Text type="secondary">{t("Chưa có lịch hẹn")}</Text> }}
+          locale={{ emptyText: <Text type="secondary">{t("Appointment:Patient:NoAppointments")}</Text> }}
         />
       </Card>
     </div>

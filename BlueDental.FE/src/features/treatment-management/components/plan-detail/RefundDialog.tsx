@@ -29,14 +29,14 @@ export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, on
   const form = useRefundForm({ open, plan, branchId, refunds, heldForPatient, onSaved });
   const methods = refundMethodLabels();
   const typeOptions: { value: RefundType; label: string }[] = [
-    { value: REFUND_TYPE.service, label: t("Hoàn tiền dịch vụ") },
-    { value: REFUND_TYPE.debt, label: t("Hoàn tiền dư nợ") },
+    { value: REFUND_TYPE.service, label: t("Treatment:Refund:RefundService") },
+    { value: REFUND_TYPE.debt, label: t("Treatment:Refund:RefundDebt") },
   ];
 
   return (
     <Modal
       open={open}
-      title={t("Hoàn tiền")}
+      title={t("Treatment:Refund:Refund")}
       className="tp-dialog pdt-refund-dialog"
       width="min(1240px, calc(100vw - 32px))"
       closeIcon={<X size={20} aria-hidden="true" />}
@@ -50,26 +50,26 @@ export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, on
             ) : (
               <Save size={16} aria-hidden="true" />
             )}
-            {t("Lưu")}
+            {t("Common:Save")}
           </button>
         </div>
       }
     >
       <div className="pdt-refund-form">
         <div className="pdt-refund-fields">
-          <FloatingLabel label={t("Loại")} floated>
-            <Select<RefundType> value={form.type} options={typeOptions} onChange={form.setType} aria-label={t("Loại")} />
+          <FloatingLabel label={t("Treatment:Payment:Kind")} floated>
+            <Select<RefundType> value={form.type} options={typeOptions} onChange={form.setType} aria-label={t("Treatment:Payment:Kind")} />
           </FloatingLabel>
-          <FloatingLabel label={t("Hình thức")} floated>
+          <FloatingLabel label={t("Treatment:Payment:Form")} floated>
             <Select
               value={form.method}
               options={REFUND_METHODS.map((method) => ({ value: method, label: methods[method] }))}
               onChange={form.setMethod}
               prefix={<Search size={16} aria-hidden="true" />}
-              aria-label={t("Hình thức")}
+              aria-label={t("Treatment:Payment:Form")}
             />
           </FloatingLabel>
-          <FloatingLabel label={t("Ngày tạo")} floated>
+          <FloatingLabel label={t("Treatment:Common:CreatedDate")} floated>
             <Input
               value={formatShortDate(new Date())}
               suffix={<Calendar size={16} aria-hidden="true" />}
@@ -77,13 +77,13 @@ export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, on
             />
           </FloatingLabel>
         </div>
-        <FloatingLabel label={t("Nội dung")} floated className="pdt-refund-note">
+        <FloatingLabel label={t("Treatment:Invoice:Content")} floated className="pdt-refund-note">
           <Input.TextArea
             value={form.note}
             maxLength={500}
             showCount
             onChange={(event) => form.setNote(event.target.value)}
-            aria-label={t("Nội dung")}
+            aria-label={t("Treatment:Invoice:Content")}
           />
         </FloatingLabel>
       </div>
@@ -93,13 +93,13 @@ export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, on
       ) : (
         <div className="pdt-refund-debt">
           <p>
-            {t("Dư nợ hiện có")}: <strong>{moneyText(heldForPatient)}</strong>
+            {t("Treatment:Debt:CurrentBalance")}: <strong>{moneyText(heldForPatient)}</strong>
           </p>
-          <FloatingLabel label={t("Số tiền hoàn")} floated required>
+          <FloatingLabel label={t("Treatment:Refund:RefundAmountField")} floated required>
             <CurrencyInput
               value={form.debtAmount}
               onChange={form.setDebtAmount}
-              aria-label={t("Số tiền hoàn")}
+              aria-label={t("Treatment:Refund:RefundAmountField")}
               status={(form.debtAmount ?? 0) > heldForPatient ? "error" : undefined}
             />
           </FloatingLabel>
@@ -107,7 +107,7 @@ export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, on
       )}
 
       <p className="pdt-refund-total">
-        <span>{t("Tổng tiền trả")}:</span>
+        <span>{t("Treatment:Refund:TotalRefunded")}:</span>
         <strong>{moneyText(form.total)}</strong>
       </p>
     </Modal>

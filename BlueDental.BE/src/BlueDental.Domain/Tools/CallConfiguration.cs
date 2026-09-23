@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.Tools;
 
 /// <summary>
-/// A PBX provider connection — the rows of the "Cấu Hình" tab under
+/// A PBX provider connection — the rows of the "BE:Perm:Configuration" tab under
 /// Công cụ → Gọi thoại.
 /// </summary>
 public class CallConfiguration : FullAuditedEntity<Guid>
@@ -14,10 +14,10 @@ public class CallConfiguration : FullAuditedEntity<Guid>
     public string Name { get; private set; } = string.Empty;
     public CallProvider Provider { get; private set; }
 
-    /// <summary>"Mã khoá" — the provider API key.</summary>
+    /// <summary>"BE:Field:KeyCode" — the provider API key.</summary>
     public string ApiKey { get; private set; } = string.Empty;
 
-    /// <summary>"Mã bí mật" — a credential; never leaves the server.</summary>
+    /// <summary>"BE:Field:SecretKey" — a credential; never leaves the server.</summary>
     public string SecretKey { get; private set; } = string.Empty;
 
     public bool IsActive { get; private set; }

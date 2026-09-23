@@ -29,30 +29,30 @@ import "./timekeeping.css";
 function AttendanceGuideContent() {
   return (
     <div className="tk-guide">
-      <p className="tk-guide-title">{t("Hướng dẫn điểm danh")}</p>
+      <p className="tk-guide-title">{t("Timekeeping:GuideTitle")}</p>
       <ol className="tk-guide-list">
         <li>
-          <strong>{t("Đăng ký lịch:")}</strong>{" "}
-          {t("mỗi ngày chọn Làm việc hoặc Nghỉ.")}
+          <strong>{t("Timekeeping:GuideSchedule")}</strong>{" "}
+          {t("Timekeeping:GuideScheduleDetail")}
         </li>
         <li>
-          <strong>{t("Điểm danh (khi đi làm):")}</strong>{" "}
-          {t("bấm lần lượt 4 bước — Vào ca (check-in) → Ca sáng → Vào ca chiều → Kết ca (check-out).")}
+          <strong>{t("Timekeeping:GuideCheckin")}</strong>{" "}
+          {t("Timekeeping:GuideCheckinDetail")}
         </li>
         <li>
-          <strong>{t("Chỉ điểm danh trong ngày:")}</strong>{" "}
-          {t("thao tác Vào ca / Kết ca chỉ thực hiện được trong")}
-          {" "}<strong>{t("ngày hôm đó")}</strong>
-          {"; "}{t("ngày đã qua không tự sửa được (trừ quản lý có quyền).")}
+          <strong>{t("Timekeeping:GuideTodayOnly")}</strong>{" "}
+          {t("Timekeeping:GuideTodayOnlyDetail")}
+          {" "}<strong>{t("Timekeeping:GuideTodayOnlyBold")}</strong>
+          {"; "}{t("Timekeeping:GuidePastNoEdit")}
         </li>
         <li>
-          <strong>{t("Vắng không báo trước:")}</strong>{" "}
-          {t("đã đăng ký Làm việc nhưng không Vào ca → cuối ngày hệ thống tự đánh dấu Vắng.")}
+          <strong>{t("Timekeeping:GuideAbsent")}</strong>{" "}
+          {t("Timekeeping:GuideAbsentDetail")}
         </li>
       </ol>
       <hr className="tk-guide-divider" />
       <p className="tk-guide-legend">
-        {t("Trạng thái:")} 🟢 {t("Làm việc")} · ⚪ {t("Không điểm danh")} · 🔴 {t("Vắng")}
+        {t("Timekeeping:StatusLabel")} 🟢 {t("Timekeeping:Working")} · ⚪ {t("Timekeeping:NotCheckedIn")} · 🔴 {t("Timekeeping:Absent")}
       </p>
     </div>
   );
@@ -160,9 +160,9 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
           value={viewMode}
           onChange={(v) => onViewModeChange(v as ViewMode)}
           options={[
-            { label: t("Ngày"), value: "day" },
-            { label: t("Tuần"), value: "week" },
-            { label: t("Tháng"), value: "month", disabled: true },
+            { label: t("Common:Day"), value: "day" },
+            { label: t("Common:Week"), value: "week" },
+            { label: t("Common:Month"), value: "month", disabled: true },
           ]}
         />
         <DateNavigator
@@ -176,7 +176,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
       {/* Row 2 — reuses cal-toolbar-row2 */}
       <div className="cal-toolbar-row2 tk-toolbar-row2">
         <div className="cal-toolbar-row2-left">
-          <FloatingLabel label={t("Tìm kiếm")} floated={Boolean(keyword)}>
+          <FloatingLabel label={t("Timekeeping:SearchLabel")} floated={Boolean(keyword)}>
             <Input
               prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
               value={keyword}
@@ -196,7 +196,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
             <button
               type="button"
               className="tk-info-btn"
-              aria-label={t("Hướng dẫn điểm danh")}
+              aria-label={t("Timekeeping:GuideTitle")}
             >
               <InfoCircleOutlined style={{ fontSize: 20 }} />
             </button>
@@ -209,7 +209,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
               icon={<CalendarOutlined />}
               onClick={onOpenBuilder}
             >
-              {t("Lịch làm việc")}
+              {t("Timekeeping:WorkSchedule")}
             </Button>
           )}
         </div>
@@ -228,7 +228,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
               <Spin />
             </div>
           ) : records.length === 0 ? (
-            <Empty description={t("Chưa có dữ liệu chấm công cho ngày này")} />
+            <Empty description={t("Timekeeping:NoDataForDay")} />
           ) : (
             <div className="tk-grid">
               {records.map((record) => (

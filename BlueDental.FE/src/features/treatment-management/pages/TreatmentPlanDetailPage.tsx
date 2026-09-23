@@ -52,8 +52,8 @@ export function TreatmentPlanDetailPage() {
     return (
       <div className="page-container pdt-page">
         <EmptyState
-          title={t("Không tìm thấy kế hoạch điều trị")}
-          actionLabel={t("Quay lại hồ sơ")}
+          title={t("Treatment:Plan:PlanNotFound")}
+          actionLabel={t("Treatment:Plan:BackToRecord")}
           onAction={() => navigate(`/patient/${id}?tab=treatment-plan&branchId=${encodeURIComponent(branchId)}`)}
         />
       </div>

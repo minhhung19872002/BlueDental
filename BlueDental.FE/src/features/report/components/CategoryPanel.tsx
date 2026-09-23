@@ -47,17 +47,17 @@ function ColorCell({ code }: { code: string | null }) {
 
 function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDelete: Props["onDelete"]) {
   const columns: TableColumnsType<CategoryVm> = [
-    { title: config.showColor ? t("Tên danh mục") : t("Tên hình thức"), dataIndex: "name" },
+    { title: config.showColor ? t("Report:CategoryPanel:NameCashbook") : t("Report:CategoryPanel:NameGroup"), dataIndex: "name" },
   ];
   if (config.showColor) {
     columns.push(
-      { title: t("Ghi chú"), dataIndex: "description", render: (v: string | null) => v || "—" },
-      { title: t("Mã màu"), dataIndex: "colorCode", width: 160, render: (v: string | null) => <ColorCell code={v} /> },
+      { title: t("Common:Note"), dataIndex: "description", render: (v: string | null) => v || "—" },
+      { title: t("Report:CategoryPanel:ColorCode"), dataIndex: "colorCode", width: 160, render: (v: string | null) => <ColorCell code={v} /> },
     );
   }
   if (onEdit || onDelete) {
     columns.push({
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: config.showColor ? 70 : 120,
       align: "center",
@@ -65,12 +65,12 @@ function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDe
       render: (_: unknown, row) => (
         <Space size={4}>
           {onEdit && (
-            <Tooltip title={t("Chỉnh sửa")}>
+            <Tooltip title={t("Common:Edit")}>
               <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(row)} />
             </Tooltip>
           )}
           {onDelete && (
-            <Tooltip title={t("Xóa")}>
+            <Tooltip title={t("Common:Delete")}>
               <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(row)} />
             </Tooltip>
           )}
@@ -102,7 +102,7 @@ export function CategoryPanel({ config, categories, loading, canCreate, onAdd, o
         </div>
         {canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-            {t("Thêm mục")}
+            {t("Report:CategoryPanel:AddItem")}
           </Button>
         )}
       </div>

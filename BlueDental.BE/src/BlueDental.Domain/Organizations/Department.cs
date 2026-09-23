@@ -12,7 +12,7 @@ public class Department : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Where the department sits in the panel. The reference orders its list
-    /// by this ("orderBy=order"), and its dialog collects it as "Số thứ tự".
+    /// by this ("orderBy=order"), and its dialog collects it as "BE:Field:SeqNo".
     /// </summary>
     public int SortOrder { get; private set; }
 

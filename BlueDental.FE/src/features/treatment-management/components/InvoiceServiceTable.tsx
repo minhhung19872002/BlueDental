@@ -45,7 +45,7 @@ export function InvoiceServiceTable({
     },
     { title: t("STT"), dataIndex: "stt", key: "stt", width: 60, align: "center" },
     {
-      title: t("Tên hàng"),
+      title: t("Treatment:Invoice:ItemName"),
       key: "serviceName",
       width: 220,
       render: (_, row) => (
@@ -61,10 +61,10 @@ export function InvoiceServiceTable({
         </div>
       ),
     },
-    { title: t("Đơn vị"), dataIndex: "unit", key: "unit", width: 80 },
-    { title: t("Số lượng"), dataIndex: "quantity", key: "quantity", width: 80, align: "center" },
+    { title: t("Treatment:Pricing:Unit"), dataIndex: "unit", key: "unit", width: 80 },
+    { title: t("Treatment:Pricing:Quantity"), dataIndex: "quantity", key: "quantity", width: 80, align: "center" },
     {
-      title: t("Đơn giá"),
+      title: t("Treatment:Pricing:UnitPrice"),
       key: "unitPrice",
       width: 140,
       render: (_, row) => (
@@ -76,7 +76,7 @@ export function InvoiceServiceTable({
       ),
     },
     {
-      title: t("Giá tính thuế"),
+      title: t("Treatment:Invoice:PriceBeforeTax"),
       dataIndex: "taxBasePrice",
       key: "taxBasePrice",
       width: 120,
@@ -84,7 +84,7 @@ export function InvoiceServiceTable({
       render: (value: number) => formatVND(value),
     },
     {
-      title: t("% thuế"),
+      title: t("Treatment:Invoice:TaxRate"),
       dataIndex: "taxPercent",
       key: "taxPercent",
       width: 80,
@@ -95,15 +95,15 @@ export function InvoiceServiceTable({
       },
     },
     {
-      title: t("Tiền thuế"),
+      title: t("Treatment:Invoice:TaxMoney"),
       dataIndex: "taxAmount",
       key: "taxAmount",
       width: 100,
       align: "right",
-      render: (value: number) => `${formatVND(value)} ${t("đ")}`,
+      render: (value: number) => `${formatVND(value)} ${t("Treatment:Pricing:CurrencyUnit")}`,
     },
     {
-      title: t("Thành tiền sau thuế"),
+      title: t("Treatment:Invoice:PriceAfterTax"),
       dataIndex: "totalAfterTax",
       key: "totalAfterTax",
       width: 150,
@@ -117,7 +117,7 @@ export function InvoiceServiceTable({
       <div className="inv-table inv-cards-mobile">
         <div className="inv-cards-header">
           <Checkbox checked={allSelected} onChange={(e) => onToggleAll(e.target.checked)}>
-            {t("Chọn tất cả")}
+            {t("Treatment:Service:SelectAll")}
           </Checkbox>
         </div>
         {rows.map((row) => (
@@ -145,9 +145,9 @@ export function InvoiceServiceTable({
           showSizeChanger: true,
           pageSizeOptions: [10, 20, 50, 100],
           showTotal: (total: number, range: [number, number]) =>
-            t("Hiển thị {0} trên {1}", `${range[0]}`, `${total}`),
+            t("Treatment:Invoice:ShowRange", `${range[0]}`, `${total}`),
         }}
-        locale={{ emptyText: t("Chưa có dịch vụ") }}
+        locale={{ emptyText: t("Treatment:Service:NoServices") }}
       />
     </div>
   );

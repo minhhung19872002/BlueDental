@@ -19,7 +19,7 @@ export function FileUploader({ hint, ...uploadProps }: Props) {
         <InboxOutlined />
       </p>
       <p className="ant-upload-text">
-        {t("Kéo thả hoặc nhấp để chọn tệp")}
+        {t("Common:DropOrClick")}
       </p>
       {hint && (
         <p className="ant-upload-hint" style={{ fontSize: 12 }}>

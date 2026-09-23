@@ -5,9 +5,9 @@ import { SegmentedTabs } from "@/components/SegmentedTabs";
 import type { CareDateMode } from "../careTabs";
 
 const MODES: readonly { key: CareDateMode; label: () => string }[] = [
-  { key: "day", label: () => t("Ngày") },
-  { key: "week", label: () => t("Tuần") },
-  { key: "month", label: () => t("Tháng") },
+  { key: "day", label: () => t("Common:Day") },
+  { key: "week", label: () => t("Common:Week") },
+  { key: "month", label: () => t("Common:Month") },
 ];
 
 interface CareDateBarProps {

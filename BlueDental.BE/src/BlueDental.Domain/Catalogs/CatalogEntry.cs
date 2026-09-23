@@ -7,7 +7,7 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// One row of a catalog — the right-hand table of every "Danh mục" sub-route
+/// One row of a catalog — the right-hand table of every "BE:Perm:Catalogs" sub-route
 /// (a service, a diagnosis, a medicine, a source, a template, ...).
 ///
 /// The reference exposes these behind per-catalog endpoints
@@ -46,13 +46,13 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
 
     public int SortOrder { get; private set; }
 
-    /// <summary>"Tên chi tiết" on a service — a longer name for the same thing.</summary>
+    /// <summary>"BE:Field:DetailName" on a service — a longer name for the same thing.</summary>
     public string? DetailName { get; private set; }
 
-    /// <summary>"Ghi chú" on a diagnosis or a piece of consulting data.</summary>
+    /// <summary>"BE:Field:Note" on a diagnosis or a piece of consulting data.</summary>
     public string? Note { get; private set; }
 
-    /// <summary>"Đơn vị" on a service, "Đơn vị tính" on a medicine.</summary>
+    /// <summary>"BE:Field:Unit" on a service, "BE:Field:UnitOfMeasure" on a medicine.</summary>
     public string? Unit { get; private set; }
 
     /// <summary>Set on services only — price, tax and the three setting tabs.</summary>
@@ -61,10 +61,10 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     /// <summary>Set on medicines only.</summary>
     public CatalogMedicine? Medicine { get; private set; }
 
-    /// <summary>The "Công đoạn" table of a service.</summary>
+    /// <summary>The "BE:Common:Stage" table of a service.</summary>
     public IReadOnlyList<CatalogServiceStage> Stages => _stages;
 
-    /// <summary>The medicine lines of a "Đơn thuốc mẫu".</summary>
+    /// <summary>The medicine lines of a "BE:Common:RxTemplate".</summary>
     public IReadOnlyList<PrescriptionTemplateLine> PrescriptionLines => _prescriptionLines;
 
     protected CatalogEntry() { }
@@ -206,7 +206,7 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Marks this entry deleted, or brings it back.
     ///
-    /// The reference models "Đang hoạt động" and "Đã xoá" as one state rather
+    /// The reference models "BE:Status:Active" and "BE:Status:Deleted" as one state rather
     /// than two flags, and a delete there can always be taken back — so this is
     /// a plain transition, not a one-way door.
     /// </summary>

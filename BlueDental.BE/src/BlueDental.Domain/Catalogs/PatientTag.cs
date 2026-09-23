@@ -8,7 +8,7 @@ namespace BlueDental.Catalogs;
 /// <summary>
 /// Thẻ hồ sơ — a coloured label pinned to a patient record.
 ///
-/// Reference: /taxonomy/tags, a flat table of "Tên tag" and "Màu". Tags belong
+/// Reference: /taxonomy/tags, a flat table of "BE:Field:TagName" and "BE:Field:Color". Tags belong
 /// to one clinic branch, like every other piece of clinic data.
 /// </summary>
 public class PatientTag : FullAuditedAggregateRoot<Guid>

@@ -62,9 +62,9 @@ function Rows({ stages, statusOf }: Pick<Props, "stages" | "statusOf">) {
               </div>
             </td>
             <td className="pd-print-note">{stage.note ?? ""}</td>
-            <td>{stage.staffName ?? t("(Trống)")}</td>
-            <td>{stage.subStaffName ?? t("(Trống)")}</td>
-            <td>{stage.secondStaffName ?? t("(Trống)")}</td>
+            <td>{stage.staffName ?? t("Patient:QuoteSheet:Empty")}</td>
+            <td>{stage.subStaffName ?? t("Patient:QuoteSheet:Empty")}</td>
+            <td>{stage.secondStaffName ?? t("Patient:QuoteSheet:Empty")}</td>
           </tr>
         );
       })}
@@ -76,12 +76,12 @@ function Head() {
   return (
     <thead>
       <tr>
-        <th>{t("Dịch vụ")}</th>
-        <th>{t("Ngày điều trị")}</th>
-        <th>{t("Nội dung điều trị")}</th>
-        <th>{t("Bác sĩ")}</th>
-        <th>{t("Phụ tá")}</th>
-        <th>{t("Bác sĩ hỗ trợ")}</th>
+        <th>{t("Patient:Misc:Service")}</th>
+        <th>{t("Patient:Appt:TreatmentDate")}</th>
+        <th>{t("Patient:Stage:TreatmentContent")}</th>
+        <th>{t("Patient:Staff:Doctor")}</th>
+        <th>{t("Patient:Staff:Assistant")}</th>
+        <th>{t("Patient:Staff:AssistingDoctor")}</th>
       </tr>
     </thead>
   );
@@ -138,28 +138,28 @@ export function TreatmentHistoryPrintDialog({
         <div className="pd-print-sheethead">
           <section>
             <p>
-              <span>{t("Phòng khám")}:</span> <span>{clinic.name}</span>
+              <span>{t("Patient:Misc:Clinic")}:</span> <span>{clinic.name}</span>
             </p>
             <p>
-              <span>{t("Địa chỉ")}:</span> <span>{clinic.address ?? "—"}</span>
+              <span>{t("Patient:Col:Address")}:</span> <span>{clinic.address ?? "—"}</span>
             </p>
             <p>
-              <span>{t("ĐT")}:</span> <span>{clinic.phone ?? "—"}</span>
+              <span>{t("Patient:Form:Tel")}:</span> <span>{clinic.phone ?? "—"}</span>
             </p>
             <p>
               <span>{t("Email")}:</span> <span>{clinic.email ?? "—"}</span>
             </p>
           </section>
           <header>
-            <h2>{t("Chi tiết phiếu")}</h2>
+            <h2>{t("Patient:Stage:SlipDetail")}</h2>
             <p>{longDate(today)}</p>
           </header>
           <section>
             <p>
-              <span>{t("Mã KH")}:</span> <span>{patient.code}</span>
+              <span>{t("Patient:Col:PatientCode")}:</span> <span>{patient.code}</span>
             </p>
             <p>
-              <span>{t("Họ và tên")}:</span> <span>{patient.name}</span>
+              <span>{t("Patient:Col:FullName")}:</span> <span>{patient.name}</span>
             </p>
           </section>
         </div>
@@ -171,13 +171,13 @@ export function TreatmentHistoryPrintDialog({
 
         <div className="pd-print-signs">
           <div>
-            <p>{t("Người lập phiếu")}</p>
-            <p>{t("(Ký, họ tên)")}</p>
+            <p>{t("Patient:QuoteSheet:Creator")}</p>
+            <p>{t("Patient:QuoteSheet:SignName")}</p>
             <p>{stages[0]?.staffName ?? ""}</p>
           </div>
           <div>
-            <p>{t("Khách hàng")}</p>
-            <p>{t("(Ký, họ tên)")}</p>
+            <p>{t("Patient:Col:Customer")}</p>
+            <p>{t("Patient:QuoteSheet:SignName")}</p>
             <p>{patient.name}</p>
           </div>
         </div>
@@ -191,11 +191,11 @@ export function TreatmentHistoryPrintDialog({
       open={open}
       width={1024}
       className="pd-print-dialog"
-      title={t("Chi tiết phiếu")}
+      title={t("Patient:Stage:SlipDetail")}
       onCancel={onClose}
       footer={
         <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
-          {t("In Phiếu")}
+          {t("Patient:MedRecord:PrintSlip")}
         </Button>
       }
       destroyOnHidden
@@ -203,27 +203,27 @@ export function TreatmentHistoryPrintDialog({
       <div className="pd-print-body">
         <div className="pd-print-facts">
           <section>
-            <h3>{t("Thông tin chi nhánh")}</h3>
+            <h3>{t("Patient:Misc:BranchInfo")}</h3>
             <p>
-              <span>{t("Phòng khám")}:</span> <span>{clinic.name}</span>
+              <span>{t("Patient:Misc:Clinic")}:</span> <span>{clinic.name}</span>
             </p>
             <p>
-              <span>{t("Địa chỉ")}:</span> <span>{clinic.address ?? "—"}</span>
+              <span>{t("Patient:Col:Address")}:</span> <span>{clinic.address ?? "—"}</span>
             </p>
             <p>
-              <span>{t("ĐT")}:</span> <span>{clinic.phone ?? "—"}</span>
+              <span>{t("Patient:Form:Tel")}:</span> <span>{clinic.phone ?? "—"}</span>
             </p>
             <p>
               <span>{t("Email")}:</span> <span>{clinic.email ?? "—"}</span>
             </p>
           </section>
           <section>
-            <h3>{t("Thông tin khách hàng")}</h3>
+            <h3>{t("Patient:Form:CustomerInfo")}</h3>
             <p>
-              <span>{t("Mã KH")}:</span> <span className="pd-print-code">{patient.code}</span>
+              <span>{t("Patient:Col:PatientCode")}:</span> <span className="pd-print-code">{patient.code}</span>
             </p>
             <p>
-              <span>{t("Họ và tên")}:</span> <span>{patient.name}</span>
+              <span>{t("Patient:Col:FullName")}:</span> <span>{patient.name}</span>
             </p>
           </section>
         </div>

@@ -12,23 +12,23 @@ import { DailyTotalsTable } from "./DailyTotalsTable";
 
 function buildColumns(): TableColumnsType<RefundLineDto> {
   return [
-    { title: t("Ngày tạo"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
+    { title: t("Report:Column:CreatedDate"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
     {
-      title: t("Tên khách hàng"),
+      title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
       width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
     },
-    { title: t("Mã thanh toán"), dataIndex: "refundCode", width: 190 },
-    { title: t("Dịch vụ điều trị"), dataIndex: "serviceNames" },
+    { title: t("Report:PaymentSummary:PaymentCode"), dataIndex: "refundCode", width: 190 },
+    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceNames" },
     {
-      title: t("Tổng hoàn"),
+      title: t("Report:SalesDetail:TotalRefund"),
       dataIndex: "refundAmount",
       width: 130,
       align: "right",
       render: (v: number) => <span className="report-money report-money--red">{formatMoneyUnit(v)}</span>,
     },
-    { title: t("Ghi chú"), dataIndex: "note", width: 200 },
+    { title: t("Common:Note"), dataIndex: "note", width: 200 },
   ];
 }
 
@@ -40,13 +40,13 @@ function buildColumns(): TableColumnsType<RefundLineDto> {
  */
 function buildExportColumns(): ExportColumn<RefundLineDto>[] {
   return [
-    { header: t("Ngày tạo"), key: "date", format: (v) => formatDate(String(v)) },
-    { header: t("Mã hoàn tiền"), key: "refundCode" },
-    { header: t("Mã khách hàng"), key: "patientCode" },
-    { header: t("Tên khách hàng"), key: "patientName" },
-    { header: t("Dịch vụ điều trị"), key: "serviceNames" },
-    { header: t("Tổng hoàn"), key: "refundAmount" },
-    { header: t("Ghi chú"), key: "note" },
+    { header: t("Report:Column:CreatedDate"), key: "date", format: (v) => formatDate(String(v)) },
+    { header: t("Report:SalesDetail:RefundCode"), key: "refundCode" },
+    { header: t("Report:Column:CustomerCode"), key: "patientCode" },
+    { header: t("Report:Column:CustomerName"), key: "patientName" },
+    { header: t("Report:Column:TreatmentService"), key: "serviceNames" },
+    { header: t("Report:SalesDetail:TotalRefund"), key: "refundAmount" },
+    { header: t("Common:Note"), key: "note" },
   ];
 }
 
@@ -67,14 +67,14 @@ export function RefundSubTab(range: RangeQuery) {
   const columns = useMemo(buildColumns, []);
 
   const cards: StatCardItem[] = [
-    { label: t("Tiền Mặt"), value: summary?.refundByCash ?? 0, tone: "green" },
-    { label: t("Chuyển Khoản"), value: summary?.refundByBanking ?? 0, tone: "blue" },
-    { label: t("Cà Thẻ"), value: summary?.refundByCard ?? 0, tone: "gold" },
+    { label: t("Report:PaymentChannel:Cash"), value: summary?.refundByCash ?? 0, tone: "green" },
+    { label: t("Report:PaymentChannel:Banking"), value: summary?.refundByBanking ?? 0, tone: "blue" },
+    { label: t("Report:PaymentChannel:Card"), value: summary?.refundByCard ?? 0, tone: "gold" },
   ];
 
   const handleExport = useCallback(() => {
     exportToExcel<RefundLineDto>(lines, buildExportColumns(), REFUND_EXPORT_FILENAME, {
-      sheetName: t("Hoàn tiền"),
+      sheetName: t("Report:SubTab:Refund"),
       columnWidths: excelColumnWidths(REFUND_EXPORT_WIDTHS),
     });
   }, [lines]);
@@ -84,7 +84,7 @@ export function RefundSubTab(range: RangeQuery) {
       <div className="report-headline-row">
         <ReportStatCards variant="compact" items={cards} />
         <ReportStatsBar
-          label={t("Hoàn tiền")}
+          label={t("Report:SubTab:Refund")}
           value={summary?.refund ?? 0}
           tone="gold"
           loading={summaryLoading}
@@ -103,7 +103,7 @@ export function RefundSubTab(range: RangeQuery) {
           pageSize={paging.pageSize}
           onPageChange={paging.onPageChange}
         />
-        <DailyTotalsTable rows={daily} valueLabel={t("Hoàn tiền")} />
+        <DailyTotalsTable rows={daily} valueLabel={t("Report:SubTab:Refund")} />
       </div>
     </>
   );

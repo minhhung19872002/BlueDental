@@ -25,25 +25,25 @@ export function AdviseSummaryFooter({ slipCode, count, totals, saving, canSave, 
         <div className="am-summary-head">
           <span className="am-summary-count">{count}</span>
           <span>
-            {tRich("Dịch vụ đã chọn với số phiếu chẩn đoán: {0}", <b className="am-summary-code">{slipCode}</b>)}
+            {tRich("Treatment:Advise:SelectedServicesSlip", <b className="am-summary-code">{slipCode}</b>)}
           </span>
         </div>
         <div className="am-summary-row">
-          <span>{t("Tổng cộng:")}</span>
+          <span>{t("Treatment:Pricing:TotalColon")}</span>
           <span>{moneyText(totals.gross)}</span>
         </div>
         <div className="am-summary-row">
-          <span>{t("Giảm giá:")}</span>
+          <span>{t("Treatment:Pricing:DiscountColon")}</span>
           <span>{moneyText(totals.discount)}</span>
         </div>
         <div className="am-summary-row am-summary-row--total">
-          <span>{t("Thành tiền:")}</span>
+          <span>{t("Treatment:Pricing:NetAmountColon")}</span>
           <span className="am-summary-total">{moneyText(totals.effective)}</span>
         </div>
       </div>
       <button type="button" className="tp-btn tp-btn--primary am-save" disabled={!canSave || saving} onClick={onSave}>
         {saving ? <Loader2 size={16} className="am-spin" /> : <Save size={16} />}
-        {t("Lưu")}
+        {t("Common:Save")}
       </button>
     </div>
   );

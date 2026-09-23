@@ -6,7 +6,7 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// A catalog group — the left-hand panel of every "Danh mục" sub-route
+/// A catalog group — the left-hand panel of every "BE:Perm:Catalogs" sub-route
 /// (Nhóm dịch vụ, Nhóm chẩn đoán, Nhóm vật tư, ...).
 ///
 /// Reference: <c>GET /api/v1/taxonomy/?group=&lt;slug&gt;&amp;branchId=...&amp;includeCount=true</c>.

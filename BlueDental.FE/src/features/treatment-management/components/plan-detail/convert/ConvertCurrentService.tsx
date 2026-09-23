@@ -19,19 +19,19 @@ export function ConvertCurrentService({ row }: { row: PlanDetailRow }) {
     <div className="cvt-col">
       <section className="cvt-section">
         <ConvertHead icon={<ClipboardList size={16} aria-hidden="true" />}>
-          {t("Dịch vụ hiện tại")}
+          {t("Treatment:Convert:CurrentService")}
         </ConvertHead>
         <ConvertFacts
           facts={[
-            { label: t("Dịch vụ hiện tại"), value: dash(service.serviceName) },
+            { label: t("Treatment:Convert:CurrentService"), value: dash(service.serviceName) },
             {
-              label: t("Chẩn đoán"),
+              label: t("Treatment:Diagnosis:Diagnosis"),
               value: dash(service.diagnosisName ?? row.advise?.diagnosisName),
             },
-            { label: t("Nội dung điều trị"), value: dash(service.note ?? row.advise?.note) },
-            { label: t("Răng"), value: formatTeeth(service.teeth) },
+            { label: t("Treatment:Common:TreatmentContent"), value: dash(service.note ?? row.advise?.note) },
+            { label: t("Treatment:Tooth:Tooth"), value: formatTeeth(service.teeth) },
             {
-              label: t("Trạng thái"),
+              label: t("Common:Status"),
               value: <span className="pdt-status">{t(pill.label)}</span>,
             },
           ]}
@@ -40,16 +40,16 @@ export function ConvertCurrentService({ row }: { row: PlanDetailRow }) {
 
       <section className="cvt-section cvt-section--divided">
         <ConvertHead icon={<CircleDollarSign size={16} aria-hidden="true" />}>
-          {t("Thông tin thanh toán hiện tại")}
+          {t("Treatment:Pricing:CurrentPaymentInfo")}
         </ConvertHead>
         <ConvertFacts
           tight
           facts={[
-            { label: t("Tổng tiền"), value: moneyText(service.effectiveAmount) },
-            { label: t("Giảm giá"), value: moneyText(service.discountAmount) },
-            { label: t("Đã thanh toán"), value: moneyText(paid) },
-            { label: t("Công nợ"), value: moneyText(service.outstandingAmount) },
-            { label: t("Còn lại"), value: moneyText(service.outstandingAmount) },
+            { label: t("Treatment:Pricing:TotalAmount"), value: moneyText(service.effectiveAmount) },
+            { label: t("Treatment:Pricing:Discount"), value: moneyText(service.discountAmount) },
+            { label: t("Treatment:Receipt:TotalPaid"), value: moneyText(paid) },
+            { label: t("Treatment:Receipt:TotalDebt"), value: moneyText(service.outstandingAmount) },
+            { label: t("Treatment:Pricing:Remaining"), value: moneyText(service.outstandingAmount) },
           ]}
         />
       </section>

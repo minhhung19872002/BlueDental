@@ -40,18 +40,18 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
         return ExcelSheet.Build(
             "Thu chi",
-            "Quản lý thu chi",
+            L["BE:Perm:IncomeExpenseMgmt"],
             new List<ExcelColumn<SalesEntryDto>>
             {
-                new("Ngày", row => row.EntryDate, 14),
-                new("Số phiếu", row => row.Code, 16),
-                new("Loại", row => row.Type == SalesEntryType.Income ? "Thu" : "Chi", 10),
-                new("Mục thu chi", row => row.CategoryName, 24),
-                new("Nội dung", row => row.Description, 40),
-                new("Khách hàng", row => row.PatientName ?? row.PayerName, 24),
-                new("Nhân viên", row => row.StaffName, 22),
-                new("Số tiền", row => row.Amount, 18),
-                new("Đã duyệt", row => row.CountsTowardsCashflow ? "Có" : "Chưa", 12)
+                new(L["BE:Col:Date"], row => row.EntryDate, 14),
+                new(L["BE:Field:SlipNo"], row => row.Code, 16),
+                new(L["BE:Field:Type"], row => row.Type == SalesEntryType.Income ? "Thu" : "Chi", 10),
+                new(L["BE:Common:IncomeExpenseItem"], row => row.CategoryName, 24),
+                new(L["BE:Field:Content"], row => row.Description, 40),
+                new(L["BE:Perm:Customers"], row => row.PatientName ?? row.PayerName, 24),
+                new(L["BE:Perm:Staff"], row => row.StaffName, 22),
+                new(L["BE:Field:Amount"], row => row.Amount, 18),
+                new(L["BE:Status:Approved"], row => row.CountsTowardsCashflow ? "Có" : "Chưa", 12)
             },
             page.Items);
     }

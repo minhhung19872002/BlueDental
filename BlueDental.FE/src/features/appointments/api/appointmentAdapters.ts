@@ -81,12 +81,12 @@ const CODE_BY_STATUS: Record<AppointmentStatus, number> = {
 };
 
 const statusLabels = (): Record<AppointmentStatus, string> => ({
-  scheduled: t("Đã đặt lịch"),
-  confirmed: t("Đã xác nhận"),
-  inProgress: t("Đang khám"),
-  completed: t("Hoàn thành"),
-  cancelled: t("Đã hủy"),
-  noShow: t("Không đến"),
+  scheduled: t("Appointment:Status:Scheduled"),
+  confirmed: t("Appointment:Status:Confirmed"),
+  inProgress: t("Appointment:Status:InProgress"),
+  completed: t("Appointment:Status:Completed"),
+  cancelled: t("Appointment:Status:Cancelled"),
+  noShow: t("Appointment:Status:NoShow"),
 });
 
 const STATUS_COLORS: Record<AppointmentStatus, string> = {

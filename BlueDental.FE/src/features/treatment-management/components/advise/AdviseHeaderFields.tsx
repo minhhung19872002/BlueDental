@@ -44,11 +44,11 @@ export function AdviseHeaderFields({
   return (
     <div className="am-grid">
       <div className="am-static">
-        <span className="am-static-label">{t("Vị trí răng / Vùng điều trị")}</span>
+        <span className="am-static-label">{t("Treatment:Consulting:ToothLocation")}</span>
         <span className="am-static-value am-static-value--accent">
-          {toothLabel ? t("Răng {0}", toothLabel) : t("Chưa chọn răng")}
+          {toothLabel ? t("Treatment:Tooth:ToothLabel", toothLabel) : t("Treatment:Tooth:ToothNotSelected")}
         </span>
-        <button type="button" className="tp-tooth-btn" aria-label={t("Chọn răng")} onClick={onPickTeeth}>
+        <button type="button" className="tp-tooth-btn" aria-label={t("Treatment:Tooth:SelectTooth")} onClick={onPickTeeth}>
           <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
         </button>
       </div>
@@ -56,9 +56,9 @@ export function AdviseHeaderFields({
       <div className="am-consultant">
         <FloatingField
           name="staffId"
-          label={t("Nhân sự tư vấn 1")}
+          label={t("Treatment:Consulting:Advisor1")}
           required
-          rules={[{ required: true, message: t("Vui lòng chọn nhân sự tư vấn") }]}
+          rules={[{ required: true, message: t("Treatment:Consulting:AdvisorRequired") }]}
         >
           <Select
             showSearch
@@ -68,11 +68,11 @@ export function AdviseHeaderFields({
           />
         </FloatingField>
         {!secondOpen && (
-          <Tooltip title={t("Thêm nhân sự tư vấn")}>
+          <Tooltip title={t("Treatment:Consulting:AddAdvisor")}>
             <Button
               shape="circle"
               className="am-round"
-              aria-label={t("Thêm nhân sự tư vấn")}
+              aria-label={t("Treatment:Consulting:AddAdvisor")}
               icon={<Plus size={18} />}
               onClick={() => onSecondOpenChange(true)}
             />
@@ -82,15 +82,15 @@ export function AdviseHeaderFields({
 
       {secondOpen ? (
         <div className="am-consultant">
-          <FloatingField name="secondStaffId" label={t("Nhân sự tư vấn 2")}>
+          <FloatingField name="secondStaffId" label={t("Treatment:Consulting:Advisor2")}>
             <Select showSearch allowClear optionFilterProp="label" options={staff} {...SELECT_ICONS} />
           </FloatingField>
-          <Tooltip title={t("Tắt nhân sự tư vấn 2")}>
+          <Tooltip title={t("Treatment:Consulting:RemoveAdvisor2")}>
             <Button
               danger
               shape="circle"
               className="am-round"
-              aria-label={t("Tắt nhân sự tư vấn 2")}
+              aria-label={t("Treatment:Consulting:RemoveAdvisor2")}
               icon={<X size={17} strokeWidth={2.5} />}
               onClick={() => onSecondOpenChange(false)}
             />
@@ -101,15 +101,15 @@ export function AdviseHeaderFields({
       )}
 
       <div className="am-static">
-        <span className="am-static-label">{t("Chẩn đoán")}</span>
+        <span className="am-static-label">{t("Treatment:Diagnosis:Diagnosis")}</span>
         <span className="am-static-value">{diagnosis.diagnosisName}</span>
       </div>
 
-      <FloatingField name="diagnoserId" label={t("Bác sĩ chẩn đoán 1")}>
+      <FloatingField name="diagnoserId" label={t("Treatment:Diagnosis:Diagnoser1")}>
         <Select disabled options={staff} {...SELECT_ICONS} />
       </FloatingField>
 
-      <FloatingField name="secondDiagnoserId" label={t("Bác sĩ chẩn đoán 2")}>
+      <FloatingField name="secondDiagnoserId" label={t("Treatment:Diagnosis:Diagnoser2")}>
         <Select disabled options={staff} {...SELECT_ICONS} />
       </FloatingField>
     </div>

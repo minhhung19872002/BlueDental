@@ -16,12 +16,12 @@ import { t } from "@/lib/i18n";
 type StatusFilter = "all" | "scheduled" | "confirmed" | "inProgress" | "completed" | "cancelled";
 
 const statusTabs = (): { key: StatusFilter; label: string }[] => [
-  { key: "all",        label: t("Tất cả") },
-  { key: "scheduled",  label: t("Đã hẹn") },
-  { key: "confirmed",  label: t("Đã xác nhận") },
-  { key: "inProgress", label: t("Đang khám") },
-  { key: "completed",  label: t("Hoàn thành") },
-  { key: "cancelled",  label: t("Đã hủy") },
+  { key: "all",        label: t("Appointment:List:All") },
+  { key: "scheduled",  label: t("Appointment:Status:Scheduled2") },
+  { key: "confirmed",  label: t("Appointment:Status:Confirmed") },
+  { key: "inProgress", label: t("Appointment:Status:InProgress") },
+  { key: "completed",  label: t("Appointment:Status:Completed") },
+  { key: "cancelled",  label: t("Appointment:Status:Cancelled") },
 ];
 
 export function AppointmentListPage() {
@@ -47,8 +47,8 @@ export function AppointmentListPage() {
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Danh sách lịch hẹn")}
-        subtitle={t("{0} lịch hẹn", data?.totalCount ?? 0)}
+        title={t("Appointment:List:Title")}
+        subtitle={t("Appointment:List:Subtitle", data?.totalCount ?? 0)}
       />
 
       {/* Toolbar */}
@@ -57,7 +57,7 @@ export function AppointmentListPage() {
           <div style={{ display: "flex", gap: 8 }}>
             <Input
               prefix={<SearchOutlined />}
-              placeholder={t("Tìm kiếm bệnh nhân, bác sĩ, lý do khám...")}
+              placeholder={t("Appointment:List:SearchPlaceholder")}
               value={keyword}
               onChange={(e) => {
                 setKeyword(e.target.value);
@@ -67,14 +67,14 @@ export function AppointmentListPage() {
               allowClear
             />
             <Select
-              placeholder={t("Bác sĩ điều trị")}
+              placeholder={t("Appointment:Filter:TreatingDoctor")}
               allowClear
               style={{ width: 180 }}
               options={[]}
             />
           </div>
           {ability.canCreate && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>{t("Tạo lịch hẹn")}</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>{t("Appointment:Action:Create")}</Button>
           )}
         </div>
       </div>
@@ -106,39 +106,39 @@ export function AppointmentListPage() {
           size="middle"
           columns={[
             {
-              title: t("Bệnh nhân"),
+              title: t("Common:Patient"),
               key: "patientName",
               render: (_: unknown, row: Appointment) =>
                 row.patientCode ? `[${row.patientCode}] - ${row.patientName}` : row.patientName,
             },
             {
-              title: t("Bác sĩ"),
+              title: t("Appointment:Form:Doctor"),
               dataIndex: "doctorName",
               key: "doctorName",
             },
             {
-              title: t("Ngày khám"),
+              title: t("Appointment:List:ExamDate"),
               key: "startTime",
               render: (_: unknown, record: Appointment) => formatDate(record.startTime),
             },
             {
-              title: t("Giờ"),
+              title: t("Appointment:List:Time"),
               key: "time",
               width: 140,
               render: (_: unknown, record: Appointment) =>
                 `${dayjs(record.startTime).format("HH:mm")} – ${dayjs(record.endTime).format("HH:mm")}`,
             },
             {
-              title: t("Trạng thái"),
+              title: t("Common:Status"),
               key: "status",
               width: 140,
               render: (_: unknown, record: Appointment) => <StatusBadge status={record.status} />,
             },
             {
-              title: t("Lý do"),
+              title: t("Appointment:List:Reason"),
               dataIndex: "reason",
               key: "reason",
-              render: (v: string | null) => v ?? <Tag color="default">{t("Định kỳ")}</Tag>,
+              render: (v: string | null) => v ?? <Tag color="default">{t("Appointment:List:Periodic")}</Tag>,
             },
           ]}
         />

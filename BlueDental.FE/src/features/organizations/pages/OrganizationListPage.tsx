@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag } from "antd";
 import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
@@ -30,8 +30,8 @@ const BRANCH_STATUS_COLOR: Record<string, string> = {
 };
 
 const BRANCH_STATUS_KEY: Record<string, string> = {
-  Active: "Đang hoạt động",
-  Inactive: "Ngừng hoạt động",
+  Active: "Organization:StatusActive",
+  Inactive: "Organization:StatusInactive",
 };
 
 function BranchTable() {
@@ -73,7 +73,7 @@ function BranchTable() {
         email: values.email,
       };
       await updateMutation.mutateAsync({ id: editingBranch.id, data: updateData });
-      toast.success(t("Cập nhật chi nhánh thành công"));
+      toast.success(t("Organization:OrgUpdated"));
     } else {
       const createData: CreateClinicBranchDto = {
         code: values.code,
@@ -83,7 +83,7 @@ function BranchTable() {
         email: values.email,
       };
       await createMutation.mutateAsync(createData);
-      toast.success(t("Tạo chi nhánh thành công"));
+      toast.success(t("Organization:OrgCreated"));
     }
     setModalOpen(false);
     form.resetFields();
@@ -91,26 +91,26 @@ function BranchTable() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    toast.success(t("Xóa chi nhánh thành công"));
+    toast.success(t("Organization:OrgDeleted"));
   };
 
   const columns: ColumnsType<ClinicBranchDto> = [
-    { title: t("Mã"), dataIndex: "code", key: "code", width: 120 },
-    { title: t("Tên chi nhánh"), dataIndex: "name", key: "name" },
+    { title: t("Organization:CodeCol"), dataIndex: "code", key: "code", width: 120 },
+    { title: t("Organization:BranchNameCol"), dataIndex: "name", key: "name" },
     {
-      title: t("Địa chỉ"),
+      title: t("Organization:AddressCol"),
       dataIndex: "address",
       key: "address",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: t("Số điện thoại"),
+      title: t("Organization:PhoneCol"),
       dataIndex: "phoneNumber",
       key: "phoneNumber",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
       render: (v: string) => (
@@ -120,7 +120,7 @@ function BranchTable() {
       ),
     },
     ...((canUpdate || canDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions" as const,
       width: 120,
       fixed: "right" as const,
@@ -131,10 +131,10 @@ function BranchTable() {
           )}
           {canDelete && (
             <Popconfirm
-              title={t("Bạn có chắc muốn xóa chi nhánh này?")}
+              title={t("Organization:BranchDelConfirm")}
               onConfirm={() => handleDelete(record.id)}
-              okText={t("Xác nhận")}
-              cancelText={t("Hủy")}
+              okText={t("Organization:BranchDelOk")}
+              cancelText={t("Organization:BranchDelCancel")}
             >
               <Button size="small" danger icon={<DeleteOutlined />} />
             </Popconfirm>
@@ -147,14 +147,14 @@ function BranchTable() {
   return (
     <>
       <PageHeader
-        title={t("Chi nhánh")}
-        subtitle={t("Danh sách cơ sở của phòng khám")}
+        title={t("Organization:BranchTabLabel")}
+        subtitle={t("Organization:BranchPageSubtitle")}
       />
 
       {canCreate && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t("Thêm chi nhánh")}
+            {t("Organization:AddBranchBtn")}
           </Button>
         </div>
       )}
@@ -166,40 +166,40 @@ function BranchTable() {
         pagination={{ pageSize: 10 }}
         size="middle"
         scroll={{ x: "max-content" }}
-        locale={{ emptyText: t("Chưa có chi nhánh nào") }}
+        locale={{ emptyText: t("Organization:NoBranches") }}
       />
       <Modal
         open={modalOpen}
-        title={editingBranch ? t("Sửa chi nhánh") : t("Thêm chi nhánh")}
+        title={editingBranch ? t("Organization:UpdateBranch") : t("Organization:AddBranch")}
         onCancel={() => setModalOpen(false)}
         onOk={handleSave}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={t("Lưu")}
-        cancelText={t("Hủy")}
+        okText={t("Organization:DeptSaveOk")}
+        cancelText={t("Organization:DeptSaveCancel")}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
             name="code"
-            label={t("Mã")}
-            rules={[{ required: true, message: t("Bắt buộc") }]}
+            label={t("Organization:OrgCodeLabel")}
+            rules={[{ required: true, message: t("Organization:OrgCodeRequired") }]}
           >
             <Input disabled={!!editingBranch} />
           </Form.Item>
           <Form.Item
             name="name"
-            label={t("Tên chi nhánh")}
-            rules={[{ required: true, message: t("Bắt buộc") }]}
+            label={t("Organization:OrgNameLabel")}
+            rules={[{ required: true, message: t("Organization:OrgNameRequired") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="address" label={t("Địa chỉ")}>
+          <Form.Item name="address" label={t("Organization:OrgAddressLabel")}>
             <Input />
           </Form.Item>
-          <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
+          <Form.Item name="phoneNumber" label={t("Organization:OrgPhoneLabel")}>
             <Input />
           </Form.Item>
-          <Form.Item name="email" label={t("Email")}>
+          <Form.Item name="email" label={t("Organization:EmailLabel")}>
             <Input />
           </Form.Item>
         </Form>
@@ -239,14 +239,14 @@ function DepartmentTable() {
         description: values.description,
       };
       await updateMutation.mutateAsync({ id: editingDept.id, data: updateData });
-      toast.success(t("Cập nhật phòng ban thành công"));
+      toast.success(t("Organization:DeptUpdated"));
     } else {
       const createData: CreateDepartmentDto = {
         name: values.name,
         description: values.description,
       };
       await createMutation.mutateAsync(createData);
-      toast.success(t("Tạo phòng ban thành công"));
+      toast.success(t("Organization:DeptCreated"));
     }
     setModalOpen(false);
     form.resetFields();
@@ -254,27 +254,27 @@ function DepartmentTable() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    toast.success(t("Xóa phòng ban thành công"));
+    toast.success(t("Organization:DeptDeletedSuccess"));
   };
 
   const columns: ColumnsType<DepartmentDto> = [
-    { title: t("Tên phòng ban"), dataIndex: "name", key: "name" },
+    { title: t("Organization:DeptNameCol"), dataIndex: "name", key: "name" },
     {
-      title: t("Mô tả"),
+      title: t("Common:Description"),
       dataIndex: "description",
       key: "description",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       dataIndex: "isActive",
       key: "isActive",
       render: (v: boolean) => (
-        <Tag color={v ? "green" : "default"}>{v ? t("Đang hoạt động") : t("Ngừng hoạt động")}</Tag>
+        <Tag color={v ? "green" : "default"}>{v ? t("Organization:StatusActive") : t("Organization:StatusInactive")}</Tag>
       ),
     },
     ...((canUpdate || canDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions" as const,
       width: 120,
       fixed: "right" as const,
@@ -285,10 +285,10 @@ function DepartmentTable() {
           )}
           {canDelete && (
             <Popconfirm
-              title={t("Bạn có chắc muốn xóa phòng ban này?")}
+              title={t("Organization:ConfirmDeleteDept")}
               onConfirm={() => handleDelete(record.id)}
-              okText={t("Xác nhận")}
-              cancelText={t("Hủy")}
+              okText={t("Common:Confirm")}
+              cancelText={t("Common:Cancel")}
             >
               <Button size="small" danger icon={<DeleteOutlined />} />
             </Popconfirm>
@@ -303,7 +303,7 @@ function DepartmentTable() {
       {canCreate && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t("Thêm phòng ban")}
+            {t("Organization:AddDeptBtn")}
           </Button>
         </div>
       )}
@@ -315,27 +315,27 @@ function DepartmentTable() {
         pagination={{ pageSize: 10 }}
         size="middle"
         scroll={{ x: "max-content" }}
-        locale={{ emptyText: t("Chưa có phòng ban nào") }}
+        locale={{ emptyText: t("Organization:NoDepts") }}
       />
       <Modal
         open={modalOpen}
-        title={editingDept ? t("Sửa phòng ban") : t("Thêm phòng ban")}
+        title={editingDept ? t("Organization:EditDeptTitle") : t("Organization:AddDeptBtn")}
         onCancel={() => setModalOpen(false)}
         onOk={handleSave}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={t("Lưu")}
-        cancelText={t("Hủy")}
+        okText={t("Common:Save")}
+        cancelText={t("Common:Cancel")}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
             name="name"
-            label={t("Tên phòng ban")}
-            rules={[{ required: true, message: t("Bắt buộc") }]}
+            label={t("Organization:DeptNameCol")}
+            rules={[{ required: true, message: t("Common:Required") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="description" label={t("Mô tả")}>
+          <Form.Item name="description" label={t("Common:Description")}>
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
@@ -348,12 +348,12 @@ export function OrganizationListPage() {
   const tabItems = [
     {
       key: "branches",
-      label: t("Chi nhánh"),
+      label: t("Organization:BranchPageTitle"),
       children: <BranchTable />,
     },
     {
       key: "departments",
-      label: t("Phòng ban"),
+      label: t("Organization:DeptTabLabel"),
       children: <DepartmentTable />,
     },
   ];
@@ -370,7 +370,7 @@ export function OrganizationListPage() {
         }}
       >
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--bd-ink)" }}>
-          {t("Chi nhánh & Phòng ban")}
+          {t("Organization:PageTitle")}
         </h2>
       </div>
       <div
@@ -386,3 +386,5 @@ export function OrganizationListPage() {
     </div>
   );
 }
+
+

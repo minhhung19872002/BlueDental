@@ -72,12 +72,12 @@ function findBatchProblem(
   const codes = items.map((it) => it.code).filter(Boolean);
   const dup = codes.find((c, i) => codes.indexOf(c) !== i);
   if (dup) {
-    return t("Mã {0} bị trùng trong danh sách", `${prefixLabel}${dup}`);
+    return t("Voucher:DuplicateCode", `${prefixLabel}${dup}`);
   }
   if (!configAll) {
     const noLimit = items.findIndex((it) => it.values.usageLimit == null);
     if (noLimit >= 0) {
-      return t("Vui lòng nhập số lượt tối đa cho mã #{0}", noLimit + 1);
+      return t("Voucher:NoLimitForCode", noLimit + 1);
     }
   }
   return null;
@@ -138,11 +138,11 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
     try {
       values = await form.validateFields();
     } catch {
-      if (missing.length > 0) toast.error(t("Vui lòng nhập tên cho tất cả voucher"));
+      if (missing.length > 0) toast.error(t("Voucher:AllNamesRequired"));
       return;
     }
     if (missing.length > 0) {
-      toast.error(t("Vui lòng nhập tên cho tất cả voucher"));
+      toast.error(t("Voucher:AllNamesRequired"));
       return;
     }
 
@@ -160,7 +160,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
           branchId,
         };
         await createVoucher.mutateAsync(input);
-        toast.success(t("Đã tạo voucher"));
+        toast.success(t("Voucher:CreateSuccess"));
       } else {
         const problem = findBatchProblem(items, batch.configAll, prefixLabel);
         if (problem) {
@@ -176,7 +176,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
           branchId,
         };
         await createBatch.mutateAsync(input);
-        toast.success(t("Đã tạo {0} voucher", items.length));
+        toast.success(t("Voucher:CreateBatchSuccess", items.length));
       }
       resetAll();
       onClose();
@@ -194,7 +194,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
     <ConfigProvider theme={voucherDialogTheme}>
       <Modal
         open={open}
-        title={<h2 className="bd-modal-title">{t("Tạo voucher khuyến mãi")}</h2>}
+        title={<h2 className="bd-modal-title">{t("Voucher:CreateTitle")}</h2>}
         onCancel={handleClose}
         width={780}
         destroyOnHidden
@@ -208,7 +208,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
               disabled={isPending}
               onClick={handleSubmit}
             >
-              {t("Tạo voucher")}
+              {t("Voucher:CreateBtn")}
             </Button>
           </div>
         }
@@ -225,13 +225,13 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
             items={[
               {
                 key: "single",
-                label: t("Tạo theo số lượng"),
+                label: t("Voucher:CreateBatch"),
                 destroyOnHidden: true,
                 children: <VoucherSingleTab form={form} />,
               },
               {
                 key: "batch",
-                label: t("Tạo một lượt"),
+                label: t("Voucher:CreateSingle"),
                 destroyOnHidden: true,
                 children: <VoucherBatchTab batch={batch} prefixLabel={prefixLabel} />,
               },

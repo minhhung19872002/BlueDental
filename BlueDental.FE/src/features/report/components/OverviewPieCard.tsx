@@ -30,18 +30,18 @@ function renderSliceLabel(props: PieLabelRenderProps) {
 
 export function OverviewPieCard({ received, debt }: Props) {
   const slices = [
-    { name: t("Thực thu"), value: received, tone: "green" },
-    { name: t("Công nợ"), value: debt, tone: "red" },
+    { name: t("Report:Overview:ActualReceived"), value: received, tone: "green" },
+    { name: t("Report:Overview:Debt"), value: debt, tone: "red" },
   ];
   const isEmpty = received + debt === 0;
 
   return (
     <div className="reception-card reception-card--content report-pie-card">
-      <div className="report-summary-card-title">{t("Thực thu và công nợ")}</div>
+      <div className="report-summary-card-title">{t("Report:Overview:PieTitle")}</div>
       <div className="report-pie-section">
         <div className="report-pie-chart">
           {isEmpty ? (
-            <div className="report-pie-empty">{t("Không có dữ liệu")}</div>
+            <div className="report-pie-empty">{t("Common:NoData")}</div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>

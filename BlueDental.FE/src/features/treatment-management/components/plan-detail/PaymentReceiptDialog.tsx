@@ -29,13 +29,13 @@ interface Props {
 
 function buildColumns(dentistName: string | null, diagnosisOf: (line: ReceiptLine) => string): TableColumnsType<ReceiptLine> {
   return [
-    { key: "service", title: t("Dịch vụ"), width: 180, render: (_, line) => line.service.serviceName ?? line.service.code },
-    { key: "diagnosis", title: t("Chẩn đoán"), width: 160, render: (_, line) => diagnosisOf(line) },
-    { key: "dentist", title: t("Bác sĩ điều trị"), width: 160, render: () => dash(dentistName) },
-    { key: "quantity", title: t("Số lượng"), width: 90, align: "center", render: (_, line) => line.service.quantity },
-    { key: "price", title: t("Đơn giá"), width: 140, align: "right", render: (_, line) => moneyText(line.service.price) },
-    { key: "discount", title: t("Giảm giá"), width: 140, align: "right", render: (_, line) => moneyText(line.service.discountAmount) },
-    { key: "amount", title: t("Thành tiền"), width: 150, align: "right", render: (_, line) => <strong>{moneyText(line.service.effectiveAmount)}</strong> },
+    { key: "service", title: t("Treatment:Service:Service"), width: 180, render: (_, line) => line.service.serviceName ?? line.service.code },
+    { key: "diagnosis", title: t("Treatment:Diagnosis:Diagnosis"), width: 160, render: (_, line) => diagnosisOf(line) },
+    { key: "dentist", title: t("Treatment:Common:DentistDoctor"), width: 160, render: () => dash(dentistName) },
+    { key: "quantity", title: t("Treatment:Pricing:Quantity"), width: 90, align: "center", render: (_, line) => line.service.quantity },
+    { key: "price", title: t("Treatment:Pricing:UnitPrice"), width: 140, align: "right", render: (_, line) => moneyText(line.service.price) },
+    { key: "discount", title: t("Treatment:Pricing:Discount"), width: 140, align: "right", render: (_, line) => moneyText(line.service.discountAmount) },
+    { key: "amount", title: t("Treatment:Pricing:NetAmount"), width: 150, align: "right", render: (_, line) => <strong>{moneyText(line.service.effectiveAmount)}</strong> },
   ];
 }
 
@@ -59,7 +59,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
   return (
     <Modal
       open={receipt !== null}
-      title={t("Chi tiết phiếu")}
+      title={t("Treatment:Payment:ReceiptDetail")}
       className="tp-dialog pdt-print-dialog"
       width="min(1024px, calc(100vw - 32px))"
       closeIcon={<X size={20} aria-hidden="true" />}
@@ -69,7 +69,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
         <div className="pdt-confirm-foot">
           <button type="button" className="tp-btn tp-btn--primary" onClick={printSheet}>
             <Printer size={16} aria-hidden="true" />
-            {t("In Hoá Đơn")}
+            {t("Treatment:Payment:PrintInvoice")}
           </button>
         </div>
       }
@@ -86,45 +86,45 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
         <article className="pdt-receipt pdt-screen">
           <div className="pdt-receipt-head">
             <section className="pdt-receipt-section">
-              <h3>{t("Chi tiết phiếu")}</h3>
+              <h3>{t("Treatment:Payment:ReceiptDetail")}</h3>
               <ReceiptFacts
                 facts={[
-                  { label: t("Mã thanh toán"), value: receipt.code },
-                  { label: t("Ngày tạo"), value: receipt.createdLabel },
-                  { label: t("Phương thức thanh toán"), value: receipt.methodLabel },
-                  { label: t("Ghi chú"), value: dash(receipt.note) },
+                  { label: t("Treatment:Payment:PaymentCode"), value: receipt.code },
+                  { label: t("Treatment:Payment:DateCreated"), value: receipt.createdLabel },
+                  { label: t("Treatment:Payment:PaymentMethod"), value: receipt.methodLabel },
+                  { label: t("Treatment:Common:Note"), value: dash(receipt.note) },
                 ]}
               />
             </section>
             <section className="pdt-receipt-section">
-              <h3>{t("Thông tin khách hàng")}</h3>
+              <h3>{t("Treatment:Invoice:CustomerInfo")}</h3>
               <ReceiptFacts
                 facts={[
-                  { label: t("Mã khách hàng"), value: patient.patientCode },
-                  { label: t("Khách hàng"), value: patient.fullName },
-                  { label: t("Số điện thoại"), value: dash(patient.phoneNumber) },
-                  { label: t("Địa chỉ"), value: dash(patient.address) },
-                  { label: t("Ngày sinh"), value: patient.dateOfBirth ? formatDate(patient.dateOfBirth) : "—" },
+                  { label: t("Treatment:Common:PatientCode"), value: patient.patientCode },
+                  { label: t("Treatment:Common:Patient"), value: patient.fullName },
+                  { label: t("Treatment:Common:Phone"), value: dash(patient.phoneNumber) },
+                  { label: t("Treatment:Common:Address"), value: dash(patient.address) },
+                  { label: t("Treatment:Common:DateOfBirth"), value: patient.dateOfBirth ? formatDate(patient.dateOfBirth) : "—" },
                 ]}
               />
             </section>
           </div>
 
           <section className="pdt-receipt-section">
-            <h3>{t("Chi tiết dịch vụ")}</h3>
+            <h3>{t("Treatment:Service:ServiceDetail")}</h3>
             <div className="bd-cat-card tp-table pdt-table pdt-receipt-table">
               <DataTable<ReceiptLine>
                 rowKey={(line) => line.service.id}
                 columns={columns}
                 dataSource={pageLines}
-                pagination={pagination.buildConfig(lines.length, countedTotal(t("dịch vụ")))}
-                locale={{ emptyText: t("Không có dữ liệu") }}
+                pagination={pagination.buildConfig(lines.length, countedTotal(t("Treatment:Service:ServiceNoun")))}
+                locale={{ emptyText: t("Treatment:Common:NoData") }}
               />
             </div>
           </section>
 
           <section className="pdt-receipt-section pdt-receipt-sum">
-            <h3>{t("Tổng thanh toán dịch vụ")}</h3>
+            <h3>{t("Treatment:Pricing:TotalPayments")}</h3>
             <ReceiptTotals totals={receipt.totals} />
           </section>
         </article>

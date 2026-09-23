@@ -23,13 +23,13 @@ export function MaterialsPage() {
   return (
     <div className="bd-shell-page">
       <PageHeader
-        title={t("Vật tư phòng khám")}
-        subtitle={t("Tồn kho, cấp phát và định mức vật tư theo bộ phận")}
+        title={t("Materials:PageTitle")}
+        subtitle={t("Materials:PageSubtitle")}
       />
 
       <div className="bd-taxonomy-page">
         <PageTabBar
-          label={t("Vật tư")}
+          label={t("Materials:Tab")}
           activeKey={tab.key}
           tabs={materialsTabs().map((item) => ({
             key: item.key,

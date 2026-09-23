@@ -50,14 +50,14 @@ function otherHolding(holding: CashHolding): CashHolding {
 }
 
 const TITLES: Record<CashTransactionType, { create: () => string; edit: () => string }> = {
-  [CASH_TRANSACTION_TYPE.Deposit]: { create: () => t("Tạo giao dịch nạp"), edit: () => t("Cập nhật giao dịch nạp") },
-  [CASH_TRANSACTION_TYPE.Withdraw]: { create: () => t("Tạo giao dịch rút"), edit: () => t("Cập nhật giao dịch rút") },
-  [CASH_TRANSACTION_TYPE.Transfer]: { create: () => t("Tạo giao dịch luân chuyển"), edit: () => t("Cập nhật giao dịch luân chuyển") },
+  [CASH_TRANSACTION_TYPE.Deposit]: { create: () => t("Report:EntryModal:CreateDeposit"), edit: () => t("Report:EntryModal:EditDeposit") },
+  [CASH_TRANSACTION_TYPE.Withdraw]: { create: () => t("Report:EntryModal:CreateWithdraw"), edit: () => t("Report:EntryModal:EditWithdraw") },
+  [CASH_TRANSACTION_TYPE.Transfer]: { create: () => t("Report:EntryModal:CreateTransfer"), edit: () => t("Report:EntryModal:EditTransfer") },
 };
 
 /** The "Số dư khả dụng (…)" line names the card holding by its overview label (reference). */
 function balanceHintLabelsFor(): Record<CashHolding, string> {
-  return { ...cashHoldingLabels(), [CASH_HOLDING.Card]: t("Cà thẻ chờ đối soát") };
+  return { ...cashHoldingLabels(), [CASH_HOLDING.Card]: t("Report:Holding:CardPending") };
 }
 
 /** Which balance figure backs the "Số dư khả dụng" line for each holding. */
@@ -157,7 +157,7 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
       };
 
       if (entry) {
-        updateMutation.mutate({ id: entry.id, input: common }, { onSuccess: done(t("Cập nhật giao dịch thành công")) });
+        updateMutation.mutate({ id: entry.id, input: common }, { onSuccess: done(t("Report:EntryModal:UpdateSuccess")) });
         return;
       }
       createMutation.mutate(
@@ -168,7 +168,7 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
           createdByStaffId: currentUserId,
           entryDate: dayjs().format(API_DATE_FORMAT),
         },
-        { onSuccess: done(t("Tạo giao dịch thành công")) },
+        { onSuccess: done(t("Report:EntryModal:CreateSuccess")) },
       );
     },
     [branchId, transactionType, entry, currentUserId, createMutation, updateMutation, onClose],
@@ -176,14 +176,14 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
 
   // The reference refuses a withdrawal or transfer larger than the holding it draws from.
   const amountRules = [
-    { required: true, type: "number" as const, min: 1, message: t("Số tiền phải lớn hơn 0") },
+    { required: true, type: "number" as const, min: 1, message: t("Report:EntryModal:AmountMin") },
     ...(isDeposit
       ? []
       : [
           {
             validator: (_: unknown, value?: number) =>
               value !== undefined && value > availableBalance
-                ? Promise.reject(new Error(t("Số dư không đủ để thực hiện giao dịch")))
+                ? Promise.reject(new Error(t("Report:EntryModal:InsufficientBalance")))
                 : Promise.resolve(),
           },
         ]),
@@ -191,11 +191,11 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
 
   // Reads the source from the store at validation time, never from a render closure.
   const targetRules: Rule[] = [
-    { required: true, message: t("Vui lòng chọn nơi nhận") },
+    { required: true, message: t("Report:EntryModal:TargetRequired") },
     ({ getFieldValue }) => ({
       validator: (_: unknown, value?: CashHolding) =>
         value !== undefined && value === getFieldValue("holding")
-          ? Promise.reject(new Error(t("Nơi nhận phải khác hình thức chuyển")))
+          ? Promise.reject(new Error(t("Report:EntryModal:TargetDifferent")))
           : Promise.resolve(),
     }),
   ];
@@ -205,36 +205,36 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
       <Form form={form} layout="vertical" requiredMark={false} initialValues={{ holding: CASH_HOLDING.Cash, toHolding: CASH_HOLDING.Bank }} onValuesChange={handleValuesChange} onFinish={handleFinish}>
         <Row gutter={[16, 12]}>
           <Col xs={24} md={12}>
-            <FloatingField name="holding" label={t("Hình thức")} required rules={[{ required: true }]}>
+            <FloatingField name="holding" label={t("Report:Column:PaymentMethod")} required rules={[{ required: true }]}>
               <Select options={holdingOptions} />
             </FloatingField>
           </Col>
           {isTransfer ? (
             <Col xs={24} md={12}>
-              <FloatingField name="toHolding" label={t("Luân chuyển đến")} required rules={targetRules} dependencies={["holding"]}>
+              <FloatingField name="toHolding" label={t("Report:EntryModal:TransferTo")} required rules={targetRules} dependencies={["holding"]}>
                 <Select options={holdingOptions} />
               </FloatingField>
             </Col>
           ) : null}
           <Col xs={24} md={12}>
-            <FloatingField name="amount" label={t("Số tiền (VNĐ)")} required rules={amountRules} dependencies={["holding"]}>
+            <FloatingField name="amount" label={t("Report:EntryModal:AmountLabel")} required rules={amountRules} dependencies={["holding"]}>
               <CurrencyInput />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
-            <FloatingLabel label={`${t("Ngày thực hiện")}*`} floated>
+            <FloatingLabel label={`${t("Report:EntryModal:ExecutionDate")}*`} floated>
               <DatePicker className="report-full-width" value={entryDate} format="DD/MM/YYYY" disabled />
             </FloatingLabel>
           </Col>
           {!isTransfer ? (
             <Col xs={24} md={12}>
-              <FloatingField name="categoryId" label={t("Danh mục")}>
+              <FloatingField name="categoryId" label={t("Report:Column:Category")}>
                 <SearchSelect options={categories.map((c) => ({ value: c.id, label: c.name }))} allowClear />
               </FloatingField>
             </Col>
           ) : null}
           <Col xs={24}>
-            <FloatingField name="note" label={t("Ghi chú")}>
+            <FloatingField name="note" label={t("Common:Note")}>
               <Input.TextArea rows={3} maxLength={NOTE_MAX_LENGTH} />
             </FloatingField>
           </Col>
@@ -242,7 +242,7 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
 
         {showBalanceHint ? (
           <div className="report-balance-hint">
-            <div className="report-balance-hint-label">{t("Số dư khả dụng ({0}):", balanceHintLabels[holding])}</div>
+            <div className="report-balance-hint-label">{t("Report:EntryModal:AvailableBalance", balanceHintLabels[holding])}</div>
             <div className="report-balance-hint-value">{formatMoneyUnit(availableBalance)}</div>
           </div>
         ) : null}

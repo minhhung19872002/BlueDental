@@ -61,7 +61,7 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
           id: line.id,
           planId: slip.id,
           serviceId: line.serviceId,
-          label: t("{0} · {1} — {2} đ", slip.code, line.serviceName ?? line.code, formatVND(line.effectiveAmount)),
+          label: t("Treatment:Slip:StageLabel", slip.code, line.serviceName ?? line.code, formatVND(line.effectiveAmount)),
         })),
   );
 
@@ -88,7 +88,7 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
         scheduledDate: values.scheduledDate?.format("YYYY-MM-DD"),
       });
 
-      toast.success(t("Đã thêm công đoạn"));
+      toast.success(t("Treatment:Stage:AddSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -98,9 +98,9 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
   return (
     <Modal
       open={open}
-      title={t("Thêm công đoạn")}
-      okText={t("Tạo")}
-      cancelText={t("Huỷ")}
+      title={t("Treatment:Stage:AddStage")}
+      okText={t("Common:Create")}
+      cancelText={t("Common:Cancel")}
       okButtonProps={{ disabled: serviceLines.length === 0 }}
       confirmLoading={createStage.isPending}
       onOk={handleSubmit}
@@ -111,37 +111,37 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
         <Alert
           type="info"
           showIcon
-          message={t("Chưa có dịch vụ điều trị đang mở")}
-          description={t("Công đoạn là một bước của dịch vụ trong kế hoạch điều trị. Hãy chốt phiếu tư vấn rồi tạo kế hoạch điều trị trước.")}
+          message={t("Treatment:Stage:NoOpenService")}
+          description={t("Treatment:Stage:StageHint")}
         />
       ) : (
         <Form form={form} layout="vertical" requiredMark>
           <Form.Item
             name="serviceLineId"
-            label={t("Dịch vụ điều trị")}
-            rules={[{ required: true, message: t("Vui lòng chọn dịch vụ") }]}
+            label={t("Treatment:Service:TreatmentService")}
+            rules={[{ required: true, message: t("Treatment:Service:SelectServiceRequired") }]}
           >
             <Select
-              placeholder={t("Chọn dịch vụ")}
+              placeholder={t("Treatment:Service:SelectService")}
               options={serviceLines.map((line) => ({ value: line.id, label: line.label }))}
             />
           </Form.Item>
 
           <Form.Item
             name="name"
-            label={t("Tên công đoạn")}
-            rules={[{ required: true, message: t("Vui lòng nhập tên công đoạn") }]}
+            label={t("Treatment:Stage:StageName")}
+            rules={[{ required: true, message: t("Treatment:Stage:StageNameRequired") }]}
           >
-            <Input placeholder={t("Tên công đoạn")} maxLength={300} />
+            <Input placeholder={t("Treatment:Stage:StageName")} maxLength={300} />
           </Form.Item>
 
           <Form.Item
             name="staffId"
-            label={t("Bác sĩ thực hiện")}
-            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
+            label={t("Treatment:Stage:PerformingDoctor")}
+            rules={[{ required: true, message: t("Treatment:Common:DoctorRequired") }]}
           >
             <Select
-              placeholder={t("Chọn bác sĩ")}
+              placeholder={t("Treatment:Common:SelectDoctor")}
               options={(dentists ?? []).map((dentist) => ({
                 value: dentist.id,
                 label: dentist.name,
@@ -149,12 +149,12 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
             />
           </Form.Item>
 
-          <Form.Item name="scheduledDate" label={t("Ngày dự kiến")}>
+          <Form.Item name="scheduledDate" label={t("Treatment:Stage:ExpectedDate")}>
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
 
-          <Form.Item name="note" label={t("Ghi chú")}>
-            <Input.TextArea rows={3} maxLength={2000} placeholder={t("Ghi chú công đoạn")} />
+          <Form.Item name="note" label={t("Treatment:Service:Note")}>
+            <Input.TextArea rows={3} maxLength={2000} placeholder={t("Treatment:Stage:NotePlaceholder")} />
           </Form.Item>
         </Form>
       )}

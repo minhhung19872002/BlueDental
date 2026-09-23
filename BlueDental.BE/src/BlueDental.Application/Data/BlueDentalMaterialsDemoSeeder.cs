@@ -204,7 +204,7 @@ public class BlueDentalMaterialsDemoSeeder(
                 material.Cost,
                 material.Price);
 
-            // Received a fortnight ago, so "Nhập kho" reads as a real past date
+            // Received a fortnight ago, so "BE:Perm:ReceiveStock" reads as a real past date
             // rather than everything landing the day the seeder ran.
             item.SetShelfLife(
                 today.AddDays(-14),
@@ -251,7 +251,7 @@ public class BlueDentalMaterialsDemoSeeder(
 
             // Round-robin rather than random, so every department has vouchers
             // to show and each draws on only two materials — which means the
-            // same material recurs and "Gộp số lượng vật tư" has something to
+            // same material recurs and "BE:Inventory:MergeQty" has something to
             // fold. Randomness is left to the quantities and the notes.
             var slot = index % departments.Count;
             var round = index / departments.Count;
@@ -261,7 +261,7 @@ public class BlueDentalMaterialsDemoSeeder(
             var quantity = random.Next(2, 25);
 
             // Three vouchers a day, working backwards, at plausible hours — so
-            // "Thời gian phân bổ" reads as a history rather than eighteen rows
+            // "BE:Field:AllocationTime" reads as a history rather than eighteen rows
             // all stamped the moment the seeder ran.
             var raisedAt = BlueDentalDemoSeedContributor.ClinicToday
                 .AddDays(-round)
@@ -287,7 +287,7 @@ public class BlueDentalMaterialsDemoSeeder(
                 material,
                 quantity);
 
-            // Some confirmed, some not — so "SL còn lại (đã duyệt)" is neither a
+            // Some confirmed, some not — so "BE:Inventory:RemainingApproved" is neither a
             // copy of the column beside it nor empty everywhere.
             if (random.Next(0, 3) > 0)
             {

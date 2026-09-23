@@ -64,7 +64,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
 
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
   const pageRows = receipts.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
-  const showTotal = countedTotal(t("phiếu thanh toán"));
+  const showTotal = countedTotal(t("Treatment:Payment:PaymentNoun"));
 
   const handleView = (payment: PatientPaymentDto) => setReceipt(receiptOf(payment, plan, receipts));
   const handleAggregate = () => setReceipt(aggregateReceiptOf(plan, new Date()));
@@ -74,10 +74,10 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
     if (!cancelling) return;
     try {
       await remove.mutateAsync({ id: cancelling.id });
-      toast.success(t("Đã huỷ phiếu thanh toán"));
+      toast.success(t("Treatment:Payment:CancelSuccess"));
       setCancelling(null);
     } catch (error) {
-      notifyError(extractApiError(error) || t("Không thể huỷ phiếu thanh toán"));
+      notifyError(extractApiError(error) || t("Treatment:Payment:CancelError"));
     }
   };
 
@@ -92,12 +92,12 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         {canCreate && (
           <button type="button" className="tp-btn tp-btn--primary" onClick={() => setCreating(true)}>
             <DollarSign size={16} aria-hidden="true" />
-            {t("Tạo Phiếu Thanh Toán")}
+            {t("Treatment:Payment:CreatePayment")}
           </button>
         )}
         <button type="button" className="tp-btn tp-btn--outline" onClick={handleAggregate}>
           <Printer size={16} aria-hidden="true" />
-          {t("In hóa đơn tổng")}
+          {t("Treatment:Payment:PrintTotalInvoice")}
         </button>
       </div>
 
@@ -120,7 +120,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
             columns={columns}
             dataSource={pageRows}
             pagination={pagination.buildConfig(receipts.length, showTotal)}
-            locale={{ emptyText: t("Không có dữ liệu") }}
+            locale={{ emptyText: t("Treatment:Common:NoData") }}
           />
         </div>
       )}
@@ -143,9 +143,9 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
       />
       <ConfirmDeleteDialog
         open={cancelling !== null}
-        noun={t("phiếu thanh toán")}
+        noun={t("Treatment:Payment:PaymentNoun")}
         name={cancelling?.code}
-        title={t("Xác nhận huỷ phiếu thanh toán")}
+        title={t("Treatment:Payment:CancelPaymentConfirm")}
         pending={remove.isPending}
         onConfirm={() => void handleCancel()}
         onClose={() => setCancelling(null)}

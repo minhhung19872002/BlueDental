@@ -210,7 +210,7 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
     /// <summary>
     /// Closes the line because another one took its place. The reference calls
-    /// the state `replaced` and prints it as "Chuyển đổi"; the money already
+    /// the state `replaced` and prints it as "BE:Status:Converted"; the money already
     /// collected moves to the new line rather than staying here.
     /// </summary>
     public TreatmentService MarkReplaced()

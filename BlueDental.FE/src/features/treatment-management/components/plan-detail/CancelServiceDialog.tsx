@@ -15,7 +15,7 @@ export function CancelServiceDialog({ service, saving, onConfirm, onClose }: Pro
   return (
     <Modal
       open={service !== null}
-      title={t("Xác nhận hủy dịch vụ")}
+      title={t("Treatment:Service:CancelServiceConfirm")}
       className="tp-dialog pdt-confirm"
       width="min(500px, calc(100vw - 32px))"
       closeIcon={<X size={20} aria-hidden="true" />}
@@ -24,7 +24,7 @@ export function CancelServiceDialog({ service, saving, onConfirm, onClose }: Pro
       footer={
         <div className="pdt-confirm-foot">
           <button type="button" className="tp-btn tp-btn--outline" disabled={saving} onClick={onClose}>
-            {t("Không")}
+            {t("Common:No")}
           </button>
           <button
             type="button"
@@ -33,7 +33,7 @@ export function CancelServiceDialog({ service, saving, onConfirm, onClose }: Pro
             onClick={onConfirm}
           >
             {saving && <Loader2 size={16} className="pdt-spin" aria-hidden="true" />}
-            {t("Hủy dịch vụ")}
+            {t("Treatment:Service:CancelService")}
           </button>
         </div>
       }

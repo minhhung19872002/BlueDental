@@ -48,15 +48,15 @@ export function CareToolbar({
           disabled={exporting}
           onClick={onExport}
         >
-          {t("Xuất Excel")}
+          {t("CSKH:Action:ExportExcel")}
         </Button>
       )}
 
       <div className="cskh-toolbar-search">
-        <MessageField label={t("Tìm kiếm")} hasValue={Boolean(search)}>
+        <MessageField label={t("Common:Search")} hasValue={Boolean(search)}>
           <Input
             allowClear
-            aria-label={t("Tìm kiếm")}
+            aria-label={t("Common:Search")}
             prefix={<SearchOutlined />}
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
@@ -66,7 +66,7 @@ export function CareToolbar({
 
       {tab.showDoctor && (
         <div className="cskh-select">
-          <MessageField label={t("Bác sĩ điều trị")} hasValue={Boolean(doctorId)}>
+          <MessageField label={t("CSKH:DoctorTreat")} hasValue={Boolean(doctorId)}>
             <SearchSelect
               value={doctorId}
               options={staff.data ?? []}
@@ -79,7 +79,7 @@ export function CareToolbar({
 
       {tab.showCareStaff && (
         <div className="cskh-select">
-          <MessageField label={t("Nhân viên CSKH")} hasValue={Boolean(careStaffId)}>
+          <MessageField label={t("CSKH:CareStaffFilter")} hasValue={Boolean(careStaffId)}>
             <SearchSelect
               value={careStaffId}
               options={staff.data ?? []}
@@ -92,7 +92,7 @@ export function CareToolbar({
 
       {tab.showCreate && onCreate && (
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-          {t("Tạo mới")}
+          {t("CSKH:Action:CreateNew")}
         </Button>
       )}
     </div>

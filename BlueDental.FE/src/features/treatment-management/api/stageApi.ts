@@ -12,9 +12,9 @@ export const stageStatusConfig = (): Record<
   TreatmentStageStatus,
   { label: string; color: string }
 > => ({
-  [STAGE_STATUS.Pending]: { label: t("Chưa làm"), color: "default" },
-  [STAGE_STATUS.InProgress]: { label: t("Đang làm"), color: "processing" },
-  [STAGE_STATUS.Completed]: { label: t("Hoàn thành"), color: "green" },
+  [STAGE_STATUS.Pending]: { label: t("Treatment:Stage:StatusPending"), color: "default" },
+  [STAGE_STATUS.InProgress]: { label: t("Treatment:Stage:StatusInProgress"), color: "processing" },
+  [STAGE_STATUS.Completed]: { label: t("Treatment:Stage:StatusCompleted"), color: "green" },
 });
 
 /**

@@ -32,14 +32,14 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
     <div>
       {/* Doctor — optional for temp */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Chọn bác sĩ")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:SelectDoctor")}</label>
         <Controller
           name="doctorId"
           control={control}
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Chọn bác sĩ")}
+              placeholder={t("Appointment:Form:SelectDoctor")}
               options={doctorOptions}
               onChange={(v) => field.onChange(v ?? "")}
             />
@@ -49,14 +49,14 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
 
       {/* Source */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Nguồn đến")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:Source")}</label>
         <Controller
           name="sourceTaxonomyId"
           control={control}
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Nguồn đến")}
+              placeholder={t("Appointment:Form:Source")}
               options={sourceGroupOptions}
               onChange={(v) => field.onChange(v ?? "")}
             />
@@ -66,14 +66,14 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
 
       {/* Channel */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Kênh kết nối")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:Channel")}</label>
         <Controller
           name="sourceEntryId"
           control={control}
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Kênh kết nối")}
+              placeholder={t("Appointment:Form:Channel")}
               options={channelOptions}
               onChange={(v) => field.onChange(v ?? "")}
               disabled={!watchedSourceTaxonomyId}

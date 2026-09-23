@@ -44,15 +44,15 @@ function relativeTime(iso: string | null): string {
   if (Number.isNaN(then)) return "";
 
   const minutes = Math.round((Date.now() - then) / 60_000);
-  if (minutes < 1) return t("Vừa xong");
-  if (minutes < 60) return t("{0} phút trước", minutes);
+  if (minutes < 1) return t("Notification:JustNow");
+  if (minutes < 60) return t("Notification:MinutesAgo", minutes);
 
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return t("{0} giờ trước", hours);
+  if (hours < 24) return t("Notification:HoursAgo", hours);
 
   const days = Math.round(hours / 24);
-  if (days === 1) return t("Hôm qua");
-  if (days < 7) return t("{0} ngày trước", days);
+  if (days === 1) return t("Notification:Yesterday");
+  if (days < 7) return t("Notification:DaysAgo", days);
 
   return dayjs(iso).format("DD/MM/YYYY");
 }

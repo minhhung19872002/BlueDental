@@ -47,7 +47,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       for (const file of files) {
         await uploadImage.mutateAsync({ patientId, clinicBranchId: branchId, file });
       }
-      toast.success(t("Đã tải ảnh lên"));
+      toast.success(t("Patient:Photo:UploadSuccess"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -56,7 +56,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   const removeImage = async (id: string) => {
     try {
       await deleteImage.mutateAsync(id);
-      toast.success(t("Đã xoá ảnh"));
+      toast.success(t("Patient:Photo:Deleted"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -73,7 +73,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
         patientId,
         clinicBranchId: branchId,
       });
-      toast.success(t("Đã tạo phiếu chẩn đoán"));
+      toast.success(t("Patient:Diagnosis:Created"));
       return created;
     } catch (error) {
       notifyError(extractApiError(error));
@@ -88,7 +88,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   ): Promise<PatientDiagnosisDto | null> => {
     try {
       const updated = await updateDiagnosis.mutateAsync({ id, data });
-      toast.success(t("Đã cập nhật phiếu chẩn đoán"));
+      toast.success(t("Patient:Diagnosis:Updated"));
       return updated;
     } catch (error) {
       notifyError(extractApiError(error));
@@ -100,7 +100,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     if (!removingDiagnosis) return;
     try {
       await cancelDiagnosis.mutateAsync(removingDiagnosis.id);
-      toast.success(t("Đã xoá chẩn đoán"));
+      toast.success(t("Patient:Diagnosis:Deleted"));
       setRemovingDiagnosis(null);
     } catch (error) {
       notifyError(extractApiError(error));
@@ -115,7 +115,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     if (!removingAdvise) return;
     try {
       await rejectAdvise.mutateAsync(removingAdvise.id);
-      toast.success(t("Đã từ chối dịch vụ tư vấn"));
+      toast.success(t("Patient:Advise:ServiceRejected"));
       setRemovingAdvise(null);
     } catch (error) {
       notifyError(extractApiError(error));
@@ -163,7 +163,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       (row) => row.status === ADVISE_STATUS.Created || row.status === ADVISE_STATUS.Accepted,
     );
     if (usable.length === 0) {
-      toast.error(t("Những dịch vụ đã chọn đều đã nằm trong một kế hoạch điều trị"));
+      toast.error(t("Patient:Quote:AllServicesInPlan"));
       return false;
     }
 
@@ -178,7 +178,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
         adviseIds: usable.map((row) => row.id),
         voucherDiscountAmount,
       });
-      toast.success(t("Đã tạo kế hoạch điều trị"));
+      toast.success(t("Patient:Plan:Created"));
       return true;
     } catch (error) {
       notifyError(extractApiError(error));

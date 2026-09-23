@@ -30,8 +30,8 @@ import { REPORT_PAGE_SIZE_OPTIONS, reportShowTotal } from "./ReportTableCard";
 type SubKey = "overview" | "category";
 
 const SUB_TABS: { key: SubKey; label: () => string }[] = [
-  { key: "overview", label: () => t("Tổng quan") },
-  { key: "category", label: () => t("Danh mục") },
+  { key: "overview", label: () => t("Report:Tab:Overview") },
+  { key: "category", label: () => t("Report:Tab:Category") },
 ];
 
 interface EditorState {
@@ -61,27 +61,27 @@ function toExportRow(entry: CashflowEntryDto, types: Record<CashTransactionType,
     movement: formatCashMovement(entry.fromHolding, entry.toHolding),
     categoryName: entry.categoryName ?? "",
     amount: signedAmount(entry),
-    createdByName: entry.createdByStaffName ?? t("Không xác định"),
+    createdByName: entry.createdByStaffName ?? t("Report:Unknown"),
     note: entry.note ?? "",
   };
 }
 
 function buildExportColumns(): ExportColumn<CashflowExportRow>[] {
   return [
-    { header: t("Ngày"), key: "entryDate" },
-    { header: t("Loại giao dịch"), key: "transactionType" },
-    { header: t("Hình thức"), key: "movement" },
-    { header: t("Danh mục"), key: "categoryName" },
-    { header: t("Số tiền"), key: "amount" },
-    { header: t("Người tạo"), key: "createdByName" },
-    { header: t("Ghi chú"), key: "note" },
+    { header: t("Report:Column:Date"), key: "entryDate" },
+    { header: t("Report:Column:TransactionType"), key: "transactionType" },
+    { header: t("Report:Column:PaymentMethod"), key: "movement" },
+    { header: t("Report:Column:Category"), key: "categoryName" },
+    { header: t("Report:Column:Amount"), key: "amount" },
+    { header: t("Report:Column:Creator"), key: "createdByName" },
+    { header: t("Common:Note"), key: "note" },
   ];
 }
 
 /** Title row + blank row + headers, fixed widths — the reference's client-side workbook. */
 const EXPORT_OPTIONS = {
-  sheetName: () => t("Luân chuyển dòng tiền"),
-  title: () => t("Báo cáo luân chuyển dòng tiền"),
+  sheetName: () => t("Report:Tab:CashTransfer"),
+  title: () => t("Report:Export:CashTransferTitle"),
   columnWidths: [16, 18, 20, 18, 18, 18, 28],
 };
 
@@ -137,7 +137,7 @@ export function CashflowV2Tab() {
   // ledger), refuses an empty page with a warning and confirms a written file.
   const handleExport = useCallback(() => {
     if (rows.length === 0) {
-      toast.warning(t("Không có dữ liệu để xuất"));
+      toast.warning(t("Report:Export:NoData"));
       return;
     }
     const types = cashTransactionLabels();
@@ -146,7 +146,7 @@ export function CashflowV2Tab() {
       title: EXPORT_OPTIONS.title(),
       columnWidths: EXPORT_OPTIONS.columnWidths,
     });
-    toast.success(t("Xuất Excel thành công"));
+    toast.success(t("Report:Export:Success"));
   }, [rows]);
 
   const anyAction = mayExport || mayTransfer || mayDeposit || mayWithdraw;
@@ -154,22 +154,22 @@ export function CashflowV2Tab() {
     <Space wrap className="report-cashflow-v2-actions">
       {mayExport && (
         <Button icon={<DownloadOutlined />} onClick={handleExport}>
-          {t("Xuất Excel")}
+          {t("Report:Action:ExportExcel")}
         </Button>
       )}
       {mayTransfer && (
         <Button icon={<SwapOutlined />} className="report-btn--blue" onClick={() => openCreate(CASH_TRANSACTION_TYPE.Transfer)}>
-          {t("Luân chuyển")}
+          {t("Report:Action:Transfer")}
         </Button>
       )}
       {mayDeposit && (
         <Button type="primary" icon={<VerticalAlignBottomOutlined />} className="report-btn--green" onClick={() => openCreate(CASH_TRANSACTION_TYPE.Deposit)}>
-          {t("Nạp")}
+          {t("Report:Action:Deposit")}
         </Button>
       )}
       {mayWithdraw && (
         <Button danger icon={<VerticalAlignTopOutlined />} onClick={() => openCreate(CASH_TRANSACTION_TYPE.Withdraw)}>
-          {t("Rút")}
+          {t("Report:Action:Withdraw")}
         </Button>
       )}
     </Space>
@@ -189,7 +189,7 @@ export function CashflowV2Tab() {
         <CashflowV2Overview
           rows={rows}
           loading={isLoading}
-          pagination={pagination.buildConfig(pagedEntries?.totalCount, reportShowTotal(t("giao dịch")))}
+          pagination={pagination.buildConfig(pagedEntries?.totalCount, reportShowTotal(t("Report:Unit:Transaction")))}
           onEdit={handleEdit}
         />
       )}

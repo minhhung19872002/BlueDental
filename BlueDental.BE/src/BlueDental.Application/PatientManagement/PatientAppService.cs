@@ -22,7 +22,7 @@ namespace BlueDental.PatientManagement;
 [Authorize]
 public class PatientAppService : ApplicationService, IPatientAppService
 {
-    /// <summary>What "Xuất file" pulls — the reference exports the whole filtered list.</summary>
+    /// <summary>What "BE:Common:ExportFile" pulls — the reference exports the whole filtered list.</summary>
     private const int ExportRowCap = 5000;
 
     private readonly IRepository<Patient, Guid> _repository;
@@ -190,7 +190,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     }
 
     /// <summary>
-    /// The + beside "Lý do đến khám". Appends a dated line and leaves the ones
+    /// The + beside "BE:Field:ReasonForVisit". Appends a dated line and leaves the ones
     /// already on the record alone — the reference never rewrites them from here.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
@@ -224,21 +224,21 @@ public class PatientAppService : ApplicationService, IPatientAppService
         // Same twelve columns, in the same order, as the reference's export.
         return ExcelSheet.Build(
             "Benh nhan",
-            L["Danh sách bệnh nhân"],
+            L["BE:Perm:PatientList"],
             new List<ExcelColumn<PatientListItemDto>>
             {
-                new(L["Ngày tạo hồ sơ"], row => row.CreationTime, 18),
-                new(L["Họ và tên"], row => row.FullName, 24),
-                new(L["Số điện thoại"], row => row.PhoneNumber, 18),
-                new(L["Mã khách hàng"], row => row.PatientCode, 16),
-                new(L["Chi nhánh"], _ => branchName, 28),
-                new(L["Trạng thái điều trị"], row => TreatmentStatusLabel(row.TreatmentStatus), 18),
-                new(L["Dịch vụ"], row => string.Join(", ", row.ServiceNames), 28),
-                new(L["Bác sĩ"], row => string.Join(", ", row.StaffNames), 28),
-                new(L["Số tiền"], row => row.TotalAmount, 20),
-                new(L["Thực thu"], row => row.TotalRevenue, 18),
-                new(L["Công nợ"], row => row.TotalDebt, 18),
-                new(L["Lần khám cuối"], row => row.LastVisitAt?.DateTime, 20)
+                new(L["BE:Field:RecordCreated"], row => row.CreationTime, 18),
+                new(L["BE:Field:FullName"], row => row.FullName, 24),
+                new(L["BE:Field:Phone"], row => row.PhoneNumber, 18),
+                new(L["BE:Col:CustomerCode"], row => row.PatientCode, 16),
+                new(L["BE:Perm:Branch"], _ => branchName, 28),
+                new(L["BE:Col:TreatmentStatus"], row => TreatmentStatusLabel(row.TreatmentStatus), 18),
+                new(L["BE:Common:Service"], row => string.Join(", ", row.ServiceNames), 28),
+                new(L["BE:Role:Dentist"], row => string.Join(", ", row.StaffNames), 28),
+                new(L["BE:Field:Amount"], row => row.TotalAmount, 20),
+                new(L["BE:Field:ActualReceived"], row => row.TotalRevenue, 18),
+                new(L["BE:Field:OutstandingBalance"], row => row.TotalDebt, 18),
+                new(L["BE:CareType:LastVisit"], row => row.LastVisitAt?.DateTime, 20)
             },
             page.Items);
     }
@@ -251,7 +251,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     /// The rollup normally covers the requested page only — pulling every slip
     /// in the branch to render twenty rows does not scale. Trạng thái is the one
     /// filter that cannot work that way: it is derived from the slips, so when a
-    /// tab other than "Tất cả" is chosen every match has to be rolled up before
+    /// tab other than "BE:Common:All" is chosen every match has to be rolled up before
     /// the page can be cut. That path is bounded by <see cref="ExportRowCap"/>.
     /// </summary>
     private async Task<PagedResultDto<PatientListItemDto>> ReadPageAsync(
@@ -365,7 +365,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         // WithDetails, not GetQueryable: every column the rollup builds off a
         // slip — Dịch vụ, Bác sĩ, Số tiền, Thực thu, Công nợ — reads
         // `plan.Services`, and a bare queryable leaves that navigation empty, so
-        // the row came back as "Chưa phát sinh" with an em dash and a zero for a
+        // the row came back as "BE:CareType:NoActivity" with an em dash and a zero for a
         // patient who plainly had a slip.
         var planQuery = await _planRepository.WithDetailsAsync(p => p.Services);
         var plansByPatient = planQuery
@@ -460,9 +460,9 @@ public class PatientAppService : ApplicationService, IPatientAppService
 
     private string TreatmentStatusLabel(PatientTreatmentStatus status) => status switch
     {
-        PatientTreatmentStatus.InProgress => L["Đang điều trị"],
-        PatientTreatmentStatus.Done => L["Hoàn tất"],
-        _ => L["Chưa phát sinh"]
+        PatientTreatmentStatus.InProgress => L["BE:CareType:InTreatment"],
+        PatientTreatmentStatus.Done => L["BE:Common:Done"],
+        _ => L["BE:CareType:NoActivity"]
     };
 
     // ── Writing ──────────────────────────────────────────────────────────────

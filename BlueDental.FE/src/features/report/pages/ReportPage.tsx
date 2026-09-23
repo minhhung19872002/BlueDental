@@ -15,10 +15,10 @@ import type { ReportViewMode } from "../types/viewMode";
 import "../components/report.css";
 
 const REPORT_TABS: { key: ReportTabKey; label: () => string; permissions: string[] }[] = [
-  { key: "sales", label: () => t("Doanh số và lượt khách"), permissions: [REPORT_PERMISSION.salesRead] },
-  { key: "cashflow", label: () => t("Quản lý thu chi"), permissions: [REPORT_PERMISSION.incomeRead, REPORT_PERMISSION.costRead, REPORT_PERMISSION.cashflowCategoryRead] },
-  { key: "result", label: () => t("Kết quả kinh doanh"), permissions: [REPORT_PERMISSION.resultRead] },
-  { key: "cashflow-v2", label: () => t("Luân chuyển dòng tiền V2"), permissions: [REPORT_PERMISSION.transferRead, REPORT_PERMISSION.transferCategoryRead] },
+  { key: "sales", label: () => t("Report:MainTab:Sales"), permissions: [REPORT_PERMISSION.salesRead] },
+  { key: "cashflow", label: () => t("Report:MainTab:Cashflow"), permissions: [REPORT_PERMISSION.incomeRead, REPORT_PERMISSION.costRead, REPORT_PERMISSION.cashflowCategoryRead] },
+  { key: "result", label: () => t("Report:MainTab:Result"), permissions: [REPORT_PERMISSION.resultRead] },
+  { key: "cashflow-v2", label: () => t("Report:MainTab:CashflowV2"), permissions: [REPORT_PERMISSION.transferRead, REPORT_PERMISSION.transferCategoryRead] },
 ];
 
 /** Tabs where the reference hides the "Bác sĩ điều trị" filter. */
@@ -74,11 +74,11 @@ export function ReportPage() {
   return (
     <div className="report-page">
       <PageHeader
-        title={t("Báo cáo")}
-        subtitle={t("Doanh thu, chi phí và kết quả kinh doanh theo kỳ")}
+        title={t("Report:PageTitle")}
+        subtitle={t("Report:PageSubtitle")}
       />
 
-      <section className="report-shell" aria-label={t("Báo cáo")}>
+      <section className="report-shell" aria-label={t("Report:PageTitle")}>
         <ReportToolbar
           viewMode={viewMode}
           currentDate={currentDate}

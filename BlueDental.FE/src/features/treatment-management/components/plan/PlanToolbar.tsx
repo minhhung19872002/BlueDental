@@ -13,12 +13,12 @@ export function PlanToolbar({ onCreate, onViewAll }: Props) {
       {onCreate && (
         <button type="button" className="tp-btn tp-btn--primary" onClick={onCreate}>
           <Plus size={16} aria-hidden="true" />
-          {t("Tạo kế hoạch mới")}
+          {t("Treatment:Plan:CreatePlan")}
         </button>
       )}
       <button type="button" className="tp-btn tp-btn--outline" onClick={onViewAll}>
         <Eye size={16} aria-hidden="true" />
-        {t("Xem tất cả dịch vụ")}
+        {t("Treatment:Plan:ViewAllServices")}
       </button>
     </div>
   );

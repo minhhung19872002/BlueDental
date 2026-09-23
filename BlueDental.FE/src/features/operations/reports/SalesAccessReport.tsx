@@ -50,7 +50,7 @@ export function SalesAccessReport() {
       {
         key: "total",
         value: formatMoney(stats?.totalSales ?? 0),
-        label: t("Tổng doanh số"),
+        label: t("Operations:TotalSales"),
         icon: <RiseOutlined />,
         tone: "green",
         active: category === SALES_CATEGORY.total,
@@ -59,7 +59,7 @@ export function SalesAccessReport() {
       {
         key: "completed",
         value: formatMoney(stats?.completedServices ?? 0),
-        label: t("Dịch vụ đã hoàn thành"),
+        label: t("Operations:CompletedServices"),
         icon: <CheckCircleOutlined />,
         tone: "blue",
         active: category === SALES_CATEGORY.completed,
@@ -68,7 +68,7 @@ export function SalesAccessReport() {
       {
         key: "ownQuota",
         value: formatMoney(stats?.ownQuotaServices ?? 0),
-        label: t("Dịch vụ tính doanh số riêng"),
+        label: t("Operations:SeparateSalesServices"),
         icon: <StarOutlined />,
         tone: "rose",
         active: category === SALES_CATEGORY.ownQuota,
@@ -113,10 +113,10 @@ export function SalesAccessReport() {
             query.data?.totalCount ?? 0,
             (total, rangeOf) =>
               total === 0
-                ? t("Hiển thị 0 trên 0 doanh số")
-                : t("Hiển thị {0}–{1} trên {2} doanh số", rangeOf[0], rangeOf[1], total),
+                ? t("Operations:ShowZeroSales")
+                : t("Operations:ShowSalesRange", rangeOf[0], rangeOf[1], total),
           )}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
         />
       </div>
     </div>

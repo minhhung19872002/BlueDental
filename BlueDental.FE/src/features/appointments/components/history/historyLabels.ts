@@ -22,11 +22,11 @@ export const ACTION_ORDER: readonly HistoryAction[] = [
 ];
 
 export const ACTION_META: Record<HistoryAction, { label: string; emoji: string; tone: HistoryTone }> = {
-  created: { label: "Tạo mới", emoji: "🟢", tone: "green" },
-  updated: { label: "Cập nhật", emoji: "🟠", tone: "orange" },
-  statusChanged: { label: "Đổi trạng thái", emoji: "🔵", tone: "blue" },
-  cancelled: { label: "Hủy", emoji: "🔴", tone: "red" },
-  deleted: { label: "Xóa", emoji: "⚫", tone: "gray" },
+  created: { label: "Appointment:History:ActionCreated", emoji: "🟢", tone: "green" },
+  updated: { label: "Appointment:History:ActionUpdated", emoji: "🟠", tone: "orange" },
+  statusChanged: { label: "Appointment:History:ActionStatusChanged", emoji: "🔵", tone: "blue" },
+  cancelled: { label: "Appointment:History:ActionCancelled", emoji: "🔴", tone: "red" },
+  deleted: { label: "Appointment:History:ActionDeleted", emoji: "⚫", tone: "gray" },
 };
 
 export const SOURCE_ORDER: readonly HistorySource[] = [
@@ -44,7 +44,7 @@ export const SOURCE_LABELS: Record<HistorySource, string> = {
   mobile: "Mobile",
   api: "API",
   import: "Import",
-  system: "Hệ thống",
+  system: "Appointment:History:System",
   ai: "AI",
   webhook: "Webhook",
 };
@@ -57,10 +57,10 @@ export const STATUS_GROUP_ORDER: readonly HistoryStatusGroup[] = [
 ];
 
 export const STATUS_GROUP_META: Record<HistoryStatusGroup, { label: string; tone: HistoryTone }> = {
-  scheduled: { label: "Đã hẹn", tone: "blue" },
-  arrived: { label: "Đã đến", tone: "green" },
-  cancelled: { label: "Đã huỷ", tone: "red" },
-  noShow: { label: "Trễ hẹn", tone: "orange" },
+  scheduled: { label: "Appointment:Status:Scheduled2", tone: "blue" },
+  arrived: { label: "Appointment:Status:Arrived", tone: "green" },
+  cancelled: { label: "Appointment:Status:CancelledAlt", tone: "red" },
+  noShow: { label: "Appointment:Status:Late", tone: "orange" },
 };
 
 /** Snapshot field keys, as the server names them, in words. */
@@ -144,7 +144,7 @@ export function formatOccurredAt(iso: string): string {
 /** "Chrome 128 trên Windows 10", or whichever half is known. */
 export function describeDevice(entry: HistoryEntry): string {
   if (entry.browser && entry.operatingSystem) {
-    return t("{0} trên {1}", entry.browser, entry.operatingSystem);
+    return t("Appointment:History:BrowserOnOS", entry.browser, entry.operatingSystem);
   }
   return entry.browser ?? entry.operatingSystem ?? EMPTY;
 }

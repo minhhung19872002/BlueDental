@@ -18,8 +18,8 @@ export const REPORT_PAGE_SIZE_OPTIONS = [5, 10, 20, 25, 50, 100];
 
 /** The reference labels its pager arrows "Trước" / "Sau" instead of icons. */
 function renderPagerItem(_page: number, type: "page" | "prev" | "next" | "jump-prev" | "jump-next", original: ReactNode) {
-  if (type === "prev") return <span className="report-pager-step">{t("Trước")}</span>;
-  if (type === "next") return <span className="report-pager-step">{t("Sau")}</span>;
+  if (type === "prev") return <span className="report-pager-step">{t("Report:Pagination:Prev")}</span>;
+  if (type === "next") return <span className="report-pager-step">{t("Report:Pagination:Next")}</span>;
   return original;
 }
 
@@ -27,8 +27,8 @@ function renderPagerItem(_page: number, type: "page" | "prev" | "next" | "jump-p
 export function reportShowTotal(countUnit: string): NonNullable<TablePaginationConfig["showTotal"]> {
   return (total, range) =>
     total === 0
-      ? t("Hiển thị 0 trên 0 {0}", countUnit)
-      : t("Hiển thị {0}–{1} trên {2} {3}", range[0], range[1], total, countUnit);
+      ? t("Common:Pager:ShowZeroUnit", countUnit)
+      : t("Common:Pager:ShowRangeUnit", range[0], range[1], total, countUnit);
 }
 
 /** Pager pieces every report table shares; a caller's own `pagination` still wins field by field. */
@@ -57,7 +57,7 @@ export function ReportTableCard<T extends object>({
   onPageChange,
   ...rest
 }: Props<T>) {
-  const unit = countUnit ?? t("dòng");
+  const unit = countUnit ?? t("Report:Unit:Row");
   const pagerConfig = pagination === false ? false : reportPagination(unit, pagination);
   const total = pagination === false ? undefined : (pagination?.total ?? totalCount ?? 0);
   const showEmptyPager = pagerConfig !== false && total === 0;
@@ -71,7 +71,7 @@ export function ReportTableCard<T extends object>({
         pageSize={pageSize}
         onPageChange={onPageChange}
         pagination={pagerConfig}
-        locale={{ emptyText: t("Không có dữ liệu"), ...rest.locale }}
+        locale={{ emptyText: t("Common:NoData"), ...rest.locale }}
       />
       {showEmptyPager && (
         <Pagination

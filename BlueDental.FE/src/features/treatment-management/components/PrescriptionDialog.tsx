@@ -159,10 +159,10 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
     try {
       if (prescription) {
         await update.mutateAsync({ id: prescription.id, input });
-        toast.success(t("Đã cập nhật đơn thuốc"));
+        toast.success(t("Treatment:Prescription:UpdateSuccess"));
       } else {
         await create.mutateAsync({ ...input, patientId: patient.id, clinicBranchId: branchId });
-        toast.success(t("Đã tạo đơn thuốc"));
+        toast.success(t("Treatment:Prescription:CreateSuccess"));
       }
       onClose();
     } catch {
@@ -173,13 +173,13 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
   return (
     <AppDialog
       open={open}
-      title={prescription ? t("Cập nhật đơn thuốc") : t("Thêm đơn thuốc")}
+      title={prescription ? t("Treatment:Prescription:UpdatePrescription") : t("Treatment:Prescription:AddPrescription")}
       width={1024}
       centered
       className="rx-dialog"
       canSave={canSave}
       saving={saving}
-      cancelLabel={t("Hủy")}
+      cancelLabel={t("Common:Cancel")}
       onSave={() => form.submit()}
       onClose={onClose}
     >
@@ -204,10 +204,10 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
                   showSearch
                   allowClear
                   optionFilterProp="label"
-                  placeholder={t("Chọn đơn thuốc mẫu")}
-                  aria-label={t("Chọn đơn thuốc mẫu")}
+                  placeholder={t("Treatment:Prescription:SelectTemplate")}
+                  aria-label={t("Treatment:Prescription:SelectTemplate")}
                   prefix={<SearchOutlined />}
-                  notFoundContent={t("Không tìm thấy dữ liệu")}
+                  notFoundContent={t("Treatment:Common:NotFound")}
                   options={templates.map((template) => ({ value: template.id, label: template.name }))}
                   onChange={pickTemplate}
                 />
@@ -217,7 +217,7 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
                 icon={<PlusOutlined />}
                 onClick={() => navigate("/taxonomy/medicine")}
               >
-                {t("Thêm loại thuốc")}
+                {t("Treatment:Prescription:AddMedicine")}
               </Button>
             </div>
           </div>
@@ -225,20 +225,20 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
           <div className="rx-cell">
             <Form.Item
               name="staffId"
-              rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
+              rules={[{ required: true, message: t("Treatment:Common:DoctorRequired") }]}
             >
               <ServerSearchSelect
-                aria-label={t("Chọn bác sĩ")}
+                aria-label={t("Treatment:Common:SelectDoctor")}
                 allowClear={false}
                 useOptions={useDentistOptions}
-                notFoundText={t("Không tìm thấy bác sĩ")}
+                notFoundText={t("Treatment:Common:DoctorNotFound")}
               />
             </Form.Item>
             <Form.Item name="diagnosisText">
               <Input.TextArea
                 rows={3}
-                placeholder={t("Nhập chẩn đoán")}
-                aria-label={t("Nhập chẩn đoán")}
+                placeholder={t("Treatment:Diagnosis:DiagnosisPlaceholder")}
+                aria-label={t("Treatment:Diagnosis:DiagnosisPlaceholder")}
                 maxLength={500}
               />
             </Form.Item>
@@ -247,22 +247,22 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
           <div className="rx-cell">
             <Form.Item name="note">
               <Input
-                placeholder={t("Nhập lời dặn")}
-                aria-label={t("Nhập lời dặn")}
+                placeholder={t("Treatment:Prescription:NotePlaceholder")}
+                aria-label={t("Treatment:Prescription:NotePlaceholder")}
                 maxLength={1000}
               />
             </Form.Item>
             <div className="rx-template-save-row">
               <Form.Item name="saveAsTemplate" valuePropName="checked">
-                <Checkbox>{t("Lưu đơn thuốc mẫu")}</Checkbox>
+                <Checkbox>{t("Treatment:Prescription:SaveTemplate")}</Checkbox>
               </Form.Item>
               {saveAsTemplate && (
                 <FloatingField
                   name="templateName"
-                  label={t("Tên đơn thuốc mẫu")}
+                  label={t("Treatment:Prescription:TemplateName")}
                   required
                   rules={[
-                    { required: true, whitespace: true, message: t("Vui lòng nhập tên đơn thuốc mẫu") },
+                    { required: true, whitespace: true, message: t("Treatment:Prescription:TemplateNameRequired") },
                   ]}
                 >
                   <Input maxLength={200} />
@@ -272,14 +272,14 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
           </div>
 
           <div className="rx-cell">
-            <FloatingField name="treatmentType" label={t("Điều trị")}>
+            <FloatingField name="treatmentType" label={t("Treatment:Prescription:TypeTreatment")}>
               <Select showSearch optionFilterProp="label" options={treatmentTypeOptions()} />
             </FloatingField>
             <Form.Item name="followUpDate">
               <DatePicker
                 format="DD/MM/YYYY"
-                placeholder={t("Tái khám")}
-                aria-label={t("Tái khám")}
+                placeholder={t("Treatment:Prescription:TypeRecheck")}
+                aria-label={t("Treatment:Prescription:TypeRecheck")}
                 className="rx-full"
                 disabledDate={(date) => date.isBefore(dayjs(), "day")}
               />

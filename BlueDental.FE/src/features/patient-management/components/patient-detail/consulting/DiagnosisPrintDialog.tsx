@@ -171,7 +171,7 @@ export function DiagnosisPrintDialog({ diagnosis, clinic, patient, images, onClo
         id: diagnosis.id,
         input: { contentDiagnosis: fields.adviceHtml, note: fields.note || null },
       });
-      toast.success(t("Đã cập nhật phiếu chẩn đoán"));
+      toast.success(t("Patient:Diagnosis:SaveSuccess"));
       setEditing(false);
     } catch (error) {
       notifyError(extractApiError(error));
@@ -204,7 +204,7 @@ export function DiagnosisPrintDialog({ diagnosis, clinic, patient, images, onClo
       open
       width="calc(100vw - 64px)"
       className="dp-dialog"
-      title={t("In chẩn đoán {0}", diagnosis.code)}
+      title={t("Patient:Diagnosis:PrintTitle", diagnosis.code)}
       onCancel={onClose}
       destroyOnHidden
       footer={
@@ -216,11 +216,11 @@ export function DiagnosisPrintDialog({ diagnosis, clinic, patient, images, onClo
               loading={save.isPending}
               onClick={() => void handleSave()}
             >
-              {t("Lưu chẩn đoán")}
+              {t("Patient:Diagnosis:SaveBtn")}
             </Button>
           )}
           <Button type="primary" icon={<Printer size={16} />} onClick={handlePrint}>
-            {t("In chẩn đoán")}
+            {t("Patient:Diagnosis:PrintBtn")}
           </Button>
         </div>
       }
@@ -235,11 +235,11 @@ export function DiagnosisPrintDialog({ diagnosis, clinic, patient, images, onClo
         <div className="dp-paper">
           <div className="dp-paper-head">
             <div>
-              <h3>{t("Phiếu chẩn đoán")}</h3>
-              <p>{t("Chỉnh nội dung trước khi in.")}</p>
+              <h3>{t("Patient:Diagnosis:Sheet")}</h3>
+              <p>{t("Patient:Diagnosis:EditHint")}</p>
             </div>
             <Button icon={<SquarePen size={16} />} disabled={editing} onClick={() => setEditing(true)}>
-              {t("Cập nhật")}
+              {t("Patient:Diagnosis:UpdateBtn")}
             </Button>
           </div>
 

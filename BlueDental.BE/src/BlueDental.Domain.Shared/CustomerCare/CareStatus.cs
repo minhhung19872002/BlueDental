@@ -24,7 +24,7 @@ public enum CareStatus : short
 }
 
 /// <summary>
-/// "Đánh giá" on the patient's care tab: Tốt · Khá · Bình thường · Khiếu nại.
+/// "BE:Common:Rating" on the patient's care tab: Tốt · Khá · Bình thường · Khiếu nại.
 /// </summary>
 public enum CareOutcome : short
 {

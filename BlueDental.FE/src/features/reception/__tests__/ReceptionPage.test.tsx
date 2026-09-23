@@ -58,11 +58,11 @@ describe("ReceptionPage", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Ngày")).toBeInTheDocument();
-    expect(screen.getByText("Tuần")).toBeInTheDocument();
-    expect(screen.getByText("Tháng")).toBeInTheDocument();
-    expect(screen.getAllByPlaceholderText("Tìm bệnh nhân...")).toHaveLength(2);
-    expect(screen.getByText("Tạo tiếp nhận")).toBeInTheDocument();
+    expect(screen.getByText("Common:Day")).toBeInTheDocument();
+    expect(screen.getByText("Common:Week")).toBeInTheDocument();
+    expect(screen.getByText("Common:Month")).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText("Reception:SearchPlaceholder")).toHaveLength(2);
+    expect(screen.getByText("Reception:CreateTitle")).toBeInTheDocument();
   });
 
   it("opens create reception drawer when clicking primary button", async () => {
@@ -73,12 +73,12 @@ describe("ReceptionPage", () => {
       </QueryClientProvider>,
     );
 
-    const createBtn = screen.getByText("Tạo tiếp nhận");
+    const createBtn = screen.getByText("Reception:CreateTitle");
     fireEvent.click(createBtn);
 
     await waitFor(() => {
-      expect(screen.getAllByText("Tạo tiếp nhận").length).toBeGreaterThan(1);
-      expect(screen.getByText("Khách hàng")).toBeInTheDocument();
+      expect(screen.getAllByText("Reception:CreateTitle").length).toBeGreaterThan(1);
+      expect(screen.getByText("Reception:ColCustomer")).toBeInTheDocument();
     });
   });
 
@@ -90,9 +90,9 @@ describe("ReceptionPage", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText(/Tất cả/)).toBeInTheDocument();
-    expect(screen.getByText(/Chờ khám/)).toBeInTheDocument();
-    expect(screen.getByText(/Đang khám/)).toBeInTheDocument();
-    expect(screen.getByText(/Hoàn thành/)).toBeInTheDocument();
+    expect(screen.getByText(/Reception:TabAll/)).toBeInTheDocument();
+    expect(screen.getByText(/Reception:TabWaiting/)).toBeInTheDocument();
+    expect(screen.getByText(/Reception:TabInProgress/)).toBeInTheDocument();
+    expect(screen.getByText(/Reception:TabCompleted/)).toBeInTheDocument();
   });
 });

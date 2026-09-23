@@ -116,7 +116,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
             sortOrder,
           },
         });
-        toast.success(t("Đã cập nhật loại thuốc"));
+        toast.success(t("Taxonomy:Medicine:Updated"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -127,7 +127,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           medicine,
           sortOrder,
         });
-        toast.success(t("Đã thêm loại thuốc"));
+        toast.success(t("Taxonomy:Medicine:Created"));
       }
       onClose();
     } catch {
@@ -138,7 +138,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
   return (
     <AppDialog
       open={open}
-      title={entry ? t("Cập nhật loại thuốc") : t("Thêm loại thuốc")}
+      title={entry ? t("Taxonomy:Medicine:UpdateTitle") : t("Taxonomy:Medicine:CreateTitle")}
       width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
@@ -156,9 +156,9 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên thuốc")}
+              label={t("Taxonomy:Medicine:NameLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên thuốc") }]}
+              rules={[{ required: true, message: t("Taxonomy:Medicine:NameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
@@ -166,9 +166,9 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
-              label={t("Chọn nhóm thuốc")}
+              label={t("Taxonomy:Medicine:GroupLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn nhóm thuốc") }]}
+              rules={[{ required: true, message: t("Taxonomy:Medicine:GroupRequired") }]}
             >
               <Select
                 showSearch
@@ -179,45 +179,45 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="activeIngredient" label={t("Hoạt chất")}>
+            <FloatingField name="activeIngredient" label={t("Taxonomy:Medicine:ActiveIngredient")}>
               <Input />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="usage" label={t("Cách dùng")}>
+            <FloatingField name="usage" label={t("Taxonomy:Medicine:Usage")}>
               <Input />
             </FloatingField>
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="purchasePrice" label={t("Giá mua")}>
+            <FloatingField name="purchasePrice" label={t("Taxonomy:Medicine:PurchasePrice")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="salePrice" label={t("Giá bán")}>
+            <FloatingField name="salePrice" label={t("Taxonomy:Medicine:SalePrice")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="prescriptionCode" label={t("Mã toa thuốc")}>
+            <FloatingField name="prescriptionCode" label={t("Taxonomy:Medicine:PrescriptionCode")}>
               <Input />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="usageNote" label={t("Lưu ý sử dụng")}>
+            <FloatingField name="usageNote" label={t("Taxonomy:Medicine:UsageNote")}>
               <Input />
             </FloatingField>
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="unit" label={t("Đơn vị tính")}>
+            <FloatingField name="unit" label={t("Taxonomy:Medicine:Unit")}>
               <Input />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Taxonomy:Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>

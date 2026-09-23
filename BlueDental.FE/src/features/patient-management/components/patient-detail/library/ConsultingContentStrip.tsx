@@ -32,18 +32,18 @@ export function ConsultingContentStrip({ library, onCollapse }: Props) {
   };
 
   return (
-    <section className="pd-lib-strip" aria-label={t("Nội dung tư vấn")}>
+    <section className="pd-lib-strip" aria-label={t("Patient:Advise:Content")}>
       <div className="pd-lib-strip__head">
         <div className="pd-lib-strip__title">
           <FileText size={16} />
-          <span>{t("Nội dung tư vấn")}</span>
+          <span>{t("Patient:Advise:Content")}</span>
           <span className="pd-lib-count">{contentsTotal}</span>
         </div>
         {searchable && (
           <Input
             className="pd-lib-search pd-lib-search--strip"
-            aria-label={t("Tìm nội dung tư vấn")}
-            placeholder={t("Tìm nội dung tư vấn...")}
+            aria-label={t("Patient:Consulting:SearchContent")}
+            placeholder={t("Patient:Consulting:SearchContentPlaceholder")}
             prefix={<Search size={14} />}
             value={contentSearch}
             onChange={(event) => setContentSearch(event.target.value)}
@@ -54,8 +54,8 @@ export function ConsultingContentStrip({ library, onCollapse }: Props) {
           <button
             type="button"
             className="pd-lib-icon-btn"
-            aria-label={t("Đóng danh sách nội dung tư vấn")}
-            title={t("Đóng danh sách nội dung tư vấn")}
+            aria-label={t("Patient:Consulting:CloseContentList")}
+            title={t("Patient:Consulting:CloseContentList")}
             onClick={onCollapse}
           >
             <ChevronDown size={16} />

@@ -30,7 +30,7 @@ export function PaymentCardList({
 }: Props) {
   return (
     <div className="tp-card-list pdt-card-list">
-      {payments.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
+      {payments.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
       <div className="bd-rc-list">
         {payments.map((payment, position) => {
           const card = cardRows(payment);
@@ -43,7 +43,7 @@ export function PaymentCardList({
                   <button
                     type="button"
                     className="bd-rc-action"
-                    aria-label={t("Xem phiếu {0}", payment.code)}
+                    aria-label={t("Treatment:Payment:ViewPaymentFor", payment.code)}
                     onClick={() => onView(payment)}
                   >
                     <Eye size={16} aria-hidden="true" />
@@ -52,7 +52,7 @@ export function PaymentCardList({
                     <button
                       type="button"
                       className="bd-rc-action"
-                      aria-label={t("Chỉnh sửa phiếu {0}", payment.code)}
+                      aria-label={t("Treatment:Payment:EditPaymentFor", payment.code)}
                       onClick={() => onEdit(payment)}
                     >
                       <Pencil size={16} aria-hidden="true" />
@@ -62,7 +62,7 @@ export function PaymentCardList({
                     <button
                       type="button"
                       className="bd-rc-action"
-                      aria-label={t("Huỷ phiếu {0}", payment.code)}
+                      aria-label={t("Treatment:Payment:CancelPaymentFor", payment.code)}
                       onClick={() => onCancel(payment)}
                     >
                       <Trash2 size={16} aria-hidden="true" />

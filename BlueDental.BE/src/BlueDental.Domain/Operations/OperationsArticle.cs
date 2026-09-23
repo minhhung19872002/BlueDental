@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.Operations;
 
 /// <summary>
-/// A published item on a department's "Trang chủ" or "Quy trình" section
+/// A published item on a department's "BE:Perm:Home" or "BE:Common:Workflow" section
 /// (Quản trị vận hành).
 ///
 /// The reference renders both sections as an article list; their ability

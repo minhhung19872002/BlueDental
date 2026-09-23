@@ -6,7 +6,7 @@ namespace BlueDental.Tools;
 
 /// <summary>
 /// One PBX call as the provider reported it — the rows of the
-/// "Danh Sách Cuộc Gọi" tab under Công cụ → Gọi thoại.
+/// "BE:Perm:CallList" tab under Công cụ → Gọi thoại.
 /// </summary>
 public class CallLog : CreationAuditedEntity<Guid>
 {
@@ -18,10 +18,10 @@ public class CallLog : CreationAuditedEntity<Guid>
     /// <summary>Kept denormalized so history outlives staff-account changes.</summary>
     public string? StaffName { get; private set; }
 
-    /// <summary>"Mã cuộc gọi" — the provider's call id.</summary>
+    /// <summary>"BE:Field:CallCode" — the provider's call id.</summary>
     public string CallCode { get; private set; } = string.Empty;
 
-    /// <summary>"Mã mở rộng" — the SIP extension involved, when the provider sent one.</summary>
+    /// <summary>"BE:Field:ExtensionCode" — the SIP extension involved, when the provider sent one.</summary>
     public string? ExtensionCode { get; private set; }
 
     public string PhoneNumber { get; private set; } = string.Empty;

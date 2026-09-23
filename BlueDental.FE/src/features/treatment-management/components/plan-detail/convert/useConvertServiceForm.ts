@@ -81,16 +81,16 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
 
   const validate = (): boolean => {
     const next: ConvertFormErrors = {};
-    if (replacing && !service) next.service = t("Vui lòng chọn dịch vụ");
-    if (!note.trim()) next.note = t("Vui lòng nhập ghi chú");
-    if (toothDtos.length === 0) next.teeth = t("Vui lòng chọn ít nhất một răng");
-    if (showDifference && difference === null) next.difference = t("Vui lòng chọn cách xử lý");
-    if (!diagnoserId) next.diagnoser = t("Vui lòng chọn bác sĩ chẩn đoán");
-    if (!consultantId) next.consultant = t("Vui lòng chọn nhân sự tư vấn");
+    if (replacing && !service) next.service = t("Treatment:Convert:SelectServiceRequired");
+    if (!note.trim()) next.note = t("Treatment:Refund:NoteRequired");
+    if (toothDtos.length === 0) next.teeth = t("Treatment:Convert:ToothRequired");
+    if (showDifference && difference === null) next.difference = t("Treatment:Refund:DifferenceRequired");
+    if (!diagnoserId) next.diagnoser = t("Treatment:Diagnosis:DiagnoserRequired");
+    if (!consultantId) next.consultant = t("Treatment:Consulting:AdvisorRequired");
     if (diagnoserId && secondDiagnoserId === diagnoserId)
-      next.diagnoser = t("Hai bác sĩ chẩn đoán phải khác nhau");
+      next.diagnoser = t("Treatment:Diagnosis:DiagnoserDuplicate");
     if (consultantId && secondConsultantId === consultantId)
-      next.consultant = t("Hai nhân sự tư vấn phải khác nhau");
+      next.consultant = t("Treatment:Consulting:AdvisorDuplicate");
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -116,7 +116,7 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
           secondConsultantStaffId: secondConsultantId,
         },
       });
-      toast.success(t("Đã chuyển đổi dịch vụ"));
+      toast.success(t("Treatment:Convert:ConvertSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));

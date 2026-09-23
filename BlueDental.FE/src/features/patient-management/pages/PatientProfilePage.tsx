@@ -118,9 +118,9 @@ export function PatientProfilePage() {
       <div className="page-container">
         <EmptyState
           icon="🔍"
-          title={t("Không tìm thấy hồ sơ bệnh nhân")}
-          description={t("Hồ sơ này không tồn tại hoặc không thuộc chi nhánh đang xem.")}
-          actionLabel={t("Về danh sách bệnh nhân")}
+          title={t("Patient:Profile:NotFoundShort")}
+          description={t("Patient:Profile:NotFound")}
+          actionLabel={t("Patient:Profile:BackToList")}
           onAction={() => navigate("/patient")}
         />
       </div>
@@ -134,7 +134,7 @@ export function PatientProfilePage() {
           type="button"
           onClick={() => navigate({ pathname: "/patient", search: listSearch.toString() })}
         >
-          <ArrowLeftOutlined /> {t("Quay lại")}
+          <ArrowLeftOutlined /> {t("Patient:Misc:GoBack")}
         </button>
         <span>/</span>
         <strong>
@@ -143,7 +143,7 @@ export function PatientProfilePage() {
       </div>
 
       <div className="pd-tabrow">
-        <PageTabBar tabs={tabs} activeKey={activeTab} label={t("Chi tiết bệnh nhân")} />
+        <PageTabBar tabs={tabs} activeKey={activeTab} label={t("Patient:Profile:Detail")} />
         {medicalRecordAbility.canRead && (
           <SegmentedTabs
             className="pd-viewswitch"

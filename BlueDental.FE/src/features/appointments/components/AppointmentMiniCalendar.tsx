@@ -59,9 +59,9 @@ export function AppointmentMiniCalendar({ date, doctorId }: Props) {
     <div className="appt-mini-cal">
       <div className="appt-mini-cal-toolbar">
         <div className="appt-mini-cal-left">
-          <span className="appt-mini-cal-title">{t("Lịch đã hẹn")}</span>
+          <span className="appt-mini-cal-title">{t("Appointment:MiniCal:Title")}</span>
           {mode === "day" && (
-            <Tooltip title={daySubMode === "time" ? t("Xem theo bác sĩ") : t("Xem theo giờ")}>
+            <Tooltip title={daySubMode === "time" ? t("Appointment:MiniCal:ViewByDoctor") : t("Appointment:MiniCal:ViewByTime")}>
               <button type="button" className="appt-mini-cal-menu-btn" onClick={toggleDaySubMode}>
                 {daySubMode === "time"
                   ? <MenuOutlined style={{ fontSize: 12 }} />
@@ -76,9 +76,9 @@ export function AppointmentMiniCalendar({ date, doctorId }: Props) {
             value={mode}
             onChange={(v) => setMode(v as DateNavigatorMode)}
             options={[
-              { label: t("Ngày"), value: "day" },
-              { label: t("Tuần"), value: "week" },
-              { label: t("Tháng"), value: "month" },
+              { label: t("Common:Day"), value: "day" },
+              { label: t("Common:Week"), value: "week" },
+              { label: t("Common:Month"), value: "month" },
             ]}
             size="small"
           />

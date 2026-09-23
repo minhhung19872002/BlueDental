@@ -139,11 +139,11 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
     setSubmitting(true);
     try {
       await updateAdvise.mutateAsync({ id: advise.id, data: adviseToUpdateDto(advise, values) });
-      toast.success(t("Đã cập nhật phiếu dịch vụ"));
+      toast.success(t("Treatment:Plan:UpdateSuccess"));
       reset();
       onCreated();
     } catch (error) {
-      notifyError(extractApiError(error) || t("Không thể cập nhật phiếu dịch vụ"));
+      notifyError(extractApiError(error) || t("Treatment:Plan:UpdateError"));
     } finally {
       setSubmitting(false);
     }
@@ -155,7 +155,7 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
     // Reported under the field rather than as a toast: a toast leaves the user
     // hunting for what it meant once it has faded.
     const errors: PlanFieldErrors = {};
-    if (isToothValueEmpty(teeth)) errors.teeth = t("Vui lòng chọn ít nhất 1 răng");
+    if (isToothValueEmpty(teeth)) errors.teeth = t("Treatment:Tooth:ToothRequired");
     setFieldErrors(errors);
     if (errors.teeth) return;
 
@@ -198,11 +198,11 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
         dentistId,
         adviseIds: [advise.id],
       });
-      toast.success(t("Đã tạo kế hoạch điều trị"));
+      toast.success(t("Treatment:Plan:CreateSuccess"));
       reset();
       onCreated();
     } catch (error) {
-      notifyError(extractApiError(error) || t("Không thể tạo kế hoạch điều trị"));
+      notifyError(extractApiError(error) || t("Treatment:Plan:CreateError"));
     } finally {
       setSubmitting(false);
     }

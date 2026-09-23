@@ -1,7 +1,7 @@
 namespace BlueDental.PatientManagement;
 
 /// <summary>
-/// Shared so the DTO can validate a "Lý do đến khám" line to the same length
+/// Shared so the DTO can validate a "BE:Field:ReasonForVisit" line to the same length
 /// the column stores it at, without Application.Contracts reaching into Domain.
 /// </summary>
 public static class PatientExaminationReasonConsts

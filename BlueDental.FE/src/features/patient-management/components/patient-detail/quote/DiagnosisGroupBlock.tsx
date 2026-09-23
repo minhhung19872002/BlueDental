@@ -34,17 +34,17 @@ export function DiagnosisGroupBlock({ numeral, group, customerName, onChangeExpl
     <section>
       <div className="pq-dx__section">
         <h2>
-          {numeral}. {t("CHẨN ĐOÁN & TƯ VẤN ĐIỀU TRỊ")} - {group.name.toUpperCase()}
+          {numeral}. {t("Patient:Tab:DiagnosisAndAdvise")} - {group.name.toUpperCase()}
         </h2>
         <span className="pq-dx__section-tools">
-          <span className="pq-dx__pill">{t("{0} dịch vụ đang chọn", group.services.length)}</span>
+          <span className="pq-dx__pill">{t("Patient:Quote:ServicesCount", group.services.length)}</span>
           <button
             type="button"
             className="pq-dx__mini pq-print-hidden"
             onClick={() => void handleCopy()}
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
-            {copied ? t("Đã sao chép") : t("Sao chép")}
+            {copied ? t("Patient:Misc:Copied") : t("Patient:Viewer:Copy")}
           </button>
         </span>
       </div>
@@ -68,7 +68,7 @@ export function DiagnosisGroupBlock({ numeral, group, customerName, onChangeExpl
           )}
         </p>
       </div>
-      <p className="pq-dx__note">{t("Ghi chú: {0}", "-")}</p>
+      <p className="pq-dx__note">{t("Patient:DiagnosisInvoice:NoteLabel", "-")}</p>
     </section>
   );
 }

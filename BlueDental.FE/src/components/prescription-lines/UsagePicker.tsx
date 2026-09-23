@@ -35,7 +35,7 @@ export function UsagePicker({ value, onChange }: Props) {
 
   const commit = () => {
     if (wantsOther && !draft.otherUsage?.trim()) {
-      setError(t("Vui lòng nhập giá trị!"));
+      setError(t("Common:ValidationRequired"));
       return;
     }
 
@@ -73,8 +73,8 @@ export function UsagePicker({ value, onChange }: Props) {
           <Input
             autoFocus
             status={error ? "error" : undefined}
-            placeholder={t("Vui lòng nhập")}
-            aria-label={t("Cách sử dụng khác")}
+            placeholder={t("Common:PleaseEnter")}
+            aria-label={t("Common:OtherUsage")}
             value={draft.otherUsage ?? ""}
             onChange={(event) => {
               setDraft((current) => ({ ...current, otherUsage: event.target.value }));
@@ -92,7 +92,7 @@ export function UsagePicker({ value, onChange }: Props) {
 
       <div className="bd-usage-footer">
         <Button type="primary" size="small" icon={<SaveOutlined />} onClick={commit}>
-          {t("Lưu")}
+          {t("Common:Save")}
         </Button>
       </div>
     </div>

@@ -47,7 +47,7 @@ public class PaymentSummary : ComparableValueObject
     /// <summary>
     /// Còn lại — everything still owed on the record, finished or not:
     /// <see cref="TotalPrice"/> less what has actually been collected. This is
-    /// the column the reference prints as "Còn lại" / "Công nợ".
+    /// the column the reference prints as "BE:Field:Remaining" / "BE:Field:OutstandingBalance".
     /// </summary>
     public decimal Debt { get; private set; }
 
@@ -128,7 +128,7 @@ public class PaymentSummary : ComparableValueObject
         //   receivable = completedValue - (totalPaid - totalRefund)
         //   totalDue   = receivable
         // A slip whose work has not started therefore still reports its whole
-        // price as "Còn lại" while "Phải thu" stays at zero.
+        // price as "BE:Field:Remaining" while "BE:Field:Receivable" stays at zero.
         var netPaid = totalPaid - totalRefund;
         var receivable = completedValue - netPaid;
         var debt = totalPrice - netPaid;

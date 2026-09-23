@@ -11,7 +11,7 @@ interface Props {
 
 export function CareStatChips({ stats, active, onToggle }: Props) {
   return (
-    <div className="pc-chips" role="group" aria-label={t("Bộ lọc chăm sóc")}>
+    <div className="pc-chips" role="group" aria-label={t("Patient:Care:FilterLabel")}>
       {CARE_CHIPS.map((chip) => {
         const pressed = active === chip.key;
         return (

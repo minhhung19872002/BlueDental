@@ -22,7 +22,7 @@ export function LowStockCard() {
   return (
     <div className="page-card">
       <div className="dash-card-head" style={{ marginBottom: 12 }}>
-        <div className="dash-card-title">{t("Vật tư dưới định mức")}</div>
+        <div className="dash-card-title">{t("Dashboard:LowStockTitle")}</div>
         {total > 0 && <span className="dash-pill dash-pill--danger">{total}</span>}
       </div>
 
@@ -31,7 +31,7 @@ export function LowStockCard() {
       ) : rows.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("Không có vật tư dưới định mức")}
+          description={t("Dashboard:NoLowStock")}
         />
       ) : (
         <div className="dash-list">

@@ -146,13 +146,13 @@ export function AppLayout() {
     {
       key: "profile",
       icon: <UserOutlined />,
-      label: t("Thông tin cá nhân"),
+      label: t("App:Profile"),
       onClick: () => navigate("/settings?tab=info"),
     },
     {
       key: "change-password",
       icon: <KeyOutlined />,
-      label: t("Đổi mật khẩu"),
+      label: t("App:ChangePassword"),
       onClick: () => navigate("/settings?tab=password"),
     },
     {
@@ -160,7 +160,7 @@ export function AppLayout() {
          it — the only place left that is on every screen. */
       key: "settings",
       icon: <SettingOutlined />,
-      label: t("Cài đặt"),
+      label: t("App:Settings"),
       onClick: () => navigate("/settings?tab=clinic"),
     },
     {
@@ -168,14 +168,14 @@ export function AppLayout() {
          only place to change language. */
       key: "language",
       icon: <GlobalOutlined />,
-      label: t("Ngôn ngữ"),
+      label: t("App:Language"),
       children: [
         {
           key: "lang-vi",
           icon: <span className="fi fi-vn" style={{ fontSize: 16, borderRadius: 2 }} />,
           label: (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              {t("Tiếng Việt")}
+              {t("App:Vietnamese")}
               {currentLang === "vi" && <CheckOutlined style={{ fontSize: 12, color: "var(--bd-primary)" }} />}
             </span>
           ),
@@ -198,13 +198,13 @@ export function AppLayout() {
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: t("Đăng xuất"),
+      label: t("App:SignOut"),
       danger: true,
       onClick: () => logoutMutation.mutate(),
     },
   ];
 
-  const clinicName = user?.clinicName ?? t("NHA KHOA ĐỨC HẠNH PREMIUM");
+  const clinicName = user?.clinicName ?? t("App:DefaultClinic");
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
 
   const queryClient = useQueryClient();
@@ -228,7 +228,7 @@ export function AppLayout() {
 
   const selectedBranchName =
     currentBranchId === null
-      ? t("Tất cả chi nhánh")
+      ? t("App:AllBranches")
       : (branches?.find((b) => b.id === currentBranchId)?.name ?? clinicName);
 
   const branchContent = (
@@ -249,7 +249,7 @@ export function AppLayout() {
           <circle cx="6" cy="18" r="3" />
           <path d="M18 9a9 9 0 0 1-9 9" />
         </svg>
-        {t("Chi nhánh")}
+        {t("App:Branch")}
       </div>
       <div className="app-popover-divider" />
       <button
@@ -261,7 +261,7 @@ export function AppLayout() {
           className="app-popover-dot"
           style={{ background: currentBranchId === null ? "#0e9f6e" : brand.faint }}
         />
-        <span>{t("Tất cả chi nhánh")}</span>
+        <span>{t("App:AllBranches")}</span>
       </button>
       {(branches ?? []).length > 0 && <div className="app-popover-divider" />}
       {(branches ?? []).map((branch) => {
@@ -299,8 +299,8 @@ export function AppLayout() {
           <button
             type="button"
             className="app-header-burger"
-            title={t("Mở menu")}
-            aria-label={t("Mở menu")}
+            title={t("App:OpenMenu")}
+            aria-label={t("App:OpenMenu")}
             onClick={() => setDrawerOpen(true)}
           >
             <svg
@@ -338,7 +338,7 @@ export function AppLayout() {
               <path d="M20 20l-4-4" />
             </svg>
             <span className="app-header-search-text">
-              {t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
+              {t("Common:SearchGlobalPlaceholder")}
             </span>
             <kbd className="app-header-search-kbd">Ctrl K</kbd>
           </button>
@@ -374,13 +374,13 @@ export function AppLayout() {
               className="app-header-user"
               role="button"
               tabIndex={0}
-              aria-label={t("Tài khoản người dùng")}
+              aria-label={t("App:UserAccount")}
             >
               <Avatar size={34} className="app-header-avatar">
                 {initialsOf(user?.name)}
               </Avatar>
               <span className="app-header-user-name app-header-hide-sm">
-                {user?.name ?? t("Quản trị viên")}
+                {user?.name ?? t("App:DefaultUser")}
               </span>
             </div>
           </Dropdown>

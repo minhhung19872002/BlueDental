@@ -22,7 +22,7 @@ export function OperationReportPanel({ label }: Props) {
       <FileSearchOutlined className="bd-icon--xl" aria-hidden="true" />
       <p className="bd-ops-report-title">{label}</p>
       <p className="bd-ops-report-note">
-        {t("Báo cáo này chưa được dựng. Xem docs/clone/pages/operations.md.")}
+        {t("Operations:ReportUnderConstruction")}
       </p>
     </div>
   );

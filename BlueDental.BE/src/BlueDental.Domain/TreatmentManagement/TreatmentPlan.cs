@@ -52,8 +52,8 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Lines that still count towards the slip's money.
     ///
-    /// A cancelled line was never charged. A "Chuyển đổi" line has been replaced
-    /// by a newer one on the same slip, and an "Đã chuyển" line has moved to
+    /// A cancelled line was never charged. A "BE:Status:Converted" line has been replaced
+    /// by a newer one on the same slip, and an "BE:Status:Transferred" line has moved to
     /// another slip — charging either here would bill the same work twice.
     /// Measured on the reference 2026-09-21: DT33 holds a 1.000.000 đ line plus
     /// a 909.091 đ <c>replaced</c> one and reports <c>totalPrice: 1000000</c>.
@@ -73,7 +73,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Line-level discounts that still count. A cancelled line was never charged,
-    /// so its discount must not swell the slip's "Giảm giá" either.
+    /// so its discount must not swell the slip's "BE:Common:Discount" either.
     /// </summary>
     public decimal ServicesDiscountAmount => CountedServices.Sum(s => s.DiscountAmount);
 
@@ -269,10 +269,10 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// "Chuyển đổi dịch vụ": closes one line and writes the line that takes its
     /// place, the two pointing at each other.
     ///
-    /// <paramref name="chargeAmount"/> is the reference's editable "Thanh toán"
+    /// <paramref name="chargeAmount"/> is the reference's editable "BE:Common:Payment"
     /// field — what the patient is actually charged for the new service. It is
     /// carried as a money discount off the catalog price so the new line still
-    /// shows its real "Đơn giá", which is how the reference prints it.
+    /// shows its real "BE:Field:UnitPrice", which is how the reference prints it.
     /// </summary>
     public TreatmentService ConvertService(
         Guid serviceLineId,

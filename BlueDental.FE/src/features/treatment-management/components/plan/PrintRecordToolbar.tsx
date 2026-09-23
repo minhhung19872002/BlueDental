@@ -19,7 +19,7 @@ interface Props {
 export function PrintRecordToolbar({ form, onFormChange, zoom, onZoomChange }: Props) {
   return (
     <div className="pmr-toolbar">
-      <FloatingLabel label={t("Chọn file bệnh án")} floated className="pmr-file">
+      <FloatingLabel label={t("Treatment:Plan:SelectRecordFile")} floated className="pmr-file">
         <Select<MedicalRecordForm>
           value={form}
           onChange={onFormChange}
@@ -34,12 +34,12 @@ export function PrintRecordToolbar({ form, onFormChange, zoom, onZoomChange }: P
 
       <div className="pmr-tools">
         <span className="pmr-hint">
-          {t("Thông tin bệnh nhân được điền từ API; ô nền vàng vẫn có thể chỉnh trước khi in")}
+          {t("Treatment:Plan:RecordAutofillNote")}
         </span>
         <div className="pmr-zoom">
           <Button
             className="pmr-zoom-btn"
-            aria-label={t("Thu nhỏ bản xem trước")}
+            aria-label={t("Treatment:Plan:ZoomOut")}
             icon={<Minus size={14} aria-hidden="true" />}
             disabled={zoom <= PREVIEW_ZOOM.min}
             onClick={() => onZoomChange(zoom - PREVIEW_ZOOM.step)}
@@ -50,7 +50,7 @@ export function PrintRecordToolbar({ form, onFormChange, zoom, onZoomChange }: P
           </Button>
           <Button
             className="pmr-zoom-btn"
-            aria-label={t("Phóng to bản xem trước")}
+            aria-label={t("Treatment:Plan:ZoomIn")}
             icon={<Plus size={14} aria-hidden="true" />}
             disabled={zoom >= PREVIEW_ZOOM.max}
             onClick={() => onZoomChange(zoom + PREVIEW_ZOOM.step)}

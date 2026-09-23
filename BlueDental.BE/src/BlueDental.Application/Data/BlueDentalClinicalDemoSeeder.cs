@@ -46,7 +46,7 @@ public class BlueDentalClinicalDemoSeeder(
 
     /// <summary>
     /// Services the clinic sells, with a believable price list and the warranty
-    /// each carries. Zero days is "Không bảo hành": a finished công đoạn on such
+    /// each carries. Zero days is "BE:Warranty:None": a finished công đoạn on such
     /// a service offers no Bảo hành, which is a state the screens have to show,
     /// so the demo data covers both.
     /// </summary>
@@ -231,7 +231,7 @@ public class BlueDentalClinicalDemoSeeder(
 
             await serviceConfigRepository.InsertAsync(config, autoSave: true);
 
-            // "Danh sách công đoạn" — the steps the công đoạn form offers as
+            // "BE:Treatment:StageList" — the steps the công đoạn form offers as
             // checkboxes. Only some services declare any, because the reference
             // leaves the list empty for a single-visit service and the screens
             // have to cope with both.

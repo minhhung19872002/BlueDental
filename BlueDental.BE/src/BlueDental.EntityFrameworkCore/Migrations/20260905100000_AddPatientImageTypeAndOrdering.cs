@@ -7,11 +7,11 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// Hình ảnh bệnh nhân — the "Giai đoạn điều trị" tag (before/after) and the
+    /// Hình ảnh bệnh nhân — the "BE:Treatment:Phase" tag (before/after) and the
     /// drag-to-sort position the reference keeps on each image
     /// (<c>type</c> and <c>ordering</c> in <c>GET /patient-images</c>).
     ///
-    /// Existing rows become "Trước điều trị" and are numbered in the order they
+    /// Existing rows become "BE:Treatment:BeforeTreatment" and are numbered in the order they
     /// were taken, which is the order they were already shown in.
     ///
     /// Hand-written for the reason given in AddDepartmentSortOrder: the model

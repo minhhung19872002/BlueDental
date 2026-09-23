@@ -39,13 +39,13 @@ export const serviceLineStatusConfig = (): Record<
   TreatmentServiceStatus,
   { label: string; color: string }
 > => ({
-  [SERVICE_LINE_STATUS.Created]: { label: t("Chưa điều trị"), color: "default" },
-  [SERVICE_LINE_STATUS.InProgress]: { label: t("Đang điều trị"), color: "processing" },
-  [SERVICE_LINE_STATUS.Done]: { label: t("Hoàn thành"), color: "green" },
-  [SERVICE_LINE_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
-  [SERVICE_LINE_STATUS.Replaced]: { label: t("Đã thay thế"), color: "purple" },
-  [SERVICE_LINE_STATUS.Warranty]: { label: t("Bảo hành"), color: "gold" },
-  [SERVICE_LINE_STATUS.Transferred]: { label: t("Đã chuyển"), color: "purple" },
+  [SERVICE_LINE_STATUS.Created]: { label: t("Treatment:Service:StatusCreated"), color: "default" },
+  [SERVICE_LINE_STATUS.InProgress]: { label: t("Treatment:Service:StatusInProgress"), color: "processing" },
+  [SERVICE_LINE_STATUS.Done]: { label: t("Treatment:Care:StatusDone"), color: "green" },
+  [SERVICE_LINE_STATUS.Cancelled]: { label: t("Treatment:Service:StatusCancelled"), color: "red" },
+  [SERVICE_LINE_STATUS.Replaced]: { label: t("Treatment:Service:StatusReplaced"), color: "purple" },
+  [SERVICE_LINE_STATUS.Warranty]: { label: t("Treatment:Service:StatusWarranty"), color: "gold" },
+  [SERVICE_LINE_STATUS.Transferred]: { label: t("Treatment:Service:StatusTransferred"), color: "purple" },
 });
 
 /** Matches BlueDental.Billing.PatientPaymentKind. */
@@ -53,9 +53,9 @@ export const PAYMENT_KIND = { Payment: 1, Refund: 2, Prepaid: 3 } as const;
 export type PatientPaymentKind = (typeof PAYMENT_KIND)[keyof typeof PAYMENT_KIND];
 
 export const paymentKindConfig = (): Record<PatientPaymentKind, { label: string; color: string }> => ({
-  [PAYMENT_KIND.Payment]: { label: t("Thu tiền"), color: "green" },
-  [PAYMENT_KIND.Refund]: { label: t("Hoàn tiền"), color: "red" },
-  [PAYMENT_KIND.Prepaid]: { label: t("Nạp quỹ"), color: "blue" },
+  [PAYMENT_KIND.Payment]: { label: t("Treatment:Payment:PaymentKindPayment"), color: "green" },
+  [PAYMENT_KIND.Refund]: { label: t("Treatment:Refund:Refund"), color: "red" },
+  [PAYMENT_KIND.Prepaid]: { label: t("Treatment:Payment:PaymentKindPrepaid"), color: "blue" },
 });
 
 /** Matches BlueDental.Billing.PaymentMethodKind. */
@@ -70,11 +70,11 @@ export type PaymentMethodKind = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_MET
 
 /** The reference's own wording, in the order its payment dialog offers them. */
 export const paymentMethodLabels = (): Record<PaymentMethodKind, string> => ({
-  [PAYMENT_METHOD.Cash]: t("Tiền mặt"),
-  [PAYMENT_METHOD.Banking]: t("Ngân hàng"),
-  [PAYMENT_METHOD.EWallet]: t("Ví momo"),
-  [PAYMENT_METHOD.Card]: t("Quẹt thẻ"),
-  [PAYMENT_METHOD.OutstandingDebt]: t("Dư nợ"),
+  [PAYMENT_METHOD.Cash]: t("Treatment:Payment:Cash"),
+  [PAYMENT_METHOD.Banking]: t("Treatment:Payment:Banking"),
+  [PAYMENT_METHOD.EWallet]: t("Treatment:Payment:EWallet"),
+  [PAYMENT_METHOD.Card]: t("Treatment:Payment:Card"),
+  [PAYMENT_METHOD.OutstandingDebt]: t("Treatment:Debt:OutstandingDebt"),
 });
 
 /** Left to right, as the dialog lays the pills out. */
@@ -102,11 +102,11 @@ export type CareStatusCode = (typeof CARE_STATUS)[keyof typeof CARE_STATUS];
  * shows "Chưa chăm sóc" for both.
  */
 export const afterCareLabels = (): Record<CareStatusCode, string> => ({
-  [CARE_STATUS.New]: t("Chưa chăm sóc"),
-  [CARE_STATUS.Contacted]: t("Đã liên hệ"),
-  [CARE_STATUS.Succeeded]: t("Đã chăm sóc"),
-  [CARE_STATUS.Failed]: t("Chăm sóc thất bại"),
-  [CARE_STATUS.Cancelled]: t("Đã huỷ chăm sóc"),
+  [CARE_STATUS.New]: t("Treatment:Care:StatusNew"),
+  [CARE_STATUS.Contacted]: t("Treatment:Care:StatusContacted"),
+  [CARE_STATUS.Succeeded]: t("Treatment:Care:StatusSucceeded"),
+  [CARE_STATUS.Failed]: t("Treatment:Care:StatusFailed"),
+  [CARE_STATUS.Cancelled]: t("Treatment:Care:StatusCancelled"),
 });
 
 /**
@@ -125,12 +125,12 @@ export type DebtMovementType = (typeof DEBT_MOVEMENT)[keyof typeof DEBT_MOVEMENT
 
 /** The reference's wording, verbatim. */
 export const debtMovementLabels = (): Record<DebtMovementType, string> => ({
-  [DEBT_MOVEMENT.Topup]: t("Nạp dư nợ"),
-  [DEBT_MOVEMENT.Use]: t("Sử dụng dư nợ"),
-  [DEBT_MOVEMENT.Withdraw]: t("Rút dư nợ"),
-  [DEBT_MOVEMENT.Replace]: t("Thay thế dịch vụ"),
-  [DEBT_MOVEMENT.Refund]: t("Hoàn trả dư nợ"),
-  [DEBT_MOVEMENT.Cancel]: t("Huỷ dịch vụ - Cộng dư nợ"),
+  [DEBT_MOVEMENT.Topup]: t("Treatment:Debt:DebtTopup"),
+  [DEBT_MOVEMENT.Use]: t("Treatment:Debt:DebtUse"),
+  [DEBT_MOVEMENT.Withdraw]: t("Treatment:Debt:DebtWithdraw"),
+  [DEBT_MOVEMENT.Replace]: t("Treatment:Debt:DebtReplace"),
+  [DEBT_MOVEMENT.Refund]: t("Treatment:Debt:DebtRefund"),
+  [DEBT_MOVEMENT.Cancel]: t("Treatment:Debt:DebtCancel"),
 });
 
 /** The three that put money back on the account; the rest take it off. */

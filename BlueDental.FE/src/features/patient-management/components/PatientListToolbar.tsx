@@ -43,8 +43,8 @@ export function PatientListToolbar({
           className="bd-patient-search"
           type="search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm")}
-          aria-label={t("Tìm theo tên, mã khách hàng, số điện thoại")}
+          placeholder={t("Patient:Misc:Search")}
+          aria-label={t("Patient:List:SearchHint")}
           value={keyword}
           maxLength={100}
           allowClear
@@ -55,13 +55,13 @@ export function PatientListToolbar({
       <div className="bd-patient-toolbar-actions">
         {canExport && (
           <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
-            {t("Xuất file")}
+            {t("Patient:Export")}
           </Button>
         )}
 
         {canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-            {t("Tạo hồ sơ")}
+            {t("Patient:Create")}
           </Button>
         )}
       </div>

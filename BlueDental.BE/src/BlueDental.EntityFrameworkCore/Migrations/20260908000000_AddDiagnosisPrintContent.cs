@@ -7,11 +7,11 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// "I. TƯ VẤN CHẨN ĐOÁN" — the advice body of the printed diagnosis sheet.
+    /// "BE:Treatment:DiagConsultSection" — the advice body of the printed diagnosis sheet.
     ///
-    /// OBSERVED on the reference 2026-09-08: the "In chẩn đoán" dialog reads the
+    /// OBSERVED on the reference 2026-09-08: the "BE:Treatment:PrintDiagnosis" dialog reads the
     /// sheet's advice from <c>contentDiagnosis</c> on the diagnosis row, and its
-    /// "Cập nhật" button saves that field together with the note.
+    /// "BE:Common:Update" button saves that field together with the note.
     ///
     /// A plain <c>text</c> column because the body is formatted HTML. Hand-written
     /// and the snapshot patched by hand — see AddStageServiceItems for why this

@@ -13,7 +13,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Notifications;
 
 /// <summary>
-/// The CSKH "Lưu tin nhắn" dialog lists. Templates come from the existing
+/// The CSKH "BE:Perm:SaveMessage" dialog lists. Templates come from the existing
 /// Tools <see cref="MessageTemplate"/> catalog (SMS channel, active only);
 /// configures are the per-module <see cref="ClinicConfigure"/> rows.
 /// Both are branch-scoped.

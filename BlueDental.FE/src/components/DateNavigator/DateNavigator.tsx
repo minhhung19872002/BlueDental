@@ -34,22 +34,22 @@ function formatDisplay(date: Dayjs, mode: DateNavigatorMode, weekStartsOn?: Week
   return date.format("MM/YYYY");
 }
 
-const WEEKDAY_KEYS = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"] as const;
+const WEEKDAY_KEYS = ["Common:Sunday", "Common:Monday", "Common:Tuesday", "Common:Wednesday", "Common:Thursday", "Common:Friday", "Common:Saturday"] as const;
 
 function weekdayHeaders(firstDay: number): string[] {
   return WEEKDAY_KEYS.map((_, i) => t(WEEKDAY_KEYS[(firstDay + i) % 7]));
 }
 
 const MONTH_NAME_KEYS = [
-  "Tháng Một", "Tháng Hai", "Tháng Ba", "Tháng Tư",
-  "Tháng Năm", "Tháng Sáu", "Tháng Bảy", "Tháng Tám",
-  "Tháng Chín", "Tháng Mười", "Tháng Mười Một", "Tháng Mười Hai",
+  "Common:January", "Common:February", "Common:March", "Common:April",
+  "Common:May", "Common:June", "Common:July", "Common:August",
+  "Common:September", "Common:October", "Common:November", "Common:December",
 ] as const;
 
 const MONTH_SHORT_KEYS = [
-  "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
-  "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
-  "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
+  "Common:JanShort", "Common:FebShort", "Common:MarShort", "Common:AprShort",
+  "Common:MayShort", "Common:JunShort", "Common:JulShort", "Common:AugShort",
+  "Common:SepShort", "Common:OctShort", "Common:NovShort", "Common:DecShort",
 ] as const;
 
 function getCalendarDays(year: number, month: number, weekStartsOn?: WeekStart) {
@@ -189,7 +189,7 @@ function CalendarPanel({
 
       <div className="date-nav-panel-footer">
         <button type="button" className="date-nav-reset" onClick={onReset}>
-          {mode === "week" ? t("Tuần này") : t("Đặt lại")}
+          {mode === "week" ? t("Common:ThisWeek") : t("Common:Reset")}
         </button>
       </div>
     </div>

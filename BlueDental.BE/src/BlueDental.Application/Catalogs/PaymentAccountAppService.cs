@@ -148,7 +148,7 @@ public class PaymentAccountAppService : ApplicationService, IPaymentAccountAppSe
     }
 
     /// <summary>
-    /// "Tải ảnh QR". The image is a second step after the account row exists —
+    /// "BE:Common:UploadQR". The image is a second step after the account row exists —
     /// the blob is named after the account, so there is nothing to name it with
     /// before then.
     /// </summary>

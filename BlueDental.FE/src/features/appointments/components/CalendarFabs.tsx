@@ -20,7 +20,7 @@ export function CalendarFabs({
       <button
         type="button"
         className="cal-fab cal-fab--exit"
-        title={t("Thoát toàn màn hình")}
+        title={t("Appointment:Toolbar:ExitFullscreen")}
         onClick={onExitFullscreen}
       >
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -31,7 +31,7 @@ export function CalendarFabs({
         <button
           type="button"
           className="cal-fab cal-fab--temp"
-          title={t("Tạo lịch tạm")}
+          title={t("Appointment:Action:CreateTemp")}
           onClick={onCreateTemp}
         >
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +45,7 @@ export function CalendarFabs({
         <button
           type="button"
           className="cal-fab cal-fab--create"
-          title={t("Tạo lịch hẹn mới")}
+          title={t("Appointment:Action:CreateNew")}
           onClick={onCreateAppointment}
         >
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -57,7 +57,7 @@ export function CalendarFabs({
       <button
         type="button"
         className="cal-fab cal-fab--filter"
-        title={t("Bảng điều khiển")}
+        title={t("Appointment:Toolbar:ControlPanel")}
         onClick={onTogglePanel}
       >
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

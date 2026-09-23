@@ -66,7 +66,7 @@ export function PaymentAccountPanel() {
 
     try {
       await deleteAccount.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá phương thức thanh toán"));
+      toast.success(t("Taxonomy:Payment:Deleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -80,17 +80,17 @@ export function PaymentAccountPanel() {
       isMoMo
         ? {
             key: "phoneNumber",
-            title: t("Số điện thoại"),
+            title: t("Taxonomy:Payment:Phone"),
             render: (_, account) => <span className="bd-num">{account.phoneNumber}</span>,
           }
-        : { key: "bankName", title: t("Tên ngân hàng"), dataIndex: "bankName" },
-      { key: "holderName", title: t("Tên chủ tài khoản"), dataIndex: "holderName" },
+        : { key: "bankName", title: t("Taxonomy:Payment:BankName"), dataIndex: "bankName" },
+      { key: "holderName", title: t("Taxonomy:Payment:AccountHolder"), dataIndex: "holderName" },
     ];
 
     if (!isMoMo) {
       list.push({
         key: "accountNumber",
-        title: t("Số tài khoản"),
+        title: t("Taxonomy:Payment:AccountNumber"),
         render: (_, account) => <span className="bd-num">{account.accountNumber}</span>,
       });
     }
@@ -98,7 +98,7 @@ export function PaymentAccountPanel() {
     list.push(
       {
         key: "lastModificationTime",
-        title: t("Lần cập nhật cuối"),
+        title: t("Taxonomy:Payment:LastUpdate"),
         width: 200,
         render: (_, account) => (
           <span className="bd-cat-num">
@@ -108,31 +108,31 @@ export function PaymentAccountPanel() {
       },
       ...((canUpdate || canDelete) ? [{
         key: "actions" as const,
-        title: t("Thao tác"),
+        title: t("Taxonomy:Table:Actions"),
         width: 110,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, account: PaymentAccountDto) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Taxonomy:Table:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", account.holderName)}
+                  aria-label={t("Taxonomy:Table:EditItem", account.holderName)}
                   onClick={() => setModal({ open: true, account })}
                 />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Taxonomy:Table:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", account.holderName)}
+                  aria-label={t("Taxonomy:Table:DeleteItem", account.holderName)}
                   onClick={() => setPendingDelete(account)}
                 />
               </Tooltip>
@@ -149,12 +149,12 @@ export function PaymentAccountPanel() {
     <div className="bd-cat-screen">
       <FlatScreenHeader
         icon={<CreditCardOutlined />}
-        title={t("Quản lý phương thức thanh toán")}
-        subtitle={t("Tạo và quản lý tài khoản MoMo, ngân hàng dùng khi thanh toán.")}
-        actionLabel={canCreate ? t("Thêm phương thức") : undefined}
+        title={t("Taxonomy:Payment:ManageTitle")}
+        subtitle={t("Taxonomy:Payment:ManageDesc")}
+        actionLabel={canCreate ? t("Taxonomy:Payment:CreateTitle") : undefined}
         onAction={canCreate ? () => setModal({ open: true, account: null }) : undefined}
         actionDisabled={isAllBranches}
-        actionDisabledHint={t("Chọn một chi nhánh cụ thể trước khi thêm")}
+        actionDisabledHint={t("Taxonomy:Common:SelectBranchFirst")}
       />
 
       <div className="bd-cat-body bd-cat-body--gap">
@@ -177,11 +177,11 @@ export function PaymentAccountPanel() {
             dataSource={accounts}
             rowKey="id"
             loading={accountsQuery.isFetching}
-            pagination={pagination.buildConfig(totalCount, countedTotal(t("bản ghi")))}
+            pagination={pagination.buildConfig(totalCount, countedTotal(t("Taxonomy:Common:Records")))}
             locale={{
               emptyText: isMoMo
-                ? t("Không có phương thức MoMo")
-                : t("Không có phương thức ngân hàng"),
+                ? t("Taxonomy:Payment:NoMomo")
+                : t("Taxonomy:Payment:NoBank"),
             }}
           />
         </div>
@@ -196,7 +196,7 @@ export function PaymentAccountPanel() {
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("phương thức thanh toán")}
+        noun={t("Taxonomy:Payment:PaymentMethodNoun")}
         name={pendingDelete?.holderName ?? ""}
         pending={deleteAccount.isPending}
         onConfirm={() => void confirmDelete()}

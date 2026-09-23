@@ -20,7 +20,7 @@ interface Props {
  */
 export function QuotePreviewModal({ open, subject, onClose, children }: Props) {
   const handleSend = () => {
-    toast.info(t("Gửi khách hàng qua Zalo/Facebook sắp ra mắt"));
+    toast.info(t("Patient:Quote:SendComingSoon"));
   };
 
   return (
@@ -34,15 +34,15 @@ export function QuotePreviewModal({ open, subject, onClose, children }: Props) {
       footer={null}
       title={
         <div className="pq-preview-title">
-          <span>{t("Xem trước: {0}", subject)}</span>
+          <span>{t("Patient:Misc:QuotePreview", subject)}</span>
           <span className="pq-footer">
             <button type="button" className="tp-btn tp-btn--outline" onClick={handleSend}>
               <Send size={16} />
-              {t("Gửi Khách Hàng (Zalo/FB)")}
+              {t("Patient:Quote:SendToCustomer")}
             </button>
             <button type="button" className="tp-btn tp-btn--primary" onClick={printQuoteSheet}>
               <Printer size={16} />
-              {t("In Bản Này")}
+              {t("Patient:MedRecord:PrintThis")}
             </button>
           </span>
         </div>

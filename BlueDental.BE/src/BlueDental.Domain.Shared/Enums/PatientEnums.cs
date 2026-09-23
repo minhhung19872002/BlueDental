@@ -37,8 +37,8 @@ public enum PatientTreatmentStatus
 }
 
 /// <summary>
-/// The four tabs above the patient list. "Tất cả" is the absence of a filter,
-/// and "Chưa phát sinh" deliberately covers both quiet states.
+/// The four tabs above the patient list. "BE:Common:All" is the absence of a filter,
+/// and "BE:CareType:NoActivity" deliberately covers both quiet states.
 /// </summary>
 public enum PatientTreatmentFilter
 {
@@ -76,7 +76,7 @@ public enum ToothStatus
 }
 
 /// <summary>
-/// The printed forms "Mục lục bệnh án" offers, in the reference's own order and
+/// The printed forms "BE:Treatment:MedRecordTOC" offers, in the reference's own order and
 /// wording. The layout of each is printed on the sheet; only the cells the
 /// clinic fills in are stored, so this enum names the form and nothing else.
 /// </summary>
@@ -112,7 +112,7 @@ public enum MedicalRecordForm
 
 /// <summary>
 /// Giai đoạn điều trị of a patient image. The reference offers exactly these
-/// two values in its "Giai đoạn điều trị" filter (a bundle constant, not a
+/// two values in its "BE:Treatment:Phase" filter (a bundle constant, not a
 /// catalog), and every upload is tagged with the one the filter is set to.
 /// </summary>
 public enum PatientImageType

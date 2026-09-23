@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Form, Input, Select, Switch } from "antd";
 import { toast } from "sonner";
 import {
@@ -72,7 +72,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
             isActive: values.isActive,
           },
         });
-        toast.success(t("Đã cập nhật cấu hình"));
+        toast.success(t("Tools:ConfigUpdated"));
       } else {
         await createConfig.mutateAsync({
           branchId: values.branchId,
@@ -82,7 +82,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
           secretKey: values.secretKey.trim(),
           isActive: values.isActive,
         });
-        toast.success(t("Đã tạo cấu hình"));
+        toast.success(t("Tools:ConfigCreated"));
       }
       onClose();
     } catch {
@@ -99,7 +99,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
   return (
     <AppDialog
       open={open}
-      title={t("Cấu hình")}
+      title={t("Tools:ConfigDialogTitle")}
       width={772}
       canSave={canSave}
       saving={pending}
@@ -115,7 +115,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
       >
         <div className="bd-inv-dialog-grid">
           <div>
-            <div className="bd-msg-provider-label">{t("Nhà cung cấp")}</div>
+            <div className="bd-msg-provider-label">{t("Tools:ProviderLabel")}</div>
             {CALL_PROVIDERS.map((item) => (
               <button
                 key={item.value}
@@ -159,18 +159,18 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
           <div className="bd-call-dialog-fields">
             <FloatingField
               name="name"
-              label={t("Tên")}
+              label={t("Tools:NameLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
+              rules={[{ required: true, message: t("Tools:NameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
 
             <FloatingField
               name="branchId"
-              label={t("Chi nhánh")}
+              label={t("Tools:BranchLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn chi nhánh") }]}
+              rules={[{ required: true, message: t("Tools:BranchRequired") }]}
             >
               <Select
                 // The update API keeps a configuration in its branch.
@@ -181,23 +181,23 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
 
             <FloatingField
               name="apiKey"
-              label={t("Mã khoá")}
+              label={t("Tools:ApiKeyLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập mã khoá") }]}
+              rules={[{ required: true, message: t("Tools:ApiKeyRequired") }]}
             >
               <Input />
             </FloatingField>
 
             <FloatingField
               name="secretKey"
-              label={t("Mã bí mật")}
+              label={t("Tools:SecretKeyLabel")}
               required={config === null}
               // FloatingField owns the placeholder, so the keep-the-stored-key
               // hint rides Form.Item's extra line instead.
-              extra={config ? t("Để trống để giữ mã hiện tại") : undefined}
+              extra={config ? t("Tools:SecretKeyHint") : undefined}
               rules={
                 config === null
-                  ? [{ required: true, message: t("Vui lòng nhập mã bí mật") }]
+                  ? [{ required: true, message: t("Tools:SecretKeyRequired") }]
                   : undefined
               }
             >
@@ -205,9 +205,9 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
             </FloatingField>
 
             <div className="bd-call-dialog-switch">
-              <span>{t("Trạng thái")}</span>
+              <span>{t("Tools:StatusLabel")}</span>
               <Form.Item name="isActive" valuePropName="checked">
-                <Switch aria-label={t("Trạng thái")} />
+                <Switch aria-label={t("Tools:StatusLabel")} />
               </Form.Item>
             </div>
           </div>
@@ -216,3 +216,4 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
     </AppDialog>
   );
 }
+

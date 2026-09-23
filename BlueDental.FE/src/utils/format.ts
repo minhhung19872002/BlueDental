@@ -87,5 +87,5 @@ export function formatShortDate(value: string | Date | null | undefined): string
 
 /** `formatVND(value)` + the currency unit ("đ" / "VND"), used everywhere money is shown. */
 export function formatMoneyUnit(value: number | null | undefined): string {
-  return `${formatVND(value)} ${t("đ")}`;
+  return `${formatVND(value)} ${t("Common:Currency:Unit")}`;
 }

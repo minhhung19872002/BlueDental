@@ -29,27 +29,27 @@ interface AbpErrorEnvelope {
  * happened to be loaded when this module was first imported.
  */
 const messages = () => ({
-  unknown: t("Đã xảy ra lỗi không xác định. Vui lòng thử lại."),
-  system: t("Hệ thống đang gặp sự cố. Vui lòng thử lại sau hoặc liên hệ quản trị viên."),
-  invalidInput: t("Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập."),
-  forbidden: t("Bạn không có quyền thực hiện thao tác này."),
-  offline: t("Không kết nối được tới máy chủ. Vui lòng kiểm tra đường truyền và thử lại."),
-  timeout: t("Máy chủ phản hồi quá lâu. Vui lòng thử lại sau ít phút."),
-  canceled: t("Yêu cầu đã bị hủy."),
+  unknown: t("Common:Error:Unknown"),
+  system: t("Common:Error:System"),
+  invalidInput: t("Common:Error:InvalidInput"),
+  forbidden: t("Common:Error:Forbidden"),
+  offline: t("Common:Error:Offline"),
+  timeout: t("Common:Error:Timeout"),
+  canceled: t("Common:Error:Canceled"),
 });
 
 const statusFallbackMessages = (
   m: ReturnType<typeof messages>,
 ): Readonly<Record<number, string>> => ({
   400: m.invalidInput,
-  401: t("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."),
+  401: t("Common:Error:SessionExpired"),
   403: m.forbidden,
-  404: t("Không tìm thấy dữ liệu yêu cầu."),
-  409: t("Dữ liệu đã được thay đổi bởi người khác. Vui lòng tải lại trang và thử lại."),
-  413: t("Tệp tải lên vượt quá dung lượng cho phép."),
+  404: t("Common:Error:NotFound"),
+  409: t("Common:Error:Conflict"),
+  413: t("Common:Error:FileTooLarge"),
   422: m.invalidInput,
-  429: t("Bạn đã thao tác quá nhiều lần. Vui lòng thử lại sau ít phút."),
-  503: t("Hệ thống đang bảo trì. Vui lòng thử lại sau ít phút."),
+  429: t("Common:Error:TooManyRequests"),
+  503: t("Common:Error:Maintenance"),
 });
 
 const MAX_MESSAGE_LENGTH = 400;

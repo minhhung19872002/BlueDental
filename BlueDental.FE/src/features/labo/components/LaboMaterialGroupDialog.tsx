@@ -42,10 +42,10 @@ export function LaboMaterialGroupDialog({ open, group, onClose }: Props) {
     try {
       if (group) {
         await update.mutateAsync({ id: group.id, name: trimmed, sortOrder });
-        toast.success(t("Đã cập nhật"));
+        toast.success(t("Common:Updated"));
       } else {
         await create.mutateAsync({ name: trimmed, sortOrder });
-        toast.success(t("Đã thêm"));
+        toast.success(t("Common:Added"));
       }
       onClose();
     } catch {
@@ -57,7 +57,7 @@ export function LaboMaterialGroupDialog({ open, group, onClose }: Props) {
     <AppDialog
       open={open}
       width={520}
-      title={group ? t("Sửa") : t("Tạo")}
+      title={group ? t("Labo:MaterialGroup:EditTitle") : t("Labo:MaterialGroup:CreateTitle")}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -74,15 +74,15 @@ export function LaboMaterialGroupDialog({ open, group, onClose }: Props) {
           <Col xs={24} md={14}>
             <FloatingField
               name="name"
-              label={t("Tên phân loại")}
+              label={t("Labo:MaterialGroup:NameLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên phân loại") }]}
+              rules={[{ required: true, message: t("Common:PleaseEnter", t("Labo:MaterialGroup:NameLabel")) }]}
             >
               <Input autoFocus maxLength={100} />
             </FloatingField>
           </Col>
           <Col xs={24} md={10}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>

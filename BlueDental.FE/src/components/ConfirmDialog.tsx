@@ -36,14 +36,14 @@ export function ConfirmDialog({
   return (
     <Modal
       open={open}
-      title={<h2 className="bd-modal-title">{title ?? t("Xác nhận")}</h2>}
+      title={<h2 className="bd-modal-title">{title ?? t("Common:Confirm")}</h2>}
       onCancel={onClose}
       width={500}
       destroyOnHidden
       footer={
         <div className="bd-confirm-actions">
           <Button onClick={onClose} disabled={pending}>
-            {cancelLabel ?? t("Không")}
+            {cancelLabel ?? t("Common:No")}
           </Button>
           <Button
             type="primary"
@@ -52,7 +52,7 @@ export function ConfirmDialog({
             disabled={pending}
             onClick={onConfirm}
           >
-            {confirmLabel ?? t("Có")}
+            {confirmLabel ?? t("Common:Yes")}
           </Button>
         </div>
       }

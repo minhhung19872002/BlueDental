@@ -5,8 +5,8 @@ using Volo.Abp.Domain.Entities;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// One "công đoạn" of a service — a step of the treatment the doctor is paid
-/// against. Reference: the table inside the service dialog's "Công đoạn" tab.
+/// One "BE:Common:StagesLower" of a service — a step of the treatment the doctor is paid
+/// against. Reference: the table inside the service dialog's "BE:Common:Stage" tab.
 /// </summary>
 public class CatalogServiceStage : Entity<Guid>
 {
@@ -15,7 +15,7 @@ public class CatalogServiceStage : Entity<Guid>
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>
-    /// The reference labels this column "Giá trị" with no unit next to it.
+    /// The reference labels this column "BE:Field:Value" with no unit next to it.
     /// BlueDental stores the number as typed and leaves the meaning to the
     /// treatment module — see docs/clone/unknowns.md.
     /// </summary>

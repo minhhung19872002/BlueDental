@@ -38,7 +38,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
   {
     key: "after-treatment",
     type: CARE_TYPE.AfterTreatment,
-    label: () => t("Sau điều trị"),
+    label: () => t("CSKH:Type:AfterTreatment"),
     showDoctor: true,
     showCareStaff: false,
     showCreate: false,
@@ -49,7 +49,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
   {
     key: "birthday",
     type: CARE_TYPE.Birthday,
-    label: () => t("Chúc mừng sinh nhật"),
+    label: () => t("CSKH:Type:Birthday"),
     showDoctor: false,
     showCareStaff: false,
     showCreate: false,
@@ -60,7 +60,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
   {
     key: "remind-appointment",
     type: CARE_TYPE.AppointmentReminder,
-    label: () => t("Nhắc lịch hẹn"),
+    label: () => t("CSKH:Type:AppointmentReminder"),
     showDoctor: true,
     showCareStaff: true,
     showCreate: false,
@@ -71,7 +71,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
   {
     key: "periodic",
     type: CARE_TYPE.Periodic,
-    label: () => t("CSKH định kì"),
+    label: () => t("CSKH:Type:Periodic"),
     showDoctor: true,
     showCareStaff: true,
     showCreate: true,
@@ -82,7 +82,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
   {
     key: "special",
     type: CARE_TYPE.Special,
-    label: () => t("CSKH đặc biệt"),
+    label: () => t("CSKH:Type:Special"),
     showDoctor: true,
     showCareStaff: true,
     showCreate: true,

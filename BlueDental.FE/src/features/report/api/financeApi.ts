@@ -25,11 +25,11 @@ export const PAYMENT_CHANNEL = {
 export type PaymentChannel = (typeof PAYMENT_CHANNEL)[keyof typeof PAYMENT_CHANNEL];
 
 export const paymentChannelLabels = (): Record<PaymentChannel, string> => ({
-  [PAYMENT_CHANNEL.Cash]: t("Tiền mặt"),
-  [PAYMENT_CHANNEL.Banking]: t("Chuyển khoản"),
-  [PAYMENT_CHANNEL.Card]: t("Quẹt thẻ"),
-  [PAYMENT_CHANNEL.OutstandingDebt]: t("Dư nợ"),
-  [PAYMENT_CHANNEL.EWallet]: t("Ví điện tử"),
+  [PAYMENT_CHANNEL.Cash]: t("Report:PaymentChannel:Cash"),
+  [PAYMENT_CHANNEL.Banking]: t("Report:PaymentChannel:Banking"),
+  [PAYMENT_CHANNEL.Card]: t("Report:PaymentChannel:Card"),
+  [PAYMENT_CHANNEL.OutstandingDebt]: t("Report:PaymentChannel:Debt"),
+  [PAYMENT_CHANNEL.EWallet]: t("Report:PaymentChannel:EWallet"),
 });
 
 /** Matches BlueDental.Finance.SalesApprovalStatus */
@@ -48,9 +48,9 @@ export type CashTransactionType =
   (typeof CASH_TRANSACTION_TYPE)[keyof typeof CASH_TRANSACTION_TYPE];
 
 export const cashTransactionLabels = (): Record<CashTransactionType, string> => ({
-  [CASH_TRANSACTION_TYPE.Deposit]: t("Nạp"),
-  [CASH_TRANSACTION_TYPE.Withdraw]: t("Rút"),
-  [CASH_TRANSACTION_TYPE.Transfer]: t("Luân chuyển"),
+  [CASH_TRANSACTION_TYPE.Deposit]: t("Report:TransactionType:Deposit"),
+  [CASH_TRANSACTION_TYPE.Withdraw]: t("Report:TransactionType:Withdraw"),
+  [CASH_TRANSACTION_TYPE.Transfer]: t("Report:TransactionType:Transfer"),
 });
 
 /** Matches BlueDental.Finance.CashHolding */
@@ -58,10 +58,10 @@ export const CASH_HOLDING = { Cash: 1, Bank: 2, CustomerPrepaid: 3, Card: 4 } as
 export type CashHolding = (typeof CASH_HOLDING)[keyof typeof CASH_HOLDING];
 
 export const cashHoldingLabels = (): Record<CashHolding, string> => ({
-  [CASH_HOLDING.Cash]: t("Tiền mặt"),
-  [CASH_HOLDING.Bank]: t("Chuyển khoản"),
-  [CASH_HOLDING.CustomerPrepaid]: t("Giữ hộ khách"),
-  [CASH_HOLDING.Card]: t("Cà thẻ (đối soát)"),
+  [CASH_HOLDING.Cash]: t("Report:PaymentChannel:Cash"),
+  [CASH_HOLDING.Bank]: t("Report:PaymentChannel:Banking"),
+  [CASH_HOLDING.CustomerPrepaid]: t("Report:Holding:CustomerPrepaid"),
+  [CASH_HOLDING.Card]: t("Report:Holding:Card"),
 });
 
 /**

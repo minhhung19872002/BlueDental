@@ -14,7 +14,7 @@ namespace BlueDental.TreatmentManagement;
 /// <list type="bullet">
 ///   <item>the ability subject <c>treatmentStage</c> with the verbs
 ///         read, create, update, continue, complete, print;</item>
-///   <item>"Thêm công đoạn" sits on every row of the treatment-plan table, so a
+///   <item>"BE:Treatment:AddStage" sits on every row of the treatment-plan table, so a
 ///         stage hangs off one treatment service, not off the plan as a whole;</item>
 ///   <item>CSKH records reference <c>stageIds</c> and carry
 ///         <c>patientStages[] = { id, serviceId, serviceDetails.isImageRequired }</c>,
@@ -22,7 +22,7 @@ namespace BlueDental.TreatmentManagement;
 ///   <item>the treatment summary returns
 ///         <c>{ treatmentServiceId, treatmentId, treatmentCode, serviceName, stageNote }</c>,
 ///         so a stage carries a free-text note and the newest one is surfaced;</item>
-///   <item>Labo orders have a "Tiếp tục công đoạn" kind, matching the continue verb.</item>
+///   <item>Labo orders have a "BE:Treatment:ResumeStage" kind, matching the continue verb.</item>
 /// </list>
 ///
 /// ASSUMED by BlueDental, because no patient with active stages could be
@@ -113,7 +113,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     public IReadOnlyCollection<string> ImageUrls => _imageUrls.AsReadOnly();
 
     /// <summary>
-    /// "Danh sách công đoạn" — which of the service's own steps this công đoạn
+    /// "BE:Treatment:StageList" — which of the service's own steps this công đoạn
     /// covers, and which of those are done. See <see cref="StageServiceItem"/>.
     /// </summary>
     public IReadOnlyCollection<StageServiceItem> ServiceItems => _serviceItems.AsReadOnly();
@@ -269,7 +269,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     ///
     /// <para>
     /// <see cref="IsImageRequired"/> does <b>not</b> gate this. It used to: the
-    /// original commit assumed a service carrying "Yêu cầu hình ảnh khi điều trị"
+    /// original commit assumed a service carrying "BE:ServiceConfig:RequireImage"
     /// would refuse completion until a picture was attached, and said so as a
     /// stated assumption rather than an observation. The project owner then
     /// checked the reference and reported that Hoàn thành ticks with no image at

@@ -46,7 +46,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
       <td>
         {draft ? (
           <CurrencyInput
-            aria-label={t("Đơn giá")}
+            aria-label={t("Treatment:Pricing:UnitPrice")}
             value={draft.price}
             onChange={(value) => onChange(service.id, { price: value ?? 0 })}
           />
@@ -57,7 +57,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
       <td>
         {draft && (
           <InputNumber
-            aria-label={t("Số lượng")}
+            aria-label={t("Treatment:Pricing:Quantity")}
             min={1}
             precision={0}
             value={draft.quantity}
@@ -68,7 +68,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
       <td>
         {draft && (
           <div className="am-discount">
-            <div className="tp-toggle" role="group" aria-label={t("Đơn vị giảm giá")}>
+            <div className="tp-toggle" role="group" aria-label={t("Treatment:Pricing:DiscountUnit")}>
               {DISCOUNT_UNITS.map((unit) => (
                 <button
                   key={unit.type}
@@ -82,7 +82,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
               ))}
             </div>
             <CurrencyInput
-              aria-label={t("Giảm giá")}
+              aria-label={t("Treatment:Pricing:Discount")}
               value={draft.discountValue}
               onChange={(value) => onChange(service.id, { discountValue: value ?? 0 })}
             />
@@ -93,7 +93,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
       <td>
         {draft && (
           <Input
-            aria-label={t("Ghi chú")}
+            aria-label={t("Treatment:Common:Note")}
             value={draft.note}
             onChange={(event) => onChange(service.id, { note: event.target.value })}
           />

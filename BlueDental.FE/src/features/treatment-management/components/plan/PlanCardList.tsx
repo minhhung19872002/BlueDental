@@ -30,36 +30,36 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
       <button
         type="button"
         className="bd-rc-action"
-        aria-label={t("Thêm công đoạn {0}", plan.code)}
+        aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
         onClick={() => actions.onAddStage(plan)}
       >
         <Plus size={16} aria-hidden="true" />
       </button>
-      <ActionTooltip title={t("Danh sách dịch vụ")}>
+      <ActionTooltip title={t("Treatment:Plan:ServiceList")}>
         <button
           type="button"
           className="bd-rc-action"
-          aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
+          aria-label={t("Treatment:Plan:ServiceListFor", plan.code)}
           onClick={() => actions.onViewServices(plan)}
         >
           <Eye size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <ActionTooltip title={t("In bệnh án")}>
+      <ActionTooltip title={t("Treatment:Plan:PrintMedicalRecord")}>
         <button
           type="button"
           className="bd-rc-action"
-          aria-label={t("In bệnh án {0}", plan.code)}
+          aria-label={t("Treatment:Plan:PrintMedicalRecordFor", plan.code)}
           onClick={() => actions.onPrintRecord(plan)}
         >
           <ClipboardList size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <ActionTooltip title={t("Hóa đơn")}>
+      <ActionTooltip title={t("Treatment:Plan:Invoice")}>
         <button
           type="button"
           className="bd-rc-action"
-          aria-label={t("Phiếu thu {0}", plan.code)}
+          aria-label={t("Treatment:Plan:Receipt", plan.code)}
           onClick={() => actions.onReceipt(plan)}
         >
           <Receipt size={16} aria-hidden="true" />
@@ -77,7 +77,7 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
 export function PlanCardList({ plans, total, settings, pagination, actions }: Props) {
   return (
     <div className="tp-card-list">
-      {plans.length === 0 && <p className="bd-rc-empty">{t("Chưa có kế hoạch điều trị")}</p>}
+      {plans.length === 0 && <p className="bd-rc-empty">{t("Treatment:Plan:NoPlan")}</p>}
       <div className="bd-rc-list">
         {plans.map((plan) => {
           const { rows, moreRows } = planCardRows(plan, settings);

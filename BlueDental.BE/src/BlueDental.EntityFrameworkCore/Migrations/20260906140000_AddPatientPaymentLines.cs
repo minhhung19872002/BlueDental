@@ -10,7 +10,7 @@ namespace BlueDental.Migrations
     /// <summary>
     /// One receipt, several services.
     ///
-    /// The reference's "Tạo phiếu thanh toán" posts a single payment naming
+    /// The reference's "BE:Perm:CreatePayment" posts a single payment naming
     /// every service it covers (<c>treatmentServiceIds[]</c>) and, when the
     /// cashier splits by hand, how much of the total each takes
     /// (<c>items[]</c>). BlueDental had one payment row per service, so the

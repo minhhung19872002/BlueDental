@@ -136,8 +136,8 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
       destroyOnHidden
       title={
         <span className="am-title">
-          {t("Chọn Dịch Vụ")}
-          <span className="am-chip">{t("Phiếu: {0}", diagnosis.code)}</span>
+          {t("Treatment:Service:PickService")}
+          <span className="am-chip">{t("Treatment:Slip:Code", diagnosis.code)}</span>
         </span>
       }
       footer={

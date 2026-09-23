@@ -18,8 +18,8 @@ type Props =
 
 /** The reference writes its pager in words: ‹ Trước … Sau ›. */
 const renderItem: PaginationProps["itemRender"] = (_page, type, element): ReactNode => {
-  if (type === "prev") return <span className="ah-pager-word">‹ {t("Trước")}</span>;
-  if (type === "next") return <span className="ah-pager-word">{t("Sau")} ›</span>;
+  if (type === "prev") return <span className="ah-pager-word">‹ {t("Appointment:History:Footer:Prev")}</span>;
+  if (type === "next") return <span className="ah-pager-word">{t("Appointment:History:Footer:Next")} ›</span>;
   return element;
 };
 
@@ -27,7 +27,7 @@ export function HistoryFooter(props: Props) {
   if (props.view === "timeline") {
     return (
       <div className="ah-footer">
-        <span className="ah-footer-summary">{t("Hiển thị {0} lịch sử", props.shown)}</span>
+        <span className="ah-footer-summary">{t("Appointment:History:Footer:ShowCount", props.shown)}</span>
       </div>
     );
   }
@@ -39,7 +39,7 @@ export function HistoryFooter(props: Props) {
   return (
     <div className="ah-footer">
       <span className="ah-footer-summary">
-        {t("Hiển thị {0}–{1} trên {2} lịch sử", first, last, total)}
+        {t("Appointment:History:Footer:ShowRange", first, last, total)}
       </span>
       {/* Always shown, as the reference keeps "Trước 1 Sau" even for one page. */}
       <Pagination

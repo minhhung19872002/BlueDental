@@ -60,7 +60,7 @@ public interface IPatientQuoteAppService : IApplicationService
 {
     Task<PagedResultDto<PatientQuoteDto>> GetListAsync(GetPatientQuoteListInput input);
     Task<PatientQuoteDto> CreateAsync(CreatePatientQuoteDto input);
-    /// <summary>"Sao chép báo giá" — a new quote with the same lines and ticks.</summary>
+    /// <summary>"BE:Perm:CopyQuote" — a new quote with the same lines and ticks.</summary>
     Task<PatientQuoteDto> DuplicateAsync(Guid id);
     Task<PatientQuoteDto> UpdateAsync(Guid id, UpdatePatientQuoteDto input);
     Task DeleteAsync(Guid id);

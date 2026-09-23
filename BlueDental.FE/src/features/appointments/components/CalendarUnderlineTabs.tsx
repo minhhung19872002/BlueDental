@@ -12,8 +12,8 @@ export function CalendarUnderlineTabs({ activeTab, onChange }: Props) {
   const workScheduleAbility = useAbility("workSchedule");
 
   const items = [
-    { key: "customer", label: t("Lịch hẹn khách hàng") },
-    ...(workScheduleAbility.canRead ? [{ key: "work", label: t("Lịch làm việc") }] : []),
+    { key: "customer", label: t("Appointment:Tab:CustomerCalendar") },
+    ...(workScheduleAbility.canRead ? [{ key: "work", label: t("Appointment:Tab:WorkSchedule") }] : []),
   ];
 
   return (

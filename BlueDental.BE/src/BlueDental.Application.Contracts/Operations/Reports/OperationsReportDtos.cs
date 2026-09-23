@@ -36,7 +36,7 @@ public enum WorkLogAction
 }
 
 /// <summary>
-/// Which slice of the sales list to read — the reference's "Phân loại" select,
+/// Which slice of the sales list to read — the reference's "BE:Field:Category" select,
 /// whose three options are the same three figures it shows as cards.
 /// </summary>
 public enum SalesCategory

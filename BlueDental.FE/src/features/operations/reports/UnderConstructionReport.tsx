@@ -18,7 +18,7 @@ export function UnderConstructionReport() {
         <OperationsPeriodBar range={range} />
       </div>
 
-      <div className="bd-ops-construction">{t("Nội dung đang được xây dựng.")}</div>
+      <div className="bd-ops-construction">{t("Operations:UnderConstruction")}</div>
     </div>
   );
 }

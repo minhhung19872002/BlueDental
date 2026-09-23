@@ -155,14 +155,14 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
       // The account itself is already saved, so the dialog closes rather than
       // inviting a second submit that would create a duplicate.
       toast.error(
-        `${t("Đã lưu phương thức thanh toán nhưng chưa lưu được ảnh QR")}: ${extractApiError(cause)}`,
+        `${t("Taxonomy:Payment:SavedNoQR")}: ${extractApiError(cause)}`,
       );
       onClose();
       return;
     }
 
     toast.success(
-      account ? t("Đã cập nhật phương thức thanh toán") : t("Đã thêm phương thức thanh toán"),
+      account ? t("Taxonomy:Payment:Updated") : t("Taxonomy:Payment:Created"),
     );
     onClose();
   };
@@ -174,7 +174,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
   return (
     <AppDialog
       open={open}
-      title={account ? t("Cập nhật phương thức") : t("Thêm phương thức")}
+      title={account ? t("Taxonomy:Payment:UpdateTitle") : t("Taxonomy:Payment:CreateTitle")}
       width={440}
       canSave={canSave}
       saving={pending}
@@ -191,18 +191,18 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
         {isMoMo ? (
           <FloatingField
             name="phoneNumber"
-            label={t("Số điện thoại")}
+            label={t("Taxonomy:Payment:Phone")}
             required
-            rules={[{ required: true, message: t("Vui lòng nhập số điện thoại") }]}
+            rules={[{ required: true, message: t("Taxonomy:Payment:PhoneRequired") }]}
           >
             <Input type="tel" autoFocus />
           </FloatingField>
         ) : (
           <FloatingField
             name="bankName"
-            label={t("Tên ngân hàng")}
+            label={t("Taxonomy:Payment:BankName")}
             required
-            rules={[{ required: true, message: t("Vui lòng nhập tên ngân hàng") }]}
+            rules={[{ required: true, message: t("Taxonomy:Payment:BankNameRequired") }]}
           >
             <Input autoFocus />
           </FloatingField>
@@ -210,9 +210,9 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
 
         <FloatingField
           name="holderName"
-          label={t("Tên chủ tài khoản")}
+          label={t("Taxonomy:Payment:AccountHolder")}
           required
-          rules={[{ required: true, message: t("Vui lòng nhập tên chủ tài khoản") }]}
+          rules={[{ required: true, message: t("Taxonomy:Payment:AccountHolderRequired") }]}
         >
           <Input />
         </FloatingField>
@@ -220,9 +220,9 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
         {!isMoMo && (
           <FloatingField
             name="accountNumber"
-            label={t("Số tài khoản")}
+            label={t("Taxonomy:Payment:AccountNumber")}
             required
-            rules={[{ required: true, message: t("Vui lòng nhập số tài khoản") }]}
+            rules={[{ required: true, message: t("Taxonomy:Payment:AccountNumberRequired") }]}
           >
             <Input />
           </FloatingField>
@@ -230,7 +230,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
 
         <div className="bd-dialog-section">
           <label htmlFor="payment-qr" className="bd-dialog-section-title">
-            {t("Tải ảnh QR")}
+            {t("Taxonomy:Payment:UploadQR")}
           </label>
 
           {/* A plain input keeps the upload a real multipart POST. */}
@@ -253,7 +253,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             <div className="bd-pay-qr">
               <img
                 src={shownQrUrl}
-                alt={t("Ảnh QR")}
+                alt={t("Taxonomy:Payment:QRImage")}
                 data-testid="payment-qr-preview"
                 className="bd-pay-qr-img"
               />
@@ -266,7 +266,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
                     size="small"
                     onClick={() => qrInputRef.current?.click()}
                   >
-                    {t("Đổi ảnh")}
+                    {t("Taxonomy:Payment:ChangeImage")}
                   </Button>
                   <Button
                     htmlType="button"
@@ -276,7 +276,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
                     onClick={clearQrImage}
                   >
                     <Trash2 className="bd-icon bd-icon--sm" aria-hidden="true" />
-                    {t("Xoá ảnh")}
+                    {t("Taxonomy:Payment:RemoveImage")}
                   </Button>
                 </div>
               </div>
@@ -291,7 +291,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
               className="bd-pay-upload"
             >
               <ImageUp className="bd-icon bd-icon--lg" aria-hidden="true" />
-              {t("Tải ảnh QR")}
+              {t("Taxonomy:Payment:UploadQR")}
             </button>
           )}
 

@@ -58,7 +58,7 @@ export function VoucherServicesModal({ voucher, onClose }: Props) {
   return (
     <Modal
       open={voucher !== null}
-      title={<h2 className="bd-modal-title">{t("Dịch vụ áp dụng")}</h2>}
+      title={<h2 className="bd-modal-title">{t("Voucher:ApplicableServices")}</h2>}
       onCancel={onClose}
       footer={null}
       width={520}

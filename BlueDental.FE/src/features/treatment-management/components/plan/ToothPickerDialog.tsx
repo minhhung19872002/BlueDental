@@ -72,7 +72,7 @@ export function ToothPickerDialog({ open, value, onConfirm, onClose }: Props) {
       footer={null}
       width="min(1024px, calc(100vw - 32px))"
       className="tp-dialog tp-teeth-dialog"
-      title={t("Chọn răng")}
+      title={t("Treatment:Tooth:ToothPicker")}
       closeIcon={<X size={20} aria-hidden="true" />}
       destroyOnHidden
     >
@@ -94,7 +94,7 @@ export function ToothPickerDialog({ open, value, onConfirm, onClose }: Props) {
 
       <div className="tp-teeth-foot">
         <button type="button" className="tp-btn tp-btn--primary" onClick={handleConfirm}>
-          {t("Chọn răng")}
+          {t("Treatment:Tooth:ToothPicker")}
         </button>
       </div>
     </Modal>

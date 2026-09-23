@@ -50,25 +50,25 @@ export function VoucherPage() {
   );
 
   const handlePublish = useCallback(
-    (id: string) => run(publishVoucher.mutateAsync(id), t("Đã hiển thị voucher")),
+    (id: string) => run(publishVoucher.mutateAsync(id), t("Voucher:PublishSuccess")),
     [publishVoucher, run],
   );
 
   const handleUnpublish = useCallback(
-    (id: string) => run(unpublishVoucher.mutateAsync(id), t("Đã ẩn voucher")),
+    (id: string) => run(unpublishVoucher.mutateAsync(id), t("Voucher:UnpublishSuccess")),
     [unpublishVoucher, run],
   );
 
   const handleDelete = useCallback(
-    (id: string) => run(deleteVoucher.mutateAsync(id), t("Đã xoá voucher")),
+    (id: string) => run(deleteVoucher.mutateAsync(id), t("Voucher:DeleteSuccess")),
     [deleteVoucher, run],
   );
 
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Voucher khuyến mãi")}
-        subtitle={t("Voucher mới luôn ở trạng thái Nháp — phải kích hoạt mới dùng được")}
+        title={t("Voucher:PageTitle")}
+        subtitle={t("Voucher:PageSubtitle")}
       />
 
       <div className="reception-card reception-card--toolbar">

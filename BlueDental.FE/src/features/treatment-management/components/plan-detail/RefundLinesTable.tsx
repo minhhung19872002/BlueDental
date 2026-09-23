@@ -24,7 +24,7 @@ export function RefundLinesTable({ lines, onAmountChange }: Props) {
   const pagination = useTablePagination(20);
   const narrow = useMediaQuery(NARROW_SCREEN);
   const pageLines = lines.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
-  const showTotal = countedTotal(t("dịch vụ"));
+  const showTotal = countedTotal(t("Treatment:Service:ServiceNoun"));
   if (narrow) {
     return (
       <RefundLineCards
@@ -41,12 +41,12 @@ export function RefundLinesTable({ lines, onAmountChange }: Props) {
       <table className="pdt-refund-table">
         <thead>
           <tr>
-            <th>{t("Dịch vụ")}</th>
-            <th className="pdt-num">{t("Tổng tiền")}</th>
-            <th className="pdt-num">{t("Đã thanh toán")}</th>
-            <th className="pdt-num">{t("Còn lại")}</th>
-            <th className="pdt-num">{t("Đã hoàn")}</th>
-            <th className="pdt-refund-input">{t("Nhập số tiền hoàn")}</th>
+            <th>{t("Treatment:Service:Service")}</th>
+            <th className="pdt-num">{t("Treatment:Pricing:TotalAmount")}</th>
+            <th className="pdt-num">{t("Treatment:Receipt:TotalPaid")}</th>
+            <th className="pdt-num">{t("Treatment:Debt:Remaining")}</th>
+            <th className="pdt-num">{t("Treatment:Refund:Refunded")}</th>
+            <th className="pdt-refund-input">{t("Treatment:Refund:EnterAmount")}</th>
           </tr>
         </thead>
         <tbody>
@@ -55,7 +55,7 @@ export function RefundLinesTable({ lines, onAmountChange }: Props) {
           {pageLines.length === 0 && (
             <tr>
               <td colSpan={6} className="pdt-refund-empty">
-                {t("Không có dữ liệu")}
+                {t("Treatment:Common:NoData")}
               </td>
             </tr>
           )}
@@ -71,8 +71,8 @@ export function RefundLinesTable({ lines, onAmountChange }: Props) {
                 <td className="pdt-num">{moneyText(line.refunded)}</td>
                 <td className="pdt-refund-input">
                   <CurrencyInput
-                    aria-label={t("Số tiền hoàn {0}", name)}
-                    placeholder={t("Nhập số tiền hoàn")}
+                    aria-label={t("Treatment:Refund:AmountLabel", name)}
+                    placeholder={t("Treatment:Refund:EnterAmount")}
                     value={line.amount}
                     onChange={(amount) => onAmountChange(line.service.id, amount)}
                     disabled={line.refundable <= 0}

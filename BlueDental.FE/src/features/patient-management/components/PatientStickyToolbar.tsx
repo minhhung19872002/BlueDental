@@ -63,13 +63,13 @@ export function PatientStickyToolbar({
 
         {canExport && (
           <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
-            {t("Xuất file")}
+            {t("Patient:Viewer:Export")}
           </Button>
         )}
 
         {canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-            {t("Tạo hồ sơ")}
+            {t("Patient:List:CreateRecord")}
           </Button>
         )}
       </div>

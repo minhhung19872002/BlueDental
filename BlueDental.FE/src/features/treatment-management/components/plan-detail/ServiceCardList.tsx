@@ -19,22 +19,22 @@ interface Props {
 /** The first four columns stay visible; the rest fold behind "Xem thêm". */
 function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
   const rows: RecordCardRow[] = [
-    { key: "service", label: t("Dịch vụ"), value: <ServiceNameCell row={row} actions={actions} /> },
-    { key: "diagnosis", label: t("Chẩn đoán"), value: dash(row.advise?.diagnosisName) },
-    { key: "dentist", label: t("Bác sĩ điều trị"), value: dash(row.plan.dentistName) },
-    { key: "teeth", label: t("Răng"), value: formatTeeth(row.service.teeth) },
+    { key: "service", label: t("Treatment:Service:Service"), value: <ServiceNameCell row={row} actions={actions} /> },
+    { key: "diagnosis", label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
+    { key: "dentist", label: t("Treatment:Common:DentistDoctor"), value: dash(row.plan.dentistName) },
+    { key: "teeth", label: t("Treatment:Tooth:Tooth"), value: formatTeeth(row.service.teeth) },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "quantity", label: t("Số lượng"), value: row.service.quantity },
-    { key: "price", label: t("Đơn giá"), value: moneyText(row.service.price) },
-    { key: "discount", label: t("Tổng giảm giá"), value: <DiscountCell row={row} /> },
-    { key: "amount", label: t("Thành tiền"), value: <strong>{moneyText(row.service.effectiveAmount)}</strong> },
-    { key: "advance", label: t("Tạm ứng"), value: moneyText(advanceOn(row.service)) },
-    { key: "note", label: t("Ghi chú"), value: dash(row.advise?.note) },
-    { key: "diagnoser1", label: t("Bác sĩ chẩn đoán 1"), value: dash(row.advise?.staffName) },
-    { key: "diagnoser2", label: t("Chẩn đoán 2"), value: dash(row.advise?.secondStaffName) },
-    { key: "consultant1", label: t("Nhân sự tư vấn 1"), value: dash(row.plan.consultantName) },
-    { key: "consultant2", label: t("Nhân sự tư vấn 2"), value: "—" },
+    { key: "quantity", label: t("Treatment:Pricing:Quantity"), value: row.service.quantity },
+    { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: moneyText(row.service.price) },
+    { key: "discount", label: t("Treatment:Pricing:TotalDiscount"), value: <DiscountCell row={row} /> },
+    { key: "amount", label: t("Treatment:Pricing:NetAmount"), value: <strong>{moneyText(row.service.effectiveAmount)}</strong> },
+    { key: "advance", label: t("Treatment:Payment:Prepaid"), value: moneyText(advanceOn(row.service)) },
+    { key: "note", label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },
+    { key: "diagnoser1", label: t("Treatment:Diagnosis:DoctorOne"), value: dash(row.advise?.staffName) },
+    { key: "diagnoser2", label: t("Treatment:Diagnosis:DiagnosisTwo"), value: dash(row.advise?.secondStaffName) },
+    { key: "consultant1", label: t("Treatment:Consulting:ConsultantOne"), value: dash(row.plan.consultantName) },
+    { key: "consultant2", label: t("Treatment:Consulting:ConsultantTwo"), value: "—" },
   ];
   return { rows, moreRows };
 }
@@ -43,7 +43,7 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
 export function ServiceCardList({ rows, total, pagination, actions, showTotal }: Props) {
   return (
     <div className="tp-card-list pdt-card-list">
-      {rows.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
+      {rows.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
       <div className="bd-rc-list">
         {rows.map((row) => {
           const card = cardRows(row, actions);
@@ -55,7 +55,7 @@ export function ServiceCardList({ rows, total, pagination, actions, showTotal }:
                 <button
                   type="button"
                   className="bd-rc-action"
-                  aria-label={t("Xem chi tiết")}
+                  aria-label={t("Treatment:Service:ViewDetail")}
                   onClick={() => actions.onView(row)}
                 >
                   <Eye size={16} aria-hidden="true" />

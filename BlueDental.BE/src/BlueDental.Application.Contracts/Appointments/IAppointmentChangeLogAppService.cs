@@ -5,7 +5,7 @@ using Volo.Abp.Application.Services;
 namespace BlueDental.Appointments;
 
 /// <summary>
-/// Read side of the appointment change history ("Lịch sử thay đổi lịch hẹn").
+/// Read side of the appointment change history ("BE:Perm:AppointmentHistory").
 /// Rows are written by the appointment service itself; nothing writes here.
 /// </summary>
 public interface IAppointmentChangeLogAppService : IApplicationService

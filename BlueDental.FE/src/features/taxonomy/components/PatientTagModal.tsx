@@ -64,14 +64,14 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
             isActive: tag.isActive,
           },
         });
-        toast.success(t("Đã cập nhật thẻ hồ sơ"));
+        toast.success(t("Taxonomy:Tag:Updated"));
       } else {
         await createTag.mutateAsync({
           clinicBranchId: branchId,
           name: trimmed,
           color: values.color,
         });
-        toast.success(t("Đã thêm thẻ hồ sơ"));
+        toast.success(t("Taxonomy:Tag:Created"));
       }
       onClose();
     } catch {
@@ -82,7 +82,7 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
   return (
     <AppDialog
       open={open}
-      title={tag ? t("Cập nhật thẻ hồ sơ") : t("Thêm thẻ hồ sơ mới")}
+      title={tag ? t("Taxonomy:Tag:UpdateTitle") : t("Taxonomy:Tag:CreateTitle")}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -97,9 +97,9 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
       >
         <FloatingField
           name="name"
-          label={t("Tên thẻ hồ sơ")}
+          label={t("Taxonomy:Tag:NameLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng nhập tên thẻ hồ sơ") }]}
+          rules={[{ required: true, message: t("Taxonomy:Tag:NameRequired") }]}
         >
           <Input autoFocus />
         </FloatingField>
@@ -111,13 +111,13 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
         </Form.Item>
 
         <div className="bd-dialog-section">
-          <p className="bd-dialog-section-title">{t("Màu")}</p>
+          <p className="bd-dialog-section-title">{t("Taxonomy:Tag:Color")}</p>
           <div className="bd-cat-inline">
             {PRESET_COLORS.map((preset) => (
               <button
                 key={preset}
                 type="button"
-                aria-label={t("Chọn màu {0}", preset)}
+                aria-label={t("Taxonomy:Tag:SelectColor", preset)}
                 aria-pressed={color.toUpperCase() === preset}
                 onClick={() => form.setFieldValue("color", preset)}
                 style={{ backgroundColor: preset }}
@@ -134,7 +134,7 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
               </span>
               <input
                 type="color"
-                aria-label={t("Chọn màu tuỳ chỉnh")}
+                aria-label={t("Taxonomy:Tag:CustomColor")}
                 value={color}
                 onChange={(event) =>
                   form.setFieldValue("color", event.target.value.toUpperCase())
@@ -146,9 +146,9 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
         </div>
 
         <div className="bd-tag-preview">
-          <p className="bd-cat-hint">{t("Xem trước")}</p>
+          <p className="bd-cat-hint">{t("Taxonomy:Tag:Preview")}</p>
           <span style={{ backgroundColor: color }} className="bd-tag-chip">
-            {name.trim() || t("Khách hàng mới")}
+            {name.trim() || t("Taxonomy:Tag:NewCustomer")}
           </span>
         </div>
       </Form>

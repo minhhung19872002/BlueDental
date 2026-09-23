@@ -48,10 +48,10 @@ export function LaboCatalogDialog({ open, group, noun, item, onClose }: Props) {
         // The row's own priority goes back untouched, so a rename never
         // reorders the list.
         await update.mutateAsync({ id: item.id, name: trimmed, sortOrder: item.sortOrder });
-        toast.success(t("Đã cập nhật"));
+        toast.success(t("Common:Updated"));
       } else {
         await create.mutateAsync({ name: trimmed });
-        toast.success(t("Đã thêm"));
+        toast.success(t("Common:Added"));
       }
       onClose();
     } catch {
@@ -63,7 +63,7 @@ export function LaboCatalogDialog({ open, group, noun, item, onClose }: Props) {
     <AppDialog
       open={open}
       width={460}
-      title={item ? t("Sửa {0}", noun) : t("Tạo {0}", noun)}
+      title={item ? t("Common:EditItem", noun) : t("Common:CreateItem", noun)}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -78,9 +78,9 @@ export function LaboCatalogDialog({ open, group, noun, item, onClose }: Props) {
       >
         <FloatingField
           name="name"
-          label={t("Tên {0}", noun)}
+          label={t("Common:NameItem", noun)}
           required
-          rules={[{ required: true, message: t("Vui lòng nhập tên {0}", noun) }]}
+          rules={[{ required: true, message: t("Common:PleaseEnter", t("Common:NameItem", noun)) }]}
         >
           <Input autoFocus maxLength={100} />
         </FloatingField>

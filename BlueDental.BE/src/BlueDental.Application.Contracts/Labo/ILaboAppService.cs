@@ -13,7 +13,7 @@ public interface ILaboAppService : IApplicationService
     Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input);
 
     /// <summary>
-    /// Số phiếu Labo the next order would take, so "Đặt mới" can open with it
+    /// Số phiếu Labo the next order would take, so "BE:LaboField:NewOrder" can open with it
     /// filled in the way the reference does.
     /// </summary>
     Task<string> GetNextOrderCodeAsync();
@@ -23,6 +23,6 @@ public interface ILaboAppService : IApplicationService
     Task CompleteAsync(Guid id);
     Task RejectAsync(Guid id, string reason);
 
-    /// <summary>"Xuất Excel" on the Labo screen.</summary>
+    /// <summary>"BE:Common:ExportExcel" on the Labo screen.</summary>
     Task<byte[]> ExportAsync(GetLaboOrderListInput input);
 }

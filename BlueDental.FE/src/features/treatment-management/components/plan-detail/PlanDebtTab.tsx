@@ -36,21 +36,21 @@ interface Props {
 
 function buildColumns(onView: (row: DebtRow) => void): TableColumnsType<DebtRow> {
   return [
-    { key: "service", title: t("Dịch vụ"), width: 230, render: (_, r) => r.service.serviceName ?? r.service.code },
-    { key: "diagnosis", title: t("Chẩn đoán"), width: 160, render: (_, r) => dash(r.advise?.diagnosisName) },
-    { key: "dentist", title: t("Bác sĩ điều trị"), width: 160, render: (_, r) => dash(r.plan.dentistName) },
-    { key: "teeth", title: t("Răng"), width: 110, render: (_, r) => formatTeeth(r.service.teeth) },
-    { key: "quantity", title: t("Số lượng"), width: 90, align: "center", render: (_, r) => r.service.quantity },
-    { key: "debt", title: t("Dư nợ"), width: 130, align: "right", render: (_, r) => moneyText(r.debt) },
-    { key: "total", title: t("Tổng tiền"), width: 140, align: "right", render: (_, r) => moneyText(r.service.effectiveAmount) },
+    { key: "service", title: t("Treatment:Service:Service"), width: 230, render: (_, r) => r.service.serviceName ?? r.service.code },
+    { key: "diagnosis", title: t("Treatment:Diagnosis:Diagnosis"), width: 160, render: (_, r) => dash(r.advise?.diagnosisName) },
+    { key: "dentist", title: t("Treatment:Common:DentistDoctor"), width: 160, render: (_, r) => dash(r.plan.dentistName) },
+    { key: "teeth", title: t("Treatment:Tooth:Tooth"), width: 110, render: (_, r) => formatTeeth(r.service.teeth) },
+    { key: "quantity", title: t("Treatment:Pricing:Quantity"), width: 90, align: "center", render: (_, r) => r.service.quantity },
+    { key: "debt", title: t("Treatment:Debt:OutstandingDebt"), width: 130, align: "right", render: (_, r) => moneyText(r.debt) },
+    { key: "total", title: t("Treatment:Pricing:TotalAmount"), width: 140, align: "right", render: (_, r) => moneyText(r.service.effectiveAmount) },
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 70,
       align: "center",
       fixed: "right",
       render: (_, r) => (
-        <button type="button" className="tp-eye" aria-label={t("Xem chi tiết")} onClick={() => onView(r)}>
+        <button type="button" className="tp-eye" aria-label={t("Treatment:Service:ViewDetail")} onClick={() => onView(r)}>
           <Eye size={16} aria-hidden="true" />
         </button>
       ),
@@ -89,34 +89,34 @@ export function PlanDebtTab({ patient, plan, branchId }: Props) {
   }, [plan, advises.data, query.data]);
 
   const pageRows = rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
-  const showTotal = countedTotal(t("dịch vụ"));
+  const showTotal = countedTotal(t("Treatment:Service:ServiceNoun"));
   const columns = useMemo(() => buildColumns(setViewing), []);
 
   return (
     <div className="pdt-pane">
       {narrow ? (
         <div className="tp-card-list pdt-card-list">
-          {rows.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
+          {rows.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
           <div className="bd-rc-list">
             {pageRows.map((row) => (
               <RecordCard
                 key={row.service.id}
-                title={t("{0} #{1}", t("Dịch vụ"), row.index)}
+                title={t("{0} #{1}", t("Treatment:Service:Service"), row.index)}
                 extra={
-                  <button type="button" className="bd-rc-action" aria-label={t("Xem chi tiết")} onClick={() => setViewing(row)}>
+                  <button type="button" className="bd-rc-action" aria-label={t("Treatment:Service:ViewDetail")} onClick={() => setViewing(row)}>
                     <Eye size={16} aria-hidden="true" />
                   </button>
                 }
                 rows={[
-                  { key: "service", label: t("Dịch vụ"), value: row.service.serviceName ?? row.service.code },
-                  { key: "debt", label: t("Dư nợ"), value: <strong>{moneyText(row.debt)}</strong> },
-                  { key: "total", label: t("Tổng tiền"), value: moneyText(row.service.effectiveAmount) },
+                  { key: "service", label: t("Treatment:Service:Service"), value: row.service.serviceName ?? row.service.code },
+                  { key: "debt", label: t("Treatment:Debt:OutstandingDebt"), value: <strong>{moneyText(row.debt)}</strong> },
+                  { key: "total", label: t("Treatment:Pricing:TotalAmount"), value: moneyText(row.service.effectiveAmount) },
                 ]}
                 moreRows={[
-                  { key: "diagnosis", label: t("Chẩn đoán"), value: dash(row.advise?.diagnosisName) },
-                  { key: "dentist", label: t("Bác sĩ điều trị"), value: dash(row.plan.dentistName) },
-                  { key: "teeth", label: t("Răng"), value: formatTeeth(row.service.teeth) },
-                  { key: "quantity", label: t("Số lượng"), value: row.service.quantity },
+                  { key: "diagnosis", label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
+                  { key: "dentist", label: t("Treatment:Common:DentistDoctor"), value: dash(row.plan.dentistName) },
+                  { key: "teeth", label: t("Treatment:Tooth:Tooth"), value: formatTeeth(row.service.teeth) },
+                  { key: "quantity", label: t("Treatment:Pricing:Quantity"), value: row.service.quantity },
                 ]}
               />
             ))}
@@ -130,7 +130,7 @@ export function PlanDebtTab({ patient, plan, branchId }: Props) {
             columns={columns}
             dataSource={pageRows}
             pagination={pagination.buildConfig(rows.length, showTotal)}
-            locale={{ emptyText: t("Không có dữ liệu") }}
+            locale={{ emptyText: t("Treatment:Common:NoData") }}
           />
         </div>
       )}

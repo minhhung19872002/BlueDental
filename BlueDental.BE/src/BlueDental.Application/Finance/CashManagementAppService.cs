@@ -224,7 +224,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
     }
 
     /// <summary>
-    /// "Người tạo" — cashflow entries carry the identity user id of whoever
+    /// "BE:Field:CreatedBy" — cashflow entries carry the identity user id of whoever
     /// booked them, so the display name comes from ABP Identity, same as the
     /// sales ledger.
     /// </summary>
@@ -246,7 +246,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
     }
 
     /// <summary>
-    /// The two summary lines under the tiles — "Doanh thu dịch vụ" and "Cà thẻ
+    /// The two summary lines under the tiles — "BE:Col:ServiceRevenue" and "Cà thẻ
     /// (đối soát)" — start from the patient ledger, not from the cash ledger.
     /// ASSUMPTION (UNKNOWN_REFERENCE_BEHAVIOR, the reference showed 0 for both
     /// during the survey): service revenue is every treatment payment net of
@@ -286,7 +286,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             Cash = cash,
             Bank = bank,
             CustomerPrepaid = prepaid,
-            // "Tổng Tiền" is what the clinic can spend: money held for customers
+            // "BE:Field:GrandTotalAmt" is what the clinic can spend: money held for customers
             // and card takings the bank has not settled are both excluded.
             Total = cash + bank,
             ServiceRevenue = patientMoney.ServiceRevenue,

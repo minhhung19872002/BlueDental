@@ -174,7 +174,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     const keys = formSpecOf(sheet.form).dateFieldKeys ?? [];
     if (keys.length === 0) return;
 
-    const printed = next.format("DD/MM/YYYY");
+    const printed = next.format("Patient:Misc:DateFormat");
     setEdits((current) => {
       const values = { ...(current[sheet.id] ?? parseFieldValues(sheet.content)) };
       for (const key of keys) values[key] = printed;
@@ -206,7 +206,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     try {
       const created = await addSheet.mutateAsync({ form: spec.form, title: t(spec.label) });
       openSheet(created.id);
-      toast.success(t("Đã thêm phiếu bệnh án"));
+      toast.success(t("Patient:MedRecord:Added"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -224,7 +224,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
         delete rest[active.id];
         return rest;
       });
-      toast.success(t("Đã lưu phiếu bệnh án"));
+      toast.success(t("Patient:MedRecord:Saved"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -235,7 +235,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     try {
       await renameSheet.mutateAsync({ id: renaming.id, title: newTitle.trim() });
       setRenaming(null);
-      toast.success(t("Đã đổi tên phiếu"));
+      toast.success(t("Patient:MedRecord:Renamed"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -247,7 +247,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       await deleteSheet.mutateAsync(removing.id);
       if (activeId === removing.id) setActiveId(null);
       setRemoving(null);
-      toast.success(t("Đã xoá phiếu bệnh án"));
+      toast.success(t("Patient:MedRecord:Deleted"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -329,7 +329,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
             <div className="pd-medical-paper">
               {shown.length === 0 ? (
                 <p className="pd-medical-empty">
-                  {t('Chưa có phiếu bệnh án. Chọn "Thêm" ở mục lục để tạo phiếu mới.')}
+                  {t("Patient:MedRecord:EmptyHint")}
                 </p>
               ) : (
                 shown.map((sheet) => (
@@ -351,8 +351,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
             <div className="pd-medical-bar">
               <SegmentedTabs
                 items={[
-                  { key: "single" as const, label: t("Từng phiếu") },
-                  { key: "all" as const, label: t("Toàn bộ") },
+                  { key: "single" as const, label: t("Patient:Payment:EachSlip") },
+                  { key: "all" as const, label: t("Patient:Misc:All") },
                 ]}
                 activeKey={mode}
                 onChange={setMode}
@@ -361,8 +361,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
               <div className="pd-medical-zoom">
                 <span>{t("Zoom")}</span>
                 <Button
-                  aria-label={t("Thu nhỏ bệnh án")}
-                  title={t("Thu nhỏ")}
+                  aria-label={t("Patient:MedRecord:ZoomOut")}
+                  title={t("Patient:Viewer:ZoomOut")}
                   icon={<Minus size={14} />}
                   disabled={zoom <= ZOOM_MIN}
                   onClick={() =>
@@ -371,8 +371,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                 />
                 <b>{Math.round(zoom * 100)}%</b>
                 <Button
-                  aria-label={t("Phóng to bệnh án")}
-                  title={t("Phóng to")}
+                  aria-label={t("Patient:MedRecord:ZoomIn")}
+                  title={t("Patient:Viewer:ZoomIn")}
                   icon={<Plus size={14} />}
                   disabled={zoom >= ZOOM_MAX}
                   onClick={() =>
@@ -393,12 +393,12 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                   disabled={!active}
                   onClick={() => active && void printSheets([active.id])}
                 >
-                  {t("In biểu mẫu")}
+                  {t("Patient:MedRecord:Print")}
                 </Button>
               )}
 
               <Button className="pd-medical-sync" icon={<RefreshCw size={14} />} disabled>
-                {t("Đồng bộ phiếu")}
+                {t("Patient:MedRecord:SyncSlip")}
               </Button>
 
               <Button
@@ -408,7 +408,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                 disabled={!active || !formSpecOf(active.form).fillable}
                 onClick={() => void handleSave()}
               >
-                {saveSheet.isPending ? t("Đang lưu...") : t("Lưu")}
+                {saveSheet.isPending ? t("Patient:MedicalRecord:Saving") : t("Patient:Misc:Save")}
               </Button>
             </div>
           </div>
@@ -417,18 +417,18 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
       <AppDialog
         open={Boolean(renaming)}
-        title={t("Đổi tên phiếu")}
+        title={t("Patient:MedRecord:Rename")}
         width={420}
         canSave={newTitle.trim().length > 0}
         saving={renameSheet.isPending}
-        cancelLabel={t("Huỷ")}
+        cancelLabel={t("Patient:Misc:CancelVN")}
         onSave={() => void handleRename()}
         onClose={() => setRenaming(null)}
       >
         <Input
           autoFocus
           value={newTitle}
-          aria-label={t("Tên phiếu")}
+          aria-label={t("Patient:MedRecord:SlipName")}
           onChange={(event) => setNewTitle(event.target.value)}
           onPressEnter={() => void handleRename()}
         />
@@ -436,7 +436,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
       <ConfirmDeleteDialog
         open={Boolean(removing)}
-        noun={t("phiếu bệnh án")}
+        noun={t("Patient:Misc:PatientRecord")}
         name={removing?.title ?? ""}
         pending={deleteSheet.isPending}
         onConfirm={() => void handleDelete()}

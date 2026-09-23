@@ -290,7 +290,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
         // The staging file is one unstyled sheet, every value a string.
         return ExcelSheet.BuildPlain(
-            "Chăm sóc khách hàng",
+            "CSKH",
             CareExportColumns.For(input.Type),
             dtos);
     }
@@ -368,7 +368,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         }
 
         // input.ExcludeTreatmentNone: the reference always sends true yet still
-        // returns "Chưa phát sinh" rows, so it is accepted but not applied.
+        // returns "BE:CareType:NoActivity" rows, so it is accepted but not applied.
 
         var totalCount = query.Count();
         var patients = query

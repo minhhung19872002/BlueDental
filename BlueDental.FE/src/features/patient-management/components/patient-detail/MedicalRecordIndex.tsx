@@ -51,13 +51,13 @@ export function MedicalRecordIndex({
           <FileTextOutlined />
         </span>
         <div>
-          <strong>{t("Mục lục bệnh án")}</strong>
-          <small>{t("{0} biểu mẫu", sheets.length)}</small>
+          <strong>{t("Patient:MedRecord:Index")}</strong>
+          <small>{t("Patient:MedicalRecord:FormCount", sheets.length)}</small>
         </div>
         <Button
           type="text"
           className="pd-medical-collapse"
-          aria-label={collapsed ? t("Mở mục lục") : t("Thu gọn mục lục")}
+          aria-label={collapsed ? t("Patient:MedicalRecord:Expand") : t("Patient:MedRecord:CollapseIndex")}
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={onToggleCollapse}
         />
@@ -95,7 +95,7 @@ export function MedicalRecordIndex({
                     loading={adding}
                     onClick={() => onAdd(spec)}
                   >
-                    {t("Thêm")}
+                    {t("Patient:Misc:Add")}
                   </Button>
                 )}
               </div>

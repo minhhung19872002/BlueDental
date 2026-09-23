@@ -17,7 +17,7 @@ export function AppointmentColorPicker({ value, onChange }: Props) {
 
   return (
     <div className="appt-field">
-      <span className="appt-field-label">{t("Màu lịch hẹn")}</span>
+      <span className="appt-field-label">{t("Appointment:Form:AppointmentColor")}</span>
       <div className="appt-color-row">
         {APPT_COLORS.map((c) => (
           <button

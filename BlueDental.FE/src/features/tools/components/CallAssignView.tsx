@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Button, Tag, Tooltip } from "antd";
 import { toast } from "sonner";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
@@ -42,7 +42,7 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
     if (!pendingDelete) return;
     try {
       await deleteAssignment.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá phân công"));
+      toast.success(t("Tools:AssignDeleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -54,20 +54,20 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
     () => [
       {
         key: "sip",
-        title: t("SIP"),
+        title: t("Tools:SipLabel"),
         width: 120,
         render: (_, assignment) => <span className="bd-cat-medium">{assignment.sip}</span>,
       },
-      { key: "configuration", title: t("Cấu hình"), dataIndex: "configurationName" },
-      { key: "staff", title: t("Nhân viên"), dataIndex: "staffName" },
+      { key: "configuration", title: t("Tools:ConfigLabel"), dataIndex: "configurationName" },
+      { key: "staff", title: t("Tools:StaffLabel"), dataIndex: "staffName" },
       {
         key: "provider",
-        title: t("Nhà cung cấp"),
+        title: t("Tools:ProviderLabel"),
         render: (_, assignment) => providerLabel(assignment.provider),
       },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 130,
         render: (_, assignment) => {
           const { label, color } = activeTag(assignment.isActive);
@@ -76,31 +76,31 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Tools:ActionsLabel"),
         width: 110,
         align: "center",
         fixed: "right",
         render: (_, assignment) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa SIP {0}", assignment.sip)}
+                  aria-label={t("Tools:EditSipAria", assignment.sip)}
                   onClick={() => setDialog({ open: true, assignment })}
                 />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá SIP {0}", assignment.sip)}
+                  aria-label={t("Tools:DeleteSipAria", assignment.sip)}
                   onClick={() => setPendingDelete(assignment)}
                 />
               </Tooltip>
@@ -122,7 +122,7 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
             icon={<PlusOutlined />}
             onClick={() => setDialog({ open: true, assignment: null })}
           >
-            {t("Tạo phân công")}
+            {t("Tools:CreateAssign")}
           </Button>
         )}
       </div>
@@ -135,7 +135,7 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
         // UNKNOWN_REFERENCE_BEHAVIOR: the reference's empty wording for this
         // list was not captured; this mirrors the configuration tab's phrasing.
-        locale={{ emptyText: t("Chưa có phân công nào") }}
+        locale={{ emptyText: t("Tools:NoAssignments") }}
       />
 
       <CallAssignDialog
@@ -146,7 +146,7 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("phân công")}
+        noun={t("Tools:AssignNoun")}
         name={pendingDelete ? `SIP ${pendingDelete.sip}` : ""}
         pending={deleteAssignment.isPending}
         onConfirm={() => void confirmDelete()}
@@ -155,3 +155,4 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
     </div>
   );
 }
+

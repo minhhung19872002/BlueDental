@@ -44,7 +44,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
     () => [
       {
         key: "visit",
-        title: t("Ngày / Khách hàng"),
+        title: t("Operations:DateCustomerCol"),
         width: 260,
         onCell: (row) => ({ rowSpan: appointmentSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => (
@@ -57,9 +57,9 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
             {/* Đã đến → Đang khám → Hoàn tất, with the time under each. */}
             <ol className="bd-ops-steps">
               {[
-                { label: t("Đã đến"), at: row.arrivedAt },
-                { label: t("Đang khám"), at: row.startedAt },
-                { label: t("Hoàn tất"), at: row.completedAt },
+                { label: t("Operations:ArrivedAt"), at: row.arrivedAt },
+                { label: t("Operations:InProgress"), at: row.startedAt },
+                { label: t("Operations:Completed"), at: row.completedAt },
               ].map((step, index) => (
                 <li key={step.label} className="bd-ops-step">
                   <span
@@ -77,13 +77,13 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       },
       {
         key: "staff",
-        title: t("Nhân sự"),
+        title: t("Operations:StaffWorkCol"),
         width: 170,
         render: (_, row) => row.staffName || "",
       },
       {
         key: "action",
-        title: t("Hành động"),
+        title: t("Operations:ActionCol"),
         width: 200,
         onCell: (row) => ({ rowSpan: actionSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => {
@@ -97,10 +97,10 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       },
       {
         key: "subject",
-        title: t("Điều trị / Dịch vụ / Lịch hẹn"),
+        title: t("Operations:TreatmentServiceAppt"),
         render: (_, row) => (
           <span className="bd-ops-subject">
-            <span>{row.subject || t("(Trống)")}</span>
+            <span>{row.subject || t("Operations:Empty")}</span>
             {row.subjectDetail ? (
               <span className="bd-ops-subject-detail">{row.subjectDetail}</span>
             ) : null}
@@ -109,16 +109,16 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       },
       {
         key: "note",
-        title: t("Nội dung / Ghi chú"),
+        title: t("Operations:ContentNoteCol"),
         render: (_, row) => (
           <span className={row.note ? undefined : "bd-ops-blank"}>
-            {row.note || t("(Trống)")}
+            {row.note || t("Operations:Empty")}
           </span>
         ),
       },
       {
         key: "amount",
-        title: t("Doanh số"),
+        title: t("Operations:SalesCol"),
         width: 150,
         align: "right",
         render: (_, row) => (
@@ -140,7 +140,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         rowKey={(row) => `${row.appointmentKey}-${row.action}-${row.occurredAt}-${row.subject}`}
         loading={loading}
         pagination={pagination.buildConfig(totalCount, showTotal)}
-        locale={{ emptyText: t("Không có dữ liệu") }}
+        locale={{ emptyText: t("Common:NoData") }}
       />
     </div>
   );

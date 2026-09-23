@@ -101,7 +101,7 @@ export function BranchManagerEditorModal({
   return (
     <Modal
       open={open}
-      title={isEditing ? t("Cập nhật quản lý chi nhánh") : t("Tạo quản lý chi nhánh")}
+      title={isEditing ? t("Organization:UpdateManager") : t("Organization:CreateManager")}
       width={772}
       onCancel={onClose}
       destroyOnHidden
@@ -113,7 +113,7 @@ export function BranchManagerEditorModal({
           icon={<SaveOutlined style={{ fontSize: 16 }} />}
           style={{ padding: "0 24px", fontSize: 14 }}
         >
-          {t("Lưu")}
+          {t("Organization:SaveLabel")}
         </Button>
       }
     >
@@ -170,7 +170,7 @@ export function BranchManagerEditorModal({
             icon={<PlusOutlined />}
             onClick={() => fileInputRef.current?.click()}
           >
-            {t("Tải ảnh lên")}
+            {t("Organization:UploadPhoto")}
           </Button>
           {avatarPreview && (
             <Button
@@ -183,7 +183,7 @@ export function BranchManagerEditorModal({
                 setAvatarPreview(null);
               }}
             >
-              {t("Xóa ảnh")}
+              {t("Organization:DeletePhoto")}
             </Button>
           )}
         </div>
@@ -196,9 +196,9 @@ export function BranchManagerEditorModal({
             <Col xs={24} sm={8}>
               <FloatingField
                 name="name"
-                label={t("Họ và tên")}
+                label={t("Organization:FullNameLabel")}
                 required
-                rules={[{ required: true, message: t("Vui lòng nhập họ và tên") }]}
+                rules={[{ required: true, message: t("Organization:FullNameRequired") }]}
               >
                 <Input />
               </FloatingField>
@@ -209,8 +209,8 @@ export function BranchManagerEditorModal({
                 label={t("Email")}
                 required
                 rules={[
-                  { required: true, message: t("Email không được để trống") },
-                  { type: "email", message: t("Email không hợp lệ") },
+                  { required: true, message: t("Organization:EmailRequired") },
+                  { type: "email", message: t("Organization:EmailInvalid") },
                 ]}
               >
                 <Input />
@@ -219,13 +219,13 @@ export function BranchManagerEditorModal({
             <Col xs={24} sm={8}>
               <FloatingField
                 name="phoneNumber"
-                label={t("Số điện thoại")}
+                label={t("Organization:PhoneLabel")}
                 required
                 rules={[
-                  { required: true, message: t("Vui lòng nhập số điện thoại") },
+                  { required: true, message: t("Organization:PhoneRequired") },
                   {
                     pattern: /^0\d{9}$/,
-                    message: t("Số điện thoại không hợp lệ (VD: 0901234567)"),
+                    message: t("Organization:PhoneInvalidEx"),
                   },
                 ]}
               >
@@ -239,19 +239,19 @@ export function BranchManagerEditorModal({
             <Col xs={24} sm={12}>
               <FloatingField
                 name="branchIds"
-                label={t("Chọn chi nhánh")}
+                label={t("Organization:SelectBranchLabel")}
                 required
-                rules={[{ required: true, message: t("Vui lòng chọn chi nhánh") }]}
+                rules={[{ required: true, message: t("Organization:SelectBranchRequired") }]}
               >
                 <Select
                   mode="multiple"
-                  placeholder={t("Chọn chi nhánh")}
+                  placeholder={t("Organization:SelectBranchPlaceholder")}
                   options={branchOptions}
                 />
               </FloatingField>
             </Col>
             <Col xs={24} sm={12}>
-              <FloatingField name="address" label={t("Địa chỉ")}>
+              <FloatingField name="address" label={t("Organization:AddressFieldLabel")}>
                 <Input />
               </FloatingField>
             </Col>
@@ -263,9 +263,9 @@ export function BranchManagerEditorModal({
               <Col xs={24} sm={12}>
                 <FloatingField
                   name="password"
-                  label={t("Mật khẩu")}
+                  label={t("Organization:PasswordLabel")}
                   required
-                  rules={[{ required: true, message: t("Mật khẩu không được để trống") }]}
+                  rules={[{ required: true, message: t("Organization:PasswordRequired") }]}
                 >
                   <Input.Password />
                 </FloatingField>
@@ -273,15 +273,15 @@ export function BranchManagerEditorModal({
               <Col xs={24} sm={12}>
                 <FloatingField
                   name="confirmPassword"
-                  label={t("Nhập lại mật khẩu")}
+                  label={t("Organization:ConfirmPasswordLabel")}
                   required
                   dependencies={["password"]}
                   rules={[
-                    { required: true, message: t("Vui lòng nhập lại mật khẩu") },
+                    { required: true, message: t("Organization:ConfirmPasswordRequired") },
                     ({ getFieldValue }) => ({
                       validator(_, val) {
                         if (!val || getFieldValue("password") === val) return Promise.resolve();
-                        return Promise.reject(new Error(t("Mật khẩu không khớp")));
+                        return Promise.reject(new Error(t("Organization:PasswordMismatch")));
                       },
                     }),
                   ]}
@@ -295,11 +295,11 @@ export function BranchManagerEditorModal({
           {/* Tỉnh/Thành phố + Xã/Phường */}
           <Row gutter={[16, { xs: 20, sm: 12 }]}>
             <Col xs={24} sm={12}>
-              <FloatingField name="provinceId" label={t("Tỉnh/ Thành phố")}>
+              <FloatingField name="provinceId" label={t("Organization:ProvinceLabel")}>
                 <Select
                   showSearch
                   allowClear
-                  placeholder={t("Chọn tỉnh/ thành phố")}
+                  placeholder={t("Organization:ProvincePlaceholder")}
                   optionFilterProp="label"
                   options={provinces.map((p) => ({ value: p.code, label: p.name }))}
                   onChange={handleProvinceChange}
@@ -307,11 +307,11 @@ export function BranchManagerEditorModal({
               </FloatingField>
             </Col>
             <Col xs={24} sm={12}>
-              <FloatingField name="wardId" label={t("Xã/ Phường")}>
+              <FloatingField name="wardId" label={t("Organization:WardLabel")}>
                 <Select
                   showSearch
                   allowClear
-                  placeholder={t("Chọn xã/ phường")}
+                  placeholder={t("Organization:WardPlaceholder")}
                   optionFilterProp="label"
                   options={wards.map((w) => ({ value: w.code, label: w.name }))}
                   disabled={!selectedProvinceId}

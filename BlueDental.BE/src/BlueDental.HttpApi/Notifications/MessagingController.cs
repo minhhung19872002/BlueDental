@@ -8,7 +8,7 @@ using Volo.Abp.Application.Dtos;
 namespace BlueDental.Notifications;
 
 /// <summary>
-/// The "Lưu tin nhắn" dialog lists — route names mirror the reference's
+/// The "BE:Perm:SaveMessage" dialog lists — route names mirror the reference's
 /// <c>/sender-sms-templates</c> and <c>/clinic-configure</c>.
 /// </summary>
 [RemoteService]

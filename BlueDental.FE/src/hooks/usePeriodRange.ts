@@ -96,10 +96,10 @@ export interface PeriodRange {
 /** Labels for the switch, in the reference's order. */
 export function periodOptions(): { key: ReportPeriod; label: string }[] {
   return [
-    { key: "day", label: t("Ngày") },
-    { key: "week", label: t("Tuần") },
-    { key: "month", label: t("Tháng") },
-    { key: "year", label: t("Năm") },
+    { key: "day", label: t("Common:Day") },
+    { key: "week", label: t("Common:Week") },
+    { key: "month", label: t("Common:Month") },
+    { key: "year", label: t("Common:Year") },
   ];
 }
 

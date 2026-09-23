@@ -48,7 +48,7 @@ export function PatientTagPanel() {
 
     try {
       await deleteTag.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá thẻ hồ sơ"));
+      toast.success(t("Taxonomy:Tag:Deleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -60,7 +60,7 @@ export function PatientTagPanel() {
     () => [
       {
         key: "name",
-        title: t("Tên tag"),
+        title: t("Taxonomy:Tag:TagName"),
         render: (_, tag) => (
           <span className="bd-tag-chip" style={{ backgroundColor: tag.color }}>
             {tag.name}
@@ -69,7 +69,7 @@ export function PatientTagPanel() {
       },
       {
         key: "color",
-        title: t("Màu"),
+        title: t("Taxonomy:Tag:Color"),
         width: 200,
         render: (_, tag) => (
           <span className="bd-cat-inline2">
@@ -84,31 +84,31 @@ export function PatientTagPanel() {
       },
       ...((canUpdate || canDelete) ? [{
         key: "actions" as const,
-        title: t("Thao tác"),
+        title: t("Taxonomy:Table:Actions"),
         width: 110,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, tag: PatientTagDto) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Taxonomy:Table:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", tag.name)}
+                  aria-label={t("Taxonomy:Table:EditItem", tag.name)}
                   onClick={() => setModal({ open: true, tag })}
                 />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Taxonomy:Table:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", tag.name)}
+                  aria-label={t("Taxonomy:Table:DeleteItem", tag.name)}
                   onClick={() => setPendingDelete(tag)}
                 />
               </Tooltip>
@@ -124,15 +124,15 @@ export function PatientTagPanel() {
     <div className="bd-cat-screen">
       <FlatScreenHeader
         icon={<TagOutlined />}
-        title={t("Quản lý Thẻ hồ sơ")}
-        subtitle={t("Tạo và quản lý danh mục thẻ hồ sơ.")}
-        actionLabel={canCreate ? t("Thêm tag") : undefined}
+        title={t("Taxonomy:Tag:ManageTitle")}
+        subtitle={t("Taxonomy:Tag:ManageDesc")}
+        actionLabel={canCreate ? t("Taxonomy:Tag:AddTag") : undefined}
         onAction={canCreate ? () => setModal({ open: true, tag: null }) : undefined}
         actionDisabled={isAllBranches}
-        actionDisabledHint={t("Chọn một chi nhánh cụ thể trước khi thêm")}
+        actionDisabledHint={t("Taxonomy:Common:SelectBranchFirst")}
         search={{
           id: "patient-tag-search",
-          label: t("Tìm tag theo tên hoặc mã màu..."),
+          label: t("Taxonomy:Tag:SearchPlaceholder"),
           value: keyword,
           onChange: (value) => {
             setKeyword(value);
@@ -148,8 +148,8 @@ export function PatientTagPanel() {
             dataSource={tags}
             rowKey="id"
             loading={tagsQuery.isFetching}
-            pagination={pagination.buildConfig(totalCount, countedTotal(t("thẻ hồ sơ")))}
-            locale={{ emptyText: t("Không tìm thấy tag nào") }}
+            pagination={pagination.buildConfig(totalCount, countedTotal(t("Taxonomy:Tab:RecordTagNoun")))}
+            locale={{ emptyText: t("Taxonomy:Tag:NotFound") }}
           />
         </div>
       </div>
@@ -162,7 +162,7 @@ export function PatientTagPanel() {
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("thẻ hồ sơ")}
+        noun={t("Taxonomy:Tab:RecordTagNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteTag.isPending}
         onConfirm={() => void confirmDelete()}

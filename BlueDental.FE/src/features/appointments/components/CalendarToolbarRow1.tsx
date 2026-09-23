@@ -32,9 +32,9 @@ export function CalendarToolbarRow1({
           value={viewMode}
           onChange={(v) => onViewModeChange(v as ViewMode)}
           options={[
-            { label: t("Ngày"), value: "day" },
-            { label: t("Tuần"), value: "week" },
-            { label: t("Tháng"), value: "month" },
+            { label: t("Common:Day"), value: "day" },
+            { label: t("Common:Week"), value: "week" },
+            { label: t("Common:Month"), value: "month" },
           ]}
         />
         <DateNavigator

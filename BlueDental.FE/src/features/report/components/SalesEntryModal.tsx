@@ -76,20 +76,20 @@ function ChannelSelect({ value, onChange, onOpenChange, options }: ChannelSelect
 
 const COPY: Record<SalesEntryType, { create: () => string; edit: () => string; paidDate: () => string; payer: () => string; category: () => string; description: () => string }> = {
   [SALES_ENTRY_TYPE.Income]: {
-    create: () => t("Thêm khoản thu"),
-    edit: () => t("Chỉnh sửa khoản thu"),
-    paidDate: () => t("Ngày thực thu"),
-    payer: () => t("Người nộp"),
-    category: () => t("Mục thu"),
-    description: () => t("Nội dung thu"),
+    create: () => t("Report:SalesModal:AddIncome"),
+    edit: () => t("Report:SalesModal:EditIncome"),
+    paidDate: () => t("Report:SalesModal:ActualIncomeDate"),
+    payer: () => t("Report:SalesModal:Payer"),
+    category: () => t("Report:SalesModal:IncomeCategory"),
+    description: () => t("Report:SalesModal:IncomeDescription"),
   },
   [SALES_ENTRY_TYPE.Expense]: {
-    create: () => t("Thêm chi phí"),
-    edit: () => t("Chỉnh sửa chi phí"),
-    paidDate: () => t("Ngày thực chi"),
-    payer: () => t("Người nhận"),
-    category: () => t("Mục chi"),
-    description: () => t("Nội dung chi"),
+    create: () => t("Report:SalesModal:AddExpense"),
+    edit: () => t("Report:SalesModal:EditExpense"),
+    paidDate: () => t("Report:SalesModal:ActualExpenseDate"),
+    payer: () => t("Report:SalesModal:Receiver"),
+    category: () => t("Report:SalesModal:ExpenseCategory"),
+    description: () => t("Report:SalesModal:ExpenseDescription"),
   },
 };
 
@@ -158,7 +158,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
           },
           {
             onSuccess: () => {
-              toast.success(t("Cập nhật phiếu thu chi thành công"));
+              toast.success(t("Report:SalesModal:UpdateSuccess"));
               onClose();
             },
           },
@@ -179,7 +179,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
           },
           {
             onSuccess: () => {
-              toast.success(t("Tạo phiếu thu chi thành công"));
+              toast.success(t("Report:SalesModal:CreateSuccess"));
               onClose();
             },
           },
@@ -208,23 +208,23 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
       >
         <Row gutter={[16, 12]}>
           <Col xs={24} md={12}>
-            <FloatingLabel label={t("Ngày tạo")} floated>
+            <FloatingLabel label={t("Report:Column:CreatedDate")} floated>
               <DatePicker className="report-full-width" value={dayjs(entry?.entryDate)} format="DD/MM/YYYY" disabled />
             </FloatingLabel>
           </Col>
           <Col xs={24} md={12}>
-            <FloatingField name="paidDate" label={copy.paidDate()} required rules={[{ required: true, message: t("Vui lòng chọn ngày") }]}>
+            <FloatingField name="paidDate" label={copy.paidDate()} required rules={[{ required: true, message: t("Report:SalesModal:DateRequired") }]}>
               <DatePicker className="report-full-width" format="DD/MM/YYYY" allowClear={false} />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
-            <FloatingField name="staffId" label={t("Chọn nhân viên")}>
+            <FloatingField name="staffId" label={t("Report:SalesModal:StaffSelect")}>
               <SearchSelect options={staff} allowClear />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
             {isIncome ? (
-              <FloatingField name="patientId" label={t("Chọn khách hàng")}>
+              <FloatingField name="patientId" label={t("Report:SalesModal:CustomerSelect")}>
                 <SearchSelect options={patients} allowClear />
               </FloatingField>
             ) : (
@@ -232,18 +232,18 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
             )}
           </Col>
           <Col xs={24} md={isIncome ? 24 : 8}>
-            <FloatingField name="amount" label={t("Số tiền")} required rules={[{ required: true, type: "number", min: 1, message: t("Vui lòng nhập số tiền") }]}>
+            <FloatingField name="amount" label={t("Report:SalesModal:Amount")} required rules={[{ required: true, type: "number", min: 1, message: t("Report:SalesModal:AmountRequired") }]}>
               <CurrencyInput />
             </FloatingField>
           </Col>
           <Col xs={24} md={8}>
-            <FloatingField name="channel" label={t("Hình thức")}>
+            <FloatingField name="channel" label={t("Report:SalesModal:Method")}>
               <ChannelSelect options={MODAL_CHANNELS.map((c) => ({ value: c, label: channelLabels[c] }))} />
             </FloatingField>
           </Col>
           {isIncome ? <Col xs={24} md={8}>{payerField}</Col> : null}
           <Col xs={24} md={8}>
-            <FloatingField name="categoryId" label={copy.category()} required rules={[{ required: true, message: t("{0} là trường bắt buộc.", copy.category()) }]}>
+            <FloatingField name="categoryId" label={copy.category()} required rules={[{ required: true, message: t("Report:SalesModal:CategoryRequired", copy.category()) }]}>
               <SearchSelect options={categories.map((c) => ({ value: c.id, label: c.name }))} />
             </FloatingField>
           </Col>

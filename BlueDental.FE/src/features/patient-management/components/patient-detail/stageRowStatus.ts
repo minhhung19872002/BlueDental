@@ -43,10 +43,10 @@ export function stageRowStatus(
 /** Depends on `t()`, so it is a function rather than a module constant. */
 export function stageRowStatusLabel(status: StageRowStatus): string {
   const labels: Record<StageRowStatus, string> = {
-    [STAGE_ROW_STATUS.Active]: t("Đang điều trị"),
-    [STAGE_ROW_STATUS.Done]: t("Hoàn thành"),
-    [STAGE_ROW_STATUS.Replaced]: t("Chuyển đổi"),
-    [STAGE_ROW_STATUS.Cancelled]: t("Đã huỷ"),
+    [STAGE_ROW_STATUS.Active]: t("Patient:Plan:InTreatment"),
+    [STAGE_ROW_STATUS.Done]: t("Patient:Misc:Done"),
+    [STAGE_ROW_STATUS.Replaced]: t("Patient:Misc:Convert"),
+    [STAGE_ROW_STATUS.Cancelled]: t("Patient:Misc:Cancelled"),
   };
   return labels[status];
 }

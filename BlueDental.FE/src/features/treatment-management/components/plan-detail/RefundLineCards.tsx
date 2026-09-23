@@ -19,21 +19,21 @@ function cardRows(line: RefundLine, onAmountChange: Props["onAmountChange"]) {
   const name = line.service.serviceName ?? line.service.code;
   const over = (line.amount ?? 0) > line.refundable;
   const rows: RecordCardRow[] = [
-    { key: "service", label: t("Dịch vụ"), value: name },
-    { key: "amount", label: t("Tổng tiền"), value: moneyText(line.service.effectiveAmount) },
-    { key: "paid", label: t("Đã thanh toán"), value: moneyText(line.paid) },
-    { key: "outstanding", label: t("Còn lại"), value: moneyText(line.service.outstandingAmount) },
+    { key: "service", label: t("Treatment:Service:Service"), value: name },
+    { key: "amount", label: t("Treatment:Pricing:TotalAmount"), value: moneyText(line.service.effectiveAmount) },
+    { key: "paid", label: t("Treatment:Receipt:TotalPaid"), value: moneyText(line.paid) },
+    { key: "outstanding", label: t("Treatment:Debt:Remaining"), value: moneyText(line.service.outstandingAmount) },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "refunded", label: t("Đã hoàn"), value: moneyText(line.refunded) },
+    { key: "refunded", label: t("Treatment:Refund:Refunded"), value: moneyText(line.refunded) },
     {
       key: "input",
-      label: t("Nhập số tiền hoàn"),
+      label: t("Treatment:Refund:EnterAmount"),
       stacked: true,
       value: (
         <CurrencyInput
-          aria-label={t("Số tiền hoàn {0}", name)}
-          placeholder={t("Nhập số tiền hoàn")}
+          aria-label={t("Treatment:Refund:AmountLabel", name)}
+          placeholder={t("Treatment:Refund:EnterAmount")}
           value={line.amount}
           onChange={(amount) => onAmountChange(line.service.id, amount)}
           disabled={line.refundable <= 0}
@@ -49,7 +49,7 @@ function cardRows(line: RefundLine, onAmountChange: Props["onAmountChange"]) {
 export function RefundLineCards({ lines, total, pagination, onAmountChange, showTotal }: Props) {
   return (
     <div className="tp-card-list pdt-card-list pdt-refund-cards">
-      {lines.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
+      {lines.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
       <div className="bd-rc-list">
         {lines.map((line, position) => {
           const card = cardRows(line, onAmountChange);

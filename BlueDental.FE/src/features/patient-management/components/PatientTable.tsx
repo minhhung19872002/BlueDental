@@ -29,9 +29,9 @@ const STATUS_STYLE: Record<TreatmentStatusCode, string> = {
 };
 
 function statusLabel(status: TreatmentStatusCode): string {
-  if (status === TREATMENT_STATUS.InProgress) return t("Đang điều trị");
-  if (status === TREATMENT_STATUS.Done) return t("Hoàn tất");
-  return t("Chưa phát sinh");
+  if (status === TREATMENT_STATUS.InProgress) return t("Patient:Plan:InTreatment");
+  if (status === TREATMENT_STATUS.Done) return t("Patient:Misc:Complete");
+  return t("Patient:Debt:NoTransactions");
 }
 
 /** Every blank cell in the reference is an em dash in the muted text colour. */
@@ -74,13 +74,13 @@ export function PatientTable({
   const columns: ColumnsType<PatientListItem> = [
     {
       key: "creationTime",
-      title: t("Ngày tạo hồ sơ"),
+      title: t("Patient:Col:CreatedDate"),
       width: 150,
       render: (_, row) => <Muted>{formatDate(row.creationTime)}</Muted>,
     },
     {
       key: "fullName",
-      title: t("Họ và tên"),
+      title: t("Patient:Col:FullName"),
       width: 260,
       render: (_, row) => (
         <Link className="bd-patient-name" to={`/patient/${row.id}`} title={row.fullName}>
@@ -90,19 +90,19 @@ export function PatientTable({
     },
     {
       key: "dateOfBirth",
-      title: t("Ngày sinh"),
+      title: t("Patient:Col:DateOfBirth"),
       width: 130,
       render: (_, row) => (row.dateOfBirth ? <Muted>{formatDate(row.dateOfBirth)}</Muted> : <Dash />),
     },
     {
       key: "phoneNumber",
-      title: t("Số điện thoại"),
+      title: t("Patient:Col:Phone"),
       width: 140,
       render: (_, row) => row.phoneNumber || <Dash />,
     },
     {
       key: "treatmentStatus",
-      title: t("Trạng thái"),
+      title: t("Patient:Misc:StatusLabel"),
       width: 150,
       render: (_, row) => (
         <span className={`bd-patient-status ${STATUS_STYLE[row.treatmentStatus]}`}>
@@ -112,26 +112,26 @@ export function PatientTable({
     },
     {
       key: "serviceNames",
-      title: t("Dịch vụ"),
+      title: t("Patient:Misc:Service"),
       width: 180,
       render: (_, row) => <NameList names={row.serviceNames} />,
     },
     {
       key: "staffNames",
-      title: t("Bác sĩ"),
+      title: t("Patient:Staff:Doctor"),
       width: 180,
       render: (_, row) => <NameList names={row.staffNames} />,
     },
     {
       key: "totalAmount",
-      title: t("Số tiền"),
+      title: t("Patient:Payment:AmountField"),
       width: 170,
       align: "right",
       render: (_, row) => <span className="bd-patient-money">{formatVND(row.totalAmount)}</span>,
     },
     {
       key: "totalRevenue",
-      title: t("Thực thu"),
+      title: t("Patient:Payment:ActualCollected"),
       width: 140,
       align: "right",
       render: (_, row) => (
@@ -142,7 +142,7 @@ export function PatientTable({
     },
     {
       key: "totalDebt",
-      title: t("Công nợ"),
+      title: t("Patient:Tab:Debt"),
       width: 140,
       align: "right",
       render: (_, row) => (
@@ -153,20 +153,20 @@ export function PatientTable({
     },
     {
       key: "nextAppointmentAt",
-      title: t("Lịch hẹn gần nhất"),
+      title: t("Patient:Appt:Nearest"),
       width: 170,
       render: (_, row) =>
         row.nextAppointmentAt ? formatDateTime(row.nextAppointmentAt) : <Dash />,
     },
     {
       key: "lastVisitAt",
-      title: t("Lần khám cuối"),
+      title: t("Patient:Col:LastVisit"),
       width: 150,
       render: (_, row) => (row.lastVisitAt ? formatDateTime(row.lastVisitAt) : <Dash />),
     },
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 90,
       align: "center",
       fixed: "right",
@@ -178,12 +178,12 @@ export function PatientTable({
             </Link>
           </Tooltip>
 
-          <Tooltip title={t("Chỉnh sửa")}>
+          <Tooltip title={t("Patient:Misc:EditShort")}>
             <Button
               type="text"
               size="small"
               icon={<EditOutlined />}
-              aria-label={t("Chỉnh sửa {0}", row.fullName)}
+              aria-label={t("Patient:Profile:EditPatient", row.fullName)}
               onClick={() => onEdit(row)}
             />
           </Tooltip>
@@ -201,14 +201,14 @@ export function PatientTable({
     // The reference names both halves of the pager rather than using arrows
     // alone, and counts in patients rather than rows.
     itemRender: (_, type, element) => {
-      if (type === "prev") return <Button size="small" icon={<LeftOutlined />}>{t("Trước")}</Button>;
+      if (type === "prev") return <Button size="small" icon={<LeftOutlined />}>{t("Patient:Stage:Before")}</Button>;
       if (type === "next") return <Button size="small">{t("Sau")}<RightOutlined /></Button>;
       return element;
     },
     showTotal: (total, range) => (
       <span className="bd-patient-pager-count">
-        {t("Hiển thị")} <b>{total === 0 ? 0 : range[0]}</b>–<b>{range[1]}</b> {t("trên")}{" "}
-        <b>{total}</b> {t("bệnh nhân")}
+        {t("Patient:Misc:Display")} <b>{total === 0 ? 0 : range[0]}</b>–<b>{range[1]}</b> {t("Patient:Misc:Above")}{" "}
+        <b>{total}</b> {t("Patient:Misc:Patient")}
       </span>
     ),
     onChange: (nextPage, nextSize) => {
@@ -234,7 +234,7 @@ export function PatientTable({
         locale={{
           emptyText: (
             <div className="bd-patient-empty">
-              {narrowed ? t("Không có bệnh nhân phù hợp") : t("Chưa có hồ sơ bệnh nhân nào")}
+              {narrowed ? t("Patient:List:NoMatch") : t("Patient:List:Empty")}
             </div>
           ),
         }}

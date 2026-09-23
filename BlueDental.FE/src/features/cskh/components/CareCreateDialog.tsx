@@ -72,7 +72,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
         scheduledEnd: at,
         status: CARE_STATUS.New,
       });
-      toast.success(t("Đã tạo công việc chăm sóc"));
+      toast.success(t("CSKH:CreatedTask"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -82,7 +82,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
   return (
     <AppDialog
       open={open}
-      title={t("Tạo công việc mới")}
+      title={t("CSKH:CreateTaskTitle")}
       width={772}
       canSave={Boolean(patientId)}
       saving={createCare.isPending}
@@ -91,7 +91,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
     >
       <div className="bd-form-grid">
         <div className="cskh-message-row cskh-row--datetime">
-          <MessageField label={t("Ngày chăm sóc")} hasValue>
+          <MessageField label={t("CSKH:CareDate")} hasValue>
             <DatePicker
               allowClear={false}
               format="DD/MM/YYYY"
@@ -99,7 +99,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
               onChange={(next) => next && setDate(next)}
             />
           </MessageField>
-          <MessageField label={t("Giờ chăm sóc")} hasValue>
+          <MessageField label={t("CSKH:TimeLabel")} hasValue>
             <TimePicker
               allowClear={false}
               format="HH:mm"
@@ -116,13 +116,13 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
               size="small"
               onClick={() => setDate((current) => current.add(months, "month"))}
             >
-              {t("+{0} tháng", months)}
+              {t("CSKH:AddMonths", months)}
             </Button>
           ))}
         </div>
 
         <div className="cskh-message-row">
-          <MessageField label={t("Chọn khách hàng")} required hasValue={Boolean(patientId)}>
+          <MessageField label={t("CSKH:SelectCustomer")} required hasValue={Boolean(patientId)}>
             <SearchSelect
               value={patientId}
               options={(patients.data ?? []).map((p) => ({
@@ -135,7 +135,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
             />
           </MessageField>
 
-          <MessageField label={t("Bác sĩ tiếp nhận")} hasValue={Boolean(staffId)}>
+          <MessageField label={t("CSKH:DoctorReceive")} hasValue={Boolean(staffId)}>
             <SearchSelect
               value={staffId}
               options={staff.data ?? []}
@@ -145,7 +145,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
           </MessageField>
         </div>
 
-        <MessageField label={t("Ghi chú lần chăm sóc")} hasValue={Boolean(note)}>
+        <MessageField label={t("CSKH:NoteLabel")} hasValue={Boolean(note)}>
           <Input.TextArea
             rows={6}
             value={note}

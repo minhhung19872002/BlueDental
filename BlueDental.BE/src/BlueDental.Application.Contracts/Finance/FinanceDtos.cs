@@ -22,7 +22,7 @@ public class SalesEntryDto : FullAuditedEntityDto<Guid>
     public string? RejectionReason { get; set; }
     public bool CountsTowardsCashflow { get; set; }
 
-    /// <summary>Free-text "Người nộp" / "Người nhận" when no patient is tied to the voucher.</summary>
+    /// <summary>Free-text "BE:Field:Submitter" / "BE:Field:Recipient" when no patient is tied to the voucher.</summary>
     public string? PayerName { get; set; }
 
     public string? CategoryName { get; set; }
@@ -79,7 +79,7 @@ public class RejectSalesEntryInput
     public string Reason { get; set; } = string.Empty;
 }
 
-/// <summary>Footer panel "Thông tin thu chi" of the cashflow report tab.</summary>
+/// <summary>Footer panel "BE:Common:IncomeExpenseInfo" of the cashflow report tab.</summary>
 public class SalesStatsDto
 {
     public decimal TotalIncome { get; set; }
@@ -191,7 +191,7 @@ public class GetCashflowEntryListInput : PagedAndSortedResultRequestDto
     public DateOnly? ToDate { get; set; }
 }
 
-/// <summary>Summary panels of "Luân chuyển dòng tiền V2".</summary>
+/// <summary>Summary panels of "BE:Perm:CashflowV2".</summary>
 public class CashBalanceDto
 {
     /// <summary>Tổng Tiền.</summary>
@@ -207,7 +207,7 @@ public class CashBalanceDto
     public decimal CustomerPrepaid { get; set; }
 
     /// <summary>
-    /// "Doanh thu dịch vụ" — treatment payments net of refunds, all time.
+    /// "BE:Col:ServiceRevenue" — treatment payments net of refunds, all time.
     /// ASSUMPTION: the reference showed 0 throughout the survey, so the exact
     /// formula is UNKNOWN_REFERENCE_BEHAVIOR; this is the natural reading.
     /// </summary>

@@ -109,7 +109,7 @@ export function PatientCareDialog({ open, patient, record, onClose }: Props) {
           type: CARE_TYPE.Special,
           subject: SPECIAL_SUBJECT,
         });
-      toast.success(record ? t("Đã cập nhật nội dung chăm sóc") : t("Đã tạo nội dung chăm sóc"));
+      toast.success(record ? t("Patient:Care:UpdateSuccess") : t("Patient:Care:CreateSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -119,7 +119,7 @@ export function PatientCareDialog({ open, patient, record, onClose }: Props) {
   return (
     <AppDialog
       open={open}
-      title={record ? t("Cập nhật chăm sóc khách hàng") : t("Chăm sóc khách hàng")}
+      title={record ? t("Patient:Care:UpdateTitle") : t("Patient:Care:CreateTitle")}
       width={500}
       className="pc-dialog"
       canSave
@@ -131,32 +131,32 @@ export function PatientCareDialog({ open, patient, record, onClose }: Props) {
         <div className="pc-form-row">
           <FloatingField
             name="careDate"
-            label={t("Ngày chăm sóc")}
+            label={t("Patient:Care:DateField")}
             required
-            rules={[{ required: true, message: t("Vui lòng chọn ngày chăm sóc") }]}
+            rules={[{ required: true, message: t("Patient:Care:DateRequired") }]}
           >
             <DatePicker format="DD/MM/YYYY" allowClear={false} />
           </FloatingField>
           <FloatingField
             name="careTime"
-            label={t("Giờ chăm sóc")}
+            label={t("Patient:Care:TimeField")}
             required
-            rules={[{ required: true, message: t("Vui lòng chọn giờ chăm sóc") }]}
+            rules={[{ required: true, message: t("Patient:Care:TimeRequired") }]}
           >
             <TimePicker format="HH:mm" allowClear={false} />
           </FloatingField>
         </div>
-        <StaticField label={t("Họ và tên")} required>
+        <StaticField label={t("Common:FullName")} required>
           <SearchSelect disabled value={patient.id} options={patientOptions} />
         </StaticField>
-        <FloatingField name="description" label={t("Ghi chú lần chăm sóc")}>
+        <FloatingField name="description" label={t("Patient:Care:NoteField")}>
           <Input.TextArea rows={4} maxLength={500} />
         </FloatingField>
         <hr className="pc-form-divider" />
-        <FloatingField name="assignedStaffId" label={t("Bác sĩ tiếp nhận")}>
+        <FloatingField name="assignedStaffId" label={t("Patient:Care:ReceptionDoctor")}>
           <SearchSelect options={dentistOptions} allowClear />
         </FloatingField>
-        <StaticField label={t("Nhân viên chăm sóc")} required>
+        <StaticField label={t("Patient:Care:Staff")} required>
           <SearchSelect disabled value={user?.id} options={staffOptions} />
         </StaticField>
         <CareRatingField />

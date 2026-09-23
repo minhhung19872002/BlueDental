@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
@@ -81,9 +81,9 @@ function CallView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
     <div className="bd-tools-card">
       <SubTabBar
         tabs={[
-          { key: "config", label: t("Cấu Hình") },
-          { key: "assign", label: t("Phân Công Gọi") },
-          { key: "history", label: t("Danh Sách Cuộc Gọi") },
+          { key: "config", label: t("Tools:ConfigTab") },
+          { key: "assign", label: t("Tools:AssignTab") },
+          { key: "history", label: t("Tools:CallHistoryTab") },
         ]}
         active={sub}
         onChange={changeSub}
@@ -106,9 +106,9 @@ function MessageView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
     <div className="bd-tools-card">
       <SubTabBar
         tabs={[
-          { key: "config", label: t("Cấu Hình") },
-          { key: "template", label: t("Mẫu Tin Nhắn") },
-          { key: "list", label: t("Danh Sách Tin Nhắn") },
+          { key: "config", label: t("Tools:SubTabConfig") },
+          { key: "template", label: t("Tools:SubTabMsgTemplate") },
+          { key: "list", label: t("Tools:SubTabMsgList") },
         ]}
         active={sub}
         onChange={setSub}
@@ -136,9 +136,9 @@ function ZaloView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
     <div className="bd-tools-card">
       <SubTabBar
         tabs={[
-          { key: "config", label: t("Cấu Hình") },
-          { key: "templates", label: t("Mẫu ZBS") },
-          { key: "list", label: t("Danh sách tin Zalo") },
+          { key: "config", label: t("Tools:SubTabConfig") },
+          { key: "templates", label: t("Tools:SubTabZbsTemplate") },
+          { key: "list", label: t("Tools:SubTabZaloList") },
         ]}
         active={sub}
         onChange={setSub}
@@ -161,7 +161,7 @@ function InvoiceView() {
   return (
     <div className="bd-tools-card">
       <SubTabBar
-        tabs={[{ key: "config", label: t("Cấu Hình") }]}
+        tabs={[{ key: "config", label: t("Tools:SubTabConfig") }]}
         active="config"
         onChange={() => {}}
       />
@@ -177,10 +177,10 @@ export function ToolsPage() {
   const messageAbility = useAbility("toolMessage");
 
   const ALL_TABS: { key: ToolCategory; label: () => string; visible: boolean }[] = [
-    { key: "call", label: () => t("Gọi thoại"), visible: callAbility.canRead },
-    { key: "message", label: () => t("Tin nhắn"), visible: messageAbility.canRead },
-    { key: "zalo-oa", label: () => t("Zalo OA"), visible: true },
-    { key: "invoice", label: () => t("Hóa đơn"), visible: true },
+    { key: "call", label: () => t("Tools:TabCall"), visible: callAbility.canRead },
+    { key: "message", label: () => t("Tools:TabMessage"), visible: messageAbility.canRead },
+    { key: "zalo-oa", label: () => t("Tools:TabZaloOA"), visible: true },
+    { key: "invoice", label: () => t("Tools:TabInvoice"), visible: true },
   ];
 
   const visibleTabs = useMemo(
@@ -196,13 +196,13 @@ export function ToolsPage() {
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Công cụ")}
-        subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
+        title={t("Tools:PageTitle")}
+        subtitle={t("Tools:PageSubtitle")}
       />
 
       <div className="bd-tools-shell">
         <PageTabBar
-          label={t("Công cụ")}
+          label={t("Tools:PageTitle")}
           activeKey={category}
           tabs={visibleTabs.map((t) => ({ key: t.key, label: t.label(), to: `/tools/${t.key}` }))}
         />
@@ -233,3 +233,4 @@ export function ToolsPage() {
     </div>
   );
 }
+

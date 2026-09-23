@@ -51,8 +51,8 @@ public class CreatePrescriptionItemDto
 }
 
 /// <summary>
-/// The "Thêm đơn thuốc" dialog. When <see cref="SaveAsTemplate"/> is on, the
-/// lines and the lời dặn are also stored as a "Đơn thuốc mẫu" catalog entry
+/// The "BE:Treatment:AddPrescription" dialog. When <see cref="SaveAsTemplate"/> is on, the
+/// lines and the lời dặn are also stored as a "BE:Common:RxTemplate" catalog entry
 /// named <see cref="TemplateName"/>.
 /// </summary>
 public class CreatePrescriptionDto

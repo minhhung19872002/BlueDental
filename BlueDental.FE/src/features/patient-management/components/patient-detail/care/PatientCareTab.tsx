@@ -37,15 +37,15 @@ const CLOSED: DialogState = { kind: "closed" };
 
 /** The reference names its pager halves — "‹ Trước" and "Sau ›" — rather than bare arrows. */
 const renderPagerItem: PaginationProps["itemRender"] = (_page, type, element) => {
-  if (type === "prev") return <Button size="small" icon={<LeftOutlined />}>{t("Trước")}</Button>;
-  if (type === "next") return <Button size="small">{t("Sau")}<RightOutlined /></Button>;
+  if (type === "prev") return <Button size="small" icon={<LeftOutlined />}>{t("Common:Previous")}</Button>;
+  if (type === "next") return <Button size="small">{t("Common:Next")}<RightOutlined /></Button>;
   return element;
 };
 
 /** "Hiển thị 1 trên 1 nhật ký" — the first number is how many rows this page shows. */
 function showPageTotal(total: number, range: [number, number]) {
   const shown = total === 0 ? 0 : range[1] - range[0] + 1;
-  return tRich("Hiển thị {0} trên {1} nhật ký", <b>{shown}</b>, <b>{total}</b>);
+  return tRich("Patient:Care:ShowPageTotal", <b>{shown}</b>, <b>{total}</b>);
 }
 
 export function PatientCareTab({ patient }: { patient: PatientDto }) {
@@ -71,7 +71,7 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
     if (dialog.kind !== "delete") return;
     try {
       await remove.mutateAsync(dialog.record.id);
-      toast.success(t("Đã xoá lượt chăm sóc"));
+      toast.success(t("Patient:Care:DeleteSuccess"));
       close();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -99,7 +99,7 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
             icon={<Plus size={16} />}
             onClick={() => setDialog({ kind: "create" })}
           >
-            {t("CSKH đặc biệt")}
+            {t("Patient:Care:SpecialLabel")}
           </Button>
         )}
       </div>
@@ -110,7 +110,7 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
           loading={list.isLoading}
           columns={columns}
           dataSource={list.data?.items ?? []}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
           pagination={{
             ...pagination.buildConfig(list.data?.totalCount, showPageTotal),
             pageSizeOptions: PAGE_SIZE_OPTIONS,
@@ -127,9 +127,9 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
       <CareDetailDialog record={dialog.kind === "detail" ? dialog.record : null} onClose={close} />
       <ConfirmDeleteDialog
         open={dialog.kind === "delete"}
-        noun={t("lượt chăm sóc")}
-        title={t("Xóa lượt chăm sóc")}
-        question={t("Bạn có chắc chắn muốn xóa lượt chăm sóc này không?")}
+        noun={t("Patient:Care:Noun")}
+        title={t("Patient:Care:DeleteTitle")}
+        question={t("Patient:Care:DeleteQuestion")}
         pending={remove.isPending}
         onConfirm={() => void handleDelete()}
         onClose={close}

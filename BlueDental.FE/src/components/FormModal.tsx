@@ -25,7 +25,7 @@ export function FormModal({
   width = 640,
   children,
 }: Props) {
-  const resolvedSubmitLabel = submitLabel ?? t("Lưu");
+  const resolvedSubmitLabel = submitLabel ?? t("Common:Save");
   return (
     <Modal
       open={open}
@@ -35,7 +35,7 @@ export function FormModal({
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onClose} disabled={loading}>
-            {t("Hủy")}
+            {t("Common:Cancel")}
           </Button>
           {onSubmit && (
             <Button type="primary" onClick={onSubmit} loading={loading}>

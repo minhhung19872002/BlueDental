@@ -47,7 +47,7 @@ export function PlanTable({ plans, settings, pagination, actions }: Props) {
         dataSource={pageRows}
         rowClassName={planRowClass}
         pagination={pagination.buildConfig(plans.length)}
-        locale={{ emptyText: t("Chưa có kế hoạch điều trị") }}
+        locale={{ emptyText: t("Treatment:Plan:NoPlan") }}
       />
     </div>
   );

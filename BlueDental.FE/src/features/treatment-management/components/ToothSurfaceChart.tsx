@@ -44,11 +44,11 @@ const SURFACE_SHAPES: Record<ToothSurface, string> = {
 };
 
 const surfaceLabels = (): Record<ToothSurface, string> => ({
-  top: t("mặt trên"),
-  right: t("mặt phải"),
-  bottom: t("mặt dưới"),
-  left: t("mặt trái"),
-  center: t("mặt nhai"),
+  top: t("Treatment:Tooth:SurfaceTop"),
+  right: t("Treatment:Tooth:SurfaceRight"),
+  bottom: t("Treatment:Tooth:SurfaceBottom"),
+  left: t("Treatment:Tooth:SurfaceLeft"),
+  center: t("Treatment:Tooth:SurfaceChewing"),
 });
 
 function emptyTooth(toothCode: number): ToothSelectionDto {
@@ -101,7 +101,7 @@ function ToothTile({
               style={{ cursor: readOnly ? "default" : "pointer" }}
               onClick={readOnly ? undefined : () => onToggleSurface(surface)}
             >
-              <title>{t("Răng {0} — {1}", toothCode, surfaceLabels()[surface])}</title>
+              <title>{t("Treatment:Tooth:SurfaceTitle", toothCode, surfaceLabels()[surface])}</title>
             </polygon>
           );
         })}
@@ -111,7 +111,7 @@ function ToothTile({
         type="button"
         disabled={readOnly}
         onClick={onToggleTooth}
-        title={t("Chọn cả răng {0}", toothCode)}
+        title={t("Treatment:Tooth:SelectWhole", toothCode)}
         style={{
           border: "none",
           background: "none",
@@ -221,13 +221,13 @@ export function ToothSurfaceChart({
       <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#78819c" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SELECTED_FILL, display: "inline-block", borderRadius: 2 }} />
-          {t("Cả răng")}
+          {t("Treatment:Tooth:WholeTooth")}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SURFACE_FILL, display: "inline-block", borderRadius: 2 }} />
-          {t("Mặt răng")}
+          {t("Treatment:Tooth:ToothSurface")}
         </span>
-        <span>{t("Bấm số răng để chọn cả răng, bấm vào mặt để chọn từng mặt.")}</span>
+        <span>{t("Treatment:Tooth:SelectHint")}</span>
       </div>
     </div>
   );

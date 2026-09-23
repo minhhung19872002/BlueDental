@@ -259,10 +259,10 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     try {
       if (pendingDelete.kind === "group") {
         await deleteGroup.mutateAsync(pendingDelete.id);
-        toast.success(t("Đã xoá nhóm"));
+        toast.success(t("Taxonomy:Group:DeletedSuccess"));
       } else {
         await deleteEntry.mutateAsync(pendingDelete.id);
-        toast.success(t("Đã xoá"));
+        toast.success(t("Common:Deleted"));
       }
     } catch {
       // queryClient reports the failure; nothing to add here.
@@ -301,18 +301,18 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
       key: keyof CatalogEntryDto;
       format?: (v: unknown) => string;
     }[] = [
-      { header: t("Tên {0}", tab.noun), key: "name" },
+      { header: t("Taxonomy:Table:NameCol", tab.noun), key: "name" },
       ...(grouped
-        ? ([{ header: t("Nhóm phân loại"), key: "taxonomyName" }] as {
+        ? ([{ header: t("Taxonomy:Table:ClassificationGroup"), key: "taxonomyName" }] as {
             header: string;
             key: keyof CatalogEntryDto;
           }[])
         : []),
       ...(tab.priced
-        ? ([{ header: t("Giá"), key: "price" }] as { header: string; key: keyof CatalogEntryDto }[])
+        ? ([{ header: t("Taxonomy:Table:Price"), key: "price" }] as { header: string; key: keyof CatalogEntryDto }[])
         : []),
       {
-        header: t("Cập nhật gần nhất"),
+        header: t("Taxonomy:Table:LastUpdated"),
         key: "lastModificationTime",
         format: (value) => formatDateTime(value as string | null),
       },
@@ -341,8 +341,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
 
   const groupPanel = (
     <GroupPanel
-      title={t("Nhóm {0}", tab.noun)}
-      subtitle={t("Chọn nhóm để xem {0} bên trong", tab.noun)}
+      title={t("Taxonomy:Group:Title", tab.noun)}
+      subtitle={t("Taxonomy:Group:Subtitle", tab.noun)}
       groups={groups}
       isLoading={groupsQuery.isLoading}
       isSearching={
@@ -372,7 +372,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
             onClose={() => setGroupsOpen(false)}
             placement="left"
             size={288}
-            title={t("Nhóm {0}", tab.noun)}
+            title={t("Taxonomy:Group:Title", tab.noun)}
             className="bd-group-drawer"
             styles={{ body: { padding: 0 } }}
           >
@@ -400,23 +400,23 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           <div className="bd-cat-card">
             <CatalogEntryTable
               entries={entries}
-              entityLabel={t("Tên {0}", tab.noun)}
+              entityLabel={t("Taxonomy:Table:NameCol", tab.noun)}
               priced={Boolean(tab.priced)}
               showGroupColumn={grouped}
               isLoading={entriesQuery.isFetching && !reorderEntriesMutation.isPending}
               emptyText={
                 grouped && groups.length === 0
-                  ? t("Cần tạo ít nhất một nhóm phân loại trước khi thêm mục.")
+                  ? t("Taxonomy:Group:NeedAtLeastOne")
                   : debouncedKeyword
-                    ? t("Không tìm thấy kết quả phù hợp")
-                    : t("Không có dữ liệu")
+                    ? t("Common:NoResults")
+                    : t("Common:NoData")
               }
               canReorder={!debouncedKeyword && (!grouped || selectedGroupId !== null)}
               onEdit={ability.canUpdate ? (entry) => setEntryModal({ open: true, entry }) : undefined}
               onDelete={ability.canDelete ? (entry) =>
                 setPendingDelete({ kind: "entry", id: entry.id, name: entry.name }) : undefined}
               onReorder={reorderEntries}
-              pagination={pagination.buildConfig(totalCount, countedTotal(t("bản ghi")))}
+              pagination={pagination.buildConfig(totalCount, countedTotal(t("Taxonomy:Common:Records")))}
             />
           </div>
         </div>
@@ -439,7 +439,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={pendingDelete?.kind === "group" ? t("nhóm") : tab.noun}
+        noun={pendingDelete?.kind === "group" ? t("Taxonomy:Group:DeleteNoun") : tab.noun}
         name={pendingDelete?.name ?? ""}
         pending={deleteGroup.isPending || deleteEntry.isPending}
         onConfirm={() => void confirmDelete()}
@@ -460,7 +460,7 @@ function StandaloneScreen({ tab }: { tab: TaxonomyTab }) {
   return (
     <div className="bd-center-full">
       <p className="bd-center-msg">
-        {tab.pendingNote ?? t("Chưa có dữ liệu")}
+        {tab.pendingNote ?? t("Taxonomy:Page:NoData")}
       </p>
     </div>
   );
@@ -483,13 +483,13 @@ export function TaxonomyPage() {
   return (
     <div className="bd-shell-page">
       <PageHeader
-        title={t("Danh mục")}
-        subtitle={t("Dữ liệu nền cho dịch vụ, chẩn đoán, thuốc và nguồn khách")}
+        title={t("Taxonomy:Page:Title")}
+        subtitle={t("Taxonomy:Page:Subtitle")}
       />
 
       <div className="bd-taxonomy-page">
         <PageTabBar
-          label={t("Danh mục")}
+          label={t("Taxonomy:Page:Title")}
           activeKey={tab.key}
           tabs={visibleTabs.map((item) => ({
             key: item.key,

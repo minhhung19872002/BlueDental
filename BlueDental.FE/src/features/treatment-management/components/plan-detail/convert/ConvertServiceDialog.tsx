@@ -30,7 +30,7 @@ export function ConvertServiceDialog({ row, onClose }: Props) {
   return (
     <Modal
       open={row !== null}
-      title={t("Chuyển đổi dịch vụ")}
+      title={t("Treatment:Convert:ConvertService")}
       className="tp-dialog cvt-dialog"
       width="min(1024px, calc(100vw - 32px))"
       closeIcon={<X size={20} aria-hidden="true" />}
@@ -45,7 +45,7 @@ export function ConvertServiceDialog({ row, onClose }: Props) {
             onClick={() => void form.save()}
           >
             <Save size={16} aria-hidden="true" />
-            {t("Lưu")}
+            {t("Common:Save")}
           </button>
         </div>
       }

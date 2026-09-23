@@ -1,4 +1,4 @@
-import { t } from "@/lib/i18n";
+﻿import { t } from "@/lib/i18n";
 
 /**
  * CallProvider enum mirror. The reference's dialog offers a single provider
@@ -15,8 +15,8 @@ export function providerLabel(provider: number): string {
 /** How a Trạng thái toggle reads in the tables. */
 export function activeTag(isActive: boolean): { label: string; color: string } {
   return isActive
-    ? { label: t("Hoạt động"), color: "green" }
-    : { label: t("Tắt"), color: "default" };
+    ? { label: t("Tools:Active"), color: "green" }
+    : { label: t("Tools:Inactive"), color: "default" };
 }
 
 /**
@@ -27,12 +27,13 @@ export function activeTag(isActive: boolean): { label: string; color: string } {
 export function callLogStatusTag(status: number): { label: string; color: string } {
   switch (status) {
     case 0:
-      return { label: t("Đã nghe"), color: "green" };
+      return { label: t("Tools:CallAnswered"), color: "green" };
     case 1:
-      return { label: t("Nhỡ"), color: "red" };
+      return { label: t("Tools:CallMissed"), color: "red" };
     case 2:
-      return { label: t("Máy bận"), color: "orange" };
+      return { label: t("Tools:CallBusy"), color: "orange" };
     default:
       return { label: "—", color: "default" };
   }
 }
+

@@ -77,7 +77,7 @@ export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot, canEx
           columns={columns}
           dataSource={board.list.data?.items ?? []}
           loading={board.list.isLoading}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
           scroll={tab.wideTable || narrow ? { x: "max-content" } : undefined}
           pagination={board.pagination.buildConfig(board.list.data?.totalCount)}
         />

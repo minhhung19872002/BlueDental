@@ -31,20 +31,20 @@ export function PlanPricingFields({ form, totals }: Props) {
   return (
     <div>
       <div className="tp-create-money">
-        <FloatingField name="price" label={t("Đơn giá")}>
+        <FloatingField name="price" label={t("Treatment:Pricing:UnitPrice")}>
           <CurrencyInput disabled />
         </FloatingField>
         <FloatingField
           name="quantity"
-          label={t("Số lượng")}
-          rules={[{ type: "number", min: 1, message: t("Số lượng phải lớn hơn 0") }]}
+          label={t("Treatment:Pricing:Quantity")}
+          rules={[{ type: "number", min: 1, message: t("Treatment:Pricing:QuantityMin") }]}
         >
           <InputNumber disabled className="tp-input-full" />
         </FloatingField>
       </div>
       <div className="tp-create-discount">
-        <span>{t("Giảm giá")}:</span>
-        <div className="tp-toggle" role="group" aria-label={t("Đơn vị giảm giá")}>
+        <span>{t("Treatment:Pricing:Discount")}:</span>
+        <div className="tp-toggle" role="group" aria-label={t("Treatment:Pricing:DiscountUnit")}>
           {DISCOUNT_UNITS.map((unit) => (
             <button
               key={unit.type}
@@ -65,17 +65,17 @@ export function PlanPricingFields({ form, totals }: Props) {
         </Form.Item>
       </div>
       <div className="tp-create-summary">
-        <h3>{t("Thông tin thanh toán")}</h3>
+        <h3>{t("Treatment:Pricing:PaymentInfo")}</h3>
         <p>
-          <span>{t("Tổng cộng")}:</span>
+          <span>{t("Treatment:Pricing:Total")}:</span>
           <b>{formatMoneyUnit(totals.gross)}</b>
         </p>
         <p>
-          <span>{t("Giảm giá")}:</span>
+          <span>{t("Treatment:Pricing:Discount")}:</span>
           <b>{formatMoneyUnit(totals.discount)}</b>
         </p>
         <p>
-          <span>{t("Thành tiền")}:</span>
+          <span>{t("Treatment:Pricing:NetAmount")}:</span>
           <b>{formatMoneyUnit(totals.effective)}</b>
         </p>
       </div>

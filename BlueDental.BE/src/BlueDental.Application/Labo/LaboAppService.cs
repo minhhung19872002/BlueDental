@@ -170,7 +170,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
         }
 
         // Khớp cắn, Đường hoàn tất and Kiểu nhịp are taxonomy rows, and so is
-        // the labo service a material belongs to ("Dịch vụ hiện tại").
+        // the labo service a material belongs to ("BE:LaboField:CurrentService").
         var taxonomyIds = entities
             .SelectMany(o => new[] { o.BiteId, o.FinishLineId, o.RhythmId })
             .Where(id => id.HasValue)
@@ -194,7 +194,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
             .ToList();
         var lines = await GetServiceLinesAsync(lineIds);
 
-        // A plan line's ServiceId is a Danh mục "Dịch vụ" row (CatalogEntry),
+        // A plan line's ServiceId is a Danh mục "BE:Common:Service" row (CatalogEntry),
         // the same catalog the treatment-plan API names its lines from.
         var serviceIds = lines.Values.Select(l => l.ServiceId).Distinct().ToList();
         var services = new Dictionary<Guid, string>();
@@ -598,17 +598,17 @@ public class LaboAppService : ApplicationService, ILaboAppService
 
         return ExcelSheet.Build(
             "Labo",
-            "Mẫu Labo",
+            L["BE:LaboField:LaboModels"],
             new List<ExcelColumn<LaboOrderDto>>
             {
-                new("Mã phiếu", row => row.OrderCode, 18),
-                new("Khách hàng", row => row.PatientName, 26),
-                new("Nhà cung cấp", row => row.LabProviderName, 24),
-                new("Răng", row => row.ToothNumbers, 12),
-                new("Hẹn trả", row => row.DueDate?.ToDateTime(TimeOnly.MinValue), 14),
-                new("Chi phí", row => row.EstimatedCost, 16),
-                new("Trạng thái", row => row.Status.ToString(), 16),
-                new("Trễ hẹn", row => row.IsOverdue ? "Có" : "Không", 12)
+                new(L["BE:Field:RecordNo"], row => row.OrderCode, 18),
+                new(L["BE:Perm:Customers"], row => row.PatientName, 26),
+                new(L["BE:Common:Supplier"], row => row.LabProviderName, 24),
+                new(L["BE:Field:Tooth"], row => row.ToothNumbers, 12),
+                new(L["BE:LaboField:DueBack"], row => row.DueDate?.ToDateTime(TimeOnly.MinValue), 14),
+                new(L["BE:Col:Expenses"], row => row.EstimatedCost, 16),
+                new(L["BE:Field:Status"], row => row.Status.ToString(), 16),
+                new(L["BE:Status:LateArrival"], row => row.IsOverdue ? L["BE:Common:Yes"].Value : L["BE:Common:No"].Value, 12)
             },
             page.Items);
     }

@@ -39,19 +39,19 @@ function ConditionsCell({
 }) {
   const hasTargets = row.targetIds.length > 0;
   const lines: string[] = [
-    `- ${hasTargets ? t("Theo dịch vụ") : t("Không theo dịch vụ")}`,
+    `- ${hasTargets ? t("Voucher:ScopeService") : t("Voucher:ScopeNoService")}`,
   ];
 
   if (row.scopeTarget === "treatment" && row.minOrderValue) {
-    lines.push(`- ${t("KHĐT")} >= ${formatMoneyUnit(row.minOrderValue)}`);
+    lines.push(`- ${t("Voucher:MinOrderLabel")} >= ${formatMoneyUnit(row.minOrderValue)}`);
   }
 
   lines.push(
-    `- ${row.isExclusive ? t("Không kết hợp voucher khác") : t("Kết hợp với voucher khác")}`,
+    `- ${row.isExclusive ? t("Voucher:ExclusiveYes") : t("Voucher:ExclusiveNo")}`,
   );
 
   if (row.maxDiscountAmount) {
-    lines.push(`- ${t("Giảm tối đa")} ${formatMoneyUnit(row.maxDiscountAmount)}`);
+    lines.push(`- ${t("Voucher:MaxDiscount")} ${formatMoneyUnit(row.maxDiscountAmount)}`);
   }
 
   return (
@@ -64,7 +64,7 @@ function ConditionsCell({
           className="voucher-conditions-detail"
           onClick={() => onShowServices(row)}
         >
-          {t("Xem chi tiết")}
+          {t("Voucher:ViewDetail")}
         </a>
       )}
     </div>
@@ -105,11 +105,11 @@ function DisplayCell({
   if (row.status === "expired") {
     return (
       <div className="voucher-terminal-card voucher-terminal-card--expired">
-        <strong>{t("Đã hết hạn")}</strong>
-        <span>{t("Hạn cuối")}: {formatDate(row.endDate)}</span>
+        <strong>{t("Voucher:ExpiredLabel")}</strong>
+        <span>{t("Voucher:EndDate")}: {formatDate(row.endDate)}</span>
         {onEdit && (
           <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
-            {t("Sửa để kích hoạt lại")}
+            {t("Voucher:EditToReactivate")}
           </a>
         )}
       </div>
@@ -119,11 +119,11 @@ function DisplayCell({
   if (row.status === "out_of_uses") {
     return (
       <div className="voucher-terminal-card voucher-terminal-card--exhausted">
-        <strong>{t("Đã hết lượt")}</strong>
-        <span>{row.usedCount} / {row.usageLimit ?? "∞"} {t("lượt")}</span>
+        <strong>{t("Voucher:OutOfUsesLabel")}</strong>
+        <span>{row.usedCount} / {row.usageLimit ?? "∞"} {t("Voucher:UsageUnit")}</span>
         {onEdit && (
           <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
-            {t("Sửa để kích hoạt lại")}
+            {t("Voucher:EditToReactivate")}
           </a>
         )}
       </div>
@@ -145,7 +145,7 @@ function DisplayCell({
           size="small"
         />
         <span className="voucher-display-label">
-          {row.isPublished ? t("Đang hiển thị") : t("Đã ẩn")}
+          {row.isPublished ? t("Voucher:Published") : t("Voucher:Hidden")}
         </span>
       </div>
       {row.isPublished && row.publishedAt && (
@@ -160,7 +160,7 @@ function DisplayCell({
 export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType<VoucherDto> {
   return [
     {
-      title: t("Mã / Tên Voucher"),
+      title: t("Voucher:ColCodeName"),
       key: "code",
       width: 200,
       render: (_, row) => (
@@ -178,13 +178,13 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       ),
     },
     {
-      title: t("Mức giảm"),
+      title: t("Voucher:ColDiscount"),
       key: "discount",
       width: 140,
       render: (_, row) => <DiscountCell row={row} />,
     },
     {
-      title: t("Điều kiện áp dụng"),
+      title: t("Voucher:ColConditions"),
       key: "conditions",
       width: 220,
       render: (_, row) => (
@@ -192,20 +192,20 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       ),
     },
     {
-      title: t("Thời hạn"),
+      title: t("Voucher:ColValidity"),
       key: "validity",
       width: 200,
       render: (_, row) =>
         `${formatDate(row.startDate)} — ${formatDate(row.endDate)}`,
     },
     {
-      title: t("Lượt dùng"),
+      title: t("Voucher:ColUsage"),
       key: "usage",
       width: 130,
       render: (_, row) => <UsageCell row={row} />,
     },
     {
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -217,7 +217,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       },
     },
     {
-      title: t("Hiển thị"),
+      title: t("Voucher:ColDisplay"),
       key: "display",
       width: 200,
       render: (_, row) => (
@@ -230,7 +230,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       ),
     },
     ...((handlers.onEdit || handlers.onDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 100,
       align: "center" as const,
@@ -238,7 +238,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       render: (_: unknown, row: VoucherDto) => (
         <div className="voucher-actions">
           {handlers.onEdit && (
-            <Tooltip title={t("Sửa")}>
+            <Tooltip title={t("Voucher:EditTooltip")}>
               <Button
                 type="text"
                 size="small"
@@ -249,12 +249,12 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
           )}
           {handlers.onDelete && (
             <Popconfirm
-              title={t("Xoá voucher này?")}
-              okText={t("Xoá")}
-              cancelText={t("Huỷ")}
+              title={t("Voucher:DeleteConfirm")}
+              okText={t("Voucher:DeleteBtn")}
+              cancelText={t("Common:Cancel")}
               onConfirm={() => handlers.onDelete!(row.id)}
             >
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Voucher:DeleteBtn")}>
                 <Button
                   type="text"
                   size="small"

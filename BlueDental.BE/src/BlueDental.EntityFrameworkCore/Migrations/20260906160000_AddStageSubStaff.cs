@@ -11,9 +11,9 @@ namespace BlueDental.Migrations
     /// Phụ tá on a công đoạn.
     ///
     /// The reference's stage keeps two helper slots, not one: <c>assistantStaffId</c>
-    /// is the second dentist ("Bác sĩ hỗ trợ", already stored as
+    /// is the second dentist ("BE:Role:AssistingDentist", already stored as
     /// <c>SecondStaffId</c>) and <c>subStaffId</c> is the nurse assisting
-    /// ("Phụ tá"), which had nowhere to go. Its history row prints both, so both
+    /// ("BE:Role:Assistant"), which had nowhere to go. Its history row prints both, so both
     /// have to be kept — until now BlueDental collected Phụ tá in the form and
     /// dropped it on save.
     ///

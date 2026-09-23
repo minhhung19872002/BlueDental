@@ -18,13 +18,13 @@ export const invoiceStatusConfig = (): Record<
   InvoiceStatus,
   { label: string; color: string }
 > => ({
-  [INVOICE_STATUS.Draft]: { label: t("Nháp"), color: "#78819c" },
-  [INVOICE_STATUS.Issued]: { label: t("Đã phát hành"), color: "#6366f1" },
-  [INVOICE_STATUS.PartiallyPaid]: { label: t("Thu một phần"), color: "#d98b0f" },
-  [INVOICE_STATUS.Paid]: { label: t("Đã thanh toán"), color: "#0e9f6e" },
-  [INVOICE_STATUS.Overdue]: { label: t("Quá hạn"), color: "#e5484d" },
-  [INVOICE_STATUS.Voided]: { label: t("Đã huỷ"), color: "#7d85a5" },
-  [INVOICE_STATUS.Refunded]: { label: t("Đã hoàn tiền"), color: "#7c5ce0" },
+  [INVOICE_STATUS.Draft]: { label: t("Billing:Status:Draft"), color: "#78819c" },
+  [INVOICE_STATUS.Issued]: { label: t("Billing:Status:Issued"), color: "#6366f1" },
+  [INVOICE_STATUS.PartiallyPaid]: { label: t("Billing:Status:PartiallyPaid"), color: "#d98b0f" },
+  [INVOICE_STATUS.Paid]: { label: t("Billing:Status:Paid"), color: "#0e9f6e" },
+  [INVOICE_STATUS.Overdue]: { label: t("Billing:Status:Overdue"), color: "#e5484d" },
+  [INVOICE_STATUS.Voided]: { label: t("Billing:Status:Voided"), color: "#7d85a5" },
+  [INVOICE_STATUS.Refunded]: { label: t("Billing:Status:Refunded"), color: "#7c5ce0" },
 });
 
 /** Matches BlueDental.Billing.PaymentMethod. */
@@ -40,13 +40,13 @@ export const PAYMENT_METHOD = {
 export type PaymentMethod = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
 
 export const paymentMethodLabels = (): Record<PaymentMethod, string> => ({
-  [PAYMENT_METHOD.Cash]: t("Tiền mặt"),
-  [PAYMENT_METHOD.CreditCard]: t("Thẻ tín dụng"),
-  [PAYMENT_METHOD.DebitCard]: t("Thẻ ghi nợ"),
-  [PAYMENT_METHOD.BankTransfer]: t("Chuyển khoản"),
-  [PAYMENT_METHOD.Insurance]: t("Bảo hiểm"),
-  [PAYMENT_METHOD.MobilePayment]: t("Ví điện tử"),
-  [PAYMENT_METHOD.Voucher]: t("Voucher"),
+  [PAYMENT_METHOD.Cash]: t("Billing:PaymentMethod:Cash"),
+  [PAYMENT_METHOD.CreditCard]: t("Billing:PaymentMethod:CreditCard"),
+  [PAYMENT_METHOD.DebitCard]: t("Billing:PaymentMethod:DebitCard"),
+  [PAYMENT_METHOD.BankTransfer]: t("Billing:PaymentMethod:BankTransfer"),
+  [PAYMENT_METHOD.Insurance]: t("Billing:PaymentMethod:Insurance"),
+  [PAYMENT_METHOD.MobilePayment]: t("Billing:PaymentMethod:MobilePayment"),
+  [PAYMENT_METHOD.Voucher]: t("Billing:PaymentMethod:Voucher"),
 });
 
 export interface InvoiceDto {

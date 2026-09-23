@@ -65,7 +65,7 @@ export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowAct
         <button
           type="button"
           className="cskh-action cskh-action--phone"
-          title={t("Gọi điện")}
+          title={t("CSKH:Action:Call")}
           onClick={onCall}
         >
           {PHONE}
@@ -75,7 +75,7 @@ export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowAct
         <button
           type="button"
           className="cskh-action cskh-action--message"
-          title={t("Lưu tin nhắn")}
+          title={t("CSKH:Action:SaveMessage")}
           onClick={onMessage}
         >
           {MESSAGE}
@@ -85,7 +85,7 @@ export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowAct
         <button
           type="button"
           className="cskh-action cskh-action--send"
-          title={t("Gửi ZBS qua Zalo")}
+          title={t("CSKH:Action:SendZalo")}
           onClick={onSend}
         >
           {SEND}
@@ -95,7 +95,7 @@ export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowAct
         <button
           type="button"
           className="cskh-action cskh-action--care"
-          title={t("Chăm sóc")}
+          title={t("CSKH:Action:Care")}
           onClick={onCare}
         >
           {FILE_HEART}

@@ -13,12 +13,12 @@ function DiffRow({ change }: { change: HistoryFieldChange }) {
         <span>{fieldLabel(change.field)}</span>
       </div>
       <div className="ah-diff-box ah-diff-box--before">
-        <span className="ah-diff-tag">{t("TRƯỚC")}</span>
+        <span className="ah-diff-tag">{t("Appointment:History:Before")}</span>
         <span className="ah-diff-value">{formatFieldValue(change.field, change.before)}</span>
       </div>
       <ArrowRightOutlined className="ah-diff-arrow" />
       <div className="ah-diff-box ah-diff-box--after">
-        <span className="ah-diff-tag">{t("SAU")}</span>
+        <span className="ah-diff-tag">{t("Appointment:History:After")}</span>
         <span className="ah-diff-value">{formatFieldValue(change.field, change.after)}</span>
       </div>
     </div>
@@ -36,9 +36,9 @@ export function HistoryDiffCard({ entry }: { entry: HistoryEntry }) {
   return (
     <>
       <section className="ah-card ah-card--diff">
-        <h4 className="ah-card-title">{t("So sánh trước / sau")}</h4>
+        <h4 className="ah-card-title">{t("Appointment:History:DiffTitle")}</h4>
         {entry.diff.length === 0 ? (
-          <div className="ah-card-empty">{t("Không có thay đổi giá trị")}</div>
+          <div className="ah-card-empty">{t("Appointment:History:NoChanges")}</div>
         ) : (
           <div className="ah-diff-rows">
             {entry.diff.map((change) => (
@@ -49,7 +49,7 @@ export function HistoryDiffCard({ entry }: { entry: HistoryEntry }) {
       </section>
 
       <section className="ah-card ah-card--fields">
-        <h4 className="ah-card-title">{t("Các trường bị ảnh hưởng")}</h4>
+        <h4 className="ah-card-title">{t("Appointment:History:AffectedFields")}</h4>
         {affected.length === 0 ? (
           <div className="ah-card-empty">—</div>
         ) : (

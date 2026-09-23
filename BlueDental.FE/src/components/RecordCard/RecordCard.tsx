@@ -58,7 +58,7 @@ export function RecordCard({ title, extra, rows, moreRows = [] }: Props) {
             aria-expanded={expanded}
             onClick={() => setExpanded((open) => !open)}
           >
-            {expanded ? t("Rút gọn") : t("Xem thêm")}
+            {expanded ? t("Common:ShowLess") : t("Common:ShowMore")}
             <ChevronDown size={12} className={expanded ? "bd-rc-flip" : undefined} aria-hidden="true" />
           </button>
         )}

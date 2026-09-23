@@ -85,15 +85,15 @@ export function surfaceLabel(fdi: number, surface: ToothSurface): string {
   const midlineOnRight = quadrant === 1 || quadrant === 4;
   switch (surface) {
     case "top":
-      return upper ? t("Mặt ngoài") : t("Mặt trong");
+      return upper ? t("Common:Tooth:Buccal") : t("Common:Tooth:Lingual");
     case "bottom":
-      return upper ? t("Mặt trong") : t("Mặt ngoài");
+      return upper ? t("Common:Tooth:Lingual") : t("Common:Tooth:Buccal");
     case "right":
-      return midlineOnRight ? t("Mặt gần") : t("Mặt xa");
+      return midlineOnRight ? t("Common:Tooth:Mesial") : t("Common:Tooth:Distal");
     case "left":
-      return midlineOnRight ? t("Mặt xa") : t("Mặt gần");
+      return midlineOnRight ? t("Common:Tooth:Distal") : t("Common:Tooth:Mesial");
     case "center":
-      return t("Mặt nhai");
+      return t("Common:Tooth:Occlusal");
   }
 }
 

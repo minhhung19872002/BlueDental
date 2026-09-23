@@ -151,7 +151,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const tableRows: ServiceTableRow[] = draft.controller
     ? [{ kind: "draft", draft: draft.controller }, ...drag.items]
     : drag.items;
-  const showTotal = countedTotal(t("dịch vụ"));
+  const showTotal = countedTotal(t("Treatment:Service:ServiceNoun"));
 
   const handleStatus = async (row: PlanDetailRow, action: ServiceAction) => {
     if (action === "cancel") {
@@ -164,7 +164,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     }
     try {
       await complete.mutateAsync({ planId: plan.id, lineId: row.service.id });
-      toast.success(t("Đã hoàn thành dịch vụ"));
+      toast.success(t("Treatment:Service:CompleteSuccess"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -174,7 +174,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     if (!cancelling) return;
     try {
       await cancel.mutateAsync({ planId: plan.id, lineId: cancelling.service.id });
-      toast.success(t("Đã hủy dịch vụ"));
+      toast.success(t("Treatment:Service:CancelSuccess"));
       setCancelling(null);
     } catch (error) {
       notifyError(extractApiError(error));
@@ -229,7 +229,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
               columns={columns}
               dataSource={tableRows}
               pagination={pagination.buildConfig(rows.length, showTotal)}
-              locale={{ emptyText: t("Không có dữ liệu") }}
+              locale={{ emptyText: t("Treatment:Common:NoData") }}
             />
           </div>
         </DragContext.Provider>
@@ -243,9 +243,9 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       />
       <ConfirmDeleteDialog
         open={draft.discardOpen}
-        noun={t("dịch vụ")}
-        title={t("Xác nhận xóa")}
-        question={t("Sau khi xác nhận, thông tin sẽ bị xóa và không thể khôi phục.")}
+        noun={t("Treatment:Service:ServiceNoun")}
+        title={t("Common:ConfirmDelete")}
+        question={t("Common:CannotUndone")}
         onConfirm={draft.confirmDiscard}
         onClose={draft.closeDiscard}
       />

@@ -35,18 +35,18 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
   const date = currentDate ?? dayjs();
 
   const viewModeToLabel = (mode: ViewMode): string => {
-    if (mode === "day") return t("Ngày");
-    if (mode === "week") return t("Tuần");
-    return t("Tháng");
+    if (mode === "day") return t("Common:Day");
+    if (mode === "week") return t("Common:Week");
+    return t("Common:Month");
   };
 
   const labelToViewMode = (label: string): ViewMode => {
-    if (label === t("Ngày")) return "day";
-    if (label === t("Tuần")) return "week";
+    if (label === t("Common:Day")) return "day";
+    if (label === t("Common:Week")) return "week";
     return "month";
   };
 
-  const viewOptions = [t("Ngày"), t("Tuần"), t("Tháng")];
+  const viewOptions = [t("Common:Day"), t("Common:Week"), t("Common:Month")];
 
   return (
     <div className="reception-toolbar-wrap">
@@ -67,7 +67,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
 
           <Input
             className="reception-toolbar-search--inline"
-            placeholder={t("Tìm bệnh nhân...")}
+            placeholder={t("Reception:SearchPlaceholder")}
             prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
             value={keyword}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -83,7 +83,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
               icon={<FormOutlined />}
               onClick={onCreateClick}
             >
-              {t("Tạo tiếp nhận")}
+              {t("Reception:CreateTitle")}
             </Button>
           )}
         </div>
@@ -91,7 +91,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
 
       <Input
         className="reception-toolbar-search--block"
-        placeholder={t("Tìm bệnh nhân...")}
+        placeholder={t("Reception:SearchPlaceholder")}
         prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
         value={keyword}
         onChange={(e) => onSearchChange(e.target.value)}

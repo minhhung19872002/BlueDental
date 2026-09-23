@@ -25,7 +25,7 @@ function ServiceList({ row }: { row: PaymentLineDto }) {
       {names.map((name, i) => (
         <span key={`${name}-${i}`}>
           {name}
-          {cancelled.has(name) && <span className="report-status-chip report-status-chip--danger">{t("(đã huỷ)")}</span>}
+          {cancelled.has(name) && <span className="report-status-chip report-status-chip--danger">{t("Report:ServiceStatus:Cancelled")}</span>}
         </span>
       ))}
     </div>
@@ -35,22 +35,22 @@ function ServiceList({ row }: { row: PaymentLineDto }) {
 function buildColumns(): TableColumnsType<PaymentLineDto> {
   const channels = paymentChannelLabels();
   return [
-    { title: t("Ngày tạo"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
+    { title: t("Report:Column:CreatedDate"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
     {
-      title: t("Tên khách hàng"),
+      title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
       width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
     },
-    { title: t("Mã thanh toán"), dataIndex: "paymentCode", width: 190 },
-    { title: t("Dịch vụ điều trị"), key: "serviceNames", render: (_: unknown, row) => <ServiceList row={row} /> },
-    { title: t("Tổng tiền phiếu"), dataIndex: "invoiceAmount", width: 130, align: "right", render: money() },
-    { title: t("Thanh toán"), dataIndex: "paidAmount", width: 130, align: "right", render: money("report-money--bold") },
-    { title: t("Tổng thực thu"), dataIndex: "actualReceived", width: 130, align: "right", render: money("report-money--green") },
-    { title: t("Tổng tạm ứng còn lại"), dataIndex: "remainingPrepaid", width: 150, align: "right", render: money("report-money--green") },
-    { title: t("Phương thức thanh toán"), dataIndex: "channel", width: 160, render: (v: PaymentLineDto["channel"]) => channels[v] },
-    { title: t("Thông tin thanh toán"), dataIndex: "paymentInfo", width: 180, render: (v: string) => v || "—" },
-    { title: t("Ghi chú"), dataIndex: "note", width: 180, render: (v: string) => v || "—" },
+    { title: t("Report:PaymentSummary:PaymentCode"), dataIndex: "paymentCode", width: 190 },
+    { title: t("Report:Column:TreatmentService"), key: "serviceNames", render: (_: unknown, row) => <ServiceList row={row} /> },
+    { title: t("Report:PaymentSummary:InvoiceAmount"), dataIndex: "invoiceAmount", width: 130, align: "right", render: money() },
+    { title: t("Report:PaymentSummary:Paid"), dataIndex: "paidAmount", width: 130, align: "right", render: money("report-money--bold") },
+    { title: t("Report:PaymentSummary:ActualReceived"), dataIndex: "actualReceived", width: 130, align: "right", render: money("report-money--green") },
+    { title: t("Report:PaymentSummary:RemainingPrepaid"), dataIndex: "remainingPrepaid", width: 150, align: "right", render: money("report-money--green") },
+    { title: t("Report:Column:PaymentMethod"), dataIndex: "channel", width: 160, render: (v: PaymentLineDto["channel"]) => channels[v] },
+    { title: t("Report:PaymentSummary:PaymentInfo"), dataIndex: "paymentInfo", width: 180, render: (v: string) => v || "—" },
+    { title: t("Common:Note"), dataIndex: "note", width: 180, render: (v: string) => v || "—" },
   ];
 }
 
@@ -67,21 +67,21 @@ const PAYMENT_EXPORT_WIDTHS = [16, 26, 18, 16, 22, 20, 20, 28, 18, 18, 22, 18, 2
  */
 function buildExportColumns(): ExportColumn<PaymentLineDto>[] {
   return [
-    { header: t("Ngày tạo"), key: "date", format: (v) => formatDate(String(v)) },
-    { header: t("Mã thanh toán"), key: "paymentCode" },
-    { header: t("Người tạo"), key: "createdBy" },
-    { header: t("Mã khách hàng"), key: "patientCode" },
-    { header: t("Tên khách hàng"), key: "patientName" },
-    { header: t("Mã phiếu điều trị"), key: "treatmentCode" },
-    { header: t("Chi nhánh"), key: "branchName" },
-    { header: t("Dịch vụ điều trị"), key: "serviceNames" },
-    { header: t("Tổng tiền phiếu"), key: "invoiceAmount" },
-    { header: t("Thanh toán"), key: "paidAmount" },
-    { header: t("Tổng tạm ứng còn lại"), key: "remainingPrepaid" },
-    { header: t("Thực thu"), key: "actualReceived" },
-    { header: t("Phương thức thanh toán"), key: "channel", format: (v) => paymentChannelLabels()[Number(v) as PaymentChannel] ?? "" },
-    { header: t("Thông tin thanh toán"), key: "paymentInfo" },
-    { header: t("Ghi chú"), key: "note" },
+    { header: t("Report:Column:CreatedDate"), key: "date", format: (v) => formatDate(String(v)) },
+    { header: t("Report:PaymentSummary:PaymentCode"), key: "paymentCode" },
+    { header: t("Report:Column:Creator"), key: "createdBy" },
+    { header: t("Report:Column:CustomerCode"), key: "patientCode" },
+    { header: t("Report:Column:CustomerName"), key: "patientName" },
+    { header: t("Report:PaymentSummary:TreatmentTicketCode"), key: "treatmentCode" },
+    { header: t("Report:Column:Branch"), key: "branchName" },
+    { header: t("Report:Column:TreatmentService"), key: "serviceNames" },
+    { header: t("Report:PaymentSummary:InvoiceAmount"), key: "invoiceAmount" },
+    { header: t("Report:PaymentSummary:Paid"), key: "paidAmount" },
+    { header: t("Report:PaymentSummary:RemainingPrepaid"), key: "remainingPrepaid" },
+    { header: t("Report:Overview:ActualReceived"), key: "actualReceived" },
+    { header: t("Report:Column:PaymentMethod"), key: "channel", format: (v) => paymentChannelLabels()[Number(v) as PaymentChannel] ?? "" },
+    { header: t("Report:PaymentSummary:PaymentInfo"), key: "paymentInfo" },
+    { header: t("Common:Note"), key: "note" },
   ];
 }
 
@@ -97,17 +97,17 @@ export function PaymentSubTab(range: RangeQuery) {
   const columns = useMemo(buildColumns, []);
 
   const cards: StatCardItem[] = [
-    { label: t("Tiền Mặt"), value: summary?.byCash ?? 0, tone: "green" },
-    { label: t("Chuyển Khoản"), value: summary?.byBanking ?? 0, tone: "blue" },
-    { label: t("Cà Thẻ"), value: summary?.byCard ?? 0, tone: "gold" },
-    { label: t("Dư nợ"), value: summary?.byDebt ?? 0, tone: "green" },
-    { label: t("Hoàn tiền"), value: summary?.refund ?? 0, tone: "gold" },
-    { label: t("Tạm ứng"), value: summary?.prepaidIncurred ?? 0, tone: "blue" },
+    { label: t("Report:PaymentChannel:Cash"), value: summary?.byCash ?? 0, tone: "green" },
+    { label: t("Report:PaymentChannel:Banking"), value: summary?.byBanking ?? 0, tone: "blue" },
+    { label: t("Report:PaymentChannel:Card"), value: summary?.byCard ?? 0, tone: "gold" },
+    { label: t("Report:PaymentSummary:Debt"), value: summary?.byDebt ?? 0, tone: "green" },
+    { label: t("Report:SubTab:Refund"), value: summary?.refund ?? 0, tone: "gold" },
+    { label: t("Report:SubTab:Prepaid"), value: summary?.prepaidIncurred ?? 0, tone: "blue" },
   ];
 
   const handleExport = useCallback(() => {
     exportToExcel<PaymentLineDto>(lines, buildExportColumns(), PAYMENT_EXPORT_FILENAME, {
-      sheetName: t("Thanh toán"),
+      sheetName: t("Report:SubTab:Payment"),
       columnWidths: excelColumnWidths(PAYMENT_EXPORT_WIDTHS),
     });
   }, [lines]);
@@ -117,7 +117,7 @@ export function PaymentSubTab(range: RangeQuery) {
       <div className="report-headline-row">
         <ReportStatCards variant="compact" items={cards} />
         <ReportStatsBar
-          label={t("Thực thu")}
+          label={t("Report:SubTab:ActualRevenue")}
           value={summary?.actualReceived ?? 0}
           tone="green"
           loading={summaryLoading}
@@ -135,9 +135,9 @@ export function PaymentSubTab(range: RangeQuery) {
           page={paging.page}
           pageSize={paging.pageSize}
           onPageChange={paging.onPageChange}
-          countUnit={t("phiếu")}
+          countUnit={t("Report:Unit:Voucher")}
         />
-        <DailyTotalsTable rows={daily} valueLabel={t("Thực thu")} />
+        <DailyTotalsTable rows={daily} valueLabel={t("Report:SubTab:ActualRevenue")} />
       </div>
     </>
   );

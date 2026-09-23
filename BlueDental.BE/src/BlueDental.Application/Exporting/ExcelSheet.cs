@@ -19,7 +19,7 @@ public sealed record ExcelColumn<T>(string Header, Func<T, object?> Value, doubl
 /// <summary>
 /// Turns rows into a one-sheet workbook.
 ///
-/// The reference offers "Xuất Excel" on the report, CSKH and labo screens; every
+/// The reference offers "BE:Common:ExportExcel" on the report, CSKH and labo screens; every
 /// one of them is the same shape — a title, a header row and typed cells — so the
 /// shape lives here instead of in each app service.
 /// </summary>

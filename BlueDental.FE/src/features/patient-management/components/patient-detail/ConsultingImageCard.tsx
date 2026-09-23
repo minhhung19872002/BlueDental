@@ -50,7 +50,7 @@ export function ConsultingImageCard({ image, checked, canSort, onToggle, onDelet
           <Button
             ref={sortable.setActivatorNodeRef}
             shape="circle"
-            aria-label={t("Sắp xếp")}
+            aria-label={t("Patient:Image:SortLabel")}
             icon={<HolderOutlined />}
             {...sortable.attributes}
             {...sortable.listeners}
@@ -59,7 +59,7 @@ export function ConsultingImageCard({ image, checked, canSort, onToggle, onDelet
         <Button
           danger
           shape="circle"
-          aria-label={t("Xoá ảnh")}
+          aria-label={t("Patient:Image:DeleteLabel")}
           icon={<DeleteOutlined />}
           onClick={() => onDelete?.(image)}
         />

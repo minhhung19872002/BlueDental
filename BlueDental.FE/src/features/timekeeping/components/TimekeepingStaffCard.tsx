@@ -85,7 +85,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const handleRegistrationChange = async (reg: WorkRegistration) => {
     if (reg === record.registration) return;
     if (hasAttendance) {
-      toast.error(t("Không thể đổi đăng ký sau khi đã chấm công."));
+      toast.error(t("Timekeeping:CannotChangeAfterCheckin"));
       return;
     }
     try {
@@ -106,8 +106,8 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
     } catch {
       toast.error(
         reg === WORK_REGISTRATION.Working
-          ? t("Không thể đăng ký làm việc.")
-          : t("Không thể đăng ký nghỉ."),
+          ? t("Timekeeping:CannotRegisterWork")
+          : t("Timekeeping:CannotRegisterOff"),
       );
     }
   };
@@ -115,13 +115,13 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const handleCheckIn = (shift: WorkShiftKind) => {
     void checkIn
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể vào ca.")));
+      .catch(() => toast.error(t("Timekeeping:CannotCheckIn")));
   };
 
   const handleCheckOut = (shift: WorkShiftKind) => {
     void checkOut
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể ra ca.")));
+      .catch(() => toast.error(t("Timekeeping:CannotCheckOut")));
   };
 
   return (
@@ -146,7 +146,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
             <button
               type="button"
               className="tk-more-btn"
-              aria-label={t("Cập nhật thông tin")}
+              aria-label={t("Timekeeping:UpdateTitle")}
               onClick={() => setInfoOpen(true)}
             >
               <MoreIcon />
@@ -155,7 +155,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
         </div>
 
         {isAbsent && (
-          <p className="tk-card-absence">{t("Vắng không báo trước")}</p>
+          <p className="tk-card-absence">{t("Timekeeping:UnannounceAbsent")}</p>
         )}
 
         <div className="tk-card-info">
@@ -164,12 +164,12 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <p className="tk-card-name">
-              {record.staffName ?? t("Nhân viên")}
+              {record.staffName ?? t("Common:Staff")}
             </p>
             <div className="tk-card-position">
-              <span className="tk-card-position-label">{t("Vị trí")}:</span>
+              <span className="tk-card-position-label">{t("Timekeeping:Position")}:</span>
               <span className="tk-card-position-tag">
-                {record.staffPosition ?? t("Nhân viên")}
+                {record.staffPosition ?? t("Common:Staff")}
               </span>
             </div>
           </div>
@@ -184,18 +184,18 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
         {isAbsent ? (
           <>
             <div>
-              <p className="tk-footer-title">{t("Lịch làm việc")}</p>
+              <p className="tk-footer-title">{t("Timekeeping:WorkSchedule")}</p>
               <p className="tk-footer-time">--</p>
             </div>
             <div className="tk-footer-right">
-              <p className="tk-footer-title">{t("Vào ca - Ra ca")}</p>
+              <p className="tk-footer-title">{t("Timekeeping:CheckInOut")}</p>
               <p className="tk-footer-time">-- / --</p>
             </div>
           </>
         ) : (
           <>
             <div>
-              <p className="tk-footer-title">{t("Lịch làm việc")}</p>
+              <p className="tk-footer-title">{t("Timekeeping:WorkSchedule")}</p>
               <div className="tk-footer-times">
                 <p className="tk-footer-time">
                   {formatPlanned(record.morningShift.plannedStart)} - {formatPlanned(record.morningShift.plannedEnd)}
@@ -206,7 +206,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
               </div>
             </div>
             <div className="tk-footer-right">
-              <p className="tk-footer-title">{t("Vào ca - Ra ca")}</p>
+              <p className="tk-footer-title">{t("Timekeeping:CheckInOut")}</p>
               <div className="tk-footer-times">
                 <p className="tk-footer-time">
                   {formatStamp(record.morningShift.checkedInAt)} / {formatStamp(record.morningShift.checkedOutAt)}

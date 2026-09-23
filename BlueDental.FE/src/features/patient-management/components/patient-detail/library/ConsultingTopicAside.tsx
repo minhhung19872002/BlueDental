@@ -26,22 +26,22 @@ export function ConsultingTopicAside({ library, onCollapse }: Props) {
   const { topics, topicsLoading, topicSearch, setTopicSearch, topic, selectTopic } = library;
 
   return (
-    <aside className="pd-lib-aside" aria-label={t("Dữ liệu tư vấn")}>
+    <aside className="pd-lib-aside" aria-label={t("Patient:Advise:ConsultingData")}>
       <div className="pd-lib-aside__head">
         <div className="pd-lib-aside__title">
           <span className="pd-lib-aside__badge">
             <Stethoscope size={20} />
           </span>
           <div className="pd-lib-aside__text">
-            <h2>{t("Dữ liệu tư vấn")}</h2>
-            <p>{t("{0} nhóm chủ đề", topics.length)}</p>
+            <h2>{t("Patient:Advise:ConsultingData")}</h2>
+            <p>{t("Patient:Misc:TopicGroupCount", topics.length)}</p>
           </div>
           {onCollapse && (
             <button
               type="button"
               className="pd-lib-icon-btn"
-              aria-label={t("Đóng danh mục")}
-              title={t("Đóng danh mục")}
+              aria-label={t("Patient:Consulting:CloseCategory")}
+              title={t("Patient:Consulting:CloseCategory")}
               onClick={onCollapse}
             >
               <ChevronLeft size={16} />
@@ -50,8 +50,8 @@ export function ConsultingTopicAside({ library, onCollapse }: Props) {
         </div>
         <Input
           className="pd-lib-search"
-          aria-label={t("Tìm chủ đề nha khoa")}
-          placeholder={t("Tìm chủ đề nha khoa...")}
+          aria-label={t("Patient:Consulting:SearchTopic")}
+          placeholder={t("Patient:Consulting:SearchTopicPlaceholder")}
           prefix={<Search size={16} />}
           value={topicSearch}
           onChange={(event) => setTopicSearch(event.target.value)}
@@ -84,7 +84,7 @@ export function ConsultingTopicAside({ library, onCollapse }: Props) {
           );
         })}
         {!topicsLoading && topics.length === 0 && (
-          <p className="pd-lib-aside__empty">{t("Không có danh mục.")}</p>
+          <p className="pd-lib-aside__empty">{t("Patient:Consulting:NoCategory")}</p>
         )}
       </div>
     </aside>

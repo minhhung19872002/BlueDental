@@ -10,9 +10,9 @@ import { formatClock } from "@/utils/format";
 const MAX_ROWS = 6;
 
 /** The two in-flight states the panel can show; Completed rows are filtered out. */
-const STATUS_LOOK: Partial<Record<ReceptionStatus, { label: string; color: string }>> = {
-  WaitingForExam: { label: "Chờ khám", color: brand.blue },
-  InProgress: { label: "Đang khám", color: brand.goldDeep },
+const STATUS_LOOK: Partial<Record<ReceptionStatus, { labelKey: string; color: string }>> = {
+  WaitingForExam: { labelKey: "Dashboard:StatusWaitingForExam", color: brand.blue },
+  InProgress: { labelKey: "Dashboard:StatusInProgress", color: brand.goldDeep },
 };
 
 /** Today's visits that are not finished yet, in the design's compact row form. */
@@ -30,13 +30,13 @@ export function OngoingReceptionsCard() {
   return (
     <div className="page-card dash-flush-card">
       <div className="dash-panel-head">
-        <div className="dash-card-title">{t("Lượt tiếp nhận đang diễn ra")}</div>
+        <div className="dash-card-title">{t("Dashboard:OngoingReceptionsTitle")}</div>
         <button
           type="button"
           className="dash-link"
           onClick={() => navigate("/reception")}
         >
-          {t("Xem tất cả →")}
+          {t("Dashboard:ViewAll")}
         </button>
       </div>
 
@@ -48,7 +48,7 @@ export function OngoingReceptionsCard() {
         <div className="dash-panel-body">
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("Không có lượt tiếp nhận đang diễn ra")}
+            description={t("Dashboard:NoOngoingReceptions")}
           />
         </div>
       ) : (
@@ -77,7 +77,7 @@ export function OngoingReceptionsCard() {
                   className="dash-pill"
                   style={{ color: status?.color, background: `${status?.color}16` }}
                 >
-                  {t(status?.label ?? "Chờ khám")}
+                  {t(status?.labelKey ?? "Dashboard:StatusWaitingForExam")}
                 </span>
               </button>
             );

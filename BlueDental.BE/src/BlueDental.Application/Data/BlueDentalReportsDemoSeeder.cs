@@ -26,7 +26,7 @@ namespace BlueDental.Data;
 ///
 /// This spreads a fuller set of cases across the current month and the one
 /// before it, and deliberately leaves some diagnoses untreated so that
-/// "Chẩn đoán chưa điều trị" has rows of its own.
+/// "BE:CareType:DiagnosedNotTreated" has rows of its own.
 ///
 /// <para>
 /// Backdating needs a word. ABP stamps <c>CreationTime</c> on insert, but only
@@ -104,7 +104,7 @@ public class BlueDentalReportsDemoSeeder(
             ToothSelection Tooth() => new(toothCode, selected: true);
 
             // One case in three is left at the diagnosis, which is what
-            // "Chẩn đoán chưa điều trị" reports on.
+            // "BE:CareType:DiagnosedNotTreated" reports on.
             var treated = random.Next(0, 3) != 0;
 
             var diagnosis = PatientDiagnosis.Record(
@@ -118,7 +118,7 @@ public class BlueDentalReportsDemoSeeder(
                 note: treated ? null : "Khách hẹn quay lại cân nhắc");
 
             // Marked before the insert so the row lands in its final state, and
-            // "Chẩn đoán chưa điều trị" only keeps the ones that stopped here.
+            // "BE:CareType:DiagnosedNotTreated" only keeps the ones that stopped here.
             if (treated)
             {
                 diagnosis.MarkTreatmentServiceCreated();

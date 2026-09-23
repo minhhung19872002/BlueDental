@@ -96,13 +96,13 @@ export function PatientDiagnosisForm({
 
   return (
     <Form form={form} className="pd-diagnosis-form" data-testid="diagnosis-form">
-      <Tooltip title={t("Đóng")}>
+      <Tooltip title={t("Common:Close")}>
         <Button
           type="primary"
           shape="circle"
           danger
           className="pd-diagnosis-close"
-          aria-label={t("Đóng")}
+          aria-label={t("Common:Close")}
           icon={<CloseOutlined />}
           onClick={onClose}
         />
@@ -133,16 +133,16 @@ export function PatientDiagnosisForm({
       </div>
 
       <div className="pd-diagnosis-side">
-        <FloatingField name="diagnosisId" label={t("Chẩn đoán")} required>
+        <FloatingField name="diagnosisId" label={t("Patient:Tab:Diagnosis")} required>
           <Select
             showSearch
             optionFilterProp="label"
             prefix={<SearchOutlined />}
             options={diagnoses}
-            notFoundContent={t("Không tìm thấy kết quả")}
+            notFoundContent={t("Common:NoResults")}
           />
         </FloatingField>
-        <FloatingField name="note" label={t("Ghi chú")}>
+        <FloatingField name="note" label={t("Common:Note")}>
           <Input.TextArea className="pd-diagnosis-note" />
         </FloatingField>
         <DiagnosisSelectedTeeth

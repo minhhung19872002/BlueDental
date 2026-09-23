@@ -81,7 +81,7 @@ public class GetAppointmentChangeLogListInput : PagedAndSortedResultRequestDto
 
     /// <summary>
     /// Same as <see cref="Status"/> but any of several, for the dialog's
-    /// grouped statuses (e.g. "Đã đến" = CheckedIn, InProgress, Completed).
+    /// grouped statuses (e.g. "BE:Status:Arrived" = CheckedIn, InProgress, Completed).
     /// </summary>
     public List<AppointmentStatus>? Statuses { get; set; }
 

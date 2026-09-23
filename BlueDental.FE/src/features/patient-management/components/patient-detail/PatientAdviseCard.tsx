@@ -150,7 +150,7 @@ export function PatientAdviseCard({
       {
         key: "date",
         column: {
-          title: t("Ngày"),
+          title: t("Patient:Misc:Date"),
           dataIndex: "creationTime",
           width: 110,
           render: formatDate,
@@ -159,7 +159,7 @@ export function PatientAdviseCard({
       {
         key: "service",
         column: {
-          title: t("Dịch vụ"),
+          title: t("Common:Service"),
           key: "service",
           width: 210,
           // The reference names the service and nothing else here: the teeth
@@ -170,7 +170,7 @@ export function PatientAdviseCard({
       {
         key: "diagnosis",
         column: {
-          title: t("Chẩn đoán"),
+          title: t("Patient:Tab:Diagnosis"),
           key: "diagnosis",
           width: 200,
           // "12, 11, 22, 23, 24 - vôi răng": the teeth by number and the
@@ -195,7 +195,7 @@ export function PatientAdviseCard({
       {
         key: "staff",
         column: {
-          title: t("Nhân sự tư vấn 1"),
+          title: t("Patient:Staff:Consultant1"),
           dataIndex: "staffName",
           width: 170,
           render: (value: string | null) => value ?? "—",
@@ -204,7 +204,7 @@ export function PatientAdviseCard({
       {
         key: "secondStaff",
         column: {
-          title: t("Nhân sự tư vấn 2"),
+          title: t("Patient:Staff:Consultant2"),
           dataIndex: "secondStaffName",
           width: 170,
           render: (value: string | null) => value ?? "-",
@@ -216,7 +216,7 @@ export function PatientAdviseCard({
       {
         key: "diagnosisStaff",
         column: {
-          title: t("Bác sĩ chẩn đoán 1"),
+          title: t("Patient:Diagnosis:Doctor1"),
           dataIndex: "diagnosisStaffName",
           width: 170,
           render: (value: string | null) => value ?? "-",
@@ -225,7 +225,7 @@ export function PatientAdviseCard({
       {
         key: "secondDiagnosis",
         column: {
-          title: t("Chẩn đoán 2"),
+          title: t("Patient:Diagnosis:Second"),
           dataIndex: "diagnosisSecondStaffName",
           width: 170,
           render: (value: string | null) => value ?? "-",
@@ -233,12 +233,12 @@ export function PatientAdviseCard({
       },
       {
         key: "quantity",
-        column: { title: t("Số lượng"), dataIndex: "quantity", width: 90, align: "center" },
+        column: { title: t("Patient:Payment:Quantity"), dataIndex: "quantity", width: 90, align: "center" },
       },
       {
         key: "price",
         column: {
-          title: t("Đơn giá"),
+          title: t("Patient:Payment:UnitPrice"),
           dataIndex: "price",
           width: 140,
           align: "right",
@@ -248,7 +248,7 @@ export function PatientAdviseCard({
       {
         key: "discount",
         column: {
-          title: t("Giảm giá"),
+          title: t("Patient:Payment:Discount"),
           dataIndex: "discountAmount",
           width: 140,
           align: "right",
@@ -258,7 +258,7 @@ export function PatientAdviseCard({
       {
         key: "amount",
         column: {
-          title: t("Thành tiền"),
+          title: t("Patient:Payment:Amount"),
           dataIndex: "effectiveAmount",
           width: 140,
           align: "right",
@@ -268,7 +268,7 @@ export function PatientAdviseCard({
       {
         key: "note",
         column: {
-          title: t("Ghi chú tư vấn"),
+          title: t("Patient:Advise:Note"),
           dataIndex: "note",
           width: 160,
           render: (value: string | null) => value ?? "—",
@@ -279,7 +279,7 @@ export function PatientAdviseCard({
     return [
       {
         key: "grip",
-        title: <span className="bd-sr-only">{t("Sắp xếp")}</span>,
+        title: <span className="bd-sr-only">{t("Patient:Misc:Sort")}</span>,
         width: 34,
         align: "center",
         className: "pd-grip-cell",
@@ -288,8 +288,8 @@ export function PatientAdviseCard({
         render: (_, row, index) => (
           <button
             type="button"
-            title={t("Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp")}
-            aria-label={t("Sắp xếp {0}", row.serviceName ?? row.code)}
+            title={t("Patient:Misc:DragOrArrowSort")}
+            aria-label={t("Patient:SortColumnLabel", row.serviceName ?? row.code)}
             className="bd-grip"
             {...drag.handleProps(row.id)}
             onKeyDown={(event) => {
@@ -316,17 +316,17 @@ export function PatientAdviseCard({
           Boolean(column),
         ),
       ...(onDelete ? [{
-        title: t("Thao tác"),
+        title: t("Common:Actions"),
         key: "actions",
         width: 90,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, row: PatientAdviseDto) => (
-          <Tooltip title={t("Xoá dịch vụ tư vấn")}>
+          <Tooltip title={t("Patient:Advise:DeleteService")}>
             <Button
               type="text"
               danger
-              aria-label={t("Xoá dịch vụ tư vấn")}
+              aria-label={t("Patient:Advise:DeleteService")}
               icon={<DeleteOutlined />}
               onClick={() => onDelete(row)}
             />
@@ -387,11 +387,11 @@ export function PatientAdviseCard({
                 onEdit(row);
               },
             }) : undefined}
-            locale={{ emptyText: t("Chưa có kế hoạch") }}
+            locale={{ emptyText: t("Patient:Plan:Empty") }}
             pagination={
               quotes.active
-                ? { pageSize: 20, total: ordered.length, showTotal: countedTotal(t("dịch vụ")) }
-                : pagination.buildConfig(totalCount, countedTotal(t("dịch vụ")))
+                ? { pageSize: 20, total: ordered.length, showTotal: countedTotal(t("Patient:Misc:Service")) }
+                : pagination.buildConfig(totalCount, countedTotal(t("Patient:Misc:Service")))
             }
           />
         </DragContext.Provider>
@@ -401,10 +401,10 @@ export function PatientAdviseCard({
           quote's own ticked rows — only the middle command changes. */}
       <footer className="pd-plan-summary">
           <div className="pd-plan-total">
-            <strong>{t("TỔNG KẾ HOẠCH")}</strong>
+            <strong>{t("Patient:QuoteSheet:PlanTotal")}</strong>
 
             <p>
-              {t("Tổng thành tiền")}: <b>{money(plan.gross)}</b>
+              {t("Patient:Payment:GrandTotal")}: <b>{money(plan.gross)}</b>
             </p>
 
             {/* Every command below prices the ticked rows, so none of them means
@@ -413,7 +413,7 @@ export function PatientAdviseCard({
             <AdviseVoucherPicker plan={plan} disabled={!hasTicked} />
 
             <p className="pd-plan-net">
-              {t("Tổng tiền")}: <b>{money(plan.net)}</b>
+              {t("Patient:Payment:TotalAmount")}: <b>{money(plan.net)}</b>
             </p>
 
             <div className="pd-plan-actions">
@@ -422,8 +422,8 @@ export function PatientAdviseCard({
                   showSearch
                   allowClear
                   optionFilterProp="label"
-                  placeholder={t("Chọn bác sĩ điều trị")}
-                  aria-label={t("Chọn bác sĩ điều trị")}
+                  placeholder={t("Patient:Stage:SelectDoctor")}
+                  aria-label={t("Patient:Stage:SelectDoctor")}
                   status={dentistError ? "error" : undefined}
                   value={dentistId}
                   onChange={(value) => {
@@ -434,18 +434,18 @@ export function PatientAdviseCard({
                 />
                 {dentistError && (
                   <span className="pd-plan-dentist-error" role="alert">
-                    {t("Vui lòng chọn bác sĩ điều trị")}
+                    {t("Patient:Staff:RequiredTreatingDoctor")}
                   </span>
                 )}
               </div>
               {onAddToPlan && (
                 <Button icon={<PlusOutlined />} disabled={!hasTicked} onClick={handleAddToPlan}>
-                  {t("Thêm kế hoạch điều trị")}
+                  {t("Patient:Plan:Add")}
                 </Button>
               )}
               {openQuote ? (
                 <Button icon={<CopyOutlined />} onClick={() => quotes.duplicate(openQuote.id)}>
-                  {t("Sao chép báo giá")}
+                  {t("Patient:Quote:Copy")}
                 </Button>
               ) : (
                 <Button
@@ -454,14 +454,14 @@ export function PatientAdviseCard({
                   disabled={!hasTicked}
                   onClick={() => setConfirmQuote(true)}
                 >
-                  {t("Tạo báo giá")}
+                  {t("Patient:Quote:Create")}
                 </Button>
               )}
               {onPrint && (
-                <Tooltip title={t("In Báo giá")}>
+                <Tooltip title={t("Patient:Quote:Print")}>
                   <Button
                     className="pd-plan-print"
-                    aria-label={t("In Báo giá")}
+                    aria-label={t("Patient:Quote:Print")}
                     icon={<PrinterOutlined />}
                     disabled={!hasTicked}
                     onClick={onPrint}

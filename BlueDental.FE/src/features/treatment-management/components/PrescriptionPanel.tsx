@@ -23,7 +23,7 @@ const CREATE_PARAM = "create";
 
 /** "Hiển thị 3 trên 3" — how many of the total are on this page. */
 function shownOfTotal(total: number, range: [number, number]): string {
-  return t("Hiển thị {0} trên {1}", total === 0 ? 0 : range[1] - range[0] + 1, total);
+  return t("Treatment:Invoice:ShowRange", total === 0 ? 0 : range[1] - range[0] + 1, total);
 }
 
 /**
@@ -56,7 +56,7 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
     if (!deleting) return;
     try {
       await remove.mutateAsync(deleting.id);
-      toast.success(t("Đã xoá đơn thuốc"));
+      toast.success(t("Treatment:Prescription:DeleteSuccess"));
       setDeleting(null);
     } catch {
       // queryClient reports the failure; nothing to add here.
@@ -64,47 +64,47 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
   };
 
   const columns: TableColumnsType<PrescriptionDto> = [
-    { title: t("Mã đơn thuốc"), dataIndex: "code", width: 130 },
+    { title: t("Treatment:Prescription:PrescriptionCode"), dataIndex: "code", width: 130 },
     {
-      title: t("Bác sĩ"),
+      title: t("Treatment:Common:Doctor"),
       dataIndex: "staffName",
       width: 180,
       ellipsis: true,
       render: (value: string | null) => value || "—",
     },
     {
-      title: t("Chẩn đoán"),
+      title: t("Treatment:Diagnosis:Diagnosis"),
       dataIndex: "diagnosisText",
       ellipsis: true,
       render: (value: string | null) => value || "—",
     },
     {
-      title: t("Tái khám"),
+      title: t("Treatment:Prescription:TypeRecheck"),
       dataIndex: "followUpDate",
       width: 130,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
-      title: t("Ngày tạo"),
+      title: t("Treatment:Common:CreatedDate"),
       dataIndex: "issuedAt",
       width: 130,
       render: (value: string) => formatDate(value),
     },
     ...((ability.canUpdate || ability.canDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 90,
       fixed: "right" as const,
       render: (_: unknown, row: PrescriptionDto) => (
         <span className="pd-icon-actions">
           {ability.canUpdate && (
-            <Tooltip title={t("Sửa")}>
-              <Button type="text" aria-label={t("Sửa")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
+            <Tooltip title={t("Common:Edit")}>
+              <Button type="text" aria-label={t("Common:Edit")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
             </Tooltip>
           )}
           {ability.canDelete && (
-            <Tooltip title={t("Xóa")}>
-              <Button type="text" danger aria-label={t("Xóa")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
+            <Tooltip title={t("Common:Delete")}>
+              <Button type="text" danger aria-label={t("Common:Delete")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
             </Tooltip>
           )}
         </span>
@@ -117,7 +117,7 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
       <div className="rx-toolbar">
         {ability.canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
-            {t("Tạo đơn thuốc")}
+            {t("Treatment:Prescription:CreatePrescription")}
           </Button>
         )}
       </div>
@@ -127,7 +127,7 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
           loading={query.isLoading}
           columns={columns}
           dataSource={rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize)}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Treatment:Common:NoData") }}
           pagination={pagination.buildConfig(rows.length, shownOfTotal)}
         />
         {rows.length === 0 && !query.isLoading && (
@@ -151,7 +151,7 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
 
       <ConfirmDeleteDialog
         open={Boolean(deleting)}
-        noun={t("đơn thuốc")}
+        noun={t("Treatment:Prescription:PrescriptionNoun")}
         name={deleting?.code}
         pending={remove.isPending}
         onConfirm={() => void handleDelete()}

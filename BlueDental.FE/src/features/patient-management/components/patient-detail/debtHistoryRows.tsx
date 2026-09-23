@@ -38,11 +38,11 @@ export function debtCardRows(entry: DebtHistoryEntryDto): {
   const labels = debtMovementLabels();
   return {
     rows: [
-      { key: "date", label: t("Ngày giao dịch"), value: formatDateTime(entry.date) },
-      { key: "type", label: t("Loại"), value: labels[entry.type] },
-      { key: "amount", label: t("Số tiền"), value: <DebtAmount entry={entry} /> },
-      { key: "staff", label: t("Nhân viên"), value: dashOrValue(entry.staffName) },
+      { key: "date", label: t("Patient:Debt:Date"), value: formatDateTime(entry.date) },
+      { key: "type", label: t("Patient:Debt:Type"), value: labels[entry.type] },
+      { key: "amount", label: t("Patient:Debt:Amount"), value: <DebtAmount entry={entry} /> },
+      { key: "staff", label: t("Patient:Debt:Staff"), value: dashOrValue(entry.staffName) },
     ],
-    moreRows: [{ key: "note", label: t("Ghi chú"), value: dashOrValue(entry.note) }],
+    moreRows: [{ key: "note", label: t("Patient:Debt:Note"), value: dashOrValue(entry.note) }],
   };
 }

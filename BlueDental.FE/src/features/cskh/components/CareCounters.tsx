@@ -15,11 +15,11 @@ interface CounterDef {
 }
 
 const COUNTERS: readonly CounterDef[] = [
-  { key: "total", label: () => t("Tổng khách"), value: (s) => s.totalPatients, status: undefined },
-  { key: "success", label: () => t("Thành công"), value: (s) => s.succeeded, status: CARE_STATUS.Succeeded },
-  { key: "fail", label: () => t("Thất bại"), value: (s) => s.failed, status: CARE_STATUS.Failed },
-  { key: "new", label: () => t("Chưa CS"), value: (s) => s.notCaredYet, status: CARE_STATUS.New },
-  { key: "zalo", label: () => t("Đã gửi Zalo"), value: (s) => s.zaloSent, status: undefined },
+  { key: "total", label: () => t("CSKH:Counter:Total"), value: (s) => s.totalPatients, status: undefined },
+  { key: "success", label: () => t("CSKH:Counter:Success"), value: (s) => s.succeeded, status: CARE_STATUS.Succeeded },
+  { key: "fail", label: () => t("CSKH:Counter:Failed"), value: (s) => s.failed, status: CARE_STATUS.Failed },
+  { key: "new", label: () => t("CSKH:Counter:NotCared"), value: (s) => s.notCaredYet, status: CARE_STATUS.New },
+  { key: "zalo", label: () => t("CSKH:Counter:ZaloSent"), value: (s) => s.zaloSent, status: undefined },
 ];
 
 interface CareCountersProps {

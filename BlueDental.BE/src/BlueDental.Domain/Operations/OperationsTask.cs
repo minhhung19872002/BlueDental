@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.Operations;
 
 /// <summary>
-/// An item on a department's "Công việc" section (Quản trị vận hành).
+/// An item on a department's "BE:Common:Tasks" section (Quản trị vận hành).
 ///
 /// Like <see cref="OperationsArticle"/>, the reference's payload was never
 /// observed; the shape here is BlueDental's minimum for an assignable task with

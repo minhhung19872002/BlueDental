@@ -20,12 +20,12 @@ function formatDuration(totalMinutes: number): string {
 }
 
 const CHIPS: ChipConfig[] = [
-  { key: "totalStaff", label: () => t("Tổng CBNV"), border: "#c8cafa", bg: "#eceefd", color: "#6366f1" },
-  { key: "registeredWorking", label: () => t("Đăng kí làm"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
-  { key: "registeredDayOff", label: () => t("Đăng kí nghỉ"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f" },
-  { key: "currentlyWorking", label: () => t("Đang làm việc"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
-  { key: "abandoned", label: () => t("Nghỉ ngang"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f", showAlert: true, tooltip: () => t("Nhân viên bị hệ thống ghi nhận vắng không báo trước hoặc đã vào ca nhưng qua hết ngày vẫn chưa bấm kết ca.") },
-  { key: "totalOvertimeMinutes", label: () => t("Giờ tăng ca"), border: "#f6bfc1", bg: "#fce9ea", color: "#e5484d", format: formatDuration },
+  { key: "totalStaff", label: () => t("Timekeeping:StatTotalStaff"), border: "#c8cafa", bg: "#eceefd", color: "#6366f1" },
+  { key: "registeredWorking", label: () => t("Timekeeping:StatRegisteredWork"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
+  { key: "registeredDayOff", label: () => t("Timekeeping:StatRegisteredOff"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f" },
+  { key: "currentlyWorking", label: () => t("Timekeeping:StatCurrentlyWorking"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
+  { key: "abandoned", label: () => t("Timekeeping:StatAbandoned"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f", showAlert: true, tooltip: () => t("Timekeeping:StatAbandonedTooltip") },
+  { key: "totalOvertimeMinutes", label: () => t("Timekeeping:StatOvertime"), border: "#f6bfc1", bg: "#fce9ea", color: "#e5484d", format: formatDuration },
 ];
 
 const AlertIcon = () => (

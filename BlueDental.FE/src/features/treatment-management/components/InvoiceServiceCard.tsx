@@ -24,7 +24,7 @@ export function InvoiceServiceCard({ row, onToggle, onTaxTypeChange, onUnitPrice
       </div>
       <div className="inv-card-body">
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("Loại thuế")}</span>
+          <span className="inv-card-label">{t("Treatment:Invoice:TaxType")}</span>
           <Select
             value={row.taxType}
             onChange={onTaxTypeChange}
@@ -34,15 +34,15 @@ export function InvoiceServiceCard({ row, onToggle, onTaxTypeChange, onUnitPrice
           />
         </div>
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("Đơn vị")}</span>
+          <span className="inv-card-label">{t("Treatment:Pricing:Unit")}</span>
           <span>{row.unit}</span>
         </div>
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("Số lượng")}</span>
+          <span className="inv-card-label">{t("Treatment:Pricing:Quantity")}</span>
           <span>{row.quantity}</span>
         </div>
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("Đơn giá")}</span>
+          <span className="inv-card-label">{t("Treatment:Pricing:UnitPrice")}</span>
           <CurrencyInput
             className="inv-card-price"
             value={row.unitPrice}
@@ -50,19 +50,19 @@ export function InvoiceServiceCard({ row, onToggle, onTaxTypeChange, onUnitPrice
           />
         </div>
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("Giá tính thuế")}</span>
+          <span className="inv-card-label">{t("Treatment:Invoice:PriceBeforeTax")}</span>
           <span>{formatVND(row.taxBasePrice)}</span>
         </div>
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("% thuế")}</span>
+          <span className="inv-card-label">{t("Treatment:Invoice:TaxRate")}</span>
           <span>{taxLabel}</span>
         </div>
         <div className="inv-card-row">
-          <span className="inv-card-label">{t("Tiền thuế")}</span>
-          <span>{formatVND(row.taxAmount)} {t("đ")}</span>
+          <span className="inv-card-label">{t("Treatment:Invoice:TaxMoney")}</span>
+          <span>{formatVND(row.taxAmount)} {t("Treatment:Pricing:CurrencyUnit")}</span>
         </div>
         <div className="inv-card-row inv-card-row--total">
-          <span className="inv-card-label">{t("Thành tiền sau thuế")}</span>
+          <span className="inv-card-label">{t("Treatment:Invoice:PriceAfterTax")}</span>
           <span>{formatVND(row.totalAfterTax)}</span>
         </div>
       </div>

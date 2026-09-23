@@ -60,7 +60,7 @@ function NoteCell({
           {!editing && (
             <button
               type="button"
-              aria-label={t("Sửa ghi chú")}
+              aria-label={t("Patient:Misc:EditNote")}
               onClick={() => setDraft(stage.note ?? "")}
             >
               {/* lucide-pencil, the reference's own glyph */}
@@ -91,7 +91,7 @@ function NoteCell({
               onChange={(event) => setDraft(event.target.value)}
             />
             <div>
-              <Button onClick={() => setDraft(null)}>{t("Hủy")}</Button>
+              <Button onClick={() => setDraft(null)}>{t("Patient:Misc:Cancel")}</Button>
               <Button
                 type="primary"
                 loading={saving}
@@ -100,7 +100,7 @@ function NoteCell({
                   setDraft(null);
                 }}
               >
-                {t("Lưu")}
+                {t("Patient:Misc:Save")}
               </Button>
             </div>
           </div>
@@ -112,14 +112,14 @@ function NoteCell({
       <div className="pd-stage-notemeta">
         <div>
           <p>
-            {t("Bác sĩ")}: <span>{stage.staffName ?? t("(Trống)")}</span>
+            {t("Patient:Staff:Doctor")}: <span>{stage.staffName ?? t("Patient:QuoteSheet:Empty")}</span>
           </p>
           <p>
-            {t("Bác sĩ hỗ trợ")}: <span>{stage.secondStaffName ?? t("(Trống)")}</span>
+            {t("Patient:Staff:AssistingDoctor")}: <span>{stage.secondStaffName ?? t("Patient:QuoteSheet:Empty")}</span>
           </p>
         </div>
         <p>
-          {t("Phụ tá")}: <span>{stage.subStaffName ?? t("(Trống)")}</span>
+          {t("Patient:Staff:Assistant")}: <span>{stage.subStaffName ?? t("Patient:QuoteSheet:Empty")}</span>
         </p>
       </div>
     </div>
@@ -151,27 +151,27 @@ export function StageHistory({
   return (
     <div className="pd-stage-history">
       <header>
-        <h4>{t("Lịch sử điều trị")}</h4>
-        <span>{t("{0} công đoạn", total)}</span>
+        <h4>{t("Patient:Tab:TreatmentHistory")}</h4>
+        <span>{t("Patient:Stage:StageCount", total)}</span>
       </header>
       {days.length === 0 ? (
-        <p className="pd-stage-history--empty">{t("Chưa có dữ liệu công đoạn")}</p>
+        <p className="pd-stage-history--empty">{t("Patient:Stage:Empty")}</p>
       ) : (
         <div className="pd-stage-histscroll">
           <div className="pd-stage-histgrid">
             <div className="pd-stage-histhead">
-              <div>{t("Ngày")}</div>
-              <div>{t("Dịch vụ & răng")}</div>
-              <div>{t("Ghi chú")}</div>
-              <div>{t("Công đoạn")}</div>
-              <div>{t("Hành động")}</div>
+              <div>{t("Patient:Misc:Date")}</div>
+              <div>{t("Patient:Plan:ServiceAndTooth")}</div>
+              <div>{t("Patient:Misc:Note")}</div>
+              <div>{t("Patient:Stage:Title")}</div>
+              <div>{t("Patient:Misc:Actions")}</div>
             </div>
 
             {days.map((day) => (
               <div className="pd-stage-histday" key={day.key}>
                 <div className="pd-stage-histdate">
                   <b>{formatShortDate(day.date)}</b>
-                  <small>{t("{0} công đoạn", day.stages.length)}</small>
+                  <small>{t("Patient:Stage:StageCount", day.stages.length)}</small>
                 </div>
                 <div>
                   {day.stages.map((stage) => {
@@ -207,8 +207,8 @@ export function StageHistory({
                               <Image.PreviewGroup>
                                 {images.map((image) => (
                                   <span key={image.id}>
-                                    <Image src={image.url} alt={t("Ảnh điều trị")} />
-                                    <em>{t("Ảnh điều trị")}</em>
+                                    <Image src={image.url} alt={t("Patient:Photo:Treatment")} />
+                                    <em>{t("Patient:Photo:Treatment")}</em>
                                   </span>
                                 ))}
                               </Image.PreviewGroup>
@@ -249,7 +249,7 @@ export function StageHistory({
                             disabled={!live || completingId === stage.id}
                             onChange={() => onComplete(stage)}
                           >
-                            {t("Hoàn thành")}
+                            {t("Patient:Misc:Done")}
                           </Checkbox>
                           <Button
                             block
@@ -257,7 +257,7 @@ export function StageHistory({
                             loading={uploadingFor === stage.id}
                             onClick={() => onUpload(stage)}
                           >
-                            {t("Tải ảnh")}
+                            {t("Patient:Photo:Upload")}
                           </Button>
                           {/* A finished công đoạn swaps Tạo Labo for Bảo hành —
                               and offers neither when its service has no
@@ -271,12 +271,12 @@ export function StageHistory({
                                   icon={<MedicineBoxOutlined />}
                                   onClick={() => onWarranty(stage)}
                                 >
-                                  {t("Bảo hành")}
+                                  {t("Patient:Labo:Warranty")}
                                 </Button>
                               )
                             : live && (
                                 <Button block type="primary" onClick={() => onCreateLabo(stage)}>
-                                  {t("Tạo Labo")}
+                                  {t("Patient:Labo:Create")}
                                 </Button>
                               )}
                         </div>

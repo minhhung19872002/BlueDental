@@ -63,12 +63,12 @@ export function useCreateAdvises({ patientId, branchId, diagnosis, onCreated, on
           });
           created += 1;
         } catch (error) {
-          toast.error(t("Không thể tạo dịch vụ {0}: {1}", service.name, extractApiError(error)));
+          toast.error(t("Treatment:Service:AddServiceError", service.name, extractApiError(error)));
           if (created > 0) onCreated?.();
           return;
         }
       }
-      toast.success(t("Đã tạo {0} dịch vụ tư vấn", created));
+      toast.success(t("Treatment:Service:CreateAdviseSuccess", created));
       onCreated?.();
       onClose();
     } finally {

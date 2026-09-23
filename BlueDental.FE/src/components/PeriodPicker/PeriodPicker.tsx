@@ -33,16 +33,16 @@ const PICKER_OF: Record<PeriodMode, "date" | "week" | "month"> = {
 };
 
 const STEP_LABEL: Record<PeriodMode, { back: string; forward: string }> = {
-  day: { back: "Ngày trước", forward: "Ngày kế tiếp" },
-  week: { back: "Tuần trước", forward: "Tuần kế tiếp" },
-  month: { back: "Tháng trước", forward: "Tháng kế tiếp" },
+  day: { back: "Common:PrevDay", forward: "Common:NextDay" },
+  week: { back: "Common:PrevWeek", forward: "Common:NextWeek" },
+  month: { back: "Common:PrevMonth", forward: "Common:NextMonth" },
 };
 
 function modeOptions() {
   return [
-    { key: "day" as const, label: t("Ngày") },
-    { key: "week" as const, label: t("Tuần") },
-    { key: "month" as const, label: t("Tháng") },
+    { key: "day" as const, label: t("Common:Day") },
+    { key: "week" as const, label: t("Common:Week") },
+    { key: "month" as const, label: t("Common:Month") },
   ];
 }
 
@@ -103,7 +103,7 @@ export function PeriodPicker({ value, onChange, clearableMode, className }: Prop
 
       {value.mode === null ? (
         <Button disabled icon={<CalendarOutlined />} className="bd-period-empty">
-          {t("Chọn thời gian")}
+          {t("Common:SelectTime")}
         </Button>
       ) : (
         <div className="bd-period-step">
@@ -124,7 +124,7 @@ export function PeriodPicker({ value, onChange, clearableMode, className }: Prop
             suffixIcon={null}
             prefix={<CalendarOutlined aria-hidden="true" />}
             format={() => formatPeriod(value.mode as PeriodMode, value.anchor)}
-            aria-label={t("Chọn thời gian")}
+            aria-label={t("Common:SelectTime")}
             onChange={(next: Dayjs | null) => {
               if (next) onChange({ ...value, anchor: next.toDate() });
             }}

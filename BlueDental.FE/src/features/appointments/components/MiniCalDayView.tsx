@@ -44,9 +44,9 @@ function EvtTooltipContent({ appt }: { appt: Appointment }) {
   return (
     <div className="mcal-tooltip">
       <div className="mcal-tooltip-doctor">{appt.doctorName}</div>
-      <div>{t("Khách hàng")}: {appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName}</div>
-      <div>{start.format("DD/MM/YYYY HH:mm")} – {end.format("HH:mm")} ({dur} {t("phút")})</div>
-      <div>{t("Trạng thái")}: {appt.statusLabel}</div>
+      <div>{t("Appointment:MiniCal:Customer")}: {appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName}</div>
+      <div>{start.format("DD/MM/YYYY HH:mm")} – {end.format("HH:mm")} ({dur} {t("Patient:Misc:Minutes")})</div>
+      <div>{t("Common:Status")}: {appt.statusLabel}</div>
       {appt.reason && <div>"{appt.reason}"</div>}
     </div>
   );
@@ -145,7 +145,7 @@ export function MiniCalDayView({ appointments, date, subMode }: Props) {
         : <DoctorView appointments={appointments} slots={slots} />}
       {isEmpty && (
         <div className="mcal-empty">
-          {t("Chưa có lịch hẹn ngày")} {dayjs(date).format("DD/MM/")}
+          {t("Appointment:MiniCal:NoAppointmentsDay")} {dayjs(date).format("DD/MM/")}
         </div>
       )}
     </div>

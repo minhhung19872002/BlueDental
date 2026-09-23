@@ -8,10 +8,10 @@ import { useStaffList } from "@/features/staff/api/staffQueries";
 import { REPORT_VIEW_MODES, type ReportViewMode } from "../types/viewMode";
 
 const VIEW_MODE_LABELS: Record<ReportViewMode, () => string> = {
-  day: () => t("Ngày"),
-  week: () => t("Tuần"),
-  month: () => t("Tháng"),
-  year: () => t("Năm"),
+  day: () => t("Report:Period:Day"),
+  week: () => t("Report:Period:Week"),
+  month: () => t("Report:Period:Month"),
+  year: () => t("Report:Period:Year"),
 };
 
 interface Props {
@@ -55,7 +55,7 @@ export function ReportToolbar({
 
       {periodLocked ? (
         <Button disabled className="report-toolbar-date report-toolbar-total">
-          {t("Tổng")}
+          {t("Report:Period:Total")}
         </Button>
       ) : (
         <DateNavigator
@@ -70,7 +70,7 @@ export function ReportToolbar({
         <div className="report-toolbar-doctor">
           <SearchSelect
             value={doctorId}
-            placeholder={t("Bác sĩ điều trị")}
+            placeholder={t("Report:Toolbar:DoctorFilter")}
             allowClear
             options={doctorOptions}
             onChange={onDoctorChange}

@@ -17,24 +17,24 @@ export interface VoucherLabels {
 export function voucherLabels(type: SalesEntryType): VoucherLabels {
   if (type === SALES_ENTRY_TYPE.Expense) {
     return {
-      title: t("PHIẾU CHI"),
-      printButton: t("In chi phí"),
-      actualDate: t("Ngày thực chi"),
-      content: t("Nội dung chi"),
-      category: t("Mục chi"),
-      staff: t("Nhân viên chi"),
-      amount: t("Tổng tiền"),
-      receiver: t("Người nhận"),
+      title: t("Report:Voucher:ExpenseTitle"),
+      printButton: t("Report:EntryDetail:PrintExpense"),
+      actualDate: t("Report:SalesModal:ActualExpenseDate"),
+      content: t("Report:SalesModal:ExpenseDescription"),
+      category: t("Report:SalesModal:ExpenseCategory"),
+      staff: t("Report:Voucher:ExpenseStaff"),
+      amount: t("Report:Column:TotalMoney"),
+      receiver: t("Report:SalesModal:Receiver"),
     };
   }
   return {
-    title: t("PHIẾU THU"),
-    printButton: t("In khoản thu"),
-    actualDate: t("Ngày thực thu"),
-    content: t("Nội dung thu"),
-    category: t("Mục thu"),
-    staff: t("Nhân viên thu"),
-    amount: t("Doanh thu"),
-    receiver: t("Người nộp"),
+    title: t("Report:Voucher:IncomeTitle"),
+    printButton: t("Report:EntryDetail:PrintIncome"),
+    actualDate: t("Report:SalesModal:ActualIncomeDate"),
+    content: t("Report:SalesModal:IncomeDescription"),
+    category: t("Report:SalesModal:IncomeCategory"),
+    staff: t("Report:Voucher:IncomeStaff"),
+    amount: t("Report:BusinessResult:Revenue"),
+    receiver: t("Report:SalesModal:Payer"),
   };
 }

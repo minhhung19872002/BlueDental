@@ -52,7 +52,7 @@ function GroupList({ groups, loading, onOpen }: GroupListProps) {
     );
   }
   if (groups.length === 0) {
-    return <div className="tp-group-list-empty">{t("Không tìm thấy nhóm dịch vụ")}</div>;
+    return <div className="tp-group-list-empty">{t("Treatment:Service:NoServiceGroup")}</div>;
   }
   return (
     // Mouse-down inside the popup would blur the field and close it before the click lands.
@@ -107,7 +107,7 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
   return (
     <div className="tp-group-panel" onMouseDown={(event) => event.preventDefault()}>
       <div className="tp-group-head">
-        <button type="button" className="tp-group-back" aria-label={t("Quay lại")} onClick={onBack}>
+        <button type="button" className="tp-group-back" aria-label={t("Treatment:Common:GoBack")} onClick={onBack}>
           <ArrowLeft size={14} aria-hidden="true" />
         </button>
         <span className="tp-group-title">{group.name}</span>
@@ -116,17 +116,17 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
         <table className="tp-group-table">
           <thead>
             <tr>
-              <th>{t("Dịch vụ")}</th>
-              <th className="tp-num">{t("Giá gốc")}</th>
-              <th className="tp-num">{t("Giảm giá")}</th>
-              <th className="tp-num">{t("Thành tiền")}</th>
+              <th>{t("Treatment:Service:Service")}</th>
+              <th className="tp-num">{t("Treatment:Pricing:OriginalPrice")}</th>
+              <th className="tp-num">{t("Treatment:Pricing:Discount")}</th>
+              <th className="tp-num">{t("Treatment:Pricing:NetAmount")}</th>
             </tr>
           </thead>
           <tbody>
             {services.length === 0 && (
               <tr>
                 <td colSpan={4} className="tp-group-empty">
-                  {query.isFetching ? <Spin size="small" /> : t("Không tìm thấy dịch vụ")}
+                  {query.isFetching ? <Spin size="small" /> : t("Treatment:Service:NoService")}
                 </td>
               </tr>
             )}
@@ -287,8 +287,8 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
     <div className="tp-service-picker">
       <FloatingField
         name="serviceId"
-        label={t("Thêm dịch vụ mới")}
-        rules={[{ required: true, message: t("Vui lòng chọn dịch vụ") }]}
+        label={t("Treatment:Service:AddService")}
+        rules={[{ required: true, message: t("Treatment:Service:SelectService") }]}
       >
         <Select<string, ServiceOption>
           ref={selectRef}
@@ -306,7 +306,7 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
           filterOption={false}
           popupMatchSelectWidth={!group}
           notFoundContent={
-            flat.isFetching ? <Spin size="small" /> : t("Không tìm thấy dịch vụ")
+            flat.isFetching ? <Spin size="small" /> : t("Treatment:Service:NoService")
           }
           classNames={{ popup: { root: "tp-service-dropdown" } }}
           popupRender={renderPopup}
@@ -325,13 +325,13 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
       </FloatingField>
       {!disabled && (
         <Tooltip
-          title={mode === "service" ? t("Chuyển sang nhóm dịch vụ") : t("Chuyển sang dịch vụ")}
+          title={mode === "service" ? t("Treatment:Service:SwitchToGroup") : t("Treatment:Service:SwitchToService")}
         >
           <button
             type="button"
             className="tp-service-toggle"
             aria-label={
-              mode === "service" ? t("Chuyển sang nhóm dịch vụ") : t("Chuyển sang dịch vụ")
+              mode === "service" ? t("Treatment:Service:SwitchToGroup") : t("Treatment:Service:SwitchToService")
             }
             onMouseDown={(event) => event.preventDefault()}
             onClick={toggleMode}

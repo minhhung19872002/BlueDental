@@ -22,26 +22,26 @@ function buildColumns(): TableColumnsType<DebtHistoryEntryDto> {
   return [
     {
       key: "date",
-      title: t("Ngày giao dịch"),
+      title: t("Patient:Payment:TransactionDate"),
       width: 160,
       render: (_, entry) => formatDateTime(entry.date),
     },
-    { key: "type", title: t("Loại"), width: 160, render: (_, entry) => labels[entry.type] },
+    { key: "type", title: t("Patient:Plan:Type"), width: 160, render: (_, entry) => labels[entry.type] },
     {
       key: "amount",
-      title: t("Số tiền"),
+      title: t("Patient:Payment:AmountField"),
       width: 140,
       render: (_, entry) => <DebtAmount entry={entry} />,
     },
     {
       key: "staff",
-      title: t("Nhân viên"),
+      title: t("Patient:Col:Staff"),
       width: 140,
       render: (_, entry) => dashOrValue(entry.staffName),
     },
     {
       key: "note",
-      title: t("Ghi chú"),
+      title: t("Patient:Debt:Note"),
       width: 200,
       render: (_, entry) => dashOrValue(entry.note),
     },
@@ -64,14 +64,14 @@ export function PatientDebtTab({ patientId }: { patientId: string }) {
 
   const rows = query.data?.items ?? [];
   const total = query.data?.totalCount ?? 0;
-  const showTotal = countedTotal(t("giao dịch"));
+  const showTotal = countedTotal(t("Patient:Debt:Transaction"));
 
   if (narrow) {
     return (
       <section className="pd-pane pd-pane--fill">
         <div className="tp-card-list">
           {rows.length === 0 && !query.isLoading && (
-            <p className="bd-rc-empty">{t("Chưa có lịch sử dư nợ")}</p>
+            <p className="bd-rc-empty">{t("Patient:Debt:Empty")}</p>
           )}
           <div className="bd-rc-list">
             {rows.map((entry, position) => {
@@ -102,7 +102,7 @@ export function PatientDebtTab({ patientId }: { patientId: string }) {
           loading={query.isLoading}
           columns={buildColumns()}
           dataSource={rows}
-          locale={{ emptyText: t("Chưa có lịch sử dư nợ") }}
+          locale={{ emptyText: t("Patient:Debt:Empty") }}
           pagination={pagination.buildConfig(total, showTotal)}
         />
       </div>

@@ -28,7 +28,7 @@ export function LaboOrderDialog({ open, branchId, patient, plan, stage, onClose 
       /* Measured on the reference: 772px, which lands its two columns on 349px. */
       width={772}
       className="pd-labo-dialog"
-      title={t("Đặt mới")}
+      title={t("Patient:MedRecord:New")}
       onCancel={onClose}
       footer={null}
       destroyOnHidden

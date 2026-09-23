@@ -9,7 +9,7 @@ namespace BlueDental.Timekeeping;
 /// One staff member's attendance for one working day at one branch
 /// (Chấm công / Lịch làm việc).
 ///
-/// Reference: <c>/api/v1/time-keepings/list</c> and the "Lịch làm việc" tab of
+/// Reference: <c>/api/v1/time-keepings/list</c> and the "BE:Perm:WorkSchedule" tab of
 /// the calendar screen, where each staff card shows an ON/OFF registration
 /// toggle, the planned shifts and the actual VÀO CA - RA CA times.
 /// </summary>

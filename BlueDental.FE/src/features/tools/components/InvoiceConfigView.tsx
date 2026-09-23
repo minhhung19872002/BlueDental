@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Button, Form, Input, Select, Switch, Tag, Tooltip } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -52,7 +52,7 @@ function InvoiceConfigDialog({ open, onClose }: DialogProps) {
   return (
     <AppDialog
       open={open}
-      title={t("Cấu hình")}
+      title={t("Tools:ConfigDialogTitle")}
       width={772}
       canSave={false}
       saving={false}
@@ -71,7 +71,7 @@ function InvoiceConfigDialog({ open, onClose }: DialogProps) {
       >
         <div className="bd-inv-dialog-grid">
           <div>
-            <div className="bd-msg-provider-label">{t("Nhà cung cấp")}</div>
+            <div className="bd-msg-provider-label">{t("Tools:ProviderLabel")}</div>
             {INV_PROVIDERS.map((item) => (
               <button
                 key={item.value}
@@ -126,50 +126,50 @@ function InvoiceConfigDialog({ open, onClose }: DialogProps) {
           </div>
 
           <div className="bd-call-dialog-fields">
-            <FloatingField name="name" label={t("Tên")}>
+            <FloatingField name="name" label={t("Tools:NameLabel")}>
               <Input autoFocus />
             </FloatingField>
 
             {/* UNKNOWN_REFERENCE_BEHAVIOR: "Chi nhánh" options source is
                 unknown — not the clinic branches. Placeholder until clarified. */}
-            <FloatingField name="branchId" label={t("Chi nhánh")}>
+            <FloatingField name="branchId" label={t("Tools:BranchLabel")}>
               <Select options={[]} />
             </FloatingField>
 
-            <FloatingField name="appId" label={t("App ID")}>
+            <FloatingField name="appId" label={t("Tools:AppIdLabel")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="taxCode" label={t("Mã số thuế")}>
+            <FloatingField name="taxCode" label={t("Tools:TaxCodeLabel")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="username" label={t("Tên đăng nhập")}>
+            <FloatingField name="username" label={t("Tools:UsernameLabel")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="password" label={t("Mật khẩu")}>
+            <FloatingField name="password" label={t("Tools:PasswordLabel")}>
               <Input.Password autoComplete="new-password" />
             </FloatingField>
 
             <div className="bd-call-dialog-switch">
-              <span>{t("Tính thuế theo dịch vụ")}</span>
+              <span>{t("Tools:TaxByServiceLabel")}</span>
               <Form.Item name="taxByService" valuePropName="checked">
-                <Switch aria-label={t("Tính thuế theo dịch vụ")} />
+                <Switch aria-label={t("Tools:TaxByServiceLabel")} />
               </Form.Item>
             </div>
 
             <div className="bd-call-dialog-switch">
-              <span>{t("Tính thuế theo giai đoạn")}</span>
+              <span>{t("Tools:TaxByPeriodLabel")}</span>
               <Form.Item name="taxByPeriod" valuePropName="checked">
-                <Switch aria-label={t("Tính thuế theo giai đoạn")} />
+                <Switch aria-label={t("Tools:TaxByPeriodLabel")} />
               </Form.Item>
             </div>
 
             <div className="bd-call-dialog-switch">
-              <span>{t("Trạng thái")}</span>
+              <span>{t("Tools:StatusLabel")}</span>
               <Form.Item name="isActive" valuePropName="checked">
-                <Switch aria-label={t("Trạng thái")} />
+                <Switch aria-label={t("Tools:StatusLabel")} />
               </Form.Item>
             </div>
           </div>
@@ -185,23 +185,23 @@ export function InvoiceConfigView() {
 
   const columns = useMemo<ColumnsType<InvoiceConfigRow>>(
     () => [
-      { key: "name", title: t("Tên"), dataIndex: "name" },
-      { key: "branch", title: t("Tên chi nhánh"), dataIndex: "branchName" },
+      { key: "name", title: t("Tools:NameLabel"), dataIndex: "name" },
+      { key: "branch", title: t("Tools:BranchNameCol"), dataIndex: "branchName" },
       {
         key: "module",
-        title: t("Mô đun"),
+        title: t("Tools:ModuleCol"),
         width: 120,
         render: (_, row) => <Tag color="blue">{row.module}</Tag>,
       },
       {
         key: "provider",
-        title: t("Nhà cung cấp"),
+        title: t("Tools:ProviderLabel"),
         width: 140,
         render: (_, row) => <Tag>{row.provider}</Tag>,
       },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 130,
         render: (_, row) => {
           const { label, color } = activeTag(row.isActive);
@@ -210,17 +210,17 @@ export function InvoiceConfigView() {
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Tools:ActionsLabel"),
         width: 110,
         align: "center",
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button type="text" size="small" icon={<EditOutlined />} aria-label={t("Chỉnh sửa {0}", row.name)} />
+            <Tooltip title={t("Common:Edit")}>
+              <Button type="text" size="small" icon={<EditOutlined />} aria-label={t("Tools:EditConfigAria", row.name)} />
             </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t("Xoá {0}", row.name)} />
+            <Tooltip title={t("Common:Delete")}>
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t("Tools:DeleteConfigAria", row.name)} />
             </Tooltip>
           </div>
         ),
@@ -235,8 +235,8 @@ export function InvoiceConfigView() {
         <Input
           className="bd-ops-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm")}
-          aria-label={t("Tìm kiếm")}
+          placeholder={t("Tools:SearchPlaceholder")}
+          aria-label={t("Tools:SearchPlaceholder")}
           allowClear
         />
         <Button
@@ -245,7 +245,7 @@ export function InvoiceConfigView() {
           icon={<PlusOutlined />}
           onClick={() => setDialogOpen(true)}
         >
-          {t("Tạo cấu hình")}
+          {t("Tools:CreateConfig")}
         </Button>
       </div>
 
@@ -255,10 +255,11 @@ export function InvoiceConfigView() {
         rowKey="id"
         loading={false}
         pagination={{ total: 0, showTotal: pagerTotal }}
-        locale={{ emptyText: t("Chưa có cấu hình nào") }}
+        locale={{ emptyText: t("Tools:NoConfigs") }}
       />
 
       <InvoiceConfigDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }
+

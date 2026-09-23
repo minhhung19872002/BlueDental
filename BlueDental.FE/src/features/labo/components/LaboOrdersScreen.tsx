@@ -44,10 +44,10 @@ const SAMPLE_FILTER_OF: Record<SampleTabKey, LaboSampleFilter> = {
 
 function sampleTabs() {
   return [
-    { key: "all" as const, label: t("Tất Cả Mẫu") },
-    { key: "chua-nhan" as const, label: t("Mẫu Chưa Nhận") },
-    { key: "giao-tre" as const, label: t("Mẫu Giao Trễ") },
-    { key: "da-nhan" as const, label: t("Mẫu Đã Nhận Hàng") },
+    { key: "all" as const, label: t("Labo:Orders:AllSamples") },
+    { key: "chua-nhan" as const, label: t("Labo:Orders:NotReceived") },
+    { key: "giao-tre" as const, label: t("Labo:Orders:LateDelivery") },
+    { key: "da-nhan" as const, label: t("Labo:Orders:Received") },
   ];
 }
 
@@ -107,15 +107,15 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
     exportToExcel(
       rows,
       [
-        { header: t("Nhà cung cấp"), key: "supplier" },
-        { header: t("Ngày tạo"), key: "createdAt" },
-        { header: t("Tên khách hàng"), key: "patientName" },
-        { header: t("Ngày gửi"), key: "sentDate" },
-        { header: t("Ngày giao"), key: "deliveryDate" },
-        { header: t("Trạng thái Labo"), key: "status" },
-        { header: t("Bác sĩ chỉ định"), key: "dentistName" },
-        { header: t("Vật liệu"), key: "materialName" },
-        { header: t("Răng"), key: "teeth" },
+        { header: t("Labo:Orders:Supplier"), key: "supplier" },
+        { header: t("Common:CreatedAt"), key: "createdAt" },
+        { header: t("Labo:Orders:CustomerName"), key: "patientName" },
+        { header: t("Labo:Orders:SentDate"), key: "sentDate" },
+        { header: t("Labo:Orders:DeliveryDate"), key: "deliveryDate" },
+        { header: t("Labo:Orders:Status"), key: "status" },
+        { header: t("Labo:Orders:DentistAssigned"), key: "dentistName" },
+        { header: t("Labo:Orders:Material"), key: "materialName" },
+        { header: t("Labo:Orders:Teeth"), key: "teeth" },
       ],
       "mau-labo",
     );
@@ -124,7 +124,7 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
   const columns: ColumnsType<LaboOrderDto> = [
     {
       key: "supplier",
-      title: t("Nhà cung cấp / Ngày tạo"),
+      title: t("Labo:Orders:SupplierCreatedAt"),
       width: 220,
       render: (_, row) => (
         <div className="bd-labo-stack">
@@ -135,13 +135,13 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
     },
     {
       key: "patientName",
-      title: t("Tên khách hàng"),
+      title: t("Labo:Orders:CustomerName"),
       width: 200,
       render: (_, row) => row.patientName ?? <span className="bd-cat-num">—</span>,
     },
     {
       key: "sentDate",
-      title: t("Ngày gửi"),
+      title: t("Labo:Orders:SentDate"),
       width: 180,
       // The reference pairs this with "Tình trạng mẫu"; the order has only one
       // status dimension so far, so the column carries the date alone.
@@ -151,7 +151,7 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
     },
     {
       key: "deliveryDate",
-      title: t("Ngày giao / Trạng thái Labo"),
+      title: t("Labo:Orders:DeliveryStatus"),
       width: 220,
       render: (_, row) => {
         const config = LABO_STATUS_CONFIG[row.status];
@@ -167,19 +167,19 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
     },
     {
       key: "dentistName",
-      title: t("Bác sĩ chỉ định"),
+      title: t("Labo:Orders:DentistAssigned"),
       width: 180,
       render: (_, row) => row.dentistName ?? <span className="bd-cat-num">—</span>,
     },
     {
       key: "materialName",
-      title: t("Vật liệu"),
+      title: t("Labo:Orders:Material"),
       width: 160,
       render: (_, row) => row.materialName ?? <span className="bd-cat-num">—</span>,
     },
     {
       key: "toothNumbers",
-      title: t("Răng"),
+      title: t("Labo:Orders:Teeth"),
       width: 120,
       render: (_, row) => row.toothNumbers ?? <span className="bd-cat-num">—</span>,
     },
@@ -193,7 +193,7 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
 
           {canExport && (
             <Button icon={<DownloadOutlined />} disabled={items.length === 0} onClick={handleExport}>
-              {t("Xuất Excel")}
+              {t("Common:ExportExcel")}
             </Button>
           )}
         </div>
@@ -211,8 +211,8 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
               showSearch
               allowClear
               filterOption={false}
-              placeholder={t("Chọn khách hàng")}
-              aria-label={t("Chọn khách hàng")}
+              placeholder={t("Common:SelectCustomer")}
+              aria-label={t("Common:SelectCustomer")}
               value={patientId}
               onSearch={setPatientKeyword}
               onChange={(value) => refilter(() => setPatientId(value))}
@@ -227,8 +227,8 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
               showSearch
               allowClear
               optionFilterProp="label"
-              placeholder={t("Chọn bác sĩ")}
-              aria-label={t("Chọn bác sĩ")}
+              placeholder={t("Common:SelectDoctor")}
+              aria-label={t("Common:SelectDoctor")}
               value={dentistId}
               onChange={(value) => refilter(() => setDentistId(value))}
               options={staffOptions.data ?? []}
@@ -244,8 +244,8 @@ export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
             dataSource={items}
             rowKey="id"
             loading={query.isFetching}
-            locale={{ emptyText: t("Không có dữ liệu") }}
-            pagination={pagination.buildConfig(totalCount, countedTotal(t("mẫu labo")))}
+            locale={{ emptyText: t("Common:NoData") }}
+            pagination={pagination.buildConfig(totalCount, countedTotal(t("Labo:Noun:LaboSample")))}
           />
         </div>
       </div>

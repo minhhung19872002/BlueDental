@@ -54,27 +54,27 @@ export function ReceptionGrid({
   onCancel,
 }: Props) {
   const statusLabel: Record<AppointmentCounterType, string> = {
-    Scheduled: t("Đã hẹn"),
-    Arrived: t("Đã đến"),
-    Cancelled: t("Huỷ hẹn"),
-    Late: t("Trễ hẹn"),
-    Temporary: t("Lịch tạm"),
-    Converted: t("Chuyển đổi"),
+    Scheduled: t("Reception:StatusScheduled"),
+    Arrived: t("Reception:StatusArrived"),
+    Cancelled: t("Reception:StatusCancelled"),
+    Late: t("Reception:StatusLate"),
+    Temporary: t("Reception:StatusTemporary"),
+    Converted: t("Reception:StatusConverted"),
   };
 
   const outcomeLabel: Record<NonNullOutcome, string> = {
-    EndTreatment: t("Kết thúc điều trị"),
-    FollowUp: t("Đã hẹn tiếp"),
-    TransferDoctor: t("Chuyển bác sĩ"),
-    Revisit: t("Hẹn tái khám"),
+    EndTreatment: t("Reception:OutcomeEndTreatment"),
+    FollowUp: t("Reception:OutcomeFollowUp"),
+    TransferDoctor: t("Reception:OutcomeTransferDoctor"),
+    Revisit: t("Reception:OutcomeRevisit"),
   };
 
-  const stepLabel = [t("Đã đến"), t("Đang khám"), t("Hoàn tất")];
+  const stepLabel = [t("Reception:StatusArrived"), t("Reception:StepInProgress"), t("Reception:StepComplete")];
 
   const columns: DataGridColumn<ReceptionItem>[] = [
     {
       key: "time",
-      title: t("Giờ"),
+      title: t("Reception:ColTime"),
       width: "76px",
       render: (r) => (
         <span className="dg-key">{formatClock(r.arrivalTime || r.appointmentTime)}</span>
@@ -82,7 +82,7 @@ export function ReceptionGrid({
     },
     {
       key: "patient",
-      title: t("Khách hàng"),
+      title: t("Reception:ColCustomer"),
       width: "minmax(0, 1.7fr)",
       render: (r) => (
         <>
@@ -93,19 +93,19 @@ export function ReceptionGrid({
     },
     {
       key: "services",
-      title: t("Dịch vụ"),
+      title: t("Reception:ColService"),
       width: "minmax(0, 1.2fr)",
       render: (r) => <span>{r.services.length > 0 ? r.services.join(", ") : "—"}</span>,
     },
     {
       key: "doctor",
-      title: t("Bác sĩ"),
+      title: t("Reception:Doctor"),
       width: "minmax(150px, 1fr)",
       clip: false,
       render: (r) => (
         <SearchSelect
           value={r.doctorId || undefined}
-          placeholder={t("Chọn bác sĩ")}
+          placeholder={t("Reception:SelectDoctor")}
           options={doctors.map((d) => ({ value: d.id, label: d.name }))}
           onChange={(v) => onDoctorChange?.(r.id, String(v))}
         />
@@ -113,7 +113,7 @@ export function ReceptionGrid({
     },
     {
       key: "status",
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       width: "126px",
       clip: false,
       render: (r) =>
@@ -130,7 +130,7 @@ export function ReceptionGrid({
     },
     {
       key: "progress",
-      title: t("Tiến trình"),
+      title: t("Reception:ColProgress"),
       width: "168px",
       clip: false,
       render: (r) => {
@@ -151,7 +151,7 @@ export function ReceptionGrid({
     },
     {
       key: "outcome",
-      title: t("Kết quả"),
+      title: t("Reception:ColOutcome"),
       width: "minmax(232px, 1.1fr)",
       clip: false,
       render: (r) => (
@@ -171,15 +171,15 @@ export function ReceptionGrid({
     },
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: "84px",
       clip: false,
       render: (r) => (
         <button
           type="button"
           className="dg-action rec-cancel"
-          aria-label={t("Hủy lịch")}
-          title={t("Hủy lịch")}
+          aria-label={t("Reception:CancelAppointment")}
+          title={t("Reception:CancelAppointment")}
           onClick={() => onCancel?.(r.id)}
         >
           <CalendarX size={14} />
@@ -194,7 +194,7 @@ export function ReceptionGrid({
       rows={items}
       rowKey={(r) => r.id}
       minWidth={1180}
-      empty={t("Không có lượt tiếp nhận phù hợp")}
+      empty={t("Reception:EmptyTitle")}
     />
   );
 }

@@ -24,7 +24,7 @@ interface Props {
 export function FollowUpTeeth({ candidates, picked, onToggle }: Props) {
   return (
     <div className="pd-stage-teeth">
-      <p>{t("Răng")}:</p>
+      <p>{t("Patient:DentalChart:Tooth")}:</p>
       <div>
         {candidates.map((tooth) => {
           const label = String(tooth.toothCode);

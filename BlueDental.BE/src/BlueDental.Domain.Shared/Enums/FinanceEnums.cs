@@ -2,7 +2,7 @@ namespace BlueDental.Finance;
 
 /// <summary>
 /// Direction of a cash voucher — reference: <c>/api/v1/sales?type=income|expense</c>
-/// (UI sub-tabs "Thu nhập" / "Chi phí").
+/// (UI sub-tabs "BE:Common:Income" / "BE:Col:Expenses").
 /// </summary>
 public enum SalesEntryType
 {
@@ -50,7 +50,7 @@ public enum SalesApprovalStatus
 
 /// <summary>
 /// Cash-management transaction kinds — reference actions on
-/// "Luân chuyển dòng tiền V2": Nạp / Rút / Luân chuyển.
+/// "BE:Perm:CashflowV2": Nạp / Rút / Luân chuyển.
 /// </summary>
 public enum CashTransactionType
 {

@@ -33,7 +33,7 @@ export function DoctorsOnDutyCard() {
       byDoctor.set(appt.doctorId, {
         name: appt.doctorName,
         count: 1,
-        role: roleLabel(roleById.get(appt.doctorId), t("Bác sĩ")),
+        role: roleLabel(roleById.get(appt.doctorId), t("Dashboard:DefaultDoctorRole")),
       });
   }
   const doctors = [...byDoctor.values()].sort((a, b) => b.count - a.count);
@@ -41,7 +41,7 @@ export function DoctorsOnDutyCard() {
   return (
     <div className="page-card" style={{ display: "flex", flexDirection: "column" }}>
       <div className="dash-card-title" style={{ marginBottom: 12 }}>
-        {t("Bác sĩ trực hôm nay")}
+        {t("Dashboard:DoctorsOnDuty")}
       </div>
       {isLoading ? (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -51,7 +51,7 @@ export function DoctorsOnDutyCard() {
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("Chưa có bác sĩ nào có lịch hôm nay")}
+            description={t("Dashboard:NoDoctorToday")}
           />
         </div>
       ) : (
@@ -70,7 +70,7 @@ export function DoctorsOnDutyCard() {
                   <span className="dash-row-title">{doc.name}</span>
                   <span className="dash-row-sub">{doc.role}</span>
                 </span>
-                <span className="dash-row-meta">{t("{0} lịch", doc.count)}</span>
+                <span className="dash-row-meta">{t("Dashboard:DoctorAppointmentCount", doc.count)}</span>
               </div>
             );
           })}

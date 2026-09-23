@@ -31,14 +31,14 @@ export function buildGroupColumns(
 ): ColumnsType<CareGroupingPatientDto> {
   return [
     {
-      title: t("Ngày tạo hồ sơ"),
+      title: t("CSKH:GroupCol:CreatedAt"),
       dataIndex: "createdAt",
       key: "createdAt",
       width: 120,
       render: (v: string) => formatDate(v),
     },
     {
-      title: t("Họ và tên"),
+      title: t("CSKH:GroupCol:FullName"),
       key: "patient",
       width: 220,
       render: (_, p) => (
@@ -48,15 +48,15 @@ export function buildGroupColumns(
           </Link>
           {p.dateOfBirth && (
             <div className="cskh-patient-sub">
-              {t("Ngày sinh")}: {formatDate(p.dateOfBirth)}
+              {t("CSKH:GroupCol:Birthday")}: {formatDate(p.dateOfBirth)}
             </div>
           )}
         </div>
       ),
     },
-    { title: t("Số điện thoại"), dataIndex: "phone", key: "phone", width: 130, render: formatDash },
+    { title: t("CSKH:GroupCol:PhoneNumber"), dataIndex: "phone", key: "phone", width: 130, render: formatDash },
     {
-      title: t("Trạng thái"),
+      title: t("CSKH:GroupCol:Status"),
       key: "status",
       width: 130,
       render: (_, p) => (
@@ -66,34 +66,34 @@ export function buildGroupColumns(
       ),
     },
     {
-      title: t("Dịch vụ"),
+      title: t("CSKH:GroupCol:Service"),
       key: "services",
       width: 200,
       render: (_, p) => (p.serviceNames.length ? p.serviceNames.join(", ") : "—"),
     },
     {
-      title: t("Bác sĩ"),
+      title: t("CSKH:GroupCol:Doctor"),
       key: "staff",
       width: 170,
       render: (_, p) => (p.staffNames.length ? p.staffNames.join(", ") : "—"),
     },
-    { title: t("Số tiền"), key: "totalAmount", width: 120, align: "right", render: (_, p) => formatVND(p.totalAmount) },
-    { title: t("Thực thu"), key: "totalRevenue", width: 120, align: "right", render: (_, p) => formatVND(p.totalRevenue) },
-    { title: t("Công nợ"), key: "totalDebt", width: 120, align: "right", render: (_, p) => formatVND(p.totalDebt) },
+    { title: t("CSKH:GroupCol:Amount"), key: "totalAmount", width: 120, align: "right", render: (_, p) => formatVND(p.totalAmount) },
+    { title: t("CSKH:GroupCol:Revenue"), key: "totalRevenue", width: 120, align: "right", render: (_, p) => formatVND(p.totalRevenue) },
+    { title: t("CSKH:GroupCol:Debt"), key: "totalDebt", width: 120, align: "right", render: (_, p) => formatVND(p.totalDebt) },
     {
-      title: t("Lịch hẹn gần nhất"),
+      title: t("CSKH:GroupCol:NextAppointment"),
       key: "nextAppointment",
       width: 150,
-      render: (_, p) => (p.nextAppointmentAt ? formatDateTime(p.nextAppointmentAt) : t("Chưa có lịch")),
+      render: (_, p) => (p.nextAppointmentAt ? formatDateTime(p.nextAppointmentAt) : t("Common:NoSchedule")),
     },
     {
-      title: t("Lần khám cuối"),
+      title: t("CSKH:GroupCol:LastVisit"),
       key: "lastVisit",
       width: 120,
       render: (_, p) => (p.lastVisitAt ? formatDate(p.lastVisitAt) : "—"),
     },
     {
-      title: t("Thao tác"),
+      title: t("CSKH:GroupCol:Actions"),
       key: "actions",
       width: actionsColumnWidth(3),
       fixed: "right",

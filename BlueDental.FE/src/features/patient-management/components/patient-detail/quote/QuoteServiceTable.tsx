@@ -7,32 +7,32 @@ import { diagnosisLabel, lineTotal, money, rowDiscount, type QuoteRow } from "./
 const buildColumns = (): TableColumnsType<QuoteRow> => [
   {
     key: "service",
-    title: t("Dịch vụ"),
+    title: t("Patient:Misc:Service"),
     dataIndex: "service",
     className: "pq-cell-service",
     width: 320,
   },
   {
     key: "diagnosis",
-    title: t("Chẩn đoán"),
+    title: t("Patient:Tab:Diagnosis"),
     width: 160,
     render: (_, row) => <span className="pq-diagnosis">{diagnosisLabel(row)}</span>,
   },
   {
     key: "price",
-    title: t("Đơn giá"),
+    title: t("Patient:Payment:UnitPrice"),
     width: 180,
     render: (_, row) => t("{0} (SL. {1})", money(row.unitPrice), row.quantity),
   },
   {
     key: "discount",
-    title: t("Giảm giá"),
+    title: t("Patient:Payment:Discount"),
     width: 150,
     render: (_, row) => money(rowDiscount(row)),
   },
   {
     key: "amount",
-    title: t("Thành tiền"),
+    title: t("Patient:Payment:Amount"),
     width: 150,
     render: (_, row) => money(lineTotal(row)),
   },
@@ -43,14 +43,14 @@ export function QuoteServiceTable({ rows }: { rows: QuoteRow[] }) {
   const columns = useMemo(buildColumns, []);
   return (
     <section className="pq-services">
-      <h3 className="pq-section-title">{t("DANH SÁCH DỊCH VỤ BÁO GIÁ")}</h3>
+      <h3 className="pq-section-title">{t("Patient:Quote:ServiceListTitle")}</h3>
       <DataTable<QuoteRow>
         rowKey="id"
         size="small"
         columns={columns}
         dataSource={rows}
         pagination={false}
-        locale={{ emptyText: t("Chưa chọn dịch vụ báo giá") }}
+        locale={{ emptyText: t("Patient:Advise:NoQuoteService") }}
       />
     </section>
   );

@@ -38,7 +38,7 @@ public class UploadPatientImageDto
     public Guid? TreatmentStageId { get; set; }
     public string? Note { get; set; }
 
-    /// <summary>Giai đoạn điều trị; the tab sends whatever its filter is set to, "Trước điều trị" otherwise.</summary>
+    /// <summary>Giai đoạn điều trị; the tab sends whatever its filter is set to, "BE:Treatment:BeforeTreatment" otherwise.</summary>
     public PatientImageType Type { get; set; } = PatientImageType.Before;
 
     /// <summary>The uploaded file itself.</summary>

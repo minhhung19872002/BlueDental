@@ -36,13 +36,13 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     /// <summary>Workflow state as the clinic reads it.</summary>
     private static readonly Dictionary<InvoiceStatus, string> StatusLabels = new()
     {
-        [InvoiceStatus.Draft] = "Nháp",
-        [InvoiceStatus.Issued] = "Đã phát hành",
-        [InvoiceStatus.PartiallyPaid] = "Thu một phần",
-        [InvoiceStatus.Paid] = "Đã thanh toán",
-        [InvoiceStatus.Overdue] = "Quá hạn",
-        [InvoiceStatus.Voided] = "Đã huỷ",
-        [InvoiceStatus.Refunded] = "Đã hoàn tiền"
+        [InvoiceStatus.Draft] = "BE:Status:Draft",
+        [InvoiceStatus.Issued] = "BE:Status:Issued",
+        [InvoiceStatus.PartiallyPaid] = "BE:Status:PartiallyPaid",
+        [InvoiceStatus.Paid] = "BE:Status:Paid",
+        [InvoiceStatus.Overdue] = "BE:Status:Overdue",
+        [InvoiceStatus.Voided] = "BE:Status:CancelledOld",
+        [InvoiceStatus.Refunded] = "BE:Status:Refunded"
     };
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -178,7 +178,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
 
-    /// <summary>"Xuất Excel" on the Thanh toán screen.</summary>
+    /// <summary>"BE:Common:ExportExcel" on the Thanh toán screen.</summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
     public async Task<byte[]> ExportAsync(GetInvoiceListInput input)
     {
@@ -192,17 +192,17 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
 
         return ExcelSheet.Build(
             "Hoa don",
-            L["Thanh toán & hoá đơn"],
+            L["BE:Perm:PaymentInvoice"],
             new List<ExcelColumn<InvoiceDto>>
             {
-                new(L["Mã phiếu"], row => row.InvoiceNumber, 20),
-                new(L["Khách hàng"], row => row.PatientName, 26),
-                new(L["Ngày"], row => row.IssuedAt.DateTime, 14),
-                new(L["Hạn thanh toán"], row => row.DueAt.DateTime, 16),
-                new(L["Tổng tiền"], row => row.TotalAmount, 16),
-                new(L["Đã thu"], row => row.PaidAmount, 16),
-                new(L["Còn lại"], row => row.BalanceDue, 16),
-                new(L["Trạng thái"], row => L[StatusLabels[row.Status]].Value, 18)
+                new(L["BE:Field:RecordNo"], row => row.InvoiceNumber, 20),
+                new(L["BE:Perm:Customers"], row => row.PatientName, 26),
+                new(L["BE:Col:Date"], row => row.IssuedAt.DateTime, 14),
+                new(L["BE:Field:DueDate"], row => row.DueAt.DateTime, 16),
+                new(L["BE:Field:TotalAmount"], row => row.TotalAmount, 16),
+                new(L["BE:Status:Collected"], row => row.PaidAmount, 16),
+                new(L["BE:Field:Remaining"], row => row.BalanceDue, 16),
+                new(L["BE:Field:Status"], row => L[StatusLabels[row.Status]].Value, 18)
             },
             page.Items);
     }

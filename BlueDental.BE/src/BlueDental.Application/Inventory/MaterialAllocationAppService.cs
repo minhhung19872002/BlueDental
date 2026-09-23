@@ -55,7 +55,7 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
         // Every word typed has to appear somewhere in the row, in any order and
         // whatever the casing — the same rule the rest of the app searches by.
         // A voucher matches on the materials it carries as well as on its own
-        // fields, because "Vật tư" is a column the reader can see.
+        // fields, because "BE:Perm:Inventory" is a column the reader can see.
         foreach (var term in SearchTerms.From(input.Filter))
         {
             queryable = queryable.Where(x =>

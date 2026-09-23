@@ -162,7 +162,7 @@ public class BlueDentalOperationsDemoSeeder(
     [
         ("Nhắc lịch hẹn", "Chào {ten_khach}, phòng khám nhắc lịch hẹn của anh/chị vào {gio_hen} ngày {ngay_hen}."),
         ("Cảm ơn sau điều trị", "Cảm ơn anh/chị đã tin tưởng BlueDental. Chúc anh/chị mau hồi phục."),
-        ("Chúc mừng sinh nhật", "BlueDental chúc mừng sinh nhật anh/chị, tặng voucher 200.000đ cho lần khám tới."),
+        ("Sinh nhật", "BlueDental chúc mừng sinh nhật anh/chị, tặng voucher 200.000đ cho lần khám tới."),
         ("Nhắc tái khám", "Đã đến hẹn tái khám của anh/chị. Vui lòng liên hệ để đặt lịch.")
     ];
 
@@ -195,7 +195,7 @@ public class BlueDentalOperationsDemoSeeder(
         await SeedMessagingConfiguresAsync();
     }
 
-    /// <summary>The "Cấu hình" options of the CSKH "Lưu tin nhắn" dialog.</summary>
+    /// <summary>The "BE:Common:Configuration" options of the CSKH "BE:Perm:SaveMessage" dialog.</summary>
     private async Task SeedMessagingConfiguresAsync()
     {
         if (await clinicConfigureRepository.AnyAsync(c => c.BranchId == _branchId))
@@ -336,7 +336,7 @@ public class BlueDentalOperationsDemoSeeder(
 
     /// <summary>
     /// Stock and its allocations. Three lines sit under their reorder level, so
-    /// the dashboard's "Vật tư dưới định mức" card has something to warn about.
+    /// the dashboard's "BE:Inventory:BelowMinimum" card has something to warn about.
     /// </summary>
     private async Task SeedInventoryAsync(List<Guid> departmentIds)
     {
@@ -412,7 +412,7 @@ public class BlueDentalOperationsDemoSeeder(
                 type switch
                 {
                     CareType.AfterTreatment => "Chăm sóc sau điều trị",
-                    CareType.Birthday => "Chúc mừng sinh nhật",
+                    CareType.Birthday => "Sinh nhật",
                     CareType.AppointmentReminder => "Nhắc lịch hẹn",
                     _ => "Chăm sóc định kỳ"
                 },
@@ -452,7 +452,7 @@ public class BlueDentalOperationsDemoSeeder(
 
     /// <summary>
     /// The vouchers of one branch. Called per branch rather than once, because
-    /// "Voucher áp dụng" on Chẩn đoán and Tư vấn offers only the branch in the
+    /// "BE:Perm:AppliedVouchers" on Chẩn đoán and Tư vấn offers only the branch in the
     /// URL — a screen on the second branch showed an empty picker while every
     /// seeded voucher belonged to the first.
     ///

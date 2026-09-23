@@ -18,7 +18,7 @@ interface StatusRowConfig {
 const STATUS_ROWS: StatusRowConfig[] = [
   {
     key: "completed",
-    label: () => t("Hoàn tất"),
+    label: () => t("Appointment:Status:Done"),
     statuses: ["completed"],
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(22,163,74)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,7 +29,7 @@ const STATUS_ROWS: StatusRowConfig[] = [
   },
   {
     key: "cancelled",
-    label: () => t("Huỷ hẹn"),
+    label: () => t("Appointment:Status:CancelledShort"),
     statuses: ["cancelled"],
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(239,68,68)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -40,7 +40,7 @@ const STATUS_ROWS: StatusRowConfig[] = [
   },
   {
     key: "late",
-    label: () => t("Trễ hẹn"),
+    label: () => t("Appointment:Status:Late"),
     statuses: ["noShow"],
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(59,130,246)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +52,7 @@ const STATUS_ROWS: StatusRowConfig[] = [
   },
   {
     key: "scheduled",
-    label: () => t("Đã hẹn"),
+    label: () => t("Appointment:Status:Scheduled2"),
     statuses: ["scheduled", "confirmed"],
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(59,130,246)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

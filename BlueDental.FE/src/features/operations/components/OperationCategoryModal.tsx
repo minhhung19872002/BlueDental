@@ -67,7 +67,7 @@ export function OperationCategoryModal({
           id: category.id,
           data: { name: trimmed, sortOrder },
         });
-        toast.success(t("Đã cập nhật phân loại"));
+        toast.success(t("Operations:CategoryUpdated"));
         onClose();
         return;
       }
@@ -79,7 +79,7 @@ export function OperationCategoryModal({
         subTab,
         sortOrder,
       });
-      toast.success(t("Đã thêm phân loại"));
+      toast.success(t("Operations:CategoryAdded"));
       // Closed before the parent is told, so a hiccup while it moves the
       // selection can never leave this dialog stuck open over the result.
       onClose();
@@ -93,7 +93,7 @@ export function OperationCategoryModal({
     <AppDialog
       open={open}
       // The reference titles these two words, not a sentence.
-      title={category ? t("Sửa") : t("Tạo")}
+      title={category ? t("Operations:EditCategory") : t("Operations:CreateCategory")}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -110,15 +110,15 @@ export function OperationCategoryModal({
           <Col span={12}>
             <FloatingField
               name="name"
-              label={t("Tên phân loại")}
+              label={t("Operations:CategoryName")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên phân loại") }]}
+              rules={[{ required: true, message: t("Operations:CategoryNameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
           </Col>
           <Col span={12}>
-            <FloatingField name="sortOrder" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="sortOrder" label={t("Operations:Priority")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>

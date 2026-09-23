@@ -85,11 +85,11 @@ export function StaffRosterCard({
         <span className="staff-card-identity">
           <span className="staff-card-name">{staff.fullName || staff.userName}</span>
           <span className="staff-card-meta">
-            {staff.roleNames.length > 0 ? staff.roleNames.join(", ") : t("Chưa gán vai trò")}
+            {staff.roleNames.length > 0 ? staff.roleNames.join(", ") : t("Staff:NoRole")}
           </span>
         </span>
         <Tag color={staff.isActive ? "green" : "default"}>
-          {staff.isActive ? t("Đang làm việc") : t("Đã nghỉ")}
+          {staff.isActive ? t("Staff:Working") : t("Staff:Resigned")}
         </Tag>
       </div>
 
@@ -117,18 +117,18 @@ export function StaffRosterCard({
       <div className="staff-card-actions">
         {ability.canUpdate && (
           <Button size="small" onClick={onEdit}>
-            {t("Chỉnh sửa")}
+            {t("Common:Edit")}
           </Button>
         )}
         {ability.canDelete && (
           <Popconfirm
-            title={t("Xoá nhân viên này?")}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
+            title={t("Staff:DeleteConfirm")}
+            okText={t("Common:Delete")}
+            cancelText={t("Common:Cancel")}
             onConfirm={onDelete}
           >
             <Button size="small" danger>
-              {t("Xoá")}
+              {t("Common:Delete")}
             </Button>
           </Popconfirm>
         )}

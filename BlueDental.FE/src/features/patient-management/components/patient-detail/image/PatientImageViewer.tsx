@@ -74,7 +74,7 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
       className="pi-viewer"
       role="dialog"
       aria-modal="true"
-      aria-label={t("Xem ảnh")}
+      aria-label={t("Patient:Misc:ViewImage")}
       tabIndex={-1}
       data-testid="patient-image-viewer"
       onClick={handleBackdropClick}
@@ -87,7 +87,7 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
       </div>
 
       <div className="pi-viewer-stage">
-        <button type="button" className="pi-viewer-nav pi-viewer-nav--prev" aria-label={t("Ảnh trước")} onClick={viewer.prev}>
+        <button type="button" className="pi-viewer-nav pi-viewer-nav--prev" aria-label={t("Patient:Photo:Before")} onClick={viewer.prev}>
           <ArrowLeft size={24} />
         </button>
         <div
@@ -105,7 +105,7 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
           <ViewerAnnotationCanvas active={viewer.drawing} annotation={annotation} />
         </div>
         {viewer.drawing && <ViewerPenTools annotation={annotation} onExit={viewer.toggleDrawing} />}
-        <button type="button" className="pi-viewer-nav pi-viewer-nav--next" aria-label={t("Ảnh sau")} onClick={viewer.next}>
+        <button type="button" className="pi-viewer-nav pi-viewer-nav--next" aria-label={t("Patient:Photo:After")} onClick={viewer.next}>
           <ArrowRight size={24} />
         </button>
       </div>

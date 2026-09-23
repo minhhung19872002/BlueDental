@@ -69,7 +69,7 @@ export function WorkScheduleTable({
 }: Props) {
   const days = useMemo(() => buildDays(month), [month]);
   const today = dayjs().format("YYYY-MM-DD");
-  const monthLabel = `${t("Tháng")} ${month.month() + 1} / ${month.year()}`;
+  const monthLabel = `${t("Common:Month")} ${month.month() + 1} / ${month.year()}`;
   const hasSelection = selectedStaff.size > 0;
 
   const checkThRef = useRef<HTMLTableCellElement>(null);
@@ -95,7 +95,7 @@ export function WorkScheduleTable({
           disabled={!hasSelection}
           onClick={onDayOffClick}
         >
-          {t("Nghỉ")} ({selectedStaff.size})
+          {t("Timekeeping:DayOff")} ({selectedStaff.size})
         </Button>
       </div>
 
@@ -107,13 +107,13 @@ export function WorkScheduleTable({
               <input
                 type="checkbox"
                 className="wsb-checkbox"
-                aria-label={t("Chọn tất cả nhân viên")}
+                aria-label={t("Timekeeping:SelectAll")}
                 checked={allSelected}
                 onChange={(e) => onSelectAll(e.target.checked)}
               />
             </th>
             <th className="wsb-th-name" style={{ top: 0 }}>
-              {t("Nhân viên")}
+              {t("Common:Staff")}
             </th>
             {days.map((d) => (
               <th
@@ -137,7 +137,7 @@ export function WorkScheduleTable({
                 <input
                   type="checkbox"
                   className="wsb-checkbox"
-                  aria-label={`${t("Chọn")} ${s.name}`}
+                  aria-label={`${t("Timekeeping:Select")} ${s.name}`}
                   checked={selectedStaff.has(s.id)}
                   onChange={(e) => onStaffSelect(s.id, e.target.checked)}
                 />
@@ -151,7 +151,7 @@ export function WorkScheduleTable({
                   <button
                     type="button"
                     className="wsb-cal-plus-btn"
-                    aria-label={`${t("Đăng ký nghỉ nhiều ngày cho")} ${s.name}`}
+                    aria-label={`${t("Timekeeping:BulkDayOff")} ${s.name}`}
                     disabled
                   >
                     <CalendarPlusIcon />

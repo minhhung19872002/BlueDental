@@ -232,10 +232,10 @@ export function OperationsPage() {
       if (pendingDelete.kind === "category") {
         await deleteCategory.mutateAsync(pendingDelete.id);
         if (selectedCategoryId === pendingDelete.id) selectCategory(null);
-        toast.success(t("Đã xoá mục"));
+        toast.success(t("Operations:ItemDeleted"));
       } else {
         await deleteArticle.mutateAsync(pendingDelete.id);
-        toast.success(t("Đã xoá bài viết"));
+        toast.success(t("Operations:ArticleDeleted"));
       }
     } catch {
       // queryClient reports the failure; nothing to add here.
@@ -248,12 +248,12 @@ export function OperationsPage() {
     () => [
       {
         key: "title",
-        title: t("Tiêu đề"),
+        title: t("Operations:ColumnTitle"),
         render: (_, article) => <span className="bd-cat-medium">{article.title}</span>,
       },
       {
         key: "creationTime",
-        title: t("Ngày tạo"),
+        title: t("Operations:ColumnCreatedAt"),
         width: 220,
         render: (_, article) => (
           <span className="bd-cat-num">{formatDate(article.creationTime)}</span>
@@ -261,7 +261,7 @@ export function OperationsPage() {
       },
       {
         key: "lastModificationTime",
-        title: t("Ngày cập nhật"),
+        title: t("Operations:ColumnUpdatedAt"),
         width: 260,
         render: (_, article) => (
           <span className="bd-cat-num">
@@ -271,31 +271,31 @@ export function OperationsPage() {
       },
       ...((ability.canUpdate || ability.canDelete) ? [{
         key: "actions" as const,
-        title: t("Thao tác"),
+        title: t("Common:Actions"),
         width: 110,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, article: OperationArticleDto) => (
           <div className="bd-cat-rowactions">
             {ability.canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", article.title)}
+                  aria-label={t("Operations:EditArticleAria", article.title)}
                   onClick={() => setArticleModal({ open: true, article })}
                 />
               </Tooltip>
             )}
             {ability.canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", article.title)}
+                  aria-label={t("Operations:DeleteArticleAria", article.title)}
                   onClick={() =>
                     setPendingDelete({ kind: "article", id: article.id, name: article.title })
                   }
@@ -311,7 +311,7 @@ export function OperationsPage() {
 
   const categoryPanel = (
     <OperationCategoryPanel
-      label={t("Phân loại")}
+      label={t("Operations:CategoryPanel")}
       categories={categories}
       isLoading={categoriesQuery.isLoading}
       selectedId={selectedCategoryId}
@@ -329,13 +329,13 @@ export function OperationsPage() {
   return (
     <div className="bd-shell-page">
       <PageHeader
-        title={t("Quản trị vận hành")}
-        subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
+        title={t("Operations:PageTitle")}
+        subtitle={t("Operations:PageSubtitle")}
       />
 
       <div className="bd-taxonomy-page">
         <PageTabBar
-          label={t("Vận hành")}
+          label={t("Operations:Tab")}
           activeKey={division.key}
           tabs={visibleDivisions.map((item) => ({
             key: item.key,
@@ -408,7 +408,7 @@ export function OperationsPage() {
                     onClose={() => setGroupsOpen(false)}
                     placement="left"
                     size={288}
-                    title={t("Phân loại")}
+                    title={t("Operations:CategoryPanel")}
                     className="bd-group-drawer"
                     styles={{ body: { padding: 0 } }}
                   >
@@ -418,7 +418,7 @@ export function OperationsPage() {
                   <main className="bd-ops-main">
                     <div className="bd-cat-header bd-cat-header--bar">
                       <Button type="link" icon={<MenuOutlined />} onClick={() => setGroupsOpen(true)}>
-                        {t("Chọn nhóm")}
+                        {t("Operations:SelectGroup")}
                       </Button>
                     </div>
 
@@ -430,18 +430,18 @@ export function OperationsPage() {
                           // The reference offers this only once an article has a
                           // category to be filed under.
                           disabled={!selectedCategoryId}
-                          title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
+                          title={selectedCategoryId ? undefined : t("Operations:SelectFirst")}
                           onClick={() => setArticleModal({ open: true, article: null })}
                         >
-                          {t("Tạo Bài Viết")}
+                          {t("Operations:CreateArticle")}
                         </Button>
                       )}
 
                       <Input
                         className="bd-ops-search"
                         prefix={<SearchOutlined />}
-                        placeholder={t("Tìm kiếm")}
-                        aria-label={t("Tìm kiếm")}
+                        placeholder={t("Common:Search")}
+                        aria-label={t("Common:Search")}
                         value={keyword}
                         allowClear
                         onChange={(event) => {
@@ -461,8 +461,8 @@ export function OperationsPage() {
                           pagination={pagination.buildConfig(totalCount, operationsTotal)}
                           locale={{
                             emptyText: debouncedKeyword
-                              ? t("Không tìm thấy kết quả phù hợp")
-                              : t("Không có dữ liệu"),
+                              ? t("Common:NoResults")
+                              : t("Common:NoData"),
                           }}
                         />
                       </div>
@@ -502,7 +502,7 @@ export function OperationsPage() {
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={pendingDelete?.kind === "category" ? t("mục") : t("bài viết")}
+        noun={pendingDelete?.kind === "category" ? t("Operations:DeleteItemNoun") : t("Operations:DeleteArticleNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteCategory.isPending || deleteArticle.isPending}
         onConfirm={() => void confirmDelete()}

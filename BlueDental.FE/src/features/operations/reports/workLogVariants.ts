@@ -26,7 +26,7 @@ export interface WorkLogVariant {
 const FULL: WorkLogVariant = {
   filters: ["staff", "actions", "patient"],
   card: "right",
-  countNoun: "công việc",
+  countNoun: "Operations:WorkNoun",
 };
 
 const VARIANTS: Record<string, WorkLogVariant> = {
@@ -37,7 +37,7 @@ const VARIANTS: Record<string, WorkLogVariant> = {
   // ends of the row, which is a house choice rather than a parity one.
   reception: { filters: ["staff"], card: "right" },
   // Khối điều trị offers no filter at all.
-  treatment: { filters: [], card: "left", countNoun: "công việc" },
+  treatment: { filters: [], card: "left", countNoun: "Operations:WorkNoun" },
 };
 
 /** Divisions the reference gives no Báo cáo variant of its own fall back to the full one. */
@@ -50,7 +50,7 @@ export function workLogTotal(variant: WorkLogVariant) {
   return (total: number, shown: [number, number]) => {
     const noun = variant.countNoun ? ` ${t(variant.countNoun)}` : "";
     return total === 0
-      ? t("Hiển thị 0 trên 0{0}", noun)
-      : t("Hiển thị {0}–{1} trên {2}{3}", shown[0], shown[1], total, noun);
+      ? t("Operations:ShowZeroWorklog", noun)
+      : t("Operations:ShowWorklogRange", shown[0], shown[1], total, noun);
   };
 }

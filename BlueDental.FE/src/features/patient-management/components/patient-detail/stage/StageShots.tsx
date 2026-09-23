@@ -26,7 +26,7 @@ export function StageShots({ files, previews, onRemove }: Props) {
           <img src={previews[index]} alt={file.name} />
           <button
             type="button"
-            aria-label={t("Bỏ ảnh {0}", file.name)}
+            aria-label={t("Patient:Photo:RemoveImage", file.name)}
             onClick={() => onRemove(index)}
           >
             <CloseOutlined />

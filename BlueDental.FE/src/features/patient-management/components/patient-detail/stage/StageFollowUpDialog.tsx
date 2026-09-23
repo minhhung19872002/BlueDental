@@ -93,7 +93,7 @@ export function StageFollowUpDialog({
       onCancel={onClose}
       footer={
         <>
-          <Button onClick={onClose}>{t("Đóng")}</Button>
+          <Button onClick={onClose}>{t("Common:Close")}</Button>
           <Button
             type="primary"
             icon={<SaveOutlined />}
@@ -108,10 +108,10 @@ export function StageFollowUpDialog({
     >
       <div className="pd-stage-form">
         <div>
-          <FloatingLabel label={t("Ngày tạo")} floated>
+          <FloatingLabel label={t("Patient:Col:CreatedAt")} floated>
             <Input disabled value={formatDate(new Date().toISOString())} />
           </FloatingLabel>
-          <FloatingLabel label={t("Bác sĩ")} floated={Boolean(form.staffId)}>
+          <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(form.staffId)}>
             <ServerSearchSelect
               value={form.staffId}
               useOptions={useStaffOptionsSearch}
@@ -120,14 +120,14 @@ export function StageFollowUpDialog({
             />
           </FloatingLabel>
           {form.errors.staff && <p className="pd-stage-error">{form.errors.staff}</p>}
-          <FloatingLabel label={t("Phụ tá")} floated={Boolean(form.subStaffId)}>
+          <FloatingLabel label={t("Patient:Staff:Assistant")} floated={Boolean(form.subStaffId)}>
             <ServerSearchSelect
               value={form.subStaffId}
               useOptions={useStaffOptionsSearch}
               onChange={form.setSubStaffId}
             />
           </FloatingLabel>
-          <FloatingLabel label={t("Bác sĩ hỗ trợ")} floated={Boolean(form.secondStaffId)}>
+          <FloatingLabel label={t("Patient:Staff:AssistingDoctor")} floated={Boolean(form.secondStaffId)}>
             <ServerSearchSelect
               value={form.secondStaffId}
               useOptions={useStaffOptionsSearch}
@@ -137,7 +137,7 @@ export function StageFollowUpDialog({
         </div>
 
         <div>
-          <FloatingLabel label={t("Dịch vụ")} floated>
+          <FloatingLabel label={t("Patient:Misc:Service")} floated>
             <Input
               disabled
               value={plan ? `${plan.code} - ${line?.serviceName ?? line?.code ?? ""}` : ""}
@@ -158,7 +158,7 @@ export function StageFollowUpDialog({
         </div>
 
         <div>
-          <FloatingLabel label={t("Nội dung điều trị")} floated={form.note.length > 0}>
+          <FloatingLabel label={t("Patient:Stage:TreatmentContent")} floated={form.note.length > 0}>
             <Input.TextArea
               rows={5}
               value={form.note}

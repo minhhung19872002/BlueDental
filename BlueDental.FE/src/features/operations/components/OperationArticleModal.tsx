@@ -67,7 +67,7 @@ export function OperationArticleModal({
     try {
       if (article) {
         await updateArticle.mutateAsync({ id: article.id, data: { title: trimmed, content } });
-        toast.success(t("Đã cập nhật bài viết"));
+        toast.success(t("Operations:ArticleUpdated"));
       } else {
         if (!categoryId) return;
         await createArticle.mutateAsync({
@@ -78,7 +78,7 @@ export function OperationArticleModal({
           department,
           subTab,
         });
-        toast.success(t("Đã thêm bài viết"));
+        toast.success(t("Operations:ArticleAdded"));
       }
       onClose();
     } catch {
@@ -89,7 +89,7 @@ export function OperationArticleModal({
   return (
     <AppDialog
       open={open}
-      title={article ? t("Sửa bài viết") : t("Tiêu đề bài viết")}
+      title={article ? t("Operations:EditArticle") : t("Operations:ArticleTitle")}
       width={772}
       canSave={title.trim().length > 0}
       saving={pending}
@@ -105,17 +105,17 @@ export function OperationArticleModal({
       >
         <FloatingField
           name="title"
-          label={t("Tiêu đề")}
+          label={t("Operations:TitleLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng nhập tiêu đề") }]}
+          rules={[{ required: true, message: t("Operations:TitleRequired") }]}
         >
           <Input autoFocus />
         </FloatingField>
 
-        <Form.Item name="content" label={t("Nội dung bài viết")}>
+        <Form.Item name="content" label={t("Operations:ContentLabel")}>
           <RichTextField
             className="bd-ops-editor"
-            placeholder={t("Nhập nội dung tư vấn...")}
+            placeholder={t("Operations:ContentPlaceholder")}
             // Stored alongside the article rather than inside it, so the body
             // stays small enough to send with every list read.
             onUploadImage={uploadImage}

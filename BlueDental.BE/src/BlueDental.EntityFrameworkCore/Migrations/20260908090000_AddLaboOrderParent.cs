@@ -8,7 +8,7 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// "Làm tiếp công đoạn" and "Bảo hành" on the patient's Labo tab raise a new
+    /// "BE:Treatment:ContinueStage" and "BE:Common:Warranty" on the patient's Labo tab raise a new
     /// order under an existing one.
     ///
     /// OBSERVED on staging 2026-09-08: the POST carries <c>sourceLabOrderId</c>

@@ -34,31 +34,31 @@ export function ConsultantSummaryReport() {
 
   const columns = useMemo<ColumnsType<ConsultantSummaryRow>>(
     () => [
-      { key: "staff", title: t("Nhân sự tư vấn"), dataIndex: "staffName" },
+      { key: "staff", title: t("Operations:ConsultantStaff"), dataIndex: "staffName" },
       {
         key: "newCount",
-        title: t("Tư vấn khách mới"),
+        title: t("Operations:NewCustomerConsult"),
         width: 150,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.newPatientConsultations}</span>,
       },
       {
         key: "oldCount",
-        title: t("Tư vấn khách cũ"),
+        title: t("Operations:ReturnCustomerConsult"),
         width: 150,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.returningPatientConsultations}</span>,
       },
       {
         key: "newRevenue",
-        title: t("Doanh thu khách mới"),
+        title: t("Operations:NewCustomerRevenue"),
         width: 190,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{formatMoney(row.newPatientRevenue)}</span>,
       },
       {
         key: "oldRevenue",
-        title: t("Doanh thu khách cũ"),
+        title: t("Operations:ReturnCustomerRevenue"),
         width: 190,
         align: "right",
         render: (_, row) => (
@@ -67,14 +67,14 @@ export function ConsultantSummaryReport() {
       },
       {
         key: "totalCount",
-        title: t("Tổng lượt tư vấn"),
+        title: t("Operations:TotalConsults"),
         width: 160,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.totalConsultations}</span>,
       },
       {
         key: "totalRevenue",
-        title: t("Doanh thu từ tư vấn"),
+        title: t("Operations:ConsultRevenue"),
         width: 190,
         align: "right",
         render: (_, row) => (
@@ -88,12 +88,12 @@ export function ConsultantSummaryReport() {
   return (
     <div className="bd-ops-report-screen">
       <div className="bd-ops-report-bar bd-ops-report-bar--titled">
-        <h2 className="bd-ops-report-title">{t("Báo cáo khách hàng phát sinh")}</h2>
+        <h2 className="bd-ops-report-title">{t("Operations:CustomerReportTitle")}</h2>
 
         <div className="bd-ops-report-barend">
           <OperationsPeriodBar range={range} periods={["day", "week", "month"]} />
           <StaffFilter
-            label={t("Nhân sự tư vấn")}
+            label={t("Operations:ConsultantStaff")}
             value={staffId}
             onChange={(value) => {
               setStaffId(value);
@@ -110,7 +110,7 @@ export function ConsultantSummaryReport() {
           rowKey="staffId"
           loading={query.isFetching}
           pagination={pagination.buildConfig(query.data?.totalCount ?? 0, operationsTotal)}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
         />
       </div>
     </div>

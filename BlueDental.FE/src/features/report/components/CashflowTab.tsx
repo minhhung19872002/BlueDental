@@ -30,9 +30,9 @@ type SubKey = CashflowSubKey;
 
 /** Each pill needs its subject's `read`, like the reference's `can(subject, "read")` filter. */
 const SUB_TABS: { key: SubKey; label: () => string }[] = [
-  { key: "income", label: () => t("Thu nhập") },
-  { key: "expense", label: () => t("Chi phí") },
-  { key: "category", label: () => t("Danh mục") },
+  { key: "income", label: () => t("Report:Tab:Income") },
+  { key: "expense", label: () => t("Report:Tab:Expense") },
+  { key: "category", label: () => t("Report:Tab:Category") },
 ];
 
 const SUB_ACTIONS: Record<Exclude<SubKey, "category">, { export: ReportPermission; create: ReportPermission }> = {
@@ -56,11 +56,11 @@ type SalesExportColumn = ExportColumn<SalesEntryDto>;
 const EMPTY = "—";
 const dateCell = (v: unknown) => formatDate(String(v));
 const textOrDash = (v: unknown) => String(v ?? "").trim() || EMPTY;
-const staffOrUnknown = (v: unknown) => String(v ?? "").trim() || t("Không xác định");
+const staffOrUnknown = (v: unknown) => String(v ?? "").trim() || t("Report:Unknown");
 
 /** The workbook's customer: the linked patient, else the typed payer / receiver, else "—". */
 function customerColumn(): SalesExportColumn {
-  return { header: t("Khách hàng"), key: "patientName", format: textOrDash };
+  return { header: t("Report:Column:Customer"), key: "patientName", format: textOrDash };
 }
 
 function withCustomerFallback(rows: SalesEntryDto[]): SalesEntryDto[] {
@@ -77,7 +77,7 @@ function amountColumn(header: string): SalesExportColumn {
 
 function channelColumn(): SalesExportColumn {
   const labels = paymentChannelLabels();
-  return { header: t("Hình thức"), key: "channel", format: (v: unknown) => labels[v as PaymentChannel] ?? EMPTY };
+  return { header: t("Report:Column:PaymentMethod"), key: "channel", format: (v: unknown) => labels[v as PaymentChannel] ?? EMPTY };
 }
 
 interface SalesExport {
@@ -90,17 +90,17 @@ function buildIncomeExport(): SalesExport {
   return {
     filename: "thu-nhap",
     columns: [
-      dateColumn(t("Ngày tạo")),
+      dateColumn(t("Report:Column:CreatedDate")),
       customerColumn(),
-      { header: t("Nội dung thu"), key: "description", format: textOrDash },
-      { header: t("Nhân viên thu"), key: "staffName", format: staffOrUnknown },
-      { header: t("Mục thu"), key: "categoryName", format: textOrDash },
-      amountColumn(t("Doanh thu")),
+      { header: t("Report:Column:IncomeDescription"), key: "description", format: textOrDash },
+      { header: t("Report:Column:IncomeStaff"), key: "staffName", format: staffOrUnknown },
+      { header: t("Report:Column:IncomeCategory"), key: "categoryName", format: textOrDash },
+      amountColumn(t("Report:Column:Revenue")),
       channelColumn(),
     ],
     options: {
-      sheetName: t("Thu nhập"),
-      title: t("Báo cáo thu nhập"),
+      sheetName: t("Report:Tab:Income"),
+      title: t("Report:Export:IncomeTitle"),
       columnWidths: [16, 22, 28, 18, 18, 18, 16],
     },
   };
@@ -110,23 +110,23 @@ function buildExpenseExport(): SalesExport {
   return {
     filename: "chi-phi",
     columns: [
-      dateColumn(t("Ngày tạo")),
-      dateColumn(t("Ngày thực chi")),
-      { header: t("Nội dung"), key: "description", format: textOrDash },
+      dateColumn(t("Report:Column:CreatedDate")),
+      dateColumn(t("Report:Column:ActualExpenseDate")),
+      { header: t("Report:Column:Description"), key: "description", format: textOrDash },
       customerColumn(),
-      { header: t("Nhân viên"), key: "staffName", format: staffOrUnknown },
-      { header: t("Mục chi"), key: "categoryName", format: textOrDash },
-      amountColumn(t("Tổng tiền")),
+      { header: t("Report:Column:Staff"), key: "staffName", format: staffOrUnknown },
+      { header: t("Report:Column:ExpenseCategory"), key: "categoryName", format: textOrDash },
+      amountColumn(t("Report:Column:TotalMoney")),
       channelColumn(),
       {
-        header: t("Trạng thái"),
+        header: t("Common:Status"),
         key: "approvalStatus",
         format: (v: unknown) => approvalStatusLabel(v as SalesApprovalStatus),
       },
     ],
     options: {
-      sheetName: t("Chi phí"),
-      title: t("Báo cáo chi phí"),
+      sheetName: t("Report:Tab:Expense"),
+      title: t("Report:Export:ExpenseTitle"),
       columnWidths: [16, 16, 28, 18, 18, 18, 18, 16, 14],
     },
   };
@@ -178,24 +178,24 @@ export function CashflowTab({ sub: rawSub, onSubChange, ...range }: Props) {
     if (sub === "category") return;
     const rows = entries.filter((e) => e.type === SUB_TYPE[sub]);
     if (rows.length === 0) {
-      toast.warning(t("Không có dữ liệu để xuất"));
+      toast.warning(t("Report:Export:NoData"));
       return;
     }
     const { filename, columns, options } = sub === "income" ? buildIncomeExport() : buildExpenseExport();
     exportToExcel<SalesEntryDto>(withCustomerFallback(rows), columns, filename, options);
-    toast.success(t("Xuất Excel thành công"));
+    toast.success(t("Report:Export:Success"));
   }, [entries, sub]);
 
   const extra = actions !== null && (mayExport || mayCreate) && (
     <Space wrap>
       {mayExport && (
         <Button icon={<DownloadOutlined />} onClick={handleExport}>
-          {t("Xuất Excel")}
+          {t("Report:Action:ExportExcel")}
         </Button>
       )}
       {mayCreate && (
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          {t("Thêm mới")}
+          {t("Common:Add")}
         </Button>
       )}
     </Space>

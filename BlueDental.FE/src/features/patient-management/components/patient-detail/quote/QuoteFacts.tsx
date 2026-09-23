@@ -8,16 +8,16 @@ export function QuoteFacts({ clinic, customer }: { clinic: QuoteClinic; customer
   return (
     <div className="pq-facts">
       <section>
-        <h3 className="pq-section-title">{t("THÔNG TIN CHI NHÁNH")}</h3>
+        <h3 className="pq-section-title">{t("Patient:QuoteSheet:BranchInfoTitle")}</h3>
         <div className="pq-fact-list">
           <p>
-            <strong>{t("Phòng khám")}:</strong> {dash(clinic.name)}
+            <strong>{t("Patient:Misc:Clinic")}:</strong> {dash(clinic.name)}
           </p>
           <p>
-            <strong>{t("Địa chỉ")}:</strong> {dash(clinic.address)}
+            <strong>{t("Patient:Col:Address")}:</strong> {dash(clinic.address)}
           </p>
           <p>
-            <strong>{t("ĐT")}:</strong> {dash(clinic.phone)}
+            <strong>{t("Patient:Form:Tel")}:</strong> {dash(clinic.phone)}
           </p>
           <p>
             <strong>{t("Email")}:</strong> {dash(clinic.email)}
@@ -25,19 +25,19 @@ export function QuoteFacts({ clinic, customer }: { clinic: QuoteClinic; customer
         </div>
       </section>
       <section>
-        <h3 className="pq-section-title">{t("THÔNG TIN KHÁCH HÀNG")}</h3>
+        <h3 className="pq-section-title">{t("Patient:QuoteSheet:CustomerInfoTitle")}</h3>
         <div className="pq-fact-list">
           <p>
-            <strong>{t("Mã KH")}:</strong> {dash(customer.code)}
+            <strong>{t("Patient:Col:PatientCode")}:</strong> {dash(customer.code)}
           </p>
           <p>
-            <strong>{t("Họ và tên")}:</strong> {dash(customer.name)}
+            <strong>{t("Patient:Col:FullName")}:</strong> {dash(customer.name)}
           </p>
           <p>
-            <strong>{t("SĐT")}:</strong> {dash(customer.phone)}
+            <strong>{t("Patient:Form:ShortPhone")}:</strong> {dash(customer.phone)}
           </p>
           <p>
-            <strong>{t("Địa chỉ")}:</strong> {dash(customer.address)}
+            <strong>{t("Patient:Col:Address")}:</strong> {dash(customer.address)}
           </p>
         </div>
       </section>
@@ -49,21 +49,21 @@ export function QuoteFacts({ clinic, customer }: { clinic: QuoteClinic; customer
 export function QuoteTotalsBlock({ totals }: { totals: QuoteTotals }) {
   return (
     <div className="pq-totals">
-      <h3 className="pq-totals-title">{t("TỔNG TIỀN:")}</h3>
+      <h3 className="pq-totals-title">{t("Patient:QuoteSheet:GrandTotal")}</h3>
       <p className="pq-totals-row">
-        <span>{t("Giá dịch vụ:")}</span>
+        <span>{t("Patient:Payment:ServicePriceLabel")}</span>
         <strong>{money(totals.gross)}</strong>
       </p>
       <p className="pq-totals-row">
-        <span>{t("Giảm giá dịch vụ:")}</span>
+        <span>{t("Patient:Payment:ServiceDiscountLabel")}</span>
         <strong>{money(totals.discount)}</strong>
       </p>
       <p className="pq-totals-row">
-        <span>{t("Giảm giá bác sĩ:")}</span>
+        <span>{t("Patient:Payment:DoctorDiscountLabel")}</span>
         <strong>{money(totals.extra)}</strong>
       </p>
       <p className="pq-totals-row">
-        <span>{t("Báo giá:")}</span>
+        <span>{t("Patient:Quote:Label")}</span>
         <strong>{money(totals.net)}</strong>
       </p>
     </div>

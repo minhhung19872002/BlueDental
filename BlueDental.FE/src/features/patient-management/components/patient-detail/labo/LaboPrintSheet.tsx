@@ -48,62 +48,62 @@ export function LaboPrintSheet({ clinic, patient, orderCode, facts }: Props) {
       <article className="pd-labo-sheet">
         <div className="pd-print-sheethead">
           <section>
-            <Fact label={t("Phòng khám")} value={clinic.name} />
-            <Fact label={t("Địa chỉ")} value={clinic.address ?? ""} />
-            <Fact label={t("ĐT")} value={clinic.phone ?? ""} />
+            <Fact label={t("Patient:Misc:Clinic")} value={clinic.name} />
+            <Fact label={t("Patient:Col:Address")} value={clinic.address ?? ""} />
+            <Fact label={t("Patient:Form:Tel")} value={clinic.phone ?? ""} />
             <Fact label={t("Email")} value={clinic.email ?? ""} />
           </section>
           <header>
-            <h2>{t("PHIẾU ĐẶT HÀNG LABO")}</h2>
+            <h2>{t("Patient:Labo:OrderTitle")}</h2>
             <p>{longDate(new Date())}</p>
             <p>
-              {t("Số")}: {orderCode}
+              {t("Patient:Misc:Number")}: {orderCode}
             </p>
           </header>
           <section>
-            <Fact label={t("Mã KH")} value={patient.code} />
-            <Fact label={t("Khách hàng")} value={patient.name} />
-            <Fact label={t("Ngày sinh")} value={facts.birthDate} />
-            <Fact label={t("Bác sĩ chỉ định")} value={facts.dentist} />
+            <Fact label={t("Patient:Col:PatientCode")} value={patient.code} />
+            <Fact label={t("Patient:Col:Customer")} value={patient.name} />
+            <Fact label={t("Patient:Col:DateOfBirth")} value={facts.birthDate} />
+            <Fact label={t("Patient:QuoteSheet:PrescribingDoctor")} value={facts.dentist} />
           </section>
         </div>
 
         <div className="pd-labo-sheet-body">
           <div className="pd-labo-sheet-grid">
             <section>
-              <h3>{t("Thông tin đơn hàng")}</h3>
-              <Row label={t("Nhà cung cấp")} value={facts.supplier} />
-              <Row label={t("Ngày gửi")} value={facts.sentAt} />
-              <Row label={t("Ngày nhận dự kiến")} value={facts.dueDate} />
+              <h3>{t("Patient:Labo:OrderInfo")}</h3>
+              <Row label={t("Patient:Labo:Supplier")} value={facts.supplier} />
+              <Row label={t("Patient:Labo:SentDate")} value={facts.sentAt} />
+              <Row label={t("Patient:Labo:ExpectedReceiveDate")} value={facts.dueDate} />
             </section>
             <section>
-              <h3>{t("Thông số chung")}</h3>
-              <Row label={t("Lựa chọn dịch vụ")} value={facts.laboService} />
-              <Row label={t("Dịch vụ điều trị")} value={facts.treatmentService} />
-              <Row label={t("Loại phục hình")} value={facts.laboService} />
+              <h3>{t("Patient:Labo:CommonParams")}</h3>
+              <Row label={t("Patient:Quote:ServiceSelection")} value={facts.laboService} />
+              <Row label={t("Patient:Plan:Service")} value={facts.treatmentService} />
+              <Row label={t("Patient:Labo:ProsthesisType")} value={facts.laboService} />
             </section>
           </div>
 
-          <h3>{t("Chi tiết phục hình")}</h3>
+          <h3>{t("Patient:Plan:ProsthesisDetailTitle")}</h3>
           <div className="pd-labo-sheet-grid">
             <section>
-              <Row label={t("Vật liệu")} value={facts.material} />
-              <Row label={t("Đường hoàn tất")} value={facts.finishLine} />
-              <Row label={t("Khớp cắn")} value={facts.bite} />
-              <Row label={t("Kiểu nhịp")} value={facts.rhythm} />
+              <Row label={t("Patient:Labo:Material")} value={facts.material} />
+              <Row label={t("Patient:Viewer:CompletedPath")} value={facts.finishLine} />
+              <Row label={t("Patient:DentalChart:Occlusion")} value={facts.bite} />
+              <Row label={t("Patient:DentalChart:RhythmType")} value={facts.rhythm} />
             </section>
             <section>
-              <Row label={t("Số răng")} value={facts.teeth} />
-              <Row label={t("Màu sắc chi tiết")} value={facts.shade} />
-              <Row label={t("Số lượng")} value={facts.quantity} />
-              <Row label={t("Nội dung chỉ định")} value={facts.instruction} />
+              <Row label={t("Patient:DentalChart:ToothNumber")} value={facts.teeth} />
+              <Row label={t("Patient:Viewer:DetailColorLabel")} value={facts.shade} />
+              <Row label={t("Patient:Payment:Quantity")} value={facts.quantity} />
+              <Row label={t("Patient:QuoteSheet:PrescriptionContent")} value={facts.instruction} />
             </section>
           </div>
 
           <div className="pd-labo-sheet-sign">
             <div>
-              <p>{t("Người đặt hàng")}</p>
-              <p>{t("(Ký xác nhận)")}</p>
+              <p>{t("Patient:Labo:Orderer")}</p>
+              <p>{t("Patient:QuoteSheet:SignConfirm")}</p>
               <p>{facts.dentist}</p>
             </div>
           </div>

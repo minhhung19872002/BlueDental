@@ -42,18 +42,18 @@ export function PrintSheetPicker({ sheets, ordinalOf, onPrint }: Props) {
   const content = (
     <div className="pd-print-pick">
       <div>
-        <p className="pd-print-pick-title">{t("Chọn phiếu in")}</p>
-        <p className="pd-print-pick-hint">{t("Chọn các phiếu cần in trong cùng một lần.")}</p>
+        <p className="pd-print-pick-title">{t("Patient:MedRecord:SelectPrint")}</p>
+        <p className="pd-print-pick-hint">{t("Patient:MedRecord:SelectPrintHint")}</p>
       </div>
 
       <label className="pd-print-pick-all">
         <Checkbox
           checked={allPicked}
           indeterminate={somePicked}
-          aria-label={t("Chọn tất cả phiếu bệnh án")}
+          aria-label={t("Patient:MedRecord:SelectAll")}
           onChange={(event) => setPicked(event.target.checked ? sheets.map((s) => s.id) : [])}
         />
-        {t("Tất cả phiếu")}
+        {t("Patient:Payment:AllSlips")}
       </label>
 
       <div className="pd-print-pick-list">
@@ -61,13 +61,13 @@ export function PrintSheetPicker({ sheets, ordinalOf, onPrint }: Props) {
           <label key={sheet.id} className="pd-print-pick-row">
             <Checkbox
               checked={picked.includes(sheet.id)}
-              aria-label={t("Chọn {0}", sheet.title)}
+              aria-label={t("Patient:Photo:SelectSlip", sheet.title)}
               onChange={() => toggle(sheet.id)}
             />
             <span>
               <span className="pd-print-pick-name">{sheet.title}</span>
               <span className="pd-print-pick-copy">
-                {t("Bản")} {String(ordinalOf(sheet)).padStart(2, "0")}
+                {t("Patient:Misc:SlipCopy")} {String(ordinalOf(sheet)).padStart(2, "0")}
               </span>
             </span>
           </label>
@@ -100,7 +100,7 @@ export function PrintSheetPicker({ sheets, ordinalOf, onPrint }: Props) {
       overlayClassName="pd-print-pick-popover"
     >
       <Button icon={<Printer size={14} />} disabled={!sheets.length}>
-        {t("In biểu mẫu")}
+        {t("Patient:MedRecord:Print")}
       </Button>
     </Popover>
   );

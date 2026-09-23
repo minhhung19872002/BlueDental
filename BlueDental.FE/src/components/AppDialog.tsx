@@ -97,7 +97,7 @@ export function AppDialog({
               disabled={!canSave || saving}
               onClick={onSave}
             >
-              {saving ? t("Đang lưu…") : saveLabel ?? t("Lưu")}
+              {saving ? t("Common:Saving") : saveLabel ?? t("Common:Save")}
             </Button>
           </div>
         </div>

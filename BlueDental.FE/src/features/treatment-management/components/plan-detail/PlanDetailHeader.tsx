@@ -25,12 +25,12 @@ export function PlanDetailHeader({ patient, plan, branchId }: Props) {
       <button
         type="button"
         className="pdt-back"
-        aria-label={t("Quay lại")}
+        aria-label={t("Treatment:Common:GoBack")}
         onClick={() => navigate(plansPath)}
       >
         <ArrowLeft size={16} aria-hidden="true" />
       </button>
-      <nav className="pdt-crumbs" aria-label={t("Đường dẫn")}>
+      <nav className="pdt-crumbs" aria-label={t("Treatment:Common:Breadcrumb")}>
         <Link className="pdt-crumb pdt-crumb--strong" to={patientPath}>
           [{patient.patientCode}] - {patient.fullName}
         </Link>
@@ -38,7 +38,7 @@ export function PlanDetailHeader({ patient, plan, branchId }: Props) {
           &gt;
         </span>
         <Link className="pdt-crumb" to={plansPath}>
-          {t("Kế hoạch điều trị")}
+          {t("Treatment:Plan:TreatmentPlan")}
         </Link>
         <span className="pdt-crumb-sep" aria-hidden="true">
           &gt;

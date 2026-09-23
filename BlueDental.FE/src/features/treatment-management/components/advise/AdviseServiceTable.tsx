@@ -45,14 +45,14 @@ export function AdviseServiceTable({
   return (
     <div className="am-services">
       <div className="am-toolbar">
-        <div className="am-groups" role="group" aria-label={t("Nhóm dịch vụ")}>
+        <div className="am-groups" role="group" aria-label={t("Treatment:Service:ServiceGroup")}>
           <button
             type="button"
             className={activeGroupId === null ? "am-group active" : "am-group"}
             aria-pressed={activeGroupId === null}
             onClick={() => onGroupChange(null)}
           >
-            {t("Tất cả dịch vụ")}
+            {t("Treatment:Service:AllServices")}
           </button>
           {groups.map((group) => (
             <button
@@ -66,7 +66,7 @@ export function AdviseServiceTable({
             </button>
           ))}
         </div>
-        <FloatingField name="search" label={t("Tìm kiếm dịch vụ...")} className="am-search">
+        <FloatingField name="search" label={t("Treatment:Consulting:SearchService")} className="am-search">
           <Input allowClear prefix={<Search size={18} />} />
         </FloatingField>
       </div>
@@ -87,7 +87,7 @@ export function AdviseServiceTable({
                     checked={allTicked}
                     indeterminate={tickedOnScreen > 0 && !allTicked}
                     disabled={services.length === 0}
-                    aria-label={t("Chọn tất cả dịch vụ")}
+                    aria-label={t("Treatment:Service:SelectAll")}
                     onChange={(event) => selection.toggleAll(services, event.target.checked)}
                   />
                 </th>
@@ -107,7 +107,7 @@ export function AdviseServiceTable({
               {!loading && services.length === 0 && (
                 <tr>
                   <td colSpan={COLUMNS.length + 1} className="am-empty">
-                    {t("Không có dịch vụ phù hợp")}
+                    {t("Treatment:Service:NoMatchingService")}
                   </td>
                 </tr>
               )}

@@ -48,31 +48,31 @@ export function PatientInvoiceTab({ patientId }: { patientId: string }) {
   const pagination = useTablePagination(20);
   const rows = query.data ?? [];
   const columns: TableColumnsType<InvoiceDto> = [
-    { title: t("Mã hóa đơn"), dataIndex: "invoiceNumber", width: 140 },
-    { title: t("Ngày tạo"), dataIndex: "issuedAt", width: 125, render: formatDate },
+    { title: t("Patient:Payment:InvoiceCode"), dataIndex: "invoiceNumber", width: 140 },
+    { title: t("Patient:Col:CreatedAt"), dataIndex: "issuedAt", width: 125, render: formatDate },
     {
-      title: t("Tổng tiền"),
+      title: t("Patient:Payment:TotalAmount"),
       dataIndex: "totalAmount",
       width: 135,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
-      title: t("Đã thanh toán"),
+      title: t("Patient:Payment:Paid"),
       dataIndex: "paidAmount",
       width: 145,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
-      title: t("Còn lại"),
+      title: t("Patient:Payment:Remaining"),
       dataIndex: "balanceDue",
       width: 135,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
-      title: t("Trạng thái"),
+      title: t("Patient:Misc:StatusLabel"),
       dataIndex: "status",
       width: 140,
       render: (value: InvoiceStatus) => {
@@ -81,12 +81,12 @@ export function PatientInvoiceTab({ patientId }: { patientId: string }) {
       },
     },
     ...(ability.canCreate ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 110,
       fixed: "right" as const,
       render: (_: unknown, row: InvoiceDto) => (
         <Button type="link" disabled={row.balanceDue <= 0} onClick={() => setSelected(row)}>
-          {t("Thu tiền")}
+          {t("Patient:Payment:Collect")}
         </Button>
       ),
     }] : []),
@@ -99,8 +99,8 @@ export function PatientInvoiceTab({ patientId }: { patientId: string }) {
           loading={query.isLoading}
           columns={columns}
           dataSource={rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize)}
-          locale={{ emptyText: t("Chưa có hóa đơn") }}
-          pagination={pagination.buildConfig(rows.length, countedTotal(t("hóa đơn")))}
+          locale={{ emptyText: t("Patient:Payment:NoInvoice") }}
+          pagination={pagination.buildConfig(rows.length, countedTotal(t("Patient:Misc:Invoice")))}
         />
       </div>
       <PaymentModal open={Boolean(selected)} invoice={selected} onClose={() => setSelected(null)} />

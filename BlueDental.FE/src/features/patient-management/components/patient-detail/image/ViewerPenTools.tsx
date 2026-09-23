@@ -39,7 +39,7 @@ export function PenPalette({ annotation, onExit }: PaletteProps) {
   return (
     <div className="pi-pen-palette">
       <section>
-        <h4 className="pi-pen-palette__title">{t("Màu bút")}</h4>
+        <h4 className="pi-pen-palette__title">{t("Patient:Viewer:PenColor")}</h4>
         <div className="pi-pen-colors">
           {PEN_COLORS.map((swatch) => {
             const active = swatch === color;
@@ -51,7 +51,7 @@ export function PenPalette({ annotation, onExit }: PaletteProps) {
                   .filter(Boolean)
                   .join(" ")}
                 style={{ "--pi-swatch": swatch } as CSSProperties}
-                aria-label={`${t("Chọn màu")} ${swatch}`}
+                aria-label={`${t("Patient:Viewer:PickColor")} ${swatch}`}
                 aria-pressed={active}
                 onClick={() => setColor(swatch)}
               >
@@ -71,7 +71,7 @@ export function PenPalette({ annotation, onExit }: PaletteProps) {
           >
             <input
               type="color"
-              aria-label={t("Chọn màu tuỳ chỉnh")}
+              aria-label={t("Patient:Viewer:PickCustomColor")}
               value={color}
               onChange={(event) => setColor(event.target.value)}
             />
@@ -80,7 +80,7 @@ export function PenPalette({ annotation, onExit }: PaletteProps) {
       </section>
 
       <section>
-        <h4 className="pi-pen-palette__title">{t("Độ dày nét")}</h4>
+        <h4 className="pi-pen-palette__title">{t("Patient:Viewer:StrokeThickness")}</h4>
         <div className="pi-pen-sizes">
           {PEN_SIZE_OPTIONS.map((option) => (
             <button
@@ -90,7 +90,7 @@ export function PenPalette({ annotation, onExit }: PaletteProps) {
                 .filter(Boolean)
                 .join(" ")}
               style={{ "--pi-dot": `${option}px` } as CSSProperties}
-              aria-label={`${t("Chọn độ dày")} ${option}`}
+              aria-label={`${t("Patient:Viewer:PickThickness")} ${option}`}
               aria-pressed={option === size}
               onClick={() => setSize(option)}
             >
@@ -102,7 +102,7 @@ export function PenPalette({ annotation, onExit }: PaletteProps) {
 
       {onExit && (
         <button type="button" className="pi-pen-palette__exit" onClick={onExit}>
-          {t("Tắt chế độ vẽ")}
+          {t("Patient:Viewer:DisableDraw")}
         </button>
       )}
     </div>
@@ -118,7 +118,7 @@ export function ViewerPenTools({ annotation, onExit }: Props) {
   };
 
   return (
-    <div className="pi-pen-tools" role="toolbar" aria-label={t("Vẽ chú thích")}>
+    <div className="pi-pen-tools" role="toolbar" aria-label={t("Patient:Viewer:DrawAnnotation")}>
       <Popover
         content={<PenPalette annotation={annotation} />}
         trigger="click"
@@ -126,32 +126,32 @@ export function ViewerPenTools({ annotation, onExit }: Props) {
         rootClassName="pi-pen-popover"
         getPopupContainer={popupContainerOf}
       >
-        <Tooltip title={t("Đổi màu hoặc độ dày nét vẽ")}>
+        <Tooltip title={t("Patient:Viewer:ChangeColorOrThickness")}>
           <button
             type="button"
             className="pi-pen-tool"
-            aria-label={t("Đổi màu hoặc độ dày nét vẽ")}
+            aria-label={t("Patient:Viewer:ChangeColorOrThickness")}
           >
             <Palette size={18} />
           </button>
         </Tooltip>
       </Popover>
-      <Tooltip title={t("Hoàn tác nét vẽ")}>
+      <Tooltip title={t("Patient:Viewer:UndoStroke")}>
         <button
           type="button"
           className="pi-pen-tool"
-          aria-label={t("Hoàn tác nét vẽ")}
+          aria-label={t("Patient:Viewer:UndoStroke")}
           disabled={!annotation.canUndo}
           onClick={annotation.undo}
         >
           <Undo2 size={18} />
         </button>
       </Tooltip>
-      <Tooltip title={t("Tắt chế độ vẽ")}>
+      <Tooltip title={t("Patient:Viewer:DisableDraw")}>
         <button
           type="button"
           className="pi-pen-tool"
-          aria-label={t("Tắt chế độ vẽ")}
+          aria-label={t("Patient:Viewer:DisableDraw")}
           onClick={handleExit}
         >
           <PenOff size={18} />

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Button, Form, Input, Switch, Tag, Tooltip } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -31,7 +31,7 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <AppDialog
       open={open}
-      title={t("Cấu hình")}
+      title={t("Tools:ConfigDialogTitle")}
       width={772}
       canSave={false}
       saving={false}
@@ -46,7 +46,7 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
       >
         <div className="bd-inv-dialog-grid">
           <div>
-            <div className="bd-msg-provider-label">{t("Nhà cung cấp")}</div>
+            <div className="bd-msg-provider-label">{t("Tools:ProviderLabel")}</div>
             {MSG_PROVIDERS.map((item) => (
               <button
                 key={item.value}
@@ -88,26 +88,26 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
           </div>
 
           <div className="bd-call-dialog-fields">
-            <FloatingField name="name" label={t("Tên")}>
+            <FloatingField name="name" label={t("Tools:NameLabel")}>
               <Input autoFocus />
             </FloatingField>
 
-            <FloatingField name="brandName" label={t("Tên thương hiệu")}>
+            <FloatingField name="brandName" label={t("Tools:BrandNameLabel")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="customerCode" label={t("Mã khách hàng")}>
+            <FloatingField name="customerCode" label={t("Tools:CustomerCodeLabel")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="secretKey" label={t("Mã bí mật")}>
+            <FloatingField name="secretKey" label={t("Tools:SecretKeyLabel")}>
               <Input.Password autoComplete="new-password" />
             </FloatingField>
 
             <div className="bd-call-dialog-switch">
-              <span>{t("Trạng thái")}</span>
+              <span>{t("Tools:StatusLabel")}</span>
               <Form.Item name="isActive" valuePropName="checked">
-                <Switch aria-label={t("Trạng thái")} />
+                <Switch aria-label={t("Tools:StatusLabel")} />
               </Form.Item>
             </div>
           </div>
@@ -129,11 +129,11 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
 
   const columns = useMemo<ColumnsType<MessageConfigRow>>(
     () => [
-      { key: "name", title: t("Tên"), dataIndex: "name" },
-      { key: "provider", title: t("Nhà cung cấp"), dataIndex: "provider" },
+      { key: "name", title: t("Tools:NameLabel"), dataIndex: "name" },
+      { key: "provider", title: t("Tools:ProviderLabel"), dataIndex: "provider" },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 130,
         render: (_, row) => {
           const { label, color } = activeTag(row.isActive);
@@ -142,20 +142,20 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Tools:ActionsLabel"),
         width: 110,
         align: "center",
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
-                <Button type="text" size="small" icon={<EditOutlined />} aria-label={t("Chỉnh sửa {0}", row.name)} />
+              <Tooltip title={t("Common:Edit")}>
+                <Button type="text" size="small" icon={<EditOutlined />} aria-label={t("Tools:EditConfigAria", row.name)} />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t("Xoá {0}", row.name)} />
+              <Tooltip title={t("Common:Delete")}>
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t("Tools:DeleteConfigAria", row.name)} />
               </Tooltip>
             )}
           </div>
@@ -171,8 +171,8 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
         <Input
           className="bd-ops-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm")}
-          aria-label={t("Tìm kiếm")}
+          placeholder={t("Tools:SearchPlaceholder")}
+          aria-label={t("Tools:SearchPlaceholder")}
           allowClear
         />
         {canCreate && (
@@ -182,7 +182,7 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
             icon={<PlusOutlined />}
             onClick={() => setDialogOpen(true)}
           >
-            {t("Tạo cấu hình")}
+            {t("Tools:CreateConfig")}
           </Button>
         )}
       </div>
@@ -193,10 +193,11 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
         rowKey="id"
         loading={false}
         pagination={{ total: 0, showTotal: pagerTotal }}
-        locale={{ emptyText: t("Chưa có cấu hình nào") }}
+        locale={{ emptyText: t("Tools:NoConfigs") }}
       />
 
       <MessageConfigDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }
+

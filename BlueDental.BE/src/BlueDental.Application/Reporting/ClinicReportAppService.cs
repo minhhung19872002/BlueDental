@@ -152,7 +152,7 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
                     ", ",
                     plan.Services.Select(line =>
                         serviceNames.TryGetValue(line.ServiceId, out var name)
-                            ? line.Status == TreatmentServiceStatus.Cancelled ? $"{name}(đã hủy)" : name
+                            ? line.Status == TreatmentServiceStatus.Cancelled ? $"{name}{L["BE:Report:CancelledSuffix"]}" : name
                             : line.Code)),
                 Quantity = plan.Services.Sum(line => line.Quantity),
                 EffectiveAmount = plan.TotalAmount,
@@ -212,8 +212,8 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
     }
 
     /// <summary>
-    /// The reference lists one indented row per mục thu / mục chi under "Thu khác"
-    /// and "Chi phí" (empty when there are no vouchers). Ordered by amount, largest first.
+    /// The reference lists one indented row per mục thu / mục chi under "BE:Col:OtherIncome"
+    /// and "BE:Col:Expenses" (empty when there are no vouchers). Ordered by amount, largest first.
     /// </summary>
     private static List<BusinessResultCategoryDto> GroupByCategory(
         IEnumerable<SalesEntry> entries,
@@ -251,18 +251,18 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
 
         return ExcelSheet.Build(
             "Doanh so",
-            "Doanh số và lượt khách",
+            L["BE:Perm:SalesVisits"],
             new List<ExcelColumn<PatientHistoryRowDto>>
             {
-                new("Ngày", row => row.Date.Date, 14),
-                new("Mã khách hàng", row => row.PatientCode, 16),
-                new("Tên khách hàng", row => row.PatientName, 26),
-                new("Bác sĩ tiếp nhận", row => row.StaffName, 22),
-                new("Dịch vụ điều trị", row => row.ServiceNames, 40),
-                new("Số lượng", row => row.Quantity, 12),
-                new("Thành tiền", row => row.EffectiveAmount, 16),
-                new("Đã thanh toán", row => row.TotalPaid, 16),
-                new("Khách mới", row => row.IsNewPatient ? "Có" : "Không", 12)
+                new(L["BE:Col:Date"], row => row.Date.Date, 14),
+                new(L["BE:Col:CustomerCode"], row => row.PatientCode, 16),
+                new(L["BE:Col:CustomerName"], row => row.PatientName, 26),
+                new(L["BE:Col:ReceivingDoctor"], row => row.StaffName, 22),
+                new(L["BE:Col:TreatmentService"], row => row.ServiceNames, 40),
+                new(L["BE:Col:Quantity"], row => row.Quantity, 12),
+                new(L["BE:Col:Total"], row => row.EffectiveAmount, 16),
+                new(L["BE:Status:Paid"], row => row.TotalPaid, 16),
+                new(L["BE:Col:NewCustomer"], row => row.IsNewPatient ? L["BE:Common:Yes"].Value : L["BE:Common:No"].Value, 12)
             },
             rows,
             PeriodLabel(input));
@@ -275,21 +275,21 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
 
         var rows = new List<(string Category, decimal Amount)>
         {
-            ("Doanh thu tổng", result.TotalRevenue),
-            ("Thu từ dịch vụ điều trị", result.TreatmentIncome),
-            ("Thu khác", result.OtherIncome),
-            ("Hoàn tiền từ dịch vụ điều trị", -result.TreatmentRefund),
-            ("Chi phí", -result.Expense),
-            ("Kết quả kinh doanh", result.Result)
+            (L["BE:Col:TotalRevenue"], result.TotalRevenue),
+            (L["BE:Col:TreatmentIncome"], result.TreatmentIncome),
+            (L["BE:Col:OtherIncome"], result.OtherIncome),
+            (L["BE:Col:TreatmentRefund"], -result.TreatmentRefund),
+            (L["BE:Col:Expenses"], -result.Expense),
+            (L["BE:Perm:BusinessResult"], result.Result)
         };
 
         return ExcelSheet.Build(
             "Ket qua kinh doanh",
-            "Kết quả kinh doanh",
+            L["BE:Perm:BusinessResult"],
             new List<ExcelColumn<(string Category, decimal Amount)>>
             {
-                new("Khoản mục", row => row.Category, 34),
-                new("Số tiền", row => row.Amount, 20)
+                new(L["BE:Field:LineItem"], row => row.Category, 34),
+                new(L["BE:Field:Amount"], row => row.Amount, 20)
             },
             rows,
             PeriodLabel(input));
@@ -599,7 +599,7 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
                 EventType = "deposit",
                 // Staging (2026-09-22) shows the slip's service, its voucher
                 // (THANHTOAN-31/DT32/2026) and the slip's treating dentists on a
-                // "Tạm ứng phát sinh" row. A local top-up is held outside any
+                // "BE:Field:DepositIncurred" row. A local top-up is held outside any
                 // slip, so only the voucher exists; the other two stay blank.
                 ServiceName = "",
                 PaymentCode = p.Code,
@@ -629,9 +629,9 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
         var debtIncurred = plans.Sum(p => p.TotalAmount) - totalPaid;
         var prepaidDeposits = prepaid.Sum(p => p.Amount);
 
-        // "Số dư tạm ứng hiện tại" is what the clinic holds now, not the period's
+        // "BE:Field:CurrentDepositBalance" is what the clinic holds now, not the period's
         // movement: staging (2026-09-22, year view) showed 10.070.000 in that
-        // tile beside a 5.570.000 "Tạm ứng" pill (phát sinh − tiêu dùng − hoàn).
+        // tile beside a 5.570.000 "BE:Field:Deposit" pill (phát sinh − tiêu dùng − hoàn).
         var allTimePayments = await PaymentsAsync(new ClinicReportQueryDto { ClinicBranchId = input.ClinicBranchId });
         var prepaidHeld = allTimePayments
             .Where(p => p.Kind == PatientPaymentKind.Prepaid)
@@ -702,11 +702,11 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
 
         var periods = new[]
         {
-            ("Hôm nay", today, today),
-            ("Tuần này", weekStart, weekEnd),
-            ("Tháng này", monthStart, monthEnd),
-            ("Năm nay", yearStart, yearEnd),
-            ("Toàn bộ", DateOnly.MinValue, DateOnly.MaxValue)
+            ("Report:Period:Today", today, today),
+            ("Report:Period:ThisWeek", weekStart, weekEnd),
+            ("Report:Period:ThisMonth", monthStart, monthEnd),
+            ("Report:Period:ThisYear", yearStart, yearEnd),
+            ("Report:Period:All", DateOnly.MinValue, DateOnly.MaxValue)
         };
 
         var visitRows = new List<OverviewRowDto>();

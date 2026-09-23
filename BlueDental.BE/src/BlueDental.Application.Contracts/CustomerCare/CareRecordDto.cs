@@ -185,7 +185,7 @@ public class GetCareGroupingPatientsInput : PagedResultRequestDto
 
     /// <summary>
     /// Contract-parity flag — the reference always sends true yet still returns
-    /// "Chưa phát sinh" rows, so the filter is accepted but not applied.
+    /// "BE:CareType:NoActivity" rows, so the filter is accepted but not applied.
     /// </summary>
     public bool ExcludeTreatmentNone { get; set; } = true;
 }

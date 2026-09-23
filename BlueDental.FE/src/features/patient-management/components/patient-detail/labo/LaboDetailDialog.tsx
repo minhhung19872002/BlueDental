@@ -57,7 +57,7 @@ export function LaboDetailDialog({ order, branchId, patient, onClose }: Props) {
         open={order !== null}
         width={772}
         className="pd-labo-dialog pd-labo-detail-dialog"
-        title={t("Thông tin chung")}
+        title={t("Patient:Form:GeneralInfo")}
         onCancel={onClose}
         footer={null}
         destroyOnHidden
@@ -65,10 +65,10 @@ export function LaboDetailDialog({ order, branchId, patient, onClose }: Props) {
         {order && facts && <LaboDetailFacts facts={facts} status={order.status} />}
         <div className="pd-labo-footer pd-labo-detail-footer">
           <Button icon={<PrinterOutlined />} onClick={handlePrint} disabled={!clinic.data}>
-            {t("In Phiếu Labo")}
+            {t("Patient:Labo:Print")}
           </Button>
           <Button type="primary" onClick={onClose}>
-            {t("Đóng")}
+            {t("Common:Close")}
           </Button>
         </div>
       </Modal>

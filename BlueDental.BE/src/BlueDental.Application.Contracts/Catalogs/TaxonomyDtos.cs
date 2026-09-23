@@ -108,14 +108,14 @@ public class ServiceConfigDto
     public bool RequireStageSequence { get; set; }
     public int WarrantyDays { get; set; }
 
-    /// <summary>Read side only — "Giá sau giảm", computed by the domain.</summary>
+    /// <summary>Read side only — "BE:Field:PriceAfterDiscount", computed by the domain.</summary>
     public decimal PriceAfterDiscount { get; set; }
 
-    /// <summary>Read side only — "Thực thu từ khách (Đã gồm VAT)".</summary>
+    /// <summary>Read side only — "BE:Field:AmountCollected".</summary>
     public decimal AmountCollected { get; set; }
 }
 
-/// <summary>One row of the service dialog's "Công đoạn" table.</summary>
+/// <summary>One row of the service dialog's "BE:Common:Stage" table.</summary>
 public class ServiceStageDto
 {
     public Guid Id { get; set; }
@@ -127,7 +127,7 @@ public class ServiceStageDto
     public decimal Value { get; set; }
 }
 
-/// <summary>The fields only "Loại thuốc" carries.</summary>
+/// <summary>The fields only "BE:Common:MedicineType" carries.</summary>
 public class MedicineDto
 {
     [StringLength(400)]
@@ -145,7 +145,7 @@ public class MedicineDto
     public string? UsageNote { get; set; }
 }
 
-/// <summary>One medicine line of a "Đơn thuốc mẫu".</summary>
+/// <summary>One medicine line of a "BE:Common:RxTemplate".</summary>
 public class PrescriptionTemplateLineDto
 {
     public Guid Id { get; set; }
@@ -155,7 +155,7 @@ public class PrescriptionTemplateLineDto
     public int Days { get; set; } = 1;
     public PrescriptionUsage Usage { get; set; }
 
-    /// <summary>What the user wrote for "Khác"; required when that flag is set.</summary>
+    /// <summary>What the user wrote for "BE:Common:Other"; required when that flag is set.</summary>
     public string? OtherUsage { get; set; }
 
     /// <summary>Read side only — the reference shows this box disabled.</summary>
@@ -178,13 +178,13 @@ public class CatalogEntryDto : FullAuditedEntityDto<Guid>
     public bool IsActive { get; set; }
     public int SortOrder { get; set; }
 
-    /// <summary>"Tên chi tiết" on a service.</summary>
+    /// <summary>"BE:Field:DetailName" on a service.</summary>
     public string? DetailName { get; set; }
 
-    /// <summary>"Ghi chú" on a diagnosis or a piece of consulting data.</summary>
+    /// <summary>"BE:Field:Note" on a diagnosis or a piece of consulting data.</summary>
     public string? Note { get; set; }
 
-    /// <summary>"Đơn vị" / "Đơn vị tính".</summary>
+    /// <summary>"BE:Field:Unit" / "BE:Field:UnitOfMeasure".</summary>
     public string? Unit { get; set; }
 
     public ServiceConfigDto? ServiceConfig { get; set; }
@@ -206,15 +206,15 @@ public class CreateCatalogEntryDto
     public string? Description { get; set; }
     public int SortOrder { get; set; }
 
-    /// <summary>"Tên chi tiết" — services only.</summary>
+    /// <summary>"BE:Field:DetailName" — services only.</summary>
     [StringLength(400)]
     public string? DetailName { get; set; }
 
-    /// <summary>"Ghi chú" — chẩn đoán and dữ liệu tư vấn.</summary>
+    /// <summary>"BE:Field:Note" — chẩn đoán and dữ liệu tư vấn.</summary>
     [StringLength(2000)]
     public string? Note { get; set; }
 
-    /// <summary>"Đơn vị" / "Đơn vị tính".</summary>
+    /// <summary>"BE:Field:Unit" / "BE:Field:UnitOfMeasure".</summary>
     [StringLength(50)]
     public string? Unit { get; set; }
 
@@ -224,7 +224,7 @@ public class CreateCatalogEntryDto
     /// <summary>Sent by the medicine dialog only.</summary>
     public MedicineDto? Medicine { get; set; }
 
-    /// <summary>The whole "Công đoạn" table, as the dialog edits it.</summary>
+    /// <summary>The whole "BE:Common:Stage" table, as the dialog edits it.</summary>
     public List<ServiceStageDto>? Stages { get; set; }
 
     /// <summary>The whole medicine-line table of a prescription template.</summary>
@@ -250,15 +250,15 @@ public class UpdateCatalogEntryDto
 
     public int SortOrder { get; set; }
 
-    /// <summary>"Tên chi tiết" — services only.</summary>
+    /// <summary>"BE:Field:DetailName" — services only.</summary>
     [StringLength(400)]
     public string? DetailName { get; set; }
 
-    /// <summary>"Ghi chú" — chẩn đoán and dữ liệu tư vấn.</summary>
+    /// <summary>"BE:Field:Note" — chẩn đoán and dữ liệu tư vấn.</summary>
     [StringLength(2000)]
     public string? Note { get; set; }
 
-    /// <summary>"Đơn vị" / "Đơn vị tính".</summary>
+    /// <summary>"BE:Field:Unit" / "BE:Field:UnitOfMeasure".</summary>
     [StringLength(50)]
     public string? Unit { get; set; }
 
@@ -268,7 +268,7 @@ public class UpdateCatalogEntryDto
     /// <summary>Sent by the medicine dialog only.</summary>
     public MedicineDto? Medicine { get; set; }
 
-    /// <summary>The whole "Công đoạn" table, as the dialog edits it.</summary>
+    /// <summary>The whole "BE:Common:Stage" table, as the dialog edits it.</summary>
     public List<ServiceStageDto>? Stages { get; set; }
 
     /// <summary>The whole medicine-line table of a prescription template.</summary>

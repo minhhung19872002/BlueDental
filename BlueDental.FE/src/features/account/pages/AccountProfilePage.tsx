@@ -25,7 +25,7 @@ export function AccountProfilePage() {
       {
         onSuccess: (data) => {
           setAuth({ ...user, name: data.name ?? name, email: data.email ?? email });
-          toast.success(t("Cập nhật thông tin thành công!"));
+          toast.success(t("Account:UpdateSuccess"));
           setEditing(false);
         },
       },
@@ -35,8 +35,8 @@ export function AccountProfilePage() {
   return (
     <div className="page-container">
       <PageHeader
-        title={t("Thông tin tài khoản")}
-        subtitle={t("Quản lý thông tin cá nhân của bạn")}
+        title={t("Account:ProfileTitle")}
+        subtitle={t("Account:ProfileSubtitle")}
       />
 
       <Row gutter={[20, 20]}>
@@ -62,7 +62,7 @@ export function AccountProfilePage() {
                 style={{ marginTop: 16 }}
                 onClick={() => setEditing(true)}
               >
-                {t("Đổi ảnh đại diện")}
+                {t("Account:ChangeAvatar")}
               </Button>
             </div>
           </Card>
@@ -71,7 +71,7 @@ export function AccountProfilePage() {
         {/* Profile info card */}
         <Col xs={24} lg={16}>
           <Card
-            title={t("Thông tin cá nhân")}
+            title={t("Account:PersonalInfoCard")}
             extra={
               editing ? (
                 <Button
@@ -81,11 +81,11 @@ export function AccountProfilePage() {
                   loading={updateProfile.isPending}
                   style={{ background: "var(--bd-blue)" }}
                 >
-                  {t("Lưu thay đổi")}
+                  {t("Account:SaveChanges")}
                 </Button>
               ) : (
                 <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
-                  {t("Chỉnh sửa")}
+                  {t("Account:Edit")}
                 </Button>
               )
             }
@@ -93,7 +93,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Họ và tên")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Account:FullName")}</Text>
                 </div>
                 {editing ? (
                   <Input value={name} onChange={(e) => setName(e.target.value)} style={{ height: 40 }} />
@@ -113,13 +113,13 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Vai trò")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Account:Role")}</Text>
                 </div>
                 <Text>{user?.roles?.[0] ?? "—"}</Text>
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Account:Branch")}</Text>
                 </div>
                 <Text>{user?.clinicName ?? "—"}</Text>
               </Col>
@@ -130,7 +130,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Account:AccountId")}</Text>
                 </div>
                 <Text style={{ fontFamily: "monospace", fontSize: 12, color: "var(--bd-muted)" }}>{user?.id ?? "—"}</Text>
               </Col>

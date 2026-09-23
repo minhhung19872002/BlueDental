@@ -243,8 +243,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// The four groups the patient screen counts: booked, arrived, cancelled,
-    /// late. Requested and Confirmed are both "Đã hẹn"; CheckedIn, InProgress
-    /// and Completed are all "Đã đến".
+    /// late. Requested and Confirmed are both "BE:Status:Scheduled"; CheckedIn, InProgress
+    /// and Completed are all "BE:Status:Arrived".
     /// </summary>
     private static int GroupOf(AppointmentStatus status) => status switch
     {

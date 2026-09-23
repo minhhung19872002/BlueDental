@@ -13,8 +13,8 @@ import { PageHeader } from "@/components/PageHeader";
 const { Title, Text, Link } = Typography;
 
 const TIMEZONE_KEYS = [
-  { value: "Asia/Ho_Chi_Minh", labelKey: "Múi giờ Đông Dương (UTC+7) — TP.HCM / Hà Nội" },
-  { value: "Asia/Bangkok", labelKey: "Múi giờ Đông Dương (UTC+7) — Bangkok" },
+  { value: "Asia/Ho_Chi_Minh", labelKey: "Settings:TimezoneHCM" },
+  { value: "Asia/Bangkok", labelKey: "Settings:TimezoneBKK" },
   { value: "UTC", labelKey: "UTC+0" },
 ] as const;
 
@@ -55,7 +55,7 @@ function ClinicInfoTab() {
       email: values.email,
     };
     await updateMutation.mutateAsync(data);
-    toast.success(t("Cập nhật thông tin thành công"));
+    toast.success(t("Settings:UpdateSuccess"));
     setEditOpen(false);
   };
 
@@ -67,52 +67,52 @@ function ClinicInfoTab() {
     <div style={{ maxWidth: 640 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Title level={5} style={{ margin: 0 }}>
-          {t("Thông tin phòng khám")}
+          {t("Settings:ClinicInfoTitle")}
         </Title>
         <Button icon={<EditOutlined />} onClick={openEdit}>
-          {t("Chỉnh sửa")}
+          {t("Settings:EditClinic")}
         </Button>
       </div>
       <Descriptions bordered column={1} size="middle">
-        <Descriptions.Item label={t("Tên phòng khám")}>
+        <Descriptions.Item label={t("Settings:ClinicName")}>
           <Text>{clinic?.name ?? "—"}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label={t("Địa chỉ")}>
+        <Descriptions.Item label={t("Settings:Address")}>
           <Text>{clinic?.address ?? "—"}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label={t("Số điện thoại")}>
+        <Descriptions.Item label={t("Settings:Phone")}>
           <Text>{clinic?.phoneNumber ?? "—"}</Text>
         </Descriptions.Item>
         <Descriptions.Item label={t("Email")}>
           <Text>{clinic?.email ?? "—"}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label={t("Mã chi nhánh")}>
+        <Descriptions.Item label={t("Settings:BranchCode")}>
           <Text>{clinic?.code ?? "—"}</Text>
         </Descriptions.Item>
       </Descriptions>
 
       <Modal
         open={editOpen}
-        title={t("Sửa thông tin phòng khám")}
+        title={t("Settings:EditClinicTitle")}
         onCancel={() => setEditOpen(false)}
         onOk={handleSave}
         confirmLoading={updateMutation.isPending}
-        okText={t("Lưu")}
-        cancelText={t("Hủy")}
+        okText={t("Common:Save")}
+        cancelText={t("Common:Cancel")}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
             name="name"
-            label={t("Tên phòng khám")}
-            rules={[{ required: true, message: t("Bắt buộc") }]}
+            label={t("Settings:ClinicName")}
+            rules={[{ required: true, message: t("Settings:Required") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="address" label={t("Địa chỉ")}>
+          <Form.Item name="address" label={t("Settings:Address")}>
             <Input />
           </Form.Item>
-          <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
+          <Form.Item name="phoneNumber" label={t("Settings:Phone")}>
             <Input />
           </Form.Item>
           <Form.Item name="email" label={t("Email")}>
@@ -147,31 +147,31 @@ function GeneralSettingsTab() {
       setLanguage(values.language as Language);
     }
     setSaved(true);
-    toast.success(t("Lưu cài đặt thành công"));
+    toast.success(t("Settings:SaveSuccess"));
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <div style={{ maxWidth: 480 }}>
       <Title level={5} style={{ marginTop: 0, marginBottom: 16 }}>
-        {t("Cài đặt chung")}
+        {t("Settings:GeneralTitle")}
       </Title>
       <Form form={form} layout="vertical">
-        <Form.Item name="timezone" label={t("Múi giờ")}>
+        <Form.Item name="timezone" label={t("Settings:Timezone")}>
           <Select options={TIMEZONE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))} />
         </Form.Item>
-        <Form.Item name="language" label={t("Ngôn ngữ mặc định")}>
+        <Form.Item name="language" label={t("Settings:Language")}>
           <Select options={LANGUAGE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))} />
         </Form.Item>
-        <Form.Item name="currency" label={t("Đơn vị tiền tệ")}>
+        <Form.Item name="currency" label={t("Settings:Currency")}>
           <Select options={CURRENCY_OPTIONS} />
         </Form.Item>
-        <Form.Item name="dateFormat" label={t("Định dạng ngày tháng")}>
+        <Form.Item name="dateFormat" label={t("Settings:DateFormat")}>
           <Input />
         </Form.Item>
         <Form.Item>
           <Button type="primary" onClick={handleSave} disabled={saved}>
-            {t("Lưu")}
+            {t("Common:Save")}
           </Button>
         </Form.Item>
       </Form>
@@ -185,23 +185,23 @@ function PermissionsTab() {
   return (
     <div style={{ maxWidth: 480 }}>
       <Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
-        {t("Phân quyền người dùng & vai trò")}
+        {t("Settings:PermissionsTitle")}
       </Title>
-      <Text type="secondary">{t("Quản lý tài khoản người dùng và vai trò được thực hiện qua module Identity.")}</Text>
+      <Text type="secondary">{t("Settings:PermissionsDesc")}</Text>
       <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <UserOutlined style={{ color: "var(--bd-blue)" }} />
-          <Link onClick={() => navigate("/identity/users")}>{t("Quản lý người dùng")}</Link>
+          <Link onClick={() => navigate("/identity/users")}>{t("Settings:ManageUsers")}</Link>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <UserOutlined style={{ color: "var(--bd-blue)" }} />
-          <Link onClick={() => navigate("/identity/roles")}>{t("Quản lý vai trò & quyền")}</Link>
+          <Link onClick={() => navigate("/identity/roles")}>{t("Settings:ManageRoles")}</Link>
         </div>
       </div>
       <Divider />
       <Text type="secondary" style={{ fontSize: 12 }}>
-        {t("* Để phân quyền chi tiết cho từng chức năng, vào")}{" "}
-        <Link onClick={() => navigate("/identity/roles")}>{t("Quản lý vai trò & quyền")}</Link>.
+        {t("Settings:PermissionsHint")}{" "}
+        <Link onClick={() => navigate("/identity/roles")}>{t("Settings:ManageRoles")}</Link>.
       </Text>
     </div>
   );
@@ -218,7 +218,7 @@ export function SettingsPage() {
     const items: Array<{ key: string; label: string; children: React.ReactNode }> = [
       {
         key: "clinic",
-        label: t("Thông tin phòng khám"),
+        label: t("Settings:ClinicInfoTab"),
         children: (
           <div style={{ paddingBottom: 24 }}>
             <ClinicInfoTab />
@@ -227,7 +227,7 @@ export function SettingsPage() {
       },
       {
         key: "general",
-        label: t("Cài đặt chung"),
+        label: t("Settings:GeneralTab"),
         children: (
           <div style={{ paddingBottom: 24 }}>
             <GeneralSettingsTab />
@@ -238,7 +238,7 @@ export function SettingsPage() {
     if (canPermissions) {
       items.push({
         key: "permissions",
-        label: t("Phân quyền"),
+        label: t("Settings:PermissionsTab"),
         children: (
           <div style={{ paddingBottom: 24 }}>
             <PermissionsTab />
@@ -255,8 +255,8 @@ export function SettingsPage() {
   return (
     <div>
       <PageHeader
-        title={t("Cài đặt")}
-        subtitle={t("Tuỳ chọn hiển thị và cấu hình chung")}
+        title={t("Settings:PageTitle")}
+        subtitle={t("Settings:PageSubtitle")}
       />
 
       <div
@@ -269,7 +269,7 @@ export function SettingsPage() {
         }}
       >
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--bd-ink)" }}>
-          {t("Cài đặt hệ thống")}
+          {t("Settings:SystemSettings")}
         </h2>
       </div>
       <div

@@ -33,11 +33,11 @@ export function QuoteImageListDialog({
       width="min(960px, calc(100vw - 32px))"
       zIndex={1200}
       closeIcon={<X size={20} />}
-      title={t("Danh sách ảnh")}
+      title={t("Patient:Photo:List")}
       footer={
         <div className="pq-footer">
           <button type="button" className="tp-btn tp-btn--outline" onClick={onSelectAll}>
-            {t("Chọn tất cả")}
+            {t("Patient:Misc:SelectAllLower")}
           </button>
           <button type="button" className="tp-btn tp-btn--primary" onClick={onClose}>
             {t("Xong")}
@@ -46,7 +46,7 @@ export function QuoteImageListDialog({
       }
     >
       {images.length === 0 ? (
-        <div className="pq-album-empty">{t("Chưa có ảnh trong album.")}</div>
+        <div className="pq-album-empty">{t("Patient:Photo:EmptyAlbum")}</div>
       ) : (
         <div className="pq-album">
           {images.map((image) => {

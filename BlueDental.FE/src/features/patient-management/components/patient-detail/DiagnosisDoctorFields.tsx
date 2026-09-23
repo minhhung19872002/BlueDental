@@ -23,45 +23,45 @@ interface Props {
 export function DiagnosisDoctorFields({ dentists, secondEnabled, onToggleSecond }: Props) {
   return (
     <div className="pd-diagnosis-doctors">
-      <FloatingField name="staffId" label={t("Bác sĩ chẩn đoán 1")} required>
+      <FloatingField name="staffId" label={t("Patient:Diagnosis:Doctor1")} required>
         <Select
           showSearch
           optionFilterProp="label"
           prefix={<SearchOutlined />}
           options={dentists}
-          notFoundContent={t("Không tìm thấy kết quả")}
+          notFoundContent={t("Common:NoResults")}
         />
       </FloatingField>
 
       {secondEnabled ? (
         <>
-          <FloatingField name="secondStaffId" label={t("Chẩn đoán 2")}>
+          <FloatingField name="secondStaffId" label={t("Patient:Diagnosis:Doctor2")}>
             <Select
               showSearch
               allowClear
               optionFilterProp="label"
               prefix={<SearchOutlined />}
               options={dentists}
-              notFoundContent={t("Không tìm thấy kết quả")}
+              notFoundContent={t("Common:NoResults")}
             />
           </FloatingField>
-          <Tooltip title={t("Tắt Chẩn đoán 2")}>
+          <Tooltip title={t("Patient:Diagnosis:DisableDoctor2")}>
             <Button
               shape="circle"
               danger
               className="pd-diagnosis-round"
-              aria-label={t("Tắt Chẩn đoán 2")}
+              aria-label={t("Patient:Diagnosis:DisableDoctor2")}
               icon={<CloseOutlined />}
               onClick={onToggleSecond}
             />
           </Tooltip>
         </>
       ) : (
-        <Tooltip title={t("Thêm bác sĩ chẩn đoán")}>
+        <Tooltip title={t("Patient:Diagnosis:AddDoctor")}>
           <Button
             shape="circle"
             className="pd-diagnosis-round"
-            aria-label={t("Thêm bác sĩ chẩn đoán")}
+            aria-label={t("Patient:Diagnosis:AddDoctor")}
             icon={<PlusOutlined />}
             onClick={onToggleSecond}
           />

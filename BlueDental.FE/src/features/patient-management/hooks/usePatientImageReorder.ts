@@ -73,7 +73,7 @@ function useReorderWithCache<TData>(key: QueryKey, patch: Patch<TData>): Patient
         await queryClient.invalidateQueries({ queryKey: patientImageKeys.all });
       } catch {
         queryClient.setQueryData(key, previous);
-        toast.error(t("Không thể sắp xếp lại ảnh"));
+        toast.error(t("Patient:Photo:SortError"));
       }
     },
     [key, patch, queryClient, mutation],

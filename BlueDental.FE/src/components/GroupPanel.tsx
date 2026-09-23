@@ -135,7 +135,7 @@ const GroupRow = memo(function GroupRow({
         {/* A system group is seeded, and the reference neither renames nor
             deletes one: it swaps the menu for a note saying so. */}
         {group.isSystem ? (
-          <Tooltip title={t("Nhóm hệ thống, không thể sửa hoặc xoá")}>
+          <Tooltip title={t("Common:SystemGroup")}>
             <InfoCircleOutlined aria-hidden="true" className="bd-group-system-mark" />
           </Tooltip>
         ) : (onRename || onDelete) ? (
@@ -149,7 +149,7 @@ const GroupRow = memo(function GroupRow({
                     {
                       key: "rename",
                       icon: <EditOutlined />,
-                      label: t("Chỉnh sửa"),
+                      label: t("Common:Edit"),
                       onClick: () => onRename(group.id),
                     },
                   ]
@@ -160,7 +160,7 @@ const GroupRow = memo(function GroupRow({
                       key: "delete",
                       danger: true,
                       icon: <DeleteOutlined />,
-                      label: t("Xoá"),
+                      label: t("Common:Delete"),
                       onClick: () => onDelete(group.id),
                     },
                   ]
@@ -170,8 +170,8 @@ const GroupRow = memo(function GroupRow({
         >
           <button
             type="button"
-            aria-label={t("Thêm thao tác")}
-            title={t("Thêm thao tác")}
+            aria-label={t("Common:MoreActions")}
+            title={t("Common:MoreActions")}
             data-group-menu={group.name}
             className="bd-group-menu-trigger"
           >
@@ -186,8 +186,8 @@ const GroupRow = memo(function GroupRow({
         <button
           type="button"
           disabled={!canReorder}
-          aria-label={t("Kéo để sắp xếp")}
-          title={canReorder ? t("Kéo để sắp xếp") : t("Xoá bộ lọc để sắp xếp lại")}
+          aria-label={t("Common:DragToSort")}
+          title={canReorder ? t("Common:DragToSort") : t("Common:ClearFilterToSort")}
           {...handleProps}
           onKeyDown={(event) => {
             if (event.key === "ArrowUp" && index > 0) {
@@ -281,8 +281,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
           <p className="bd-group-title">{title}</p>
           <span className="bd-cat-hint">
             {isLoading
-              ? t("Đang tải…")
-              : `${groups.length} ${countNoun ?? t("nhóm")}`}
+              ? t("Common:Loading")
+              : `${groups.length} ${countNoun ?? t("Common:GroupCount")}`}
           </span>
         </div>
         <p className="bd-cat-sub bd-group-sub" title={subtitle}>
@@ -293,8 +293,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
           <Input
             id="taxonomy-group-search"
             prefix={<SearchOutlined />}
-            placeholder={searchPlaceholder ?? t("Tìm nhóm...")}
-            aria-label={searchPlaceholder ?? t("Tìm nhóm...")}
+            placeholder={searchPlaceholder ?? t("Common:SearchGroup")}
+            aria-label={searchPlaceholder ?? t("Common:SearchGroup")}
             value={keyword}
             allowClear
             onChange={(event) => onKeywordChange(event.target.value)}
@@ -303,8 +303,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              aria-label={createLabel ?? t("Thêm nhóm phân loại")}
-              title={createLabel ?? t("Thêm nhóm phân loại")}
+              aria-label={createLabel ?? t("Common:AddGroup")}
+              title={createLabel ?? t("Common:AddGroup")}
               onClick={onCreate}
             />
           )}
@@ -321,8 +321,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
             <FolderOpenOutlined className="bd-icon--xl" aria-hidden="true" />
             <p className="bd-cat-hint bd-cat-hint--13">
               {keyword
-                ? (notFoundText ?? t("Không tìm thấy nhóm phù hợp"))
-                : (emptyText ?? t("Chưa có nhóm nào"))}
+                ? (notFoundText ?? t("Common:NoGroupMatch"))
+                : (emptyText ?? t("Common:NoGroupYet"))}
             </p>
           </div>
         ) : (

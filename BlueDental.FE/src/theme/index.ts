@@ -49,12 +49,12 @@ export const CTA_GRADIENT =
   "linear-gradient(120deg, #6366f1, #8b5cf6 55%, #22d3ee 130%)";
 
 export const statusPaletteOf = () => ({
-  scheduled: { label: t("Đã đặt lịch"), bg: brand.bluePale, color: brand.blue },
-  confirmed: { label: t("Đã xác nhận"), bg: brand.greenPale, color: brand.green },
-  inProgress: { label: t("Đang khám"), bg: brand.amberPale, color: brand.amber },
-  completed: { label: t("Hoàn thành"), bg: brand.greenPale, color: brand.green },
-  cancelled: { label: t("Đã hủy"), bg: brand.redPale, color: brand.red },
-  noShow: { label: t("Không đến"), bg: brand.purplePale, color: brand.purple },
+  scheduled: { label: t("Common:Status:Scheduled"), bg: brand.bluePale, color: brand.blue },
+  confirmed: { label: t("Common:Status:Confirmed"), bg: brand.greenPale, color: brand.green },
+  inProgress: { label: t("Common:Status:InProgress"), bg: brand.amberPale, color: brand.amber },
+  completed: { label: t("Common:Status:Completed"), bg: brand.greenPale, color: brand.green },
+  cancelled: { label: t("Common:Status:Cancelled"), bg: brand.redPale, color: brand.red },
+  noShow: { label: t("Common:Status:NoShow"), bg: brand.purplePale, color: brand.purple },
 });
 
 export const FONT_FAMILY =

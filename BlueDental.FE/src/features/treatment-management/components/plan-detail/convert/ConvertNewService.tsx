@@ -27,17 +27,17 @@ export function ConvertNewService({ form }: { form: Form }) {
     <div className="cvt-col">
       <section className="cvt-section">
         <ConvertHead icon={<RefreshCw size={16} aria-hidden="true" />}>
-          {t("Dịch vụ mới")}
+          {t("Treatment:Convert:NewService")}
         </ConvertHead>
 
-        <p className="cvt-label">{t("Loại chuyển đổi")}</p>
+        <p className="cvt-label">{t("Treatment:Refund:ConversionType")}</p>
         <Radio.Group
           className="cvt-kind"
           value={form.conversionType}
           onChange={(event) => form.setConversionType(event.target.value)}
         >
-          <Radio value={CONVERSION_TYPE.Replace}>{t("Thay thế")}</Radio>
-          <Radio value={CONVERSION_TYPE.OldService}>{t("Dịch vụ cũ")}</Radio>
+          <Radio value={CONVERSION_TYPE.Replace}>{t("Treatment:Convert:ReplaceOption")}</Radio>
+          <Radio value={CONVERSION_TYPE.OldService}>{t("Treatment:Convert:OldService")}</Radio>
         </Radio.Group>
 
         {form.replacing && (
@@ -47,18 +47,18 @@ export function ConvertNewService({ form }: { form: Form }) {
         )}
         {form.errors.service && <p className="cvt-error">{form.errors.service}</p>}
 
-        <FloatingLabel label={t("Thanh toán")} floated={form.charge !== null}>
+        <FloatingLabel label={t("Treatment:Payment:Payment")} floated={form.charge !== null}>
           <CurrencyInput
-            aria-label={t("Thanh toán")}
+            aria-label={t("Treatment:Payment:Payment")}
             value={form.charge ?? undefined}
             onChange={(value) => form.setCharge(value ?? null)}
           />
         </FloatingLabel>
 
-        <FloatingLabel label={t("Ghi chú")} floated={form.note.length > 0} required>
+        <FloatingLabel label={t("Treatment:Common:Note")} floated={form.note.length > 0} required>
           <Input.TextArea
             className="cvt-note"
-            aria-label={t("Ghi chú")}
+            aria-label={t("Treatment:Common:Note")}
             value={form.note}
             maxLength={1000}
             onChange={(event) => form.setNote(event.target.value)}
@@ -81,14 +81,14 @@ export function ConvertNewService({ form }: { form: Form }) {
 
         {form.showDifference && (
           <div className="cvt-difference">
-            <p className="cvt-label">{t("Xử lý chênh lệch")}</p>
+            <p className="cvt-label">{t("Treatment:Refund:DifferenceSolution")}</p>
             <Radio.Group
               className="cvt-kind"
               value={form.difference}
               onChange={(event) => form.setDifference(event.target.value)}
             >
-              <Radio value={DIFFERENCE_HANDLING.Refund}>{t("Hoàn tiền")}</Radio>
-              <Radio value={DIFFERENCE_HANDLING.Debt}>{t("Dư nợ")}</Radio>
+              <Radio value={DIFFERENCE_HANDLING.Refund}>{t("Treatment:Refund:Refund")}</Radio>
+              <Radio value={DIFFERENCE_HANDLING.Debt}>{t("Treatment:Debt:OutstandingDebt")}</Radio>
             </Radio.Group>
             {form.difference && <p className="cvt-hint">{t(DIFFERENCE_HINT[form.difference])}</p>}
             {form.errors.difference && <p className="cvt-error">{form.errors.difference}</p>}
@@ -98,12 +98,12 @@ export function ConvertNewService({ form }: { form: Form }) {
 
       <div className="cvt-teeth">
         <span>
-          {t("Răng")}: {formatToothValue(form.teeth)}
+          {t("Treatment:Tooth:Tooth")}: {formatToothValue(form.teeth)}
         </span>
         <button
           type="button"
           className="cvt-teeth-btn"
-          aria-label={t("Chọn răng")}
+          aria-label={t("Treatment:Tooth:SelectTooth")}
           onClick={form.openTeeth}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -115,16 +115,16 @@ export function ConvertNewService({ form }: { form: Form }) {
 
       <section className="cvt-section">
         <ConvertHead icon={<CircleDollarSign size={16} aria-hidden="true" />}>
-          {t("Thông tin thanh toán")}
+          {t("Treatment:Pricing:PaymentInfo")}
         </ConvertHead>
         <ConvertFacts
           tight
           facts={[
-            { label: t("Tổng tiền"), value: moneyText(form.money.gross) },
-            { label: t("Giảm giá"), value: moneyText(form.money.discount) },
-            { label: t("Đã thanh toán"), value: moneyText(form.money.paid) },
-            { label: t("Hoàn trả chênh lệch"), value: moneyText(form.money.refund) },
-            { label: t("Còn lại"), value: moneyText(form.money.remaining) },
+            { label: t("Treatment:Pricing:TotalAmount"), value: moneyText(form.money.gross) },
+            { label: t("Treatment:Pricing:Discount"), value: moneyText(form.money.discount) },
+            { label: t("Treatment:Receipt:TotalPaid"), value: moneyText(form.money.paid) },
+            { label: t("Treatment:Refund:ReturnDifference"), value: moneyText(form.money.refund) },
+            { label: t("Treatment:Pricing:Remaining"), value: moneyText(form.money.remaining) },
           ]}
         />
       </section>

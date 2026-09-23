@@ -36,8 +36,8 @@ function ColumnConfigList({ value, onSave, onClose }: ListProps) {
   return (
     <div className="tp-columns">
       <div className="tp-columns-head">
-        <span>{t("Cấu hình cột")}</span>
-        <button type="button" className="tp-columns-close" aria-label={t("Đóng")} onClick={onClose}>
+        <span>{t("Treatment:Plan:ColumnConfig")}</span>
+        <button type="button" className="tp-columns-close" aria-label={t("Common:Close")} onClick={onClose}>
           <X size={16} aria-hidden="true" />
         </button>
       </div>
@@ -58,7 +58,7 @@ function ColumnConfigList({ value, onSave, onClose }: ListProps) {
               <button
                 type="button"
                 className="tp-columns-grip"
-                aria-label={t("Sắp xếp {0}", label)}
+                aria-label={t("Treatment:Service:SortLabel", label)}
                 {...drag.handleProps(item.key)}
               >
                 <GripVertical size={16} aria-hidden="true" />
@@ -78,7 +78,7 @@ function ColumnConfigList({ value, onSave, onClose }: ListProps) {
       </ul>
       <div className="tp-columns-foot">
         <button type="button" className="tp-columns-save" onClick={() => onSave(draft)}>
-          {t("Lưu")}
+          {t("Common:Save")}
         </button>
       </div>
     </div>
@@ -111,7 +111,7 @@ export function PlanColumnConfigPopover({ value, onChange }: Props) {
       >
         <button type="button" className="tp-column-btn" aria-expanded={open}>
           <Settings2 size={14} aria-hidden="true" />
-          {t("Cột hiển thị")}
+          {t("Treatment:Plan:VisibleColumns")}
         </button>
       </Popover>
     </div>

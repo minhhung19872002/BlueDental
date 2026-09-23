@@ -171,7 +171,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
 
         // A material is normally created because a delivery arrived, so its
         // first stock and its dates come in with it rather than needing a
-        // separate receipt. "Số lượng" is optional on the reference's form,
+        // separate receipt. "BE:Col:Quantity" is optional on the reference's form,
         // though, and AddStock rightly refuses a receipt of nothing — so an
         // empty quantity records the dates and leaves the stock at zero,
         // rather than failing the whole save.

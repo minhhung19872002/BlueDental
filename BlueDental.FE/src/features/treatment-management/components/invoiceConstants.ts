@@ -7,12 +7,12 @@ export const INVOICE_TEMPLATES: InvoiceTemplate[] = [
 ];
 
 export const invoicePaymentOptions = (): { value: InvoicePaymentMethod; label: string }[] => [
-  { value: "cash", label: t("Tiền mặt") },
-  { value: "transfer", label: t("Chuyển khoản") },
+  { value: "cash", label: t("Treatment:Payment:Cash") },
+  { value: "transfer", label: t("Treatment:Payment:Banking") },
 ];
 
 export const TAX_TYPE_OPTIONS = (): { value: string; label: string }[] => [
-  { value: "CX", label: t("Chưa xuất") },
+  { value: "CX", label: t("Treatment:Invoice:NotIssued") },
   { value: "KCT", label: t("KCT") },
 ];
 

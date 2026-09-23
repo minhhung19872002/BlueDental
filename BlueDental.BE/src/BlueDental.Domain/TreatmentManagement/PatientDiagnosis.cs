@@ -36,7 +36,7 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
     public string? Note { get; private set; }
 
     /// <summary>
-    /// "I. TƯ VẤN CHẨN ĐOÁN" — the advice body of the printed sheet, held as
+    /// "BE:Treatment:DiagConsultSection" — the advice body of the printed sheet, held as
     /// HTML because the reference lets the doctor format it before printing.
     /// Null until someone edits the sheet, at which point the client falls back
     /// to the standard wording.
@@ -124,7 +124,7 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// What "Cập nhật" on the print sheet writes: the advice body and the note.
+    /// What "BE:Common:Update" on the print sheet writes: the advice body and the note.
     ///
     /// Deliberately not guarded by <see cref="GuardEditable"/> — the sheet is
     /// printed for a diagnosis that has already produced services, and is often
@@ -154,7 +154,7 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// "Cập nhật Chẩn Đoán" may correct which condition was found — it is the
+    /// "BE:Common:UpdateDiagnosis" may correct which condition was found — it is the
     /// one thing the form is for, and it was read-only here until 2026-09-22.
     /// </summary>
     public PatientDiagnosis ChangeDiagnosis(Guid diagnosisId)

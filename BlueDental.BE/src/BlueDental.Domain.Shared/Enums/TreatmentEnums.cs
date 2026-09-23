@@ -11,8 +11,8 @@ public enum TreatmentPlanStatus
 }
 
 /// <summary>
-/// "Điều trị" on the "Thêm đơn thuốc" dialog: the reference offers exactly
-/// "Điều trị ngoại trú" (default) and "Điều trị nội trú".
+/// "BE:Common:Treatment" on the "BE:Treatment:AddPrescription" dialog: the reference offers exactly
+/// "BE:Treatment:Outpatient" (default) and "BE:Treatment:Inpatient".
 /// </summary>
 public enum PrescriptionTreatmentType
 {

@@ -19,25 +19,25 @@ export function ConfirmApproveDialog({ open, description, pending, onConfirm, on
   return (
     <Modal
       open={open}
-      title={<h2 className="bd-modal-title">{t("Xác nhận duyệt")}</h2>}
+      title={<h2 className="bd-modal-title">{t("Report:ConfirmApprove:Title")}</h2>}
       onCancel={onClose}
       width={440}
       destroyOnHidden
       footer={
         <div className="report-confirm-footer">
           <Button onClick={onClose} disabled={pending}>
-            {t("Huỷ")}
+            {t("Common:Cancel")}
           </Button>
           <Button type="primary" icon={<CheckCircleOutlined />} loading={pending} disabled={pending} onClick={onConfirm}>
-            {t("Duyệt")}
+            {t("Report:ConfirmApprove:Approve")}
           </Button>
         </div>
       }
     >
       <p className="report-confirm-question">
-        {tRich("Bạn có chắc muốn duyệt phiếu chi {0} không?", <strong>{description}</strong>)}
+        {tRich("Report:Confirm:ApproveExpenseSlip", <strong>{description}</strong>)}
       </p>
-      <p className="report-confirm-note">{t("Hành động này không thể hoàn tác.")}</p>
+      <p className="report-confirm-note">{t("Common:CannotUndone")}</p>
     </Modal>
   );
 }

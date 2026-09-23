@@ -1,7 +1,7 @@
 namespace BlueDental.Operations;
 
 /// <summary>
-/// The eight departments of "Quản trị vận hành". Taken from the reference's own
+/// The eight departments of "BE:Perm:Operations". Taken from the reference's own
 /// ability subject naming (<c>operations&lt;Department&gt;&lt;Section&gt;</c>).
 /// </summary>
 public enum OperationsDepartment : short
@@ -45,7 +45,7 @@ public enum OperationsSection : short
     Process = 2
 }
 
-/// <summary>Lifecycle of a "Công việc" item.</summary>
+/// <summary>Lifecycle of a "BE:Common:Tasks" item.</summary>
 public enum OperationsTaskStatus : short
 {
     Todo = 1,

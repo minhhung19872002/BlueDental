@@ -5,11 +5,11 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.PatientManagement;
 
 /// <summary>
-/// One sheet of a patient's Bệnh án — "phiếu bệnh án".
+/// One sheet of a patient's Bệnh án — "BE:Common:MedRecordSlips".
 ///
 /// The reference keeps these per patient behind
 /// <c>GET /patient-medical-record/files/{patientId}</c> and calls each one a
-/// *file*: the clinic picks a form out of "Mục lục bệnh án", presses "Thêm",
+/// *file*: the clinic picks a form out of "BE:Treatment:MedRecordTOC", presses "BE:Common:Add",
 /// and gets a fresh sheet to fill in. Several sheets of the same form may exist
 /// for one patient, which is why the form is a field here rather than the key.
 ///

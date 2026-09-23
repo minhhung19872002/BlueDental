@@ -71,7 +71,7 @@ public class UpdatePaymentAccountDto
 }
 
 /// <summary>
-/// "Tải ảnh QR" — the QR image is uploaded against an account that already
+/// "BE:Common:UploadQR" — the QR image is uploaded against an account that already
 /// exists, because the bytes need somewhere to belong.
 /// </summary>
 public class UploadPaymentAccountQrImageDto

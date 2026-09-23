@@ -53,11 +53,11 @@ export function AdviseColumnConfig({ settings, onSave }: Props) {
       onOpenChange={handleOpenChange}
       title={
         <div className="pd-column-head">
-          <span>{t("Cấu hình cột")}</span>
+          <span>{t("Patient:ColumnConfig")}</span>
           <button
             type="button"
             className="pd-column-close"
-            aria-label={t("Đóng")}
+            aria-label={t("Common:Close")}
             onClick={() => setOpen(false)}
           >
             <CloseOutlined aria-hidden="true" />
@@ -81,8 +81,8 @@ export function AdviseColumnConfig({ settings, onSave }: Props) {
                 <button
                   type="button"
                   className="bd-grip"
-                  title={t("Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp")}
-                  aria-label={t("Sắp xếp {0}", t(COLUMN_LABELS[setting.key]))}
+                  title={t("Patient:SortHint")}
+                  aria-label={t("Patient:SortColumnLabel", t(COLUMN_LABELS[setting.key]))}
                   {...drag.handleProps(setting.key)}
                   onKeyDown={(event) => {
                     if (event.key === "ArrowUp" && index > 0) {
@@ -108,12 +108,12 @@ export function AdviseColumnConfig({ settings, onSave }: Props) {
             ))}
           </div>
           <Button type="primary" block onClick={handleSave}>
-            {t("Lưu")}
+            {t("Common:Save")}
           </Button>
         </div>
       }
     >
-      <Button icon={<SettingOutlined />}>{t("Cột hiển thị")}</Button>
+      <Button icon={<SettingOutlined />}>{t("Patient:VisibleColumns")}</Button>
     </Popover>
   );
 }

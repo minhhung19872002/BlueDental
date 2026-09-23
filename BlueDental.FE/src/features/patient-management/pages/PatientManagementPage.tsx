@@ -111,8 +111,8 @@ export function PatientManagementPage() {
       <div ref={sentinelRef} className="bd-patient-sentinel" aria-hidden="true" />
 
       <PageHeader
-        title={t("Danh sách bệnh nhân")}
-        subtitle={t("{0} hồ sơ", query.data?.totalCount ?? 0)}
+        title={t("Patient:List:Title")}
+        subtitle={t("Patient:List:RecordCount", query.data?.totalCount ?? 0)}
       />
 
       <PatientListToolbar

@@ -16,9 +16,9 @@ export function RouteErrorBoundary() {
   const recoveryActions = (
     <Space>
       <Button type="primary" onClick={reloadPage}>
-        {t("Tải lại trang")}
+        {t("Common:Reload")}
       </Button>
-      <Button href="/">{t("Về trang chủ")}</Button>
+      <Button href="/">{t("Common:GoHome")}</Button>
     </Space>
   );
 
@@ -28,8 +28,8 @@ export function RouteErrorBoundary() {
     content = (
       <Result
         status="404"
-        title={t("Không tìm thấy trang")}
-        subTitle={t("Trang bạn tìm kiếm không tồn tại hoặc đã bị di chuyển.")}
+        title={t("Common:NotFound")}
+        subTitle={t("Common:NotFoundMessage")}
         extra={recoveryActions}
       />
     );
@@ -37,8 +37,8 @@ export function RouteErrorBoundary() {
     content = (
       <Result
         status="error"
-        title={t("Không mở được trang")}
-        subTitle={t("Máy chủ từ chối yêu cầu (mã lỗi {0}). Vui lòng tải lại trang.", error.status)}
+        title={t("Common:PageError")}
+        subTitle={t("Common:PageErrorMessage", error.status)}
         extra={recoveryActions}
       />
     );
@@ -46,8 +46,8 @@ export function RouteErrorBoundary() {
     content = (
       <Result
         status="500"
-        title={t("Đã xảy ra lỗi ngoài dự kiến")}
-        subTitle={t("Hệ thống không hiển thị được nội dung của trang này. Vui lòng tải lại trang.")}
+        title={t("Common:UnexpectedError")}
+        subTitle={t("Common:UnexpectedErrorMessage")}
         extra={recoveryActions}
       />
     );

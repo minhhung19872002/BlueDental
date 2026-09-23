@@ -7,9 +7,9 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// Report page parity (2026-09-22): the reference's "Thêm danh mục sổ quỹ"
+    /// Report page parity (2026-09-22): the reference's "BE:Perm:AddCashCategory"
     /// dialog stores a colour swatch per category, and its income / expense
-    /// vouchers carry a free-text "Người nộp" / "Người nhận". Both columns are
+    /// vouchers carry a free-text "BE:Field:Submitter" / "BE:Field:Recipient". Both columns are
     /// optional. Hand-written and the model snapshot patched by hand — see
     /// AddAppointmentChangeLog for why this project writes them that way.
     /// </summary>

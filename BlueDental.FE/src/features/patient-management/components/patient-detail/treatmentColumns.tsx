@@ -88,7 +88,7 @@ export function treatmentColumns({
 
   return [
     {
-      title: t("Ngày"),
+      title: t("Patient:Misc:Date"),
       dataIndex: "createdAt",
       width: 140,
       // One cell per day, spanning that day's công đoạn.
@@ -96,7 +96,7 @@ export function treatmentColumns({
       render: (value: string) => <span className="pd-tr-day">{formatDate(value)}</span>,
     },
     {
-      title: t("Dịch vụ"),
+      title: t("Patient:Misc:Service"),
       dataIndex: "serviceName",
       width: 190,
       render: (value: string | null, row) => (
@@ -110,7 +110,7 @@ export function treatmentColumns({
           {/* A tái khám says so; a công đoạn row shows its own state, not the
               line's. */}
           {row.kind === "reExamination" ? (
-            <span className="pd-tr-chip pd-tr-chip--recall">{t("Tái khám")}</span>
+            <span className="pd-tr-chip pd-tr-chip--recall">{t("Patient:Care:RecallLower")}</span>
           ) : (
             <span className={`pd-tr-chip pd-tr-chip--${rowStatus(row)}`}>
               {stageRowStatusLabel(rowStatus(row))}
@@ -120,12 +120,12 @@ export function treatmentColumns({
       ),
     },
     {
-      title: t("Nội dung điều trị"),
+      title: t("Patient:Stage:TreatmentContent"),
       width: 210,
       render: (_, row) => row.stageNote ?? "—",
     },
     {
-      title: t("Răng"),
+      title: t("Patient:DentalChart:Tooth"),
       dataIndex: "rowTeeth",
       width: 130,
       render: (_, row) =>
@@ -137,7 +137,7 @@ export function treatmentColumns({
     },
     { title: t("SL"), dataIndex: "quantity", width: 60, align: "center" },
     {
-      title: t("Bác sĩ điều trị"),
+      title: t("Patient:Staff:TreatingDoctor"),
       dataIndex: "dentist",
       width: 190,
       render: (value: string | null, row) => (
@@ -147,19 +147,19 @@ export function treatmentColumns({
               plan's — and the reference leaves the line off a tái khám row. */}
           {row.kind === "stage" && (
             <div className="pd-tr-sub">
-              {t("Phụ tá")}: {row.assistant ?? "—"}
+              {t("Patient:Staff:Assistant")}: {row.assistant ?? "—"}
             </div>
           )}
         </div>
       ),
     },
     {
-      title: t("Bác sĩ hỗ trợ"),
+      title: t("Patient:Staff:AssistingDoctor"),
       width: 170,
-      render: (_, row) => row.secondDentist ?? t("Không có"),
+      render: (_, row) => row.secondDentist ?? t("Patient:Misc:None"),
     },
     {
-      title: t("Công đoạn"),
+      title: t("Patient:Stage:Title"),
       width: 120,
       align: "center",
       render: (_, row) => {
@@ -175,12 +175,12 @@ export function treatmentColumns({
           // (stageServiceItems), which BlueDental does not model, and the công
           // đoạn themselves are already a row each.
           return (
-            <Tooltip title={t("Thêm công đoạn")}>
+            <Tooltip title={t("Patient:Stage:Add")}>
               <Button
                 type="text"
                 className="pd-tr-addstage"
                 icon={<PlusOutlined />}
-                aria-label={t("Thêm công đoạn")}
+                aria-label={t("Patient:Stage:Add")}
                 onClick={() => onAddStage(row)}
               />
             </Tooltip>
@@ -190,8 +190,8 @@ export function treatmentColumns({
         // Finished, but the service carries no warranty period.
         if (row.warrantyDays <= 0) {
           return (
-            <Tooltip title={t("Không bảo hành")}>
-              <span className="pd-tr-nostage" aria-label={t("Không bảo hành")}>
+            <Tooltip title={t("Patient:Labo:NoWarranty")}>
+              <span className="pd-tr-nostage" aria-label={t("Patient:Labo:NoWarranty")}>
                 <BriefcaseMedicalIcon />
               </span>
             </Tooltip>
@@ -199,11 +199,11 @@ export function treatmentColumns({
         }
 
         return (
-          <Tooltip title={t("Bảo hành")}>
+          <Tooltip title={t("Patient:Labo:Warranty")}>
             <Button
               type="text"
               className="pd-tr-warranty"
-              aria-label={t("Bảo hành")}
+              aria-label={t("Patient:Labo:Warranty")}
               icon={<BriefcaseMedicalIcon />}
               onClick={() => onWarranty(row)}
             />
@@ -212,7 +212,7 @@ export function treatmentColumns({
       },
     },
     {
-      title: t("Chăm sóc sau điều trị"),
+      title: t("Patient:Care:AfterTreatment"),
       dataIndex: "afterCareStatus",
       width: 180,
       render: (value: CareStatusCode | null, row) =>
@@ -220,22 +220,22 @@ export function treatmentColumns({
         row.kind === "reExamination" ? null : (
           <span className="pd-tr-care">
             <i />
-            {value === null ? t("Chưa chăm sóc") : careLabels[value]}
+            {value === null ? t("Patient:Care:NotCared") : careLabels[value]}
           </span>
         ),
     },
     {
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 90,
       align: "center",
       fixed: "right",
       render: (_, row) => (
-        <Tooltip title={t("Tạo phiếu thanh toán")}>
+        <Tooltip title={t("Patient:Payment:CreateSlip")}>
           <Button
             type="text"
             className="pd-tr-pay"
             icon={<BanknoteIcon />}
-            aria-label={t("Tạo phiếu thanh toán")}
+            aria-label={t("Patient:Payment:CreateSlip")}
             onClick={() => onPay(row)}
           />
         </Tooltip>

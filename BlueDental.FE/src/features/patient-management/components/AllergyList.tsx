@@ -11,7 +11,7 @@ interface Props {
 
 export function AllergyList({ allergies }: Props) {
   if (allergies.length === 0) {
-    return <Empty description={t("Không có dị ứng đã ghi nhận")} />;
+    return <Empty description={t("Patient:NoAllergy")} />;
   }
 
   return (

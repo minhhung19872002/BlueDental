@@ -31,7 +31,7 @@ interface Props {
 
 /** `Bản 01` — the reference pads the ordinal to two digits. */
 function copyLabel(ordinal: number): string {
-  return `${t("Bản")} ${String(ordinal).padStart(2, "0")}`;
+  return `${t("Patient:Misc:SlipCopy")} ${String(ordinal).padStart(2, "0")}`;
 }
 
 function createdAt(iso: string | null): string {
@@ -69,7 +69,7 @@ export function MedicalRecordSheetCard({
           <span className="pd-sheet-title">{sheet.title}</span>
           <span className="pd-sheet-meta">
             <em className="pd-sheet-copy">{copyLabel(ordinal)}</em>
-            {created && <span>{t("Tạo")}: {created}</span>}
+            {created && <span>{t("Patient:Misc:Create")}: {created}</span>}
           </span>
         </span>
       </button>
@@ -78,7 +78,7 @@ export function MedicalRecordSheetCard({
         className="pd-sheet-check"
         checked={stamped}
         onChange={(event) => onStamp(event.target.checked)}
-        aria-label={t("Phiếu {0} có tem", sheet.title)}
+        aria-label={t("Patient:MedRecord:SheetWithStamp", sheet.title)}
       />
 
       <div className="pd-sheet-actions">
@@ -88,15 +88,15 @@ export function MedicalRecordSheetCard({
           </button>
         </Tooltip>
         {onRename && (
-          <Tooltip title={t("Đổi tên")}>
-            <button type="button" aria-label={t("Đổi tên {0}", sheet.title)} onClick={onRename}>
+          <Tooltip title={t("Patient:MedRecord:RenameShort")}>
+            <button type="button" aria-label={t("Patient:MedicalRecord:RenameLabel", sheet.title)} onClick={onRename}>
               <EditOutlined />
             </button>
           </Tooltip>
         )}
         {onDelete && (
-          <Tooltip title={t("Xóa")}>
-            <button type="button" aria-label={t("Xóa {0}", sheet.title)} onClick={onDelete}>
+          <Tooltip title={t("Patient:Misc:Delete")}>
+            <button type="button" aria-label={t("Patient:MedicalRecord:DeleteLabel", sheet.title)} onClick={onDelete}>
               <DeleteOutlined />
             </button>
           </Tooltip>

@@ -12,10 +12,10 @@ interface PanelConfig {
 }
 
 const PANELS: PanelConfig[] = [
-  { key: "total", label: () => t("Tổng Tiền"), icon: <WalletOutlined />, tone: "blue" },
-  { key: "cash", label: () => t("Tổng Tiền Mặt"), icon: <CreditCardOutlined />, tone: "green" },
-  { key: "bank", label: () => t("Tổng Chuyển Khoản"), icon: <BankOutlined />, tone: "gold" },
-  { key: "customerPrepaid", label: () => t("Đang Giữ Hộ Khách"), icon: <TeamOutlined />, tone: "violet" },
+  { key: "total", label: () => t("Report:Balance:Total"), icon: <WalletOutlined />, tone: "blue" },
+  { key: "cash", label: () => t("Report:Balance:TotalCash"), icon: <CreditCardOutlined />, tone: "green" },
+  { key: "bank", label: () => t("Report:Balance:TotalBanking"), icon: <BankOutlined />, tone: "gold" },
+  { key: "customerPrepaid", label: () => t("Report:Balance:CustomerPrepaidHeld"), icon: <TeamOutlined />, tone: "violet" },
 ];
 
 interface Props {

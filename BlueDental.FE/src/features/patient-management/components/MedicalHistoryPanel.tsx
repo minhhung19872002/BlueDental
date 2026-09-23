@@ -12,7 +12,7 @@ export function MedicalHistoryPanel({ history }: Props) {
   if (!history) {
     return (
       <Typography.Text type="secondary">
-        {t("Chưa có thông tin tiền sử bệnh.")}
+        {t("Patient:NoMedicalHistory")}
       </Typography.Text>
     );
   }

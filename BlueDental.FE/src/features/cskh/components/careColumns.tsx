@@ -39,21 +39,21 @@ export function actionsColumnWidth(buttonCount: number): number {
 }
 
 const careDateColumn = (): CareColumn => ({
-  title: t("Ngày chăm sóc"),
+  title: t("CSKH:Col:CareDate"),
   key: "careDate",
   width: 130,
   render: (_, record) => (record.dueAt ? formatDate(record.dueAt) : "—"),
 });
 
 const appointmentColumn = (): CareColumn => ({
-  title: t("Lịch hẹn"),
+  title: t("CSKH:Col:Appointment"),
   key: "appointment",
   width: 150,
   render: (_, record) => (record.dueAt ? formatDateTime(record.dueAt) : "—"),
 });
 
 const appointmentContentColumn = (): CareColumn => ({
-  title: t("Nội dung hẹn"),
+  title: t("CSKH:Col:AppointmentContent"),
   dataIndex: "appointmentContent",
   key: "appointmentContent",
   width: 200,
@@ -61,7 +61,7 @@ const appointmentContentColumn = (): CareColumn => ({
 });
 
 const appointmentStatusColumn = (): CareColumn => ({
-  title: t("Trạng thái lịch hẹn"),
+  title: t("CSKH:Col:AppointmentStatus"),
   key: "appointmentStatus",
   width: 150,
   render: (_, record) =>
@@ -71,7 +71,7 @@ const appointmentStatusColumn = (): CareColumn => ({
 });
 
 const careScheduleColumn = (): CareColumn => ({
-  title: t("Lịch hẹn chăm sóc"),
+  title: t("CSKH:Col:CareAppointment"),
   key: "careSchedule",
   width: 150,
   render: (_, record) =>
@@ -95,7 +95,7 @@ const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareR
     c.patient, c.phone, c.doctor, c.careStaff,
     appointmentContentColumn(),
     appointmentStatusColumn(),
-    { ...c.status, title: t("Trạng thái CSKH") },
+    { ...c.status, title: t("CSKH:Col:CareStatus") },
     c.note, c.actions,
   ],
   periodic: periodicColumns,
@@ -109,7 +109,7 @@ export function buildCareColumns(
 ): ColumnsType<CareRecordDto> {
   const shared: SharedColumns = {
     patient: {
-      title: t("Họ và tên"),
+      title: t("CSKH:Col:FullName"),
       key: "patient",
       width: 220,
       render: (_, record) => (
@@ -124,37 +124,37 @@ export function buildCareColumns(
       ),
     },
     phone: {
-      title: t("Số điện thoại"),
+      title: t("CSKH:Col:PhoneNumber"),
       dataIndex: "patientPhone",
       key: "phone",
       width: 130,
       render: formatDash,
     },
     doctor: {
-      title: t("Bác sĩ điều trị"),
+      title: t("CSKH:Col:DoctorTreat"),
       dataIndex: "assignedStaffName",
       key: "doctor",
       width: 160,
       render: formatDash,
     },
     careStaff: {
-      title: t("Nhân viên chăm sóc"),
+      title: t("CSKH:Col:CareStaff"),
       dataIndex: "careStaffName",
       key: "careStaff",
       width: 160,
       render: formatDash,
     },
     upcoming: {
-      title: t("Lịch hẹn sắp tới"),
+      title: t("CSKH:Col:NextAppointment"),
       key: "upcoming",
       width: 150,
       render: (_, record) =>
         record.nextAppointmentAt
           ? formatDateTime(record.nextAppointmentAt)
-          : t("Chưa có lịch"),
+          : t("Common:NoSchedule"),
     },
     status: {
-      title: t("Trạng thái"),
+      title: t("CSKH:Col:Status"),
       key: "status",
       width: 130,
       render: (_, record) => (
@@ -162,7 +162,7 @@ export function buildCareColumns(
       ),
     },
     note: {
-      title: t("Ghi chú"),
+      title: t("CSKH:Col:Note"),
       key: "note",
       width: 200,
       render: (_, record) => (
@@ -173,7 +173,7 @@ export function buildCareColumns(
       ),
     },
     actions: {
-      title: t("Thao tác"),
+      title: t("CSKH:Col:Actions"),
       key: "actions",
       width: actionsColumnWidth(2 + Number(tab.showSend) + Number(Boolean(tab.fileHeart))),
       fixed: "right",

@@ -29,7 +29,7 @@ export function CareDetailDialog({ record, onClose }: Props) {
   return (
     <Modal
       open={Boolean(record)}
-      title={<h2 className="bd-modal-title">{t("Chi tiết phiếu")}</h2>}
+      title={<h2 className="bd-modal-title">{t("Patient:Care:DetailTitle")}</h2>}
       onCancel={onClose}
       width={500}
       destroyOnHidden
@@ -38,10 +38,10 @@ export function CareDetailDialog({ record, onClose }: Props) {
     >
       {record ? (
         <>
-          <Row label={t("Tiêu đề")} value={careTitle(record)} />
-          <Row label={t("Nhân viên chăm sóc")} value={record.careStaffName ?? "-"} />
-          <Row label={t("Thời gian")} value={at?.format("DD/MM/YYYY HH:mm:ss") ?? "-"} />
-          <Row label={t("Ghi chú lần chăm sóc")} value={record.description ?? "-"} />
+          <Row label={t("Patient:Care:Title")} value={careTitle(record)} />
+          <Row label={t("Patient:Care:Staff")} value={record.careStaffName ?? "-"} />
+          <Row label={t("Patient:Care:DateTime")} value={at?.format("Patient:Misc:DateTimeFormat") ?? "-"} />
+          <Row label={t("Patient:Care:NoteField")} value={record.description ?? "-"} />
         </>
       ) : null}
     </Modal>

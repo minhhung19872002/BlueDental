@@ -38,6 +38,10 @@ public sealed class ClinicDocument : IDocument
     public string? SignatureLabel { get; init; }
     public DateTimeOffset PrintedAt { get; init; }
 
+    public string NoteLabel { get; init; } = "Ghi chú: ";
+    public string PrintedAtLabel { get; init; } = "Ngày in: ";
+    public string SignHereLabel { get; init; } = "(Ký và ghi rõ họ tên)";
+
     public DocumentMetadata GetMetadata() => new() { Title = $"{Title} {Code}" };
 
     public void Compose(IDocumentContainer container)
@@ -127,7 +131,7 @@ public sealed class ClinicDocument : IDocument
             {
                 column.Item().PaddingTop(10).Text(text =>
                 {
-                    text.Span("Ghi chú: ").SemiBold();
+                    text.Span(NoteLabel).SemiBold();
                     text.Span(Note);
                 });
             }
@@ -138,14 +142,14 @@ public sealed class ClinicDocument : IDocument
     {
         container.Column(column =>
         {
-            column.Item().AlignRight().Text($"Ngày in: {PrintedAt:dd/MM/yyyy HH:mm}").FontSize(9);
+            column.Item().AlignRight().Text($"{PrintedAtLabel}{PrintedAt:dd/MM/yyyy HH:mm}").FontSize(9);
 
             if (!string.IsNullOrWhiteSpace(SignatureLabel))
             {
                 column.Item().PaddingTop(20).AlignRight().Width(200).Column(signature =>
                 {
                     signature.Item().AlignCenter().Text(SignatureLabel).SemiBold();
-                    signature.Item().AlignCenter().Text("(Ký và ghi rõ họ tên)").FontSize(9).Italic();
+                    signature.Item().AlignCenter().Text(SignHereLabel).FontSize(9).Italic();
                     signature.Item().Height(50);
                 });
             }

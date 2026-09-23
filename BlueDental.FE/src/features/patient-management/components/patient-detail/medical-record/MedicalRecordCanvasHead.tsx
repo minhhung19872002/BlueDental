@@ -46,7 +46,7 @@ export function MedicalRecordCanvasHead({
     <header className="pd-medical-canvas-head">
       <div className="pd-medical-canvas-title">
         <small>
-          {t("Bản")} {String(ordinal).padStart(2, "0")}
+          {t("Patient:Misc:SlipCopy")} {String(ordinal).padStart(2, "0")}
         </small>
         <strong>{title}</strong>
       </div>
@@ -58,7 +58,7 @@ export function MedicalRecordCanvasHead({
           </FloatingLabel>
         )}
 
-        <FloatingLabel label={t("Bác sĩ")} floated={Boolean(doctorId)} className="pd-medical-doctor">
+        <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(doctorId)} className="pd-medical-doctor">
           <Select
             value={doctorId}
             onChange={onDoctorChange}

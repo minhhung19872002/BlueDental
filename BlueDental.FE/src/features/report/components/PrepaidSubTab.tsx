@@ -14,11 +14,11 @@ import { groupSpans, spanCell } from "./tableSpans";
  * top-up is held outside any slip, so nothing consumes, moves or replaces it.
  */
 const EVENT_LABELS: Record<string, () => string> = {
-  deposit: () => t("Tạm ứng phát sinh"),
-  consume: () => t("Tiêu tạm ứng theo tiến độ"),
-  transfer: () => t("Chuyển tạm ứng sang dịch vụ mới"),
-  replace: () => t("Xóa tạm ứng dịch vụ cũ (thay thế)"),
-  refund: () => t("Hoàn tiền"),
+  deposit: () => t("Report:Prepaid:EventDeposit"),
+  consume: () => t("Report:Prepaid:EventConsume"),
+  transfer: () => t("Report:Prepaid:EventTransfer"),
+  replace: () => t("Report:Prepaid:EventReplace"),
+  refund: () => t("Report:SubTab:Refund"),
 };
 
 /** Staging colours by sign, not by event: "+1.000.000 đ" green, "-500.000 đ" red. */
@@ -37,32 +37,32 @@ function buildColumns(rows: PrepaidLineDto[]): TableColumnsType<PrepaidLineDto> 
   const dateSpans = groupSpans(rows, (r) => r.date);
   const patientSpans = groupSpans(rows, (r) => `${r.date}|${r.patientLabel}`);
   return [
-    { title: t("Ngày"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v), onCell: spanCell(dateSpans) },
+    { title: t("Report:Column:Date"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v), onCell: spanCell(dateSpans) },
     {
-      title: t("Khách hàng"),
+      title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
       width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
       onCell: spanCell(patientSpans),
     },
     {
-      title: t("Loại sự kiện"),
+      title: t("Report:Prepaid:EventType"),
       dataIndex: "eventType",
       width: 180,
       render: (v: string) => EVENT_LABELS[v]?.() ?? v,
     },
-    { title: t("Dịch vụ"), dataIndex: "serviceName" },
+    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceName" },
     // Blue on every row: the deposit's voucher code, or "-" when the event has none.
     {
-      title: t("Phiếu thanh toán"),
+      title: t("Report:Prepaid:PaymentSlip"),
       dataIndex: "paymentCode",
       width: 210,
       render: (v: string) => <span className="report-voucher-code">{v || "-"}</span>,
     },
-    { title: t("Bác sĩ điều trị"), dataIndex: "doctorName", width: 170 },
-    { title: t("Số tiền"), dataIndex: "amount", width: 140, align: "right", render: renderSignedAmount },
+    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 170 },
+    { title: t("Report:Prepaid:Amount"), dataIndex: "amount", width: 140, align: "right", render: renderSignedAmount },
     {
-      title: t("Số dư sau"),
+      title: t("Report:Prepaid:BalanceAfter"),
       dataIndex: "balanceAfter",
       width: 140,
       align: "right",
@@ -86,17 +86,17 @@ export function PrepaidSubTab(range: RangeQuery) {
   // Staging: blue / gold / red / violet tiles, the two outflows shown as negatives,
   // the pill as their net for the period, the last tile as what is held right now.
   const cards: StatCardItem[] = [
-    { label: t("Tạm ứng phát sinh"), value: incurred, tone: "blue" },
-    { label: t("Tiêu dùng tạm ứng"), value: -consumed, tone: "gold" },
-    { label: t("Hoàn tiền tạm ứng"), value: -refund, tone: "red" },
-    { label: t("Số dư tạm ứng hiện tại"), value: summary?.prepaidBalance ?? 0, tone: "violet" },
+    { label: t("Report:Prepaid:Incurred"), value: incurred, tone: "blue" },
+    { label: t("Report:Prepaid:Consumed"), value: -consumed, tone: "gold" },
+    { label: t("Report:Prepaid:Refund"), value: -refund, tone: "red" },
+    { label: t("Report:Prepaid:CurrentBalance"), value: summary?.prepaidBalance ?? 0, tone: "violet" },
   ];
 
   return (
     <>
       <div className="report-headline-row">
         <ReportStatCards variant="compact" items={cards} />
-        <ReportStatsBar label={t("Tạm ứng")} value={incurred - consumed - refund} tone="green" loading={summaryLoading} />
+        <ReportStatsBar label={t("Report:SubTab:Prepaid")} value={incurred - consumed - refund} tone="green" loading={summaryLoading} />
       </div>
       <ReportTableCard<PrepaidLineDto>
         rowKey="id"

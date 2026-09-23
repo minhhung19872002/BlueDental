@@ -13,8 +13,8 @@ export type PrescriptionTreatmentType =
 /** "Điều trị" options in the reference's order — ngoại trú is the default. */
 export function treatmentTypeOptions(): { value: PrescriptionTreatmentType; label: string }[] {
   return [
-    { value: PRESCRIPTION_TREATMENT_TYPE.Outpatient, label: t("Điều trị ngoại trú") },
-    { value: PRESCRIPTION_TREATMENT_TYPE.Inpatient, label: t("Điều trị nội trú") },
+    { value: PRESCRIPTION_TREATMENT_TYPE.Outpatient, label: t("Treatment:Prescription:Outpatient") },
+    { value: PRESCRIPTION_TREATMENT_TYPE.Inpatient, label: t("Treatment:Prescription:Inpatient") },
   ];
 }
 

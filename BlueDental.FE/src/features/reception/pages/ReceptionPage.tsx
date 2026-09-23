@@ -108,7 +108,7 @@ export const ReceptionPage: React.FC = () => {
       { id, action },
       {
         onSuccess: () => {
-          const labels = { "check-in": t("Đã đến"), start: t("Bắt đầu khám"), complete: t("Hoàn tất") };
+          const labels = { "check-in": t("Reception:StatusArrived"), start: t("Reception:StepStart"), complete: t("Reception:StepComplete") };
           toast.success(labels[action]);
         },
       },
@@ -126,7 +126,7 @@ export const ReceptionPage: React.FC = () => {
       { id: cancelTarget.id, reason },
       {
         onSuccess: () => {
-          toast.success(t("Đã huỷ lịch hẹn"));
+          toast.success(t("Reception:CancelSuccess"));
           setCancelTarget(null);
         },
       },
@@ -153,8 +153,8 @@ export const ReceptionPage: React.FC = () => {
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Tiếp nhận")}
-        subtitle={t("Luồng khách trong ngày {0}", currentDate.format("DD/MM/YYYY"))}
+        title={t("Reception:PageTitle")}
+        subtitle={t("Reception:PageSubtitle", currentDate.format("DD/MM/YYYY"))}
       />
 
       <div className="reception-card reception-card--toolbar">
@@ -191,20 +191,20 @@ export const ReceptionPage: React.FC = () => {
           onApply={() => { setKeyword(draftKeyword); setSelectedDoctorId(draftDoctorId); }}
         >
           <div>
-            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+            <div className="mobile-filter-label">{t("Reception:SearchLabel")}</div>
             <Input
               prefix={<SearchOutlined />}
-              placeholder={t("Tìm bệnh nhân...")}
+              placeholder={t("Reception:SearchPlaceholder")}
               value={draftKeyword}
               onChange={(e) => setDraftKeyword(e.target.value)}
               allowClear
             />
           </div>
           <div>
-            <div className="mobile-filter-label">{t("Bác sĩ")}</div>
+            <div className="mobile-filter-label">{t("Reception:Doctor")}</div>
             <SearchSelect
               value={draftDoctorId}
-              placeholder={t("Bác sĩ")}
+              placeholder={t("Reception:Doctor")}
               allowClear
               options={doctors.map((d) => ({ value: d.id, label: d.name }))}
               onChange={(val) => setDraftDoctorId(val)}

@@ -42,20 +42,20 @@ export function PlanSlipSheet({ slip, patient, clinic, dentistName }: Props) {
       <header className="pdt-slip-sheet-head">
         <Facts
           rows={[
-            { label: t("Phòng khám"), value: clinic?.name ?? "" },
-            { label: t("Địa chỉ"), value: clinic?.address ?? "" },
-            { label: t("ĐT"), value: clinic?.phone ?? "" },
+            { label: t("Treatment:Common:Clinic"), value: clinic?.name ?? "" },
+            { label: t("Treatment:Common:Address"), value: clinic?.address ?? "" },
+            { label: t("Treatment:Common:PhoneShort"), value: clinic?.phone ?? "" },
             { label: t("Email"), value: clinic?.email ?? "" },
           ]}
         />
         <div className="pdt-slip-sheet-title">
-          <h2>{t("Phiếu điều trị")}</h2>
+          <h2>{t("Treatment:Receipt:TreatmentSlip")}</h2>
           <p>{slip.dateLabel}</p>
         </div>
         <Facts
           rows={[
-            { label: t("Mã KH"), value: patient.patientCode },
-            { label: t("Họ và tên"), value: patient.fullName },
+            { label: t("Treatment:Common:PatientCodeShort"), value: patient.patientCode },
+            { label: t("Treatment:Common:FullName"), value: patient.fullName },
           ]}
         />
       </header>
@@ -63,11 +63,11 @@ export function PlanSlipSheet({ slip, patient, clinic, dentistName }: Props) {
       <table className="pdt-slip-sheet-table">
         <thead>
           <tr>
-            <th>{t("Dịch vụ")}</th>
-            <th>{t("Trạng thái")}</th>
-            <th>{t("Bác sĩ")}</th>
-            <th>{t("Đơn giá")}</th>
-            <th>{t("Thành tiền")}</th>
+            <th>{t("Treatment:Service:Service")}</th>
+            <th>{t("Common:Status")}</th>
+            <th>{t("Treatment:Common:Doctor")}</th>
+            <th>{t("Treatment:Pricing:UnitPrice")}</th>
+            <th>{t("Treatment:Pricing:NetAmount")}</th>
           </tr>
         </thead>
         <tbody>
@@ -89,7 +89,7 @@ export function PlanSlipSheet({ slip, patient, clinic, dentistName }: Props) {
       </table>
 
       <section className="pdt-slip-sheet-sum">
-        <h3>{t("Tổng thanh toán dịch vụ")}</h3>
+        <h3>{t("Treatment:Pricing:TotalPayments")}</h3>
         <dl>
           {slip.totals.map((total) => (
             <div key={total.label}>
@@ -102,13 +102,13 @@ export function PlanSlipSheet({ slip, patient, clinic, dentistName }: Props) {
 
       <div className="pdt-slip-sheet-signs">
         <div>
-          <p>{t("Người lập phiếu")}</p>
-          <em>{t("(Ký, họ tên)")}</em>
+          <p>{t("Treatment:Receipt:Creator")}</p>
+          <em>{t("Treatment:Receipt:SignatureHint")}</em>
           <strong>{dentistName ?? ""}</strong>
         </div>
         <div>
-          <p>{t("Khách hàng")}</p>
-          <em>{t("(Ký, họ tên)")}</em>
+          <p>{t("Treatment:Common:Patient")}</p>
+          <em>{t("Treatment:Receipt:SignatureHint")}</em>
           <strong>{patient.fullName}</strong>
         </div>
       </div>

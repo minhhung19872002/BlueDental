@@ -17,42 +17,42 @@ function buildColumns(rows: ServiceLineDto[]): TableColumnsType<ServiceLineDto> 
   const patientSpans = groupSpans(rows, (r) => `${r.date}|${r.patientLabel}`);
   return [
     {
-      title: t("Ngày"),
+      title: t("Report:Column:Date"),
       dataIndex: "date",
       width: 130,
       render: (v: string) => formatDate(v),
       onCell: spanCell(dateSpans),
     },
     {
-      title: t("Tên khách hàng"),
+      title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
       width: 190,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
       onCell: spanCell(patientSpans),
     },
-    { title: t("Nhân sự tư vấn"), dataIndex: "counselorName", width: 170 },
-    { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", width: 180 },
+    { title: t("Report:Column:CounselorName"), dataIndex: "counselorName", width: 170 },
+    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 180 },
     {
-      title: t("Dịch vụ điều trị"),
+      title: t("Report:Column:TreatmentService"),
       dataIndex: "serviceName",
       width: 190,
       render: (v: string, row) => (
         <>
           {v}
-          {row.cancelled && <span className="report-cancelled-label"> ({t("đã hủy")})</span>}
+          {row.cancelled && <span className="report-cancelled-label"> ({t("Report:ServiceStatus:Cancelled")})</span>}
         </>
       ),
     },
-    { title: t("Số lượng"), dataIndex: "quantity", width: 120, align: "center" },
+    { title: t("Report:Column:Quantity"), dataIndex: "quantity", width: 120, align: "center" },
     {
-      title: t("Thành tiền"),
+      title: t("Report:Column:TotalAmount"),
       dataIndex: "totalAmount",
       width: 140,
       align: "right",
       render: (v: number) => <span className="report-money">{formatMoneyUnit(v)}</span>,
     },
     {
-      title: t("Đã thanh toán"),
+      title: t("Report:Column:PaidAmount"),
       dataIndex: "paidAmount",
       width: 160,
       align: "right",

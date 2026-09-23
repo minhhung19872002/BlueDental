@@ -5,7 +5,7 @@ namespace BlueDental.Tools;
 
 // ── Call Configuration ────────────────────────────────────────────────────
 
-// The secret ("Mã bí mật") is write-only: no DTO ever carries it back out.
+// The secret ("BE:Field:SecretKey") is write-only: no DTO ever carries it back out.
 public class CallConfigurationDto
 {
     public Guid Id { get; set; }

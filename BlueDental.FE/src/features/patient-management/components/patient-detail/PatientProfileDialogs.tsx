@@ -78,7 +78,7 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
       : [...patient.tagIds, tagId];
     try {
       await update.mutateAsync({ ...patientPayload(patient), tagIds });
-      toast.success(selected ? t("Đã bỏ tag") : t("Đã thêm tag"));
+      toast.success(selected ? t("Patient:Tag:RemoveSuccess") : t("Patient:Tag:AddSuccess"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -100,7 +100,7 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
             allowClear
             value={filter}
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm tag")}
+            placeholder={t("Patient:List:SearchTag")}
             onChange={(event) => setFilter(event.target.value)}
           />
           <div className="pd-tag-options">
@@ -121,13 +121,13 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
               );
             })}
             {!tags.isLoading && visible.length === 0 ? (
-              <div className="pd-tag-empty">{t("Không tìm thấy tag")}</div>
+              <div className="pd-tag-empty">{t("Patient:Filter:TagNotFound")}</div>
             ) : null}
           </div>
         </div>
       }
     >
-      <Button className="pd-tag-button" icon={<TagsOutlined />} aria-label={t("Nhãn bệnh nhân")} />
+      <Button className="pd-tag-button" icon={<TagsOutlined />} aria-label={t("Patient:List:PatientTag")} />
     </Popover>
   );
 }
@@ -157,12 +157,12 @@ export function ExaminationReasonDialog({
   const save = async () => {
     const content = reason.trim();
     if (!content) {
-      toast.error(t("Vui lòng nhập lý do đến khám"));
+      toast.error(t("Patient:Misc:RequiredVisitReason"));
       return;
     }
     try {
       await add.mutateAsync(content);
-      toast.success(t("Đã thêm lý do đến khám"));
+      toast.success(t("Patient:Source:ReasonAdded"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -172,12 +172,12 @@ export function ExaminationReasonDialog({
   return (
     <Modal
       open={open}
-      title={t("Thêm lý do đến khám")}
+      title={t("Patient:Source:AddReason")}
       // 500px, measured off the reference's own dialog.
       width={500}
       className="pd-reason-dialog"
-      okText={t("Lưu")}
-      cancelText={t("Hủy")}
+      okText={t("Patient:Misc:Save")}
+      cancelText={t("Patient:Misc:Cancel")}
       confirmLoading={add.isPending}
       onOk={() => void save()}
       onCancel={onClose}
@@ -189,7 +189,7 @@ export function ExaminationReasonDialog({
         className="pd-reason-input"
         maxLength={1000}
         showCount
-        placeholder={t("Nhập lý do đến khám")}
+        placeholder={t("Patient:Source:EnterReason")}
         onChange={(event) => setReason(event.target.value)}
       />
     </Modal>
@@ -208,40 +208,40 @@ export function PatientPaymentDialog({
   onClose: () => void;
 }) {
   const columns: TableColumnsType<PatientPaymentDto> = [
-    { title: t("Mã thanh toán"), dataIndex: "code", width: 150 },
-    { title: t("Ngày tạo"), dataIndex: "paidAt", width: 145, render: formatDateTime },
+    { title: t("Patient:Payment:Code"), dataIndex: "code", width: 150 },
+    { title: t("Patient:Col:CreatedAt"), dataIndex: "paidAt", width: 145, render: formatDateTime },
     {
-      title: t("Dịch vụ điều trị"),
+      title: t("Patient:Plan:Service"),
       dataIndex: "treatmentPlanCode",
       width: 200,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: t("Tổng tiền phiếu"),
+      title: t("Patient:Payment:SlipTotal"),
       dataIndex: "amount",
       width: 150,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
-      title: t("Thanh toán"),
+      title: t("Patient:Payment:PaymentLabel"),
       dataIndex: "kind",
       width: 130,
       render: (value: PatientPaymentDto["kind"]) => paymentKindConfig()[value].label,
     },
     {
-      title: t("Phương thức thanh toán"),
+      title: t("Patient:Payment:Method"),
       dataIndex: "method",
       width: 215,
       render: (value: PatientPaymentDto["method"]) => paymentMethodLabels()[value],
     },
-    { title: t("Ghi chú"), dataIndex: "note", width: 180, render: (v: string | null) => v ?? "—" },
-    { title: t("Thao tác"), width: 90, fixed: "right", render: () => "—" },
+    { title: t("Patient:Debt:Note"), dataIndex: "note", width: 180, render: (v: string | null) => v ?? "—" },
+    { title: t("Common:Actions"), width: 90, fixed: "right", render: () => "—" },
   ];
   return (
     <Modal
       open={open}
-      title={t("Thanh toán")}
+      title={t("Patient:Payment:PaymentLabel")}
       // The eight columns need 1260px between them. At 1024 the pinned Thao tác
       // column sat on top of "Phương thức thanh toán" and clipped its title.
       width="min(1320px, calc(100vw - 48px))"
@@ -250,7 +250,7 @@ export function PatientPaymentDialog({
       className="pd-payment-dialog"
       footer={
         <Button type="primary" onClick={onClose}>
-          {t("Đóng")}
+          {t("Common:Close")}
         </Button>
       }
     >
@@ -259,7 +259,7 @@ export function PatientPaymentDialog({
         columns={columns}
         dataSource={payments}
         pagination={false}
-        locale={{ emptyText: t("Chưa có phiếu thanh toán") }}
+        locale={{ emptyText: t("Patient:Payment:Empty") }}
       />
       <div className="pd-payment-pager">
         <div>
@@ -273,12 +273,12 @@ export function PatientPaymentDialog({
           </span>
         </div>
         <div>
-          <Button disabled>‹ {t("Trước")}</Button>
-          <Button disabled>{t("Sau")} ›</Button>
+          <Button disabled>‹ {t("Patient:Stage:Before")}</Button>
+          <Button disabled>{t("Common:Next")} ›</Button>
         </div>
       </div>
       <div className="pd-payment-total">
-        <strong>{t("Tổng tiền:")}</strong> <b>{formatMoneyUnit(total)}</b>
+        <strong>{t("Patient:Payment:TotalLabel")}</strong> <b>{formatMoneyUnit(total)}</b>
       </div>
     </Modal>
   );

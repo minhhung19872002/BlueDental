@@ -36,14 +36,14 @@ export function FollowUpShots({ files, previews, onAdd, onRemove }: Props) {
       />
 
       <div className="pd-stage-images">
-        <p>{t("Hình ảnh")}:</p>
-        <p>{files.length === 0 ? t("(Trống)") : t("{0} ảnh", files.length)}</p>
+        <p>{t("Patient:Tab:Images")}:</p>
+        <p>{files.length === 0 ? t("Patient:QuoteSheet:Empty") : t("Patient:Photo:PhotoCount", files.length)}</p>
       </div>
 
       <StageShots files={files} previews={previews} onRemove={onRemove} />
 
       <Button block icon={<PictureOutlined />} onClick={() => input.current?.click()}>
-        {t("Tải Ảnh")}
+        {t("Patient:Photo:UploadButton")}
       </Button>
     </>
   );

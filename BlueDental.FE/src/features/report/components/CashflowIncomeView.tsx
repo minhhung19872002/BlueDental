@@ -28,7 +28,7 @@ export function CashflowIncomeView({ entries, loading, onEdit }: Props) {
       <ReportStatCards
         variant="icon"
         columns={3}
-        items={[{ label: t("Tổng doanh thu"), value: total, tone: "green", icon: <RiseOutlined /> }]}
+        items={[{ label: t("Report:IncomeView:TotalRevenue"), value: total, tone: "green", icon: <RiseOutlined /> }]}
       />
       <ReportTableCard<SalesEntryDto>
         rowKey="id"
@@ -39,7 +39,7 @@ export function CashflowIncomeView({ entries, loading, onEdit }: Props) {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.onPageChange}
-        countUnit={t("phiếu")}
+        countUnit={t("Report:Unit:Voucher")}
       />
     </>
   );

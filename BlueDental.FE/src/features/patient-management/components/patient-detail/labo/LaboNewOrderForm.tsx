@@ -64,7 +64,7 @@ export function LaboNewOrderForm({ open, branchId, patient, source, lists, onSav
         pictures: form.pictures,
       });
 
-      toast.success(t("Đã tạo phiếu Labo"));
+      toast.success(t("Patient:Labo:Created"));
       onSaved();
     } catch {
       // The global MutationCache already toasts the server's message; the
@@ -87,15 +87,15 @@ export function LaboNewOrderForm({ open, branchId, patient, source, lists, onSav
         emptyTeeth={
           lists ? (
             // From the tab the teeth wait on the line, and the reference says so in plain text.
-            <span className="pd-labo-teeth-hint">{t("Chọn dịch vụ điều trị trước")}</span>
+            <span className="pd-labo-teeth-hint">{t("Patient:Stage:SelectTreatmentServiceFirst")}</span>
           ) : (
-            <span className="pd-labo-emptypill">{t("(Trống)")}</span>
+            <span className="pd-labo-emptypill">{t("Patient:QuoteSheet:Empty")}</span>
           )
         }
       />
       <div className="pd-labo-footer">
         <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={create.isPending}>
-          {t("Lưu")}
+          {t("Patient:Misc:Save")}
         </Button>
       </div>
     </Form>

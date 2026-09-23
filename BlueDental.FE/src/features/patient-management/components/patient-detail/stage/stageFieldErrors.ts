@@ -28,9 +28,9 @@ interface Draft {
  */
 export function stageFieldErrors({ staffId, note, teethPicked }: Draft): StageFieldErrors {
   return {
-    staff: staffId ? undefined : t("Vui lòng chọn bác sĩ"),
-    note: note.trim() ? undefined : t("Vui lòng nhập nội dung điều trị"),
-    teeth: teethPicked ? undefined : t("Vui lòng chọn răng"),
+    staff: staffId ? undefined : t("Patient:Staff:RequiredDoctor"),
+    note: note.trim() ? undefined : t("Patient:Stage:RequiredContent"),
+    teeth: teethPicked ? undefined : t("Patient:DentalChart:RequiredTooth"),
   };
 }
 

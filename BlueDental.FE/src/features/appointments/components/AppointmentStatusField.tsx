@@ -26,7 +26,7 @@ export function AppointmentStatusField({ control, currentStatus }: Props) {
   return (
     <div className="appt-field">
       <label className="appt-field-label" htmlFor="appt-status">
-        {t("Trạng thái")}
+        {t("Common:Status")}
       </label>
       <Controller
         name="status"

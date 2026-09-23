@@ -60,7 +60,7 @@ public sealed class PaymentAccountController(IPaymentAccountAppService service) 
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 
     /// <summary>
-    /// "Tải ảnh QR" — multipart upload against an account that already exists.
+    /// "BE:Common:UploadQR" — multipart upload against an account that already exists.
     /// The file arrives as a form field, so the DTO is bound by hand rather than
     /// from the JSON body.
     /// </summary>

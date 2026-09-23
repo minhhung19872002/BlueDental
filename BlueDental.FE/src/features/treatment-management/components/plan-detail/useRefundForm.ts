@@ -24,11 +24,11 @@ export type RefundType = (typeof REFUND_TYPE)[keyof typeof REFUND_TYPE];
 export const REFUND_METHODS: PaymentMethodKind[] = [PAYMENT_METHOD.Cash, PAYMENT_METHOD.Banking, PAYMENT_METHOD.Card];
 
 export const refundMethodLabels = (): Record<PaymentMethodKind, string> => ({
-  [PAYMENT_METHOD.Cash]: t("Tiền mặt"),
-  [PAYMENT_METHOD.Banking]: t("Chuyển khoản"),
-  [PAYMENT_METHOD.Card]: t("Quẹt thẻ"),
-  [PAYMENT_METHOD.EWallet]: t("Ví momo"),
-  [PAYMENT_METHOD.OutstandingDebt]: t("Dư nợ"),
+  [PAYMENT_METHOD.Cash]: t("Treatment:Payment:Cash"),
+  [PAYMENT_METHOD.Banking]: t("Treatment:Payment:Banking"),
+  [PAYMENT_METHOD.Card]: t("Treatment:Payment:Card"),
+  [PAYMENT_METHOD.EWallet]: t("Treatment:Payment:EWallet"),
+  [PAYMENT_METHOD.OutstandingDebt]: t("Treatment:Debt:Outstanding"),
 });
 
 /** One row of the refund table: the line, what it can still give back, what was typed. */
@@ -98,11 +98,11 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
 
   const save = async () => {
     if (total <= 0) {
-      toast.error(t("Vui lòng nhập số tiền hoàn"));
+      toast.error(t("Treatment:Refund:AmountRequired"));
       return;
     }
     if (overLimit) {
-      toast.error(t("Số tiền hoàn không được vượt quá số tiền đã thanh toán"));
+      toast.error(t("Treatment:Refund:AmountExceeds"));
       return;
     }
     const items = lines
@@ -122,7 +122,7 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
         staffId,
         note: note.trim() || undefined,
       });
-      toast.success(t("Đã tạo phiếu hoàn tiền"));
+      toast.success(t("Treatment:Refund:RefundSuccess"));
       onSaved();
     } catch (error) {
       notifyError(extractApiError(error));

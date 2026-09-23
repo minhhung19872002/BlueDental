@@ -17,7 +17,7 @@ interface Props {
   onClose: () => void;
 }
 
-const NONE = () => t("Không có");
+const NONE = () => t("Report:Empty:None");
 
 function PartySection({ title, rows }: { title: string } & PartyInfo) {
   return (
@@ -38,13 +38,13 @@ function buildColumns(labels: VoucherLabels): TableColumnsType<SalesEntryDto> {
   const channels = paymentChannelLabels();
   const dateCell = (v: string) => formatDate(v);
   return [
-    { title: t("Ngày tạo"), dataIndex: "entryDate", width: 130, render: dateCell },
+    { title: t("Report:Column:CreatedDate"), dataIndex: "entryDate", width: 130, render: dateCell },
     { title: labels.actualDate, dataIndex: "entryDate", width: 140, render: dateCell },
-    { title: t("Khách hàng"), key: "customer", width: 150, render: (_: unknown, r) => salesEntryCustomerLabel(r) },
+    { title: t("Report:Column:Customer"), key: "customer", width: 150, render: (_: unknown, r) => salesEntryCustomerLabel(r) },
     { title: labels.content, dataIndex: "description", width: 220 },
     { title: labels.staff, dataIndex: "staffName", width: 140 },
     { title: labels.category, dataIndex: "categoryName", width: 140 },
-    { title: t("Hình thức"), dataIndex: "channel", width: 130, render: (v: SalesEntryDto["channel"]) => channels[v] },
+    { title: t("Report:SalesDetail:Method"), dataIndex: "channel", width: 130, render: (v: SalesEntryDto["channel"]) => channels[v] },
     {
       title: labels.amount,
       dataIndex: "amount",
@@ -69,10 +69,10 @@ export function SalesEntryDetailModal({ open, entry, onClose }: Props) {
   const clinic: PartyInfo = useMemo(
     () => ({
       rows: [
-        { label: t("Phòng khám"), value: branch?.name ?? "" },
-        { label: t("Địa chỉ"), value: branch?.address ?? "" },
-        { label: t("ĐT"), value: branch?.phoneNumber ?? "" },
-        { label: t("Email"), value: branch?.email ?? "" },
+        { label: t("Report:SalesDetail:ClinicName"), value: branch?.name ?? "" },
+        { label: t("Report:SalesDetail:ClinicAddress"), value: branch?.address ?? "" },
+        { label: t("Report:SalesDetail:ClinicPhone"), value: branch?.phoneNumber ?? "" },
+        { label: t("Report:SalesDetail:ClinicEmail"), value: branch?.email ?? "" },
       ],
     }),
     [branch],
@@ -80,11 +80,11 @@ export function SalesEntryDetailModal({ open, entry, onClose }: Props) {
   const customer: PartyInfo = useMemo(
     () => ({
       rows: [
-        { label: t("Mã khách hàng"), value: patient?.patientCode ?? NONE() },
-        { label: t("Tên khách hàng"), value: patient?.fullName ?? NONE() },
-        { label: t("Số điện thoại"), value: patient?.phoneNumber ?? NONE() },
-        { label: t("Địa chỉ"), value: patient?.address ?? NONE() },
-        { label: t("Ngày sinh"), value: patient?.dateOfBirth ? formatDate(patient.dateOfBirth) : NONE() },
+        { label: t("Report:Column:CustomerCode"), value: patient?.patientCode ?? NONE() },
+        { label: t("Report:Column:CustomerName"), value: patient?.fullName ?? NONE() },
+        { label: t("Report:SalesDetail:Phone"), value: patient?.phoneNumber ?? NONE() },
+        { label: t("Report:SalesDetail:Address"), value: patient?.address ?? NONE() },
+        { label: t("Report:SalesDetail:DateOfBirth"), value: patient?.dateOfBirth ? formatDate(patient.dateOfBirth) : NONE() },
       ],
     }),
     [patient],
@@ -95,7 +95,7 @@ export function SalesEntryDetailModal({ open, entry, onClose }: Props) {
   return (
     <Modal
       open={open}
-      title={<h2 className="bd-modal-title">{t("Chi tiết phiếu")}</h2>}
+      title={<h2 className="bd-modal-title">{t("Report:SalesDetail:Title")}</h2>}
       onCancel={onClose}
       width={1024}
       destroyOnHidden
@@ -110,11 +110,11 @@ export function SalesEntryDetailModal({ open, entry, onClose }: Props) {
     >
       <div className="report-detail-body">
         <div className="report-detail-grid">
-          <PartySection title={t("THÔNG TIN PHÒNG KHÁM")} rows={clinic.rows} />
-          <PartySection title={t("KHÁCH HÀNG")} rows={customer.rows} />
+          <PartySection title={t("Report:SalesDetail:ClinicInfo")} rows={clinic.rows} />
+          <PartySection title={t("Report:SalesDetail:CustomerInfo")} rows={customer.rows} />
         </div>
         <section className="report-detail-section">
-          <h3 className="report-detail-title report-detail-title--bold">{t("CHI TIẾT")}</h3>
+          <h3 className="report-detail-title report-detail-title--bold">{t("Report:SalesDetail:Detail")}</h3>
           <ReportTableCard<SalesEntryDto>
             rowKey="id"
             columns={columns}
@@ -128,7 +128,7 @@ export function SalesEntryDetailModal({ open, entry, onClose }: Props) {
         </section>
         <section className="report-detail-total">
           <p className="report-detail-total-row">
-            <strong>{t("Tổng cộng")}:</strong>
+            <strong>{t("Report:SalesDetail:Total")}:</strong>
             <span>{formatMoneyUnit(entry.amount)}</span>
           </p>
         </section>

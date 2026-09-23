@@ -19,8 +19,8 @@ interface Props {
 function useTypeOptions() {
   return useMemo(
     () => [
-      { value: PATIENT_IMAGE_TYPE.before, label: t("Trước điều trị") },
-      { value: PATIENT_IMAGE_TYPE.after, label: t("Sau điều trị") },
+      { value: PATIENT_IMAGE_TYPE.before, label: t("Patient:Image:Before") },
+      { value: PATIENT_IMAGE_TYPE.after, label: t("Patient:Image:After") },
     ],
     [],
   );
@@ -49,20 +49,20 @@ export function PatientImageToolbar({
   };
 
   return (
-    <section className="pi-toolbar" aria-label={t("Bộ lọc hình ảnh")}>
-      <FloatingLabel label={t("Giai đoạn điều trị")} floated={filter !== null} className="pi-filter">
+    <section className="pi-toolbar" aria-label={t("Patient:Image:FilterLabel")}>
+      <FloatingLabel label={t("Patient:Image:TreatmentPhase")} floated={filter !== null} className="pi-filter">
         <Select<PatientImageType>
           value={filter ?? undefined}
           options={options}
           onChange={onFilterChange}
-          aria-label={t("Giai đoạn điều trị")}
+          aria-label={t("Patient:Image:TreatmentPhase")}
           popupClassName="pi-filter-popup"
         />
       </FloatingLabel>
 
       {filter !== null && (
-        <Tooltip title={t("Xóa lọc")}>
-          <button type="button" className="pi-clear" aria-label={t("Xóa lọc")} onClick={onClearFilter}>
+        <Tooltip title={t("Common:ClearFilter")}>
+          <button type="button" className="pi-clear" aria-label={t("Common:ClearFilter")} onClick={onClearFilter}>
             <X size={16} />
           </button>
         </Tooltip>
@@ -77,7 +77,7 @@ export function PatientImageToolbar({
             onClick={() => inputRef.current?.click()}
           >
             <ImagePlus size={28} strokeWidth={1.5} />
-            <span>{uploading ? t("Đang tải") : t("Tải ảnh")}</span>
+            <span>{uploading ? t("Common:Uploading") : t("Common:UploadImage")}</span>
           </button>
           <input
             ref={inputRef}

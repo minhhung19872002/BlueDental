@@ -37,10 +37,10 @@ export function InvoiceCustomerInfo({
 }: InvoiceCustomerInfoProps) {
   return (
     <div>
-      <h4 className="inv-section-title">{t("Thông tin khách hàng")}</h4>
+      <h4 className="inv-section-title">{t("Treatment:Invoice:CustomerInfo")}</h4>
       <div className="inv-fields inv-fields--left">
         <FloatingLabel
-          label={t("Tên khách hàng")}
+          label={t("Treatment:Invoice:CustomerName")}
           floated={customerName !== ""}
           className="inv-field inv-field--wide"
         >
@@ -49,19 +49,19 @@ export function InvoiceCustomerInfo({
         <FloatingLabel label={t("CMND/CCCD")} floated={nationalId !== ""} className="inv-field">
           <Input value={nationalId} onChange={(e) => onNationalIdChange(e.target.value)} />
         </FloatingLabel>
-        <FloatingLabel label={t("Tên đơn vị")} floated={companyName !== ""} className="inv-field">
+        <FloatingLabel label={t("Treatment:Invoice:CompanyName")} floated={companyName !== ""} className="inv-field">
           <Input value={companyName} onChange={(e) => onCompanyNameChange(e.target.value)} />
         </FloatingLabel>
-        <FloatingLabel label={t("Mã số thuế")} floated={taxCode !== ""} className="inv-field">
+        <FloatingLabel label={t("Treatment:Invoice:TaxCode")} floated={taxCode !== ""} className="inv-field">
           <Input value={taxCode} onChange={(e) => onTaxCodeChange(e.target.value)} />
         </FloatingLabel>
-        <FloatingLabel label={t("Địa chỉ")} floated={address !== ""} className="inv-field">
+        <FloatingLabel label={t("Treatment:Common:Address")} floated={address !== ""} className="inv-field">
           <Input value={address} onChange={(e) => onAddressChange(e.target.value)} />
         </FloatingLabel>
         <FloatingLabel label={t("Email")} floated={email !== ""} className="inv-field">
           <Input value={email} onChange={(e) => onEmailChange(e.target.value)} />
         </FloatingLabel>
-        <FloatingLabel label={t("Số điện thoại")} floated={phone !== ""} className="inv-field">
+        <FloatingLabel label={t("Treatment:Common:Phone")} floated={phone !== ""} className="inv-field">
           <Input value={phone} onChange={(e) => onPhoneChange(e.target.value)} />
         </FloatingLabel>
       </div>

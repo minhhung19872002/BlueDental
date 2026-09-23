@@ -52,31 +52,31 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
   const handleSave = () => {
     setTouched(true);
     if (!templateId) {
-      toast.error(t("Vui lòng chọn mẫu ZBS"));
+      toast.error(t("CSKH:SendZalo:TemplateRequired"));
       return;
     }
-    toast.error(t("Chức năng gửi ZBS chưa được hỗ trợ"));
+    toast.error(t("CSKH:SendZalo:NotSupported"));
   };
 
   return (
     <AppDialog
       open={open}
-      title={t("Gửi ZBS qua Zalo")}
+      title={t("CSKH:SendZalo:Title")}
       canSave
       saving={false}
-      saveLabel={t("Gửi")}
+      saveLabel={t("Common:Send")}
       onSave={handleSave}
       onClose={onClose}
     >
       {record && (
         <div className="bd-form-grid">
-          <CarePatientLine label={t("Khách hàng")} name={record.patientName ?? ""} tinted />
+          <CarePatientLine label={t("CSKH:SendZalo:CustomerLabel")} name={record.patientName ?? ""} tinted />
 
-          <MessageField label={t("Mẫu ZBS")} required hasValue={Boolean(templateId)}>
+          <MessageField label={t("CSKH:SendZalo:TemplateLabel")} required hasValue={Boolean(templateId)}>
             <SearchSelect
               value={templateId}
               options={templateOptions}
-              emptyText={t("Không tìm thấy dữ liệu")}
+              emptyText={t("Common:NoResults")}
               allowClear
               status={touched && !templateId ? "error" : undefined}
               onChange={handleTemplateChange}
@@ -85,9 +85,7 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
           </MessageField>
 
           <p className="cskh-dialog-hint">
-            {t(
-              "Nội dung tin nhắn được điền tự động từ dữ liệu khách hàng — chỉ cần chọn mẫu.",
-            )}
+            {t("CSKH:SendZalo:HintAutoFill")}
           </p>
         </div>
       )}

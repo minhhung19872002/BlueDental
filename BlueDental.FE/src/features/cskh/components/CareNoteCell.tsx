@@ -25,7 +25,7 @@ export function CareNoteCell({ value, onSave }: CareNoteCellProps) {
   return (
     <Input.TextArea
       className="cskh-note-input"
-      placeholder={t("Nhập ghi chú")}
+      placeholder={t("CSKH:NoteInput")}
       autoSize={{ minRows: 2, maxRows: 4 }}
       value={draft}
       onChange={(event) => setDraft(event.target.value)}

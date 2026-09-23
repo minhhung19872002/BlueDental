@@ -6,7 +6,7 @@ namespace BlueDental.Tools;
 
 /// <summary>
 /// A SIP extension handed to a staff member under one call configuration —
-/// the rows of the "Phân Công Gọi" tab under Công cụ → Gọi thoại.
+/// the rows of the "BE:Perm:CallAssignment" tab under Công cụ → Gọi thoại.
 /// </summary>
 public class CallAssignment : FullAuditedEntity<Guid>
 {

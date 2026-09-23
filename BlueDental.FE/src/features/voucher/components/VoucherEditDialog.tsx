@@ -118,7 +118,7 @@ export function VoucherEditDialog({ voucher, onClose }: Props) {
 
     try {
       await updateVoucher.mutateAsync({ id: voucher.id, input });
-      toast.success(t("Đã cập nhật voucher"));
+      toast.success(t("Voucher:UpdateSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -129,12 +129,12 @@ export function VoucherEditDialog({ voucher, onClose }: Props) {
     <ConfigProvider theme={voucherDialogTheme}>
       <AppDialog
         open={voucher !== null}
-        title={t("Chỉnh sửa voucher")}
+        title={t("Voucher:EditTitle")}
         width={780}
         className="voucher-dialog voucher-dialog--edit"
         canSave={!updateVoucher.isPending}
         saving={updateVoucher.isPending}
-        saveLabel={t("Lưu thay đổi")}
+        saveLabel={t("Voucher:SaveChanges")}
         onSave={handleSave}
         onClose={onClose}
       >

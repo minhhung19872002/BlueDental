@@ -102,7 +102,7 @@ export function MaterialDialog({
     try {
       if (material) {
         await updateSupply.mutateAsync({ id: material.id, input: shared });
-        toast.success(t("Đã cập nhật vật tư"));
+        toast.success(t("Materials:MaterialUpdated"));
       } else {
         await createSupply.mutateAsync({
           ...shared,
@@ -115,7 +115,7 @@ export function MaterialDialog({
           stockedAt: values.stockedAt?.format("YYYY-MM-DD"),
           expiryDate: values.expiryDate?.format("YYYY-MM-DD"),
         });
-        toast.success(t("Đã thêm vật tư"));
+        toast.success(t("Materials:MaterialAdded"));
       }
       onClose();
     } catch {
@@ -126,7 +126,7 @@ export function MaterialDialog({
   return (
     <AppDialog
       open={open}
-      title={material ? t("Sửa vật tư") : t("Thêm vật tư")}
+      title={material ? t("Materials:EditMaterial") : t("Materials:AddMaterialTitle")}
       width={770}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
@@ -143,9 +143,9 @@ export function MaterialDialog({
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên vật tư")}
+              label={t("Materials:MaterialName")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên vật tư") }]}
+              rules={[{ required: true, message: t("Materials:MaterialNameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
@@ -153,9 +153,9 @@ export function MaterialDialog({
           <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
-              label={t("Nhóm phân loại")}
+              label={t("Materials:GroupLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn nhóm phân loại") }]}
+              rules={[{ required: true, message: t("Materials:GroupRequired") }]}
             >
               <Select
                 options={groups.map((group) => ({ value: group.id, label: group.name }))}
@@ -164,45 +164,45 @@ export function MaterialDialog({
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="quantity" label={t("Số lượng")}>
+            <FloatingField name="quantity" label={t("Materials:QtyLabel")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="expiryWarningDays" label={t("Cảnh báo hết hạn (ngày)")}>
+            <FloatingField name="expiryWarningDays" label={t("Materials:ExpiryWarningDays")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="supplier" label={t("Nhà sản xuất")}>
+            <FloatingField name="supplier" label={t("Materials:SupplierLabel")}>
               <Input />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="origin" label={t("Xuất xứ")}>
+            <FloatingField name="origin" label={t("Materials:OriginLabel")}>
               <Input />
             </FloatingField>
           </Col>
 
           <Col xs={24} sm={12}>
-            <FloatingField name="unitCost" label={t("Giá nhập")}>
+            <FloatingField name="unitCost" label={t("Materials:CostLabel")}>
               <CurrencyInput />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="salePrice" label={t("Giá bán")}>
+            <FloatingField name="salePrice" label={t("Materials:SalePriceLabel")}>
               <CurrencyInput />
             </FloatingField>
           </Col>
 
           <Col xs={12} sm={12}>
-            <FloatingField name="stockedAt" label={t("Ngày nhập kho")}>
+            <FloatingField name="stockedAt" label={t("Materials:StockedAtLabel")}>
               <DatePicker format="DD/MM/YYYY" className="bd-mat-datepicker" />
             </FloatingField>
           </Col>
           <Col xs={12} sm={12}>
-            <FloatingField name="expiryDate" label={t("Hạn sử dụng")}>
+            <FloatingField name="expiryDate" label={t("Materials:ExpiryLabel")}>
               <DatePicker format="DD/MM/YYYY" className="bd-mat-datepicker" />
             </FloatingField>
           </Col>

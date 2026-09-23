@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Form, Input, Select, Switch } from "antd";
 import { toast } from "sonner";
 import {
@@ -70,7 +70,7 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
             isActive: values.isActive,
           },
         });
-        toast.success(t("Đã cập nhật phân công"));
+        toast.success(t("Tools:AssignUpdated"));
       } else {
         await createAssignment.mutateAsync({
           branchId: values.branchId,
@@ -79,7 +79,7 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
           staffId: values.staffId,
           isActive: values.isActive,
         });
-        toast.success(t("Đã tạo phân công"));
+        toast.success(t("Tools:AssignCreated"));
       }
       onClose();
     } catch {
@@ -90,7 +90,7 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
   return (
     <AppDialog
       open={open}
-      title={t("Phân công gọi")}
+      title={t("Tools:AssignDialogTitle")}
       canSave={sip.trim().length > 0 && callConfigurationId !== "" && staffId !== ""}
       saving={pending}
       onSave={() => form.submit()}
@@ -105,30 +105,30 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
       >
         <FloatingField
           name="sip"
-          label={t("SIP")}
+          label={t("Tools:SipLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng nhập SIP") }]}
+          rules={[{ required: true, message: t("Tools:SipRequired") }]}
         >
           <Input autoFocus />
         </FloatingField>
 
         <FloatingField
           name="callConfigurationId"
-          label={t("Cấu hình")}
+          label={t("Tools:ConfigLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng chọn cấu hình") }]}
+          rules={[{ required: true, message: t("Tools:ConfigRequired") }]}
         >
           <Select
             options={(configurations?.items ?? []).map((c) => ({ value: c.id, label: c.name }))}
-            notFoundContent={t("Chưa có cấu hình nào")}
+            notFoundContent={t("Tools:NoConfigs")}
           />
         </FloatingField>
 
         <FloatingField
           name="staffId"
-          label={t("Nhân viên")}
+          label={t("Tools:StaffLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng chọn nhân viên") }]}
+          rules={[{ required: true, message: t("Tools:StaffRequired") }]}
         >
           <Select
             showSearch
@@ -138,7 +138,7 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
           />
         </FloatingField>
 
-        <FloatingField name="branchId" label={t("Chi nhánh")}>
+        <FloatingField name="branchId" label={t("Tools:BranchLabel")}>
           <Select
             // The update API keeps an assignment in its branch.
             disabled={assignment !== null}
@@ -147,12 +147,13 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
         </FloatingField>
 
         <div className="bd-call-dialog-switch">
-          <span>{t("Trạng thái")}</span>
+          <span>{t("Tools:StatusLabel")}</span>
           <Form.Item name="isActive" valuePropName="checked">
-            <Switch aria-label={t("Trạng thái")} />
+            <Switch aria-label={t("Tools:StatusLabel")} />
           </Form.Item>
         </div>
       </Form>
     </AppDialog>
   );
 }
+

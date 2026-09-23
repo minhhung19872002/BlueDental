@@ -35,7 +35,7 @@ export function usePatientImageUpload(
     async (files: File[]) => {
       if (files.length === 0) return;
       if (files.length > UPLOAD_BATCH_LIMIT) {
-        toast.error(t("Chỉ tải được tối đa {0} ảnh mỗi lần", UPLOAD_BATCH_LIMIT));
+        toast.error(t("Patient:Photo:MaxUploadError", UPLOAD_BATCH_LIMIT));
       }
       const batch = files.slice(0, UPLOAD_BATCH_LIMIT);
       const type = filter ?? PATIENT_IMAGE_TYPE.before;
@@ -54,7 +54,7 @@ export function usePatientImageUpload(
           await mutation.mutateAsync({ patientId, clinicBranchId, type, file: prepared });
         }
       } catch {
-        toast.error(t("Không thể tải ảnh"));
+        toast.error(t("Patient:Photo:LoadError"));
       } finally {
         setUploading(false);
       }

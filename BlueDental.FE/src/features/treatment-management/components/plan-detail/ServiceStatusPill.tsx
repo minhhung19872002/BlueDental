@@ -19,9 +19,9 @@ const STATUS_MODIFIER: Record<number, string> = {
 /** Menu entries in the reference's order; keys are the actions. */
 function menuItems(): MenuProps["items"] {
   return [
-    { key: "complete", label: t("Hoàn thành") },
-    { key: "convert", label: t("Chuyển đổi") },
-    { key: "cancel", label: t("Hủy dịch vụ"), danger: true },
+    { key: "complete", label: t("Treatment:Service:StatusDone") },
+    { key: "convert", label: t("Treatment:Convert:Convert") },
+    { key: "cancel", label: t("Treatment:Service:CancelService"), danger: true },
   ];
 }
 
@@ -54,7 +54,7 @@ export function ServiceStatusPill({ service, onAction }: Props) {
         type="button"
         className={`${className} pdt-status--menu`}
         aria-haspopup="menu"
-        aria-label={t("Trạng thái dịch vụ {0}", service.serviceName ?? service.code)}
+        aria-label={t("Treatment:Service:StatusLabel", service.serviceName ?? service.code)}
       >
         {t(pill.label)}
         <ChevronDown size={14} aria-hidden="true" />

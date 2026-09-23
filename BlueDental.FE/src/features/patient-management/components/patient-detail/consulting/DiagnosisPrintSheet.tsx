@@ -46,41 +46,41 @@ export function DiagnosisPrintSheet({ images, slot, advice }: Props) {
       <div className="dp-sheet-head">
         <div>
           <p>
-            <strong>{t("PHÒNG KHÁM")}:</strong> {slot("clinicName")}
+            <strong>{t("Patient:Diagnosis:ClinicLabel")}:</strong> {slot("clinicName")}
           </p>
           <p>
-            {t("Địa chỉ")}: {slot("clinicAddress")}
+            {t("Patient:Diagnosis:AddressLabel")}: {slot("clinicAddress")}
           </p>
           <p>
-            {t("ĐT")}: {slot("clinicPhone")}
+            {t("Patient:Diagnosis:PhoneLabel")}: {slot("clinicPhone")}
           </p>
         </div>
         <div className="dp-sheet-title">
-          <h1>{t("PHIẾU CHẨN ĐOÁN")}</h1>
-          <p>{t("PHÒNG KHÁM NHA KHOA")}</p>
+          <h1>{t("Patient:Diagnosis:SheetTitle")}</h1>
+          <p>{t("Patient:Diagnosis:ClinicType")}</p>
         </div>
         <div className="dp-sheet-customer">
           <p>
-            <strong>{t("Mã KH")}:</strong> {slot("patientCode")}
+            <strong>{t("Patient:Diagnosis:PatientCode")}:</strong> {slot("patientCode")}
           </p>
           <p>
-            <strong>{t("Họ tên")}:</strong> {slot("patientName")}
+            <strong>{t("Patient:Diagnosis:PatientName")}:</strong> {slot("patientName")}
           </p>
           <p>
-            <strong>{t("Ngày sinh")}:</strong> {slot("patientDob")}
+            <strong>{t("Patient:Diagnosis:PatientDob")}:</strong> {slot("patientDob")}
           </p>
           <p>
-            <strong>{t("Chẩn đoán")}:</strong> {slot("diagnosisName")}
+            <strong>{t("Patient:Diagnosis:DiagnosisName")}:</strong> {slot("diagnosisName")}
           </p>
           <p className="dp-sheet-teeth">
-            <strong>{t("Răng")}:</strong> {slot("teeth")}
+            <strong>{t("Patient:Diagnosis:TeethLabel")}:</strong> {slot("teeth")}
           </p>
         </div>
       </div>
 
       {hasImages && (
         <>
-          <h2>{t("I. HÌNH ẢNH CHẨN ĐOÁN")}</h2>
+          <h2>{t("Patient:Diagnosis:ImagesSection")}</h2>
           <div className="dp-sheet-images">
             {images.map((image) => (
               <div key={image.id} className="dp-sheet-frame">
@@ -92,22 +92,22 @@ export function DiagnosisPrintSheet({ images, slot, advice }: Props) {
       )}
 
       <p className="dp-sheet-note">
-        <strong>{t("Ghi chú")}:</strong> {slot("note")}
+        <strong>{t("Patient:Diagnosis:Note")}:</strong> {slot("note")}
       </p>
 
-      <h2>{hasImages ? t("II. TƯ VẤN CHẨN ĐOÁN") : t("I. TƯ VẤN CHẨN ĐOÁN")}</h2>
+      <h2>{hasImages ? t("Patient:Diagnosis:ConsultSection2") : t("Patient:Diagnosis:ConsultSection1")}</h2>
       {advice}
 
       <div className="dp-sheet-signs">
         <div>
-          <h3>{t("Bác sĩ chẩn đoán")}</h3>
+          <h3>{t("Patient:Diagnosis:SigningDoctor")}</h3>
           <strong>{slot("doctorName")}</strong>
-          <em>{t("(Ký, họ tên)")}</em>
+          <em>{t("Patient:Diagnosis:SignHint")}</em>
         </div>
         <div>
-          <h3>{t("Khách hàng")}</h3>
+          <h3>{t("Patient:Diagnosis:Customer")}</h3>
           <strong>{slot("patientName")}</strong>
-          <em>{t("(Ký, họ tên)")}</em>
+          <em>{t("Patient:Diagnosis:SignHint")}</em>
         </div>
       </div>
     </div>

@@ -10,10 +10,10 @@ export const ReceptionEmptyState: React.FC = () => {
         <TeamOutlined />
       </div>
       <h3 className="reception-empty-title">
-        {t("Không có lượt tiếp nhận phù hợp")}
+        {t("Reception:EmptyTitle")}
       </h3>
       <p className="reception-empty-desc">
-        {t("Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu.")}
+        {t("Reception:EmptyHint")}
       </p>
     </div>
   );

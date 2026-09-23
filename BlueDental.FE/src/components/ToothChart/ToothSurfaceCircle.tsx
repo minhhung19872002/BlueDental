@@ -14,7 +14,7 @@ interface Props {
  */
 export function ToothSurfaceCircle({ fdi, selected, onToggle }: Props) {
   return (
-    <div className="tc-circle" role="group" aria-label={t("Mặt răng {0}", fdi)}>
+    <div className="tc-circle" role="group" aria-label={t("Common:Tooth:Surface", fdi)}>
       {TOOTH_SURFACES.map((surface) => {
         const active = selected.includes(surface);
         const label = surfaceLabel(fdi, surface);

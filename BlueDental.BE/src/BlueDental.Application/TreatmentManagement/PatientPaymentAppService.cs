@@ -92,7 +92,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     }
 
     /// <summary>
-    /// "Lịch sử dư nợ" — every movement on the patient's account, newest first.
+    /// "BE:Perm:BalanceHistory" — every movement on the patient's account, newest first.
     ///
     /// Derived rather than stored: the reference keeps no ledger the clone can
     /// read, and every movement BlueDental makes is already recorded somewhere.
@@ -317,7 +317,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
 
         // Money coming in may not push a line past what it still owes; money
         // going back out may not exceed what that line actually holds. Capping a
-        // refund by "Còn nợ" refused every refund on a line paid in full.
+        // refund by "BE:PaymentKind:StillOwed" refused every refund on a line paid in full.
         var refunding = input.Kind == PatientPaymentKind.Refund;
         var cap = await CapByServiceAsync(input.TreatmentPlanId.Value, chosen, refunding);
 
@@ -414,7 +414,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     }
 
     /// <summary>
-    /// "Chỉnh sửa" on the Thanh toán row. Only the channel, the account, the
+    /// "BE:Common:Edit" on the Thanh toán row. Only the channel, the account, the
     /// date and the note move; the amount and the per-service split stay, so no
     /// rollup can drift out from under the slip.
     /// </summary>

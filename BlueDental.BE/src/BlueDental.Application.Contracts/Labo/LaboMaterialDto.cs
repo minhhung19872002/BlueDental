@@ -14,7 +14,7 @@ public class LaboMaterialDto : FullAuditedEntityDto<Guid>
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
 
-    /// <summary>"Nhóm phân loại" — filled from the group so the table needs no join of its own.</summary>
+    /// <summary>"BE:Field:CategoryGroup" — filled from the group so the table needs no join of its own.</summary>
     public string? TaxonomyName { get; set; }
 }
 

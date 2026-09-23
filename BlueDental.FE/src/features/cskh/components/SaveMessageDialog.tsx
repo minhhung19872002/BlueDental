@@ -54,7 +54,7 @@ export function SaveMessageDialog({ open, patient, onClose }: SaveMessageDialogP
     label: c.name,
   }));
   const templateOptions: SearchSelectOption[] = [
-    { value: FREE_TEMPLATE, label: t("Tin nhắn tự do") },
+    { value: FREE_TEMPLATE, label: t("CSKH:SaveMessage:FreeTemplate") },
     ...(templates?.items ?? []).map((item) => ({ value: item.id, label: item.name })),
   ];
 
@@ -74,23 +74,23 @@ export function SaveMessageDialog({ open, patient, onClose }: SaveMessageDialogP
 
   const handleSend = () => {
     if (!configId) {
-      toast.error(t("Vui lòng chọn cấu hình"));
+      toast.error(t("CSKH:SaveMessage:ConfigRequired"));
       return;
     }
     if (!templateId) {
-      toast.error(t("Vui lòng chọn mẫu tin nhắn"));
+      toast.error(t("CSKH:SaveMessage:TemplateRequired"));
       return;
     }
-    toast.error(t("Chức năng gửi tin nhắn chưa được hỗ trợ"));
+    toast.error(t("CSKH:SaveMessage:NotSupported"));
   };
 
   return (
     <AppDialog
       open={open}
-      title={t("Lưu tin nhắn")}
+      title={t("CSKH:SaveMessage:Title")}
       canSave
       saving={false}
-      saveLabel={t("Gửi")}
+      saveLabel={t("Common:Send")}
       onSave={handleSend}
       onClose={onClose}
     >
@@ -98,21 +98,21 @@ export function SaveMessageDialog({ open, patient, onClose }: SaveMessageDialogP
         {patient && <CarePatientLine code={patient.code} name={patient.name} tinted />}
 
         <div className="cskh-message-row">
-          <MessageField label={t("Cấu hình")} required hasValue={Boolean(configId)}>
+          <MessageField label={t("CSKH:SaveMessage:ConfigLabel")} required hasValue={Boolean(configId)}>
             <SearchSelect
               value={configId}
               options={configOptions}
-              emptyText={t("Không tìm thấy dữ liệu")}
+              emptyText={t("Common:NoResults")}
               allowClear
               onChange={handleConfigChange}
               onSearch={setConfigSearch}
             />
           </MessageField>
-          <MessageField label={t("Mẫu tin nhắn")} required hasValue={Boolean(templateId)}>
+          <MessageField label={t("CSKH:SaveMessage:TemplateLabel")} required hasValue={Boolean(templateId)}>
             <SearchSelect
               value={templateId}
               options={templateOptions}
-              emptyText={t("Không tìm thấy dữ liệu")}
+              emptyText={t("Common:NoResults")}
               allowClear
               onChange={handleTemplateChange}
               onSearch={setTemplateSearch}
@@ -121,7 +121,7 @@ export function SaveMessageDialog({ open, patient, onClose }: SaveMessageDialogP
         </div>
 
         {templateId && (
-          <MessageField label={t("Nội dung tin nhắn gửi đi")} hasValue={Boolean(content)}>
+          <MessageField label={t("CSKH:SaveMessage:ContentLabel")} hasValue={Boolean(content)}>
             <Input.TextArea
               rows={4}
               value={content}
@@ -130,7 +130,7 @@ export function SaveMessageDialog({ open, patient, onClose }: SaveMessageDialogP
           </MessageField>
         )}
 
-        <MessageField label={t("Ghi chú CSKH")} hasValue={Boolean(note)}>
+        <MessageField label={t("CSKH:NoteCSKH")} hasValue={Boolean(note)}>
           <Input.TextArea
             rows={4}
             value={note}

@@ -42,7 +42,7 @@ export function DraftStatusPill({ value, onChange }: Props) {
         onClick: handleClick,
       }}
     >
-      <button type="button" className={className} aria-haspopup="menu" aria-label={t("Trạng thái dịch vụ mới")}>
+      <button type="button" className={className} aria-haspopup="menu" aria-label={t("Treatment:Service:NewServiceStatus")}>
         {t(current.label)}
         <ChevronDown size={14} aria-hidden="true" />
       </button>

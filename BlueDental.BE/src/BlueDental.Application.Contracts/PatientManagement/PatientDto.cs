@@ -54,7 +54,7 @@ public class PatientDto : FullAuditedEntityDto<Guid>
     public List<Guid> DiseaseHistoryEntryIds { get; set; } = new();
 }
 
-/// <summary>One dated line of "Lý do đến khám".</summary>
+/// <summary>One dated line of "BE:Field:ReasonForVisit".</summary>
 public class PatientExaminationReasonDto
 {
     public Guid Id { get; set; }
@@ -124,7 +124,7 @@ public class PatientListItemDto
     public DateTime CreationTime { get; set; }
 }
 
-/// <summary>The code the "Tạo hồ sơ" dialog opens with, split as it renders it.</summary>
+/// <summary>The code the "BE:Common:CreateRecord" dialog opens with, split as it renders it.</summary>
 public class PatientCodeEstimateDto
 {
     /// <summary>The fixed half, e.g. <c>BD26</c> — shown greyed and not editable.</summary>

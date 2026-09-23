@@ -7,7 +7,7 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// "Khác" in the prescription-template usage picker is a choice the user
+    /// "BE:Common:Other" in the prescription-template usage picker is a choice the user
     /// writes out, so the line needs somewhere to keep what they wrote.
     ///
     /// Hand-written for the reason given in ScopeTagsAndPaymentAccountsToBranch:

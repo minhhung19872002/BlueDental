@@ -58,22 +58,22 @@ export function ServiceDetailDialog({ open, patient, plan, line, onClose }: Prop
       open={open}
       width={772}
       className="pd-svcdetail-dialog"
-      title={t("Chi tiết dịch vụ")}
+      title={t("Patient:Plan:ServiceDetailTitle")}
       onCancel={onClose}
-      footer={<Button onClick={onClose}>{t("Đóng")}</Button>}
+      footer={<Button onClick={onClose}>{t("Common:Close")}</Button>}
       destroyOnHidden
     >
       <div className="pd-svcdetail-grid">
         <Section
-          title={t("Chi tiết kế hoạch")}
+          title={t("Patient:Stage:PlanDetail")}
           facts={[
-            [t("Dịch vụ"), line?.serviceName ?? line?.code ?? ""],
-            [t("Trạng thái"), status ?? ""],
+            [t("Patient:Misc:Service"), line?.serviceName ?? line?.code ?? ""],
+            [t("Patient:Misc:StatusLabel"), status ?? ""],
             // The reference names the diagnosis the line answers. BlueDental
             // keeps that on the consulting line, not on the slip's service, so
             // it stays an em dash here — see docs/clone/unknowns.md.
-            [t("Chẩn đoán"), ""],
-            [t("Răng"), teeth.join(", ")],
+            [t("Patient:Tab:Diagnosis"), ""],
+            [t("Patient:DentalChart:Tooth"), teeth.join(", ")],
             /*
              * The **line's own** note, not its công đoạn's.
              *
@@ -87,37 +87,37 @@ export function ServiceDetailDialog({ open, patient, plan, line, onClose }: Prop
              * one clause per công đoạn forever (R-291). Everything else in this
              * block is a plan fact, as its heading says.
              */
-            [t("Ghi chú"), line?.note ?? ""],
+            [t("Patient:Misc:Note"), line?.note ?? ""],
           ]}
         />
         <Section
-          title={t("Thông tin khách hàng")}
+          title={t("Patient:Form:CustomerInfo")}
           facts={[
-            [t("Bệnh nhân"), patient.fullName],
-            [t("Điện thoại"), patient.phoneNumber ?? ""],
-            [t("Địa chỉ"), patient.address ?? ""],
+            [t("Patient:PageTitle"), patient.fullName],
+            [t("Patient:Form:Telephone"), patient.phoneNumber ?? ""],
+            [t("Patient:Col:Address"), patient.address ?? ""],
           ]}
         />
         <Section
-          title={t("Thông tin nhân viên")}
+          title={t("Patient:Form:StaffInfo")}
           facts={[
-            [t("Bác sĩ"), plan?.dentistName ?? ""],
+            [t("Patient:Staff:Doctor"), plan?.dentistName ?? ""],
             // The reference keeps two diagnosing doctors and two consultants
             // beside the treating one; BlueDental records only the consultant
             // on the slip.
-            [t("Bác sĩ chẩn đoán 1"), ""],
-            [t("Chẩn đoán 2"), ""],
-            [t("Nhân sự tư vấn 1"), plan?.consultantName ?? ""],
-            [t("Nhân sự tư vấn 2"), ""],
+            [t("Patient:Diagnosis:Doctor1"), ""],
+            [t("Patient:Diagnosis:Second"), ""],
+            [t("Patient:Staff:Consultant1"), plan?.consultantName ?? ""],
+            [t("Patient:Staff:Consultant2"), ""],
           ]}
         />
         <Section
-          title={t("Thông tin thanh toán")}
+          title={t("Patient:Payment:Info")}
           facts={[
-            [t("Tổng tiền"), money(line?.grossAmount)],
-            [t("Số lượng"), `${line?.quantity ?? 0} ${t("Răng")}`],
-            [t("Giảm giá"), money(line?.discountAmount)],
-            [t("Thanh toán"), money(line?.paidAmount)],
+            [t("Patient:Payment:TotalAmount"), money(line?.grossAmount)],
+            [t("Patient:Payment:Quantity"), `${line?.quantity ?? 0} ${t("Patient:DentalChart:Tooth")}`],
+            [t("Patient:Payment:Discount"), money(line?.discountAmount)],
+            [t("Patient:Misc:Payment"), money(line?.paidAmount)],
           ]}
         />
       </div>

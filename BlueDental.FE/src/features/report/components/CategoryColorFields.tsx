@@ -33,13 +33,13 @@ export function CategoryColorFields({ color, previewName, onChange }: Props) {
       </Form.Item>
 
       <div className="bd-dialog-section">
-        <p className="bd-dialog-section-title">{t("Màu")}</p>
+        <p className="bd-dialog-section-title">{t("Report:CategoryColor:Label")}</p>
         <div className="bd-cat-inline">
           {PRESET_COLORS.map((preset) => (
             <button
               key={preset}
               type="button"
-              aria-label={t("Chọn màu {0}", preset)}
+              aria-label={t("Report:Color:SelectLabel", preset)}
               aria-pressed={color.toUpperCase() === preset}
               onClick={() => onChange(preset)}
               style={{ backgroundColor: preset }}
@@ -53,7 +53,7 @@ export function CategoryColorFields({ color, previewName, onChange }: Props) {
             </span>
             <input
               type="color"
-              aria-label={t("Chọn màu tuỳ chỉnh")}
+              aria-label={t("Report:CategoryColor:CustomLabel")}
               value={color}
               onChange={(event) => onChange(event.target.value.toUpperCase())}
               className="bd-color-input"
@@ -63,9 +63,9 @@ export function CategoryColorFields({ color, previewName, onChange }: Props) {
       </div>
 
       <div className="bd-tag-preview">
-        <p className="bd-cat-hint">{t("Xem trước")}</p>
+        <p className="bd-cat-hint">{t("Report:CategoryColor:Preview")}</p>
         <span style={{ backgroundColor: color }} className="bd-tag-chip">
-          {previewName || t("Danh mục sổ quỹ")}
+          {previewName || t("Report:Category:Cashbook")}
         </span>
       </div>
     </>

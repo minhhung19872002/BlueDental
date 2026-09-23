@@ -8,8 +8,8 @@ interface Props {
 }
 
 const DENTITIONS: readonly { key: Dentition; label: () => string }[] = [
-  { key: "permanent", label: () => t("Răng vĩnh viễn") },
-  { key: "deciduous", label: () => t("Răng sữa") },
+  { key: "permanent", label: () => t("Common:Tooth:Permanent") },
+  { key: "deciduous", label: () => t("Common:Tooth:Deciduous") },
 ];
 
 /** "Răng vĩnh viễn / Răng sữa" — the reference's own 16px ring radios. */
@@ -17,7 +17,7 @@ export function DentitionRadio({ value, onChange }: Props) {
   const name = useId();
 
   return (
-    <div className="tc-dentition" role="radiogroup" aria-label={t("Loại răng")}>
+    <div className="tc-dentition" role="radiogroup" aria-label={t("Common:Tooth:Type")}>
       {DENTITIONS.map((item) => (
         <label key={item.key} className="tc-radio">
           <input

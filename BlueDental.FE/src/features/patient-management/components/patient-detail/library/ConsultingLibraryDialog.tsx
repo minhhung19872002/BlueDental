@@ -89,7 +89,7 @@ export function ConsultingLibraryDialog({ open, branchId, imageCount, onClose }:
         role="dialog"
         aria-modal="true"
         aria-label={
-          fullscreen ? t("Thư viện ảnh lâm sàng toàn màn hình") : t("Thư viện ảnh lâm sàng")
+          fullscreen ? t("Patient:Photo:ClinicalLibraryFullscreen") : t("Patient:Photo:ClinicalLibrary")
         }
       >
         {fullscreen ? (
@@ -106,7 +106,7 @@ export function ConsultingLibraryDialog({ open, branchId, imageCount, onClose }:
               <button
                 type="button"
                 className="pd-lib-float__btn"
-                aria-label={t("Mở danh mục ảnh")}
+                aria-label={t("Patient:Photo:OpenCatalog")}
                 onClick={() => setAsideOpen(true)}
               >
                 <ListCollapse size={20} />
@@ -122,7 +122,7 @@ export function ConsultingLibraryDialog({ open, branchId, imageCount, onClose }:
             </div>
             <button type="button" className="pd-lib-exit" onClick={() => setFullscreen(false)}>
               <X size={16} />
-              {t("Thoát")}
+              {t("Patient:Misc:Exit")}
             </button>
             {sheet}
             {toolbar}
@@ -134,11 +134,11 @@ export function ConsultingLibraryDialog({ open, branchId, imageCount, onClose }:
               <header className="pd-lib-head">
                 <span className="pd-lib-dot" data-tone={dotTone} />
                 <strong className="pd-lib-head__topic">
-                  {library.topic?.name ?? t("Dữ liệu tư vấn")}
+                  {library.topic?.name ?? t("Patient:Advise:ConsultingData")}
                 </strong>
                 <ChevronRight size={16} className="pd-lib-head__sep" />
                 <span className="pd-lib-head__content">
-                  {library.content?.name ?? t("Dữ liệu tư vấn")}
+                  {library.content?.name ?? t("Patient:Advise:ConsultingData")}
                 </span>
                 <span className="pd-lib-count pd-lib-count--head">{badge}</span>
                 <button
@@ -147,12 +147,12 @@ export function ConsultingLibraryDialog({ open, branchId, imageCount, onClose }:
                   onClick={() => setFullscreen(true)}
                 >
                   <Expand size={16} />
-                  {t("Toàn màn hình")}
+                  {t("Patient:Viewer:Fullscreen")}
                 </button>
                 <button
                   type="button"
                   className="pd-lib-icon-btn pd-lib-icon-btn--close"
-                  aria-label={t("Đóng thư viện ảnh")}
+                  aria-label={t("Patient:Photo:CloseLibrary")}
                   onClick={onClose}
                 >
                   <X size={18} />

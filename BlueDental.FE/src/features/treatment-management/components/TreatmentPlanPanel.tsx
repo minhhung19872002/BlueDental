@@ -90,8 +90,8 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
     serviceList?.kind === "plan" ? flattenServices([serviceList.plan]) : flattenServices(plans);
   const serviceTitle =
     serviceList?.kind === "plan"
-      ? t("Danh sách dịch vụ - {0}", serviceList.plan.code)
-      : t("Danh sách dịch vụ");
+      ? t("Treatment:Service:ListTitle", serviceList.plan.code)
+      : t("Treatment:Service:ServiceList");
   // One slip's list prints the DT code in front of each service, and the code
   // opens that slip; the list of every slip leaves it off (measured 2026-09-21).
   const showServiceCode = serviceList?.kind === "plan";

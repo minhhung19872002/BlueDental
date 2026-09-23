@@ -105,10 +105,10 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             contactPerson: payload.contactPerson,
           },
         });
-        toast.success(t("Cập nhật chi nhánh thành công"));
+        toast.success(t("Organization:BranchUpdated"));
       } else {
         await createBranch.mutateAsync(payload);
-        toast.success(t("Tạo chi nhánh thành công"));
+        toast.success(t("Organization:BranchCreated"));
       }
       onClose();
     } catch {
@@ -119,12 +119,12 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
   return (
     <Modal
       open={open}
-      title={isEditing ? t("Cập nhật chi nhánh") : t("Thêm chi nhánh")}
+      title={isEditing ? t("Organization:UpdateBranch") : t("Organization:AddBranch")}
       onCancel={onClose}
       onOk={() => void handleOk()}
       confirmLoading={saving}
-      okText={t("Lưu")}
-      cancelText={t("Hủy")}
+      okText={t("Organization:SaveLabel")}
+      cancelText={t("Organization:CancelLabel")}
       destroyOnClose
       width={720}
     >
@@ -132,49 +132,49 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         <div className="settings-row">
           <Form.Item
             name="code"
-            label={t("Mã chi nhánh")}
-            rules={isEditing ? [] : [{ required: true, message: t("Vui lòng nhập mã chi nhánh") }]}
+            label={t("Organization:BranchCodeLabel")}
+            rules={isEditing ? [] : [{ required: true, message: t("Organization:BranchCodeRequired") }]}
           >
-            <Input disabled={isEditing} placeholder={t("Mã chi nhánh")} />
+            <Input disabled={isEditing} placeholder={t("Organization:BranchCodePlaceholder")} />
           </Form.Item>
           <Form.Item
             name="name"
-            label={t("Tên chi nhánh")}
-            rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
+            label={t("Organization:BranchNameLabel")}
+            rules={[{ required: true, message: t("Organization:BranchNameRequired") }]}
           >
             <Input />
           </Form.Item>
         </div>
         <div className="settings-row">
-          <Form.Item name="taxCode" label={t("Mã số thuế")}>
-            <Input placeholder={t("Mã số thuế")} />
+          <Form.Item name="taxCode" label={t("Organization:TaxCodeLabel")}>
+            <Input placeholder={t("Organization:TaxCodePlaceholder")} />
           </Form.Item>
-          <Form.Item name="contactPerson" label={t("Người liên hệ")}>
-            <Input placeholder={t("Người liên hệ")} />
+          <Form.Item name="contactPerson" label={t("Organization:ContactPersonLabel")}>
+            <Input placeholder={t("Organization:ContactPersonPlaceholder")} />
           </Form.Item>
         </div>
         <div className="settings-row">
           <Form.Item
             name="email"
             label={t("Email")}
-            rules={[{ type: "email", message: t("Email không hợp lệ") }]}
+            rules={[{ type: "email", message: t("Organization:EmailInvalid") }]}
           >
             <Input placeholder={t("Email")} />
           </Form.Item>
           <Form.Item
             name="phoneNumber"
-            label={t("Số điện thoại")}
-            rules={[{ pattern: /^0\d{9,10}$/, message: t("Số điện thoại không hợp lệ") }]}
+            label={t("Organization:PhoneLabel")}
+            rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
           >
-            <Input placeholder={t("Số điện thoại")} />
+            <Input placeholder={t("Organization:PhonePlaceholder")} />
           </Form.Item>
         </div>
         <div className="settings-row">
-          <Form.Item name="provinceId" label={t("Tỉnh/ Thành phố")}>
+          <Form.Item name="provinceId" label={t("Organization:ProvinceLabel")}>
             <Select
               showSearch
               allowClear
-              placeholder={t("Chọn tỉnh/ thành phố")}
+              placeholder={t("Organization:ProvincePlaceholder")}
               options={provinces.map((p) => ({ label: p.name, value: p.code }))}
               filterOption={(input, option) =>
                 (option?.label as string).toLowerCase().includes(input.toLowerCase())
@@ -182,11 +182,11 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
               onChange={() => form.setFieldValue("wardId", undefined)}
             />
           </Form.Item>
-          <Form.Item name="wardId" label={t("Xã/ Phường")}>
+          <Form.Item name="wardId" label={t("Organization:WardLabel")}>
             <Select
               showSearch
               allowClear
-              placeholder={t("Chọn xã/ phường")}
+              placeholder={t("Organization:WardPlaceholder")}
               options={wards.map((w) => ({ label: w.name, value: w.code }))}
               filterOption={(input, option) =>
                 (option?.label as string).toLowerCase().includes(input.toLowerCase())
@@ -195,8 +195,8 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             />
           </Form.Item>
         </div>
-        <Form.Item name="address" label={t("Địa chỉ chi nhánh")}>
-          <Input placeholder={t("Địa chỉ chi nhánh")} />
+        <Form.Item name="address" label={t("Organization:AddressLabel")}>
+          <Input placeholder={t("Organization:AddressPlaceholder")} />
         </Form.Item>
       </Form>
     </Modal>

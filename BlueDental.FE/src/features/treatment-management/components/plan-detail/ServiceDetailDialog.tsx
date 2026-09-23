@@ -43,7 +43,7 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
   return (
     <Modal
       open={row !== null}
-      title={t("Chi tiết dịch vụ")}
+      title={t("Treatment:Service:ServiceDetail")}
       className="tp-dialog pdt-detail-dialog"
       width="min(772px, calc(100vw - 32px))"
       closeIcon={<X size={20} aria-hidden="true" />}
@@ -51,7 +51,7 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
       footer={
         <div className="pdt-confirm-foot">
           <button type="button" className="tp-btn tp-btn--outline" onClick={onClose}>
-            {t("Đóng")}
+            {t("Common:Close")}
           </button>
         </div>
       }
@@ -59,40 +59,40 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
       {row && service && pill && (
         <div className="pdt-detail-grid">
           <Section
-            title={t("Chi tiết kế hoạch")}
+            title={t("Treatment:Plan:PlanDetail")}
             facts={[
-              { label: t("Dịch vụ"), value: service.serviceName },
-              { label: t("Trạng thái"), value: t(pill.label) },
-              { label: t("Chẩn đoán"), value: dash(row.advise?.diagnosisName) },
-              { label: t("Răng"), value: formatTeeth(service.teeth) },
-              { label: t("Ghi chú"), value: dash(row.advise?.note) },
+              { label: t("Treatment:Service:Service"), value: service.serviceName },
+              { label: t("Common:Status"), value: t(pill.label) },
+              { label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
+              { label: t("Treatment:Tooth:Tooth"), value: formatTeeth(service.teeth) },
+              { label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },
             ]}
           />
           <Section
-            title={t("Thông tin khách hàng")}
+            title={t("Treatment:Invoice:CustomerInfo")}
             facts={[
-              { label: t("Bệnh nhân"), value: patient.fullName },
-              { label: t("Điện thoại"), value: dash(patient.phoneNumber) },
-              { label: t("Địa chỉ"), value: dash(patient.address) },
+              { label: t("Treatment:Common:Patient"), value: patient.fullName },
+              { label: t("Treatment:Common:Phone"), value: dash(patient.phoneNumber) },
+              { label: t("Treatment:Common:Address"), value: dash(patient.address) },
             ]}
           />
           <Section
-            title={t("Thông tin nhân viên")}
+            title={t("Treatment:Common:StaffInfo")}
             facts={[
-              { label: t("Bác sĩ"), value: dash(row.plan.dentistName) },
-              { label: t("Bác sĩ chẩn đoán 1"), value: dash(row.advise?.staffName) },
-              { label: t("Chẩn đoán 2"), value: dash(row.advise?.secondStaffName) },
-              { label: t("Nhân sự tư vấn 1"), value: dash(row.plan.consultantName) },
-              { label: t("Nhân sự tư vấn 2"), value: "—" },
+              { label: t("Treatment:Common:Doctor"), value: dash(row.plan.dentistName) },
+              { label: t("Treatment:Diagnosis:DoctorOne"), value: dash(row.advise?.staffName) },
+              { label: t("Treatment:Diagnosis:DiagnosisTwo"), value: dash(row.advise?.secondStaffName) },
+              { label: t("Treatment:Consulting:ConsultantOne"), value: dash(row.plan.consultantName) },
+              { label: t("Treatment:Consulting:ConsultantTwo"), value: "—" },
             ]}
           />
           <Section
-            title={t("Thông tin thanh toán")}
+            title={t("Treatment:Invoice:PaymentInfo")}
             facts={[
-              { label: t("Tổng tiền"), value: moneyText(service.effectiveAmount) },
-              { label: t("Số lượng"), value: t("{0} Răng", service.quantity) },
-              { label: t("Giảm giá"), value: moneyText(service.discountAmount) },
-              { label: t("Thanh toán"), value: moneyText(service.paidAmount) },
+              { label: t("Treatment:Pricing:TotalAmount"), value: moneyText(service.effectiveAmount) },
+              { label: t("Treatment:Pricing:Quantity"), value: t("Treatment:Service:QuantityTeeth", service.quantity) },
+              { label: t("Treatment:Pricing:Discount"), value: moneyText(service.discountAmount) },
+              { label: t("Treatment:Payment:Payment"), value: moneyText(service.paidAmount) },
             ]}
           />
         </div>

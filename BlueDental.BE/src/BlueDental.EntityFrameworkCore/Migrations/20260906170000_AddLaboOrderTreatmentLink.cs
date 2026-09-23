@@ -8,9 +8,9 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// What "Tạo Labo" on a treatment row needs a labo order to remember.
+    /// What "BE:Perm:CreateLabo" on a treatment row needs a labo order to remember.
     ///
-    /// The reference raises the order from a công đoạn: its "Đặt mới" opens with
+    /// The reference raises the order from a công đoạn: its "BE:LaboField:NewOrder" opens with
     /// the patient, the slip, the service and the dentist already filled, so the
     /// order has to know which line and which công đoạn it came from. Its form
     /// also collects Màu răng and Số lượng, which had nowhere to go.

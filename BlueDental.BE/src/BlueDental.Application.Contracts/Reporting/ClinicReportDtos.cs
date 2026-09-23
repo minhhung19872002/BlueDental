@@ -13,7 +13,7 @@ public class ClinicReportQueryDto
 }
 
 /// <summary>
-/// The finance rollup behind "Doanh số và lượt khách". Mirrors the reference's
+/// The finance rollup behind "BE:Perm:SalesVisits". Mirrors the reference's
 /// <c>payment-stat/summary</c>, limited to the figures BlueDental can actually
 /// derive — the reference's carry-over and debt-topup fields have no source here
 /// and are reported as zero rather than invented.
@@ -29,7 +29,7 @@ public class PaymentStatSummaryDto
     public decimal ByCard { get; set; }
     public decimal ByOutstandingDebt { get; set; }
 
-    /// <summary>Ví điện tử — the reference's "Ví momo".</summary>
+    /// <summary>Ví điện tử — the reference's "BE:PaymentKind:Momo".</summary>
     public decimal ByEWallet { get; set; }
 
     public decimal RefundByCash { get; set; }
@@ -69,7 +69,7 @@ public class PatientHistoryRowDto
 }
 
 /// <summary>
-/// "Kết quả kinh doanh" — the six rows the reference shows on
+/// "BE:Perm:BusinessResult" — the six rows the reference shows on
 /// <c>result-stat/summary</c>.
 /// </summary>
 public class BusinessResultDto
@@ -83,10 +83,10 @@ public class BusinessResultDto
     /// <summary>Revenue less refunds and expenses.</summary>
     public decimal Result { get; set; }
 
-    /// <summary>"Thu khác" broken down by mục thu — the indented rows under it on the reference.</summary>
+    /// <summary>"BE:Col:OtherIncome" broken down by mục thu — the indented rows under it on the reference.</summary>
     public List<BusinessResultCategoryDto> OtherIncomeByCategory { get; set; } = new();
 
-    /// <summary>"Chi phí" broken down by mục chi.</summary>
+    /// <summary>"BE:Col:Expenses" broken down by mục chi.</summary>
     public List<BusinessResultCategoryDto> ExpenseByCategory { get; set; } = new();
 }
 
@@ -102,7 +102,7 @@ public class ClinicReportQueryWithDoctorDto : ClinicReportQueryDto
     public Guid? DoctorId { get; set; }
 }
 
-/// <summary>Tab "Doanh số" > Khách hàng phát sinh dịch vụ — one service line inside a treatment ticket.</summary>
+/// <summary>Tab "BE:Field:Sales" > Khách hàng phát sinh dịch vụ — one service line inside a treatment ticket.</summary>
 public class ServiceLineDto
 {
     public Guid Id { get; set; }
@@ -119,11 +119,11 @@ public class ServiceLineDto
     public int Quantity { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
-    /// <summary>Last column of the reference's "Khách hàng phát sinh dịch vụ" export.</summary>
+    /// <summary>Last column of the reference's "BE:Col:CustomersWithServices" export.</summary>
     public string BranchName { get; set; } = string.Empty;
 }
 
-/// <summary>Tab "Doanh số" > Thanh toán — one payment voucher.</summary>
+/// <summary>Tab "BE:Field:Sales" > Thanh toán — one payment voucher.</summary>
 public class PaymentLineDto
 {
     public Guid Id { get; set; }
@@ -147,7 +147,7 @@ public class PaymentLineDto
     public string Note { get; set; } = string.Empty;
 }
 
-/// <summary>Tab "Doanh số" > Hoàn tiền — one refund voucher.</summary>
+/// <summary>Tab "BE:Field:Sales" > Hoàn tiền — one refund voucher.</summary>
 public class RefundLineDto
 {
     public Guid Id { get; set; }
@@ -162,7 +162,7 @@ public class RefundLineDto
     public string Note { get; set; } = string.Empty;
 }
 
-/// <summary>Tab "Doanh số" > Dư nợ — one debt line.</summary>
+/// <summary>Tab "BE:Field:Sales" > Dư nợ — one debt line.</summary>
 public class DebtLineDto
 {
     public Guid Id { get; set; }
@@ -179,7 +179,7 @@ public class DebtLineDto
     public decimal DebtRefund { get; set; }
 }
 
-/// <summary>Tab "Doanh số" > Tạm ứng — one prepaid event.</summary>
+/// <summary>Tab "BE:Field:Sales" > Tạm ứng — one prepaid event.</summary>
 public class PrepaidLineDto
 {
     public Guid Id { get; set; }

@@ -44,22 +44,22 @@ export function PlanAdvisorFields({
         <div className="tp-advisor-field">
           <FloatingField
             name="advisorId"
-            label={t("Nhân sự tư vấn 1")}
+            label={t("Treatment:Consulting:Advisor1")}
             required
-            rules={[{ required: true, message: t("Vui lòng chọn nhân sự tư vấn") }]}
+            rules={[{ required: true, message: t("Treatment:Consulting:AdvisorRequired") }]}
           >
             <ServerSearchSelect
               useOptions={useDentistOptions}
               valueLabel={advisorName}
-              notFoundText={t("Không tìm thấy nhân sự")}
+              notFoundText={t("Treatment:Consulting:NoAdvisor")}
             />
           </FloatingField>
           {!secondShown && (
-            <Tooltip title={t("Thêm nhân sự tư vấn")}>
+            <Tooltip title={t("Treatment:Consulting:AddAdvisor")}>
               <button
                 type="button"
                 className="tp-round-btn"
-                aria-label={t("Thêm nhân sự tư vấn")}
+                aria-label={t("Treatment:Consulting:AddAdvisor")}
                 onClick={() => setSecondShown(true)}
               >
                 <Plus size={16} aria-hidden="true" />
@@ -69,18 +69,18 @@ export function PlanAdvisorFields({
         </div>
         {secondShown ? (
           <div className="tp-advisor-field">
-            <FloatingField name="secondAdvisorId" label={t("Nhân sự tư vấn 2")}>
+            <FloatingField name="secondAdvisorId" label={t("Treatment:Consulting:Advisor2")}>
               <ServerSearchSelect
                 useOptions={useDentistOptions}
                 valueLabel={secondAdvisorName}
-                notFoundText={t("Không tìm thấy nhân sự")}
+                notFoundText={t("Treatment:Consulting:NoAdvisor")}
               />
             </FloatingField>
-            <Tooltip title={t("Tắt nhân sự tư vấn 2")}>
+            <Tooltip title={t("Treatment:Consulting:RemoveAdvisor2")}>
               <button
                 type="button"
                 className="tp-round-btn tp-round-btn--danger"
-                aria-label={t("Tắt nhân sự tư vấn 2")}
+                aria-label={t("Treatment:Consulting:RemoveAdvisor2")}
                 onClick={hideSecond}
               >
                 <X size={16} aria-hidden="true" />

@@ -8,7 +8,7 @@ export function CareRatingField() {
   return (
     <div className="pc-rating-field">
       <span className="pc-rating-field-label">
-        {t("Mức độ hài lòng")}
+        {t("Patient:Care:Satisfaction")}
         <span className="floating-field-required">*</span>
       </span>
       <Form.Item name="outcome" className="pc-rating-item" rules={[{ required: true }]}>

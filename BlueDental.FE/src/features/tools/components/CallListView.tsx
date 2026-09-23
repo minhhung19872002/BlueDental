@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Segmented, Tag } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
@@ -43,24 +43,24 @@ export function CallListView() {
     () => [
       {
         key: "staff",
-        title: t("Nhân viên"),
+        title: t("Tools:StaffLabel"),
         render: (_, log) => log.staffName ?? "—",
       },
-      { key: "branch", title: t("Chi nhánh"), dataIndex: "branchName" },
+      { key: "branch", title: t("Tools:BranchLabel"), dataIndex: "branchName" },
       {
         key: "callCode",
-        title: t("Mã cuộc gọi"),
+        title: t("Tools:CallCodeLabel"),
         render: (_, log) => <span className="bd-cat-num">{log.callCode}</span>,
       },
       {
         key: "extensionCode",
-        title: t("Mã mở rộng"),
+        title: t("Tools:ExtCodeLabel"),
         render: (_, log) => log.extensionCode ?? "—",
       },
-      { key: "phoneNumber", title: t("Số điện thoại"), dataIndex: "phoneNumber", width: 140 },
+      { key: "phoneNumber", title: t("Tools:PhoneLabel"), dataIndex: "phoneNumber", width: 140 },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 120,
         render: (_, log) => {
           const { label, color } = callLogStatusTag(log.status);
@@ -69,7 +69,7 @@ export function CallListView() {
       },
       {
         key: "provider",
-        title: t("Nhà cung cấp"),
+        title: t("Tools:ProviderLabel"),
         width: 130,
         render: (_, log) => providerLabel(log.provider),
       },
@@ -94,7 +94,7 @@ export function CallListView() {
           />
         </div>
         <StaffFilter
-          label={t("Nhân viên")}
+          label={t("Tools:StaffLabel")}
           value={staffId}
           onChange={(next) => {
             setStaffId(next);
@@ -109,8 +109,9 @@ export function CallListView() {
         rowKey="id"
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
-        locale={{ emptyText: t("Chưa có cuộc gọi") }}
+        locale={{ emptyText: t("Tools:NoCalls") }}
       />
     </div>
   );
 }
+

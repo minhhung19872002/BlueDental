@@ -292,7 +292,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       // when they were picked, so they are attached now.
       if (pending.length > 0) await upload(created.id, pending);
 
-      toast.success(t("Đã thêm công đoạn"));
+      toast.success(t("Patient:Stage:Added"));
       setSelected(null);
       setNote("");
       setPending([]);
@@ -319,10 +319,10 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
             item.catalogServiceStageId === stepId ? next : item.isCompleted,
         })),
       });
-      toast.success(t("Cập nhật thành công"));
+      toast.success(t("Patient:Profile:UpdateSuccess"));
     } catch (error) {
       // The reference's own wording when this call fails.
-      notifyError(extractApiError(error) || t("Không thể cập nhật công đoạn"));
+      notifyError(extractApiError(error) || t("Patient:Stage:UpdateError"));
     } finally {
       setBusyStage(null);
     }
@@ -341,7 +341,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
         scheduledDate: stage.scheduledDate ?? undefined,
         teeth: stage.teeth,
       });
-      toast.success(t("Đã lưu ghi chú"));
+      toast.success(t("Patient:Misc:NoteSaved"));
     } catch (error) {
       notifyError(extractApiError(error));
     } finally {
@@ -360,10 +360,10 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     try {
       if (reopening) {
         await revertStage.mutateAsync(stage.id);
-        toast.success(t("Đã mở lại công đoạn"));
+        toast.success(t("Patient:Stage:Reopened"));
       } else {
         await completeStage.mutateAsync(stage.id);
-        toast.success(t("Đã hoàn thành công đoạn"));
+        toast.success(t("Patient:Stage:Completed"));
       }
     } catch (error) {
       notifyError(extractApiError(error));
@@ -396,7 +396,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     setBusyStage(stageId);
     try {
       await upload(stageId, files);
-      toast.success(t("Đã tải ảnh"));
+      toast.success(t("Patient:Photo:Uploaded"));
     } catch (error) {
       notifyError(extractApiError(error));
     } finally {

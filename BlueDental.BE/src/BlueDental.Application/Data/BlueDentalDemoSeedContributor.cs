@@ -187,7 +187,7 @@ public class BlueDentalDemoSeedContributor(
         await materialsSeeder.SeedAsync(BlueDentalDataSeedContributor.DefaultBranchId);
         await materialsSeeder.SeedAsync(BlueDentalBranchSeedContributor.SecondBranchId);
 
-        // Vouchers per branch: "Voucher áp dụng" on Chẩn đoán & Tư vấn offers
+        // Vouchers per branch: "BE:Perm:AppliedVouchers" on Chẩn đoán & Tư vấn offers
         // only the branch in the URL, so a second-branch record had an empty
         // picker while every seeded voucher sat on the first.
         await operationsSeeder.SeedVouchersAsync(BlueDentalBranchSeedContributor.SecondBranchId);

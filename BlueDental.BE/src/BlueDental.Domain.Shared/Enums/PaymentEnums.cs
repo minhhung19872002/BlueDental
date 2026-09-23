@@ -4,8 +4,8 @@ namespace BlueDental.Billing;
 /// How money moved.
 ///
 /// The reference's payment rollup splits by <c>cash | banking | card |
-/// outstandingDebt</c>, but its "Tạo phiếu thanh toán" dialog offers a fifth —
-/// "Ví momo" — so the enum carries it and the clinic report gives it a bucket
+/// outstandingDebt</c>, but its "BE:Perm:CreatePayment" dialog offers a fifth —
+/// "BE:PaymentKind:Momo" — so the enum carries it and the clinic report gives it a bucket
 /// of its own rather than letting e-wallet money fall out of the totals.
 /// </summary>
 public enum PaymentMethodKind
@@ -23,7 +23,7 @@ public enum PaymentMethodKind
 
 /// <summary>
 /// How a receipt's total is spread over the services it covers — the
-/// reference's "Chia Tiền Tự Động" / "Chia Tiền Thủ Công".
+/// reference's "BE:Treatment:AutoSplit" / "BE:Treatment:ManualSplit".
 /// </summary>
 public enum PaymentSplitMode
 {
@@ -47,7 +47,7 @@ public enum PatientPaymentKind
 
     /// <summary>
     /// Nạp quỹ khách — money the clinic holds for the patient before it is spent
-    /// on a slip. The reference shows this as "Đang Giữ Hộ Khách".
+    /// on a slip. The reference shows this as "BE:PaymentKind:HeldForCustomer".
     /// </summary>
     Prepaid = 3
 }

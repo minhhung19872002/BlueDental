@@ -31,31 +31,31 @@ export function PrescriptionLineCard({
       <div className="bd-rx-card-head">
         <span className="bd-rx-card-num">{index + 1}</span>
         {canDelete && (
-          <Tooltip title={t("Xoá dòng")}>
+          <Tooltip title={t("Common:Rx:DeleteLine")}>
             <Button
               type="text"
               size="small"
               icon={<DeleteOutlined />}
               className="bd-rx-card-del"
-              aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
+              aria-label={t("Common:Rx:DeleteLineN", String(index + 1))}
               onClick={onDelete}
             />
           </Tooltip>
         )}
       </div>
       <div className="bd-rx-card-body">
-        <FloatingField label={t("Tên thuốc")}>
+        <FloatingField label={t("Common:Rx:MedicineName")}>
           <Select
             showSearch
             optionFilterProp="label"
             className="bd-rx-full"
-            placeholder={t("Tên thuốc")}
+            placeholder={t("Common:Rx:MedicineName")}
             value={line.medicineEntryId || undefined}
             onChange={(next) => onPatch({ medicineEntryId: next })}
             options={medicines.map((m) => ({ value: m.id, label: m.name }))}
           />
         </FloatingField>
-        <FloatingField label={t("Ngày uống")}>
+        <FloatingField label={t("Common:Rx:TimesPerDay")}>
           <InputNumber
             min={0}
             className="bd-rx-full"
@@ -63,7 +63,7 @@ export function PrescriptionLineCard({
             onChange={(next) => onPatch({ timesPerDay: Number(next) || 0 })}
           />
         </FloatingField>
-        <FloatingField label={t("Mỗi lần")}>
+        <FloatingField label={t("Common:Rx:AmountPerTime")}>
           <InputNumber
             min={0}
             step={0.5}
@@ -72,7 +72,7 @@ export function PrescriptionLineCard({
             onChange={(next) => onPatch({ amountPerTime: Number(next) || 0 })}
           />
         </FloatingField>
-        <FloatingField label={t("Số ngày")}>
+        <FloatingField label={t("Common:Rx:NumberOfDays")}>
           <InputNumber
             min={0}
             className="bd-rx-full"
@@ -83,10 +83,10 @@ export function PrescriptionLineCard({
 
         {expanded && (
           <>
-            <FloatingField label={t("Số lượng")}>
+            <FloatingField label={t("Common:Rx:Quantity")}>
               <InputNumber disabled className="bd-rx-full" value={lineQuantity(line)} />
             </FloatingField>
-            <FloatingField label={t("Sử dụng")}>
+            <FloatingField label={t("Common:Rx:Usage")}>
               <UsagePicker
                 value={{ usage: line.usage, otherUsage: line.otherUsage ?? null }}
                 onChange={(next) => onPatch(next)}
@@ -100,7 +100,7 @@ export function PrescriptionLineCard({
           className="bd-rx-card-toggle"
           onClick={() => setExpanded((v) => !v)}
         >
-          {expanded ? t("Rút gọn") : t("Xem thêm")}
+          {expanded ? t("Common:ShowLess") : t("Common:ShowMore")}
           <svg width="12" height="12" viewBox="0 0 12 12" className={expanded ? "bd-rx-flip" : ""}>
             <path d="M2.5 4.5L6 8L9.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

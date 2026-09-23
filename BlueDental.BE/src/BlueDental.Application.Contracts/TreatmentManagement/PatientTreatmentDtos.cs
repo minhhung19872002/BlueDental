@@ -32,7 +32,7 @@ public class ServiceStepDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>The reference's "Giá trị" — what the step pays. Not used yet.</summary>
+    /// <summary>The reference's "BE:Field:Value" — what the step pays. Not used yet.</summary>
     public decimal Value { get; set; }
 }
 
@@ -66,13 +66,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
 
     /// <summary>
     /// How long this service is under warranty, in days, copied from its catalog
-    /// entry. Zero means the reference's "Không bảo hành": a finished công đoạn
+    /// entry. Zero means the reference's "BE:Warranty:None": a finished công đoạn
     /// offers no Bảo hành at all.
     /// </summary>
     public int WarrantyDays { get; set; }
 
     /// <summary>
-    /// "Danh sách công đoạn" — the steps this service declares in Danh mục, in
+    /// "BE:Treatment:StageList" — the steps this service declares in Danh mục, in
     /// their own order. The công đoạn form lists them as checkboxes; the row
     /// itself has no state, each công đoạn keeps its own ticks.
     /// </summary>
@@ -97,7 +97,7 @@ public class TreatmentServiceDto : EntityDto<Guid>
 
     /// <summary>
     /// Chăm sóc sau điều trị. Null when no care record covers any of this line's
-    /// stages, which the table prints as "Chưa chăm sóc".
+    /// stages, which the table prints as "BE:CareStatus:NotContacted".
     /// </summary>
     public CareStatus? AfterCareStatus { get; set; }
 
@@ -177,7 +177,7 @@ public class ConvertTreatmentServiceDto
     public Guid? ServiceId { get; set; }
 
     /// <summary>
-    /// "Thanh toán" — what the patient is charged for the new service. Null
+    /// "BE:Common:Payment" — what the patient is charged for the new service. Null
     /// means the new service's full price.
     /// </summary>
     public decimal? PaymentAmount { get; set; }
@@ -243,7 +243,7 @@ public class OpenTreatmentPlanDto
 
     /// <summary>
     /// The plan-level voucher already worked out on Chẩn đoán &amp; Tư vấn, so the
-    /// slip opens on the same "Tổng tiền" the screen showed. Added on top of the
+    /// slip opens on the same "BE:Field:TotalAmount" the screen showed. Added on top of the
     /// slip discount above, and capped with it at the slip total.
     /// </summary>
     public decimal? VoucherDiscountAmount { get; set; }
@@ -298,7 +298,7 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
 }
 
 /// <summary>
-/// "Chỉnh sửa" on a receipt row: how the money was taken, not how much. The
+/// "BE:Common:Edit" on a receipt row: how the money was taken, not how much. The
 /// amount and the service split are fixed once written — correcting those means
 /// voiding the receipt and collecting again.
 /// </summary>
@@ -321,7 +321,7 @@ public class RecordPatientPaymentDto
     /// <summary>
     /// Every service this one receipt covers. Required for a payment or refund
     /// against a slip — the reference refuses to save with none
-    /// ("Bạn cần chọn ít nhất 1 dịch vụ") — and left empty for money held.
+    /// ("BE:Validation:SelectAtLeast1Service") — and left empty for money held.
     /// </summary>
     public List<Guid> TreatmentServiceIds { get; set; } = new();
 
@@ -393,7 +393,7 @@ public interface IPatientTreatmentAppService : IApplicationService
 /// Thanh toán của bệnh nhân — thu tiền, hoàn tiền, giữ hộ.
 /// </summary>
 /// <summary>
-/// The six movements the reference's "Lịch sử dư nợ" knows, with its own
+/// The six movements the reference's "BE:Perm:BalanceHistory" knows, with its own
 /// wording. Read off its published bundle 2026-09-22:
 /// <c>{topup, use, withdraw, replace, refund, cancel}</c>.
 /// </summary>
@@ -421,7 +421,7 @@ public enum DebtMovementType
     Cancel = 6
 }
 
-/// <summary>One line of "Lịch sử dư nợ".</summary>
+/// <summary>One line of "BE:Perm:BalanceHistory".</summary>
 public class DebtHistoryEntryDto
 {
     public Guid Id { get; set; }

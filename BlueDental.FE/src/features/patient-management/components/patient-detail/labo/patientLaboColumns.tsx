@@ -45,13 +45,13 @@ export function buildPatientLaboColumns({
 }: Actions): TableColumnsType<LaboOrderDto> {
   return [
     {
-      title: t("Mã phiếu labo"),
+      title: t("Patient:Labo:Code"),
       dataIndex: "orderCode",
       width: 150,
       render: (value: string) => <span className="pd-labo-code">{value}</span>,
     },
     {
-      title: t("Ngày gửi / Tình trạng mẫu"),
+      title: t("Patient:Labo:SentDateStatus"),
       dataIndex: "sentAt",
       width: 175,
       render: (value: string | undefined, row) => (
@@ -59,25 +59,25 @@ export function buildPatientLaboColumns({
       ),
     },
     {
-      title: t("Ngày giao / Trạng thái Labo"),
+      title: t("Patient:Labo:DeliveryStatus"),
       dataIndex: "receivedAt",
       width: 175,
       render: (value: string | undefined, row) => (
         <DatePill date={value} pill={LABO_STATUS_CONFIG[row.status]} />
       ),
     },
-    { title: t("Bác sĩ chỉ định"), dataIndex: "dentistName", width: 140, render: dash },
-    { title: t("Nhà cung cấp"), dataIndex: "labProviderName", width: 140, render: dash },
-    { title: t("Vật liệu"), dataIndex: "materialName", render: dash },
-    { title: t("Số răng"), dataIndex: "toothNumbers", width: 100, render: dash },
-    { title: t("Số lượng"), dataIndex: "quantity", width: 100, align: "center" },
+    { title: t("Patient:QuoteSheet:PrescribingDoctor"), dataIndex: "dentistName", width: 140, render: dash },
+    { title: t("Patient:Labo:Supplier"), dataIndex: "labProviderName", width: 140, render: dash },
+    { title: t("Patient:Labo:Material"), dataIndex: "materialName", render: dash },
+    { title: t("Patient:DentalChart:ToothNumber"), dataIndex: "toothNumbers", width: 100, render: dash },
+    { title: t("Patient:Payment:Quantity"), dataIndex: "quantity", width: 100, align: "center" },
     {
-      title: t("File Labo gửi về"),
+      title: t("Patient:Labo:ReturnFile"),
       dataIndex: "attachmentUrl",
       width: 130,
       align: "center",
       render: (value: string | undefined) => (
-        <Tooltip title={value ? t("Xem file") : t("Chưa có file")}>
+        <Tooltip title={value ? t("Xem file") : t("Patient:Misc:NoFile")}>
           <Button
             type="text"
             className="pd-labo-file"
@@ -92,40 +92,40 @@ export function buildPatientLaboColumns({
       ),
     },
     {
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 130,
       align: "center",
       fixed: "right",
       render: (_, row) => (
         <span className="pd-icon-actions">
-          <Tooltip title={t("Xem chi tiết")}>
+          <Tooltip title={t("Patient:Profile:ViewDetail")}>
             <Button
               type="text"
               className="pd-labo-act pd-labo-act--info"
               icon={<EyeOutlined />}
-              aria-label={t("Xem chi tiết")}
+              aria-label={t("Patient:Profile:ViewDetail")}
               onClick={() => onDetail(row)}
             />
           </Tooltip>
           {onContinue && (
-            <Tooltip title={t("Tiếp tục công đoạn")}>
+            <Tooltip title={t("Patient:Stage:Continue")}>
               <Button
                 type="text"
                 className="pd-labo-act pd-labo-act--primary"
                 icon={<PlusOutlined />}
-                aria-label={t("Tiếp tục công đoạn")}
+                aria-label={t("Patient:Stage:Continue")}
                 onClick={() => onContinue(row)}
               />
             </Tooltip>
           )}
           {onWarranty && (
-            <Tooltip title={t("Bảo hành")}>
+            <Tooltip title={t("Patient:Labo:Warranty")}>
               <Button
                 type="text"
                 className="pd-labo-act pd-labo-act--success"
                 icon={<SafetyOutlined />}
-                aria-label={t("Bảo hành")}
+                aria-label={t("Patient:Labo:Warranty")}
                 onClick={() => onWarranty(row)}
               />
             </Tooltip>

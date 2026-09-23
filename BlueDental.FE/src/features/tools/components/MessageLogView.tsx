@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Select, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMessageLogs, type MessageLogDto } from "../api/toolsApi";
@@ -11,10 +11,10 @@ import { pagerTotal } from "@/utils/pagerTotal";
 // labels were both unobservable (empty tables). These are placeholders that
 // mirror the BE enum values.
 const MSG_STATUS_OPTIONS = [
-  { value: 0, label: "Đang chờ", color: "default" },
-  { value: 1, label: "Đã gửi", color: "green" },
-  { value: 2, label: "Thất bại", color: "red" },
-  { value: 3, label: "Đã nhận", color: "blue" },
+  { value: 0, label: "Tools:MsgPending", color: "default" },
+  { value: 1, label: "Tools:MsgSent", color: "green" },
+  { value: 2, label: "Tools:MsgFailed", color: "red" },
+  { value: 3, label: "Tools:MsgReceived", color: "blue" },
 ];
 
 function msgStatusTag(status: number): { label: string; color: string } {
@@ -37,11 +37,11 @@ export function MessageLogView({ channel }: { channel: number }) {
 
   const columns = useMemo<ColumnsType<MessageLogDto>>(
     () => [
-      { key: "phone", title: t("Số điện thoại"), dataIndex: "recipientPhone", width: 140 },
-      { key: "content", title: t("Nội dung"), dataIndex: "content", ellipsis: true },
+      { key: "phone", title: t("Tools:PhoneLabel"), dataIndex: "recipientPhone", width: 140 },
+      { key: "content", title: t("Tools:ContentLabel"), dataIndex: "content", ellipsis: true },
       {
         key: "target",
-        title: t("Mục tiêu"),
+        title: t("Tools:TargetLabel"),
         width: 140,
         // UNKNOWN_REFERENCE_BEHAVIOR: what "Mục tiêu" maps to could not be
         // determined — the list was empty. Renders the recipient name as the
@@ -50,7 +50,7 @@ export function MessageLogView({ channel }: { channel: number }) {
       },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 120,
         render: (_, log) => {
           const { label, color } = msgStatusTag(log.status);
@@ -59,7 +59,7 @@ export function MessageLogView({ channel }: { channel: number }) {
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Tools:ActionsLabel"),
         width: 100,
         align: "center",
         fixed: "right",
@@ -75,7 +75,7 @@ export function MessageLogView({ channel }: { channel: number }) {
       <div className="bd-ops-toolbar">
         <Select
           className="bd-ops-filter"
-          placeholder={t("Trạng thái")}
+          placeholder={t("Tools:StatusLabel")}
           allowClear
           value={statusFilter}
           onChange={(v) => {
@@ -87,14 +87,14 @@ export function MessageLogView({ channel }: { channel: number }) {
         />
         <Select
           className="bd-ops-filter"
-          placeholder={t("Nhà cung cấp")}
+          placeholder={t("Tools:ProviderLabel")}
           allowClear
           disabled
           style={{ width: 160 }}
         />
         <Select
           className="bd-ops-filter"
-          placeholder={t("Mục tiêu")}
+          placeholder={t("Tools:TargetLabel")}
           allowClear
           disabled
           style={{ width: 160 }}
@@ -107,8 +107,9 @@ export function MessageLogView({ channel }: { channel: number }) {
         rowKey="id"
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
-        locale={{ emptyText: t("Chưa có tin nhắn") }}
+        locale={{ emptyText: t("Tools:NoMessages") }}
       />
     </div>
   );
 }
+

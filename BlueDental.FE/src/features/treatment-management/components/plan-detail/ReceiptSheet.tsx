@@ -46,39 +46,39 @@ export function ReceiptSheet({ receipt, patient, clinic, preparerName }: Props) 
         <p>{clinic?.address ?? ""}</p>
         <p>{clinic?.phone ?? ""}</p>
       </header>
-      <h2 className="pdt-sheet-title">{t("Biên lai thu tiền")}</h2>
-      <p className="pdt-sheet-sub">{t("Hoá đơn chỉ được xuất trong ngày")}</p>
+      <h2 className="pdt-sheet-title">{t("Treatment:Receipt:Receipt")}</h2>
+      <p className="pdt-sheet-sub">{t("Treatment:Receipt:InvoiceNote")}</p>
 
       <Group
         rows={[
-          { label: t("Ngày"), value: receipt.sheetDateLabel },
-          { label: t("Nhân viên"), value: receipt.staffName ?? "" },
+          { label: t("Treatment:Receipt:DateLabel"), value: receipt.sheetDateLabel },
+          { label: t("Treatment:Common:StaffName"), value: receipt.staffName ?? "" },
         ]}
       />
       <Group
         rows={[
-          { label: t("Khách hàng"), value: `[${patient.patientCode}] ${patient.fullName}` },
-          { label: t("ĐT"), value: patient.phoneNumber ?? "" },
-          { label: t("Địa chỉ"), value: patient.address ?? "" },
+          { label: t("Treatment:Common:Patient"), value: `[${patient.patientCode}] ${patient.fullName}` },
+          { label: t("Treatment:Common:PhoneShort"), value: patient.phoneNumber ?? "" },
+          { label: t("Treatment:Common:Address"), value: patient.address ?? "" },
         ]}
       />
       <Group
         rows={[
-          { label: t("Thành tiền"), value: moneyText(receipt.amount) },
-          { label: t("Số tiền bằng chữ"), value: moneyInWords(receipt.amount) },
-          { label: t("Phương thức TT"), value: receipt.methodLabel },
-          { label: t("Dịch vụ"), value: services },
-          { label: t("Nội dung TT"), value: receipt.note },
+          { label: t("Treatment:Pricing:NetAmount"), value: moneyText(receipt.amount) },
+          { label: t("Treatment:Receipt:AmountInWords"), value: moneyInWords(receipt.amount) },
+          { label: t("Treatment:Receipt:PaymentMethodShort"), value: receipt.methodLabel },
+          { label: t("Treatment:Service:Service"), value: services },
+          { label: t("Treatment:Receipt:PaymentContentShort"), value: receipt.note },
         ]}
       />
 
       <div className="pdt-sheet-signs">
         <div>
-          <p>{t("Người lập phiếu")}</p>
+          <p>{t("Treatment:Receipt:Creator")}</p>
           <p>{preparerName ?? ""}</p>
         </div>
         <div>
-          <p>{t("Khách hàng")}</p>
+          <p>{t("Treatment:Common:Patient")}</p>
           <p>{patient.fullName}</p>
         </div>
       </div>

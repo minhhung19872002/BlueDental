@@ -81,7 +81,7 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
         `/v1/app/appointments/${appointment.id}/${step}`,
         step === "complete" ? { notes: appointment.notes ?? null } : undefined,
       );
-      toast.success(t("Đã cập nhật tiếp nhận"));
+      toast.success(t("Patient:Profile:ReceptionUpdated"));
       onAdvanced();
     } catch (error) {
       notifyError(extractApiError(error));

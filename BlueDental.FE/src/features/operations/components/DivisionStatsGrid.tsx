@@ -10,14 +10,14 @@ import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
 /** The divisions the design puts a card each on, with its accent. */
-const DIVISIONS: { department: OperationsDepartment; label: string; color: string }[] = [
-  { department: OPERATIONS_DEPARTMENT.Assistant, label: "Khối trợ lý", color: brand.blue },
-  { department: OPERATIONS_DEPARTMENT.Reception, label: "Khối lễ tân", color: brand.goldDeep },
-  { department: OPERATIONS_DEPARTMENT.Cskh, label: "Khối CSKH", color: brand.green },
-  { department: OPERATIONS_DEPARTMENT.Marketing, label: "Khối Marketing", color: brand.purple },
-  { department: OPERATIONS_DEPARTMENT.Security, label: "Khối bảo vệ", color: brand.teal },
-  { department: OPERATIONS_DEPARTMENT.Treatment, label: "Khối điều trị", color: brand.pink },
-  { department: OPERATIONS_DEPARTMENT.Finance, label: "Khối tài chính", color: brand.red },
+const DIVISIONS: { department: OperationsDepartment; labelKey: string; color: string }[] = [
+  { department: OPERATIONS_DEPARTMENT.Assistant, labelKey: "Operations:AssistantBlock", color: brand.blue },
+  { department: OPERATIONS_DEPARTMENT.Reception, labelKey: "Operations:ReceptionBlock", color: brand.goldDeep },
+  { department: OPERATIONS_DEPARTMENT.Cskh, labelKey: "Operations:CSKHBlock", color: brand.green },
+  { department: OPERATIONS_DEPARTMENT.Marketing, labelKey: "Operations:MarketingBlock", color: brand.purple },
+  { department: OPERATIONS_DEPARTMENT.Security, labelKey: "Operations:SecurityBlock", color: brand.teal },
+  { department: OPERATIONS_DEPARTMENT.Treatment, labelKey: "Operations:TreatmentBlock", color: brand.pink },
+  { department: OPERATIONS_DEPARTMENT.Finance, labelKey: "Operations:FinanceBlock", color: brand.red },
 ];
 
 /**
@@ -56,9 +56,9 @@ export function DivisionStatsGrid() {
           <div key={division.department} className="page-card ops-card">
             <div className="ops-card-head">
               <span className="ops-dot" style={{ background: division.color }} />
-              <span className="ops-name">{t(division.label)}</span>
+              <span className="ops-name">{t(division.labelKey)}</span>
             </div>
-            <div className="ops-metric-label">{t("Công việc đã hoàn thành")}</div>
+            <div className="ops-metric-label">{t("Operations:CompletedTasks")}</div>
             <div className="ops-metric-value" style={{ color: division.color }}>
               {done}/{total}
             </div>
@@ -69,7 +69,7 @@ export function DivisionStatsGrid() {
               />
             </div>
             <div className="ops-caption">
-              {t("{0} quá hạn · {1} đang làm", stats?.overdue ?? 0, stats?.inProgress ?? 0)}
+              {t("Operations:OverdueInProgress", stats?.overdue ?? 0, stats?.inProgress ?? 0)}
             </div>
           </div>
         );

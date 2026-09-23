@@ -71,7 +71,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
     if (!deleting) return;
     try {
       await remove.mutateAsync(deleting.id);
-      toast.success(t("Đã xoá lịch hẹn"));
+      toast.success(t("Patient:Appt:Deleted"));
       setDeleting(null);
       refresh();
     } catch {
@@ -106,11 +106,11 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
 
         <div>
           <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
-            {t("Lịch sử thay đổi")}
+            {t("Patient:Debt:ChangeHistory")}
           </Button>
           {ability.canCreate && (
             <Button type="primary" icon={<CalendarOutlined />} onClick={() => setCreating(true)}>
-              {t("Tạo lịch hẹn mới")}
+              {t("Patient:Appt:Create")}
             </Button>
           )}
         </div>
@@ -122,8 +122,8 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
           loading={page.isFetching}
           columns={columns}
           dataSource={rows}
-          locale={{ emptyText: t("Không có dữ liệu") }}
-          pagination={pagination.buildConfig(totalCount, countedTotal(t("lịch hẹn")))}
+          locale={{ emptyText: t("Common:NoData") }}
+          pagination={pagination.buildConfig(totalCount, countedTotal(t("Patient:Misc:Appointment")))}
         />
       </div>
 
@@ -149,9 +149,9 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
           name in the question — an appointment has no name to pick out. */}
       <ConfirmDeleteDialog
         open={Boolean(deleting)}
-        noun={t("lịch hẹn")}
-        title={t("Xoá lịch hẹn")}
-        question={t("Bạn có chắc muốn xoá lịch hẹn này không?")}
+        noun={t("Patient:Misc:Appointment")}
+        title={t("Patient:Appt:Delete")}
+        question={t("Patient:Appt:ConfirmDelete")}
         pending={remove.isPending}
         onConfirm={handleConfirmDelete}
         onClose={() => setDeleting(null)}

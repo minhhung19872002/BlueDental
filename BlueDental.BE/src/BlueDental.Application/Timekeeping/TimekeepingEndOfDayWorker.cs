@@ -61,7 +61,7 @@ public class TimekeepingEndOfDayWorker : AsyncPeriodicBackgroundWorkerBase
             x.Status == AttendanceStatus.NotStarted &&
             !x.HasAnyAttendance))
         {
-            record.MarkNoShow("Đăng ký làm việc nhưng không vào ca.");
+            record.MarkNoShow("Đã đăng ký nhưng không chấm công.");
             await tkRepo.UpdateAsync(record);
             count++;
         }

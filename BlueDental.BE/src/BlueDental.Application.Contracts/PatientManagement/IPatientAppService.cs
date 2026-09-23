@@ -13,15 +13,15 @@ public interface IPatientAppService : IApplicationService
     Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input);
     Task DeactivateAsync(Guid id);
 
-    /// <summary>The + beside "Lý do đến khám" — appends one dated line.</summary>
+    /// <summary>The + beside "BE:Field:ReasonForVisit" — appends one dated line.</summary>
     Task<PatientDto> AddExaminationReasonAsync(Guid id, AddExaminationReasonDto input);
 
-    /// <summary>The code the "Tạo hồ sơ" dialog opens with.</summary>
+    /// <summary>The code the "BE:Common:CreateRecord" dialog opens with.</summary>
     Task<PatientCodeEstimateDto> GetCodeEstimateAsync();
 
     /// <summary>Duplicate-phone check behind the dialog's Điện thoại field.</summary>
     Task<PhoneAvailabilityDto> CheckPhoneAsync(string phone, Guid? excludeId = null);
 
-    /// <summary>"Xuất file" on the patient list — the filtered list as .xlsx.</summary>
+    /// <summary>"BE:Common:ExportFile" on the patient list — the filtered list as .xlsx.</summary>
     Task<byte[]> ExportAsync(GetPatientListInput input);
 }

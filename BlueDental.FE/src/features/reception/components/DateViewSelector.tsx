@@ -14,9 +14,9 @@ export const DateViewSelector: React.FC = () => {
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
   const [currentDate, setCurrentDate] = useState(dayjs());
 
-  const dayLabel = t("Ngày");
-  const weekLabel = t("Tuần");
-  const monthLabel = t("Tháng");
+  const dayLabel = t("Common:Day");
+  const weekLabel = t("Common:Week");
+  const monthLabel = t("Common:Month");
 
   const viewOptions = [dayLabel, weekLabel, monthLabel];
 
@@ -42,14 +42,14 @@ export const DateViewSelector: React.FC = () => {
   const formatDateDisplay = () => {
     if (viewMode === "day") {
       const isToday = currentDate.isSame(dayjs(), "day");
-      return `${isToday ? t("Hôm nay") + " " : ""}(${currentDate.format("DD/MM/YYYY")})`;
+      return `${isToday ? t("Reception:Today") + " " : ""}(${currentDate.format("DD/MM/YYYY")})`;
     }
     if (viewMode === "week") {
       const start = currentDate.startOf("week").format("DD/MM");
       const end = currentDate.endOf("week").format("DD/MM/YYYY");
-      return `${t("Tuần")} (${start} - ${end})`;
+      return `${t("Common:Week")} (${start} - ${end})`;
     }
-    return `${t("Tháng")} ${currentDate.format("MM/YYYY")}`;
+    return `${t("Common:Month")} ${currentDate.format("MM/YYYY")}`;
   };
 
   return (
@@ -90,7 +90,7 @@ export const DateViewSelector: React.FC = () => {
           onClick={handleToday}
           style={{ fontWeight: 600, borderRadius: 6, color: "var(--bd-blue)" }}
         >
-          {t("Hôm nay")}
+          {t("Reception:Today")}
         </Button>
 
         <Button

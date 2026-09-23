@@ -6,9 +6,9 @@ export function HistoryEmpty() {
   return (
     <div className="ah-empty-card" data-testid="ah-empty">
       <HistoryOutlined className="ah-empty-icon" />
-      <div className="ah-empty-title">{t("Không có lịch sử thay đổi")}</div>
+      <div className="ah-empty-title">{t("Appointment:History:EmptyTitle")}</div>
       <div className="ah-empty-hint">
-        {t("Thử điều chỉnh khoảng thời gian hoặc bỏ bộ lọc để xem thêm thao tác.")}
+        {t("Appointment:History:EmptyHint")}
       </div>
     </div>
   );

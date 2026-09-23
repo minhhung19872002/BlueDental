@@ -18,10 +18,10 @@ import { MessageField } from "./MessageField";
 
 /** Nhãn màu radios in the reference's order and palette. */
 const OUTCOME_OPTIONS: Array<{ value: CareOutcome; className: string; label: () => string }> = [
-  { value: CARE_OUTCOME.Good, className: "cskh-color-radio--good", label: () => t("Tốt") },
-  { value: CARE_OUTCOME.Fair, className: "cskh-color-radio--fair", label: () => t("Khá") },
-  { value: CARE_OUTCOME.Normal, className: "cskh-color-radio--normal", label: () => t("Bình thường") },
-  { value: CARE_OUTCOME.Complaint, className: "cskh-color-radio--complaint", label: () => t("Khiếu nại") },
+  { value: CARE_OUTCOME.Good, className: "cskh-color-radio--good", label: () => t("CSKH:Outcome:Good") },
+  { value: CARE_OUTCOME.Fair, className: "cskh-color-radio--fair", label: () => t("CSKH:Outcome:Fair") },
+  { value: CARE_OUTCOME.Normal, className: "cskh-color-radio--normal", label: () => t("CSKH:Outcome:Normal") },
+  { value: CARE_OUTCOME.Complaint, className: "cskh-color-radio--complaint", label: () => t("CSKH:Outcome:Complaint") },
 ];
 
 interface BaseCareDialogProps {
@@ -68,7 +68,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
         scheduledStart: start.toISOString(),
         scheduledEnd: start.add(1, "hour").toISOString(),
       });
-      toast.success(t("Đã lưu lần chăm sóc"));
+      toast.success(t("CSKH:SavedCare"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -78,7 +78,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
   return (
     <AppDialog
       open={open}
-      title={t("Tạo công việc mới")}
+      title={t("CSKH:CreateTaskTitle")}
       width={772}
       canSave={Boolean(patient && title.trim())}
       saving={createCare.isPending}
@@ -88,7 +88,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
       {patient && (
         <div className="bd-form-grid">
           <div className="cskh-message-row">
-            <MessageField label={t("Ngày")} hasValue>
+            <MessageField label={t("CSKH:DateLabel")} hasValue>
               <DatePicker
                 allowClear={false}
                 format="DD/MM/YYYY"
@@ -97,7 +97,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
               />
             </MessageField>
 
-            <MessageField label={t("Tiêu đề")} required hasValue={Boolean(title)}>
+            <MessageField label={t("CSKH:TitleLabel")} required hasValue={Boolean(title)}>
               <Input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
@@ -105,7 +105,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
             </MessageField>
           </div>
 
-          <MessageField label={t("Ghi chú lần chăm sóc")} hasValue={Boolean(note)}>
+          <MessageField label={t("CSKH:NoteLabel")} hasValue={Boolean(note)}>
             <Input.TextArea
               rows={4}
               value={note}
@@ -114,7 +114,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
           </MessageField>
 
           <div className="cskh-label-row">
-            <span>{t("Nhãn màu")}</span>
+            <span>{t("CSKH:ColorLabel")}</span>
             <div className="cskh-color-options">
               {OUTCOME_OPTIONS.map((option) => (
                 <button

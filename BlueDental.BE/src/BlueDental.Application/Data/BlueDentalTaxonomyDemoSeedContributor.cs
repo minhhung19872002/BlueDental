@@ -15,7 +15,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Data;
 
 /// <summary>
-/// Fills every "Danh mục" tab with synthetic data in <b>both</b> clinic
+/// Fills every "BE:Perm:Catalogs" tab with synthetic data in <b>both</b> clinic
 /// branches.
 ///
 /// The catalogs are branch-scoped, so an empty second branch makes the branch
@@ -423,7 +423,7 @@ public class BlueDentalTaxonomyDemoSeedContributor(
         ("Tư Vấn Chỉnh Nha", "#EF4444"),
         ("Implant", "#3B82F6"),
         ("Tổng quát", "#10B981"),
-        ("Chỉnh Nha", "#F59E0B"),
+        ("Chỉnh nha", "#F59E0B"),
     ];
 
     private static (string Name, string Color)[] SecondBranchTags() =>

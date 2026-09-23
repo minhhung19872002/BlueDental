@@ -35,10 +35,10 @@ export function AddSourceGroupDialog({ open, saving, onSave, onClose }: Props) {
     <AppDialog
       open={open}
       width={520}
-      title={t("Thêm loại nguồn đến")}
+      title={t("Patient:SourceGroupAdd")}
       canSave={name.trim().length > 0}
       saving={saving}
-      cancelLabel={t("Huỷ")}
+      cancelLabel={t("Common:Cancel")}
       onSave={() => form.submit()}
       onClose={onClose}
     >
@@ -53,17 +53,17 @@ export function AddSourceGroupDialog({ open, saving, onSave, onClose }: Props) {
         <Row gutter={[16, 12]}>
           <Col span={15}>
             <FloatingField
-              label={t("Tên loại nguồn đến")}
+              label={t("Patient:SourceGroupName")}
               name="name"
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
+              rules={[{ required: true, message: t("Common:EnterName") }]}
             >
               <Input maxLength={100} autoFocus />
             </FloatingField>
           </Col>
           <Col span={9}>
             {/* Where it sits in the list. The reference defaults it to 0. */}
-            <FloatingField label={t("Mức độ ưu tiên")} name="sortOrder">
+            <FloatingField label={t("Common:Priority")} name="sortOrder">
               <InputNumber min={0} max={9999} precision={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>

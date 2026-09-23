@@ -8,7 +8,7 @@ namespace BlueDental.Finance;
 /// A cash voucher — either a receipt (phiếu thu) or a payment (phiếu chi).
 ///
 /// Reference: <c>GET /api/v1/sales?type=income|expense&amp;approved=true|false</c>,
-/// rendered by the "Quản lý thu chi" report tab.
+/// rendered by the "BE:Perm:IncomeExpenseMgmt" report tab.
 /// Expenses go through an approval step (permission <c>reportCost.approve</c>).
 /// </summary>
 public class SalesEntry : FullAuditedAggregateRoot<Guid>
@@ -44,7 +44,7 @@ public class SalesEntry : FullAuditedAggregateRoot<Guid>
     public string? RejectionReason { get; private set; }
 
     /// <summary>
-    /// "Người nộp" (receipt) / "Người nhận" (payment) typed on the voucher when
+    /// "BE:Field:Submitter" (receipt) / "BE:Field:Recipient" (payment) typed on the voucher when
     /// the money is not tied to a patient — the reference keeps it as free text.
     /// </summary>
     public string? PayerName { get; private set; }

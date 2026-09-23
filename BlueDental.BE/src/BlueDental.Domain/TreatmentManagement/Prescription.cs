@@ -11,10 +11,10 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// Đơn thuốc — one prescription slip with the medicines on it.
 ///
-/// Mirrors the reference "Thêm đơn thuốc" dialog: the prescribing doctor, a
+/// Mirrors the reference "BE:Treatment:AddPrescription" dialog: the prescribing doctor, a
 /// free-text diagnosis, lời dặn, in-/outpatient, a follow-up date and one line
-/// per medicine dosed the same way a "Đơn thuốc mẫu" template line is
-/// (ngày uống × mỗi lần × số ngày, plus the "Sử dụng" flags). The list shows
+/// per medicine dosed the same way a "BE:Common:RxTemplate" template line is
+/// (ngày uống × mỗi lần × số ngày, plus the "BE:Field:Usage" flags). The list shows
 /// "Mã đơn thuốc, Bác sĩ, Chẩn đoán, Tái khám, Ngày tạo" and offers Sửa / Xoá,
 /// so a slip has no status of its own.
 /// </summary>
@@ -28,16 +28,16 @@ public class Prescription : FullAuditedAggregateRoot<Guid>
     /// <summary>Slip number shown in the UI.</summary>
     public string Code { get; private set; } = string.Empty;
 
-    /// <summary>Prescribing doctor ("Chọn bác sĩ").</summary>
+    /// <summary>Prescribing doctor ("BE:Common:SelectDentist").</summary>
     public Guid StaffId { get; private set; }
 
-    /// <summary>"Nhập chẩn đoán" — free text, not a catalog entry.</summary>
+    /// <summary>"BE:Treatment:EnterDiagnosis" — free text, not a catalog entry.</summary>
     public string? DiagnosisText { get; private set; }
 
-    /// <summary>"Nhập lời dặn".</summary>
+    /// <summary>"BE:Treatment:EnterAdvice".</summary>
     public string? Note { get; private set; }
 
-    /// <summary>"Điều trị" — ngoại trú / nội trú.</summary>
+    /// <summary>"BE:Common:Treatment" — ngoại trú / nội trú.</summary>
     public PrescriptionTreatmentType TreatmentType { get; private set; }
 
     /// <summary>Tái khám — when the patient should come back.</summary>
@@ -166,7 +166,7 @@ public class PrescriptionItem : Entity<Guid>
 {
     public Guid PrescriptionId { get; private set; }
 
-    /// <summary>Catalog entry of the "Loại thuốc" group.</summary>
+    /// <summary>Catalog entry of the "BE:Common:MedicineType" group.</summary>
     public Guid MedicationId { get; private set; }
 
     public string MedicationName { get; private set; } = string.Empty;
@@ -183,7 +183,7 @@ public class PrescriptionItem : Entity<Guid>
     /// <summary>Sử dụng — multi-select flags.</summary>
     public PrescriptionUsage Usage { get; private set; }
 
-    /// <summary>What the user wrote for "Khác"; only kept when that flag is set.</summary>
+    /// <summary>What the user wrote for "BE:Common:Other"; only kept when that flag is set.</summary>
     public string? OtherUsage { get; private set; }
 
     public int SortOrder { get; private set; }

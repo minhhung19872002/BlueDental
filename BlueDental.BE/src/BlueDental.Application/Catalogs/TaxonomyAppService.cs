@@ -13,7 +13,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// Nhóm danh mục — the group panel shared by every "Danh mục" sub-route.
+/// Nhóm danh mục — the group panel shared by every "BE:Perm:Catalogs" sub-route.
 /// </summary>
 [Authorize(BlueDentalPermissions.Catalogs.Default)]
 public class TaxonomyAppService : ApplicationService, ITaxonomyAppService

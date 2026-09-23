@@ -114,7 +114,7 @@ export function ServerSearchSelect({
       aria-label={ariaLabel}
       prefix={<Search size={20} aria-hidden="true" />}
       suffixIcon={<ChevronDown size={16} aria-hidden="true" />}
-      notFoundContent={loading ? <Spin size="small" /> : (notFoundText ?? t("Không tìm thấy kết quả"))}
+      notFoundContent={loading ? <Spin size="small" /> : (notFoundText ?? t("Common:NoResults"))}
       onChange={(next, option) => {
         const picked = Array.isArray(option) ? null : (option ?? null);
         setChosen(picked);

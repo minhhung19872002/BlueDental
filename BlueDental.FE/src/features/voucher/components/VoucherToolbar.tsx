@@ -4,11 +4,11 @@ import { t } from "@/lib/i18n";
 import type { VoucherFilterStatus } from "../api/voucherApi";
 
 const STATUS_FILTER_OPTIONS: { value: VoucherFilterStatus | ""; label: () => string }[] = [
-  { value: "", label: () => t("Tất cả trạng thái") },
-  { value: "created", label: () => t("Đã tạo") },
-  { value: "active", label: () => t("Đang hoạt động") },
-  { value: "out_of_uses", label: () => t("Hết lượt") },
-  { value: "expired", label: () => t("Hết hạn") },
+  { value: "", label: () => t("Voucher:AllStatuses") },
+  { value: "created", label: () => t("Voucher:StatusCreated") },
+  { value: "active", label: () => t("Voucher:StatusActive") },
+  { value: "out_of_uses", label: () => t("Voucher:StatusOutOfUses") },
+  { value: "expired", label: () => t("Voucher:StatusExpired") },
 ];
 
 interface Props {
@@ -30,7 +30,7 @@ export function VoucherToolbar({
     <div className="voucher-toolbar">
       <Input
         prefix={<SearchOutlined />}
-        placeholder={t("Tìm theo mã hoặc tên voucher...")}
+        placeholder={t("Voucher:SearchPlaceholder")}
         value={keyword}
         onChange={(e) => onKeywordChange(e.target.value)}
         style={{ width: 280 }}
@@ -52,7 +52,7 @@ export function VoucherToolbar({
           style={{ marginLeft: "auto" }}
           onClick={onCreateClick}
         >
-          {t("Tạo voucher")}
+          {t("Voucher:CreateBtn")}
         </Button>
       )}
     </div>

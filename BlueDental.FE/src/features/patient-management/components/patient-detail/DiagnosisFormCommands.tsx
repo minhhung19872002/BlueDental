@@ -25,7 +25,7 @@ export function DiagnosisFormCommands({ editing, ready, submitting, onSubmit }: 
         loading={submitting}
         onClick={() => onSubmit("update")}
       >
-        {t("Cập nhật Chẩn Đoán")}
+        {t("Patient:Diagnosis:UpdateBtn2")}
       </Button>
     );
   }
@@ -33,11 +33,11 @@ export function DiagnosisFormCommands({ editing, ready, submitting, onSubmit }: 
   return (
     <>
       <Button type="primary" block disabled>
-        {t("Thêm chẩn đoán")}
+        {t("Patient:Diagnosis:AddBtn")}
       </Button>
       <div className="pd-diagnosis-commands">
         <Button disabled={!ready} onClick={() => onSubmit("service")}>
-          {t("Tạo dịch vụ")}
+          {t("Patient:Diagnosis:CreateServiceBtn")}
         </Button>
         <Button
           className="pd-diagnosis-save"
@@ -45,7 +45,7 @@ export function DiagnosisFormCommands({ editing, ready, submitting, onSubmit }: 
           loading={submitting}
           onClick={() => onSubmit("save")}
         >
-          {t("Lưu Chẩn Đoán")}
+          {t("Patient:Diagnosis:SaveBtn2")}
         </Button>
       </div>
     </>

@@ -1,4 +1,4 @@
-import { Button, Tag } from "antd";
+﻿import { Button, Tag } from "antd";
 import { t } from "@/lib/i18n";
 
 /** The reference's Zalo OA panel: not connected, and nothing to connect yet. */
@@ -8,13 +8,13 @@ export function ZaloConfigView() {
       <div className="bd-zalo-panel">
         <div className="bd-zalo-avatar">OA</div>
         <div>
-          <div className="bd-zalo-title">{t("Chưa kết nối Zalo OA")}</div>
+          <div className="bd-zalo-title">{t("Tools:ZaloNotConnected")}</div>
           <Tag color="default" className="bd-zalo-status">
-            {t("Chưa kích hoạt")}
+            {t("Tools:ZaloNotActivated")}
           </Tag>
           <div>
             <Button type="primary" disabled>
-              {t("Kết nối Zalo OA")}
+              {t("Tools:ZaloConnect")}
             </Button>
           </div>
         </div>
@@ -22,3 +22,4 @@ export function ZaloConfigView() {
     </div>
   );
 }
+

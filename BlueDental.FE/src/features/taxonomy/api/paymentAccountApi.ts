@@ -13,7 +13,7 @@ export type PaymentAccountKind = (typeof PAYMENT_ACCOUNT_KIND)[keyof typeof PAYM
 
 export const paymentAccountKindLabels = (): Record<PaymentAccountKind, string> => ({
   [PAYMENT_ACCOUNT_KIND.MoMo]: "MoMo",
-  [PAYMENT_ACCOUNT_KIND.Bank]: t("Ngân hàng"),
+  [PAYMENT_ACCOUNT_KIND.Bank]: t("Taxonomy:Payment:Bank"),
 });
 
 /** Mirrors BlueDental.Catalogs.PaymentAccountDto. */

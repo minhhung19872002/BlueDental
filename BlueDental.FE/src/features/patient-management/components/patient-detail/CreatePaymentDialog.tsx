@@ -180,17 +180,15 @@ export function CreatePaymentDialog({
     if (!plan || noService) return;
 
     if (total <= 0) {
-      toast.error(t("Vui lòng nhập số tiền thanh toán"));
+      toast.error(t("Patient:Payment:EnterAmount"));
       return;
     }
     if (overpaid) {
-      toast.error(
-        t("Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán"),
-      );
+      toast.error(t("Patient:Payment:AmountExceedsBalance"));
       return;
     }
     if (missingAccount) {
-      toast.error(t("Vui lòng chọn phương thức thanh toán"));
+      toast.error(t("Patient:Payment:SelectMethod"));
       return;
     }
 
@@ -221,7 +219,7 @@ export function CreatePaymentDialog({
         paymentAccountId: needsAccount ? accountId : undefined,
       });
 
-      toast.success(t("Đã tạo phiếu thanh toán"));
+      toast.success(t("Patient:Payment:CreateSuccess"));
       onSaved();
       onClose();
     } catch (error) {
@@ -238,14 +236,14 @@ export function CreatePaymentDialog({
       // 1024px, measured off the reference's own dialog.
       width="min(1024px, calc(100vw - 48px))"
       className="pd-newpay-dialog"
-      title={t("Tạo phiếu thanh toán")}
+      title={t("Patient:Payment:CreateTitle")}
       onCancel={onClose}
       destroyOnHidden
       footer={
         <div className="pd-newpay-footer">
           <p>
             <InfoCircleOutlined />{" "}
-            {t("Phiếu thanh toán chỉ có thể chỉnh sửa trong vòng 7 ngày kể từ ngày tạo.")}
+            {t("Patient:Payment:EditWarning")}
           </p>
           <Button
             type="primary"
@@ -254,7 +252,7 @@ export function CreatePaymentDialog({
             disabled={record.isPending}
             onClick={() => void save()}
           >
-            {t("Lưu")}
+            {t("Common:Save")}
           </Button>
         </div>
       }
@@ -263,21 +261,21 @@ export function CreatePaymentDialog({
         <div className="pd-newpay-col">
           <section>
             <h4 className="pd-newpay-head">
-              <FileTextOutlined /> {t("Nội dung thanh toán")}
+              <FileTextOutlined /> {t("Patient:Payment:SummaryHeader")}
             </h4>
-            <Fact label={t("Nội dung")} value={t("Thanh toán điều trị ngày {0}", today)} />
-            <Fact label={t("Ngày thanh toán")} value={today} />
+            <Fact label={t("Patient:Payment:Description")} value={t("Patient:Payment:DefaultDescription", today)} />
+            <Fact label={t("Patient:Payment:DateLabel")} value={today} />
           </section>
 
           <section>
             <h4 className="pd-newpay-head pd-newpay-head--split">
               <span>
-                <FileTextOutlined /> {t("Dịch vụ")}
+                <FileTextOutlined /> {t("Patient:Payment:ServiceHeader")}
                 <Button
                   type="text"
                   className="pd-newpay-search"
                   icon={<SearchOutlined />}
-                  aria-label={t("Tìm dịch vụ")}
+                  aria-label={t("Patient:Payment:SearchService")}
                   aria-expanded={searching}
                   onClick={() => setSearching((on) => !on)}
                 />
@@ -288,7 +286,7 @@ export function CreatePaymentDialog({
                 disabled={lines.length === 0}
                 onChange={(event) => toggleAll(event.target.checked)}
               >
-                {t("Chọn Tất Cả")}
+                {t("Patient:Payment:SelectAll")}
               </Checkbox>
             </h4>
 
@@ -299,13 +297,13 @@ export function CreatePaymentDialog({
                 value={keyword}
                 prefix={<SearchOutlined />}
                 className="pd-newpay-searchbox"
-                placeholder={t("Tìm dịch vụ")}
+                placeholder={t("Patient:Payment:SearchService")}
                 onChange={(event) => setKeyword(event.target.value)}
               />
             ) : null}
 
             {lines.length === 0 ? (
-              <p className="pd-newpay-empty">{t("Phiếu này không còn dịch vụ nào cần thu")}</p>
+              <p className="pd-newpay-empty">{t("Patient:Payment:NoServices")}</p>
             ) : (
               <ul className="pd-newpay-lines">
                 {visible.map((line) => (
@@ -316,10 +314,10 @@ export function CreatePaymentDialog({
                     >
                       <span className="pd-newpay-name">{line.serviceName ?? line.code}</span>
                       <span className="pd-newpay-due">
-                        {t("Còn nợ")} {formatMoneyUnit(line.outstandingAmount)}
+                        {t("Patient:Payment:Outstanding")} {formatMoneyUnit(line.outstandingAmount)}
                       </span>
                       <span className="pd-newpay-qty">
-                        {t("Số lượng")}: {line.quantity}
+                        {t("Common:Quantity")}: {line.quantity}
                       </span>
                     </Checkbox>
                     <b>{formatMoneyUnit(line.effectiveAmount)}</b>
@@ -328,37 +326,37 @@ export function CreatePaymentDialog({
               </ul>
             )}
             {noService ? (
-              <p className="pd-newpay-error">{t("Bạn cần chọn ít nhất 1 dịch vụ")}</p>
+              <p className="pd-newpay-error">{t("Patient:Payment:SelectMinOne")}</p>
             ) : null}
           </section>
 
           <section>
             <h4 className="pd-newpay-head">
-              <ProfileOutlined /> {t("Tổng tiền theo kế hoạch")}
+              <ProfileOutlined /> {t("Patient:Payment:PlanTotal")}
             </h4>
-            <Fact label={t("Tổng tiền")} value={formatMoneyUnit(plan?.servicesTotal ?? 0)} />
-            <Fact label={t("Giảm giá")} value={formatMoneyUnit(plan?.planDiscountAmount ?? 0)} />
-            <Fact label={t("Tổng tiền sau giảm")} value={formatMoneyUnit(plan?.totalAmount ?? 0)} />
+            <Fact label={t("Patient:Payment:Total")} value={formatMoneyUnit(plan?.servicesTotal ?? 0)} />
+            <Fact label={t("Common:Discount")} value={formatMoneyUnit(plan?.planDiscountAmount ?? 0)} />
+            <Fact label={t("Patient:Payment:TotalAfterDiscount")} value={formatMoneyUnit(plan?.totalAmount ?? 0)} />
             <Fact
-              label={t("Đã thanh toán")}
+              label={t("Patient:Payment:Paid")}
               value={formatMoneyUnit(plan?.payment.totalPaid ?? 0)}
             />
             {/* Live, as the reference computes it: what is left after the amount
                 being entered, not what is stored. */}
-            <Fact label={t("Còn lại")} value={formatMoneyUnit(planDue - total)} strong />
+            <Fact label={t("Patient:Payment:Remaining")} value={formatMoneyUnit(planDue - total)} strong />
           </section>
         </div>
 
         <div className="pd-newpay-col pd-newpay-col--right">
           <section>
             <h4 className="pd-newpay-head">
-              <DollarOutlined /> {t("Thông tin thanh toán")}
+              <DollarOutlined /> {t("Patient:Payment:InfoHeader")}
             </h4>
             <div className="pd-newpay-modes">
               {(
                 [
-                  ["auto", t("Chia Tiền Tự Động")],
-                  ["manual", t("Chia Tiền Thủ Công")],
+                  ["auto", t("Patient:Payment:SplitAuto")],
+                  ["manual", t("Patient:Payment:SplitManual")],
                 ] as const
               ).map(([key, label]) => (
                 <label key={key} className={mode === key ? "active" : undefined}>
@@ -375,7 +373,7 @@ export function CreatePaymentDialog({
             </div>
 
             {mode === "auto" ? (
-              <FloatingLabel label={t("Số tiền thanh toán")} floated>
+              <FloatingLabel label={t("Patient:Payment:AmountLabel")} floated>
                 <CurrencyInput
                   className="pd-newpay-amount"
                   value={autoAmount}
@@ -385,7 +383,7 @@ export function CreatePaymentDialog({
             ) : (
               <div className="pd-newpay-manual">
                 {chosen.length === 0 ? (
-                  <p className="pd-newpay-empty">{t("Chọn dịch vụ để nhập số tiền")}</p>
+                  <p className="pd-newpay-empty">{t("Patient:Payment:SelectServiceFirst")}</p>
                 ) : (
                   chosen.map((line) => (
                     <div key={line.id}>
@@ -403,7 +401,7 @@ export function CreatePaymentDialog({
             )}
 
             <div className="pd-newpay-notewrap">
-              <FloatingLabel label={t("Ghi chú")} floated={note.length > 0}>
+              <FloatingLabel label={t("Patient:Payment:NoteLabel")} floated={note.length > 0}>
                 <Input.TextArea
                   value={note}
                   rows={3}
@@ -419,7 +417,7 @@ export function CreatePaymentDialog({
 
           <section>
             <h4 className="pd-newpay-head">
-              <CreditCardOutlined /> {t("Phương thức thanh toán")}
+              <CreditCardOutlined /> {t("Patient:Payment:MethodHeader")}
             </h4>
             <div className="pd-newpay-methods">
               {PAYMENT_METHOD_ORDER.map((kind) => (
@@ -443,23 +441,23 @@ export function CreatePaymentDialog({
             {needsAccount ? (
               <div className="pd-newpay-accounts">
                 <div className="pd-newpay-acchead">
-                  <span>{t("Chọn")}</span>
+                  <span>{t("Patient:Payment:Select")}</span>
                   <span>
                     {accountKind === PAYMENT_ACCOUNT_KIND.Bank
-                      ? t("Tên ngân hàng")
-                      : t("Số điện thoại")}
+                      ? t("Patient:Payment:BankName")
+                      : t("Patient:Payment:MomoPhone")}
                   </span>
                   <span>
                     {accountKind === PAYMENT_ACCOUNT_KIND.Bank
-                      ? t("Số tài khoản")
-                      : t("Tên chủ tài khoản")}
+                      ? t("Patient:Payment:AccountNumber")
+                      : t("Patient:Payment:AccountHolder")}
                   </span>
                 </div>
                 {accounts.length === 0 ? (
                   <p className="pd-newpay-empty">
                     {accountKind === PAYMENT_ACCOUNT_KIND.Bank
-                      ? t("Không có phương thức ngân hàng")
-                      : t("Không có phương thức MoMo")}
+                      ? t("Patient:Payment:NoBankMethod")
+                      : t("Patient:Payment:NoMomoMethod")}
                   </p>
                 ) : (
                   accounts.map((account) => (
@@ -488,7 +486,7 @@ export function CreatePaymentDialog({
             ) : null}
             {overpaid ? (
               <p className="pd-newpay-error">
-                {t("Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán")}
+                {t("Patient:Payment:AmountExceedsBalance")}
               </p>
             ) : null}
           </section>

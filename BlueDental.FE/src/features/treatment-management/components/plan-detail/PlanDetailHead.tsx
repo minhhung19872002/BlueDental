@@ -38,7 +38,7 @@ interface Props {
 export function PlanDetailHead({ tab, payment, onTabChange }: Props) {
   return (
     <div className="pdt-head">
-      <div className="pdt-tabs" role="tablist" aria-label={t("Kế hoạch điều trị")}>
+      <div className="pdt-tabs" role="tablist" aria-label={t("Treatment:Plan:TreatmentPlan")}>
         {PLAN_TAB_KEYS.map((key) => (
           <button
             key={key}

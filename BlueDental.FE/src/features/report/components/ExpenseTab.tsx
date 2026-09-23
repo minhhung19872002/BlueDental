@@ -11,12 +11,12 @@ import { PrepaidSubTab } from "./PrepaidSubTab";
 import { ReportOverviewSection } from "./ReportOverviewSection";
 
 const SUB_FILTERS: { key: SalesSubKey; label: () => string }[] = [
-  { key: "service", label: () => t("Khách hàng phát sinh dịch vụ") },
-  { key: "actual", label: () => t("Doanh số thực") },
-  { key: "payment", label: () => t("Thanh toán") },
-  { key: "refund", label: () => t("Hoàn tiền") },
-  { key: "debt", label: () => t("Dư nợ") },
-  { key: "prepaid", label: () => t("Tạm ứng") },
+  { key: "service", label: () => t("Report:SubTab:Service") },
+  { key: "actual", label: () => t("Report:SubTab:ActualRevenue") },
+  { key: "payment", label: () => t("Report:SubTab:Payment") },
+  { key: "refund", label: () => t("Report:SubTab:Refund") },
+  { key: "debt", label: () => t("Report:SubTab:Debt") },
+  { key: "prepaid", label: () => t("Report:SubTab:Prepaid") },
 ];
 
 /** Doanh số thực, Dư nợ and Tạm ứng are table views: the reference shows no overview charts under them. */

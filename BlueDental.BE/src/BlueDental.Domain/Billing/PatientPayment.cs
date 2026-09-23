@@ -15,7 +15,7 @@ namespace BlueDental.Billing;
 /// row here carries a kind, a method and an amount — the rollup is derived, never
 /// stored.
 ///
-/// A movement with no slip is money held for the patient ("Đang Giữ Hộ Khách");
+/// A movement with no slip is money held for the patient ("BE:PaymentKind:HeldForCustomer");
 /// spending it later is a payment against a slip funded from that balance.
 /// </summary>
 public class PatientPayment : FullAuditedAggregateRoot<Guid>
@@ -137,7 +137,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
         }
 
         // The lines are how the receipt is spent; letting them disagree with the
-        // total would make every per-line "Còn nợ" a lie.
+        // total would make every per-line "BE:PaymentKind:StillOwed" a lie.
         if (payment._lines.Count > 0 && payment._lines.Sum(line => line.Amount) != amount)
         {
             throw new BusinessException(
@@ -210,7 +210,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     /// staging (2026-09-22) paid patient HN8521's slip "DT32 - Test DV" as
     /// THANHTOAN-31/DT32/2026 and its next slip DT33 as THANHTOAN-34/DT33/2026.
     /// A top-up held for the patient outside any slip never appeared on the
-    /// reference (its "Tạm ứng phát sinh" rows all sit on a slip), so
+    /// reference (its "BE:Field:DepositIncurred" rows all sit on a slip), so
     /// <c>TAMUNG-NN/yyyy</c> follows the refund pattern (UNKNOWN_REFERENCE_BEHAVIOR).
     /// </summary>
     public static string FormatCode(PatientPaymentKind kind, int sequence, int year, string? planCode = null)
@@ -233,9 +233,9 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// "Chỉnh sửa" on a receipt: the facts about how the money was taken, not
+    /// "BE:Common:Edit" on a receipt: the facts about how the money was taken, not
     /// how much. The amount and the service lines stay put — they are what the
-    /// slip's rollup and every per-line "Còn nợ" are built from, so correcting
+    /// slip's rollup and every per-line "BE:PaymentKind:StillOwed" are built from, so correcting
     /// them means voiding the receipt and writing a new one.
     /// </summary>
     public PatientPayment Revise(

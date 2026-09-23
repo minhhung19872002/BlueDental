@@ -63,14 +63,14 @@ export const PatientImageCard = memo(function PatientImageCard({
           <Checkbox
             className="pi-card-tick"
             checked={checked}
-            aria-label={t("Hiển thị {0}", image.fileName)}
+            aria-label={t("Patient:Image:ShowFileLabel", image.fileName)}
             onChange={(event) => onCheckedChange?.(image, event.target.checked)}
           />
         )}
         <button
           type="button"
           className="pi-card-picture"
-          aria-label={t("Xem ảnh {0}", image.fileName)}
+          aria-label={t("Patient:Image:ViewFileLabel", image.fileName)}
           onClick={() => onView(image)}
         >
           <img src={image.url} alt={image.fileName} loading="lazy" draggable={false} />
@@ -81,12 +81,12 @@ export const PatientImageCard = memo(function PatientImageCard({
 
       <div className="pi-card-actions">
         {canSort && (
-          <Tooltip title={t("Sắp xếp ảnh")}>
+          <Tooltip title={t("Patient:Image:SortLabel")}>
             <button
               type="button"
               ref={sortable.setActivatorNodeRef}
               className="pi-round pi-round--grip"
-              aria-label={t("Sắp xếp ảnh")}
+              aria-label={t("Patient:Image:SortLabel")}
               {...sortable.attributes}
               {...sortable.listeners}
             >
@@ -95,11 +95,11 @@ export const PatientImageCard = memo(function PatientImageCard({
           </Tooltip>
         )}
         {showView && (
-          <Tooltip title={t("Xem ảnh")}>
+          <Tooltip title={t("Patient:Image:ViewLabel")}>
             <button
               type="button"
               className="pi-round pi-round--view"
-              aria-label={t("Xem ảnh")}
+              aria-label={t("Patient:Image:ViewLabel")}
               onClick={() => onView(image)}
             >
               <Eye size={16} />
@@ -107,11 +107,11 @@ export const PatientImageCard = memo(function PatientImageCard({
           </Tooltip>
         )}
         {canDelete && (
-          <Tooltip title={t("Xóa ảnh")}>
+          <Tooltip title={t("Patient:Image:DeleteLabel")}>
             <button
               type="button"
               className="pi-round pi-round--delete"
-              aria-label={t("Xóa ảnh")}
+              aria-label={t("Patient:Image:DeleteLabel")}
               onClick={() => onDelete(image)}
             >
               <Trash2 size={16} />

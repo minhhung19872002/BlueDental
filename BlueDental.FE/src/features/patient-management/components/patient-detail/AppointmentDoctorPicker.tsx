@@ -42,7 +42,7 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
         notes: appointment.notes ?? undefined,
         color: appointment.color ?? undefined,
       });
-      toast.success(t("Đã đổi bác sĩ của lịch hẹn"));
+      toast.success(t("Patient:DoctorChangedSuccess"));
       onChanged();
     } catch (error) {
       setPending(undefined);
@@ -51,11 +51,11 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
   };
 
   return (
-    <FloatingLabel label={t("Bác sĩ")} floated={Boolean(value)} className="pd-appt-doctor-picker">
+    <FloatingLabel label={t("Patient:DoctorLabel")} floated={Boolean(value)} className="pd-appt-doctor-picker">
       <SearchSelect
         value={value}
         options={staff.data ?? []}
-        emptyText={t("Không tìm thấy bác sĩ")}
+        emptyText={t("Patient:DoctorNotFound")}
         onChange={(doctorId) => void change(doctorId)}
       />
     </FloatingLabel>

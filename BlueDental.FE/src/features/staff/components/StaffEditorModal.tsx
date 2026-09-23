@@ -151,13 +151,13 @@ export function StaffEditorModal({
   return (
     <Modal
       open={open}
-      title={isEditing ? t("Cập nhật nhân viên") : t("Thêm nhân viên")}
+      title={isEditing ? t("Staff:EditStaff") : t("Staff:AddStaff")}
       width={772}
       onCancel={onClose}
       destroyOnHidden
       footer={
         <Button type="primary" loading={loading} onClick={handleFinish} icon={<SaveOutlined style={{ fontSize: 16 }} />} style={{ padding: "0 24px", fontSize: 14 }}>
-          {t("Lưu")}
+          {t("Common:Save")}
         </Button>
       }
     >
@@ -206,7 +206,7 @@ export function StaffEditorModal({
         </div>
         <div style={{ marginTop: 8, display: "flex", justifyContent: "center", gap: 8 }}>
           <Button size="small" icon={<PlusOutlined />} onClick={() => fileInputRef.current?.click()}>
-            {t("Tải ảnh lên")}
+            {t("Staff:UploadPhoto")}
           </Button>
           {avatarPreview && (
             <Button
@@ -219,7 +219,7 @@ export function StaffEditorModal({
                 setAvatarPreview(null);
               }}
             >
-              {t("Xóa ảnh")}
+              {t("Staff:DeletePhoto")}
             </Button>
           )}
         </div>
@@ -247,12 +247,12 @@ export function StaffEditorModal({
           <Col xs={24} sm={12}>
             <FloatingField
               name="roleNames"
-              label={t("Nhóm quyền")}
+              label={t("Staff:PermissionGroup")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn nhóm quyền") }]}
+              rules={[{ required: true, message: t("Staff:PermissionGroupRequired") }]}
             >
               <Select
-                placeholder={t("Chọn nhóm quyền")}
+                placeholder={t("Staff:PermissionGroupPlaceholder")}
                 options={roleNames.map((r) => ({ value: r, label: r }))}
               />
             </FloatingField>
@@ -260,13 +260,13 @@ export function StaffEditorModal({
           <Col xs={24} sm={12}>
             <FloatingField
               name="branchIds"
-              label={t("Chi nhánh")}
+              label={t("Staff:Branch")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn chi nhánh") }]}
+              rules={[{ required: true, message: t("Staff:BranchRequired") }]}
             >
               <Select
                 mode="multiple"
-                placeholder={t("Chọn chi nhánh")}
+                placeholder={t("Staff:BranchPlaceholder")}
                 options={branchOptions}
               />
             </FloatingField>
@@ -278,9 +278,9 @@ export function StaffEditorModal({
           <Col xs={24} sm={8}>
             <FloatingField
               name="name"
-              label={t("Họ và tên")}
+              label={t("Staff:FullName")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập họ và tên") }]}
+              rules={[{ required: true, message: t("Staff:FullNameRequired") }]}
             >
               <Input />
             </FloatingField>
@@ -288,11 +288,11 @@ export function StaffEditorModal({
           <Col xs={24} sm={8}>
             <FloatingField
               name="email"
-              label={t("Email")}
+              label={t("Staff:Email")}
               required
               rules={[
-                { required: true, message: t("Email không được để trống") },
-                { type: "email", message: t("Email không hợp lệ") },
+                { required: true, message: t("Staff:EmailRequired") },
+                { type: "email", message: t("Staff:EmailInvalid") },
               ]}
             >
               <Input />
@@ -301,11 +301,11 @@ export function StaffEditorModal({
           <Col xs={24} sm={8}>
             <FloatingField
               name="phoneNumber"
-              label={t("Số điện thoại")}
+              label={t("Staff:Phone")}
               rules={[
                 {
                   pattern: /^0\d{9}$/,
-                  message: t("Số điện thoại không hợp lệ (VD: 0901234567)"),
+                  message: t("Staff:PhoneInvalid"),
                 },
               ]}
             >
@@ -319,9 +319,9 @@ export function StaffEditorModal({
           <Col xs={24} sm={12}>
             <FloatingField
               name="password"
-              label={t("Mật khẩu")}
+              label={t("Staff:Password")}
               required={!isEditing}
-              rules={isEditing ? [] : [{ required: true, message: t("Mật khẩu không được để trống") }]}
+              rules={isEditing ? [] : [{ required: true, message: t("Staff:PasswordRequired") }]}
             >
               <Input.Password />
             </FloatingField>
@@ -329,15 +329,15 @@ export function StaffEditorModal({
           <Col xs={24} sm={12}>
             <FloatingField
               name="confirmPassword"
-              label={t("Nhập lại mật khẩu")}
+              label={t("Staff:ConfirmPassword")}
               required={!isEditing}
               dependencies={["password"]}
               rules={[
-                ...(!isEditing ? [{ required: true, message: t("Vui lòng nhập lại mật khẩu") }] : []),
+                ...(!isEditing ? [{ required: true, message: t("Staff:ConfirmPasswordRequired") }] : []),
                 ({ getFieldValue }: { getFieldValue: (name: string) => string }) => ({
                   validator(_: unknown, val: string) {
                     if (!val || getFieldValue("password") === val) return Promise.resolve();
-                    return Promise.reject(new Error(t("Mật khẩu không khớp")));
+                    return Promise.reject(new Error(t("Staff:PasswordMismatch")));
                   },
                 }),
               ]}
@@ -350,11 +350,11 @@ export function StaffEditorModal({
         {/* Tỉnh/Thành phố + Xã/Phường */}
         <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={12}>
-            <FloatingField name="provinceId" label={t("Tỉnh/ Thành phố")}>
+            <FloatingField name="provinceId" label={t("Staff:Province")}>
               <Select
                 showSearch
                 allowClear
-                placeholder={t("Chọn tỉnh/ thành phố")}
+                placeholder={t("Staff:ProvincePlaceholder")}
                 optionFilterProp="label"
                 options={provinces.map((p) => ({ value: p.code, label: p.name }))}
                 onChange={handleProvinceChange}
@@ -362,11 +362,11 @@ export function StaffEditorModal({
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="wardId" label={t("Xã/ Phường")}>
+            <FloatingField name="wardId" label={t("Staff:Ward")}>
               <Select
                 showSearch
                 allowClear
-                placeholder={t("Chọn xã/ phường")}
+                placeholder={t("Staff:WardPlaceholder")}
                 optionFilterProp="label"
                 options={wards.map((w) => ({ value: w.code, label: w.name }))}
                 disabled={!selectedProvinceId}
@@ -376,7 +376,7 @@ export function StaffEditorModal({
         </Row>
 
         {/* Địa chỉ */}
-        <FloatingField name="address" label={t("Địa chỉ")}>
+        <FloatingField name="address" label={t("Staff:Address")}>
           <Input />
         </FloatingField>
 
@@ -385,9 +385,9 @@ export function StaffEditorModal({
           <Col xs={12} sm={6}>
             <FloatingField
               name="morningStartTime"
-              label={t("Sáng: giờ vào")}
+              label={t("Staff:MorningIn")}
               required
-              rules={[{ required: true, message: t("Bắt buộc") }]}
+              rules={[{ required: true, message: t("Staff:Required") }]}
             >
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
@@ -395,9 +395,9 @@ export function StaffEditorModal({
           <Col xs={12} sm={6}>
             <FloatingField
               name="morningEndTime"
-              label={t("Sáng: giờ ra")}
+              label={t("Staff:MorningOut")}
               required
-              rules={[{ required: true, message: t("Bắt buộc") }]}
+              rules={[{ required: true, message: t("Staff:Required") }]}
             >
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
@@ -405,9 +405,9 @@ export function StaffEditorModal({
           <Col xs={12} sm={6}>
             <FloatingField
               name="afternoonStartTime"
-              label={t("Chiều: giờ vào")}
+              label={t("Staff:AfternoonIn")}
               required
-              rules={[{ required: true, message: t("Bắt buộc") }]}
+              rules={[{ required: true, message: t("Staff:Required") }]}
             >
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
@@ -415,9 +415,9 @@ export function StaffEditorModal({
           <Col xs={12} sm={6}>
             <FloatingField
               name="afternoonEndTime"
-              label={t("Chiều: giờ ra")}
+              label={t("Staff:AfternoonOut")}
               required
-              rules={[{ required: true, message: t("Bắt buộc") }]}
+              rules={[{ required: true, message: t("Staff:Required") }]}
             >
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
@@ -427,21 +427,21 @@ export function StaffEditorModal({
         {/* Chức danh checkboxes */}
         <div style={{ display: "flex", gap: 24 }}>
             <Form.Item name="isDentist" valuePropName="checked" noStyle>
-              <Checkbox>{t("Bác sĩ")}</Checkbox>
+              <Checkbox>{t("Staff:RoleDoctor")}</Checkbox>
             </Form.Item>
             <Form.Item name="isAssistant" valuePropName="checked" noStyle>
-              <Checkbox>{t("Phụ tá")}</Checkbox>
+              <Checkbox>{t("Staff:RoleAssistant")}</Checkbox>
             </Form.Item>
             <Form.Item name="isHygienist" valuePropName="checked" noStyle>
-              <Checkbox>{t("Y sĩ")}</Checkbox>
+              <Checkbox>{t("Staff:RoleMedic")}</Checkbox>
             </Form.Item>
         </div>
 
         {/* Tình trạng làm việc */}
-        <Form.Item name="isActive" label={t("Tình trạng làm việc")}>
+        <Form.Item name="isActive" label={t("Staff:WorkStatus")}>
           <Radio.Group>
-            <Radio value={true}>{t("Đang làm việc")}</Radio>
-            <Radio value={false}>{t("Đã nghỉ")}</Radio>
+            <Radio value={true}>{t("Staff:Working")}</Radio>
+            <Radio value={false}>{t("Staff:Resigned")}</Radio>
           </Radio.Group>
         </Form.Item>
         </div>

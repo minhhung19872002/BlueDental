@@ -14,7 +14,7 @@ interface CarePatientLineProps {
 export function CarePatientLine({ code, name, label, tinted }: CarePatientLineProps) {
   return (
     <div className={tinted ? "cskh-patient-bar" : undefined}>
-      {label ?? t("Họ và tên")}:{" "}
+      {label ?? t("CSKH:Col:FullName")}:{" "}
       <strong>{code !== undefined ? `[${code}] - ${name}` : name}</strong>
     </div>
   );

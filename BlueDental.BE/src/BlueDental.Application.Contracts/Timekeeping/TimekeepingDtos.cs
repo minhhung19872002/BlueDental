@@ -44,7 +44,7 @@ public class GetTimeKeepingListInput : PagedAndSortedResultRequestDto
     public AttendanceStatus? Status { get; set; }
 }
 
-/// <summary>KPI bar above the "Lịch làm việc" board.</summary>
+/// <summary>KPI bar above the "BE:Perm:WorkSchedule" board.</summary>
 public class TimeKeepingSummaryDto
 {
     public DateOnly WorkDate { get; set; }

@@ -28,13 +28,13 @@ export function buildCareColumns({
   const typeLabels = careTypeLabels();
   return [
     {
-      title: t("Ngày chăm sóc"),
+      title: t("Patient:Care:Date"),
       dataIndex: "dueAt",
       width: 140,
       render: (value: string | null, row) => formatDate(value ?? row.creationTime),
     },
     {
-      title: t("Trạng thái CSKH"),
+      title: t("Patient:Care:Status"),
       dataIndex: "status",
       width: 140,
       render: (value: CareStatus) => (
@@ -45,44 +45,44 @@ export function buildCareColumns({
       ),
     },
     {
-      title: t("Nhóm"),
+      title: t("Common:Group"),
       dataIndex: "type",
       width: 120,
       render: (value: CareType) => typeLabels[value],
     },
     {
-      title: t("Dịch vụ"),
+      title: t("Common:Service"),
       dataIndex: "serviceNames",
       width: 160,
       render: (value: string[]) => value.join(", "),
     },
     {
-      title: t("Nội dung"),
+      title: t("Common:Content"),
       dataIndex: "description",
       width: 220,
       render: (value: string | null, row) => (
         <div className="pc-content">
           <p className="pc-content-text">{value ?? ""}</p>
           <button type="button" className="pc-link" onClick={() => onDetail(row)}>
-            {t("Chi tiết")}
+            {t("Common:Detail")}
           </button>
         </div>
       ),
     },
     {
-      title: t("Bác sĩ điều trị"),
+      title: t("Patient:Care:TreatmentDoctor"),
       dataIndex: "assignedStaffName",
       width: 150,
       render: (value: string | null) => value ?? "",
     },
     {
-      title: t("Nhân viên chăm sóc"),
+      title: t("Patient:Care:Staff"),
       dataIndex: "careStaffName",
       width: 160,
-      render: (value: string | null) => value ?? t("Không có"),
+      render: (value: string | null) => value ?? t("Patient:Debt:None"),
     },
     {
-      title: t("Đánh giá"),
+      title: t("Patient:Care:Rating"),
       dataIndex: "outcome",
       width: 130,
       render: (value: CareOutcome | null) => {
@@ -96,7 +96,7 @@ export function buildCareColumns({
       },
     },
     ...((onEdit || onDelete) ? [{
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions" as const,
       width: 70,
       fixed: "right" as const,
@@ -107,7 +107,7 @@ export function buildCareColumns({
               type="text"
               size="small"
               icon={<Pencil size={16} />}
-              aria-label={t("Chỉnh sửa")}
+              aria-label={t("Common:Edit")}
               onClick={() => onEdit(row)}
             />
           )}
@@ -117,7 +117,7 @@ export function buildCareColumns({
               size="small"
               danger
               icon={<Trash2 size={16} />}
-              aria-label={t("Xoá")}
+              aria-label={t("Common:Delete")}
               onClick={() => onDelete(row)}
             />
           )}

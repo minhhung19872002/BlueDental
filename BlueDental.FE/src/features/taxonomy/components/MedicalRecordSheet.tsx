@@ -276,7 +276,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
                 value={value}
                 onChange={onChange}
                 field="nextOfKin"
-                placeholder={t("Nhập thông tin người nhà...")}
+                placeholder={t("Taxonomy:MedRecord:FamilyInfoPlaceholder")}
               />
             </div>
 
@@ -295,7 +295,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
                 value={value}
                 onChange={onChange}
                 field="referralDiagnosis"
-                placeholder={t("Nhập chẩn đoán nơi giới thiệu...")}
+                placeholder={t("Taxonomy:MedRecord:ReferralDiagPlaceholder")}
               />
               <span className="bd-a4-line bd-a4-nowrap">
                 1. Y tế <TickBox /> 2. Tự đến <TickBox checked />
@@ -307,7 +307,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="admissionReason"
-              placeholder={t("Nhập lý do vào viện...")}
+              placeholder={t("Taxonomy:MedRecord:AdmissionReasonPlaceholder")}
             />
 
             <SectionTitle>III. HỎI BỆNH:</SectionTitle>
@@ -317,7 +317,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
                 value={value}
                 onChange={onChange}
                 field="illnessHistory"
-                placeholder={t("Nhập quá trình bệnh lý...")}
+                placeholder={t("Taxonomy:MedRecord:DiseaseProgressPlaceholder")}
               />
             </div>
 
@@ -328,7 +328,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
                 value={value}
                 onChange={onChange}
                 field="personalHistory"
-                placeholder={t("Nhập tiền sử bản thân...")}
+                placeholder={t("Taxonomy:MedRecord:PersonalHistoryPlaceholder")}
               />
             </div>
             <div className="bd-a4-line bd-a4-mt1">
@@ -337,7 +337,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
                 value={value}
                 onChange={onChange}
                 field="familyHistory"
-                placeholder={t("Nhập tiền sử gia đình...")}
+                placeholder={t("Taxonomy:MedRecord:FamilyHistoryPlaceholder")}
               />
             </div>
 
@@ -351,7 +351,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
                     value={value}
                     onChange={onChange}
                     field="generalExam"
-                    placeholder={t("Nhập khám toàn thân...")}
+                    placeholder={t("Taxonomy:MedRecord:GeneralExamPlaceholder")}
                   />
                 </div>
                 <div className="bd-a4-line bd-a4-mt3">
@@ -386,7 +386,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="specialistExam"
-              placeholder={t("Nhập khám chuyên khoa...")}
+              placeholder={t("Taxonomy:MedRecord:SpecialtyExamPlaceholder")}
             />
             <div className="bd-a4-line bd-a4-mt1">
               <Rule />
@@ -405,7 +405,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="summaryProgress"
-              placeholder={t("Nhập quá trình bệnh lý...")}
+              placeholder={t("Taxonomy:MedRecord:DiseaseProgressPlaceholder")}
             />
 
             <p className="bd-a4-mt2">2. Tóm tắt kết quả xét nghiệm cận lâm sàng có giá trị chẩn đoán:</p>
@@ -413,7 +413,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="summaryTests"
-              placeholder={t("Nhập kết quả xét nghiệm...")}
+              placeholder={t("Taxonomy:MedRecord:TestResultPlaceholder")}
             />
 
             <p className="bd-a4-mt2">3. Chẩn đoán ra viện:</p>
@@ -422,14 +422,14 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="mainDisease"
-              placeholder={t("Nhập bệnh chính...")}
+              placeholder={t("Taxonomy:MedRecord:MainDiseasePlaceholder")}
             />
             <p className="bd-a4-mt2">- Bệnh kèm theo:</p>
             <Cell
               value={value}
               onChange={onChange}
               field="comorbidity"
-              placeholder={t("Nhập bệnh kèm theo...")}
+              placeholder={t("Taxonomy:MedRecord:ComorbidityPlaceholder")}
             />
 
             <p className="bd-a4-mt2">4. Phương pháp điều trị:</p>
@@ -437,7 +437,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="treatmentMethod"
-              placeholder={t("Nhập phương pháp điều trị...")}
+              placeholder={t("Taxonomy:MedRecord:TreatmentMethodPlaceholder")}
             />
 
             <p className="bd-a4-mt2">5. Tình trạng người bệnh ra viện:</p>
@@ -445,7 +445,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="dischargeCondition"
-              placeholder={t("Nhập tình trạng ra viện...")}
+              placeholder={t("Taxonomy:MedRecord:DischargeStatusPlaceholder")}
             />
 
             <p className="bd-a4-mt2">6. Hướng điều trị và các chế độ tiếp theo:</p>
@@ -453,7 +453,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="followUpPlan"
-              placeholder={t("Nhập hướng điều trị tiếp...")}
+              placeholder={t("Taxonomy:MedRecord:FollowUpPlaceholder")}
             />
 
             <table className="bd-a4-table">
@@ -547,7 +547,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="caseSummary"
-              placeholder={t("Nhập tóm tắt bệnh án...")}
+              placeholder={t("Taxonomy:MedRecord:SummaryPlaceholder")}
             />
 
             <p className="bd-a4-mt2">5. Chẩn đoán của khoa khám bệnh:</p>
@@ -555,7 +555,7 @@ export function MedicalRecordSheet({ value, onChange, zoom }: Props) {
               value={value}
               onChange={onChange}
               field="clinicDiagnosis"
-              placeholder={t("Nhập chẩn đoán khoa khám bệnh...")}
+              placeholder={t("Taxonomy:MedRecord:DeptDiagPlaceholder")}
             />
 
             <p className="bd-a4-mt2">6. Đã xử lý của tuyến dưới:</p>

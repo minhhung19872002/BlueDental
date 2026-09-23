@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// One medicine line of a "Đơn thuốc mẫu". Reference: the table inside the
+/// One medicine line of a "BE:Common:RxTemplate". Reference: the table inside the
 /// prescription-template dialog.
 /// </summary>
 public class PrescriptionTemplateLine : Entity<Guid>
@@ -28,7 +28,7 @@ public class PrescriptionTemplateLine : Entity<Guid>
     public PrescriptionUsage Usage { get; private set; }
 
     /// <summary>
-    /// What the user wrote for "Khác". The reference asks for it as soon as
+    /// What the user wrote for "BE:Common:Other". The reference asks for it as soon as
     /// that box is ticked and refuses an empty one, so it is required exactly
     /// when the flag is set and meaningless otherwise.
     /// </summary>
@@ -37,7 +37,7 @@ public class PrescriptionTemplateLine : Entity<Guid>
     public int SortOrder { get; private set; }
 
     /// <summary>
-    /// "Số lượng" — the reference shows it as a disabled box, so it is derived
+    /// "BE:Col:Quantity" — the reference shows it as a disabled box, so it is derived
     /// rather than stored, and cannot drift from the three numbers behind it.
     /// </summary>
     public decimal Quantity => TimesPerDay * AmountPerTime * Days;
@@ -78,7 +78,7 @@ public class PrescriptionTemplateLine : Entity<Guid>
         AmountPerTime = amountPerTime;
         Days = days;
         Usage = usage;
-        // Dropped when "Khác" is not among the choices: keeping it would leave
+        // Dropped when "BE:Common:Other" is not among the choices: keeping it would leave
         // a value behind that nothing displays.
         OtherUsage = wantsOther ? written : null;
         SortOrder = sortOrder;

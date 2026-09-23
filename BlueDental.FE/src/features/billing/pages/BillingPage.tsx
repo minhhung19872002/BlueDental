@@ -78,7 +78,7 @@ export function BillingPage() {
 
   const columns: TableColumnsType<InvoiceDto> = [
     {
-      title: t("Mã phiếu"),
+      title: t("Billing:InvoiceCode"),
       dataIndex: "invoiceNumber",
       key: "invoiceNumber",
       width: 150,
@@ -87,20 +87,20 @@ export function BillingPage() {
       ),
     },
     {
-      title: t("Khách hàng"),
+      title: t("Billing:Customer"),
       dataIndex: "patientName",
       key: "patientName",
       render: (value: string) => value || "—",
     },
     {
-      title: t("Ngày"),
+      title: t("Billing:Date"),
       dataIndex: "issuedAt",
       key: "issuedAt",
       width: 110,
       render: (value: string) => formatDate(value),
     },
     {
-      title: t("Tổng tiền"),
+      title: t("Billing:TotalAmount"),
       dataIndex: "totalAmount",
       key: "totalAmount",
       width: 130,
@@ -108,7 +108,7 @@ export function BillingPage() {
       render: (value: number) => <strong>{formatVND(value)}</strong>,
     },
     {
-      title: t("Đã thu"),
+      title: t("Billing:Collected"),
       dataIndex: "paidAmount",
       key: "paidAmount",
       width: 130,
@@ -120,7 +120,7 @@ export function BillingPage() {
       ),
     },
     {
-      title: t("Còn lại"),
+      title: t("Billing:Remaining"),
       dataIndex: "balanceDue",
       key: "balanceDue",
       width: 130,
@@ -132,7 +132,7 @@ export function BillingPage() {
       ),
     },
     {
-      title: t("Trạng thái"),
+      title: t("Billing:StatusFilter"),
       dataIndex: "status",
       key: "status",
       width: 140,
@@ -153,7 +153,7 @@ export function BillingPage() {
       },
     },
     {
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 158,
       fixed: "right",
@@ -165,7 +165,7 @@ export function BillingPage() {
             disabled={!isCollectable(row)}
             onClick={() => setPaying(row)}
           >
-            {t("Thu tiền")}
+            {t("Billing:CollectPayment")}
           </Button>
         ) : null,
     },
@@ -174,12 +174,12 @@ export function BillingPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title={t("Thanh toán & hoá đơn")}
-        subtitle={t("Bấm “Thu tiền” để ghi nhận thanh toán từng phiếu")}
+        title={t(“Billing:PageTitle”)}
+        subtitle={t(“Billing:PageSubtitle”)}
         actions={
           ability.canExport && (
             <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
-              {t("Xuất Excel")}
+              {t("Billing:ExportExcel")}
             </Button>
           )
         }
@@ -187,23 +187,23 @@ export function BillingPage() {
 
       <div className="billing-kpis">
         <div className="page-card billing-kpi">
-          <div className="billing-kpi-label">{t("Tổng giá trị hoá đơn")}</div>
+          <div className="billing-kpi-label">{t("Billing:KpiTotalInvoice")}</div>
           <div className="billing-kpi-value">{formatVND(total)}</div>
-          <div className="billing-kpi-caption">{t("trên trang này")}</div>
+          <div className="billing-kpi-caption">{t("Billing:KpiOnThisPage")}</div>
         </div>
         <div className="page-card billing-kpi">
-          <div className="billing-kpi-label">{t("Đã thu")}</div>
+          <div className="billing-kpi-label">{t("Billing:Collected")}</div>
           <div className="billing-kpi-value" style={{ color: brand.green }}>
             {formatVND(paid)}
           </div>
-          <div className="billing-kpi-caption">{t("trên trang này")}</div>
+          <div className="billing-kpi-caption">{t("Billing:KpiOnThisPage")}</div>
         </div>
         <div className="page-card billing-kpi">
-          <div className="billing-kpi-label">{t("Công nợ còn lại")}</div>
+          <div className="billing-kpi-label">{t("Billing:KpiDebt")}</div>
           <div className="billing-kpi-value" style={{ color: brand.red }}>
             {formatVND(outstanding)}
           </div>
-          <div className="billing-kpi-caption">{t("trên trang này")}</div>
+          <div className="billing-kpi-caption">{t("Billing:KpiOnThisPage")}</div>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ export function BillingPage() {
         <Input
           allowClear
           prefix={<SearchOutlined style={{ color: brand.faint }} />}
-          placeholder={t("Tìm theo mã phiếu...")}
+          placeholder={t("Billing:SearchPlaceholder")}
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
@@ -221,7 +221,7 @@ export function BillingPage() {
         />
         <Select
           allowClear
-          placeholder={t("Trạng thái")}
+          placeholder={t("Billing:StatusFilter")}
           value={statusFilter}
           onChange={(value: InvoiceStatus | undefined) => {
             setStatusFilter(value);
@@ -252,7 +252,7 @@ export function BillingPage() {
               emptyText: (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={t("Chưa có hoá đơn")}
+                  description={t("Billing:NoInvoice")}
                 />
               ),
             }}

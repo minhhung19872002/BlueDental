@@ -32,7 +32,7 @@ export function StaffFilter({ label, value, onChange }: Props) {
       onChange={(next) => onChange(next ?? undefined)}
       optionFilterProp="label"
       options={data ?? []}
-      notFoundContent={isLoading ? t("Đang tải…") : t("Không có dữ liệu")}
+      notFoundContent={isLoading ? t("Common:Loading") : t("Common:NoData")}
     />
   );
 }

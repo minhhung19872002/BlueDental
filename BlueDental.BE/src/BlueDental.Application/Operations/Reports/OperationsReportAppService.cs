@@ -186,7 +186,7 @@ public class OperationsReportAppService(
         return entries.ToDictionary(e => e.Id, e => e.Name);
     }
 
-    /// <summary>Which group each catalog entry belongs to — the "Nhóm dịch vụ" column.</summary>
+    /// <summary>Which group each catalog entry belongs to — the "BE:Field:ServiceGroups" column.</summary>
     private async Task<Dictionary<Guid, (string Name, Guid GroupId, string GroupName)>> CatalogGroupsAsync()
     {
         var entries = await catalogRepository.GetListAsync();
@@ -528,8 +528,8 @@ public class OperationsReportAppService(
                 UnitName = branches.GetValueOrDefault(i.BranchId, string.Empty),
                 // The reference shows how the invoice was settled; an unpaid one
                 // has not been settled any way yet.
-                PaymentMethod = i.PaidAmount.Amount > 0 ? "Tiền mặt" : string.Empty,
-                IssueStatus = i.Status == InvoiceStatus.Draft ? "Chưa xuất hoá đơn" : "Đã xuất hoá đơn",
+                PaymentMethod = i.PaidAmount.Amount > 0 ? L["BE:PaymentKind:Cash"].Value : string.Empty,
+                IssueStatus = i.Status == InvoiceStatus.Draft ? L["BE:Report:NotInvoiced"].Value : L["BE:Report:Invoiced"].Value,
                 Status = i.Status.ToString(),
                 SubTotal = i.SubTotal.Amount,
                 TaxAmount = i.TaxAmount.Amount,
@@ -605,8 +605,8 @@ public class OperationsReportAppService(
                     ServiceName = entry.Name ?? string.Empty,
                     ServiceGroupName = entry.GroupName ?? string.Empty,
                     Classification = s.IsCompleted ? SalesCategory.Completed : SalesCategory.OwnQuota,
-                    SyncStatus = "Chưa đồng bộ",
-                    InvoiceStatus = "Chưa xuất hoá đơn",
+                    SyncStatus = L["BE:Report:NotSynced"].Value,
+                    InvoiceStatus = L["BE:Report:NotInvoiced"].Value,
                     DiagnosingDentistName = advise is null
                         ? null
                         : staff.GetValueOrDefault(advise.StaffId, string.Empty),
@@ -626,7 +626,7 @@ public class OperationsReportAppService(
                     Quantity = s.Quantity,
                     DiscountAmount = s.DiscountAmount,
                     DoctorAmount = s.CountedAmount,
-                    TaxKind = "Sau thuế",
+                    TaxKind = L["BE:Field:AfterTax"].Value,
                     TaxPercent = null
                 };
 

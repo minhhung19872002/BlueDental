@@ -14,9 +14,9 @@ interface Props {
 }
 
 const EXPORT_FORMATS: readonly { key: HistoryExportFormat; label: string }[] = [
-  { key: "csv", label: "Xuất CSV" },
-  { key: "excel", label: "Xuất Excel" },
-  { key: "json", label: "Xuất JSON" },
+  { key: "csv", label: "Appointment:History:Toolbar:ExportCsv" },
+  { key: "excel", label: "Appointment:History:Toolbar:ExportExcel" },
+  { key: "json", label: "Appointment:History:Toolbar:ExportJson" },
 ];
 
 function isExportFormat(key: string): key is HistoryExportFormat {
@@ -28,8 +28,8 @@ export function HistoryToolbar({ view, exporting, onViewChange, onExport }: Prop
   const views = useMemo(
     () =>
       [
-        { key: "table", label: t("Bảng") },
-        { key: "timeline", label: t("Dòng thời gian") },
+        { key: "table", label: t("Appointment:History:Toolbar:Table") },
+        { key: "timeline", label: t("Appointment:History:Toolbar:Timeline") },
       ] as const,
     [],
   );
@@ -46,7 +46,7 @@ export function HistoryToolbar({ view, exporting, onViewChange, onExport }: Prop
       <SegmentedTabs<HistoryView> items={views} activeKey={view} onChange={onViewChange} />
       <Dropdown menu={menu} trigger={["click"]} disabled={exporting}>
         <Button icon={<DownloadOutlined />} loading={exporting} data-testid="ah-export">
-          {t("Xuất dữ liệu")}
+          {t("Appointment:History:Toolbar:Export")}
         </Button>
       </Dropdown>
     </div>

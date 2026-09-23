@@ -6,7 +6,7 @@ namespace BlueDental.CustomerCare;
 ///
 /// Wire values (staging, 2026-08-26): <c>afterTreatment</c>, <c>happyBirthday</c>,
 /// <c>reminder</c>, <c>recurring</c>, <c>special</c>, plus <c>base</c> — the
-/// "Tạo công việc mới" task created from the Phân nhóm CSKH tab.
+/// "BE:Perm:CreateTask" task created from the Phân nhóm CSKH tab.
 /// Recorded in docs/clone/pages/cskh-grouping.md.
 /// </summary>
 public enum CareType : short

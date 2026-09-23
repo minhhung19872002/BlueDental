@@ -30,13 +30,13 @@ export function LaboToothRow({ form, teeth, value = [], empty }: Props) {
   return (
     <div className={className}>
       <p>
-        {t("Răng")}:<span className="floating-field-required">*</span>
+        {t("Patient:DentalChart:Tooth")}:<span className="floating-field-required">*</span>
       </p>
       {teeth.length === 0 ? (
         empty
       ) : (
         <Checkbox checked={allTeeth} onChange={(event) => form.setAllTeeth(event.target.checked)}>
-          {t("Chọn tất cả")}
+          {t("Patient:Misc:SelectAllLower")}
         </Checkbox>
       )}
       <div>

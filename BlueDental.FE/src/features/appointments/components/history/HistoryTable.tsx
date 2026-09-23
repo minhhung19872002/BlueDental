@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { Button, Table, type TableColumnsType } from "antd";
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { LetterAvatar } from "@/components/LetterAvatar";
@@ -20,37 +20,37 @@ const EMPTY = "—";
 function buildColumns(expandedId: string | null, onToggle: (id: string) => void): TableColumnsType<HistoryEntry> {
   return [
     {
-      title: t("Thời gian"),
+      title: t("Appointment:History:Table:Time"),
       dataIndex: "occurredAt",
       width: 170,
       render: (value: string) => <span className="ah-time">{formatOccurredAt(value)}</span>,
     },
     {
-      title: t("Loại"),
+      title: t("Appointment:History:Table:Type"),
       dataIndex: "action",
       width: 150,
       render: (_, entry) => <ActionBadge action={entry.action} />,
     },
     {
-      title: t("Thay đổi"),
+      title: t("Appointment:History:Table:Changes"),
       dataIndex: "changedFields",
       render: (fields: string[]) => (
         <span className="ah-fields">{fields.length ? fields.join(", ") : EMPTY}</span>
       ),
     },
     {
-      title: t("Before → After"),
+      title: t("Appointment:History:Table:BeforeAfter"),
       key: "diff",
       render: (_, entry) => <span className="ah-diff-summary">{summarizeDiff(entry)}</span>,
     },
     {
-      title: t("Trạng thái"),
+      title: t("Common:Status"),
       key: "status",
       width: 160,
       render: (_, entry) => <StatusText entry={entry} />,
     },
     {
-      title: t("Người"),
+      title: t("Appointment:History:Table:Person"),
       key: "actor",
       width: 200,
       render: (_, entry) => (
@@ -61,7 +61,7 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
       ),
     },
     {
-      title: t("Nguồn"),
+      title: t("Appointment:History:Source"),
       dataIndex: "source",
       width: 90,
       render: (_, entry) => <SourceBadge source={entry.source} />,
@@ -77,7 +77,7 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
             type="text"
             size="small"
             className="ah-expand"
-            aria-label={open ? t("Thu gọn") : t("Mở rộng")}
+            aria-label={open ? t("Appointment:History:Table:Collapse") : t("Appointment:History:Table:Expand")}
             aria-expanded={open}
             icon={open ? <UpOutlined /> : <DownOutlined />}
             onClick={() => onToggle(entry.id)}
@@ -101,7 +101,7 @@ export function HistoryTable({ entries, loading, expandedId, onToggle }: Props) 
       loading={loading}
       pagination={false}
       scroll={{ x: "max-content" }}
-      locale={{ emptyText: t("Chưa có thay đổi nào trong khoảng thời gian này") }}
+      locale={{ emptyText: t("Appointment:History:NoChangesInPeriod") }}
       expandable={{
         expandedRowKeys: expandedId ? [expandedId] : [],
         showExpandColumn: false,

@@ -64,21 +64,21 @@ const report = (key: string, label: string): OperationsSubTab => ({
 /** The three every division has, in the reference's order. */
 function articleSubTabs(): OperationsSubTab[] {
   return [
-    articles("home", t("Trang chủ")),
-    articles("process", t("Quy trình")),
-    articles("task", t("Công việc")),
+    articles("home", t("Operations:Home")),
+    articles("process", t("Operations:Process")),
+    articles("task", t("Operations:Task")),
   ];
 }
 
 function withReport(): OperationsSubTab[] {
-  return [...articleSubTabs(), report("report", t("Báo cáo"))];
+  return [...articleSubTabs(), report("report", t("Operations:Report"))];
 }
 
 /** Tổng quan / Truy cập, on the two divisions that have it. */
 function middleTabs(): OperationsMiddleTab[] {
   return [
-    { key: "overview", label: t("Tổng quan") },
-    { key: "access", label: t("Truy cập") },
+    { key: "overview", label: t("Operations:Overview") },
+    { key: "access", label: t("Operations:Access") },
   ];
 }
 
@@ -86,36 +86,36 @@ export function operationsDivisions(): OperationsDivision[] {
   return [
     {
       key: "overview",
-      label: t("Quản trị vận hành"),
+      label: t("Operations:Admin"),
       subTabs: [
         ...withReport(),
-        report("untreated", t("Chẩn đoán chưa điều trị")),
-        report("prescription", t("Đơn thuốc")),
+        report("untreated", t("Operations:UntreatedDiagnosis")),
+        report("prescription", t("Operations:Prescription")),
       ],
     },
-    { key: "assistant", label: t("Khối trợ lý"), subTabs: articleSubTabs() },
-    { key: "reception", label: t("Khối lễ tân"), subTabs: withReport() },
-    { key: "cskh", label: t("Khối CSKH"), subTabs: withReport() },
-    { key: "marketing", label: t("Khối Marketing"), subTabs: withReport() },
-    { key: "security", label: t("Khối bảo vệ"), subTabs: articleSubTabs() },
+    { key: "assistant", label: t("Operations:AssistantBlock"), subTabs: articleSubTabs() },
+    { key: "reception", label: t("Operations:ReceptionBlock"), subTabs: withReport() },
+    { key: "cskh", label: t("Operations:CSKHBlock"), subTabs: withReport() },
+    { key: "marketing", label: t("Operations:MarketingBlock"), subTabs: withReport() },
+    { key: "security", label: t("Operations:SecurityBlock"), subTabs: articleSubTabs() },
     {
       key: "treatment",
-      label: t("Khối điều trị"),
+      label: t("Operations:TreatmentBlock"),
       middleTabs: middleTabs(),
       subTabs: withReport(),
     },
     {
       key: "finance",
-      label: t("Khối tài chính"),
+      label: t("Operations:FinanceBlock"),
       middleTabs: middleTabs(),
       // Its own six, in the reference's order — not the shared set.
       subTabs: [
-        articles("home", t("Trang chủ")),
-        report("customer-report", t("Khách hàng phát sinh")),
-        articles("process", t("Quy trình")),
-        articles("task", t("Công việc")),
-        report("invoice", t("Hóa đơn")),
-        report("service-complete", t("Hoàn thành theo dịch vụ")),
+        articles("home", t("Operations:Home")),
+        report("customer-report", t("Operations:CustomerReport")),
+        articles("process", t("Operations:Process")),
+        articles("task", t("Operations:Task")),
+        report("invoice", t("Operations:Invoice")),
+        report("service-complete", t("Operations:ServiceComplete")),
       ],
     },
   ];

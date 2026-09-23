@@ -25,7 +25,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     public string FullName => $"{LastName} {FirstName}".Trim();
 
     /// <summary>
-    /// Optional: the reference's "Tạo hồ sơ" form does not require a birth date,
+    /// Optional: the reference's "BE:Common:CreateRecord" form does not require a birth date,
     /// and rows registered at the front desk regularly have none.
     /// </summary>
     public DateOnly? DateOfBirth { get; private set; }
@@ -102,7 +102,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         string? nationalId = null)
     {
         Check.NotNullOrWhiteSpace(patientCode, nameof(patientCode));
-        // Only the family name is required: the dialog collects one "Họ và tên"
+        // Only the family name is required: the dialog collects one "BE:Field:FullName"
         // and a single-word name is a whole name, not half of one.
         Check.NotNullOrWhiteSpace(lastName, nameof(lastName));
         GuardDateOfBirth(dateOfBirth);

@@ -95,16 +95,16 @@ export function PrintMedicalRecordDialog({ patient, onClose }: Props) {
   return (
     <Modal
       open
-      title={t("In bệnh án")}
+      title={t("Treatment:Plan:PrintMedicalRecord")}
       width="calc(100vw - 32px)"
       className="pmr-dialog"
       onCancel={onClose}
       destroyOnHidden
       footer={
         <div className="pmr-foot">
-          <Button onClick={onClose}>{t("Đóng")}</Button>
+          <Button onClick={onClose}>{t("Common:Close")}</Button>
           <Button type="primary" icon={<Printer size={16} />} onClick={() => void handlePrint()}>
-            {t("In bệnh án")}
+            {t("Treatment:Plan:PrintMedicalRecord")}
           </Button>
         </div>
       }

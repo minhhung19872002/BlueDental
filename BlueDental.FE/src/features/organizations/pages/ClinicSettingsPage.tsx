@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -64,12 +64,12 @@ type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "bran
  * not offered (owner's decision, 2026-09-22: hide, do not disable).
  */
 const TAB_ITEMS: { key: TabKey; icon: React.ReactNode; label: string; permissions: readonly string[] }[] = [
-  { key: "info", icon: <UserOutlined />, label: "Thông tin cá nhân", permissions: [] },
-  { key: "password", icon: <LockOutlined />, label: "Đổi mật khẩu", permissions: [] },
-  { key: "clinic", icon: <ShopOutlined />, label: "Thông tin phòng khám", permissions: [LegacyPermissions.Organizations.View] },
-  { key: "permission", icon: <SafetyOutlined />, label: "Phân quyền", permissions: [abilityPermission("rolePermission", "read")] },
-  { key: "branches", icon: <BranchesOutlined />, label: "Danh sách chi nhánh", permissions: [LegacyPermissions.Organizations.View] },
-  { key: "branch-manage", icon: <TeamOutlined />, label: "Quản lý chi nhánh", permissions: [LegacyPermissions.BranchManager.View] },
+  { key: "info", icon: <UserOutlined />, label: "Organization:TabPersonalInfo", permissions: [] },
+  { key: "password", icon: <LockOutlined />, label: "Organization:TabChangePassword", permissions: [] },
+  { key: "clinic", icon: <ShopOutlined />, label: "Organization:TabClinicInfo", permissions: [LegacyPermissions.Organizations.View] },
+  { key: "permission", icon: <SafetyOutlined />, label: "Organization:TabPermissions", permissions: [abilityPermission("rolePermission", "read")] },
+  { key: "branches", icon: <BranchesOutlined />, label: "Organization:TabBranchList", permissions: [LegacyPermissions.Organizations.View] },
+  { key: "branch-manage", icon: <TeamOutlined />, label: "Organization:TabBranchManage", permissions: [LegacyPermissions.BranchManager.View] },
 ];
 
 /* ── Tab: Thông tin cá nhân ───────────────────────────────────────────── */
@@ -174,7 +174,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
           },
         });
       }
-      toast.success(t("Cập nhật thông tin thành công"));
+      toast.success(t("Organization:PersonalSaveSuccess"));
     } catch {
       // Global MutationCache.onError handles toast
     } finally {
@@ -186,7 +186,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
 
   return (
     <>
-      <div className="profile-content-title">{t("Thông tin cá nhân")}</div>
+      <div className="profile-content-title">{t("Organization:ProfileTitle")}</div>
 
       {/* Avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
@@ -228,7 +228,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
           <div style={{ fontWeight: 600, fontSize: 16, color: "var(--bd-ink)" }}>{profile?.name}</div>
           <div style={{ fontSize: 13, color: "var(--bd-muted)" }}>{profile?.email}</div>
           <div style={{ fontSize: 12, color: "var(--bd-faint)", marginTop: 2 }}>
-            {t("ID phòng khám")}: {branchId}
+            {t("Organization:BranchId")}: {branchId}
           </div>
         </div>
       </div>
@@ -244,50 +244,50 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
             setAvatarPreview(null);
           }}
         >
-          {t("Xóa ảnh")}
+          {t("Organization:DeletePhoto")}
         </Button>
       )}
       {!avatarPreview && <div style={{ marginBottom: 20 }} />}
 
       <Form form={form} layout="vertical" className="settings-form">
-        <Form.Item name="name" label={t("Họ và tên")} rules={[{ required: true, message: t("Vui lòng nhập tên") }]}>
+        <Form.Item name="name" label={t("Organization:NameLabel")} rules={[{ required: true, message: t("Organization:NameRequired") }]}>
           <Input />
         </Form.Item>
         <div className="settings-row">
           <Form.Item
             name="phoneNumber"
-            label={t("Số điện thoại")}
-            rules={[{ pattern: /^0\d{9,10}$/, message: t("Số điện thoại không hợp lệ") }]}
+            label={t("Organization:PhoneLabelField")}
+            rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="email" label={t("Email")} rules={[{ type: "email", message: t("Email không hợp lệ") }]}>
+          <Form.Item name="email" label={t("Organization:EmailLabel")} rules={[{ type: "email", message: t("Organization:EmailInvalid") }]}>
             <Input />
           </Form.Item>
         </div>
         <div className="settings-row">
-          <Form.Item name="provinceId" label={t("Tỉnh/ Thành phố")}>
+          <Form.Item name="provinceId" label={t("Organization:ProvinceLabelField")}>
             <Select
               showSearch
               allowClear
-              placeholder={t("Chọn tỉnh/ thành phố")}
+              placeholder={t("Organization:ProvincePlaceholderField")}
               optionFilterProp="label"
               options={provinces.map((p) => ({ value: p.code, label: p.name }))}
               onChange={handleProvinceChange}
             />
           </Form.Item>
-          <Form.Item name="wardId" label={t("Xã/ Phường")}>
+          <Form.Item name="wardId" label={t("Organization:WardLabelField")}>
             <Select
               showSearch
               allowClear
-              placeholder={t("Chọn xã/ phường")}
+              placeholder={t("Organization:WardPlaceholderField")}
               optionFilterProp="label"
               options={wards.map((w) => ({ value: w.code, label: w.name }))}
               disabled={!selectedProvinceId}
             />
           </Form.Item>
         </div>
-        <Form.Item name="address" label={t("Địa chỉ")}>
+        <Form.Item name="address" label={t("Organization:AddressField")}>
           <Input />
         </Form.Item>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -298,7 +298,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
             disabled={saving}
             onClick={() => void handleSave()}
           >
-            {t("Lưu Thay Đổi")}
+            {t("Organization:SaveChanges")}
           </Button>
         </div>
       </Form>
@@ -322,12 +322,12 @@ function ChangePasswordTab() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       });
-      toast.success(t("Đổi mật khẩu thành công"));
+      toast.success(t("Organization:PasswordChanged"));
       form.resetFields();
     } catch (error) {
       const info = describeApiError(error);
       if (info.code === "BlueDental:Auth:ChangePasswordFailed") {
-        toast.error(t("Mật khẩu hiện tại không đúng. Vui lòng kiểm tra lại."));
+        toast.error(t("Organization:PasswordWrong"));
       } else {
         toast.error(info.message);
       }
@@ -338,43 +338,43 @@ function ChangePasswordTab() {
 
   return (
     <>
-      <div className="profile-content-title">{t("Đổi mật khẩu")}</div>
+      <div className="profile-content-title">{t("Organization:ChangePasswordTitle")}</div>
       <Form form={form} layout="vertical" className="settings-form" style={{ maxWidth: 400 }}>
         <Form.Item
           name="currentPassword"
-          label={t("Mật khẩu hiện tại")}
-          rules={[{ required: true, message: t("Vui lòng nhập mật khẩu hiện tại") }]}
+          label={t("Organization:CurrentPasswordLabel")}
+          rules={[{ required: true, message: t("Organization:CurrentPasswordRequired") }]}
         >
-          <Input.Password placeholder={t("Mật khẩu hiện tại")} />
+          <Input.Password placeholder={t("Organization:CurrentPasswordPlaceholder")} />
         </Form.Item>
         <Form.Item
           name="newPassword"
-          label={t("Mật khẩu mới")}
+          label={t("Organization:NewPasswordLabel")}
           rules={[
-            { required: true, message: t("Vui lòng nhập mật khẩu mới") },
-            { pattern: PASSWORD_PATTERN, message: t("Tối thiểu 8 ký tự, gồm chữ, số và ký tự đặc biệt") },
+            { required: true, message: t("Organization:NewPasswordRequired") },
+            { pattern: PASSWORD_PATTERN, message: t("Organization:NewPasswordHint") },
           ]}
         >
-          <Input.Password placeholder={t("Mật khẩu mới")} />
+          <Input.Password placeholder={t("Organization:NewPasswordPlaceholder")} />
         </Form.Item>
         <Form.Item
           name="confirmPassword"
-          label={t("Nhập lại mật khẩu mới")}
+          label={t("Organization:ConfirmNewPasswordLabel")}
           rules={[
-            { required: true, message: t("Vui lòng nhập lại mật khẩu") },
+            { required: true, message: t("Organization:ConfirmNewPasswordRequired") },
             ({ getFieldValue }) => ({
               validator(_, value) {
                 if (!value || getFieldValue("newPassword") === value) return Promise.resolve();
-                return Promise.reject(new Error(t("Mật khẩu không khớp")));
+                return Promise.reject(new Error(t("Organization:NewPasswordMismatch")));
               },
             }),
           ]}
         >
-          <Input.Password placeholder={t("Nhập lại mật khẩu mới")} />
+          <Input.Password placeholder={t("Organization:ConfirmNewPasswordPlaceholder")} />
         </Form.Item>
         <div style={{ display: "flex", justifyContent: "flex-start" }}>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} disabled={saving} onClick={() => void handleSave()}>
-            {t("Lưu Thay Đổi")}
+            {t("Organization:SaveChanges")}
           </Button>
         </div>
       </Form>
@@ -454,7 +454,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
       if (user) {
         setAuth({ ...user, clinicTagline: clean(values.slogan) ?? null, clinicName: values.name });
       }
-      toast.success(t("Cập nhật thông tin phòng khám thành công"));
+      toast.success(t("Organization:ClinicInfoSaved"));
     } catch {
       // Global MutationCache.onError handles toast
     } finally {
@@ -466,59 +466,59 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
 
   return (
     <>
-      <div className="profile-content-title">{t("Thông tin phòng khám")}</div>
+      <div className="profile-content-title">{t("Organization:ClinicInfoTitle")}</div>
       <Form form={form} layout="vertical" className="settings-form">
         <div className="settings-row">
-          <Form.Item name="code" label={t("Mã cửa hàng")}>
+          <Form.Item name="code" label={t("Organization:ClinicCodeLabel")}>
             <Input disabled />
           </Form.Item>
-          <Form.Item name="name" label={t("Tên chi nhánh")} rules={[{ required: true, message: t("Vui lòng nhập tên chi nhánh") }]}>
+          <Form.Item name="name" label={t("Organization:ClinicNameLabel")} rules={[{ required: true, message: t("Organization:ClinicNameRequired") }]}>
             <Input />
           </Form.Item>
         </div>
-        <Form.Item name="slogan" label={t("Slogan")} rules={[{ max: 500, message: t("Slogan tối đa 500 ký tự") }]}>
-          <Input placeholder={t("Nhập slogan phòng khám")} />
+        <Form.Item name="slogan" label={t("Organization:SloganLabel")} rules={[{ max: 500, message: t("Organization:SloganMaxLength") }]}>
+          <Input placeholder={t("Organization:SloganPlaceholder")} />
         </Form.Item>
         <div className="settings-row">
           <Form.Item
             name="phoneNumber"
-            label={t("Số điện thoại")}
-            rules={[{ pattern: /^0\d{9,10}$/, message: t("Số điện thoại không hợp lệ") }]}
+            label={t("Organization:PhoneLabelField")}
+            rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="email" label={t("Email")} rules={[{ type: "email", message: t("Email không hợp lệ") }]}>
+          <Form.Item name="email" label={t("Organization:EmailLabel")} rules={[{ type: "email", message: t("Organization:EmailInvalid") }]}>
             <Input />
           </Form.Item>
         </div>
         <div className="settings-row">
-          <Form.Item name="provinceId" label={t("Tỉnh/ Thành phố")}>
+          <Form.Item name="provinceId" label={t("Organization:ProvinceLabelField")}>
             <Select
               showSearch
               allowClear
-              placeholder={t("Chọn tỉnh/ thành phố")}
+              placeholder={t("Organization:ProvincePlaceholderField")}
               optionFilterProp="label"
               options={provinces.map((p) => ({ value: p.code, label: p.name }))}
               onChange={handleProvinceChange}
             />
           </Form.Item>
-          <Form.Item name="wardId" label={t("Xã/ Phường")}>
+          <Form.Item name="wardId" label={t("Organization:WardLabelField")}>
             <Select
               showSearch
               allowClear
-              placeholder={t("Chọn xã/ phường")}
+              placeholder={t("Organization:WardPlaceholderField")}
               optionFilterProp="label"
               options={wards.map((w) => ({ value: w.code, label: w.name }))}
               disabled={!selectedProvinceId}
             />
           </Form.Item>
         </div>
-        <Form.Item name="address" label={t("Địa chỉ")}>
+        <Form.Item name="address" label={t("Organization:AddressField")}>
           <Input />
         </Form.Item>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} disabled={saving} onClick={() => void handleSave()}>
-            {t("Lưu Thay Đổi")}
+            {t("Organization:SaveChanges")}
           </Button>
         </div>
       </Form>
@@ -541,7 +541,7 @@ function BranchListTab() {
     if (!pendingDelete) return;
     try {
       await deleteBranch.mutateAsync(pendingDelete.id);
-      toast.success(t("Xóa chi nhánh thành công"));
+      toast.success(t("Organization:BranchDeleted"));
     } catch {
       // Global MutationCache.onError already shows the toast
     } finally {
@@ -559,27 +559,27 @@ function BranchListTab() {
     },
     {
       key: "name",
-      title: t("Tên chi nhánh"),
+      title: t("Organization:BranchNameCol"),
       dataIndex: "name",
       width: 280,
     },
     {
       key: "phoneNumber",
-      title: t("Số điện thoại"),
+      title: t("Organization:PhoneCol"),
       dataIndex: "phoneNumber",
       width: 160,
       render: (v: string) => v || "—",
     },
     {
       key: "email",
-      title: t("Email"),
+      title: t("Organization:EmailLabel"),
       dataIndex: "email",
       width: 260,
       render: (v: string) => v || "—",
     },
     {
       key: "lastModificationTime",
-      title: t("Lần cập nhật cuối"),
+      title: t("Organization:LastUpdatedCol"),
       dataIndex: "lastModificationTime",
       width: 200,
       render: (v: string) => {
@@ -590,7 +590,7 @@ function BranchListTab() {
     },
     ...((ability.canUpdate || ability.canDelete) ? [{
       key: "actions" as const,
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 110,
       align: "center" as const,
       fixed: "right" as const,
@@ -599,7 +599,7 @@ function BranchListTab() {
         return (
           <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
             {ability.canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
@@ -609,7 +609,7 @@ function BranchListTab() {
               </Tooltip>
             )}
             {ability.canDelete && (
-              <Tooltip title={t("Xóa")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
@@ -628,14 +628,14 @@ function BranchListTab() {
   return (
     <>
       <div className="settings-section-header">
-        <div className="profile-content-title" style={{ marginBottom: 0 }}>{t("Danh sách chi nhánh")}</div>
+        <div className="profile-content-title" style={{ marginBottom: 0 }}>{t("Organization:BranchListTitle")}</div>
         {ability.canCreate && (
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => { setEditingBranch(null); setBranchModalOpen(true); }}
           >
-            {t("Thêm chi nhánh")}
+            {t("Organization:AddBranchBtn")}
           </Button>
         )}
       </div>
@@ -661,7 +661,7 @@ function BranchListTab() {
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("chi nhánh")}
+        noun={t("Organization:BranchNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteBranch.isPending}
         onConfirm={() => void confirmDeleteBranch()}
@@ -741,7 +741,7 @@ function BranchManageTab() {
     if (!pendingDeleteMgr) return;
     try {
       await deleteMgr.mutateAsync(pendingDeleteMgr.id);
-      toast.success(t("Đã xoá quản lý chi nhánh"));
+      toast.success(t("Organization:ManagerDeleted"));
     } catch {
       // Global MutationCache.onError already shows the toast
     } finally {
@@ -781,17 +781,17 @@ function BranchManageTab() {
       }
 
       setModalOpen(false);
-      toast.success(editing ? t("Đã cập nhật quản lý chi nhánh") : t("Đã tạo quản lý chi nhánh"));
+      toast.success(editing ? t("Organization:ManagerUpdated") : t("Organization:ManagerCreated"));
 
       if (avatarFile instanceof File) {
         branchManagerApi.uploadAvatar(mgrId, avatarFile).then(
           () => void queryClient.invalidateQueries({ queryKey: branchManagerKeys.all }),
-          () => toast.error(t("Tải ảnh đại diện thất bại")),
+          () => toast.error(t("Organization:UploadAvatarFailed")),
         );
       } else if (avatarFile === null && editing?.avatarUrl) {
         branchManagerApi.deleteAvatar(mgrId).then(
           () => void queryClient.invalidateQueries({ queryKey: branchManagerKeys.all }),
-          () => toast.error(t("Xóa ảnh đại diện thất bại")),
+          () => toast.error(t("Organization:DeleteAvatarFailed")),
         );
       }
     } catch {
@@ -802,47 +802,47 @@ function BranchManageTab() {
   const columns: ColumnsType<BranchManagerDto> = [
     {
       key: "fullName",
-      title: t("Tên"),
+      title: t("Organization:ManagerNameCol"),
       width: 240,
       render: (_, record) => record.fullName || record.userName,
     },
     {
       key: "phoneNumber",
-      title: t("Số điện thoại"),
+      title: t("Organization:ManagerPhoneCol"),
       dataIndex: "phoneNumber",
       width: 180,
       render: (v) => v || "—",
     },
     {
       key: "email",
-      title: t("Email"),
+      title: t("Organization:EmailLabel"),
       dataIndex: "email",
       width: 280,
       render: (v) => v || "—",
     },
     {
       key: "roleNames",
-      title: t("Phân quyền"),
+      title: t("Organization:PermissionCol"),
       dataIndex: "roleNames",
       width: 200,
       render: (v: string[]) => (v?.length > 0 ? v.join(", ") : "—"),
     },
     {
       key: "address",
-      title: t("Địa chỉ"),
+      title: t("Organization:ManagerAddressCol"),
       width: 350,
       render: (_, record) => fullAddressMap.get(record.id) || record.address || "—",
     },
     ...((ability.canUpdate || ability.canDelete) ? [{
       key: "actions" as const,
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 110,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: unknown, record: BranchManagerDto) => (
         <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
           {ability.canUpdate && (
-            <Tooltip title={t("Chỉnh sửa")}>
+            <Tooltip title={t("Common:Edit")}>
               <Button
                 type="text"
                 size="small"
@@ -852,7 +852,7 @@ function BranchManageTab() {
             </Tooltip>
           )}
           {ability.canDelete && (
-            <Tooltip title={t("Xoá")}>
+            <Tooltip title={t("Common:Delete")}>
               <Button
                 type="text"
                 size="small"
@@ -869,12 +869,12 @@ function BranchManageTab() {
 
   return (
     <>
-      <div className="profile-content-title">{t("Quản lý chi nhánh")}</div>
+      <div className="profile-content-title">{t("Organization:ManagerSectionTitle")}</div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <Input
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm theo tên, email, số điện thoại...")}
+          placeholder={t("Organization:SearchManagerPlaceholder")}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           style={{ flex: 1 }}
@@ -882,7 +882,7 @@ function BranchManageTab() {
         />
         {ability.canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t("Tạo")}
+            {t("Organization:CreateManagerBtn")}
           </Button>
         )}
       </div>
@@ -906,7 +906,7 @@ function BranchManageTab() {
 
       <ConfirmDeleteDialog
         open={pendingDeleteMgr !== null}
-        noun={t("quản lý chi nhánh")}
+        noun={t("Organization:ManagerNoun")}
         name={pendingDeleteMgr?.fullName || pendingDeleteMgr?.userName || ""}
         pending={deleteMgr.isPending}
         onConfirm={() => void confirmDeleteMgr()}
@@ -955,13 +955,13 @@ export function ClinicSettingsPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title={t("Cài đặt phòng khám")}
-        subtitle={t("Thông tin thương hiệu, chi nhánh và phân quyền")}
+        title={t("Organization:SettingsTitle")}
+        subtitle={t("Organization:SettingsSubtitle")}
       />
 
       <div className="profile-layout">
         <div className="profile-sidebar">
-          <div className="profile-sidebar-title">{t("Hồ sơ")}</div>
+          <div className="profile-sidebar-title">{t("Organization:ProfileSidebarTitle")}</div>
           <div className="profile-sidebar-menu">
             {visibleTabs.map((item) => (
               <button
@@ -985,3 +985,4 @@ export function ClinicSettingsPage() {
     </div>
   );
 }
+

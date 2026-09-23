@@ -7,7 +7,7 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// "Danh sách công đoạn" on a công đoạn — which of the service's own steps it
+    /// "BE:Treatment:StageList" on a công đoạn — which of the service's own steps it
     /// covers, and which of those are done.
     ///
     /// OBSERVED on the reference 2026-09-07: a công đoạn carries

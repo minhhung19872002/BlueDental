@@ -45,7 +45,7 @@ function StaffPair({
           <button
             type="button"
             className="cvt-staff-add"
-            aria-label={t("Thêm {0}", secondLabel)}
+            aria-label={t("Common:Add")}
             onClick={() => onSecondChange("")}
           >
             <Plus size={16} aria-hidden="true" />
@@ -66,7 +66,7 @@ function StaffPair({
           <button
             type="button"
             className="cvt-staff-add cvt-staff-add--remove"
-            aria-label={t("Bỏ {0}", secondLabel)}
+            aria-label={t("Common:Delete")}
             onClick={() => onSecondChange(null)}
           >
             <X size={16} aria-hidden="true" />
@@ -104,8 +104,8 @@ export function ConvertStaffBox({
   return (
     <div className="cvt-staff-box">
       <StaffPair
-        label={t("Bác sĩ chẩn đoán 1")}
-        secondLabel={t("Chẩn đoán 2")}
+        label={t("Treatment:Diagnosis:Diagnoser1")}
+        secondLabel={t("Treatment:Diagnosis:Diagnosis2")}
         useOptions={useDentistOptions}
         value={diagnoserId}
         second={secondDiagnoserId}
@@ -114,8 +114,8 @@ export function ConvertStaffBox({
         onSecondChange={onSecondDiagnoser}
       />
       <StaffPair
-        label={t("Nhân sự tư vấn 1")}
-        secondLabel={t("Nhân sự tư vấn 2")}
+        label={t("Treatment:Consulting:Advisor1")}
+        secondLabel={t("Treatment:Consulting:Advisor2")}
         useOptions={useStaffOptionsSearch}
         value={consultantId}
         second={secondConsultantId}

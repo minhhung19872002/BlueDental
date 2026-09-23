@@ -29,14 +29,14 @@ export function VoucherSingleTab({ form }: Props) {
 
   return (
     <div className="voucher-code-grid">
-      <FloatingField name="code" label={t("Mã ngẫu nhiên")} className="voucher-code-field">
+      <FloatingField name="code" label={t("Voucher:RandomCode")} className="voucher-code-field">
         <Input
           addonBefore={prefix ? `${prefix}-` : "HN-"}
           suffix={
             <button
               type="button"
               className="voucher-shuffle-btn"
-              aria-label={t("Tạo mã ngẫu nhiên")}
+              aria-label={t("Voucher:GenerateRandomCode")}
               onClick={shuffleCode}
             >
               <Shuffle size={16} />
@@ -45,23 +45,23 @@ export function VoucherSingleTab({ form }: Props) {
         />
       </FloatingField>
       <div className="voucher-form-hint">
-        {t("Chỉ chữ in hoa, số, dấu gạch ngang. Để trống để tạo tự động.")}
+        {t("Voucher:CodeHint")}
       </div>
       <FloatingField
         name="name"
-        label={t("Nhập tên voucher")}
+        label={t("Voucher:NameLabel")}
         required
-        rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
+        rules={[{ required: true, message: t("Voucher:NameRequired") }]}
       >
         <Input />
       </FloatingField>
       <FloatingField
         name="usageLimit"
-        label={t("Nhập số lượt tối đa")}
+        label={t("Voucher:MaxUsageLabel")}
         required
         rules={[
-          { required: true, message: t("Vui lòng nhập số lượt") },
-          { type: "number", min: 1, message: t("Số lượt phải lớn hơn 0") },
+          { required: true, message: t("Voucher:MaxUsageRequired") },
+          { type: "number", min: 1, message: t("Voucher:MaxUsageMin") },
         ]}
       >
         <CurrencyInput />

@@ -26,7 +26,7 @@ export function ReportStatsBar({ label, value, tone, loading, onExport }: Props)
       </span>
       {onExport ? (
         <Button icon={<DownloadOutlined />} className="report-btn--blue" onClick={onExport}>
-          {t("Xuất Excel")}
+          {t("Report:Action:ExportExcel")}
         </Button>
       ) : null}
     </div>

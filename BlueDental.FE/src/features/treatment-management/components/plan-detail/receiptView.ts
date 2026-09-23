@@ -40,7 +40,7 @@ export interface ReceiptView {
 
 /** "Ngày 7 tháng 9 năm 2026" — how every printed sheet dates itself. */
 export function longDate(value: Date): string {
-  return t("Ngày {0} tháng {1} năm {2}", value.getDate(), value.getMonth() + 1, value.getFullYear());
+  return t("Treatment:Receipt:DateTemplate", value.getDate(), value.getMonth() + 1, value.getFullYear());
 }
 
 function linesOf(plan: TreatmentPlanSlipDto, covers: (service: TreatmentServiceDto) => boolean): ReceiptLine[] {
@@ -68,18 +68,18 @@ export function receiptOf(
     amount: payment.amount,
     totals: [
       // Gross, so the sheet's "Tổng phí" − "Giảm giá" lands on what is owed.
-      { label: t("Tổng phí"), value: planMoney(plan).total },
-      { label: t("Giảm giá"), value: plan.payment.discount },
-      { label: t("Đã trả trước đó"), value: paidBefore },
-      { label: t("Số tiền TT"), value: payment.amount },
-      { label: t("Tổng còn nợ"), value: Math.max(0, plan.totalAmount - paidBefore - payment.amount), tone: "debt" },
+      { label: t("Treatment:Receipt:TotalFee"), value: planMoney(plan).total },
+      { label: t("Treatment:Pricing:Discount"), value: plan.payment.discount },
+      { label: t("Treatment:Receipt:PaidBefore"), value: paidBefore },
+      { label: t("Treatment:Receipt:PaymentAmount"), value: payment.amount },
+      { label: t("Treatment:Receipt:TotalRemaining"), value: Math.max(0, plan.totalAmount - paidBefore - payment.amount), tone: "debt" },
     ],
   };
 }
 
 /** "In hóa đơn tổng": every service of the slip and everything collected on it, dated today. */
 export function aggregateReceiptOf(plan: TreatmentPlanSlipDto, today: Date): ReceiptView {
-  const combined = t("Tổng hợp");
+  const combined = t("Treatment:Receipt:Summary");
   return {
     code: combined,
     createdLabel: longDate(today),
@@ -90,9 +90,9 @@ export function aggregateReceiptOf(plan: TreatmentPlanSlipDto, today: Date): Rec
     staffName: null,
     amount: plan.payment.totalPaid,
     totals: [
-      { label: t("Doanh thu dự kiến"), value: plan.payment.totalPrice },
-      { label: t("Đã thanh toán"), value: plan.payment.totalPaid },
-      { label: t("Công nợ"), value: plan.payment.debt, tone: "debt" },
+      { label: t("Treatment:Receipt:ExpectedRevenue"), value: plan.payment.totalPrice },
+      { label: t("Treatment:Receipt:TotalPaid"), value: plan.payment.totalPaid },
+      { label: t("Treatment:Receipt:TotalDebt"), value: plan.payment.debt, tone: "debt" },
     ],
   };
 }

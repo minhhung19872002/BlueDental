@@ -26,7 +26,7 @@ export function AppointmentFormLeft({
       {/* Patient */}
       <div className="appt-field">
         <label className="appt-field-label">
-          {t("Chọn bệnh nhân")}<span className="appt-field-required">*</span>
+          {t("Appointment:Form:SelectPatient")}<span className="appt-field-required">*</span>
         </label>
         <Controller
           name="patientId"
@@ -34,7 +34,7 @@ export function AppointmentFormLeft({
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Chọn bệnh nhân")}
+              placeholder={t("Appointment:Form:SelectPatient")}
               options={patientOptions}
               disabled={lockPatient}
               onChange={(v) => field.onChange(v ?? "")}
@@ -47,14 +47,14 @@ export function AppointmentFormLeft({
 
       {/* Branch */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Chi nhánh")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:Branch")}</label>
         <Controller
           name="branchId"
           control={control}
           render={({ field }) => (
             <SearchSelect
               value={field.value || undefined}
-              placeholder={t("Chọn chi nhánh")}
+              placeholder={t("Appointment:Form:SelectBranch")}
               options={branchOptions}
               onChange={(v) => field.onChange(v ?? "")}
             />
@@ -65,7 +65,7 @@ export function AppointmentFormLeft({
       {/* Date */}
       <div className="appt-field">
         <label className="appt-field-label">
-          {t("Ngày")} <span className="appt-label-accent">{t("hẹn")}</span>
+          {t("Appointment:Form:DateLabel")} <span className="appt-label-accent">{t("Appointment:Form:AppointmentSuffix")}</span>
         </label>
         <Controller
           name="date"
@@ -85,7 +85,7 @@ export function AppointmentFormLeft({
       {/* Time + Duration */}
       <div className="appt-time-row">
         <div className="appt-field">
-          <label className="appt-field-label">{t("Giờ hẹn")}</label>
+          <label className="appt-field-label">{t("Appointment:Form:AppointmentTime")}</label>
           <Controller
             name="startTime"
             control={control}
@@ -103,7 +103,7 @@ export function AppointmentFormLeft({
           />
         </div>
         <div className="appt-field">
-          <label className="appt-field-label">{t("Phút")}</label>
+          <label className="appt-field-label">{t("Appointment:Form:Minute")}</label>
           <Controller
             name="durationMinutes"
             control={control}

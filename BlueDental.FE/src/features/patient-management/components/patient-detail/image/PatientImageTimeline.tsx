@@ -22,14 +22,14 @@ function EmptyBox({ loading }: { loading: boolean }) {
   if (loading) {
     return (
       <div className="pi-empty" role="status">
-        <p className="pi-empty-title">{t("Đang tải dữ liệu…")}</p>
+        <p className="pi-empty-title">{t("Patient:Image:LoadingText")}</p>
       </div>
     );
   }
   return (
     <div className="pi-empty" data-testid="patient-image-empty">
-      <p className="pi-empty-title">{t("Không có ảnh trong bộ lọc đã chọn")}</p>
-      <p className="pi-empty-hint">{t("Hãy đổi bộ lọc hoặc tải thêm ảnh để tiếp tục.")}</p>
+      <p className="pi-empty-title">{t("Patient:Image:EmptyTitle")}</p>
+      <p className="pi-empty-hint">{t("Patient:Image:EmptyHint")}</p>
     </div>
   );
 }
@@ -52,7 +52,7 @@ export function PatientImageTimeline({
   return (
     <div className={["pi-timeline", busy && "pi-timeline--busy"].filter(Boolean).join(" ")}>
       {busy && (
-        <div className="pi-busy" role="status" aria-label={t("Đang xử lý")}>
+        <div className="pi-busy" role="status" aria-label={t("Patient:Image:Processing")}>
           <Spin />
         </div>
       )}
@@ -60,7 +60,7 @@ export function PatientImageTimeline({
         <PatientImageDayRow key={day.key} day={day} {...rowProps} />
       ))}
       <div ref={sentinelRef} className="pi-sentinel" aria-hidden="true" />
-      {isLoadingMore && <p className="pi-loading-more">{t("Đang tải thêm…")}</p>}
+      {isLoadingMore && <p className="pi-loading-more">{t("Patient:Image:LoadingMore")}</p>}
     </div>
   );
 }

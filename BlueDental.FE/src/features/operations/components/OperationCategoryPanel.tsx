@@ -48,7 +48,7 @@ const CategoryRow = memo(function CategoryRow({
             <button
               type="button"
               className="bd-ops-cat-action"
-              aria-label={t("Chỉnh sửa {0}", category.name)}
+              aria-label={t("Operations:EditCategoryAria", category.name)}
               onClick={() => onRename(category)}
             >
               <EditOutlined aria-hidden="true" />
@@ -58,7 +58,7 @@ const CategoryRow = memo(function CategoryRow({
             <button
               type="button"
               className="bd-ops-cat-action bd-ops-cat-action--danger"
-              aria-label={t("Xoá {0}", category.name)}
+              aria-label={t("Operations:DeleteCategoryAria", category.name)}
               onClick={() => onDelete(category)}
             >
               <DeleteOutlined aria-hidden="true" />
@@ -104,7 +104,7 @@ export function OperationCategoryPanel({
       {onCreate && (
         <div className="bd-ops-panel-head">
           <Button type="primary" icon={<PlusOutlined />} block onClick={onCreate}>
-            {t("Thêm Mới")}
+            {t("Operations:AddNew")}
           </Button>
         </div>
       )}

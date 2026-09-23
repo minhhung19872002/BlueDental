@@ -72,7 +72,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     /// per kind rather than one per row.
     ///
     /// Without this the DTO's three name fields went out null and the reference's
-    /// "Bác sĩ chẩn đoán 1", "Chẩn đoán 2" and "Răng" columns all read "—".
+    /// "BE:Role:DiagnosingDentist1", "BE:Treatment:Diagnosis2" and "BE:Field:Tooth" columns all read "—".
     /// </summary>
     private async Task FillNamesAsync(IReadOnlyList<PatientDiagnosisDto> dtos)
     {
@@ -153,7 +153,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     }
 
     /// <summary>
-    /// "Cập nhật" on the "In chẩn đoán" sheet. Names are refilled before the row
+    /// "BE:Common:Update" on the "BE:Treatment:PrintDiagnosis" sheet. Names are refilled before the row
     /// goes back so the caller can re-render the sheet from the response alone.
     /// </summary>
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]

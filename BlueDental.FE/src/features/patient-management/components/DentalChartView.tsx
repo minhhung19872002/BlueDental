@@ -218,10 +218,10 @@ export function DentalChartView({
   const totalH = lowerY + ROW_H + LABEL_OFFSET + 8;
 
   const toothAriaLabel = (fdi: number, status: string) =>
-    t("Răng {0} — {1}", fdi, status);
+    t("Patient:ToothLabel", fdi, status);
 
   return (
-    <div style={style} aria-label={t("Biểu đồ nha khoa 32 răng")}>
+    <div style={style} aria-label={t("Patient:DentalChart")}>
       <svg
         viewBox={`0 0 ${TOTAL_W} ${totalH}`}
         width="100%"
@@ -266,7 +266,7 @@ export function DentalChartView({
           fontFamily="inherit"
           style={{ textTransform: "uppercase" }}
         >
-          {t("Hàm Trên")}
+          {t("Patient:UpperJaw")}
         </text>
         <text
           x={TOTAL_W / 2}
@@ -279,7 +279,7 @@ export function DentalChartView({
           fontFamily="inherit"
           style={{ textTransform: "uppercase" }}
         >
-          {t("Hàm Dưới")}
+          {t("Patient:LowerJaw")}
         </text>
       </svg>
     </div>

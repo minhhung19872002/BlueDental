@@ -107,7 +107,7 @@ export function RichCatalogDialog({
           },
         });
 
-        toast.success(isDeleted ? t("Đã xoá") : t("Đã cập nhật"));
+        toast.success(isDeleted ? t("Taxonomy:Catalog:SoftDeleted") : t("Taxonomy:Catalog:Updated"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -117,7 +117,7 @@ export function RichCatalogDialog({
           note: noteText,
           sortOrder,
         });
-        toast.success(t("Đã thêm"));
+        toast.success(t("Taxonomy:Catalog:Created"));
       }
       onClose();
     } catch {
@@ -128,7 +128,7 @@ export function RichCatalogDialog({
   return (
     <AppDialog
       open={open}
-      title={entry ? t("Cập nhật {0}", noun) : t("Thêm {0}", noun)}
+      title={entry ? t("Taxonomy:Catalog:UpdateTitle", noun) : t("Taxonomy:Catalog:CreateTitle", noun)}
       width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
@@ -154,9 +154,9 @@ export function RichCatalogDialog({
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên {0}", noun)}
+              label={t("Taxonomy:Catalog:NameLabel", noun)}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên {0}", noun) }]}
+              rules={[{ required: true, message: t("Taxonomy:Catalog:NameRequired", noun) }]}
             >
               <Input autoFocus />
             </FloatingField>
@@ -164,9 +164,9 @@ export function RichCatalogDialog({
           <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
-              label={t("Chọn nhóm {0}", noun)}
+              label={t("Taxonomy:Catalog:GroupLabel", noun)}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn nhóm {0}", noun) }]}
+              rules={[{ required: true, message: t("Taxonomy:Catalog:GroupRequired", noun) }]}
             >
               <Select
                 showSearch
@@ -179,7 +179,7 @@ export function RichCatalogDialog({
 
         <Form.Item name="content">
           <RichTextField
-            placeholder={t("Nhập nội dung tư vấn...")}
+            placeholder={t("Taxonomy:Catalog:ConsultingPlaceholder")}
             // Stored beside the row rather than inside it. This editor used to
             // embed pictures as base64, which shipped their bytes with every
             // read of the catalog list.
@@ -189,12 +189,12 @@ export function RichCatalogDialog({
 
         <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={12}>
-            <FloatingField name="note" label={t("Ghi chú")}>
+            <FloatingField name="note" label={t("Taxonomy:Catalog:Note")}>
               <Input />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="priority" label={t("Taxonomy:Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
@@ -208,14 +208,14 @@ export function RichCatalogDialog({
             disabled={!entry}
             onChange={() => form.setFieldValue("isDeleted", false)}
           >
-            {t("Đang hoạt động")}
+            {t("Taxonomy:Common:Active")}
           </Checkbox>
           <Checkbox
             checked={isDeleted}
             disabled={!entry}
             onChange={() => form.setFieldValue("isDeleted", true)}
           >
-            {t("Đã xoá")}
+            {t("Taxonomy:Catalog:SoftDeleted")}
           </Checkbox>
         </div>
         <Form.Item name="isDeleted" hidden>

@@ -39,7 +39,7 @@ function BatchCard({ item, index, selected, prefixLabel, onSelect, onRename }: C
       </div>
       <div className="voucher-batch-card-name">
         <Input
-          aria-label={t("Tên voucher #{0}", index + 1)}
+          aria-label={t("Voucher:VoucherNameN", index + 1)}
           value={item.name}
           status={item.nameError ? "error" : undefined}
           onClick={(e) => e.stopPropagation()}
@@ -47,7 +47,7 @@ function BatchCard({ item, index, selected, prefixLabel, onSelect, onRename }: C
         />
         {!item.name && (
           <span className="voucher-batch-name-placeholder">
-            {t("Tên voucher")}
+            {t("Voucher:VoucherName")}
             <span className="voucher-required-star">*</span>
           </span>
         )}
@@ -69,21 +69,21 @@ export function VoucherBatchTab({ batch, prefixLabel }: Props) {
       <div className="voucher-batch-count">
         <FloatingField
           name="batchCount"
-          label={t("Nhập số lượng mã (tối đa 100)")}
+          label={t("Voucher:BatchCountLabel")}
           required
-          rules={[{ required: true, message: t("Vui lòng nhập số lượng") }]}
+          rules={[{ required: true, message: t("Voucher:BatchCountRequired") }]}
         >
           <InputNumber<number> min={1} max={100} controls={false} onChange={batch.setCount} />
         </FloatingField>
       </div>
 
       <div className="voucher-batch-header">
-        <span>{t("Chọn mã để cấu hình riêng")}</span>
+        <span>{t("Voucher:BatchSelectToConfig")}</span>
         <Checkbox
           checked={configAll}
           onChange={(e) => batch.toggleConfigAll(e.target.checked)}
         >
-          {t("Cấu hình tất cả")}
+          {t("Voucher:BatchConfigAll")}
         </Checkbox>
       </div>
 
@@ -103,7 +103,7 @@ export function VoucherBatchTab({ batch, prefixLabel }: Props) {
 
       <div className="voucher-batch-config-row">
         {!configAll && (
-          <FloatingField name="batchCode" label={t("Mã ngẫu nhiên")} className="voucher-code-field">
+          <FloatingField name="batchCode" label={t("Voucher:RandomCode")} className="voucher-code-field">
             <Input
               addonBefore={prefixLabel}
               onChange={(e) => batch.changeSelectedCode(e.target.value)}
@@ -111,7 +111,7 @@ export function VoucherBatchTab({ batch, prefixLabel }: Props) {
                 <button
                   type="button"
                   className="voucher-shuffle-btn"
-                  aria-label={t("Tạo mã ngẫu nhiên")}
+                  aria-label={t("Voucher:GenerateRandomCode")}
                   onClick={batch.shuffleSelectedCode}
                 >
                   <Shuffle size={16} />
@@ -122,11 +122,11 @@ export function VoucherBatchTab({ batch, prefixLabel }: Props) {
         )}
         <FloatingField
           name="usageLimit"
-          label={t("Nhập số lượt tối đa")}
+          label={t("Voucher:MaxUsageLabel")}
           required
           rules={[
-            { required: true, message: t("Vui lòng nhập số lượt") },
-            { type: "number", min: 1, message: t("Số lượt phải lớn hơn 0") },
+            { required: true, message: t("Voucher:MaxUsageRequired") },
+            { type: "number", min: 1, message: t("Voucher:MaxUsageMin") },
           ]}
         >
           <CurrencyInput />
@@ -135,7 +135,7 @@ export function VoucherBatchTab({ batch, prefixLabel }: Props) {
 
       {!configAll && (
         <div className="voucher-form-hint voucher-batch-hint">
-          {t("Chỉ chữ in hoa, số, dấu gạch ngang. Để trống để tạo tự động.")}
+          {t("Voucher:CodeHint")}
         </div>
       )}
     </>

@@ -21,7 +21,7 @@ export function CashflowEntryDetailModal({ entry, onClose }: Props) {
   return (
     <Modal
       open={entry !== null}
-      title={<h2 className="bd-modal-title">{t("Chi tiết phiếu")}</h2>}
+      title={<h2 className="bd-modal-title">{t("Report:EntryDetail:Title")}</h2>}
       onCancel={onClose}
       width={860}
       destroyOnHidden
@@ -29,7 +29,7 @@ export function CashflowEntryDetailModal({ entry, onClose }: Props) {
       footer={
         <div className="report-confirm-footer">
           <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
-            {t("In Hoá Đơn")}
+            {t("Report:EntryDetail:PrintInvoice")}
           </Button>
         </div>
       }

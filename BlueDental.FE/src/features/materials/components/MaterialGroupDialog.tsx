@@ -51,13 +51,13 @@ export function MaterialGroupDialog({ open, group, onClose, onCreated }: Props) 
     try {
       if (group) {
         await update.mutateAsync({ id: group.id, name, sortOrder });
-        toast.success(t("Đã cập nhật nhóm vật tư"));
+        toast.success(t("Materials:GroupUpdated"));
         onClose();
         return;
       }
 
       const created = await create.mutateAsync({ name, sortOrder });
-      toast.success(t("Đã thêm nhóm vật tư"));
+      toast.success(t("Materials:GroupAdded"));
       onClose();
       onCreated(created);
     } catch {
@@ -68,7 +68,7 @@ export function MaterialGroupDialog({ open, group, onClose, onCreated }: Props) 
   return (
     <AppDialog
       open={open}
-      title={group ? t("Sửa") : t("Tạo")}
+      title={group ? t("Common:Edit") : t("Common:Add")}
       canSave={name.trim().length > 0}
       saving={create.isPending || update.isPending}
       onSave={() => form.submit()}
@@ -84,15 +84,15 @@ export function MaterialGroupDialog({ open, group, onClose, onCreated }: Props) 
           <Col xs={24} sm={12}>
             <FloatingField
               name="name"
-              label={t("Tên phân loại")}
+              label={t("Materials:GroupNameLabel")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên phân loại") }]}
+              rules={[{ required: true, message: t("Materials:GroupNameRequired") }]}
             >
               <Input autoFocus />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
-            <FloatingField name="sortOrder" label={t("Mức độ ưu tiên")}>
+            <FloatingField name="sortOrder" label={t("Materials:PriorityLabel")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>

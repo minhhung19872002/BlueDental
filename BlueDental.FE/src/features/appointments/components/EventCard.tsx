@@ -82,12 +82,12 @@ const STATUS_LOOK: Record<AppointmentStatus, StatusLook> = {
 };
 
 const BADGE_LABEL_KEYS: Record<AppointmentStatus, string> = {
-  scheduled: "Đã hẹn",
-  confirmed: "Đã xác nhận",
-  inProgress: "Đang khám",
-  completed: "Hoàn tất",
-  cancelled: "Huỷ hẹn",
-  noShow: "Trễ hẹn",
+  scheduled: "Appointment:Status:Scheduled2",
+  confirmed: "Appointment:Status:Confirmed",
+  inProgress: "Appointment:Status:InProgress",
+  completed: "Appointment:Status:Done",
+  cancelled: "Appointment:Status:CancelledShort",
+  noShow: "Appointment:Status:Late",
 };
 
 interface EventCardProps {
@@ -107,19 +107,19 @@ export const EventCard = React.memo(function EventCard({
   const look = customColor
     ? { ...baseLook, border: customColor, bg: hexToOpaqueTint(customColor), text: customColor }
     : baseLook;
-  const patientName = appointment.patientName?.trim() || t("Lịch hẹn");
+  const patientName = appointment.patientName?.trim() || t("Common:Appointment");
   const displayLabel = appointment.patientCode
     ? `[${appointment.patientCode}] - ${patientName}`
     : patientName;
   const start = dayjs(appointment.startTime);
   const end = dayjs(appointment.endTime);
   const durationMinutes = end.diff(start, "minute");
-  const timeLabel = `${start.format("HH:mm")} - ${end.format("HH:mm")} (${durationMinutes} ${t("phút")})`;
+  const timeLabel = `${start.format("HH:mm")} - ${end.format("HH:mm")} (${durationMinutes} ${t("Patient:Misc:Minutes")})`;
 
   const menuItems: MenuProps["items"] = useMemo(() => [
     {
       key: "edit",
-      label: t("Cập nhật"),
+      label: t("Appointment:EventCard:Update"),
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -130,7 +130,7 @@ export const EventCard = React.memo(function EventCard({
     selected
       ? {
           key: "deselect",
-          label: t("Bỏ chọn"),
+          label: t("Appointment:EventCard:Deselect"),
           icon: (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -140,7 +140,7 @@ export const EventCard = React.memo(function EventCard({
         }
       : {
           key: "select-delete",
-          label: t("Chọn để xoá nhiều"),
+          label: t("Appointment:EventCard:SelectForMultiDelete"),
           icon: (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -149,7 +149,7 @@ export const EventCard = React.memo(function EventCard({
         },
     {
       key: "delete",
-      label: t("Xoá"),
+      label: t("Common:Delete"),
       danger: true,
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -216,7 +216,7 @@ export const EventCard = React.memo(function EventCard({
             type="button"
             className="evt-card-menu"
             onClick={(e) => e.stopPropagation()}
-            aria-label={t("Thêm")}
+            aria-label={t("Appointment:EventCard:AddAria")}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="5" r="1.5" />
@@ -274,7 +274,7 @@ export const EventCard = React.memo(function EventCard({
             <circle cx="12" cy="7" r="4" />
           </svg>
         </span>
-        <span className="evt-card-label">{appointment.doctorName || t("Quản trị viên")}</span>
+        <span className="evt-card-label">{appointment.doctorName || t("Appointment:EventCard:Admin")}</span>
       </div>
     </div>
   );

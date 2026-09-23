@@ -17,17 +17,17 @@ import { CategoryFormModal, type CategoryVariant } from "./CategoryFormModal";
 type SalesPanelKey = "income" | "expense";
 
 const SALES_PANELS: { key: SalesPanelKey; icon: React.ReactNode; title: () => string }[] = [
-  { key: "income", icon: <DollarOutlined />, title: () => t("Danh mục thu nhập") },
-  { key: "expense", icon: <CreditCardOutlined />, title: () => t("Danh mục chi phí") },
+  { key: "income", icon: <DollarOutlined />, title: () => t("Report:Category:Income") },
+  { key: "expense", icon: <CreditCardOutlined />, title: () => t("Report:Category:Expense") },
 ];
 
 const SALES_TYPE = { income: SALES_ENTRY_TYPE.Income, expense: SALES_ENTRY_TYPE.Expense } as const;
 
 const CASHBOOK_CONFIG: CategoryPanelConfig = {
-  title: () => t("Danh mục sổ quỹ"),
-  description: () => t("Quản lý danh mục con thuộc sổ quỹ."),
-  searchPlaceholder: () => t("Tìm theo tên hoặc mã màu..."),
-  emptyText: () => t("Không có danh mục nào"),
+  title: () => t("Report:Category:Cashbook"),
+  description: () => t("Report:Category:CashbookDesc"),
+  searchPlaceholder: () => t("Report:Category:SearchPlaceholder"),
+  emptyText: () => t("Report:Category:EmptyText"),
   showColor: true,
 };
 
@@ -91,7 +91,7 @@ export function CashflowCategoryManager({ variant }: Props) {
     if (!deleting) return;
     deleteMutation.mutate(deleting.id, {
       onSuccess: () => {
-        toast.success(isCashbook ? t("Đã xoá danh mục") : t("Đã xoá nhóm"));
+        toast.success(isCashbook ? t("Report:Category:DeletedCashbook") : t("Report:Category:DeletedGroup"));
         setDeleting(null);
       },
     });
@@ -99,9 +99,9 @@ export function CashflowCategoryManager({ variant }: Props) {
 
   const salesConfig: CategoryPanelConfig = {
     title: SALES_PANELS.find((p) => p.key === panel)?.title ?? (() => ""),
-    description: () => t("Dùng làm hình thức / mục khi tạo phiếu thu chi."),
-    searchPlaceholder: () => t("Tìm kiếm danh mục"),
-    emptyText: () => t("Không có dữ liệu"),
+    description: () => t("Report:Category:UsageDesc"),
+    searchPlaceholder: () => t("Report:Category:SearchLabel"),
+    emptyText: () => t("Common:NoData"),
     showColor: false,
   };
 
@@ -124,7 +124,7 @@ export function CashflowCategoryManager({ variant }: Props) {
       ) : (
         <div className="report-category-layout">
           <aside className="reception-card reception-card--content report-category-sidebar">
-            <div className="report-category-sidebar-title">{t("Danh mục")}</div>
+            <div className="report-category-sidebar-title">{t("Report:Tab:Category")}</div>
             {SALES_PANELS.map((p) => (
               <button
                 key={p.key}
@@ -147,8 +147,8 @@ export function CashflowCategoryManager({ variant }: Props) {
       {/* Staging titles the sales-category dialog "Xác nhận xoá"; the cashbook one "Xác nhận xoá danh mục". */}
       <ConfirmDeleteDialog
         open={deleting !== null}
-        noun={t("danh mục")}
-        title={isCashbook ? undefined : t("Xác nhận xoá")}
+        noun={t("Report:Noun:Category")}
+        title={isCashbook ? undefined : t("Report:ConfirmDeleteVoucher")}
         name={deleting?.name ?? ""}
         pending={deleteMutation.isPending}
         onConfirm={handleDelete}

@@ -99,12 +99,12 @@ export function isLineOpen(service: TreatmentServiceDto): boolean {
 /** The "Tổng giảm giá" tooltip: how the discount was written on the line. */
 export function discountTooltip(service: TreatmentServiceDto): string {
   if (service.discountType === DISCOUNT_TYPE.Percentage) {
-    return t("Giảm {0}% trên đơn giá", service.discountValue);
+    return t("Treatment:Pricing:DiscountPercent", service.discountValue);
   }
   if (service.discountType === DISCOUNT_TYPE.Money) {
-    return t("Giảm {0} đ", formatVND(service.discountValue));
+    return t("Treatment:Pricing:DiscountAmount", formatVND(service.discountValue));
   }
-  return t("Không giảm giá");
+  return t("Treatment:Pricing:NoDiscount");
 }
 
 /** Service names a receipt covers, in slip order — "Dịch vụ điều trị". */

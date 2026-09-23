@@ -52,7 +52,7 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
 
   const refunds = useMemo(() => query.data?.items ?? [], [query.data]);
   const pageRows = refunds.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
-  const showTotal = countedTotal(t("phiếu hoàn tiền"));
+  const showTotal = countedTotal(t("Treatment:Refund:RefundNoun"));
 
   const handleView = (payment: PatientPaymentDto) => setReceipt(receiptOf(payment, plan, refunds));
   const columns = useMemo(() => buildRefundColumns(plan, handleView), [plan, refunds]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -63,7 +63,7 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
         <div className="pdt-toolbar">
           <button type="button" className="tp-btn tp-btn--primary" onClick={() => setCreating(true)}>
             <Undo2 size={16} aria-hidden="true" />
-            {t("Hoàn Tiền")}
+            {t("Treatment:Refund:RefundAction")}
           </button>
         </div>
       )}
@@ -85,7 +85,7 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
             columns={columns}
             dataSource={pageRows}
             pagination={pagination.buildConfig(refunds.length, showTotal)}
-            locale={{ emptyText: t("Không có dữ liệu") }}
+            locale={{ emptyText: t("Treatment:Common:NoData") }}
           />
         </div>
       )}

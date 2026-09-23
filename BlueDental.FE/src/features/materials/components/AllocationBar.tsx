@@ -51,19 +51,19 @@ export function AllocationBar({
     (selectedNames.length > 2 ? `, +${selectedNames.length - 2}` : "");
 
   return (
-    <div className="bd-alloc-bar" role="region" aria-label={t("Phân bổ vật tư đã chọn")}>
+    <div className="bd-alloc-bar" role="region" aria-label={t("Materials:AllocBarAria")}>
       <div className="bd-alloc-bar-count">
         <Button
           type="text"
           shape="circle"
           size="small"
           icon={<CloseOutlined />}
-          aria-label={t("Bỏ chọn")}
+          aria-label={t("Materials:DeselectAria")}
           onClick={onClear}
         />
         <div className="bd-min0">
           <p className="bd-alloc-bar-title">
-            {t("{0} vật tư đã chọn", selectedNames.length)}
+            {t("Materials:SelectedCount", selectedNames.length)}
           </p>
           {summary ? <p className="bd-alloc-bar-names">{summary}</p> : null}
         </div>
@@ -73,8 +73,8 @@ export function AllocationBar({
 
       <Select<string>
         className="bd-alloc-bar-dept"
-        placeholder={t("Phòng ban nhận")}
-        aria-label={t("Phòng ban nhận")}
+        placeholder={t("Materials:ReceiverDept")}
+        aria-label={t("Materials:ReceiverDept")}
         value={departmentId ?? undefined}
         onChange={(value) => onDepartmentChange(value ?? null)}
         loading={departmentsQuery.isFetching}
@@ -86,7 +86,7 @@ export function AllocationBar({
         searchValue={search}
         onSearch={setSearch}
         notFoundContent={
-          departmentsQuery.isFetching ? t("Đang tìm…") : t("Không tìm thấy phòng ban")
+          departmentsQuery.isFetching ? t("Materials:SearchingDept") : t("Materials:DeptNotFound")
         }
         options={departments.map((department: DepartmentDto) => ({
           value: department.id,
@@ -94,7 +94,7 @@ export function AllocationBar({
         }))}
       />
 
-      <Tooltip title={departmentId ? undefined : t("Chọn phòng ban nhận trước")}>
+      <Tooltip title={departmentId ? undefined : t("Materials:SelectDeptFirst")}>
         <span>
           <Button
             type="primary"
@@ -102,11 +102,11 @@ export function AllocationBar({
             // Named explicitly: with only its text, the icon makes the
             // accessible name "sliders Phân bổ", and "Lưu ý phân bổ" beside it
             // then matches the same substring.
-            aria-label={t("Phân bổ")}
+            aria-label={t("Materials:Allocate")}
             disabled={!departmentId}
             onClick={onAllocate}
           >
-            {t("Phân bổ")}
+            {t("Materials:Allocate")}
           </Button>
         </span>
       </Tooltip>
@@ -115,7 +115,7 @@ export function AllocationBar({
         placement="topRight"
         title={
           <div className="bd-alloc-notes">
-            <p className="bd-semibold">{t("Lưu ý")}</p>
+            <p className="bd-semibold">{t("Materials:AllocNote")}</p>
             <ul>
               {ALLOCATION_NOTES.map((note) => (
                 <li key={note}>{t(note)}</li>
@@ -128,7 +128,7 @@ export function AllocationBar({
           type="text"
           shape="circle"
           icon={<InfoCircleOutlined />}
-          aria-label={t("Lưu ý phân bổ")}
+          aria-label={t("Materials:AllocNoteAria")}
         />
       </Tooltip>
     </div>

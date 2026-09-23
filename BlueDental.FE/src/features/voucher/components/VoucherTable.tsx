@@ -44,13 +44,13 @@ export function VoucherTable({ data, loading, onPublish, onUnpublish, onEdit, on
           emptyText: (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t('Chưa có voucher nào — nhấn "Tạo voucher" để bắt đầu.')}
+              description={t('Voucher:EmptyDescription')}
             />
           ),
         }}
         pagination={{
           pageSize: 20,
-          showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+          showTotal: (total, range) => t("Common:Pagination", range[0], range[1], total),
         }}
       />
       <VoucherServicesModal voucher={viewingServices} onClose={() => setViewingServices(null)} />

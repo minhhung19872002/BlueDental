@@ -65,7 +65,7 @@ public class UpdatePatientDiagnosisDto
 }
 
 /// <summary>
-/// What "Cập nhật" on the "In chẩn đoán" sheet saves — the advice body and the
+/// What "BE:Common:Update" on the "BE:Treatment:PrintDiagnosis" sheet saves — the advice body and the
 /// note, nothing else. Kept apart from <see cref="UpdatePatientDiagnosisDto"/>
 /// so wording a sheet never has to resend the doctors and the teeth.
 /// </summary>
@@ -124,7 +124,7 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
 
     /// <summary>
     /// The doctors on the chẩn đoán this line was raised from — the reference's
-    /// "Bác sĩ chẩn đoán 1" and "Chẩn đoán 2" columns. Both null on a line with
+    /// "BE:Role:DiagnosingDentist1" and "BE:Treatment:Diagnosis2" columns. Both null on a line with
     /// no diagnosis, which is where those columns print "-".
     /// </summary>
     public string? DiagnosisStaffName { get; set; }
@@ -140,7 +140,7 @@ public class CreatePatientAdviseDto
     public Guid PatientId { get; set; }
     public Guid ClinicBranchId { get; set; }
     /// <summary>
-    /// Both are optional: "Tạo phiếu dịch vụ" writes a service line without
+    /// Both are optional: "BE:Perm:CreateServiceSlip" writes a service line without
     /// filing a chẩn đoán for it, which is what the reference does.
     /// </summary>
     public Guid? PatientDiagnosisId { get; set; }

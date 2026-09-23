@@ -41,11 +41,11 @@ function VoucherRow({
           <span className="pd-voucher-row__head">
             <b className="pd-voucher-row__code">{voucher.code}</b>
             <span className="pd-voucher-row__value">{formatVoucherValue(voucher)}</span>
-            <span className="pd-voucher-row__scope">{t("Kế hoạch")}</span>
+            <span className="pd-voucher-row__scope">{t("Patient:VoucherPlan")}</span>
           </span>
           <span className="pd-voucher-row__name">{voucher.name}</span>
           <small className="pd-voucher-row__saving">
-            {t("≈ giảm {0}", formatMoneyUnit(saving))}
+            {t("Patient:VoucherSaving", formatMoneyUnit(saving))}
           </small>
         </span>
       </button>
@@ -64,12 +64,12 @@ function VoucherList({ plan }: { plan: PlanVoucherState }) {
   if (plan.vouchers.length === 0) {
     return (
       <div className="pd-voucher-list pd-voucher-list--empty">
-        <p>{t("Không có voucher nào khả dụng cho kế hoạch điều trị.")}</p>
+        <p>{t("Patient:NoVoucherForPlan")}</p>
       </div>
     );
   }
   return (
-    <ul className="pd-voucher-list" aria-label={t("Voucher khả dụng")}>
+    <ul className="pd-voucher-list" aria-label={t("Patient:AvailableVouchers")}>
       {plan.vouchers.map((voucher) => (
         <VoucherRow
           key={voucher.id}
@@ -95,7 +95,7 @@ export function AdviseVoucherPicker({
 
   return (
     <div className="pd-plan-voucher">
-      <span>{t("Voucher áp dụng")}:</span>
+      <span>{t("Patient:AppliedVouchers")}:</span>
       <Popover
         trigger={disabled ? [] : "click"}
         placement="topLeft"
@@ -105,26 +105,26 @@ export function AdviseVoucherPicker({
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
-                placeholder={t("Tìm voucher theo mã hoặc tên...")}
-                aria-label={t("Tìm voucher")}
+                placeholder={t("Patient:SearchVoucherPlaceholder")}
+                aria-label={t("Patient:SearchVoucher")}
                 value={plan.query}
                 onChange={(event) => plan.setQuery(event.target.value)}
               />
-              <small>{t("Đã chọn: {0}", count)}</small>
+              <small>{t("Patient:SelectedCount", count)}</small>
             </div>
             <VoucherList plan={plan} />
           </div>
         }
       >
         <Button icon={<TagOutlined />} disabled={disabled}>
-          {count === 0 ? t("Chọn voucher") : t("Voucher ({0})", count)}
+          {count === 0 ? t("Patient:SelectVoucher") : t("Patient:VoucherCount", count)}
         </Button>
       </Popover>
       {count === 0 && (
         <em>
           {disabled
-            ? t("Chọn ít nhất một dịch vụ để áp dụng voucher.")
-            : t("Chưa có voucher nào cho kế hoạch điều trị.")}
+            ? t("Patient:SelectServiceFirst")
+            : t("Patient:NoVoucherForPlanAlt")}
         </em>
       )}
     </div>

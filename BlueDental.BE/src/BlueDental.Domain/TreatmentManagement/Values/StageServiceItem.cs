@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Values;
 namespace BlueDental.TreatmentManagement.Values;
 
 /// <summary>
-/// One entry of a công đoạn's "Danh sách công đoạn" — a step of the service the
+/// One entry of a công đoạn's "BE:Treatment:StageList" — a step of the service the
 /// công đoạn covers, ticked off as it is done.
 ///
 /// OBSERVED on the reference 2026-09-07: a công đoạn carries

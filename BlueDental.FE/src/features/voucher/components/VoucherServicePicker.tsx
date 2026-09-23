@@ -102,7 +102,7 @@ export function VoucherServicePicker({ form }: Props) {
           chips below it, so the field neither shows tags nor floats its label. */}
       <FloatingField
         name="targetIds"
-        label={t("Tìm dịch vụ hoặc nhóm dịch vụ...")}
+        label={t("Voucher:ServicePickerSearch")}
         floatOnValue={false}
       >
         <Select<string[], ServiceOption>
@@ -133,11 +133,11 @@ export function VoucherServicePicker({ form }: Props) {
           }
         />
       </FloatingField>
-      <Tooltip title={mode === "service" ? t("Dịch vụ") : t("Nhóm dịch vụ")}>
+      <Tooltip title={mode === "service" ? t("Voucher:ServiceLabel") : t("Voucher:ServiceGroupLabel")}>
         <button
           type="button"
           className={`voucher-service-toggle voucher-service-toggle--${mode}`}
-          aria-label={mode === "service" ? t("Dịch vụ") : t("Nhóm dịch vụ")}
+          aria-label={mode === "service" ? t("Voucher:ServiceLabel") : t("Voucher:ServiceGroupLabel")}
           onMouseDown={(e) => e.preventDefault()}
           onClick={toggleMode}
         >
@@ -171,7 +171,7 @@ export function VoucherServicePicker({ form }: Props) {
                 <button
                   type="button"
                   className="voucher-service-chip-remove"
-                  aria-label={t("Bỏ chọn {0}", option.label)}
+                  aria-label={t("Voucher:DeselectItem", option.label)}
                   onClick={() => removeSelected(id)}
                 >
                   <X size={14} />

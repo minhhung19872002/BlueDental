@@ -42,10 +42,10 @@ export function PatientImageTab({ patientId }: Props) {
     if (!removing) return;
     try {
       await deleteImage.mutateAsync(removing.id);
-      toast.success(t("Đã xoá ảnh"));
+      toast.success(t("Patient:Image:DeleteSuccess"));
       setRemoving(null);
     } catch {
-      toast.error(t("Không thể xoá ảnh"));
+      toast.error(t("Patient:Image:DeleteError"));
     }
   };
 
@@ -85,9 +85,9 @@ export function PatientImageTab({ patientId }: Props) {
 
       <ConfirmDeleteDialog
         open={removing !== null}
-        noun={t("ảnh")}
-        title={t("Xác nhận xoá ảnh")}
-        question={t("Bạn có chắc muốn xoá ảnh này không?")}
+        noun={t("Patient:Image:Noun")}
+        title={t("Patient:Image:DeleteTitle")}
+        question={t("Patient:Image:DeleteQuestion")}
         pending={deleteImage.isPending}
         onConfirm={handleDelete}
         onClose={() => setRemoving(null)}

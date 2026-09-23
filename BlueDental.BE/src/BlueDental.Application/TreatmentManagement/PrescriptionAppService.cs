@@ -15,8 +15,8 @@ using Volo.Abp.Identity;
 namespace BlueDental.TreatmentManagement;
 
 /// <summary>
-/// Đơn thuốc of one patient — the list on the "Đơn thuốc" tab and the
-/// "Thêm đơn thuốc" dialog (create, edit, delete).
+/// Đơn thuốc of one patient — the list on the "BE:Common:Prescriptions" tab and the
+/// "BE:Treatment:AddPrescription" dialog (create, edit, delete).
 /// </summary>
 [Authorize]
 public class PrescriptionAppService : ApplicationService, IPrescriptionAppService
@@ -153,7 +153,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
 
     /// <summary>
     /// Turns the posted lines into entities, snapshotting each medicine's name
-    /// from the branch's "Loại thuốc" catalog. A medicine outside that catalog
+    /// from the branch's "BE:Common:MedicineType" catalog. A medicine outside that catalog
     /// (another branch's, deleted, or not a medicine) is refused.
     /// </summary>
     private async Task<List<PrescriptionItem>> BuildItemsAsync(
@@ -199,8 +199,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     }
 
     /// <summary>
-    /// "Lưu đơn thuốc mẫu": stores the slip's lines and lời dặn as a new entry
-    /// of the "Đơn thuốc mẫu" catalog, exactly as the Danh mục screen would
+    /// "BE:Treatment:SaveRxTemplate": stores the slip's lines and lời dặn as a new entry
+    /// of the "BE:Common:RxTemplate" catalog, exactly as the Danh mục screen would
     /// (the lời dặn lives in <c>Description</c> there).
     /// </summary>
     private async Task SaveTemplateAsync(Prescription prescription, string templateName)

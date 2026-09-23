@@ -151,7 +151,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
         await laboSupplierLogoApi.remove(saved.id);
       }
 
-      toast.success(supplier ? t("Đã cập nhật") : t("Đã thêm"));
+      toast.success(supplier ? t("Common:Updated") : t("Common:Added"));
       onClose();
     } catch {
       // queryClient reports the failure; the dialog stays open to retry.
@@ -181,7 +181,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
     <AppDialog
       open={open}
       width={780}
-      title={supplier ? t("Sửa nhà cung cấp") : t("Tạo nhà cung cấp")}
+      title={supplier ? t("Labo:Supplier:EditTitle") : t("Labo:Supplier:CreateTitle")}
       canSave={name.trim().length > 0 && email.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -204,7 +204,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
         <button
           type="button"
           className="bd-labo-avatar-btn"
-          aria-label={t("Ảnh nhà cung cấp")}
+          aria-label={t("Labo:Supplier:Image")}
           onClick={() => fileInputRef.current?.click()}
         >
           {logoPreview ? (
@@ -222,11 +222,11 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
             icon={<PlusOutlined />}
             onClick={() => fileInputRef.current?.click()}
           >
-            {t("Tải ảnh lên")}
+            {t("Common:UploadImage")}
           </Button>
           {logoPreview && (
             <Button size="small" danger icon={<DeleteOutlined />} onClick={clearLogo}>
-              {t("Xóa ảnh")}
+              {t("Common:DeleteImage")}
             </Button>
           )}
         </div>
@@ -243,11 +243,11 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
           <Col xs={24} md={8}>
             <FloatingField
               name="name"
-              label={t("Tên nhà cung cấp")}
+              label={t("Labo:Supplier:NameLabel")}
               required
               rules={[
-                { required: true, message: t("Vui lòng nhập tên nhà cung cấp") },
-                { min: 2, message: t("Tên phải có ít nhất 2 ký tự") },
+                { required: true, message: t("Common:PleaseEnter", t("Labo:Supplier:NameLabel")) },
+                { min: 2, message: t("Common:MinChars", "2") },
               ]}
             >
               <Input autoFocus maxLength={200} />
@@ -256,18 +256,18 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
           <Col xs={24} md={8}>
             <FloatingField
               name="email"
-              label={t("Email")}
+              label={t("Common:Email")}
               required
               rules={[
-                { required: true, message: t("Vui lòng nhập email") },
-                { type: "email", message: t("Email không hợp lệ") },
+                { required: true, message: t("Common:PleaseEnter", t("Common:Email")) },
+                { type: "email", message: t("Common:EmailInvalid") },
               ]}
             >
               <Input maxLength={256} />
             </FloatingField>
           </Col>
           <Col xs={24} md={8}>
-            <FloatingField name="phone" label={t("Số điện thoại")}>
+            <FloatingField name="phone" label={t("Common:PhoneNumber")}>
               <Input maxLength={15} inputMode="numeric" />
             </FloatingField>
           </Col>
@@ -275,12 +275,12 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
 
         <Row gutter={[16, 12]}>
           <Col xs={24} md={12}>
-            <FloatingField name="contactPerson" label={t("Người liên hệ")}>
+            <FloatingField name="contactPerson" label={t("Common:ContactPerson")}>
               <Input maxLength={200} />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
-            <FloatingField name="taxCode" label={t("Mã số thuế")}>
+            <FloatingField name="taxCode" label={t("Common:TaxCode")}>
               <Input maxLength={100} />
             </FloatingField>
           </Col>
@@ -288,7 +288,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
 
         <Row gutter={[16, 12]}>
           <Col xs={24} md={12}>
-            <FloatingField name="provinceCode" label={t("Tỉnh/ Thành phố")}>
+            <FloatingField name="provinceCode" label={t("Common:Province")}>
               <Select
                 showSearch
                 allowClear
@@ -299,7 +299,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
-            <FloatingField name="wardCode" label={t("Xã/ Phường")}>
+            <FloatingField name="wardCode" label={t("Common:Ward")}>
               <Select
                 showSearch
                 allowClear
@@ -311,7 +311,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
           </Col>
         </Row>
 
-        <FloatingField name="address" label={t("Địa chỉ")}>
+        <FloatingField name="address" label={t("Common:Address")}>
           <Input maxLength={500} />
         </FloatingField>
       </Form>

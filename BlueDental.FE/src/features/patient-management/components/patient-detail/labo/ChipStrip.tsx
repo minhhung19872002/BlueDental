@@ -47,7 +47,7 @@ export function ChipStrip({ id, label, options, value, empty, dimmed, onChange }
           <button
             type="button"
             className="pd-labo-arrow"
-            aria-label={t("Trượt {0} sang trái", label)}
+            aria-label={t("Patient:Labo:SlideLeft", label)}
             disabled={!scroller.canPrev}
             onClick={scroller.prev}
           >
@@ -69,7 +69,7 @@ export function ChipStrip({ id, label, options, value, empty, dimmed, onChange }
           <button
             type="button"
             className="pd-labo-arrow"
-            aria-label={t("Trượt {0} sang phải", label)}
+            aria-label={t("Patient:Labo:SlideRight", label)}
             disabled={!scroller.canNext}
             onClick={scroller.next}
           >

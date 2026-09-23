@@ -48,12 +48,12 @@ export function PatientFilterPopover({ filters, options, onApply, onClear }: Pro
   const content = (
     <div className="bd-patient-filterpop">
       <div className="bd-patient-filterpop-head">
-        <h3>{t("Bộ lọc")}</h3>
+        <h3>{t("Common:Filter")}</h3>
       </div>
 
       <div className="bd-patient-filterpop-body">
         <div className="bd-patient-filterpop-section">
-          <span className="bd-patient-filterpop-label">{t("Trạng thái")}</span>
+          <span className="bd-patient-filterpop-label">{t("Common:Status")}</span>
           <SegmentedTabs
             items={treatmentTabs()}
             activeKey={draft.tab}
@@ -62,11 +62,11 @@ export function PatientFilterPopover({ filters, options, onApply, onClear }: Pro
         </div>
 
         <div className="bd-patient-filterpop-section">
-          <span className="bd-patient-filterpop-label">{t("Tìm kiếm")}</span>
+          <span className="bd-patient-filterpop-label">{t("Patient:Misc:Search")}</span>
           <Input
             type="search"
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm theo tên, mã khách hàng, số điện thoại...")}
+            placeholder={t("Patient:List:SearchPlaceholder")}
             value={draft.keyword}
             maxLength={100}
             allowClear
@@ -86,11 +86,11 @@ export function PatientFilterPopover({ filters, options, onApply, onClear }: Pro
 
       <div className="bd-patient-filterpop-foot">
         <Button type="link" onClick={handleClear}>
-          {t("Xóa bộ lọc")}
+          {t("Common:ClearFilter")}
         </Button>
 
         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
-          {t("Lưu")}
+          {t("Patient:Misc:Save")}
         </Button>
       </div>
     </div>
@@ -105,7 +105,7 @@ export function PatientFilterPopover({ filters, options, onApply, onClear }: Pro
       content={content}
       classNames={{ container: "bd-patient-filterpop-shell" }}
     >
-      <Button icon={<FilterOutlined />}>{t("Bộ lọc")}</Button>
+      <Button icon={<FilterOutlined />}>{t("Common:Filter")}</Button>
     </Popover>
   );
 }

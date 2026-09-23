@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Button, Input, Tag, Tooltip } from "antd";
 import { toast } from "sonner";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
@@ -46,7 +46,7 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
     if (!pendingDelete) return;
     try {
       await deleteConfig.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá cấu hình"));
+      toast.success(t("Tools:ConfigDeleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -58,25 +58,25 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
     () => [
       {
         key: "name",
-        title: t("Tên"),
+        title: t("Tools:NameLabel"),
         render: (_, config) => <span className="bd-cat-medium">{config.name}</span>,
       },
-      { key: "branch", title: t("Chi nhánh"), dataIndex: "branchName" },
+      { key: "branch", title: t("Tools:BranchLabel"), dataIndex: "branchName" },
       {
         key: "settingKind",
-        title: t("Loại cài đặt"),
+        title: t("Tools:SettingTypeLabel"),
         // UNKNOWN_REFERENCE_BEHAVIOR: the reference's table was empty, so what
         // this column holds could not be read.
         render: () => "—",
       },
       {
         key: "provider",
-        title: t("Nhà cung cấp"),
+        title: t("Tools:ProviderLabel"),
         render: (_, config) => providerLabel(config.provider),
       },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Tools:StatusLabel"),
         width: 130,
         render: (_, config) => {
           const { label, color } = activeTag(config.isActive);
@@ -85,31 +85,31 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
       },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Tools:ActionsLabel"),
         width: 110,
         align: "center",
         fixed: "right",
         render: (_, config) => (
           <div className="bd-cat-rowactions">
             {canUpdate && (
-              <Tooltip title={t("Chỉnh sửa")}>
+              <Tooltip title={t("Common:Edit")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<EditOutlined />}
-                  aria-label={t("Chỉnh sửa {0}", config.name)}
+                  aria-label={t("Tools:EditConfigAria", config.name)}
                   onClick={() => setDialog({ open: true, config })}
                 />
               </Tooltip>
             )}
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", config.name)}
+                  aria-label={t("Tools:DeleteConfigAria", config.name)}
                   onClick={() => setPendingDelete(config)}
                 />
               </Tooltip>
@@ -127,8 +127,8 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
         <Input
           className="bd-ops-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm")}
-          aria-label={t("Tìm kiếm")}
+          placeholder={t("Tools:SearchPlaceholder")}
+          aria-label={t("Tools:SearchPlaceholder")}
           value={keyword}
           allowClear
           onChange={(event) => {
@@ -143,7 +143,7 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
             icon={<PlusOutlined />}
             onClick={() => setDialog({ open: true, config: null })}
           >
-            {t("Tạo cấu hình")}
+            {t("Tools:CreateConfig")}
           </Button>
         )}
       </div>
@@ -154,7 +154,7 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
         rowKey="id"
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
-        locale={{ emptyText: t("Chưa có cấu hình nào") }}
+        locale={{ emptyText: t("Tools:NoConfigs") }}
       />
 
       <CallConfigDialog
@@ -165,7 +165,7 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("cấu hình")}
+        noun={t("Tools:ConfigNoun")}
         name={pendingDelete?.name ?? ""}
         pending={deleteConfig.isPending}
         onConfirm={() => void confirmDelete()}
@@ -174,3 +174,4 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
     </div>
   );
 }
+

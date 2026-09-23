@@ -129,26 +129,26 @@ export function PatientConsultingImagePanel({
       }}
     >
       <div className="pd-image-tools">
-        <Tooltip title={t("Thêm ảnh")} placement="right">
+        <Tooltip title={t("Patient:Photo:Add")} placement="right">
           <Button
-            aria-label={t("Thêm ảnh")}
+            aria-label={t("Patient:Photo:Add")}
             icon={<ZoomInOutlined />}
             loading={uploading}
             onClick={() => fileInputRef.current?.click()}
           />
         </Tooltip>
 
-        <Tooltip title={t("Danh sách ảnh")} placement="right">
+        <Tooltip title={t("Patient:Photo:List")} placement="right">
           <Button
-            aria-label={t("Danh sách ảnh")}
+            aria-label={t("Patient:Photo:List")}
             icon={<TableOutlined />}
             onClick={() => setListOpen(true)}
           />
         </Tooltip>
 
-        <Tooltip title={t("Danh mục")} placement="right">
+        <Tooltip title={t("Patient:Misc:Catalog")} placement="right">
           <Button
-            aria-label={t("Danh mục")}
+            aria-label={t("Patient:Misc:Catalog")}
             icon={<UnorderedListOutlined />}
             onClick={() => setLibraryOpen(true)}
           />
@@ -166,11 +166,11 @@ export function PatientConsultingImagePanel({
           className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}
         >
           {loading || uploading ? (
-            <Spin aria-label={t("Đang tải ảnh")} />
+            <Spin aria-label={t("Patient:Misc:LoadingImages")} />
           ) : (
             <>
               <FileImageOutlined />
-              <span>{t("Kéo ảnh vào hoặc bấm nút để tải lên")}</span>
+              <span>{t("Patient:Misc:DragOrClickUpload")}</span>
             </>
           )}
         </div>
@@ -185,7 +185,7 @@ export function PatientConsultingImagePanel({
               className={["pd-image-tile", !painted.includes(image.id) && "pd-image-tile--loading"]
                 .filter(Boolean)
                 .join(" ")}
-              aria-label={t("Xem ảnh {0}", image.fileName)}
+              aria-label={t("Patient:Image:ViewFileLabel", image.fileName)}
               onClick={() => setViewingId(image.id)}
             >
               {/* Chrome hands a photograph dragged off the page back through

@@ -22,8 +22,8 @@ interface Props {
 
 /** Two lines under the balance panels, both served by the cash balance; the reference colours them green and violet. */
 const SUMMARY_LINES: { key: keyof CashBalanceDto; label: () => string; tone: StatTone }[] = [
-  { key: "serviceRevenue", label: () => t("Doanh thu dịch vụ"), tone: "green" },
-  { key: "cardPending", label: () => t("Cà thẻ chờ đối soát"), tone: "violet" },
+  { key: "serviceRevenue", label: () => t("Report:V2Overview:ServiceRevenue"), tone: "green" },
+  { key: "cardPending", label: () => t("Report:Holding:CardPending"), tone: "violet" },
 ];
 
 /** "Tổng quan" of tab 4: balance panels, two summary lines, transaction table. */
@@ -42,7 +42,7 @@ export function CashflowV2Overview({ rows, loading, pagination, onEdit }: Props)
     if (!deleting) return;
     deleteMutation.mutate(deleting.id, {
       onSuccess: () => {
-        toast.success(t("Đã hủy giao dịch"));
+        toast.success(t("Report:V2:CancelSuccess"));
         setDeleting(null);
       },
     });
@@ -68,20 +68,20 @@ export function CashflowV2Overview({ rows, loading, pagination, onEdit }: Props)
         dataSource={rows}
         loading={loading}
         pagination={pagination}
-        countUnit={t("giao dịch")}
+        countUnit={t("Report:Unit:Transaction")}
       />
       <CashflowEntryDetailModal entry={viewing} onClose={closeView} />
       {/* The reference calls this "hủy" (cancel), not "xoá". Wording = owner's decision 2026-09-22 (dialog never opened on staging). */}
       <ConfirmDeleteDialog
         open={deleting !== null}
-        noun={t("giao dịch")}
-        title={t("Xác nhận hủy giao dịch")}
+        noun={t("Report:Unit:Transaction")}
+        title={t("Report:V2:CancelConfirmTitle")}
         question={
           deleting?.note
-            ? tRich("Bạn có chắc muốn hủy giao dịch {0} không?", <strong>{deleting.note}</strong>)
-            : t("Bạn có chắc muốn hủy giao dịch này không?")
+            ? tRich("Report:V2:CancelConfirmQuestion", <strong>{deleting.note}</strong>)
+            : t("Report:V2:CancelConfirmBody")
         }
-        confirmLabel={t("Hủy giao dịch")}
+        confirmLabel={t("Report:V2:CancelAction")}
         pending={deleteMutation.isPending}
         onConfirm={handleDelete}
         onClose={closeDelete}

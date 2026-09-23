@@ -7,7 +7,7 @@ using BlueDental.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// Danh mục / Phương thức thanh toán — "Tải ảnh QR".
+    /// Danh mục / Phương thức thanh toán — "BE:Common:UploadQR".
     ///
     /// Both dialogs on the reference offer a QR upload, so an account keeps a
     /// pointer to one image. Only the pointer is stored: the bytes go to object

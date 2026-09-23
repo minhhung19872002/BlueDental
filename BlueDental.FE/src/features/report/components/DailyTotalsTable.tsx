@@ -15,7 +15,7 @@ export function DailyTotalsTable({ rows, valueLabel }: Props) {
         <thead>
           <tr>
             <th>{t("STT")}</th>
-            <th>{t("Ngày")}</th>
+            <th>{t("Report:Column:Date")}</th>
             <th className="report-daily-table-amount">{valueLabel}</th>
           </tr>
         </thead>

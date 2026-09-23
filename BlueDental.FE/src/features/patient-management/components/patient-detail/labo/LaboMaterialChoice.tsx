@@ -21,23 +21,23 @@ export function LaboMaterialChoice({ parent, mode, onMode, form }: Props) {
   return (
     <>
       <div className="pd-labo-radio">
-        <p>{t("Lựa chọn dịch vụ")}:</p>
+        <p>{t("Patient:Quote:ServiceSelection")}:</p>
         <Radio.Group
           value={mode}
           onChange={(event) => onMode(event.target.value as MaterialMode)}
           options={[
-            { value: "old", label: t("Theo vật liệu cũ") },
-            { value: "new", label: t("Thay đổi vật liệu mới") },
+            { value: "old", label: t("Patient:Labo:OldMaterial") },
+            { value: "new", label: t("Patient:Labo:ChangeMaterial") },
           ]}
         />
       </div>
       {mode === "old" ? (
         <div className="pd-labo-summary">
           <p>
-            <b>{t("Dịch vụ hiện tại")}:</b> {parent.laboServiceName ?? "—"}
+            <b>{t("Patient:Labo:CurrentService")}:</b> {parent.laboServiceName ?? "—"}
           </p>
           <p>
-            <b>{t("Vật liệu")}:</b> {parent.materialName ?? "—"}
+            <b>{t("Patient:Labo:Material")}:</b> {parent.materialName ?? "—"}
           </p>
         </div>
       ) : (

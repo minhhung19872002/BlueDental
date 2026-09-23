@@ -24,14 +24,14 @@ export function ToothChartCell({ fdi, jaw, pick, onToggleTooth, onToggleSurface 
       type="button"
       className={["tc-tooth", selected && "tc-tooth--selected"].filter(Boolean).join(" ")}
       aria-pressed={selected}
-      aria-label={t("Răng {0}", fdi)}
+      aria-label={t("Common:Tooth:Label", fdi)}
       onClick={() => onToggleTooth(fdi)}
     >
       {jaw === "lower" && <span className="tc-tooth__num">{fdi}</span>}
       <span className={["tc-tooth__img", jaw === "lower" && "tc-tooth__img--lower"].filter(Boolean).join(" ")}>
         <img
           src={molar ? "/img/teeth/molars.png" : "/img/teeth/premolars.png"}
-          alt={molar ? t("Răng hàm") : t("Răng trước")}
+          alt={molar ? t("Common:Tooth:Molar") : t("Common:Tooth:Anterior")}
           draggable={false}
         />
       </span>

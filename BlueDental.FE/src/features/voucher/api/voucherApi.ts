@@ -10,14 +10,14 @@ export type CustomerTarget = "new" | "returning";
 
 export const VOUCHER_STATUS_CONFIG: Record<VoucherStatus, { label: () => string; color: string }> =
   {
-    active: { label: () => t("Đang hoạt động"), color: "green" },
-    expired: { label: () => t("Hết hạn"), color: "red" },
-    out_of_uses: { label: () => t("Hết lượt"), color: "blue" },
+    active: { label: () => t("Voucher:StatusActive"), color: "green" },
+    expired: { label: () => t("Voucher:StatusExpired"), color: "red" },
+    out_of_uses: { label: () => t("Voucher:StatusOutOfUses"), color: "blue" },
   };
 
 export const SCOPE_TARGET_CONFIG: Record<VoucherScopeTarget, { label: () => string }> = {
-  service: { label: () => t("Theo dịch vụ") },
-  treatment: { label: () => t("Tổng kế hoạch") },
+  service: { label: () => t("Voucher:ScopeService") },
+  treatment: { label: () => t("Voucher:ScopeTreatment") },
 };
 
 export interface VoucherDto {
@@ -245,7 +245,7 @@ export function calculateVoucherDiscount(voucher: VoucherDto, orderAmount: numbe
 export function formatVoucherValue(voucher: VoucherDto): string {
   return voucher.discountType === "percentage"
     ? `${voucher.discountValue}%`
-    : `${voucher.discountValue.toLocaleString(getLocale())}${t("đ")}`;
+    : `${voucher.discountValue.toLocaleString(getLocale())}${t("Voucher:CurrencySymbol")}`;
 }
 
 export function useVouchers(status?: string, filter?: string, branchId?: string) {

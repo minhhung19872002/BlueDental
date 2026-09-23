@@ -42,7 +42,7 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public string? SupplierName { get; set; }
     public string? MaterialName { get; set; }
 
-    /// <summary>The labo service (Dịch vụ - vật liệu group) the material belongs to: "Dịch vụ hiện tại" on the child form.</summary>
+    /// <summary>The labo service (Dịch vụ - vật liệu group) the material belongs to: "BE:LaboField:CurrentService" on the child form.</summary>
     public string? LaboServiceName { get; set; }
     public string? DentistName { get; set; }
     public string? BiteName { get; set; }
@@ -115,7 +115,7 @@ public class CreateLaboOrderDto
     public string? ToothShade { get; set; }
     /// <summary>Số lượng.</summary>
     public int Quantity { get; set; } = 1;
-    /// <summary>Set when the order was raised from a treatment row's "Tạo Labo".</summary>
+    /// <summary>Set when the order was raised from a treatment row's "BE:Perm:CreateLabo".</summary>
     public Guid? TreatmentServiceId { get; set; }
     public Guid? TreatmentStageId { get; set; }
 
@@ -152,7 +152,7 @@ public class GetLaboOrderListInput : PagedAndSortedResultRequestDto
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
 
-    /// <summary>"Chọn bác sĩ" — the dentist the sample was ordered by.</summary>
+    /// <summary>"BE:Common:SelectDentist" — the dentist the sample was ordered by.</summary>
     public Guid? DentistId { get; set; }
 
     public LaboStatus? Status { get; set; }

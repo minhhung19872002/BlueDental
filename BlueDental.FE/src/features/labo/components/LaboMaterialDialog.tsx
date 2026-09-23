@@ -59,10 +59,10 @@ export function LaboMaterialDialog({
     try {
       if (material) {
         await update.mutateAsync({ id: material.id, input });
-        toast.success(t("Đã cập nhật"));
+        toast.success(t("Common:Updated"));
       } else {
         await create.mutateAsync(input);
-        toast.success(t("Đã thêm"));
+        toast.success(t("Common:Added"));
       }
       onClose();
     } catch {
@@ -74,7 +74,7 @@ export function LaboMaterialDialog({
     <AppDialog
       open={open}
       width={560}
-      title={material ? t("Sửa vật liệu") : t("Tạo vật liệu")}
+      title={material ? t("Common:EditItem", t("Labo:Noun:Material")) : t("Common:CreateItem", t("Labo:Noun:Material"))}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -91,9 +91,9 @@ export function LaboMaterialDialog({
           <Col xs={24} md={12}>
             <FloatingField
               name="name"
-              label={t("Vật liệu")}
+              label={t("Labo:Material:Title")}
               required
-              rules={[{ required: true, message: t("Vui lòng nhập tên vật liệu") }]}
+              rules={[{ required: true, message: t("Common:PleaseEnter", t("Labo:Material:Title")) }]}
             >
               <Input autoFocus maxLength={200} />
             </FloatingField>
@@ -101,9 +101,9 @@ export function LaboMaterialDialog({
           <Col xs={24} md={12}>
             <FloatingField
               name="taxonomyId"
-              label={t("Phân loại dịch vụ")}
+              label={t("Labo:Material:ServiceGroup")}
               required
-              rules={[{ required: true, message: t("Vui lòng chọn phân loại dịch vụ") }]}
+              rules={[{ required: true, message: t("Common:PleaseSelect", t("Labo:Material:ServiceGroup")) }]}
             >
               <Select
                 showSearch

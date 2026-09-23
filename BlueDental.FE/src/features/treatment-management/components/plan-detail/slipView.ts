@@ -37,9 +37,9 @@ export function slipViewOf(plan: TreatmentPlanSlipDto, today: Date): SlipView {
     dateLabel: longDate(today),
     lines: plan.services.map(lineOf),
     totals: [
-      { label: t("Tổng phí"), value: plan.totalAmount },
-      { label: t("Đã trả trước đó"), value: plan.payment.totalPaid },
-      { label: t("Tổng còn nợ"), value: plan.payment.debt, tone: "debt" },
+      { label: t("Treatment:Receipt:TotalFee"), value: plan.totalAmount },
+      { label: t("Treatment:Receipt:PaidBefore"), value: plan.payment.totalPaid },
+      { label: t("Treatment:Receipt:TotalRemaining"), value: plan.payment.debt, tone: "debt" },
     ],
   };
 }

@@ -15,7 +15,7 @@ export function TempFormLeft({ control, errors }: Props) {
       {/* Patient name */}
       <div className="appt-field">
         <label className="appt-field-label">
-          {t("Họ tên bệnh nhân")}<span className="appt-field-required">*</span>
+          {t("Appointment:Form:PatientFullName")}<span className="appt-field-required">*</span>
         </label>
         <Controller
           name="patientName"
@@ -23,7 +23,7 @@ export function TempFormLeft({ control, errors }: Props) {
           render={({ field }) => (
             <Input
               {...field}
-              placeholder={t("Họ tên bệnh nhân")}
+              placeholder={t("Appointment:Form:PatientFullName")}
               status={errors.patientName ? "error" : ""}
               style={{ height: 40 }}
             />
@@ -34,14 +34,14 @@ export function TempFormLeft({ control, errors }: Props) {
 
       {/* Phone */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Số điện thoại")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:PhoneNumber")}</label>
         <Controller
           name="patientPhone"
           control={control}
           render={({ field }) => (
             <Input
               {...field}
-              placeholder={t("Số điện thoại")}
+              placeholder={t("Appointment:Form:PhoneNumber")}
               style={{ height: 40 }}
             />
           )}
@@ -51,7 +51,7 @@ export function TempFormLeft({ control, errors }: Props) {
       {/* Date */}
       <div className="appt-field">
         <label className="appt-field-label">
-          {t("Ngày")} <span className="appt-label-accent">{t("hẹn")}</span>
+          {t("Appointment:Form:DateLabel")} <span className="appt-label-accent">{t("Appointment:Form:AppointmentSuffix")}</span>
         </label>
         <Controller
           name="date"
@@ -71,7 +71,7 @@ export function TempFormLeft({ control, errors }: Props) {
       {/* Time + Duration */}
       <div className="appt-time-row">
         <div className="appt-field">
-          <label className="appt-field-label">{t("Giờ hẹn")}</label>
+          <label className="appt-field-label">{t("Appointment:Form:AppointmentTime")}</label>
           <Controller
             name="startTime"
             control={control}
@@ -89,7 +89,7 @@ export function TempFormLeft({ control, errors }: Props) {
           />
         </div>
         <div className="appt-field">
-          <label className="appt-field-label">{t("Phút")}</label>
+          <label className="appt-field-label">{t("Appointment:Form:Minute")}</label>
           <Controller
             name="durationMinutes"
             control={control}

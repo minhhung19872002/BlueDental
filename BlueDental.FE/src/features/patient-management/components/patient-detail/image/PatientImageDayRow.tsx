@@ -21,7 +21,7 @@ export function PatientImageDayRow({ day, canSort, canDelete, onView, onDelete, 
       <div className="pi-day-side">
         <span className="pi-day-pill">{day.label}</span>
         <span className="pi-day-dot" aria-hidden="true" />
-        <p className="pi-day-count">{t("{0} ảnh", day.images.length)}</p>
+        <p className="pi-day-count">{t("Patient:Image:DayCount", day.images.length)}</p>
       </div>
 
       <PatientImageSortableRow

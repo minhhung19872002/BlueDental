@@ -16,8 +16,8 @@ import "../components/cskh.css";
 type TopTabKey = "care" | "group";
 
 const TOP_TABS: Array<{ key: TopTabKey; label: () => string }> = [
-  { key: "care", label: () => t("Chăm sóc khách hàng") },
-  { key: "group", label: () => t("Phân nhóm CSKH") },
+  { key: "care", label: () => t("CSKH:Tab:Care") },
+  { key: "group", label: () => t("CSKH:Tab:Group") },
 ];
 
 /**
@@ -62,8 +62,8 @@ export function CskhGroupingPage() {
   return (
     <div className="reception-page">
       <PageHeader
-        title={t("Chăm sóc khách hàng")}
-        subtitle={t("Phân nhóm nhật ký chăm sóc theo mục đích liên hệ")}
+        title={t("CSKH:PageTitle")}
+        subtitle={t("CSKH:PageSubtitle")}
       />
 
       <div className="pill-tabs-row">

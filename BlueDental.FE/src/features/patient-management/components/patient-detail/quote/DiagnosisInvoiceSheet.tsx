@@ -75,29 +75,29 @@ export function DiagnosisInvoiceSheet({
           {clinic.logoUrl && <img className="pq-dx__logo" src={clinic.logoUrl} alt="" />}
           <div>
             <p>
-              <strong>{t("PHÒNG KHÁM")}:</strong> {dash(clinic.name)}
+              <strong>{t("Patient:QuoteSheet:Clinic")}:</strong> {dash(clinic.name)}
             </p>
-            <p>{t("Địa chỉ: {0}", dash(clinic.address))}</p>
-            <p>{t("ĐT: {0}", dash(clinic.phone))}</p>
+            <p>{t("Patient:DiagnosisInvoice:Address", dash(clinic.address))}</p>
+            <p>{t("Patient:DiagnosisInvoice:Tel", dash(clinic.phone))}</p>
           </div>
         </div>
         <div className="pq-dx__title">
-          <h1>{t("PHIẾU CHẨN ĐOÁN & HÓA ĐƠN")}</h1>
-          <p>{t("PHÒNG KHÁM NHA KHOA")}</p>
-          <p className="pq-dx__date">{t("Ngày: {0}", formatDate(new Date()))}</p>
+          <h1>{t("Patient:Diagnosis:SlipAndInvoice")}</h1>
+          <p>{t("Patient:QuoteSheet:DentalClinic")}</p>
+          <p className="pq-dx__date">{t("Patient:DiagnosisInvoice:Date", formatDate(new Date()))}</p>
         </div>
         <div className="pq-dx__customer">
-          <p>{t("Mã KH: {0}", dash(customer.code))}</p>
-          <p>{t("Họ tên: {0}", dash(customer.name))}</p>
-          <p>{t("Ngày sinh: {0}", customer.dateOfBirth)}</p>
-          <p>{t("SĐT: {0}", dash(customer.phone))}</p>
+          <p>{t("Patient:DiagnosisInvoice:Code", dash(customer.code))}</p>
+          <p>{t("Patient:DiagnosisInvoice:Name", dash(customer.name))}</p>
+          <p>{t("Patient:DiagnosisInvoice:Dob", customer.dateOfBirth)}</p>
+          <p>{t("Patient:DiagnosisInvoice:Phone", dash(customer.phone))}</p>
         </div>
       </div>
 
       {images.length > 0 && (
         <section>
           <div className="pq-dx__section">
-            <h2>I. {t("HÌNH ẢNH CHẨN ĐOÁN")}</h2>
+            <h2>I. {t("Patient:Diagnosis:ImagesLabel")}</h2>
           </div>
           <div className="pq-dx__image-grid">
             {images.map((image) => (
@@ -120,15 +120,15 @@ export function DiagnosisInvoiceSheet({
       ))}
 
       <section className="pq-dx__services">
-        <p className="pq-dx__services-title">{t("DANH SÁCH DỊCH VỤ BÁO GIÁ")}</p>
+        <p className="pq-dx__services-title">{t("Patient:Quote:ServiceListTitle")}</p>
         <table className="pq-dx__table">
           <thead>
             <tr>
-              <th>{t("Dịch vụ")}</th>
-              <th>{t("Chẩn đoán")}</th>
-              <th>{t("Đơn giá")}</th>
-              <th>{t("Giảm giá")}</th>
-              <th>{t("Thành tiền")}</th>
+              <th>{t("Patient:Misc:Service")}</th>
+              <th>{t("Patient:Tab:Diagnosis")}</th>
+              <th>{t("Patient:Payment:UnitPrice")}</th>
+              <th>{t("Patient:Payment:Discount")}</th>
+              <th>{t("Patient:Payment:Amount")}</th>
             </tr>
           </thead>
           <tbody>
@@ -150,11 +150,11 @@ export function DiagnosisInvoiceSheet({
 
       <QuoteSignatures
         layout="name-first"
-        caption={t("(Ký, họ tên)")}
-        leftLabel={t("Bác sĩ chẩn đoán")}
+        caption={t("Patient:QuoteSheet:SignName")}
+        leftLabel={t("Patient:Diagnosis:Doctor")}
         leftName={signedBy ?? diagnosingDoctor}
         onLeftNameChange={setSignedBy}
-        rightLabel={t("Khách hàng")}
+        rightLabel={t("Patient:Col:Customer")}
         rightName={dash(customer.name)}
       />
     </div>
@@ -167,18 +167,18 @@ function SummaryRows({ totals }: { totals: QuoteTotals }) {
     <>
       <tr>
         <td colSpan={3} rowSpan={span} className="pq-sheet__summary-empty" />
-        <td className="pq-sheet__summary-label">{t("TỔNG TIỀN:")}</td>
+        <td className="pq-sheet__summary-label">{t("Patient:QuoteSheet:GrandTotal")}</td>
         <td className="pq-sheet__summary-value">{money(totals.gross)}</td>
       </tr>
       <tr>
-        <td className="pq-sheet__summary-label">{t("GIẢM GIÁ:")}</td>
+        <td className="pq-sheet__summary-label">{t("Patient:QuoteSheet:Discount")}</td>
         <td className="pq-sheet__summary-value pq-sheet__summary-value--discount">
           {totals.discount > 0 ? `-${money(totals.discount)}` : money(0)}
         </td>
       </tr>
       {totals.extra > 0 && (
         <tr>
-          <td className="pq-sheet__summary-label">{t("GIẢM GIÁ BÁC SĨ:")}</td>
+          <td className="pq-sheet__summary-label">{t("Patient:QuoteSheet:DoctorDiscount")}</td>
           <td className="pq-sheet__summary-value pq-sheet__summary-value--discount">
             -{money(totals.extra)}
           </td>
@@ -186,7 +186,7 @@ function SummaryRows({ totals }: { totals: QuoteTotals }) {
       )}
       <tr className="pq-sheet__summary-row--total">
         <td className="pq-sheet__summary-label pq-sheet__summary-label--total">
-          {t("THÀNH TIỀN:")}
+          {t("Patient:QuoteSheet:Total")}
         </td>
         <td className="pq-sheet__summary-value pq-sheet__summary-value--total">
           {money(totals.net)}

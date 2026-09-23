@@ -16,12 +16,12 @@ import { TempAppointmentForm, type TempAppointmentFormValues } from "./TempAppoi
 
 const buildSchema = () =>
   z.object({
-    patientName: z.string().min(1, t("Vui lòng nhập họ tên bệnh nhân")),
+    patientName: z.string().min(1, t("Appointment:Form:EnterPatientNameRequired")),
     patientPhone: z.string(),
-    branchId: z.string().min(1, t("Vui lòng chọn chi nhánh")),
+    branchId: z.string().min(1, t("Appointment:Form:SelectBranchRequired")),
     doctorId: z.string(),
-    date: z.string().min(1, t("Vui lòng chọn ngày")),
-    startTime: z.string().min(1, t("Vui lòng chọn giờ hẹn")),
+    date: z.string().min(1, t("Appointment:Form:SelectDateRequired")),
+    startTime: z.string().min(1, t("Appointment:Form:SelectTimeRequired")),
     durationMinutes: z.number().int().min(15),
     sourceTaxonomyId: z.string(),
     sourceEntryId: z.string(),
@@ -127,7 +127,7 @@ export function TempAppointmentEditorModal({
     if (data.date && data.startTime) {
       const slot = dayjs(`${data.date} ${data.startTime}`);
       if (slot.isBefore(dayjs().startOf("minute"))) {
-        toast.error(t("Không thể tạo lịch hẹn trong quá khứ"));
+        toast.error(t("Appointment:Form:CannotCreatePast"));
         return;
       }
     }
@@ -149,7 +149,7 @@ export function TempAppointmentEditorModal({
         },
         {
           onSuccess: () => {
-            toast.success(t("Cập nhật lịch tạm thành công!"));
+            toast.success(t("Appointment:Toast:UpdateTempSuccess"));
             reset();
             onSuccess?.();
             onClose();
@@ -172,7 +172,7 @@ export function TempAppointmentEditorModal({
         },
         {
           onSuccess: () => {
-            toast.success(t("Tạo lịch tạm thành công!"));
+            toast.success(t("Appointment:Toast:CreateTempSuccess"));
             reset();
             onSuccess?.();
             onClose();
@@ -185,7 +185,7 @@ export function TempAppointmentEditorModal({
   return (
     <AppDialog
       open={open}
-      title={isEdit ? t("Chỉnh sửa lịch tạm") : t("Tạo lịch tạm")}
+      title={isEdit ? t("Appointment:Modal:EditTempTitle") : t("Appointment:Modal:CreateTempTitle")}
       width="calc(100vw - 80px)"
       className="appt-editor-dialog"
       canSave={isValid && !activeMutation.isPending}

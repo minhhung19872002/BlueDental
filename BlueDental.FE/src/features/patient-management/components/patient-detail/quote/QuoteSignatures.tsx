@@ -95,7 +95,7 @@ export function QuoteSignatures({
   onLeftNameChange,
 }: Props) {
   return (
-    <div className="pq-signs" aria-label={t("Chữ ký")}>
+    <div className="pq-signs" aria-label={t("Patient:QuoteSheet:Signature")}>
       <Column
         label={leftLabel}
         name={leftName}

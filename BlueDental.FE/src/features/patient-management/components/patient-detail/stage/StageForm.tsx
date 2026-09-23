@@ -78,10 +78,10 @@ export function StageForm({
   return (
     <div className="pd-stage-form">
       <div>
-        <FloatingLabel label={t("Ngày tạo")} floated>
+        <FloatingLabel label={t("Patient:Col:CreatedAt")} floated>
           <Input disabled value={formatDate(new Date().toISOString())} />
         </FloatingLabel>
-        <FloatingLabel label={t("Bác sĩ")} floated={Boolean(staffId)}>
+        <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(staffId)}>
           <ServerSearchSelect
             value={staffId}
             useOptions={useStaffOptionsSearch}
@@ -90,14 +90,14 @@ export function StageForm({
           />
         </FloatingLabel>
         {errors.staff && <p className="pd-stage-error">{errors.staff}</p>}
-        <FloatingLabel label={t("Phụ tá")} floated={Boolean(subStaffId)}>
+        <FloatingLabel label={t("Patient:Staff:Assistant")} floated={Boolean(subStaffId)}>
           <ServerSearchSelect
             value={subStaffId}
             useOptions={useStaffOptionsSearch}
             onChange={onSubStaff}
           />
         </FloatingLabel>
-        <FloatingLabel label={t("Bác sĩ hỗ trợ")} floated={Boolean(secondStaffId)}>
+        <FloatingLabel label={t("Patient:Staff:AssistingDoctor")} floated={Boolean(secondStaffId)}>
           <ServerSearchSelect
             value={secondStaffId}
             useOptions={useStaffOptionsSearch}
@@ -107,11 +107,11 @@ export function StageForm({
       </div>
 
       <div>
-        <FloatingLabel label={t("Dịch vụ")} floated>
+        <FloatingLabel label={t("Patient:Misc:Service")} floated>
           <Input disabled value={line.serviceName ?? line.code} />
         </FloatingLabel>
         <div className="pd-stage-teeth">
-          <p>{t("Răng")}:</p>
+          <p>{t("Patient:DentalChart:Tooth")}:</p>
           <div>
             {toothLabels(line.teeth).map((label) => (
               <span key={label}>{label}</span>
@@ -120,21 +120,21 @@ export function StageForm({
         </div>
         {errors.teeth && <p className="pd-stage-error">{errors.teeth}</p>}
         <div className="pd-stage-images">
-          <p>{t("Hình ảnh")}:</p>
+          <p>{t("Patient:Tab:Images")}:</p>
           <p>
             {pending.length === 0
-              ? t("(Trống)")
-              : t("{0} ảnh đã chọn", pending.length)}
+              ? t("Patient:QuoteSheet:Empty")
+              : t("Patient:Stage:PhotosSelected", pending.length)}
           </p>
         </div>
         <StageShots files={pending} previews={previews} onRemove={onRemoveImage} />
         <Button block icon={<PictureOutlined />} onClick={onPickImages}>
-          {t("Tải Ảnh")}
+          {t("Patient:Photo:UploadButton")}
         </Button>
       </div>
 
       <div>
-        <FloatingLabel label={t("Nội dung điều trị")} floated={note.length > 0}>
+        <FloatingLabel label={t("Patient:Stage:TreatmentContent")} floated={note.length > 0}>
           <Input.TextArea
             rows={5}
             value={note}
@@ -152,7 +152,7 @@ export function StageForm({
           onToggle={onToggleStep}
         />
         <div className="pd-stage-formactions">
-          <Button onClick={onCancel}>{t("Hủy")}</Button>
+          <Button onClick={onCancel}>{t("Patient:Misc:Cancel")}</Button>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={onSave}>
             {primaryLabel}
           </Button>

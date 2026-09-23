@@ -29,21 +29,21 @@ interface Tool {
 /** The reference's buttons, left to right. */
 function tools(viewer: ImageViewer, onClose: () => void): Tool[] {
   return [
-    { key: "draw", label: t("Vẽ chú thích"), icon: <PenLine size={20} />, onClick: viewer.toggleDrawing, active: viewer.drawing },
-    { key: "rotate-right", label: t("Xoay phải"), icon: <RotateCw size={20} />, onClick: viewer.rotateRight },
-    { key: "rotate-left", label: t("Xoay trái"), icon: <RotateCcw size={20} />, onClick: viewer.rotateLeft },
-    { key: "flip-h", label: t("Lật ngang"), icon: <ArrowLeftRight size={20} />, onClick: viewer.flipHorizontal },
-    { key: "flip-v", label: t("Lật dọc"), icon: <ArrowUpDown size={20} />, onClick: viewer.flipVertical },
+    { key: "draw", label: t("Patient:Viewer:DrawAnnotation"), icon: <PenLine size={20} />, onClick: viewer.toggleDrawing, active: viewer.drawing },
+    { key: "rotate-right", label: t("Patient:Viewer:RotateRight"), icon: <RotateCw size={20} />, onClick: viewer.rotateRight },
+    { key: "rotate-left", label: t("Patient:Viewer:RotateLeft"), icon: <RotateCcw size={20} />, onClick: viewer.rotateLeft },
+    { key: "flip-h", label: t("Patient:Viewer:FlipHorizontal"), icon: <ArrowLeftRight size={20} />, onClick: viewer.flipHorizontal },
+    { key: "flip-v", label: t("Patient:Viewer:FlipVertical"), icon: <ArrowUpDown size={20} />, onClick: viewer.flipVertical },
     { key: "zoom-out", label: t("Zoom xa"), icon: <ZoomOut size={20} />, onClick: viewer.zoomOut, disabled: !viewer.canZoomOut },
-    { key: "zoom-in", label: t("Zoom gần"), icon: <ZoomIn size={20} />, onClick: viewer.zoomIn, disabled: !viewer.canZoomIn },
-    { key: "close", label: t("Đóng"), icon: <X size={22} />, onClick: onClose },
+    { key: "zoom-in", label: t("Patient:Viewer:ZoomClose"), icon: <ZoomIn size={20} />, onClick: viewer.zoomIn, disabled: !viewer.canZoomIn },
+    { key: "close", label: t("Common:Close"), icon: <X size={22} />, onClick: onClose },
   ];
 }
 
 /** The row of white icons in the viewer's top-right corner. */
 export function ViewerToolbar({ viewer, onClose }: Props) {
   return (
-    <div className="pi-viewer-tools" role="toolbar" aria-label={t("Công cụ xem ảnh")}>
+    <div className="pi-viewer-tools" role="toolbar" aria-label={t("Patient:Viewer:ImageTools")}>
       {tools(viewer, onClose).map((tool) => (
         <button
           key={tool.key}

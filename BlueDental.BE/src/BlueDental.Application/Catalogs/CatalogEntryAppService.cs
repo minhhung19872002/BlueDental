@@ -15,7 +15,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// Mục danh mục — the entry table shared by every "Danh mục" sub-route.
+/// Mục danh mục — the entry table shared by every "BE:Perm:Catalogs" sub-route.
 /// </summary>
 [Authorize(BlueDentalPermissions.Catalogs.Default)]
 public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppService
@@ -182,7 +182,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             entry.Deactivate();
         }
 
-        // "Đang hoạt động" and "Đã xoá" are one state, not two flags: whichever
+        // "BE:Status:Active" and "BE:Status:Deleted" are one state, not two flags: whichever
         // the dialog sends decides whether this row is deleted.
         if (TaxonomyGroups.IsSoftDeletable(entry.Group))
         {

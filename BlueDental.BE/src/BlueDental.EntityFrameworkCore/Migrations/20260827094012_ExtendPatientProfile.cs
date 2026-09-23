@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlueDental.Migrations
 {
     /// <summary>
-    /// Everything the "Tạo hồ sơ" / "Chỉnh sửa hồ sơ" dialog collects beyond the
+    /// Everything the "BE:Common:CreateRecord" / "BE:Common:EditRecord" dialog collects beyond the
     /// demographics the table already had, plus an optional birth date — the
     /// reference does not require one and rows registered at the front desk
     /// regularly have none.

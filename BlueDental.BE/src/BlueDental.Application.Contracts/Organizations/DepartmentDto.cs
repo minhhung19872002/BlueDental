@@ -24,7 +24,7 @@ public class CreateDepartmentDto
     [MaxLength(1000)]
     public string? Description { get; set; }
 
-    /// <summary>"Số thứ tự" on the reference's dialog.</summary>
+    /// <summary>"BE:Field:SeqNo" on the reference's dialog.</summary>
     public int SortOrder { get; set; }
 }
 

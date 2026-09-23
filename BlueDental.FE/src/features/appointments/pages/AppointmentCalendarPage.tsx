@@ -80,12 +80,12 @@ export function AppointmentCalendarPage() {
     exportToExcel(
       dayAppointments?.items ?? [],
       [
-        { header: t("Bệnh nhân"), key: "patientName" },
-        { header: t("Bác sĩ"), key: "doctorName" },
-        { header: t("Bắt đầu"), key: "startTime", format: (v) => (v ? dayjs(String(v)).format("DD/MM/YYYY HH:mm") : "") },
-        { header: t("Kết thúc"), key: "endTime", format: (v) => (v ? dayjs(String(v)).format("HH:mm") : "") },
-        { header: t("Trạng thái"), key: "status" },
-        { header: t("Lý do"), key: "reason" },
+        { header: t("Common:Patient"), key: "patientName" },
+        { header: t("Appointment:Form:Doctor"), key: "doctorName" },
+        { header: t("Appointment:Page:StartTime"), key: "startTime", format: (v) => (v ? dayjs(String(v)).format("DD/MM/YYYY HH:mm") : "") },
+        { header: t("Appointment:History:Export:AppointmentTime"), key: "endTime", format: (v) => (v ? dayjs(String(v)).format("HH:mm") : "") },
+        { header: t("Common:Status"), key: "status" },
+        { header: t("Appointment:List:Reason"), key: "reason" },
       ],
       `lich-hen-${state.currentDate.format("YYYY-MM-DD")}`,
     );
@@ -115,7 +115,7 @@ export function AppointmentCalendarPage() {
   const handleConfirmDelete = useCallback(async () => {
     if (deleteTarget === "single" && deleteSingleId) {
       await deleteMutation.mutateAsync(deleteSingleId);
-      toast.success(t("Đã xoá lịch hẹn"));
+      toast.success(t("Appointment:Toast:DeleteSuccess"));
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(deleteSingleId);
@@ -124,7 +124,7 @@ export function AppointmentCalendarPage() {
     } else if (deleteTarget === "multi") {
       const ids = [...selectedIds];
       await deleteManyMutation.mutateAsync(ids);
-      toast.success(t("Đã xoá {0} lịch hẹn").replace("{0}", String(ids.length)));
+      toast.success(t("Appointment:Toast:DeleteMultiSuccess").replace("{0}", String(ids.length)));
       setSelectedIds(new Set());
     }
     setDeleteTarget(null);
@@ -176,7 +176,7 @@ export function AppointmentCalendarPage() {
   return (
     <>
       <div className="cal-page">
-        <PageHeader title={t("Lịch hẹn khách hàng")} />
+        <PageHeader title={t("Appointment:Tab:CustomerCalendar")} />
 
         <CalendarUnderlineTabs
           activeTab={state.topTab}
@@ -186,10 +186,10 @@ export function AppointmentCalendarPage() {
         {state.topTab === "customer" && ability.canCreate && (
           <div className="mobile-only cal-mobile-actions">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}>
-              {t("Tạo lịch hẹn")}
+              {t("Appointment:Action:Create")}
             </Button>
             <Button icon={<PlusOutlined />} onClick={() => setTempOpen(true)}>
-              {t("Lịch tạm")}
+              {t("Appointment:Action:CreateTempShort")}
             </Button>
           </div>
         )}
@@ -225,7 +225,7 @@ export function AppointmentCalendarPage() {
             {selectedIds.size > 0 && (
               <div className="cal-selection-bar">
                 <span className="cal-selection-label">
-                  {t("Đã chọn {0} lịch hẹn").replace("{0}", String(selectedIds.size))}
+                  {t("Appointment:Page:SelectedCount").replace("{0}", String(selectedIds.size))}
                 </span>
                 <div className="cal-selection-actions">
                   <button
@@ -233,7 +233,7 @@ export function AppointmentCalendarPage() {
                     className="cal-selection-btn"
                     onClick={handleClearSelection}
                   >
-                    {t("Bỏ chọn")}
+                    {t("Appointment:EventCard:Deselect")}
                   </button>
                   {ability.canDelete && (
                     <button
@@ -242,7 +242,7 @@ export function AppointmentCalendarPage() {
                       onClick={handleDeleteSelected}
                       disabled={deleteMutation.isPending || deleteManyMutation.isPending}
                     >
-                      {t("Xoá {0} mục").replace("{0}", String(selectedIds.size))}
+                      {t("Appointment:Page:DeleteCount").replace("{0}", String(selectedIds.size))}
                     </button>
                   )}
                 </div>
@@ -338,11 +338,11 @@ export function AppointmentCalendarPage() {
 
       <ConfirmDeleteDialog
         open={deleteTarget !== null}
-        noun={t("lịch hẹn")}
+        noun={t("Appointment:Page:AppointmentNoun")}
         name={
           deleteTarget === "multi"
-            ? t("{0} mục").replace("{0}", String(selectedIds.size))
-            : t("này")
+            ? t("Appointment:Page:DeleteCount").replace("{0}", String(selectedIds.size))
+            : t("Appointment:Page:This")
         }
         pending={deleteMutation.isPending || deleteManyMutation.isPending}
         onConfirm={handleConfirmDelete}
@@ -359,10 +359,10 @@ export function AppointmentCalendarPage() {
             onApply={() => { filters.setKeyword(draftKeyword); }}
           >
             <div>
-              <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+              <div className="mobile-filter-label">{t("Common:Search")}</div>
               <Input
                 prefix={<SearchOutlined />}
-                placeholder={t("Tìm bệnh nhân...")}
+                placeholder={t("Appointment:Page:SearchPatientPlaceholder")}
                 value={draftKeyword}
                 onChange={(e) => setDraftKeyword(e.target.value)}
                 allowClear

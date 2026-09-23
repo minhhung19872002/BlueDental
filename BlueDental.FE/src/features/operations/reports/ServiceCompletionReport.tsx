@@ -67,49 +67,49 @@ export function ServiceCompletionReport() {
       {
         key: "collected",
         value: formatMoney(stats?.actualCollected ?? 0),
-        label: t("Thực thu"),
+        label: t("Operations:ActualRevenue"),
         icon: <WalletOutlined />,
         tone: "teal",
       },
       {
         key: "revenue",
         value: formatMoney(stats?.totalRevenue ?? 0),
-        label: t("Tổng doanh thu"),
+        label: t("Operations:TotalRevenue"),
         icon: <RiseOutlined />,
         tone: "blue",
         badge:
           change === null || change === undefined
             ? undefined
             : {
-                text: t("{0}% so với kỳ trước", `${change > 0 ? "+" : ""}${change}`),
+                text: t("Operations:ChangeVsPrev", `${change > 0 ? "+" : ""}${change}`),
                 tone: change < 0 ? "rose" : "green",
               },
       },
       {
         key: "advance",
         value: formatMoney(stats?.advanceRevenue ?? 0),
-        label: t("Doanh thu từ KH tạm ứng"),
+        label: t("Operations:PrepaidRevenue"),
         icon: <DollarOutlined />,
         tone: "amber",
       },
       {
         key: "completed",
         value: formatMoney(stats?.completedServices ?? 0),
-        label: t("Dịch vụ hoàn thành"),
+        label: t("Operations:ServicesDone"),
         icon: <CheckCircleOutlined />,
         tone: "green",
         badge: {
-          text: t("{0}% đúng tiến độ", stats?.onScheduePercent ?? 0),
+          text: t("Operations:OnSchedule", stats?.onScheduePercent ?? 0),
           tone: "green",
         },
       },
       {
         key: "ownQuota",
         value: formatMoney(stats?.ownQuotaServices ?? 0),
-        label: t("Dịch vụ doanh số riêng"),
+        label: t("Operations:SeparateSales"),
         icon: <StarOutlined />,
         tone: "rose",
-        badge: { text: t("Tính theo định mức riêng"), tone: "rose" },
+        badge: { text: t("Operations:SeparateQuota"), tone: "rose" },
       },
     ];
   }, [stats]);
@@ -139,27 +139,27 @@ export function ServiceCompletionReport() {
     exportToExcel<ServiceLineRow>(
       query.data?.items ?? [],
       [
-        { header: t("Ngày thao tác"), key: "occurredAt", format: (v) => formatDate(String(v)) },
-        { header: t("Mã khách hàng"), key: "patientCode" },
-        { header: t("Khách hàng"), key: "patientName" },
-        { header: t("Chi nhánh"), key: "branchName" },
-        { header: t("Dịch vụ"), key: "serviceName" },
-        { header: t("Nhóm dịch vụ"), key: "serviceGroupName" },
+        { header: t("Operations:ExcelDateOp"), key: "occurredAt", format: (v) => formatDate(String(v)) },
+        { header: t("Operations:ExcelPatientCode"), key: "patientCode" },
+        { header: t("Operations:ExcelPatient"), key: "patientName" },
+        { header: t("Operations:BranchCol"), key: "branchName" },
+        { header: t("Operations:ServiceCol"), key: "serviceName" },
+        { header: t("Operations:ServiceGroupCol"), key: "serviceGroupName" },
         {
-          header: t("Phân loại"),
+          header: t("Operations:CategoryCol"),
           key: "classification",
           format: (v) =>
             v === SALES_CATEGORY.completed
-              ? t("Dịch vụ đã hoàn thành")
-              : t("Dịch vụ tính doanh số riêng"),
+              ? t("Operations:CompletedServices")
+              : t("Operations:SeparateSalesServices"),
         },
-        { header: t("Bác sĩ điều trị"), key: "treatingDentistName" },
-        { header: t("Nhân sự tư vấn"), key: "consultantName" },
-        { header: t("Răng"), key: "teeth" },
-        { header: t("Giá dịch vụ"), key: "price" },
-        { header: t("Số lượng"), key: "quantity" },
-        { header: t("Tổng giảm giá"), key: "discountAmount" },
-        { header: t("Giá điều trị bác sĩ"), key: "doctorAmount" },
+        { header: t("Operations:TreatingDentist"), key: "treatingDentistName" },
+        { header: t("Operations:Consultant1"), key: "consultantName" },
+        { header: t("Operations:TeethCol"), key: "teeth" },
+        { header: t("Operations:PriceCol"), key: "price" },
+        { header: t("Operations:QtyCol"), key: "quantity" },
+        { header: t("Operations:DiscountCol"), key: "discountAmount" },
+        { header: t("Operations:DoctorAmountCol"), key: "doctorAmount" },
       ],
       `hoan-thanh-theo-dich-vu-${range.anchorIso}`,
     );
@@ -177,8 +177,8 @@ export function ServiceCompletionReport() {
           <Input
             className="bd-ops-search"
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm khách hàng, dịch vụ")}
-            aria-label={t("Tìm khách hàng, dịch vụ")}
+            placeholder={t("Operations:SearchServicePatient")}
+            aria-label={t("Operations:SearchServicePatient")}
             value={keyword}
             allowClear
             onChange={(event) => {
@@ -192,8 +192,8 @@ export function ServiceCompletionReport() {
             showSearch
             allowClear
             loading={dentists.isLoading}
-            placeholder={t("Bác sĩ điều trị")}
-            aria-label={t("Bác sĩ điều trị")}
+            placeholder={t("Operations:TreatingDentist")}
+            aria-label={t("Operations:TreatingDentist")}
             optionFilterProp="label"
             value={dentistId}
             onChange={(value) => {
@@ -208,8 +208,8 @@ export function ServiceCompletionReport() {
             showSearch
             allowClear
             loading={serviceGroups.isLoading}
-            placeholder={t("Nhóm dịch vụ")}
-            aria-label={t("Nhóm dịch vụ")}
+            placeholder={t("Operations:ServiceGroup")}
+            aria-label={t("Operations:ServiceGroup")}
             optionFilterProp="label"
             value={serviceGroupId}
             onChange={(value) => {
@@ -226,13 +226,13 @@ export function ServiceCompletionReport() {
             // The reference offers this; BlueDental has no sales system to sync
             // with, so it says so rather than pretending to do something.
             disabled
-            title={t("Chưa kết nối phần mềm bán hàng")}
+            title={t("Operations:SyncNotConnected")}
           >
-            {t("Đồng bộ phần mềm bán hàng")}
+            {t("Operations:SyncSales")}
           </Button>
 
           <Button icon={<DownloadOutlined />} onClick={exportRows}>
-            {t("Xuất Excel")}
+            {t("Operations:ExportExcel")}
           </Button>
         </div>
       </div>
@@ -250,10 +250,10 @@ export function ServiceCompletionReport() {
             query.data?.totalCount ?? 0,
             (total, rangeOf) =>
               total === 0
-                ? t("Hiển thị 0 trên 0 dịch vụ")
-                : t("Hiển thị {0}–{1} trên {2} dịch vụ", rangeOf[0], rangeOf[1], total),
+                ? t("Operations:ShowZeroServices")
+                : t("Operations:ShowServicesRange", rangeOf[0], rangeOf[1], total),
           )}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
         />
       </div>
     </div>

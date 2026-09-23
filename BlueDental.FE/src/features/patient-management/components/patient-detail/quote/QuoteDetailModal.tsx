@@ -66,7 +66,7 @@ export function QuoteDetailModal({
         width="min(1240px, calc(100vw - 32px))"
         closeIcon={<X size={20} />}
         destroyOnHidden
-        title={t("Chi tiết phiếu")}
+        title={t("Patient:Stage:SlipDetail")}
         footer={
           <div className="pq-footer">
             <button
@@ -75,7 +75,7 @@ export function QuoteDetailModal({
               onClick={() => setPreview("diagnosis")}
             >
               <ReceiptText size={16} />
-              {t("In hóa đơn kèm chẩn đoán")}
+              {t("Patient:Diagnosis:PrintWithInvoice")}
             </button>
             <button
               type="button"
@@ -83,7 +83,7 @@ export function QuoteDetailModal({
               onClick={() => setPreview("quote")}
             >
               <Printer size={16} />
-              {t("In Hoá Đơn")}
+              {t("Patient:MedRecord:PrintInvoice")}
             </button>
           </div>
         }
@@ -104,7 +104,7 @@ export function QuoteDetailModal({
 
       <QuotePreviewModal
         open={preview === "quote"}
-        subject={t("Phiếu Báo Giá")}
+        subject={t("Patient:Quote:Slip")}
         onClose={() => setPreview(null)}
       >
         <QuoteSheet
@@ -117,7 +117,7 @@ export function QuoteDetailModal({
 
       <QuotePreviewModal
         open={preview === "diagnosis"}
-        subject={t("Hóa Đơn Kèm Chẩn Đoán")}
+        subject={t("Patient:Diagnosis:WithInvoice")}
         onClose={() => setPreview(null)}
       >
         <DiagnosisInvoiceSheet

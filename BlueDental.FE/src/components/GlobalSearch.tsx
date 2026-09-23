@@ -17,23 +17,23 @@ import { t } from "@/lib/i18n";
 const searchCategories = () => [
   {
     icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Khách hàng"),
-    desc: t("Tìm theo tên, mã KH, số điện thoại"),
+    title: t("Common:Patient"),
+    desc: t("Common:SearchPatientHint"),
   },
   {
     icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Lịch hẹn"),
-    desc: t("Tìm theo tên hoặc SĐT khách hàng"),
+    title: t("Common:Appointment"),
+    desc: t("Common:SearchAppointmentHint"),
   },
   {
     icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("CSKH"),
-    desc: t("Tìm theo khách hàng, nội dung"),
+    title: t("Common:CSKH"),
+    desc: t("Common:SearchCSKHHint"),
   },
   {
     icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Nhân viên"),
-    desc: t("Tìm theo tên, email, số điện thoại"),
+    title: t("Common:Staff"),
+    desc: t("Common:SearchStaffHint"),
   },
 ];
 
@@ -88,7 +88,7 @@ export function GlobalSearch({ open, onClose }: Props) {
           <Input
             autoFocus
             variant="borderless"
-            placeholder={t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
+            placeholder={t("Common:SearchGlobalPlaceholder")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onPressEnter={() => {
@@ -109,7 +109,7 @@ export function GlobalSearch({ open, onClose }: Props) {
               </div>
             ) : hits.length === 0 ? (
               <div className="app-search-hint">
-                {t("Không tìm thấy kết quả cho “{0}”", debounced.trim())}
+                {t("Common:NoResultsFor", debounced.trim())}
               </div>
             ) : (
               hits.map((hit) => (
@@ -126,7 +126,7 @@ export function GlobalSearch({ open, onClose }: Props) {
                     }
                   }}
                 >
-                  <span className="app-search-hit-badge">{t("BN")}</span>
+                  <span className="app-search-hit-badge">{t("Common:PatientBadge")}</span>
                   <span className="app-search-hit-text">
                     <span className="app-search-hit-name">{hit.fullName}</span>
                     <span className="app-search-hit-meta">
@@ -140,7 +140,7 @@ export function GlobalSearch({ open, onClose }: Props) {
           </div>
         ) : (
           <div className="app-search-categories">
-            <div className="app-search-categories-title">{t("Gợi ý tìm kiếm")}</div>
+            <div className="app-search-categories-title">{t("Common:SearchHints")}</div>
             {searchCategories().map((cat) => (
               <div key={cat.title} className="app-search-category-item">
                 <span className="app-search-category-icon">{cat.icon}</span>
@@ -150,7 +150,7 @@ export function GlobalSearch({ open, onClose }: Props) {
                 </div>
               </div>
             ))}
-            <div className="app-search-hint">{t("Nhập ít nhất 2 ký tự để tìm kiếm.")}</div>
+            <div className="app-search-hint">{t("Common:MinCharsHint")}</div>
           </div>
         )}
       </div>

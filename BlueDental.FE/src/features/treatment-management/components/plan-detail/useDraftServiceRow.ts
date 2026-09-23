@@ -101,12 +101,12 @@ export function useDraftServiceRow(planId: string) {
   const save = async () => {
     if (!service) return;
     if (values.quantity < 1) {
-      toast.error(t("Số lượng phải lớn hơn 0"));
+      toast.error(t("Treatment:Pricing:QuantityMin"));
       return;
     }
     try {
       await add.mutateAsync({ planId, line: toInput(service, values) });
-      toast.success(t("Đã thêm dịch vụ"));
+      toast.success(t("Treatment:Service:AddServiceSuccess"));
       discard();
     } catch (error) {
       notifyError(extractApiError(error));

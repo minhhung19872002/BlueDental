@@ -59,7 +59,7 @@ export function useTablePagination(
       showTotal:
         showTotal ??
         ((totalCount, range) =>
-          t("Hiển thị {0}-{1}/{2}", range[0], range[1], totalCount)),
+          t("Common:PaginationCompact", range[0], range[1], totalCount)),
     }),
   };
 }

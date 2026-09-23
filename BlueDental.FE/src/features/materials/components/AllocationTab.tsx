@@ -46,7 +46,7 @@ export function AllocationTab({ canDelete = true }: Props) {
 
     try {
       await deleteAllocation.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá phiếu phân bổ"));
+      toast.success(t("Materials:AllocDeleted"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {
@@ -58,19 +58,19 @@ export function AllocationTab({ canDelete = true }: Props) {
     () => [
       {
         key: "allocationTime",
-        title: t("Thời gian phân bổ"),
+        title: t("Materials:AllocTimeCol"),
         width: 190,
         render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocationTime)}</span>,
       },
       {
         key: "code",
-        title: t("Mã phân bổ"),
+        title: t("Materials:AllocCodeCol"),
         width: 180,
         render: (_, row) => <span className="bd-mat-code">{row.allocationCode}</span>,
       },
       {
         key: "item",
-        title: t("Vật tư"),
+        title: t("Materials:MaterialCol"),
         width: 220,
         // A voucher carries several materials, so the reference lists their
         // names on one line and hangs the whole list off the title.
@@ -85,7 +85,7 @@ export function AllocationTab({ canDelete = true }: Props) {
       },
       {
         key: "allocated",
-        title: t("SL được phân bổ"),
+        title: t("Materials:AllocQtyCol"),
         width: 170,
         align: "right",
         // Numbers only. The reference repeats each material's name here, but
@@ -104,7 +104,7 @@ export function AllocationTab({ canDelete = true }: Props) {
       },
       {
         key: "remaining",
-        title: t("SL confirm còn lại"),
+        title: t("Materials:AllocRemainingCol"),
         width: 190,
         align: "right",
         // Only the lines a stock-take has come back for, as "left/out" — the
@@ -128,33 +128,33 @@ export function AllocationTab({ canDelete = true }: Props) {
       },
       {
         key: "department",
-        title: t("Phòng ban"),
+        title: t("Materials:DeptCol"),
         width: 180,
         render: (_, row) => row.departmentName ?? "—",
       },
       {
         key: "performer",
-        title: t("Người thực hiện"),
+        title: t("Materials:ExecutorCol"),
         width: 180,
         render: (_, row) => row.performerName ?? "—",
       },
-      { key: "note", title: t("Ghi chú"), render: (_, row) => row.note ?? "—" },
+      { key: "note", title: t("Common:Note"), render: (_, row) => row.note ?? "—" },
       {
         key: "actions",
-        title: t("Thao tác"),
+        title: t("Common:Actions"),
         width: 100,
         align: "center",
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
             {canDelete && (
-              <Tooltip title={t("Xoá")}>
+              <Tooltip title={t("Common:Delete")}>
                 <Button
                   type="text"
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  aria-label={t("Xoá {0}", row.allocationCode)}
+                  aria-label={t("Materials:DeleteAria", row.allocationCode)}
                   onClick={() => setPendingDelete(row)}
                 />
               </Tooltip>
@@ -172,8 +172,8 @@ export function AllocationTab({ canDelete = true }: Props) {
         <Input
           className="bd-materials-search"
           prefix={<SearchOutlined />}
-          placeholder={t("Tìm phiếu phân bổ...")}
-          aria-label={t("Tìm phiếu phân bổ")}
+          placeholder={t("Materials:SearchAlloc")}
+          aria-label={t("Materials:SearchAllocAria")}
           value={keyword}
           allowClear
           onChange={(event) => {
@@ -187,10 +187,10 @@ export function AllocationTab({ canDelete = true }: Props) {
             a number and writes no history — so there is nothing for this to
             show. A disabled button swallows its own tooltip, so the reason
             hangs off a wrapper the pointer can still reach. */}
-        <Tooltip title={t("Chưa có dữ liệu kiểm kho để xem lịch sử")}>
+        <Tooltip title={t("Materials:NoStockHistory")}>
           <span className="bd-materials-sync">
             <Button icon={<FileSearchOutlined />} disabled>
-              {t("Lịch sử kiểm kho")}
+              {t("Materials:StockHistory")}
             </Button>
           </span>
         </Tooltip>
@@ -206,17 +206,17 @@ export function AllocationTab({ canDelete = true }: Props) {
             scroll={{ x: 1550 }}
             pagination={pagination.buildConfig(rows.length, (total, shown) =>
               total === 0
-                ? t("Hiển thị 0 trên 0")
-                : t("Hiển thị {0}–{1} trên {2}", shown[0], shown[1], total),
+                ? t("Materials:ShowZero")
+                : t("Materials:ShowRange", shown[0], shown[1], total),
             )}
-            locale={{ emptyText: t("Chưa có phiếu phân bổ") }}
+            locale={{ emptyText: t("Materials:NoAllocs") }}
           />
         </div>
       </div>
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={t("phiếu phân bổ")}
+        noun={t("Materials:AllocNoun")}
         name={pendingDelete?.allocationCode ?? ""}
         pending={deleteAllocation.isPending}
         onConfirm={() => void confirmDelete()}

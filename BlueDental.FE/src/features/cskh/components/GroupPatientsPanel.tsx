@@ -53,7 +53,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
   const columns = useMemo(
     () =>
       buildGroupColumns(branchId, {
-        onCall: canUpdate ? () => toast.error(t("Chưa có cấu hình tổng đài gọi điện")) : undefined,
+        onCall: canUpdate ? () => toast.error(t("CSKH:NoCallConfig")) : undefined,
         onMessage: canUpdate ? setMessagePatient : undefined,
         onCare: canUpdate ? setCarePatient : undefined,
       }),
@@ -64,7 +64,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
     <>
       <div className="cskh-toolbar cskh-toolbar--split">
         <div className="cskh-select">
-          <MessageField label={t("Nhóm dịch vụ")} hasValue={Boolean(taxonomyId)}>
+          <MessageField label={t("CSKH:Group:ServiceGroup")} hasValue={Boolean(taxonomyId)}>
             <SearchSelect
               value={taxonomyId}
               options={serviceGroups.data ?? []}
@@ -77,7 +77,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
           </MessageField>
         </div>
         <div className="cskh-select">
-          <MessageField label={t("Thẻ tag")} hasValue={Boolean(tagId)}>
+          <MessageField label={t("CSKH:Group:TagLabel")} hasValue={Boolean(tagId)}>
             <SearchSelect
               value={tagId}
               options={patientTags.data ?? []}
@@ -90,7 +90,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
           </MessageField>
         </div>
         <div className="cskh-select">
-          <MessageField label={t("Ngày sinh nhật")} hasValue={Boolean(birthday)}>
+          <MessageField label={t("CSKH:Group:BirthdayLabel")} hasValue={Boolean(birthday)}>
             <DatePicker
               format="DD/MM/YYYY"
               value={birthday}
@@ -102,10 +102,10 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
           </MessageField>
         </div>
         <div className="cskh-toolbar-search">
-          <MessageField label={t("Tìm kiếm")} hasValue={Boolean(search)}>
+          <MessageField label={t("Common:Search")} hasValue={Boolean(search)}>
             <Input
               allowClear
-              aria-label={t("Tìm kiếm")}
+              aria-label={t("Common:Search")}
               prefix={<SearchOutlined />}
               value={search}
               onChange={(event) => {
@@ -116,7 +116,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
           </MessageField>
         </div>
         <div className="cskh-select">
-          <MessageField label={t("Bác sĩ điều trị")} hasValue={Boolean(staffId)}>
+          <MessageField label={t("CSKH:DoctorTreat")} hasValue={Boolean(staffId)}>
             <SearchSelect
               value={staffId}
               options={staff.data ?? []}
@@ -137,7 +137,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
           columns={columns}
           dataSource={query.data?.items ?? []}
           loading={query.isLoading}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
           scroll={{ x: "max-content" }}
           pagination={pagination.buildConfig(query.data?.totalCount)}
         />

@@ -20,13 +20,13 @@ export function CareStatsCard() {
   return (
     <div className="page-card">
       <div className="dash-card-head" style={{ marginBottom: 12 }}>
-        <div className="dash-card-title">{t("Chăm sóc khách hàng")}</div>
+        <div className="dash-card-title">{t("Dashboard:CareStatsTitle")}</div>
         <button
           type="button"
           className="dash-link"
           onClick={() => navigate("/cskh-grouping")}
         >
-          {t("Xem tất cả →")}
+          {t("Dashboard:ViewAll")}
         </button>
       </div>
 
@@ -35,7 +35,7 @@ export function CareStatsCard() {
       ) : isError || total === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("Không có lịch chăm sóc hôm nay")}
+          description={t("Dashboard:NoCareToday")}
         />
       ) : (
         <div className="dash-care-grid">
@@ -44,7 +44,7 @@ export function CareStatsCard() {
               className="dash-care-dot"
               style={{ background: brand.blue }}
             />
-            <span className="dash-care-label">{t("Tổng")}</span>
+            <span className="dash-care-label">{t("Dashboard:CareTotal")}</span>
             <span className="dash-care-value">{total}</span>
           </div>
           <div className="dash-care-item">
@@ -52,7 +52,7 @@ export function CareStatsCard() {
               className="dash-care-dot"
               style={{ background: brand.green }}
             />
-            <span className="dash-care-label">{t("Thành công")}</span>
+            <span className="dash-care-label">{t("Dashboard:CareSuccess")}</span>
             <span className="dash-care-value" style={{ color: brand.green }}>
               {data!.succeeded}
             </span>
@@ -62,7 +62,7 @@ export function CareStatsCard() {
               className="dash-care-dot"
               style={{ background: brand.amber }}
             />
-            <span className="dash-care-label">{t("Chưa chăm sóc")}</span>
+            <span className="dash-care-label">{t("Dashboard:CareNotYet")}</span>
             <span className="dash-care-value" style={{ color: brand.amber }}>
               {data!.notCaredYet}
             </span>
@@ -72,7 +72,7 @@ export function CareStatsCard() {
               className="dash-care-dot"
               style={{ background: brand.red }}
             />
-            <span className="dash-care-label">{t("Phàn nàn")}</span>
+            <span className="dash-care-label">{t("Dashboard:CareComplaint")}</span>
             <span className="dash-care-value" style={{ color: brand.red }}>
               {data!.complaint}
             </span>

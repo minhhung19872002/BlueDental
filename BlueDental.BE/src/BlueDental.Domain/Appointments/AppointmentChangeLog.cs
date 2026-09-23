@@ -108,7 +108,7 @@ public class AppointmentChangeLog : Entity<Guid>
         var diff = Diff(before, after);
         var touched = diff.Select(d => d.Field).ToList();
         // A creation changes nothing: every field is new, and the reference
-        // leaves its "Thay đổi" column empty for such rows. The diff still
+        // leaves its "BE:Field:Changes" column empty for such rows. The diff still
         // carries every field, so the detail can show what was set.
         var changed = action == AppointmentChangeAction.Created ? [] : touched;
 

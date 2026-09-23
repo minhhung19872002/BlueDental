@@ -14,7 +14,7 @@ import { dash, paymentServiceNames } from "./planDetailTypes";
 
 /** Every receipt on file is settled; the reference prints "Hoàn tất" on each. */
 function StatusPill() {
-  return <span className="tp-pill tp-pill--done">{t("Hoàn tất")}</span>;
+  return <span className="tp-pill tp-pill--done">{t("Treatment:Payment:Completed")}</span>;
 }
 
 function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPaymentDto) => void) {
@@ -22,7 +22,7 @@ function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPayment
     <button
       type="button"
       className="tp-eye"
-      aria-label={t("Xem phiếu {0}", payment.code)}
+      aria-label={t("Treatment:Payment:ViewPaymentFor", payment.code)}
       onClick={() => onView(payment)}
     >
       <Eye size={16} aria-hidden="true" />
@@ -49,27 +49,27 @@ function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
         <button
           type="button"
           className="pdt-row-action"
-          aria-label={t("Xem phiếu {0}", payment.code)}
+          aria-label={t("Treatment:Payment:ViewPaymentFor", payment.code)}
           onClick={() => actions.onView(payment)}
         >
           <Eye size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <ActionTooltip title={t("Chỉnh sửa")}>
+      <ActionTooltip title={t("Common:Edit")}>
         <button
           type="button"
           className="pdt-row-action"
-          aria-label={t("Chỉnh sửa phiếu {0}", payment.code)}
+          aria-label={t("Treatment:Payment:EditPaymentFor", payment.code)}
           onClick={() => actions.onEdit(payment)}
         >
           <Pencil size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <ActionTooltip title={t("Huỷ")}>
+      <ActionTooltip title={t("Common:Cancel")}>
         <button
           type="button"
           className="pdt-row-action pdt-row-action--danger"
-          aria-label={t("Huỷ phiếu {0}", payment.code)}
+          aria-label={t("Treatment:Payment:CancelPaymentFor", payment.code)}
           onClick={() => actions.onCancel(payment)}
         >
           <Trash2 size={16} aria-hidden="true" />
@@ -86,17 +86,17 @@ export function buildPaymentColumns(
 ): TableColumnsType<PatientPaymentDto> {
   const methods = paymentMethodLabels();
   return [
-    { key: "code", title: t("Mã thanh toán"), width: 160, render: (_, p) => p.code },
-    { key: "paidAt", title: t("Ngày tạo"), width: 150, render: (_, p) => formatDateTime(p.paidAt) },
-    { key: "services", title: t("Dịch vụ điều trị"), width: 220, render: (_, p) => paymentServiceNames(p, plan) },
-    { key: "planTotal", title: t("Tổng tiền phiếu"), width: 170, align: "right", render: () => moneyText(plan.totalAmount) },
-    { key: "amount", title: t("Thanh toán"), width: 160, align: "right", render: (_, p) => moneyText(p.amount) },
-    { key: "method", title: t("Phương thức thanh toán"), width: 230, render: (_, p) => methods[p.method] },
-    { key: "note", title: t("Ghi chú"), width: 180, render: (_, p) => dash(p.note) },
-    { key: "status", title: t("Trạng thái"), width: 160, render: () => <StatusPill /> },
+    { key: "code", title: t("Treatment:Payment:PaymentCode"), width: 160, render: (_, p) => p.code },
+    { key: "paidAt", title: t("Treatment:Payment:DateCreated"), width: 150, render: (_, p) => formatDateTime(p.paidAt) },
+    { key: "services", title: t("Treatment:Payment:TreatmentServices"), width: 220, render: (_, p) => paymentServiceNames(p, plan) },
+    { key: "planTotal", title: t("Treatment:Payment:PlanTotal"), width: 170, align: "right", render: () => moneyText(plan.totalAmount) },
+    { key: "amount", title: t("Treatment:Payment:Payment"), width: 160, align: "right", render: (_, p) => moneyText(p.amount) },
+    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 230, render: (_, p) => methods[p.method] },
+    { key: "note", title: t("Treatment:Common:Note"), width: 180, render: (_, p) => dash(p.note) },
+    { key: "status", title: t("Common:Status"), width: 160, render: () => <StatusPill /> },
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 120,
       align: "center",
       fixed: "right",
@@ -109,16 +109,16 @@ export function buildPaymentColumns(
 export function paymentCardRows(payment: PatientPaymentDto, plan: TreatmentPlanSlipDto) {
   const methods = paymentMethodLabels();
   const rows: RecordCardRow[] = [
-    { key: "code", label: t("Mã thanh toán"), value: payment.code },
-    { key: "paidAt", label: t("Ngày tạo"), value: formatDateTime(payment.paidAt) },
-    { key: "services", label: t("Dịch vụ điều trị"), value: paymentServiceNames(payment, plan) },
-    { key: "planTotal", label: t("Tổng tiền phiếu"), value: moneyText(plan.totalAmount) },
+    { key: "code", label: t("Treatment:Payment:PaymentCode"), value: payment.code },
+    { key: "paidAt", label: t("Treatment:Payment:DateCreated"), value: formatDateTime(payment.paidAt) },
+    { key: "services", label: t("Treatment:Payment:TreatmentServices"), value: paymentServiceNames(payment, plan) },
+    { key: "planTotal", label: t("Treatment:Payment:PlanTotal"), value: moneyText(plan.totalAmount) },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "amount", label: t("Thanh toán"), value: moneyText(payment.amount) },
-    { key: "method", label: t("Phương thức thanh toán"), value: methods[payment.method] },
-    { key: "note", label: t("Ghi chú"), value: dash(payment.note) },
-    { key: "status", label: t("Trạng thái"), value: <StatusPill /> },
+    { key: "amount", label: t("Treatment:Payment:Payment"), value: moneyText(payment.amount) },
+    { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methods[payment.method] },
+    { key: "note", label: t("Treatment:Common:Note"), value: dash(payment.note) },
+    { key: "status", label: t("Common:Status"), value: <StatusPill /> },
   ];
   return { rows, moreRows };
 }
@@ -130,15 +130,15 @@ export function buildRefundColumns(
 ): TableColumnsType<PatientPaymentDto> {
   const methods = paymentMethodLabels();
   return [
-    { key: "code", title: t("Mã hoàn tiền"), width: 170, render: (_, p) => p.code },
-    { key: "paidAt", title: t("Ngày tạo"), width: 150, render: (_, p) => formatDateTime(p.paidAt) },
-    { key: "services", title: t("Dịch vụ"), width: 320, render: (_, p) => paymentServiceNames(p, plan) },
-    { key: "amount", title: t("Đã hoàn"), width: 150, align: "right", render: (_, p) => moneyText(p.amount) },
-    { key: "method", title: t("Phương thức thanh toán"), width: 220, render: (_, p) => methods[p.method] },
-    { key: "note", title: t("Ghi chú"), width: 220, render: (_, p) => dash(p.note) },
+    { key: "code", title: t("Treatment:Refund:RefundCode"), width: 170, render: (_, p) => p.code },
+    { key: "paidAt", title: t("Treatment:Payment:DateCreated"), width: 150, render: (_, p) => formatDateTime(p.paidAt) },
+    { key: "services", title: t("Treatment:Service:Service"), width: 320, render: (_, p) => paymentServiceNames(p, plan) },
+    { key: "amount", title: t("Treatment:Refund:AmountRefunded"), width: 150, align: "right", render: (_, p) => moneyText(p.amount) },
+    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 220, render: (_, p) => methods[p.method] },
+    { key: "note", title: t("Treatment:Common:Note"), width: 220, render: (_, p) => dash(p.note) },
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 70,
       align: "center",
       fixed: "right",
@@ -150,14 +150,14 @@ export function buildRefundColumns(
 export function refundCardRows(payment: PatientPaymentDto, plan: TreatmentPlanSlipDto) {
   const methods = paymentMethodLabels();
   const rows: RecordCardRow[] = [
-    { key: "code", label: t("Mã hoàn tiền"), value: payment.code },
-    { key: "paidAt", label: t("Ngày tạo"), value: formatDateTime(payment.paidAt) },
-    { key: "services", label: t("Dịch vụ"), value: paymentServiceNames(payment, plan) },
-    { key: "amount", label: t("Đã hoàn"), value: moneyText(payment.amount) },
+    { key: "code", label: t("Treatment:Refund:RefundCode"), value: payment.code },
+    { key: "paidAt", label: t("Treatment:Payment:DateCreated"), value: formatDateTime(payment.paidAt) },
+    { key: "services", label: t("Treatment:Service:Service"), value: paymentServiceNames(payment, plan) },
+    { key: "amount", label: t("Treatment:Refund:AmountRefunded"), value: moneyText(payment.amount) },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "method", label: t("Phương thức thanh toán"), value: methods[payment.method] },
-    { key: "note", label: t("Ghi chú"), value: dash(payment.note) },
+    { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methods[payment.method] },
+    { key: "note", label: t("Treatment:Common:Note"), value: dash(payment.note) },
   ];
   return { rows, moreRows };
 }

@@ -99,7 +99,7 @@ export function LaboChildForm({
         // They follow the parent's plan and công đoạn into Hình ảnh, server-side.
         pictures: form.pictures,
       });
-      toast.success(t("Đã tạo phiếu Labo"));
+      toast.success(t("Patient:Labo:Created"));
       onSaved();
     } catch {
       // The global MutationCache already toasts the server's message; the
@@ -116,11 +116,11 @@ export function LaboChildForm({
       scrollToFirstError
     >
       <div className="pd-labo-order-select">
-        <FloatingLabel label={t("Phiếu dịch vụ Labo")} required floated={Boolean(parentId)}>
+        <FloatingLabel label={t("Patient:Labo:ServiceSlip")} required floated={Boolean(parentId)}>
           <SearchSelect
             value={parentId}
             options={orders.map((order) => ({ value: order.id, label: `#${order.orderCode}` }))}
-            emptyText={t("Chưa có phiếu Labo")}
+            emptyText={t("Patient:Labo:Empty")}
             onChange={onPickParent}
           />
         </FloatingLabel>
@@ -141,7 +141,7 @@ export function LaboChildForm({
           <LaboMaterialChoice parent={parent} mode={mode} onMode={setMode} form={form} />
           <LaboOrderFields
             form={form}
-            emptyTeeth={<span className="pd-labo-emptypill">{t("(Trống)")}</span>}
+            emptyTeeth={<span className="pd-labo-emptypill">{t("Patient:QuoteSheet:Empty")}</span>}
           />
         </>
       )}
@@ -154,7 +154,7 @@ export function LaboChildForm({
           disabled={!parent}
           loading={create.isPending}
         >
-          {t("Lưu")}
+          {t("Patient:Misc:Save")}
         </Button>
       </div>
     </Form>

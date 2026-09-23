@@ -37,12 +37,12 @@ export function PatientDiseaseHistoryPanel({ value, onChange }: Props) {
   const rows = groups.data ?? [];
 
   if (rows.length === 0) {
-    return <p className="bd-patient-dim">{t("Danh mục lịch sử bệnh chưa có nhóm nào")}</p>;
+    return <p className="bd-patient-dim">{t("Patient:History:NoGroup")}</p>;
   }
 
   return (
     <div className="bd-patient-history">
-      <p className="bd-patient-history-title">{t("TIỂU SỬ BỆNH")}</p>
+      <p className="bd-patient-history-title">{t("Patient:Tab:DiseaseHistoryLabel")}</p>
 
       {rows.map((group) => {
         const items = entriesByGroup.get(group.id) ?? [];
@@ -68,9 +68,9 @@ export function PatientDiseaseHistoryPanel({ value, onChange }: Props) {
                     second lands every group looks empty, and saying so would be
                     a lie the user acts on. */}
                 {items.length === 0 && entries.isPending ? (
-                  <span className="bd-patient-dim">{t("Đang tải…")}</span>
+                  <span className="bd-patient-dim">{t("Patient:Misc:Loading")}</span>
                 ) : items.length === 0 ? (
-                  <span className="bd-patient-dim">{t("Nhóm này chưa có mục nào")}</span>
+                  <span className="bd-patient-dim">{t("Patient:Consulting:EmptyGroup")}</span>
                 ) : (
                   items.map((item) => (
                     <Checkbox

@@ -43,23 +43,23 @@ export function InvoiceReport() {
     () => [
       {
         key: "createdAt",
-        title: t("Ngày tạo"),
+        title: t("Operations:InvoiceCreatedAt"),
         width: 130,
         render: (_, row) => <span className="bd-cat-num">{formatDate(row.createdAt)}</span>,
       },
-      { key: "number", title: t("Số hóa đơn"), dataIndex: "invoiceNumber", width: 170 },
-      { key: "patient", title: t("Tên bệnh nhân"), dataIndex: "patientName", width: 210 },
-      { key: "unit", title: t("Tên đơn vị"), dataIndex: "unitName", width: 230 },
+      { key: "number", title: t("Operations:InvoiceNumber"), dataIndex: "invoiceNumber", width: 170 },
+      { key: "patient", title: t("Operations:PatientName"), dataIndex: "patientName", width: 210 },
+      { key: "unit", title: t("Operations:UnitName"), dataIndex: "unitName", width: 230 },
       {
         key: "method",
-        title: t("Hình thức thanh toán"),
+        title: t("Operations:PaymentMethod"),
         width: 180,
         render: (_, row) => row.paymentMethod || "—",
       },
-      { key: "issue", title: t("Trạng thái hóa đơn"), dataIndex: "issueStatus", width: 180 },
+      { key: "issue", title: t("Operations:InvoiceStatus"), dataIndex: "issueStatus", width: 180 },
       {
         key: "status",
-        title: t("Trạng thái"),
+        title: t("Common:Status"),
         width: 180,
         render: (_, row) => (
           <span className="bd-ops-tag">{t(STATUS_LABELS[row.status] ?? row.status)}</span>
@@ -67,21 +67,21 @@ export function InvoiceReport() {
       },
       {
         key: "subTotal",
-        title: t("Tổng trước VAT"),
+        title: t("Operations:TotalBeforeVAT"),
         width: 160,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{formatMoney(row.subTotal)}</span>,
       },
       {
         key: "tax",
-        title: t("Tổng VAT"),
+        title: t("Operations:TotalVAT"),
         width: 140,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{formatMoney(row.taxAmount)}</span>,
       },
       {
         key: "total",
-        title: t("Tổng tiền"),
+        title: t("Operations:TotalAmount"),
         width: 160,
         align: "right",
         render: (_, row) => (
@@ -90,7 +90,7 @@ export function InvoiceReport() {
       },
       {
         key: "supplier",
-        title: t("Nhà cung cấp"),
+        title: t("Operations:Provider"),
         width: 170,
         render: (_, row) => row.supplier ?? "—",
       },
@@ -108,8 +108,8 @@ export function InvoiceReport() {
         <Select
           className="bd-ops-filter"
           allowClear
-          placeholder={t("Tất cả trạng thái")}
-          aria-label={t("Tất cả trạng thái")}
+          placeholder={t("Operations:AllStatuses")}
+          aria-label={t("Operations:AllStatuses")}
           value={status}
           onChange={(value) => {
             setStatus(value ?? undefined);
@@ -130,7 +130,7 @@ export function InvoiceReport() {
           loading={query.isFetching}
           scroll={{ x: 2000 }}
           pagination={pagination.buildConfig(query.data?.totalCount ?? 0, operationsTotal)}
-          locale={{ emptyText: t("Không có dữ liệu") }}
+          locale={{ emptyText: t("Common:NoData") }}
         />
       </div>
     </div>

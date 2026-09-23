@@ -71,7 +71,7 @@ export function PlanSummaryCards({ active, activeCount, recent, onOpen }: Props)
     <div className="tp-cards">
       <SummaryCard
         variant="active"
-        title={t("Dịch vụ đang điều trị")}
+        title={t("Treatment:Plan:ServicesInProgress")}
         icon={<ClipboardList size={16} aria-hidden="true" />}
         rows={active}
         count={activeCount}
@@ -79,7 +79,7 @@ export function PlanSummaryCards({ active, activeCount, recent, onOpen }: Props)
       />
       <SummaryCard
         variant="recent"
-        title={t("Dịch vụ có công đoạn gần nhất")}
+        title={t("Treatment:Plan:ServiceWithNearestStage")}
         icon={<Zap size={16} aria-hidden="true" />}
         rows={recent}
         onOpen={onOpen}

@@ -12,7 +12,7 @@ namespace BlueDental.Migrations
     ///
     /// The reference reads them per patient behind
     /// <c>GET /patient-medical-record/files/{patientId}</c>: the clinic picks a
-    /// form out of "Mục lục bệnh án", presses "Thêm" and fills the sheet in.
+    /// form out of "BE:Treatment:MedRecordTOC", presses "BE:Common:Add" and fills the sheet in.
     /// Only the filled cells are stored, as JSON in <c>Content</c> — the printed
     /// layout lives on the client, so changing a form never migrates anyone's
     /// record. See docs/clone/pages/patient-detail.md §Bệnh án.

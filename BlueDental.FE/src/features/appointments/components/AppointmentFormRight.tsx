@@ -75,10 +75,10 @@ function AppointmentNotesPanel({ control, setValue, notesValue, isEdit }: NotesP
   return (
     <div className="appt-notes-panel">
       <div className="appt-notes-header">
-        <span className="appt-notes-title">{t("Ghi chú")}</span>
+        <span className="appt-notes-title">{t("Common:Note")}</span>
         {!editing && (
           <button type="button" className="appt-notes-add-btn" onClick={handleAdd}>
-            <PlusOutlined /> {t("Thêm ngay")}
+            <PlusOutlined /> {t("Appointment:Form:AddNote")}
           </button>
         )}
       </div>
@@ -94,7 +94,7 @@ function AppointmentNotesPanel({ control, setValue, notesValue, isEdit }: NotesP
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
             autoFocus
-            placeholder={t("Nội dung ghi chú")}
+            placeholder={t("Appointment:Form:NotePlaceholder")}
             style={{ resize: "none", flex: 1 }}
           />
           <div className="appt-notes-actions">
@@ -109,7 +109,7 @@ function AppointmentNotesPanel({ control, setValue, notesValue, isEdit }: NotesP
       )}
 
       {!hasNotes && !editing && (
-        <span className="appt-notes-empty">{t("Chưa có ghi chú")}</span>
+        <span className="appt-notes-empty">{t("Appointment:Form:NoNotes")}</span>
       )}
 
       {/* Hidden controller to keep RHF in sync */}

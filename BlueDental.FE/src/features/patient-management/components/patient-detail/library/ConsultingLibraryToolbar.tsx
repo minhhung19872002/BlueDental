@@ -87,9 +87,9 @@ export function ConsultingLibraryToolbar({
   const { zoom, setZoom, inverted, toggleInverted } = library;
   const [paletteOpen, setPaletteOpen] = useState(false);
   const invertLabel = inverted
-    ? t("Khôi phục độ tương phản phim X-quang")
-    : t("Đảo độ tương phản phim X-quang");
-  const penLabel = drawing ? t("Đổi màu hoặc độ dày nét vẽ") : t("Bật chế độ vẽ");
+    ? t("Patient:Viewer:RestoreXrayContrast")
+    : t("Patient:Viewer:InvertXrayContrast");
+  const penLabel = drawing ? t("Patient:Viewer:ChangeColorOrThickness") : t("Patient:Viewer:EnableDraw");
 
   const handlePen = () => {
     if (drawing) return; // the popover's own click trigger toggles the palette
@@ -102,9 +102,9 @@ export function ConsultingLibraryToolbar({
   };
 
   return (
-    <div className="pd-lib-toolbar" role="toolbar" aria-label={t("Công cụ xem")}>
+    <div className="pd-lib-toolbar" role="toolbar" aria-label={t("Patient:Viewer:Tools")}>
       <Tool
-        label={t("Thu nhỏ ảnh")}
+        label={t("Patient:Viewer:ZoomOutImage")}
         disabled={zoom <= ZOOM.min}
         onClick={() => setZoom((value) => Math.max(ZOOM.min, value - ZOOM.step))}
       >
@@ -112,13 +112,13 @@ export function ConsultingLibraryToolbar({
       </Tool>
       <span className="pd-lib-toolbar__zoom">{zoom}%</span>
       <Tool
-        label={t("Phóng to ảnh")}
+        label={t("Patient:Viewer:ZoomInImage")}
         disabled={zoom >= ZOOM.max}
         onClick={() => setZoom((value) => Math.min(ZOOM.max, value + ZOOM.step))}
       >
         <Plus size={16} />
       </Tool>
-      <Tool label={t("Đặt lại kích thước ảnh")} onClick={() => setZoom(() => restZoom)}>
+      <Tool label={t("Patient:Viewer:ResetSize")} onClick={() => setZoom(() => restZoom)}>
         <RotateCcw size={16} />
       </Tool>
       <span className="pd-lib-toolbar__divider" />
@@ -143,20 +143,20 @@ export function ConsultingLibraryToolbar({
         </span>
       </Popover>
       {drawing && !paletteOpen && (
-        <Tool label={t("Tắt chế độ vẽ")} danger onClick={handleExitDrawing}>
+        <Tool label={t("Patient:Viewer:DisableDraw")} danger onClick={handleExitDrawing}>
           <X size={16} />
         </Tool>
       )}
-      <Tool label={t("Hoàn tác nét vẽ")} disabled={!annotation.canUndo} onClick={annotation.undo}>
+      <Tool label={t("Patient:Viewer:UndoStroke")} disabled={!annotation.canUndo} onClick={annotation.undo}>
         <Undo2 size={16} />
       </Tool>
       {onOpenTray && (
         <span className="pd-lib-toolbar__tray">
-          <Tooltip title={t("Mở danh sách nội dung tư vấn")} getPopupContainer={popupContainerOf}>
+          <Tooltip title={t("Patient:Consulting:OpenContentList")} getPopupContainer={popupContainerOf}>
             <button
               type="button"
               className="pd-lib-tray-open"
-              aria-label={t("Mở danh sách nội dung tư vấn")}
+              aria-label={t("Patient:Consulting:OpenContentList")}
               onClick={onOpenTray}
             >
               <ArrowUpFromLine size={20} />

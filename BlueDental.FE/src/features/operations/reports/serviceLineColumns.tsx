@@ -20,7 +20,7 @@ function patientCell(row: ServiceLineRow) {
         [{row.patientCode}] - {row.patientName}
       </span>
       <span className="bd-ops-patient-since">
-        {t("Ngày tạo")}: {formatDate(row.patientCreatedAt)}
+        {t("Operations:PatientCreatedAt")}: {formatDate(row.patientCreatedAt)}
       </span>
     </span>
   );
@@ -36,7 +36,7 @@ function classificationCell(row: ServiceLineRow) {
         completed ? "bd-ops-pill--done" : "bd-ops-pill--own",
       )}
     >
-      {completed ? t("Dịch vụ đã hoàn thành") : t("Dịch vụ tính doanh số riêng")}
+      {completed ? t("Operations:CompletedServices") : t("Operations:SeparateSalesServices")}
     </span>
   );
 }
@@ -70,88 +70,88 @@ export function serviceCompletionColumns(spans?: ServiceLineSpans): ColumnsType<
   return [
     {
       key: "date",
-      title: t("Ngày thao tác"),
+      title: t("Operations:ExcelDateOp"),
       width: 140,
       onCell: span("date"),
       render: (_, row) => <span className="bd-cat-num">{formatDate(row.occurredAt)}</span>,
     },
     {
       key: "patient",
-      title: t("Khách hàng"),
+      title: t("Operations:PatientCol"),
       width: 240,
       onCell: span("patient"),
       render: (_, row) => patientCell(row),
     },
-    { key: "branch", title: t("Chi nhánh"), dataIndex: "branchName", width: 220 },
-    { key: "service", title: t("Dịch vụ"), dataIndex: "serviceName", width: 190 },
-    { key: "group", title: t("Nhóm dịch vụ"), dataIndex: "serviceGroupName", width: 180 },
+    { key: "branch", title: t("Operations:BranchCol"), dataIndex: "branchName", width: 220 },
+    { key: "service", title: t("Operations:ServiceCol"), dataIndex: "serviceName", width: 190 },
+    { key: "group", title: t("Operations:ServiceGroupCol"), dataIndex: "serviceGroupName", width: 180 },
     {
       key: "classification",
-      title: t("Phân loại"),
+      title: t("Operations:CategoryCol"),
       width: 230,
       render: (_, row) => classificationCell(row),
     },
     {
       key: "dentist1",
-      title: t("Bác sĩ chẩn đoán 1"),
+      title: t("Operations:Diagnosis1"),
       width: 180,
       render: (_, row) => dash(row.diagnosingDentistName),
     },
     {
       key: "diagnosis2",
-      title: t("Chẩn đoán 2"),
+      title: t("Operations:Diagnosis2"),
       width: 160,
       render: (_, row) => dash(row.secondDiagnosisName),
     },
     {
       key: "consultant1",
-      title: t("Nhân sự tư vấn 1"),
+      title: t("Operations:Consultant1"),
       width: 180,
       render: (_, row) => dash(row.consultantName),
     },
     {
       key: "consultant2",
-      title: t("Nhân sự tư vấn 2"),
+      title: t("Operations:Consultant2"),
       width: 180,
       render: (_, row) => dash(row.secondConsultantName),
     },
     {
       key: "treating",
-      title: t("Bác sĩ điều trị"),
+      title: t("Operations:DentistCol"),
       width: 180,
       render: (_, row) => dash(row.treatingDentistName),
     },
-    { key: "teeth", title: t("Răng"), width: 110, render: (_, row) => dash(row.teeth) },
+    { key: "teeth", title: t("Operations:TeethCol"), width: 110, render: (_, row) => dash(row.teeth) },
     {
       key: "stage",
-      title: t("Chi tiết phiếu"),
+      title: t("Operations:SlipDetail"),
       width: 170,
       render: (_, row) => dash(row.stageName),
     },
     {
       key: "price",
-      title: t("Giá dịch vụ"),
+      title: t("Operations:PriceCol"),
       width: 150,
       align: "right",
       render: (_, row) => <span className="bd-cat-num">{formatMoney(row.price)}</span>,
     },
     {
       key: "quantity",
-      title: t("Số lượng"),
+      title: t("Operations:QtyCol"),
       width: 110,
       align: "right",
       render: (_, row) => <span className="bd-cat-num">{row.quantity}</span>,
     },
     {
       key: "discount",
-      title: t("Tổng giảm giá"),
+      title: t("Operations:DiscountCol"),
       width: 150,
       align: "right",
       render: (_, row) => <span className="bd-cat-num">{formatMoney(row.discountAmount)}</span>,
     },
     {
       key: "doctorAmount",
-      title: t("Giá điều trị bác sĩ"),
+      title: t("Operations:DoctorAmountCol"),
       width: 180,
       align: "right",
       render: (_, row) => (
@@ -160,14 +160,14 @@ export function serviceCompletionColumns(spans?: ServiceLineSpans): ColumnsType<
     },
     {
       key: "note",
-      title: t("Ghi chú"),
+      title: t("Operations:NoteCol"),
       width: 220,
       render: (_, row) => dash(row.serviceNote),
     },
-    { key: "taxKind", title: t("Loại thuế"), width: 140, render: (_, row) => dash(row.taxKind) },
+    { key: "taxKind", title: t("Operations:TaxKind"), width: 140, render: (_, row) => dash(row.taxKind) },
     {
       key: "taxPercent",
-      title: t("% Thuế"),
+      title: t("Operations:TaxPercent"),
       width: 110,
       align: "right",
       render: (_, row) => dash(row.taxPercent),
@@ -185,7 +185,7 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
   // Nghề nghiệp sits between the patient and the branch.
   columns.splice(at("branch"), 0, {
     key: "occupation",
-    title: t("Nghề nghiệp"),
+    title: t("Operations:Occupation"),
     width: 160,
     render: (_, row: ServiceLineRow) => dash(row.occupation),
   });
@@ -193,7 +193,7 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
   // Tên chi tiết follows the service.
   columns.splice(columns.findIndex((c) => c.key === "group"), 0, {
     key: "detail",
-    title: t("Tên chi tiết"),
+    title: t("Operations:DetailName"),
     width: 160,
     render: (_, row: ServiceLineRow) => dash(row.detailName),
   });
@@ -205,13 +205,13 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
     0,
     {
       key: "sync",
-      title: t("Trạng thái đồng bộ"),
+      title: t("Operations:SyncStatus"),
       width: 180,
       render: (_, row: ServiceLineRow) => dash(row.syncStatus),
     },
     {
       key: "invoice",
-      title: t("Trạng thái xuất hoá đơn"),
+      title: t("Operations:InvoiceExportStatus"),
       width: 210,
       render: (_, row: ServiceLineRow) => dash(row.invoiceStatus),
     },
@@ -224,13 +224,13 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
     0,
     {
       key: "supporting",
-      title: t("Bác sĩ hỗ trợ"),
+      title: t("Operations:SupportDentist"),
       width: 170,
       render: (_, row: ServiceLineRow) => dash(row.supportingDentistName),
     },
     {
       key: "assistant",
-      title: t("Phụ tá"),
+      title: t("Operations:Assistant"),
       width: 150,
       render: (_, row: ServiceLineRow) => dash(row.assistantName),
     },

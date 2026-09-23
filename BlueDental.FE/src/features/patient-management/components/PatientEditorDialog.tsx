@@ -144,7 +144,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
         ? {
             ...EMPTY,
             codeSequence: storedSequence,
-            createdAtLabel: dayjs(patient.creationTime).format("DD/MM/YYYY"),
+            createdAtLabel: dayjs(patient.creationTime).format("Patient:Misc:DateFormat"),
             fullName: patient.fullName,
             uppercase: patient.fullName === patient.fullName.toUpperCase(),
             phone: patient.phoneNumber ?? "",
@@ -158,12 +158,12 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
             occupationEntryId: patient.occupationEntryId ?? undefined,
             occupationOther: patient.occupationOther ?? "",
             insuranceNumber: patient.insuranceNumber ?? "",
-            country: t("Việt Nam"),
+            country: t("Patient:DefaultCountry"),
             address: patient.address ?? "",
             provinceCode: patient.provinceCode ?? undefined,
             wardCode: patient.wardCode ?? undefined,
           }
-        : { ...EMPTY, country: t("Việt Nam"), createdAtLabel: dayjs().format("DD/MM/YYYY") },
+        : { ...EMPTY, country: t("Patient:DefaultCountry"), createdAtLabel: dayjs().format("Patient:Misc:DateFormat") },
     );
   }, [open, patient, form]);
 
@@ -214,7 +214,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
   const handleAddSourceGroup = async (name: string) => {
     await createSourceGroup.mutateAsync({ group: CATALOG_GROUP.Source, name });
     setAddingSource(false);
-    toast.success(t("Đã thêm loại nguồn đến"));
+    toast.success(t("Patient:SourceGroup:AddSuccess"));
   };
 
   const submit = async (values: PatientFormValues) => {
@@ -258,7 +258,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
         onCreated?.(created);
       }
 
-      toast.success(patient ? t("Đã cập nhật hồ sơ") : t("Đã tạo hồ sơ"));
+      toast.success(patient ? t("Patient:Profile:UpdateSuccess") : t("Patient:Profile:CreateSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -273,7 +273,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
       open={open}
       width={1240}
       className="bd-patient-dialog"
-      title={patient ? t("Chỉnh sửa hồ sơ") : t("Tạo hồ sơ")}
+      title={patient ? t("Patient:Form:EditTitle") : t("Patient:Profile:CreateTitle")}
       canSave={canSave}
       saving={saving}
       onSave={() => form.submit()}

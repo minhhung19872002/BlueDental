@@ -26,7 +26,7 @@ function serviceRows(
     rows: [
       {
         key: "service",
-        label: t("Dịch vụ"),
+        label: t("Treatment:Service:Service"),
         value: (
           <>
             {teeth && <span className="tp-service-teeth">{teeth} </span>}
@@ -36,7 +36,7 @@ function serviceRows(
       },
       {
         key: "status",
-        label: t("Trạng thái"),
+        label: t("Common:Status"),
         value: (
           <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>
             {t(pill.label)}
@@ -45,14 +45,14 @@ function serviceRows(
       },
       {
         key: "amount",
-        label: t("Thành tiền"),
+        label: t("Treatment:Pricing:NetAmount"),
         value: <span className="tp-cell-money">{moneyText(service.effectiveAmount)}</span>,
       },
     ],
     moreRows: [
       {
         key: "diagnosis",
-        label: t("Chẩn đoán"),
+        label: t("Treatment:Diagnosis:Diagnosis"),
         value:
           service.diagnosisName ||
           (service.sourceAdviseId && diagnosisByAdviseId.get(service.sourceAdviseId)) ||
@@ -60,12 +60,12 @@ function serviceRows(
       },
       {
         key: "dentist",
-        label: t("Bác sĩ"),
+        label: t("Treatment:Common:Doctor"),
         value: service.dentistName || plan.dentistName || NO_DIAGNOSIS,
       },
       {
         key: "price",
-        label: t("Đơn giá"),
+        label: t("Treatment:Pricing:UnitPrice"),
         value: (
           <span className="tp-cell-money">
             {moneyText(Math.round(service.effectiveAmount / Math.max(service.quantity, 1)))}
@@ -80,14 +80,14 @@ function serviceRows(
 export function PlanServiceCardList({ rows, total, offset, diagnosisByAdviseId, pagination }: Props) {
   return (
     <div className="tp-card-list">
-      {rows.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
+      {rows.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
       <div className="bd-rc-list">
         {rows.map((row, index) => {
           const card = serviceRows(row, diagnosisByAdviseId);
           return (
             <RecordCard
               key={row.service.id}
-              title={t("Dịch vụ {0}", offset + index + 1)}
+              title={t("Treatment:Service:ServiceNumber", offset + index + 1)}
               rows={card.rows}
               moreRows={card.moreRows}
             />

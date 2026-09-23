@@ -68,11 +68,11 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
       // Icon only: opt out of the 100px floor every other header carries.
       className: "bd-col-icon",
       render: (_, plan) => (
-        <ActionTooltip title={t("Danh sách dịch vụ")}>
+        <ActionTooltip title={t("Treatment:Plan:ServiceList")}>
           <button
             type="button"
             className="tp-eye"
-            aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
+            aria-label={t("Treatment:Plan:ServiceListFor", plan.code)}
             onClick={() => actions.onViewServices(plan)}
           >
             <Eye size={16} aria-hidden="true" />
@@ -119,14 +119,14 @@ export function buildPlanColumns(
   return [
     {
       key: "addStage",
-      title: t("Thêm công đoạn"),
+      title: t("Treatment:Stage:AddStage"),
       width: 140,
       align: "center",
       render: (_, plan) => (
         <button
           type="button"
           className="tp-add-stage"
-          aria-label={t("Thêm công đoạn {0}", plan.code)}
+          aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
           onClick={() => actions.onAddStage(plan)}
         >
           <Plus size={16} aria-hidden="true" />
@@ -136,27 +136,27 @@ export function buildPlanColumns(
     ...settings.filter((item) => item.visible).map((item) => byKey[item.key]),
     {
       key: "actions",
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       width: 100,
       align: "center",
       fixed: "right",
       render: (_, plan) => (
         <span className="tp-actions">
-          <ActionTooltip title={t("In bệnh án")}>
+          <ActionTooltip title={t("Treatment:Plan:PrintMedicalRecord")}>
             <button
               type="button"
               className="tp-action"
-              aria-label={t("In bệnh án {0}", plan.code)}
+              aria-label={t("Treatment:Plan:PrintMedicalRecordFor", plan.code)}
               onClick={() => actions.onPrintRecord(plan)}
             >
               <ClipboardList size={16} aria-hidden="true" />
             </button>
           </ActionTooltip>
-          <ActionTooltip title={t("Hóa đơn")}>
+          <ActionTooltip title={t("Treatment:Plan:Invoice")}>
             <button
               type="button"
               className="tp-action"
-              aria-label={t("Phiếu thu {0}", plan.code)}
+              aria-label={t("Treatment:Plan:Receipt", plan.code)}
               onClick={() => actions.onReceipt(plan)}
             >
               <Receipt size={16} aria-hidden="true" />

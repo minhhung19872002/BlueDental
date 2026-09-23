@@ -89,35 +89,35 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
           overtimeMinutes,
         },
       });
-      toast.success(t("Đã cập nhật thông tin."));
+      toast.success(t("Timekeeping:UpdateSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
     }
   };
 
-  const staffName = record.staffName ?? t("Nhân viên");
+  const staffName = record.staffName ?? t("Common:Staff");
   const workDate = dayjs(record.workDate);
 
   return (
     <Modal
       open={open}
       onCancel={onClose}
-      title={t("Cập nhật thông tin")}
+      title={t("Timekeeping:UpdateTitle")}
       footer={null}
       width={772}
       destroyOnClose
     >
       <div className="tk-info-form">
         <div className="tk-info-row">
-          <FloatingLabel label={t("CBNV")} floated>
+          <FloatingLabel label={t("Common:Staff")} floated>
             <Input
               prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
               value={staffName}
               readOnly
             />
           </FloatingLabel>
-          <FloatingLabel label={t("Ngày")} floated>
+          <FloatingLabel label={t("Common:Day")} floated>
             <DatePicker
               value={workDate}
               format="DD/MM/YYYY"
@@ -127,7 +127,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
           </FloatingLabel>
         </div>
 
-        <FloatingLabel label={t("Ghi chú")} floated={Boolean(note)}>
+        <FloatingLabel label={t("Common:Note")} floated={Boolean(note)}>
           <Input.TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -137,11 +137,11 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
         </FloatingLabel>
 
         <div className="tk-info-section">
-          <p className="tk-info-section-title">{t("Lịch làm việc")}</p>
+          <p className="tk-info-section-title">{t("Timekeeping:WorkSchedule")}</p>
 
           <div className="tk-info-shift-row">
             <Switch checked={morningEnabled} onChange={setMorningEnabled} />
-            <FloatingLabel label={t("Buổi sáng: giờ vào")} floated>
+            <FloatingLabel label={t("Timekeeping:MorningCheckIn")} floated>
               <TimePicker
                 value={morningEnabled ? morningStart : null}
                 onChange={(v) => v && setMorningStart(v)}
@@ -151,7 +151,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
                 style={{ width: "100%" }}
               />
             </FloatingLabel>
-            <FloatingLabel label={t("Buổi sáng: giờ ra")} floated>
+            <FloatingLabel label={t("Timekeeping:MorningCheckOut")} floated>
               <TimePicker
                 value={morningEnabled ? morningEnd : null}
                 onChange={(v) => v && setMorningEnd(v)}
@@ -165,7 +165,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
 
           <div className="tk-info-shift-row">
             <Switch checked={afternoonEnabled} onChange={setAfternoonEnabled} />
-            <FloatingLabel label={t("Buổi chiều: giờ vào")} floated>
+            <FloatingLabel label={t("Timekeeping:AfternoonCheckIn")} floated>
               <TimePicker
                 value={afternoonEnabled ? afternoonStart : null}
                 onChange={(v) => v && setAfternoonStart(v)}
@@ -175,7 +175,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
                 style={{ width: "100%" }}
               />
             </FloatingLabel>
-            <FloatingLabel label={t("Buổi chiều: giờ ra")} floated>
+            <FloatingLabel label={t("Timekeeping:AfternoonCheckOut")} floated>
               <TimePicker
                 value={afternoonEnabled ? afternoonEnd : null}
                 onChange={(v) => v && setAfternoonEnd(v)}
@@ -190,10 +190,10 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
 
         <div className="tk-info-section">
           <div className="tk-info-overtime-header">
-            <p className="tk-info-section-title">{t("Làm thêm giờ")}</p>
+            <p className="tk-info-section-title">{t("Timekeeping:Overtime")}</p>
             <Switch checked={overtimeEnabled} onChange={setOvertimeEnabled} />
           </div>
-          <FloatingLabel label={t("Số giờ")} floated>
+          <FloatingLabel label={t("Timekeeping:HoursCount")} floated>
             <TimePicker
               value={overtimeValue}
               onChange={setOvertimeValue}
@@ -213,7 +213,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
             disabled={loading}
             onClick={handleSave}
           >
-            {t("Lưu")}
+            {t("Common:Save")}
           </Button>
         </div>
       </div>

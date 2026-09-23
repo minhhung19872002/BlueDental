@@ -69,17 +69,17 @@ export interface LedgerActions {
 function RowActions({ row, actions }: { row: CashflowEntryDto; actions: LedgerActions }) {
   return (
     <Space size={4}>
-      <Tooltip title={t("Xem chi tiết")}>
-        <Button size="small" type="text" icon={<EyeOutlined />} aria-label={t("Xem chi tiết")} onClick={() => actions.onView(row)} />
+      <Tooltip title={t("Report:Action:ViewDetail")}>
+        <Button size="small" type="text" icon={<EyeOutlined />} aria-label={t("Report:Action:ViewDetail")} onClick={() => actions.onView(row)} />
       </Tooltip>
       {actions.canEdit && (
-        <Tooltip title={t("Chỉnh sửa")}>
-          <Button size="small" type="text" icon={<EditOutlined />} aria-label={t("Chỉnh sửa")} onClick={() => actions.onEdit(row)} />
+        <Tooltip title={t("Common:Edit")}>
+          <Button size="small" type="text" icon={<EditOutlined />} aria-label={t("Common:Edit")} onClick={() => actions.onEdit(row)} />
         </Tooltip>
       )}
       {actions.canDelete && (
-        <Tooltip title={t("Hủy")}>
-          <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label={t("Hủy")} onClick={() => actions.onDelete(row)} />
+        <Tooltip title={t("Common:Cancel")}>
+          <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label={t("Common:Cancel")} onClick={() => actions.onDelete(row)} />
         </Tooltip>
       )}
     </Space>
@@ -90,20 +90,20 @@ function RowActions({ row, actions }: { row: CashflowEntryDto; actions: LedgerAc
 export function buildLedgerColumns(actions: LedgerActions): TableColumnsType<CashflowEntryDto> {
   const types = cashTransactionLabels();
   return [
-    { title: t("Ngày"), dataIndex: "entryDate", width: 130, render: (v: string) => formatDate(v) },
+    { title: t("Report:Column:Date"), dataIndex: "entryDate", width: 130, render: (v: string) => formatDate(v) },
     {
-      title: t("Loại giao dịch"),
+      title: t("Report:Column:TransactionType"),
       dataIndex: "transactionType",
       width: 150,
       render: (v: CashflowEntryDto["transactionType"]) => <span className="report-type-label">{types[v]}</span>,
     },
-    { title: t("Hình thức"), key: "holding", width: 170, render: (_: unknown, row) => <MethodBadge row={row} /> },
-    { title: t("Danh mục"), key: "category", width: 150, render: (_: unknown, row) => <CategoryPill row={row} /> },
-    { title: t("Số tiền"), key: "amount", width: 150, render: (_: unknown, row) => <SignedAmount row={row} /> },
-    { title: t("Người tạo"), dataIndex: "createdByStaffName", width: 150, render: (v: string | null) => v ?? t("Không xác định") },
-    { title: t("Ghi chú"), dataIndex: "note", width: 200, render: (v: string | null) => v || "—" },
+    { title: t("Report:Column:PaymentMethod"), key: "holding", width: 170, render: (_: unknown, row) => <MethodBadge row={row} /> },
+    { title: t("Report:Column:Category"), key: "category", width: 150, render: (_: unknown, row) => <CategoryPill row={row} /> },
+    { title: t("Report:Column:Amount"), key: "amount", width: 150, render: (_: unknown, row) => <SignedAmount row={row} /> },
+    { title: t("Report:Column:Creator"), dataIndex: "createdByStaffName", width: 150, render: (v: string | null) => v ?? t("Report:Unknown") },
+    { title: t("Common:Note"), dataIndex: "note", width: 200, render: (v: string | null) => v || "—" },
     {
-      title: t("Thao tác"),
+      title: t("Common:Actions"),
       key: "actions",
       width: 110,
       align: "center",
