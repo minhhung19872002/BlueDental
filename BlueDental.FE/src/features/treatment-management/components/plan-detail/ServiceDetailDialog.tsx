@@ -4,7 +4,7 @@ import type { PatientDto } from "@/features/patient-management/types/patient";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
-import { SERVICE_PILL, moneyText } from "../plan/planTypes";
+import { servicePills, moneyText } from "../plan/planTypes";
 import { dash, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
@@ -38,7 +38,8 @@ function Section({ title, facts }: { title: string; facts: Fact[] }) {
  */
 export function ServiceDetailDialog({ row, patient, onClose }: Props) {
   const service = row?.service;
-  const pill = service ? (SERVICE_PILL[service.status] ?? SERVICE_PILL[SERVICE_LINE_STATUS.Created]) : null;
+  const allPills = servicePills();
+  const pill = service ? (allPills[service.status] ?? allPills[SERVICE_LINE_STATUS.Created]) : null;
 
   return (
     <Modal
@@ -62,7 +63,7 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
             title={t("Treatment:Plan:PlanDetail")}
             facts={[
               { label: t("Treatment:Service:Service"), value: service.serviceName },
-              { label: t("Common:Status"), value: t(pill.label) },
+              { label: t("Common:Status"), value: pill.label },
               { label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
               { label: t("Treatment:Tooth:Tooth"), value: formatTeeth(service.teeth) },
               { label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },

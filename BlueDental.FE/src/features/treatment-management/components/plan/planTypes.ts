@@ -37,21 +37,22 @@ export interface PlanColumnSetting {
   visible: boolean;
 }
 
-/** Vietnamese is the i18n key; wrap with t() at render time. */
-export const PLAN_COLUMN_LABELS: Record<PlanColumnKey, string> = {
-  code: "Số phiếu",
-  services: "Danh sách dịch vụ",
-  dentist: "Bác sĩ tiếp nhận",
-  status: "Trạng thái - Tiến độ",
-  createdAt: "Ngày tạo",
-  total: "Tổng phiếu",
-  discount: "Giảm giá",
-  amount: "Thành tiền",
-  paid: "Đã trả",
-  refund: "Hoàn tiền",
-  remaining: "Còn lại",
-  receivable: "Phải thu",
-};
+export function planColumnLabels(): Record<PlanColumnKey, string> {
+  return {
+    code: t("Treatment:Plan:ColCode"),
+    services: t("Treatment:Plan:ColServices"),
+    dentist: t("Treatment:Plan:ColDentist"),
+    status: t("Treatment:Plan:ColStatus"),
+    createdAt: t("Treatment:Plan:ColCreatedAt"),
+    total: t("Treatment:Plan:ColTotal"),
+    discount: t("Treatment:Plan:ColDiscount"),
+    amount: t("Treatment:Plan:ColAmount"),
+    paid: t("Treatment:Plan:ColPaid"),
+    refund: t("Treatment:Plan:ColRefund"),
+    remaining: t("Treatment:Plan:ColRemaining"),
+    receivable: t("Treatment:Plan:ColReceivable"),
+  };
+}
 
 export function defaultPlanColumns(): PlanColumnSetting[] {
   return PLAN_COLUMN_KEYS.map((key) => ({ key, visible: true }));
@@ -131,14 +132,16 @@ export function moneyCellClass(field: keyof PlanMoney, value: number): string {
  * "Trạng thái - Tiến độ" pill. The reference labels a fresh slip "Đã tạo";
  * the other names follow its service-line pills.
  */
-export const PLAN_PILL: Record<number, { label: string; modifier: string }> = {
-  [PLAN_STATUS.Draft]: { label: "Đã tạo", modifier: "" },
-  [PLAN_STATUS.PendingApproval]: { label: "Đã tạo", modifier: "" },
-  [PLAN_STATUS.Approved]: { label: "Đã tạo", modifier: "" },
-  [PLAN_STATUS.InProgress]: { label: "Đang điều trị", modifier: "tp-pill--progress" },
-  [PLAN_STATUS.Completed]: { label: "Hoàn thành", modifier: "tp-pill--done" },
-  [PLAN_STATUS.Cancelled]: { label: "Huỷ phiếu", modifier: "tp-pill--cancelled" },
-};
+export function planPills(): Record<number, { label: string; modifier: string }> {
+  return {
+    [PLAN_STATUS.Draft]: { label: t("Treatment:Plan:StatusCreated"), modifier: "" },
+    [PLAN_STATUS.PendingApproval]: { label: t("Treatment:Plan:StatusCreated"), modifier: "" },
+    [PLAN_STATUS.Approved]: { label: t("Treatment:Plan:StatusCreated"), modifier: "" },
+    [PLAN_STATUS.InProgress]: { label: t("Treatment:Plan:StatusInProgress"), modifier: "tp-pill--progress" },
+    [PLAN_STATUS.Completed]: { label: t("Treatment:Plan:StatusCompleted"), modifier: "tp-pill--done" },
+    [PLAN_STATUS.Cancelled]: { label: t("Treatment:Plan:StatusCancelled"), modifier: "tp-pill--cancelled" },
+  };
+}
 
 /**
  * The reference tints a whole row by the slip's status (its own `rowClass`):
@@ -157,9 +160,10 @@ export function planRowClass(plan: TreatmentPlanSlipDto): string {
  * first stage. Local slips open straight into InProgress, so derive it here.
  */
 export function planPill(plan: TreatmentPlanSlipDto) {
+  const pills = planPills();
   const untouched = plan.services.every((service) => service.status === SERVICE_LINE_STATUS.Created);
-  if (plan.status === PLAN_STATUS.InProgress && untouched) return PLAN_PILL[PLAN_STATUS.Draft];
-  return PLAN_PILL[plan.status] ?? PLAN_PILL[PLAN_STATUS.Draft];
+  if (plan.status === PLAN_STATUS.InProgress && untouched) return pills[PLAN_STATUS.Draft];
+  return pills[plan.status] ?? pills[PLAN_STATUS.Draft];
 }
 
 /** The slip's own screen — where the code links and the summary cards lead. */
@@ -195,26 +199,29 @@ export function moneyText(value: number | null | undefined) {
  * cyan, "Đã chuyển" is violet, and a cancelled line reads "Hủy dịch vụ" —
  * "Huỷ phiếu" is the wording for a whole slip.
  */
-export const SERVICE_PILL: Record<number, { label: string; modifier: string }> = {
-  [SERVICE_LINE_STATUS.Created]: { label: "Đã tạo", modifier: "" },
-  [SERVICE_LINE_STATUS.InProgress]: { label: "Đang điều trị", modifier: "tp-pill--progress" },
-  [SERVICE_LINE_STATUS.Done]: { label: "Hoàn thành", modifier: "tp-pill--done" },
-  [SERVICE_LINE_STATUS.Cancelled]: { label: "Hủy dịch vụ", modifier: "tp-pill--cancelled" },
-  [SERVICE_LINE_STATUS.Replaced]: { label: "Chuyển đổi", modifier: "tp-pill--converted" },
-  [SERVICE_LINE_STATUS.Warranty]: { label: "Bảo hành", modifier: "tp-pill--progress" },
-  [SERVICE_LINE_STATUS.Transferred]: { label: "Đã chuyển", modifier: "tp-pill--transferred" },
-};
+export function servicePills(): Record<number, { label: string; modifier: string }> {
+  return {
+    [SERVICE_LINE_STATUS.Created]: { label: t("Treatment:Service:StatusCreated"), modifier: "" },
+    [SERVICE_LINE_STATUS.InProgress]: { label: t("Treatment:Service:StatusInProgress"), modifier: "tp-pill--progress" },
+    [SERVICE_LINE_STATUS.Done]: { label: t("Treatment:Service:StatusDone"), modifier: "tp-pill--done" },
+    [SERVICE_LINE_STATUS.Cancelled]: { label: t("Treatment:Service:StatusCancelled"), modifier: "tp-pill--cancelled" },
+    [SERVICE_LINE_STATUS.Replaced]: { label: t("Treatment:Service:StatusReplaced"), modifier: "tp-pill--converted" },
+    [SERVICE_LINE_STATUS.Warranty]: { label: t("Treatment:Service:StatusWarranty"), modifier: "tp-pill--progress" },
+    [SERVICE_LINE_STATUS.Transferred]: { label: t("Treatment:Service:StatusTransferred"), modifier: "tp-pill--transferred" },
+  };
+}
 
-/** The status menu on the inline new row, in the reference's order. */
-export const NEW_LINE_STATUSES: readonly { value: TreatmentServiceStatus; label: string }[] = [
-  { value: SERVICE_LINE_STATUS.Created, label: "Đã tạo" },
-  { value: SERVICE_LINE_STATUS.InProgress, label: "Đang điều trị" },
-  { value: SERVICE_LINE_STATUS.Done, label: "Hoàn thành" },
-  { value: SERVICE_LINE_STATUS.Replaced, label: "Chuyển đổi" },
-  { value: SERVICE_LINE_STATUS.Transferred, label: "Đã chuyển" },
-  { value: SERVICE_LINE_STATUS.Warranty, label: "Bảo hành" },
-  { value: SERVICE_LINE_STATUS.Cancelled, label: "Hủy dịch vụ" },
-];
+export function newLineStatuses(): readonly { value: TreatmentServiceStatus; label: string }[] {
+  return [
+    { value: SERVICE_LINE_STATUS.Created, label: t("Treatment:Service:StatusCreated") },
+    { value: SERVICE_LINE_STATUS.InProgress, label: t("Treatment:Service:StatusInProgress") },
+    { value: SERVICE_LINE_STATUS.Done, label: t("Treatment:Service:StatusDone") },
+    { value: SERVICE_LINE_STATUS.Replaced, label: t("Treatment:Service:StatusReplaced") },
+    { value: SERVICE_LINE_STATUS.Transferred, label: t("Treatment:Service:StatusTransferred") },
+    { value: SERVICE_LINE_STATUS.Warranty, label: t("Treatment:Service:StatusWarranty") },
+    { value: SERVICE_LINE_STATUS.Cancelled, label: t("Treatment:Service:StatusCancelled") },
+  ];
+}
 
 /** A service line together with the slip it belongs to, for the flat lists. */
 export interface PlanServiceRow {

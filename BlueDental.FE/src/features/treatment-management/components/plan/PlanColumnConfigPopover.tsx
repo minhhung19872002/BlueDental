@@ -4,7 +4,7 @@ import { GripVertical, Settings2, X } from "lucide-react";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { t } from "@/lib/i18n";
 import { moveItem } from "@/utils/array";
-import { PLAN_COLUMN_LABELS, type PlanColumnSetting } from "./planTypes";
+import { planColumnLabels, type PlanColumnSetting } from "./planTypes";
 
 interface ListProps {
   value: PlanColumnSetting[];
@@ -20,6 +20,7 @@ interface ListProps {
 function ColumnConfigList({ value, onSave, onClose }: ListProps) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
+  const labels = planColumnLabels();
 
   const drag = useDragReorder({
     items: draft,
@@ -43,7 +44,7 @@ function ColumnConfigList({ value, onSave, onClose }: ListProps) {
       </div>
       <ul className="tp-columns-list">
         {drag.items.map((item) => {
-          const label = t(PLAN_COLUMN_LABELS[item.key]);
+          const label = labels[item.key];
           return (
             <li
               key={item.key}

@@ -1,25 +1,24 @@
 import { CARE_OUTCOME, type CareOutcome } from "@/features/cskh/api/careApi";
+import { t } from "@/lib/i18n";
 
 export type CareRatingTone = "good" | "fair" | "normal" | "complaint";
 
 export interface CareRating {
   value: CareOutcome;
-  /** Vietnamese label — also the i18n key. */
   label: string;
   tone: CareRatingTone;
 }
 
-/** "Mức độ hài lòng", in the reference's order. */
-export const CARE_RATINGS: readonly CareRating[] = [
-  { value: CARE_OUTCOME.Good, label: "Tốt", tone: "good" },
-  { value: CARE_OUTCOME.Fair, label: "Khá", tone: "fair" },
-  { value: CARE_OUTCOME.Normal, label: "Bình thường", tone: "normal" },
-  { value: CARE_OUTCOME.Complaint, label: "Khiếu nại", tone: "complaint" },
-];
+export function careRatings(): readonly CareRating[] {
+  return [
+    { value: CARE_OUTCOME.Good, label: t("Patient:Care:OutcomeGood"), tone: "good" },
+    { value: CARE_OUTCOME.Fair, label: t("Patient:Care:OutcomeFair"), tone: "fair" },
+    { value: CARE_OUTCOME.Normal, label: t("Patient:Care:OutcomeNormal"), tone: "normal" },
+    { value: CARE_OUTCOME.Complaint, label: t("Patient:Care:OutcomeComplaint"), tone: "complaint" },
+  ];
+}
 
-const DEFAULT_RATING = CARE_RATINGS[1];
-
-/** An unrated record reads as "Khá" — the reference's default, in the form and the table alike. */
 export function ratingOf(outcome: CareOutcome | null | undefined): CareRating {
-  return CARE_RATINGS.find((rating) => rating.value === outcome) ?? DEFAULT_RATING;
+  const ratings = careRatings();
+  return ratings.find((rating) => rating.value === outcome) ?? ratings[1];
 }

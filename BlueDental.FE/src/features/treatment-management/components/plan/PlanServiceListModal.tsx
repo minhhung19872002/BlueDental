@@ -7,7 +7,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
 import { PlanServiceCardList } from "./PlanServiceCardList";
-import { SERVICE_PILL, moneyText, type PlanServiceRow } from "./planTypes";
+import { servicePills, moneyText, type PlanServiceRow } from "./planTypes";
 
 interface Props {
   open: boolean;
@@ -86,10 +86,11 @@ function buildColumns({
       title: t("Common:Status"),
       width: 190,
       render: (_, { service }) => {
-        const pill = SERVICE_PILL[service.status] ?? SERVICE_PILL[1];
+        const pills = servicePills();
+        const pill = pills[service.status] ?? pills[1];
         return (
           <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>
-            {t(pill.label)}
+            {pill.label}
           </span>
         );
       },

@@ -2,7 +2,7 @@ import { Dropdown, type MenuProps } from "antd";
 import { ChevronDown } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { SERVICE_LINE_STATUS, type TreatmentServiceDto } from "../../api/treatmentPlanApi";
-import { SERVICE_PILL } from "../plan/planTypes";
+import { servicePills } from "../plan/planTypes";
 import { isLineOpen } from "./planDetailTypes";
 
 /** What the status menu offers on an open line. */
@@ -36,11 +36,12 @@ interface Props {
  * is a menu button (chevron, aria-haspopup); a finished line is plain text.
  */
 export function ServiceStatusPill({ service, onAction }: Props) {
-  const pill = SERVICE_PILL[service.status] ?? SERVICE_PILL[SERVICE_LINE_STATUS.Created];
+  const pills = servicePills();
+  const pill = pills[service.status] ?? pills[SERVICE_LINE_STATUS.Created];
   const className = ["pdt-status", STATUS_MODIFIER[service.status]].filter(Boolean).join(" ");
 
   if (!onAction || !isLineOpen(service)) {
-    return <span className={className}>{t(pill.label)}</span>;
+    return <span className={className}>{pill.label}</span>;
   }
 
   return (
@@ -57,7 +58,7 @@ export function ServiceStatusPill({ service, onAction }: Props) {
         aria-haspopup="menu"
         aria-label={t("Treatment:Service:StatusLabel", service.serviceName ?? service.code)}
       >
-        {t(pill.label)}
+        {pill.label}
         <ChevronDown size={14} aria-hidden="true" />
       </button>
     </Dropdown>

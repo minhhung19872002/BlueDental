@@ -14,7 +14,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import {
-  APPOINTMENT_GROUPS,
+  appointmentGroups,
   buildAppointmentColumns,
   inAppointmentGroup,
   type AppointmentGroupKey,
@@ -83,7 +83,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
     <section className="pd-pane pd-pane--fill pd-appointment-tab">
       <div className="pd-appointment-toolbar">
         <div className="pd-stat-row">
-          {APPOINTMENT_GROUPS.map((item) => (
+          {appointmentGroups().map((item) => (
             <button
               type="button"
               key={item.key}
@@ -99,7 +99,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
               <strong>
                 {everything.filter((row) => inAppointmentGroup(item.key, row.status)).length}
               </strong>
-              <span>{t(item.label)}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </div>

@@ -3,7 +3,7 @@ import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
-import { SERVICE_PILL, moneyText, type PlanServiceRow } from "./planTypes";
+import { servicePills, moneyText, type PlanServiceRow } from "./planTypes";
 
 interface Props {
   rows: PlanServiceRow[];
@@ -20,7 +20,8 @@ function serviceRows(
   { plan, service }: PlanServiceRow,
   diagnosisByAdviseId: ReadonlyMap<string, string>,
 ): { rows: RecordCardRow[]; moreRows: RecordCardRow[] } {
-  const pill = SERVICE_PILL[service.status] ?? SERVICE_PILL[1];
+  const pills = servicePills();
+  const pill = pills[service.status] ?? pills[1];
   const teeth = formatTeeth(service.teeth);
   return {
     rows: [
@@ -39,7 +40,7 @@ function serviceRows(
         label: t("Common:Status"),
         value: (
           <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>
-            {t(pill.label)}
+            {pill.label}
           </span>
         ),
       },

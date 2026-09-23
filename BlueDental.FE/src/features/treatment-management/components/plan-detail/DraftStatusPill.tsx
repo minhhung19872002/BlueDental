@@ -2,7 +2,7 @@ import { Dropdown } from "antd";
 import { ChevronDown } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { SERVICE_LINE_STATUS, type TreatmentServiceStatus } from "../../api/treatmentPlanApi";
-import { NEW_LINE_STATUSES } from "../plan/planTypes";
+import { newLineStatuses } from "../plan/planTypes";
 
 const STATUS_MODIFIER: Record<number, string> = {
   [SERVICE_LINE_STATUS.Created]: "",
@@ -25,11 +25,12 @@ interface Props {
  * exists.
  */
 export function DraftStatusPill({ value, onChange }: Props) {
-  const current = NEW_LINE_STATUSES.find((status) => status.value === value) ?? NEW_LINE_STATUSES[0];
+  const statuses = newLineStatuses();
+  const current = statuses.find((status) => status.value === value) ?? statuses[0];
   const className = ["pdt-status", "pdt-status--menu", STATUS_MODIFIER[value]].filter(Boolean).join(" ");
 
   const handleClick = ({ key }: { key: string }) => {
-    const picked = NEW_LINE_STATUSES.find((status) => String(status.value) === key);
+    const picked = statuses.find((status) => String(status.value) === key);
     if (picked) onChange(picked.value);
   };
 
@@ -37,13 +38,13 @@ export function DraftStatusPill({ value, onChange }: Props) {
     <Dropdown
       trigger={["click"]}
       menu={{
-        items: NEW_LINE_STATUSES.map((status) => ({ key: String(status.value), label: t(status.label) })),
+        items: statuses.map((status) => ({ key: String(status.value), label: status.label })),
         selectedKeys: [String(value)],
         onClick: handleClick,
       }}
     >
       <button type="button" className={className} aria-haspopup="menu" aria-label={t("Treatment:Service:NewServiceStatus")}>
-        {t(current.label)}
+        {current.label}
         <ChevronDown size={14} aria-hidden="true" />
       </button>
     </Dropdown>

@@ -5,7 +5,7 @@ import { ActionTooltip } from "./ActionTooltip";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {
-  PLAN_COLUMN_LABELS,
+  planColumnLabels,
   moneyCellClass,
   moneyText,
   planPill,
@@ -28,9 +28,10 @@ type Column = TableColumnsType<TreatmentPlanSlipDto>[number];
 
 function money(field: keyof PlanMoney, width: number): Column {
   const key = field satisfies PlanColumnKey;
+  const labels = planColumnLabels();
   return {
     key,
-    title: t(PLAN_COLUMN_LABELS[key]),
+    title: labels[key],
     width,
     align: "right",
     render: (_, plan) => {
@@ -43,16 +44,17 @@ function money(field: keyof PlanMoney, width: number): Column {
 function statusPill(plan: TreatmentPlanSlipDto) {
   const pill = planPill(plan);
   return (
-    <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{t(pill.label)}</span>
+    <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{pill.label}</span>
   );
 }
 
 /** The twelve configurable columns, by key; widths measured on the reference. */
 function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Column> {
+  const labels = planColumnLabels();
   return {
     code: {
       key: "code",
-      title: t(PLAN_COLUMN_LABELS.code),
+      title: labels.code,
       width: 110,
       render: (_, plan) => (
         <button type="button" className="tp-code" onClick={() => actions.onOpenPlan(plan)}>
@@ -82,19 +84,19 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
     },
     dentist: {
       key: "dentist",
-      title: t(PLAN_COLUMN_LABELS.dentist),
+      title: labels.dentist,
       width: 150,
       render: (_, plan) => <span className="tp-cell-small">{plan.dentistName}</span>,
     },
     status: {
       key: "status",
-      title: t(PLAN_COLUMN_LABELS.status),
+      title: labels.status,
       width: 160,
       render: (_, plan) => statusPill(plan),
     },
     createdAt: {
       key: "createdAt",
-      title: t(PLAN_COLUMN_LABELS.createdAt),
+      title: labels.createdAt,
       width: 120,
       render: (_, plan) => (
         <span className="tp-cell-small tp-cell-small--muted">{formatDate(plan.creationTime)}</span>

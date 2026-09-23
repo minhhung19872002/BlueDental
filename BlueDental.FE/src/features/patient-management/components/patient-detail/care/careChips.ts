@@ -5,6 +5,7 @@ import {
   type CareStatsDto,
   type GetCareRecordListInput,
 } from "@/features/cskh/api/careApi";
+import { t } from "@/lib/i18n";
 
 export type CareChipKey =
   | "cared"
@@ -36,48 +37,50 @@ export interface CareChip {
  * "cared", four ratings, then three care groups. Single-select — pressing the
  * active chip clears the filter.
  */
-export const CARE_CHIPS: readonly CareChip[] = [
-  {
-    key: "cared",
-    label: "Đã chăm sóc",
-    tone: "slate",
-    stat: "succeeded",
-    params: { status: CARE_STATUS.Succeeded },
-  },
-  { key: "good", label: "Tốt", tone: "green", stat: "good", params: { outcome: CARE_OUTCOME.Good } },
-  { key: "fair", label: "Khá", tone: "blue", stat: "fair", params: { outcome: CARE_OUTCOME.Fair } },
-  {
-    key: "normal",
-    label: "Bình thường",
-    tone: "amber",
-    stat: "normal",
-    params: { outcome: CARE_OUTCOME.Normal },
-  },
-  {
-    key: "complaint",
-    label: "Khiếu nại",
-    tone: "red",
-    stat: "complaint",
-    params: { outcome: CARE_OUTCOME.Complaint },
-  },
-  {
-    key: "special",
-    label: "Đặc biệt",
-    tone: "red",
-    stat: "special",
-    params: { type: CARE_TYPE.Special },
-    dividerBefore: true,
-  },
-  {
-    key: "periodic",
-    label: "Định kỳ",
-    tone: "slate",
-    stat: "periodic",
-    params: { type: CARE_TYPE.Periodic },
-  },
-  { key: "base", label: "Cơ bản", tone: "green", stat: "base", params: { type: CARE_TYPE.Base } },
-];
+export function careChips(): readonly CareChip[] {
+  return [
+    {
+      key: "cared",
+      label: t("Patient:Care:ChipCared"),
+      tone: "slate",
+      stat: "succeeded",
+      params: { status: CARE_STATUS.Succeeded },
+    },
+    { key: "good", label: t("Patient:Care:OutcomeGood"), tone: "green", stat: "good", params: { outcome: CARE_OUTCOME.Good } },
+    { key: "fair", label: t("Patient:Care:OutcomeFair"), tone: "blue", stat: "fair", params: { outcome: CARE_OUTCOME.Fair } },
+    {
+      key: "normal",
+      label: t("Patient:Care:OutcomeNormal"),
+      tone: "amber",
+      stat: "normal",
+      params: { outcome: CARE_OUTCOME.Normal },
+    },
+    {
+      key: "complaint",
+      label: t("Patient:Care:OutcomeComplaint"),
+      tone: "red",
+      stat: "complaint",
+      params: { outcome: CARE_OUTCOME.Complaint },
+    },
+    {
+      key: "special",
+      label: t("Patient:Care:TypeSpecial"),
+      tone: "red",
+      stat: "special",
+      params: { type: CARE_TYPE.Special },
+      dividerBefore: true,
+    },
+    {
+      key: "periodic",
+      label: t("Patient:Care:TypePeriodic"),
+      tone: "slate",
+      stat: "periodic",
+      params: { type: CARE_TYPE.Periodic },
+    },
+    { key: "base", label: t("Patient:Care:TypeBase"), tone: "green", stat: "base", params: { type: CARE_TYPE.Base } },
+  ];
+}
 
 export function careChipParams(key: CareChipKey | null): CareChip["params"] {
-  return CARE_CHIPS.find((chip) => chip.key === key)?.params ?? {};
+  return careChips().find((chip) => chip.key === key)?.params ?? {};
 }

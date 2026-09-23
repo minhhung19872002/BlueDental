@@ -14,20 +14,33 @@ import "../components/patient-detail/patient-detail.css";
 import "../components/patient-detail/image/patient-image.css";
 import "../components/patient-detail/care/patient-care.css";
 
-const ALL_PATIENT_TABS = [
-  ["profile", "Hồ sơ"],
-  ["consulting", "Chẩn đoán & Tư vấn"],
-  ["treatment-plan", "Kế hoạch điều trị"],
-  ["appointment", "Lịch hẹn"],
-  ["image", "Hình ảnh"],
-  ["labo", "Labo"],
-  ["prescription", "Đơn thuốc"],
-  ["care", "Chăm sóc KH"],
-  ["invoice", "Hóa đơn"],
-  ["debt-history", "Lịch sử dư nợ"],
+const PATIENT_TAB_KEYS = [
+  "profile",
+  "consulting",
+  "treatment-plan",
+  "appointment",
+  "image",
+  "labo",
+  "prescription",
+  "care",
+  "invoice",
+  "debt-history",
 ] as const;
 
-type PatientTab = (typeof ALL_PATIENT_TABS)[number][0];
+type PatientTab = (typeof PATIENT_TAB_KEYS)[number];
+
+const TAB_I18N: Record<PatientTab, string> = {
+  profile: "Patient:Tab:Profile",
+  consulting: "Patient:Tab:Consulting",
+  "treatment-plan": "Patient:Tab:TreatmentPlan",
+  appointment: "Patient:Tab:Appointment",
+  image: "Patient:Tab:Image",
+  labo: "Patient:Tab:Labo",
+  prescription: "Patient:Tab:Prescription",
+  care: "Patient:Tab:Care",
+  invoice: "Patient:Tab:Invoice",
+  "debt-history": "Patient:Tab:DebtHistory",
+};
 
 /**
  * The record has two whole views, switched from the right of the tab row:
@@ -36,13 +49,20 @@ type PatientTab = (typeof ALL_PATIENT_TABS)[number][0];
  */
 type RecordView = "details" | "medical-record";
 
-const RECORD_VIEWS = [
-  { key: "details" as const, label: "Chi tiết hồ sơ", icon: <UserOutlined /> },
-  { key: "medical-record" as const, label: "Bệnh án", icon: <FileTextOutlined /> },
-];
+const RECORD_VIEW_KEYS = ["details", "medical-record"] as const;
+
+const VIEW_I18N: Record<RecordView, string> = {
+  details: "Patient:View:Details",
+  "medical-record": "Patient:View:MedicalRecord",
+};
+
+const VIEW_ICON: Record<RecordView, React.ReactNode> = {
+  details: <UserOutlined />,
+  "medical-record": <FileTextOutlined />,
+};
 
 const isPatientTab = (value: string | null): value is PatientTab =>
-  ALL_PATIENT_TABS.some(([key]) => key === value);
+  PATIENT_TAB_KEYS.includes(value as PatientTab);
 
 export function PatientProfilePage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -82,17 +102,12 @@ export function PatientProfilePage() {
     if (!prescriptionAbility.canRead) hidden.add("prescription");
     if (!paymentAbility.canRead) hidden.add("invoice");
     if (!imageAbility.canRead) hidden.add("image");
-    // The debt ledger is the same GET as Hóa đơn — payment.read either way.
     if (!paymentAbility.canRead) hidden.add("debt-history");
-    // The slip list is checked against treatmentConsultation.read directly.
     if (!consultationAbility.canRead) hidden.add("treatment-plan");
-    // Chẩn đoán & Tư vấn reads through the legacy TreatmentPlans/Records
-    // policies, which the bridge grants for ANY of the three treatment
-    // subjects — so it only goes when the user can read none of them.
     if (!diagnosisAbility.canRead && !consultationAbility.canRead && !stageAbility.canRead) {
       hidden.add("consulting");
     }
-    return ALL_PATIENT_TABS.filter(([key]) => !hidden.has(key));
+    return PATIENT_TAB_KEYS.filter((key) => !hidden.has(key));
   }, [
     laboAbility.canRead,
     cskhAbility.canRead,
@@ -106,18 +121,17 @@ export function PatientProfilePage() {
   ]);
 
   const activeTab: PatientTab =
-    isPatientTab(requestedTab) && visibleTabs.some(([key]) => key === requestedTab)
+    isPatientTab(requestedTab) && visibleTabs.includes(requestedTab)
       ? requestedTab
-      : (visibleTabs[0]?.[0] as PatientTab) ?? "profile";
+      : visibleTabs[0] ?? "profile";
 
-  const tabs: PageTab[] = visibleTabs.map(([key, label]) => {
+  const tabs: PageTab[] = visibleTabs.map((key) => {
     const next = new URLSearchParams(searchParams);
-    // The open Đơn thuốc dialog rides in the URL; it does not follow to another tab.
     next.delete("create");
     if (key === "profile") next.delete("tab");
     else next.set("tab", key);
     const query = next.toString();
-    return { key, label: t(label), to: `${location.pathname}${query ? `?${query}` : ""}` };
+    return { key, label: t(TAB_I18N[key]), to: `${location.pathname}${query ? `?${query}` : ""}` };
   });
 
   if (patientQuery.isLoading) {
@@ -163,12 +177,12 @@ export function PatientProfilePage() {
         {medicalRecordAbility.canRead && (
           <SegmentedTabs
             className="pd-viewswitch"
-            items={RECORD_VIEWS.map((item) => ({
-              key: item.key,
+            items={RECORD_VIEW_KEYS.map((key) => ({
+              key,
               label: (
                 <>
-                  {item.icon}
-                  {t(item.label)}
+                  {VIEW_ICON[key]}
+                  {t(VIEW_I18N[key])}
                 </>
               ),
             }))}

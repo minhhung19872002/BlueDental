@@ -18,10 +18,12 @@ interface Props {
 }
 
 /** The sent stamp is called the warranty stamp on the Bảo hành tab. */
-const SENT_LABELS: Record<LaboChildKind, { date: string; time: string }> = {
-  "continue-process": { date: "Ngày gửi", time: "Giờ gửi" },
-  warranty: { date: "Ngày bảo hành", time: "Giờ bảo hành" },
-};
+function sentLabels(): Record<LaboChildKind, { date: string; time: string }> {
+  return {
+    "continue-process": { date: t("Patient:Labo:SentDate"), time: t("Patient:Labo:SentTime") },
+    warranty: { date: t("Patient:Labo:WarrantyDate"), time: t("Patient:Labo:WarrantyTime") },
+  };
+}
 
 /**
  * The top grid of Làm tiếp công đoạn / Bảo hành once a parent order is
@@ -56,7 +58,7 @@ export function LaboChildHeader({ kind, patient, parent, dentists, form }: Props
         <Input disabled value={parent.orderCode} />
       </FloatingLabel>
       <LaboDeliveryFields
-        sentLabels={{ date: t(SENT_LABELS[kind].date), time: t(SENT_LABELS[kind].time) }}
+        sentLabels={sentLabels()[kind]}
         suppliers={form.options.suppliers}
       />
     </div>

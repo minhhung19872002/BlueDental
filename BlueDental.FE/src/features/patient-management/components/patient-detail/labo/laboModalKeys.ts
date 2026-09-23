@@ -1,4 +1,5 @@
 import { LABO_ORDER_KIND, type LaboOrderKind } from "@/features/labo/api/laboApi";
+import { t } from "@/lib/i18n";
 
 /**
  * The reference's `laboModal` query value — one per tab of the order dialog.
@@ -11,11 +12,13 @@ export const LABO_MODAL_KEYS = ["new-order", "continue-process", "warranty"] as 
 export type LaboModalKey = (typeof LABO_MODAL_KEYS)[number];
 export type LaboChildKind = Exclude<LaboModalKey, "new-order">;
 
-export const LABO_MODAL_LABELS: Record<LaboModalKey, string> = {
-  "new-order": "Đặt mới",
-  "continue-process": "Làm tiếp công đoạn",
-  warranty: "Bảo hành",
-};
+export function laboModalLabels(): Record<LaboModalKey, string> {
+  return {
+    "new-order": t("Patient:Labo:ModalNew"),
+    "continue-process": t("Patient:Labo:ModalContinue"),
+    warranty: t("Patient:Labo:ModalWarranty"),
+  };
+}
 
 /** The kind an order takes when saved from each child tab. */
 export const LABO_CHILD_KIND: Record<LaboChildKind, LaboOrderKind> = {

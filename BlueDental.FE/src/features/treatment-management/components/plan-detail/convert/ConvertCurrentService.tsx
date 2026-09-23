@@ -2,7 +2,7 @@ import { ClipboardList, CircleDollarSign } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../../api/consultingApi";
 import { SERVICE_LINE_STATUS } from "../../../api/treatmentPlanApi";
-import { SERVICE_PILL, moneyText } from "../../plan/planTypes";
+import { servicePills, moneyText } from "../../plan/planTypes";
 import { dash, type PlanDetailRow } from "../planDetailTypes";
 import { ConvertFacts, ConvertHead } from "./ConvertFacts";
 
@@ -12,7 +12,8 @@ import { ConvertFacts, ConvertHead } from "./ConvertFacts";
  */
 export function ConvertCurrentService({ row }: { row: PlanDetailRow }) {
   const service = row.service;
-  const pill = SERVICE_PILL[service.status] ?? SERVICE_PILL[SERVICE_LINE_STATUS.Created];
+  const pills = servicePills();
+  const pill = pills[service.status] ?? pills[SERVICE_LINE_STATUS.Created];
   const paid = service.paidAmount;
 
   return (
@@ -32,7 +33,7 @@ export function ConvertCurrentService({ row }: { row: PlanDetailRow }) {
             { label: t("Treatment:Tooth:Tooth"), value: formatTeeth(service.teeth) },
             {
               label: t("Common:Status"),
-              value: <span className="pdt-status">{t(pill.label)}</span>,
+              value: <span className="pdt-status">{pill.label}</span>,
             },
           ]}
         />

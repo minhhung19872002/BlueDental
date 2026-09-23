@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Form, Radio } from "antd";
 import { t } from "@/lib/i18n";
-import { CARE_RATINGS } from "./careRating";
+import { careRatings } from "./careRating";
 
 /** "Mức độ hài lòng": four coloured radios laid out as columns. */
 export function CareRatingField() {
@@ -13,13 +13,13 @@ export function CareRatingField() {
       </span>
       <Form.Item name="outcome" className="pc-rating-item" rules={[{ required: true }]}>
         <Radio.Group className="pc-rating-radios">
-          {CARE_RATINGS.map((rating) => (
+          {careRatings().map((rating) => (
             <Radio
               key={rating.value}
               value={rating.value}
               className={`pc-rating-radio pc-rating-radio--${rating.tone}`}
             >
-              {t(rating.label)}
+              {rating.label}
             </Radio>
           ))}
         </Radio.Group>

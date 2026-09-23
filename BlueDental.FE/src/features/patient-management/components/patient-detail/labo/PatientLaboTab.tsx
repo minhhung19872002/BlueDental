@@ -26,21 +26,23 @@ import { buildPatientLaboColumns } from "./patientLaboColumns";
  * The three stat cards over the table, same as on Lịch hẹn; each filters the
  * list on the order kind, and each reads its number off the stats endpoint.
  */
-const COUNTERS: ReadonlyArray<{
+function laboCounters(): ReadonlyArray<{
   kind: LaboOrderKind;
   label: string;
   tone: "green" | "amber" | "red";
   stat: keyof Pick<LaboStatsDto, "new" | "continueStage" | "guarantee">;
-}> = [
-  { kind: LABO_ORDER_KIND.New, label: "Đơn hàng mới", tone: "green", stat: "new" },
-  {
-    kind: LABO_ORDER_KIND.ContinueStage,
-    label: "Tiếp tục công đoạn",
-    tone: "amber",
-    stat: "continueStage",
-  },
-  { kind: LABO_ORDER_KIND.Guarantee, label: "Bảo hành", tone: "red", stat: "guarantee" },
-];
+}> {
+  return [
+    { kind: LABO_ORDER_KIND.New, label: t("Patient:Labo:KindNew"), tone: "green", stat: "new" },
+    {
+      kind: LABO_ORDER_KIND.ContinueStage,
+      label: t("Patient:Labo:KindContinue"),
+      tone: "amber",
+      stat: "continueStage",
+    },
+    { kind: LABO_ORDER_KIND.Guarantee, label: t("Patient:Labo:KindWarranty"), tone: "red", stat: "guarantee" },
+  ];
+}
 
 /** Tab 6 of the patient record: the patient's labo orders and the order dialog. */
 export function PatientLaboTab({ patient }: { patient: PatientDto }) {
@@ -87,7 +89,7 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
     <section className="pd-pane pd-pane--fill">
       <div className="pd-record-toolbar">
         <div className="pd-stat-row pd-stat-row--equal">
-          {COUNTERS.map(({ kind: counterKind, label, tone, stat }) => (
+          {laboCounters().map(({ kind: counterKind, label, tone, stat }) => (
             <button
               type="button"
               key={counterKind}
@@ -96,7 +98,7 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
               onClick={() => toggleKind(counterKind)}
             >
               <strong>{stats.data?.[stat] ?? 0}</strong>
-              <span>{t(label)}</span>
+              <span>{label}</span>
             </button>
           ))}
         </div>

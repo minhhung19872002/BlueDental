@@ -3,7 +3,7 @@ import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {
-  PLAN_COLUMN_LABELS,
+  planColumnLabels,
   moneyCellClass,
   moneyText,
   planPill,
@@ -23,12 +23,13 @@ function moneyValue(plan: TreatmentPlanSlipDto, field: keyof PlanMoney) {
 
 function statusPill(plan: TreatmentPlanSlipDto) {
   const pill = planPill(plan);
-  return <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{t(pill.label)}</span>;
+  return <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{pill.label}</span>;
 }
 
 /** The card row for one configurable column; code and the eye live on the head. */
 function cardRow(plan: TreatmentPlanSlipDto, key: PlanColumnKey): RecordCardRow | null {
-  const label = t(PLAN_COLUMN_LABELS[key]);
+  const labels = planColumnLabels();
+  const label = labels[key];
   switch (key) {
     case "code":
     case "services":

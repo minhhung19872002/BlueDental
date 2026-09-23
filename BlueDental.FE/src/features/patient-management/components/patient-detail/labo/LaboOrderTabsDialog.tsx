@@ -1,13 +1,12 @@
 import { Modal } from "antd";
 import { useSearchParams } from "react-router-dom";
 import { PillTabs } from "@/components/PillTabs";
-import { t } from "@/lib/i18n";
 import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
 import { LaboChildForm } from "./LaboChildForm";
 import { LaboNewOrderTab } from "./LaboNewOrderTab";
 import {
   LABO_MODAL_KEYS,
-  LABO_MODAL_LABELS,
+  laboModalLabels,
   LABO_MODAL_PARAM,
   LABO_ROW_PARAM,
   isLaboModalKey,
@@ -76,13 +75,15 @@ export function LaboOrderTabsDialog({ branchId, patient }: Props) {
       />
     );
 
+  const labels = laboModalLabels();
+
   return (
     <Modal
       open={open}
       /* Measured on the reference: 772px, which lands its two columns on 349px. */
       width={772}
       className="pd-labo-dialog pd-labo-tabs-dialog"
-      title={t(LABO_MODAL_LABELS[activeKey])}
+      title={labels[activeKey]}
       onCancel={close}
       footer={null}
       destroyOnHidden
@@ -93,7 +94,7 @@ export function LaboOrderTabsDialog({ branchId, patient }: Props) {
         onChange={switchTab}
         items={LABO_MODAL_KEYS.map((key) => ({
           key,
-          label: t(LABO_MODAL_LABELS[key]),
+          label: labels[key],
           children: body(key),
         }))}
       />

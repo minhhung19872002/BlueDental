@@ -90,7 +90,7 @@ export function buildCareColumns({
         return (
           <span className={`pc-rating pc-rating--${rating.tone}`}>
             <i className="pc-rating-dot" aria-hidden />
-            {t(rating.label)}
+            {rating.label}
           </span>
         );
       },

@@ -6,29 +6,33 @@ import type { Appointment, AppointmentStatus } from "@/features/appointments/typ
 import { t } from "@/lib/i18n";
 
 /** The reference's four groups, and which server statuses land in each. */
-export const APPOINTMENT_GROUPS = [
-  { key: "scheduled", label: "Đã hẹn", tone: "blue", of: ["scheduled", "confirmed"] },
-  { key: "arrived", label: "Đã đến", tone: "green", of: ["inProgress", "completed"] },
-  { key: "cancelled", label: "Đã huỷ", tone: "red", of: ["cancelled"] },
-  { key: "late", label: "Trễ hẹn", tone: "amber", of: ["noShow"] },
-] as const;
+export function appointmentGroups() {
+  return [
+    { key: "scheduled" as const, label: t("Patient:Appt:Scheduled"), tone: "blue" as const, of: ["scheduled", "confirmed"] as const },
+    { key: "arrived" as const, label: t("Patient:Appt:Arrived"), tone: "green" as const, of: ["inProgress", "completed"] as const },
+    { key: "cancelled" as const, label: t("Patient:Appt:Cancelled"), tone: "red" as const, of: ["cancelled"] as const },
+    { key: "late" as const, label: t("Patient:Appt:Late"), tone: "amber" as const, of: ["noShow"] as const },
+  ];
+}
 
-export type AppointmentGroupKey = (typeof APPOINTMENT_GROUPS)[number]["key"];
+export type AppointmentGroupKey = "scheduled" | "arrived" | "cancelled" | "late";
 
 /** Whether an appointment in `status` counts under the group `key`. */
 export function inAppointmentGroup(key: AppointmentGroupKey, status: AppointmentStatus): boolean {
-  const group = APPOINTMENT_GROUPS.find((item) => item.key === key);
+  const group = appointmentGroups().find((item) => item.key === key);
   return group !== undefined && (group.of as readonly string[]).includes(status);
 }
 
-const STATUS_TONES: Record<AppointmentStatus, { label: string; bg: string; color: string }> = {
-  scheduled: { label: "Đã hẹn", bg: "#e3f2fd", color: "#1565c0" },
-  confirmed: { label: "Đã hẹn", bg: "#e3f2fd", color: "#1565c0" },
-  inProgress: { label: "Đã đến", bg: "#e8f5e9", color: "#2e7d32" },
-  completed: { label: "Đã đến", bg: "#e8f5e9", color: "#2e7d32" },
-  cancelled: { label: "Đã huỷ", bg: "#ffebee", color: "#c62828" },
-  noShow: { label: "Trễ hẹn", bg: "#fff3e0", color: "#ef6c00" },
-};
+function statusTones(): Record<AppointmentStatus, { label: string; bg: string; color: string }> {
+  return {
+    scheduled: { label: t("Patient:Appt:Scheduled"), bg: "#e3f2fd", color: "#1565c0" },
+    confirmed: { label: t("Patient:Appt:Scheduled"), bg: "#e3f2fd", color: "#1565c0" },
+    inProgress: { label: t("Patient:Appt:Arrived"), bg: "#e8f5e9", color: "#2e7d32" },
+    completed: { label: t("Patient:Appt:Arrived"), bg: "#e8f5e9", color: "#2e7d32" },
+    cancelled: { label: t("Patient:Appt:Cancelled"), bg: "#ffebee", color: "#c62828" },
+    noShow: { label: t("Patient:Appt:Late"), bg: "#fff3e0", color: "#ef6c00" },
+  };
+}
 
 interface RowHandlers {
   onEdit?: (row: Appointment) => void;
@@ -51,7 +55,7 @@ export function buildAppointmentColumns({
       width: 200,
       render: (value: string, row) => (
         <div className="pd-cell-stack">
-          <b>{dayjs(value).format("Patient:Misc:DateFormat")}</b>
+          <b>{dayjs(value).format(t("Patient:Misc:DateFormat"))}</b>
           <span>
             {dayjs(value).format("HH:mm")} – {dayjs(row.endTime).format("HH:mm")}
           </span>
@@ -74,7 +78,7 @@ export function buildAppointmentColumns({
       dataIndex: "status",
       width: 150,
       render: (value: AppointmentStatus) => {
-        const tone = STATUS_TONES[value];
+        const tone = statusTones()[value];
         return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
       },
     },

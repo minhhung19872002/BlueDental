@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { CareStatsDto } from "@/features/cskh/api/careApi";
 import { t } from "@/lib/i18n";
-import { CARE_CHIPS, type CareChipKey } from "./careChips";
+import { careChips, type CareChipKey } from "./careChips";
 
 interface Props {
   stats?: CareStatsDto;
@@ -12,7 +12,7 @@ interface Props {
 export function CareStatChips({ stats, active, onToggle }: Props) {
   return (
     <div className="pc-chips" role="group" aria-label={t("Patient:Care:FilterLabel")}>
-      {CARE_CHIPS.map((chip) => {
+      {careChips().map((chip) => {
         const pressed = active === chip.key;
         return (
           <Fragment key={chip.key}>
@@ -26,7 +26,7 @@ export function CareStatChips({ stats, active, onToggle }: Props) {
               onClick={() => onToggle(chip.key)}
             >
               <b className="pc-chip-count">{stats?.[chip.stat] ?? 0}</b>
-              <span className="pc-chip-label">{t(chip.label)}</span>
+              <span className="pc-chip-label">{chip.label}</span>
             </button>
           </Fragment>
         );

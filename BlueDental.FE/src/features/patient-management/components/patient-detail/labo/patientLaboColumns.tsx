@@ -77,7 +77,7 @@ export function buildPatientLaboColumns({
       width: 130,
       align: "center",
       render: (value: string | undefined) => (
-        <Tooltip title={value ? t("Xem file") : t("Patient:Misc:NoFile")}>
+        <Tooltip title={value ? t("Patient:Labo:ViewFile") : t("Patient:Misc:NoFile")}>
           <Button
             type="text"
             className="pd-labo-file"
@@ -86,7 +86,7 @@ export function buildPatientLaboColumns({
             target="_blank"
             rel="noreferrer"
             disabled={!value}
-            aria-label={t("Xem file")}
+            aria-label={t("Patient:Labo:ViewFile")}
           />
         </Tooltip>
       ),

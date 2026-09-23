@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
 import type { TreatmentPlanSlipDto, TreatmentServiceDto } from "../../api/treatmentPlanApi";
-import { moneyText, SERVICE_PILL } from "../plan/planTypes";
+import { moneyText, servicePills } from "../plan/planTypes";
 import { longDate, type ReceiptTotal } from "./receiptView";
 
 /** One service row of the slip's "Chi tiết phiếu" and of the printed "Phiếu điều trị". */
@@ -26,7 +26,7 @@ function lineOf(service: TreatmentServiceDto): SlipLine {
   return {
     service,
     teethLabel: teeth === "—" ? null : teeth,
-    statusLabel: t(SERVICE_PILL[service.status]?.label ?? ""),
+    statusLabel: servicePills()[service.status]?.label ?? "",
     unitLabel: t("{0} x {1}", moneyText(unit), service.quantity),
   };
 }
