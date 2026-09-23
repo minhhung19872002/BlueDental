@@ -307,7 +307,7 @@ test.describe("Kế hoạch điều trị", () => {
     const customerName = invoice.locator(".inv-field").first();
     await expect(customerName).toHaveClass(/floating-field--floated/);
     await expect(customerName).toContainText("Tên khách hàng");
-    await expect(invoice.locator(".inv-field", { hasText: "CMND/CCCD" })).not.toHaveClass(
+    await expect(invoice.locator(".inv-field", { hasText: "CCCD/CC" })).not.toHaveClass(
       /floating-field--floated/,
     );
     await page.keyboard.press("Escape");

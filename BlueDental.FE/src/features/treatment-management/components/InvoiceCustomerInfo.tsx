@@ -46,8 +46,16 @@ export function InvoiceCustomerInfo({
         >
           <Input value={customerName} onChange={(e) => onCustomerNameChange(e.target.value)} />
         </FloatingLabel>
-        <FloatingLabel label={t("CMND/CCCD")} floated={nationalId !== ""} className="inv-field">
-          <Input value={nationalId} onChange={(e) => onNationalIdChange(e.target.value)} />
+        <FloatingLabel label="CCCD/CC" floated={nationalId !== ""} className="inv-field">
+          <Input
+            value={nationalId}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, 12);
+              onNationalIdChange(v);
+            }}
+            maxLength={12}
+            status={nationalId && nationalId.length !== 12 ? "error" : undefined}
+          />
         </FloatingLabel>
         <FloatingLabel label={t("Treatment:Invoice:CompanyName")} floated={companyName !== ""} className="inv-field">
           <Input value={companyName} onChange={(e) => onCompanyNameChange(e.target.value)} />
