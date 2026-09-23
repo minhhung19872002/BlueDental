@@ -57,6 +57,9 @@ export function PatientProfilePage() {
   const paymentAbility = useAbility("payment");
   const imageAbility = useAbility("treatmentImage");
   const medicalRecordAbility = useAbility("patientMedicalRecord");
+  const consultationAbility = useAbility("treatmentConsultation");
+  const diagnosisAbility = useAbility("treatmentDiagnosis");
+  const stageAbility = useAbility("treatmentStage");
   const requestedTab = searchParams.get("tab");
   const view: RecordView = searchParams.get("view") === "medical-record" ? "medical-record" : "details";
   const listSearch = new URLSearchParams(searchParams);
@@ -79,6 +82,16 @@ export function PatientProfilePage() {
     if (!prescriptionAbility.canRead) hidden.add("prescription");
     if (!paymentAbility.canRead) hidden.add("invoice");
     if (!imageAbility.canRead) hidden.add("image");
+    // The debt ledger is the same GET as Hóa đơn — payment.read either way.
+    if (!paymentAbility.canRead) hidden.add("debt-history");
+    // The slip list is checked against treatmentConsultation.read directly.
+    if (!consultationAbility.canRead) hidden.add("treatment-plan");
+    // Chẩn đoán & Tư vấn reads through the legacy TreatmentPlans/Records
+    // policies, which the bridge grants for ANY of the three treatment
+    // subjects — so it only goes when the user can read none of them.
+    if (!diagnosisAbility.canRead && !consultationAbility.canRead && !stageAbility.canRead) {
+      hidden.add("consulting");
+    }
     return ALL_PATIENT_TABS.filter(([key]) => !hidden.has(key));
   }, [
     laboAbility.canRead,
@@ -87,6 +100,9 @@ export function PatientProfilePage() {
     prescriptionAbility.canRead,
     paymentAbility.canRead,
     imageAbility.canRead,
+    consultationAbility.canRead,
+    diagnosisAbility.canRead,
+    stageAbility.canRead,
   ]);
 
   const activeTab: PatientTab =

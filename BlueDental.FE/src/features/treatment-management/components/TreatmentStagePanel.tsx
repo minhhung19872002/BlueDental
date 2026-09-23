@@ -37,6 +37,8 @@ interface TreatmentStagePanelProps {
 export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
   const branchId = useCurrentBranchId();
   const ability = useAbility("treatmentStage");
+  const canContinue = ability.can("continue");
+  const canComplete = ability.can("complete");
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, isLoading } = useTreatmentStages({
@@ -109,7 +111,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
         );
       },
     },
-    ...(ability.canUpdate ? [{
+    ...(canContinue || canComplete ? [{
       title: t("Common:Actions"),
       key: "actions",
       width: 190,
@@ -119,7 +121,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
           <Text type="secondary">{t("Treatment:Stage:MarkedDone")}</Text>
         ) : (
           <Space size={4}>
-            {row.status === STAGE_STATUS.Pending ? (
+            {canContinue && row.status === STAGE_STATUS.Pending ? (
               <Button
                 size="small"
                 type="link"
@@ -131,14 +133,16 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
                 {t("Treatment:Stage:Resume")}
               </Button>
             ) : null}
-            <Button
-              size="small"
-              type="link"
-              loading={completeStage.isPending}
-              onClick={() => run(completeStage.mutateAsync(row.id), t("Treatment:Stage:CompletedStage"))}
-            >
-              {t("Treatment:Stage:Complete")}
-            </Button>
+            {canComplete && (
+              <Button
+                size="small"
+                type="link"
+                loading={completeStage.isPending}
+                onClick={() => run(completeStage.mutateAsync(row.id), t("Treatment:Stage:CompletedStage"))}
+              >
+                {t("Treatment:Stage:Complete")}
+              </Button>
+            )}
           </Space>
         ),
     }] : []),

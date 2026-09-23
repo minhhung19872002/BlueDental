@@ -5,6 +5,7 @@ import { Spin } from "antd";
 import { AppLayout } from "./AppLayout";
 import { PermissionRoute } from "./PermissionRoute";
 import { PrivateRoute } from "./PrivateRoute";
+import { PublicOnlyRoute } from "./PublicOnlyRoute";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import { ROUTE_PERMISSIONS, type RoutePermissionKey } from "./routePermissions";
 
@@ -186,9 +187,11 @@ const appRoutes: RouteObject[] = [
   {
     path: "/login",
     element: (
-      <S>
-        <LoginPage />
-      </S>
+      <PublicOnlyRoute>
+        <S>
+          <LoginPage />
+        </S>
+      </PublicOnlyRoute>
     ),
   },
   {

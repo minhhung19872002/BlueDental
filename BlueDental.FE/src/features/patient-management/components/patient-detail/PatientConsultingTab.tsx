@@ -113,7 +113,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
           onEdit={diagnosisAbility.canUpdate ? editor.edit : undefined}
           onCreateService={consultationAbility.canCreate ? setAdviseDiagnosis : undefined}
           onPrint={setPrinting}
-          onDelete={diagnosisAbility.canDelete ? actions.setRemovingDiagnosis : undefined}
+          onDelete={diagnosisAbility.canUpdate ? actions.setRemovingDiagnosis : undefined}
         >
           {editor.expanded && (
             <PatientDiagnosisForm
@@ -140,7 +140,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         selected={shownSelected}
         onSelect={quotes.active ? quotes.select : setSelectedAdvises}
         onEdit={consultationAbility.canUpdate ? setEditingAdvise : undefined}
-        onDelete={consultationAbility.canDelete ? actions.setRemovingAdvise : undefined}
+        onDelete={consultationAbility.canUpdate ? actions.setRemovingAdvise : undefined}
         onReorder={actions.moveAdvise}
         onAddToPlan={consultationAbility.canCreate ? (dentistId) => {
           void actions

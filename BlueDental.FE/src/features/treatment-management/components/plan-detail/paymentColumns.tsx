@@ -33,8 +33,10 @@ function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPayment
 /** What a receipt row can do: look at it, correct it, or take it back. */
 export interface PaymentRowActions {
   onView: (payment: PatientPaymentDto) => void;
-  onEdit: (payment: PatientPaymentDto) => void;
-  onCancel: (payment: PatientPaymentDto) => void;
+  /** Left out when the user may not edit a receipt (payment.update). */
+  onEdit?: (payment: PatientPaymentDto) => void;
+  /** Left out when the user may not void a receipt (payment.delete). */
+  onCancel?: (payment: PatientPaymentDto) => void;
 }
 
 /**
@@ -55,26 +57,30 @@ function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
           <Eye size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <ActionTooltip title={t("Common:Edit")}>
-        <button
-          type="button"
-          className="pdt-row-action"
-          aria-label={t("Treatment:Payment:EditPaymentFor", payment.code)}
-          onClick={() => actions.onEdit(payment)}
-        >
-          <Pencil size={16} aria-hidden="true" />
-        </button>
-      </ActionTooltip>
-      <ActionTooltip title={t("Common:Cancel")}>
-        <button
-          type="button"
-          className="pdt-row-action pdt-row-action--danger"
-          aria-label={t("Treatment:Payment:CancelPaymentFor", payment.code)}
-          onClick={() => actions.onCancel(payment)}
-        >
-          <Trash2 size={16} aria-hidden="true" />
-        </button>
-      </ActionTooltip>
+      {actions.onEdit && (
+        <ActionTooltip title={t("Common:Edit")}>
+          <button
+            type="button"
+            className="pdt-row-action"
+            aria-label={t("Treatment:Payment:EditPaymentFor", payment.code)}
+            onClick={() => actions.onEdit?.(payment)}
+          >
+            <Pencil size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
+      {actions.onCancel && (
+        <ActionTooltip title={t("Common:Cancel")}>
+          <button
+            type="button"
+            className="pdt-row-action pdt-row-action--danger"
+            aria-label={t("Treatment:Payment:CancelPaymentFor", payment.code)}
+            onClick={() => actions.onCancel?.(payment)}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
     </span>
   );
 }

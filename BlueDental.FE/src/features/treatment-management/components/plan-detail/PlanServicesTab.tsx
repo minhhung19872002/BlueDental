@@ -4,6 +4,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import { GENDER, type GenderCode, type PatientDto } from "@/features/patient-management/types/patient";
+import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -109,6 +110,9 @@ interface Props {
  */
 export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const narrow = useMediaQuery(NARROW_SCREEN);
+  // Adding, completing, converting, cancelling and reordering a line are all
+  // one endpoint family on the server, guarded by treatmentConsultation.update.
+  const canEditLines = useAbility("treatmentConsultation").canUpdate;
   const pagination = useTablePagination(10);
   const advises = usePatientAdvises({ patientId: patient.id, clinicBranchId: branchId, maxResultCount: 200 });
   const clinic = useBranchInfo(branchId);
@@ -182,20 +186,20 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   };
 
   const actions = useMemo<ServiceRowActions>(
-    () => ({ onView: setViewing, onStatus: handleStatus }),
+    () => ({ onView: setViewing, onStatus: canEditLines ? handleStatus : undefined }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
-    [plan.id],
+    [plan.id, canEditLines],
   );
   const dragHandle = useMemo<ServiceDragHandle>(
     () => ({
-      enabled: !narrow,
+      enabled: !narrow && canEditLines,
       handleProps: drag.handleProps,
       // `row.index` is the line's position on the whole slip, so a keyboard
       // nudge needs no page arithmetic; the server clamps the ends.
       onNudge: (row, delta) => void moveLine(row.service.id, row.index + delta),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- moveLine closes over stable mutations
-    [narrow, drag.handleProps],
+    [narrow, canEditLines, drag.handleProps],
   );
   const columns = useMemo(() => buildServiceColumns(actions, dragHandle), [actions, dragHandle]);
 
@@ -203,7 +207,11 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     <div className="pdt-pane">
       <PlanServicesToolbar
         draftServiceId={draft.controller?.service.id ?? null}
-        canAddService={plan.status !== PLAN_STATUS.Completed && plan.status !== PLAN_STATUS.Cancelled}
+        canAddService={
+          canEditLines &&
+          plan.status !== PLAN_STATUS.Completed &&
+          plan.status !== PLAN_STATUS.Cancelled
+        }
         onPickService={draft.start}
         onAddStage={() => setStageOpen(true)}
         onPrescription={() => setPrescriptionOpen(true)}
