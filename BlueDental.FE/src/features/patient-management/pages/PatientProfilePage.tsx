@@ -120,15 +120,18 @@ export function PatientProfilePage() {
     stageAbility.canRead,
   ]);
 
+  const defaultTab: PatientTab =
+    visibleTabs.includes("consulting") ? "consulting" : visibleTabs[0] ?? "profile";
+
   const activeTab: PatientTab =
     isPatientTab(requestedTab) && visibleTabs.includes(requestedTab)
       ? requestedTab
-      : visibleTabs[0] ?? "profile";
+      : defaultTab;
 
   const tabs: PageTab[] = visibleTabs.map((key) => {
     const next = new URLSearchParams(searchParams);
     next.delete("create");
-    if (key === "profile") next.delete("tab");
+    if (key === defaultTab) next.delete("tab");
     else next.set("tab", key);
     const query = next.toString();
     return { key, label: t(TAB_I18N[key]), to: `${location.pathname}${query ? `?${query}` : ""}` };
