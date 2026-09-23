@@ -19,7 +19,17 @@ export function useCalendarState() {
     });
   };
 
-  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [viewMode, setViewModeRaw] = useState<ViewMode>("day");
+
+  const setViewMode = (next: ViewMode) => {
+    if (next === "day") {
+      setSearchParams((params) => {
+        params.delete("date");
+        return params;
+      });
+    }
+    setViewModeRaw(next);
+  };
 
   const currentDate = dayjs(searchParams.get("date") ?? undefined);
 
