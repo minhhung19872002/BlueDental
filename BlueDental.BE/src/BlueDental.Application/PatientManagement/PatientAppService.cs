@@ -164,6 +164,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
 
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         patient.UpdateContact(new ContactInfo(input.PhoneNumber, input.Email, input.Address));
+        patient.SetNationalId(input.NationalId);
 
         if (!string.IsNullOrWhiteSpace(input.PatientCode) && input.PatientCode.Trim() != patient.PatientCode)
         {
@@ -539,7 +540,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
 
     /// <summary>
     /// Human-readable patient code, per branch and year — the reference uses the
-    /// same shape (e.g. <c>DH26010</c>) and lets the front desk overwrite the
+    /// same shape (e.g. <c>DH260010</c>) and lets the front desk overwrite the
     /// numeric half, so a supplied code wins as long as it is free.
     /// </summary>
     private async Task<string> ResolveCodeAsync(Guid branchId, string? supplied)
@@ -587,7 +588,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         return sequence;
     }
 
-    private static string CodePrefix(int year) => $"BD{year % 100:D2}";
+    private static string CodePrefix(int year) => $"DH{year % 100:D2}";
 
     private static string FormatSequence(int sequence) => $"{sequence:D4}";
 

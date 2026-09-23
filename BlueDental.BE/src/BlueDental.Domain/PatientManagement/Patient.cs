@@ -107,7 +107,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         Check.NotNullOrWhiteSpace(lastName, nameof(lastName));
         GuardDateOfBirth(dateOfBirth);
 
-        return new Patient
+        var patient = new Patient
         {
             Id = id,
             PatientCode = patientCode,
@@ -117,10 +117,11 @@ public class Patient : FullAuditedAggregateRoot<Guid>
             Gender = gender,
             Contact = contact,
             BranchId = branchId,
-            NationalId = nationalId,
             Status = PatientStatus.Active,
             RegisteredAt = DateTimeOffset.UtcNow
         };
+        patient.SetNationalId(nationalId);
+        return patient;
     }
 
     public Patient UpdateDemographics(
@@ -142,6 +143,17 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     public Patient UpdateContact(ContactInfo contact)
     {
         Contact = contact;
+        return this;
+    }
+
+    public Patient SetNationalId(string? nationalId)
+    {
+        if (!string.IsNullOrWhiteSpace(nationalId) && !System.Text.RegularExpressions.Regex.IsMatch(nationalId.Trim(), @"^\d{12}$"))
+        {
+            throw new Volo.Abp.BusinessException(BlueDentalDomainErrorCodes.PatientManagement.InvalidNationalId);
+        }
+
+        NationalId = nationalId?.Trim();
         return this;
     }
 

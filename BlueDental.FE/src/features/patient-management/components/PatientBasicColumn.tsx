@@ -87,6 +87,23 @@ export function PatientBasicColumn({
         </FloatingField>
 
         <FloatingField
+          label={t("CCCD")}
+          name="nationalId"
+          rules={[
+            {
+              pattern: /^\d{12}$/,
+              message: t("Patient:Form:InvalidCCCD"),
+            },
+          ]}
+        >
+          <Input
+            placeholder="CCCD (12 chữ số)"
+            maxLength={12}
+            inputMode="numeric"
+          />
+        </FloatingField>
+
+        <FloatingField
           label={t("Email")}
           name="email"
           rules={[{ type: "email", message: t("Patient:Form:InvalidEmail") }]}

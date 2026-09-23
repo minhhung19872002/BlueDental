@@ -43,6 +43,7 @@ export interface PatientFormValues {
   occupationEntryId?: string;
   /** Free text behind the occupation list's "Khác"; absent until it is ticked. */
   occupationOther?: string;
+  nationalId: string;
   insuranceNumber: string;
   country: string;
   address: string;
@@ -82,6 +83,7 @@ const EMPTY: PatientFormValues = {
   note: "",
   occupationEntryId: undefined,
   occupationOther: "",
+  nationalId: "",
   insuranceNumber: "",
   country: "",
   address: "",
@@ -157,6 +159,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
             note: patient.note ?? "",
             occupationEntryId: patient.occupationEntryId ?? undefined,
             occupationOther: patient.occupationOther ?? "",
+            nationalId: patient.nationalId ?? "",
             insuranceNumber: patient.insuranceNumber ?? "",
             country: t("Patient:DefaultCountry"),
             address: patient.address ?? "",
@@ -230,6 +233,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
       gender: values.gender,
       phoneNumber: values.phone.trim(),
       email: values.email.trim() || undefined,
+      nationalId: values.nationalId.trim() || undefined,
       patientCode: values.codeSequence.trim()
         ? `${codePrefix}${values.codeSequence.trim()}`
         : undefined,

@@ -127,7 +127,7 @@ public class PatientListItemDto
 /// <summary>The code the "BE:Common:CreateRecord" dialog opens with, split as it renders it.</summary>
 public class PatientCodeEstimateDto
 {
-    /// <summary>The fixed half, e.g. <c>BD26</c> — shown greyed and not editable.</summary>
+    /// <summary>The fixed half, e.g. <c>DH26</c> — shown greyed and not editable.</summary>
     public string Prefix { get; set; } = default!;
 
     /// <summary>The editable half, e.g. <c>013</c>.</summary>
@@ -187,6 +187,7 @@ public class UpdatePatientDto
     public Gender Gender { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
+    public string? NationalId { get; set; }
 
     /// <summary>Null keeps the current code.</summary>
     public string? PatientCode { get; set; }
