@@ -32,8 +32,8 @@ public class ToolsAppService(
         var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await callConfigurationRepo.GetQueryableAsync())
             .Where(x => x.ClinicBranchId == branchId);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            q = q.Where(x => x.Name.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            q = q.Where(x => x.Name.ToLower().Contains(term));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)
@@ -105,8 +105,8 @@ public class ToolsAppService(
         var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await callAssignmentRepo.GetQueryableAsync())
             .Where(x => x.ClinicBranchId == branchId);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            q = q.Where(x => x.Sip.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            q = q.Where(x => x.Sip.ToLower().Contains(term));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)
@@ -254,8 +254,8 @@ public class ToolsAppService(
         q = q.Where(x => x.ClinicBranchId == branchId);
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            q = q.Where(x => x.Name.Contains(input.Filter) || x.Content.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            q = q.Where(x => x.Name.ToLower().Contains(term) || x.Content.ToLower().Contains(term));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)
@@ -334,8 +334,8 @@ public class ToolsAppService(
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (input.Status.HasValue)
             q = q.Where(x => (int)x.Status == input.Status.Value);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            q = q.Where(x => x.RecipientName.Contains(input.Filter) || x.RecipientPhone.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            q = q.Where(x => x.RecipientName.ToLower().Contains(term) || x.RecipientPhone.ToLower().Contains(term));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)

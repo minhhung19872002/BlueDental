@@ -57,11 +57,8 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         if (input.PatientId.HasValue) query = query.Where(i => i.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(i => i.Status == input.Status.Value);
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
-            var filter = input.Filter.Trim();
-            query = query.Where(i => i.InvoiceNumber.Contains(filter));
-        }
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(i => i.InvoiceNumber.ToLower().Contains(term));
 
         var totalCount = await AsyncExecuter.CountAsync(query);
 

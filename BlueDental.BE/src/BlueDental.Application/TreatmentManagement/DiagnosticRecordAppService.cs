@@ -28,8 +28,8 @@ public class DiagnosticRecordAppService(
         if (input.PatientId.HasValue)
             query = query.Where(d => d.PatientId == input.PatientId.Value);
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(d => d.Code.Contains(input.Filter!) || (d.Diagnosis != null && d.Diagnosis.Contains(input.Filter!)));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(d => d.Code.ToLower().Contains(term) || (d.Diagnosis != null && d.Diagnosis.ToLower().Contains(term)));
 
         var totalCount = query.Count();
         var items = query

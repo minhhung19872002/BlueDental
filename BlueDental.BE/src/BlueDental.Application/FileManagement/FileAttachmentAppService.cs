@@ -37,8 +37,8 @@ public class FileAttachmentAppService : ApplicationService, IFileAttachmentAppSe
         if (input.OwnerEntityId.HasValue)
             query = query.Where(f => f.OwnerEntityId == input.OwnerEntityId.Value);
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(f => f.FileName.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(f => f.FileName.ToLower().Contains(term));
 
         var totalCount = query.Count();
         var items = query

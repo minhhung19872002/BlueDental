@@ -269,8 +269,8 @@ public class LaboAppService : ApplicationService, ILaboAppService
             query = query.Where(o => o.Kind == input.Kind.Value);
         if (input.Status.HasValue)
             query = query.Where(o => o.Status == input.Status.Value);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(o => o.OrderCode.Contains(input.Filter) || o.LabProviderName.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(o => o.OrderCode.ToLower().Contains(term) || o.LabProviderName.ToLower().Contains(term));
 
         // The window is named in whole days, so the upper bound covers all of
         // the day it names rather than stopping at its midnight.

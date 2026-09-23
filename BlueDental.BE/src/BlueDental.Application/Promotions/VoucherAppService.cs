@@ -313,11 +313,8 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
             };
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
-            var filter = input.Filter.Trim();
-            query = query.Where(x => x.Code.Contains(filter) || x.Name.Contains(filter));
-        }
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(x => x.Code.ToLower().Contains(term) || x.Name.ToLower().Contains(term));
 
         return query;
     }

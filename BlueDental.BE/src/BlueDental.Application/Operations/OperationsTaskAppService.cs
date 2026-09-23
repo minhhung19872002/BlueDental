@@ -180,11 +180,8 @@ public class OperationsTaskAppService : ApplicationService, IOperationsTaskAppSe
             query = query.Where(x => x.Status == input.Status.Value);
         if (input.AssigneeStaffId.HasValue)
             query = query.Where(x => x.AssigneeStaffId == input.AssigneeStaffId.Value);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
-            var filter = input.Filter.Trim();
-            query = query.Where(x => x.Title.Contains(filter));
-        }
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(x => x.Title.ToLower().Contains(term));
 
         var items = query.ToList();
 

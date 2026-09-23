@@ -23,8 +23,8 @@ public class PrescriptionTemplateAppService : ApplicationService, IPrescriptionT
     public async Task<PagedResultDto<PrescriptionTemplateDto>> GetListAsync(GetPrescriptionTemplateListInput input)
     {
         var query = await _repository.GetQueryableAsync();
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(x => x.Name.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(x => x.Name.ToLower().Contains(term));
         if (input.IsActive.HasValue)
             query = query.Where(x => x.IsActive == input.IsActive.Value);
 

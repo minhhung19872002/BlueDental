@@ -23,8 +23,8 @@ public class DentalProcedureAppService : ApplicationService, IDentalProcedureApp
     public async Task<PagedResultDto<DentalProcedureDto>> GetListAsync(GetDentalProcedureListInput input)
     {
         var query = await _repository.GetQueryableAsync();
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(p => p.Name.Contains(input.Filter) || p.Code.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(p => p.Name.ToLower().Contains(term) || p.Code.ToLower().Contains(term));
         if (input.Category.HasValue) query = query.Where(p => p.Category == input.Category.Value);
         if (input.IsActive.HasValue) query = query.Where(p => p.IsActive == input.IsActive.Value);
 

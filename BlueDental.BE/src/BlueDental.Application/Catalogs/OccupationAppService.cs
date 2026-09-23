@@ -23,8 +23,8 @@ public class OccupationAppService : ApplicationService, IOccupationAppService
     public async Task<PagedResultDto<OccupationDto>> GetListAsync(GetOccupationListInput input)
     {
         var query = await _repository.GetQueryableAsync();
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(x => x.Name.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(x => x.Name.ToLower().Contains(term));
         if (input.IsActive.HasValue)
             query = query.Where(x => x.IsActive == input.IsActive.Value);
 

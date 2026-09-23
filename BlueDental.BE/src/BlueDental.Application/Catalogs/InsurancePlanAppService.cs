@@ -25,10 +25,10 @@ public class InsurancePlanAppService : ApplicationService, IInsurancePlanAppServ
     {
         var query = await _repository.GetQueryableAsync();
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        foreach (var term in SearchTerms.From(input.Filter))
             query = query.Where(p =>
-                p.Name.Contains(input.Filter) ||
-                p.Code.Contains(input.Filter));
+                p.Name.ToLower().Contains(term) ||
+                p.Code.ToLower().Contains(term));
 
         if (input.IsActive.HasValue)
             query = query.Where(p => p.IsActive == input.IsActive.Value);

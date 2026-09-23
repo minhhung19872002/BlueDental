@@ -84,11 +84,8 @@ public class OperationsArticleAppService : ApplicationService, IOperationsArticl
                 || (x.Section == OperationsSection.Process && readableProcess.Contains(x.Department)));
         if (input.IsPublished.HasValue)
             query = query.Where(x => x.IsPublished == input.IsPublished.Value);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
-            var filter = input.Filter.Trim();
-            query = query.Where(x => x.Title.Contains(filter));
-        }
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(x => x.Title.ToLower().Contains(term));
 
         var totalCount = query.Count();
         var items = query

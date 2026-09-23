@@ -52,11 +52,9 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
+        foreach (var term in SearchTerms.From(input.Filter))
             query = query.Where(b =>
-                b.Name.Contains(input.Filter) || b.Code.Contains(input.Filter));
-        }
+                b.Name.ToLower().Contains(term) || b.Code.ToLower().Contains(term));
 
         if (input.Status.HasValue)
         {

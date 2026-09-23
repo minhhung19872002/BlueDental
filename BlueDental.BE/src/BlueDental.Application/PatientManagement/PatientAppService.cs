@@ -264,18 +264,15 @@ public class PatientAppService : ApplicationService, IPatientAppService
         var query = await _repository.GetQueryableAsync();
         query = query.Where(p => p.BranchId == branchId);
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        var terms = SearchTerms.From(input.Filter);
+        foreach (var term in terms)
         {
-            // The UI shows and searches one full name ("họ tên"), so the concatenation
-            // has to match too — matching the halves alone never finds a typed full name.
-            var filter = input.Filter.Trim();
-
             query = query.Where(p =>
-                p.FirstName.Contains(filter)
-                || p.LastName.Contains(filter)
-                || (p.LastName + " " + p.FirstName).Contains(filter)
-                || p.PatientCode.Contains(filter)
-                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(filter)));
+                p.FirstName.ToLower().Contains(term)
+                || p.LastName.ToLower().Contains(term)
+                || (p.LastName + " " + p.FirstName).ToLower().Contains(term)
+                || p.PatientCode.ToLower().Contains(term)
+                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(term)));
         }
 
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);

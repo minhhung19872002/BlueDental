@@ -40,8 +40,8 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
         if (input.Status.HasValue)
             query = query.Where(c => c.Status == input.Status.Value);
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(c => c.ClaimReference.Contains(input.Filter));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(c => c.ClaimReference.ToLower().Contains(term));
 
         var totalCount = query.Count();
         var items = query
