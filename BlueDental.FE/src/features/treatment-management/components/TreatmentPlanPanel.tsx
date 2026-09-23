@@ -43,7 +43,9 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const navigate = useNavigate();
   const branchId = useCurrentBranchId();
-  const ability = useAbility("treatmentPlan");
+  // The slip is opened through the consulting line, so the server gates it on
+  // treatmentConsultation.create — there is no treatmentPlan subject.
+  const ability = useAbility("treatmentConsultation");
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [createOpen, setCreateOpen] = useState(false);

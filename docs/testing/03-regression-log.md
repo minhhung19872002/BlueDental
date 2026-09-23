@@ -5066,3 +5066,54 @@ Ca kiểm: server trả lỗi, câu tiếng Việt hiện trên màn hình, **kh
 "lỗi nội bộ", và tải lại thì phiếu vẫn đúng **một** dòng — không có gì bị chuyển.
 
 `treatment-plan-detail` + `treatment-plan` **19/19** trên bản build production.
+
+## 2026-09-22 (đợt 13) — Nút "Tạo kế hoạch mới" biến mất sau khi nhập main
+
+Sau khi đưa nhánh làm việc lên `origin/main` (commit phân quyền `3747b2c`), tab
+**Kế hoạch điều trị** của hồ sơ bệnh nhân mất hẳn nút **"Tạo kế hoạch mới"** —
+với **mọi** tài khoản, kể cả `admin`.
+
+Không phải lỗi hợp nhất. Commit phân quyền bọc nút lại:
+
+```tsx
+const ability = useAbility("treatmentPlan");
+onCreate={ability.canCreate ? () => setCreateOpen(true) : undefined}
+```
+
+nhưng **`treatmentPlan` không phải là một subject của cây quyền**. Đối chiếu 24
+subject phía giao diện gọi với 86 subject `BlueDentalAbilityPermissions` định
+nghĩa: `treatmentPlan` là cái **duy nhất** không tồn tại. `useAbility` chỉ tra
+`Set` các lá đã cấp, nên một subject bịa ra cho `canCreate = false` vĩnh viễn —
+không ai cấp được lá không có trong cây.
+
+Quyền đúng đọc từ **đường đi thật của nút**: `POST patient-advises` →
+`accept` → `POST patient-treatments`. Khâu cuối (`PatientTreatmentAppService
+.OpenAsync`) gác bằng `TreatmentConsultation.Create`; policy module cũ của
+advise cũng quy về `treatmentConsultation` / `treatmentStage` /
+`treatmentDiagnosis` qua `BlueDentalPermissionBridge`. Ràng buộc chặt nhất là
+`treatmentConsultation.create` — đúng lá mà nút "Thêm kế hoạch điều trị" ở tab
+Chẩn đoán & Tư vấn đang dùng cho cùng một việc.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-467 | `TreatmentPlanPanel` gác nút bằng `useAbility("treatmentPlan")`, một subject không có trong cây quyền → nút ẩn với mọi user | Đổi sang `useAbility("treatmentConsultation")`, đúng lá server kiểm ở `OpenAsync` |
+
+Bài học để khỏi lặp: **subject truyền vào `useAbility` là chuỗi tự do** — gõ sai
+không ai báo, và triệu chứng là nút lặng lẽ biến mất chứ không phải 403. Khi
+thêm một chỗ gác quyền, đọc `[Authorize]` của chính endpoint mà nút gọi, đừng
+đặt tên subject theo tên màn hình. Lệnh soát nhanh:
+
+```
+# subject giao diện gọi mà backend không định nghĩa — phải rỗng
+grep -rhon 'useAbility("[a-zA-Z]*")' BlueDental.FE/src | sed 's/.*useAbility("\(.*\)")/\1/' | sort -u > /tmp/fe.txt
+grep -o 'Subject = "[a-zA-Z]*"' BlueDental.BE/src/BlueDental.Domain.Shared/Permissions/BlueDentalAbilityPermissions.cs | sed 's/Subject = "\(.*\)"/\1/' | sort -u > /tmp/be.txt
+comm -23 /tmp/fe.txt /tmp/be.txt
+```
+
+### Kiểm thử
+
+Chạy thật trên dev server :5173 + API :5019 + DB thật, đăng nhập qua màn hình
+login (không nhét token): nút hiện lại trên tab Kế hoạch điều trị, bấm vào mở
+đúng dialog **"Tạo phiếu dịch vụ"**. Quét lại toàn bộ: không còn subject nào
+giao diện gọi mà backend không có. `tsc -b --noEmit` sạch.
+
