@@ -174,8 +174,8 @@ export function BillingPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title={t(“Billing:PageTitle”)}
-        subtitle={t(“Billing:PageSubtitle”)}
+        title={t("Billing:PageTitle")}
+        subtitle={t("Billing:PageSubtitle")}
         actions={
           ability.canExport && (
             <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
