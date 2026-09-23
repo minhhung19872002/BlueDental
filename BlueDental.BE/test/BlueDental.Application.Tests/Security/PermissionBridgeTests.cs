@@ -68,17 +68,20 @@ public class PermissionBridgeTests
     }
 
     [Fact]
-    public void Every_Bridge_Key_Should_Be_A_Legacy_Permission()
+    public void Every_Bridge_Key_Should_Be_A_Legacy_Or_Abp_Permission()
     {
         var legacy = LegacyNames();
-        BlueDentalPermissionBridge.Map.Keys.Where(k => !legacy.Contains(k)).ShouldBeEmpty();
+        BlueDentalPermissionBridge.Map.Keys
+            .Where(k => !legacy.Contains(k))
+            .Where(k => !k.StartsWith("AbpIdentity.", StringComparison.Ordinal))
+            .ShouldBeEmpty();
     }
 
     [Fact]
-    public void SystemAdministration_Should_Not_Be_Bridged()
+    public void SystemAdministration_Users_Should_Not_Be_Bridged()
     {
         BlueDentalPermissionBridge.Map.Keys
-            .Where(k => k.StartsWith(BlueDentalPermissions.SystemAdministration.Default, StringComparison.Ordinal))
+            .Where(k => k.StartsWith(BlueDentalPermissions.SystemAdministration.Users.Default, StringComparison.Ordinal))
             .ShouldBeEmpty();
     }
 

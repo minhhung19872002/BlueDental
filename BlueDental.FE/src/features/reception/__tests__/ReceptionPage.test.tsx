@@ -3,7 +3,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReceptionPage } from "../pages/ReceptionPage";
 
-// Mock window.matchMedia and ResizeObserver for AntD components
+vi.mock("@/hooks/useAbility", () => ({
+  useAbility: () => ({
+    can: () => true,
+    canRead: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
+    canExport: true,
+    canApprove: true,
+  }),
+  abilityName: (subject: string, action: string) =>
+    `BlueDental.${subject}.${action}`,
+}));
+
 beforeEach(() => {
   globalThis.ResizeObserver = class ResizeObserver {
     observe() {}
@@ -48,8 +61,6 @@ describe("ReceptionPage", () => {
     expect(screen.getByText("Ngày")).toBeInTheDocument();
     expect(screen.getByText("Tuần")).toBeInTheDocument();
     expect(screen.getByText("Tháng")).toBeInTheDocument();
-    // The toolbar carries two copies of the search box — one inline for wide
-    // screens, one block below it for narrow ones — and CSS picks which shows.
     expect(screen.getAllByPlaceholderText("Tìm bệnh nhân...")).toHaveLength(2);
     expect(screen.getByText("Tạo tiếp nhận")).toBeInTheDocument();
   });
@@ -66,11 +77,7 @@ describe("ReceptionPage", () => {
     fireEvent.click(createBtn);
 
     await waitFor(() => {
-      // The drawer reuses the toolbar wording, so the title makes "Tạo tiếp nhận"
-      // appear twice; the patient search field is what identifies the drawer.
       expect(screen.getAllByText("Tạo tiếp nhận").length).toBeGreaterThan(1);
-      // The patient picker is an antd Select, whose placeholder is not a real
-      // input placeholder — assert on the field label instead.
       expect(screen.getByText("Khách hàng")).toBeInTheDocument();
     });
   });

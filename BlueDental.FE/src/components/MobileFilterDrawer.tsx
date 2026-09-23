@@ -39,13 +39,12 @@ export function MobileFilterDrawer({
         open={open}
         onClose={onClose}
         placement="bottom"
-        height="50vh"
         closable
         title={t("Bộ lọc")}
         className="mobile-filter-drawer"
         styles={{
-          wrapper: { borderRadius: "16px 16px 0 0", overflow: "hidden" },
-          content: { borderRadius: "16px 16px 0 0" },
+          wrapper: { borderRadius: "16px 16px 0 0", overflow: "hidden", height: "50vh" },
+          section: { borderRadius: "16px 16px 0 0" },
           body: { padding: "20px 16px 0", display: "flex", flexDirection: "column", gap: 24 },
           header: { padding: "12px 16px", borderBottom: "1px solid #e7eaf6" },
           footer: { padding: "12px 16px", borderTop: "1px solid #e7eaf6" },
