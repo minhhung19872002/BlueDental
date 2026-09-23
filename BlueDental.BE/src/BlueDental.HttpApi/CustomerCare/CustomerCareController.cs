@@ -70,6 +70,7 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
         CareType.AppointmentReminder => "cskh-nhac-lich-hen",
         CareType.Periodic => "cskh-dinh-ky",
         CareType.Special => "cskh-dac-biet",
+        CareType.NoService => "cskh-khong-lam-dich-vu",
         _ => "cskh",
     };
 }

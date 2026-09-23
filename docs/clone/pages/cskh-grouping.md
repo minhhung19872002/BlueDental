@@ -11,7 +11,7 @@ Screenshots + captures: reference-private/survey/staging/cskh-*.png, cskh-*.xlsx
 | Param | Values | Notes |
 |---|---|---|
 | `tab` | `care` (mặc định) / `group` | Top tab. Giá trị khác (vd `grouping`) → fallback về `care` |
-| `page` | `after-treatment` (mặc định) / `birthday` / `remind-appointment` / `periodic` / `special` | Care-type tab, chỉ khi `tab=care` |
+| `page` | `after-treatment` (mặc định) / `birthday` / `remind-appointment` / `no-service` / `periodic` / `special` | Care-type tab, chỉ khi `tab=care` |
 | `care_dateMode` | `day` / `week` / `month` | Đổi mode reset `care_date` về hiện tại (day→hôm nay, week→thứ 2 tuần này, month→ngày 1 tháng này) |
 | `care_date` | `yyyy-MM-dd` | day: ngày; week: thứ Hai của tuần; month: ngày 1 của tháng |
 | `taxonomyId` | ObjectId | Chỉ tab group — filter Nhóm dịch vụ (được sync lên URL) |
@@ -59,6 +59,7 @@ Date range gửi API: UTC ISO có offset +7 (tháng 4 = `2026-03-31T17:00:00.000
 | after-treatment | afterTreatment | dateTime | desc | startTime/toTime |
 | birthday | happyBirthday | dateTime | asc | startTime/toTime |
 | remind-appointment | reminder | dateTime | asc | startTime/toTime |
+| no-service | noService | dateTime | desc | startTime/toTime |
 | periodic | recurring | scheduleStartTime | desc | scheduleStartTime/scheduleToTime |
 | special | special | scheduleStartTime | desc | scheduleStartTime/scheduleToTime |
 
@@ -93,6 +94,7 @@ Dropdown staff: `GET /staff/list?page=1&perPage=20&status=active&isResigned=fals
 | Sau điều trị | ✓ | ✓ | ✓ | — | — |
 | Sinh nhật | ✓ | ✓ | — | — | — |
 | Nhắc lịch hẹn | ✓ | ✓ | ✓ | ✓ | — |
+| Không làm dịch vụ | ✓ | ✓ | ✓ | ✓ | — |
 | Định kì | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Đặc biệt | ✓ | ✓ | ✓ | ✓ | ✓ |
 
@@ -105,6 +107,7 @@ Common: cột KH = link `[MÃ] - TÊN` → `/patient/{id}?branchId=` + dòng ph�
 | Sau điều trị (8) | Ngày chăm sóc, Họ và tên, Số điện thoại, Bác sĩ điều trị, Lịch hẹn sắp tới, Trạng thái, Ghi chú, Thao tác |
 | Sinh nhật (5) | Họ và tên, Số điện thoại, Trạng thái, Ghi chú, Thao tác |
 | Nhắc lịch hẹn (10) | Lịch hẹn, Họ và tên, Số điện thoại, Bác sĩ điều trị, Nhân viên chăm sóc, Nội dung hẹn, Trạng thái lịch hẹn, Trạng thái CSKH, Ghi chú, Thao tác |
+| Không làm dịch vụ (10) | Ngày chăm sóc, Họ và tên, Số điện thoại, Bác sĩ điều trị, Nhân viên chăm sóc, Lịch hẹn sắp tới, Trạng thái, Ghi chú, Thao tác |
 | Định kì (9) | Lịch hẹn chăm sóc, Họ và tên, Số điện thoại, Bác sĩ điều trị, Nhân viên chăm sóc, Lịch hẹn sắp tới, Trạng thái, Ghi chú, Thao tác |
 | Đặc biệt (9) | (giống Định kì) |
 
@@ -123,7 +126,7 @@ Class chung: `flex size-7 items-center justify-center rounded-full text-[#HEX] t
 | send | #0068FF | Tab Nhắc lịch hẹn + Chúc mừng sinh nhật (user xác nhận trên staging 2026-08-27, screenshot dialog giống hệt reminder). Dialog "Gửi ZBS qua Zalo" (xem bên dưới) — mở dialog KHÔNG gửi gì |
 | file-heart | #2671D8 | reminder/birthday → dialog kết quả chăm sóc (title = tên loại CSKH, vd "Nhắc lịch hẹn"); tab group → dialog "Tạo công việc mới" (type=base) |
 
-Per tab: after-treatment 2 nút (phone/message — **KHÔNG có file-heart**, user xác nhận trên staging 2026-08-27, thay thế ghi nhận cũ 2026-08-26 "file-heart trên row success"), birthday 4 (thêm send + file-heart — send do user xác nhận 2026-08-27, thay thế ghi nhận cũ "send chỉ reminder"), reminder 4 (thêm send + file-heart), periodic/special 2 (phone/message).
+Per tab: after-treatment 2 nút (phone/message — **KHÔNG có file-heart**, user xác nhận trên staging 2026-08-27, thay thế ghi nhận cũ 2026-08-26 "file-heart trên row success"), birthday 4 (thêm send + file-heart — send do user xác nhận 2026-08-27, thay thế ghi nhận cũ "send chỉ reminder"), reminder 4 (thêm send + file-heart), no-service 3 (phone/message + file-heart, KHÔNG send), periodic/special 2 (phone/message).
 
 ## Dialog "Lưu tin nhắn" (message-square-text)
 

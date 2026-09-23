@@ -2,11 +2,12 @@ import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 import { CARE_TYPE, type CareType } from "./api/careApi";
 
-/** URL `page=` keys of the 5 care-type tabs, reference order. */
+/** URL `page=` keys of the 6 care-type tabs, reference order. */
 export type CareTabKey =
   | "after-treatment"
   | "birthday"
   | "remind-appointment"
+  | "no-service"
   | "periodic"
   | "special";
 
@@ -67,6 +68,17 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: true,
     fileHeart: "result",
     wideTable: true,
+  },
+  {
+    key: "no-service",
+    type: CARE_TYPE.NoService,
+    label: () => t("CSKH:Type:NoService"),
+    showDoctor: true,
+    showCareStaff: true,
+    showCreate: false,
+    showSend: false,
+    fileHeart: "result",
+    wideTable: false,
   },
   {
     key: "periodic",

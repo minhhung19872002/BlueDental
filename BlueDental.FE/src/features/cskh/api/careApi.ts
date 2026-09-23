@@ -12,6 +12,7 @@ export const CARE_TYPE = {
   Periodic: 4,
   Special: 5,
   Base: 6,
+  NoService: 7,
 } as const;
 export type CareType = (typeof CARE_TYPE)[keyof typeof CARE_TYPE];
 
@@ -59,6 +60,7 @@ export const careTypeLabels = (): Record<CareType, string> => ({
   [CARE_TYPE.Periodic]: t("CSKH:Type:Periodic"),
   [CARE_TYPE.Special]: t("CSKH:Type:Special"),
   [CARE_TYPE.Base]: t("CSKH:Type:Base"),
+  [CARE_TYPE.NoService]: t("CSKH:Type:NoService"),
 });
 
 export const careGenderLabels = (): Record<CareGender, string> => ({

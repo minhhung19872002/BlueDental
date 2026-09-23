@@ -98,6 +98,10 @@ const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareR
     { ...c.status, title: t("CSKH:Col:CareStatus") },
     c.note, c.actions,
   ],
+  "no-service": (c) => [
+    careDateColumn(),
+    c.patient, c.phone, c.doctor, c.careStaff, c.upcoming, c.status, c.note, c.actions,
+  ],
   periodic: periodicColumns,
   special: periodicColumns,
 };

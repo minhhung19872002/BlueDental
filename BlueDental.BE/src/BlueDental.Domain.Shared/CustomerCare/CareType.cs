@@ -27,5 +27,8 @@ public enum CareType : short
     Special = 5,
 
     /// <summary>Chăm sóc cơ bản — công việc tạo từ tab Phân nhóm CSKH (<c>base</c>).</summary>
-    Base = 6
+    Base = 6,
+
+    /// <summary>Không làm dịch vụ — bệnh nhân đã đến nhưng không phát sinh dịch vụ.</summary>
+    NoService = 7
 }

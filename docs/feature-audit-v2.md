@@ -98,7 +98,7 @@ Ngày kiểm tra: **03/09/2026**
 | TT | Chức năng | BE | FE | Trạng thái | Ghi chú |
 |---|---|---|---|---|---|
 | 1 | Nhắc hẹn | ✅ | ✅ | Hoàn thiện | CareType reminder + CareBoard UI |
-| 2 | Không làm dịch vụ | ✅ | ✅ | Hoàn thiện | CareType enum + tab riêng |
+| 2 | Không làm dịch vụ | ✅ | ✅ | Hoàn thiện | CareType.NoService=7 + tab + NoServiceCareWorker background job |
 | 3 | Ngày sinh nhật | ✅ | ✅ | Hoàn thiện | CareType birthday tab |
 | 4 | Đặt lịch không đến | ✅ | ✅ | Hoàn thiện | CareType noShow + NoShow appointment status |
 | 5 | Sau điều trị — Đánh giá | ✅ | ✅ | Hoàn thiện | CareType postTreatment tab |

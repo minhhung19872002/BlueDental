@@ -450,7 +450,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private static IOrderedQueryable<CareRecord> SortForBoard(
         IQueryable<CareRecord> query, CareType? type) => type switch
     {
-        CareType.AfterTreatment => query.OrderByDescending(r => r.DueAt),
+        CareType.AfterTreatment or CareType.NoService => query.OrderByDescending(r => r.DueAt),
         CareType.Birthday or CareType.AppointmentReminder => query.OrderBy(r => r.DueAt),
         CareType.Periodic or CareType.Special => query.OrderByDescending(r => r.ScheduledStart),
         _ => query.OrderByDescending(r => r.CreationTime),

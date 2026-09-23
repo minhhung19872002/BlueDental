@@ -140,6 +140,38 @@ public class CustomerCareAppServiceContractTests
     }
 }
 
+public class NoServiceCareTypeTests
+{
+    [Fact]
+    public void CareType_Should_Have_NoService_Value()
+    {
+        ((short)CareType.NoService).ShouldBe((short)7);
+    }
+
+    [Fact]
+    public void ExportColumns_Should_Dispatch_NoService_To_Its_Own_Set()
+    {
+        var columns = CareExportColumns.For(CareType.NoService);
+        columns.ShouldNotBeNull();
+        columns.Count.ShouldBeGreaterThan(0);
+        columns.Count.ShouldNotBe(CareExportColumns.For(CareType.Periodic).Count,
+            "NoService should have its own column set, not fall through to Scheduled");
+    }
+
+    [Fact]
+    public void CareRecord_Should_Accept_NoService_Type()
+    {
+        var record = new CareRecord(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            CareType.NoService, "Không làm dịch vụ",
+            appointmentId: Guid.NewGuid());
+
+        record.Type.ShouldBe(CareType.NoService);
+        record.Status.ShouldBe(CareStatus.New);
+        record.AppointmentId.ShouldNotBeNull();
+    }
+}
+
 public class CareRecordBehaviorTests
 {
     private static CareRecord NewRecord(CareType type = CareType.Special) =>

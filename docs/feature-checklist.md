@@ -23,7 +23,7 @@ Kiểm tra lần cuối: 2026-09-23
 ## 2. CHĂM SÓC (Tự động phân loại chăm sóc theo loại)
 
 - [x] 2.1 Nhắc hẹn — Chi tiết chăm sóc - Nhắc lịch khách hàng. Được quản lý bởi bộ phận telesale hoặc chăm sóc khách hàng. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
-- [ ] 2.2 Không làm dịch vụ — Chi tiết chăm sóc khách hàng không phát sinh dịch vụ. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
+- [x] 2.2 Không làm dịch vụ — Chi tiết chăm sóc khách hàng không phát sinh dịch vụ. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.3 Ngày sinh nhật — Chi tiết chăm sóc - Sinh nhật khách hàng. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [ ] 2.4 Đặt lịch không đến — Chi tiết chăm sóc - Đặt lịch nhưng không đến. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.5 Sau điều trị - Đánh giá sau điều trị — Chi tiết chăm sóc khách hàng sau điều trị, ghi nhận các ý kiến đánh giá của khách theo từng tiêu chí cụ thể. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).

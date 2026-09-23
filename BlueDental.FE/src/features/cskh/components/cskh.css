@@ -123,6 +123,12 @@
   left: 30px;
 }
 
+/* SearchSelect's built-in magnifier is decorative in these filter dropdowns —
+   the resting label sits at the normal 12px, not pushed past the icon. */
+.cskh-select .floating-field:not(.floating-field--floated) .floating-field-label {
+  left: 12px;
+}
+
 /* Reference Xuất Excel: white button, blue border and blue icon + label. */
 .cskh-excel-btn.ant-btn {
   color: var(--bd-blue);

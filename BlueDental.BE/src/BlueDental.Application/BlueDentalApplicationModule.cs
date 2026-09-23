@@ -1,3 +1,4 @@
+using BlueDental.CustomerCare;
 using BlueDental.Permissions;
 using BlueDental.Promotions;
 using BlueDental.Queue;
@@ -60,5 +61,6 @@ public class BlueDentalApplicationModule : AbpModule
         await context.AddBackgroundWorkerAsync<VoucherExpirationWorker>();
         await context.AddBackgroundWorkerAsync<TimekeepingEndOfDayWorker>();
         await context.AddBackgroundWorkerAsync<QueueWaitingTimeWorker>();
+        await context.AddBackgroundWorkerAsync<NoServiceCareWorker>();
     }
 }

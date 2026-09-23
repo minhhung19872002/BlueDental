@@ -21,6 +21,7 @@ public static class CareExportColumns
         CareType.AfterTreatment => AfterTreatment,
         CareType.Birthday => Birthday,
         CareType.AppointmentReminder => Reminder,
+        CareType.NoService => NoService,
         _ => Scheduled,
     };
 
@@ -68,6 +69,21 @@ public static class CareExportColumns
         new("Nội dung lịch hẹn", r => r.AppointmentContent, 24),
         new("Trạng thái lịch hẹn", r => AppointmentStatusLabel(r.AppointmentStatus), 20),
         new("Trạng thái CSKH", r => StatusLabel(r.Status), 16),
+        new("Ghi chú", r => r.Description, 36),
+    ];
+
+    /// <summary>Không làm dịch vụ — 10 cột.</summary>
+    private static readonly ExcelColumn<CareRecordDto>[] NoService =
+    [
+        new("Ngày CSKH", r => DateTimeText(r.DueAt), 20),
+        new("Mã KH", r => r.PatientCode, 14),
+        new("Họ và tên", r => r.PatientName, 24),
+        new("Giới tính", r => GenderLabel(r.PatientGender), 12),
+        new("Ngày sinh", r => DateText(r.PatientDateOfBirth), 16),
+        new("Số điện thoại", r => r.PatientPhone, 16),
+        new("Bác sĩ điều trị", r => r.AssignedStaffName, 20),
+        new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
+        new("Trạng thái", r => StatusLabel(r.Status), 16),
         new("Ghi chú", r => r.Description, 36),
     ];
 
