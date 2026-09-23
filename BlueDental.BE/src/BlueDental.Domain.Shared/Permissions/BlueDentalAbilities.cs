@@ -127,6 +127,7 @@ public static class BlueDentalAbilities
         public const string TreatmentImage = "treatmentImage";
         public const string TreatmentLabo = "treatmentLabo";
         public const string TreatmentStage = "treatmentStage";
+        public const string Queue = "queue";
         public const string Voucher = "voucher";
         public const string WorkSchedule = "workSchedule";
     }
@@ -223,6 +224,8 @@ public static class BlueDentalAbilities
         ["treatmentImage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentLabo"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentStage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Continue, Actions.Complete, Actions.Print],
+        // BlueDental-local: the reference has no queue subject.
+        ["queue"] = [Actions.Read, Actions.Create, Actions.Update],
         ["voucher"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["workSchedule"] = [Actions.Read, Actions.Update, Actions.AttendanceOthers],
     };

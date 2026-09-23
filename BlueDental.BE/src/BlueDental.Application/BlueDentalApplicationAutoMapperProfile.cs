@@ -109,5 +109,14 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         /* File Management */
         CreateMap<FileAttachment, FileAttachmentDto>();
+
+        /* Queue */
+        CreateMap<Queue.QueueTicket, Queue.QueueTicketDto>()
+            .ForMember(d => d.PatientName, opt => opt.Ignore())
+            .ForMember(d => d.DentistName, opt => opt.Ignore())
+            .ForMember(d => d.CounterName, opt => opt.Ignore());
+        CreateMap<Queue.QueueTicket, Queue.QueueDisplayDto>()
+            .ForMember(d => d.CounterName, opt => opt.Ignore());
+        CreateMap<Queue.ServiceCounter, Queue.ServiceCounterDto>();
     }
 }

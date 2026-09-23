@@ -15,14 +15,15 @@ export type Language = "vi" | "en";
 const STORAGE_KEY = "bluedental.language";
 
 /**
- * Vietnamese is the source language: the text in the code IS the key, and the
- * server resource holds the English overlay. A string nobody has translated yet
- * still renders correctly instead of showing a key, and adding a screen never
- * requires touching the resource first.
- *
  * The overlay is ABP's own localization resource (BlueDental), fetched from
- * /api/abp/application-localization, so the browser and the server share one
- * source of truth — that file already carries the business error messages.
+ * /api/abp/application-localization for BOTH languages, so the browser and
+ * the server share one source of truth.
+ *
+ * Two key styles coexist:
+ * - Vietnamese text as key: `t("Bệnh nhân")` — legacy, still works because
+ *   overlay falls back to the key itself when no entry exists.
+ * - ABP namespace key: `t("Queue:PageTitle")` — preferred for new features,
+ *   requires entries in both vi.json and en.json.
  */
 let overlay: Record<string, string> = {};
 
@@ -37,8 +38,8 @@ let overlay: Record<string, string> = {};
  * assembled from fragments — word order differs between the two languages, so
  * "Hiển thị {0} trên {1}" has to become "Showing {0} of {1}" as a whole.
  */
-export function t(vietnamese: string, ...params: (string | number)[]): string {
-  const template = overlay[vietnamese] ?? vietnamese;
+export function t(key: string, ...params: (string | number)[]): string {
+  const template = overlay[key] ?? key;
   if (params.length === 0) return template;
   return template.replace(/\{(\d+)\}/g, (match, index: string) => {
     const value = params[Number(index)];
@@ -51,8 +52,8 @@ export function t(vietnamese: string, ...params: (string | number)[]): string {
  * instead of strings, so a sentence can carry emphasis (a bold record count, a
  * highlighted group name) while still being translated as one whole sentence.
  */
-export function tRich(vietnamese: string, ...params: ReactNode[]): ReactNode {
-  const template = overlay[vietnamese] ?? vietnamese;
+export function tRich(key: string, ...params: ReactNode[]): ReactNode {
+  const template = overlay[key] ?? key;
 
   return template.split(/(\{\d+\})/).map((chunk, index) => {
     const placeholder = /^\{(\d+)\}$/.exec(chunk);
@@ -78,11 +79,6 @@ interface AbpLocalizationResponse {
 }
 
 async function fetchOverlay(language: Language): Promise<Record<string, string>> {
-  if (language === "vi") {
-    // The code is already Vietnamese; there is nothing to overlay.
-    return {};
-  }
-
   const response = await api.get<AbpLocalizationResponse>("/abp/application-localization", {
     params: { cultureName: language, onlyDynamics: false },
   });

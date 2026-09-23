@@ -96,6 +96,7 @@ export const ROUTE_PERMISSIONS = {
     ...OPERATIONS_EXTRA_SUBJECTS,
   ]),
   tools: readOf(["toolCall", "toolMessage"]),
+  queue: readOf(["queue"]),
   taxonomy: readOf(CATALOG_SUBJECTS),
   /* The settings page gates its own tabs — see ClinicSettingsPage. */
   /* Admin-only screens that still carry the older permission names. */

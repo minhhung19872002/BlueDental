@@ -10,6 +10,7 @@ using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Operations;
 using BlueDental.Organizations;
+using BlueDental.Queue;
 using BlueDental.Tools;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
@@ -48,6 +49,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureFinance(builder);
         ConfigurePromotions(builder);
         ConfigureTaxonomyCatalog(builder);
+        ConfigureQueue(builder);
     }
 
     private static void ConfigureOrganizations(ModelBuilder builder)
@@ -1342,5 +1344,31 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.SortOrder });
         });
 
+    }
+
+    private static void ConfigureQueue(ModelBuilder builder)
+    {
+        builder.Entity<ServiceCounter>(entity =>
+        {
+            entity.ToTable("bd_service_counters");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Name }).IsUnique();
+        });
+
+        builder.Entity<QueueTicket>(entity =>
+        {
+            entity.ToTable("bd_queue_tickets");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Priority).HasConversion<short>();
+            entity.Property(x => x.DisplayNumber).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.ServiceType).HasMaxLength(100);
+            entity.Property(x => x.Note).HasMaxLength(500);
+
+            entity.HasIndex(x => new { x.ClinicBranchId, x.QueueDate, x.TicketNumber }).IsUnique();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.QueueDate, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.QueueDate });
+        });
     }
 }

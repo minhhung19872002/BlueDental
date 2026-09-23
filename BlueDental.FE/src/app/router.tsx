@@ -109,6 +109,18 @@ const VoucherPage = lazy(() =>
   })),
 );
 
+const QueuePage = lazy(() =>
+  import("@/features/queue/pages/QueuePage").then((m) => ({
+    default: m.QueuePage,
+  })),
+);
+
+const QueueDisplayPage = lazy(() =>
+  import("@/features/queue/pages/QueueDisplayPage").then((m) => ({
+    default: m.QueueDisplayPage,
+  })),
+);
+
 const ClinicSettingsPage = lazy(() =>
   import("@/features/organizations/pages/ClinicSettingsPage").then((m) => ({
     default: m.ClinicSettingsPage,
@@ -176,6 +188,14 @@ const appRoutes: RouteObject[] = [
     element: (
       <S>
         <LoginPage />
+      </S>
+    ),
+  },
+  {
+    path: "/queue/display",
+    element: (
+      <S>
+        <QueueDisplayPage />
       </S>
     ),
   },
@@ -385,6 +405,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="tools">
             <ToolsPage />
+          </G>
+        ),
+      },
+      // ── Queue (Màn hình đợi — BlueDental-local, no reference) ──
+      {
+        path: "queue",
+        element: (
+          <G k="queue">
+            <QueuePage />
           </G>
         ),
       },

@@ -248,6 +248,13 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateEmail = "BlueDental:Staff:0007";
     }
 
+    public static class Queue
+    {
+        public const string TicketNotFound = "BlueDental:Queue:0001";
+        public const string InvalidTransition = "BlueDental:Queue:0002";
+        public const string AlreadyQueued = "BlueDental:Queue:0003";
+    }
+
     public static class Tools
     {
         public const string ConfigurationNotFound = "BlueDental:Tools:0001";

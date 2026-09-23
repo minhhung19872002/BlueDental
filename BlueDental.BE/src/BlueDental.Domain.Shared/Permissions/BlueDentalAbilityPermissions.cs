@@ -885,6 +885,15 @@ public static class BlueDentalAbilityPermissions
         public const string Print = "BlueDental.treatmentStage.print";
     }
 
+    /// <summary>Subject <c>queue</c>.</summary>
+    public static class Queue
+    {
+        public const string Subject = "queue";
+        public const string Read = "BlueDental.queue.read";
+        public const string Create = "BlueDental.queue.create";
+        public const string Update = "BlueDental.queue.update";
+    }
+
     /// <summary>Subject <c>voucher</c>.</summary>
     public static class Voucher
     {

@@ -110,6 +110,12 @@ export const NAV_ENTRIES = {
     icon: "M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4V8zm12-2v12",
     permissions: ROUTE_PERMISSIONS.voucher,
   },
+  queue: {
+    path: "/queue",
+    label: "Màn hình đợi",
+    icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+    permissions: ROUTE_PERMISSIONS.queue,
+  },
   taxonomy: {
     path: "/taxonomy",
     label: "Danh mục",
@@ -151,7 +157,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "clinic",
     label: "Phòng khám",
     icon: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
-    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh],
+    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh, NAV_ENTRIES.queue],
   },
   {
     id: "finance",

@@ -12,6 +12,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Promotions;
 using BlueDental.Timekeeping;
+using BlueDental.Queue;
 using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
 using Microsoft.EntityFrameworkCore;
@@ -135,6 +136,10 @@ public class BlueDentalDbContext :
     public DbSet<RichTextImage> RichTextImages { get; set; }
     public DbSet<OperationsArticle> OperationsArticles { get; set; }
     public DbSet<OperationsTask> OperationsTasks { get; set; }
+
+    // Queue
+    public DbSet<QueueTicket> QueueTickets { get; set; }
+    public DbSet<ServiceCounter> ServiceCounters { get; set; }
 
     // Tools
     public DbSet<CallConfiguration> CallConfigurations { get; set; }
