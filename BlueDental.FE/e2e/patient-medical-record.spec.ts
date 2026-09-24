@@ -485,6 +485,45 @@ test.describe("Bệnh án", () => {
    * folds to one column below 1024px — closing the index to its header and
    * pinning the bar to the window, because there is no column left to sit over.
    */
+  /**
+   * On a wide window the index folds to the reference's 64px rail
+   * (`lg:grid-cols-[64px_minmax(0,1fr)]`) holding only its PanelLeftOpen
+   * button, and the sheet takes the width. Read off its bundle 2026-09-24.
+   */
+  test("the index folds to a rail on a wide window and opens again", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await openMedicalRecord(page);
+
+    const grid = page.locator(".pd-medical-grid");
+    const index = page.locator(".pd-medical-index");
+    const canvas = page.locator(".pd-medical-canvas");
+    await expect(grid).toHaveCSS("grid-template-columns", /^320px /);
+    const wideBefore = (await canvas.boundingBox())!.width;
+
+    const fold = page.getByRole("button", { name: "Thu gọn mục lục bệnh án" });
+    await expect(fold).toHaveAttribute("title", "Thu gọn mục lục");
+    await fold.click();
+
+    await expect(index).toHaveClass(/--collapsed/);
+    await expect(grid).toHaveCSS("grid-template-columns", /^64px /);
+    await expect.poll(async () => Math.round((await index.boundingBox())!.width)).toBe(64);
+    // The rail is the button and nothing else — no title, no forms.
+    await expect(index.getByText("Mục lục bệnh án")).toBeHidden();
+    await expect(page.locator(".pd-medical-forms")).toBeHidden();
+    // It keeps the column's height, as the reference's `lg:h-full` does.
+    expect((await index.boundingBox())!.height).toBeGreaterThan(400);
+    await expect.poll(async () => (await canvas.boundingBox())!.width).toBeGreaterThan(wideBefore + 200);
+
+    const open = page.getByRole("button", { name: "Mở rộng mục lục bệnh án" });
+    await expect(open).toHaveAttribute("title", "Mở rộng mục lục");
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    await open.click();
+    await expect(index).not.toHaveClass(/--collapsed/);
+    await expect(grid).toHaveCSS("grid-template-columns", /^320px /);
+    await expect(page.locator(".pd-medical-forms")).toBeVisible();
+    await expect(index.getByText("Mục lục bệnh án")).toBeVisible();
+  });
+
   test("the two columns fold on a narrow window", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openMedicalRecord(page);
@@ -538,7 +577,7 @@ test.describe("Bệnh án", () => {
      * its list scrolls inside it, so the header stays put — nine form rows and
      * every copy made from them is several windows of content otherwise.
      */
-    await page.getByRole("button", { name: "Mở mục lục" }).click();
+    await page.getByRole("button", { name: "Mở rộng mục lục bệnh án" }).click();
     const listScrolling = await page.evaluate(() => {
       const index = document.querySelector<HTMLElement>(".pd-medical-index")!;
       const list = document.querySelector<HTMLElement>(".pd-medical-forms")!;
@@ -620,7 +659,7 @@ test.describe("Bệnh án", () => {
     for (const width of [1440, 900]) {
       await page.setViewportSize({ width, height: 900 });
       if (width === 1440) await openMedicalRecord(page);
-      if (width === 900) await page.getByRole("button", { name: "Mở mục lục" }).click();
+      if (width === 900) await page.getByRole("button", { name: "Mở rộng mục lục bệnh án" }).click();
 
       const geometry = await page.locator(".pd-sheet-card").evaluateAll((cards) =>
         cards.map((card) => {
@@ -834,7 +873,7 @@ test.describe("Bệnh án", () => {
     const openTitle = page.locator(".pd-medical-canvas-head strong");
 
     await expect(index).toHaveClass(/--collapsed/);
-    await page.getByRole("button", { name: "Mở mục lục" }).click();
+    await page.getByRole("button", { name: "Mở rộng mục lục bệnh án" }).click();
     await expect(index).not.toHaveClass(/--collapsed/);
 
     /*

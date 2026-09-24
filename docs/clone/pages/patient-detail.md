@@ -2658,7 +2658,8 @@ giấy, còn bản gốc **nhét mỗi phiếu thành một thẻ ngay dưới b
 | Thành phần | Bản gốc |
 |---|---|
 | Panel | 320px, `rounded-xl`, viền `--bd-line`, dính `top: 132px` |
-| Đầu panel | Icon + "Mục lục bệnh án" + "N biểu mẫu" (**đếm phiếu**, không phải biểu mẫu) + nút thu gọn |
+| Đầu panel | Icon + "Mục lục bệnh án" + "N biểu mẫu" (**đếm phiếu**, không phải biểu mẫu) + nút thu gọn (lucide `PanelLeftClose`, aria-label "Thu gọn mục lục bệnh án", title "Thu gọn mục lục") |
+| Thu gọn (≥ lg) | Lưới `320px 1fr` → **`64px 1fr`** (transition 200ms); panel giữ nguyên chiều cao, đầu panel chỉ còn nút `PanelLeftOpen` căn giữa (aria-label "Mở rộng mục lục bệnh án", title "Mở rộng mục lục"); danh sách ẩn. State thường (`useState(false)`), không lưu. Đọc từ bundle 2026-09-24 |
 | Hàng biểu mẫu | `rounded-2xl`, nền tint riêng, `padding: 8px 10px` |
 | Thẻ phiếu | 268x113, `rounded-xl`, viền 2px `#D7E0ED`, nền trắng, `shadow-sm`; hover nhấc `-2px` |
 | Thẻ đang mở | viền `#2671D8`, nền `#EAF2FD`, quầng `ring-2` 20% |

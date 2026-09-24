@@ -5595,3 +5595,25 @@ Dev server :5173 (StrictMode) → API :5019 → PostgreSQL local, đăng nhập 
   đối chứng với HEAD.
 - `tsc -b`, eslint các file đã sửa, `vitest` xanh.
 - Chưa chạy trên bản build production (`vite preview` :8080).
+
+## 2026-09-24 (đợt 2) — "Thêm chẩn đoán" và thu gọn "Mục lục bệnh án"
+
+Hai hành vi đọc từ chunk đã publish của bản gốc (file tĩnh, không bấm gì trên staging/production).
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-541 | "Thêm chẩn đoán" trong form "Tạo chẩn đoán" luôn bị disable | Bật theo cùng điều kiện với "Lưu Chẩn Đoán"; lưu một chẩn đoán rồi làm trống form và giữ form mở (`intent: "add"`, `blankCount`). Unknown cũ đã đóng |
+| R-542 | Thu gọn "Mục lục bệnh án" chỉ ẩn danh sách, cột vẫn 320px và header vẫn đủ chữ | Màn rộng (> 1024px): cột 64px, panel giữ chiều cao, chỉ còn nút `PanelLeftOpen` căn giữa; aria-label/title theo bản gốc. Màn hẹp giữ hành vi cũ |
+
+### Kiểm thử
+
+Stack phụ: FE dev :5174 → API :5020 (BE build ra thư mục riêng, cùng PostgreSQL local), đăng nhập thật, không chặn request.
+
+- `patient.spec` "Thêm chẩn đoán files the slip and leaves a blank form for the next one" (mới) **xanh**: hai lần thêm liên tiếp,
+  mỗi lần đúng một `POST`, form vẫn mở và trống, DB tăng đúng 2.
+- `patient-medical-record.spec` **22/23**: có test mới "the index folds to a rail on a wide window and opens again" và 3 test đổi
+  tên nút sang "Mở rộng mục lục bệnh án". Ca đỏ là "the index lists the reference's nine forms…", **phụ thuộc thứ tự** như đã ghi
+  ở R-487: bệnh nhân đầu danh sách không có tờ bệnh án nào.
+- `consulting-plan` 10/13: 3 ca đỏ (dịch vụ có giá, tab báo giá còn sót, khoảng chữ ký bản in) không đụng file đã sửa. Hai ca
+  sau lần đầu đỏ sau khi dọn DB còn 15 bệnh nhân; chưa điều tra.
+- Key i18n mới (`Patient:MedicalRecord:ExpandIndexAria` / `CollapseIndexAria`) nằm ở BE. API đang chạy phải build lại mới thấy.

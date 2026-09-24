@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Button } from "antd";
-import { FileTextOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined } from "@ant-design/icons";
+import { FileTextOutlined, PlusOutlined } from "@ant-design/icons";
+import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { PatientMedicalRecordDto } from "../../api/medicalRecordApi";
 import { MEDICAL_RECORD_FORMS, type MedicalRecordFormSpec } from "./medicalRecordForms";
@@ -46,24 +47,35 @@ export function MedicalRecordIndex({
 }: Props) {
   return (
     <aside className={["pd-medical-index", collapsed && "pd-medical-index--collapsed"].filter(Boolean).join(" ")}>
+      {/*
+        * Folded on a wide window the panel is the reference's 64px rail: the
+        * header keeps only the button that opens it again (PanelLeftOpen). The
+        * title stays in the DOM for the narrow layout, where folding leaves the
+        * header row and only the list goes — see patient-detail.css.
+        */}
       <header className="pd-medical-index-head">
         <span className="pd-medical-index-icon">
           <FileTextOutlined />
         </span>
-        <div>
+        <div className="pd-medical-index-title">
           <strong>{t("Patient:MedRecord:Index")}</strong>
           <small>{t("Patient:MedicalRecord:FormCount", sheets.length)}</small>
         </div>
         <Button
           type="text"
           className="pd-medical-collapse"
-          aria-label={collapsed ? t("Patient:MedicalRecord:Expand") : t("Patient:MedRecord:CollapseIndex")}
-          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          aria-label={
+            collapsed ? t("Patient:MedicalRecord:ExpandIndexAria") : t("Patient:MedicalRecord:CollapseIndexAria")
+          }
+          aria-expanded={!collapsed}
+          aria-controls="pd-medical-forms"
+          title={collapsed ? t("Patient:MedicalRecord:Expand") : t("Patient:MedRecord:CollapseIndex")}
+          icon={collapsed ? <PanelLeftOpenIcon size={16} strokeWidth={1.75} /> : <PanelLeftCloseIcon size={16} strokeWidth={1.75} />}
           onClick={onToggleCollapse}
         />
       </header>
 
-      <ul className="pd-medical-forms">
+      <ul id="pd-medical-forms" className="pd-medical-forms">
         {MEDICAL_RECORD_FORMS.map((spec) => {
           // Sheets keep the order the server lists them in, so the ordinal a
           // card shows is stable: the first one made is always Bản 01.

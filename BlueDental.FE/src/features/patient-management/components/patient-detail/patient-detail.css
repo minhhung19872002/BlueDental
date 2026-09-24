@@ -2074,6 +2074,11 @@
   flex: 1;
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 16px;
+  transition: grid-template-columns 0.2s;
+}
+/* Folded: the reference's `lg:grid-cols-[64px_minmax(0,1fr)]` rail. */
+.pd-medical-grid--collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
 }
 
 /* ── Mục lục bệnh án ────────────────────────────────────────────────────── */
@@ -2649,11 +2654,46 @@
 .pd-medical-index--collapsed .pd-medical-forms {
   display: none;
 }
-/* Collapsed, the panel is its header and nothing else — it must not hold on to
-   the tall box the media query gives the open one. */
-.pd-medical-index--collapsed {
-  height: auto;
-  min-height: 0;
+/*
+ * Folded on a wide window the panel stays full height and its header is only
+ * the open button, centred — the reference's `justify-center px-2`. Below the
+ * two-column breakpoint the media query above takes the rail's place.
+ */
+.pd-medical-index--collapsed .pd-medical-index-head {
+  justify-content: center;
+  padding: 12px 8px;
+}
+.pd-medical-index--collapsed .pd-medical-index-icon,
+.pd-medical-index--collapsed .pd-medical-index-title {
+  display: none;
+}
+.pd-medical-index--collapsed .pd-medical-collapse.ant-btn {
+  margin-left: 0;
+}
+.pd-medical-collapse.ant-btn:hover {
+  background: #edf2f8;
+  color: var(--bd-blue);
+}
+@media (max-width: 1024px) {
+  /* Narrow, folding keeps the header row and drops only the list; the panel
+     must not hold on to the tall box the media query gives the open one. */
+  .pd-medical-index--collapsed {
+    height: auto;
+    min-height: 0;
+  }
+  .pd-medical-index--collapsed .pd-medical-index-head {
+    justify-content: flex-start;
+    padding: 14px 16px;
+  }
+  .pd-medical-index--collapsed .pd-medical-index-icon {
+    display: grid;
+  }
+  .pd-medical-index--collapsed .pd-medical-index-title {
+    display: block;
+  }
+  .pd-medical-index--collapsed .pd-medical-collapse.ant-btn {
+    margin-left: auto;
+  }
 }
 
 /* ── Bìa hồ sơ bệnh án ──────────────────────────────────────────────────── */
