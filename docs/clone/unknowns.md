@@ -2601,3 +2601,12 @@ Reason: bundle 2026-09-24 cho thấy bản gốc lấy Số lượng = số răn
         cho sửa giá, số lượng mặc định 1. Chưa đổi vì là thay đổi nghiệp vụ,
         chờ chủ dự án quyết.
 Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — "Xoá phiếu chẩn đoán"
+Control: xoá một phiếu đã có dịch vụ tư vấn bên dưới
+Reason: bản gốc gọi `DELETE patient-diagnoses/{id}`; server của nó làm gì với
+        các dòng tư vấn của phiếu (xoá theo, giữ, hay từ chối) không đọc được
+        từ bundle và không được thử trên bản gốc. BlueDental xoá mềm phiếu, giữ
+        nguyên các dòng tư vấn, và từ chối phiếu đã điều trị (0010).
+Action taken: NONE

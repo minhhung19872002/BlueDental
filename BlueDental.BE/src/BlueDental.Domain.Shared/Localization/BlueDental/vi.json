@@ -2079,6 +2079,7 @@
     "Patient:Advise:CompletedService": "Dịch vụ đã hoàn tất",
     "Patient:Advise:NoQuoteService": "Chưa chọn dịch vụ báo giá",
     "Patient:Advise:ServiceRejected": "Đã từ chối dịch vụ tư vấn",
+    "Patient:Advise:ServiceDeleted": "Đã xoá dịch vụ",
     "Patient:Advise:DeleteService": "Xoá dịch vụ tư vấn",
     "Patient:Advise:ColumnConfig": "Cấu hình cột",
     "Patient:Advise:DisplayColumns": "Cột hiển thị",

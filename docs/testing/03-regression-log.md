@@ -5617,3 +5617,33 @@ Stack phụ: FE dev :5174 → API :5020 (BE build ra thư mục riêng, cùng Po
 - `consulting-plan` 10/13: 3 ca đỏ (dịch vụ có giá, tab báo giá còn sót, khoảng chữ ký bản in) không đụng file đã sửa. Hai ca
   sau lần đầu đỏ sau khi dọn DB còn 15 bệnh nhân; chưa điều tra.
 - Key i18n mới (`Patient:MedicalRecord:ExpandIndexAria` / `CollapseIndexAria`) nằm ở BE. API đang chạy phải build lại mới thấy.
+
+## 2026-09-24 (đợt 3) — Chẩn đoán & Tư vấn: cột răng, thanh cuộn, "Chọn Dịch Vụ", xoá
+
+Đọc từ chunk đã publish của bản gốc. Trên staging chỉ mở form "Tạo chẩn đoán" (chỉ đổi trạng thái giao diện) và đọc stylesheet.
+Không lưu, không xoá gì.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-543 | Cột Răng của bảng chẩn đoán in cả mặt răng ("14, 13 - Mặt gần, …") | Chỉ số răng (`formatToothCodes`); chip trong form vẫn giữ mặt răng |
+| R-544 | Mở form chẩn đoán thì thêm một thanh cuộn 15px sát thanh cuộn của pane | Card vẫn tự cuộn như bản gốc (`max-h-600 overflow-auto`), nhưng thanh cuộn vẽ như staging: 6px, thumb rgba(27,42,65,.12). Nguyên nhân: `scrollbar-color` khai báo trên `html` bị kế thừa, khiến Chrome bỏ qua `::-webkit-scrollbar` và vẽ thanh cổ điển 15px |
+| R-545 | "Chọn Dịch Vụ": thanh nhóm khác bản gốc (nút "Tất cả dịch vụ", một hàng, ô tìm bên phải) | `AdviseGroupPicker` theo component chip của bản gốc: nhãn + ô tìm 260px, chip 2 hàng giữa hai mũi tên, bấm lại để bỏ chọn, nhóm 20/trang và cuộn thì tải thêm. `useChipScroller` chuyển lên `src/hooks` để dùng chung với Labo |
+| R-546 | Lọc theo nhóm ra "Không có dịch vụ phù hợp" dù nhóm có dịch vụ (NHÓM KEO 560646) | Modal tải **200 dòng đầu** một lần rồi lọc ở trình duyệt, và chỉ lấy `isActive=true`. Nay lọc ở server theo `taxonomyId` + tìm kiếm, 20/trang, cuộn thì tải thêm, lọc `isDeleted=false` như bản gốc (BE thêm tham số tuỳ chọn `IsDeleted` cho list catalog). Dòng đã tick giữ luôn dịch vụ của nó nên đổi nhóm không mất lựa chọn |
+| R-547 | Xoá chẩn đoán / xoá dịch vụ tư vấn chỉ đổi trạng thái (Cancel / Reject): toast "Đã từ chối…", dòng vẫn nằm trong bảng | Gọi `DELETE` như bản gốc; toast "Đã xoá chẩn đoán" / "Đã xoá dịch vụ". Domain `EnsureDeletable`: từ chối phiếu đã điều trị (0010) và dòng đã vào kế hoạch (0011 → 422) |
+| R-548 | `DELETE`/`GET`/`PUT` theo id của phiếu chẩn đoán và dịch vụ tư vấn **không kiểm chi nhánh**: biết id là xoá được bản ghi của chi nhánh khác | `GetInBranchAsync` cho mọi method theo id của `PatientDiagnosisAppService` và `PatientAdviseAppService`; id của chi nhánh khác trả 404 |
+
+### Kiểm thử
+
+Stack phụ: FE :5174 → API :5020 (build từ working tree), PostgreSQL local, đăng nhập thật, không chặn request.
+
+- Domain: `ConsultingDeleteTests` (4 test mới) **xanh**. Toàn bộ 348/349; ca đỏ `Catalog_Should_Cover_Every_Observed_Subject` (86 vs 87)
+  đã đỏ sẵn trên code đã commit (`dd268809` thêm subject mà không cập nhật số đếm).
+- `consulting-delete-and-picker.spec.ts` (mới) **3/3**: xoá chẩn đoán (DELETE, toast, mất khỏi bảng, reload, chi nhánh 2 → 404);
+  xoá tư vấn (không còn "đã từ chối", reload, chi nhánh 2 → 404, dòng đã vào kế hoạch → 422 và vẫn còn); "Chọn Dịch Vụ" (layout,
+  không có chip "Tất cả", chip gửi `taxonomyId`, dịch vụ cuối catalog hiện ra, tick giữ qua lần bỏ chọn nhóm, tìm gửi `filter`, Lưu ghi đúng phiếu).
+- Kiểm tay: NHÓM KEO 560646 hiện đủ ROW A (đang tắt) và ROW B.
+- Hồi quy: `labo` + `labo-detail` + `labo-warranty` + `consulting-plan` + spec mới **30/34**. 4 ca đỏ đều đã đỏ trước đợt này:
+  voucher không có dịch vụ có giá, 2 ca labo-warranty đếm phiếu qua API ra 0, cột labo "—" (R-487).
+  `patient.spec` nhóm chẩn đoán/tư vấn **4/6**. 2 ca đỏ ở bước `toHaveURL(/tab=consulting/)` sau reload, cũng đỏ sẵn (18 ca ghi ở
+  đợt 2026-09-24). Ca "Lưu Chẩn Đoán" đã qua bước kiểm cột Răng mới "18, 16" rồi mới đỏ ở bước URL.
+- Chưa chạy trên bản build production.

@@ -110,7 +110,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PatientDiagnosisDto> GetAsync(Guid id)
     {
-        return MapToDto(await _repository.GetAsync(id));
+        return MapToDto(await GetInBranchAsync(id));
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
@@ -137,7 +137,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> UpdateAsync(Guid id, UpdatePatientDiagnosisDto input)
     {
-        var diagnosis = await _repository.GetAsync(id);
+        var diagnosis = await GetInBranchAsync(id);
 
         if (input.DiagnosisId != Guid.Empty)
         {
@@ -160,7 +160,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     public async Task<PatientDiagnosisDto> UpdatePrintContentAsync(
         Guid id, UpdateDiagnosisPrintContentDto input)
     {
-        var diagnosis = await _repository.GetAsync(id);
+        var diagnosis = await GetInBranchAsync(id);
         diagnosis.UpdatePrintContent(input.ContentDiagnosis, input.Note);
 
         await _repository.UpdateAsync(diagnosis, autoSave: true);
@@ -173,7 +173,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id)
     {
-        var diagnosis = await _repository.GetAsync(id);
+        var diagnosis = await GetInBranchAsync(id);
         diagnosis.MarkTreated();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
         return MapToDto(diagnosis);
@@ -182,7 +182,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> CancelAsync(Guid id)
     {
-        var diagnosis = await _repository.GetAsync(id);
+        var diagnosis = await GetInBranchAsync(id);
         diagnosis.Cancel();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
         return MapToDto(diagnosis);
@@ -191,7 +191,25 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task DeleteAsync(Guid id)
     {
-        await _repository.DeleteAsync(id, autoSave: true);
+        var diagnosis = await GetInBranchAsync(id);
+        diagnosis.EnsureDeletable();
+        await _repository.DeleteAsync(diagnosis, autoSave: true);
+    }
+
+    /// <summary>
+    /// Reads one diagnosis slip, refusing ids that belong to another branch — GetAsync
+    /// alone would happily return, edit or delete somebody else's.
+    /// </summary>
+    private async Task<PatientDiagnosis> GetInBranchAsync(Guid id)
+    {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var entity = await _repository.GetAsync(id);
+        if (entity.ClinicBranchId != clinicBranchId)
+        {
+            throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(PatientDiagnosis), id);
+        }
+
+        return entity;
     }
 
     /// <summary>Sequential per-branch, per-year code — e.g. <c>CD26-0007</c>.</summary>

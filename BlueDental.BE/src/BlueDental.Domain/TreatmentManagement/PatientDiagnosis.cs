@@ -211,6 +211,21 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Xoá phiếu chẩn đoán" removes the slip for good (the reference calls
+    /// <c>DELETE patient-diagnoses/{id}</c>). A treated slip is the record of
+    /// work done, so it stays — the same line <see cref="Cancel"/> draws.
+    /// </summary>
+    public void EnsureDeletable()
+    {
+        if (Status == PatientDiagnosisStatus.Treated)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiagnosisTransition,
+                "A treated diagnosis cannot be deleted.");
+        }
+    }
+
     private void GuardEditable()
     {
         if (Status is PatientDiagnosisStatus.Treated or PatientDiagnosisStatus.Cancelled)

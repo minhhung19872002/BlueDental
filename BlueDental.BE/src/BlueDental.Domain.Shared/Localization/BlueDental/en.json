@@ -1875,6 +1875,7 @@
     "Patient:Advise:CompletedService": "Completed services",
     "Patient:Advise:NoQuoteService": "No quote service selected",
     "Patient:Advise:ServiceRejected": "Consulting service rejected",
+    "Patient:Advise:ServiceDeleted": "Service deleted",
     "Patient:Advise:DeleteService": "Delete consulting service",
     "Patient:Advise:ColumnConfig": "Column configuration",
     "Patient:Advise:DisplayColumns": "Display columns",

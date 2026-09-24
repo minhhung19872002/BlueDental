@@ -198,8 +198,8 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         open={Boolean(actions.removingDiagnosis)}
         noun={t("Patient:Misc:Diagnosis")}
         name={actions.removingDiagnosis?.code ?? ""}
-        pending={actions.cancellingDiagnosis}
-        onConfirm={() => void actions.confirmCancelDiagnosis()}
+        pending={actions.deletingDiagnosis}
+        onConfirm={() => void actions.confirmDeleteDiagnosis()}
         onClose={() => actions.setRemovingDiagnosis(null)}
       />
 
@@ -207,8 +207,8 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         open={Boolean(actions.removingAdvise)}
         noun={t("Patient:Library:ServiceItem")}
         name={actions.removingAdvise?.serviceName ?? ""}
-        pending={actions.rejectingAdvise}
-        onConfirm={() => void actions.confirmRejectAdvise()}
+        pending={actions.deletingAdvise}
+        onConfirm={() => void actions.confirmDeleteAdvise()}
         onClose={() => actions.setRemovingAdvise(null)}
       />
     </section>

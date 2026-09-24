@@ -2,9 +2,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   useAcceptAdvise,
-  useCancelDiagnosis,
   useCreateDiagnosis,
-  useRejectAdvise,
+  useDeleteAdvise,
+  useDeleteDiagnosis,
   useReorderAdvise,
   useUpdateDiagnosis,
 } from "@/features/treatment-management/api/consultingQueries";
@@ -35,8 +35,8 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   const reorderImages = useConsultingImageReorder(patientId);
   const createDiagnosis = useCreateDiagnosis();
   const updateDiagnosis = useUpdateDiagnosis();
-  const cancelDiagnosis = useCancelDiagnosis();
-  const rejectAdvise = useRejectAdvise();
+  const deleteDiagnosis = useDeleteDiagnosis();
+  const deleteAdvise = useDeleteAdvise();
   const reorderAdvise = useReorderAdvise();
   const acceptAdvise = useAcceptAdvise();
   const openPlan = useOpenTreatmentPlan();
@@ -96,10 +96,11 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     }
   };
 
-  const confirmCancelDiagnosis = async () => {
+  /** "Xoá phiếu chẩn đoán": gone from the list, as on the reference. */
+  const confirmDeleteDiagnosis = async () => {
     if (!removingDiagnosis) return;
     try {
-      await cancelDiagnosis.mutateAsync(removingDiagnosis.id);
+      await deleteDiagnosis.mutateAsync(removingDiagnosis.id);
       toast.success(t("Patient:Diagnosis:Deleted"));
       setRemovingDiagnosis(null);
     } catch (error) {
@@ -108,14 +109,14 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   };
 
   /**
-   * An advise is never hard-deleted — the server turns it down instead, which
-   * is what keeps it out of the plan while the history stays readable.
+   * "Xoá dịch vụ tư vấn": the reference deletes the line (DELETE, "sẽ bị xoá
+   * khỏi danh sách"). A line already in a plan is refused by the server.
    */
-  const confirmRejectAdvise = async () => {
+  const confirmDeleteAdvise = async () => {
     if (!removingAdvise) return;
     try {
-      await rejectAdvise.mutateAsync(removingAdvise.id);
-      toast.success(t("Patient:Advise:ServiceRejected"));
+      await deleteAdvise.mutateAsync(removingAdvise.id);
+      toast.success(t("Patient:Advise:ServiceDeleted"));
       setRemovingAdvise(null);
     } catch (error) {
       notifyError(extractApiError(error));
@@ -198,12 +199,12 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     updating: updateDiagnosis.isPending,
     removingDiagnosis,
     setRemovingDiagnosis,
-    confirmCancelDiagnosis,
-    cancellingDiagnosis: cancelDiagnosis.isPending,
+    confirmDeleteDiagnosis,
+    deletingDiagnosis: deleteDiagnosis.isPending,
     removingAdvise,
     setRemovingAdvise,
-    confirmRejectAdvise,
-    rejectingAdvise: rejectAdvise.isPending,
+    confirmDeleteAdvise,
+    deletingAdvise: deleteAdvise.isPending,
     moveAdvise,
     addToPlan,
     addingToPlan: acceptAdvise.isPending || openPlan.isPending,
