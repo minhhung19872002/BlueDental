@@ -3,6 +3,12 @@ import type { CatalogOption } from "@/hooks/useCatalogOptions";
 
 /** What the clinician has typed on one ticked row of "Chọn Dịch Vụ". */
 export interface AdviseRowDraft {
+  /**
+   * The service as it was ticked. The list is paged and filtered on the
+   * server, so a ticked row may no longer be on screen when Lưu is pressed;
+   * the draft carries what saving needs (the reference keeps the same cache).
+   */
+  service: CatalogOption;
   price: number;
   quantity: number;
   discountType: DiscountType;
@@ -22,12 +28,12 @@ export interface AdviseHeaderValues {
   secondStaffId?: string;
   diagnoserId?: string;
   secondDiagnoserId?: string;
-  search?: string;
 }
 
 /** A fresh row starts at the catalogue price, one unit, no discount. */
 export function newRowDraft(service: CatalogOption): AdviseRowDraft {
   return {
+    service,
     price: service.price ?? 0,
     quantity: 1,
     discountType: DISCOUNT_TYPE.Percentage,
@@ -58,10 +64,4 @@ export function sumTotals(rows: Iterable<AdviseRowDraft>): AdviseTotals {
     discount += totals.discount;
   }
   return { gross, discount, effective: gross - discount };
-}
-
-/** Same loose matching the plan's service picker uses. */
-export function matchesSearch(name: string, search: string): boolean {
-  const needle = search.trim().toLocaleLowerCase("vi");
-  return needle.length === 0 || name.toLocaleLowerCase("vi").includes(needle);
 }

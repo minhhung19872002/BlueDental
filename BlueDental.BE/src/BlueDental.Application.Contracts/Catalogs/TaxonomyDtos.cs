@@ -281,5 +281,12 @@ public class GetCatalogEntryListInput : PagedAndSortedResultRequestDto
     public Guid? TaxonomyId { get; set; }
     public string? Group { get; set; }
     public bool? IsActive { get; set; }
+    /// <summary>
+    /// Narrows by the soft-delete state. Unset, a soft-deletable catalog lists
+    /// its deleted rows too (the Danh mục table shows them); a picker that only
+    /// offers live rows — "Chọn Dịch Vụ", after the reference's
+    /// <c>isDeleted: false</c> — asks for <c>false</c>.
+    /// </summary>
+    public bool? IsDeleted { get; set; }
     public string? Filter { get; set; }
 }

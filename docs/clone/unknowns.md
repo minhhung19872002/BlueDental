@@ -2591,3 +2591,13 @@ Reason: The reference checks the teeth, the open warranty and the warranty
   period in the browser; whether its server refuses the same when called
   directly was not tested (it would take deliberate bad writes on staging).
 Action taken: NONE — BlueDental's server enforces them (Treatment:0030–0036).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — dialog "Chọn Dịch Vụ", bảng dịch vụ
+Control: cột Đơn giá / Số lượng của một dòng đã tick
+Reason: bundle 2026-09-24 cho thấy bản gốc lấy Số lượng = số răng của phiếu
+        (`aM`: mã răng > 2 và ≠ 10, đếm không trùng; không có răng thì 1) cho
+        mọi dòng, không có ô sửa số lượng, và Đơn giá không sửa được. Local vẫn
+        cho sửa giá, số lượng mặc định 1. Chưa đổi vì là thay đổi nghiệp vụ,
+        chờ chủ dự án quyết.
+Action taken: NONE

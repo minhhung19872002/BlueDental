@@ -3072,12 +3072,13 @@ trạng thái rỗng; xem `unknowns.md`).
 | Khung | ~1240 × auto, radius 16, tiêu đề "Chọn Dịch Vụ" 24/600 + chip "Phiếu: <mã>" (h32, radius 8, nền xanh nhạt, chữ 12/600), nút X 24px góc phải | `.tp-dialog.am-dialog`, chip `.am-chip` tô `--bd-primary` 12% |
 | Hàng 1 | "Vị trí răng / Vùng điều trị" (ô tĩnh, chữ xanh "Răng …", nút răng tròn xanh phải) · "Nhân sự tư vấn 1 *" (select có kính lúp) + nút tròn "+" · ô 3 trống | `.am-static` + `.tp-tooth-btn`; `FloatingField staffId`; `+` bật "Nhân sự tư vấn 2" + nút X đỏ tắt |
 | Hàng 2 | "Chẩn đoán" (ô tĩnh) · "Bác sĩ chẩn đoán 1" (select disabled, nền xám) · "Bác sĩ chẩn đoán 2" (select disabled) | y hệt, đọc từ phiếu |
-| Thanh lọc | nút "Tất cả dịch vụ" xanh đặc (h36, radius 8, 12/600) rồi mỗi nhóm một nút viền · ô "Tìm kiếm dịch vụ..." 220px có kính lúp | `.am-groups` một hàng cuộn ngang; `FloatingField search` |
-| Bảng | thẻ radius 16; cột ☐ 52 · Dịch vụ 279 · Đơn giá 140 · Số lượng 100 · Giảm giá 260 · Thành tiền 150 · Ghi chú 209; đầu bảng nền xám 40px; rỗng "Không có dịch vụ phù hợp" | `.am-table` sticky header, cuộn trong 360px; hàng tick: ô giá (`CurrencyInput`), số lượng, `%`/`VNĐ` + giá trị, ghi chú; Thành tiền tính lại ngay |
+| Thanh lọc (đo lại 2026-09-24 từ bundle) | component chip dùng chung của bản gốc: dòng 1 = nhãn "Lựa chọn dịch vụ" 14/600 + ô "Tìm dịch vụ" 260px có kính lúp (debounce 300ms); dòng 2 = nút tròn 32px `‹` · dải chip cuộn ngang (ẩn thanh cuộn), **tách 2 hàng** khi > 12 chip (cắt tại điểm cân độ dài nhãn, cap 28 + 4) · nút `›`. Chip 13/500, padding 6×16, viền #DCE3EE nền #F8FAFD, chip chọn tô đặc; bấm lại chip đang chọn = bỏ chọn. **Không** có chip "Tất cả dịch vụ". Nhóm lấy 20/trang theo thứ tự, cuộn gần hết (≤ 96px) thì tải trang sau | `AdviseGroupPicker` + `splitChipRows`; `useTaxonomyGroupPages` |
+| Dữ liệu dịch vụ | `careServiceApi.list({ taxonomyId, search, page, perPage: 20, isDeleted: false })` — lọc **ở server**, cuộn tới đáy bảng (400px) thì tải trang tiếp; không lọc `isActive` | `useAdviseCatalog` → `useCatalogOptionSearch({ includeInactive: true })` gửi `isDeleted=false`. Trước 2026-09-24 local tải 200 dòng đầu một lần rồi lọc ở trình duyệt, nên nhóm có dịch vụ nằm ngoài 200 dòng hiện "Không có dịch vụ phù hợp" |
+| Bảng | thẻ radius 16; cột ☐ 52 · Dịch vụ 279 · Đơn giá 140 · Số lượng 100 · Giảm giá 260 · Thành tiền 150 · Ghi chú 209; đầu bảng nền xám 40px; rỗng "Không có dịch vụ phù hợp"; dòng chưa tick in Giảm giá "0 đ", Ghi chú "—" | `.am-table` sticky header, cuộn trong 400px; hàng tick: ô giá (`CurrencyInput`), số lượng, `%`/`VNĐ` + giá trị, ghi chú; Thành tiền tính lại ngay |
 | Chân | thẻ 715px nền xám: badge tròn số dòng + "Dịch vụ đã chọn với số phiếu chẩn đoán: <mã>", Tổng cộng / Giảm giá / **Thành tiền** (xanh); nút "Lưu" 110px có icon đĩa, mờ khi chưa tick | `AdviseSummaryFooter`; Lưu gọi `POST patient-advises` một lần cho mỗi dòng tick |
 
 Mặc định khi mở: răng và bác sĩ lấy từ phiếu chẩn đoán, nhân sự tư vấn 1 =
-bác sĩ chẩn đoán 1, chưa tick dòng nào, nhóm "Tất cả dịch vụ". Đổi răng bằng
+bác sĩ chẩn đoán 1, chưa tick dòng nào, không chip nhóm nào được chọn. Đổi răng bằng
 `ToothPickerDialog` dùng chung với kế hoạch điều trị.
 
 Mã: `treatment-management/components/AdviseModal.tsx` + thư mục

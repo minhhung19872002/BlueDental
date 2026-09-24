@@ -66,6 +66,8 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
         )}
       </td>
       <td>
+        {/* Unticked, the reference prints the discount the row would carry: 0 đ. */}
+        {!draft && <span className="am-muted">{moneyText(0)}</span>}
         {draft && (
           <div className="am-discount">
             <div className="tp-toggle" role="group" aria-label={t("Treatment:Pricing:DiscountUnit")}>
@@ -91,12 +93,14 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
       </td>
       <td className="am-cell-amount">{totals ? moneyText(totals.effective) : moneyText(service.price)}</td>
       <td>
-        {draft && (
+        {draft ? (
           <Input
             aria-label={t("Treatment:Common:Note")}
             value={draft.note}
             onChange={(event) => onChange(service.id, { note: event.target.value })}
           />
+        ) : (
+          <span className="am-muted">—</span>
         )}
       </td>
     </tr>

@@ -66,6 +66,8 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             query = query.Where(x => x.Group == input.Group);
         if (input.IsActive.HasValue)
             query = query.Where(x => x.IsActive == input.IsActive.Value);
+        if (input.IsDeleted.HasValue)
+            query = query.Where(x => x.IsDeleted == input.IsDeleted.Value);
         foreach (var term in SearchTerms.From(input.Filter))
         {
             query = query.Where(x =>

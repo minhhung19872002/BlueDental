@@ -2,7 +2,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { toothValueToSelections, type ToothPickerValue } from "@/components/ToothChart";
 import { useCreateAdvise } from "../../api/consultingQueries";
 import { DISCOUNT_TYPE, type PatientDiagnosisDto } from "../../api/consultingApi";
@@ -19,7 +18,6 @@ interface Options {
 export interface SaveInput {
   header: AdviseHeaderValues;
   teeth: ToothPickerValue;
-  services: CatalogOption[];
   rows: ReadonlyMap<string, AdviseRowDraft>;
 }
 
@@ -33,17 +31,16 @@ export function useCreateAdvises({ patientId, branchId, diagnosis, onCreated, on
   const createAdvise = useCreateAdvise();
   const [saving, setSaving] = useState(false);
 
-  const save = async ({ header, teeth, services, rows }: SaveInput) => {
+  const save = async ({ header, teeth, rows }: SaveInput) => {
     if (!header.staffId || rows.size === 0) return;
     const selections = toothValueToSelections(teeth);
-    const ticked = services.filter((service) => rows.has(service.id));
 
     setSaving(true);
     let created = 0;
     try {
-      for (const service of ticked) {
-        const row = rows.get(service.id);
-        if (!row) continue;
+      // In the order they were ticked — the drafts keep it.
+      for (const row of rows.values()) {
+        const { service } = row;
         try {
           await createAdvise.mutateAsync({
             patientId,
