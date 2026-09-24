@@ -89,12 +89,26 @@ function LockedCell({ value, reason }: { value: string; reason: string }) {
 
 function DraftTeethCell({ draft }: DraftProps) {
   const teeth = toothCodesText(draft.values.teeth);
+  const error = draft.errors?.teeth;
   return (
-    <div className="pdt-draft-teeth">
-      <button type="button" className="tp-tooth-btn" aria-label={t("Treatment:Tooth:SelectTooth")} onClick={draft.openTeeth}>
-        <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
-      </button>
-      {teeth && <span className="pdt-draft-teeth-text">{teeth}</span>}
+    <div className="pdt-draft-teethcell">
+      <div className="pdt-draft-teeth">
+        <button
+          type="button"
+          className={error ? "tp-tooth-btn pdt-draft-teeth-btn--error" : "tp-tooth-btn"}
+          aria-label={t("Treatment:Tooth:SelectTooth")}
+          aria-invalid={Boolean(error)}
+          onClick={draft.openTeeth}
+        >
+          <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
+        </button>
+        {teeth && <span className="pdt-draft-teeth-text">{teeth}</span>}
+      </div>
+      {error && (
+        <p className="pdt-draft-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

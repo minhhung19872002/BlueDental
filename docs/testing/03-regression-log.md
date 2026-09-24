@@ -5647,3 +5647,11 @@ Stack phụ: FE :5174 → API :5020 (build từ working tree), PostgreSQL local,
   `patient.spec` nhóm chẩn đoán/tư vấn **4/6**. 2 ca đỏ ở bước `toHaveURL(/tab=consulting/)` sau reload, cũng đỏ sẵn (18 ca ghi ở
   đợt 2026-09-24). Ca "Lưu Chẩn Đoán" đã qua bước kiểm cột Răng mới "18, 16" rồi mới đỏ ở bước URL.
 - Chưa chạy trên bản build production.
+
+## 2026-09-24 (đợt 4) — Kế hoạch điều trị: dịch vụ mới phải có răng
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-549 | Hàng "Thêm dịch vụ mới" trên chi tiết kế hoạch lưu được dòng không có răng (cột Răng "—") | Lưu khi chưa chọn răng: hiện "Vui lòng chọn ít nhất 1 răng" (`Treatment:Tooth:ToothRequired`) dưới nút răng, không gửi request; chọn răng xong thì lỗi mất. Theo schema "create" của bản gốc (`selectedTeeth` ≥ 1); khi sửa dòng thì không bắt buộc. Chỉ chặn ở FE; BE vẫn nhận dòng không răng vì domain coi đó là dịch vụ toàn hàm |
+
+Kiểm thử: `treatment-plan-detail` **10/10** (dev :5173 → API :5019, stack thật). Test kéo-thả nay kiểm luôn lỗi và việc không có POST.

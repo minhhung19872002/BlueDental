@@ -368,6 +368,22 @@ a.pdt-crumb:hover {
   gap: 8px;
   min-width: 0;
 }
+.pdt-draft-teethcell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+/* "Vui lòng chọn ít nhất 1 răng" under the tooth button, the app's field-error red. */
+.pdt-draft-error {
+  margin: 0;
+  color: var(--tp-red);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.pdt-draft-teeth-btn--error.tp-tooth-btn {
+  box-shadow: 0 0 0 2px var(--tp-red);
+}
 .pdt-draft-teeth-text {
   min-width: 0;
   color: var(--tp-ink);

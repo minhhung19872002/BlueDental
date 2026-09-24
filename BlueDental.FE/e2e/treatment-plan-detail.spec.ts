@@ -597,6 +597,27 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       expect(Math.abs(select.width - (cell.width - 32))).toBeLessThanOrEqual(2);
     }
 
+    // A new line has to name its teeth: Lưu with none says so under the tooth
+    // button and sends nothing.
+    let posted = 0;
+    const countPost = (req: { url: () => string; method: () => string }) => {
+      if (req.url().includes("/services") && req.method() === "POST") posted += 1;
+    };
+    page.on("request", countPost);
+    await draft.getByRole("button", { name: "Lưu" }).click();
+    const teethError = draft.locator(".pdt-draft-error");
+    await expect(teethError).toHaveText("Vui lòng chọn ít nhất 1 răng");
+    expect(posted, "no line is written without teeth").toBe(0);
+    page.off("request", countPost);
+
+    // Picking a tooth clears it.
+    await draft.locator(".tp-tooth-btn").click();
+    const picker = page.getByRole("dialog", { name: "Chọn răng" });
+    await picker.getByRole("button", { name: "Răng 15", exact: true }).click();
+    await picker.locator(".tp-teeth-foot button").click();
+    await expect(picker).toBeHidden();
+    await expect(teethError).toHaveCount(0);
+
     const added = page.waitForResponse(
       (res) => res.url().includes("/services") && res.request().method() === "POST",
     );

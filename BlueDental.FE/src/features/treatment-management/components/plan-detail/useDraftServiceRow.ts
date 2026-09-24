@@ -11,7 +11,12 @@ import {
   type AddTreatmentServiceInput,
   type TreatmentServiceStatus,
 } from "../../api/treatmentPlanApi";
-import { EMPTY_TOOTH_VALUE, toothValueToDtos, type ToothPickerValue } from "../plan/toothPicker";
+import {
+  EMPTY_TOOTH_VALUE,
+  isToothValueEmpty,
+  toothValueToDtos,
+  type ToothPickerValue,
+} from "../plan/toothPicker";
 
 /** What the inline new row holds while it is being filled in. */
 export interface DraftServiceValues {
@@ -50,6 +55,8 @@ export interface DraftServiceController {
   labels?: Partial<Record<DraftIdField, string | null>>;
   /** Set on an edited line in treatment; see {@link DraftServiceLocks}. */
   locks?: DraftServiceLocks;
+  /** A refusal of the last Lưu, printed under the cell it is about. */
+  errors?: { teeth?: string };
   update: <K extends keyof DraftServiceValues>(field: K, value: DraftServiceValues[K]) => void;
   openTeeth: () => void;
   save: () => void;
@@ -103,6 +110,7 @@ export function useDraftServiceRow(planId: string) {
   const [values, setValues] = useState<DraftServiceValues>(EMPTY_VALUES);
   const [teethOpen, setTeethOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [teethError, setTeethError] = useState<string | null>(null);
   const add = useAddServiceLine();
   const start = (picked: CatalogOption) => {
     setService(picked);
@@ -114,10 +122,17 @@ export function useDraftServiceRow(planId: string) {
     setValues(EMPTY_VALUES);
     setTeethOpen(false);
     setDiscardOpen(false);
+    setTeethError(null);
   };
 
   const save = async () => {
     if (!service) return;
+    // A new line names its teeth: the reference's schema for "create" holds
+    // `selectedTeeth` to at least one (an edit may leave them as they are).
+    if (isToothValueEmpty(values.teeth)) {
+      setTeethError(t("Treatment:Tooth:ToothRequired"));
+      return;
+    }
     if (values.quantity < 1) {
       toast.error(t("Treatment:Pricing:QuantityMin"));
       return;
@@ -135,6 +150,7 @@ export function useDraftServiceRow(planId: string) {
     ? {
         service,
         values,
+        errors: teethError ? { teeth: teethError } : undefined,
         update: (field, value) => setValues((current) => ({ ...current, [field]: value })),
         openTeeth: () => setTeethOpen(true),
         save: () => void save(),
@@ -149,6 +165,7 @@ export function useDraftServiceRow(planId: string) {
     teethOpen,
     confirmTeeth: (teeth: ToothPickerValue) => {
       setValues((current) => ({ ...current, teeth }));
+      if (!isToothValueEmpty(teeth)) setTeethError(null);
       setTeethOpen(false);
     },
     closeTeeth: () => setTeethOpen(false),
