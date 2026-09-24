@@ -3010,8 +3010,10 @@ Bấm "+" trên đầu thẻ chẩn đoán mở form **ngay trong thẻ** (như 
   toàn app.
 - Nút **Lưu Chẩn Đoán / Tạo dịch vụ** chỉ bật khi có bác sĩ 1, chẩn đoán và ít
   nhất một răng. "Tạo dịch vụ" lưu xong mở luôn dialog tư vấn.
-- **"Thêm chẩn đoán" tạm vô hiệu** (quyết định của chủ dự án; hành vi gộp nhiều
-  chẩn đoán trên một phiếu chưa quan sát được — xem unknowns).
+- **"Thêm chẩn đoán"** (2026-09-24, đọc từ bundle): cùng điều kiện bật như hai
+  nút kia; lưu một chẩn đoán rồi làm trống form (tắt bác sĩ 2, xoá chẩn đoán,
+  ghi chú, răng) và **giữ form mở** để tạo tiếp. "Lưu Chẩn Đoán" cũng reset
+  nhưng đóng form. Không có khi mở một phiếu để sửa.
 
 ### Chân "Phiếu tư vấn" — theo staging, không có nút %/VNĐ
 

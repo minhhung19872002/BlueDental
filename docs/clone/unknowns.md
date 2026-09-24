@@ -1741,6 +1741,12 @@ Reason: bấm trên staging chỉ thấy form xếp thêm một chẩn đoán v�
         rõ khi lưu tạo một hay nhiều bản ghi, và bản production không được
         bấm. Chủ dự án chốt tạm vô hiệu nút này (2026-09-07).
 Action taken: NONE trên production. BlueDental hiện lưu một chẩn đoán mỗi lần.
+RESOLVED 2026-09-24: đọc từ bundle đã publish (`en` trong form chẩn đoán):
+  tạo **một** bản ghi (`POST patient-diagnoses`), rồi chạy hàm reset `J` —
+  bác sĩ 1 về bác sĩ mặc định, tắt bác sĩ 2, xoá chẩn đoán, ghi chú, răng — và
+  **không** đóng form. Chỉ có trên form tạo mới. BlueDental làm theo; khác biệt
+  duy nhất: bản gốc đặt sẵn bác sĩ 1 = người đăng nhập nếu là bác sĩ
+  (`isDoctor && userId`), BlueDental để trống như lúc mở form.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /patient/<id>?tab=consulting — chân "Phiếu tư vấn", "Voucher áp dụng"

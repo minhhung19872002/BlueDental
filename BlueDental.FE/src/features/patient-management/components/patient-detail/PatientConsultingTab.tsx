@@ -121,6 +121,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
               diagnoses={data.diagnosisOptions}
               submitting={actions.creating || actions.updating}
               editing={editor.editing}
+              blankCount={editor.blankCount}
               onSubmit={(submission) => void editor.submit(submission)}
               onClose={editor.close}
             />

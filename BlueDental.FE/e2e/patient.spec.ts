@@ -944,6 +944,76 @@ test.describe("Bệnh nhân", () => {
     await expect(row).toContainText("18, 16 - Mặt ngoài, Mặt nhai");
   });
 
+  /**
+   * "Thêm chẩn đoán" is the quick path for several slips in a row. Read off the
+   * reference's bundle (2026-09-24): it creates the slip, then runs the same
+   * reset the form opens with — doctor 2 off, diagnosis, note and teeth
+   * cleared — and, unlike Lưu Chẩn Đoán, leaves the form open.
+   */
+  test("Thêm chẩn đoán files the slip and leaves a blank form for the next one", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
+    const form = page.getByTestId("diagnosis-form");
+    await expect(form).toBeVisible();
+    const patientId = new URL(page.url()).pathname.split("/").pop()!;
+    const countSlips = () =>
+      page.evaluate(async (id) => {
+        const branchId = new URLSearchParams(location.search).get("branchId");
+        const res = await fetch(`/api/v1/app/patient-diagnoses?patientId=${id}&maxResultCount=1`, {
+          credentials: "include",
+          headers: branchId ? { "X-Clinic-Branch-Id": branchId } : {},
+        });
+        return (await res.json()).totalCount as number;
+      }, patientId);
+    const before = await countSlips();
+
+    const add = form.getByRole("button", { name: "Thêm chẩn đoán" });
+    const selected = page.getByTestId("selected-teeth");
+    const note = form.locator(".pd-diagnosis-side textarea");
+    // It waits on the same three fields as Lưu Chẩn Đoán.
+    await expect(add).toBeDisabled();
+
+    for (const [tooth, text] of [
+      ["Răng 17", `e2e thêm A ${runId()}`],
+      ["Răng 27", `e2e thêm B ${runId()}`],
+    ] as const) {
+      await pickFirstOption(page, form.getByRole("combobox", { name: "Bác sĩ chẩn đoán 1" }));
+      await pickFirstOption(page, form.locator(".pd-diagnosis-side").getByRole("combobox").first());
+      await page.getByRole("button", { name: tooth, exact: true }).click();
+      await note.fill(text);
+      await expect(add).toBeEnabled();
+
+      const created = page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" && res.url().includes("/api/v1/app/patient-diagnoses"),
+      );
+      await add.click();
+      const body = JSON.parse((await created).request().postData() ?? "{}");
+      expect((await created).ok()).toBeTruthy();
+      expect(body.note).toBe(text);
+
+      // Still open, and blank again.
+      await expect(form).toBeVisible();
+      await expect(selected.getByText("Chưa chọn răng")).toBeVisible();
+      await expect(note).toHaveValue("");
+      await expect(form.locator(".pd-diagnosis-side .ant-select-selection-item")).toHaveCount(0);
+      await expect(add).toBeDisabled();
+    }
+
+    // Both slips reached the database, and the table shows them after a reload.
+    expect(await countSlips()).toBe(before + 2);
+    await page.reload();
+    await expect(page.locator(".pd-diagnosis-card tbody tr.ant-table-row").first()).toBeVisible();
+  });
+
   test("Chẩn đoán & Tư vấn carries the reference's panels, columns and totals", async ({
     page,
   }) => {
