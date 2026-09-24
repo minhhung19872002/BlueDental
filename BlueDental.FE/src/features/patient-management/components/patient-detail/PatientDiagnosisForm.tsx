@@ -30,6 +30,8 @@ interface Props {
   submitting: boolean;
   /** A slip opened from the table: the fields come prefilled and the foot reads "Cập nhật". */
   editing?: PatientDiagnosisDto | null;
+  /** Changes after "Thêm chẩn đoán" saved: the blank form starts over. */
+  blankCount?: number;
   onSubmit: (submission: DiagnosisSubmission) => void;
   onClose: () => void;
 }
@@ -47,6 +49,7 @@ export function PatientDiagnosisForm({
   diagnoses,
   submitting,
   editing,
+  blankCount = 0,
   onSubmit,
   onClose,
 }: Props) {
@@ -70,7 +73,7 @@ export function PatientDiagnosisForm({
       note: editing.note ?? undefined,
     });
     load(toothSelectionsToValue(editing.teeth));
-  }, [editing, form, load, reset]);
+  }, [editing, blankCount, form, load, reset]);
 
   const staffId = Form.useWatch("staffId", form);
   const diagnosisId = Form.useWatch("diagnosisId", form);

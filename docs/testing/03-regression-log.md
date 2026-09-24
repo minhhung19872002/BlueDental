@@ -5563,7 +5563,128 @@ Chuyển đổi mới là nơi đổi nó (`PUT /api/v1/orders/{id}/update-statu
   chuẩn hoá CRLF→LF khi khớp chuỗi và ghi lại CRLF; heredoc python trong Git
   Bash bẻ `\r\n` thành xuống dòng thật, dùng Write/Edit tool cho script.
 
-## 2026-09-24 — Danh mục: nhập từ Excel (R-533..R-538)
+## 2026-09-24 — Chi tiết phiếu: nhiều công đoạn một lúc, răng theo công đoạn, Tiếp tục bảo hành, sửa dòng kế hoạch
+
+Đối chiếu staging (`staging.nfcdental.com`, bản ghi HN8510 theo chủ dự án cho phép thao tác) và chunk Next.js đã publish.
+Chi tiết: [pages/patient-detail.md](../clone/pages/patient-detail.md) (Survey 2026-09-24),
+[pages/treatment-plan-detail.md](../clone/pages/treatment-plan-detail.md), [features/treatment-stage.md](features/treatment-stage.md).
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-533 | Dialog "Chi tiết phiếu" chỉ chọn được **một** thẻ; bản gốc chọn nhiều, mỗi thẻ một form xếp chồng, một nút lưu | `useStageComposer` giữ `selectedIds` + draft theo thẻ; lưu **tuần tự** (song song vấp concurrency stamp của phiếu → 409) |
+| R-534 | Công đoạn mới luôn lấy **toàn bộ** răng của dịch vụ | Chọn/bỏ răng theo từng công đoạn (`StageTeethPicker`, sơ đồ "Chọn răng" có răng ngoài dịch vụ bị khoá); răng còn lại ở lại THÊM CÔNG ĐOẠN; BE `StageTeethPolicy` từ chối răng ngoài dịch vụ (0030) / đã có công đoạn (0031) / rỗng (0032) |
+| R-535 | "Tiếp tục công đoạn" sửa đè công đoạn cũ | Như bản gốc: `POST /treatment-stages/{id}/continue` tạo công đoạn mới cùng răng, công đoạn cũ `IsSuperseded` (xám, không tick/tải ảnh/sửa); migration `AddStageContinuationChain` đánh dấu dữ liệu cũ |
+| R-536 | Thiếu tab **TIẾP TỤC BẢO HÀNH** và chuỗi bảo hành | Tab thứ ba; bảo hành lấy răng của công đoạn **gốc** (`WarrantyRootStageId`); còn bảo hành mở → nút Bảo hành bị khoá kèm tooltip (0033); hết hạn (0035); dịch vụ không bảo hành → nút xám "Không bảo hành" |
+| R-537 | Cột Răng in "11 - Mặt ngoài" (bảng hồ sơ, lịch sử, kế hoạch) | Chỉ số răng: "11, 12, 13" (`formatToothCodes`) |
+| R-538 | Kế hoạch điều trị: cột Thao tác không có "Chỉnh sửa" | Bút chì theo bản gốc (sửa được khi dòng chưa xong/huỷ và chưa thu tiền); dòng đang điều trị khoá chẩn đoán/giá và răng đã có công đoạn (0037–0039) |
+| R-539 | Form "Tiếp tục" của công đoạn trên dịch vụ không gắn răng báo "Vui lòng chọn răng" | Luật răng chỉ áp khi thẻ có răng để chọn — BE cũng bỏ qua dòng không gắn răng |
+| R-540 | e2e: fixture chọn dòng "đang làm" nhưng đã hết răng trống sau vài lượt chạy → 0032 | `openPatientWithTreatment` chỉ lấy dòng còn răng chưa có công đoạn (`stagedTeeth`); `createSlip` của plan-detail nhận danh sách răng |
+
+### Kiểm thử
+
+Dev server :5173 (StrictMode) → API :5019 → PostgreSQL local, đăng nhập qua màn login, không chặn request.
+
+- BE: Domain **157/157**, Application **599/599**, EntityFrameworkCore **54/54**.
+- `treatment-stage-chain.spec.ts` (mới) **5/5**: nhiều thẻ + răng từng phần + 0031; tiếp tục làm xám công đoạn cũ; chuỗi bảo hành
+  (răng gốc, 0033, hoàn thành, bảo hành lại); sửa dòng kế hoạch (0038/0039); tài khoản chi nhánh 2 → 403.
+- `patient.spec.ts` **45/63** (+ chain 5 = 50/68). Toàn bộ test công đoạn/bảo hành xanh. 18 ca đỏ **ngoài phạm vi** (chưa sửa):
+  mở hồ sơ bằng click tên trong danh sách nên rơi vào tab Chẩn đoán & Tư vấn (mặc định từ `86ccaf00`) — thẻ hồ sơ, nhãn, nghề nghiệp,
+  lý do đến khám; `?tab=consulting`; phiếu thu gộp (3 phiếu thay vì 1); ô tiền; lưu lịch hẹn.
+- `treatment-plan-detail` **10/10**, `treatment-plan`, `treatment-stage`, `labo-detail` xanh; `consulting-plan` 1 đỏ (không tìm được
+  dịch vụ có giá), `labo-warranty` 2 đỏ (đếm phiếu labo qua API không gửi chi nhánh → 0). Ba ca này không đụng code đã sửa; chưa
+  đối chứng với HEAD.
+- `tsc -b`, eslint các file đã sửa, `vitest` xanh.
+- Chưa chạy trên bản build production (`vite preview` :8080).
+
+## 2026-09-24 (đợt 2) — "Thêm chẩn đoán" và thu gọn "Mục lục bệnh án"
+
+Hai hành vi đọc từ chunk đã publish của bản gốc (file tĩnh, không bấm gì trên staging/production).
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-541 | "Thêm chẩn đoán" trong form "Tạo chẩn đoán" luôn bị disable | Bật theo cùng điều kiện với "Lưu Chẩn Đoán"; lưu một chẩn đoán rồi làm trống form và giữ form mở (`intent: "add"`, `blankCount`). Unknown cũ đã đóng |
+| R-542 | Thu gọn "Mục lục bệnh án" chỉ ẩn danh sách, cột vẫn 320px và header vẫn đủ chữ | Màn rộng (> 1024px): cột 64px, panel giữ chiều cao, chỉ còn nút `PanelLeftOpen` căn giữa; aria-label/title theo bản gốc. Màn hẹp giữ hành vi cũ |
+
+### Kiểm thử
+
+Stack phụ: FE dev :5174 → API :5020 (BE build ra thư mục riêng, cùng PostgreSQL local), đăng nhập thật, không chặn request.
+
+- `patient.spec` "Thêm chẩn đoán files the slip and leaves a blank form for the next one" (mới) **xanh**: hai lần thêm liên tiếp,
+  mỗi lần đúng một `POST`, form vẫn mở và trống, DB tăng đúng 2.
+- `patient-medical-record.spec` **22/23**: có test mới "the index folds to a rail on a wide window and opens again" và 3 test đổi
+  tên nút sang "Mở rộng mục lục bệnh án". Ca đỏ là "the index lists the reference's nine forms…", **phụ thuộc thứ tự** như đã ghi
+  ở R-487: bệnh nhân đầu danh sách không có tờ bệnh án nào.
+- `consulting-plan` 10/13: 3 ca đỏ (dịch vụ có giá, tab báo giá còn sót, khoảng chữ ký bản in) không đụng file đã sửa. Hai ca
+  sau lần đầu đỏ sau khi dọn DB còn 15 bệnh nhân; chưa điều tra.
+- Key i18n mới (`Patient:MedicalRecord:ExpandIndexAria` / `CollapseIndexAria`) nằm ở BE. API đang chạy phải build lại mới thấy.
+
+## 2026-09-24 (đợt 3) — Chẩn đoán & Tư vấn: cột răng, thanh cuộn, "Chọn Dịch Vụ", xoá
+
+Đọc từ chunk đã publish của bản gốc. Trên staging chỉ mở form "Tạo chẩn đoán" (chỉ đổi trạng thái giao diện) và đọc stylesheet.
+Không lưu, không xoá gì.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-543 | Cột Răng của bảng chẩn đoán in cả mặt răng ("14, 13 - Mặt gần, …") | Chỉ số răng (`formatToothCodes`); chip trong form vẫn giữ mặt răng |
+| R-544 | Mở form chẩn đoán thì thêm một thanh cuộn 15px sát thanh cuộn của pane | Card vẫn tự cuộn như bản gốc (`max-h-600 overflow-auto`), nhưng thanh cuộn vẽ như staging: 6px, thumb rgba(27,42,65,.12). Nguyên nhân: `scrollbar-color` khai báo trên `html` bị kế thừa, khiến Chrome bỏ qua `::-webkit-scrollbar` và vẽ thanh cổ điển 15px |
+| R-545 | "Chọn Dịch Vụ": thanh nhóm khác bản gốc (nút "Tất cả dịch vụ", một hàng, ô tìm bên phải) | `AdviseGroupPicker` theo component chip của bản gốc: nhãn + ô tìm 260px, chip 2 hàng giữa hai mũi tên, bấm lại để bỏ chọn, nhóm 20/trang và cuộn thì tải thêm. `useChipScroller` chuyển lên `src/hooks` để dùng chung với Labo |
+| R-546 | Lọc theo nhóm ra "Không có dịch vụ phù hợp" dù nhóm có dịch vụ (NHÓM KEO 560646) | Modal tải **200 dòng đầu** một lần rồi lọc ở trình duyệt, và chỉ lấy `isActive=true`. Nay lọc ở server theo `taxonomyId` + tìm kiếm, 20/trang, cuộn thì tải thêm, lọc `isDeleted=false` như bản gốc (BE thêm tham số tuỳ chọn `IsDeleted` cho list catalog). Dòng đã tick giữ luôn dịch vụ của nó nên đổi nhóm không mất lựa chọn |
+| R-547 | Xoá chẩn đoán / xoá dịch vụ tư vấn chỉ đổi trạng thái (Cancel / Reject): toast "Đã từ chối…", dòng vẫn nằm trong bảng | Gọi `DELETE` như bản gốc; toast "Đã xoá chẩn đoán" / "Đã xoá dịch vụ". Domain `EnsureDeletable`: từ chối phiếu đã điều trị (0010) và dòng đã vào kế hoạch (0011 → 422) |
+| R-548 | `DELETE`/`GET`/`PUT` theo id của phiếu chẩn đoán và dịch vụ tư vấn **không kiểm chi nhánh**: biết id là xoá được bản ghi của chi nhánh khác | `GetInBranchAsync` cho mọi method theo id của `PatientDiagnosisAppService` và `PatientAdviseAppService`; id của chi nhánh khác trả 404 |
+
+### Kiểm thử
+
+Stack phụ: FE :5174 → API :5020 (build từ working tree), PostgreSQL local, đăng nhập thật, không chặn request.
+
+- Domain: `ConsultingDeleteTests` (4 test mới) **xanh**. Toàn bộ 348/349; ca đỏ `Catalog_Should_Cover_Every_Observed_Subject` (86 vs 87)
+  đã đỏ sẵn trên code đã commit (`dd268809` thêm subject mà không cập nhật số đếm).
+- `consulting-delete-and-picker.spec.ts` (mới) **3/3**: xoá chẩn đoán (DELETE, toast, mất khỏi bảng, reload, chi nhánh 2 → 404);
+  xoá tư vấn (không còn "đã từ chối", reload, chi nhánh 2 → 404, dòng đã vào kế hoạch → 422 và vẫn còn); "Chọn Dịch Vụ" (layout,
+  không có chip "Tất cả", chip gửi `taxonomyId`, dịch vụ cuối catalog hiện ra, tick giữ qua lần bỏ chọn nhóm, tìm gửi `filter`, Lưu ghi đúng phiếu).
+- Kiểm tay: NHÓM KEO 560646 hiện đủ ROW A (đang tắt) và ROW B.
+- Hồi quy: `labo` + `labo-detail` + `labo-warranty` + `consulting-plan` + spec mới **30/34**. 4 ca đỏ đều đã đỏ trước đợt này:
+  voucher không có dịch vụ có giá, 2 ca labo-warranty đếm phiếu qua API ra 0, cột labo "—" (R-487).
+  `patient.spec` nhóm chẩn đoán/tư vấn **4/6**. 2 ca đỏ ở bước `toHaveURL(/tab=consulting/)` sau reload, cũng đỏ sẵn (18 ca ghi ở
+  đợt 2026-09-24). Ca "Lưu Chẩn Đoán" đã qua bước kiểm cột Răng mới "18, 16" rồi mới đỏ ở bước URL.
+- Chưa chạy trên bản build production.
+
+## 2026-09-24 (đợt 4) — Kế hoạch điều trị: dịch vụ mới phải có răng
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-549 | Hàng "Thêm dịch vụ mới" trên chi tiết kế hoạch lưu được dòng không có răng (cột Răng "—") | Lưu khi chưa chọn răng: hiện "Vui lòng chọn ít nhất 1 răng" (`Treatment:Tooth:ToothRequired`) dưới nút răng, không gửi request; chọn răng xong thì lỗi mất. Theo schema "create" của bản gốc (`selectedTeeth` ≥ 1); khi sửa dòng thì không bắt buộc. Chỉ chặn ở FE; BE vẫn nhận dòng không răng vì domain coi đó là dịch vụ toàn hàm |
+
+Kiểm thử: `treatment-plan-detail` **10/10** (dev :5173 → API :5019, stack thật). Test kéo-thả nay kiểm luôn lỗi và việc không có POST.
+
+## 2026-09-24 (đợt 5) — "Tạo bảo hành" có checkbox trống; sơ đồ răng ở "Tạo tái khám"
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-550 | "Tạo bảo hành" (và lịch sử điều trị) hiện checkbox không có chữ ở "Danh sách công đoạn" | Gốc ở BE: lưu dịch vụ trong Danh mục (`ReplaceStages`) tạo lại **mọi** bước với id mới, nên công đoạn đã tick bước trỏ vào id không còn tồn tại, tên trả về rỗng. Nay `CatalogEntry.SyncStages` giữ id của các bước dialog gửi lại (sửa tại chỗ), bước mới mới có id mới, bước bị bỏ thì xoá. Migration `RepairOrphanedStageSteps` trỏ lại các bước mồ côi khi **toàn bộ** bước của công đoạn đều mất và dịch vụ hiện có đúng bằng số bước đó (trỏ theo thứ tự); dữ liệu local có đúng 1 công đoạn như vậy và đã sửa. FE bỏ qua bước không còn tên thay vì vẽ ô trống (`namedSteps`), nhưng khi lưu vẫn gửi đủ |
+| R-551 | "Tạo tái khám" chỉ có chip răng, không có nút sơ đồ như form công đoạn | `FollowUpTeeth` thêm nút "Xem sơ đồ răng" mở `StageTeethDialog`: răng ngoài công đoạn gốc bị làm xám; "Chọn răng" trả lựa chọn về chip |
+
+### Kiểm thử
+
+- Domain `CatalogStageSyncTests` (3 test mới) xanh; Domain 351/352 (ca đỏ sẵn có về đếm quyền). EF 54/54.
+- `treatment-stage-chain` "re-saving a service keeps its steps' ids" (mới, API thật) xanh.
+- Danh mục trên **bản build production** (`vite preview` :8081 → API :5020): `taxonomy*` + `payment-qr` + `branch-*` **38/42**, bằng mức nền đã
+  ghi ở R-487 (38/4). 4 ca đỏ: đăng nhập tài khoản chi nhánh (`branch-switcher`), dropdown thuốc của đơn thuốc mẫu (×2), bảng ở độ rộng điện thoại.
+- `patient.spec` "a tái khám picks its teeth…" xanh (dev :5173 → API :5019). Thêm bước kiểm sơ đồ; sửa 2 chỗ test không ổn định:
+  đóng dialog bằng ✕ vì tooltip Bảo hành nuốt Escape, và poll tổng số dòng sau reload.
+
+## 2026-09-24 (đợt 6) — "Răng đã chọn" tràn khỏi cột
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-552 | Form "Tạo chẩn đoán": chip của răng có nhiều mặt ("45 - Mặt gần, Mặt xa, Mặt ngoài, Mặt nhai") tràn khỏi cột 260px, che mất nút ✕ | `.pd-tooth-chip` bỏ `white-space: nowrap`, thêm `max-width: 100%` + `overflow-wrap: anywhere`, padding phải 20px như `pr-5` của bản gốc: chip tự xuống dòng trong hộp |
+
+Kiểm thử: `patient.spec` "records tooth surfaces on the consulting chart" thêm bước kiểm răng 45 đủ 4 mặt, chip và nút ✕ phải nằm trong hộp. Xanh (dev :5173 → API :5019); đã chụp ảnh đối chiếu.
+
+## 2026-09-24 — Danh mục: nhập từ Excel (R-553..R-558)
+
+> Ba muc nhap Excel duoi day mang so R-533..R-543 trong commit `1337000`; khi merge voi
+> `origin/main` (bd09dac) cung ngay, nhanh kia da dung R-533..R-552 cho cong doan / tu van,
+> nen doi thanh R-553..R-563 va sua moi tham chieu (features/taxonomy.md, registry, spec, tsx).
 
 Yêu cầu BA qua chủ dự án: thêm "Nhập" cho Danh mục để nạp dữ liệu vào hệ thống
 mới. **Không có trên bản gốc** → không so ảnh; phạm vi và từng case do chủ dự án
@@ -5575,13 +5696,13 @@ dòng; quyền = `create` của tab). Chi tiết ở `docs/testing/features/taxo
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-533 | File lỗi (`import-errors`) mở trong SheetJS/Excel thiếu cột "Lỗi" dù server đã ghi ô | ClosedXML giữ nguyên `<dimension ref>` cũ của sheet khi lưu lại workbook nạp từ upload, nên cột thêm sau cột cuối nằm ngoài vùng khai báo. Xử lý: `sheet.CopyTo(freshWorkbook, name)` sang workbook mới rồi lưu workbook đó (`CatalogImportAppService.DownloadErrorsAsync`). |
-| R-534 | Spec màn hình không tìm thấy nút "Nhập" (`getByRole("button", {name: "Nhập", exact: true})` timeout) và "Đóng" vi phạm strict mode | Nút icon AntD có accessible name = `aria-label` của icon + chữ ("upload Nhập", "download Xuất", "plus Thêm nguồn đến"); Modal AntD dưới locale vi đặt tên nút X cũng là "Đóng". Xử lý trong spec: tên regex (`/^upload Nhập$/`, `/Kiểm tra file$/`, `/Nhập 2 dòng$/`) và scope nút chân dialog qua `.bd-modal-foot`. Áp dụng cho mọi spec sau này bấm nút có icon. |
-| R-535 | Trọn bộ Danh mục trên bản build production 50/54: `branch-switcher:93`, `taxonomy-dialogs:152` + `:207`, `taxonomy:277` đỏ **trước** khi có đợt này (đã ghi "đỏ trên bản build sạch" ở đoạn 2026-09-02 / 2026-09-23 của log) | Ba nguyên nhân cũ, sửa đúng theo cách log đã kê: (1) `1e8e172` làm `/login` đưa phiên đang mở vào lại app nên `goto("/login") + localStorage.clear()` không còn là đăng xuất → đăng xuất qua `.app-header-user` → "Đăng xuất", **rồi** `localStorage.clear()` vì lựa chọn chi nhánh nhớ theo trình duyệt chứ không theo tài khoản (thiếu bước này header vẫn ở chi nhánh 2 sau khi admin đăng nhập lại); (2) danh sách thuốc của chi nhánh đã dài (rác e2e) nên Select AntD là virtual list, bấm option ngoài màn lặp "outside of the viewport" → gõ tên vào ô "Tên thuốc" rồi bấm option trong `.ant-select-dropdown:visible` (cách của `prescription.spec.ts`); (3) từ shell v2 `main.app-content` là scroller, document không cuộn → đo `scrollHeight > clientHeight` trên `main.app-content`. |
-| R-536 | Script sửa `taxonomy-dialogs.spec.ts` / `taxonomy.spec.ts` báo xong nhưng `git status` không đổi | Hai file CRLF, `str.replace` với chuỗi `
+| R-553 | File lỗi (`import-errors`) mở trong SheetJS/Excel thiếu cột "Lỗi" dù server đã ghi ô | ClosedXML giữ nguyên `<dimension ref>` cũ của sheet khi lưu lại workbook nạp từ upload, nên cột thêm sau cột cuối nằm ngoài vùng khai báo. Xử lý: `sheet.CopyTo(freshWorkbook, name)` sang workbook mới rồi lưu workbook đó (`CatalogImportAppService.DownloadErrorsAsync`). |
+| R-554 | Spec màn hình không tìm thấy nút "Nhập" (`getByRole("button", {name: "Nhập", exact: true})` timeout) và "Đóng" vi phạm strict mode | Nút icon AntD có accessible name = `aria-label` của icon + chữ ("upload Nhập", "download Xuất", "plus Thêm nguồn đến"); Modal AntD dưới locale vi đặt tên nút X cũng là "Đóng". Xử lý trong spec: tên regex (`/^upload Nhập$/`, `/Kiểm tra file$/`, `/Nhập 2 dòng$/`) và scope nút chân dialog qua `.bd-modal-foot`. Áp dụng cho mọi spec sau này bấm nút có icon. |
+| R-555 | Trọn bộ Danh mục trên bản build production 50/54: `branch-switcher:93`, `taxonomy-dialogs:152` + `:207`, `taxonomy:277` đỏ **trước** khi có đợt này (đã ghi "đỏ trên bản build sạch" ở đoạn 2026-09-02 / 2026-09-23 của log) | Ba nguyên nhân cũ, sửa đúng theo cách log đã kê: (1) `1e8e172` làm `/login` đưa phiên đang mở vào lại app nên `goto("/login") + localStorage.clear()` không còn là đăng xuất → đăng xuất qua `.app-header-user` → "Đăng xuất", **rồi** `localStorage.clear()` vì lựa chọn chi nhánh nhớ theo trình duyệt chứ không theo tài khoản (thiếu bước này header vẫn ở chi nhánh 2 sau khi admin đăng nhập lại); (2) danh sách thuốc của chi nhánh đã dài (rác e2e) nên Select AntD là virtual list, bấm option ngoài màn lặp "outside of the viewport" → gõ tên vào ô "Tên thuốc" rồi bấm option trong `.ant-select-dropdown:visible` (cách của `prescription.spec.ts`); (3) từ shell v2 `main.app-content` là scroller, document không cuộn → đo `scrollHeight > clientHeight` trên `main.app-content`. |
+| R-556 | Script sửa `taxonomy-dialogs.spec.ts` / `taxonomy.spec.ts` báo xong nhưng `git status` không đổi | Hai file CRLF, `str.replace` với chuỗi `
 ` không khớp; lỗi assert bị nuốt vì output script đi qua cùng bộ lọc grep của lần chạy test. Xử lý: helper đọc bytes → chuẩn hoá LF → thay → ghi lại CRLF; không lọc output của script sửa. Sau khi chèn dòng, selector `spec:line` của test phía dưới trôi (`:207` → `:211`) — lần chạy "3 passed" thiếu một test, phải chạy lại cả file. |
-| R-537 | Dialog nhập không hiện ở "Tất cả chi nhánh"; tài khoản chỉ đọc không thấy nút | Đúng chủ ý: import ghi vào đúng chi nhánh header đang chọn (`clinicBranchId` bắt buộc), nút disabled khi `isAllBranches`; nút gate bằng `useAbility(tab).canCreate`, server `[Authorize(Catalogs.Create)]` → gọi thẳng 403 (`taxonomy-import-api.spec.ts`). |
-| R-538 | `lib/download.ts` được sửa (thêm `downloadPostedFile`) — mọi nút "Xuất" là Level 3 | Chữ ký `downloadFile` giữ nguyên, phần lưu blob tách thành `saveBlob`/`fileNameFrom` dùng chung; các spec bấm "Xuất" trong bộ Danh mục (`taxonomy-groups`) xanh; các spec Xuất ngoài bộ này (cskh, export, labo-orders-permissions, materials, operations-reports, report, role-permissions-abilities) chưa chạy lại trong đợt này. |
+| R-557 | Dialog nhập không hiện ở "Tất cả chi nhánh"; tài khoản chỉ đọc không thấy nút | Đúng chủ ý: import ghi vào đúng chi nhánh header đang chọn (`clinicBranchId` bắt buộc), nút disabled khi `isAllBranches`; nút gate bằng `useAbility(tab).canCreate`, server `[Authorize(Catalogs.Create)]` → gọi thẳng 403 (`taxonomy-import-api.spec.ts`). |
+| R-558 | `lib/download.ts` được sửa (thêm `downloadPostedFile`) — mọi nút "Xuất" là Level 3 | Chữ ký `downloadFile` giữ nguyên, phần lưu blob tách thành `saveBlob`/`fileNameFrom` dùng chung; các spec bấm "Xuất" trong bộ Danh mục (`taxonomy-groups`) xanh; các spec Xuất ngoài bộ này (cskh, export, labo-orders-permissions, materials, operations-reports, report, role-permissions-abilities) chưa chạy lại trong đợt này. |
 
 Bằng chứng:
 
@@ -5599,16 +5720,16 @@ Bằng chứng:
   `features/taxonomy.md`.
 - Trọn bộ Danh mục (`e2e/taxonomy* payment-qr branch-*`, 38 test cũ + 12 mới)
   trên bản build production cổng 8080: **54/54** (5,9 phút) — trước đợt này
-  là 50/54 (R-535).
+  là 50/54 (R-555).
 - `tsc -b --noEmit`, `oxlint` sạch; BE build sạch (host chạy từ bin Debug).
 
 ### Còn treo
 
 - Bệnh án mẫu: chủ dự án "làm sau" — chưa có layout import cho tab này.
 - Các spec "Xuất" ngoài bộ Danh mục chưa chạy lại sau khi tách `saveBlob`
-  (R-538) — Level 3 còn nợ, cần chạy khi rảnh host.
+  (R-558) — Level 3 còn nợ, cần chạy khi rảnh host.
 
-## 2026-09-24 — Danh mục: nhập từ Excel, dòng đã có mà khác cột → Cập nhật (R-539..R-541)
+## 2026-09-24 — Danh mục: nhập từ Excel, dòng đã có mà khác cột → Cập nhật (R-559..R-561)
 
 Chủ dự án hỏi "nếu đã có mà có cập nhật các trường khác thì vẫn là update chứ"
 và chốt: **update nếu có thay đổi trường nào khác, bỏ qua nếu không thay đổi
@@ -5616,9 +5737,9 @@ gì**. Trước đó tên trùng dòng đang hoạt động luôn là Skip và k
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-539 | Nhập lại file đã sửa giá / ưu tiên / dòng thuốc của một mục đã có → server báo "Bỏ qua (đã có)", dữ liệu mới không vào | Luật cũ. Thêm hành động `Update = 5` (`CatalogImportRowAction`, **nối sau `Error`** để số của FE không đổi) và `UpdateCount` trên kết quả. Với mỗi dòng trùng tên đang hoạt động, `EntryMerge.Merge` ghép ô trong file lên bản ghi rồi `EntryMerge.Differs` so từng trường (tên, ưu tiên, mã, giá, nội dung, mô tả/lời dặn, tên chi tiết, ghi chú, đơn vị, 11 trường cấu hình dịch vụ, 5 trường thuốc, dãy công đoạn, dãy dòng thuốc theo thuốc/liều/ngày/cách dùng). Khác → `Update` (cần quyền `Catalogs.Edit`, thiếu → dòng `Error` "Taxonomy:Import:Err:NoUpdatePermission" và từ chối cả file như mọi lỗi khác); không khác → `Skip`. Vì kết luận phụ thuộc sheet "Thuốc", việc phân loại dời ra `ResolveExistingAsync` chạy **sau** `PlanLinesAsync`. Khôi phục dòng đã xoá giờ cũng lấy giá trị trong file (trước đây giữ nguyên dữ liệu cũ). Commit: `UpdateManyAsync` cho cả hai nhóm, vẫn một unit of work. |
-| R-540 | Lúc đầu mọi dòng đã có đều bị coi là "khác" | `LoadEntriesAsync` đọc bằng `GetListAsync` nên `ServiceConfig`/`Medicine`/`Stages`/`PrescriptionLines` rỗng, so với file lúc nào cũng lệch → đổi sang `WithDetailsAsync()` (dùng `DefaultWithDetailsFunc` của `CatalogEntry`). Kèm quy tắc **ô trống = giữ giá trị đang lưu** khi cập nhật/khôi phục (`EntryDraft.Given` = tập cột có ô không trống, `ImportRowReader.GivenColumns`); trên dòng tạo mới ô trống vẫn là mặc định (Không / KCT / 0). Hệ quả đã chấp nhận: **không xoá trắng được một trường bằng import**; muốn xoá thì sửa trên dialog. |
-| R-541 | Chuỗi tóm tắt "N dòng: a thêm mới, b khôi phục, c bỏ qua, d lỗi" không có chỗ cho cập nhật; nhãn "Bỏ qua (đã có)" sai nghĩa | `Taxonomy:Import:Summary` thành 6 chỗ trống (thêm mới, cập nhật, khôi phục, bỏ qua, lỗi), nhãn Skip → "Bỏ qua (không thay đổi)", thêm `Action:Update` = "Cập nhật" (tag cam), `GuideIntro` nêu luật mới; nút "Nhập N dòng" và toast đếm cả cập nhật (`importableCount`). Hai spec đổi chuỗi theo. |
+| R-559 | Nhập lại file đã sửa giá / ưu tiên / dòng thuốc của một mục đã có → server báo "Bỏ qua (đã có)", dữ liệu mới không vào | Luật cũ. Thêm hành động `Update = 5` (`CatalogImportRowAction`, **nối sau `Error`** để số của FE không đổi) và `UpdateCount` trên kết quả. Với mỗi dòng trùng tên đang hoạt động, `EntryMerge.Merge` ghép ô trong file lên bản ghi rồi `EntryMerge.Differs` so từng trường (tên, ưu tiên, mã, giá, nội dung, mô tả/lời dặn, tên chi tiết, ghi chú, đơn vị, 11 trường cấu hình dịch vụ, 5 trường thuốc, dãy công đoạn, dãy dòng thuốc theo thuốc/liều/ngày/cách dùng). Khác → `Update` (cần quyền `Catalogs.Edit`, thiếu → dòng `Error` "Taxonomy:Import:Err:NoUpdatePermission" và từ chối cả file như mọi lỗi khác); không khác → `Skip`. Vì kết luận phụ thuộc sheet "Thuốc", việc phân loại dời ra `ResolveExistingAsync` chạy **sau** `PlanLinesAsync`. Khôi phục dòng đã xoá giờ cũng lấy giá trị trong file (trước đây giữ nguyên dữ liệu cũ). Commit: `UpdateManyAsync` cho cả hai nhóm, vẫn một unit of work. |
+| R-560 | Lúc đầu mọi dòng đã có đều bị coi là "khác" | `LoadEntriesAsync` đọc bằng `GetListAsync` nên `ServiceConfig`/`Medicine`/`Stages`/`PrescriptionLines` rỗng, so với file lúc nào cũng lệch → đổi sang `WithDetailsAsync()` (dùng `DefaultWithDetailsFunc` của `CatalogEntry`). Kèm quy tắc **ô trống = giữ giá trị đang lưu** khi cập nhật/khôi phục (`EntryDraft.Given` = tập cột có ô không trống, `ImportRowReader.GivenColumns`); trên dòng tạo mới ô trống vẫn là mặc định (Không / KCT / 0). Hệ quả đã chấp nhận: **không xoá trắng được một trường bằng import**; muốn xoá thì sửa trên dialog. |
+| R-561 | Chuỗi tóm tắt "N dòng: a thêm mới, b khôi phục, c bỏ qua, d lỗi" không có chỗ cho cập nhật; nhãn "Bỏ qua (đã có)" sai nghĩa | `Taxonomy:Import:Summary` thành 6 chỗ trống (thêm mới, cập nhật, khôi phục, bỏ qua, lỗi), nhãn Skip → "Bỏ qua (không thay đổi)", thêm `Action:Update` = "Cập nhật" (tag cam), `GuideIntro` nêu luật mới; nút "Nhập N dòng" và toast đếm cả cập nhật (`importableCount`). Hai spec đổi chuỗi theo. |
 
 Bằng chứng (host build Debug trên 5000, preview bản build production trên 8080):
 
@@ -5644,12 +5765,12 @@ Bằng chứng (host build Debug trên 5000, preview bản build production trê
 - 38 spec Danh mục cũ không chạy lại đợt này: thay đổi nằm trong importer và
   thêm `CatalogEntry.ChangeCode` chưa ai khác gọi → Level 2.
 
-## 2026-09-24 — Danh mục: bảng xem trước import không kéo ngang được (R-542, R-543)
+## 2026-09-24 — Danh mục: bảng xem trước import không kéo ngang được (R-562, R-563)
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-543 | Kéo sang phải xem giá trị thì mất cột "Kết quả", không biết dòng sẽ thêm / cập nhật / lỗi | Chủ dự án yêu cầu ghim cột Kết quả. AntD chỉ ghim đúng khi cột `fixed: "right"` nằm cuối, nên đổi thứ tự: … → Lỗi → **Kết quả (ghim phải)**. Cột "Dòng" vẫn ghim trái. Kéo-cuộn toàn cục bỏ qua mousedown trên ô ghim (`.ant-table-cell-fix-end`) — hành vi sẵn có, không đổi. |
-| R-542 | Xem trước file Dịch vụ (20 cột, rộng hơn dialog 960): cột bên phải bị cắt từ "% THUẾ", **nắm bảng kéo chuột không cuộn ngang** như mọi bảng khác, cũng không thấy thanh cuộn | Bảng này là bảng `virtual` duy nhất trong app. Kéo-cuộn toàn cục (`initTableGrabScroll` trong `hooks/useDragScroll.ts`) chỉ bám `.ant-table-content` / `.ant-table-body` và cuộn bằng `scrollLeft`; thân bảng virtual là `.ant-table-tbody-virtual-holder` với `overflow-x: hidden`, vị trí ngang nằm trong state React (`offsetLeft`) và vẽ bằng `transform`, thanh cuộn tự vẽ bị inline `visibility: hidden` cho đến khi lăn con lăn. Thử đầu tiên (ép thanh cuộn ảo luôn hiện bằng CSS) chỉ cho kéo thanh, không cho nắm bảng → bỏ. Sửa: **bỏ `virtual`** khỏi `CatalogImportPreview.tsx`, giữ `scroll={{x, y}}` + `pagination={false}`; thân bảng thành `.ant-table-body` thường nên nắm-kéo, thanh cuộn gốc và Shift+lăn đều chạy, không cần CSS riêng. Đổi lại mọi dòng của file đều render (không cửa sổ hoá); file vài nghìn dòng vẫn chấp nhận được vì chỉ xem trước một lần, ghi nhận để theo dõi. |
+| R-563 | Kéo sang phải xem giá trị thì mất cột "Kết quả", không biết dòng sẽ thêm / cập nhật / lỗi | Chủ dự án yêu cầu ghim cột Kết quả. AntD chỉ ghim đúng khi cột `fixed: "right"` nằm cuối, nên đổi thứ tự: … → Lỗi → **Kết quả (ghim phải)**. Cột "Dòng" vẫn ghim trái. Kéo-cuộn toàn cục bỏ qua mousedown trên ô ghim (`.ant-table-cell-fix-end`) — hành vi sẵn có, không đổi. |
+| R-562 | Xem trước file Dịch vụ (20 cột, rộng hơn dialog 960): cột bên phải bị cắt từ "% THUẾ", **nắm bảng kéo chuột không cuộn ngang** như mọi bảng khác, cũng không thấy thanh cuộn | Bảng này là bảng `virtual` duy nhất trong app. Kéo-cuộn toàn cục (`initTableGrabScroll` trong `hooks/useDragScroll.ts`) chỉ bám `.ant-table-content` / `.ant-table-body` và cuộn bằng `scrollLeft`; thân bảng virtual là `.ant-table-tbody-virtual-holder` với `overflow-x: hidden`, vị trí ngang nằm trong state React (`offsetLeft`) và vẽ bằng `transform`, thanh cuộn tự vẽ bị inline `visibility: hidden` cho đến khi lăn con lăn. Thử đầu tiên (ép thanh cuộn ảo luôn hiện bằng CSS) chỉ cho kéo thanh, không cho nắm bảng → bỏ. Sửa: **bỏ `virtual`** khỏi `CatalogImportPreview.tsx`, giữ `scroll={{x, y}}` + `pagination={false}`; thân bảng thành `.ant-table-body` thường nên nắm-kéo, thanh cuộn gốc và Shift+lăn đều chạy, không cần CSS riêng. Đổi lại mọi dòng của file đều render (không cửa sổ hoá); file vài nghìn dòng vẫn chấp nhận được vì chỉ xem trước một lần, ghi nhận để theo dõi. |
 
 Bằng chứng: `e2e/taxonomy-import.spec.ts` **4/4** trên bản build production
 (preview 8083 riêng vì 8080 đang có phiên khác dùng, host 5000) — spec mới
@@ -5657,5 +5778,5 @@ Bằng chứng: `e2e/taxonomy-import.spec.ts` **4/4** trên bản build producti
 nhập file Dịch vụ 2 cột, `.ant-table-body` có class `has-horizontal-scroll`,
 nắm một ô giá trị kéo sang trái 400 px thì tiêu đề cột "Lỗi" dịch trái > 200 px
 và `scrollLeft` > 200; tiêu đề "Kết quả" có class `ant-table-cell-fix-end`, giữ
-nguyên toạ độ x sau khi kéo và tag "Thêm mới" vẫn trong khung nhìn (R-543). `tsc -b` và `oxlint` sạch. Level 2 (đổi props bảng
+nguyên toạ độ x sau khi kéo và tag "Thêm mới" vẫn trong khung nhìn (R-563). `tsc -b` và `oxlint` sạch. Level 2 (đổi props bảng
 trong một feature, spec màn hình chạy lại đủ).

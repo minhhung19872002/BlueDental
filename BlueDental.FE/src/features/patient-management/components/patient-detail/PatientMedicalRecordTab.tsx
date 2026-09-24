@@ -291,7 +291,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
   return (
     <section className="pd-pane pd-pane--fill pd-medical">
-      <div className="pd-medical-grid">
+      <div className={["pd-medical-grid", collapsed && "pd-medical-grid--collapsed"].filter(Boolean).join(" ")}>
         <MedicalRecordIndex
           sheets={sheets}
           activeId={active?.id ?? null}

@@ -245,7 +245,11 @@ export function PatientProfileTab({ patient }: Props) {
         (row) =>
           filter === "all" ||
           (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
-          (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress),
+          (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress) ||
+          // The reference asks its timeline for `type=re_examination` and for
+          // warranty công đoạn (`isGuarantee`, `onlyGuarantee`) respectively.
+          (filter === "recall" && row.kind === "reExamination") ||
+          (filter === "warranty" && row.isWarranty),
       ),
     [rows, filter],
   );
@@ -574,6 +578,9 @@ export function PatientProfileTab({ patient }: Props) {
         stage={
           (patientStages.data?.items ?? []).find((item) => item.id === warrantyRow?.stageId) ?? null
         }
+        lineStages={(patientStages.data?.items ?? []).filter(
+          (item) => item.treatmentServiceId === warrantyRow?.id,
+        )}
         kind="guarantee"
         onClose={() => setWarrantyRow(null)}
       />
@@ -585,6 +592,7 @@ export function PatientProfileTab({ patient }: Props) {
         branchId={branchId}
         plan={stagePlan}
         focusServiceId={stageRow?.id ?? null}
+        focusStageId={stageRow?.stageId ?? null}
         onClose={() => setStageRow(null)}
         onOpenPlan={() => {
           /*

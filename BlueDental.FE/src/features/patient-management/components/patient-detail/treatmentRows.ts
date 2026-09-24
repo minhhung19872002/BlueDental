@@ -9,6 +9,7 @@ import {
   type TreatmentServiceDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
+import { warrantyState, type WarrantyState } from "./stage/stageModel";
 
 /**
  * One row of the profile tab's treatment table.
@@ -39,6 +40,11 @@ export interface TreatmentRow extends TreatmentServiceDto {
   stageDone: boolean;
   /** A warranty visit — the reference's `isGuarantee`. */
   isWarranty: boolean;
+  /**
+   * What the Công đoạn cell offers once this row's công đoạn is finished —
+   * see {@link warrantyState}. `none` on a row still being worked.
+   */
+  warranty: WarrantyState;
   createdAt: string;
   /** Nội dung điều trị — the công đoạn's own note. */
   stageNote: string | null;
@@ -94,6 +100,7 @@ export function buildTreatmentRows(
           stageId: null,
           stageDone: service.status === SERVICE_LINE_STATUS.Done,
           isWarranty: false,
+          warranty: { kind: "none" },
           createdAt: plan.creationTime,
           stageNote: null,
           rowTeeth: service.teeth,
@@ -106,9 +113,13 @@ export function buildTreatmentRows(
       for (const stage of lineStages) {
         rows.push({
           ...base,
+          // SL is the công đoạn's own count of teeth — staging's timeline
+          // prints 3 on a warranty of 11·21·22 whose line holds four.
+          quantity: stage.teeth.length > 0 ? stage.teeth.length : service.quantity,
           stageId: stage.id,
           stageDone: stage.status === STAGE_STATUS.Completed,
           isWarranty: stage.isGuarantee,
+          warranty: warrantyState(stage, service, lineStages),
           createdAt: stage.creationTime,
           stageNote: stage.note,
           rowTeeth: stage.teeth.length > 0 ? stage.teeth : service.teeth,
@@ -144,6 +155,7 @@ export function buildTreatmentRows(
       stageId: null,
       stageDone: false,
       isWarranty: false,
+      warranty: { kind: "none" },
       createdAt: visit.creationTime,
       stageNote: visit.note,
       rowTeeth: visit.teeth,

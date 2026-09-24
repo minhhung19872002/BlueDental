@@ -124,6 +124,31 @@ Status pill values: `Đã tạo`, `Đang điều trị`, `Hoàn thành`, `Chuy�
 Hủy). On the reference a line in `created` offers only two of those — see
 unknowns.
 
+### "Chỉnh sửa" and the Răng column (read 2026-09-24 from the published column builder)
+
+- **Răng prints tooth numbers only** — `getSelectedToothCodesDisplay(content)`,
+  never "11 - Mặt ngoài", on the saved rows and on the inline row once teeth are
+  picked. A jaw preset still prints its name.
+- **Thao tác** holds the eye and, where offered, a **pencil** (`Chỉnh sửa`,
+  `gap-4`). The pencil is offered when `canEdit` holds: the line is not
+  `done / canceled / replaced` **and** nothing has been paid on it
+  (`payment.totalPaid > 0` hides it). It is only offered while no other row is
+  being written.
+- The pencil turns the line back into the inline row (✓ Lưu / ✕ Hủy). On a line
+  **in treatment** the diagnosis and the unit price stay as they are, printed
+  with *Không thể đổi chẩn đoán khi đang điều trị* / *Không thể đổi giá khi đang
+  điều trị* under them, and the teeth that already have a công đoạn cannot be
+  unpicked — the tooth dialog says *Răng … đang điều trị — không thể bỏ chọn.*
+  and folds them back in on confirm.
+
+BlueDental: `useEditServiceRow` + `PUT /api/v1/app/patient-treatments/{id}/services/{lineId}`
+(`TreatmentService.Revise`, errors `Treatment:0037/0038/0039`); the line
+carries `stagedTeeth` for the lock. Not observed and not copied: the reference
+recomputes **Số lượng** from the teeth on the inline row; BlueDental keeps its
+own quantity field, as the new-service row always has. What the reference's ✕
+does on an edited row (it shares one cancel handler with the new row) is not
+known; BlueDental just leaves edit mode — nothing is deleted.
+
 ### Dialog "Chuyển đổi dịch vụ" (status pill → Chuyển đổi)
 
 Measured 2026-09-22 on the reference, read-only: the dialog was opened and

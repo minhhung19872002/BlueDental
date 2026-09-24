@@ -5817,6 +5817,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("ConcurrencyStamp");
 
+                    b.Property<Guid?>("ContinuedFromId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("CreationTime");
@@ -5855,6 +5858,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsImageRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSuperseded")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModificationTime")
@@ -5905,6 +5911,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("TreatmentServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WarrantyRootStageId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");

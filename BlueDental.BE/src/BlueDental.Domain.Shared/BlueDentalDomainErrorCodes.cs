@@ -122,6 +122,47 @@ public static class BlueDentalDomainErrorCodes
         /// "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ."
         /// </summary>
         public const string ServiceHasOpenLaboOrder = "BlueDental:Treatment:0029";
+        /// <summary>A công đoạn asked for a tooth its service line does not treat.</summary>
+        public const string StageToothOutsideService = "BlueDental:Treatment:0030";
+
+        /// <summary>
+        /// "Thêm công đoạn" on a tooth another công đoạn of the line already
+        /// holds — that tooth is continued ("Tiếp tục công đoạn"), not started again.
+        /// </summary>
+        public const string StageToothAlreadyStaged = "BlueDental:Treatment:0031";
+
+        /// <summary>A công đoạn on a tooth-bearing line with no tooth picked.</summary>
+        public const string StageTeethRequired = "BlueDental:Treatment:0032";
+
+        /// <summary>
+        /// A warranty raised while another warranty of the same line is still
+        /// open. The reference's own words, `openWarrantyMustComplete`.
+        /// </summary>
+        public const string OpenWarrantyMustComplete = "BlueDental:Treatment:0033";
+
+        /// <summary>The service carries no warranty period ("Không bảo hành").</summary>
+        public const string ServiceHasNoWarranty = "BlueDental:Treatment:0034";
+
+        /// <summary>The warranty period ran out ("Đã hết hạn bảo hành").</summary>
+        public const string WarrantyExpired = "BlueDental:Treatment:0035";
+
+        /// <summary>A warranty raised off a công đoạn that is not a finished, live one.</summary>
+        public const string WarrantySourceInvalid = "BlueDental:Treatment:0036";
+
+        /// <summary>
+        /// "Chỉnh sửa" on a line that is finished, cancelled, converted or already
+        /// paid — the reference offers the pencil on none of those.
+        /// </summary>
+        public const string ServiceLineNotEditable = "BlueDental:Treatment:0037";
+
+        /// <summary>
+        /// A line being treated keeps its diagnosis and its price — the reference
+        /// prints "Không thể đổi chẩn đoán/giá khi đang điều trị" in their place.
+        /// </summary>
+        public const string ServiceLineLockedInTreatment = "BlueDental:Treatment:0038";
+
+        /// <summary>A tooth that already has a công đoạn cannot be taken off the line.</summary>
+        public const string StagedToothLocked = "BlueDental:Treatment:0039";
     }
 
     public static class Billing

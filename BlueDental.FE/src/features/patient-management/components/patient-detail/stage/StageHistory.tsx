@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button, Checkbox, Image, Input } from "antd";
-import { MedicineBoxOutlined, PictureOutlined } from "@ant-design/icons";
+import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
-import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageStepList } from "./StageStepList";
+import { StageWarrantyButton } from "./StageWarrantyButton";
+import { namedSteps, type WarrantyState } from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
 export interface StageDay {
@@ -18,11 +19,6 @@ export interface StageDay {
 interface Props {
   days: StageDay[];
   total: number;
-  /**
-   * The newest công đoạn of each service line — the only one still live. The
-   * reference marks every earlier one `disabled` on the row itself.
-   */
-  liveStageIds: Set<string>;
   imagesOf: (stageId: string) => PatientImageDto[];
   savingNoteFor: string | null;
   uploadingFor: string | null;
@@ -36,8 +32,8 @@ interface Props {
   onCreateLabo: (stage: TreatmentStageDto) => void;
   /** Bảo hành, offered in place of Tạo Labo once a công đoạn is finished. */
   onWarranty: (stage: TreatmentStageDto) => void;
-  /** Whether the row's service carries a warranty period at all. */
-  warrantable: (stage: TreatmentStageDto) => boolean;
+  /** Which of the reference's warranty controls a finished row shows. */
+  warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
 }
 
 /** The pencil that swaps a stage's note for an editor, in place. */
@@ -57,7 +53,8 @@ function NoteCell({
     <div>
       <div className="pd-stage-noteblock">
         <div className="pd-stage-notebar">
-          {!editing && (
+          {/* The reference drops the pencil on a continued công đoạn. */}
+          {!editing && !stage.isSuperseded && (
             <button
               type="button"
               aria-label={t("Patient:Misc:EditNote")}
@@ -134,7 +131,6 @@ function NoteCell({
 export function StageHistory({
   days,
   total,
-  liveStageIds,
   imagesOf,
   savingNoteFor,
   uploadingFor,
@@ -146,7 +142,7 @@ export function StageHistory({
   onUpload,
   onCreateLabo,
   onWarranty,
-  warrantable,
+  warrantyOf,
 }: Props) {
   return (
     <div className="pd-stage-history">
@@ -176,9 +172,11 @@ export function StageHistory({
                 <div>
                   {day.stages.map((stage) => {
                     const images = imagesOf(stage.id);
-                    // Only the line's newest công đoạn can still be worked on;
-                    // the reference greys the rest out and drops their Tạo Labo.
-                    const live = liveStageIds.has(stage.id);
+                    // A công đoạn continued by a later one is history: the
+                    // reference greys it out and drops its Tạo Labo. Several
+                    // chains can run on one line, each with its own live row.
+                    const live = !stage.isSuperseded;
+                    const done = stage.completedAt !== null;
                     return (
                       <div
                         className={
@@ -197,9 +195,11 @@ export function StageHistory({
                       >
                         <div>
                           <p className="pd-stage-histservice">{stage.serviceName ?? stage.name}</p>
+                          {/* Tooth numbers only: the reference prints no
+                              surfaces on a công đoạn. */}
                           <div className="pd-stage-histteeth">
-                            {toothLabels(stage.teeth).map((label) => (
-                              <span key={label}>{label}</span>
+                            {stage.teeth.map((tooth) => (
+                              <span key={tooth.toothCode}>{tooth.toothCode}</span>
                             ))}
                           </div>
                           {images.length > 0 && (
@@ -227,15 +227,13 @@ export function StageHistory({
                             the checkboxes in this column, not the stage name. */}
                         <div className="pd-stage-histstage">
                           <StageStepList
-                            steps={stage.serviceItems.map((item) => ({
-                              id: item.catalogServiceStageId,
-                              name: item.name,
-                            }))}
+                            steps={namedSteps(stage.serviceItems)}
                             checked={stage.serviceItems
                               .filter((item) => item.isCompleted)
                               .map((item) => item.catalogServiceStageId)}
                             onToggle={(stepId, next) => void onToggleStep(stage, stepId, next)}
-                            busy={togglingStepFor === stage.id}
+                            // A finished công đoạn's steps are settled.
+                            busy={togglingStepFor === stage.id || done || !live}
                           />
                         </div>
 
@@ -245,7 +243,7 @@ export function StageHistory({
                               re-opens the công đoạn. Only an earlier công đoạn
                               of the line, or one mid-request, is locked. */}
                           <Checkbox
-                            checked={stage.completedAt !== null}
+                            checked={done}
                             disabled={!live || completingId === stage.id}
                             onChange={() => onComplete(stage)}
                           >
@@ -254,31 +252,26 @@ export function StageHistory({
                           <Button
                             block
                             icon={<PictureOutlined />}
+                            disabled={!live}
                             loading={uploadingFor === stage.id}
                             onClick={() => onUpload(stage)}
                           >
                             {t("Patient:Photo:Upload")}
                           </Button>
-                          {/* A finished công đoạn swaps Tạo Labo for Bảo hành —
-                              and offers neither when its service has no
-                              warranty period. */}
-                          {stage.completedAt !== null
-                            ? warrantable(stage) && (
-                                <Button
-                                  block
-                                  type="primary"
-                                  className="pd-stage-warranty"
-                                  icon={<MedicineBoxOutlined />}
-                                  onClick={() => onWarranty(stage)}
-                                >
-                                  {t("Patient:Labo:Warranty")}
-                                </Button>
-                              )
-                            : live && (
-                                <Button block type="primary" onClick={() => onCreateLabo(stage)}>
-                                  {t("Patient:Labo:Create")}
-                                </Button>
-                              )}
+                          {/* A finished công đoạn swaps Tạo Labo for Bảo hành;
+                              a continued one offers neither. */}
+                          {done ? (
+                            <StageWarrantyButton
+                              state={warrantyOf(stage)}
+                              onClick={() => onWarranty(stage)}
+                            />
+                          ) : (
+                            live && (
+                              <Button block type="primary" onClick={() => onCreateLabo(stage)}>
+                                {t("Patient:Labo:Create")}
+                              </Button>
+                            )
+                          )}
                         </div>
                       </div>
                     );

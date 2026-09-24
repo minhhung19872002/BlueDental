@@ -6,8 +6,12 @@ import type {
   UpdatePatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
 
-/** "Lưu Chẩn Đoán" saves; "Tạo dịch vụ" saves and goes on to the advise; "Cập nhật" rewrites. */
-export type DiagnosisIntent = "save" | "service" | "update";
+/**
+ * "Thêm chẩn đoán" saves and leaves a blank form open for the next one;
+ * "Lưu Chẩn Đoán" saves and closes; "Tạo dịch vụ" saves and goes on to the
+ * advise; "Cập nhật" rewrites.
+ */
+export type DiagnosisIntent = "add" | "save" | "service" | "update";
 
 export interface DiagnosisSubmission {
   staffId: string;
@@ -36,6 +40,8 @@ export function useDiagnosisEditor(
 ) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState<PatientDiagnosisDto | null>(null);
+  /** Bumped by "Thêm chẩn đoán": the open form clears itself for the next slip. */
+  const [blankCount, setBlankCount] = useState(0);
 
   const close = () => {
     setExpanded(false);
@@ -69,9 +75,14 @@ export function useDiagnosisEditor(
           }))
         : await writer.create(input);
     if (!saved) return;
+    // The reference's `en`: create, then its reset (`J`) without closing.
+    if (intent === "add") {
+      setBlankCount((count) => count + 1);
+      return;
+    }
     close();
     if (intent === "service") onService(saved);
   };
 
-  return { expanded, editing, toggle, edit, close, submit };
+  return { expanded, editing, blankCount, toggle, edit, close, submit };
 }

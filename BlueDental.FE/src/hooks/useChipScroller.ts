@@ -6,6 +6,8 @@ const STEP_PX = 280;
 const SETTLE_MS = 260;
 /** A couple of px of slack so a sub-pixel scroll does not flicker an arrow. */
 const SLACK_PX = 2;
+/** The reference asks for its next page once the strip is this close to its end. */
+const NEAR_END_PX = 96;
 
 export interface ChipScroller {
   ref: React.RefObject<HTMLDivElement | null>;
@@ -21,8 +23,11 @@ export interface ChipScroller {
  * round arrow on each side slides it 280px; each arrow greys out once its
  * side has nothing left to show. Read again on scroll, on resize and
  * whenever the chip count changes.
+ *
+ * `onNearEnd` is for a strip that pages its options in: the reference calls
+ * for the next page once a scroll leaves less than 96px to the right edge.
  */
-export function useChipScroller(itemCount: number): ChipScroller {
+export function useChipScroller(itemCount: number, onNearEnd?: () => void): ChipScroller {
   const ref = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -33,6 +38,12 @@ export function useChipScroller(itemCount: number): ChipScroller {
     setCanPrev(el.scrollLeft > SLACK_PX);
     setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - SLACK_PX);
   }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = ref.current;
+    if (el && onNearEnd && el.scrollWidth - el.scrollLeft - el.clientWidth <= NEAR_END_PX) onNearEnd();
+    measure();
+  }, [measure, onNearEnd]);
 
   useEffect(() => {
     measure();
@@ -55,7 +66,7 @@ export function useChipScroller(itemCount: number): ChipScroller {
     ref,
     canPrev,
     canNext,
-    onScroll: measure,
+    onScroll: handleScroll,
     prev: () => slide(-1),
     next: () => slide(1),
   };

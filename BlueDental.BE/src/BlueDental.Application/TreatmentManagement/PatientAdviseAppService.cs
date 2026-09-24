@@ -155,7 +155,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PatientAdviseDto> GetAsync(Guid id)
     {
-        return MapToDto(await _repository.GetAsync(id));
+        return MapToDto(await GetInBranchAsync(id));
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
@@ -209,7 +209,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> UpdateAsync(Guid id, UpdatePatientAdviseDto input)
     {
-        var advise = await _repository.GetAsync(id);
+        var advise = await GetInBranchAsync(id);
 
         advise.ChangePricing(input.Price, input.Quantity);
         advise.ApplyDiscount(input.DiscountType, input.DiscountValue);
@@ -223,7 +223,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> AcceptAsync(Guid id)
     {
-        var advise = await _repository.GetAsync(id);
+        var advise = await GetInBranchAsync(id);
         advise.Accept();
         await _repository.UpdateAsync(advise, autoSave: true);
         return MapToDto(advise);
@@ -232,7 +232,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> RejectAsync(Guid id)
     {
-        var advise = await _repository.GetAsync(id);
+        var advise = await GetInBranchAsync(id);
         advise.Reject();
         await _repository.UpdateAsync(advise, autoSave: true);
         return MapToDto(advise);
@@ -241,7 +241,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> CancelAsync(Guid id)
     {
-        var advise = await _repository.GetAsync(id);
+        var advise = await GetInBranchAsync(id);
         advise.Cancel();
         await _repository.UpdateAsync(advise, autoSave: true);
         return MapToDto(advise);
@@ -250,7 +250,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, decimal voucherDiscountAmount)
     {
-        var advise = await _repository.GetAsync(id);
+        var advise = await GetInBranchAsync(id);
         advise.ApplyVoucher(voucherDiscountAmount);
         await _repository.UpdateAsync(advise, autoSave: true);
         return MapToDto(advise);
@@ -308,7 +308,25 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task DeleteAsync(Guid id)
     {
-        await _repository.DeleteAsync(id, autoSave: true);
+        var advise = await GetInBranchAsync(id);
+        advise.EnsureDeletable();
+        await _repository.DeleteAsync(advise, autoSave: true);
+    }
+
+    /// <summary>
+    /// Reads one consulting line, refusing ids that belong to another branch — GetAsync
+    /// alone would happily return, edit or delete somebody else's.
+    /// </summary>
+    private async Task<PatientAdvise> GetInBranchAsync(Guid id)
+    {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var entity = await _repository.GetAsync(id);
+        if (entity.ClinicBranchId != clinicBranchId)
+        {
+            throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(PatientAdvise), id);
+        }
+
+        return entity;
     }
 
     private async Task<IQueryable<PatientAdvise>> BuildQueryAsync(GetPatientAdviseListInput input)

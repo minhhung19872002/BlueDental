@@ -4,6 +4,8 @@ import { Tooltip } from "antd";
 interface Props {
   title: string;
   children: ReactElement;
+  /** The wrapping span's class; the plan tables' inline one by default. */
+  className?: string;
 }
 
 /**
@@ -19,7 +21,7 @@ interface Props {
  * The tip hangs off a plain span rather than the button so the wrapper can
  * carry those handlers without touching what it wraps.
  */
-export function ActionTooltip({ title, children }: Props): ReactNode {
+export function ActionTooltip({ title, children, className = "tp-tip" }: Props): ReactNode {
   const [open, setOpen] = useState(false);
   const held = useRef(false);
 
@@ -33,7 +35,7 @@ export function ActionTooltip({ title, children }: Props): ReactNode {
       }}
     >
       <span
-        className="tp-tip"
+        className={className}
         // Capture, and on the way down: the tip has to be gone before the
         // button's own click puts a dialog on screen.
         onPointerDownCapture={() => {

@@ -1,19 +1,22 @@
-import { Checkbox, Input, Spin } from "antd";
-import { Search } from "lucide-react";
-import { FloatingField } from "@/components/FloatingField";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Checkbox, Spin } from "antd";
 import { t } from "@/lib/i18n";
-import type { CatalogOption, TaxonomyGroupOption } from "@/hooks/useCatalogOptions";
+import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { AdviseServiceRow } from "./AdviseServiceRow";
 import type { AdviseSelection } from "./useAdviseSelection";
 
 interface Props {
-  /** Services already narrowed by the active group and the search text. */
+  /** The pages loaded so far, already narrowed by the server to the group and search. */
   services: CatalogOption[];
-  groups: TaxonomyGroupOption[];
+  /** The first page is on its way. */
   loading: boolean;
-  activeGroupId: string | null;
+  /** A further page is on its way. */
+  loadingMore: boolean;
+  hasMore: boolean;
   selection: AdviseSelection;
-  onGroupChange: (groupId: string | null) => void;
+  onLoadMore: () => void;
+  /** "Lựa chọn dịch vụ" — the group strip and the search, above the table. */
+  picker: ReactNode;
 }
 
 const COLUMNS = [
@@ -26,53 +29,45 @@ const COLUMNS = [
 ] as const;
 
 /**
- * The service picker of "Chọn Dịch Vụ": one filter button per service group
- * with "Tất cả dịch vụ" first, a search box, then the table with a tick on
- * every row and a select-all in the header. Group buttons only filter — a
- * service is chosen by its tick, never by the group.
+ * The service list of "Chọn Dịch Vụ": the "Lựa chọn dịch vụ" strip above,
+ * then the table with a tick on every row and a select-all in the header.
+ * As on the reference the list is the server's, twenty rows a page, and the
+ * next page is asked for when the bottom of the 400px box comes into view.
+ * Picking a group only filters — a service is chosen by its tick.
  */
 export function AdviseServiceTable({
   services,
-  groups,
   loading,
-  activeGroupId,
+  loadingMore,
+  hasMore,
   selection,
-  onGroupChange,
+  onLoadMore,
+  picker,
 }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const tickedOnScreen = services.filter((service) => selection.isSelected(service.id)).length;
   const allTicked = services.length > 0 && tickedOnScreen === services.length;
 
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMore) onLoadMore();
+      },
+      { root: scrollRef.current, threshold: 0.1 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore, services.length]);
+
   return (
     <div className="am-services">
-      <div className="am-toolbar">
-        <div className="am-groups" role="group" aria-label={t("Treatment:Service:ServiceGroup")}>
-          <button
-            type="button"
-            className={activeGroupId === null ? "am-group active" : "am-group"}
-            aria-pressed={activeGroupId === null}
-            onClick={() => onGroupChange(null)}
-          >
-            {t("Treatment:Service:AllServices")}
-          </button>
-          {groups.map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              className={activeGroupId === group.id ? "am-group active" : "am-group"}
-              aria-pressed={activeGroupId === group.id}
-              onClick={() => onGroupChange(group.id)}
-            >
-              {group.name}
-            </button>
-          ))}
-        </div>
-        <FloatingField name="search" label={t("Treatment:Consulting:SearchService")} className="am-search">
-          <Input allowClear prefix={<Search size={18} />} />
-        </FloatingField>
-      </div>
+      {picker}
 
       <div className="am-table-card">
-        <div className="am-table-scroll">
+        <div className="am-table-scroll" ref={scrollRef}>
           <table className="am-table">
             <colgroup>
               <col className="am-col-check" />
@@ -123,6 +118,12 @@ export function AdviseServiceTable({
                 ))}
             </tbody>
           </table>
+          {loadingMore && (
+            <div className="am-more">
+              <Spin size="small" />
+            </div>
+          )}
+          <div ref={sentinelRef} className="am-sentinel" />
         </div>
       </div>
     </div>

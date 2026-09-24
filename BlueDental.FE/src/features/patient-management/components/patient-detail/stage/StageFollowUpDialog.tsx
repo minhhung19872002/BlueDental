@@ -10,6 +10,7 @@ import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/t
 import { FollowUpShots } from "./FollowUpShots";
 import { FollowUpTeeth } from "./FollowUpTeeth";
 import { StageStepList } from "./StageStepList";
+import { StageTeethPicker } from "./StageTeethPicker";
 import { useFollowUpForm } from "./useFollowUpForm";
 
 /** What the finished công đoạn is being followed up with. */
@@ -22,6 +23,10 @@ interface Props {
   plan: TreatmentPlanSlipDto | null;
   /** The finished công đoạn the follow-up is being raised against. */
   stage: TreatmentStageDto | null;
+  /** Every công đoạn of the stage's line; a warranty reads its root there. */
+  lineStages?: TreatmentStageDto[];
+  /** A warranty raised from the history lists the source's steps; see useFollowUpForm. */
+  inheritSteps?: boolean;
   kind: FollowUpKind;
   onClose: () => void;
 }
@@ -29,22 +34,16 @@ interface Props {
 const KIND = {
   guarantee: {
     title: "Patient:FollowUp:WarrantyTitle",
-    save: "Patient:FollowUp:WarrantySave",
+    /** The reference's footer reads "Đóng" / "Lưu" (measured 2026-09-24). */
+    save: "Common:Save",
     saved: "Patient:FollowUp:WarrantySaved",
     className: "pd-warranty-dialog",
-    /** A warranty visit inherits the công đoạn's teeth as they stand. */
-    pickTeeth: false,
-    /** The reference builds no "Danh sách công đoạn" for a warranty visit. */
-    checklist: false,
   },
   reExamination: {
     title: "Patient:FollowUp:RecallTitle",
     save: "Patient:FollowUp:RecallSave",
     saved: "Patient:FollowUp:RecallSaved",
     className: "pd-recall-form-dialog",
-    /** A tái khám is only for the teeth being seen again — see FollowUpTeeth. */
-    pickTeeth: true,
-    checklist: true,
   },
 } as const;
 
@@ -67,6 +66,8 @@ export function StageFollowUpDialog({
   branchId,
   plan,
   stage,
+  lineStages = [],
+  inheritSteps = false,
   kind,
   onClose,
 }: Props) {
@@ -77,7 +78,9 @@ export function StageFollowUpDialog({
     branchId,
     plan,
     stage,
-    pickTeeth: copy.pickTeeth,
+    lineStages,
+    kind,
+    inheritSteps,
     saved: copy.saved,
     onClose,
   });
@@ -143,11 +146,25 @@ export function StageFollowUpDialog({
               value={plan ? `${plan.code} - ${line?.serviceName ?? line?.code ?? ""}` : ""}
             />
           </FloatingLabel>
-          <FollowUpTeeth
-            candidates={form.candidates}
-            picked={form.picked}
-            onToggle={copy.pickTeeth ? form.toggleTooth : undefined}
-          />
+          {/* A warranty picks which of its root's teeth it covers, chart and
+              all, like a new công đoạn; a tái khám only ticks among the
+              công đoạn's own. */}
+          {kind === "guarantee" ? (
+            <StageTeethPicker
+              candidates={form.candidates}
+              picked={form.picked}
+              locked={false}
+              error={form.errors.teeth}
+              onChange={form.changeTeeth}
+            />
+          ) : (
+            <FollowUpTeeth
+              candidates={form.candidates}
+              picked={form.picked}
+              onToggle={form.toggleTooth}
+              onChange={form.changeTeeth}
+            />
+          )}
           {form.errors.teeth && <p className="pd-stage-error">{form.errors.teeth}</p>}
           <FollowUpShots
             files={form.pending}
@@ -169,12 +186,12 @@ export function StageFollowUpDialog({
           </FloatingLabel>
           {form.errors.note && <p className="pd-stage-error">{form.errors.note}</p>}
           {/* A tái khám carries the source công đoạn's content as its one
-              tickable entry; a warranty visit builds no checklist at all, so
-              the heading prints "(Trống)". */}
+              tickable entry; a warranty from the history lists the source
+              công đoạn's steps, one from the table none ("(Trống)"). */}
           <StageStepList
-            steps={copy.checklist ? form.checklist : []}
+            steps={form.checklist}
             checked={form.pickedSteps}
-            onToggle={copy.checklist ? form.toggleStep : undefined}
+            onToggle={form.toggleStep}
           />
         </div>
       </div>

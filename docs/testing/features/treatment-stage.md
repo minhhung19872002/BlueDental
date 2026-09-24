@@ -94,3 +94,27 @@ them the clinical chain has nothing to start from.
 - `print` — no print pipeline exists yet
 - Tooth selection on a stage (the model supports it; the create dialog does not
   offer the chart yet)
+
+## 2026-09-24 — per-tooth công đoạn, continue chain, warranty chain (observed on staging)
+
+The provenance note above no longer covers the dialog: on 2026-09-24 the owner
+had the warranty flow worked on staging (record HN8510) and the stage modal's
+logic was read from the reference's published chunks. What is now observed, not
+assumed, is listed in docs/clone/pages/patient-detail.md ("Survey 2026-09-24").
+
+Model changes: `TreatmentStage.ContinuedFromId`, `IsSuperseded` (the reference's
+`disabled`), `WarrantyRootStageId`; `StageTeethPolicy`; `POST …/{id}/continue`
+now writes the next công đoạn (`ContinueTreatmentStageDto`); a warranty create
+names `warrantySourceStageId`. Migration `20260924032742_AddStageContinuationChain`
+(back-fills `IsSuperseded`).
+
+| Rule | Where it is enforced | Test |
+|---|---|---|
+| A new công đoạn takes only teeth of its line that no công đoạn holds | `StageTeethPolicy.EnsureNewStageTeeth` (0030/0031/0032) | Domain `StageChainAndWarrantyTests`; e2e `treatment-stage-chain` "several cards…" |
+| Several cards open at once, one save writes one công đoạn per form | `useStageComposer.save` | e2e "several cards…" |
+| Continue writes a new row, keeps the teeth, supersedes the old one | `TreatmentStage.ContinueAs` | Domain; e2e "continuing writes the next visit…" |
+| A superseded công đoạn refuses every change | `TreatmentStage.GuardLive` (0018) | Domain; e2e (complete on the old one refused) |
+| A warranty: finished live source, period, days left, no open warranty, root's teeth | `StageTeethPolicy.EnsureWarranty` (0033–0036) | Domain; e2e "a warranty picks among the root's teeth…" |
+| A line closes only when every tooth has had a công đoạn and every live one is finished | `TreatmentStageAppService.MoveServiceLineAsync` | e2e (existing Hoàn thành specs) |
+| Another branch cannot continue a branch-1 công đoạn | `BranchAccessChecker` in `LoadAsync` | e2e "another branch may not continue…" (403) |
+| Plan table "Chỉnh sửa": closed/paid lines refused, in-treatment price/diagnosis/staged teeth kept | `TreatmentService.Revise` (0037/0038/0039) | Domain `TreatmentServiceReviseTests`; e2e "Chỉnh sửa rewrites a saved line…" |

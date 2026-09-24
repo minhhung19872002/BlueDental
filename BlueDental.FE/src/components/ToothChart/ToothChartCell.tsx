@@ -6,6 +6,9 @@ interface Props {
   fdi: number;
   jaw: Jaw;
   pick: ToothPick | undefined;
+  /** Grey and inert — a tooth the owner does not offer. */
+  disabled?: boolean;
+  surfacesReadOnly?: boolean;
   onToggleTooth: (fdi: number) => void;
   onToggleSurface: (fdi: number, surface: ToothSurface) => void;
 }
@@ -15,7 +18,15 @@ interface Props {
  * teeth hang crown-down over the circle; lower teeth stand crown-up under it,
  * so the two jaws mirror each other around the horizontal divider.
  */
-export function ToothChartCell({ fdi, jaw, pick, onToggleTooth, onToggleSurface }: Props) {
+export function ToothChartCell({
+  fdi,
+  jaw,
+  pick,
+  disabled = false,
+  surfacesReadOnly = false,
+  onToggleTooth,
+  onToggleSurface,
+}: Props) {
   const molar = isMolar(fdi);
   const selected = pick !== undefined;
 
@@ -25,6 +36,7 @@ export function ToothChartCell({ fdi, jaw, pick, onToggleTooth, onToggleSurface 
       className={["tc-tooth", selected && "tc-tooth--selected"].filter(Boolean).join(" ")}
       aria-pressed={selected}
       aria-label={t("Common:Tooth:Label", fdi)}
+      disabled={disabled}
       onClick={() => onToggleTooth(fdi)}
     >
       {jaw === "lower" && <span className="tc-tooth__num">{fdi}</span>}
@@ -43,12 +55,13 @@ export function ToothChartCell({ fdi, jaw, pick, onToggleTooth, onToggleSurface 
     <ToothSurfaceCircle
       fdi={fdi}
       selected={pick?.surfaces ?? []}
+      disabled={disabled || surfacesReadOnly}
       onToggle={(surface) => onToggleSurface(fdi, surface)}
     />
   );
 
   return (
-    <div className="tc-cell">
+    <div className={["tc-cell", disabled && "tc-cell--disabled"].filter(Boolean).join(" ")}>
       {jaw === "upper" ? tooth : circle}
       {jaw === "upper" ? circle : tooth}
     </div>

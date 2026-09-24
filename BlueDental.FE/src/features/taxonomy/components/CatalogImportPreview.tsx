@@ -144,7 +144,7 @@ function SheetTable({ sheet, onlyErrors }: { sheet: CatalogImportSheetDto; onlyE
   // Not paged (the file has no size limit) and not virtual either: the
   // virtual body keeps its horizontal offset in React state and hides its own
   // scrollbar, so the app-wide grab-to-scroll and the native bar both miss it
-  // (R-542). A plain body scrolls like every other table in the app.
+  // (R-562). A plain body scrolls like every other table in the app.
   return (
     <Table<CatalogImportRowDto>
       className="bd-import-table"

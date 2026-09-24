@@ -140,6 +140,12 @@ interface CatalogSearchInput {
   search?: string;
   /** Narrow to one group — the picker's group panel does. */
   taxonomyId?: string;
+  /**
+   * Offer every row that is not deleted, switched off or not — the
+   * reference's "Chọn Dịch Vụ" asks for `isDeleted: false` alone. Left unset,
+   * only active rows come back, as the other pickers want.
+   */
+  includeInactive?: boolean;
   enabled?: boolean;
 }
 
@@ -161,6 +167,7 @@ export function useCatalogOptionSearch(group: CatalogGroup, input: CatalogSearch
       "search",
       search,
       input.taxonomyId ?? null,
+      input.includeInactive ?? false,
     ] as const,
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<CatalogOptionPage> => {
@@ -169,7 +176,7 @@ export function useCatalogOptionSearch(group: CatalogGroup, input: CatalogSearch
           params: {
             clinicBranchId: branchId,
             group,
-            isActive: true,
+            ...(input.includeInactive ? { isDeleted: false } : { isActive: true }),
             taxonomyId: input.taxonomyId,
             filter: search || undefined,
             skipCount: pageParam,
@@ -214,6 +221,50 @@ export function useTaxonomyGroupSearch(group: CatalogGroup, search: string, enab
       return page.items.map((item) => ({ id: item.id, name: item.name, itemCount: item.itemCount }));
     },
     placeholderData: keepPreviousData,
+    enabled: Boolean(branchId) && enabled,
+  });
+}
+
+/** One page of a catalog's groups. */
+export interface TaxonomyGroupPage {
+  items: TaxonomyGroupOption[];
+  totalCount: number;
+}
+
+/**
+ * A catalog's groups a page at a time, in their Danh mục order — how the
+ * reference's "Lựa chọn dịch vụ" strip reads them (`perPage: 20`,
+ * `orderBy: order:asc`, the next page asked for as the strip nears its end).
+ * A clinic can hold far more groups than one request should carry.
+ */
+export function useTaxonomyGroupPages(group: CatalogGroup, enabled = true) {
+  const branchId = useCurrentBranchId();
+
+  return useInfiniteQuery({
+    queryKey: [...catalogOptionKeys.group(branchId, group), "taxonomies", "pages"] as const,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<TaxonomyGroupPage> => {
+      const page = await api
+        .get<PagedResult<TaxonomyResponse>>("/v1/app/taxonomies", {
+          params: {
+            clinicBranchId: branchId,
+            group,
+            includeCount: true,
+            skipCount: pageParam,
+            maxResultCount: CATALOG_PAGE_SIZE,
+          },
+        })
+        .then((r) => r.data);
+
+      return {
+        items: page.items.map((t) => ({ id: t.id, name: t.name, itemCount: t.itemCount })),
+        totalCount: page.totalCount,
+      };
+    },
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((sum, item) => sum + item.items.length, 0);
+      return loaded < last.totalCount ? loaded : undefined;
+    },
     enabled: Boolean(branchId) && enabled,
   });
 }

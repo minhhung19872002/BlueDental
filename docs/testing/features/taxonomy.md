@@ -100,6 +100,6 @@ Acceptance evidence (real stack, preview build on 8080 + API on 5000):
   on the three catalogs without import.
 - `BlueDental.Application.Tests` `CatalogImportAppServiceContractTests` (13).
 
-Regression log: R-533..R-538, R-539..R-541 (update-if-changed), R-542 (preview
+Regression log: R-553..R-558, R-559..R-561 (update-if-changed), R-562 (preview
 table is no longer virtual, so the app-wide grab-to-scroll and the native
-horizontal bar work on it), R-543 ("Kết quả" pinned right, moved after "Lỗi").
+horizontal bar work on it), R-563 ("Kết quả" pinned right, moved after "Lỗi").

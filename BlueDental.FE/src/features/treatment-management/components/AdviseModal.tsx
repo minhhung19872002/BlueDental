@@ -2,16 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Form, Modal } from "antd";
 import { X } from "lucide-react";
 import { EMPTY_TOOTH_VALUE, toothSelectionsToValue, type ToothPickerValue } from "@/components/ToothChart";
-import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import type { PatientDiagnosisDto } from "../api/consultingApi";
 import { ToothPickerDialog } from "./plan/ToothPickerDialog";
+import { AdviseGroupPicker } from "./advise/AdviseGroupPicker";
 import { AdviseHeaderFields } from "./advise/AdviseHeaderFields";
 import { AdviseServiceTable } from "./advise/AdviseServiceTable";
 import { AdviseSummaryFooter } from "./advise/AdviseSummaryFooter";
-import { matchesSearch, type AdviseHeaderValues } from "./advise/adviseTypes";
+import type { AdviseHeaderValues } from "./advise/adviseTypes";
+import { useAdviseCatalog } from "./advise/useAdviseCatalog";
 import { useAdviseSelection } from "./advise/useAdviseSelection";
 import { useCreateAdvises } from "./advise/useCreateAdvises";
 import "./plan/treatment-plan.css";
@@ -59,14 +60,10 @@ interface DialogProps extends Omit<AdviseModalProps, "diagnosis"> {
 function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: DialogProps) {
   const branchId = useCurrentBranchId();
   const [form] = Form.useForm<AdviseHeaderValues>();
-  const search = Form.useWatch("search", form) ?? "";
   const [teeth, setTeeth] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
   const [toothOpen, setToothOpen] = useState(false);
   const [secondOpen, setSecondOpen] = useState(false);
-  const [groupId, setGroupId] = useState<string | null>(null);
-
-  const catalog = useCatalogOptions(CATALOG_GROUP.CareService);
-  const groups = useTaxonomyGroupOptions(CATALOG_GROUP.CareService);
+  const catalog = useAdviseCatalog(open);
   const dentists = useDentistList();
   const selection = useAdviseSelection();
   const { save, saving } = useCreateAdvises({ patientId, branchId, diagnosis, onCreated, onClose });
@@ -77,16 +74,15 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     if (!open) return;
     setTeeth(toothSelectionsToValue(diagnosis.teeth));
     setSecondOpen(Boolean(diagnosis.secondStaffId));
-    setGroupId(null);
+    catalog.reset();
     selection.clear();
     form.setFieldsValue({
       staffId: diagnosis.staffId,
       secondStaffId: diagnosis.secondStaffId ?? undefined,
       diagnoserId: diagnosis.staffId,
       secondDiagnoserId: diagnosis.secondStaffId ?? undefined,
-      search: "",
     });
-  }, [open, diagnosis, form, selection.clear]);
+  }, [open, diagnosis, form, selection.clear, catalog.reset]);
 
   // The slip's doctors may not be on the dentist list any more; the disabled
   // fields still have to show their names.
@@ -102,15 +98,6 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     return options;
   }, [dentists.data, diagnosis]);
 
-  const services = useMemo(
-    () =>
-      (catalog.data ?? []).filter(
-        (service) =>
-          (groupId === null || service.taxonomyId === groupId) && matchesSearch(service.name, search),
-      ),
-    [catalog.data, groupId, search],
-  );
-
   const handleSecondOpenChange = (next: boolean) => {
     setSecondOpen(next);
     if (!next) form.setFieldValue("secondStaffId", undefined);
@@ -123,7 +110,7 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     } catch {
       return; // the field shows its own message
     }
-    await save({ header, teeth, services: catalog.data ?? [], rows: selection.rows });
+    await save({ header, teeth, rows: selection.rows });
   };
 
   return (
@@ -161,12 +148,24 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
           onSecondOpenChange={handleSecondOpenChange}
         />
         <AdviseServiceTable
-          services={services}
-          groups={groups.data ?? []}
-          loading={catalog.isLoading}
-          activeGroupId={groupId}
+          services={catalog.services}
+          loading={catalog.servicesLoading}
+          loadingMore={catalog.servicesLoadingMore}
+          hasMore={catalog.hasMoreServices}
           selection={selection}
-          onGroupChange={setGroupId}
+          onLoadMore={catalog.loadMoreServices}
+          picker={
+            <AdviseGroupPicker
+              groups={catalog.groups}
+              activeGroupId={catalog.groupId}
+              search={catalog.search}
+              loading={catalog.groupsLoading}
+              loadingMore={catalog.groupsLoadingMore}
+              onGroupChange={catalog.setGroupId}
+              onSearchChange={catalog.setSearch}
+              onNearEnd={catalog.loadMoreGroups}
+            />
+          }
         />
       </Form>
       <ToothPickerDialog

@@ -73,8 +73,8 @@ export function useCreateDiagnosis() {
   );
 }
 
-export function useCancelDiagnosis() {
-  return useConsultingMutation((id: string) => consultingApi.cancelDiagnosis(id));
+export function useDeleteDiagnosis() {
+  return useConsultingMutation((id: string) => consultingApi.deleteDiagnosis(id));
 }
 
 export function useUpdateDiagnosis() {
@@ -101,8 +101,8 @@ export function useAcceptAdvise() {
   return useConsultingMutation((id: string) => consultingApi.acceptAdvise(id));
 }
 
-export function useRejectAdvise() {
-  return useConsultingMutation((id: string) => consultingApi.rejectAdvise(id));
+export function useDeleteAdvise() {
+  return useConsultingMutation((id: string) => consultingApi.deleteAdvise(id));
 }
 
 /** Drag-to-reorder on Phiếu tư vấn — one row's new position. */

@@ -78,7 +78,7 @@ async function pickPricedService(page: Page, dropdown: Locator): Promise<void> {
 }
 
 /** Makes a slip with one line on the first patient and returns its code. */
-async function createSlip(page: Page): Promise<string> {
+async function createSlip(page: Page, teeth: number[] = [14]): Promise<string> {
   await page.goto("/patient");
   await assertRealApiTraffic(page, "/api/v1/app/patients");
   const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
@@ -104,7 +104,9 @@ async function createSlip(page: Page): Promise<string> {
   await dialog.locator(".tp-tooth-btn").click();
   const picker = page.getByRole("dialog", { name: "Chọn răng" });
   await expect(picker).toBeVisible();
-  await picker.getByRole("button", { name: "Răng 14", exact: true }).click();
+  for (const tooth of teeth) {
+    await picker.getByRole("button", { name: `Răng ${tooth}`, exact: true }).click();
+  }
   await picker.locator(".tp-teeth-foot button").click();
   await expect(picker).toBeHidden();
   await dialog.getByRole("button", { name: "Lưu" }).click();
@@ -595,6 +597,27 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       expect(Math.abs(select.width - (cell.width - 32))).toBeLessThanOrEqual(2);
     }
 
+    // A new line has to name its teeth: Lưu with none says so under the tooth
+    // button and sends nothing.
+    let posted = 0;
+    const countPost = (req: { url: () => string; method: () => string }) => {
+      if (req.url().includes("/services") && req.method() === "POST") posted += 1;
+    };
+    page.on("request", countPost);
+    await draft.getByRole("button", { name: "Lưu" }).click();
+    const teethError = draft.locator(".pdt-draft-error");
+    await expect(teethError).toHaveText("Vui lòng chọn ít nhất 1 răng");
+    expect(posted, "no line is written without teeth").toBe(0);
+    page.off("request", countPost);
+
+    // Picking a tooth clears it.
+    await draft.locator(".tp-tooth-btn").click();
+    const picker = page.getByRole("dialog", { name: "Chọn răng" });
+    await picker.getByRole("button", { name: "Răng 15", exact: true }).click();
+    await picker.locator(".tp-teeth-foot button").click();
+    await expect(picker).toBeHidden();
+    await expect(teethError).toHaveCount(0);
+
     const added = page.waitForResponse(
       (res) => res.url().includes("/services") && res.request().method() === "POST",
     );
@@ -809,7 +832,9 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
   }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
-    planCode = await createSlip(page);
+    // Two teeth: since 2026-09-24 a công đoạn holds its own teeth, so two
+    // separate công đoạn on one line need a tooth each.
+    planCode = await createSlip(page, [14, 15]);
     await page.locator(".tp-table .tp-code", { hasText: planCode }).click();
     await expect(page).toHaveURL(DETAIL_URL);
 
@@ -831,7 +856,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       const staff = await (
         await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
       ).json();
-      const add = async (note: string) => {
+      const add = async (note: string, teeth: unknown[]) => {
         const res = await fetch("/api/v1/app/treatment-stages", {
           method: "POST",
           credentials: "include",
@@ -845,13 +870,13 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
             name: line.serviceName ?? line.code,
             note,
             staffId: staff.items[0].id,
-            teeth: line.teeth,
+            teeth,
           }),
         });
         return { status: res.status, id: res.ok ? (await res.json()).id : null };
       };
-      const first = await add("e2e công đoạn đã xong");
-      const second = await add("e2e công đoạn còn lại");
+      const first = await add("e2e công đoạn đã xong", line.teeth.slice(0, 1));
+      const second = await add("e2e công đoạn còn lại", line.teeth.slice(1));
       const finished = await fetch(`/api/v1/app/treatment-stages/${first.id}/complete`, {
         method: "POST",
         credentials: "include",

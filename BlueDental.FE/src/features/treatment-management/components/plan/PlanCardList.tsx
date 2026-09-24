@@ -3,7 +3,7 @@ import { ClipboardList, Eye, Plus, Receipt } from "lucide-react";
 import { RecordCard } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
-import { ActionTooltip } from "./ActionTooltip";
+import { ActionTooltip } from "@/components/ActionTooltip";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { planCardRows } from "./planCardRows";
 import type { PlanRowActions } from "./planColumns";

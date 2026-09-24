@@ -2,7 +2,7 @@ import { Form } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { PickerOption } from "@/hooks/useLaboPickers";
-import { useChipScroller } from "./useChipScroller";
+import { useChipScroller } from "@/hooks/useChipScroller";
 
 interface Props {
   id?: string;

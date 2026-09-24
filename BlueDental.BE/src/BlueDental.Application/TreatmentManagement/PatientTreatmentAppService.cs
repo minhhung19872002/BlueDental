@@ -38,6 +38,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly PatientMoneyCalculator _money;
+    private readonly StageTeethPolicy _teethPolicy;
 
     public PatientTreatmentAppService(
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -49,9 +50,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         IRepository<LaboOrder, Guid> laboRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
-        PatientMoneyCalculator money)
+        PatientMoneyCalculator money,
+        StageTeethPolicy teethPolicy)
     {
         _laboRepository = laboRepository;
+        _teethPolicy = teethPolicy;
         _planRepository = planRepository;
         _adviseRepository = adviseRepository;
         _paymentRepository = paymentRepository;
@@ -186,6 +189,53 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         }
 
         plan.CloseIfAllServicesDone();
+        await _planRepository.UpdateAsync(plan, autoSave: true);
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// "Chỉnh sửa" — the plan table's pencil. The line keeps its service and its
+    /// status; everything the inline row shows can be rewritten, within what
+    /// <see cref="TreatmentService.Revise"/> allows a line that has been paid on
+    /// or is being treated.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<TreatmentPlanSlipDto> UpdateServiceAsync(
+        Guid id, Guid serviceLineId, UpdateTreatmentServiceDto input)
+    {
+        var plan = await LoadAsync(id);
+        var line = plan.GetService(serviceLineId);
+
+        var paymentQuery = await _paymentRepository.WithDetailsAsync(x => x.Lines);
+        var paidOnLine = paymentQuery
+            .Where(p => p.TreatmentPlanId == plan.Id)
+            .ToList()
+            .SelectMany(p => p.Lines
+                .Where(l => l.TreatmentServiceId == line.Id)
+                .Select(l => p.Kind == PatientPaymentKind.Refund ? -l.Amount : l.Amount))
+            .Sum();
+
+        var stageQuery = await _stageRepository.GetQueryableAsync();
+        var lineStages = stageQuery.Where(s => s.TreatmentServiceId == line.Id).ToList();
+        var staged = _teethPolicy.CoveredTeeth(line.Teeth, lineStages);
+
+        line.Revise(
+            input.Price,
+            input.Quantity,
+            PatientDiagnosisAppService.ToToothSelections(input.Teeth),
+            input.DiagnosisId,
+            paidOnLine,
+            staged);
+
+        line.SetDetails(
+            input.DiagnosisId,
+            input.DentistId,
+            input.Note,
+            input.DiagnoserStaffId,
+            input.SecondDiagnoserStaffId,
+            input.ConsultantStaffId,
+            input.SecondConsultantStaffId);
+
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
     }
@@ -562,9 +612,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var payments = paymentQuery.Where(p => patientIds.Contains(p.PatientId)).ToList();
 
         var stageQuery = await _stageRepository.GetQueryableAsync();
+        // Whole rows rather than a projection: the line reports which of its
+        // teeth its công đoạn hold (StagedTeeth), and those ride in the JSON
+        // column a projection would not read.
         var stages = stageQuery
             .Where(s => s.TreatmentId.HasValue && planIds.Contains(s.TreatmentId.Value))
-            .Select(s => new { s.Id, s.TreatmentServiceId, s.Status, s.Note, s.SequenceNumber })
             .ToList();
 
         // Chăm sóc sau điều trị hangs off the stages, not the service line: a care
@@ -724,6 +776,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     StageCount = stages.Count(s => s.TreatmentServiceId == line.Id),
                     CompletedStageCount = stages.Count(s =>
                         s.TreatmentServiceId == line.Id && s.Status == TreatmentStageStatus.Completed),
+                    StagedTeeth = _teethPolicy
+                        .CoveredTeeth(line.Teeth, stages.Where(s => s.TreatmentServiceId == line.Id))
+                        .OrderBy(code => code)
+                        .ToList(),
                     StageNotes = stages
                         .Where(s => s.TreatmentServiceId == line.Id && !string.IsNullOrWhiteSpace(s.Note))
                         .OrderBy(s => s.SequenceNumber)

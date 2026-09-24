@@ -959,6 +959,32 @@
    whatever the form left over. */
 .pd-diagnosis-card {
   overflow: auto;
+  /* The card's own bar, drawn the reference's way (measured on staging
+     2026-09-24: `::-webkit-scrollbar { width: 6px }`, thumb
+     rgba(27,42,65,.12) radius 3). The `scrollbar-color` the app sets on html
+     is inherited, and Chrome then ignores the ::-webkit rules and paints a
+     15px classic bar — which is what stood out beside the pane's own bar the
+     moment the form opened. Resetting it hands the card back to the rules
+     below; Firefox, which has no ::-webkit, gets the nearest standard look. */
+  scrollbar-color: auto;
+}
+.pd-diagnosis-card::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.pd-diagnosis-card::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 3px;
+  background: rgb(27 42 65 / 12%);
+}
+.pd-diagnosis-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .pd-diagnosis-card {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(27 42 65 / 12%) transparent;
+  }
 }
 .pd-diagnosis-card > .pd-card-head {
   position: sticky;
@@ -1083,20 +1109,25 @@
   gap: 10px 8px;
   padding: 4px 8px 0 0;
 }
-/* A white pill in the app's blue, with the red X riding its top-right. */
+/* A white pill in the app's blue, with the red X riding its top-right.
+   It never grows past the box: a tooth with several surfaces ("45 - Mặt gần,
+   Mặt xa, Mặt ngoài, Mặt nhai") wraps inside its pill, as the reference's
+   `inline-flex px-3 py-1.5 pr-5` does, instead of running out under the
+   column's edge and taking its X with it. */
 .pd-tooth-chip {
   position: relative;
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   border: 1px solid var(--bd-blue-light);
   border-radius: 999px;
   background: #fff;
   color: var(--bd-primary);
-  padding: 6px 16px 6px 12px;
+  padding: 6px 20px 6px 12px;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .pd-tooth-chip > button {
   position: absolute;
@@ -2074,6 +2105,11 @@
   flex: 1;
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 16px;
+  transition: grid-template-columns 0.2s;
+}
+/* Folded: the reference's `lg:grid-cols-[64px_minmax(0,1fr)]` rail. */
+.pd-medical-grid--collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
 }
 
 /* ── Mục lục bệnh án ────────────────────────────────────────────────────── */
@@ -2649,11 +2685,46 @@
 .pd-medical-index--collapsed .pd-medical-forms {
   display: none;
 }
-/* Collapsed, the panel is its header and nothing else — it must not hold on to
-   the tall box the media query gives the open one. */
-.pd-medical-index--collapsed {
-  height: auto;
-  min-height: 0;
+/*
+ * Folded on a wide window the panel stays full height and its header is only
+ * the open button, centred — the reference's `justify-center px-2`. Below the
+ * two-column breakpoint the media query above takes the rail's place.
+ */
+.pd-medical-index--collapsed .pd-medical-index-head {
+  justify-content: center;
+  padding: 12px 8px;
+}
+.pd-medical-index--collapsed .pd-medical-index-icon,
+.pd-medical-index--collapsed .pd-medical-index-title {
+  display: none;
+}
+.pd-medical-index--collapsed .pd-medical-collapse.ant-btn {
+  margin-left: 0;
+}
+.pd-medical-collapse.ant-btn:hover {
+  background: #edf2f8;
+  color: var(--bd-blue);
+}
+@media (max-width: 1024px) {
+  /* Narrow, folding keeps the header row and drops only the list; the panel
+     must not hold on to the tall box the media query gives the open one. */
+  .pd-medical-index--collapsed {
+    height: auto;
+    min-height: 0;
+  }
+  .pd-medical-index--collapsed .pd-medical-index-head {
+    justify-content: flex-start;
+    padding: 14px 16px;
+  }
+  .pd-medical-index--collapsed .pd-medical-index-icon {
+    display: grid;
+  }
+  .pd-medical-index--collapsed .pd-medical-index-title {
+    display: block;
+  }
+  .pd-medical-index--collapsed .pd-medical-collapse.ant-btn {
+    margin-left: auto;
+  }
 }
 
 /* ── Bìa hồ sơ bệnh án ──────────────────────────────────────────────────── */
@@ -2975,6 +3046,12 @@
   background: var(--bd-bg-head);
   color: #667085;
 }
+/* "Bảo hành" — staging has no colour of its own for it and falls back to its
+   neutral chip (#F0F3F8 on #5A6B82). */
+.pd-tr-chip--warranty {
+  background: var(--bd-bg-head);
+  color: var(--bd-muted);
+}
 .pd-tr-teeth {
   display: inline-block;
   border: 1px solid #b8d1f7;
@@ -3012,9 +3089,15 @@
   background: #fff4e5;
   color: #d97706;
 }
-.pd-treatment-table .pd-tr-warranty.ant-btn:hover {
+.pd-treatment-table .pd-tr-warranty.ant-btn:not(:disabled):hover {
   background: #f59e0b !important;
   color: #fff !important;
+}
+/* Blocked — an open warranty on the line, or the period ran out: grey and
+   inert, as the reference draws it. */
+.pd-treatment-table .pd-tr-warranty.ant-btn:disabled {
+  background: var(--bd-bg-head);
+  color: #98a2b3;
 }
 /* Finished, but the service offers no warranty: inert, as the reference shows. */
 .pd-tr-nostage {
@@ -3539,6 +3622,65 @@
   color: #fff;
 }
 
+/*
+ * StageTeethPicker — measured on staging 2026-09-24 (InlineTeethSelector): a
+ * continued công đoạn keeps its teeth, so its chips are inert at 70% opacity;
+ * an empty pick after a failed save outlines every chip in red.
+ */
+.pd-stage-teeth > div > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.pd-stage-teeth > div > button:disabled:not(.active):hover {
+  border-color: var(--bd-line);
+  color: var(--bd-ink);
+}
+.pd-stage-teeth > div > button.active:disabled:hover {
+  color: #fff;
+}
+.pd-stage-teeth > div > button.pd-stage-tooth--error {
+  border-color: var(--bd-red);
+}
+/* The chart button beside the chips — the plan table's own teeth button. */
+.pd-stage-teeth > div > button.pd-stage-chartbtn {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--bd-radius);
+  padding: 0;
+  background: var(--bd-primary);
+  opacity: 1;
+}
+.pd-stage-teeth > div > button.pd-stage-chartbtn:hover {
+  background: var(--bd-primary-strong);
+}
+.pd-stage-chartbtn > img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+/* Several cards open at once: their forms stack under the column heads. */
+.pd-stage-form + .pd-stage-form {
+  margin-top: 16px;
+}
+.pd-stage-charthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pd-stage-charthead > p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-stage-chart {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
 /* The chosen pictures, held until the form is saved. */
 /*
  * Field-level validation text, under the field it belongs to. The reference
@@ -4011,6 +4153,31 @@
 .pd-stage-dialog .pd-stage-warranty.ant-btn:hover {
   border-color: var(--bd-green) !important;
   background: color-mix(in srgb, var(--bd-green) 88%, #000) !important;
+}
+
+/*
+ * "Không bảo hành": a finished row whose service carries no warranty — grey
+ * and inert, as the reference draws it. The span around a disabled warranty
+ * button takes the hover its tooltip needs.
+ */
+.pd-stage-warrantywrap {
+  display: block;
+}
+.pd-stage-warrantywrap > .ant-btn:disabled {
+  pointer-events: none;
+}
+/* Blocked (an open warranty, or the period ran out): the reference keeps its
+   green and halves it, rather than going grey. */
+.pd-stage-dialog .pd-stage-warranty.ant-btn:disabled {
+  border-color: var(--bd-green);
+  background: var(--bd-green);
+  color: #fff;
+  opacity: 0.5;
+}
+.pd-stage-dialog .pd-stage-nowarranty.ant-btn:disabled {
+  border-color: var(--bd-bg-head);
+  background: var(--bd-bg-head);
+  color: #98a2b3;
 }
 
 /* ── "Tạo tái khám" rows ───────────────────────────────────────────────── */

@@ -46,8 +46,14 @@ public sealed class TreatmentStageController(ITreatmentStageAppService service)
     public Task<TreatmentStageDto> UpdateAsync(Guid id, [FromBody] UpdateTreatmentStageDto input) =>
         service.UpdateAsync(id, input);
 
+    /// <summary>
+    /// Writes the next công đoạn of the chain and answers with it — the
+    /// reference's <c>POST patient-stages/{id}/continue</c>.
+    /// </summary>
     [HttpPost("{id:guid}/continue")]
-    public Task<TreatmentStageDto> ContinueAsync(Guid id) => service.ContinueAsync(id);
+    public Task<TreatmentStageDto> ContinueAsync(
+        Guid id,
+        [FromBody] ContinueTreatmentStageDto input) => service.ContinueAsync(id, input);
 
     [HttpPost("{id:guid}/complete")]
     public Task<TreatmentStageDto> CompleteAsync(Guid id) => service.CompleteAsync(id);

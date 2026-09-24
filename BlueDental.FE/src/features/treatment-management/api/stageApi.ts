@@ -51,6 +51,15 @@ export interface TreatmentStageDto {
   isImageRequired: boolean;
   /** Bảo hành — a warranty visit rather than an ordinary step. */
   isGuarantee: boolean;
+  /**
+   * A later công đoạn continued this one — the reference's `disabled`. The
+   * history greys it out and nothing on it can be worked any more.
+   */
+  isSuperseded: boolean;
+  /** The công đoạn this one continues; null at the head of a chain. */
+  continuedFromId: string | null;
+  /** On a warranty: the ordinary công đoạn it descends from. */
+  warrantyRootStageId: string | null;
   startedAt: string | null;
   completedAt: string | null;
   teeth: ToothSelectionDto[];
@@ -99,6 +108,8 @@ export interface CreateTreatmentStageInput {
   teeth?: ToothSelectionDto[];
   /** Set by "Tạo bảo hành". */
   isGuarantee?: boolean;
+  /** With `isGuarantee`: the finished công đoạn the warranty is raised from. */
+  warrantySourceStageId?: string;
   /** The steps ticked under "Danh sách công đoạn"; they are stored unticked. */
   serviceItemIds?: string[];
 }
@@ -112,6 +123,18 @@ export interface UpdateTreatmentStageInput {
   subStaffId?: string;
   scheduledDate?: string;
   teeth?: ToothSelectionDto[];
+}
+
+/**
+ * "Tiếp tục công đoạn" / "Tiếp tục bảo hành" — the next visit of a chain. No
+ * teeth: the chain keeps its own, which is why the form locks them.
+ */
+export interface ContinueTreatmentStageInput {
+  staffId: string;
+  secondStaffId?: string;
+  subStaffId?: string;
+  note: string;
+  serviceItemIds: string[];
 }
 
 export interface StageListInput {
@@ -146,8 +169,9 @@ const stageApi = {
   update: (id: string, input: UpdateTreatmentStageInput): Promise<TreatmentStageDto> =>
     api.put<TreatmentStageDto>(`${STAGES}/${id}`, input).then((r) => r.data),
 
-  continue: (id: string): Promise<TreatmentStageDto> =>
-    api.post<TreatmentStageDto>(`${STAGES}/${id}/continue`).then((r) => r.data),
+  /** Answers with the **new** công đoạn; the one continued comes back superseded. */
+  continue: (id: string, input: ContinueTreatmentStageInput): Promise<TreatmentStageDto> =>
+    api.post<TreatmentStageDto>(`${STAGES}/${id}/continue`, input).then((r) => r.data),
 
   complete: (id: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/complete`).then((r) => r.data),
@@ -340,7 +364,10 @@ export function useUpdateStage() {
 }
 
 export function useContinueStage() {
-  return useStageMutation((id: string) => stageApi.continue(id));
+  return useStageMutation((input: { id: string } & ContinueTreatmentStageInput) => {
+    const { id, ...rest } = input;
+    return stageApi.continue(id, rest);
+  });
 }
 
 export function useCompleteStage() {

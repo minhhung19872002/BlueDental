@@ -1,40 +1,18 @@
 import { Button, Tooltip, type TableColumnsType } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import { formatTeeth } from "@/features/treatment-management/api/consultingApi";
+import { formatToothCodes } from "@/features/treatment-management/api/consultingApi";
 import {
   afterCareLabels,
   type CareStatusCode,
 } from "@/features/treatment-management/api/treatmentPlanApi";
+import { BriefcaseMedicalIcon, warrantyTitle } from "./stage/StageWarrantyButton";
 import { stageRowStatus, stageRowStatusLabel } from "./stageRowStatus";
 import type { TreatmentRow } from "./treatmentRows";
 
 export type { TreatmentRow };
-
-/** lucide-briefcase-medical, the glyph the reference greys out on a done line. */
-function BriefcaseMedicalIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="16"
-      height="16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 11v4" />
-      <path d="M14 13h-4" />
-      <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-      <path d="M18 6v14" />
-      <path d="M6 6v14" />
-      <rect width="20" height="14" x="2" y="6" rx="2" />
-    </svg>
-  );
-}
 
 interface Handlers {
   /** The DT… code opens the slip it belongs to. */
@@ -107,10 +85,13 @@ export function treatmentColumns({
             </button>
             {value ? ` - ${value}` : ` - ${row.code}`}
           </p>
-          {/* A tái khám says so; a công đoạn row shows its own state, not the
-              line's. */}
+          {/* A tái khám says so; a warranty visit reads "Bảo hành" whatever
+              its state (staging's timeline, 2026-09-24); a công đoạn row shows
+              its own state, not the line's. */}
           {row.kind === "reExamination" ? (
             <span className="pd-tr-chip pd-tr-chip--recall">{t("Patient:Care:RecallLower")}</span>
+          ) : row.isWarranty ? (
+            <span className="pd-tr-chip pd-tr-chip--warranty">{t("Patient:Labo:Warranty")}</span>
           ) : (
             <span className={`pd-tr-chip pd-tr-chip--${rowStatus(row)}`}>
               {stageRowStatusLabel(rowStatus(row))}
@@ -128,11 +109,12 @@ export function treatmentColumns({
       title: t("Patient:DentalChart:Tooth"),
       dataIndex: "rowTeeth",
       width: 130,
+      // Tooth numbers only: the reference's timeline prints no surfaces here.
       render: (_, row) =>
         row.rowTeeth.length === 0 ? (
           "—"
         ) : (
-          <span className="pd-tr-teeth">{formatTeeth(row.rowTeeth)}</span>
+          <span className="pd-tr-teeth">{formatToothCodes(row.rowTeeth)}</span>
         ),
     },
     { title: t("SL"), dataIndex: "quantity", width: 60, align: "center" },
@@ -187,8 +169,10 @@ export function treatmentColumns({
           );
         }
 
-        // Finished, but the service carries no warranty period.
-        if (row.warrantyDays <= 0) {
+        // Finished, but no warranty on offer: the service carries none, or
+        // the row stands for a line that never had a công đoạn.
+        const { warranty } = row;
+        if (warranty.kind === "none" || warranty.kind === "noWarranty") {
           return (
             <Tooltip title={t("Patient:Labo:NoWarranty")}>
               <span className="pd-tr-nostage" aria-label={t("Patient:Labo:NoWarranty")}>
@@ -198,16 +182,19 @@ export function treatmentColumns({
           );
         }
 
+        // Grey and disabled while another warranty of the line is open or
+        // once the period ran out; the tooltip says which.
         return (
-          <Tooltip title={t("Patient:Labo:Warranty")}>
+          <ActionTooltip title={warrantyTitle(warranty)}>
             <Button
               type="text"
               className="pd-tr-warranty"
               aria-label={t("Patient:Labo:Warranty")}
               icon={<BriefcaseMedicalIcon />}
+              disabled={warranty.kind === "blocked"}
               onClick={() => onWarranty(row)}
             />
-          </Tooltip>
+          </ActionTooltip>
         );
       },
     },
@@ -229,17 +216,19 @@ export function treatmentColumns({
       width: 90,
       align: "center",
       fixed: "right",
-      render: (_, row) => (
-        <Tooltip title={t("Patient:Payment:CreateSlip")}>
-          <Button
-            type="text"
-            className="pd-tr-pay"
-            icon={<BanknoteIcon />}
-            aria-label={t("Patient:Payment:CreateSlip")}
-            onClick={() => onPay(row)}
-          />
-        </Tooltip>
-      ),
+      // A warranty visit costs nothing, and staging offers no payment on it.
+      render: (_, row) =>
+        row.isWarranty ? null : (
+          <Tooltip title={t("Patient:Payment:CreateSlip")}>
+            <Button
+              type="text"
+              className="pd-tr-pay"
+              icon={<BanknoteIcon />}
+              aria-label={t("Patient:Payment:CreateSlip")}
+              onClick={() => onPay(row)}
+            />
+          </Tooltip>
+        ),
     },
   ];
 }

@@ -215,8 +215,9 @@ export const consultingApi = {
   createDiagnosis: (data: CreatePatientDiagnosisDto): Promise<PatientDiagnosisDto> =>
     api.post<PatientDiagnosisDto>("/v1/app/patient-diagnoses", data).then((r) => r.data),
 
-  cancelDiagnosis: (id: string): Promise<PatientDiagnosisDto> =>
-    api.post<PatientDiagnosisDto>(`/v1/app/patient-diagnoses/${id}/cancel`).then((r) => r.data),
+  /** "Xoá phiếu chẩn đoán" — the reference deletes the slip outright. */
+  deleteDiagnosis: (id: string): Promise<void> =>
+    api.delete(`/v1/app/patient-diagnoses/${id}`).then(() => undefined),
 
   updateDiagnosis: (id: string, data: UpdatePatientDiagnosisDto): Promise<PatientDiagnosisDto> =>
     api.put<PatientDiagnosisDto>(`/v1/app/patient-diagnoses/${id}`, data).then((r) => r.data),
@@ -248,8 +249,9 @@ export const consultingApi = {
   acceptAdvise: (id: string): Promise<PatientAdviseDto> =>
     api.post<PatientAdviseDto>(`/v1/app/patient-advises/${id}/accept`).then((r) => r.data),
 
-  rejectAdvise: (id: string): Promise<PatientAdviseDto> =>
-    api.post<PatientAdviseDto>(`/v1/app/patient-advises/${id}/reject`).then((r) => r.data),
+  /** "Xoá dịch vụ tư vấn" — the reference deletes the line outright. */
+  deleteAdvise: (id: string): Promise<void> =>
+    api.delete(`/v1/app/patient-advises/${id}`).then(() => undefined),
 
   reorderAdvise: (data: ReorderPatientAdviseDto): Promise<void> =>
     api.put("/v1/app/patient-advises/reorder", data).then(() => undefined),

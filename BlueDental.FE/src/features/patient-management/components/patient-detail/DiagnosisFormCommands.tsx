@@ -10,10 +10,10 @@ interface Props {
 }
 
 /**
- * The foot of the right-hand column. A new slip offers "Thêm chẩn đoán"
- * (queueing several diagnoses on one slip is not wired yet — the reference's
- * behaviour could not be observed — so it stays disabled), "Tạo dịch vụ" and
- * "Lưu Chẩn Đoán"; a slip opened from the table only "Cập nhật Chẩn Đoán".
+ * The foot of the right-hand column. A new slip offers "Thêm chẩn đoán" (save
+ * it and start the next one on a blank form, read off the reference's bundle
+ * 2026-09-24), "Tạo dịch vụ" and "Lưu Chẩn Đoán"; a slip opened from the table
+ * only "Cập nhật Chẩn Đoán". All three wait on the same fields.
  */
 export function DiagnosisFormCommands({ editing, ready, submitting, onSubmit }: Props) {
   if (editing) {
@@ -32,7 +32,13 @@ export function DiagnosisFormCommands({ editing, ready, submitting, onSubmit }: 
 
   return (
     <>
-      <Button type="primary" block disabled>
+      <Button
+        type="primary"
+        block
+        disabled={!ready}
+        loading={submitting}
+        onClick={() => onSubmit("add")}
+      >
         {t("Patient:Diagnosis:AddBtn")}
       </Button>
       <div className="pd-diagnosis-commands">

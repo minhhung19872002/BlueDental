@@ -140,7 +140,7 @@ test.describe("Danh mục — nhập từ Excel (màn hình)", () => {
   test("a wide sheet scrolls sideways by grabbing the table, like every other table", async ({ page }) => {
     // Dịch vụ has 20 columns, far wider than the dialog. The preview used to
     // be a virtual table, which the app-wide grab-to-scroll cannot drive, so
-    // the right-hand columns looked cut off with no way to reach them (R-542).
+    // the right-hand columns looked cut off with no way to reach them (R-562).
     await page.goto("/taxonomy/service");
     await page.getByRole("button", { name: /^upload Nhập$/ }).click();
     const dialog = page.getByRole("dialog");

@@ -96,6 +96,17 @@ public class ClinicalMappingTests
     }
 
     [Fact]
+    public void TreatmentStage_Should_Persist_Its_Chain_And_Warranty_Root()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(TreatmentStage))!;
+
+        entity.FindProperty(nameof(TreatmentStage.IsSuperseded)).ShouldNotBeNull();
+        entity.FindProperty(nameof(TreatmentStage.ContinuedFromId)).ShouldNotBeNull();
+        entity.FindProperty(nameof(TreatmentStage.WarrantyRootStageId)).ShouldNotBeNull();
+    }
+
+    [Fact]
     public void AdviseGroup_Should_Map_To_bd_advise_groups_Table()
     {
         using var ctx = CreateContext();

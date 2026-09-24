@@ -175,6 +175,77 @@ public class TreatmentService : FullAuditedEntity<Guid>
     }
 
     /// <summary>
+    /// "Chỉnh sửa" — the plan table's pencil, which turns a saved line back into
+    /// the inline row. Measured on staging 2026-09-24 (the plan detail's own
+    /// column builder, in its published chunk):
+    /// <list type="bullet">
+    ///   <item>the pencil is offered only while the line is not done, cancelled
+    ///         or converted **and** nothing has been paid on it;</item>
+    ///   <item>a line in treatment keeps its diagnosis and its price — the cells
+    ///         read "Không thể đổi chẩn đoán/giá khi đang điều trị";</item>
+    ///   <item>teeth that already have a công đoạn stay picked — "Răng … đang
+    ///         điều trị — không thể bỏ chọn".</item>
+    /// </list>
+    /// </summary>
+    /// <param name="paidOnLine">Đã thu on this line, net of refunds.</param>
+    /// <param name="stagedTeeth">Tooth codes the line's công đoạn hold.</param>
+    public TreatmentService Revise(
+        decimal price,
+        int quantity,
+        IEnumerable<ToothSelection> teeth,
+        Guid? diagnosisId,
+        decimal paidOnLine,
+        IReadOnlySet<int> stagedTeeth)
+    {
+        if (Status is TreatmentServiceStatus.Done or TreatmentServiceStatus.Cancelled
+                or TreatmentServiceStatus.Replaced
+            || paidOnLine > 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineNotEditable,
+                "This service line can no longer be edited.");
+        }
+
+        if (Status == TreatmentServiceStatus.InProgress
+            && (price != Price || diagnosisId != DiagnosisId))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineLockedInTreatment,
+                "A line in treatment keeps its diagnosis and its price.");
+        }
+
+        if (price < 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.NegativePaymentAmount,
+                "A service line cannot be priced below zero.");
+        }
+
+        if (quantity < 1)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidAdviseQuantity,
+                "A service line needs at least one unit.");
+        }
+
+        var toothList = teeth.ToList();
+        var kept = toothList.Select(t => t.ToothCode).ToHashSet();
+        if (stagedTeeth.Any(code => !kept.Contains(code)))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.StagedToothLocked,
+                "A tooth that has a công đoạn stays on the line.");
+        }
+
+        Price = price;
+        Quantity = quantity;
+        DiagnosisId = diagnosisId;
+        _teeth.Clear();
+        _teeth.AddRange(toothList);
+        return this;
+    }
+
+    /// <summary>
     /// The status the inline row was saved with. The reference lets a new line
     /// start in any of its seven states; a closed one is closed from the start.
     /// </summary>

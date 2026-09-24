@@ -1741,6 +1741,12 @@ Reason: bấm trên staging chỉ thấy form xếp thêm một chẩn đoán v�
         rõ khi lưu tạo một hay nhiều bản ghi, và bản production không được
         bấm. Chủ dự án chốt tạm vô hiệu nút này (2026-09-07).
 Action taken: NONE trên production. BlueDental hiện lưu một chẩn đoán mỗi lần.
+RESOLVED 2026-09-24: đọc từ bundle đã publish (`en` trong form chẩn đoán):
+  tạo **một** bản ghi (`POST patient-diagnoses`), rồi chạy hàm reset `J` —
+  bác sĩ 1 về bác sĩ mặc định, tắt bác sĩ 2, xoá chẩn đoán, ghi chú, răng — và
+  **không** đóng form. Chỉ có trên form tạo mới. BlueDental làm theo; khác biệt
+  duy nhất: bản gốc đặt sẵn bác sĩ 1 = người đăng nhập nếu là bác sĩ
+  (`isDoctor && userId`), BlueDental để trống như lúc mở form.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /patient/<id>?tab=consulting — chân "Phiếu tư vấn", "Voucher áp dụng"
@@ -2527,6 +2533,12 @@ Reason: The reference has a **third** tab BlueDental does not build yet.
   reference.
 Action taken: NONE
 
+RESOLVED 2026-09-24 — the owner asked for the warranty flow to be worked on
+  staging record HN8510, which showed what fills `eq`: open warranty công đoạn
+  (`status === created`, not `disabled`, `isGuarantee`). BlueDental builds all
+  three tabs now; see docs/clone/pages/patient-detail.md, "Survey 2026-09-24".
+  The note below is the state before that.
+
 BlueDental: two tabs only (`add`, `continue`). What IS known and already cloned:
   the per-tab save label (`Lưu công đoạn` / `Tiếp tục công đoạn` /
   `Tiếp tục bảo hành`, R-457), the guarded close shared by ✕ and Hủy (R-456),
@@ -2564,3 +2576,53 @@ Reason: **không có trên bản gốc** (app.nfcdental.com không có chức n�
 Action taken: NONE trên bản gốc. Local: dựng theo quyết định của chủ dự án
   (xem `docs/testing/features/taxonomy.md` § Nhập từ Excel). Bệnh án mẫu để sau
   theo yêu cầu; Thẻ hồ sơ và Phương thức thanh toán không cần.
+
+Page: /patient/{id} — "Chi tiết phiếu" → Bảo hành → "Tạo bảo hành"
+Control: the teeth offered on a line split into several chains
+Reason: The reference offers the **line's** teeth (`treatmentService.content`)
+  with the source công đoạn's preselected. The project owner's rule (2026-09-24)
+  is the **root** công đoạn's teeth. On the fixture the root covered the whole
+  line, so both read the same; on a line whose teeth were started in separate
+  chains (21 in one, 13 in another) they would differ, and finding out would
+  mean writing another warranty on staging.
+Action taken: NONE — BlueDental follows the owner's rule
+  (`warrantyCandidates` / `StageTeethPolicy.EnsureWarranty`), falling back to the
+  line's teeth for a warranty written before roots were recorded.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} — "Chi tiết phiếu"
+Control: the service line's own status once a warranty is raised on a finished line
+Reason: The dialog asks for lines in `created / inProgress / guarantee`, so the
+  reference has a `guarantee` line status, but on the fixture the line stayed
+  `in-progress` throughout and nothing observed moved it to `guarantee`.
+Action taken: NONE — BlueDental re-opens a finished line to InProgress while a
+  warranty công đoạn of it is open, and closes it again when that is finished.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} — "Chi tiết phiếu" (server side)
+Control: what `POST patient-stages` / `…/continue` refuse
+Reason: The reference checks the teeth, the open warranty and the warranty
+  period in the browser; whether its server refuses the same when called
+  directly was not tested (it would take deliberate bad writes on staging).
+Action taken: NONE — BlueDental's server enforces them (Treatment:0030–0036).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — dialog "Chọn Dịch Vụ", bảng dịch vụ
+Control: cột Đơn giá / Số lượng của một dòng đã tick
+Reason: bundle 2026-09-24 cho thấy bản gốc lấy Số lượng = số răng của phiếu
+        (`aM`: mã răng > 2 và ≠ 10, đếm không trùng; không có răng thì 1) cho
+        mọi dòng, không có ô sửa số lượng, và Đơn giá không sửa được. Local vẫn
+        cho sửa giá, số lượng mặc định 1. Chưa đổi vì là thay đổi nghiệp vụ,
+        chờ chủ dự án quyết.
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — "Xoá phiếu chẩn đoán"
+Control: xoá một phiếu đã có dịch vụ tư vấn bên dưới
+Reason: bản gốc gọi `DELETE patient-diagnoses/{id}`; server của nó làm gì với
+        các dòng tư vấn của phiếu (xoá theo, giữ, hay từ chối) không đọc được
+        từ bundle và không được thử trên bản gốc. BlueDental xoá mềm phiếu, giữ
+        nguyên các dòng tư vấn, và từ chối phiếu đã điều trị (0010).
+Action taken: NONE

@@ -1,10 +1,11 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type { TableColumnsType } from "antd";
 import { Tooltip } from "antd";
-import { Eye, GripVertical } from "lucide-react";
+import { Eye, GripVertical, Pencil } from "lucide-react";
+import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import { formatTeeth } from "../../api/consultingApi";
+import { formatToothCodes } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { ServiceStatusPill, type ServiceAction } from "./ServiceStatusPill";
 import { renderDraftCell } from "./draftServiceCells";
@@ -21,7 +22,33 @@ export interface ServiceRowActions {
   onView: (row: PlanDetailRow) => void;
   /** Left out when the user may not move a line (treatmentConsultation.update). */
   onStatus?: (row: PlanDetailRow, action: ServiceAction) => void;
+  /**
+   * "Chỉnh sửa". Left out when the user may not edit lines, or while another
+   * row is already being written — one inline row at a time.
+   */
+  onEdit?: (row: PlanDetailRow) => void;
+  /** Staging's rule for which lines carry the pencil at all. */
+  canEditLine: (row: PlanDetailRow) => boolean;
 }
+
+/**
+ * The columns an edited line swaps for the inline row's inputs; the rest (the
+ * name with its status pill, the money it has collected) stay as they are.
+ */
+const EDITABLE_COLUMNS: ReadonlySet<string> = new Set([
+  "diagnosis",
+  "dentist",
+  "teeth",
+  "quantity",
+  "price",
+  "amount",
+  "note",
+  "diagnoser1",
+  "diagnoser2",
+  "consultant1",
+  "consultant2",
+  "actions",
+]);
 
 /** What the grip needs to move its row — see {@link useDragReorder}. */
 export interface ServiceDragHandle {
@@ -101,8 +128,36 @@ function column(
     title,
     width,
     ...extra,
-    render: (_, row) => (isDraftRow(row) ? renderDraftCell(key, row.draft) : line(row)),
+    render: (_, row) => {
+      if (isDraftRow(row)) return renderDraftCell(key, row.draft);
+      if (row.edit && EDITABLE_COLUMNS.has(key)) return renderDraftCell(key, row.edit);
+      return line(row);
+    },
   };
+}
+
+/** Thao tác on a saved line: the eye, and the pencil where staging offers it. */
+function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
+  const editable = actions.onEdit && actions.canEditLine(row);
+  return (
+    <span className="pdt-line-actions">
+      <button type="button" className="tp-eye" aria-label={t("Treatment:Service:ViewDetail")} onClick={() => actions.onView(row)}>
+        <Eye size={16} aria-hidden="true" />
+      </button>
+      {editable && (
+        <ActionTooltip title={t("Common:Edit")}>
+          <button
+            type="button"
+            className="tp-eye"
+            aria-label={t("Common:Edit")}
+            onClick={() => actions.onEdit?.(row)}
+          >
+            <Pencil size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
+    </span>
+  );
 }
 
 function text(key: string, titleKey: string, width: number, value: (row: PlanDetailRow) => string): Column {
@@ -121,7 +176,8 @@ export function buildServiceColumns(
     column("service", t("Treatment:Service:Service"), 260, (row) => <ServiceNameCell row={row} actions={actions} />),
     text("diagnosis", "Treatment:PlanDetail:Col:Diagnosis", 200, (row) => row.service.diagnosisName ?? row.advise?.diagnosisName ?? ""),
     text("dentist", "Treatment:PlanDetail:Col:Dentist", 200, (row) => row.service.dentistName ?? row.plan.dentistName ?? ""),
-    text("teeth", "Treatment:PlanDetail:Col:Teeth", 120, (row) => formatTeeth(row.service.teeth)),
+    // Tooth numbers only — staging prints no surfaces in this column.
+    text("teeth", "Treatment:PlanDetail:Col:Teeth", 120, (row) => formatToothCodes(row.service.teeth)),
     column("quantity", t("Treatment:Pricing:Quantity"), 80, (row) => row.service.quantity, { align: "center" }),
     column("price", t("Treatment:Pricing:UnitPrice"), 170, (row) => moneyText(row.service.price), { align: "right" }),
     column("discount", t("Treatment:Pricing:TotalDiscount"), 160, (row) => <DiscountCell row={row} />, { align: "right" }),
@@ -136,16 +192,9 @@ export function buildServiceColumns(
     text("diagnoser2", "Treatment:PlanDetail:Col:Diagnoser2", 180, (row) => row.service.secondDiagnoserName ?? row.advise?.secondStaffName ?? ""),
     text("consultant1", "Treatment:PlanDetail:Col:Consultant1", 180, (row) => row.service.consultantName ?? row.plan.consultantName ?? ""),
     text("consultant2", "Treatment:PlanDetail:Col:Consultant2", 180, (row) => row.service.secondConsultantName ?? ""),
-    column(
-      "actions",
-      t("Common:Actions"),
-      70,
-      (row) => (
-        <button type="button" className="tp-eye" aria-label={t("Treatment:Service:ViewDetail")} onClick={() => actions.onView(row)}>
-          <Eye size={16} aria-hidden="true" />
-        </button>
-      ),
-      { align: "center", fixed: "right" },
-    ),
+    column("actions", t("Common:Actions"), 90, (row) => <LineActions row={row} actions={actions} />, {
+      align: "center",
+      fixed: "right",
+    }),
   ];
 }

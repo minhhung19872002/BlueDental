@@ -1,7 +1,7 @@
 import type { TableColumnsType } from "antd";
 import { ClipboardList, Eye, Plus, Receipt } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { ActionTooltip } from "./ActionTooltip";
+import { ActionTooltip } from "@/components/ActionTooltip";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {

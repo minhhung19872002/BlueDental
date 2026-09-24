@@ -331,6 +331,21 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Xoá dịch vụ tư vấn" removes the line for good (the reference calls
+    /// <c>DELETE patient-advises/{id}</c>). One already pulled into a treatment
+    /// plan is that plan's line now, so it stays.
+    /// </summary>
+    public void EnsureDeletable()
+    {
+        if (Status == PatientAdviseStatus.Converted)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidAdviseTransition,
+                "A converted advise cannot be deleted; it belongs to a treatment plan.");
+        }
+    }
+
     private void GuardEditable()
     {
         if (Status is PatientAdviseStatus.Converted or PatientAdviseStatus.Cancelled)

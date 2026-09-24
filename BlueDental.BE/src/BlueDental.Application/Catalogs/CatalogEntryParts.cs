@@ -53,8 +53,12 @@ internal static class CatalogEntryParts
 
         if (stages != null)
         {
-            entry.ReplaceStages(stages.Select((stage, index) =>
-                new CatalogServiceStage(guids.Create(), entry.Id, stage.Name, stage.Value, index)));
+            // By id, so a công đoạn that ticked a step still finds it after the
+            // service is edited (see CatalogEntry.SyncStages). Import rows carry
+            // no id and so always come in as new steps.
+            entry.SyncStages(
+                stages.Select(stage => (stage.Id, stage.Name, stage.Value)),
+                guids.Create);
         }
 
         if (prescriptionLines != null)
