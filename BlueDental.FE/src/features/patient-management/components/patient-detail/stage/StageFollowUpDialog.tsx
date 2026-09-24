@@ -178,7 +178,7 @@ export function StageFollowUpDialog({
         </div>
 
         <div>
-          <FloatingLabel label={t("Patient:Stage:TreatmentContent")} floated={form.note.length > 0}>
+          <FloatingLabel label={t("Patient:Stage:TreatmentContent")} required floated={form.note.length > 0}>
             <Input.TextArea
               rows={5}
               value={form.note}

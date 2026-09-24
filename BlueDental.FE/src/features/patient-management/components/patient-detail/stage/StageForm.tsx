@@ -132,7 +132,7 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
       </div>
 
       <div>
-        <FloatingLabel label={t("Patient:Stage:TreatmentContent")} floated={draft.note.length > 0}>
+        <FloatingLabel label={t("Patient:Stage:TreatmentContent")} required floated={draft.note.length > 0}>
           <Input.TextArea
             rows={5}
             value={draft.note}
