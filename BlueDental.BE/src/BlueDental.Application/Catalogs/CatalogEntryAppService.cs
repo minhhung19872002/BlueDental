@@ -313,9 +313,11 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
 
         if (stages != null)
         {
-            entry.ReplaceStages(stages.Select((stage, index) =>
-                new CatalogServiceStage(
-                    GuidGenerator.Create(), entry.Id, stage.Name, stage.Value, index)));
+            // By id, so a công đoạn that ticked a step still finds it after the
+            // service is edited (see CatalogEntry.SyncStages).
+            entry.SyncStages(
+                stages.Select(stage => (stage.Id, stage.Name, stage.Value)),
+                GuidGenerator.Create);
         }
 
         if (prescriptionLines != null)

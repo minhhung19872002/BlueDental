@@ -28,6 +28,16 @@ public class CatalogServiceStage : Entity<Guid>
     public CatalogServiceStage(Guid id, Guid catalogEntryId, string name, decimal value, int sortOrder)
         : base(id)
     {
+        CatalogEntryId = catalogEntryId;
+        Revise(name, value, sortOrder);
+    }
+
+    /// <summary>
+    /// The same step, edited in place: its id is what every công đoạn that
+    /// ticked it points at, so an edit must never mint a new one.
+    /// </summary>
+    internal void Revise(string name, decimal value, int sortOrder)
+    {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
         if (value < 0m)
@@ -37,7 +47,6 @@ public class CatalogServiceStage : Entity<Guid>
                 "A stage value cannot be negative.");
         }
 
-        CatalogEntryId = catalogEntryId;
         Name = name;
         Value = value;
         SortOrder = sortOrder;

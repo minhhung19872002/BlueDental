@@ -13,7 +13,7 @@ import {
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useUploadPatientImage } from "../../../api/patientImageApi";
 import { reExaminationChecklist } from "./reExaminationChecklist";
-import { pickTeeth, toothCodes, warrantyCandidates } from "./stageModel";
+import { namedSteps, pickTeeth, toothCodes, warrantyCandidates } from "./stageModel";
 import { syncStageContent } from "./syncStageContent";
 import {
   hasStageFieldError,
@@ -126,10 +126,7 @@ export function useFollowUpForm({
     () =>
       warranty
         ? inheritSteps
-          ? (stage?.serviceItems ?? []).map((item) => ({
-              id: item.catalogServiceStageId,
-              name: item.name,
-            }))
+          ? namedSteps(stage?.serviceItems ?? [])
           : []
         : reExaminationChecklist(stage),
     [stage, warranty, inheritSteps],

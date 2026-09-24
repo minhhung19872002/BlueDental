@@ -172,6 +172,45 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         _stages.AddRange(stages);
     }
 
+    /// <summary>
+    /// Saves the stage table as the dialog sends it, keeping each step's
+    /// identity. A row that carries the id of one of this service's steps
+    /// updates that step in place; a row without one (or with a stranger's) is
+    /// a new step; a step no row names is gone. The order is the table's.
+    ///
+    /// <see cref="ReplaceStages"/> gave every row a fresh id on every save,
+    /// which cut each công đoạn off from the steps it had ticked — their
+    /// names came back empty and the checklists drew blank boxes.
+    /// </summary>
+    public void SyncStages(IEnumerable<(Guid Id, string Name, decimal Value)> rows, Func<Guid> newId)
+    {
+        var kept = new List<CatalogServiceStage>();
+        var index = 0;
+        foreach (var row in rows)
+        {
+            var existing = row.Id == Guid.Empty
+                ? null
+                : _stages.FirstOrDefault(stage => stage.Id == row.Id && !kept.Contains(stage));
+            if (existing != null)
+            {
+                existing.Revise(row.Name, row.Value, index);
+                kept.Add(existing);
+            }
+            else
+            {
+                kept.Add(new CatalogServiceStage(newId(), Id, row.Name, row.Value, index));
+            }
+
+            index += 1;
+        }
+
+        _stages.RemoveAll(stage => !kept.Contains(stage));
+        foreach (var stage in kept.Where(stage => !_stages.Contains(stage)))
+        {
+            _stages.Add(stage);
+        }
+    }
+
     public void ReplacePrescriptionLines(IEnumerable<PrescriptionTemplateLine> lines)
     {
         _prescriptionLines.Clear();

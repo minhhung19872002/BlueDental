@@ -196,6 +196,19 @@ export function warrantyCandidates(
   return line.teeth.length > 0 ? line.teeth : source.teeth;
 }
 
+/**
+ * A công đoạn's steps as a checklist shows them. A step the catalog no longer
+ * has comes back without a name (before 2026-09-24 every edit of a service
+ * re-created its steps under new ids); it is left off the list rather than
+ * drawn as a blank box. Only the display drops it — a save still sends every
+ * step the công đoạn holds.
+ */
+export function namedSteps(items: TreatmentStageDto["serviceItems"]): { id: string; name: string }[] {
+  return items
+    .filter((item) => item.name.trim().length > 0)
+    .map((item) => ({ id: item.catalogServiceStageId, name: item.name }));
+}
+
 /** Tooth codes, in the order the teeth were given. */
 export const toothCodes = (teeth: ToothSelectionDto[]): number[] =>
   teeth.map((tooth) => tooth.toothCode);

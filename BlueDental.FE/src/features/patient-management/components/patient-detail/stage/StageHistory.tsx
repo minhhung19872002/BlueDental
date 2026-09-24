@@ -7,7 +7,7 @@ import type { TreatmentStageDto } from "@/features/treatment-management/api/stag
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageStepList } from "./StageStepList";
 import { StageWarrantyButton } from "./StageWarrantyButton";
-import type { WarrantyState } from "./stageModel";
+import { namedSteps, type WarrantyState } from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
 export interface StageDay {
@@ -227,10 +227,7 @@ export function StageHistory({
                             the checkboxes in this column, not the stage name. */}
                         <div className="pd-stage-histstage">
                           <StageStepList
-                            steps={stage.serviceItems.map((item) => ({
-                              id: item.catalogServiceStageId,
-                              name: item.name,
-                            }))}
+                            steps={namedSteps(stage.serviceItems)}
                             checked={stage.serviceItems
                               .filter((item) => item.isCompleted)
                               .map((item) => item.catalogServiceStageId)}

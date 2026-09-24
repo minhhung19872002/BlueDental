@@ -496,3 +496,98 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await other.close();
   });
 });
+
+/**
+ * A công đoạn names its ticked steps through their catalog ids. Saving the
+ * service in Danh mục used to re-create every step under a new id, which left
+ * those công đoạn pointing at nothing — "Tạo bảo hành" then listed blank
+ * checkboxes. The save now keeps the id of every step the dialog sends back.
+ */
+test.describe("Danh mục dịch vụ — bước công đoạn giữ nguyên khi sửa", () => {
+  test("re-saving a service keeps its steps' ids; only a new row gets a new one", async ({ page }) => {
+    await login(page);
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const result = await page.evaluate(
+      async ({ branch, stamp }) => {
+        const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch };
+        const call = async (method: string, url: string, body?: unknown) => {
+          const res = await fetch(url, {
+            method,
+            credentials: "include",
+            headers,
+            body: body === undefined ? undefined : JSON.stringify(body),
+          });
+          return { status: res.status, json: res.ok ? await res.json() : await res.text() };
+        };
+        const group = (
+          await call("GET", `/api/v1/app/taxonomies?clinicBranchId=${branch}&group=care_service&maxResultCount=1`)
+        ).json.items[0];
+        const made = await call("POST", "/api/v1/app/catalog-entries", {
+          clinicBranchId: branch,
+          taxonomyId: group.id,
+          name: `e2e bước ${stamp}`,
+          price: 0,
+          stages: [
+            { name: "Bước A", value: 0 },
+            { name: "Bước B", value: 0 },
+          ],
+        });
+        if (made.status !== 200) return { error: `create ${made.status} ${String(made.json)}` };
+        const before = made.json.stages as { id: string; name: string; value: number }[];
+
+        // What the Danh mục dialog sends back: the rows it loaded, ids and all,
+        // one renamed, plus a row typed in anew.
+        const saved = await call("PUT", `/api/v1/app/catalog-entries/${made.json.id}`, {
+          taxonomyId: group.id,
+          name: made.json.name,
+          price: 0,
+          isActive: true,
+          isDeleted: false,
+          sortOrder: 0,
+          stages: [
+            { id: before[0].id, name: "Bước A", value: 0 },
+            { id: before[1].id, name: "Bước B sửa", value: 5 },
+            { name: "Bước C", value: 0 },
+          ],
+        });
+        if (saved.status !== 200) return { error: `update ${saved.status} ${String(saved.json)}` };
+        const after = (await call("GET", `/api/v1/app/catalog-entries/${made.json.id}`)).json.stages as {
+          id: string;
+          name: string;
+          value: number;
+        }[];
+
+        // And a row dropped from the table is gone.
+        await call("PUT", `/api/v1/app/catalog-entries/${made.json.id}`, {
+          taxonomyId: group.id,
+          name: made.json.name,
+          price: 0,
+          isActive: true,
+          isDeleted: false,
+          sortOrder: 0,
+          stages: [after[0], after[2]],
+        });
+        const dropped = (await call("GET", `/api/v1/app/catalog-entries/${made.json.id}`)).json.stages as {
+          id: string;
+        }[];
+        return { before, after, dropped };
+      },
+      { branch: BRANCH, stamp: runId() },
+    );
+
+    expect("error" in result ? result.error : null).toBeNull();
+    const { before, after, dropped } = result as {
+      before: { id: string }[];
+      after: { id: string; name: string; value: number }[];
+      dropped: { id: string }[];
+    };
+    expect(after.map((step) => step.name)).toEqual(["Bước A", "Bước B sửa", "Bước C"]);
+    expect(after[0].id, "an unchanged step keeps its id").toBe(before[0].id);
+    expect(after[1].id, "a renamed step keeps its id").toBe(before[1].id);
+    expect(after[1].value).toBe(5);
+    expect(before.map((step) => step.id)).not.toContain(after[2].id);
+    expect(dropped.map((step) => step.id)).toEqual([after[0].id, after[2].id]);
+  });
+});
