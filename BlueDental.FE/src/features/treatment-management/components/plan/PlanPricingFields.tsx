@@ -9,7 +9,7 @@ import type { CreatePlanValues, PlanTotals } from "./useCreatePlanForm";
 
 const DISCOUNT_UNITS = [
   { type: DISCOUNT_TYPE.Percentage, label: "%" },
-  { type: DISCOUNT_TYPE.Money, label: "VNĐ" },
+  { type: DISCOUNT_TYPE.Money, label: "Treatment:Pricing:UnitVnd" },
 ] as const;
 
 interface Props {
@@ -53,7 +53,7 @@ export function PlanPricingFields({ form, totals }: Props) {
               className={discountType === unit.type ? "active" : undefined}
               onClick={() => form.setFieldValue("discountType", unit.type)}
             >
-              {unit.label}
+              {t(unit.label)}
             </button>
           ))}
         </div>

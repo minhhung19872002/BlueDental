@@ -7,7 +7,7 @@ import { diagnosisLabel, lineTotal, money, rowDiscount, type QuoteRow } from "./
 const buildColumns = (): TableColumnsType<QuoteRow> => [
   {
     key: "service",
-    title: t("Patient:Misc:Service"),
+    title: t("Patient:Misc:ServiceLabel"),
     dataIndex: "service",
     className: "pq-cell-service",
     width: 320,

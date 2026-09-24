@@ -87,7 +87,7 @@ export function PatientBasicColumn({
         </FloatingField>
 
         <FloatingField
-          label={t("CCCD")}
+          label={t("Patient:Form:NationalId")}
           name="nationalId"
           rules={[
             {
@@ -97,7 +97,7 @@ export function PatientBasicColumn({
           ]}
         >
           <Input
-            placeholder="CCCD (12 chữ số)"
+            placeholder={t("Patient:Form:NationalIdPlaceholder")}
             maxLength={12}
             inputMode="numeric"
           />

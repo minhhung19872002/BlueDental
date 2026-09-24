@@ -21,7 +21,11 @@ function reachedUpTo(statusCode: number): number {
   return 0;
 }
 
-const LABELS = ["Đã đến", "Đang khám", "Hoàn tất"] as const;
+const LABELS = [
+  "Patient:Appt:StepArrived",
+  "Patient:Appt:StepInProgress",
+  "Patient:Appt:StepCompleted",
+] as const;
 
 /** The tick a reached step wears in place of its number. */
 function CheckIcon() {

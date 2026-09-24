@@ -124,7 +124,7 @@ export function DiagnosisInvoiceSheet({
         <table className="pq-dx__table">
           <thead>
             <tr>
-              <th>{t("Patient:Misc:Service")}</th>
+              <th>{t("Patient:Misc:ServiceLabel")}</th>
               <th>{t("Patient:Tab:Diagnosis")}</th>
               <th>{t("Patient:Payment:UnitPrice")}</th>
               <th>{t("Patient:Payment:Discount")}</th>

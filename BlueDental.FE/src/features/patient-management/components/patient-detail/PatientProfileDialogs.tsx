@@ -266,7 +266,7 @@ export function PatientPaymentDialog({
           <Select value={20} options={[{ value: 20, label: t("20 / trang") }]} />
           <span>
             {t(
-              "Hiển thị {0} trên {1} phiếu thanh toán",
+              "Patient:Payment:ShowingCount",
               Math.min(20, payments.length),
               payments.length,
             )}

@@ -65,18 +65,18 @@ export const STATUS_GROUP_META: Record<HistoryStatusGroup, { label: string; tone
 
 /** Snapshot field keys, as the server names them, in words. */
 const FIELD_LABELS: Record<string, string> = {
-  startTime: "Thời gian bắt đầu",
-  toTime: "Thời gian kết thúc",
-  duration: "Thời lượng (phút)",
-  status: "Trạng thái",
-  content: "Nội dung",
-  note: "Ghi chú",
-  color: "Màu",
-  staffId: "Bác sĩ",
-  patientName: "Tên bệnh nhân",
-  patientPhone: "SĐT bệnh nhân",
-  cancelReason: "Lý do huỷ",
-  cancelNote: "Ghi chú huỷ",
+  startTime: "Appointment:History:Field:StartTime",
+  toTime: "Appointment:History:Field:EndTime",
+  duration: "Appointment:History:Field:Duration",
+  status: "Appointment:History:Field:Status",
+  content: "Appointment:History:Field:Content",
+  note: "Appointment:History:Field:Note",
+  color: "Appointment:History:Field:Color",
+  staffId: "Appointment:History:Field:Doctor",
+  patientName: "Appointment:History:Field:PatientName",
+  patientPhone: "Appointment:History:Field:PatientPhone",
+  cancelReason: "Appointment:History:Field:CancelReason",
+  cancelNote: "Appointment:History:Field:CancelNote",
 };
 
 const DATE_TIME_FIELDS = new Set(["startTime", "toTime"]);

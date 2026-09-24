@@ -20,12 +20,12 @@ interface Stat {
  * prints is recorded as unknown — see docs/clone/unknowns.md.
  */
 const STATS: Stat[] = [
-  { key: "totalPrice", label: "Doanh thu dự kiến", tone: "ink" },
-  { key: "totalPaid", label: "Đã thanh toán", tone: "ink" },
-  { key: "debt", label: "Công nợ", tone: "green" },
-  { key: "totalRefund", label: "Đã hoàn", tone: "red" },
-  { key: "paidUncompleted", label: "Tạm ứng", tone: "amber" },
-  { key: "outstandingDebt", label: "Dư nợ", tone: "amber" },
+  { key: "totalPrice", label: "Treatment:PlanDetail:Stat:ExpectedRevenue", tone: "ink" },
+  { key: "totalPaid", label: "Treatment:PlanDetail:Stat:Paid", tone: "ink" },
+  { key: "debt", label: "Treatment:PlanDetail:Stat:Debt", tone: "green" },
+  { key: "totalRefund", label: "Treatment:PlanDetail:Stat:Refunded", tone: "red" },
+  { key: "paidUncompleted", label: "Treatment:PlanDetail:Stat:Prepaid", tone: "amber" },
+  { key: "outstandingDebt", label: "Treatment:PlanDetail:Stat:OutstandingDebt", tone: "amber" },
 ];
 
 interface Props {

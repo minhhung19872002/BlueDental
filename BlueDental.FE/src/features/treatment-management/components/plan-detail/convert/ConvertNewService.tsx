@@ -15,8 +15,8 @@ type Form = ReturnType<typeof useConvertServiceForm>;
 
 /** Hints the reference prints under "Xử lý chênh lệch". */
 const DIFFERENCE_HINT = {
-  [DIFFERENCE_HANDLING.Refund]: "Chuyển đổi sẽ cần tạo hoàn tiền dịch vụ cho dịch vụ cũ",
-  [DIFFERENCE_HANDLING.Debt]: "Khi chuyển đổi, tiền dịch vụ cũ được tính vào dư nợ",
+  [DIFFERENCE_HANDLING.Refund]: "Treatment:Convert:HintRefund",
+  [DIFFERENCE_HANDLING.Debt]: "Treatment:Convert:HintDebt",
 } as const;
 
 /** Right column: what the line is being converted into, and what that costs. */

@@ -25,7 +25,7 @@ export const REFUND_METHODS: PaymentMethodKind[] = [PAYMENT_METHOD.Cash, PAYMENT
 
 export const refundMethodLabels = (): Record<PaymentMethodKind, string> => ({
   [PAYMENT_METHOD.Cash]: t("Treatment:Payment:Cash"),
-  [PAYMENT_METHOD.Banking]: t("Treatment:Payment:Banking"),
+  [PAYMENT_METHOD.Banking]: t("Treatment:Payment:BankTransfer"),
   [PAYMENT_METHOD.Card]: t("Treatment:Payment:Card"),
   [PAYMENT_METHOD.EWallet]: t("Treatment:Payment:EWallet"),
   [PAYMENT_METHOD.OutstandingDebt]: t("Treatment:Debt:Outstanding"),

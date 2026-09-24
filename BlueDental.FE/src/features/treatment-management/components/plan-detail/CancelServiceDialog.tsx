@@ -40,7 +40,7 @@ export function CancelServiceDialog({ service, saving, onConfirm, onClose }: Pro
     >
       <p className="pdt-confirm-text">
         {tRich(
-          "Bạn có chắc chắn hủy dịch vụ {0}? Thao tác này không thể hoàn tác.",
+          "Treatment:Service:CancelQuestion",
           <strong>&quot;{service?.serviceName ?? ""}&quot;</strong>,
         )}
       </p>

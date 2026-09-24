@@ -98,13 +98,13 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
       render: (_: unknown, row: PrescriptionDto) => (
         <span className="pd-icon-actions">
           {ability.canUpdate && (
-            <Tooltip title={t("Common:Edit")}>
-              <Button type="text" aria-label={t("Common:Edit")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
+            <Tooltip title={t("Treatment:Rx:EditAction")}>
+              <Button type="text" aria-label={t("Treatment:Rx:EditAction")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
             </Tooltip>
           )}
           {ability.canDelete && (
-            <Tooltip title={t("Common:Delete")}>
-              <Button type="text" danger aria-label={t("Common:Delete")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
+            <Tooltip title={t("Treatment:Rx:DeleteAction")}>
+              <Button type="text" danger aria-label={t("Treatment:Rx:DeleteAction")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
             </Tooltip>
           )}
         </span>

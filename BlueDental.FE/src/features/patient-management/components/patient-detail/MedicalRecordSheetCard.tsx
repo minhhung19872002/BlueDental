@@ -82,8 +82,8 @@ export function MedicalRecordSheetCard({
       />
 
       <div className="pd-sheet-actions">
-        <Tooltip title={t("In nhanh")}>
-          <button type="button" aria-label={t("In nhanh {0}", sheet.title)} onClick={onPrint}>
+        <Tooltip title={t("Patient:MedRecord:QuickPrint")}>
+          <button type="button" aria-label={t("Patient:MedRecord:QuickPrintLabel", sheet.title)} onClick={onPrint}>
             <PrinterOutlined />
           </button>
         </Tooltip>

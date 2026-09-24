@@ -34,7 +34,7 @@ interface Props {
 /** "Ngày 6 tháng 9 năm 2026", the wording on the reference's printed sheet. */
 function longDate(value: Date): string {
   return t(
-    "Ngày {0} tháng {1} năm {2}",
+    "Patient:Print:LongDate",
     value.getDate(),
     value.getMonth() + 1,
     value.getFullYear(),
@@ -76,7 +76,7 @@ function Head() {
   return (
     <thead>
       <tr>
-        <th>{t("Patient:Misc:Service")}</th>
+        <th>{t("Patient:Misc:ServiceLabel")}</th>
         <th>{t("Patient:Appt:TreatmentDate")}</th>
         <th>{t("Patient:Stage:TreatmentContent")}</th>
         <th>{t("Patient:Staff:Doctor")}</th>

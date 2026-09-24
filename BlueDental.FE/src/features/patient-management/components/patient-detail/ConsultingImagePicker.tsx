@@ -54,7 +54,7 @@ export function ConsultingImagePicker({
         <div className="pd-image-list-foot">
           <Button onClick={onShowAll}>{t("Common:SelectAll")}</Button>
           <Button type="primary" onClick={onClose}>
-            {t("Common:Close")}
+            {t("Patient:Image:Done")}
           </Button>
         </div>
       }

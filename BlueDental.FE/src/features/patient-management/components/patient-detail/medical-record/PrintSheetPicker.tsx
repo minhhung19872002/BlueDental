@@ -84,7 +84,7 @@ export function PrintSheetPicker({ sheets, ordinalOf, onPrint }: Props) {
             setOpen(false);
           }}
         >
-          {t("In")}
+          {t("Patient:MedRecord:PrintAction")}
         </Button>
       </div>
     </div>

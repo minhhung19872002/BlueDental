@@ -67,7 +67,7 @@ export function PatientSourceColumn({
       </FloatingField>
 
       <Form.Item name="uppercase" valuePropName="checked" className="bd-patient-upper">
-        <Checkbox>{t("IN HOA")}</Checkbox>
+        <Checkbox>{t("Patient:Editor:Uppercase")}</Checkbox>
       </Form.Item>
 
       <FloatingField
@@ -117,7 +117,7 @@ export function PatientSourceColumn({
       </FloatingField>
 
       <FloatingField label={t("Patient:Col:CreatedAt")} name="createdAtLabel">
-        <Input readOnly value={dayjs(createdAt ?? undefined).format("Patient:Misc:DateFormat")} />
+        <Input readOnly value={dayjs(createdAt ?? undefined).format("DD/MM/YYYY")} />
       </FloatingField>
 
       <FloatingField label={t("Patient:Source:VisitReason")} name="examinationReason">

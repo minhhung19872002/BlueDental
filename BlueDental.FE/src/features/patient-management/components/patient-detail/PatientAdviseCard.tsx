@@ -355,7 +355,7 @@ export function PatientAdviseCard({
         <div className="pd-card-note">
           <span>
             {t(
-              "Bác sĩ đưa ra các phương pháp can thiệp điều trị. Từ tốt nhất để phù hợp nhất với từng vấn đề đang gặp phải",
+              "Patient:Advise:CardNote",
             )}
           </span>
         </div>
@@ -477,7 +477,7 @@ export function PatientAdviseCard({
       <ConfirmDialog
         open={confirmQuote}
         message={t(
-          "Tạo báo giá từ các phiếu tư vấn đã chọn đã chọn, bạn có thể chỉnh sửa ở phần báo giá",
+          "Patient:Advise:CreateQuoteConfirm",
         )}
         onConfirm={handleCreateQuote}
         onClose={() => setConfirmQuote(false)}

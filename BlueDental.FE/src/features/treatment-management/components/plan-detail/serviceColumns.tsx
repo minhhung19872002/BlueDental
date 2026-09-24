@@ -105,8 +105,8 @@ function column(
   };
 }
 
-function text(key: string, title: string, width: number, value: (row: PlanDetailRow) => string): Column {
-  return column(key, t(title), width, (row) => dash(value(row)));
+function text(key: string, titleKey: string, width: number, value: (row: PlanDetailRow) => string): Column {
+  return column(key, t(titleKey), width, (row) => dash(value(row)));
 }
 
 /** The reference's fifteen columns, widths as measured on production. */
@@ -119,9 +119,9 @@ export function buildServiceColumns(
       align: "center",
     }),
     column("service", t("Treatment:Service:Service"), 260, (row) => <ServiceNameCell row={row} actions={actions} />),
-    text("diagnosis", "Chẩn đoán", 200, (row) => row.service.diagnosisName ?? row.advise?.diagnosisName ?? ""),
-    text("dentist", "Bác sĩ điều trị", 200, (row) => row.service.dentistName ?? row.plan.dentistName ?? ""),
-    text("teeth", "Răng", 120, (row) => formatTeeth(row.service.teeth)),
+    text("diagnosis", "Treatment:PlanDetail:Col:Diagnosis", 200, (row) => row.service.diagnosisName ?? row.advise?.diagnosisName ?? ""),
+    text("dentist", "Treatment:PlanDetail:Col:Dentist", 200, (row) => row.service.dentistName ?? row.plan.dentistName ?? ""),
+    text("teeth", "Treatment:PlanDetail:Col:Teeth", 120, (row) => formatTeeth(row.service.teeth)),
     column("quantity", t("Treatment:Pricing:Quantity"), 80, (row) => row.service.quantity, { align: "center" }),
     column("price", t("Treatment:Pricing:UnitPrice"), 170, (row) => moneyText(row.service.price), { align: "right" }),
     column("discount", t("Treatment:Pricing:TotalDiscount"), 160, (row) => <DiscountCell row={row} />, { align: "right" }),
@@ -131,11 +131,11 @@ export function buildServiceColumns(
     column("advance", t("Treatment:Payment:Prepaid"), 160, (row) => moneyText(advanceOn(row.service)), {
       align: "right",
     }),
-    text("note", "Ghi chú", 200, (row) => row.service.note ?? row.advise?.note ?? ""),
-    text("diagnoser1", "Bác sĩ chẩn đoán 1", 180, (row) => row.service.diagnoserName ?? row.advise?.staffName ?? ""),
-    text("diagnoser2", "Chẩn đoán 2", 180, (row) => row.service.secondDiagnoserName ?? row.advise?.secondStaffName ?? ""),
-    text("consultant1", "Nhân sự tư vấn 1", 180, (row) => row.service.consultantName ?? row.plan.consultantName ?? ""),
-    text("consultant2", "Nhân sự tư vấn 2", 180, (row) => row.service.secondConsultantName ?? ""),
+    text("note", "Treatment:PlanDetail:Col:Note", 200, (row) => row.service.note ?? row.advise?.note ?? ""),
+    text("diagnoser1", "Treatment:PlanDetail:Col:Diagnoser1", 180, (row) => row.service.diagnoserName ?? row.advise?.staffName ?? ""),
+    text("diagnoser2", "Treatment:PlanDetail:Col:Diagnoser2", 180, (row) => row.service.secondDiagnoserName ?? row.advise?.secondStaffName ?? ""),
+    text("consultant1", "Treatment:PlanDetail:Col:Consultant1", 180, (row) => row.service.consultantName ?? row.plan.consultantName ?? ""),
+    text("consultant2", "Treatment:PlanDetail:Col:Consultant2", 180, (row) => row.service.secondConsultantName ?? ""),
     column(
       "actions",
       t("Common:Actions"),

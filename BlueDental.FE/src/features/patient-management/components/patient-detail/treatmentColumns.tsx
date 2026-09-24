@@ -96,7 +96,7 @@ export function treatmentColumns({
       render: (value: string) => <span className="pd-tr-day">{formatDate(value)}</span>,
     },
     {
-      title: t("Patient:Misc:Service"),
+      title: t("Patient:Misc:ServiceLabel"),
       dataIndex: "serviceName",
       width: 190,
       render: (value: string | null, row) => (

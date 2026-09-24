@@ -81,12 +81,12 @@ export const PatientImageCard = memo(function PatientImageCard({
 
       <div className="pi-card-actions">
         {canSort && (
-          <Tooltip title={t("Patient:Image:SortLabel")}>
+          <Tooltip title={t("Patient:Photo:Sort")}>
             <button
               type="button"
               ref={sortable.setActivatorNodeRef}
               className="pi-round pi-round--grip"
-              aria-label={t("Patient:Image:SortLabel")}
+              aria-label={t("Patient:Photo:Sort")}
               {...sortable.attributes}
               {...sortable.listeners}
             >

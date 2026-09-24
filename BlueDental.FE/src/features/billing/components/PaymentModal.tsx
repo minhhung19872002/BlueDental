@@ -73,7 +73,7 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
       open={open}
       title={t("Billing:RecordPayment")}
       okText={t("Billing:ConfirmPayment")}
-      cancelText={t("Common:Cancel")}
+      cancelText={t("Common:CancelAlt")}
       confirmLoading={recordPayment.isPending}
       onOk={() => void handleOk()}
       onCancel={onClose}

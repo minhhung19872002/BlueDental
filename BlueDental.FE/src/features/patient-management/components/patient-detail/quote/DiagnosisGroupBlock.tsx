@@ -51,7 +51,7 @@ export function DiagnosisGroupBlock({ numeral, group, customerName, onChangeExpl
       <div className="pq-dx__advice">
         <p className="pq-dx__lead">
           {tRich(
-            "Cùng với việc thăm khám lâm sàng và phim chụp của bệnh nhân {0}, bác sĩ đưa ra chẩn đoán và giải thích chi tiết:",
+            "Patient:Quote:DiagnosisLead",
             <b key="name">{customerName}</b>,
           )}
         </p>
@@ -64,7 +64,7 @@ export function DiagnosisGroupBlock({ numeral, group, customerName, onChangeExpl
         ))}
         <p className="pq-dx__remark">
           {t(
-            "* Lời dặn của Bác sĩ: Quý khách vui lòng tuân thủ hướng dẫn vệ sinh răng miệng và liên hệ hotline phòng khám khi có bất kỳ thắc mắc nào.",
+            "Patient:Quote:DoctorRemark",
           )}
         </p>
       </div>

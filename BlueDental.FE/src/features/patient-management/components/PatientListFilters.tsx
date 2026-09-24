@@ -55,7 +55,7 @@ export function PatientListFilters({ filters, options, onChange, layout = "row" 
           value={filters.staffId}
           options={options.doctors}
 
-          emptyText={t("Patient:DoctorNotFound")}
+          emptyText={t("Patient:Filter:TagNotFound")}
           allowClear
           onChange={(staffId) => onChange({ staffId })}
         />

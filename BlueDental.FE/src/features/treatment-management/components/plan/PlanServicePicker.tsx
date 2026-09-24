@@ -288,7 +288,7 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
       <FloatingField
         name="serviceId"
         label={t("Treatment:Service:AddService")}
-        rules={[{ required: true, message: t("Treatment:Service:SelectService") }]}
+        rules={[{ required: true, message: t("Treatment:Service:SelectServiceRequired") }]}
       >
         <Select<string, ServiceOption>
           ref={selectRef}

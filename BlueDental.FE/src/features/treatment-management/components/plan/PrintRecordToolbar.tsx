@@ -46,7 +46,7 @@ export function PrintRecordToolbar({ form, onFormChange, zoom, onZoomChange }: P
           />
           <span className="pmr-zoom-value">{Math.round(zoom * 100)}%</span>
           <Button type="link" className="pmr-zoom-fit" onClick={() => onZoomChange(PREVIEW_ZOOM.fit)}>
-            {t("Fit")}
+            {t("Treatment:Print:Fit")}
           </Button>
           <Button
             className="pmr-zoom-btn"

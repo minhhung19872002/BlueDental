@@ -9,6 +9,7 @@ import {
   type PatientQuoteLineDto,
 } from "@/features/treatment-management/api/patientQuoteApi";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 import { notifyError } from "@/lib/notify";
 import { moveItem } from "@/utils/array";
 
@@ -87,7 +88,7 @@ export function useAdviseQuotes(
 
         return {
           id: quote.id,
-          label: `BG ${quote.ordinal}`,
+          label: t("Patient:Quote:TabLabel", quote.ordinal),
           rows: resolved.map((entry) => entry.row),
           selected: resolved.filter((entry) => entry.line.isSelected).map((entry) => entry.row.id),
         };

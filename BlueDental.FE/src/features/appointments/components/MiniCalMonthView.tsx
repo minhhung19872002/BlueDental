@@ -8,7 +8,15 @@ import {
 import { t } from "@/lib/i18n";
 import type { Appointment, AppointmentStatus } from "../types/appointment";
 
-const WEEKDAY_KEYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"] as const;
+const WEEKDAY_KEYS = [
+  "Appointment:MiniCal:Monday",
+  "Appointment:MiniCal:Tuesday",
+  "Appointment:MiniCal:Wednesday",
+  "Appointment:MiniCal:Thursday",
+  "Appointment:MiniCal:Friday",
+  "Appointment:MiniCal:Saturday",
+  "Appointment:MiniCal:Sunday",
+] as const;
 
 const STATUS_GROUPS: {
   key: string;
@@ -19,21 +27,21 @@ const STATUS_GROUPS: {
 }[] = [
   {
     key: "arrived",
-    labelKey: "Đã đến",
+    labelKey: "Appointment:Status:Arrived",
     icon: <CheckCircleOutlined />,
     color: "#0e9f6e",
     match: (s) => s === "inProgress" || s === "completed",
   },
   {
     key: "cancelled",
-    labelKey: "Đã huỷ",
+    labelKey: "Appointment:Status:CancelledAlt",
     icon: <CloseCircleOutlined />,
     color: "#e5484d",
     match: (s) => s === "cancelled" || s === "noShow",
   },
   {
     key: "scheduled",
-    labelKey: "Đã hẹn",
+    labelKey: "Appointment:Status:Scheduled2",
     icon: <ClockCircleOutlined />,
     color: "#6366f1",
     match: (s) => s === "scheduled" || s === "confirmed",

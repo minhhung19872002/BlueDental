@@ -14,6 +14,7 @@ import {
 } from "@/features/treatment-management/api/consultingApi";
 import { useUpdateDiagnosisPrintContent } from "@/features/treatment-management/api/consultingQueries";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
+import { defaultExplanationHtml } from "../quote/quoteModel";
 import { DiagnosisPrintImages } from "./DiagnosisPrintImages";
 import {
   DiagnosisAdvice,
@@ -21,17 +22,6 @@ import {
   type DiagnosisSheetFields,
 } from "./DiagnosisPrintSheet";
 import "./diagnosis-print.css";
-
-/**
- * The wording the reference's sheet opens with when nothing has been written
- * for this diagnosis yet.
- */
-const DEFAULT_ADVICE =
-  "<p>Cùng với việc kiểm tra các mô nha chu, tình trạng vệ sinh răng miệng của bệnh nhân " +
-  "cũng phải được đánh giá. Sự hiện diện của mảng sinh học được ghi nhận theo từng bề mặt " +
-  "răng trong quá trình thăm khám.</p>" +
-  "<p>Nội dung tư vấn, chỉ định điều trị và các lưu ý sau điều trị sẽ được cập nhật tại đây " +
-  "trước khi in dịch vụ.</p>";
 
 export interface PrintClinicInfo {
   name: string;
@@ -68,7 +58,7 @@ function fieldsOf(
     diagnosisName: diagnosis.diagnosisName ?? "",
     teeth: formatTeeth(diagnosis.teeth),
     note: diagnosis.note === "---" ? "" : (diagnosis.note ?? ""),
-    adviceHtml: diagnosis.contentDiagnosis?.trim() || DEFAULT_ADVICE,
+    adviceHtml: diagnosis.contentDiagnosis?.trim() || defaultExplanationHtml(),
     doctorName: diagnosis.staffName ?? "",
   };
 }

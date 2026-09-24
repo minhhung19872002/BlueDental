@@ -18,10 +18,10 @@ import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { GENDER, type GenderCode, type PatientDto } from "../../types/patient";
 
 const GENDER_LABELS: Record<GenderCode, string> = {
-  [GENDER.Male]: "Nam",
-  [GENDER.Female]: "Nữ",
-  [GENDER.Other]: "Khác",
-  [GENDER.PreferNotToSay]: "Không tiết lộ",
+  [GENDER.Male]: "Common:Gender:Male",
+  [GENDER.Female]: "Common:Gender:Female",
+  [GENDER.Other]: "Common:Gender:Other",
+  [GENDER.PreferNotToSay]: "Common:Gender:PreferNotToSay",
 };
 
 export function PatientPrescriptionTab({ patient }: { patient: PatientDto }) {

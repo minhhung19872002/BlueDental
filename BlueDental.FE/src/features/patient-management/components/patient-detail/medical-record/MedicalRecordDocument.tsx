@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { t } from "@/lib/i18n";
 import type { FieldValues } from "./fieldValues";
 import { renderSheetHtml, sheetDocument } from "./renderSheet";
 import { GENERATED_ROW_ATTR } from "./rowEditing";
@@ -203,7 +204,7 @@ export function MedicalRecordDocument({
       <iframe
         ref={frame}
         className="mr-doc-frame"
-        title="Bệnh án"
+        title={t("Patient:View:MedicalRecord")}
         srcDoc={srcDoc}
         onLoad={handleLoad}
         style={{ width: PAGE_WIDTH, height }}

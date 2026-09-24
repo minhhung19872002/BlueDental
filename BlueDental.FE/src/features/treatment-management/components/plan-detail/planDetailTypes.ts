@@ -25,12 +25,12 @@ export const PLAN_TAB_KEYS: PlanTabKey[] = [
   PLAN_TAB.debt,
 ];
 
-/** Vietnamese is the i18n key; wrap with t() at render time. */
+/** i18n keys; wrap with t() at render time. */
 export const PLAN_TAB_LABELS: Record<PlanTabKey, string> = {
-  [PLAN_TAB.detail]: "Chi tiết",
-  [PLAN_TAB.payment]: "Thanh toán",
-  [PLAN_TAB.refund]: "Hoàn tiền",
-  [PLAN_TAB.debt]: "Dư nợ",
+  [PLAN_TAB.detail]: "Treatment:PlanDetail:Tab:Detail",
+  [PLAN_TAB.payment]: "Treatment:PlanDetail:Tab:Payment",
+  [PLAN_TAB.refund]: "Treatment:PlanDetail:Tab:Refund",
+  [PLAN_TAB.debt]: "Treatment:PlanDetail:Tab:Debt",
 };
 
 export function isPlanTab(value: string | null): value is PlanTabKey {

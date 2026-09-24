@@ -13,7 +13,7 @@ interface Props {
 /** "Ngày 8 tháng 9 năm 2026", the wording under the sheet's title. */
 function longDate(value: Date): string {
   return t(
-    "Ngày {0} tháng {1} năm {2}",
+    "Patient:Print:LongDate",
     value.getDate(),
     value.getMonth() + 1,
     value.getFullYear(),

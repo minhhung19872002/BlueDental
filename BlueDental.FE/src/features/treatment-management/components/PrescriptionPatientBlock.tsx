@@ -46,7 +46,7 @@ export function PrescriptionPatientBlock({ patient }: { patient: PrescriptionPat
       <div className="bd-min0">
         <h3 className="rx-patient-name">{patient.fullName}</h3>
         <p className="rx-patient-line">{t("Treatment:Rx:Gender", identity)}</p>
-        <p className="rx-patient-line">{t("Treatment:Rx:MedicalHistory", history || t("Treatment:Common:NoData"))}</p>
+        <p className="rx-patient-line">{t("Treatment:Rx:MedicalHistory", history || t("Treatment:Prescription:NoData"))}</p>
         <p className="rx-patient-line">{t("Treatment:Rx:Contact", patient.phoneNumber || "—")}</p>
       </div>
     </div>

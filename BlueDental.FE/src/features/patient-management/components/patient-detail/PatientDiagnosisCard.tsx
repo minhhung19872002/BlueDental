@@ -91,7 +91,7 @@ export function PatientDiagnosisCard({
           {row.secondStaffName ? (
             <b>{row.secondStaffName}</b>
           ) : (
-            <b className="pd-cell-missing">{t("Patient:Misc:EmptyData")}</b>
+            <b className="pd-cell-missing">{t("Patient:Diagnosis:NotUpdated")}</b>
           )}
           <span>{formatDate(row.creationTime)}</span>
         </div>

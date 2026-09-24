@@ -100,7 +100,7 @@ export function DiagnosisPrintImages({ images, selected, onSelectedChange }: Pro
           <div className="dp-list-foot">
             <Button onClick={() => setDropped([])}>{t("Common:SelectAll")}</Button>
             <Button type="primary" onClick={() => setListOpen(false)}>
-              {t("Common:Close")}
+              {t("Patient:Image:Done")}
             </Button>
           </div>
         }

@@ -107,7 +107,7 @@ export function StageForm({
       </div>
 
       <div>
-        <FloatingLabel label={t("Patient:Misc:Service")} floated>
+        <FloatingLabel label={t("Patient:Misc:ServiceLabel")} floated>
           <Input disabled value={line.serviceName ?? line.code} />
         </FloatingLabel>
         <div className="pd-stage-teeth">

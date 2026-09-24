@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { addRowAfter, deleteRow, deletedRowKey, rowKindOf } from "./rowEditing";
 
 /**
@@ -132,7 +133,7 @@ export function attachRowHandles(doc: Document, options: RowHandleOptions): () =
   const detach: Array<() => void> = [];
 
   if (options.canDelete) {
-    const button = makeHandle(doc, "−", "Xóa dòng", "#dc2626");
+    const button = makeHandle(doc, "−", t("Patient:MedRecord:DeleteRow"), "#dc2626");
     detach.push(
       attachHandle(
         doc,
@@ -149,7 +150,7 @@ export function attachRowHandles(doc: Document, options: RowHandleOptions): () =
   }
 
   if (options.canAdd) {
-    const button = makeHandle(doc, "+", "Thêm dòng", "#16a34a");
+    const button = makeHandle(doc, "+", t("Patient:MedRecord:AddRow"), "#16a34a");
     detach.push(
       attachHandle(
         doc,

@@ -4,7 +4,15 @@ import { EllipsisOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { Appointment } from "../types/appointment";
 
-const WEEKDAY_KEYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"] as const;
+const WEEKDAY_KEYS = [
+  "Appointment:MiniCal:Monday",
+  "Appointment:MiniCal:Tuesday",
+  "Appointment:MiniCal:Wednesday",
+  "Appointment:MiniCal:Thursday",
+  "Appointment:MiniCal:Friday",
+  "Appointment:MiniCal:Saturday",
+  "Appointment:MiniCal:Sunday",
+] as const;
 
 interface Props {
   appointments: Appointment[];

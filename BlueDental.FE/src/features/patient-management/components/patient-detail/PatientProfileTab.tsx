@@ -60,10 +60,10 @@ interface Props {
 }
 
 const genderLabels: Record<GenderCode, string> = {
-  [GENDER.Male]: "Nam",
-  [GENDER.Female]: "Nữ",
-  [GENDER.Other]: "Khác",
-  [GENDER.PreferNotToSay]: "Không tiết lộ",
+  [GENDER.Male]: "Common:Gender:Male",
+  [GENDER.Female]: "Common:Gender:Female",
+  [GENDER.Other]: "Common:Gender:Other",
+  [GENDER.PreferNotToSay]: "Common:Gender:PreferNotToSay",
 };
 
 function ageOf(date: string | null) {
@@ -285,21 +285,21 @@ export function PatientProfileTab({ patient }: Props) {
 
   // Seven tiles, in the reference's order and colours.
   const money = [
-    ["Tổng dự kiến thu", payment?.totalPrice ?? 0, <DollarOutlined />, "blue"],
-    ["Đã thu", payment?.totalPaid ?? 0, <WalletOutlined />, "green"],
+    ["Patient:Profile:Money:ExpectedTotal", payment?.totalPrice ?? 0, <DollarOutlined />, "blue"],
+    ["Patient:Profile:Money:Collected", payment?.totalPaid ?? 0, <WalletOutlined />, "green"],
     // The reference derives this tile itself rather than reading a field:
     // max(Tổng dự kiến thu − Đã thu, 0). "Phải thu" is the rollup's own
     // receivable, clamped the same way its `resolveReceivable` clamps it.
     [
-      "Dự kiến thu còn lại",
+      "Patient:Profile:Money:ExpectedRemaining",
       Math.max((payment?.totalPrice ?? 0) - (payment?.totalPaid ?? 0), 0),
       <CreditCardOutlined />,
       "red",
     ],
-    ["Dư nợ", payment?.outstandingDebt ?? 0, <WalletOutlined />, "navy"],
-    ["Phải thu", Math.max(0, payment?.receivable ?? 0), <DollarOutlined />, "red"],
-    ["Đã hoàn", payment?.totalRefund ?? 0, <WalletOutlined />, "orange"],
-    ["Tạm ứng", payment?.prepaid ?? 0, <MoneyCollectOutlined />, "blue"],
+    ["Patient:Profile:Money:OutstandingDebt", payment?.outstandingDebt ?? 0, <WalletOutlined />, "navy"],
+    ["Patient:Profile:Money:Receivable", Math.max(0, payment?.receivable ?? 0), <DollarOutlined />, "red"],
+    ["Patient:Profile:Money:Refunded", payment?.totalRefund ?? 0, <WalletOutlined />, "orange"],
+    ["Patient:Profile:Money:Prepaid", payment?.prepaid ?? 0, <MoneyCollectOutlined />, "blue"],
   ] as const;
 
   return (
@@ -456,12 +456,12 @@ export function PatientProfileTab({ patient }: Props) {
         <div className="pd-table-toolbar">
           <div className="pd-filter-pills">
             {[
-              ["all", "Tất cả"],
-              ["done", "Điều trị hoàn tất"],
-              ["active", "Đang điều trị"],
-              ["diagnosis", "Các chẩn đoán"],
-              ["recall", "Tái khám"],
-              ["warranty", "Bảo hành"],
+              ["all", "Patient:Profile:Filter:All"],
+              ["done", "Patient:Profile:Filter:Done"],
+              ["active", "Patient:Profile:Filter:Active"],
+              ["diagnosis", "Patient:Profile:Filter:Diagnosis"],
+              ["recall", "Patient:Profile:Filter:Recall"],
+              ["warranty", "Patient:Profile:Filter:Warranty"],
             ].map(([key, label]) => (
               <button
                 type="button"
