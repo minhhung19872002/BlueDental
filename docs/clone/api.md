@@ -251,6 +251,44 @@ GET  /api/v1/app/taxonomies?group=consulting_data&clinicBranchId=&includeCount=t
 GET  /api/v1/app/catalog-entries?group=consulting_data&taxonomyId=&clinicBranchId=&filter=
 ```
 
+### Nhập danh mục từ Excel — BlueDental riêng (2026-09-24)
+
+Không có trên bản gốc (yêu cầu BA, xem `unknowns.md`). Ba endpoint dưới
+`CatalogEntryAppService` / `CatalogImportAppService`, quyền = `create` của tab
+(`Catalogs.Create`), file mẫu chỉ cần `Catalogs.View`:
+
+```
+GET  /api/v1/app/catalog-entries/import-template?group=<slug>
+     → .xlsx: sheet dữ liệu (header có dấu * cho cột bắt buộc, dòng 1 đóng băng)
+       + sheet "Hướng dẫn"; prescription_template có thêm sheet "Thuốc"
+
+POST /api/v1/app/catalog-entries/import           multipart/form-data
+     file=<xlsx>  group=<slug>  clinicBranchId=<guid>  dryRun=<bool>
+     → {
+         dryRun: <bool>, committed: <bool>,
+         fileErrors: [<string>],           # thiếu cột bắt buộc, sheet sai tên…
+         totalRows, createCount, updateCount, skipCount, restoreCount, errorCount: <int>,
+         newGroups: [<string>],            # nhóm sẽ tạo mới trong chi nhánh
+         sheets: [{ name: <string>, columns: [<string>],
+                    rows: [{ row: <int>, values: [<string|null>],
+                             action: 0|1|2|3|4|5, # Create|Skip|Restore|Line|Error|Update
+                             errors: [<string>] }] }]
+       }
+     errorCount > 0 → committed=false dù dryRun=false (từ chối cả file)
+
+POST /api/v1/app/catalog-entries/import-errors    multipart/form-data (như trên)
+     → .xlsx: file gốc + cột "Lỗi" trên mỗi sheet
+```
+
+Cột theo tab: `group=<slug>` với slug là `TaxonomyGroups` của tab
+(care_service, diagnosis, medication_type, consulting_data, source,
+disease_history, occupation, prescription_template); header khớp không phân biệt
+hoa/thường và khoảng trắng; cột thừa bị bỏ qua. Trùng tên trong file (cùng
+nhóm) → lỗi; trùng dòng đang hoạt động → **Update** nếu có cột nào khác giá
+trị đang lưu (cần thêm `Catalogs.Edit`, thiếu → dòng Error), **Skip** nếu
+không khác gì; trùng dòng đã xoá mềm → Restore và lấy giá trị trong file. Khi
+Update/Restore, ô trống giữ giá trị đang lưu (không xoá trắng được qua import).
+
 ---
 
 ### Patient Images

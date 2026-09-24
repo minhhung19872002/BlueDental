@@ -33,6 +33,12 @@ export interface TaxonomyTab {
   dialog?: "simple" | "rich" | "service" | "medicine" | "prescription" | "medical-record";
   /** False on the catalogs the reference gives no "Xuất" button. */
   exportable?: boolean;
+  /**
+   * True on the catalogs that can be bulk-loaded from an Excel file — a
+   * BlueDental addition the reference does not have. Bệnh án mẫu is deferred;
+   * thẻ hồ sơ and phương thức thanh toán are not taxonomy-backed.
+   */
+  importable?: boolean;
   /** Screens that are not taxonomy-backed at all and bring their own panel. */
   screen?: "tags" | "payment-method";
   /** Explains why a tab has no data source yet. */
@@ -45,6 +51,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
   return [
     {
       key: "service",
+      importable: true,
       label: t("Taxonomy:Tab:Service"),
       subject: "catalogService",
       group: TAXONOMY_GROUP.CareService,
@@ -54,6 +61,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     },
     {
       key: "diagnosis",
+      importable: true,
       label: t("Taxonomy:Tab:Diagnosis"),
       subject: "catalogDiagnosis",
       group: TAXONOMY_GROUP.Diagnosis,
@@ -62,6 +70,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     },
     {
       key: "medicine",
+      importable: true,
       label: t("Taxonomy:Tab:Medicine"),
       subject: "catalogMedicine",
       group: TAXONOMY_GROUP.MedicationType,
@@ -71,6 +80,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     },
     {
       key: "consulting",
+      importable: true,
       label: t("Taxonomy:Tab:Consulting"),
       subject: "catalogConsultation",
       group: TAXONOMY_GROUP.ConsultingData,
@@ -79,6 +89,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     },
     {
       key: "source",
+      importable: true,
       label: t("Taxonomy:Tab:Source"),
       subject: "catalogSource",
       group: TAXONOMY_GROUP.Source,
@@ -87,6 +98,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     },
     {
       key: "history",
+      importable: true,
       label: t("Taxonomy:Tab:History"),
       subject: "catalogHistory",
       group: TAXONOMY_GROUP.DiseaseHistory,
@@ -95,6 +107,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     },
     {
       key: "prescription-template",
+      importable: true,
       label: t("Taxonomy:Tab:PrescriptionTemplate"),
       subject: "catalogPrescription",
       group: TAXONOMY_GROUP.PrescriptionTemplate,
@@ -129,6 +142,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       noun: t("Taxonomy:Noun:Occupation"),
       dialog: "simple",
       exportable: false,
+      importable: true,
     },
   ];
 }

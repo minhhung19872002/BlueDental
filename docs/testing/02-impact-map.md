@@ -36,6 +36,8 @@ What to retest when a shared piece changes. Levels are defined in
 | Change here | Level | Retest |
 |-------------|-------|--------|
 | `Catalogs` domain / `TaxonomyAppService` / `CatalogEntryAppService` | 2 | F-02, F-32 |
+| `Catalogs/Import/*` (`CatalogImportAppService`, column sets, `import-template` / `import` / `import-errors`) | 2 | F-02 — `e2e/taxonomy-import-api.spec.ts` + `e2e/taxonomy-import.spec.ts`; the column sets mirror the create dialogs, so a new field on a catalog dialog needs a column here too |
+| `lib/download.ts` (`downloadFile`, `downloadPostedFile`) | 3 | every "Xuất" button (F-02, F-13, F-17, F-18, F-29 exports, Mẫu Labo) plus "Tải file mẫu" / "Tải file lỗi" of the import — the GET signature was kept when the POST variant was added (2026-09-24) |
 | `hooks/useDragReorder.ts` | 2 per consumer | F-32 (group panel), F-02 (entry table), F-09 (Phiếu tư vấn) and F-39 (dòng dịch vụ của phiếu điều trị) — all order their rows through it |
 | `hooks/useDragScroll.ts` | 3 | Every table in the app: it is what lets a wide table be dragged sideways, and since 2026-09-22 it also swallows the click that a drag would otherwise land on the row or button under the pointer. Retest one screen where a row click opens something (F-39's plan table) **both ways** — drag then release over a button (must do nothing) and a plain click on that button (must still work) |
 | `PatientQuote` domain + `bd_patient_quotes` | 2 | F-09 only. Stores the báo giá tabs: the set of consulting lines, their order and their ticks — **never a price**. The money is re-read off the advise rows, so changing `PatientAdvise` pricing changes what every quote shows. A test pins the line DTO to exactly three properties, so a price field cannot creep on unnoticed |

@@ -279,11 +279,9 @@ test.describe("Danh mục", () => {
     await page.goto("/taxonomy/service");
     await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
 
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollHeight > window.innerHeight + 2,
-      ),
-    ).toBe(true);
+    // Since the shell rework `.app-content` is the scroller, not the document.
+    const content = page.locator("main.app-content");
+    expect(await content.evaluate((el) => el.scrollHeight > el.clientHeight + 2)).toBe(true);
 
     const card = (await page.locator(".bd-cat-card").boundingBox())!;
     expect(card.height).toBeGreaterThan(180);

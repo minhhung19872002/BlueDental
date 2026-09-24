@@ -5562,3 +5562,100 @@ Chuyển đổi mới là nơi đổi nó (`PUT /api/v1/orders/{id}/update-statu
 - Gotcha sửa file: phần lớn file convert / spec dùng CRLF — script sửa phải
   chuẩn hoá CRLF→LF khi khớp chuỗi và ghi lại CRLF; heredoc python trong Git
   Bash bẻ `\r\n` thành xuống dòng thật, dùng Write/Edit tool cho script.
+
+## 2026-09-24 — Danh mục: nhập từ Excel (R-533..R-538)
+
+Yêu cầu BA qua chủ dự án: thêm "Nhập" cho Danh mục để nạp dữ liệu vào hệ thống
+mới. **Không có trên bản gốc** → không so ảnh; phạm vi và từng case do chủ dự án
+chốt (8 tab; Bệnh án mẫu làm sau; Thẻ hồ sơ / Phương thức thanh toán không cần;
+nhóm thiếu thì tạo; trùng file = lỗi, trùng đang hoạt động = bỏ qua, trùng đã
+xoá = khôi phục; từ chối cả file khi có lỗi, có tải file lỗi; không giới hạn
+dòng; quyền = `create` của tab). Chi tiết ở `docs/testing/features/taxonomy.md`
+§ Nhập từ Excel và `docs/clone/api.md`.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-533 | File lỗi (`import-errors`) mở trong SheetJS/Excel thiếu cột "Lỗi" dù server đã ghi ô | ClosedXML giữ nguyên `<dimension ref>` cũ của sheet khi lưu lại workbook nạp từ upload, nên cột thêm sau cột cuối nằm ngoài vùng khai báo. Xử lý: `sheet.CopyTo(freshWorkbook, name)` sang workbook mới rồi lưu workbook đó (`CatalogImportAppService.DownloadErrorsAsync`). |
+| R-534 | Spec màn hình không tìm thấy nút "Nhập" (`getByRole("button", {name: "Nhập", exact: true})` timeout) và "Đóng" vi phạm strict mode | Nút icon AntD có accessible name = `aria-label` của icon + chữ ("upload Nhập", "download Xuất", "plus Thêm nguồn đến"); Modal AntD dưới locale vi đặt tên nút X cũng là "Đóng". Xử lý trong spec: tên regex (`/^upload Nhập$/`, `/Kiểm tra file$/`, `/Nhập 2 dòng$/`) và scope nút chân dialog qua `.bd-modal-foot`. Áp dụng cho mọi spec sau này bấm nút có icon. |
+| R-535 | Trọn bộ Danh mục trên bản build production 50/54: `branch-switcher:93`, `taxonomy-dialogs:152` + `:207`, `taxonomy:277` đỏ **trước** khi có đợt này (đã ghi "đỏ trên bản build sạch" ở đoạn 2026-09-02 / 2026-09-23 của log) | Ba nguyên nhân cũ, sửa đúng theo cách log đã kê: (1) `1e8e172` làm `/login` đưa phiên đang mở vào lại app nên `goto("/login") + localStorage.clear()` không còn là đăng xuất → đăng xuất qua `.app-header-user` → "Đăng xuất", **rồi** `localStorage.clear()` vì lựa chọn chi nhánh nhớ theo trình duyệt chứ không theo tài khoản (thiếu bước này header vẫn ở chi nhánh 2 sau khi admin đăng nhập lại); (2) danh sách thuốc của chi nhánh đã dài (rác e2e) nên Select AntD là virtual list, bấm option ngoài màn lặp "outside of the viewport" → gõ tên vào ô "Tên thuốc" rồi bấm option trong `.ant-select-dropdown:visible` (cách của `prescription.spec.ts`); (3) từ shell v2 `main.app-content` là scroller, document không cuộn → đo `scrollHeight > clientHeight` trên `main.app-content`. |
+| R-536 | Script sửa `taxonomy-dialogs.spec.ts` / `taxonomy.spec.ts` báo xong nhưng `git status` không đổi | Hai file CRLF, `str.replace` với chuỗi `
+` không khớp; lỗi assert bị nuốt vì output script đi qua cùng bộ lọc grep của lần chạy test. Xử lý: helper đọc bytes → chuẩn hoá LF → thay → ghi lại CRLF; không lọc output của script sửa. Sau khi chèn dòng, selector `spec:line` của test phía dưới trôi (`:207` → `:211`) — lần chạy "3 passed" thiếu một test, phải chạy lại cả file. |
+| R-537 | Dialog nhập không hiện ở "Tất cả chi nhánh"; tài khoản chỉ đọc không thấy nút | Đúng chủ ý: import ghi vào đúng chi nhánh header đang chọn (`clinicBranchId` bắt buộc), nút disabled khi `isAllBranches`; nút gate bằng `useAbility(tab).canCreate`, server `[Authorize(Catalogs.Create)]` → gọi thẳng 403 (`taxonomy-import-api.spec.ts`). |
+| R-538 | `lib/download.ts` được sửa (thêm `downloadPostedFile`) — mọi nút "Xuất" là Level 3 | Chữ ký `downloadFile` giữ nguyên, phần lưu blob tách thành `saveBlob`/`fileNameFrom` dùng chung; các spec bấm "Xuất" trong bộ Danh mục (`taxonomy-groups`) xanh; các spec Xuất ngoài bộ này (cskh, export, labo-orders-permissions, materials, operations-reports, report, role-permissions-abilities) chưa chạy lại trong đợt này. |
+
+Bằng chứng:
+
+- BE: `BlueDental.Application.Tests` `CatalogImportAppServiceContractTests` 11/11
+  (layout từng tab, cột bắt buộc, parse tiền "1.000.000", cờ có/không, thuế,
+  công đoạn, template không có sheet Thuốc → lỗi file).
+- API thật: `e2e/taxonomy-import-api.spec.ts` **9/9** — file mẫu từng tab
+  (header có `*`), dry-run không ghi, commit ghi và lần hai toàn Skip, xoá mềm
+  rồi nhập lại → Restore, trùng trong file → lỗi và không ghi gì, thiếu cột
+  bắt buộc → `fileErrors`, nhập bằng `BRANCH2_USER` nằm trong chi nhánh 2 và
+  admin ở chi nhánh 1 không thấy, tài khoản chỉ đọc → 403, đơn thuốc mẫu 2
+  sheet (thuốc không có → lỗi, template không khớp → lỗi), file lỗi có cột
+  "Lỗi" đọc được bằng SheetJS.
+- Màn hình thật: `e2e/taxonomy-import.spec.ts` **3/3** (~1 phút) — xem
+  `features/taxonomy.md`.
+- Trọn bộ Danh mục (`e2e/taxonomy* payment-qr branch-*`, 38 test cũ + 12 mới)
+  trên bản build production cổng 8080: **54/54** (5,9 phút) — trước đợt này
+  là 50/54 (R-535).
+- `tsc -b --noEmit`, `oxlint` sạch; BE build sạch (host chạy từ bin Debug).
+
+### Còn treo
+
+- Bệnh án mẫu: chủ dự án "làm sau" — chưa có layout import cho tab này.
+- Các spec "Xuất" ngoài bộ Danh mục chưa chạy lại sau khi tách `saveBlob`
+  (R-538) — Level 3 còn nợ, cần chạy khi rảnh host.
+
+## 2026-09-24 — Danh mục: nhập từ Excel, dòng đã có mà khác cột → Cập nhật (R-539..R-541)
+
+Chủ dự án hỏi "nếu đã có mà có cập nhật các trường khác thì vẫn là update chứ"
+và chốt: **update nếu có thay đổi trường nào khác, bỏ qua nếu không thay đổi
+gì**. Trước đó tên trùng dòng đang hoạt động luôn là Skip và không ghi gì.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-539 | Nhập lại file đã sửa giá / ưu tiên / dòng thuốc của một mục đã có → server báo "Bỏ qua (đã có)", dữ liệu mới không vào | Luật cũ. Thêm hành động `Update = 5` (`CatalogImportRowAction`, **nối sau `Error`** để số của FE không đổi) và `UpdateCount` trên kết quả. Với mỗi dòng trùng tên đang hoạt động, `EntryMerge.Merge` ghép ô trong file lên bản ghi rồi `EntryMerge.Differs` so từng trường (tên, ưu tiên, mã, giá, nội dung, mô tả/lời dặn, tên chi tiết, ghi chú, đơn vị, 11 trường cấu hình dịch vụ, 5 trường thuốc, dãy công đoạn, dãy dòng thuốc theo thuốc/liều/ngày/cách dùng). Khác → `Update` (cần quyền `Catalogs.Edit`, thiếu → dòng `Error` "Taxonomy:Import:Err:NoUpdatePermission" và từ chối cả file như mọi lỗi khác); không khác → `Skip`. Vì kết luận phụ thuộc sheet "Thuốc", việc phân loại dời ra `ResolveExistingAsync` chạy **sau** `PlanLinesAsync`. Khôi phục dòng đã xoá giờ cũng lấy giá trị trong file (trước đây giữ nguyên dữ liệu cũ). Commit: `UpdateManyAsync` cho cả hai nhóm, vẫn một unit of work. |
+| R-540 | Lúc đầu mọi dòng đã có đều bị coi là "khác" | `LoadEntriesAsync` đọc bằng `GetListAsync` nên `ServiceConfig`/`Medicine`/`Stages`/`PrescriptionLines` rỗng, so với file lúc nào cũng lệch → đổi sang `WithDetailsAsync()` (dùng `DefaultWithDetailsFunc` của `CatalogEntry`). Kèm quy tắc **ô trống = giữ giá trị đang lưu** khi cập nhật/khôi phục (`EntryDraft.Given` = tập cột có ô không trống, `ImportRowReader.GivenColumns`); trên dòng tạo mới ô trống vẫn là mặc định (Không / KCT / 0). Hệ quả đã chấp nhận: **không xoá trắng được một trường bằng import**; muốn xoá thì sửa trên dialog. |
+| R-541 | Chuỗi tóm tắt "N dòng: a thêm mới, b khôi phục, c bỏ qua, d lỗi" không có chỗ cho cập nhật; nhãn "Bỏ qua (đã có)" sai nghĩa | `Taxonomy:Import:Summary` thành 6 chỗ trống (thêm mới, cập nhật, khôi phục, bỏ qua, lỗi), nhãn Skip → "Bỏ qua (không thay đổi)", thêm `Action:Update` = "Cập nhật" (tag cam), `GuideIntro` nêu luật mới; nút "Nhập N dòng" và toast đếm cả cập nhật (`importableCount`). Hai spec đổi chuỗi theo. |
+
+Bằng chứng (host build Debug trên 5000, preview bản build production trên 8080):
+
+- `CatalogImportAppServiceContractTests` **13/13** (thêm test khoá số enum
+  0..5 khớp `IMPORT_ROW_ACTION` của FE và `UpdateCount` trên DTO).
+- `e2e/taxonomy-import-api.spec.ts` **9/9** — mở rộng: Nguồn đến nhập lại với
+  ưu tiên 42 ở một dòng → dry-run `[5, 1]`, `updateCount 1`, commit giữ đúng
+  `id`, `sortOrder` 42, dòng kia không đổi; xoá mềm rồi nhập lại với ưu tiên 7
+  → Restore mang 7; thuốc nhập lại giá bán "1.600.000", đơn vị "Hộp", để trống
+  giá mua và hoạt chất → Update, giá mua vẫn 1.000.000, hoạt chất vẫn
+  Paracetamol, nhập file y hệt lần nữa → Skip; đơn thuốc mẫu đổi số ngày 5 → 7
+  → template Update, dòng thuốc thay bằng dòng trong file, nhập lại → Skip.
+- `e2e/taxonomy-import.spec.ts` **3/3** — thêm bước: file đổi ưu tiên một dòng
+  → alert "2 dòng: 0 thêm mới, 1 cập nhật, 0 khôi phục, 1 bỏ qua, 0 lỗi", một
+  tag "Cập nhật" + một "Bỏ qua (không thay đổi)", nút "Nhập 1 dòng" mở, toast
+  "Đã nhập 1 dòng vào Nguồn đến", sau reload vẫn đúng 2 dòng.
+- `tsc -b --noEmit`, `oxlint` sạch; BE build sạch.
+
+### Còn treo
+
+- Nhánh "có quyền tạo, không có quyền sửa" (`Err:NoUpdatePermission`) chưa có
+  spec: chưa có vai trò seed nào tách hai quyền này. Kiểm bằng code + contract.
+- 38 spec Danh mục cũ không chạy lại đợt này: thay đổi nằm trong importer và
+  thêm `CatalogEntry.ChangeCode` chưa ai khác gọi → Level 2.
+
+## 2026-09-24 — Danh mục: bảng xem trước import không kéo ngang được (R-542, R-543)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-543 | Kéo sang phải xem giá trị thì mất cột "Kết quả", không biết dòng sẽ thêm / cập nhật / lỗi | Chủ dự án yêu cầu ghim cột Kết quả. AntD chỉ ghim đúng khi cột `fixed: "right"` nằm cuối, nên đổi thứ tự: … → Lỗi → **Kết quả (ghim phải)**. Cột "Dòng" vẫn ghim trái. Kéo-cuộn toàn cục bỏ qua mousedown trên ô ghim (`.ant-table-cell-fix-end`) — hành vi sẵn có, không đổi. |
+| R-542 | Xem trước file Dịch vụ (20 cột, rộng hơn dialog 960): cột bên phải bị cắt từ "% THUẾ", **nắm bảng kéo chuột không cuộn ngang** như mọi bảng khác, cũng không thấy thanh cuộn | Bảng này là bảng `virtual` duy nhất trong app. Kéo-cuộn toàn cục (`initTableGrabScroll` trong `hooks/useDragScroll.ts`) chỉ bám `.ant-table-content` / `.ant-table-body` và cuộn bằng `scrollLeft`; thân bảng virtual là `.ant-table-tbody-virtual-holder` với `overflow-x: hidden`, vị trí ngang nằm trong state React (`offsetLeft`) và vẽ bằng `transform`, thanh cuộn tự vẽ bị inline `visibility: hidden` cho đến khi lăn con lăn. Thử đầu tiên (ép thanh cuộn ảo luôn hiện bằng CSS) chỉ cho kéo thanh, không cho nắm bảng → bỏ. Sửa: **bỏ `virtual`** khỏi `CatalogImportPreview.tsx`, giữ `scroll={{x, y}}` + `pagination={false}`; thân bảng thành `.ant-table-body` thường nên nắm-kéo, thanh cuộn gốc và Shift+lăn đều chạy, không cần CSS riêng. Đổi lại mọi dòng của file đều render (không cửa sổ hoá); file vài nghìn dòng vẫn chấp nhận được vì chỉ xem trước một lần, ghi nhận để theo dõi. |
+
+Bằng chứng: `e2e/taxonomy-import.spec.ts` **4/4** trên bản build production
+(preview 8083 riêng vì 8080 đang có phiên khác dùng, host 5000) — spec mới
+"a wide sheet scrolls sideways by grabbing the table, like every other table":
+nhập file Dịch vụ 2 cột, `.ant-table-body` có class `has-horizontal-scroll`,
+nắm một ô giá trị kéo sang trái 400 px thì tiêu đề cột "Lỗi" dịch trái > 200 px
+và `scrollLeft` > 200; tiêu đề "Kết quả" có class `ant-table-cell-fix-end`, giữ
+nguyên toạ độ x sau khi kéo và tag "Thêm mới" vẫn trong khung nhìn (R-543). `tsc -b` và `oxlint` sạch. Level 2 (đổi props bảng
+trong một feature, spec màn hình chạy lại đủ).

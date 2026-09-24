@@ -170,8 +170,14 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await dialog.getByLabel(/Tên đơn thuốc mẫu/).fill(template);
     await dialog.getByLabel(/Lời dặn/).fill("Uống đủ liều");
 
-    await dialog.getByLabel(/Tên thuốc/).click();
-    await page.locator(".ant-select-item-option", { hasText: medicine }).click();
+    // The branch's medicine list is long (e2e leftovers), so the picker is a
+    // virtual list: type the name first, then the one match is on screen.
+    await dialog.getByLabel("Tên thuốc", { exact: true }).fill(medicine);
+    await page
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .filter({ hasText: medicine })
+      .first()
+      .click();
     await dialog.getByLabel("Ngày uống").fill("2");
     await dialog.getByLabel("Mỗi lần").fill("1.5");
     await dialog.getByLabel("Số ngày").fill("5");
@@ -225,8 +231,14 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên đơn thuốc mẫu/).fill(template);
 
-    await dialog.getByLabel(/Tên thuốc/).click();
-    await page.locator(".ant-select-item-option", { hasText: medicine }).click();
+    // The branch's medicine list is long (e2e leftovers), so the picker is a
+    // virtual list: type the name first, then the one match is on screen.
+    await dialog.getByLabel("Tên thuốc", { exact: true }).fill(medicine);
+    await page
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .filter({ hasText: medicine })
+      .first()
+      .click();
 
     const usage = dialog.getByRole("button", { name: /^Sử dụng$/ });
     await usage.click();

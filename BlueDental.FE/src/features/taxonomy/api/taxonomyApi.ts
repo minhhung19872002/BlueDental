@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { notifyApiError } from "@/lib/notify";
 import { api } from "@/lib/axios";
+import { downloadFile, downloadPostedFile } from "@/lib/download";
 import type { PagedResult } from "@/types";
 
 /**
@@ -490,4 +491,108 @@ export function useReorderCatalogEntries() {
 
 export function useDeleteCatalogEntry() {
   return useCatalogMutation((id: string) => taxonomyApi.deleteEntry(id));
+}
+
+// ── Import from Excel ───────────────────────────────────────────────────
+//
+// BlueDental's own feature: the reference has no import on Danh mục. The
+// shapes mirror BlueDental.Catalogs.CatalogImportDtos.
+
+/** Mirrors BlueDental.Catalogs.CatalogImportRowAction. */
+export const IMPORT_ROW_ACTION = {
+  Create: 0,
+  Skip: 1,
+  Restore: 2,
+  Line: 3,
+  Error: 4,
+  /** Appended after Error on the server so the earlier numbers stay put. */
+  Update: 5,
+} as const;
+
+export type ImportRowAction = (typeof IMPORT_ROW_ACTION)[keyof typeof IMPORT_ROW_ACTION];
+
+export interface CatalogImportRowDto {
+  /** Excel row number, header included, so the user can find it in the file. */
+  row: number;
+  /** Cell text in the order of the sheet's `columns`. */
+  values: (string | null)[];
+  action: ImportRowAction;
+  errors: string[];
+}
+
+export interface CatalogImportSheetDto {
+  name: string;
+  columns: string[];
+  rows: CatalogImportRowDto[];
+}
+
+export interface CatalogImportResultDto {
+  dryRun: boolean;
+  committed: boolean;
+  fileErrors: string[];
+  totalRows: number;
+  createCount: number;
+  /** Existing rows whose other fields differ in the file. */
+  updateCount: number;
+  /** Existing rows the file changes nothing about. */
+  skipCount: number;
+  restoreCount: number;
+  errorCount: number;
+  newGroups: string[];
+  sheets: CatalogImportSheetDto[];
+}
+
+export interface ImportCatalogEntriesInput {
+  group: string;
+  clinicBranchId: string;
+  file: File;
+  /** True reads and validates only — the preview step. */
+  dryRun: boolean;
+}
+
+function importForm(input: ImportCatalogEntriesInput): FormData {
+  const form = new FormData();
+  form.append("file", input.file);
+  form.append("group", input.group);
+  form.append("clinicBranchId", input.clinicBranchId);
+  form.append("dryRun", String(input.dryRun));
+  return form;
+}
+
+const IMPORT_URL = "/v1/app/catalog-entries";
+
+const catalogImportApi = {
+  downloadTemplate: (group: string): Promise<void> =>
+    downloadFile(`${IMPORT_URL}/import-template`, `mau-nhap-${group}.xlsx`, { group }),
+
+  run: (input: ImportCatalogEntriesInput): Promise<CatalogImportResultDto> =>
+    api.post<CatalogImportResultDto>(`${IMPORT_URL}/import`, importForm(input)).then((r) => r.data),
+
+  downloadErrors: (input: ImportCatalogEntriesInput): Promise<void> =>
+    downloadPostedFile(`${IMPORT_URL}/import-errors`, importForm(input), `loi-nhap-${input.group}.xlsx`),
+};
+
+export function useDownloadImportTemplate() {
+  return useMutation({ mutationFn: (group: string) => catalogImportApi.downloadTemplate(group) });
+}
+
+export function useDownloadImportErrors() {
+  return useMutation({
+    mutationFn: (input: ImportCatalogEntriesInput) => catalogImportApi.downloadErrors(input),
+  });
+}
+
+/** One mutation serves both the preview (dryRun) and the real import. */
+export function useImportCatalogEntries() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ImportCatalogEntriesInput) => catalogImportApi.run(input),
+    onSuccess: (result) => {
+      // A commit may have created groups as well as entries; both panels reload.
+      if (result.committed) {
+        void queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
+      }
+    },
+  });
 }

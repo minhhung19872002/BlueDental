@@ -548,3 +548,18 @@ danh sách, còn ai đặt mức ưu tiên rõ ràng thì mức ưu tiên vẫn 
 sắp thuần theo thời gian tạo giảm dần. Điều này khớp với danh sách dịch vụ quan sát
 được trên bản gốc, nơi bản ghi cập nhật gần nhất nằm trên.
 
+## Nhập từ Excel — BlueDental riêng (2026-09-24)
+
+Không có trên bản gốc; thêm theo yêu cầu BA (xem `docs/clone/unknowns.md` và
+`docs/testing/features/taxonomy.md` § Nhập từ Excel). Nút "Nhập" (icon upload)
+đứng giữa "Xuất" và "Thêm …" trên 8 tab: Dịch vụ, Chẩn đoán, Loại thuốc, Dữ
+liệu tư vấn, Nguồn đến, Lịch sử bệnh, Đơn thuốc mẫu, Nghề nghiệp. Ẩn khi tài
+khoản không có quyền `create` của tab; disabled khi header đang ở "Tất cả chi
+nhánh". Dialog: Steps (Chọn file → Kiểm tra → Hoàn tất), `Upload.Dragger`
+nhận `.xlsx`, link "Tải file mẫu"; bước Kiểm tra là dry-run trên server, bảng
+xem trước ảo hoá (không giới hạn dòng), lọc "Chỉ hiện dòng lỗi", "Tải file
+lỗi"; nút "Nhập N dòng" chỉ mở khi 0 lỗi và N > 0 (N = thêm mới + cập nhật +
+khôi phục). Cột "Kết quả" đứng cuối và ghim bên phải (sau cột "Lỗi"), cột
+"Dòng" ghim bên trái; kéo ngang chỉ cuộn các cột giá trị. Cột "Kết quả" có 6 tag: Thêm mới (xanh lá), Cập nhật (cam — dòng
+đã có nhưng khác cột khác), Khôi phục (xanh dương), Bỏ qua (không thay đổi),
+Dòng thuốc, Lỗi (đỏ).

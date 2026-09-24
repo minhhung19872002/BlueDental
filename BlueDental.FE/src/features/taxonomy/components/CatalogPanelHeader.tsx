@@ -1,5 +1,5 @@
 import { Button, Input } from "antd";
-import { DownloadOutlined, MenuOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { DownloadOutlined, MenuOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import { t, tRich } from "@/lib/i18n";
 
 interface Props {
@@ -15,8 +15,12 @@ interface Props {
   onCreate: (() => void) | null;
   /** null on the catalogs the reference gives no "Xuất" button. */
   onExport: (() => void) | null;
+  /** Null unless the account may create here and the catalog can be loaded from Excel. */
+  onImport: (() => void) | null;
   createDisabled: boolean;
   exportDisabled: boolean;
+  /** An import lands in one branch, so it waits while every branch is in view. */
+  importDisabled: boolean;
   /**
    * Opens the group panel on viewports too narrow to show it beside the table.
    * Null on flat catalogs, which have no group panel at all.
@@ -33,8 +37,10 @@ export function CatalogPanelHeader({
   onKeywordChange,
   onCreate,
   onExport,
+  onImport,
   createDisabled,
   exportDisabled,
+  importDisabled,
   onOpenGroups,
 }: Props) {
   return (
@@ -68,6 +74,12 @@ export function CatalogPanelHeader({
             {onExport && (
               <Button icon={<DownloadOutlined />} disabled={exportDisabled} onClick={onExport}>
                 {t("Taxonomy:Table:ExportBtn")}
+              </Button>
+            )}
+
+            {onImport && (
+              <Button icon={<UploadOutlined />} disabled={importDisabled} onClick={onImport}>
+                {t("Taxonomy:Import:Btn")}
               </Button>
             )}
 

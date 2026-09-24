@@ -126,7 +126,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             input.Description,
             input.SortOrder);
 
-        ApplyCatalogSpecificParts(entry, input.DetailName, input.Note, input.Unit,
+        CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
 
         await _repository.InsertAsync(entry, autoSave: true);
@@ -170,7 +170,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         entry.UpdateDescription(input.Description);
         entry.Reorder(input.SortOrder);
 
-        ApplyCatalogSpecificParts(entry, input.DetailName, input.Note, input.Unit,
+        CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
 
         if (input.IsActive)
@@ -264,72 +264,6 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return query
             .Where(x => ids.Contains(x.Id))
             .ToDictionary(x => x.Id, x => x.Name);
-    }
-
-    /// <summary>
-    /// Writes the parts only one catalog carries. Each block is skipped unless
-    /// the dialog for that catalog actually sent it, so saving a diagnosis never
-    /// silently blanks a service's price configuration.
-    /// </summary>
-    private void ApplyCatalogSpecificParts(
-        CatalogEntry entry,
-        string? detailName,
-        string? note,
-        string? unit,
-        ServiceConfigDto? serviceConfig,
-        MedicineDto? medicine,
-        List<ServiceStageDto>? stages,
-        List<PrescriptionTemplateLineDto>? prescriptionLines)
-    {
-        entry.UpdateDetails(detailName, note, unit);
-
-        if (serviceConfig != null)
-        {
-            entry.EnsureServiceConfig(GuidGenerator.Create()).Update(
-                serviceConfig.TaxRate,
-                serviceConfig.PriceIncludesTax,
-                serviceConfig.DiscountIsPercent,
-                serviceConfig.DiscountValue,
-                serviceConfig.RequireImage,
-                serviceConfig.DeductDoctorOnWarranty,
-                serviceConfig.SeparateRevenue,
-                serviceConfig.ShowToothOnInvoice,
-                serviceConfig.RevenueByStage,
-                serviceConfig.RequireStageSequence,
-                serviceConfig.WarrantyDays);
-        }
-
-        if (medicine != null)
-        {
-            entry.EnsureMedicine(GuidGenerator.Create()).Update(
-                medicine.ActiveIngredient,
-                medicine.Usage,
-                medicine.PurchasePrice,
-                medicine.PrescriptionCode,
-                medicine.UsageNote);
-        }
-
-        if (stages != null)
-        {
-            entry.ReplaceStages(stages.Select((stage, index) =>
-                new CatalogServiceStage(
-                    GuidGenerator.Create(), entry.Id, stage.Name, stage.Value, index)));
-        }
-
-        if (prescriptionLines != null)
-        {
-            entry.ReplacePrescriptionLines(prescriptionLines.Select((line, index) =>
-                new PrescriptionTemplateLine(
-                    GuidGenerator.Create(),
-                    entry.Id,
-                    line.MedicineEntryId,
-                    line.TimesPerDay,
-                    line.AmountPerTime,
-                    line.Days,
-                    line.Usage,
-                    line.OtherUsage,
-                    index)));
-        }
     }
 
     /// <summary>Medicine names for the lines of a prescription template.</summary>

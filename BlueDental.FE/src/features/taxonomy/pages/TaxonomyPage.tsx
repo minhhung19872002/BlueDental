@@ -15,6 +15,7 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { CatalogEntryTable } from "../components/CatalogEntryTable";
+import { CatalogImportDialog } from "../components/CatalogImportDialog";
 import { MedicalRecordTemplateDialog } from "../components/MedicalRecordTemplateDialog";
 import { MedicineDialog } from "../components/MedicineDialog";
 import { PrescriptionTemplateDialog } from "../components/PrescriptionTemplateDialog";
@@ -89,6 +90,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     group: null,
   });
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const debouncedKeyword = useDebounce(keyword, 300);
   const debouncedGroupKeyword = useDebounce(groupKeyword, 300);
@@ -391,8 +393,10 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           onKeywordChange={changeKeyword}
           onCreate={ability.canCreate ? () => void openEntryModal(null) : null}
           onExport={tab.exportable === false || !ability.canExport ? null : handleExport}
+          onImport={tab.importable && ability.canCreate ? () => setImportOpen(true) : null}
           createDisabled={isAllBranches || (grouped && groups.length === 0)}
           exportDisabled={entries.length === 0}
+          importDisabled={isAllBranches}
           onOpenGroups={grouped ? () => setGroupsOpen(true) : null}
         />
 
@@ -425,6 +429,17 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
       {/* The reference gives each catalog its own form, so the screen picks
           the dialog its tab names rather than bending one shared one. */}
       {entryDialog}
+
+      {tab.importable && (
+        <CatalogImportDialog
+          open={importOpen}
+          group={group}
+          tabLabel={tab.label}
+          noun={tab.noun}
+          branchId={branchId}
+          onClose={() => setImportOpen(false)}
+        />
+      )}
 
       <TaxonomyGroupModal
         open={groupModal.open}

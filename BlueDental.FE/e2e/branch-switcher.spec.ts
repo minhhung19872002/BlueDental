@@ -115,7 +115,12 @@ test.describe("Chi nhánh", () => {
 
     // …and stays out of sight on the first branch, which is where admin's
     // header points by default (its home branch, even though it is clinic-wide).
-    await page.goto("/login");
+    // Signing out goes through the menu: /login now carries an open session
+    // straight back into the application, so it cannot be used as a logout.
+    await page.locator(".app-header-user").click();
+    await page.getByText(/Đăng xuất/i).click();
+    await expect(page).toHaveURL(/\/login/);
+    // The header's branch choice is remembered per browser, not per account.
     await page.evaluate(() => localStorage.clear());
     await login(page);
     await page.goto("/taxonomy/service");

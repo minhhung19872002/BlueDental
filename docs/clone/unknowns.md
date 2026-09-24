@@ -2548,3 +2548,19 @@ Action taken: NONE thêm trên staging (đã huỷ 1 phiếu test của bệnh n
   TEST để quan sát PUT …/update-status). Local: chốt coi Received, Completed,
   Rejected, Replaced là đã xong; khối dùng `tp-btn tp-btn--danger`, chữ
   14px/22px, gap 12px — chờ đo lại.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /taxonomy (mọi tab) → nút "Nhập" và dialog "Nhập … từ Excel" (2026-09-24)
+Control: nút "Nhập" cạnh "Xuất" trên đầu bảng mục; dialog 3 bước Chọn file →
+  Kiểm tra → Nhập; file mẫu; file lỗi.
+Reason: **không có trên bản gốc** (app.nfcdental.com không có chức năng nhập
+  danh mục từ Excel). Đây là yêu cầu riêng của BA cho BlueDental để nạp dữ liệu
+  vào hệ thống mới, không phải clone — không có gì để quan sát hay so ảnh.
+  Bố cục dialog dùng lại khung dialog Danh mục (`app-dialog`), nút đặt cạnh
+  "Xuất" theo cùng kích cỡ; Steps/Upload.Dragger/Result là AntD mặc định.
+Action taken: NONE trên bản gốc. Local: dựng theo quyết định của chủ dự án
+  (xem `docs/testing/features/taxonomy.md` § Nhập từ Excel). Bệnh án mẫu để sau
+  theo yêu cầu; Thẻ hồ sơ và Phương thức thanh toán không cần.

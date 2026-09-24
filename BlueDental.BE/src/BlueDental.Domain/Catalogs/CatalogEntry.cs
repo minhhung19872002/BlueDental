@@ -117,6 +117,12 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    public CatalogEntry ChangeCode(string? code)
+    {
+        Code = code;
+        return this;
+    }
+
     public CatalogEntry ChangePrice(decimal? price)
     {
         GuardPrice(Group, price);

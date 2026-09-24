@@ -13,12 +13,28 @@ export async function downloadFile(
   params?: Record<string, unknown>,
 ): Promise<void> {
   const response = await api.get<Blob>(url, { params, responseType: "blob" });
+  saveBlob(response.data, response.headers["content-disposition"], fallbackName);
+}
 
-  const objectUrl = URL.createObjectURL(response.data);
+/**
+ * Same, for a file the server builds out of an upload — the error report of an
+ * Excel import. The upload is the request body, so this has to be a POST.
+ */
+export async function downloadPostedFile(
+  url: string,
+  body: FormData,
+  fallbackName: string,
+): Promise<void> {
+  const response = await api.post<Blob>(url, body, { responseType: "blob" });
+  saveBlob(response.data, response.headers["content-disposition"], fallbackName);
+}
+
+function saveBlob(blob: Blob, dispositionHeader: unknown, fallbackName: string): void {
+  const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = objectUrl;
-  link.download = fileNameFrom(response.headers["content-disposition"]) ?? fallbackName;
+  link.download = fileNameFrom(dispositionHeader) ?? fallbackName;
 
   document.body.appendChild(link);
   link.click();
