@@ -50,6 +50,8 @@ export interface ReceptionItem {
   selectedOutcome?: AppointmentOutcome;
   createdAt: string;
   isTemporary?: boolean;
+  /** True when "Late" badge is derived from time, not from backend NoShow status. */
+  isTimeLate?: boolean;
   color?: string | null;
 }
 

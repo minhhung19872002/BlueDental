@@ -90,7 +90,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const step3Done = !!item.step3Time;
 
   const isCancelled = item.counterStatus === "Cancelled";
-  const isNoShow = item.counterStatus === "Late";
+  const isNoShow = item.counterStatus === "Late" && !item.isTimeLate;
 
   const canCheckIn = !step1Done && !isCancelled && !isNoShow;
   const canStart = step1Done && !step2Done && !isCancelled && !isNoShow;

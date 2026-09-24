@@ -35,7 +35,7 @@ const COUNTER_STATUSES: Record<keyof ReceptionCounters, number[]> = {
   scheduledCount: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed],
   arrivedCount: [SERVER_STATUS.CheckedIn, SERVER_STATUS.InProgress, SERVER_STATUS.Completed],
   cancelledCount: [SERVER_STATUS.Cancelled],
-  lateCount: [SERVER_STATUS.NoShow],
+  lateCount: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed, SERVER_STATUS.NoShow],
   temporaryCount: [],
   convertedCount: [],
 };
@@ -117,9 +117,22 @@ interface ServerAppointmentDto {
   patientYearOfBirth: number | null;
 }
 
+function isLateAppointment(dto: ServerAppointmentDto): boolean {
+  const isWaiting =
+    dto.status === SERVER_STATUS.Requested ||
+    dto.status === SERVER_STATUS.Confirmed;
+  if (!isWaiting && !dto.isTemporary) return false;
+  if (dto.checkedInAt) return false;
+  if (!dto.slotStart) return false;
+  return dayjs(dto.slotStart).isBefore(dayjs());
+}
+
 function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
+  const timeLate = isLateAppointment(dto);
   const counterStatus: AppointmentCounterType | undefined =
-    dto.isTemporary ? "Temporary" : COUNTER_BY_STATUS[dto.status];
+    timeLate ? "Late"
+    : dto.isTemporary ? "Temporary"
+    : COUNTER_BY_STATUS[dto.status];
 
   return {
     id: dto.id,
@@ -146,6 +159,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     createdAt: dto.creationTime || new Date().toISOString(),
     selectedOutcome: dto.outcome ? (OUTCOME_MAP[dto.outcome] ?? null) : null,
     isTemporary: dto.isTemporary,
+    isTimeLate: timeLate,
     color: dto.color,
   };
 }
@@ -181,9 +195,14 @@ export const receptionApi = {
         ...dateWindow(filter),
       },
     });
-    const items: ReceptionItem[] = (res.data?.items ?? []).map(
+    let items: ReceptionItem[] = (res.data?.items ?? []).map(
       (dto: ServerAppointmentDto) => mapAppointmentDto(dto),
     );
+
+    if (filter.counterFilter === "lateCount") {
+      items = items.filter((i) => i.counterStatus === "Late");
+    }
+
     return { items, total: res.data?.totalCount ?? items.length };
   },
 

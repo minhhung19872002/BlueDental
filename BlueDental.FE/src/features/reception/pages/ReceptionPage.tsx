@@ -82,6 +82,15 @@ export const ReceptionPage: React.FC = () => {
     [listData],
   );
 
+  const adjustedMetrics = useMemo(() => {
+    if (!metrics) return metrics;
+    const lateCount = items.filter((i) => i.isTimeLate).length;
+    return {
+      ...metrics,
+      counters: { ...metrics.counters, lateCount },
+    };
+  }, [metrics, items]);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleIntersect = useCallback(
@@ -173,7 +182,7 @@ export const ReceptionPage: React.FC = () => {
         <ReceptionStatusTabs
           activeTab={activeTab}
           activeCounter={activeCounter}
-          metrics={metrics}
+          metrics={adjustedMetrics}
           selectedDoctorId={selectedDoctorId}
           doctors={doctors}
           onChange={(status) => { setActiveTab(status); setActiveCounter(undefined); }}
