@@ -58,6 +58,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidImageOrdering = "BlueDental:Patient:0010";
         public const string MedicalRecordTooLarge = "BlueDental:Patient:0009";
         public const string InvalidNationalId = "BlueDental:Patient:0011";
+        public const string DuplicateNationalId = "BlueDental:Patient:0012";
     }
 
     public static class Appointments

@@ -130,6 +130,7 @@
     "BlueDental:Patient:0008": "Không tìm thấy ảnh.",
     "BlueDental:Patient:0010": "Vị trí ảnh không hợp lệ.",
     "BlueDental:Patient:0011": "CCCD phải có đúng 12 chữ số.",
+    "BlueDental:Patient:0012": "CCCD này đã được sử dụng.",
     "BlueDental:Queue:0001": "Không tìm thấy số thứ tự.",
     "BlueDental:Queue:0002": "Không thể chuyển trạng thái hàng đợi.",
     "BlueDental:Queue:0003": "Bệnh nhân đã có số thứ tự hôm nay.",

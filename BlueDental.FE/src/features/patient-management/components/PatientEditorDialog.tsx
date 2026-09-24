@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import dayjs, { type Dayjs } from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
 import { CATALOG_GROUP, useCreateTaxonomyGroupOption } from "@/hooks/useCatalogOptions";
-import { extractApiError } from "@/lib/apiError";
+import { describeApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 // The dialog carries its own styling: it opens from the list *and* from a
@@ -67,6 +67,9 @@ function titleCaseName(name: string): string {
     )
     .join("");
 }
+
+/** The server's refusal of a CCCD another record in the branch already holds. */
+const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
 
 const EMPTY: PatientFormValues = {
   codeSequence: "",
@@ -265,7 +268,15 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
       toast.success(patient ? t("Patient:Profile:Updated") : t("Patient:Profile:CreateSuccess"));
       onClose();
     } catch (error) {
-      notifyError(extractApiError(error));
+      const failure = describeApiError(error);
+      // A taken CCCD is a field error, not a toast: it goes under the box it
+      // was typed in, on the pane that box sits on.
+      if (failure.code === DUPLICATE_NATIONAL_ID) {
+        setTab("basic");
+        form.setFields([{ name: "nationalId", errors: [failure.message] }]);
+        return;
+      }
+      notifyError(failure.message);
     }
   };
 

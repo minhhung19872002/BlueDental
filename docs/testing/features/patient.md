@@ -23,6 +23,12 @@ GET  /api/v1/app/patient-advises?patientId  (+ /summary)
 - Registration needs a full name, a phone number and a date of birth; the name is
   split into họ (lastName) and tên (firstName) the Vietnamese way.
 - The patient code is unique per branch and year.
+- The CCCD (`nationalId`) is unique per branch (R-564): register and update
+  both refuse a CCCD another record in the branch holds with
+  `BlueDental:Patient:0012`; the error says "CCCD này đã được sử dụng" without
+  revealing which record holds it (privacy). The same CCCD is free in another
+  branch; blank CCCDs never collide. The dialog shows the refusal under the
+  CCCD box and stays open.
 - The list shows the name in Vietnamese order and never crashes on data the API
   does not send.
 - The tooth chart stores `{ code, selected, top, right, bottom, left, center }`;
@@ -37,6 +43,16 @@ GET  /api/v1/app/patient-advises?patientId  (+ /summary)
    to prove it reached PostgreSQL, then opens the record
 2. selects a whole tooth, applies the Hàm Trên shortcut and clears the selection,
    asserting the summary text each time
+
+`e2e/patient-national-id.spec.ts` (2026-09-24, real HTTP from the logged-in
+page, 3/3 on the production build):
+
+1. second POST with the same CCCD → 403 `Patient:0012` without revealing the
+   holder's code or name; PUT another record onto it → 403; PUT the holder
+   with its own CCCD → 200; two blank CCCDs → 200
+2. `branch2` registers the same CCCD in its own branch → 200
+3. "Tạo hồ sơ" with a taken CCCD keeps the dialog open with the message under
+   the CCCD field; a free CCCD then saves and appears in the list
 
 ## Lịch sử thay đổi lịch hẹn (2026-09-05, VERIFIED)
 

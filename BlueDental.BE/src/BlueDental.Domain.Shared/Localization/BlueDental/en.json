@@ -178,6 +178,7 @@
     "BlueDental:Patient:0008": "Image not found.",
     "BlueDental:Patient:0010": "The image position is not valid.",
     "BlueDental:Patient:0011": "National ID must be exactly 12 digits.",
+    "BlueDental:Patient:0012": "This national ID is already in use.",
     "BlueDental:Queue:0001": "Queue ticket not found.",
     "BlueDental:Queue:0002": "That queue transition is not allowed.",
     "BlueDental:Queue:0003": "This patient already has a waiting ticket today.",

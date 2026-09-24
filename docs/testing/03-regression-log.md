@@ -5780,3 +5780,25 @@ nắm một ô giá trị kéo sang trái 400 px thì tiêu đề cột "Lỗi" 
 và `scrollLeft` > 200; tiêu đề "Kết quả" có class `ant-table-cell-fix-end`, giữ
 nguyên toạ độ x sau khi kéo và tag "Thêm mới" vẫn trong khung nhìn (R-563). `tsc -b` và `oxlint` sạch. Level 2 (đổi props bảng
 trong một feature, spec màn hình chạy lại đủ).
+
+## 2026-09-24 — Hồ sơ bệnh nhân: CCCD chưa unique (R-564)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-564 | Chủ dự án: "hiện tại CCCD chưa unique theo từng user đó" — hai hồ sơ bệnh nhân có thể mang cùng một CCCD, tạo mới hay sửa đều không chặn | BE chỉ kiểm tra **định dạng** CCCD (`Patient.SetNationalId`, 12 chữ số, `Patient:0011`), không nơi nào kiểm tra trùng; dữ liệu local có 35 hồ sơ, chưa hồ sơ nào có CCCD. Sửa ở tầng AppService như kiểm mã bệnh nhân (`EnsureCodeIsFreeAsync`): `EnsureNationalIdIsFreeAsync` chạy trong `RegisterAsync` và `UpdateAsync` (sau `SetNationalId`, loại chính hồ sơ đang sửa), CCCD trống bỏ qua. **Phạm vi theo chi nhánh** — cùng phạm vi với cảnh báo trùng điện thoại `check-phone`: một người khám ở hai chi nhánh có một hồ sơ ở mỗi nơi, nhưng trong một chi nhánh không bao giờ có hai. Trùng → `BusinessException` `BlueDental:Patient:0012` (403), thông điệp chỉ nói "CCCD này đã được sử dụng" — **không tiết lộ hồ sơ nào đang giữ** (chủ dự án yêu cầu vì lý do bảo mật). Không thêm unique index DB: PatientCode cũng không có, và index có thể làm migration hỏng trên prod nếu đã lỡ trùng — kiểm ở app đủ cho quy mô này. FE (`PatientEditorDialog`): bắt `code === Patient:0012` trong catch → chuyển về tab Cơ bản, `form.setFields([{ name: "nationalId", errors: [message] }])`, dialog giữ nguyên, **không toast** (R-307); lỗi khác vẫn `notifyError`. |
+
+Bằng chứng: `e2e/patient-national-id.spec.ts` **3/3** trên bản build production
+(preview 8084 riêng vì 8080/8082 đang có phiên khác dùng, host 5000 build lại
+sau khi dừng tiến trình cũ) — HTTP thật từ trang đã đăng nhập (cookie + header
+`RequestVerificationToken`, `X-Clinic-Branch-Id` chi nhánh 1): POST hồ sơ thứ hai
+cùng CCCD → 403 `Patient:0012`, message KHÔNG chứa mã hồ sơ hay tên bệnh nhân
+(bảo mật); PUT hồ sơ khác sang CCCD đã có → 403 cùng mã; PUT chính hồ sơ giữ với
+CCCD của nó → 200; hai hồ sơ CCCD trống / rỗng → 200 cả hai; đăng nhập `branch2`
+(chi nhánh theo claim, không header) tạo cùng CCCD → 200 (phạm vi chi nhánh);
+dialog "Tạo hồ sơ" nhập CCCD đã có → dialog còn mở, `.ant-form-item-explain-error`
+dưới ô CCCD chỉ nói "CCCD này đã được sử dụng", đổi CCCD trống khác → lưu được,
+tên hiện trên danh sách. `e2e/patient.spec.ts` lọc "hồ sơ|Chỉnh sửa" chạy lại xanh (xem kết
+quả bên dưới). Domain.Tests 368/368, Application.Tests 614/614; `tsc -b`,
+`oxlint` sạch (một cảnh báo `no-invalid-fetch-options` giả — method là biến
+POST/PUT). Level 2 (một feature: contract + AppService + dialog), F-06 giữ
+`DIRTY` vì phần TagIds 2026-08-27 vẫn chưa retest đủ.

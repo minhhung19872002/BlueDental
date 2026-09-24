@@ -137,6 +137,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             branchId,
             input.NationalId);
 
+        await EnsureNationalIdIsFreeAsync(branchId, patient.NationalId, excludeId: null);
+
         await ApplyProfileAsync(
             patient,
             branchId,
@@ -165,6 +167,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         patient.UpdateContact(new ContactInfo(input.PhoneNumber, input.Email, input.Address));
         patient.SetNationalId(input.NationalId);
+        await EnsureNationalIdIsFreeAsync(patient.BranchId, patient.NationalId, patient.Id);
 
         if (!string.IsNullOrWhiteSpace(input.PatientCode) && input.PatientCode.Trim() != patient.PatientCode)
         {
@@ -564,6 +567,30 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         }
 
         return code;
+    }
+
+    /// <summary>
+    /// One CCCD, one record. Scoped to the branch the way the phone check is:
+    /// a person seen at two branches holds a record at each, but never two in
+    /// one. The refusal names the holder so the front desk can open that record
+    /// instead of typing a second one.
+    /// </summary>
+    private async Task EnsureNationalIdIsFreeAsync(Guid branchId, string? nationalId, Guid? excludeId)
+    {
+        if (string.IsNullOrWhiteSpace(nationalId))
+        {
+            return;
+        }
+
+        var query = await _repository.GetQueryableAsync();
+        var exists = await AsyncExecuter.AnyAsync(query
+            .Where(p => p.BranchId == branchId && p.NationalId == nationalId)
+            .Where(p => !excludeId.HasValue || p.Id != excludeId.Value));
+
+        if (exists)
+        {
+            throw new Volo.Abp.BusinessException(BlueDentalDomainErrorCodes.PatientManagement.DuplicateNationalId);
+        }
     }
 
     /// <summary>
