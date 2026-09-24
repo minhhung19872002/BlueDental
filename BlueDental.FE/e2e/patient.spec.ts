@@ -934,14 +934,15 @@ test.describe("Bệnh nhân", () => {
     await expect(form).toBeHidden();
 
     const rows = page.locator(".pd-diagnosis-card tbody tr.ant-table-row");
-    await expect(rows.first()).toContainText("18, 16 - Mặt ngoài, Mặt nhai");
+    // The table names the teeth by number only — the surfaces stay on the slip.
+    await expect(rows.first().locator(".pd-cell-link")).toHaveText("18, 16");
     const code = (await rows.first().locator("td").first().innerText()).trim();
     expect(code).toMatch(/^CD\d{2}-\d{4}$/);
 
     await page.reload();
     await expect(page).toHaveURL(/tab=consulting/);
     const row = page.locator(".pd-diagnosis-card tbody tr.ant-table-row", { hasText: code });
-    await expect(row).toContainText("18, 16 - Mặt ngoài, Mặt nhai");
+    await expect(row.locator(".pd-cell-link")).toHaveText("18, 16");
   });
 
   /**

@@ -4,7 +4,7 @@ import { CloseOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { CalendarDays } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import {
-  formatTeeth,
+  formatToothCodes,
   type PatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { t } from "@/lib/i18n";
@@ -103,7 +103,7 @@ export function PatientDiagnosisCard({
       width: 250,
       render: (_, row) => (
         <div className="pd-cell-stack">
-          <b className="pd-cell-link">{formatTeeth(row.teeth)}</b>
+          <b className="pd-cell-link">{formatToothCodes(row.teeth) || "—"}</b>
           <span className="pd-cell-diagnosis">{row.diagnosisName ?? "—"}</span>
         </div>
       ),
