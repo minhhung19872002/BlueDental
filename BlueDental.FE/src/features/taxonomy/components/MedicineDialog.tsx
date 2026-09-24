@@ -8,6 +8,7 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -191,12 +192,12 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
 
           <Col xs={24} sm={12}>
             <FloatingField name="purchasePrice" label={t("Taxonomy:Medicine:PurchasePrice")}>
-              <InputNumber min={0} style={{ width: "100%" }} />
+              <CurrencyInput />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
             <FloatingField name="salePrice" label={t("Taxonomy:Medicine:SalePrice")}>
-              <InputNumber min={0} style={{ width: "100%" }} />
+              <CurrencyInput />
             </FloatingField>
           </Col>
 

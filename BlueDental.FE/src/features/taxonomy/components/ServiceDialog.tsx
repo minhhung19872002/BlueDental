@@ -15,6 +15,7 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -242,15 +243,13 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         title: t("Taxonomy:Service:StageValueCol"),
         width: 180,
         render: (_, stage, index) => (
-          <InputNumber
-            min={0}
-            style={{ width: "100%" }}
+          <CurrencyInput
             aria-label={t("Taxonomy:Service:StageValueAria", stage.name)}
             value={stage.value}
             onChange={(next) =>
               setStages((current) =>
                 current.map((item, at) =>
-                  at === index ? { ...item, value: Number(next) || 0 } : item,
+                  at === index ? { ...item, value: next ?? 0 } : item,
                 ),
               )
             }
@@ -393,7 +392,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </Col>
             <Col flex="auto">
               <FloatingField name="price" label={t("Taxonomy:Service:PriceLabel")}>
-                <InputNumber min={0} style={{ width: "100%" }} />
+                <CurrencyInput />
               </FloatingField>
             </Col>
             <Col flex="none">
@@ -403,7 +402,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </Col>
             <Col flex="auto">
               <FloatingField name="discountValue" label={t("Taxonomy:Service:DiscountLabel")}>
-                <InputNumber min={0} style={{ width: "100%" }} />
+                <CurrencyInput />
               </FloatingField>
             </Col>
           </Row>
