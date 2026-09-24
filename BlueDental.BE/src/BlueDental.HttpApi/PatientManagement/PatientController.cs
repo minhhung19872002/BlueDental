@@ -31,6 +31,11 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
         [FromQuery] Guid? excludeId = null) =>
         service.CheckPhoneAsync(phone, excludeId);
 
+    /// <summary>"Quét CCCD" — the record already holding a scanned number, if any.</summary>
+    [HttpGet("by-national-id")]
+    public Task<NationalIdLookupDto> FindByNationalIdAsync([FromQuery] string nationalId) =>
+        service.FindByNationalIdAsync(nationalId);
+
     [HttpPost]
     public Task<PatientDto> RegisterAsync([FromBody] RegisterPatientDto input) =>
         service.RegisterAsync(input);

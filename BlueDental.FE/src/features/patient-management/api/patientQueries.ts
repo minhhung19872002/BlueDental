@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { patientApi } from "./patientApi";
 import { adaptPatient } from "./patientAdapters";
 import type { PatientListQuery } from "../types/patient";
@@ -13,6 +14,24 @@ export const patientKeys = {
   phone: (phone: string, excludeId?: string) =>
     [...patientKeys.all, "phone", phone, excludeId ?? null] as const,
 };
+
+/**
+ * "Quét CCCD" asks once per scan, on demand — not a query bound to render.
+ * Never served stale: the record may have been created since the last scan.
+ */
+export function useNationalIdLookup() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (nationalId: string) =>
+      queryClient.fetchQuery({
+        queryKey: [...patientKeys.all, "national-id", nationalId] as const,
+        queryFn: () => patientApi.findByNationalId(nationalId),
+        staleTime: 0,
+      }),
+    [queryClient],
+  );
+}
 
 export function usePatientList(params: PatientListQuery) {
   return useQuery({

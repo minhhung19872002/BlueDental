@@ -252,3 +252,40 @@ Tags from API `/api/v1/patients/tags`. Sample tags for this clinic:
 | 7 | Date picker popup content | Calendar picker UI not observed |
 | 8 | "Nguồn tiếp nhận" options | SelectCustomAPI content not observed |
 | 9 | "Kênh kết nối" options | Depends on source type selected |
+
+## Quét CCCD (2026-09-24) — yêu cầu chủ dự án, không có trên bản gốc
+
+Nguồn: đặc tả mục 17 của chủ dự án (nút "Quét CCCD" cạnh "Tạo hồ sơ") và ảnh mẫu
+form quét có xem trước. Bản gốc **không có** tính năng này — hành vi riêng của BlueDental.
+
+- Nút `Quét CCCD` giữa `Xuất file` và `Tạo hồ sơ` (toolbar thường + thu gọn), khi có quyền tạo hồ sơ.
+- Modal hai cột, rộng tới 1240px, căn giữa, không cuộn (khung camera co theo chiều cao
+  màn hình). **Trái**: khung camera nền tối, **tự bật khi mở modal** (nút `Dừng camera`; camera lỗi/bị từ chối thì nút thành `Mở camera quét` để thử lại) (có
+  `Chọn camera` khi máy có nhiều camera, nhớ lựa chọn) và `Tải ảnh`. **Không** có ô
+  nhập số CCCD / máy quét cầm tay (chủ dự án bỏ, 2026-09-24). Không vẽ khung ngắm cố
+  định: chưa thấy mã thì có vạch quét chạy; ZXing **thấy** mã (kể cả chưa đọc được) thì
+  khung vàng bo sát 4 góc mã, bám theo thẻ; đọc xong thì giữ lại khung hình đó, **không** vẽ
+  khung lên ảnh dừng (khung vẽ lại trên ảnh bị lệch khỏi mã — chủ dự án bỏ). Mã thấy mà chưa đọc được thì worker cắt vùng mã, phóng to, đọc lại.
+  **Phải**: thẻ xem trước theo bố cục
+  CCCD — số, họ tên, CMND cũ, ngày sinh, giới tính, ngày cấp, nơi thường trú, **địa
+  chỉ mới** đã quy đổi, và trạng thái hồ sơ trong chi nhánh.
+- Đọc QR bằng **ZXing (zxing-wasm)** trong Web Worker, ở độ phân giải gốc (camera xin
+  1920×1080), đọc được mã **lật gương** (camera điện thoại qua Phone Link…). Ảnh camera
+  **không bao giờ lật**. Thay `qr-scanner` — thư viện đó cắt và thu vùng quét về
+  400×400 px (mã QR CCCD dày nên không đọc được) và tự lật ảnh khi trình duyệt báo
+  camera "user".
+- Sau khi đọc: camera dừng, tra `GET patients/by-national-id` (chỉ trả `{exists}`, không
+  lộ hồ sơ — R-564). **TH1** đã có → **tự** đóng modal và lọc ngay (bỏ bộ lọc khác, ô tìm
+  kiếm = số CCCD, toast), không hiện thẻ xem trước, không cần bấm gì. **TH2** chưa có →
+  hiện thẻ xem trước, nút `Tạo hồ sơ`: mở dialog điền sẵn họ tên,
+  giới tính, ngày sinh, CCCD, số nhà/đường, Tỉnh + Xã/Phường **mới**. `Quét lại` ở chân modal.
+- **Địa chỉ**: thẻ in địa chỉ không kèm chữ "Xã/Huyện", nên dạng cũ/mới được xác định
+  bằng dữ liệu: ba phần cuối là xã-huyện-tỉnh trước 2025 → địa chỉ cũ, lưu nguyên văn
+  vào `OldAddress` (ô "Địa chỉ cũ") và quy đổi sang xã/tỉnh mới qua bảng
+  `utils/oldWardMap.json` (sinh từ `vietnam-address-database`, MIT, NQ 202/2025/QH15 —
+  10.807 xã cũ → 3.321 xã mới; `npm run gen:ward-map`). Tỉnh đã sáp nhập hoặc tên cũ
+  ("Thừa Thiên Huế") cũng tính là địa chỉ cũ. 28 xã cũ bị **tách** sang nhiều xã mới →
+  chỉ điền tỉnh, để lễ tân chọn xã. Không khớp được thì để trống, không đoán.
+
+Giả định (chưa có xác nhận của chủ dự án): khi không xác định được dạng địa chỉ, toàn
+bộ chuỗi vào ô Số nhà/Đường và không ghi địa chỉ cũ.

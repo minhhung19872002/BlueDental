@@ -6,6 +6,7 @@ import type {
   PatientDto,
   PatientListItem,
   PatientListQuery,
+  NationalIdLookup,
   PhoneAvailability,
   RegisterPatientRequest,
   UpdatePatientRequest,
@@ -28,6 +29,12 @@ export const patientApi = {
   checkPhone: (phone: string, excludeId?: string): Promise<PhoneAvailability> =>
     api
       .get<PhoneAvailability>(`${BASE}/check-phone`, { params: { phone, excludeId } })
+      .then((r) => r.data),
+
+  /** "Quét CCCD" — the record in this branch that already holds the number, if any. */
+  findByNationalId: (nationalId: string): Promise<NationalIdLookup> =>
+    api
+      .get<NationalIdLookup>(`${BASE}/by-national-id`, { params: { nationalId } })
       .then((r) => r.data),
 
   create: (data: RegisterPatientRequest): Promise<PatientDto> =>

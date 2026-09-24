@@ -61,6 +61,8 @@ export interface PatientDto {
   address: string | null;
   provinceCode: string | null;
   wardCode: string | null;
+  /** Địa chỉ cũ — the pre-2025 address as printed on the CCCD. */
+  oldAddress: string | null;
   /** The root reason's text — what the hồ sơ dialog's Lý do đến khám box binds. */
   examinationReason: string | null;
   /** Lý do đến khám, newest first — the dated list the profile card prints. */
@@ -104,6 +106,27 @@ export interface PatientCodeEstimate {
   code: string;
 }
 
+/** What a scanned CCCD fills into a new "Tạo hồ sơ" before the desk reviews it. */
+export interface PatientPrefill {
+  nationalId: string;
+  fullName?: string;
+  /** "YYYY-MM-DD". */
+  dateOfBirth?: string;
+  gender?: Gender;
+  address?: string;
+  provinceCode?: string;
+  wardCode?: string;
+  oldAddress?: string;
+}
+
+/**
+ * Answer to "Quét CCCD": is the scanned number already on a record here?
+ * Yes/no only — like the duplicate refusal (R-564) it never names the holder.
+ */
+export interface NationalIdLookup {
+  exists: boolean;
+}
+
 export interface PhoneAvailability {
   exists: boolean;
   patientName: string | null;
@@ -135,6 +158,7 @@ export interface RegisterPatientRequest {
   address?: string | null;
   provinceCode?: string | null;
   wardCode?: string | null;
+  oldAddress?: string | null;
   examinationReason?: string | null;
   note?: string | null;
 

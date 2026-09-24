@@ -13,7 +13,7 @@ import "./patient.css";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQueries";
 import { GENDER_BY_CODE } from "../api/patientAdapters";
-import type { Gender, PatientDto, RegisterPatientRequest } from "../types/patient";
+import type { Gender, PatientDto, PatientPrefill, RegisterPatientRequest } from "../types/patient";
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { PatientBasicColumn } from "./PatientBasicColumn";
 import { PatientSourceColumn } from "./PatientSourceColumn";
@@ -25,6 +25,8 @@ interface Props {
   patient: PatientDto | null;
   onClose: () => void;
   onCreated?: (patient: PatientDto) => void;
+  /** "Quét CCCD" — what a scanned card fills into a new record. */
+  prefill?: PatientPrefill;
 }
 
 export interface PatientFormValues {
@@ -49,6 +51,8 @@ export interface PatientFormValues {
   address: string;
   provinceCode?: string;
   wardCode?: string;
+  /** Địa chỉ cũ — the pre-2025 address off the CCCD, kept apart from the new one. */
+  oldAddress: string;
 }
 
 /**
@@ -92,7 +96,24 @@ const EMPTY: PatientFormValues = {
   address: "",
   provinceCode: undefined,
   wardCode: undefined,
+  oldAddress: "",
 };
+
+/** A scanned CCCD laid over an empty form; the desk reviews it before saving. */
+function valuesFromPrefill(prefill: PatientPrefill): Partial<PatientFormValues> {
+  return {
+    nationalId: prefill.nationalId,
+    fullName: prefill.fullName ?? "",
+    // Cards print the name in capitals, so the IN HOA tick follows suit.
+    uppercase: Boolean(prefill.fullName && prefill.fullName === prefill.fullName.toLocaleUpperCase("vi")),
+    dateOfBirth: prefill.dateOfBirth ? dayjs(prefill.dateOfBirth) : null,
+    gender: prefill.gender ?? EMPTY.gender,
+    address: prefill.address ?? "",
+    provinceCode: prefill.provinceCode,
+    wardCode: prefill.wardCode,
+    oldAddress: prefill.oldAddress ?? "",
+  };
+}
 
 /**
  * A stored code split the way the server builds it and the dialog renders it:
@@ -113,7 +134,7 @@ function splitPatientCode(code: string): { prefix: string; sequence: string } {
  * The save stays disabled until a name and a valid phone are in, which is what
  * the reference greys its own out on.
  */
-export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props) {
+export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill }: Props) {
   const [form] = Form.useForm<PatientFormValues>();
   const [tab, setTab] = useState<"basic" | "history">("basic");
   const [diseaseHistoryEntryIds, setDiseaseHistoryEntryIds] = useState<string[]>([]);
@@ -168,10 +189,16 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
             address: patient.address ?? "",
             provinceCode: patient.provinceCode ?? undefined,
             wardCode: patient.wardCode ?? undefined,
+            oldAddress: patient.oldAddress ?? "",
           }
-        : { ...EMPTY, country: t("Patient:DefaultCountry"), createdAtLabel: dayjs().format("DD/MM/YYYY") },
+        : {
+            ...EMPTY,
+            ...(prefill ? valuesFromPrefill(prefill) : {}),
+            country: t("Patient:DefaultCountry"),
+            createdAtLabel: dayjs().format("DD/MM/YYYY"),
+          },
     );
-  }, [open, patient, form]);
+  }, [open, patient, prefill, form]);
 
   // The suggestion only arrives once the dialog is open, so it is filled in
   // when it lands rather than in the reset above.
@@ -249,6 +276,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
       address: values.address.trim() || null,
       provinceCode: values.provinceCode ?? null,
       wardCode: values.wardCode ?? null,
+      oldAddress: values.oldAddress.trim() || null,
       examinationReason: values.examinationReason.trim() || null,
       note: values.note.trim() || null,
       // The tag button on the record owns these; carry them through untouched

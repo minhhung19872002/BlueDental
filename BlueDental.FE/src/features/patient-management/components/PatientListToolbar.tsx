@@ -1,5 +1,5 @@
 import { Button, Input } from "antd";
-import { DownloadOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { DownloadOutlined, IdcardOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { PeriodPicker, type Period } from "@/components/PeriodPicker";
 import { t } from "@/lib/i18n";
 
@@ -15,6 +15,8 @@ interface Props {
   onPeriodChange: (next: Period) => void;
   onExport: () => void;
   onCreate: () => void;
+  /** "Quét CCCD" — offered alongside "Tạo hồ sơ", since it ends in one. */
+  onScanId: () => void;
 }
 
 /**
@@ -33,6 +35,7 @@ export function PatientListToolbar({
   onPeriodChange,
   onExport,
   onCreate,
+  onScanId,
 }: Props) {
   return (
     <div className="bd-patient-toolbar">
@@ -56,6 +59,12 @@ export function PatientListToolbar({
         {canExport && (
           <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
             {t("Patient:Export")}
+          </Button>
+        )}
+
+        {canCreate && (
+          <Button icon={<IdcardOutlined />} onClick={onScanId}>
+            {t("Patient:ScanId:Button")}
           </Button>
         )}
 

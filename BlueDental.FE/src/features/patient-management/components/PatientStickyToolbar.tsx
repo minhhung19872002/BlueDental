@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import { DownloadOutlined, PlusOutlined } from "@ant-design/icons";
+import { DownloadOutlined, IdcardOutlined, PlusOutlined } from "@ant-design/icons";
 import { PeriodPicker, type Period } from "@/components/PeriodPicker";
 import { t } from "@/lib/i18n";
 import { PatientFilterPopover } from "./PatientFilterPopover";
@@ -19,6 +19,8 @@ interface Props {
   onClearFilters: () => void;
   onExport: () => void;
   onCreate: () => void;
+  /** "Quét CCCD" — offered alongside "Tạo hồ sơ", since it ends in one. */
+  onScanId: () => void;
 }
 
 /**
@@ -41,6 +43,7 @@ export function PatientStickyToolbar({
   onClearFilters,
   onExport,
   onCreate,
+  onScanId,
 }: Props) {
   // Nothing is rendered until it slides in: while the real toolbar is on screen
   // these would be a second "Xuất file" and a second "Tạo hồ sơ" with the same
@@ -64,6 +67,12 @@ export function PatientStickyToolbar({
         {canExport && (
           <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
             {t("Patient:Viewer:Export")}
+          </Button>
+        )}
+
+        {canCreate && (
+          <Button icon={<IdcardOutlined />} onClick={onScanId}>
+            {t("Patient:ScanId:Button")}
           </Button>
         )}
 

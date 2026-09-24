@@ -36,6 +36,9 @@ public class PatientDto : FullAuditedEntityDto<Guid>
     public string? ProvinceCode { get; set; }
     public string? WardCode { get; set; }
 
+    /// <summary>Địa chỉ cũ — the pre-2025 address as printed on the CCCD.</summary>
+    public string? OldAddress { get; set; }
+
     /// <summary>
     /// The root reason's text — what the hồ sơ dialog's Lý do đến khám box
     /// binds. The card renders <see cref="ExaminationReasons"/> instead.
@@ -148,6 +151,17 @@ public class PhoneAvailabilityDto
     public string? PatientCode { get; set; }
 }
 
+/// <summary>
+/// Answer to "Quét CCCD": whether a record in the branch already holds the
+/// scanned number. Deliberately yes/no only — like the duplicate refusal
+/// (R-564) it never names the holder; the list the scan then narrows is
+/// where a reader with Patient.Read sees the record.
+/// </summary>
+public class NationalIdLookupDto
+{
+    public bool Exists { get; set; }
+}
+
 public class RegisterPatientDto
 {
     public string FirstName { get; set; } = default!;
@@ -172,6 +186,7 @@ public class RegisterPatientDto
     public string? Address { get; set; }
     public string? ProvinceCode { get; set; }
     public string? WardCode { get; set; }
+    public string? OldAddress { get; set; }
     public string? ExaminationReason { get; set; }
     public string? Note { get; set; }
 
@@ -200,6 +215,7 @@ public class UpdatePatientDto
     public string? Address { get; set; }
     public string? ProvinceCode { get; set; }
     public string? WardCode { get; set; }
+    public string? OldAddress { get; set; }
     public string? ExaminationReason { get; set; }
     public string? Note { get; set; }
 
@@ -216,7 +232,7 @@ public class GetPatientListInput : PagedAndSortedResultRequestDto
     // X-Clinic-Branch-Id header and is resolved server-side; letting the body
     // name a branch too would be an unchecked way past that scope.
 
-    /// <summary>Tìm kiếm — matches name, patient code or phone.</summary>
+    /// <summary>Tìm kiếm — matches name, patient code, phone or CCCD.</summary>
     public string? Filter { get; set; }
 
     /// <summary>Record lifecycle, not the treatment tabs.</summary>

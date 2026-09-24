@@ -120,6 +120,29 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             };
     }
 
+    /// <summary>
+    /// "Quét CCCD". Branch-scoped like the uniqueness rule it mirrors: a number
+    /// held at another branch is a new record here, not a match.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
+    public async Task<NationalIdLookupDto> FindByNationalIdAsync(string nationalId)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+
+        if (string.IsNullOrWhiteSpace(nationalId))
+        {
+            return new NationalIdLookupDto { Exists = false };
+        }
+
+        var trimmed = nationalId.Trim();
+        var query = await _repository.GetQueryableAsync();
+
+        var exists = await AsyncExecuter.AnyAsync(query
+            .Where(p => p.BranchId == branchId && p.NationalId == trimmed));
+
+        return new NationalIdLookupDto { Exists = exists };
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Patient.Create)]
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
@@ -138,6 +161,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             input.NationalId);
 
         await EnsureNationalIdIsFreeAsync(branchId, patient.NationalId, excludeId: null);
+        patient.SetOldAddress(input.OldAddress);
 
         await ApplyProfileAsync(
             patient,
@@ -168,6 +192,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         patient.UpdateContact(new ContactInfo(input.PhoneNumber, input.Email, input.Address));
         patient.SetNationalId(input.NationalId);
         await EnsureNationalIdIsFreeAsync(patient.BranchId, patient.NationalId, patient.Id);
+        patient.SetOldAddress(input.OldAddress);
 
         if (!string.IsNullOrWhiteSpace(input.PatientCode) && input.PatientCode.Trim() != patient.PatientCode)
         {
@@ -275,7 +300,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 || p.LastName.ToLower().Contains(term)
                 || (p.LastName + " " + p.FirstName).ToLower().Contains(term)
                 || p.PatientCode.ToLower().Contains(term)
-                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(term)));
+                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(term))
+                || (p.NationalId != null && p.NationalId.Contains(term)));
         }
 
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
@@ -641,6 +667,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         Address = patient.Contact.Address,
         ProvinceCode = patient.ProvinceCode,
         WardCode = patient.WardCode,
+        OldAddress = patient.OldAddress,
         ExaminationReason = patient.ExaminationReason,
         // Newest first, as the card lists them.
         ExaminationReasons = patient.ExaminationReasons

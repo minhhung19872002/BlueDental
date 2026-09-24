@@ -71,6 +71,12 @@ export function PatientAddressColumn({ provinceCode, onProvinceChange }: Props) 
           allowClear
         />
       </FloatingField>
+
+      {/* The card's address in the old province / district / ward shape.
+          Kept apart: the two shapes do not map one to one. */}
+      <FloatingField label={t("Patient:Form:OldAddress")} name="oldAddress">
+        <Input.TextArea rows={2} maxLength={500} />
+      </FloatingField>
     </>
   );
 }

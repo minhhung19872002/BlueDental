@@ -22,6 +22,9 @@ public interface IPatientAppService : IApplicationService
     /// <summary>Duplicate-phone check behind the dialog's Điện thoại field.</summary>
     Task<PhoneAvailabilityDto> CheckPhoneAsync(string phone, Guid? excludeId = null);
 
+    /// <summary>"Quét CCCD" — is the scanned number already on a record in the branch?</summary>
+    Task<NationalIdLookupDto> FindByNationalIdAsync(string nationalId);
+
     /// <summary>"BE:Common:ExportFile" on the patient list — the filtered list as .xlsx.</summary>
     Task<byte[]> ExportAsync(GetPatientListInput input);
 }

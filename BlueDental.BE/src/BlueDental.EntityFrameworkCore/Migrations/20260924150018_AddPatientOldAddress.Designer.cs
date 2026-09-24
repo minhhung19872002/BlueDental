@@ -3,6 +3,7 @@ using System;
 using BlueDental.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Volo.Abp.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     [DbContext(typeof(BlueDentalDbContext))]
-    partial class BlueDentalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924150018_AddPatientOldAddress")]
+    partial class AddPatientOldAddress
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -680,10 +683,6 @@ namespace BlueDental.Migrations
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("numeric(18,2)");
 
-                    b.PrimitiveCollection<Guid[]>("LaboSupplierIds")
-                        .IsRequired()
-                        .HasColumnType("uuid[]");
-
                     b.Property<bool>("PriceIncludesTax")
                         .HasColumnType("boolean");
 
@@ -724,9 +723,6 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("CatalogEntryId")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("IsMarketingSalary")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(400)
@@ -737,9 +733,6 @@ namespace BlueDental.Migrations
 
                     b.Property<decimal>("Value")
                         .HasColumnType("numeric(18,2)");
-
-                    b.Property<short>("ValueType")
-                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
 

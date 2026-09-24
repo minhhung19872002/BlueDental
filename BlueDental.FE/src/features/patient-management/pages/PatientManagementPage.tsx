@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -13,6 +14,9 @@ import { useBranchFilter } from "@/lib/clinicBranch";
 import { patientApi } from "../api/patientApi";
 import { usePatientDto, usePatientList } from "../api/patientQueries";
 import { usePatientListFilters } from "../hooks/usePatientListFilters";
+import { useNationalIdScan } from "../hooks/useNationalIdScan";
+import { NationalIdScanDialog } from "../components/scan-id/NationalIdScanDialog";
+import type { PatientPrefill } from "../types/patient";
 import { PatientEditorDialog } from "../components/PatientEditorDialog";
 import { PatientListFilters } from "../components/PatientListFilters";
 import { PatientListToolbar } from "../components/PatientListToolbar";
@@ -20,8 +24,14 @@ import { PatientStickyToolbar } from "../components/PatientStickyToolbar";
 import { PatientTable } from "../components/PatientTable";
 import "../components/patient.css";
 
-/** Which record the dialog is on: none, a new one, or the one being edited. */
-type Editing = { mode: "closed" } | { mode: "create" } | { mode: "edit"; id: string };
+/**
+ * Which record the dialog is on: none, a new one (maybe filled from a scanned
+ * CCCD), or the one being edited.
+ */
+type Editing =
+  | { mode: "closed" }
+  | { mode: "create"; prefill?: PatientPrefill }
+  | { mode: "edit"; id: string };
 
 /**
  * Danh sách bệnh nhân — /patient.
@@ -32,6 +42,7 @@ type Editing = { mode: "closed" } | { mode: "create" } | { mode: "edit"; id: str
 export function PatientManagementPage() {
   const branchId = useBranchFilter();
   const filters = usePatientListFilters();
+  const { setPeriod, clearFilters, setFilters } = filters;
   const [editing, setEditing] = useState<Editing>({ mode: "closed" });
   const [exporting, setExporting] = useState(false);
   const ability = useAbility("patient");
@@ -84,6 +95,23 @@ export function PatientManagementPage() {
   const closeDialog = () => setEditing({ mode: "closed" });
   const openCreate = () => setEditing({ mode: "create" });
 
+  // Quét CCCD: a card already on file narrows the list to its record (TH1);
+  // a new one opens "Tạo hồ sơ" filled from the card (TH2).
+  const handleExistingId = useCallback(
+    (nationalId: string) => {
+      setPeriod({ mode: null, anchor: new Date() });
+      clearFilters();
+      setFilters({ keyword: nationalId });
+      toast.info(t("Patient:ScanId:AlreadyExists"));
+    },
+    [setPeriod, clearFilters, setFilters],
+  );
+  const handleNewId = useCallback(
+    (prefill: PatientPrefill) => setEditing({ mode: "create", prefill }),
+    [],
+  );
+  const scan = useNationalIdScan({ onExisting: handleExistingId, onNew: handleNewId });
+
   // The edit dialog waits for the record: opening it empty would show "Tạo hồ
   // sơ" for a moment and ask the server for a code the patient already has.
   const dialogPatient = editing.mode === "edit" ? editingPatient.data ?? null : null;
@@ -104,6 +132,7 @@ export function PatientManagementPage() {
         onClearFilters={filters.clearFilters}
         onExport={() => void handleExport()}
         onCreate={openCreate}
+        onScanId={scan.openScan}
       />
 
       {/* Marks the top of the page for the compact toolbar above. It is taken
@@ -125,6 +154,7 @@ export function PatientManagementPage() {
         onPeriodChange={filters.setPeriod}
         onExport={() => void handleExport()}
         onCreate={openCreate}
+        onScanId={scan.openScan}
       />
 
       <PatientListFilters
@@ -148,7 +178,22 @@ export function PatientManagementPage() {
       {/* Mounted only once there is something to edit, so the dialog's own
           lookups are not fetched on a screen nobody has opened. */}
       {dialogOpen && (
-        <PatientEditorDialog open patient={dialogPatient} onClose={closeDialog} />
+        <PatientEditorDialog
+          open
+          patient={dialogPatient}
+          prefill={editing.mode === "create" ? editing.prefill : undefined}
+          onClose={closeDialog}
+        />
+      )}
+
+      {scan.open && (
+        <NationalIdScanDialog
+          state={scan.state}
+          onRead={scan.read}
+          onRescan={scan.rescan}
+          onConfirm={scan.confirm}
+          onClose={scan.close}
+        />
       )}
     </div>
   );

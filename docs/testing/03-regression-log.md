@@ -5853,3 +5853,90 @@ Bằng chứng (preview `dist-preview-stage` :8086 + host :5000, `E2E_BASE_URL=h
   lọc `Catalog` 61/61.
 - Bộ đầy đủ `taxonomy* / payment-qr / branch-*`: FULLSET_RESULT
 
+## 2026-09-24 — Danh sách bệnh nhân: Quét CCCD (R-565)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-565 | Chủ dự án (đặc tả 17): thêm "Quét CCCD" — CCCD đã có thì lọc danh sách, chưa có thì mở Tạo hồ sơ điền sẵn; địa chỉ cũ lưu trường riêng | Tính năng mới, không có trên bản gốc — xem `docs/clone/pages/patient-list.md` § Quét CCCD. BE: `Patient.OldAddress` (+ `SetOldAddress`, migration `20260924150018_AddPatientOldAddress`, 500 ký tự) đi qua Register/Update/PatientDto; `GET api/v1/app/patients/by-national-id` (Patient.Read, phạm vi chi nhánh) trả **chỉ** `{exists}` để giữ nguyên quyết định R-564 không lộ hồ sơ; tìm kiếm danh sách khớp thêm `NationalId`. FE: `NationalIdScanDialog` + `QrCameraView` (`qr-scanner`), `useNationalIdScan`, `utils/cccdQr.ts`, `utils/cardAddress.ts` (bảng sáp nhập tỉnh 63→34), `PatientEditorDialog.prefill`, ô "Địa chỉ cũ". Nhãn ô cố ý **không** chứa chữ "CCCD": bản nháp "Địa chỉ cũ (theo CCCD)" làm locator `textbox "CCCD"` bắt trùng hai ô. |
+
+Bằng chứng (bản build production `vite preview` :8080, API :5019, DB thật, không chặn
+request): `e2e/patient-scan-id.spec.ts` **3/3** — quét chuỗi QR địa chỉ cũ → dialog điền
+đúng tên/CCCD/số nhà/địa chỉ cũ, lưu, đọc lại bằng request riêng thấy `dateOfBirth`,
+`gender`, `provinceCode 79`, `wardCode 26743`, `oldAddress`; reload, quét lại → toast,
+ô tìm kiếm = CCCD, đúng dòng hiện, địa chỉ cũ còn khi mở sửa; chuỗi không phải thẻ →
+báo lỗi trong modal; `by-national-id` trả đúng `{exists:false}`/`{exists:true}` và chi
+nhánh 2 thấy `false`. `e2e/patient-national-id.spec.ts` 3/3. Domain.Tests 368/368,
+Application.Tests 614/614; `tsc -b` sạch. Camera thật chưa kiểm tự động (Chromium
+headless không có camera — modal hiện thông báo và vẫn dùng được máy quét/ảnh).
+Level 2.
+
+Regression `e2e/patient.spec.ts` (cùng DB, cùng API): bản có Quét CCCD **43/62**, bản
+gốc HEAD `73fc62f` build riêng ở :8081 **42/62** — 18 test đỏ trùng nhau ở cả hai
+(trang chi tiết mở tab Chẩn đoán & Tư vấn thay vì Hồ sơ, tag, thanh toán, công đoạn…),
+tức đỏ sẵn trước tính năng này. Ca đỏ riêng ở bản mới ("the Tiếp nhận steps advance
+one at a time") chạy lại một mình thì xanh — phụ thuộc thứ tự/dữ liệu, không do thay
+đổi. Hai ca chỉ đỏ ở bản gốc cũng cùng loại. F-06 giữ `DIRTY`.
+
+
+## 2026-09-24 (tối) — Quét CCCD: camera không đọc, ảnh bị lật, xem trước (R-566)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-566 | Chủ dự án: đưa thẻ vào khung không quét được, camera sau điện thoại (dùng làm webcam) hiện **ngược**; muốn địa chỉ cũ tự quy ra xã/tỉnh mới và form quét có xem trước | (1) `qr-scanner` cắt vùng giữa rồi thu về **400×400 px** trước khi giải mã — mã QR CCCD dày, còn ~0,6 px/ô nên không đọc được; (2) nó đặt `scaleX(-1)` khi track báo `facingMode: user`, Windows báo vậy cho camera ảo. Thay bằng **zxing-wasm** trong Web Worker (`utils/qr/`), đọc khung gốc ≤1920 px, `tryHarder`, UTF-8, tự đọc mã lật gương; camera xin 1920×1080, không bao giờ lật ảnh. Địa chỉ: `cardAddress.ts` viết lại theo dữ liệu (`oldWardMap.json` từ `vietnam-address-database`), nhận địa chỉ không có chữ "Xã/Huyện". Modal mới hai cột + `CccdPreviewCard`, xác nhận bằng nút theo kết quả (`Lọc hồ sơ trong danh sách` / `Tạo hồ sơ`). |
+
+Bằng chứng (build production :8080, API :5019, DB thật): `e2e/patient-scan-id.spec.ts`
+**5/5** — Chromium chạy **camera giả** phát video thẻ có QR nhỏ **bị lật gương** ở góc
+trên phải (`e2e/fixtures/cccdQr.ts` sinh QR thật bằng ZXing writer + Y4M): đọc được,
+`video` có `transform: none`, xem trước "Xã Vạn Tường, Tỉnh Quảng Ngãi" từ địa chỉ cũ
+"Thôn Đông, Bình Thuận, Bình Sơn, Quảng Ngãi", tạo hồ sơ → DB có `provinceCode 51`,
+`wardCode 21061`, `oldAddress`; reload, camera đọc lại → "Đã có hồ sơ trong chi nhánh"
+→ lọc danh sách. Ảnh QR tải lên (địa chỉ cũ Q.1 → Phường Bến Thành `26743`); máy quét
+cầm tay với địa chỉ mới "Hòa Long, Đồng Tháp" → `30208`, `oldAddress null`; chuỗi không
+phải thẻ bị từ chối; tra CCCD có/không theo chi nhánh. `patient-national-id.spec.ts` 3/3.
+Camera điện thoại thật chưa kiểm tự động — cần chủ dự án thử lại.
+
+
+## 2026-09-24 (khuya) — Quét CCCD: khung tự bám mã QR, bỏ ô nhập, modal không cuộn (R-567)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-567 | Chủ dự án: khung ngắm quá to, muốn khung tự detect và bo vào mã QR như Zalo; bỏ ô nhập số CCCD; modal nhỏ phải cuộn | Worker bật `returnErrors` để có **vị trí** mã ZXing thấy nhưng chưa đọc được; trả 4 góc về camera; `QrBox` vẽ ngoặc góc bằng SVG cùng hệ toạ độ khung hình (`xMidYMid meet` ↔ `object-fit: contain`), vàng khi đang đọc, xanh trên ảnh dừng khi đã đọc. Mã thấy mà chưa đọc → cắt vùng quanh mã, phóng lên ~640px, đọc lần hai. Bỏ ô nhập + nhánh "12 số" trong `parseCccdQr`. Modal `min(1240px, 100vw-48px)`, `centered`; khung camera `clamp(260px, 100vh-350px, 620px)`; thẻ xem trước thu gọn. |
+
+Bằng chứng: `e2e/patient-scan-id.spec.ts` **5/5**, `patient-national-id.spec.ts` 3/3 (build
+production :8080, API :5019, DB thật). Ca camera kiểm thêm: modal không có ô nhập nào,
+`.ant-modal-body` không cuộn ở 1280×720 cả trước lẫn sau khi đọc, ảnh dừng + khung xanh
+hiện sau khi đọc. Khung vàng bám mã kiểm bằng ảnh chụp với camera giả phát mã QR hỏng
+(thấy được, không đọc được).
+
+Bổ sung R-567: chủ dự án thấy khung xanh trên ảnh dừng **lệch** khỏi mã QR → bỏ hẳn khung
+trên ảnh dừng (chỉ còn khung vàng khi đang quét); `useQrCamera.capture` chỉ giữ ảnh.
+`patient-scan-id.spec.ts` 5/5 — ca camera kiểm ảnh dừng hiện và **không** có `.bd-idscan-box`.
+
+
+## 2026-09-24 (khuya) — Quét CCCD: khung bám chưa khớp/mượt; CCCD đã có thì lọc luôn (R-568)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-568 | Chủ dự án: khung bám không bao quanh mã QR đúng, không mượt như Zalo; CCCD đã có thì lọc luôn, khỏi hiện thông tin | Đo: giải mã chỉ 3–14 ms, nên cái chậm là vòng quét nghỉ 100 ms/khung, việc chép khung 1920 px trên luồng trang, khung nới 18% và nhảy cóc. Sửa: đọc khung liên tiếp theo `requestAnimationFrame`; khung chuyển sang worker bằng `ImageBitmap` (không chép); worker dò nhanh trên bản ≤1280 px mỗi khung, chỉ đọc kỹ toàn khung khi đang mất mã hoặc thấy mà chưa đọc được (kèm lượt phóng to); toạ độ góc chuẩn hoá 0–1; `useSmoothedCorners` làm mượt 60 fps (hằng số 70 ms, nhảy xa thì bắt ngay); khung chỉ nới 5%. TH1: `useNationalIdScan.check` tra trước, có hồ sơ thì gọi lọc + đóng modal ngay; thẻ xem trước chỉ hiện khi đã biết là hồ sơ mới. |
+
+Bằng chứng: `e2e/patient-scan-id-tracking.spec.ts` **1/1** — camera giả phát mã QR lật gương
+thấy-được-không-đọc-được, đo khung vẽ so với vị trí thật của mã trên màn hình: lệch **2 px**
+mỗi cạnh (mã ~80 px, ngưỡng 4,6 px). `e2e/patient-scan-id.spec.ts` **5/5** — ca TH1 giờ tự
+đóng modal và lọc danh sách, không bấm nút.
+
+Bổ sung R-568: chủ dự án — không cần bấm "Mở camera quét", mở modal là quét. Camera bật
+cùng modal (`cameraOn` mặc định bật); nút thành "Dừng camera"; camera bị từ chối / không có
+thì nút "Mở camera quét" **thử lại** (`useQrCamera.attempt`) thay vì tắt. Spec tách:
+`patient-scan-id-camera.spec.ts` (camera giả, không bấm nút nào), `patient-scan-id.spec.ts`
+(chỉ ảnh — trình duyệt không có camera), `patient-scan-id-tracking.spec.ts` (+ dừng/mở lại).
+Tổng 9/9 cùng `patient-national-id.spec.ts`.
+
+## 2026-09-24 (khuya) — Quét CCCD: khung lúc nhỏ lúc vừa (R-569)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-569 | Chủ dự án: khung bám vẫn không khớp mã QR, lúc nhỏ lúc vừa | Tái hiện bằng khung hình tổng hợp (mã CCCD 41 ô, 3 px/ô, mờ 3×3, nhiễu ±18, nghiêng nhẹ): kết quả **đọc được** luôn cho viền đúng (1,00), nhưng kết quả ZXing **thấy mà chưa đọc được** (ChecksumError, `returnErrors`) thỉnh thoảng báo một vùng con **0,26–0,43** kích thước thật — 6/60 khung. Sửa: `utils/qr/sightingFilter.ts` — kết quả đọc được luôn tin; chưa đọc được chỉ tin khi gần vuông (cạnh ≤1,4×, đường chéo ≤1,3×) và cỡ lệch ≤25% so với lần tin gần nhất (≤1,5 s); chưa có gì để so thì phải hai khung liền nhau khớp (≤15% cỡ, tâm lệch ≤½ cạnh). Khung bị loại coi như không thấy (khung cũ giữ 300 ms). |
+
+Bằng chứng: chạy bộ lọc trên chính 60 khung đó — sai cỡ **6 → 0**, không khung đúng nào bị bỏ.
+`patient-scan-id-tracking` (khung lệch 2 px), `-camera`, `patient-scan-id.spec.ts`: **6/6**.
+Camera điện thoại thật chưa kiểm tự động.

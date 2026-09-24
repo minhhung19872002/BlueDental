@@ -62,6 +62,13 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     /// <summary>Xã/ Phường — code from that province's ward list.</summary>
     public string? WardCode { get; private set; }
 
+    /// <summary>
+    /// Địa chỉ cũ — the address as printed on the CCCD, still in the pre-2025
+    /// province / district / ward shape. Kept verbatim beside the new-shape
+    /// address above because the two tiers no longer map one to one.
+    /// </summary>
+    public string? OldAddress { get; private set; }
+
     /// <summary>Ghi chú.</summary>
     public string? Note { get; private set; }
 
@@ -204,6 +211,12 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     {
         ProvinceCode = Trimmed(provinceCode);
         WardCode = ProvinceCode is null ? null : Trimmed(wardCode);
+        return this;
+    }
+
+    public Patient SetOldAddress(string? oldAddress)
+    {
+        OldAddress = Trimmed(oldAddress);
         return this;
     }
 

@@ -233,6 +233,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.InsuranceNumber).HasMaxLength(30);
             entity.Property(x => x.ProvinceCode).HasMaxLength(20);
             entity.Property(x => x.WardCode).HasMaxLength(20);
+            entity.Property(x => x.OldAddress).HasMaxLength(500);
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.DiseaseHistoryEntryIds).UsePropertyAccessMode(PropertyAccessMode.Field);
