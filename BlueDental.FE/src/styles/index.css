@@ -32,6 +32,7 @@
   /* Link blue — what the reference draws record links on. Kept as its own token
      rather than folded into --bd-blue, which v2 moved to indigo. */
   --bd-link: #2671d8;
+  --bd-link-pale: #f3f8ff;
 
   /* Text ramp, darkest to faintest. */
   --bd-ink: #171c33;

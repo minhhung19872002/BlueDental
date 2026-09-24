@@ -15,28 +15,40 @@ public class CatalogServiceStage : Entity<Guid>
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>
-    /// The reference labels this column "BE:Field:Value" with no unit next to it.
-    /// BlueDental stores the number as typed and leaves the meaning to the
-    /// treatment module — see docs/clone/unknowns.md.
+    /// "BE:Field:Value" — a share of the service price when <see cref="ValueType"/>
+    /// is <see cref="ServiceStageValueType.Percentage"/>, an amount in VNĐ otherwise.
     /// </summary>
     public decimal Value { get; private set; }
+
+    /// <summary>The reference's "%" / "VNĐ" switch in front of the value.</summary>
+    public ServiceStageValueType ValueType { get; private set; }
+
+    /// <summary>The reference's star — "Tính lương cho phòng MKT".</summary>
+    public bool IsMarketingSalary { get; private set; }
 
     public int SortOrder { get; private set; }
 
     protected CatalogServiceStage() { }
 
-    public CatalogServiceStage(Guid id, Guid catalogEntryId, string name, decimal value, int sortOrder)
+    public CatalogServiceStage(
+        Guid id,
+        Guid catalogEntryId,
+        string name,
+        decimal value,
+        ServiceStageValueType valueType,
+        bool isMarketingSalary,
+        int sortOrder)
         : base(id)
     {
         CatalogEntryId = catalogEntryId;
-        Revise(name, value, sortOrder);
+        Revise(name, value, valueType, isMarketingSalary, sortOrder);
     }
 
     /// <summary>
     /// The same step, edited in place: its id is what every công đoạn that
     /// ticked it points at, so an edit must never mint a new one.
     /// </summary>
-    internal void Revise(string name, decimal value, int sortOrder)
+    internal void Revise(string name, decimal value, ServiceStageValueType valueType, bool isMarketingSalary, int sortOrder)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -47,8 +59,17 @@ public class CatalogServiceStage : Entity<Guid>
                 "A stage value cannot be negative.");
         }
 
+        if (valueType == ServiceStageValueType.Percentage && value > 100m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidStageValue,
+                "A percentage stage cannot be worth more than 100.");
+        }
+
         Name = name;
         Value = value;
+        ValueType = valueType;
+        IsMarketingSalary = isMarketingSalary;
         SortOrder = sortOrder;
     }
 }

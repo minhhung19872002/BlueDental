@@ -43,6 +43,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidPrescriptionLine = "BlueDental:Catalogs:0022";
         public const string InvalidImportFile = "BlueDental:Catalogs:0023";
         public const string ImportNotSupported = "BlueDental:Catalogs:0024";
+        public const string LaboSupplierNotInBranch = "BlueDental:Catalogs:0025";
     }
 
     public static class PatientManagement

@@ -15,7 +15,8 @@ interface CurrencyInputProps
  * Input nên ăn theo style form hiện có. Dùng trong Form.Item/FloatingField
  * như mọi control khác.
  */
-const MAX_VND = 9_999_999_999;
+/** Ten digits: the largest amount the reference lets anyone type. */
+export const MAX_VND = 9_999_999_999;
 
 export function CurrencyInput({ value, onChange, isAllowed, ...rest }: CurrencyInputProps) {
   return (

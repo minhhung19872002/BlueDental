@@ -981,6 +981,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.TaxRate).HasConversion<short>();
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.PrimitiveCollection(x => x.LaboSupplierIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => x.CatalogEntryId).IsUnique();
         });
 
@@ -990,6 +991,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(400).IsRequired();
             entity.Property(x => x.Value).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.ValueType).HasConversion<short>();
             entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
         });
 

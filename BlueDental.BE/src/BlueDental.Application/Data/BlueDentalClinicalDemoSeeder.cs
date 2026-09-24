@@ -243,6 +243,8 @@ public class BlueDentalClinicalDemoSeeder(
                     entry.Id,
                     step.Name,
                     step.Value,
+                    ServiceStageValueType.Amount,
+                    false,
                     index)));
 
                 await catalogRepository.UpdateAsync(entry, autoSave: true);

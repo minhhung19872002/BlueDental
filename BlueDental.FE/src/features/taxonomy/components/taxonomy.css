@@ -12,6 +12,114 @@
   }
 }
 
+/* ── Service dialog: Công đoạn tab ──────────────────────────────────────── */
+
+/* The add row sits under two hint paragraphs and above the table. */
+.bd-stage-add {
+  margin-top: 12px;
+}
+
+/* Header 40px on the soft head colour, rows 56px, as the reference draws them. */
+.bd-stage-table .ant-table {
+  font-size: 13px;
+}
+.bd-stage-table .ant-table-thead > tr > th {
+  height: 40px;
+  padding-block: 0;
+  background: var(--bd-bg-head);
+}
+.bd-stage-table .ant-table-tbody > tr > td {
+  height: 56px;
+  padding-block: 8px;
+}
+
+/* %/VNĐ toggle beside the number, one line. */
+.bd-stage-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+}
+.bd-stage-value .ant-input {
+  flex: 1 1 auto;
+  min-width: 96px;
+}
+
+.bd-stage-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The star reads muted until pressed, then amber like the reference's. */
+.bd-stage-star.ant-btn {
+  color: var(--bd-muted);
+}
+.bd-stage-star--on.ant-btn,
+.bd-stage-star--on.ant-btn:hover {
+  color: var(--bd-amber);
+}
+
+/* ── Service dialog: Labo tab ───────────────────────────────────────────── */
+
+/* The picks sit under the box as 29px pills, 8px apart, as the reference draws them. */
+.bd-labo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.bd-labo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 150px;
+  padding: 6px 12px;
+  border: 1px solid var(--bd-link);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-link-pale);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 15px;
+  color: var(--bd-link);
+}
+.bd-labo-chip__text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bd-labo-chip__remove {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.bd-labo-chip__remove:hover {
+  color: var(--bd-red);
+}
+
+/* Info circle before the amber note: 16px, 6px from the text. */
+.bd-labo-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--bd-amber);
+}
+.bd-labo-hint .anticon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
 /* ── Import from Excel dialog ───────────────────────────────────────────── */
 
 .bd-import-steps {

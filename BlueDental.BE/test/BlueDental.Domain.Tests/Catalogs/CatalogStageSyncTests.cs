@@ -15,10 +15,14 @@ public class CatalogStageSyncTests
     private static int _next;
     private static Guid NewId() => new($"00000000-0000-0000-0000-{++_next:D12}");
 
+    private static CatalogStageRow Row(Guid id, string name, decimal value,
+        ServiceStageValueType type = ServiceStageValueType.Percentage, bool marketing = false)
+        => new(id, name, value, type, marketing);
+
     private static CatalogEntry ServiceWith(params string[] steps)
     {
         var entry = CatalogEntry.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "care_service", "Tẩy trắng");
-        entry.SyncStages(steps.Select(name => (Guid.Empty, name, 0m)), NewId);
+        entry.SyncStages(steps.Select(name => Row(Guid.Empty, name, 0m)), NewId);
         return entry;
     }
 
@@ -29,7 +33,7 @@ public class CatalogStageSyncTests
         var first = entry.Stages[0].Id;
         var second = entry.Stages[1].Id;
 
-        entry.SyncStages(new[] { (first, "Lấy dấu", 0m), (second, "Lắp răng", 10m) }, NewId);
+        entry.SyncStages(new[] { Row(first, "Lấy dấu", 0m), Row(second, "Lắp răng", 10m) }, NewId);
 
         Assert.Equal(new[] { first, second }, entry.Stages.OrderBy(s => s.SortOrder).Select(s => s.Id));
         var renamed = entry.Stages.Single(s => s.Id == second);
@@ -43,7 +47,7 @@ public class CatalogStageSyncTests
         var entry = ServiceWith("Lấy dấu", "Lắp");
         var kept = entry.Stages[1].Id;
 
-        entry.SyncStages(new[] { (kept, "Lắp", 0m), (Guid.Empty, "Kiểm tra", 0m) }, NewId);
+        entry.SyncStages(new[] { Row(kept, "Lắp", 0m), Row(Guid.Empty, "Kiểm tra", 0m) }, NewId);
 
         var ordered = entry.Stages.OrderBy(s => s.SortOrder).ToList();
         Assert.Equal(2, ordered.Count);
@@ -59,7 +63,7 @@ public class CatalogStageSyncTests
         var entry = ServiceWith("Lấy dấu");
         var stranger = Guid.NewGuid();
 
-        entry.SyncStages(new[] { (stranger, "Lấy dấu", 0m) }, NewId);
+        entry.SyncStages(new[] { Row(stranger, "Lấy dấu", 0m) }, NewId);
 
         Assert.Single(entry.Stages);
         Assert.NotEqual(stranger, entry.Stages[0].Id);

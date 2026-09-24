@@ -39,6 +39,7 @@ internal static class CatalogEntryParts
                 serviceConfig.RevenueByStage,
                 serviceConfig.RequireStageSequence,
                 serviceConfig.WarrantyDays);
+            entry.ServiceConfig!.ReplaceLaboSuppliers(serviceConfig.LaboSupplierIds ?? []);
         }
 
         if (medicine != null)
@@ -57,7 +58,7 @@ internal static class CatalogEntryParts
             // service is edited (see CatalogEntry.SyncStages). Import rows carry
             // no id and so always come in as new steps.
             entry.SyncStages(
-                stages.Select(stage => (stage.Id, stage.Name, stage.Value)),
+                stages.Select(stage => new CatalogStageRow(stage.Id, stage.Name, stage.Value, stage.ValueType, stage.IsMarketingSalary)),
                 guids.Create);
         }
 

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 
@@ -38,6 +40,15 @@ public class CatalogServiceConfig : Entity<Guid>
     // ── tab "BE:Common:Warranty" ───────────────────────────────────────────────────────
     /// <summary>0 means "BE:Warranty:None"; otherwise the number of days.</summary>
     public int WarrantyDays { get; private set; }
+
+    // ── tab "Labo" ──────────────────────────────────────────────────────────
+    private List<Guid> _laboSupplierIds = [];
+
+    /// <summary>
+    /// The reference's <c>laboIds</c> — the labo suppliers a labo slip for this
+    /// service may pick from. Empty means every supplier of the branch.
+    /// </summary>
+    public IReadOnlyCollection<Guid> LaboSupplierIds => _laboSupplierIds.AsReadOnly();
 
     protected CatalogServiceConfig() { }
 
@@ -93,32 +104,51 @@ public class CatalogServiceConfig : Entity<Guid>
         WarrantyDays = warrantyDays;
     }
 
+    /// <summary>Replaces the Labo tab's picks, in the order given and without repeats.</summary>
+    public void ReplaceLaboSuppliers(IEnumerable<Guid> supplierIds)
+    {
+        _laboSupplierIds = supplierIds.Where(id => id != Guid.Empty).Distinct().ToList();
+    }
+
     /// <summary>
-    /// "BE:Field:PriceAfterDiscount" — the listed price with the discount taken off.
+    /// "BE:Field:PriceAfterDiscount" — the listed price with the discount taken
+    /// off, quoted without VAT. Measured on the reference (staging, 2026-09-24):
+    /// with "BE:Field:AfterTax" the typed price already carries VAT, so the box
+    /// backs it out (net ÷ (1 + rate)); with "BE:Field:BeforeTax" it is the net
+    /// itself. Two decimals, as the reference's API returns them; the dialog
+    /// shows whole đồng.
     /// </summary>
     public decimal PriceAfterDiscount(decimal price)
+    {
+        var net = NetOfDiscount(price);
+
+        return Round(PriceIncludesTax ? net / TaxFactor : net);
+    }
+
+    /// <summary>
+    /// "BE:Field:AmountCollected" — what the customer pays, VAT included:
+    /// the net with VAT added under "BE:Field:BeforeTax", the net itself under
+    /// "BE:Field:AfterTax". Same measurement as <see cref="PriceAfterDiscount"/>.
+    /// </summary>
+    public decimal AmountCollected(decimal price)
+    {
+        var net = NetOfDiscount(price);
+
+        return Round(PriceIncludesTax ? net : net * TaxFactor);
+    }
+
+    /// <summary>The price with the discount taken off, never below zero.</summary>
+    private decimal NetOfDiscount(decimal price)
     {
         var discounted = DiscountIsPercent
             ? price * (1m - DiscountValue / 100m)
             : price - DiscountValue;
 
-        return discounted < 0m ? 0m : decimal.Round(discounted, 2);
+        return discounted < 0m ? 0m : discounted;
     }
 
-    /// <summary>
-    /// "BE:Field:AmountCollected".
-    ///
-    /// UNKNOWN_REFERENCE_BEHAVIOR: the reference computes both of these boxes on
-    /// the fly and the formula could only have been confirmed by typing into its
-    /// form. This is BlueDental's reading — the price already carries VAT when
-    /// "BE:Field:AfterTax" is selected, and has it added when "BE:Field:BeforeTax" is.
-    /// </summary>
-    public decimal AmountCollected(decimal price)
-    {
-        var net = PriceAfterDiscount(price);
+    private decimal TaxFactor => 1m + TaxRate.Percent() / 100m;
 
-        return PriceIncludesTax
-            ? net
-            : decimal.Round(net * (1m + TaxRate.Percent() / 100m), 2);
-    }
+    private static decimal Round(decimal value) =>
+        decimal.Round(value, 2, MidpointRounding.AwayFromZero);
 }

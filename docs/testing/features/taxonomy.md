@@ -103,3 +103,39 @@ Acceptance evidence (real stack, preview build on 8080 + API on 5000):
 Regression log: R-553..R-558, R-559..R-561 (update-if-changed), R-562 (preview
 table is no longer virtual, so the app-wide grab-to-scroll and the native
 horizontal bar work on it), R-563 ("Kết quả" pinned right, moved after "Lỗi").
+
+## Dialog Thêm dịch vụ — công đoạn %/VNĐ và tab Labo (2026-09-24)
+
+Staging changed the service dialog: no `Mã dịch vụ` box, a new stage table
+(value type toggle, marketing-salary star, inline rename, paging) and a fourth
+tab, **Labo**, that picks the branch's labo suppliers.
+
+Rules under test:
+
+- `stages[].valueType` is `0` (Percentage, the default for a new row) or `1`
+  (Amount); a percentage above 100 or a negative value → `Catalogs:0021`.
+- `serviceConfig.laboSupplierIds` must all belong to the entry's branch →
+  otherwise `Catalogs:0025`. Empty means "every supplier".
+- Existing stage rows were migrated as Amount, since their values were money.
+- `Giá sau giảm` / `Thực thu từ khách` follow the inputs live and use the
+  formula measured on staging (R-573): net = price − discount, never below
+  0; Trước thuế → net / net × (1 + rate); Sau thuế → net ÷ (1 + rate) / net.
+  The domain (`CatalogServiceConfig`) and `servicePricing.ts` share it.
+
+Acceptance evidence (real stack, preview build on 8080 + API on 5000):
+
+- `e2e/taxonomy-dialogs.spec.ts` "a service keeps its price configuration,
+  stages, warranty and labo suppliers": four tabs, no code box, one % stage
+  with the star on, one VNĐ stage, rename by pencil, "Hiển thị 2 trên 2",
+  one supplier picked ("Đã chọn 1 nhà cung cấp" plus its pill under the box;
+  the pill's × takes it out, picking again brings it back), a VNĐ stage value
+  typed past ten digits stops at 9.999.999.999 and a % value past 100 stops
+  at 100, the two price boxes read 900 / 990 before any save and 818 / 900
+  after switching to "Sau thuế", everything back after reload.
+- `e2e/taxonomy-dialogs.spec.ts` "the API refuses a labo supplier from
+  another branch and a share over 100 %": real HTTP from the logged-in page,
+  `0025`, `0021`, and a typed amount stage stored.
+- `BlueDental.Domain.Tests` `CatalogStageSyncTests` (value type / star kept
+  through `SyncStages`).
+
+Regression log: R-565..R-573.

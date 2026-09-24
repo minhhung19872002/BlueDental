@@ -1,9 +1,9 @@
-import { Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, Table, Tabs, Tooltip } from "antd";
+import { Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, Tabs } from "antd";
 import { toast } from "sonner";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { useEffect, useRef, useState } from "react";
+import { PlusOutlined } from "@ant-design/icons";
 import {
+  SERVICE_STAGE_VALUE_TYPE,
   SERVICE_TAX_RATE,
   SERVICE_TAX_RATE_OPTIONS,
   WARRANTY_PRESETS,
@@ -17,9 +17,13 @@ import {
 import { AppDialog } from "@/components/AppDialog";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
+import { useLaboSupplierOptions } from "@/hooks/useLaboPickers";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
+import { useServicePricePreview } from "../hooks/useServicePricePreview";
+import { ServiceLaboTab } from "./ServiceLaboTab";
+import { ServiceStageTable } from "./ServiceStageTable";
 
 interface Props {
   open: boolean;
@@ -37,7 +41,6 @@ interface FormValues {
   isDeleted: boolean;
   description: string;
   priority: number;
-  code: string;
 
   taxRate: ServiceTaxRate;
   priceIncludesTax: boolean;
@@ -53,6 +56,10 @@ interface FormValues {
   revenueByStage: boolean;
   requireStageSequence: boolean;
   warrantyDays: number;
+
+  /** Typed into the "Công đoạn" box; becomes a row on the button, never saved. */
+  stageDraft: string;
+  laboSupplierIds: string[];
 }
 
 const EMPTY: FormValues = {
@@ -63,7 +70,6 @@ const EMPTY: FormValues = {
   isDeleted: false,
   description: "",
   priority: 0,
-  code: "",
   taxRate: SERVICE_TAX_RATE.NotTaxable,
   priceIncludesTax: false,
   price: 0,
@@ -77,6 +83,8 @@ const EMPTY: FormValues = {
   revenueByStage: false,
   requireStageSequence: false,
   warrantyDays: 0,
+  stageDraft: "",
+  laboSupplierIds: [],
 };
 
 /** Labels for the reference's fixed row of warranty choices. */
@@ -87,33 +95,36 @@ function warrantyLabel(days: number): string {
   return t("Taxonomy:Service:WarrantyMonths", String(Math.round(days / 30)));
 }
 
-/** One labelled checkbox with an optional explanation under it. */
+/** One labelled checkbox with any number of explanation lines under it. */
 function CheckRow({
   name,
   label,
-  hint,
+  hints = [],
 }: {
   name: keyof FormValues;
   label: string;
-  hint?: string;
+  hints?: string[];
 }) {
   return (
     <div className="bd-check-row">
       <Form.Item name={name} valuePropName="checked" noStyle>
         <Checkbox>{label}</Checkbox>
       </Form.Item>
-      {hint && <p className="bd-check-hint">{hint}</p>}
+      {hints.map((hint) => (
+        <p key={hint} className="bd-check-hint">
+          {hint}
+        </p>
+      ))}
     </div>
   );
 }
 
 /**
  * Dịch vụ — the reference's largest catalog dialog: the entry itself, a price
- * and tax block, and three tabs of settings.
+ * and tax block, and four tabs of settings (Cài đặt, Công đoạn, Bảo hành, Labo).
  *
- * "Giá sau giảm" and "Thực thu từ khách" are shown from the server's own
- * numbers after a save rather than recomputed here, so the browser and the
- * domain can never disagree about the formula.
+ * "Giá sau giảm" and "Thực thu từ khách" follow the price inputs live, as the
+ * reference's do; the formula is the domain's, mirrored in `servicePricing.ts`.
  */
 export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose }: Props) {
   const branchId = useCurrentBranchId();
@@ -125,10 +136,11 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
   const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
   const warrantyDays = Form.useWatch("warrantyDays", form) ?? 0;
   const isDeleted = Form.useWatch("isDeleted", form) ?? false;
+  const pricing = useServicePricePreview(form);
 
   /** The stage list is a small editor of its own, not a single field. */
   const [stages, setStages] = useState<ServiceStageDto[]>([]);
-  const [stageName, setStageName] = useState("");
+  const suppliers = useLaboSupplierOptions(branchId, open);
 
   // React Query hands back a new array on every refetch, so these are read
   // through a ref: a refetch landing while the dialog is open must not reset
@@ -149,7 +161,6 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       isDeleted: entry?.isDeleted ?? false,
       description: entry?.description ?? "",
       priority: entry?.sortOrder ?? 0,
-      code: entry?.code ?? "",
 
       taxRate: config?.taxRate ?? SERVICE_TAX_RATE.NotTaxable,
       priceIncludesTax: config?.priceIncludesTax ?? false,
@@ -165,19 +176,29 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       revenueByStage: config?.revenueByStage ?? false,
       requireStageSequence: config?.requireStageSequence ?? false,
       warrantyDays: config?.warrantyDays ?? 0,
+      stageDraft: "",
+      laboSupplierIds: config?.laboSupplierIds ?? [],
     });
 
     setStages(entry?.stages ?? []);
-    setStageName("");
   }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending;
 
   const addStage = () => {
-    const trimmed = stageName.trim();
+    const trimmed = (form.getFieldValue("stageDraft") as string | undefined)?.trim() ?? "";
     if (!trimmed) return;
-    setStages((current) => [...current, { name: trimmed, value: 0 }]);
-    setStageName("");
+    // A new row starts as a percentage share, as the reference's does.
+    setStages((current) => [
+      ...current,
+      {
+        name: trimmed,
+        value: 0,
+        valueType: SERVICE_STAGE_VALUE_TYPE.Percentage,
+        isMarketingSalary: false,
+      },
+    ]);
+    form.setFieldValue("stageDraft", "");
   };
 
   const submit = async (values: FormValues) => {
@@ -195,11 +216,11 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       revenueByStage: values.revenueByStage,
       requireStageSequence: values.requireStageSequence,
       warrantyDays: Number(values.warrantyDays ?? 0),
+      laboSupplierIds: values.laboSupplierIds ?? [],
     };
     const shared = {
       taxonomyId: values.taxonomyId,
       name: trimmed,
-      code: values.code?.trim() || undefined,
       price: Number(values.price ?? 0),
       description: values.description?.trim() || undefined,
       detailName: values.detailName?.trim() || null,
@@ -226,58 +247,6 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       // queryClient reports the failure; nothing to add here.
     }
   };
-
-  const saved = entry?.serviceConfig;
-
-  const stageColumns = useMemo<ColumnsType<ServiceStageDto>>(
-    () => [
-      {
-        key: "index",
-        title: t("Taxonomy:Service:StageSeqCol"),
-        width: 64,
-        render: (_, __, index) => <span className="bd-muted-text">{index + 1}</span>,
-      },
-      { key: "name", title: t("Taxonomy:Service:StageNameCol"), dataIndex: "name" },
-      {
-        key: "value",
-        title: t("Taxonomy:Service:StageValueCol"),
-        width: 180,
-        render: (_, stage, index) => (
-          <CurrencyInput
-            aria-label={t("Taxonomy:Service:StageValueAria", stage.name)}
-            value={stage.value}
-            onChange={(next) =>
-              setStages((current) =>
-                current.map((item, at) =>
-                  at === index ? { ...item, value: next ?? 0 } : item,
-                ),
-              )
-            }
-          />
-        ),
-      },
-      {
-        key: "actions",
-        title: t("Common:Actions"),
-        width: 90,
-        align: "center",
-        fixed: "right",
-        render: (_, stage, index) => (
-          <Tooltip title={t("Common:Delete")}>
-            <Button
-              type="text"
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-              aria-label={t("Taxonomy:Service:StageDeleteAria", stage.name)}
-              onClick={() => setStages((current) => current.filter((_, at) => at !== index))}
-            />
-          </Tooltip>
-        ),
-      },
-    ],
-    [],
-  );
 
   return (
     <AppDialog
@@ -354,18 +323,12 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           <Input.TextArea rows={3} />
         </FloatingField>
 
+        {/* The reference dropped its "Mã dịch vụ" box; the code is still
+            generated on the server when the entry is created. */}
         <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Common:Priority")}>
               <InputNumber min={0} style={{ width: "100%" }} />
-            </FloatingField>
-          </Col>
-          <Col xs={24} sm={12}>
-            <FloatingField
-              name="code"
-              label={t("Taxonomy:Service:CodeLabel")}
-            >
-              <Input />
             </FloatingField>
           </Col>
         </Row>
@@ -408,11 +371,10 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           </Row>
 
           <Row gutter={[16, { xs: 20, sm: 12 }]}>
-            {/* Read-only: these two come back from the server after a save, so
-                the formula lives in one place. */}
+            {/* Read-only: priced live from the inputs above, whole đồng. */}
             <Col xs={24} sm={8}>
               <FloatingField label={t("Taxonomy:Service:PriceAfterDiscount")}>
-                <Input readOnly value={saved ? formatVND(saved.priceAfterDiscount) : "—"} />
+                <Input readOnly value={formatVND(pricing.priceAfterDiscount)} />
               </FloatingField>
             </Col>
             <Col xs={24} sm={8}>
@@ -422,13 +384,13 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </Col>
             <Col xs={24} sm={8}>
               <FloatingField label={t("Taxonomy:Service:AmountCollected")}>
-                <Input readOnly value={saved ? formatVND(saved.amountCollected) : "—"} />
+                <Input readOnly value={formatVND(pricing.amountCollected)} />
               </FloatingField>
             </Col>
           </Row>
         </div>
 
-        {/* ── Cài đặt | Công đoạn | Bảo hành ──────────────────────────── */}
+        {/* ── Cài đặt | Công đoạn | Bảo hành | Labo ───────────────────── */}
         <Tabs
           className="bd-dialog-tabs"
           items={[
@@ -455,46 +417,37 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                   <CheckRow
                     name="revenueByStage"
                     label={t("Taxonomy:Service:RevenueByStage")}
-                    hint={t("Taxonomy:Service:RevenueByStageHint")}
+                    hints={[t("Taxonomy:Service:RevenueByStageHint")]}
                   />
                   <CheckRow
                     name="requireStageSequence"
                     label={t("Taxonomy:Service:RequireSequence")}
-                    hint={t(
-                      "Tắt: Bác sĩ chỉ nhận hoa hồng trên các công đoạn dịch vụ đã hoàn thành",
-                    )}
+                    hints={[
+                      t("Taxonomy:Service:RequireStageSequenceHint"),
+                      t("Taxonomy:Service:RequireStageSequenceHintOn"),
+                    ]}
                   />
 
-                  <Row gutter={[8, 12]} className="bd-mt3">
+                  <Row gutter={[8, 12]} align="middle" className="bd-stage-add">
                     <Col flex="auto">
-                      <Input
-                        aria-label={t("Taxonomy:Service:StageName")}
-                        placeholder={t("Taxonomy:Service:StageName")}
-                        value={stageName}
-                        onChange={(event) => setStageName(event.target.value)}
-                        onPressEnter={(event) => {
-                          event.preventDefault();
-                          addStage();
-                        }}
-                      />
+                      <FloatingField name="stageDraft" label={t("Taxonomy:Service:AddStageBtn")}>
+                        <Input
+                          maxLength={100}
+                          onPressEnter={(event) => {
+                            event.preventDefault();
+                            addStage();
+                          }}
+                        />
+                      </FloatingField>
                     </Col>
                     <Col flex="none">
-                      <Button icon={<PlusOutlined />} onClick={addStage}>
-                        {t("Taxonomy:Service:Stages")}
+                      <Button type="primary" icon={<PlusOutlined />} onClick={addStage}>
+                        {t("Taxonomy:Service:AddStageBtn")}
                       </Button>
                     </Col>
                   </Row>
 
-                  <Table<ServiceStageDto>
-                    className="bd-line-table bd-mt3"
-                    columns={stageColumns}
-                    dataSource={stages}
-                    rowKey={(stage, index) => stage.id ?? `${stage.name}-${index}`}
-                    pagination={false}
-                    size="small"
-                    scroll={{ x: "max-content" }}
-                    locale={{ emptyText: t("Taxonomy:Service:NoStages") }}
-                  />
+                  <ServiceStageTable stages={stages} onChange={setStages} />
                 </div>
               ),
             },
@@ -527,6 +480,13 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                   </Row>
                   <p className="bd-cat-hint">{t("Taxonomy:Service:UnitDays")}</p>
                 </div>
+              ),
+            },
+            {
+              key: "labo",
+              label: t("Taxonomy:Service:TabLabo"),
+              children: (
+                <ServiceLaboTab options={suppliers.data ?? []} loading={suppliers.isPending} />
               ),
             },
           ]}

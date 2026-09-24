@@ -79,3 +79,17 @@ public static class ServiceWarranty
     public static readonly int[] Presets =
         [None, OneMonth, ThreeMonths, SixMonths, NineMonths, OneYear, TwoYears];
 }
+
+/// <summary>
+/// What a stage's "BE:Field:Value" means — the reference's <c>valueType</c> of
+/// <c>"percentage"</c> or <c>"value"</c>, shown as a "%" / "VNĐ" switch in front
+/// of the number. A new row on the reference starts as a percentage.
+/// </summary>
+public enum ServiceStageValueType
+{
+    /// <summary>A share of the service price.</summary>
+    Percentage = 0,
+
+    /// <summary>An amount in VNĐ.</summary>
+    Amount = 1
+}

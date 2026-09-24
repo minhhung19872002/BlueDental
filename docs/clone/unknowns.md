@@ -718,13 +718,13 @@ Action taken: NONE — cần một lượt quan sát riêng trước khi dựng.
 ```
 
 ```
-UNKNOWN_REFERENCE_BEHAVIOR
+RESOLVED 2026-09-24 (staging, được phép gõ thử)
 Page: /taxonomy/service
 Control: "Giá sau giảm" và "Thực thu từ khách (Đã gồm VAT)"
-Reason: là ô tính ra, nhưng công thức khi kết hợp "Sau thuế" + giảm giá "%" chỉ suy được
-        bằng cách nhập thử — tức là gõ vào form của staging.
-Action taken: NONE — không gõ vào form bản gốc. Công thức sẽ là giả định của BlueDental
-        và phải ghi lại khi hiện thực.
+Kết quả: hai ô tính ngay khi gõ. net = giá trừ giảm (không âm); Trước thuế:
+        Giá sau giảm = net, Thực thu = net × (1 + thuế); Sau thuế: Giá sau giảm =
+        net ÷ (1 + thuế), Thực thu = net. Bảng số đo và cách server lưu:
+        docs/clone/pages/taxonomy.md (mục "Cấu hình giá & thuế"), R-573.
 ```
 
 ```
@@ -757,15 +757,12 @@ Action taken: NONE — thông báo thành công, validate phía server và quy t
 ## Danh mục — giả định khi hiện thực P3–P7 (2026-08-25)
 
 ```
-UNKNOWN_REFERENCE_BEHAVIOR
+RESOLVED 2026-09-24 — giả định cũ đã được thay bằng công thức đo trên staging
 Page: /taxonomy/service
 Control: "Giá sau giảm" và "Thực thu từ khách (Đã gồm VAT)"
-Reason: là ô tính ra; công thức chỉ suy được bằng cách gõ vào form của bản gốc.
-Action taken: BlueDental chọn — giảm giá trừ vào giá đã nhập trước, rồi cộng VAT
-        nếu đang ở "Trước thuế" (đang ở "Sau thuế" thì giá đã gồm VAT nên không
-        cộng nữa). Cài trong CatalogServiceConfig, có test Domain khẳng định.
-        Hai ô này chỉ hiện số sau khi đã lưu — không tính lại ở trình duyệt để
-        server và giao diện không thể bất đồng về công thức.
+Khác với giả định: ở "Sau thuế" ô Giá sau giảm là net ÷ (1 + thuế), không phải
+        net; và hai ô tính NGAY khi gõ, không chờ lưu. CatalogServiceConfig +
+        servicePricing.ts cùng một công thức, test Domain có dãy số đo thật. R-573.
 ```
 
 ```

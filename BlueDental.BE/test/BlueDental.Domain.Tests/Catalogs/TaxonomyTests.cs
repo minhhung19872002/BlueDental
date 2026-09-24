@@ -144,27 +144,52 @@ public class CatalogEntryTests
     [Theory]
     // Trước thuế: the discount comes off, then VAT goes on.
     [InlineData(true, false, 10, ServiceTaxRate.Ten, 900, 990)]
-    // Sau thuế: the price already carries VAT, so nothing is added.
-    [InlineData(true, true, 10, ServiceTaxRate.Ten, 900, 900)]
+    // Sau thuế: the price already carries VAT — the after-discount box backs it out.
+    [InlineData(true, true, 10, ServiceTaxRate.Ten, 818.18, 900)]
     // A flat discount in đồng rather than a percentage.
     [InlineData(false, false, 250, ServiceTaxRate.NotTaxable, 750, 750)]
     // A discount larger than the price cannot make the customer owe less than nothing.
     [InlineData(false, false, 5_000, ServiceTaxRate.Ten, 0, 0)]
+    // The two non-numeric tax choices charge nothing.
+    [InlineData(true, true, 33, ServiceTaxRate.NotDeclared, 670, 670)]
     public void Should_Price_A_Service(
         bool discountIsPercent,
         bool priceIncludesTax,
         int discountValue,
         ServiceTaxRate taxRate,
-        int expectedAfterDiscount,
-        int expectedCollected)
+        double expectedAfterDiscount,
+        double expectedCollected)
     {
         var entry = Create(price: 1_000m);
         var config = entry.EnsureServiceConfig(Guid.NewGuid());
         config.Update(taxRate, priceIncludesTax, discountIsPercent, discountValue,
             false, false, false, false, false, false, 0);
 
-        Assert.Equal(expectedAfterDiscount, config.PriceAfterDiscount(1_000m));
-        Assert.Equal(expectedCollected, config.AmountCollected(1_000m));
+        Assert.Equal((decimal)expectedAfterDiscount, config.PriceAfterDiscount(1_000m));
+        Assert.Equal((decimal)expectedCollected, config.AmountCollected(1_000m));
+    }
+
+    [Theory]
+    // Figures read off the reference's own dialog and API (staging, 2026-09-24).
+    [InlineData(1_000_000, true, 5, ServiceTaxRate.Ten, true, 863_636.36, 950_000)]
+    [InlineData(1_000_001, true, 33, ServiceTaxRate.Ten, false, 670_000.67, 737_000.74)]
+    [InlineData(1_000_001, false, 150_000, ServiceTaxRate.Ten, true, 772_728.18, 850_001)]
+    [InlineData(909_091, false, 20_000_000, ServiceTaxRate.Ten, false, 0, 0)]
+    public void Should_Price_A_Service_Like_The_Reference(
+        double price,
+        bool discountIsPercent,
+        double discountValue,
+        ServiceTaxRate taxRate,
+        bool priceIncludesTax,
+        double expectedAfterDiscount,
+        double expectedCollected)
+    {
+        var config = Create(price: (decimal)price).EnsureServiceConfig(Guid.NewGuid());
+        config.Update(taxRate, priceIncludesTax, discountIsPercent, (decimal)discountValue,
+            false, false, false, false, false, false, 0);
+
+        Assert.Equal((decimal)expectedAfterDiscount, config.PriceAfterDiscount((decimal)price));
+        Assert.Equal((decimal)expectedCollected, config.AmountCollected((decimal)price));
     }
 
     [Fact]

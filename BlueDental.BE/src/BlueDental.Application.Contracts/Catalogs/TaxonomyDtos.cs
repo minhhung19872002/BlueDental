@@ -108,6 +108,12 @@ public class ServiceConfigDto
     public bool RequireStageSequence { get; set; }
     public int WarrantyDays { get; set; }
 
+    /// <summary>
+    /// Tab "Labo" — the suppliers a labo slip for this service may pick from;
+    /// empty means all of them. Every id must be a supplier of the entry's branch.
+    /// </summary>
+    public List<Guid> LaboSupplierIds { get; set; } = [];
+
     /// <summary>Read side only — "BE:Field:PriceAfterDiscount", computed by the domain.</summary>
     public decimal PriceAfterDiscount { get; set; }
 
@@ -125,6 +131,12 @@ public class ServiceStageDto
     public string Name { get; set; } = string.Empty;
 
     public decimal Value { get; set; }
+
+    /// <summary>The "%" / "VNĐ" switch; a new row on the reference starts as a percentage.</summary>
+    public ServiceStageValueType ValueType { get; set; } = ServiceStageValueType.Percentage;
+
+    /// <summary>The star — "Tính lương cho phòng MKT".</summary>
+    public bool IsMarketingSalary { get; set; }
 }
 
 /// <summary>The fields only "BE:Common:MedicineType" carries.</summary>

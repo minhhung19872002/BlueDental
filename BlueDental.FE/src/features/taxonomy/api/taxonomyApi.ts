@@ -79,16 +79,30 @@ export interface ServiceConfigDto {
   revenueByStage: boolean;
   requireStageSequence: boolean;
   warrantyDays: number;
+  /** Labo tab — suppliers a labo slip for this service may go to; empty = all. */
+  laboSupplierIds: string[];
   /** Computed by the server — "Giá sau giảm". */
   priceAfterDiscount: number;
   /** Computed by the server — "Thực thu từ khách (Đã gồm VAT)". */
   amountCollected: number;
 }
 
+/** Mirrors BlueDental.Catalogs.ServiceStageValueType — the %/VNĐ toggle on a stage. */
+export const SERVICE_STAGE_VALUE_TYPE = {
+  Percentage: 0,
+  Amount: 1,
+} as const;
+
+export type ServiceStageValueType =
+  (typeof SERVICE_STAGE_VALUE_TYPE)[keyof typeof SERVICE_STAGE_VALUE_TYPE];
+
 export interface ServiceStageDto {
   id?: string;
   name: string;
   value: number;
+  valueType: ServiceStageValueType;
+  /** The star — "Tính lương cho phòng MKT". */
+  isMarketingSalary: boolean;
 }
 
 export interface MedicineDto {

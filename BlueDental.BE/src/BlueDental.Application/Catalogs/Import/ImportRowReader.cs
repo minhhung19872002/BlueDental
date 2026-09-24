@@ -200,7 +200,8 @@ internal sealed class ImportRowReader
         var list = new List<ServiceStageDto>(stages.Count);
         foreach (var (name, value) in stages)
         {
-            list.Add(new ServiceStageDto { Name = name, Value = value });
+            // The template writes amounts ("Lấy dấu: 500000"), so an imported step is VNĐ.
+            list.Add(new ServiceStageDto { Name = name, Value = value, ValueType = ServiceStageValueType.Amount });
         }
 
         return list;

@@ -188,7 +188,7 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     /// which cut each công đoạn off from the steps it had ticked — their
     /// names came back empty and the checklists drew blank boxes.
     /// </summary>
-    public void SyncStages(IEnumerable<(Guid Id, string Name, decimal Value)> rows, Func<Guid> newId)
+    public void SyncStages(IEnumerable<CatalogStageRow> rows, Func<Guid> newId)
     {
         var kept = new List<CatalogServiceStage>();
         var index = 0;
@@ -199,12 +199,12 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
                 : _stages.FirstOrDefault(stage => stage.Id == row.Id && !kept.Contains(stage));
             if (existing != null)
             {
-                existing.Revise(row.Name, row.Value, index);
+                existing.Revise(row.Name, row.Value, row.ValueType, row.IsMarketingSalary, index);
                 kept.Add(existing);
             }
             else
             {
-                kept.Add(new CatalogServiceStage(newId(), Id, row.Name, row.Value, index));
+                kept.Add(new CatalogServiceStage(newId(), Id, row.Name, row.Value, row.ValueType, row.IsMarketingSalary, index));
             }
 
             index += 1;

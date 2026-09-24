@@ -1625,3 +1625,10 @@ for it; a 403 body carries `error.code = Volo.Authorization:010001`.
 | Reference | BlueDental |
 |---|---|
 | the Thao tác pencil — offered while the line is not `done / canceled / replaced` and `payment.totalPaid` is 0; turns the row inline (write unobserved) | `PUT /api/v1/app/patient-treatments/{id}/services/{lineId}` `UpdateTreatmentServiceDto { price, quantity, teeth, diagnosisId, dentistId, note, diagnoserStaffId, secondDiagnoserStaffId, consultantStaffId, secondConsultantStaffId }` → the slip. Refused on a closed or paid line (`Treatment:0037`), a changed price/diagnosis on a line in treatment (`0038`), a dropped tooth that has a công đoạn (`0039`). `TreatmentServiceDto.stagedTeeth` lists those teeth |
+
+### Danh mục Dịch vụ — dialog "Thêm dịch vụ" (staging, 2026-09-24)
+
+| Reference | BlueDental |
+|---|---|
+| `care-service` item carries `laboIds: string[]` and `stages[]` of `{ id, name, value, valueType: "percentage" \| "value", isMarketingSalary }`; the dialog no longer sends a service code. Price fields: `price` (as typed), `discountType: "percentage" \| "value"`, `discountValue`, `taxName` ("10%" / "KCT"…), `taxRate: number \| null`, `taxConfig: "beforeTax" \| "afterTax"` (stored as chosen, never normalised); the response adds the computed `priceAfterDiscount` and `actualCustomerPayment` with two decimals (e.g. `863636.36`, `950000` for 1.000.000 − 5 %, 10 %, afterTax) | `POST/PUT /api/v1/app/catalog-entries` — `serviceConfig.laboSupplierIds: Guid[]`, `stages[].valueType` (`0` Percentage, `1` Amount), `stages[].isMarketingSalary`. `Code` is server-generated on create and never updated. Refusals: supplier outside the branch → 403 `BlueDental:Catalogs:0025`; percentage > 100 or negative value → 403 `Catalogs:0021` |
+| Labo tab options: `GET /v1/labos/?branchId=&perPage=100&orderBy=name:asc` | `GET /api/v1/app/labo-suppliers?ClinicBranchId=&IsActive=true` via `useLaboSupplierOptions` |

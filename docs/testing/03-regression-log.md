@@ -5802,3 +5802,54 @@ quả bên dưới). Domain.Tests 368/368, Application.Tests 614/614; `tsc -b`,
 `oxlint` sạch (một cảnh báo `no-invalid-fetch-options` giả — method là biến
 POST/PUT). Level 2 (một feature: contract + AppService + dialog), F-06 giữ
 `DIRTY` vì phần TagIds 2026-08-27 vẫn chưa retest đủ.
+
+## 2026-09-24 — Dialog Thêm dịch vụ theo staging mới: tab Labo, công đoạn %/VNĐ (R-565..R-569)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-565 | Chủ dự án: "modal Thêm dịch vụ ở staging mới update nè và có thêm tab Labo" — bản gốc bỏ ô `Mã dịch vụ`, dựng lại bảng công đoạn (STT / Tên công đoạn / Giá trị %‑VNĐ / Thao tác bút‑sao‑thùng rác, phân trang 20/trang) và thêm tab **Labo** (chọn nhiều nhà cung cấp, ô hiện "Đã chọn N nhà cung cấp", ghi chú vàng). | Quan sát trên staging (không lưu gì). `ServiceDialog` tách thêm hai presenter: `ServiceStageTable` (bảng công đoạn, `useTablePagination` 20 với menu 5/10/20/25/50/100, sửa tên tại chỗ, `Segmented` %/VNĐ + `CurrencyInput`, sao MKT `aria-pressed`) và `ServiceLaboTab` (`Select mode="multiple" maxTagCount={0}` + `maxTagPlaceholder` để hiện đếm thay vì tag). Ô `Mã dịch vụ` bị bỏ — an toàn vì `UpdateAsync` không đụng `Code` và chỉ `CatalogEntry.Create` nhận mã (server sinh). Field mới `laboSupplierIds` nằm trong Form, `stageDraft` là ô nhập tên công đoạn (floating label "Công đoạn"). Chuỗi mới ở `vi.json`/`en.json` (`Taxonomy:Service:TabLabo`, `LaboSupplierLabel`, `LaboSelectedCount`, `LaboHint`, `StageRename*`, `StageMarketing*`, `RequireStageSequenceHintOn`) — host phải build lại rồi khởi động lại mới phục vụ key mới. |
+| R-566 | Công đoạn có hai kiểu giá trị (% / VNĐ) và cờ "Tính lương cho phòng MKT"; dữ liệu cũ chỉ có một số. | `CatalogServiceStage.ValueType` (`ServiceStageValueType { Percentage = 0, Amount = 1 }`, smallint) + `IsMarketingSalary`; migration `AddStageValueTypeAndLaboSuppliers` gán **dòng cũ = Amount (1)** vì trước đây giá trị là tiền, còn DTO/FE mặc định dòng mới = Percentage như staging. Guard domain: giá trị âm hoặc % > 100 → `Catalogs:0021`; đổi VNĐ → % trên FE tự kẹp về 100. Nhập từ Excel (`ImportRowReader`) tạo công đoạn kiểu Amount. `SyncStages` nhận `CatalogStageRow` (record struct) thay vì 3 list song song. |
+| R-567 | Nhà cung cấp Labo chọn trong dialog phải thuộc chi nhánh của dịch vụ. | `CatalogServiceConfig.LaboSupplierIds` (uuid[]), `CatalogEntryAppService.CheckLaboSuppliersAsync` chạy trước Apply ở cả Create/Update: id không thuộc `ClinicBranchId` → `BlueDental:Catalogs:0025` (403). Tuỳ chọn tab Labo lấy từ `useLaboSupplierOptions` (`/labo-suppliers`, cần chi nhánh hiện tại), chỉ fetch khi dialog mở. |
+| R-568 | `taxonomy-dialogs.spec.ts` "a medicine keeps both prices" đỏ sẵn từ trước: mong `"8000"` nhưng ô hiện `"8.000"`. | Commit `d25d3c7` đổi `MedicineDialog` sang `CurrencyInput` (hiển thị nhóm nghìn kiểu VN) mà spec chưa cập nhật. Sửa spec mong `"8.000"` / `"12.000"`. |
+| R-569 | Locator `getByRole("textbox", { name: "Công đoạn" })` vi phạm strict mode: khớp cả ô giá trị `aria-label="Giá trị công đoạn Lấy dấu"` (tên chứa "công đoạn"). | Dùng `exact: true`. Ghi thêm: `cat <<'EOF'` vẫn hỏng trên shell này, nhưng `python - <<'PY'` chạy được — viết script sửa file qua heredoc python thay vì Write tool. |
+
+Bằng chứng: `e2e/taxonomy-dialogs.spec.ts` **7/7** trên bản build production
+(preview 8080 `dist-preview`, host 5000 build lại) — spec dịch vụ: dialog không
+còn ô "Mã dịch vụ", đúng 4 tab `Cài đặt / Công đoạn / Bảo hành / Labo`; bật
+"Tính doanh số trên công đoạn" hiện dòng "Bật: …"; thêm "Lấy dấu" (mặc định %),
+nhập 30, bấm sao → `aria-pressed=true`; thêm "Gắn sứ" bằng Enter, chuyển VNĐ,
+nhập 250000 → ô hiện "250.000"; bút đổi tên thành "Lấy dấu răng"; footer
+"Hiển thị 2 trên 2"; tab Labo chọn nhà cung cấp (seed qua HTTP thật
+`/labo-suppliers` nếu chi nhánh chưa có) → "Đã chọn 1 nhà cung cấp"; lưu, reload,
+mở lại: tên/kiểu/giá trị/sao của cả hai dòng và đếm Labo giữ nguyên. Spec HTTP
+thật mới: POST catalog-entries với supplier lạ → 403 `Catalogs:0025`; % = 120 →
+403 `Catalogs:0021`; VNĐ = 120 + sao → 200, trả `valueType: 1, isMarketingSalary: true`.
+Domain.Tests 368/368, Application.Tests 614/614; `tsc -b`, `oxlint` sạch.
+Bộ `taxonomy* / payment-qr / branch-*` chạy lại trên bản build production:
+**54/56** (6,8 phút), 2 đỏ đều trong `taxonomy.spec.ts` và đều do chính thay đổi
+này — xem R-570; sau khi sửa spec và thêm kẹp giá trị, kết quả ghi ở mục
+R-570..R-572. Level 2 (một feature: contract + AppService + dialog);
+ảnh hưởng gián tiếp: nhập Excel (công đoạn = Amount), phiếu Labo sau này sẽ lọc
+nhà cung cấp theo `laboSupplierIds` (chưa làm — hiện phiếu labo vẫn cho chọn
+tất cả).
+
+## 2026-09-24 — Dịch vụ: kẹp giá trị công đoạn, thẻ nhà cung cấp Labo, giá tính ngay (R-570..R-573)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-570 | Chủ dự án: "chỗ field giá trị ở table handle max_value à sao t nhập được 5.555.555.555.555.555.000 luôn v" — ô VNĐ của công đoạn nhận số dài vô hạn. Cùng lúc `taxonomy.spec.ts` đỏ 2 ca: "creates a group and a priced service" chờ ô `Mã dịch vụ` (đã bỏ theo staging, R-567) rồi timeout; "pages the entry list on the server" đỏ dây chuyền vì nhóm rỗng ca trước để lại được chọn sẵn nên bảng không có footer. | `ServiceStageTable` truyền `isAllowed` riêng cho `CurrencyInput` nên **thay thế luôn** cái kẹp `MAX_VND` mặc định của component chung (chỉ file này ghi đè). Đo trên staging: ô VNĐ ngừng nhận phím sau **10 chữ số** (9.999.999.999), dán chuỗi dài hơn thì bị từ chối cả cụm — trùng đúng `MAX_VND`. Sửa: `CurrencyInput` export `MAX_VND`, `isAllowed` của bảng kẹp `floatValue <= (isPercent ? 100 : MAX_VND)`. Spec dịch vụ gõ 19 số 5 → ô hiện `5.555.555.555`, gõ `300` ở ô % → `30`. `taxonomy.spec.ts` bỏ dòng điền `Mã dịch vụ`; ca phân trang xanh theo. `taxonomy` + `taxonomy-dialogs` 17/17. |
+| R-571 | Chủ dự án (ảnh staging): tab Labo hiện **thẻ** từng nhà cung cấp đã chọn dưới ô, và câu "Để trống nếu…" có icon cảnh báo phía trước — bản local chỉ có ô đếm và câu chữ. | Đo staging (Escape khi dropdown mở đóng luôn cả dialog — bấm vào tiêu đề dialog để đóng dropdown): ô có icon kính lúp trái + nút × "Xóa lựa chọn"; dưới ô 12px là hàng pill 29px (`6px 12px`, bo tròn, viền + chữ xanh link, nền `#f3f8ff`, 10px/600, cắt tên ở 150px, × 14px đỏ khi hover, aria "Bỏ chọn nhà cung cấp"); câu chú 13px cam có icon info-circle 16px cách chữ 6px. `ServiceLaboTab` đọc `laboSupplierIds` qua `Form.useWatch`, vẽ `.bd-labo-chip` từ options, × gọi `setFieldValue` bỏ id; `Select` thêm `allowClear` + `prefix={<SearchOutlined />}`; `.bd-labo-hint` thành flex với `InfoCircleOutlined`. Token mới `--bd-link-pale: #f3f8ff` cạnh `--bd-link`. Key mới `Taxonomy:Service:LaboRemoveAria` (host build lại + khởi động lại). Spec: sau khi chọn có pill, bấm × → mất pill và mất "Đã chọn 1", chọn lại → pill về; mở lại sau lưu vẫn có pill. |
+| R-572 | `vite build --outDir dist-preview` sập `EPERM lstat …/assets/PageHeader-*.js` — tệp trong `dist-preview` thuộc user khác, `rm` bị từ chối (phiên khác dùng chung checkout, xem R-355). | Build sang thư mục mới `dist-preview-stage`, preview `--port 8086 --strictPort`, chạy spec với `E2E_BASE_URL=http://127.0.0.1:8086`. `dist-preview*` đã nằm trong `.gitignore`. |
+
+| R-573 | Chủ dự án (ảnh local vs staging): "b chưa handle tính giá trị ở field Giá sau giảm và thực thu từ khách như ở staging à" — local hiện "—" ở hai ô cho tới khi lưu; staging tính ngay khi gõ. | Đo staging bằng cách gõ vào dialog (7 tổ hợp, bảng ở `docs/clone/pages/taxonomy.md`) và lưu **một** bản ghi tạm rồi xoá mềm: `net = giá − giảm` (không âm); Trước thuế → `Giá sau giảm = net`, `Thực thu = net × (1+thuế)`; Sau thuế → `Giá sau giảm = net ÷ (1+thuế)`, `Thực thu = net`. Server lưu `price` và `taxConfig` như đã chọn, trả `priceAfterDiscount` 2 số lẻ (863636.36), dialog làm tròn đồng. Giả định cũ sai ở nhánh Sau thuế (đã coi Giá sau giảm = net). Sửa: `CatalogServiceConfig.PriceAfterDiscount/AmountCollected` theo công thức đo, làm tròn 2 số lẻ `AwayFromZero`, xoá ghi chú UNKNOWN; theory Domain thêm dãy số đo thật (15/15). FE: `api/servicePricing.ts` (hàm thuần, cùng công thức) + `hooks/useServicePricePreview.ts` (`Form.useWatch` 5 trường) — hai ô `readOnly` hiện `formatVND(...)` ngay, bỏ nhánh `saved ? … : "—"`. Spec: sau khi gõ 1000 / 10 % / 10% VAT chờ `900`/`990` **trước khi lưu**, bấm "Sau thuế" → `818`/`900`, bấm lại → `900`; sau khi mở lại vẫn `900`/`990`. Quan sát thêm, chưa làm: staging giữ dialog mở sau khi tạo (nút `Đồng bộ dịch vụ này`). |
+
+Bằng chứng (preview `dist-preview-stage` :8086 + host :5000, `E2E_BASE_URL=http://127.0.0.1:8086`):
+
+- Sau R-571 (thẻ Labo): `taxonomy-dialogs.spec.ts` **7/7** (1,2 phút).
+- Sau R-573 (giá tính ngay): lần đầu 6/7 — ca "Khác" của đơn thuốc mẫu quá 30 s
+  ngay ở `createGroup` vì `dotnet test` Application.Tests đang biên dịch song
+  song và host vừa khởi động lại (không liên quan thay đổi); chạy lại riêng
+  ca đó **1/1** (12 s). Domain.Tests `TaxonomyTests` 15/15, Application.Tests
+  lọc `Catalog` 61/61.
+- Bộ đầy đủ `taxonomy* / payment-qr / branch-*`: FULLSET_RESULT
+

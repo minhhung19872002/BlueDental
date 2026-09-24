@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -24,17 +25,20 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
+    private readonly IRepository<LaboSupplier, Guid> _laboSupplierRepository;
 
     public CatalogEntryAppService(
         IRepository<CatalogEntry, Guid> repository,
         IRepository<Taxonomy, Guid> taxonomyRepository,
         BranchAccessChecker branchAccess,
-        IDataFilter<ISoftDelete> softDeleteFilter)
+        IDataFilter<ISoftDelete> softDeleteFilter,
+        IRepository<LaboSupplier, Guid> laboSupplierRepository)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
         _branchAccess = branchAccess;
         _softDeleteFilter = softDeleteFilter;
+        _laboSupplierRepository = laboSupplierRepository;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
@@ -128,6 +132,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             input.Description,
             input.SortOrder);
 
+        await CheckLaboSuppliersAsync(taxonomy.ClinicBranchId, input.ServiceConfig);
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
 
@@ -172,6 +177,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         entry.UpdateDescription(input.Description);
         entry.Reorder(input.SortOrder);
 
+        await CheckLaboSuppliersAsync(entry.ClinicBranchId, input.ServiceConfig);
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
 
@@ -287,6 +293,29 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return query.Where(x => ids.Contains(x.Id)).ToDictionary(x => x.Id, x => x.Name);
     }
 
+    /// <summary>
+    /// The Labo tab's picks must be suppliers of the entry's own branch — a
+    /// stranger's id would let a slip in this branch order from a supplier the
+    /// branch never set up.
+    /// </summary>
+    private async Task CheckLaboSuppliersAsync(Guid clinicBranchId, ServiceConfigDto? config)
+    {
+        var ids = config?.LaboSupplierIds?.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (ids == null || ids.Count == 0)
+        {
+            return;
+        }
+
+        var known = await _laboSupplierRepository.CountAsync(
+            s => ids.Contains(s.Id) && s.ClinicBranchId == clinicBranchId);
+        if (known != ids.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.LaboSupplierNotInBranch,
+                "A labo supplier on the service is not a supplier of the service's branch.");
+        }
+    }
+
     private static CatalogEntryDto MapToDto(
         CatalogEntry entity,
         IReadOnlyDictionary<Guid, string> taxonomyNames,
@@ -325,6 +354,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                 RevenueByStage = entity.ServiceConfig.RevenueByStage,
                 RequireStageSequence = entity.ServiceConfig.RequireStageSequence,
                 WarrantyDays = entity.ServiceConfig.WarrantyDays,
+                LaboSupplierIds = entity.ServiceConfig.LaboSupplierIds.ToList(),
                 // The two read-only boxes of the dialog, computed by the domain
                 // so the browser never has to agree with the server about the
                 // formula.
@@ -343,7 +373,14 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             },
         Stages = entity.Stages
             .OrderBy(x => x.SortOrder)
-            .Select(x => new ServiceStageDto { Id = x.Id, Name = x.Name, Value = x.Value })
+            .Select(x => new ServiceStageDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Value = x.Value,
+                ValueType = x.ValueType,
+                IsMarketingSalary = x.IsMarketingSalary
+            })
             .ToList(),
         PrescriptionLines = entity.PrescriptionLines
             .OrderBy(x => x.SortOrder)

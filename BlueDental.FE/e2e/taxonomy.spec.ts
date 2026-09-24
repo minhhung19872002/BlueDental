@@ -38,7 +38,7 @@ test.describe("Danh mục", () => {
 
     const entryDialog = page.getByRole("dialog");
     await entryDialog.getByLabel(/^Dịch vụ/).fill(serviceName);
-    await entryDialog.getByLabel(/Mã dịch vụ/).fill(`E2E${id}`);
+    // The reference dropped the "Mã dịch vụ" box; the server issues the code.
     await entryDialog.getByLabel(/^Giá$/).fill("180000");
     await entryDialog.getByRole("button", { name: /Lưu$/ }).click();
 
