@@ -43,13 +43,15 @@ function StatusPill({ status }: { status: LaboStatus }) {
 interface Props {
   facts: LaboOrderFacts;
   status: LaboStatus;
+  /** Mẫu Labo's Trạng thái select; without it the status is a pill. */
+  statusControl?: ReactNode;
 }
 
 /**
  * The read-only body of "Thông tin chung": two columns of two blocks each,
  * measured on the reference (docs/clone/pages/patient-detail.md, Tab 6).
  */
-export function LaboDetailFacts({ facts, status }: Props) {
+export function LaboDetailFacts({ facts, status, statusControl }: Props) {
   return (
     <div className="pd-labo-detail">
       <Block
@@ -65,7 +67,7 @@ export function LaboDetailFacts({ facts, status }: Props) {
         rows={[
           [t("Patient:Labo:Supplier"), facts.supplier],
           [t("Patient:Labo:SentDate"), facts.sentAt],
-          [t("Patient:Labo:ExpectedReceiveDate"), facts.dueDate],
+          [t("Patient:Labo:ExpectedReceiveDate"), facts.dueAt],
         ]}
       />
       <Block
@@ -76,6 +78,7 @@ export function LaboDetailFacts({ facts, status }: Props) {
           [t("Patient:DentalChart:Occlusion"), facts.bite],
           [t("Patient:DentalChart:RhythmType"), facts.rhythm],
           [t("Patient:QuoteSheet:Prescription"), facts.instruction],
+          [t("Common:Note"), facts.note],
         ]}
       />
       <Block
@@ -89,7 +92,7 @@ export function LaboDetailFacts({ facts, status }: Props) {
         ]}
       >
         <h3>{t("Patient:Misc:StatusLabel")}</h3>
-        <StatusPill status={status} />
+        {statusControl ?? <StatusPill status={status} />}
       </Block>
     </div>
   );

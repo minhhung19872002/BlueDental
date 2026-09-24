@@ -248,7 +248,7 @@ public class BlueDentalPatientTabsDemoSeeder(
                 staffIds[index % staffIds.Count],
                 toothNumbers: (11 + index % 8).ToString(CultureInfo.InvariantCulture),
                 workDescription: material.Name,
-                dueDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7 + index % 14)),
+                dueAt: new DateTimeOffset(DateTime.UtcNow.Date.AddDays(7 + index % 14).AddHours(9), TimeSpan.Zero),
                 kind: index % 3 == 2 ? LaboOrderKind.Guarantee : LaboOrderKind.New,
                 supplierId: supplier.Id,
                 materialId: material.Id);

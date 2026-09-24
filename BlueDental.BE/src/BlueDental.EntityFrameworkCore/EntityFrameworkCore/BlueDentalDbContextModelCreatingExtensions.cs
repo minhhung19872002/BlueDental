@@ -1,4 +1,4 @@
-﻿using BlueDental.Appointments;
+using BlueDental.Appointments;
 using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
@@ -713,6 +713,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.TakenAt });
             entity.HasIndex(x => new { x.PatientId, x.Ordering });
             entity.HasIndex(x => x.TreatmentStageId);
+            entity.HasIndex(x => x.LaboOrderId);
         });
 
         // Phieu benh an cua benh nhan

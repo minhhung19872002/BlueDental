@@ -45,8 +45,12 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
   const [consultantId, setConsultantId] = useState<string | null>(null);
   const [secondConsultantId, setSecondConsultantId] = useState<string | null>(null);
   const [errors, setErrors] = useState<ConvertFormErrors>({});
+  // The row the dialog opened on is a snapshot; once its Labo slips are
+  // cancelled from inside the dialog the block goes and Lưu comes back.
+  const [laboCleared, setLaboCleared] = useState(false);
 
   const line = row?.service ?? null;
+  const hasOpenLabo = !laboCleared && (line?.labOrders.some((o) => o.isUnfinished) ?? false);
 
   useEffect(() => {
     if (!line) return;
@@ -62,6 +66,7 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
     setConsultantId(line.consultantStaffId);
     setSecondConsultantId(line.secondConsultantStaffId);
     setErrors({});
+    setLaboCleared(false);
   }, [line]);
 
   const toothDtos = useMemo(() => toothValueToDtos(teeth), [teeth]);
@@ -97,7 +102,7 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
   };
 
   const save = async () => {
-    if (!row || !validate()) return;
+    if (!row || hasOpenLabo || !validate()) return;
 
     try {
       await convert.mutateAsync({
@@ -155,6 +160,8 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
     showDifference,
     replacing,
     errors,
+    hasOpenLabo,
+    clearLabo: () => setLaboCleared(true),
     saving: convert.isPending,
     save,
   };

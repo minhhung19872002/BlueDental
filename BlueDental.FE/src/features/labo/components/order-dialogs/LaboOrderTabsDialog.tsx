@@ -12,6 +12,7 @@ import {
   isLaboModalKey,
   type LaboModalKey,
 } from "./laboModalKeys";
+import "../labo-order-dialog.css";
 
 interface Props {
   branchId: string;

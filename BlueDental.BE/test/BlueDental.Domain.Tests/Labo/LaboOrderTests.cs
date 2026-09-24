@@ -123,4 +123,115 @@ public class LaboOrderTests
     {
         Parent(_materialId).ParentOrderId.ShouldBeNull();
     }
+
+    private static readonly DateTimeOffset Sent = new(2026, 9, 24, 8, 0, 0, TimeSpan.Zero);
+
+    private LaboOrder Stamped(DateTimeOffset? dueAt) => new(
+        Guid.NewGuid(), "LABO-202609240", _patientId, _branchId, "Labo A", 0m,
+        sentAt: Sent, dueAt: dueAt);
+
+    [Fact]
+    public void Due_Stamp_Keeps_Its_Hour()
+    {
+        var due = Sent.AddDays(3).AddHours(6).AddMinutes(30);
+
+        Stamped(due).DueAt.ShouldBe(due);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-60)]
+    public void Due_Stamp_Must_Follow_The_Sent_Stamp(int minutesAfterSent)
+    {
+        var ex = Should.Throw<BusinessException>(() => Stamped(Sent.AddMinutes(minutesAfterSent)));
+
+        ex.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.DueBeforeSent);
+    }
+
+    [Fact]
+    public void Update_Should_Refuse_A_Due_Stamp_Before_The_Sent_Stamp()
+    {
+        var order = Stamped(Sent.AddDays(1));
+
+        var ex = Should.Throw<BusinessException>(() =>
+            order.Update("Labo A", null, null, null, Sent.AddHours(-1), 0m));
+
+        ex.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.DueBeforeSent);
+    }
+
+    [Theory]
+    [InlineData(LaboStatus.Sent)]
+    [InlineData(LaboStatus.InProgress)]
+    [InlineData(LaboStatus.Completed)]
+    public void Detail_Status_Should_Refuse_Workflow_Values(LaboStatus next)
+    {
+        var ex = Should.Throw<BusinessException>(() => Parent(_materialId).ChangeStatus(next));
+
+        ex.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.InvalidTransition);
+    }
+
+    [Fact]
+    public void Detail_Status_Should_Cancel_Only_A_New_Order()
+    {
+        var order = Parent(_materialId).ChangeStatus(LaboStatus.Received);
+        order.ReceivedAt.ShouldNotBeNull();
+
+        var ex = Should.Throw<BusinessException>(() => order.ChangeStatus(LaboStatus.Rejected));
+
+        ex.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.CancelOnlyNew);
+    }
+
+    [Fact]
+    public void Detail_Status_Should_Take_Any_Of_The_Dialog_Values_From_New()
+    {
+        Parent(_materialId).ChangeStatus(LaboStatus.LateDelivery).Status.ShouldBe(LaboStatus.LateDelivery);
+        Parent(_materialId).ChangeStatus(LaboStatus.Replaced).Status.ShouldBe(LaboStatus.Replaced);
+        Parent(_materialId).ChangeStatus(LaboStatus.Rejected).Status.ShouldBe(LaboStatus.Rejected);
+    }
+
+    /// <summary>
+    /// The reference's statusClinic (2026-09-24): an order is "unfinished" — and
+    /// blocks cancelling / converting its service line — until the labo has
+    /// delivered it or the clinic has closed it.
+    /// </summary>
+    [Theory]
+    [InlineData(LaboStatus.Draft, true)]
+    [InlineData(LaboStatus.LateDelivery, true)]
+    [InlineData(LaboStatus.Received, false)]
+    [InlineData(LaboStatus.Rejected, false)]
+    [InlineData(LaboStatus.Replaced, false)]
+    public void Unfinished_Should_Follow_The_Detail_Status(LaboStatus status, bool unfinished)
+    {
+        var order = Parent(_materialId);
+        if (status != LaboStatus.Draft)
+            order.ChangeStatus(status);
+
+        order.IsUnfinished.ShouldBe(unfinished);
+    }
+
+    [Fact]
+    public void Unfinished_Should_Cover_A_Sent_Order()
+    {
+        var order = Parent(_materialId);
+        order.Send();
+
+        order.IsUnfinished.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// "Hủy phiếu Labo" from the Chuyển đổi dialog closes both dimensions at
+    /// once — even on an order already sent, which the detail dialog refuses.
+    /// </summary>
+    [Fact]
+    public void Cancel_For_Service_Change_Should_Close_Both_Dimensions()
+    {
+        var order = Parent(_materialId);
+        order.Send();
+
+        order.CancelForServiceChange();
+
+        order.Kind.ShouldBe(LaboOrderKind.Canceled);
+        order.Status.ShouldBe(LaboStatus.Rejected);
+        order.IsUnfinished.ShouldBeFalse();
+    }
 }

@@ -18,6 +18,9 @@ public interface ILaboAppService : IApplicationService
     /// </summary>
     Task<string> GetNextOrderCodeAsync();
     Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input);
+
+    /// <summary>The detail dialog's Lưu: status and new pictures.</summary>
+    Task<LaboOrderDto> SaveDetailAsync(Guid id, SaveLaboOrderDetailDto input);
     Task SendAsync(Guid id);
     Task ReceiveAsync(Guid id);
     Task CompleteAsync(Guid id);

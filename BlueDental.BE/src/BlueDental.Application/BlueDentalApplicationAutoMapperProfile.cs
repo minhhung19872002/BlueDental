@@ -101,7 +101,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         /* Labo */
         CreateMap<LaboOrder, LaboOrderDto>()
-            .ForMember(d => d.PatientName, opt => opt.Ignore());
+            .ForMember(d => d.PatientName, opt => opt.Ignore())
+            .ForMember(d => d.Images, opt => opt.Ignore());
 
         /* Customer Care */
         CreateMap<CareRecord, CareRecordDto>()

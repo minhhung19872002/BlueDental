@@ -26,6 +26,12 @@ interface FloatingFieldProps extends Omit<FormItemProps, "label"> {
    * placeholder even though the form value is non-empty.
    */
   floatOnValue?: boolean;
+  /**
+   * The label sits on the border from the start and the control keeps its
+   * own placeholder as a format hint — the reference's time fields read
+   * "Giờ nhận" over "HH:mm" before anything is picked.
+   */
+  alwaysFloat?: boolean;
   children: React.ReactElement<FloatingFieldChildProps>;
 }
 
@@ -42,6 +48,7 @@ export function FloatingField({
   children,
   className,
   floatOnValue = true,
+  alwaysFloat = false,
   ...rest
 }: FloatingFieldProps) {
   const id = useId();
@@ -52,14 +59,14 @@ export function FloatingField({
   const hasValue = Array.isArray(watchedValue)
     ? watchedValue.length > 0
     : watchedValue !== undefined && watchedValue !== null && watchedValue !== "";
-  const floated = focused || (floatOnValue && hasValue);
+  const floated = alwaysFloat || focused || (floatOnValue && hasValue);
 
   // Plain inputs have no panel; handing them onOpenChange would land on the DOM.
   const hasPanel = !PLAIN_INPUTS.has(children.type);
 
   const child = React.cloneElement<FloatingFieldChildProps>(children, {
     id,
-    placeholder: " ",
+    placeholder: alwaysFloat ? children.props.placeholder : " ",
     onFocus: (...args: unknown[]) => {
       setFocused(true);
       children.props.onFocus?.(...args);

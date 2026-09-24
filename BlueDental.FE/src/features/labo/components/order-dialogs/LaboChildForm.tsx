@@ -26,7 +26,9 @@ interface Props {
   patient: { id: string; code: string; name: string };
   orders: LaboOrderDto[];
   parentId: string | undefined;
-  onPickParent: (id: string | undefined) => void;
+  onPickParent?: (id: string | undefined) => void;
+  /** Raised on a Mẫu Labo row: the parent is the row, so nothing to pick. */
+  hideParentPicker?: boolean;
   onSaved: () => void;
 }
 
@@ -63,6 +65,7 @@ export function LaboChildForm({
   orders,
   parentId,
   onPickParent,
+  hideParentPicker,
   onSaved,
 }: Props) {
   const create = useCreateLaboOrder();
@@ -115,16 +118,18 @@ export function LaboChildForm({
       onFinish={() => void submit()}
       scrollToFirstError
     >
-      <div className="pd-labo-order-select">
-        <FloatingLabel label={t("Patient:Labo:ServiceSlip")} required floated={Boolean(parentId)}>
-          <SearchSelect
-            value={parentId}
-            options={orders.map((order) => ({ value: order.id, label: `#${order.orderCode}` }))}
-            emptyText={t("Patient:Labo:Empty")}
-            onChange={onPickParent}
-          />
-        </FloatingLabel>
-      </div>
+      {!hideParentPicker && (
+        <div className="pd-labo-order-select">
+          <FloatingLabel label={t("Patient:Labo:ServiceSlip")} required floated={Boolean(parentId)}>
+            <SearchSelect
+              value={parentId}
+              options={orders.map((order) => ({ value: order.id, label: `#${order.orderCode}` }))}
+              emptyText={t("Patient:Labo:Empty")}
+              onChange={onPickParent}
+            />
+          </FloatingLabel>
+        </div>
+      )}
 
       {parent && (
         <>

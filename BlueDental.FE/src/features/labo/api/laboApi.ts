@@ -12,6 +12,10 @@ export const LABO_STATUS = {
   Received: 4,
   Completed: 5,
   Rejected: 6,
+  /** "Giao trễ" — picked by hand in the detail dialog, as on the reference. */
+  LateDelivery: 7,
+  /** "Đã thay thế". */
+  Replaced: 8,
 } as const;
 export type LaboStatus = (typeof LABO_STATUS)[keyof typeof LABO_STATUS];
 
@@ -23,50 +27,80 @@ export const LABO_ORDER_KIND = {
   New: 1,
   ContinueStage: 2,
   Guarantee: 3,
+  /** The reference's `statusClinic: canceled` — pulled back by the clinic. */
+  Canceled: 4,
 } as const;
 
 export type LaboOrderKind = (typeof LABO_ORDER_KIND)[keyof typeof LABO_ORDER_KIND];
 
 /**
- * "Tình trạng mẫu" — the pill under Ngày gửi on the patient's Labo tab, one
- * per kind. Same three tones as the status pills; amber is the counter's.
+ * The pill tones the reference paints on Mẫu Labo, measured on staging on
+ * 2026-09-24 (docs/clone/pages/labo.md §2.5): info blue for a new order or
+ * sample, green once delivered, red once cancelled, purple for a guarantee or
+ * a replaced order, amber for a late one, and grey for anything in flight.
  */
-export const LABO_KIND_CONFIG: Record<LaboOrderKind, { label: string; bg: string; color: string }> =
-  {
-    [LABO_ORDER_KIND.New]: { label: "Labo:Kind:New", bg: "#e2f4ee", color: "#0e9f6e" },
-    [LABO_ORDER_KIND.ContinueStage]: {
-      label: "Labo:Kind:ContinueStage",
-      bg: "#fbf1de",
-      color: "#d98b0f",
-    },
-    [LABO_ORDER_KIND.Guarantee]: { label: "Labo:Kind:Guarantee", bg: "#fce9ea", color: "#E5484D" },
-  };
-
-/**
- * The three tones the reference paints a labo status in — a settled state is
- * green, a state that went wrong is red, and everything in flight is grey.
- * See docs/clone/pages/labo.md §2.5.
- */
-export const LABO_STATUS_TONE = {
-  red: { bg: "#fce9ea", color: "#E5484D" },
-  green: { bg: "#e2f4ee", color: "#0e9f6e" },
+export const LABO_PILL_TONE = {
+  info: { bg: "#e0f2fe", color: "#008af5" },
+  success: { bg: "#ecfdf5", color: "#57bc6c" },
+  danger: { bg: "#fff1f2", color: "#d57463" },
+  purple: { bg: "#f5f3ff", color: "#6c3cf0" },
+  warning: { bg: "#fffbeb", color: "#d97706" },
   gray: { bg: "#f7f8fd", color: "#171c33" },
 } as const;
 
+/**
+ * "Tình trạng mẫu" — the pill under Ngày gửi on the patient's Labo tab and
+ * Mẫu Labo, one per kind.
+ */
+export const LABO_KIND_CONFIG: Record<LaboOrderKind, { label: string; bg: string; color: string }> =
+  {
+    [LABO_ORDER_KIND.New]: { label: "Patient:Labo:Sample:New", ...LABO_PILL_TONE.info },
+    [LABO_ORDER_KIND.ContinueStage]: {
+      label: "Patient:Labo:Sample:Continue",
+      ...LABO_PILL_TONE.info,
+    },
+    [LABO_ORDER_KIND.Guarantee]: {
+      label: "Patient:Labo:Sample:Warranty",
+      ...LABO_PILL_TONE.purple,
+    },
+    // Both pills read "Đã huỷ" on staging once the service line's Labo slips are
+    // cancelled from the Chuyển đổi dialog (2026-09-24).
+    [LABO_ORDER_KIND.Canceled]: { label: "Patient:Labo:Status:Rejected", ...LABO_PILL_TONE.danger },
+  };
+
 export const LABO_STATUS_CONFIG: Record<LaboStatus, { label: string; bg: string; color: string }> =
   {
-    [LABO_STATUS.Draft]: { label: "Labo:Status:Draft", ...LABO_STATUS_TONE.green },
-    [LABO_STATUS.Sent]: { label: "Labo:Status:Sent", ...LABO_STATUS_TONE.gray },
-    [LABO_STATUS.InProgress]: { label: "Labo:Status:InProgress", ...LABO_STATUS_TONE.gray },
-    [LABO_STATUS.Received]: { label: "Labo:Status:Received", ...LABO_STATUS_TONE.green },
-    [LABO_STATUS.Completed]: { label: "Labo:Status:Completed", ...LABO_STATUS_TONE.green },
-    [LABO_STATUS.Rejected]: { label: "Labo:Status:Rejected", ...LABO_STATUS_TONE.red },
+    [LABO_STATUS.Draft]: { label: "Patient:Labo:Status:Draft", ...LABO_PILL_TONE.info },
+    [LABO_STATUS.Sent]: { label: "Patient:Labo:Status:Sent", ...LABO_PILL_TONE.gray },
+    [LABO_STATUS.InProgress]: { label: "Patient:Labo:Status:InProgress", ...LABO_PILL_TONE.gray },
+    [LABO_STATUS.Received]: { label: "Patient:Labo:Status:Received", ...LABO_PILL_TONE.success },
+    [LABO_STATUS.Completed]: { label: "Patient:Labo:Status:Completed", ...LABO_PILL_TONE.success },
+    [LABO_STATUS.Rejected]: { label: "Patient:Labo:Status:Rejected", ...LABO_PILL_TONE.danger },
+    [LABO_STATUS.LateDelivery]: {
+      label: "Patient:Labo:Status:LateDelivery",
+      ...LABO_PILL_TONE.warning,
+    },
+    [LABO_STATUS.Replaced]: { label: "Patient:Labo:Status:Replaced", ...LABO_PILL_TONE.purple },
   };
 
 /**
+ * The five states the detail dialog's Trạng thái select offers, in the
+ * reference's order: created, delivered, canceled, lateDelivery, replaced.
+ */
+export const LABO_DETAIL_STATUS_OPTIONS: readonly LaboStatus[] = [
+  LABO_STATUS.Draft,
+  LABO_STATUS.Received,
+  LABO_STATUS.Rejected,
+  LABO_STATUS.LateDelivery,
+  LABO_STATUS.Replaced,
+];
+
+/**
  * The four filters above the Mẫu Labo table. The reference sends one status
- * code per tab; BlueDental sends the tab itself, because "giao trễ" is a
- * comparison against the due date rather than a status a row is put into.
+ * code per tab (`created`, `lateDelivery`, `delivered`) and nothing else;
+ * BlueDental sends the tab and the server maps it onto the same statuses —
+ * "chưa nhận" is every order not back from the lab, from the moment it is
+ * written, and "giao trễ" only what the detail dialog filed there.
  *
  * Mirrors BlueDental.Labo.LaboSampleFilter.
  */
@@ -79,11 +113,37 @@ export const LABO_SAMPLE_FILTER = {
 
 export type LaboSampleFilter = (typeof LABO_SAMPLE_FILTER)[keyof typeof LABO_SAMPLE_FILTER];
 
+/**
+ * The treatment line's "Hoàn thành" — BlueDental.TreatmentManagement
+ * .TreatmentServiceStatus.Done. Mirrored here rather than imported so the
+ * labo feature stays clear of treatment-management.
+ */
+const TREATMENT_SERVICE_DONE = 3;
+
+/**
+ * Whether "Tiếp tục công đoạn" may still be raised on the row: the reference
+ * hides the plus once the treatment line behind the order is done.
+ */
+export function canContinueLaboOrder(order: LaboOrderDto): boolean {
+  return order.treatmentServiceStatus !== TREATMENT_SERVICE_DONE;
+}
+
+/** One picture attached to the order through the detail dialog. */
+export interface LaboOrderImageDto {
+  id: string;
+  /** Same-origin content URL, served by the API. */
+  url: string;
+  fileName: string;
+}
+
 export interface LaboOrderDto {
   id: string;
   orderCode: string;
   patientId: string;
   patientName?: string;
+  patientCode?: string;
+  /** ISO date; the printed sheet's "Ngày sinh". */
+  patientDateOfBirth?: string;
   dentistId?: string;
   dentistName?: string;
   labProviderName: string;
@@ -91,7 +151,8 @@ export interface LaboOrderDto {
   toothNumbers?: string;
   workDescription?: string;
   notes?: string;
-  dueDate?: string;
+  /** Ngày nhận dự kiến + Giờ nhận, one ISO stamp. */
+  dueAt?: string;
   sentAt?: string;
   receivedAt?: string;
   estimatedCost: number;
@@ -136,6 +197,8 @@ export interface LaboOrderDto {
   isOverdue: boolean;
   /** Mẫu Chưa Nhận. */
   isAwaitingReturn: boolean;
+  /** The pictures behind "File phòng khám gửi về", oldest first. */
+  images: LaboOrderImageDto[];
 }
 
 export interface CreateLaboOrderDto {
@@ -145,8 +208,17 @@ export interface CreateLaboOrderDto {
   toothNumbers?: string;
   workDescription?: string;
   notes?: string;
-  dueDate?: string;
+  /** Ngày nhận dự kiến + Giờ nhận, one ISO stamp. */
+  dueAt?: string;
   estimatedCost: number;
+}
+
+/** The detail dialog's Lưu: the status picked, the saved pictures kept and the new ones added. */
+export interface SaveLaboOrderDetailInput {
+  status: LaboStatus;
+  /** Every saved picture still on the strip; the rest are removed. */
+  keepImageIds: string[];
+  pictures: File[];
 }
 
 export interface UpdateLaboOrderDto {
@@ -154,7 +226,8 @@ export interface UpdateLaboOrderDto {
   toothNumbers?: string;
   workDescription?: string;
   notes?: string;
-  dueDate?: string;
+  /** Ngày nhận dự kiến + Giờ nhận, one ISO stamp. */
+  dueAt?: string;
   estimatedCost?: number;
 }
 
@@ -214,6 +287,15 @@ export const laboApi = {
 
   markReceived: (id: string): Promise<LaboOrderDto> =>
     api.post(`/v1/app/labo-orders/${id}/receive`).then((r) => r.data),
+
+  /** One multipart PUT, the way the order itself goes up with its pictures. */
+  saveDetail: (id: string, input: SaveLaboOrderDetailInput): Promise<LaboOrderDto> => {
+    const form = new FormData();
+    form.append("status", String(input.status));
+    for (const imageId of input.keepImageIds) form.append("keepImageIds", imageId);
+    for (const file of input.pictures) form.append("pictures", file);
+    return api.put(`/v1/app/labo-orders/${id}/detail`, form).then((r) => r.data);
+  },
 };
 
 // ── Hooks ─────────────────────────────────────────────────────────────────
@@ -269,6 +351,15 @@ export function useUpdateLaboOrder() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateLaboOrderDto }) =>
       laboApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
+  });
+}
+
+export function useSaveLaboOrderDetail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: SaveLaboOrderDetailInput }) =>
+      laboApi.saveDetail(id, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
   });
 }

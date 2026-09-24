@@ -67,6 +67,14 @@ Page and page size use the same `mau-labo_`-prefixed convention.
 | Mẫu Giao Trễ | `giao-tre` | `status=lateDelivery` |
 | Mẫu Đã Nhận Hàng | `da-nhan` | `status=delivered` |
 
+Clicked for real on staging (2026-09-24, bodies in
+`reference-private/survey/staging/labo-filter-*-2026-09-24.json`): each tab
+is an exact status match and nothing more. Of 24 orders, `created` returned
+14 — including ones whose `estimatedDeliveryDate` lay months in the past, so
+no date rule moves a row to "giao trễ" — `lateDelivery` returned 0 and
+`delivered` 3; `canceled` and `replaced` orders show under Tất Cả Mẫu only.
+BlueDental maps its `sampleFilter` onto the same statuses (R-530).
+
 Beside them, two 240px comboboxes:
 
 - **Chọn khách hàng** — server-searched, paged (`hasNext`), clearable, search
@@ -101,22 +109,28 @@ Day mode really does send an identical `startTime` and `toTime`; month mode
 really does end at the last day's midnight rather than its end. Both are
 reference quirks, not transcription mistakes.
 
-### 2.4 Table — 9 columns
+### 2.4 Table — 11 columns (re-surveyed on staging, 2026-09-23)
 
 `min-width: 1400px`; the `Thao tác` column is sticky to the right (width 80,
 centred) and cannot be hidden. Column settings are disabled on this table.
 
+The first survey (2026-08-27) counted nine columns and a view-only action cell.
+Staging on 2026-09-23 shows **eleven**: a leading `Mã phiếu labo` and a
+`Phiếu điều trị` column, and three row buttons instead of one.
+
 | # | Header | minWidth | Content |
 |---|--------|----------|---------|
+| 0 | Mã phiếu labo | 160 | `code` (`LABO_DTS53`), plain text |
 | 1 | Nhà cung cấp / Ngày tạo | 180 | `labo.name` (medium, `#1B2A41`) over `createdAt` as `DD/MM/YYYY` (12px, muted) |
 | 2 | Tên khách hàng | 200 | `[code] - name`, a link to the patient, primary colour, underline on hover |
+| 2b | Phiếu điều trị | 160 | `treatmentPlan.code`, a link to the plan |
 | 3 | Ngày gửi / Tình trạng mẫu | 200 | `createdAt` as `DD/MM/YYYY HH:mm` over the **sample** status badge |
 | 4 | Ngày giao / Trạng thái Labo | 200 | `estimatedDeliveryDate` as `DD/MM/YYYY HH:mm` over the **labo** status badge |
 | 5 | Bác sĩ chỉ định | 160 | `staff.name` |
 | 6 | Vật liệu | 140 | `material.name` |
 | 7 | Răng | 120 | `toothContents[]` joined, run through the FDI display formatter |
 | 8 | File phòng khám gửi về | 200 | A folder button, gold `#F5C518` (filled, stroke 1.5, size 24), disabled when the order has no images; opens a lightbox gallery over `order.images[]` |
-| 9 | Thao tác | 80 | **View only** — edit and delete are explicitly hidden |
+| 9 | Thao tác | 80 | Three icon buttons, no edit and no delete: an eye **"Xem"** (the detail modal of §2.6), a plus **"Tiếp tục công đoạn"** (the child dialog of §2.9, `type: continue`) and a shield **"Bảo hành"** (§2.9, `type: warranty`). The plus is **hidden when `treatmentService.status === "done"`** — a labo order on a finished treatment line cannot be continued; the eye and the shield stay. Checked against the 20 staging rows on 2026-09-24: every row without the plus has a `done` line, every row with it has not. The bundle's exact rule (read on 2026-09-24, same on the patient's Labo tab): eye always; when `can("treatmentLabo","create")` the shield is always rendered and the plus only while `!isTreatmentServiceDone(order)` — the order's own `status` / `statusClinic` never enter it (a "Đã huỷ" order keeps all three) and no button is ever disabled |
 
 Note: "Ngày gửi" is `createdAt`, not a separate sent-date field.
 
@@ -199,6 +213,41 @@ only passes for an order still in `created`.
 
 "Tạo Lịch Hẹn Mới" opens the schedule modal pre-filled with the order's
 patient (`[code] - name`), its doctor, and now as the start time.
+
+### 2.9 Row dialogs — "Làm tiếp công đoạn" and "Bảo hành" (staging, 2026-09-23/24)
+
+The plus and the shield open the same form the patient tab's child pills open
+(`docs/clone/pages/patient-detail.md`, Labo tab), but **without** the three
+pills and without the parent-order picker: the row *is* the parent, so the
+header opens straight on the locked facts. Title "Làm tiếp công đoạn" or
+"Bảo hành", 24px/600, modal 772 wide, radius 16, a single **Lưu** in the footer.
+
+Header, two columns of 40px controls (radius 8, border `#cbd5e1`):
+
+| Field | State | Measured |
+|---|---|---|
+| Tên khách hàng \* | the patient **picker**, disabled, showing `code - name` | magnifier + chevron kept; the value span is `text-label/50` (rgb 90 107 130 at 50%); trigger bg `#f3f6fa`, border `#cbd5e1`, opacity 1, cursor not-allowed |
+| Kế hoạch điều trị \*, Dịch vụ điều trị \*, Số phiếu Labo \*, Số lượng \* | plain inputs, disabled | text rgb(90 107 130) **full strength**, bg `#f3f6fa`, border `#cbd5e1`, opacity 1, height 40 |
+| Ngày gửi \* / Giờ gửi \* | prefilled with now | date text rgb(27 42 65); the time field keeps its label **floated on the border** over an `HH:mm` placeholder even when filled |
+| Nhà cung cấp \* | picker | required message under it when empty |
+| Ngày nhận dự kiến \* / Giờ nhận \* | empty | the time label floats over the `HH:mm` hint from the start — it never drops into the field |
+
+Local (audit 2026-09-24): the date and time pairs post as one stamp each
+(`sentAt`, `dueAt`); the reference's `labo.validation.expectedDateTimeAfterSent`
+is `Patient:Labo:DueAfterSent` under both due fields, and the server refuses the
+same case with `Labo:0013`. Kind and status labels are keyed
+(`Patient:Labo:Sample:*`, `Patient:Labo:Status:*`) so the English mode no longer
+shows Vietnamese pills.
+
+Body: the radios **Theo vật liệu cũ** / **Thay đổi vật liệu mới**; under the
+first, a summary "Dịch vụ hiện tại: …" and "Vật liệu: …" — 24px below the
+radios, 16px between the two lines, the value 16px after its bold label
+(14px/21px). Then **Răng:** with "Chọn tất cả" reading **words first, box
+second** (13px text, the 20×20 box 8px after it) and one chip per tooth
+(min-width 36, padding 4px 13px, radius 4, filled in the primary when picked),
+12px row gap. Then Màu răng, Đường hoàn tất, Số lượng (locked), Kiểu nhịp,
+Khớp cắn, Nội dung, and the Tải ảnh well. Lưu posts the child order exactly
+as the patient tab's pill does (`docs/clone/api.md` §Labo, `kind` 2 / 3).
 
 ### 2.7 Print sheet — PHIẾU ĐẶT HÀNG LABO
 
@@ -508,6 +557,9 @@ English labels exist for the whole `labo.*` namespace and are extracted to
 | 6 | supplier | Server-side validation messages | Would require submitting the form | NONE |
 | 7 | service-material | Whether the group panel supports drag-reordering | Dragging would persist a new order; the group dialog's `Mức độ ưu tiên` field suggests ordering is numeric only | NONE |
 | 8 | mau-labo | Whether the order create/edit form lives only on the patient screen | Not opened this session | NONE |
+| 9 | plan detail → Chuyển đổi (staging 2026-09-24) | Whether a `delivered` / `replaced` order counts as "finished" for the "đơn labo chưa hoàn tất" guard | Only `created` (blocked) and `canceled` (allowed) were exercised; the other codes need orders in those states | Local treats Received, Completed, Rejected, Replaced as finished |
+| 10 | plan detail → Chuyển đổi (staging 2026-09-24) | Whether saving a conversion itself touches `statusClinic` of finished orders | No conversion was saved with a finished order on the line | NONE |
+| 11 | plan detail → Chuyển đổi (staging 2026-09-24) | CSS of the "Dịch vụ đang có phiếu Labo…" block and its "Hủy phiếu Labo" button | Only the accessibility snapshot was captured, no computed styles | Local: `tp-btn tp-btn--danger`, 14px/22px text, 12px gap — to measure |
 
 ---
 
@@ -533,7 +585,7 @@ folder.
 
 | Tab | Data | State |
 |-----|------|-------|
-| Mẫu Labo | `/v1/app/labo-orders` | Period picker, four filters, patient and doctor pickers, Xuất Excel — all applied by the server. No create button, as the reference has none |
+| Mẫu Labo | `/v1/app/labo-orders` | Period picker, four filters, patient and doctor pickers, Xuất Excel — all applied by the server. No create button, as the reference has none. The three sample filters are exact status filters as on staging — chưa nhận = Draft/Sent/InProgress, giao trễ = LateDelivery only, đã nhận = Received/Completed (R-530); the Excel "Hẹn trả" column is written in the clinic's UTC+7 (R-522) |
 | Nhà cung cấp Labo | `/v1/app/labo-suppliers` | Full dialog, server-side search, composed address column |
 | Khớp cắn Labo | taxonomy `labo_bite` | Done |
 | Đường hoàn tất | taxonomy `labo_finish_line` | Done |
@@ -607,17 +659,83 @@ the reference does; BlueDental sends the window the label promises.
 | Address is province → district → ward | Province → ward | `new-vn-provinces`, which the whole app is already on, is the post-merger two-level division. There is no district level to offer |
 | `Bạn có chắc muốn xoá mục này không?` | The row's name in bold, plus "không thể hoàn tác" | The shared `ConfirmDeleteDialog` — and what the reference itself asks on its material and group deletes |
 | Tab links carry the whole query string | Links carry only the path | The branch is restored from app state on arrival, so the behaviour matches |
-| Ten status codes in two dimensions | The existing six-value `LaboStatus` | Next piece of work; see below |
+| Ten status codes in two dimensions | `LaboStatus` grown to eight (`LateDelivery = 7`, `Replaced = 8`) so the detail select can offer the reference's five; `statusClinic` is `LaboOrderKind` (New / ContinueStage / Guarantee / **Canceled = 4**) | The reference never edits `statusClinic` by hand — it only ever moves to `canceled` from the Chuyển đổi dialog (§"statusClinic" below), so the kind covers every value the reference actually writes |
+| Modal titles 24px | 16px | The app's modal convention (`patient-detail.md` §Labo) |
+| Blue accent on chips, tabs and the primary button | The app's indigo | Owner's 2026-09-07 rule for these dialogs |
+| `PUT /v1/orders/{id}` `{ status, imageLaboIds }` after separate media uploads | One `PUT /api/v1/app/labo-orders/{id}/detail` as `multipart/form-data` carrying `status`, `keepImageIds[]` and the new `pictures[]` | Same one-request rule as R-315; the pictures are `PatientImage` rows with `LaboOrderId`, read back as `images[]` |
+
+### Mẫu Labo — the Thao tác column and its three dialogs (2026-09-24)
+
+Built on the working tree over `0b81072` (uncommitted at the time of writing):
+
+- `laboOrderColumns.tsx` renders the eleven columns of §2.4; `LaboRowActions`
+  (`order-dialogs/laboOrderCells.tsx`) carries the eye / plus / shield with the
+  eye named "Xem" here and "Xem chi tiết" on the patient tab. Since R-531 the
+  cell itself applies `canContinueLaboOrder` (`laboApi.ts`) — plus hidden when
+  `treatmentServiceStatus === 3` (Done) — so Mẫu Labo and the patient's Labo
+  tab share one rule; the containers only decide whether the plus / shield
+  handlers exist at all (`useAbility("treatmentLabo").canCreate`).
+- The two child dialogs moved from the patient feature to
+  `features/labo/components/order-dialogs/` (`LaboChildDialog`, `LaboChildForm`,
+  `LaboChildHeader`, `LaboDeliveryFields`, `LaboToothRow`, `LaboMaterialChoice`,
+  …), opened through `?laboModal=continue-process|warranty&laboRowId=` by
+  `LaboOrderDialogHost`. The patient tab imports them from there.
+- `LaboDetailDialog` takes `mode: LaboDetailMode` (`laboDetailMode.ts`):
+  `{ variant: "patient" }` or `{ variant: "orders", canUpdate,
+  canCreateAppointment }`. On Mẫu Labo it carries `LaboStatusSelect` (five
+  options, `disabled` without `canUpdate`), `LaboPictureWell` (tiles from
+  `images[]` plus new files; `readOnly` without `canUpdate` keeps the strip but
+  drops the Tải ảnh well and the remove corners), "Tạo Lịch Hẹn Mới"
+  (`AppointmentEditorModal` prefilled with the row's patient and dentist, only
+  with `canCreateAppointment`) and **Lưu** (only with `canUpdate`) through
+  `useLaboDetailEditor` (one multipart PUT, toast "Đã lưu phiếu Labo"); the
+  cancel guard toasts `Chỉ được huỷ đơn hàng mới` client-side, and
+  `LaboOrder.ChangeStatus` refuses the same server-side with
+  `BlueDental:Labo:0012`. `LaboDetailFooter` renders "In Phiếu Labo" always and
+  **no Đóng** on Mẫu Labo, as staging; the patient tab's variant is read-only
+  (no select, no pictures) and ends in Đóng.
+- Permission gates, matched to staging's bundle on 2026-09-24 (R-532):
+  Xuất Excel = `laboTemplate:export`; plus and shield = `treatmentLabo:create`
+  (`LaboOrdersScreen` reads `useAbility("treatmentLabo").canCreate`, not the
+  labo ability's create); Tạo Lịch Hẹn Mới = `appointment:create`; select,
+  well and Lưu = `laboTemplate:update` (passed down from `LaboPage`). The
+  letterhead behind "In Phiếu Labo" comes from `useBranchInfo`, which now
+  reads `GET clinic-branches/accessible` (any signed-in user) instead of
+  `GET clinic-branches/{id}` (needs `branchManager.read`), so the print button
+  is enabled for a labo reader too. `e2e/labo-orders-permissions.spec.ts`
+  walks the four leaves on a real restricted dentist.
+- `FloatingField` gained `alwaysFloat` for the `HH:mm` time fields;
+  `labo-order-dialog.css` holds the locked-field colours, the words-first
+  "Chọn tất cả" and the summary spacing of §2.9.
+
+### `statusClinic` — how the reference actually moves it (staging, 2026-09-24)
+
+Written survey on staging (`reference-private/survey/staging/labo-statusclinic-cancel-2026-09-24.json`).
+There is no screen that edits "Tình trạng mẫu"; it changes in exactly one place:
+
+- The plan page lists lines with `include=labOrders[id,statusClinic,status]`.
+- `POST /api/v1/treatment-services/{id}/cancel` on a line whose order is still
+  `created` answers **400** `Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ.`
+  (toast; the confirm dialog stays open).
+- The Chuyển đổi dialog's left column ends with the block
+  "Dịch vụ đang có **phiếu Labo**, vui lòng **hủy phiếu Labo** trước khi thay
+  đổi dịch vụ." and a "Hủy phiếu Labo" button; Lưu is disabled meanwhile.
+- The button opens "Xác nhận hủy phiếu Labo" (Đóng / Xác nhận; "Tất cả Phiếu
+  Labo liên quan sẽ chuyển sang trạng thái 'Hủy'" / "Hành động này không thể
+  hoàn tác."). Xác nhận issues
+  `PUT /api/v1/orders/{orderId}/update-status {"status":"canceled","statusClinic":"canceled"}`
+  per order, no toast; afterwards both pills read "Đã huỷ" and the three
+  counters drop the order.
+
+BlueDental (uncommitted, R-527..R-529): `LaboOrderKind.Canceled = 4`,
+`LaboOrder.IsUnfinished`, `CancelForServiceChange()`,
+`BlueDental:Treatment:0029` on `cancel` / `convert`, `TreatmentServiceDto.labOrders[]`,
+`POST /api/v1/app/patient-treatments/{id}/services/{lineId}/cancel-labo-orders`,
+`ConvertLaboBlock` in `plan-detail/convert/`. Unknowns 9–11 in §8.
 
 ### Still to build
 
-1. **Mẫu Labo** — the second status dimension (`statusClinic` → "Tình trạng
-   mẫu") with its ten codes and its own badge-tone rule, the returned-files
-   column and its lightbox, the detail modal with its five-value status select
-   and photo upload, the print sheet, and the permission gates. Most of it waits
-   on the order growing the ten codes in both dimensions, a migration that
-   touches other features.
-2. **Dịch vụ - vật liệu** — soft-deleted materials staying in the table, greyed
+1. **Dịch vụ - vật liệu** — soft-deleted materials staying in the table, greyed
    and inert, the way the reference leaves them.
 
 ### Known, not fixed

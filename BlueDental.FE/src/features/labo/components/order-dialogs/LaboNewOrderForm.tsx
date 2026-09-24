@@ -9,6 +9,7 @@ import { LaboNewOrderHeader } from "./LaboNewOrderHeader";
 import type { LaboSourceLists } from "./LaboSourcePickers";
 import { sourceFromPick, type LaboOrderSource } from "./laboOrderSource";
 import { laboOrderBody, useLaboOrderForm, type LaboOrderValues } from "./useLaboOrderForm";
+import "../labo-order-dialog.css";
 
 interface Props {
   open: boolean;

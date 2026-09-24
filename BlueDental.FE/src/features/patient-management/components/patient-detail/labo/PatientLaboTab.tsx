@@ -17,9 +17,10 @@ import {
   type LaboStatsDto,
 } from "@/features/labo/api/laboApi";
 import type { PatientDto } from "../../../types/patient";
-import { LaboDetailDialog } from "./LaboDetailDialog";
-import { LaboOrderTabsDialog } from "./LaboOrderTabsDialog";
-import { LABO_MODAL_PARAM, LABO_ROW_PARAM, type LaboModalKey } from "./laboModalKeys";
+import { LaboDetailDialog } from "@/features/labo/components/order-dialogs/LaboDetailDialog";
+import { PATIENT_DETAIL_MODE } from "@/features/labo/components/order-dialogs/laboDetailMode";
+import { LaboOrderTabsDialog } from "@/features/labo/components/order-dialogs/LaboOrderTabsDialog";
+import { LABO_MODAL_PARAM, LABO_ROW_PARAM, type LaboModalKey } from "@/features/labo/components/order-dialogs/laboModalKeys";
 import { buildPatientLaboColumns } from "./patientLaboColumns";
 
 /**
@@ -130,6 +131,7 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
           name: patient.fullName,
           dateOfBirth: patient.dateOfBirth,
         }}
+        mode={PATIENT_DETAIL_MODE}
         onClose={() => setDetail(null)}
       />
     </section>

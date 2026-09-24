@@ -62,21 +62,39 @@ test.describe("Labo", () => {
     await expect(page.getByRole("button", { name: /Tạo kiểu nhịp/ })).toBeVisible();
   });
 
-  test("the Mẫu Chưa Nhận filter re-queries the server", async ({ page }) => {
+  test("the three sample filters re-query the server by status", async ({ page }) => {
     await page.goto("/labo/mau-labo");
     await assertRealApiTraffic(page, "/labo-orders");
 
-    const requests: string[] = [];
-    page.on("request", (req) => {
-      if (req.url().includes("/labo-orders")) requests.push(req.url());
-    });
+    // Each tab is one status filter the server applies (staging sends
+    // status=created|lateDelivery|delivered): the page it answers with holds
+    // rows of those statuses only, never a narrowed copy of "Tất cả".
+    const statusesUnder = async (tab: string, filter: number) => {
+      const answered = page.waitForResponse(
+        (res) =>
+          res.url().includes("/labo-orders?") &&
+          res.url().includes(`sampleFilter=${filter}`) &&
+          res.request().method() === "GET",
+      );
+      await page.getByRole("button", { name: tab }).click();
+      const body = (await (await answered).json()) as {
+        totalCount: number;
+        items: { status: number }[];
+      };
+      return body;
+    };
 
-    await page.getByRole("button", { name: "Mẫu Chưa Nhận" }).click();
+    const awaiting = await statusesUnder("Mẫu Chưa Nhận", 1);
+    // The demo clinic's orders are written as Đơn hàng mới, so the tab is never empty.
+    expect(awaiting.totalCount).toBeGreaterThan(0);
+    expect(awaiting.items.every((one) => [1, 2, 3].includes(one.status))).toBe(true);
+    await expect(page.locator(".ant-table-row").first()).toBeVisible();
 
-    // The filter is applied by the server, not by narrowing the fetched page.
-    await expect
-      .poll(() => requests.some((url) => url.includes("sampleFilter=1")))
-      .toBeTruthy();
+    const overdue = await statusesUnder("Mẫu Giao Trễ", 2);
+    expect(overdue.items.every((one) => one.status === 7)).toBe(true);
+
+    const returned = await statusesUnder("Mẫu Đã Nhận Hàng", 3);
+    expect(returned.items.every((one) => [4, 5].includes(one.status))).toBe(true);
   });
 
   test("Khớp cắn survives create, rename, reload and delete", async ({ page }) => {
@@ -144,7 +162,7 @@ test.describe("Labo", () => {
     const first = page.getByRole("row").nth(1);
     await expect(first).toBeVisible();
 
-    for (const column of [1, 4, 5]) {
+    for (const column of [2, 6, 7]) {
       await expect(first.getByRole("cell").nth(column)).not.toHaveText("—");
     }
   });

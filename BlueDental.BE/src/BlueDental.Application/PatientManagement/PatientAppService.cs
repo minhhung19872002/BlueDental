@@ -20,7 +20,7 @@ using Volo.Abp.Identity;
 namespace BlueDental.PatientManagement;
 
 [Authorize]
-public class PatientAppService : ApplicationService, IPatientAppService
+public class PatientAppService : BlueDentalAppService, IPatientAppService
 {
     /// <summary>What "BE:Common:ExportFile" pulls — the reference exports the whole filtered list.</summary>
     private const int ExportRowCap = 5000;

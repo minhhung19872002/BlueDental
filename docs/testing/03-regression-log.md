@@ -5318,3 +5318,247 @@ Quét DOM runtime: ở English chỉ còn dữ liệu và 9 tên biểu mẫu l�
 Kiểm tra tay ở English trên dev server :5174 (StrictMode): nút voucher, tiêu đề in chẩn đoán, đoạn giải thích mặc định,
 tab kế hoạch, số tiền bằng chữ. `tsc -b`, `npm run lint` và `npm test` đều xanh.
 
+
+## 2026-09-24 — Mẫu Labo: cột Thao tác và ba dialog (Xem / Tiếp tục công đoạn / Bảo hành)
+
+Chủ dự án chụp màn `/labo/mau-labo` trên staging: bảng thiếu cột thao tác, và
+ba dialog mở từ hàng (Xem chi tiết, Làm tiếp công đoạn, Bảo hành) "chưa giống".
+Rà lại trên staging (được phép bấm) tới từng điều khiển, đo computed style.
+
+| ID | Sai lệch | Sửa |
+|---|---|---|
+| R-500 | Bảng Mẫu Labo có 9 cột, ô Thao tác chỉ một nút mắt; staging có **11** cột (thêm Mã phiếu labo, Phiếu điều trị) và **ba** nút: mắt "Xem", dấu cộng "Tiếp tục công đoạn", khiên "Bảo hành" | `laboOrderColumns.tsx` dựng đủ 11 cột; `LaboRowActions` dùng chung với tab Labo của bệnh nhân, thêm `detailLabel` để mắt tên "Xem" ở đây và "Xem chi tiết" ở tab |
+| R-501 | Không rõ khi nào staging ẩn dấu cộng | Đối chiếu 20 hàng staging với JSON: ẩn **khi và chỉ khi** `treatmentService.status === "done"`. Local: DTO thêm `treatmentServiceStatus`, `canContinueLaboOrder` ẩn khi `=== 3` (Completed) |
+| R-502 | Dialog Tiếp tục công đoạn / Bảo hành mở từ Mẫu Labo còn mang ba pill và ô chọn phiếu cha của tab bệnh nhân; staging mở thẳng vào form với hàng là phiếu cha | Tách `LaboChildDialog` (không pill, không picker) khỏi form dùng chung; cả bộ dialog dời sang `features/labo/components/order-dialogs/`, tab bệnh nhân import lại từ đó. Mở qua `?laboModal=…&laboRowId=` như tab |
+| R-503 | Modal "Thông tin chung" ở Mẫu Labo chỉ đọc (Đóng); staging có select Trạng thái 5 giá trị, ô Tải ảnh có xoá, "Tạo Lịch Hẹn Mới", "Lưu" | `LaboDetailDialog` thêm `editable` (theo `canUpdate`): `LaboStatusSelect`, `LaboPictureWell`, `AppointmentEditorModal` điền sẵn bệnh nhân + bác sĩ, Lưu = **một** `PUT …/labo-orders/{id}/detail` multipart (`status`, `keepImageIds[]`, `pictures[]`). Tab bệnh nhân giữ Đóng |
+| R-504 | `LaboStatus` chỉ 6 giá trị, thiếu Giao trễ / Đã thay thế của select | Thêm `LateDelivery = 7`, `Replaced = 8`; `ChangeStatus` từ chối huỷ phiếu không còn "Đơn hàng mới" bằng `Labo:0012`, FE chặn trước bằng toast "Chỉ được huỷ đơn hàng mới" như staging |
+| R-505 | Ảnh phiếu Labo không có chỗ đứng: `PatientImage` không biết phiếu nào | Cột `LaboOrderId` + migration `20260923172959_AddLaboOrderIdToPatientImages`; DTO trả `images[] {id,url,fileName}`, cột "File phòng khám gửi về" và ô Tải ảnh cùng đọc từ đó |
+| R-506 | Ô "Tên khách hàng" của dialog con là `Input` disabled thường; staging là **picker** bị khoá (kính lúp, chevron, chữ xám 50%) | `LaboChildHeader` dùng `SearchSelect disabled` với option `code - name` |
+| R-507 | Ô nhập bị khoá hiện mực AntD 25% trên nền trong; staging chữ rgb(90 107 130) đậm đủ, nền `#f3f6fa`, viền `#cbd5e1`, opacity 1 | Rule `.pd-labo-dialog .ant-input-disabled` + `.ss-wrapper--disabled .ss-trigger` trong `labo-order-dialog.css` |
+| R-508 | Rule màu cho giá trị picker khoá đặt ở `.ss-value` **không ăn** | Span con `.ss-value--selected` có rule màu riêng đè lên — phải nhắm thẳng `.ss-value--selected` |
+| R-509 | "Chọn tất cả" hiện ô tick trước chữ, 14px; staging chữ trước ô 20×20, 13px, cách 8 | `.pd-labo-select-all { flex-direction: row-reverse }`, bỏ padding-inline-start của span chữ |
+| R-510 | Tóm tắt "Dịch vụ hiện tại / Vật liệu" dính sát radio (12/4px); staging 24 trên, 16 giữa hai dòng, giá trị cách nhãn 16 | Giá trị bọc `<span>`; `.pd-labo-summary` mt 24, `p + p` 16, `span` ml 16 |
+| R-511 | Nhãn "Giờ gửi" / "Giờ nhận" rớt vào trong ô khi trống; staging nhãn luôn nổi trên viền, trong ô là gợi ý `HH:mm` | `FloatingField` thêm `alwaysFloat` (giữ placeholder của control), hai `TimePicker` dùng nó với `placeholder="HH:mm"` |
+
+Cố ý giữ khác: tiêu đề modal 16px (quy ước app, `patient-detail.md`), màu nhấn
+indigo thay vì xanh staging (chủ dự án 2026-09-07). Chưa đo được: tone badge
+Giao trễ / Đã thay thế (staging không có phiếu nào ở hai mã đó) — ghi ở
+`unknowns.md`.
+
+### Kiểm thử
+
+Thật, không chặn API, không nhét token: bản build production
+(`vite preview` 127.0.0.1:8080, `dist-preview`) + host API :5000 + PostgreSQL
+thật; đăng nhập qua màn login. Chạy đủ bốn spec Labo, **17/17 xanh** (2,4 phút):
+
+| Spec | Ca | Kết quả |
+|---|---|---|
+| `e2e/labo-orders-actions.spec.ts` (mới) | 11 cột, link bệnh nhân + kế hoạch, ba nút (mắt "Xem"), dấu cộng ẩn theo dòng dịch vụ; dialog Tiếp tục: picker khoá `code - name`, `.ss-wrapper--disabled`, "Giờ nhận" nổi + `HH:mm` + rỗng; dialog Bảo hành; modal chi tiết: đổi trạng thái + thêm 2 ảnh + xoá 1 → Lưu → reload → đọc lại từ API và bảng | 2/2 |
+| `e2e/labo-detail.spec.ts` | tab bệnh nhân: modal chỉ đọc, phiếu in | xanh |
+| `e2e/labo-warranty.spec.ts` | Đặt mới rồi Bảo hành từ hàng, mã cha giữ nguyên | xanh |
+| `e2e/labo.spec.ts` | 6 sub-route Labo, tìm kiếm server-side, lọc kỳ | xanh |
+
+Đối chiếu computed style local vs staging sau khi build lại: bốn ô khoá và
+trigger picker cùng rgb(90,107,130) / rgb(243,246,250) / rgb(203,213,225),
+opacity 1; giá trị picker rgba(90,107,130,.5) weight 400; hàng Răng gap 12, chữ
+trước ô 20×20; chip min-w 36, padding 4/13, radius 4; tóm tắt mt 24 / 16 / ml
+16. Ảnh: `reference-private/survey/local/labo-mau-labo-{continue,warranty,detail}-dialog-local-2026-09-24*.png`
+so với `reference-private/survey/staging/labo-mau-labo-*-dialog-2026-09-23.png`.
+
+**Chưa có** test host cho `SaveDetailAsync` ở BE (chỉ được phủ qua spec
+Playwright ở trên). Host API :5000 là tiến trình của chủ dự án, đã nạp BE mới
+từ đợt trước; không khởi động lại trong đợt này.
+
+## 2026-09-24 — Mẫu Labo: rà lại từng field, i18n và API (sau R-500..R-511)
+
+Chủ dự án: "check kỹ lại từng field, i18n đã handle hết chưa? api nữa check
+kỹ với". Rà `laboApi.ts`, ba dialog, `ILaboAppService` / `LaboAppService` /
+`LaboOrder` và bảng khoá locale `reference-private/survey-labo/locale-labo-keys.json`.
+
+| ID | Sai lệch | Sửa |
+|---|---|---|
+| R-512 | 3 nhãn loại phiếu (`LABO_KIND_CONFIG`) và 8 nhãn trạng thái (`LABO_STATUS_CONFIG`) là chuỗi tiếng Việt cứng — chế độ English vẫn hiện tiếng Việt | Khoá `Patient:Labo:Sample:New/Continue/Warranty` và `Patient:Labo:Status:Draft…Replaced` trong `vi.json` + `en.json`; chữ Việt giữ nguyên nên các assert e2e không đổi |
+| R-513 | Câu "Ngày {0} tháng {1} năm {2}" trên phiếu in ghép cứng trong `LaboPrintSheet` | Khoá có tham số `Patient:Labo:LongDate` (en `{0}/{1}/{2}`) |
+| R-514 | "Giờ nhận" nhập trên dialog nhưng chỉ ngày được gửi đi: DTO/entity là `DueDate: DateOnly`, giờ bị vứt; cột, tóm tắt, phiếu in chỉ có ngày trong khi staging hiện `DD/MM/YYYY HH:mm` | `DueDate` → `DueAt: DateTimeOffset?` trên entity, 3 DTO, 2 seeder; FE `stamp(dueDate, dueTime)` gộp thành một ISO như `sentAt`; cột, facts, print, Excel qua `formatDateTime`; migration `20260923232410_RenameLaboDueDateToDueAt` viết tay `RenameColumn + AlterColumn` (ngày cũ giữ ở 00:00, không DropColumn mất dữ liệu) |
+| R-515 | Luật staging `labo.validation.expectedDateTimeAfterSent` không có ở local: nhận trước gửi vẫn lưu được | FE `dueAfterSentRule` trên cả Ngày nhận dự kiến và Giờ nhận (`dependencies` bốn ô ngày/giờ); BE `LaboOrder.SetDueAt` ném `Labo:0013 DueBeforeSent` ở ctor, `CreateChild` và `Update` — khoá lỗi vi/en |
+| R-516 | `PUT …/labo-orders/{id}/detail` nhận **mọi** `LaboStatus`: gửi `status=2` (Sent) là qua mặt guard của Send / Receive / Complete | `ChangeStatus` chỉ nhận 5 giá trị của select (Draft, Received, Rejected, LateDelivery, Replaced), giá trị khác → `Labo:0002`; Received qua dialog đóng dấu `ReceivedAt` nếu chưa có |
+| R-517 | Mọi endpoint theo id (`GET {id}`, `PUT {id}`, `PUT detail`, send / receive / complete / reject) nạp phiếu **không kiểm tra chi nhánh** — chỉ danh sách được lọc | `GetInBranchAsync` gọi `BranchAccessChecker.CheckAsync(order.BranchId)` trước mọi thao tác theo id |
+| R-518 | Bỏ ảnh trong dialog chi tiết chỉ xoá dòng `PatientImage`; blob MinIO nằm lại | `SaveDetailAsync` nạp các ảnh bị bỏ, `DeleteManyAsync` rồi `IBlobContainer.DeleteAsync(BlobName)` từng ảnh |
+| R-519 | `labo-warranty.spec.ts:315` đỏ sau R-510: assert `"Dịch vụ hiện tại: <nhóm>"` nhưng nhãn và giá trị giờ là hai phần tử (`<b>` + `<span>` cách 16px) nên text ghép không có khoảng trắng | Spec đọc từng dòng `.pd-labo-summary > p`: nhãn `toContainText`, `span` `toHaveText` |
+
+Đã rà mà đúng sẵn: nhãn 14 ô của dialog con, thông báo bắt buộc
+(`Patient:Labo:*` ↔ `labo.validation.*` của staging), toast tạo / cập nhật,
+tiêu đề tab, cột bảng, sheet in — tất cả đã qua `t()` từ các đợt trước.
+
+### Kiểm thử
+
+- Domain `LaboOrderTests` 16/16 (thêm 6: due giữ giờ; due ≤ sent bị từ chối ở
+  ctor và ở `Update`; `ChangeStatus` từ chối Sent / InProgress / Completed; chỉ
+  huỷ phiếu mới; 5 giá trị dialog nhận được từ Draft). Contract 11/11
+  (`SaveDetailAsync` có trên interface; `DueAt` là `DateTimeOffset?` trên 3
+  DTO, `DueDate` không còn).
+- Host build lại; DbMigrator **phải build lại trước** — lần đầu chạy
+  `--no-build` là dll cũ, "Successfully completed" nhưng migration không áp,
+  host 500 `column b.DueAt does not exist`. Chạy lại sau build: migration áp
+  lên DB :5432, host mới trên :5000.
+- HTTP thật bằng cookie đăng nhập: `PUT detail status=2` → 422 `Labo:0002`;
+  `status=4` → 200, `receivedAt` được đóng dấu; `status=6` từ Received → 403
+  `Labo:0012`; `PUT {id}` với `dueAt` trước `sentAt` → 403 `Labo:0013`, message
+  tiếng Việt với `Accept-Language: vi`. `GET labo-orders` trả `dueAt`
+  `2026-10-01T00:00:00+00:00` cho phiếu có ngày cũ (giữ nguyên ngày).
+- Playwright bản build production (:8080, host :5000, không chặn API):
+  `labo-orders-actions` 2/2, `labo-detail`, `labo-warranty`, `labo` — **20/20**.
+- `tsc --noEmit`, eslint (labo, patient labo tab, `useLaboPickers`) xanh.
+
+### Còn treo
+
+- Excel "Ngày nhận dự kiến" xuất `DueAt.DateTime` theo UTC (cùng cách export
+  hoá đơn); "Mẫu chưa nhận" quá hạn tính theo ngày UTC (giữ ngữ nghĩa cột ngày
+  cũ).
+- Cross-branch 403 chưa đo bằng HTTP (admin thấy mọi chi nhánh) — dựa vào
+  `BranchAccessChecker` dùng chung đã có test ở `branch-*`.
+- Vẫn chưa có host test cho `SaveDetailAsync`; `statusClinic` chưa dựng.
+
+## 2026-09-24 — Mẫu Labo: "File phòng khám gửi về" mở chậm ~2 giây
+
+| # | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-520 | Bấm folder "File phòng khám gửi về" (và mọi ảnh bệnh nhân, avatar, logo Labo) chờ ~2,3 giây mới hiện, kể cả file 70 byte; `GET /api/v1/app/patient-images/{id}/content` đo bằng curl: ttfb 2,26–2,29 s cho mọi kích thước | Không phải ảnh nặng. `BlobStorage:Endpoint` = `localhost:9000`; trên Windows `localhost` phân giải `::1` trước, MinIO trong Docker chỉ bind `127.0.0.1:9000`, kết nối `[::1]:9000` treo đúng ~2,02 s rồi mới rơi về IPv4 — HttpClient của Minio SDK thử tuần tự nên mỗi lần đọc blob trả giá 2 s (curl nhanh vì Happy Eyeballs). Đổi endpoint thành `127.0.0.1:9000` ở `HttpApi.Host/appsettings.json` và `DbMigrator/appsettings.json`: cùng ảnh còn 0,02 s. Docker compose dùng `minio:9000` nên prod không bị. |
+
+### Kiểm thử
+
+- curl có cookie đăng nhập, cùng 3 ảnh (324 KB, 465 KB, 70 B): host cũ
+  (`localhost:9000`) 2,26–2,29 s mỗi request; host chạy lại với
+  `127.0.0.1:9000` 0,02–0,03 s (lần đầu 0,29 s do mở kết nối).
+- `curl http://[::1]:9000/minio/health/live` → 2,02 s rồi lỗi;
+  `127.0.0.1:9000` → 0,002 s. `getaddrinfo('localhost')` trả `::1` trước.
+
+### Còn treo
+
+- Endpoint content trả `Content-Type: application/octet-stream` và không có
+  `Cache-Control`, nên mở lại cùng ảnh vẫn tải lại; nên trả `image.ContentType`
+  và `private, max-age` (đổi contract `GetContentAsync` sang `IRemoteStreamContent`).
+- Provider Minio của ABP đọc trọn blob vào `MemoryStream` trước khi trả về, nên
+  ảnh điện thoại nhiều MB vẫn sẽ có TTFB bằng thời gian tải xong từ MinIO.
+
+## 2026-09-24 — Mẫu Labo: đóng các mục "còn treo" của đợt rà (R-512..R-519)
+
+Chủ dự án hỏi "những cái này có cái nào b handle được" về bốn mục còn treo.
+Ba mục xử lý được ngay; `statusClinic` cần khảo sát staging riêng (xem cuối).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-521 | Excel "Mẫu Labo" xuất tiêu đề **khoá thô** `BE:Field:RecordNo`, `BE:LaboField:DueBack`… thay vì "Mã phiếu", "Hẹn trả" — cả qua curl `Accept-Language: vi` lẫn qua phiên đăng nhập của trình duyệt; export hoá đơn (`/api/v1/app/invoices/excel`) cũng vậy | `LaboAppService : ApplicationService` không đặt `LocalizationResource`, nên `L[...]` đi qua đường "default resource" của ABP — trên host này đường đó trả về đúng cái khoá dù `AbpLocalizationOptions.DefaultResourceType = BlueDentalResource` và `/api/abp/application-localization` vẫn dịch được cùng khoá. Gán tường minh `LocalizationResource = typeof(BlueDentalResource)` trong ctor: tiêu đề thành "Mẫu Labo, Mã phiếu, Khách hàng, Nhà cung cấp, Răng, Hẹn trả, Chi phí, Trạng thái, Trễ hẹn". Sáu service khác cùng kiểu (Invoice, SalesEntry, OperationsReport, Patient, ClinicReport, PatientTreatment) **chưa sửa** — xem Còn treo. |
+| R-522 | Cột "Hẹn trả" trong Excel ghi giờ UTC; "Mẫu chưa nhận" tính quá hạn theo nửa đêm UTC, tức 07:00 sáng giờ phòng khám | Theo quy ước sổ hẹn (`AppointmentAppService`): `ClinicUtcOffset = +7`. `StartOfToday()` lấy nửa đêm của ngày UTC+7 rồi đổi về UTC (Npgsql timestamptz cần offset 0); Excel ghi `DueAt.ToOffset(+7).DateTime`. Đo: phiếu hẹn 02:30Z → ô Excel `46291.3958` = 26/09/2026 09:30. |
+| R-523 | Cross-branch 403 chưa đo bằng HTTP | `e2e/labo-api.spec.ts` (HTTP thật từ trang đã đăng nhập, cookie + `RequestVerificationToken`, không chặn): tài khoản `branch2` đọc `GET {id}` phiếu chi nhánh 1 → 403, `PUT {id}/detail` → 403, `GET labo-orders` không chứa id; phiếu vẫn `status=1` sau lượt ghi bị từ chối. |
+| R-524 | Chưa có host test cho `SaveDetailAsync` | Cùng spec, qua pipeline thật: `status=2` → 422 `Labo:0002`; `status=4` → 200 + `receivedAt`; `status=6` sau đó → 403 `Labo:0012`; thêm 2 ảnh PNG multipart → `images` 2, mỗi `/content` 200; `keepImageIds=[ảnh 1]` → còn 1, ảnh bỏ trả 403 `Patient:0008` ("Không tìm thấy ảnh" — quy ước F-24, không phải 404), MinIO `ls -R` không còn blob của ảnh bỏ, blob giữ vẫn còn; `dueAt` trước `sentAt` → 403 `Labo:0013`, `dueAt` hợp lệ giữ nguyên giờ khi đọc lại. |
+
+### Kiểm thử
+
+- `labo-api` 4/4; toàn bộ `e2e/labo*` **24/24** trên bản build production
+  (:8080, host :5000 build lại sau R-521/R-522, không chặn API). Một lần
+  `labo-orders-actions` đỏ trong lượt chạy gộp rồi xanh 2/2 khi chạy riêng và
+  xanh trong lượt gộp chạy lại — chưa bắt được thông báo lỗi, ghi nhận là
+  chập chờn.
+- Domain.Tests Labo 16/16, Application.Tests Labo 35/35. `tsc`, eslint xanh
+  (spec mới sửa một `no-useless-assignment`).
+- `export.spec.ts` 1/3 và `report.spec.ts` "Doanh số" đỏ vì locator
+  `Chưa phát sinh` và nhãn "Phương thức thanh toán" → "Hình thức" sau đợt đổi
+  key hàng loạt của chủ dự án — ngoài phạm vi labo, không sửa.
+
+### Còn treo
+
+Cả ba mục dưới đã đóng cùng ngày ("làm luôn đi") — xem R-525..R-529.
+
+- ~~Sáu app service khác dùng `L[...]` mà không đặt `LocalizationResource`~~ → R-525.
+- ~~Cột "Trạng thái" của Excel labo ghi tên enum tiếng Anh~~ → R-526.
+- ~~`statusClinic` chưa dựng~~ → khảo sát staging + dựng, R-527..R-529.
+
+## 2026-09-24 — Mẫu Labo: `statusClinic` và hai mục treo còn lại (R-525..R-529)
+
+Chủ dự án: "làm luôn đi". Khảo sát ghi trên staging (bệnh nhân DEV TEST, capture
+trong `reference-private/survey/staging/labo-statusclinic-cancel-2026-09-24.json`)
+cho thấy `statusClinic` không có màn hình riêng: bản gốc **chặn huỷ / chuyển đổi
+dòng dịch vụ** khi còn phiếu Labo chưa xong, và khối "Hủy phiếu Labo" trong dialog
+Chuyển đổi mới là nơi đổi nó (`PUT /api/v1/orders/{id}/update-status
+{"status":"canceled","statusClinic":"canceled"}` cho từng phiếu).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-525 | Sáu app service export tiêu đề khoá thô `BE:*` (cùng gốc R-521) | Thêm `BlueDentalAppService : ApplicationService` đặt `LocalizationResource = typeof(BlueDentalResource)` trong ctor; bảy service (Labo, Invoice, SalesEntry, OperationsReport, Patient, ClinicReport, PatientTreatment) đổi base sang nó. Thay đổi dùng chung mức 3 nhưng chỉ chạm cách tra `L[]`, không đổi hành vi nào khác; contract tests xanh. |
+| R-526 | Cột "Trạng thái" của Excel Mẫu Labo in tên enum tiếng Anh (`Draft`, `Sent`…) | Export tra `L["Patient:Labo:Status:<enum>"]` như pill trên giao diện → "Đơn hàng mới", "Đã gửi", …, và theo `Accept-Language`. |
+| R-527 | Huỷ / chuyển đổi một dòng dịch vụ còn phiếu Labo chưa xong được cho qua, trong khi staging trả 400 "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ." (toast, dialog xác nhận vẫn mở) | `LaboOrder.IsUnfinished` = status ∉ {Received, Completed, Rejected, Replaced}; `PatientTreatmentAppService.CancelServiceAsync` / `ConvertServiceAsync` gọi `GuardNoOpenLaboOrderAsync` → `BusinessException("BlueDental:Treatment:0029")` cùng câu chữ của bản gốc (vi/en). `TreatmentServiceDto` mang `labOrders[] {id, orderCode, status, kind, isUnfinished}` — bản gốc gửi `include=labOrders[id,statusClinic,status]` cho trang kế hoạch. |
+| R-528 | Dialog Chuyển đổi thiếu khối "Dịch vụ đang có **phiếu Labo**, vui lòng **hủy phiếu Labo** trước khi thay đổi dịch vụ." + nút "Hủy phiếu Labo"; Lưu không bị khoá | `ConvertLaboBlock` ở cuối cột trái khi dòng còn phiếu chưa xong, Lưu `disabled`; nút mở dialog "Xác nhận hủy phiếu Labo" (500px, hai dòng chữ, Đóng / Xác nhận); Xác nhận → `POST /api/v1/app/patient-treatments/{id}/services/{lineId}/cancel-labo-orders` → mọi phiếu chưa xong của dòng `CancelForServiceChange()` (Kind = `Canceled` (4), Status = `Rejected`) — bỏ qua chốt "chỉ huỷ đơn mới" của dialog chi tiết, đúng như staging; khối biến mất, **không** toast (khớp snapshot staging). `LaboOrderKind.Canceled` phản ánh `statusClinic: canceled`; pill "Tình trạng mẫu" đọc "Đã huỷ", ba bộ đếm bỏ phiếu đó, không cần migration (short). |
+| R-529 | Dòng dịch vụ mở trong dialog là snapshot nên sau khi huỷ phiếu khối vẫn hiện | `useConvertServiceForm` giữ `laboCleared`, reset khi đổi dòng; `hasOpenLabo = !laboCleared && labOrders.some(isUnfinished)`. |
+| R-532 | Điều kiện hiện nút chưa giống staging 100% (ba khe): (A) dấu cộng / khiên trên Mẫu Labo gate theo `laboTemplate:create` trong khi staging gate theo `treatmentLabo:create`; (B) dialog "Thông tin chung" gộp `laboTemplate:update` + `appointment:create` thành một cờ `editable`, không có quyền update thì **ẩn** select Trạng thái (staging vẫn hiện, chỉ disabled) và hiện nút Đóng mà staging không có; (C) "In Phiếu Labo" phụ thuộc `GET clinic-branches/{id}` — endpoint này đòi `Organizations.View` (= `branchManager.read`) nên user chỉ có quyền Labo bị disabled nút in | Đọc lại bundle staging `cf971421de158bad.js` (2026-09-24): export = `can("laboTemplate","export")`; hàng: mắt luôn, `can("treatmentLabo","create")` → khiên luôn + cộng khi dòng chưa done; dialog `N({canUpdate: laboTemplate:update, canCreateAppointment: appointment:create})` → footer In Phiếu Labo luôn, Tạo Lịch Hẹn Mới theo canCreateAppointment, Lưu theo canUpdate, **không có Đóng**; select luôn render với `disabled: !canUpdate`; ô Tải ảnh và nút xoá ảnh chỉ khi canUpdate. Sửa: `LaboOrdersScreen` gate cộng/khiên bằng `useAbility("treatmentLabo").canCreate`, đọc thêm `useAbility("appointment").canCreate`; `LaboDetailDialog` nhận `mode: LaboDetailMode` (`{variant:"patient"}` \| `{variant:"orders", canUpdate, canCreateAppointment}`), `LaboStatusSelect` thêm `disabled`, `LaboPictureWell` thêm `readOnly` (giữ dải ảnh, bỏ ô Tải ảnh + nút xoá), footer tách ra `LaboDetailFooter` (Đóng chỉ ở variant patient); `useBranchInfo` đổi sang `GET clinic-branches/accessible` (chỉ cần đăng nhập) rồi `select` theo id — ảnh hưởng mọi tờ in dùng letterhead, dữ liệu trả về giống hệt. |
+| R-531 | Cột Thao tác chưa xét điều kiện hiện nút: tab Labo của bệnh nhân luôn hiện đủ mắt + cộng + khiên kể cả khi dịch vụ điều trị đã hoàn thành (Mẫu Labo thì đã ẩn dấu cộng theo `treatmentServiceStatus === 3` từ R-500) | Đọc bundle + DOM staging trên cả hai bảng (2026-09-24, `reference-private/survey/staging/labo-actions-snapshot-2026-09-24.md`): mắt luôn hiện; nếu `can("treatmentLabo","create")` thì khiên luôn hiện và dấu cộng chỉ ẩn khi `treatmentService.status === "done"`; status/statusClinic của phiếu **không** ảnh hưởng — phiếu "Đã huỷ" (LABO-202609241) vẫn đủ ba nút, phiếu trên dòng đã hoàn thành (LABO-202609192/191/181 của DT48) chỉ còn mắt + khiên; không nút nào bị disable. Sửa: đưa `canContinueLaboOrder` vào chính `LaboRowActions` (`order-dialogs/laboOrderCells.tsx`) để hai bảng dùng một luật, `laboOrderColumns.tsx` bỏ gate riêng; quyền `treatmentLabo:create` vẫn gate cả hai handler ở container như cũ. |
+| R-530 | Ba tab lọc "Mẫu chưa nhận / giao trễ / đã nhận hàng" gần như trống: chi nhánh demo 156 phiếu mà tab chưa nhận chỉ 1, giao trễ 1, đã nhận 25 — 110 phiếu "Đơn hàng mới" (Draft) không nằm dưới tab nào ngoài Tất cả, vì `ApplySampleFilter` chỉ nhận Sent/InProgress/LateDelivery là "chưa nhận" trong khi FE không bao giờ gọi `/send` (mọi phiếu tạo ra đều Draft); "giao trễ" còn tự suy từ `DueAt < nửa đêm` (R-522) | Bấm thật ba tab trên staging (2026-09-24, bodies trong `reference-private/survey/staging/labo-filter-*.json`): mỗi tab là **một status đúng bằng** — `status=created` 14/24 phiếu, gồm cả phiếu hẹn trả từ 30/03 (không hề rơi sang giao trễ); `status=lateDelivery` 0; `status=delivered` 3; canceled/replaced chỉ hiện dưới Tất cả. Sửa `LaboAppService`: chưa nhận = Draft ∪ Sent ∪ InProgress, giao trễ = LateDelivery **đúng một status**, đã nhận = Received ∪ Completed; `IsAwaitingReturn`/`IsOverdue`/`IsReturned` dùng chung cho list, `stats` và cột Excel "Giao trễ"; bỏ `StartOfToday()` (rút lại phần "quá hạn từ nửa đêm" của R-522 — `ClinicUtcOffset` vẫn dùng cho cột Hẹn trả). Đo lại chi nhánh demo: 0→156, 1→110 (toàn status 1), 2→1, 3→25; `stats {awaitingReturn 110, overdue 1, returned 25}`. |
+
+### Kiểm thử
+
+- `e2e/labo-api.spec.ts` +1 ("an unfinished order blocks its service line until
+  Hủy phiếu Labo"): thêm dòng dịch vụ mới qua `POST …/services` để không tiêu
+  dữ liệu seed, tạo phiếu với `treatmentServiceId`, `POST …/cancel` → 403
+  `Treatment:0029`, `POST …/cancel-labo-orders` → 200 với `labOrders[]` đều
+  `isUnfinished=false`, đọc lại phiếu `kind 4 / status 6`, rồi `POST …/cancel`
+  → 200 và dòng `status 4`. 5/5.
+- `e2e/treatment-plan-detail.spec.ts` +1 ("a line with an open Labo slip must
+  cancel it before it converts"): trình duyệt thật, phiếu tạo qua API từ trang
+  đã đăng nhập, khối + Lưu khoá, Đóng không đổi gì, Xác nhận → khối mất, Lưu
+  mở, không toast; reload tab Labo của bệnh nhân thấy "Đã huỷ", mở lại dialog
+  không còn khối. 14/14 cả file.
+- R-532: `e2e/labo-orders-permissions.spec.ts` mới (1 test, ~35 s): admin tạo
+  bác sĩ role `dentist` qua dialog Nhân sự, cấp từng lá quyền trên Cài đặt →
+  Phân quyền, bác sĩ đăng nhập bằng context riêng và mở lại Mẫu Labo sau mỗi lần
+  cấp. Chỉ `laboTemplate.read`: nút hàng ["Xem"], không Xuất Excel, select
+  Trạng thái hiện + disabled, không ô Tải ảnh, footer ["In Phiếu Labo"] (enabled
+  — letterhead lấy từ `/accessible`); + `treatmentLabo.create` → ["Xem","Tiếp tục
+  công đoạn","Bảo hành"]; + `appointment.create` → footer ["In Phiếu Labo","Tạo
+  Lịch Hẹn Mới"], select vẫn disabled; + `laboTemplate.update` → select enabled,
+  ô Tải ảnh, footer đủ ba. Fixture dùng chung `e2e/fixtures/restrictedDentist.ts`
+  (tách từ `role-permissions-abilities.spec.ts`). Gotcha: subject `appointment`
+  nằm dưới hai nhóm của cây quyền (Điều trị → Lịch hẹn và Lịch hẹn → Lịch hẹn
+  khách hàng) nên `appointment.create` khớp 2 `.perm-leaf` cùng id — fixture bấm
+  ô đầu và kiểm tra mọi ô cùng đổi. Trọn bộ `e2e/labo`: **28/28**,
+  `role-permissions-abilities` 1/1, `tsc` app + root sạch.
+- R-531: `e2e/labo-orders-actions.spec.ts` +1 ("the plus follows the treatment
+  line, not the order, on both tables"): fixture `addPlanLine`/`driveLine`
+  (`e2e/fixtures/laboSeed.ts`) thêm hai dòng dịch vụ thật vào một phiếu điều
+  trị, gắn mỗi dòng một phiếu Labo, rồi `/complete` dòng thứ nhất và
+  `/cancel-labo-orders` + `/cancel` dòng thứ hai qua API thật. Tab Labo bệnh
+  nhân: dòng hoàn thành → ["Xem chi tiết","Bảo hành"], dòng huỷ (hai cột "Đã
+  huỷ") → đủ ba; Mẫu Labo: ["Xem","Bảo hành"] / đủ ba; bấm khiên trên dòng hoàn
+  thành mở dialog "Bảo hành". Lỗi gặp khi viết: `POST …/complete` 422
+  `Treatment:0002` vì fixture lấy `services[last]` làm dòng mới trong khi phiếu
+  trả dòng theo thứ tự riêng (trúng dòng đã đóng) — sửa bằng cách so id trước/sau
+  POST. Trọn bộ `e2e/labo`: **27/27** (2,6 phút), `tsc` app + root sạch.
+- R-530: `e2e/labo-api.spec.ts` +1 ("the Mẫu Labo filters are exact status
+  filters"): phiếu vừa tạo nằm dưới `sampleFilter=1` và không dưới 2/3,
+  `stats.awaitingReturn` > 0; dialog đặt `status=7` → sang tab 2, rời tab 1,
+  `awaitingReturn` −1 / `overdue` +1; `status=4` → chỉ tab 3, `overdue` về cũ,
+  `returned` +1. `e2e/labo.spec.ts` "the three sample filters re-query the
+  server by status" thay test cũ (chỉ kiểm URL có `sampleFilter=1`): đọc
+  response thật của từng tab — tab 1 `totalCount` > 0 và mọi dòng status ∈
+  {1,2,3}, tab 2 toàn 7, tab 3 ∈ {4,5}. Trọn bộ `e2e/labo`: **26/26** (2,5 phút).
+- `e2e/labo*` chạy gộp theo thứ tự file trên bản build production: **25/25** (2,7 phút). Khi chạy tách
+  file (`labo.spec` sau `labo-detail`/`labo-orders-actions`), "a row names its
+  customer, dentist and material" đỏ vì dòng mới nhất là đơn seed không có vật
+  liệu — lỗi thứ tự dữ liệu có từ trước, không phải do đợt này; chạy trọn bộ
+  `e2e/labo` thì dòng mới nhất là đơn của `labo-warranty` và xanh.
+- Domain.Tests Labo 23/23 (+3: `IsUnfinished` theo status, phiếu đã gửi vẫn
+  "chưa xong", `CancelForServiceChange` đóng cả hai chiều); Application.Tests
+  Labo + TreatmentPlan 40/40. `tsc`, eslint xanh; prettier chỉ chạy trên file
+  đã chạm (`laboApi.ts`), các file convert còn lại vốn đã lệch prettier từ
+  HEAD (CRLF), không format lại để tránh diff ngoài phạm vi.
+
+### Còn treo
+
+- CSS của khối và nút "Hủy phiếu Labo" trên staging **chưa đo** (chỉ có
+  snapshot chữ); local dùng `tp-btn tp-btn--danger`, chữ 14px/22px, gap 12px —
+  ghi UNKNOWN trong `docs/clone/pages/labo.md` §8.
+- Chưa rõ với bản gốc phiếu `delivered` / `replaced` có tính là "đã xong" để qua
+  chốt không (local: Received, Completed, Rejected, Replaced qua chốt), và lưu
+  Chuyển đổi thành công có đụng `statusClinic` không.
+- Gotcha sửa file: phần lớn file convert / spec dùng CRLF — script sửa phải
+  chuẩn hoá CRLF→LF khi khớp chuỗi và ghi lại CRLF; heredoc python trong Git
+  Bash bẻ `\r\n` thành xuống dòng thật, dùng Write/Edit tool cho script.

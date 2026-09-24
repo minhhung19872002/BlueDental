@@ -9,7 +9,13 @@ public enum LaboOrderKind : short
 {
     New = 1,
     ContinueStage = 2,
-    Guarantee = 3
+    Guarantee = 3,
+    /// <summary>
+    /// The reference's <c>statusClinic: canceled</c>: the clinic pulled the order
+    /// back because its service line was cancelled or converted. Such an order
+    /// drops out of all three counters and its Tình trạng mẫu pill reads "Đã huỷ".
+    /// </summary>
+    Canceled = 4
 }
 
 public enum LaboStatus : short
@@ -19,5 +25,9 @@ public enum LaboStatus : short
     InProgress = 3,
     Received = 4,
     Completed = 5,
-    Rejected = 6
+    Rejected = 6,
+    /// <summary>The reference's <c>lateDelivery</c>: "Giao trễ", set by hand on the detail dialog.</summary>
+    LateDelivery = 7,
+    /// <summary>The reference's <c>replaced</c>: "Đã thay thế".</summary>
+    Replaced = 8
 }

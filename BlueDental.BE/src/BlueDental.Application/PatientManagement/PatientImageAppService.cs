@@ -108,7 +108,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             input.TreatmentStageId,
             input.Note,
             input.Type,
-            ordering);
+            ordering,
+            input.LaboOrderId);
 
         buffer.Position = 0;
         await _blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);

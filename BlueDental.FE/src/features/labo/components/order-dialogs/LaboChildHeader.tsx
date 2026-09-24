@@ -36,7 +36,13 @@ export function LaboChildHeader({ kind, patient, parent, dentists, form }: Props
   return (
     <div className="pd-labo-grid">
       <FloatingLabel label={t("Patient:Form:CustomerName")} required floated>
-        <Input disabled value={`${patient.code} - ${patient.name}`} />
+        {/* The reference keeps its patient picker here, locked on the row's
+            patient: magnifier, "code - name" in the muted ink, chevron. */}
+        <SearchSelect
+          disabled
+          value={patient.code}
+          options={[{ value: patient.code, label: `${patient.code} - ${patient.name}` }]}
+        />
       </FloatingLabel>
       <FloatingLabel label={t("Patient:Plan:Title")} required floated>
         <Input disabled value={planLabel} />

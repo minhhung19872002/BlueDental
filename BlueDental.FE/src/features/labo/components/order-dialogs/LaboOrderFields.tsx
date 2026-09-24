@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import { Form, Input } from "antd";
-import { CloseOutlined, PictureOutlined } from "@ant-design/icons";
+import { CloseOutlined } from "@ant-design/icons";
+import { ImagePlus } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -83,7 +84,7 @@ export function LaboOrderFields({ form, emptyTeeth }: Props) {
       </div>
 
       <button type="button" className="pd-labo-drop" onClick={() => fileInput.current?.click()}>
-        <PictureOutlined />
+        <ImagePlus size={22} aria-hidden />
         <span>{t("Patient:Photo:Upload")}</span>
       </button>
 

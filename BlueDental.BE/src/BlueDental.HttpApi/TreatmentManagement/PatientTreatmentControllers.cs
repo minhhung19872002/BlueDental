@@ -47,6 +47,10 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
         Guid id, Guid serviceLineId, [FromBody] ConvertTreatmentServiceDto input) =>
         service.ConvertServiceAsync(id, serviceLineId, input);
 
+    [HttpPost("{id:guid}/services/{serviceLineId:guid}/cancel-labo-orders")]
+    public Task<TreatmentPlanSlipDto> CancelServiceLaboOrdersAsync(Guid id, Guid serviceLineId) =>
+        service.CancelServiceLaboOrdersAsync(id, serviceLineId);
+
     [HttpPost("{id:guid}/services/reorder")]
     public Task<TreatmentPlanSlipDto> ReorderServiceAsync(
         Guid id, [FromBody] ReorderTreatmentServiceDto input) =>

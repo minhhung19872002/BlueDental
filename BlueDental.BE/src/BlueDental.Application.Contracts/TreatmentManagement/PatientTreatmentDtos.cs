@@ -36,6 +36,16 @@ public class ServiceStepDto
     public decimal Value { get; set; }
 }
 
+/// <summary>One labo order hanging off a service line, as the slip lists it.</summary>
+public class TreatmentServiceLaboOrderDto : EntityDto<Guid>
+{
+    public string OrderCode { get; set; } = string.Empty;
+    public BlueDental.Labo.LaboStatus Status { get; set; }
+    public BlueDental.Labo.LaboOrderKind Kind { get; set; }
+    /// <summary>Still with the labo: blocks cancelling / converting the line.</summary>
+    public bool IsUnfinished { get; set; }
+}
+
 public class TreatmentServiceDto : EntityDto<Guid>
 {
     public Guid TreatmentPlanId { get; set; }
@@ -100,6 +110,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// stages, which the table prints as "BE:CareStatus:NotContacted".
     /// </summary>
     public CareStatus? AfterCareStatus { get; set; }
+
+    /// <summary>
+    /// The labo orders sent for this line — the reference's
+    /// <c>include=labOrders[id,statusClinic,status]</c>. The Chuyển đổi dialog
+    /// blocks while any of them is unfinished.
+    /// </summary>
+    public List<TreatmentServiceLaboOrderDto> LabOrders { get; set; } = new();
 
     /// <summary>
     /// The inline row's own columns (Thêm dịch vụ mới). Null on a line pulled
@@ -384,6 +401,12 @@ public interface IPatientTreatmentAppService : IApplicationService
 
     Task<TreatmentPlanSlipDto> ConvertServiceAsync(
         Guid id, Guid serviceLineId, ConvertTreatmentServiceDto input);
+
+    /// <summary>
+    /// "Hủy phiếu Labo" on the Chuyển đổi dialog: closes every unfinished labo
+    /// order of the line so it can be cancelled or converted.
+    /// </summary>
+    Task<TreatmentPlanSlipDto> CancelServiceLaboOrdersAsync(Guid id, Guid serviceLineId);
 
     /// <summary>In phiếu điều trị.</summary>
     Task<byte[]> ExportPdfAsync(Guid id);

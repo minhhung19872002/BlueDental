@@ -15,16 +15,18 @@ export interface LaboDetailPatient {
 export function laboOrderFacts(order: LaboOrderDto, patient: LaboDetailPatient) {
   return {
     dentist: order.dentistName ?? "",
-    customer: `${patient.code} - ${patient.name}`,
+    // The code stays on the printed sheet's own "Mã KH" line.
+    customer: patient.name,
     birthDate: formatDate(patient.dateOfBirth),
     supplier: order.supplierName ?? order.labProviderName,
     sentAt: formatDateTime(order.sentAt),
-    dueDate: formatDate(order.dueDate),
+    dueAt: formatDateTime(order.dueAt),
     material: order.materialName ?? "",
     finishLine: order.finishLineName ?? "",
     bite: order.biteName ?? "",
     rhythm: order.rhythmName ?? "",
     instruction: order.workDescription ?? order.notes ?? "",
+    note: order.notes ?? "",
     treatmentService: order.treatmentServiceName ?? "",
     /**
      * "Loại phục hình" and the sheet's "Lựa chọn dịch vụ" both carry the labo

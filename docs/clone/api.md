@@ -623,7 +623,7 @@ fields back in `metadata.availableOrderBy`.
 GET    /v1/orders                       listOrders(params)
 GET    /v1/orders/{id}                  getOrder
 PUT    /v1/orders/{id}                  updateOrder(id, payload)        <- NOT ISSUED
-PUT    /v1/orders/{id}/update-status    updateOrderStatus(id, payload)  <- NOT ISSUED, unused by /labo
+PUT    /v1/orders/{id}/update-status    updateOrderStatus(id, payload)  <- issued by the plan page's Chuyển đổi dialog only (staging 2026-09-24): { "status": "canceled", "statusClinic": "canceled" }
 GET    /v1/orders/export/excel          exportExcel(params)
 
 GET    /v1/clinic-orders                listClinicOrders
@@ -703,6 +703,47 @@ Nothing else on `/labo` is editable. Success toast
 `Cập nhật phiếu Labo thành công`; failure `Không thể cập nhật phiếu Labo`.
 On success the client invalidates `labOrders.all`, `labOrders.detail(id)`,
 `clinic-orders`, `clinic-order-status` and `treatmentServices.all`.
+
+The list item also carries `treatmentService: { id, status, ... }` (staging,
+2026-09-24); the row's "Tiếp tục công đoạn" plus is rendered only when
+`treatmentService.status !== "done"`.
+
+BlueDental (2026-09-24, uncommitted):
+
+```
+PUT /api/v1/app/labo-orders/{id}/detail        multipart/form-data
+  status        <LaboStatus int>   (1 Draft, 4 Received, 6 Rejected, 7 LateDelivery, 8 Replaced)
+  keepImageIds  <guid>[]           existing images to keep; none sent = remove all
+  pictures      <file>[]           new images, stored as PatientImage rows with LaboOrderId
+→ LaboOrderDto
+```
+
+`LaboOrderDto` gained `patientCode`, `patientDateOfBirth`,
+`treatmentServiceStatus` (the line's `TreatmentServiceStatus`, 3 = Completed
+hides the plus) and `images: [{ id, url, fileName }]` with
+`url = /api/v1/app/patient-images/{id}/content`. `ChangeStatus` to `Rejected`
+from anything but `Draft` fails with `BlueDental:Labo:0012`
+("Chỉ được huỷ đơn hàng mới"). Requires `LaboOrders.Update`.
+
+Audit 2026-09-24 (R-512..R-518, uncommitted):
+
+- `status` outside the five dialog values (Sent, InProgress, Completed) is
+  refused with `BlueDental:Labo:0002` — those are reached only through
+  `send` / `receive` / `complete`.
+- `dueDate` (a day) is gone from `LaboOrderDto`, `CreateLaboOrderDto` and
+  `UpdateLaboOrderDto`; the field is **`dueAt`**, an ISO stamp carrying Ngày
+  nhận dự kiến + Giờ nhận, like `sentAt`. A `dueAt` at or before `sentAt` is
+  refused with `BlueDental:Labo:0013` ("Ngày và giờ nhận dự kiến phải sau ngày
+  và giờ gửi.", the reference's `labo.validation.expectedDateTimeAfterSent`).
+- Every id-based route (`GET {id}`, `PUT {id}`, `PUT {id}/detail`, `send`,
+  `receive`, `complete`, `reject`) checks the order's branch against the
+  caller's accessible branches → 403 outside them.
+- 2026-09-24 (R-521..R-524): `sampleFilter=notReceived` counts overdue from
+  midnight of the clinic's day (UTC+7), and `GET excel` writes "Hẹn trả" in
+  UTC+7 with Vietnamese headers. The branch guard and `PUT {id}/detail` are
+  exercised over real HTTP in `e2e/labo-api.spec.ts`; a removed picture's
+  `/content` answers 403 `BlueDental:Patient:0008` (F-24 convention).
+- Images dropped from `keepImageIds` lose their blob as well as their row.
 
 ### Patient tab: list, counters and the create flow (staging, 2026-09-05)
 
@@ -1273,7 +1314,7 @@ that is the one the "Chỉnh sửa hồ sơ" dialog binds. The write behind the 
 | `PUT /v1/patient-stages/{id}` behind the history row's **pencil** | `PUT /api/v1/app/treatment-stages/{id}` with the row's own values and the new note |
 | the four GETs "Chi tiết phiếu" fires (`treatment-services` filtered `status=created,inProgress,guarantee`, `patient-stages`, `treatment-lines`, `patient-images`), all scoped by `patientTreatmentId` | `GET /api/v1/app/treatment-stages?patientId&clinicBranchId&treatmentId` (slip-scoped server-side) plus `GET /api/v1/app/patient-images?patientId&clinicBranchId`, matched to a stage by `treatmentStageId`. The eligible-line filter lives in the browser: only `Created` and `InProgress` lines offer the cell |
 | the dialog's **Thanh toán** | a navigation to `?tab=treatment-plan`, as the reference leaves for `/treatment-plan/{planId}?planTab=detail` |
-| the dialog's **In lịch sử điều trị** | no request — the sheet is drawn from what the dialog already holds plus `GET /api/v1/app/clinic-branches/{id}` for the letterhead |
+| the dialog's **In lịch sử điều trị** | no request — the sheet is drawn from what the dialog already holds plus `GET /api/v1/app/clinic-branches/accessible` (picked by id in `useBranchInfo`, R-532 — `GET clinic-branches/{id}` needs `branchManager.read`) for the letterhead |
 | the row's **Tạo Labo** → "Đặt mới" | `GET /api/v1/app/labo-orders/next-code` for `LABO-yyyyMMddN`, then `POST /api/v1/app/labo-orders` carrying `treatmentServiceId`, `treatmentStageId`, `toothShade`, `quantity`, `sentAt`, `orderCode` alongside the fields it already took. `orderCode` is what `next-code` handed the dialog; one already used by a root order is replaced server-side by the next free one (R-312), never a 500 |
 | `POST /v1/patient-stages/{id}/continue` | the same create — a BlueDental công đoạn is always a new row on the line, and `ContinueAsync` only advances an existing one's status |
 | `POST /v1/patient-stages/{id}/re-examination` | `POST /api/v1/app/patient-re-examinations` — **a row of its own, not a công đoạn.** OBSERVED 2026-09-07: the patient timeline returns two row types, `type: "stage"` and `type: "re_examination"`, and a tái khám is the second, carrying code `REX001` and `{ patientStageId, patientStage, treatmentServiceDetails, serviceId, staffId, subStaffId, assistantStaffId, note, content, selectedContent, images, dateTime }` — no status, no quantity of its own, and the reference leaves that row's **Công đoạn** and **Chăm sóc sau điều trị** cells empty. The **source** stage flips `hasReExamination`. Mirrored by `PatientReExamination` / `bd_patient_re_examinations` (migration `20260907000000_AddStageReExamination`, which also adds `TreatmentStage.HasReExamination`); code runs `REX{n:D3}` per patient, and the row's SL is read off the `Quantity` of the service line the source stage belongs to. Create is gated by `treatmentStage.complete` and refuses a source stage that is not yet `Completed`. **An earlier pass got this wrong** — it modelled a tái khám as an ordinary công đoạn with an `isReExamination` flag; the timeline above disproves that, see R-267 |
@@ -1479,6 +1520,9 @@ BlueDental equivalent (all endpoints already existed; the page is FE-only):
 | (Tạo phiếu thanh toán → save) | `POST /api/v1/app/patient-payments` `{ kind: 1, method, paymentAccountId?, amount, treatmentPlanId, treatmentServiceIds[], splitMode: 1 \| 2, items[]? }` |
 | (Hoàn tiền → save) | `POST /api/v1/app/patient-payments` `{ kind: 2, method (1 Cash / 2 Banking / 3 Card), amount, treatmentPlanId, splitMode: 2, items: [{ treatmentServiceId, amount }] }` — no `paymentAccountId`: the reference's refund dialog names only the channel, so the aggregate's account guard applies to money coming in only; server still refuses a refund above the net collected on any line |
 | status pill menu | `POST /api/v1/app/patient-treatments/{id}/services/{serviceId}/complete` · `/convert` · `/cancel` |
+| `GET /treatment-services?…&include=labOrders[id,statusClinic,status]` (staging 2026-09-24) | `TreatmentServiceDto.labOrders: [{ id, orderCode, status, kind, isUnfinished }]` on every slip read, oldest first. `isUnfinished` = status ∉ {Received, Completed, Rejected, Replaced} |
+| `POST /treatment-services/{id}/cancel` → 400 `Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ.` while an order is still `created` | `…/services/{lineId}/cancel` and `…/convert` → 403 `BlueDental:Treatment:0029`, same wording (en: "This service has a labo order that is not finished yet and cannot be cancelled.") |
+| (Chuyển đổi → Hủy phiếu Labo → Xác nhận) `PUT /v1/orders/{orderId}/update-status { status: "canceled", statusClinic: "canceled" }` per order | `POST /api/v1/app/patient-treatments/{id}/services/{lineId}/cancel-labo-orders` (no body) → the slip; every unfinished order of the line becomes `kind 4 Canceled` + `status 6 Rejected` in one unit of work, bypassing the detail dialog's "chỉ huỷ đơn mới" rule as the reference does. Requires `TreatmentConsultation.Update` |
 | (Chuyển đổi dịch vụ → Lưu) | `POST /api/v1/app/patient-treatments/{id}/services/{serviceLineId}/convert` `{ conversionType: 1 Thay thế \| 2 Dịch vụ cũ, serviceId?, paymentAmount?, differenceHandling: 1 Hoàn tiền \| 2 Dư nợ \| null, note, teeth[], diagnoserStaffId, secondDiagnoserStaffId?, consultantStaffId, secondConsultantStaffId? }` → the slip. The old line goes to `Replaced` (the reference's `replaced`, printed "Chuyển đổi"), a fresh line is written for the new service, both carry `replacedId` pointing at each other, and the money already collected on the old line moves across up to `paymentAmount` |
 | (Tạo phiếu dịch vụ → Lưu) | `POST /api/v1/app/patient-advises` then `POST .../accept` then `POST /api/v1/app/patient-treatments`. **No `patient-diagnoses` call** since 2026-09-22 — the form files no chẩn đoán, so `patientDiagnosisId` and `diagnosisId` go up as `null`; both are nullable on the advise |
 | `GET /payment/debt-history?patientId=&page=&take=` | `GET /api/v1/app/patient-payments/debt-history?patientId&clinicBranchId&skipCount&maxResultCount` → `{ totalCount, items: [{ id, date, type, amount, note, staffName }] }`. `type` is the reference's movement, renumbered as an enum: 1 Topup (Nạp dư nợ) · 2 Use (Sử dụng dư nợ) · 3 Withdraw (Rút dư nợ, never emitted) · 4 Replace (Thay thế dịch vụ) · 5 Refund (Hoàn trả dư nợ) · 6 Cancel (Huỷ dịch vụ - Cộng dư nợ). Derived on read — see docs/clone/pages/patient-detail.md, Tab 10 |
@@ -1498,7 +1542,7 @@ fire it. Structure only, no data.
 | pencil on a row (write unobserved) | `PUT /api/v1/app/sales/{id}` — same body minus `clinicBranchId`/`type` |
 | "Duyệt chi" on a pending expense → "Xác nhận duyệt" → Duyệt (staging: `PUT /sales/{id}/approve`, no body → 200; there is **no** reject) | `PUT /api/v1/app/sales/{id}/approve` — no body, approver = current user (changed 2026-09-22 from `POST … { staffId }`). `POST …/reject { reason }` stays on the API for the contract test but has no UI |
 | Xoá on a **pending expense** → "Xác nhận xoá" → Xoá (staging: `DELETE /sales/{id}`; income and approved rows have no delete) | `DELETE /api/v1/app/sales/{id}` — ABP soft delete |
-| In on a row → "Chi tiết phiếu" (staging: no request) | none — the local modal reads the already-cached `GET clinic-branches/{id}` and, when the voucher names a patient, `GET patients/{id}`; the "In chi phí" button calls `window.print()` (reference mechanism UNKNOWN) |
+| In on a row → "Chi tiết phiếu" (staging: no request) | none — the local modal reads the already-cached `GET clinic-branches/accessible` (`useBranchInfo`, R-532) and, when the voucher names a patient, `GET patients/{id}`; the "In chi phí" button calls `window.print()` (reference mechanism UNKNOWN) |
 | `GET /taxonomy?…` for Mục thu / Mục chi / Danh mục sổ quỹ | `GET /api/v1/app/cashflow-categories?clinicBranchId&type=income\|expense\|cashbook` → `{ items[] { id, name, type, priority, note, isActive } }` |
 | "Thêm danh mục thu nhập" / "… chi phí" / "Thêm danh mục sổ quỹ mới" → Lưu | `POST /api/v1/app/cashflow-categories { clinicBranchId, type, name, priority?, note?, colorCode? }` · `PUT …/{id}` · `DELETE …/{id}`. `colorCode` (`#rrggbb`, ≤16, else `BlueDental:Finance:0010`) stores the cashbook dialog's Màu — added 2026-09-22. Deleting a category that vouchers use **succeeds** on staging and the vouchers / tab-3 sub-rows keep its name → local no longer answers `BlueDental:Finance:CategoryInUse`; `SalesEntryAppService` and `ClinicReportAppService` read category names with the soft-delete filter disabled (2026-09-22) |
 | tab 4 balance tiles (Tổng Tiền, Tổng Tiền Mặt, Tổng Chuyển Khoản, Đang Giữ Hộ Khách) + the two lines under them | `GET /api/v1/app/cash-management/balance?clinicBranchId` → `{ cash, bank, customerPrepaid, total, serviceRevenue, cardPending }`. `total = cash + bank`; `serviceRevenue` = patient payments net of refunds (all channels); `cardPending` = card patient payments net of refunds + deposits into holding 4. Holdings: 1 cash, 2 bank, 3 customerPrepaid, 4 card ("Cà thẻ (đối soát)", a deposit target only). Formulas are ASSUMPTIONS — the reference showed 0 for both lines |

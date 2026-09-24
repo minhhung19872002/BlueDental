@@ -16,7 +16,11 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     public string? ToothNumbers { get; private set; }
     public string? WorkDescription { get; private set; }
     public string? Notes { get; private set; }
-    public DateOnly? DueDate { get; private set; }
+    /// <summary>
+    /// Ngày nhận dự kiến and Giờ nhận as one stamp — the reference lists it
+    /// with its hour and refuses one that does not follow the sent stamp.
+    /// </summary>
+    public DateTimeOffset? DueAt { get; private set; }
     public DateTimeOffset? SentAt { get; private set; }
     public DateTimeOffset? ReceivedAt { get; private set; }
     public decimal EstimatedCost { get; private set; }
@@ -69,7 +73,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         Guid? dentistId = null,
         string? toothNumbers = null,
         string? workDescription = null,
-        DateOnly? dueDate = null,
+        DateTimeOffset? dueAt = null,
         LaboOrderKind kind = LaboOrderKind.New,
         Guid? supplierId = null,
         Guid? materialId = null,
@@ -94,7 +98,6 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         DentistId = dentistId;
         ToothNumbers = toothNumbers;
         WorkDescription = workDescription;
-        DueDate = dueDate;
         Kind = kind;
         SupplierId = supplierId;
         MaterialId = materialId;
@@ -103,6 +106,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         RhythmId = rhythmId;
         Notes = notes;
         SentAt = sentAt;
+        SetDueAt(dueAt);
         ToothShade = toothShade;
         Quantity = quantity < 1 ? 1 : quantity;
         TreatmentServiceId = treatmentServiceId;
@@ -130,7 +134,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         Guid? materialId,
         Guid? dentistId = null,
         string? toothNumbers = null,
-        DateOnly? dueDate = null,
+        DateTimeOffset? dueAt = null,
         Guid? supplierId = null,
         Guid? biteId = null,
         Guid? finishLineId = null,
@@ -162,7 +166,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
             dentistId ?? parent.DentistId,
             toothNumbers,
             parent.WorkDescription,
-            dueDate,
+            dueAt,
             kind,
             supplierId ?? parent.SupplierId,
             material,
@@ -189,7 +193,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
 
     public LaboOrder Update(
         string labProviderName, string? toothNumbers, string? workDescription,
-        string? notes, DateOnly? dueDate, decimal estimatedCost)
+        string? notes, DateTimeOffset? dueAt, decimal estimatedCost)
     {
         if (Status != LaboStatus.Draft)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.InvalidTransition,
@@ -199,9 +203,20 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         ToothNumbers = toothNumbers;
         WorkDescription = workDescription;
         Notes = notes;
-        DueDate = dueDate;
+        SetDueAt(dueAt);
         EstimatedCost = estimatedCost;
         return this;
+    }
+
+    /// <summary>
+    /// The reference's "Ngày và giờ nhận dự kiến phải sau ngày và giờ gửi": a
+    /// due stamp at or before the sent stamp is refused.
+    /// </summary>
+    private void SetDueAt(DateTimeOffset? dueAt)
+    {
+        if (dueAt.HasValue && SentAt.HasValue && dueAt.Value <= SentAt.Value)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.DueBeforeSent);
+        DueAt = dueAt;
     }
 
     public LaboOrder Send()
@@ -230,6 +245,57 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.InvalidTransition,
                 $"Cannot complete order in status {Status}.");
         Status = LaboStatus.Completed;
+        return this;
+    }
+
+    /// <summary>The five values the detail dialog's Trạng thái offers.</summary>
+    private static readonly LaboStatus[] DetailStatuses =
+    [
+        LaboStatus.Draft, LaboStatus.Received, LaboStatus.Rejected,
+        LaboStatus.LateDelivery, LaboStatus.Replaced,
+    ];
+
+    /// <summary>
+    /// "Trạng thái" on the detail dialog: the reference lets the status be set
+    /// straight to any of its five values, with one rule — an order is only
+    /// cancelled while it is still new ("Chỉ được huỷ đơn hàng mới"). Sent,
+    /// InProgress and Completed are reached through Send / Receive / Complete
+    /// only, so the dialog cannot skip their guards.
+    /// </summary>
+    public LaboOrder ChangeStatus(LaboStatus next)
+    {
+        if (Array.IndexOf(DetailStatuses, next) < 0)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.InvalidTransition,
+                $"Status {next} is reached through the workflow, not the detail dialog.");
+        if (next == Status)
+            return this;
+        if (next == LaboStatus.Rejected && Status != LaboStatus.Draft)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.CancelOnlyNew);
+        Status = next;
+        if (next == LaboStatus.Received && ReceivedAt is null)
+            ReceivedAt = DateTimeOffset.UtcNow;
+        return this;
+    }
+
+    /// <summary>
+    /// Whether the labo still owes the clinic this order — i.e. the service line
+    /// carrying it cannot be cancelled or converted yet. Read off the reference
+    /// 2026-09-24: a `draft`/`sent`/`inProgress`/`lateDelivery` order blocks with
+    /// "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ.".
+    /// </summary>
+    public bool IsUnfinished =>
+        Status is not (LaboStatus.Received or LaboStatus.Completed
+            or LaboStatus.Rejected or LaboStatus.Replaced);
+
+    /// <summary>
+    /// "Hủy phiếu Labo" from the Chuyển đổi dialog: the reference issues
+    /// <c>PUT /orders/{id}/update-status {status: canceled, statusClinic: canceled}</c>
+    /// for every order of the line, so both dimensions close at once.
+    /// </summary>
+    public LaboOrder CancelForServiceChange()
+    {
+        Kind = LaboOrderKind.Canceled;
+        Status = LaboStatus.Rejected;
         return this;
     }
 

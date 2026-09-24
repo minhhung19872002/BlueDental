@@ -465,9 +465,12 @@ test.describe("Patient Labo tab", () => {
     // The line's catalog service and the parent's labo service / material are
     // named from the server, not left blank (R-316).
     await expect(field(warranty, "Dịch vụ điều trị").locator("input")).not.toHaveValue("");
-    const summary = warranty.locator(".pd-labo-summary");
-    await expect(summary).toContainText(`Dịch vụ hiện tại: ${seeded.groupName}`);
-    await expect(summary).toContainText(`Vật liệu: ${seeded.materialName}`);
+    // Label and value are siblings 16px apart (R-489), so each line is read as a pair.
+    const summary = warranty.locator(".pd-labo-summary > p");
+    await expect(summary.nth(0)).toContainText("Dịch vụ hiện tại:");
+    await expect(summary.nth(0).locator("span")).toHaveText(seeded.groupName);
+    await expect(summary.nth(1)).toContainText("Vật liệu:");
+    await expect(summary.nth(1).locator("span")).toHaveText(seeded.materialName);
     await warranty.locator(".pd-labo-footer").getByRole("button", { name: "Lưu" }).click();
     await expect(
       warranty.locator(".ant-form-item-explain-error", {

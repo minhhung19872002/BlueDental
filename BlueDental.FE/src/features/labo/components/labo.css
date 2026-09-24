@@ -153,6 +153,17 @@
   color: var(--bd-muted);
 }
 
+/* Tên khách hàng and Phiếu điều trị are links into the patient record. */
+.bd-labo-link {
+  color: var(--bd-blue);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.bd-labo-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Supplier dialog ─────────────────────────────────────────────────────
    A round logo over its own command, sitting clear of the fields below it. */
 .bd-labo-avatar {

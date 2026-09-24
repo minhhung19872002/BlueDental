@@ -9,6 +9,7 @@ import { PageTabBar } from "@/components/PageTabBar";
 import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 import "../components/labo.css";
+import "../components/labo-order-dialog.css";
 
 function LaboScreen({ tab }: { tab: LaboTab }) {
   // Ability is resolved per-screen with the tab's own subject so each screen
@@ -17,7 +18,9 @@ function LaboScreen({ tab }: { tab: LaboTab }) {
 
   switch (tab.screen) {
     case "orders":
-      return <LaboOrdersScreen canExport={ability.canExport} />;
+      return (
+        <LaboOrdersScreen canExport={ability.canExport} canUpdate={ability.canUpdate} />
+      );
     case "supplier":
       return (
         <LaboSupplierScreen

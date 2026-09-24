@@ -17,12 +17,14 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public string? ToothNumbers { get; set; }
     public string? WorkDescription { get; set; }
     public string? Notes { get; set; }
-    public DateOnly? DueDate { get; set; }
+    public DateTimeOffset? DueAt { get; set; }
     public DateTimeOffset? SentAt { get; set; }
     public DateTimeOffset? ReceivedAt { get; set; }
     public decimal EstimatedCost { get; set; }
     public string? RejectionReason { get; set; }
     public string? PatientName { get; set; }
+    public string? PatientCode { get; set; }
+    public DateOnly? PatientDateOfBirth { get; set; }
 
     public LaboOrderKind Kind { get; set; }
     public Guid? SupplierId { get; set; }
@@ -60,11 +62,40 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public string? TreatmentServiceName { get; set; }
     public TreatmentServiceStatus? TreatmentServiceStatus { get; set; }
 
-    /// <summary>Mẫu Giao Trễ — derived, see LaboOrder.IsOverdueAsOf.</summary>
+    /// <summary>Mẫu Giao Trễ — status LateDelivery, the reference's lateDelivery; nothing is derived from the due date.</summary>
     public bool IsOverdue { get; set; }
 
-    /// <summary>Mẫu Chưa Nhận.</summary>
+    /// <summary>Mẫu Chưa Nhận — written and not back from the lab (Draft, Sent, InProgress), the reference's created.</summary>
     public bool IsAwaitingReturn { get; set; }
+
+    /// <summary>
+    /// The pictures attached on the order's detail dialog — the reference's
+    /// <c>imageLabos</c>, behind "Xem file phòng khám gửi về".
+    /// </summary>
+    public List<LaboOrderImageDto> Images { get; set; } = [];
+}
+
+public class LaboOrderImageDto
+{
+    public Guid Id { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// "Lưu" on the detail dialog: the status picked plus any pictures added.
+/// Multipart, so the pictures ride along the way they do on create.
+/// </summary>
+public class SaveLaboOrderDetailDto
+{
+    public LaboStatus Status { get; set; }
+
+    /// <summary>
+    /// The saved pictures still on the dialog's strip. When given, every other
+    /// picture of the order is removed — the reference's <c>imageLaboIds</c>.
+    /// </summary>
+    public List<Guid>? KeepImageIds { get; set; }
+    public List<IRemoteStreamContent>? Pictures { get; set; }
 }
 
 /// <summary>The filter chips above the Mẫu Labo table.</summary>
@@ -96,7 +127,7 @@ public class CreateLaboOrderDto
     public string LabProviderName { get; set; } = default!;
     public string? ToothNumbers { get; set; }
     public string? WorkDescription { get; set; }
-    public DateOnly? DueDate { get; set; }
+    public DateTimeOffset? DueAt { get; set; }
     public decimal EstimatedCost { get; set; }
     public LaboOrderKind Kind { get; set; } = LaboOrderKind.New;
     public Guid? SupplierId { get; set; }
@@ -141,7 +172,7 @@ public class UpdateLaboOrderDto
     public string? ToothNumbers { get; set; }
     public string? WorkDescription { get; set; }
     public string? Notes { get; set; }
-    public DateOnly? DueDate { get; set; }
+    public DateTimeOffset? DueAt { get; set; }
     public decimal EstimatedCost { get; set; }
 }
 

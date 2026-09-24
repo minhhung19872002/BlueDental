@@ -8371,3 +8371,222 @@ html:has(.ant-modal-wrap) {
     max-width: 100% !important;
   }
 }
+
+/* =========================================================================
+   Printed sheets — the A4 letterhead shared by "In lịch sử điều trị",
+   "In chẩn đoán" and "In Phiếu Labo" (patient record and Mẫu Labo alike).
+   Moved out of patient-detail.css when the labo dialogs became shared.
+   ========================================================================= */
+
+
+.pd-print-body {
+  display: grid;
+  gap: 24px;
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.pd-print-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.pd-print-facts h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pd-print-facts p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--bd-muted);
+}
+.pd-print-facts p > span:last-child {
+  color: var(--bd-ink);
+}
+.pd-print-code {
+  color: var(--bd-primary);
+}
+.pd-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+.pd-print-table th {
+  border-bottom: 1px solid var(--bd-border);
+  padding: 12px 0;
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+.pd-print-table td {
+  border-bottom: 1px solid var(--bd-border);
+  padding: 16px 0;
+  vertical-align: top;
+}
+.pd-print-table p {
+  margin: 0;
+}
+.pd-print-teeth {
+  color: #165dff;
+  font-weight: 600;
+}
+.pd-print-note {
+  white-space: pre-wrap;
+}
+/*
+ * Status chips on the printed sheet. Measured on the reference 2026-09-07: a
+ * 26px **fully rounded** pill at 12px/500 — a different shape *and* different
+ * tints from the table's chips above, so the two sets are kept apart on
+ * purpose. Only `done` and `active` were observable in the print dialog; the
+ * replaced pair below is carried over from the table (docs/clone/unknowns.md).
+ */
+.pd-print-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  margin-top: 8px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.pd-print-chip--active {
+  background: #d9eeff;
+  color: #2671d8;
+}
+.pd-print-chip--done {
+  background: #ddf6e8;
+  color: #10a861;
+}
+.pd-print-chip--replaced {
+  background: #e6f8fb;
+  color: #1a606b;
+}
+.pd-print-chip--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+/* The A4 copy: off-screen until the browser is actually printing. */
+.pd-print-sheet {
+  display: none;
+}
+/*
+ * A4 at 96dpi is 794px, which is the width the reference pins its sheet to
+ * (`max-w-[794px] mx-auto`) so the layout is the same whatever the window is
+ * doing. Without it the sheet stretches to the viewport and the header's three
+ * columns drift far apart before the paper ever constrains them.
+ */
+.pd-print-sheet article {
+  display: flex;
+  min-height: 980px;
+  max-width: 794px;
+  margin: 0 auto;
+  flex-direction: column;
+  padding: 32px;
+  background: #fff;
+  color: #000;
+}
+.pd-print-sheethead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.pd-print-sheethead section {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.pd-print-sheethead section:last-child {
+  justify-self: end;
+}
+.pd-print-sheethead p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+.pd-print-sheethead header {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+.pd-print-sheethead h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.pd-print-sheethead header p {
+  display: block;
+  font-size: 12px;
+}
+.pd-print-sheet .pd-print-table {
+  margin-top: 24px;
+  font-size: 11px;
+}
+.pd-print-signs {
+  display: flex;
+  justify-content: center;
+  gap: 64px;
+  margin-top: 32px;
+  padding-top: 24px;
+  font-size: 12px;
+  text-align: center;
+}
+.pd-print-signs > div {
+  display: grid;
+  gap: 4px;
+  width: 176px;
+}
+.pd-print-signs p {
+  margin: 0;
+}
+.pd-print-signs p:first-child {
+  font-weight: 600;
+}
+.pd-print-signs p:nth-child(2) {
+  font-style: italic;
+}
+.pd-print-signs p:last-child {
+  padding-top: 56px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/*
+ * Printing. The sheet is portaled straight onto <body> (see
+ * TreatmentHistoryPrintDialog), so hiding the body's *other* children is enough
+ * and nothing has to reach down through AntD's portal wrapper. The previous
+ * version hid every body child and then tried to un-hide the sheet from inside
+ * the modal, which cannot work — a display:none ancestor wins — and the preview
+ * came out blank.
+ */
+@media print {
+  body.pd-printing > *:not(.pd-print-sheet) {
+    display: none !important;
+  }
+  body.pd-printing > .pd-print-sheet {
+    display: block !important;
+  }
+  /* No page margin of our own: the sheet carries the reference's own padding. */
+  @page {
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .pd-print-facts {
+    grid-template-columns: 1fr;
+  }
+}

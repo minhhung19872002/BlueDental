@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useRef } from "react";
 import { Form, type FormInstance } from "antd";
 import type { Rule } from "antd/es/form";
 import dayjs, { type Dayjs } from "dayjs";
-import { validateImageFile } from "@/utils/validateImageFile";
 import {
   LABO_TAXONOMY,
   useLaboMaterialOptions,
@@ -12,6 +10,7 @@ import {
   type CreateLaboOrderInput,
   type PickerOption,
 } from "@/hooks/useLaboPickers";
+import { useLaboPictures, type LaboPictures } from "./useLaboPictures";
 
 /** The fields every labo order form shares, whichever tab it is on. */
 export interface LaboOrderValues {
@@ -39,7 +38,7 @@ export interface LaboOrderValues {
 
 export type LaboOrderSeed = Partial<LaboOrderValues> & Pick<LaboOrderValues, "teeth">;
 
-export interface LaboOrderForm {
+export interface LaboOrderForm extends Omit<LaboPictures, "reset"> {
   form: FormInstance<LaboOrderValues>;
   toggleTooth: (label: string) => void;
   setAllTeeth: (checked: boolean) => void;
@@ -47,10 +46,6 @@ export interface LaboOrderForm {
     "suppliers" | "services" | "materials" | "bites" | "finishLines" | "rhythms",
     PickerOption[]
   >;
-  pictures: File[];
-  previews: string[];
-  addPictures: (files: File[]) => void;
-  removePicture: (index: number) => void;
 }
 
 /** The one rule the reference puts on its required fields, worded its way. */
@@ -98,7 +93,7 @@ export function useLaboOrderForm(
   seed: LaboOrderSeed,
   seedKey: string,
 ): LaboOrderForm {
-  const [pictures, setPictures] = useState<File[]>([]);
+  const { pictures, previews, addPictures, removePicture, reset } = useLaboPictures();
   const seedRef = useRef(seed);
   seedRef.current = seed;
 
@@ -106,8 +101,8 @@ export function useLaboOrderForm(
     if (!open) return;
     form.resetFields();
     form.setFieldsValue(fromSeed(seedRef.current));
-    setPictures([]);
-  }, [form, open, seedKey]);
+    reset();
+  }, [form, open, seedKey, reset]);
 
   const serviceGroupId = useLaboValue(form, "serviceGroupId");
   const suppliers = useLaboSupplierOptions(branchId, open);
@@ -116,14 +111,6 @@ export function useLaboOrderForm(
   const finishLines = useLaboTaxonomyOptions(LABO_TAXONOMY.finishLine, branchId, open);
   const rhythms = useLaboTaxonomyOptions(LABO_TAXONOMY.rhythm, branchId, open);
   const materials = useLaboMaterialOptions(branchId, serviceGroupId);
-
-  /**
-   * One blob URL per draft, revoked when the list changes or the dialog goes.
-   * Minting them inside the render would hand out a fresh URL on every
-   * keystroke in this form and never release any of them.
-   */
-  const previews = useMemo(() => pictures.map((file) => URL.createObjectURL(file)), [pictures]);
-  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
   /**
    * Số lượng is the count of ticked teeth, 0 once they are all unticked. A
@@ -156,15 +143,8 @@ export function useLaboOrderForm(
     },
     pictures,
     previews,
-    addPictures: (files) => {
-      const valid = files.filter((file) => {
-        const error = validateImageFile(file);
-        if (error) toast.error(`${file.name}: ${error}`);
-        return !error;
-      });
-      if (valid.length > 0) setPictures((current) => [...current, ...valid]);
-    },
-    removePicture: (index) => setPictures((current) => current.filter((_, at) => at !== index)),
+    addPictures,
+    removePicture,
   };
 }
 
@@ -185,13 +165,8 @@ export function laboOrderBody(
   | "quantity"
   | "notes"
   | "sentAt"
-  | "dueDate"
+  | "dueAt"
 > {
-  // The reference collects the day and the hour apart; the server takes one stamp.
-  const sentAt = values.sentDate
-    ?.hour(values.sentTime?.hour() ?? 0)
-    .minute(values.sentTime?.minute() ?? 0)
-    .second(0);
   return {
     labProviderName: suppliers.find((row) => row.value === values.supplierId)?.label ?? "",
     supplierId: values.supplierId,
@@ -203,9 +178,32 @@ export function laboOrderBody(
     toothShade: values.shade.trim() || undefined,
     quantity: Number(values.quantity) || 1,
     notes: values.notes.trim() || undefined,
-    sentAt: sentAt?.toISOString(),
-    // The day is what the list sorts and filters on, so the due hour rides
-    // along on the sent stamp only.
-    dueDate: values.dueDate?.format("YYYY-MM-DD"),
+    // The reference collects each day and hour apart; the server takes one stamp of each.
+    sentAt: stamp(values.sentDate, values.sentTime)?.toISOString(),
+    dueAt: stamp(values.dueDate, values.dueTime)?.toISOString(),
   };
+}
+
+/** A day and an hour picked apart, as the one stamp the server takes; none without the day. */
+export function stamp(date: Dayjs | null | undefined, time: Dayjs | null | undefined): Dayjs | undefined {
+  if (!date) return undefined;
+  return date
+    .hour(time?.hour() ?? 0)
+    .minute(time?.minute() ?? 0)
+    .second(0)
+    .millisecond(0);
+}
+
+type StampFields = Pick<LaboOrderValues, "sentDate" | "sentTime" | "dueDate" | "dueTime">;
+
+/**
+ * "Ngày và giờ nhận dự kiến phải sau ngày và giờ gửi" — the reference's second
+ * rule on the due pair. Holds while either pair is still incomplete: the
+ * required rules speak to that.
+ */
+export function dueAfterSent(values: StampFields): boolean {
+  if (!values.sentDate || !values.sentTime || !values.dueDate || !values.dueTime) return true;
+  const sent = stamp(values.sentDate, values.sentTime);
+  const due = stamp(values.dueDate, values.dueTime);
+  return sent === undefined || due === undefined || due.isAfter(sent);
 }

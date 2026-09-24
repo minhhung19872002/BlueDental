@@ -1,10 +1,10 @@
 import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
-import type { PrintClinic } from "../stage/TreatmentHistoryPrintDialog";
+import type { BranchInfo } from "@/hooks/useBranchInfo";
 import { dashed, type LaboDetailPatient, type LaboOrderFacts } from "./laboOrderFacts";
 
 interface Props {
-  clinic: PrintClinic;
+  clinic: BranchInfo;
   patient: LaboDetailPatient;
   orderCode: string;
   facts: LaboOrderFacts;
@@ -13,7 +13,7 @@ interface Props {
 /** "Ngày 8 tháng 9 năm 2026", the wording under the sheet's title. */
 function longDate(value: Date): string {
   return t(
-    "Patient:Print:LongDate",
+    "Patient:Labo:LongDate",
     value.getDate(),
     value.getMonth() + 1,
     value.getFullYear(),
@@ -74,7 +74,7 @@ export function LaboPrintSheet({ clinic, patient, orderCode, facts }: Props) {
               <h3>{t("Patient:Labo:OrderInfo")}</h3>
               <Row label={t("Patient:Labo:Supplier")} value={facts.supplier} />
               <Row label={t("Patient:Labo:SentDate")} value={facts.sentAt} />
-              <Row label={t("Patient:Labo:ExpectedReceiveDate")} value={facts.dueDate} />
+              <Row label={t("Patient:Labo:ExpectedReceiveDate")} value={facts.dueAt} />
             </section>
             <section>
               <h3>{t("Patient:Labo:CommonParams")}</h3>

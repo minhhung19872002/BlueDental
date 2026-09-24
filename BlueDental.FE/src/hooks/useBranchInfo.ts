@@ -10,30 +10,47 @@ export interface BranchInfo {
 }
 
 interface BranchResponse {
+  id: string;
   name?: string;
   address?: string;
   phoneNumber?: string;
   email?: string;
 }
 
+function toBranchInfo(branch: BranchResponse): BranchInfo {
+  return {
+    name: branch.name ?? "",
+    address: branch.address ?? null,
+    phone: branch.phoneNumber ?? null,
+    email: branch.email ?? null,
+  };
+}
+
 /**
  * One clinic branch, for the screens outside Vận hành that print its
  * letterhead.
+ *
+ * Read from the accessible list — the branches the account may switch to,
+ * which any signed-in user can fetch — rather than `clinic-branches/{id}`,
+ * which is branch administration and refused to everyone without
+ * `branchManager:read` (R-532: a labo reader printing "In Phiếu Labo" is not
+ * a branch manager). The branch on screen is always one of the accessible ones.
  *
  * Lives here rather than in `features/organizations` because feature folders do
  * not import one another — the same reason `usePaymentAccountOptions` sits
  * beside it.
  */
 export function useBranchInfo(branchId: string) {
-  return useQuery<BranchInfo>({
-    queryKey: ["branch-info", branchId],
+  return useQuery<BranchResponse[], Error, BranchInfo | undefined>({
+    queryKey: ["branch-info", "accessible"],
     queryFn: () =>
-      api.get<BranchResponse>(`/v1/app/clinic-branches/${branchId}`).then((r) => ({
-        name: r.data.name ?? "",
-        address: r.data.address ?? null,
-        phone: r.data.phoneNumber ?? null,
-        email: r.data.email ?? null,
-      })),
+      api
+        .get<{ items: BranchResponse[] }>("/v1/app/clinic-branches/accessible")
+        .then((r) => r.data.items),
+    select: (items) => {
+      const branch = items.find((item) => item.id === branchId);
+      return branch ? toBranchInfo(branch) : undefined;
+    },
     enabled: Boolean(branchId),
     staleTime: 10 * 60_000,
   });

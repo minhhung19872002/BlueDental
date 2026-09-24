@@ -7,6 +7,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
 using Volo.Abp;
+using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using Volo.Abp.Identity;
 using BlueDental.Exporting;
@@ -19,7 +20,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Labo;
 
 [Authorize(BlueDentalPermissions.LaboOrders.Default)]
-public class LaboAppService : ApplicationService, ILaboAppService
+public class LaboAppService : BlueDentalAppService, ILaboAppService
 {
     private readonly IRepository<LaboOrder, Guid> _repository;
     private readonly IRepository<PatientManagement.Patient, Guid> _patientRepository;
@@ -31,6 +32,9 @@ public class LaboAppService : ApplicationService, ILaboAppService
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
     private readonly IPatientImageAppService _imageService;
+    private readonly IRepository<PatientImage, Guid> _imageRepository;
+    private readonly IBlobContainer _blobContainer;
+    private readonly BranchAccessChecker _branchAccess;
 
     public LaboAppService(
         IRepository<LaboOrder, Guid> repository,
@@ -42,7 +46,10 @@ public class LaboAppService : ApplicationService, ILaboAppService
         IRepository<Taxonomy, Guid> taxonomyRepository,
         IRepository<TreatmentPlan, Guid> planRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
-        IPatientImageAppService imageService)
+        IPatientImageAppService imageService,
+        IRepository<PatientImage, Guid> imageRepository,
+        IBlobContainer blobContainer,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _patientRepository = patientRepository;
@@ -54,6 +61,9 @@ public class LaboAppService : ApplicationService, ILaboAppService
         _planRepository = planRepository;
         _catalogRepository = catalogRepository;
         _imageService = imageService;
+        _imageRepository = imageRepository;
+        _blobContainer = blobContainer;
+        _branchAccess = branchAccess;
     }
 
     /// <summary>One service line of a plan, as the child form names it.</summary>
@@ -127,9 +137,11 @@ public class LaboAppService : ApplicationService, ILaboAppService
 
         var patientIds = entities.Select(o => o.PatientId).Distinct().ToList();
         var patientQuery = await _patientRepository.GetQueryableAsync();
+        // The whole record: the Mẫu Labo screen links the row to the patient by
+        // code and prints the sheet with the date of birth.
         var patients = (await AsyncExecuter.ToListAsync(
                 patientQuery.Where(p => patientIds.Contains(p.Id))))
-            .ToDictionary(p => p.Id, p => (p.LastName + " " + p.FirstName).Trim());
+            .ToDictionary(p => p.Id);
 
         var dentistIds = entities
             .Where(o => o.DentistId.HasValue)
@@ -218,6 +230,8 @@ public class LaboAppService : ApplicationService, ILaboAppService
             }
         }
 
+        var images = await GetImagesAsync(entities.Select(o => o.Id).Distinct().ToList());
+
         for (var i = 0; i < entities.Count; i++)
         {
             var entity = entities[i];
@@ -237,7 +251,10 @@ public class LaboAppService : ApplicationService, ILaboAppService
                 dto.TreatmentServiceStatus = line.Status;
             }
 
-            dto.PatientName = patients.GetValueOrDefault(entity.PatientId);
+            var patient = patients.GetValueOrDefault(entity.PatientId);
+            dto.PatientName = patient?.FullName;
+            dto.PatientCode = patient?.PatientCode;
+            dto.PatientDateOfBirth = patient?.DateOfBirth;
             dto.DentistName = entity.DentistId.HasValue
                 ? dentists.GetValueOrDefault(entity.DentistId.Value)
                 : null;
@@ -251,7 +268,31 @@ public class LaboAppService : ApplicationService, ILaboAppService
                 : null;
             dto.MaterialName = material?.Name;
             dto.LaboServiceName = material is null ? null : taxonomies.GetValueOrDefault(material.TaxonomyId);
+            dto.Images = images.GetValueOrDefault(entity.Id) ?? [];
         }
+    }
+
+    /// <summary>
+    /// The pictures attached on each order's detail dialog, oldest first, keyed
+    /// by order. The URL is the one the image service serves the bytes at.
+    /// </summary>
+    private async Task<Dictionary<Guid, List<LaboOrderImageDto>>> GetImagesAsync(IReadOnlyList<Guid> orderIds)
+    {
+        var query = await _imageRepository.GetQueryableAsync();
+        var images = await AsyncExecuter.ToListAsync(
+            query.Where(x => x.LaboOrderId.HasValue && orderIds.Contains(x.LaboOrderId.Value))
+                .OrderBy(x => x.CreationTime)
+                .Select(x => new { x.Id, x.FileName, OrderId = x.LaboOrderId!.Value }));
+        return images
+            .GroupBy(x => x.OrderId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => new LaboOrderImageDto
+                {
+                    Id = x.Id,
+                    FileName = x.FileName,
+                    Url = $"/api/v1/app/patient-images/{x.Id}/content",
+                }).ToList());
     }
 
     [Authorize(BlueDentalPermissions.LaboOrders.View)]
@@ -286,8 +327,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
             query = query.Where(o => o.CreationTime < toExclusive);
         }
 
-        var today = DateOnly.FromDateTime(Clock.Now);
-        query = ApplySampleFilter(query, input.SampleFilter, today);
+        query = ApplySampleFilter(query, input.SampleFilter);
 
         var totalCount = query.Count();
         var items = query
@@ -301,43 +341,65 @@ public class LaboAppService : ApplicationService, ILaboAppService
         for (var i = 0; i < items.Count; i++)
         {
             dtos[i].IsAwaitingReturn = IsAwaitingReturn(items[i]);
-            dtos[i].IsOverdue = IsOverdue(items[i], today);
+            dtos[i].IsOverdue = IsOverdue(items[i]);
         }
 
         return new PagedResultDto<LaboOrderDto>(totalCount, dtos);
     }
 
     /// <summary>
-    /// The four chips above the Mẫu Labo table.
-    ///
-    /// The reference sends one status code per chip because it keeps a status
-    /// for "giao trễ"; BlueDental works it out from the due date instead, so
-    /// the chip — not a status — is what the client sends.
+    /// The four chips above the Mẫu Labo table — exact status filters, which is
+    /// what the reference's <c>status=created|lateDelivery|delivered</c> are
+    /// (staging, 2026-09-24: an order due back months earlier still sat under
+    /// "chưa nhận", and "giao trễ" held only what the dialog had filed there;
+    /// nothing is worked out from the due date). A row is "chưa nhận" from the
+    /// moment it is written (Draft, the reference's <c>created</c>) until the
+    /// lab answers; the Sent / InProgress steps the API also keeps stay on
+    /// that side. Cancelled and replaced orders appear under Tất cả only.
     /// </summary>
     private static IQueryable<LaboOrder> ApplySampleFilter(
         IQueryable<LaboOrder> query,
-        LaboSampleFilter? filter,
-        DateOnly today)
+        LaboSampleFilter? filter)
         => filter switch
         {
             LaboSampleFilter.AwaitingReturn =>
-                query.Where(o => o.Status == LaboStatus.Sent || o.Status == LaboStatus.InProgress),
+                query.Where(o => o.Status == LaboStatus.Draft || o.Status == LaboStatus.Sent || o.Status == LaboStatus.InProgress),
             LaboSampleFilter.Overdue =>
-                query.Where(o =>
-                    (o.Status == LaboStatus.Sent || o.Status == LaboStatus.InProgress) &&
-                    o.DueDate != null && o.DueDate < today),
+                query.Where(o => o.Status == LaboStatus.LateDelivery),
             LaboSampleFilter.Returned =>
                 query.Where(o => o.Status == LaboStatus.Received || o.Status == LaboStatus.Completed),
             _ => query
         };
 
-    /// <summary>Sent to the lab and not back yet.</summary>
+    /// <summary>Written and not back from the lab yet — the reference's <c>created</c>.</summary>
     private static bool IsAwaitingReturn(LaboOrder order)
-        => order.Status is LaboStatus.Sent or LaboStatus.InProgress;
+        => order.Status is LaboStatus.Draft or LaboStatus.Sent or LaboStatus.InProgress;
 
-    /// <summary>Still out, and the day it was due has passed.</summary>
-    private static bool IsOverdue(LaboOrder order, DateOnly today)
-        => IsAwaitingReturn(order) && order.DueDate.HasValue && order.DueDate.Value < today;
+    /// <summary>Filed as Giao trễ by the detail dialog — the reference's <c>lateDelivery</c>.</summary>
+    private static bool IsOverdue(LaboOrder order)
+        => order.Status == LaboStatus.LateDelivery;
+
+    /// <summary>Back from the lab — the reference's <c>delivered</c>.</summary>
+    private static bool IsReturned(LaboOrder order)
+        => order.Status is LaboStatus.Received or LaboStatus.Completed;
+
+    /// <summary>
+    /// The clinic keeps its days in UTC+7, as the appointment book does; the
+    /// Excel "Hẹn trả" column is written in it.
+    /// </summary>
+    private static readonly TimeSpan ClinicUtcOffset = TimeSpan.FromHours(7);
+
+    /// <summary>
+    /// One order by id, refused when it sits in a branch the caller may not act
+    /// on. The list is scoped the same way, so a guessed id cannot reach across
+    /// clinics through the row endpoints.
+    /// </summary>
+    private async Task<LaboOrder> GetInBranchAsync(Guid id)
+    {
+        var order = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(order.BranchId);
+        return order;
+    }
 
     [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<LaboStatsDto> GetStatsAsync(GetLaboOrderListInput input)
@@ -351,8 +413,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
 
         var orders = query.ToList();
         // The counters and the chips above the table have to agree, so both
-        // read "chưa nhận" and "giao trễ" from the same two rules.
-        var today = DateOnly.FromDateTime(Clock.Now);
+        // read "chưa nhận", "giao trễ" and "đã nhận hàng" from the same rules.
 
         return new LaboStatsDto
         {
@@ -361,15 +422,15 @@ public class LaboAppService : ApplicationService, ILaboAppService
             ContinueStage = orders.Count(o => o.Kind == LaboOrderKind.ContinueStage),
             Guarantee = orders.Count(o => o.Kind == LaboOrderKind.Guarantee),
             AwaitingReturn = orders.Count(IsAwaitingReturn),
-            Overdue = orders.Count(o => IsOverdue(o, today)),
-            Returned = orders.Count(o => o.Status == LaboStatus.Received || o.Status == LaboStatus.Completed),
+            Overdue = orders.Count(IsOverdue),
+            Returned = orders.Count(IsReturned),
         };
     }
 
     [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<LaboOrderDto> GetAsync(Guid id)
     {
-        var order = await _repository.GetAsync(id);
+        var order = await GetInBranchAsync(id);
         var dto = ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
         await FillNamesAsync([order], [dto]);
         return dto;
@@ -395,7 +456,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
             input.DentistId,
             input.ToothNumbers,
             input.WorkDescription,
-            input.DueDate,
+            input.DueAt,
             input.Kind,
             input.SupplierId,
             input.MaterialId,
@@ -442,6 +503,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
                 ClinicBranchId = order.BranchId,
                 TreatmentPlanId = planId,
                 TreatmentStageId = order.TreatmentStageId,
+                LaboOrderId = order.Id,
                 File = picture,
             });
         }
@@ -474,7 +536,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
             input.MaterialId,
             input.DentistId,
             input.ToothNumbers,
-            input.DueDate,
+            input.DueAt,
             input.SupplierId,
             input.BiteId,
             input.FinishLineId,
@@ -545,17 +607,53 @@ public class LaboAppService : ApplicationService, ILaboAppService
     [Authorize(BlueDentalPermissions.LaboOrders.Edit)]
     public async Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input)
     {
-        var order = await _repository.GetAsync(id);
+        var order = await GetInBranchAsync(id);
         order.Update(input.LabProviderName, input.ToothNumbers, input.WorkDescription,
-            input.Notes, input.DueDate, input.EstimatedCost);
+            input.Notes, input.DueAt, input.EstimatedCost);
         await _repository.UpdateAsync(order, autoSave: true);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
+    }
+
+    /// <summary>
+    /// The detail dialog's Lưu. The status is set the way the reference sets
+    /// it — straight to the value picked, cancel only while new — and the
+    /// pictures are attached to the order, so they come back in Images.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.LaboOrders.Edit)]
+    public async Task<LaboOrderDto> SaveDetailAsync(Guid id, SaveLaboOrderDetailDto input)
+    {
+        var order = await GetInBranchAsync(id);
+        order.ChangeStatus(input.Status);
+        await _repository.UpdateAsync(order, autoSave: true);
+        if (input.KeepImageIds is not null)
+        {
+            var keep = input.KeepImageIds;
+            var removed = await _imageRepository.GetListAsync(
+                x => x.LaboOrderId == order.Id && !keep.Contains(x.Id));
+            if (removed.Count > 0)
+            {
+                // Rows first, then their files: a blob that outlives its row
+                // is only waste, a row that outlives its blob is a broken picture.
+                await _imageRepository.DeleteManyAsync(removed, autoSave: true);
+                foreach (var image in removed)
+                {
+                    await _blobContainer.DeleteAsync(image.BlobName);
+                }
+            }
+        }
+        await AttachPicturesAsync(order, input.Pictures);
+
+        var dto = ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
+        await FillNamesAsync([order], [dto]);
+        dto.IsAwaitingReturn = IsAwaitingReturn(order);
+        dto.IsOverdue = IsOverdue(order);
+        return dto;
     }
 
     [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task SendAsync(Guid id)
     {
-        var order = await _repository.GetAsync(id);
+        var order = await GetInBranchAsync(id);
         order.Send();
         await _repository.UpdateAsync(order, autoSave: true);
     }
@@ -563,7 +661,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
     [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task ReceiveAsync(Guid id)
     {
-        var order = await _repository.GetAsync(id);
+        var order = await GetInBranchAsync(id);
         order.Receive();
         await _repository.UpdateAsync(order, autoSave: true);
     }
@@ -571,7 +669,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
     [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task CompleteAsync(Guid id)
     {
-        var order = await _repository.GetAsync(id);
+        var order = await GetInBranchAsync(id);
         order.Complete();
         await _repository.UpdateAsync(order, autoSave: true);
     }
@@ -579,7 +677,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
     [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task RejectAsync(Guid id, string reason)
     {
-        var order = await _repository.GetAsync(id);
+        var order = await GetInBranchAsync(id);
         order.Reject(reason);
         await _repository.UpdateAsync(order, autoSave: true);
     }
@@ -605,9 +703,9 @@ public class LaboAppService : ApplicationService, ILaboAppService
                 new(L["BE:Perm:Customers"], row => row.PatientName, 26),
                 new(L["BE:Common:Supplier"], row => row.LabProviderName, 24),
                 new(L["BE:Field:Tooth"], row => row.ToothNumbers, 12),
-                new(L["BE:LaboField:DueBack"], row => row.DueDate?.ToDateTime(TimeOnly.MinValue), 14),
+                new(L["BE:LaboField:DueBack"], row => row.DueAt?.ToOffset(ClinicUtcOffset).DateTime, 14),
                 new(L["BE:Col:Expenses"], row => row.EstimatedCost, 16),
-                new(L["BE:Field:Status"], row => row.Status.ToString(), 16),
+                new(L["BE:Field:Status"], row => L["Patient:Labo:Status:" + row.Status].Value, 16),
                 new(L["BE:Status:LateArrival"], row => row.IsOverdue ? L["BE:Common:Yes"].Value : L["BE:Common:No"].Value, 12)
             },
             page.Items);

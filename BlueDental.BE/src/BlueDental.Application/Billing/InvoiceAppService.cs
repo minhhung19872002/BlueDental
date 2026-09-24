@@ -17,7 +17,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Billing;
 
 [Authorize]
-public class InvoiceAppService : ApplicationService, IInvoiceAppService
+public class InvoiceAppService : BlueDentalAppService, IInvoiceAppService
 {
     private readonly IRepository<Invoice, Guid> _repository;
     private readonly IRepository<Patient, Guid> _patientRepository;

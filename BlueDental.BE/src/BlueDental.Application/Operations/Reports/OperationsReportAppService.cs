@@ -54,7 +54,7 @@ public class OperationsReportAppService(
     IRepository<Taxonomy, Guid> taxonomyRepository,
     IRepository<ClinicBranch, Guid> branchRepository,
     IIdentityUserRepository userRepository,
-    BranchAccessChecker branchAccess) : ApplicationService, IOperationsReportAppService
+    BranchAccessChecker branchAccess) : BlueDentalAppService, IOperationsReportAppService
 {
     // ── Abilities ───────────────────────────────────────────────────────────
 

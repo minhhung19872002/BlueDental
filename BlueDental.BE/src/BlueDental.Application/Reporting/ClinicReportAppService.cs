@@ -28,7 +28,7 @@ namespace BlueDental.Reporting;
 /// thu chi vouchers — there is no reporting table to drift out of date.
 /// </summary>
 [Authorize]
-public class ClinicReportAppService : ApplicationService, IClinicReportAppService
+public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppService
 {
     private readonly IRepository<PatientPayment, Guid> _paymentRepository;
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;

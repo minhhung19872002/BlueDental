@@ -21,7 +21,7 @@ namespace BlueDental.Finance;
 /// Quản lý thu chi — receipts and payments with an approval step on expenses.
 /// </summary>
 [Authorize(BlueDentalPermissions.Finance.Default)]
-public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
+public class SalesEntryAppService : BlueDentalAppService, ISalesEntryAppService
 {
     [Authorize]
     public async Task<byte[]> ExportAsync(GetSalesEntryListInput input)

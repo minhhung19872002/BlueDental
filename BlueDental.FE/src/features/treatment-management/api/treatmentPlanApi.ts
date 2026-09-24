@@ -181,6 +181,20 @@ export interface ServiceStepDto {
   value: number;
 }
 
+/**
+ * One labo order sent for a service line — the reference's
+ * `include=labOrders[id,statusClinic,status]`. Numeric codes mirror the labo
+ * feature's `LABO_STATUS` / `LABO_ORDER_KIND`; only `isUnfinished` is read here.
+ */
+export interface TreatmentServiceLaboOrderDto {
+  id: string;
+  orderCode: string;
+  status: number;
+  kind: number;
+  /** Still with the labo: the line cannot be cancelled or converted yet. */
+  isUnfinished: boolean;
+}
+
 export interface TreatmentServiceDto {
   id: string;
   treatmentPlanId: string;
@@ -218,6 +232,8 @@ export interface TreatmentServiceDto {
   outstandingAmount: number;
   /** Null when no care record covers the line's stages — "Chưa chăm sóc". */
   afterCareStatus: CareStatusCode | null;
+  /** The labo orders raised on this line, oldest first. */
+  labOrders: TreatmentServiceLaboOrderDto[];
   /**
    * The inline row's own columns (Thêm dịch vụ mới). Null on a line pulled
    * from a consulting line — the table falls back to the advise / the slip.
@@ -424,6 +440,12 @@ const treatmentApi = {
       .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/cancel`)
       .then((r) => r.data),
 
+  /** "Hủy phiếu Labo": closes every unfinished labo order of the line. */
+  cancelServiceLaboOrders: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
+    api
+      .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/cancel-labo-orders`)
+      .then((r) => r.data),
+
   convertService: (
     planId: string,
     lineId: string,
@@ -567,6 +589,13 @@ export function usePatientDebtHistory(
     queryFn: () => treatmentApi.debtHistory({ patientId, clinicBranchId, ...page }),
     enabled: Boolean(patientId),
   });
+}
+
+/** "Hủy phiếu Labo" on the Chuyển đổi dialog — the line's open labo orders. */
+export function useCancelServiceLaboOrders() {
+  return useTreatmentMutation((input: { planId: string; lineId: string }) =>
+    treatmentApi.cancelServiceLaboOrders(input.planId, input.lineId),
+  );
 }
 
 /** "Chuyển đổi dịch vụ" on a service line. */

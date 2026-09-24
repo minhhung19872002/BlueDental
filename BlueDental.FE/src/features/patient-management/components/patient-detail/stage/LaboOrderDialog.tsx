@@ -2,8 +2,8 @@ import { Modal } from "antd";
 import { t } from "@/lib/i18n";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
-import { LaboNewOrderForm } from "../labo/LaboNewOrderForm";
-import { sourceFromStage } from "../labo/laboOrderSource";
+import { LaboNewOrderForm } from "@/features/labo/components/order-dialogs/LaboNewOrderForm";
+import { sourceFromStage } from "@/features/labo/components/order-dialogs/laboOrderSource";
 
 interface Props {
   open: boolean;

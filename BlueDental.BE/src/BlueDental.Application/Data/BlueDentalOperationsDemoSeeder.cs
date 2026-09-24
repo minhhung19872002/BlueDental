@@ -303,7 +303,7 @@ public class BlueDentalOperationsDemoSeeder(
                 dentistId: staffIds[i % staffIds.Count],
                 toothNumbers: (11 + i).ToString(),
                 workDescription: LaboMaterials[i % LaboMaterials.Length].Name,
-                dueDate: today.AddDays(random.Next(2, 21)),
+                dueAt: new DateTimeOffset(today.AddDays(random.Next(2, 21)).ToDateTime(new TimeOnly(9, 0)), TimeSpan.Zero),
                 // Point at the records, not just their names, so the table's
                 // supplier and material columns have something to resolve.
                 supplierId: suppliers[i % suppliers.Count].Id,

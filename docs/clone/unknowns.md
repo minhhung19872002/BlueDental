@@ -2182,6 +2182,30 @@ BlueDental: both render `laboServiceName` (the material's taxonomy group);
 
 UNKNOWN_REFERENCE_BEHAVIOR
 
+Page: /labo/mau-labo → Xem ("Thông tin chung"), Trạng thái select
+      (staging, 2026-09-24)
+Control: saving `lateDelivery` (Giao trễ) or `replaced` (Đã thay thế)
+Reason: No staging order carried either code, so the badge tone the table
+  gives them was never measured; the Lưu round-trip with a status change was
+  not issued on staging either (a real order would have changed). BlueDental
+  maps them to the neutral and the green tones respectively.
+Action taken: NONE (observed the select's options only)
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /labo/mau-labo → Xem ("Thông tin chung"), Tải ảnh
+Control: which collection the saved pictures land in
+Reason: the reference reads `imageLabos` into the modal and `images` into the
+  table's "File phòng khám gửi về" lightbox; every staging order has both
+  empty, so whether a picture saved from the modal reaches the folder column
+  could not be seen. BlueDental keeps one collection (`images`, PatientImage
+  rows with `LaboOrderId`) that feeds both.
+Action taken: NONE
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
 Page: Chẩn đoán & Tư vấn → "Chọn ảnh hiển thị"
 Control: kéo một thẻ sang **ngày khác**
 Reason: `onDragEnd` của bản gốc thoát ngay khi
@@ -2509,3 +2533,18 @@ BlueDental: two tabs only (`add`, `continue`). What IS known and already cloned:
   and the checklist → Nội dung điều trị sync (R-464). Also recorded, not copied:
   the reference's own dirty check spans only `[...ex, ...eb]` and ignores the
   warranty list.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId} → Chuyển đổi dịch vụ (staging.nfcdental.com, 2026-09-24)
+Control: khối "Dịch vụ đang có phiếu Labo…" + nút "Hủy phiếu Labo"; chốt
+  "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ." trên POST …/cancel
+Reason: khảo sát ghi trên staging chỉ đi qua phiếu `created` (bị chặn) và
+  `canceled` (được qua). Chưa rõ (1) `delivered` / `replaced` có tính là "đã
+  hoàn tất" để qua chốt không; (2) lưu Chuyển đổi thành công có đụng
+  `statusClinic` của phiếu đã xong không; (3) CSS của khối và nút (chỉ có
+  accessibility snapshot, không đo computed style).
+Action taken: NONE thêm trên staging (đã huỷ 1 phiếu test của bệnh nhân DEV
+  TEST để quan sát PUT …/update-status). Local: chốt coi Received, Completed,
+  Rejected, Replaced là đã xong; khối dùng `tp-btn tp-btn--danger`, chữ
+  14px/22px, gap 12px — chờ đo lại.

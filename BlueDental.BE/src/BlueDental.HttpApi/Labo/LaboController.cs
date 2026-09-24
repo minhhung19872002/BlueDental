@@ -59,6 +59,25 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
     public Task<LaboOrderDto> UpdateAsync(Guid id, [FromBody] UpdateLaboOrderDto input) =>
         service.UpdateAsync(id, input);
 
+    /// <summary>The detail dialog's Lưu: the status picked and the pictures added, as one multipart PUT.</summary>
+    [HttpPut("{id:guid}/detail")]
+    [Consumes("multipart/form-data")]
+    public Task<LaboOrderDto> SaveDetailAsync(
+        Guid id,
+        [FromForm] SaveLaboOrderDetailDto input,
+        [FromForm] List<IFormFile>? pictures,
+        [FromForm] List<Guid>? keepImageIds)
+    {
+        // Bound by hand: the DTO's own binder leaves a repeated form key empty
+        // when the request carries none, and "none kept" must read as "remove all".
+        input.KeepImageIds = keepImageIds ?? [];
+        input.Pictures = pictures?
+            .Select(file => (IRemoteStreamContent)new RemoteStreamContent(
+                file.OpenReadStream(), file.FileName, file.ContentType, file.Length))
+            .ToList();
+        return service.SaveDetailAsync(id, input);
+    }
+
     [HttpPost("{id:guid}/send")]
     public Task SendAsync(Guid id) => service.SendAsync(id);
 

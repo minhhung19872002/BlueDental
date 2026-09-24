@@ -5,12 +5,20 @@ import { SERVICE_LINE_STATUS } from "../../../api/treatmentPlanApi";
 import { servicePills, moneyText } from "../../plan/planTypes";
 import { dash, type PlanDetailRow } from "../planDetailTypes";
 import { ConvertFacts, ConvertHead } from "./ConvertFacts";
+import { ConvertLaboBlock } from "./ConvertLaboBlock";
+
+interface Props {
+  row: PlanDetailRow;
+  /** The line still has a Labo slip with the labo — the reference blocks saving. */
+  hasOpenLabo: boolean;
+  onLaboCleared: () => void;
+}
 
 /**
  * Left column: the line being closed and what has already been collected on
  * it. Read-only throughout — the reference offers nothing to change here.
  */
-export function ConvertCurrentService({ row }: { row: PlanDetailRow }) {
+export function ConvertCurrentService({ row, hasOpenLabo, onLaboCleared }: Props) {
   const service = row.service;
   const pills = servicePills();
   const pill = pills[service.status] ?? pills[SERVICE_LINE_STATUS.Created];
@@ -54,6 +62,10 @@ export function ConvertCurrentService({ row }: { row: PlanDetailRow }) {
           ]}
         />
       </section>
+
+      {hasOpenLabo && (
+        <ConvertLaboBlock planId={row.plan.id} lineId={service.id} onCleared={onLaboCleared} />
+      )}
     </div>
   );
 }

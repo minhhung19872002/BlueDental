@@ -34,10 +34,12 @@ export function LaboMaterialChoice({ parent, mode, onMode, form }: Props) {
       {mode === "old" ? (
         <div className="pd-labo-summary">
           <p>
-            <b>{t("Patient:Labo:CurrentService")}:</b> {parent.laboServiceName ?? "—"}
+            <b>{t("Patient:Labo:CurrentService")}:</b>
+            <span>{parent.laboServiceName ?? "—"}</span>
           </p>
           <p>
-            <b>{t("Patient:Labo:Material")}:</b> {parent.materialName ?? "—"}
+            <b>{t("Patient:Labo:Material")}:</b>
+            <span>{parent.materialName ?? "—"}</span>
           </p>
         </div>
       ) : (

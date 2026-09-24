@@ -6,6 +6,7 @@ using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
 using BlueDental.Exporting;
+using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement.Values;
@@ -25,7 +26,7 @@ namespace BlueDental.TreatmentManagement;
 /// consulting chain, so <c>treatmentConsultation</c> guards it.
 /// </summary>
 [Authorize]
-public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentAppService
+public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmentAppService
 {
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
     private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
@@ -33,6 +34,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
     private readonly IRepository<CareRecord, Guid> _careRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IRepository<LaboOrder, Guid> _laboRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly PatientMoneyCalculator _money;
@@ -44,10 +46,12 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
         IRepository<TreatmentStage, Guid> stageRepository,
         IRepository<CareRecord, Guid> careRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
+        IRepository<LaboOrder, Guid> laboRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money)
     {
+        _laboRepository = laboRepository;
         _planRepository = planRepository;
         _adviseRepository = adviseRepository;
         _paymentRepository = paymentRepository;
@@ -201,11 +205,61 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
     public async Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId)
     {
         var plan = await LoadAsync(id);
+        await GuardNoOpenLaboOrderAsync(serviceLineId);
         plan.GetService(serviceLineId).Cancel();
         plan.CloseIfAllServicesDone();
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// "Hủy phiếu Labo": the reference (2026-09-24) issues one
+    /// <c>PUT /orders/{id}/update-status {status: canceled, statusClinic: canceled}</c>
+    /// per order of the line and then reloads the slip; the line's own status
+    /// is untouched. Orders already received, completed, cancelled or replaced
+    /// are left as they are.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<TreatmentPlanSlipDto> CancelServiceLaboOrdersAsync(Guid id, Guid serviceLineId)
+    {
+        var plan = await LoadAsync(id);
+        plan.GetService(serviceLineId);
+
+        var orders = await _laboRepository.GetListAsync(o => o.TreatmentServiceId == serviceLineId);
+        var open = orders.Where(o => o.IsUnfinished).ToList();
+        foreach (var order in open)
+        {
+            order.CancelForServiceChange();
+        }
+
+        if (open.Count > 0)
+        {
+            await _laboRepository.UpdateManyAsync(open, autoSave: true);
+        }
+
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// The reference's guard on cancel and convert (2026-09-24): a line whose
+    /// labo order is still with the labo answers 400
+    /// "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ.".
+    /// </summary>
+    private async Task GuardNoOpenLaboOrderAsync(Guid serviceLineId)
+    {
+        var blocked = await _laboRepository.AnyAsync(o =>
+            o.TreatmentServiceId == serviceLineId
+            && o.Status != LaboStatus.Received
+            && o.Status != LaboStatus.Completed
+            && o.Status != LaboStatus.Rejected
+            && o.Status != LaboStatus.Replaced);
+        if (blocked)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasOpenLaboOrder,
+                "The service line has a labo order that is not finished yet.");
+        }
     }
 
     /// <summary>
@@ -231,6 +285,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
 
         var plan = await LoadAsync(id);
         var old = plan.GetService(serviceLineId);
+        await GuardNoOpenLaboOrderAsync(serviceLineId);
 
         // The reference refuses the conversion outright on a line that is
         // finished or cancelled — its own `treatment.validation.convertNotAllowed`,
@@ -600,6 +655,26 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
         var users = staffIds.Count == 0 ? [] : await _userRepository.GetListByIdsAsync(staffIds);
         var staffNames = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
 
+        var lineIds = lines.Select(l => l.Id).ToList();
+        var laboOrders = lineIds.Count == 0
+            ? []
+            : await _laboRepository.GetListAsync(o =>
+                o.TreatmentServiceId != null && lineIds.Contains(o.TreatmentServiceId.Value));
+        var laboByService = laboOrders
+            .Where(o => o.TreatmentServiceId.HasValue)
+            .GroupBy(o => o.TreatmentServiceId!.Value)
+            .ToDictionary(g => g.Key, g => g
+                .OrderBy(o => o.CreationTime)
+                .Select(o => new TreatmentServiceLaboOrderDto
+                {
+                    Id = o.Id,
+                    OrderCode = o.OrderCode,
+                    Status = o.Status,
+                    Kind = o.Kind,
+                    IsUnfinished = o.IsUnfinished
+                })
+                .ToList());
+
         return plans.Select(plan => new TreatmentPlanSlipDto
         {
             Id = plan.Id,
@@ -657,6 +732,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
                     PaidAmount = PaidOn(paidByService, line.Id),
                     OutstandingAmount = Math.Max(0m, line.EffectiveAmount - PaidOn(paidByService, line.Id)),
                     AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id),
+                    LabOrders = laboByService.TryGetValue(line.Id, out var labo) ? labo : [],
                     DiagnosisId = line.DiagnosisId,
                     DiagnosisName = NameOf(serviceNames, line.DiagnosisId),
                     DentistId = line.DentistId,

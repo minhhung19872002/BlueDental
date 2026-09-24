@@ -103,3 +103,140 @@ hidden sheet on `<body>` with `Số:`, `Mã KH:` and `Kiểu nhịp: —`, the p
 class + `phieu-labo-<code>` title around a stubbed `window.print`, the
 `afterprint` restore, and that Đóng removes the sheet. Not covered: the real
 print preview (headless), the dentist's name (the seeded order has none).
+
+`e2e/labo-orders-actions.spec.ts` (R-500..R-511, 2026-09-24, real stack on the
+production build at :8080 over the :5000 host): seeds through `fixtures/laboSeed.ts`
+(a plan with one open and one completed service line, a labo order on each) and
+runs two cases. **Columns and Thao tác**: the eleven headers in order, the
+patient and plan links, the three row buttons with the eye named "Xem", the
+plus present on the open line's row and absent on the completed line's row;
+the Tiếp tục công đoạn dialog with its locked picker (`code - name`,
+`.ss-wrapper--disabled`), the floated "Giờ nhận" over `HH:mm` and empty, the
+Bảo hành dialog title. **Detail modal**: pick a status, add two pictures,
+remove one, Lưu → the toast, reload, the status pill and the one remaining
+tile back from the API, and the folder column enabled. Not covered: the real
+print preview (headless), the `Tạo Lịch Hẹn Mới` save (opens the shared
+appointment modal only), and there is **no backend host test** for
+`SaveDetailAsync` yet.
+
+## Field, i18n and API audit (2026-09-24, R-512..R-519)
+
+Backend: `LaboOrder.DueDate` (day) became `DueAt` (stamp) with the after-sent
+guard `Labo:0013` (Domain 16/16, contract 11/11); `ChangeStatus` takes only the
+five dialog values; every id route runs `BranchAccessChecker`; removed
+pictures lose their blob. Migration `20260923232410_RenameLaboDueDateToDueAt`
+renames in place (existing days kept at 00:00). Verified over real HTTP with a
+cookie session: 422 `Labo:0002` on `status=2`, 403 `Labo:0012` on cancelling a
+received order, 403 `Labo:0013` on a due stamp before the sent stamp.
+
+Frontend: `LABO_KIND_CONFIG` / `LABO_STATUS_CONFIG` and the print sheet's long
+date read `t()` keys; Ngày nhận dự kiến + Giờ nhận post one `dueAt`; the due
+pair carries the after-sent rule. `labo-orders-actions` 2/2, `labo-detail`,
+`labo-warranty`, `labo` — 20/20 on the production build at :8080 over the
+:5000 host, no interception. `labo-warranty.spec.ts:315` was re-anchored on the
+label/value pair R-510 introduced.
+
+## Leftovers closed (2026-09-24, R-521..R-524)
+
+`e2e/labo-api.spec.ts` drives the API over the real request pipeline from the
+logged-in page (cookie session + antiforgery header, multipart via `FormData`,
+no interception, no injected token) and is the host-test substitute while the
+ABP test base cannot start. It covers: the due stamp keeps its hour and is
+refused before the sent stamp (403 `Labo:0013`); `PUT {id}/detail` status
+guard (422 `Labo:0002` for Sent, 200 + `receivedAt` for Received, 403
+`Labo:0012` cancelling a received order); pictures added and dropped through
+the detail — the dropped one answers 403 `Patient:0008` and its MinIO blob is
+gone (checked once by hand with `ls -R`); and the branch guard measured with
+the `branch2` account (GET 403, PUT 403, list excludes the order).
+
+Clinic day is UTC+7 for the Excel "Hẹn trả" column (R-522; the same entry's
+"overdue from midnight" rule was withdrawn by R-530 below). Excel headers were raw `BE:*` keys because the service relied
+on ABP's default-resource lookup; it now binds `BlueDentalResource` explicitly
+(R-521). `labo*` 24/24 on the production build; Domain 16/16, contract 35/35.
+
+All three were closed later the same day — next section.
+
+## `statusClinic`, the shared localization base and the Excel status (2026-09-24, R-525..R-529)
+
+Staging write survey (`reference-private/survey/staging/labo-statusclinic-cancel-2026-09-24.json`):
+the plan page asks `include=labOrders[id,statusClinic,status]`; cancelling a
+line with an unfinished labo order answers 400 "Dịch vụ có đơn labo chưa hoàn
+tất, không thể huỷ."; the Chuyển đổi dialog shows the "Dịch vụ đang có phiếu
+Labo…" block whose "Hủy phiếu Labo" confirm issues
+`PUT /api/v1/orders/{id}/update-status {status: canceled, statusClinic: canceled}`
+per order, after which both pills read "Đã huỷ" and the counters drop it.
+
+BlueDental mirrors that as `LaboOrder.IsUnfinished`, `CancelForServiceChange()`
+(Kind `Canceled = 4`, Status `Rejected`), the `BlueDental:Treatment:0029` guard
+on `cancel` / `convert`, `TreatmentServiceDto.labOrders[]` and
+`POST /api/v1/app/patient-treatments/{id}/services/{lineId}/cancel-labo-orders`.
+
+Evidence, all real stack on the production build (:8080, host :5000):
+
+- `e2e/labo-api.spec.ts` 5/5 — the guard, the cascade (`labOrders[]` all
+  `isUnfinished=false`, order reread `kind 4 / status 6`) and the cancel that
+  follows, on a line added for the test so the seed is not used up.
+- `e2e/treatment-plan-detail.spec.ts` 14/14 — the block and the disabled Lưu,
+  Đóng leaves everything, Xác nhận clears the block with no toast, the patient's
+  Labo tab reads "Đã huỷ" after a reload, the reopened dialog has no block.
+- `e2e/labo*` full set in file order: 25/25 (2.7 min). The regression log notes
+  the pre-existing ordering fragility of "a row names its customer, dentist and
+  material" when the files are run out of order.
+- Domain 23/23, Application (Labo + TreatmentPlan) 40/40.
+
+Shared base `BlueDentalAppService` sets `LocalizationResource` for the seven
+exporting services (R-525); the Excel "Trạng thái" column is localized (R-526).
+
+Still unknown: whether the reference counts `delivered` / `replaced` as
+finished for the guard, whether a saved conversion touches `statusClinic`, and
+the block's CSS on staging (only its text was captured).
+
+## The three sample filters (2026-09-24, R-530)
+
+The owner found the tabs above the Mẫu Labo table nearly empty. The cause:
+every order the app writes is Draft (the FE never calls `/send`), and the
+server's "chưa nhận" only took Sent / InProgress / LateDelivery, while
+"giao trễ" was derived from the due date. Staging's tabs, clicked for real,
+are exact status filters — `status=created` returned orders due back months
+earlier, `status=lateDelivery` returned none, and cancelled / replaced orders
+sit under Tất cả only. The filter, the counters and the Excel "Giao trễ"
+column now share three status rules: awaiting = Draft ∪ Sent ∪ InProgress,
+overdue = LateDelivery, returned = Received ∪ Completed. Evidence: demo branch
+0→156, 1→110, 2→1, 3→25 by curl; `labo-api.spec.ts` walks one order through
+all three tabs and the counters; `labo.spec.ts` reads each tab's real
+response. `e2e/labo` 26/26 on the production build.
+
+## The Thao tác conditions on both tables (2026-09-24, R-531)
+
+The owner asked whether the row buttons follow the reference's conditions.
+Staging's bundle and DOM, read on Mẫu Labo and on the patient's Labo tab,
+agree: the eye is unconditional; with `treatmentLabo:create` the shield is
+unconditional and the plus hides only while the treatment line is `done`. The
+order's status and statusClinic play no part (a cancelled order keeps all
+three) and nothing is disabled. Mẫu Labo already matched; the patient tab
+showed the plus on finished lines. The gate moved into the shared
+`LaboRowActions` cell. Evidence: `labo-orders-actions.spec.ts` adds two real
+service lines to a slip, raises an order on each, completes one line and
+cancels the other through the real API, then reads the button names on both
+tables and opens Bảo hành from the finished row. `e2e/labo` 27/27 on the
+production build.
+
+## Buttons by permission leaf (2026-09-24, R-532)
+
+The owner asked for certainty that every visible action matches staging.
+Re-reading the live bundle showed three gaps: the plus and the shield were
+gated on `laboTemplate:create` instead of `treatmentLabo:create`; the detail
+dialog folded `laboTemplate:update` and `appointment:create` into one flag,
+hid the status select instead of greying it and showed a Đóng the reference
+does not have; and "In Phiếu Labo" depended on `GET clinic-branches/{id}`,
+which only `branchManager.read` may call. The dialog now takes a mode
+(`patient` | `orders` with the two abilities), the footer is its own
+component, the picture well has a read-only form, and `useBranchInfo` reads
+the accessible-branch list. Evidence: `labo-orders-permissions.spec.ts`
+creates a dentist through the Nhân sự dialog, grants `laboTemplate.read`,
+`treatmentLabo.create`, `appointment.create` and `laboTemplate.update` one at
+a time on Cài đặt → Phân quyền, and after each grant the dentist's own session
+reloads Mẫu Labo and the test reads the row buttons, the select's disabled
+state, the well and the footer text. `e2e/labo` 28/28 on the production
+build; `role-permissions-abilities.spec.ts` 1/1 after its helpers moved to
+`e2e/fixtures/restrictedDentist.ts`.

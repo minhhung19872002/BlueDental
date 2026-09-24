@@ -14,8 +14,9 @@ interface Props {
 }
 
 /**
- * "Răng:" with "Chọn tất cả" and one chip per tooth, as on the reference; the
- * tick box goes with the chips when the line names none. Shaped as a form
+ * "Răng:" with "Chọn tất cả" and one chip per tooth, as on the reference (the
+ * words before the box, 13px); the tick box goes with the chips when the line
+ * names none. Shaped as a form
  * control so the Form.Item's rule can paint the label red and print its
  * helper line under the row. Ticks go through the form hook, which keeps Số
  * lượng in step.
@@ -35,7 +36,11 @@ export function LaboToothRow({ form, teeth, value = [], empty }: Props) {
       {teeth.length === 0 ? (
         empty
       ) : (
-        <Checkbox checked={allTeeth} onChange={(event) => form.setAllTeeth(event.target.checked)}>
+        <Checkbox
+          className="pd-labo-select-all"
+          checked={allTeeth}
+          onChange={(event) => form.setAllTeeth(event.target.checked)}
+        >
           {t("Patient:Misc:SelectAllLower")}
         </Checkbox>
       )}

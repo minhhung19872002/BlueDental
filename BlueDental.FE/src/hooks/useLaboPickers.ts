@@ -112,7 +112,7 @@ export interface CreateLaboOrderInput {
   quantity: number;
   notes?: string;
   sentAt?: string;
-  dueDate?: string;
+  dueAt?: string;
   estimatedCost: number;
   treatmentServiceId?: string;
   treatmentStageId?: string;

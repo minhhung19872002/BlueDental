@@ -1153,3 +1153,23 @@ a.pdt-crumb:hover {
   justify-content: flex-end;
   gap: 12px;
 }
+/* "Dịch vụ đang có phiếu Labo…" — sits under the payment facts of the left
+   column on staging (2026-09-24), with its own Hủy phiếu Labo button. */
+.cvt-labo-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.cvt-labo-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--tp-ink);
+}
+.cvt-labo-text strong {
+  font-weight: 600;
+}
+.pdt-confirm-text + .pdt-confirm-text {
+  margin-top: 8px;
+}

@@ -1,4 +1,4 @@
-﻿namespace BlueDental;
+namespace BlueDental;
 
 public static class BlueDentalDomainErrorCodes
 {
@@ -113,6 +113,13 @@ public static class BlueDentalDomainErrorCodes
         /// another one would leave that công đoạn behind.
         /// </summary>
         public const string ServiceHasCompletedStage = "BlueDental:Treatment:0028";
+
+        /// <summary>
+        /// Cancelling or converting a line whose labo order is still with the labo.
+        /// The reference's own wording (2026-09-24):
+        /// "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ."
+        /// </summary>
+        public const string ServiceHasOpenLaboOrder = "BlueDental:Treatment:0029";
     }
 
     public static class Billing
@@ -170,6 +177,10 @@ public static class BlueDentalDomainErrorCodes
         public const string TreatmentServiceCompleted = "BlueDental:Labo:0010";
         /// <summary>Mirrors the reference: a child order must name a material.</summary>
         public const string MaterialRequired = "BlueDental:Labo:0011";
+        /// <summary>Mirrors the reference's "Chỉ được huỷ đơn hàng mới" on the detail dialog.</summary>
+        public const string CancelOnlyNew = "BlueDental:Labo:0012";
+        /// <summary>"Ngày và giờ nhận dự kiến phải sau ngày và giờ gửi."</summary>
+        public const string DueBeforeSent = "BlueDental:Labo:0013";
     }
 
     public static class Promotions

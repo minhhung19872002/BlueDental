@@ -41,7 +41,7 @@ export function ConvertServiceDialog({ row, onClose }: Props) {
           <button
             type="button"
             className="tp-btn tp-btn--primary"
-            disabled={form.saving}
+            disabled={form.saving || form.hasOpenLabo}
             onClick={() => void form.save()}
           >
             <Save size={16} aria-hidden="true" />
@@ -52,7 +52,11 @@ export function ConvertServiceDialog({ row, onClose }: Props) {
     >
       {row && (
         <div className="cvt-grid">
-          <ConvertCurrentService row={row} />
+          <ConvertCurrentService
+            row={row}
+            hasOpenLabo={form.hasOpenLabo}
+            onLaboCleared={form.clearLabo}
+          />
           <ConvertNewService form={form} />
         </div>
       )}

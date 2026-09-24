@@ -26,6 +26,9 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
     /// <summary>Công đoạn this image documents, when it was taken for one.</summary>
     public Guid? TreatmentStageId { get; private set; }
 
+    /// <summary>Phiếu Labo this image was attached to on the order's detail dialog, when it was.</summary>
+    public Guid? LaboOrderId { get; private set; }
+
     /// <summary>Name of the blob in object storage.</summary>
     public string BlobName { get; private set; } = string.Empty;
 
@@ -69,7 +72,8 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         Guid? treatmentStageId = null,
         string? note = null,
         PatientImageType type = PatientImageType.Before,
-        int ordering = 1)
+        int ordering = 1,
+        Guid? laboOrderId = null)
     {
         Check.NotNullOrWhiteSpace(blobName, nameof(blobName));
         Check.NotNullOrWhiteSpace(fileName, nameof(fileName));
@@ -104,7 +108,8 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             TreatmentStageId = treatmentStageId,
             Note = note,
             Type = type,
-            Ordering = ordering
+            Ordering = ordering,
+            LaboOrderId = laboOrderId
         };
     }
 

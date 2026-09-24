@@ -60,6 +60,23 @@ public class LaboAppServiceContractTests
     }
 
     [Fact]
+    public void SaveDetailAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("SaveDetailAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Labo_Due_Should_Be_A_Stamp_Not_A_Day()
+    {
+        // Ngày nhận dự kiến and Giờ nhận travel as one stamp, on every contract.
+        foreach (var dto in new[] { typeof(LaboOrderDto), typeof(CreateLaboOrderDto), typeof(UpdateLaboOrderDto) })
+        {
+            dto.GetProperty("DueDate").ShouldBeNull(dto.Name);
+            dto.GetProperty("DueAt")!.PropertyType.ShouldBe(typeof(DateTimeOffset?), dto.Name);
+        }
+    }
+
+    [Fact]
     public void CreateLaboOrderDto_Should_Carry_The_Dialog_Pictures()
     {
         typeof(CreateLaboOrderDto).GetProperty("Pictures")!

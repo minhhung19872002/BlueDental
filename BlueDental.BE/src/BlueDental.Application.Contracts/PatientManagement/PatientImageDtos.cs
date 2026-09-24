@@ -13,6 +13,7 @@ public class PatientImageDto : FullAuditedEntityDto<Guid>
     public Guid ClinicBranchId { get; set; }
     public Guid? TreatmentPlanId { get; set; }
     public Guid? TreatmentStageId { get; set; }
+    public Guid? LaboOrderId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
@@ -36,6 +37,8 @@ public class UploadPatientImageDto
     public Guid ClinicBranchId { get; set; }
     public Guid? TreatmentPlanId { get; set; }
     public Guid? TreatmentStageId { get; set; }
+    /// <summary>The labo order the picture was attached to, from its detail dialog.</summary>
+    public Guid? LaboOrderId { get; set; }
     public string? Note { get; set; }
 
     /// <summary>Giai đoạn điều trị; the tab sends whatever its filter is set to, "BE:Treatment:BeforeTreatment" otherwise.</summary>
