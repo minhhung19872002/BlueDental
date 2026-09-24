@@ -46,7 +46,7 @@ export function InvoiceCustomerInfo({
         >
           <Input value={customerName} onChange={(e) => onCustomerNameChange(e.target.value)} />
         </FloatingLabel>
-        <FloatingLabel label="CCCD/CC" floated={nationalId !== ""} className="inv-field">
+        <FloatingLabel label={t("Treatment:Invoice:NationalId")} floated={nationalId !== ""} className="inv-field">
           <Input
             value={nationalId}
             onChange={(e) => {

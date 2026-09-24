@@ -3,6 +3,7 @@ import {
   type PatientAdviseDto,
   type PatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
+import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
 
 /**
@@ -133,12 +134,17 @@ export function noteToHtml(note: string): string {
     .join("");
 }
 
-/** The reference's stand-in explanation when a slip carries no content. */
+const DEFAULT_EXPLANATION_KEYS = [
+  "Patient:Diagnosis:DefaultAdvice1",
+  "Patient:Diagnosis:DefaultAdvice2",
+] as const;
+
+/**
+ * The reference's stand-in explanation when a slip or a diagnosis carries no
+ * content — shared by the quote sheet and the diagnosis print dialog.
+ */
 export function defaultExplanationHtml(): string {
-  return [
-    "<p>Cùng với việc kiểm tra các mô nha chu, tình trạng vệ sinh răng miệng của bệnh nhân cũng phải được đánh giá. Sự hiện diện của mảng sinh học được ghi nhận theo từng bề mặt răng trong quá trình thăm khám.</p>",
-    "<p>Nội dung tư vấn, chỉ định điều trị và các lưu ý sau điều trị sẽ được cập nhật tại đây trước khi in dịch vụ.</p>",
-  ].join("");
+  return DEFAULT_EXPLANATION_KEYS.map((key) => `<p>${escapeHtml(t(key))}</p>`).join("");
 }
 
 /** One block per diagnosis, in first-seen order, with a doctor card per row. */

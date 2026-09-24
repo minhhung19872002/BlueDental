@@ -86,7 +86,7 @@ export function MedicalRecordIndex({
                   <FileTextOutlined />
                 </span>
                 <p>
-                  {spec.index}. {t(spec.label)}
+                  {spec.index}. {spec.label}
                 </p>
                 {onAdd && (
                   <Button

@@ -67,7 +67,7 @@ export function ServiceDetailDialog({ open, patient, plan, line, onClose }: Prop
         <Section
           title={t("Patient:Stage:PlanDetail")}
           facts={[
-            [t("Patient:Misc:Service"), line?.serviceName ?? line?.code ?? ""],
+            [t("Patient:Misc:ServiceLabel"), line?.serviceName ?? line?.code ?? ""],
             [t("Patient:Misc:StatusLabel"), status ?? ""],
             // The reference names the diagnosis the line answers. BlueDental
             // keeps that on the consulting line, not on the slip's service, so

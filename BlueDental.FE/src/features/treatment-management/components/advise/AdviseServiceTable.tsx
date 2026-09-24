@@ -17,12 +17,12 @@ interface Props {
 }
 
 const COLUMNS = [
-  { key: "service", label: "Dịch vụ" },
-  { key: "price", label: "Đơn giá" },
-  { key: "quantity", label: "Số lượng" },
-  { key: "discount", label: "Giảm giá" },
-  { key: "amount", label: "Thành tiền" },
-  { key: "note", label: "Ghi chú" },
+  { key: "service", label: "Treatment:Advise:Col:Service" },
+  { key: "price", label: "Treatment:Advise:Col:UnitPrice" },
+  { key: "quantity", label: "Treatment:Advise:Col:Quantity" },
+  { key: "discount", label: "Treatment:Advise:Col:Discount" },
+  { key: "amount", label: "Treatment:Advise:Col:Amount" },
+  { key: "note", label: "Treatment:Advise:Col:Note" },
 ] as const;
 
 /**

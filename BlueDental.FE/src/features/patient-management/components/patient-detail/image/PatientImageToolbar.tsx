@@ -61,8 +61,8 @@ export function PatientImageToolbar({
       </FloatingLabel>
 
       {filter !== null && (
-        <Tooltip title={t("Common:ClearFilter")}>
-          <button type="button" className="pi-clear" aria-label={t("Common:ClearFilter")} onClick={onClearFilter}>
+        <Tooltip title={t("Patient:Misc:ClearFilter")}>
+          <button type="button" className="pi-clear" aria-label={t("Patient:Misc:ClearFilter")} onClick={onClearFilter}>
             <X size={16} />
           </button>
         </Tooltip>
@@ -77,7 +77,7 @@ export function PatientImageToolbar({
             onClick={() => inputRef.current?.click()}
           >
             <ImagePlus size={28} strokeWidth={1.5} />
-            <span>{uploading ? t("Common:Uploading") : t("Common:UploadImage")}</span>
+            <span>{uploading ? t("Common:Uploading") : t("Patient:Photo:Upload")}</span>
           </button>
           <input
             ref={inputRef}

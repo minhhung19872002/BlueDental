@@ -38,7 +38,7 @@ export function AddSourceGroupDialog({ open, saving, onSave, onClose }: Props) {
       title={t("Patient:SourceGroupAdd")}
       canSave={name.trim().length > 0}
       saving={saving}
-      cancelLabel={t("Common:Cancel")}
+      cancelLabel={t("Common:CancelAlt")}
       onSave={() => form.submit()}
       onClose={onClose}
     >

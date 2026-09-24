@@ -59,7 +59,7 @@ export function ConsultingImageCard({ image, checked, canSort, onToggle, onDelet
         <Button
           danger
           shape="circle"
-          aria-label={t("Patient:Image:DeleteLabel")}
+          aria-label={t("Patient:Photo:Delete")}
           icon={<DeleteOutlined />}
           onClick={() => onDelete?.(image)}
         />

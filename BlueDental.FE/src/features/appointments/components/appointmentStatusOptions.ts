@@ -5,12 +5,12 @@ import { APPOINTMENT_STATUSES, type AppointmentStatus } from "../types/appointme
  * them. Both "Đã hẹn" statuses and both "Đã đến" statuses read the same.
  */
 const GROUP_LABEL: Record<AppointmentStatus, string> = {
-  scheduled: "Đã hẹn",
-  confirmed: "Đã hẹn",
-  inProgress: "Đã đến",
-  completed: "Đã đến",
-  cancelled: "Đã huỷ",
-  noShow: "Trễ hẹn",
+  scheduled: "Appointment:Status:Scheduled2",
+  confirmed: "Appointment:Status:Scheduled2",
+  inProgress: "Appointment:Status:Arrived",
+  completed: "Appointment:Status:Arrived",
+  cancelled: "Appointment:Status:CancelledAlt",
+  noShow: "Appointment:Status:Late",
 };
 
 /**

@@ -33,13 +33,13 @@ export type LaboOrderKind = (typeof LABO_ORDER_KIND)[keyof typeof LABO_ORDER_KIN
  */
 export const LABO_KIND_CONFIG: Record<LaboOrderKind, { label: string; bg: string; color: string }> =
   {
-    [LABO_ORDER_KIND.New]: { label: "Mẫu mới", bg: "#e2f4ee", color: "#0e9f6e" },
+    [LABO_ORDER_KIND.New]: { label: "Labo:Kind:New", bg: "#e2f4ee", color: "#0e9f6e" },
     [LABO_ORDER_KIND.ContinueStage]: {
-      label: "Tiếp tục công đoạn",
+      label: "Labo:Kind:ContinueStage",
       bg: "#fbf1de",
       color: "#d98b0f",
     },
-    [LABO_ORDER_KIND.Guarantee]: { label: "Bảo hành", bg: "#fce9ea", color: "#E5484D" },
+    [LABO_ORDER_KIND.Guarantee]: { label: "Labo:Kind:Guarantee", bg: "#fce9ea", color: "#E5484D" },
   };
 
 /**
@@ -55,12 +55,12 @@ export const LABO_STATUS_TONE = {
 
 export const LABO_STATUS_CONFIG: Record<LaboStatus, { label: string; bg: string; color: string }> =
   {
-    [LABO_STATUS.Draft]: { label: "Đơn hàng mới", ...LABO_STATUS_TONE.green },
-    [LABO_STATUS.Sent]: { label: "Đã gửi", ...LABO_STATUS_TONE.gray },
-    [LABO_STATUS.InProgress]: { label: "Đang xử lý", ...LABO_STATUS_TONE.gray },
-    [LABO_STATUS.Received]: { label: "Đã nhận", ...LABO_STATUS_TONE.green },
-    [LABO_STATUS.Completed]: { label: "Hoàn thành", ...LABO_STATUS_TONE.green },
-    [LABO_STATUS.Rejected]: { label: "Đã huỷ", ...LABO_STATUS_TONE.red },
+    [LABO_STATUS.Draft]: { label: "Labo:Status:Draft", ...LABO_STATUS_TONE.green },
+    [LABO_STATUS.Sent]: { label: "Labo:Status:Sent", ...LABO_STATUS_TONE.gray },
+    [LABO_STATUS.InProgress]: { label: "Labo:Status:InProgress", ...LABO_STATUS_TONE.gray },
+    [LABO_STATUS.Received]: { label: "Labo:Status:Received", ...LABO_STATUS_TONE.green },
+    [LABO_STATUS.Completed]: { label: "Labo:Status:Completed", ...LABO_STATUS_TONE.green },
+    [LABO_STATUS.Rejected]: { label: "Labo:Status:Rejected", ...LABO_STATUS_TONE.red },
   };
 
 /**

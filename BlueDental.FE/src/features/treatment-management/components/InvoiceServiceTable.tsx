@@ -117,7 +117,7 @@ export function InvoiceServiceTable({
       <div className="inv-table inv-cards-mobile">
         <div className="inv-cards-header">
           <Checkbox checked={allSelected} onChange={(e) => onToggleAll(e.target.checked)}>
-            {t("Treatment:Service:SelectAll")}
+            {t("Treatment:Invoice:SelectAll")}
           </Checkbox>
         </div>
         {rows.map((row) => (

@@ -112,7 +112,7 @@ export function PatientTable({
     },
     {
       key: "serviceNames",
-      title: t("Patient:Misc:Service"),
+      title: t("Patient:Misc:ServiceLabel"),
       width: 180,
       render: (_, row) => <NameList names={row.serviceNames} />,
     },
@@ -173,7 +173,7 @@ export function PatientTable({
       render: (_, row) => (
         <div className="bd-patient-rowactions">
           <Tooltip title={t("Xem")}>
-            <Link to={`/patient/${row.id}`} aria-label={t("Xem {0}", row.fullName)}>
+            <Link to={`/patient/${row.id}`} aria-label={t("Patient:List:ViewLabel", row.fullName)}>
               <Button type="text" size="small" icon={<EyeOutlined />} />
             </Link>
           </Tooltip>

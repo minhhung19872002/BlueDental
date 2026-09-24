@@ -1,5 +1,4 @@
 import type { RecordCardRow } from "@/components/RecordCard";
-import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {

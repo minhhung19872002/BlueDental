@@ -15,6 +15,11 @@ export interface MedicalRecordFormSpec {
   form: MedicalRecordForm;
   /** Position in the index, as the reference numbers them. */
   index: number;
+  /**
+   * The form's own printed name. Left untranslated on purpose: the nine forms
+   * are Vietnamese medical documents in both languages, and this is also the
+   * title a new sheet is saved under.
+   */
   label: string;
   /** Row background. */
   tint: string;
@@ -39,7 +44,8 @@ export interface MedicalRecordFormSpec {
   /**
    * The date the form is filled in for, shown beside the doctor picker. Five of
    * the nine carry one; the wording is the reference's own — "Ngày tư vấn" on
-   * the consent form, "Ngày thực hiện" on the rest.
+   * the consent form, "Ngày thực hiện" on the rest. It is the picker's label,
+   * not part of the sheet, so it is an i18n key.
    */
   dateLabel?: string;
   /**
@@ -80,7 +86,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   {
     form: MEDICAL_RECORD_FORM.GeneralConsultation,
     fillable: true,
-    dateLabel: "Ngày thực hiện",
+    dateLabel: "Patient:MedRecord:PerformedDate",
     dateFieldKeys: ["general-consultation.text.14", "consultation.text.4"],
     index: 4,
     label: "Phiếu Tư Vấn Tổng Quát",
@@ -92,7 +98,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     form: MEDICAL_RECORD_FORM.TreatmentConsent,
     fillable: true,
     canAddRows: true,
-    dateLabel: "Ngày tư vấn",
+    dateLabel: "Patient:MedRecord:ConsultingDate",
     dateFieldKeys: ["consultation.text.4"],
     index: 5,
     label: "Phiếu tư vấn và xác nhận đồng ý điều trị",
@@ -103,7 +109,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   {
     form: MEDICAL_RECORD_FORM.SurgeryConsent,
     fillable: true,
-    dateLabel: "Ngày thực hiện",
+    dateLabel: "Patient:MedRecord:PerformedDate",
     index: 6,
     label: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật",
     tint: "#f2fcf5",
@@ -124,7 +130,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     fillable: true,
     canAddRows: true,
     canDeleteRows: true,
-    dateLabel: "Ngày thực hiện",
+    dateLabel: "Patient:MedRecord:PerformedDate",
     index: 8,
     label: "Phiếu theo dõi điều trị",
     tint: "#f4f8ff",
@@ -136,7 +142,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     fillable: true,
     canAddRows: true,
     canDeleteRows: true,
-    dateLabel: "Ngày thực hiện",
+    dateLabel: "Patient:MedRecord:PerformedDate",
     index: 9,
     label: "Phiếu chăm sóc",
     tint: "#f0fbf9",

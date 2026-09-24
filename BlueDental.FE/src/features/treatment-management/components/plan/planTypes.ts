@@ -201,11 +201,11 @@ export function moneyText(value: number | null | undefined) {
  */
 export function servicePills(): Record<number, { label: string; modifier: string }> {
   return {
-    [SERVICE_LINE_STATUS.Created]: { label: t("Treatment:Service:StatusCreated"), modifier: "" },
+    [SERVICE_LINE_STATUS.Created]: { label: t("Treatment:Service:PillCreated"), modifier: "" },
     [SERVICE_LINE_STATUS.InProgress]: { label: t("Treatment:Service:StatusInProgress"), modifier: "tp-pill--progress" },
     [SERVICE_LINE_STATUS.Done]: { label: t("Treatment:Service:StatusDone"), modifier: "tp-pill--done" },
-    [SERVICE_LINE_STATUS.Cancelled]: { label: t("Treatment:Service:StatusCancelled"), modifier: "tp-pill--cancelled" },
-    [SERVICE_LINE_STATUS.Replaced]: { label: t("Treatment:Service:StatusReplaced"), modifier: "tp-pill--converted" },
+    [SERVICE_LINE_STATUS.Cancelled]: { label: t("Treatment:Service:PillCancelled"), modifier: "tp-pill--cancelled" },
+    [SERVICE_LINE_STATUS.Replaced]: { label: t("Treatment:Service:PillReplaced"), modifier: "tp-pill--converted" },
     [SERVICE_LINE_STATUS.Warranty]: { label: t("Treatment:Service:StatusWarranty"), modifier: "tp-pill--progress" },
     [SERVICE_LINE_STATUS.Transferred]: { label: t("Treatment:Service:StatusTransferred"), modifier: "tp-pill--transferred" },
   };
@@ -213,13 +213,13 @@ export function servicePills(): Record<number, { label: string; modifier: string
 
 export function newLineStatuses(): readonly { value: TreatmentServiceStatus; label: string }[] {
   return [
-    { value: SERVICE_LINE_STATUS.Created, label: t("Treatment:Service:StatusCreated") },
+    { value: SERVICE_LINE_STATUS.Created, label: t("Treatment:Service:PillCreated") },
     { value: SERVICE_LINE_STATUS.InProgress, label: t("Treatment:Service:StatusInProgress") },
     { value: SERVICE_LINE_STATUS.Done, label: t("Treatment:Service:StatusDone") },
-    { value: SERVICE_LINE_STATUS.Replaced, label: t("Treatment:Service:StatusReplaced") },
+    { value: SERVICE_LINE_STATUS.Replaced, label: t("Treatment:Service:PillReplaced") },
     { value: SERVICE_LINE_STATUS.Transferred, label: t("Treatment:Service:StatusTransferred") },
     { value: SERVICE_LINE_STATUS.Warranty, label: t("Treatment:Service:StatusWarranty") },
-    { value: SERVICE_LINE_STATUS.Cancelled, label: t("Treatment:Service:StatusCancelled") },
+    { value: SERVICE_LINE_STATUS.Cancelled, label: t("Treatment:Service:PillCancelled") },
   ];
 }
 

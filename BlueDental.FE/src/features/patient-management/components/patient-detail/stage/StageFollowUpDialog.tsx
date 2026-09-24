@@ -28,9 +28,9 @@ interface Props {
 
 const KIND = {
   guarantee: {
-    title: "Tạo bảo hành",
-    save: "Lưu bảo hành",
-    saved: "Đã tạo bảo hành",
+    title: "Patient:FollowUp:WarrantyTitle",
+    save: "Patient:FollowUp:WarrantySave",
+    saved: "Patient:FollowUp:WarrantySaved",
     className: "pd-warranty-dialog",
     /** A warranty visit inherits the công đoạn's teeth as they stand. */
     pickTeeth: false,
@@ -38,9 +38,9 @@ const KIND = {
     checklist: false,
   },
   reExamination: {
-    title: "Tạo tái khám",
-    save: "Lưu",
-    saved: "Đã tạo tái khám",
+    title: "Patient:FollowUp:RecallTitle",
+    save: "Patient:FollowUp:RecallSave",
+    saved: "Patient:FollowUp:RecallSaved",
     className: "pd-recall-form-dialog",
     /** A tái khám is only for the teeth being seen again — see FollowUpTeeth. */
     pickTeeth: true,
@@ -137,7 +137,7 @@ export function StageFollowUpDialog({
         </div>
 
         <div>
-          <FloatingLabel label={t("Patient:Misc:Service")} floated>
+          <FloatingLabel label={t("Patient:Misc:ServiceLabel")} floated>
             <Input
               disabled
               value={plan ? `${plan.code} - ${line?.serviceName ?? line?.code ?? ""}` : ""}

@@ -107,7 +107,7 @@ export function PlanSlipSheet({ slip, patient, clinic, dentistName }: Props) {
           <strong>{dentistName ?? ""}</strong>
         </div>
         <div>
-          <p>{t("Treatment:Common:Patient")}</p>
+          <p>{t("Treatment:Receipt:Customer")}</p>
           <em>{t("Treatment:Receipt:SignatureHint")}</em>
           <strong>{patient.fullName}</strong>
         </div>

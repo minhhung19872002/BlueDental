@@ -174,7 +174,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     const keys = formSpecOf(sheet.form).dateFieldKeys ?? [];
     if (keys.length === 0) return;
 
-    const printed = next.format("Patient:Misc:DateFormat");
+    const printed = next.format("DD/MM/YYYY");
     setEdits((current) => {
       const values = { ...(current[sheet.id] ?? parseFieldValues(sheet.content)) };
       for (const key of keys) values[key] = printed;
@@ -204,7 +204,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
   const handleAdd = async (spec: MedicalRecordFormSpec) => {
     try {
-      const created = await addSheet.mutateAsync({ form: spec.form, title: t(spec.label) });
+      const created = await addSheet.mutateAsync({ form: spec.form, title: spec.label });
       openSheet(created.id);
       toast.success(t("Patient:MedRecord:Added"));
     } catch (error) {

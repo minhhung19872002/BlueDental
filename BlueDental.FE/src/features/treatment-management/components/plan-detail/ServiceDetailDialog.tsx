@@ -73,7 +73,7 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
             title={t("Treatment:Invoice:CustomerInfo")}
             facts={[
               { label: t("Treatment:Common:Patient"), value: patient.fullName },
-              { label: t("Treatment:Common:Phone"), value: dash(patient.phoneNumber) },
+              { label: t("Treatment:Common:PhoneField"), value: dash(patient.phoneNumber) },
               { label: t("Treatment:Common:Address"), value: dash(patient.address) },
             ]}
           />

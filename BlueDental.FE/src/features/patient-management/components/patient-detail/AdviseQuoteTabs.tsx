@@ -67,7 +67,7 @@ export function AdviseQuoteTabs({ quotes }: { quotes: AdviseQuotesState }) {
         noun={t("Patient:ConsultQuote")}
         title={t("Patient:DeleteQuote")}
         question={t(
-          "Phiếu báo giá {0} sẽ bị xoá và thao tác này không thể khôi phục.",
+          "Patient:Quote:DeleteQuestion",
           dropping?.label ?? "",
         )}
         onConfirm={() => {

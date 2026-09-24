@@ -1,7 +1,15 @@
-import { t } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 
 const DIGITS = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
 const SCALES = ["", "nghìn", "triệu"];
+
+const EN_ONES = [
+  "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+  "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+  "eighteen", "nineteen",
+];
+const EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+const EN_SCALES = ["", "thousand", "million", "billion", "trillion", "quadrillion"];
 
 /** One group of three digits; `full` reads a leading "không trăm" when a higher group precedes it. */
 function readGroup(group: number, full: boolean): string {
@@ -36,17 +44,29 @@ function scaleOf(index: number): string {
   return [SCALES[index % 3], ...Array<string>(billions).fill("tỷ")].filter(Boolean).join(" ");
 }
 
-/**
- * A sum in Vietnamese words, the way a receipt spells "Số tiền bằng chữ":
- * 300000 → "Ba trăm nghìn đồng". Decimals are dropped, the sign ignored.
- */
-export function moneyInWords(amount: number): string {
-  const value = Math.floor(Math.abs(amount));
-  if (!Number.isFinite(value) || value === 0) return t("Common:Currency:ZeroWords");
+/** One group of three digits in English: 345 → "three hundred forty-five". */
+function readGroupEn(group: number): string {
+  const hundreds = Math.floor(group / 100);
+  const rest = group % 100;
+  const words: string[] = [];
 
+  if (hundreds > 0) words.push(EN_ONES[hundreds], "hundred");
+  if (rest > 0 && rest < 20) words.push(EN_ONES[rest]);
+  else if (rest >= 20) {
+    const units = rest % 10;
+    words.push(units ? `${EN_TENS[Math.floor(rest / 10)]}-${EN_ONES[units]}` : EN_TENS[rest / 10]);
+  }
+
+  return words.join(" ");
+}
+
+function groupsOf(value: number): number[] {
   const groups: number[] = [];
   for (let rest = value; rest > 0; rest = Math.floor(rest / 1000)) groups.push(rest % 1000);
+  return groups;
+}
 
+function vietnameseWords(groups: number[]): string {
   const words: string[] = [];
   for (let index = groups.length - 1; index >= 0; index -= 1) {
     const group = groups[index];
@@ -55,7 +75,31 @@ export function moneyInWords(amount: number): string {
     const scale = scaleOf(index);
     if (scale) words.push(scale);
   }
+  return words.join(" ");
+}
 
-  const text = `${words.join(" ")} ${t("Common:Currency:Dong")}`;
+function englishWords(groups: number[]): string {
+  const words: string[] = [];
+  for (let index = groups.length - 1; index >= 0; index -= 1) {
+    const group = groups[index];
+    if (group === 0) continue;
+    words.push(readGroupEn(group));
+    if (EN_SCALES[index]) words.push(EN_SCALES[index]);
+  }
+  return words.join(" ");
+}
+
+/**
+ * A sum in words, the way a receipt spells "Số tiền bằng chữ", in the screen's
+ * language: 300000 → "Ba trăm nghìn đồng" / "Three hundred thousand dong".
+ * Decimals are dropped, the sign ignored.
+ */
+export function moneyInWords(amount: number): string {
+  const value = Math.floor(Math.abs(amount));
+  if (!Number.isFinite(value) || value === 0) return t("Common:Currency:ZeroWords");
+
+  const groups = groupsOf(value);
+  const spelled = getLocale() === "en" ? englishWords(groups) : vietnameseWords(groups);
+  const text = `${spelled} ${t("Common:Currency:Dong")}`;
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

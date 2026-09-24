@@ -146,7 +146,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
         ? {
             ...EMPTY,
             codeSequence: storedSequence,
-            createdAtLabel: dayjs(patient.creationTime).format("Patient:Misc:DateFormat"),
+            createdAtLabel: dayjs(patient.creationTime).format("DD/MM/YYYY"),
             fullName: patient.fullName,
             uppercase: patient.fullName === patient.fullName.toUpperCase(),
             phone: patient.phoneNumber ?? "",
@@ -166,7 +166,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
             provinceCode: patient.provinceCode ?? undefined,
             wardCode: patient.wardCode ?? undefined,
           }
-        : { ...EMPTY, country: t("Patient:DefaultCountry"), createdAtLabel: dayjs().format("Patient:Misc:DateFormat") },
+        : { ...EMPTY, country: t("Patient:DefaultCountry"), createdAtLabel: dayjs().format("DD/MM/YYYY") },
     );
   }, [open, patient, form]);
 
@@ -262,7 +262,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
         onCreated?.(created);
       }
 
-      toast.success(patient ? t("Patient:Profile:UpdateSuccess") : t("Patient:Profile:CreateSuccess"));
+      toast.success(patient ? t("Patient:Profile:Updated") : t("Patient:Profile:CreateSuccess"));
       onClose();
     } catch (error) {
       notifyError(extractApiError(error));
@@ -296,7 +296,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
             showIcon
             className="bd-patient-dupe"
             message={t(
-              "Số điện thoại này đã thuộc về [{0}] {1}",
+              "Patient:Editor:PhoneTaken",
               duplicate.data.patientCode ?? "",
               duplicate.data.patientName ?? "",
             )}

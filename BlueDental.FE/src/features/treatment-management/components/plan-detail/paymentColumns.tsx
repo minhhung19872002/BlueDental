@@ -70,7 +70,7 @@ function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
         </ActionTooltip>
       )}
       {actions.onCancel && (
-        <ActionTooltip title={t("Common:Cancel")}>
+        <ActionTooltip title={t("Common:CancelAlt")}>
           <button
             type="button"
             className="pdt-row-action pdt-row-action--danger"

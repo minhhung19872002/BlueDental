@@ -1,10 +1,10 @@
 import { t } from "@/lib/i18n";
 
 const APPT_COLORS = [
-  { value: "#6366f1", labelKey: "Tím" },
-  { value: "#22C55E", labelKey: "Xanh lá" },
-  { value: "#F59E0B", labelKey: "Cam" },
-  { value: "#EF4444", labelKey: "Đỏ" },
+  { value: "#6366f1", labelKey: "Appointment:Color:Purple" },
+  { value: "#22C55E", labelKey: "Appointment:Color:Green" },
+  { value: "#F59E0B", labelKey: "Appointment:Color:Orange" },
+  { value: "#EF4444", labelKey: "Appointment:Color:Red" },
 ] as const;
 
 interface Props {

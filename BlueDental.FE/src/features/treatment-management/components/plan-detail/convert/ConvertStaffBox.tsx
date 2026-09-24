@@ -45,7 +45,7 @@ function StaffPair({
           <button
             type="button"
             className="cvt-staff-add"
-            aria-label={t("Common:Add")}
+            aria-label={t("Treatment:Convert:AddStaff", secondLabel)}
             onClick={() => onSecondChange("")}
           >
             <Plus size={16} aria-hidden="true" />
@@ -66,7 +66,7 @@ function StaffPair({
           <button
             type="button"
             className="cvt-staff-add cvt-staff-add--remove"
-            aria-label={t("Common:Delete")}
+            aria-label={t("Treatment:Convert:RemoveStaff", secondLabel)}
             onClick={() => onSecondChange(null)}
           >
             <X size={16} aria-hidden="true" />

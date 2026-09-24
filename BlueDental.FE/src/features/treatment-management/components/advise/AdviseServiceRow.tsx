@@ -9,7 +9,7 @@ import { rowTotals, type AdviseRowDraft } from "./adviseTypes";
 
 const DISCOUNT_UNITS = [
   { type: DISCOUNT_TYPE.Percentage, label: "%" },
-  { type: DISCOUNT_TYPE.Money, label: "VNĐ" },
+  { type: DISCOUNT_TYPE.Money, label: "Treatment:Pricing:UnitVnd" },
 ] as const;
 
 interface Props {
@@ -77,7 +77,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
                   aria-pressed={draft.discountType === unit.type}
                   onClick={() => onChange(service.id, { discountType: unit.type, discountValue: 0 })}
                 >
-                  {unit.label}
+                  {t(unit.label)}
                 </button>
               ))}
             </div>

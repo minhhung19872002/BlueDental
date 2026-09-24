@@ -57,7 +57,7 @@ export function ReceiptSheet({ receipt, patient, clinic, preparerName }: Props) 
       />
       <Group
         rows={[
-          { label: t("Treatment:Common:Patient"), value: `[${patient.patientCode}] ${patient.fullName}` },
+          { label: t("Treatment:Receipt:Customer"), value: `[${patient.patientCode}] ${patient.fullName}` },
           { label: t("Treatment:Common:PhoneShort"), value: patient.phoneNumber ?? "" },
           { label: t("Treatment:Common:Address"), value: patient.address ?? "" },
         ]}
@@ -78,7 +78,7 @@ export function ReceiptSheet({ receipt, patient, clinic, preparerName }: Props) 
           <p>{preparerName ?? ""}</p>
         </div>
         <div>
-          <p>{t("Treatment:Common:Patient")}</p>
+          <p>{t("Treatment:Receipt:Customer")}</p>
           <p>{patient.fullName}</p>
         </div>
       </div>

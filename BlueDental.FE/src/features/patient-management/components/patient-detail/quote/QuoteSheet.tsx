@@ -25,7 +25,7 @@ const dash = (value: string) => value || "-";
  * Who signs the left-hand column. The reference prints the desk that raised the
  * slip rather than a person — the same wording whoever is logged in.
  */
-const PREPARER = "Thu Ngân / Bác Sĩ";
+const PREPARER_KEY = "Patient:Quote:Preparer";
 
 /**
  * "PHIẾU BÁO GIÁ" — the sheet "In Hoá Đơn" prints.
@@ -84,7 +84,7 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
       <table>
         <thead>
           <tr>
-            <th>{t("Patient:Misc:Service")}</th>
+            <th>{t("Patient:Misc:ServiceLabel")}</th>
             <th>{t("Patient:Tab:Diagnosis")}</th>
             <th>{t("Patient:Payment:UnitPrice")}</th>
             <th>{t("Patient:Payment:Discount")}</th>
@@ -135,7 +135,7 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
         layout="caption-first"
         caption={t("Patient:QuoteSheet:SignFullName")}
         leftLabel={t("Patient:QuoteSheet:Creator")}
-        leftName={PREPARER}
+        leftName={t(PREPARER_KEY)}
         rightLabel={t("Patient:Col:Customer")}
         rightName={dash(customer.name)}
       />

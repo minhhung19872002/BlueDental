@@ -5268,3 +5268,53 @@ Thêm một ca vào `e2e/auth.spec.ts` giữ **cả hai** chiều. `auth` **5/5*
 sạch, lint không phát sinh gì mới. **Chưa** chạy trên bản build production: làm
 vậy phải bật thêm một preview server trong khi chủ dự án đang tự chạy máy.
 
+## 2026-09-23 (đợt 2) — i18n trang Bệnh nhân, và hậu quả của đợt đổi key hàng loạt
+
+Rà soát đầy đủ ở [i18n-audit-patient.md](i18n-audit-patient.md). Phạm vi gồm 386 file đi tới được từ `/patient`,
+`/patient/:id` và `/patient/:id/treatment-plan/:planId`.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-479 | 14 key namespace (`Patient:VoucherCount`, `Patient:Diagnosis:PrintTitle`, `Patient:Image:DayCount`…) được code dùng nhưng không có trong `vi.json` lẫn `en.json` → hiện key thô ở **cả hai** ngôn ngữ | Thêm entry; giá trị `vi` lấy đúng câu gốc từ diff `2eec1e9e` |
+| R-480 | `dayjs().format("Patient:Misc:DateFormat")` (6 chỗ) — đợt đổi key thay luôn chuỗi định dạng ngày → in rác `Pamtient:8i0c:…`; `PatientMedicalRecordTab` còn **lưu** chuỗi rác vào tờ bệnh án | Khôi phục `"DD/MM/YYYY"` / `"DD/MM/YYYY HH:mm:ss"` |
+| R-481 | ~150 nhãn còn là `t("câu tiếng Việt")` hoặc tiếng Việt viết cứng (ô tiền, bộ lọc, cột, trạng thái labo/lịch hẹn, tab kế hoạch, `VNĐ`, "Thu Ngân / Bác Sĩ", nút −/+ tờ bệnh án, tab `BG n`…) → English vẫn hiện tiếng Việt | Đổi sang key namespace (140 key mới, `vi` = câu gốc). Số tiền bằng chữ đọc tiếng Anh khi giao diện là English |
+| R-482 | `Common:ConfirmDelete` / `Common:PleaseEnter` có `{0}` nhưng gọi không tham số → hiện "Xác nhận xoá {0}", "Vui lòng nhập {0}" | Key riêng mang đúng câu gốc (`Treatment:Service:DiscardTitle/Question`, `Common:PleaseEnterPlain`) |
+| R-483 | Giới tính ở English ra "Male" / "Nữ" (chỉ `"Nam"` có bản dịch) | Dùng `Common:Gender:*` ở cả 3 map |
+| R-484 | `planCardRows.tsx` import `t` thừa → `tsc -b` đỏ, CI Typecheck của `890c266a` fail | Bỏ import |
+| R-485 | Sau `2eec1e9e` + `890c266a`, giá trị `vi` của 89 key khác câu gốc mà chúng thay ("Tạo hồ sơ" → "Tạo bệnh nhân", tab "Kế hoạch điều trị" → "Kế hoạch", "Phân loại theo Tag" → "Nhãn", tờ in chẩn đoán ghi mục II là "I. HÌNH ẢNH CHẨN ĐOÁN") | Đưa giá trị `vi` về câu gốc, viết lại `en` theo cùng nghĩa |
+| R-486 | Key dùng chung bị gán cho những chỗ vốn ghi câu khác ("Huỷ"/"Hủy", "Xong"/"Đóng", bộ lọc thẻ báo "Không tìm thấy bác sĩ", pill "Hủy dịch vụ"/"Chuyển đổi" lấy nhãn "Đã huỷ"/"Đã thay thế" của API) | 46 vị trí sang key riêng (12 key mới, còn lại dùng lại key sẵn có đúng câu); giá trị key dùng chung giữ nguyên |
+| R-487 | `ConvertStaffBox` mất tham số: `t("Thêm {0}", label)` bị đổi thành `t("Common:Add")` | `Treatment:Convert:AddStaff` / `RemoveStaff` có `{0}` |
+
+Giữ tiếng Việt ở cả hai ngôn ngữ theo quyết định của chủ dự án: 9 mẫu tờ bệnh án in và tên của chúng.
+Tên cũng là tiêu đề được lưu khi tạo tờ, nên bỏ `t()`.
+
+Trong phạm vi trang này không còn câu nào lệch so với câu gốc. Ngoài phạm vi còn 64 vị trí **chưa sửa** (lịch hẹn, báo cáo, CSKH,
+vận hành, và `TaxonomyPage.tsx:411`) — xem §I.3 của báo cáo.
+
+### Kiểm thử
+
+Bản build production, BE build từ working tree, PostgreSQL local thật, đăng nhập qua màn hình login. Chạy trên cổng riêng
+(FE 8081 → BE 5020) để không đụng phiên 5173/5019 của chủ dự án. Mốc so sánh là HEAD `890c266a`, cũng build
+production (8082 → BE 5021), chạy cùng 17 file spec (167 test):
+
+| Bản | Xanh | Đỏ | Không chạy |
+|---|---|---|---|
+| HEAD `890c266a` | 100 | 44 | 23 |
+| Sau R-479…R-484 | 103 | 41 | 23 |
+| Sau R-485…R-487 | **159** | **8** | 0 |
+
+- 0 test đỏ mới.
+- 3 test hết đỏ: `patient-medical-record` "picking the day prints it on the sheet" (R-480),
+  `consulting-plan` "both printed sheets end on the reference's signature strip", `patient` "records tooth surfaces".
+- Sau R-485…R-487: 7/8 test đỏ còn lại cũng đỏ ở HEAD và không liên quan chữ. Đó là voucher picker không có dòng có giá,
+  cột labo hiện "—", bảng màu viewer có 2 nút đang bấm, 2 test ảnh đỏ theo test trước trong cùng nhóm, đăng nhập lần 2 bằng
+  tài khoản chi nhánh, và lưu đổi bác sĩ lịch hẹn. Chưa điều tra.
+- Test thứ 8, `patient-medical-record` "the index lists the reference's nine forms…", **phụ thuộc thứ tự**: nó mở bệnh nhân đầu danh sách.
+  Ở HEAD, test đăng ký bệnh nhân đỏ nên bệnh nhân đầu vẫn là người có sẵn tờ bệnh án. Nay test đăng ký chạy được, bệnh nhân mới
+  (chưa có tờ) lên đầu, nên ô chọn bác sĩ không hiện. Chạy riêng file: lần đầu 21/22, lần sau 22/22.
+- Taxonomy + payment-qr + branch (42 test, bản production): 38 xanh / 4 đỏ, **trùng khớp HEAD** (4 test đỏ ở cả hai bản).
+
+Quét DOM runtime: ở English chỉ còn dữ liệu và 9 tên biểu mẫu là tiếng Việt; ở tiếng Việt có 0 key thô và 0 lỗi JS.
+Kiểm tra tay ở English trên dev server :5174 (StrictMode): nút voucher, tiêu đề in chẩn đoán, đoạn giải thích mặc định,
+tab kế hoạch, số tiền bằng chữ. `tsc -b`, `npm run lint` và `npm test` đều xanh.
+

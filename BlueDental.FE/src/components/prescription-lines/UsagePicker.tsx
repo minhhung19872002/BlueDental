@@ -73,7 +73,7 @@ export function UsagePicker({ value, onChange }: Props) {
           <Input
             autoFocus
             status={error ? "error" : undefined}
-            placeholder={t("Common:PleaseEnter")}
+            placeholder={t("Common:PleaseEnterPlain")}
             aria-label={t("Common:OtherUsage")}
             value={draft.otherUsage ?? ""}
             onChange={(event) => {

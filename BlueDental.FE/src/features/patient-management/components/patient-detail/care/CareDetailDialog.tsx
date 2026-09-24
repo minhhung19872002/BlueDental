@@ -40,7 +40,7 @@ export function CareDetailDialog({ record, onClose }: Props) {
         <>
           <Row label={t("Patient:Care:Title")} value={careTitle(record)} />
           <Row label={t("Patient:Care:Staff")} value={record.careStaffName ?? "-"} />
-          <Row label={t("Patient:Care:DateTime")} value={at?.format("Patient:Misc:DateTimeFormat") ?? "-"} />
+          <Row label={t("Patient:Care:DateTime")} value={at?.format("DD/MM/YYYY HH:mm:ss") ?? "-"} />
           <Row label={t("Patient:Care:NoteField")} value={record.description ?? "-"} />
         </>
       ) : null}

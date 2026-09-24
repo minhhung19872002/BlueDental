@@ -34,8 +34,8 @@ interface Props {
 }
 
 const EMPTY_BY_TAB: Record<StageTab, string> = {
-  add: "Tất cả dịch vụ đã được thêm công đoạn",
-  continue: "Chưa có dịch vụ nào để tiếp tục công đoạn",
+  add: "Patient:Stage:EmptyAdd",
+  continue: "Patient:Stage:EmptyContinue",
 };
 
 /** "Ngày - Nhân sự" · "Dịch vụ đã chọn" · "Nội dung điều trị". */

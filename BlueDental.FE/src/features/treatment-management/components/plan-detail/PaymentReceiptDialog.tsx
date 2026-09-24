@@ -101,7 +101,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
               <ReceiptFacts
                 facts={[
                   { label: t("Treatment:Common:PatientCode"), value: patient.patientCode },
-                  { label: t("Treatment:Common:Patient"), value: patient.fullName },
+                  { label: t("Treatment:Receipt:Customer"), value: patient.fullName },
                   { label: t("Treatment:Common:Phone"), value: dash(patient.phoneNumber) },
                   { label: t("Treatment:Common:Address"), value: dash(patient.address) },
                   { label: t("Treatment:Common:DateOfBirth"), value: patient.dateOfBirth ? formatDate(patient.dateOfBirth) : "—" },
