@@ -2734,8 +2734,8 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("DentistId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateOnly?>("DueDate")
-                        .HasColumnType("date");
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("EstimatedCost")
                         .HasPrecision(18, 2)
@@ -3911,6 +3911,9 @@ namespace BlueDental.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
 
+                    b.Property<Guid?>("LaboOrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastModificationTime");
@@ -3948,6 +3951,8 @@ namespace BlueDental.Migrations
                         .HasColumnType("smallint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LaboOrderId");
 
                     b.HasIndex("TreatmentStageId");
 
