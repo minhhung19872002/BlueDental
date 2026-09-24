@@ -891,6 +891,21 @@ test.describe("Bệnh nhân", () => {
     // Clicking the tooth itself clears it, surfaces and all.
     await page.getByRole("button", { name: "Răng 16", exact: true }).click();
     await expect(selected.getByText("Chưa chọn răng")).toBeVisible();
+
+    // A tooth with four surfaces names all of them, and the pill wraps inside
+    // the 260px box rather than running out under its edge with its X.
+    const tooth45 = page.getByRole("group", { name: "Mặt răng 45" });
+    for (const surface of ["Mặt gần", "Mặt xa", "Mặt ngoài", "Mặt trong"]) {
+      await tooth45.getByRole("button", { name: surface }).click();
+    }
+    const longChip = selected.locator(".pd-tooth-chip").first();
+    await expect(longChip).toContainText("45 - ");
+    const boxEdge = (await selected.boundingBox())!;
+    const chipEdge = (await longChip.boundingBox())!;
+    expect(chipEdge.x + chipEdge.width).toBeLessThanOrEqual(boxEdge.x + boxEdge.width);
+    const remove = selected.getByRole("button", { name: "Bỏ chọn răng 45" });
+    const removeBox = (await remove.boundingBox())!;
+    expect(removeBox.x + removeBox.width).toBeLessThanOrEqual(boxEdge.x + boxEdge.width);
   });
 
   test("Lưu Chẩn Đoán files a slip with the picked teeth and it survives a reload", async ({

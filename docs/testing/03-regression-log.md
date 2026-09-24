@@ -5671,3 +5671,11 @@ Kiểm thử: `treatment-plan-detail` **10/10** (dev :5173 → API :5019, stack 
   ghi ở R-487 (38/4). 4 ca đỏ: đăng nhập tài khoản chi nhánh (`branch-switcher`), dropdown thuốc của đơn thuốc mẫu (×2), bảng ở độ rộng điện thoại.
 - `patient.spec` "a tái khám picks its teeth…" xanh (dev :5173 → API :5019). Thêm bước kiểm sơ đồ; sửa 2 chỗ test không ổn định:
   đóng dialog bằng ✕ vì tooltip Bảo hành nuốt Escape, và poll tổng số dòng sau reload.
+
+## 2026-09-24 (đợt 6) — "Răng đã chọn" tràn khỏi cột
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-552 | Form "Tạo chẩn đoán": chip của răng có nhiều mặt ("45 - Mặt gần, Mặt xa, Mặt ngoài, Mặt nhai") tràn khỏi cột 260px, che mất nút ✕ | `.pd-tooth-chip` bỏ `white-space: nowrap`, thêm `max-width: 100%` + `overflow-wrap: anywhere`, padding phải 20px như `pr-5` của bản gốc: chip tự xuống dòng trong hộp |
+
+Kiểm thử: `patient.spec` "records tooth surfaces on the consulting chart" thêm bước kiểm răng 45 đủ 4 mặt, chip và nút ✕ phải nằm trong hộp. Xanh (dev :5173 → API :5019); đã chụp ảnh đối chiếu.

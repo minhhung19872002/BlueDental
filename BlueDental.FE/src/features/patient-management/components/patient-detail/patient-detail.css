@@ -1109,20 +1109,25 @@
   gap: 10px 8px;
   padding: 4px 8px 0 0;
 }
-/* A white pill in the app's blue, with the red X riding its top-right. */
+/* A white pill in the app's blue, with the red X riding its top-right.
+   It never grows past the box: a tooth with several surfaces ("45 - Mặt gần,
+   Mặt xa, Mặt ngoài, Mặt nhai") wraps inside its pill, as the reference's
+   `inline-flex px-3 py-1.5 pr-5` does, instead of running out under the
+   column's edge and taking its X with it. */
 .pd-tooth-chip {
   position: relative;
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   border: 1px solid var(--bd-blue-light);
   border-radius: 999px;
   background: #fff;
   color: var(--bd-primary);
-  padding: 6px 16px 6px 12px;
+  padding: 6px 20px 6px 12px;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .pd-tooth-chip > button {
   position: absolute;
