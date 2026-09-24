@@ -2,7 +2,10 @@ import { Button, Input, Modal } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
-import { useStaffOptionsSearch } from "@/hooks/usePickerOptions";
+import {
+  useAssistantOptionsSearch,
+  useDentistOptions,
+} from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
@@ -117,7 +120,7 @@ export function StageFollowUpDialog({
           <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(form.staffId)}>
             <ServerSearchSelect
               value={form.staffId}
-              useOptions={useStaffOptionsSearch}
+              useOptions={useDentistOptions}
               allowClear={false}
               onChange={(value) => form.setStaffId(value ?? "")}
             />
@@ -126,14 +129,14 @@ export function StageFollowUpDialog({
           <FloatingLabel label={t("Patient:Staff:Assistant")} floated={Boolean(form.subStaffId)}>
             <ServerSearchSelect
               value={form.subStaffId}
-              useOptions={useStaffOptionsSearch}
+              useOptions={useAssistantOptionsSearch}
               onChange={form.setSubStaffId}
             />
           </FloatingLabel>
           <FloatingLabel label={t("Patient:Staff:AssistingDoctor")} floated={Boolean(form.secondStaffId)}>
             <ServerSearchSelect
               value={form.secondStaffId}
-              useOptions={useStaffOptionsSearch}
+              useOptions={useDentistOptions}
               onChange={form.setSecondStaffId}
             />
           </FloatingLabel>

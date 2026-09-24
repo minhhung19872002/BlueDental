@@ -4,7 +4,7 @@ import { Plus, X } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
-import { useDentistOptions } from "@/hooks/usePickerOptions";
+import { useStaffOptionsSearch } from "@/hooks/usePickerOptions";
 
 interface Props {
   /** Whether the slip already names a second advisor when the dialog opens. */
@@ -49,7 +49,7 @@ export function PlanAdvisorFields({
             rules={[{ required: true, message: t("Treatment:Consulting:AdvisorRequired") }]}
           >
             <ServerSearchSelect
-              useOptions={useDentistOptions}
+              useOptions={useStaffOptionsSearch}
               valueLabel={advisorName}
               notFoundText={t("Treatment:Consulting:NoAdvisor")}
             />
@@ -71,7 +71,7 @@ export function PlanAdvisorFields({
           <div className="tp-advisor-field">
             <FloatingField name="secondAdvisorId" label={t("Treatment:Consulting:Advisor2")}>
               <ServerSearchSelect
-                useOptions={useDentistOptions}
+                useOptions={useStaffOptionsSearch}
                 valueLabel={secondAdvisorName}
                 notFoundText={t("Treatment:Consulting:NoAdvisor")}
               />

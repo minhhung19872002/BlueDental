@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -37,7 +37,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
   const debouncedSearch = useDebounce(search);
   const serviceGroups = useServiceGroupOptions();
   const patientTags = usePatientTagOptions();
-  const staff = useStaffOptions();
+  const dentists = useDentistStaffOptions();
 
   const query = useCareGroupingPatients({
     branchId,
@@ -119,7 +119,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
           <MessageField label={t("CSKH:DoctorTreat")} hasValue={Boolean(staffId)}>
             <SearchSelect
               value={staffId}
-              options={staff.data ?? []}
+              options={dentists.data ?? []}
               allowClear
               onChange={(value) => {
                 setStaffId(value);

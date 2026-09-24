@@ -191,13 +191,13 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
     />
   ),
   diagnoser1: (draft) => (
-    <IdSelect draft={draft} field="diagnoserStaffId" useOptions={useStaffOptionsSearch} placeholder={t("Treatment:Diagnosis:DiagnoserShort1")} />
+    <IdSelect draft={draft} field="diagnoserStaffId" useOptions={useDentistOptions} placeholder={t("Treatment:Diagnosis:DiagnoserShort1")} />
   ),
   diagnoser2: (draft) => (
     <IdSelect
       draft={draft}
       field="secondDiagnoserStaffId"
-      useOptions={useStaffOptionsSearch}
+      useOptions={useDentistOptions}
       placeholder={t("Treatment:Diagnosis:DiagnoserShort2")}
     />
   ),

@@ -7,7 +7,7 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { AppDialog } from "@/components/AppDialog";
 import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useCreateCareRecord, CARE_STATUS } from "../api/careApi";
@@ -37,7 +37,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
   const [note, setNote] = useState("");
   const [patientKeyword, setPatientKeyword] = useState("");
 
-  const staff = useStaffOptions();
+  const dentists = useDentistStaffOptions();
   const patients = usePatientOptions(patientKeyword);
   const createCare = useCreateCareRecord();
 
@@ -138,7 +138,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
           <MessageField label={t("CSKH:DoctorReceive")} hasValue={Boolean(staffId)}>
             <SearchSelect
               value={staffId}
-              options={staff.data ?? []}
+              options={dentists.data ?? []}
               allowClear
               onChange={setStaffId}
             />

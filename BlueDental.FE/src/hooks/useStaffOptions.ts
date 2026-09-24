@@ -18,6 +18,12 @@ interface StaffRow {
   name: string | null;
   surname: string | null;
   userName: string;
+  isDentist?: boolean;
+  isAssistant?: boolean;
+}
+
+function buildLabel(row: StaffRow): string {
+  return [row.surname, row.name].filter(Boolean).join(" ").trim() || row.userName;
 }
 
 export function useStaffOptions() {
@@ -32,10 +38,31 @@ export function useStaffOptions() {
 
       return items.map((row) => ({
         value: row.id,
-        label: [row.surname, row.name].filter(Boolean).join(" ").trim() || row.userName,
+        label: buildLabel(row),
       }));
     },
-    // Staff change rarely and every report tab asks for the same list.
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Prefetched list filtered to staff where `isDentist === true`. */
+export function useDentistStaffOptions() {
+  return useQuery({
+    queryKey: ["staff-options", "dentist"],
+    queryFn: async (): Promise<StaffOption[]> => {
+      const response = await api.get("/v1/app/staff", {
+        params: { MaxResultCount: 200 },
+      });
+
+      const items: StaffRow[] = response.data?.items ?? [];
+      const dentists = items.filter((row) => row.isDentist);
+      const chosen = dentists.length > 0 ? dentists : items;
+
+      return chosen.map((row) => ({
+        value: row.id,
+        label: buildLabel(row),
+      }));
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -43,6 +70,8 @@ export function useStaffOptions() {
 interface StaffSearchRow extends StaffRow {
   fullName?: string | null;
   roleNames?: string[];
+  isDentist?: boolean;
+  isAssistant?: boolean;
 }
 
 function displayName(row: StaffSearchRow): string {
@@ -76,8 +105,8 @@ export function useStaffSearch(search: string, enabled = true) {
 }
 
 /**
- * The same search, narrowed to dentists. The role sift only trims the page that
- * comes back; a clinic that has not tagged its dentists still gets names.
+ * The same search, narrowed to dentists. Prefers the `isDentist` boolean; a
+ * clinic that has not tagged its dentists still gets all names.
  */
 export function useDentistSearch(search: string, enabled = true) {
   const term = search.trim();
@@ -89,13 +118,31 @@ export function useDentistSearch(search: string, enabled = true) {
         params: { MaxResultCount: 20, IsActive: true, Filter: term || undefined },
       });
       const items: StaffSearchRow[] = response.data?.items ?? [];
-      const dentists = items.filter((row) =>
-        (row.roleNames ?? []).some(
-          (role) =>
-            role.toLowerCase().includes("dentist") || role.toLowerCase().includes("bác sĩ"),
-        ),
-      );
+      const dentists = items.filter((row) => row.isDentist);
       const chosen = dentists.length > 0 ? dentists : items;
+      return chosen.map((row) => ({ value: row.id, label: displayName(row) }));
+    },
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+/**
+ * Server-searched staff, narrowed to assistants via the `isAssistant` boolean.
+ * Falls back to all staff if no one is tagged.
+ */
+export function useAssistantSearch(search: string, enabled = true) {
+  const term = search.trim();
+
+  return useQuery({
+    queryKey: ["staff-options", "assistants", "search", term] as const,
+    queryFn: async (): Promise<StaffOption[]> => {
+      const response = await api.get("/v1/app/staff", {
+        params: { MaxResultCount: 20, IsActive: true, Filter: term || undefined },
+      });
+      const items: StaffSearchRow[] = response.data?.items ?? [];
+      const assistants = items.filter((row) => row.isAssistant);
+      const chosen = assistants.length > 0 ? assistants : items;
       return chosen.map((row) => ({ value: row.id, label: displayName(row) }));
     },
     placeholderData: keepPreviousData,

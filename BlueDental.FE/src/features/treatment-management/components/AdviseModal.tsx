@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Form, Modal } from "antd";
 import { X } from "lucide-react";
 import { EMPTY_TOOTH_VALUE, toothSelectionsToValue, type ToothPickerValue } from "@/components/ToothChart";
-import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import type { PatientDiagnosisDto } from "../api/consultingApi";
@@ -64,7 +64,7 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
   const [toothOpen, setToothOpen] = useState(false);
   const [secondOpen, setSecondOpen] = useState(false);
   const catalog = useAdviseCatalog(open);
-  const dentists = useDentistList();
+  const allStaff = useStaffOptions();
   const selection = useAdviseSelection();
   const { save, saving } = useCreateAdvises({ patientId, branchId, diagnosis, onCreated, onClose });
 
@@ -84,10 +84,8 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     });
   }, [open, diagnosis, form, selection.clear, catalog.reset]);
 
-  // The slip's doctors may not be on the dentist list any more; the disabled
-  // fields still have to show their names.
   const staff = useMemo(() => {
-    const options = (dentists.data ?? []).map((row) => ({ value: row.id, label: row.name }));
+    const options = [...(allStaff.data ?? [])];
     const known = new Set(options.map((option) => option.value));
     if (diagnosis.staffId && !known.has(diagnosis.staffId)) {
       options.push({ value: diagnosis.staffId, label: diagnosis.staffName ?? "" });
@@ -96,7 +94,7 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
       options.push({ value: diagnosis.secondStaffId, label: diagnosis.secondStaffName ?? "" });
     }
     return options;
-  }, [dentists.data, diagnosis]);
+  }, [allStaff.data, diagnosis]);
 
   const handleSecondOpenChange = (next: boolean) => {
     setSecondOpen(next);

@@ -60,22 +60,16 @@ export function useDeleteStaff() {
   return useStaffMutation((id: string) => staffApi.remove(id));
 }
 
-/** Returns only dentists (staff with "Dentist" role) for calendar doctor columns */
+/** Returns only dentists (`isDentist === true`) for calendar doctor columns. */
 export function useDentistList() {
   return useQuery({
     queryKey: [...staffKeys.lists(), "dentists"],
     queryFn: async () => {
       const result = await staffApi.list({ maxResultCount: 50, isActive: true });
-      const dentists = result.items.filter((s) =>
-        s.roleNames.some(
-          (r) => r.toLowerCase().includes("dentist") || r.toLowerCase().includes("bác sĩ"),
-        ),
-      );
+      const dentists = result.items.filter((s) => s.isDentist);
 
-      // A clinic that has not tagged its dentists yet still needs doctor columns.
       const chosen = dentists.length > 0 ? dentists : result.items.slice(0, 8);
 
-      // Identity may hold no display name, so fall back to the login name.
       return chosen.map((s) => ({
         ...s,
         name: s.fullName || s.userName,

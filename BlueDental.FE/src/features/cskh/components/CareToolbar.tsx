@@ -7,7 +7,7 @@ import {
 } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions, useStaffOptions } from "@/hooks/useStaffOptions";
 import { MessageField } from "./MessageField";
 import type { CareTabConfig } from "../careTabs";
 
@@ -37,6 +37,7 @@ export function CareToolbar({
   onExport,
   onCreate,
 }: CareToolbarProps) {
+  const doctors = useDentistStaffOptions();
   const staff = useStaffOptions();
 
   return (
@@ -69,7 +70,7 @@ export function CareToolbar({
           <MessageField label={t("CSKH:DoctorTreat")} hasValue={Boolean(doctorId)}>
             <SearchSelect
               value={doctorId}
-              options={staff.data ?? []}
+              options={doctors.data ?? []}
               allowClear
               onChange={onDoctorChange}
             />

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useDentistSearch, useStaffSearch } from "./useStaffOptions";
+import { useAssistantSearch, useDentistSearch, useStaffSearch } from "./useStaffOptions";
 import { CATALOG_GROUP, useCatalogOptionSearch } from "./useCatalogOptions";
 import type { ServerSearchOption } from "@/components/ServerSearchSelect";
 
@@ -24,6 +24,12 @@ export function useDentistOptions(search: string, enabled: boolean): OptionSourc
 /** Any member of staff, for the consulting and diagnosing columns. */
 export function useStaffOptionsSearch(search: string, enabled: boolean): OptionSource {
   const query = useStaffSearch(search, enabled);
+  return { options: query.data ?? [], loading: query.isFetching };
+}
+
+/** Staff filtered to assistants only (`isAssistant === true`). */
+export function useAssistantOptionsSearch(search: string, enabled: boolean): OptionSource {
+  const query = useAssistantSearch(search, enabled);
   return { options: query.data ?? [], loading: query.isFetching };
 }
 

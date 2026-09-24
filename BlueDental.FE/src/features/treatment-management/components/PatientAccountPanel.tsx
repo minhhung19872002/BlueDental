@@ -24,7 +24,7 @@ import {
   type PatientPaymentKind,
   type PaymentMethodKind,
 } from "../api/treatmentPlanApi";
-import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
@@ -60,7 +60,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data: account, isLoading } = usePatientAccount(patientId, branchId);
-  const { data: dentists } = useDentistList();
+  const { data: allStaff } = useStaffOptions();
   const recordPayment = useRecordPayment();
 
   const kind = Form.useWatch("kind", form) ?? PAYMENT_KIND.Payment;
@@ -260,7 +260,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
           >
             <Select
               placeholder={t("Treatment:Common:SelectStaff")}
-              options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
+              options={allStaff ?? []}
             />
           </Form.Item>
         </Form>

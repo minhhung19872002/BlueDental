@@ -16,7 +16,7 @@ import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -119,7 +119,7 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
 
   const debouncedPatientKeyword = useDebounce(patientKeyword, 300);
   const patientOptions = usePatientOptions(debouncedPatientKeyword);
-  const staffOptions = useStaffOptions();
+  const dentistOptions = useDentistStaffOptions();
 
   const query = useLaboOrderList({
     sampleFilter: SAMPLE_FILTER_OF[tab],
@@ -201,7 +201,7 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
               aria-label={t("Common:SelectDoctor")}
               value={dentistId}
               onChange={(value) => refilter(() => setDentistId(value))}
-              options={staffOptions.data ?? []}
+              options={dentistOptions.data ?? []}
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { DatePicker, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 
@@ -40,7 +40,7 @@ export function MedicalRecordCanvasHead({
   doctorId,
   onDoctorChange,
 }: Props) {
-  const staff = useStaffOptions().data ?? [];
+  const dentists = useDentistStaffOptions().data ?? [];
 
   return (
     <header className="pd-medical-canvas-head">
@@ -62,7 +62,7 @@ export function MedicalRecordCanvasHead({
           <Select
             value={doctorId}
             onChange={onDoctorChange}
-            options={staff}
+            options={dentists}
             showSearch
             allowClear
             optionFilterProp="label"

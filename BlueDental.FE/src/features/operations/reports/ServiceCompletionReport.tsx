@@ -23,7 +23,7 @@ import { usePeriodRange } from "./usePeriodRange";
 import { DataTable } from "@/components/DataTable";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { exportToExcel } from "@/utils/exportExcel";
 import { t } from "@/lib/i18n";
@@ -44,7 +44,7 @@ export function ServiceCompletionReport() {
   const [serviceGroupId, setServiceGroupId] = useState<string | undefined>();
 
   const debounced = useDebounce(keyword, 300);
-  const dentists = useStaffOptions();
+  const dentists = useDentistStaffOptions();
   const serviceGroups = useServiceGroupOptions();
 
   const query = useServiceCompletion(

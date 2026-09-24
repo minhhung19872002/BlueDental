@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
@@ -23,7 +23,7 @@ interface Props {
  * the note, the colour and the time.
  */
 export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
-  const staff = useStaffOptions();
+  const dentists = useDentistStaffOptions();
   const update = useUpdateAppointment(appointment.id);
   const [pending, setPending] = useState<string>();
 
@@ -54,7 +54,7 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
     <FloatingLabel label={t("Patient:DoctorLabel")} floated={Boolean(value)} className="pd-appt-doctor-picker">
       <SearchSelect
         value={value}
-        options={staff.data ?? []}
+        options={dentists.data ?? []}
         emptyText={t("Patient:DoctorNotFound")}
         onChange={(doctorId) => void change(doctorId)}
       />

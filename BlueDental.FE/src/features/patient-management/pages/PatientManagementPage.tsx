@@ -5,7 +5,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useScrolledPast } from "@/hooks/useScrolledPast";
 import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
@@ -51,17 +51,17 @@ export function PatientManagementPage() {
     maxResultCount: filters.pageSize,
   });
 
-  const staff = useStaffOptions();
+  const dentists = useDentistStaffOptions();
   const serviceGroups = useServiceGroupOptions();
   const tags = usePatientTagOptions();
 
   const options = useMemo(
     () => ({
-      doctors: staff.data ?? [],
+      doctors: dentists.data ?? [],
       serviceGroups: serviceGroups.data ?? [],
       tags: tags.data ?? [],
     }),
-    [staff.data, serviceGroups.data, tags.data],
+    [dentists.data, serviceGroups.data, tags.data],
   );
 
   const editingPatient = usePatientDto(editing.mode === "edit" ? editing.id : "");
