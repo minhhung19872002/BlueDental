@@ -959,6 +959,32 @@
    whatever the form left over. */
 .pd-diagnosis-card {
   overflow: auto;
+  /* The card's own bar, drawn the reference's way (measured on staging
+     2026-09-24: `::-webkit-scrollbar { width: 6px }`, thumb
+     rgba(27,42,65,.12) radius 3). The `scrollbar-color` the app sets on html
+     is inherited, and Chrome then ignores the ::-webkit rules and paints a
+     15px classic bar — which is what stood out beside the pane's own bar the
+     moment the form opened. Resetting it hands the card back to the rules
+     below; Firefox, which has no ::-webkit, gets the nearest standard look. */
+  scrollbar-color: auto;
+}
+.pd-diagnosis-card::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.pd-diagnosis-card::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 3px;
+  background: rgb(27 42 65 / 12%);
+}
+.pd-diagnosis-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .pd-diagnosis-card {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(27 42 65 / 12%) transparent;
+  }
 }
 .pd-diagnosis-card > .pd-card-head {
   position: sticky;
