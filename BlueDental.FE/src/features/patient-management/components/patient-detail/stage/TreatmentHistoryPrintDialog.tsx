@@ -4,7 +4,7 @@ import { Button, Modal } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
-import { formatTeeth } from "@/features/treatment-management/api/consultingApi";
+import { formatToothCodes } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentServiceStatus } from "@/features/treatment-management/api/treatmentPlanApi";
 import { stageRowStatus, stageRowStatusLabel } from "../stageRowStatus";
@@ -52,7 +52,7 @@ function Rows({ stages, statusOf }: Pick<Props, "stages" | "statusOf">) {
         return (
           <tr key={stage.id}>
             <td>
-              <p className="pd-print-teeth">{formatTeeth(stage.teeth)}</p>
+              <p className="pd-print-teeth">{formatToothCodes(stage.teeth)}</p>
               <p>{stage.serviceName ?? stage.name}</p>
             </td>
             <td>

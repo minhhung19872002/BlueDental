@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.TreatmentManagement.Values;
+using Volo.Abp;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -27,19 +29,22 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly StageTeethPolicy _teethPolicy;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IRepository<TreatmentPlan, Guid> planRepository,
         IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        StageTeethPolicy teethPolicy)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
         _planRepository = planRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
+        _teethPolicy = teethPolicy;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
@@ -124,6 +129,37 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     {
         await _branchAccess.CheckAsync(input.ClinicBranchId);
 
+        var teeth = PatientDiagnosisAppService.ToToothSelections(input.Teeth);
+        var lineTeeth = await LineTeethAsync(input.TreatmentId, input.TreatmentServiceId);
+        var lineStages = await StagesOfLineAsync(input.TreatmentServiceId);
+
+        Guid? warrantyRootStageId = null;
+        if (input.IsGuarantee)
+        {
+            var source = lineStages.FirstOrDefault(s => s.Id == input.WarrantySourceStageId)
+                ?? throw new BusinessException(
+                    BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid,
+                    "A warranty names the finished công đoạn it is raised from.");
+
+            // The root is the ordinary công đoạn the warranty chain started from;
+            // a warranty raised off a warranty inherits the one before it.
+            warrantyRootStageId = source.IsGuarantee ? source.WarrantyRootStageId : source.Id;
+            var root = lineStages.FirstOrDefault(s => s.Id == warrantyRootStageId);
+
+            _teethPolicy.EnsureWarranty(
+                source,
+                root,
+                lineTeeth,
+                lineStages,
+                teeth,
+                await WarrantyDaysAsync(input.ServiceId),
+                Clock.Now);
+        }
+        else
+        {
+            _teethPolicy.EnsureNewStageTeeth(lineTeeth, lineStages, teeth);
+        }
+
         var stage = TreatmentStage.Add(
             GuidGenerator.Create(),
             input.PatientId,
@@ -137,11 +173,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.Note,
             input.ScheduledDate,
             input.IsImageRequired ?? await ServiceRequiresImageAsync(input.ServiceId),
-            PatientDiagnosisAppService.ToToothSelections(input.Teeth),
+            teeth,
             input.SecondStaffId,
             input.SubStaffId,
             input.IsGuarantee,
-            input.ServiceItemIds);
+            input.ServiceItemIds,
+            warrantyRootStageId: warrantyRootStageId);
 
         await _repository.InsertAsync(stage, autoSave: true);
 
@@ -171,15 +208,32 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
+    /// <summary>
+    /// "Tiếp tục công đoạn" / "Tiếp tục bảo hành". Measured on staging
+    /// 2026-09-24: <c>POST patient-stages/{id}/continue</c> answers 201 with a
+    /// **new** công đoạn — same line, teeth and warranty flag, the visit's own
+    /// doctor, note and steps — and the one it continued comes back
+    /// <c>disabled</c>.
+    /// </summary>
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Continue)]
-    public async Task<TreatmentStageDto> ContinueAsync(Guid id)
+    public async Task<TreatmentStageDto> ContinueAsync(Guid id, ContinueTreatmentStageDto input)
     {
         var stage = await LoadAsync(id);
-        stage.Continue();
-        await _repository.UpdateAsync(stage, autoSave: true);
 
-        await MoveServiceLineAsync(stage);
-        return MapToDto(stage, await BuildLookupsAsync([stage]));
+        var next = stage.ContinueAs(
+            GuidGenerator.Create(),
+            await NextSequenceNumberAsync(stage.TreatmentServiceId),
+            input.StaffId,
+            input.Note.Trim(),
+            input.SecondStaffId,
+            input.SubStaffId,
+            input.ServiceItemIds);
+
+        await _repository.UpdateAsync(stage);
+        await _repository.InsertAsync(next, autoSave: true);
+
+        await MoveServiceLineAsync(next);
+        return MapToDto(next, await BuildLookupsAsync([next]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Complete)]
@@ -284,8 +338,17 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
 
         var stageQuery = await _repository.GetQueryableAsync();
         var siblings = stageQuery.Where(x => x.TreatmentServiceId == line.Id).ToList();
-        var allDone = siblings.Count > 0
-            && siblings.TrueForAll(x => x.Status == TreatmentStageStatus.Completed);
+
+        // A superseded công đoạn stays at its old status for ever — its
+        // successor carries the work — so only the live ones are asked. And a
+        // line is only done once every tooth it treats has had a công đoạn: the
+        // first công đoạn may take some of its teeth and leave the rest waiting
+        // under "Thêm công đoạn".
+        var live = siblings.Where(x => !x.IsSuperseded).ToList();
+        var covered = _teethPolicy.CoveredTeeth(line.Teeth, siblings);
+        var allDone = live.Count > 0
+            && live.TrueForAll(x => x.Status == TreatmentStageStatus.Completed)
+            && line.Teeth.All(t => covered.Contains(t.ToothCode));
 
         if (allDone)
         {
@@ -335,6 +398,40 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             query = query.Where(x => x.Status == input.Status.Value);
 
         return query;
+    }
+
+    /// <summary>
+    /// The teeth of the line a new công đoạn goes on. Empty when the công đoạn
+    /// hangs off no slip yet, which leaves the teeth unchecked, as before.
+    /// </summary>
+    private async Task<IReadOnlyCollection<ToothSelection>> LineTeethAsync(
+        Guid? treatmentId,
+        Guid treatmentServiceId)
+    {
+        if (!treatmentId.HasValue)
+        {
+            return [];
+        }
+
+        var query = await _planRepository.WithDetailsAsync(x => x.Services);
+        var plan = query.FirstOrDefault(x => x.Id == treatmentId.Value);
+        var line = plan?.Services.FirstOrDefault(s => s.Id == treatmentServiceId);
+        return line is null ? [] : line.Teeth;
+    }
+
+    /// <summary>Every công đoạn of one line, whatever branch the caller sees.</summary>
+    private async Task<List<TreatmentStage>> StagesOfLineAsync(Guid treatmentServiceId)
+    {
+        var query = await _repository.GetQueryableAsync();
+        return query.Where(x => x.TreatmentServiceId == treatmentServiceId).ToList();
+    }
+
+    /// <summary>The warranty period the service's configuration carries, in days.</summary>
+    private async Task<int> WarrantyDaysAsync(Guid serviceId)
+    {
+        var query = await _catalogRepository.WithDetailsAsync(c => c.ServiceConfig);
+        var entry = query.FirstOrDefault(x => x.Id == serviceId);
+        return entry?.ServiceConfig?.WarrantyDays ?? 0;
     }
 
     private async Task<List<TreatmentStage>> StagesOfServiceAsync(Guid treatmentServiceId)
@@ -424,6 +521,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IsImageRequired = entity.IsImageRequired,
         IsGuarantee = entity.IsGuarantee,
         HasReExamination = entity.HasReExamination,
+        IsSuperseded = entity.IsSuperseded,
+        ContinuedFromId = entity.ContinuedFromId,
+        WarrantyRootStageId = entity.WarrantyRootStageId,
         StartedAt = entity.StartedAt,
         CompletedAt = entity.CompletedAt,
         Teeth = PatientDiagnosisAppService.ToToothDtos(entity.Teeth),

@@ -52,14 +52,14 @@ public class TreatmentStageTests
     }
 
     [Fact]
-    public void Continuing_a_stage_starts_it_once_and_keeps_the_first_start_time()
+    public void Starting_a_stage_starts_it_once_and_keeps_the_first_start_time()
     {
         var stage = CreateStage();
 
-        stage.Continue();
+        stage.Start();
         var firstStart = stage.StartedAt;
 
-        stage.Continue();
+        stage.Start();
 
         stage.Status.ShouldBe(TreatmentStageStatus.InProgress);
         stage.StartedAt.ShouldBe(firstStart);
@@ -154,7 +154,7 @@ public class TreatmentStageTests
         var stage = CreateStage();
         stage.Complete();
 
-        Should.Throw<BusinessException>(() => stage.Continue())
+        Should.Throw<BusinessException>(() => stage.Start())
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
         Should.Throw<BusinessException>(() => stage.Complete())
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -28,6 +29,19 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public bool IsGuarantee { get; set; }
     /// <summary>Whether a tái khám has been raised from this công đoạn.</summary>
     public bool HasReExamination { get; set; }
+
+    /// <summary>
+    /// A later công đoạn continued this one — the reference's <c>disabled</c>.
+    /// The history greys it out and nothing on it can be worked any more.
+    /// </summary>
+    public bool IsSuperseded { get; set; }
+
+    /// <summary>The công đoạn this one continues; null at the head of a chain.</summary>
+    public Guid? ContinuedFromId { get; set; }
+
+    /// <summary>On a warranty: the ordinary công đoạn it descends from.</summary>
+    public Guid? WarrantyRootStageId { get; set; }
+
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
@@ -61,6 +75,13 @@ public class CreateTreatmentStageDto
     /// <summary>Set by "Tạo bảo hành"; an ordinary công đoạn leaves it false.</summary>
     public bool IsGuarantee { get; set; }
 
+    /// <summary>
+    /// Required with <see cref="IsGuarantee"/>: the finished công đoạn the
+    /// warranty is raised from. The server checks it is live, finished and inside
+    /// the service's warranty period, and bounds the teeth by its root's.
+    /// </summary>
+    public Guid? WarrantySourceStageId { get; set; }
+
 
     /// <summary>
     /// Omit to inherit the flag from the service catalog entry, which is where the
@@ -87,6 +108,31 @@ public class UpdateTreatmentStageDto
     public Guid? SubStaffId { get; set; }
     public DateOnly? ScheduledDate { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
+}
+
+/// <summary>
+/// "Tiếp tục công đoạn" / "Tiếp tục bảo hành" — the next visit of a chain. The
+/// teeth are the chain's own and are not sent: the reference locks them on the
+/// form and refuses a continue whose teeth differ.
+/// </summary>
+public class ContinueTreatmentStageDto
+{
+    [Required]
+    public Guid StaffId { get; set; }
+
+    /// <summary>Bác sĩ hỗ trợ.</summary>
+    public Guid? SecondStaffId { get; set; }
+
+    /// <summary>Phụ tá.</summary>
+    public Guid? SubStaffId { get; set; }
+
+    /// <summary>Nội dung điều trị — required and capped at 1000, as on the form.</summary>
+    [Required]
+    [StringLength(1000)]
+    public string Note { get; set; } = string.Empty;
+
+    /// <summary>The steps ticked under "Danh sách công đoạn"; stored unticked.</summary>
+    public List<Guid> ServiceItemIds { get; set; } = new();
 }
 
 public class AttachStageImageDto
@@ -175,7 +221,12 @@ public interface ITreatmentStageAppService : IApplicationService
     Task<LatestTreatmentStageDto?> GetLatestAsync(Guid patientId);
     Task<TreatmentStageDto> CreateAsync(CreateTreatmentStageDto input);
     Task<TreatmentStageDto> UpdateAsync(Guid id, UpdateTreatmentStageDto input);
-    Task<TreatmentStageDto> ContinueAsync(Guid id);
+    /// <summary>
+    /// Writes the next công đoạn of <paramref name="id"/>'s chain and retires
+    /// <paramref name="id"/> — the reference's <c>POST patient-stages/{id}/continue</c>.
+    /// Returns the new công đoạn.
+    /// </summary>
+    Task<TreatmentStageDto> ContinueAsync(Guid id, ContinueTreatmentStageDto input);
     Task<TreatmentStageDto> CompleteAsync(Guid id);
 
     /// <summary>Un-ticks Hoàn thành — the reference's <c>revert-status</c>.</summary>

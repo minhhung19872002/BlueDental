@@ -4,6 +4,8 @@ import { TOOTH_SURFACES, surfaceLabel, type ToothSurface } from "./toothModel";
 interface Props {
   fdi: number;
   selected: ToothSurface[];
+  /** Shown but not clickable. */
+  disabled?: boolean;
   onToggle: (surface: ToothSurface) => void;
 }
 
@@ -12,7 +14,7 @@ interface Props {
  * so its cells become top/right/left/bottom wedges, with the occlusal disc
  * sitting on top in the centre.
  */
-export function ToothSurfaceCircle({ fdi, selected, onToggle }: Props) {
+export function ToothSurfaceCircle({ fdi, selected, disabled = false, onToggle }: Props) {
   return (
     <div className="tc-circle" role="group" aria-label={t("Common:Tooth:Surface", fdi)}>
       {TOOTH_SURFACES.map((surface) => {
@@ -28,6 +30,7 @@ export function ToothSurfaceCircle({ fdi, selected, onToggle }: Props) {
             aria-pressed={active}
             aria-label={label}
             title={label}
+            disabled={disabled}
             onClick={() => onToggle(surface)}
           />
         );

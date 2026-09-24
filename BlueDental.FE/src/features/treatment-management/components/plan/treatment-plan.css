@@ -1181,6 +1181,12 @@
   flex-direction: column;
   gap: 16px;
 }
+/* "Răng … đang điều trị — không thể bỏ chọn." — an edited line's staged teeth. */
+.tp-teeth-locked {
+  margin: 12px 0 0;
+  color: var(--tp-label);
+  font-size: 12px;
+}
 .tp-teeth-chart {
   margin-top: 16px;
   overflow-x: auto;

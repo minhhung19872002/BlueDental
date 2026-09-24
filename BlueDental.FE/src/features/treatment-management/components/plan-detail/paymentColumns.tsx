@@ -8,7 +8,7 @@ import {
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
-import { ActionTooltip } from "../plan/ActionTooltip";
+import { ActionTooltip } from "@/components/ActionTooltip";
 import { moneyText } from "../plan/planTypes";
 import { dash, paymentServiceNames } from "./planDetailTypes";
 

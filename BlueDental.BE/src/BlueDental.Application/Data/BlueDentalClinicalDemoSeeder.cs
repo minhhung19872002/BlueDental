@@ -412,28 +412,43 @@ public class BlueDentalClinicalDemoSeeder(
 
             var finished = i % 4 == 0;
 
+            // One chain of three visits on the line's tooth, each continuing the
+            // one before — which is how "Tiếp tục công đoạn" writes them, so every
+            // earlier visit is superseded and only the last one is worked. A
+            // finished line closes that last visit; the rest leave it open.
+            TreatmentStage? previous = null;
             for (var step = 1; step <= 3; step++)
             {
-                var stage = TreatmentStage.Add(
-                    DemoIdFor("0204", patient.Id, step),
-                    patient.Id,
-                    _branchId,
-                    plan.Id,
-                    lineId,
-                    service.Id,
-                    step,
-                    $"Công đoạn {step} - {service.Name}",
-                    dentistId,
-                    scheduledDate: today.AddDays(step * 7 - 7),
-                    teeth: [tooth]);
-
-                if (finished || step <= 1 + i % 3)
-                {
-                    stage.Continue();
-                    stage.Complete();
-                }
+                var stage = previous is null
+                    ? TreatmentStage.Add(
+                        DemoIdFor("0204", patient.Id, step),
+                        patient.Id,
+                        _branchId,
+                        plan.Id,
+                        lineId,
+                        service.Id,
+                        step,
+                        $"Công đoạn {step} - {service.Name}",
+                        dentistId,
+                        scheduledDate: today,
+                        teeth: [tooth])
+                    : previous.ContinueAs(
+                        DemoIdFor("0204", patient.Id, step),
+                        step,
+                        dentistId,
+                        note: null,
+                        secondStaffId: null,
+                        subStaffId: null,
+                        serviceItemIds: null);
 
                 stages.Add(stage);
+                previous = stage;
+            }
+
+            previous!.Start();
+            if (finished)
+            {
+                previous.Complete();
             }
 
             if (finished)

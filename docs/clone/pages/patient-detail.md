@@ -430,6 +430,9 @@ A tinted card (`#F7FAFF`, radius 16, padding 12, border `#DCE3EE`) holds:
   đoạn — the newest one — because that is the only row the history lets anyone
   tick; every earlier row is `disabled`, so a rule demanding all of them be
   closed would strand the line in the tab for good.
+  **Superseded 2026-09-24:** there are three tabs, membership is per tooth and per
+  chain rather than per line, and several cards open at once — see "Survey
+  2026-09-24 — multi-select, three tabs, chains and warranties" below.
 - On its right, `$ Thanh toán` (green outline) and `🖨 In lịch sử điều trị`.
 - Four column heads, `#EAF4FF` / `#2671D8` / 14px/600 / radius 12 / `12px 16px`:
   `Chi tiết` · `Ngày - Nhân sự` · `Dịch vụ đã chọn` · `Nội dung điều trị`, over a
@@ -650,6 +653,114 @@ service has no stages in its catalog entry.
 - Primary buttons are BlueDental indigo (`--bd-primary #6366f1`), not the
   reference's blue `#2671D8`. That is the clone's own brand, applied
   app-wide.
+
+#### Survey 2026-09-24 — multi-select, three tabs, chains and warranties
+
+Measured on staging (`staging.nfcdental.com`) on two test records the project
+owner named: HN8516 (slip DT21, three lines) and HN8510 (slip DT10, the owner's
+warranty fixture). The dialog's logic was read from its published chunks
+(static GETs); on HN8510 the owner asked for the warranty flow to be **worked
+for real**, so these writes were made there and nowhere else: un-tick and
+re-tick Hoàn thành on the root công đoạn (11·21·22·32), one "Tạo bảo hành"
+(teeth 11·21·22, note `kiem tra bao hanh`), one "Tiếp tục bảo hành" (note
+`tiep tuc bao hanh`), and Hoàn thành on that continuation. A second "Tạo bảo
+hành" was opened to read its teeth and closed with **Đóng**, unsaved.
+Captures stay in `reference-private/stage-multi/` and `reference-private/warranty/`.
+
+**Facts (observed or read from the bundle):**
+
+1. **The Chi tiết column is a multi-select.** Each card toggles; every open card
+   gets its own form, the forms stack in card order, and only the **last** one
+   carries `Hủy` + the save button. One press saves all of them — the
+   reference fires one request per form through `Promise.all`.
+2. **Three tabs**, each gated by an ability: `THÊM CÔNG ĐOẠN` (`add`),
+   `TIẾP TỤC CÔNG ĐOẠN` (`continue`), `TIẾP TỤC BẢO HÀNH` (`continueWarranty`).
+   A tab switch clears the open cards. Empty texts: *Tất cả dịch vụ đã được thêm
+   công đoạn* · *Không có công đoạn nào đang thực hiện* · *Không có bảo hành nào
+   đang thực hiện*.
+3. **`add` lists lines with teeth no công đoạn holds** (`buildCreateStageItems`):
+   the line's `content` teeth minus the `selectedContent` of every công đoạn of
+   the line not cancelled/replaced. A line of 21·22·23 whose first công đoạn took
+   21·23 is offered again with **22** alone; a line whose teeth are all held is
+   not offered. Only lines in `created / inProgress / guarantee` are asked for.
+4. **The form's teeth are chips that toggle** (`InlineTeethSelector`, 36px min,
+   13px/600; on `#2671D8` white, off white on `#DCE3EE`). On `add` they start all
+   picked and the doctor may drop some — the công đoạn takes only those.
+5. **`continue` lists open công đoạn, one per chain** (`status === created`,
+   not `disabled`, not `isGuarantee`); `continueWarranty` the same with
+   `isGuarantee`. Their chips are **disabled at 70%** — a continue must carry the
+   chain's teeth ("Khi tiếp tục công đoạn, phải chọn đầy đủ các răng của công
+   đoạn hiện tại").
+6. **Continue writes a new row.** `POST /v1/patient-stages/{id}/continue` with
+   `{ staffId, subStaffId, assistantStaffId, dateTime, selectedContent, note,
+   stageServiceItems }` answers 201 with the next công đoạn (same line, teeth and
+   `isGuarantee`); the one continued comes back `disabled: true` at its old
+   status. The history greys a disabled row (`opacity-50`,
+   `pointer-events-none`) and drops its pencil, Hoàn thành and Tạo Labo.
+7. **Warranty controls on a finished, live row** (`canCreateWarranty =
+   !disabled && status === "done"`):
+   - no `guaranteeTime` on the service → grey disabled **Không bảo hành**;
+   - otherwise green **Bảo hành**, disabled while **any** warranty of the same
+     line is open (`hasOpenWarrantyStageForService`) or once
+     `getWarrantyDaysRemaining` ≤ 0; tooltip *Vui lòng hoàn thành bảo hành đang
+     mở trước khi tạo bảo hành mới.* / *Còn n ngày bảo hành* / *Đã hết hạn bảo
+     hành*. `guaranteeTime` was 30 days on the fixture.
+8. **"Tạo bảo hành"** is the stage form in its own modal with `Đóng` / `Lưu`:
+   the teeth on offer are the line's (`treatmentService.content`), those of the
+   source công đoạn preselected and all toggleable; *Danh sách công đoạn* lists
+   the source's own steps, unticked. Saving is a plain create — `POST
+   /v1/patient-stages` with `isGuarantee: true` and the picked teeth; **no source
+   id is sent**. The new warranty lands under `TIẾP TỤC BẢO HÀNH` and every Bảo
+   hành of the line goes disabled.
+9. After continuing the warranty and ticking the continuation Hoàn thành, it
+   left `TIẾP TỤC BẢO HÀNH` (count 0) and every Bảo hành of the line came back.
+   Opening Bảo hành on that finished warranty (teeth 11·21·22) offered
+   **11·21·22·32** with 11·21·22 picked — the root's teeth, not the warranty's.
+10. Un-ticking the root re-opened it (`revert-status`), put it back under
+    `TIẾP TỤC CÔNG ĐOẠN`, and its checklist boxes became tickable; a finished
+    công đoạn's checklist is disabled.
+11. **Treatment table (profile tab)** on the same record after these writes:
+    one row per công đoạn; a warranty row's chip reads **Bảo hành** whatever its
+    state; `Răng` prints tooth numbers only; `SL` is the công đoạn's own tooth
+    count (3 for 11·21·22); a finished live row shows the amber warranty button
+    (grey and disabled when blocked); a disabled row keeps its green **+**; a
+    warranty row has no Thao tác (its `payment.debt` is 0).
+
+**BlueDental (built 2026-09-24):**
+
+- `TreatmentStage` gains `ContinuedFromId`, `IsSuperseded` (≙ `disabled`) and
+  `WarrantyRootStageId` (migration `20260924032742_AddStageContinuationChain`,
+  which also back-fills `IsSuperseded` for an unfinished công đoạn that had a
+  newer sibling — the old "newest is live" view). `ContinueAs` writes the next
+  công đoạn and retires the old one; a superseded công đoạn refuses every change.
+- `POST /api/v1/app/treatment-stages/{id}/continue` now takes
+  `ContinueTreatmentStageDto` and answers with the **new** công đoạn (it used to
+  flip the status only). Teeth are not sent — the chain keeps its own.
+- `StageTeethPolicy` checks on the server what the reference checks in the
+  browser: a new công đoạn takes teeth of its line that no công đoạn holds
+  (`Treatment:0030/0031/0032`); a warranty names its source
+  (`warrantySourceStageId`) which must be finished and live (`0036`), inside the
+  period (`0034/0035`), with no open warranty on the line (`0033`).
+- A line only closes once every tooth it treats has had a công đoạn and every
+  **live** công đoạn is finished.
+- FE: `stageModel.ts` (tab lists, remaining teeth, `warrantyState`),
+  `useStageComposer` (multi-select, a draft per card), `StageTeethPicker` +
+  `StageTeethDialog` (the chart), `StageWarrantyButton`.
+
+**Deliberate divergences:**
+
+- Forms are saved **one after another**, not in parallel: every công đoạn also
+  moves its line on the slip, and two writes to one slip at once trip its
+  concurrency stamp (409). A form that saved closes at once.
+- "Tạo bảo hành" bounds the teeth by the **root** công đoạn's (owner's rule,
+  2026-09-24) rather than the whole line's. They coincide whenever the root
+  covers the line, which is the case staging shows; they differ only on a line
+  split into several chains — see docs/clone/unknowns.md.
+- The chart button beside the chips and `StageTeethDialog` are BlueDental's own
+  (asked for by the owner): teeth outside the card's set are greyed and inert,
+  the line's surfaces are shown read-only.
+- The dialog lands on the **tab** of the clicked row's work (the reference
+  always lands on `add`); like the reference, no card starts open.
 
 ---
 

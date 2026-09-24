@@ -226,6 +226,11 @@ export interface TreatmentServiceDto {
   serviceSteps: ServiceStepDto[];
   /** Nội dung điều trị — the notes on this line's stages, in order. */
   stageNotes: string[];
+  /**
+   * Tooth codes the line's công đoạn already hold — "Chỉnh sửa" keeps them
+   * picked ("Răng … đang điều trị — không thể bỏ chọn").
+   */
+  stagedTeeth: number[];
   /** Đã thu on this line alone — slip-wide payments are not counted here. */
   paidAmount: number;
   /** Còn nợ of the line; what the payment dialog offers to collect. */
@@ -270,6 +275,15 @@ export interface AddTreatmentServiceInput {
   consultantStaffId: string | null;
   secondConsultantStaffId: string | null;
 }
+
+/**
+ * PUT patient-treatments/{id}/services/{lineId} — "Chỉnh sửa" on a saved line.
+ * The service and its status stay as they are.
+ */
+export type UpdateTreatmentServiceInput = Omit<
+  AddTreatmentServiceInput,
+  "serviceId" | "status" | "discountType" | "discountValue"
+>;
 
 /** "Loại chuyển đổi" — the reference's two conversion kinds. */
 export const CONVERSION_TYPE = { Replace: 1, OldService: 2 } as const;
@@ -430,6 +444,15 @@ const treatmentApi = {
   addService: (planId: string, input: AddTreatmentServiceInput): Promise<TreatmentPlanSlipDto> =>
     api.post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services`, input).then((r) => r.data),
 
+  updateService: (
+    planId: string,
+    lineId: string,
+    input: UpdateTreatmentServiceInput,
+  ): Promise<TreatmentPlanSlipDto> =>
+    api
+      .put<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}`, input)
+      .then((r) => r.data),
+
   completeService: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
     api
       .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/complete`)
@@ -563,6 +586,13 @@ export function useOpenTreatmentPlan() {
 export function useAddServiceLine() {
   return useTreatmentMutation((input: { planId: string; line: AddTreatmentServiceInput }) =>
     treatmentApi.addService(input.planId, input.line),
+  );
+}
+
+export function useUpdateServiceLine() {
+  return useTreatmentMutation(
+    (input: { planId: string; lineId: string; line: UpdateTreatmentServiceInput }) =>
+      treatmentApi.updateService(input.planId, input.lineId, input.line),
   );
 }
 

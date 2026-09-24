@@ -96,6 +96,12 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public List<string> StageNotes { get; set; } = new();
 
     /// <summary>
+    /// Tooth codes the line's công đoạn already hold. "Chỉnh sửa" keeps them
+    /// picked — the reference prints "Răng … đang điều trị — không thể bỏ chọn".
+    /// </summary>
+    public List<int> StagedTeeth { get; set; } = new();
+
+    /// <summary>
     /// Đã thu trên chính dòng này — payments tagged with this service line, less
     /// refunds. A payment recorded against the slip as a whole is not counted
     /// here; the slip's own rollup carries those.
@@ -153,6 +159,24 @@ public class AddTreatmentServiceDto
     /// <summary>The status pill on the new row; defaults to Created.</summary>
     public TreatmentServiceStatus? Status { get; set; }
 
+    public Guid? DiagnosisId { get; set; }
+    public Guid? DentistId { get; set; }
+    public string? Note { get; set; }
+    public Guid? DiagnoserStaffId { get; set; }
+    public Guid? SecondDiagnoserStaffId { get; set; }
+    public Guid? ConsultantStaffId { get; set; }
+    public Guid? SecondConsultantStaffId { get; set; }
+}
+
+/// <summary>
+/// "Chỉnh sửa" on a saved line — the same columns the inline new row writes,
+/// minus the service itself and its status.
+/// </summary>
+public class UpdateTreatmentServiceDto
+{
+    public decimal Price { get; set; }
+    public int Quantity { get; set; } = 1;
+    public List<ToothSelectionDto> Teeth { get; set; } = new();
     public Guid? DiagnosisId { get; set; }
     public Guid? DentistId { get; set; }
     public string? Note { get; set; }
@@ -395,6 +419,10 @@ public interface IPatientTreatmentAppService : IApplicationService
     Task<TreatmentPlanSlipDto> OpenAsync(OpenTreatmentPlanDto input);
     Task<TreatmentPlanSlipDto> ApplyDiscountAsync(Guid id, ApplyPlanDiscountDto input);
     Task<TreatmentPlanSlipDto> AddServiceAsync(Guid id, AddTreatmentServiceDto input);
+
+    /// <summary>"Chỉnh sửa" — rewrites a saved line in place.</summary>
+    Task<TreatmentPlanSlipDto> UpdateServiceAsync(
+        Guid id, Guid serviceLineId, UpdateTreatmentServiceDto input);
     Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> ReorderServiceAsync(Guid id, ReorderTreatmentServiceDto input);

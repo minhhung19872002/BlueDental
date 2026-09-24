@@ -28,10 +28,28 @@ export interface DraftServiceValues {
   secondConsultantStaffId: string | null;
 }
 
+/** The value fields that hold an id — the people and diagnosis pickers. */
+export type DraftIdField = {
+  [K in keyof DraftServiceValues]: DraftServiceValues[K] extends string | null ? K : never;
+}[keyof DraftServiceValues];
+
+/**
+ * What a line **in treatment** keeps when it is edited — staging prints the
+ * value with "Không thể đổi chẩn đoán/giá khi đang điều trị" under it.
+ */
+export interface DraftServiceLocks {
+  diagnosisName: string | null;
+  price: number;
+}
+
 /** Everything a draft cell needs: the values, how to change them, save and cancel. */
 export interface DraftServiceController {
-  service: CatalogOption;
+  service: { id: string; name: string };
   values: DraftServiceValues;
+  /** Names for the ids the row came in with, so a picker can print them. */
+  labels?: Partial<Record<DraftIdField, string | null>>;
+  /** Set on an edited line in treatment; see {@link DraftServiceLocks}. */
+  locks?: DraftServiceLocks;
   update: <K extends keyof DraftServiceValues>(field: K, value: DraftServiceValues[K]) => void;
   openTeeth: () => void;
   save: () => void;

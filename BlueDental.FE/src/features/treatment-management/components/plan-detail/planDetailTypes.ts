@@ -44,6 +44,8 @@ export interface PlanDetailRow {
   plan: TreatmentPlanSlipDto;
   service: TreatmentServiceDto;
   advise: PatientAdviseDto | null;
+  /** Set while "Chỉnh sửa" has turned this line into the inline row. */
+  edit?: DraftServiceController;
 }
 
 /** The inline "new row" the picker puts above the lines, until Lưu or Hủy. */

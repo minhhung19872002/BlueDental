@@ -10,14 +10,24 @@ import {
   useStaffOptionsSearch,
 } from "@/hooks/usePickerOptions";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
+import { jawLabel } from "@/components/ToothChart";
 import { moneyText } from "../plan/planTypes";
-import { formatToothValue } from "../plan/toothPicker";
+import type { ToothPickerValue } from "../plan/toothPicker";
 import { DraftStatusPill } from "./DraftStatusPill";
-import type { DraftServiceController, DraftServiceValues } from "./useDraftServiceRow";
+import type { DraftIdField, DraftServiceController } from "./useDraftServiceRow";
 
-type IdField = {
-  [K in keyof DraftServiceValues]: DraftServiceValues[K] extends string | null ? K : never;
-}[keyof DraftServiceValues];
+type IdField = DraftIdField;
+
+/**
+ * The Răng cell's text once teeth are picked: tooth numbers only, or the jaw's
+ * name — staging's `getSelectedToothCodesDisplay`, which prints no surfaces
+ * here even when the chart recorded them (measured 2026-09-24).
+ */
+function toothCodesText(value: ToothPickerValue): string | null {
+  if (value.kind === "jaw") return jawLabel(value.jaw);
+  if (value.teeth.length === 0) return null;
+  return value.teeth.map((pick) => pick.fdi).join(", ");
+}
 
 interface DraftProps {
   draft: DraftServiceController;
@@ -58,6 +68,7 @@ function IdSelect({
     <div className="pdt-draft-select">
       <ServerSearchSelect
         value={draft.values[field] ?? undefined}
+        valueLabel={draft.labels?.[field]}
         aria-label={placeholder}
         useOptions={useOptions}
         onChange={(value) => draft.update(field, value ?? null)}
@@ -66,8 +77,18 @@ function IdSelect({
   );
 }
 
+/** A value a line in treatment keeps, with staging's reason under it. */
+function LockedCell({ value, reason }: { value: string; reason: string }) {
+  return (
+    <div className="pdt-draft-locked">
+      <span>{value}</span>
+      <small>{reason}</small>
+    </div>
+  );
+}
+
 function DraftTeethCell({ draft }: DraftProps) {
-  const teeth = formatToothValue(draft.values.teeth);
+  const teeth = toothCodesText(draft.values.teeth);
   return (
     <div className="pdt-draft-teeth">
       <button type="button" className="tp-tooth-btn" aria-label={t("Treatment:Tooth:SelectTooth")} onClick={draft.openTeeth}>
@@ -113,9 +134,12 @@ type DraftCell = (draft: DraftServiceController) => ReactNode;
 const DRAFT_CELLS: Record<string, DraftCell> = {
   grip: () => null,
   service: (draft) => <DraftNameCell draft={draft} />,
-  diagnosis: (draft) => (
-    <IdSelect draft={draft} field="diagnosisId" useOptions={useDiagnosisOptions} placeholder={t("Treatment:Diagnosis:Diagnosis")} />
-  ),
+  diagnosis: (draft) =>
+    draft.locks ? (
+      <LockedCell value={draft.locks.diagnosisName ?? "—"} reason={t("Treatment:Service:DiagnosisLocked")} />
+    ) : (
+      <IdSelect draft={draft} field="diagnosisId" useOptions={useDiagnosisOptions} placeholder={t("Treatment:Diagnosis:Diagnosis")} />
+    ),
   dentist: (draft) => (
     <IdSelect draft={draft} field="dentistId" useOptions={useDentistOptions} placeholder={t("Treatment:Common:Doctor")} />
   ),
@@ -130,15 +154,18 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
       onChange={(value) => draft.update("quantity", value ?? 1)}
     />
   ),
-  price: (draft) => (
-    <CurrencyInput
-      className="pdt-draft-price"
-      placeholder={t("Treatment:Pricing:UnitPrice")}
-      aria-label={t("Treatment:Pricing:UnitPrice")}
-      value={draft.values.price}
-      onChange={(value) => draft.update("price", value ?? 0)}
-    />
-  ),
+  price: (draft) =>
+    draft.locks ? (
+      <LockedCell value={moneyText(draft.locks.price)} reason={t("Treatment:Service:PriceLocked")} />
+    ) : (
+      <CurrencyInput
+        className="pdt-draft-price"
+        placeholder={t("Treatment:Pricing:UnitPrice")}
+        aria-label={t("Treatment:Pricing:UnitPrice")}
+        value={draft.values.price}
+        onChange={(value) => draft.update("price", value ?? 0)}
+      />
+    ),
   discount: () => <span className="pdt-discount">{moneyText(0)}</span>,
   amount: (draft) => <strong>{moneyText(draft.values.price * draft.values.quantity)}</strong>,
   note: (draft) => (

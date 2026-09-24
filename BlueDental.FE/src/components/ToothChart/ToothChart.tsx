@@ -9,6 +9,13 @@ interface Props {
   /** Apply with {@link toggleTooth} / {@link toggleSurface} on the owner's state. */
   onToggleTooth: (fdi: number) => void;
   onToggleSurface: (fdi: number, surface: ToothSurface) => void;
+  /**
+   * The teeth that may be clicked at all; the rest are drawn grey and inert.
+   * Omitted, every tooth is live — the consulting and plan pickers.
+   */
+  enabledTeeth?: ReadonlySet<number>;
+  /** Surfaces are shown but not clickable — a công đoạn inherits its line's. */
+  surfacesReadOnly?: boolean;
 }
 
 /**
@@ -17,7 +24,14 @@ interface Props {
  * only reports clicks; the owner folds them into its state so rapid clicks
  * never race a stale value.
  */
-export function ToothChart({ value, dentition = "permanent", onToggleTooth, onToggleSurface }: Props) {
+export function ToothChart({
+  value,
+  dentition = "permanent",
+  onToggleTooth,
+  onToggleSurface,
+  enabledTeeth,
+  surfacesReadOnly = false,
+}: Props) {
   return (
     <div className={["tc-chart", dentition === "deciduous" && "tc-chart--deciduous"].filter(Boolean).join(" ")}>
       <span className="tc-divider tc-divider--v" aria-hidden="true" />
@@ -31,6 +45,8 @@ export function ToothChart({ value, dentition = "permanent", onToggleTooth, onTo
                 fdi={fdi}
                 jaw={half.jaw}
                 pick={value.find((pick) => pick.fdi === fdi)}
+                disabled={enabledTeeth !== undefined && !enabledTeeth.has(fdi)}
+                surfacesReadOnly={surfacesReadOnly}
                 onToggleTooth={onToggleTooth}
                 onToggleSurface={onToggleSurface}
               />

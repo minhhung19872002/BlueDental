@@ -103,6 +103,32 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// The công đoạn this one carries forward — "Tiếp tục công đoạn" writes a new
+    /// row rather than moving the old one. Null on the first công đoạn of a chain.
+    /// </summary>
+    public Guid? ContinuedFromId { get; private set; }
+
+    /// <summary>
+    /// Set once a later công đoạn continues this one — the reference's
+    /// <c>disabled</c>. Measured on staging 2026-09-24: after
+    /// <c>POST patient-stages/{id}/continue</c> the old row comes back
+    /// <c>disabled: true</c> with its own status still <c>created</c>, and the
+    /// history greys it out. A superseded công đoạn is history: it cannot be
+    /// ticked, re-opened or continued again.
+    /// </summary>
+    public bool IsSuperseded { get; private set; }
+
+    /// <summary>
+    /// For a warranty công đoạn: the ordinary công đoạn its warranty descends
+    /// from. A second warranty raised off a finished warranty still offers the
+    /// teeth of this root, not the narrower set the last warranty took — the
+    /// project owner's rule, and what staging shows when the root covers the
+    /// whole line (docs/clone/pages/patient-detail.md, "Bảo hành").
+    /// Null on ordinary công đoạn and on warranties written before it existed.
+    /// </summary>
+    public Guid? WarrantyRootStageId { get; private set; }
+
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
 
@@ -137,7 +163,9 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         Guid? secondStaffId = null,
         Guid? subStaffId = null,
         bool isGuarantee = false,
-        IEnumerable<Guid>? serviceItemIds = null)
+        IEnumerable<Guid>? serviceItemIds = null,
+        Guid? continuedFromId = null,
+        Guid? warrantyRootStageId = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -168,12 +196,70 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             ScheduledDate = scheduledDate,
             IsImageRequired = isImageRequired,
             IsGuarantee = isGuarantee,
+            ContinuedFromId = continuedFromId,
+            WarrantyRootStageId = isGuarantee ? warrantyRootStageId : null,
             Status = TreatmentStageStatus.Pending
         };
 
         stage._teeth.AddRange(toothList);
         stage.SetServiceItems(serviceItemIds ?? []);
         return stage;
+    }
+
+    /// <summary>
+    /// "Tiếp tục công đoạn" / "Tiếp tục bảo hành": writes the next công đoạn of
+    /// this chain and retires this one.
+    ///
+    /// Measured on staging 2026-09-24: the continuation keeps the teeth — the
+    /// form locks them, and the reference refuses a continue whose teeth differ
+    /// ("Khi tiếp tục công đoạn, phải chọn đầy đủ các răng của công đoạn hiện
+    /// tại") — and a warranty continues as a warranty. Who worked it, the note
+    /// and the steps are the new visit's own.
+    /// </summary>
+    public TreatmentStage ContinueAs(
+        Guid id,
+        int sequenceNumber,
+        Guid staffId,
+        string? note,
+        Guid? secondStaffId,
+        Guid? subStaffId,
+        IEnumerable<Guid>? serviceItemIds)
+    {
+        GuardLive();
+
+        if (Status == TreatmentStageStatus.Completed)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                "A completed stage cannot be continued.");
+        }
+
+        var next = Add(
+            id,
+            PatientId,
+            ClinicBranchId,
+            TreatmentId,
+            TreatmentServiceId,
+            ServiceId,
+            sequenceNumber,
+            Name,
+            staffId,
+            note,
+            scheduledDate: null,
+            IsImageRequired,
+            // Copies, not the same instances: a tooth is owned by one công
+            // đoạn, and EF refuses to hand an owned row to a second owner.
+            _teeth.Select(t => new ToothSelection(
+                t.ToothCode, t.Selected, t.Top, t.Right, t.Bottom, t.Left, t.Center)),
+            secondStaffId,
+            subStaffId,
+            IsGuarantee,
+            serviceItemIds,
+            continuedFromId: Id,
+            warrantyRootStageId: WarrantyRootStageId);
+
+        IsSuperseded = true;
+        return next;
     }
 
     /// <summary>
@@ -200,6 +286,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         DateTimeOffset now,
         Guid? staffId)
     {
+        GuardLive();
+
         foreach (var id in completedByStageId.Keys)
         {
             if (!_serviceItems.Exists(item => item.CatalogServiceStageId == id))
@@ -231,6 +319,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<ToothSelection>? teeth)
     {
         GuardEditable();
+        GuardLive();
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
         var toothList = teeth?.ToList() ?? new List<ToothSelection>();
@@ -248,8 +337,15 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    /// <summary>Tiếp tục công đoạn — work on the step. Re-entrant: the start time is kept.</summary>
-    public TreatmentStage Continue()
+    /// <summary>
+    /// Work has begun on the step. Re-entrant: the start time is kept.
+    ///
+    /// This used to be called <c>Continue</c> and sat behind
+    /// <c>POST …/continue</c>; that route now writes the next công đoạn of the
+    /// chain (<see cref="ContinueAs"/>), which is what the reference's continue
+    /// does.
+    /// </summary>
+    public TreatmentStage Start()
     {
         if (Status == TreatmentStageStatus.Completed)
         {
@@ -281,6 +377,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public TreatmentStage Complete()
     {
+        GuardLive();
+
         if (Status == TreatmentStageStatus.Completed)
         {
             throw new BusinessException(
@@ -304,6 +402,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public TreatmentStage Revert()
     {
+        GuardLive();
+
         if (Status != TreatmentStageStatus.Completed)
         {
             throw new BusinessException(
@@ -344,6 +444,19 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
                 "A completed stage can no longer be edited.");
+        }
+    }
+
+    /// <summary>
+    /// A superseded công đoạn is history — its successor is the one being worked.
+    /// </summary>
+    private void GuardLive()
+    {
+        if (IsSuperseded)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                "This stage has been continued; work on the newer one.");
         }
     }
 

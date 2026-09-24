@@ -3,7 +3,7 @@ import { Eye } from "lucide-react";
 import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
-import { formatTeeth } from "../../api/consultingApi";
+import { formatToothCodes } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { DiscountCell, ServiceNameCell, type ServiceRowActions } from "./serviceColumns";
 import { advanceOn, dash, type PlanDetailRow } from "./planDetailTypes";
@@ -22,7 +22,7 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
     { key: "service", label: t("Treatment:Service:Service"), value: <ServiceNameCell row={row} actions={actions} /> },
     { key: "diagnosis", label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
     { key: "dentist", label: t("Treatment:Common:DentistDoctor"), value: dash(row.plan.dentistName) },
-    { key: "teeth", label: t("Treatment:Tooth:Tooth"), value: formatTeeth(row.service.teeth) },
+    { key: "teeth", label: t("Treatment:Tooth:Tooth"), value: formatToothCodes(row.service.teeth) || "—" },
   ];
   const moreRows: RecordCardRow[] = [
     { key: "quantity", label: t("Treatment:Pricing:Quantity"), value: row.service.quantity },

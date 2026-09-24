@@ -5,15 +5,16 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
-import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { LaboOrderDialog } from "./stage/LaboOrderDialog";
 import { StageForm } from "./stage/StageForm";
 import { StageHistory } from "./stage/StageHistory";
+import { StagePicks } from "./stage/StagePicks";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
 import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
-import { useStageComposer, type StageTab } from "./stage/useStageComposer";
+import { STAGE_TABS, type StageTab } from "./stage/stageModel";
+import { useStageComposer } from "./stage/useStageComposer";
 
 interface Props {
   open: boolean;
@@ -23,8 +24,10 @@ interface Props {
   branchId: string;
   /** The slip the clicked row belongs to. */
   plan: TreatmentPlanSlipDto | null;
-  /** The row that was clicked — selected when the dialog opens. */
+  /** The line of the row that was clicked. */
   focusServiceId: string | null;
+  /** The công đoạn of that row — the dialog lands on the tab its work is in. */
+  focusStageId?: string | null;
   onClose: () => void;
   /**
    * "Thanh toán" — the reference leaves the dialog for the slip's Kế hoạch
@@ -33,9 +36,19 @@ interface Props {
   onOpenPlan: () => void;
 }
 
-const EMPTY_BY_TAB: Record<StageTab, string> = {
-  add: "Patient:Stage:EmptyAdd",
-  continue: "Patient:Stage:EmptyContinue",
+/** i18n keys per tab: its caption, what an empty tab says, its save button. */
+const TAB_COPY: Record<StageTab, { label: string; empty: string; save: string }> = {
+  add: { label: "Patient:Stage:AddLabel", empty: "Patient:Stage:EmptyAdd", save: "Patient:Stage:SaveStage" },
+  continue: {
+    label: "Patient:Stage:ContinueLabel",
+    empty: "Patient:Stage:EmptyContinue",
+    save: "Patient:Stage:Continue",
+  },
+  continueWarranty: {
+    label: "Patient:Stage:ContinueWarrantyLabel",
+    empty: "Patient:Stage:EmptyContinueWarranty",
+    save: "Patient:Stage:ContinueWarranty",
+  },
 };
 
 /** "Ngày - Nhân sự" · "Dịch vụ đã chọn" · "Nội dung điều trị". */
@@ -46,9 +59,10 @@ function ColumnHead({ children }: { children: string }) {
 /**
  * "Chi tiết phiếu" — the dialog behind the treatment table's Công đoạn cell.
  *
- * Laid out from the reference's own dialog: a tabbed picker of the slip's
- * services on the left, the stage form beside it, and the slip's whole
- * "Lịch sử điều trị" underneath. Everything it reads and writes lives in
+ * Laid out from the reference's own dialog: three tabs (THÊM CÔNG ĐOẠN, TIẾP
+ * TỤC CÔNG ĐOẠN, TIẾP TỤC BẢO HÀNH), the tab's cards on the left — any number
+ * of them open at once, each with its own form — and the slip's whole "Lịch sử
+ * điều trị" underneath. Everything it reads and writes lives in
  * {@link useStageComposer}. See docs/clone/pages/patient-detail.md.
  */
 export function TreatmentStageDialog({
@@ -59,11 +73,12 @@ export function TreatmentStageDialog({
   branchId,
   plan,
   focusServiceId,
+  focusStageId = null,
   onClose,
   onOpenPlan,
 }: Props) {
   const branch = useBranchInfo(branchId);
-  const composer = useStageComposer({ open, patientId, branchId, plan, focusServiceId });
+  const composer = useStageComposer({ open, patientId, branchId, plan, focusServiceId, focusStageId });
 
   const [printing, setPrinting] = useState(false);
   const [laboStage, setLaboStage] = useState<TreatmentStageDto | null>(null);
@@ -71,17 +86,16 @@ export function TreatmentStageDialog({
   const [discarding, setDiscarding] = useState(false);
 
   /**
-   * Leaving with something written asks first.
-   *
-   * The reference hangs one guarded close off both the ✕ and the form's "Hủy"
-   * — its own `onCancel` on the stage card is the very callback it gives the
-   * dialog — so "Hủy" leaves the whole "Chi tiết phiếu", it does not just drop
-   * the picked line.
+   * Leaving with something written asks first. The reference hangs one guarded
+   * close off both the ✕ and the form's "Hủy", so "Hủy" leaves the whole
+   * "Chi tiết phiếu" — it does not just drop the picked cards.
    */
   const requestClose = () => {
     if (composer.dirty) setDiscarding(true);
     else onClose();
   };
+
+  const last = composer.chosen[composer.chosen.length - 1];
 
   return (
     <Modal
@@ -105,25 +119,17 @@ export function TreatmentStageDialog({
       <div className="pd-stage-card">
         <div className="pd-stage-toolbar">
           <div className="pd-stage-tabs" role="tablist" aria-label={t("Patient:Stage:SelectAction")}>
-            {(
-              [
-                ["add", t("Patient:Stage:AddLabel"), composer.counts.add],
-                ["continue", t("Patient:Stage:ContinueLabel"), composer.counts.continue],
-              ] as const
-            ).map(([key, label, count]) => (
+            {STAGE_TABS.map((key) => (
               <button
                 type="button"
                 key={key}
                 role="tab"
                 aria-selected={composer.tab === key}
                 className={composer.tab === key ? "active" : undefined}
-                onClick={() => {
-                  composer.setTab(key);
-                  composer.setSelected(null);
-                }}
+                onClick={() => composer.setTab(key)}
               >
-                {label}
-                <em>{count}</em>
+                {t(TAB_COPY[key].label)}
+                <em>{composer.counts[key]}</em>
               </button>
             ))}
           </div>
@@ -140,31 +146,12 @@ export function TreatmentStageDialog({
         <div className="pd-stage-grid">
           <div>
             <ColumnHead>{t("Patient:Stage:Detail")}</ColumnHead>
-            {composer.offered.length === 0 ? (
-              <p className="pd-stage-empty">{t(EMPTY_BY_TAB[composer.tab])}</p>
-            ) : (
-              <div className="pd-stage-picks">
-                {composer.offered.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    /* Which service line the pick stands for — the history rows
-                       and the treatment table are addressed the same way. */
-                    data-line-id={item.id}
-                    className={composer.selected === item.id ? "active" : undefined}
-                    onClick={() => composer.setSelected(item.id)}
-                  >
-                    <strong>{item.serviceName ?? item.code}</strong>
-                    <span>
-                      {t("Patient:DentalChart:Tooth")}:
-                      {toothLabels(item.teeth).map((label) => (
-                        <i key={label}>{label}</i>
-                      ))}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <StagePicks
+              items={composer.offered}
+              selectedIds={composer.selectedIds}
+              emptyText={t(TAB_COPY[composer.tab].empty)}
+              onToggle={composer.toggleItem}
+            />
           </div>
 
           <div>
@@ -174,35 +161,32 @@ export function TreatmentStageDialog({
               <ColumnHead>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
             </div>
 
-            {composer.line === null ? (
-              <p className="pd-stage-hint">
-                {t("Patient:Stage:SelectHint")}
-              </p>
+            {composer.chosen.length === 0 ? (
+              <p className="pd-stage-hint">{t("Patient:Stage:SelectHint")}</p>
             ) : (
-              <StageForm
-                line={composer.line}
-                staffId={composer.staffId}
-                subStaffId={composer.subStaffId}
-                secondStaffId={composer.secondStaffId}
-                note={composer.note}
-                pending={composer.pending}
-                previews={composer.previews}
-                pickedSteps={composer.pickedSteps}
-                errors={composer.errors}
-                saving={composer.saving}
-                primaryLabel={
-                  composer.tab === "add" ? t("Patient:Stage:SaveStage") : t("Patient:Stage:Continue")
-                }
-                onStaff={composer.setStaffId}
-                onSubStaff={composer.setSubStaffId}
-                onSecondStaff={composer.setSecondStaffId}
-                onNote={composer.setNote}
-                onPickImages={() => composer.pickFor(null)}
-                onRemoveImage={composer.removePending}
-                onToggleStep={composer.toggleStep}
-                onCancel={requestClose}
-                onSave={() => void composer.save()}
-              />
+              composer.chosen.map((item) => (
+                <StageForm
+                  key={item.id}
+                  item={item}
+                  draft={composer.draftOf(item)}
+                  errors={composer.errorsOf(item)}
+                  handlers={{
+                    onChange: (patch) => composer.patchDraft(item, patch),
+                    onToggleStep: (stepId, next) => composer.toggleStep(item, stepId, next),
+                    onPickImages: () => composer.pickForForm(item),
+                  }}
+                  actions={
+                    item === last
+                      ? {
+                          primaryLabel: t(TAB_COPY[composer.tab].save),
+                          saving: composer.saving,
+                          onSave: () => void composer.save(),
+                          onCancel: requestClose,
+                        }
+                      : undefined
+                  }
+                />
+              ))
             )}
           </div>
         </div>
@@ -211,7 +195,6 @@ export function TreatmentStageDialog({
       <StageHistory
         days={composer.days}
         total={composer.stages.length}
-        liveStageIds={composer.liveStageIds}
         imagesOf={composer.imagesOf}
         savingNoteFor={composer.savingNoteFor}
         uploadingFor={composer.uploadingFor}
@@ -219,13 +202,11 @@ export function TreatmentStageDialog({
         togglingStepFor={composer.togglingStepFor}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onComplete={(stage) => void composer.finish(stage)}
-        onToggleStep={(stage, stepId, next) =>
-          void composer.toggleStageStep(stage, stepId, next)
-        }
-        onUpload={(stage) => composer.pickFor(stage.id)}
+        onToggleStep={(stage, stepId, next) => void composer.toggleStageStep(stage, stepId, next)}
+        onUpload={composer.pickForStage}
         onCreateLabo={setLaboStage}
         onWarranty={setWarrantyStage}
-        warrantable={composer.warrantable}
+        warrantyOf={composer.warrantyOf}
       />
 
       <TreatmentHistoryPrintDialog
@@ -243,7 +224,11 @@ export function TreatmentStageDialog({
         branchId={branchId}
         plan={plan}
         stage={warrantyStage}
+        lineStages={composer.stages.filter(
+          (stage) => stage.treatmentServiceId === warrantyStage?.treatmentServiceId,
+        )}
         kind="guarantee"
+        inheritSteps
         onClose={() => setWarrantyStage(null)}
       />
 

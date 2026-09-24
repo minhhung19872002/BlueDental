@@ -5562,3 +5562,36 @@ Chuyển đổi mới là nơi đổi nó (`PUT /api/v1/orders/{id}/update-statu
 - Gotcha sửa file: phần lớn file convert / spec dùng CRLF — script sửa phải
   chuẩn hoá CRLF→LF khi khớp chuỗi và ghi lại CRLF; heredoc python trong Git
   Bash bẻ `\r\n` thành xuống dòng thật, dùng Write/Edit tool cho script.
+
+## 2026-09-24 — Chi tiết phiếu: nhiều công đoạn một lúc, răng theo công đoạn, Tiếp tục bảo hành, sửa dòng kế hoạch
+
+Đối chiếu staging (`staging.nfcdental.com`, bản ghi HN8510 theo chủ dự án cho phép thao tác) và chunk Next.js đã publish.
+Chi tiết: [pages/patient-detail.md](../clone/pages/patient-detail.md) (Survey 2026-09-24),
+[pages/treatment-plan-detail.md](../clone/pages/treatment-plan-detail.md), [features/treatment-stage.md](features/treatment-stage.md).
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-533 | Dialog "Chi tiết phiếu" chỉ chọn được **một** thẻ; bản gốc chọn nhiều, mỗi thẻ một form xếp chồng, một nút lưu | `useStageComposer` giữ `selectedIds` + draft theo thẻ; lưu **tuần tự** (song song vấp concurrency stamp của phiếu → 409) |
+| R-534 | Công đoạn mới luôn lấy **toàn bộ** răng của dịch vụ | Chọn/bỏ răng theo từng công đoạn (`StageTeethPicker`, sơ đồ "Chọn răng" có răng ngoài dịch vụ bị khoá); răng còn lại ở lại THÊM CÔNG ĐOẠN; BE `StageTeethPolicy` từ chối răng ngoài dịch vụ (0030) / đã có công đoạn (0031) / rỗng (0032) |
+| R-535 | "Tiếp tục công đoạn" sửa đè công đoạn cũ | Như bản gốc: `POST /treatment-stages/{id}/continue` tạo công đoạn mới cùng răng, công đoạn cũ `IsSuperseded` (xám, không tick/tải ảnh/sửa); migration `AddStageContinuationChain` đánh dấu dữ liệu cũ |
+| R-536 | Thiếu tab **TIẾP TỤC BẢO HÀNH** và chuỗi bảo hành | Tab thứ ba; bảo hành lấy răng của công đoạn **gốc** (`WarrantyRootStageId`); còn bảo hành mở → nút Bảo hành bị khoá kèm tooltip (0033); hết hạn (0035); dịch vụ không bảo hành → nút xám "Không bảo hành" |
+| R-537 | Cột Răng in "11 - Mặt ngoài" (bảng hồ sơ, lịch sử, kế hoạch) | Chỉ số răng: "11, 12, 13" (`formatToothCodes`) |
+| R-538 | Kế hoạch điều trị: cột Thao tác không có "Chỉnh sửa" | Bút chì theo bản gốc (sửa được khi dòng chưa xong/huỷ và chưa thu tiền); dòng đang điều trị khoá chẩn đoán/giá và răng đã có công đoạn (0037–0039) |
+| R-539 | Form "Tiếp tục" của công đoạn trên dịch vụ không gắn răng báo "Vui lòng chọn răng" | Luật răng chỉ áp khi thẻ có răng để chọn — BE cũng bỏ qua dòng không gắn răng |
+| R-540 | e2e: fixture chọn dòng "đang làm" nhưng đã hết răng trống sau vài lượt chạy → 0032 | `openPatientWithTreatment` chỉ lấy dòng còn răng chưa có công đoạn (`stagedTeeth`); `createSlip` của plan-detail nhận danh sách răng |
+
+### Kiểm thử
+
+Dev server :5173 (StrictMode) → API :5019 → PostgreSQL local, đăng nhập qua màn login, không chặn request.
+
+- BE: Domain **157/157**, Application **599/599**, EntityFrameworkCore **54/54**.
+- `treatment-stage-chain.spec.ts` (mới) **5/5**: nhiều thẻ + răng từng phần + 0031; tiếp tục làm xám công đoạn cũ; chuỗi bảo hành
+  (răng gốc, 0033, hoàn thành, bảo hành lại); sửa dòng kế hoạch (0038/0039); tài khoản chi nhánh 2 → 403.
+- `patient.spec.ts` **45/63** (+ chain 5 = 50/68). Toàn bộ test công đoạn/bảo hành xanh. 18 ca đỏ **ngoài phạm vi** (chưa sửa):
+  mở hồ sơ bằng click tên trong danh sách nên rơi vào tab Chẩn đoán & Tư vấn (mặc định từ `86ccaf00`) — thẻ hồ sơ, nhãn, nghề nghiệp,
+  lý do đến khám; `?tab=consulting`; phiếu thu gộp (3 phiếu thay vì 1); ô tiền; lưu lịch hẹn.
+- `treatment-plan-detail` **10/10**, `treatment-plan`, `treatment-stage`, `labo-detail` xanh; `consulting-plan` 1 đỏ (không tìm được
+  dịch vụ có giá), `labo-warranty` 2 đỏ (đếm phiếu labo qua API không gửi chi nhánh → 0). Ba ca này không đụng code đã sửa; chưa
+  đối chứng với HEAD.
+- `tsc -b`, eslint các file đã sửa, `vitest` xanh.
+- Chưa chạy trên bản build production (`vite preview` :8080).

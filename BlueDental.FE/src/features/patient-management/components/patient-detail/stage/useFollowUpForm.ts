@@ -13,6 +13,7 @@ import {
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useUploadPatientImage } from "../../../api/patientImageApi";
 import { reExaminationChecklist } from "./reExaminationChecklist";
+import { pickTeeth, toothCodes, warrantyCandidates } from "./stageModel";
 import { syncStageContent } from "./syncStageContent";
 import {
   hasStageFieldError,
@@ -27,8 +28,19 @@ interface Options {
   plan: TreatmentPlanSlipDto | null;
   /** The finished công đoạn the follow-up is raised against. */
   stage: TreatmentStageDto | null;
-  /** A tái khám picks among the stage's teeth; a warranty visit inherits them. */
-  pickTeeth: boolean;
+  /**
+   * Every công đoạn of the stage's line — where a warranty finds the root whose
+   * teeth it may take. Only read for a warranty.
+   */
+  lineStages: TreatmentStageDto[];
+  kind: "guarantee" | "reExamination";
+  /**
+   * A warranty raised from LỊCH SỬ ĐIỀU TRỊ lists the source công đoạn's steps;
+   * one raised from the profile tab's table lists none — the reference's two
+   * warranty mappers differ exactly there (`stageChecklist: e.stageChecklist`
+   * vs `stageChecklist: []`, read 2026-09-24).
+   */
+  inheritSteps: boolean;
   /** Toast shown once the follow-up is written. */
   saved: string;
   onClose: () => void;
@@ -48,10 +60,13 @@ export function useFollowUpForm({
   branchId,
   plan,
   stage,
-  pickTeeth,
+  lineStages,
+  kind,
+  inheritSteps,
   saved,
   onClose,
 }: Options) {
+  const warranty = kind === "guarantee";
   const createStage = useCreateStage();
   const createReExam = useCreateReExamination();
   const attachReExamImage = useAttachReExaminationImage();
@@ -62,16 +77,30 @@ export function useFollowUpForm({
   const [secondStaffId, setSecondStaffId] = useState<string>();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<File[]>([]);
-  /** Tooth codes ticked in the form; only meaningful when `pickTeeth`. */
+  /** Tooth codes ticked in the form. */
   const [picked, setPicked] = useState<number[]>([]);
   /**
-   * "Danh sách công đoạn" ids ticked on the form. The reference lets these be
-   * toggled but sends nothing for them — see UNKNOWN_REFERENCE_BEHAVIOR in
-   * docs/clone/unknowns.md — so they stay local and are not part of `save`.
+   * "Danh sách công đoạn" ids ticked on the form. A warranty sends them as its
+   * steps; a tái khám lets them be toggled but sends nothing for them — see
+   * UNKNOWN_REFERENCE_BEHAVIOR in docs/clone/unknowns.md.
    */
   const [pickedSteps, setPickedSteps] = useState<string[]>([]);
   /** Which fields failed the last save attempt — see {@link StageFieldErrors}. */
   const [errors, setErrors] = useState<StageFieldErrors>({});
+
+  const line = plan?.services.find((item) => item.id === stage?.treatmentServiceId) ?? null;
+
+  /**
+   * The teeth on offer. A tái khám picks among the công đoạn's own. A warranty
+   * picks among its root's — measured on staging 2026-09-24: raised off a
+   * finished warranty of 11·21·22 whose root took 11·21·22·32, "Tạo bảo hành"
+   * offered all four with the three preselected.
+   */
+  const candidates = useMemo(() => {
+    if (!stage) return [];
+    if (warranty && line) return warrantyCandidates(stage, line, lineStages);
+    return stage.teeth.length > 0 ? stage.teeth : (line?.teeth ?? []);
+  }, [stage, line, lineStages, warranty]);
 
   useEffect(() => {
     if (!open) return;
@@ -80,22 +109,31 @@ export function useFollowUpForm({
     setSecondStaffId(stage?.secondStaffId ?? undefined);
     setNote("");
     setPending([]);
-    setPicked([]);
+    // A warranty starts with the source công đoạn's teeth picked; a tái khám
+    // starts with none.
+    setPicked(warranty && stage ? toothCodes(stage.teeth) : []);
     setPickedSteps([]);
     setErrors({});
-  }, [open, stage]);
-
-  const line = plan?.services.find((item) => item.id === stage?.treatmentServiceId) ?? null;
+  }, [open, stage, warranty]);
 
   /**
-   * The reference keeps the source công đoạn's content as the form's one
-   * checklist entry even though Nội dung điều trị starts blank for the new
-   * visit, so this reads the stage rather than `note`.
+   * "Danh sách công đoạn". A warranty lists the source công đoạn's own steps,
+   * all unticked (the reference's `stageChecklist` of the history row). A tái
+   * khám carries the source's content as its one entry even though Nội dung
+   * điều trị starts blank, so this reads the stage rather than `note`.
    */
-  const checklist = useMemo(() => reExaminationChecklist(stage), [stage]);
-
-  /** The công đoạn's own teeth are the candidates; a follow-up picks among them. */
-  const candidates = (stage?.teeth.length ?? 0) > 0 ? (stage?.teeth ?? []) : (line?.teeth ?? []);
+  const checklist = useMemo(
+    () =>
+      warranty
+        ? inheritSteps
+          ? (stage?.serviceItems ?? []).map((item) => ({
+              id: item.catalogServiceStageId,
+              name: item.name,
+            }))
+          : []
+        : reExaminationChecklist(stage),
+    [stage, warranty, inheritSteps],
+  );
 
   /**
    * Blob previews for the chosen files, revoked when the list changes or the
@@ -112,6 +150,11 @@ export function useFollowUpForm({
         ? current.filter((code) => code !== toothCode)
         : [...current, toothCode],
     );
+  };
+
+  const changeTeeth = (codes: number[]) => {
+    if (codes.length > 0) setErrors((current) => ({ ...current, teeth: undefined }));
+    setPicked(codes);
   };
 
   const changeStaff = (value: string) => {
@@ -152,18 +195,12 @@ export function useFollowUpForm({
   const save = async () => {
     if (!stage || !line || !plan) return;
 
-    const found = stageFieldErrors({
-      staffId,
-      note,
-      // A warranty visit inherits the công đoạn's teeth as they stand, so it
-      // has nothing to get wrong there.
-      teethPicked: !pickTeeth || picked.length > 0,
-    });
+    const found = stageFieldErrors({ staffId, note, teethPicked: picked.length > 0 });
     setErrors(found);
     if (hasStageFieldError(found) || !staffId) return;
 
     try {
-      if (pickTeeth) {
+      if (!warranty) {
         // A tái khám is its own row, so it goes to its own resource and takes
         // only the teeth that were ticked.
         const created = await createReExam.mutateAsync({
@@ -193,8 +230,10 @@ export function useFollowUpForm({
           staffId,
           subStaffId,
           secondStaffId,
-          teeth: candidates,
+          teeth: pickTeeth(candidates, picked),
           isGuarantee: true,
+          warrantySourceStageId: stage.id,
+          serviceItemIds: pickedSteps,
         });
 
         for (const file of pending) {
@@ -233,6 +272,7 @@ export function useFollowUpForm({
     pending,
     picked,
     toggleTooth,
+    changeTeeth,
     addFiles,
     removeFile,
     save,

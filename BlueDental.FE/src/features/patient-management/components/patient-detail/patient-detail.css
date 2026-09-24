@@ -2975,6 +2975,12 @@
   background: var(--bd-bg-head);
   color: #667085;
 }
+/* "Bảo hành" — staging has no colour of its own for it and falls back to its
+   neutral chip (#F0F3F8 on #5A6B82). */
+.pd-tr-chip--warranty {
+  background: var(--bd-bg-head);
+  color: var(--bd-muted);
+}
 .pd-tr-teeth {
   display: inline-block;
   border: 1px solid #b8d1f7;
@@ -3012,9 +3018,15 @@
   background: #fff4e5;
   color: #d97706;
 }
-.pd-treatment-table .pd-tr-warranty.ant-btn:hover {
+.pd-treatment-table .pd-tr-warranty.ant-btn:not(:disabled):hover {
   background: #f59e0b !important;
   color: #fff !important;
+}
+/* Blocked — an open warranty on the line, or the period ran out: grey and
+   inert, as the reference draws it. */
+.pd-treatment-table .pd-tr-warranty.ant-btn:disabled {
+  background: var(--bd-bg-head);
+  color: #98a2b3;
 }
 /* Finished, but the service offers no warranty: inert, as the reference shows. */
 .pd-tr-nostage {
@@ -3539,6 +3551,65 @@
   color: #fff;
 }
 
+/*
+ * StageTeethPicker — measured on staging 2026-09-24 (InlineTeethSelector): a
+ * continued công đoạn keeps its teeth, so its chips are inert at 70% opacity;
+ * an empty pick after a failed save outlines every chip in red.
+ */
+.pd-stage-teeth > div > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.pd-stage-teeth > div > button:disabled:not(.active):hover {
+  border-color: var(--bd-line);
+  color: var(--bd-ink);
+}
+.pd-stage-teeth > div > button.active:disabled:hover {
+  color: #fff;
+}
+.pd-stage-teeth > div > button.pd-stage-tooth--error {
+  border-color: var(--bd-red);
+}
+/* The chart button beside the chips — the plan table's own teeth button. */
+.pd-stage-teeth > div > button.pd-stage-chartbtn {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--bd-radius);
+  padding: 0;
+  background: var(--bd-primary);
+  opacity: 1;
+}
+.pd-stage-teeth > div > button.pd-stage-chartbtn:hover {
+  background: var(--bd-primary-strong);
+}
+.pd-stage-chartbtn > img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+/* Several cards open at once: their forms stack under the column heads. */
+.pd-stage-form + .pd-stage-form {
+  margin-top: 16px;
+}
+.pd-stage-charthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pd-stage-charthead > p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-stage-chart {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
 /* The chosen pictures, held until the form is saved. */
 /*
  * Field-level validation text, under the field it belongs to. The reference
@@ -4011,6 +4082,31 @@
 .pd-stage-dialog .pd-stage-warranty.ant-btn:hover {
   border-color: var(--bd-green) !important;
   background: color-mix(in srgb, var(--bd-green) 88%, #000) !important;
+}
+
+/*
+ * "Không bảo hành": a finished row whose service carries no warranty — grey
+ * and inert, as the reference draws it. The span around a disabled warranty
+ * button takes the hover its tooltip needs.
+ */
+.pd-stage-warrantywrap {
+  display: block;
+}
+.pd-stage-warrantywrap > .ant-btn:disabled {
+  pointer-events: none;
+}
+/* Blocked (an open warranty, or the period ran out): the reference keeps its
+   green and halves it, rather than going grey. */
+.pd-stage-dialog .pd-stage-warranty.ant-btn:disabled {
+  border-color: var(--bd-green);
+  background: var(--bd-green);
+  color: #fff;
+  opacity: 0.5;
+}
+.pd-stage-dialog .pd-stage-nowarranty.ant-btn:disabled {
+  border-color: var(--bd-bg-head);
+  background: var(--bd-bg-head);
+  color: #98a2b3;
 }
 
 /* ── "Tạo tái khám" rows ───────────────────────────────────────────────── */

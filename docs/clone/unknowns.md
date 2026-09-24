@@ -2527,6 +2527,12 @@ Reason: The reference has a **third** tab BlueDental does not build yet.
   reference.
 Action taken: NONE
 
+RESOLVED 2026-09-24 — the owner asked for the warranty flow to be worked on
+  staging record HN8510, which showed what fills `eq`: open warranty công đoạn
+  (`status === created`, not `disabled`, `isGuarantee`). BlueDental builds all
+  three tabs now; see docs/clone/pages/patient-detail.md, "Survey 2026-09-24".
+  The note below is the state before that.
+
 BlueDental: two tabs only (`add`, `continue`). What IS known and already cloned:
   the per-tab save label (`Lưu công đoạn` / `Tiếp tục công đoạn` /
   `Tiếp tục bảo hành`, R-457), the guarded close shared by ✕ and Hủy (R-456),
@@ -2548,3 +2554,34 @@ Action taken: NONE thêm trên staging (đã huỷ 1 phiếu test của bệnh n
   TEST để quan sát PUT …/update-status). Local: chốt coi Received, Completed,
   Rejected, Replaced là đã xong; khối dùng `tp-btn tp-btn--danger`, chữ
   14px/22px, gap 12px — chờ đo lại.
+
+Page: /patient/{id} — "Chi tiết phiếu" → Bảo hành → "Tạo bảo hành"
+Control: the teeth offered on a line split into several chains
+Reason: The reference offers the **line's** teeth (`treatmentService.content`)
+  with the source công đoạn's preselected. The project owner's rule (2026-09-24)
+  is the **root** công đoạn's teeth. On the fixture the root covered the whole
+  line, so both read the same; on a line whose teeth were started in separate
+  chains (21 in one, 13 in another) they would differ, and finding out would
+  mean writing another warranty on staging.
+Action taken: NONE — BlueDental follows the owner's rule
+  (`warrantyCandidates` / `StageTeethPolicy.EnsureWarranty`), falling back to the
+  line's teeth for a warranty written before roots were recorded.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} — "Chi tiết phiếu"
+Control: the service line's own status once a warranty is raised on a finished line
+Reason: The dialog asks for lines in `created / inProgress / guarantee`, so the
+  reference has a `guarantee` line status, but on the fixture the line stayed
+  `in-progress` throughout and nothing observed moved it to `guarantee`.
+Action taken: NONE — BlueDental re-opens a finished line to InProgress while a
+  warranty công đoạn of it is open, and closes it again when that is finished.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} — "Chi tiết phiếu" (server side)
+Control: what `POST patient-stages` / `…/continue` refuse
+Reason: The reference checks the teeth, the open warranty and the warranty
+  period in the browser; whether its server refuses the same when called
+  directly was not tested (it would take deliberate bad writes on staging).
+Action taken: NONE — BlueDental's server enforces them (Treatment:0030–0036).

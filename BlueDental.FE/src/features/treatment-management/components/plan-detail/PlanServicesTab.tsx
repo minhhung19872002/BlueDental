@@ -42,6 +42,7 @@ import {
   type ServiceTableRow,
 } from "./planDetailTypes";
 import { useDraftServiceRow } from "./useDraftServiceRow";
+import { isLineEditable, useEditServiceRow } from "./useEditServiceRow";
 
 const NARROW_SCREEN = "(max-width: 640px)";
 
@@ -120,6 +121,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const cancel = useCancelServiceLine();
   const reorder = useReorderServiceLine();
   const draft = useDraftServiceRow(plan.id);
+  const edit = useEditServiceRow(plan.id);
 
   const [viewing, setViewing] = useState<PlanDetailRow | null>(null);
   const [cancelling, setCancelling] = useState<PlanDetailRow | null>(null);
@@ -151,10 +153,16 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     onCommit: (from, to) => moveLine(pageRows[from].service.id, pagination.skipCount + to + 1),
   });
 
+  // The line being edited carries its inline inputs; the rest render as saved.
+  const lineRows: PlanDetailRow[] = edit.controller
+    ? drag.items.map((row) =>
+        row.service.id === edit.editingId ? { ...row, edit: edit.controller ?? undefined } : row,
+      )
+    : drag.items;
   // The new row sits on top of the table on the reference.
   const tableRows: ServiceTableRow[] = draft.controller
-    ? [{ kind: "draft", draft: draft.controller }, ...drag.items]
-    : drag.items;
+    ? [{ kind: "draft", draft: draft.controller }, ...lineRows]
+    : lineRows;
   const showTotal = countedTotal(t("Treatment:Service:ServiceNoun"));
 
   const handleStatus = async (row: PlanDetailRow, action: ServiceAction) => {
@@ -185,10 +193,18 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     }
   };
 
+  // One inline row at a time: the pencil goes while a new row or another edit
+  // is open, and picking a new service closes an edit in progress.
+  const rowBusy = draft.controller !== null || edit.controller !== null;
   const actions = useMemo<ServiceRowActions>(
-    () => ({ onView: setViewing, onStatus: canEditLines ? handleStatus : undefined }),
+    () => ({
+      onView: setViewing,
+      onStatus: canEditLines ? handleStatus : undefined,
+      onEdit: canEditLines && !rowBusy ? edit.start : undefined,
+      canEditLine: (row) => isLineEditable(row.service),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
-    [plan.id, canEditLines],
+    [plan.id, canEditLines, rowBusy],
   );
   const dragHandle = useMemo<ServiceDragHandle>(
     () => ({
@@ -212,7 +228,10 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
           plan.status !== PLAN_STATUS.Completed &&
           plan.status !== PLAN_STATUS.Cancelled
         }
-        onPickService={draft.start}
+        onPickService={(service) => {
+          edit.stop();
+          draft.start(service);
+        }}
         onAddStage={() => setStageOpen(true)}
         onPrescription={() => setPrescriptionOpen(true)}
         onInvoice={() => setInvoiceOpen(true)}
@@ -248,6 +267,13 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         value={draft.controller?.values.teeth ?? EMPTY_TOOTH_VALUE}
         onConfirm={draft.confirmTeeth}
         onClose={draft.closeTeeth}
+      />
+      <ToothPickerDialog
+        open={edit.teethOpen}
+        value={edit.controller?.values.teeth ?? EMPTY_TOOTH_VALUE}
+        lockedTeeth={edit.stagedTeeth}
+        onConfirm={edit.confirmTeeth}
+        onClose={edit.closeTeeth}
       />
       <ConfirmDeleteDialog
         open={draft.discardOpen}

@@ -265,3 +265,31 @@
   opacity: 1;
   transform: scale(1);
 }
+
+/*
+ * A tooth the owner does not offer — on a công đoạn, one its service line does
+ * not treat. Greyed and inert, so the teeth that can be picked stand out.
+ */
+.tc-cell--disabled .tc-tooth,
+.tc-circle button:disabled {
+  cursor: not-allowed;
+}
+.tc-cell--disabled .tc-tooth__img > img {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+.tc-cell--disabled .tc-tooth__num {
+  color: var(--tc-line);
+}
+.tc-cell--disabled .tc-circle {
+  opacity: 0.4;
+}
+.tc-circle button:disabled:hover {
+  background: #fff;
+}
+.tc-circle .tc-circle__quad.active:disabled:hover {
+  background: var(--tc-blue);
+}
+.tc-circle .tc-circle__center.active:disabled:hover {
+  background: var(--tc-blue-soft);
+}
