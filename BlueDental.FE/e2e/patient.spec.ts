@@ -2946,6 +2946,8 @@ typed by hand`);
   test("a tái khám picks its teeth, lists its images, and lands as its own row", async ({
     page,
   }) => {
+    // A long journey — a công đoạn written, finished, reloaded, then followed up.
+    test.setTimeout(90_000);
     await page.setViewportSize({ width: 1800, height: 950 });
     const line = await openPatientWithTreatment(page, "warrantable");
     await addStage(page, line, `e2e tái khám ${runId()}`);
@@ -2954,7 +2956,8 @@ typed by hand`);
     // Finish it — a follow-up is only offered on a closed công đoạn.
     const dialog = await openStageDialog(page, line.serviceId);
     await finishLiveStage(page, dialog, line.serviceId);
-    await page.keyboard.press("Escape");
+    // By its ✕: focus lands on Bảo hành, whose tooltip eats an Escape.
+    await dialog.locator(".ant-modal-close").first().click();
     await expect(dialog).toBeHidden();
     await page.reload();
     await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
@@ -2997,6 +3000,16 @@ typed by hand`);
     await expect(messages.filter({ hasText: "Vui lòng chọn răng" })).toHaveCount(0);
     await expect(messages.filter({ hasText: "Vui lòng nhập nội dung điều trị" })).toBeVisible();
 
+    // Beside the chips, the công đoạn form's chart button: the same teeth on
+    // the chart, the pick carried over, and "Chọn răng" hands it back.
+    const pickedTooth = await chips.first().innerText();
+    await form.getByRole("button", { name: "Xem sơ đồ răng" }).click();
+    const chart = page.getByRole("dialog", { name: "Chọn răng" });
+    await expect(chart).toBeVisible();
+    await chart.locator(".ant-modal-footer").getByRole("button", { name: "Chọn răng" }).click();
+    await expect(chart).toBeHidden();
+    await expect(chips.filter({ hasText: pickedTooth }).first()).toHaveAttribute("aria-pressed", "true");
+
     // Chosen pictures list as thumbnails, each with its own remove.
     const png = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3OMQEAAAgDoJnc6BpjDwmg2XCqAAAAAAAAAAAA4LcFvxYBAWfnQVUAAAAASUVORK5CYII=",
@@ -3030,9 +3043,11 @@ typed by hand`);
     await page.reload();
     await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
     await widenTreatmentTable(page);
-    expect(await treatmentTotal(page), "the table should have gained exactly one row").toBe(
-      rowsBefore + 1,
-    );
+    // Polled: the first row shows while the rest of the slips are still
+    // loading, and a total read that early is short.
+    await expect
+      .poll(() => treatmentTotal(page), { message: "the table should have gained exactly one row" })
+      .toBe(rowsBefore + 1);
 
     const recall = page
       .locator('.pd-treatment-table tbody tr.ant-table-row:has(.pd-tr-chip--recall)')

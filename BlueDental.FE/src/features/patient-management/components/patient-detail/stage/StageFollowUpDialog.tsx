@@ -162,6 +162,7 @@ export function StageFollowUpDialog({
               candidates={form.candidates}
               picked={form.picked}
               onToggle={form.toggleTooth}
+              onChange={form.changeTeeth}
             />
           )}
           {form.errors.teeth && <p className="pd-stage-error">{form.errors.teeth}</p>}

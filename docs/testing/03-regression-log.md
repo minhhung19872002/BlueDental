@@ -5655,3 +5655,19 @@ Stack phụ: FE :5174 → API :5020 (build từ working tree), PostgreSQL local,
 | R-549 | Hàng "Thêm dịch vụ mới" trên chi tiết kế hoạch lưu được dòng không có răng (cột Răng "—") | Lưu khi chưa chọn răng: hiện "Vui lòng chọn ít nhất 1 răng" (`Treatment:Tooth:ToothRequired`) dưới nút răng, không gửi request; chọn răng xong thì lỗi mất. Theo schema "create" của bản gốc (`selectedTeeth` ≥ 1); khi sửa dòng thì không bắt buộc. Chỉ chặn ở FE; BE vẫn nhận dòng không răng vì domain coi đó là dịch vụ toàn hàm |
 
 Kiểm thử: `treatment-plan-detail` **10/10** (dev :5173 → API :5019, stack thật). Test kéo-thả nay kiểm luôn lỗi và việc không có POST.
+
+## 2026-09-24 (đợt 5) — "Tạo bảo hành" có checkbox trống; sơ đồ răng ở "Tạo tái khám"
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-550 | "Tạo bảo hành" (và lịch sử điều trị) hiện checkbox không có chữ ở "Danh sách công đoạn" | Gốc ở BE: lưu dịch vụ trong Danh mục (`ReplaceStages`) tạo lại **mọi** bước với id mới, nên công đoạn đã tick bước trỏ vào id không còn tồn tại, tên trả về rỗng. Nay `CatalogEntry.SyncStages` giữ id của các bước dialog gửi lại (sửa tại chỗ), bước mới mới có id mới, bước bị bỏ thì xoá. Migration `RepairOrphanedStageSteps` trỏ lại các bước mồ côi khi **toàn bộ** bước của công đoạn đều mất và dịch vụ hiện có đúng bằng số bước đó (trỏ theo thứ tự); dữ liệu local có đúng 1 công đoạn như vậy và đã sửa. FE bỏ qua bước không còn tên thay vì vẽ ô trống (`namedSteps`), nhưng khi lưu vẫn gửi đủ |
+| R-551 | "Tạo tái khám" chỉ có chip răng, không có nút sơ đồ như form công đoạn | `FollowUpTeeth` thêm nút "Xem sơ đồ răng" mở `StageTeethDialog`: răng ngoài công đoạn gốc bị làm xám; "Chọn răng" trả lựa chọn về chip |
+
+### Kiểm thử
+
+- Domain `CatalogStageSyncTests` (3 test mới) xanh; Domain 351/352 (ca đỏ sẵn có về đếm quyền). EF 54/54.
+- `treatment-stage-chain` "re-saving a service keeps its steps' ids" (mới, API thật) xanh.
+- Danh mục trên **bản build production** (`vite preview` :8081 → API :5020): `taxonomy*` + `payment-qr` + `branch-*` **38/42**, bằng mức nền đã
+  ghi ở R-487 (38/4). 4 ca đỏ: đăng nhập tài khoản chi nhánh (`branch-switcher`), dropdown thuốc của đơn thuốc mẫu (×2), bảng ở độ rộng điện thoại.
+- `patient.spec` "a tái khám picks its teeth…" xanh (dev :5173 → API :5019). Thêm bước kiểm sơ đồ; sửa 2 chỗ test không ổn định:
+  đóng dialog bằng ✕ vì tooltip Bảo hành nuốt Escape, và poll tổng số dòng sau reload.
