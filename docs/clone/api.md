@@ -1715,6 +1715,11 @@ POST {baseUrl}/service-catalog/batch   X-Api-Key: <key>   { clinicBranchId, item
 `results[]`: `externalId`, `status` (`created` | `updated` | `duplicated` |
 `warned` | `failed`), `systemId?`, `systemName?`, `reason?`, `relinked?`.
 
+Đối tác từ chối cả lô: HTTP không 2xx (hoặc 2xx không có `results`) với body
+`{ code, message }` / `{ errorCode, message }` / `{ error: { code, message } }` →
+`batchErrors: [{ reason: code, message }]`, mọi dịch vụ của lô `failed` — như staging
+hiển thị `CLINIC_CONN_0001 — Kết nối không tồn tại hoặc chưa được kích hoạt.`
+
 Gộp kết quả: dịch vụ chưa có mã → `skipped` kèm lý do; payload không đổi so
 với lần đối tác nhận gần nhất → `skipped` không lý do (không gửi lại);
 `created` / `updated` / `warned` → `sent` (và lưu dấu vân tay); `duplicated` →

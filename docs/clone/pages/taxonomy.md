@@ -700,7 +700,12 @@ bundle (`06cb92cc3a716474.js`, `1771691db5e52bda.js`). Ảnh:
 - Tick nhóm = chọn/bỏ mọi dịch vụ có mã **của cả nhóm** (kể cả khi đang lọc).
 - Footer: trái "Đã chọn N dịch vụ"; phải "Huỷ" và "Đồng bộ" (khoá khi N = 0).
   Bấm "Đồng bộ" gửi rồi **đóng dialog ngay**, trạng thái chờ hiện trên nút ở
-  thanh công cụ. Đóng dialog xoá hết lựa chọn, ô tìm và nhóm đang mở.
+  thanh công cụ. **BlueDental lệch có chủ ý (yêu cầu chủ dự án 2026-09-25,
+  CLAUDE.md §16.18):** dialog giữ nguyên, nút thành "Đang đồng bộ..." + spinner
+  và bị khoá, ô tìm / checkbox / "Chọn tất cả" / "Huỷ" khoá theo; có kết quả mới
+  đóng và mở dialog kết quả; lỗi API thì dialog ở lại để thử lại.
+- Danh sách nhóm được ảo hoá (`@tanstack/react-virtual`, CLAUDE.md §16.9): chỉ
+  render các hàng đang thấy; nhóm gập không render lại khi tick ở nhóm khác. Đóng dialog xoá hết lựa chọn, ô tìm và nhóm đang mở.
 - Payload: nhóm được tick đủ → `taxonomyIds`; nhóm tick một phần → từng id
   trong `serviceIds`. Mỗi khoá chỉ gửi khi có phần tử.
 
@@ -731,6 +736,28 @@ footer):
   nhật = Mã dịch vụ · Mã bên Dental · Ghi chú ("Đã liên kết lại với bản ghi có
   sẵn bên Dental" màu hổ phách khi `relinked`, "—" nếu không); Cảnh báo / Đã
   đồng bộ trước = Mã dịch vụ · Lý do. Rỗng: "Không có dữ liệu".
+
+### Khi đối tác từ chối — ảnh chủ dự án gửi, staging 2026-09-25
+
+Chủ dự án bấm "Đồng bộ" trên staging (không phải phiên quan sát này) khi đối tác
+không còn nhận kết nối của phòng khám. Cùng lúc đó `flags` của staging **vẫn** trả
+`status: "active"` và cả hai cờ bật — tức lỗi đến từ phía đối tác, không phải từ
+phía Dental. Hành vi:
+
+- Request thành công (không có toast lỗi API); mọi dịch vụ được chọn tính là
+  **Thất bại** (6/6 trong ảnh, `Đã gửi` 0, `Bỏ qua` 0).
+- Toast: "Đồng bộ thất bại: 0/{total} dịch vụ được ghi nhận".
+- Dialog kết quả vẫn mở, trên cùng là hộp đỏ "Lỗi trong quá trình đồng bộ" với
+  một dòng `CLINIC_CONN_0001 — Kết nối không tồn tại hoặc chưa được kích hoạt.` —
+  tức `batchErrors[0] = { reason: <mã lỗi của đối tác>, message: <thông điệp> }`;
+  tab mở ở "Trùng mã", bảng "Không có dữ liệu".
+- Đồng bộ đơn lẻ từ dialog sửa: cùng toast "Đồng bộ thất bại: 0/1 dịch vụ được ghi
+  nhận"; dialog vẫn đóng (bundle đóng dialog khi request thành công, bất kể kết quả).
+
+BlueDental: khi đối tác trả lỗi (HTTP không 2xx, hoặc 2xx không có `results`) kèm
+body `{ code, message }` / `{ errorCode, message }` / `{ error: { code, message } }`,
+`reason` là mã đó và `message` là thông điệp đó; không có body như vậy thì
+`reason` = "Không gửi được lô n/m", `message` = status + đoạn đầu body.
 
 ### Trong dialog sửa / thêm dịch vụ (khi cờ đồng bộ bật)
 
