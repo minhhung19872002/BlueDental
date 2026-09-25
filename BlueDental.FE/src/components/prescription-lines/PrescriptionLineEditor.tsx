@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button, InputNumber, Select, Table, Tooltip } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { RequiredPlaceholder } from "@/components/RequiredPlaceholder";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { t } from "@/lib/i18n";
 import { PrescriptionLineCard } from "./PrescriptionLineCard";
@@ -55,13 +56,16 @@ export function PrescriptionLineEditor({ lines, medicines, onChange, paged = fal
       key: "medicine",
       title: t("Common:Rx:MedicineName"),
       width: 260,
+      // "Tên thuốc*" behind a magnifier, as the reference draws the picker:
+      // the column name doubles as the required placeholder.
       render: (_, line) => (
         <Select
           showSearch
           optionFilterProp="label"
           className="bd-rx-full"
           aria-label={t("Common:Rx:MedicineName")}
-          placeholder={t("Common:Rx:SelectMedicine")}
+          placeholder={<RequiredPlaceholder text={t("Common:Rx:MedicineName")} />}
+          prefix={<SearchOutlined />}
           notFoundContent={t("Common:Rx:NotFound")}
           value={line.medicineEntryId || undefined}
           onChange={(next) => patch(line, { medicineEntryId: next })}

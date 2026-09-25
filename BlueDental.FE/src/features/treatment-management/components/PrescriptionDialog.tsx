@@ -11,6 +11,7 @@ import {
   PrescriptionLineEditor,
   type PrescriptionLine,
 } from "@/components/prescription-lines";
+import { RequiredPlaceholder } from "@/components/RequiredPlaceholder";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, type CatalogOption } from "@/hooks/useCatalogOptions";
 import { useDentistOptions } from "@/hooks/usePickerOptions";
@@ -227,8 +228,11 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
               name="staffId"
               rules={[{ required: true, message: t("Treatment:Common:DoctorRequired") }]}
             >
+              {/* "Chọn bác sĩ*" — the reference names the field in its own
+                  placeholder, asterisk included, with no label above it. */}
               <ServerSearchSelect
                 aria-label={t("Treatment:Common:SelectDoctor")}
+                placeholder={<RequiredPlaceholder text={t("Treatment:Common:SelectDoctor")} />}
                 allowClear={false}
                 useOptions={useDentistOptions}
                 notFoundText={t("Treatment:Common:DoctorNotFound")}

@@ -44,7 +44,7 @@ export function PrescriptionLineCard({
         )}
       </div>
       <div className="bd-rx-card-body">
-        <FloatingField label={t("Common:Rx:MedicineName")}>
+        <FloatingField label={t("Common:Rx:MedicineName")} required>
           <Select
             showSearch
             optionFilterProp="label"

@@ -4740,6 +4740,13 @@ html:has(.ant-modal-wrap) {
   margin-left: 2px;
 }
 
+/* The asterisk a RequiredPlaceholder draws inside a control's placeholder
+   ("Chọn bác sĩ*"); same red as the floating label's mark. */
+.bd-required-mark {
+  color: #e5484d;
+  margin-left: 1px;
+}
+
 .floating-field .ant-input-password .ant-input {
   padding-left: 0;
 }

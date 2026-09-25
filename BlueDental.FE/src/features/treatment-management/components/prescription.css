@@ -154,10 +154,6 @@
   min-height: 96px;
 }
 
-.rx-required {
-  color: var(--bd-danger, #ef4d4d);
-}
-
 /* Template picker beside "Thêm loại thuốc"; the reference leaves the last
    44px of the column empty. */
 .rx-template-row {

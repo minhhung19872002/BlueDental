@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Select, Spin } from "antd";
 import { ChevronDown, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -23,7 +23,8 @@ interface Props {
    * passed straight through rather than swallowed.
    */
   id?: string;
-  placeholder?: string;
+  /** A node, so a required picker can carry its asterisk inside the box. */
+  placeholder?: ReactNode;
   onFocus?: (...args: unknown[]) => void;
   onBlur?: (...args: unknown[]) => void;
   onOpenChange?: (open: boolean) => void;
