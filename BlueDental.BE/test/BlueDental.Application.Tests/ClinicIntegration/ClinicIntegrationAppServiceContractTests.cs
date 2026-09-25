@@ -26,7 +26,7 @@ public class ClinicIntegrationAppServiceContractTests
 
         var attribute = typeof(ClinicConnectionAppService).GetCustomAttribute<AuthorizeAttribute>();
         attribute.ShouldNotBeNull();
-        attribute!.Policy.ShouldBe(BlueDentalPermissions.ClinicIntegration.ManageConnections);
+        attribute!.Policy.ShouldBe(BlueDentalPermissions.SystemAdministration.ClinicConnections);
     }
 
     [Fact]

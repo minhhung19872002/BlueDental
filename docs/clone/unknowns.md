@@ -2650,7 +2650,7 @@ Reason: bundle staging 2026-09-25 có đủ hook (`useCreateClinicConnection`,
         Payload body của các lệnh này không đọc được.
 Action taken: NONE — BlueDental có API tương ứng (`api/v1/app/connections`),
         chưa có giao diện; cấu hình qua API/Swagger với quyền
-        `BlueDental.ClinicIntegration.ManageConnections`.
+        `BlueDental.SystemAdmin.ClinicConnections`.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /taxonomy/service — trạng thái kết nối

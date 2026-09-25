@@ -14,7 +14,7 @@ namespace BlueDental.ClinicIntegration;
 /// Sets up a branch's link to the partner. The reference has these endpoints
 /// but, as of 2026-09-25, no screen that calls them — see docs/clone/unknowns.md.
 /// </summary>
-[Authorize(BlueDentalPermissions.ClinicIntegration.ManageConnections)]
+[Authorize(BlueDentalPermissions.SystemAdministration.ClinicConnections)]
 public class ClinicConnectionAppService : ApplicationService, IClinicConnectionAppService
 {
     private readonly IRepository<ClinicConnection, Guid> _connections;

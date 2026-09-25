@@ -184,15 +184,6 @@ public static class BlueDentalPermissions
         public const string Manage = Default + ".Manage";
     }
 
-    /// <summary>
-    /// The branch's link to the partner system. On the reference it is set up
-    /// by a SuperAdmin; syncing itself is gated by the catalog abilities.
-    /// </summary>
-    public static class ClinicIntegration
-    {
-        public const string Default = GroupName + ".ClinicIntegration";
-        public const string ManageConnections = Default + ".ManageConnections";
-    }
 
     public static class SystemAdministration
     {
@@ -218,5 +209,13 @@ public static class BlueDentalPermissions
 
         public const string AuditLogs = Default + ".AuditLogs";
         public const string Settings = Default + ".Settings";
+
+        /// <summary>
+        /// The branch's link to the partner system (api/v1/app/connections).
+        /// On the reference it lives in the SuperAdmin area and no ability
+        /// covers it, so — like the rest of SystemAdmin — it is not bridged
+        /// to the Phân quyền screen; syncing itself is gated by catalogService.
+        /// </summary>
+        public const string ClinicConnections = Default + ".ClinicConnections";
     }
 }

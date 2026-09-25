@@ -1684,7 +1684,7 @@ Cùng hình dạng, dưới tiền tố `api/v1/app`:
 | GET | `api/v1/app/clinic-integration/sync/{branchId}/flags` | `catalogService.read` + chi nhánh |
 | GET | `api/v1/app/clinic-integration/sync/{branchId}/service-catalog-groups` | `catalogService.read` + chi nhánh |
 | POST | `api/v1/app/clinic-integration/sync/{branchId}/service-catalog` | `catalogService.update` + chi nhánh |
-| GET / POST / PATCH | `api/v1/app/connections[/{branchId}]`, `…/handshake`, `…/sync-flags` | `BlueDental.ClinicIntegration.ManageConnections` + chi nhánh |
+| GET / POST / PATCH | `api/v1/app/connections[/{branchId}]`, `…/handshake`, `…/sync-flags` | `BlueDental.SystemAdmin.ClinicConnections` + chi nhánh |
 
 - `flags.status`: `none` (chưa có kết nối) / `pending` / `active` / `failed`. Cờ
   chỉ trả `true` khi kết nối `active` **và** cờ bật.

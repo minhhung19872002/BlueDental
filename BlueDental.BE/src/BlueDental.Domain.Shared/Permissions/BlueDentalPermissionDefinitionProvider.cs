@@ -179,14 +179,6 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
         toolsPerm.AddChild(BlueDentalPermissions.Tools.View, L("Permission:Tools.View"));
         toolsPerm.AddChild(BlueDentalPermissions.Tools.Manage, L("Permission:Tools.Manage"));
 
-        // Clinic integration
-        var integrationPerm = myGroup.AddPermission(
-            BlueDentalPermissions.ClinicIntegration.Default,
-            L("Permission:ClinicIntegration"));
-        integrationPerm.AddChild(
-            BlueDentalPermissions.ClinicIntegration.ManageConnections,
-            L("Permission:ClinicIntegration.ManageConnections"));
-
         // System Administration
         var sysAdminPerm = myGroup.AddPermission(
             BlueDentalPermissions.SystemAdministration.Default,
@@ -207,6 +199,7 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
         rolePerm.AddChild(BlueDentalPermissions.SystemAdministration.Roles.ManagePermissions, L("Permission:SystemAdmin.Roles.ManagePermissions"));
         sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.AuditLogs, L("Permission:SystemAdmin.AuditLogs"));
         sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.Settings, L("Permission:SystemAdmin.Settings"));
+        sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.ClinicConnections, L("Permission:SystemAdmin.ClinicConnections"));
 
         // Medical History (child of PatientManagement)
         var mhPerm = patientMgmt.AddChild(

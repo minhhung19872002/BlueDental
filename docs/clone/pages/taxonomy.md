@@ -782,7 +782,7 @@ Dịch vụ cũ không có mã giữ nguyên ("Chưa có mã"), như bản gốc
 ### Cấu hình kết nối
 
 Không có màn nào trên staging (xem unknowns). BlueDental có API
-`api/v1/app/connections` (quyền `BlueDental.ClinicIntegration.ManageConnections`),
+`api/v1/app/connections` (quyền `BlueDental.SystemAdmin.ClinicConnections`),
 chưa có giao diện. Hợp đồng với đối tác: docs/clone/api.md § Clinic integration.
 
 Components: `ServiceCatalogSyncButton` → `ServiceCatalogSyncDialog`
