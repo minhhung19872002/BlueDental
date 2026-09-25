@@ -1,6 +1,7 @@
 using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
 using BlueDental.Finance;
@@ -147,6 +148,11 @@ public class BlueDentalDbContext :
     public DbSet<CallLog> CallLogs { get; set; }
     public DbSet<MessageTemplate> MessageTemplates { get; set; }
     public DbSet<MessageLog> MessageLogs { get; set; }
+
+    // Clinic integration
+    public DbSet<ClinicConnection> ClinicConnections { get; set; }
+    public DbSet<ServiceCatalogSyncState> ServiceCatalogSyncStates { get; set; }
+    public DbSet<IntegrationCallLog> IntegrationCallLogs { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

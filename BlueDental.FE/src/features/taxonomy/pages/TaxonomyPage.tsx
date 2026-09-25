@@ -20,6 +20,7 @@ import { MedicalRecordTemplateDialog } from "../components/MedicalRecordTemplate
 import { MedicineDialog } from "../components/MedicineDialog";
 import { PrescriptionTemplateDialog } from "../components/PrescriptionTemplateDialog";
 import { RichCatalogDialog } from "../components/RichCatalogDialog";
+import { ServiceCatalogSyncButton } from "../components/ServiceCatalogSyncButton";
 import { ServiceDialog } from "../components/ServiceDialog";
 import { CatalogPanelHeader } from "../components/CatalogPanelHeader";
 import { PatientTagPanel } from "../components/PatientTagPanel";
@@ -398,6 +399,11 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           exportDisabled={entries.length === 0}
           importDisabled={isAllBranches}
           onOpenGroups={grouped ? () => setGroupsOpen(true) : null}
+          syncSlot={
+            tab.key === "service" ? (
+              <ServiceCatalogSyncButton branchId={branchId} disabled={isAllBranches} />
+            ) : null
+          }
         />
 
         <div className="bd-cat-body">

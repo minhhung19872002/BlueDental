@@ -184,6 +184,16 @@ public static class BlueDentalPermissions
         public const string Manage = Default + ".Manage";
     }
 
+    /// <summary>
+    /// The branch's link to the partner system. On the reference it is set up
+    /// by a SuperAdmin; syncing itself is gated by the catalog abilities.
+    /// </summary>
+    public static class ClinicIntegration
+    {
+        public const string Default = GroupName + ".ClinicIntegration";
+        public const string ManageConnections = Default + ".ManageConnections";
+    }
+
     public static class SystemAdministration
     {
         public const string Default = GroupName + ".SystemAdmin";

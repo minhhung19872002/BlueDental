@@ -3,6 +3,7 @@ using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
 using BlueDental.Catalogs;
+using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
 using BlueDental.Inventory;
@@ -50,6 +51,42 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigurePromotions(builder);
         ConfigureTaxonomyCatalog(builder);
         ConfigureQueue(builder);
+        ConfigureClinicIntegration(builder);
+    }
+
+    private static void ConfigureClinicIntegration(ModelBuilder builder)
+    {
+        builder.Entity<ClinicConnection>(entity =>
+        {
+            entity.ToTable("bd_clinic_connections");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.BaseUrl).HasMaxLength(ClinicConnection.MaxBaseUrlLength).IsRequired();
+            entity.Property(x => x.ApiKeyCipher).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.LastError).HasMaxLength(ClinicConnection.MaxErrorLength);
+            // One link per branch; a soft-deleted one must not block a new one.
+            entity.HasIndex(x => x.ClinicBranchId).IsUnique().HasFilter("\"IsDeleted\" = false");
+        });
+
+        builder.Entity<ServiceCatalogSyncState>(entity =>
+        {
+            entity.ToTable("bd_service_catalog_sync_states");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Fingerprint).HasMaxLength(ServiceCatalogSyncState.FingerprintLength).IsRequired();
+            entity.Property(x => x.PartnerServiceId).HasMaxLength(ServiceCatalogSyncState.MaxPartnerIdLength);
+            entity.HasIndex(x => x.CatalogEntryId).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        builder.Entity<IntegrationCallLog>(entity =>
+        {
+            entity.ToTable("bd_integration_call_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Operation).HasMaxLength(IntegrationCallLog.MaxOperationLength).IsRequired();
+            entity.Property(x => x.RequestPath).HasMaxLength(IntegrationCallLog.MaxPathLength).IsRequired();
+            entity.Property(x => x.Error).HasMaxLength(IntegrationCallLog.MaxErrorLength);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.CreationTime });
+        });
     }
 
     private static void ConfigureOrganizations(ModelBuilder builder)

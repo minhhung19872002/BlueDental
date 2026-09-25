@@ -180,3 +180,255 @@
 .bd-import-table .bd-import-row--error > .ant-table-cell {
   background: var(--bd-red-pale);
 }
+
+
+/* ── Đồng bộ danh mục dịch vụ ────────────────────────────────────────────
+   Sizes from the reference's classes (staging, 2026-09-25): 48px group rows,
+   40px service rows, 16px side padding, a 12px gap. Colours from our tokens. */
+
+/* The reference's header keeps `pr-8` clear so "Chọn tất cả" never sits under the close X. */
+.bd-sync-dialog .bd-modal-head {
+  padding-right: 32px;
+}
+
+.bd-sync-dialog__count {
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.bd-sync-dialog__list {
+  margin-top: 12px;
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+
+.bd-sync-dialog__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+.bd-sync-dialog__empty {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.bd-sync-group {
+  border-bottom: 1px solid var(--bd-line-soft);
+}
+
+.bd-sync-group:last-child {
+  border-bottom: 0;
+}
+
+.bd-sync-group__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.bd-sync-group__trigger {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bd-sync-group__name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-title);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bd-sync-group__count {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bd-muted);
+}
+
+.bd-sync-group__chevron {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.bd-sync-group__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.bd-sync-group__body {
+  padding: 0 16px 12px;
+  background: var(--bd-bg-soft);
+}
+
+.bd-sync-group__empty {
+  margin: 0;
+  padding: 8px 0 8px 32px;
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.bd-sync-service {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.bd-sync-service:hover {
+  background: var(--bd-card);
+}
+
+.bd-sync-service.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bd-sync-service.is-disabled:hover {
+  background: none;
+}
+
+.bd-sync-service__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bd-title);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bd-sync-service__code,
+.bd-sync-result__mono {
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.bd-sync-service__nocode {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--bd-amber);
+}
+
+.bd-sync-notice {
+  margin-bottom: 16px;
+}
+
+/* The reference's "Lưu ý:" is a bold amber heading beside a warning triangle. */
+.bd-sync-notice.ant-alert .ant-alert-title {
+  font-weight: 600;
+  color: var(--bd-amber);
+}
+
+.bd-sync-result__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bd-sync-result__errors {
+  padding: 12px;
+  border: 1px solid var(--bd-red-pale);
+  border-radius: 8px;
+  background: var(--bd-red-pale);
+}
+
+.bd-sync-result__errors-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-red);
+}
+
+.bd-sync-result__errors ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--bd-red);
+}
+
+.bd-sync-result__tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bd-sync-result__tile {
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+
+.bd-sync-result__tile-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bd-muted);
+}
+
+.bd-sync-result__tile-value {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.bd-sync-result__tile-value.is-ink { color: var(--bd-title); }
+.bd-sync-result__tile-value.is-green { color: var(--bd-green); }
+.bd-sync-result__tile-value.is-blue { color: var(--bd-link); }
+.bd-sync-result__tile-value.is-red { color: var(--bd-red); }
+.bd-sync-result__tile-value.is-amber { color: var(--bd-amber); }
+.bd-sync-result__tile-value.is-grey { color: var(--bd-muted); }
+
+.bd-sync-result__list {
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+
+.bd-sync-result__relinked {
+  font-weight: 500;
+  color: var(--bd-amber);
+}
+
+.bd-sync-result__muted {
+  color: var(--bd-muted);
+}
+
+@media (min-width: 640px) {
+  .bd-sync-result__tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .bd-sync-result__tiles {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}

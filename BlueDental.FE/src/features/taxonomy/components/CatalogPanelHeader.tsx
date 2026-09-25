@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Input } from "antd";
 import { DownloadOutlined, MenuOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import { t, tRich } from "@/lib/i18n";
@@ -26,6 +27,8 @@ interface Props {
    * Null on flat catalogs, which have no group panel at all.
    */
   onOpenGroups: (() => void) | null;
+  /** Leads the action row — the Dịch vụ tab's "Đồng bộ danh mục dịch vụ", which owns its own state. */
+  syncSlot?: ReactNode;
 }
 
 export function CatalogPanelHeader({
@@ -42,6 +45,7 @@ export function CatalogPanelHeader({
   exportDisabled,
   importDisabled,
   onOpenGroups,
+  syncSlot,
 }: Props) {
   return (
     <>
@@ -71,6 +75,8 @@ export function CatalogPanelHeader({
           </div>
 
           <div className="bd-cat-headactions">
+            {syncSlot}
+
             {onExport && (
               <Button icon={<DownloadOutlined />} disabled={exportDisabled} onClick={onExport}>
                 {t("Taxonomy:Table:ExportBtn")}

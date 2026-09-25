@@ -179,6 +179,14 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
         toolsPerm.AddChild(BlueDentalPermissions.Tools.View, L("Permission:Tools.View"));
         toolsPerm.AddChild(BlueDentalPermissions.Tools.Manage, L("Permission:Tools.Manage"));
 
+        // Clinic integration
+        var integrationPerm = myGroup.AddPermission(
+            BlueDentalPermissions.ClinicIntegration.Default,
+            L("Permission:ClinicIntegration"));
+        integrationPerm.AddChild(
+            BlueDentalPermissions.ClinicIntegration.ManageConnections,
+            L("Permission:ClinicIntegration.ManageConnections"));
+
         // System Administration
         var sysAdminPerm = myGroup.AddPermission(
             BlueDentalPermissions.SystemAdministration.Default,

@@ -318,6 +318,17 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateSip = "BlueDental:Tools:0002";
     }
 
+    public static class ClinicIntegration
+    {
+        public const string ConnectionNotFound = "BlueDental:ClinicIntegration:0001";
+        public const string DuplicateConnection = "BlueDental:ClinicIntegration:0002";
+        public const string ConnectionNotActive = "BlueDental:ClinicIntegration:0003";
+        public const string ServiceCatalogSyncDisabled = "BlueDental:ClinicIntegration:0004";
+        public const string InvalidPartnerUrl = "BlueDental:ClinicIntegration:0005";
+        public const string ServiceNotInBranch = "BlueDental:ClinicIntegration:0006";
+        public const string EmptySelection = "BlueDental:ClinicIntegration:0007";
+    }
+
     public static class BranchManager
     {
         public const string DuplicateEmail = "BlueDental:BranchManager:0001";
