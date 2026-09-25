@@ -5952,3 +5952,15 @@ chỉ "thấy", không đọc được — kiểm trong Node) → app đọc ra 
 `sharpened()` → spec này **đỏ**; bật lại → xanh. `-tracking` thêm kiểm lời nhắc "Hình đang mờ".
 Cả bộ Quét CCCD **7/7**. Khung mờ ~1 ô trở lên (như ảnh chủ dự án) vẫn không đọc được — giới hạn
 quang học; cách xử lý là đưa thẻ ra xa, dùng camera điện thoại, hoặc "Tải ảnh" chụp bằng điện thoại.
+
+
+## 2026-09-25 — Đồng bộ danh mục dịch vụ, mã dịch vụ tự sinh, dữ liệu cũ giữa các màn (R-571..R-576)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-571 | Chủ dự án: sửa giá dịch vụ ở Danh mục, sang màn bệnh nhân chọn dịch vụ vẫn ra giá cũ | Cache 5 phút; Danh mục chỉ invalidate `["taxonomy"]`, picker đọc `["catalog-options", …]`. Rà cả source ra thêm 16 chỗ cùng kiểu. Sửa tận gốc: `lib/queryEntities.ts` + `meta.invalidates` trên mutation, `MutationCache.onSuccess` làm mới mọi query của thực thể (không chờ refetch, để nút không quay lâu hơn). `cross-screen-freshness` 2/2 |
+| R-572 | Nút "Nhập" hiện key `Taxonomy:Import:Btn` | Không phải thiếu migration: API chạy `--no-build` sau khi chỉ build DbMigrator, bin của Host còn Domain.Shared.dll hôm trước. Build lại Host → hết. Ghi vào memory |
+| R-573 | Dịch vụ tạo mới không có mã → không đồng bộ được | Tài liệu và comment nói server sinh mã nhưng `CreateAsync` chỉ nhận mã từ client. Nay sinh 5 ký tự như bản gốc (dialog + nhập Excel); ô mã trống trong file không xoá mã đã có |
+| R-574 | `taxonomy.spec` kéo-thả đỏ sau R-573 | Bảng vốn hiện mã dưới tên; selector `td:nth-child(2) p` bắt cả hai. Thu về `p.bd-cat-name`. `taxonomy*`+`payment-qr`+`branch-*` 63/63 trên production |
+| R-575 | Dialog đồng bộ: nút X đè "Chọn tất cả"; "Lưu ý:" không đúng màu; bảng kết quả 2 dòng đã có thanh cuộn | `pr-8` như bản gốc; selector `.bd-sync-notice.ant-alert .ant-alert-title` thắng CSS-in-JS; `scroll.y` thay `sticky` |
+| R-576 | Regression cấp 3 sau R-571: 39 test đỏ | Chạy lại đúng các spec đó trên bản build **HEAD** (cùng BE, cùng DB): 40 đỏ, cùng các test (selector trang bệnh nhân `.pd-profile-card`, `reception.spec` chờ `/visits` đã bỏ từ lâu…). 3 test chỉ đỏ ở bản mới chạy riêng: 2 xanh ở cả hai bản, 1 đỏ ở cả hai. Không regression; các spec rot đó chưa sửa |

@@ -8,6 +8,9 @@ What to retest when a shared piece changes. Levels are defined in
 | Change here | Level | Retest |
 |-------------|-------|--------|
 | `lib/axios.ts` (API client, auth interceptor) | 3 | Every acceptance spec |
+| `lib/queryEntities.ts` (`ENTITY_QUERY_ROOTS`) or a mutation's `meta.invalidates` | 3 | F-44 `cross-screen-freshness`, then the specs of every screen that reads the entity touched — a root dropped from the map brings back up-to-5-minute stale data on another screen, which no single-screen spec notices (R-571) |
+| `components/AppDialog.tsx` | 3 | Every Danh mục dialog spec (`taxonomy-dialogs`, `taxonomy-groups`, `taxonomy-flat`) plus any screen using the shell — `saveIcon`/`footerActions` are optional, but the footer is shared |
+| Service code generation (`ServiceCode`, `CatalogEntryAppService.CreateAsync`, import commit, `EntryMerge` code rule) | 2 | F-43 `taxonomy-service-sync`, `taxonomy-import*`, `taxonomy.spec` — a code now sits under every new service's name, so a selector on `td p` catches two lines (R-574) |
 | `features/auth/*`, `AccountAppService` | 3 | Every acceptance spec |
 | `app/routePermissions.ts`, `app/useVisibleNav.ts`, `app/PermissionRoute.tsx`, `lib/permissions.ts` | 3 | F-40 first, then `header-navigation` and `routes` — a wrong or missing key hides a menu entry for **admin** too, and every route is wrapped, so a typo here turns a screen into the 403 Result |
 | `AccountAppService.GetCurrentUserAsync` branch fallback (`clinicId`) | 3 | F-40, F-20, F-30 — it decides which branch a session starts in when no header and no claim name one; dialog-created staff depend on it entirely |

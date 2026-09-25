@@ -2623,3 +2623,64 @@ Reason: bản gốc gọi `DELETE patient-diagnoses/{id}`; server của nó làm
         từ bundle và không được thử trên bản gốc. BlueDental xoá mềm phiếu, giữ
         nguyên các dòng tư vấn, và từ chối phiếu đã điều trị (0010).
 Action taken: NONE
+
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service — "Đồng bộ danh mục dịch vụ" → nút "Đồng bộ" (2026-09-25, staging)
+Control: `POST /v1/clinic-integration/sync/{branchId}/service-catalog`
+Reason: đây là lệnh ghi (gửi danh mục sang hệ thống đối tác "System"), nên
+        không bấm. Không đọc được server của bản gốc gửi gì sang đối tác, lấy
+        gì làm "đã đồng bộ", khi nào một dịch vụ là "Trùng mã" / "Cảnh báo" /
+        "Bỏ qua", và `failed` được tính thế nào. BlueDental tự định nghĩa hợp
+        đồng với đối tác (docs/clone/api.md § Clinic integration) và coi "đã
+        đồng bộ" = đối tác đã nhận đúng payload hiện tại (dấu vân tay SHA-256).
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: (không có màn nào) — cấu hình kết nối đối tác `/v1/connections`
+Control: tạo kết nối, sửa thông tin đăng nhập, "handshake", bật/tắt cờ đồng bộ
+Reason: bundle staging 2026-09-25 có đủ hook (`useCreateClinicConnection`,
+        `useClinicConnectionHandshake`, `useUpdateClinicConnectionSyncFlags`,
+        `useUpdateClinicConnectionCredentials`) và các toast ("Đã lưu cấu hình
+        kết nối", "Kết nối thành công", "Chưa kết nối được, vui lòng thử lại",
+        "Đã cập nhật cấu hình đồng bộ") nhưng quét cả 105 chunk của mọi route
+        (kể cả `/clinics`, trang chi tiết phòng khám của SuperAdmin) không có
+        màn nào gọi chúng. Tài khoản `nhakhoa.duchanh@gmail.com` bị
+        `/api/auth/login` trả 401 nên không vào được khu SuperAdmin để xem.
+        Payload body của các lệnh này không đọc được.
+Action taken: NONE — BlueDental có API tương ứng (`api/v1/app/connections`),
+        chưa có giao diện; cấu hình qua API/Swagger với quyền
+        `BlueDental.ClinicIntegration.ManageConnections`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service — trạng thái kết nối
+Control: giá trị `status` ngoài `"active"`, và phản hồi `flags` khi chi nhánh chưa có kết nối
+Reason: chỉ quan sát được `{status:"active", invoiceSyncEnabled:true,
+        serviceCatalogSyncEnabled:true}` trên chi nhánh CHI NHANH A. BlueDental
+        dùng `none` / `pending` / `active` / `failed`.
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service — mã dịch vụ tự sinh
+Control: bảng chữ, độ dài, phạm vi duy nhất của mã
+Reason: 7/8 mã quan sát là 5 ký tự chữ hoa/thường + số (`VLE8y`, `HxHQ4`,
+        `C5c1h`, `fQGoB`, `LVxcj`, `MXGQe`, `zLv5w`); `SV0001` có vẻ nhập tay.
+        BlueDental sinh 5 ký tự [A-Za-z0-9], duy nhất trong danh mục dịch vụ của
+        chi nhánh (không phân biệt hoa thường, kể cả dòng đã xoá). Dịch vụ cũ
+        không có mã giữ nguyên "Chưa có mã", như bản gốc.
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service — quyền của nút đồng bộ
+Control: tài khoản không có quyền sửa dịch vụ có thấy nút không
+Reason: bundle chỉ gate nút theo cờ đồng bộ. BlueDental ẩn nút khi tài khoản
+        không có `catalogService.update` và server từ chối (403), để không có
+        một nút lúc nào bấm cũng lỗi.
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: đồng bộ hoá đơn `POST /v1/clinic-integration/sync/invoice`
+Control: `useSyncInvoiceToSystem`, cờ `invoiceSyncEnabled`
+Reason: hook có trong bundle nhưng không màn nào gọi (2026-09-25). BlueDental
+        lưu cờ `invoiceSyncEnabled` nhưng chưa có đồng bộ hoá đơn.
+Action taken: NONE

@@ -654,3 +654,111 @@ khôi phục). Cột "Kết quả" đứng cuối và ghim bên phải (sau cộ
 "Dòng" ghim bên trái; kéo ngang chỉ cuộn các cột giá trị. Cột "Kết quả" có 6 tag: Thêm mới (xanh lá), Cập nhật (cam — dòng
 đã có nhưng khác cột khác), Khôi phục (xanh dương), Bỏ qua (không thay đổi),
 Dòng thuốc, Lỗi (đỏ).
+
+
+## Đồng bộ danh mục dịch vụ — staging, 2026-09-25
+
+Nút mới trên tab Dịch vụ, gửi danh mục sang **hệ thống đối tác** mà chi nhánh
+đã kết nối (trong bundle gọi là "System"; mục đích ghi ngay trong dialog sửa:
+"để các hoá đơn phát sinh sau đó lấy đúng thông tin dịch vụ mới bên đối tác").
+Quan sát chỉ đọc: mở trang, mở dialog, mở rộng một nhóm, mở dialog sửa — không
+tick để gửi, không bấm "Đồng bộ", không bấm "Lưu". Hành vi sau khi bấm đọc từ
+bundle (`06cb92cc3a716474.js`, `1771691db5e52bda.js`). Ảnh:
+`reference-private/sync-catalog/01…04` (bản gốc) và `local-01…08` (BlueDental).
+
+### Khi nào có nút
+
+- `GET /v1/clinic-integration/sync/{branchId}/flags` lúc vào trang; nút chỉ
+  render khi `serviceCatalogSyncEnabled === true`
+  (`isClinicIntegrationSyncEnabled(flags, "service-catalog")`).
+- Vị trí: đầu hàng nút, trước "Xuất". Icon database 16px + "Đồng bộ danh mục
+  dịch vụ". Đang gửi: icon giữ nguyên, chữ thay bằng spinner, nút bị khoá.
+- BlueDental: thêm điều kiện tài khoản có `catalogService.update` (bản gốc
+  không gate theo quyền — xem unknowns); khoá khi header đang "Tất cả chi nhánh".
+
+### Dialog "Chọn danh mục dịch vụ cần đồng bộ"
+
+- Rộng tối đa 672px (`sm:max-w-2xl`), cao tối đa 85vh, danh sách cuộn bên trong.
+- Header: tiêu đề + mô tả "Chọn cả taxonomy hoặc mở rộng để chọn từng dịch vụ.";
+  bên phải nút "Chọn tất cả" ↔ "Bỏ chọn tất cả" (khoá khi đang tải hoặc không
+  có dịch vụ nào có mã). Header chừa `pr-8` cho nút X.
+- Ô tìm "Tìm theo tên hoặc mã dịch vụ..." — lọc **trên trình duyệt**, không
+  phân biệt hoa thường, theo tên hoặc mã dịch vụ (không theo tên nhóm); nhóm
+  không còn dịch vụ khớp thì ẩn; đang tìm thì mọi nhóm còn lại tự mở. Khoá khi
+  đang tải.
+- Danh sách lấy từ `GET …/service-catalog-groups` **mỗi lần mở dialog**. Trạng
+  thái: spinner (cao 160px) · "Chưa có taxonomy dịch vụ." · "Không tìm thấy dịch
+  vụ phù hợp.".
+- Mỗi nhóm: hàng cao ≥48px, padding ngang 16px, gap 12px: checkbox
+  (aria-label "Chọn taxonomy {tên}", trạng thái nửa chừng khi chọn một phần,
+  khoá khi nhóm không có dịch vụ nào có mã) · tên nhóm đậm 14px · "đã chọn /
+  số dịch vụ có mã" 12px · chevron xoay 180° khi mở. Nhóm mở: nền xám nhạt,
+  "Taxonomy này chưa có dịch vụ." nếu rỗng.
+- Mỗi dịch vụ: hàng cao ≥40px — checkbox, tên (cắt …), bên phải mã (mono 12px)
+  hoặc "Chưa có mã" (cam 12px). Dịch vụ chưa có mã mờ 60%, không tick được.
+  **Dịch vụ đã xoá mềm vẫn được liệt kê và chọn được.**
+- Tick nhóm = chọn/bỏ mọi dịch vụ có mã **của cả nhóm** (kể cả khi đang lọc).
+- Footer: trái "Đã chọn N dịch vụ"; phải "Huỷ" và "Đồng bộ" (khoá khi N = 0).
+  Bấm "Đồng bộ" gửi rồi **đóng dialog ngay**, trạng thái chờ hiện trên nút ở
+  thanh công cụ. Đóng dialog xoá hết lựa chọn, ô tìm và nhóm đang mở.
+- Payload: nhóm được tick đủ → `taxonomyIds`; nhóm tick một phần → từng id
+  trong `serviceIds`. Mỗi khoá chỉ gửi khi có phần tử.
+
+### Sau khi gửi
+
+Toast theo thứ tự (đọc từ bundle):
+
+1. Có dịch vụ bị bỏ qua **kèm lý do** → warning "{n} dịch vụ bị bỏ qua khi đồng
+   bộ", mô tả là các lý do nối bằng "; ".
+2. Rồi đúng một trong: `sent = 0` và `skipped = 0` và `total > 0` → error
+   "Đồng bộ thất bại: 0/{total} dịch vụ được ghi nhận" · `sent = 0`, không lý do
+   nào, `skipped > 0` → success "Không có thay đổi — {skipped}/{total} dịch vụ đã
+   đồng bộ từ trước" · `sent > 0` → success "Đã đồng bộ {sent}/{total} dịch vụ".
+3. Lỗi API → toast lỗi API (fallback "Đồng bộ danh mục dịch vụ thất bại").
+
+Rồi mở dialog **"Kết quả đồng bộ danh mục dịch vụ"** (rộng tối đa 768px, không có
+footer):
+
+- Nếu có `batchErrors`: hộp đỏ "Lỗi trong quá trình đồng bộ", mỗi dòng
+  "{reason} — {message}".
+- 7 ô số (lưới 2 → 4 → 7 cột): Tổng cộng (mực) · Đã gửi (xanh lá) · Cập nhật
+  (xanh dương) · Thất bại (đỏ) · Trùng mã (hổ phách) · Cảnh báo (hổ phách) · Bỏ
+  qua (xám).
+- Tab: Trùng mã · Cảnh báo · Đã đồng bộ trước · Đã cập nhật. Mở trên tab đầu
+  tiên có dữ liệu theo thứ tự Trùng mã → Cảnh báo → Đã cập nhật → Đã đồng bộ
+  trước.
+- Bảng: Trùng mã = Mã dịch vụ · Tên bên Dental · Tên trùng bên System; Đã cập
+  nhật = Mã dịch vụ · Mã bên Dental · Ghi chú ("Đã liên kết lại với bản ghi có
+  sẵn bên Dental" màu hổ phách khi `relinked`, "—" nếu không); Cảnh báo / Đã
+  đồng bộ trước = Mã dịch vụ · Lý do. Rỗng: "Không có dữ liệu".
+
+### Trong dialog sửa / thêm dịch vụ (khi cờ đồng bộ bật)
+
+- Chế độ sửa: hộp cảnh báo vàng trên cùng, tam giác ⚠ + "**Lưu ý:**", dòng dưới
+  "Sau khi cập nhật, hãy bấm "Đồng bộ dịch vụ này" để các hoá đơn phát sinh sau
+  đó lấy đúng thông tin dịch vụ mới bên đối tác."
+- Lưu (thêm hoặc sửa) thành công → dialog **không đóng**; "Lưu" bị khoá; bên
+  trái nó hiện nút viền "Đồng bộ dịch vụ này" (icon refresh, tooltip "Đồng bộ
+  dịch vụ này tới đối tác"). Bấm → gửi `{ serviceIds: [id] }`, cùng các toast ở
+  trên, **không** mở dialog kết quả, thành công thì đóng dialog.
+- Cờ tắt → dialog giữ hành vi cũ (đóng khi lưu). Đây là lý do ghi chú 2026-09-24
+  ở trên thấy staging giữ dialog mở sau khi tạo.
+
+### Mã dịch vụ
+
+Bản gốc sinh mã phía server (5 ký tự chữ + số, ví dụ `VLE8y`). Trước đây
+BlueDental chỉ ghi mã client gửi, nên dịch vụ tạo từ dialog không có mã và
+không đồng bộ được. Nay server sinh mã khi tạo dịch vụ (dialog và nhập Excel)
+nếu không có mã; nhập Excel để trống ô "Mã dịch vụ" không xoá mã đã có.
+Dịch vụ cũ không có mã giữ nguyên ("Chưa có mã"), như bản gốc.
+
+### Cấu hình kết nối
+
+Không có màn nào trên staging (xem unknowns). BlueDental có API
+`api/v1/app/connections` (quyền `BlueDental.ClinicIntegration.ManageConnections`),
+chưa có giao diện. Hợp đồng với đối tác: docs/clone/api.md § Clinic integration.
+
+Components: `ServiceCatalogSyncButton` → `ServiceCatalogSyncDialog`
+(+ `ServiceSyncGroupRow`, `useServiceSyncSelection`) → `ServiceCatalogSyncResultDialog`
+(+ `ServiceSyncResultTable`); `ServiceDialog` + `useServiceDialogSync`; logic chọn
+thuần trong `features/taxonomy/serviceCatalogSync.ts`.
