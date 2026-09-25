@@ -1,17 +1,18 @@
 import { useEffect } from "react";
-import { Button, Input, Spin } from "antd";
+import { Button, Input } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
 import { t, tRich } from "@/lib/i18n";
 import { useServiceCatalogGroups, type SyncServiceCatalogInput } from "../api/clinicIntegrationApi";
 import { useServiceSyncSelection } from "../hooks/useServiceSyncSelection";
-import { ServiceSyncGroupRow } from "./ServiceSyncGroupRow";
+import { ServiceSyncGroupList } from "./ServiceSyncGroupList";
 
 interface Props {
   open: boolean;
   branchId: string;
   syncing: boolean;
   onClose: () => void;
+  /** The caller closes the dialog once the partner has answered. */
   onConfirm: (input: SyncServiceCatalogInput) => void;
 }
 
@@ -19,6 +20,11 @@ interface Props {
  * "Chọn danh mục dịch vụ cần đồng bộ" — the branch's service groups, each
  * unfoldable to its services, searched in the browser by name or code. The
  * tree is fetched when the dialog opens; the ticks are cleared on close.
+ *
+ * The reference closes the dialog the moment "Đồng bộ" is pressed and only the
+ * toolbar button spins. BlueDental keeps it open, the button spinning and the
+ * picks locked, until the answer is in (CLAUDE.md §16.18) — see
+ * docs/clone/pages/taxonomy.md.
  */
 export function ServiceCatalogSyncDialog({ open, branchId, syncing, onClose, onConfirm }: Props) {
   const { data: groups = [], isFetching } = useServiceCatalogGroups(branchId, open);
@@ -29,11 +35,6 @@ export function ServiceCatalogSyncDialog({ open, branchId, syncing, onClose, onC
     if (!open) reset();
   }, [open, reset]);
 
-  const handleConfirm = () => {
-    onConfirm(selection.input);
-    onClose();
-  };
-
   return (
     <AppDialog
       open={open}
@@ -42,7 +43,10 @@ export function ServiceCatalogSyncDialog({ open, branchId, syncing, onClose, onC
       width={672}
       className="bd-sync-dialog"
       titleExtra={
-        <Button disabled={isFetching || selection.syncableCount === 0} onClick={selection.handleToggleAll}>
+        <Button
+          disabled={isFetching || syncing || selection.syncableCount === 0}
+          onClick={selection.handleToggleAll}
+        >
           {selection.allSelected ? t("Taxonomy:Sync:UnselectAll") : t("Taxonomy:Sync:SelectAll")}
         </Button>
       }
@@ -53,10 +57,11 @@ export function ServiceCatalogSyncDialog({ open, branchId, syncing, onClose, onC
       }
       cancelLabel={t("Taxonomy:Sync:Cancel")}
       saveLabel={t("Taxonomy:Sync:Confirm")}
+      savingLabel={t("Taxonomy:Sync:Syncing")}
       saveIcon={null}
       canSave={selection.selectedCount > 0}
       saving={syncing}
-      onSave={handleConfirm}
+      onSave={() => onConfirm(selection.input)}
       onClose={onClose}
     >
       <Input
@@ -65,51 +70,16 @@ export function ServiceCatalogSyncDialog({ open, branchId, syncing, onClose, onC
         placeholder={t("Taxonomy:Sync:SearchPlaceholder")}
         aria-label={t("Taxonomy:Sync:SearchPlaceholder")}
         value={selection.search}
-        disabled={isFetching}
+        disabled={isFetching || syncing}
         onChange={(event) => selection.setSearch(event.target.value)}
       />
 
-      <div className="bd-sync-dialog__list">
-        <SyncGroupList
-          loading={isFetching}
-          hasGroups={groups.length > 0}
-          selection={selection}
-        />
-      </div>
+      <ServiceSyncGroupList
+        loading={isFetching}
+        hasGroups={groups.length > 0}
+        disabled={syncing}
+        selection={selection}
+      />
     </AppDialog>
   );
-}
-
-function SyncGroupList({
-  loading,
-  hasGroups,
-  selection,
-}: {
-  loading: boolean;
-  hasGroups: boolean;
-  selection: ReturnType<typeof useServiceSyncSelection>;
-}) {
-  if (loading) {
-    return (
-      <div className="bd-sync-dialog__loading">
-        <Spin />
-      </div>
-    );
-  }
-  if (!hasGroups) return <p className="bd-sync-dialog__empty">{t("Taxonomy:Sync:NoGroups")}</p>;
-  if (selection.visibleGroups.length === 0) {
-    return <p className="bd-sync-dialog__empty">{t("Taxonomy:Sync:NoMatch")}</p>;
-  }
-
-  return selection.visibleGroups.map((group) => (
-    <ServiceSyncGroupRow
-      key={group.taxonomyId}
-      group={group}
-      selected={selection.selected}
-      open={selection.isExpanded(group.taxonomyId)}
-      onToggleGroup={selection.handleToggleGroup}
-      onToggleService={selection.handleToggleService}
-      onOpenChange={selection.handleExpandedChange}
-    />
-  ));
 }

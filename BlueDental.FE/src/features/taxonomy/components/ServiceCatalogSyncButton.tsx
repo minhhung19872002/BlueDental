@@ -45,7 +45,12 @@ export function ServiceCatalogSyncButton({ branchId, disabled }: Props) {
         branchId={branchId}
         syncing={isSyncing}
         onClose={() => setOpen(false)}
-        onConfirm={(input) => sync(input, setResult)}
+        onConfirm={(input) =>
+          sync(input, (answer) => {
+            setOpen(false);
+            setResult(answer);
+          })
+        }
       />
 
       <ServiceCatalogSyncResultDialog result={result} onClose={() => setResult(null)} />

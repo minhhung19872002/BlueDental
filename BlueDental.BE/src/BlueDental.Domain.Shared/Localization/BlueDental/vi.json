@@ -3698,7 +3698,7 @@
     "Taxonomy:Rx:AdviceLabel": "Lời dặn",
     "Taxonomy:Import:Btn": "Nhập",
     "Taxonomy:Sync:Button": "Đồng bộ danh mục dịch vụ",
-    "Taxonomy:Sync:Syncing": "Đang đồng bộ",
+    "Taxonomy:Sync:Syncing": "Đang đồng bộ...",
     "Taxonomy:Sync:DialogTitle": "Chọn danh mục dịch vụ cần đồng bộ",
     "Taxonomy:Sync:DialogSubtitle": "Chọn cả taxonomy hoặc mở rộng để chọn từng dịch vụ.",
     "Taxonomy:Sync:SelectAll": "Chọn tất cả",

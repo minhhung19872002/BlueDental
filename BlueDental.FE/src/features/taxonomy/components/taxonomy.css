@@ -219,11 +219,26 @@
   color: var(--bd-muted);
 }
 
+/* Virtualised rows: the stack is as tall as every row would be, and each
+   rendered row sits at the offset the virtualizer measured for it. */
+.bd-sync-dialog__rows {
+  position: relative;
+  height: var(--bd-sync-rows-height, auto);
+}
+
+.bd-sync-dialog__row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(var(--bd-sync-row-y, 0));
+}
+
 .bd-sync-group {
   border-bottom: 1px solid var(--bd-line-soft);
 }
 
-.bd-sync-group:last-child {
+.bd-sync-dialog__row.is-last .bd-sync-group {
   border-bottom: 0;
 }
 
@@ -410,6 +425,13 @@
   overflow: hidden;
   border: 1px solid var(--bd-line);
   border-radius: 8px;
+}
+
+/* 16px each side, as the group rows of the picking dialog; antd's small table
+   leaves only 8px, which puts "Mã dịch vụ" against the border. */
+.bd-sync-result__table.ant-table-wrapper .ant-table.ant-table-small .ant-table-thead > tr > th,
+.bd-sync-result__table.ant-table-wrapper .ant-table.ant-table-small .ant-table-tbody > tr > td {
+  padding-inline: 16px;
 }
 
 .bd-sync-result__relinked {

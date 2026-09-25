@@ -3,13 +3,23 @@ import { Checkbox } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { ServiceCatalogGroupDto } from "../api/clinicIntegrationApi";
-import { groupCheckState, selectedInGroup, syncableServices } from "../serviceCatalogSync";
+import type { GroupCheckState } from "../serviceCatalogSync";
 
 interface Props {
   /** The group as shown — narrowed to the matches while a search is typed. */
   group: ServiceCatalogGroupDto;
-  selected: ReadonlySet<string>;
+  /** Picked / syncable services of the group as shown. */
+  picked: number;
+  syncable: number;
+  state: GroupCheckState;
   open: boolean;
+  /**
+   * The ticks, read only while the group is unfolded. A folded group gets
+   * the same empty set every render, so ticking elsewhere never re-renders
+   * it — the dialog can hold a thousand groups.
+   */
+  selected: ReadonlySet<string>;
+  disabled: boolean;
   onToggleGroup: (taxonomyId: string) => void;
   onToggleService: (id: string) => void;
   onOpenChange: (taxonomyId: string, open: boolean) => void;
@@ -22,14 +32,16 @@ interface Props {
  */
 export const ServiceSyncGroupRow = memo(function ServiceSyncGroupRow({
   group,
-  selected,
+  picked,
+  syncable,
+  state,
   open,
+  selected,
+  disabled,
   onToggleGroup,
   onToggleService,
   onOpenChange,
 }: Props) {
-  const syncable = syncableServices(group).length;
-  const state = groupCheckState(group, selected);
   const contentId = `bd-sync-group-${group.taxonomyId}`;
 
   return (
@@ -39,7 +51,7 @@ export const ServiceSyncGroupRow = memo(function ServiceSyncGroupRow({
           aria-label={t("Taxonomy:Sync:SelectGroupAria", group.name)}
           checked={state === "checked"}
           indeterminate={state === "indeterminate"}
-          disabled={syncable === 0}
+          disabled={disabled || syncable === 0}
           onChange={() => onToggleGroup(group.taxonomyId)}
         />
         <button
@@ -51,7 +63,7 @@ export const ServiceSyncGroupRow = memo(function ServiceSyncGroupRow({
         >
           <span className="bd-sync-group__name">{group.name}</span>
           <span className="bd-sync-group__count">
-            {selectedInGroup(group, selected)}/{syncable}
+            {picked}/{syncable}
             <DownOutlined className={["bd-sync-group__chevron", open && "is-open"].filter(Boolean).join(" ")} />
           </span>
         </button>
@@ -69,7 +81,7 @@ export const ServiceSyncGroupRow = memo(function ServiceSyncGroupRow({
               >
                 <Checkbox
                   checked={selected.has(service.id)}
-                  disabled={!service.code}
+                  disabled={disabled || !service.code}
                   onChange={() => onToggleService(service.id)}
                 />
                 <span className="bd-sync-service__name">{service.name}</span>

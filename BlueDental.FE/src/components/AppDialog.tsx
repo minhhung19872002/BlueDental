@@ -15,6 +15,8 @@ interface Props {
   saving?: boolean;
   /** Save button label; defaults to "Lưu". */
   saveLabel?: string;
+  /** Save button label while saving; defaults to "Đang lưu...". */
+  savingLabel?: string;
   /** Save button icon; defaults to the floppy disk. Null for a bare label. */
   saveIcon?: ReactNode;
   /** Extra buttons placed just before the save, e.g. a follow-up action. */
@@ -55,6 +57,7 @@ export function AppDialog({
   canSave,
   saving,
   saveLabel,
+  savingLabel,
   saveIcon = <SaveOutlined />,
   footerActions,
   subtitle,
@@ -104,7 +107,7 @@ export function AppDialog({
               disabled={!canSave || saving}
               onClick={onSave}
             >
-              {saving ? t("Common:Saving") : saveLabel ?? t("Common:Save")}
+              {saving ? savingLabel ?? t("Common:Saving") : saveLabel ?? t("Common:Save")}
             </Button>
           </div>
         </div>

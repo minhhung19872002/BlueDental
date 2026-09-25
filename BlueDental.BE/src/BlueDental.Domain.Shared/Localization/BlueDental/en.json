@@ -3799,7 +3799,7 @@
     "Taxonomy:Rx:AdviceLabel": "Instructions",
     "Taxonomy:Import:Btn": "Import",
     "Taxonomy:Sync:Button": "Sync service catalog",
-    "Taxonomy:Sync:Syncing": "Syncing",
+    "Taxonomy:Sync:Syncing": "Syncing...",
     "Taxonomy:Sync:DialogTitle": "Choose the services to sync",
     "Taxonomy:Sync:DialogSubtitle": "Tick a whole group, or unfold it to pick services one by one.",
     "Taxonomy:Sync:SelectAll": "Select all",
