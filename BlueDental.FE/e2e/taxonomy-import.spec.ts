@@ -1,6 +1,12 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import * as XLSX from "xlsx";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { purgeRunGroups } from "./fixtures/cleanup";
+
+// The groups this file creates carry a run id; leave none behind in the shared DB.
+test.afterAll(async ({ browser }) => {
+  await purgeRunGroups(browser, "care_service", ["NHOM DV"]);
+});
 
 /**
  * Feature: Danh mục — nhập từ Excel, through the real screen. The importer

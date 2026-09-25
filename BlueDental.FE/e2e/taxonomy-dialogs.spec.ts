@@ -1,5 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { purgeRunGroups } from "./fixtures/cleanup";
+
+// The groups this file creates carry a run id; leave none behind in the shared DB.
+test.afterAll(async ({ browser }) => {
+  await purgeRunGroups(browser, "care_service", ["NHOM DV"]);
+});
 
 /**
  * Feature: the per-catalog dialogs. The reference gives every catalog its own

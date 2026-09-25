@@ -40,9 +40,13 @@ function toBranchInfo(branch: BranchResponse): BranchInfo {
  * not import one another — the same reason `usePaymentAccountOptions` sits
  * beside it.
  */
+export const branchInfoKeys = {
+  all: ["branch-info"] as const,
+};
+
 export function useBranchInfo(branchId: string) {
   return useQuery<BranchResponse[], Error, BranchInfo | undefined>({
-    queryKey: ["branch-info", "accessible"],
+    queryKey: [...branchInfoKeys.all, "accessible"],
     queryFn: () =>
       api
         .get<{ items: BranchResponse[] }>("/v1/app/clinic-branches/accessible")

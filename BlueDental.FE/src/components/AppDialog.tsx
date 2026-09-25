@@ -15,6 +15,12 @@ interface Props {
   saving?: boolean;
   /** Save button label; defaults to "Lưu". */
   saveLabel?: string;
+  /** Save button label while saving; defaults to "Đang lưu...". */
+  savingLabel?: string;
+  /** Save button icon; defaults to the floppy disk. Null for a bare label. */
+  saveIcon?: ReactNode;
+  /** Extra buttons placed just before the save, e.g. a follow-up action. */
+  footerActions?: ReactNode;
   /** A line under the title, where the reference explains what the form is for. */
   subtitle?: string;
   /** Sits beside the title — the reference puts the receiving department here. */
@@ -51,6 +57,9 @@ export function AppDialog({
   canSave,
   saving,
   saveLabel,
+  savingLabel,
+  saveIcon = <SaveOutlined />,
+  footerActions,
   subtitle,
   titleExtra,
   footerLeft,
@@ -88,16 +97,17 @@ export function AppDialog({
                 {cancelLabel}
               </Button>
             ) : null}
+            {footerActions}
             {/* A disabled button says "not now"; a spinner says "working". The
                 save can take a moment, so it has to say which. */}
             <Button
               type="primary"
-              icon={<SaveOutlined />}
+              icon={saveIcon}
               loading={saving}
               disabled={!canSave || saving}
               onClick={onSave}
             >
-              {saving ? t("Common:Saving") : saveLabel ?? t("Common:Save")}
+              {saving ? savingLabel ?? t("Common:Saving") : saveLabel ?? t("Common:Save")}
             </Button>
           </div>
         </div>

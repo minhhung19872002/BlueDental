@@ -568,6 +568,11 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
 
         var flatContainerId = plan.FlatContainer?.Id ?? newGroups.FirstOrDefault()?.Id;
 
+        // A service row with no code gets one drawn, as the dialog's do.
+        var takenCodes = group == TaxonomyGroups.CareService && plan.Creates.Any(c => string.IsNullOrWhiteSpace(c.Draft.Code))
+            ? await GetServiceCodesAsync(plan.BranchId, plan.Creates.Select(c => c.Draft.Code))
+            : null;
+
         var entries = new List<CatalogEntry>(plan.Creates.Count);
         foreach (var (draft, taxonomyId, groupKey, position) in plan.Creates)
         {
@@ -581,7 +586,7 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
                 targetGroup,
                 group,
                 draft.Name,
-                draft.Code,
+                takenCodes != null && string.IsNullOrWhiteSpace(draft.Code) ? ServiceCode.Next(takenCodes) : draft.Code,
                 draft.Price,
                 draft.Content,
                 draft.Description,
@@ -621,6 +626,19 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
 
             await _repository.UpdateManyAsync(plan.Restores.Select(r => r.Entry).ToList(), autoSave: true);
         }
+    }
+
+    /// <summary>The branch's service codes, deleted rows and the file's own codes included.</summary>
+    private async Task<HashSet<string>> GetServiceCodesAsync(Guid branchId, IEnumerable<string?> fileCodes)
+    {
+        using var _ = _softDeleteFilter.Disable();
+        var query = await _repository.GetQueryableAsync();
+        var stored = query
+            .Where(x => x.ClinicBranchId == branchId && x.Group == TaxonomyGroups.CareService)
+            .Select(x => x.Code)
+            .ToList();
+
+        return ServiceCode.NewTakenSet(stored.Concat(fileCodes));
     }
 
     // ---------------------------------------------------------------- template

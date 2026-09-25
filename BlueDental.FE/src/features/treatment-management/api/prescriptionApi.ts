@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { catalogOptionKeys } from "@/hooks/useCatalogOptions";
+import { invalidateEntities } from "@/lib/queryEntities";
 import type { PagedResult } from "@/types";
 
 /** Matches BlueDental.TreatmentManagement.PrescriptionTreatmentType. */
@@ -109,12 +109,16 @@ export function usePrescriptions(patientId: string) {
   });
 }
 
-/** Saving with "Lưu đơn thuốc mẫu" ticked adds a catalog entry, so those lists refresh too. */
+/**
+ * Saving with "Lưu đơn thuốc mẫu" ticked adds a catalog entry, so every catalog
+ * reader refreshes too — the pickers and Danh mục's own tables. Only then,
+ * which is why it is not a static `meta.invalidates`.
+ */
 function useInvalidateAfterSave() {
   const queryClient = useQueryClient();
   return (savedTemplate: boolean) => {
     void queryClient.invalidateQueries({ queryKey: prescriptionKeys.all });
-    if (savedTemplate) void queryClient.invalidateQueries({ queryKey: catalogOptionKeys.all });
+    if (savedTemplate) invalidateEntities(queryClient, ["catalog"]);
   };
 }
 

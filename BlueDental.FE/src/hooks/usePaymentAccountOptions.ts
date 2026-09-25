@@ -26,6 +26,10 @@ export interface PaymentAccountOption {
   isActive: boolean;
 }
 
+export const paymentAccountOptionKeys = {
+  all: ["payment-account-options"] as const,
+};
+
 /**
  * The active accounts of one kind in this branch.
  *
@@ -37,7 +41,7 @@ export function usePaymentAccountOptions(
   kind: PaymentAccountKindCode | null,
 ) {
   return useQuery({
-    queryKey: ["payment-account-options", clinicBranchId, kind],
+    queryKey: [...paymentAccountOptionKeys.all, clinicBranchId, kind],
     queryFn: async (): Promise<PaymentAccountOption[]> => {
       const response = await api.get<PagedResult<PaymentAccountOption>>(
         "/v1/app/payment-accounts",

@@ -1,5 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { logApiError, notifyApiError } from "./notify";
+import { invalidateEntities } from "./queryEntities";
 
 const SKIP_GLOBAL_ERROR_TOAST = "skipGlobalErrorToast";
 
@@ -14,6 +15,11 @@ export const queryClient = new QueryClient({
       if (isOptedOut(mutation.meta)) return;
       if (typeof mutation.options.onError === "function") return;
       notifyApiError(error);
+    },
+    // Not returned: the mutation settles with its own request, not once every
+    // screen that reads the entity has refetched.
+    onSuccess: (_data, _variables, _onMutateResult, mutation) => {
+      invalidateEntities(queryClient, mutation.meta?.invalidates ?? []);
     },
   }),
 

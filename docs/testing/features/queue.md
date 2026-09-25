@@ -1,4 +1,4 @@
-# F-43 — Màn hình đợi (`/queue`)
+# F-45 — Màn hình đợi (`/queue`)
 
 Status: `VERIFIED` · Verified commit: see `01-feature-verification-registry.md`
 

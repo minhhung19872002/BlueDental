@@ -47,6 +47,12 @@ public class BlueDentalApplicationModule : AbpModule
             options.FileSets.AddEmbedded<BlueDentalApplicationModule>();
         });
 
+        // The partner system a branch syncs its catalog to. Bounded, so a
+        // partner that hangs cannot hold a request past the 30-second budget.
+        context.Services.AddHttpClient(
+            ClinicIntegration.HttpClinicPartnerClient.ClientName,
+            client => client.Timeout = TimeSpan.FromSeconds(30));
+
         // Legacy module permissions are satisfied by the ability leaves the
         // Phân quyền screen grants. Registered last so it only decides names
         // the user/role/client providers left undefined.

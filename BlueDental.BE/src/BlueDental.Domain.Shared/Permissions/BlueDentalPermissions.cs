@@ -184,6 +184,7 @@ public static class BlueDentalPermissions
         public const string Manage = Default + ".Manage";
     }
 
+
     public static class SystemAdministration
     {
         public const string Default = GroupName + ".SystemAdmin";
@@ -208,5 +209,13 @@ public static class BlueDentalPermissions
 
         public const string AuditLogs = Default + ".AuditLogs";
         public const string Settings = Default + ".Settings";
+
+        /// <summary>
+        /// The branch's link to the partner system (api/v1/app/connections).
+        /// On the reference it lives in the SuperAdmin area and no ability
+        /// covers it, so — like the rest of SystemAdmin — it is not bridged
+        /// to the Phân quyền screen; syncing itself is gated by catalogService.
+        /// </summary>
+        public const string ClinicConnections = Default + ".ClinicConnections";
     }
 }

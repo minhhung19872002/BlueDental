@@ -299,16 +299,12 @@ export function useStageProgress(treatmentServiceId: string) {
  * together — and the patient account with them: the profile tab's treatment
  * table reads a line's công đoạn count and its Nội dung điều trị (the stage
  * note) off that rollup, so leaving it alone left the row a reload behind.
+ * The "treatmentStage" entity lists those readers and the patient list.
  */
 function useStageMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: stageKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["patient-treatments"] });
-    },
+    meta: { invalidates: ["treatmentStage"] },
   });
 }
 

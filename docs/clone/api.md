@@ -1632,3 +1632,96 @@ for it; a 403 body carries `error.code = Volo.Authorization:010001`.
 |---|---|
 | `care-service` item carries `laboIds: string[]` and `stages[]` of `{ id, name, value, valueType: "percentage" \| "value", isMarketingSalary }`; the dialog no longer sends a service code. Price fields: `price` (as typed), `discountType: "percentage" \| "value"`, `discountValue`, `taxName` ("10%" / "KCT"…), `taxRate: number \| null`, `taxConfig: "beforeTax" \| "afterTax"` (stored as chosen, never normalised); the response adds the computed `priceAfterDiscount` and `actualCustomerPayment` with two decimals (e.g. `863636.36`, `950000` for 1.000.000 − 5 %, 10 %, afterTax) | `POST/PUT /api/v1/app/catalog-entries` — `serviceConfig.laboSupplierIds: Guid[]`, `stages[].valueType` (`0` Percentage, `1` Amount), `stages[].isMarketingSalary`. `Code` is server-generated on create and never updated. Refusals: supplier outside the branch → 403 `BlueDental:Catalogs:0025`; percentage > 100 or negative value → 403 `Catalogs:0021` |
 | Labo tab options: `GET /v1/labos/?branchId=&perPage=100&orderBy=name:asc` | `GET /api/v1/app/labo-suppliers?ClinicBranchId=&IsActive=true` via `useLaboSupplierOptions` |
+
+
+## Clinic integration — đồng bộ danh mục dịch vụ (staging, 2026-09-25)
+
+Quan sát chỉ đọc: hai GET dưới đây lấy từ network có sẵn khi mở trang và mở
+dialog; các lệnh ghi đọc từ bundle (`1771691db5e52bda.js`, module 999074),
+không gọi. Structure only — không có dữ liệu thật.
+
+### Reference
+
+| Method | Path | Ghi chú |
+|---|---|---|
+| GET | `/v1/clinic-integration/sync/{branchId}/flags` | gọi khi vào `/taxonomy/service` |
+| GET | `/v1/clinic-integration/sync/{branchId}/service-catalog-groups` | gọi mỗi lần mở dialog |
+| POST | `/v1/clinic-integration/sync/{branchId}/service-catalog` | nút "Đồng bộ" — **không gọi** |
+| POST | `/v1/clinic-integration/sync/invoice` | hook có, không màn nào dùng |
+| GET | `/v1/connections/{branchId}` | hook có, không màn nào dùng |
+| POST | `/v1/connections` | body có `branchId` |
+| PATCH | `/v1/connections/{branchId}` | sửa thông tin đăng nhập |
+| POST | `/v1/connections/{branchId}/handshake` | trả connection; `status === "active"` → "Kết nối thành công" |
+| PATCH | `/v1/connections/{branchId}/sync-flags` | trả connection |
+
+```json
+// flags
+{ "status": "active", "invoiceSyncEnabled": true, "serviceCatalogSyncEnabled": true }
+
+// service-catalog-groups → data
+[{ "taxonomyId": "<id>", "name": "<string>", "totalServices": 6, "syncedServices": 0,
+   "services": [{ "id": "<id>", "name": "<string>", "code": "<string>|null",
+                  "synced": false, "isDeleted": false }] }]
+
+// service-catalog request (từ bundle) — mỗi khoá chỉ gửi khi có phần tử
+{ "taxonomyIds": ["<id>"], "serviceIds": ["<id>"] }
+
+// service-catalog response (các trường bundle đọc)
+{ "summary": { "total": 0, "sent": 0, "updated": 0, "failed": 0, "skipped": 0 },
+  "duplicated": [{ "code": "<string>", "dentalName": "<string>", "systemName": "<string>", "externalId": "<string>" }],
+  "warned":     [{ "code": "<string>", "reason": "<string>", "externalId": "<string>" }],
+  "skipped":    [{ "code": "<string>", "reason": "<string>|null", "externalId": "<string>" }],
+  "updated":    [{ "code": "<string>", "externalId": "<string>", "relinked": false }],
+  "batchErrors":[{ "reason": "<string>", "message": "<string>" }] }
+```
+
+### BlueDental
+
+Cùng hình dạng, dưới tiền tố `api/v1/app`:
+
+| Method | Path | Quyền |
+|---|---|---|
+| GET | `api/v1/app/clinic-integration/sync/{branchId}/flags` | `catalogService.read` + chi nhánh |
+| GET | `api/v1/app/clinic-integration/sync/{branchId}/service-catalog-groups` | `catalogService.read` + chi nhánh |
+| POST | `api/v1/app/clinic-integration/sync/{branchId}/service-catalog` | `catalogService.update` + chi nhánh |
+| GET / POST / PATCH | `api/v1/app/connections[/{branchId}]`, `…/handshake`, `…/sync-flags` | `BlueDental.SystemAdmin.ClinicConnections` + chi nhánh |
+
+- `flags.status`: `none` (chưa có kết nối) / `pending` / `active` / `failed`. Cờ
+  chỉ trả `true` khi kết nối `active` **và** cờ bật.
+- `baseUrl` phải là `https://…` không query; `http://` chỉ chấp nhận cho địa
+  chỉ loopback (sandbox đối tác chạy local), vì API key đi trong header.
+- Connection DTO không bao giờ trả API key (`hasApiKey: bool`); key lưu mã hoá
+  (`IStringEncryptionService`). Đổi `baseUrl` sang đối tác khác xoá trạng thái
+  đồng bộ cũ của chi nhánh.
+- Mỗi lần gọi đối tác ghi một dòng `bd_integration_call_logs` (thao tác, path,
+  status, thời gian, số dịch vụ, lỗi) — không lưu body/header.
+- Lỗi: `BlueDental:ClinicIntegration:0001` không có kết nối · `0002` đã có kết
+  nối · `0003` bật cờ khi chưa active · `0004` chưa bật đồng bộ dịch vụ ·
+  `0005` URL đối tác sai · `0006` nhóm/dịch vụ không thuộc chi nhánh · `0007`
+  chưa chọn gì.
+
+### Hợp đồng với đối tác — BlueDental tự định nghĩa (UNKNOWN_REFERENCE_BEHAVIOR)
+
+```
+POST {baseUrl}/handshake               X-Api-Key: <key>   { clinicBranchId }        → 2xx = kết nối được
+POST {baseUrl}/service-catalog/batch   X-Api-Key: <key>   { clinicBranchId, items }  → { results }
+```
+
+`items[]`: `externalId` (id dịch vụ BlueDental), `code`, `name`, `detailName`,
+`groupName`, `unit`, `price`, `taxRate` (tên enum), `priceIncludesTax`,
+`discountIsPercent`, `discountValue`, `priceAfterDiscount`, `amountCollected`,
+`isActive`, `isDeleted`. Tối đa 50 dịch vụ một lô, timeout 30 giây.
+
+`results[]`: `externalId`, `status` (`created` | `updated` | `duplicated` |
+`warned` | `failed`), `systemId?`, `systemName?`, `reason?`, `relinked?`.
+
+Đối tác từ chối cả lô: HTTP không 2xx (hoặc 2xx không có `results`) với body
+`{ code, message }` / `{ errorCode, message }` / `{ error: { code, message } }` →
+`batchErrors: [{ reason: code, message }]`, mọi dịch vụ của lô `failed` — như staging
+hiển thị `CLINIC_CONN_0001 — Kết nối không tồn tại hoặc chưa được kích hoạt.`
+
+Gộp kết quả: dịch vụ chưa có mã → `skipped` kèm lý do; payload không đổi so
+với lần đối tác nhận gần nhất → `skipped` không lý do (không gửi lại);
+`created` / `updated` / `warned` → `sent` (và lưu dấu vân tay); `duplicated` →
+danh sách "Trùng mã"; `failed`, thiếu kết quả, hoặc cả lô lỗi → `failed` +
+`batchErrors`. Luôn có `total = sent + failed + skipped + duplicated`.

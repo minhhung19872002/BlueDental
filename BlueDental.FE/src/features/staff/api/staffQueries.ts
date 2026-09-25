@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   staffApi,
   type CreateStaffInput,
@@ -35,14 +35,14 @@ export function useStaffRoleNames() {
   });
 }
 
+/**
+ * Staff are read well beyond this screen — every doctor and staff picker,
+ * Tiếp nhận's doctors, the signed-in account's own permissions.
+ */
 function useStaffMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: staffKeys.all });
-    },
+    meta: { invalidates: ["staff"] },
   });
 }
 

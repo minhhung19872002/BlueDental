@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 
@@ -39,12 +39,9 @@ export function useClinicInfo() {
 
 export function useUpdateClinicInfo() {
   const branchId = useCurrentBranchId();
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateClinicInfoDto) => settingsApi.updateClinicInfo(branchId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clinic-info", branchId] });
-      qc.invalidateQueries({ queryKey: ["clinic-branches"] });
-    },
+    // Clinic info, the branch lists and the printed letterheads.
+    meta: { invalidates: ["branch"] },
   });
 }

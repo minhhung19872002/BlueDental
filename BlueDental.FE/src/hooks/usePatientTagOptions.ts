@@ -16,6 +16,10 @@ export interface PatientTagOption {
   color: string;
 }
 
+export const patientTagOptionKeys = {
+  all: ["patient-tag-options"] as const,
+};
+
 /**
  * The tags that may be put on a record.
  *
@@ -28,7 +32,7 @@ export function usePatientTagOptions(branchId?: string) {
   const clinicBranchId = branchId ?? headerBranchId;
 
   return useQuery({
-    queryKey: ["patient-tag-options", clinicBranchId],
+    queryKey: [...patientTagOptionKeys.all, clinicBranchId],
     queryFn: async (): Promise<PatientTagOption[]> => {
       const response = await api.get("/v1/app/patient-tags", {
         params: { ClinicBranchId: clinicBranchId, IsActive: true, MaxResultCount: 200 },

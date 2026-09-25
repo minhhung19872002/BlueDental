@@ -31,6 +31,10 @@ interface PatientRow {
   phoneNumber: string | null;
 }
 
+export const patientOptionKeys = {
+  all: ["patient-options"] as const,
+};
+
 /**
  * @param keyword server-side search over name, code and phone; omit for the
  * most recent patients.
@@ -39,7 +43,7 @@ export function usePatientOptions(keyword?: string) {
   const branchId = useCurrentBranchId();
 
   return useQuery({
-    queryKey: ["patient-options", branchId, keyword ?? ""],
+    queryKey: [...patientOptionKeys.all, branchId, keyword ?? ""],
     queryFn: async (): Promise<PatientOption[]> => {
       const page = await api
         .get<PagedResult<PatientRow>>("/v1/app/patients", {

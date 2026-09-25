@@ -39,6 +39,8 @@ export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: updateMyProfile,
+    // The account is a member of staff: its name shows in every staff list and picker.
+    meta: { invalidates: ["staff"] },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-profile"] }),
   });
 }

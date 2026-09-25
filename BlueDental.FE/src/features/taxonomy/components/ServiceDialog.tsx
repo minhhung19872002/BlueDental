@@ -1,7 +1,7 @@
-import { Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, Tabs } from "antd";
+import { Alert, Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, Tabs } from "antd";
 import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import {
   SERVICE_STAGE_VALUE_TYPE,
   SERVICE_TAX_RATE,
@@ -21,6 +21,7 @@ import { useLaboSupplierOptions } from "@/hooks/useLaboPickers";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
+import { useServiceDialogSync } from "../hooks/useServiceDialogSync";
 import { useServicePricePreview } from "../hooks/useServicePricePreview";
 import { ServiceLaboTab } from "./ServiceLaboTab";
 import { ServiceStageTable } from "./ServiceStageTable";
@@ -137,6 +138,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
   const warrantyDays = Form.useWatch("warrantyDays", form) ?? 0;
   const isDeleted = Form.useWatch("isDeleted", form) ?? false;
   const pricing = useServicePricePreview(form);
+  const partnerSync = useServiceDialogSync(branchId, open);
 
   /** The stage list is a small editor of its own, not a single field. */
   const [stages, setStages] = useState<ServiceStageDto[]>([]);
@@ -231,16 +233,24 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
     };
 
     try {
+      let saved: CatalogEntryDto;
       if (entry) {
-        await updateEntry.mutateAsync({
+        saved = await updateEntry.mutateAsync({
           id: entry.id,
           input: { ...shared, isActive: values.isActive, isDeleted: values.isDeleted },
         });
 
         toast.success(values.isDeleted ? t("Common:Deleted") : t("Taxonomy:Service:UpdatedSuccess"));
       } else {
-        await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
+        saved = await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
         toast.success(t("Taxonomy:Service:CreatedSuccess"));
+      }
+
+      // With partner sync on, the reference keeps the dialog open so the
+      // service just saved can be sent at once.
+      if (partnerSync.syncEnabled) {
+        partnerSync.markSaved(saved.id);
+        return;
       }
       onClose();
     } catch {
@@ -253,11 +263,35 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       open={open}
       title={entry ? t("Taxonomy:Service:UpdateTitle") : t("Taxonomy:Service:CreateTitle")}
       width={820}
-      canSave={name.trim().length > 0 && taxonomyId.length > 0}
+      canSave={name.trim().length > 0 && taxonomyId.length > 0 && !partnerSync.savedId}
       saving={pending}
       onSave={() => form.submit()}
       onClose={onClose}
+      footerActions={
+        partnerSync.savedId ? (
+          <Button
+            icon={<SyncOutlined />}
+            title={t("Taxonomy:Sync:ThisServiceHint")}
+            loading={partnerSync.isSyncing}
+            disabled={partnerSync.isSyncing}
+            onClick={() => partnerSync.syncSaved(onClose)}
+          >
+            {t("Taxonomy:Sync:ThisService")}
+          </Button>
+        ) : null
+      }
     >
+      {entry && partnerSync.syncEnabled && (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<WarningOutlined />}
+          className="bd-sync-notice"
+          title={t("Taxonomy:Sync:NoticeTitle")}
+          description={t("Taxonomy:Sync:NoticeBody")}
+        />
+      )}
+
       <Form
         form={form}
         layout="vertical"

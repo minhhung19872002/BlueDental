@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { purgeRunGroups } from "./fixtures/cleanup";
+
+// The groups this file creates carry a run id; leave none behind in the shared DB.
+test.afterAll(async ({ browser }) => {
+  await purgeRunGroups(browser, "care_service", ["NHÓM SORT", "NHÓM E2E", "NHÓM KEO"]);
+});
 
 /**
  * Feature: Danh mục (taxonomy + catalog entries).
@@ -102,7 +108,7 @@ test.describe("Danh mục", () => {
     }
 
     // Newest first, so the one added second is on top before anything is moved.
-    const names = page.locator("tbody tr.ant-table-row td:nth-child(2) p");
+    const names = page.locator("tbody tr.ant-table-row td:nth-child(2) p.bd-cat-name");
     await expect(names).toHaveText([`B ${id}`, `A ${id}`]);
 
     // The grip is a real control: focus it and move the row with the keyboard.
@@ -113,7 +119,7 @@ test.describe("Danh mục", () => {
     // The order came from the server, not from local state — and the selected
     // group survives the reload because it lives in the URL.
     await page.reload();
-    await expect(page.locator("tbody tr.ant-table-row td:nth-child(2) p")).toHaveText([`A ${id}`, `B ${id}`]);
+    await expect(page.locator("tbody tr.ant-table-row td:nth-child(2) p.bd-cat-name")).toHaveText([`A ${id}`, `B ${id}`]);
   });
 
   test("drags a table row, and saves the whole order in one call", async ({ page }) => {
@@ -138,7 +144,7 @@ test.describe("Danh mục", () => {
     }
 
     // Newest first, so ROW B leads until something is dragged.
-    const names = page.locator("tbody tr.ant-table-row td:nth-child(2) p");
+    const names = page.locator("tbody tr.ant-table-row td:nth-child(2) p.bd-cat-name");
     await expect(names).toHaveText([`ROW B ${id}`, `ROW A ${id}`]);
 
     const firstRow = page.locator("tbody tr.ant-table-row").first();
@@ -180,7 +186,7 @@ test.describe("Danh mục", () => {
       const w = window as unknown as { __frames: string[] };
       w.__frames = [];
       const tick = () => {
-        const first = document.querySelector("tbody tr.ant-table-row td:nth-child(2) p");
+        const first = document.querySelector("tbody tr.ant-table-row td:nth-child(2) p.bd-cat-name");
         const spinner = document
           .querySelector("tbody")
           ?.closest("div")
@@ -223,7 +229,7 @@ test.describe("Danh mục", () => {
     expect(seen, `the table changed mid-drop: ${seen.join(" → ")}`).toEqual([`ROW A ${id}`]);
 
     await page.reload();
-    await expect(page.locator("tbody tr.ant-table-row td:nth-child(2) p")).toHaveText([
+    await expect(page.locator("tbody tr.ant-table-row td:nth-child(2) p.bd-cat-name")).toHaveText([
       `ROW A ${id}`,
       `ROW B ${id}`,
     ]);

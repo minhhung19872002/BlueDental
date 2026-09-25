@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import type { QueryEntity } from "@/lib/queryEntities";
 import type { PagedResult } from "@/types";
 import type { DiscountType, ToothSelectionDto } from "./consultingApi";
 
@@ -564,18 +565,17 @@ export function usePatientAccount(patientId: string, clinicBranchId: string) {
 
 /**
  * Slips, the patient account and the stage panel all read the same money, so any
- * change invalidates the whole treatment namespace as well as the consulting one.
+ * change invalidates the whole treatment namespace as well as the consulting one
+ * — the "treatment" entity. Money that moves adds "payment" (reports, Tài chính,
+ * CSKH); a write reaching labo orders adds "laboOrder".
  */
-function useTreatmentMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
-  const queryClient = useQueryClient();
-
+function useTreatmentMutation<TVariables, TData>(
+  fn: (variables: TVariables) => Promise<TData>,
+  also: readonly QueryEntity[] = [],
+) {
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: treatmentKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["consulting"] });
-      void queryClient.invalidateQueries({ queryKey: ["treatment-stages"] });
-    },
+    meta: { invalidates: ["treatment", ...also] },
   });
 }
 
@@ -623,8 +623,10 @@ export function usePatientDebtHistory(
 
 /** "Hủy phiếu Labo" on the Chuyển đổi dialog — the line's open labo orders. */
 export function useCancelServiceLaboOrders() {
-  return useTreatmentMutation((input: { planId: string; lineId: string }) =>
-    treatmentApi.cancelServiceLaboOrders(input.planId, input.lineId),
+  return useTreatmentMutation(
+    (input: { planId: string; lineId: string }) =>
+      treatmentApi.cancelServiceLaboOrders(input.planId, input.lineId),
+    ["laboOrder"],
   );
 }
 
@@ -648,7 +650,7 @@ export function useReorderServiceLine() {
 }
 
 export function useRecordPayment() {
-  return useTreatmentMutation(treatmentApi.recordPayment);
+  return useTreatmentMutation(treatmentApi.recordPayment, ["payment"]);
 }
 
 /**
@@ -660,10 +662,13 @@ export function useUpdatePayment() {
   return useTreatmentMutation((input: { id: string } & UpdatePaymentInput) => {
     const { id, ...body } = input;
     return treatmentApi.updatePayment(id, body);
-  });
+  }, ["payment"]);
 }
 
 /** "Huỷ" on a receipt row — the movement is taken back off the slip. */
 export function useDeletePayment() {
-  return useTreatmentMutation((input: { id: string }) => treatmentApi.deletePayment(input.id));
+  return useTreatmentMutation(
+    (input: { id: string }) => treatmentApi.deletePayment(input.id),
+    ["payment"],
+  );
 }

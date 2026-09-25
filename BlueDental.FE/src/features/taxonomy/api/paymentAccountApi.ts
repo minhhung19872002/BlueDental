@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
+import type { AppMutationMeta } from "@/lib/queryEntities";
 import type { PagedResult } from "@/types";
 
 /** Mirrors BlueDental.Catalogs.PaymentAccountKind. */
@@ -118,13 +119,13 @@ export function usePaymentAccounts(branchId: string | undefined, query: PaymentA
 
 function usePaymentAccountMutation<TVariables, TData>(
   fn: (variables: TVariables) => Promise<TData>,
-  meta?: Record<string, unknown>,
+  meta?: AppMutationMeta,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: fn,
-    meta,
+    meta: { invalidates: ["paymentAccount"], ...meta },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: paymentAccountKeys.all });
     },

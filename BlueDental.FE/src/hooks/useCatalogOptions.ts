@@ -1,10 +1,4 @@
-import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PagedResult } from "@/types";
@@ -304,7 +298,6 @@ export function useTaxonomyGroupOptions(group: CatalogGroup) {
 }
 
 export function useCreateTaxonomyGroupOption() {
-  const queryClient = useQueryClient();
   const branchId = useCurrentBranchId();
 
   return useMutation({
@@ -317,8 +310,7 @@ export function useCreateTaxonomyGroupOption() {
           sortOrder: input.sortOrder ?? 0,
         })
         .then((r) => r.data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: catalogOptionKeys.all });
-    },
+    // Danh mục lists the same groups, so its panel must not keep the old set.
+    meta: { invalidates: ["catalog"] },
   });
 }

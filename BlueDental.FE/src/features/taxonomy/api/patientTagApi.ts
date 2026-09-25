@@ -84,6 +84,7 @@ function useTagMutation<TVariables, TData>(fn: (variables: TVariables) => Promis
 
   return useMutation({
     mutationFn: fn,
+    meta: { invalidates: ["patientTag"] },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: patientTagKeys.all });
     },

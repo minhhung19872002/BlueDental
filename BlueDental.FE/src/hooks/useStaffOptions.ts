@@ -26,9 +26,13 @@ function buildLabel(row: StaffRow): string {
   return [row.surname, row.name].filter(Boolean).join(" ").trim() || row.userName;
 }
 
+export const staffOptionKeys = {
+  all: ["staff-options"] as const,
+};
+
 export function useStaffOptions() {
   return useQuery({
-    queryKey: ["staff-options"],
+    queryKey: staffOptionKeys.all,
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", {
         params: { MaxResultCount: 200 },
@@ -48,7 +52,7 @@ export function useStaffOptions() {
 /** Prefetched list filtered to staff where `isDentist === true`. */
 export function useDentistStaffOptions() {
   return useQuery({
-    queryKey: ["staff-options", "dentist"],
+    queryKey: [...staffOptionKeys.all, "dentist"],
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", {
         params: { MaxResultCount: 200 },
@@ -91,7 +95,7 @@ export function useStaffSearch(search: string, enabled = true) {
   const term = search.trim();
 
   return useQuery({
-    queryKey: ["staff-options", "search", term] as const,
+    queryKey: [...staffOptionKeys.all, "search", term] as const,
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", {
         params: { MaxResultCount: 20, IsActive: true, Filter: term || undefined },
@@ -112,7 +116,7 @@ export function useDentistSearch(search: string, enabled = true) {
   const term = search.trim();
 
   return useQuery({
-    queryKey: ["staff-options", "dentists", "search", term] as const,
+    queryKey: [...staffOptionKeys.all, "dentists", "search", term] as const,
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", {
         params: { MaxResultCount: 20, IsActive: true, Filter: term || undefined },
@@ -135,7 +139,7 @@ export function useAssistantSearch(search: string, enabled = true) {
   const term = search.trim();
 
   return useQuery({
-    queryKey: ["staff-options", "assistants", "search", term] as const,
+    queryKey: [...staffOptionKeys.all, "assistants", "search", term] as const,
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", {
         params: { MaxResultCount: 20, IsActive: true, Filter: term || undefined },

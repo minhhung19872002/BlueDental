@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -97,14 +97,13 @@ export function useRolePermissions(roleName: string | null) {
 }
 
 export function useUpdateRolePermissions() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ roleName, permissions }: {
       roleName: string;
       permissions: { name: string; isGranted: boolean }[];
     }) => rolePermissionApi.updateRolePermissions(roleName, permissions),
-    onSuccess: (_data, variables) => {
-      void qc.invalidateQueries({ queryKey: rolePermissionKeys.rolePerms(variables.roleName) });
-    },
+    // Every role's grants, and the signed-in account's permissions when the
+    // role is one of its own.
+    meta: { invalidates: ["role"] },
   });
 }
