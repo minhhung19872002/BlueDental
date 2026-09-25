@@ -119,6 +119,14 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         // the group rather than from the client or the caller's own branch.
         await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
 
+        // The service dialog has no code box any more; the server draws one,
+        // which is what the partner sync keys on.
+        var code = input.Code;
+        if (taxonomy.Group == TaxonomyGroups.CareService && string.IsNullOrWhiteSpace(code))
+        {
+            code = ServiceCode.Next(await GetServiceCodesAsync(taxonomy.ClinicBranchId));
+        }
+
         var entry = CatalogEntry.Create(
             GuidGenerator.Create(),
             taxonomy.ClinicBranchId,
@@ -126,7 +134,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             // The group always comes from the taxonomy, never from the client.
             taxonomy.Group,
             input.Name,
-            input.Code,
+            code,
             input.Price,
             input.Content,
             input.Description,
@@ -256,6 +264,17 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         }
 
         await _repository.UpdateManyAsync(entries, autoSave: true);
+    }
+
+    /// <summary>Every service code of the branch, deleted rows included — a code is never reused.</summary>
+    private async Task<HashSet<string>> GetServiceCodesAsync(Guid clinicBranchId)
+    {
+        using var _ = _softDeleteFilter.Disable();
+        var query = await _repository.GetQueryableAsync();
+        return ServiceCode.NewTakenSet(query
+            .Where(x => x.ClinicBranchId == clinicBranchId && x.Group == TaxonomyGroups.CareService)
+            .Select(x => x.Code)
+            .ToList());
     }
 
     private async Task<Dictionary<Guid, string>> GetTaxonomyNamesAsync(

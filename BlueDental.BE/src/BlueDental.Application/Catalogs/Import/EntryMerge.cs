@@ -43,7 +43,11 @@ internal static class EntryMerge
         return new MergedEntry(
             Name: draft.Name,
             SortOrder: given.Contains(Col.Priority) ? draft.SortOrder ?? entry.SortOrder : entry.SortOrder,
-            Code: Text(Col.Code, draft.Code, entry.Code),
+            // A service's code is drawn by the server and is what the partner
+            // sync keys on, so a blank cell keeps it rather than wiping it.
+            Code: entry.Group == TaxonomyGroups.CareService
+                ? Normalize(given.Contains(Col.Code) ? draft.Code : null) ?? Normalize(entry.Code)
+                : Text(Col.Code, draft.Code, entry.Code),
             Price: given.Contains(Col.Price) ? draft.Price : entry.Price,
             Content: Text(Col.Content, draft.Content, entry.Content),
             // Đơn thuốc mẫu writes its "Lời dặn" into Description.
