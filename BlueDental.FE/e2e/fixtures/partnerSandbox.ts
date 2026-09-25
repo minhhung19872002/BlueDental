@@ -31,6 +31,15 @@ export interface PartnerSandbox {
   handshakes: number;
   /** Pretends the partner already holds `code`, on a record of its own. */
   seedCode: (code: string, name: string) => void;
+  /**
+   * While on, every batch is refused the way staging refused one on
+   * 2026-09-25 — the partner no longer knows the clinic's link — and is not
+   * recorded in `batches`. The handshake still answers, as staging's flags
+   * still read "active" while it happened.
+   */
+  refuseConnection: (refuse: boolean) => void;
+  /** Holds every batch answer back this long, so a test can see the wait. */
+  answerAfter: (ms: number) => void;
   close: () => Promise<void>;
 }
 
@@ -80,10 +89,18 @@ function answer(held: Map<string, Held>, item: SandboxItem) {
   return { ...base, status: known ? "updated" : "created", relinked: false };
 }
 
+/** What staging's partner answered when it did not know the clinic's link. */
+export const CONNECTION_REFUSED = {
+  code: "CLINIC_CONN_0001",
+  message: "Kết nối không tồn tại hoặc chưa được kích hoạt.",
+} as const;
+
 export async function startPartnerSandbox(apiKey: string): Promise<PartnerSandbox> {
   const held = new Map<string, Held>();
   const batches: SandboxItem[][] = [];
   let handshakes = 0;
+  let refusing = false;
+  let delayMs = 0;
 
   const server = http.createServer((req, res) => {
     const reply = (status: number, body: unknown) => {
@@ -95,12 +112,14 @@ export async function startPartnerSandbox(apiKey: string): Promise<PartnerSandbo
     if (req.headers["x-api-key"] !== apiKey) return reply(401, { error: "bad key" });
 
     void readJson(req)
-      .then((body) => {
+      .then(async (body) => {
         if (req.url === "/handshake") {
           handshakes += 1;
           return reply(200, { ok: true });
         }
         if (req.url === "/service-catalog/batch") {
+          if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
+          if (refusing) return reply(403, CONNECTION_REFUSED);
           const items = itemsOf(body);
           batches.push(items);
           return reply(200, { results: items.map((item) => answer(held, item)) });
@@ -123,6 +142,12 @@ export async function startPartnerSandbox(apiKey: string): Promise<PartnerSandbo
       return handshakes;
     },
     seedCode: (code, name) => held.set(code, { externalId: `partner-own-${code}`, name }),
+    refuseConnection: (refuse) => {
+      refusing = refuse;
+    },
+    answerAfter: (ms) => {
+      delayMs = ms;
+    },
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };
 }

@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { purgeRunGroups } from "./fixtures/cleanup";
+
+// The groups this file creates carry a run id; leave none behind in the shared DB.
+test.afterAll(async ({ browser }) => {
+  await purgeRunGroups(browser, "care_service", ["NHÓM SORT", "NHÓM E2E", "NHÓM KEO"]);
+});
 
 /**
  * Feature: Danh mục (taxonomy + catalog entries).

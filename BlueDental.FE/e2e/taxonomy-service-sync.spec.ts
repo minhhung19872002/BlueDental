@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { startPartnerSandbox, type PartnerSandbox } from "./fixtures/partnerSandbox";
+import { CONNECTION_REFUSED, startPartnerSandbox, type PartnerSandbox } from "./fixtures/partnerSandbox";
 import {
   createDentist,
   deleteDentist,
@@ -8,6 +8,12 @@ import {
   resetDentistLeaves,
   setDentistLeaf,
 } from "./fixtures/restrictedDentist";
+import { purgeRunGroups } from "./fixtures/cleanup";
+
+// The groups this file creates carry a run id; leave none behind in the shared DB.
+test.afterAll(async ({ browser }) => {
+  await purgeRunGroups(browser, "care_service", ["ZZ Đồng bộ"]);
+});
 
 /**
  * Feature: Danh mục → Dịch vụ → "Đồng bộ danh mục dịch vụ" (reference:
@@ -99,16 +105,33 @@ async function openSyncDialog(page: Page) {
   return dialog;
 }
 
-async function syncGroup(page: Page, groupName: string, run: string, expectedCount: number) {
+async function syncGroup(
+  page: Page,
+  groupName: string,
+  run: string,
+  expectedCount: number,
+  { watchTheWait = false }: { watchTheWait?: boolean } = {},
+) {
   const dialog = await openSyncDialog(page);
   await dialog.getByRole("searchbox").fill(run);
-  await dialog.getByRole("checkbox", { name: `Chọn taxonomy ${groupName}` }).check();
+  const groupTick = dialog.getByRole("checkbox", { name: `Chọn taxonomy ${groupName}` });
+  await groupTick.check();
   await expect(dialog.getByText(`Đã chọn ${expectedCount} dịch vụ`)).toBeVisible();
 
   const answered = page.waitForResponse(
     (res) => res.url().includes(`${SYNC}/service-catalog`) && res.request().method() === "POST",
   );
   await dialog.getByRole("button", { name: "Đồng bộ", exact: true }).click();
+
+  if (watchTheWait) {
+    // While the partner has not answered the dialog stays, says so, and
+    // takes no more picks (CLAUDE.md §16.18).
+    await expect(dialog.getByRole("button", { name: /Đang đồng bộ/ })).toBeDisabled();
+    await expect(groupTick).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Huỷ" })).toBeDisabled();
+    await expect(page.getByText(/Đã đồng bộ \d+\/\d+ dịch vụ/)).toHaveCount(0);
+  }
+
   expect((await answered).status()).toBe(200);
   await expect(dialog).toBeHidden();
 
@@ -168,12 +191,56 @@ test.describe.serial("Danh mục → Đồng bộ danh mục dịch vụ", () =>
     expect(new Set([plain.code, warned.code, duplicate.code]).size).toBe(3);
   });
 
+  test("a partner that refuses the link fails every service, under its own code, from both entry points", async ({ page }) => {
+    // Staging, 2026-09-25: the flags still read "active", yet the partner
+    // answered CLINIC_CONN_0001 and every picked service failed.
+    sandbox.refuseConnection(true);
+    try {
+      await login(page);
+      await page.goto(`/taxonomy/service?group=${groupId}&branchId=${BRANCH_ONE}`);
+
+      const result = await syncGroup(page, groupName, run, 3);
+      await expect(page.getByText("Đồng bộ thất bại: 0/3 dịch vụ được ghi nhận")).toBeVisible();
+      await expect(result.getByText("Lỗi trong quá trình đồng bộ")).toBeVisible();
+      await expect(
+        result.getByText(`${CONNECTION_REFUSED.code} — ${CONNECTION_REFUSED.message}`),
+      ).toBeVisible();
+      await expect(tile(result, "Tổng cộng")).toHaveText("3");
+      await expect(tile(result, "Đã gửi")).toHaveText("0");
+      await expect(tile(result, "Thất bại")).toHaveText("3");
+      await expect(result.getByText("Không có dữ liệu")).toBeVisible();
+      await result.locator(".ant-modal-close").click();
+      await expect(result).toBeHidden();
+
+      // The single-service sync reports the same failure and, as on the
+      // reference, the dialog still closes: the request itself succeeded.
+      await page.getByRole("button", { name: `Chỉnh sửa ${plain.name}` }).click();
+      const dialog = page.getByRole("dialog").filter({ hasText: "Cập nhật dịch vụ" });
+      await dialog.getByLabel(/^Giá$/).fill("310000");
+      await dialog.getByRole("button", { name: /Lưu/ }).click();
+      await dialog.getByRole("button", { name: "Đồng bộ dịch vụ này" }).click();
+      await expect(page.getByText("Đồng bộ thất bại: 0/1 dịch vụ được ghi nhận")).toBeVisible();
+      await expect(dialog).toBeHidden();
+
+      // Nothing was accepted, so nothing counts as synced.
+      expect(sandbox.batches).toHaveLength(0);
+      const groups = await call<SyncGroup[]>(page, "GET", `${SYNC}/service-catalog-groups`);
+      const services = groups.body.find((group) => group.taxonomyId === groupId)?.services ?? [];
+      expect(services.every((service) => !service.synced)).toBe(true);
+    } finally {
+      sandbox.refuseConnection(false);
+    }
+  });
+
   test("syncs a whole group and reports what the partner did with each service", async ({ page }) => {
     await login(page);
     await page.goto(`/taxonomy/service?group=${groupId}&branchId=${BRANCH_ONE}`);
     await assertRealApiTraffic(page, `${SYNC}/flags`);
 
-    const result = await syncGroup(page, groupName, run, 3);
+    sandbox.answerAfter(1500);
+    const result = await syncGroup(page, groupName, run, 3, { watchTheWait: true }).finally(() =>
+      sandbox.answerAfter(0),
+    );
 
     await expect(page.getByText("Đã đồng bộ 2/3 dịch vụ")).toBeVisible();
     await expect(tile(result, "Tổng cộng")).toHaveText("3");

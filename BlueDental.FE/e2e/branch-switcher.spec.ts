@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { BRANCH2_USER, MANAGER_USER, login, runId } from "./fixtures/auth";
+import { purgeRunGroups } from "./fixtures/cleanup";
+
+// The groups this file creates carry a run id; leave none behind in the shared DB.
+test.afterAll(async ({ browser }) => {
+  await purgeRunGroups(browser, "care_service", ["NHÓM CN2"]);
+});
 
 /**
  * Feature: the header's branch switcher, and the rule that every screen reads
