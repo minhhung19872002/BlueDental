@@ -35,10 +35,17 @@ function toOptions(rows: NamedRow[]): PickerOption[] {
   return rows.map((row) => ({ value: row.id, label: row.name }));
 }
 
+/** The roots of the three picker lists below. */
+export const laboPickerKeys = {
+  taxonomies: ["labo-taxonomy-options"] as const,
+  suppliers: ["labo-supplier-options"] as const,
+  materials: ["labo-material-options"] as const,
+};
+
 /** Every row of one labo taxonomy group, unpaged. */
 export function useLaboTaxonomyOptions(group: string, clinicBranchId: string, enabled = true) {
   return useQuery<PickerOption[]>({
-    queryKey: ["labo-taxonomy-options", group, clinicBranchId],
+    queryKey: [...laboPickerKeys.taxonomies, group, clinicBranchId],
     queryFn: () =>
       api
         .get<PagedResult<NamedRow>>("/v1/app/taxonomies", {
@@ -53,7 +60,7 @@ export function useLaboTaxonomyOptions(group: string, clinicBranchId: string, en
 /** Nhà cung cấp — its own table, not a taxonomy. */
 export function useLaboSupplierOptions(clinicBranchId: string, enabled = true) {
   return useQuery<PickerOption[]>({
-    queryKey: ["labo-supplier-options", clinicBranchId],
+    queryKey: [...laboPickerKeys.suppliers, clinicBranchId],
     queryFn: () =>
       api
         .get<PagedResult<NamedRow>>("/v1/app/labo-suppliers", {
@@ -71,7 +78,7 @@ export function useLaboSupplierOptions(clinicBranchId: string, enabled = true) {
  */
 export function useLaboMaterialOptions(clinicBranchId: string, taxonomyId: string | undefined) {
   return useQuery<PickerOption[]>({
-    queryKey: ["labo-material-options", clinicBranchId, taxonomyId ?? null],
+    queryKey: [...laboPickerKeys.materials, clinicBranchId, taxonomyId ?? null],
     queryFn: () =>
       api
         .get<PagedResult<NamedRow>>("/v1/app/labo-materials", {
@@ -144,8 +151,8 @@ export function useCreateLaboOrder() {
   return useMutation({
     mutationFn: (input: CreateLaboOrderInput) =>
       api.post("/v1/app/labo-orders", toOrderForm(input)).then((r) => r.data),
+    meta: { invalidates: ["laboOrder"] },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["labo-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["labo-next-code"] });
     },
   });

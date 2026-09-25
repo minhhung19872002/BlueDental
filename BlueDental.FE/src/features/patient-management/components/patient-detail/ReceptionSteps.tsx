@@ -1,12 +1,11 @@
-import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "@/lib/axios";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { formatClock } from "@/utils/format";
 import { RECEPTION_FLOW, SERVER_STATUS } from "@/features/appointments/api/appointmentAdapters";
 import type { Appointment } from "@/features/appointments/types/appointment";
+import { useAdvanceReception } from "../../api/patientMutations";
 
 interface Props {
   appointment: Appointment;
@@ -61,7 +60,8 @@ function CheckIcon() {
  * builds it.
  */
 export function ReceptionSteps({ appointment, onAdvanced }: Props) {
-  const [busy, setBusy] = useState(false);
+  const advanceReception = useAdvanceReception();
+  const busy = advanceReception.isPending;
   const reached = reachedUpTo(appointment.statusCode);
 
   const stamps: (string | null)[] = [
@@ -71,26 +71,16 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
   ];
 
   const advance = async (index: number) => {
-    setBusy(true);
     try {
-      const step = RECEPTION_FLOW[index];
-      /*
-       * `complete` binds a body — [FromBody] CompleteAppointmentDto — while
-       * check-in and start take none. Posting nothing left step three failing
-       * model binding, which is why Hoàn tất could never be pressed. The note is
-       * sent back as it stands because Appointment.Complete assigns Notes
-       * unconditionally, so omitting it would erase the appointment's note.
-       */
-      await api.post(
-        `/v1/app/appointments/${appointment.id}/${step}`,
-        step === "complete" ? { notes: appointment.notes ?? null } : undefined,
-      );
+      await advanceReception.mutateAsync({
+        appointmentId: appointment.id,
+        step: RECEPTION_FLOW[index],
+        notes: appointment.notes ?? null,
+      });
       toast.success(t("Patient:Profile:ReceptionUpdated"));
       onAdvanced();
     } catch (error) {
       notifyError(extractApiError(error));
-    } finally {
-      setBusy(false);
     }
   };
 

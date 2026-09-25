@@ -82,10 +82,14 @@ export function useIdentityUserList(params?: { filter?: string }) {
   });
 }
 
+/** An identity user is a member of staff, read by every staff list and picker. */
+const INVALIDATES_STAFF = { invalidates: ["staff"] } as const;
+
 export function useCreateIdentityUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateIdentityUserDto) => identityApi.users.create(data),
+    meta: INVALIDATES_STAFF,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["identity-users"] }),
   });
 }
@@ -95,6 +99,7 @@ export function useUpdateIdentityUser() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateIdentityUserDto }) =>
       identityApi.users.update(id, data),
+    meta: INVALIDATES_STAFF,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["identity-users"] }),
   });
 }
@@ -103,6 +108,7 @@ export function useDeleteIdentityUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => identityApi.users.delete(id),
+    meta: INVALIDATES_STAFF,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["identity-users"] }),
   });
 }
@@ -116,10 +122,17 @@ export function useIdentityRoleList() {
   });
 }
 
+/**
+ * Staff rows carry role names and the signed-in account's permissions come
+ * from its roles, so a role write reaches both entities.
+ */
+const INVALIDATES_ROLES = { invalidates: ["role", "staff"] } as const;
+
 export function useCreateIdentityRole() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateIdentityRoleDto) => identityApi.roles.create(data),
+    meta: INVALIDATES_ROLES,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["identity-roles"] }),
   });
 }
@@ -128,6 +141,7 @@ export function useDeleteIdentityRole() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => identityApi.roles.delete(id),
+    meta: INVALIDATES_ROLES,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["identity-roles"] }),
   });
 }

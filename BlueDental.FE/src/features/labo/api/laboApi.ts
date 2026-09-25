@@ -338,10 +338,17 @@ export function useLaboOrderList(params: LaboOrderListParams = {}) {
   });
 }
 
+/**
+ * The plan slip and Hình ảnh read orders too, so every order write names the
+ * entity; each hook still awaits its own list refetch before it settles.
+ */
+const INVALIDATES_LABO_ORDERS = { invalidates: ["laboOrder"] } as const;
+
 export function useCreateLaboOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateLaboOrderDto) => laboApi.create(data),
+    meta: INVALIDATES_LABO_ORDERS,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
   });
 }
@@ -351,6 +358,7 @@ export function useUpdateLaboOrder() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateLaboOrderDto }) =>
       laboApi.update(id, data),
+    meta: INVALIDATES_LABO_ORDERS,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
   });
 }
@@ -360,6 +368,7 @@ export function useSaveLaboOrderDetail() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: SaveLaboOrderDetailInput }) =>
       laboApi.saveDetail(id, input),
+    meta: INVALIDATES_LABO_ORDERS,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
   });
 }
@@ -368,6 +377,7 @@ export function useDeleteLaboOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => laboApi.delete(id),
+    meta: INVALIDATES_LABO_ORDERS,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
   });
 }

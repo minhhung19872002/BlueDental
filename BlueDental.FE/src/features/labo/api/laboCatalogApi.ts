@@ -108,23 +108,28 @@ export function useLaboSupplierCommands() {
   const clinicBranchId = useCurrentBranchId();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: laboSupplierKeys.all });
+  // The "Đặt mới" form's supplier picker reads the same table.
+  const meta = { invalidates: ["laboSupplier"] } as const;
 
   const create = useMutation({
     mutationFn: (input: LaboSupplierInput) =>
       api
         .post<LaboSupplierDto>(SUPPLIER_BASE, { ...input, clinicBranchId })
         .then((r) => r.data),
+    meta,
     onSuccess: invalidate,
   });
 
   const update = useMutation({
     mutationFn: ({ id, input }: { id: string; input: LaboSupplierInput }) =>
       api.put<LaboSupplierDto>(`${SUPPLIER_BASE}/${id}`, input).then((r) => r.data),
+    meta,
     onSuccess: invalidate,
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`${SUPPLIER_BASE}/${id}`).then(() => undefined),
+    meta,
     onSuccess: invalidate,
   });
 
@@ -194,30 +199,27 @@ export function useLaboMaterialList(query: LaboMaterialQuery) {
 }
 
 export function useLaboMaterialCommands() {
-  const queryClient = useQueryClient();
   const clinicBranchId = useCurrentBranchId();
 
-  // A material's group carries its own count, so both lists are refreshed.
-  const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: laboMaterialKeys.all });
-    void queryClient.invalidateQueries({ queryKey: ["labo-catalog"] });
-  };
+  // A material's group carries its own count, so both lists are refreshed —
+  // and the "Đặt mới" form's material picker with them.
+  const meta = { invalidates: ["laboMaterial"] } as const;
 
   const create = useMutation({
     mutationFn: (input: LaboMaterialInput) =>
       api.post(MATERIAL_BASE, { ...input, clinicBranchId }).then(() => undefined),
-    onSuccess: invalidate,
+    meta,
   });
 
   const update = useMutation({
     mutationFn: ({ id, input }: { id: string; input: LaboMaterialInput }) =>
       api.put(`${MATERIAL_BASE}/${id}`, input).then(() => undefined),
-    onSuccess: invalidate,
+    meta,
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`${MATERIAL_BASE}/${id}`).then(() => undefined),
-    onSuccess: invalidate,
+    meta,
   });
 
   return { create, update, remove };

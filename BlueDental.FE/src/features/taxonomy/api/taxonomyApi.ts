@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { notifyApiError } from "@/lib/notify";
 import { api } from "@/lib/axios";
+import { invalidateEntities } from "@/lib/queryEntities";
 import { downloadFile, downloadPostedFile } from "@/lib/download";
 import type { PagedResult } from "@/types";
 
@@ -376,6 +377,7 @@ function useCatalogMutation<TVariables, TData>(fn: (variables: TVariables) => Pr
 
   return useMutation({
     mutationFn: fn,
+    meta: { invalidates: ["catalog"] },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: taxonomyKeys.all }),
   });
 }
@@ -446,6 +448,7 @@ export function useReorderTaxonomyGroups() {
 
   return useMutation({
     mutationFn: (input: ReorderGroupsInput) => taxonomyApi.reorderGroups(input),
+    meta: { invalidates: ["catalog"] },
     onMutate: async (input) => {
       // A refetch already in flight would land on top of the optimistic order.
       await queryClient.cancelQueries({ queryKey: taxonomyKeys.all });
@@ -481,6 +484,7 @@ export function useReorderCatalogEntries() {
 
   return useMutation({
     mutationFn: (input: ReorderEntriesInput) => taxonomyApi.reorderEntries(input),
+    meta: { invalidates: ["catalog"] },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: taxonomyKeys.all });
       return {
@@ -603,9 +607,11 @@ export function useImportCatalogEntries() {
   return useMutation({
     mutationFn: (input: ImportCatalogEntriesInput) => catalogImportApi.run(input),
     onSuccess: (result) => {
-      // A commit may have created groups as well as entries; both panels reload.
+      // A commit may have created groups as well as entries; both panels reload,
+      // and so does every picker reading the catalog. A dry run wrote nothing,
+      // which is why this is not a static `meta.invalidates`.
       if (result.committed) {
-        void queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
+        invalidateEntities(queryClient, ["catalog"]);
       }
     },
   });

@@ -51,7 +51,8 @@ import { ForbiddenResult } from "@/components/ForbiddenResult";
 import { isAnyGranted } from "@/lib/permissions";
 import { abilityPermission, LegacyPermissions } from "@/lib/permissionConstants";
 import { useMyProfile, useUpdateProfile, uploadProfileAvatar, deleteProfileAvatar } from "@/features/account/api/accountMutations";
-import { useStaff, staffKeys } from "@/features/staff/api/staffQueries";
+import { useStaff } from "@/features/staff/api/staffQueries";
+import { invalidateEntities } from "@/lib/queryEntities";
 import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
 import { getLocale, t } from "@/lib/i18n";
 
@@ -153,12 +154,12 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
       if (user?.id && avatarFile instanceof File) {
         await uploadProfileAvatar(user.id, avatarFile);
         setAvatarFile(undefined);
-        void queryClient.invalidateQueries({ queryKey: staffKeys.detail(user.id) });
+        invalidateEntities(queryClient, ["staff"]);
       } else if (user?.id && avatarFile === null) {
         await deleteProfileAvatar(user.id);
         setAvatarFile(undefined);
         setAvatarPreview(null);
-        void queryClient.invalidateQueries({ queryKey: staffKeys.detail(user.id) });
+        invalidateEntities(queryClient, ["staff"]);
       }
 
       if (branch) {

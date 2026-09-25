@@ -14,7 +14,6 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  staffKeys,
   useCreateStaff,
   useDeleteStaff,
   useStaffList,
@@ -25,6 +24,7 @@ import { staffApi, type StaffDto } from "../api/staffApi";
 import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useBranchStore } from "@/lib/clinicBranch";
+import { invalidateEntities } from "@/lib/queryEntities";
 import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -157,12 +157,12 @@ export function StaffPage() {
 
       if (avatarFile instanceof File) {
         staffApi.uploadAvatar(staffId, avatarFile).then(
-          () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
+          () => invalidateEntities(queryClient, ["staff"]),
           () => toast.error(t("Staff:AvatarUploadFailed")),
         );
       } else if (avatarFile === null && editing?.avatarUrl) {
         staffApi.deleteAvatar(staffId).then(
-          () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
+          () => invalidateEntities(queryClient, ["staff"]),
           () => toast.error(t("Staff:AvatarDeleteFailed")),
         );
       }

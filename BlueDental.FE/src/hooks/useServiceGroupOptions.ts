@@ -13,11 +13,15 @@ export interface ServiceGroupOption {
   label: string;
 }
 
+export const serviceGroupOptionKeys = {
+  all: ["service-group-options"] as const,
+};
+
 export function useServiceGroupOptions() {
   const clinicBranchId = useBranchFilter();
 
   return useQuery({
-    queryKey: ["service-group-options", clinicBranchId],
+    queryKey: [...serviceGroupOptionKeys.all, clinicBranchId],
     queryFn: async (): Promise<ServiceGroupOption[]> => {
       const response = await api.get("/v1/app/taxonomies", {
         params: { ClinicBranchId: clinicBranchId, Group: "care_service", MaxResultCount: 200 },

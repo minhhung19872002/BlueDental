@@ -123,10 +123,14 @@ export function useClinicBranch(id: string) {
   });
 }
 
+/** Printed letterheads (branch info) and Cài đặt's clinic info read branches too. */
+const INVALIDATES_BRANCHES = { invalidates: ["branch"] } as const;
+
 export function useCreateBranch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateClinicBranchDto) => organizationApi.createBranch(data),
+    meta: INVALIDATES_BRANCHES,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-branches"] }),
   });
 }
@@ -136,6 +140,7 @@ export function useUpdateBranch() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateClinicBranchDto }) =>
       organizationApi.updateBranch(id, data),
+    meta: INVALIDATES_BRANCHES,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-branches"] }),
   });
 }
@@ -144,6 +149,7 @@ export function useDeleteBranch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => organizationApi.deleteBranch(id),
+    meta: INVALIDATES_BRANCHES,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-branches"] }),
   });
 }
@@ -195,12 +201,9 @@ export interface UpdateClinicBranchInput {
 }
 
 export function useUpdateClinicBranch() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateClinicBranchInput }) =>
       organizationApi.updateBranch(id, input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["clinic-branches"] });
-    },
+    meta: INVALIDATES_BRANCHES,
   });
 }

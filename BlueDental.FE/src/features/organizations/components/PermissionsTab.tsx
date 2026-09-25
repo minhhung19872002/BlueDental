@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { PERMISSION_GROUP } from "@/lib/permissionConstants";
 import { Button, Checkbox, Empty, Form, Input, Modal, Spin } from "antd";
 import {
@@ -361,7 +360,6 @@ function RoleListItem({ roleName, isActive, isStatic, treeLeafIds, onClick, onDe
 // ── PermissionsTab ───────────────────────────────────────────────────────
 
 export function PermissionsTab() {
-  const qc = useQueryClient();
   const { data: roleData, isLoading: rolesLoading } = useIdentityRoleList();
   const { data: treeData } = usePermissionTree();
   const createRole = useCreateIdentityRole();
@@ -382,8 +380,8 @@ export function PermissionsTab() {
       const values = await addRoleForm.validateFields();
       const name = values.roleName.trim();
       if (!name) return;
+      // The mutation's meta refreshes the staff lists that show role names.
       await createRole.mutateAsync({ name });
-      void qc.invalidateQueries({ queryKey: ["staff"] });
       toast.success(t("Organization:RoleAdded"));
       addRoleForm.resetFields();
       setAddRoleOpen(false);
@@ -396,7 +394,6 @@ export function PermissionsTab() {
     if (!deleteConfirm) return;
     try {
       await deleteRole.mutateAsync(deleteConfirm.id);
-      void qc.invalidateQueries({ queryKey: ["staff"] });
       toast.success(t("Organization:RoleDeleted"));
       if (selectedRole === deleteConfirm.name) setSelectedRole(null);
       setDeleteConfirm(null);

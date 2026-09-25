@@ -107,10 +107,13 @@ export function useLaboCatalogCommands(group: string) {
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: laboCatalogKeys.all });
+  // The "Đặt mới" form picks from these groups too.
+  const meta = { invalidates: ["laboTaxonomy"] } as const;
 
   const create = useMutation({
     mutationFn: ({ name, sortOrder }: { name: string; sortOrder?: number }) =>
       api.post(BASE, { clinicBranchId, group, name, sortOrder }).then(() => undefined),
+    meta,
     onSuccess: invalidate,
   });
 
@@ -119,11 +122,13 @@ export function useLaboCatalogCommands(group: string) {
       // The reference sends the row's existing priority straight back on an
       // edit, so renaming never moves a row.
       api.put(`${BASE}/${id}`, { name, sortOrder }).then(() => undefined),
+    meta,
     onSuccess: invalidate,
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`${BASE}/${id}`).then(() => undefined),
+    meta,
     onSuccess: invalidate,
   });
 

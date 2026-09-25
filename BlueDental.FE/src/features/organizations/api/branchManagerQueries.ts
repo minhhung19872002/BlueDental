@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   branchManagerApi,
   type CreateBranchManagerInput,
@@ -20,16 +20,13 @@ export function useBranchManagerList(params: GetBranchManagerListInput = {}) {
   });
 }
 
+/** A branch manager is a staff account, so the "staff" entity covers this list and every staff reader. */
 function useBranchManagerMutation<TVariables, TData>(
   fn: (variables: TVariables) => Promise<TData>,
 ) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: branchManagerKeys.all });
-    },
+    meta: { invalidates: ["staff"] },
   });
 }
 
