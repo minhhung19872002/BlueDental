@@ -1,69 +1,3 @@
-/* ── Queue KPI grid — mirrors .billing-kpis but 5 columns ── */
-
-.queue-kpis {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-}
-
-.queue-kpi {
-  padding: 18px 20px;
-  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
-}
-
-.queue-kpi:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px -8px rgba(44, 58, 122, 0.18);
-}
-
-.queue-kpi--active {
-  border-color: var(--queue-kpi-accent, var(--bd-primary));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--queue-kpi-accent, var(--bd-primary)) 20%, transparent);
-}
-
-@media (max-width: 1100px) {
-  .queue-kpis {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .queue-kpis {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ── Waiting time warning row tints ── */
-
-.ant-table-wrapper .ant-table-tbody > tr.queue-row--warning > td {
-  background: #fef9ee;
-}
-
-.ant-table-wrapper .ant-table-tbody > tr.queue-row--danger > td {
-  background: #fef0f0;
-}
-
-.ant-table-wrapper .ant-table-tbody > tr.queue-row--warning:hover > td,
-.ant-table-wrapper .ant-table-tbody > tr.queue-row--danger:hover > td {
-  background: #fef3dc;
-}
-
-.ant-table-wrapper .ant-table-tbody > tr.queue-row--danger:hover > td {
-  background: #fde5e5;
-}
-
-/* ── Alert KPI card (pulsing border) ── */
-
-.queue-kpi--alert {
-  border-color: var(--bd-red, #e5484d);
-  animation: queue-kpi-pulse 2s ease-in-out infinite;
-}
-
-@keyframes queue-kpi-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bd-red, #e5484d) 20%, transparent); }
-  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bd-red, #e5484d) 35%, transparent); }
-}
-
 /* ── TV display — standalone public page, dark theme ── */
 
 .queue-display {
@@ -255,4 +189,312 @@
   .queue-display__title {
     font-size: 24px;
   }
+}
+
+/* ── "Các quầy tiếp nhận" — one card per reception counter (BA item 22) ── */
+
+/* Accent cycles per card, as in the BA mockup: blue, purple, green. */
+.queue-counter--accent-0 { --counter-accent: var(--bd-primary); --counter-accent-pale: var(--bd-blue-pale); --counter-accent-rgb: 99, 102, 241; }
+.queue-counter--accent-1 { --counter-accent: var(--bd-purple); --counter-accent-pale: var(--bd-purple-pale); --counter-accent-rgb: 124, 92, 224; }
+.queue-counter--accent-2 { --counter-accent: var(--bd-green); --counter-accent-pale: var(--bd-green-pale); --counter-accent-rgb: 14, 159, 110; }
+
+.queue-board {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.queue-board__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bd-title);
+}
+
+.queue-board__loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.queue-board__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.queue-counter {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: 14px;
+  background: var(--bd-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+}
+
+.queue-counter:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--counter-accent-rgb), 0.4);
+  box-shadow: 0 12px 26px -14px rgba(var(--counter-accent-rgb), 0.4);
+}
+
+.queue-counter--paused {
+  --counter-accent: var(--bd-muted);
+  --counter-accent-pale: var(--bd-bg-soft);
+  --counter-accent-rgb: 100, 116, 139;
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
+}
+
+.queue-counter--paused:hover {
+  transform: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.queue-counter__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.queue-counter__identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Solid accent disc with a white user glyph, as drawn in the mockup. */
+.queue-counter__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 18px;
+  background: var(--counter-accent);
+  color: #fff;
+  box-shadow: 0 4px 10px -4px rgba(var(--counter-accent-rgb), 0.6);
+}
+
+.queue-counter--paused .queue-counter__avatar {
+  box-shadow: none;
+}
+
+.queue-counter__name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--bd-title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-counter--paused .queue-counter__name {
+  color: var(--bd-muted);
+}
+
+/* Plain "● Đang phục vụ" text, no pill. */
+.queue-counter__status {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-green);
+}
+
+.queue-counter__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.queue-counter--paused .queue-counter__status {
+  color: var(--bd-amber);
+}
+
+.queue-counter__serving,
+.queue-counter__next {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.queue-counter__label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.queue-counter__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bd-muted);
+}
+
+.ant-tag.queue-counter__urgent {
+  margin: 0;
+  line-height: 18px;
+}
+
+.queue-counter__line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.queue-counter__desc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+/* Ticket numbers sit in a pale accent chip. */
+.queue-counter__number,
+.queue-counter__next-number {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  flex-shrink: 0;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  background: var(--counter-accent-pale);
+  color: var(--counter-accent);
+}
+
+.queue-counter__number {
+  min-height: 32px;
+  font-size: 18px;
+}
+
+.queue-counter__number--idle,
+.queue-counter__next-number--empty {
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bd-bg-soft);
+  color: var(--bd-faint);
+}
+
+.queue-counter--paused .queue-counter__number,
+.queue-counter--paused .queue-counter__next-number {
+  background: var(--bd-line);
+  color: var(--bd-muted);
+}
+
+.queue-counter__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+  padding-left: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-muted);
+}
+
+.queue-counter__next {
+  padding-top: 12px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.ant-btn.queue-counter__call {
+  margin-top: auto;
+  height: 42px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.ant-btn.ant-btn-primary.queue-counter__call:not(:disabled) {
+  background: var(--counter-accent);
+  border-color: var(--counter-accent);
+  box-shadow: 0 6px 14px -6px rgba(var(--counter-accent-rgb), 0.55);
+}
+
+.ant-btn.ant-btn-primary.queue-counter__call:not(:disabled):hover {
+  background: var(--counter-accent);
+  border-color: var(--counter-accent);
+  filter: brightness(1.07);
+}
+
+/* ── Quản lý quầy modal ── */
+
+.queue-counter-form {
+  margin-bottom: 16px;
+}
+
+.queue-counter-form__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.queue-counter-form__name {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+
+.queue-counter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.queue-counter-toggle__label--active {
+  color: var(--bd-green);
+  font-weight: 600;
+}
+
+.queue-counter-toggle__label--paused {
+  color: var(--bd-amber);
+  font-weight: 600;
+}
+
+/* ── TV display additions ── */
+
+.queue-display__counter-card--paused {
+  opacity: 0.45;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.queue-display__counter-paused {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #fbbf24;
+}
+
+.queue-display__counter-label {
+  font-size: 13px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.queue-display__waiting-empty {
+  text-align: center;
+  opacity: 0.4;
+  margin-top: 40px;
 }

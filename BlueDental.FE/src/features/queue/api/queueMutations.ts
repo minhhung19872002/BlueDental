@@ -13,6 +13,7 @@ function useInvalidateQueue() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: queueKeys.lists() });
     void queryClient.invalidateQueries({ queryKey: queueKeys.statsBase() });
+    void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
   };
 }
 
@@ -89,6 +90,7 @@ export function useCreateServiceCounter() {
     mutationFn: (data: CreateServiceCounterInput) => queueApi.createCounter(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
+      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
     },
   });
 }
@@ -101,6 +103,7 @@ export function useUpdateServiceCounter() {
       queueApi.updateCounter(id, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
+      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
     },
   });
 }
@@ -112,6 +115,7 @@ export function useToggleServiceCounter() {
     mutationFn: (id: string) => queueApi.toggleCounter(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
+      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
     },
   });
 }
@@ -123,6 +127,7 @@ export function useDeleteServiceCounter() {
     mutationFn: (id: string) => queueApi.deleteCounter(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
+      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
     },
   });
 }

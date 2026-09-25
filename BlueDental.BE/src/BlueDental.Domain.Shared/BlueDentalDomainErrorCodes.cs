@@ -310,6 +310,8 @@ public static class BlueDentalDomainErrorCodes
         public const string TicketNotFound = "BlueDental:Queue:0001";
         public const string InvalidTransition = "BlueDental:Queue:0002";
         public const string AlreadyQueued = "BlueDental:Queue:0003";
+        public const string CounterRequired = "BlueDental:Queue:0004";
+        public const string CounterPaused = "BlueDental:Queue:0005";
     }
 
     public static class Tools

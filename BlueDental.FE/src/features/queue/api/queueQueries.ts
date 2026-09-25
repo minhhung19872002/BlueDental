@@ -12,6 +12,8 @@ export const queueKeys = {
   stats: (date?: string, counterId?: string) =>
     [...queueKeys.all, "stats", date, counterId] as const,
   counters: () => [...queueKeys.all, "counters"] as const,
+  board: () => [...queueKeys.all, "board"] as const,
+  displayBoard: (branchId: string) => [...queueKeys.all, "displayBoard", branchId] as const,
   display: (branchId: string, counterId?: string) =>
     [...queueKeys.all, "display", branchId, counterId] as const,
 };
@@ -43,6 +45,24 @@ export function useQueueCounters() {
   return useQuery({
     queryKey: queueKeys.counters(),
     queryFn: () => queueApi.getCounters(),
+  });
+}
+
+/** The counter cards on the main screen; SignalR invalidates it, polling covers a dropped socket. */
+export function useCounterBoard() {
+  return useQuery({
+    queryKey: queueKeys.board(),
+    queryFn: () => queueApi.board(),
+    refetchInterval: 10_000,
+  });
+}
+
+export function useDisplayBoard(branchId: string) {
+  return useQuery({
+    queryKey: queueKeys.displayBoard(branchId),
+    queryFn: () => queueApi.displayBoard(branchId),
+    enabled: Boolean(branchId),
+    refetchInterval: 10_000,
   });
 }
 

@@ -19,6 +19,8 @@ public interface IQueueTicketAppService : IApplicationService
     Task<QueueTicketDto> RecallAsync(Guid id, CallTicketInput input);
     Task<QueueStatsDto> GetStatsAsync(DateOnly? date = null, Guid? counterId = null);
     Task<List<QueueDisplayDto>> GetDisplayAsync(Guid branchId, Guid? counterId = null);
+    Task<List<CounterBoardDto>> GetBoardAsync();
+    Task<List<CounterBoardDto>> GetDisplayBoardAsync(Guid branchId);
 
     // Service Counter management
     Task<List<ServiceCounterDto>> GetCountersAsync();

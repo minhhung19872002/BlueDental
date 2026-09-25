@@ -5952,3 +5952,32 @@ chỉ "thấy", không đọc được — kiểm trong Node) → app đọc ra 
 `sharpened()` → spec này **đỏ**; bật lại → xanh. `-tracking` thêm kiểm lời nhắc "Hình đang mờ".
 Cả bộ Quét CCCD **7/7**. Khung mờ ~1 ô trở lên (như ảnh chủ dự án) vẫn không đọc được — giới hạn
 quang học; cách xử lý là đưa thẻ ra xa, dùng camera điện thoại, hoặc "Tải ảnh" chụp bằng điện thoại.
+
+## 2026-09-25 — Thêm đơn thuốc: ô bắt buộc chưa có tên và dấu * (R-571)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-571 | Chủ dự án (mục 21 danh sách lỗi): trong dialog "Thêm đơn thuốc", ô chọn bác sĩ trống trơn (chỉ kính lúp), ô thuốc trong bảng ghi "Chọn thuốc"; bản gốc ghi "Chọn bác sĩ*" và "Tên thuốc*" ngay trong placeholder, có kính lúp, dấu * đỏ | `ServerSearchSelect` chưa được truyền placeholder; select thuốc dùng key `Common:Rx:SelectMedicine` và không có prefix. Sửa: component chung `RequiredPlaceholder` (chữ + `<span.bd-required-mark>*`, token đỏ cùng `.floating-field-required`), `ServerSearchSelect.placeholder` nhận `ReactNode`; ô bác sĩ và ô thuốc (bảng desktop, dùng chung với Đơn thuốc mẫu ở `/taxonomy`) đặt placeholder này, ô thuốc thêm `prefix` kính lúp; card mobile đánh `required` cho FloatingField "Tên thuốc". `aria-label` giữ nguyên nên các spec định vị bằng `getByLabel` không đổi. Xoá `.rx-required` không dùng trong `prescription.css`. |
+
+Bằng chứng: bản build production (`vite preview` cổng 8091, API thật 5000) —
+`e2e/prescription.spec.ts` 5/5 và `taxonomy-dialogs.spec.ts` "a prescription template stores
+its lines…" 1/1 → **6/6**. Ảnh chụp local đối chiếu với
+`reference-private/plan-detail/ref-detail-prescription-dialog.png`: hai ô khớp chữ, dấu *, kính lúp.
+Retest level 2 (một feature) + spec Đơn thuốc mẫu vì dùng chung bảng dòng thuốc.
+
+## 2026-09-25 — Màn hình đợi: dựng lại theo BA mục 22 (R-574..R-575)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-574 | BA mục 22: "Lấy số mới" bắt chọn bệnh nhân và quầy trong khi khách vãng lai chưa có hồ sơ; màn chính không có khối quầy tiếp nhận, chỉ một nút "Gọi số tiếp theo" chung ở header, bảng có cột Bệnh nhân; `call-next` chỉ lấy số đã gắn quầy. | BE: `QueueTicket.PatientId` thành `Guid?` (migration `MakeQueueTicketPatientOptional`), guard trùng số chỉ chạy khi có PatientId; `CallNextAsync` bắt buộc `counterId` (`Queue:0004`), quầy tạm ngưng bị từ chối (`Queue:0005`), lấy số **Waiting** đầu tiên trong hàng chờ chung (`CounterId == null` hoặc `== counterId`, ưu tiên trước rồi số nhỏ), tự `Complete()` các số Called/Serving còn ở quầy đó; thêm `GET counters/board` và `GET display/board?branchId` (ẩn danh) trả `current`/`next` theo quầy — quầy tạm ngưng `next = null`. FE: `CreateTicketModal` chỉ còn Độ ưu tiên / Loại dịch vụ / Ghi chú; `CounterBoard` + `CounterBoardCard` (thẻ theo quầy, badge trạng thái, số đang phục vụ + "Gọi lúc HH:mm", số tiếp theo + tag Ưu tiên, nút gọi riêng, quầy tạm ngưng mờ và khoá nút); bỏ nút gọi ở header; bảng bỏ cột Bệnh nhân (bảng này bỏ hẳn ở R-575); TV `/queue/display` dùng `DisplayCounterCard` (số đang phục vụ + Tiếp theo); mọi inline style của feature chuyển sang class trong `queue.css`. Quyết định chủ dự án: cùng một số "Tiếp theo" trên mọi thẻ; gọi số mới tự hoàn thành số cũ; quầy tạm ngưng vẫn hiện; ẩn cột Bệnh nhân; số bỏ qua chỉ gọi lại thủ công. |
+| R-575 | Chủ dự án (ảnh chat với BA, mockup thẻ quầy): "là thay thế hoàn toàn card thống kê với table đó" — khối thẻ quầy phải **thay thế** 4 thẻ KPI, bộ lọc ngày/quầy và bảng số thứ tự, không đặt phía trên chúng. | `QueuePage` chỉ còn PageHeader (Lấy số mới / Quản lý quầy / Mở màn hình TV) + `CounterBoard` + 2 modal; xoá `QueueStatsBar`, `QueueTicketTable`, `useTicketRowActions`, `useWaitingTimer`, `utils/waitingTime` và các block CSS KPI/bảng; `api/` giữ nguyên (`useQueueList`, `useQueueStats`, serve/complete/skip/recall) vì endpoint vẫn sống. Thẻ dựng theo mockup: avatar tròn + tên quầy + badge trạng thái; "Đang phục vụ" số 30px màu accent + loại dịch vụ bên cạnh (BE thêm `ServiceType` vào `BoardTicketDto`), icon đồng hồ + HH:mm; "Tiếp theo" số + loại dịch vụ; nút full-width icon loa "Gọi số tiếp theo" cùng màu accent; accent xoay xanh dương / tím / xanh lá theo vị trí (`queue-counter--accent-{i%3}` đặt `--counter-accent`, không hex trong tsx). Lưới `minmax(300px, 1fr)` — 240px làm tên quầy và loại dịch vụ bị cắt. **Hệ quả cần chủ dự án biết:** màn hình không còn nút Phục vụ / Hoàn thành / Bỏ qua / Gọi lại trên từng số — số bị bỏ qua (Skipped) hiện chỉ gọi lại được qua API `tickets/{id}/recall`, chưa có chỗ bấm trên UI. Spec UI: bỏ assert cột Bệnh nhân và dòng bảng "Hoàn thành" → assert không có `table`, có heading "Các quầy tiếp nhận", `.queue-counter__meta` khớp `/\d{2}:\d{2}/`, số ưu tiên đã tự hoàn thành đọc qua `GET tickets?status=4`. |
+
+Bằng chứng: build production (`vite preview` cổng 8083, host 5000 build mới, DB thật) —
+`e2e/queue-api.spec.ts` 9/9 (HTTP thật từ trang đã đăng nhập: lấy số không bệnh nhân,
+thứ tự ưu tiên → số nhỏ, tự hoàn thành, 0004/0005, bỏ qua không bị lấy, board quầy tạm
+ngưng, TV ẩn danh, chi nhánh 2 không thấy quầy và bị 404) và `e2e/queue.spec.ts` 1/1
+(UI thật: không còn bảng, thêm 2 quầy, lấy 3 số có 1 ưu tiên, gọi theo từng thẻ, số
+ưu tiên tự hoàn thành, reload giữ nguyên, tạm ngưng khoá nút, TV hiện đúng). Sau R-575
+chạy lại đủ 10/10 với host build mới (`ServiceType`) và bundle mới. Cả hai spec xả hàng chờ chung qua `call-next` thật
+trước khi đo. Lần chạy đầu đỏ giả vì `getByRole("cell", { name })` khớp cả ô trạng thái
+(Switch mang `aria-label` = tên quầy) → `exact: true`. Retest level 2 (một feature).

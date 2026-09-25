@@ -64,15 +64,20 @@ export function CounterManagerModal({ open, onClose }: CounterManagerModalProps)
     {
       title: t("Queue:Counter:Status"),
       dataIndex: "isActive",
-      width: 100,
-      align: "center",
+      width: 160,
       render: (val: boolean, record) => (
-        <Switch
-          checked={val}
-          size="small"
-          loading={toggleMutation.isPending}
-          onChange={() => toggleMutation.mutate(record.id)}
-        />
+        <span className="queue-counter-toggle">
+          <Switch
+            checked={val}
+            size="small"
+            aria-label={record.name}
+            loading={toggleMutation.isPending}
+            onChange={() => toggleMutation.mutate(record.id)}
+          />
+          <span className={val ? "queue-counter-toggle__label--active" : "queue-counter-toggle__label--paused"}>
+            {val ? t("Queue:Counter:Active") : t("Queue:Counter:Paused")}
+          </span>
+        </span>
       ),
     },
     {
@@ -99,22 +104,18 @@ export function CounterManagerModal({ open, onClose }: CounterManagerModalProps)
       width={600}
       destroyOnClose
     >
-      <Form
-        form={form}
-        layout="vertical"
-        style={{ marginBottom: 16 }}
-      >
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+      <Form form={form} layout="vertical" className="queue-counter-form">
+        <div className="queue-counter-form__row">
           <Form.Item
             name="name"
             label={t("Queue:Counter:Name")}
             rules={[{ required: true, message: t("Queue:Counter:NameRequired") }]}
-            style={{ flex: 1, marginBottom: 0 }}
+            className="queue-counter-form__name"
           >
             <Input placeholder={t("Queue:Counter:NamePlaceholder")} />
           </Form.Item>
-          <Space size={4} style={{ marginBottom: 0 }}>
-            <Button type="primary" onClick={handleSubmit} loading={saving}>
+          <Space size={4}>
+            <Button type="primary" onClick={handleSubmit} loading={saving} disabled={saving}>
               {editingId ? t("Queue:Counter:Update") : t("Queue:Counter:Add")}
             </Button>
             {editingId && (

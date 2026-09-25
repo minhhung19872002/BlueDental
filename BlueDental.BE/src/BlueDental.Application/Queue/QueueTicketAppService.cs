@@ -44,17 +44,22 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var existing = await AsyncExecuter.FirstOrDefaultAsync(
-            (await _repository.GetQueryableAsync())
-                .Where(q => q.ClinicBranchId == branchId
-                    && q.QueueDate == today
-                    && q.PatientId == input.PatientId
-                    && q.Status != QueueTicketStatus.Completed
-                    && q.Status != QueueTicketStatus.Expired));
-
-        if (existing is not null)
+        // A walk-in takes a number with no record; the duplicate guard only
+        // applies when the ticket is tied to a patient.
+        if (input.PatientId is { } patientId)
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.Queue.AlreadyQueued);
+            var existing = await AsyncExecuter.FirstOrDefaultAsync(
+                (await _repository.GetQueryableAsync())
+                    .Where(q => q.ClinicBranchId == branchId
+                        && q.QueueDate == today
+                        && q.PatientId == patientId
+                        && q.Status != QueueTicketStatus.Completed
+                        && q.Status != QueueTicketStatus.Expired));
+
+            if (existing is not null)
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.Queue.AlreadyQueued);
+            }
         }
 
         var nextNumber = await GetNextTicketNumberAsync(branchId, today);
@@ -125,21 +130,36 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
         return dto;
     }
 
+    /// <summary>
+    /// "Gọi số tiếp theo" on one counter: the counter takes the head of the
+    /// shared queue (urgent first, then lowest number). Whatever that counter
+    /// was still serving is completed first, so a counter serves one number at
+    /// a time. Numbers already skipped stay out until recalled by hand.
+    /// </summary>
     public async Task<QueueTicketDto> CallNextAsync(CallTicketInput input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var query = (await _repository.GetQueryableAsync())
-            .Where(q => q.ClinicBranchId == branchId
-                && q.QueueDate == today
-                && q.Status == QueueTicketStatus.Waiting);
+        if (input.CounterId is not { } counterId)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Queue.CounterRequired);
+        }
 
-        if (input.CounterId.HasValue)
-            query = query.Where(q => q.CounterId == input.CounterId.Value);
+        var counter = await _counterRepository.GetAsync(counterId);
+        GuardCounterBranchAccess(counter);
+        if (!counter.IsActive)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Queue.CounterPaused);
+        }
 
         var next = await AsyncExecuter.FirstOrDefaultAsync(
-            query.OrderBy(q => q.Priority == QueueTicketPriority.Urgent ? 0 : 1)
+            (await _repository.GetQueryableAsync())
+                .Where(q => q.ClinicBranchId == branchId
+                    && q.QueueDate == today
+                    && q.Status == QueueTicketStatus.Waiting
+                    && (q.CounterId == null || q.CounterId == counterId))
+                .OrderBy(q => q.Priority == QueueTicketPriority.Urgent ? 0 : 1)
                 .ThenBy(q => q.TicketNumber));
 
         if (next is null)
@@ -148,7 +168,22 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
                 "No more tickets waiting.");
         }
 
-        next.Call(input.CounterId);
+        var stillAtCounter = await AsyncExecuter.ToListAsync(
+            (await _repository.GetQueryableAsync())
+                .Where(q => q.ClinicBranchId == branchId
+                    && q.QueueDate == today
+                    && q.CounterId == counterId
+                    && (q.Status == QueueTicketStatus.Called || q.Status == QueueTicketStatus.Serving)));
+        foreach (var previous in stillAtCounter)
+        {
+            previous.Complete();
+        }
+        if (stillAtCounter.Count > 0)
+        {
+            await _repository.UpdateManyAsync(stillAtCounter, autoSave: true);
+        }
+
+        next.Call(counterId);
         await _repository.UpdateAsync(next, autoSave: true);
         var dto = await ToDtoAsync(next);
         await _notifier.NotifyTicketCalledAsync(next.Id, next.DisplayNumber, next.ClinicBranchId, next.CallCount);
@@ -265,6 +300,73 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
         return dtos;
     }
 
+    public Task<List<CounterBoardDto>> GetBoardAsync() =>
+        BuildBoardAsync(_branchResolver.GetRequiredClinicBranchId());
+
+    [AllowAnonymous]
+    public Task<List<CounterBoardDto>> GetDisplayBoardAsync(Guid branchId) =>
+        BuildBoardAsync(branchId);
+
+    /// <summary>
+    /// One card per counter (paused ones included): the number it is serving
+    /// (its latest Called/Serving ticket) and the shared queue's next number —
+    /// the same for every card, because whichever counter calls first takes it.
+    /// </summary>
+    private async Task<List<CounterBoardDto>> BuildBoardAsync(Guid branchId)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var counters = await AsyncExecuter.ToListAsync(
+            (await _counterRepository.GetQueryableAsync())
+                .Where(c => c.ClinicBranchId == branchId)
+                .OrderBy(c => c.SortOrder)
+                .ThenBy(c => c.Name));
+
+        var live = await AsyncExecuter.ToListAsync(
+            (await _repository.GetQueryableAsync())
+                .Where(q => q.ClinicBranchId == branchId
+                    && q.QueueDate == today
+                    && (q.Status == QueueTicketStatus.Waiting
+                        || q.Status == QueueTicketStatus.Called
+                        || q.Status == QueueTicketStatus.Serving))
+                .Select(q => new BoardTicketRow(q.Id, q.DisplayNumber, q.Status, q.Priority, q.ServiceType, q.CalledAt, q.CounterId, q.TicketNumber)));
+
+        var next = live
+            .Where(t => t.Status == QueueTicketStatus.Waiting && t.CounterId == null)
+            .OrderBy(t => t.Priority == QueueTicketPriority.Urgent ? 0 : 1)
+            .ThenBy(t => t.TicketNumber)
+            .Select(ToBoardTicket)
+            .FirstOrDefault();
+
+        return counters.Select(c => new CounterBoardDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            IsActive = c.IsActive,
+            Current = live
+                .Where(t => t.CounterId == c.Id
+                    && (t.Status == QueueTicketStatus.Called || t.Status == QueueTicketStatus.Serving))
+                .OrderByDescending(t => t.CalledAt)
+                .Select(ToBoardTicket)
+                .FirstOrDefault(),
+            Next = c.IsActive ? next : null,
+        }).ToList();
+    }
+
+    private sealed record BoardTicketRow(
+        Guid Id, string DisplayNumber, QueueTicketStatus Status, QueueTicketPriority Priority,
+        string? ServiceType, DateTimeOffset? CalledAt, Guid? CounterId, int TicketNumber);
+
+    private static BoardTicketDto ToBoardTicket(BoardTicketRow row) => new()
+    {
+        Id = row.Id,
+        DisplayNumber = row.DisplayNumber,
+        Status = row.Status,
+        Priority = row.Priority,
+        ServiceType = row.ServiceType,
+        CalledAt = row.CalledAt,
+    };
+
     // ── Service Counter management ──
 
     public async Task<List<ServiceCounterDto>> GetCountersAsync()
@@ -336,7 +438,7 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
 
     private async Task FillNamesAsync(IReadOnlyList<QueueTicket> tickets, IReadOnlyList<QueueTicketDto> dtos)
     {
-        var patientIds = tickets.Select(t => t.PatientId).Distinct().ToList();
+        var patientIds = tickets.Where(t => t.PatientId.HasValue).Select(t => t.PatientId!.Value).Distinct().ToList();
         var dentistIds = tickets.Where(t => t.DentistId.HasValue).Select(t => t.DentistId!.Value).Distinct().ToList();
         var counterIds = tickets.Where(t => t.CounterId.HasValue).Select(t => t.CounterId!.Value).Distinct().ToList();
 
@@ -367,7 +469,8 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
 
         for (var i = 0; i < dtos.Count; i++)
         {
-            dtos[i].PatientName = patientMap.GetValueOrDefault(tickets[i].PatientId);
+            if (tickets[i].PatientId is { } patientId)
+                dtos[i].PatientName = patientMap.GetValueOrDefault(patientId);
             if (tickets[i].DentistId is { } dentistId)
                 dtos[i].DentistName = dentistMap.GetValueOrDefault(dentistId);
             if (tickets[i].CounterId is { } counterId)

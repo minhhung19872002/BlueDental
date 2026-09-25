@@ -10,7 +10,8 @@ public class QueueTicket : FullAuditedAggregateRoot<Guid>
     public DateOnly QueueDate { get; private set; }
     public int TicketNumber { get; private set; }
     public string DisplayNumber { get; private set; } = default!;
-    public Guid PatientId { get; private set; }
+    /// <summary>Optional: a walk-in takes a number before any record exists.</summary>
+    public Guid? PatientId { get; private set; }
     public Guid? AppointmentId { get; private set; }
     public QueueTicketStatus Status { get; private set; }
     public QueueTicketPriority Priority { get; private set; }
@@ -32,7 +33,7 @@ public class QueueTicket : FullAuditedAggregateRoot<Guid>
         DateOnly queueDate,
         int ticketNumber,
         string displayNumber,
-        Guid patientId,
+        Guid? patientId = null,
         Guid? appointmentId = null,
         QueueTicketPriority priority = QueueTicketPriority.Normal,
         string? serviceType = null,

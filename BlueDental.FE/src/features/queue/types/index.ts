@@ -24,7 +24,8 @@ export interface QueueTicket {
   queueDate: string;
   ticketNumber: number;
   displayNumber: string;
-  patientId: string;
+  /** A walk-in takes a number before any record exists. */
+  patientId?: string;
   patientName?: string;
   appointmentId?: string;
   status: QueueTicketStatus;
@@ -44,7 +45,7 @@ export interface QueueTicket {
 }
 
 export interface CreateQueueTicketInput {
-  patientId: string;
+  patientId?: string;
   appointmentId?: string;
   priority: QueueTicketPriority;
   serviceType?: string;
@@ -111,6 +112,24 @@ export interface CreateServiceCounterInput {
 export interface UpdateServiceCounterInput {
   name: string;
   sortOrder: number;
+}
+
+/** One reception counter on the board: what it serves now and the shared queue's next number. */
+export interface CounterBoard {
+  id: string;
+  name: string;
+  isActive: boolean;
+  current: BoardTicket | null;
+  next: BoardTicket | null;
+}
+
+export interface BoardTicket {
+  id: string;
+  displayNumber: string;
+  status: QueueTicketStatus;
+  priority: QueueTicketPriority;
+  serviceType?: string | null;
+  calledAt?: string | null;
 }
 
 export interface PagedResult<T> {

@@ -55,7 +55,15 @@ public sealed class QueueTicketController(IQueueTicketAppService service) : Blue
     public Task<List<QueueDisplayDto>> GetDisplayAsync([FromQuery] Guid branchId, [FromQuery] Guid? counterId = null) =>
         service.GetDisplayAsync(branchId, counterId);
 
+    [HttpGet("display/board")]
+    [AllowAnonymous]
+    public Task<List<CounterBoardDto>> GetDisplayBoardAsync([FromQuery] Guid branchId) =>
+        service.GetDisplayBoardAsync(branchId);
+
     // ── Service Counter endpoints ──
+
+    [HttpGet("counters/board")]
+    public Task<List<CounterBoardDto>> GetBoardAsync() => service.GetBoardAsync();
 
     [HttpGet("counters")]
     public Task<List<ServiceCounterDto>> GetCountersAsync() =>

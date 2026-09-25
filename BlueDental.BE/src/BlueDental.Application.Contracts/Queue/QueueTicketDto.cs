@@ -9,7 +9,7 @@ public class QueueTicketDto : FullAuditedEntityDto<Guid>
     public DateOnly QueueDate { get; set; }
     public int TicketNumber { get; set; }
     public string DisplayNumber { get; set; } = default!;
-    public Guid PatientId { get; set; }
+    public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }
     public Guid? AppointmentId { get; set; }
     public QueueTicketStatus Status { get; set; }
@@ -29,7 +29,7 @@ public class QueueTicketDto : FullAuditedEntityDto<Guid>
 
 public class CreateQueueTicketDto
 {
-    public Guid PatientId { get; set; }
+    public Guid? PatientId { get; set; }
     public Guid? AppointmentId { get; set; }
     public QueueTicketPriority Priority { get; set; }
     public string? ServiceType { get; set; }
@@ -98,4 +98,27 @@ public class UpdateServiceCounterDto
 public class CallTicketInput
 {
     public Guid? CounterId { get; set; }
+}
+
+/// <summary>
+/// One reception counter as the main screen and the TV show it: what it is
+/// serving now and which number the shared queue hands out next. No PHI.
+/// </summary>
+public class CounterBoardDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = default!;
+    public bool IsActive { get; set; }
+    public BoardTicketDto? Current { get; set; }
+    public BoardTicketDto? Next { get; set; }
+}
+
+public class BoardTicketDto
+{
+    public Guid Id { get; set; }
+    public string DisplayNumber { get; set; } = default!;
+    public QueueTicketStatus Status { get; set; }
+    public QueueTicketPriority Priority { get; set; }
+    public string? ServiceType { get; set; }
+    public DateTimeOffset? CalledAt { get; set; }
 }
