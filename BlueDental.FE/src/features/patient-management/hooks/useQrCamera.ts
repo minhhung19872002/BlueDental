@@ -17,6 +17,13 @@ export interface QrSighting {
   frameHeight: number;
 }
 
+/**
+ * What to tell the desk when a scan is not getting anywhere: nothing found for
+ * a while ("notFound"), or a code in view that will not read ("soft") — both
+ * usually a card held too close for a webcam's fixed focus.
+ */
+export type ScanAdvice = "none" | "notFound" | "soft";
+
 interface Options {
   /** The camera runs only while this is true. */
   active: boolean;
@@ -33,6 +40,33 @@ const RESOLUTION = { width: { ideal: 1920 }, height: { ideal: 1080 } };
 /** A box that vanished for a frame or two stays put, instead of flickering. */
 const SIGHTING_HOLD_MS = 300;
 const SNAPSHOT_SIDE = 1280;
+const NOT_FOUND_ADVICE_MS = 4000;
+const SOFT_ADVICE_MS = 2500;
+
+/** The standard lists no focus controls; cameras that have them report them anyway. */
+interface FocusCapabilities extends MediaTrackCapabilities {
+  focusMode?: string[];
+}
+
+interface FocusConstraints extends MediaTrackConstraintSet {
+  focusMode?: ConstrainDOMString;
+}
+
+/**
+ * Asks a camera that can refocus on its own to keep doing so. Webcams with a
+ * fixed lens simply do not offer it, and nothing changes for them.
+ */
+async function keepFocusing(track: MediaStreamTrack | undefined): Promise<void> {
+  if (!track?.getCapabilities) return;
+  const capabilities: FocusCapabilities = track.getCapabilities();
+  if (!capabilities.focusMode?.includes("continuous")) return;
+  const focus: FocusConstraints = { focusMode: "continuous" };
+  try {
+    await track.applyConstraints({ advanced: [focus] });
+  } catch {
+    // Offered but refused — the camera keeps whatever focus it had.
+  }
+}
 
 function constraintsFor(deviceId?: string): MediaStreamConstraints {
   return {
@@ -79,6 +113,7 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
   const [sighting, setSighting] = useState<QrSighting | null>(null);
   /** The frame a card was read from (a data URL), kept once the camera stops. */
   const [capture, setCapture] = useState<string | null>(null);
+  const [advice, setAdvice] = useState<ScanAdvice>("none");
 
   useEffect(() => {
     onDecodeRef.current = onDecode;
@@ -87,6 +122,7 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
   useEffect(() => {
     const video = videoRef.current;
     setSighting(null);
+    setAdvice("none");
     if (!active || !video) {
       setStatus("idle");
       return undefined;
@@ -105,6 +141,8 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
     let lastSeen = 0;
     let tracking = false;
     let filter: SightingFilter | null = null;
+    let searchingSince = 0;
+    let seenSince = 0;
 
     const next = () => {
       if (!stopped) frame = requestAnimationFrame(() => void readFrame());
@@ -141,11 +179,19 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
         : null;
 
       if (corners) {
+        if (now - lastSeen > SIGHTING_HOLD_MS) seenSince = now;
         lastSeen = now;
         setSighting({ corners, frameWidth: width, frameHeight: height });
       } else if (now - lastSeen > SIGHTING_HOLD_MS) {
         setSighting(null);
       }
+
+      searchingSince ||= now;
+      const inView = now - lastSeen <= SIGHTING_HOLD_MS;
+      if (inView && now - seenSince > SOFT_ADVICE_MS) setAdvice("soft");
+      else if (!inView && now - Math.max(lastSeen, searchingSince) > NOT_FOUND_ADVICE_MS) {
+        setAdvice("notFound");
+      } else setAdvice("none");
 
       if (result.text && onDecodeRef.current(result.text)) {
         const still = drawScaled(video, video.videoWidth, video.videoHeight, SNAPSHOT_SIDE);
@@ -170,6 +216,7 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
         await video.play();
         setStatus("live");
         setActiveDeviceId(stream.getVideoTracks()[0]?.getSettings().deviceId);
+        void keepFocusing(stream.getVideoTracks()[0]);
 
         // Labels are only readable once permission has been given.
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -190,5 +237,5 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
     // `attempt` only re-runs the effect: a retry is the same request again.
   }, [active, deviceId, attempt]);
 
-  return { videoRef, status, cameras, activeDeviceId, sighting, capture };
+  return { videoRef, status, cameras, activeDeviceId, sighting, capture, advice };
 }

@@ -5940,3 +5940,15 @@ Tổng 9/9 cùng `patient-national-id.spec.ts`.
 Bằng chứng: chạy bộ lọc trên chính 60 khung đó — sai cỡ **6 → 0**, không khung đúng nào bị bỏ.
 `patient-scan-id-tracking` (khung lệch 2 px), `-camera`, `patient-scan-id.spec.ts`: **6/6**.
 Camera điện thoại thật chưa kiểm tự động.
+
+## 2026-09-25 — Quét CCCD: webcam laptop hơi mờ thì không nhận mã (R-570)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-570 | Chủ dự án: quét bằng cam laptop, hình hơi mờ nhưng vẫn thấy QR, không detect được; modal lại cuộn khi có 2 camera | Ảnh chụp của chủ dự án: mã nhoè ~1 ô trở lên (webcam lấy nét cố định, thẻ đưa quá gần) — không bộ đọc nào đọc được khung đó, kể cả khi làm nét / đổi kênh màu / đổi binarizer (đã thử trên chính ảnh, chỉ trong scratchpad, không lưu vào repo). Đo trên mã tổng hợp: ZXing đọc tới σ≈0,4 ô; làm nét (unsharp mask) đẩy lên σ≈0,5 ô. Sửa: worker thêm `sharpened()` (3 box blur ≈ Gauss) — vùng mã phóng to chưa đọc được thì làm nét theo cỡ ô rồi đọc lại; khung không thấy gì thì thử bản làm nét với binarizer LocalAverage rồi GlobalHistogram. Camera có `focusMode: continuous` thì bật (`keepFocusing`). Lời nhắc màu hổ phách: thấy mã mà >2,5 s chưa đọc → "Hình đang mờ — đưa thẻ ra xa camera (20–30 cm)…"; >4 s không thấy mã → "Chưa thấy mã QR — …". Ô chọn camera chuyển lên cùng hàng nút (hết cuộn). |
+
+Bằng chứng: `e2e/patient-scan-id-soft.spec.ts` — camera giả phát thẻ mờ 0,55 ô (ZXing không làm nét
+chỉ "thấy", không đọc được — kiểm trong Node) → app đọc ra số CCCD và tên. **Kiểm đảo**: tạm tắt
+`sharpened()` → spec này **đỏ**; bật lại → xanh. `-tracking` thêm kiểm lời nhắc "Hình đang mờ".
+Cả bộ Quét CCCD **7/7**. Khung mờ ~1 ô trở lên (như ảnh chủ dự án) vẫn không đọc được — giới hạn
+quang học; cách xử lý là đưa thẻ ra xa, dùng camera điện thoại, hoặc "Tải ảnh" chụp bằng điện thoại.

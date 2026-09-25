@@ -39,6 +39,40 @@ interface CameraOptions {
    * camera then finds the QR but can never read it, so the box stays on it.
    */
   unreadable?: boolean;
+  /**
+   * Defocus the picture: a Gaussian blur of this many modules — a webcam
+   * looking at a card held a little too close for its fixed focus.
+   */
+  blurModules?: number;
+}
+
+/** Separable Gaussian blur of a grey image, in place. */
+function gaussianBlur(luma: Uint8Array, width: number, height: number, sigma: number): void {
+  const radius = Math.ceil(sigma * 3);
+  const weights = Array.from({ length: 2 * radius + 1 }, (_, i) =>
+    Math.exp(-((i - radius) ** 2) / (2 * sigma * sigma)),
+  );
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  const kernel = weights.map((w) => w / total);
+  const rows = new Float32Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      for (let k = -radius; k <= radius; k++) {
+        sum += luma[y * width + Math.min(width - 1, Math.max(0, x + k))] * kernel[k + radius];
+      }
+      rows[y * width + x] = sum;
+    }
+  }
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      for (let k = -radius; k <= radius; k++) {
+        sum += rows[Math.min(height - 1, Math.max(0, y + k)) * width + x] * kernel[k + radius];
+      }
+      luma[y * width + x] = Math.round(sum);
+    }
+  }
 }
 
 /** Where the QR sits in the fake camera's frame, in frame pixels. */
@@ -57,7 +91,7 @@ export interface FakeQrPlacement {
 export async function writeFakeCamera(
   file: string,
   text: string,
-  { mirror, unreadable = false }: CameraOptions,
+  { mirror, unreadable = false, blurModules = 0 }: CameraOptions,
 ): Promise<FakeQrPlacement> {
   prepare();
   const { symbol } = await writeBarcode(text, { format: "QRCode", scale: 1, addQuietZones: false });
@@ -91,6 +125,8 @@ export async function writeFakeCamera(
       luma[(qy + y) * W + qx + x] = inside ? data[my * n + mx] : 255;
     }
   }
+
+  if (blurModules > 0) gaussianBlur(luma, W, H, blurModules * MODULE);
 
   if (mirror) {
     for (let y = 0; y < H; y++) luma.subarray(y * W, (y + 1) * W).reverse();

@@ -73,6 +73,11 @@ test("the box hugs the QR the camera has found", async ({ page }) => {
   expect(Math.abs(box.width - expected.side)).toBeLessThan(tolerance);
   expect(Math.abs(box.height - expected.side)).toBeLessThan(tolerance);
 
+  // A code in view that will not read gets the desk advice to back off.
+  await expect(dialog.getByText(/Hình đang mờ — đưa thẻ ra xa camera/)).toBeVisible({
+    timeout: 6_000,
+  });
+
   // The code here can never be read, so the camera stays on until stopped —
   // and comes back when asked.
   await dialog.getByRole("button", { name: "Dừng camera" }).click();

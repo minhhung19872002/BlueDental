@@ -714,6 +714,12 @@
   text-align: center;
 }
 
+/* The scan is stuck — usually a card too close for a webcam to focus on. */
+.bd-idscan-live-hint--advice {
+  background: rgb(217 139 15 / 88%);
+  font-weight: 600;
+}
+
 .bd-idscan-idle {
   position: absolute;
   inset: 0;
@@ -755,8 +761,11 @@
   flex: 1;
 }
 
+/* Beside the buttons, not under them: a row more would push the dialog into
+   scrolling on a laptop screen. */
 .bd-idscan-camera-select {
-  width: 100%;
+  flex: 0 1 240px;
+  min-width: 0;
 }
 
 .bd-idscan-error.ant-alert {

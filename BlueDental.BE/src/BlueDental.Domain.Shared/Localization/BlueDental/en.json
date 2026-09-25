@@ -4428,6 +4428,8 @@
     "Patient:ScanId:IdleHint": "Point the camera at the QR at the top right of the ID card",
     "Patient:ScanId:LiveHint": "Point the camera at the QR at the top right of the ID card",
     "Patient:ScanId:Reading": "QR found — hold the card still…",
+    "Patient:ScanId:AdviceNotFound": "No QR yet — hold the card a little further away (20–30 cm), well lit and free of glare",
+    "Patient:ScanId:AdviceSoft": "The picture is soft — hold the card a little further away (20–30 cm) and keep it still to focus",
     "Patient:ScanId:Starting": "Opening the camera…",
     "Patient:ScanId:Done": "ID card read. Press \"Scan again\" for another card.",
     "Patient:ScanId:OpenCamera": "Open camera",

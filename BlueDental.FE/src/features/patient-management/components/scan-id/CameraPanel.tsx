@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Button, Select, Spin } from "antd";
 import { CameraOutlined, PauseCircleOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { useQrCamera, type CameraStatus } from "../../hooks/useQrCamera";
+import { useQrCamera, type CameraStatus, type ScanAdvice } from "../../hooks/useQrCamera";
 import { QrBox } from "./QrBox";
 
 interface Props {
@@ -33,6 +33,13 @@ function rememberCamera(deviceId: string): void {
   } catch {
     // Private mode: the choice just lasts for this dialog.
   }
+}
+
+/** The line under a live picture: advice when the scan is stuck, else what to do. */
+function liveHint(found: boolean, advice: ScanAdvice): { text: string; advice: boolean } {
+  if (advice === "soft") return { text: "Patient:ScanId:AdviceSoft", advice: true };
+  if (advice === "notFound") return { text: "Patient:ScanId:AdviceNotFound", advice: true };
+  return { text: found ? "Patient:ScanId:Reading" : "Patient:ScanId:LiveHint", advice: false };
 }
 
 const STATUS_TEXT: Partial<Record<CameraStatus, string>> = {
@@ -66,6 +73,7 @@ export function CameraPanel({ running, finished, onToggle, onDecode, children }:
     rememberCamera(next);
   };
 
+  const hint = liveHint(Boolean(camera.sighting), camera.advice);
   const idleText = finished
     ? t("Patient:ScanId:Done")
     : t(STATUS_TEXT[camera.status] ?? "Patient:ScanId:IdleHint");
@@ -94,8 +102,13 @@ export function CameraPanel({ running, finished, onToggle, onDecode, children }:
             ) : (
               <div className="bd-idscan-sweep" aria-hidden="true" />
             )}
-            <p className="bd-idscan-live-hint">
-              {camera.sighting ? t("Patient:ScanId:Reading") : t("Patient:ScanId:LiveHint")}
+            <p
+              className={["bd-idscan-live-hint", hint.advice && "bd-idscan-live-hint--advice"]
+                .filter(Boolean)
+                .join(" ")}
+              role={hint.advice ? "status" : undefined}
+            >
+              {t(hint.text)}
             </p>
           </>
         )}
@@ -127,22 +140,22 @@ export function CameraPanel({ running, finished, onToggle, onDecode, children }:
         >
           {on ? t("Patient:ScanId:StopCamera") : t("Patient:ScanId:OpenCamera")}
         </Button>
+        {running && camera.cameras.length > 1 && (
+          <Select
+            size="large"
+            className="bd-idscan-camera-select"
+            value={deviceId ?? camera.activeDeviceId}
+            aria-label={t("Patient:ScanId:SelectCamera")}
+            placeholder={t("Patient:ScanId:SelectCamera")}
+            options={camera.cameras.map((device, index) => ({
+              value: device.deviceId,
+              label: device.label || `${t("Patient:ScanId:Camera")} ${index + 1}`,
+            }))}
+            onChange={handleCamera}
+          />
+        )}
         {children}
       </div>
-
-      {running && camera.cameras.length > 1 && (
-        <Select
-          className="bd-idscan-camera-select"
-          value={deviceId ?? camera.activeDeviceId}
-          aria-label={t("Patient:ScanId:SelectCamera")}
-          placeholder={t("Patient:ScanId:SelectCamera")}
-          options={camera.cameras.map((device, index) => ({
-            value: device.deviceId,
-            label: device.label || `${t("Patient:ScanId:Camera")} ${index + 1}`,
-          }))}
-          onChange={handleCamera}
-        />
-      )}
     </div>
   );
 }

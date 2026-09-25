@@ -4428,6 +4428,8 @@
     "Patient:ScanId:IdleHint": "Hướng camera vào mã QR góc trên bên phải CCCD",
     "Patient:ScanId:LiveHint": "Hướng camera vào mã QR góc trên bên phải CCCD",
     "Patient:ScanId:Reading": "Đã thấy mã QR — giữ yên thẻ để đọc…",
+    "Patient:ScanId:AdviceNotFound": "Chưa thấy mã QR — đưa thẻ ra xa camera một chút (20–30 cm) cho rõ nét, đủ sáng, không bị lóa",
+    "Patient:ScanId:AdviceSoft": "Hình đang mờ — đưa thẻ ra xa camera một chút (20–30 cm) và giữ yên để camera lấy nét",
     "Patient:ScanId:Starting": "Đang mở camera…",
     "Patient:ScanId:Done": "Đã đọc CCCD. Bấm \"Quét lại\" để quét thẻ khác.",
     "Patient:ScanId:OpenCamera": "Mở camera quét",
