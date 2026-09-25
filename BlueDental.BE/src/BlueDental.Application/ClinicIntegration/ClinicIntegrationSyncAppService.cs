@@ -178,11 +178,18 @@ public class ClinicIntegrationSyncAppService : ApplicationService, IClinicIntegr
 
         await _callLogs.InsertAsync(new IntegrationCallLog(
             GuidGenerator.Create(), clinicBranchId, "service-catalog", outcome.RequestPath,
-            outcome.StatusCode, outcome.Succeeded, outcome.DurationMs, items.Count, outcome.Error));
+            outcome.StatusCode, outcome.Succeeded, outcome.DurationMs, items.Count,
+            outcome.ErrorCode == null ? outcome.Error : $"{outcome.ErrorCode}: {outcome.Error}"));
 
         if (!outcome.Succeeded)
         {
-            report.FailBatch(items, L["ClinicIntegration:Sync:BatchFailed", number, count], outcome.Error);
+            // The reference lists a refusal as the partner's own code and
+            // message ("CLINIC_CONN_0001 — Kết nối không tồn tại…"); a batch
+            // that got no usable answer at all is named by its number.
+            report.FailBatch(
+                items,
+                outcome.ErrorCode ?? L["ClinicIntegration:Sync:BatchFailed", number, count].Value,
+                outcome.Error);
             return;
         }
 

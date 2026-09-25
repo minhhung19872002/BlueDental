@@ -69,6 +69,13 @@ public class HttpClinicPartnerClient : IClinicPartnerClient, ITransientDependenc
         try
         {
             var parsed = JsonSerializer.Deserialize<ResultsBody>(body ?? string.Empty, Json);
+
+            // A 2xx that carries an error and no results is still a refusal.
+            if (parsed?.Results == null && ReadPartnerError(body) is { } refusal)
+            {
+                return Batch(outcome with { Succeeded = false, ErrorCode = refusal.Code, Error = refusal.Message }, []);
+            }
+
             var results = (parsed?.Results ?? [])
                 .Where(r => !string.IsNullOrWhiteSpace(r.ExternalId))
                 .Select(r => new PartnerServiceResult(
@@ -101,10 +108,16 @@ public class HttpClinicPartnerClient : IClinicPartnerClient, ITransientDependenc
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             var status = (int)response.StatusCode;
 
-            return response.IsSuccessStatusCode
-                ? (new PartnerCallOutcome(path, status, true, watch.ElapsedMilliseconds, null), body)
-                : (new PartnerCallOutcome(path, status, false, watch.ElapsedMilliseconds,
-                    $"HTTP {status}: {Clip(body)}"), null);
+            if (response.IsSuccessStatusCode)
+            {
+                return (new PartnerCallOutcome(path, status, true, watch.ElapsedMilliseconds, null), body);
+            }
+
+            // The partner's own code and message when it sends them; the raw
+            // status and body otherwise.
+            var refusal = ReadPartnerError(body);
+            return (new PartnerCallOutcome(path, status, false, watch.ElapsedMilliseconds,
+                refusal?.Message ?? $"HTTP {status}: {Clip(body)}", refusal?.Code), null);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -114,7 +127,57 @@ public class HttpClinicPartnerClient : IClinicPartnerClient, ITransientDependenc
     }
 
     private static PartnerBatchOutcome Batch(PartnerCallOutcome call, IReadOnlyList<PartnerServiceResult> results) =>
-        new(call.RequestPath, call.StatusCode, call.Succeeded, call.DurationMs, call.Error, results);
+        new(call.RequestPath, call.StatusCode, call.Succeeded, call.DurationMs, call.Error, call.ErrorCode, results);
+
+    /// <summary>
+    /// A refusal body: <c>{ code, message }</c>, <c>{ errorCode, message }</c> or
+    /// <c>{ error: { code, message } }</c>. Null when the body says neither.
+    /// </summary>
+    public static (string? Code, string? Message)? ReadPartnerError(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            if (root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.Object)
+            {
+                root = error;
+            }
+
+            var code = Text(root, "code") ?? Text(root, "errorCode");
+            var message = Text(root, "message");
+            return code == null && message == null ? null : (code, message);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        static string? Text(JsonElement element, string name)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)
+                    && property.Value.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(property.Value.GetString()))
+                {
+                    return property.Value.GetString();
+                }
+            }
+
+            return null;
+        }
+    }
 
     private static string Clip(string body) =>
         body.Length <= MaxErrorBody ? body : body[..MaxErrorBody];
