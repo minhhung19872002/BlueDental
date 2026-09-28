@@ -169,7 +169,13 @@ export function CreatePaymentDialog({
       : Math.max(chosenDue, 0);
   const autoAmount = amount ?? autoDefault;
   const total = mode === "auto" ? autoAmount : manualTotal;
-  const overpaid = total > chosenDue;
+  /**
+   * Only meaningful once a line is ticked — with nothing chosen the cap is 0
+   * and every typed amount would read as "over", which sat beside "Bạn cần
+   * chọn ít nhất 1 dịch vụ" and looked like a second, unrelated refusal
+   * (R-588). The missing service is the one thing to fix then.
+   */
+  const overpaid = !noService && total > chosenDue;
 
   const toggle = (id: string, on: boolean) =>
     setPicked((current) => (on ? [...current, id] : current.filter((x) => x !== id)));
@@ -320,7 +326,10 @@ export function CreatePaymentDialog({
                         {t("Common:Quantity")}: {line.quantity}
                       </span>
                     </Checkbox>
-                    <b>{formatMoneyUnit(line.effectiveAmount)}</b>
+                    {/* The line at what it is charged after the slip discount and
+                        voucher, so Còn nợ can never exceed the figure beside it
+                        (R-585). */}
+                    <b>{formatMoneyUnit(line.chargedAmount)}</b>
                   </li>
                 ))}
               </ul>
@@ -334,8 +343,11 @@ export function CreatePaymentDialog({
             <h4 className="pd-newpay-head">
               <ProfileOutlined /> {t("Patient:Payment:PlanTotal")}
             </h4>
-            <Fact label={t("Patient:Payment:Total")} value={formatMoneyUnit(plan?.servicesTotal ?? 0)} />
-            <Fact label={t("Common:Discount")} value={formatMoneyUnit(plan?.planDiscountAmount ?? 0)} />
+            {/* Gross prices and EVERY discount, the lines' own included, so a
+                250.000 line discounted by 50.000 reads 250.000 / 50.000 / 200.000
+                rather than 200.000 / 0 / 200.000 (R-586). */}
+            <Fact label={t("Patient:Payment:Total")} value={formatMoneyUnit(plan?.servicesGrossTotal ?? 0)} />
+            <Fact label={t("Common:Discount")} value={formatMoneyUnit(plan?.totalDiscountAmount ?? 0)} />
             <Fact label={t("Patient:Payment:TotalAfterDiscount")} value={formatMoneyUnit(plan?.totalAmount ?? 0)} />
             <Fact
               label={t("Patient:Payment:Paid")}

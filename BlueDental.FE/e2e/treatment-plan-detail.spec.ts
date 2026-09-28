@@ -1014,4 +1014,220 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await page.goto(`${slipUrl}?planTab=refund`);
     await expect(page.locator(".pdt-table tbody tr.ant-table-row")).toHaveCount(1);
   });
+
+  /**
+   * BA item 23 (R-585): a slip with a voucher was collected at its pre-voucher
+   * price — the line's Còn nợ ignored the slip-level discount, so the dialog
+   * prefilled Tổng phiếu, the server accepted it, and Còn lại went negative.
+   *
+   * The discount is put on through the real discount endpoint, which is where a
+   * voucher lands too (both feed the same slip-level figure). The dialog must
+   * offer the after-discount amount, refuse the pre-discount one on both sides,
+   * and the slip must close at 0 đ owed once that amount is collected.
+   */
+  test("a discounted slip is collected at its after-discount price, never the gross one", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+    planCode = await createSlip(page);
+    await page.locator(".tp-table .tp-code", { hasText: planCode }).click();
+    await expect(page).toHaveURL(DETAIL_URL);
+    const slipUrl = page.url().split("?")[0];
+    const planId = slipUrl.split("/").pop() ?? "";
+
+    // 10% off the slip, rounded to a whole đồng, through the real API.
+    const figures = await page.evaluate(
+      async ({ planId, plans }) => {
+        const xsrf = document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("XSRF-TOKEN="))
+          ?.substring("XSRF-TOKEN=".length);
+        const plan = (await (
+          await fetch(`${plans}/${planId}`, { credentials: "include" })
+        ).json()) as { branchId: string; servicesTotal: number };
+        const headers = {
+          "content-type": "application/json",
+          "X-Clinic-Branch-Id": plan.branchId,
+          ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+        };
+        const discount = Math.round(plan.servicesTotal / 10);
+        const res = await fetch(`${plans}/${planId}/discount`, {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({ discountType: 1, discountValue: discount }),
+        });
+        type Slip = {
+          servicesGrossTotal: number;
+          servicesTotal: number;
+          servicesDiscountAmount: number;
+          planDiscountAmount: number;
+          totalDiscountAmount: number;
+          totalAmount: number;
+          services: { chargedAmount: number; outstandingAmount: number }[];
+        };
+        const after = (await res.json()) as Slip;
+
+        // Then the owner's own case (R-586): a 250.000 đ line discounted by
+        // 50.000 đ on the line itself, added through the inline-row endpoint
+        // on a live catalog service (the slip's own may be a deleted leftover).
+        const service = (
+          (await (
+            await fetch(
+              `/api/v1/app/catalog-entries?clinicBranchId=${plan.branchId}&group=care_service&isActive=true&isDeleted=false&maxResultCount=1`,
+              { credentials: "include" },
+            )
+          ).json()) as { items: { id: string }[] }
+        ).items[0];
+        const added = await fetch(`${plans}/${planId}/services`, {
+          method: "POST",
+          credentials: "include",
+          headers,
+          body: JSON.stringify({
+            serviceId: service.id,
+            price: 250_000,
+            quantity: 1,
+            discountType: 1,
+            discountValue: 50_000,
+          }),
+        });
+        const withLine = (await added.json()) as Slip;
+        return { ok: res.ok && added.ok, gross: plan.servicesTotal, discount, after, withLine };
+      },
+      { planId, plans: PLANS_API },
+    );
+    expect(figures.ok).toBeTruthy();
+    expect(figures.gross).toBeGreaterThan(9);
+    const net = figures.gross - figures.discount;
+    expect(figures.after.totalAmount).toBe(net);
+    // The one line carries the whole discount, so its Còn nợ is Thành tiền.
+    expect(figures.after.services.map((s) => s.chargedAmount)).toEqual([net]);
+    expect(figures.after.services.map((s) => s.outstandingAmount)).toEqual([net]);
+
+    // With the discounted line on: gross prices, EVERY discount, and what is
+    // owed — 250.000 − 50.000 lands as such, not as a bare 200.000.
+    const slip = figures.withLine;
+    expect(slip.servicesGrossTotal).toBe(figures.gross + 250_000);
+    expect(slip.servicesDiscountAmount).toBe(50_000);
+    expect(slip.planDiscountAmount).toBe(figures.discount);
+    expect(slip.totalDiscountAmount).toBe(figures.discount + 50_000);
+    const owed = figures.gross + 250_000 - figures.discount - 50_000;
+    expect(slip.totalAmount).toBe(owed);
+    expect(slip.services.reduce((sum, s) => sum + s.chargedAmount, 0)).toBe(owed);
+    const grossOwed = figures.gross + 250_000;
+
+    await page.goto(`${slipUrl}?planTab=payment-v2`);
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
+    await expect.poll(() => statValue(page, "Doanh thu dự kiến")).toBe(owed);
+    await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
+    await expect(dialog).toBeVisible();
+
+    // Each line offers its own after-discount amount, and prints it beside the box.
+    const lines = dialog.locator(".pd-newpay-lines > li");
+    await expect(lines).toHaveCount(2);
+    for (const [index, line] of (await lines.all()).entries()) {
+      const charged = slip.services[index].chargedAmount;
+      await expect
+        .poll(async () => money(await line.locator(".pd-newpay-due").innerText()))
+        .toBe(charged);
+      expect(money(await line.locator("b").innerText())).toBe(charged);
+    }
+    await dialog.locator(".pd-newpay-head--split input[type=checkbox]").check();
+    const box = dialog.locator("input.pd-newpay-amount");
+    await expect.poll(async () => Number((await box.inputValue()).replace(/\D/g, ""))).toBe(owed);
+
+    // The plan block reads gross / every discount / net, and Còn lại 0 with the prefill.
+    const fact = (label: string) =>
+      dialog.locator(".pd-newpay-fact", {
+        has: page.locator("span", { hasText: new RegExp(`^${label}$`) }),
+      });
+    expect(money(await fact("Tổng tiền").locator("span").last().innerText())).toBe(grossOwed);
+    expect(money(await fact("Giảm giá").locator("span").last().innerText())).toBe(
+      figures.discount + 50_000,
+    );
+    expect(money(await fact("Tổng tiền sau giảm").locator("span").last().innerText())).toBe(owed);
+    expect((await fact("Còn lại").locator("span").last().innerText()).trim()).toBe("0 đ");
+
+    // Typing the gross figure is refused on the screen…
+    await box.fill(String(grossOwed));
+    await expect(dialog.locator(".pd-newpay-error")).toHaveText(
+      "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán",
+    );
+
+    // …and by the server, which is the side that actually guards the money.
+    const refused = await page.evaluate(
+      async ({ planId, plans, payments, gross }) => {
+        const xsrf = document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("XSRF-TOKEN="))
+          ?.substring("XSRF-TOKEN=".length);
+        const plan = (await (
+          await fetch(`${plans}/${planId}`, { credentials: "include" })
+        ).json()) as {
+          patientId: string;
+          branchId: string;
+          dentistId: string;
+          services: { id: string }[];
+        };
+        const res = await fetch(payments, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "content-type": "application/json",
+            "X-Clinic-Branch-Id": plan.branchId,
+            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+          },
+          body: JSON.stringify({
+            patientId: plan.patientId,
+            clinicBranchId: plan.branchId,
+            treatmentPlanId: planId,
+            treatmentServiceIds: plan.services.map((s) => s.id),
+            splitMode: 1,
+            kind: 1,
+            method: 1,
+            amount: gross,
+            staffId: plan.dentistId,
+          }),
+        });
+        const body = (await res.json()) as { error?: { code?: string } };
+        return { status: res.status, code: body.error?.code ?? "" };
+      },
+      { planId, plans: PLANS_API, payments: PAYMENTS_API, gross: grossOwed },
+    );
+    expect(refused.status).toBe(403);
+    expect(refused.code).toBe("BlueDental:Billing:0092");
+
+    // With no line ticked the only complaint is the missing service — the
+    // "over the balance" one must not pile on top of it (R-588); ticking
+    // again brings the cap back and the gross figure is refused once more.
+    await dialog.locator(".pd-newpay-head--split input[type=checkbox]").uncheck();
+    await expect(dialog.locator(".pd-newpay-error")).toHaveText("Bạn cần chọn ít nhất 1 dịch vụ");
+    await dialog.locator(".pd-newpay-head--split input[type=checkbox]").check();
+    await expect(dialog.locator(".pd-newpay-error")).toHaveText(
+      "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán",
+    );
+
+    // The after-discount amount goes through and settles the slip.
+    const collected = page.waitForResponse(
+      (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
+    );
+    await box.fill(String(owed));
+    await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    expect((await collected).ok()).toBeTruthy();
+    await expect(dialog).toBeHidden();
+    await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(owed);
+    await expect.poll(() => statValue(page, "Công nợ")).toBe(0);
+
+    // Persisted: a reload reads the same, and no line has anything left to offer.
+    await page.reload();
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
+    await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(owed);
+    await expect.poll(() => statValue(page, "Công nợ")).toBe(0);
+    await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(".pd-newpay-empty")).toBeVisible();
+  });
 });

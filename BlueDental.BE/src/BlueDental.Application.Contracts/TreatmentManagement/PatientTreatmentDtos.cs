@@ -59,6 +59,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public decimal GrossAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal EffectiveAmount { get; set; }
+
+    /// <summary>
+    /// What the line is charged once the slip discount and voucher are taken
+    /// off it (its share, in whole đồng) — the most a receipt may collect on
+    /// it. 0 on cancelled/replaced/transferred lines.
+    /// </summary>
+    public decimal ChargedAmount { get; set; }
     public TreatmentServiceStatus Status { get; set; }
 
     /// <summary>1-based position on the slip; 0 on lines never reordered.</summary>
@@ -260,8 +267,16 @@ public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
     public decimal DiscountValue { get; set; }
     public decimal? VoucherDiscountAmount { get; set; }
 
+    /// <summary>Line prices before any discount (R-586).</summary>
+    public decimal ServicesGrossTotal { get; set; }
+    /// <summary>Line prices after their own discounts, before the slip discount.</summary>
     public decimal ServicesTotal { get; set; }
+    /// <summary>The lines' own discounts, summed.</summary>
+    public decimal ServicesDiscountAmount { get; set; }
+    /// <summary>Slip-level discount plus voucher.</summary>
     public decimal PlanDiscountAmount { get; set; }
+    /// <summary>ServicesDiscountAmount + PlanDiscountAmount = ServicesGrossTotal − TotalAmount.</summary>
+    public decimal TotalDiscountAmount { get; set; }
     public decimal TotalAmount { get; set; }
 
     public PaymentSummaryDto Payment { get; set; } = new();

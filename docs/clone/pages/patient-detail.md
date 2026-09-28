@@ -278,7 +278,11 @@ Left column:
   `Còn nợ … đ` chip and `Số lượng: n`. Nothing ticked shows
   `Bạn cần chọn ít nhất 1 dịch vụ` in red.
 - `TỔNG TIỀN THEO KẾ HOẠCH` — Tổng tiền / Giảm giá / Tổng tiền sau giảm /
-  Đã thanh toán / **Còn lại** (bold)
+  Đã thanh toán / **Còn lại** (bold). Local (R-586, owner's call): Tổng tiền is
+  the lines' **gross** (`servicesGrossTotal`, before any discount), Giảm giá is
+  **every** discount — line-level plus the slip-level `%`/money/voucher figure
+  (`totalDiscountAmount`) — and Tổng tiền sau giảm is `totalAmount`, so a
+  250.000 line discounted by 50.000 reads 250.000 / 50.000 / 200.000.
 
 Right column:
 
@@ -303,6 +307,7 @@ Measured detail (2026-09-06, staging):
 | Search | the toggle reveals a `Tìm dịch vụ` box above the list; it is not there by default |
 | Service row | `flex items-start gap-4`: checkbox · (name 14px / `Còn nợ … đ` pill `rounded-full bg-[#F0F4FA] px-3 py-1 12px` / `Số lượng: n`) · amount `14px/600` on the right |
 | Nothing ticked | `Bạn cần chọn ít nhất 1 dịch vụ`, 14px red, shown **immediately** — not only after a save attempt |
+| Nothing ticked + an amount typed | Local (R-588): only that message — the "không được vượt quá" one is gated on a chosen line, since the cap is 0 until then and every amount would read as over |
 | Split mode | two `<input type=radio name=split-mode>` labels, 230×40, `rounded-lg border bg-white px-2`, 14px; selected border `#2671D8`; ring `size-6` / dot `size-3` |
 | Số tiền thanh toán | floating-label input (label 13px/500), `inputmode="numeric"` |
 | Ghi chú | floating-label textarea `min-h-16`, `maxlength=500`, `0/500` right-aligned 12px under it |
@@ -360,6 +365,15 @@ paymentMethod === "outstanding-debt"
 ```
 
 and a line's Còn nợ is `max(price − paid, 0)`.
+
+Local (R-585, BA item 23): `price` there is the line's **charged** amount — its
+after-line-discount figure less its share of the slip-level discount (voucher
+and `%`/money on the slip are one figure, `PlanDiscountAmount`, split across the
+counted lines in proportion to their amounts, rounded to the đồng with the
+remainder on the last line so the shares add up to `totalAmount`). The dialog
+prefills that `chargedAmount − paid`, the box refuses more on screen, and the
+server caps a receipt at the same figure (`Billing:0092`, 403) — before this a
+voucher slip was collected at its gross price and Còn lại went negative.
 
 **`paymentAccountId` — the field this clone was missing.** Choosing Ngân hàng
 or Ví momo reveals a picker below the pills, reading

@@ -137,7 +137,9 @@ interface CatalogSearchInput {
   /**
    * Offer every row that is not deleted, switched off or not — the
    * reference's "Chọn Dịch Vụ" asks for `isDeleted: false` alone. Left unset,
-   * only active rows come back, as the other pickers want.
+   * only active rows come back, as the other pickers want — and still only
+   * live ones: a soft-deletable group keeps its deleted rows in the list for
+   * the Danh mục screen, so a picker must ask for them to be left out (R-587).
    */
   includeInactive?: boolean;
   enabled?: boolean;
@@ -170,7 +172,8 @@ export function useCatalogOptionSearch(group: CatalogGroup, input: CatalogSearch
           params: {
             clinicBranchId: branchId,
             group,
-            ...(input.includeInactive ? { isDeleted: false } : { isActive: true }),
+            isDeleted: false,
+            ...(input.includeInactive ? {} : { isActive: true }),
             taxonomyId: input.taxonomyId,
             filter: search || undefined,
             skipCount: pageParam,

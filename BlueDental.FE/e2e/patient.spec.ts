@@ -530,7 +530,7 @@ async function paidByService(page: Page, planId: string) {
       (p: { treatmentPlanId: string }) => p.treatmentPlanId === id,
     );
     // Keyed by line id: a shared demo slip carries lines in a different order
-    // on the dialog and on the plan, so positions cannot be compared (R-585).
+    // on the dialog and on the plan, so positions cannot be compared (R-586).
     const newestLines: Record<string, number> = {};
     for (const l of (receipts[0]?.lines ?? []) as {
       treatmentServiceId: string;
@@ -1913,6 +1913,9 @@ test.describe("Bệnh nhân", () => {
       return line?.id ?? null;
     }, slip!.planId);
     expect(owingLine, "the picked slip should still owe money").toBeTruthy();
+    // The e2e patient collects a slip per run, so the picked line may sit past
+    // the table's first page of 20 — widen it rather than assume page one.
+    await widenTreatmentTable(page);
     await treatmentRow(page, owingLine!)
       .getByRole("button", { name: "Tạo phiếu thanh toán" })
       .click();

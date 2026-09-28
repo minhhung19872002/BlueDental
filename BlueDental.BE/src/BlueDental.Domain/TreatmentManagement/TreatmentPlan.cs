@@ -72,6 +72,13 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     public decimal ServicesTotal => CountedServices.Sum(s => s.CountedAmount);
 
     /// <summary>
+    /// Sum of the line prices before ANY discount: the "BE:Field:TotalAmount"
+    /// the payment dialog opens with, so a 50.000 đ line discount reads as
+    /// 250.000 − 50.000 rather than vanishing into a 200.000 total (R-586).
+    /// </summary>
+    public decimal ServicesGrossTotal => CountedServices.Sum(s => s.GrossAmount);
+
+    /// <summary>
     /// Line-level discounts that still count. A cancelled line was never charged,
     /// so its discount must not swell the slip's "BE:Common:Discount" either.
     /// </summary>
@@ -94,8 +101,62 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         }
     }
 
+    /// <summary>Every discount on the slip: the lines' own plus the slip level and voucher.</summary>
+    public decimal TotalDiscountAmount => ServicesDiscountAmount + PlanDiscountAmount;
+
     /// <summary>What the patient actually owes for this slip.</summary>
     public decimal TotalAmount => ServicesTotal - PlanDiscountAmount;
+
+    /// <summary>
+    /// The slip-level discount (voucher included) spread over the counted lines
+    /// in proportion to what each is worth, in whole đồng, and adding up to
+    /// <see cref="PlanDiscountAmount"/> exactly: the rounding leftover lands on
+    /// the largest line, which can always absorb it.
+    ///
+    /// Lines that are not counted (cancelled, replaced, transferred) get no share.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, decimal> DiscountShares()
+    {
+        var shares = new Dictionary<Guid, decimal>();
+        var total = ServicesTotal;
+        if (total == 0m)
+        {
+            return shares;
+        }
+
+        var discount = PlanDiscountAmount;
+        var counted = CountedServices.ToList();
+        foreach (var line in counted)
+        {
+            shares[line.Id] = Vnd.Round(discount * line.CountedAmount / total);
+        }
+
+        var leftover = discount - shares.Values.Sum();
+        if (leftover != 0m)
+        {
+            var largest = counted.OrderByDescending(s => s.CountedAmount).First();
+            shares[largest.Id] += leftover;
+        }
+
+        return shares;
+    }
+
+    /// <summary>
+    /// What the patient is actually charged for one line once the slip-level
+    /// discount is taken off it — the amount a receipt may collect against the
+    /// line. Summed over the counted lines this is <see cref="TotalAmount"/>, so
+    /// paying every line in full can never overshoot the slip (BA item 23: a
+    /// voucher slip was collected at its pre-voucher price).
+    /// </summary>
+    public decimal ChargedAmountOf(TreatmentService line)
+    {
+        if (UnchargedStatuses.Contains(line.Status))
+        {
+            return 0m;
+        }
+
+        return line.CountedAmount - DiscountShares().GetValueOrDefault(line.Id);
+    }
 
     /// <summary>Value of the lines already finished — drives Phải thu.</summary>
     public decimal CompletedValue
@@ -107,12 +168,13 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
                 return 0m;
             }
 
-            var completed = CountedServices.Where(s => s.IsCompleted).Sum(s => s.CountedAmount);
-
-            // The slip-level discount is spread across the lines proportionally,
-            // which is where the đồng has to be put back together: the share is
-            // a repeating decimal as soon as the ratio is not exact.
-            return completed - Vnd.Round(PlanDiscountAmount * completed / ServicesTotal);
+            // The finished lines at what they are charged after the slip
+            // discount, in whole đồng per line (R-459), so Phải thu and the
+            // lines' own Còn nợ are read off the same shares.
+            var shares = DiscountShares();
+            return CountedServices
+                .Where(s => s.IsCompleted)
+                .Sum(s => s.CountedAmount - shares.GetValueOrDefault(s.Id));
         }
     }
 

@@ -6007,3 +6007,32 @@ Bằng chứng: bản build production (`vite preview --host 127.0.0.1` cổng 8
 `e2e/patient.spec.ts` "a tái khám picks its teeth…" 1/1, thêm assert cuối: bấm `.pd-tr-code` của
 dòng tái khám → URL `/treatment-plan/<guid>?branchId=`, `.pdt-crumb--current` = mã phiếu.
 `tsc` sạch. Retest level 2 (một feature); không spec nào khác bấm mã phiếu ở tab Hồ sơ.
+
+## 2026-09-28 — Thanh toán phiếu có voucher/giảm giá: thu đúng số sau giảm (BA mục 23, R-585..R-588)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-585 | BA mục 23 "Check lại phần thanh toán khi đã sử dụng voucher": phiếu 3.400.000 đ có voucher 1.800.000 đ (Thành tiền 1.600.000 đ) nhưng dialog Tạo phiếu thanh toán đề xuất và server chấp nhận thu **3.400.000 đ** → Còn lại của phiếu in `−1.800.000 đ`. | Mức giảm ở cấp phiếu (voucher + `%`/tiền trên phiếu, cùng một con số `PlanDiscountAmount`) chưa bao giờ được chia xuống dòng dịch vụ: `Còn nợ` từng dòng = `EffectiveAmount − paid` (chỉ trừ giảm giá của dòng) và trần thu ở server (`CapByServiceAsync`) cũng đọc con số đó. Domain `TreatmentPlan` thêm `DiscountShares()` (chia `PlanDiscountAmount` theo tỉ lệ `EffectiveAmount` của các dòng còn tính tiền, làm tròn đồng, phần lẻ dồn vào dòng cuối để tổng luôn khớp `TotalAmount`), `ChargedAmountOf(line)` và `CompletedValue` trừ phần chia đó. `TreatmentServiceDto.ChargedAmount` + `OutstandingAmount = max(charged − paid, 0)`; `CapByServiceAsync` kẹp theo `ChargedAmountOf` nên vượt → `Billing:0092` (403). Dialog in `Còn nợ` và số bên phải dòng theo `chargedAmount`, ô tiền vượt trần báo đỏ "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán". `GetAccountAsync` dựng `Plans` qua `_treatments.GetListAsync` nên dialog và trần server cùng một nguồn. **Lưu ý cho BA:** phiếu đã thu dư trước bản sửa vẫn in `−1.800.000 đ` cho tới khi lập phiếu hoàn 1.800.000 đ — mã không tự sửa dữ liệu cũ. |
+| R-586 | Chủ dự án (ảnh dòng Đơn giá 250.000 / Tổng giảm giá 50.000 / Thành tiền 200.000): khối "Tổng tiền theo kế hoạch" của dialog in Tổng tiền 200.000 / Giảm giá 0 / Tổng tiền sau giảm 200.000 — "Tổng tiền phải là 250k và giảm giá 50k". | `Tổng tiền` từng lấy `servicesTotal` (đã trừ giảm giá dòng) và `Giảm giá` chỉ lấy `planDiscountAmount`, nên giảm giá của dòng biến mất khỏi khối. Domain thêm `ServicesGrossTotal` (Σ `GrossAmount` các dòng còn tính tiền) và `TotalDiscountAmount = ServicesDiscountAmount + PlanDiscountAmount`; `TreatmentPlanSlipDto` thêm `servicesGrossTotal`, `servicesDiscountAmount`, `totalDiscountAmount`. Dialog: Tổng tiền = gross, Giảm giá = **mọi** mức giảm (dòng + phiếu/voucher), Tổng tiền sau giảm = `totalAmount` → 250.000 / 50.000 / 200.000. `TreatmentPlanSlipTests` thêm ca gross − mọi giảm = TotalAmount (dòng Cancelled không tính). |
+| R-587 | Trong lúc chạy lại `treatment-plan-detail.spec.ts`, hai ca cũ (kéo sắp xếp dòng, Chuyển đổi) đỏ: picker dịch vụ chào cả dịch vụ đã xoá mềm ("DV CACHE …"), thêm dòng bằng id đó bị 403 `Catalogs:CatalogEntryNotFound`. | `CatalogEntryAppService.GetListAsync` tắt filter xoá mềm với nhóm soft-deletable (để màn Danh mục hiện dòng "Đã xoá") và chỉ lọc `IsDeleted` khi có tham số — `useCatalogOptionSearch` (hook dùng chung, 6 nơi gọi) chưa gửi. Hook nay gửi `isDeleted: false` luôn, `isActive: true` trừ khi `includeInactive`. Level 3 vì hook dùng chung → chạy lại các spec dùng picker (bên dưới). Ca e2e mới của R-586 cũng lấy `care_service` còn sống từ API thay vì `serviceId` của phiếu mẫu (phiếu mẫu trỏ vào dịch vụ đã xoá mềm). |
+| R-588 | Chủ dự án (ảnh dev :5173, phiếu 180.000 − 50.000, đã thu 120.000): mở dialog từ trang phiếu, gõ 2.000 → đỏ cả "Bạn cần chọn ít nhất 1 dịch vụ" lẫn "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán", "k tạo được". | Không phải lỗi tiền: dialog mở từ trang phiếu **không tick sẵn** dòng nào (đúng bản gốc, `focusServiceId=null`), nên trần thu = 0 và mọi số gõ vào đều "vượt quá" — thông báo thứ hai gây hiểu nhầm là bị chặn. `overpaid` nay chỉ tính khi đã chọn dịch vụ (`!noService && total > chosenDue`); tick dòng rồi 2.000 ≤ Còn nợ 10.000 đi qua bình thường. Spec R-586 thêm: bỏ tick Chọn Tất Cả → chỉ còn một dòng đỏ "Bạn cần chọn ít nhất 1 dịch vụ"; tick lại → số gross lại bị "vượt quá". |
+
+Sửa spec kèm theo (đỏ sẵn, không liên quan tiền): `patient.spec.ts` "cột Thanh toán…" bấm link
+"Hồ sơ" trước khi tìm nút (bấm bệnh nhân rơi vào tab Chẩn đoán & Tư vấn); "one receipt covers
+several services…" so phần chia theo **id dịch vụ đã POST** + số phiếu thu tăng 1 (phiếu DT08 dùng
+chung đã có phiếu thu, thứ tự dòng dialog ≠ thứ tự plan) và mở rộng bảng lên 100 dòng trước khi
+tìm hàng (bệnh nhân e2e đã quá 20 dòng).
+
+Bằng chứng: Domain.Tests **407/407**, Application.Tests **626/626**, `tsc` sạch. Real-stack trên bản
+build production (`vite build --outDir dist-preview-r584`, `vite preview` :8081, host build lại :5000,
+PostgreSQL thật): `treatment-plan-detail` + `consulting-delete-and-picker` **15/15** — ca mới "a
+discounted slip is collected at its after-discount price, never the gross one": giảm 10% phiếu qua
+`POST …/discount`, thêm dòng 250.000 − 50.000 qua `POST …/services`, đọc `servicesGrossTotal` /
+`servicesDiscountAmount` / `planDiscountAmount` / `totalDiscountAmount` / `totalAmount` và Σ
+`chargedAmount` = `totalAmount`; UI: Doanh thu dự kiến = số sau giảm, hai dòng dialog in đúng
+`chargedAmount`, "Chọn Tất Cả" điền số sau giảm, khối Tổng tiền/Giảm giá/Tổng tiền sau giảm/Còn lại
+= gross / mọi giảm / sau giảm / 0 đ, gõ số gross → lỗi đỏ, POST gross thẳng API → **403
+`Billing:0092`**, thu số sau giảm → Đã thanh toán = số đó, Công nợ 0, reload giữ nguyên, dialog
+`.pd-newpay-empty`. `debt-history` + `cross-screen` **6/6**; `patient.spec` nhóm thanh toán **6/6**
+(ca split chạy lại riêng sau khi mở rộng bảng). Retest level 2 (F-22) + level 3 cho hook picker
+dùng chung. Chưa commit. R-588: build lại bundle, ca "a discounted slip…" **1/1** trên :8081 + host :5000, `tsc` sạch.

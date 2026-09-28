@@ -741,8 +741,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             DiscountType = plan.DiscountType,
             DiscountValue = plan.DiscountValue,
             VoucherDiscountAmount = plan.VoucherDiscountAmount,
+            ServicesGrossTotal = plan.ServicesGrossTotal,
             ServicesTotal = plan.ServicesTotal,
+            ServicesDiscountAmount = plan.ServicesDiscountAmount,
             PlanDiscountAmount = plan.PlanDiscountAmount,
+            TotalDiscountAmount = plan.TotalDiscountAmount,
             TotalAmount = plan.TotalAmount,
             Payment = MapPayment(_money.ForPlan(plan, payments)),
             Services = plan.Services
@@ -764,6 +767,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     GrossAmount = line.GrossAmount,
                     DiscountAmount = line.DiscountAmount,
                     EffectiveAmount = line.EffectiveAmount,
+                    ChargedAmount = plan.ChargedAmountOf(line),
                     Status = line.Status,
                     SortOrder = line.SortOrder,
                     ReplacedId = line.ReplacedId,
@@ -786,7 +790,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                         .Select(s => s.Note!)
                         .ToList(),
                     PaidAmount = PaidOn(paidByService, line.Id),
-                    OutstandingAmount = Math.Max(0m, line.EffectiveAmount - PaidOn(paidByService, line.Id)),
+                    // Còn nợ is what the line is charged after the slip discount
+                    // (voucher included), so the lines' Còn nợ add up to Thành tiền
+                    // and a receipt can never collect the pre-voucher price (R-585).
+                    OutstandingAmount = Math.Max(0m, plan.ChargedAmountOf(line) - PaidOn(paidByService, line.Id)),
                     AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id),
                     LabOrders = laboByService.TryGetValue(line.Id, out var labo) ? labo : [],
                     DiagnosisId = line.DiagnosisId,

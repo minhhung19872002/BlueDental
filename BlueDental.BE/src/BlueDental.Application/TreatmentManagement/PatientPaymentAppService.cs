@@ -404,13 +404,17 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             .GroupBy(x => x.TreatmentServiceId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
 
+        // A line can only be collected up to what it is charged AFTER the slip
+        // discount and voucher, never its own EffectiveAmount: otherwise a
+        // voucher slip is paid at the pre-voucher price and Còn lại goes
+        // negative (BA item 23, R-585).
         return plan.Services
             .Where(line => serviceIds.Contains(line.Id))
             .ToDictionary(
                 line => line.Id,
                 line => refunding
                     ? Math.Max(0m, paid.GetValueOrDefault(line.Id))
-                    : Math.Max(0m, line.EffectiveAmount - paid.GetValueOrDefault(line.Id)));
+                    : Math.Max(0m, plan.ChargedAmountOf(line) - paid.GetValueOrDefault(line.Id)));
     }
 
     /// <summary>

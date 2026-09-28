@@ -209,6 +209,12 @@ export interface TreatmentServiceDto {
   grossAmount: number;
   discountAmount: number;
   effectiveAmount: number;
+  /**
+   * What the line is charged after the slip discount and voucher — its share
+   * in whole đồng, the most a receipt may collect on it. 0 on
+   * cancelled/replaced/transferred lines.
+   */
+  chargedAmount: number;
   status: TreatmentServiceStatus;
   /** 1-based position on the slip; 0 on lines never dragged. */
   sortOrder: number;
@@ -323,8 +329,16 @@ export interface TreatmentPlanSlipDto {
   discountType: DiscountType;
   discountValue: number;
   voucherDiscountAmount: number | null;
+  /** Line prices before any discount (R-586). */
+  servicesGrossTotal: number;
+  /** Line prices after their own discounts, before the slip discount. */
   servicesTotal: number;
+  /** The lines' own discounts, summed. */
+  servicesDiscountAmount: number;
+  /** Slip-level discount plus voucher. */
   planDiscountAmount: number;
+  /** servicesDiscountAmount + planDiscountAmount = servicesGrossTotal − totalAmount. */
+  totalDiscountAmount: number;
   totalAmount: number;
   payment: PaymentSummaryDto;
   services: TreatmentServiceDto[];

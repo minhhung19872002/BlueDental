@@ -255,7 +255,125 @@ public class TreatmentPlanSlipTests
         summary.Receivable.ShouldBe(204_545m);
     }
 
+    /// <summary>
+    /// BA item 23: a voucher slip was collected at its pre-voucher price. What a
+    /// line can be charged is its price less its share of the slip discount, and
+    /// the charged lines add back up to Thành tiền — never to Tổng phiếu.
+    /// </summary>
+    [Fact]
+    public void A_line_is_charged_its_price_less_its_share_of_the_voucher()
+    {
+        // 18.000.000 over two lines, a 1.800.000 voucher on the slip.
+        var plan = OpenPlan();
+        var implant = AddLine(plan, 12_000_000m);
+        var crown = AddLine(plan, 6_000_000m);
+        plan.ApplyVoucher(1_800_000m);
+
+        plan.ServicesTotal.ShouldBe(18_000_000m);
+        plan.PlanDiscountAmount.ShouldBe(1_800_000m);
+        plan.TotalAmount.ShouldBe(16_200_000m);
+
+        plan.ChargedAmountOf(implant).ShouldBe(10_800_000m);
+        plan.ChargedAmountOf(crown).ShouldBe(5_400_000m);
+        (plan.ChargedAmountOf(implant) + plan.ChargedAmountOf(crown)).ShouldBe(plan.TotalAmount);
+    }
+
+    /// <summary>
+    /// The shares are whole đồng each and still add up to the discount exactly:
+    /// the rounding leftover goes on the largest line.
+    /// </summary>
+    [Fact]
+    public void Discount_shares_are_whole_dong_and_add_up_to_the_discount()
+    {
+        // 500.000 over 2.750.000: 45454,5… + 272727,2… + 181818,1… rounds to
+        // 45.455 + 272.727 + 181.818 = 500.000 — and when the rounding does not
+        // land, the largest line absorbs the difference.
+        var plan = OpenPlan(DiscountType.Money, 500_000m);
+        var small = AddLine(plan, 250_000m);
+        var large = AddLine(plan, 1_500_000m);
+        var mid = AddLine(plan, 1_000_000m);
+
+        var shares = plan.DiscountShares();
+        shares[small.Id].ShouldBe(45_455m);
+        shares[large.Id].ShouldBe(272_727m);
+        shares[mid.Id].ShouldBe(181_818m);
+
+        // Three equal lines with a discount that does not split in three.
+        var thirds = OpenPlan(DiscountType.Money, 100_000m);
+        var a = AddLine(thirds, 1_000_000m);
+        var b = AddLine(thirds, 1_000_000m);
+        var c = AddLine(thirds, 1_000_000m);
+
+        var thirdShares = thirds.DiscountShares();
+        foreach (var share in thirdShares.Values)
+        {
+            share.ShouldBe(decimal.Truncate(share));
+        }
+        (thirdShares[a.Id] + thirdShares[b.Id] + thirdShares[c.Id]).ShouldBe(100_000m);
+        (thirds.ChargedAmountOf(a) + thirds.ChargedAmountOf(b) + thirds.ChargedAmountOf(c))
+            .ShouldBe(thirds.TotalAmount);
+    }
+
+    /// <summary>
+    /// A voucher on top of a percentage slip discount and a line discount: the
+    /// share is taken from what the line is worth after its own discount, and a
+    /// cancelled line is charged nothing and takes no share.
+    /// </summary>
+    [Fact]
+    public void A_cancelled_line_is_charged_nothing_and_takes_no_share_of_the_voucher()
+    {
+        var plan = OpenPlan(DiscountType.Percentage, 10m);
+        var kept = AddLine(plan, 2_000_000m, discountType: DiscountType.Money, discountValue: 200_000m);
+        var other = AddLine(plan, 1_200_000m);
+        var cancelled = AddLine(plan, 5_000_000m);
+        cancelled.Cancel();
+        plan.ApplyVoucher(300_000m);
+
+        // 1.800.000 + 1.200.000 = 3.000.000; 10% = 300.000; + voucher = 600.000.
+        plan.ServicesTotal.ShouldBe(3_000_000m);
+        plan.PlanDiscountAmount.ShouldBe(600_000m);
+
+        plan.ChargedAmountOf(cancelled).ShouldBe(0m);
+        plan.ChargedAmountOf(kept).ShouldBe(1_800_000m - 360_000m);
+        plan.ChargedAmountOf(other).ShouldBe(1_200_000m - 240_000m);
+        (plan.ChargedAmountOf(kept) + plan.ChargedAmountOf(other)).ShouldBe(plan.TotalAmount);
+    }
+
+    /// <summary>A voucher larger than the slip leaves every line charged nothing.</summary>
+    [Fact]
+    public void A_voucher_that_covers_the_slip_leaves_nothing_to_collect()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 500_000m);
+        plan.ApplyVoucher(900_000m);
+
+        plan.TotalAmount.ShouldBe(0m);
+        plan.ChargedAmountOf(line).ShouldBe(0m);
+    }
+
     /// <summary>A percentage that does not land on a whole đồng is rounded too.</summary>
+    /// <summary>
+    /// R-586: the payment dialog's plan block opens on the gross prices and
+    /// every discount, the lines' own included: 250.000 − 50.000 = 200.000.
+    /// </summary>
+    [Fact]
+    public void The_gross_total_less_every_discount_is_what_the_slip_charges()
+    {
+        var plan = OpenPlan(DiscountType.Money, 10_000m);
+        AddLine(plan, 250_000m, 1, DiscountType.Money, 50_000m);
+        AddLine(plan, 100_000m, 2, DiscountType.Percentage, 10m);
+        var cancelled = AddLine(plan, 999_000m, 1, DiscountType.Money, 1_000m);
+        cancelled.Cancel();
+
+        plan.ServicesGrossTotal.ShouldBe(450_000m);
+        plan.ServicesDiscountAmount.ShouldBe(70_000m);
+        plan.ServicesTotal.ShouldBe(380_000m);
+        plan.PlanDiscountAmount.ShouldBe(10_000m);
+        plan.TotalDiscountAmount.ShouldBe(80_000m);
+        plan.TotalAmount.ShouldBe(370_000m);
+        (plan.ServicesGrossTotal - plan.TotalDiscountAmount).ShouldBe(plan.TotalAmount);
+    }
+
     [Fact]
     public void A_percentage_discount_is_rounded_to_a_whole_dong()
     {

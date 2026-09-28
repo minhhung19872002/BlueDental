@@ -62,6 +62,7 @@ asserts real `/api/` traffic.
 | 4 | reload + Dư nợ + status menu | reload keeps `planTab`; Dư nợ answers (empty state); status pill menu → Hoàn thành → pill changes, survives a reload |
 | 5 | ≤640 folds into cards | 640×900: no `.pdt-table`, one `RecordCard` per line with the index on the head, shared pager text, five stats in a row; payment and refund cards carry their codes |
 | 6 | another branch is refused | the branch-2 account gets an error state, not the slip |
+| 7 | a discounted slip is collected at its after-discount price, never the gross one (2026-09-28, R-585/R-586) | 10% slip discount through `POST …/discount`, a 250.000 − 50.000 line through `POST …/services` → slip DTO reads `servicesGrossTotal` / `servicesDiscountAmount` / `planDiscountAmount` / `totalDiscountAmount` / `totalAmount`, Σ `chargedAmount` = `totalAmount`; Doanh thu dự kiến = net; each dialog line prints its `chargedAmount`; Chọn Tất Cả prefills the net; plan block = gross / every discount / net / Còn lại 0 đ; the gross figure is refused on screen and by the API (403 `Billing:0092`); paying the net → Đã thanh toán = net, Công nợ 0, reload persists, dialog empty |
 
 Result 2026-09-07: **6 passed** (44s), twice after the parity pass; **6 passed**
 again (53s) after the refund-channel change, on the API rebuilt with the
@@ -75,6 +76,11 @@ dialog. The slip helper now finds the new code instead of counting rows, since
 the test patient's plan list outgrew page one.
 
 Type-check and lint: clean (`tsc --noEmit -p tsconfig.app.json`, `oxlint src`).
+
+Result 2026-09-28 (R-585…R-587): **15 passed** for `treatment-plan-detail` +
+`consulting-delete-and-picker` on the production build (`vite preview` :8081, host
+rebuilt on :5000, real PostgreSQL) after the discount-share work and the picker's
+`isDeleted: false` fix; Domain 407, Application 626, `tsc` clean.
 
 ## Visual parity
 
