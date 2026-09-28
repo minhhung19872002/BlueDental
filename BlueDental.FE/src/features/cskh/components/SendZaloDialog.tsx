@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
+import { extractApiError } from "@/lib/apiError";
 import { AppDialog } from "@/components/AppDialog";
 import { SearchSelect, type SearchSelectOption } from "@/components/SearchSelect/SearchSelect";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useZaloTemplates } from "../api/messageApi";
+import { useSendZaloMessage, useZaloTemplates } from "../api/messageApi";
 import type { CareRecordDto } from "../api/careApi";
 import { CarePatientLine } from "./CarePatientLine";
 import { MessageField } from "./MessageField";
@@ -16,11 +17,10 @@ interface SendZaloDialogProps {
 }
 
 /**
- * "Gửi ZBS qua Zalo" (reminder + birthday tabs). Mẫu ZBS lists the Zalo-channel templates
- * that Công cụ ▸ Zalo OA ▸ Mẫu ZBS manages (GET /tools/message-templates,
- * channel 1), and Gửi without a template is blocked client-side the way the
- * reference blocks it; the real send endpoint is UNKNOWN_REFERENCE_BEHAVIOR,
- * so submitting stays UI-only.
+ * "Gửi ZBS qua Zalo" (reminder + birthday tabs). Mẫu ZBS lists the branch's
+ * approved ZNS templates straight from Zalo; Gửi posts the care record and the
+ * template, and the server fills the template's parameters from the patient
+ * and the record before asking Zalo to deliver it.
  */
 export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
   const [templateId, setTemplateId] = useState<string | undefined>();
@@ -28,7 +28,8 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
   const [touched, setTouched] = useState(false);
 
   const debouncedSearch = useDebounce(templateSearch);
-  const { data: templates } = useZaloTemplates(debouncedSearch, open);
+  const { data: templates, error: templatesError } = useZaloTemplates(debouncedSearch, open);
+  const send = useSendZaloMessage();
 
   useEffect(() => {
     if (!open) return;
@@ -37,8 +38,8 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
     setTouched(false);
   }, [open]);
 
-  const templateOptions: SearchSelectOption[] = (templates?.items ?? []).map((item) => ({
-    value: item.id,
+  const templateOptions: SearchSelectOption[] = (templates ?? []).map((item) => ({
+    value: item.templateId,
     label: item.name,
   }));
 
@@ -49,23 +50,31 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
     setTemplateSearch("");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setTouched(true);
-    if (!templateId) {
+    if (!templateId || !record) {
       toast.error(t("CSKH:SendZalo:TemplateRequired"));
       return;
     }
-    toast.error(t("CSKH:SendZalo:NotSupported"));
+    try {
+      await send.mutateAsync({ careRecordId: record.id, templateId });
+      toast.success(t("CSKH:SendZalo:Sent"));
+      onClose();
+    } catch {
+      // MutationCache reports the failure globally; the attempt is listed
+      // under Danh sách tin Zalo with Zalo's error message.
+    }
   };
 
   return (
     <AppDialog
       open={open}
       title={t("CSKH:SendZalo:Title")}
-      canSave
-      saving={false}
+      canSave={!send.isPending}
+      saving={send.isPending}
       saveLabel={t("Common:Send")}
-      onSave={handleSave}
+      savingLabel={t("CSKH:SendZalo:Sending")}
+      onSave={() => void handleSave()}
       onClose={onClose}
     >
       {record && (
@@ -76,7 +85,7 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
             <SearchSelect
               value={templateId}
               options={templateOptions}
-              emptyText={t("Common:NoResults")}
+              emptyText={templatesError ? extractApiError(templatesError) : t("Common:NoResults")}
               allowClear
               status={touched && !templateId ? "error" : undefined}
               onChange={handleTemplateChange}

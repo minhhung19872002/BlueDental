@@ -13,12 +13,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5019',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
       '/signalr': {
-        target: 'http://localhost:5019',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -31,12 +31,12 @@ export default defineConfig({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:5019',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
       '/signalr': {
-        target: 'http://localhost:5019',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,

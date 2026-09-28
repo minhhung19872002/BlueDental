@@ -213,3 +213,87 @@
 .bd-zalo-status {
   margin-bottom: 16px;
 }
+
+.bd-zalo-avatar--image {
+  object-fit: cover;
+}
+
+.bd-zalo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bd-zalo-hint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--bd-muted);
+}
+
+.bd-zalo-hint--list {
+  margin: 0 0 12px;
+}
+
+.bd-zalo-error {
+  max-width: 480px;
+  margin: 0 auto 12px;
+  font-size: 12.5px;
+  color: var(--bd-danger, #ef4d4d);
+}
+
+.bd-zalo-facts {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 16px;
+  margin: 0 0 16px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.bd-zalo-facts dt {
+  color: var(--bd-muted);
+}
+
+.bd-zalo-facts dd {
+  margin: 0;
+  color: var(--bd-ink);
+}
+
+.bd-zalo-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+/* ── Zalo message counters (also the outcome filter) ─────────────────────── */
+
+.bd-zalo-counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bd-zalo-counter {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card, 10px);
+  background: var(--bd-surface, #fff);
+  color: var(--bd-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bd-zalo-counter strong {
+  margin-right: 4px;
+}
+
+.bd-zalo-counter--active {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+  background: var(--bd-primary-soft, var(--bd-bg-soft));
+}

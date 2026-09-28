@@ -13,6 +13,8 @@ import { MessageConfigView } from "../components/MessageConfigView";
 import { MessageLogView } from "../components/MessageLogView";
 import { MessageTemplateView } from "../components/MessageTemplateView";
 import { ZaloConfigView } from "../components/ZaloConfigView";
+import { ZaloMessageView } from "../components/ZaloMessageView";
+import { ZaloTemplateView } from "../components/ZaloTemplateView";
 import "../components/tools.css";
 
 // ── Categories: each is its own URL, as the reference has it ───────────────
@@ -129,30 +131,41 @@ function MessageView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   );
 }
 
-function ZaloView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
-  const [sub, setSub] = useState("config");
+/**
+ * Zalo OA. The reference keeps the open sub-tab in `?subTab=` — absent for
+ * Cấu Hình, `template` and `campaign` for the other two. The OAuth callback
+ * lands on this URL too, so the config tab is the one without a parameter.
+ */
+function ZaloView({ canManage }: { canManage: boolean }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sub = searchParams.get("subTab") ?? "config";
+
+  const changeSub = (key: string) => {
+    setSearchParams((params) => {
+      if (key === "config") params.delete("subTab");
+      else params.set("subTab", key);
+      return params;
+    });
+  };
 
   return (
     <div className="bd-tools-card">
       <SubTabBar
         tabs={[
           { key: "config", label: t("Tools:SubTabConfig") },
-          { key: "templates", label: t("Tools:SubTabZbsTemplate") },
-          { key: "list", label: t("Tools:SubTabZaloList") },
+          { key: "template", label: t("Tools:SubTabZbsTemplate") },
+          { key: "campaign", label: t("Tools:SubTabZaloList") },
         ]}
         active={sub}
-        onChange={setSub}
+        onChange={changeSub}
       />
-      {sub === "config" && <ZaloConfigView />}
-      {sub === "templates" && (
-        <MessageTemplateView
-          channel={1}
-          canCreate={canCreate}
-          canUpdate={canUpdate}
-          canDelete={canDelete}
-        />
+      {sub === "template" ? (
+        <ZaloTemplateView />
+      ) : sub === "campaign" ? (
+        <ZaloMessageView />
+      ) : (
+        <ZaloConfigView canManage={canManage} />
       )}
-      {sub === "list" && <MessageLogView channel={1} />}
     </div>
   );
 }
@@ -222,11 +235,7 @@ export function ToolsPage() {
           />
         )}
         {category === "zalo-oa" && (
-          <ZaloView
-            canCreate={messageAbility.canCreate}
-            canUpdate={messageAbility.canUpdate}
-            canDelete={messageAbility.canDelete}
-          />
+          <ZaloView canManage={messageAbility.canUpdate} />
         )}
         {category === "invoice" && <InvoiceView />}
       </div>

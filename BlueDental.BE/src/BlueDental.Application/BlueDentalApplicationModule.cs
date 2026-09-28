@@ -3,6 +3,9 @@ using BlueDental.Permissions;
 using BlueDental.Promotions;
 using BlueDental.Queue;
 using BlueDental.Timekeeping;
+using BlueDental.EInvoicing;
+using BlueDental.Zalo;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp;
 using Volo.Abp.Account;
@@ -53,6 +56,22 @@ public class BlueDentalApplicationModule : AbpModule
             ClinicIntegration.HttpClinicPartnerClient.ClientName,
             client => client.Timeout = TimeSpan.FromSeconds(30));
 
+        // Zalo OA: app credentials and the OA secret come from the Zalo section
+        // (environment on the server, the gitignored Development file locally).
+        var configuration = context.Services.GetConfiguration();
+        Configure<ZaloOptions>(configuration.GetSection(ZaloOptions.SectionName));
+        context.Services.AddHttpClient(
+            HttpZaloApiClient.ClientName,
+            client => client.Timeout = TimeSpan.FromSeconds(30));
+
+        // EasyInvoice: the e-invoice account. Password comes from the environment
+        // (EasyInvoice__Password) or user-secrets; the rest may sit in appsettings.
+        Configure<EasyInvoiceOptions>(configuration.GetSection(EasyInvoiceOptions.SectionName));
+        context.Services.AddHttpClient(
+            HttpEasyInvoiceClient.ClientName,
+            client => client.Timeout = TimeSpan.FromSeconds(
+                configuration.GetValue<int?>($"{EasyInvoiceOptions.SectionName}:TimeoutSeconds") ?? 30));
+
         // Legacy module permissions are satisfied by the ability leaves the
         // Phân quyền screen grants. Registered last so it only decides names
         // the user/role/client providers left undefined.
@@ -68,5 +87,6 @@ public class BlueDentalApplicationModule : AbpModule
         await context.AddBackgroundWorkerAsync<TimekeepingEndOfDayWorker>();
         await context.AddBackgroundWorkerAsync<QueueWaitingTimeWorker>();
         await context.AddBackgroundWorkerAsync<NoServiceCareWorker>();
+        await context.AddBackgroundWorkerAsync<ZaloTokenRefreshWorker>();
     }
 }

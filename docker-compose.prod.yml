@@ -25,6 +25,13 @@ services:
       # Persist DataProtection keys; otherwise every api recreate rotates
       # them and invalidates all auth cookies (everyone gets logged out).
       DataProtection__KeysPath: /data/keys
+      # Zalo OA / ZNS integration. Secrets live only in the VM's .env.
+      Zalo__AppId: ${ZALO_APP_ID:-}
+      Zalo__AppSecret: ${ZALO_APP_SECRET:-}
+      Zalo__OaId: ${ZALO_OA_ID:-}
+      Zalo__WebhookSecret: ${ZALO_WEBHOOK_SECRET:-}
+      Zalo__BootstrapAccessToken: ${ZALO_BOOTSTRAP_ACCESS_TOKEN:-}
+      Zalo__BootstrapRefreshToken: ${ZALO_BOOTSTRAP_REFRESH_TOKEN:-}
     volumes:
       - dataprotection_keys:/data/keys
 

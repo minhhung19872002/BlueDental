@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -65,32 +65,55 @@ export function useSmsConfigures(search: string, enabled = true) {
   });
 }
 
-/** Zalo channel of /tools/message-templates — what Công cụ ▸ Zalo OA calls ZBS. */
-const ZALO_CHANNEL = 1;
-
-/** The fields the Gửi ZBS select reads off MessageTemplateDto. */
+/** One ZNS template as Zalo lists it — mirrors BlueDental.Zalo.ZaloTemplateDto. */
 export interface ZaloTemplateDto {
-  id: string;
+  templateId: string;
   name: string;
+  status: string | null;
+  quality: string | null;
+}
+
+/** Mirrors BlueDental.Zalo.SendZaloMessageInput. */
+export interface SendZaloMessageInput {
+  careRecordId: string;
+  templateId: string;
 }
 
 /**
- * Same list Công cụ ▸ Zalo OA ▸ Mẫu ZBS manages, and deliberately the same
- * query key that page uses, so a template saved there refreshes this dropdown.
+ * Mẫu ZBS for the Gửi dialog: the branch's approved templates, read from Zalo
+ * through the same endpoint Công cụ ▸ Zalo OA ▸ Mẫu ZBS lists — and under its
+ * query key, so both screens see one list. Zalo has no name search, so the
+ * keyword narrows the page on the client.
  */
 export function useZaloTemplates(search: string, enabled = true) {
   return useQuery({
-    queryKey: ["message-templates", ZALO_CHANNEL, search || undefined],
+    queryKey: ["zalo-oa", "templates", { skipCount: 0, maxResultCount: 100 }],
     queryFn: () =>
       api
-        .get<PagedResult<ZaloTemplateDto>>("/v1/app/tools/message-templates", {
-          params: {
-            channel: ZALO_CHANNEL,
-            filter: search || undefined,
-            maxResultCount: PAGE_SIZE,
-          },
+        .get<PagedResult<ZaloTemplateDto>>("/v1/app/zalo/templates", {
+          params: { skipCount: 0, maxResultCount: 100 },
         })
         .then((r) => r.data),
     enabled,
+    retry: false,
+    select: (data) => {
+      const needle = search.trim().toLowerCase();
+      const items = data.items.filter((item) => item.status?.toUpperCase() !== "DISABLE");
+      return needle ? items.filter((item) => item.name.toLowerCase().includes(needle)) : items;
+    },
+  });
+}
+
+/** Gửi ZBS — POST /zalo/messages; the server fills the template from the record. */
+export function useSendZaloMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SendZaloMessageInput) =>
+      api.post<{ id: string; status: number }>("/v1/app/zalo/messages", input).then((r) => r.data),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["care-records"] });
+      void queryClient.invalidateQueries({ queryKey: ["zalo-oa", "messages"] });
+      void queryClient.invalidateQueries({ queryKey: ["zalo-oa", "stats"] });
+    },
   });
 }

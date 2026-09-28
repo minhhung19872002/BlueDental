@@ -319,6 +319,13 @@ public static class BlueDentalDomainErrorCodes
     {
         public const string ConfigurationNotFound = "BlueDental:Tools:0001";
         public const string DuplicateSip = "BlueDental:Tools:0002";
+        public const string ZaloNotConnected = "BlueDental:Tools:0003";
+        public const string ZaloNotEnabled = "BlueDental:Tools:0004";
+        public const string ZaloInvalidPhone = "BlueDental:Tools:0005";
+        public const string ZaloRequestFailed = "BlueDental:Tools:0006";
+        public const string ZaloNotConfigured = "BlueDental:Tools:0007";
+        public const string ZaloTemplateDataMissing = "BlueDental:Tools:0008";
+        public const string ZaloOaMismatch = "BlueDental:Tools:0009";
     }
 
     public static class ClinicIntegration
@@ -330,6 +337,15 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidPartnerUrl = "BlueDental:ClinicIntegration:0005";
         public const string ServiceNotInBranch = "BlueDental:ClinicIntegration:0006";
         public const string EmptySelection = "BlueDental:ClinicIntegration:0007";
+    }
+
+    public static class EInvoicing
+    {
+        public const string NotConfigured = "BlueDental:EInvoicing:0001";
+        public const string ReceiptNotInvoiceable = "BlueDental:EInvoicing:0002";
+        public const string ProviderRefused = "BlueDental:EInvoicing:0003";
+        public const string AlreadyPublished = "BlueDental:EInvoicing:0004";
+        public const string InvalidDraft = "BlueDental:EInvoicing:0005";
     }
 
     public static class BranchManager
