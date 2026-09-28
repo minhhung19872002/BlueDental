@@ -18,10 +18,10 @@ import {
 } from "../api/zaloApi";
 
 const STATUS_TAG: Record<ZaloOaStatusText, { color: string; label: string }> = {
-  None: { color: "default", label: "Tools:ZaloNotActivated" },
-  Active: { color: "green", label: "Tools:ZaloStatusActive" },
-  Failed: { color: "red", label: "Tools:ZaloStatusFailed" },
-  Expired: { color: "orange", label: "Tools:ZaloStatusExpired" },
+  none: { color: "default", label: "Tools:ZaloNotActivated" },
+  active: { color: "green", label: "Tools:ZaloStatusActive" },
+  failed: { color: "red", label: "Tools:ZaloStatusFailed" },
+  expired: { color: "orange", label: "Tools:ZaloStatusExpired" },
 };
 
 /** What the OAuth callback appends to the return URL, and the toast each earns. */

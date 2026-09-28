@@ -4,7 +4,7 @@ import type { PagedResult } from "@/types";
 
 // ── DTOs — mirror BlueDental.Zalo.ZaloOaDtos ──────────────────────────────
 
-export type ZaloOaStatusText = "None" | "Active" | "Failed" | "Expired";
+export type ZaloOaStatusText = "none" | "active" | "failed" | "expired";
 
 /** Tokens never leave the server; the status only says whether there are any. */
 export interface ZaloOaStatusDto {
