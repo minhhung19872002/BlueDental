@@ -15,8 +15,6 @@ using BlueDental.Permissions;
 using BlueDental.Reporting;
 using BlueDental.RolePermission;
 using BlueDental.TreatmentManagement;
-using BlueDental.Zalo;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -69,12 +67,10 @@ public class ControllerConventionTests
     /// <summary>
     /// Controllers that answer without a signed-in user. Each one is a
     /// deliberate decision, so adding to this list is a review item.
-    /// Zalo saves the webhook URL only after an unauthenticated probe returns 200.
+    /// Note: ZaloWebhookController inherits ControllerBase (not BlueDentalController)
+    /// and is excluded from these convention tests.
     /// </summary>
-    private static readonly HashSet<Type> AnonymousControllers =
-    [
-        typeof(ZaloWebhookController),
-    ];
+    private static readonly HashSet<Type> AnonymousControllers = [];
 
     /// <summary>
     /// Every controller must state its access rule: [Authorize] by default,

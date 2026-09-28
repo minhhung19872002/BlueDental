@@ -1,9 +1,7 @@
 using System.IO;
 using System.Threading.Tasks;
-using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Volo.Abp;
 
 namespace BlueDental.Zalo;
 
@@ -14,8 +12,9 @@ namespace BlueDental.Zalo;
 /// signature when the OA secret is configured and marks delivered messages.
 /// </summary>
 [AllowAnonymous]
+[ApiController]
 [Route("api/v1/app/zalo/webhook")]
-public sealed class ZaloWebhookController(IZaloWebhookHandler handler) : BlueDentalController
+public sealed class ZaloWebhookController(IZaloWebhookHandler handler) : ControllerBase
 {
     [HttpGet]
     public IActionResult Probe() => Ok();
