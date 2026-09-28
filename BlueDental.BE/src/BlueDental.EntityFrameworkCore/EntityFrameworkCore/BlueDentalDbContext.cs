@@ -16,7 +16,6 @@ using BlueDental.Timekeeping;
 using BlueDental.Queue;
 using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
-using BlueDental.EInvoicing;
 using BlueDental.Zalo;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
@@ -159,9 +158,6 @@ public class BlueDentalDbContext :
 
     // Zalo OA
     public DbSet<ZaloOaConnection> ZaloOaConnections { get; set; }
-
-    // E-invoicing
-    public DbSet<ElectronicInvoice> ElectronicInvoices { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

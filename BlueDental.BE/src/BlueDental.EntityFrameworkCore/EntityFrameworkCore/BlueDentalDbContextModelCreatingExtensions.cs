@@ -19,7 +19,6 @@ using BlueDental.Finance;
 using BlueDental.Promotions;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
-using BlueDental.EInvoicing;
 using BlueDental.Zalo;
 
 using Microsoft.EntityFrameworkCore;
@@ -55,34 +54,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureQueue(builder);
         ConfigureClinicIntegration(builder);
         ConfigureZalo(builder);
-        ConfigureEInvoicing(builder);
-    }
-
-    private static void ConfigureEInvoicing(ModelBuilder builder)
-    {
-        builder.Entity<ElectronicInvoice>(entity =>
-        {
-            entity.ToTable("bd_electronic_invoices");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Provider).HasMaxLength(ElectronicInvoice.MaxProviderLength).IsRequired();
-            entity.Property(x => x.Ikey).HasMaxLength(ElectronicInvoice.MaxIkeyLength).IsRequired();
-            entity.Property(x => x.Pattern).HasMaxLength(ElectronicInvoice.MaxPatternLength).IsRequired();
-            entity.Property(x => x.Serial).HasMaxLength(ElectronicInvoice.MaxSerialLength);
-            entity.Property(x => x.Status).HasConversion<short>();
-            entity.Property(x => x.No).HasMaxLength(ElectronicInvoice.MaxNoLength);
-            entity.Property(x => x.LookupCode).HasMaxLength(ElectronicInvoice.MaxLookupCodeLength);
-            entity.Property(x => x.LinkView).HasMaxLength(ElectronicInvoice.MaxLinkLength);
-            entity.Property(x => x.CustomerName).HasMaxLength(ElectronicInvoice.MaxCustomerNameLength).IsRequired();
-            entity.Property(x => x.LastError).HasMaxLength(ElectronicInvoice.MaxErrorLength);
-            entity.Property(x => x.Total).HasPrecision(18, 2);
-            entity.Property(x => x.TaxAmount).HasPrecision(18, 2);
-            entity.Property(x => x.Amount).HasPrecision(18, 2);
-            // The provider's key is global; one live invoice per receipt.
-            entity.HasIndex(x => x.Ikey).IsUnique();
-            entity.HasIndex(x => x.PatientPaymentId).IsUnique().HasFilter("\"IsDeleted\" = false");
-            entity.HasIndex(x => x.ClinicBranchId);
-            entity.HasIndex(x => x.PatientId);
-        });
     }
 
     private static void ConfigureZalo(ModelBuilder builder)
