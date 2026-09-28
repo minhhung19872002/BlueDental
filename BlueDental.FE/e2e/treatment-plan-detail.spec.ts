@@ -570,11 +570,18 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page).toHaveURL(DETAIL_URL);
     const slipUrl = page.url().split("?")[0];
 
-    // A second line, written through the toolbar's inline row.
+    // A second line, written through the toolbar's inline row — on another
+    // service, or the two rows read the same and the drag below cannot tell
+    // whether they swapped.
+    const firstName = await page
+      .locator(".pdt-table tbody tr.ant-table-row .pdt-service-name")
+      .first()
+      .innerText();
     await page.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
     const option = openDropdown(page, ".tp-service-dropdown")
       .locator(".ant-select-item-option:has(.tp-opt-service)")
-      .nth(1);
+      .filter({ hasNot: page.locator(".tp-opt-service", { hasText: new RegExp(`^${firstName}$`) }) })
+      .first();
     await expect(option).toBeVisible();
     await option.click();
 
@@ -714,10 +721,12 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(dialog.locator(".cvt-error").first()).toBeVisible();
     await expect(dialog).toBeVisible();
 
+    // Another service than the old one, or the two rows below read the same.
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
     const service = openDropdown(page, ".tp-service-dropdown")
       .locator(".ant-select-item-option:has(.tp-opt-service)")
-      .nth(1);
+      .filter({ hasNot: page.locator(".tp-opt-service", { hasText: new RegExp(`^${oldName}$`) }) })
+      .first();
     await expect(service).toBeVisible();
     await service.click();
     await dialog.getByRole("textbox", { name: /Ghi chú/ }).fill("Chuyển đổi trong kiểm thử");
@@ -1069,31 +1078,33 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         };
         const after = (await res.json()) as Slip;
 
-        // Then the owner's own case (R-586): a 250.000 đ line discounted by
-        // 50.000 đ on the line itself, added through the inline-row endpoint
-        // on a live catalog service (the slip's own may be a deleted leftover).
+        // Then the owner's own case (R-586): a line discounted by 50.000 đ on
+        // the line itself, added through the inline-row endpoint on a live
+        // catalog service (the slip's own may be a deleted leftover). It goes
+        // on at the catalog price: a new line may not rise above it (R-605).
         const service = (
           (await (
             await fetch(
-              `/api/v1/app/catalog-entries?clinicBranchId=${plan.branchId}&group=care_service&isActive=true&isDeleted=false&maxResultCount=1`,
+              `/api/v1/app/catalog-entries?clinicBranchId=${plan.branchId}&group=care_service&isActive=true&isDeleted=false&maxResultCount=50`,
               { credentials: "include" },
             )
-          ).json()) as { items: { id: string }[] }
-        ).items[0];
+          ).json()) as { items: { id: string; price: number | null }[] }
+        ).items.find((item) => (item.price ?? 0) > 50_000)!;
+        const linePrice = service.price ?? 0;
         const added = await fetch(`${plans}/${planId}/services`, {
           method: "POST",
           credentials: "include",
           headers,
           body: JSON.stringify({
             serviceId: service.id,
-            price: 250_000,
+            price: linePrice,
             quantity: 1,
             discountType: 1,
             discountValue: 50_000,
           }),
         });
         const withLine = (await added.json()) as Slip;
-        return { ok: res.ok && added.ok, gross: plan.servicesTotal, discount, after, withLine };
+        return { ok: res.ok && added.ok, gross: plan.servicesTotal, discount, after, withLine, linePrice };
       },
       { planId, plans: PLANS_API },
     );
@@ -1106,16 +1117,16 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     expect(figures.after.services.map((s) => s.outstandingAmount)).toEqual([net]);
 
     // With the discounted line on: gross prices, EVERY discount, and what is
-    // owed — 250.000 − 50.000 lands as such, not as a bare 200.000.
+    // owed — price − 50.000 lands as such, not as a bare net figure.
     const slip = figures.withLine;
-    expect(slip.servicesGrossTotal).toBe(figures.gross + 250_000);
+    expect(slip.servicesGrossTotal).toBe(figures.gross + figures.linePrice);
     expect(slip.servicesDiscountAmount).toBe(50_000);
     expect(slip.planDiscountAmount).toBe(figures.discount);
     expect(slip.totalDiscountAmount).toBe(figures.discount + 50_000);
-    const owed = figures.gross + 250_000 - figures.discount - 50_000;
+    const owed = figures.gross + figures.linePrice - figures.discount - 50_000;
     expect(slip.totalAmount).toBe(owed);
     expect(slip.services.reduce((sum, s) => sum + s.chargedAmount, 0)).toBe(owed);
-    const grossOwed = figures.gross + 250_000;
+    const grossOwed = figures.gross + figures.linePrice;
 
     await page.goto(`${slipUrl}?planTab=payment-v2`);
     await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
@@ -1229,5 +1240,168 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(".pd-newpay-empty")).toBeVisible();
+  });
+
+  test("Đơn giá reads the giá gốc, a lowered price is Giảm dịch vụ, and it never rises above it", async ({
+    page,
+  }) => {
+    // Staging 2026-09-28 (R-605): a 1.000.000 line edited to 910.000 still
+    // prints Đơn giá 1.000.000, "Tổng giảm giá" breaks down into four lines,
+    // and a price above the giá gốc is refused on ✓.
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+    planCode = await createSlip(page);
+    await page.locator(".tp-table .tp-code", { hasText: planCode }).click();
+    await expect(page).toHaveURL(DETAIL_URL);
+    const slipUrl = page.url().split("?")[0];
+    const planId = slipUrl.split("/").pop() ?? "";
+
+    // 20.000 đ off the slip itself, so "Giảm KHDT" has something to show.
+    const opened = await page.evaluate(
+      async ({ planId, plans }) => {
+        const xsrf = document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("XSRF-TOKEN="))
+          ?.substring("XSRF-TOKEN=".length);
+        const plan = (await (
+          await fetch(`${plans}/${planId}`, { credentials: "include" })
+        ).json()) as { branchId: string };
+        const res = await fetch(`${plans}/${planId}/discount`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "content-type": "application/json",
+            "X-Clinic-Branch-Id": plan.branchId,
+            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+          },
+          body: JSON.stringify({ discountType: 1, discountValue: 20_000 }),
+        });
+        const slip = (await res.json()) as {
+          services: { originalPrice: number; price: number; planDiscountShare: number }[];
+        };
+        return { ok: res.ok, line: slip.services[0] };
+      },
+      { planId, plans: PLANS_API },
+    );
+    expect(opened.ok).toBeTruthy();
+    const list = opened.line.originalPrice;
+    expect(list, "a catalog-priced line opens at its giá gốc").toBeGreaterThan(20_000);
+    expect(opened.line.price).toBe(list);
+    expect(opened.line.planDiscountShare).toBe(20_000);
+    const cut = Math.max(Math.floor(list / 10 / 1000) * 1000, 1000);
+    const lowered = list - cut;
+    const vnd = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
+
+    await page.reload();
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
+    const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
+    await expect(row).toBeVisible();
+    const headers = await page.locator(".pdt-table thead th").allInnerTexts();
+    const cell = (header: string) =>
+      row.locator("td").nth(headers.findIndex((text) => text.trim() === header));
+    const amountOf = async (header: string) => money(await cell(header).innerText());
+
+    await expect.poll(() => amountOf("Đơn giá")).toBe(list);
+    await expect.poll(() => amountOf("Tổng giảm giá")).toBe(20_000);
+    await expect.poll(() => amountOf("Thành tiền")).toBe(list - 20_000);
+
+    // The pencil puts the price actually charged in the box, and Thành tiền
+    // opens on the saved figure.
+    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
+    const box = row.getByRole("textbox", { name: "Đơn giá" });
+    await expect.poll(async () => money(await box.inputValue())).toBe(list);
+    await expect.poll(() => amountOf("Thành tiền")).toBe(list - 20_000);
+
+    // Typing reprices Thành tiền at once — đơn giá × số lượng, staging's
+    // onDraftChange — while Tổng giảm giá keeps the saved figure until Lưu.
+    // Above the giá gốc: refused on ✓, nothing sent.
+    let written = 0;
+    const countPut = (req: { url: () => string; method: () => string }) => {
+      if (req.url().includes("/services/") && req.method() === "PUT") written += 1;
+    };
+    page.on("request", countPut);
+    await box.fill(String(list + 100_000));
+    await row.getByRole("button", { name: "Lưu" }).click();
+    await expect(row.locator(".pdt-draft-error")).toHaveText(
+      "Đơn giá không được lớn hơn giá gốc của dịch vụ.",
+    );
+    expect(written, "a price above the giá gốc is never sent").toBe(0);
+    page.off("request", countPut);
+    await expect.poll(() => amountOf("Tổng giảm giá")).toBe(20_000);
+    await expect.poll(() => amountOf("Thành tiền")).toBe(list + 100_000);
+
+    // …and by the server, which is the side that has to hold the line.
+    const refused = await page.evaluate(
+      async ({ planId, plans, price }) => {
+        const xsrf = document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("XSRF-TOKEN="))
+          ?.substring("XSRF-TOKEN=".length);
+        const plan = (await (
+          await fetch(`${plans}/${planId}`, { credentials: "include" })
+        ).json()) as {
+          branchId: string;
+          services: { id: string; quantity: number; teeth: unknown[] }[];
+        };
+        const line = plan.services[0];
+        const res = await fetch(`${plans}/${planId}/services/${line.id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            "content-type": "application/json",
+            // The app asks in Vietnamese; the message must exist there (vi.json).
+            "Accept-Language": "vi",
+            "X-Clinic-Branch-Id": plan.branchId,
+            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+          },
+          body: JSON.stringify({ price, quantity: line.quantity, teeth: line.teeth }),
+        });
+        const body = (await res.json()) as { error?: { code?: string; message?: string } };
+        return { status: res.status, code: body.error?.code ?? "", message: body.error?.message ?? "" };
+      },
+      { planId, plans: PLANS_API, price: list + 100_000 },
+    );
+    expect(refused.status).toBe(403);
+    expect(refused.code).toBe("BlueDental:Treatment:0040");
+    expect(refused.message).toBe("Đơn giá không được lớn hơn giá gốc của dịch vụ.");
+
+    // Back under the ceiling the message goes, Thành tiền follows, and ✓
+    // writes the lower price.
+    await box.fill(String(lowered));
+    await expect(row.locator(".pdt-draft-error")).toHaveCount(0);
+    await expect.poll(() => amountOf("Thành tiền")).toBe(lowered);
+    const saved = page.waitForResponse(
+      (res) => res.url().includes("/services/") && res.request().method() === "PUT",
+    );
+    await row.getByRole("button", { name: "Lưu" }).click();
+    expect((await saved).ok()).toBeTruthy();
+    await expect(page.getByText("Đã cập nhật dịch vụ")).toBeVisible();
+
+    const readBack = async () => {
+      await expect.poll(() => amountOf("Đơn giá")).toBe(list);
+      await expect.poll(() => amountOf("Tổng giảm giá")).toBe(cut + 20_000);
+      await expect.poll(() => amountOf("Thành tiền")).toBe(list - cut - 20_000);
+      await expect.poll(() => statValue(page, "Doanh thu dự kiến")).toBe(list - cut - 20_000);
+
+      await cell("Tổng giảm giá").locator(".pdt-discount").hover();
+      const tip = page.locator(".ant-tooltip:visible .pdt-discount-tip p");
+      await expect(tip).toHaveText([
+        `Giảm dịch vụ: ${vnd(cut)} đ`,
+        "Voucher dịch vụ: 0 đ",
+        "Giảm KHDT: 20.000 đ",
+        "Voucher KHDT: 0 đ",
+      ]);
+      await page.mouse.move(0, 0);
+    };
+    await readBack();
+
+    // Persisted: a reload reads the same, and the pencil opens on the lower price.
+    await page.reload();
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
+    await readBack();
+    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
+    await expect.poll(async () => money(await box.inputValue())).toBe(lowered);
+    await row.getByRole("button", { name: "Hủy" }).click();
+    await expect(box).toHaveCount(0);
   });
 });

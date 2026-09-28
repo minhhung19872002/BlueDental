@@ -52,6 +52,9 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public Guid ServiceId { get; set; }
     public Guid? SourceAdviseId { get; set; }
     public string Code { get; set; } = string.Empty;
+
+    /// <summary>"Giá gốc" — what the plan table's Đơn giá prints; the ceiling for <see cref="Price"/>.</summary>
+    public decimal OriginalPrice { get; set; }
     public decimal Price { get; set; }
     public int Quantity { get; set; }
     public DiscountType DiscountType { get; set; }
@@ -59,6 +62,15 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public decimal GrossAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal EffectiveAmount { get; set; }
+
+    /// <summary>"Giảm dịch vụ": (giá gốc − đơn giá) × số lượng plus any carried-over line discount.</summary>
+    public decimal ServiceDiscountAmount { get; set; }
+
+    /// <summary>"Giảm KHDT": the line's share of the slip's own %/money discount.</summary>
+    public decimal PlanDiscountShare { get; set; }
+
+    /// <summary>"Voucher KHDT": the line's share of the slip's vouchers.</summary>
+    public decimal PlanVoucherShare { get; set; }
 
     /// <summary>
     /// What the line is charged once the slip discount and voucher are taken

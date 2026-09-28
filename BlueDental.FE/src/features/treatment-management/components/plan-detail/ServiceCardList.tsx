@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { formatToothCodes } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { DiscountCell, ServiceNameCell, type ServiceRowActions } from "./serviceColumns";
-import { advanceOn, dash, type PlanDetailRow } from "./planDetailTypes";
+import { advanceOn, dash, lineNetAmount, listUnitPrice, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
   rows: PlanDetailRow[];
@@ -26,9 +26,9 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
   ];
   const moreRows: RecordCardRow[] = [
     { key: "quantity", label: t("Treatment:Pricing:Quantity"), value: row.service.quantity },
-    { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: moneyText(row.service.price) },
+    { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: moneyText(listUnitPrice(row.service)) },
     { key: "discount", label: t("Treatment:Pricing:TotalDiscount"), value: <DiscountCell row={row} /> },
-    { key: "amount", label: t("Treatment:Pricing:NetAmount"), value: <strong>{moneyText(row.service.effectiveAmount)}</strong> },
+    { key: "amount", label: t("Treatment:Pricing:NetAmount"), value: <strong>{moneyText(lineNetAmount(row.service))}</strong> },
     { key: "advance", label: t("Treatment:Payment:Prepaid"), value: moneyText(advanceOn(row.service)) },
     { key: "note", label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },
     { key: "diagnoser1", label: t("Treatment:Diagnosis:DoctorOne"), value: dash(row.advise?.staffName) },

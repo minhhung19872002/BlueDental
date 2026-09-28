@@ -202,6 +202,8 @@ export interface TreatmentServiceDto {
   serviceId: string;
   sourceAdviseId: string | null;
   code: string;
+  /** "Giá gốc" — what Đơn giá prints, and the ceiling for `price` (Treatment:0040). */
+  originalPrice: number;
   price: number;
   quantity: number;
   discountType: DiscountType;
@@ -209,6 +211,12 @@ export interface TreatmentServiceDto {
   grossAmount: number;
   discountAmount: number;
   effectiveAmount: number;
+  /** "Giảm dịch vụ": (giá gốc − đơn giá) × số lượng plus any carried-over line discount. */
+  serviceDiscountAmount: number;
+  /** "Giảm KHDT": the line's share of the slip's own discount. */
+  planDiscountShare: number;
+  /** "Voucher KHDT": the line's share of the slip's vouchers. */
+  planVoucherShare: number;
   /**
    * What the line is charged after the slip discount and voucher — its share
    * in whole đồng, the most a receipt may collect on it. 0 on

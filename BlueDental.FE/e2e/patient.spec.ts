@@ -480,7 +480,9 @@ async function addLine<
       headers,
       body: JSON.stringify({
         serviceId: source.serviceId,
-        price: source.price,
+        // The line only has to exist. Its source may be priced above today's
+        // catalog price, which a new line may not be (Treatment:0040).
+        price: 0,
         quantity: 1,
         discountType: 0,
         discountValue: 0,

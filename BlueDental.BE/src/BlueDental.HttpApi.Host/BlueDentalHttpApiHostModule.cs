@@ -14,6 +14,7 @@ using Volo.Abp.AspNetCore.ExceptionHandling;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 using Volo.Abp.AspNetCore.Serilog;
+using Volo.Abp.AspNetCore.Uow;
 using Volo.Abp.Autofac;
 using Volo.Abp.BlobStoring.Minio;
 using Volo.Abp.Caching.StackExchangeRedis;
@@ -80,6 +81,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         ConfigureDataProtection(context, configuration);
         ConfigureAntiForgery();
         ConfigureExceptionStatusCodes();
+        ConfigureUnitOfWork();
 
         context.Services.AddSignalR(options =>
         {
@@ -244,6 +246,28 @@ public class BlueDentalHttpApiHostModule : AbpModule
         Configure<AbpAntiForgeryOptions>(options =>
         {
             options.AutoValidate = false;
+        });
+    }
+
+    /// <summary>
+    /// API requests commit their unit of work before the response is written.
+    ///
+    /// <c>UseUnitOfWork()</c> reserves one unit of work for the whole request;
+    /// the MVC filter then only saves changes, and the middleware commits after
+    /// the response has gone out, on the request's abort token. A client that
+    /// navigates away the moment it reads the 200 cancels that commit, and the
+    /// write is rolled back behind a success the user has already seen (R-606:
+    /// a saved line note vanished on reload). Outside the reservation ABP's
+    /// <c>AbpUowActionFilter</c> begins its own unit of work and completes it
+    /// before the result runs, so a failed commit also answers as an error
+    /// instead of "response has already started". Every /api endpoint here is a
+    /// controller action, so each still runs inside that filter's unit of work.
+    /// </summary>
+    private void ConfigureUnitOfWork()
+    {
+        Configure<AbpAspNetCoreUnitOfWorkOptions>(options =>
+        {
+            options.IgnoredUrls.AddIfNotContains("/api");
         });
     }
 

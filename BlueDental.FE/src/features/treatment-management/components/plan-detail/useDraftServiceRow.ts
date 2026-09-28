@@ -5,6 +5,7 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { DISCOUNT_TYPE } from "../../api/consultingApi";
+import { unitPriceError } from "./planDetailTypes";
 import {
   SERVICE_LINE_STATUS,
   useAddServiceLine,
@@ -51,12 +52,23 @@ export interface DraftServiceLocks {
 export interface DraftServiceController {
   service: { id: string; name: string };
   values: DraftServiceValues;
+  /**
+   * The giá gốc the unit price may not rise above — the catalog price on a new
+   * row, the line's own on an edited one. 0 when none is known.
+   */
+  originalPrice: number;
+  /**
+   * Thành tiền while nothing that prices the line has been touched yet — the
+   * saved figure an edited line opens with. Once the price, quantity or teeth
+   * change, staging shows đơn giá × số lượng instead; the new row always does.
+   */
+  savedAmount?: number;
   /** Names for the ids the row came in with, so a picker can print them. */
   labels?: Partial<Record<DraftIdField, string | null>>;
   /** Set on an edited line in treatment; see {@link DraftServiceLocks}. */
   locks?: DraftServiceLocks;
   /** A refusal of the last Lưu, printed under the cell it is about. */
-  errors?: { teeth?: string };
+  errors?: { teeth?: string; price?: string };
   update: <K extends keyof DraftServiceValues>(field: K, value: DraftServiceValues[K]) => void;
   openTeeth: () => void;
   save: () => void;
@@ -111,7 +123,9 @@ export function useDraftServiceRow(planId: string) {
   const [teethOpen, setTeethOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [teethError, setTeethError] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
   const add = useAddServiceLine();
+  const originalPrice = service?.price ?? 0;
   const start = (picked: CatalogOption) => {
     setService(picked);
     setValues({ ...EMPTY_VALUES, price: picked.price ?? 0 });
@@ -123,16 +137,21 @@ export function useDraftServiceRow(planId: string) {
     setTeethOpen(false);
     setDiscardOpen(false);
     setTeethError(null);
+    setPriceError(null);
   };
 
   const save = async () => {
     if (!service) return;
     // A new line names its teeth: the reference's schema for "create" holds
     // `selectedTeeth` to at least one (an edit may leave them as they are).
+    // Staging validates the whole row at once, so both messages can show.
+    const tooDear = unitPriceError(values.price, originalPrice);
+    setPriceError(tooDear);
     if (isToothValueEmpty(values.teeth)) {
       setTeethError(t("Treatment:Tooth:ToothRequired"));
       return;
     }
+    if (tooDear) return;
     if (values.quantity < 1) {
       toast.error(t("Treatment:Pricing:QuantityMin"));
       return;
@@ -150,8 +169,13 @@ export function useDraftServiceRow(planId: string) {
     ? {
         service,
         values,
-        errors: teethError ? { teeth: teethError } : undefined,
-        update: (field, value) => setValues((current) => ({ ...current, [field]: value })),
+        originalPrice,
+        errors: { teeth: teethError ?? undefined, price: priceError ?? undefined },
+        update: (field, value) => {
+          setValues((current) => ({ ...current, [field]: value }));
+          // The message goes as soon as the price is back under the ceiling.
+          if (field === "price" && !unitPriceError(Number(value), originalPrice)) setPriceError(null);
+        },
         openTeeth: () => setTeethOpen(true),
         save: () => void save(),
         cancel: () => setDiscardOpen(true),

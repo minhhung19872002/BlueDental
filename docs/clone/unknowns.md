@@ -2731,3 +2731,35 @@ Action taken: BlueDental tự chọn — redeem trong cùng transaction với m�
         `perCustomerLimit` đếm số phiếu của bệnh nhân đã mang voucher đó (kể cả
         phiếu đã huỷ, vì bản gốc không hoàn lượt) → `Promotions:0010`; các từ
         chối khác → `Promotions:0007`; không có hoàn lượt. Xem R-590.
+
+## Chi tiết kế hoạch — voucher cấp phiếu trên cột dòng dịch vụ (2026-09-28, R-604)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId} tab Chi tiết
+Control: cột "Tổng giảm giá" / "Thành tiền" của dòng dịch vụ khi kế hoạch có `appliedCoupons`
+Reason: chưa có ảnh/response bản gốc của một kế hoạch mang voucher mở ở tab Chi tiết —
+        không biết bản gốc chia voucher xuống dòng, hay để dòng in giá trước voucher.
+Action taken: NONE trên bản gốc. BlueDental in phần voucher/giảm giá phiếu đã chia
+        (`effectiveAmount − chargedAmount`) vào "Tổng giảm giá" và trừ khỏi "Thành tiền",
+        để các dòng cộng lại khớp danh sách và Doanh thu dự kiến (yêu cầu chủ dự án).
+RESOLVED 2026-09-28 (staging, chỉ đọc): bản gốc **có** chia — dòng mang `khdtVoucher`
+        (voucher KHDT) và `khdtDiscount` (giảm KHDT), cộng vào "Tổng giảm giá", Thành tiền
+        đã trừ; tooltip in bốn dòng "Giảm dịch vụ / Voucher dịch vụ / Giảm KHDT / Voucher
+        KHDT". Tooltip hai dòng của R-604 đã thay bằng bốn dòng ấy (R-605).
+
+## Chi tiết kế hoạch — sửa đơn giá dòng dịch vụ (staging 2026-09-28)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId} tab Chi tiết
+Control: bút "Chỉnh sửa" → ô Đơn giá → ✓ (`PATCH /v1/treatment-services/{id}` với `amount`)
+Reason: không gõ/lưu trên staging. Chưa biết: (1) server có tính lại `khdtVoucher`
+        (voucher % của kế hoạch) khi đơn giá giảm không — dòng quan sát giữ
+        100.000 sau khi sửa, nhưng voucher áp trước lúc sửa; (2) kế hoạch nhiều
+        dòng có chia lại `khdtDiscount`/`khdtVoucher` sau khi một dòng đổi giá
+        không; (3) `discountValue` lưu theo đơn vị hay theo tổng khi số lượng > 1
+        (dòng quan sát có số lượng 1: 90.000 = 90.000); (4) server có chặn
+        `amount > originalPrice` hay chỉ client chặn.
+Action taken: NONE. Đã đọc response GET và bộ dựng cột/handler ✓ trong JS công khai;
+        xem `pages/treatment-plan-detail.md` mục "giá gốc và bốn khoản giảm".

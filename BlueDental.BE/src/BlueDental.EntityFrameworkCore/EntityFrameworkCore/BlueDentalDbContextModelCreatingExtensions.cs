@@ -800,6 +800,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.OriginalPrice).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Note).HasMaxLength(1000);
@@ -808,6 +809,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.GrossAmount);
             entity.Ignore(x => x.DiscountAmount);
             entity.Ignore(x => x.EffectiveAmount);
+            entity.Ignore(x => x.ListAmount);
+            entity.Ignore(x => x.ServiceDiscountAmount);
             entity.Ignore(x => x.CountedAmount);
             entity.Ignore(x => x.IsCompleted);
             entity.HasIndex(x => new { x.TreatmentPlanId, x.Code });
