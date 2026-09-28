@@ -13,7 +13,6 @@ namespace BlueDental.Zalo;
 /// raw body and Zalo's signature header to the handler, which verifies the
 /// signature when the OA secret is configured and marks delivered messages.
 /// </summary>
-[RemoteService(IsEnabled = false)]
 [AllowAnonymous]
 [Route("api/v1/app/zalo/webhook")]
 public sealed class ZaloWebhookController(IZaloWebhookHandler handler) : BlueDentalController

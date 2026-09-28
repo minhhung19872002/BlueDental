@@ -166,11 +166,31 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
         var branchId = _branchResolver.GetRequiredClinicBranchId();
 
-        var info = await _zalo.GetOaInfoAsync(Options.BootstrapAccessToken);
+        var accessToken = Options.BootstrapAccessToken;
+        var refreshToken = Options.BootstrapRefreshToken;
+
+        var info = await _zalo.GetOaInfoAsync(accessToken);
         await LogAsync(branchId, "oa-info", info.Call);
+
         if (!info.Call.Succeeded || info.Info == null)
         {
-            throw Refused(info.Call);
+            var refreshResult = await _zalo.RefreshTokenAsync(refreshToken);
+            await LogAsync(branchId, "bootstrap-refresh", refreshResult.Call);
+
+            if (!refreshResult.Call.Succeeded || refreshResult.AccessToken == null || refreshResult.RefreshToken == null)
+            {
+                throw Refused(refreshResult.Call);
+            }
+
+            accessToken = refreshResult.AccessToken;
+            refreshToken = refreshResult.RefreshToken;
+
+            info = await _zalo.GetOaInfoAsync(accessToken);
+            await LogAsync(branchId, "oa-info-retry", info.Call);
+            if (!info.Call.Succeeded || info.Info == null)
+            {
+                throw Refused(info.Call);
+            }
         }
 
         if (!OaMatches(info.Info.OaId, null))
@@ -180,7 +200,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
         var now = Clock.Now;
         var tokens = _tokens.Encrypt(
-            Options.BootstrapAccessToken, Options.BootstrapRefreshToken, (int)TimeSpan.FromHours(1).TotalSeconds, now);
+            accessToken, refreshToken, (int)TimeSpan.FromHours(1).TotalSeconds, now);
         var connection = await UpsertConnectionAsync(branchId, info.Info, tokens, now);
 
         return ToStatus(branchId, connection);
