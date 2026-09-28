@@ -23,6 +23,7 @@ import type { taxonomyKeys } from "@/features/taxonomy/api/taxonomyApi";
 import type { consultingKeys } from "@/features/treatment-management/api/consultingQueries";
 import type { stageKeys } from "@/features/treatment-management/api/stageApi";
 import type { treatmentKeys } from "@/features/treatment-management/api/treatmentPlanApi";
+import type { voucherKeys } from "@/features/voucher/api/voucherApi";
 
 /**
  * Which cached queries read which backend data.
@@ -80,6 +81,9 @@ export const ENTITY_QUERY_ROOTS = {
     // Báo cáo lists the service lines themselves.
     CLINIC_REPORTS,
   ],
+  // Opening a slip burns a use on each voucher it carries (BA item 24), so the
+  // voucher list's "Lượt dùng" and the consulting sheet's picker both re-read.
+  voucher: [["vouchers"] satisfies RootOf<typeof voucherKeys>],
   treatmentStage: [
     ["treatment-stages"] satisfies RootOf<typeof stageKeys>,
     // The treatment table reads a line's stage count and note off the slip.

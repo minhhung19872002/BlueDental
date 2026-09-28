@@ -282,8 +282,25 @@ public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
     public PaymentSummaryDto Payment { get; set; } = new();
     public List<TreatmentServiceDto> Services { get; set; } = new();
 
+    /// <summary>The reference's <c>appliedCoupons[]</c> — vouchers redeemed when the slip opened.</summary>
+    public List<AppliedVoucherDto> AppliedVouchers { get; set; } = new();
+
     public string? DentistName { get; set; }
     public string? ConsultantName { get; set; }
+}
+
+/// <summary>One voucher redeemed on a slip, as it stood at the moment of redemption.</summary>
+public class AppliedVoucherDto
+{
+    public Guid VoucherId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public DiscountType DiscountType { get; set; }
+    public decimal DiscountValue { get; set; }
+    public decimal? MaxDiscountAmount { get; set; }
+
+    /// <summary>What this voucher took off the slip.</summary>
+    public decimal DiscountAmount { get; set; }
 }
 
 /// <summary>Opens a slip from consulting lines the patient has accepted.</summary>
@@ -298,11 +315,11 @@ public class OpenTreatmentPlanDto
     public decimal DiscountValue { get; set; }
 
     /// <summary>
-    /// The plan-level voucher already worked out on Chẩn đoán &amp; Tư vấn, so the
-    /// slip opens on the same "BE:Field:TotalAmount" the screen showed. Added on top of the
-    /// slip discount above, and capped with it at the slip total.
+    /// The plan-level vouchers ticked on Chẩn đoán &amp; Tư vấn. The server
+    /// redeems each one as the slip opens — burning a use and working out the
+    /// discount itself (BA item 24) — so the client never sends an amount.
     /// </summary>
-    public decimal? VoucherDiscountAmount { get; set; }
+    public List<Guid> VoucherIds { get; set; } = new();
 
     /// <summary>Accepted advises to pull in. Empty means every accepted advise.</summary>
     public List<Guid> AdviseIds { get; set; } = new();

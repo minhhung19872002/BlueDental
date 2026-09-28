@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { assertRealApiTraffic, login } from "./fixtures/auth";
+import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
  * Chẩn đoán & Tư vấn: the plan footer, the advise table's drag-to-reorder, and
@@ -12,6 +12,8 @@ import { assertRealApiTraffic, login } from "./fixtures/auth";
 
 /** The seeded second branch, and a patient of it that carries advise rows. */
 const BRANCH = "22222222-2222-2222-2222-222222222222";
+/** The first branch, which the slip-opening test provisions its own rows on. */
+const BRANCH1 = "11111111-1111-1111-1111-111111111111";
 const PATIENT = "3a238cc0-d36b-309e-9ac6-9413686a82c3";
 const CONSULTING = `/patient/${PATIENT}?tab=consulting&branchId=${BRANCH}`;
 
@@ -22,6 +24,33 @@ async function openConsulting(page: Page) {
   await expect(page.locator(".pd-advise-table tbody tr.ant-table-row").first()).toBeVisible({
     timeout: 20000,
   });
+}
+
+/** What the plan-scoped voucher is worth and how often it has been used, read off the real API. */
+async function voucherUses(
+  page: Page,
+  code: string,
+  orderAmount: number,
+  branch: string,
+): Promise<{ id: string; usedCount: number; usageLimit: number | null }> {
+  const found = await page.evaluate(
+    async ({ branch, amount, wanted }) => {
+      const res = await fetch(
+        `/api/v1/app/vouchers/available?orderAmount=${amount}&clinicBranchId=${branch}`,
+        { credentials: "include", headers: { "X-Clinic-Branch-Id": branch } },
+      );
+      const list = (await res.json()) as {
+        id: string;
+        code: string;
+        usedCount: number;
+        usageLimit: number | null;
+      }[];
+      return list.find((v) => v.code === wanted) ?? null;
+    },
+    { branch, amount: orderAmount, wanted: code },
+  );
+  expect(found, `${code} should be offered for ${orderAmount}`).not.toBeNull();
+  return found!;
 }
 
 /** The service names down the advise table, in the order the table shows them. */
@@ -179,80 +208,146 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     await expect(page).toHaveURL(/tab=consulting/);
   });
 
-  test("Thêm kế hoạch điều trị raises a slip off the ticked line and converts it", async ({
+  test("Thêm kế hoạch điều trị raises a slip off the ticked line, converts it, and burns the picked voucher's use", async ({
     page,
   }) => {
-    await openConsulting(page);
+    // Provisions everything it touches through the real API, on the first
+    // branch: a consulting line of its own, because opening a slip **converts**
+    // the lines it pulls in — a converted line can never be accepted again, so
+    // a test that reused seeded rows would pass once — and a voucher of its
+    // own, so "Lượt dùng" is read from zero rather than from whatever earlier
+    // runs left on a shared one.
+    const PRICE = 800_000;
+    const OFF = 200_000;
+    const id = runId();
 
-    // Provisions its own consulting line through the real API, because opening a
-    // slip **converts** the lines it pulls in — a converted line can never be
-    // accepted again, so a test that reused the seeded rows would pass once.
-    const line = await page.evaluate(
-      async ({ patient, branch }) => {
-        const send = (url: string, init?: RequestInit) =>
-          fetch(url, {
-            credentials: "include",
-            headers: { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch },
-            ...init,
-          });
-
-        const slip = (
-          await (
-            await send(`/api/v1/app/patient-diagnoses?patientId=${patient}&maxResultCount=1`)
-          ).json()
-        ).items?.[0] as { id: string; diagnosisId: string; staffId: string } | undefined;
-        const service = (
-          await (
-            await send("/api/v1/app/catalog-entries?group=care_service&maxResultCount=1")
-          ).json()
-        ).items?.[0] as { id: string; price: number | null } | undefined;
-        if (!slip || !service) return null;
-
-        const advise = await (
-          await send("/api/v1/app/patient-advises", {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    const made = await page.evaluate(
+      async ({ branch, price, off, suffix }) => {
+        const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch };
+        const get = async (url: string) =>
+          (await fetch(url, { credentials: "include", headers })).json();
+        const post = async (url: string, body?: unknown) => {
+          const res = await fetch(url, {
             method: "POST",
-            body: JSON.stringify({
-              patientId: patient,
-              clinicBranchId: branch,
-              patientDiagnosisId: slip.id,
-              diagnosisId: slip.diagnosisId,
-              serviceId: service.id,
-              staffId: slip.staffId,
-              originalPrice: service.price ?? 100000,
-              price: service.price ?? 100000,
-              quantity: 1,
-              discountType: 0,
-              discountValue: 0,
-              // At least one tooth: the server refuses a line without one
-              // ("Select at least one tooth or surface").
-              teeth: [
-                {
-                  toothCode: 27,
-                  selected: true,
-                  top: false,
-                  right: false,
-                  bottom: false,
-                  left: false,
-                  center: false,
-                },
-              ],
-            }),
-          })
-        ).json();
-        return advise as { id: string; code: string };
-      },
-      { patient: PATIENT, branch: BRANCH },
-    );
-    expect(line?.id, `the line should have been created, got ${JSON.stringify(line)}`).toBeTruthy();
+            credentials: "include",
+            headers,
+            body: body === undefined ? undefined : JSON.stringify(body),
+          });
+          if (!res.ok) throw new Error(`${url} ${res.status} ${await res.text()}`);
+          return res.json();
+        };
 
-    // The new line is the one this test ticks, found by its own code.
-    await page.reload();
-    const row = page.locator(`.pd-advise-table tr[data-row-key="${line!.id}"]`);
+        const patient = (await get("/api/v1/app/patients?maxResultCount=1")).items[0];
+        const diagnosis = (
+          await get(
+            `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=1`,
+          )
+        ).items[0];
+        const service = (
+          await get(
+            `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=care_service&isActive=true&maxResultCount=1`,
+          )
+        ).items[0];
+        const staff = (await get("/api/v1/app/staff?MaxResultCount=1")).items[0];
+        const tooth = {
+          toothCode: 27,
+          selected: true,
+          top: false,
+          right: false,
+          bottom: false,
+          left: false,
+          center: false,
+        };
+
+        const slip = await post("/api/v1/app/patient-diagnoses", {
+          patientId: patient.id,
+          clinicBranchId: branch,
+          diagnosisId: diagnosis.id,
+          staffId: staff.id,
+          note: `e2e voucher ${suffix}`,
+          teeth: [tooth],
+        });
+        const advise = await post("/api/v1/app/patient-advises", {
+          patientId: patient.id,
+          clinicBranchId: branch,
+          patientDiagnosisId: slip.id,
+          diagnosisId: diagnosis.id,
+          serviceId: service.id,
+          staffId: staff.id,
+          // Priced by hand: the catalog collects zero-priced junk from earlier
+          // runs, and a voucher is only offered against a total worth something.
+          originalPrice: price,
+          price,
+          quantity: 1,
+          discountType: 0,
+          discountValue: 0,
+          teeth: [tooth],
+        });
+
+        const day = (offset: number) => {
+          const d = new Date();
+          d.setDate(d.getDate() + offset);
+          return d.toISOString().slice(0, 10);
+        };
+        const voucher = await post("/api/v1/app/vouchers", {
+          code: `VC${suffix}`,
+          name: `e2e lượt dùng ${suffix}`,
+          discountType: "fixed_amount",
+          discountValue: off,
+          scopeTarget: "treatment",
+          targetIds: [],
+          startDate: day(-1),
+          endDate: day(30),
+          usageLimit: 100,
+          isExclusive: false,
+          customerTargets: ["new", "returning"],
+          isDaysOfWeekLimited: false,
+          daysOfWeek: [],
+          displayOnNfcDental: true,
+          branchId: branch,
+        });
+        await post(`/api/v1/app/vouchers/${voucher.id}/publish`);
+
+        return {
+          patientId: patient.id as string,
+          adviseId: advise.id as string,
+          voucherId: voucher.id as string,
+          voucherCode: voucher.code as string,
+        };
+      },
+      { branch: BRANCH1, price: PRICE, off: OFF, suffix: id },
+    );
+
+    await page.goto(`/patient/${made.patientId}?tab=consulting&branchId=${BRANCH1}`);
+    await assertRealApiTraffic(page, "/api/v1/app/patient-advises");
+    const row = page.locator(`.pd-advise-table tr[data-row-key="${made.adviseId}"]`);
     await expect(row).toBeVisible({ timeout: 20000 });
+
+    // The picker asks the server what applies to the ticked total.
+    const available = page.waitForResponse(
+      (res) =>
+        res.url().includes("/vouchers/available") &&
+        res.url().includes(`orderAmount=${PRICE}`) &&
+        res.request().method() === "GET",
+    );
     await row.locator(".ant-checkbox-input").check();
+    expect((await available).ok()).toBeTruthy();
 
     await page.getByLabel("Chọn bác sĩ điều trị").click();
     await page.locator(".ant-select-item-option").first().click();
+
+    // BA item 24 — a voucher's "Lượt dùng" moves when the slip opens, not when
+    // it is ticked.
+    const before = await voucherUses(page, made.voucherCode, PRICE, BRANCH1);
+    expect(before.usedCount).toBe(0);
+    await page.getByRole("button", { name: /Chọn voucher|Voucher \(/ }).click();
+    await page.locator(".pd-voucher-row").filter({ hasText: made.voucherCode }).click();
+    await expect(page.locator(".pd-voucher-row--on")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    // Ticking alone burns nothing.
+    expect((await voucherUses(page, made.voucherCode, PRICE, BRANCH1)).usedCount).toBe(0);
 
     const opened = page.waitForResponse(
       (res) =>
@@ -262,13 +357,35 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     const response = await opened;
     expect(response.ok(), await response.text()).toBeTruthy();
 
-    // The slip carries the line it was raised off, priced from it.
+    // The client sends the voucher's id, never an amount.
+    const body = JSON.parse(response.request().postData() ?? "{}") as {
+      voucherIds?: string[];
+      voucherDiscountAmount?: number;
+    };
+    expect(body.voucherIds).toEqual([made.voucherId]);
+    expect(body.voucherDiscountAmount).toBeUndefined();
+
+    // The slip carries the line it was raised off, priced from it, and the
+    // server has worked the voucher out and pinned it on the slip.
     const slip = (await response.json()) as {
+      id: string;
       code: string;
       services: { sourceAdviseId: string | null }[];
+      voucherDiscountAmount: number | null;
+      totalAmount: number;
+      appliedVouchers: { voucherId: string; code: string; discountAmount: number }[];
     };
     expect(slip.code).toMatch(/^DT\d+$/);
-    expect(slip.services.map((s) => s.sourceAdviseId)).toContain(line!.id);
+    expect(slip.services.map((s) => s.sourceAdviseId)).toContain(made.adviseId);
+    expect(slip.voucherDiscountAmount).toBe(OFF);
+    expect(slip.totalAmount).toBe(PRICE - OFF);
+    expect(slip.appliedVouchers).toEqual([
+      expect.objectContaining({
+        voucherId: made.voucherId,
+        code: made.voucherCode,
+        discountAmount: OFF,
+      }),
+    ]);
 
     // Only then does the tab move.
     await expect(page).toHaveURL(/tab=treatment-plan/);
@@ -282,10 +399,35 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
         });
         return (await res.json()) as { status: number; treatmentPlanId: string | null };
       },
-      { id: line!.id, branch: BRANCH },
+      { id: made.adviseId, branch: BRANCH1 },
     );
     expect(status.status).toBe(3); // Converted
-    expect(status.treatmentPlanId).not.toBeNull();
+    expect(status.treatmentPlanId).toBe(slip.id);
+
+    // One use burnt, on the voucher itself …
+    const after = await voucherUses(page, made.voucherCode, PRICE, BRANCH1);
+    expect(after.usedCount).toBe(1);
+
+    // … and the slip still lists the coupon when read back on its own.
+    const reread = await page.evaluate(
+      async ({ id, branch }) => {
+        const res = await fetch(`/api/v1/app/patient-treatments/${id}`, {
+          credentials: "include",
+          headers: { "X-Clinic-Branch-Id": branch },
+        });
+        return (await res.json()) as { appliedVouchers: { code: string }[] };
+      },
+      { id: slip.id, branch: BRANCH1 },
+    );
+    expect(reread.appliedVouchers.map((v) => v.code)).toEqual([made.voucherCode]);
+
+    // The voucher list's "Lượt dùng" column shows the new count; the header
+    // branch follows the URL the tab was opened with.
+    await page.goto("/voucher");
+    await assertRealApiTraffic(page, "/api/v1/app/vouchers");
+    await expect(page.getByRole("row", { name: new RegExp(made.voucherCode) })).toContainText(
+      "1 / 100",
+    );
   });
 
   test("the voucher picker offers the branch's own plan vouchers, and one comes off the total", async ({

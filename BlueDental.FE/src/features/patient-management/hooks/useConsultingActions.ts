@@ -156,7 +156,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   const addToPlan = async (
     dentistId: string,
     rows: PatientAdviseDto[],
-    voucherDiscountAmount?: number,
+    voucherIds?: string[],
   ): Promise<boolean> => {
     if (!branchId) return false;
 
@@ -177,7 +177,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
         clinicBranchId: branchId,
         dentistId,
         adviseIds: usable.map((row) => row.id),
-        voucherDiscountAmount,
+        voucherIds,
       });
       toast.success(t("Patient:Plan:Created"));
       return true;

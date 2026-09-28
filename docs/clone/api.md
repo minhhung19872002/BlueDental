@@ -1451,8 +1451,8 @@ answers `403 BlueDental:Treatment:0015`, the same as one that does not exist.
 ```
 POST /api/v1/app/patient-treatments
 { "patientId", "clinicBranchId", "dentistId", "adviseIds": [...],
-  "voucherDiscountAmount": <number|null> }
-→ TreatmentPlanSlipDto
+  "voucherIds": ["<voucherId>", ...] }
+→ TreatmentPlanSlipDto  (now with "appliedVouchers": [...])
 ```
 
 What **Thêm kế hoạch điều trị** sends. Already existed; the consulting screen
@@ -1460,19 +1460,44 @@ now uses it. The server pulls in **accepted** lines only, so the client accepts
 each ticked line still `Created` first — `PatientAdvise.Accept` refuses any
 other status, so accepting blindly throws on a line that has been through
 before. Opening converts the lines, and `ConvertTo` makes each immutable.
-`voucherDiscountAmount` (added 2026-09-09) lands on the slip's own
-`VoucherDiscountAmount`, which `PlanDiscountAmount` adds to the slip discount
-and caps at the slip total — so the slip opens on the "Tổng tiền" the screen
-showed.
+**Vouchers ride along as ids (BA item 24, rebuilt 2026-09-28 to what staging
+does).** `voucherIds` replaces the `voucherDiscountAmount` the client used to
+compute itself (2026-09-09). The reference burns the use through a second
+call, `POST /voucher/apply` per coupon, straight after the plan is created
+(see "Vouchers"); BlueDental folds that into the same request and the same
+unit of work — `TreatmentPlan.RedeemVouchers` — so a slip that fails to write
+burns nothing and a voucher that refuses opens no slip. In order, per voucher:
 
-**Gap vs the reference (BA item 24, staging 2026-09-28):** the reference sends
-the voucher **id** through a second call, `POST /voucher/apply`, and the
-server computes the discount, stores `appliedCoupons` on the plan and bumps
-`usedCount` right there (see "Vouchers"). BlueDental sends only the
-client-computed amount, so `Voucher.Redeem` is never called: "Lượt dùng"
-stays `0 / n`, `usageLimit` / `perCustomerLimit` are not enforced, and the
-plan does not know which voucher it used. `POST /vouchers/{id}/redeem`
-exists on the local API but has no caller.
+- refused (`403 BlueDental:Promotions:0007` VoucherNotApplicable, nothing
+  burnt on any of them) when it is not `Active`, is out of uses, is outside
+  its dates on the **clinic's** day (UTC+7), is below `minOrderValue`, is
+  scoped to `service` rather than `treatment`, belongs to another branch (a
+  branchless one applies anywhere), is listed twice, or is `isExclusive`
+  and not alone; an unknown id is `Promotions:0001` VoucherNotFound;
+- refused with `403 BlueDental:Promotions:0010` VoucherPerCustomerLimitReached
+  when this patient already has `perCustomerLimit` slips carrying it (counted
+  from `bd_treatment_plan_vouchers`, cancelled slips included — the reference
+  does not refund a use either);
+- otherwise `Voucher.Redeem` (`usedCount + 1`, the last use flips the status
+  to `OutOfUses`) and the discount is worked out server-side — `Money` is the
+  face value, `Percentage` is `% × slip services total` capped at
+  `maxDiscountAmount` — summed into `voucherDiscountAmount`, added to
+  `PlanDiscountAmount`, capped at the slip total, and a snapshot row is
+  pinned on the slip.
+
+```json
+"appliedVouchers": [{ "voucherId", "code", "name", "discountType",
+                      "discountValue", "maxDiscountAmount", "discountAmount" }]
+```
+
+`appliedVouchers` is the reference's `appliedCoupons` plus `discountAmount`
+(what that coupon took off), and comes back on every slip read
+(`GET /patient-treatments`, `GET /patient-treatments/{id}`). A slip redeems
+once — there is no later `apply`. Table `bd_treatment_plan_vouchers`
+(migration `20260928063433_AddTreatmentPlanVouchers`, cascade with the slip).
+The consulting footer still shows the client-side figure as a **preview**;
+the server's is the one on the slip. `POST /vouchers/{id}/redeem` stays as it
+was, still without a UI caller.
 
 ```
 GET    /api/v1/app/patient-quotes?patientId&clinicBranchId   → newest first

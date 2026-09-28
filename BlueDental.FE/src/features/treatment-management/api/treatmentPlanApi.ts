@@ -342,9 +342,23 @@ export interface TreatmentPlanSlipDto {
   totalAmount: number;
   payment: PaymentSummaryDto;
   services: TreatmentServiceDto[];
+  /** The reference's `appliedCoupons[]`: vouchers redeemed when the slip opened. */
+  appliedVouchers: AppliedVoucherDto[];
   dentistName: string | null;
   consultantName: string | null;
   creationTime: string;
+}
+
+/** One voucher redeemed on a slip, as it stood at the moment of redemption. */
+export interface AppliedVoucherDto {
+  voucherId: string;
+  code: string;
+  name: string;
+  discountType: DiscountType;
+  discountValue: number;
+  maxDiscountAmount: number | null;
+  /** What this voucher took off the slip. */
+  discountAmount: number;
 }
 
 /** Matches BlueDental.Billing.PaymentSplitMode. */
@@ -394,8 +408,12 @@ export interface OpenPlanInput {
   title?: string;
   discountType?: DiscountType;
   discountValue?: number;
-  /** The plan-level voucher worked out on Chẩn đoán & Tư vấn. */
-  voucherDiscountAmount?: number;
+  /**
+   * The plan-level vouchers ticked on Chẩn đoán & Tư vấn. The server redeems
+   * each one as the slip opens and works out the discount itself (BA item 24);
+   * the client's figure is only a preview.
+   */
+  voucherIds?: string[];
   adviseIds?: string[];
 }
 
@@ -594,7 +612,8 @@ function useTreatmentMutation<TVariables, TData>(
 }
 
 export function useOpenTreatmentPlan() {
-  return useTreatmentMutation(treatmentApi.openPlan);
+  // Opening burns a use on each voucher it carries, so the voucher list re-reads.
+  return useTreatmentMutation(treatmentApi.openPlan, ["voucher"]);
 }
 
 export function useAddServiceLine() {

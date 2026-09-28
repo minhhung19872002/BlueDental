@@ -148,7 +148,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
             .addToPlan(
               dentistId,
               shownRows.filter((row) => shownSelected.includes(row.id)),
-              plan.discount || undefined,
+              plan.selected.map((voucher) => voucher.id),
             )
             .then((opened) => {
               if (opened) {

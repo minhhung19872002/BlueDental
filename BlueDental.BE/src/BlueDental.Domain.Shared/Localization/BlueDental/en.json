@@ -150,6 +150,7 @@
     "BlueDental:Promotions:0007": "This voucher does not apply to that order.",
     "BlueDental:Promotions:0008": "A voucher already in use can no longer be edited.",
     "BlueDental:Promotions:0009": "That voucher code is already in use.",
+    "BlueDental:Promotions:0010": "This patient has already used this voucher as many times as it allows.",
     "BlueDental:Finance:0001": "That amount is not valid.",
     "BlueDental:Finance:0002": "This voucher does not need approval.",
     "BlueDental:Finance:0003": "This voucher has already been approved.",

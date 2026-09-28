@@ -374,6 +374,11 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .HasForeignKey(x => x.TreatmentPlanId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Services).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasMany(x => x.AppliedVouchers)
+                .WithOne()
+                .HasForeignKey(x => x.TreatmentPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.AppliedVouchers).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.ServicesTotal);
             entity.Ignore(x => x.PlanDiscountAmount);
             entity.Ignore(x => x.TotalAmount);
@@ -789,6 +794,21 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.SourceAdviseId);
             entity.HasIndex(x => x.ReplacedId);
             entity.HasIndex(x => new { x.PatientId, x.Status });
+        });
+
+        // Voucher da dung tren phieu dieu tri (appliedCoupons)
+        builder.Entity<TreatmentPlanVoucher>(entity =>
+        {
+            entity.ToTable("bd_treatment_plan_vouchers");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.DiscountAmount).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.TreatmentPlanId);
+            entity.HasIndex(x => x.VoucherId);
         });
 
         // Thanh toan / hoan tien cua benh nhan

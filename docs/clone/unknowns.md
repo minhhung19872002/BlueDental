@@ -2714,3 +2714,20 @@ Reason: ảnh staging 2026-09-28 cho thấy icon mờ nhưng chưa bấm để b
         `disabled` thật hay vẫn mở "Tạo phiếu thanh toán" (phiếu chẩn đoán không
         có dòng dịch vụ để thu). BlueDental để nút `disabled`.
 Action taken: NONE
+
+## Voucher — lượt dùng khi mở kế hoạch điều trị (2026-09-28, BA mục 24)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} tab Chẩn đoán & Tư vấn → Thêm kế hoạch điều trị (staging.nfcdental.com)
+Control: `POST /voucher/apply` (bản gốc gọi sau khi tạo kế hoạch)
+Reason: (1) `perCustomerLimit` có được `apply` kiểm hay không — chưa thử vì cần
+        tạo nhiều kế hoạch cho cùng một khách trên staging; (2) có đường hoàn
+        lượt khi kế hoạch bị huỷ/xoá hay không — trang kế hoạch bản gốc không
+        có nút huỷ/xoá cấp kế hoạch (nút "…" là tờ in), huỷ dòng dịch vụ duy
+        nhất **không** hoàn lượt; (3) `apply` từ chối voucher hết lượt / hết
+        hạn / khác chi nhánh với thông báo gì.
+Action taken: BlueDental tự chọn — redeem trong cùng transaction với mở phiếu;
+        `perCustomerLimit` đếm số phiếu của bệnh nhân đã mang voucher đó (kể cả
+        phiếu đã huỷ, vì bản gốc không hoàn lượt) → `Promotions:0010`; các từ
+        chối khác → `Promotions:0007`; không có hoàn lượt. Xem R-590.

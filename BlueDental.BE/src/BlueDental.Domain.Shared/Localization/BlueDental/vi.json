@@ -102,6 +102,7 @@
     "BlueDental:Promotions:0007": "Voucher không áp dụng được cho đơn này.",
     "BlueDental:Promotions:0008": "Voucher đã phát sinh sử dụng, không thể sửa.",
     "BlueDental:Promotions:0009": "Mã voucher đã tồn tại.",
+    "BlueDental:Promotions:0010": "Bệnh nhân này đã dùng hết số lượt cho phép của voucher.",
     "BlueDental:Finance:0001": "Số tiền không hợp lệ.",
     "BlueDental:Finance:0002": "Phiếu này không cần duyệt.",
     "BlueDental:Finance:0003": "Phiếu đã được duyệt.",

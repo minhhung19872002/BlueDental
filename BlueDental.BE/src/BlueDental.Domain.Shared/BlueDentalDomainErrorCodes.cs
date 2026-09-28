@@ -239,6 +239,7 @@ public static class BlueDentalDomainErrorCodes
         public const string VoucherNotApplicable = "BlueDental:Promotions:0007";
         public const string VoucherLocked = "BlueDental:Promotions:0008";
         public const string DuplicateVoucherCode = "BlueDental:Promotions:0009";
+        public const string VoucherPerCustomerLimitReached = "BlueDental:Promotions:0010";
     }
 
     public static class Finance

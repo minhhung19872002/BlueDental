@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BlueDental.Promotions;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
@@ -22,6 +23,7 @@ namespace BlueDental.TreatmentManagement;
 public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
 {
     private readonly List<TreatmentService> _services = new();
+    private readonly List<TreatmentPlanVoucher> _appliedVouchers = new();
 
     public Guid PatientId { get; private set; }
     public Guid DentistId { get; private set; }
@@ -45,9 +47,16 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
 
     public decimal DiscountValue { get; private set; }
 
+    /// <summary>
+    /// Sum of the vouchers redeemed on the slip, worked out by the server when
+    /// the slip opened — see <see cref="AppliedVouchers"/>.
+    /// </summary>
     public decimal? VoucherDiscountAmount { get; private set; }
 
     public IReadOnlyCollection<TreatmentService> Services => _services.AsReadOnly();
+
+    /// <summary>The reference's <c>appliedCoupons[]</c>: what each voucher took off.</summary>
+    public IReadOnlyCollection<TreatmentPlanVoucher> AppliedVouchers => _appliedVouchers.AsReadOnly();
 
     /// <summary>
     /// Lines that still count towards the slip's money.
@@ -423,6 +432,9 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// <see cref="PlanDiscountAmount"/>, which adds the two and caps the sum at
     /// the slip total. Held apart from <see cref="DiscountValue"/> because the
     /// two have different reasons and the reference reports them separately.
+    ///
+    /// Sets the figure without redeeming anything; the path a client takes is
+    /// <see cref="RedeemVouchers"/>, which burns a use on each voucher.
     /// </summary>
     public TreatmentPlan ApplyVoucher(decimal? voucherDiscountAmount)
     {
@@ -434,6 +446,117 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         }
 
         VoucherDiscountAmount = voucherDiscountAmount;
+        return this;
+    }
+
+    /// <summary>
+    /// Burns one use on each voucher and pins what it took off the slip, the
+    /// way staging's <c>POST /voucher/apply</c> does when a slip opens (BA
+    /// item 24, measured 2026-09-28): the voucher's "Lượt dùng" moves at this
+    /// moment and never moves back.
+    ///
+    /// Only a slip that has its lines can redeem — the discount is measured
+    /// against <see cref="ServicesTotal"/>, so call this after the lines are
+    /// on. A slip redeems once; there is no second round.
+    ///
+    /// Plan-side rules, checked before any use is burnt so a refused pick
+    /// leaves every voucher untouched:
+    /// <list type="bullet">
+    /// <item>every voucher must be scoped to the whole plan and to this
+    /// branch (or to every branch);</item>
+    /// <item>an exclusive voucher stands alone;</item>
+    /// <item>a voucher with a per-customer cap refuses once this patient has
+    /// already carried it that many times — <paramref name="priorUsesByPatient"/>
+    /// is the count of this patient's earlier slips per voucher.</item>
+    /// </list>
+    /// The voucher-side rules (published, in its dates, uses left, minimum
+    /// order) are the voucher's own, in <see cref="Voucher.Redeem"/>.
+    /// </summary>
+    public TreatmentPlan RedeemVouchers(
+        IReadOnlyList<Voucher> vouchers,
+        IReadOnlyDictionary<Guid, int> priorUsesByPatient,
+        DateOnly onDate,
+        Func<Guid> newId)
+    {
+        Check.NotNull(vouchers, nameof(vouchers));
+        Check.NotNull(priorUsesByPatient, nameof(priorUsesByPatient));
+        Check.NotNull(newId, nameof(newId));
+
+        if (vouchers.Count == 0)
+        {
+            return this;
+        }
+
+        if (_appliedVouchers.Count > 0)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                "This slip already carries its vouchers.");
+        }
+
+        if (Status is TreatmentPlanStatus.Completed or TreatmentPlanStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition,
+                $"No voucher can be redeemed on a plan in status {Status}.");
+        }
+
+        if (vouchers.Select(v => v.Id).Distinct().Count() != vouchers.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                "The same voucher cannot be applied twice to one slip.");
+        }
+
+        if (vouchers.Count > 1 && vouchers.Any(v => v.IsExclusive))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                "An exclusive voucher cannot be combined with another voucher.");
+        }
+
+        var orderAmount = ServicesTotal;
+        foreach (var voucher in vouchers)
+        {
+            if (voucher.ScopeTarget != VoucherScopeTarget.Treatment)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                    $"Voucher {voucher.Code} is not scoped to the whole plan.");
+            }
+
+            if (voucher.ClinicBranchId.HasValue && voucher.ClinicBranchId.Value != BranchId)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                    $"Voucher {voucher.Code} belongs to another branch.");
+            }
+
+            if (!voucher.IsAvailableFor(onDate, orderAmount))
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                    $"Voucher {voucher.Code} cannot be applied to this slip.");
+            }
+
+            if (voucher.PerCustomerLimit.HasValue
+                && priorUsesByPatient.GetValueOrDefault(voucher.Id) >= voucher.PerCustomerLimit.Value)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Promotions.VoucherPerCustomerLimitReached,
+                    $"This patient has already used voucher {voucher.Code} {voucher.PerCustomerLimit} time(s).");
+            }
+        }
+
+        var total = 0m;
+        foreach (var voucher in vouchers)
+        {
+            var amount = Vnd.Round(voucher.Redeem(onDate, orderAmount));
+            _appliedVouchers.Add(TreatmentPlanVoucher.FromVoucher(newId(), Id, voucher, amount));
+            total += amount;
+        }
+
+        VoucherDiscountAmount = total > orderAmount ? orderAmount : total;
         return this;
     }
 

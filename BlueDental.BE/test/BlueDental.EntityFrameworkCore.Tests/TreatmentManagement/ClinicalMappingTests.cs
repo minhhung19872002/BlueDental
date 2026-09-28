@@ -113,4 +113,27 @@ public class ClinicalMappingTests
         ctx.Model.FindEntityType(typeof(AdviseGroup))!
             .GetTableName().ShouldBe("bd_advise_groups");
     }
+
+    [Fact]
+    public void TreatmentPlanVoucher_Should_Map_To_bd_treatment_plan_vouchers_Table()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(TreatmentPlanVoucher))!;
+
+        entity.GetTableName().ShouldBe("bd_treatment_plan_vouchers");
+        entity.FindProperty(nameof(TreatmentPlanVoucher.VoucherId)).ShouldNotBeNull();
+        entity.FindProperty(nameof(TreatmentPlanVoucher.DiscountAmount)).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void TreatmentPlan_Should_Own_Its_AppliedVouchers_Through_The_Backing_Field()
+    {
+        using var ctx = CreateContext();
+        var navigation = ctx.Model.FindEntityType(typeof(TreatmentPlan))!
+            .FindNavigation(nameof(TreatmentPlan.AppliedVouchers));
+
+        navigation.ShouldNotBeNull();
+        navigation.GetPropertyAccessMode().ShouldBe(PropertyAccessMode.Field);
+        navigation.ForeignKey.DeleteBehavior.ShouldBe(DeleteBehavior.Cascade);
+    }
 }

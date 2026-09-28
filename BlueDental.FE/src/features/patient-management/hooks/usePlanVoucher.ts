@@ -12,8 +12,10 @@ import {
  * As on staging, only the ticked rows count: nothing ticked reads 0 đ. The
  * vouchers offered are the ones the server judges usable for that amount and
  * scoped to the whole plan ("Tổng kế hoạch"); a per-service voucher does not
- * belong on the plan line. Picking is client state — the reference never
- * showed what applying one sends, see docs/clone/unknowns.md.
+ * belong on the plan line. Picking is client state until "Thêm kế hoạch điều
+ * trị": the ids go with the slip and the server redeems them, burning one use
+ * per voucher and working out the discount itself (BA item 24, staging
+ * 2026-09-28). The figure shown here is only a preview of that.
  */
 export interface PlanVoucherState {
   gross: number;

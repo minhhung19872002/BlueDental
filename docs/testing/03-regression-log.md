@@ -6053,3 +6053,30 @@ Hồ sơ → chip → đúng một dòng mang ghi chú; mọi dòng dưới chip
 → chip lại → vẫn đủ. Chạy kèm "a tái khám picks its teeth…" **1/1**; "Lưu Chẩn Đoán files a slip…" đỏ ở
 `toHaveURL(/tab=consulting/)` sau reload — **đỏ sẵn** từ đợt 2026-09-24/25 (ghi ở mục "2026-09-24 (đợt 3)", sau R-548), qua bước
 kiểm răng "18, 16" rồi mới đỏ, không thuộc nhánh này. `tsc` sạch. Retest level 2 (F-38). Chưa commit.
+
+## 2026-09-28 — Voucher: "Lượt dùng" nhích khi mở kế hoạch điều trị (BA mục 24, R-590)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-590 | BA mục 24 "Xem lại khi nào kích hoạt số lượt sử dụng voucher": chọn voucher ở chân Chẩn đoán & Tư vấn rồi Thêm kế hoạch điều trị, sang `/voucher` cột **Lượt dùng** vẫn `0 / 100`. Staging (voucher mới + kế hoạch mới, 2026-09-28): tick voucher không gửi gì; nút Thêm kế hoạch gửi `POST /patient-treatments` rồi **`POST /voucher/apply`** cho từng coupon → `usedCount + 1` ngay lúc **tạo kế hoạch** (không phải lúc thanh toán), server tự tính tiền, kế hoạch mang `appliedCoupons[]`; huỷ dòng dịch vụ không hoàn lượt. | Local chỉ gửi `voucherDiscountAmount` do client tính — `Voucher.Redeem` chưa ai gọi, `usageLimit`/`perCustomerLimit` không được kiểm, kế hoạch không biết mình dùng voucher nào. Sửa: `OpenTreatmentPlanDto.VoucherIds: List<Guid>` thay `VoucherDiscountAmount`; Domain `TreatmentPlan.RedeemVouchers(vouchers, priorUsesByPatient, clinicDay, newId)` kiểm **trước** (Active, còn lượt, trong hạn theo ngày **UTC+7**, ≥ `minOrderValue`, scope `Treatment`, cùng chi nhánh hoặc không chi nhánh, không trùng, exclusive đứng một mình, phiếu chỉ redeem một lần → `Promotions:0007`; `perCustomerLimit` đếm từ `bd_treatment_plan_vouchers` của bệnh nhân → mã mới **`Promotions:0010`** VoucherPerCustomerLimitReached, en/vi) rồi mới `Voucher.Redeem` từng cái, tự tính tiền (Money = mệnh giá, Percentage = % × tổng dịch vụ cap `maxDiscountAmount`), cộng vào `VoucherDiscountAmount`, cap tổng phiếu, ghim snapshot `TreatmentPlanVoucher` (bảng mới `bd_treatment_plan_vouchers`, migration `20260928063433_AddTreatmentPlanVouchers`, cascade, field-backed). AppService redeem **cùng unit of work** với mở phiếu: phiếu không ghi được → không mất lượt; voucher từ chối → không mở phiếu. `TreatmentPlanSlipDto.appliedVouchers[]` (= `appliedCoupons` + `discountAmount`) trả về ở mọi lần đọc phiếu. FE: gửi `voucherIds` (`useConsultingActions.addToPlan`, `PatientConsultingTab`), số ở chân phiếu chỉ còn là **xem trước**; thêm entity `voucher` vào `ENTITY_QUERY_ROOTS`, `useOpenTreatmentPlan` invalidate `["vouchers"]` để bảng `/voucher` và picker đọc lại. |
+
+Bằng chứng: Domain `TreatmentPlanVoucherTests` **12/12** (đốt một lượt mỗi voucher + snapshot 200k + 10 % cap 250k trên 3M
+→ 450k / 2.55M; lượt cuối → `OutOfUses`; một voucher từ chối → không cái nào mất lượt; chưa publish / dưới ngưỡng / hết hạn;
+chi nhánh khác từ chối, không chi nhánh áp được; scope Service từ chối; exclusive đứng một mình; cùng voucher hai lần;
+`perCustomerLimit` → `Promotions:0010`; phiếu redeem một lần; giảm không vượt tổng phiếu; danh sách rỗng no-op),
+Application `PatientTreatmentVoucherContractTests` 3/3, EF `ClinicalMappingTests` +2 (bảng, navigation Field + Cascade).
+FE `tsc`/eslint sạch. Bản build production (`vite build --outDir dist-preview-voucher`, `vite preview` cổng **8090**, host
+build lại cổng **5019**, DB thật, migration đã apply): `consulting-plan.spec.ts` ca mới "Thêm kế hoạch điều trị raises a slip
+off the ticked line, converts it, and burns the picked voucher's use" **1/1, chạy hai lần** — ca **tự tạo dữ liệu** trên chi
+nhánh 1 qua API thật (phiếu CD + dòng tư vấn 800.000, voucher `VC<runId>` fixed_amount 200.000 scope treatment
+usageLimit 100, publish), tick dòng → `GET vouchers/available?orderAmount=800000`, chọn voucher → `usedCount` **vẫn 0**
+(tick không đốt), Thêm kế hoạch → body `voucherIds = [id]` và **không** có `voucherDiscountAmount`, response
+`voucherDiscountAmount 200.000`, `totalAmount 600.000`, `appliedVouchers[0] = {voucherId, code, 200.000}`, URL
+`tab=treatment-plan`, advise `status 3` trỏ `treatmentPlanId` = phiếu, `usedCount` **0 → 1**, `GET patient-treatments/{id}`
+đọc lại vẫn có coupon, `/voucher` dòng voucher in **`1 / 100`**. DB: `bd_treatment_plan_vouchers` một dòng 200.000 nối
+`bd_vouchers.UsedCount = 1` và `bd_treatment_plans.VoucherDiscountAmount = 200000`. **12 ca còn lại của
+`consulting-plan.spec.ts` đỏ sẵn trên máy này, không do nhánh này**: cả 12 dừng ở màn "Không tìm thấy hồ sơ bệnh nhân"
+vì spec ghim cứng `PATIENT = 3a238cc0-…` chi nhánh 2 mà DB local không có (chi nhánh 2 chỉ có 2 bệnh nhân, 0 dòng tư vấn,
+0 voucher `CN2*` — bước seed voucher bị bỏ qua vì chi nhánh 1 đã có voucher); cần seed lại chi nhánh 2 (DbMigrator) rồi
+chạy lại, không sửa spec theo. Retest level **2** (F-09) + **3** cho F-08 (voucher list đọc `usedCount`) và F-22 (số tiền
+phiếu không đổi cách tính, chỉ đổi nơi tính). Chưa commit.

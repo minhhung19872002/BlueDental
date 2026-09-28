@@ -9,6 +9,7 @@ using BlueDental.Exporting;
 using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.Promotions;
 using BlueDental.TreatmentManagement.Values;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -35,6 +36,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly IRepository<CareRecord, Guid> _careRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
     private readonly IRepository<LaboOrder, Guid> _laboRepository;
+    private readonly IRepository<Voucher, Guid> _voucherRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly PatientMoneyCalculator _money;
@@ -48,12 +50,14 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         IRepository<CareRecord, Guid> careRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IRepository<LaboOrder, Guid> laboRepository,
+        IRepository<Voucher, Guid> voucherRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money,
         StageTeethPolicy teethPolicy)
     {
         _laboRepository = laboRepository;
+        _voucherRepository = voucherRepository;
         _teethPolicy = teethPolicy;
         _planRepository = planRepository;
         _adviseRepository = adviseRepository;
@@ -71,7 +75,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         GetTreatmentPlanSlipListInput input)
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-        var query = await _planRepository.WithDetailsAsync(x => x.Services);
+        var query = await _planRepository.WithDetailsAsync(x => x.Services, x => x.AppliedVouchers);
 
         if (branchFilter.Count > 0)
             query = query.Where(x => branchFilter.Contains(x.BranchId));
@@ -121,8 +125,6 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             input.DiscountType,
             input.DiscountValue);
 
-        plan.ApplyVoucher(input.VoucherDiscountAmount);
-
         foreach (var advise in advises)
         {
             plan.AddService(
@@ -138,11 +140,61 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             advise.ConvertTo(plan.Id);
         }
 
+        // Redeemed in the same unit of work as the slip: if the slip fails to
+        // write, no use is burnt; if a voucher refuses, no slip opens.
+        var vouchers = await RedeemVouchersAsync(plan, input.VoucherIds);
+
         await _planRepository.InsertAsync(plan, autoSave: true);
         await _adviseRepository.UpdateManyAsync(advises, autoSave: true);
+        if (vouchers.Count > 0)
+        {
+            await _voucherRepository.UpdateManyAsync(vouchers, autoSave: true);
+        }
 
         return (await MapManyAsync([plan])).Single();
     }
+
+    /// <summary>
+    /// Loads the picked vouchers and burns one use on each — staging's
+    /// <c>POST /voucher/apply</c> per coupon (BA item 24). The redemption day
+    /// is the clinic's, not UTC's: a voucher valid through today must still
+    /// apply at 23:30 Hà Nội.
+    /// </summary>
+    private async Task<List<Voucher>> RedeemVouchersAsync(TreatmentPlan plan, List<Guid>? voucherIds)
+    {
+        var ids = (voucherIds ?? []).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var found = await _voucherRepository.GetListAsync(v => ids.Contains(v.Id));
+        if (found.Count != ids.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Promotions.VoucherNotFound,
+                "One of the picked vouchers no longer exists.");
+        }
+
+        // Keep the client's order so the slip lists coupons as they were ticked.
+        var vouchers = ids.Select(id => found.Single(v => v.Id == id)).ToList();
+
+        var planQuery = await _planRepository.GetQueryableAsync();
+        var priorUses = planQuery
+            .Where(p => p.PatientId == plan.PatientId)
+            .SelectMany(p => p.AppliedVouchers)
+            .Where(v => ids.Contains(v.VoucherId))
+            .GroupBy(v => v.VoucherId)
+            .Select(g => new { VoucherId = g.Key, Count = g.Count() })
+            .ToList()
+            .ToDictionary(x => x.VoucherId, x => x.Count);
+
+        var clinicToday = DateOnly.FromDateTime(Clock.Now.ToUniversalTime().Add(ClinicUtcOffset));
+        plan.RedeemVouchers(vouchers, priorUses, clinicToday, GuidGenerator.Create);
+        return vouchers;
+    }
+
+    private static readonly TimeSpan ClinicUtcOffset = TimeSpan.FromHours(7);
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<TreatmentPlanSlipDto> ApplyDiscountAsync(Guid id, ApplyPlanDiscountDto input)
@@ -563,7 +615,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
 
     private async Task<TreatmentPlan> LoadAsync(Guid id)
     {
-        var query = await _planRepository.WithDetailsAsync(x => x.Services);
+        var query = await _planRepository.WithDetailsAsync(x => x.Services, x => x.AppliedVouchers);
         var plan = query.FirstOrDefault(x => x.Id == id)
             ?? throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.TreatmentPlanNotFound,
@@ -748,6 +800,18 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             TotalDiscountAmount = plan.TotalDiscountAmount,
             TotalAmount = plan.TotalAmount,
             Payment = MapPayment(_money.ForPlan(plan, payments)),
+            AppliedVouchers = plan.AppliedVouchers
+                .Select(v => new AppliedVoucherDto
+                {
+                    VoucherId = v.VoucherId,
+                    Code = v.Code,
+                    Name = v.Name,
+                    DiscountType = v.DiscountType,
+                    DiscountValue = v.DiscountValue,
+                    MaxDiscountAmount = v.MaxDiscountAmount,
+                    DiscountAmount = v.DiscountAmount
+                })
+                .ToList(),
             Services = plan.Services
                 // Lines never dragged all hold 0, so the slip keeps the
                 // reference's default — newest first — until the clinic drags one.
