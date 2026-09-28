@@ -15,6 +15,7 @@ using BlueDental.Permissions;
 using BlueDental.Reporting;
 using BlueDental.RolePermission;
 using BlueDental.TreatmentManagement;
+using BlueDental.Zalo;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -65,15 +66,47 @@ public class ControllerConventionTests
         missing.ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// Controllers that answer without a signed-in user. Each one is a
+    /// deliberate decision, so adding to this list is a review item.
+    /// Zalo saves the webhook URL only after an unauthenticated probe returns 200.
+    /// </summary>
+    private static readonly HashSet<Type> AnonymousControllers =
+    [
+        typeof(ZaloWebhookController),
+    ];
+
+    /// <summary>
+    /// Every controller must state its access rule: [Authorize] by default,
+    /// or [AllowAnonymous] when it is on the deliberate list above. A controller
+    /// with neither is silently open and fails here.
+    /// </summary>
     [Fact]
-    public void All_Controllers_Should_Have_Authorize_Attribute()
+    public void All_Controllers_Should_Declare_Authorize_Or_AllowAnonymous()
     {
         var missing = AllControllers()
-            .Where(t => t.GetCustomAttribute<AuthorizeAttribute>() == null)
+            .Where(t => t.GetCustomAttribute<AuthorizeAttribute>() == null
+                        && t.GetCustomAttribute<AllowAnonymousAttribute>() == null)
             .Select(t => t.Name)
             .ToList();
 
         missing.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Only_Listed_Controllers_May_Allow_Anonymous()
+    {
+        var anonymous = AllControllers()
+            .Where(t => t.GetCustomAttribute<AllowAnonymousAttribute>() != null)
+            .ToList();
+
+        anonymous.ShouldBe(AnonymousControllers, ignoreOrder: true);
+
+        anonymous
+            .Where(t => t.GetCustomAttribute<AuthorizeAttribute>() != null)
+            .Select(t => t.Name)
+            .ToList()
+            .ShouldBeEmpty("a controller cannot be both [Authorize] and [AllowAnonymous]");
     }
 
     [Fact]
