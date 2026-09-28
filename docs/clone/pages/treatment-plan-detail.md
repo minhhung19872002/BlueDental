@@ -149,6 +149,135 @@ own quantity field, as the new-service row always has. What the reference's ✕
 does on an edited row (it shares one cancel handler with the new row) is not
 known; BlueDental just leaves edit mode — nothing is deleted.
 
+### Đơn giá · Tổng giảm giá · Thành tiền — giá gốc và bốn khoản giảm (staging 2026-09-28)
+
+Read-only: one existing line (catalog 1.000.000, unit price edited to 910.000,
+plan voucher 10 %) hovered and its `GET` responses read; the published column
+builder and the ✓ handler read from the page's JS. Nothing typed or saved —
+the edit-mode and validation states come from the owner's screenshots.
+
+**The line carries two prices.** `GET /v1/treatment-services?patientTreatmentId=`
+returns per line:
+
+```json
+{ "originalPrice": 1000000, "price": 910000, "quantity": 1,
+  "discountType": "money", "discountValue": 90000, "discountAmount": 0,
+  "serviceDiscount": 90000, "serviceVoucher": 0,
+  "khdtDiscount": 0, "khdtVoucher": 100000,
+  "appliedCoupons": [], "appliedCouponIds": [],
+  "payment": { "totalPrice": 810000, "discount": 190000, "debt": 810000, … } }
+```
+
+- `originalPrice` — the catalog price the line was opened with; the ceiling.
+- `price` — the unit price actually charged. Lowering it **is** the line's own
+  discount: `serviceDiscount = (originalPrice − price) × quantity`, mirrored as
+  `discountType: "money"`, `discountValue: 90000`.
+- `serviceVoucher` — vouchers applied to this line alone
+  (`POST /voucher/apply { targetType: "treatmentService" }`, sent after a new
+  line is created with coupons picked on the inline row).
+- `khdtDiscount` / `khdtVoucher` — the line's share of the plan's ("KHDT" =
+  kế hoạch điều trị) own discount and of the plan's vouchers.
+
+The plan (`GET /patient-treatments/{id}`) keeps `voucherDiscountAmount: 100000`,
+`appliedCoupons[{ code, discountType: "percentage", discountValue: 10,
+sourceScope: "treatment" }]` and `payment { totalPrice: 810000, discount: 190000 }`.
+
+**Columns (saved row):**
+
+| Column | Reference formula |
+|---|---|
+| Đơn giá | `originalPrice` (falls back to `price`) — **before** anything is taken off: 1.000.000 |
+| Tổng giảm giá | `serviceDiscount + khdtDiscount + serviceVoucher + khdtVoucher` = 190.000, dotted underline |
+| Thành tiền | `payment.totalPrice` of the line, else `originalPrice × qty − Tổng giảm giá` = 810.000 |
+
+**Tooltip on Tổng giảm giá — four lines, zeros included, always in this order:**
+
+```
+Giảm dịch vụ: 90.000 đ
+Voucher dịch vụ: 0 đ
+Giảm KHDT: 0 đ
+Voucher KHDT: 100.000 đ
+```
+
+The two `Voucher …` lines are shown only while the clinic's secondary feature
+`voucher` is on (`useSecondaryFeatureEnabled(SECONDARY_FEATURE_KEYS.voucher)`);
+the two `Giảm …` lines always.
+
+**Edit mode (pencil):** the Đơn giá cell becomes a currency input prefilled
+with `price` (910.000, not the 1.000.000 the column showed). Thành tiền opens
+on the row's saved total (810.000); the published `onDraftChange` then sets
+`total = unitPrice × quantity` on the first change to the price, the quantity
+or the teeth, so Thành tiền follows the input as it is typed — slip shares and
+line discount are not taken off it until the line is saved. Tổng giảm giá keeps
+the saved `serviceDiscount`-based figure while editing. (Corrected 2026-09-28
+on the owner's note: the first reading, "Thành tiền stays put", came from a
+screenshot taken before anything was typed.) The **new-service** row
+recomputes both on each keystroke: its discount is
+`max(0, (originalUnitPrice − unitPrice) × quantity)`; the picker gives the new
+row `price = originalPrice = the catalog's resolved unit price`.
+
+**Validation on ✓ (Joi, before any request):**
+
+| Field | Rule | Message |
+|---|---|---|
+| unitPrice | number, required | *Vui lòng nhập đơn giá hợp lệ.* / *Vui lòng nhập đơn giá.* |
+| unitPrice | `min(0)` | *Đơn giá phải lớn hơn hoặc bằng 0.* |
+| unitPrice | `max(originalUnitPrice)` | *Đơn giá không được lớn hơn giá gốc của dịch vụ.* (red under the input) |
+| diagnosisId, doctorId | required | — |
+| selectedTeeth | `min(1)` | — |
+| staffDiagnosisSecondId | ≠ staffDiagnosisId | *Chẩn đoán 2 phải khác bác sĩ chẩn đoán 1.* |
+| adviseStaffSecondId | ≠ adviseStaffId | *Nhân sự tư vấn 2 phải khác nhân sự tư vấn 1.* |
+| note | max 1000 | — |
+
+On a line in treatment the `unitPrice` rule is stripped (the price is locked).
+
+**What ✓ sends on an edited line:** `PATCH /v1/treatment-services/{id}` with a
+**diff** — `{ patientId, patientTreatmentId }` plus only the fields that
+changed; a changed unit price travels as `amount` (never on a line in
+treatment). The server derives `price`, `serviceDiscount` and the shares — the
+client sends no discount fields.
+
+**Voucher after a price edit:** on the observed line the plan voucher was
+applied at 1.000.000 (10 % → 100.000, plan `updatedAt` 09:23) and the price
+was edited later (line `updatedAt` 09:26); `khdtVoucher` is still 100.000, not
+91.000 — the voucher amount is fixed when applied. Whether the server re-splits
+it across lines after an edit is UNKNOWN (single-line plan).
+
+The tooltip is the reference's own Radix bubble, measured with
+`getComputedStyle` while hovered: background `rgb(27, 42, 65)`, radius 6px,
+padding `6px 12px`, lines 12px/16px weight 400, 4px apart (20px steps), opened
+`placement: "left"`; the figure is `underline-offset-2`. Below the figure the
+reference also lists up to two of the **line's own** coupon codes as badges
+(`+n` beyond) — only while the voucher feature is on.
+
+**BlueDental (R-605):**
+
+- `TreatmentService.OriginalPrice` (migration
+  `20260928094604_AddTreatmentServiceOriginalPrice`; existing lines got
+  their own price, or the consulting line's higher list price). A line opened
+  from a consulting line takes the advise's `OriginalPrice`; a line added
+  through the inline row takes the catalog price; a conversion takes the unit
+  price it was given. `ServiceDiscountAmount` = (giá gốc − đơn giá) × SL +
+  the carried-over line discount; the slip's `ServicesGrossTotal` is summed at
+  giá gốc, so Tổng phiếu / Giảm giá / `payment.discount` read 1.000.000 /
+  190.000 as on the reference. What the patient owes is unchanged.
+- The unit price may not rise above the giá gốc: `Revise` and `AddService`
+  refuse with `403 BlueDental:Treatment:0040` "Đơn giá không được lớn hơn giá
+  gốc của dịch vụ."; the inline row refuses it on ✓ first, red input and the
+  same message, and clears it once the price is back under.
+- `TreatmentServiceDto` adds `originalPrice`, `serviceDiscountAmount`,
+  `planDiscountShare` ("Giảm KHDT") and `planVoucherShare` ("Voucher KHDT") —
+  `TreatmentPlan.DiscountShareParts()` splits each line's existing share, so
+  `chargedAmount` does not move.
+- Table / cards: Đơn giá = giá gốc; Tổng giảm giá = the four parts, tooltip in
+  the reference's four lines and bubble (`--bd-tooltip-bg`); Thành tiền after
+  every discount. An edited line opens on its saved Thành tiền and switches to
+  đơn giá × số lượng on the first change to price, quantity or teeth; its Tổng
+  giảm giá stays saved until Lưu. The new row recomputes its Giảm dịch vụ live.
+- Not copied: "Voucher dịch vụ" is always 0 and no coupon badges show —
+  BlueDental redeems vouchers on the slip only (R-590). The two voucher lines
+  always show; BlueDental has no secondary-feature switch.
+
 ### Dialog "Chuyển đổi dịch vụ" (status pill → Chuyển đổi)
 
 Measured 2026-09-22 on the reference, read-only: the dialog was opened and

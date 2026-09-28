@@ -6098,3 +6098,54 @@ phiếu không đổi cách tính, chỉ đổi nơi tính). Chưa commit.
 | R-601 | FE SendZaloDialog: selects a template, fills required parameters, sends via `mutateAsync`, shows success toast or inline error from Zalo API; button disabled and loading while sending. | `src/features/cskh/components/SendZaloDialog.tsx` updated; `useSendZaloMessage` mutation in `features/cskh/api/messageApi.ts`; Zod schema per-template parameter validation. |
 | R-602 | i18n keys vi/en for all Zalo UI strings: `Zalo:ConnectBtn`, `Zalo:DisconnectBtn`, `Zalo:EnableToggle`, `Zalo:SendSuccess`, `Zalo:SendFailed`, `Zalo:TemplateStatus.*`, `Zalo:WebhookVerified` added to `en.json` and `vi.json`. | `BlueDental.Domain.Shared/Localization/BlueDental/en.json` and `vi.json`; all user-visible strings in Zalo components use `L[]` via `BlueDentalAppService` base (R-525 pattern). |
 | R-603 | `e2e/zalo-oa.spec.ts` — 13 real-HTTP tests on the production build: GET status returns shape with `isConnected`; connect-url returns an https Zalo URL; bootstrap-import 400 when no connection; send ZNS 400 without connection; webhook GET probe 200; webhook POST with wrong signature 401; webhook POST with correct signature 200; template list 200 shape when connected; messages list paged; stats counts; branch-2 account gets 403 on branch-1 connection; config sub-tab renders three panels; message sub-tab renders counter tiles. | `e2e/zalo-oa.spec.ts`; real ASP.NET Core pipeline, real PostgreSQL, no API interception; fixture seeds a mock Zalo connection for branch-1. |
+
+## 2026-09-28 — Chi tiết kế hoạch: dòng dịch vụ không thấy giảm giá voucher (R-604)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-604 | Chủ dự án (ảnh dev :5173, bệnh nhân `[BD260225]`): danh sách kế hoạch in DT03 Tổng phiếu 32.000.000 / Giảm giá **3.200.000** / Thành tiền 28.800.000, đầu trang chi tiết Doanh thu dự kiến 28.800.000, nhưng bảng dịch vụ của DT03 in Tổng giảm giá **0 đ** / Thành tiền **32.000.000 đ**. | DT03 mang voucher `E2EKH268999` 10 % = 3.200.000 ở **cấp phiếu** (`VoucherDiscountAmount`, R-590). Server đã chia phần đó xuống từng dòng từ R-585 (`chargedAmount`), nhưng cột "Tổng giảm giá" vẫn đọc `discountAmount` (chỉ giảm giá của dòng) và "Thành tiền" đọc `effectiveAmount`. FE `planDetailTypes.ts` thêm `slipDiscountShare` (= `effectiveAmount − chargedAmount`, 0 trên dòng Huỷ/Thay thế/Đã chuyển), `lineTotalDiscount`, `lineNetAmount`; bảng (`serviceColumns.tsx`) và thẻ màn hẹp (`ServiceCardList.tsx`) in hai số đó. Tooltip "Tổng giảm giá" nay liệt kê từng nguồn: quy tắc giảm của dòng (nếu có), "Giảm giá kế hoạch / voucher chia cho dòng: … đ", "Voucher: <mã>" — khoá mới `Treatment:Pricing:SlipDiscountShare`, `Treatment:Pricing:SlipVouchers` (vi/en). Server không đổi. |
+
+Bằng chứng: dev :5173 + host build lại cổng 5019, DB thật, trình duyệt thật (script Playwright chỉ đọc, không chặn API):
+DT03 dòng "Cấy ghép Implant Thuỵ Sĩ" → Đơn giá 32.000.000 / Tổng giảm giá **3.200.000** / Thành tiền **28.800.000**, tooltip
+"Giảm giá kế hoạch / voucher chia cho dòng: 3.200.000 đ / Voucher: E2EKH268999"; DT02 (giảm 20 % trên dòng, không voucher)
+vẫn 500.000 / 100.000 / 400.000, tooltip "Giảm 20% trên đơn giá". `tsc -b` và oxlint sạch. Chưa chạy
+`treatment-plan-detail.spec.ts` (spec chỉ kiểm tiêu đề cột "Tổng giảm giá"). Retest level 2 (plan detail). Chưa commit.
+
+**Cập nhật (R-605):** tooltip hai dòng của R-604 ("Giảm giá kế hoạch / voucher chia cho dòng", "Voucher: <mã>") đã được
+thay bằng bốn dòng của bản gốc; khoá `Treatment:Pricing:SlipDiscountShare` / `SlipVouchers` đã xoá.
+
+## 2026-09-28 — Dòng dịch vụ: giá gốc, sửa đơn giá, bốn khoản giảm (R-605, R-606)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-605 | Chủ dự án (ảnh staging, dòng "Trồng Răng loại 2"): bảng in Đơn giá **1.000.000** (giá gốc), Tổng giảm giá 190.000, Thành tiền 810.000; tooltip bốn dòng "Giảm dịch vụ: 90.000 đ / Voucher dịch vụ: 0 đ / Giảm KHDT: 0 đ / Voucher KHDT: 100.000 đ"; bút sửa mở ô Đơn giá = **910.000** (đơn giá đã hạ); gõ 1.100.000 → "Đơn giá không được lớn hơn giá gốc của dịch vụ.". Local in Đơn giá = đơn giá thực thu, không có giá gốc, không chặn giá vượt, tooltip khác. | Khảo sát chỉ đọc (GET + bộ dựng cột/handler ✓ trong JS công khai, không gõ/lưu) — `docs/clone/pages/treatment-plan-detail.md` "giá gốc và bốn khoản giảm". Domain `TreatmentService.OriginalPrice` (+ migration `20260928094604_AddTreatmentServiceOriginalPrice`, dòng cũ = đơn giá hoặc giá niêm yết cao hơn của dòng tư vấn: 330 = đơn giá, 1 lấy giá tư vấn), `ListAmount`, `ServiceDiscountAmount` = (gốc − đơn giá) × SL + giảm dòng cũ; `FromAdvise`/`AddService` nhận `originalPrice` (tư vấn → `advise.OriginalPrice`, hàng mới → giá danh mục, chuyển đổi → đơn giá); `Revise`/`FromAdvise` chặn giá > gốc → mã mới **`Treatment:0040`** (vi/en). `TreatmentPlan.ServicesGrossTotal`/`ServicesDiscountAmount` tính theo giá gốc (tổng phải trả không đổi), `PlanVoucherAmount`, `DiscountShareParts()` tách phần chia của mỗi dòng thành Giảm KHDT / Voucher KHDT mà không đổi `chargedAmount`. DTO: `originalPrice`, `serviceDiscountAmount`, `planDiscountShare`, `planVoucherShare`. FE: `DiscountBreakdown` (bảng, thẻ ≤640, hàng mới), tooltip bốn dòng `placement="left"` với bong bóng đo từ bản gốc (nền `--bd-tooltip-bg` #1b2a41, bo 6, đệm 6/12, chữ 12/16, bước 20px — khớp từng dòng 295/315/335/355px), Đơn giá = giá gốc, Thành tiền sau mọi giảm; hàng sửa giữ Tổng giảm giá/Thành tiền đã lưu khi gõ (bỏ `amount` khỏi `EDITABLE_COLUMNS`), hàng mới tính Giảm dịch vụ theo giá đang gõ; ✓ chặn giá > gốc trên cả hàng mới và hàng sửa (ô đỏ + icon + câu lỗi, tự tắt khi giá về dưới trần). Không chép: Voucher dịch vụ luôn 0 và không có badge mã voucher của dòng (BlueDental chỉ đốt voucher cấp phiếu, R-590). |
+| R-606 | Trong lúc chạy hồi quy, `treatment-stage-chain.spec.ts` "Chỉnh sửa rewrites a saved line…" đỏ 2/4 lần: PUT sửa dòng trả **200** nhưng ghi chú không có trong DB (`LastModificationTime` rỗng). | Có từ trước, không do R-605. Log host: "Executing ObjectResult…" → "An error occurred using a transaction." → "An exception occurred, but response has already started!". Mã nguồn ABP 9.3: dưới `app.UseUnitOfWork()`, `AbpUowActionFilter` chỉ `SaveChangesAsync`, còn `AbpUnitOfWorkMiddleware` **commit sau khi response đã ghi**, trên token huỷ của request — client rời trang ngay khi nhận 200 → commit bị huỷ → rollback, người dùng vẫn thấy toast thành công. **Đã sửa 2026-09-28 (chủ dự án duyệt):** `BlueDentalHttpApiHostModule.ConfigureUnitOfWork()` thêm `/api` vào `AbpAspNetCoreUnitOfWorkOptions.IgnoredUrls` — request `/api` không còn UoW của middleware, `AbpUowActionFilter` tự mở UoW và **commit xong trước khi ghi kết quả**; lỗi lúc commit nay trả về lỗi thật thay vì 200. Mọi endpoint `/api` đều là controller action (không có middleware/filter/minimal API tự viết), `/connect/*`, `/signalr/*`, `/health*` giữ nguyên middleware. |
+
+Bằng chứng R-605: Domain **425/425** (+6 ca trong `TreatmentServiceReviseTests`: hạ giá là Giảm dịch vụ, không vượt giá gốc,
+hàng mới không mở trên giá gốc, không có giá gốc thì lấy đơn giá, bốn phần cộng đúng 190.000/810.000 như staging, tách
+Giảm KHDT/Voucher KHDT không đổi phần chia), Application **629/629**, EF **56/56**. E2E thật (login thật, API thật, PostgreSQL
+thật, không chặn request): ca mới `treatment-plan-detail.spec.ts` "Đơn giá reads the giá gốc…" — tạo phiếu, giảm phiếu 20.000
+qua API, Đơn giá = giá gốc, bút sửa mở đúng đơn giá, gõ trên giá gốc → câu lỗi, **0** PUT, số đã lưu giữ nguyên; PUT thẳng
+→ 403 `Treatment:0040` câu tiếng Việt; hạ 10 % → Đơn giá giữ giá gốc, Tổng giảm giá = cắt + 20.000, Thành tiền và Doanh thu
+dự kiến sau giảm, tooltip đúng bốn dòng; reload vẫn vậy, bút sửa mở giá đã hạ — đạt trên bản build production (`vite preview`
+:8091) **và** dev :5173. Toàn bộ `treatment-plan-detail.spec.ts` **13/13** trên production build; `labo-api`, `debt-history`,
+`treatment-stage-chain` (trừ R-606), `consulting-plan` "burns the picked voucher" 1/1, `patient.spec` "Hoàn thành ticks…" +
+"one receipt covers…" 2/2. Sửa spec kèm theo: ca R-586 dùng giá danh mục thật thay 250.000 cố định (hàng mới không được vượt
+giá danh mục); helper `labo-api`/`patient` thêm dòng với giá 0 (chỉ cần dòng tồn tại; dòng nguồn có thể cao hơn giá danh mục
+hiện tại — 41 dòng như vậy trong DB local); ca kéo-thả và Chuyển đổi chọn dịch vụ **khác tên** dòng đầu thay `.nth(1)` (danh
+mục bị ca `treatment-stage-chain` thêm dịch vụ giá 0 lên đầu → hai dòng trùng tên, kiểm tra "đã đổi chỗ" đúng ngay từ đầu).
+`tsc`/oxlint sạch. Retest level **3** (tiền phiếu dùng chung: F-39, F-22, F-21, F-09). Chưa commit.
+
+Bằng chứng R-606: phép thử HTTP thật (dev :5173 → host :5019 → PostgreSQL), PUT sửa ghi chú một dòng rồi **ngắt kết nối
+ngay khi có header** (như reload), đọc lại bằng request riêng, 20 lượt: **host chưa sửa 0/20 giữ được** (20 lỗi "response has
+already started" trong log), **host đã sửa 20/20** (0 lỗi) — cả qua dev :5173 lẫn build production :8091. Host test mới
+`HostModuleConfigurationTests.Api_Requests_Commit_Before_Their_Response_Is_Written` (22/22). Retest level **3** — đổi cách
+commit của mọi API ghi: xem kết quả chạy toàn bộ e2e bên dưới.
+
+
+## 2026-09-28 — Thành tiền theo đơn giá khi sửa; đăng xuất xoá cache (R-607, R-608)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-607 | Chủ dự án (ảnh dev :5173, "Bọc răng sứ Zirconia" đang sửa, Đơn giá 3.600.000): "khi chỉnh sửa đơn giá, onChange thì column thành tiền cũng phải cập nhật giá theo luôn" — Thành tiền vẫn in 3.050.000 đã lưu. | R-605 đọc sai bản gốc: kết luận "Thành tiền giữ nguyên khi gõ" chỉ dựa vào ảnh chụp lúc **chưa gõ**. Đọc lại `onDraftChange` trong JS công khai của staging: thay đổi đầu tiên ở đơn giá / số lượng / răng đặt `total = unitPrice × quantity`, và cột Thành tiền của hàng đang sửa in `total`; Tổng giảm giá vẫn in `serviceDiscount` đã lưu. FE: `amount` trở lại `EDITABLE_COLUMNS`; `DraftServiceController.savedAmount` = Thành tiền đã lưu cho tới lần đổi đầu (`useEditServiceRow` cờ `repriced`, bật ở price/quantity/teeth), sau đó ô in đơn giá × số lượng. `docs/clone/pages/treatment-plan-detail.md` sửa lại đoạn "Edit mode". |
+| R-608 | Khi chạy toàn bộ e2e: `auth.spec.ts` "logs out successfully" và "an open session opening /login…" đỏ — bấm Đăng xuất về `/` rồi `/dashboard`, vẫn đăng nhập. | Có từ `1e8e1728` (2026-09-23), không do R-606: `GET /api/account/logout` xoá cookie đúng (204, `Set-Cookie` xoá `.AspNetCore.Identity.Application`), nhưng `PublicOnlyRoute` hỏi phiên qua cache TanStack Query `["auth","current-user"]` (`staleTime` 60 s) mà `clearAuth()` không đụng tới → `/login` thấy user cũ và đẩy vào app. `AppLayout` logout nay `queryClient.clear()` (cũng để dữ liệu bệnh nhân của phiên cũ không nằm lại trong bộ nhớ). `auth.spec.ts` **5/5** trên dev :5173. |
