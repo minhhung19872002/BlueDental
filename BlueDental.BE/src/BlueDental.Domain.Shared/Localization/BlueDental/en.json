@@ -3352,6 +3352,7 @@
     "Tools:ZaloDisabled": "ZNS sending disabled",
     "Tools:ZaloTokenRefreshed": "Token refreshed",
     "Tools:ZaloImportBootstrap": "Import configured tokens",
+    "Tools:ZaloBootstrapHint": "Pre-configured tokens are available. Click the button below to import.",
     "Tools:ZaloNotConfiguredHint": "The Zalo app ID / secret key are not configured on the server.",
     "Tools:ZaloOaId": "OA ID",
     "Tools:ZaloPackage": "Package",

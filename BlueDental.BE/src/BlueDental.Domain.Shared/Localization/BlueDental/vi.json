@@ -3251,6 +3251,7 @@
     "Tools:ZaloDisabled": "Đã tắt gửi ZNS",
     "Tools:ZaloTokenRefreshed": "Đã làm mới token",
     "Tools:ZaloImportBootstrap": "Nhập token đã cấu hình",
+    "Tools:ZaloBootstrapHint": "Hệ thống đã có token sẵn, bấm nút bên dưới để nhập.",
     "Tools:ZaloNotConfiguredHint": "Chưa cấu hình App ID / Secret Key của ứng dụng Zalo trên máy chủ.",
     "Tools:ZaloOaId": "OA ID",
     "Tools:ZaloPackage": "Gói dịch vụ",

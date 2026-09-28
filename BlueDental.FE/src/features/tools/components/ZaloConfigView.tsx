@@ -8,6 +8,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { formatDateTime } from "@/utils/format";
 import {
   useDisconnectZalo,
+  useImportZaloBootstrap,
   useRefreshZaloToken,
   useSetZaloEnabled,
   useZaloConnectUrl,
@@ -70,11 +71,21 @@ interface PanelProps {
 
 function NotConnectedPanel({ status, canManage }: PanelProps) {
   const connectUrl = useZaloConnectUrl();
+  const importBootstrap = useImportZaloBootstrap();
 
   const handleConnect = async () => {
     try {
       const { url } = await connectUrl.mutateAsync();
       window.location.assign(url);
+    } catch {
+      // MutationCache reports the failure
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      await importBootstrap.mutateAsync();
+      toast.success(t("Tools:ZaloConnected"));
     } catch {
       // MutationCache reports the failure
     }
@@ -89,8 +100,19 @@ function NotConnectedPanel({ status, canManage }: PanelProps) {
           {t("Tools:ZaloNotActivated")}
         </Tag>
         {status.lastError && <p className="bd-zalo-error">{status.lastError}</p>}
+        {status.hasBootstrapTokens && (
+          <p className="bd-zalo-hint">{t("Tools:ZaloBootstrapHint")}</p>
+        )}
       </div>
       <div className="bd-zalo-panel-end">
+        {status.hasBootstrapTokens && canManage && (
+          <Button
+            loading={importBootstrap.isPending}
+            onClick={() => void handleImport()}
+          >
+            {t("Tools:ZaloImportBootstrap")}
+          </Button>
+        )}
         <Button
           type="primary"
           disabled={!canManage}
