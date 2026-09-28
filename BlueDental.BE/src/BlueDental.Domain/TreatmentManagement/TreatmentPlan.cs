@@ -81,34 +81,39 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     public decimal ServicesTotal => CountedServices.Sum(s => s.CountedAmount);
 
     /// <summary>
-    /// Sum of the line prices before ANY discount: the "BE:Field:TotalAmount"
-    /// the payment dialog opens with, so a 50.000 đ line discount reads as
-    /// 250.000 − 50.000 rather than vanishing into a 200.000 total (R-586).
+    /// Sum of the lines at their giá gốc, before ANY discount: the
+    /// "BE:Field:TotalAmount" the payment dialog opens with, so a 50.000 đ line
+    /// discount reads as 250.000 − 50.000 rather than vanishing into a 200.000
+    /// total (R-586), and a unit price lowered from 1.000.000 to 910.000 reads
+    /// as 1.000.000 − 90.000 — the reference's <c>payment.discount</c>.
     /// </summary>
-    public decimal ServicesGrossTotal => CountedServices.Sum(s => s.GrossAmount);
+    public decimal ServicesGrossTotal => CountedServices.Sum(s => s.ListAmount);
 
     /// <summary>
-    /// Line-level discounts that still count. A cancelled line was never charged,
-    /// so its discount must not swell the slip's "BE:Common:Discount" either.
+    /// "Giảm dịch vụ" of the lines that still count — a lowered unit price plus
+    /// any carried-over line discount. A cancelled line was never charged, so
+    /// its discount must not swell the slip's "BE:Common:Discount" either.
     /// </summary>
-    public decimal ServicesDiscountAmount => CountedServices.Sum(s => s.DiscountAmount);
+    public decimal ServicesDiscountAmount => CountedServices.Sum(s => s.ServiceDiscountAmount);
 
     /// <summary>Slip-level discount, capped at the slip total.</summary>
-    public decimal PlanDiscountAmount
-    {
-        get
-        {
-            var discount = DiscountType switch
-            {
-                DiscountType.Money => DiscountValue,
-                DiscountType.Percentage => Vnd.Round(ServicesTotal * DiscountValue / 100m),
-                _ => 0m
-            };
+    public decimal PlanDiscountAmount => Math.Min(OwnDiscountUncapped + (VoucherDiscountAmount ?? 0m), ServicesTotal);
 
-            discount += VoucherDiscountAmount ?? 0m;
-            return discount > ServicesTotal ? ServicesTotal : discount;
-        }
-    }
+    /// <summary>The slip's own %/money discount, before the cap.</summary>
+    private decimal OwnDiscountUncapped => DiscountType switch
+    {
+        DiscountType.Money => DiscountValue,
+        DiscountType.Percentage => Vnd.Round(ServicesTotal * DiscountValue / 100m),
+        _ => 0m
+    };
+
+    /// <summary>
+    /// The voucher part of <see cref="PlanDiscountAmount"/> ("Voucher KHDT").
+    /// When the cap bites, the voucher keeps what it can and the slip's own
+    /// discount gives way — a voucher is the patient's, fixed when it was
+    /// redeemed.
+    /// </summary>
+    public decimal PlanVoucherAmount => Math.Min(VoucherDiscountAmount ?? 0m, PlanDiscountAmount);
 
     /// <summary>Every discount on the slip: the lines' own plus the slip level and voucher.</summary>
     public decimal TotalDiscountAmount => ServicesDiscountAmount + PlanDiscountAmount;
@@ -165,6 +170,41 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         }
 
         return line.CountedAmount - DiscountShares().GetValueOrDefault(line.Id);
+    }
+
+    /// <summary>
+    /// Each line's <see cref="DiscountShares"/> split the way the reference's
+    /// "Tổng giảm giá" tooltip prints it: <c>Own</c> is "Giảm KHDT"
+    /// (<c>khdtDiscount</c>) and <c>Voucher</c> is "Voucher KHDT"
+    /// (<c>khdtVoucher</c>). The two add up to the line's share, so the
+    /// charged amounts never move; the voucher parts add up to
+    /// <see cref="PlanVoucherAmount"/>, the rounding leftover again on the
+    /// largest share.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, (decimal Own, decimal Voucher)> DiscountShareParts()
+    {
+        var shares = DiscountShares();
+        var planDiscount = PlanDiscountAmount;
+        var voucher = PlanVoucherAmount;
+
+        var voucherParts = shares.ToDictionary(
+            pair => pair.Key,
+            pair => planDiscount == 0m ? 0m : Vnd.Round(pair.Value * voucher / planDiscount));
+
+        var leftover = voucher - voucherParts.Values.Sum();
+        if (leftover != 0m && shares.Count > 0)
+        {
+            var largest = shares.OrderByDescending(pair => pair.Value).First().Key;
+            voucherParts[largest] += leftover;
+        }
+
+        return shares.ToDictionary(
+            pair => pair.Key,
+            pair =>
+            {
+                var part = Math.Clamp(voucherParts[pair.Key], 0m, pair.Value);
+                return (Own: pair.Value - part, Voucher: part);
+            });
     }
 
     /// <summary>Value of the lines already finished — drives Phải thu.</summary>
@@ -265,7 +305,8 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         int quantity,
         DiscountType discountType,
         decimal discountValue,
-        IEnumerable<ToothSelection>? teeth = null)
+        IEnumerable<ToothSelection>? teeth = null,
+        decimal? originalPrice = null)
     {
         if (Status is TreatmentPlanStatus.Completed or TreatmentPlanStatus.Cancelled)
         {
@@ -293,7 +334,8 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             quantity,
             discountType,
             discountValue,
-            teeth);
+            teeth,
+            originalPrice);
 
         _services.Add(line);
         return line;

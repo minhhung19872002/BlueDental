@@ -254,10 +254,33 @@ a.pdt-crumb:hover {
   color: var(--tp-label);
   font-size: 12px;
 }
+/* Staging: `cursor-help underline decoration-dotted underline-offset-2`. */
 .pdt-discount {
   cursor: help;
   text-decoration: underline dotted;
-  text-underline-offset: 3px;
+  text-underline-offset: 2px;
+}
+/* Staging's bubble, measured 2026-09-28: 6px radius, 6px 12px padding, 12/16 text. */
+.pdt-discount-tooltip .ant-tooltip-arrow::before {
+  background: var(--bd-tooltip-bg);
+}
+.pdt-discount-tooltip .ant-tooltip-container {
+  min-height: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--bd-tooltip-bg);
+  font-size: 12px;
+  line-height: 16px;
+}
+/* Four left-aligned lines, 4px apart (`space-y-1 text-left`). */
+.pdt-discount-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+.pdt-discount-tip p {
+  margin: 0;
 }
 .pdt-status {
   display: inline-flex;
@@ -355,6 +378,20 @@ a.pdt-crumb:hover {
 .pdt-draft-qty,
 .pdt-draft-price {
   width: 100%;
+}
+/* A refused unit price: the input and its message stack, right-aligned like the column. */
+.pdt-draft-pricecell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.pdt-draft-pricecell .pdt-draft-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  text-align: right;
 }
 /* The wrapper stretching is not enough: AntD's Select sizes to its own content,
    and an empty one is just the search icon and the caret — about 66px inside a

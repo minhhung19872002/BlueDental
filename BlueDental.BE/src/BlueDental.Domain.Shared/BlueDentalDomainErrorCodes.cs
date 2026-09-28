@@ -165,6 +165,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A tooth that already has a công đoạn cannot be taken off the line.</summary>
         public const string StagedToothLocked = "BlueDental:Treatment:0039";
+
+        /// <summary>
+        /// A line's unit price may be lowered below its "giá gốc" but never raised
+        /// above it — the reference's "Đơn giá không được lớn hơn giá gốc của dịch vụ."
+        /// </summary>
+        public const string UnitPriceAboveOriginal = "BlueDental:Treatment:0040";
     }
 
     public static class Billing

@@ -135,7 +135,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                 advise.Quantity,
                 advise.DiscountType,
                 advise.DiscountValue,
-                advise.Teeth.ToList());
+                advise.Teeth.ToList(),
+                // The consulting line's list price is the line's giá gốc; an
+                // agreed price above it (never offered on the reference) is
+                // its own ceiling rather than a refusal at the last step.
+                originalPrice: Math.Max(advise.OriginalPrice, advise.Price));
 
             advise.ConvertTo(plan.Id);
         }
@@ -224,7 +228,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             input.Quantity,
             input.DiscountType,
             input.DiscountValue,
-            PatientDiagnosisAppService.ToToothSelections(input.Teeth));
+            PatientDiagnosisAppService.ToToothSelections(input.Teeth),
+            // The catalog price the picker offered is the ceiling: the row may
+            // lower it, never raise it (Treatment:0040).
+            originalPrice: catalog.Price);
 
         line.SetDetails(
             input.DiagnosisId,
@@ -779,6 +786,9 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                 })
                 .ToList());
 
+        // "Giảm KHDT" / "Voucher KHDT" per line, worked out once per slip.
+        var shareParts = plans.ToDictionary(p => p.Id, p => p.DiscountShareParts());
+
         return plans.Select(plan => new TreatmentPlanSlipDto
         {
             Id = plan.Id,
@@ -824,6 +834,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     ServiceId = line.ServiceId,
                     SourceAdviseId = line.SourceAdviseId,
                     Code = line.Code,
+                    OriginalPrice = line.OriginalPrice,
                     Price = line.Price,
                     Quantity = line.Quantity,
                     DiscountType = line.DiscountType,
@@ -831,6 +842,9 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     GrossAmount = line.GrossAmount,
                     DiscountAmount = line.DiscountAmount,
                     EffectiveAmount = line.EffectiveAmount,
+                    ServiceDiscountAmount = line.ServiceDiscountAmount,
+                    PlanDiscountShare = shareParts[plan.Id].GetValueOrDefault(line.Id).Own,
+                    PlanVoucherShare = shareParts[plan.Id].GetValueOrDefault(line.Id).Voucher,
                     ChargedAmount = plan.ChargedAmountOf(line),
                     Status = line.Status,
                     SortOrder = line.SortOrder,

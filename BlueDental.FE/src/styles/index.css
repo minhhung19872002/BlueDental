@@ -22,6 +22,8 @@
   --bd-blue-pale: #eef0ff;
   --bd-blue-pale-hover: #e0e4ff;
   --bd-navy: #232a56;
+  /* The reference's dark hint bubble (measured on its Tổng giảm giá tooltip, 2026-09-28). */
+  --bd-tooltip-bg: #1b2a41;
   --bd-primary: #6366f1;
   --bd-accent: #22d3ee;
   --bd-violet: #8b5cf6;

@@ -36,6 +36,15 @@ public class TreatmentService : FullAuditedEntity<Guid>
     /// <summary>Line code shown in the UI, unique inside its plan.</summary>
     public string Code { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// "Giá gốc" — the price the line was opened at, kept beside the unit price
+    /// actually charged (the reference's <c>originalPrice</c>, staging
+    /// 2026-09-28). The plan table's Đơn giá prints it; lowering
+    /// <see cref="Price"/> below it is the line's own discount there, and the
+    /// unit price may never rise above it.
+    /// </summary>
+    public decimal OriginalPrice { get; private set; }
+
     public decimal Price { get; private set; }
     public int Quantity { get; private set; }
     public DiscountType DiscountType { get; private set; }
@@ -95,6 +104,18 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
     public decimal EffectiveAmount => GrossAmount - DiscountAmount;
 
+    /// <summary>The line at its <see cref="OriginalPrice"/>, before anything is taken off.</summary>
+    public decimal ListAmount => OriginalPrice * Quantity;
+
+    /// <summary>
+    /// "Giảm dịch vụ" — the reference's <c>serviceDiscount</c>: what lowering the
+    /// unit price below the giá gốc took off, plus any discount the consulting
+    /// line carried over. <see cref="ListAmount"/> less this is
+    /// <see cref="EffectiveAmount"/>.
+    /// </summary>
+    public decimal ServiceDiscountAmount =>
+        Math.Max(OriginalPrice - Price, 0m) * Quantity + DiscountAmount;
+
     /// <summary>A cancelled line is worth nothing, however it was priced.</summary>
     public decimal CountedAmount =>
         Status == TreatmentServiceStatus.Cancelled ? 0m : EffectiveAmount;
@@ -116,7 +137,8 @@ public class TreatmentService : FullAuditedEntity<Guid>
         int quantity,
         DiscountType discountType,
         decimal discountValue,
-        IEnumerable<ToothSelection>? teeth = null)
+        IEnumerable<ToothSelection>? teeth = null,
+        decimal? originalPrice = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
 
@@ -134,6 +156,12 @@ public class TreatmentService : FullAuditedEntity<Guid>
                 "A service line needs at least one unit.");
         }
 
+        // No giá gốc known (or none set in the catalog): the line opens at its
+        // own price, as the reference falls back to `price` when
+        // `originalPrice` is 0.
+        var ceiling = originalPrice is > 0m ? originalPrice.Value : price;
+        EnsureWithinOriginal(price, ceiling);
+
         var line = new TreatmentService
         {
             Id = id,
@@ -143,6 +171,7 @@ public class TreatmentService : FullAuditedEntity<Guid>
             ServiceId = serviceId,
             SourceAdviseId = sourceAdviseId,
             Code = code,
+            OriginalPrice = ceiling,
             Price = price,
             Quantity = quantity,
             DiscountType = discountType,
@@ -152,6 +181,16 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
         line._teeth.AddRange(teeth?.ToList() ?? new List<ToothSelection>());
         return line;
+    }
+
+    private static void EnsureWithinOriginal(decimal price, decimal originalPrice)
+    {
+        if (price > originalPrice)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.UnitPriceAboveOriginal,
+                "A service line's unit price cannot rise above its original price.");
+        }
     }
 
     /// <summary>The inline row's own columns; null clears a field.</summary>
@@ -227,6 +266,8 @@ public class TreatmentService : FullAuditedEntity<Guid>
                 BlueDentalDomainErrorCodes.TreatmentManagement.InvalidAdviseQuantity,
                 "A service line needs at least one unit.");
         }
+
+        EnsureWithinOriginal(price, OriginalPrice);
 
         var toothList = teeth.ToList();
         var kept = toothList.Select(t => t.ToothCode).ToHashSet();

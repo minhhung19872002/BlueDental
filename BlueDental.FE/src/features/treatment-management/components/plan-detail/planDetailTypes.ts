@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
-import { DISCOUNT_TYPE, type PatientAdviseDto } from "../../api/consultingApi";
+import type { PatientAdviseDto } from "../../api/consultingApi";
 import {
   SERVICE_LINE_STATUS,
   type PatientPaymentDto,
@@ -98,15 +98,77 @@ export function isLineOpen(service: TreatmentServiceDto): boolean {
   );
 }
 
-/** The "Tổng giảm giá" tooltip: how the discount was written on the line. */
-export function discountTooltip(service: TreatmentServiceDto): string {
-  if (service.discountType === DISCOUNT_TYPE.Percentage) {
-    return t("Treatment:Pricing:DiscountPercent", service.discountValue);
-  }
-  if (service.discountType === DISCOUNT_TYPE.Money) {
-    return t("Treatment:Pricing:DiscountAmount", formatVND(service.discountValue));
-  }
-  return t("Treatment:Pricing:NoDiscount");
+/**
+ * The four parts of "Tổng giảm giá", in the order staging's tooltip prints
+ * them (2026-09-28): Giảm dịch vụ · Voucher dịch vụ · Giảm KHDT · Voucher KHDT.
+ */
+export interface DiscountParts {
+  /** `serviceDiscount` — a unit price lowered below the giá gốc, plus any carried-over line discount. */
+  service: number;
+  /** `serviceVoucher` — vouchers on this line alone. BlueDental redeems vouchers on the slip only, so 0. */
+  serviceVoucher: number;
+  /** `khdtDiscount` — the line's share of the slip's own discount. */
+  plan: number;
+  /** `khdtVoucher` — the line's share of the slip's vouchers. */
+  planVoucher: number;
+}
+
+export function lineDiscountParts(service: TreatmentServiceDto): DiscountParts {
+  return {
+    service: service.serviceDiscountAmount,
+    serviceVoucher: 0,
+    plan: service.planDiscountShare,
+    planVoucher: service.planVoucherShare,
+  };
+}
+
+/**
+ * The new row, which staging recomputes on every keystroke: what lowering the
+ * catalog price takes off. A row has no slip share until it is saved.
+ */
+export function draftDiscountParts(originalPrice: number, price: number, quantity: number): DiscountParts {
+  return {
+    service: Math.max(originalPrice - price, 0) * Math.max(quantity, 0),
+    serviceVoucher: 0,
+    plan: 0,
+    planVoucher: 0,
+  };
+}
+
+export function totalDiscount(parts: DiscountParts): number {
+  return parts.service + parts.serviceVoucher + parts.plan + parts.planVoucher;
+}
+
+/** The tooltip's four lines — zeros included, as staging prints them. */
+export function discountTooltipLines(parts: DiscountParts): string[] {
+  return [
+    t("Treatment:Pricing:Tip:ServiceDiscount", formatVND(parts.service)),
+    t("Treatment:Pricing:Tip:ServiceVoucher", formatVND(parts.serviceVoucher)),
+    t("Treatment:Pricing:Tip:PlanDiscount", formatVND(parts.plan)),
+    t("Treatment:Pricing:Tip:PlanVoucher", formatVND(parts.planVoucher)),
+  ];
+}
+
+/** "Đơn giá" of a saved line: its giá gốc, before anything is taken off. */
+export function listUnitPrice(service: TreatmentServiceDto): number {
+  return service.originalPrice > 0 ? service.originalPrice : service.price;
+}
+
+/**
+ * "Thành tiền" of a saved line — after every discount, so the lines add up to
+ * the slip. A line the slip no longer charges has no slip share.
+ */
+export function lineNetAmount(service: TreatmentServiceDto): number {
+  return service.effectiveAmount - service.planDiscountShare - service.planVoucherShare;
+}
+
+/**
+ * Staging's check on ✓ for both the new row and an edited line: the unit
+ * price may be lowered below the giá gốc, never raised above it. No giá gốc
+ * (0) means no ceiling. Returns the message to print under the input.
+ */
+export function unitPriceError(price: number, originalPrice: number): string | null {
+  return originalPrice > 0 && price > originalPrice ? t("Treatment:Pricing:UnitPriceAboveOriginal") : null;
 }
 
 /** Service names a receipt covers, in slip order — "Dịch vụ điều trị". */

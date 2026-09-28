@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Input, InputNumber } from "antd";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, CircleAlert, Loader2, X } from "lucide-react";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
@@ -13,7 +13,9 @@ import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { jawLabel } from "@/components/ToothChart";
 import { moneyText } from "../plan/planTypes";
 import type { ToothPickerValue } from "../plan/toothPicker";
+import { DiscountBreakdown } from "./DiscountBreakdown";
 import { DraftStatusPill } from "./DraftStatusPill";
+import { draftDiscountParts } from "./planDetailTypes";
 import type { DraftIdField, DraftServiceController } from "./useDraftServiceRow";
 
 type IdField = DraftIdField;
@@ -113,6 +115,34 @@ function DraftTeethCell({ draft }: DraftProps) {
   );
 }
 
+/**
+ * Đơn giá on the inline row. Staging refuses a price above the giá gốc on ✓
+ * and prints "Đơn giá không được lớn hơn giá gốc của dịch vụ." in red under a
+ * red input (owner's screenshot 2026-09-28).
+ */
+function DraftPriceCell({ draft }: DraftProps) {
+  const error = draft.errors?.price;
+  return (
+    <div className="pdt-draft-pricecell">
+      <CurrencyInput
+        className="pdt-draft-price"
+        status={error ? "error" : undefined}
+        placeholder={t("Treatment:Pricing:UnitPrice")}
+        aria-label={t("Treatment:Pricing:UnitPrice")}
+        aria-invalid={Boolean(error)}
+        value={draft.values.price}
+        onChange={(value) => draft.update("price", value ?? 0)}
+      />
+      {error && (
+        <p className="pdt-draft-error" role="alert">
+          <CircleAlert size={14} aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DraftActionsCell({ draft }: DraftProps) {
   return (
     <span className="pdt-row-actions">
@@ -172,16 +202,20 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
     draft.locks ? (
       <LockedCell value={moneyText(draft.locks.price)} reason={t("Treatment:Service:PriceLocked")} />
     ) : (
-      <CurrencyInput
-        className="pdt-draft-price"
-        placeholder={t("Treatment:Pricing:UnitPrice")}
-        aria-label={t("Treatment:Pricing:UnitPrice")}
-        value={draft.values.price}
-        onChange={(value) => draft.update("price", value ?? 0)}
-      />
+      <DraftPriceCell draft={draft} />
     ),
-  discount: () => <span className="pdt-discount">{moneyText(0)}</span>,
-  amount: (draft) => <strong>{moneyText(draft.values.price * draft.values.quantity)}</strong>,
+  // Only the new row reaches this cell — an edited line keeps its saved
+  // Tổng giảm giá until it is saved, as on staging.
+  discount: (draft) => (
+    <DiscountBreakdown
+      parts={draftDiscountParts(draft.originalPrice, draft.values.price, draft.values.quantity)}
+    />
+  ),
+  // Staging's onDraftChange: the saved figure until price, quantity or teeth
+  // change, then đơn giá × số lượng as it is typed (2026-09-28).
+  amount: (draft) => (
+    <strong>{moneyText(draft.savedAmount ?? draft.values.price * draft.values.quantity)}</strong>
+  ),
   note: (draft) => (
     <Input
       placeholder={t("Treatment:Common:Note")}

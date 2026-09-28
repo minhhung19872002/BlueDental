@@ -10,7 +10,7 @@ import {
   type TreatmentServiceDto,
 } from "../../api/treatmentPlanApi";
 import { toothValueToDtos, type ToothPickerValue } from "../plan/toothPicker";
-import type { PlanDetailRow } from "./planDetailTypes";
+import { lineNetAmount, unitPriceError, type PlanDetailRow } from "./planDetailTypes";
 import type { DraftServiceController, DraftServiceValues } from "./useDraftServiceRow";
 
 /**
@@ -61,16 +61,28 @@ export function useEditServiceRow(planId: string) {
   const [row, setRow] = useState<PlanDetailRow | null>(null);
   const [values, setValues] = useState<DraftServiceValues | null>(null);
   const [teethOpen, setTeethOpen] = useState(false);
+  const [priceError, setPriceError] = useState<string | null>(null);
+  // Staging's onDraftChange: the first change to price, quantity or teeth
+  // turns Thành tiền from the saved figure into đơn giá × số lượng.
+  const [repriced, setRepriced] = useState(false);
   const update = useUpdateServiceLine();
+  const inTreatment = row?.service.status === SERVICE_LINE_STATUS.InProgress;
+  const originalPrice = row?.service.originalPrice ?? 0;
 
   const stop = () => {
     setRow(null);
     setValues(null);
     setTeethOpen(false);
+    setPriceError(null);
+    setRepriced(false);
   };
 
   const save = async () => {
     if (!row || !values) return;
+    // A line in treatment keeps its price, so staging drops the check there.
+    const tooDear = inTreatment ? null : unitPriceError(values.price, originalPrice);
+    setPriceError(tooDear);
+    if (tooDear) return;
     if (values.quantity < 1) {
       toast.error(t("Treatment:Pricing:QuantityMin"));
       return;
@@ -99,15 +111,19 @@ export function useEditServiceRow(planId: string) {
     }
   };
 
-  const inTreatment = row?.service.status === SERVICE_LINE_STATUS.InProgress;
-
   const controller: DraftServiceController | null =
     row && values
       ? {
           service: { id: row.service.serviceId, name: row.service.serviceName ?? row.service.code },
           values,
-          update: (field, value) =>
-            setValues((current) => (current ? { ...current, [field]: value } : current)),
+          originalPrice,
+          savedAmount: repriced ? undefined : lineNetAmount(row.service),
+          errors: priceError ? { price: priceError } : undefined,
+          update: (field, value) => {
+            setValues((current) => (current ? { ...current, [field]: value } : current));
+            if (field === "price" || field === "quantity") setRepriced(true);
+            if (field === "price" && !unitPriceError(Number(value), originalPrice)) setPriceError(null);
+          },
           openTeeth: () => setTeethOpen(true),
           save: () => void save(),
           cancel: stop,
@@ -142,6 +158,7 @@ export function useEditServiceRow(planId: string) {
     stagedTeeth: row?.service.stagedTeeth ?? [],
     confirmTeeth: (teeth: ToothPickerValue) => {
       setValues((current) => (current ? { ...current, teeth } : current));
+      setRepriced(true);
       setTeethOpen(false);
     },
     closeTeeth: () => setTeethOpen(false),

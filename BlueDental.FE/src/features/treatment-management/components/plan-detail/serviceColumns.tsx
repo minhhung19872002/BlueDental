@@ -1,19 +1,21 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type { TableColumnsType } from "antd";
-import { Tooltip } from "antd";
 import { Eye, GripVertical, Pencil } from "lucide-react";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { formatToothCodes } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
+import { DiscountBreakdown } from "./DiscountBreakdown";
 import { ServiceStatusPill, type ServiceAction } from "./ServiceStatusPill";
 import { renderDraftCell } from "./draftServiceCells";
 import {
   advanceOn,
   dash,
-  discountTooltip,
   isDraftRow,
+  lineDiscountParts,
+  lineNetAmount,
+  listUnitPrice,
   type PlanDetailRow,
   type ServiceTableRow,
 } from "./planDetailTypes";
@@ -34,6 +36,8 @@ export interface ServiceRowActions {
 /**
  * The columns an edited line swaps for the inline row's inputs; the rest (the
  * name with its status pill, the money it has collected) stay as they are.
+ * Tổng giảm giá is among the rest — staging keeps the saved figure until the
+ * line is saved — while Thành tiền follows the price as it is typed.
  */
 const EDITABLE_COLUMNS: ReadonlySet<string> = new Set([
   "diagnosis",
@@ -103,13 +107,9 @@ export function ServiceNameCell({ row, actions }: { row: PlanDetailRow; actions:
   );
 }
 
-/** "Tổng giảm giá": dotted underline, the discount rule on hover. */
+/** "Tổng giảm giá" of a saved line — see {@link DiscountBreakdown}. */
 export function DiscountCell({ row }: { row: PlanDetailRow }) {
-  return (
-    <Tooltip title={discountTooltip(row.service)}>
-      <span className="pdt-discount">{moneyText(row.service.discountAmount)}</span>
-    </Tooltip>
-  );
+  return <DiscountBreakdown parts={lineDiscountParts(row.service)} />;
 }
 
 /**
@@ -179,9 +179,11 @@ export function buildServiceColumns(
     // Tooth numbers only — staging prints no surfaces in this column.
     text("teeth", "Treatment:PlanDetail:Col:Teeth", 120, (row) => formatToothCodes(row.service.teeth)),
     column("quantity", t("Treatment:Pricing:Quantity"), 80, (row) => row.service.quantity, { align: "center" }),
-    column("price", t("Treatment:Pricing:UnitPrice"), 170, (row) => moneyText(row.service.price), { align: "right" }),
+    // Đơn giá prints the giá gốc; the price actually charged only shows in the
+    // input once the pencil is pressed (staging 2026-09-28).
+    column("price", t("Treatment:Pricing:UnitPrice"), 170, (row) => moneyText(listUnitPrice(row.service)), { align: "right" }),
     column("discount", t("Treatment:Pricing:TotalDiscount"), 160, (row) => <DiscountCell row={row} />, { align: "right" }),
-    column("amount", t("Treatment:Pricing:NetAmount"), 170, (row) => <strong>{moneyText(row.service.effectiveAmount)}</strong>, {
+    column("amount", t("Treatment:Pricing:NetAmount"), 170, (row) => <strong>{moneyText(lineNetAmount(row.service))}</strong>, {
       align: "right",
     }),
     column("advance", t("Treatment:Payment:Prepaid"), 160, (row) => moneyText(advanceOn(row.service)), {
