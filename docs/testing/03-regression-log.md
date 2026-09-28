@@ -6036,3 +6036,20 @@ discounted slip is collected at its after-discount price, never the gross one": 
 `.pd-newpay-empty`. `debt-history` + `cross-screen` **6/6**; `patient.spec` nhóm thanh toán **6/6**
 (ca split chạy lại riêng sau khi mở rộng bảng). Retest level 2 (F-22) + level 3 cho hook picker
 dùng chung. Chưa commit. R-588: build lại bundle, ca "a discounted slip…" **1/1** trên :8081 + host :5000, `tsc` sạch.
+
+## 2026-09-28 — Tab Hồ sơ: chip "Các chẩn đoán" liệt kê phiếu chẩn đoán (BA mục 25, R-589)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-589 | BA mục 25 "Chưa cập nhật dữ liệu tab chuẩn đoán": ở bảng lịch sử điều trị tab Hồ sơ, chip **Các chẩn đoán** luôn in `Chưa có điều trị` dù tab Chẩn đoán & Tư vấn có phiếu CD. Staging (bệnh nhân HN8509, phiếu CD05) in một dòng cho mỗi phiếu: Ngày = ngày lập phiếu, Dịch vụ = **tên chẩn đoán** in đậm **không** kèm mã bấm được + chip xám "Chẩn đoán", Nội dung điều trị = ghi chú của phiếu, chip Răng, SL 1, Bác sĩ điều trị = bác sĩ chẩn đoán 1 (không dòng "Phụ tá:"), Bác sĩ hỗ trợ = bác sĩ 2 hoặc "Không có", Công đoạn / Chăm sóc trống, Thao tác giữ icon tiền nhưng **mờ**. | Chip là một bộ lọc thuần client trên các dòng công đoạn + tái khám (`visibleRows`), và nhánh `filter === "diagnosis"` chưa từng có — mọi dòng bị loại; tab Hồ sơ cũng không tải phiếu chẩn đoán (nợ ghi ở mục "2026-09-07 (tiếp 6)", sau R-262: "ba chip lọc … vẫn không lọc gì"). Nay `TreatmentRow.kind` thêm `"diagnosis"`, `buildTreatmentRows` nhận thêm `diagnoses` (`usePatientDiagnoses`, cùng `maxResultCount: 1000` như hai truy vấn kia) và dựng mỗi phiếu thành một dòng qua `diagnosisRow()` (các cột tiền/công đoạn của `TreatmentServiceDto` điền giá trị rỗng, id dòng = id phiếu); cột Dịch vụ bỏ `.pd-tr-code` và in chip `.pd-tr-chip--diagnosis` (xám như Tái khám), cột Bác sĩ/Công đoạn/Chăm sóc chuyển điều kiện từ `kind === "reExamination"` sang `kind !== "stage"`, nút tiền `disabled`. Dòng chẩn đoán **chỉ** hiện dưới chip của nó — "Tất cả" và các chip khác giữ nguyên danh sách điều trị vì việc staging có gộp phiếu CD vào "Tất cả" hay không **chưa quan sát** (`unknowns.md`, cùng câu hỏi icon tiền mờ có bấm được không). |
+
+Bằng chứng: bản build production (`vite build --outDir dist-preview-r589`, `vite preview --host 127.0.0.1` cổng 8091,
+API thật 5000, DB thật) — spec mới `e2e/patient.spec.ts` "Các chẩn đoán lists the patient's diagnosis slips as their
+own rows" **1/1**: lập phiếu qua form thật (POST `patient-diagnoses`, ghi chú `e2e chẩn đoán <runId>`, răng 18), sang
+Hồ sơ → chip → đúng một dòng mang ghi chú; mọi dòng dưới chip đều có `.pd-tr-chip--diagnosis`; tên chẩn đoán khớp
+`.pd-cell-diagnosis` của bảng bên tab kia, không `.pd-tr-code`, không chứa mã CD, chip "Chẩn đoán" nền
+`rgb(247,248,253)`, răng "18", SL 1, Bác sĩ điều trị khớp bác sĩ 1 và không `.pd-tr-sub`, "Không có", không
+`.pd-tr-addstage`/`.pd-tr-warranty`/`.pd-tr-care`, `.pd-tr-pay` disabled; chip "Tất cả" **không** có dòng đó; reload
+→ chip lại → vẫn đủ. Chạy kèm "a tái khám picks its teeth…" **1/1**; "Lưu Chẩn Đoán files a slip…" đỏ ở
+`toHaveURL(/tab=consulting/)` sau reload — **đỏ sẵn** từ đợt 2026-09-24/25 (ghi ở mục "2026-09-24 (đợt 3)", sau R-548), qua bước
+kiểm răng "18, 16" rồi mới đỏ, không thuộc nhánh này. `tsc` sạch. Retest level 2 (F-38). Chưa commit.

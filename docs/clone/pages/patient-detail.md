@@ -179,6 +179,18 @@ Figure colours, measured on staging 2026-09-06:
 Filter pills: Tất cả, Điều trị hoàn tất, Đang điều trị, Các chẩn đoán,
 Tái khám, Bảo hành. Actions: Tạo Tái khám and Thanh toán.
 
+**Các chẩn đoán (staging, 2026-09-28, patient HN8509).** The chip lists the
+patient's phiếu chẩn đoán (the Chẩn đoán & Tư vấn tab's slips), one row each,
+in the same ten columns: Ngày = the slip's date; Dịch vụ = the **diagnosis
+name** in bold with **no** code link, under it a grey chip `Chẩn đoán` (same
+quiet chip as Tái khám); Nội dung điều trị = the slip's Ghi chú; Răng = its
+teeth as chips; SL = 1; Bác sĩ điều trị = Bác sĩ chẩn đoán 1 with **no**
+"Phụ tá:" line; Bác sĩ hỗ trợ = doctor 2 or `Không có`; Công đoạn and Chăm sóc
+sau điều trị empty; Thao tác keeps the banknote icon but **greyed**. Footer
+`Hiển thị 1 trên 1 điều trị`. Whether `Tất cả` also lists these rows, and
+whether the greyed banknote answers a click, was not observed
+(`docs/clone/unknowns.md`). BlueDental shows them under this chip only.
+
 Ten columns. Header: `8px 16px`, **14px/500, sentence case**, `#5A6B82` on
 `#F6F8FB`. Cell: `12px 16px`, `vertical-align: middle`, `border-right: 0.8px
 solid #DCE3EE` on all but the last — a ruled grid, ~81px per row.

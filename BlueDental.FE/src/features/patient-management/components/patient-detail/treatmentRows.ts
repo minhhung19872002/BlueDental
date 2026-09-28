@@ -8,7 +8,11 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
-import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
+import {
+  DISCOUNT_TYPE,
+  type PatientDiagnosisDto,
+  type ToothSelectionDto,
+} from "@/features/treatment-management/api/consultingApi";
 import { warrantyState, type WarrantyState } from "./stage/stageModel";
 
 /**
@@ -22,12 +26,15 @@ import { warrantyState, type WarrantyState } from "./stage/stageModel";
  */
 export interface TreatmentRow extends TreatmentServiceDto {
   /**
-   * Which kind of row this is. The reference's timeline returns two —
-   * `type: "stage"` and `type: "re_examination"` — and a tái khám is a row of
-   * its own beside the công đoạn, carrying code REX01, no status chip of the
-   * line's, and neither a Công đoạn nor a Chăm sóc cell.
+   * Which kind of row this is. The reference's timeline returns `type: "stage"`
+   * and `type: "re_examination"` — a tái khám is a row of its own beside the
+   * công đoạn, carrying code REX01, no status chip of the line's, and neither a
+   * Công đoạn nor a Chăm sóc cell. A `diagnosis` row is a phiếu chẩn đoán shown
+   * under the "Các chẩn đoán" chip only (staging, 2026-09-28): no code link, a
+   * grey "Chẩn đoán" chip, the slip's note as Nội dung điều trị, and a payment
+   * button that does nothing.
    */
-  kind: "stage" | "reExamination";
+  kind: "stage" | "reExamination" | "diagnosis";
   /** REX01 on a tái khám row; null on a công đoạn row. */
   recallCode: string | null;
   /** The công đoạn this row stands for; null for a line that has none yet. */
@@ -73,6 +80,7 @@ export function buildTreatmentRows(
   plans: TreatmentPlanSlipDto[],
   stages: TreatmentStageDto[],
   reExaminations: PatientReExaminationDto[] = [],
+  diagnoses: PatientDiagnosisDto[] = [],
 ): TreatmentRow[] {
   const byLine = new Map<string, TreatmentStageDto[]>();
   for (const stage of stages) {
@@ -167,6 +175,8 @@ export function buildTreatmentRows(
     });
   }
 
+  for (const slip of diagnoses) rows.push(diagnosisRow(slip));
+
   rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   // The spans are left to regroupByDay: they are positional, and every caller
@@ -197,4 +207,71 @@ export function regroupByDay(rows: TreatmentRow[]): TreatmentRow[] {
   }
 
   return next;
+}
+
+/**
+ * A phiếu chẩn đoán as a treatment-table row. It is no service line, so the
+ * money and stage columns of {@link TreatmentServiceDto} are filled with the
+ * empty values the table never prints for this kind: the row shows the
+ * diagnosis name, its note, teeth and doctors, and nothing else (staging,
+ * 2026-09-28, patient HN8509 / CD05).
+ */
+function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
+  return {
+    id: slip.id,
+    treatmentPlanId: "",
+    serviceId: slip.diagnosisId,
+    sourceAdviseId: null,
+    code: slip.code,
+    price: 0,
+    quantity: Math.max(slip.teeth.length, 1),
+    discountType: DISCOUNT_TYPE.None,
+    discountValue: 0,
+    grossAmount: 0,
+    discountAmount: 0,
+    effectiveAmount: 0,
+    chargedAmount: 0,
+    status: SERVICE_LINE_STATUS.Created,
+    sortOrder: 0,
+    replacedId: null,
+    teeth: slip.teeth,
+    serviceName: slip.diagnosisName,
+    stageCount: 0,
+    completedStageCount: 0,
+    warrantyDays: 0,
+    serviceSteps: [],
+    stageNotes: [],
+    stagedTeeth: [],
+    paidAmount: 0,
+    outstandingAmount: 0,
+    afterCareStatus: null,
+    labOrders: [],
+    diagnosisId: slip.diagnosisId,
+    diagnosisName: slip.diagnosisName,
+    dentistId: null,
+    dentistName: null,
+    note: slip.note,
+    diagnoserStaffId: slip.staffId,
+    diagnoserName: slip.staffName,
+    secondDiagnoserStaffId: slip.secondStaffId,
+    secondDiagnoserName: slip.secondStaffName,
+    consultantStaffId: null,
+    consultantName: null,
+    secondConsultantStaffId: null,
+    secondConsultantName: null,
+    kind: "diagnosis",
+    recallCode: null,
+    planCode: slip.code,
+    daySpan: 0,
+    stageId: null,
+    stageDone: false,
+    isWarranty: false,
+    warranty: { kind: "none" },
+    createdAt: slip.creationTime,
+    stageNote: slip.note,
+    rowTeeth: slip.teeth,
+    dentist: slip.staffName,
+    assistant: null,
+    secondDentist: slip.secondStaffName,
+  };
 }

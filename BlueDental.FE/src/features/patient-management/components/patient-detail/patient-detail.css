@@ -3052,6 +3052,12 @@
   background: var(--bd-bg-head);
   color: var(--bd-muted);
 }
+/* "Chẩn đoán" — same quiet grey as Tái khám (staging, 2026-09-28): a label,
+   not a status. */
+.pd-tr-chip--diagnosis {
+  background: var(--bd-bg-head);
+  color: #667085;
+}
 .pd-tr-teeth {
   display: inline-block;
   border: 1px solid #b8d1f7;
@@ -3140,6 +3146,10 @@
 .pd-treatment-table .pd-tr-pay.ant-btn {
   width: 100%;
   color: var(--bd-blue);
+}
+/* The banknote on a diagnosis row is shown but greyed (staging, 2026-09-28). */
+.pd-treatment-table .pd-tr-pay.ant-btn:disabled {
+  color: var(--bd-ink-4);
 }
 
 /* Đổi bác sĩ ngay trên thẻ Lịch hẹn gần nhất. */

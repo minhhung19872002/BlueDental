@@ -83,16 +83,24 @@ export function treatmentColumns({
       width: 190,
       render: (value: string | null, row) => (
         <div className="pd-tr-service">
-          <p>
-            <button type="button" className="pd-tr-code" onClick={() => onOpenPlan(row)}>
-              {row.recallCode ?? row.planCode}
-            </button>
-            {value ? ` - ${value}` : ` - ${row.code}`}
-          </p>
+          {/* A diagnosis is no slip: staging prints its name alone, bold, with
+              no code to click (2026-09-28). */}
+          {row.kind === "diagnosis" ? (
+            <p>{value ?? row.code}</p>
+          ) : (
+            <p>
+              <button type="button" className="pd-tr-code" onClick={() => onOpenPlan(row)}>
+                {row.recallCode ?? row.planCode}
+              </button>
+              {value ? ` - ${value}` : ` - ${row.code}`}
+            </p>
+          )}
           {/* A tái khám says so; a warranty visit reads "Bảo hành" whatever
               its state (staging's timeline, 2026-09-24); a công đoạn row shows
               its own state, not the line's. */}
-          {row.kind === "reExamination" ? (
+          {row.kind === "diagnosis" ? (
+            <span className="pd-tr-chip pd-tr-chip--diagnosis">{t("Patient:Tab:Diagnosis")}</span>
+          ) : row.kind === "reExamination" ? (
             <span className="pd-tr-chip pd-tr-chip--recall">{t("Patient:Care:RecallLower")}</span>
           ) : row.isWarranty ? (
             <span className="pd-tr-chip pd-tr-chip--warranty">{t("Patient:Labo:Warranty")}</span>
@@ -151,7 +159,7 @@ export function treatmentColumns({
       render: (_, row) => {
         // A tái khám is not a công đoạn, and the reference leaves this cell of
         // its row empty.
-        if (row.kind === "reExamination") return null;
+        if (row.kind !== "stage") return null;
 
         // Three states, as the reference draws them. A công đoạn still being
         // worked keeps the green + — adding a new one never closes the old, so
@@ -207,8 +215,9 @@ export function treatmentColumns({
       dataIndex: "afterCareStatus",
       width: 180,
       render: (value: CareStatusCode | null, row) =>
-        // Aftercare follows a công đoạn; the reference leaves it off a tái khám.
-        row.kind === "reExamination" ? null : (
+        // Aftercare follows a công đoạn; the reference leaves it off a tái khám
+        // and off a diagnosis.
+        row.kind !== "stage" ? null : (
           <span className="pd-tr-care">
             <i />
             {value === null ? t("Patient:Care:NotCared") : careLabels[value]}
@@ -221,6 +230,8 @@ export function treatmentColumns({
       align: "center",
       fixed: "right",
       // A warranty visit costs nothing, and staging offers no payment on it.
+      // A diagnosis row keeps the icon but greyed out (staging, 2026-09-28);
+      // whether it answers a click is unobserved — docs/clone/unknowns.md.
       render: (_, row) =>
         row.isWarranty ? null : (
           <Tooltip title={t("Patient:Payment:CreateSlip")}>
@@ -229,6 +240,7 @@ export function treatmentColumns({
               className="pd-tr-pay"
               icon={<BanknoteIcon />}
               aria-label={t("Patient:Payment:CreateSlip")}
+              disabled={row.kind === "diagnosis"}
               onClick={() => onPay(row)}
             />
           </Tooltip>

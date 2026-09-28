@@ -487,8 +487,55 @@ does.
 
 ```
 GET  /api/v1/voucher/available
-     ?customerTarget=returning
+     ?customerTarget=returning[&orderValue=<n>&patientId=<id>]
+POST /api/v1/voucher/list?page=1&perPage=20          (list page, body = filters)
+POST /api/v1/voucher/create                          (isPublished:true → active at once, no draft step)
+POST /api/v1/voucher/apply                           (staging 2026-09-28, written)
 ```
+
+`voucher` row (list / available / apply all return the same shape):
+
+```json
+{ "id", "name", "code", "description", "discountType": "percentage|fixed",
+  "discountValue", "minOrderValue", "maxDiscountAmount", "scopeTarget": "treatment|service",
+  "targetIds": [], "startDate", "endDate", "usageLimit", "usedCount",
+  "status": "active", "isPublished", "publishedAt", "isExclusive",
+  "customerTargets": ["new","returning"], "perCustomerLimit", "isDaysOfWeekLimited",
+  "daysOfWeek": [], "displayOnNfcDental", "assignedPatientId", "clinicId", "branchId",
+  "isDeleted", "createdAt", "createdBy", "updatedAt" }
+```
+
+**When `usedCount` moves (BA item 24, measured on staging 2026-09-28 with a
+fresh voucher and a fresh plan).** Picking a voucher in the consulting
+footer sends nothing. `Thêm kế hoạch điều trị` issues two writes in order:
+
+```
+POST /api/v1/patient-treatments
+{ "patientId", "patientAdviseIds": [...], "staffId", "consultantStaffId" }
+→ plan with "appliedCoupons": [], "voucherDiscountAmount": null
+
+POST /api/v1/voucher/apply
+{ "couponId": "<voucherId>", "targetType": "patientTreatment",
+  "targetId": "<planId>", "orderValue": <gross of the plan> }
+→ 201 "Áp dụng voucher thành công", body = the voucher with usedCount + 1
+```
+
+So the counter is charged **at plan creation**, not at payment. The server
+computes the money: afterwards `GET /patient-treatments/{id}` and the list
+carry
+
+```json
+"appliedCoupons": [{ "couponId", "code", "name", "discountType",
+                     "discountValue", "maxDiscountAmount", "sourceScope": "treatment" }],
+"voucherDiscountAmount": 500000, "payment": { "discount": 500000, "totalPrice": 4500000 }
+```
+
+(10 % of 5.000.000). Cancelling the plan's only service line
+(`POST /treatment-services/{id}/cancel`) leaves the plan `created`,
+`appliedCoupons` intact, `voucherDiscountAmount` unchanged and `usedCount`
+still 1 — **no refund** of the use. No plan-level cancel/delete exists on the
+reference plan page (the "…" button is the print sheet), so a refund path is
+UNKNOWN. Whether `perCustomerLimit` is enforced by `apply` was not tested.
 
 ---
 
@@ -1417,6 +1464,15 @@ before. Opening converts the lines, and `ConvertTo` makes each immutable.
 `VoucherDiscountAmount`, which `PlanDiscountAmount` adds to the slip discount
 and caps at the slip total — so the slip opens on the "Tổng tiền" the screen
 showed.
+
+**Gap vs the reference (BA item 24, staging 2026-09-28):** the reference sends
+the voucher **id** through a second call, `POST /voucher/apply`, and the
+server computes the discount, stores `appliedCoupons` on the plan and bumps
+`usedCount` right there (see "Vouchers"). BlueDental sends only the
+client-computed amount, so `Voucher.Redeem` is never called: "Lượt dùng"
+stays `0 / n`, `usageLimit` / `perCustomerLimit` are not enforced, and the
+plan does not know which voucher it used. `POST /vouchers/{id}/redeem`
+exists on the local API but has no caller.
 
 ```
 GET    /api/v1/app/patient-quotes?patientId&clinicBranchId   → newest first

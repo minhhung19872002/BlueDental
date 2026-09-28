@@ -26,6 +26,7 @@ import {
   usePatientAccount,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useReExaminations, useTreatmentStages } from "@/features/treatment-management/api/stageApi";
+import { usePatientDiagnoses } from "@/features/treatment-management/api/consultingQueries";
 import { planDetailPath } from "@/features/treatment-management/components/plan/planTypes";
 import { PLAN_TAB } from "@/features/treatment-management/components/plan-detail/planDetailTypes";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
@@ -181,6 +182,15 @@ export function PatientProfileTab({ patient }: Props) {
     clinicBranchId: branchId,
     maxResultCount: 1000,
   });
+  /**
+   * The phiếu chẩn đoán, for the "Các chẩn đoán" chip alone (BA item 25,
+   * 2026-09-28): staging lists them in this table as rows of their own.
+   */
+  const diagnoses = usePatientDiagnoses({
+    patientId: patient.id,
+    clinicBranchId: branchId ?? undefined,
+    maxResultCount: 1000,
+  });
   /** What "Tạo tái khám" can follow: a công đoạn that is actually finished. */
   const finishedStages = (patientStages.data?.items ?? []).filter(
     (stage) => stage.completedAt !== null,
@@ -236,20 +246,25 @@ export function PatientProfileTab({ patient }: Props) {
         account?.plans ?? [],
         patientStages.data?.items ?? [],
         reExaminations.data?.items ?? [],
+        diagnoses.data?.items ?? [],
       ),
-    [account, patientStages.data, reExaminations.data],
+    [account, patientStages.data, reExaminations.data, diagnoses.data],
   );
   const visibleRows = useMemo(
     () =>
-      rows.filter(
-        (row) =>
-          filter === "all" ||
-          (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
-          (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress) ||
-          // The reference asks its timeline for `type=re_examination` and for
-          // warranty công đoạn (`isGuarantee`, `onlyGuarantee`) respectively.
-          (filter === "recall" && row.kind === "reExamination") ||
-          (filter === "warranty" && row.isWarranty),
+      rows.filter((row) =>
+        // A diagnosis row belongs to its own chip. Whether staging's "Tất cả"
+        // lists them too is unobserved (docs/clone/unknowns.md); until it is,
+        // the other chips stay the treatment-only lists they were.
+        row.kind === "diagnosis"
+          ? filter === "diagnosis"
+          : filter === "all" ||
+            (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
+            (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress) ||
+            // The reference asks its timeline for `type=re_examination` and for
+            // warranty công đoạn (`isGuarantee`, `onlyGuarantee`) respectively.
+            (filter === "recall" && row.kind === "reExamination") ||
+            (filter === "warranty" && row.isWarranty),
       ),
     [rows, filter],
   );

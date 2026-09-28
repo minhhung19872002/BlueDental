@@ -1762,6 +1762,18 @@ Action taken: NONE trên production. BlueDental (2026-09-07) gọi
         đứng một mình; giảm giá tính trên client bằng đúng công thức
         `Voucher.CalculateDiscount`, trừ vào "Tổng tiền"; chọn voucher chỉ là
         state trên trang, chưa gửi `apply-voucher` lên phiếu.
+RESOLVED 2026-09-28 (staging, ghi thật, BA mục 24): chọn voucher **không** gửi
+        gì — đúng như BlueDental. Bấm "Thêm kế hoạch điều trị" gửi hai lệnh:
+        `POST patient-treatments` (không có voucher) rồi
+        `POST voucher/apply { couponId, targetType: "patientTreatment",
+        targetId: <planId>, orderValue }`. Server tự tính tiền giảm, ghi
+        `appliedCoupons[]` + `voucherDiscountAmount` lên kế hoạch và tăng
+        `usedCount` **ngay lúc tạo kế hoạch**, không phải lúc thanh toán.
+        Huỷ dòng dịch vụ duy nhất của kế hoạch không hoàn lượt (vẫn 1/5).
+        Chưa thấy: huỷ/xoá cả kế hoạch (trang gốc không có nút), voucher
+        độc quyền kết hợp, `perCustomerLimit` có chặn ở server không.
+        BlueDental hiện chỉ gửi số tiền → `Lượt dùng` đứng mãi ở 0 — xem
+        `api.md` mục "Vouchers".
 
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /patient/<id>?tab=consulting — form "Tạo chẩn đoán"
@@ -2683,4 +2695,22 @@ Page: đồng bộ hoá đơn `POST /v1/clinic-integration/sync/invoice`
 Control: `useSyncInvoiceToSystem`, cờ `invoiceSyncEnabled`
 Reason: hook có trong bundle nhưng không màn nào gọi (2026-09-25). BlueDental
         lưu cờ `invoiceSyncEnabled` nhưng chưa có đồng bộ hoá đơn.
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/{id}?tab=profile — bảng lịch sử điều trị, chip "Tất cả"
+Control: dòng phiếu chẩn đoán có được gộp vào "Tất cả" (và vào tổng
+         "Hiển thị n trên n điều trị") hay chỉ hiện dưới chip "Các chẩn đoán"
+Reason: staging (2026-09-28, HN8509) chỉ được chụp với chip "Các chẩn đoán"
+        đang chọn (1 dòng CD05); ảnh chip "Tất cả" của cùng bệnh nhân chưa có.
+        BlueDental hiện dòng chẩn đoán dưới chip "Các chẩn đoán" mà thôi;
+        các chip khác giữ danh sách điều trị như trước (R-589).
+Action taken: NONE
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/{id}?tab=profile — bảng lịch sử điều trị, dòng phiếu chẩn đoán
+Control: icon tiền (Thao tác) vẽ mờ trên dòng chẩn đoán
+Reason: ảnh staging 2026-09-28 cho thấy icon mờ nhưng chưa bấm để biết nó
+        `disabled` thật hay vẫn mở "Tạo phiếu thanh toán" (phiếu chẩn đoán không
+        có dòng dịch vụ để thu). BlueDental để nút `disabled`.
 Action taken: NONE

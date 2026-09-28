@@ -188,3 +188,16 @@ giờ; **"Tạo tái khám"** liệt kê các công đoạn đã hoàn thành.
 Re-run: e2e 78/78 trên `patient`, `patient-images`, `treatment-plan`,
 `treatment-stage`, `labo`, `report`, `branch-isolation`, `appointment`;
 BE Domain 264 / Application 516 / EF 51.
+
+2026-09-28, chip "Các chẩn đoán" (Level 2, R-589, BA mục 25): bảng điều trị
+tab Hồ sơ nay dựng mỗi phiếu chẩn đoán thành một dòng riêng dưới chip **Các
+chẩn đoán** — tên chẩn đoán đậm **không** kèm mã bấm được, chip xám "Chẩn
+đoán", ghi chú của phiếu ở Nội dung điều trị, chip răng, SL 1, bác sĩ chẩn
+đoán 1 ở Bác sĩ điều trị (không dòng "Phụ tá:"), bác sĩ 2 hoặc "Không có",
+Công đoạn / Chăm sóc trống, icon tiền mờ. "Tất cả" và các chip khác giữ nguyên
+danh sách điều trị (staging chưa quan sát được — `unknowns.md`).
+
+Re-run: `patient.spec` "Các chẩn đoán lists the patient's diagnosis slips as
+their own rows" 1/1 + "a tái khám picks its teeth…" 1/1 trên build production
+:8091, API :5000, DB thật. "Lưu Chẩn Đoán files a slip…" đỏ sẵn ở
+`toHaveURL(/tab=consulting/)` (ghi từ 2026-09-24), không thuộc đợt này.

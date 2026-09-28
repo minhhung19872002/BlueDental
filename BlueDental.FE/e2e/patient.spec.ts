@@ -989,6 +989,99 @@ test.describe("Bệnh nhân", () => {
   });
 
   /**
+   * BA item 25 (2026-09-28): the Hồ sơ tab's "Các chẩn đoán" chip listed
+   * nothing — it was a filter over treatment rows, and no row was a diagnosis.
+   * Staging (patient HN8509, slip CD05) shows the phiếu chẩn đoán there as rows
+   * of their own: the diagnosis name bold with **no** code link, a grey
+   * "Chẩn đoán" chip, the slip's note under Nội dung điều trị, its teeth, SL 1,
+   * bác sĩ chẩn đoán 1 as Bác sĩ điều trị with no "Phụ tá:" line, "Không có"
+   * for the second doctor, empty Công đoạn / Chăm sóc, and a greyed banknote.
+   */
+  test("Các chẩn đoán lists the patient's diagnosis slips as their own rows", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
+    const form = page.getByTestId("diagnosis-form");
+    await expect(form).toBeVisible();
+
+    await pickFirstOption(page, form.getByRole("combobox", { name: "Bác sĩ chẩn đoán 1" }));
+    await pickFirstOption(page, form.locator(".pd-diagnosis-side").getByRole("combobox").first());
+    const note = `e2e chẩn đoán ${runId()}`;
+    await form.getByLabel("Ghi chú").fill(note);
+    await page.getByRole("button", { name: "Răng 18", exact: true }).click();
+
+    const created = page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" && res.url().includes("/api/v1/app/patient-diagnoses"),
+    );
+    await form.getByRole("button", { name: "Lưu Chẩn Đoán" }).click();
+    expect((await created).ok()).toBeTruthy();
+    await expect(form).toBeHidden();
+
+    // What the slip says about itself, to be matched on the other tab.
+    const slip = page.locator(".pd-diagnosis-card tbody tr.ant-table-row", { hasText: note });
+    await expect(slip).toHaveCount(1);
+    const code = (await slip.locator("td").first().innerText()).trim();
+    expect(code).toMatch(/^CD\d{2}-\d{4}$/);
+    const doctor = (await slip.locator("td").nth(1).locator("b").innerText()).trim();
+    const diagnosisName = (await slip.locator(".pd-cell-diagnosis").innerText()).trim();
+    expect(doctor).not.toBe("");
+    expect(diagnosisName).not.toBe("—");
+
+    const assertDiagnosisRow = async () => {
+      await page.locator(".pd-filter-pills").getByRole("button", { name: "Các chẩn đoán" }).click();
+      await widenTreatmentTable(page);
+      const row = page.locator(".pd-treatment-table tbody tr.ant-table-row", { hasText: note });
+      await expect(row).toHaveCount(1);
+      // Every row under this chip is a diagnosis: no treatment line leaks in.
+      const rows = page.locator(".pd-treatment-table tbody tr.ant-table-row");
+      await expect(rows.locator(".pd-tr-chip--diagnosis")).toHaveCount(await rows.count());
+
+      const service = row.locator(".pd-tr-service");
+      await expect(service.locator("p")).toHaveText(diagnosisName);
+      await expect(service.locator(".pd-tr-code")).toHaveCount(0);
+      await expect(service).not.toContainText(code);
+      const chip = service.locator(".pd-tr-chip");
+      await expect(chip).toHaveText("Chẩn đoán");
+      await expect(chip).toHaveCSS("background-color", CHIP_GREY);
+      await expect(row.locator(".pd-tr-teeth")).toHaveText("18");
+      await expect(row.locator("td").nth(4)).toHaveText("1");
+      const doctorCell = row.locator(".pd-tr-doctor");
+      await expect(doctorCell).toHaveText(doctor);
+      await expect(doctorCell.locator(".pd-tr-sub")).toHaveCount(0);
+      await expect(row.locator("td").nth(6)).toHaveText("Không có");
+      await expect(row.locator(".pd-tr-addstage")).toHaveCount(0);
+      await expect(row.locator(".pd-tr-warranty")).toHaveCount(0);
+      await expect(row.locator(".pd-tr-care")).toHaveCount(0);
+      const pay = row.locator(".pd-tr-pay");
+      await expect(pay).toHaveCount(1);
+      await expect(pay).toBeDisabled();
+    };
+
+    await page.getByRole("link", { name: "Hồ sơ" }).click();
+    await expect(page).toHaveURL(/tab=profile/);
+    await assertDiagnosisRow();
+
+    // The other chips stay treatment-only: the slip is not a service line.
+    await page.locator(".pd-filter-pills").getByRole("button", { name: "Tất cả" }).click();
+    await expect(
+      page.locator(".pd-treatment-table tbody tr.ant-table-row", { hasText: note }),
+    ).toHaveCount(0);
+
+    // Persisted: a fresh load reads it back from the real API.
+    await page.reload();
+    await expect(page).toHaveURL(/tab=profile/);
+    await assertDiagnosisRow();
+  });
+
+  /**
    * "Thêm chẩn đoán" is the quick path for several slips in a row. Read off the
    * reference's bundle (2026-09-24): it creates the slip, then runs the same
    * reset the form opens with — doctor 2 off, diagnosis, note and teeth
