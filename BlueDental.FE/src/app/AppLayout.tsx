@@ -46,10 +46,16 @@ export function AppLayout() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const visibleNav = useVisibleNav();
 
+  const queryClient = useQueryClient();
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
     onSettled: () => {
       clearAuth();
+      // The sign-in screen asks "is there a session?" under the cached
+      // ["auth", "current-user"] key, so a cache left behind sent it straight
+      // back into the app. Nothing of the last account — patients included —
+      // should outlive its session anyway.
+      queryClient.clear();
       navigate("/login", { replace: true });
     },
   });
@@ -207,7 +213,6 @@ export function AppLayout() {
   const clinicName = user?.clinicName ?? t("App:DefaultClinic");
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
 
-  const queryClient = useQueryClient();
   const { data: branches } = useClinicBranches(true);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
   const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
