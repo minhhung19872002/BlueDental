@@ -192,6 +192,38 @@
   text-align: center;
 }
 
+.bd-zalo-panel--row {
+  flex-direction: row;
+  align-items: center;
+  padding: 20px 24px;
+  text-align: left;
+}
+
+.bd-zalo-panel--row .bd-zalo-panel-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.bd-zalo-panel--row .bd-zalo-panel-end {
+  flex-shrink: 0;
+}
+
+.bd-zalo-panel--row .bd-zalo-status {
+  margin-bottom: 0;
+}
+
+.bd-zalo-panel--row .bd-zalo-facts {
+  margin-top: 12px;
+}
+
+.bd-zalo-panel--row .bd-zalo-toggle {
+  justify-content: flex-start;
+}
+
+.bd-zalo-panel--row .bd-zalo-actions {
+  justify-content: flex-start;
+}
+
 .bd-zalo-avatar {
   display: flex;
   align-items: center;

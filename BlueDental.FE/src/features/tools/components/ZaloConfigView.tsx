@@ -8,7 +8,6 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { formatDateTime } from "@/utils/format";
 import {
   useDisconnectZalo,
-  useImportZaloBootstrap,
   useRefreshZaloToken,
   useSetZaloEnabled,
   useZaloConnectUrl,
@@ -71,51 +70,35 @@ interface PanelProps {
 
 function NotConnectedPanel({ status, canManage }: PanelProps) {
   const connectUrl = useZaloConnectUrl();
-  const importBootstrap = useImportZaloBootstrap();
 
   const handleConnect = async () => {
     try {
       const { url } = await connectUrl.mutateAsync();
       window.location.assign(url);
     } catch {
-      // queryClient reports the failure
-    }
-  };
-
-  const handleImport = async () => {
-    try {
-      await importBootstrap.mutateAsync();
-      toast.success(t("Tools:ZaloConnected"));
-    } catch {
-      // queryClient reports the failure
+      // MutationCache reports the failure
     }
   };
 
   return (
-    <div className="bd-zalo-panel">
+    <div className="bd-zalo-panel bd-zalo-panel--row">
       <div className="bd-zalo-avatar">OA</div>
-      <div>
+      <div className="bd-zalo-panel-body">
         <div className="bd-zalo-title">{t("Tools:ZaloNotConnected")}</div>
         <Tag color="default" className="bd-zalo-status">
           {t("Tools:ZaloNotActivated")}
         </Tag>
         {status.lastError && <p className="bd-zalo-error">{status.lastError}</p>}
-        <div className="bd-zalo-actions">
-          <Button
-            type="primary"
-            disabled={!canManage || !status.canConnect}
-            loading={connectUrl.isPending}
-            onClick={() => void handleConnect()}
-          >
-            {t("Tools:ZaloConnect")}
-          </Button>
-          {status.hasBootstrapTokens && canManage && (
-            <Button loading={importBootstrap.isPending} onClick={() => void handleImport()}>
-              {t("Tools:ZaloImportBootstrap")}
-            </Button>
-          )}
-        </div>
-        {!status.canConnect && <p className="bd-zalo-hint">{t("Tools:ZaloNotConfiguredHint")}</p>}
+      </div>
+      <div className="bd-zalo-panel-end">
+        <Button
+          type="primary"
+          disabled={!canManage}
+          loading={connectUrl.isPending}
+          onClick={() => void handleConnect()}
+        >
+          {t("Tools:ZaloConnect")}
+        </Button>
       </div>
     </div>
   );
@@ -159,17 +142,18 @@ function ConnectedPanel({ status, canManage }: PanelProps) {
   };
 
   return (
-    <div className="bd-zalo-panel">
+    <div className="bd-zalo-panel bd-zalo-panel--row">
       {status.avatarUrl ? (
         <img className="bd-zalo-avatar bd-zalo-avatar--image" src={status.avatarUrl} alt="" />
       ) : (
         <div className="bd-zalo-avatar">OA</div>
       )}
-      <div>
+      <div className="bd-zalo-panel-body">
         <div className="bd-zalo-title">{status.oaName}</div>
         <Tag color={tag.color} className="bd-zalo-status">
           {t(tag.label)}
         </Tag>
+        {status.lastError && <p className="bd-zalo-error">{status.lastError}</p>}
         <dl className="bd-zalo-facts">
           <dt>{t("Tools:ZaloOaId")}</dt>
           <dd>{status.oaId}</dd>
@@ -180,7 +164,6 @@ function ConnectedPanel({ status, canManage }: PanelProps) {
           <dt>{t("Tools:ZaloTokenExpiresAt")}</dt>
           <dd>{formatDateTime(status.accessTokenExpiresAt)}</dd>
         </dl>
-        {status.lastError && <p className="bd-zalo-error">{status.lastError}</p>}
         <div className="bd-zalo-toggle">
           <span>{t("Tools:ZaloEnableLabel")}</span>
           <Switch
@@ -191,6 +174,8 @@ function ConnectedPanel({ status, canManage }: PanelProps) {
             onChange={(checked) => void handleToggle(checked)}
           />
         </div>
+      </div>
+      <div className="bd-zalo-panel-end">
         {canManage && (
           <div className="bd-zalo-actions">
             <Button loading={refreshToken.isPending} onClick={() => void handleRefresh()}>

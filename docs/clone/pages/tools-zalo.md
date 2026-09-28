@@ -1,77 +1,140 @@
-# Công cụ ▸ Zalo OA
+# Tools — Zalo OA Tab (`/tools/zalo-oa`)
 
-Route: `/tools/zalo-oa`
+Source: `UNKNOWN_REFERENCE_BEHAVIOR` — the reference application had no Zalo OA
+configuration data to observe. Page design is BlueDental's own, based on BA
+requirements and the Zalo OA API specification. Implemented 2026-09-28.
 
-## Sub-tabs
+## Route
 
-| Sub-tab | URL param | Content |
-|---|---|---|
-| Cấu hình | (default, no param) | Zalo OA connection panel |
-| Mẫu ZBS | `?subTab=template` | ZNS template list from Zalo |
-| Danh sách tin Zalo | `?subTab=campaign` | Sent message list with stats |
+`/tools/zalo-oa` (one of four top-level tool routes; see `tools.md`)
 
-## Cấu hình (config)
+The route defaults to `?subTab=config`. Sub-tab values and their URL params:
 
-### Not connected
+| # | Label | `?subTab=` value | Default |
+|---|-------|------------------|---------|
+| 1 | Cấu hình | `config` | yes |
+| 2 | Mẫu ZBS | `template` | no |
+| 3 | Danh sách tin Zalo | `campaign` | no |
 
-- Avatar circle "OA" (80px, `bd-zalo-avatar`)
-- Title "Chưa kết nối Zalo OA"
-- Tag "Chưa kích hoạt" (default color)
-- Last error (if any, red text)
-- Primary button "Kết nối Zalo OA" (disabled when AppId not configured)
-- Secondary button "Nhập token đã cấu hình" (visible when bootstrap tokens exist)
-- Hint "Chưa cấu hình App ID / Secret Key..." when canConnect=false
+---
 
-### Connected
+## Sub-tab 1 — Cấu hình (`?subTab=config`)
 
-- Avatar: OA image or fallback "OA"
-- OA name as title
-- Status tag: Đang hoạt động (green) / Lỗi làm mới token (red) / Token đã hết hạn (orange)
-- Facts grid: OA ID, Gói dịch vụ, Kết nối lúc, Token hết hạn
-- Toggle: Kích hoạt gửi ZNS (Switch)
-- Buttons: Làm mới token, Ngắt kết nối (danger, with confirm dialog)
+Implemented in `src/features/tools/components/ZaloConfigView.tsx`.
 
-## Mẫu ZBS (templates)
+### Disconnected state
 
-Hint: "Danh sách mẫu ZBS được lấy trực tiếp từ Zalo — tạo, chỉnh sửa mẫu trên Zalo Business Manager."
+Shown when `GET /api/v1/app/zalo/status` returns `{ isConnected: false }`.
 
-Columns:
-- Tên mẫu
-- Zalo Template ID (width 180)
-- Trạng thái: Tag with color (ENABLE=green, PENDING_REVIEW=gold, REJECT=red, DISABLE=default)
-- Chất lượng (width 140)
-- Ngày tạo (width 130, formatDate)
+| Element | Type | Behaviour |
+|---------|------|-----------|
+| Zalo OA logo / illustration | Image | Static |
+| "Kết nối Zalo OA" | Button (primary) | Calls `GET /connect-url`, opens the returned URL in a new tab to begin the OAuth flow |
+| Instruction text | Paragraph | Describes why connecting is useful |
 
-Pager: 5/10/20/25/50/100 (default 20)
-Empty: "Chưa có mẫu ZBS nào"
-Error: shows extractApiError
+### Connected state
 
-## Danh sách tin Zalo (campaign)
+Shown when `isConnected: true`.
 
-Toolbar:
-- Status filter dropdown (Đang chờ / Đã gửi / Đã nhận / Thất bại)
-- Counter buttons: Tổng số / Thành công / Thất bại (toggleable outcome filter)
+| Element | Type | Behaviour |
+|---------|------|-----------|
+| OA avatar | Image | `avatarUrl` from status; fallback placeholder |
+| OA name | Heading | `oaName` from status |
+| Token expiry | Text | `expiresAt` formatted `DD/MM/YYYY HH:mm` |
+| Bật / Tắt kết nối | Toggle (Switch) | Calls `PUT /zalo/enabled { enabled }`; optimistic update |
+| "Đồng bộ thông tin" | Button | Calls `POST /zalo/bootstrap-import`; refreshes OA name + avatar |
+| "Làm mới token" | Button | Calls `POST /zalo/refresh-token`; shows success/error toast |
+| "Ngắt kết nối" | Button (danger) | Opens confirm dialog "Xác nhận ngắt kết nối Zalo OA?"; on confirm calls `DELETE /zalo/connection` then returns to disconnected state |
 
-Columns:
-- Số điện thoại (width 140)
-- Nội dung (ellipsis)
-- Trạng thái: Tag with Tooltip on error (Pending=default, Sent=green, Delivered=blue, Failed=red)
-- Chi phí (width 110, right-aligned, formatVND)
-- Ngày gửi (width 160, formatDateTime of sentAt or creationTime)
+---
 
-Pager: 5/10/20/25/50/100 (default 20)
-Empty: "Chưa có tin nhắn"
+## Sub-tab 2 — Mẫu ZBS (`?subTab=template`)
 
-## CSKH ▸ Gửi ZBS dialog
+Implemented in `src/features/tools/components/ZaloTemplateView.tsx`.
 
-The "Gửi ZBS qua Zalo" dialog in the CSKH tabs (nhắc lịch, sinh nhật) sends a ZNS
-message. It posts `{ careRecordId, templateId }` to `POST /zalo/messages`; the server
-fills template params from the patient and the record.
+Source: `GET /api/v1/app/zalo/templates` (data from Zalo API, cached 5 min).
 
-Fields:
-- Khách hàng (read-only)
-- Mẫu ZBS (SearchSelect, loads templates with DISABLE filtered out, client-side name search)
+### Table columns
 
-## API endpoints
+| # | Column | Notes |
+|---|--------|-------|
+| 1 | Tên mẫu | Template name |
+| 2 | Mã mẫu | Template ID (monospace) |
+| 3 | Trạng thái | `<Tag>` with colour strategy: `enable` → green, `pending_review` → gold, `reject` → red, `disable` → default (grey) |
+| 4 | Tham số | Comma-separated list of required parameter names |
 
-See `docs/clone/api.md` for the full list.
+### Toolbar
+
+| Element | Behaviour |
+|---------|-----------|
+| "Làm mới" button | Invalidates `["zalo-templates"]` cache and refetches |
+| Pager | 10 / 20 / 50 rows per page; server-side |
+
+Empty state: "Chưa có mẫu nào" when the template list is empty or the OA is not
+connected.
+
+---
+
+## Sub-tab 3 — Danh sách tin Zalo (`?subTab=campaign`)
+
+Implemented in `src/features/tools/components/ZaloMessageView.tsx`.
+
+Source: `GET /api/v1/app/zalo/messages` + `GET /api/v1/app/zalo/messages/stats`.
+
+### Counter tiles (3 tiles above the table)
+
+| Tile | Value | Colour |
+|------|-------|--------|
+| Tổng số tin | `stats.total` | Blue |
+| Thành công | `stats.sent` | Green |
+| Thất bại | `stats.failed` | Red |
+
+### Filter bar
+
+| Control | Param |
+|---------|-------|
+| Date range picker (from / to) | `fromDate` / `toDate` |
+| Status filter (Tất cả / Thành công / Thất bại) | `status` |
+
+### Table columns
+
+| # | Column | Notes |
+|---|--------|-------|
+| 1 | Số điện thoại | Recipient phone number |
+| 2 | Mẫu | Template name (from `templateName` on the log record) |
+| 3 | Thời gian | `sentAt` formatted `DD/MM/YYYY HH:mm` |
+| 4 | Kết quả | `<Tag>`: Thành công (green) / Thất bại (red); hover shows Zalo error code on failure |
+
+Pager: 10 / 20 / 50 rows; server-side (`skipCount` + `maxResultCount`).
+
+Empty state: "Chưa có tin nhắn nào" when no messages match the filter.
+
+---
+
+## SendZaloDialog (CSKH screen)
+
+Component: `src/features/cskh/components/SendZaloDialog.tsx`
+
+Opened from the CSKH patient list row action "Gửi Zalo". Allows staff to send a
+ZNS to a patient's registered phone number.
+
+| Step | UI element | Notes |
+|------|-----------|-------|
+| 1 | Template picker (Select) | Loads from `GET /zalo/templates`; shows name + status tag |
+| 2 | Parameter form | Dynamic — one Input per required parameter in `listParams`; built from the selected template's schema |
+| 3 | "Gửi" button | Disabled and loading while `mutateAsync` is in flight; shows Loader2 spinner |
+
+Success: toast "Gửi Zalo thành công".
+Failure: inline error below the form showing the Zalo error code and message (not
+a toast, to allow the user to correct and resend).
+
+---
+
+## Known unknowns (`UNKNOWN_REFERENCE_BEHAVIOR`)
+
+- Exact layout and element order of the reference's Zalo OA tab could not be
+  observed — no configuration data was present.
+- Whether the reference exposes a template preview image in the table.
+- Whether there is a "Chi tiết" action on the message log rows.
+- Whether the reference supports bulk-send (campaign) from this tab or only
+  single-send from CSKH.
