@@ -15,8 +15,12 @@ import type { TreatmentRow } from "./treatmentRows";
 export type { TreatmentRow };
 
 interface Handlers {
-  /** The DT… code opens the slip it belongs to. */
-  onOpenPlan: () => void;
+  /**
+   * The DT… code opens **that slip's** detail screen (BA item 24, 2026-09-28).
+   * A tái khám row prints its own REX code but has no screen of its own, so it
+   * lands on the slip its line belongs to.
+   */
+  onOpenPlan: (row: TreatmentRow) => void;
   /** Công đoạn — opens "Chi tiết phiếu", where a công đoạn is added. */
   onAddStage: (row: TreatmentRow) => void;
   /** Bảo hành — offered once the row's công đoạn is finished. */
@@ -80,7 +84,7 @@ export function treatmentColumns({
       render: (value: string | null, row) => (
         <div className="pd-tr-service">
           <p>
-            <button type="button" className="pd-tr-code" onClick={onOpenPlan}>
+            <button type="button" className="pd-tr-code" onClick={() => onOpenPlan(row)}>
               {row.recallCode ?? row.planCode}
             </button>
             {value ? ` - ${value}` : ` - ${row.code}`}

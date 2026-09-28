@@ -135,12 +135,12 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
                   (service) =>
                     (service.status === 1 || service.status === 2) && service.stageCount === 0,
                 )
-            : want === "warrantable"
-              ? // Warranty *and* still open: a line the earlier specs have
-                // driven to Completed offers no Công đoạn cell at all, so it
-                // could never reach the Bảo hành state under test.
-                slip.services.find((service) => service.warrantyDays > 0 && workable(service))
-              : slip.services[0];
+              : want === "warrantable"
+                ? // Warranty *and* still open: a line the earlier specs have
+                  // driven to Completed offers no Công đoạn cell at all, so it
+                  // could never reach the Bảo hành state under test.
+                  slip.services.find((service) => service.warrantyDays > 0 && workable(service))
+                : slip.services[0];
       if (line) {
         return {
           patientId: slip.patientId,
@@ -167,7 +167,6 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
   await widenTreatmentTable(page);
   return target;
 }
-
 
 /**
  * Widen the treatment table to its largest page, to cut the paging these specs
@@ -353,90 +352,103 @@ async function addStage(
    */
   imageRequired?: boolean,
 ) {
-  const created = await page.evaluate(async ({ target, text, needsImage }) => {
-    // The server reads the branch off this header, not out of the body — see
-    // src/lib/axios.ts — so a raw fetch has to send it or the row lands in
-    // whichever branch the account defaults to.
-    const branchId = target.branchId ?? new URLSearchParams(location.search).get("branchId");
-    const branchHeader: Record<string, string> = branchId
-      ? { "X-Clinic-Branch-Id": branchId }
-      : {};
-    const plan = await (
-      await fetch(`/api/v1/app/patient-treatments/${target.planId}`, {
-        credentials: "include",
-        headers: branchHeader,
-      })
-    ).json();
-    const service = plan.services.find((item: { id: string }) => item.id === target.serviceId);
-    const staff = await (
-      await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
-    ).json();
+  const created = await page.evaluate(
+    async ({ target, text, needsImage }) => {
+      // The server reads the branch off this header, not out of the body — see
+      // src/lib/axios.ts — so a raw fetch has to send it or the row lands in
+      // whichever branch the account defaults to.
+      const branchId = target.branchId ?? new URLSearchParams(location.search).get("branchId");
+      const branchHeader: Record<string, string> = branchId
+        ? { "X-Clinic-Branch-Id": branchId }
+        : {};
+      const plan = await (
+        await fetch(`/api/v1/app/patient-treatments/${target.planId}`, {
+          credentials: "include",
+          headers: branchHeader,
+        })
+      ).json();
+      const service = plan.services.find((item: { id: string }) => item.id === target.serviceId);
+      const staff = await (
+        await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
+      ).json();
 
-    type Stage = {
-      id: string;
-      treatmentServiceId: string;
-      isSuperseded: boolean;
-      isGuarantee: boolean;
-      status: number;
-      creationTime: string;
-      teeth: { toothCode: number }[];
-    };
-    const stages = (
-      await (
-        await fetch(
-          `/api/v1/app/treatment-stages?patientId=${target.patientId}&treatmentId=${target.planId}&maxResultCount=1000`,
-          { credentials: "include", headers: branchHeader },
-        )
-      ).json()
-    ).items.filter((stage: Stage) => stage.treatmentServiceId === target.serviceId) as Stage[];
+      type Stage = {
+        id: string;
+        treatmentServiceId: string;
+        isSuperseded: boolean;
+        isGuarantee: boolean;
+        status: number;
+        creationTime: string;
+        teeth: { toothCode: number }[];
+      };
+      const stages = (
+        await (
+          await fetch(
+            `/api/v1/app/treatment-stages?patientId=${target.patientId}&treatmentId=${target.planId}&maxResultCount=1000`,
+            { credentials: "include", headers: branchHeader },
+          )
+        ).json()
+      ).items.filter((stage: Stage) => stage.treatmentServiceId === target.serviceId) as Stage[];
 
-    // 3 = Completed. An open chain takes the next visit.
-    const open = stages
-      .filter((stage) => !stage.isSuperseded && !stage.isGuarantee && stage.status !== 3)
-      .sort((a, b) => b.creationTime.localeCompare(a.creationTime))[0];
-    if (open && needsImage === undefined) {
-      const res = await fetch(`/api/v1/app/treatment-stages/${open.id}/continue`, {
+      // 3 = Completed. An open chain takes the next visit.
+      const open = stages
+        .filter((stage) => !stage.isSuperseded && !stage.isGuarantee && stage.status !== 3)
+        .sort((a, b) => b.creationTime.localeCompare(a.creationTime))[0];
+      if (open && needsImage === undefined) {
+        const res = await fetch(`/api/v1/app/treatment-stages/${open.id}/continue`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...branchHeader },
+          body: JSON.stringify({ staffId: staff.items[0].id, note: text, serviceItemIds: [] }),
+        });
+        return {
+          status: res.status,
+          id: res.ok ? ((await res.json()).id as string) : null,
+          body: res.ok ? "" : await res.text(),
+        };
+      }
+
+      // Otherwise a new chain, on the teeth nobody holds yet. A công đoạn with no
+      // teeth at all stood for the whole line.
+      const held = new Set<number>();
+      for (const stage of stages) {
+        const teeth = stage.teeth.length > 0 ? stage.teeth : service.teeth;
+        for (const tooth of teeth as { toothCode: number }[]) held.add(tooth.toothCode);
+      }
+      const free = (service.teeth as { toothCode: number }[]).filter(
+        (tooth) => !held.has(tooth.toothCode),
+      );
+
+      const res = await fetch("/api/v1/app/treatment-stages", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...branchHeader },
-        body: JSON.stringify({ staffId: staff.items[0].id, note: text, serviceItemIds: [] }),
+        body: JSON.stringify({
+          patientId: target.patientId,
+          clinicBranchId: branchId,
+          treatmentId: target.planId,
+          treatmentServiceId: target.serviceId,
+          serviceId: service.serviceId,
+          name: service.serviceName ?? service.code,
+          note: text,
+          staffId: staff.items[0].id,
+          teeth: free,
+          // Unset unless a spec says otherwise, so the công đoạn inherits whatever
+          // its service catalog says. It used to be forced to `false` here to
+          // dodge a 403 Treatment:0019 on POST …/complete — that block was an
+          // invented rule and is gone (R-287), so the fixture no longer has to lie
+          // about the service to get a closable row.
+          ...(needsImage === undefined ? {} : { isImageRequired: needsImage }),
+        }),
       });
-      return { status: res.status, id: res.ok ? ((await res.json()).id as string) : null, body: res.ok ? "" : await res.text() };
-    }
-
-    // Otherwise a new chain, on the teeth nobody holds yet. A công đoạn with no
-    // teeth at all stood for the whole line.
-    const held = new Set<number>();
-    for (const stage of stages) {
-      const teeth = stage.teeth.length > 0 ? stage.teeth : service.teeth;
-      for (const tooth of teeth as { toothCode: number }[]) held.add(tooth.toothCode);
-    }
-    const free = (service.teeth as { toothCode: number }[]).filter((tooth) => !held.has(tooth.toothCode));
-
-    const res = await fetch("/api/v1/app/treatment-stages", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...branchHeader },
-      body: JSON.stringify({
-        patientId: target.patientId,
-        clinicBranchId: branchId,
-        treatmentId: target.planId,
-        treatmentServiceId: target.serviceId,
-        serviceId: service.serviceId,
-        name: service.serviceName ?? service.code,
-        note: text,
-        staffId: staff.items[0].id,
-        teeth: free,
-        // Unset unless a spec says otherwise, so the công đoạn inherits whatever
-        // its service catalog says. It used to be forced to `false` here to
-        // dodge a 403 Treatment:0019 on POST …/complete — that block was an
-        // invented rule and is gone (R-287), so the fixture no longer has to lie
-        // about the service to get a closable row.
-        ...(needsImage === undefined ? {} : { isImageRequired: needsImage }),
-      }),
-    });
-    return { status: res.status, id: res.ok ? ((await res.json()).id as string) : null, body: res.ok ? "" : await res.text() };
-  }, { target: line, text: note, needsImage: imageRequired });
+      return {
+        status: res.status,
+        id: res.ok ? ((await res.json()).id as string) : null,
+        body: res.ok ? "" : await res.text(),
+      };
+    },
+    { target: line, text: note, needsImage: imageRequired },
+  );
   expect(created.status, `the công đoạn should have been created: ${created.body}`).toBe(200);
   return created.id!;
 }
@@ -445,10 +457,9 @@ async function addStage(
  * A fresh line on the same slip, for a spec that needs a chain of its own —
  * one that can start with free teeth whatever the fixture line already holds.
  */
-async function addLine<T extends { patientId: string; planId: string; serviceId: string; branchId?: string }>(
-  page: Page,
-  line: T,
-): Promise<T> {
+async function addLine<
+  T extends { patientId: string; planId: string; serviceId: string; branchId?: string },
+>(page: Page, line: T): Promise<T> {
   const made = await page.evaluate(async (target) => {
     const branchId = target.branchId ?? new URLSearchParams(location.search).get("branchId");
     const headers: Record<string, string> = {
@@ -456,7 +467,10 @@ async function addLine<T extends { patientId: string; planId: string; serviceId:
       ...(branchId ? { "X-Clinic-Branch-Id": branchId } : {}),
     };
     const plan = await (
-      await fetch(`/api/v1/app/patient-treatments/${target.planId}`, { credentials: "include", headers })
+      await fetch(`/api/v1/app/patient-treatments/${target.planId}`, {
+        credentials: "include",
+        headers,
+      })
     ).json();
     const source = plan.services.find((item: { id: string }) => item.id === target.serviceId);
     const known = new Set(plan.services.map((item: { id: string }) => item.id));
@@ -471,18 +485,28 @@ async function addLine<T extends { patientId: string; planId: string; serviceId:
         discountType: 0,
         discountValue: 0,
         status: 1,
-        teeth: [{ toothCode: 11, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+        teeth: [
+          {
+            toothCode: 11,
+            selected: true,
+            top: false,
+            right: false,
+            bottom: false,
+            left: false,
+            center: false,
+          },
+        ],
       }),
     });
     if (!res.ok) return { error: `${res.status} ${await res.text()}` };
     const updated = await res.json();
-    return { id: updated.services.find((item: { id: string }) => !known.has(item.id)).id as string };
+    return {
+      id: updated.services.find((item: { id: string }) => !known.has(item.id)).id as string,
+    };
   }, line);
   expect("error" in made ? made.error : null, "the fresh line should be written").toBeNull();
   return { ...line, serviceId: (made as { id: string }).id };
 }
-
-
 
 /**
  * The slip's money, service by service, in the plan's own order.
@@ -501,20 +525,24 @@ async function paidByService(page: Page, planId: string) {
     );
     const account = await res.json();
     const plan = account.plans.find((p: { id: string }) => p.id === id);
+    // The account lists receipts newest first, so [0] is the one just written.
     const receipts = account.payments.filter(
       (p: { treatmentPlanId: string }) => p.treatmentPlanId === id,
     );
-    const lines = new Map<string, number>(
-      (receipts[0]?.lines ?? []).map((l: { treatmentServiceId: string; amount: number }) => [
-        l.treatmentServiceId,
-        l.amount,
-      ]),
-    );
-    return {
-      receiptCount: receipts.length as number,
-      lineAmounts: (plan.services as { id: string }[]).map((s) => lines.get(s.id) ?? 0),
-      paid: (plan.services as { paidAmount: number }[]).map((s) => s.paidAmount),
-    };
+    // Keyed by line id: a shared demo slip carries lines in a different order
+    // on the dialog and on the plan, so positions cannot be compared (R-585).
+    const newestLines: Record<string, number> = {};
+    for (const l of (receipts[0]?.lines ?? []) as {
+      treatmentServiceId: string;
+      amount: number;
+    }[]) {
+      newestLines[l.treatmentServiceId] = l.amount;
+    }
+    const paid: Record<string, number> = {};
+    for (const s of plan.services as { id: string; paidAmount: number }[]) {
+      paid[s.id] = s.paidAmount;
+    }
+    return { receiptCount: receipts.length as number, newestLines, paid };
   }, planId);
 }
 
@@ -1080,8 +1108,7 @@ test.describe("Bệnh nhân", () => {
     // opens the library on it.
     const catalogue = page.waitForResponse(
       (res) =>
-        res.url().includes("/api/v1/app/catalog-entries") &&
-        res.url().includes("consulting_data"),
+        res.url().includes("/api/v1/app/catalog-entries") && res.url().includes("consulting_data"),
     );
     await tools.getByRole("button", { name: "Danh mục" }).click();
     const library = page.getByRole("dialog", { name: "Thư viện ảnh lâm sàng" });
@@ -1357,6 +1384,11 @@ test.describe("Bệnh nhân", () => {
     await page
       .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
       .first()
+      .click();
+    // The record opens on Chẩn đoán & Tư vấn; the payment button lives on Hồ sơ.
+    await page
+      .getByRole("navigation", { name: "Chi tiết bệnh nhân" })
+      .getByRole("link", { name: "Hồ sơ" })
       .click();
 
     // The record's own button, not the sidebar entry of the same name.
@@ -1751,8 +1783,9 @@ test.describe("Bệnh nhân", () => {
             `/api/v1/app/patient-payments/account?patientId=${patientId}&clinicBranchId=${branch}`,
           )
         ).json();
-        const plan = (account.plans as { id: string; services: { outstandingAmount: number }[] }[])
-          .find((entry) => entry.id === planId);
+        const plan = (
+          account.plans as { id: string; services: { outstandingAmount: number }[] }[]
+        ).find((entry) => entry.id === planId);
         return (plan?.services ?? []).filter((line) => line.outstandingAmount > 0).length;
       };
 
@@ -1781,7 +1814,8 @@ test.describe("Bệnh nhân", () => {
         treatmentPlanId: string | null;
         teeth: unknown[];
       }[];
-      const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1")).json()).items[0].id;
+      const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1")).json()).items[0]
+        .id;
 
       // Two different services on one patient's diagnosis, so the slip really
       // carries two lines rather than one line of quantity two.
@@ -1818,12 +1852,16 @@ test.describe("Bệnh nhân", () => {
           return res.ok ? ((await res.json()).id as string) : null;
         };
 
-        const pair = [await raise(seed.serviceId, 1_200_000), await raise(other.serviceId, 800_000)];
+        const pair = [
+          await raise(seed.serviceId, 1_200_000),
+          await raise(other.serviceId, 800_000),
+        ];
         if (pair.some((id) => id === null)) continue;
 
         const accepted = await Promise.all(
-          pair.map(async (id) =>
-            (await send(`/api/v1/app/patient-advises/${id}/accept`, { method: "POST" })).ok,
+          pair.map(
+            async (id) =>
+              (await send(`/api/v1/app/patient-advises/${id}/accept`, { method: "POST" })).ok,
           ),
         );
         if (accepted.some((ok) => !ok)) continue;
@@ -1884,7 +1922,9 @@ test.describe("Bệnh nhân", () => {
 
     const lines = dialog.locator(".pd-newpay-lines > li");
     const count = await lines.count();
-    expect(count, "the slip the search settled on should still owe on two lines").toBeGreaterThan(1);
+    expect(count, "the slip the search settled on should still owe on two lines").toBeGreaterThan(
+      1,
+    );
 
     const before = await paidByService(page, slip!.planId);
     const dues = await dialog
@@ -1908,14 +1948,18 @@ test.describe("Bệnh nhân", () => {
     expect(body.items, "auto leaves the split to the server").toBeFalsy();
     await expect(dialog).toBeHidden();
 
-    // The server spread it oldest-first, capped per line, and it persisted.
+    // The server spread it in the order the dialog named the lines, capped per
+    // line, and it persisted. A shared demo slip may already carry receipts, so
+    // the count grows by one rather than reading one.
     const after = await paidByService(page, slip!.planId);
+    expect(after.receiptCount, "one receipt, not one per service").toBe(before.receiptCount + 1);
 
-    expect(after.receiptCount, "one receipt, not one per service").toBe(1);
-    // Line one paid off, the rest of the money on line two.
-    const share = [dues[0], paying - dues[0]];
-    expect(after.lineAmounts.slice(0, 2)).toEqual(share);
-    expect(after.paid.slice(0, 2)).toEqual([before.paid[0] + share[0], before.paid[1] + share[1]]);
+    // Line one paid off, the rest of the money on line two, nothing elsewhere.
+    const [first, second] = body.treatmentServiceIds as string[];
+    const share = { [first]: dues[0], [second]: paying - dues[0] };
+    expect(after.newestLines).toEqual(share);
+    expect(after.paid[first]).toBe(before.paid[first] + dues[0]);
+    expect(after.paid[second]).toBe(before.paid[second] + (paying - dues[0]));
   });
 
   test("Ngân hàng and Ví momo make the clinic's account a required pick", async ({ page }) => {
@@ -2017,7 +2061,9 @@ test.describe("Bệnh nhân", () => {
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
     await form.locator("textarea").fill(note);
-    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
+    await dialog
+      .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+      .click();
     const saved = await created;
     expect(saved.ok()).toBeTruthy();
     const madeId = (await saved.json()).id as string;
@@ -2086,7 +2132,9 @@ test.describe("Bệnh nhân", () => {
       // Nothing to edit yet — add one so the spec always exercises the pencil.
       await dialog.locator(".pd-stage-picks button").first().click();
       await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
-      await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
+      await dialog
+        .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+        .click();
       await expect(rows).not.toHaveCount(0);
     }
 
@@ -2176,9 +2224,9 @@ test.describe("Bệnh nhân", () => {
 
     // It is the slip the clicked row belongs to, and it opens on Chi tiết.
     await expect(page.locator(".pdt-page")).toBeVisible();
-    await expect(page.locator(".pdt-tab.active, [role=tab][aria-selected=true]").first()).toHaveText(
-      "Chi tiết",
-    );
+    await expect(
+      page.locator(".pdt-tab.active, [role=tab][aria-selected=true]").first(),
+    ).toHaveText("Chi tiết");
   });
 
   test("Tạo Labo opens Đặt mới filled from the công đoạn", async ({ page }) => {
@@ -2194,7 +2242,9 @@ test.describe("Bệnh nhân", () => {
     if ((await rows.count()) === 0) {
       await dialog.locator(".pd-stage-picks button").first().click();
       await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
-      await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
+      await dialog
+        .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+        .click();
       await expect(rows).not.toHaveCount(0);
     }
 
@@ -2259,7 +2309,9 @@ test.describe("Bệnh nhân", () => {
     expect(dateCells.reduce((sum, cell) => sum + cell.rowSpan, 0)).toBe(spans.length);
   });
 
-  test("a continued công đoạn greys out and only its successor stays workable", async ({ page }) => {
+  test("a continued công đoạn greys out and only its successor stays workable", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "stageable");
     // The second visit continues the first (measured on staging 2026-09-24:
@@ -2396,10 +2448,7 @@ test.describe("Bệnh nhân", () => {
     await expect(pill).toHaveCSS("border-radius", "999px");
     await expect(pill).toHaveCSS("font-weight", "500");
     // Not the table's pair — the two sets are different on the reference.
-    await expect(pill).not.toHaveCSS(
-      "background-color",
-      REFERENCE_STATUS.table["Hoàn thành"].bg,
-    );
+    await expect(pill).not.toHaveCSS("background-color", REFERENCE_STATUS.table["Hoàn thành"].bg);
   });
 
   test("In Phiếu prints the A4 sheet, not the dialog", async ({ page }) => {
@@ -2492,7 +2541,11 @@ test.describe("Bệnh nhân", () => {
           const room =
             line.teeth.length === 0 ||
             line.teeth.some((tooth) => !line.stagedTeeth.includes(tooth.toothCode));
-          if ((line.serviceSteps ?? []).length > 0 && (line.status === 1 || line.status === 2) && room) {
+          if (
+            (line.serviceSteps ?? []).length > 0 &&
+            (line.status === 1 || line.status === 2) &&
+            room
+          ) {
             return {
               patientId: slip.patientId,
               branchId: slip.branchId,
@@ -2514,7 +2567,12 @@ test.describe("Bệnh nhân", () => {
     // Give it an open công đoạn, so its Công đoạn cell offers the +.
     const openStage = await addStage(
       page,
-      { patientId: target!.patientId, planId: target!.planId, serviceId: target!.serviceId, branchId: target!.branchId },
+      {
+        patientId: target!.patientId,
+        planId: target!.planId,
+        serviceId: target!.serviceId,
+        branchId: target!.branchId,
+      },
       `e2e bước ${runId()}`,
     );
 
@@ -2542,7 +2600,9 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
+    await dialog
+      .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+      .click();
     const madeStage = await (await created).json();
     expect(madeStage.serviceItems, "the chosen step is stored on the công đoạn").toHaveLength(1);
     expect(
@@ -2612,7 +2672,9 @@ test.describe("Bệnh nhân", () => {
     // and the button is what says which form the files are for.
     const chooser = page.waitForEvent("filechooser");
     await form.getByRole("button", { name: "Tải Ảnh" }).click();
-    await (await chooser).setFiles([
+    await (
+      await chooser
+    ).setFiles([
       { name: "stage-a.png", mimeType: "image/png", buffer: png },
       { name: "stage-b.png", mimeType: "image/png", buffer: png },
     ]);
@@ -2713,14 +2775,10 @@ test.describe("Bệnh nhân", () => {
     await page.locator(".pd-treatment-table .ant-table-content").evaluate((el) => {
       el.scrollLeft = el.scrollWidth;
     });
-    await expect(
-      treatmentRow(page, line.serviceId).locator(".pd-tr-addstage"),
-    ).toBeVisible();
+    await expect(treatmentRow(page, line.serviceId).locator(".pd-tr-addstage")).toBeVisible();
   });
 
-  test("Hoàn thành ticks with no image, even on a service that asks for one", async ({
-    page,
-  }) => {
+  test("Hoàn thành ticks with no image, even on a service that asks for one", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     // A line of its own: only a new chain can carry the forced flag, and the
     // fixture line's teeth may all be held already.
@@ -2832,15 +2890,14 @@ test.describe("Bệnh nhân", () => {
     // An invalid form must not reach the server at all.
     let posted = false;
     page.on("request", (request) => {
-      if (
-        request.method() === "POST" &&
-        request.url().includes("/api/v1/app/treatment-stages")
-      ) {
+      if (request.method() === "POST" && request.url().includes("/api/v1/app/treatment-stages")) {
         posted = true;
       }
     });
 
-    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
+    await dialog
+      .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+      .click();
 
     // Reported beneath the field it belongs to, the way "Tạo tái khám" reports
     // its own: a toast does not say which input it meant, and it is gone by the
@@ -2862,7 +2919,9 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
+    await dialog
+      .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+      .click();
     expect((await created).ok(), "the filled form should be accepted").toBeTruthy();
     await expect(dialog.locator(".pd-stage-note").filter({ hasText: note })).toHaveCount(1);
   });
@@ -2884,10 +2943,7 @@ test.describe("Bệnh nhân", () => {
     await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
 
     await page.getByRole("button", { name: "Tạo Tái khám" }).click();
-    const row = page
-      .locator(".pd-recall-dialog .pd-recall-row")
-      .filter({ hasText: note })
-      .first();
+    const row = page.locator(".pd-recall-dialog .pd-recall-row").filter({ hasText: note }).first();
 
     /*
      * Not the service's steps, which is what this heading means over on "Chi
@@ -3023,7 +3079,10 @@ typed by hand`);
     await expect(chart).toBeVisible();
     await chart.locator(".ant-modal-footer").getByRole("button", { name: "Chọn răng" }).click();
     await expect(chart).toBeHidden();
-    await expect(chips.filter({ hasText: pickedTooth }).first()).toHaveAttribute("aria-pressed", "true");
+    await expect(chips.filter({ hasText: pickedTooth }).first()).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     // Chosen pictures list as thumbnails, each with its own remove.
     const png = Buffer.from(
@@ -3065,7 +3124,7 @@ typed by hand`);
       .toBe(rowsBefore + 1);
 
     const recall = page
-      .locator('.pd-treatment-table tbody tr.ant-table-row:has(.pd-tr-chip--recall)')
+      .locator(".pd-treatment-table tbody tr.ant-table-row:has(.pd-tr-chip--recall)")
       .first();
     await expect(recall).toBeVisible();
     await expect(recall.locator(".pd-tr-code")).toContainText("REX");
@@ -3078,6 +3137,19 @@ typed by hand`);
     await expect(recall.locator(".pd-tr-warranty")).toHaveCount(0);
     await expect(recall.locator(".pd-tr-care")).toHaveCount(0);
     await expect(recall.locator(".pd-tr-sub")).toHaveCount(0);
+
+    // BA item 24 (2026-09-28): the code is a reference to the slip, and lands
+    // on **that slip's** detail screen — not the tab listing every slip. A tái
+    // khám has no screen of its own, so its REX code opens the slip it hangs off,
+    // whose code closes the breadcrumb.
+    const planCode = (await recall.locator(".pd-tr-service p").innerText()).match(/DT\d+/)?.[0];
+    const slipCode = await page
+      .locator(".pd-treatment-table tbody tr.ant-table-row .pd-tr-code", { hasText: /^DT/ })
+      .first()
+      .innerText();
+    await recall.locator(".pd-tr-code").click();
+    await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}\?branchId=/);
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode ?? slipCode);
   });
 
   test("finishing one công đoạn leaves the others open", async ({ page }) => {
@@ -3148,9 +3220,7 @@ typed by hand`);
     await expect(row.getByRole("button", { name: "Chi Tiết" })).toBeVisible();
   });
 
-  test("Chi tiết dịch vụ prints the line's own Ghi chú, not its công đoạn's", async ({
-    page,
-  }) => {
+  test("Chi tiết dịch vụ prints the line's own Ghi chú, not its công đoạn's", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "warrantable");
     // A note that could not plausibly be the line's own, so seeing it in the
@@ -3232,8 +3302,7 @@ typed by hand`);
       start.setUTCDate(start.getUTCDate() + 120);
       start.setUTCHours(3, 0, 0, 0);
       const end = new Date(start.getTime() + 30 * 60 * 1000);
-      const overlaps = (row: Row) =>
-        new Date(row.slotStart) < end && new Date(row.slotEnd) > start;
+      const overlaps = (row: Row) => new Date(row.slotStart) < end && new Date(row.slotEnd) > start;
 
       const busy = new Set(all.filter((row) => live(row) && overlaps(row)).map((r) => r.dentistId));
       const withLiveBooking = new Set(all.filter(live).map((row) => row.patientId));
@@ -3327,12 +3396,13 @@ typed by hand`);
     // repeating one tint. Read after the fill transition settles.
     await expect(page.locator(".pd-appt-steps li.reached")).toHaveCount(3);
     await expect
-      .poll(async () =>
-        new Set(
-          await page
-            .locator(".pd-appt-steps .pd-appt-step-dot")
-            .evaluateAll((dots) => dots.map((d) => getComputedStyle(d).backgroundColor)),
-        ).size,
+      .poll(
+        async () =>
+          new Set(
+            await page
+              .locator(".pd-appt-steps .pd-appt-step-dot")
+              .evaluateAll((dots) => dots.map((d) => getComputedStyle(d).backgroundColor)),
+          ).size,
       )
       .toBe(3);
   });
@@ -3686,7 +3756,9 @@ typed by hand`);
     await expect(cards.first().locator("small")).not.toBeEmpty();
     await expect(cards.first().getByRole("button", { name: "Sắp xếp" })).toBeVisible();
     await expect(cards.first().getByRole("button", { name: "Xoá ảnh" })).toBeVisible();
-    await expect(cards.first().getByRole("button", { name: "Xem ảnh", exact: true })).toHaveCount(0);
+    await expect(cards.first().getByRole("button", { name: "Xem ảnh", exact: true })).toHaveCount(
+      0,
+    );
 
     // Unticking takes it off the panel behind.
     await cards.first().getByRole("checkbox").uncheck();
@@ -3795,11 +3867,11 @@ typed by hand`);
 
     // Both halves of the reference's dialog.
     await expect(dialog.getByText("Ảnh chẩn đoán")).toBeVisible();
-    await expect(dialog.getByRole("heading", { name: "Phiếu chẩn đoán", exact: true })).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", { name: "Phiếu chẩn đoán", exact: true }),
+    ).toBeVisible();
     await expect(dialog.locator(".dp-sheet-title h1").first()).toHaveText("PHIẾU CHẨN ĐOÁN");
-    await expect(dialog.locator(".dp-paper .dp-sheet h2").last()).toHaveText(
-      /TƯ VẤN CHẨN ĐOÁN$/,
-    );
+    await expect(dialog.locator(".dp-paper .dp-sheet h2").last()).toHaveText(/TƯ VẤN CHẨN ĐOÁN$/);
 
     // Ticking a photograph adds the image section and renumbers the advice.
     const tick = dialog.locator(".dp-images-item").first().getByRole("checkbox");

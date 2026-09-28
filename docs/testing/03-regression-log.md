@@ -5996,3 +5996,14 @@ ngưng, TV ẩn danh, chi nhánh 2 không thấy quầy và bị 404) và `e2e/q
 chạy lại đủ 10/10 với host build mới (`ServiceType`) và bundle mới. Cả hai spec xả hàng chờ chung qua `call-next` thật
 trước khi đo. Lần chạy đầu đỏ giả vì `getByRole("cell", { name })` khớp cả ô trạng thái
 (Switch mang `aria-label` = tên quầy) → `exact: true`. Retest level 2 (một feature).
+
+## 2026-09-28 — Tab Hồ sơ: mã phiếu chuyển thẳng tới chi tiết phiếu (BA mục 24, R-584)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-584 | BA mục 24 "Chuyển hướng tái khám": ở bảng lịch sử điều trị tab Hồ sơ, bấm mã phiếu (REX001 trên dòng Tái khám, DTxx trên dòng công đoạn) phải chuyển thẳng tới chi tiết **đúng phiếu đó** — breadcrumb kết thúc bằng mã phiếu (ảnh: `[BD260026] - … > Kế hoạch điều trị > DT06`). Local chỉ mở `?tab=treatment-plan` (danh sách mọi phiếu). | `treatmentColumns.onOpenPlan` nay nhận dòng; `PatientProfileTab` điều hướng `planDetailPath(patient.id, row.treatmentPlanId, branchId)` — cùng trang dialog công đoạn đã dùng từ 2026-09-07, nhưng **không** kèm `planTab`, giống chip DT ở tab Kế hoạch điều trị (R-274) để trang tự rơi về Chi tiết. Dòng tái khám không có trang riêng nên REX đưa về phiếu chứa nó (`treatmentPlanId` kế thừa từ service line). Chip "Tái khám" giữ là nhãn, không phải link. |
+
+Bằng chứng: bản build production (`vite preview --host 127.0.0.1` cổng 8091, API thật 5000, DB thật) —
+`e2e/patient.spec.ts` "a tái khám picks its teeth…" 1/1, thêm assert cuối: bấm `.pd-tr-code` của
+dòng tái khám → URL `/treatment-plan/<guid>?branchId=`, `.pdt-crumb--current` = mã phiếu.
+`tsc` sạch. Retest level 2 (một feature); không spec nào khác bấm mã phiếu ở tab Hồ sơ.

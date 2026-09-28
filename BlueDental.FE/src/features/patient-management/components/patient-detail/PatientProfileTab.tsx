@@ -269,7 +269,14 @@ export function PatientProfileTab({ patient }: Props) {
   );
   const payment = account?.payment;
 
-  const openTreatmentPlan = () => navigate(`?tab=treatment-plan&branchId=${branchId}`);
+  /*
+   * The code on a row goes straight to that slip's detail screen, not the tab
+   * listing every slip (BA item 24, 2026-09-28): the breadcrumb there ends with
+   * the slip's code. No `planTab`, like the DT chip on the Kế hoạch điều trị
+   * tab (R-274): the page falls back to Chi tiết by itself.
+   */
+  const openTreatmentPlan = (row: TreatmentRow) =>
+    navigate(planDetailPath(patient.id, row.treatmentPlanId, branchId));
   const columns = useMemo(
     () =>
       treatmentColumns({
@@ -278,9 +285,10 @@ export function PatientProfileTab({ patient }: Props) {
         onWarranty: setWarrantyRow,
         onPay: setPayingRow,
       }),
-    // openTreatmentPlan closes over the branch and the router's navigate only.
+    // openTreatmentPlan closes over the patient, the branch and the router's
+    // navigate only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [branchId],
+    [patient.id, branchId],
   );
   const planOf = (row: TreatmentRow | null) =>
     (account?.plans ?? []).find((plan) => plan.id === row?.treatmentPlanId) ?? null;
