@@ -329,3 +329,27 @@
   color: var(--bd-primary);
   background: var(--bd-primary-soft, var(--bd-bg-soft));
 }
+
+/* Success counter — green tint when not active */
+.bd-zalo-counter--success {
+  border-color: var(--bd-success, #22c55e);
+  color: var(--bd-success, #22c55e);
+}
+
+.bd-zalo-counter--success.bd-zalo-counter--active {
+  border-color: var(--bd-success, #22c55e);
+  color: var(--bd-success, #22c55e);
+  background: color-mix(in srgb, var(--bd-success, #22c55e) 10%, white);
+}
+
+/* Failed counter — red tint when not active */
+.bd-zalo-counter--failed {
+  border-color: var(--bd-danger, #ef4d4d);
+  color: var(--bd-danger, #ef4d4d);
+}
+
+.bd-zalo-counter--failed.bd-zalo-counter--active {
+  border-color: var(--bd-danger, #ef4d4d);
+  color: var(--bd-danger, #ef4d4d);
+  background: color-mix(in srgb, var(--bd-danger, #ef4d4d) 10%, white);
+}

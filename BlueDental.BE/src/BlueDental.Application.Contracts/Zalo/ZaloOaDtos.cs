@@ -121,6 +121,12 @@ public class GetZaloMessagesInput : PagedResultRequestDto
 
     /// <summary>True = sent or delivered, false = failed. Null = everything.</summary>
     public bool? Succeeded { get; set; }
+
+    /// <summary>Inclusive lower bound on <c>CreationTime</c> (UTC).</summary>
+    public DateTime? DateFrom { get; set; }
+
+    /// <summary>Inclusive upper bound on <c>CreationTime</c> (UTC).</summary>
+    public DateTime? DateTo { get; set; }
 }
 
 public class ZaloMessageDto
@@ -136,6 +142,7 @@ public class ZaloMessageDto
     public string? ErrorMessage { get; set; }
     public string? ExternalTemplateId { get; set; }
     public string? ExternalMessageId { get; set; }
+    public string? TemplateName { get; set; }
     public DateTime CreationTime { get; set; }
 }
 

@@ -7,6 +7,7 @@ public class MessageLog : CreationAuditedEntity<Guid>
 {
     public const int MaxExternalIdLength = 100;
     public const int MaxExternalTemplateIdLength = 50;
+    public const int MaxTemplateNameLength = 200;
     public const int MaxErrorLength = 500;
 
     public Guid ClinicBranchId { get; private set; }
@@ -25,6 +26,9 @@ public class MessageLog : CreationAuditedEntity<Guid>
 
     /// <summary>The provider's template id (Zalo ZNS template) when the message came from one.</summary>
     public string? ExternalTemplateId { get; private set; }
+
+    /// <summary>The human-readable template name at the time the message was sent.</summary>
+    public string? TemplateName { get; private set; }
 
     /// <summary>What the provider charged, in VND, when it says.</summary>
     public decimal? Cost { get; private set; }
@@ -51,9 +55,10 @@ public class MessageLog : CreationAuditedEntity<Guid>
         ErrorMessage = Clip(errorMessage, MaxErrorLength);
     }
 
-    public MessageLog SetExternalTemplate(string? externalTemplateId)
+    public MessageLog SetExternalTemplate(string? externalTemplateId, string? templateName = null)
     {
         ExternalTemplateId = Clip(externalTemplateId, MaxExternalTemplateIdLength);
+        TemplateName = Clip(templateName, MaxTemplateNameLength);
         return this;
     }
 

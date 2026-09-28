@@ -155,7 +155,7 @@ public class ZaloOaTokenService : ITransientDependency
         ?? throw new InvalidOperationException("The Zalo token could not be encrypted.");
 
     /// <summary>The tracked instance takes the newer row's token state.</summary>
-    private static void Copy(ZaloOaConnection source, ZaloOaConnection target)
+    private void Copy(ZaloOaConnection source, ZaloOaConnection target)
     {
         if (source.IsConnected)
         {
@@ -165,7 +165,7 @@ public class ZaloOaTokenService : ITransientDependency
         }
         else
         {
-            target.RecordRefreshFailure(source.LastError, source.RefreshTokenExpiresAt);
+            target.RecordRefreshFailure(source.LastError, _clock.Now);
         }
     }
 }

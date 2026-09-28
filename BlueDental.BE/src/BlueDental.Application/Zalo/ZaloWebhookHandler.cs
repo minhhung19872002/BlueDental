@@ -57,7 +57,13 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
         var eventName = root is { } r ? Text(r, "event_name") : null;
         var timestamp = root is { } t ? Text(t, "timestamp") : null;
 
-        if (!string.IsNullOrWhiteSpace(options.WebhookSecret) && !string.IsNullOrWhiteSpace(options.AppId))
+        if (string.IsNullOrWhiteSpace(options.WebhookSecret))
+        {
+            _logger.LogWarning("Zalo webhook rejected: WebhookSecret is not configured");
+            return ZaloWebhookResult.Unauthorized;
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.AppId))
         {
             var valid = ZaloWebhookSignature.Verify(
                 signatureHeader, options.AppId, body, timestamp ?? string.Empty, options.WebhookSecret);

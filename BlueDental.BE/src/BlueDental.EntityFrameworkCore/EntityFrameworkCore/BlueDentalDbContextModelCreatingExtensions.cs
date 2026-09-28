@@ -1289,6 +1289,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.ErrorMessage).HasMaxLength(MessageLog.MaxErrorLength);
             entity.Property(x => x.ExternalMessageId).HasMaxLength(MessageLog.MaxExternalIdLength);
             entity.Property(x => x.ExternalTemplateId).HasMaxLength(MessageLog.MaxExternalTemplateIdLength);
+            entity.Property(x => x.TemplateName).HasMaxLength(MessageLog.MaxTemplateNameLength);
             entity.Property(x => x.Cost).HasPrecision(18, 2);
             entity.HasIndex(x => new { x.Channel, x.CreationTime });
             entity.HasIndex(x => x.ExternalMessageId);

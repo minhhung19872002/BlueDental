@@ -222,6 +222,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
     // ── Templates ─────────────────────────────────────────────────────────
 
+    [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<ZaloTemplateDto>> GetTemplatesAsync(GetZaloTemplatesInput input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
@@ -239,6 +240,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         return new PagedResultDto<ZaloTemplateDto>(outcome.Total, items);
     }
 
+    [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<ZaloTemplateDetailDto> GetTemplateDetailAsync(string templateId)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
@@ -280,7 +282,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
             patient?.FullName ?? phone, phone,
             DescribeContent(detail, data.Values), MessageChannelType.Zalo,
             MessageSendStatus.Pending, null, null)
-            .SetExternalTemplate(detail.TemplateId);
+            .SetExternalTemplate(detail.TemplateId, detail.Name);
 
         var outcome = await _zalo.SendTemplateMessageAsync(
             accessToken, phone, detail.TemplateId, data.Values, messageId.ToString("N"));
@@ -325,6 +327,16 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         else if (input.Succeeded == false)
         {
             q = q.Where(x => x.Status == MessageSendStatus.Failed);
+        }
+
+        if (input.DateFrom.HasValue)
+        {
+            q = q.Where(x => x.CreationTime >= input.DateFrom.Value);
+        }
+
+        if (input.DateTo.HasValue)
+        {
+            q = q.Where(x => x.CreationTime <= input.DateTo.Value);
         }
 
         foreach (var term in SearchTerms.From(input.Filter))
@@ -600,6 +612,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         ErrorMessage = x.ErrorMessage,
         ExternalTemplateId = x.ExternalTemplateId,
         ExternalMessageId = x.ExternalMessageId,
+        TemplateName = x.TemplateName,
         CreationTime = x.CreationTime,
     };
 

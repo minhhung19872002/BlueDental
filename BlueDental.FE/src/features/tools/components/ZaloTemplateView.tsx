@@ -1,12 +1,14 @@
-import { useMemo } from "react";
-import { Tag } from "antd";
+import { useMemo, useState } from "react";
+import { Button, Tag } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ColumnsType } from "antd/es/table";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
-import { useZaloTemplates, type ZaloTemplateDto } from "../api/zaloApi";
+import { useZaloStatus, useZaloTemplates, zaloKeys, type ZaloTemplateDto } from "../api/zaloApi";
 
 /** The reference's pager on this list runs 5…100 with 20 selected. */
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 25, 50, 100];
@@ -32,11 +34,23 @@ function templateTotal(total: number, range: [number, number]) {
 
 /** Mẫu ZBS — read straight from Zalo; nothing here is created or edited. */
 export function ZaloTemplateView() {
+  const qc = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const pagination = useTablePagination(20, { pageSizeOptions: PAGE_SIZE_OPTIONS });
-  const { data, isFetching, error } = useZaloTemplates({
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-  });
+
+  const { data: statusData } = useZaloStatus();
+  const isConnected = statusData?.isConnected ?? false;
+
+  const { data, isFetching, error } = useZaloTemplates(
+    { skipCount: pagination.skipCount, maxResultCount: pagination.maxResultCount },
+    isConnected,
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await qc.invalidateQueries({ queryKey: [...zaloKeys.all, "templates"] });
+    setRefreshing(false);
+  };
 
   const columns = useMemo<ColumnsType<ZaloTemplateDto>>(
     () => [
@@ -52,6 +66,12 @@ export function ZaloTemplateView() {
         },
       },
       { key: "quality", title: t("Tools:ZaloTemplateQuality"), width: 140, render: (_, tpl) => tpl.quality ?? "—" },
+      {
+        key: "listParams",
+        title: t("Tools:ZaloTemplateParams"),
+        width: 200,
+        render: (_, tpl) => tpl.listParams ?? "—",
+      },
       { key: "created", title: t("Tools:CreatedAtLabel"), width: 130, render: (_, tpl) => formatDate(tpl.createdAt) },
     ],
     [],
@@ -61,7 +81,17 @@ export function ZaloTemplateView() {
 
   return (
     <div className="reception-card reception-card--content">
-      <p className="bd-zalo-hint bd-zalo-hint--list">{t("Tools:ZaloTemplateHint")}</p>
+      <div className="bd-ops-toolbar">
+        <p className="bd-zalo-hint bd-zalo-hint--list">{t("Tools:ZaloTemplateHint")}</p>
+        <Button
+          className="bd-tools-toolbar-end"
+          icon={<ReloadOutlined />}
+          loading={refreshing || isFetching}
+          onClick={handleRefresh}
+        >
+          {t("Common:Refresh")}
+        </Button>
+      </div>
       <DataTable<ZaloTemplateDto>
         columns={columns}
         dataSource={data?.items ?? []}
