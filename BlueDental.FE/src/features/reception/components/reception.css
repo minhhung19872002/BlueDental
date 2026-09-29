@@ -195,7 +195,6 @@
   flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
-  overflow: hidden;
 }
 
 .rc-cancel-btn + .rc-card .rc-col-actions {
@@ -209,14 +208,10 @@
   font-size: 14px;
   font-weight: 700;
   color: #171c33;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .rc-ticket span {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .rc-badge {
