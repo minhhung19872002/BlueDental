@@ -145,19 +145,23 @@ export const NAV_ENTRIES = {
 /** Flat list, in the design's order — what the mobile drawer shows. */
 export const NAV_FLAT: readonly NavEntry[] = Object.values(NAV_ENTRIES);
 
+/**
+ * The BA's order (2026-09-29): Phòng khám leads and Tổng quan follows it, since
+ * the app now opens on Tiếp nhận — see `HomeRedirect`.
+ */
 export const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    id: "clinic",
+    label: "Menu:ClinicGroup",
+    icon: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
+    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh, NAV_ENTRIES.queue],
+  },
   {
     id: "dashboard",
     label: "Menu:Dashboard",
     icon: NAV_ENTRIES.dashboard.icon,
     path: NAV_ENTRIES.dashboard.path,
     permissions: NAV_ENTRIES.dashboard.permissions,
-  },
-  {
-    id: "clinic",
-    label: "Menu:ClinicGroup",
-    icon: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
-    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh, NAV_ENTRIES.queue],
   },
   {
     id: "finance",

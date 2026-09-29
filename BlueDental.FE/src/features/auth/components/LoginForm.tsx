@@ -77,12 +77,12 @@ export function LoginForm() {
         roles: user.roles,
         permissions: user.permissions,
       });
-      // Tổng quan is where the app opens — the router's index redirects there
-      // too, and it is the one screen every account may see, so a user with
-      // few permissions does not land on a 403 the moment they sign in.
+      // The router's index decides where the app opens (Tiếp nhận, or Tổng
+      // quan for an account that may not open it), so a user with few
+      // permissions does not land on a 403 the moment they sign in.
       const from =
         (location.state as { from?: { pathname?: string } })?.from?.pathname ??
-        "/dashboard";
+        "/";
       navigate(from, { replace: true });
     },
     onError: (error) => {

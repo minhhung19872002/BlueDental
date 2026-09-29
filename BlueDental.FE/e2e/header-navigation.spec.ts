@@ -10,10 +10,21 @@ test.describe("Header navigation", () => {
     await login(page);
   });
 
-  test("the header carries the four menu groups", async ({ page }) => {
-    for (const label of ["Tổng quan", "Phòng khám", "Tài chính", "Vận hành"]) {
-      await expect(page.locator(`.app-nav-group[title="${label}"]`)).toBeVisible();
-    }
+  test("signing in opens Tiếp nhận", async ({ page }) => {
+    await expect(page).toHaveURL(/\/reception$/);
+
+    // The bare address resolves the same way, not only the sign-in form.
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/reception$/);
+  });
+
+  test("the header carries the four menu groups, Phòng khám first", async ({ page }) => {
+    await expect(page.locator(".app-nav-group")).toHaveText([
+      "Phòng khám",
+      "Tổng quan",
+      "Tài chính",
+      "Vận hành",
+    ]);
 
     // Nothing of the old rail is left behind it.
     await expect(page.locator(".app-sidebar")).toHaveCount(0);
@@ -105,7 +116,7 @@ test.describe("Header navigation", () => {
   /* The header carries no language control of its own any more: the account
      menu is the only way to switch, on every screen size. */
   test("the account menu toggles between Vietnamese and English", async ({ page }) => {
-    const clinicGroup = page.locator(".app-nav-group").nth(1);
+    const clinicGroup = page.locator(".app-nav-group").first();
     await expect(clinicGroup).toHaveText("Phòng khám");
 
     await expect(page.locator(".app-header-lang")).toHaveCount(0);

@@ -85,7 +85,7 @@ test.describe("Phân quyền theo vai trò", () => {
     // ── the dentist, with nothing granted ─────────────────────────────────
     const dentist = await openDentistSession(browser, userName, password);
     try {
-      // Login lands on the one screen every account may see.
+      // Without Tiếp nhận, login falls back to the one screen every account may see.
       await expect(dentist.page).toHaveURL(/\/dashboard/);
 
       // The header shows only that screen; the other three groups are gone,

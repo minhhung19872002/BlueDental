@@ -1,8 +1,9 @@
 import { Suspense, lazy } from "react";
 import type { RouteObject } from "react-router-dom";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { Spin } from "antd";
 import { AppLayout } from "./AppLayout";
+import { HomeRedirect } from "./HomeRedirect";
 import { PermissionRoute } from "./PermissionRoute";
 import { PrivateRoute } from "./PrivateRoute";
 import { PublicOnlyRoute } from "./PublicOnlyRoute";
@@ -212,9 +213,7 @@ const appRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        // navDef opens on Tổng quan, so signing in lands there rather than on
-        // a reception list the user may not have come for.
-        element: <Navigate to="/dashboard" replace />,
+        element: <HomeRedirect />,
       },
       // ── Reception ──
       {
