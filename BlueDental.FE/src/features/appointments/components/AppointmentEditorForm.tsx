@@ -21,6 +21,7 @@ interface Props {
   currentStatus?: AppointmentStatus;
   /** Opened from a patient's record: the patient is fixed. */
   lockPatient?: boolean;
+  onOpenNewPatient?: () => void;
 }
 
 export function AppointmentEditorForm({
@@ -36,6 +37,7 @@ export function AppointmentEditorForm({
   isEdit,
   currentStatus,
   lockPatient,
+  onOpenNewPatient,
 }: Props) {
   return (
     <div className="appt-editor-body">
@@ -46,6 +48,7 @@ export function AppointmentEditorForm({
           patientOptions={patientOptions}
           branchOptions={branchOptions}
           lockPatient={lockPatient}
+          onOpenNewPatient={onOpenNewPatient}
         />
         <AppointmentFormCenter
           control={control}

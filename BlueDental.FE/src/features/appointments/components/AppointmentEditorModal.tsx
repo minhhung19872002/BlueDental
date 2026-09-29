@@ -1,9 +1,10 @@
-﻿import { useEffect, useMemo, useRef } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppDialog } from "@/components/AppDialog";
 // The dialog carries its own styling: it opens from the calendar *and* from a
 // patient's record, and the record's page does not import the calendar's CSS.
@@ -18,6 +19,8 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
+import type { PatientDto } from "@/features/patient-management/types/patient";
 import { APPT_COLORS } from "./AppointmentColorPicker";
 import { AppointmentEditorForm } from "./AppointmentEditorForm";
 import { STATUS_GROUP } from "./appointmentStatusOptions";
@@ -69,6 +72,7 @@ export function AppointmentEditorModal({
   onClose,
   onSuccess,
 }: Props) {
+  const [newPatientOpen, setNewPatientOpen] = useState(false);
   const isEdit = Boolean(appointmentId);
   const { save, saving } = useSaveAppointment(appointmentId);
   const currentBranchId = useCurrentBranchId();
@@ -119,6 +123,7 @@ export function AppointmentEditorModal({
   useEffect(() => {
     if (!open) {
       seeded.current = false;
+      setNewPatientOpen(false);
       reset();
       return;
     }
@@ -171,6 +176,19 @@ export function AppointmentEditorModal({
     initialDoctorId,
   ]);
 
+  const queryClient = useQueryClient();
+
+  const handlePatientCreated = useCallback(
+    (created: PatientDto) => {
+      setNewPatientOpen(false);
+      setValue("patientId", created.id);
+      queryClient.invalidateQueries({ queryKey: ["patient-options"] });
+    },
+    [setValue, queryClient],
+  );
+
+  const handleOpenNewPatient = useCallback(() => setNewPatientOpen(true), []);
+
   const onSubmit = async (data: AppointmentEditorValues) => {
     if (data.date && data.startTime) {
       const slot = dayjs(`${data.date} ${data.startTime}`);
@@ -191,32 +209,44 @@ export function AppointmentEditorModal({
   };
 
   return (
-    <AppDialog
-      open={open}
-      // The reference titles the two differently: "Tạo" for a new booking,
-      // "Cập nhật" once it exists.
-      title={isEdit ? t("Appointment:Modal:EditTitle") : t("Appointment:Modal:CreateTitle")}
-      width="calc(100vw - 80px)"
-      className="appt-editor-dialog"
-      canSave={isValid && !saving}
-      saving={saving}
-      onSave={handleSubmit(onSubmit)}
-      onClose={onClose}
-    >
-      <AppointmentEditorForm
-        control={control}
-        errors={errors}
-        setValue={setValue}
-        patientOptions={patientOptions}
-        branchOptions={branchOptions}
-        doctorOptions={doctorOptions}
-        watchedDoctorId={watchedDoctorId}
-        watchedDate={watchedDate}
-        watchedNotes={watchedNotes}
-        isEdit={isEdit}
-        currentStatus={existingAppt?.status}
-        lockPatient={lockPatient}
-      />
-    </AppDialog>
+    <>
+      <AppDialog
+        open={open && !newPatientOpen}
+        // The reference titles the two differently: "Tạo" for a new booking,
+        // "Cập nhật" once it exists.
+        title={isEdit ? t("Appointment:Modal:EditTitle") : t("Appointment:Modal:CreateTitle")}
+        width="calc(100vw - 80px)"
+        className="appt-editor-dialog"
+        canSave={isValid && !saving}
+        saving={saving}
+        onSave={handleSubmit(onSubmit)}
+        onClose={onClose}
+      >
+        <AppointmentEditorForm
+          control={control}
+          errors={errors}
+          setValue={setValue}
+          patientOptions={patientOptions}
+          branchOptions={branchOptions}
+          doctorOptions={doctorOptions}
+          watchedDoctorId={watchedDoctorId}
+          watchedDate={watchedDate}
+          watchedNotes={watchedNotes}
+          isEdit={isEdit}
+          currentStatus={existingAppt?.status}
+          lockPatient={lockPatient}
+          onOpenNewPatient={handleOpenNewPatient}
+        />
+      </AppDialog>
+
+      {newPatientOpen && (
+        <PatientEditorDialog
+          open
+          patient={null}
+          onClose={() => setNewPatientOpen(false)}
+          onCreated={handlePatientCreated}
+        />
+      )}
+    </>
   );
 }

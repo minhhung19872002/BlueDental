@@ -1,4 +1,5 @@
-import { InputNumber } from "antd";
+import { Button, InputNumber } from "antd";
+import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { ClockPicker, DayPicker } from "@/components/StringPickers";
@@ -12,6 +13,7 @@ interface Props {
   branchOptions: { value: string; label: string }[];
   /** Opened from a patient's record: the patient is fixed, as the reference fixes it. */
   lockPatient?: boolean;
+  onOpenNewPatient?: () => void;
 }
 
 export function AppointmentFormLeft({
@@ -20,6 +22,7 @@ export function AppointmentFormLeft({
   patientOptions,
   branchOptions,
   lockPatient,
+  onOpenNewPatient,
 }: Props) {
   return (
     <div>
@@ -28,20 +31,31 @@ export function AppointmentFormLeft({
         <label className="appt-field-label">
           {t("Appointment:Form:SelectPatient")}<span className="appt-field-required">*</span>
         </label>
-        <Controller
-          name="patientId"
-          control={control}
-          render={({ field }) => (
-            <SearchSelect
-              value={field.value || undefined}
-              placeholder={t("Appointment:Form:SelectPatient")}
-              options={patientOptions}
-              disabled={lockPatient}
-              onChange={(v) => field.onChange(v ?? "")}
-              status={errors.patientId ? "error" : ""}
-            />
+        <div className="appt-patient-row">
+          <Controller
+            name="patientId"
+            control={control}
+            render={({ field }) => (
+              <SearchSelect
+                value={field.value || undefined}
+                placeholder={t("Appointment:Form:SelectPatient")}
+                options={patientOptions}
+                disabled={lockPatient}
+                onChange={(v) => field.onChange(v ?? "")}
+                status={errors.patientId ? "error" : ""}
+              />
+            )}
+          />
+          {!lockPatient && (
+            <Button
+              type="primary"
+              className="appt-create-patient-btn"
+              onClick={onOpenNewPatient}
+            >
+              <Plus size={20} strokeWidth={2.5} />
+            </Button>
           )}
-        />
+        </div>
         {errors.patientId && <span className="appt-field-error">{errors.patientId.message}</span>}
       </div>
 
