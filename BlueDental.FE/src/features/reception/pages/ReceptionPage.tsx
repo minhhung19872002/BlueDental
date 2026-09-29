@@ -156,16 +156,16 @@ export const ReceptionPage: React.FC = () => {
     const item = items.find((i) => i.id === id);
     markBusy(id);
 
-    // "Chuyển bác sĩ" → start + outcome in one request.
-    if (outcome === "TransferDoctor" && item && !item.step2Time) {
+    // "Chuyển bác sĩ" / "Hẹn tái khám" → start + outcome in one request.
+    if ((outcome === "TransferDoctor" || outcome === "Revisit") && item && !item.step2Time) {
       updateStatusMutation.mutate(
         { id, action: "start", outcome },
         { onSettled: () => clearBusy(id) },
       );
       return;
     }
-    // "Kết thúc điều trị" → complete + outcome in one request.
-    if (outcome === "EndTreatment" && item && !item.step3Time) {
+    // "Kết thúc điều trị" / "Chuyển bác sĩ" / "Hẹn tái khám" (already started) → complete + outcome.
+    if ((outcome === "EndTreatment" || outcome === "TransferDoctor" || outcome === "Revisit") && item && !item.step3Time) {
       updateStatusMutation.mutate(
         { id, action: "complete", outcome },
         { onSettled: () => clearBusy(id) },

@@ -1678,6 +1678,7 @@
     "Reception:ReturningPatient": "Returning patient",
     "Reception:StepInProgress": "In progress",
     "Reception:StepComplete": "Complete",
+    "Reception:StepRevisit": "Rebooked",
     "Reception:SelectDoctor": "Select doctor",
     "Reception:EmptyTitle": "No matching receptions",
     "Reception:EmptyHint": "Try changing the filter or search keyword to see more data.",

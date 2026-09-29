@@ -1577,6 +1577,7 @@
     "Reception:ReturningPatient": "Khách cũ",
     "Reception:StepInProgress": "Đang khám",
     "Reception:StepComplete": "Hoàn tất",
+    "Reception:StepRevisit": "Đã hẹn lại",
     "Reception:SelectDoctor": "Chọn bác sĩ",
     "Reception:EmptyTitle": "Không có lượt tiếp nhận phù hợp",
     "Reception:EmptyHint": "Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu.",

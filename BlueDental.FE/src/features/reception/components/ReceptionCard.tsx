@@ -92,6 +92,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const step1Done = !!item.step1Time;
   const step2Done = !!item.step2Time;
   const step3Done = !!item.step3Time;
+  const isRevisit = selectedOutcome === "Revisit";
+  const hideStep3 = isRevisit && step2Done && !step3Done;
 
   const isCancelled = item.counterStatus === "Cancelled";
   const isNoShow = item.counterStatus === "Late" && !item.isTimeLate;
@@ -238,32 +240,34 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <div style={getStepCircleStyle(1, step2Done)}>
                       {step2Done ? <Check size={14} /> : "2"}
                     </div>
-                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
+                    <div className={`rc-step-line${hideStep3 ? " rc-step-line--invisible" : ""}`} style={hideStep3 ? undefined : { background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
                   </div>
-                  <p className="rc-step-label" style={step2Done ? { color: STEP_COLORS[1] } : undefined}>
-                    {t("Reception:StepInProgress")}
+                  <p className="rc-step-label" style={hideStep3 ? { color: "#e5484d" } : step2Done ? { color: STEP_COLORS[1] } : undefined}>
+                    {hideStep3 ? t("Reception:StepRevisit") : t("Reception:StepInProgress")}
                   </p>
                   <p className="rc-step-time">{item.step2Time || "--:--"}</p>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={!canComplete}
-                  className={`rc-step ${canComplete ? "rc-step--clickable" : ""}`}
-                  onClick={canComplete ? () => onStatusChange?.(item.id, "complete") : undefined}
-                >
-                  <div className="rc-step-track">
-                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
-                    <div style={getStepCircleStyle(2, step3Done)}>
-                      {step3Done ? <Check size={14} /> : "3"}
+                {!hideStep3 && (
+                  <button
+                    type="button"
+                    disabled={!canComplete}
+                    className={`rc-step ${canComplete ? "rc-step--clickable" : ""}`}
+                    onClick={canComplete ? () => onStatusChange?.(item.id, "complete") : undefined}
+                  >
+                    <div className="rc-step-track">
+                      <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
+                      <div style={getStepCircleStyle(2, step3Done)}>
+                        {step3Done ? <Check size={14} /> : "3"}
+                      </div>
+                      <div className="rc-step-line rc-step-line--invisible" />
                     </div>
-                    <div className="rc-step-line rc-step-line--invisible" />
-                  </div>
-                  <p className="rc-step-label" style={step3Done ? { color: STEP_COLORS[2] } : undefined}>
-                    {t("Reception:StepComplete")}
-                  </p>
-                  <p className="rc-step-time">{item.step3Time || "--:--"}</p>
-                </button>
+                    <p className="rc-step-label" style={isRevisit ? { color: "#e5484d" } : step3Done ? { color: STEP_COLORS[2] } : undefined}>
+                      {isRevisit ? t("Reception:StepRevisit") : t("Reception:StepComplete")}
+                    </p>
+                    <p className="rc-step-time">{item.step3Time || "--:--"}</p>
+                  </button>
+                )}
               </div>
 
               <div className="rc-doctor-select">
