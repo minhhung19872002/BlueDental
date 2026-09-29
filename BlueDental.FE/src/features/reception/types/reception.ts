@@ -48,6 +48,8 @@ export interface ReceptionItem {
   step2Time?: string;
   step3Time?: string;
   selectedOutcome?: AppointmentOutcome;
+  /** ISO instant of the appointment booked through "Đã hẹn tiếp". */
+  followUpAt?: string;
   createdAt: string;
   isTemporary?: boolean;
   /** True when "Late" badge is derived from time, not from backend NoShow status. */
@@ -87,6 +89,21 @@ export interface ReceptionMetrics {
   scheduledCount?: number;
   arrivedCount?: number;
   counters: ReceptionCounters;
+}
+
+/** "Đã hẹn tiếp": the next appointment, booked from the card. */
+export interface BookFollowUpInput {
+  slotStart: string;
+  slotEnd: string;
+  /** Left out, the follow-up goes to the card's own doctor. */
+  dentistId?: string;
+  chiefComplaint?: string;
+}
+
+/** A span a doctor is already booked for, as epoch milliseconds. */
+export interface BusySpan {
+  start: number;
+  end: number;
 }
 
 export interface CreateReceptionInput {

@@ -4,6 +4,8 @@ import { t } from "@/lib/i18n";
 import type {
   AppointmentCounterType,
   AppointmentOutcome,
+  BookFollowUpInput,
+  BusySpan,
   CreateReceptionInput,
   ReceptionCounters,
   ReceptionFilter,
@@ -114,8 +116,18 @@ interface ServerAppointmentDto {
   startedAt: string | null;
   completedAt: string | null;
   outcome: number | null;
+  followUpAt: string | null;
   patientYearOfBirth: number | null;
 }
+
+/** The statuses that hold a doctor's time: everything but cancelled and no-show. */
+const BUSY_STATUSES = [
+  SERVER_STATUS.Requested,
+  SERVER_STATUS.Confirmed,
+  SERVER_STATUS.CheckedIn,
+  SERVER_STATUS.InProgress,
+  SERVER_STATUS.Completed,
+];
 
 function isLateAppointment(dto: ServerAppointmentDto): boolean {
   const isWaiting =
@@ -158,6 +170,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     step3Time: formatStepTime(dto.completedAt),
     createdAt: dto.creationTime || new Date().toISOString(),
     selectedOutcome: dto.outcome ? (OUTCOME_MAP[dto.outcome] ?? null) : null,
+    followUpAt: dto.followUpAt ?? undefined,
     isTemporary: dto.isTemporary,
     isTimeLate: timeLate,
     color: dto.color,
@@ -270,5 +283,20 @@ export const receptionApi = {
 
   async setOutcome(id: string, outcome: NonNullable<AppointmentOutcome>): Promise<void> {
     await api.post(`${APPT_BASE}/${id}/set-outcome`, { outcome: OUTCOME_TO_SERVER[outcome] });
+  },
+
+  async bookFollowUp(id: string, input: BookFollowUpInput): Promise<void> {
+    await api.post(`${APPT_BASE}/${id}/follow-up`, input);
+  },
+
+  /** What a doctor is already booked for between two calendar days, inclusive. */
+  async getDentistBusySpans(dentistId: string, fromDate: string, toDate: string): Promise<BusySpan[]> {
+    const res = await api.get(APPT_BASE, {
+      params: { dentistId, fromDate, toDate, statuses: BUSY_STATUSES },
+    });
+    return (res.data?.items ?? []).map((dto: ServerAppointmentDto) => ({
+      start: dayjs(dto.slotStart).valueOf(),
+      end: dayjs(dto.slotEnd).valueOf(),
+    }));
   },
 };

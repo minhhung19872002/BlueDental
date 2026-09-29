@@ -12,6 +12,13 @@ import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
 import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
+import { FollowUpScheduler } from "../components/FollowUpScheduler";
+import {
+  planOutcomeClick,
+  planStepClick,
+  type ReceptionCommand,
+  type StepAction,
+} from "../utils/receptionFlow";
 import {
   useReceptionList,
   useReceptionMetrics,
@@ -50,6 +57,7 @@ export const ReceptionPage: React.FC = () => {
   const [draftKeyword, setDraftKeyword] = useState("");
   const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
   const [busyCards, setBusyCards] = useState<Set<string>>(new Set());
+  const [followUpTargetId, setFollowUpTargetId] = useState<string | null>(null);
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
   const debouncedKeyword = useDebounce(keyword);
@@ -116,18 +124,21 @@ export const ReceptionPage: React.FC = () => {
   const markBusy = (id: string) => setBusyCards((s) => new Set(s).add(id));
   const clearBusy = (id: string) => setBusyCards((s) => { const n = new Set(s); n.delete(id); return n; });
 
-  const handleStatusChange = (id: string, action: "check-in" | "start" | "complete") => {
+  const runCommand = (id: string, command: ReceptionCommand, onSuccess?: () => void) => {
     markBusy(id);
-    updateStatusMutation.mutate(
-      { id, action },
-      {
-        onSuccess: () => {
-          const labels = { "check-in": t("Reception:StatusArrived"), start: t("Reception:StepStart"), complete: t("Reception:StepComplete") };
-          toast.success(labels[action]);
-        },
-        onSettled: () => clearBusy(id),
-      },
-    );
+    const options = { onSuccess, onSettled: () => clearBusy(id) };
+    if (command.kind === "outcome") {
+      setOutcomeMutation.mutate({ id, outcome: command.outcome }, options);
+      return;
+    }
+    updateStatusMutation.mutate({ id, action: command.action, outcome: command.outcome }, options);
+  };
+
+  const handleStatusChange = (id: string, action: StepAction) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    const labels = { "check-in": t("Reception:StatusArrived"), start: t("Reception:StepStart"), complete: t("Reception:StepComplete") };
+    runCommand(id, planStepClick(item, action), () => toast.success(labels[action]));
   };
 
   const handleCancel = (id: string) => {
@@ -152,29 +163,16 @@ export const ReceptionPage: React.FC = () => {
   };
 
   const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
-    if (!outcome) return;
     const item = items.find((i) => i.id === id);
-    markBusy(id);
+    if (!outcome || !item) return;
+    runCommand(id, planOutcomeClick(item, outcome));
+  };
 
-    // "Chuyển bác sĩ" / "Hẹn tái khám" → start + outcome in one request.
-    if ((outcome === "TransferDoctor" || outcome === "Revisit") && item && !item.step2Time) {
-      updateStatusMutation.mutate(
-        { id, action: "start", outcome },
-        { onSettled: () => clearBusy(id) },
-      );
-      return;
-    }
-    // "Kết thúc điều trị" / "Chuyển bác sĩ" / "Hẹn tái khám" (already started) → complete + outcome.
-    if ((outcome === "EndTreatment" || outcome === "TransferDoctor" || outcome === "Revisit") && item && !item.step3Time) {
-      updateStatusMutation.mutate(
-        { id, action: "complete", outcome },
-        { onSettled: () => clearBusy(id) },
-      );
-      return;
-    }
-
-    // No status change needed — just save the outcome.
-    setOutcomeMutation.mutate({ id, outcome }, { onSettled: () => clearBusy(id) });
+  /** A booked follow-up is changed on the calendar, not re-booked from here. */
+  const handleFollowUpClick = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item || item.followUpAt) return;
+    setFollowUpTargetId((current) => (current === id ? null : id));
   };
 
   const handleDoctorChange = (id: string, doctorId: string) => {
@@ -274,7 +272,18 @@ export const ReceptionPage: React.FC = () => {
                   onCancel={ability.canUpdate ? handleCancel : undefined}
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}
                   onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
-                />
+                  onFollowUpClick={ability.canUpdate && ability.canCreate ? handleFollowUpClick : undefined}
+                  followUpOpen={followUpTargetId === item.id}
+                >
+                  {followUpTargetId === item.id && (
+                    <FollowUpScheduler
+                      appointmentId={item.id}
+                      defaultDoctorId={item.doctorId}
+                      doctors={doctors}
+                      onClose={() => setFollowUpTargetId(null)}
+                    />
+                  )}
+                </ReceptionCard>
               ))}
             </div>
             <div ref={sentinelRef} className="reception-scroll-sentinel">

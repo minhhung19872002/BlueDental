@@ -569,3 +569,340 @@
   justify-content: flex-end;
   padding-top: 4px;
 }
+
+/* ── "Đã hẹn tiếp": outcome with a date line, and the picker under the card ── */
+
+.rc-wrapper--expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rc-wrapper--expanded > .rc-card {
+  height: auto;
+}
+
+.rc-outcome-btn--stacked {
+  align-items: flex-start;
+  border-radius: var(--bd-radius-control);
+}
+
+.rc-outcome-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.rc-outcome-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--bd-faint);
+}
+
+.rc-outcome-sub--set {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  background: var(--bd-card);
+  color: var(--bd-sub);
+  font-weight: 500;
+}
+
+.fu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  background: var(--bd-card);
+  box-shadow: 0 8px 24px rgba(35, 42, 86, 0.08);
+}
+
+.fu-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.fu-head-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+
+.fu-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.fu-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-title);
+}
+
+.fu-required {
+  color: var(--bd-red);
+}
+
+.fu-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.fu-doctor {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  width: 220px;
+}
+
+.fu-doctor-label,
+.fu-quick-label,
+.fu-session-label,
+.fu-notes-label {
+  font-size: 12px;
+  color: var(--bd-muted);
+  white-space: nowrap;
+}
+
+.fu-doctor > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.fu-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fu-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fu-chip:hover {
+  border-color: var(--bd-blue-light);
+}
+
+.fu-chip--on {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.fu-week {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fu-week-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fu-week-month {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-title);
+}
+
+.fu-week-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.fu-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: var(--bd-sub);
+  cursor: pointer;
+}
+
+.fu-nav-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.fu-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.fu-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 0;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+
+.fu-day:hover:not(:disabled) {
+  border-color: var(--bd-blue-light);
+}
+
+.fu-day:disabled {
+  background: var(--bd-bg-soft);
+  color: var(--bd-faint);
+  cursor: not-allowed;
+}
+
+.fu-day--selected {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.fu-day-name,
+.fu-day-state {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.fu-day-num {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.fu-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fu-session {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fu-slot-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.fu-slot {
+  height: 30px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.fu-slot:hover:not(:disabled) {
+  border-color: var(--bd-blue-light);
+}
+
+.fu-slot--off {
+  background: var(--bd-line);
+  color: var(--bd-faint);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.fu-slot--selected {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.fu-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--bd-muted);
+}
+
+.fu-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fu-swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: 3px;
+  background: var(--bd-card);
+}
+
+.fu-swatch--selected {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+}
+
+.fu-swatch--off {
+  background: var(--bd-line);
+}
+
+.fu-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fu-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fu-spin {
+  animation: rc-spin 0.8s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .fu-head {
+    flex-wrap: wrap;
+  }
+
+  .fu-doctor {
+    width: 100%;
+  }
+
+  .fu-days,
+  .fu-slot-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

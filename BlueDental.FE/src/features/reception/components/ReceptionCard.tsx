@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import {
   Folder,
   UserRound,
@@ -30,6 +31,12 @@ interface ReceptionCardProps {
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
   onCancel?: (id: string) => void;
+  /** "Đã hẹn tiếp" asks for a date first, so it opens the picker instead of saving. */
+  onFollowUpClick?: (id: string) => void;
+  /** Whether the follow-up picker is open under this card. */
+  followUpOpen?: boolean;
+  /** The follow-up picker, rendered under the card while open. */
+  children?: React.ReactNode;
 }
 
 interface CounterBadgeStyle {
@@ -66,6 +73,9 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   onDoctorChange,
   onStatusChange,
   onCancel,
+  onFollowUpClick,
+  followUpOpen = false,
+  children,
 }) => {
   const navigate = useNavigate();
 
@@ -134,7 +144,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
 
   return (
-    <div className={`rc-wrapper ${busy ? "rc-wrapper--busy" : ""}`}>
+    <div className={["rc-wrapper", busy && "rc-wrapper--busy", children && "rc-wrapper--expanded"].filter(Boolean).join(" ")}>
       {busy && (
         <div className="rc-busy-overlay">
           <Loader2 size={28} className="rc-busy-spinner" />
@@ -284,7 +294,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             {/* Col 3: outcome radio actions */}
             <div className="rc-col-actions">
               {OUTCOME_KEYS.map((key) => {
-                const isSelected = selectedOutcome === key;
+                const isFollowUp = key === "FollowUp";
+                const isSelected = selectedOutcome === key || (isFollowUp && followUpOpen);
                 // "Đã hẹn tiếp" locks out every other option.
                 // "Kết thúc điều trị" locks out "Chuyển bác sĩ" (and vice-versa is not required).
                 const isDisabled =
@@ -295,16 +306,31 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                   <button
                     key={key}
                     type="button"
-                    className={`rc-outcome-btn ${isSelected ? "rc-outcome-btn--selected" : ""}`}
+                    className={["rc-outcome-btn", isSelected && "rc-outcome-btn--selected", isFollowUp && "rc-outcome-btn--stacked"]
+                      .filter(Boolean)
+                      .join(" ")}
                     disabled={isDisabled}
-                    onClick={() => onOutcomeChange?.(item.id, key)}
+                    aria-pressed={isSelected}
+                    aria-expanded={isFollowUp ? followUpOpen : undefined}
+                    onClick={() => (isFollowUp ? onFollowUpClick?.(item.id) : onOutcomeChange?.(item.id, key))}
                   >
                     {isSelected ? (
                       <CircleCheck size={16} className="rc-outcome-icon--selected" />
                     ) : (
                       <Circle size={16} className="rc-outcome-icon" />
                     )}
-                    <span>{outcomeLabel[key]}</span>
+                    {isFollowUp ? (
+                      <span className="rc-outcome-text">
+                        <span>{outcomeLabel[key]}</span>
+                        <span className={`rc-outcome-sub${item.followUpAt ? " rc-outcome-sub--set" : ""}`}>
+                          {item.followUpAt
+                            ? dayjs(item.followUpAt).format("HH:mm DD/MM/YYYY")
+                            : t("Reception:FollowUpNeedDate")}
+                        </span>
+                      </span>
+                    ) : (
+                      <span>{outcomeLabel[key]}</span>
+                    )}
                   </button>
                 );
               })}
@@ -312,6 +338,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
           </div>
         </div>
       </div>
+      {children}
     </div>
   );
 };

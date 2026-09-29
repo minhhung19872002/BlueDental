@@ -26,6 +26,15 @@ export function useReceptionMetrics(filter: ReceptionFilter = {}) {
   });
 }
 
+/** A doctor's booked spans for one week (Monday → Sunday); idle without a doctor. */
+export function useDentistBusySpans(dentistId: string | undefined, weekStart: string, weekEnd: string) {
+  return useQuery({
+    queryKey: ["receptions", "busy", dentistId, weekStart, weekEnd],
+    queryFn: () => receptionApi.getDentistBusySpans(dentistId ?? "", weekStart, weekEnd),
+    enabled: !!dentistId,
+  });
+}
+
 export function useReceptionDoctors(branchId?: string) {
   return useQuery({
     queryKey: ["receptionDoctors", branchId],
