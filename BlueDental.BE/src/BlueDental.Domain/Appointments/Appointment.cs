@@ -132,6 +132,10 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     public Appointment Start()
     {
+        // Auto check-in if not done yet (outcome shortcuts skip the step buttons).
+        if (Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed)
+            CheckIn();
+
         EnsureStatus(AppointmentStatus.CheckedIn, nameof(Start));
         Status = AppointmentStatus.InProgress;
         StartedAt = DateTimeOffset.UtcNow;
@@ -140,6 +144,12 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     public Appointment Complete(string? notes = null)
     {
+        // Auto advance through earlier steps when an outcome shortcut fires.
+        if (Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed)
+            CheckIn();
+        if (Status is AppointmentStatus.CheckedIn)
+            Start();
+
         EnsureStatus(AppointmentStatus.InProgress, nameof(Complete));
         Status = AppointmentStatus.Completed;
         CompletedAt = DateTimeOffset.UtcNow;

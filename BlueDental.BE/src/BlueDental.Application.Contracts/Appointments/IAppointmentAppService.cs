@@ -16,7 +16,7 @@ public interface IAppointmentAppService : IApplicationService
     Task<AppointmentDto> ConfirmAsync(Guid id);
     Task<AppointmentDto> CancelAsync(Guid id, CancelAppointmentDto input);
     Task<AppointmentDto> CheckInAsync(Guid id);
-    Task<AppointmentDto> StartAsync(Guid id);
+    Task<AppointmentDto> StartAsync(Guid id, StartAppointmentDto? input = null);
     Task<AppointmentDto> CompleteAsync(Guid id, CompleteAppointmentDto input);
     Task<AppointmentDto> MarkNoShowAsync(Guid id);
     Task<AppointmentDto> AssignDentistAsync(Guid id, AssignDentistDto input);

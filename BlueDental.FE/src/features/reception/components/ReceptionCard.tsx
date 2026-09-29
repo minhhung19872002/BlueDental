@@ -11,6 +11,7 @@ import {
   Check,
   Circle,
   CircleCheck,
+  Loader2,
 } from "lucide-react";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
@@ -23,6 +24,8 @@ import type {
 interface ReceptionCardProps {
   item: ReceptionItem;
   doctors?: { id: string; name: string; title: string }[];
+  /** Whether an API call for this card is in flight — shows a spinner overlay. */
+  busy?: boolean;
   onOutcomeChange?: (id: string, outcome: AppointmentOutcome) => void;
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
@@ -58,6 +61,7 @@ const OUTCOME_KEYS: NonNullOutcome[] = [
 export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   item,
   doctors = [],
+  busy = false,
   onOutcomeChange,
   onDoctorChange,
   onStatusChange,
@@ -128,7 +132,12 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
 
   return (
-    <div className="rc-wrapper">
+    <div className={`rc-wrapper ${busy ? "rc-wrapper--busy" : ""}`}>
+      {busy && (
+        <div className="rc-busy-overlay">
+          <Loader2 size={28} className="rc-busy-spinner" />
+        </div>
+      )}
       {showCancel && (
         <button
           type="button"

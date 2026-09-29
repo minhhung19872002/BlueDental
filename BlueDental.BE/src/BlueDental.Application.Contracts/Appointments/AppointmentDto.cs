@@ -98,6 +98,12 @@ public class CancelAppointmentDto
 public class CompleteAppointmentDto
 {
     public string? Notes { get; set; }
+    public AppointmentOutcome? Outcome { get; set; }
+}
+
+public class StartAppointmentDto
+{
+    public AppointmentOutcome? Outcome { get; set; }
 }
 
 public class AssignDentistDto

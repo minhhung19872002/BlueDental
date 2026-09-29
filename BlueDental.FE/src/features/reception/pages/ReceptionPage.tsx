@@ -49,6 +49,7 @@ export const ReceptionPage: React.FC = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftKeyword, setDraftKeyword] = useState("");
   const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
+  const [busyCards, setBusyCards] = useState<Set<string>>(new Set());
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
   const debouncedKeyword = useDebounce(keyword);
@@ -112,7 +113,11 @@ export const ReceptionPage: React.FC = () => {
     return () => observer.disconnect();
   }, [handleIntersect]);
 
+  const markBusy = (id: string) => setBusyCards((s) => new Set(s).add(id));
+  const clearBusy = (id: string) => setBusyCards((s) => { const n = new Set(s); n.delete(id); return n; });
+
   const handleStatusChange = (id: string, action: "check-in" | "start" | "complete") => {
+    markBusy(id);
     updateStatusMutation.mutate(
       { id, action },
       {
@@ -120,6 +125,7 @@ export const ReceptionPage: React.FC = () => {
           const labels = { "check-in": t("Reception:StatusArrived"), start: t("Reception:StepStart"), complete: t("Reception:StepComplete") };
           toast.success(labels[action]);
         },
+        onSettled: () => clearBusy(id),
       },
     );
   };
@@ -131,24 +137,49 @@ export const ReceptionPage: React.FC = () => {
 
   const handleCancelConfirm = (reason: string) => {
     if (!cancelTarget) return;
+    const { id } = cancelTarget;
+    markBusy(id);
     cancelMutation.mutate(
-      { id: cancelTarget.id, reason },
+      { id, reason },
       {
         onSuccess: () => {
           toast.success(t("Reception:CancelSuccess"));
           setCancelTarget(null);
         },
+        onSettled: () => clearBusy(id),
       },
     );
   };
 
   const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
     if (!outcome) return;
-    setOutcomeMutation.mutate({ id, outcome });
+    const item = items.find((i) => i.id === id);
+    markBusy(id);
+
+    // "Chuyển bác sĩ" → start + outcome in one request.
+    if (outcome === "TransferDoctor" && item && !item.step2Time) {
+      updateStatusMutation.mutate(
+        { id, action: "start", outcome },
+        { onSettled: () => clearBusy(id) },
+      );
+      return;
+    }
+    // "Kết thúc điều trị" → complete + outcome in one request.
+    if (outcome === "EndTreatment" && item && !item.step3Time) {
+      updateStatusMutation.mutate(
+        { id, action: "complete", outcome },
+        { onSettled: () => clearBusy(id) },
+      );
+      return;
+    }
+
+    // No status change needed — just save the outcome.
+    setOutcomeMutation.mutate({ id, outcome }, { onSettled: () => clearBusy(id) });
   };
 
   const handleDoctorChange = (id: string, doctorId: string) => {
-    assignDentistMutation.mutate({ id, dentistId: doctorId });
+    markBusy(id);
+    assignDentistMutation.mutate({ id, dentistId: doctorId }, { onSettled: () => clearBusy(id) });
   };
 
   const handleCounterClick = (counter: keyof ReceptionCounters) => {
@@ -238,6 +269,7 @@ export const ReceptionPage: React.FC = () => {
                   key={item.id}
                   item={item}
                   doctors={doctors}
+                  busy={busyCards.has(item.id)}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}

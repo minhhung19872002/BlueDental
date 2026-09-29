@@ -22,8 +22,11 @@ export function useCreateReception() {
 
 export function useUpdateReceptionStatus() {
   return useMutation({
-    mutationFn: ({ id, action }: { id: string; action: "check-in" | "start" | "complete" }) =>
-      receptionApi.updateStatus(id, action),
+    mutationFn: ({ id, action, outcome }: {
+      id: string;
+      action: "check-in" | "start" | "complete";
+      outcome?: NonNullable<AppointmentOutcome>;
+    }) => receptionApi.updateStatus(id, action, outcome),
     meta: INVALIDATES_APPOINTMENTS,
   });
 }

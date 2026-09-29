@@ -432,12 +432,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
-    public async Task<AppointmentDto> StartAsync(Guid id)
+    public async Task<AppointmentDto> StartAsync(Guid id, StartAppointmentDto? input = null)
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
         appointment.Start();
+        if (input?.Outcome is { } outcome)
+            appointment.SetOutcome(outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
@@ -451,6 +453,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
         appointment.Complete(input.Notes);
+        if (input.Outcome is { } outcome)
+            appointment.SetOutcome(outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));

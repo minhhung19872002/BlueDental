@@ -249,8 +249,15 @@ export const receptionApi = {
     return mapAppointmentDto(res.data as ServerAppointmentDto);
   },
 
-  async updateStatus(id: string, action: "check-in" | "start" | "complete"): Promise<void> {
-    await api.post(`${APPT_BASE}/${id}/${action}`, action === "complete" ? { notes: null } : undefined);
+  async updateStatus(
+    id: string,
+    action: "check-in" | "start" | "complete",
+    outcome?: NonNullable<AppointmentOutcome>,
+  ): Promise<void> {
+    const body: Record<string, unknown> = {};
+    if (action === "complete") body.notes = null;
+    if (outcome) body.outcome = OUTCOME_TO_SERVER[outcome];
+    await api.post(`${APPT_BASE}/${id}/${action}`, Object.keys(body).length ? body : undefined);
   },
 
   async cancel(id: string, _reason: string): Promise<void> {
