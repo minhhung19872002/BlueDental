@@ -192,6 +192,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           <FloatingField
             label={t("Reception:TreatingDoctor")}
             name="doctorId"
+            required
             rules={[{ required: true, message: t("Reception:DoctorRequired") }]}
           >
             <Select
