@@ -1,5 +1,5 @@
 import type { TableColumnsType } from "antd";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, FileText, Pencil, Trash2 } from "lucide-react";
 import type { RecordCardRow } from "@/components/RecordCard";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
@@ -30,13 +30,15 @@ function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPayment
   );
 }
 
-/** What a receipt row can do: look at it, correct it, or take it back. */
+/** What a receipt row can do: look at it, correct it, take it back, or e-invoice. */
 export interface PaymentRowActions {
   onView: (payment: PatientPaymentDto) => void;
   /** Left out when the user may not edit a receipt (payment.update). */
   onEdit?: (payment: PatientPaymentDto) => void;
   /** Left out when the user may not void a receipt (payment.delete). */
   onCancel?: (payment: PatientPaymentDto) => void;
+  /** Left out when e-invoicing is not configured or the user cannot finalize. */
+  onIssueInvoice?: (payment: PatientPaymentDto) => void;
 }
 
 /**
@@ -81,6 +83,18 @@ function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
           </button>
         </ActionTooltip>
       )}
+      {actions.onIssueInvoice && (
+        <ActionTooltip title={t("Treatment:EInvoice:Issue")}>
+          <button
+            type="button"
+            className="pdt-row-action"
+            aria-label={t("Treatment:EInvoice:Issue")}
+            onClick={() => actions.onIssueInvoice?.(payment)}
+          >
+            <FileText size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
     </span>
   );
 }
@@ -103,7 +117,7 @@ export function buildPaymentColumns(
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 120,
+      width: 150,
       align: "center",
       fixed: "right",
       render: (_, p) => rowActions(p, actions),

@@ -21,6 +21,7 @@ import type { patientTagKeys } from "@/features/taxonomy/api/patientTagApi";
 import type { paymentAccountKeys } from "@/features/taxonomy/api/paymentAccountApi";
 import type { taxonomyKeys } from "@/features/taxonomy/api/taxonomyApi";
 import type { consultingKeys } from "@/features/treatment-management/api/consultingQueries";
+import type { eInvoiceKeys } from "@/features/treatment-management/api/eInvoiceApi";
 import type { stageKeys } from "@/features/treatment-management/api/stageApi";
 import type { treatmentKeys } from "@/features/treatment-management/api/treatmentPlanApi";
 import type { voucherKeys } from "@/features/voucher/api/voucherApi";
@@ -97,6 +98,11 @@ export const ENTITY_QUERY_ROOTS = {
     CLINIC_REPORTS,
     ["finance"] satisfies RootOf<typeof financeKeys>,
     ["care-records"] satisfies RootOf<typeof careKeys>,
+    // A receipt change may affect the e-invoice state for that receipt.
+    ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
+  ],
+  eInvoice: [
+    ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
   ],
   laboOrder: [
     ["labo-orders"],

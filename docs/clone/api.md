@@ -1806,3 +1806,81 @@ với lần đối tác nhận gần nhất → `skipped` không lý do (không 
 `created` / `updated` / `warned` → `sent` (và lưu dấu vân tay); `duplicated` →
 danh sách "Trùng mã"; `failed`, thiếu kết quả, hoặc cả lô lỗi → `failed` +
 `batchErrors`. Luôn có `total = sent + failed + skipped + duplicated`.
+
+---
+
+## Zalo OA Integration (BlueDental — not from the reference application)
+
+`UNKNOWN_REFERENCE_BEHAVIOR` for the reference app. The endpoints below are
+BlueDental's own implementation based on the Zalo OA API specification and BA
+requirements. Added 2026-09-28.
+
+```
+GET    /api/v1/app/zalo/status
+       Response: { isConnected: bool, oaName: string|null, avatarUrl: string|null,
+                   enabled: bool, expiresAt: string|null }
+
+GET    /api/v1/app/zalo/connect-url
+       Response: { url: string }   ← Zalo OAuth authorization URL
+
+GET    /api/v1/app/zalo/oauth/callback   [AllowAnonymous]
+       Query: ?code=<code>&state=<branchId>
+       Exchanges code, stores encrypted tokens. Redirects to /tools/zalo-oa.
+
+POST   /api/v1/app/zalo/bootstrap-import
+       No body. Calls Zalo API to fetch OA name + avatar; stores in connection.
+       400 if no connection exists.
+
+PUT    /api/v1/app/zalo/enabled
+       Body: { enabled: bool }
+       Toggles the isEnabled flag on the stored connection.
+
+DELETE /api/v1/app/zalo/connection
+       Removes the stored connection record for the caller's branch.
+
+POST   /api/v1/app/zalo/refresh-token
+       No body. Manually triggers a token refresh via the Zalo API.
+
+GET    /api/v1/app/zalo/templates
+       Query: ?skipCount=0&maxResultCount=20
+       Returns paged list from the Zalo API (cached 5 min per branch).
+       Response items: { id, name, status, previewUrl, listParams[{ name, require, type }] }
+       Status values: pending_review | enable | disable | reject
+
+GET    /api/v1/app/zalo/templates/{id}
+       Single template detail with full parameter schema.
+
+POST   /api/v1/app/zalo/messages
+       Body: { phone: string, templateId: string, templateData: Record<string, string> }
+       Sends a ZNS message. Persists a ZaloMessageLog regardless of Zalo outcome.
+       Returns: { messageId: string|null, outcome: "Sent"|"Failed", errorCode?: string }
+
+GET    /api/v1/app/zalo/messages
+       Query: ?skipCount&maxResultCount&status&fromDate&toDate
+       Returns paged ZaloMessageLog for the caller's branch.
+       Response items: { id, phone, templateId, templateName, sentAt, outcome, errorCode }
+
+GET    /api/v1/app/zalo/messages/stats
+       Response: { total: int, sent: int, failed: int }
+       Counts for the caller's branch (all time).
+
+GET    /api/v1/app/zalo/webhook   [AllowAnonymous]
+       Returns 200 with the Zalo verification token for domain verification.
+
+POST   /api/v1/app/zalo/webhook   [AllowAnonymous]
+       Headers: X-ZEvent-Signature: mac=<hmac-sha256-hex>
+       Body: Zalo OA event JSON
+       Verifies HMAC-SHA256(appSecretKey, rawBody). Returns 401 on bad signature.
+       Accepted event types: follow, unfollow, user_send_text.
+       Unknown event types are acknowledged (200) and ignored.
+```
+
+All endpoints except `oauth/callback`, `GET /webhook`, and `POST /webhook` require
+authentication and are scoped to the caller's clinic branch (`ClinicBranchId`).
+A request from branch-2 to branch-1 resources returns **403**.
+
+Error codes (BlueDental):
+- `Zalo:0001` no active connection for this branch
+- `Zalo:0002` token refresh failed
+- `Zalo:0003` invalid webhook signature
+- `Zalo:0004` Zalo API returned an error (passes through Zalo error code and message)

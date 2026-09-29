@@ -1,5 +1,5 @@
 import { Pagination } from "antd";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, FileText, Pencil, Trash2 } from "lucide-react";
 import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
@@ -14,6 +14,7 @@ interface Props {
   /** Receipts can also be corrected and taken back; a refund card only views. */
   onEdit?: (payment: PatientPaymentDto) => void;
   onCancel?: (payment: PatientPaymentDto) => void;
+  onIssueInvoice?: (payment: PatientPaymentDto) => void;
   showTotal: (total: number, range: [number, number]) => string;
 }
 
@@ -26,6 +27,7 @@ export function PaymentCardList({
   onView,
   onEdit,
   onCancel,
+  onIssueInvoice,
   showTotal,
 }: Props) {
   return (
@@ -66,6 +68,16 @@ export function PaymentCardList({
                       onClick={() => onCancel(payment)}
                     >
                       <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  )}
+                  {onIssueInvoice && (
+                    <button
+                      type="button"
+                      className="bd-rc-action"
+                      aria-label={t("Treatment:EInvoice:Issue")}
+                      onClick={() => onIssueInvoice(payment)}
+                    >
+                      <FileText size={16} aria-hidden="true" />
                     </button>
                   )}
                 </>

@@ -3,6 +3,7 @@ using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
+using BlueDental.EInvoicing;
 using BlueDental.FileManagement;
 using BlueDental.Finance;
 using BlueDental.Inventory;
@@ -158,6 +159,9 @@ public class BlueDentalDbContext :
 
     // Zalo OA
     public DbSet<ZaloOaConnection> ZaloOaConnections { get; set; }
+
+    // E-invoicing
+    public DbSet<ElectronicInvoice> ElectronicInvoices { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

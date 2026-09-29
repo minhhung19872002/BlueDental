@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DataTable } from "@/components/DataTable";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -9,9 +10,18 @@ import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { notifyError } from "@/lib/notify";
 import { countedTotal } from "@/utils/countedTotal";
+import { formatVND } from "@/utils/format";
 import { usePatientAdvises } from "../../api/consultingQueries";
+import {
+  EINVOICE_STATUS,
+  useIssueEInvoice,
+  usePlanEInvoices,
+  type ElectronicInvoiceDto,
+} from "../../api/eInvoiceApi";
 import {
   PAYMENT_KIND,
   useDeletePayment,
@@ -20,8 +30,6 @@ import {
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
-import { extractApiError } from "@/lib/apiError";
-import { notifyError } from "@/lib/notify";
 import { PaymentCardList } from "./PaymentCardList";
 import { PaymentEditDialog } from "./PaymentEditDialog";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
@@ -62,6 +70,37 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   const [cancelling, setCancelling] = useState<PatientPaymentDto | null>(null);
   const remove = useDeletePayment();
 
+  // ── E-invoice ───────────────────────────────────────────────────────────
+  const canFinalize = useAbility("payment").can("finalize");
+  const eInvoiceQuery = usePlanEInvoices({ treatmentPlanId: plan.id, clinicBranchId: branchId });
+  const issueInvoice = useIssueEInvoice();
+  const [invoicing, setInvoicing] = useState<PatientPaymentDto | null>(null);
+
+  /** Find the most recent e-invoice for a payment (if any). */
+  const eInvoiceOf = (paymentId: string): ElectronicInvoiceDto | undefined =>
+    eInvoiceQuery.data?.find((inv) => inv.patientPaymentId === paymentId);
+
+  const handleIssueInvoice = async () => {
+    if (!invoicing) return;
+    try {
+      const result = await issueInvoice.mutateAsync(invoicing.id);
+      toast.success(t("Treatment:EInvoice:Issued", result.lookupCode ?? result.ikey));
+      setInvoicing(null);
+    } catch (error) {
+      notifyError(extractApiError(error) || t("Treatment:EInvoice:IssueError"));
+    }
+  };
+
+  /** Build the confirm body: reissue if draft exists, else fresh. */
+  const invoiceConfirmMessage = (): string => {
+    if (!invoicing) return "";
+    const existing = eInvoiceOf(invoicing.id);
+    if (existing && existing.status === EINVOICE_STATUS.Draft) {
+      return t("Treatment:EInvoice:ReissueBody", existing.lookupCode ?? existing.ikey);
+    }
+    return t("Treatment:EInvoice:ConfirmBody", formatVND(invoicing.amount));
+  };
+
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
   const pageRows = receipts.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
   const showTotal = countedTotal(t("Treatment:Payment:PaymentNoun"));
@@ -87,8 +126,9 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onView: handleView,
         onEdit: canUpdate ? setEditing : undefined,
         onCancel: canDelete ? setCancelling : undefined,
+        onIssueInvoice: canFinalize ? setInvoicing : undefined,
       }),
-    [plan, receipts, canUpdate, canDelete], // eslint-disable-line react-hooks/exhaustive-deps
+    [plan, receipts, canUpdate, canDelete, canFinalize], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (
@@ -115,6 +155,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
           onView={handleView}
           onEdit={canUpdate ? setEditing : undefined}
           onCancel={canDelete ? setCancelling : undefined}
+          onIssueInvoice={canFinalize ? setInvoicing : undefined}
           showTotal={showTotal}
         />
       ) : (
@@ -154,6 +195,19 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         pending={remove.isPending}
         onConfirm={() => void handleCancel()}
         onClose={() => setCancelling(null)}
+      />
+      <ConfirmDialog
+        open={invoicing !== null}
+        title={invoicing ? t("Treatment:EInvoice:ConfirmTitle", invoicing.code) : ""}
+        message={invoiceConfirmMessage()}
+        confirmLabel={
+          invoicing && eInvoiceOf(invoicing.id)?.status === EINVOICE_STATUS.Draft
+            ? t("Treatment:EInvoice:Reissue")
+            : t("Treatment:EInvoice:Issue")
+        }
+        pending={issueInvoice.isPending}
+        onConfirm={() => void handleIssueInvoice()}
+        onClose={() => setInvoicing(null)}
       />
       <PaymentReceiptDialog
         receipt={receipt}

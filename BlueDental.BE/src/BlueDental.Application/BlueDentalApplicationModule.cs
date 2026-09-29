@@ -1,4 +1,5 @@
 using BlueDental.CustomerCare;
+using BlueDental.EInvoicing;
 using BlueDental.Permissions;
 using BlueDental.Promotions;
 using BlueDental.Queue;
@@ -62,6 +63,13 @@ public class BlueDentalApplicationModule : AbpModule
         context.Services.AddHttpClient(
             HttpZaloApiClient.ClientName,
             client => client.Timeout = TimeSpan.FromSeconds(30));
+
+        // EasyInvoice e-invoicing: sandbox or production API.
+        Configure<EasyInvoiceOptions>(configuration.GetSection(EasyInvoiceOptions.SectionName));
+        context.Services.AddHttpClient(
+            HttpEasyInvoiceClient.ClientName,
+            client => client.Timeout = TimeSpan.FromSeconds(
+                configuration.GetValue<int?>($"{EasyInvoiceOptions.SectionName}:TimeoutSeconds") ?? 30));
 
         // Legacy module permissions are satisfied by the ability leaves the
         // Phân quyền screen grants. Registered last so it only decides names
