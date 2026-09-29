@@ -1698,6 +1698,7 @@
     "Reception:PhoneLabel": "Phone number:",
     "Reception:TreatingDoctor": "Treating doctor",
     "Reception:DoctorRequired": "Please select a doctor",
+    "Reception:AppointmentDate": "Appointment date",
     "Reception:AppointmentTime": "Appointment time",
     "Reception:Minutes": "Minutes",
     "Reception:BookingNotes": "Booking notes",

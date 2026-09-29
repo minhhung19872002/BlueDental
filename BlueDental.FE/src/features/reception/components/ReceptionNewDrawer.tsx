@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Modal, Button, Input, InputNumber, Form, Select, TimePicker } from "antd";
+import { Modal, Button, Input, InputNumber, Form, Select, TimePicker, DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { useCreateReception } from "../api/receptionMutations";
@@ -30,6 +30,7 @@ interface ReceptionNewDrawerProps {
 interface FormValues {
   patientId?: string;
   doctorId?: string;
+  appointmentDate: Dayjs;
   appointmentTime: Dayjs;
   durationMinutes: number;
   notes?: string;
@@ -90,7 +91,8 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     const patient = patientOptions.find((p) => p.value === data.patientId);
 
     const time = data.appointmentTime ?? dayjs();
-    const scheduledAt = scheduledDate
+    const date = data.appointmentDate ?? scheduledDate;
+    const scheduledAt = date
       .hour(time.hour())
       .minute(time.minute())
       .second(0)
@@ -144,6 +146,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         form={form}
         layout="vertical"
         initialValues={{
+          appointmentDate: scheduledDate,
           appointmentTime: dayjs(),
           durationMinutes: 30,
         }}
@@ -198,6 +201,11 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
               }
               options={doctors.map((d) => ({ value: d.id, label: d.name }))}
             />
+          </FloatingField>
+
+          {/* Date */}
+          <FloatingField label={t("Reception:AppointmentDate")} name="appointmentDate">
+            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} allowClear={false} />
           </FloatingField>
 
           {/* Time + duration */}
