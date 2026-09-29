@@ -72,7 +72,12 @@ public class AppointmentTests
             _slot,
             AppointmentType.Consultation);
 
-        // Cannot start directly from Requested
+        appointment.Confirm();
+        appointment.CheckIn();
+        appointment.Start();
+        appointment.Complete();
+
+        // Cannot start a completed appointment
         Assert.Throws<BusinessException>(() => appointment.Start());
     }
 
