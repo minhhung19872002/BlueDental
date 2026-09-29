@@ -66,6 +66,10 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<AppointmentDto> SetOutcomeAsync(Guid id, [FromBody] SetOutcomeDto input) =>
         service.SetOutcomeAsync(id, input);
 
+    [HttpPost("{id:guid}/follow-up")]
+    public Task<AppointmentDto> BookFollowUpAsync(Guid id, [FromBody] BookFollowUpDto input) =>
+        service.BookFollowUpAsync(id, input);
+
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Appointments;
@@ -26,6 +27,10 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public AppointmentOutcome? Outcome { get; set; }
+
+    /// <summary>The appointment booked through "Đã hẹn tiếp", and when it starts.</summary>
+    public Guid? FollowUpAppointmentId { get; set; }
+    public DateTimeOffset? FollowUpAt { get; set; }
 
     public int? PatientYearOfBirth { get; set; }
     public bool IsTemporary { get; set; }
@@ -114,6 +119,19 @@ public class AssignDentistDto
 public class SetOutcomeDto
 {
     public AppointmentOutcome Outcome { get; set; }
+}
+
+/// <summary>"Đã hẹn tiếp": the next appointment, booked from the reception card.</summary>
+public class BookFollowUpDto
+{
+    public DateTimeOffset SlotStart { get; set; }
+    public DateTimeOffset SlotEnd { get; set; }
+
+    /// <summary>Left null, the follow-up goes to this visit's dentist.</summary>
+    public Guid? DentistId { get; set; }
+
+    [StringLength(500)]
+    public string? ChiefComplaint { get; set; }
 }
 
 public class GetAppointmentListInput : PagedAndSortedResultRequestDto

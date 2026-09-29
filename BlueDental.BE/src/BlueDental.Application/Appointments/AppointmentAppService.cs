@@ -197,6 +197,22 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 .ToDictionary(x => x.Id, x => x.Name);
         }
 
+        var followUpIds = entities
+            .Where(a => a.FollowUpAppointmentId.HasValue)
+            .Select(a => a.FollowUpAppointmentId!.Value)
+            .Distinct()
+            .ToList();
+        var followUps = new Dictionary<Guid, DateTimeOffset>();
+        if (followUpIds.Count > 0)
+        {
+            var appointmentQuery = await _repository.GetQueryableAsync();
+            followUps = (await AsyncExecuter.ToListAsync(
+                    appointmentQuery
+                        .Where(x => followUpIds.Contains(x.Id) && x.Status != AppointmentStatus.Cancelled)
+                        .Select(x => new { x.Id, x.Slot.Start })))
+                .ToDictionary(x => x.Id, x => x.Start);
+        }
+
         for (var i = 0; i < entities.Count; i++)
         {
             var entity = entities[i];
@@ -222,6 +238,10 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             dto.ProcedureName = entity.ProcedureId.HasValue
                 ? procedures.GetValueOrDefault(entity.ProcedureId.Value)
                 : null;
+            dto.FollowUpAt = entity.FollowUpAppointmentId is { } followUpId
+                && followUps.TryGetValue(followUpId, out var followUpAt)
+                    ? followUpAt
+                    : null;
         }
     }
 
@@ -495,6 +515,48 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var before = await SnapshotAsync(appointment);
         appointment.SetOutcome(input.Outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+        return await ToDtoAsync(appointment);
+    }
+
+    /// <summary>
+    /// "Đã hẹn tiếp" from the reception card: books the next appointment and
+    /// marks this visit's outcome in one save, so neither exists without the other.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Create)]
+    public async Task<AppointmentDto> BookFollowUpAsync(Guid id, BookFollowUpDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
+
+        var currentFollowUp = appointment.FollowUpAppointmentId is { } currentId
+            ? await _repository.FindAsync(currentId)
+            : null;
+        var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
+        var followUp = appointment.BookFollowUp(
+            GuidGenerator.Create(), slot, currentFollowUp, input.DentistId, input.ChiefComplaint);
+
+        if (await _conflictChecker.HasDentistConflictAsync(followUp.DentistId, slot))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
+                "The dentist already has an appointment in this time slot.");
+        }
+
+        if (await _conflictChecker.HasPatientConflictAsync(followUp.PatientId, slot))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked,
+                "The patient already has an appointment in this time slot.");
+        }
+
+        await _repository.InsertAsync(followUp, autoSave: true);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Created, followUp, null, await SnapshotAsync(followUp));
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);

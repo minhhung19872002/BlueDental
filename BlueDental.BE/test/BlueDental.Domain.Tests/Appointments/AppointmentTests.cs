@@ -325,6 +325,71 @@ public class AppointmentTests
         Assert.Equal(AppointmentStatus.CheckedIn, appointment.Status);
     }
 
+    [Fact]
+    public void BookFollowUp_Should_Book_The_Next_Visit_And_Link_It()
+    {
+        var appointment = NewAppointment();
+        appointment.Complete();
+        var nextSlot = new AppointmentSlot(DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddDays(7).AddMinutes(30));
+        var followUpId = Guid.NewGuid();
+
+        var followUp = appointment.BookFollowUp(followUpId, nextSlot, null, chiefComplaint: "Tai kham");
+
+        Assert.Equal(AppointmentOutcome.FollowUp, appointment.Outcome);
+        Assert.Equal(followUpId, appointment.FollowUpAppointmentId);
+        Assert.Equal(followUpId, followUp.Id);
+        Assert.Equal(_patientId, followUp.PatientId);
+        Assert.Equal(_dentistId, followUp.DentistId);
+        Assert.Equal(_branchId, followUp.BranchId);
+        Assert.Equal(AppointmentType.FollowUp, followUp.Type);
+        Assert.Equal(AppointmentStatus.Requested, followUp.Status);
+        Assert.Equal("Tai kham", followUp.ChiefComplaint);
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Use_The_Named_Dentist()
+    {
+        var appointment = NewAppointment();
+        var otherDentist = Guid.NewGuid();
+
+        var followUp = appointment.BookFollowUp(Guid.NewGuid(), _slot, null, otherDentist);
+
+        Assert.Equal(otherDentist, followUp.DentistId);
+        Assert.Equal(_dentistId, appointment.DentistId);
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Refuse_A_Second_Live_Follow_Up()
+    {
+        var appointment = NewAppointment();
+        var first = appointment.BookFollowUp(Guid.NewGuid(), _slot, null);
+
+        Assert.Throws<BusinessException>(() => appointment.BookFollowUp(Guid.NewGuid(), _slot, first));
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Replace_A_Cancelled_Follow_Up()
+    {
+        var appointment = NewAppointment();
+        var first = appointment.BookFollowUp(Guid.NewGuid(), _slot, null);
+        first.Cancel(CancellationReason.PatientRequest);
+        var secondId = Guid.NewGuid();
+
+        appointment.BookFollowUp(secondId, _slot, first);
+
+        Assert.Equal(secondId, appointment.FollowUpAppointmentId);
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Refuse_A_Cancelled_Visit()
+    {
+        var appointment = NewAppointment();
+        appointment.Cancel(CancellationReason.PatientRequest);
+
+        Assert.Throws<BusinessException>(() => appointment.BookFollowUp(Guid.NewGuid(), _slot, null));
+        Assert.Null(appointment.FollowUpAppointmentId);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

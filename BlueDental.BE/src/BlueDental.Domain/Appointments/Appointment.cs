@@ -28,6 +28,9 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? CompletedAt { get; private set; }
     public AppointmentOutcome? Outcome { get; private set; }
 
+    /// <summary>The appointment booked through "Đã hẹn tiếp", if any.</summary>
+    public Guid? FollowUpAppointmentId { get; private set; }
+
     public bool IsTemporary { get; private set; }
     public string? PatientName { get; private set; }
     public string? PatientPhone { get; private set; }
@@ -275,6 +278,47 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
         Outcome = outcome;
         return this;
+    }
+
+    /// <summary>
+    /// "Đã hẹn tiếp": the visit ends with the next appointment already on the
+    /// book. Books it for the same patient in the same branch — with this
+    /// visit's dentist unless another is named — and links it here, so the
+    /// outcome can never be set without a date behind it. Only one live
+    /// follow-up per visit — moving it is done on the booked appointment
+    /// itself — but one that was cancelled or deleted may be replaced.
+    /// </summary>
+    /// <param name="currentFollowUp">
+    /// The appointment <see cref="FollowUpAppointmentId"/> points at, or null
+    /// when there is none or it has been deleted.
+    /// </param>
+    public Appointment BookFollowUp(
+        Guid followUpId,
+        AppointmentSlot slot,
+        Appointment? currentFollowUp,
+        Guid? dentistId = null,
+        string? chiefComplaint = null)
+    {
+        var hasLiveFollowUp = currentFollowUp is { Status: not AppointmentStatus.Cancelled };
+        if (Status is AppointmentStatus.Cancelled || IsTemporary || hasLiveFollowUp)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot book a follow-up from appointment {Id} (status {Status}).");
+        }
+
+        var followUp = new Appointment(
+            followUpId,
+            PatientId,
+            dentistId ?? DentistId,
+            BranchId,
+            slot,
+            AppointmentType.FollowUp,
+            chiefComplaint: chiefComplaint);
+
+        Outcome = AppointmentOutcome.FollowUp;
+        FollowUpAppointmentId = followUpId;
+        return followUp;
     }
 
     public Appointment UpdateDetails(
