@@ -4270,7 +4270,8 @@ html:has(.ant-modal-wrap) {
 .ant-drawer .ant-input-number,
 .ant-drawer .ant-picker,
 .ant-drawer .ant-select .ant-select-selector {
-  background: var(--bd-bg-soft);
+  border-color: #c5cbe4;
+  background: #fff;
 }
 
 .ant-modal .ant-input:focus,
@@ -8174,9 +8175,9 @@ html:has(.ant-modal-wrap) {
 .ant-modal .ant-select:not(.ant-select-multiple) .ant-select-selector,
 .ant-modal .ant-picker {
   height: 42px;
-  border-color: #e3e7f5;
+  border-color: #c5cbe4;
   border-radius: 10px;
-  background: #f6f8fe;
+  background: #fff;
   font-size: 13px;
 }
 
@@ -8194,6 +8195,25 @@ html:has(.ant-modal-wrap) {
 .ant-modal .ant-picker-focused {
   border-color: var(--bd-primary);
   background: #fff;
+}
+
+/* Disabled & readonly: greyed-out fill so they read as "not editable". */
+.ant-modal .ant-input:disabled,
+.ant-modal .ant-input-affix-wrapper-disabled,
+.ant-modal .ant-input-number-disabled,
+.ant-modal .ant-picker-disabled,
+.ant-modal .ant-select-disabled .ant-select-selector,
+.ant-modal .ant-input[readonly],
+.ant-drawer .ant-input:disabled,
+.ant-drawer .ant-input-affix-wrapper-disabled,
+.ant-drawer .ant-input-number-disabled,
+.ant-drawer .ant-picker-disabled,
+.ant-drawer .ant-select-disabled .ant-select-selector,
+.ant-drawer .ant-input[readonly] {
+  background: var(--bd-bg);
+  border-color: var(--bd-line);
+  color: var(--bd-muted);
+  cursor: not-allowed;
 }
 
 .ant-modal textarea.ant-input {
