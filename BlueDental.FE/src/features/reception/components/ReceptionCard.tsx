@@ -49,8 +49,8 @@ const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
 type NonNullOutcome = Exclude<AppointmentOutcome, null>;
 
 const OUTCOME_KEYS: NonNullOutcome[] = [
-  "EndTreatment",
   "FollowUp",
+  "EndTreatment",
   "TransferDoctor",
   "Revisit",
 ];
@@ -272,12 +272,18 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             <div className="rc-col-actions">
               {OUTCOME_KEYS.map((key) => {
                 const isSelected = selectedOutcome === key;
+                // "Đã hẹn tiếp" locks out every other option.
+                // "Kết thúc điều trị" locks out "Chuyển bác sĩ" (and vice-versa is not required).
+                const isDisabled =
+                  isCancelled ||
+                  (selectedOutcome === "FollowUp" && key !== "FollowUp") ||
+                  (selectedOutcome === "EndTreatment" && key === "TransferDoctor");
                 return (
                   <button
                     key={key}
                     type="button"
                     className={`rc-outcome-btn ${isSelected ? "rc-outcome-btn--selected" : ""}`}
-                    disabled={isCancelled}
+                    disabled={isDisabled}
                     onClick={() => onOutcomeChange?.(item.id, key)}
                   >
                     {isSelected ? (
