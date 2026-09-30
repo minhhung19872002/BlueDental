@@ -9,6 +9,9 @@ namespace BlueDental.Appointments;
 /// <summary>
 /// Domain service: checks whether a new appointment slot conflicts with an existing
 /// confirmed or in-progress appointment for the same dentist or patient.
+/// A visit ended with "Hẹn tái khám" frees its slot the way a cancelled one
+/// does (BA): the patient comes back on the booked revisit, so another
+/// patient may take the dentist at that time.
 /// </summary>
 public class AppointmentConflictChecker : ITransientDependency
 {
@@ -34,6 +37,7 @@ public class AppointmentConflictChecker : ITransientDependency
             && a.Id != (excludeAppointmentId ?? Guid.Empty)
             && a.Status != AppointmentStatus.Cancelled
             && a.Status != AppointmentStatus.NoShow
+            && a.Outcome != AppointmentOutcome.Revisit
             && a.Slot.Start < slot.End
             && a.Slot.End > slot.Start);
     }
@@ -53,6 +57,7 @@ public class AppointmentConflictChecker : ITransientDependency
             && a.Id != (excludeAppointmentId ?? Guid.Empty)
             && a.Status != AppointmentStatus.Cancelled
             && a.Status != AppointmentStatus.NoShow
+            && a.Outcome != AppointmentOutcome.Revisit
             && a.Slot.Start < slot.End
             && a.Slot.End > slot.Start);
     }

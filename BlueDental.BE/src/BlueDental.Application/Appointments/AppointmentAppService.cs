@@ -459,7 +459,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var before = await SnapshotAsync(appointment);
         appointment.Start();
         if (input?.Outcome is { } outcome)
-            appointment.SetOutcome(outcome);
+            await SetOutcomeHoldingSlotAsync(appointment, outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
@@ -474,7 +474,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var before = await SnapshotAsync(appointment);
         appointment.Complete(input.Notes);
         if (input.Outcome is { } outcome)
-            appointment.SetOutcome(outcome);
+            await SetOutcomeHoldingSlotAsync(appointment, outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
@@ -513,11 +513,31 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
-        appointment.SetOutcome(input.Outcome);
+        await SetOutcomeHoldingSlotAsync(appointment, input.Outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
+    }
+
+    /// <summary>
+    /// "Hẹn tái khám" frees the visit's slot like a cancellation, so another
+    /// patient may have taken the dentist since. Moving off it takes the slot
+    /// back, which is refused when it is no longer free.
+    /// </summary>
+    private async Task SetOutcomeHoldingSlotAsync(Appointment appointment, AppointmentOutcome outcome)
+    {
+        if (appointment.Outcome == AppointmentOutcome.Revisit
+            && outcome != AppointmentOutcome.Revisit
+            && await _conflictChecker.HasDentistConflictAsync(
+                appointment.DentistId, appointment.Slot, excludeAppointmentId: appointment.Id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
+                "The dentist already has an appointment in this time slot.");
+        }
+
+        appointment.SetOutcome(outcome);
     }
 
     /// <summary>

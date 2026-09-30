@@ -295,9 +295,12 @@ export const receptionApi = {
     const res = await api.get(APPT_BASE, {
       params: { dentistId, fromDate, toDate, statuses: BUSY_STATUSES },
     });
-    return (res.data?.items ?? []).map((dto: ServerAppointmentDto) => ({
-      start: dayjs(dto.slotStart).valueOf(),
-      end: dayjs(dto.slotEnd).valueOf(),
-    }));
+    // "Hẹn tái khám" frees the slot like a cancellation (BA); the server agrees.
+    return (res.data?.items ?? [])
+      .filter((dto: ServerAppointmentDto) => dto.outcome !== OUTCOME_TO_SERVER.Revisit)
+      .map((dto: ServerAppointmentDto) => ({
+        start: dayjs(dto.slotStart).valueOf(),
+        end: dayjs(dto.slotEnd).valueOf(),
+      }));
   },
 };

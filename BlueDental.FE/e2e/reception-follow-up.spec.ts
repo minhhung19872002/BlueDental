@@ -392,6 +392,54 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     }
   });
 
+  test("Hẹn tái khám frees the doctor's slot like a cancellation", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 180);
+    const slot = { slotStart: visit.slotStart, slotEnd: visit.slotEnd };
+
+    /** Books another patient with the visit's dentist at the visit's time. */
+    const bookSameSlot = async () => {
+      const patients = await call<{ items: { id: string }[] }>(
+        page, branchId, `/api/v1/app/patients?MaxResultCount=50&ClinicBranchId=${branchId}`,
+      );
+      let last: ApiResult<Appointment> | undefined;
+      for (const p of patients.body.items.filter((x) => x.id !== visit.patientId)) {
+        last = await call<Appointment>(page, branchId, APPOINTMENTS, {
+          method: "POST",
+          json: { patientId: p.id, dentistId: visit.dentistId, branchId, ...slot, type: 2 },
+        });
+        // Only the patient being booked elsewhere is worth another try.
+        if (last.body.error?.code !== "BlueDental:Appointment:0006") return last;
+      }
+      return last!;
+    };
+
+    // Still held while the visit is on the book.
+    expect((await bookSameSlot()).body.error?.code).toBe("BlueDental:Appointment:0002");
+
+    const card = await cardOf(page, visit);
+    await outcome(card, "Hẹn tái khám").click();
+    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+    await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
+    await panel.getByRole("button", { name: "Xác nhận hẹn tái khám" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.Revisit);
+
+    // Freed: another patient takes the dentist at that time.
+    const taken = await bookSameSlot();
+    expect(taken.status, JSON.stringify(taken.body.error)).toBe(200);
+    expect(taken.body.dentistId).toBe(visit.dentistId);
+
+    // Moving off Hẹn tái khám would take the slot back — refused now it is taken.
+    const back = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/set-outcome`, {
+      method: "POST",
+      json: { outcome: OUTCOME.EndTreatment },
+    });
+    expect(back.status).toBeGreaterThanOrEqual(400);
+    expect(back.body.error?.code).toBe("BlueDental:Appointment:0002");
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.Revisit);
+  });
+
   test("the doctor's booked slots cannot be picked", async ({ page }) => {
     const branchId = await openBoard(page);
     const visit = await bookVisitToday(page, branchId, 120);

@@ -65,6 +65,8 @@ public class EfCoreAppointmentRepository :
                 && a.Id != (excludeId ?? Guid.Empty)
                 && a.Status != AppointmentStatus.Cancelled
                 && a.Status != AppointmentStatus.NoShow
+                // "Hẹn tái khám" frees the slot like a cancellation.
+                && a.Outcome != AppointmentOutcome.Revisit
                 && a.Slot.Start < slotEnd
                 && a.Slot.End > slotStart)
             .AnyAsync(cancellationToken);
