@@ -1171,8 +1171,6 @@ body.cal-fullscreen .cal-grid-wrap {
   margin-left: 2px;
 }
 
-.appt-label-accent { color: var(--bd-red, #e5484d); }
-
 .appt-date-display {
   height: 40px;
   display: flex;

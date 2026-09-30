@@ -81,7 +81,7 @@ export function AppointmentFormLeft({
       {/* Date */}
       <div className="appt-field">
         <label className="appt-field-label">
-          {t("Appointment:Form:DateLabel")} <span className="appt-label-accent">{t("Appointment:Form:AppointmentSuffix")}</span>
+          {t("Appointment:Form:DateLabel")} {t("Appointment:Form:AppointmentSuffix")}
         </label>
         <Controller
           name="date"
