@@ -46,8 +46,14 @@ export function PatientBasicColumn({
       <div className="bd-patient-subtabs" role="tablist">
         {(
           [
-            { key: "basic" as const, label: t("Patient:Form:BasicInfo") },
-            { key: "history" as const, label: t("Patient:Tab:DiseaseHistory") },
+            { key: "basic" as const, label: t("Patient:Form:BasicInfo"), count: 0 },
+            // BA: the pill tells how many entries are ticked, so it reads from
+            // the basic pane too. Nothing ticked shows no tag at all.
+            {
+              key: "history" as const,
+              label: t("Patient:Tab:DiseaseHistory"),
+              count: diseaseHistoryEntryIds.length,
+            },
           ]
         ).map((item) => (
           <button
@@ -64,6 +70,7 @@ export function PatientBasicColumn({
             onClick={() => onTabChange(item.key)}
           >
             {item.label}
+            {item.count > 0 && <span className="bd-patient-subtab-count">{item.count}</span>}
           </button>
         ))}
       </div>

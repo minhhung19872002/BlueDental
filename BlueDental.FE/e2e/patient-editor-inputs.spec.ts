@@ -2,17 +2,64 @@ import { expect, test } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
- * Feature: Hồ sơ bệnh nhân → Ngày sinh typed as bare digits (BA request
- * 2026-09-30).
+ * Feature: Hồ sơ bệnh nhân dialog inputs (BA requests 2026-09-30).
  *
- * Typing "ddmmyyyy" with no separators is formatted as dd/mm/yyyy while it is
- * typed, and the open calendar jumps to and selects that day — nobody has to
- * page back through decades with «. The record saves with that birth date.
+ * - The "Tiểu sử bệnh" pill carries the number of ticked entries, readable
+ *   from either pill, and shows no tag while nothing is ticked.
+ * - Ngày sinh typed as bare digits ("ddmmyyyy") is formatted as dd/mm/yyyy
+ *   while it is typed, and the open calendar jumps to and selects that day.
+ *   The record saves with that birth date.
  *
  * Real login, real API, real database; nothing is intercepted.
  */
 
 const PATIENTS = "/api/v1/app/patients";
+
+test.describe("disease history pill count", () => {
+  test("the Tiểu sử bệnh pill counts ticked entries and hides at zero", async ({ page }) => {
+    await login(page);
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, PATIENTS);
+
+    await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Tạo hồ sơ" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo hồ sơ" });
+    const pill = dialog.getByRole("tab", { name: /Tiểu sử bệnh/ });
+    const count = pill.locator(".bd-patient-subtab-count");
+    await expect(count).toHaveCount(0);
+
+    // Tick up to two entries, across groups, from the seeded Lịch sử bệnh catalog.
+    await pill.click();
+    const heads = dialog.locator(".bd-patient-history-head");
+    await expect(heads.first()).toBeVisible();
+    let ticked = 0;
+    for (let i = 0; i < (await heads.count()) && ticked < 2; i += 1) {
+      await heads.nth(i).click();
+      const boxes = dialog.locator(".bd-patient-history-body").getByRole("checkbox");
+      for (let j = 0; j < (await boxes.count()) && ticked < 2; j += 1) {
+        await boxes.nth(j).check();
+        ticked += 1;
+        await expect(count).toHaveText(String(ticked));
+      }
+    }
+    expect(ticked, "the local seed needs at least one Lịch sử bệnh entry").toBeGreaterThan(0);
+
+    // Still readable from the other pill.
+    await dialog.getByRole("tab", { name: "Thông tin cơ bản" }).click();
+    await expect(count).toHaveText(String(ticked));
+
+    // Unticking everything removes the tag.
+    await pill.click();
+    const checked = dialog.locator(".bd-patient-history-body").getByRole("checkbox", { checked: true });
+    while ((await checked.count()) > 0) await checked.first().uncheck();
+    // Earlier groups are collapsed; reopen each and clear anything still ticked.
+    for (let i = 0; i < (await heads.count()); i += 1) {
+      if ((await heads.nth(i).locator(".bd-patient-history-count").count()) === 0) continue;
+      await heads.nth(i).click();
+      while ((await checked.count()) > 0) await checked.first().uncheck();
+    }
+    await expect(count).toHaveCount(0);
+  });
+});
 
 test.describe("patient birth date typed as digits", () => {
   test("24081997 becomes 24/08/1997, is picked on the calendar and saves", async ({ page }) => {

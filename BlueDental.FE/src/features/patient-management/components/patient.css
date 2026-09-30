@@ -507,6 +507,9 @@
 }
 
 .bd-patient-subtab {
+  /* Flex so the count tag sits on the label's centre line, not its baseline. */
+  display: inline-flex;
+  align-items: center;
   border: 0;
   border-radius: var(--bd-radius-pill);
   background: var(--bd-line-soft);
@@ -529,6 +532,31 @@
 .bd-patient-subtab--active:hover {
   background: var(--bd-blue);
   color: #fff;
+}
+
+/* Ticked-entry total on the "Tiểu sử bệnh" pill: solid primary so it stands
+   out on the grey resting pill, inverted to white on the filled active one. */
+.bd-patient-subtab-count {
+  display: inline-flex;
+  box-sizing: border-box;
+  height: 18px;
+  min-width: 18px;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: 6px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue);
+  padding: 0 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-patient-subtab--active .bd-patient-subtab-count {
+  background: #fff;
+  color: var(--bd-blue);
 }
 
 /* ── Tiểu sử bệnh ────────────────────────────────────────────────────── */
