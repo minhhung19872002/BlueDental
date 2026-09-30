@@ -337,8 +337,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             </div>
           </div>
         </div>
+        {children && <div className="rc-followup">{children}</div>}
       </div>
-      {children}
     </div>
   );
 };

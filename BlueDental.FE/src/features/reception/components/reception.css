@@ -585,14 +585,15 @@
 /* ── "Đã hẹn tiếp": outcome with a date line, and the picker under the card ── */
 
 .rc-wrapper--expanded {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   height: auto;
 }
 
 .rc-wrapper--expanded > .rc-card {
   height: auto;
+}
+
+.rc-followup {
+  padding: 4px 16px 0;
 }
 
 .rc-outcome-btn--stacked {
