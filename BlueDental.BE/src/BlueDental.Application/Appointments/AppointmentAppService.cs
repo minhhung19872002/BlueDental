@@ -507,6 +507,36 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return await ToDtoAsync(appointment);
     }
 
+    /// <summary>
+    /// Links a "Lịch tạm" to the patient record just created for it, so the
+    /// card stops being temporary and opens that record from then on.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> AttachPatientAsync(Guid id, AttachPatientDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+
+        var patient = await _patientRepository.FindAsync(input.PatientId);
+        if (patient is null || patient.BranchId != appointment.BranchId)
+            throw new EntityNotFoundException(typeof(Patient), input.PatientId);
+
+        // Excluding itself: once attached, this appointment is the patient's own.
+        if (await _conflictChecker.HasPatientConflictAsync(input.PatientId, appointment.Slot, appointment.Id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked,
+                "The patient already has an appointment in this time slot.");
+        }
+
+        var before = await SnapshotAsync(appointment);
+        appointment.AttachPatient(input.PatientId);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+        return await ToDtoAsync(appointment);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> SetOutcomeAsync(Guid id, SetOutcomeDto input)
     {

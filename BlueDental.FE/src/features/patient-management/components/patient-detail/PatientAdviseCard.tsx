@@ -38,6 +38,8 @@ import { AdviseVoucherPicker } from "./AdviseVoucherPicker";
  */
 
 const money = (value: number) => formatMoneyUnit(value);
+/** A deduction reads as one: "-1.525.000 đ", and a plain "0 đ" when there is none. */
+const minus = (value: number) => (value > 0 ? `-${money(value)}` : money(0));
 
 /**
  * The drag state has to reach the row component antd builds for us, and antd
@@ -403,8 +405,17 @@ export function PatientAdviseCard({
           <div className="pd-plan-total">
             <strong>{t("Patient:QuoteSheet:PlanTotal")}</strong>
 
-            <p>
-              {t("Patient:Payment:GrandTotal")}: <b>{money(plan.gross)}</b>
+            {/* Labels on the left, amounts on the right, in the order the
+                figure is worked out: Tổng cộng − Giảm giá − the vouchers
+                applied, one boxed line each. Chi tiết phiếu and both printed
+                sheets close on the same figures. */}
+            <p className="pd-plan-row">
+              <span>{t("Patient:PlanTotals:Subtotal")}</span>
+              <b>{money(plan.subtotal)}</b>
+            </p>
+            <p className="pd-plan-row pd-plan-row--off">
+              <span>{t("Patient:PlanTotals:Discount")}</span>
+              <b>{minus(plan.serviceDiscount)}</b>
             </p>
 
             {/* Every command below prices the ticked rows, so none of them means
@@ -412,8 +423,9 @@ export function PatientAdviseCard({
               included: it asks the server what applies to an amount. */}
             <AdviseVoucherPicker plan={plan} disabled={!hasTicked} />
 
-            <p className="pd-plan-net">
-              {t("Patient:Payment:TotalAmount")}: <b>{money(plan.net)}</b>
+            <p className="pd-plan-row pd-plan-net">
+              <span>{t("Patient:PlanTotals:Net")}</span>
+              <b>{money(plan.net)}</b>
             </p>
 
             <div className="pd-plan-actions">

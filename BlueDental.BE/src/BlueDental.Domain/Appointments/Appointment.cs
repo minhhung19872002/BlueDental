@@ -370,6 +370,26 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Lịch tạm" → a real booking once the walk-in has a patient record: the
+    /// appointment now belongs to that patient and stops carrying its own name
+    /// and phone.
+    /// </summary>
+    public Appointment AttachPatient(Guid patientId)
+    {
+        if (!IsTemporary)
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.NotTemporary,
+                $"Appointment {Id} is not temporary.");
+
+        Check.NotDefaultOrNull<Guid>(patientId, nameof(patientId));
+        PatientId = patientId;
+        IsTemporary = false;
+        PatientName = null;
+        PatientPhone = null;
+        return this;
+    }
+
     public Appointment UpdateSourceInfo(Guid? sourceTaxonomyId, Guid? sourceEntryId)
     {
         SourceTaxonomyId = sourceTaxonomyId;

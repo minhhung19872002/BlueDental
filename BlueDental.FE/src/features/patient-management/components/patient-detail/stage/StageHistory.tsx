@@ -3,6 +3,7 @@ import { Button, Checkbox, Image, Input } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
+import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageStepList } from "./StageStepList";
@@ -34,6 +35,8 @@ interface Props {
   onWarranty: (stage: TreatmentStageDto) => void;
   /** Which of the reference's warranty controls a finished row shows. */
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
+  /** Every tooth of the row's service, the row's own among them. */
+  lineTeethOf: (stage: TreatmentStageDto) => ToothSelectionDto[];
 }
 
 /** The pencil that swaps a stage's note for an editor, in place. */
@@ -143,6 +146,7 @@ export function StageHistory({
   onCreateLabo,
   onWarranty,
   warrantyOf,
+  lineTeethOf,
 }: Props) {
   return (
     <div className="pd-stage-history">
@@ -196,11 +200,25 @@ export function StageHistory({
                         <div>
                           <p className="pd-stage-histservice">{stage.serviceName ?? stage.name}</p>
                           {/* Tooth numbers only: the reference prints no
-                              surfaces on a công đoạn. */}
+                              surfaces on a công đoạn. Every tooth of the
+                              service is listed and this visit's ones are
+                              blue, so the day's work reads at a glance; a
+                              công đoạn written with no teeth stood for them
+                              all. */}
                           <div className="pd-stage-histteeth">
-                            {stage.teeth.map((tooth) => (
-                              <span key={tooth.toothCode}>{tooth.toothCode}</span>
-                            ))}
+                            {lineTeethOf(stage).map((tooth) => {
+                              const worked =
+                                stage.teeth.length === 0 ||
+                                stage.teeth.some((each) => each.toothCode === tooth.toothCode);
+                              return (
+                                <span
+                                  key={tooth.toothCode}
+                                  className={worked ? "pd-stage-histtooth--worked" : undefined}
+                                >
+                                  {tooth.toothCode}
+                                </span>
+                              );
+                            })}
                           </div>
                           {images.length > 0 && (
                             <div className="pd-stage-histshots">

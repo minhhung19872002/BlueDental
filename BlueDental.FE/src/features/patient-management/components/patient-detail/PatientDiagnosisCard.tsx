@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Button, Tooltip, type TableColumnsType } from "antd";
 import { CloseOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { CalendarDays } from "lucide-react";
+import { Printer } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import {
   formatToothCodes,
@@ -17,7 +17,7 @@ import type { TablePagination } from "@/hooks/useTablePagination";
  *
  * The reference pairs two facts in most cells: a doctor over the date the
  * diagnosis was recorded, the teeth over the diagnosis name. A second doctor
- * that has not been named yet reads "Chưa cập nhật" in red, not a dash.
+ * that has not been named yet is a plain "-".
  */
 
 /**
@@ -83,19 +83,18 @@ export function PatientDiagnosisCard({
       ),
     },
     {
-      title: t("Patient:Diagnosis:Second"),
+      title: t("Patient:Diagnosis:Doctor2"),
       key: "secondStaff",
       width: 200,
-      render: (_, row) => (
-        <div className="pd-cell-stack">
-          {row.secondStaffName ? (
+      render: (_, row) =>
+        row.secondStaffName ? (
+          <div className="pd-cell-stack">
             <b>{row.secondStaffName}</b>
-          ) : (
-            <b className="pd-cell-missing">{t("Patient:Diagnosis:NotUpdated")}</b>
-          )}
-          <span>{formatDate(row.creationTime)}</span>
-        </div>
-      ),
+            <span>{formatDate(row.creationTime)}</span>
+          </div>
+        ) : (
+          "-"
+        ),
     },
     {
       title: t("Patient:DentalChart:Tooth"),
@@ -131,7 +130,7 @@ export function PatientDiagnosisCard({
               <Button
                 type="text"
                 aria-label={t("Patient:Diagnosis:Print")}
-                icon={<CalendarDays size={20} className="pd-print-icon" />}
+                icon={<Printer size={20} className="pd-print-icon" />}
                 onClick={() => onPrint(row)}
               />
             </Tooltip>

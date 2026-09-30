@@ -51,7 +51,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
             onChange={(value) => onChange(service.id, { price: value ?? 0 })}
           />
         ) : (
-          moneyText(service.price)
+          moneyText(service.salePrice)
         )}
       </td>
       <td>
@@ -91,7 +91,7 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
           </div>
         )}
       </td>
-      <td className="am-cell-amount">{totals ? moneyText(totals.effective) : moneyText(service.price)}</td>
+      <td className="am-cell-amount">{totals ? moneyText(totals.effective) : moneyText(service.salePrice)}</td>
       <td>
         {draft ? (
           <Input

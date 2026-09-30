@@ -7,10 +7,18 @@ import { StageTeethDialog } from "./StageTeethDialog";
 interface Props {
   /** The teeth on offer — numbers only, as the reference prints them. */
   candidates: ToothSelectionDto[];
+  /**
+   * Every tooth the row prints, `candidates` among them. The others are
+   * already taken by a công đoạn: shown faded and inert rather than dropped.
+   * Defaults to `candidates`.
+   */
+  shown?: ToothSelectionDto[];
   picked: number[];
   /** A continued công đoạn keeps its teeth: chips shown, not clickable. */
   locked: boolean;
   error?: string;
+  /** A tap on one chip; by default it turns that tooth alone on or off. */
+  onToggle?: (code: number) => void;
   onChange: (codes: number[]) => void;
 }
 
@@ -23,27 +31,42 @@ interface Props {
  * for later. On a continued công đoạn the chips are disabled at 70% opacity.
  * Beside them, the chart button opens {@link StageTeethDialog}.
  */
-export function StageTeethPicker({ candidates, picked, locked, error, onChange }: Props) {
+export function StageTeethPicker({
+  candidates,
+  shown = candidates,
+  picked,
+  locked,
+  error,
+  onToggle,
+  onChange,
+}: Props) {
   const [charting, setCharting] = useState(false);
 
-  const toggle = (code: number) =>
-    onChange(picked.includes(code) ? picked.filter((item) => item !== code) : [...picked, code]);
+  const toggle =
+    onToggle ??
+    ((code: number) =>
+      onChange(picked.includes(code) ? picked.filter((item) => item !== code) : [...picked, code]));
 
   return (
     <div className="pd-stage-teeth">
       <p>{t("Patient:DentalChart:Tooth")}:</p>
       <div>
-        {candidates.map((tooth) => {
+        {shown.map((tooth) => {
           const on = picked.includes(tooth.toothCode);
+          const done = !candidates.some((each) => each.toothCode === tooth.toothCode);
           return (
             <button
               type="button"
               key={tooth.toothCode}
-              className={[on && "active", error && !on && "pd-stage-tooth--error"]
+              className={[
+                on && "active",
+                done && "pd-stage-tooth--done",
+                error && !on && !done && "pd-stage-tooth--error",
+              ]
                 .filter(Boolean)
                 .join(" ")}
               aria-pressed={on}
-              disabled={locked}
+              disabled={locked || done}
               onClick={() => toggle(tooth.toothCode)}
             >
               {tooth.toothCode}

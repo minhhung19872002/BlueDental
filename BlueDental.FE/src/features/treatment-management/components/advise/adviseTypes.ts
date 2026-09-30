@@ -30,11 +30,16 @@ export interface AdviseHeaderValues {
   secondDiagnoserId?: string;
 }
 
-/** A fresh row starts at the catalogue price, one unit, no discount. */
+/**
+ * A fresh row starts at the service's "Giá sau giảm" — the catalogue price
+ * less the discount set on it in Danh mục — one unit, no discount of its own.
+ * A discount typed here comes off that price, and is the only one Phiếu tư
+ * vấn's Giảm giá counts (project owner, 2026-09-30).
+ */
 export function newRowDraft(service: CatalogOption): AdviseRowDraft {
   return {
     service,
-    price: service.price ?? 0,
+    price: service.salePrice ?? 0,
     quantity: 1,
     discountType: DISCOUNT_TYPE.Percentage,
     discountValue: 0,

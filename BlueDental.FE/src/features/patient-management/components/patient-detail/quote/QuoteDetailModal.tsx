@@ -21,7 +21,7 @@ interface Props {
   open: boolean;
   patientId: string;
   branchId: string;
-  /** The advise rows ticked on Phiếu tư vấn. */
+  /** The rows ticked on the tab showing — Phiếu tư vấn, or a báo giá priced its own way. */
   rows: PatientAdviseDto[];
   diagnoses: PatientDiagnosisDto[];
   images: PatientImageViewModel[];

@@ -31,6 +31,11 @@ export interface CatalogOption {
   name: string;
   code: string | null;
   price: number | null;
+  /**
+   * A service's "Giá sau giảm": its price less the discount set on it in Danh
+   * mục (Cập nhật dịch vụ). The price as it is sold; `price` otherwise.
+   */
+  salePrice: number | null;
   taxonomyId: string;
   taxonomyName: string | null;
   isImageRequired: boolean;
@@ -67,7 +72,12 @@ interface CatalogEntryResponse {
   content: string | null;
   description?: string | null;
   prescriptionLines?: CatalogPrescriptionLine[];
+  /** Services only; the server works "Giá sau giảm" out. */
+  serviceConfig?: { priceAfterDiscount: number } | null;
 }
+
+const salePriceOf = (entry: CatalogEntryResponse): number | null =>
+  entry.serviceConfig?.priceAfterDiscount ?? entry.price;
 
 export const catalogOptionKeys = {
   all: ["catalog-options"] as const,
@@ -93,6 +103,7 @@ export function useCatalogOptions(group: CatalogGroup) {
         name: entry.name,
         code: entry.code,
         price: entry.price,
+        salePrice: salePriceOf(entry),
         taxonomyId: entry.taxonomyId,
         taxonomyName: entry.taxonomyName,
         isImageRequired: entry.isImageRequired,
@@ -120,6 +131,7 @@ function toOption(entry: CatalogEntryResponse): CatalogOption {
     name: entry.name,
     code: entry.code,
     price: entry.price,
+    salePrice: salePriceOf(entry),
     taxonomyId: entry.taxonomyId,
     taxonomyName: entry.taxonomyName,
     isImageRequired: entry.isImageRequired,

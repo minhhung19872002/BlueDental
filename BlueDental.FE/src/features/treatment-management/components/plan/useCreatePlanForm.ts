@@ -12,6 +12,7 @@ import {
   useCreateAdvise,
   useUpdateAdvise,
 } from "../../api/consultingQueries";
+import { useRepricePatientQuoteLine } from "../../api/patientQuoteApi";
 import { useOpenTreatmentPlan } from "../../api/treatmentPlanApi";
 import { adviseToFormValues, adviseToUpdateDto } from "./adviseEditing";
 import {
@@ -65,7 +66,15 @@ interface Options {
   services: CatalogOption[];
   /** An existing slip to edit ("Cập nhật phiếu dịch vụ"); null or absent creates one. */
   advise?: PatientAdviseDto | null;
+  /** Editing on a báo giá's tab: the price and discount are that quote's own. */
+  quote?: QuoteEditTarget | null;
   onCreated: () => void;
+}
+
+export interface QuoteEditTarget {
+  id: string;
+  /** The row as Phiếu tư vấn holds it — `advise` is priced by the quote. */
+  source: PatientAdviseDto;
 }
 
 /**
@@ -74,7 +83,7 @@ interface Options {
  * accepted advise. The reference's own save request was not observed
  * (docs/clone/unknowns.md), so the form mirrors its fields, not its wire shape.
  */
-export function useCreatePlanForm({ patientId, branchId, services, advise, onCreated }: Options) {
+export function useCreatePlanForm({ patientId, branchId, services, advise, quote, onCreated }: Options) {
   const [form] = Form.useForm<CreatePlanValues>();
   const [teeth, setTeethValue] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
   const [fieldErrors, setFieldErrors] = useState<PlanFieldErrors>({});
@@ -91,6 +100,37 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
   const acceptAdvise = useAcceptAdvise();
   const openPlan = useOpenTreatmentPlan();
   const updateAdvise = useUpdateAdvise();
+  const repriceQuoteLine = useRepricePatientQuoteLine();
+
+  /**
+   * On a báo giá the new price and discount go to that quote; the note is the
+   * consulting line's own, so a changed one still goes to the line — carrying
+   * Phiếu tư vấn's price, not the quote's.
+   */
+  const saveOnQuote = async (target: QuoteEditTarget, values: CreatePlanValues) => {
+    if (!advise) return;
+    const { price, quantity, discountType, discountValue } = adviseToUpdateDto(advise, values);
+    await repriceQuoteLine.mutateAsync({
+      id: target.id,
+      adviseId: advise.id,
+      pricing: { price, quantity, discountType, discountValue },
+    });
+    if ((values.note || null) !== (target.source.note || null)) {
+      const { source } = target;
+      await updateAdvise.mutateAsync({
+        id: source.id,
+        data: {
+          price: source.price,
+          quantity: source.quantity,
+          discountType: source.discountType,
+          discountValue: source.discountValue,
+          adviseGroupId: source.adviseGroupId ?? undefined,
+          sortOrder: source.sortOrder,
+          note: values.note || undefined,
+        },
+      });
+    }
+  };
 
   // Opening on an existing slip: the fields and the teeth start from it.
   useEffect(() => {
@@ -138,7 +178,8 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
     if (!advise) return;
     setSubmitting(true);
     try {
-      await updateAdvise.mutateAsync({ id: advise.id, data: adviseToUpdateDto(advise, values) });
+      if (quote) await saveOnQuote(quote, values);
+      else await updateAdvise.mutateAsync({ id: advise.id, data: adviseToUpdateDto(advise, values) });
       toast.success(t("Treatment:Plan:UpdateSuccess"));
       reset();
       onCreated();

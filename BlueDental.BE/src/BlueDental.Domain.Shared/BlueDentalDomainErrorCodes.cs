@@ -70,6 +70,7 @@ public static class BlueDentalDomainErrorCodes
         public const string CancellationReasonRequired = "BlueDental:Appointment:0004";
         public const string SlotInThePast = "BlueDental:Appointment:0005";
         public const string PatientAlreadyBooked = "BlueDental:Appointment:0006";
+        public const string NotTemporary = "BlueDental:Appointment:0007";
     }
 
     public static class TreatmentManagement

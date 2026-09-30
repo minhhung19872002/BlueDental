@@ -196,6 +196,7 @@ export function TreatmentStageDialog({
         days={composer.days}
         total={composer.stages.length}
         imagesOf={composer.imagesOf}
+        lineTeethOf={composer.lineTeethOf}
         savingNoteFor={composer.savingNoteFor}
         uploadingFor={composer.uploadingFor}
         completingId={composer.completingId}

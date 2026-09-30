@@ -12,7 +12,7 @@ import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { useDentistOptions } from "@/hooks/usePickerOptions";
 import { ToothPickerDialog } from "./ToothPickerDialog";
 import { formatToothValue } from "./toothPicker";
-import { useCreatePlanForm, type CreatePlanValues } from "./useCreatePlanForm";
+import { useCreatePlanForm, type CreatePlanValues, type QuoteEditTarget } from "./useCreatePlanForm";
 
 interface Props {
   open: boolean;
@@ -20,6 +20,8 @@ interface Props {
   branchId: string;
   /** An existing slip turns the dialog into "Cập nhật phiếu dịch vụ". */
   advise?: PatientAdviseDto | null;
+  /** Opened on a báo giá's tab: the price and discount saved are that quote's. */
+  quote?: QuoteEditTarget | null;
   onClose: () => void;
 }
 
@@ -35,7 +37,7 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
  * advising staff on top, service/doctor/diagnosis/price locked, discount,
  * note and teeth open.
  */
-export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }: Props) {
+export function CreatePlanDialog({ open, patientId, branchId, advise, quote, onClose }: Props) {
   const editing = Boolean(advise);
 
   // The service a slip already carries may have left the catalog; it travels
@@ -47,6 +49,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
     branchId,
     services: pickerServices,
     advise,
+    quote,
     onCreated: onClose,
   });
   const { form, teeth, totals } = state;

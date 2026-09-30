@@ -76,6 +76,18 @@
   color: var(--tp-ink);
   font-size: 14px;
 }
+.pq-totals-row > strong {
+  font-weight: 500;
+}
+/* "Thành tiền" is the figure the patient pays: bold and a size above the rest. */
+.pq-totals-row--net {
+  font-weight: 700;
+}
+.pq-totals-row--net > strong {
+  color: var(--bd-primary);
+  font-size: 18px;
+  font-weight: 700;
+}
 .pq-footer {
   display: flex;
   flex-wrap: wrap;

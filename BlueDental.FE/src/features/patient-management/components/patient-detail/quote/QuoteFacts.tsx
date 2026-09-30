@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import { money, type QuoteClinic, type QuoteCustomer, type QuoteTotals } from "./quoteModel";
+import { minus, money, type QuoteClinic, type QuoteCustomer, type QuoteTotals } from "./quoteModel";
 
 const dash = (value: string) => value || "-";
 
@@ -45,25 +45,28 @@ export function QuoteFacts({ clinic, customer }: { clinic: QuoteClinic; customer
   );
 }
 
-/** The right-aligned "TỔNG TIỀN:" block under the service table. */
+/**
+ * The right-aligned "TỔNG KẾ HOẠCH" block under the service table — the same
+ * four lines, in the same words, as the plan block on Chẩn đoán & Tư vấn.
+ */
 export function QuoteTotalsBlock({ totals }: { totals: QuoteTotals }) {
   return (
     <div className="pq-totals">
-      <h3 className="pq-totals-title">{t("Patient:QuoteSheet:GrandTotal")}</h3>
+      <h3 className="pq-totals-title">{t("Patient:QuoteSheet:PlanTotal")}</h3>
       <p className="pq-totals-row">
-        <span>{t("Patient:Payment:ServicePriceLabel")}</span>
+        <span>{t("Patient:PlanTotals:Subtotal")}</span>
         <strong>{money(totals.gross)}</strong>
       </p>
       <p className="pq-totals-row">
-        <span>{t("Patient:Payment:ServiceDiscountLabel")}</span>
-        <strong>{money(totals.discount)}</strong>
+        <span>{t("Patient:PlanTotals:Discount")}</span>
+        <strong>{minus(totals.discount)}</strong>
       </p>
       <p className="pq-totals-row">
-        <span>{t("Patient:Payment:DoctorDiscountLabel")}</span>
-        <strong>{money(totals.extra)}</strong>
+        <span>{t("Patient:PlanTotals:Voucher")}</span>
+        <strong>{minus(totals.extra)}</strong>
       </p>
-      <p className="pq-totals-row">
-        <span>{t("Patient:Quote:Label")}</span>
+      <p className="pq-totals-row pq-totals-row--net">
+        <span>{t("Patient:PlanTotals:Net")}</span>
         <strong>{money(totals.net)}</strong>
       </p>
     </div>

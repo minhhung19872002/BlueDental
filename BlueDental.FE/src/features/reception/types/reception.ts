@@ -40,6 +40,11 @@ export interface ReceptionItem {
   refType: RefType;
   status: ReceptionStatus;
   counterStatus?: AppointmentCounterType;
+  /**
+   * The visit's own status, ignoring "Lịch tạm": the card shows that one next
+   * to the ticket and flags a temporary booking with a tab of its own.
+   */
+  visitStatus?: AppointmentCounterType;
   totalDue: number;
   expectedRevenue: number;
   services: string[];

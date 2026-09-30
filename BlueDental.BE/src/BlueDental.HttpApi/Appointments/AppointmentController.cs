@@ -62,6 +62,10 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<AppointmentDto> AssignDentistAsync(Guid id, [FromBody] AssignDentistDto input) =>
         service.AssignDentistAsync(id, input);
 
+    [HttpPost("{id:guid}/attach-patient")]
+    public Task<AppointmentDto> AttachPatientAsync(Guid id, [FromBody] AttachPatientDto input) =>
+        service.AttachPatientAsync(id, input);
+
     [HttpPost("{id:guid}/set-outcome")]
     public Task<AppointmentDto> SetOutcomeAsync(Guid id, [FromBody] SetOutcomeDto input) =>
         service.SetOutcomeAsync(id, input);

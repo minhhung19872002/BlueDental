@@ -47,6 +47,14 @@ export function useAssignReceptionDentist() {
   });
 }
 
+export function useAttachReceptionPatient() {
+  return useMutation({
+    mutationFn: ({ id, patientId }: { id: string; patientId: string }) =>
+      receptionApi.attachPatient(id, patientId),
+    meta: INVALIDATES_APPOINTMENTS,
+  });
+}
+
 export function useBookFollowUp() {
   return useMutation({
     mutationFn: ({ id, input, outcome }: { id: string; input: BookFollowUpInput; outcome: BookedOutcome }) =>

@@ -13,6 +13,33 @@ public class PatientQuoteLineDto
     public int SortOrder { get; set; }
 }
 
+/// <summary>
+/// A quote line as read back: the set fields plus the price this quote holds
+/// for it, worked out into amounts the same way a consulting line is.
+/// </summary>
+public class PatientQuoteLineReadDto : PatientQuoteLineDto
+{
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public DiscountType DiscountType { get; set; }
+    public decimal DiscountValue { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal EffectiveAmount { get; set; }
+}
+
+/// <summary>
+/// Body of <c>PUT /patient-quotes/{id}/lines/{adviseId}</c>: "Cập nhật phiếu
+/// dịch vụ" saved on a báo giá's tab. Changes that quote's figures only.
+/// </summary>
+public class RepricePatientQuoteLineDto
+{
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public DiscountType DiscountType { get; set; }
+    public decimal DiscountValue { get; set; }
+}
+
 public class PatientQuoteDto
 {
     public Guid Id { get; set; }
@@ -23,7 +50,7 @@ public class PatientQuoteDto
     public int Ordinal { get; set; }
 
     public DateTime CreationTime { get; set; }
-    public List<PatientQuoteLineDto> Lines { get; set; } = new();
+    public List<PatientQuoteLineReadDto> Lines { get; set; } = new();
 }
 
 /// <summary>Body of <c>POST /patient-quotes</c>: the ticked consulting lines.</summary>
@@ -63,5 +90,6 @@ public interface IPatientQuoteAppService : IApplicationService
     /// <summary>"BE:Perm:CopyQuote" — a new quote with the same lines and ticks.</summary>
     Task<PatientQuoteDto> DuplicateAsync(Guid id);
     Task<PatientQuoteDto> UpdateAsync(Guid id, UpdatePatientQuoteDto input);
+    Task<PatientQuoteDto> RepriceLineAsync(Guid id, Guid adviseId, RepricePatientQuoteLineDto input);
     Task DeleteAsync(Guid id);
 }

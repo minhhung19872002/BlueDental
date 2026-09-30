@@ -99,11 +99,12 @@ const EMPTY: PatientFormValues = {
   oldAddress: "",
 };
 
-/** A scanned CCCD laid over an empty form; the desk reviews it before saving. */
+/** A scanned CCCD (or a walk-in's details) laid over an empty form; the desk reviews it before saving. */
 function valuesFromPrefill(prefill: PatientPrefill): Partial<PatientFormValues> {
   return {
-    nationalId: prefill.nationalId,
+    nationalId: prefill.nationalId ?? "",
     fullName: prefill.fullName ?? "",
+    phone: prefill.phone ?? "",
     // Cards print the name in capitals, so the IN HOA tick follows suit.
     uppercase: Boolean(prefill.fullName && prefill.fullName === prefill.fullName.toLocaleUpperCase("vi")),
     dateOfBirth: prefill.dateOfBirth ? dayjs(prefill.dateOfBirth) : null,

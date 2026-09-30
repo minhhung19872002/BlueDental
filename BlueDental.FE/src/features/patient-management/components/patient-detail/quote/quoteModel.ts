@@ -71,6 +71,12 @@ export interface DiagnosisGroup {
 
 export const money = (value: number) => formatMoneyUnit(value);
 
+/** A deduction reads as one: "-3.500.000 đ", and a plain "0 đ" when there is none. */
+export const minus = (value: number) => (value > 0 ? `-${money(value)}` : money(0));
+
+/** The sheets print their summary labels in capitals, with a colon. */
+export const sheetLabel = (key: string) => `${t(key).toLocaleUpperCase("vi")}:`;
+
 export const rowDiscount = (row: QuoteRow) => row.clinicDiscount + row.voucherDiscount;
 
 export const lineTotal = (row: QuoteRow) => row.quantity * row.unitPrice - rowDiscount(row);
@@ -90,7 +96,8 @@ export function toQuoteRow(
     teeth: row.teeth.length === 0 ? "" : formatTeeth(row.teeth),
     quantity: row.quantity,
     unitPrice: row.price,
-    clinicDiscount: row.discountAmount,
+    // The server's discountAmount already counts the voucher share.
+    clinicDiscount: row.discountAmount - (row.voucherDiscountAmount ?? 0),
     voucherDiscount: row.voucherDiscountAmount ?? 0,
     diagnosisContent: (row.patientDiagnosisId ? slips.get(row.patientDiagnosisId) : undefined)?.note?.trim() ?? "",
     doctors: [row.staffName, row.secondStaffName].map((name) => name?.trim() ?? "").filter(Boolean),

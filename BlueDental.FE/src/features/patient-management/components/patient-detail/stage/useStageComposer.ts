@@ -26,6 +26,7 @@ import {
   STAGE_TABS,
   buildStageItems,
   pickTeeth,
+  stagesToContinue,
   warrantyState,
   type StageItem,
   type StageTab,
@@ -70,11 +71,12 @@ type UploadTarget = { form: string } | { stage: string };
 /**
  * Everything "Chi tiết phiếu" reads and writes.
  *
- * Measured on staging 2026-09-24: the Chi tiết column is a **multi**-select —
- * each card clicked opens its own form under the column heads, the forms stack,
- * and one "Lưu công đoạn" / "Tiếp tục công đoạn" / "Tiếp tục bảo hành" at the
- * foot of the last one saves them all — one request per form. Every form keeps
- * its own draft, so switching tabs and back does not lose what was typed.
+ * The reference's Chi tiết column is a multi-select whose forms stack
+ * (staging 2026-09-24); here one card is open at a time, per the project owner
+ * (2026-09-30), so one form shows under the column heads and its "Lưu công
+ * đoạn" / "Tiếp tục công đoạn" / "Tiếp tục bảo hành" saves it. Every form keeps
+ * its own draft, so switching cards or tabs and back does not lose what was
+ * typed.
  */
 export function useStageComposer({
   open,
@@ -137,7 +139,7 @@ export function useStageComposer({
   // landing where the clicked row's work is saves a click.
   const everyItem = STAGE_TABS.flatMap((tab) => items[tab]);
   const focused =
-    everyItem.find((item) => item.stage !== null && item.id === focusStageId) ??
+    everyItem.find((item) => item.stages.some((stage) => stage.id === focusStageId)) ??
     items.add.find((item) => item.id === focusServiceId);
   const tab: StageTab = chosenTab ?? focused?.tab ?? "add";
   const offered = items[tab];
@@ -194,10 +196,14 @@ export function useStageComposer({
     setErrors({});
   };
 
+  /**
+   * One card open at a time (the project owner's rule, 2026-09-30): with
+   * several forms stacked it was no longer clear which note belonged to which
+   * service. Another card replaces the open one — its draft is kept — and the
+   * open card closes on a second click.
+   */
   const toggleItem = (id: string) =>
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
+    setSelectedIds((current) => (current.includes(id) ? [] : [id]));
 
   /**
    * A ticked step puts its name into Nội dung điều trị and unticking takes it out
@@ -221,20 +227,33 @@ export function useStageComposer({
     }
   };
 
-  /** One form, one request: a new công đoạn on `add`, the next visit otherwise. */
+  /**
+   * One form: a new công đoạn on `add`; on a continue card the next visit of
+   * every chain it has picked, one request each, sharing the form's note.
+   */
   const saveOne = async (item: StageItem, draft: StageDraft) => {
     // Checked by draftErrors before anything is sent.
     const staffId = draft.staffId ?? "";
-    const saved = item.stage
-      ? await continueStage.mutateAsync({
-          id: item.stage.id,
+    if (item.tab !== "add") {
+      const continued: string[] = [];
+      for (const stage of stagesToContinue(item, draft.teeth)) {
+        const saved = await continueStage.mutateAsync({
+          id: stage.id,
           staffId,
           subStaffId: draft.subStaffId,
           secondStaffId: draft.secondStaffId,
           note: draft.note.trim(),
           serviceItemIds: draft.steps,
-        })
-      : await createStage.mutateAsync({
+        });
+        continued.push(saved.id);
+      }
+      // The pictures are of this visit: they go with the first of them, not
+      // once per chain.
+      if (draft.pending.length > 0 && continued[0]) await uploadTo(continued[0], draft.pending);
+      return;
+    }
+
+    const saved = await createStage.mutateAsync({
           patientId,
           clinicBranchId: branchId,
           treatmentId: plan?.id,
@@ -254,6 +273,12 @@ export function useStageComposer({
     // Pictures chosen in the form belong to a công đoạn that did not exist
     // when they were picked, so they are attached now.
     if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
+  };
+
+  /** The teeth a history row prints: all of its line's, its own ones marked. */
+  const lineTeethOf = (stage: TreatmentStageDto) => {
+    const line = services.find((item) => item.id === stage.treatmentServiceId);
+    return line && line.teeth.length > 0 ? line.teeth : stage.teeth;
   };
 
   const save = async () => {
@@ -356,6 +381,7 @@ export function useStageComposer({
 
     days: byDay(stages),
     stages,
+    lineTeethOf,
     imagesOf: (stageId: string) =>
       (images.data?.items ?? []).filter((image) => image.treatmentStageId === stageId),
     statusOf: (treatmentServiceId: string) =>

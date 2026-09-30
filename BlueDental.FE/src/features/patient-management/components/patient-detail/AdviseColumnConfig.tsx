@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { Button, Popover, Switch } from "antd";
+import { Button, Popover, Switch, type TooltipProps } from "antd";
 import { CloseOutlined, HolderOutlined, SettingOutlined } from "@ant-design/icons";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { t } from "@/lib/i18n";
 import { moveItem } from "@/utils/array";
 import { COLUMN_LABELS, type ColumnSetting } from "./adviseColumns";
+
+type AdjustOverflow = Exclude<TooltipProps["autoAdjustOverflow"], boolean | undefined>;
+
+/**
+ * Under the button, as the reference drops it, slid up just enough to stay on
+ * screen. antd's default flip put it above a button low in the window with its
+ * ✕ cut off past the top, out of reach — the record scrolls as one page now,
+ * so the button can sit anywhere. antd reads `shiftY` at runtime
+ * (`_util/placements` getOverflowOptions) though its type does not list it.
+ */
+const DROP_BELOW: AdjustOverflow & { shiftY: boolean } = { shiftY: true };
 
 interface Props {
   settings: ColumnSetting[];
@@ -49,6 +60,7 @@ export function AdviseColumnConfig({ settings, onSave }: Props) {
     <Popover
       trigger="click"
       placement="bottomRight"
+      autoAdjustOverflow={DROP_BELOW}
       open={open}
       onOpenChange={handleOpenChange}
       title={

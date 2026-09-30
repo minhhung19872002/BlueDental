@@ -36,6 +36,7 @@ public class PatientQuoteAppServiceContractTests
     [InlineData("CreateAsync")]
     [InlineData("DuplicateAsync")]
     [InlineData("UpdateAsync")]
+    [InlineData("RepriceLineAsync")]
     [InlineData("DeleteAsync")]
     public void Every_Method_Should_Exist_On_Interface_And_Be_Authorized(string name)
     {
@@ -47,10 +48,9 @@ public class PatientQuoteAppServiceContractTests
     }
 
     /// <summary>
-    /// A quote stores the set, the order and the ticks — never a copy of a
-    /// price. Reading the money off the consulting lines each time is what keeps
-    /// a corrected price from going stale on a quote, so a price field creeping
-    /// onto this DTO is a regression worth failing on.
+    /// What a re-tick or a drag sends: the set, the order and the ticks. A
+    /// quote's prices change only through <c>RepriceLineAsync</c>, so a price
+    /// on this body would let a drag overwrite them.
     /// </summary>
     [Fact]
     public void PatientQuoteLineDto_Should_Carry_Only_The_Line_Its_Order_And_Its_Tick()
@@ -60,6 +60,20 @@ public class PatientQuoteAppServiceContractTests
             property => property.Name);
 
         names.ShouldBe(new[] { "AdviseId", "IsSelected", "SortOrder" }, ignoreOrder: true);
+    }
+
+    /// <summary>
+    /// Phiếu tư vấn and every báo giá carry independent figures, so a quote
+    /// reads back the price it holds for each line, worked out into amounts.
+    /// </summary>
+    [Fact]
+    public void PatientQuoteDto_Should_Read_Back_Each_Lines_Own_Price()
+    {
+        typeof(PatientQuoteDto).GetProperty("Lines")!.PropertyType
+            .ShouldBe(typeof(System.Collections.Generic.List<PatientQuoteLineReadDto>));
+
+        foreach (var name in new[] { "Price", "Quantity", "DiscountType", "DiscountValue", "GrossAmount", "DiscountAmount", "EffectiveAmount" })
+            typeof(PatientQuoteLineReadDto).GetProperty(name).ShouldNotBeNull();
     }
 
     [Fact]

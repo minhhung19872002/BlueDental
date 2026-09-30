@@ -1,12 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+import type { DiscountType } from "./consultingApi";
 
 /** One line of a báo giá: the consulting line it quotes, ticked or not. */
 export interface PatientQuoteLineDto {
   adviseId: string;
   isSelected: boolean;
   sortOrder: number;
+}
+
+/**
+ * The price a báo giá holds for one line — its own copy, taken when the quote
+ * was raised — and the amounts the server works out from it.
+ */
+export interface QuoteLinePricingDto {
+  price: number;
+  quantity: number;
+  discountType: DiscountType;
+  discountValue: number;
+}
+
+export interface PatientQuoteLineReadDto extends PatientQuoteLineDto, QuoteLinePricingDto {
+  grossAmount: number;
+  discountAmount: number;
+  effectiveAmount: number;
 }
 
 export interface PatientQuoteDto {
@@ -16,7 +34,7 @@ export interface PatientQuoteDto {
   /** 1-based per patient; the tab reads "BG {ordinal}". */
   ordinal: number;
   creationTime: string;
-  lines: PatientQuoteLineDto[];
+  lines: PatientQuoteLineReadDto[];
 }
 
 export interface CreatePatientQuoteInput {
@@ -45,6 +63,10 @@ const patientQuoteApi = {
   /** The whole set, as a re-tick or a drag leaves it; the server renumbers it. */
   update: (id: string, lines: PatientQuoteLineDto[]): Promise<PatientQuoteDto> =>
     api.put<PatientQuoteDto>(`${BASE}/${id}`, { lines }).then((r) => r.data),
+
+  /** "Cập nhật phiếu dịch vụ" saved on this quote's tab: this quote's figures only. */
+  reprice: (id: string, adviseId: string, pricing: QuoteLinePricingDto): Promise<PatientQuoteDto> =>
+    api.put<PatientQuoteDto>(`${BASE}/${id}/lines/${adviseId}`, pricing).then((r) => r.data),
 
   remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
 };
@@ -89,6 +111,13 @@ export function useDuplicatePatientQuote() {
 export function useUpdatePatientQuote() {
   return useQuoteMutation((input: { id: string; lines: PatientQuoteLineDto[] }) =>
     patientQuoteApi.update(input.id, input.lines),
+  );
+}
+
+export function useRepricePatientQuoteLine() {
+  return useQuoteMutation(
+    (input: { id: string; adviseId: string; pricing: QuoteLinePricingDto }) =>
+      patientQuoteApi.reprice(input.id, input.adviseId, input.pricing),
   );
 }
 

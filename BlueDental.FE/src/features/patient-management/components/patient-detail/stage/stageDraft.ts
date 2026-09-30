@@ -39,8 +39,8 @@ export interface StaffFallback {
  * - **add** — the doctor of the line's newest công đoạn, else the line's own
  *   (the reference's order), else the slip's; every free tooth picked, so the
  *   common case of taking them all is one click;
- * - **continue** — the công đoạn's own doctor, Phụ tá and Bác sĩ hỗ trợ, and its
- *   teeth, which stay locked.
+ * - **continue** — the doctor, Phụ tá and Bác sĩ hỗ trợ of the newest open công
+ *   đoạn, and the teeth of every open chain, taken off a chain at a time.
  *
  * Nội dung điều trị always starts blank: it is this visit's note, not the last.
  */
@@ -51,16 +51,17 @@ export function initialDraft(
 ): StageDraft {
   const base = { note: "", pending: [], steps: [], teeth: toothCodes(item.teeth) };
 
-  if (item.stage) {
+  const [stage] = item.stages;
+  if (stage) {
     return {
       ...base,
-      staffId: item.stage.staffId,
-      subStaffId: item.stage.subStaffId ?? undefined,
-      secondStaffId: item.stage.secondStaffId ?? undefined,
+      staffId: stage.staffId,
+      subStaffId: stage.subStaffId ?? undefined,
+      secondStaffId: stage.secondStaffId ?? undefined,
       labels: {
-        staff: item.stage.staffName,
-        subStaff: item.stage.subStaffName,
-        secondStaff: item.stage.secondStaffName,
+        staff: stage.staffName,
+        subStaff: stage.subStaffName,
+        secondStaff: stage.secondStaffName,
       },
     };
   }

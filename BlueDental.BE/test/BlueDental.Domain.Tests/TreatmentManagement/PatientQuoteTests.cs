@@ -113,4 +113,66 @@ public class PatientQuoteTests
         copy.Select(line => line.IsSelected).ShouldBe(new[] { false, true });
         copy.Select(line => line.SortOrder).ShouldBe(new[] { 1, 2 });
     }
+
+    private static readonly QuoteLinePricing Priced =
+        new(500_000m, 2, DiscountType.Percentage, 10m);
+
+    [Fact]
+    public void RepriceLine_Should_Change_Only_That_Lines_Price()
+    {
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        var quote = PatientQuote.Raise(Guid.NewGuid(), Patient, Branch, 1, new[]
+        {
+            new PatientQuoteLine(first, true, 1, Priced),
+            new PatientQuoteLine(second, true, 2, Priced)
+        });
+
+        quote.RepriceLine(first, Priced with { DiscountType = DiscountType.Money, DiscountValue = 200_000m });
+
+        quote.Lines.Single(line => line.AdviseId == first).GetPricing()!.DiscountValue.ShouldBe(200_000m);
+        quote.Lines.Single(line => line.AdviseId == second).GetPricing().ShouldBe(Priced);
+    }
+
+    [Fact]
+    public void RepriceLine_Should_Refuse_A_Discount_Above_The_Line_Total()
+    {
+        var advise = Guid.NewGuid();
+        var quote = PatientQuote.Raise(Guid.NewGuid(), Patient, Branch, 1, new[]
+        {
+            new PatientQuoteLine(advise, true, 1, Priced)
+        });
+
+        Should.Throw<BusinessException>(() =>
+            quote.RepriceLine(advise, Priced with { DiscountType = DiscountType.Money, DiscountValue = 1_000_001m }));
+    }
+
+    [Fact]
+    public void RepriceLine_Should_Refuse_A_Line_That_Is_Not_On_The_Quote()
+    {
+        var quote = Raise(1, Guid.NewGuid());
+
+        Should.Throw<BusinessException>(() => quote.RepriceLine(Guid.NewGuid(), Priced));
+    }
+
+    [Fact]
+    public void SetLines_And_CopyLines_Should_Keep_Each_Lines_Price()
+    {
+        var advise = Guid.NewGuid();
+        var quote = PatientQuote.Raise(Guid.NewGuid(), Patient, Branch, 1, new[]
+        {
+            new PatientQuoteLine(advise, true, 1, Priced)
+        });
+
+        quote.SetLines(quote.CopyLines());
+
+        quote.Lines.Single().GetPricing().ShouldBe(Priced);
+        quote.CopyLines().Single().GetPricing().ShouldBe(Priced);
+    }
+
+    [Fact]
+    public void A_Line_Stored_Without_A_Price_Should_Have_None()
+    {
+        new PatientQuoteLine(Guid.NewGuid(), true, 1).GetPricing().ShouldBeNull();
+    }
 }

@@ -13,6 +13,7 @@ import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import { FollowUpScheduler } from "../components/FollowUpScheduler";
+import { TemporaryPatientDialog, type TemporaryPatientTarget } from "../components/TemporaryPatientDialog";
 import {
   planOutcomeClick,
   planStepClick,
@@ -59,6 +60,7 @@ export const ReceptionPage: React.FC = () => {
   const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
   const [busyCards, setBusyCards] = useState<Set<string>>(new Set());
   const [bookingTarget, setBookingTarget] = useState<{ id: string; outcome: BookedOutcome } | null>(null);
+  const [temporaryTarget, setTemporaryTarget] = useState<TemporaryPatientTarget | null>(null);
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
   const debouncedKeyword = useDebounce(keyword);
@@ -186,6 +188,15 @@ export const ReceptionPage: React.FC = () => {
     setBookingTarget((current) => (current?.id === id && current.outcome === outcome ? null : { id, outcome }));
   };
 
+  const handleTemporaryPatientClick = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    setTemporaryTarget({
+      appointmentId: id,
+      prefill: { fullName: item.patientName, phone: item.patientPhone || undefined },
+    });
+  };
+
   const handleDoctorChange = (id: string, doctorId: string) => {
     markBusy(id);
     assignDentistMutation.mutate({ id, dentistId: doctorId }, { onSettled: () => clearBusy(id) });
@@ -285,6 +296,7 @@ export const ReceptionPage: React.FC = () => {
                   onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
                   onFollowUpClick={ability.canUpdate && ability.canCreate ? handleFollowUpClick : undefined}
                   pendingBooking={openBooking?.id === item.id ? openBooking.outcome : null}
+                  onTemporaryPatientClick={ability.canUpdate ? handleTemporaryPatientClick : undefined}
                 >
                   {openBooking?.id === item.id && (
                     <FollowUpScheduler
@@ -317,6 +329,10 @@ export const ReceptionPage: React.FC = () => {
         scheduledDate={currentDate}
         onClose={() => setDrawerOpen(false)}
       />
+
+      {temporaryTarget && (
+        <TemporaryPatientDialog target={temporaryTarget} onClose={() => setTemporaryTarget(null)} />
+      )}
 
       <ConfirmCancelDialog
         open={!!cancelTarget}

@@ -106,10 +106,14 @@ export interface PatientCodeEstimate {
   code: string;
 }
 
-/** What a scanned CCCD fills into a new "Tạo hồ sơ" before the desk reviews it. */
+/**
+ * What a scanned CCCD — or a "Lịch tạm" walk-in's name and phone — fills into
+ * a new "Tạo hồ sơ" before the desk reviews it.
+ */
 export interface PatientPrefill {
-  nationalId: string;
+  nationalId?: string;
   fullName?: string;
+  phone?: string;
   /** "YYYY-MM-DD". */
   dateOfBirth?: string;
   gender?: Gender;

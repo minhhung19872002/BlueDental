@@ -2212,7 +2212,9 @@ body::-webkit-scrollbar-track {
 .reception-card-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  /* Rows sit further apart than columns: the "Lịch tạm" tab rides 12px
+     above its card's top edge and needs clear space over it. */
+  gap: 24px 12px;
 }
 
 @media (min-width: 960px) {

@@ -6,18 +6,36 @@ import {
   useDuplicatePatientQuote,
   usePatientQuotes,
   useUpdatePatientQuote,
-  type PatientQuoteLineDto,
+  type PatientQuoteLineReadDto,
 } from "@/features/treatment-management/api/patientQuoteApi";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { notifyError } from "@/lib/notify";
 import { moveItem } from "@/utils/array";
 
+/**
+ * A consulting row as this quote prices it: the row's service, teeth and
+ * doctors, the quote's own price and discount.
+ */
+function pricedByQuote(row: PatientAdviseDto, line: PatientQuoteLineReadDto): PatientAdviseDto {
+  return {
+    ...row,
+    price: line.price,
+    quantity: line.quantity,
+    discountType: line.discountType,
+    discountValue: line.discountValue,
+    grossAmount: line.grossAmount,
+    discountAmount: line.discountAmount,
+    effectiveAmount: line.effectiveAmount,
+  };
+}
+
 /** One báo giá raised off Phiếu tư vấn, with its lines resolved to their rows. */
 export interface AdviseQuote {
   id: string;
   /** "BG 1", "BG 2" — numbered per patient, and the number only ever climbs. */
   label: string;
+  /** Priced by the quote, not by Phiếu tư vấn: each quote's figures are its own. */
   rows: PatientAdviseDto[];
   /** Which of its own rows are ticked; a quote is priced on its own selection. */
   selected: string[];
@@ -45,10 +63,11 @@ export interface AdviseQuotesState {
 /**
  * The báo giá tabs beside "Phiếu tư vấn", stored server-side.
  *
- * A quote keeps only the **set** of consulting lines, their order and their
- * ticks — never a copy of a price. The rows are resolved against the consulting
- * list on every read, so a corrected price is never stale on a quote and the
- * money is worked out the way the plan block works it out.
+ * A quote keeps the **set** of consulting lines, their order, their ticks and
+ * its own copy of each line's price, taken when it was raised: a discount
+ * changed on "BG 1" moves BG 1's figures only, never Phiếu tư vấn's or another
+ * quote's. The rows' service, teeth and doctors are still read off the
+ * consulting list.
  *
  * A line whose consulting row has since gone is dropped from the view rather
  * than drawn empty.
@@ -82,14 +101,14 @@ export function useAdviseQuotes(
         const resolved = [...quote.lines]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((line) => ({ line, row: byId.get(line.adviseId) }))
-          .filter((entry): entry is { line: PatientQuoteLineDto; row: PatientAdviseDto } =>
+          .filter((entry): entry is { line: PatientQuoteLineReadDto; row: PatientAdviseDto } =>
             Boolean(entry.row),
           );
 
         return {
           id: quote.id,
           label: t("Patient:Quote:TabLabel", quote.ordinal),
-          rows: resolved.map((entry) => entry.row),
+          rows: resolved.map((entry) => pricedByQuote(entry.row, entry.line)),
           selected: resolved.filter((entry) => entry.line.isSelected).map((entry) => entry.row.id),
         };
       }),

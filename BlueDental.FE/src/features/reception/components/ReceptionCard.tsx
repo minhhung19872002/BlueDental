@@ -32,6 +32,8 @@ interface ReceptionCardProps {
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
   onCancel?: (id: string) => void;
+  /** A "Lịch tạm" has no patient record yet: its name opens "Tạo hồ sơ" instead. */
+  onTemporaryPatientClick?: (id: string) => void;
   /** "Đã hẹn tiếp" and "Hẹn tái khám" ask for a date first, so they open the picker instead of saving. */
   onFollowUpClick?: (id: string, outcome: BookedOutcome) => void;
   /** Which of the two the picker under this card is booking, if it is open. */
@@ -92,6 +94,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   onCancel,
   onFollowUpClick,
   pendingBooking = null,
+  onTemporaryPatientClick,
   children,
 }) => {
   const navigate = useNavigate();
@@ -112,8 +115,11 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
     Revisit:        t("Reception:OutcomeRevisit"),
   };
 
-  const badgeStyle = item.counterStatus ? COUNTER_STATUS_STYLE[item.counterStatus] : null;
-  const badgeLabelText = item.counterStatus ? badgeLabel[item.counterStatus] : null;
+  // "Lịch tạm" rides on the card's top edge; the badge keeps the visit's status.
+  const badgeStatus = item.visitStatus ?? item.counterStatus;
+  const badgeStyle = badgeStatus ? COUNTER_STATUS_STYLE[badgeStatus] : null;
+  const badgeLabelText = badgeStatus ? badgeLabel[badgeStatus] : null;
+  const showTemporaryTab = !!item.isTemporary;
   const selectedOutcome = item.selectedOutcome ?? null;
   // The open picker is a pending "Đã hẹn tiếp" / "Hẹn tái khám": it replaces the
   // saved tick until it is booked (the server then saves it) or backed out of
@@ -135,8 +141,17 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
 
+  const handlePatientClick = () => {
+    if (item.isTemporary) {
+      onTemporaryPatientClick?.(item.id);
+      return;
+    }
+    if (item.patientId) navigate(`/patient/${item.patientId}?tab=appointment`);
+  };
+
   return (
     <div className={["rc-wrapper", busy && "rc-wrapper--busy", children && "rc-wrapper--expanded"].filter(Boolean).join(" ")}>
+      {showTemporaryTab && <span className="rc-temp-tab">{badgeLabel.Temporary}</span>}
       {busy && (
         <div className="rc-busy-overlay">
           <Loader2 size={28} className="rc-busy-spinner" />
@@ -178,7 +193,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 <button
                   type="button"
                   className="rc-patient-name rc-patient-name--link"
-                  onClick={() => item.patientId && navigate(`/patient/${item.patientId}?tab=appointment`)}
+                  onClick={handlePatientClick}
                 >
                   {item.patientName}
                   {item.patientYearOfBirth ? ` (${item.patientYearOfBirth})` : ""}

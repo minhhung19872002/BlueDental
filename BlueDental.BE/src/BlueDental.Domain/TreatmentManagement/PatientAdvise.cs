@@ -73,24 +73,11 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
     public IReadOnlyCollection<Guid> ImageIds => _imageIds.AsReadOnly();
 
     /// <summary>Line total before discount.</summary>
-    public decimal GrossAmount => Price * Quantity;
+    public decimal GrossAmount => AdvisePricing.Gross(Price, Quantity);
 
     /// <summary>Discount resolved into an absolute amount.</summary>
-    public decimal DiscountAmount
-    {
-        get
-        {
-            var discount = DiscountType switch
-            {
-                DiscountType.Money => DiscountValue,
-                DiscountType.Percentage => Vnd.Round(GrossAmount * DiscountValue / 100m),
-                _ => 0m
-            };
-
-            discount += VoucherDiscountAmount ?? 0m;
-            return discount > GrossAmount ? GrossAmount : discount;
-        }
-    }
+    public decimal DiscountAmount =>
+        AdvisePricing.Discount(GrossAmount, DiscountType, DiscountValue, VoucherDiscountAmount);
 
     /// <summary>Amount the patient is expected to pay for this line.</summary>
     public decimal EffectiveAmount => GrossAmount - DiscountAmount;
@@ -169,34 +156,7 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
     public PatientAdvise ApplyDiscount(DiscountType discountType, decimal discountValue)
     {
         GuardEditable();
-
-        if (discountValue < 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount,
-                "Discount value must not be negative.");
-        }
-
-        if (discountType == DiscountType.Percentage && discountValue > 100m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount,
-                "Percentage discount must not exceed 100.");
-        }
-
-        if (discountType == DiscountType.Money && discountValue > GrossAmount)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount,
-                "Money discount must not exceed the line total.");
-        }
-
-        if (discountType == DiscountType.None && discountValue != 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount,
-                "Discount value must be zero when no discount type is set.");
-        }
+        AdvisePricing.EnsureDiscountValid(GrossAmount, discountType, discountValue);
 
         DiscountType = discountType;
         DiscountValue = discountValue;
@@ -222,19 +182,7 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
     {
         GuardEditable();
 
-        if (quantity <= 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidAdviseQuantity,
-                "Advise quantity must be greater than zero.");
-        }
-
-        if (price < 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.NegativePaymentAmount,
-                "Advise price must not be negative.");
-        }
+        AdvisePricing.EnsurePricingValid(price, quantity);
 
         Price = price;
         Quantity = quantity;

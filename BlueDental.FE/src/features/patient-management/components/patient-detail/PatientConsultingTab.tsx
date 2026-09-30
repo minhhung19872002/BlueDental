@@ -57,7 +57,12 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
   const quotes = useAdviseQuotes(patientId, branchId, adviseRows);
   const shownRows = quotes.active?.rows ?? adviseRows;
   const shownSelected = quotes.active ? quotes.active.selected : selectedAdvises;
-  const plan = usePlanVoucher(shownRows, shownSelected, branchId);
+  const plan = usePlanVoucher(shownRows, shownSelected, branchId, quotes.activeId ?? "advise");
+
+  // A row opened on a báo giá's tab is priced by that quote, and saves there.
+  const editingSource = editingAdvise && adviseRows.find((row) => row.id === editingAdvise.id);
+  const editingQuote =
+    quotes.active && editingSource ? { id: quotes.active.id, source: editingSource } : null;
 
   // Phiếu tư vấn prints each row's diagnosis note under the diagnosis itself,
   // and the note lives on the slip rather than the advise row.
@@ -99,7 +104,8 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
           uploading={actions.uploading}
           canSort={permissions.canSort}
           onUpload={(files) => void actions.upload(files)}
-          onDelete={(image) => void actions.removeImage(image.id)}
+          onDelete={(image) => actions.removeImage(image.id)}
+          deleting={actions.removingImage}
           onReorder={(day, from, to) => void actions.reorderImage(day, from, to)}
         />
 
@@ -163,7 +169,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         open={quoteOpen}
         patientId={patientId}
         branchId={branchId}
-        rows={adviseRows.filter((row) => selectedAdvises.includes(row.id))}
+        rows={shownRows.filter((row) => shownSelected.includes(row.id))}
         diagnoses={data.diagnoses.data?.items ?? []}
         images={data.images}
         voucherDiscount={plan.discount}
@@ -175,6 +181,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         patientId={patientId}
         branchId={branchId}
         advise={editingAdvise}
+        quote={editingQuote}
         onClose={() => setEditingAdvise(null)}
       />
 

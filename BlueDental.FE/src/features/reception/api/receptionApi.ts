@@ -143,10 +143,9 @@ function isLateAppointment(dto: ServerAppointmentDto): boolean {
 
 function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
   const timeLate = isLateAppointment(dto);
-  const counterStatus: AppointmentCounterType | undefined =
-    timeLate ? "Late"
-    : dto.isTemporary ? "Temporary"
-    : COUNTER_BY_STATUS[dto.status];
+  const visitStatus: AppointmentCounterType | undefined =
+    timeLate ? "Late" : COUNTER_BY_STATUS[dto.status];
+  const counterStatus = !timeLate && dto.isTemporary ? "Temporary" : visitStatus;
 
   return {
     id: dto.id,
@@ -161,6 +160,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     refType: "Medical",
     status: mapStatusFromBe(dto.status),
     counterStatus,
+    visitStatus,
     totalDue: 0,
     expectedRevenue: 0,
     services: dto.chiefComplaint ? [dto.chiefComplaint] : [],
@@ -282,6 +282,11 @@ export const receptionApi = {
 
   async assignDentist(id: string, dentistId: string): Promise<void> {
     await api.post(`${APPT_BASE}/${id}/assign-dentist`, { dentistId });
+  },
+
+  /** A "Lịch tạm" becomes the appointment of the patient record created for it. */
+  async attachPatient(id: string, patientId: string): Promise<void> {
+    await api.post(`${APPT_BASE}/${id}/attach-patient`, { patientId });
   },
 
   async setOutcome(id: string, outcome: NonNullable<AppointmentOutcome>): Promise<void> {

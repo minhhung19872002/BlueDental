@@ -1,5 +1,5 @@
 import { Button, Input, Popover, Spin } from "antd";
-import { CheckCircleFilled, SearchOutlined, TagOutlined } from "@ant-design/icons";
+import { CheckCircleFilled, CloseOutlined, SearchOutlined, TagOutlined } from "@ant-design/icons";
 import {
   calculateVoucherDiscount,
   formatVoucherValue,
@@ -14,6 +14,8 @@ import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
  * search-and-pick popover: the search box with "Đã chọn: n" beside it, then a
  * bordered box of voucher cards (or the reference's empty sentence). A picked
  * card turns green, and the button outside counts the picks as "Voucher (n)".
+ * Each pick then gets a boxed line of its own under the button — code, what it
+ * takes off, the amount, and a × to drop it (project owner's layout, 2026-09-30).
  */
 function VoucherRow({
   voucher,
@@ -83,6 +85,38 @@ function VoucherList({ plan }: { plan: PlanVoucherState }) {
   );
 }
 
+/**
+ * One applied voucher under "Voucher áp dụng": its code, what it takes off,
+ * the amount, and a × that takes it off the plan again.
+ */
+function AppliedVoucher({
+  voucher,
+  saving,
+  onRemove,
+}: {
+  voucher: VoucherDto;
+  saving: number;
+  onRemove: (voucher: VoucherDto) => void;
+}) {
+  return (
+    <li className="pd-plan-applied" title={voucher.name}>
+      <b className="pd-plan-applied__code">[{voucher.code}]</b>
+      <span className="pd-plan-applied__what">
+        {t("Patient:PlanTotals:VoucherLine", formatVoucherValue(voucher))}
+      </span>
+      <b className="pd-plan-applied__saving">-{formatMoneyUnit(saving)}</b>
+      <button
+        type="button"
+        className="pd-plan-applied__remove"
+        aria-label={t("Patient:PlanTotals:RemoveVoucher", voucher.code)}
+        onClick={() => onRemove(voucher)}
+      >
+        <CloseOutlined aria-hidden="true" />
+      </button>
+    </li>
+  );
+}
+
 export function AdviseVoucherPicker({
   plan,
   disabled,
@@ -95,10 +129,11 @@ export function AdviseVoucherPicker({
 
   return (
     <div className="pd-plan-voucher">
-      <span>{t("Patient:AppliedVouchers")}:</span>
+      <div className="pd-plan-row">
+        <span>{t("Patient:AppliedVouchers")}</span>
       <Popover
         trigger={disabled ? [] : "click"}
-        placement="topLeft"
+        placement="topRight"
         content={
           <div className="pd-voucher-popover">
             <div className="pd-voucher-search">
@@ -116,16 +151,29 @@ export function AdviseVoucherPicker({
           </div>
         }
       >
-        <Button icon={<TagOutlined />} disabled={disabled}>
+        <Button className="pd-plan-voucher__pick" icon={<TagOutlined />} disabled={disabled}>
           {count === 0 ? t("Patient:SelectVoucher") : t("Patient:VoucherCount", count)}
         </Button>
       </Popover>
+      </div>
       {count === 0 && (
         <em>
           {disabled
             ? t("Patient:SelectServiceFirst")
             : t("Patient:NoVoucherForPlanAlt")}
         </em>
+      )}
+      {count > 0 && (
+        <ul className="pd-plan-applied-list" aria-label={t("Patient:AppliedVouchers")}>
+          {plan.selected.map((voucher) => (
+            <AppliedVoucher
+              key={voucher.id}
+              voucher={voucher}
+              saving={calculateVoucherDiscount(voucher, plan.gross)}
+              onRemove={plan.toggle}
+            />
+          ))}
+        </ul>
       )}
     </div>
   );

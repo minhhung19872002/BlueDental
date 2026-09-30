@@ -1272,7 +1272,14 @@ test.describe("Bệnh nhân", () => {
         fetch(url, { credentials: "include", ...init });
       const advise = (await (await send("/api/v1/app/patient-advises?maxResultCount=1")).json())
         .items?.[0] as
-        | { id: string; patientId: string; clinicBranchId: string; effectiveAmount: number }
+        | {
+            id: string;
+            patientId: string;
+            clinicBranchId: string;
+            grossAmount: number;
+            discountAmount: number;
+            effectiveAmount: number;
+          }
         | undefined;
       if (!advise) return null;
 
@@ -1342,16 +1349,22 @@ test.describe("Bệnh nhân", () => {
     const row = advise.locator(`tr[data-row-key="${line.id}"]`);
     await expect(row).toBeVisible({ timeout: 20000 });
     const money = (value: number) => `${value.toLocaleString("vi-VN")} đ`;
-    const gross = advise.locator(".pd-plan-total > p").first();
-    const net = advise.locator(".pd-plan-net");
+    // Tổng cộng − Giảm giá − the applied vouchers = Thành tiền.
+    const figure = (label: string) =>
+      advise.locator(".pd-plan-row", { hasText: label }).locator(":scope > b");
+    const gross = figure("Tổng cộng");
+    const lineDiscount = figure("Giảm giá");
+    const net = figure("Thành tiền");
+    const minus = (value: number) => (value > 0 ? `-${money(value)}` : money(0));
 
     // Untouched, the plan is worth nothing: staging sums only what is ticked.
-    await expect(gross).toContainText("Tổng thành tiền: 0 đ");
-    await expect(net).toContainText("Tổng tiền: 0 đ");
+    await expect(gross).toHaveText("0 đ");
+    await expect(net).toHaveText("0 đ");
 
     await row.getByRole("checkbox").check();
-    await expect(gross).toContainText(`Tổng thành tiền: ${money(line.effectiveAmount)}`);
-    await expect(net).toContainText(`Tổng tiền: ${money(line.effectiveAmount)}`);
+    await expect(gross).toHaveText(money(line.grossAmount));
+    await expect(lineDiscount).toHaveText(minus(line.discountAmount));
+    await expect(net).toHaveText(money(line.effectiveAmount));
 
     // The voucher popover now lists the live plan voucher; picking it takes
     // its discount off the net total and names it beside the button.
@@ -1369,15 +1382,29 @@ test.describe("Bệnh nhân", () => {
     // Outside, the button now counts the picks and the italic line is gone.
     await expect(advise.getByRole("button", { name: "Voucher (1)" })).toBeVisible();
     await expect(advise.locator(".pd-plan-voucher > em")).toHaveCount(0);
-    await expect(gross).toContainText(`Tổng thành tiền: ${money(line.effectiveAmount)}`);
-    await expect(net).toContainText(`Tổng tiền: ${money(line.effectiveAmount - discount)}`);
+    await expect(gross).toHaveText(money(line.grossAmount));
+    // The pick gets a boxed line of its own: code, what it takes off, the amount.
+    const applied = advise.locator(".pd-plan-applied");
+    await expect(applied).toHaveCount(1);
+    await expect(applied.locator(".pd-plan-applied__code")).toHaveText(`[${voucher.code}]`);
+    await expect(applied).toContainText(`Giảm ${voucher.discountValue}% trên tổng thành tiền`);
+    await expect(applied.locator(".pd-plan-applied__saving")).toHaveText(minus(discount));
+    await expect(net).toHaveText(money(line.effectiveAmount - discount));
+    await advise.locator(".pd-plan-summary").screenshot({ path: "test-results/plan-totals-layout.png" });
 
     // Unticking the row empties the order: nothing left to discount, while a
     // voucher with no minimum order stays picked for the next tick.
     await row.getByRole("checkbox").uncheck();
-    await expect(gross).toContainText("Tổng thành tiền: 0 đ");
-    await expect(net).toContainText("Tổng tiền: 0 đ");
+    await expect(gross).toHaveText("0 đ");
+    await expect(net).toHaveText("0 đ");
     await expect(advise.getByRole("button", { name: "Voucher (1)" })).toBeVisible();
+
+    // Its × drops it again, without opening the picker.
+    await row.getByRole("checkbox").check();
+    await applied.getByRole("button", { name: `Bỏ voucher ${voucher.code}` }).click();
+    await expect(applied).toHaveCount(0);
+    await expect(advise.getByRole("button", { name: "Chọn voucher" })).toBeVisible();
+    await expect(net).toHaveText(money(line.effectiveAmount));
   });
 
   test("the record opens the same hồ sơ dialog the list opens", async ({ page }) => {

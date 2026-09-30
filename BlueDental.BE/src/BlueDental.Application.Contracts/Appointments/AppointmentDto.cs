@@ -117,6 +117,12 @@ public class AssignDentistDto
     public Guid DentistId { get; set; }
 }
 
+/// <summary>The patient record created for a "Lịch tạm" walk-in.</summary>
+public class AttachPatientDto
+{
+    public Guid PatientId { get; set; }
+}
+
 public class SetOutcomeDto
 {
     public AppointmentOutcome Outcome { get; set; }

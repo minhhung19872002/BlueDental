@@ -19,6 +19,7 @@ export function withAdviseService(
       name: advise.serviceName ?? "",
       code: null,
       price: advise.originalPrice,
+      salePrice: advise.originalPrice,
       taxonomyId: "",
       taxonomyName: null,
       isImageRequired: false,

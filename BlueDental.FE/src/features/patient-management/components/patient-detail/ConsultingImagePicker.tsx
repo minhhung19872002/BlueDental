@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button, Modal } from "antd";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { t } from "@/lib/i18n";
 import {
   groupImagesByDay,
@@ -17,7 +18,10 @@ interface Props {
   onToggle: (id: string, checked: boolean) => void;
   onShowAll: () => void;
   onClose: () => void;
-  onDelete?: (image: PatientImageViewModel) => void;
+  /** Resolves true once the image is gone; the confirm stays open otherwise. */
+  onDelete?: (image: PatientImageViewModel) => Promise<boolean>;
+  /** A delete is in flight: the confirm's button spins. */
+  deleting?: boolean;
   onReorder: (day: PatientImageDay, from: number, to: number) => void;
 }
 
@@ -27,7 +31,9 @@ interface Props {
  * sideways, each on a 280px card with a tick, its name, its time and the
  * reference's two round actions.
  * Dragging a card by its grip reorders it within its own day, saved with the
- * same call the Hình ảnh tab makes.
+ * same call the Hình ảnh tab makes. The bin asks first — "Xác nhận xoá ảnh",
+ * the same confirm the Hình ảnh tab and the reference show — and its Xoá
+ * spins until the server has answered.
  */
 export function ConsultingImagePicker({
   open,
@@ -38,9 +44,16 @@ export function ConsultingImagePicker({
   onShowAll,
   onClose,
   onDelete,
+  deleting,
   onReorder,
 }: Props) {
   const days = useMemo(() => groupImagesByDay(images), [images]);
+  const [removing, setRemoving] = useState<PatientImageViewModel | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (!removing || !onDelete) return;
+    if (await onDelete(removing)) setRemoving(null);
+  };
 
   return (
     <Modal
@@ -69,11 +82,21 @@ export function ConsultingImagePicker({
             hidden={hidden}
             canSort={canSort}
             onToggle={onToggle}
-            onDelete={onDelete}
+            onDelete={onDelete ? setRemoving : undefined}
             onReorder={onReorder}
           />
         ))
       )}
+
+      <ConfirmDeleteDialog
+        open={removing !== null}
+        noun={t("Patient:Image:Noun")}
+        title={t("Patient:Image:DeleteTitle")}
+        question={t("Patient:Image:DeleteQuestion")}
+        pending={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+        onClose={() => setRemoving(null)}
+      />
     </Modal>
   );
 }

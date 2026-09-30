@@ -143,6 +143,26 @@
   }
 }
 
+/* "Lịch tạm": a tab straddling the card's top edge, as the reference draws it. */
+.rc-temp-tab {
+  position: absolute;
+  top: -12px;
+  left: 14px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: #ddd0ff;
+  color: #5a4dc1;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .rc-wrapper--busy {
   pointer-events: none;
 }

@@ -440,6 +440,29 @@ public class AppointmentTests
         Assert.Null(appointment.FollowUpAppointmentId);
     }
 
+    [Fact]
+    public void AttachPatient_Turns_A_Temporary_Appointment_Into_The_Patients()
+    {
+        var appointment = Appointment.CreateTemporary(
+            Guid.NewGuid(), "Khach tam", "0900000000", _branchId, _slot, _dentistId);
+
+        appointment.AttachPatient(_patientId);
+
+        Assert.False(appointment.IsTemporary);
+        Assert.Equal(_patientId, appointment.PatientId);
+        Assert.Null(appointment.PatientName);
+        Assert.Null(appointment.PatientPhone);
+    }
+
+    [Fact]
+    public void AttachPatient_Refuses_An_Appointment_That_Is_Not_Temporary()
+    {
+        var appointment = NewAppointment();
+
+        var ex = Assert.Throws<BusinessException>(() => appointment.AttachPatient(Guid.NewGuid()));
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.NotTemporary, ex.Code);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

@@ -53,12 +53,15 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     }
   };
 
-  const removeImage = async (id: string) => {
+  /** Resolves true once the image is gone, false when the server refused. */
+  const removeImage = async (id: string): Promise<boolean> => {
     try {
       await deleteImage.mutateAsync(id);
       toast.success(t("Patient:Photo:Deleted"));
+      return true;
     } catch (error) {
       notifyError(extractApiError(error));
+      return false;
     }
   };
 
@@ -191,6 +194,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     upload,
     uploading: uploadImage.isPending,
     removeImage,
+    removingImage: deleteImage.isPending,
     reorderImage: reorderImages.reorder,
     reordering: reorderImages.reordering,
     create,

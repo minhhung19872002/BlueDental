@@ -29,6 +29,9 @@ import { ConsultingLibraryDialog } from "./library/ConsultingLibraryDialog";
  *   Danh sách ảnh  → "Chọn ảnh hiển thị" (Chọn tất cả / Xong)
  *   Danh mục       → "Thư viện ảnh lâm sàng", the consulting-data library dialog
  *
+ * The empty drop zone is a button too: its text says "bấm nút để tải lên", so
+ * a click on it opens the same file chooser as Thêm ảnh.
+ *
  * Whatever is ticked in that dialog is stacked down the panel, and clicking one
  * opens the same full-screen viewer the Hình ảnh tab uses — zoom, rotate, flip,
  * annotate, thumbnails. See docs/clone/pages/patient-detail.md.
@@ -47,7 +50,10 @@ interface Props {
   uploading?: boolean;
   canSort: boolean;
   onUpload: (files: File[]) => void;
-  onDelete?: (image: PatientImageViewModel) => void;
+  /** Resolves true once the image is gone; the confirm stays open otherwise. */
+  onDelete?: (image: PatientImageViewModel) => Promise<boolean>;
+  /** A delete is in flight: the confirm's button spins. */
+  deleting?: boolean;
   onReorder: (day: PatientImageDay, from: number, to: number) => void;
 }
 
@@ -59,6 +65,7 @@ export function PatientConsultingImagePanel({
   canSort,
   onUpload,
   onDelete,
+  deleting,
   onReorder,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,8 +169,11 @@ export function PatientConsultingImagePanel({
           panel is the slowest thing on the tab, and offering "Kéo ảnh vào" to a
           record that does have photographs reads as an empty record. */}
       {shown.length === 0 && (
-        <div
+        <button
+          type="button"
           className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}
+          disabled={loading || uploading}
+          onClick={() => fileInputRef.current?.click()}
         >
           {loading || uploading ? (
             <Spin aria-label={t("Patient:Misc:LoadingImages")} />
@@ -173,7 +183,7 @@ export function PatientConsultingImagePanel({
               <span>{t("Patient:Misc:DragOrClickUpload")}</span>
             </>
           )}
-        </div>
+        </button>
       )}
 
       {shown.length > 0 && (
@@ -243,6 +253,7 @@ export function PatientConsultingImagePanel({
         onShowAll={() => setHidden([])}
         onClose={() => setListOpen(false)}
         onDelete={onDelete}
+        deleting={deleting}
         onReorder={onReorder}
       />
     </div>

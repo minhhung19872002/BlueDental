@@ -16,9 +16,10 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// Báo giá — the "BG n" tabs on Chẩn đoán and Tư vấn.
 ///
-/// Stores only the set of consulting lines, their order and their ticks; the
-/// money is worked out from the lines themselves on every read, so a corrected
-/// price is never stale on a quote.
+/// Stores the set of consulting lines, their order, their ticks and the price
+/// each is quoted at — copied off the consulting line when the quote is raised,
+/// so Phiếu tư vấn and every báo giá carry independent figures. The amounts
+/// are worked out from those prices on every read.
 ///
 /// Scoped by <c>X-Clinic-Branch-Id</c> the same way the consulting list is, and
 /// a quote of another branch answers the same "not found" as one that never
@@ -55,13 +56,15 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
             query = query.Where(x => x.PatientId == input.PatientId.Value);
 
         var rows = query.ToList();
-        var items = rows
+        var page = rows
             // Newest first, as the tab strip stacks them.
             .OrderByDescending(x => x.Ordinal)
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
-            .Select(MapToDto)
             .ToList();
+
+        var advises = await LoadAdvisesAsync(page.SelectMany(quote => quote.Lines).Select(line => line.AdviseId));
+        var items = page.Select(quote => MapToDto(quote, advises)).ToList();
 
         return new PagedResultDto<PatientQuoteDto>(rows.Count, items);
     }
@@ -72,17 +75,18 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var adviseIds = input.AdviseIds.Distinct().ToList();
 
-        await GuardAdvisesAsync(adviseIds, input.PatientId, clinicBranchId);
+        var advises = await GuardAdvisesAsync(adviseIds, input.PatientId, clinicBranchId);
 
         var quote = PatientQuote.Raise(
             GuidGenerator.Create(),
             input.PatientId,
             clinicBranchId,
             await NextOrdinalAsync(input.PatientId, clinicBranchId),
-            adviseIds.Select((id, index) => new PatientQuoteLine(id, true, index + 1)));
+            adviseIds.Select((id, index) =>
+                new PatientQuoteLine(id, true, index + 1, QuoteLinePricing.Of(advises[id]))));
 
         await _repository.InsertAsync(quote, autoSave: true);
-        return MapToDto(quote);
+        return MapToDto(quote, advises);
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
@@ -98,7 +102,7 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
             source.CopyLines());
 
         await _repository.InsertAsync(copy, autoSave: true);
-        return MapToDto(copy);
+        return MapToDto(copy, await LoadAdvisesAsync(copy.Lines.Select(line => line.AdviseId)));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
@@ -106,16 +110,37 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
     {
         var quote = await LoadAsync(id);
 
-        await GuardAdvisesAsync(
+        var advises = await GuardAdvisesAsync(
             input.Lines.Select(line => line.AdviseId).Distinct().ToList(),
             quote.PatientId,
             quote.ClinicBranchId);
 
+        // The body carries ticks and order only: each line keeps the price the
+        // quote already holds for it, and one new to the quote starts from its
+        // consulting line's.
+        var held = quote.Lines.ToDictionary(line => line.AdviseId, line => line.GetPricing());
         quote.SetLines(
-            input.Lines.Select(line => new PatientQuoteLine(line.AdviseId, line.IsSelected, line.SortOrder)));
+            input.Lines.Select(line => new PatientQuoteLine(
+                line.AdviseId,
+                line.IsSelected,
+                line.SortOrder,
+                held.GetValueOrDefault(line.AdviseId) ?? QuoteLinePricing.Of(advises[line.AdviseId]))));
 
         await _repository.UpdateAsync(quote, autoSave: true);
-        return MapToDto(quote);
+        return MapToDto(quote, advises);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<PatientQuoteDto> RepriceLineAsync(Guid id, Guid adviseId, RepricePatientQuoteLineDto input)
+    {
+        var quote = await LoadAsync(id);
+
+        quote.RepriceLine(
+            adviseId,
+            new QuoteLinePricing(input.Price, input.Quantity, input.DiscountType, input.DiscountValue));
+
+        await _repository.UpdateAsync(quote, autoSave: true);
+        return MapToDto(quote, await LoadAdvisesAsync(quote.Lines.Select(line => line.AdviseId)));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
@@ -146,7 +171,8 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
     /// Every line must be a consulting line of this patient and branch — a
     /// quote must not be able to name a row from someone else's record.
     /// </summary>
-    private async Task GuardAdvisesAsync(List<Guid> adviseIds, Guid patientId, Guid clinicBranchId)
+    private async Task<Dictionary<Guid, PatientAdvise>> GuardAdvisesAsync(
+        List<Guid> adviseIds, Guid patientId, Guid clinicBranchId)
     {
         if (adviseIds.Count == 0)
             throw new BusinessException(
@@ -157,14 +183,24 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
         var owned = query
             .Where(x => x.PatientId == patientId && x.ClinicBranchId == clinicBranchId)
             .Where(x => adviseIds.Contains(x.Id))
-            .Select(x => x.Id)
-            .ToList();
+            .ToDictionary(x => x.Id);
 
-        var stranger = adviseIds.Except(owned).ToList();
+        var stranger = adviseIds.Except(owned.Keys).ToList();
         if (stranger.Count > 0)
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.PatientAdviseNotFound,
                 $"Consulting line {stranger[0]} does not belong to this record.");
+
+        return owned;
+    }
+
+    private async Task<Dictionary<Guid, PatientAdvise>> LoadAdvisesAsync(IEnumerable<Guid> adviseIds)
+    {
+        var ids = adviseIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, PatientAdvise>();
+
+        var query = await _adviseRepository.GetQueryableAsync();
+        return query.Where(x => ids.Contains(x.Id)).ToDictionary(x => x.Id);
     }
 
     /// <summary>
@@ -181,7 +217,11 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
         }
     }
 
-    private static PatientQuoteDto MapToDto(PatientQuote entity) => new()
+    /// <summary>
+    /// A line whose consulting row has gone is left out, as the screen drops
+    /// it anyway; one without a price of its own is priced off its row.
+    /// </summary>
+    private static PatientQuoteDto MapToDto(PatientQuote entity, IReadOnlyDictionary<Guid, PatientAdvise> advises) => new()
     {
         Id = entity.Id,
         PatientId = entity.PatientId,
@@ -189,13 +229,30 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
         Ordinal = entity.Ordinal,
         CreationTime = entity.CreationTime,
         Lines = entity.Lines
+            .Where(line => advises.ContainsKey(line.AdviseId))
             .OrderBy(line => line.SortOrder)
-            .Select(line => new PatientQuoteLineDto
-            {
-                AdviseId = line.AdviseId,
-                IsSelected = line.IsSelected,
-                SortOrder = line.SortOrder
-            })
+            .Select(line => MapLine(line, advises[line.AdviseId]))
             .ToList()
     };
+
+    private static PatientQuoteLineReadDto MapLine(PatientQuoteLine line, PatientAdvise advise)
+    {
+        var pricing = line.GetPricing() ?? QuoteLinePricing.Of(advise);
+        var discount = AdvisePricing.Discount(
+            pricing.Gross, pricing.DiscountType, pricing.DiscountValue, advise.VoucherDiscountAmount);
+
+        return new PatientQuoteLineReadDto
+        {
+            AdviseId = line.AdviseId,
+            IsSelected = line.IsSelected,
+            SortOrder = line.SortOrder,
+            Price = pricing.Price,
+            Quantity = pricing.Quantity,
+            DiscountType = pricing.DiscountType,
+            DiscountValue = pricing.DiscountValue,
+            GrossAmount = pricing.Gross,
+            DiscountAmount = discount,
+            EffectiveAmount = pricing.Gross - discount
+        };
+    }
 }

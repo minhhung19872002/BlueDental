@@ -13,6 +13,7 @@ import {
   type QuoteImage,
   type QuoteRow,
   type QuoteTotals,
+  sheetLabel,
 } from "./quoteModel";
 import { QuoteSignatures } from "./QuoteSignatures";
 
@@ -167,18 +168,18 @@ function SummaryRows({ totals }: { totals: QuoteTotals }) {
     <>
       <tr>
         <td colSpan={3} rowSpan={span} className="pq-sheet__summary-empty" />
-        <td className="pq-sheet__summary-label">{t("Patient:QuoteSheet:GrandTotal")}</td>
+        <td className="pq-sheet__summary-label">{sheetLabel("Patient:PlanTotals:Subtotal")}</td>
         <td className="pq-sheet__summary-value">{money(totals.gross)}</td>
       </tr>
       <tr>
-        <td className="pq-sheet__summary-label">{t("Patient:QuoteSheet:Discount")}</td>
+        <td className="pq-sheet__summary-label">{sheetLabel("Patient:PlanTotals:Discount")}</td>
         <td className="pq-sheet__summary-value pq-sheet__summary-value--discount">
           {totals.discount > 0 ? `-${money(totals.discount)}` : money(0)}
         </td>
       </tr>
       {totals.extra > 0 && (
         <tr>
-          <td className="pq-sheet__summary-label">{t("Patient:QuoteSheet:DoctorDiscount")}</td>
+          <td className="pq-sheet__summary-label">{sheetLabel("Patient:PlanTotals:Voucher")}</td>
           <td className="pq-sheet__summary-value pq-sheet__summary-value--discount">
             -{money(totals.extra)}
           </td>
@@ -186,7 +187,7 @@ function SummaryRows({ totals }: { totals: QuoteTotals }) {
       )}
       <tr className="pq-sheet__summary-row--total">
         <td className="pq-sheet__summary-label pq-sheet__summary-label--total">
-          {t("Patient:QuoteSheet:Total")}
+          {sheetLabel("Patient:PlanTotals:Net")}
         </td>
         <td className="pq-sheet__summary-value pq-sheet__summary-value--total">
           {money(totals.net)}

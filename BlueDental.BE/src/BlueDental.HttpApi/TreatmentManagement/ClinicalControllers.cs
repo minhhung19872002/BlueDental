@@ -111,6 +111,11 @@ public sealed class PatientQuoteController(IPatientQuoteAppService service) : Bl
     public Task<PatientQuoteDto> UpdateAsync(Guid id, [FromBody] UpdatePatientQuoteDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpPut("{id:guid}/lines/{adviseId:guid}")]
+    public Task<PatientQuoteDto> RepriceLineAsync(
+        Guid id, Guid adviseId, [FromBody] RepricePatientQuoteLineDto input) =>
+        service.RepriceLineAsync(id, adviseId, input);
+
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }

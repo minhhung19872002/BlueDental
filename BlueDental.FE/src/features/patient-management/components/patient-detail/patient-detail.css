@@ -5,7 +5,10 @@
 .pd-page {
   display: flex;
   min-width: 0;
-  height: calc(100vh - var(--bd-header-height) - 32px);
+  /* What .app-content leaves inside its padding (18px + 40px, 14px + 32px
+     under 900px): taking only 32px off left the page 26px too tall, and the
+     content area scrolled by that much on every table tab. */
+  height: calc(100vh - var(--bd-header-height) - 58px);
   min-height: 520px;
   flex-direction: column;
   overflow: hidden;
@@ -94,12 +97,19 @@
   font-weight: 600;
 }
 /* Every tab is the last child of the screen, so it takes the rest of the
-   height. The default pane scrolls its own content; a tab whose content is a
-   table adds --fill and hands the height on to the card instead. */
+   height. A tab whose content is a table adds --fill and hands the height on
+   to the card; a tab that is a document instead (Chẩn đoán & Tư vấn, Hồ sơ)
+   lets the screen grow to its length, so the page's own scrollbar is the only
+   one — a pane scrolling inside a page that also scrolls drew two (review
+   2026-09-30). */
 .pd-pane {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
+}
+.pd-page:has(> .pd-pane:not(.pd-pane--fill)) {
+  height: auto;
+  overflow: visible;
 }
 .pd-pane--fill {
   display: flex;
@@ -113,6 +123,11 @@
    The viewport height budget goes with them: a phone scrolls the document, and
    a record pinned to 100vh would trap the whole file inside a ~600px window
    with its own scrollbar while the page behind it stayed still. */
+@media (max-width: 900px) {
+  .pd-page {
+    height: calc(100vh - var(--bd-header-height) - 46px);
+  }
+}
 @media (max-width: 640px) {
   .pd-page {
     height: auto;
@@ -651,7 +666,10 @@
 }
 .pd-image-drop {
   display: flex;
+  width: 100%;
   height: 240px;
+  border: 0;
+  cursor: pointer;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -661,6 +679,13 @@
   color: var(--bd-sub);
   font-size: 14px;
   font-weight: 500;
+}
+.pd-image-drop:disabled {
+  cursor: default;
+}
+.pd-image-drop:focus-visible {
+  outline: 2px solid var(--bd-blue);
+  outline-offset: 2px;
 }
 .pd-image-drop--over {
   background: var(--bd-blue-pale);
@@ -930,11 +955,6 @@
   color: var(--bd-link);
   font-weight: 700;
 }
-/* #E5484D, measured off the reference's own "Chưa cập nhật". */
-.pd-cell-stack > b.pd-cell-missing {
-  color: #e5484d;
-  font-weight: 500;
-}
 /* A service name that stands alone in its cell, with no second line under it —
    Dịch vụ on Phiếu tư vấn, where the teeth belong to the diagnosis column. */
 .pd-cell-strong {
@@ -989,7 +1009,9 @@
 .pd-diagnosis-card > .pd-card-head {
   position: sticky;
   top: 0;
-  z-index: 4;
+  /* Above the form's floating labels (z-index 5), which otherwise ride over
+     the bar as the card scrolls. */
+  z-index: 6;
   background: #fff;
 }
 .pd-diagnosis-table {
@@ -1315,17 +1337,106 @@
 .pd-plan-total p > b {
   color: var(--bd-ink);
 }
+/* The figures keep to a column of their own width, as the design draws them,
+   rather than stretching the label and the amount a card apart. */
+.pd-plan-total > .pd-plan-row,
+.pd-plan-total > .pd-plan-voucher {
+  width: min(100%, 460px);
+}
+/* One figure per line: its label on the left, the amount flush right. */
+.pd-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+  margin: 0;
+  color: var(--bd-sub);
+}
+.pd-plan-row > span:first-child {
+  min-width: 88px;
+}
+.pd-plan-row > b {
+  margin-left: auto;
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* A deduction reads green, as a saving. */
+.pd-plan-total .pd-plan-row--off > b {
+  color: var(--bd-green);
+}
 /* "Voucher áp dụng:" — the tag button, then the helper in the reference's grey. */
+/* "Voucher áp dụng" and its button on one line; the helper, or one boxed line
+   per applied voucher, underneath. */
 .pd-plan-voucher {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+  flex-direction: column;
+  gap: 8px;
   color: var(--bd-sub);
+}
+.pd-plan-voucher__pick {
+  margin-left: auto;
 }
 .pd-plan-voucher > em {
   color: var(--bd-muted);
+  font-size: 12px;
   font-style: normal;
+}
+.pd-plan-applied-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-plan-applied {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--bd-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bd-bg-soft);
+  font-size: 13px;
+}
+.pd-plan-applied__code {
+  flex-shrink: 0;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: color-mix(in srgb, var(--bd-primary) 10%, #fff);
+  color: var(--bd-primary);
+  font-weight: 700;
+}
+.pd-plan-applied__what {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--bd-sub);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-plan-applied__saving {
+  flex-shrink: 0;
+  color: var(--bd-green);
+  font-variant-numeric: tabular-nums;
+}
+.pd-plan-applied__remove {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 4px;
+  padding: 2px;
+  background: none;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+.pd-plan-applied__remove:hover {
+  color: var(--bd-red);
+}
+.pd-plan-applied__remove:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 1px;
 }
 /* Staging's picker: a 520px popover, the search box with "Đã chọn: n" beside
    it, then a bordered box that lists the vouchers or the empty sentence. */
@@ -1446,9 +1557,15 @@
   color: var(--bd-muted);
 }
 /* The net total is the one figure the reference draws in blue. */
+/* "Thành tiền" is the figure the patient pays: bold and a size above the rest. */
+.pd-plan-total .pd-plan-net {
+  color: var(--bd-ink);
+  font-weight: 700;
+}
 .pd-plan-total .pd-plan-net > b {
   color: var(--bd-primary);
-  font-size: 14px;
+  font-size: 18px;
+  font-weight: 700;
 }
 .pd-plan-actions {
   display: flex;
@@ -3541,6 +3658,10 @@
   font-style: normal;
   font-weight: 700;
 }
+/* A tooth a công đoạn already holds: still on the card, faded. */
+.pd-stage-picks i.pd-stage-tooth--done {
+  opacity: 0.35;
+}
 .pd-stage-empty,
 .pd-stage-hint {
   margin: 12px 0 0;
@@ -3647,6 +3768,10 @@
 }
 .pd-stage-teeth > div > button.active:disabled:hover {
   color: #fff;
+}
+/* A tooth a công đoạn already holds: still listed, faded and inert. */
+.pd-stage-teeth > div > button.pd-stage-tooth--done {
+  opacity: 0.35;
 }
 .pd-stage-teeth > div > button.pd-stage-tooth--error {
   border-color: var(--bd-red);
@@ -3913,6 +4038,12 @@
   background: #fff;
   color: var(--bd-ink);
   font-size: 12px;
+}
+/* The teeth this công đoạn worked on, among all of its service's. */
+.pd-stage-histteeth > span.pd-stage-histtooth--worked {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: #fff;
 }
 .pd-stage-histshots {
   display: flex;

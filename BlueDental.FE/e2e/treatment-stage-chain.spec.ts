@@ -195,7 +195,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await login(page);
   });
 
-  test("several cards open at once, each takes the teeth it is given, and one press saves them all", async ({
+  test("one card opens at a time, keeps its draft, and a staged tooth stays on show, faded", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -208,25 +208,29 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(dialog.getByRole("tab", { name: /THÊM CÔNG ĐOẠN/ })).toHaveAttribute("aria-selected", "true");
     await expect(dialog.getByRole("tab", { name: /TIẾP TỤC BẢO HÀNH/ })).toBeVisible();
 
-    await dialog.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"]`).click();
-    await dialog.locator(`.pd-stage-picks button[data-line-id="${second.lineId}"]`).click();
-
+    const cardA = dialog.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"]`);
+    const cardB = dialog.locator(`.pd-stage-picks button[data-line-id="${second.lineId}"]`);
     const formA = dialog.locator(`.pd-stage-form[data-item-id="${first.lineId}"]`);
     const formB = dialog.locator(`.pd-stage-form[data-item-id="${second.lineId}"]`);
+
+    // Opening B closes A: one service's form on screen, never a stack.
+    await cardA.click();
     await expect(formA).toBeVisible();
+    await cardB.click();
     await expect(formB).toBeVisible();
-    // One save for all of them, under the last form only. The forms stack in
-    // card order, not in the order they were opened — as the reference's do.
-    await expect(dialog.getByRole("button", { name: "Lưu công đoạn" })).toHaveCount(1);
-    await expect(dialog.locator(".pd-stage-form").last().getByRole("button", { name: "Lưu công đoạn" })).toBeVisible();
+    await expect(formA).toHaveCount(0);
+    await expect(dialog.locator(".pd-stage-form")).toHaveCount(1);
+    await expect(cardA).toHaveAttribute("aria-pressed", "false");
+    const noteB = `e2e một thẻ ${runId()} B`;
+    await formB.locator("textarea").fill(noteB);
 
     // Every free tooth starts picked; the doctor drops 22 from this công đoạn.
+    await cardA.click();
+    await expect(formB).toHaveCount(0);
     expect(await chipStates(formA)).toEqual(["11*", "21*", "22*"]);
     await chips(formA).filter({ hasText: "22" }).click();
     expect(await chipStates(formA)).toEqual(["11*", "21*", "22"]);
-
-    await formA.locator("textarea").fill(`e2e nhiều ${runId()} A`);
-    await formB.locator("textarea").fill(`e2e nhiều ${runId()} B`);
+    await formA.locator("textarea").fill(`e2e một thẻ ${runId()} A`);
 
     const posted: Record<string, unknown>[] = [];
     page.on("request", (request) => {
@@ -234,23 +238,35 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
         posted.push(request.postDataJSON() as Record<string, unknown>);
       }
     });
+    const teethOf = (body: Record<string, unknown>) =>
+      (body.teeth as { toothCode: number }[]).map((tooth) => tooth.toothCode);
+
+    // The save under the one open form saves that form only.
+    await expect(dialog.getByRole("button", { name: "Lưu công đoạn" })).toHaveCount(1);
     await dialog.getByRole("button", { name: "Lưu công đoạn" }).click();
     await expect(page.getByText("Đã thêm công đoạn")).toBeVisible();
     await expect(formA).toHaveCount(0);
-    await expect(formB).toHaveCount(0);
+    await expect.poll(() => posted.length).toBe(1);
+    expect(posted[0].treatmentServiceId).toBe(first.lineId);
+    expect(teethOf(posted[0])).toEqual([11, 21]);
 
-    // One request per form, each with its own teeth.
-    expect(posted).toHaveLength(2);
-    const teethOf = (body: Record<string, unknown>) =>
-      (body.teeth as { toothCode: number }[]).map((tooth) => tooth.toothCode);
-    expect(teethOf(posted.find((body) => body.treatmentServiceId === first.lineId)!)).toEqual([11, 21]);
-    expect(teethOf(posted.find((body) => body.treatmentServiceId === second.lineId)!)).toEqual([14]);
+    // B kept what was typed into it while A was open.
+    await cardB.click();
+    await expect(formB.locator("textarea")).toHaveValue(noteB);
+    await dialog.getByRole("button", { name: "Lưu công đoạn" }).click();
+    await expect.poll(() => posted.length).toBe(2);
+    expect(posted[1].treatmentServiceId).toBe(second.lineId);
+    expect(teethOf(posted[1])).toEqual([14]);
 
-    // 22 is still to start, so its line stays under THÊM CÔNG ĐOẠN with 22 alone.
-    const cardA = dialog.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"]`);
-    await expect(cardA).toContainText("22");
-    await expect(cardA).not.toContainText("11");
-    await expect(dialog.locator(`.pd-stage-picks button[data-line-id="${second.lineId}"]`)).toHaveCount(0);
+    // 22 is still to start, so A stays under THÊM CÔNG ĐOẠN — with 11 and 21
+    // still listed, faded, and inert on its form.
+    const faded = (card: Locator) => card.locator("i.pd-stage-tooth--done");
+    await expect(cardA.locator("i")).toHaveText(["11", "21", "22"]);
+    await expect(faded(cardA)).toHaveText(["11", "21"]);
+    await cardA.click();
+    expect(await chipStates(formA)).toEqual(["11!", "21!", "22*"]);
+    await cardA.click();
+    await expect(cardB).toHaveCount(0);
 
     // Both are now being worked.
     await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
@@ -261,7 +277,9 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await page.reload();
     const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
     await page.getByRole("button", { name: "Thêm công đoạn" }).click();
-    await expect(again.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"] i`)).toHaveText(["22"]);
+    const reopened = again.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"]`);
+    await expect(reopened.locator("i")).toHaveText(["11", "21", "22"]);
+    await expect(faded(reopened)).toHaveText(["11", "21"]);
 
     // The server refuses a tooth another công đoạn already holds.
     const doubled = await call(page, "POST", "/api/v1/app/treatment-stages", {
@@ -288,7 +306,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await dialog.locator(`.pd-stage-picks button[data-stage-id="${firstStage}"]`).click();
 
-    const form = dialog.locator(`.pd-stage-form[data-item-id="${firstStage}"]`);
+    const form = dialog.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
     // The chain keeps its teeth: shown, not clickable.
     expect(await chipStates(form)).toEqual(["31*!", "32*!"]);
     await expect(dialog.getByRole("button", { name: "Tiếp tục công đoạn" })).toBeVisible();
@@ -323,6 +341,63 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(
       page.getByRole("dialog", { name: "Chi tiết phiếu" }).locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`),
     ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("two open chains of one line read as one card, continued a chain at a time, and history marks each visit's teeth", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    const [line] = await freshLines(page, [{ teeth: [{ code: 11 }, { code: 21 }, { code: 22 }] }]);
+    const chain11 = await stageOn(page, line, [11], false);
+    const chain21 = await stageOn(page, line, [21], false);
+
+    const dialog = await openSlipDialog(page, line);
+
+    // History: every tooth of the service on each row, that visit's in blue.
+    const worked = (stageId: string) =>
+      dialog.locator(`.pd-stage-histrow[data-stage-id="${stageId}"] .pd-stage-histteeth > span`);
+    await expect(worked(chain11)).toHaveText(["11", "21", "22"]);
+    await expect(
+      dialog.locator(`.pd-stage-histrow[data-stage-id="${chain11}"] .pd-stage-histtooth--worked`),
+    ).toHaveText(["11"]);
+    await expect(
+      dialog.locator(`.pd-stage-histrow[data-stage-id="${chain21}"] .pd-stage-histtooth--worked`),
+    ).toHaveText(["21"]);
+
+    // One card for the line, however many chains are open on it.
+    await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
+    const card = dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`);
+    await expect(card).toHaveCount(1);
+    await expect(card).toHaveAttribute("data-stage-id", new RegExp(`${chain11}.*${chain21}|${chain21}.*${chain11}`));
+    await expect(card.locator("i")).toHaveText(["11", "21", "22"]);
+    await expect(card.locator("i.pd-stage-tooth--done")).toHaveText(["22"]);
+
+    // Both chains start picked; 22 was never staged, so it cannot be.
+    await card.click();
+    const form = dialog.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
+    expect(await chipStates(form)).toEqual(["11*", "21*", "22!"]);
+    await chips(form).filter({ hasText: "21" }).click();
+    expect(await chipStates(form)).toEqual(["11*", "21", "22!"]);
+    await dialog.screenshot({ path: "test-results/stage-merged-card.png" });
+    await form.locator("textarea").fill(`e2e gộp ${runId()}`);
+
+    const continued: string[] = [];
+    page.on("request", (request) => {
+      const match = /\/treatment-stages\/([^/]+)\/continue$/.exec(request.url());
+      if (request.method() === "POST" && match) continued.push(match[1]);
+    });
+    await dialog.getByRole("button", { name: "Tiếp tục công đoạn" }).click();
+    await expect(page.getByText("Tiếp tục công đoạn thành công")).toBeVisible();
+    expect(continued).toEqual([chain11]);
+
+    // 21's chain is still open, so the card stays — on the server's word too.
+    await page.reload();
+    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
+    await expect(again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`)).toHaveCount(1);
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain11}"]`)).toHaveAttribute("aria-disabled", "true");
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("aria-disabled", "false");
   });
 
   test("a warranty picks among the root's teeth, locks the line's Bảo hành until it is finished, and can follow itself", async ({
@@ -373,8 +448,9 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     await dialog.getByRole("tab", { name: /TIẾP TỤC BẢO HÀNH/ }).click();
     await dialog.locator(`.pd-stage-picks button[data-stage-id="${firstWarranty.id}"]`).click();
-    const form = dialog.locator(`.pd-stage-form[data-item-id="${firstWarranty.id}"]`);
-    expect(await chipStates(form)).toEqual(["11*!", "21*!"]);
+    const form = dialog.locator(`.pd-stage-form[data-item-id="continueWarranty:${line.lineId}"]`);
+    // 22 is the line's but not this warranty's: listed, faded, inert.
+    expect(await chipStates(form)).toEqual(["11*!", "21*!", "22!"]);
     await form.locator("textarea").fill(`e2e tiếp tục bảo hành ${runId()}`);
     const continued = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${firstWarranty.id}/continue`) && res.request().method() === "POST",

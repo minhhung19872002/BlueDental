@@ -50,7 +50,9 @@ export function useCreateAdvises({ patientId, branchId, diagnosis, onCreated, on
             serviceId: service.id,
             staffId: header.staffId,
             secondStaffId: header.secondStaffId || undefined,
-            originalPrice: service.price ?? row.price,
+            // The line is sold at "Giá sau giảm", and that is its giá gốc too:
+            // the catalogue's own discount is not a discount on the line.
+            originalPrice: service.salePrice ?? row.price,
             price: row.price,
             quantity: row.quantity,
             discountType: row.discountValue > 0 ? row.discountType : DISCOUNT_TYPE.None,
