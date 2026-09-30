@@ -131,6 +131,18 @@
   height: 100%;
 }
 
+@media (min-width: 960px) {
+  .rc-card {
+    min-height: 245px;
+  }
+
+  /* A stretched grid item fills its row whatever its height, so both are needed. */
+  .reception-card-grid--has-expanded > .rc-wrapper {
+    height: auto;
+    align-self: start;
+  }
+}
+
 .rc-wrapper--busy {
   pointer-events: none;
 }
@@ -576,6 +588,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: auto;
 }
 
 .rc-wrapper--expanded > .rc-card {

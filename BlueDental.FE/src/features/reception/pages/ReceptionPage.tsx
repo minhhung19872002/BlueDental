@@ -261,7 +261,7 @@ export const ReceptionPage: React.FC = () => {
           <ReceptionEmptyState />
         ) : (
           <>
-            <div className="reception-card-grid">
+            <div className={["reception-card-grid", followUpTargetId && "reception-card-grid--has-expanded"].filter(Boolean).join(" ")}>
               {items.map((item) => (
                 <ReceptionCard
                   key={item.id}
