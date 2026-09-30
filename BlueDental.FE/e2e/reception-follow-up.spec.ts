@@ -33,8 +33,10 @@ interface Appointment {
   outcome: number | null;
   followUpAppointmentId: string | null;
   followUpAt: string | null;
+  checkedInAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  cancelledAt: string | null;
 }
 
 interface ApiResult<T> {
@@ -541,5 +543,92 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     expect(replaced.status, JSON.stringify(replaced.body.error)).toBe(200);
     expect(replaced.body.followUpAppointmentId).not.toBe(first.body.followUpAppointmentId);
     expect(new Date(replaced.body.followUpAt!).getTime()).toBe(later.getTime());
+  });
+});
+
+
+test.describe("Tiếp nhận — thanh tiến trình khi huỷ hẹn", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  const hhmm = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const cancel = async (page: Page, branchId: string, id: string) => {
+    const res = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${id}/cancel`, {
+      method: "POST",
+      json: { reason: 1, note: "e2e" },
+    });
+    expect(res.status, JSON.stringify(res.body.error)).toBe(200);
+    expect(res.body.cancelledAt).toBeTruthy();
+    return res.body;
+  };
+
+  /** Labels and times of the bar, in order. */
+  const barOf = async (card: Locator) => ({
+    labels: await card.locator(".rc-step-label").allInnerTexts(),
+    times: await card.locator(".rc-step-time").allInnerTexts(),
+  });
+
+  test("never came: one red Hủy hẹn step with the time it was cancelled", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 200);
+    const cancelled = await cancel(page, branchId, visit.id);
+
+    await page.reload();
+    const card = await cardOf(page, visit);
+    expect(await barOf(card)).toEqual({ labels: ["Huỷ hẹn"], times: [hhmm(cancelled.cancelledAt!)] });
+    await expect(card.locator(".rc-step-label").last()).toHaveCSS("color", "rgb(229, 72, 77)");
+    await expect(card.locator(".rc-step")).toHaveCount(1);
+  });
+
+  test("came and sat in the chair: Đã đến → Đang khám → Hủy hẹn, only the last one red", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 210);
+    const card = await cardOf(page, visit);
+    await card.getByRole("button", { name: /Đã đến/ }).click();
+    await card.getByRole("button", { name: /Đang khám/ }).click();
+    await expect.poll(async () => (await getAppointment(page, branchId, visit.id)).status).toBe(STATUS.InProgress);
+    const cancelled = await cancel(page, branchId, visit.id);
+
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    const bar = await barOf(reloaded);
+    expect(bar.labels).toEqual(["Đã đến", "Đang khám", "Huỷ hẹn"]);
+    expect(bar.times[0]).toBe(hhmm(cancelled.checkedInAt!));
+    expect(bar.times[1]).toBe(hhmm(cancelled.startedAt!));
+    expect(bar.times[2]).toBe(hhmm(cancelled.cancelledAt!));
+    const labels = reloaded.locator(".rc-step-label");
+    await expect(labels.nth(0)).not.toHaveCSS("color", "rgb(229, 72, 77)");
+    await expect(labels.nth(1)).not.toHaveCSS("color", "rgb(229, 72, 77)");
+    await expect(labels.nth(2)).toHaveCSS("color", "rgb(229, 72, 77)");
+    // Nothing on a cancelled bar moves it on.
+    for (const step of await reloaded.locator(".rc-step").all()) await expect(step).toBeDisabled();
+  });
+
+  test("Hẹn tái khám then cancelled: Hủy hẹn takes the place of Đã hẹn lại", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 220);
+    const card = await cardOf(page, visit);
+    await card.getByRole("button", { name: /Đã đến/ }).click();
+    await expect(card.getByRole("button", { name: /Đang khám/ })).toBeEnabled();
+
+    await outcome(card, "Hẹn tái khám").click();
+    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+    await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
+    await panel.getByRole("button", { name: "Xác nhận hẹn tái khám" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    await expect(card.locator(".rc-step-label").nth(1)).toHaveText("Đã hẹn lại");
+
+    const cancelled = await cancel(page, branchId, visit.id);
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    expect(await barOf(reloaded)).toEqual({
+      labels: ["Đã đến", "Huỷ hẹn"],
+      times: [hhmm(cancelled.checkedInAt!), hhmm(cancelled.cancelledAt!)],
+    });
   });
 });

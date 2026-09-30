@@ -50,6 +50,8 @@ export interface ReceptionItem {
   step1Time?: string;
   step2Time?: string;
   step3Time?: string;
+  /** HH:mm the visit was cancelled — the red last step of the bar. */
+  cancelTime?: string;
   selectedOutcome?: AppointmentOutcome;
   /** ISO instant of the appointment booked through "Đã hẹn tiếp". */
   followUpAt?: string;

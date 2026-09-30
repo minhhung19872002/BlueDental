@@ -26,6 +26,7 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public DateTimeOffset? CheckedInAt { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
+    public DateTimeOffset? CancelledAt { get; set; }
     public AppointmentOutcome? Outcome { get; set; }
 
     /// <summary>The appointment booked through "Đã hẹn tiếp", and when it starts.</summary>

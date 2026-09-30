@@ -116,6 +116,7 @@ interface ServerAppointmentDto {
   checkedInAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  cancelledAt: string | null;
   outcome: number | null;
   followUpAt: string | null;
   patientYearOfBirth: number | null;
@@ -169,6 +170,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     step1Time: formatStepTime(dto.checkedInAt),
     step2Time: formatStepTime(dto.startedAt),
     step3Time: formatStepTime(dto.completedAt),
+    cancelTime: formatStepTime(dto.cancelledAt),
     createdAt: dto.creationTime || new Date().toISOString(),
     selectedOutcome: dto.outcome ? (OUTCOME_MAP[dto.outcome] ?? null) : null,
     followUpAt: dto.followUpAt ?? undefined,

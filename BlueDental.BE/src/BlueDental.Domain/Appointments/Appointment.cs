@@ -26,6 +26,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? CheckedInAt { get; private set; }
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    /// <summary>When it was cancelled — the last step of the reception progress bar.</summary>
+    public DateTimeOffset? CancelledAt { get; private set; }
     public AppointmentOutcome? Outcome { get; private set; }
 
     /// <summary>The appointment booked through "Đã hẹn tiếp", if any.</summary>
@@ -116,6 +118,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Status = AppointmentStatus.Cancelled;
         CancellationReason = reason;
         CancellationNote = note;
+        CancelledAt = DateTimeOffset.UtcNow;
         return this;
     }
 
@@ -251,6 +254,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Status = AppointmentStatus.Confirmed;
         CancellationReason = null;
         CancellationNote = null;
+        CancelledAt = null;
         return this;
     }
 

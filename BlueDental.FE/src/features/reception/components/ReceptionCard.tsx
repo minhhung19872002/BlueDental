@@ -9,7 +9,6 @@ import {
   Clock3,
   FileText,
   CalendarX,
-  Check,
   Circle,
   CircleCheck,
   Loader2,
@@ -22,6 +21,7 @@ import type {
   AppointmentCounterType,
   BookedOutcome,
 } from "../types/reception";
+import { ReceptionCardSteps } from "./ReceptionCardSteps";
 
 interface ReceptionCardProps {
   item: ReceptionItem;
@@ -54,8 +54,6 @@ const COUNTER_STATUS_STYLE: Record<AppointmentCounterType, CounterBadgeStyle> = 
   Temporary: { bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
   Converted: { bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 };
-
-const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
 
 type NonNullOutcome = Exclude<AppointmentOutcome, null>;
 
@@ -123,46 +121,16 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const shownOutcome: AppointmentOutcome = pendingBooking ?? selectedOutcome;
 
   const step1Done = !!item.step1Time;
-  const step2Done = !!item.step2Time;
   const step3Done = !!item.step3Time;
-  const isRevisit = selectedOutcome === "Revisit";
-  // A revisit booked before the chair ends the bar at step 2 ("Đã hẹn lại").
-  const hideStep3 = isRevisit && step2Done && !step3Done;
 
   const isCancelled = item.counterStatus === "Cancelled";
   const isNoShow = item.counterStatus === "Late" && !item.isTimeLate;
-
-  const canCheckIn = !step1Done && !isCancelled && !isNoShow;
-  const canStart = step1Done && !step2Done && !isCancelled && !isNoShow;
-  const canComplete = step2Done && !step3Done && !isCancelled && !isNoShow;
 
   const getCardStyle = (): React.CSSProperties => {
     if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
     if (step3Done) return { background: "#e2f4ee", borderColor: "#0e9f6e" };
     if (step1Done) return { background: "#eef0ff", borderColor: "#6366f1" };
     return {};
-  };
-
-  const getStepCircleStyle = (stepIndex: number, done: boolean): React.CSSProperties => ({
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    border: done ? `1px solid ${STEP_COLORS[stepIndex]}` : "1px solid #e7eaf6",
-    background: done ? STEP_COLORS[stepIndex] : "#fff",
-    color: done ? "#fff" : "var(--bd-muted)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 13,
-    fontWeight: 600,
-    flexShrink: 0,
-  });
-
-  const getLineColor = (fromStep: number, toStep: number): string => {
-    const steps = [step1Done, step2Done, step3Done];
-    if (steps[fromStep] && steps[toStep]) return STEP_COLORS[toStep];
-    if (steps[fromStep]) return STEP_COLORS[toStep];
-    return "#e7eaf6";
   };
 
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
@@ -243,66 +211,11 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
             {/* Col 2: progress steps + doctor select */}
             <div className="rc-col-progress">
-              <div className="rc-steps">
-                <button
-                  type="button"
-                  disabled={!canCheckIn}
-                  className={`rc-step ${canCheckIn ? "rc-step--clickable" : ""}`}
-                  onClick={canCheckIn ? () => onStatusChange?.(item.id, "check-in") : undefined}
-                >
-                  <div className="rc-step-track">
-                    <div className="rc-step-line rc-step-line--invisible" />
-                    <div style={getStepCircleStyle(0, step1Done)}>
-                      {step1Done ? <Check size={14} /> : "1"}
-                    </div>
-                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#e7eaf6" }} />
-                  </div>
-                  <p className="rc-step-label" style={step1Done ? { color: STEP_COLORS[0] } : undefined}>
-                    {t("Reception:StatusArrived")}
-                  </p>
-                  <p className="rc-step-time">{item.step1Time || "--:--"}</p>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={!canStart}
-                  className={`rc-step ${canStart ? "rc-step--clickable" : ""}`}
-                  onClick={canStart ? () => onStatusChange?.(item.id, "start") : undefined}
-                >
-                  <div className="rc-step-track">
-                    <div className="rc-step-line" style={{ background: getLineColor(0, 1) }} />
-                    <div style={getStepCircleStyle(1, step2Done)}>
-                      {step2Done ? <Check size={14} /> : "2"}
-                    </div>
-                    <div className={`rc-step-line${hideStep3 ? " rc-step-line--invisible" : ""}`} style={hideStep3 ? undefined : { background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
-                  </div>
-                  <p className="rc-step-label" style={hideStep3 ? { color: "#e5484d" } : step2Done ? { color: STEP_COLORS[1] } : undefined}>
-                    {hideStep3 ? t("Reception:StepRevisit") : t("Reception:StepInProgress")}
-                  </p>
-                  <p className="rc-step-time">{item.step2Time || "--:--"}</p>
-                </button>
-
-                {!hideStep3 && (
-                  <button
-                    type="button"
-                    disabled={!canComplete}
-                    className={`rc-step ${canComplete ? "rc-step--clickable" : ""}`}
-                    onClick={canComplete ? () => onStatusChange?.(item.id, "complete") : undefined}
-                  >
-                    <div className="rc-step-track">
-                      <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
-                      <div style={getStepCircleStyle(2, step3Done)}>
-                        {step3Done ? <Check size={14} /> : "3"}
-                      </div>
-                      <div className="rc-step-line rc-step-line--invisible" />
-                    </div>
-                    <p className="rc-step-label" style={isRevisit ? { color: "#e5484d" } : step3Done ? { color: STEP_COLORS[2] } : undefined}>
-                      {isRevisit ? t("Reception:StepRevisit") : t("Reception:StepComplete")}
-                    </p>
-                    <p className="rc-step-time">{item.step3Time || "--:--"}</p>
-                  </button>
-                )}
-              </div>
+              <ReceptionCardSteps
+                item={item}
+                canAdvance={!isCancelled && !isNoShow}
+                onAdvance={(action) => onStatusChange?.(item.id, action)}
+              />
 
               <div className="rc-doctor-select">
                 <SearchSelect
