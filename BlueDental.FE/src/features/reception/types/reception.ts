@@ -23,6 +23,9 @@ export type AppointmentOutcome =
   | "Revisit"
   | null;
 
+/** The outcomes saved only together with a booked next appointment. */
+export type BookedOutcome = Extract<AppointmentOutcome, "FollowUp" | "Revisit">;
+
 export interface ReceptionItem {
   id: string;
   voucherCode: string;

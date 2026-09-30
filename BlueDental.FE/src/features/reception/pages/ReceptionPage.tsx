@@ -39,6 +39,7 @@ import type {
   ReceptionFilter,
   ReceptionCounters,
   AppointmentOutcome,
+  BookedOutcome,
 } from "../types/reception";
 import "../components/reception.css";
 
@@ -57,7 +58,7 @@ export const ReceptionPage: React.FC = () => {
   const [draftKeyword, setDraftKeyword] = useState("");
   const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
   const [busyCards, setBusyCards] = useState<Set<string>>(new Set());
-  const [followUpTargetId, setFollowUpTargetId] = useState<string | null>(null);
+  const [bookingTarget, setBookingTarget] = useState<{ id: string; outcome: BookedOutcome } | null>(null);
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
   const debouncedKeyword = useDebounce(keyword);
@@ -102,8 +103,8 @@ export const ReceptionPage: React.FC = () => {
 
   // Once booked, the picker stays up until the refetch brings the follow-up
   // back, so the card never flashes its old outcome in between.
-  const openFollowUpId =
-    followUpTargetId && !items.find((i) => i.id === followUpTargetId)?.followUpAt ? followUpTargetId : null;
+  const openBooking =
+    bookingTarget && !items.find((i) => i.id === bookingTarget.id)?.followUpAt ? bookingTarget : null;
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -171,15 +172,18 @@ export const ReceptionPage: React.FC = () => {
     const item = items.find((i) => i.id === id);
     if (!outcome || !item) return;
     // Picking another outcome backs out of an unbooked follow-up.
-    if (openFollowUpId === id) setFollowUpTargetId(null);
+    if (openBooking?.id === id) setBookingTarget(null);
     runCommand(id, planOutcomeClick(item, outcome));
   };
 
-  /** A booked follow-up is changed on the calendar, not re-booked from here. */
-  const handleFollowUpClick = (id: string) => {
+  /**
+   * "Đã hẹn tiếp" / "Hẹn tái khám" open the picker; the same option again closes
+   * it. A booked one is changed on the calendar, not re-booked from here.
+   */
+  const handleFollowUpClick = (id: string, outcome: BookedOutcome) => {
     const item = items.find((i) => i.id === id);
     if (!item || item.followUpAt) return;
-    setFollowUpTargetId((current) => (current === id ? null : id));
+    setBookingTarget((current) => (current?.id === id && current.outcome === outcome ? null : { id, outcome }));
   };
 
   const handleDoctorChange = (id: string, doctorId: string) => {
@@ -268,7 +272,7 @@ export const ReceptionPage: React.FC = () => {
           <ReceptionEmptyState />
         ) : (
           <>
-            <div className={["reception-card-grid", openFollowUpId && "reception-card-grid--has-expanded"].filter(Boolean).join(" ")}>
+            <div className={["reception-card-grid", openBooking && "reception-card-grid--has-expanded"].filter(Boolean).join(" ")}>
               {items.map((item) => (
                 <ReceptionCard
                   key={item.id}
@@ -280,14 +284,16 @@ export const ReceptionPage: React.FC = () => {
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}
                   onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
                   onFollowUpClick={ability.canUpdate && ability.canCreate ? handleFollowUpClick : undefined}
-                  followUpOpen={openFollowUpId === item.id}
+                  pendingBooking={openBooking?.id === item.id ? openBooking.outcome : null}
                 >
-                  {openFollowUpId === item.id && (
+                  {openBooking?.id === item.id && (
                     <FollowUpScheduler
+                      key={openBooking.outcome}
                       appointmentId={item.id}
+                      outcome={openBooking.outcome}
                       defaultDoctorId={item.doctorId}
                       doctors={doctors}
-                      onClose={() => setFollowUpTargetId(null)}
+                      onClose={() => setBookingTarget(null)}
                     />
                   )}
                 </ReceptionCard>

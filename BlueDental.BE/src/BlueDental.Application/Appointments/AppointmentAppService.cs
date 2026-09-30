@@ -521,7 +521,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     }
 
     /// <summary>
-    /// "Đã hẹn tiếp" from the reception card: books the next appointment and
+    /// "Đã hẹn tiếp" / "Hẹn tái khám" from the reception card: books the next appointment and
     /// marks this visit's outcome in one save, so neither exists without the other.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -537,7 +537,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             : null;
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         var followUp = appointment.BookFollowUp(
-            GuidGenerator.Create(), slot, currentFollowUp, input.DentistId, input.ChiefComplaint);
+            GuidGenerator.Create(), slot, currentFollowUp, input.DentistId, input.ChiefComplaint, input.Outcome);
 
         if (await _conflictChecker.HasDentistConflictAsync(followUp.DentistId, slot))
         {

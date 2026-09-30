@@ -9,9 +9,12 @@ import { useFollowUpPicker } from "../hooks/useFollowUpPicker";
 import { QUICK_PICKS, quickPickDate } from "../utils/followUpSlots";
 import { FollowUpWeekStrip } from "./FollowUpWeekStrip";
 import { FollowUpSlotGrid } from "./FollowUpSlotGrid";
+import type { BookedOutcome } from "../types/reception";
 
 interface FollowUpSchedulerProps {
   appointmentId: string;
+  /** Which option opened the picker; it is saved with the booking. */
+  outcome: BookedOutcome;
   defaultDoctorId?: string;
   doctors: { id: string; name: string }[];
   onClose: () => void;
@@ -23,12 +26,26 @@ const QUICK_PICK_LABEL = {
   "1m": "Reception:FollowUpQuick1m",
 } as const;
 
+const OUTCOME_TEXT: Record<BookedOutcome, { hint: string; confirm: string; success: string }> = {
+  FollowUp: {
+    hint: "Reception:FollowUpHint",
+    confirm: "Reception:FollowUpConfirm",
+    success: "Reception:FollowUpSuccess",
+  },
+  Revisit: {
+    hint: "Reception:RevisitHint",
+    confirm: "Reception:RevisitConfirm",
+    success: "Reception:RevisitSuccess",
+  },
+};
+
 /**
- * "Đã hẹn tiếp" opens this under the card: the next appointment must have a
- * date before the outcome can be saved. The doctor is optional — left empty,
+ * "Đã hẹn tiếp" and "Hẹn tái khám" open this under the card: the next
+ * appointment must have a date before the outcome can be saved. The doctor is optional — left empty,
  * the follow-up goes to the card's doctor and no busy slots are shown.
  */
-export function FollowUpScheduler({ appointmentId, defaultDoctorId, doctors, onClose }: FollowUpSchedulerProps) {
+export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, doctors, onClose }: FollowUpSchedulerProps) {
+  const text = OUTCOME_TEXT[outcome];
   const picker = useFollowUpPicker(defaultDoctorId);
   const bookMutation = useBookFollowUp();
 
@@ -36,11 +53,11 @@ export function FollowUpScheduler({ appointmentId, defaultDoctorId, doctors, onC
     const input = picker.buildInput();
     if (!input) return;
     bookMutation.mutate(
-      { id: appointmentId, input },
+      { id: appointmentId, input, outcome },
       {
         onSuccess: () => {
           // No onClose: the page hides the picker once the card shows the booking.
-          toast.success(t("Reception:FollowUpSuccess", dayjs(input.slotStart).format("HH:mm DD/MM/YYYY")));
+          toast.success(t(text.success, dayjs(input.slotStart).format("HH:mm DD/MM/YYYY")));
         },
       },
     );
@@ -54,7 +71,7 @@ export function FollowUpScheduler({ appointmentId, defaultDoctorId, doctors, onC
           <h4 className="fu-title">
             {t("Reception:FollowUpTitle")} <span className="fu-required">*</span>
           </h4>
-          <p className="fu-hint">{t("Reception:FollowUpHint")}</p>
+          <p className="fu-hint">{t(text.hint)}</p>
         </div>
         <div className="fu-doctor">
           <span className="fu-doctor-label">{t("Reception:Doctor")}</span>
@@ -105,7 +122,7 @@ export function FollowUpScheduler({ appointmentId, defaultDoctorId, doctors, onC
           icon={bookMutation.isPending ? <Loader2 size={14} className="fu-spin" /> : undefined}
           onClick={handleConfirm}
         >
-          {t("Reception:FollowUpConfirm")}
+          {t(text.confirm)}
         </Button>
       </footer>
     </section>

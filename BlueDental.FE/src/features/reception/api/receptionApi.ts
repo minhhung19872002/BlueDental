@@ -5,6 +5,7 @@ import type {
   AppointmentCounterType,
   AppointmentOutcome,
   BookFollowUpInput,
+  BookedOutcome,
   BusySpan,
   CreateReceptionInput,
   ReceptionCounters,
@@ -285,8 +286,8 @@ export const receptionApi = {
     await api.post(`${APPT_BASE}/${id}/set-outcome`, { outcome: OUTCOME_TO_SERVER[outcome] });
   },
 
-  async bookFollowUp(id: string, input: BookFollowUpInput): Promise<void> {
-    await api.post(`${APPT_BASE}/${id}/follow-up`, input);
+  async bookFollowUp(id: string, input: BookFollowUpInput, outcome: BookedOutcome): Promise<void> {
+    await api.post(`${APPT_BASE}/${id}/follow-up`, { ...input, outcome: OUTCOME_TO_SERVER[outcome] });
   },
 
   /** What a doctor is already booked for between two calendar days, inclusive. */

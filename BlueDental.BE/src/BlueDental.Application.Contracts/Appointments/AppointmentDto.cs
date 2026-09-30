@@ -121,9 +121,15 @@ public class SetOutcomeDto
     public AppointmentOutcome Outcome { get; set; }
 }
 
-/// <summary>"Đã hẹn tiếp": the next appointment, booked from the reception card.</summary>
+/// <summary>
+/// "Đã hẹn tiếp" or "Hẹn tái khám": the next appointment, booked from the
+/// reception card together with the outcome it stands for.
+/// </summary>
 public class BookFollowUpDto
 {
+    /// <summary>FollowUp or Revisit; any other outcome is refused.</summary>
+    public AppointmentOutcome Outcome { get; set; } = AppointmentOutcome.FollowUp;
+
     public DateTimeOffset SlotStart { get; set; }
     public DateTimeOffset SlotEnd { get; set; }
 

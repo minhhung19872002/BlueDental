@@ -20,6 +20,7 @@ import type {
   ReceptionItem,
   AppointmentOutcome,
   AppointmentCounterType,
+  BookedOutcome,
 } from "../types/reception";
 
 interface ReceptionCardProps {
@@ -31,10 +32,10 @@ interface ReceptionCardProps {
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
   onCancel?: (id: string) => void;
-  /** "Đã hẹn tiếp" asks for a date first, so it opens the picker instead of saving. */
-  onFollowUpClick?: (id: string) => void;
-  /** Whether the follow-up picker is open under this card. */
-  followUpOpen?: boolean;
+  /** "Đã hẹn tiếp" and "Hẹn tái khám" ask for a date first, so they open the picker instead of saving. */
+  onFollowUpClick?: (id: string, outcome: BookedOutcome) => void;
+  /** Which of the two the picker under this card is booking, if it is open. */
+  pendingBooking?: BookedOutcome | null;
   /** The follow-up picker, rendered under the card while open. */
   children?: React.ReactNode;
 }
@@ -65,6 +66,24 @@ const OUTCOME_KEYS: NonNullOutcome[] = [
   "Revisit",
 ];
 
+const BOOKED_OUTCOMES: readonly NonNullOutcome[] = ["FollowUp", "Revisit"];
+
+const isBookedOutcome = (key: NonNullOutcome): key is BookedOutcome => BOOKED_OUTCOMES.includes(key);
+
+type OutcomeLock = (key: NonNullOutcome, saved: AppointmentOutcome, pending: BookedOutcome | null) => boolean;
+
+/**
+ * When an option cannot be clicked. A saved "Đã hẹn tiếp" or "Hẹn tái khám"
+ * locks every other option. While a picker is open only the other booked
+ * option is locked, so a plain pick can still back out of it. "Kết thúc điều
+ * trị" locks "Chuyển bác sĩ" and "Hẹn tái khám".
+ */
+const OUTCOME_LOCKS: OutcomeLock[] = [
+  (key, saved) => saved !== null && isBookedOutcome(saved) && key !== saved,
+  (key, _saved, pending) => pending !== null && isBookedOutcome(key) && key !== pending,
+  (key, saved) => saved === "EndTreatment" && (key === "TransferDoctor" || key === "Revisit"),
+];
+
 export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   item,
   doctors = [],
@@ -74,7 +93,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   onStatusChange,
   onCancel,
   onFollowUpClick,
-  followUpOpen = false,
+  pendingBooking = null,
   children,
 }) => {
   const navigate = useNavigate();
@@ -98,14 +117,16 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const badgeStyle = item.counterStatus ? COUNTER_STATUS_STYLE[item.counterStatus] : null;
   const badgeLabelText = item.counterStatus ? badgeLabel[item.counterStatus] : null;
   const selectedOutcome = item.selectedOutcome ?? null;
-  // The open picker is a pending "Đã hẹn tiếp": it replaces the saved tick until
-  // it is booked (the server then saves it) or backed out of (the saved one returns).
-  const shownOutcome: AppointmentOutcome = followUpOpen ? "FollowUp" : selectedOutcome;
+  // The open picker is a pending "Đã hẹn tiếp" / "Hẹn tái khám": it replaces the
+  // saved tick until it is booked (the server then saves it) or backed out of
+  // (the saved one returns).
+  const shownOutcome: AppointmentOutcome = pendingBooking ?? selectedOutcome;
 
   const step1Done = !!item.step1Time;
   const step2Done = !!item.step2Time;
   const step3Done = !!item.step3Time;
   const isRevisit = selectedOutcome === "Revisit";
+  // A revisit booked before the chair ends the bar at step 2 ("Đã hẹn lại").
   const hideStep3 = isRevisit && step2Done && !step3Done;
 
   const isCancelled = item.counterStatus === "Cancelled";
@@ -297,39 +318,35 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             {/* Col 3: outcome radio actions */}
             <div className="rc-col-actions">
               {OUTCOME_KEYS.map((key) => {
-                const isFollowUp = key === "FollowUp";
+                const isBooked = isBookedOutcome(key);
                 const isSelected = shownOutcome === key;
-                // "Đã hẹn tiếp" locks out every other option; while its picker is
-                // open it only locks "Hẹn tái khám", so another pick can back out.
-                // "Kết thúc điều trị" locks out "Chuyển bác sĩ" (and vice-versa is not required).
-                const isDisabled =
-                  isCancelled ||
-                  (selectedOutcome === "FollowUp" && key !== "FollowUp") ||
-                  (followUpOpen && key === "Revisit") ||
-                  (selectedOutcome === "EndTreatment" && key === "TransferDoctor");
+                const isDisabled = isCancelled || OUTCOME_LOCKS.some((lock) => lock(key, selectedOutcome, pendingBooking));
+                const bookedAt = selectedOutcome === key ? item.followUpAt : undefined;
                 return (
                   <button
                     key={key}
                     type="button"
-                    className={["rc-outcome-btn", isSelected && "rc-outcome-btn--selected", isFollowUp && "rc-outcome-btn--stacked"]
+                    className={["rc-outcome-btn", isSelected && "rc-outcome-btn--selected", isBooked && "rc-outcome-btn--stacked"]
                       .filter(Boolean)
                       .join(" ")}
                     disabled={isDisabled}
                     aria-pressed={isSelected}
-                    aria-expanded={isFollowUp ? followUpOpen : undefined}
-                    onClick={() => (isFollowUp ? onFollowUpClick?.(item.id) : onOutcomeChange?.(item.id, key))}
+                    aria-expanded={isBooked ? pendingBooking === key : undefined}
+                    onClick={() =>
+                      isBookedOutcome(key) ? onFollowUpClick?.(item.id, key) : onOutcomeChange?.(item.id, key)
+                    }
                   >
                     {isSelected ? (
                       <CircleCheck size={16} className="rc-outcome-icon--selected" />
                     ) : (
                       <Circle size={16} className="rc-outcome-icon" />
                     )}
-                    {isFollowUp ? (
+                    {isBooked ? (
                       <span className="rc-outcome-text">
                         <span>{outcomeLabel[key]}</span>
-                        <span className={`rc-outcome-sub${item.followUpAt ? " rc-outcome-sub--set" : ""}`}>
-                          {item.followUpAt
-                            ? dayjs(item.followUpAt).format("HH:mm DD/MM/YYYY")
+                        <span className={`rc-outcome-sub${bookedAt ? " rc-outcome-sub--set" : ""}`}>
+                          {bookedAt
+                            ? dayjs(bookedAt).format("HH:mm DD/MM/YYYY")
                             : t("Reception:FollowUpNeedDate")}
                         </span>
                       </span>

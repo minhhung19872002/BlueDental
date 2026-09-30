@@ -390,6 +390,56 @@ public class AppointmentTests
         Assert.Null(appointment.FollowUpAppointmentId);
     }
 
+    [Fact]
+    public void BookFollowUp_Should_Stop_A_Revisit_Before_The_Chair_At_Step_Two()
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+        var followUpId = Guid.NewGuid();
+
+        appointment.BookFollowUp(followUpId, _slot, null, outcome: AppointmentOutcome.Revisit);
+
+        Assert.Equal(AppointmentOutcome.Revisit, appointment.Outcome);
+        Assert.Equal(followUpId, appointment.FollowUpAppointmentId);
+        Assert.Equal(AppointmentStatus.InProgress, appointment.Status);
+        Assert.NotNull(appointment.StartedAt);
+        Assert.Null(appointment.CompletedAt);
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Finish_A_Revisit_In_The_Chair_At_Step_Three()
+    {
+        var appointment = NewAppointment();
+        appointment.Start();
+
+        appointment.BookFollowUp(Guid.NewGuid(), _slot, null, outcome: AppointmentOutcome.Revisit);
+
+        Assert.Equal(AppointmentStatus.Completed, appointment.Status);
+        Assert.NotNull(appointment.CompletedAt);
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Leave_The_Bar_Alone_For_A_Follow_Up()
+    {
+        var appointment = NewAppointment();
+
+        appointment.BookFollowUp(Guid.NewGuid(), _slot, null);
+
+        Assert.Equal(AppointmentOutcome.FollowUp, appointment.Outcome);
+        Assert.Null(appointment.CompletedAt);
+    }
+
+    [Theory]
+    [InlineData(AppointmentOutcome.EndTreatment)]
+    [InlineData(AppointmentOutcome.TransferDoctor)]
+    public void BookFollowUp_Should_Refuse_An_Outcome_Without_A_Next_Visit(AppointmentOutcome outcome)
+    {
+        var appointment = NewAppointment();
+
+        Assert.Throws<BusinessException>(() => appointment.BookFollowUp(Guid.NewGuid(), _slot, null, outcome: outcome));
+        Assert.Null(appointment.FollowUpAppointmentId);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

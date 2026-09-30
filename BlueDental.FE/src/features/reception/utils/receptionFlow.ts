@@ -34,8 +34,9 @@ export function planStepClick(item: ReceptionItem, action: StepAction): Receptio
  * The reverse of {@link planStepClick}: "Chuyển bác sĩ" puts the visit in the
  * chair ("Đang khám"), "Kết thúc điều trị" finishes it ("Hoàn tất"). A bar
  * already past that point is not moved back; only the outcome is saved.
- * "Hẹn tái khám" keeps its own path: into the chair first, then done.
- * "Đã hẹn tiếp" does not come through here — it needs a date first.
+ * "Đã hẹn tiếp" and "Hẹn tái khám" do not come through here — they need a
+ * date first. Booking "Đã hẹn tiếp" leaves the bar alone; booking "Hẹn tái
+ * khám" moves it one step on the server, and that step is "Đã hẹn lại".
  */
 export function planOutcomeClick(item: ReceptionItem, outcome: NonNullOutcome): ReceptionCommand {
   const started = !!item.step2Time;
@@ -47,9 +48,6 @@ export function planOutcomeClick(item: ReceptionItem, outcome: NonNullOutcome): 
     case "EndTreatment":
       return completed ? { kind: "outcome", outcome } : { kind: "status", action: "complete", outcome };
     case "Revisit":
-      if (!started) return { kind: "status", action: "start", outcome };
-      if (!completed) return { kind: "status", action: "complete", outcome };
-      return { kind: "outcome", outcome };
     case "FollowUp":
       return { kind: "outcome", outcome };
   }

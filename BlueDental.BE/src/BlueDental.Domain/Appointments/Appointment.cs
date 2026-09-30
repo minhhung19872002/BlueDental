@@ -292,13 +292,24 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// The appointment <see cref="FollowUpAppointmentId"/> points at, or null
     /// when there is none or it has been deleted.
     /// </param>
+    /// <param name="outcome">
+    /// "Đã hẹn tiếp" or "Hẹn tái khám" — both need a booked date behind them.
+    /// </param>
     public Appointment BookFollowUp(
         Guid followUpId,
         AppointmentSlot slot,
         Appointment? currentFollowUp,
         Guid? dentistId = null,
-        string? chiefComplaint = null)
+        string? chiefComplaint = null,
+        AppointmentOutcome outcome = AppointmentOutcome.FollowUp)
     {
+        if (outcome is not (AppointmentOutcome.FollowUp or AppointmentOutcome.Revisit))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Outcome {outcome} is not booked with a next appointment.");
+        }
+
         var hasLiveFollowUp = currentFollowUp is { Status: not AppointmentStatus.Cancelled };
         if (Status is AppointmentStatus.Cancelled || IsTemporary || hasLiveFollowUp)
         {
@@ -316,7 +327,19 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
             AppointmentType.FollowUp,
             chiefComplaint: chiefComplaint);
 
-        Outcome = AppointmentOutcome.FollowUp;
+        // "Hẹn tái khám" moves the bar one step, and that step is the last one
+        // ("Đã hẹn lại") with its time: a visit not yet in the chair stops at
+        // step 2, one already in the chair finishes at step 3. "Đã hẹn tiếp"
+        // leaves the bar where it is.
+        if (outcome is AppointmentOutcome.Revisit)
+        {
+            if (Status is AppointmentStatus.InProgress)
+                Complete(Notes);
+            else if (Status is not AppointmentStatus.Completed)
+                Start();
+        }
+
+        Outcome = outcome;
         FollowUpAppointmentId = followUpId;
         return followUp;
     }

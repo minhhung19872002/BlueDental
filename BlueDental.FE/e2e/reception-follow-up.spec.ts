@@ -17,7 +17,7 @@ import { BRANCH2_USER, login, runId } from "./fixtures/auth";
 const APPOINTMENTS = "/api/v1/app/appointments";
 
 const STATUS = { InProgress: 4, Completed: 5 } as const;
-const OUTCOME = { EndTreatment: 1, FollowUp: 2, TransferDoctor: 3 } as const;
+const OUTCOME = { EndTreatment: 1, FollowUp: 2, TransferDoctor: 3, Revisit: 4 } as const;
 
 interface Appointment {
   id: string;
@@ -33,6 +33,8 @@ interface Appointment {
   outcome: number | null;
   followUpAppointmentId: string | null;
   followUpAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 interface ApiResult<T> {
@@ -122,7 +124,17 @@ async function bookVisitToday(
   const staff = await call<{ items: { id: string; branchIds: string[] }[] }>(
     page, branchId, `/api/v1/app/staff?MaxResultCount=200&IsActive=true&BranchId=${branchId}`,
   );
-  const candidates = patients.body.items.filter((p) => p.patientCode);
+  // Earlier runs leave follow-ups weeks ahead; a patient already booked then
+  // would be refused a follow-up the picker (which shows the doctor's slots) offers.
+  const monthAhead = new Date();
+  monthAhead.setDate(monthAhead.getDate() + 40);
+  const upcoming = await call<{ items: Appointment[] }>(
+    page, branchId, `${APPOINTMENTS}?fromDate=${today}&toDate=${dayOf(monthAhead)}&MaxResultCount=1000`,
+  );
+  const bookedPatients = new Set(
+    upcoming.body.items.filter((a) => a.status !== 6 && a.status !== 7).map((a) => a.patientId),
+  );
+  const candidates = patients.body.items.filter((p) => p.patientCode && !bookedPatients.has(p.id));
   // A dentist may be booked in another branch at that time, which this
   // branch's list does not show; the server says so and the next one is tried.
   const dentists = staff.body.items.filter((s) => !busyDentists.has(s.id));
@@ -172,7 +184,9 @@ async function cardOf(page: Page, visit: Appointment & { searchKey: string }): P
   return card;
 }
 
-const outcome = (card: Locator, name: string | RegExp) => card.getByRole("button", { name });
+/** The outcome options only — the picker's own buttons share their words. */
+const outcome = (card: Locator, name: string | RegExp) =>
+  card.locator(".rc-col-actions").getByRole("button", { name });
 
 test.describe("Tiếp nhận — tiến trình và kết quả", () => {
   test.beforeEach(async ({ page }) => {
@@ -300,8 +314,10 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
 
     await endTreatment.click();
     await expect(endTreatment).toHaveAttribute("aria-pressed", "true");
+    // A finished treatment has nothing to revisit.
+    await expect(revisit).toBeDisabled();
 
-    // Opening the picker moves the tick and locks "Hẹn tái khám".
+    // Opening the picker moves the tick; "Hẹn tái khám" stays locked.
     await followUp.click();
     await expect(followUp).toHaveAttribute("aria-pressed", "true");
     await expect(endTreatment).toHaveAttribute("aria-pressed", "false");
@@ -312,7 +328,7 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     await expect(panel).toBeHidden();
     await expect(endTreatment).toHaveAttribute("aria-pressed", "true");
     await expect(followUp).toHaveAttribute("aria-pressed", "false");
-    await expect(revisit).toBeEnabled();
+    await expect(revisit).toBeDisabled();
     expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.EndTreatment);
 
     await followUp.click();
@@ -325,6 +341,57 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.FollowUp);
   });
 
+  test("Hẹn tái khám is saved only with a booked date and then locks the rest", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 150);
+    const card = await cardOf(page, visit);
+    const revisit = outcome(card, "Hẹn tái khám");
+    const followUp = outcome(card, /Đã hẹn tiếp/);
+    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+
+    await expect(revisit).toContainText("Cần chọn ngày giờ hẹn");
+    await revisit.click();
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText('Bắt buộc để chuyển trạng thái sang "Hẹn tái khám"');
+    await expect(revisit).toHaveAttribute("aria-pressed", "true");
+    await expect(followUp).toBeDisabled();
+
+    // Cancelling saves nothing.
+    await panel.getByRole("button", { name: "Hủy" }).click();
+    await expect(panel).toBeHidden();
+    await expect(revisit).toHaveAttribute("aria-pressed", "false");
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBeNull();
+
+    await revisit.click();
+    await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
+    await panel.getByRole("button", { name: "Xác nhận hẹn tái khám" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+
+    const stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.outcome).toBe(OUTCOME.Revisit);
+    expect(stored.followUpAppointmentId).toBeTruthy();
+    // Booked before the chair: the bar moves one step and stops there, so
+    // step 2 becomes the last step "Đã hẹn lại" with its time.
+    expect(stored.startedAt).toBeTruthy();
+    expect(stored.completedAt).toBeNull();
+    const next = new Date((await getAppointment(page, branchId, stored.followUpAppointmentId!)).slotStart);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const label = `${pad(next.getHours())}:${pad(next.getMinutes())} ${pad(next.getDate())}/${pad(next.getMonth() + 1)}/${next.getFullYear()}`;
+
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    const reloadedRevisit = outcome(reloaded, "Hẹn tái khám");
+    await expect(reloadedRevisit).toHaveAttribute("aria-pressed", "true");
+    await expect(reloadedRevisit).toContainText(label);
+    await expect(reloaded.locator(".rc-step")).toHaveCount(2);
+    await expect(reloaded.locator(".rc-step-label").nth(1)).toHaveText("Đã hẹn lại");
+    await expect(reloaded.locator(".rc-step-time").nth(1)).toHaveText(/^\d{2}:\d{2}$/);
+    await expect(outcome(reloaded, /Đã hẹn tiếp/)).toContainText("Cần chọn ngày giờ hẹn");
+    for (const other of [outcome(reloaded, /Đã hẹn tiếp/), outcome(reloaded, "Kết thúc điều trị"), outcome(reloaded, "Chuyển bác sĩ")]) {
+      await expect(other).toBeDisabled();
+    }
+  });
+
   test("the doctor's booked slots cannot be picked", async ({ page }) => {
     const branchId = await openBoard(page);
     const visit = await bookVisitToday(page, branchId, 120);
@@ -334,7 +401,7 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     blockStart.setDate(blockStart.getDate() + 7);
     blockStart.setHours(8, 0, 0, 0);
     const other = await call<{ items: { id: string }[] }>(page, branchId, `/api/v1/app/patients?MaxResultCount=50&ClinicBranchId=${branchId}`);
-    for (const p of other.body.items.filter((x) => x.id !== visit.patientId).slice(0, 5)) {
+    for (const p of other.body.items.filter((x) => x.id !== visit.patientId)) {
       const res = await call<Appointment>(page, branchId, APPOINTMENTS, {
         method: "POST",
         json: {
