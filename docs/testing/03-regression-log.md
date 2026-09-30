@@ -6162,3 +6162,56 @@ Yêu cầu của chủ dự án (ảnh chú thích trên bảng Tiếp nhận). 
 | R-612 | Khi làm migration: snapshot EF thiếu bảng `bd_electronic_invoices` (migration `20260928085453_AddElectronicInvoices` đã tạo bảng, nhưng snapshot mất nó ở một commit sau) → `migrations add` sinh lại `CreateTable`. | Giữ snapshot mới (đã có lại bảng), bỏ `CreateTable` khỏi migration R-611 — migration chỉ thêm cột. |
 
 Kiểm chứng: `e2e/reception-follow-up.spec.ts` **5/5** trên dev :5173 (lặp 3 lần, 15/15) và trên bản build :8080 — full stack thật, đăng nhập thật, không chặn API; đọc lại trạng thái bằng request riêng, tải lại trang, cách ly chi nhánh (`branch2` nhận 404), chặn trùng giờ bác sĩ (`BlueDental:Appointment:0002`), chặn lịch hẹn tiếp thứ hai (`0003`), đặt lại sau khi huỷ. Domain: 5 test `BookFollowUp_*` xanh. Còn đỏ, có từ trước và không liên quan: `AppointmentTests.Should_Throw_When_Invalid_Transition` (`Start()` giờ tự check-in) và `e2e/reception.spec.ts` (chờ `/api/v1/app/visits`, trang không còn gọi endpoint này).
+
+## 2026-09-30 — Rà soát P2909 (phần từ "Lịch tạm" trở xuống) (R-613 … R-626)
+
+Yêu cầu của chủ dự án trong `save/P2909.drawio`, phần từ ghi chú "Cái "Lịch tạm" em làm cái tag…" trở xuống; phần phía trên do người khác làm. Đây là thay đổi theo yêu cầu, không phải hành vi đo từ bản gốc. Ở R-624 và R-626, BlueDental cố ý **khác** bản gốc (bản gốc: nhiều thẻ mở cùng lúc, một thẻ cho mỗi chuỗi công đoạn).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-613 | Tiếp nhận: "Lịch tạm" là huy hiệu cạnh mã phiếu, không giống ảnh tham khảo, nơi nó là tab nằm vắt trên mép trên của thẻ. | `.rc-temp-tab` (nền `#ddd0ff`, chữ `#5a4dc1`, cao 24px, `top:-12px`, `left:14px`) hiện khi `isTemporary`. Huy hiệu cạnh mã phiếu in trạng thái của lượt (`visitStatus`, ví dụ "Đã hẹn"), như bản gốc. Bộ đếm và chế độ lưới vẫn dùng `counterStatus`. |
+| R-614 | Bấm tên trên thẻ Lịch tạm không mở gì, vì lịch tạm chưa có hồ sơ. | Mở "Tạo hồ sơ" (`TemporaryPatientDialog` bọc `PatientEditorDialog`) điền sẵn tên và SĐT (`PatientPrefill.phone`; `nationalId` không còn bắt buộc). Lưu xong gọi `POST /appointments/{id}/attach-patient` (mới): `Appointment.AttachPatient` gắn lịch hẹn vào bệnh nhân vừa tạo, bỏ cờ tạm và xoá tên/SĐT tạm. Nếu lịch hẹn không phải lịch tạm → `BlueDental:Appointment:0007`. Bệnh nhân khác chi nhánh, hoặc lịch hẹn của chi nhánh khác → 404. Kiểm tra trùng giờ bỏ qua chính lịch hẹn đó. Nếu không gắn, bấm lần hai sẽ tạo hồ sơ thứ hai. |
+| R-615 | Chẩn đoán & Tư vấn: bấm vào khung "Kéo ảnh vào hoặc bấm nút để tải lên" không tải được ảnh. | Khung chỉ nhận thả file, bấm vào thì không có gì xảy ra. Khung nay là `<button>` mở cùng hộp chọn file với "Thêm ảnh", và bị khoá khi đang tải. |
+| R-616 | Cuộn thẻ "Tạo chẩn đoán": nhãn nổi của "Bác sĩ chẩn đoán 1 / 2" đè lên thanh tiêu đề dính. | Nhãn `.floating-field-label` có `z-index: 5`, cao hơn thanh (`4`). Nâng `.pd-diagnosis-card > .pd-card-head` lên `6`. |
+| R-617 | Ô chọn và tiêu đề cột ghi "Chẩn đoán 2". | `Patient:Diagnosis:Doctor2` = "Bác sĩ chẩn đoán 2" (en "Diagnosing doctor 2"), dùng cho cả ô chọn và tiêu đề cột bảng chẩn đoán, khớp với "Bác sĩ chẩn đoán 1". Bảng Phiếu tư vấn và các màn khác giữ key riêng, không đổi. |
+| R-618 | Không có bác sĩ 2 thì hiện "Chưa cập nhật" màu đỏ. | In "-", bỏ luôn ngày. |
+| R-619 | Nút in chẩn đoán dùng icon lịch (`CalendarDays`). | Đổi sang `Printer` (lucide). |
+| R-620 | Tổng kế hoạch: nhãn "Tổng thành tiền" / "Tổng tiền" không nói rõ đó là số nào. | Bốn dòng, nhãn bên trái, số căn phải: **Tổng cộng** (Σ đơn giá × SL), **Giảm giá** (Σ giảm giá dịch vụ), **Voucher** (logic cũ), **Thành tiền** = Tổng cộng − Giảm giá − Voucher (in đậm, 18px). Key mới `Patient:PlanTotals:*`. `usePlanVoucher` thêm `subtotal` và `serviceDiscount`; voucher vẫn tính trên tổng sau giảm giá dịch vụ. |
+| R-621 | Dialog "Chi tiết phiếu" và hai bản in dùng nhãn khác ("TỔNG TIỀN / Giá dịch vụ / Giảm giá dịch vụ / Giảm giá bác sĩ / Báo giá"). | Cùng tiêu đề "TỔNG KẾ HOẠCH" và cùng bốn nhãn. Bản in viết hoa có dấu hai chấm (`sheetLabel`). |
+| R-622 | `quoteModel.toQuoteRow` tính voucher của dòng hai lần: `discountAmount` từ server đã cộng `voucherDiscountAmount`, rồi `rowDiscount` lại cộng thêm. | `clinicDiscount = discountAmount − voucherDiscountAmount`. |
+| R-623 | Chỉnh giảm giá trên tab BG 1 làm đổi cả Phiếu tư vấn và mọi BG khác, vì báo giá chỉ lưu danh sách dòng, còn giá đọc từ dòng tư vấn. | `PatientQuoteLine` có giá riêng (`Price/Quantity/DiscountType/DiscountValue`, nằm trong JSON `Lines`). Giá được chụp từ dòng tư vấn lúc tạo báo giá, được sao theo khi Sao chép, và được giữ khi tích/kéo lại. `PUT /patient-quotes/{id}/lines/{adviseId}` (mới) đổi giá của riêng báo giá đó. Server trả số tiền đã tính (`PatientQuoteLineReadDto`). Quy tắc tiền của dòng tư vấn tách ra `AdvisePricing` để hai bên dùng chung. Dòng lưu trước đây chưa có giá thì vẫn lấy giá dòng tư vấn. Migration `20260930015215_AddPatientQuoteLinePricing` rỗng (cột JSON), chỉ để đồng bộ snapshot. FE: tab BG định giá theo báo giá, "Cập nhật phiếu dịch vụ" mở trên tab BG ghi giá vào báo giá (ghi chú vẫn ghi vào dòng tư vấn), "In Báo giá" in các dòng đang tích của tab đang mở (trước đây luôn in Phiếu tư vấn). |
+| R-624 | Chi tiết phiếu → THÊM CÔNG ĐOẠN: răng đã lưu công đoạn biến mất khỏi thẻ và form. | Thẻ và form in **mọi** răng của dịch vụ (`StageItem.shownTeeth`). Răng đã có công đoạn thì mờ (`.pd-stage-tooth--done`, opacity 0.35) và không bấm được. |
+| R-625 | Lịch sử điều trị chỉ in răng của công đoạn. | In mọi răng của dịch vụ. Răng làm trong công đoạn đó tô xanh (`.pd-stage-histtooth--worked`), còn lại để trắng. Công đoạn cũ không có răng thì coi như cả dịch vụ. |
+| R-626 | TIẾP TỤC CÔNG ĐOẠN: một dịch vụ có hai chuỗi hiện thành hai thẻ trùng tên. Chọn nhiều thẻ thì các form xếp chồng, không rõ nội dung điều trị thuộc dịch vụ nào. | Mỗi dịch vụ một thẻ trên mọi tab (`id` là `"continue:<line>"` / `"continueWarranty:<line>"`, `stages` là các chuỗi đang mở). Form chọn răng theo **cả chuỗi**: bấm một răng thì vào/ra cả chuỗi (`toggleTooth`, `snapToChains`). Lưu thì tiếp tục mỗi chuỗi đã chọn bằng một request, ảnh gắn vào công đoạn đầu. Chỉ có một chuỗi thì răng khoá như cũ. Cột Chi tiết mỗi lần chỉ mở **một** thẻ, nháp của thẻ khác vẫn giữ. |
+
+Kiểm chứng (full stack thật: đăng nhập thật, API thật, PostgreSQL thật, không chặn request), trên bản build production :8080 **và** dev :5173:
+`e2e/reception-temporary.spec.ts` **3/3** (tab, huy hiệu, Tạo hồ sơ điền sẵn → lịch hẹn gắn vào hồ sơ mới, đọc lại bằng request riêng, reload, lần gắn thứ hai → `0007`, chi nhánh khác → 404);
+`e2e/consulting-review.spec.ts` **3/3** (cột "Bác sĩ chẩn đoán 2", "-", icon máy in, thanh dính che nhãn khi cuộn, khung ảnh mở chọn file → upload 200 → reload; báo giá độc lập: sửa giảm giá BG 1 → BG 2 và dòng tư vấn không đổi theo API, ba tab in đúng số sau reload, Chi tiết phiếu đúng bốn nhãn);
+`e2e/treatment-stage-chain.spec.ts` **7/7** (viết lại ca "nhiều thẻ" thành một thẻ/giữ nháp/răng mờ; ca mới gộp hai chuỗi + tô răng lịch sử);
+`patient.spec.ts` "the plan total…" (sửa theo nhãn mới), cùng 10 ca công đoạn khác, xanh;
+`consulting-plan.spec.ts` 10/13 (3 ca đỏ: "voucher picker offers…" và "signature strip" đỏ y hệt trên bản build HEAD sạch; "tile shimmers" chập chờn trên cả hai bản).
+BE: Domain 52/52 (`AttachPatient_*`, `RepriceLine_*`, `SetLines_And_CopyLines_Should_Keep_Each_Lines_Price`…), Application contract 33/33.
+Còn đỏ, có từ trước và không liên quan: `patient.spec.ts` "the stage form fills its columns" (mong "Nội dung điều trị" không có `*`, trong khi c5b52d52 cố ý thêm `*`), "Danh sách công đoạn picks…" (DB dev không còn dòng có bước công đoạn), `reception.spec.ts` 2 ca (chờ `/visits`).
+Retest level **3** (quy tắc tiền dùng chung `AdvisePricing`, `PatientEditorDialog` dùng chung, `StageTeethPicker` dùng chung với Tái khám / Bảo hành).
+
+## 2026-09-30 — Rà soát tiếp theo sau P2909 (R-627 … R-633)
+
+Chủ dự án yêu cầu sau khi xem lại trên :5173. Đều là thay đổi theo yêu cầu, không phải đo từ bản gốc.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-627 | Tiếp nhận: nhãn "Lịch tạm" (R-613) chạm vào thẻ ở hàng trên. | Khoảng cách giữa các hàng của lưới `.reception-card-grid` tăng lên 24px; giữa các cột vẫn 12px. Không cho thẻ lịch tạm margin riêng, vì thẻ sẽ lệch so với thẻ bên cạnh cùng hàng. |
+| R-628 | "Chọn ảnh hiển thị": bấm thùng rác là xoá ngay, không hỏi. | Mở `ConfirmDeleteDialog` "Xác nhận xoá ảnh", dùng chung với tab Hình ảnh. Nút Xoá hiện "Đang xoá…" có vòng xoay tới khi server trả lời. Nếu server từ chối thì hộp vẫn mở (`removeImage` trả `boolean`). |
+| R-629 | Chẩn đoán & Tư vấn có hai thanh cuộn: khung tab tự cuộn, trong khi vùng ngoài cũng cuộn. | `.pd-page` được ghim cao bằng màn hình. Tab dạng tài liệu (không có `--fill`) giờ để `.pd-page` cao theo nội dung (`:has`), chỉ vùng ngoài cuộn. Tab dạng bảng giữ chiều cao cố định. Chiều cao trừ đủ phần đệm của `.app-content` (58px, dưới 900px là 46px) thay cho 32px, nên hết 26px cuộn thừa ở mọi tab bảng. |
+| R-630 | Sau R-629, "Cột hiển thị" mở ở nửa dưới màn hình thì bị lật lên trên, nút ✕ nằm ngoài khung nhìn (e2e "Cột hiển thị drags its rows" đỏ). | Luôn mở xuống dưới nút, dịch lên vừa đủ để nằm trong khung nhìn (`autoAdjustOverflow` với `shiftY`; kiểu của antd thiếu `shiftY` dù lúc chạy vẫn đọc). Đã thử neo popover vào `.pd-page` / `.app-content`: rc-trigger bù độ cuộn hai lần, nên bỏ. |
+| R-631 | Khối Tổng kế hoạch: bố cục theo ảnh mẫu của chủ dự án. | Các dòng tiền gom trong cột rộng tối đa 460px. Giảm giá màu xanh lá. "Voucher áp dụng" có nút bên phải. Mỗi voucher đã chọn là một ô viền nét đứt: mã, "Giảm {x} trên tổng thành tiền", số tiền, nút × để bỏ. Dòng phụ dưới Giảm giá trong ảnh mẫu không làm, vì không có dữ liệu tương ứng. |
+| R-632 | "Chọn Dịch Vụ" lấy giá danh mục 300.000, trong khi "Cập nhật dịch vụ" đã giảm 10% còn 270.000. Giảm giá nhập tay tính trên 300.000. | `CatalogOption.salePrice` = `serviceConfig.priceAfterDiscount` (Giá sau giảm, chưa gồm VAT). Dòng mới lấy giá này làm đơn giá và giá gốc, nên Giảm giá của Phiếu tư vấn chỉ còn phần nhập trong dialog. "Tạo phiếu dịch vụ" và dòng thêm mới ở Chi tiết kế hoạch điều trị vẫn lấy `price`, chưa đổi. |
+| R-633 | Chọn voucher ở BG 1 thì Phiếu tư vấn và BG 2 cũng tick theo. | `usePlanVoucher` giữ lựa chọn theo từng tab (`scope` = id báo giá hoặc `"advise"`). Bước tự bỏ voucher không còn đủ điều kiện chờ tới khi có danh sách thật của số tiền mới (`isPlaceholderData`), để không bỏ nhầm lựa chọn của tab mới dựa trên danh sách của tab trước. Lựa chọn vẫn chỉ nằm trên trình duyệt, như trước. |
+
+Kiểm chứng (full stack thật, không chặn request), trên :8080 **và** :5173:
+- `consulting-review.spec.ts` 7/7: thêm các ca xác nhận xoá ảnh có "Đang xoá…", Giá sau giảm → 270.000 / giảm 54.000, voucher riêng theo tab.
+- `patient.spec.ts` "the plan total…" (ô voucher, bỏ bằng ×).
+- `consulting-plan.spec.ts` 20/22: ca voucher đỏ y hệt trên HEAD sạch, ca ảnh shimmer chập chờn trên cả hai bản.
+- `patient-appointment`, `treatment-stage-chain`, `consulting-delete-and-picker` xanh.
+
+Mỗi tab của hồ sơ bệnh nhân đo lại còn đúng một khung cuộn. Retest level **3**: bố cục `.pd-page` dùng chung cho mọi tab của hồ sơ.
