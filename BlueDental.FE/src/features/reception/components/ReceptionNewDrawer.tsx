@@ -6,6 +6,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { useCreateReception } from "../api/receptionMutations";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
+import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { RefType } from "../types/reception";
@@ -213,7 +214,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           <div className="rn-time-row">
             <div className="rn-field rn-field--flex1">
               <FloatingField label={t("Reception:AppointmentTime")} name="appointmentTime">
-                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+                <TimePicker format="HH:mm" style={{ width: "100%" }} {...CLINIC_HOURS_PICKER_PROPS} />
               </FloatingField>
             </div>
             <div className="rn-field rn-field--flex1">

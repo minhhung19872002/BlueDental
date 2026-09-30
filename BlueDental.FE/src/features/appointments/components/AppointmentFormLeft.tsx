@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { ClockPicker, DayPicker } from "@/components/StringPickers";
+import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { t } from "@/lib/i18n";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 
@@ -109,6 +110,7 @@ export function AppointmentFormLeft({
                 onChange={field.onChange}
                 format="HH:mm"
                 minuteStep={5}
+                {...CLINIC_HOURS_PICKER_PROPS}
                 style={{ width: "100%", height: 40 }}
                 placeholder="HH:mm"
                 status={errors.startTime ? "error" : ""}

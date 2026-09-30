@@ -1,6 +1,7 @@
 import { Input, InputNumber } from "antd";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import { ClockPicker, DayPicker } from "@/components/StringPickers";
+import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { t } from "@/lib/i18n";
 import type { TempAppointmentFormValues } from "./TempAppointmentForm";
 
@@ -81,6 +82,7 @@ export function TempFormLeft({ control, errors }: Props) {
                 onChange={field.onChange}
                 format="HH:mm"
                 minuteStep={5}
+                {...CLINIC_HOURS_PICKER_PROPS}
                 style={{ width: "100%", height: 40 }}
                 placeholder="HH:mm"
                 status={errors.startTime ? "error" : ""}

@@ -1856,6 +1856,11 @@ body::-webkit-scrollbar-track {
   border-color: var(--bd-line);
 }
 
+/* Clinic-hours time pickers (utils/clinicHours.ts): no empty spacer under the short hour list. */
+.ant-picker-dropdown.bd-clinic-hours-popup .ant-picker-time-panel-column::after {
+  display: none;
+}
+
 .ant-input::placeholder,
 .ant-input-affix-wrapper input::placeholder {
   color: var(--bd-dim);
