@@ -5,6 +5,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 import { PatientDiseaseHistoryPanel } from "./PatientDiseaseHistoryPanel";
 
 interface Props {
@@ -80,7 +81,7 @@ export function PatientBasicColumn({
 
         <FloatingField label={t("Patient:Col:DateOfBirth")} name="dateOfBirth">
           <DatePicker
-            format="DD/MM/YYYY"
+            format={DATE_INPUT_FORMAT}
             // The reference refuses a future birth date; so does the server.
             disabledDate={(date) => date.isAfter(dayjs(), "day")}
           />

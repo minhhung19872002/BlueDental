@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { useAuditLogList, type AuditLogDto } from "../api";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 const HTTP_METHOD_COLORS: Record<string, string> = {
   GET: "blue",
@@ -132,7 +133,7 @@ export function AuditLogPage() {
             options={["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => ({ value: m, label: m }))}
           />
           <RangePicker
-            format="DD/MM/YYYY"
+            format={DATE_INPUT_FORMAT}
             onChange={(vals) => setDateRange(vals as [dayjs.Dayjs | null, dayjs.Dayjs | null] | null)}
           />
         </Space>

@@ -6,6 +6,7 @@ import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { dueAfterSent, requiredRule } from "./useLaboOrderForm";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 /** The due pair has to follow the sent pair; the message is the reference's. */
 const dueAfterSentRule: Rule = ({ getFieldValue }) => ({
@@ -48,7 +49,7 @@ export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
           required
           rules={requiredRule(t("Patient:Labo:RequiredField", sentLabels.date.toLowerCase()))}
         >
-          <DatePicker format="DD/MM/YYYY" />
+          <DatePicker format={DATE_INPUT_FORMAT} />
         </FloatingField>
         <FloatingField
           name="sentTime"
@@ -77,7 +78,7 @@ export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
           dependencies={DUE_PAIR}
           rules={[...requiredRule(t("Patient:Labo:RequiredExpectedDate")), dueAfterSentRule]}
         >
-          <DatePicker format="DD/MM/YYYY" />
+          <DatePicker format={DATE_INPUT_FORMAT} />
         </FloatingField>
         <FloatingField
           name="dueTime"

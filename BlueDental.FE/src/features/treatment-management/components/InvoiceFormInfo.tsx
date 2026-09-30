@@ -5,6 +5,7 @@ import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import type { InvoicePaymentMethod } from "./invoiceTypes";
 import { INVOICE_TEMPLATES, invoicePaymentOptions } from "./invoiceConstants";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface InvoiceFormInfoProps {
   templateId: string;
@@ -60,7 +61,7 @@ export function InvoiceFormInfo({
           <Input value={templateSymbol} onChange={(e) => onTemplateSymbolChange(e.target.value)} />
         </FloatingLabel>
         <FloatingLabel label={t("Treatment:Invoice:InvoiceDate")} floated className="inv-field">
-          <DatePicker value={invoiceDate} onChange={onInvoiceDateChange} format="DD/MM/YYYY" />
+          <DatePicker value={invoiceDate} onChange={onInvoiceDateChange} format={DATE_INPUT_FORMAT} />
         </FloatingLabel>
         <FloatingLabel label={t("Treatment:Payment:PaymentForm")} floated className="inv-field">
           <Select

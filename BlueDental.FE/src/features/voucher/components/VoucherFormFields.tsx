@@ -6,6 +6,7 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import type { VoucherFormValues } from "../types/voucherForm";
 import { VoucherServicePicker } from "./VoucherServicePicker";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 const DAY_LABEL_KEYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
 const DAY_VALUES = [1, 2, 3, 4, 5, 6, 7];
@@ -69,7 +70,7 @@ export function VoucherFormFields({ form }: Props) {
           required
           rules={[{ required: true, message: t("Voucher:DateRequired") }]}
         >
-          <DatePicker format="DD/MM/YYYY" />
+          <DatePicker format={DATE_INPUT_FORMAT} />
         </FloatingField>
         <FloatingField
           name="endDate"
@@ -77,7 +78,7 @@ export function VoucherFormFields({ form }: Props) {
           required
           rules={[{ required: true, message: t("Voucher:DateRequired") }]}
         >
-          <DatePicker format="DD/MM/YYYY" />
+          <DatePicker format={DATE_INPUT_FORMAT} />
         </FloatingField>
       </div>
 

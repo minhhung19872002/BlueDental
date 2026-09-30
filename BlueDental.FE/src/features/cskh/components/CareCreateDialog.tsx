@@ -13,6 +13,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useCreateCareRecord, CARE_STATUS } from "../api/careApi";
 import { autoSubject, type CareTabConfig } from "../careTabs";
 import { MessageField } from "./MessageField";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 const QUICK_MONTHS = [3, 6, 9] as const;
 
@@ -94,7 +95,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
           <MessageField label={t("CSKH:CareDate")} hasValue>
             <DatePicker
               allowClear={false}
-              format="DD/MM/YYYY"
+              format={DATE_INPUT_FORMAT}
               value={date}
               onChange={(next) => next && setDate(next)}
             />

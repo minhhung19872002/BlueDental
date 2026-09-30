@@ -29,6 +29,7 @@ import {
 import type { PrescriptionPatientSummary } from "../types/prescription";
 import { PrescriptionPatientBlock } from "./PrescriptionPatientBlock";
 import "./prescription.css";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface FormValues {
   templateId?: string;
@@ -281,7 +282,7 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
             </FloatingField>
             <Form.Item name="followUpDate">
               <DatePicker
-                format="DD/MM/YYYY"
+                format={DATE_INPUT_FORMAT}
                 placeholder={t("Treatment:Prescription:TypeRecheck")}
                 aria-label={t("Treatment:Prescription:TypeRecheck")}
                 className="rx-full"

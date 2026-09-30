@@ -11,6 +11,7 @@ import { PatientEditorDialog } from "@/features/patient-management/components/Pa
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface DoctorOption {
   id: string;
@@ -207,7 +208,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
 
           {/* Date */}
           <FloatingField label={t("Reception:AppointmentDate")} name="appointmentDate">
-            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} allowClear={false} />
+            <DatePicker format={DATE_INPUT_FORMAT} style={{ width: "100%" }} allowClear={false} />
           </FloatingField>
 
           {/* Time + duration */}

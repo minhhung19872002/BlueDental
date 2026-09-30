@@ -14,6 +14,7 @@ import type { TaxonomyGroup } from "@/hooks/useTaxonomyGroups";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import "./materials.css";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 /** The reference starts every new material at fifteen days' warning. */
 const DEFAULT_WARNING_DAYS = 15;
@@ -198,12 +199,12 @@ export function MaterialDialog({
 
           <Col xs={12} sm={12}>
             <FloatingField name="stockedAt" label={t("Materials:StockedAtLabel")}>
-              <DatePicker format="DD/MM/YYYY" className="bd-mat-datepicker" />
+              <DatePicker format={DATE_INPUT_FORMAT} className="bd-mat-datepicker" />
             </FloatingField>
           </Col>
           <Col xs={12} sm={12}>
             <FloatingField name="expiryDate" label={t("Materials:ExpiryLabel")}>
-              <DatePicker format="DD/MM/YYYY" className="bd-mat-datepicker" />
+              <DatePicker format={DATE_INPUT_FORMAT} className="bd-mat-datepicker" />
             </FloatingField>
           </Col>
         </Row>

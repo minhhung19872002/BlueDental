@@ -4,6 +4,7 @@ import type { Dayjs } from "dayjs";
 import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface Props {
   /** Position among the sheets of this same form: 1 reads as `Bản 01`. */
@@ -54,7 +55,7 @@ export function MedicalRecordCanvasHead({
       <div className="pd-medical-canvas-tools">
         {dateLabel && (
           <FloatingLabel label={t(dateLabel)} floated className="pd-medical-date">
-            <DatePicker value={date} onChange={onDateChange} format="DD/MM/YYYY" allowClear={false} />
+            <DatePicker value={date} onChange={onDateChange} format={DATE_INPUT_FORMAT} allowClear={false} />
           </FloatingLabel>
         )}
 

@@ -15,6 +15,7 @@ import { buildGroupColumns } from "./groupColumns";
 import { BaseCareDialog } from "./BaseCareDialog";
 import { MessageField } from "./MessageField";
 import { SaveMessageDialog } from "./SaveMessageDialog";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface GroupPatientsPanelProps {
   branchId: string;
@@ -92,7 +93,7 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
         <div className="cskh-select">
           <MessageField label={t("CSKH:Group:BirthdayLabel")} hasValue={Boolean(birthday)}>
             <DatePicker
-              format="DD/MM/YYYY"
+              format={DATE_INPUT_FORMAT}
               value={birthday}
               onChange={(next) => {
                 setBirthday(next);

@@ -6,6 +6,7 @@ import { ClockPicker, DayPicker } from "@/components/StringPickers";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { t } from "@/lib/i18n";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface Props {
   control: Control<AppointmentEditorValues>;
@@ -89,7 +90,7 @@ export function AppointmentFormLeft({
             <DayPicker
               value={field.value}
               onChange={field.onChange}
-              format="DD/MM/YYYY"
+              format={DATE_INPUT_FORMAT}
               style={{ width: "100%", height: 40 }}
               status={errors.date ? "error" : ""}
             />

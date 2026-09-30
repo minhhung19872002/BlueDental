@@ -24,6 +24,7 @@ import {
   type SalesEntryDto,
   type SalesEntryType,
 } from "../api/financeApi";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface Props {
   open: boolean;
@@ -214,7 +215,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
           </Col>
           <Col xs={24} md={12}>
             <FloatingField name="paidDate" label={copy.paidDate()} required rules={[{ required: true, message: t("Report:SalesModal:DateRequired") }]}>
-              <DatePicker className="report-full-width" format="DD/MM/YYYY" allowClear={false} />
+              <DatePicker className="report-full-width" format={DATE_INPUT_FORMAT} allowClear={false} />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>

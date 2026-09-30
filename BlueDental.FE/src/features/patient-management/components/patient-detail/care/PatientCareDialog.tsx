@@ -22,6 +22,7 @@ import { t } from "@/lib/i18n";
 import type { PatientDto } from "../../../types/patient";
 import { ratingOf } from "./careRating";
 import { CareRatingField, StaticField } from "./CareRatingField";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 /** The reference's subject for a care record opened from this tab; never shown. */
 const SPECIAL_SUBJECT = "Customer Care - special";
@@ -135,7 +136,7 @@ export function PatientCareDialog({ open, patient, record, onClose }: Props) {
             required
             rules={[{ required: true, message: t("Patient:Care:DateRequired") }]}
           >
-            <DatePicker format="DD/MM/YYYY" allowClear={false} />
+            <DatePicker format={DATE_INPUT_FORMAT} allowClear={false} />
           </FloatingField>
           <FloatingField
             name="careTime"

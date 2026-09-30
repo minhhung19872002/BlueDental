@@ -6,6 +6,7 @@ import { useReceiveStock, type SupplyDto } from "../api/suppliesApi";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface ReceiveStockModalProps {
   open: boolean;
@@ -86,11 +87,11 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
         </Form.Item>
 
         <Form.Item name="stockedAt" label={t("Materials:ReceiveStockedAtLabel")} rules={[{ required: true }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format={DATE_INPUT_FORMAT} />
         </Form.Item>
 
         <Form.Item name="expiryDate" label={t("Materials:ReceiveExpiryLabel")}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format={DATE_INPUT_FORMAT} />
         </Form.Item>
 
         <Form.Item

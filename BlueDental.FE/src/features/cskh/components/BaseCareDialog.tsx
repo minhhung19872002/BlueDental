@@ -15,6 +15,7 @@ import {
   type CareOutcome,
 } from "../api/careApi";
 import { MessageField } from "./MessageField";
+import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 /** Nhãn màu radios in the reference's order and palette. */
 const OUTCOME_OPTIONS: Array<{ value: CareOutcome; className: string; label: () => string }> = [
@@ -91,7 +92,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
             <MessageField label={t("CSKH:DateLabel")} hasValue>
               <DatePicker
                 allowClear={false}
-                format="DD/MM/YYYY"
+                format={DATE_INPUT_FORMAT}
                 value={date}
                 onChange={(next) => next && setDate(next)}
               />
