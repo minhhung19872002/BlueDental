@@ -289,6 +289,42 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     await expect(outcome(reloaded, /Đã hẹn tiếp/)).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("the open picker swaps the tick with Kết thúc điều trị until it is booked", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 120);
+    const card = await cardOf(page, visit);
+    const endTreatment = outcome(card, "Kết thúc điều trị");
+    const followUp = outcome(card, /Đã hẹn tiếp/);
+    const revisit = outcome(card, "Hẹn tái khám");
+    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+
+    await endTreatment.click();
+    await expect(endTreatment).toHaveAttribute("aria-pressed", "true");
+
+    // Opening the picker moves the tick and locks "Hẹn tái khám".
+    await followUp.click();
+    await expect(followUp).toHaveAttribute("aria-pressed", "true");
+    await expect(endTreatment).toHaveAttribute("aria-pressed", "false");
+    await expect(revisit).toBeDisabled();
+
+    // Backing out brings the saved outcome back; nothing was written.
+    await panel.getByRole("button", { name: "Hủy" }).click();
+    await expect(panel).toBeHidden();
+    await expect(endTreatment).toHaveAttribute("aria-pressed", "true");
+    await expect(followUp).toHaveAttribute("aria-pressed", "false");
+    await expect(revisit).toBeEnabled();
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.EndTreatment);
+
+    await followUp.click();
+    await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
+    await panel.getByRole("button", { name: "Xác nhận hẹn tiếp" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    await expect(followUp).toHaveAttribute("aria-pressed", "true");
+    await expect(endTreatment).toHaveAttribute("aria-pressed", "false");
+    await expect(revisit).toBeDisabled();
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.FollowUp);
+  });
+
   test("the doctor's booked slots cannot be picked", async ({ page }) => {
     const branchId = await openBoard(page);
     const visit = await bookVisitToday(page, branchId, 120);

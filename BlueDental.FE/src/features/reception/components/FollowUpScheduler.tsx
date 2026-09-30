@@ -39,8 +39,8 @@ export function FollowUpScheduler({ appointmentId, defaultDoctorId, doctors, onC
       { id: appointmentId, input },
       {
         onSuccess: () => {
+          // No onClose: the page hides the picker once the card shows the booking.
           toast.success(t("Reception:FollowUpSuccess", dayjs(input.slotStart).format("HH:mm DD/MM/YYYY")));
-          onClose();
         },
       },
     );

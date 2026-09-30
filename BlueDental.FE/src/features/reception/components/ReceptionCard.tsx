@@ -98,6 +98,9 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const badgeStyle = item.counterStatus ? COUNTER_STATUS_STYLE[item.counterStatus] : null;
   const badgeLabelText = item.counterStatus ? badgeLabel[item.counterStatus] : null;
   const selectedOutcome = item.selectedOutcome ?? null;
+  // The open picker is a pending "Đã hẹn tiếp": it replaces the saved tick until
+  // it is booked (the server then saves it) or backed out of (the saved one returns).
+  const shownOutcome: AppointmentOutcome = followUpOpen ? "FollowUp" : selectedOutcome;
 
   const step1Done = !!item.step1Time;
   const step2Done = !!item.step2Time;
@@ -295,12 +298,14 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             <div className="rc-col-actions">
               {OUTCOME_KEYS.map((key) => {
                 const isFollowUp = key === "FollowUp";
-                const isSelected = selectedOutcome === key || (isFollowUp && followUpOpen);
-                // "Đã hẹn tiếp" locks out every other option.
+                const isSelected = shownOutcome === key;
+                // "Đã hẹn tiếp" locks out every other option; while its picker is
+                // open it only locks "Hẹn tái khám", so another pick can back out.
                 // "Kết thúc điều trị" locks out "Chuyển bác sĩ" (and vice-versa is not required).
                 const isDisabled =
                   isCancelled ||
                   (selectedOutcome === "FollowUp" && key !== "FollowUp") ||
+                  (followUpOpen && key === "Revisit") ||
                   (selectedOutcome === "EndTreatment" && key === "TransferDoctor");
                 return (
                   <button

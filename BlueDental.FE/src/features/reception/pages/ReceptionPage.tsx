@@ -100,6 +100,11 @@ export const ReceptionPage: React.FC = () => {
     };
   }, [metrics, items]);
 
+  // Once booked, the picker stays up until the refetch brings the follow-up
+  // back, so the card never flashes its old outcome in between.
+  const openFollowUpId =
+    followUpTargetId && !items.find((i) => i.id === followUpTargetId)?.followUpAt ? followUpTargetId : null;
+
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleIntersect = useCallback(
@@ -165,6 +170,8 @@ export const ReceptionPage: React.FC = () => {
   const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
     const item = items.find((i) => i.id === id);
     if (!outcome || !item) return;
+    // Picking another outcome backs out of an unbooked follow-up.
+    if (openFollowUpId === id) setFollowUpTargetId(null);
     runCommand(id, planOutcomeClick(item, outcome));
   };
 
@@ -261,7 +268,7 @@ export const ReceptionPage: React.FC = () => {
           <ReceptionEmptyState />
         ) : (
           <>
-            <div className={["reception-card-grid", followUpTargetId && "reception-card-grid--has-expanded"].filter(Boolean).join(" ")}>
+            <div className={["reception-card-grid", openFollowUpId && "reception-card-grid--has-expanded"].filter(Boolean).join(" ")}>
               {items.map((item) => (
                 <ReceptionCard
                   key={item.id}
@@ -273,9 +280,9 @@ export const ReceptionPage: React.FC = () => {
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}
                   onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
                   onFollowUpClick={ability.canUpdate && ability.canCreate ? handleFollowUpClick : undefined}
-                  followUpOpen={followUpTargetId === item.id}
+                  followUpOpen={openFollowUpId === item.id}
                 >
-                  {followUpTargetId === item.id && (
+                  {openFollowUpId === item.id && (
                     <FollowUpScheduler
                       appointmentId={item.id}
                       defaultDoctorId={item.doctorId}
