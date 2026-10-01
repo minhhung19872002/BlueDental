@@ -89,6 +89,19 @@
   overflow: hidden;
 }
 
+/* A raster logo sits on a soft tile, as the staging Misa card shows it. */
+.bd-msg-provider-img--logo {
+  margin: 8px 8px 0;
+  padding: 8px;
+  background: var(--bd-bg-soft);
+}
+
+.bd-msg-provider-img--logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 .bd-msg-provider-name {
   font-size: 13px;
   font-weight: 500;

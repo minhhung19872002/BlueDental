@@ -7,7 +7,7 @@ import {
   type CreateUpdateEInvoiceConfigDto,
   type EInvoiceConfigDto,
 } from "../api/eInvoiceConfigApi";
-import { EINVOICE_PROVIDER_NAME } from "./eInvoiceConfigCatalog";
+import { EINVOICE_PROVIDER_LOGO, EINVOICE_PROVIDER_NAME } from "./eInvoiceConfigCatalog";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { useClinicBranches } from "@/features/organizations/api";
@@ -107,21 +107,8 @@ export function EInvoiceConfigDialog({ open, config, onClose }: Props) {
           <div>
             <div className="bd-msg-provider-label">{t("Tools:ProviderLabel")}</div>
             <button type="button" className="bd-msg-provider-card bd-msg-provider-card--active" aria-pressed>
-              <span className="bd-msg-provider-img">
-                <svg viewBox="0 0 100 50" width="100" height="50" aria-label={EINVOICE_PROVIDER_NAME}>
-                  <text
-                    x="50%"
-                    y="50%"
-                    dominantBaseline="central"
-                    textAnchor="middle"
-                    fill="#171c33"
-                    fontFamily="Arial, sans-serif"
-                    fontWeight="700"
-                    fontSize="15"
-                  >
-                    {EINVOICE_PROVIDER_NAME}
-                  </text>
-                </svg>
+              <span className="bd-msg-provider-img bd-msg-provider-img--logo">
+                <img src={EINVOICE_PROVIDER_LOGO} alt={EINVOICE_PROVIDER_NAME} />
               </span>
               <span className="bd-msg-provider-name">{EINVOICE_PROVIDER_NAME}</span>
             </button>
