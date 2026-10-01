@@ -193,86 +193,200 @@ powershell -File docs/clone/integrations/easyinvoice-probe.ps1
 powershell -File docs/clone/integrations/easyinvoice-probe.ps1 -Action api/publish/getInvoicesByIkeys -BodyFile q.json
 ```
 
+## Tài liệu DLL (nguồn thứ cấp — CHƯA kiểm chứng trên REST)
+
+Nguồn: "EasyInvoice — Tài liệu tích hợp DLL" (bản chụp từ Scribd, chủ sở hữu tự tìm, 2026-10-01). Tài liệu
+không chính thức, mô tả thư viện DLL cho .NET 3.5 chứ không phải REST API, danh sách VAT thiếu 8%. Chỉ ghi
+**cấu trúc**; mọi mục dưới đây chưa được thử trên sandbox REST trừ khi ghi rõ.
+
+**Trạng thái HĐ (`InvoiceStatus`)** — BlueDental đã dùng bảng này để ánh xạ (`ProviderInvoiceSummary.Status`):
+
+| Mã nhà cung cấp | Nghĩa | BlueDental `ElectronicInvoiceStatus` |
+|---|---|---|
+| 0 | Chưa ký | `Draft` (0) — **đã thấy trên sandbox** |
+| 1 | Đã ký | `Published` (1) |
+| 2 | Đã khai báo thuế | `Published` (1) |
+| 3 | Bị thay thế | `Replaced` (3) |
+| 4 | Bị điều chỉnh | `Adjusted` (4) |
+| 5 | Bị hủy | `Cancelled` (2) |
+| 6 | Đã duyệt | `Published` (1) |
+
+HĐ chưa có số (`No` rỗng / `"0"`) luôn là `Draft`, trừ mã 5. Mã gốc vẫn lưu ở `ProviderStatus`.
+
+**Hủy / thay thế / điều chỉnh** (chưa làm — cần HĐ đã ký, sandbox không có HSM):
+
+- Hủy: định danh bằng `Ikey` + `Pattern` + `Serial`.
+- Thay thế / điều chỉnh: XmlData bọc `<ReplaceInv>` / `<AdjustInv>` thay cho `<Invoice>`, có `<Ikey>` của HĐ mới và
+  tham chiếu HĐ gốc; điều chỉnh có `<Type>`: 2 = tăng, 3 = giảm, 4 = điều chỉnh thông tin.
+- Mỗi HĐ chỉ được thay thế **hoặc** điều chỉnh **một** lần.
+
+**Trường XmlData bổ sung**:
+
+- `<Email>` / `<EmailCC>` người mua — chỉ có hiệu lực khi có `CusCode`. BlueDental chưa gửi.
+- `ProdName` tối đa **300 ký tự** → BlueDental từ chối dòng dài hơn (`EInvoicing:0005`, `MaxLineNameLength`).
+- Dòng chiết khấu: `Total`/`VATAmount`/`Amount` âm (khớp README 2018). Dòng ghi chú: `<Pos></Pos>` rỗng, không tiền.
+- `PaymentMethod` là chuỗi tự do; ví dụ trong tài liệu: `T/M`, `C/K`, `TM/CK`, `TT/D`, `Bù trừ`.
+  BlueDental vẫn gửi `TM` / `CK` / `TM/CK` (sandbox chấp nhận).
+- Trong tài liệu DLL, `<Ikey>` nằm **trong** `<Invoice>`; REST (đã kiểm chứng) dùng `<Inv><key>…</key><Invoice>`. Giữ dạng REST.
+
+**Khác**: tải PDF có tham số `Option` 0/1/2 (chưa rõ nghĩa từng giá trị trên REST); có hàm
+`createReservedInvoices` (cấp trước dải HĐ) — BlueDental không dùng.
+
 ## Còn mở (UNKNOWN_REFERENCE_BEHAVIOR)
 
 - Body/response của `importAndPublishInv` khi có HSM; response sau khi cấp số (`No`, `TaxAuthorityCode`).
-- Body của cancel/replace/adjust với HĐ đã phát hành (Reason, ngày, HĐ thay thế…).
+- Body REST thật của cancel/replace/adjust với HĐ đã phát hành — tài liệu DLL cho khung (xem mục trên), chưa thử.
+- Mã trạng thái 2–6 trả về qua `getInvoicesByIkeys` có khớp bảng của tài liệu DLL không.
 - Có endpoint xóa nháp / gửi email / lấy XML đã ký không.
 - URL HTTPS + tài khoản production.
 - Thuế suất áp dụng cho dịch vụ nha khoa (kế toán khách quyết).
 - Bản gốc app.nfcdental.com lập HĐ từ phiếu thu hay từ kế hoạch điều trị (register có cột
   "Tên đơn vị", "Hình thức thanh toán" → nghiêng về phiếu thu; không có dữ liệu thật để xem).
 
-## Thiết kế tích hợp vào BlueDental (đề xuất, 2026-09-28)
+## BlueDental API — đã dựng (2026-09-30, thay cho bản đề xuất 2026-09-28)
 
-Khảo sát code hiện có (Explore 2026-09-28):
+Luồng: Chi tiết kế hoạch điều trị → tab **Thanh toán** → nút "Xuất hóa đơn điện tử" (icon FileText) trên phiếu thu
+→ `POST issue-from-payment` → EasyInvoice `api/publish/importInvoice` → HĐ **nháp, chưa cấp số** hiện trên portal
+SoftDreams. Đã xác minh end-to-end với sandbox (một phiếu thu thật trên local → nháp "Chưa cấp số" trên portal).
 
-| Đã có | Ở đâu | Dùng lại |
-|---|---|---|
-| Aggregate `Invoice` header-only, `Draft→Issued→PartiallyPaid→Paid/Voided` | `BlueDental.Domain/Billing/Invoice.cs` | Không phải nguồn tiền thật của phòng khám |
-| `PatientPayment` (phiếu thu `THANHTOAN-NN/plan/yyyy`) + `PatientPaymentLine` theo dịch vụ | `BlueDental.Domain/Billing/PatientPayment.cs` | **Nguồn dữ liệu để lập HĐĐT** (bản gốc lập HĐ theo phiếu thu) |
-| HttpClient mẫu: `IHttpClientFactory` named client, không throw, trả `Outcome` | `BlueDental.Application/ClinicIntegration/HttpClinicPartnerClient.cs` | Copy cấu trúc |
-| `IntegrationCallLog` (Operation, Path, StatusCode, DurationMs, Error) | `BlueDental.Domain/ClinicIntegration/IntegrationCallLog.cs` | Thêm bảng riêng cho HĐĐT, giữ thêm body đã che mật khẩu |
-| Báo cáo `/operations?financeSubTab=invoice` gọi API thật, đã có cột Nhà cung cấp / Trạng thái phát hành | `BlueDental.FE/src/features/operations/reports/InvoiceReport.tsx` | Nơi hiển thị kết quả |
-| Dialog cấu hình HĐĐT chỉ có UI (MISA, taxCode, appId, user, pass) — chưa có BE | `BlueDental.FE/src/features/tools/components/InvoiceConfigView.tsx` | Nối BE `EInvoiceProviderConfig` |
-| Permission `operationsFinanceInvoice` read/export; `payment` CRUD | `BlueDental.Domain.Shared/Permissions/BlueDentalAbilityPermissions.cs` | Thêm subject `eInvoice` |
-| Options pattern: chưa có `IOptions<T>`; đọc `configuration["X:Y"]`; secrets ở `appsettings.Development.json` (Zalo) | `BlueDental.HttpApi.Host/appsettings*.json` | HĐĐT sẽ là options class typed đầu tiên |
+Controller: `BlueDental.HttpApi/EInvoicing/ElectronicInvoiceController.cs`, base `api/v1/app/e-invoices`
+(FE gọi `/v1/app/e-invoices…` vì axios `baseURL` đã là `/api`).
 
-### Lớp Domain (`Billing/ElectronicInvoices/`)
+| Method | Path | Quyền | Mô tả |
+|---|---|---|---|
+| GET | `/api/v1/app/e-invoices?patientPaymentId&treatmentPlanId&patientId&clinicBranchId` | `payment.read` | Danh sách HĐĐT, mới nhất trước, lọc theo chi nhánh user được xem. Trả `ListResultDto<ElectronicInvoiceDto>` |
+| POST | `/api/v1/app/e-invoices/issue-from-payment/{patientPaymentId}` | `payment.finalize` | Tạo nháp tại EasyInvoice từ một phiếu thu. Gọi lại khi còn nháp → **ghi đè cùng nháp** (Ikey cố định) |
+| POST | `/api/v1/app/e-invoices/{id}/sync` | `payment.read` | `getInvoicesByIkeys` — cập nhật trạng thái/số HĐ sau khi kế toán ký trên portal |
+| GET | `/api/v1/app/e-invoices/{id}/pdf` | `payment.read` | `getInvoicePdf` — trả `application/pdf`, tên `hoa-don-dien-tu-{id}` |
 
-- `EInvoiceProviderConfig : FullAuditedAggregateRoot<Guid>` — `ClinicBranchId`, `Provider` (enum `EasyInvoice=1, Misa=2`),
-  `BaseUrl`, `Username`, `PasswordEncrypted` (ABP `IStringEncryptionService`), `Pattern`, `Serial?`, `TaxCode`,
-  `IsActive`, `DefaultVatRate`. Một chi nhánh một cấu hình đang hoạt động.
-- `ElectronicInvoice : FullAuditedAggregateRoot<Guid>` — `ClinicBranchId`, `PatientPaymentId` (nguồn), `PatientId`,
-  `Ikey` (= Id, idempotent), `Status` (`Pending=1, Issued=2, Failed=3, Cancelled=4, Replaced=5, Adjusted=6`),
-  `Pattern`, `Serial`, `InvoiceNo?`, `LookupCode?`, `IssuedAt?`, `SubTotal`, `VatAmount`, `Total`, `VatRate`,
-  `BuyerName`, `BuyerTaxCode?`, `BuyerAddress?`, `PaymentMethodLabel`, `ProviderMessage?`, `PdfBlobName?`.
-  Guard: chỉ `Pending/Failed` mới `MarkIssued`; `Cancel(reason)` chỉ khi `Issued`.
-- `EInvoiceApiCallLog : CreationAuditedEntity<Guid>` — như `IntegrationCallLog` + `RequestBody`, `ResponseBody`
-  (che mật khẩu trong header, không lưu header), `ElectronicInvoiceId?`. Đáp ứng CLAUDE.md §9.
+Không có body request; mọi tham số ở path/query.
 
-### Lớp Application
+### `ElectronicInvoiceDto`
 
-- `IEInvoiceProviderClient` (Strategy theo `Provider`, mục 15.6) với `EasyInvoiceClient : ITransientDependency`:
-  `IssueAsync(config, ElectronicInvoice, lines)`, `GetPdfAsync`, `LookupAsync(ikeys)`, `CancelAsync`.
-  Header sinh bằng `EasyInvoiceAuthHeader.Build(method, user, password)` (thuật toán mục FACT ở trên) — có unit test
-  cho chuỗi cố định (ts, nonce cho trước → sig biết trước).
-- `ElectronicInvoiceAppService : BlueDentalAppService` (bắt buộc kế thừa base để `L[]` hoạt động):
-  - `POST api/v1/app/e-invoices/issue-from-payment/{patientPaymentId}` — build `ElectronicInvoice` từ phiếu thu +
-    `PatientPaymentLine` (mỗi line = một `Product`, tên dịch vụ từ CatalogEntry), gọi client, lưu kết quả + log.
-  - `GET api/v1/app/e-invoices?branchId&from&to&status` — nguồn cho báo cáo `financeSubTab=invoice`.
-  - `GET api/v1/app/e-invoices/{id}/pdf`, `POST …/{id}/cancel`, `POST …/{id}/sync` (getInvoicesByIkeys).
-  - `EInvoiceProviderConfigAppService` CRUD nối vào dialog Tools đã có.
-- Controller conventional cho từng contract (R-401: mọi contract phải có controller, không bật lại `[Authorize]` app-service).
-- Sau `importInvoice` lưu `LookupCode`, `InvoiceStatus`; `POST …/{id}/sync` gọi `getInvoicesByIkeys` để lấy `No`, `TaxAuthorityCode`, `TCTCheckStatus` khi kế toán đã ký trên portal.
-- Không background job ở phase 1: phát hành do người dùng bấm. Phase 2 có thể thêm `AsyncPeriodicBackgroundWorkerBase`
-  retry `Failed` và sync trạng thái CQT.
+```jsonc
+{
+  "id": "<guid>", "clinicBranchId": "<guid>", "patientId": "<guid>",
+  "patientPaymentId": "<guid>", "treatmentPlanId": "<guid|null>",
+  "provider": "EasyInvoice",
+  "ikey": "bd-<patientPaymentId không gạch>",
+  "pattern": "<mẫu số>", "serial": "<string|null>",
+  "status": 0,                 // 0 Draft, 1 Published, 2 Cancelled, 3 Replaced, 4 Adjusted
+  "no": "<string|null>",       // số HĐ, chỉ có sau khi ký
+  "lookupCode": "<string|null>", "linkView": "<string|null>",
+  "total": 0, "taxAmount": 0, "amount": 0,
+  "customerName": "<string>",
+  "lastSyncedAt": "<datetimeoffset|null>", "lastError": "<string|null>",
+  "creationTime": "<datetime>"
+}
+```
+
+### Quy tắc nghiệp vụ
+
+- Một phiếu thu ↔ một HĐĐT. `Ikey = bd-{patientPaymentId:N}` → retry không tạo HĐ thứ hai.
+- Chỉ phiếu `Kind = Payment` lập được HĐ (hoàn tiền / tạm ứng → `EInvoicing:0002`).
+- HĐ đã `Published`/`Cancelled` không ghi đè được (`EInvoicing:0004`).
+- Dòng HĐ mặc định (người dùng vẫn sửa được trong hộp thoại):
+  - **Cả phiếu điều trị** → một dòng như bản gốc: "Kế hoạch điều trị {mã DT}", ĐVT "Răng", SL 1, đơn giá = Thành tiền
+    của phiếu (đo trên bản gốc 2026-09-21).
+  - **Phiếu thu** → mỗi `PatientPaymentLine` = một dòng, tên/mã/đơn vị lấy từ Danh mục dịch vụ (CatalogEntry); không
+    chia dòng hoặc cộng không khớp → một dòng cho cả số tiền phiếu thu.
+- Người mua = bệnh nhân (mã BN, họ tên, địa chỉ, SĐT). Hình thức TT: tiền mặt / chuyển khoản theo phiếu.
+- VAT mặc định `-1` (KCT — dịch vụ y tế không chịu thuế), đổi qua `EasyInvoice:VatRate`.
+- Mọi lần gọi nhà cung cấp ghi vào `IntegrationCallLog` (operation `einvoice-import` / `einvoice-lookup` /
+  `einvoice-pdf`) trong UoW riêng nên vẫn còn khi request lỗi. **Chỉ ghi shape** (path, status, thời gian, số dòng,
+  lỗi) — không ghi body (có tên BN = PHI) và không ghi header (có mật khẩu).
+- Kiểm tra chi nhánh qua `BranchAccessChecker` ở cả 4 endpoint.
+
+### Mã lỗi
+
+| Code | Khi nào |
+|---|---|
+| `BlueDental:EInvoicing:0001` NotConfigured | Thiếu một trong BaseUrl / Username / Password / TaxCode / Pattern |
+| `BlueDental:EInvoicing:0002` ReceiptNotInvoiceable | Phiếu không phải phiếu thu |
+| `BlueDental:EInvoicing:0003` ProviderRefused | EasyInvoice từ chối / không phản hồi (`data.Message` = lỗi nhà cung cấp) |
+| `BlueDental:EInvoicing:0004` AlreadyPublished | HĐ đã ký/hủy, không phát hành lại |
+| `BlueDental:EInvoicing:0005` InvalidDraft | Thiếu tên người mua, không có dòng, tổng ≤ 0, tên dòng > 300 ký tự, hoặc phản hồi sai Ikey |
 
 ### Cấu hình & bí mật
 
+Section `EasyInvoice` (`EasyInvoiceOptions`) — **chỉ còn là mặc định dự phòng** khi chi nhánh chưa có cấu hình riêng (xem "Cấu hình theo chi nhánh" bên dưới):
+
+| Key | Ở đâu |
+|---|---|
+| `BaseUrl`, `Username`, `TaxCode`, `Pattern`, `Serial`, `VatRate`, `TimeoutSeconds` | `appsettings.json` (commit được, giá trị sandbox) |
+| `Password` | **Không bao giờ commit.** Local: `appsettings.Development.json` (gitignored) hoặc user-secrets. Docker/server: biến `EASYINVOICE_PASSWORD` trong `.env` → compose map thành `EasyInvoice__Password` |
+
+- Local `dotnet run` cần `ASPNETCORE_ENVIRONMENT=Development` để đọc `appsettings.Development.json`
+  (`Properties/launchSettings.json`, gitignored).
+- Server: thêm `EASYINVOICE_PASSWORD=…` vào `/home/hung/BlueDental/.env` rồi `docker compose up -d --force-recreate api`;
+  kiểm tra bằng `docker compose exec api env | grep Invoice` (tên biến viết hoa thường lẫn lộn).
+- Quyền `payment.finalize` do DbMigrator seed cho admin — chạy lại migrator sau khi deploy.
+
+### Cập nhật 2026-10-01 — hóa đơn theo phiếu điều trị, phát hành, cấu hình theo chi nhánh
+
+Endpoint thêm (base `api/v1/app/e-invoices`):
+
+| Method | Path | Quyền | Mô tả |
+|---|---|---|---|
+| GET | `draft?patientPaymentId=…` **hoặc** `draft?treatmentPlanId=…` | `payment.read` | Bản nháp để FE điền InvoiceModal (người mua, dòng, trần tiền, `isConfigured`). Thiếu/thừa nguồn → `0011` |
+| POST | `issue` body `IssueElectronicInvoiceDto` | `payment.finalize` | `{patientPaymentId \| treatmentPlanId, publish, buyerName, companyName, address, taxCode, phone, …}`. `publish=false` → `importInvoice` (Lưu Nháp); `publish=true` → `importAndPublishInv` (Phát Hành, ký HSM) |
+
+- Ikey theo nguồn: phiếu thu `bd-{paymentId:N}`, phiếu điều trị `bd-plan-{planId:N}`. Một phiếu điều trị chỉ xuất theo **một** cách (cả phiếu hoặc theo phiếu thu) → `0012`; HĐ đã **Hủy** không còn chặn cách kia (`ElectronicInvoice.BillsSlipOtherWay`). FE ẩn nút "Xuất HĐ" ở phiếu thu khi server chắc chắn sẽ từ chối (HĐ của phiếu thu đã ký, hoặc phiếu điều trị đã xuất cả phiếu và HĐ đó chưa hủy) — `isReceiptInvoiceable`.
+- Tổng HĐ không vượt số tiền nguồn (`0010`, kiểm ở server). Gửi trùng song song → `0006`. Phiếu thu đã có HĐ số → không xoá được (`0009`).
+- HĐ giữ tài khoản (cấu hình) lúc lập; đổi cấu hình chi nhánh không chuyển HĐ cũ.
+- Sandbox không có HSM: **Phát Hành trả lỗi 196** từ SoftDreams tới khi được cấp HSM. Lưu Nháp chạy bình thường.
+
+### Cấu hình theo chi nhánh — `api/v1/app/e-invoice-configs`
+
+UI: Công cụ → Hóa đơn → Cấu hình (`/tools/invoice`). Bảng `EInvoiceBranchConfigs`.
+
+| Method | Path | Quyền | Ghi chú |
+|---|---|---|---|
+| GET | `?clinicBranchId=` | `Tools.View` | `ListResultDto<EInvoiceConfigDto>`, chỉ chi nhánh user được xem |
+| GET | `{id}` | `Tools.View` | |
+| POST | | `Tools.Manage` | `CreateUpdateEInvoiceConfigDto`; mật khẩu bắt buộc |
+| PUT | `{id}` | `Tools.Manage` | mật khẩu rỗng = giữ mật khẩu cũ; chi nhánh không đổi được |
+| DELETE | `{id}` | `Tools.Manage` | |
+
 ```jsonc
-// appsettings.json (commit) — chỉ khung
-"EInvoice": { "EasyInvoice": { "BaseUrl": "http://api.softdreams.vn", "TimeoutSeconds": 30 } }
-// appsettings.Development.json / docker env (KHÔNG commit giá trị)
-"EInvoice": { "EasyInvoice": { "Username": "API", "Password": "...", "Pattern": "1C26TYY" } }
+// EInvoiceConfigDto — KHÔNG bao giờ trả mật khẩu (form gốc: Tên, Chi nhánh, App ID, MST, Tên đăng nhập,
+// Mật khẩu, Tính thuế theo dịch vụ, Tính thuế theo kỳ, Trạng thái)
+{ "id": "<guid>", "clinicBranchId": "<guid>", "name": "<string>", "provider": "EasyInvoice",
+  "appId": "<string|null>", "username": "<string>", "hasPassword": true, "taxCode": "<string>",
+  "taxByService": false, "taxByPeriod": false, "isActive": true,
+  "lastPattern": "<string|null>", "lastSerial": "<string|null>", "creationTime": "<datetime>" }
 ```
 
-Ưu tiên lưu credential theo chi nhánh trong `EInvoiceProviderConfig` (mã hóa) vì tenant EasyInvoice = 1 MST = 1 pháp nhân;
-appsettings chỉ giữ giá trị mặc định cho sandbox/dev. Nếu chỉ một pháp nhân toàn hệ thống thì appsettings + `IOptions<EInvoiceOptions>` là đủ.
+- Form không có rule ở FE (như bản gốc); server từ chối tên / MST / tên đăng nhập trống, và mật khẩu trống khi tạo (`0013`).
+- `appId`, `taxByService`, `taxByPeriod` được **lưu nhưng chưa dùng** (UNKNOWN_REFERENCE_BEHAVIOR, xem unknowns.md).
+- URL API và VAT mặc định lấy từ appsettings `EasyInvoice`. Mẫu số / Ký hiệu nhập ở hộp thoại Hóa đơn
+  (`IssueElectronicInvoiceDto.pattern/serial`); server nhớ cặp dùng gần nhất vào `lastPattern/lastSerial` để điền sẵn lần sau
+  (`draft.numberings`). Không có mẫu nào → `0014`.
+- Hộp thoại cho sửa Tiền tệ / Tỷ giá, nhưng chỉ phát hành VND tỷ giá 1 (`0015`).
 
-### Frontend
+- Mỗi chi nhánh tối đa **một** cấu hình đang hoạt động (`0008`). Cấu hình sai (URL, VAT ngoài -1/0/5/8/10…) → `0007`.
+- Mật khẩu lưu mã hoá (write-only), không ghi log.
+- Thứ tự chọn tài khoản khi lập HĐ: cấu hình active của chi nhánh → section `EasyInvoice` trong appsettings → `0001`.
 
-- `features/billing/e-invoice/` : `api/` (TanStack hooks), `components/IssueEInvoiceDialog.tsx`
-  (xem trước: người mua, MST, dòng dịch vụ, VAT), `EInvoiceStatusTag` (Strategy map).
-- Nút "Phát hành HĐĐT" trong `PlanPaymentsTab.tsx` cạnh "In hóa đơn tổng"; cột Thao tác báo cáo `InvoiceReport.tsx`: Xem PDF / Hủy.
-- Gating `useAbility("eInvoice", "create")`; menu/route theo `routePermissions.ts`.
+### Mã lỗi bổ sung
 
-### Thứ tự làm (feature loop CLAUDE.md §10)
+| Code | Khi nào |
+|---|---|
+| `0006` IssueInProgress | Đang gửi cùng nguồn |
+| `0007` InvalidConfig | Cấu hình không hợp lệ |
+| `0008` DuplicateActiveConfig | Chi nhánh đã có cấu hình active |
+| `0009` ReceiptInvoiced | Xoá phiếu thu đã có HĐ |
+| `0010` AmountExceedsSource | Vượt trần tiền nguồn |
+| `0011` SourceRequired | Không có / có cả hai nguồn |
+| `0012` SourceAlreadyInvoiced | Phiếu điều trị đã xuất theo cách khác |
 
-1. Probe xong 2026-09-28: auth 6 phần, body `XmlData` XML. Chốt với BA: luồng phát hành khi sandbox không có HSM.
-2. API contract DTO + enum → Domain entities + tests → migration `AddElectronicInvoices`.
-3. `EasyInvoiceClient` + `EasyInvoiceAuthHeader` (unit test header) + call log.
-4. AppService + controller + integration test HTTP thật (mock **duy nhất** được phép: fake `IEInvoiceProviderClient` — hệ ngoài).
-5. FE dialog + nút + cột báo cáo; Playwright thật với sandbox SoftDreams (sandbox không phải production của ai → được ghi).
-6. `/simplify`, `/security-review` (credential, log che mật khẩu, PHI không log tên bệnh nhân trong body log? → **che `CusName/CusPhone` trong log**).
+### Kiểm chứng
 
+`e2e/einvoice-api.spec.ts` (full stack thật, không chặn request): CRUD cấu hình + không lộ mật khẩu + giữ mật khẩu khi PUT rỗng,
+một cấu hình active/chi nhánh, `draft` cần nguồn, UI tạo cấu hình → reload còn → xoá. Không spec nào gọi tới SoftDreams.
+
+### Còn lại
+
+- Hủy / thay thế / điều chỉnh HĐ đã phát hành: chưa làm (cần body thật khi có HSM).
+- Phát hành có ký số: chờ SoftDreams cấp HSM + URL HTTPS production.
+- Xem thêm `docs/clone/unknowns.md` mục EasyInvoice.

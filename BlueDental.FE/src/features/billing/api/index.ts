@@ -95,6 +95,9 @@ const billingApi = {
   recordPayment: (id: string, data: RecordPaymentRequest): Promise<InvoiceDto> =>
     api.post(`/v1/app/invoices/${id}/payment`, data).then((r) => r.data),
 
+  issue: (id: string): Promise<InvoiceDto> =>
+    api.post(`/v1/app/invoices/${id}/issue`).then((r) => r.data),
+
   void: (id: string, reason: string): Promise<void> =>
     api.post(`/v1/app/invoices/${id}/void`, { reason }).then(() => undefined),
 };
@@ -119,6 +122,14 @@ export function useRecordPayment() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: RecordPaymentRequest }) =>
       billingApi.recordPayment(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
+  });
+}
+
+export function useIssueInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => billingApi.issue(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
 }

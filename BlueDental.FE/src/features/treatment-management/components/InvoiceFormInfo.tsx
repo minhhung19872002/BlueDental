@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { DatePicker, Input, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
+import type { ElectronicInvoiceNumberingDto } from "../api/eInvoiceApi";
 import type { InvoicePaymentMethod } from "./invoiceTypes";
-import { INVOICE_TEMPLATES, invoicePaymentOptions } from "./invoiceConstants";
+import { invoicePaymentOptions } from "./invoiceConstants";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface InvoiceFormInfoProps {
+  /** Mẫu số the branch has used; a pattern typed into the search is offered too. */
+  numberings: ElectronicInvoiceNumberingDto[];
   templateId: string;
   onTemplateChange: (id: string) => void;
   templateSymbol: string;
@@ -22,12 +26,13 @@ interface InvoiceFormInfoProps {
   onExchangeRateChange: (value: string) => void;
 }
 
-const templateOptions = () => INVOICE_TEMPLATES.map((tpl) => ({
-  value: tpl.id,
-  label: t(tpl.label),
-}));
+function templateOptions(numberings: ElectronicInvoiceNumberingDto[], typed: string, selected: string) {
+  const patterns = [...numberings.map((n) => n.pattern), selected, typed.trim()].filter((p) => p !== "");
+  return [...new Set(patterns)].map((p) => ({ value: p, label: p }));
+}
 
 export function InvoiceFormInfo({
+  numberings,
   templateId,
   onTemplateChange,
   templateSymbol,
@@ -41,6 +46,8 @@ export function InvoiceFormInfo({
   exchangeRate,
   onExchangeRateChange,
 }: InvoiceFormInfoProps) {
+  const [search, setSearch] = useState("");
+
   return (
     <div>
       <h4 className="inv-section-title">{t("Treatment:Invoice:InvoiceInfo")}</h4>
@@ -51,8 +58,9 @@ export function InvoiceFormInfo({
           <Select
             value={templateId || undefined}
             onChange={onTemplateChange}
-            options={templateOptions()}
+            options={templateOptions(numberings, search, templateId)}
             showSearch
+            onSearch={setSearch}
             optionFilterProp="label"
             prefix={<SearchOutlined aria-hidden="true" />}
           />

@@ -50,4 +50,18 @@ public class ElectronicInvoiceMappingTests
         entity.FindProperty(nameof(ElectronicInvoice.LastError))!.GetMaxLength().ShouldBe(ElectronicInvoice.MaxErrorLength);
         entity.FindProperty(nameof(ElectronicInvoice.Status))!.GetProviderClrType().ShouldBe(typeof(short));
     }
+
+    [Fact]
+    public void A_Branch_Has_At_Most_One_Live_Active_Provider_Config()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(EInvoiceProviderConfig))!;
+        entity.GetTableName().ShouldBe("bd_einvoice_provider_configs");
+
+        var active = entity.GetIndexes().Single(i => i.IsUnique);
+        active.Properties.Single().Name.ShouldBe(nameof(EInvoiceProviderConfig.ClinicBranchId));
+        active.GetFilter()!.ShouldContain("IsActive");
+        active.GetFilter()!.ShouldContain("IsDeleted");
+        entity.FindProperty(nameof(EInvoiceProviderConfig.PasswordCipher))!.GetMaxLength().ShouldBe(1000);
+    }
 }

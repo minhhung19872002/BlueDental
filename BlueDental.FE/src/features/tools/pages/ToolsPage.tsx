@@ -170,7 +170,7 @@ function ZaloView({ canManage }: { canManage: boolean }) {
   );
 }
 
-function InvoiceView() {
+function InvoiceView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   return (
     <div className="bd-tools-card">
       <SubTabBar
@@ -178,7 +178,7 @@ function InvoiceView() {
         active="config"
         onChange={() => {}}
       />
-      <InvoiceConfigView />
+      <InvoiceConfigView canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
     </div>
   );
 }
@@ -237,7 +237,15 @@ export function ToolsPage() {
         {category === "zalo-oa" && (
           <ZaloView canManage={messageAbility.canUpdate} />
         )}
-        {category === "invoice" && <InvoiceView />}
+        {category === "invoice" && (
+          // The server gates configs on Tools.View/Manage, which the bridge
+          // grants through the tool subjects — toolMessage stands in for them.
+          <InvoiceView
+            canCreate={messageAbility.canCreate}
+            canUpdate={messageAbility.canUpdate}
+            canDelete={messageAbility.canDelete}
+          />
+        )}
       </div>
     </div>
   );

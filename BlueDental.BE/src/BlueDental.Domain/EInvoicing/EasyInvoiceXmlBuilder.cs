@@ -20,12 +20,17 @@ public static class EasyInvoiceXmlBuilder
 
         var invoice = new XElement("Invoice",
             new XElement("CusCode", draft.CustomerCode),
-            new XElement("Buyer", draft.CustomerName),
+            new XElement("Buyer", string.IsNullOrWhiteSpace(draft.BuyerName) ? draft.CustomerName : draft.BuyerName),
             new XElement("CusName", draft.CustomerName),
             new XElement("CusAddress", draft.CustomerAddress ?? string.Empty),
             new XElement("CusPhone", draft.CustomerPhone ?? string.Empty),
             new XElement("CusTaxCode", draft.CustomerTaxCode ?? string.Empty),
             new XElement("PaymentMethod", draft.PaymentMethod),
+            draft.ArisingDate is { } date
+                ? new XElement("ArisingDate", date.ToString("dd/MM/yyyy", Invariant))
+                : null,
+            // BlueDental bills in đồng only; a foreign-currency invoice was never
+            // tried against the provider (docs/clone/unknowns.md).
             new XElement("CurrencyUnit", "VND"),
             new XElement("ExchangeRate", "1.0000"),
             new XElement("Products", draft.Lines.Select(Product)),

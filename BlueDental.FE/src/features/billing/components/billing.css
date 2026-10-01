@@ -1,0 +1,14 @@
+/* Thanh toán & hoá đơn — feature-local styles (the older billing-* blocks
+   still live in index.css until that file is split). */
+
+.billing-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.billing-dialog-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

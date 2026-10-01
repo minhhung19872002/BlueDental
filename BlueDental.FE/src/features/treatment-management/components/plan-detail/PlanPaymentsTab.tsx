@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DataTable } from "@/components/DataTable";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -14,12 +13,12 @@ import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { notifyError } from "@/lib/notify";
 import { countedTotal } from "@/utils/countedTotal";
-import { formatVND } from "@/utils/format";
 import { usePatientAdvises } from "../../api/consultingQueries";
 import {
-  EINVOICE_STATUS,
-  useIssueEInvoice,
+  downloadEInvoicePdf,
+  isReceiptInvoiceable,
   usePlanEInvoices,
+  useSyncEInvoice,
   type ElectronicInvoiceDto,
 } from "../../api/eInvoiceApi";
 import {
@@ -30,6 +29,8 @@ import {
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
+import { InvoiceModal } from "../InvoiceModal";
+import { EInvoiceBadge } from "./EInvoiceBadge";
 import { PaymentCardList } from "./PaymentCardList";
 import { PaymentEditDialog } from "./PaymentEditDialog";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
@@ -73,32 +74,33 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   // ── E-invoice ───────────────────────────────────────────────────────────
   const canFinalize = useAbility("payment").can("finalize");
   const eInvoiceQuery = usePlanEInvoices({ treatmentPlanId: plan.id, clinicBranchId: branchId });
-  const issueInvoice = useIssueEInvoice();
+  const sync = useSyncEInvoice();
   const [invoicing, setInvoicing] = useState<PatientPaymentDto | null>(null);
 
-  /** Find the most recent e-invoice for a payment (if any). */
   const eInvoiceOf = (paymentId: string): ElectronicInvoiceDto | undefined =>
     eInvoiceQuery.data?.find((inv) => inv.patientPaymentId === paymentId);
+  const canIssueInvoice = (payment: PatientPaymentDto) => isReceiptInvoiceable(payment.id, eInvoiceQuery.data);
 
-  const handleIssueInvoice = async () => {
-    if (!invoicing) return;
-    try {
-      const result = await issueInvoice.mutateAsync(invoicing.id);
-      toast.success(t("Treatment:EInvoice:Issued", result.lookupCode ?? result.ikey));
-      setInvoicing(null);
-    } catch (error) {
-      notifyError(extractApiError(error) || t("Treatment:EInvoice:IssueError"));
-    }
+  const handleSync = (invoice: ElectronicInvoiceDto) =>
+    sync.mutate(invoice.id, { onSuccess: () => toast.success(t("Treatment:EInvoice:Synced")) });
+
+  const handleDownload = (invoice: ElectronicInvoiceDto) => {
+    downloadEInvoicePdf(invoice).catch((error: unknown) =>
+      notifyError(extractApiError(error) || t("Treatment:EInvoice:DownloadError")),
+    );
   };
 
-  /** Build the confirm body: reissue if draft exists, else fresh. */
-  const invoiceConfirmMessage = (): string => {
-    if (!invoicing) return "";
-    const existing = eInvoiceOf(invoicing.id);
-    if (existing && existing.status === EINVOICE_STATUS.Draft) {
-      return t("Treatment:EInvoice:ReissueBody", existing.lookupCode ?? existing.ikey);
-    }
-    return t("Treatment:EInvoice:ConfirmBody", formatVND(invoicing.amount));
+  const renderEInvoice = (payment: PatientPaymentDto) => {
+    const invoice = eInvoiceOf(payment.id);
+    if (!invoice) return null;
+    return (
+      <EInvoiceBadge
+        invoice={invoice}
+        syncing={sync.isPending && sync.variables === invoice.id}
+        onSync={handleSync}
+        onDownload={handleDownload}
+      />
+    );
   };
 
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
@@ -127,8 +129,10 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onEdit: canUpdate ? setEditing : undefined,
         onCancel: canDelete ? setCancelling : undefined,
         onIssueInvoice: canFinalize ? setInvoicing : undefined,
+        canIssueInvoice,
+        renderEInvoice,
       }),
-    [plan, receipts, canUpdate, canDelete, canFinalize], // eslint-disable-line react-hooks/exhaustive-deps
+    [plan, receipts, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (
@@ -151,11 +155,12 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
           payments={pageRows}
           total={receipts.length}
           pagination={pagination}
-          cardRows={(payment) => paymentCardRows(payment, plan)}
+          cardRows={(payment) => paymentCardRows(payment, plan, renderEInvoice)}
           onView={handleView}
           onEdit={canUpdate ? setEditing : undefined}
           onCancel={canDelete ? setCancelling : undefined}
           onIssueInvoice={canFinalize ? setInvoicing : undefined}
+          canIssueInvoice={canIssueInvoice}
           showTotal={showTotal}
         />
       ) : (
@@ -196,19 +201,9 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onConfirm={() => void handleCancel()}
         onClose={() => setCancelling(null)}
       />
-      <ConfirmDialog
-        open={invoicing !== null}
-        title={invoicing ? t("Treatment:EInvoice:ConfirmTitle", invoicing.code) : ""}
-        message={invoiceConfirmMessage()}
-        confirmLabel={
-          invoicing && eInvoiceOf(invoicing.id)?.status === EINVOICE_STATUS.Draft
-            ? t("Treatment:EInvoice:Reissue")
-            : t("Treatment:EInvoice:Issue")
-        }
-        pending={issueInvoice.isPending}
-        onConfirm={() => void handleIssueInvoice()}
-        onClose={() => setInvoicing(null)}
-      />
+      {invoicing && (
+        <InvoiceModal open source={{ patientPaymentId: invoicing.id }} onClose={() => setInvoicing(null)} />
+      )}
       <PaymentReceiptDialog
         receipt={receipt}
         patient={patient}

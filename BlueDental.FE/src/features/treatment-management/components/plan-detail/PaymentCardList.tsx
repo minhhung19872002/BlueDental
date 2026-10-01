@@ -15,6 +15,7 @@ interface Props {
   onEdit?: (payment: PatientPaymentDto) => void;
   onCancel?: (payment: PatientPaymentDto) => void;
   onIssueInvoice?: (payment: PatientPaymentDto) => void;
+  canIssueInvoice?: (payment: PatientPaymentDto) => boolean;
   showTotal: (total: number, range: [number, number]) => string;
 }
 
@@ -28,6 +29,7 @@ export function PaymentCardList({
   onEdit,
   onCancel,
   onIssueInvoice,
+  canIssueInvoice,
   showTotal,
 }: Props) {
   return (
@@ -70,7 +72,7 @@ export function PaymentCardList({
                       <Trash2 size={16} aria-hidden="true" />
                     </button>
                   )}
-                  {onIssueInvoice && (
+                  {onIssueInvoice && canIssueInvoice?.(payment) !== false && (
                     <button
                       type="button"
                       className="bd-rc-action"

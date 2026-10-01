@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Billing;
@@ -43,7 +44,9 @@ public class RecordPaymentDto
 
 public class VoidInvoiceDto
 {
-    public string? Reason { get; set; }
+    [Required]
+    [StringLength(500)]
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class GetInvoiceListInput : PagedAndSortedResultRequestDto

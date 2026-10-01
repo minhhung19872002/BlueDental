@@ -194,6 +194,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";
         public const string NegativeAmount = "BlueDental:Billing:0007";
+        public const string VoidReasonRequired = "BlueDental:Billing:0008";
     }
 
     public static class Inventory
@@ -353,6 +354,16 @@ public static class BlueDentalDomainErrorCodes
         public const string ProviderRefused = "BlueDental:EInvoicing:0003";
         public const string AlreadyPublished = "BlueDental:EInvoicing:0004";
         public const string InvalidDraft = "BlueDental:EInvoicing:0005";
+        public const string IssueInProgress = "BlueDental:EInvoicing:0006";
+        public const string InvalidConfig = "BlueDental:EInvoicing:0007";
+        public const string DuplicateActiveConfig = "BlueDental:EInvoicing:0008";
+        public const string ReceiptInvoiced = "BlueDental:EInvoicing:0009";
+        public const string AmountExceedsSource = "BlueDental:EInvoicing:0010";
+        public const string SourceRequired = "BlueDental:EInvoicing:0011";
+        public const string SourceAlreadyInvoiced = "BlueDental:EInvoicing:0012";
+        public const string ConfigIncomplete = "BlueDental:EInvoicing:0013";
+        public const string PatternRequired = "BlueDental:EInvoicing:0014";
+        public const string CurrencyNotSupported = "BlueDental:EInvoicing:0015";
     }
 
     public static class BranchManager

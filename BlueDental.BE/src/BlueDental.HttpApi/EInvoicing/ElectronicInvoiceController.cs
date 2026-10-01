@@ -8,7 +8,7 @@ using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.EInvoicing;
 
-/// <summary>Hóa đơn điện tử of a receipt.</summary>
+/// <summary>Hóa đơn điện tử of a receipt or a slip.</summary>
 [RemoteService]
 [Authorize]
 [Route("api/v1/app/e-invoices")]
@@ -18,6 +18,14 @@ public sealed class ElectronicInvoiceController(IElectronicInvoiceAppService ser
     [HttpGet]
     public Task<ListResultDto<ElectronicInvoiceDto>> GetListAsync(
         [FromQuery] GetElectronicInvoiceListInput input) => service.GetListAsync(input);
+
+    [HttpGet("draft")]
+    public Task<ElectronicInvoiceDraftDto> GetDraftAsync(
+        [FromQuery] GetElectronicInvoiceDraftInput input) => service.GetDraftAsync(input);
+
+    [HttpPost("issue")]
+    public Task<ElectronicInvoiceDto> IssueAsync([FromBody] IssueElectronicInvoiceDto input) =>
+        service.IssueAsync(input);
 
     [HttpPost("issue-from-payment/{patientPaymentId:guid}")]
     public Task<ElectronicInvoiceDto> IssueFromPaymentAsync(Guid patientPaymentId) =>

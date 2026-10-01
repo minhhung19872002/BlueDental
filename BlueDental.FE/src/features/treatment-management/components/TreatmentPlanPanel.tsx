@@ -162,7 +162,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         <PrintMedicalRecordDialog patient={patient} onClose={() => setPrintOpen(false)} />
       )}
       {invoicePlan && (
-        <InvoiceModal open patient={patient} plan={invoicePlan} onClose={() => setInvoicePlan(null)} />
+        <InvoiceModal open source={{ treatmentPlanId: invoicePlan.id }} onClose={() => setInvoicePlan(null)} />
       )}
     </div>
   );

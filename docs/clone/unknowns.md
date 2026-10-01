@@ -2763,3 +2763,20 @@ Reason: không gõ/lưu trên staging. Chưa biết: (1) server có tính lại 
         `amount > originalPrice` hay chỉ client chặn.
 Action taken: NONE. Đã đọc response GET và bộ dựng cột/handler ✓ trong JS công khai;
         xem `pages/treatment-plan-detail.md` mục "giá gốc và bốn khoản giảm".
+
+## Hóa đơn điện tử EasyInvoice — còn mở (2026-10-01, không phải hành vi bản gốc)
+
+UNKNOWN_REFERENCE_BEHAVIOR — tích hợp riêng của BlueDental; các điểm dưới đây chưa có tài liệu/HSM để xác minh:
+
+- Mã hình thức thanh toán `CX` (khác TM/CK) — SoftDreams chấp nhận giá trị nào cho "TM/CK"; đang gửi `TM/CK` cho phiếu trộn.
+- Hóa đơn nhiều thuế suất: XML builder chỉ gửi **một** VAT cho cả HĐ (theo cấu hình chi nhánh).
+- Ngoại tệ: chỉ gửi VND.
+- `importAndPublishInv` lên một Ikey đã có nháp: ghi đè nháp hay báo trùng — sandbox không có HSM (lỗi 196) nên chưa đo.
+- Mã trạng thái 2–6 khi hủy/thay thế/điều chỉnh HĐ đã phát hành: đã ánh xạ theo tài liệu DLL không chính thức
+  (5 → Đã hủy, 3 → Bị thay thế, 4 → Bị điều chỉnh, 1/2/6 → Đã phát hành), chưa thấy trên REST.
+- Email người mua: tài liệu DLL có `<Email>`/`<EmailCC>` (cần `CusCode`) — chưa gửi, chưa thử. CCCD vẫn chưa rõ thẻ.
+- Form Cấu hình gốc có **App ID**, **Tính thuế theo dịch vụ**, **Tính thuế theo kỳ**: BlueDental lưu cả ba nhưng không
+  dùng — chưa biết bản gốc dùng chúng làm gì (thuế đang chọn theo từng dòng trong hộp thoại HĐ: CX / KCT).
+- Đổi tài khoản chi nhánh khi còn nháp ở tài khoản cũ: nháp cũ nằm lại portal cũ (BlueDental không xoá được — không có API xoá nháp).
+
+Action taken: NONE (ghi lại; không gọi gì lên production).

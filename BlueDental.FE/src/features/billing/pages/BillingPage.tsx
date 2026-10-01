@@ -2,14 +2,19 @@ import { useState } from "react";
 import { Button, Empty, Input, Select, Spin, Table, Tag } from "antd";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
+import { toast } from "sonner";
 import {
-  INVOICE_STATUS,
   invoiceStatusConfig,
   useInvoiceList,
+  useIssueInvoice,
+  useVoidInvoice,
   type InvoiceDto,
   type InvoiceStatus,
 } from "../api";
+import { InvoiceRowActions } from "../components/InvoiceRowActions";
 import { PaymentModal } from "../components/PaymentModal";
+import { VoidInvoiceDialog } from "../components/VoidInvoiceDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -21,16 +26,7 @@ import { notifyError } from "@/lib/notify";
 import { formatDate, formatVND } from "@/utils/format";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
-
-/** An invoice that is still owed money and may still be collected against. */
-function isCollectable(row: InvoiceDto): boolean {
-  return (
-    row.balanceDue > 0 &&
-    row.status !== INVOICE_STATUS.Voided &&
-    row.status !== INVOICE_STATUS.Draft &&
-    row.status !== INVOICE_STATUS.Refunded
-  );
-}
+import "../components/billing.css";
 
 /**
  * Thanh toán & hoá đơn.
@@ -47,6 +43,33 @@ export function BillingPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [paying, setPaying] = useState<InvoiceDto | null>(null);
+  const [issuing, setIssuing] = useState<InvoiceDto | null>(null);
+  const [voiding, setVoiding] = useState<InvoiceDto | null>(null);
+  const issueInvoice = useIssueInvoice();
+  const voidInvoice = useVoidInvoice();
+
+  const handleIssue = () => {
+    if (!issuing) return;
+    issueInvoice.mutate(issuing.id, {
+      onSuccess: () => {
+        toast.success(t("Billing:IssuedToast", issuing.invoiceNumber));
+        setIssuing(null);
+      },
+    });
+  };
+
+  const handleVoid = (reason: string) => {
+    if (!voiding) return;
+    voidInvoice.mutate(
+      { id: voiding.id, reason },
+      {
+        onSuccess: () => {
+          toast.success(t("Billing:VoidedToast", voiding.invoiceNumber));
+          setVoiding(null);
+        },
+      },
+    );
+  };
 
   const listParams = {
     branchId,
@@ -155,19 +178,18 @@ export function BillingPage() {
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 158,
+      width: 200,
       fixed: "right",
-      render: (_: unknown, row) =>
-        ability.canCreate ? (
-          <Button
-            size="small"
-            type="primary"
-            disabled={!isCollectable(row)}
-            onClick={() => setPaying(row)}
-          >
-            {t("Billing:CollectPayment")}
-          </Button>
-        ) : null,
+      render: (_: unknown, row) => (
+        <InvoiceRowActions
+          invoice={row}
+          canCollect={ability.canCreate}
+          canUpdate={ability.canUpdate}
+          onCollect={setPaying}
+          onIssue={setIssuing}
+          onVoid={setVoiding}
+        />
+      ),
     },
   ];
 
@@ -264,6 +286,24 @@ export function BillingPage() {
         open={paying !== null}
         invoice={paying}
         onClose={() => setPaying(null)}
+      />
+
+      <ConfirmDialog
+        open={issuing !== null}
+        title={t("Billing:IssueTitle", issuing?.invoiceNumber ?? "")}
+        message={t("Billing:IssueBody")}
+        confirmLabel={t("Billing:Issue")}
+        pending={issueInvoice.isPending}
+        onConfirm={handleIssue}
+        onClose={() => setIssuing(null)}
+      />
+
+      <VoidInvoiceDialog
+        open={voiding !== null}
+        invoiceNumber={voiding?.invoiceNumber ?? ""}
+        pending={voidInvoice.isPending}
+        onConfirm={handleVoid}
+        onClose={() => setVoiding(null)}
       />
     </div>
   );

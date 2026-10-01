@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.EInvoicing;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
@@ -48,6 +49,7 @@ public class OperationsReportAppService(
     IRepository<TreatmentStage, Guid> stageRepository,
     IRepository<PatientPayment, Guid> paymentRepository,
     IRepository<Invoice, Guid> invoiceRepository,
+    IRepository<ElectronicInvoice, Guid> electronicInvoiceRepository,
     IRepository<Appointment, Guid> appointmentRepository,
     IRepository<Patient, Guid> patientRepository,
     IRepository<CatalogEntry, Guid> catalogRepository,
@@ -518,6 +520,12 @@ public class OperationsReportAppService(
             .Where(i => InScope(branchIds, i.BranchId))
             .ToList();
 
+        var electronicInvoices = (await electronicInvoiceRepository.GetListAsync())
+            .Where(i => InScope(branchIds, i.ClinicBranchId) && Within(i.CreationTime, window))
+            .ToList();
+
+        // Legacy billing invoices record no payment method, so none is shown
+        // rather than a guessed one; e-invoices carry what was sent.
         var rows = invoices
             .Where(i => Within(i.CreationTime, window))
             .Select(i => new InvoiceReportRowDto
@@ -526,9 +534,7 @@ public class OperationsReportAppService(
                 InvoiceNumber = i.InvoiceNumber,
                 PatientName = patients.GetValueOrDefault(i.PatientId)?.Name ?? string.Empty,
                 UnitName = branches.GetValueOrDefault(i.BranchId, string.Empty),
-                // The reference shows how the invoice was settled; an unpaid one
-                // has not been settled any way yet.
-                PaymentMethod = i.PaidAmount.Amount > 0 ? L["BE:PaymentKind:Cash"].Value : string.Empty,
+                PaymentMethod = string.Empty,
                 IssueStatus = i.Status == InvoiceStatus.Draft ? L["BE:Report:NotInvoiced"].Value : L["BE:Report:Invoiced"].Value,
                 Status = i.Status.ToString(),
                 SubTotal = i.SubTotal.Amount,
@@ -536,6 +542,20 @@ public class OperationsReportAppService(
                 TotalAmount = i.TotalAmount.Amount,
                 Supplier = null
             })
+            .Concat(electronicInvoices.Select(i => new InvoiceReportRowDto
+            {
+                CreatedAt = i.CreationTime,
+                InvoiceNumber = i.No ?? string.Empty,
+                PatientName = patients.GetValueOrDefault(i.PatientId)?.Name ?? i.CustomerName,
+                UnitName = branches.GetValueOrDefault(i.ClinicBranchId, string.Empty),
+                PaymentMethod = i.PaymentMethod,
+                IssueStatus = i.Status is ElectronicInvoiceStatus.Draft or ElectronicInvoiceStatus.Cancelled ? L["BE:Report:NotInvoiced"].Value : L["BE:Report:Invoiced"].Value,
+                Status = i.Status.ToString(),
+                SubTotal = i.Total,
+                TaxAmount = i.TaxAmount,
+                TotalAmount = i.Amount,
+                Supplier = i.Provider
+            }))
             .OrderByDescending(r => r.CreatedAt)
             .ToList();
 

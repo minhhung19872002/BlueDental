@@ -176,7 +176,7 @@ public class InvoiceAppService : BlueDentalAppService, IInvoiceAppService
     }
 
     /// <summary>"BE:Common:ExportExcel" on the Thanh toán screen.</summary>
-    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Export)]
     public async Task<byte[]> ExportAsync(GetInvoiceListInput input)
     {
         var page = await GetListAsync(new GetInvoiceListInput

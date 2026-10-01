@@ -1,22 +1,32 @@
 import { t } from "@/lib/i18n";
-import type { InvoiceTemplate, InvoicePaymentMethod } from "./invoiceTypes";
-
-export const INVOICE_TEMPLATES: InvoiceTemplate[] = [
-  { id: "01GTKT0", label: "Treatment:Invoice:Template01", symbol: "MAU_01GTK" },
-  { id: "02GTTT0", label: "Treatment:Invoice:Template02", symbol: "MAU_02GTT" },
-];
+import { EINVOICE_PAYMENT_METHOD } from "../api/eInvoiceApi";
+import type { InvoicePaymentMethod, InvoiceTaxType } from "./invoiceTypes";
 
 export const invoicePaymentOptions = (): { value: InvoicePaymentMethod; label: string }[] => [
-  { value: "cash", label: t("Treatment:Payment:Cash") },
-  { value: "transfer", label: t("Treatment:Payment:BankTransfer") },
+  { value: EINVOICE_PAYMENT_METHOD.Cash, label: t("Treatment:Payment:Cash") },
+  { value: EINVOICE_PAYMENT_METHOD.Transfer, label: t("Treatment:Payment:BankTransfer") },
 ];
 
-export const TAX_TYPE_OPTIONS = (): { value: string; label: string }[] => [
+export const TAX_TYPE_OPTIONS = (): { value: InvoiceTaxType; label: string }[] => [
   { value: "CX", label: t("Treatment:Invoice:NotIssued") },
   { value: "KCT", label: t("Treatment:Invoice:TaxExempt") },
 ];
 
-export const DEFAULT_TAX_TYPE = "CX";
-export const DEFAULT_UNIT_KEY = "Treatment:Invoice:UnitTooth";
+export const DEFAULT_TAX_TYPE: InvoiceTaxType = "CX";
+/** The fields stay editable; the server refuses anything but VND at rate 1. */
 export const DEFAULT_CURRENCY = "VND";
 export const DEFAULT_EXCHANGE_RATE = 1;
+
+/** -1 = KCT; null = the account's default rate (CX). */
+export function vatRateOf(taxType: InvoiceTaxType): number | null {
+  return taxType === "KCT" ? -1 : null;
+}
+
+export function vatRateLabel(rate: number): string {
+  return rate < 0 ? t("Treatment:Invoice:TaxExempt") : `${rate}%`;
+}
+
+/** Same rounding as the server's Vnd.Round: whole đồng. */
+export function taxOf(base: number, rate: number): number {
+  return rate > 0 ? Math.round((base * rate) / 100) : 0;
+}

@@ -4,6 +4,7 @@ using System.Linq;
 using Autofac;
 using Autofac.Core;
 using BlueDental.Catalogs;
+using BlueDental.EInvoicing;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,6 +37,8 @@ public class ApplicationServiceInterceptionTests
     [InlineData(typeof(IDentalProcedureAppService))]
     [InlineData(typeof(IPatientAppService))]
     [InlineData(typeof(IClinicBranchAppService))]
+    [InlineData(typeof(IElectronicInvoiceAppService))]
+    [InlineData(typeof(IEInvoiceConfigAppService))]
     public void Application_Services_Should_Sit_Behind_The_Authorization_Interceptor(Type serviceType)
     {
         using var application = AbpApplicationFactory.Create<BlueDentalApplicationModule>(options => options.UseAutofac());

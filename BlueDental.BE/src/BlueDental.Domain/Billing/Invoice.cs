@@ -91,8 +91,14 @@ public class Invoice : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    public Invoice Void(string? reason = null)
+    /// <summary>Voiding needs a reason, and a settled or already closed invoice cannot be voided.</summary>
+    public Invoice Void(string reason)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.VoidReasonRequired);
+        }
+
         if (Status == InvoiceStatus.Paid)
         {
             throw new BusinessException(
@@ -100,8 +106,15 @@ public class Invoice : FullAuditedAggregateRoot<Guid>
                 "Cannot void an already paid invoice. Consider issuing a refund.");
         }
 
+        if (Status is InvoiceStatus.Voided or InvoiceStatus.Refunded)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition,
+                $"Cannot void an invoice with status {Status}.");
+        }
+
         Status = InvoiceStatus.Voided;
-        Notes = reason;
+        Notes = reason.Trim();
         return this;
     }
 

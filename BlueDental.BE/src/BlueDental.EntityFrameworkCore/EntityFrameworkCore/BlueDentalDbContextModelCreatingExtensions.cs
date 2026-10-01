@@ -1484,11 +1484,32 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Amount).HasPrecision(18, 2);
             entity.Property(x => x.CustomerName).HasMaxLength(ElectronicInvoice.MaxCustomerNameLength);
             entity.Property(x => x.LastError).HasMaxLength(ElectronicInvoice.MaxErrorLength);
+            entity.Property(x => x.PaymentMethod).HasMaxLength(ElectronicInvoice.MaxPaymentMethodLength).IsRequired();
 
             entity.HasIndex(x => x.Ikey).IsUnique();
             entity.HasIndex(x => x.PatientPaymentId).IsUnique().HasFilter("\"IsDeleted\" = false");
             entity.HasIndex(x => x.ClinicBranchId);
             entity.HasIndex(x => x.PatientId);
+            entity.HasIndex(x => x.TreatmentPlanId);
+        });
+
+        builder.Entity<EInvoiceProviderConfig>(entity =>
+        {
+            entity.ToTable("bd_einvoice_provider_configs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(EInvoiceProviderConfig.MaxNameLength).IsRequired();
+            entity.Property(x => x.Provider).HasMaxLength(ElectronicInvoice.MaxProviderLength).IsRequired();
+            entity.Property(x => x.AppId).HasMaxLength(EInvoiceProviderConfig.MaxAppIdLength);
+            entity.Property(x => x.Username).HasMaxLength(EInvoiceProviderConfig.MaxUsernameLength).IsRequired();
+            entity.Property(x => x.PasswordCipher).HasMaxLength(EInvoiceProviderConfig.MaxPasswordCipherLength).IsRequired();
+            entity.Property(x => x.TaxCode).HasMaxLength(EInvoiceProviderConfig.MaxTaxCodeLength).IsRequired();
+            entity.Property(x => x.LastPattern).HasMaxLength(ElectronicInvoice.MaxPatternLength);
+            entity.Property(x => x.LastSerial).HasMaxLength(ElectronicInvoice.MaxSerialLength);
+            entity.HasIndex(x => x.ClinicBranchId);
+            // One active account per branch; inactive and deleted ones may pile up.
+            entity.HasIndex(x => x.ClinicBranchId, "IX_bd_einvoice_provider_configs_ClinicBranchId_Active")
+                .IsUnique()
+                .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false");
         });
     }
 }

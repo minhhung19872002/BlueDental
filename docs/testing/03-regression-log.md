@@ -6215,3 +6215,50 @@ Kiểm chứng (full stack thật, không chặn request), trên :8080 **và** :
 - `patient-appointment`, `treatment-stage-chain`, `consulting-delete-and-picker` xanh.
 
 Mỗi tab của hồ sơ bệnh nhân đo lại còn đúng một khung cuộn. Retest level **3**: bố cục `.pd-page` dùng chung cho mọi tab của hồ sơ.
+
+## 2026-10-01 — Hóa đơn: rà soát toàn bộ + cấu hình theo chi nhánh (R-634 … R-638)
+
+Chủ dự án yêu cầu sau buổi rà soát các chỗ xử lý hóa đơn. Tính năng riêng của BlueDental, không đo từ bản gốc.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-634 | Chỉ có một tài khoản EasyInvoice cho toàn hệ thống (appsettings). | Bảng `EInvoiceBranchConfigs` + `api/v1/app/e-invoice-configs`; màn Công cụ › Hóa đơn › Cấu hình chuyển từ dữ liệu giả sang API thật. Chọn tài khoản: cấu hình active của chi nhánh → appsettings → `EInvoicing:0001`. |
+| R-635 | Mật khẩu nhà cung cấp có thể lộ qua API cấu hình. | DTO chỉ trả `hasPassword`; PUT với mật khẩu rỗng giữ mật khẩu cũ. Spec kiểm cả response lẫn danh sách không chứa mật khẩu. |
+| R-636 | Billing: Huỷ hoá đơn không cần lý do (trái quy tắc "Voided: phải có lý do"). | `Invoice.Void(reason)` từ chối lý do rỗng (`Billing:0008`), lý do lưu vào `Notes`; `VoidInvoiceDto.Reason` `[Required]`. Thêm `VoidInvoiceDialog`. |
+| R-637 | Billing: hóa đơn Nháp không có cách chuyển sang Đã phát hành, nên không thu tiền được. | Nút "Phát hành" (Draft → Issued, nội bộ — **không** liên quan EasyInvoice) + ConfirmDialog; hành động dòng tách ra `InvoiceRowActions`. |
+| R-638 | Locator Playwright `getByLabel("Tên")` không khớp FloatingField bắt buộc. | Tên accessible của ô bắt buộc có hậu tố ` *` → dùng `getByRole("textbox", { name: "Tên *", exact: true })`. |
+
+Kiểm chứng (full stack thật, không chặn request) trên build production :8080: `einvoice-api.spec.ts` 5/5,
+`treatment-plan-detail.spec.ts` + `payment-qr.spec.ts` 16/16. BE: Domain Billing 18/18 (thêm `InvoiceVoidTests`).
+Retest level **3** (Billing dùng chung với báo cáo, InvoiceModal nằm trong Chi tiết kế hoạch).
+
+## 2026-10-01 (2) — Hóa đơn: giữ UI cũ, tài liệu DLL EasyInvoice (R-639 … R-643)
+
+Chủ dự án: "logic có thể đổi nhưng UI/form vẫn như cũ", rồi đưa tài liệu tích hợp DLL (Scribd, không chính thức).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-639 | Vòng trước đổi lớn UI InvoiceModal (Spin, khối thông báo, bỏ ô Mẫu/Ký hiệu/Tiền tệ) và form Cấu hình (URL, mẫu, VAT). | Trả UI về bản cũ. Form Cấu hình giữ đúng trường gốc (App ID, 2 switch thuế lưu nhưng chưa dùng); URL/VAT từ appsettings. Mẫu/Ký hiệu nhập ở hộp thoại HĐ, server nhớ cặp gần nhất (`LastPattern/LastSerial`, `draft.numberings`). Tiền tệ/Tỷ giá sửa được nhưng chỉ phát hành VND tỷ giá 1 (`0015`). Giữ: ConfirmDialog Phát Hành, EInvoiceBadge, Phát hành/Huỷ ở Billing, xác nhận xoá cấu hình. |
+| R-640 | e2e cấu hình trả 500 "column AppId … does not exist". | Migration `EInvoiceConfigOriginalForm` đã thêm nhưng DB local chưa chạy. `dotnet build` DbMigrator rồi `dotnet run --no-build` — chạy `--no-build` trên dll cũ sẽ bỏ qua migration mới. |
+| R-641 | Mọi HĐ đã có số đều hiện "Đã phát hành", kể cả HĐ đã hủy/thay thế ở nhà cung cấp. | Ánh xạ `InvoiceStatus` theo tài liệu DLL: 5 → Đã hủy, 3 → Bị thay thế, 4 → Bị điều chỉnh (enum mới 3/4 + nhãn vi/en), 1/2/6 → Đã phát hành, chưa có số → Nháp. Báo cáo coi HĐ đã hủy là "chưa xuất". Mã 2–6 chưa thấy trên REST. |
+| R-642 | Tên dịch vụ > 300 ký tự sẽ bị nhà cung cấp từ chối với lỗi khó hiểu. | `ElectronicInvoiceDraft.MaxLineNameLength = 300`, từ chối trước khi gọi (`EInvoicing:0005` kèm lý do). |
+| R-643 | Thiếu tài liệu chính thức cho hủy/thay thế/điều chỉnh. | Ghi khung từ tài liệu DLL vào `docs/clone/integrations/easyinvoice.md` (đánh dấu chưa kiểm chứng). Chưa làm chức năng — cần HĐ đã ký, sandbox không có HSM. |
+
+Kiểm chứng: Domain `ElectronicInvoiceTests` 21/21 (thêm 9 ca ánh xạ trạng thái + giới hạn 300 ký tự), toàn bộ filter EInvoicing 51/51. tsc sạch.
+Build production (:8080, host :5000, DB thật, không chặn request): `einvoice-api` 5/5, `treatment-plan-detail` + `payment-qr` 16/16 (tổng 21/21).
+Retest level **2** (trong tính năng F-46; báo cáo vận hành chỉ đổi cách đọc trạng thái).
+
+## 2026-10-01 (3) — Hóa đơn: rà soát toàn bộ lần cuối (R-644 … R-649)
+
+Chủ dự án: "check kỹ toàn bộ … chạy 100%". Rà lại mọi luồng xuất hóa đơn, chạy lại toàn bộ test.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-644 | Phiếu điều trị đã xuất cả phiếu rồi HĐ bị **hủy** ở nhà cung cấp vẫn chặn xuất theo phiếu thu (`0012`), và ngược lại. | Điều kiện chặn đưa vào domain `ElectronicInvoice.BillsSlipOtherWay(planId, wholeSlip)`, bỏ qua HĐ `Cancelled`. Domain test `A_Slip_Billed_One_Way_Blocks_The_Other_Way_Until_That_Invoice_Is_Cancelled`. |
+| R-645 | Nút "Xuất HĐ" ở dòng phiếu thu vẫn hiện khi server chắc chắn từ chối (HĐ của phiếu thu đã ký, hoặc phiếu điều trị đã xuất cả phiếu) → bấm mới thấy lỗi. | `isReceiptInvoiceable` (FE, phản chiếu `0004`/`0012`) → `canIssueInvoice` ở `paymentColumns` + `PaymentCardList`. Chưa tải danh sách thì để server quyết. Không đổi UI khác. |
+| R-646 | Kiểm toán báo controller HĐĐT thiếu `[Authorize(permission)]`. | Báo động giả: quyền nằm ở AppService, controller chỉ cần `[Authorize]` (R-401). Chứng minh bằng `ApplicationServiceInterceptionTests` thêm `IElectronicInvoiceAppService`, `IEInvoiceConfigAppService`. |
+| R-647 | `treatment-plan.spec.ts:199` đỏ: hộp thoại HĐ của cả phiếu ra dòng "Thanh toán phiếu điều trị DT09 … Lần" thay vì "Kế hoạch điều trị DT09". | Vòng trước chuyển dòng mặc định sang server (`draft.lines`) và đổi cách tách dòng cho cả phiếu. Trả về đúng bản gốc (đo 2026-09-21): cả phiếu = **một** dòng "Kế hoạch điều trị {mã}", ĐVT "Răng", SL 1, đơn giá = Thành tiền. Phiếu thu vẫn tách theo dịch vụ. Bỏ `SlipParts`. |
+| R-648 | ESLint `no-useless-assignment` ở `einvoice-api.spec.ts`. | `let body: unknown;`. 3 lỗi "rule react-hooks/exhaustive-deps not found" còn lại là comment có sẵn ở HEAD (config chưa nạp plugin) — không thuộc phạm vi. |
+| R-649 | 51 e2e đỏ ở consulting-plan (12), operations-reports (8), operations (2), patient (27), report (1), routes (1) — nghi do thay đổi hóa đơn. | **Không phải.** Chạy cùng 6 spec trên bản HEAD sạch (`git archive`, BE+FE build riêng, cùng DB): đúng 51 test đó cũng đỏ, danh sách trùng 100%. Nguyên nhân có sẵn: consulting-plan dùng BN cứng `3a238cc0…` không có trong seed local (R-590); operations/report lệch UI (thiếu tab kỳ "Ngày", heading "Báo cáo khách hàng phát sinh"); host không có lỗi 500. Cần xử lý riêng, ngoài phạm vi hóa đơn. |
+
+Kết quả: BE build 0 lỗi 0 cảnh báo; BE test 1271/1271 (Domain 535, Application 653, EF 60, Host 23); FE `tsc` sạch; Vitest 3/3; e2e hóa đơn + liên quan (`einvoice-api`, `payment-qr`, `treatment-plan-detail`, `treatment-plan`) 30/30 trên bản build production, API thật, không chặn request.

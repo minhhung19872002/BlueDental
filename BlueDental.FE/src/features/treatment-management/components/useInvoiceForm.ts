@@ -1,42 +1,66 @@
 import { useState, useCallback, useEffect } from "react";
 import dayjs, { type Dayjs } from "dayjs";
-import type { PatientDto } from "@/features/patient-management/types/patient";
-import type { TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
-import type { InvoiceServiceRow, InvoicePaymentMethod } from "./invoiceTypes";
-import { t } from "@/lib/i18n";
 import {
-  INVOICE_TEMPLATES,
-  DEFAULT_TAX_TYPE,
-  DEFAULT_UNIT_KEY,
+  EINVOICE_PAYMENT_METHOD,
+  type ElectronicInvoiceDraftDto,
+  type ElectronicInvoiceLineInput,
+} from "../api/eInvoiceApi";
+import type { InvoicePaymentMethod, InvoiceServiceRow, InvoiceTaxType } from "./invoiceTypes";
+import {
   DEFAULT_CURRENCY,
   DEFAULT_EXCHANGE_RATE,
+  DEFAULT_TAX_TYPE,
+  taxOf,
+  vatRateLabel,
+  vatRateOf,
 } from "./invoiceConstants";
 
-/**
- * The reception's "Hóa đơn" bills the slip, not its services: the reference
- * hands the dialog a single line called "Kế hoạch điều trị DT32", quantity 1,
- * priced at the slip's Thành tiền (measured 2026-09-21, and confirmed against
- * its own row adapter).
- */
-function buildPlanRow(plan: TreatmentPlanSlipDto): InvoiceServiceRow {
-  const amount = plan.payment.totalPrice;
-  return {
-    key: `invoice-${plan.id}`,
-    stt: 1,
-    serviceName: t("Treatment:Plan:ServiceName", plan.code),
-    taxType: DEFAULT_TAX_TYPE,
-    unit: t(DEFAULT_UNIT_KEY),
-    quantity: 1,
-    unitPrice: amount,
-    taxBasePrice: amount,
-    taxPercent: DEFAULT_TAX_TYPE,
-    taxAmount: 0,
-    totalAfterTax: amount,
-    selected: true,
-  };
+/** A line priced and taxed under the chosen type; CX falls back to the account's rate. */
+function priced(row: InvoiceServiceRow, defaultVatRate: number): InvoiceServiceRow {
+  const rate = vatRateOf(row.taxType) ?? defaultVatRate;
+  const taxBasePrice = Math.round(row.unitPrice * row.quantity);
+  const taxAmount = taxOf(taxBasePrice, rate);
+  return { ...row, taxBasePrice, taxAmount, taxPercent: vatRateLabel(rate), totalAfterTax: taxBasePrice + taxAmount };
 }
 
-export function useInvoiceForm(open: boolean, patient: PatientDto, plan: TreatmentPlanSlipDto) {
+function rowsOf(draft: ElectronicInvoiceDraftDto): InvoiceServiceRow[] {
+  return draft.lines.map((line, index) =>
+    priced(
+      {
+        key: `${line.code}-${index}`,
+        stt: index + 1,
+        code: line.code,
+        serviceName: line.name,
+        taxType: DEFAULT_TAX_TYPE,
+        unit: line.unit,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        taxBasePrice: 0,
+        taxPercent: "",
+        taxAmount: 0,
+        totalAfterTax: 0,
+        selected: true,
+      },
+      draft.defaultVatRate,
+    ),
+  );
+}
+
+const blankToNull = (value: string): string | null => (value.trim() === "" ? null : value.trim());
+
+/** The original offers only Tiền mặt / Chuyển khoản; a mixed receipt starts on cash. */
+const offeredMethod = (method: InvoicePaymentMethod): InvoicePaymentMethod =>
+  method === EINVOICE_PAYMENT_METHOD.Transfer ? method : EINVOICE_PAYMENT_METHOD.Cash;
+
+/** "1", "1,5" or "1.5"; blank means 1, unreadable goes as 0 so the server refuses it. */
+function parseRate(value: string): number | null {
+  if (value.trim() === "") return null;
+  const rate = Number(value.trim().replace(",", "."));
+  return Number.isNaN(rate) ? 0 : rate;
+}
+
+/** The dialog's editable state, seeded from the server draft each time it arrives. */
+export function useInvoiceForm(draft: ElectronicInvoiceDraftDto | undefined) {
   const [customerName, setCustomerName] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -44,39 +68,43 @@ export function useInvoiceForm(open: boolean, patient: PatientDto, plan: Treatme
   const [taxCode, setTaxCode] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [templateId, setTemplateId] = useState(INVOICE_TEMPLATES[0].id);
-  const [invoiceDate, setInvoiceDate] = useState<Dayjs>(dayjs());
-  const [paymentMethod, setPaymentMethod] = useState<InvoicePaymentMethod>("cash");
-  const [serviceRows, setServiceRows] = useState<InvoiceServiceRow[]>([]);
-
-  useEffect(() => {
-    if (open) {
-      setCustomerName(patient.fullName);
-      setNationalId(patient.nationalId ?? "");
-      setCompanyName("");
-      setAddress(patient.address ?? "-");
-      setTaxCode("");
-      setEmail(patient.email ?? "-");
-      setPhone(patient.phoneNumber ?? "");
-      setTemplateId(INVOICE_TEMPLATES[0].id);
-      setTemplateSymbol(INVOICE_TEMPLATES[0].symbol);
-      setCurrency(DEFAULT_CURRENCY);
-      setExchangeRate(String(DEFAULT_EXCHANGE_RATE));
-      setInvoiceDate(dayjs());
-      setPaymentMethod("cash");
-      setServiceRows([buildPlanRow(plan)]);
-    }
-  }, [open, patient, plan]);
-
+  const [templateId, setTemplateId] = useState("");
   const [templateSymbol, setTemplateSymbol] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState<Dayjs>(dayjs());
+  const [paymentMethod, setPaymentMethod] = useState<InvoicePaymentMethod>(EINVOICE_PAYMENT_METHOD.Cash);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [exchangeRate, setExchangeRate] = useState(String(DEFAULT_EXCHANGE_RATE));
+  const [serviceRows, setServiceRows] = useState<InvoiceServiceRow[]>([]);
+  const defaultVatRate = draft?.defaultVatRate ?? -1;
 
-  const handleTemplateChange = useCallback((id: string) => {
-    setTemplateId(id);
-    const tpl = INVOICE_TEMPLATES.find((t) => t.id === id);
-    if (tpl) setTemplateSymbol(tpl.symbol);
-  }, []);
+  useEffect(() => {
+    if (!draft) return;
+    setCustomerName(draft.buyerName);
+    setNationalId(draft.nationalId ?? "");
+    setCompanyName("");
+    setAddress(draft.address ?? "");
+    setTaxCode("");
+    setEmail(draft.email ?? "");
+    setPhone(draft.phone ?? "");
+    setTemplateId(draft.pattern ?? "");
+    setTemplateSymbol(draft.serial ?? "");
+    setInvoiceDate(dayjs());
+    setPaymentMethod(offeredMethod(draft.paymentMethod));
+    setCurrency(DEFAULT_CURRENCY);
+    setExchangeRate(String(DEFAULT_EXCHANGE_RATE));
+    setServiceRows(rowsOf(draft));
+  }, [draft]);
+
+  /** Picking a Mẫu the branch used fills its Ký hiệu; a new one keeps what is typed. */
+  const handleTemplateChange = useCallback(
+    (pattern: string) => {
+      setTemplateId(pattern);
+      const known = draft?.numberings.find((n) => n.pattern === pattern);
+      if (known) setTemplateSymbol(known.serial ?? "");
+    },
+    [draft],
+  );
+
   const handleDateChange = useCallback((d: Dayjs | null) => {
     if (d) setInvoiceDate(d);
   }, []);
@@ -84,8 +112,7 @@ export function useInvoiceForm(open: boolean, patient: PatientDto, plan: Treatme
   const allSelected = serviceRows.length > 0 && serviceRows.every((r) => r.selected);
 
   const handleToggleAll = useCallback(
-    (checked: boolean) =>
-      setServiceRows((prev) => prev.map((r) => ({ ...r, selected: checked }))),
+    (checked: boolean) => setServiceRows((prev) => prev.map((r) => ({ ...r, selected: checked }))),
     [],
   );
 
@@ -95,27 +122,50 @@ export function useInvoiceForm(open: boolean, patient: PatientDto, plan: Treatme
     [],
   );
 
-  const handleTaxTypeChange = useCallback((key: string, taxType: string) => {
-    setServiceRows((prev) =>
-      prev.map((r) => (r.key === key ? { ...r, taxType, taxPercent: taxType } : r)),
-    );
-  }, []);
+  /** One rate per invoice: the provider refuses mixed ones, so it applies to every line. */
+  const handleTaxTypeChange = useCallback(
+    (_key: string, taxType: InvoiceTaxType) =>
+      setServiceRows((prev) => prev.map((r) => priced({ ...r, taxType }, defaultVatRate))),
+    [defaultVatRate],
+  );
 
-  const handleUnitPriceChange = useCallback((key: string, price: number | undefined) => {
-    setServiceRows((prev) =>
-      prev.map((r) => {
-        if (r.key !== key) return r;
-        const unitPrice = price ?? 0;
-        const taxBasePrice = unitPrice * r.quantity;
-        return { ...r, unitPrice, taxBasePrice, totalAfterTax: taxBasePrice };
-      }),
-    );
-  }, []);
+  const handleUnitPriceChange = useCallback(
+    (key: string, price: number | undefined) =>
+      setServiceRows((prev) =>
+        prev.map((r) => (r.key === key ? priced({ ...r, unitPrice: price ?? 0 }, defaultVatRate) : r)),
+      ),
+    [defaultVatRate],
+  );
 
   const selected = serviceRows.filter((r) => r.selected);
-  const totalAmount = selected.reduce((sum, r) => sum + r.totalAfterTax, 0);
+  const totalBeforeTax = selected.reduce((sum, r) => sum + r.taxBasePrice, 0);
   const totalTax = selected.reduce((sum, r) => sum + r.taxAmount, 0);
-  const grandTotal = totalAmount;
+
+  const buildLines = (): ElectronicInvoiceLineInput[] =>
+    selected.map((r) => ({
+      code: r.code,
+      name: r.serviceName,
+      unit: r.unit,
+      quantity: r.quantity,
+      unitPrice: r.unitPrice,
+      vatRate: vatRateOf(r.taxType),
+    }));
+
+  const buildBuyer = () => ({
+    buyerName: blankToNull(customerName),
+    companyName: blankToNull(companyName),
+    address: blankToNull(address),
+    taxCode: blankToNull(taxCode),
+    phone: blankToNull(phone),
+    email: blankToNull(email),
+    nationalId: blankToNull(nationalId),
+    arisingDate: invoiceDate.format("YYYY-MM-DD"),
+    paymentMethod,
+    pattern: blankToNull(templateId),
+    serial: blankToNull(templateSymbol),
+    currency: blankToNull(currency),
+    exchangeRate: parseRate(exchangeRate),
+  });
 
   return {
     customerName,
@@ -150,8 +200,10 @@ export function useInvoiceForm(open: boolean, patient: PatientDto, plan: Treatme
     onToggleRow: handleToggleRow,
     onTaxTypeChange: handleTaxTypeChange,
     onUnitPriceChange: handleUnitPriceChange,
-    totalAmount,
+    totalBeforeTax,
     totalTax,
-    grandTotal,
+    grandTotal: totalBeforeTax + totalTax,
+    buildLines,
+    buildBuyer,
   };
 }

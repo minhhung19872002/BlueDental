@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { TableColumnsType } from "antd";
 import { Eye, FileText, Pencil, Trash2 } from "lucide-react";
 import type { RecordCardRow } from "@/components/RecordCard";
@@ -37,8 +38,22 @@ export interface PaymentRowActions {
   onEdit?: (payment: PatientPaymentDto) => void;
   /** Left out when the user may not void a receipt (payment.delete). */
   onCancel?: (payment: PatientPaymentDto) => void;
-  /** Left out when e-invoicing is not configured or the user cannot finalize. */
+  /** Left out when the user cannot finalize (payment.finalize). */
   onIssueInvoice?: (payment: PatientPaymentDto) => void;
+  /** False for a receipt the server would refuse to invoice again. */
+  canIssueInvoice?: (payment: PatientPaymentDto) => boolean;
+  /** The receipt's e-invoice badge, when it has one. */
+  renderEInvoice?: (payment: PatientPaymentDto) => ReactNode;
+}
+
+/** "Hoàn tất", with the receipt's e-invoice underneath when one was filed. */
+function statusCell(payment: PatientPaymentDto, renderEInvoice?: (payment: PatientPaymentDto) => ReactNode) {
+  return (
+    <span className="pdt-status-cell">
+      <StatusPill />
+      {renderEInvoice?.(payment)}
+    </span>
+  );
 }
 
 /**
@@ -83,7 +98,7 @@ function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
           </button>
         </ActionTooltip>
       )}
-      {actions.onIssueInvoice && (
+      {actions.onIssueInvoice && actions.canIssueInvoice?.(payment) !== false && (
         <ActionTooltip title={t("Treatment:EInvoice:Issue")}>
           <button
             type="button"
@@ -113,7 +128,7 @@ export function buildPaymentColumns(
     { key: "amount", title: t("Treatment:Payment:Payment"), width: 160, align: "right", render: (_, p) => moneyText(p.amount) },
     { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 230, render: (_, p) => methods[p.method] },
     { key: "note", title: t("Treatment:Common:Note"), width: 180, render: (_, p) => dash(p.note) },
-    { key: "status", title: t("Common:Status"), width: 160, render: () => <StatusPill /> },
+    { key: "status", title: t("Common:Status"), width: 200, render: (_, p) => statusCell(p, actions.renderEInvoice) },
     {
       key: "actions",
       title: t("Common:Actions"),
@@ -126,7 +141,11 @@ export function buildPaymentColumns(
 }
 
 /** The same receipt as card rows: four visible, the rest behind "Xem thêm". */
-export function paymentCardRows(payment: PatientPaymentDto, plan: TreatmentPlanSlipDto) {
+export function paymentCardRows(
+  payment: PatientPaymentDto,
+  plan: TreatmentPlanSlipDto,
+  renderEInvoice?: (payment: PatientPaymentDto) => ReactNode,
+) {
   const methods = paymentMethodLabels();
   const rows: RecordCardRow[] = [
     { key: "code", label: t("Treatment:Payment:PaymentCode"), value: payment.code },
@@ -138,7 +157,7 @@ export function paymentCardRows(payment: PatientPaymentDto, plan: TreatmentPlanS
     { key: "amount", label: t("Treatment:Payment:Payment"), value: moneyText(payment.amount) },
     { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methods[payment.method] },
     { key: "note", label: t("Treatment:Common:Note"), value: dash(payment.note) },
-    { key: "status", label: t("Common:Status"), value: <StatusPill /> },
+    { key: "status", label: t("Common:Status"), value: statusCell(payment, renderEInvoice) },
   ];
   return { rows, moreRows };
 }

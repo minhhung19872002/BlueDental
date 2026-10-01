@@ -2141,6 +2141,113 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_care_records", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.EInvoicing.EInvoiceProviderConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("LastPattern")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("LastSerial")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PasswordCipher")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("TaxByPeriod")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("TaxByService")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TaxCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId");
+
+                    b.HasIndex(new[] { "ClinicBranchId" }, "IX_bd_einvoice_provider_configs_ClinicBranchId_Active")
+                        .IsUnique()
+                        .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false");
+
+                    b.ToTable("bd_einvoice_provider_configs", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.EInvoicing.ElectronicInvoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2149,6 +2256,9 @@ namespace BlueDental.Migrations
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("ArisingDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
@@ -2227,7 +2337,7 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("PatientPaymentId")
+                    b.Property<Guid?>("PatientPaymentId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Pattern")
@@ -2235,10 +2345,18 @@ namespace BlueDental.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ProviderConfigId")
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("ProviderStatus")
                         .HasColumnType("integer");
@@ -2273,6 +2391,8 @@ namespace BlueDental.Migrations
                     b.HasIndex("PatientPaymentId")
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false");
+
+                    b.HasIndex("TreatmentPlanId");
 
                     b.ToTable("bd_electronic_invoices", (string)null);
                 });

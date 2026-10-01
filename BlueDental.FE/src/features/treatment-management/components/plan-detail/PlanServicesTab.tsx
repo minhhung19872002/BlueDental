@@ -308,7 +308,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         prescription={null}
         onClose={() => setPrescriptionOpen(false)}
       />
-      {invoiceOpen && <InvoiceModal open patient={patient} plan={plan} onClose={() => setInvoiceOpen(false)} />}
+      {invoiceOpen && <InvoiceModal open source={{ treatmentPlanId: plan.id }} onClose={() => setInvoiceOpen(false)} />}
       <PlanSlipDialog open={slipOpen} patient={patient} plan={plan} clinic={clinic.data} onClose={() => setSlipOpen(false)} />
     </div>
   );

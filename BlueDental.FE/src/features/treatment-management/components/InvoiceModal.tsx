@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Button, Modal } from "antd";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { useEInvoiceDraft, useIssueEInvoice } from "../api/eInvoiceApi";
 import type { InvoiceModalProps } from "./invoiceTypes";
 import { useInvoiceForm } from "./useInvoiceForm";
 import { InvoiceCustomerInfo } from "./InvoiceCustomerInfo";
@@ -9,11 +12,36 @@ import { InvoiceFormInfo } from "./InvoiceFormInfo";
 import { InvoiceServiceTable } from "./InvoiceServiceTable";
 import "./invoice-modal.css";
 
-export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps) {
-  const form = useInvoiceForm(open, patient, plan);
+/**
+ * "Hóa đơn": Lưu Nháp files a draft on EasyInvoice (the same key overwrites
+ * it); Phát Hành files and signs it in one call — the provider then owns the
+ * number and it can no longer change. The dialog keeps the original layout:
+ * a missing account, a published invoice or an amount over the cap come back
+ * from the server as the usual error toast.
+ */
+export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
+  const draft = useEInvoiceDraft(source, open).data;
+  const form = useInvoiceForm(draft);
+  const issue = useIssueEInvoice();
+  const [confirmingPublish, setConfirmingPublish] = useState(false);
 
-  const handleAction = () => {
-    toast.info(t("Treatment:Common:FeaturePending"));
+  const busy = !draft || issue.isPending;
+
+  const send = (publish: boolean) => {
+    issue.mutate(
+      { ...source, publish, ...form.buildBuyer(), lines: form.buildLines() },
+      {
+        onSuccess: (invoice) => {
+          setConfirmingPublish(false);
+          toast.success(
+            publish
+              ? t("Treatment:EInvoice:Published", invoice.no ?? invoice.ikey)
+              : t("Treatment:EInvoice:Issued", invoice.ikey),
+          );
+          onClose();
+        },
+      },
+    );
   };
 
   return (
@@ -26,8 +54,10 @@ export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps
       destroyOnHidden
       footer={
         <div className="inv-footer">
-          <Button onClick={handleAction}>{t("Treatment:Invoice:SaveDraft")}</Button>
-          <Button type="primary" onClick={handleAction}>
+          <Button onClick={() => send(false)} disabled={busy} loading={issue.isPending && !confirmingPublish}>
+            {t("Treatment:Invoice:SaveDraft")}
+          </Button>
+          <Button type="primary" onClick={() => setConfirmingPublish(true)} disabled={busy}>
             {t("Treatment:Invoice:Issue")}
           </Button>
         </div>
@@ -51,6 +81,7 @@ export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps
           onPhoneChange={form.onPhoneChange}
         />
         <InvoiceFormInfo
+          numberings={draft?.numberings ?? []}
           templateId={form.templateId}
           onTemplateChange={form.onTemplateChange}
           templateSymbol={form.templateSymbol}
@@ -78,7 +109,7 @@ export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps
       <div className="inv-summary">
         <div className="inv-summary-row">
           <span>{t("Treatment:Pricing:TotalAmount")}</span>
-          <span className="inv-summary-total">{formatVND(form.totalAmount)} {t("Treatment:Pricing:CurrencyUnit")}</span>
+          <span className="inv-summary-total">{formatVND(form.totalBeforeTax)} {t("Treatment:Pricing:CurrencyUnit")}</span>
         </div>
         <div className="inv-summary-row">
           <span>{t("Treatment:Invoice:TaxAmount")}</span>
@@ -89,6 +120,16 @@ export function InvoiceModal({ open, patient, plan, onClose }: InvoiceModalProps
           <span className="inv-summary-total">{formatVND(form.grandTotal)} {t("Treatment:Pricing:CurrencyUnit")}</span>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmingPublish}
+        title={t("Treatment:EInvoice:PublishTitle")}
+        message={t("Treatment:EInvoice:PublishBody", `${formatVND(form.grandTotal)} ${t("Treatment:Pricing:CurrencyUnit")}`)}
+        confirmLabel={t("Treatment:Invoice:Issue")}
+        pending={issue.isPending}
+        onConfirm={() => send(true)}
+        onClose={() => setConfirmingPublish(false)}
+      />
     </Modal>
   );
 }

@@ -17,5 +17,11 @@ public enum ElectronicInvoiceStatus
     Published = 1,
 
     /// <summary>Cancelled at the provider.</summary>
-    Cancelled = 2
+    Cancelled = 2,
+
+    /// <summary>Signed, then superseded by a replacement invoice (provider status 3).</summary>
+    Replaced = 3,
+
+    /// <summary>Signed, then corrected by an adjustment invoice (provider status 4).</summary>
+    Adjusted = 4
 }

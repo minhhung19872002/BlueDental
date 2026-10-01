@@ -6,15 +6,22 @@ using Volo.Abp.Application.Services;
 namespace BlueDental.EInvoicing;
 
 /// <summary>
-/// "Xuất hóa đơn điện tử" on a receipt: creates the invoice at the e-invoice
-/// provider and keeps BlueDental's record of it in step.
+/// Hóa đơn điện tử: creates the invoice at the provider for a receipt or a
+/// slip, under the branch's own account, and keeps BlueDental's record of it
+/// in step.
 /// </summary>
 public interface IElectronicInvoiceAppService : IApplicationService
 {
+    /// <summary>The Hóa đơn dialog prefilled from the receipt or slip.</summary>
+    Task<ElectronicInvoiceDraftDto> GetDraftAsync(GetElectronicInvoiceDraftInput input);
+
     /// <summary>
-    /// Creates a draft invoice at the provider for a payment receipt. Calling
-    /// it again while the invoice is still a draft rewrites that draft.
+    /// Lưu Nháp (draft) or Phát Hành (sign). Calling it again while the
+    /// invoice is still a draft rewrites that draft under the same key.
     /// </summary>
+    Task<ElectronicInvoiceDto> IssueAsync(IssueElectronicInvoiceDto input);
+
+    /// <summary>Shortcut for the receipt row: a draft with the prefilled lines.</summary>
     Task<ElectronicInvoiceDto> IssueFromPaymentAsync(Guid patientPaymentId);
 
     Task<ListResultDto<ElectronicInvoiceDto>> GetListAsync(GetElectronicInvoiceListInput input);

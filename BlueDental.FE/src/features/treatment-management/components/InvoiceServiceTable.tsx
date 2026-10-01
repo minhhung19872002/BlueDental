@@ -7,14 +7,14 @@ import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import { TAX_TYPE_OPTIONS } from "./invoiceConstants";
 import { InvoiceServiceCard } from "./InvoiceServiceCard";
-import type { InvoiceServiceRow } from "./invoiceTypes";
+import type { InvoiceServiceRow, InvoiceTaxType } from "./invoiceTypes";
 
 interface InvoiceServiceTableProps {
   rows: InvoiceServiceRow[];
   allSelected: boolean;
   onToggleAll: (checked: boolean) => void;
   onToggleRow: (key: string, checked: boolean) => void;
-  onTaxTypeChange: (key: string, taxType: string) => void;
+  onTaxTypeChange: (key: string, taxType: InvoiceTaxType) => void;
   onUnitPriceChange: (key: string, price: number | undefined) => void;
 }
 
@@ -51,7 +51,7 @@ export function InvoiceServiceTable({
       render: (_, row) => (
         <div className="inv-service-name">
           <span>{row.serviceName}</span>
-          <Select
+          <Select<InvoiceTaxType>
             value={row.taxType}
             onChange={(v) => onTaxTypeChange(row.key, v)}
             options={TAX_TYPE_OPTIONS()}
@@ -89,10 +89,6 @@ export function InvoiceServiceTable({
       key: "taxPercent",
       width: 80,
       align: "center",
-      render: (value: string) => {
-        const opt = TAX_TYPE_OPTIONS().find((o) => o.value === value);
-        return opt?.label ?? value;
-      },
     },
     {
       title: t("Treatment:Invoice:TaxMoney"),

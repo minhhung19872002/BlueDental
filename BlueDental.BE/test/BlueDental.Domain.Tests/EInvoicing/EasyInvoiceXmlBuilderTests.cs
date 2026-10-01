@@ -80,4 +80,45 @@ public class EasyInvoiceXmlBuilderTests
         Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.InvalidDraft,
             Assert.Throws<BusinessException>(() => nameless.Validated()).Code);
     }
+
+    [Fact]
+    public void A_Company_Invoice_Names_The_Company_And_Keeps_The_Person_As_Buyer()
+    {
+        var draft = Draft() with { CustomerName = "Công ty TNHH Test", BuyerName = "Nguyễn Văn Test" };
+        var invoice = XDocument.Parse(EasyInvoiceXmlBuilder.Build(draft)).Descendants("Invoice").Single();
+
+        Assert.Equal("Nguyễn Văn Test", invoice.Element("Buyer")!.Value);
+        Assert.Equal("Công ty TNHH Test", invoice.Element("CusName")!.Value);
+    }
+
+    [Fact]
+    public void The_Invoice_Date_Is_Sent_Only_When_Chosen()
+    {
+        var stamped = XDocument.Parse(EasyInvoiceXmlBuilder.Build(Draft() with { ArisingDate = new System.DateTime(2026, 10, 1) }));
+        var unstamped = XDocument.Parse(EasyInvoiceXmlBuilder.Build(Draft()));
+
+        Assert.Equal("01/10/2026", stamped.Descendants("ArisingDate").Single().Value);
+        Assert.Empty(unstamped.Descendants("ArisingDate"));
+    }
+
+    [Fact]
+    public void Mixed_Vat_Rates_Or_An_Unknown_Rate_Are_Refused()
+    {
+        var mixed = Draft(8) with
+        {
+            Lines = [ElectronicInvoiceDraft.Line("A", "A", "Lần", 1m, 100m, 8), ElectronicInvoiceDraft.Line("B", "B", "Lần", 1m, 100m, 10)]
+        };
+        var unknown = Draft(7);
+
+        Assert.Throws<BusinessException>(() => mixed.Validated());
+        Assert.Throws<BusinessException>(() => unknown.Validated());
+    }
+
+    [Fact]
+    public void A_Line_Without_Quantity_Is_Refused()
+    {
+        var draft = Draft() with { Lines = [ElectronicInvoiceDraft.Line("A", "A", "Lần", 0m, 100m, -1)] };
+
+        Assert.Throws<BusinessException>(() => draft.Validated());
+    }
 }

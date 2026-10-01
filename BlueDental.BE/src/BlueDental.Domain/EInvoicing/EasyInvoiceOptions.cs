@@ -19,7 +19,10 @@ public class EasyInvoiceOptions
     /// <summary>The clinic's MST — the tenant the account belongs to.</summary>
     public string TaxCode { get; set; } = string.Empty;
 
-    /// <summary>Mẫu số hóa đơn, e.g. <c>1C26TYY</c>.</summary>
+    /// <summary>
+    /// Mẫu số hóa đơn, e.g. <c>1C26TYY</c> — only the first suggestion: the
+    /// cashier types it in the Hóa đơn dialog and a branch account remembers it.
+    /// </summary>
     public string Pattern { get; set; } = string.Empty;
 
     /// <summary>Ký hiệu; empty lets the provider pick the pattern's serial.</summary>
@@ -38,6 +41,10 @@ public class EasyInvoiceOptions
         !string.IsNullOrWhiteSpace(BaseUrl)
         && !string.IsNullOrWhiteSpace(Username)
         && !string.IsNullOrWhiteSpace(Password)
-        && !string.IsNullOrWhiteSpace(TaxCode)
-        && !string.IsNullOrWhiteSpace(Pattern);
+        && !string.IsNullOrWhiteSpace(TaxCode);
+
+    /// <summary>The server-wide account, used by a branch that has no config of its own.</summary>
+    public EasyInvoiceSettings ToSettings() =>
+        new(null, BaseUrl.TrimEnd('/'), Username, Password, TaxCode, Pattern,
+            string.IsNullOrWhiteSpace(Serial) ? null : Serial, VatRate);
 }

@@ -1884,3 +1884,19 @@ Error codes (BlueDental):
 - `Zalo:0002` token refresh failed
 - `Zalo:0003` invalid webhook signature
 - `Zalo:0004` Zalo API returned an error (passes through Zalo error code and message)
+
+## Hóa đơn điện tử — EasyInvoice (BlueDental — not from the reference application)
+
+Base `api/v1/app/e-invoices`: `GET ?patientPaymentId&treatmentPlanId&patientId&clinicBranchId`,
+`GET draft?patientPaymentId|treatmentPlanId`, `POST issue` (body `IssueElectronicInvoiceDto`, `publish` = Lưu Nháp / Phát Hành),
+`POST issue-from-payment/{patientPaymentId}` (`payment.finalize`), `POST {id}/sync`, `GET {id}/pdf`.
+
+Per-branch accounts: `api/v1/app/e-invoice-configs` — `GET ?clinicBranchId`, `GET {id}` (`Tools.View`),
+`POST`, `PUT {id}`, `DELETE {id}` (`Tools.Manage`). Password is write-only (`hasPassword`), one active config per branch.
+
+Billing invoices (`api/v1/app/invoices`): `POST {id}/issue` (Draft → Issued), `POST {id}/void` body `{ "reason": "<string, required, ≤500>" }`
+(blank → 400 `Billing:0008`; Paid → `Billing:0003`; already Voided/Refunded → `Billing:0002`).
+`ElectronicInvoiceDto.status`: 0 Draft, 1 Published, 2 Cancelled, 3 Replaced, 4 Adjusted (mapped from the provider's
+`InvoiceStatus`; codes 2–6 come from an unofficial DLL document, not yet seen on REST).
+
+Full contract, error codes, config and the provider protocol: `docs/clone/integrations/easyinvoice.md`.

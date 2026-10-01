@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
+using BlueDental.EInvoicing;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -29,6 +30,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     private readonly BranchAccessChecker _branchAccess;
     private readonly PatientMoneyCalculator _money;
     private readonly IPatientTreatmentAppService _treatments;
+    private readonly IRepository<ElectronicInvoice, Guid> _electronicInvoices;
 
     public PatientPaymentAppService(
         IRepository<PatientPayment, Guid> repository,
@@ -36,7 +38,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money,
-        IPatientTreatmentAppService treatments)
+        IPatientTreatmentAppService treatments,
+        IRepository<ElectronicInvoice, Guid> electronicInvoices)
     {
         _repository = repository;
         _planRepository = planRepository;
@@ -44,6 +47,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         _branchAccess = branchAccess;
         _money = money;
         _treatments = treatments;
+        _electronicInvoices = electronicInvoices;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -443,6 +447,16 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     {
         var payment = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+        // A signed e-invoice puts the money on a tax document: the receipt
+        // stays. A draft only lives at the provider and goes with the receipt.
+        var invoice = await _electronicInvoices.FirstOrDefaultAsync(x => x.PatientPaymentId == id);
+        if (invoice != null)
+        {
+            invoice.EnsureReceiptRemovable();
+            await _electronicInvoices.DeleteAsync(invoice);
+        }
+
         await _repository.DeleteAsync(id, autoSave: true);
     }
 

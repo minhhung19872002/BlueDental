@@ -8,7 +8,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
 using Volo.Abp.DependencyInjection;
 
 namespace BlueDental.EInvoicing;
@@ -27,6 +26,7 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
 {
     public const string ClientName = "EasyInvoice";
     public const string ImportInvoicePath = "/api/publish/importInvoice";
+    public const string ImportAndPublishPath = "/api/publish/importAndPublishInv";
     public const string GetByIkeysPath = "/api/publish/getInvoicesByIkeys";
     public const string GetPdfPath = "/api/publish/getInvoicePdf";
 
@@ -34,42 +34,37 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
     private const int MaxErrorBody = 300;
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IOptions<EasyInvoiceOptions> _options;
 
-    public HttpEasyInvoiceClient(IHttpClientFactory httpClientFactory, IOptions<EasyInvoiceOptions> options)
+    public HttpEasyInvoiceClient(IHttpClientFactory httpClientFactory)
     {
         _httpClientFactory = httpClientFactory;
-        _options = options;
     }
 
-    public async Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
-        string xmlData, CancellationToken cancellationToken = default)
-    {
-        var options = _options.Value;
-        var payload = new { XmlData = xmlData, Pattern = options.Pattern, Serial = options.Serial };
-        var (outcome, data) = await SendJsonAsync(ImportInvoicePath, payload, cancellationToken);
+    public Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
+        EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default) =>
+        ImportAsync(ImportInvoicePath, settings, xmlData, cancellationToken);
 
-        return Summaries(outcome, data, root =>
-            root.TryGetProperty("Invoices", out var invoices) ? invoices : default);
-    }
+    public Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportAndPublishAsync(
+        EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default) =>
+        ImportAsync(ImportAndPublishPath, settings, xmlData, cancellationToken);
 
     public async Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> GetByIkeysAsync(
-        IReadOnlyList<string> ikeys, CancellationToken cancellationToken = default)
+        EasyInvoiceSettings settings, IReadOnlyList<string> ikeys, CancellationToken cancellationToken = default)
     {
-        var (outcome, data) = await SendJsonAsync(GetByIkeysPath, new { Ikeys = ikeys }, cancellationToken);
+        var (outcome, data) = await SendJsonAsync(settings, GetByIkeysPath, new { Ikeys = ikeys }, cancellationToken);
 
         // Data is the array itself here, not wrapped in { Invoices }.
         return Summaries(outcome, data, root => root);
     }
 
     public async Task<EasyInvoiceCallResult<byte[]>> GetPdfAsync(
-        string ikey, CancellationToken cancellationToken = default)
+        EasyInvoiceSettings settings, string ikey, CancellationToken cancellationToken = default)
     {
         var watch = Stopwatch.StartNew();
 
         try
         {
-            using var response = await PostAsync(GetPdfPath, new { Ikey = ikey }, cancellationToken);
+            using var response = await PostAsync(settings, GetPdfPath, new { Ikey = ikey }, cancellationToken);
             var status = (int)response.StatusCode;
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
@@ -92,14 +87,24 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
         }
     }
 
+    private async Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportAsync(
+        string path, EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken)
+    {
+        var payload = new { XmlData = xmlData, Pattern = settings.Pattern, Serial = settings.Serial ?? string.Empty };
+        var (outcome, data) = await SendJsonAsync(settings, path, payload, cancellationToken);
+
+        return Summaries(outcome, data, root =>
+            root.TryGetProperty("Invoices", out var invoices) ? invoices : default);
+    }
+
     private async Task<(EasyInvoiceCallResult<JsonElement?> Outcome, JsonDocument? Data)> SendJsonAsync(
-        string path, object payload, CancellationToken cancellationToken)
+        EasyInvoiceSettings settings, string path, object payload, CancellationToken cancellationToken)
     {
         var watch = Stopwatch.StartNew();
 
         try
         {
-            using var response = await PostAsync(path, payload, cancellationToken);
+            using var response = await PostAsync(settings, path, payload, cancellationToken);
             var status = (int)response.StatusCode;
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             var envelope = ReadEnvelope(body);
@@ -127,13 +132,13 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
         }
     }
 
-    private async Task<HttpResponseMessage> PostAsync(string path, object payload, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> PostAsync(
+        EasyInvoiceSettings settings, string path, object payload, CancellationToken cancellationToken)
     {
-        var options = _options.Value;
         var client = _httpClientFactory.CreateClient(ClientName);
         var json = JsonSerializer.Serialize(payload);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, options.BaseUrl.TrimEnd('/') + path)
+        using var request = new HttpRequestMessage(HttpMethod.Post, settings.BaseUrl.TrimEnd('/') + path)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -141,7 +146,7 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
         request.Headers.TryAddWithoutValidation(
             EasyInvoiceAuthentication.HeaderName,
             EasyInvoiceAuthentication.BuildHeader(
-                options.Username, options.Password, options.TaxCode, DateTimeOffset.UtcNow, Guid.NewGuid()));
+                settings.Username, settings.Password, settings.TaxCode, DateTimeOffset.UtcNow, Guid.NewGuid()));
 
         return await client.SendAsync(request, cancellationToken);
     }
