@@ -21,6 +21,7 @@ public static class ZaloTemplateDataBuilder
     public const string ClinicAddress = "clinic_address";
     public const string Date = "date";
     public const string Time = "time";
+    public const string DateAndTime = "date_time";
     public const string DoctorName = "doctor_name";
     public const string ServiceName = "service_name";
     public const string Note = "note";
@@ -35,6 +36,7 @@ public static class ZaloTemplateDataBuilder
         [ClinicAddress] = ["address", "dia_chi", "branch_address"],
         [Date] = ["ngay", "appointment_date", "ngay_hen", "ngay_kham", "booking_date"],
         [Time] = ["gio", "appointment_time", "gio_hen", "gio_kham", "booking_time"],
+        [DateAndTime] = ["datetime", "thoi_gian", "thoi_gian_hen", "appointment_datetime", "schedule_time", "lich_hen"],
         [DoctorName] = ["doctor", "bac_si", "ten_bac_si", "dentist"],
         [ServiceName] = ["service", "dich_vu", "ten_dich_vu"],
         [Note] = ["ghi_chu", "content", "noi_dung", "message"],

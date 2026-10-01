@@ -31,8 +31,6 @@ export interface ZaloTemplateDto {
   status: string | null;
   quality: string | null;
   createdAt: string | null;
-  /** Comma-separated parameter names returned by the list endpoint (may be null for older templates). */
-  listParams: string | null;
 }
 
 export interface ZaloTemplateParamDto {

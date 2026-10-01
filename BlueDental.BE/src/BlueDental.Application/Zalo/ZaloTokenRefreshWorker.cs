@@ -32,9 +32,13 @@ public class ZaloTokenRefreshWorker : AsyncPeriodicBackgroundWorkerBase
         var clock = workerContext.ServiceProvider.GetRequiredService<IClock>();
         var logger = workerContext.ServiceProvider.GetRequiredService<ILogger<ZaloTokenRefreshWorker>>();
 
+        // A Failed link is retried every run: a refresh that died on a network
+        // blip or a Zalo outage would otherwise block sending until someone
+        // pressed "Làm mới token". Expired links need the OA admin to grant again.
         var threshold = clock.Now.Add(ZaloOaConnection.RefreshLeeway);
         var due = (await connections.GetQueryableAsync())
-            .Where(c => c.Status == ZaloOaConnectionStatus.Active && c.AccessTokenExpiresAt <= threshold)
+            .Where(c => (c.Status == ZaloOaConnectionStatus.Active && c.AccessTokenExpiresAt <= threshold)
+                        || c.Status == ZaloOaConnectionStatus.Failed)
             .ToList();
 
         foreach (var connection in due)

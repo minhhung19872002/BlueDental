@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Appointments;
 using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.Organizations;
@@ -14,7 +15,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 using Volo.Abp.Uow;
 
 namespace BlueDental.Zalo;
@@ -32,6 +35,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
     private const int MaxContentLength = 2000;
     private const int MaxRedirectMessage = 200;
+    private const int MaxTemplatePage = 100;
     private const string ClinicTimeZoneId = "SE Asia Standard Time";
 
     private readonly IRepository<ZaloOaConnection, Guid> _connections;
@@ -40,6 +44,8 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     private readonly IRepository<Patient, Guid> _patients;
     private readonly IRepository<CareRecord, Guid> _careRecords;
     private readonly IRepository<ClinicBranch, Guid> _branches;
+    private readonly IRepository<Appointment, Guid> _appointments;
+    private readonly IIdentityUserRepository _users;
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IZaloApiClient _zalo;
@@ -54,6 +60,8 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         IRepository<Patient, Guid> patients,
         IRepository<CareRecord, Guid> careRecords,
         IRepository<ClinicBranch, Guid> branches,
+        IRepository<Appointment, Guid> appointments,
+        IIdentityUserRepository users,
         ICurrentClinicBranchResolver branchResolver,
         BranchAccessChecker branchAccess,
         IZaloApiClient zalo,
@@ -67,6 +75,8 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         _patients = patients;
         _careRecords = careRecords;
         _branches = branches;
+        _appointments = appointments;
+        _users = users;
         _branchResolver = branchResolver;
         _branchAccess = branchAccess;
         _zalo = zalo;
@@ -247,9 +257,12 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var connection = await GetConnectionAsync(branchId);
-        var accessToken = await _tokens.GetAccessTokenAsync(connection);
 
-        var outcome = await _zalo.GetTemplatesAsync(accessToken, input.SkipCount, input.MaxResultCount, input.Status);
+        // Zalo serves at most 100 templates per request.
+        var limit = Math.Clamp(input.MaxResultCount, 1, MaxTemplatePage);
+        var outcome = await CallWithTokenAsync(connection,
+            token => _zalo.GetTemplatesAsync(token, input.SkipCount, limit, input.Status),
+            o => o.Call);
         await LogAsync(branchId, "template-list", outcome.Call, outcome.Items.Count);
         if (!outcome.Call.Succeeded)
         {
@@ -265,9 +278,8 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var connection = await GetConnectionAsync(branchId);
-        var accessToken = await _tokens.GetAccessTokenAsync(connection);
 
-        var detail = await FetchTemplateDetailAsync(branchId, accessToken, templateId);
+        var detail = await FetchTemplateDetailAsync(branchId, connection, templateId);
         return ToTemplateDetailDto(detail);
     }
 
@@ -280,16 +292,16 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         var connection = await GetConnectionAsync(branchId);
         connection.EnsureCanSend();
 
-        var (patient, careRecord) = await ResolveRecipientAsync(input);
+        var (patient, careRecord) = await ResolveRecipientAsync(input, branchId);
         var phone = ZaloPhoneNumber.Normalize(
             string.IsNullOrWhiteSpace(input.Phone) ? patient?.Contact.PhoneNumber : input.Phone);
 
-        var accessToken = await _tokens.GetAccessTokenAsync(connection);
-        var detail = await FetchTemplateDetailAsync(branchId, accessToken, input.TemplateId);
+        var detail = await FetchTemplateDetailAsync(branchId, connection, input.TemplateId);
 
         var branch = await _branches.FindAsync(branchId);
+        var visit = await ResolveVisitAsync(careRecord);
         var data = ZaloTemplateDataBuilder.Build(
-            detail.Params, KnownValues(patient, careRecord, branch, phone), input.TemplateData);
+            detail.Params, KnownValues(patient, careRecord, branch, phone, visit), input.TemplateData);
         if (data.MissingRequired.Count > 0)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Tools.ZaloTemplateDataMissing)
@@ -304,20 +316,19 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
             MessageSendStatus.Pending, null, null)
             .SetExternalTemplate(detail.TemplateId, detail.Name);
 
-        var outcome = await _zalo.SendTemplateMessageAsync(
-            accessToken, phone, detail.TemplateId, data.Values, messageId.ToString("N"));
+        var outcome = await CallWithTokenAsync(connection,
+            token => _zalo.SendTemplateMessageAsync(token, phone, detail.TemplateId, data.Values, messageId.ToString("N")),
+            o => o.Call);
 
         if (!outcome.Call.Succeeded)
         {
             message.MarkFailed(outcome.Call.Error);
-            await PersistFailureAsync(branchId, message, outcome.Call);
+            await PersistSendAsync(branchId, message, outcome.Call, 0);
             throw Refused(outcome.Call);
         }
 
-        var now = Clock.Now;
-        message.MarkSent(outcome.MessageId, now, detail.Price);
-        await _messages.InsertAsync(message);
-        await LogAsync(branchId, "zns-send", outcome.Call, 1);
+        message.MarkSent(outcome.MessageId, Clock.Now, detail.Price);
+        await PersistSendAsync(branchId, message, outcome.Call, 1);
 
         if (careRecord != null)
         {
@@ -455,9 +466,11 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         await FindConnectionAsync(branchId)
         ?? throw new BusinessException(BlueDentalDomainErrorCodes.Tools.ZaloNotConnected);
 
-    private async Task<ZaloTemplateDetail> FetchTemplateDetailAsync(Guid branchId, string accessToken, string templateId)
+    private async Task<ZaloTemplateDetail> FetchTemplateDetailAsync(Guid branchId, ZaloOaConnection connection, string templateId)
     {
-        var outcome = await _zalo.GetTemplateDetailAsync(accessToken, templateId);
+        var outcome = await CallWithTokenAsync(connection,
+            token => _zalo.GetTemplateDetailAsync(token, templateId),
+            o => o.Call);
         await LogAsync(branchId, "template-info", outcome.Call);
         if (!outcome.Call.Succeeded || outcome.Detail == null)
         {
@@ -467,13 +480,44 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         return outcome.Detail;
     }
 
-    private async Task<(Patient? Patient, CareRecord? CareRecord)> ResolveRecipientAsync(SendZaloMessageInput input)
+    /// <summary>
+    /// Calls Zalo with the branch's access token. A token Zalo no longer
+    /// honours before its stated expiry (a newer pair was issued elsewhere,
+    /// the OA revoked the app) is refreshed once and the call repeated; a
+    /// refused token means Zalo did nothing, so repeating a send is safe.
+    /// </summary>
+    private async Task<T> CallWithTokenAsync<T>(
+        ZaloOaConnection connection, Func<string, Task<T>> call, Func<T, ZaloCallOutcome> outcomeOf)
+    {
+        var result = await call(await _tokens.GetAccessTokenAsync(connection));
+        if (!IsInvalidToken(outcomeOf(result)) || !await _tokens.RefreshAsync(connection))
+        {
+            return result;
+        }
+
+        return await call(await _tokens.GetAccessTokenAsync(connection));
+    }
+
+    /// <summary>-124 on the Business (ZBS) API, -216 on the Open API: "access token invalid".</summary>
+    private static bool IsInvalidToken(ZaloCallOutcome call) =>
+        !call.Succeeded && call.ErrorCode is "-124" or "-216";
+
+    /// <summary>
+    /// The send goes out through the current branch's OA and is logged there,
+    /// so a record or patient of another branch is treated as not found.
+    /// </summary>
+    private async Task<(Patient? Patient, CareRecord? CareRecord)> ResolveRecipientAsync(
+        SendZaloMessageInput input, Guid branchId)
     {
         CareRecord? careRecord = null;
         if (input.CareRecordId.HasValue)
         {
             careRecord = await _careRecords.GetAsync(input.CareRecordId.Value);
             await _branchAccess.CheckAsync(careRecord.BranchId);
+            if (careRecord.BranchId != branchId)
+            {
+                throw new EntityNotFoundException(typeof(CareRecord), careRecord.Id);
+            }
         }
 
         var patientId = input.PatientId ?? careRecord?.PatientId;
@@ -484,31 +528,69 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
         var patient = await _patients.GetAsync(patientId.Value);
         await _branchAccess.CheckAsync(patient.BranchId);
+        // A care record already fixes the branch; its patient may have been registered elsewhere.
+        if (input.PatientId.HasValue && patient.BranchId != branchId)
+        {
+            throw new EntityNotFoundException(typeof(Patient), patient.Id);
+        }
+
         return (patient, careRecord);
     }
 
-    private Dictionary<string, string?> KnownValues(
-        Patient? patient, CareRecord? careRecord, ClinicBranch? branch, string phone)
+    /// <summary>
+    /// The moment a template's date/time speak of: the linked appointment's
+    /// slot for a reminder, else the care record's own schedule or due date.
+    /// Only a record with none of these falls back to the send time.
+    /// </summary>
+    private async Task<(DateTimeOffset? When, string? DoctorName)> ResolveVisitAsync(CareRecord? careRecord)
     {
-        var local = ClinicNow();
+        if (careRecord == null)
+        {
+            return (null, null);
+        }
+
+        if (careRecord.AppointmentId.HasValue)
+        {
+            var appointment = await _appointments.FindAsync(careRecord.AppointmentId.Value);
+            if (appointment != null)
+            {
+                var dentist = await _users.FindAsync(appointment.DentistId);
+                return (appointment.Slot.Start, dentist == null ? null : dentist.Name ?? dentist.UserName);
+            }
+        }
+
+        return (careRecord.ScheduledStart ?? careRecord.DueAt, null);
+    }
+
+    private Dictionary<string, string?> KnownValues(
+        Patient? patient, CareRecord? careRecord, ClinicBranch? branch, string phone,
+        (DateTimeOffset? When, string? DoctorName) visit)
+    {
+        var local = visit.When.HasValue ? ToClinicTime(visit.When.Value.UtcDateTime) : ClinicNow();
         return new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             [ZaloTemplateDataBuilder.CustomerName] = patient?.FullName,
-            [ZaloTemplateDataBuilder.Phone] = phone,
+            // The send goes to 84…; a phone printed in the message reads as 0….
+            [ZaloTemplateDataBuilder.Phone] = ZaloPhoneNumber.ToLocal(phone),
             [ZaloTemplateDataBuilder.CustomerCode] = patient?.PatientCode,
             [ZaloTemplateDataBuilder.ClinicName] = branch?.Name,
             [ZaloTemplateDataBuilder.ClinicPhone] = branch?.PhoneNumber,
             [ZaloTemplateDataBuilder.ClinicAddress] = branch?.Address,
             [ZaloTemplateDataBuilder.Date] = local.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
             [ZaloTemplateDataBuilder.Time] = local.ToString("HH:mm", CultureInfo.InvariantCulture),
+            // One of the DateTime layouts Zalo accepts: hh:mm dd/mm/yyyy.
+            [ZaloTemplateDataBuilder.DateAndTime] = local.ToString("HH:mm dd/MM/yyyy", CultureInfo.InvariantCulture),
+            [ZaloTemplateDataBuilder.DoctorName] = visit.DoctorName,
             [ZaloTemplateDataBuilder.ServiceName] = careRecord?.Subject,
             [ZaloTemplateDataBuilder.Note] = careRecord?.Description,
         };
     }
 
-    private DateTime ClinicNow()
+    private DateTime ClinicNow() => ToClinicTime(Clock.Now);
+
+    private static DateTime ToClinicTime(DateTime instant)
     {
-        var utc = DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc);
+        var utc = DateTime.SpecifyKind(instant, DateTimeKind.Utc);
         try
         {
             return TimeZoneInfo.ConvertTimeFromUtc(utc, TimeZoneInfo.FindSystemTimeZoneById(ClinicTimeZoneId));
@@ -528,15 +610,16 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     }
 
     /// <summary>
-    /// A refused send is still a fact: the failed row and its call log are
-    /// committed on their own so the exception thrown afterwards does not
-    /// roll them back.
+    /// What Zalo did with a send is a fact the moment it answers, so the row
+    /// and its call log are committed on their own: a refusal survives the
+    /// exception thrown afterwards, and a sent row is already visible when the
+    /// delivery webhook (which can beat this request's commit) looks it up.
     /// </summary>
-    private async Task PersistFailureAsync(Guid branchId, MessageLog message, ZaloCallOutcome call)
+    private async Task PersistSendAsync(Guid branchId, MessageLog message, ZaloCallOutcome call, int itemCount)
     {
         using var uow = UnitOfWorkManager.Begin(requiresNew: true);
         await _messages.InsertAsync(message);
-        await LogAsync(branchId, "zns-send", call);
+        await LogAsync(branchId, "zns-send", call, itemCount);
         await uow.CompleteAsync();
     }
 

@@ -30,4 +30,10 @@ public class ZaloPhoneNumberTests
         var ex = Should.Throw<BusinessException>(() => ZaloPhoneNumber.Normalize(raw));
         ex.Code.ShouldBe(BlueDentalDomainErrorCodes.Tools.ZaloInvalidPhone);
     }
+
+    [Fact]
+    public void Turns_the_zalo_form_back_into_the_local_form_for_display()
+    {
+        ZaloPhoneNumber.ToLocal("84912345678").ShouldBe("0912345678");
+    }
 }

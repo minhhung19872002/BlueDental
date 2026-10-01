@@ -33,4 +33,8 @@ public static class ZaloPhoneNumber
 
         return digits;
     }
+
+    /// <summary>The <c>0xxxxxxxxx</c> form people read, for a phone shown inside a message.</summary>
+    public static string ToLocal(string normalized) =>
+        normalized.StartsWith("84", StringComparison.Ordinal) ? "0" + normalized[2..] : normalized;
 }

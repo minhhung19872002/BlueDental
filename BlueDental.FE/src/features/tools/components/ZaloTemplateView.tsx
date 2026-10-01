@@ -19,7 +19,21 @@ const TEMPLATE_STATUS: Record<string, { color: string; label: string }> = {
   PENDING_REVIEW: { color: "gold", label: "Tools:ZaloTemplatePending" },
   REJECT: { color: "red", label: "Tools:ZaloTemplateRejected" },
   DISABLE: { color: "default", label: "Tools:ZaloTemplateDisabled" },
+  DELETE: { color: "default", label: "Tools:ZaloTemplateDeleted" },
 };
+
+/** Zalo's templateQuality; the server drops its "no rating yet" values. */
+const TEMPLATE_QUALITY: Record<string, string> = {
+  HIGH: "Tools:ZaloQualityHigh",
+  MEDIUM: "Tools:ZaloQualityMedium",
+  LOW: "Tools:ZaloQualityLow",
+};
+
+function templateQualityLabel(quality: string | null) {
+  if (!quality) return "—";
+  const key = TEMPLATE_QUALITY[quality.toUpperCase()];
+  return key ? t(key) : quality;
+}
 
 function templateStatusTag(status: string | null) {
   const found = status ? TEMPLATE_STATUS[status.toUpperCase()] : undefined;
@@ -54,25 +68,20 @@ export function ZaloTemplateView() {
 
   const columns = useMemo<ColumnsType<ZaloTemplateDto>>(
     () => [
-      { key: "name", title: t("Tools:ZaloTemplateName"), dataIndex: "name" },
-      { key: "templateId", title: t("Tools:ZaloTemplateId"), dataIndex: "templateId", width: 180 },
+      // Widths follow the staging list: five columns, the name a little wider.
+      { key: "name", title: t("Tools:ZaloTemplateName"), dataIndex: "name", width: "27%" },
+      { key: "templateId", title: t("Tools:ZaloTemplateId"), dataIndex: "templateId", width: "20%" },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 150,
+        width: "18%",
         render: (_, tpl) => {
           const { color, label } = templateStatusTag(tpl.status);
           return <Tag color={color}>{label}</Tag>;
         },
       },
-      { key: "quality", title: t("Tools:ZaloTemplateQuality"), width: 140, render: (_, tpl) => tpl.quality ?? "—" },
-      {
-        key: "listParams",
-        title: t("Tools:ZaloTemplateParams"),
-        width: 200,
-        render: (_, tpl) => tpl.listParams ?? "—",
-      },
-      { key: "created", title: t("Tools:CreatedAtLabel"), width: 130, render: (_, tpl) => formatDate(tpl.createdAt) },
+      { key: "quality", title: t("Tools:ZaloTemplateQuality"), width: "17%", render: (_, tpl) => templateQualityLabel(tpl.quality) },
+      { key: "created", title: t("Tools:CreatedAtLabel"), width: "18%", render: (_, tpl) => formatDate(tpl.createdAt) },
     ],
     [],
   );

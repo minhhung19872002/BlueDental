@@ -22,6 +22,9 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
 {
     public const string Operation = "webhook";
 
+    /// <summary>"Người dùng nhận tin qua SĐT": <c>message.msg_id</c>, <c>message.tracking_id</c>.</summary>
+    public const string DeliveryEvent = "user_received_message";
+
     private readonly IRepository<MessageLog, Guid> _messages;
     private readonly IRepository<IntegrationCallLog, Guid> _callLogs;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
@@ -76,15 +79,27 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
 
         _logger.LogInformation("Zalo webhook received: {EventName}", eventName ?? "<unknown>");
 
-        var messageId = root is { } m ? FindMessageId(m) : null;
-        if (messageId == null)
+        // Only the delivery event means "the phone got it"; feedback and chat
+        // events can quote the same msg_id.
+        if (eventName != DeliveryEvent || root is not { } m
+            || !m.TryGetProperty("message", out var delivered) || delivered.ValueKind != JsonValueKind.Object)
+        {
+            return ZaloWebhookResult.Accepted;
+        }
+
+        var messageId = Text(delivered, "msg_id");
+        var trackingId = Guid.TryParseExact(Text(delivered, "tracking_id"), "N", out var tracked) ? tracked : (Guid?)null;
+        if (messageId == null && trackingId == null)
         {
             return ZaloWebhookResult.Accepted;
         }
 
         using var uow = _unitOfWorkManager.Begin(requiresNew: true);
 
-        var message = await _messages.FirstOrDefaultAsync(x => x.ExternalMessageId == messageId);
+        // The send's tracking_id is the MessageLog id, a fallback if the msg_id did not match.
+        var message = (messageId == null ? null : await _messages.FirstOrDefaultAsync(x => x.ExternalMessageId == messageId))
+            ?? (trackingId == null ? null : await _messages.FirstOrDefaultAsync(
+                x => x.Id == trackingId.Value && x.Channel == MessageChannelType.Zalo));
         if (message != null)
         {
             var now = _clock.Now;
@@ -97,23 +112,6 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
 
         await uow.CompleteAsync();
         return ZaloWebhookResult.Accepted;
-    }
-
-    /// <summary>Zalo puts <c>msg_id</c> at the root for ZNS events and under <c>message</c> for OA chat events.</summary>
-    private static string? FindMessageId(JsonElement root)
-    {
-        var id = Text(root, "msg_id");
-        if (id != null)
-        {
-            return id;
-        }
-
-        if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.Object)
-        {
-            return Text(message, "msg_id");
-        }
-
-        return null;
     }
 
     private static JsonDocument? TryParse(string body)

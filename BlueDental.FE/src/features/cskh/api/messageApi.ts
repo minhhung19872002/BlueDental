@@ -81,24 +81,26 @@ export interface SendZaloMessageInput {
 
 /**
  * Mẫu ZBS for the Gửi dialog: the branch's approved templates, read from Zalo
- * through the same endpoint Công cụ ▸ Zalo OA ▸ Mẫu ZBS lists — and under its
- * query key, so both screens see one list. Zalo has no name search, so the
- * keyword narrows the page on the client.
+ * through the endpoint Công cụ ▸ Zalo OA ▸ Mẫu ZBS lists, under the same key
+ * prefix so its Làm mới refreshes this too. Zalo filters to ENABLE itself
+ * (status=1), so rejected or pending ones never crowd approved ones out of the
+ * 100-row page. Zalo has no name search, so the keyword narrows on the client.
  */
 export function useZaloTemplates(search: string, enabled = true) {
   return useQuery({
-    queryKey: ["zalo-oa", "templates", { skipCount: 0, maxResultCount: 100 }],
+    queryKey: ["zalo-oa", "templates", { skipCount: 0, maxResultCount: 100, status: 1 }],
     queryFn: () =>
       api
         .get<PagedResult<ZaloTemplateDto>>("/v1/app/zalo/templates", {
-          params: { skipCount: 0, maxResultCount: 100 },
+          params: { skipCount: 0, maxResultCount: 100, status: 1 },
         })
         .then((r) => r.data),
     enabled,
     retry: false,
     select: (data) => {
       const needle = search.trim().toLowerCase();
-      const items = data.items.filter((item) => item.status?.toUpperCase() !== "DISABLE");
+      // Zalo refuses a send on any template that is not approved (ENABLE).
+      const items = data.items.filter((item) => item.status?.toUpperCase() === "ENABLE");
       return needle ? items.filter((item) => item.name.toLowerCase().includes(needle)) : items;
     },
   });

@@ -24,7 +24,7 @@ public interface IZaloApiClient
     Task<ZaloTemplateListOutcome> GetTemplatesAsync(
         string accessToken, int offset, int limit, int? status, CancellationToken cancellationToken = default);
 
-    /// <summary><c>GET /template/info</c>.</summary>
+    /// <summary><c>GET /template/info/v2</c>.</summary>
     Task<ZaloTemplateDetailOutcome> GetTemplateDetailAsync(
         string accessToken, string templateId, CancellationToken cancellationToken = default);
 

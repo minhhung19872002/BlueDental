@@ -7,9 +7,9 @@ namespace BlueDental.Zalo;
 
 /// <summary>
 /// Receiver for Zalo OA webhook events. Zalo only lets the webhook URL be
-/// saved once it answers 200, so the GET probe always does; the POST hands the
-/// raw body and Zalo's signature header to the handler, which verifies the
-/// signature when the OA secret is configured and marks delivered messages.
+/// saved once it answers 200, so both GET and POST always do; the POST hands the
+/// raw body and Zalo's signature header to the handler, which drops anything
+/// whose signature does not verify and marks delivered messages.
 /// </summary>
 [AllowAnonymous]
 [ApiController]
@@ -26,8 +26,11 @@ public sealed class ZaloWebhookController(IZaloWebhookHandler handler) : Control
         var body = await reader.ReadToEndAsync();
 
         var signature = Request.Headers["X-ZEvent-Signature"].ToString();
-        var result = await handler.HandleAsync(body, string.IsNullOrWhiteSpace(signature) ? null : signature);
+        await handler.HandleAsync(body, string.IsNullOrWhiteSpace(signature) ? null : signature);
 
-        return result == ZaloWebhookResult.Unauthorized ? Unauthorized() : Ok();
+        // Always 200: Zalo's "Kiểm tra" check may POST without a valid signature,
+        // and a non-200 marks the webhook broken. Unverified events are already
+        // dropped by the handler, so answering 200 changes nothing for it.
+        return Ok();
     }
 }

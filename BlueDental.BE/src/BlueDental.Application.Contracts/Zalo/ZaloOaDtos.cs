@@ -61,7 +61,8 @@ public class SetZaloEnabledInput
 
 public class GetZaloTemplatesInput : PagedResultRequestDto
 {
-    /// <summary>Zalo's filter: 1 = enabled templates only. Null lists all.</summary>
+    /// <summary>Zalo's filter: 1 enable, 2 pending review, 3 reject, 4 disable. Null lists all.</summary>
+    [Range(1, 4)]
     public int? Status { get; set; }
 }
 

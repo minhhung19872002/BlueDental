@@ -64,4 +64,19 @@ public class ZaloTemplateDataBuilderTests
 
         result.Values["customer_name"].ShouldBe("Nguyen");
     }
+
+    [Fact]
+    public void A_combined_time_parameter_takes_the_date_and_time_value()
+    {
+        var known = new Dictionary<string, string?>(Known)
+        {
+            [ZaloTemplateDataBuilder.DateAndTime] = "09:30 05/10/2026",
+        };
+
+        var result = ZaloTemplateDataBuilder.Build([Param("thoi_gian"), Param("schedule_time")], known, null);
+
+        result.MissingRequired.ShouldBeEmpty();
+        result.Values["thoi_gian"].ShouldBe("09:30 05/10/2026");
+        result.Values["schedule_time"].ShouldBe("09:30 05/10/2026");
+    }
 }

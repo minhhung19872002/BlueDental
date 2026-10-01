@@ -27,7 +27,7 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
     public const string TokenPath = "/v4/oa/access_token";
     public const string OaInfoPath = "/v2.0/oa/getoa";
     public const string TemplateListPath = "/template/all";
-    public const string TemplateInfoPath = "/template/info";
+    public const string TemplateInfoPath = "/template/info/v2";
     public const string SendTemplatePath = "/message/template";
 
     private const int MaxErrorBody = 300;
@@ -104,7 +104,8 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
                 return new ZaloOaInfoOutcome(call with { Succeeded = false, Error = "Zalo returned no OA data." }, null);
             }
 
-            var oaId = Text(data, "oa_id");
+            // The table names it oa_id, the doc's own example oaid.
+            var oaId = Text(data, "oa_id") ?? Text(data, "oaid");
             if (string.IsNullOrWhiteSpace(oaId))
             {
                 return new ZaloOaInfoOutcome(call with { Succeeded = false, Error = "Zalo returned no OA id." }, null);
@@ -149,7 +150,7 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
                         id,
                         Text(row, "templateName") ?? id,
                         Text(row, "status"),
-                        Text(row, "templateQuality"),
+                        Quality(row),
                         Long(row, "createdTime")));
                 }
             }
@@ -208,9 +209,10 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
                 id,
                 Text(data, "templateName") ?? id,
                 Text(data, "status"),
-                Text(data, "templateQuality"),
+                Quality(data),
                 Text(data, "previewUrl"),
-                Decimal(data, "price"),
+                // price is deprecated in favour of price_sdt (the per-phone price).
+                Decimal(data, "price_sdt") ?? Decimal(data, "price"),
                 Int(data, "timeout"),
                 parameters));
         }
@@ -385,6 +387,17 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
     private static bool Bool(JsonElement element, string name) =>
         string.Equals(Text(element, name), "true", StringComparison.OrdinalIgnoreCase)
         || Text(element, name) == "1";
+
+    /// <summary>Zalo sends the literal "Null" (and UNDEFINED) while a template has no quality rating yet.</summary>
+    private static string? Quality(JsonElement element)
+    {
+        var quality = Text(element, "templateQuality");
+        return quality is null
+            || quality.Equals("Null", StringComparison.OrdinalIgnoreCase)
+            || quality.Equals("UNDEFINED", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : quality;
+    }
 
     private static string Clip(string body) =>
         body.Length <= MaxErrorBody ? body : body[..MaxErrorBody];
