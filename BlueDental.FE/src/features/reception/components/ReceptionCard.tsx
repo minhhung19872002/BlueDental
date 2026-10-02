@@ -84,6 +84,12 @@ const OUTCOME_LOCKS: OutcomeLock[] = [
   (key, saved) => saved === "EndTreatment" && (key === "TransferDoctor" || key === "Revisit"),
 ];
 
+function doctorOptionsFor(doctors: { id: string; name: string }[], item: ReceptionItem) {
+  const options = doctors.map((d) => ({ value: d.id, label: d.name }));
+  if (!item.doctorId || options.some((o) => o.value === item.doctorId)) return options;
+  return [...options, { value: item.doctorId, label: item.doctorName }];
+}
+
 export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   item,
   doctors = [],
@@ -98,6 +104,9 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   children,
 }) => {
   const navigate = useNavigate();
+  // `doctors` holds only who is free on this visit's day; the card's own
+  // doctor stays listed so the select never shows a bare id.
+  const doctorOptions = doctorOptionsFor(doctors, item);
 
   const badgeLabel: Record<AppointmentCounterType, string> = {
     Scheduled: t("Reception:StatusScheduled"),
@@ -237,7 +246,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                   value={item.doctorId || undefined}
                   placeholder={t("Reception:SelectDoctor")}
                   disabled={isCancelled}
-                  options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+                  options={doctorOptions}
                   onChange={(val) => val && onDoctorChange?.(item.id, val)}
                 />
               </div>

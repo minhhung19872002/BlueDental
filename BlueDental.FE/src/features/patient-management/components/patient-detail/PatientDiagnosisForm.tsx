@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Form, Input, Select, Tooltip } from "antd";
 import { CloseOutlined, SearchOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
@@ -34,6 +34,22 @@ interface Props {
   blankCount?: number;
   onSubmit: (submission: DiagnosisSubmission) => void;
   onClose: () => void;
+}
+
+/**
+ * `dentists` is only who is not OFF today; a saved slip's own doctors stay
+ * listed so reopening it never blanks them.
+ */
+function withSavedDoctors(dentists: DiagnosisOption[], editing?: PatientDiagnosisDto | null) {
+  if (!editing) return dentists;
+  const saved = [
+    { value: editing.staffId, label: editing.staffName },
+    { value: editing.secondStaffId, label: editing.secondStaffName },
+  ];
+  const extra = saved.flatMap(({ value, label }) =>
+    value && !dentists.some((d) => d.value === value) ? [{ value, label: label ?? "" }] : [],
+  );
+  return extra.length ? [...dentists, ...extra] : dentists;
 }
 
 /**
@@ -75,6 +91,8 @@ export function PatientDiagnosisForm({
     load(toothSelectionsToValue(editing.teeth));
   }, [editing, blankCount, form, load, reset]);
 
+  const doctorOptions = useMemo(() => withSavedDoctors(dentists, editing), [dentists, editing]);
+
   const staffId = Form.useWatch("staffId", form);
   const diagnosisId = Form.useWatch("diagnosisId", form);
   const ready = Boolean(staffId && diagnosisId) && !draft.isEmpty && !submitting;
@@ -113,7 +131,7 @@ export function PatientDiagnosisForm({
 
       <div className="pd-diagnosis-main">
         <DiagnosisDoctorFields
-          dentists={dentists}
+          dentists={doctorOptions}
           secondEnabled={secondEnabled}
           onToggleSecond={handleToggleSecond}
         />

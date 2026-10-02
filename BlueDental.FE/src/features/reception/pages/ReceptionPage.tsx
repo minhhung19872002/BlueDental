@@ -24,6 +24,7 @@ import {
   useReceptionList,
   useReceptionMetrics,
   useReceptionDoctors,
+  useAvailableReceptionDoctorsByDay,
 } from "../api/receptionQueries";
 import {
   useUpdateReceptionStatus,
@@ -41,10 +42,13 @@ import type {
   ReceptionCounters,
   AppointmentOutcome,
   BookedOutcome,
+  ReceptionItem,
 } from "../types/reception";
 import "../components/reception.css";
 
 type ViewMode = "day" | "week" | "month";
+
+const visitDayOf = (item: ReceptionItem) => dayjs(item.arrivalTime || item.createdAt).format("YYYY-MM-DD");
 
 export const ReceptionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReceptionStatus>("All");
@@ -93,6 +97,13 @@ export const ReceptionPage: React.FC = () => {
     () => listData?.pages.flatMap((p) => p.items) ?? [],
     [listData],
   );
+
+  // A card's doctor can only be changed to someone not OFF on that visit's day.
+  const visitDays = useMemo(
+    () => [...new Set(items.map(visitDayOf))].sort(),
+    [items],
+  );
+  const doctorsByDay = useAvailableReceptionDoctorsByDay(branchId, visitDays);
 
   const adjustedMetrics = useMemo(() => {
     if (!metrics) return metrics;
@@ -288,7 +299,7 @@ export const ReceptionPage: React.FC = () => {
                 <ReceptionCard
                   key={item.id}
                   item={item}
-                  doctors={doctors}
+                  doctors={doctorsByDay.get(visitDayOf(item)) ?? []}
                   busy={busyCards.has(item.id)}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
@@ -304,7 +315,7 @@ export const ReceptionPage: React.FC = () => {
                       appointmentId={item.id}
                       outcome={openBooking.outcome}
                       defaultDoctorId={item.doctorId}
-                      doctors={doctors}
+                      branchId={branchId}
                       onClose={() => setBookingTarget(null)}
                     />
                   )}
@@ -324,7 +335,6 @@ export const ReceptionPage: React.FC = () => {
 
       <ReceptionNewDrawer
         open={drawerOpen}
-        doctors={doctors}
         branchId={branchId}
         scheduledDate={currentDate}
         onClose={() => setDrawerOpen(false)}

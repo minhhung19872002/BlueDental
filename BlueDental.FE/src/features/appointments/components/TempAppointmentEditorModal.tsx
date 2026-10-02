@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
 import { useCreateTempAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import { useAppointment } from "../api/appointmentQueries";
-import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -50,19 +50,14 @@ export function TempAppointmentEditorModal({
   const currentBranchId = useCurrentBranchId();
 
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
-  const { data: dentists } = useDentistList();
   const { data: branches } = useClinicBranches(true);
 
-  const doctorOptions = useMemo(
-    () => (dentists ?? []).map((d) => ({ value: d.id, label: d.name })),
-    [dentists],
-  );
   const branchOptions = useMemo(
     () => (branches ?? []).map((b) => ({ value: b.id, label: b.name })),
     [branches],
   );
 
-  const { control, handleSubmit, reset, formState: { errors, isValid } } = useForm<TempAppointmentFormValues>({
+  const { control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors, isValid } } = useForm<TempAppointmentFormValues>({
     resolver: zodResolver(buildSchema()),
     defaultValues: {
       patientName: "",
@@ -82,6 +77,29 @@ export function TempAppointmentEditorModal({
   const watchedDoctorId = useWatch({ control, name: "doctorId" });
   const watchedDate = useWatch({ control, name: "date" });
   const watchedSourceTaxonomyId = useWatch({ control, name: "sourceTaxonomyId" });
+
+  const handleDoctorOff = useCallback(() => {
+    setValue("doctorId", "", { shouldValidate: false });
+    setError("doctorId", { type: "manual", message: t("Appointment:Form:DoctorOffOnDate") });
+  }, [setValue, setError]);
+
+  useEffect(() => {
+    if (watchedDoctorId) clearErrors("doctorId");
+  }, [watchedDoctorId, clearErrors]);
+
+  // Same rule as a full booking: an existing one keeps its doctor on its own day.
+  const keptDoctor = useMemo(() => {
+    if (!existingAppt?.doctorId) return null;
+    if (dayjs(existingAppt.startTime).format("YYYY-MM-DD") !== watchedDate) return null;
+    return { id: existingAppt.doctorId, name: existingAppt.doctorName };
+  }, [existingAppt, watchedDate]);
+
+  const doctorOptions = useBookableDoctorOptions({
+    date: watchedDate,
+    doctorId: watchedDoctorId,
+    kept: isEdit ? keptDoctor : null,
+    onUnavailable: handleDoctorOff,
+  });
 
   useEffect(() => {
     if (!open) {

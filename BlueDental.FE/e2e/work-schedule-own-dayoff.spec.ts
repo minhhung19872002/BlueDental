@@ -191,7 +191,15 @@ test.describe("Lịch làm việc — chỉ đánh X của chính mình", () => 
     await expect(cell(rowOf(me), tomorrow)).toHaveText("X");
     expect((await readCell(page, branchId, me.id, tomorrow)).registration).toBe(DAY_OFF);
 
+    // The day board for that day follows the grid: my card reads OFF ("Nghỉ"),
+    // not the neutral "not come yet" slot, and the other card stays neutral.
+    const cardOf = (staff: RunStaff) => mePage.locator(".tk-card").filter({ hasText: staff.fullName });
+    await mePage.goto(`/calendar?tab=timekeeping&date=${tomorrow}`);
+    await expect(cardOf(me).getByRole("img", { name: "Nghỉ" })).toHaveClass(/tk-toggle--off/);
+    await expect(cardOf(other).getByRole("img", { name: "Không điểm danh" })).toBeVisible();
+
     // Clicking my saved X clears it again.
+    await openBuilder(tomorrow);
     await cell(rowOf(me), tomorrow).click();
     await expect(cell(rowOf(me), tomorrow)).toHaveText("");
     await save();

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { todayIsoDate } from "@/utils/todayIsoDate";
 import { useAssistantSearch, useDentistSearch, useStaffSearch } from "./useStaffOptions";
 import { CATALOG_GROUP, useCatalogOptionSearch } from "./useCatalogOptions";
 import type { ServerSearchOption } from "@/components/ServerSearchSelect";
@@ -18,6 +19,21 @@ interface OptionSource {
 
 export function useDentistOptions(search: string, enabled: boolean): OptionSource {
   const query = useDentistSearch(search, enabled);
+  return { options: query.data ?? [], loading: query.isFetching };
+}
+
+/**
+ * Dentists who are not registered OFF today (Chấm công), for forms that record
+ * work done today — Thêm công đoạn and its follow-ups.
+ */
+export function useDentistOptionsToday(search: string, enabled: boolean): OptionSource {
+  const query = useDentistSearch(search, enabled, todayIsoDate());
+  return { options: query.data ?? [], loading: query.isFetching };
+}
+
+/** Assistants who are not registered OFF today (Chấm công). */
+export function useAssistantOptionsToday(search: string, enabled: boolean): OptionSource {
+  const query = useAssistantSearch(search, enabled, todayIsoDate());
   return { options: query.data ?? [], loading: query.isFetching };
 }
 

@@ -5,6 +5,7 @@ import { CalendarDays, Loader2 } from "lucide-react";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { useBookFollowUp } from "../api/receptionMutations";
+import { useFollowUpDoctors } from "../hooks/useFollowUpDoctors";
 import { useFollowUpPicker } from "../hooks/useFollowUpPicker";
 import { QUICK_PICKS, quickPickDate } from "../utils/followUpSlots";
 import { FollowUpWeekStrip } from "./FollowUpWeekStrip";
@@ -16,7 +17,7 @@ interface FollowUpSchedulerProps {
   /** Which option opened the picker; it is saved with the booking. */
   outcome: BookedOutcome;
   defaultDoctorId?: string;
-  doctors: { id: string; name: string }[];
+  branchId?: string;
   onClose: () => void;
 }
 
@@ -44,10 +45,11 @@ const OUTCOME_TEXT: Record<BookedOutcome, { hint: string; confirm: string; succe
  * appointment must have a date before the outcome can be saved. The doctor is optional — left empty,
  * the follow-up goes to the card's doctor and no busy slots are shown.
  */
-export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, doctors, onClose }: FollowUpSchedulerProps) {
+export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, branchId, onClose }: FollowUpSchedulerProps) {
   const text = OUTCOME_TEXT[outcome];
   const picker = useFollowUpPicker(defaultDoctorId);
   const bookMutation = useBookFollowUp();
+  const doctors = useFollowUpDoctors(picker, branchId);
 
   const handleConfirm = () => {
     const input = picker.buildInput();
@@ -79,11 +81,13 @@ export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, doc
             value={picker.doctorId}
             placeholder={t("Reception:SelectDoctor")}
             allowClear
-            options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+            options={doctors.options}
             onChange={picker.setDoctorId}
+            status={doctors.offError ? "error" : ""}
           />
         </div>
       </header>
+      {doctors.offError && <p className="fu-doctor-error" role="alert">{doctors.offError}</p>}
 
       <div className="fu-quick">
         <span className="fu-quick-label">{t("Reception:FollowUpQuickPick")}</span>

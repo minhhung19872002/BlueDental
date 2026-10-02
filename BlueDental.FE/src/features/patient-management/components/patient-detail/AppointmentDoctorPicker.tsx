@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { toast } from "sonner";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -23,7 +24,14 @@ interface Props {
  * the note, the colour and the time.
  */
 export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
-  const dentists = useDentistStaffOptions();
+  // Only doctors not registered OFF on the appointment's day; the one it
+  // already has stays listed by name.
+  const dentists = useDentistStaffOptions(dayjs(appointment.startTime).format("YYYY-MM-DD"));
+  const options = useMemo(() => {
+    const listed = dentists.data ?? [];
+    if (!appointment.doctorId || listed.some((o) => o.value === appointment.doctorId)) return listed;
+    return [...listed, { value: appointment.doctorId, label: appointment.doctorName }];
+  }, [dentists.data, appointment.doctorId, appointment.doctorName]);
   const update = useUpdateAppointment(appointment.id);
   const [pending, setPending] = useState<string>();
 
@@ -54,7 +62,7 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
     <FloatingLabel label={t("Patient:DoctorLabel")} floated={Boolean(value)} className="pd-appt-doctor-picker">
       <SearchSelect
         value={value}
-        options={dentists.data ?? []}
+        options={options}
         emptyText={t("Patient:DoctorNotFound")}
         onChange={(doctorId) => void change(doctorId)}
       />

@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { receptionApi } from "./receptionApi";
 import { staffApi } from "@/features/staff/api/staffApi";
 import { t } from "@/lib/i18n";
@@ -35,17 +35,62 @@ export function useDentistBusySpans(dentistId: string | undefined, weekStart: st
   });
 }
 
+interface ReceptionDoctor {
+  id: string;
+  name: string;
+  title: string;
+  branchIds?: string[];
+}
+
+async function fetchReceptionDoctors(branchId?: string, availableOn?: string): Promise<ReceptionDoctor[]> {
+  const result = await staffApi.list({ maxResultCount: 50, isActive: true, branchId, availableOn });
+  return result.items.map((s) => ({
+    id: s.id,
+    name: s.name ?? s.userName ?? "",
+    title: s.roleNames[0] ?? t("Reception:Doctor"),
+    branchIds: s.branchIds,
+  }));
+}
+
+/** Every doctor at the branch — the board's filters, whoever is off today. */
 export function useReceptionDoctors(branchId?: string) {
   return useQuery({
     queryKey: ["receptionDoctors", branchId],
-    queryFn: async () => {
-      const result = await staffApi.list({ maxResultCount: 50, isActive: true, branchId });
-      return result.items.map((s) => ({
-        id: s.id,
-        name: s.name ?? s.userName ?? "",
-        title: s.roleNames[0] ?? t("Reception:Doctor"),
-        branchIds: s.branchIds,
-      }));
+    queryFn: () => fetchReceptionDoctors(branchId),
+  });
+}
+
+function availableDoctorsQuery(branchId: string | undefined, day: string) {
+  return {
+    queryKey: ["receptionDoctors", branchId, { availableOn: day }],
+    queryFn: () => fetchReceptionDoctors(branchId, day),
+    // The OFF toggle is pressed on Chấm công, often by someone else.
+    staleTime: 0,
+  };
+}
+
+/**
+ * Doctors a visit on `day` ("YYYY-MM-DD") can go to: those registered OFF
+ * that day on Chấm công are left out. Idle without a day.
+ */
+export function useAvailableReceptionDoctors(branchId: string | undefined, day: string | undefined) {
+  return useQuery({
+    ...availableDoctorsQuery(branchId, day ?? ""),
+    enabled: Boolean(day),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** The same list for each day the board is showing, keyed by day. */
+export function useAvailableReceptionDoctorsByDay(branchId: string | undefined, days: string[]) {
+  return useQueries({
+    queries: days.map((day) => availableDoctorsQuery(branchId, day)),
+    combine: (results) => {
+      const byDay = new Map<string, ReceptionDoctor[]>();
+      results.forEach((r, i) => {
+        if (r.data) byDay.set(days[i], r.data);
+      });
+      return byDay;
     },
   });
 }

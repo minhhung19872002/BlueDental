@@ -30,7 +30,8 @@ POST /api/v1/app/time-keepings/close-abandoned
   yet passed, not clocked in and not planned L. Every role, admin included;
   marking L is never accepted; one locked cell refuses the whole batch
   (`BlueDental:Timekeeping:0013`, 403). `workSchedule.update` is still required.
-  V/L/X display logic is unchanged.
+  V/L/X display logic is unchanged. An X is a whole-day off: that day's card on
+  the board reads OFF ("Nghỉ") even before the day comes (R-654).
 
 ## Acceptance evidence
 
@@ -47,7 +48,8 @@ staff member through the real login screen:
 2. own row: X on a later day persists and clears; past day, marking L, a mixed
    batch and today once clocked in are refused; the check-in survives
 3. UI: own L and every cell of another row are disabled; own empty cell → X →
-   Lưu → reload keeps X; clicking X clears it again and that persists too
+   Lưu → reload keeps X; that day's board shows my card OFF ("Nghỉ") and the
+   other card neutral; clicking X clears it again and that persists too
 
 ## Not covered yet
 

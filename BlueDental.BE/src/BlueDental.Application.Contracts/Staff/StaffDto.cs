@@ -50,6 +50,13 @@ public class GetStaffListInput : PagedAndSortedResultRequestDto
     public string? Filter { get; set; }
     public bool? IsActive { get; set; }
     public Guid? BranchId { get; set; }
+
+    /// <summary>
+    /// Clinic day a picker is choosing staff for. Staff registered OFF that day
+    /// (Chấm công → DayOff) at the branch are left out; staff who never
+    /// registered either way still appear.
+    /// </summary>
+    public DateOnly? AvailableOn { get; set; }
 }
 
 public class CreateStaffDto

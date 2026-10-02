@@ -5,6 +5,7 @@ import {
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { todayIsoDate } from "@/utils/todayIsoDate";
 import { adaptPatientImage } from "../api/patientImageAdapters";
 import { usePatientImages } from "../api/patientImageApi";
 
@@ -29,6 +30,8 @@ export function useConsultingData(patientId: string, branchId: string | null) {
     maxResultCount: advisePaging.maxResultCount,
   });
   const dentists = useDentistList().data ?? [];
+  // A diagnosis is made today: doctors registered OFF today are not offered.
+  const dentistsToday = useDentistList(todayIsoDate()).data ?? [];
   const diagnosisOptions = useCatalogOptions(CATALOG_GROUP.Diagnosis).data ?? [];
   const imageQuery = usePatientImages(patientId, branchId ?? "");
   const images = imageQuery.data?.items ?? [];
@@ -38,7 +41,7 @@ export function useConsultingData(patientId: string, branchId: string | null) {
     advises,
     diagnosisPaging,
     advisePaging,
-    dentists: dentists.map((item) => ({ value: item.id, label: item.name })),
+    dentists: dentistsToday.map((item) => ({ value: item.id, label: item.name })),
     dentistList: dentists,
     diagnosisOptions: diagnosisOptions.map((item) => ({ value: item.id, label: item.name })),
     images: images.map(adaptPatientImage),

@@ -12,6 +12,7 @@ using Volo.Abp.Application.Services;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using BlueDental.Organizations;
+using BlueDental.Timekeeping;
 using Microsoft.AspNetCore.Identity;
 using Volo.Abp.Identity;
 using Volo.Abp.Domain.Repositories;
@@ -24,6 +25,8 @@ public class StaffAppService(
     IdentityUserManager userManager,
     IIdentityRoleRepository roleRepository,
     IRepository<StaffBranchAssignment, Guid> assignmentRepository,
+    IRepository<TimeKeepingRecord, Guid> timeKeepingRepository,
+    ICurrentClinicBranchResolver branchResolver,
     IBlobContainer blobContainer) : ApplicationService, IStaffAppService
 {
     private const long MaxAvatarBytes = 5 * 1024 * 1024; // 5 MB
@@ -50,9 +53,13 @@ public class StaffAppService(
         // so "thu" would miss "Lê Thu Hà". The pickers search as the user types,
         // which makes that a real miss rather than a curiosity — so the term is
         // matched here instead, the way the catalog list matches its own.
+        var offStaffIds = input.AvailableOn.HasValue
+            ? await GetDayOffStaffIdsAsync(input.AvailableOn.Value, input.BranchId)
+            : null;
+
         var term = input.Filter?.Trim();
-        var needsInMemoryFilter =
-            branchStaffIds != null || input.IsActive.HasValue || !term.IsNullOrEmpty();
+        var needsInMemoryFilter = branchStaffIds != null || offStaffIds != null
+            || input.IsActive.HasValue || !term.IsNullOrEmpty();
 
         var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
@@ -74,6 +81,11 @@ public class StaffAppService(
             users = users.Where(u => u.IsActive == input.IsActive.Value).ToList();
         }
 
+        if (offStaffIds != null)
+        {
+            users = users.Where(u => !offStaffIds.Contains(u.Id)).ToList();
+        }
+
         var totalCount = users.Count;
         var paged = needsInMemoryFilter
             ? users.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()
@@ -86,6 +98,21 @@ public class StaffAppService(
         }
 
         return new PagedResultDto<StaffDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// Staff who pressed OFF on Chấm công for that clinic day. A day off is
+    /// recorded per branch, so it is read at the branch the form is booking
+    /// into — the explicit filter, else the branch on the request.
+    /// </summary>
+    private async Task<HashSet<Guid>> GetDayOffStaffIdsAsync(DateOnly day, Guid? branchId)
+    {
+        var branch = branchId ?? branchResolver.ClinicBranchId ?? branchResolver.OwnClinicBranchId;
+        var records = await timeKeepingRepository.GetListAsync(r =>
+            r.WorkDate == day
+            && r.Registration == WorkRegistration.DayOff
+            && (branch == null || r.ClinicBranchId == branch));
+        return records.Select(r => r.StaffId).ToHashSet();
     }
 
     /// <summary>

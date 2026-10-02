@@ -2350,6 +2350,7 @@
     "Appointment:Form:SelectPatientRequired": "Please select a patient",
     "Appointment:Form:SelectBranchRequired": "Please select a branch",
     "Appointment:Form:SelectDoctorRequired": "Please select a doctor",
+    "Appointment:Form:DoctorOffOnDate": "This doctor is off on this day, please choose another doctor",
     "Appointment:Form:SelectDateRequired": "Please select a date",
     "Appointment:Form:SelectTimeRequired": "Please select an appointment time",
     "Appointment:Form:EnterPatientNameRequired": "Please enter the patient's full name",

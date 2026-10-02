@@ -27,6 +27,13 @@ function formatDuration(totalMinutes: number): string {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+/** A day registered off (X on the grid) is OFF even before it comes. */
+function resolveWorkStatus(day: { hasAttendance: boolean; isDayOff: boolean; isFutureDay: boolean }): WorkStatus {
+  if (day.hasAttendance) return "working";
+  if (day.isDayOff) return "dayOff";
+  return day.isFutureDay ? "notCheckedIn" : "absent";
+}
+
 function formatPlanned(time: string): string {
   return time.slice(0, 5);
 }
@@ -74,7 +81,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const hasAttendance = Boolean(
     record.morningShift.checkedInAt || record.afternoonShift.checkedInAt,
   );
-  const workStatus: WorkStatus = hasAttendance ? "working" : isFutureDay ? "notCheckedIn" : "absent";
+  const workStatus = resolveWorkStatus({ hasAttendance, isDayOff, isFutureDay });
   const isSaving = openWorkDay.isPending || checkIn.isPending || checkOut.isPending;
 
   // A staff member with no record yet shows a virtual card, so the first

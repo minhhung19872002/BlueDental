@@ -6276,3 +6276,14 @@ BA: "khóa hết tương tác trên grid", làm rõ sau: không ai (kể cả ad
 
 Kiểm chứng: BE build sạch; FE `tsc` + ESLint timekeeping sạch. Build production (:8093, host :5000 build mới, DB thật, không chặn request): `work-schedule-own-dayoff` 3/3, `timekeeping-api` 3/3, `timekeeping` 4/5 — ca KPI đỏ có sẵn ở HEAD (`timekeeping-kpis` không còn trong `src`, commit 4cb33646 bỏ thanh KPI).
 Retest level **2** (F-03).
+
+## 2026-10-02 — Bảng ngày đồng bộ X của grid Lịch làm việc (R-654)
+
+BA: grid Lịch làm việc chỉ để đăng ký nghỉ; "Lưu thay đổi" = nghỉ nguyên ngày; thẻ trên bảng ngày phải tự về OFF ngày user nghỉ.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-654 | Đánh X cho ngày mai rồi lưu, mở bảng ngày mai: thẻ vẫn ở nút giữa (Không điểm danh), không về OFF. | `TimekeepingStaffCard` chỉ xét có chấm công / ngày tương lai, bỏ qua `registration`. Thêm trạng thái `dayOff` cho `WorkStatusToggle` (vị trí OFF, nhãn "Nghỉ"), ưu tiên sau "đã chấm công". Dữ liệu đã đúng sẵn: `bulk-register` ghi `DayOff` cho cả bản ghi ngày (không có nửa buổi), cache `timekeepingKeys.all` được làm mới sau khi lưu. |
+
+Kiểm chứng: `tsc` + ESLint sạch. Build production (:8093, host :5000, DB thật): `work-schedule-own-dayoff` 3/3 (ca UI thêm bước mở bảng ngày → thẻ của mình "Nghỉ" + `tk-toggle--off`, thẻ người khác "Không điểm danh"), `timekeeping-api` 3/3.
+Retest level **2** (F-03).

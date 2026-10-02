@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 
-/** Matches the board legend: 🟢 Làm việc · ⚪ Không điểm danh · 🔴 Vắng. */
-export type WorkStatus = "working" | "notCheckedIn" | "absent";
+/** Matches the board legend: 🟢 Làm việc · ⚪ Không điểm danh · 🔴 Vắng / Nghỉ. */
+export type WorkStatus = "working" | "notCheckedIn" | "absent" | "dayOff";
 
 interface Props {
   status: WorkStatus;
@@ -12,6 +12,7 @@ const STATUS_CONFIG: Record<WorkStatus, { slot: number; modClass: string; labelK
   working: { slot: 2, modClass: "tk-toggle--on", labelKey: "Timekeeping:Working" },
   notCheckedIn: { slot: 1, modClass: "", labelKey: "Timekeeping:NotCheckedIn" },
   absent: { slot: 0, modClass: "tk-toggle--off", labelKey: "Timekeeping:Absent" },
+  dayOff: { slot: 0, modClass: "tk-toggle--off", labelKey: "Timekeeping:DayOff" },
 };
 
 function thumbLeft(position: number): string {
@@ -22,7 +23,8 @@ function thumbLeft(position: number): string {
  * The OFF/ON pill on a timekeeping card. Read-only (BA 2026-10-02): nobody
  * flips it by hand any more — it reads ON once a shift has been checked in on
  * the progress bar, OFF on today or a past day without one, and stays neutral
- * on a day that has not come yet.
+ * on a day that has not come yet. A day registered off (X on the Lịch làm việc
+ * grid, whole day) reads OFF whatever the date.
  */
 export function WorkStatusToggle({ status }: Props) {
   const { slot, modClass, labelKey } = STATUS_CONFIG[status];

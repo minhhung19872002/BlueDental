@@ -90,7 +90,13 @@ export async function createRunStaff(
   page: Page,
   branchId: string,
   run: string,
-  flags: { name?: string; isDentist?: boolean; isAssistant?: boolean; roleNames?: string[] } = {},
+  flags: {
+    name?: string;
+    isDentist?: boolean;
+    isAssistant?: boolean;
+    roleNames?: string[];
+    branchIds?: string[];
+  } = {},
 ): Promise<RunStaff> {
   const res = await call<RunStaff>(page, "/api/v1/app/staff", {
     method: "POST",

@@ -4,8 +4,8 @@ import { PictureOutlined, SaveOutlined } from "@ant-design/icons";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import {
-  useAssistantOptionsSearch,
-  useDentistOptions,
+  useAssistantOptionsToday,
+  useDentistOptionsToday,
 } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
@@ -77,7 +77,7 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
           <ServerSearchSelect
             value={draft.staffId}
             valueLabel={draft.labels.staff}
-            useOptions={useDentistOptions}
+            useOptions={useDentistOptionsToday}
             allowClear={false}
             onChange={(value) => handlers.onChange({ staffId: value ?? undefined })}
           />
@@ -87,7 +87,7 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
           <ServerSearchSelect
             value={draft.subStaffId}
             valueLabel={draft.labels.subStaff}
-            useOptions={useAssistantOptionsSearch}
+            useOptions={useAssistantOptionsToday}
             onChange={(value) => handlers.onChange({ subStaffId: value })}
           />
         </FloatingLabel>
@@ -95,7 +95,7 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
           <ServerSearchSelect
             value={draft.secondStaffId}
             valueLabel={draft.labels.secondStaff}
-            useOptions={useDentistOptions}
+            useOptions={useDentistOptionsToday}
             onChange={(value) => handlers.onChange({ secondStaffId: value })}
           />
         </FloatingLabel>

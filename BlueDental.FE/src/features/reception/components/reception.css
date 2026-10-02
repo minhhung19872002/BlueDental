@@ -717,6 +717,13 @@
   min-width: 0;
 }
 
+.fu-doctor-error {
+  margin: -4px 0 0;
+  font-size: 12px;
+  text-align: right;
+  color: var(--bd-red);
+}
+
 .fu-quick {
   display: flex;
   flex-wrap: wrap;

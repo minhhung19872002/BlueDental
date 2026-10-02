@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import {
   staffApi,
   type CreateStaffInput,
@@ -60,12 +60,25 @@ export function useDeleteStaff() {
   return useStaffMutation((id: string) => staffApi.remove(id));
 }
 
-/** Returns only dentists (`isDentist === true`) for calendar doctor columns. */
-export function useDentistList() {
+/**
+ * Returns only dentists (`isDentist === true`) for calendar doctor columns.
+ *
+ * With `availableOn` ("YYYY-MM-DD") it is a booking picker instead: doctors
+ * registered OFF that day are left out, under a key of its own so the calendar
+ * columns and filters keep everyone. Always re-read on mount — the OFF toggle
+ * is pressed on another screen, often by someone else.
+ */
+export function useDentistList(availableOn?: string) {
   return useQuery({
-    queryKey: [...staffKeys.lists(), "dentists"],
+    queryKey: availableOn
+      ? [...staffKeys.lists(), "dentists", { availableOn }]
+      : [...staffKeys.lists(), "dentists"],
+    staleTime: availableOn ? 0 : undefined,
+    // Changing the day keeps the old list (and the chosen name) on screen
+    // until the new day's list replaces it.
+    placeholderData: availableOn ? keepPreviousData : undefined,
     queryFn: async () => {
-      const result = await staffApi.list({ maxResultCount: 50, isActive: true });
+      const result = await staffApi.list({ maxResultCount: 50, isActive: true, availableOn });
       const dentists = result.items.filter((s) => s.isDentist);
 
       const chosen = dentists.length > 0 ? dentists : result.items.slice(0, 8);

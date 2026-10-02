@@ -36,13 +36,17 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
         <Controller
           name="doctorId"
           control={control}
-          render={({ field }) => (
-            <SearchSelect
-              value={field.value || undefined}
-              placeholder={t("Appointment:Form:SelectDoctor")}
-              options={doctorOptions}
-              onChange={(v) => field.onChange(v ?? "")}
-            />
+          render={({ field, fieldState }) => (
+            <>
+              <SearchSelect
+                value={field.value || undefined}
+                placeholder={t("Appointment:Form:SelectDoctor")}
+                options={doctorOptions}
+                onChange={(v) => field.onChange(v ?? "")}
+                status={fieldState.error ? "error" : ""}
+              />
+              {fieldState.error && <span className="appt-field-error">{fieldState.error.message}</span>}
+            </>
           )}
         />
       </div>

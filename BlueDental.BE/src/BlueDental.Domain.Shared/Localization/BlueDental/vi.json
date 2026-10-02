@@ -2554,6 +2554,7 @@
     "Appointment:Form:SelectPatientRequired": "Vui lòng chọn bệnh nhân",
     "Appointment:Form:SelectBranchRequired": "Vui lòng chọn chi nhánh",
     "Appointment:Form:SelectDoctorRequired": "Vui lòng chọn bác sĩ",
+    "Appointment:Form:DoctorOffOnDate": "Bác sĩ nghỉ vào ngày này, vui lòng chọn bác sĩ khác",
     "Appointment:Form:SelectDateRequired": "Vui lòng chọn ngày",
     "Appointment:Form:SelectTimeRequired": "Vui lòng chọn giờ hẹn",
     "Appointment:Form:EnterPatientNameRequired": "Vui lòng nhập họ tên bệnh nhân",

@@ -2780,3 +2780,17 @@ UNKNOWN_REFERENCE_BEHAVIOR — tích hợp riêng của BlueDental; các điểm
 - Đổi tài khoản chi nhánh khi còn nháp ở tài khoản cũ: nháp cũ nằm lại portal cũ (BlueDental không xoá được — không có API xoá nháp).
 
 Action taken: NONE (ghi lại; không gọi gì lên production).
+
+## Bác sĩ nghỉ — ô chọn bác sĩ (2026-10-02, F-47, không phải hành vi bản gốc)
+
+UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau chưa được BA chốt:
+
+- Hẹn tái khám từ thẻ tiếp nhận để trống bác sĩ → server gán bác sĩ của thẻ, kể cả
+  khi người đó OFF ngày tái khám (không chặn ở server — theo quyết định "chỉ ẩn").
+- `useDentistList` khi không có ai `isDentist` thì lấy 8 nhân viên đầu làm dự phòng;
+  nếu mọi nha sĩ đều OFF ngày đó, ô chọn sẽ hiện nhân viên không phải nha sĩ.
+- Ô chọn bác sĩ ở "Thêm vào kế hoạch" của thẻ tư vấn chưa lọc (ngoài phạm vi 5 màn BA nêu).
+- Sửa nhân viên chỉ làm mới cache `["staff"]`, không làm mới key `receptionDoctors` (có sẵn từ trước).
+- Chẩn đoán và công đoạn KHĐT lọc theo **hôm nay** (form không có ô ngày).
+
+Action taken: NONE (ghi lại; không gọi gì lên production).

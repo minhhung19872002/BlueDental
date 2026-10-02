@@ -11,11 +11,11 @@ import { AppDialog } from "@/components/AppDialog";
 // Without this the modal renders full-width with its two columns collapsed.
 import "./calendar.css";
 import { useAppointment } from "../api/appointmentQueries";
+import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { useSaveAppointment } from "../hooks/useSaveAppointment";
 import { APPOINTMENT_STATUSES } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
-import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -79,23 +79,18 @@ export function AppointmentEditorModal({
 
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
   const { data: patients } = usePatientOptions();
-  const { data: dentists } = useDentistList();
   const { data: branches } = useClinicBranches(true);
 
   const patientOptions = useMemo(
     () => (patients ?? []).map((p) => ({ value: p.id, label: `[${p.code}] - ${p.name.toUpperCase()}` })),
     [patients],
   );
-  const doctorOptions = useMemo(
-    () => (dentists ?? []).map((d) => ({ value: d.id, label: d.name })),
-    [dentists],
-  );
   const branchOptions = useMemo(
     () => (branches ?? []).map((b) => ({ value: b.id, label: b.name })),
     [branches],
   );
 
-  const { control, handleSubmit, reset, setValue, formState: { errors, isValid } } = useForm<AppointmentEditorValues>({
+  const { control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors, isValid } } = useForm<AppointmentEditorValues>({
     resolver: zodResolver(buildSchema()),
     defaultValues: {
       patientId: "",
@@ -114,6 +109,30 @@ export function AppointmentEditorModal({
   const watchedDoctorId = useWatch({ control, name: "doctorId" });
   const watchedDate = useWatch({ control, name: "date" });
   const watchedNotes = useWatch({ control, name: "notes" });
+
+  const handleDoctorOff = useCallback(() => {
+    setValue("doctorId", "", { shouldValidate: false });
+    setError("doctorId", { type: "manual", message: t("Appointment:Form:DoctorOffOnDate") });
+  }, [setValue, setError]);
+
+  useEffect(() => {
+    if (watchedDoctorId) clearErrors("doctorId");
+  }, [watchedDoctorId, clearErrors]);
+
+  // An existing booking keeps its doctor on its own day even if that doctor
+  // has since gone OFF; moved to another day, the doctor must be free there.
+  const keptDoctor = useMemo(() => {
+    if (!existingAppt?.doctorId) return null;
+    if (dayjs(existingAppt.startTime).format("YYYY-MM-DD") !== watchedDate) return null;
+    return { id: existingAppt.doctorId, name: existingAppt.doctorName };
+  }, [existingAppt, watchedDate]);
+
+  const doctorOptions = useBookableDoctorOptions({
+    date: watchedDate,
+    doctorId: watchedDoctorId,
+    kept: isEdit ? keptDoctor : null,
+    onUnavailable: handleDoctorOff,
+  });
 
   // The create seed runs once per opening. Anything that settles late — the
   // branch store, an option list — must not reset the form under a user who

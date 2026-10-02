@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Modal, Button, Input, InputNumber, Form, Select, TimePicker, DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { useCreateReception } from "../api/receptionMutations";
+import { useAvailableReceptionDoctors } from "../api/receptionQueries";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
@@ -13,16 +14,8 @@ import type { RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
-interface DoctorOption {
-  id: string;
-  name: string;
-  title: string;
-  branchIds?: string[];
-}
-
 interface ReceptionNewDrawerProps {
   open: boolean;
-  doctors: DoctorOption[];
   branchId?: string;
   /** The date selected on the toolbar calendar — combined with the time picker. */
   scheduledDate: Dayjs;
@@ -40,7 +33,6 @@ interface FormValues {
 
 export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   open,
-  doctors,
   branchId,
   scheduledDate,
   onClose,
@@ -51,6 +43,21 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const [patientKeyword, setPatientKeyword] = useState("");
   const [newPatientOpen, setNewPatientOpen] = useState(false);
   const debouncedPatientKeyword = useDebounce(patientKeyword);
+
+  // Only doctors not registered OFF on the visit's day (BA 2026-10-02).
+  const watchedDate = Form.useWatch("appointmentDate", form);
+  const watchedDoctorId = Form.useWatch("doctorId", form);
+  const visitDay = open ? (watchedDate ?? scheduledDate).format("YYYY-MM-DD") : undefined;
+  const doctorsQuery = useAvailableReceptionDoctors(branchId, visitDay);
+  const doctors = useMemo(() => doctorsQuery.data ?? [], [doctorsQuery.data]);
+  const doctorIsOff =
+    doctorsQuery.isSuccess && !doctorsQuery.isFetching && Boolean(watchedDoctorId)
+    && !doctors.some((d) => d.id === watchedDoctorId);
+
+  useEffect(() => {
+    if (!doctorIsOff) return;
+    form.setFields([{ name: "doctorId", value: undefined, errors: [t("Appointment:Form:DoctorOffOnDate")] }]);
+  }, [doctorIsOff, form]);
 
   const { data: patientData } = usePatientList({
     branchId,

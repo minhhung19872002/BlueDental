@@ -37,6 +37,8 @@ export interface GetStaffListInput {
   isActive?: boolean;
   sorting?: string;
   branchId?: string;
+  /** "YYYY-MM-DD" — leaves out staff registered OFF that day (Chấm công). */
+  availableOn?: string;
 }
 
 export interface CreateStaffInput {
