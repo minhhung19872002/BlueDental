@@ -25,6 +25,12 @@ POST /api/v1/app/time-keepings/close-abandoned
 - An open shift at end of day becomes "nghỉ ngang".
 - Clocking yourself needs `workSchedule.update`; clocking someone else needs
   `workSchedule.attendanceOthers`.
+- Lịch làm việc grid (`POST /time-keepings/bulk-register`, BA 2026-10-02): the
+  caller may only set or clear X (day off) on **their own** row, on a day not
+  yet passed, not clocked in and not planned L. Every role, admin included;
+  marking L is never accepted; one locked cell refuses the whole batch
+  (`BlueDental:Timekeeping:0013`, 403). `workSchedule.update` is still required.
+  V/L/X display logic is unchanged.
 
 ## Acceptance evidence
 
@@ -32,6 +38,16 @@ POST /api/v1/app/time-keepings/close-abandoned
 
 1. asserts the board's six KPIs render from `/time-keepings/summary`
 2. asserts the tab lives in the URL (`?tab=timekeeping`) and survives a reload
+
+`e2e/work-schedule-own-dayoff.spec.ts` (R-650 … R-653), signed in as a run
+staff member through the real login screen:
+
+1. another staff's row (empty future day, clocked-in L) is refused for admin and
+   for the run staff; separate reads show nothing written
+2. own row: X on a later day persists and clears; past day, marking L, a mixed
+   batch and today once clocked in are refused; the check-in survives
+3. UI: own L and every cell of another row are disabled; own empty cell → X →
+   Lưu → reload keeps X; clicking X clears it again and that persists too
 
 ## Not covered yet
 

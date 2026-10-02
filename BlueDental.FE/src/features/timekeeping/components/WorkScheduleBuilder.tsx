@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { Button, Input, Modal, Spin } from "antd";
 import {
   SearchOutlined,
@@ -11,14 +11,10 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { WorkScheduleTable } from "./WorkScheduleTable";
-import type { CellKind } from "./WorkScheduleCell";
 import { useTimeKeepingList, useBulkRegister } from "../api/timekeepingQueries";
-import {
-  WORK_REGISTRATION,
-  type WorkRegistration,
-  type TimeKeepingRecordDto,
-} from "../api/timekeepingApi";
+import { useOwnDayOffDraft } from "../hooks/useOwnDayOffDraft";
 import { useStaffList } from "@/features/staff/api/staffQueries";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
@@ -52,14 +48,6 @@ const MoonIcon = () => (
   </svg>
 );
 
-const UserCheckIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <polyline points="16 11 18 13 22 9" />
-  </svg>
-);
-
 interface Props {
   currentDate: Dayjs;
   onBack: () => void;
@@ -70,9 +58,8 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
   const workScheduleAbility = useAbility("workSchedule");
   const [builderMonth, setBuilderMonth] = useState(() => currentDate.startOf("month"));
   const [keyword, setKeyword] = useState("");
-  const [localChanges, setLocalChanges] = useState<Map<string, WorkRegistration>>(new Map());
-  const [selectedStaff, setSelectedStaff] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const bulkRegister = useBulkRegister();
 
   const fromDate = builderMonth.startOf("month").format("YYYY-MM-DD");
@@ -92,14 +79,6 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
   });
 
   const today = dayjs().format("YYYY-MM-DD");
-
-  const tkLookup = useMemo(() => {
-    const map = new Map<string, TimeKeepingRecordDto>();
-    for (const r of tkData?.items ?? []) {
-      map.set(`${r.staffId}:${r.workDate}`, r);
-    }
-    return map;
-  }, [tkData]);
 
   const staffCreationDates = useMemo(() => {
     const map = new Map<string, string>();
@@ -122,214 +101,36 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
     }));
   }, [staffPage, keyword]);
 
-  const getCellKind = useCallback(
-    (staffId: string, dateStr: string): CellKind => {
-      const key = `${staffId}:${dateStr}`;
-      const record = tkLookup.get(key);
-      const isPast = dateStr < today;
-      const hasAttendance = !!(record?.morningShift?.checkedInAt || record?.afternoonShift?.checkedInAt);
-
-      const localReg = localChanges.get(key);
-      const hasLocalChange = localReg !== undefined;
-
-      const effectiveReg = hasLocalChange
-        ? localReg
-        : (record?.registration ?? WORK_REGISTRATION.NotRegistered);
-
-      if (isPast) {
-        if (hasAttendance || effectiveReg === WORK_REGISTRATION.Working) return "working";
-        if (effectiveReg === WORK_REGISTRATION.DayOff) return "day-off";
-        const createdAt = staffCreationDates.get(staffId);
-        if (createdAt && dateStr < createdAt) return "empty-past";
-        return "vang";
-      }
-
-      if (hasLocalChange) {
-        if (effectiveReg === WORK_REGISTRATION.DayOff) return "day-off";
-        return "empty-future";
-      }
-      if (hasAttendance || effectiveReg === WORK_REGISTRATION.Working) return "working";
-      if (effectiveReg === WORK_REGISTRATION.DayOff) return "day-off";
-      return "empty-future";
-    },
-    [tkLookup, localChanges, today, staffCreationDates],
-  );
-
-  const handleCellClick = useCallback(
-    (staffId: string, dateStr: string) => {
-      const key = `${staffId}:${dateStr}`;
-      const record = tkLookup.get(key);
-
-      if (dateStr < today) return;
-
-      const hasAttendance = !!(record?.morningShift?.checkedInAt || record?.afternoonShift?.checkedInAt);
-      const currentReg = localChanges.has(key)
-        ? localChanges.get(key)!
-        : hasAttendance
-          ? WORK_REGISTRATION.Working
-          : (record?.registration ?? WORK_REGISTRATION.NotRegistered);
-
-      let nextReg: WorkRegistration;
-      if (currentReg === WORK_REGISTRATION.Working) {
-        nextReg = WORK_REGISTRATION.NotRegistered;
-      } else if (currentReg === WORK_REGISTRATION.NotRegistered) {
-        nextReg = WORK_REGISTRATION.DayOff;
-      } else {
-        nextReg = WORK_REGISTRATION.NotRegistered;
-      }
-
-      setLocalChanges((prev) => {
-        const next = new Map(prev);
-        const serverReg = record?.registration ?? WORK_REGISTRATION.NotRegistered;
-        if (nextReg === serverReg && !hasAttendance) {
-          next.delete(key);
-        } else {
-          next.set(key, nextReg);
-        }
-        return next;
-      });
-    },
-    [tkLookup, localChanges, today],
-  );
-
-  const handleStaffSelect = useCallback((staffId: string, checked: boolean) => {
-    setSelectedStaff((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(staffId);
-      else next.delete(staffId);
-      return next;
-    });
-  }, []);
-
-  const handleSelectAll = useCallback(
-    (checked: boolean) => {
-      if (checked) {
-        setSelectedStaff(new Set(staffRows.map((s) => s.id)));
-      } else {
-        setSelectedStaff(new Set());
-      }
-    },
-    [staffRows],
-  );
-
-  const handleBulkDayOff = useCallback(() => {
-    if (selectedStaff.size === 0) return;
-
-    const endOfMonth = builderMonth.endOf("month");
-    const todayDj = dayjs();
-    const startDay = builderMonth.isSame(todayDj, "month")
-      ? todayDj
-      : builderMonth.startOf("month");
-
-    setLocalChanges((prev) => {
-      const next = new Map(prev);
-      for (const staffId of selectedStaff) {
-        let d = startDay.startOf("day");
-        while (d.isBefore(endOfMonth) || d.isSame(endOfMonth, "day")) {
-          const dateStr = d.format("YYYY-MM-DD");
-          if (dateStr >= today) {
-            const key = `${staffId}:${dateStr}`;
-            const record = tkLookup.get(key);
-            if (!(record?.morningShift?.checkedInAt || record?.afternoonShift?.checkedInAt)) {
-              const serverReg = record?.registration ?? WORK_REGISTRATION.NotRegistered;
-              if (WORK_REGISTRATION.DayOff === serverReg) {
-                next.delete(key);
-              } else {
-                next.set(key, WORK_REGISTRATION.DayOff);
-              }
-            }
-          }
-          d = d.add(1, "day");
-        }
-      }
-      return next;
-    });
-  }, [selectedStaff, builderMonth, today, tkLookup]);
-
-  const handleReset = () => setLocalChanges(new Map());
-
-  const [saveScope, setSaveScope] = useState<"all" | "selected">("all");
-
-  const handleSaveClick = () => {
-    if (localChanges.size === 0) return;
-    setSaveScope("all");
-    setConfirmOpen(true);
-  };
-
-  const handleSaveSelectedClick = () => {
-    if (selectedStaff.size === 0) return;
-    setSaveScope("selected");
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmSave = async () => {
-    const entries = Array.from(localChanges.entries());
-    const filtered = saveScope === "selected"
-      ? entries.filter(([key]) => selectedStaff.has(key.split(":")[0]))
-      : entries;
-
-    if (filtered.length === 0) {
-      setConfirmOpen(false);
-      return;
-    }
-
-    const items = filtered.map(([key, registration]) => {
-      const [staffId, workDate] = key.split(":");
-      return { staffId, workDate, registration };
-    });
-
-    try {
-      await bulkRegister.mutateAsync({ items });
-      toast.success(t("Timekeeping:ScheduleSavedCells", items.length));
-      if (saveScope === "selected") {
-        setLocalChanges((prev) => {
-          const next = new Map(prev);
-          for (const [key] of filtered) next.delete(key);
-          return next;
-        });
-      } else {
-        setLocalChanges(new Map());
-      }
-      setConfirmOpen(false);
-    } catch (error) {
-      notifyError(extractApiError(error));
-      setConfirmOpen(false);
-    }
-  };
+  const draft = useOwnDayOffDraft({
+    records: tkData?.items,
+    staffCreationDates,
+    today,
+    currentUserId,
+    canUpdate: workScheduleAbility.canUpdate,
+  });
 
   const handleMonthPrev = () => {
     setBuilderMonth((m) => m.subtract(1, "month"));
-    setLocalChanges(new Map());
-    setSelectedStaff(new Set());
+    draft.reset();
   };
 
   const handleMonthNext = () => {
     setBuilderMonth((m) => m.add(1, "month"));
-    setLocalChanges(new Map());
-    setSelectedStaff(new Set());
+    draft.reset();
   };
 
-  const hasChanges = localChanges.size > 0;
+  const handleConfirmSave = async () => {
+    try {
+      await bulkRegister.mutateAsync({ items: draft.items });
+      toast.success(t("Timekeeping:ScheduleSavedCells", draft.items.length));
+      draft.reset();
+    } catch (error) {
+      notifyError(extractApiError(error));
+    }
+    setConfirmOpen(false);
+  };
+
   const loading = tkLoading || staffLoading;
-
-  const dayOffCount = useMemo(() => {
-    const counted = new Set<string>();
-    let count = 0;
-    for (const r of tkData?.items ?? []) {
-      const key = `${r.staffId}:${r.workDate}`;
-      if (localChanges.has(key)) continue;
-      if (r.registration === WORK_REGISTRATION.DayOff) {
-        count++;
-        counted.add(key);
-      }
-    }
-    for (const [key, reg] of localChanges) {
-      if (reg === WORK_REGISTRATION.DayOff && !counted.has(key)) count++;
-    }
-    return count;
-  }, [tkData, localChanges]);
-
-  const allSelected = staffRows.length > 0 && selectedStaff.size === staffRows.length;
 
   return (
     <div className="wsb-wrap">
@@ -377,27 +178,18 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
         <div className="wsb-toolbar-actions">
           <Button
             icon={<UndoOutlined />}
-            disabled={!hasChanges || bulkRegister.isPending}
-            onClick={handleReset}
+            disabled={!draft.hasChanges || bulkRegister.isPending}
+            onClick={draft.reset}
           >
             {t("Timekeeping:Reset")}
           </Button>
-          {workScheduleAbility.canUpdate && selectedStaff.size > 0 && (
-            <Button
-              icon={<UserCheckIcon />}
-              loading={bulkRegister.isPending && saveScope === "selected"}
-              onClick={handleSaveSelectedClick}
-            >
-              {t("Timekeeping:SaveForSelected", selectedStaff.size)}
-            </Button>
-          )}
           {workScheduleAbility.canUpdate && (
             <Button
               type="primary"
               icon={<SaveOutlined />}
-              disabled={!hasChanges}
-              loading={bulkRegister.isPending && saveScope === "all"}
-              onClick={handleSaveClick}
+              disabled={!draft.hasChanges}
+              loading={bulkRegister.isPending}
+              onClick={() => setConfirmOpen(true)}
             >
               {t("Timekeeping:SaveChanges")}
             </Button>
@@ -437,12 +229,6 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
         {t("Timekeeping:WorkLegendHint")}
       </div>
 
-      {selectedStaff.size > 0 && (
-        <div className="wsb-selection-note">
-          {t("Timekeeping:SaveScopeHint")}
-        </div>
-      )}
-
       <div className="wsb-table-area">
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", paddingTop: 48 }}>
@@ -452,21 +238,16 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
           <WorkScheduleTable
             month={builderMonth}
             staff={staffRows}
-            getCellKind={getCellKind}
-            onCellClick={handleCellClick}
-            dayOffCount={dayOffCount}
-            selectedStaff={selectedStaff}
-            allSelected={allSelected}
-            onStaffSelect={handleStaffSelect}
-            onSelectAll={handleSelectAll}
-            onDayOffClick={handleBulkDayOff}
+            getCellKind={draft.getCellKind}
+            isCellEditable={draft.isCellEditable}
+            onCellClick={draft.toggleCell}
           />
         )}
       </div>
 
       <Modal
         open={confirmOpen}
-        title={saveScope === "selected" ? t("Timekeeping:SaveSelectedTitle") : t("Timekeeping:SaveScheduleTitle")}
+        title={t("Timekeeping:SaveScheduleTitle")}
         width={450}
         onCancel={() => setConfirmOpen(false)}
         footer={[
@@ -483,11 +264,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
           </Button>,
         ]}
       >
-        <p>
-          {saveScope === "selected"
-            ? t("Timekeeping:ConfirmSaveSelected", selectedStaff.size)
-            : t("Timekeeping:ConfirmSaveAll")}
-        </p>
+        <p>{t("Timekeeping:ConfirmSaveAll")}</p>
         <p>
           <strong>{t("Common:Month")} {builderMonth.month() + 1} / {builderMonth.year()}</strong>?
         </p>

@@ -289,23 +289,33 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
         var lookup = existing.ToDictionary(r => (r.StaffId, r.WorkDate));
 
+        // The grid only lets a staff member mark or clear their own day off (X) on a
+        // day that has not passed, has not been clocked in and is not planned as
+        // working (L). Any role, admin included; one bad cell refuses the whole
+        // batch before anything is written (BA 2026-10-02).
+        var currentUserId = CurrentUser.GetId();
+        var touchesLockedCell = input.Items.Any(i =>
+            i.StaffId != currentUserId ||
+            i.WorkDate < ClinicToday ||
+            i.Registration == WorkRegistration.Working ||
+            (lookup.TryGetValue((i.StaffId, i.WorkDate), out var r) &&
+             (r.HasAnyAttendance || r.Registration == WorkRegistration.Working)));
+        if (touchesLockedCell)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.ScheduleCellLocked,
+                "Only your own day off can be set or cleared, on a day not yet passed or clocked in.");
+        }
+
         var count = 0;
         foreach (var item in input.Items)
         {
             if (lookup.TryGetValue((item.StaffId, item.WorkDate), out var record))
             {
-                switch (item.Registration)
-                {
-                    case WorkRegistration.Working:
-                        record.RegisterWorking(force: true);
-                        break;
-                    case WorkRegistration.DayOff:
-                        record.RegisterDayOff(force: true);
-                        break;
-                    default:
-                        record.ResetRegistration(force: true);
-                        break;
-                }
+                if (item.Registration == WorkRegistration.DayOff)
+                    record.RegisterDayOff();
+                else
+                    record.ResetRegistration();
 
                 await _repository.UpdateAsync(record);
             }
@@ -317,9 +327,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
                     clinicBranchId,
                     item.WorkDate);
 
-                if (item.Registration == WorkRegistration.Working)
-                    newRecord.RegisterWorking();
-                else if (item.Registration == WorkRegistration.DayOff)
+                if (item.Registration == WorkRegistration.DayOff)
                     newRecord.RegisterDayOff();
 
                 await _repository.InsertAsync(newRecord);

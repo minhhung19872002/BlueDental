@@ -6262,3 +6262,17 @@ Chủ dự án: "check kỹ toàn bộ … chạy 100%". Rà lại mọi luồng
 | R-649 | 51 e2e đỏ ở consulting-plan (12), operations-reports (8), operations (2), patient (27), report (1), routes (1) — nghi do thay đổi hóa đơn. | **Không phải.** Chạy cùng 6 spec trên bản HEAD sạch (`git archive`, BE+FE build riêng, cùng DB): đúng 51 test đó cũng đỏ, danh sách trùng 100%. Nguyên nhân có sẵn: consulting-plan dùng BN cứng `3a238cc0…` không có trong seed local (R-590); operations/report lệch UI (thiếu tab kỳ "Ngày", heading "Báo cáo khách hàng phát sinh"); host không có lỗi 500. Cần xử lý riêng, ngoài phạm vi hóa đơn. |
 
 Kết quả: BE build 0 lỗi 0 cảnh báo; BE test 1271/1271 (Domain 535, Application 653, EF 60, Host 23); FE `tsc` sạch; Vitest 3/3; e2e hóa đơn + liên quan (`einvoice-api`, `payment-qr`, `treatment-plan-detail`, `treatment-plan`) 30/30 trên bản build production, API thật, không chặn request.
+
+## 2026-10-02 — Lịch làm việc: chỉ tự đánh X của chính mình (R-650 … R-653)
+
+BA: "khóa hết tương tác trên grid", làm rõ sau: không ai (kể cả admin) đụng ô V/L hay dòng của người khác; user chỉ bấm ô trống trên dòng của mình để thành X. Vẫn cần quyền Lịch làm việc → Sửa. Logic hiển thị V/L/X giữ nguyên.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-650 | Admin bỏ được chữ "L" của người khác hôm nay → mất luôn chấm công của họ. | FE cho bấm ô L đã chấm công; BE `BulkRegisterAsync` không kiểm tra chủ dòng/ngày/chấm công và gọi `force: true` xoá ca. Server từ chối cả lô nếu có ô: của người khác, ngày đã qua, đăng ký L, hoặc ô đã chấm công / đã là L (`Timekeeping:0013`, 403). Bỏ `force`. |
+| R-651 | Grid cho chọn dòng người khác (checkbox, "Nghỉ (n)", lịch nghỉ nhiều ngày). | Khoá cho mọi vai trò (vẫn hiển thị). Ô chỉ bấm được khi là dòng của mình + ngày ≥ hôm nay + chưa chấm công + không phải L — hook `useOwnDayOffDraft`. Ô khoá giữ màu, chỉ đổi con trỏ. |
+| R-652 | — | Bấm lại X đã lưu của mình → về trống (BA đồng ý). Hôm nay chưa chấm công vẫn đánh X được. |
+| R-653 | `doctor-day-off-pickers` (3) + `staff-day-off-api` (3) đỏ: seed ngày nghỉ/L cho bác sĩ khác bằng admin qua `bulk-register`. | Đúng theo luật mới — spec chưa commit của phiên khác. Cần seed bằng cách đăng nhập chính bác sĩ đó đánh X của mình; L ngày tương lai không còn đường ghi. Chưa sửa (file của phiên khác). |
+
+Kiểm chứng: BE build sạch; FE `tsc` + ESLint timekeeping sạch. Build production (:8093, host :5000 build mới, DB thật, không chặn request): `work-schedule-own-dayoff` 3/3, `timekeeping-api` 3/3, `timekeeping` 4/5 — ca KPI đỏ có sẵn ở HEAD (`timekeeping-kpis` không còn trong `src`, commit 4cb33646 bỏ thanh KPI).
+Retest level **2** (F-03).

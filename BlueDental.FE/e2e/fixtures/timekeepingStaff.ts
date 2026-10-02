@@ -61,7 +61,7 @@ export async function call<T = Record<string, unknown>>(
         body,
       });
       const text = await res.text();
-      let parsed: unknown = {};
+      let parsed: unknown;
       try {
         parsed = text ? JSON.parse(text) : {};
       } catch {
@@ -86,24 +86,33 @@ export function clinicToday(): string {
   return new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
 }
 
-export async function createRunStaff(page: Page, branchId: string, run: string): Promise<RunStaff> {
+export async function createRunStaff(
+  page: Page,
+  branchId: string,
+  run: string,
+  flags: { name?: string; isDentist?: boolean; isAssistant?: boolean; roleNames?: string[] } = {},
+): Promise<RunStaff> {
   const res = await call<RunStaff>(page, "/api/v1/app/staff", {
     method: "POST",
     branchId,
     json: {
       userName: `tk-e2e-${run}`,
-      password: "E2e@123456",
+      password: RUN_STAFF_PASSWORD,
       name: "Chấm công",
       surname: `E2E ${run}`,
       email: `tk-e2e-${run}@example.test`,
       isActive: true,
       roleNames: [],
       branchIds: [branchId],
+      ...flags,
     },
   });
   expect(res.status, `create staff (${JSON.stringify(res.body.error)})`).toBe(200);
   return res.body;
 }
+
+/** Password of every run staff member, for specs that sign in as one. */
+export const RUN_STAFF_PASSWORD = "E2e@123456";
 
 export async function deleteStaff(page: Page, id: string): Promise<void> {
   const res = await call(page, `/api/v1/app/staff/${id}`, { method: "DELETE" });

@@ -26,19 +26,17 @@ const KIND_LABEL: Record<CellKind, string> = {
 
 interface Props {
   kind: CellKind;
-  disabled?: boolean;
-  onClick?: () => void;
+  disabled: boolean;
+  onClick: () => void;
 }
 
 export function WorkScheduleCell({ kind, disabled, onClick }: Props) {
-  const isDisabled = disabled || kind === "empty-past" || kind === "vang" || kind === "locked";
-
   return (
     <button
       type="button"
       className={KIND_CLASS[kind]}
-      disabled={isDisabled}
-      onClick={isDisabled ? undefined : onClick}
+      disabled={disabled}
+      onClick={onClick}
     >
       {KIND_LABEL[kind]}
     </button>

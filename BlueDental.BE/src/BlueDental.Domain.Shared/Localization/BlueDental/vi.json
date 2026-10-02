@@ -267,6 +267,7 @@
     "BlueDental:Patient:0009": "Nội dung bệnh án vượt quá dung lượng cho phép.",
     "BlueDental:Timekeeping:0011": "Không thể chấm công cho ngày đã qua.",
     "BlueDental:Timekeeping:0012": "Chỉ được chấm công / đổi trạng thái đi làm trong ngày hiện tại.",
+    "BlueDental:Timekeeping:0013": "Chỉ được đánh hoặc bỏ ngày nghỉ (X) của chính mình, cho ngày chưa qua và chưa chấm công.",
     "BlueDental:Tools:0001": "Không tìm thấy cấu hình.",
     "BlueDental:Tools:0002": "Số máy nhánh SIP này đã được dùng.",
     "BlueDental:Tools:0003": "Không tìm thấy cấu hình Zalo OA",

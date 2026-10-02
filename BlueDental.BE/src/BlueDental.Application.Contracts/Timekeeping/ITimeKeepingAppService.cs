@@ -30,8 +30,9 @@ public interface ITimeKeepingAppService : IApplicationService
     Task<int> CloseAbandonedShiftsAsync(Guid clinicBranchId, DateOnly workDate);
 
     /// <summary>
-    /// Bulk-sets Registration for many staff×day combinations (Work Schedule Builder).
-    /// Creates records if they do not exist. Skips cells where attendance is already recorded.
+    /// Sets or clears the caller's own day off (X) on many days (Work Schedule Builder).
+    /// Creates records if they do not exist. Refuses the whole batch if any cell is
+    /// another staff member's, a past day, clocked in, or planned as working.
     /// </summary>
     Task<int> BulkRegisterAsync(BulkRegisterInput input);
 }

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from "react";
-import dayjs, { type Dayjs } from "dayjs";
+import type { Dayjs } from "dayjs";
 import { Button } from "antd";
 
 import { WorkScheduleCell, type CellKind } from "./WorkScheduleCell";
@@ -24,13 +24,8 @@ interface Props {
   month: Dayjs;
   staff: StaffRow[];
   getCellKind: (staffId: string, dateStr: string) => CellKind;
+  isCellEditable: (staffId: string, dateStr: string) => boolean;
   onCellClick: (staffId: string, dateStr: string) => void;
-  dayOffCount: number;
-  selectedStaff: Set<string>;
-  allSelected: boolean;
-  onStaffSelect: (staffId: string, checked: boolean) => void;
-  onSelectAll: (checked: boolean) => void;
-  onDayOffClick: () => void;
 }
 
 function buildDays(month: Dayjs): DayInfo[] {
@@ -56,21 +51,14 @@ const CalendarPlusIcon = () => (
   </svg>
 );
 
-export function WorkScheduleTable({
-  month,
-  staff,
-  getCellKind,
-  onCellClick,
-  selectedStaff,
-  allSelected,
-  onStaffSelect,
-  onSelectAll,
-  onDayOffClick,
-}: Props) {
+/**
+ * Only the caller's own empty / X cells are clickable (BA 2026-10-02). Row
+ * checkboxes and the bulk day-off button act on other staff, so they stay on
+ * screen but locked for every role.
+ */
+export function WorkScheduleTable({ month, staff, getCellKind, isCellEditable, onCellClick }: Props) {
   const days = useMemo(() => buildDays(month), [month]);
-  const today = dayjs().format("YYYY-MM-DD");
   const monthLabel = `${t("Common:Month")} ${month.month() + 1} / ${month.year()}`;
-  const hasSelection = selectedStaff.size > 0;
 
   const checkThRef = useRef<HTMLTableCellElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -90,12 +78,8 @@ export function WorkScheduleTable({
     <div className="wsb-table-outer">
       <div className="wsb-subheader">
         <h3 className="wsb-subheader-title">{monthLabel}</h3>
-        <Button
-          size="small"
-          disabled={!hasSelection}
-          onClick={onDayOffClick}
-        >
-          {t("Timekeeping:DayOff")} ({selectedStaff.size})
+        <Button size="small" disabled>
+          {t("Timekeeping:DayOff")} (0)
         </Button>
       </div>
 
@@ -108,8 +92,7 @@ export function WorkScheduleTable({
                 type="checkbox"
                 className="wsb-checkbox"
                 aria-label={t("Timekeeping:SelectAll")}
-                checked={allSelected}
-                onChange={(e) => onSelectAll(e.target.checked)}
+                disabled
               />
             </th>
             <th className="wsb-th-name" style={{ top: 0 }}>
@@ -138,8 +121,7 @@ export function WorkScheduleTable({
                   type="checkbox"
                   className="wsb-checkbox"
                   aria-label={`${t("Timekeeping:Select")} ${s.name}`}
-                  checked={selectedStaff.has(s.id)}
-                  onChange={(e) => onStaffSelect(s.id, e.target.checked)}
+                  disabled
                 />
               </td>
               <td className="wsb-td-name">
@@ -161,7 +143,6 @@ export function WorkScheduleTable({
               {days.map((d) => {
                 const dateStr = d.date.format("YYYY-MM-DD");
                 const kind = getCellKind(s.id, dateStr);
-                const isPast = dateStr < today;
                 return (
                   <td
                     key={d.dayOfMonth}
@@ -172,7 +153,7 @@ export function WorkScheduleTable({
                   >
                     <WorkScheduleCell
                       kind={kind}
-                      disabled={isPast}
+                      disabled={!isCellEditable(s.id, dateStr)}
                       onClick={() => onCellClick(s.id, dateStr)}
                     />
                   </td>

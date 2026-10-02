@@ -278,6 +278,7 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateDayRecord = "BlueDental:Timekeeping:0010";
         public const string PastDayAttendance = "BlueDental:Timekeeping:0011";
         public const string AttendanceNotToday = "BlueDental:Timekeeping:0012";
+        public const string ScheduleCellLocked = "BlueDental:Timekeeping:0013";
     }
 
     public static class CustomerCare

@@ -370,6 +370,7 @@
     "BlueDental:Patient:0009": "The medical record content is larger than allowed.",
     "BlueDental:Timekeeping:0011": "Attendance cannot be recorded for a past day.",
     "BlueDental:Timekeeping:0012": "Attendance and work status can only be changed on the current day.",
+    "BlueDental:Timekeeping:0013": "You can only mark or clear your own day off (X) on a day that has not passed and has not been clocked in.",
     "BlueDental:Tools:0001": "The configuration was not found.",
     "BlueDental:Tools:0002": "That SIP extension is already in use.",
     "BlueDental:Tools:0003": "Zalo OA configuration not found",
