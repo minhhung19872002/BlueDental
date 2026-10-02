@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { assertRealApiTraffic, login } from "./fixtures/auth";
+import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { createRunStaff, deleteStaff, firstBranchId } from "./fixtures/timekeepingStaff";
 
 /** A future date that no earlier run has used, so the board starts empty. */
 /**
@@ -54,34 +55,75 @@ test.describe("Chấm công", () => {
     );
   });
 
-  test("opens the work day, then clocks a shift in and out", async ({ page }) => {
-    // Attendance is one record per staff per day, so each run takes its own day
-    // rather than fighting whatever state today is already in.
-    const workDate = freshWorkDate();
-
-    await page.goto(`/calendar?tab=timekeeping&date=${workDate}`);
+  test("OFF/ON is a read-only status, and check-in is only offered on the current day", async ({ page }) => {
+    // BA 2026-10-02: nobody flips OFF/ON by hand, and no manager override —
+    // even admin cannot clock any day other than today.
+    await page.goto(`/calendar?tab=timekeeping&date=${freshWorkDate()}`);
     await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
 
-    // Attendance cards only exist once the day has been opened for the staff.
-    // The button stays disabled until the roster has arrived; clicking before
-    // that used to no-op behind a toast.
-    const openDay = page.getByRole("button", { name: "Mở ngày làm việc" });
-    await expect(openDay).toBeEnabled();
-    await openDay.click();
+    const checkIns = page.getByRole("button", { name: "Vào ca", exact: true });
+    await expect(checkIns.first()).toBeVisible();
+    for (const button of await checkIns.all()) {
+      await expect(button).toBeDisabled();
+    }
+    // A day still to come is neither ON nor OFF yet.
+    await expect(page.getByRole("img", { name: "Không điểm danh", exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("img", { name: "Vắng", exact: true })).toHaveCount(0);
+    for (const name of ["Làm việc hôm nay", "Nghỉ hôm nay", "Chưa chọn"]) {
+      await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
+    }
+  });
 
-    const card = page.locator("text=LỊCH LÀM VIỆC").first();
-    await expect(card).toBeVisible();
-    await expect(page.getByText("Chưa vào ca").first()).toBeVisible();
+  test("today: checking in on the progress bar turns the card ON, and it survives a reload", async ({ page }) => {
+    const branchId = await firstBranchId(page);
+    const run = `${runId()}${test.info().workerIndex}`;
+    const staff = await createRunStaff(page, branchId, run);
+    try {
+      await page.goto(`/calendar?tab=timekeeping&branchId=${branchId}`);
+      await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
 
-    await page.getByRole("button", { name: "Vào ca" }).first().click();
-    await expect(page.getByText("Đang làm việc").first()).toBeVisible();
+      const findCard = async () => {
+        await page
+          .locator(".floating-field", { hasText: "Tìm kiếm" })
+          .getByRole("textbox")
+          .fill(run);
+        const card = page.locator(".tk-card", { hasText: run });
+        await expect(card).toHaveCount(1);
+        return card;
+      };
 
-    await page.getByRole("button", { name: "Ra ca" }).first().click();
-    await expect(page.getByText("Hoàn thành").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Đã ra ca" }).first()).toBeVisible();
+      let card = await findCard();
+      // Today without a check-in reads OFF ("Vắng"); only a day still to come
+      // stays neutral ("Không điểm danh").
+      await expect(card.getByRole("img", { name: "Vắng", exact: true })).toBeVisible();
 
-    // The attendance is server state, not component state.
-    await page.goto(`/calendar?tab=timekeeping&date=${workDate}`);
-    await expect(page.getByRole("button", { name: "Đã ra ca" }).first()).toBeVisible();
+      // No record yet (a virtual card): the first check-in opens the day, then
+      // clocks in, and the board refetches the real record.
+      await Promise.all([
+        page.waitForResponse((r) => r.url().includes("/open-day") && r.status() === 200),
+        page.waitForResponse((r) => r.url().includes("/check-in") && r.status() === 200),
+        card.getByRole("button", { name: "Vào ca", exact: true }).click(),
+      ]);
+      await expect(card.getByRole("img", { name: "Làm việc", exact: true })).toBeVisible();
+
+      const checkOut = card.getByRole("button", { name: "Ca sáng", exact: true });
+      await expect(checkOut).toBeEnabled();
+      await Promise.all([
+        page.waitForResponse((r) => r.url().includes("/check-out") && r.status() === 200),
+        checkOut.click(),
+      ]);
+
+      await page.reload();
+      card = await findCard();
+      // Morning done and stamped: both steps are spent, the afternoon is next,
+      // and the card still reads ON.
+      await expect(card.getByRole("img", { name: "Làm việc", exact: true })).toBeVisible();
+      await expect(card.getByRole("button", { name: "Vào ca", exact: true })).toBeDisabled();
+      await expect(card.getByRole("button", { name: "Ca sáng", exact: true })).toBeDisabled();
+      await expect(card.getByRole("button", { name: "Vào ca chiều", exact: true })).toBeEnabled();
+      await expect(card.locator(".tk-timeline-time--visible")).toHaveCount(2);
+    } finally {
+      await deleteStaff(page, staff.id);
+    }
   });
 });

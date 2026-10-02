@@ -1,22 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { WorkStatusToggle } from "./WorkStatusToggle";
+import { WorkStatusToggle, type WorkStatus } from "./WorkStatusToggle";
 import { ShiftTimeline } from "./ShiftTimeline";
 import { TimekeepingInfoModal } from "./TimekeepingInfoModal";
 import {
   WORK_REGISTRATION,
   type TimeKeepingRecordDto,
-  type WorkRegistration,
   type WorkShiftKind,
 } from "../api/timekeepingApi";
-import {
-  useCheckIn,
-  useCheckOut,
-  useOpenWorkDay,
-  useRegisterDayOff,
-  useRegisterWorking,
-} from "../api/timekeepingQueries";
+import { useCheckIn, useCheckOut, useOpenWorkDay } from "../api/timekeepingQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
@@ -67,13 +60,13 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const branchId = useCurrentBranchId();
   const workScheduleAbility = useAbility("workSchedule");
   const openWorkDay = useOpenWorkDay();
-  const registerWorking = useRegisterWorking();
-  const registerDayOff = useRegisterDayOff();
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
 
   const isVirtual = record.id.startsWith("virtual-");
   const isPastDay = dayjs(record.workDate).isBefore(dayjs(), "day");
+  const isToday = dayjs(record.workDate).isSame(dayjs(), "day");
+  const isFutureDay = dayjs(record.workDate).isAfter(dayjs(), "day");
   const isNotRegistered = record.registration === WORK_REGISTRATION.NotRegistered;
   const isDayOff = record.registration === WORK_REGISTRATION.DayOff;
   const isBeforeCreation = staffCreationDate ? record.workDate < staffCreationDate : false;
@@ -81,41 +74,26 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const hasAttendance = Boolean(
     record.morningShift.checkedInAt || record.afternoonShift.checkedInAt,
   );
+  const workStatus: WorkStatus = hasAttendance ? "working" : isFutureDay ? "notCheckedIn" : "absent";
+  const isSaving = openWorkDay.isPending || checkIn.isPending || checkOut.isPending;
 
-  const handleRegistrationChange = async (reg: WorkRegistration) => {
-    if (reg === record.registration) return;
-    if (hasAttendance) {
-      toast.error(t("Timekeeping:CannotChangeAfterCheckin"));
-      return;
-    }
+  // A staff member with no record yet shows a virtual card, so the first
+  // check-in of the day opens the day; check-in itself marks it as working.
+  const handleCheckIn = async (shift: WorkShiftKind) => {
     try {
-      let recordId = record.id;
-      if (isVirtual) {
-        const created = await openWorkDay.mutateAsync({
-          staffId: record.staffId,
-          clinicBranchId: branchId,
-          workDate: record.workDate,
-        });
-        recordId = created.id;
-      }
-      if (reg === WORK_REGISTRATION.Working) {
-        await registerWorking.mutateAsync(recordId);
-      } else if (reg === WORK_REGISTRATION.DayOff) {
-        await registerDayOff.mutateAsync({ id: recordId });
-      }
+      const recordId = isVirtual
+        ? (
+            await openWorkDay.mutateAsync({
+              staffId: record.staffId,
+              clinicBranchId: branchId,
+              workDate: record.workDate,
+            })
+          ).id
+        : record.id;
+      await checkIn.mutateAsync({ id: recordId, input: { shift } });
     } catch {
-      toast.error(
-        reg === WORK_REGISTRATION.Working
-          ? t("Timekeeping:CannotRegisterWork")
-          : t("Timekeeping:CannotRegisterOff"),
-      );
+      toast.error(t("Timekeeping:CannotCheckIn"));
     }
-  };
-
-  const handleCheckIn = (shift: WorkShiftKind) => {
-    void checkIn
-      .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Timekeeping:CannotCheckIn")));
   };
 
   const handleCheckOut = (shift: WorkShiftKind) => {
@@ -128,17 +106,13 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
     <div className="tk-card">
       <div className="tk-card-body">
         <div className="tk-card-header">
-          <WorkStatusToggle
-            value={record.registration}
-            disabled={!workScheduleAbility.canUpdate || hasAttendance || isPastDay}
-            onChange={handleRegistrationChange}
-          />
+          <WorkStatusToggle status={workStatus} />
           <div className="tk-card-header-right">
             {!isAbsent && (
               <ShiftTimeline
                 morningShift={record.morningShift}
                 afternoonShift={record.afternoonShift}
-                disabled={!workScheduleAbility.canUpdate || isDayOff || isPastDay}
+                disabled={!workScheduleAbility.canUpdate || isDayOff || !isToday || isSaving}
                 onCheckIn={handleCheckIn}
                 onCheckOut={handleCheckOut}
               />

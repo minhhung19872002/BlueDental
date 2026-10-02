@@ -266,6 +266,7 @@
     "BlueDental:Organizations:0005": "Tài khoản chưa được phân công chi nhánh nào.",
     "BlueDental:Patient:0009": "Nội dung bệnh án vượt quá dung lượng cho phép.",
     "BlueDental:Timekeeping:0011": "Không thể chấm công cho ngày đã qua.",
+    "BlueDental:Timekeeping:0012": "Chỉ được chấm công / đổi trạng thái đi làm trong ngày hiện tại.",
     "BlueDental:Tools:0001": "Không tìm thấy cấu hình.",
     "BlueDental:Tools:0002": "Số máy nhánh SIP này đã được dùng.",
     "BlueDental:Tools:0003": "Không tìm thấy cấu hình Zalo OA",

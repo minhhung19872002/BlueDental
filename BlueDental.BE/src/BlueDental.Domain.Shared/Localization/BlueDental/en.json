@@ -369,6 +369,7 @@
     "BlueDental:Organizations:0005": "This account is not assigned to any branch.",
     "BlueDental:Patient:0009": "The medical record content is larger than allowed.",
     "BlueDental:Timekeeping:0011": "Attendance cannot be recorded for a past day.",
+    "BlueDental:Timekeeping:0012": "Attendance and work status can only be changed on the current day.",
     "BlueDental:Tools:0001": "The configuration was not found.",
     "BlueDental:Tools:0002": "That SIP extension is already in use.",
     "BlueDental:Tools:0003": "Zalo OA configuration not found",

@@ -1,56 +1,45 @@
-import type { WorkRegistration } from "../api/timekeepingApi";
-import { WORK_REGISTRATION } from "../api/timekeepingApi";
 import { t } from "@/lib/i18n";
 
+/** Matches the board legend: 🟢 Làm việc · ⚪ Không điểm danh · 🔴 Vắng. */
+export type WorkStatus = "working" | "notCheckedIn" | "absent";
+
 interface Props {
-  value: WorkRegistration;
-  disabled?: boolean;
-  onChange: (reg: WorkRegistration) => void;
+  status: WorkStatus;
 }
 
-const THUMB_POSITIONS: Record<WorkRegistration, number> = {
-  [WORK_REGISTRATION.DayOff]: 0,
-  [WORK_REGISTRATION.NotRegistered]: 1,
-  [WORK_REGISTRATION.Working]: 2,
+/** Thumb slot (0 = OFF, 1 = neutral dot, 2 = ON), tint and label per status. */
+const STATUS_CONFIG: Record<WorkStatus, { slot: number; modClass: string; labelKey: string }> = {
+  working: { slot: 2, modClass: "tk-toggle--on", labelKey: "Timekeeping:Working" },
+  notCheckedIn: { slot: 1, modClass: "", labelKey: "Timekeeping:NotCheckedIn" },
+  absent: { slot: 0, modClass: "tk-toggle--off", labelKey: "Timekeeping:Absent" },
 };
 
 function thumbLeft(position: number): string {
   return `calc(${(position * 100) / 3 + 100 / 6}% - 16px)`;
 }
 
-export function WorkStatusToggle({ value, disabled, onChange }: Props) {
-  const pos = THUMB_POSITIONS[value] ?? 1;
-  const modClass =
-    value === WORK_REGISTRATION.DayOff
-      ? "tk-toggle--off"
-      : value === WORK_REGISTRATION.Working
-        ? "tk-toggle--on"
-        : "";
+/**
+ * The OFF/ON pill on a timekeeping card. Read-only (BA 2026-10-02): nobody
+ * flips it by hand any more — it reads ON once a shift has been checked in on
+ * the progress bar, OFF on today or a past day without one, and stays neutral
+ * on a day that has not come yet.
+ */
+export function WorkStatusToggle({ status }: Props) {
+  const { slot, modClass, labelKey } = STATUS_CONFIG[status];
+  const label = t(labelKey);
 
   return (
-    <div className={["tk-toggle", modClass].filter(Boolean).join(" ")}>
-      <span
-        className="tk-toggle-thumb"
-        style={{ left: thumbLeft(pos) }}
-      />
-      <button
-        type="button"
-        className="tk-toggle-btn tk-toggle-btn--off"
-        title={t("Timekeeping:DayOffToday")}
-        aria-label={t("Timekeeping:DayOffToday")}
-        disabled={disabled}
-        onClick={() => onChange(WORK_REGISTRATION.DayOff)}
-      >
+    <div
+      role="img"
+      aria-label={label}
+      title={label}
+      className={["tk-toggle", modClass].filter(Boolean).join(" ")}
+    >
+      <span className="tk-toggle-thumb" style={{ left: thumbLeft(slot) }} />
+      <span className="tk-toggle-btn tk-toggle-btn--off" aria-hidden="true">
         OFF
-      </button>
-      <button
-        type="button"
-        className="tk-toggle-btn tk-toggle-btn--neutral"
-        title={t("Timekeeping:NotSelected")}
-        aria-label={t("Timekeeping:NotSelected")}
-        disabled={disabled}
-        onClick={() => onChange(WORK_REGISTRATION.NotRegistered)}
-      >
+      </span>
+      <span className="tk-toggle-btn tk-toggle-btn--neutral" aria-hidden="true">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -64,17 +53,10 @@ export function WorkStatusToggle({ value, disabled, onChange }: Props) {
         >
           <circle cx="12" cy="12" r="10" />
         </svg>
-      </button>
-      <button
-        type="button"
-        className="tk-toggle-btn tk-toggle-btn--on"
-        title={t("Timekeeping:WorkToday")}
-        aria-label={t("Timekeeping:WorkToday")}
-        disabled={disabled}
-        onClick={() => onChange(WORK_REGISTRATION.Working)}
-      >
+      </span>
+      <span className="tk-toggle-btn tk-toggle-btn--on" aria-hidden="true">
         ON
-      </button>
+      </span>
     </div>
   );
 }

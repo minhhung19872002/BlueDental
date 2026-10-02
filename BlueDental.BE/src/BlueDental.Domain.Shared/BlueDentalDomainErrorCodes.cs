@@ -277,6 +277,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidOvertime = "BlueDental:Timekeeping:0009";
         public const string DuplicateDayRecord = "BlueDental:Timekeeping:0010";
         public const string PastDayAttendance = "BlueDental:Timekeeping:0011";
+        public const string AttendanceNotToday = "BlueDental:Timekeeping:0012";
     }
 
     public static class CustomerCare

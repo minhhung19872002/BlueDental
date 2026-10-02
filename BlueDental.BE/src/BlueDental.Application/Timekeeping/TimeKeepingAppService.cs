@@ -51,7 +51,11 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
         var staffIds = dtos.Select(d => d.StaffId).Distinct().ToList();
         var users = await _userRepository.GetListByIdsAsync(staffIds);
-        var names = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        // Same shape as StaffDto.FullName, which the board's not-yet-opened
+        // cards show — otherwise a card's name changes the moment the day opens.
+        var names = users.ToDictionary(
+            u => u.Id,
+            u => $"{u.Name} {u.Surname}".Trim() is { Length: > 0 } fullName ? fullName : u.UserName);
 
         foreach (var dto in dtos)
         {
@@ -122,8 +126,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> OpenWorkDayAsync(OpenWorkDayDto input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
-        var today = DateOnly.FromDateTime(Clock.Now);
-        if (input.WorkDate != today &&
+        if (input.WorkDate != ClinicToday &&
             !await AuthorizationService.IsGrantedAsync(BlueDentalAbilityPermissions.WorkSchedule.AttendanceOthers))
         {
             throw new BusinessException(
@@ -158,7 +161,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> RegisterWorkingAsync(Guid id)
     {
         var record = await GetRecordForCurrentBranchAsync(id);
-        await EnsureSameDayOrManagerAsync(record);
+        EnsureClinicToday(record);
         record.RegisterWorking();
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record);
@@ -168,7 +171,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> RegisterDayOffAsync(Guid id, RegisterDayOffInput input)
     {
         var record = await GetRecordForCurrentBranchAsync(id);
-        await EnsureSameDayOrManagerAsync(record);
+        EnsureClinicToday(record);
         record.RegisterDayOff(input.Reason);
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record);
@@ -178,7 +181,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> CheckInAsync(Guid id, AttendanceInput input)
     {
         var record = await GetRecordForCurrentBranchAsync(id);
-        await EnsureSameDayOrManagerAsync(record);
+        EnsureClinicToday(record);
         record.CheckIn(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record);
@@ -188,7 +191,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> CheckOutAsync(Guid id, AttendanceInput input)
     {
         var record = await GetRecordForCurrentBranchAsync(id);
-        await EnsureSameDayOrManagerAsync(record);
+        EnsureClinicToday(record);
         record.CheckOut(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record);
@@ -344,15 +347,34 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
     private async Task EnsureSameDayOrManagerAsync(TimeKeepingRecord record)
     {
-        var today = DateOnly.FromDateTime(Clock.Now);
-        if (record.WorkDate == today) return;
+        if (record.WorkDate == ClinicToday) return;
 
         if (!await AuthorizationService.IsGrantedAsync(BlueDentalAbilityPermissions.WorkSchedule.AttendanceOthers))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Timekeeping.PastDayAttendance,
-                "Check-in / check-out is only allowed on the current day. A manager can override.");
+                "This change is only allowed on the current day. A manager can override.");
         }
+    }
+
+    /// <summary>
+    /// The clinic's calendar day (UTC+7, no DST). <c>Clock.Now</c> is UTC, so its
+    /// own date runs a day behind between 00:00 and 07:00 local time.
+    /// </summary>
+    private DateOnly ClinicToday =>
+        DateOnly.FromDateTime(DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc).AddHours(7));
+
+    /// <summary>
+    /// The OFF/ON registration toggle and check-in / check-out only work on the
+    /// clinic's current day (UTC+7, no DST) — no manager override (BA 2026-10-02).
+    /// </summary>
+    private void EnsureClinicToday(TimeKeepingRecord record)
+    {
+        if (record.WorkDate == ClinicToday) return;
+
+        throw new BusinessException(
+            BlueDentalDomainErrorCodes.Timekeeping.AttendanceNotToday,
+            "Attendance can only be changed on the current day.");
     }
 
     private async Task<HashSet<Guid>> ResolveBranchIdsAsync()

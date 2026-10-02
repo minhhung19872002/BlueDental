@@ -276,22 +276,8 @@
   height: 32px;
   place-items: center;
   border-radius: 999px;
-  border: none;
-  background: none;
-  cursor: pointer;
   transition: color 0.2s;
   color: #5c6484;
-  outline: none;
-  padding: 0;
-}
-
-.tk-toggle-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-}
-
-.tk-toggle-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
 }
 
 .tk-toggle-btn--off {
@@ -300,18 +286,10 @@
   line-height: 1;
 }
 
-.tk-toggle-btn--off:hover:not(:disabled) {
-  color: #cf3c41;
-}
-
 .tk-toggle-btn--on {
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
-}
-
-.tk-toggle-btn--on:hover:not(:disabled) {
-  color: #0e9f6e;
 }
 
 .tk-toggle-btn--neutral {
