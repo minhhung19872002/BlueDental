@@ -33,6 +33,15 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Reason supplied when the staff member registers a day off.</summary>
     public string? LeaveReason { get; private set; }
 
+    /// <summary>
+    /// Shift covered by a leave registered through "Đăng ký nghỉ"; null for a
+    /// plain day off toggled on the schedule grid.
+    /// </summary>
+    public LeaveShift? LeaveShift { get; private set; }
+
+    public TimeOnly? LeaveStart { get; private set; }
+    public TimeOnly? LeaveEnd { get; private set; }
+
     public string? Note { get; private set; }
 
     /// <summary>
@@ -77,6 +86,7 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
 
         Registration = WorkRegistration.Working;
         LeaveReason = null;
+        ClearLeaveWindow();
 
         if (Status == AttendanceStatus.OnLeave)
         {
@@ -99,6 +109,7 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         Registration = WorkRegistration.DayOff;
         LeaveReason = reason;
         Status = AttendanceStatus.OnLeave;
+        ClearLeaveWindow();
 
         if (force && HasAnyAttendance)
         {
@@ -106,6 +117,44 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
             AfternoonShift = new WorkShift(AfternoonShift.Kind, AfternoonShift.PlannedStart, AfternoonShift.PlannedEnd);
         }
 
+        return this;
+    }
+
+    /// <summary>
+    /// Đăng ký nghỉ theo ca. A full-day leave is a day off; a half-day leave
+    /// keeps the day registered as working, since the other shift is still worked.
+    /// The hours must sit inside the planned window of the shift they cover.
+    /// </summary>
+    public TimeKeepingRecord RegisterLeave(LeaveWindow leave, string? reason = null)
+    {
+        if (HasAnyAttendance)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
+                "A leave cannot be registered after a shift has been checked in.");
+        }
+
+        var (windowStart, windowEnd) = leave.Shift switch
+        {
+            Timekeeping.LeaveShift.Morning => (MorningShift.PlannedStart, MorningShift.PlannedEnd),
+            Timekeeping.LeaveShift.Afternoon => (AfternoonShift.PlannedStart, AfternoonShift.PlannedEnd),
+            _ => (MorningShift.PlannedStart, AfternoonShift.PlannedEnd)
+        };
+
+        if (leave.Start < windowStart || leave.End > windowEnd)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.InvalidLeaveWindow,
+                "The leave must fall inside the planned window of its shift.");
+        }
+
+        var isFullDay = leave.Shift == Timekeeping.LeaveShift.FullDay;
+        Registration = isFullDay ? WorkRegistration.DayOff : WorkRegistration.Working;
+        Status = isFullDay ? AttendanceStatus.OnLeave : AttendanceStatus.NotStarted;
+        LeaveReason = reason;
+        LeaveShift = leave.Shift;
+        LeaveStart = leave.Start;
+        LeaveEnd = leave.End;
         return this;
     }
 
@@ -184,6 +233,7 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
 
         Registration = WorkRegistration.NotRegistered;
         LeaveReason = null;
+        ClearLeaveWindow();
         Status = AttendanceStatus.NotStarted;
 
         if (force && HasAnyAttendance)
@@ -235,6 +285,13 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Total minutes actually worked across both shifts, overtime included.</summary>
     public int TotalWorkedMinutes =>
         MorningShift.WorkedMinutes + AfternoonShift.WorkedMinutes + OvertimeMinutes;
+
+    private void ClearLeaveWindow()
+    {
+        LeaveShift = null;
+        LeaveStart = null;
+        LeaveEnd = null;
+    }
 
     private void ApplyToShift(WorkShiftKind kind, Func<WorkShift, WorkShift> transition)
     {

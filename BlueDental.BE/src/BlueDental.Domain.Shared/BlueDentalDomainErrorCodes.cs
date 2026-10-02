@@ -279,6 +279,10 @@ public static class BlueDentalDomainErrorCodes
         public const string PastDayAttendance = "BlueDental:Timekeeping:0011";
         public const string AttendanceNotToday = "BlueDental:Timekeeping:0012";
         public const string ScheduleCellLocked = "BlueDental:Timekeeping:0013";
+        public const string InvalidLeaveWindow = "BlueDental:Timekeeping:0014";
+        public const string LeaveDaysRequired = "BlueDental:Timekeeping:0015";
+        public const string StaffNotInBranch = "BlueDental:Timekeeping:0016";
+        public const string LeaveInPast = "BlueDental:Timekeeping:0017";
     }
 
     public static class CustomerCare

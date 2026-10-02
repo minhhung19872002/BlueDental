@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -35,4 +36,10 @@ public interface ITimeKeepingAppService : IApplicationService
     /// another staff member's, a past day, clocked in, or planned as working.
     /// </summary>
     Task<int> BulkRegisterAsync(BulkRegisterInput input);
+
+    /// <summary>
+    /// Đăng ký nghỉ — one staff member, several days, each with its own shift and hours.
+    /// Creates the day records that do not exist yet. All-or-nothing.
+    /// </summary>
+    Task<List<TimeKeepingRecordDto>> RegisterLeaveAsync(RegisterLeaveInput input);
 }

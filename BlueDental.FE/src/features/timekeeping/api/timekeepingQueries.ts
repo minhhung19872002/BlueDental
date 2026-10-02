@@ -5,6 +5,7 @@ import {
   type BulkRegisterInput,
   type GetTimeKeepingListInput,
   type OpenWorkDayInput,
+  type RegisterLeaveInput,
   type UpdateInfoInput,
 } from "./timekeepingApi";
 
@@ -81,4 +82,8 @@ export function useBulkRegister() {
   return useAttendanceMutation((input: BulkRegisterInput) =>
     timekeepingApi.bulkRegister(input),
   );
+}
+
+export function useRegisterLeave() {
+  return useAttendanceMutation((input: RegisterLeaveInput) => timekeepingApi.registerLeave(input));
 }

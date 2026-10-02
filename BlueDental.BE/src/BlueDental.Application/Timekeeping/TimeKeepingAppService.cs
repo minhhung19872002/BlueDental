@@ -340,6 +340,114 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return count;
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
+    public async Task<List<TimeKeepingRecordDto>> RegisterLeaveAsync(RegisterLeaveInput input)
+    {
+        if (input.Days is not { Count: > 0 })
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.LeaveDaysRequired,
+                "Pick at least one day off.");
+        }
+
+        // Like the X cells on the grid: one's own leave only, every role (BA 2026-10-02).
+        if (input.StaffId != CurrentUser.GetId())
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.ScheduleCellLocked,
+                "Only your own leave can be registered.");
+        }
+
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var isAssigned = await _assignmentRepository.AnyAsync(a =>
+            a.StaffId == input.StaffId && a.ClinicBranchId == clinicBranchId);
+        if (!isAssigned)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.StaffNotInBranch,
+                "The staff member does not belong to the current branch.");
+        }
+
+        if (input.Days.Any(d => d.WorkDate < ClinicToday))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.LeaveInPast,
+                "A day off cannot be registered for a past day.");
+        }
+
+        // A day picked twice keeps its last shift, as the popup itself would.
+        var days = input.Days
+            .GroupBy(d => d.WorkDate)
+            .Select(g => g.Last())
+            .OrderBy(d => d.WorkDate)
+            .ToList();
+        var dates = days.Select(d => d.WorkDate).ToList();
+
+        var query = await _repository.GetQueryableAsync();
+        var lookup = query
+            .Where(x => x.ClinicBranchId == clinicBranchId
+                        && x.StaffId == input.StaffId
+                        && dates.Contains(x.WorkDate))
+            .ToList()
+            .ToDictionary(x => x.WorkDate);
+
+        var staff = await _userRepository.GetAsync(input.StaffId);
+        var reason = input.Reason.IsNullOrWhiteSpace() ? null : input.Reason!.Trim();
+
+        var records = new List<TimeKeepingRecord>();
+        foreach (var day in days)
+        {
+            var isNew = !lookup.TryGetValue(day.WorkDate, out var record);
+            record ??= TimeKeepingRecord.OpenDay(
+                GuidGenerator.Create(),
+                input.StaffId,
+                clinicBranchId,
+                day.WorkDate,
+                StaffShift(staff, WorkShiftKind.Morning),
+                StaffShift(staff, WorkShiftKind.Afternoon));
+
+            record.RegisterLeave(BuildLeaveWindow(record, day), reason);
+
+            if (isNew) await _repository.InsertAsync(record);
+            else await _repository.UpdateAsync(record);
+            records.Add(record);
+        }
+
+        await CurrentUnitOfWork!.SaveChangesAsync();
+
+        var dtos = records.Select(MapToDto).ToList();
+        await FillStaffNamesAsync(dtos);
+        return dtos;
+    }
+
+    /// <summary>Hours left empty default to the whole window of the chosen shift.</summary>
+    private static LeaveWindow BuildLeaveWindow(TimeKeepingRecord record, RegisterLeaveDayInput day)
+    {
+        var (defaultStart, defaultEnd) = day.Shift switch
+        {
+            LeaveShift.Morning => (record.MorningShift.PlannedStart, record.MorningShift.PlannedEnd),
+            LeaveShift.Afternoon => (record.AfternoonShift.PlannedStart, record.AfternoonShift.PlannedEnd),
+            _ => (record.MorningShift.PlannedStart, record.AfternoonShift.PlannedEnd)
+        };
+
+        return new LeaveWindow(day.Shift, day.Start ?? defaultStart, day.End ?? defaultEnd);
+    }
+
+    /// <summary>The staff member's own shift hours from Nhân viên, when set.</summary>
+    private static WorkShift? StaffShift(IdentityUser staff, WorkShiftKind kind)
+    {
+        var prefix = kind == WorkShiftKind.Morning ? "Morning" : "Afternoon";
+        var start = staff.ExtraProperties.GetOrDefault($"{prefix}StartTime") as string;
+        var end = staff.ExtraProperties.GetOrDefault($"{prefix}EndTime") as string;
+
+        if (!TimeOnly.TryParse(start, out var s) || !TimeOnly.TryParse(end, out var e) || e <= s)
+        {
+            return null;
+        }
+
+        return new WorkShift(kind, s, e);
+    }
+
     private async Task<TimeKeepingRecord> GetRecordForCurrentBranchAsync(Guid id)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
@@ -449,6 +557,9 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         OvertimeMinutes = entity.OvertimeMinutes,
         TotalWorkedMinutes = entity.TotalWorkedMinutes,
         LeaveReason = entity.LeaveReason,
+        LeaveShift = entity.LeaveShift,
+        LeaveStart = entity.LeaveStart,
+        LeaveEnd = entity.LeaveEnd,
         Note = entity.Note,
         RecordedByStaffId = entity.RecordedByStaffId,
         CreationTime = entity.CreationTime,

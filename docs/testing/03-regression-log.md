@@ -6286,4 +6286,21 @@ BA: grid Lịch làm việc chỉ để đăng ký nghỉ; "Lưu thay đổi" = 
 | R-654 | Đánh X cho ngày mai rồi lưu, mở bảng ngày mai: thẻ vẫn ở nút giữa (Không điểm danh), không về OFF. | `TimekeepingStaffCard` chỉ xét có chấm công / ngày tương lai, bỏ qua `registration`. Thêm trạng thái `dayOff` cho `WorkStatusToggle` (vị trí OFF, nhãn "Nghỉ"), ưu tiên sau "đã chấm công". Dữ liệu đã đúng sẵn: `bulk-register` ghi `DayOff` cho cả bản ghi ngày (không có nửa buổi), cache `timekeepingKeys.all` được làm mới sau khi lưu. |
 
 Kiểm chứng: `tsc` + ESLint sạch. Build production (:8093, host :5000, DB thật): `work-schedule-own-dayoff` 3/3 (ca UI thêm bước mở bảng ngày → thẻ của mình "Nghỉ" + `tk-toggle--off`, thẻ người khác "Không điểm danh"), `timekeeping-api` 3/3.
+
+## 2026-10-02 — Lịch làm việc: popup "Đăng ký nghỉ" (R-655 … R-659)
+
+Chủ dự án (ảnh thiết kế): nút lịch cạnh tên nhân viên phải mở popup chọn nhiều ngày nghỉ; "thông tin nào có thì hiển thị, không có thì ẩn" (ví dụ Phép còn lại).
+Đây là yêu cầu của BlueDental, không phải hành vi quan sát từ bản gốc.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-655 | Nút lịch ở cột Nhân viên của bảng Lịch làm việc bấm không được. | Nút bị `disabled` cứng, chưa nối gì. Giờ mở `LeaveRegistrationDialog` — chỉ trên **dòng của chính mình** (theo luật R-650/R-651: không ai đụng dòng người khác, kể cả admin); server cũng từ chối `staffId` khác người đăng nhập (`0013`). |
+| R-656 | Backend chỉ có nghỉ **cả ngày**, không lưu được ca nghỉ (Sáng/Chiều/Cả ngày) và giờ nghỉ như thiết kế. | `TimeKeepingRecord.RegisterLeave(LeaveWindow, reason)` + cột `LeaveShift/LeaveStart/LeaveEnd` (migration `TimeKeepingLeaveWindow`). Cả ngày = DayOff; nửa ngày = vẫn Working (làm ca còn lại). Giờ phải nằm trong ca; ngày đã vào ca thì từ chối. Endpoint `POST /api/v1/app/time-keepings/register-leave` (một nhân viên, nhiều ngày, tất cả hoặc không): kiểm tra nhân viên thuộc chi nhánh hiện tại, không cho ngày quá khứ. Ngày mới mở theo giờ ca riêng của nhân viên (Nhân viên → giờ làm). Bật/tắt ô trên lưới xoá ca nghỉ. |
+| R-657 | Mã NV, Bộ phận, Phép còn lại trong thiết kế không có trên hồ sơ nhân viên. | Ẩn hẳn theo yêu cầu, chỉ hiện avatar, tên, vai trò. |
+| R-658 | "Cả ngày 08:00–17:00" tính 9 giờ. | Chỉ tính phần nằm trong ca (bỏ giờ nghỉ trưa) → 8 giờ. |
+| R-659 | Ngày nghỉ nửa buổi không có ô hiển thị trên lưới dù chú thích có "Làm nửa buổi". | Thêm ô `half-morning` / `half-afternoon` (icon mặt trời / mặt trăng). Gỡ cấu hình EF trùng của `TimeKeepingRecord` trong `ConfigureCustomerCare` (giống hệt bản trong `ConfigureTimekeeping`, migration không đổi gì ngoài 3 cột mới). |
+
+Kiểm chứng: Domain `TimeKeepingRecordTests` 18/18 (+5 ca nghỉ), contract `TimeKeepingAppServiceContractTests` 24/24, EF Timekeeping 5/5; FE `tsc` sạch.
+E2E thật trên dev :5173 + host :5000 + PostgreSQL, không chặn request: `timekeeping-leave.spec.ts` **2/2**. Test chọn 3 ngày, kiểm tra nút xác nhận bị khoá khi còn ngày chưa chọn ca, dùng "Áp dụng cho tất cả", đổi ca từng ngày, bỏ một ngày rồi lưu. Sau đó đọc lại response, reload và thấy ô nửa buổi trên lưới.
+`timekeeping.spec.ts`: 1/3. Hai test đỏ có từ trước, **không** do thay đổi lần này: spec tìm `data-testid="timekeeping-kpis"` và nút "Mở ngày làm việc", nhưng cả hai đã không còn trong source.
 Retest level **2** (F-03).

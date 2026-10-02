@@ -169,4 +169,13 @@ public class TimeKeepingAppServiceContractTests
     {
         _interfaceType.GetMethod("CloseAbandonedShiftsAsync").ShouldNotBeNull();
     }
+
+    [Fact]
+    public void RegisterLeaveAsync_Should_Require_Manage_Permission()
+    {
+        var method = _serviceType.GetMethod("RegisterLeaveAsync");
+        method.ShouldNotBeNull();
+        method!.GetCustomAttribute<AuthorizeAttribute>()!.Policy
+            .ShouldBe(BlueDental.Permissions.BlueDentalPermissions.Timekeeping.Manage);
+    }
 }

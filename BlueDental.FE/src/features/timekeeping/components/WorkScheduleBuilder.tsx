@@ -12,7 +12,10 @@ import dayjs, { type Dayjs } from "dayjs";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { WorkScheduleTable } from "./WorkScheduleTable";
 import { useTimeKeepingList, useBulkRegister } from "../api/timekeepingQueries";
+import { MoonIcon, SunIcon } from "./ScheduleIcons";
+import { LeaveRegistrationDialog } from "./leave/LeaveRegistrationDialog";
 import { useOwnDayOffDraft } from "../hooks/useOwnDayOffDraft";
+import { useLeaveRegistrationTarget } from "../hooks/useLeaveRegistrationTarget";
 import { useStaffList } from "@/features/staff/api/staffQueries";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useBranchFilter } from "@/lib/clinicBranch";
@@ -30,21 +33,6 @@ const ChevronLeftIcon = () => (
 const ChevronRightIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="m9 18 6-6-6-6" />
-  </svg>
-);
-
-const SunIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" />
-    <path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" />
-    <path d="M2 12h2" /><path d="M20 12h2" />
-    <path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-  </svg>
-);
-
-const MoonIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
   </svg>
 );
 
@@ -104,6 +92,14 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
   const draft = useOwnDayOffDraft({
     records: tkData?.items,
     staffCreationDates,
+    today,
+    currentUserId,
+    canUpdate: workScheduleAbility.canUpdate,
+  });
+
+  const leave = useLeaveRegistrationTarget({
+    staff: staffPage?.items,
+    records: tkData?.items,
     today,
     currentUserId,
     canUpdate: workScheduleAbility.canUpdate,
@@ -241,9 +237,26 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
             getCellKind={draft.getCellKind}
             isCellEditable={draft.isCellEditable}
             onCellClick={draft.toggleCell}
+            onLeaveClick={leave.open}
+            canRegisterLeave={leave.canRegisterLeave}
           />
         )}
       </div>
+
+      {leave.target && (
+        <LeaveRegistrationDialog
+          key={leave.target.id}
+          staff={{
+            id: leave.target.id,
+            name: leave.target.fullName || leave.target.userName,
+            position: leave.target.roleNames?.[0] ?? t("Common:Staff"),
+            avatarUrl: leave.target.avatarUrl,
+          }}
+          initialMonth={builderMonth.isBefore(dayjs(), "month") ? dayjs() : builderMonth}
+          getDayInfo={leave.getDayInfo}
+          onClose={leave.close}
+        />
+      )}
 
       <Modal
         open={confirmOpen}

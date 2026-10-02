@@ -1116,6 +1116,18 @@
   cursor: default;
 }
 
+.wsb-cell--half {
+  border-style: solid;
+  border-color: rgba(124, 92, 224, 0.4);
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+
+.wsb-cell--half:hover:not(:disabled) {
+  border-color: rgba(124, 92, 224, 0.6);
+  background: #e2d8fa;
+}
+
 /* ── Checkbox in table ────────────────────────────────────────────── */
 
 .wsb-checkbox {
@@ -1209,4 +1221,389 @@
   .wsb-staff-pos { font-size: 11px; }
   .wsb-th-day,
   .wsb-td-day { min-width: 48px; width: 48px; }
+}
+
+/* ── Đăng ký nghỉ (leave registration dialog) ─────────────────────────── */
+
+.lv-dialog .ant-modal-body {
+  padding-top: 4px;
+}
+
+.lv-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.lv-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lv-col--days {
+  gap: 0;
+  max-height: 560px;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.lv-staff {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+}
+
+.lv-staff-avatar {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bd-link);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+.lv-staff-name {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lv-staff-pos {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.lv-step-title {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lv-step-hint {
+  margin: 2px 0 10px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+/* Calendar */
+
+.lv-cal {
+  padding: 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+}
+
+.lv-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lv-cal-title {
+  color: var(--bd-title);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lv-cal-nav {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+
+.lv-cal-nav:hover {
+  background: var(--bd-hover-tint);
+}
+
+.lv-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.lv-cal-weekday {
+  padding: 4px 0;
+  color: var(--bd-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.lv-cal-day {
+  display: flex;
+  height: 38px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--bd-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.lv-cal-day:hover:not(:disabled) {
+  background: var(--bd-hover-tint);
+}
+
+.lv-cal-day:disabled {
+  color: var(--bd-faint);
+  cursor: not-allowed;
+}
+
+.lv-cal-day--outside:disabled {
+  color: var(--bd-line);
+}
+
+.lv-cal-day--today {
+  background: var(--bd-bg-soft);
+  font-weight: 700;
+}
+
+.lv-cal-day--selected,
+.lv-cal-day--selected:hover:not(:disabled) {
+  border-color: var(--bd-link);
+  background: var(--bd-link-pale);
+  color: var(--bd-link);
+  font-weight: 700;
+}
+
+.lv-marks {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.lv-mark {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.lv-mark--morning {
+  background: var(--bd-amber);
+}
+
+.lv-mark--afternoon {
+  background: var(--bd-link);
+}
+
+.lv-mark--none {
+  background: var(--bd-faint);
+}
+
+.lv-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 10px;
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.lv-cal-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Day cards */
+
+.lv-apply-all {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.lv-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lv-empty {
+  margin: 12px 0 0;
+  padding: 24px 12px;
+  border: 1px dashed var(--bd-line);
+  border-radius: var(--bd-radius);
+  color: var(--bd-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.lv-day {
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+}
+
+.lv-day--missing {
+  border-color: rgba(229, 72, 77, 0.35);
+  background: var(--bd-red-pale);
+}
+
+.lv-day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lv-day-title {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lv-day-sub {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.lv-day-remove {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+
+.lv-day-remove:hover {
+  background: var(--bd-red-pale);
+  color: var(--bd-red-dark);
+}
+
+.lv-shift-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.lv-shift {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.lv-shift:hover {
+  border-color: var(--bd-blue-light);
+}
+
+.lv-shift--active,
+.lv-shift--active:hover {
+  border-color: var(--bd-amber);
+  background: var(--bd-amber-pale);
+  color: var(--bd-gold-deep);
+}
+
+.lv-shift-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lv-shift-time {
+  color: var(--bd-muted);
+  font-size: 10px;
+}
+
+.lv-shift--active .lv-shift-time {
+  color: var(--bd-gold-deep);
+}
+
+.lv-day-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lv-time {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.lv-time .ant-picker {
+  width: 100%;
+}
+
+.lv-day-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--bd-red-dark);
+  font-size: 11px;
+}
+
+.lv-foot-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.lv-foot-summary strong {
+  color: var(--bd-title);
+}
+
+@media (max-width: 640px) {
+  .lv-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lv-col--days {
+    max-height: none;
+    overflow: visible;
+  }
 }

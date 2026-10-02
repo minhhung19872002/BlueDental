@@ -167,4 +167,63 @@ public class TimeKeepingRecordTests
             At(10),
             At(9)));
     }
+
+    [Fact]
+    public void Full_Day_Leave_Is_A_Day_Off_With_Its_Hours()
+    {
+        var record = OpenDay();
+
+        record.RegisterLeave(new LeaveWindow(LeaveShift.FullDay, new TimeOnly(8, 0), new TimeOnly(17, 0)), "Khám sức khỏe");
+
+        Assert.Equal(WorkRegistration.DayOff, record.Registration);
+        Assert.Equal(AttendanceStatus.OnLeave, record.Status);
+        Assert.Equal(LeaveShift.FullDay, record.LeaveShift);
+        Assert.Equal("Khám sức khỏe", record.LeaveReason);
+    }
+
+    [Fact]
+    public void Half_Day_Leave_Keeps_The_Other_Shift_Working()
+    {
+        var record = OpenDay();
+
+        record.RegisterLeave(new LeaveWindow(LeaveShift.Morning, new TimeOnly(8, 0), new TimeOnly(10, 30)));
+
+        Assert.Equal(WorkRegistration.Working, record.Registration);
+        Assert.Equal(AttendanceStatus.NotStarted, record.Status);
+        Assert.Equal(new TimeOnly(10, 30), record.LeaveEnd);
+    }
+
+    [Fact]
+    public void Leave_Must_Fall_Inside_Its_Shift()
+    {
+        var record = OpenDay();
+
+        Assert.Throws<BusinessException>(() =>
+            record.RegisterLeave(new LeaveWindow(LeaveShift.Morning, new TimeOnly(8, 0), new TimeOnly(13, 0))));
+        Assert.Throws<BusinessException>(() =>
+            new LeaveWindow(LeaveShift.Afternoon, new TimeOnly(15, 0), new TimeOnly(14, 0)));
+    }
+
+    [Fact]
+    public void Leave_Cannot_Be_Registered_After_Check_In()
+    {
+        var record = OpenDay();
+        record.CheckIn(WorkShiftKind.Morning, At(8));
+
+        Assert.Throws<BusinessException>(() =>
+            record.RegisterLeave(new LeaveWindow(LeaveShift.Afternoon, new TimeOnly(13, 0), new TimeOnly(17, 0))));
+    }
+
+    [Fact]
+    public void Toggling_The_Grid_Clears_A_Registered_Leave()
+    {
+        var record = OpenDay();
+        record.RegisterLeave(new LeaveWindow(LeaveShift.Afternoon, new TimeOnly(13, 0), new TimeOnly(17, 0)), "Việc riêng");
+
+        record.ResetRegistration();
+
+        Assert.Null(record.LeaveShift);
+        Assert.Null(record.LeaveStart);
+        Assert.Null(record.LeaveReason);
+    }
 }

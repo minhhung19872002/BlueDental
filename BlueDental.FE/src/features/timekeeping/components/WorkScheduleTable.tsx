@@ -26,6 +26,9 @@ interface Props {
   getCellKind: (staffId: string, dateStr: string) => CellKind;
   isCellEditable: (staffId: string, dateStr: string) => boolean;
   onCellClick: (staffId: string, dateStr: string) => void;
+  /** Opens "Đăng ký nghỉ"; given only for the rows the user may register leave on. */
+  onLeaveClick: (staffId: string) => void;
+  canRegisterLeave: (staffId: string) => boolean;
 }
 
 function buildDays(month: Dayjs): DayInfo[] {
@@ -56,7 +59,15 @@ const CalendarPlusIcon = () => (
  * checkboxes and the bulk day-off button act on other staff, so they stay on
  * screen but locked for every role.
  */
-export function WorkScheduleTable({ month, staff, getCellKind, isCellEditable, onCellClick }: Props) {
+export function WorkScheduleTable({
+  month,
+  staff,
+  getCellKind,
+  isCellEditable,
+  onCellClick,
+  onLeaveClick,
+  canRegisterLeave,
+}: Props) {
   const days = useMemo(() => buildDays(month), [month]);
   const monthLabel = `${t("Common:Month")} ${month.month() + 1} / ${month.year()}`;
 
@@ -134,7 +145,9 @@ export function WorkScheduleTable({ month, staff, getCellKind, isCellEditable, o
                     type="button"
                     className="wsb-cal-plus-btn"
                     aria-label={`${t("Timekeeping:BulkDayOff")} ${s.name}`}
-                    disabled
+                    title={t("Timekeeping:Leave:Title")}
+                    disabled={!canRegisterLeave(s.id)}
+                    onClick={() => onLeaveClick(s.id)}
                   >
                     <CalendarPlusIcon />
                   </button>

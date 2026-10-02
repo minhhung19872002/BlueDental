@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { CellKind } from "../components/WorkScheduleCell";
 import {
+  LEAVE_SHIFT,
   WORK_REGISTRATION,
   type BulkRegisterItem,
   type TimeKeepingRecordDto,
@@ -52,6 +53,9 @@ export function useOwnDayOffDraft({ records, staffCreationDates, today, currentU
       const record = lookup.get(key);
       const registration = draft.get(key) ?? record?.registration ?? WORK_REGISTRATION.NotRegistered;
 
+      // A half-day leave ("Đăng ký nghỉ") keeps the other half worked — "Làm nửa buổi".
+      if (record?.leaveShift === LEAVE_SHIFT.Morning) return "half-afternoon";
+      if (record?.leaveShift === LEAVE_SHIFT.Afternoon) return "half-morning";
       if (hasAttendance(record) || registration === WORK_REGISTRATION.Working) return "working";
       if (registration === WORK_REGISTRATION.DayOff) return "day-off";
       if (dateStr >= today) return "empty-future";

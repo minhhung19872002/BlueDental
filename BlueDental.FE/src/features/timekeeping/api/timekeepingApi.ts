@@ -26,6 +26,14 @@ export const WORK_SHIFT_KIND = {
   Afternoon: 2,
 } as const;
 
+/** Matches BlueDental.Timekeeping.LeaveShift */
+export type LeaveShift = 1 | 2 | 3;
+export const LEAVE_SHIFT = {
+  Morning: 1,
+  Afternoon: 2,
+  FullDay: 3,
+} as const;
+
 export interface WorkShiftDto {
   kind: WorkShiftKind;
   /** "HH:mm:ss" */
@@ -51,6 +59,11 @@ export interface TimeKeepingRecordDto {
   overtimeMinutes: number;
   totalWorkedMinutes: number;
   leaveReason: string | null;
+  /** Set when the day was registered through "Đăng ký nghỉ". */
+  leaveShift: LeaveShift | null;
+  /** "HH:mm:ss" */
+  leaveStart: string | null;
+  leaveEnd: string | null;
   note: string | null;
   recordedByStaffId: string | null;
   staffName: string | null;
@@ -115,6 +128,20 @@ export interface BulkRegisterInput {
   items: BulkRegisterItem[];
 }
 
+export interface RegisterLeaveDayInput {
+  workDate: string;
+  shift: LeaveShift;
+  /** "HH:mm:ss" — defaults to the start of the shift. */
+  start?: string;
+  end?: string;
+}
+
+export interface RegisterLeaveInput {
+  staffId: string;
+  reason?: string;
+  days: RegisterLeaveDayInput[];
+}
+
 const BASE = "/v1/app/time-keepings";
 
 export const timekeepingApi = {
@@ -146,4 +173,7 @@ export const timekeepingApi = {
 
   bulkRegister: (input: BulkRegisterInput): Promise<number> =>
     api.post<number>(`${BASE}/bulk-register`, input).then((r) => r.data),
+
+  registerLeave: (input: RegisterLeaveInput): Promise<TimeKeepingRecordDto[]> =>
+    api.post<TimeKeepingRecordDto[]>(`${BASE}/register-leave`, input).then((r) => r.data),
 };

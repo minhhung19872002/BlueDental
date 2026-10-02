@@ -44,3 +44,19 @@ public enum WorkShiftKind
     Morning = 1,
     Afternoon = 2
 }
+
+/// <summary>
+/// Which part of a working day a leave covers (popup "Đăng ký nghỉ").
+/// A half-day leave keeps the other half as a working shift.
+/// </summary>
+public enum LeaveShift
+{
+    /// <summary>Nghỉ sáng.</summary>
+    Morning = 1,
+
+    /// <summary>Nghỉ chiều.</summary>
+    Afternoon = 2,
+
+    /// <summary>Nghỉ cả ngày.</summary>
+    FullDay = 3
+}

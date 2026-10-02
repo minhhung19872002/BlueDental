@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Timekeeping;
@@ -27,6 +29,9 @@ public class TimeKeepingRecordDto : FullAuditedEntityDto<Guid>
     public int OvertimeMinutes { get; set; }
     public int TotalWorkedMinutes { get; set; }
     public string? LeaveReason { get; set; }
+    public LeaveShift? LeaveShift { get; set; }
+    public TimeOnly? LeaveStart { get; set; }
+    public TimeOnly? LeaveEnd { get; set; }
     public string? Note { get; set; }
     public Guid? RecordedByStaffId { get; set; }
 
@@ -123,4 +128,31 @@ public class BulkRegisterItem
 public class BulkRegisterInput
 {
     public List<BulkRegisterItem> Items { get; set; } = new();
+}
+
+/// <summary>One day of the "Đăng ký nghỉ" popup.</summary>
+public class RegisterLeaveDayInput
+{
+    public DateOnly WorkDate { get; set; }
+    public LeaveShift Shift { get; set; }
+
+    /// <summary>Defaults to the start of the chosen shift.</summary>
+    public TimeOnly? Start { get; set; }
+
+    /// <summary>Defaults to the end of the chosen shift.</summary>
+    public TimeOnly? End { get; set; }
+}
+
+/// <summary>Đăng ký nghỉ nhiều ngày cho một nhân viên.</summary>
+public class RegisterLeaveInput
+{
+    public Guid StaffId { get; set; }
+
+    [StringLength(500)]
+    public string? Reason { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    [MaxLength(62)]
+    public List<RegisterLeaveDayInput> Days { get; set; } = new();
 }

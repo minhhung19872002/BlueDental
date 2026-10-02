@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -57,6 +58,10 @@ public sealed class TimeKeepingController(ITimeKeepingAppService service) : Blue
     [HttpPost("bulk-register")]
     public Task<int> BulkRegisterAsync([FromBody] BulkRegisterInput input) =>
         service.BulkRegisterAsync(input);
+
+    [HttpPost("register-leave")]
+    public Task<List<TimeKeepingRecordDto>> RegisterLeaveAsync([FromBody] RegisterLeaveInput input) =>
+        service.RegisterLeaveAsync(input);
 
     [HttpPost("close-abandoned")]
     public Task<int> CloseAbandonedShiftsAsync(
