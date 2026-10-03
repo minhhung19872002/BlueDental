@@ -6329,3 +6329,26 @@ Kiểm chứng trên bản build production (`vite preview` :8093) + host :5000 
 - Vitest `ReceptionPage.test.tsx` 3/3; `tsc` và eslint sạch.
 
 Retest level **2** (F-11).
+
+## 2026-10-03 — Chẩn đoán & Tư vấn: bác sĩ chẩn đoán mặc định theo lịch hẹn (R-663)
+
+Yêu cầu BA, **không** phải hành vi quan sát từ bản gốc.
+
+- Form "Tạo chẩn đoán" mở mới thì ô "Bác sĩ chẩn đoán 1" tự điền bác sĩ của lịch hẹn **hôm nay**, tức bác sĩ đang hiện trên thẻ Tiếp nhận. Người dùng vẫn đổi được.
+- Không có lịch hẹn hôm nay thì ô để trống như trước (chủ dự án chốt).
+- "Thêm chẩn đoán" không còn xoá bác sĩ: cả bác sĩ 1 và bác sĩ 2 đều giữ nguyên. Chỉ chẩn đoán, ghi chú và răng được làm mới.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-663 | Bấm "Thêm chẩn đoán" thì form xoá luôn bác sĩ, phải chọn lại cho từng phiếu. Form mở mới cũng không điền sẵn bác sĩ hẹn. | Hook mới `useAppointmentDoctor`: `GET appointments?patientId&date=hôm nay` (server cắt ngày theo UTC+7), bỏ lịch Huỷ/Không đến. Nếu có nhiều lịch thì ưu tiên lịch Đã đến/Đang khám, sau đó tới lịch gần giờ hiện tại nhất. `PatientDiagnosisForm` gán `staffId` khi form trống và ô chưa có giá trị, nên lịch hẹn tải sau vẫn được điền. Khi `blankCount` tăng, form chỉ `resetFields(["diagnosisId","note"])` và reset răng. Bác sĩ hẹn đang nghỉ hôm nay vẫn được thêm tên vào options (`withNamedDoctors`). Mở phiếu cũ để sửa thì giữ bác sĩ của phiếu. |
+
+Kiểm chứng: `tsc` và eslint sạch. Kiểm tra tay trên dev :5173 + host :5000, đăng nhập admin, bệnh nhân có lịch hôm nay: form mở ra đã chọn sẵn bác sĩ hẹn, dropdown vẫn liệt kê đủ 8 bác sĩ không nghỉ hôm nay. Không viết spec mới (chủ dự án tự test).
+Lưu ý: `GET /v1/app/staff` cần quyền `Staff.View`. Tài khoản thiếu quyền này nhận 403 → danh sách rỗng → dropdown chỉ còn đúng bác sĩ hẹn. Đây là lỗ hổng có từ trước; trước R-663 dropdown sẽ trống hẳn.
+Retest level **2** (Chẩn đoán & Tư vấn).
+
+## 2026-10-03 — Chấm công: `POST time-keepings/open-day` trả 500 trên local (R-664)
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-664 | Mở ngày làm việc (check-in trên thẻ ảo, lưu thông tin chấm công, bật lịch ở thẻ nhân viên) trả 500, body ABP chung "Có một lỗi nội bộ xảy ra…". | Migration `20261002094459_TimeKeepingLeaveWindow` (commit `815724ed`, thêm `LeaveShift`/`LeaveStart`/`LeaveEnd`) có trong code nhưng chưa áp vào DB local. Host mới INSERT cả 3 cột → PostgreSQL báo cột không tồn tại. Không sửa code: chạy lại DbMigrator (`dotnet run`, build trước). Sau đó `open-day` trả 200. Môi trường nào pull `815724ed` cũng phải migrate (prod: chạy DbMigrator khi deploy). |
+

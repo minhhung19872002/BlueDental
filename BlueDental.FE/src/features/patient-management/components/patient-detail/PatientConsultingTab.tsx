@@ -124,6 +124,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
           {editor.expanded && (
             <PatientDiagnosisForm
               dentists={data.dentists}
+              defaultDoctor={data.appointmentDoctor}
               diagnoses={data.diagnosisOptions}
               submitting={actions.creating || actions.updating}
               editing={editor.editing}

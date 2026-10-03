@@ -40,7 +40,7 @@ export function useDiagnosisEditor(
 ) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState<PatientDiagnosisDto | null>(null);
-  /** Bumped by "Thêm chẩn đoán": the open form clears itself for the next slip. */
+  /** Bumped by "Thêm chẩn đoán": the open form clears itself for the next slip, keeping the doctors. */
   const [blankCount, setBlankCount] = useState(0);
 
   const close = () => {

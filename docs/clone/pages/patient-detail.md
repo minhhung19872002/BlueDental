@@ -3980,3 +3980,12 @@ Hai lỗi cùng đường đi, lộ ra khi sửa và sửa luôn:
 - "In nhanh" từ thẻ phiếu in **nhầm tờ trước đó**: nó gọi in ngay sau
   `setActiveId`, trước khi React kịp vẽ tờ mới. Nay chờ khung của đúng tờ xuất
   hiện và tải xong (`framesForSheets`) rồi mới in.
+
+## Chẩn đoán & Tư vấn — bác sĩ chẩn đoán mặc định (yêu cầu BA, 2026-10-03)
+
+Đây **không** phải hành vi quan sát từ bản gốc. Xem R-663 trong `docs/testing/03-regression-log.md`.
+
+- Form "Tạo chẩn đoán" mở mới: "Bác sĩ chẩn đoán 1" = bác sĩ của lịch hẹn hôm nay, tức bác sĩ trên thẻ Tiếp nhận (`useAppointmentDoctor`). Người dùng đổi được.
+- Không có lịch hẹn hôm nay thì ô để trống.
+- "Thêm chẩn đoán" giữ nguyên bác sĩ 1 và bác sĩ 2, chỉ làm mới chẩn đoán, ghi chú và răng.
+- Mở phiếu cũ để sửa thì giữ bác sĩ đã lưu trên phiếu.

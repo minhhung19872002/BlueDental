@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Form, Input, Select, Tooltip } from "antd";
 import { CloseOutlined, SearchOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
@@ -26,6 +26,8 @@ interface FormValues {
 
 interface Props {
   dentists: DiagnosisOption[];
+  /** Today's appointment doctor: a blank form starts with it as doctor 1. */
+  defaultDoctor?: DiagnosisOption | null;
   diagnoses: DiagnosisOption[];
   submitting: boolean;
   /** A slip opened from the table: the fields come prefilled and the foot reads "Cập nhật". */
@@ -36,17 +38,18 @@ interface Props {
   onClose: () => void;
 }
 
+interface NamedDoctor {
+  value?: string | null;
+  label?: string | null;
+}
+
 /**
- * `dentists` is only who is not OFF today; a saved slip's own doctors stay
- * listed so reopening it never blanks them.
+ * `dentists` is only who is not OFF today; a saved slip's own doctors, and the
+ * appointment's doctor a blank form starts with, stay listed so the field never
+ * shows a bare id.
  */
-function withSavedDoctors(dentists: DiagnosisOption[], editing?: PatientDiagnosisDto | null) {
-  if (!editing) return dentists;
-  const saved = [
-    { value: editing.staffId, label: editing.staffName },
-    { value: editing.secondStaffId, label: editing.secondStaffName },
-  ];
-  const extra = saved.flatMap(({ value, label }) =>
+function withNamedDoctors(dentists: DiagnosisOption[], named: NamedDoctor[]) {
+  const extra = named.flatMap(({ value, label }) =>
     value && !dentists.some((d) => d.value === value) ? [{ value, label: label ?? "" }] : [],
   );
   return extra.length ? [...dentists, ...extra] : dentists;
@@ -62,6 +65,7 @@ function withSavedDoctors(dentists: DiagnosisOption[], editing?: PatientDiagnosi
  */
 export function PatientDiagnosisForm({
   dentists,
+  defaultDoctor,
   diagnoses,
   submitting,
   editing,
@@ -72,13 +76,22 @@ export function PatientDiagnosisForm({
   const [form] = Form.useForm<FormValues>();
   const [secondEnabled, setSecondEnabled] = useState(false);
   const draft = useDiagnosisDraft();
+  const shownBlank = useRef(blankCount);
 
   const { load, reset } = draft;
   useEffect(() => {
+    const nextSlip = shownBlank.current !== blankCount;
+    shownBlank.current = blankCount;
     if (!editing) {
+      reset();
+      // After "Thêm chẩn đoán" the next slip is by the same doctors: only the
+      // diagnosis, the note and the teeth start over (BA request, 2026-10-03).
+      if (nextSlip) {
+        form.resetFields(["diagnosisId", "note"]);
+        return;
+      }
       form.resetFields();
       setSecondEnabled(false);
-      reset();
       return;
     }
     setSecondEnabled(Boolean(editing.secondStaffId));
@@ -91,7 +104,27 @@ export function PatientDiagnosisForm({
     load(toothSelectionsToValue(editing.teeth));
   }, [editing, blankCount, form, load, reset]);
 
-  const doctorOptions = useMemo(() => withSavedDoctors(dentists, editing), [dentists, editing]);
+  // A blank form starts with the appointment's doctor, still free to change;
+  // the appointment may load after the form opened, so it fills in late too.
+  const defaultDoctorId = defaultDoctor?.value;
+  useEffect(() => {
+    if (editing || !defaultDoctorId || form.getFieldValue("staffId")) return;
+    form.setFieldValue("staffId", defaultDoctorId);
+  }, [editing, defaultDoctorId, form]);
+
+  const doctorOptions = useMemo(
+    () =>
+      withNamedDoctors(
+        dentists,
+        editing
+          ? [
+              { value: editing.staffId, label: editing.staffName },
+              { value: editing.secondStaffId, label: editing.secondStaffName },
+            ]
+          : [defaultDoctor ?? {}],
+      ),
+    [dentists, editing, defaultDoctor],
+  );
 
   const staffId = Form.useWatch("staffId", form);
   const diagnosisId = Form.useWatch("diagnosisId", form);
