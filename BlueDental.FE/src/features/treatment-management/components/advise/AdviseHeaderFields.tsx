@@ -26,10 +26,11 @@ const SELECT_ICONS = {
 };
 
 /**
- * The two rows over the service table in "Chọn Dịch Vụ", as staging lays them
- * out: where the work is and who is advising, then the diagnosis being
- * answered and who made it. Only the consultants can be changed here — the
- * diagnosis fields are the slip's own and stay disabled.
+ * The two rows over the service table in "Chọn Dịch Vụ": where the work is
+ * and who is advising, then the diagnosis being answered. Only the
+ * consultants can be changed here. The disabled "Bác sĩ chẩn đoán 1/2" pair
+ * staging shows beside the diagnosis is left out — it only repeated the
+ * slip's own doctors (project owner, 2026-10-03).
  */
 export function AdviseHeaderFields({
   diagnosis,
@@ -104,14 +105,6 @@ export function AdviseHeaderFields({
         <span className="am-static-label">{t("Treatment:Diagnosis:Diagnosis")}</span>
         <span className="am-static-value">{diagnosis.diagnosisName}</span>
       </div>
-
-      <FloatingField name="diagnoserId" label={t("Treatment:Diagnosis:Diagnoser1")}>
-        <Select disabled options={staff} {...SELECT_ICONS} />
-      </FloatingField>
-
-      <FloatingField name="secondDiagnoserId" label={t("Treatment:Diagnosis:Diagnoser2")}>
-        <Select disabled options={staff} {...SELECT_ICONS} />
-      </FloatingField>
     </div>
   );
 }

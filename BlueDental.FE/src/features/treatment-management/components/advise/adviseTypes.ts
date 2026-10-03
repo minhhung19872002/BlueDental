@@ -26,8 +26,6 @@ export interface AdviseTotals {
 export interface AdviseHeaderValues {
   staffId?: string;
   secondStaffId?: string;
-  diagnoserId?: string;
-  secondDiagnoserId?: string;
 }
 
 /**

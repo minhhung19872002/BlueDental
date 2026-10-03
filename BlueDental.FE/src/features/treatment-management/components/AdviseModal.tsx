@@ -79,8 +79,6 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     form.setFieldsValue({
       staffId: diagnosis.staffId,
       secondStaffId: diagnosis.secondStaffId ?? undefined,
-      diagnoserId: diagnosis.staffId,
-      secondDiagnoserId: diagnosis.secondStaffId ?? undefined,
     });
   }, [open, diagnosis, form, selection.clear, catalog.reset]);
 
