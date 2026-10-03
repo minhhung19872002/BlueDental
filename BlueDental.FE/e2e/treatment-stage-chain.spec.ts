@@ -373,7 +373,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     ).toHaveAttribute("aria-disabled", "true");
   });
 
-  test("two open chains of one line read as one card, continued a chain at a time, and history marks each visit's teeth", async ({
+  test("two open chains of one line read as one card, continue tooth by tooth or together as one visit, and history marks each visit's teeth", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -428,6 +428,26 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`)).toHaveCount(1);
     await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain11}"]`)).toHaveAttribute("aria-disabled", "true");
     await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("aria-disabled", "false");
+
+    // Picking 11 and 21 together — two chains — is one visit: one request, one
+    // công đoạn holding both, one history row (owner, 2026-10-03).
+    await again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
+    const both = again.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
+    expect(await chipStates(both)).toEqual(["11*", "21*", "22!"]);
+    await both.locator("textarea").fill(`e2e cả hai ${runId()}`);
+    continued.length = 0;
+    const merged = page.waitForResponse(
+      (res) => /\/treatment-stages\/[^/]+\/continue$/.test(res.url()) && res.request().method() === "POST",
+    );
+    await again.getByRole("button", { name: "Tiếp tục công đoạn" }).click();
+    const visit = await (await merged).json();
+    expect(visit.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([11, 21]);
+    await expect(page.getByText("Tiếp tục công đoạn thành công")).toBeVisible();
+    expect(continued).toHaveLength(1);
+    await expect(
+      again.locator(`.pd-stage-histrow[data-stage-id="${visit.id}"] .pd-stage-histtooth--worked`),
+    ).toHaveText(["11", "21"]);
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("aria-disabled", "true");
   });
 
   test("a warranty picks among the root's teeth, locks the line's Bảo hành until it is finished, and can follow itself", async ({

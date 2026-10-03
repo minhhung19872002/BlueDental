@@ -142,6 +142,20 @@ public class ContinueTreatmentStageDto
     /// Empty carries all of them; the others stay open on the old công đoạn.
     /// </summary>
     public List<int> ToothCodes { get; set; } = new();
+
+    /// <summary>
+    /// Other open công đoạn of the same line whose teeth this visit also
+    /// carries on — one new công đoạn for the visit, not one per chain.
+    /// </summary>
+    public List<ContinueStageSourceDto> AlsoFrom { get; set; } = new();
+}
+
+public class ContinueStageSourceDto
+{
+    public Guid StageId { get; set; }
+
+    /// <summary>Empty carries every tooth still open on that công đoạn.</summary>
+    public List<int> ToothCodes { get; set; } = new();
 }
 
 public class AttachStageImageDto

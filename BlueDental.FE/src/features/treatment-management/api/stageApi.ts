@@ -140,6 +140,11 @@ export interface ContinueTreatmentStageInput {
   serviceItemIds: string[];
   /** Empty carries every open tooth; ignored on a công đoạn without teeth. */
   toothCodes: number[];
+  /**
+   * Other open công đoạn of the same line whose teeth this visit also carries
+   * on — the visit is one new công đoạn, not one per chain.
+   */
+  alsoFrom: { stageId: string; toothCodes: number[] }[];
 }
 
 export interface StageListInput {

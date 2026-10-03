@@ -6317,3 +6317,16 @@ Chủ dự án (ảnh): ở TIẾP TỤC CÔNG ĐOẠN không chọn được r�
 Kiểm chứng: Domain `StageChainAndWarrantyTests` 15/15 (+2 ca: tiếp tục một phần rồi phần còn lại; từ chối răng đã chuyển hoặc ngoài công đoạn). Application Stage 20/20. FE `tsc` sạch.
 E2E thật (dev :5173, host :5000, PostgreSQL, không chặn request): `treatment-stage-chain.spec.ts` **7/7**. Ca tiếp tục được viết lại: bỏ răng 32 rồi tiếp tục với 31; công đoạn cũ vẫn mở và vẫn tô 31·32. Reload, thẻ đưa ra lại 31·32; gửi lại 31 bị từ chối `0041`; tiếp tục 32 xong thì công đoạn cũ mới xám. `patient.spec.ts`: 3 ca Chi tiết phiếu/tiếp tục xanh.
 Retest level **2** (F-19).
+
+## 2026-10-03 (2) — Tiếp tục công đoạn: một lần khám = một công đoạn (R-661)
+
+Chủ dự án: chọn 11 và 21 ở TIẾP TỤC CÔNG ĐOẠN, nhưng dưới lịch sử chỉ thấy một răng.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-661 | 11 và 21 nằm ở hai chuỗi công đoạn khác nhau. Lưu một lần thì gửi hai request `continue`, tạo **hai** công đoạn (11 riêng, 21 riêng), nên lịch sử thành hai dòng. | `ContinueTreatmentStageDto.AlsoFrom` (`[{ stageId, toothCodes }]`): một request gom răng từ mọi chuỗi đã chọn của cùng dịch vụ và cùng loại (thường/bảo hành) vào **một** công đoạn mới, với `continuedFromId` là chuỗi đầu tiên. Mỗi chuỗi nguồn ghi lại răng đã chuyển đi, và thành xám khi hết răng. Chuỗi khác dịch vụ hoặc khác loại bị từ chối với mã `0018`. FE gửi đúng một request cho mỗi form; ảnh gắn vào công đoạn đó. |
+
+Kiểm chứng: Domain `StageChainAndWarrantyTests` 17/17 (+2 ca: gộp hai chuỗi; từ chối gộp khác loại), Application Stage 20/20, FE `tsc` sạch.
+E2E thật: `treatment-stage-chain.spec.ts` **7/7**. Ca hai chuỗi giờ chọn 11 + 21 thì chỉ có 1 request, công đoạn mới có `[11, 21]`, dòng lịch sử tô cả 11 và 21, chuỗi 21 cũ chuyển xám.
+`patient.spec.ts`: "Công đoạn cell…" và "continued công đoạn greys…" xanh. "Hoàn thành leaves TIẾP TỤC" đỏ ở fixture vì DB demo local đã hết dòng còn răng trống (cùng loại với R-540), không liên quan thay đổi này.
+Retest level **2** (F-19).
