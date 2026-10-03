@@ -2801,7 +2801,7 @@ UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau là 
 
 - "Sắp xong" = còn ≤10 phút tới giờ kết thúc dự kiến; "Quá giờ" = đang khám mà đã qua giờ kết thúc.
 - Màu tuỳ chọn (`Color`) của lịch hẹn không dùng trên timeline — màu theo trạng thái.
-- Lịch Trễ hẹn vẫn hiện (mờ, gạch ngang). Lịch **Đã huỷ** thì BA đã chốt là không hiện (R-671).
+- Lịch Trễ hẹn vẫn hiện (mờ, gạch ngang). Lịch **Đã huỷ** thì BA đã chốt là không hiện (R-673).
 - Lịch hẹn ngoài 07:00–20:00 làm khung nới ra tới giờ chẵn gần nhất.
 - Bác sĩ OFF mà vẫn còn lịch ngày đó vẫn có hàng.
 - Khung giờ 07:00–20:00 là hằng số chung cho mọi chi nhánh, chờ master data ca làm.

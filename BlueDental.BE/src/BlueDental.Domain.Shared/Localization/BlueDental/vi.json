@@ -324,6 +324,7 @@
     "BlueDental:Treatment:0038": "Không thể đổi chẩn đoán hoặc đơn giá khi đang điều trị.",
     "BlueDental:Treatment:0039": "Răng đang điều trị — không thể bỏ chọn.",
     "BlueDental:Treatment:0040": "Đơn giá không được lớn hơn giá gốc của dịch vụ.",
+    "BlueDental:Treatment:0041": "Chỉ được tiếp tục những răng công đoạn này còn đang thực hiện.",
     "Common:Save": "Lưu",
     "Common:Saving": "Đang lưu…",
     "Common:Cancel": "Hủy",

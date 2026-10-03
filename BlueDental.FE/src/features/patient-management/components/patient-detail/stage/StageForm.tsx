@@ -14,7 +14,7 @@ import { StageStepList } from "./StageStepList";
 import { StageTeethPicker } from "./StageTeethPicker";
 import type { StageDraft } from "./stageDraft";
 import type { StageFieldErrors } from "./stageFieldErrors";
-import { snapToChains, toggleTooth, type StageItem } from "./stageModel";
+import { keepOffered, toggleTooth, type StageItem } from "./stageModel";
 
 /** The reference caps Nội dung điều trị at 1000 characters. */
 export const NOTE_LIMIT = 1000;
@@ -63,9 +63,6 @@ function usePreviews(files: File[]): string[] {
  */
 export function StageForm({ item, draft, errors, handlers, actions }: Props) {
   const previews = usePreviews(draft.pending);
-  // A single chain goes on with the teeth it has; with several, the doctor
-  // picks which chains this visit continues.
-  const locked = item.tab !== "add" && item.stages.length <= 1;
 
   return (
     <div className="pd-stage-form" data-item-id={item.id}>
@@ -109,10 +106,10 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
           candidates={item.teeth}
           shown={item.shownTeeth}
           picked={draft.teeth}
-          locked={locked}
+          locked={false}
           error={errors.teeth}
-          onToggle={(code) => handlers.onChange({ teeth: toggleTooth(item, draft.teeth, code) })}
-          onChange={(teeth) => handlers.onChange({ teeth: snapToChains(item, teeth) })}
+          onToggle={(code) => handlers.onChange({ teeth: toggleTooth(draft.teeth, code) })}
+          onChange={(teeth) => handlers.onChange({ teeth: keepOffered(item, teeth) })}
         />
         {errors.teeth && <p className="pd-stage-error">{errors.teeth}</p>}
         <div className="pd-stage-images">

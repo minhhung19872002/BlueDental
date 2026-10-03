@@ -40,7 +40,7 @@ export interface StaffFallback {
  *   (the reference's order), else the slip's; every free tooth picked, so the
  *   common case of taking them all is one click;
  * - **continue** — the doctor, Phụ tá and Bác sĩ hỗ trợ of the newest open công
- *   đoạn, and the teeth of every open chain, taken off a chain at a time.
+ *   đoạn, and every tooth still open, any of which can be dropped one by one.
  *
  * Nội dung điều trị always starts blank: it is this visit's note, not the last.
  */

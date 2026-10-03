@@ -35,6 +35,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 {
     private readonly List<ToothSelection> _teeth = new();
     private readonly List<string> _imageUrls = new();
+    private readonly List<int> _continuedToothCodes = new();
     private readonly List<StageServiceItem> _serviceItems = new();
 
     public Guid PatientId { get; private set; }
@@ -118,6 +119,20 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// ticked, re-opened or continued again.
     /// </summary>
     public bool IsSuperseded { get; private set; }
+
+    /// <summary>
+    /// Teeth already handed on to a later công đoạn. A continue may take only
+    /// some of the teeth (the project owner's rule, 2026-10-03: a tooth stays
+    /// continuable until its công đoạn is finished); the rest stay here, still
+    /// open, and the công đoạn is superseded only once none is left.
+    /// <see cref="Teeth"/> keeps every tooth, so the history still shows what
+    /// this visit worked on.
+    /// </summary>
+    public IReadOnlyCollection<int> ContinuedToothCodes => _continuedToothCodes.AsReadOnly();
+
+    /// <summary>The teeth this công đoạn still holds open — those not yet continued.</summary>
+    public IReadOnlyList<ToothSelection> OpenTeeth =>
+        _teeth.Where(t => !_continuedToothCodes.Contains(t.ToothCode)).ToList();
 
     /// <summary>
     /// For a warranty công đoạn: the ordinary công đoạn its warranty descends
@@ -223,18 +238,30 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         string? note,
         Guid? secondStaffId,
         Guid? subStaffId,
-        IEnumerable<Guid>? serviceItemIds)
+        IEnumerable<Guid>? serviceItemIds,
+        IEnumerable<int>? toothCodes = null,
+        IEnumerable<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>? alsoFrom = null)
     {
-        GuardLive();
+        var carried = HandOnTeeth(toothCodes);
 
-        if (Status == TreatmentStageStatus.Completed)
+        // One visit may carry on teeth of several open chains of the same line
+        // (owner, 2026-10-03): they land on one công đoạn, not one per chain.
+        foreach (var (other, codes) in alsoFrom ?? [])
         {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
-                "A completed stage cannot be continued.");
+            if (other.Id == Id ||
+                other.TreatmentServiceId != TreatmentServiceId ||
+                other.IsGuarantee != IsGuarantee)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                    "Only open công đoạn of the same service line and kind can be continued together.");
+            }
+
+            carried.AddRange(other.HandOnTeeth(codes)
+                .Where(tooth => carried.TrueForAll(each => each.ToothCode != tooth.ToothCode)));
         }
 
-        var next = Add(
+        return Add(
             id,
             PatientId,
             ClinicBranchId,
@@ -247,19 +274,53 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             note,
             scheduledDate: null,
             IsImageRequired,
-            // Copies, not the same instances: a tooth is owned by one công
-            // đoạn, and EF refuses to hand an owned row to a second owner.
-            _teeth.Select(t => new ToothSelection(
-                t.ToothCode, t.Selected, t.Top, t.Right, t.Bottom, t.Left, t.Center)),
+            carried.OrderBy(t => t.ToothCode),
             secondStaffId,
             subStaffId,
             IsGuarantee,
             serviceItemIds,
             continuedFromId: Id,
             warrantyRootStageId: WarrantyRootStageId);
+    }
 
-        IsSuperseded = true;
-        return next;
+    /// <summary>
+    /// Hands some or all of the teeth still open here to the next công đoạn and
+    /// returns copies of them — copies, not the same instances: a tooth is owned
+    /// by one công đoạn, and EF refuses to hand an owned row to a second owner.
+    /// Empty <paramref name="toothCodes"/>, or a công đoạn with no teeth of its
+    /// own (it stood for the whole line), hands on everything still open. The
+    /// công đoạn is superseded once nothing is left open.
+    /// </summary>
+    private List<ToothSelection> HandOnTeeth(IEnumerable<int>? toothCodes)
+    {
+        GuardLive();
+
+        if (Status == TreatmentStageStatus.Completed)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                "A completed stage cannot be continued.");
+        }
+
+        var open = OpenTeeth;
+        var picked = toothCodes?.Distinct().ToList() ?? [];
+        var handed = picked.Count == 0 || _teeth.Count == 0
+            ? open
+            : open.Where(t => picked.Contains(t.ToothCode)).ToList();
+
+        if (_teeth.Count > 0 && picked.Count > 0 && handed.Count != picked.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.StageToothNotOpen,
+                "Only teeth this công đoạn still holds open can be continued.");
+        }
+
+        _continuedToothCodes.AddRange(handed.Select(t => t.ToothCode));
+        IsSuperseded = OpenTeeth.Count == 0;
+
+        return handed
+            .Select(t => new ToothSelection(t.ToothCode, t.Selected, t.Top, t.Right, t.Bottom, t.Left, t.Center))
+            .ToList();
     }
 
     /// <summary>

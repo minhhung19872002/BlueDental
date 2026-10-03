@@ -29,10 +29,10 @@ export interface StageItem {
   /** The open công đoạn continued from this card, one per chain; empty on `add`. */
   stages: TreatmentStageDto[];
   /**
-   * The teeth the form can take: on `add` the line's teeth that are still free
-   * (the doctor picks among them), on the continue tabs those of its open công
-   * đoạn (each chain keeps its teeth — the server refuses a continue whose
-   * teeth differ — so they are picked a chain at a time).
+   * The teeth the form can take, picked one by one: on `add` the line's teeth
+   * that are still free, on the continue tabs those its open công đoạn still
+   * hold (a tooth stays continuable until its công đoạn is finished — the
+   * owner's rule, 2026-10-03).
    */
   teeth: ToothSelectionDto[];
   /**
@@ -77,6 +77,15 @@ export function coveredTeeth(line: TreatmentServiceDto, lineStages: TreatmentSta
 /** The teeth a công đoạn holds; one written with none stood for the whole line. */
 export const stageTeeth = (stage: TreatmentStageDto, line: TreatmentServiceDto): ToothSelectionDto[] =>
   stage.teeth.length > 0 ? stage.teeth : line.teeth;
+
+/**
+ * The teeth a công đoạn still holds open: those not yet handed on to a later
+ * one. A partly continued công đoạn keeps the rest, still to be worked.
+ */
+export function openTeeth(stage: TreatmentStageDto, line: TreatmentServiceDto): ToothSelectionDto[] {
+  const handedOn = new Set(stage.continuedToothCodes);
+  return stageTeeth(stage, line).filter((tooth) => !handedOn.has(tooth.toothCode));
+}
 
 /** Each tooth once, in the order first met. */
 function uniqueTeeth(teeth: ToothSelectionDto[]): ToothSelectionDto[] {
@@ -142,7 +151,7 @@ export function buildStageItems(
     return services.flatMap((line): StageItem[] => {
       const chains = open.get(line.id);
       if (!chains) return [];
-      const teeth = uniqueTeeth(chains.flatMap((stage) => stageTeeth(stage, line)));
+      const teeth = uniqueTeeth(chains.flatMap((stage) => openTeeth(stage, line)));
       return [{ id: `${tab}:${line.id}`, tab, line, stages: chains, teeth, shownTeeth: shownOf(line, teeth) }];
     });
   };
@@ -237,48 +246,36 @@ export function namedSteps(items: TreatmentStageDto["serviceItems"]): { id: stri
     .map((item) => ({ id: item.catalogServiceStageId, name: item.name }));
 }
 
+/** One continue request: a công đoạn and the teeth it carries on. */
+export interface StageContinuation {
+  stage: TreatmentStageDto;
+  /** Empty for a công đoạn without teeth of its own — it goes on whole. */
+  toothCodes: number[];
+}
+
 /**
- * The công đoạn a continue form will write, given the teeth it has picked:
- * each chain whose teeth are all picked. A chain goes on whole or not at all.
+ * The continues a form will send, given the teeth it has picked: each open
+ * công đoạn with at least one picked tooth, carrying just those. A công đoạn
+ * written without teeth stood for the whole line and goes on whole.
  */
-export function stagesToContinue(item: StageItem, picked: number[]): TreatmentStageDto[] {
+export function stagesToContinue(item: StageItem, picked: number[]): StageContinuation[] {
   const wanted = new Set(picked);
-  return item.stages.filter((stage) =>
-    stageTeeth(stage, item.line).every((tooth) => wanted.has(tooth.toothCode)),
-  );
+  return item.stages.flatMap((stage): StageContinuation[] => {
+    const codes = toothCodes(openTeeth(stage, item.line)).filter((code) => wanted.has(code));
+    if (codes.length === 0) return [];
+    return [{ stage, toothCodes: stage.teeth.length > 0 ? codes : [] }];
+  });
 }
 
-/**
- * A pick on a continue card snapped to whole chains: any chain with a tooth in
- * `codes` comes in with all its teeth. `add` picks tooth by tooth.
- */
-export function snapToChains(item: StageItem, codes: number[]): number[] {
-  if (item.tab === "add") return codes;
+/** A pick from the chart, kept to the teeth the card offers. */
+export function keepOffered(item: StageItem, codes: number[]): number[] {
   const wanted = new Set(codes);
-  const snapped = new Set<number>();
-  for (const stage of item.stages) {
-    const teeth = toothCodes(stageTeeth(stage, item.line));
-    if (teeth.some((code) => wanted.has(code))) teeth.forEach((code) => snapped.add(code));
-  }
-  return toothCodes(item.teeth).filter((code) => snapped.has(code));
+  return toothCodes(item.teeth).filter((code) => wanted.has(code));
 }
 
-/**
- * Tapping one tooth of a continue card: its chain comes in, or goes out, whole.
- * On `add` it is that tooth alone.
- */
-export function toggleTooth(item: StageItem, picked: number[], code: number): number[] {
-  if (item.tab === "add") {
-    return picked.includes(code) ? picked.filter((each) => each !== code) : [...picked, code];
-  }
-  const chain = item.stages.find((stage) =>
-    stageTeeth(stage, item.line).some((tooth) => tooth.toothCode === code),
-  );
-  if (!chain) return picked;
-  const teeth = toothCodes(stageTeeth(chain, item.line));
-  return picked.includes(code)
-    ? picked.filter((each) => !teeth.includes(each))
-    : snapToChains(item, [...picked, ...teeth]);
+/** Tapping one tooth turns that tooth alone on or off, on every tab. */
+export function toggleTooth(picked: number[], code: number): number[] {
+  return picked.includes(code) ? picked.filter((each) => each !== code) : [...picked, code];
 }
 
 /** Tooth codes, in the order the teeth were given. */

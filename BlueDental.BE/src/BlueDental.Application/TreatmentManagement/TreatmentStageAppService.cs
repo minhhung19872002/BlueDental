@@ -220,6 +220,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     {
         var stage = await LoadAsync(id);
 
+        var others = new List<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>();
+        foreach (var source in input.AlsoFrom.GroupBy(x => x.StageId).Select(g => g.Last()))
+        {
+            others.Add((await LoadAsync(source.StageId), source.ToothCodes));
+        }
+
         var next = stage.ContinueAs(
             GuidGenerator.Create(),
             await NextSequenceNumberAsync(stage.TreatmentServiceId),
@@ -227,9 +233,15 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.Note.Trim(),
             input.SecondStaffId,
             input.SubStaffId,
-            input.ServiceItemIds);
+            input.ServiceItemIds,
+            input.ToothCodes,
+            others);
 
         await _repository.UpdateAsync(stage);
+        foreach (var (other, _) in others)
+        {
+            await _repository.UpdateAsync(other);
+        }
         await _repository.InsertAsync(next, autoSave: true);
 
         await MoveServiceLineAsync(next);
@@ -522,6 +534,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IsGuarantee = entity.IsGuarantee,
         HasReExamination = entity.HasReExamination,
         IsSuperseded = entity.IsSuperseded,
+        ContinuedToothCodes = entity.ContinuedToothCodes.ToList(),
         ContinuedFromId = entity.ContinuedFromId,
         WarrantyRootStageId = entity.WarrantyRootStageId,
         StartedAt = entity.StartedAt,

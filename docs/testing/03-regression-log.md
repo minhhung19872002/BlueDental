@@ -6305,7 +6305,33 @@ E2E thật trên dev :5173 + host :5000 + PostgreSQL, không chặn request: `ti
 `timekeeping.spec.ts`: 1/3. Hai test đỏ có từ trước, **không** do thay đổi lần này: spec tìm `data-testid="timekeeping-kpis"` và nút "Mở ngày làm việc", nhưng cả hai đã không còn trong source.
 Retest level **2** (F-03).
 
-## 2026-10-03 — Tiếp nhận: đồng hồ thời gian chờ trên thẻ (R-660 … R-662)
+## 2026-10-03 — Chi tiết phiếu: tiếp tục công đoạn theo từng răng (R-660)
+
+Chủ dự án (ảnh): ở TIẾP TỤC CÔNG ĐOẠN không chọn được răng, nhưng nhập nội dung điều trị thì vẫn lưu được. Muốn: răng chưa hoàn thành vẫn chọn được; chỉ răng đã hoàn thành mới bị khoá (như răng 46).
+**Cố ý khác bản gốc**: bản gốc khoá cả chuỗi (`docs/clone/pages/patient-detail.md` mục 5).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-660 | Form tiếp tục khoá hết răng khi thẻ chỉ có một chuỗi; có nhiều chuỗi thì bấm một răng là vào/ra cả chuỗi. | FE: chọn từng răng trên mọi tab (`toggleTooth`, `keepOffered`), bỏ `locked`. Răng đưa ra = răng **còn mở** của các công đoạn đang mở (`openTeeth`). Răng của công đoạn đã Hoàn thành vẫn mờ, không bấm được. BE: `ContinueTreatmentStageDto.ToothCodes`; nếu rỗng thì mang hết răng như cũ. `TreatmentStage.ContinueAs` chỉ mang những răng được chọn, và ghi chúng vào `ContinuedToothCodes` (cột `integer[]`, migration `StagePartialContinue`). Công đoạn cũ vẫn **mở** với số răng còn lại, chỉ thành `IsSuperseded` (xám) khi đã hết răng. `Teeth` của công đoạn cũ giữ nguyên, nên lịch sử vẫn tô đủ răng đã làm. Răng đã chuyển đi hoặc không thuộc công đoạn bị từ chối với mã `0041`. |
+
+Kiểm chứng: Domain `StageChainAndWarrantyTests` 15/15 (+2 ca: tiếp tục một phần rồi phần còn lại; từ chối răng đã chuyển hoặc ngoài công đoạn). Application Stage 20/20. FE `tsc` sạch.
+E2E thật (dev :5173, host :5000, PostgreSQL, không chặn request): `treatment-stage-chain.spec.ts` **7/7**. Ca tiếp tục được viết lại: bỏ răng 32 rồi tiếp tục với 31; công đoạn cũ vẫn mở và vẫn tô 31·32. Reload, thẻ đưa ra lại 31·32; gửi lại 31 bị từ chối `0041`; tiếp tục 32 xong thì công đoạn cũ mới xám. `patient.spec.ts`: 3 ca Chi tiết phiếu/tiếp tục xanh.
+Retest level **2** (F-19).
+
+## 2026-10-03 (2) — Tiếp tục công đoạn: một lần khám = một công đoạn (R-661)
+
+Chủ dự án: chọn 11 và 21 ở TIẾP TỤC CÔNG ĐOẠN, nhưng dưới lịch sử chỉ thấy một răng.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-661 | 11 và 21 nằm ở hai chuỗi công đoạn khác nhau. Lưu một lần thì gửi hai request `continue`, tạo **hai** công đoạn (11 riêng, 21 riêng), nên lịch sử thành hai dòng. | `ContinueTreatmentStageDto.AlsoFrom` (`[{ stageId, toothCodes }]`): một request gom răng từ mọi chuỗi đã chọn của cùng dịch vụ và cùng loại (thường/bảo hành) vào **một** công đoạn mới, với `continuedFromId` là chuỗi đầu tiên. Mỗi chuỗi nguồn ghi lại răng đã chuyển đi, và thành xám khi hết răng. Chuỗi khác dịch vụ hoặc khác loại bị từ chối với mã `0018`. FE gửi đúng một request cho mỗi form; ảnh gắn vào công đoạn đó. |
+
+Kiểm chứng: Domain `StageChainAndWarrantyTests` 17/17 (+2 ca: gộp hai chuỗi; từ chối gộp khác loại), Application Stage 20/20, FE `tsc` sạch.
+E2E thật: `treatment-stage-chain.spec.ts` **7/7**. Ca hai chuỗi giờ chọn 11 + 21 thì chỉ có 1 request, công đoạn mới có `[11, 21]`, dòng lịch sử tô cả 11 và 21, chuỗi 21 cũ chuyển xám.
+`patient.spec.ts`: "Công đoạn cell…" và "continued công đoạn greys…" xanh. "Hoàn thành leaves TIẾP TỤC" đỏ ở fixture vì DB demo local đã hết dòng còn răng trống (cùng loại với R-540), không liên quan thay đổi này.
+Retest level **2** (F-19).
+
+## 2026-10-03 — Tiếp nhận: đồng hồ thời gian chờ trên thẻ (R-662 … R-664)
 
 Yêu cầu BA, **không** phải hành vi quan sát từ bản gốc. Ngưỡng theo câu chữ của BA:
 
@@ -6317,9 +6343,9 @@ Yêu cầu BA, **không** phải hành vi quan sát từ bản gốc. Ngưỡng 
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-660 | Chip "Đang chờ" đè lên vòng tròn bước 1–2 khi cột tiến trình hẹp. Ở 1280–1600px, `.rc-steps` chỉ rộng 194–354px. | Khi đang chờ, `.rc-steps--waiting` thêm một cột lưới riêng cho chip (rộng `max-content`). Dưới 340px (container query `rc-progress` trên `.rc-col-progress`), chip nổi lên trên đường nối. Đã đối chiếu ảnh chụp ở 1920/1600/1440/1280/390: không còn đè. |
-| R-661 | Chọn "Hẹn tái khám" ngay khi đang chờ thì bước 2 "Đã hẹn lại" hiện "· chờ 0p". | Server đóng dấu `startedAt` khi đặt tái khám, nhưng bệnh nhân chưa hề vào ghế. Nhánh `revisitAtStep2` giờ bỏ phần ghi chú. Thẻ đã vào ghế rồi mới huỷ thì vẫn giữ "chờ Np", và spec kiểm tra đúng chuỗi đó. |
-| R-662 | `reception-follow-up.spec.ts` báo `runId is not defined` sau khi tách helper ra `e2e/fixtures/receptionBoard.ts`. | Import `runId` từ `fixtures/auth`. Test so giờ bước 2 với chuỗi `HH:mm · chờ Np`, trong đó N tính từ hai dấu thời gian của server. |
+| R-662 | Chip "Đang chờ" đè lên vòng tròn bước 1–2 khi cột tiến trình hẹp. Ở 1280–1600px, `.rc-steps` chỉ rộng 194–354px. | Khi đang chờ, `.rc-steps--waiting` thêm một cột lưới riêng cho chip (rộng `max-content`). Dưới 340px (container query `rc-progress` trên `.rc-col-progress`), chip nổi lên trên đường nối. Đã đối chiếu ảnh chụp ở 1920/1600/1440/1280/390: không còn đè. |
+| R-663 | Chọn "Hẹn tái khám" ngay khi đang chờ thì bước 2 "Đã hẹn lại" hiện "· chờ 0p". | Server đóng dấu `startedAt` khi đặt tái khám, nhưng bệnh nhân chưa hề vào ghế. Nhánh `revisitAtStep2` giờ bỏ phần ghi chú. Thẻ đã vào ghế rồi mới huỷ thì vẫn giữ "chờ Np", và spec kiểm tra đúng chuỗi đó. |
+| R-664 | `reception-follow-up.spec.ts` báo `runId is not defined` sau khi tách helper ra `e2e/fixtures/receptionBoard.ts`. | Import `runId` từ `fixtures/auth`. Test so giờ bước 2 với chuỗi `HH:mm · chờ Np`, trong đó N tính từ hai dấu thời gian của server. |
 
 Kiểm chứng trên bản build production (`vite preview` :8093) + host :5000 + PostgreSQL, không chặn request:
 
@@ -6330,7 +6356,7 @@ Kiểm chứng trên bản build production (`vite preview` :8093) + host :5000 
 
 Retest level **2** (F-11).
 
-## 2026-10-03 — Chẩn đoán & Tư vấn: bác sĩ chẩn đoán mặc định theo lịch hẹn (R-663)
+## 2026-10-03 — Chẩn đoán & Tư vấn: bác sĩ chẩn đoán mặc định theo lịch hẹn (R-665)
 
 Yêu cầu BA, **không** phải hành vi quan sát từ bản gốc.
 
@@ -6340,20 +6366,20 @@ Yêu cầu BA, **không** phải hành vi quan sát từ bản gốc.
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-663 | Bấm "Thêm chẩn đoán" thì form xoá luôn bác sĩ, phải chọn lại cho từng phiếu. Form mở mới cũng không điền sẵn bác sĩ hẹn. | Hook mới `useAppointmentDoctor`: `GET appointments?patientId&date=hôm nay` (server cắt ngày theo UTC+7), bỏ lịch Huỷ/Không đến. Nếu có nhiều lịch thì ưu tiên lịch Đã đến/Đang khám, sau đó tới lịch gần giờ hiện tại nhất. `PatientDiagnosisForm` gán `staffId` khi form trống và ô chưa có giá trị, nên lịch hẹn tải sau vẫn được điền. Khi `blankCount` tăng, form chỉ `resetFields(["diagnosisId","note"])` và reset răng. Bác sĩ hẹn đang nghỉ hôm nay vẫn được thêm tên vào options (`withNamedDoctors`). Mở phiếu cũ để sửa thì giữ bác sĩ của phiếu. |
+| R-665 | Bấm "Thêm chẩn đoán" thì form xoá luôn bác sĩ, phải chọn lại cho từng phiếu. Form mở mới cũng không điền sẵn bác sĩ hẹn. | Hook mới `useAppointmentDoctor`: `GET appointments?patientId&date=hôm nay` (server cắt ngày theo UTC+7), bỏ lịch Huỷ/Không đến. Nếu có nhiều lịch thì ưu tiên lịch Đã đến/Đang khám, sau đó tới lịch gần giờ hiện tại nhất. `PatientDiagnosisForm` gán `staffId` khi form trống và ô chưa có giá trị, nên lịch hẹn tải sau vẫn được điền. Khi `blankCount` tăng, form chỉ `resetFields(["diagnosisId","note"])` và reset răng. Bác sĩ hẹn đang nghỉ hôm nay vẫn được thêm tên vào options (`withNamedDoctors`). Mở phiếu cũ để sửa thì giữ bác sĩ của phiếu. |
 
 Kiểm chứng: `tsc` và eslint sạch. Kiểm tra tay trên dev :5173 + host :5000, đăng nhập admin, bệnh nhân có lịch hôm nay: form mở ra đã chọn sẵn bác sĩ hẹn, dropdown vẫn liệt kê đủ 8 bác sĩ không nghỉ hôm nay. Không viết spec mới (chủ dự án tự test).
-Lưu ý: `GET /v1/app/staff` cần quyền `Staff.View`. Tài khoản thiếu quyền này nhận 403 → danh sách rỗng → dropdown chỉ còn đúng bác sĩ hẹn. Đây là lỗ hổng có từ trước; trước R-663 dropdown sẽ trống hẳn.
+Lưu ý: `GET /v1/app/staff` cần quyền `Staff.View`. Tài khoản thiếu quyền này nhận 403 → danh sách rỗng → dropdown chỉ còn đúng bác sĩ hẹn. Đây là lỗ hổng có từ trước; trước R-665 dropdown sẽ trống hẳn.
 Retest level **2** (Chẩn đoán & Tư vấn).
 
-## 2026-10-03 — Chấm công: `POST time-keepings/open-day` trả 500 trên local (R-664)
+## 2026-10-03 — Chấm công: `POST time-keepings/open-day` trả 500 trên local (R-666)
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-664 | Mở ngày làm việc (check-in trên thẻ ảo, lưu thông tin chấm công, bật lịch ở thẻ nhân viên) trả 500, body ABP chung "Có một lỗi nội bộ xảy ra…". | Migration `20261002094459_TimeKeepingLeaveWindow` (commit `815724ed`, thêm `LeaveShift`/`LeaveStart`/`LeaveEnd`) có trong code nhưng chưa áp vào DB local. Host mới INSERT cả 3 cột → PostgreSQL báo cột không tồn tại. Không sửa code: chạy lại DbMigrator (`dotnet run`, build trước). Sau đó `open-day` trả 200. Môi trường nào pull `815724ed` cũng phải migrate (prod: chạy DbMigrator khi deploy). |
+| R-666 | Mở ngày làm việc (check-in trên thẻ ảo, lưu thông tin chấm công, bật lịch ở thẻ nhân viên) trả 500, body ABP chung "Có một lỗi nội bộ xảy ra…". | Migration `20261002094459_TimeKeepingLeaveWindow` (commit `815724ed`, thêm `LeaveShift`/`LeaveStart`/`LeaveEnd`) có trong code nhưng chưa áp vào DB local. Host mới INSERT cả 3 cột → PostgreSQL báo cột không tồn tại. Không sửa code: chạy lại DbMigrator (`dotnet run`, build trước). Sau đó `open-day` trả 200. Môi trường nào pull `815724ed` cũng phải migrate (prod: chạy DbMigrator khi deploy). |
 
 
-## 2026-10-03 — Lịch hẹn: view Ngày thành timeline ngang theo bác sĩ (R-665 … R-667, R-671)
+## 2026-10-03 — Lịch hẹn: view Ngày thành timeline ngang theo bác sĩ (R-667 … R-669, R-673)
 
 Yêu cầu BA (ảnh mẫu "Lịch bác sĩ hôm nay"), **không** phải hành vi quan sát từ bản gốc.
 
@@ -6365,25 +6391,25 @@ Yêu cầu BA (ảnh mẫu "Lịch bác sĩ hôm nay"), **không** phải hành 
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-665 | Viết hook cuộn kéo riêng vào `src/hooks/useDragScroll.ts` làm mất `initTableGrabScroll` toàn app (`main.tsx` import). | Khôi phục file từ HEAD. Cuộn kéo của timeline chỉ cần thêm `.dtl-scroll` vào `GRAB_SCROLL_SELECTORS` + hai rule con trỏ trong `index.css`. Kéo bắt đầu từ khối (`role="button"`) không cuộn — đúng thiết kế của helper. |
-| R-666 | Khối 15 phút (~60–80px) chỉ hiện "[...": mã khách chiếm hết chỗ, nút ⋮ (opacity 0) vẫn giữ 20px. | Nhãn hiển thị chỉ còn tên khách; mã + giờ + lý do nằm trong tooltip và `aria-label`. Nút ⋮ chuyển `position: absolute`, nền `inherit`, phủ lên đuôi nhãn khi hover. Ô góc "Bác sĩ" thêm ellipsis. |
-| R-667 | 9 test đỏ ở `appointment.spec.ts` (2), `appointment-history.spec.ts` (4), `patient-appointment.spec.ts` (3): `fill()` vào ô ngày có mask để lại "03/10/2026". | **Có sẵn từ trước**: cùng đúng tập đó đỏ trên bản build HEAD (git archive + junction node_modules, preview :8092). Không do thay đổi này. Chưa sửa. |
-| R-671 | Lịch đã huỷ vẫn nằm trên timeline (mờ, gạch ngang), chiếm tầng và che ô trống — bấm vào mở lịch huỷ thay vì tạo lịch mới. | BA chốt "đã hủy không hiện ở đây". `timelineRows.timelineBookings` bỏ `cancelled` ngay ở nguồn: không vẽ khối, không giữ hàng cho bác sĩ OFF, không nới khung giờ. Trễ hẹn vẫn hiện mờ; trạng thái khối đổi tên `cancelled` → `noShow`, key `Appointment:Timeline:NoShow` ("Trễ hẹn" / "No-show"). Bộ đếm "Huỷ hẹn" trên toolbar vẫn đếm như cũ; bấm vào thì timeline trống. Spec test 1 thêm một lịch huỷ lúc 10:00 và kiểm tra hàng chỉ còn 1 khối. |
+| R-667 | Viết hook cuộn kéo riêng vào `src/hooks/useDragScroll.ts` làm mất `initTableGrabScroll` toàn app (`main.tsx` import). | Khôi phục file từ HEAD. Cuộn kéo của timeline chỉ cần thêm `.dtl-scroll` vào `GRAB_SCROLL_SELECTORS` + hai rule con trỏ trong `index.css`. Kéo bắt đầu từ khối (`role="button"`) không cuộn — đúng thiết kế của helper. |
+| R-668 | Khối 15 phút (~60–80px) chỉ hiện "[...": mã khách chiếm hết chỗ, nút ⋮ (opacity 0) vẫn giữ 20px. | Nhãn hiển thị chỉ còn tên khách; mã + giờ + lý do nằm trong tooltip và `aria-label`. Nút ⋮ chuyển `position: absolute`, nền `inherit`, phủ lên đuôi nhãn khi hover. Ô góc "Bác sĩ" thêm ellipsis. |
+| R-669 | 9 test đỏ ở `appointment.spec.ts` (2), `appointment-history.spec.ts` (4), `patient-appointment.spec.ts` (3): `fill()` vào ô ngày có mask để lại "03/10/2026". | **Có sẵn từ trước**: cùng đúng tập đó đỏ trên bản build HEAD (git archive + junction node_modules, preview :8092). Không do thay đổi này. Chưa sửa. |
+| R-673 | Lịch đã huỷ vẫn nằm trên timeline (mờ, gạch ngang), chiếm tầng và che ô trống — bấm vào mở lịch huỷ thay vì tạo lịch mới. | BA chốt "đã hủy không hiện ở đây". `timelineRows.timelineBookings` bỏ `cancelled` ngay ở nguồn: không vẽ khối, không giữ hàng cho bác sĩ OFF, không nới khung giờ. Trễ hẹn vẫn hiện mờ; trạng thái khối đổi tên `cancelled` → `noShow`, key `Appointment:Timeline:NoShow` ("Trễ hẹn" / "No-show"). Bộ đếm "Huỷ hẹn" trên toolbar vẫn đếm như cũ; bấm vào thì timeline trống. Spec test 1 thêm một lịch huỷ lúc 10:00 và kiểm tra hàng chỉ còn 1 khối. |
 
 Kiểm chứng: `tsc` sạch; `e2e/appointment-day-timeline.spec.ts` 4/4 xanh trên bản build production (preview :8091, host thật :5000, DB thật): bác sĩ OFF không có hàng, lịch nằm đúng hàng và còn sau reload, trục 07:00…19:30, bấm ô 08:00 mở form điền sẵn, kéo chuột cuộn >300px mà không mở dialog và `slotStart` không đổi, check-in → viền chờ, start → đang khám, có vạch "bây giờ". "calendar grids read their own date range" và 3 test doctor-day-off-pickers vẫn xanh. Ảnh chụp 1600×900 và 390×844: không tràn ngang trang.
 Lưu ý: nhãn legend/ô góc hiện key thô (`Appointment:Timeline:*`) cho tới khi **khởi động lại API host** để nạp 8 key mới trong `vi.json`/`en.json`.
 Retest level **2** (Lịch hẹn) + Level 3 nhẹ cho helper cuộn kéo dùng chung (chỉ thêm selector).
 
 
-## 2026-10-03 — Hồ sơ bệnh nhân › Lịch hẹn: icon đồng hồ xem lịch sử từng lịch hẹn (R-668 … R-670)
+## 2026-10-03 — Hồ sơ bệnh nhân › Lịch hẹn: icon đồng hồ xem lịch sử từng lịch hẹn (R-670 … R-672)
 
 Yêu cầu BA (ảnh chú thích), **không** có trên bản gốc. Cột Thao tác mỗi dòng thêm icon đồng hồ (giống nút toolbar) → mở hộp thoại "Lịch sử thay đổi lịch hẹn" chỉ của lịch hẹn đó, mọi thay đổi (không giới hạn tuần), để biết khách có đổi lịch hay không. Chỉ đổi FE + 2 key i18n (`Patient:Appt:History`, `Appointment:History:ModalSubtitleOne`); API `appointment-change-log` đã nhận `appointmentId` từ trước.
 
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
-| R-668 | Spec mới: hộp thoại theo dòng chỉ có 1 dòng "Tạo mới", không có "Cập nhật" dù PUT đổi giờ thành công (DB có log `startTime,toTime`). | Hai lịch hẹn của test cùng nội dung `E2E lịch sử ${id}` → `findAppointmentRow` bấm nhầm dòng của lịch hẹn kia. `bookAppointment` nhận thêm `label` (" dời" / " giữ"). |
-| R-669 | `getByRole("button", { name: "Lịch sử thay đổi", exact: true })` không tìm thấy nút toolbar. | Tên truy cập của nút AntD có cả nhãn icon: "history Lịch sử thay đổi". Dùng `/Lịch sử thay đổi$/` — vẫn loại được icon dòng ("…lịch hẹn"). |
-| R-670 | 3 đỏ có sẵn trong `patient-appointment.spec.ts` + 5 đỏ trong `appointment-history.spec.ts` (R-667): `fill()` vào ô ngày mask. | Sửa helper `chooseSlot` của hai spec: click vào ô ngày ở mép trái (`position {x:4,y:8}`), `pressSequentially` chữ số, Enter. `appointment.spec.ts` (2 đỏ của R-667) **chưa sửa**. |
+| R-670 | Spec mới: hộp thoại theo dòng chỉ có 1 dòng "Tạo mới", không có "Cập nhật" dù PUT đổi giờ thành công (DB có log `startTime,toTime`). | Hai lịch hẹn của test cùng nội dung `E2E lịch sử ${id}` → `findAppointmentRow` bấm nhầm dòng của lịch hẹn kia. `bookAppointment` nhận thêm `label` (" dời" / " giữ"). |
+| R-671 | `getByRole("button", { name: "Lịch sử thay đổi", exact: true })` không tìm thấy nút toolbar. | Tên truy cập của nút AntD có cả nhãn icon: "history Lịch sử thay đổi". Dùng `/Lịch sử thay đổi$/` — vẫn loại được icon dòng ("…lịch hẹn"). |
+| R-672 | 3 đỏ có sẵn trong `patient-appointment.spec.ts` + 5 đỏ trong `appointment-history.spec.ts` (R-669): `fill()` vào ô ngày mask. | Sửa helper `chooseSlot` của hai spec: click vào ô ngày ở mép trái (`position {x:4,y:8}`), `pressSequentially` chữ số, Enter. `appointment.spec.ts` (2 đỏ của R-669) **chưa sửa**. |
 
 Kiểm chứng (build production `vite preview` :8091, host thật :5000 Development, DB thật): `appointment-history.spec.ts` **5/5** — test mới đặt 2 lịch, dời 1 lịch qua dialog Cập nhật thật, icon dòng đọc `appointmentId=` không `fromDate=`, đúng 2 dòng (Cập nhật `ngày giờ → ngày giờ` + Tạo mới), không lẫn lịch kia, không có `.ah-week`, toolbar vẫn có tuần, reload rồi kiểm lại; `patient-appointment.spec.ts` **6/6**. `tsc` sạch.
 Retest level **2** (Lịch hẹn của hồ sơ bệnh nhân + hộp thoại lịch sử).

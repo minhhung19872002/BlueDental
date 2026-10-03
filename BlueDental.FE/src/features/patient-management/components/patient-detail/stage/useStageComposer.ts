@@ -228,28 +228,28 @@ export function useStageComposer({
   };
 
   /**
-   * One form: a new công đoạn on `add`; on a continue card the next visit of
-   * every chain it has picked, one request each, sharing the form's note.
+   * One form: a new công đoạn on `add`; on a continue card one new công đoạn
+   * carrying the teeth picked from every open chain of the line.
    */
   const saveOne = async (item: StageItem, draft: StageDraft) => {
     // Checked by draftErrors before anything is sent.
     const staffId = draft.staffId ?? "";
     if (item.tab !== "add") {
-      const continued: string[] = [];
-      for (const stage of stagesToContinue(item, draft.teeth)) {
-        const saved = await continueStage.mutateAsync({
-          id: stage.id,
-          staffId,
-          subStaffId: draft.subStaffId,
-          secondStaffId: draft.secondStaffId,
-          note: draft.note.trim(),
-          serviceItemIds: draft.steps,
-        });
-        continued.push(saved.id);
-      }
-      // The pictures are of this visit: they go with the first of them, not
-      // once per chain.
-      if (draft.pending.length > 0 && continued[0]) await uploadTo(continued[0], draft.pending);
+      // One visit, one công đoạn: the teeth of every chain picked go on
+      // together, continued from the first of them.
+      const [first, ...rest] = stagesToContinue(item, draft.teeth);
+      if (!first) return;
+      const saved = await continueStage.mutateAsync({
+        id: first.stage.id,
+        toothCodes: first.toothCodes,
+        alsoFrom: rest.map(({ stage, toothCodes }) => ({ stageId: stage.id, toothCodes })),
+        staffId,
+        subStaffId: draft.subStaffId,
+        secondStaffId: draft.secondStaffId,
+        note: draft.note.trim(),
+        serviceItemIds: draft.steps,
+      });
+      if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
       return;
     }
 
