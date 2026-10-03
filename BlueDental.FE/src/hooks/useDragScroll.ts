@@ -1,4 +1,4 @@
-const GRAB_SCROLL_SELECTORS = '.ant-table-content, .ant-table-body, .appt-mini-cal-content, .wsb-table-scroll';
+const GRAB_SCROLL_SELECTORS = '.ant-table-content, .ant-table-body, .appt-mini-cal-content, .wsb-table-scroll, .dtl-scroll';
 
 /**
  * How far the pointer has to travel before a grab counts as a scroll rather

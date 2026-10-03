@@ -11,7 +11,8 @@ import { PlusOutlined } from "@ant-design/icons";
 import { CalendarUnderlineTabs } from "../components/CalendarUnderlineTabs";
 import { CalendarToolbarRow1 } from "../components/CalendarToolbarRow1";
 import { CalendarToolbarRow2 } from "../components/CalendarToolbarRow2";
-import { DayViewGrid, type DayViewDoctor } from "../components/DayViewGrid";
+import { DayTimeline } from "../components/day-timeline/DayTimeline";
+import type { TimelineDoctor } from "../components/day-timeline/timelineRows";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
@@ -36,8 +37,11 @@ export function AppointmentCalendarPage() {
   const ability = useAbility("appointment");
   const state = useCalendarState();
   const filters = useCalendarFilters();
-  const { data: dentistData } = useDentistList();
-  const doctors: DayViewDoctor[] = useMemo(
+  // The day view leaves out doctors registered OFF that day (BA 2026-10-03).
+  const { data: dentistData } = useDentistList(
+    state.viewMode === "day" ? state.currentDate.format("YYYY-MM-DD") : undefined,
+  );
+  const doctors: TimelineDoctor[] = useMemo(
     () => (dentistData ?? []).map((d) => ({ id: d.id, name: d.name })),
     [dentistData],
   );
@@ -109,16 +113,13 @@ export function AppointmentCalendarPage() {
     );
   };
 
-  const handleCellClick = (doctorId: string, slotIndex: number) => {
-    const totalMinutes = 6 * 60 + slotIndex * filters.slotMinutes;
-    const h = Math.floor(totalMinutes / 60).toString().padStart(2, "0");
-    const m = (totalMinutes % 60).toString().padStart(2, "0");
+  const handleCellClick = useCallback((doctorId: string, time: string) => {
     setInitialDate(state.currentDate.format("YYYY-MM-DD"));
-    setInitialTime(`${h}:${m}`);
+    setInitialTime(time);
     setInitialDoctorId(doctorId);
     setEditId(null);
     setAddOpen(true);
-  };
+  }, [state.currentDate]);
 
   const handleDeleteSingle = useCallback((id: string) => {
     setDeleteSingleId(id);
@@ -272,7 +273,7 @@ export function AppointmentCalendarPage() {
         {state.topTab === "customer" ? (
           <div className="cal-grid-wrap">
             {state.viewMode === "day" && (
-              <DayViewGrid
+              <DayTimeline
                 currentDate={state.currentDate}
                 doctors={doctors}
                 slotMinutes={filters.slotMinutes}

@@ -205,61 +205,7 @@
   height: 100%;
 }
 
-/* ── Day view grid ────────────────────────────────────────────────── */
-
-.cal-day-scroll {
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-.cal-day-grid {
-  display: grid;
-  min-width: fit-content;
-}
-
-/* Time column + doctor headers */
-.cal-day-time-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #f7f8fd;
-  border-bottom: 1px solid #e7eaf6;
-  border-right: 1px solid #e7eaf6;
-  padding: 8px 4px;
-  font-size: 11px;
-  color: #99a0bd;
-  text-align: center;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-}
-
-.cal-day-doctor-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #fff;
-  border-bottom: 1px solid #e7eaf6;
-  border-left: 1px solid #e7eaf6;
-  padding: 0 6px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #171c33;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 38px;
-  min-width: 0;
-}
-
-.cal-day-doctor-count {
-  color: #78819c;
-  font-weight: 400;
-}
+/* ── Shared slot rules (week view, mini calendar) ────────────────── */
 
 /* Time label cell */
 .cal-day-time-cell {
@@ -280,13 +226,6 @@
   font-weight: 400;
 }
 
-/* Doctor column (position: relative container for absolute cards) */
-.cal-day-doctor-col {
-  position: relative;
-  border-left: 1px solid #e7eaf6;
-  box-sizing: border-box;
-}
-
 /* Background slot lines inside doctor columns */
 .cal-day-slot-bg {
   box-sizing: border-box;
@@ -300,14 +239,6 @@
 
 .cal-day-cell--half {
   border-bottom: 1px dashed #f7f8fd;
-}
-
-.cal-day-cell--even {
-  background: #f7f8fd;
-}
-
-.cal-day-cell--odd {
-  background: #fff;
 }
 
 .cal-day-slot-bg:hover {
@@ -346,40 +277,327 @@
   box-shadow: rgba(0, 0, 0, 0.15) 0px 4px 16px 0px;
 }
 
-/* ── Doctor page navigation buttons ──────────────────────────────── */
+/* ── Day view: horizontal doctor timeline ─────────────────────────── */
+/* Doctors are rows, time runs left → right. Mouse drag scrolls the board
+   sideways only (the app-wide grab-scroll in hooks/useDragScroll.ts) —
+   bookings are never moved by dragging (BA 2026-10-03). */
 
-.cal-day-page-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid #e7eaf6;
-  background: #fff;
-  color: #171c33;
-  cursor: pointer;
+.dtl {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.dtl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bd-line);
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.dtl-legend-item {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  flex-shrink: 0;
-  z-index: 11;
+  gap: 6px;
 }
 
-.cal-day-page-btn:hover {
-  background: #f0f2fa;
+.dtl-legend-swatch {
+  width: 18px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 
-.cal-day-page-spacer {
-  width: 28px;
-  flex-shrink: 0;
-}
-
-.cal-day-doctor-name {
+.dtl-scroll {
   flex: 1;
-  text-align: center;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.dtl-canvas {
+  --dtl-name-w: 220px;
+  --dtl-row-pad: 6px;
+  --dtl-lane-h: 44px;
+  position: relative;
+  width: calc(var(--dtl-name-w) + var(--dtl-track-w));
+}
+
+/* Header: corner + time axis, sticky on top */
+.dtl-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  height: 40px;
+  background: var(--bd-bg-head);
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.dtl-corner {
+  position: sticky;
+  left: 0;
+  z-index: 21;
+  flex: none;
+  width: var(--dtl-name-w);
+  box-sizing: border-box;
+  padding: 0 16px;
+  line-height: 40px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: var(--bd-bg-head);
+  border-right: 1px solid var(--bd-line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.dtl-axis {
+  position: relative;
+  flex: none;
+  width: var(--dtl-track-w);
+}
+
+.dtl-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--dtl-x);
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  border-left: 1px solid var(--bd-line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dtl-now-badge {
+  position: absolute;
+  top: 50%;
+  left: var(--dtl-x);
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  padding: 2px 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rows */
+.dtl-body {
+  position: relative;
+}
+
+.dtl-row {
+  display: flex;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.dtl-name {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+  flex: none;
+  width: var(--dtl-name-w);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--bd-card);
+  border-right: 1px solid var(--bd-line);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dtl-track {
+  position: relative;
+  flex: none;
+  display: flex;
+  width: var(--dtl-track-w);
+  height: calc(var(--dtl-lanes, 1) * var(--dtl-lane-h) + var(--dtl-row-pad) * 2);
+}
+
+.dtl-cell {
+  flex: none;
+  width: var(--dtl-slot-w);
+  height: 100%;
+  box-sizing: border-box;
+  border-left: 1px dashed var(--bd-line-soft);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dtl-cell--hour {
+  border-left: 1px solid var(--bd-line);
+}
+
+.dtl-cell:hover {
+  background: var(--bd-blue-pale);
+}
+
+.dtl-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--bd-faint);
+}
+
+/* Booking blocks */
+.dtl-block {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--dtl-row-pad) + var(--dtl-block-lane) * var(--dtl-lane-h));
+  left: calc(var(--dtl-block-left) + 2px);
+  width: max(calc(var(--dtl-block-width) - 4px), 24px);
+  height: calc(var(--dtl-lane-h) - 6px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 6px 0 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.dtl-block:hover,
+.dtl-block:focus-visible {
+  z-index: 5;
+  box-shadow: var(--bd-shadow-lift);
+  outline: none;
+}
+
+.dtl-block--selected {
+  box-shadow: 0 0 0 2px var(--bd-primary);
+}
+
+.dtl-block-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Overlays the label's tail on hover so it never takes width from the name */
+.dtl-block-menu {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: inherit;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.dtl-block:hover .dtl-block-menu,
+.dtl-block:focus-within .dtl-block-menu,
+.dtl-block-menu[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.dtl-block-menu:hover {
+  background: rgba(23, 28, 51, 0.08);
+}
+
+/* Block states — BA 2026-10-03: đang khám vàng, sắp xong xanh, quá giờ đỏ,
+   đã khám xám, khách đang chờ viền răng cưa. */
+.dtl-block--booked {
+  background: var(--bd-purple-pale);
+  border-color: var(--bd-blue-light);
+  color: var(--bd-title);
+}
+
+.dtl-block--waiting {
+  background: var(--bd-card);
+  border: 2px dashed var(--bd-amber);
+  color: var(--bd-ink);
+}
+
+.dtl-block--inProgress {
+  background: var(--bd-amber-pale);
+  border-color: var(--bd-amber);
+  color: var(--bd-ink);
+}
+
+.dtl-block--nearlyDone {
+  background: var(--bd-info-pale);
+  border-color: var(--bd-info);
+  color: var(--bd-ink);
+}
+
+.dtl-block--overdue {
+  background: var(--bd-red-pale);
+  border-color: var(--bd-red);
+  color: var(--bd-red-dark);
+}
+
+.dtl-block--done {
+  background: var(--bd-line-soft);
+  border-color: var(--bd-border-2);
+  color: var(--bd-dim);
+}
+
+.dtl-block--cancelled {
+  background: var(--bd-bg-soft);
+  border: 1px dashed var(--bd-border-2);
+  color: var(--bd-faint);
+}
+
+.dtl-block--cancelled .dtl-block-label {
+  text-decoration: line-through;
+}
+
+/* The "now" line runs across every row; the sticky names cover it on scroll */
+.dtl-now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--dtl-name-w) + var(--dtl-x));
+  z-index: 12;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--bd-red);
+  pointer-events: none;
+}
+
+.dtl-tip-title {
+  font-weight: 600;
+}
+
+.dtl-tip-state {
+  margin-top: 2px;
+  opacity: 0.8;
 }
 
 /* ── Week view ────────────────────────────────────────────────────── */
@@ -812,7 +1030,10 @@ body.cal-fullscreen .cal-grid-wrap {
   /* ── Grid: no fixed height, page scrolls naturally ── */
   .cal-page { height: auto; min-height: 100%; }
   .cal-grid-wrap { flex: none; overflow-x: auto; overflow-y: visible; border-radius: 0; -webkit-overflow-scrolling: touch; }
-  .cal-day-scroll { max-height: none; overflow: visible; }
+  .dtl-scroll { max-height: 70vh; }
+  .dtl-canvas { --dtl-name-w: 132px; }
+  .dtl-legend { gap: 6px 12px; padding: 8px 12px; font-size: 11px; }
+  .dtl-name, .dtl-corner { padding: 0 10px; }
   .cal-week-scroll { max-height: none; overflow: visible; }
   .cal-week-grid { grid-template-columns: 60px repeat(7, minmax(176px, 1fr)); }
 

@@ -4,6 +4,7 @@ import type { MenuProps } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { buildAppointmentCardMenu } from "./appointmentCardMenu";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 
 interface StatusLook {
@@ -116,49 +117,7 @@ export const EventCard = React.memo(function EventCard({
   const durationMinutes = end.diff(start, "minute");
   const timeLabel = `${start.format("HH:mm")} - ${end.format("HH:mm")} (${durationMinutes} ${t("Patient:Misc:Minutes")})`;
 
-  const menuItems: MenuProps["items"] = useMemo(() => [
-    {
-      key: "edit",
-      label: t("Appointment:EventCard:Update"),
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-      ),
-    },
-    selected
-      ? {
-          key: "deselect",
-          label: t("Appointment:EventCard:Deselect"),
-          icon: (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <polyline points="9 11 12 14 22 4" />
-            </svg>
-          ),
-        }
-      : {
-          key: "select-delete",
-          label: t("Appointment:EventCard:SelectForMultiDelete"),
-          icon: (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            </svg>
-          ),
-        },
-    {
-      key: "delete",
-      label: t("Common:Delete"),
-      danger: true,
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-        </svg>
-      ),
-    },
-  ], [selected]);
+  const menuItems = useMemo(() => buildAppointmentCardMenu(selected), [selected]);
 
   const handleMenuClick = useCallback<NonNullable<MenuProps["onClick"]>>((info) => {
     info.domEvent.stopPropagation();

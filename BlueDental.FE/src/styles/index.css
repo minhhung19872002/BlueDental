@@ -1733,14 +1733,16 @@ body::-webkit-scrollbar-track {
 .ant-table-content.has-horizontal-scroll,
 .ant-table-body.has-horizontal-scroll,
 .appt-mini-cal-content.has-horizontal-scroll,
-.wsb-table-scroll.has-horizontal-scroll {
+.wsb-table-scroll.has-horizontal-scroll,
+.dtl-scroll.has-horizontal-scroll {
   cursor: grab;
 }
 
 .ant-table-content.is-grabbing,
 .ant-table-body.is-grabbing,
 .appt-mini-cal-content.is-grabbing,
-.wsb-table-scroll.is-grabbing {
+.wsb-table-scroll.is-grabbing,
+.dtl-scroll.is-grabbing {
   cursor: grabbing;
   user-select: none;
 }

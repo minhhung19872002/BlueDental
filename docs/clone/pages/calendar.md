@@ -112,6 +112,25 @@ Note: "(0)" shows appointment count for that doctor for the day.
 
 **Time range:** 06:00 to 23:30, 30-minute slots.
 
+### 6b. Local Day View — horizontal doctor timeline (BA 2026-10-03, NOT reference behaviour)
+
+BlueDental deliberately departs from the reference grid above, at the BA's request
+(mockup "Lịch bác sĩ hôm nay"):
+
+- Rows = doctors working that day (doctors registered OFF are left out; an OFF doctor
+  who still has bookings keeps a row). Row header = doctor name only.
+- Horizontal time axis 07:00–20:00 (constant until shift master data exists), ticks
+  every 30 min, sticky names and axis, red "now" line + badge on today.
+- Mouse drag scrolls sideways only; bookings cannot be moved by dragging.
+- Block colours: booked purple, waiting (checked in, not started) dashed amber,
+  in progress amber, nearly done (≤10 min left) blue, overdue red, done grey,
+  cancelled/no-show muted + strikethrough.
+- Empty slot click → "Tạo lịch hẹn" with doctor + time; block click → "Cập nhật lịch hẹn".
+- Not built: "Nhận khách mới" column, room, specialty, KPI cards, banners.
+
+Code: `BlueDental.FE/src/features/appointments/components/day-timeline/`.
+Test: `BlueDental.FE/e2e/appointment-day-timeline.spec.ts`.
+
 ## Appointment Card in Grid (UNKNOWN_REFERENCE_BEHAVIOR)
 
 When appointments exist, each cell shows a colored card. Content/colors UNKNOWN — no appointments visible on 2026-08-22.

@@ -2794,3 +2794,16 @@ UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau chư
 - Chẩn đoán và công đoạn KHĐT lọc theo **hôm nay** (form không có ô ngày).
 
 Action taken: NONE (ghi lại; không gọi gì lên production).
+
+## Lịch hẹn — view Ngày dạng timeline ngang (2026-10-03, không phải hành vi bản gốc)
+
+UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau là giả định, BA chưa chốt:
+
+- "Sắp xong" = còn ≤10 phút tới giờ kết thúc dự kiến; "Quá giờ" = đang khám mà đã qua giờ kết thúc.
+- Màu tuỳ chọn (`Color`) của lịch hẹn không dùng trên timeline — màu theo trạng thái.
+- Lịch Huỷ/Trễ hẹn vẫn hiện (mờ, gạch ngang) thay vì ẩn.
+- Lịch hẹn ngoài 07:00–20:00 làm khung nới ra tới giờ chẵn gần nhất.
+- Bác sĩ OFF mà vẫn còn lịch ngày đó vẫn có hàng.
+- Khung giờ 07:00–20:00 là hằng số chung cho mọi chi nhánh, chờ master data ca làm.
+
+Action taken: NONE (ghi lại; không gọi gì lên production).
