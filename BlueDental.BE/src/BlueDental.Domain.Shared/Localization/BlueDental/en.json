@@ -2466,7 +2466,7 @@
     "Appointment:Timeline:NearlyDone": "Nearly done",
     "Appointment:Timeline:Overdue": "Overdue",
     "Appointment:Timeline:Done": "Done",
-    "Appointment:Timeline:Cancelled": "Cancelled / no-show",
+    "Appointment:Timeline:NoShow": "No-show",
     "Appointment:WeekView:HourDay": "Hour/Day",
     "Appointment:EventCard:Update": "Update",
     "Appointment:EventCard:Deselect": "Deselect",

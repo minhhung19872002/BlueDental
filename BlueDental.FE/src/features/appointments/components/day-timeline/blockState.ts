@@ -14,7 +14,7 @@ export type BlockState =
   | "nearlyDone"
   | "overdue"
   | "done"
-  | "cancelled";
+  | "noShow";
 
 /** How close to its planned end a visit reads as "sắp xong". */
 const NEARLY_DONE_MINUTES = 10;
@@ -23,9 +23,8 @@ export function blockStateOf(appointment: AppointmentDto, now: number): BlockSta
   switch (appointment.status) {
     case "completed":
       return "done";
-    case "cancelled":
     case "noShow":
-      return "cancelled";
+      return "noShow";
     case "inProgress": {
       // The screens fold CheckedIn into inProgress; startedAt tells them apart.
       if (!appointment.startedAt) return "waiting";
@@ -47,7 +46,7 @@ export const BLOCK_STATES: readonly BlockState[] = [
   "overdue",
   "waiting",
   "booked",
-  "cancelled",
+  "noShow",
 ];
 
 export const BLOCK_STATE_LABEL_KEY: Record<BlockState, string> = {
@@ -57,5 +56,5 @@ export const BLOCK_STATE_LABEL_KEY: Record<BlockState, string> = {
   nearlyDone: "Appointment:Timeline:NearlyDone",
   overdue: "Appointment:Timeline:Overdue",
   done: "Appointment:Timeline:Done",
-  cancelled: "Appointment:Timeline:Cancelled",
+  noShow: "Appointment:Timeline:NoShow",
 };

@@ -12,6 +12,15 @@ export interface BookingFilter {
   statusFilter?: string;
 }
 
+/**
+ * The bookings the timeline draws. BA 2026-10-03: "đã hủy không hiện ở đây" —
+ * a cancelled booking frees its slot, so it takes no lane, keeps no doctor's
+ * row and widens no hours. No-shows stay, greyed out.
+ */
+export function timelineBookings(dayBookings: AppointmentDto[]): AppointmentDto[] {
+  return dayBookings.filter((a) => a.status !== "cancelled");
+}
+
 /** The toolbar's search, doctor and status-chip filters, applied to one day's bookings. */
 export function filterBookings(bookings: AppointmentDto[], filter: BookingFilter): AppointmentDto[] {
   const needle = filter.keyword.trim().toLowerCase();

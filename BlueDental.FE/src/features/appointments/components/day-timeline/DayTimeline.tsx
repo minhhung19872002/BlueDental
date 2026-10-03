@@ -9,7 +9,7 @@ import { TimelineAxis } from "./TimelineAxis";
 import { TimelineLegend } from "./TimelineLegend";
 import { TimelineRow } from "./TimelineRow";
 import { buildTimeScale, minuteToX, NAME_COL_WIDTH_PX, slotStarts, trackWidth, type TimeScale } from "./timelineLayout";
-import { buildDoctorRows, filterBookings, groupByDoctor, type TimelineDoctor } from "./timelineRows";
+import { buildDoctorRows, filterBookings, groupByDoctor, timelineBookings, type TimelineDoctor } from "./timelineRows";
 
 const NOW_REFRESH_MS = 30_000;
 const NO_BOOKINGS: AppointmentDto[] = [];
@@ -62,7 +62,7 @@ export function DayTimeline({
   const now = useNow(isToday, NOW_REFRESH_MS);
 
   const { data, isFetching } = useAppointmentList({ date: dayKey, maxResultCount: 500 });
-  const dayBookings = useMemo(() => data?.items ?? NO_BOOKINGS, [data]);
+  const dayBookings = useMemo(() => (data ? timelineBookings(data.items) : NO_BOOKINGS), [data]);
 
   const bookingsByDoctor = useMemo(
     () => groupByDoctor(filterBookings(dayBookings, { keyword, doctorIds, statusFilter })),

@@ -568,13 +568,13 @@
   color: var(--bd-dim);
 }
 
-.dtl-block--cancelled {
+.dtl-block--noShow {
   background: var(--bd-bg-soft);
   border: 1px dashed var(--bd-border-2);
   color: var(--bd-faint);
 }
 
-.dtl-block--cancelled .dtl-block-label {
+.dtl-block--noShow .dtl-block-label {
   text-decoration: line-through;
 }
 

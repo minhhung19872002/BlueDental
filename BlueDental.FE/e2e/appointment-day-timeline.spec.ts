@@ -7,7 +7,8 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
  * Feature: Lịch hẹn khách hàng — view Ngày as a horizontal doctor timeline
  * (BA 2026-10-03): doctors are rows, time runs 07:00–20:00 left to right,
  * a mouse drag only scrolls the board sideways, a doctor registered OFF that
- * day has no row, and a booking's colour follows its state.
+ * day has no row, a cancelled booking is not drawn, and a booking's colour
+ * follows its state.
  *
  * Real stack: the run's dentists and bookings are written through the real
  * API, the OFF doctor marks their own day off signed in as themselves, and the
@@ -100,6 +101,11 @@ test.describe("Lịch hẹn — view Ngày dạng timeline ngang", () => {
     await setOwnDay(browser, off, branchId, day, DAY_OFF);
     const booking = await book(page, branchId, working.id, at(day, "09:00"), at(day, "09:30"));
     bookings.push(booking.id);
+    // BA: "đã hủy không hiện ở đây" — a cancelled booking leaves no block.
+    const cancelled = await book(page, branchId, working.id, at(day, "10:00"), at(day, "10:30"));
+    bookings.push(cancelled.id);
+    const cancel = await call(page, `${APPOINTMENTS}/${cancelled.id}/cancel`, { method: "POST", branchId, json: { reason: 1 } });
+    expect(cancel.status, JSON.stringify(cancel.body.error)).toBe(200);
 
     await openDay(page, day);
     const row = page.locator(".dtl-row").filter({ hasText: workingName });

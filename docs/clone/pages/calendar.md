@@ -124,7 +124,7 @@ BlueDental deliberately departs from the reference grid above, at the BA's reque
 - Mouse drag scrolls sideways only; bookings cannot be moved by dragging.
 - Block colours: booked purple, waiting (checked in, not started) dashed amber,
   in progress amber, nearly done (≤10 min left) blue, overdue red, done grey,
-  cancelled/no-show muted + strikethrough.
+  no-show muted + strikethrough. Cancelled bookings are not drawn at all (BA).
 - Empty slot click → "Tạo lịch hẹn" with doctor + time; block click → "Cập nhật lịch hẹn".
 - Not built: "Nhận khách mới" column, room, specialty, KPI cards, banners.
 

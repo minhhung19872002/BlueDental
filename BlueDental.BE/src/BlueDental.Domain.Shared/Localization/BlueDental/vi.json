@@ -2670,7 +2670,7 @@
     "Appointment:Timeline:NearlyDone": "Sắp xong",
     "Appointment:Timeline:Overdue": "Quá giờ",
     "Appointment:Timeline:Done": "Đã khám",
-    "Appointment:Timeline:Cancelled": "Hủy / trễ hẹn",
+    "Appointment:Timeline:NoShow": "Trễ hẹn",
     "Appointment:WeekView:HourDay": "Giờ/Ngày",
     "Appointment:EventCard:Update": "Cập nhật",
     "Appointment:EventCard:Deselect": "Bỏ chọn",

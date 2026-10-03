@@ -6353,7 +6353,7 @@ Retest level **2** (Chẩn đoán & Tư vấn).
 | R-664 | Mở ngày làm việc (check-in trên thẻ ảo, lưu thông tin chấm công, bật lịch ở thẻ nhân viên) trả 500, body ABP chung "Có một lỗi nội bộ xảy ra…". | Migration `20261002094459_TimeKeepingLeaveWindow` (commit `815724ed`, thêm `LeaveShift`/`LeaveStart`/`LeaveEnd`) có trong code nhưng chưa áp vào DB local. Host mới INSERT cả 3 cột → PostgreSQL báo cột không tồn tại. Không sửa code: chạy lại DbMigrator (`dotnet run`, build trước). Sau đó `open-day` trả 200. Môi trường nào pull `815724ed` cũng phải migrate (prod: chạy DbMigrator khi deploy). |
 
 
-## 2026-10-03 — Lịch hẹn: view Ngày thành timeline ngang theo bác sĩ (R-665 … R-667)
+## 2026-10-03 — Lịch hẹn: view Ngày thành timeline ngang theo bác sĩ (R-665 … R-667, R-671)
 
 Yêu cầu BA (ảnh mẫu "Lịch bác sĩ hôm nay"), **không** phải hành vi quan sát từ bản gốc.
 
@@ -6368,6 +6368,7 @@ Yêu cầu BA (ảnh mẫu "Lịch bác sĩ hôm nay"), **không** phải hành 
 | R-665 | Viết hook cuộn kéo riêng vào `src/hooks/useDragScroll.ts` làm mất `initTableGrabScroll` toàn app (`main.tsx` import). | Khôi phục file từ HEAD. Cuộn kéo của timeline chỉ cần thêm `.dtl-scroll` vào `GRAB_SCROLL_SELECTORS` + hai rule con trỏ trong `index.css`. Kéo bắt đầu từ khối (`role="button"`) không cuộn — đúng thiết kế của helper. |
 | R-666 | Khối 15 phút (~60–80px) chỉ hiện "[...": mã khách chiếm hết chỗ, nút ⋮ (opacity 0) vẫn giữ 20px. | Nhãn hiển thị chỉ còn tên khách; mã + giờ + lý do nằm trong tooltip và `aria-label`. Nút ⋮ chuyển `position: absolute`, nền `inherit`, phủ lên đuôi nhãn khi hover. Ô góc "Bác sĩ" thêm ellipsis. |
 | R-667 | 9 test đỏ ở `appointment.spec.ts` (2), `appointment-history.spec.ts` (4), `patient-appointment.spec.ts` (3): `fill()` vào ô ngày có mask để lại "03/10/2026". | **Có sẵn từ trước**: cùng đúng tập đó đỏ trên bản build HEAD (git archive + junction node_modules, preview :8092). Không do thay đổi này. Chưa sửa. |
+| R-671 | Lịch đã huỷ vẫn nằm trên timeline (mờ, gạch ngang), chiếm tầng và che ô trống — bấm vào mở lịch huỷ thay vì tạo lịch mới. | BA chốt "đã hủy không hiện ở đây". `timelineRows.timelineBookings` bỏ `cancelled` ngay ở nguồn: không vẽ khối, không giữ hàng cho bác sĩ OFF, không nới khung giờ. Trễ hẹn vẫn hiện mờ; trạng thái khối đổi tên `cancelled` → `noShow`, key `Appointment:Timeline:NoShow` ("Trễ hẹn" / "No-show"). Bộ đếm "Huỷ hẹn" trên toolbar vẫn đếm như cũ; bấm vào thì timeline trống. Spec test 1 thêm một lịch huỷ lúc 10:00 và kiểm tra hàng chỉ còn 1 khối. |
 
 Kiểm chứng: `tsc` sạch; `e2e/appointment-day-timeline.spec.ts` 4/4 xanh trên bản build production (preview :8091, host thật :5000, DB thật): bác sĩ OFF không có hàng, lịch nằm đúng hàng và còn sau reload, trục 07:00…19:30, bấm ô 08:00 mở form điền sẵn, kéo chuột cuộn >300px mà không mở dialog và `slotStart` không đổi, check-in → viền chờ, start → đang khám, có vạch "bây giờ". "calendar grids read their own date range" và 3 test doctor-day-off-pickers vẫn xanh. Ảnh chụp 1600×900 và 390×844: không tràn ngang trang.
 Lưu ý: nhãn legend/ô góc hiện key thô (`Appointment:Timeline:*`) cho tới khi **khởi động lại API host** để nạp 8 key mới trong `vi.json`/`en.json`.
