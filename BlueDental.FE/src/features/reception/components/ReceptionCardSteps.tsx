@@ -2,6 +2,8 @@ import React from "react";
 import { Check, X } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { ReceptionItem } from "../types/reception";
+import type { WaitLevel, WaitState } from "../utils/waitTime";
+import { WaitTimerChip } from "./WaitTimerChip";
 
 type StepAction = "check-in" | "start" | "complete";
 
@@ -9,6 +11,7 @@ interface ReceptionCardStepsProps {
   item: ReceptionItem;
   /** Neither cancelled nor marked late: the bar may still move on. */
   canAdvance: boolean;
+  wait: WaitState;
   onAdvance: (action: StepAction) => void;
 }
 
@@ -18,7 +21,11 @@ interface StepView {
   number: number;
   label: string;
   time?: string;
+  /** Muted text after the time: how long the patient waited for the chair. */
+  note?: string;
   done: boolean;
+  /** The step the patient is waiting for: a dashed circle in the wait colour. */
+  pending?: boolean;
   /** Circle, and the line leading into it, once done. */
   color: string;
   labelColor?: string;
@@ -30,6 +37,11 @@ interface StepView {
 const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
 const CANCEL_COLOR = "#e5484d";
 const IDLE_COLOR = "#e7eaf6";
+const WAIT_COLORS: Record<WaitLevel, string> = {
+  normal: "var(--bd-green)",
+  warning: "var(--bd-amber)",
+  overdue: "var(--bd-red)",
+};
 
 /**
  * The steps the bar shows.
@@ -42,8 +54,11 @@ const IDLE_COLOR = "#e7eaf6";
  * red "Hủy hẹn" with the time it was cancelled — a lone "Hủy hẹn" when the
  * patient never came. "Đã hẹn lại" is not a step it went through, so the
  * cancellation takes its place.
+ *
+ * While the patient waits, "Đang khám" turns into a dashed circle in the wait
+ * colour; once they are in the chair it notes how long they waited.
  */
-function buildSteps(item: ReceptionItem): StepView[] {
+function buildSteps(item: ReceptionItem, wait: WaitState): StepView[] {
   const step1Done = !!item.step1Time;
   const step2Done = !!item.step2Time;
   const step3Done = !!item.step3Time;
@@ -57,6 +72,8 @@ function buildSteps(item: ReceptionItem): StepView[] {
   const inChair: StepView = {
     key: "in-chair", number: 2, label: t("Reception:StepInProgress"), time: item.step2Time,
     done: step2Done, color: STEP_COLORS[1], icon: "check", action: "start",
+    ...(wait.kind === "waiting" && { color: WAIT_COLORS[wait.level], pending: true }),
+    ...(wait.kind === "waited" && { note: t("Reception:WaitedMinutes", wait.minutes) }),
   };
 
   if (item.counterStatus === "Cancelled") {
@@ -71,7 +88,8 @@ function buildSteps(item: ReceptionItem): StepView[] {
   }
 
   if (revisitAtStep2) {
-    return [arrived, { ...inChair, label: t("Reception:StepRevisit"), labelColor: CANCEL_COLOR }];
+    // Booked straight from the wait: the patient never sat down, so no "chờ Np".
+    return [arrived, { ...inChair, note: undefined, label: t("Reception:StepRevisit"), labelColor: CANCEL_COLOR }];
   }
 
   return [
@@ -86,65 +104,68 @@ function buildSteps(item: ReceptionItem): StepView[] {
   ];
 }
 
-const circleStyle = (step: StepView): React.CSSProperties => ({
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  border: `1px solid ${step.done ? step.color : IDLE_COLOR}`,
-  background: step.done ? step.color : "#fff",
-  color: step.done ? "#fff" : "var(--bd-muted)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 13,
-  fontWeight: 600,
-  flexShrink: 0,
-});
+const circleClass = (step: StepView) =>
+  ["rc-step-circle", step.done && "rc-step-circle--done", step.pending && "rc-step-circle--pending"]
+    .filter(Boolean)
+    .join(" ");
+
+const colorVar = (color: string) => ({ "--step-color": color }) as React.CSSProperties;
 
 /** Line into `next`: its colour once the step before it is done. */
 const lineColor = (from: StepView, next: StepView) => (from.done ? next.color : IDLE_COLOR);
 
-export function ReceptionCardSteps({ item, canAdvance, onAdvance }: ReceptionCardStepsProps) {
-  const steps = buildSteps(item);
+export function ReceptionCardSteps({ item, canAdvance, wait, onAdvance }: ReceptionCardStepsProps) {
+  const steps = buildSteps(item, wait);
+  // Its own column on the line into "Đang khám", so the circles make room for it.
+  const waitGap = wait.kind === "waiting" && (
+    <div className="rc-wait-gap" style={colorVar(WAIT_COLORS[wait.level])}>
+      <WaitTimerChip level={wait.level} elapsedSeconds={wait.elapsedSeconds} />
+    </div>
+  );
 
   return (
-    <div className="rc-steps">
+    <div className={`rc-steps${waitGap ? " rc-steps--waiting" : ""}`}>
       {steps.map((step, index) => {
         const prev = steps[index - 1];
         const next = steps[index + 1];
         // Only the first undone step moves the bar, and only after the one before it.
         const clickable = canAdvance && !!step.action && !step.done && (!prev || prev.done);
         return (
-          <button
-            key={step.key}
-            type="button"
-            disabled={!clickable}
-            className={`rc-step ${clickable ? "rc-step--clickable" : ""}`}
-            onClick={clickable && step.action ? () => onAdvance(step.action!) : undefined}
-          >
-            <div className="rc-step-track">
-              {prev ? (
-                <div className="rc-step-line" style={{ background: lineColor(prev, step) }} />
-              ) : (
-                <div className="rc-step-line rc-step-line--invisible" />
-              )}
-              <div style={circleStyle(step)}>
-                {step.done ? (step.icon === "cross" ? <X size={14} /> : <Check size={14} />) : step.number}
-              </div>
-              {next ? (
-                <div className="rc-step-line" style={{ background: lineColor(step, next) }} />
-              ) : (
-                <div className="rc-step-line rc-step-line--invisible" />
-              )}
-            </div>
-            <p
-              className="rc-step-label"
-              style={step.labelColor ? { color: step.labelColor } : step.done ? { color: step.color } : undefined}
+          <React.Fragment key={step.key}>
+            {index === 1 && waitGap}
+            <button
+              type="button"
+              disabled={!clickable}
+              className={`rc-step ${clickable ? "rc-step--clickable" : ""}`}
+              onClick={clickable && step.action ? () => onAdvance(step.action!) : undefined}
             >
-              {step.label}
-            </p>
-            <p className="rc-step-time">{step.time || "--:--"}</p>
-          </button>
+              <div className="rc-step-track">
+                {prev ? (
+                  <div className="rc-step-line" style={{ background: lineColor(prev, step) }} />
+                ) : (
+                  <div className="rc-step-line rc-step-line--invisible" />
+                )}
+                <div className={circleClass(step)} style={colorVar(step.color)}>
+                  {step.done ? (step.icon === "cross" ? <X size={14} /> : <Check size={14} />) : step.number}
+                </div>
+                {next ? (
+                  <div className="rc-step-line" style={{ background: lineColor(step, next) }} />
+                ) : (
+                  <div className="rc-step-line rc-step-line--invisible" />
+                )}
+              </div>
+              <p
+                className="rc-step-label"
+                style={step.labelColor ? { color: step.labelColor } : step.done ? { color: step.color } : undefined}
+              >
+                {step.label}
+              </p>
+              <p className="rc-step-time">
+                {step.time || "--:--"}
+                {step.note && <span className="rc-step-note"> · {step.note}</span>}
+              </p>
+            </button>
+          </React.Fragment>
         );
       })}
     </div>

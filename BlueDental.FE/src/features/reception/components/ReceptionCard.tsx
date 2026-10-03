@@ -21,6 +21,8 @@ import type {
   AppointmentCounterType,
   BookedOutcome,
 } from "../types/reception";
+import { useWaitState } from "../hooks/useWaitState";
+import type { WaitLevel } from "../utils/waitTime";
 import { ReceptionCardSteps } from "./ReceptionCardSteps";
 
 interface ReceptionCardProps {
@@ -55,6 +57,12 @@ const COUNTER_STATUS_STYLE: Record<AppointmentCounterType, CounterBadgeStyle> = 
   Late:      { bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
   Temporary: { bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
   Converted: { bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+};
+
+/** A long wait recolours the card's edge; a short one keeps the arrived indigo. */
+const WAIT_BORDER: Partial<Record<WaitLevel, string>> = {
+  warning: "var(--bd-amber)",
+  overdue: "var(--bd-red)",
 };
 
 type NonNullOutcome = Exclude<AppointmentOutcome, null>;
@@ -107,6 +115,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   // `doctors` holds only who is free on this visit's day; the card's own
   // doctor stays listed so the select never shows a bare id.
   const doctorOptions = doctorOptionsFor(doctors, item);
+  const wait = useWaitState(item);
 
   const badgeLabel: Record<AppointmentCounterType, string> = {
     Scheduled: t("Reception:StatusScheduled"),
@@ -144,7 +153,10 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const getCardStyle = (): React.CSSProperties => {
     if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
     if (step3Done) return { background: "#e2f4ee", borderColor: "#0e9f6e" };
-    if (step1Done) return { background: "#eef0ff", borderColor: "#6366f1" };
+    if (step1Done) {
+      const waitBorder = wait.kind === "waiting" ? WAIT_BORDER[wait.level] : undefined;
+      return { background: "#eef0ff", borderColor: waitBorder ?? "#6366f1" };
+    }
     return {};
   };
 
@@ -238,6 +250,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
               <ReceptionCardSteps
                 item={item}
                 canAdvance={!isCancelled && !isNoShow}
+                wait={wait}
                 onAdvance={(action) => onStatusChange?.(item.id, action)}
               />
 

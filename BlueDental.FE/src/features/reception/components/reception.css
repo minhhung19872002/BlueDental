@@ -358,6 +358,8 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  /* The wait clock lays out by how wide the bar really is, not the viewport. */
+  container: rc-progress / inline-size;
 }
 
 @media (min-width: 1280px) {
@@ -368,6 +370,7 @@
 }
 
 .rc-steps {
+  position: relative;
   display: grid;
   grid-auto-columns: 1fr;
   grid-auto-flow: column;
@@ -401,6 +404,107 @@
   align-items: center;
 }
 
+.rc-step-circle {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--bd-line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rc-step-circle--done {
+  border-color: var(--step-color);
+  background: var(--step-color);
+  color: #fff;
+}
+
+.rc-step-circle--pending {
+  border: 1.5px dashed var(--step-color);
+  color: var(--step-color);
+}
+
+/*
+ * Wait clock. On a wide bar it takes a column of its own on the line into
+ * "Đang khám", so the circles move apart for it; on a narrow one (cards at
+ * 1280–1439px) it floats just above that line instead of covering the circles.
+ */
+.rc-steps--waiting {
+  grid-template-columns:
+    minmax(70px, 1fr) minmax(max-content, 1fr) minmax(70px, 1fr) minmax(70px, 1fr);
+}
+
+.rc-wait-gap {
+  display: flex;
+  align-items: center;
+  align-self: start;
+  height: 32px;
+}
+
+.rc-wait-gap::before,
+.rc-wait-gap::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--step-color);
+}
+
+@container rc-progress (max-width: 339.98px) {
+  .rc-steps--waiting {
+    grid-template-columns: none;
+    margin-top: 28px;
+  }
+
+  .rc-wait-gap {
+    position: absolute;
+    bottom: 100%;
+    left: calc(100% / 3);
+    height: auto;
+    padding-bottom: 4px;
+    transform: translateX(-50%);
+  }
+
+  .rc-wait-gap::before,
+  .rc-wait-gap::after {
+    display: none;
+  }
+}
+
+.rc-wait-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: var(--bd-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rc-wait-chip--normal {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.rc-wait-chip--warning {
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
+}
+
+.rc-wait-chip--overdue {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
 .rc-step-line {
   height: 2px;
   flex: 1;
@@ -430,6 +534,11 @@
   font-size: 12px;
   color: #171c33;
   margin: 0;
+}
+
+.rc-step-note {
+  font-size: 11px;
+  color: var(--bd-faint);
 }
 
 .rc-doctor-select {

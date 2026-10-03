@@ -55,6 +55,9 @@ export interface ReceptionItem {
   step1Time?: string;
   step2Time?: string;
   step3Time?: string;
+  /** ISO instants behind step 1 and step 2: the wait clock runs between them. */
+  checkedInAt?: string;
+  startedAt?: string;
   /** HH:mm the visit was cancelled — the red last step of the bar. */
   cancelTime?: string;
   selectedOutcome?: AppointmentOutcome;

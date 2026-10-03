@@ -273,6 +273,22 @@ When clicking on a reception record (appears as a card overlay or expanded row):
 - Chuyển bác sĩ (Transfer to doctor)
 - Hẹn tái khám (Follow-up appointment)
 
+**Wait clock (BlueDental BA requirement 2026-10-03 — NOT observed on the reference):**
+
+- Runs only after "Đã đến" and stops at "Đang khám". It counts from the server's `checkedInAt`, so it survives a reload.
+- A chip "⌛ Đang chờ mm:ss" sits on the line into step 2. Step 2's circle is dashed in the level colour.
+  - Under 5 minutes: green.
+  - From 5 minutes: yellow, and the card's border turns amber.
+  - From 10 minutes: red "⚠ Chờ quá lâu mm:ss", and the card's border turns red.
+- Once the patient is in the chair, step 2's time reads "HH:mm · chờ Np", where N = (`startedAt` − `checkedInAt`) in whole minutes.
+- No clock in these cases:
+  - a cancelled card;
+  - a check-in from an earlier day;
+  - a revisit booked straight from the wait (step 2 "Đã hẹn lại" gets no "chờ Np").
+- Layout: bars 340px and wider give the chip its own grid column between circles 1 and 2. Narrower bars (container query `rc-progress`) float the chip above the line.
+- Card view only; ReceptionGrid unchanged. The "Đến trễ" badge in the BA mockup was deliberately not built (owner decision).
+- Code: `utils/waitTime.ts`, `hooks/useWaitState.ts`, `components/WaitTimerChip.tsx`, shared `src/hooks/useNow.ts`. Spec: `e2e/reception-wait-time.spec.ts`.
+
 ## API Observations
 
 Reference uses Next.js RSC — no traditional REST endpoints observed.

@@ -6304,3 +6304,28 @@ Kiểm chứng: Domain `TimeKeepingRecordTests` 18/18 (+5 ca nghỉ), contract `
 E2E thật trên dev :5173 + host :5000 + PostgreSQL, không chặn request: `timekeeping-leave.spec.ts` **2/2**. Test chọn 3 ngày, kiểm tra nút xác nhận bị khoá khi còn ngày chưa chọn ca, dùng "Áp dụng cho tất cả", đổi ca từng ngày, bỏ một ngày rồi lưu. Sau đó đọc lại response, reload và thấy ô nửa buổi trên lưới.
 `timekeeping.spec.ts`: 1/3. Hai test đỏ có từ trước, **không** do thay đổi lần này: spec tìm `data-testid="timekeeping-kpis"` và nút "Mở ngày làm việc", nhưng cả hai đã không còn trong source.
 Retest level **2** (F-03).
+
+## 2026-10-03 — Tiếp nhận: đồng hồ thời gian chờ trên thẻ (R-660 … R-662)
+
+Yêu cầu BA, **không** phải hành vi quan sát từ bản gốc. Ngưỡng theo câu chữ của BA:
+
+- dưới 5 phút: xanh;
+- từ 5 phút: vàng;
+- từ 10 phút: đỏ, kèm chữ "Chờ quá lâu".
+
+Ảnh thiết kế ghi 15/30 phút, nhưng chủ dự án chốt theo câu chữ 5/10 phút. Chỉ làm ở dạng thẻ; badge "Đến trễ" không làm. Backend không đổi: DTO đã có sẵn `checkedInAt` và `startedAt`.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-660 | Chip "Đang chờ" đè lên vòng tròn bước 1–2 khi cột tiến trình hẹp. Ở 1280–1600px, `.rc-steps` chỉ rộng 194–354px. | Khi đang chờ, `.rc-steps--waiting` thêm một cột lưới riêng cho chip (rộng `max-content`). Dưới 340px (container query `rc-progress` trên `.rc-col-progress`), chip nổi lên trên đường nối. Đã đối chiếu ảnh chụp ở 1920/1600/1440/1280/390: không còn đè. |
+| R-661 | Chọn "Hẹn tái khám" ngay khi đang chờ thì bước 2 "Đã hẹn lại" hiện "· chờ 0p". | Server đóng dấu `startedAt` khi đặt tái khám, nhưng bệnh nhân chưa hề vào ghế. Nhánh `revisitAtStep2` giờ bỏ phần ghi chú. Thẻ đã vào ghế rồi mới huỷ thì vẫn giữ "chờ Np", và spec kiểm tra đúng chuỗi đó. |
+| R-662 | `reception-follow-up.spec.ts` báo `runId is not defined` sau khi tách helper ra `e2e/fixtures/receptionBoard.ts`. | Import `runId` từ `fixtures/auth`. Test so giờ bước 2 với chuỗi `HH:mm · chờ Np`, trong đó N tính từ hai dấu thời gian của server. |
+
+Kiểm chứng trên bản build production (`vite preview` :8093) + host :5000 + PostgreSQL, không chặn request:
+
+- `reception-wait-time.spec.ts` **1/1**. Test dùng `page.clock` để vượt ngưỡng 5 và 10 phút. Nó kiểm tra màu chip và viền thẻ, reload vẫn còn đỏ, vào ghế thì đồng hồ biến mất và hiện "chờ Np", reload lại vẫn đúng.
+- `reception-follow-up.spec.ts` + `reception-temporary.spec.ts` **14/14**.
+- `reception.spec.ts` 1/3, đỏ **từ trước**: hai test chờ `GET /api/v1/app/visits`, nhưng board đã gọi `/v1/app/appointments` từ trước thay đổi này.
+- Vitest `ReceptionPage.test.tsx` 3/3; `tsc` và eslint sạch.
+
+Retest level **2** (F-11).
