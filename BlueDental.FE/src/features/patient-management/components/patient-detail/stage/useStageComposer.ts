@@ -236,9 +236,10 @@ export function useStageComposer({
     const staffId = draft.staffId ?? "";
     if (item.tab !== "add") {
       const continued: string[] = [];
-      for (const stage of stagesToContinue(item, draft.teeth)) {
+      for (const { stage, toothCodes } of stagesToContinue(item, draft.teeth)) {
         const saved = await continueStage.mutateAsync({
           id: stage.id,
+          toothCodes,
           staffId,
           subStaffId: draft.subStaffId,
           secondStaffId: draft.secondStaffId,

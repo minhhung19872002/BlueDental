@@ -879,6 +879,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.ContinuedToothCodes).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.OpenTeeth);
             // "BE:Treatment:StageList" — a short, always-read-with-the-stage list,
             // so it rides in JSON like Teeth rather than earning a table.
             entity.OwnsMany(x => x.ServiceItems, t => t.ToJson());

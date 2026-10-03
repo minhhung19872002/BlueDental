@@ -84,6 +84,39 @@ public class StageChainAndWarrantyTests
     }
 
     [Fact]
+    public void A_continue_may_take_some_teeth_and_leave_the_rest_open()
+    {
+        var first = Stage(Teeth(11, 12, 13));
+
+        var next = first.ContinueAs(Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null, [11, 13]);
+
+        next.Teeth.Select(t => t.ToothCode).ShouldBe([11, 13]);
+        // Still open on 12, and its history keeps every tooth it worked on.
+        first.IsSuperseded.ShouldBeFalse();
+        first.OpenTeeth.Select(t => t.ToothCode).ShouldBe([12]);
+        first.Teeth.Select(t => t.ToothCode).ShouldBe([11, 12, 13]);
+
+        var last = first.ContinueAs(Guid.NewGuid(), 3, _staffId, "lần 3", null, null, null, [12]);
+
+        last.Teeth.Select(t => t.ToothCode).ShouldBe([12]);
+        first.IsSuperseded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void A_continue_cannot_take_a_tooth_already_handed_on()
+    {
+        var first = Stage(Teeth(11, 12));
+        first.ContinueAs(Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null, [11]);
+
+        foreach (var codes in new[] { new[] { 11 }, new[] { 12, 48 } })
+        {
+            Should.Throw<BusinessException>(() =>
+                    first.ContinueAs(Guid.NewGuid(), 3, _staffId, "lần 3", null, null, null, codes))
+                .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageToothNotOpen);
+        }
+    }
+
+    [Fact]
     public void A_warranty_continues_as_a_warranty_of_the_same_root()
     {
         var rootId = Guid.NewGuid();

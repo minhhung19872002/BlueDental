@@ -36,6 +36,9 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     /// </summary>
     public bool IsSuperseded { get; set; }
 
+    /// <summary>Teeth already handed on to a later công đoạn; the rest are still open.</summary>
+    public List<int> ContinuedToothCodes { get; set; } = new();
+
     /// <summary>The công đoạn this one continues; null at the head of a chain.</summary>
     public Guid? ContinuedFromId { get; set; }
 
@@ -133,6 +136,12 @@ public class ContinueTreatmentStageDto
 
     /// <summary>The steps ticked under "Danh sách công đoạn"; stored unticked.</summary>
     public List<Guid> ServiceItemIds { get; set; } = new();
+
+    /// <summary>
+    /// The teeth to carry on, among those the công đoạn still holds open.
+    /// Empty carries all of them; the others stay open on the old công đoạn.
+    /// </summary>
+    public List<int> ToothCodes { get; set; } = new();
 }
 
 public class AttachStageImageDto

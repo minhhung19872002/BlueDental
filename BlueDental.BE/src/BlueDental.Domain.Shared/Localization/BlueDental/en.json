@@ -427,6 +427,7 @@
     "BlueDental:Treatment:0038": "The diagnosis and the unit price cannot change while the service is in treatment.",
     "BlueDental:Treatment:0039": "A tooth in treatment cannot be removed.",
     "BlueDental:Treatment:0040": "The unit price cannot be higher than the service's original price.",
+    "BlueDental:Treatment:0041": "Only teeth this treatment stage still holds open can be continued.",
     "Common:Save": "Save",
     "Common:Saving": "Saving…",
     "Common:Cancel": "Cancel",

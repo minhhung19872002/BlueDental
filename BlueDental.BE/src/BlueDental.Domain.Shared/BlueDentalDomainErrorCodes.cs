@@ -172,6 +172,9 @@ public static class BlueDentalDomainErrorCodes
         /// above it — the reference's "Đơn giá không được lớn hơn giá gốc của dịch vụ."
         /// </summary>
         public const string UnitPriceAboveOriginal = "BlueDental:Treatment:0040";
+
+        /// <summary>A continue asked for a tooth its công đoạn no longer holds open.</summary>
+        public const string StageToothNotOpen = "BlueDental:Treatment:0041";
     }
 
     public static class Billing

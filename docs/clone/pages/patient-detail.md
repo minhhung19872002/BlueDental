@@ -717,6 +717,10 @@ Captures stay in `reference-private/stage-multi/` and `reference-private/warrant
    `isGuarantee`. Their chips are **disabled at 70%** — a continue must carry the
    chain's teeth ("Khi tiếp tục công đoạn, phải chọn đầy đủ các răng của công
    đoạn hiện tại").
+   **BlueDental differs on purpose (owner, 2026-10-03, R-660):** every tooth
+   still open is picked one by one; the unpicked ones stay open on the old
+   công đoạn, which greys only once none is left. Only teeth of a finished
+   công đoạn are disabled.
 6. **Continue writes a new row.** `POST /v1/patient-stages/{id}/continue` with
    `{ staffId, subStaffId, assistantStaffId, dateTime, selectedContent, note,
    stageServiceItems }` answers 201 with the next công đoạn (same line, teeth and

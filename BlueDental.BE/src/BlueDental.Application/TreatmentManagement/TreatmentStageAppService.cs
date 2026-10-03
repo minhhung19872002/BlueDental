@@ -227,7 +227,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.Note.Trim(),
             input.SecondStaffId,
             input.SubStaffId,
-            input.ServiceItemIds);
+            input.ServiceItemIds,
+            input.ToothCodes);
 
         await _repository.UpdateAsync(stage);
         await _repository.InsertAsync(next, autoSave: true);
@@ -522,6 +523,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IsGuarantee = entity.IsGuarantee,
         HasReExamination = entity.HasReExamination,
         IsSuperseded = entity.IsSuperseded,
+        ContinuedToothCodes = entity.ContinuedToothCodes.ToList(),
         ContinuedFromId = entity.ContinuedFromId,
         WarrantyRootStageId = entity.WarrantyRootStageId,
         StartedAt = entity.StartedAt,

@@ -56,6 +56,8 @@ export interface TreatmentStageDto {
    * history greys it out and nothing on it can be worked any more.
    */
   isSuperseded: boolean;
+  /** Teeth already handed on to a later công đoạn; the rest are still open here. */
+  continuedToothCodes: number[];
   /** The công đoạn this one continues; null at the head of a chain. */
   continuedFromId: string | null;
   /** On a warranty: the ordinary công đoạn it descends from. */
@@ -126,8 +128,9 @@ export interface UpdateTreatmentStageInput {
 }
 
 /**
- * "Tiếp tục công đoạn" / "Tiếp tục bảo hành" — the next visit of a chain. No
- * teeth: the chain keeps its own, which is why the form locks them.
+ * "Tiếp tục công đoạn" / "Tiếp tục bảo hành" — the next visit of a chain,
+ * carrying on some or all of the teeth the công đoạn still holds open. The
+ * rest stay open on it, to be continued later (owner's rule, 2026-10-03).
  */
 export interface ContinueTreatmentStageInput {
   staffId: string;
@@ -135,6 +138,8 @@ export interface ContinueTreatmentStageInput {
   subStaffId?: string;
   note: string;
   serviceItemIds: string[];
+  /** Empty carries every open tooth; ignored on a công đoạn without teeth. */
+  toothCodes: number[];
 }
 
 export interface StageListInput {

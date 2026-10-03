@@ -6304,3 +6304,16 @@ Kiểm chứng: Domain `TimeKeepingRecordTests` 18/18 (+5 ca nghỉ), contract `
 E2E thật trên dev :5173 + host :5000 + PostgreSQL, không chặn request: `timekeeping-leave.spec.ts` **2/2**. Test chọn 3 ngày, kiểm tra nút xác nhận bị khoá khi còn ngày chưa chọn ca, dùng "Áp dụng cho tất cả", đổi ca từng ngày, bỏ một ngày rồi lưu. Sau đó đọc lại response, reload và thấy ô nửa buổi trên lưới.
 `timekeeping.spec.ts`: 1/3. Hai test đỏ có từ trước, **không** do thay đổi lần này: spec tìm `data-testid="timekeeping-kpis"` và nút "Mở ngày làm việc", nhưng cả hai đã không còn trong source.
 Retest level **2** (F-03).
+
+## 2026-10-03 — Chi tiết phiếu: tiếp tục công đoạn theo từng răng (R-660)
+
+Chủ dự án (ảnh): ở TIẾP TỤC CÔNG ĐOẠN không chọn được răng, nhưng nhập nội dung điều trị thì vẫn lưu được. Muốn: răng chưa hoàn thành vẫn chọn được; chỉ răng đã hoàn thành mới bị khoá (như răng 46).
+**Cố ý khác bản gốc**: bản gốc khoá cả chuỗi (`docs/clone/pages/patient-detail.md` mục 5).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-660 | Form tiếp tục khoá hết răng khi thẻ chỉ có một chuỗi; có nhiều chuỗi thì bấm một răng là vào/ra cả chuỗi. | FE: chọn từng răng trên mọi tab (`toggleTooth`, `keepOffered`), bỏ `locked`. Răng đưa ra = răng **còn mở** của các công đoạn đang mở (`openTeeth`). Răng của công đoạn đã Hoàn thành vẫn mờ, không bấm được. BE: `ContinueTreatmentStageDto.ToothCodes`; nếu rỗng thì mang hết răng như cũ. `TreatmentStage.ContinueAs` chỉ mang những răng được chọn, và ghi chúng vào `ContinuedToothCodes` (cột `integer[]`, migration `StagePartialContinue`). Công đoạn cũ vẫn **mở** với số răng còn lại, chỉ thành `IsSuperseded` (xám) khi đã hết răng. `Teeth` của công đoạn cũ giữ nguyên, nên lịch sử vẫn tô đủ răng đã làm. Răng đã chuyển đi hoặc không thuộc công đoạn bị từ chối với mã `0041`. |
+
+Kiểm chứng: Domain `StageChainAndWarrantyTests` 15/15 (+2 ca: tiếp tục một phần rồi phần còn lại; từ chối răng đã chuyển hoặc ngoài công đoạn). Application Stage 20/20. FE `tsc` sạch.
+E2E thật (dev :5173, host :5000, PostgreSQL, không chặn request): `treatment-stage-chain.spec.ts` **7/7**. Ca tiếp tục được viết lại: bỏ răng 32 rồi tiếp tục với 31; công đoạn cũ vẫn mở và vẫn tô 31·32. Reload, thẻ đưa ra lại 31·32; gửi lại 31 bị từ chối `0041`; tiếp tục 32 xong thì công đoạn cũ mới xám. `patient.spec.ts`: 3 ca Chi tiết phiếu/tiếp tục xanh.
+Retest level **2** (F-19).

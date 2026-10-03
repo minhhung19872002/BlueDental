@@ -297,7 +297,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(doubled.text).toContain("BlueDental:Treatment:0031");
   });
 
-  test("continuing writes the next visit, keeps its teeth and greys the one before", async ({ page }) => {
+  test("continuing takes the teeth picked, leaves the rest open, and greys the visit once none is left", async ({ page }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
     const [line] = await freshLines(page, [{ teeth: [{ code: 31 }, { code: 32 }] }]);
     const firstStage = await stageOn(page, line, [31, 32], false);
@@ -307,16 +307,11 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await dialog.locator(`.pd-stage-picks button[data-stage-id="${firstStage}"]`).click();
 
     const form = dialog.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
-    // The chain keeps its teeth: shown, not clickable.
-    expect(await chipStates(form)).toEqual(["31*!", "32*!"]);
-    await expect(dialog.getByRole("button", { name: "Tiếp tục công đoạn" })).toBeVisible();
-
-    // The chart opens read-only on a continued công đoạn.
-    await form.getByRole("button", { name: "Xem sơ đồ răng" }).click();
-    const chart = page.locator(".pd-stage-chartdialog");
-    await expect(chart).toContainText("giữ nguyên răng");
-    await expect(chart.getByRole("button", { name: "Răng 31", exact: true })).toBeDisabled();
-    await chart.locator(".ant-modal-footer").getByRole("button", { name: "Đóng" }).click();
+    // Every open tooth starts picked and each one can be dropped (owner's rule,
+    // 2026-10-03: a tooth stays continuable until its công đoạn is finished).
+    expect(await chipStates(form)).toEqual(["31*", "32*"]);
+    await chips(form).filter({ hasText: "32" }).click();
+    expect(await chipStates(form)).toEqual(["31*", "32"]);
 
     await form.locator("textarea").fill(`e2e lần 2 ${runId()}`);
     const continued = page.waitForResponse(
@@ -326,10 +321,45 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const next = await (await continued).json();
     expect(next.id).not.toBe(firstStage);
     expect(next.continuedFromId).toBe(firstStage);
-    expect(next.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([31, 32]);
+    expect(next.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([31]);
 
-    await expect(dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`)).toHaveAttribute("aria-disabled", "true");
-    await expect(dialog.locator(`.pd-stage-histrow[data-stage-id="${next.id}"]`)).toHaveAttribute("aria-disabled", "false");
+    // 32 is still open on the first visit, which stays live and keeps its history.
+    await expect(dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`)).toHaveAttribute("aria-disabled", "false");
+    await expect(
+      dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"] .pd-stage-histtooth--worked`),
+    ).toHaveText(["31", "32"]);
+
+    // Next visit, from a fresh load: the card offers 31 (on the new visit) and
+    // 32 (still on the first) — on the server's word.
+    await page.reload();
+    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
+    await again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
+    const form2 = again.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
+    expect(await chipStates(form2)).toEqual(["31*", "32*"]);
+    // A tooth already handed on cannot be continued from the old visit again.
+    const twice = await call(page, "POST", `/api/v1/app/treatment-stages/${firstStage}/continue`, {
+      staffId: await staffId(page),
+      note: "e2e",
+      serviceItemIds: [],
+      toothCodes: [31],
+    });
+    expect(twice.status).not.toBe(200);
+    expect(twice.text).toContain("BlueDental:Treatment:0041");
+
+    await chips(form2).filter({ hasText: "31" }).click();
+    await form2.locator("textarea").fill(`e2e lần 3 ${runId()}`);
+    const rest = page.waitForResponse(
+      (res) => res.url().includes(`/treatment-stages/${firstStage}/continue`) && res.request().method() === "POST",
+    );
+    await again.getByRole("button", { name: "Tiếp tục công đoạn" }).click();
+    const last = await (await rest).json();
+    expect(last.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([32]);
+
+    // Nothing left open on the first visit: now it is history.
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`)).toHaveAttribute("aria-disabled", "true");
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${next.id}"]`)).toHaveAttribute("aria-disabled", "false");
 
     // A superseded công đoạn is history on the server too.
     const reclosed = await call(page, "POST", `/api/v1/app/treatment-stages/${firstStage}/complete`);
@@ -450,7 +480,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await dialog.locator(`.pd-stage-picks button[data-stage-id="${firstWarranty.id}"]`).click();
     const form = dialog.locator(`.pd-stage-form[data-item-id="continueWarranty:${line.lineId}"]`);
     // 22 is the line's but not this warranty's: listed, faded, inert.
-    expect(await chipStates(form)).toEqual(["11*!", "21*!", "22!"]);
+    expect(await chipStates(form)).toEqual(["11*", "21*", "22!"]);
     await form.locator("textarea").fill(`e2e tiếp tục bảo hành ${runId()}`);
     const continued = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${firstWarranty.id}/continue`) && res.request().method() === "POST",
