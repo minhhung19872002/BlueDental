@@ -77,8 +77,9 @@ export function toServerListParams(
 ): ServerHistoryListParams {
   return {
     patientId: filter.patientId,
-    fromDate: filter.fromDate,
-    toDate: filter.toDate,
+    appointmentId: filter.appointmentId ?? undefined,
+    fromDate: filter.fromDate ?? undefined,
+    toDate: filter.toDate ?? undefined,
     actions: codes(filter.actions.map((action) => HISTORY_ACTION_CODE[action])),
     statuses: codes(filter.statuses.flatMap((group) => STATUS_CODES_BY_GROUP[group])),
     sources: codes(filter.sources.map((source) => HISTORY_SOURCE_CODE[source])),

@@ -1396,6 +1396,19 @@ Screenshot: reference-private/survey/patient-detail-appointment.png
 
 Empty state: "Không có dữ liệu"
 
+#### BlueDental extension (BA, 2026-10-03) — not on the reference
+
+A clock (`HistoryOutlined`, same icon as the toolbar's "Lịch sử thay đổi") sits
+in front of the pencil on **every** row; name/tooltip "Lịch sử thay đổi lịch hẹn".
+It opens the same history dialog as the toolbar, scoped to that appointment:
+`GET appointment-change-log?appointmentId=…` with **no** `fromDate`/`toDate`, so
+every change of the appointment shows (a reschedule reads
+`DD/MM/YYYY HH:mm → DD/MM/YYYY HH:mm` in Before → After). The week picker is
+hidden; the subtitle reads "Mọi thay đổi của lịch hẹn DD/MM/YYYY · HH:mm – HH:mm."
+The Hành động / Nguồn / Người filters and the table/timeline switch stay.
+Read-only, so the Thao tác column now shows for anyone who can see the tab.
+Purpose (BA): let staff see whether the customer moved the appointment.
+
 ### Pagination
 
 Options: 5, 10, 20 (default), 25, 50, 100 per page

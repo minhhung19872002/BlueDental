@@ -33,7 +33,13 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [deleting, setDeleting] = useState<Appointment | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // One dialog for both entries: the toolbar opens it for the whole patient,
+  // a row's clock for that appointment. Closing keeps the appointment so the
+  // subtitle does not change while the dialog fades out.
+  const [history, setHistory] = useState<{ open: boolean; appointment: Appointment | null }>({
+    open: false,
+    appointment: null,
+  });
   const [group, setGroup] = useState<AppointmentGroupKey | null>(null);
 
   const pagination = useTablePagination(20);
@@ -58,6 +64,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
     : page.data?.totalCount ?? 0;
 
   const columns = buildAppointmentColumns({
+    onHistory: (appointment) => setHistory({ open: true, appointment }),
     onEdit: ability.canUpdate ? setEditing : undefined,
     onDelete: ability.canDelete ? setDeleting : undefined,
   });
@@ -105,7 +112,10 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
         </div>
 
         <div>
-          <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
+          <Button
+            icon={<HistoryOutlined />}
+            onClick={() => setHistory({ open: true, appointment: null })}
+          >
             {t("Patient:Debt:ChangeHistory")}
           </Button>
           {ability.canCreate && (
@@ -158,9 +168,10 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
       />
 
       <AppointmentHistoryModal
-        open={historyOpen}
+        open={history.open}
         patientId={patientId}
-        onClose={() => setHistoryOpen(false)}
+        appointment={history.appointment}
+        onClose={() => setHistory((current) => ({ ...current, open: false }))}
       />
     </section>
   );

@@ -6372,3 +6372,17 @@ Yêu cầu BA (ảnh mẫu "Lịch bác sĩ hôm nay"), **không** phải hành 
 Kiểm chứng: `tsc` sạch; `e2e/appointment-day-timeline.spec.ts` 4/4 xanh trên bản build production (preview :8091, host thật :5000, DB thật): bác sĩ OFF không có hàng, lịch nằm đúng hàng và còn sau reload, trục 07:00…19:30, bấm ô 08:00 mở form điền sẵn, kéo chuột cuộn >300px mà không mở dialog và `slotStart` không đổi, check-in → viền chờ, start → đang khám, có vạch "bây giờ". "calendar grids read their own date range" và 3 test doctor-day-off-pickers vẫn xanh. Ảnh chụp 1600×900 và 390×844: không tràn ngang trang.
 Lưu ý: nhãn legend/ô góc hiện key thô (`Appointment:Timeline:*`) cho tới khi **khởi động lại API host** để nạp 8 key mới trong `vi.json`/`en.json`.
 Retest level **2** (Lịch hẹn) + Level 3 nhẹ cho helper cuộn kéo dùng chung (chỉ thêm selector).
+
+
+## 2026-10-03 — Hồ sơ bệnh nhân › Lịch hẹn: icon đồng hồ xem lịch sử từng lịch hẹn (R-668 … R-670)
+
+Yêu cầu BA (ảnh chú thích), **không** có trên bản gốc. Cột Thao tác mỗi dòng thêm icon đồng hồ (giống nút toolbar) → mở hộp thoại "Lịch sử thay đổi lịch hẹn" chỉ của lịch hẹn đó, mọi thay đổi (không giới hạn tuần), để biết khách có đổi lịch hay không. Chỉ đổi FE + 2 key i18n (`Patient:Appt:History`, `Appointment:History:ModalSubtitleOne`); API `appointment-change-log` đã nhận `appointmentId` từ trước.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-668 | Spec mới: hộp thoại theo dòng chỉ có 1 dòng "Tạo mới", không có "Cập nhật" dù PUT đổi giờ thành công (DB có log `startTime,toTime`). | Hai lịch hẹn của test cùng nội dung `E2E lịch sử ${id}` → `findAppointmentRow` bấm nhầm dòng của lịch hẹn kia. `bookAppointment` nhận thêm `label` (" dời" / " giữ"). |
+| R-669 | `getByRole("button", { name: "Lịch sử thay đổi", exact: true })` không tìm thấy nút toolbar. | Tên truy cập của nút AntD có cả nhãn icon: "history Lịch sử thay đổi". Dùng `/Lịch sử thay đổi$/` — vẫn loại được icon dòng ("…lịch hẹn"). |
+| R-670 | 3 đỏ có sẵn trong `patient-appointment.spec.ts` + 5 đỏ trong `appointment-history.spec.ts` (R-667): `fill()` vào ô ngày mask. | Sửa helper `chooseSlot` của hai spec: click vào ô ngày ở mép trái (`position {x:4,y:8}`), `pressSequentially` chữ số, Enter. `appointment.spec.ts` (2 đỏ của R-667) **chưa sửa**. |
+
+Kiểm chứng (build production `vite preview` :8091, host thật :5000 Development, DB thật): `appointment-history.spec.ts` **5/5** — test mới đặt 2 lịch, dời 1 lịch qua dialog Cập nhật thật, icon dòng đọc `appointmentId=` không `fromDate=`, đúng 2 dòng (Cập nhật `ngày giờ → ngày giờ` + Tạo mới), không lẫn lịch kia, không có `.ah-week`, toolbar vẫn có tuần, reload rồi kiểm lại; `patient-appointment.spec.ts` **6/6**. `tsc` sạch.
+Retest level **2** (Lịch hẹn của hồ sơ bệnh nhân + hộp thoại lịch sử).

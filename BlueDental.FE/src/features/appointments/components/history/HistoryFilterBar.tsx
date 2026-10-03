@@ -16,6 +16,8 @@ import { HISTORY_WEEK_START, type HistoryFilterValues } from "./useHistoryFilter
 
 interface Props {
   values: HistoryFilterValues;
+  /** Off when the dialog reads one appointment's whole history. */
+  showWeek: boolean;
   dirty: boolean;
   onChange: (change: Partial<HistoryFilterValues>) => void;
   onClear: () => void;
@@ -61,18 +63,20 @@ const MULTI = {
 };
 
 /** The week navigator, three dropdowns, two search boxes, the important-only toggle and Xóa lọc. */
-export function HistoryFilterBar({ values, dirty, onChange, onClear }: Props) {
+export function HistoryFilterBar({ values, showWeek, dirty, onChange, onClear }: Props) {
   const options = useFilterOptions();
 
   return (
     <div className="ah-filters" data-testid="ah-filters">
-      <DateNavigator
-        mode="week"
-        weekStartsOn={HISTORY_WEEK_START}
-        value={values.week}
-        onChange={(week) => onChange({ week })}
-        className="ah-week"
-      />
+      {showWeek && (
+        <DateNavigator
+          mode="week"
+          weekStartsOn={HISTORY_WEEK_START}
+          value={values.week}
+          onChange={(week) => onChange({ week })}
+          className="ah-week"
+        />
+      )}
       <Select<HistoryAction[]>
         {...MULTI}
         className="ah-select"

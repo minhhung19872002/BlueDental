@@ -20,20 +20,40 @@ import { useHistoryData } from "./useHistoryData";
 import { useHistoryFilters, type HistoryFilterValues } from "./useHistoryFilters";
 import "./appointment-history.css";
 
+/** The one appointment the dialog was opened for, from its row's clock icon. */
+export interface HistoryAppointmentScope {
+  id: string;
+  startTime: string;
+  endTime: string;
+}
+
 interface Props {
   open: boolean;
   patientId: string;
+  /** Absent: every appointment of the patient, one week at a time. */
+  appointment?: HistoryAppointmentScope | null;
   onClose: () => void;
 }
 
 const PAGE_SIZE = 20;
 
+/** "03/10/2026 · 09:22 – 09:52" */
+function slotLabel({ startTime, endTime }: HistoryAppointmentScope): string {
+  const start = dayjs(startTime);
+  return `${start.format("DD/MM/YYYY")} · ${start.format("HH:mm")} – ${dayjs(endTime).format("HH:mm")}`;
+}
+
+interface BodyProps {
+  patientId: string;
+  appointmentId: string | null;
+}
+
 /**
  * Everything inside the dialog. Mounted only while it is open, so the
  * history is fetched when someone asks for it, never behind a closed dialog.
  */
-function AppointmentHistoryBody({ patientId }: { patientId: string }) {
-  const filters = useHistoryFilters(patientId);
+function AppointmentHistoryBody({ patientId, appointmentId }: BodyProps) {
+  const filters = useHistoryFilters(patientId, appointmentId);
   const pagination = useTablePagination(PAGE_SIZE);
   const [view, setView] = useState<HistoryView>("table");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -85,6 +105,7 @@ function AppointmentHistoryBody({ patientId }: { patientId: string }) {
       <HistoryStatCards stats={stats.data} />
       <HistoryFilterBar
         values={filters.values}
+        showWeek={!appointmentId}
         dirty={filters.isDirty}
         onChange={handleFilterChange}
         onClear={handleClear}
@@ -136,8 +157,15 @@ function AppointmentHistoryBody({ patientId }: { patientId: string }) {
   );
 }
 
-/** Lịch sử thay đổi lịch hẹn, opened from the patient's Lịch hẹn tab. */
-export function AppointmentHistoryModal({ open, patientId, onClose }: Props) {
+/**
+ * Lịch sử thay đổi lịch hẹn, opened from the patient's Lịch hẹn tab: from the
+ * toolbar for the whole patient, from a row's clock icon for that appointment.
+ */
+export function AppointmentHistoryModal({ open, patientId, appointment, onClose }: Props) {
+  const subtitle = appointment
+    ? t("Appointment:History:ModalSubtitleOne", slotLabel(appointment))
+    : t("Appointment:History:ModalSubtitle");
+
   return (
     <Modal
       open={open}
@@ -151,12 +179,12 @@ export function AppointmentHistoryModal({ open, patientId, onClose }: Props) {
         <div className="bd-modal-head">
           <div>
             <h2 className="bd-modal-title ah-title">{t("Appointment:History:ModalTitle")}</h2>
-            <p className="bd-modal-subtitle">{t("Appointment:History:ModalSubtitle")}</p>
+            <p className="bd-modal-subtitle">{subtitle}</p>
           </div>
         </div>
       }
     >
-      {open && <AppointmentHistoryBody patientId={patientId} />}
+      {open && <AppointmentHistoryBody patientId={patientId} appointmentId={appointment?.id ?? null} />}
     </Modal>
   );
 }

@@ -31,8 +31,12 @@ async function openAppointmentTab(page: Page) {
  * therefore picks a day of its own, far enough out that nothing else is there.
  */
 async function chooseSlot(dialog: ReturnType<Page["getByRole"]>, { day, time }: ReturnType<typeof freeSlot>) {
+  // The day picker is in mask mode (DATE_INPUT_FORMAT): fill() is ignored and
+  // typing edits the cell under the caret, so click the day cell at the left
+  // edge and type the digits bare; each full cell hands over to the next.
   const date = dialog.getByPlaceholder("Chọn thời điểm");
-  await date.fill(day);
+  await date.click({ position: { x: 4, y: 8 } });
+  await date.pressSequentially(day.replace(/\D/g, ""));
   await date.press("Enter");
   await expect(date).toHaveValue(day);
 

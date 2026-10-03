@@ -40,8 +40,10 @@ function initialValues(): HistoryFilterValues {
 /**
  * The dialog's filter row: what the user picked, and the same thing as the
  * query the server takes. The two text boxes reach the server debounced.
+ * With `appointmentId` the week is ignored: one appointment's history is read
+ * whole, since a reschedule can sit outside the week on screen.
  */
-export function useHistoryFilters(patientId: string) {
+export function useHistoryFilters(patientId: string, appointmentId: string | null) {
   const [values, setValues] = useState<HistoryFilterValues>(initialValues);
   const actor = useDebounce(values.actor, TEXT_DEBOUNCE_MS);
   const keyword = useDebounce(values.keyword, TEXT_DEBOUNCE_MS);
@@ -56,8 +58,9 @@ export function useHistoryFilters(patientId: string) {
   const filter = useMemo<HistoryFilter>(
     () => ({
       patientId,
-      fromDate: startOfWeek(week, HISTORY_WEEK_START).format("YYYY-MM-DD"),
-      toDate: endOfWeek(week, HISTORY_WEEK_START).format("YYYY-MM-DD"),
+      appointmentId,
+      fromDate: appointmentId ? null : startOfWeek(week, HISTORY_WEEK_START).format("YYYY-MM-DD"),
+      toDate: appointmentId ? null : endOfWeek(week, HISTORY_WEEK_START).format("YYYY-MM-DD"),
       actions,
       statuses,
       sources,
@@ -65,7 +68,7 @@ export function useHistoryFilters(patientId: string) {
       keyword,
       importantOnly,
     }),
-    [patientId, week, actions, statuses, sources, actor, keyword, importantOnly],
+    [patientId, appointmentId, week, actions, statuses, sources, actor, keyword, importantOnly],
   );
 
   const isDirty =

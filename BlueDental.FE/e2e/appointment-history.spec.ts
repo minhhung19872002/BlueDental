@@ -26,8 +26,12 @@ async function openAppointmentTab(page: Page) {
 }
 
 async function chooseSlot(dialog: ReturnType<Page["getByRole"]>, { day, time }: ReturnType<typeof freeSlot>) {
+  // The day picker is in mask mode (DATE_INPUT_FORMAT): fill() is ignored and
+  // typing edits the cell under the caret, so click the day cell at the left
+  // edge and type the digits bare; each full cell hands over to the next.
   const date = dialog.getByPlaceholder("Chọn thời điểm");
-  await date.fill(day);
+  await date.click({ position: { x: 4, y: 8 } });
+  await date.pressSequentially(day.replace(/\D/g, ""));
   await date.press("Enter");
   await expect(date).toHaveValue(day);
 
@@ -45,9 +49,12 @@ async function pickFirstDoctor(page: Page) {
   await option.click();
 }
 
-/** Books one appointment through the real dialog and returns its reason text. */
-async function bookAppointment(page: Page, id: string, offsetDays: number) {
-  const reason = `E2E lịch sử ${id}`;
+/**
+ * Books one appointment through the real dialog and returns its reason text.
+ * A test booking two passes a `label` each, so neither reason contains the other.
+ */
+async function bookAppointment(page: Page, id: string, offsetDays: number, label = "") {
+  const reason = `E2E lịch sử ${id}${label}`;
   await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
   await chooseSlot(dialog, freeSlot(id, offsetDays));
@@ -106,9 +113,29 @@ async function openHistory(page: Page) {
     (res) => res.url().includes(LOG_URL) && !res.url().includes("/stats") && res.ok(),
   );
   const stats = page.waitForResponse((res) => res.url().includes(`${LOG_URL}/stats`) && res.ok());
-  await page.getByRole("button", { name: "Lịch sử thay đổi" }).click();
+  // Anchored at the end: every row's clock icon is named "Lịch sử thay đổi lịch hẹn",
+  // and the toolbar's name starts with its icon's label ("history …").
+  await page.getByRole("button", { name: /Lịch sử thay đổi$/ }).click();
   await list;
   await stats;
+
+  const dialog = page.getByRole("dialog", { name: /Lịch sử thay đổi lịch hẹn/ });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+/** Opens the same dialog from one row's clock icon; the list is read for that appointment, no week. */
+async function openRowHistory(page: Page, row: ReturnType<Page["locator"]>) {
+  const list = page.waitForResponse(
+    (res) =>
+      res.url().includes(LOG_URL) &&
+      !res.url().includes("/stats") &&
+      res.url().includes("appointmentId=") &&
+      !res.url().includes("fromDate=") &&
+      res.ok(),
+  );
+  await row.getByRole("button", { name: "Lịch sử thay đổi lịch hẹn" }).click();
+  await list;
 
   const dialog = page.getByRole("dialog", { name: /Lịch sử thay đổi lịch hẹn/ });
   await expect(dialog).toBeVisible();
@@ -230,6 +257,69 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
     // Xóa lọc brings everything back.
     await dialog.getByRole("button", { name: "Xóa lọc" }).click();
     await expect(dialog.locator(".ah-table tbody tr.ant-table-row").first()).toContainText("Cập nhật");
+  });
+
+  test("a row's clock shows only that appointment's history, reschedule included, after a reload too", async ({
+    page,
+  }) => {
+    const id = runId();
+    await openAppointmentTab(page);
+    const moved = await bookAppointment(page, id, 7, " dời");
+    const other = await bookAppointment(page, id, 8, " giữ");
+
+    // Reschedule the first one to another day through the real edit dialog.
+    const from = freeSlot(id, 7);
+    const to = freeSlot(id, 9);
+    const row = await findAppointmentRow(page, moved);
+    await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
+    const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
+    await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(moved);
+    await chooseSlot(edit, to);
+    const put = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "PUT",
+    );
+    await edit.getByRole("button", { name: "Lưu" }).click();
+    expect((await put).ok()).toBeTruthy();
+    await expect(edit).toBeHidden();
+
+    const checkScopedHistory = async () => {
+      const target = await findAppointmentRow(page, moved);
+      const dialog = await openRowHistory(page, target);
+
+      // Subtitle names the appointment; the week picker is gone, the rest stays.
+      await expect(dialog.getByText(/Mọi thay đổi của lịch hẹn \d{2}\/\d{2}\/\d{4} · \d{2}:\d{2} – \d{2}:\d{2}\./)).toBeVisible();
+      await expect(dialog.locator(".ah-week")).toHaveCount(0);
+      await expect(dialog.getByTestId("ah-filters").locator(".ah-select")).toHaveCount(3);
+
+      // Exactly the booking and the reschedule — nothing from the other appointment.
+      const rows = dialog.locator(".ah-table tbody tr.ant-table-row");
+      await expect(rows).toHaveCount(2);
+      await expect(dialog.locator(".ah-stat-value").first()).toHaveText("2");
+      await expect(rows.first()).toContainText("Cập nhật");
+      await expect(rows.first()).toContainText(`${from.day} ${from.time} → ${to.day} ${to.time}`);
+      await expect(rows.nth(1)).toContainText("Tạo mới");
+      await rows.nth(1).getByRole("button", { name: "Mở rộng" }).click();
+      await expect(dialog.getByTestId("ah-detail")).toContainText(moved);
+      await expect(dialog.getByTestId("ah-detail")).not.toContainText(other);
+
+      await dialog.getByRole("button", { name: "Đóng", exact: true }).click();
+      await expect(dialog).toBeHidden();
+    };
+
+    await checkScopedHistory();
+
+    // The toolbar still opens the whole patient's week, with the week picker.
+    const whole = await openHistory(page);
+    await expect(whole.getByText("Toàn bộ thao tác CR/Edit/Delete cho bệnh nhân này.")).toBeVisible();
+    await expect(whole.locator(".ah-week")).toBeVisible();
+    await whole.getByRole("button", { name: "Đóng", exact: true }).click();
+    await expect(whole).toBeHidden();
+
+    // Nothing lives in the client: after a reload the server answers the same.
+    const reloaded = assertRealApiTraffic(page, "/api/v1/app/appointments");
+    await page.reload();
+    await reloaded;
+    await checkScopedHistory();
   });
 
   test("the timeline groups the same rows by day and opens the detail inline", async ({ page }) => {

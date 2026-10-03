@@ -1,5 +1,5 @@
 import { Button, Tooltip, type TableColumnsType } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { Appointment, AppointmentStatus } from "@/features/appointments/types/appointment";
@@ -35,6 +35,7 @@ function statusTones(): Record<AppointmentStatus, { label: string; bg: string; c
 }
 
 interface RowHandlers {
+  onHistory: (row: Appointment) => void;
   onEdit?: (row: Appointment) => void;
   onDelete?: (row: Appointment) => void;
 }
@@ -42,9 +43,12 @@ interface RowHandlers {
 /**
  * The six columns of the reference's Lịch hẹn table. Thao tác carries the
  * pencil and the red bin side by side; the bin only opens the confirmation,
- * the caller decides what a confirmed delete does.
+ * the caller decides what a confirmed delete does. The clock in front of them
+ * is BlueDental's own (not on the reference): that appointment's change
+ * history. It only reads, so the column is there for anyone who sees the tab.
  */
 export function buildAppointmentColumns({
+  onHistory,
   onEdit,
   onDelete,
 }: RowHandlers): TableColumnsType<Appointment> {
@@ -82,14 +86,22 @@ export function buildAppointmentColumns({
         return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
       },
     },
-    ...((onEdit || onDelete) ? [{
+    {
       title: t("Common:Actions"),
-      key: "actions" as const,
-      width: 110,
-      align: "center" as const,
-      fixed: "right" as const,
+      key: "actions",
+      width: 140,
+      align: "center",
+      fixed: "right",
       render: (_: unknown, row: Appointment) => (
         <span className="pd-icon-actions">
+          <Tooltip title={t("Patient:Appt:History")}>
+            <Button
+              type="text"
+              icon={<HistoryOutlined />}
+              aria-label={t("Patient:Appt:History")}
+              onClick={() => onHistory(row)}
+            />
+          </Tooltip>
           {onEdit && (
             <Tooltip title={t("Patient:Profile:EditAppointment")}>
               <Button
@@ -113,6 +125,6 @@ export function buildAppointmentColumns({
           )}
         </span>
       ),
-    }] : []),
+    },
   ];
 }

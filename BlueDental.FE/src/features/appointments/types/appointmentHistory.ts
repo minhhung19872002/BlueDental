@@ -91,8 +91,9 @@ export interface ServerHistoryStatsDto {
 
 export interface ServerHistoryListParams {
   patientId: string;
-  fromDate: string;
-  toDate: string;
+  appointmentId?: string;
+  fromDate?: string;
+  toDate?: string;
   actions?: number[];
   statuses?: number[];
   sources?: number[];
@@ -108,11 +109,14 @@ export interface ServerHistoryListParams {
 /**
  * Everything the dialog can narrow the list by. Dates are clinic days,
  * YYYY-MM-DD; the three pick-lists are multi-selects, empty meaning "all".
+ * Opened for one appointment, the dialog reads that appointment's whole life:
+ * `appointmentId` is set and there is no date range.
  */
 export interface HistoryFilter {
   patientId: string;
-  fromDate: string;
-  toDate: string;
+  appointmentId: string | null;
+  fromDate: string | null;
+  toDate: string | null;
   actions: HistoryAction[];
   statuses: HistoryStatusGroup[];
   sources: HistorySource[];
