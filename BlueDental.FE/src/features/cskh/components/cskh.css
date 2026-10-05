@@ -168,6 +168,31 @@
   color: #0e9f6e;
 }
 
+/* Sau điều trị status — Đã liên hệ / Chưa liên hệ dropdown, tinted like its counter tile. */
+.cskh-contact-select {
+  min-width: 124px;
+  --contact-color: #d98b0f;
+}
+
+.cskh-contact-select--done { --contact-color: #0e9f6e; }
+
+/* antd 6: the root carries the outline, .ant-select-content the value. */
+.cskh-contact-select.ant-select {
+  /* A pill needs more inset than antd's 7px small padding, or the label hugs
+     the curve while the arrow sits well inside it. */
+  padding-inline: 12px 10px !important;
+  border-radius: 999px !important;
+  border-color: color-mix(in srgb, var(--contact-color) 35%, #ffffff) !important;
+  background: color-mix(in srgb, var(--contact-color) 10%, #ffffff) !important;
+}
+
+.cskh-contact-select .ant-select-content,
+.cskh-contact-select .ant-select-suffix {
+  color: var(--contact-color);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 /* Row actions — reference: size-7 rounded-full, icon tinted, 10% hover fill. */
 .cskh-actions {
   display: flex;

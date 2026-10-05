@@ -1,4 +1,5 @@
 import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { formatDash, formatDate, formatDateTime } from "@/utils/format";
 import {
@@ -10,6 +11,7 @@ import type { CareTabConfig, CareTabKey } from "../careTabs";
 import { PatientCell } from "./PatientCell";
 import { CareNoteCell } from "./CareNoteCell";
 import { CareRowActions } from "./CareRowActions";
+import { CareContactStatusSelect } from "./CareContactStatusSelect";
 
 export interface CareRowHandlers {
   onCall: (record: CareRecordDto) => void;
@@ -17,6 +19,13 @@ export interface CareRowHandlers {
   onSend: (record: CareRecordDto) => void;
   onCare: (record: CareRecordDto) => void;
   onNote: (record: CareRecordDto, note: string) => void;
+  onContactStatus: (record: CareRecordDto, contacted: boolean) => void;
+}
+
+/** Sau điều trị status dropdown: which row is saving, and whether the user may edit. */
+export interface CareContactState {
+  pendingId: string | null;
+  canUpdate: boolean;
 }
 
 type CareColumn = ColumnsType<CareRecordDto>[number];
@@ -43,6 +52,15 @@ const careDateColumn = (): CareColumn => ({
   key: "careDate",
   width: 130,
   render: (_, record) => (record.dueAt ? formatDate(record.dueAt) : "—"),
+});
+
+/** Ngày điều trị — a date-only value, parsed as a local day so no timezone shifts it. */
+const treatmentDateColumn = (): CareColumn => ({
+  title: t("CSKH:Col:TreatmentDate"),
+  key: "treatmentDate",
+  width: 130,
+  render: (_, record) =>
+    record.treatmentDate ? formatDate(dayjs(record.treatmentDate).toDate()) : "—",
 });
 
 const appointmentColumn = (): CareColumn => ({
@@ -87,6 +105,7 @@ const periodicColumns = (c: SharedColumns): ColumnsType<CareRecordDto> => [
 const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareRecordDto>> = {
   "after-treatment": (c) => [
     careDateColumn(),
+    treatmentDateColumn(),
     c.patient, c.phone, c.doctor, c.upcoming, c.status, c.note, c.actions,
   ],
   birthday: (c) => [c.patient, c.phone, c.status, c.note, c.actions],
@@ -102,6 +121,13 @@ const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareR
     careDateColumn(),
     c.patient, c.phone, c.doctor, c.careStaff, c.upcoming, c.status, c.note, c.actions,
   ],
+  "missed-appointment": (c) => [
+    appointmentColumn(),
+    c.patient, c.phone, c.doctor,
+    appointmentContentColumn(),
+    appointmentStatusColumn(),
+    c.upcoming, c.status, c.note, c.actions,
+  ],
   periodic: periodicColumns,
   special: periodicColumns,
 };
@@ -110,6 +136,7 @@ export function buildCareColumns(
   tab: CareTabConfig,
   branchId: string,
   handlers: CareRowHandlers,
+  contact: CareContactState,
 ): ColumnsType<CareRecordDto> {
   const shared: SharedColumns = {
     patient: {
@@ -161,9 +188,17 @@ export function buildCareColumns(
       title: t("CSKH:Col:Status"),
       key: "status",
       width: 130,
-      render: (_, record) => (
-        <span className="cskh-badge">{careStatusLabels()[record.status]}</span>
-      ),
+      render: (_, record) =>
+        tab.statusModel === "contact" ? (
+          <CareContactStatusSelect
+            status={record.status}
+            pending={contact.pendingId === record.id}
+            disabled={!contact.canUpdate}
+            onChange={(contacted) => handlers.onContactStatus(record, contacted)}
+          />
+        ) : (
+          <span className="cskh-badge">{careStatusLabels()[record.status]}</span>
+        ),
     },
     note: {
       title: t("CSKH:Col:Note"),

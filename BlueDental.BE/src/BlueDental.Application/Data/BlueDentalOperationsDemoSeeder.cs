@@ -418,7 +418,10 @@ public class BlueDentalOperationsDemoSeeder(
                 },
                 assignedStaffId: staffIds[i % staffIds.Count],
                 description: "Gọi điện hỏi thăm tình trạng của khách",
-                dueAt: DateTimeOffset.UtcNow.AddDays(i % 7));
+                dueAt: DateTimeOffset.UtcNow.AddDays(i % 7),
+                treatmentDate: type == CareType.AfterTreatment
+                    ? ClinicCalendar.DateOf(DateTimeOffset.UtcNow.AddDays(-(i % 7)))
+                    : null);
 
             if (type == CareType.AfterTreatment
                 && stagesByPatient.TryGetValue(patients[i % patients.Count].Id, out var stageIds))

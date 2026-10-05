@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -22,6 +23,12 @@ public interface ICustomerCareAppService : IApplicationService
 
     /// <summary>Đã liên hệ khách.</summary>
     Task<CareRecordDto> MarkContactedAsync(Guid id);
+
+    /// <summary>Đã liên hệ / Chưa liên hệ — either way, and logged.</summary>
+    Task<CareRecordDto> SetContactStatusAsync(Guid id, SetCareContactStatusDto input);
+
+    /// <summary>Lịch sử liên hệ of one task, newest first.</summary>
+    Task<List<CareContactLogDto>> GetContactLogsAsync(Guid id);
 
     /// <summary>Thành công, kèm đánh giá.</summary>
     Task<CareRecordDto> SucceedAsync(Guid id, SucceedCareRecordDto input);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using BlueDental.Appointments;
 using BlueDental.PatientManagement;
 using Volo.Abp.Application.Dtos;
@@ -21,6 +22,10 @@ public class CareRecordDto : FullAuditedEntityDto<Guid>
     public Guid? CareServiceId { get; set; }
     public Guid? AppointmentId { get; set; }
     public DateTimeOffset? DueAt { get; set; }
+
+    /// <summary>Ngày điều trị — sau-điều-trị tasks only.</summary>
+    public DateOnly? TreatmentDate { get; set; }
+
     public DateTimeOffset? ScheduledStart { get; set; }
     public DateTimeOffset? ScheduledEnd { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
@@ -116,14 +121,17 @@ public class GetCareRecordListInput : PagedAndSortedResultRequestDto
     public Guid? AssignedStaffId { get; set; }
 
     /// <summary>
-    /// Date window — compared against DueAt for after-treatment/birthday/reminder
-    /// and against ScheduledStart for periodic/special, like the reference.
+    /// Date window — compared against the clinic-local TreatmentDate for
+    /// after-treatment, ScheduledStart for periodic/special, and DueAt for the rest.
     /// </summary>
     public DateTimeOffset? FromDate { get; set; }
     public DateTimeOffset? ToDate { get; set; }
 
     /// <summary>Tìm kiếm (reference <c>q</c>) — patient name / code / phone.</summary>
     public string? Filter { get; set; }
+
+    /// <summary>Đã liên hệ (true) / Chưa liên hệ (false) counters of the contact tabs.</summary>
+    public bool? Contacted { get; set; }
 }
 
 public class SucceedCareRecordDto
@@ -137,6 +145,26 @@ public class FailCareRecordDto
     public string Reason { get; set; } = default!;
 }
 
+/// <summary>Đã liên hệ / Chưa liên hệ toggle of the sau-điều-trị tab.</summary>
+public class SetCareContactStatusDto
+{
+    public bool Contacted { get; set; }
+
+    [StringLength(1000)]
+    public string? Note { get; set; }
+}
+
+/// <summary>One row of a care task's Lịch sử liên hệ.</summary>
+public class CareContactLogDto : EntityDto<Guid>
+{
+    public Guid CareRecordId { get; set; }
+    public CareStatus Status { get; set; }
+    public string? Note { get; set; }
+    public Guid? CreatorId { get; set; }
+    public string? CreatorName { get; set; }
+    public DateTime CreationTime { get; set; }
+}
+
 /// <summary>
 /// Counters above the CSKH grouping table: Tổng khách · Thành công · Thất bại ·
 /// Chưa CS · Đã gửi Zalo.
@@ -148,6 +176,10 @@ public class CareStatsDto
     public int Failed { get; set; }
     public int NotCaredYet { get; set; }
     public int ZaloSent { get; set; }
+
+    /// <summary>Sau điều trị counters: Đã liên hệ · Chưa liên hệ.</summary>
+    public int Contacted { get; set; }
+    public int NotContacted { get; set; }
 
     /// <summary>Đánh giá breakdown shown on the patient's care tab.</summary>
     public int Good { get; set; }

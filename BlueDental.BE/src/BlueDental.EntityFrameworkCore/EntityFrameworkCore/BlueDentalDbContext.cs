@@ -133,6 +133,7 @@ public class BlueDentalDbContext :
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
+    public DbSet<CareContactLog> CareContactLogs { get; set; }
 
     // Operations
     public DbSet<OperationCategory> OperationCategories { get; set; }

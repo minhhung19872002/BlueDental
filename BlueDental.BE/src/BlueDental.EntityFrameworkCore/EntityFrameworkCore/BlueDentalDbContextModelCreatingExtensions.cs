@@ -717,9 +717,24 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Outcome).HasConversion<short>();
             entity.PrimitiveCollection(x => x.StageIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.IsClosed);
+            entity.Ignore(x => x.IsContacted);
+            // Nhắc lịch hẹn / Đặt lịch không đến are joined to their appointment.
+            entity.HasIndex(x => new { x.Type, x.AppointmentId });
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.Type, x.DueAt });
+            // Sau điều trị is windowed by treatment day and holds one task per
+            // patient per day, so both the board and the dedupe read this.
+            entity.HasIndex(x => new { x.BranchId, x.Type, x.TreatmentDate, x.PatientId });
+        });
+
+        builder.Entity<CareContactLog>(entity =>
+        {
+            entity.ToTable("bd_care_contact_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.CareRecordId, x.CreationTime });
         });
 
         // Chan doan cua benh nhan

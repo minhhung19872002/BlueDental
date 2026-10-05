@@ -22,13 +22,15 @@ public static class CareExportColumns
         CareType.Birthday => Birthday,
         CareType.AppointmentReminder => Reminder,
         CareType.NoService => NoService,
+        CareType.MissedAppointment => Missed,
         _ => Scheduled,
     };
 
-    /// <summary>Sau điều trị — 13 cột (width 20/14/24/12/16/16/20/28/30/16/20/16/36).</summary>
+    /// <summary>Sau điều trị — 14 cột: the staging 13 plus Ngày điều trị (owner, 2026-10-05).</summary>
     private static readonly ExcelColumn<CareRecordDto>[] AfterTreatment =
     [
         new("Ngày CSKH", r => DateTimeText(r.DueAt), 20),
+        new("Ngày điều trị", r => DateText(r.TreatmentDate), 16),
         new("Mã KH", r => r.PatientCode, 14),
         new("Họ và tên", r => r.PatientName, 24),
         new("Giới tính", r => GenderLabel(r.PatientGender), 12),
@@ -56,6 +58,23 @@ public static class CareExportColumns
     ];
 
     /// <summary>Nhắc lịch hẹn — 12 cột.</summary>
+    /// <summary>Đặt lịch không đến — the reminder sheet with Lịch hẹn sắp tới instead of NV chăm sóc.</summary>
+    private static readonly ExcelColumn<CareRecordDto>[] Missed =
+    [
+        new("Lịch hẹn", r => DateTimeText(r.DueAt), 20),
+        new("Mã KH", r => r.PatientCode, 14),
+        new("Họ và tên", r => r.PatientName, 24),
+        new("Giới tính", r => GenderLabel(r.PatientGender), 12),
+        new("Ngày sinh", r => DateText(r.PatientDateOfBirth), 16),
+        new("Số điện thoại", r => r.PatientPhone, 16),
+        new("Bác sĩ điều trị", r => r.AssignedStaffName, 20),
+        new("Nội dung lịch hẹn", r => r.AppointmentContent, 24),
+        new("Trạng thái lịch hẹn", r => AppointmentStatusLabel(r.AppointmentStatus), 20),
+        new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
+        new("Trạng thái", r => StatusLabel(r.Status), 16),
+        new("Ghi chú", r => r.Description, 36),
+    ];
+
     private static readonly ExcelColumn<CareRecordDto>[] Reminder =
     [
         new("Lịch hẹn", r => DateTimeText(r.DueAt), 20),
@@ -117,6 +136,7 @@ public static class CareExportColumns
         CareStatus.Succeeded => "Thành công",
         CareStatus.Failed => "Thất bại",
         CareStatus.Cancelled => "Đã hủy",
+        CareStatus.Contacted => "Đã liên hệ",
         _ => "Chưa liên hệ",
     };
 

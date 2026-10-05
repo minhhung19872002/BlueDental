@@ -6614,3 +6614,38 @@ Kiểm chứng: bản build production `vite preview` :8080 (thư mục riêng `
 - `tsc -b` + `eslint` sạch.
 
 Retest level **2** (FE của tính năng Công đoạn điều trị; không đổi BE).
+
+## 2026-10-05 — CSKH › Sau điều trị lấy từ "Tiếp tục công đoạn" (R-699 … R-701)
+
+Yêu cầu chủ dự án: tiếp tục công đoạn → mỗi ngày điều trị một phiếu Sau điều trị (Ngày chăm sóc rỗng, cột Ngày điều trị mới), lọc theo tháng mặc định, trạng thái 2 giá trị Đã liên hệ / Chưa liên hệ có ghi lịch sử. Chi tiết: `docs/clone/pages/cskh-grouping.md`.
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-699 | Tab Sau điều trị không bao giờ có dữ liệu thật — chỉ seeder tạo phiếu loại này. | `AfterTreatmentCareRecorder` gọi từ `TreatmentStageAppService.ContinueAsync` (bỏ qua bảo hành); tìm phiếu cùng bệnh nhân + chi nhánh + `TreatmentDate` (ngày UTC+7, `ClinicCalendar`) thì gắn thêm công đoạn, không thì tạo. Migration `AfterTreatmentCareByVisit`: cột `TreatmentDate`, bảng `bd_care_contact_logs`, backfill phiếu loại 1 cũ theo `CreationTime`. |
+| R-700 | "Lịch hẹn sắp tới" hiện `01/01/1 07:06` khi bệnh nhân không có lịch hẹn. | `FillAsync` dùng `GetValueOrDefault` trên `Dictionary<Guid, DateTimeOffset>` → `default(DateTimeOffset)` thay vì null. Đổi sang `TryGetValue`; giờ hiện "Chưa có lịch". |
+| R-701 | Export Sau điều trị ghi "Chưa liên hệ" cho phiếu đã liên hệ. | `CareExportColumns.StatusLabel` thiếu nhánh `Contacted`; thêm "Đã liên hệ" và cột "Ngày điều trị". |
+
+Kiểm chứng (dev server :5173, host thật :5000 Development, PostgreSQL thật, migration áp bằng DbMigrator): `e2e/cskh-after-treatment.spec.ts` **1/1** — tiếp tục công đoạn qua dialog thật → đúng 1 phiếu hôm nay, tiếp tục lần 2 cùng ngày vẫn 1 phiếu, có cả 2 công đoạn → trang mở ở Tháng, cột Ngày điều trị, Ngày chăm sóc "—" → đổi sang Đã liên hệ → reload vẫn giữ, Ngày chăm sóc = hôm nay, `contact-logs` có dòng mới kèm người đổi. `treatment-stage-chain.spec.ts` 7/7, `patient-care.spec.ts` 2/2, `cskh.spec.ts` 6/8: đỏ có sẵn — "creates a special care task" (locator `combobox` lọc theo nhãn nổi, đỏ cả khi stash thay đổi này) và "file-heart … birthday" (không idempotent: chạy lại trong cùng ngày thì dòng đầu đã Thành công nên click bỏ chọn; lần chạy đầu xanh). Domain.Tests 47/47, Application.Tests (CustomerCare + TreatmentManagement) 187/187, `tsc` sạch.
+Retest level **3** (đụng `TreatmentStageAppService` dùng chung với Chi tiết phiếu).
+
+## 2026-10-05 — CSKH: Sinh nhật / Nhắc lịch hẹn lấy từ dữ liệu thật, thêm tab Đặt lịch không đến (R-702 … R-705)
+
+Yêu cầu chủ dự án (3 ảnh chú thích). Chi tiết: `docs/clone/pages/cskh-grouping.md`.
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-702 | Tab Sinh nhật / Nhắc lịch hẹn chỉ có dữ liệu seed — không có gì tạo phiếu. | `CareTaskSync` (gọi trong `FilteredQueryAsync`, chạy trong UoW riêng sau một khoá trong tiến trình vì list + stats tới cùng lúc) tạo phiếu còn thiếu cho khoảng đang xem; kiểm tra tồn tại bỏ qua soft-delete để phiếu đã xoá không sống lại. |
+| R-703 | Thêm tab Đặt lịch không đến. | `CareType.MissedAppointment = 8`; `CareAppointmentRules` dùng chung cho đồng bộ và truy vấn: quá giờ > 5 phút, trạng thái Requested/Confirmed/NoShow. Tab Nhắc lịch hẹn bỏ lịch Cancelled. Lọc theo lịch hẹn sống nên dời/huỷ/check-in có hiệu lực ngay. Migration `CareTabsFromAppointments` (index `Type, AppointmentId`). |
+| R-704 | Chuyển 2 trạng thái làm bộ đếm "Đã liên hệ" bỏ sót phiếu Thành công/Thất bại cũ; `SetContacted` từ chối phiếu đã đóng. | `CareRecord.IsContacted` = khác Mới và khác Huỷ; `SetContacted` chỉ chặn phiếu huỷ. Bộ đếm và bộ lọc dùng tham số `contacted` thay vì một `status`. |
+| R-705 | E2E: dropdown trạng thái không mở khi bấm ngay sau khi gõ tìm kiếm / trên tab bảng cuộn ngang. | Không phải lỗi UI: (1) bấm trước khi request tìm kiếm (debounce) về → dòng bị thay, dropdown đóng; (2) cuộn tối thiểu đặt dropdown dưới cột Thao tác ghim phải. Spec chờ request `filter=` và cuộn dropdown ra giữa trước khi bấm. Test file-heart cũ chuyển sang tab Không làm dịch vụ và nhắm đúng dòng vừa seed (hết phụ thuộc thứ tự chạy). |
+
+Kiểm chứng (dev server :5173, host thật :5000, PostgreSQL thật, migration qua DbMigrator): `e2e/cskh-generated-tabs.spec.ts` **6/6** (3 test × 2 lần): sinh nhật tháng này có trong mặc định Tháng, khách sinh tháng khác không có, bộ đếm Chưa liên hệ gửi `contacted=false`, đổi Đã liên hệ → reload giữ + có log; lịch hẹn ngày mai có trong Nhắc lịch hẹn, huỷ thì mất; lịch đã quá giờ chưa đến có trong Đặt lịch không đến, lịch còn phía trước thì không, check-in thì mất. `cskh.spec.ts` 7/8 (đỏ có sẵn: "creates a special care task"), `cskh-after-treatment.spec.ts` 1/1, `patient-care.spec.ts` 2/2. Domain.Tests CustomerCare 14/14, Application.Tests 187/187, `tsc` sạch.
+Retest level **2** (CSKH).
+
+## 2026-10-05 — CSKH › Sinh nhật hiện khách không có ngày sinh (R-706)
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-706 | Lọc tháng 9, tab Chúc mừng sinh nhật hiện khách "KHÔNG NGÀY SINH" (có khách 2 dòng). | Các dòng đó là phiếu "Happy Birthday" do test e2e cũ (`cskh.spec.ts` file-heart, đã sửa ở R-705) `POST` tay với `dueAt` = lúc chạy test; tab chỉ lọc theo `DueAt` nên hiện ra. Tab giờ chỉ lấy phiếu của bệnh nhân **có ngày sinh rơi vào khoảng lọc** (`CareBirthdayRules.PatientIdsBornIn`, dùng chung với `CareTaskSync`). Dữ liệu rác cũ vẫn nằm trong DB nhưng không còn hiện. |
+
+Kiểm chứng: `cskh-generated-tabs.spec.ts` 3/3 — thêm bước tạo tay phiếu sinh nhật cho khách không có ngày sinh → không hiện; `cskh.spec.ts` 7/8 (đỏ có sẵn "creates a special care task"). Retest level **2**.

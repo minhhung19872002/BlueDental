@@ -27,6 +27,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private const int ExportRowCap = 10_000;
 
     private readonly IRepository<CareRecord, Guid> _repository;
+    private readonly IRepository<CareContactLog, Guid> _contactLogRepository;
     private readonly IRepository<Patient, Guid> _patientRepository;
     private readonly IRepository<Appointment, Guid> _appointmentRepository;
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
@@ -37,9 +38,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly CareTaskSync _taskSync;
 
     public CustomerCareAppService(
         IRepository<CareRecord, Guid> repository,
+        IRepository<CareContactLog, Guid> contactLogRepository,
         IRepository<Patient, Guid> patientRepository,
         IRepository<Appointment, Guid> appointmentRepository,
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -49,9 +52,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         IRepository<CatalogEntry, Guid> catalogRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        CareTaskSync taskSync)
     {
         _repository = repository;
+        _contactLogRepository = contactLogRepository;
         _patientRepository = patientRepository;
         _appointmentRepository = appointmentRepository;
         _planRepository = planRepository;
@@ -62,6 +67,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         _userRepository = userRepository;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
+        _taskSync = taskSync;
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.View)]
@@ -101,6 +107,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 NotCaredYet = g.Count(r =>
                     r.Status == CareStatus.New || r.Status == CareStatus.Contacted),
                 ZaloSent = g.Count(r => r.ZaloSentAt.HasValue),
+                // A Thành công / Thất bại left by the older result dialog was reached too.
+                Contacted = g.Count(r => r.Status == CareStatus.Contacted
+                    || r.Status == CareStatus.Succeeded
+                    || r.Status == CareStatus.Failed),
+                NotContacted = g.Count(r => r.Status == CareStatus.New),
                 Good = g.Count(r => r.Outcome == CareOutcome.Good),
                 Fair = g.Count(r => r.Outcome == CareOutcome.Fair),
                 Normal = g.Count(r => r.Outcome == CareOutcome.Normal),
@@ -119,6 +130,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             Failed = counters.Failed,
             NotCaredYet = counters.NotCaredYet,
             ZaloSent = counters.ZaloSent,
+            Contacted = counters.Contacted,
+            NotContacted = counters.NotContacted,
             Good = counters.Good,
             Fair = counters.Fair,
             Normal = counters.Normal,
@@ -237,7 +250,61 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         await GuardBranchAccessAsync(record);
         record.MarkContacted();
         await _repository.UpdateAsync(record, autoSave: true);
+        await _contactLogRepository.InsertAsync(
+            CareContactLog.Of(GuidGenerator.Create(), record), autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
+    }
+
+    [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
+    public async Task<CareRecordDto> SetContactStatusAsync(Guid id, SetCareContactStatusDto input)
+    {
+        var record = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(record);
+
+        // Re-picking the current state is a no-op, not a history row.
+        if (record.SetContacted(input.Contacted, Clock.Now))
+        {
+            await _repository.UpdateAsync(record, autoSave: true);
+            await _contactLogRepository.InsertAsync(
+                CareContactLog.Of(GuidGenerator.Create(), record, input.Note), autoSave: true);
+        }
+
+        var dto = ObjectMapper.Map<CareRecord, CareRecordDto>(record);
+        await FillAsync([record], [dto]);
+        return dto;
+    }
+
+    [Authorize(BlueDentalPermissions.CustomerCare.View)]
+    public async Task<List<CareContactLogDto>> GetContactLogsAsync(Guid id)
+    {
+        var record = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(record);
+
+        var logs = await AsyncExecuter.ToListAsync(
+            (await _contactLogRepository.GetQueryableAsync())
+                .Where(l => l.CareRecordId == id)
+                .OrderByDescending(l => l.CreationTime));
+
+        var creatorIds = logs
+            .Where(l => l.CreatorId.HasValue)
+            .Select(l => l.CreatorId!.Value)
+            .Distinct()
+            .ToList();
+        var creators = creatorIds.Count == 0
+            ? []
+            : (await _userRepository.GetListByIdsAsync(creatorIds))
+                .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        return logs.Select(l => new CareContactLogDto
+        {
+            Id = l.Id,
+            CareRecordId = l.CareRecordId,
+            Status = l.Status,
+            Note = l.Note,
+            CreatorId = l.CreatorId,
+            CreatorName = l.CreatorId.HasValue ? creators.GetValueOrDefault(l.CreatorId.Value) : null,
+            CreationTime = l.CreationTime,
+        }).ToList();
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
@@ -388,6 +455,12 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         GetCareRecordListInput input, bool applyStatus)
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
+
+        // Sinh nhật / Nhắc lịch hẹn / Đặt lịch không đến list rows the clinic
+        // never filed by hand; make sure each has its task before reading.
+        if (input.Type.HasValue && input.FromDate.HasValue && input.ToDate.HasValue)
+            await _taskSync.EnsureAsync(input.Type.Value, branchFilter, input.FromDate.Value, input.ToDate.Value);
+
         var query = (await _repository.GetQueryableAsync());
         if (branchFilter.Count > 0)
             query = query.Where(r => branchFilter.Contains(r.BranchId));
@@ -396,6 +469,14 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             query = query.Where(r => r.PatientId == input.PatientId.Value);
         if (applyStatus && input.Status.HasValue)
             query = query.Where(r => r.Status == input.Status.Value);
+        if (applyStatus && input.Contacted.HasValue)
+        {
+            query = input.Contacted.Value
+                ? query.Where(r => r.Status == CareStatus.Contacted
+                    || r.Status == CareStatus.Succeeded
+                    || r.Status == CareStatus.Failed)
+                : query.Where(r => r.Status == CareStatus.New);
+        }
         if (input.Type.HasValue)
             query = query.Where(r => r.Type == input.Type.Value);
         if (input.Outcome.HasValue)
@@ -404,6 +485,53 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             query = query.Where(r => r.CareStaffId == input.CareStaffId.Value);
         if (input.AssignedStaffId.HasValue)
             query = query.Where(r => r.AssignedStaffId == input.AssignedStaffId.Value);
+
+        // Sau điều trị has no care date until someone calls, so it is windowed
+        // by the clinic day of the treatment instead (owner, 2026-10-05).
+        if (input.Type == CareType.AfterTreatment)
+        {
+            if (input.FromDate.HasValue)
+            {
+                var fromDay = ClinicCalendar.DateOf(input.FromDate.Value);
+                query = query.Where(r => r.TreatmentDate >= fromDay);
+            }
+
+            if (input.ToDate.HasValue)
+            {
+                var toDay = ClinicCalendar.DateOf(input.ToDate.Value);
+                query = query.Where(r => r.TreatmentDate <= toDay);
+            }
+
+            return ApplyPatientFilter(query, input.Filter, branchFilter,
+                await _patientRepository.GetQueryableAsync());
+        }
+
+        // Chúc mừng sinh nhật is about real birthdays only: a task whose
+        // patient has no date of birth, or was not born in the window (say one
+        // filed by hand through the API), stays off the tab.
+        if (input.Type == CareType.Birthday && input.FromDate.HasValue && input.ToDate.HasValue)
+        {
+            var bornInWindow = CareBirthdayRules.PatientIdsBornIn(
+                await _patientRepository.GetQueryableAsync(),
+                ClinicCalendar.DateOf(input.FromDate.Value),
+                ClinicCalendar.DateOf(input.ToDate.Value));
+            query = query.Where(r => bornInWindow.Contains(r.PatientId));
+        }
+
+        // Nhắc lịch hẹn / Đặt lịch không đến read the window and the rule off
+        // the live appointment, so a moved, cancelled or late-arrived booking
+        // leaves the tab at once (owner, 2026-10-05).
+        if (CareAppointmentRules.IsAppointmentDriven(input.Type))
+        {
+            var appointments = CareAppointmentRules.Matching(
+                await _appointmentRepository.GetQueryableAsync(),
+                input.Type!.Value, input.FromDate, input.ToDate, Clock.Now);
+            var appointmentIds = appointments.Select(a => a.Id);
+            query = query.Where(r => r.AppointmentId.HasValue && appointmentIds.Contains(r.AppointmentId.Value));
+
+            return ApplyPatientFilter(query, input.Filter, branchFilter,
+                await _patientRepository.GetQueryableAsync(), appointments);
+        }
 
         // The reference windows periodic/special by the care-appointment slot
         // and every other tab by the care date.
@@ -425,17 +553,39 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 : query.Where(r => r.DueAt <= to);
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
-            var patientQuery = (await _patientRepository.GetQueryableAsync())
-                .Where(PatientMatches(input.Filter));
-            if (branchFilter.Count > 0)
-                patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
-            var matchedIds = patientQuery.Select(p => p.Id);
-            query = query.Where(r => matchedIds.Contains(r.PatientId));
-        }
+        return ApplyPatientFilter(query, input.Filter, branchFilter,
+            await _patientRepository.GetQueryableAsync());
+    }
 
-        return query;
+    /// <summary>
+    /// Tìm kiếm — the patient profile, or for appointment-driven tabs also the
+    /// name and phone a Lịch tạm was booked under.
+    /// </summary>
+    private static IQueryable<CareRecord> ApplyPatientFilter(
+        IQueryable<CareRecord> query,
+        string? filter,
+        IReadOnlyList<Guid> branchFilter,
+        IQueryable<Patient> patientQuery,
+        IQueryable<Appointment>? appointments = null)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return query;
+
+        patientQuery = patientQuery.Where(PatientMatches(filter));
+        if (branchFilter.Count > 0)
+            patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
+        var matchedIds = patientQuery.Select(p => p.Id);
+        if (appointments is null)
+            return query.Where(r => matchedIds.Contains(r.PatientId));
+
+        var text = filter.Trim().ToLower();
+        var temporaryIds = appointments
+            .Where(a => a.IsTemporary
+                && ((a.PatientName != null && a.PatientName.ToLower().Contains(text))
+                    || (a.PatientPhone != null && a.PatientPhone.Contains(text))))
+            .Select(a => a.Id);
+        return query.Where(r => matchedIds.Contains(r.PatientId)
+            || (r.AppointmentId.HasValue && temporaryIds.Contains(r.AppointmentId.Value)));
     }
 
     /// <summary>Tìm kiếm — patient code, full name or phone, case-insensitive.</summary>
@@ -450,7 +600,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private static IOrderedQueryable<CareRecord> SortForBoard(
         IQueryable<CareRecord> query, CareType? type) => type switch
     {
-        CareType.AfterTreatment or CareType.NoService => query.OrderByDescending(r => r.DueAt),
+        CareType.AfterTreatment => query
+            .OrderByDescending(r => r.TreatmentDate)
+            .ThenByDescending(r => r.CreationTime),
+        CareType.NoService or CareType.MissedAppointment => query.OrderByDescending(r => r.DueAt),
         CareType.Birthday or CareType.AppointmentReminder => query.OrderBy(r => r.DueAt),
         CareType.Periodic or CareType.Special => query.OrderByDescending(r => r.ScheduledStart),
         _ => query.OrderByDescending(r => r.CreationTime),
@@ -564,7 +717,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             dto.CareServiceName = record.CareServiceId.HasValue
                 ? careServices.GetValueOrDefault(record.CareServiceId.Value)
                 : null;
-            dto.NextAppointmentAt = nextAppointments.GetValueOrDefault(record.PatientId);
+            // A miss must stay null ("Chưa có lịch hẹn"), not default(DateTimeOffset).
+            dto.NextAppointmentAt = nextAppointments.TryGetValue(record.PatientId, out var next)
+                ? next
+                : null;
             dto.ServiceNames = record.StageIds
                 .Select(id => stageServices.TryGetValue(id, out var serviceId)
                     ? stageServiceNames.GetValueOrDefault(serviceId)
@@ -577,6 +733,13 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             if (record.AppointmentId.HasValue
                 && linkedAppointments.TryGetValue(record.AppointmentId.Value, out var appointment))
             {
+                // A Lịch tạm has no profile: show who the booking was made for.
+                if (appointment.IsTemporary && dto.PatientName is null)
+                {
+                    dto.PatientName = appointment.PatientName;
+                    dto.PatientPhone = appointment.PatientPhone;
+                }
+
                 dto.AppointmentStatus = appointment.Status;
                 dto.AppointmentContent = appointment.ChiefComplaint ?? appointment.Notes;
             }

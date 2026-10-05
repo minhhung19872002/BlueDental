@@ -10,13 +10,13 @@ import {
   exportCareExcel,
   useCareRecordList,
   useCareStats,
+  useSetCareContactStatus,
   useUpdateCareRecord,
   type CareRecordDto,
-  type CareStatus,
   type GetCareRecordListInput,
 } from "../api/careApi";
 import { careDateRange, type CareDateMode, type CareTabConfig } from "../careTabs";
-import type { CareCounterKey } from "../components/CareCounters";
+import type { CareCounterFilter, CareCounterKey } from "../components/CareCounters";
 
 export type CareDialogKind = "create" | "result" | "send" | "message";
 
@@ -30,7 +30,7 @@ interface UseCareBoardArgs {
 /** State + queries behind one care-type tab of the board. */
 export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
   const [counter, setCounter] = useState<CareCounterKey>("total");
-  const [status, setStatus] = useState<CareStatus | undefined>();
+  const [counterFilter, setCounterFilter] = useState<CareCounterFilter>({});
   const [search, setSearch] = useState("");
   const [doctorId, setDoctorId] = useState<string | undefined>();
   const [careStaffId, setCareStaffId] = useState<string | undefined>();
@@ -45,7 +45,7 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
   // Changing tab/date scope resets the transient filters, like the reference.
   useEffect(() => {
     setCounter("total");
-    setStatus(undefined);
+    setCounterFilter({});
     pagination.resetToFirstPage();
   }, [tab.key, mode, fromDate]);
 
@@ -63,23 +63,27 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
   const stats = useCareStats({ branchId, type: tab.type, fromDate, toDate });
   const list = useCareRecordList({
     ...baseParams,
-    status,
+    ...counterFilter,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
 
   const updateCare = useUpdateCareRecord();
+  const setContactStatus = useSetCareContactStatus();
+  const contactPendingId = setContactStatus.isPending
+    ? (setContactStatus.variables?.id ?? null)
+    : null;
 
-  const handleCounterChange = (key: CareCounterKey, next: CareStatus | undefined) => {
+  const handleCounterChange = (key: CareCounterKey, next: CareCounterFilter) => {
     setCounter(key);
-    setStatus(next);
+    setCounterFilter(next);
     pagination.resetToFirstPage();
   };
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportCareExcel({ ...baseParams, status });
+      await exportCareExcel({ ...baseParams, ...counterFilter });
     } catch (error) {
       notifyError(extractApiError(error));
     } finally {
@@ -101,6 +105,15 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
         status: record.status,
         stageIds: record.stageIds,
       });
+    } catch (error) {
+      notifyError(extractApiError(error));
+    }
+  };
+
+  const handleContactStatus = async (record: CareRecordDto, contacted: boolean) => {
+    try {
+      await setContactStatus.mutateAsync({ id: record.id, contacted });
+      toast.success(t("CSKH:Contact:Saved"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -139,6 +152,8 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
     handleCounterChange,
     handleExport,
     handleNote,
+    handleContactStatus,
+    contactPendingId,
     handleCall: () => toast.error(t("CSKH:NoCallConfig")),
     openDialog,
     closeDialog,

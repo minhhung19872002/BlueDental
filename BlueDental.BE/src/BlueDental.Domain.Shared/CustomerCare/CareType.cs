@@ -30,5 +30,11 @@ public enum CareType : short
     Base = 6,
 
     /// <summary>Không làm dịch vụ — bệnh nhân đã đến nhưng không phát sinh dịch vụ.</summary>
-    NoService = 7
+    NoService = 7,
+
+    /// <summary>
+    /// Đặt lịch không đến — the appointment time passed by more than five
+    /// minutes and the patient never arrived (owner, 2026-10-05).
+    /// </summary>
+    MissedAppointment = 8
 }

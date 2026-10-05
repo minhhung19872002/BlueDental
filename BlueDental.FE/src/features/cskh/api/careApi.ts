@@ -13,6 +13,7 @@ export const CARE_TYPE = {
   Special: 5,
   Base: 6,
   NoService: 7,
+  MissedAppointment: 8,
 } as const;
 export type CareType = (typeof CARE_TYPE)[keyof typeof CARE_TYPE];
 
@@ -61,6 +62,7 @@ export const careTypeLabels = (): Record<CareType, string> => ({
   [CARE_TYPE.Special]: t("CSKH:Type:Special"),
   [CARE_TYPE.Base]: t("CSKH:Type:Base"),
   [CARE_TYPE.NoService]: t("CSKH:Type:NoService"),
+  [CARE_TYPE.MissedAppointment]: t("CSKH:Type:MissedAppointment"),
 });
 
 export const careGenderLabels = (): Record<CareGender, string> => ({
@@ -102,6 +104,8 @@ export interface CareRecordDto {
   careServiceId: string | null;
   appointmentId: string | null;
   dueAt: string | null;
+  /** Ngày điều trị (YYYY-MM-DD) — sau-điều-trị tasks only. */
+  treatmentDate: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
   completedAt: string | null;
@@ -165,6 +169,8 @@ export interface GetCareRecordListInput {
   fromDate?: string;
   toDate?: string;
   filter?: string;
+  /** Đã liên hệ (true) / Chưa liên hệ (false) — the contact tabs' counters. */
+  contacted?: boolean;
 }
 
 export interface CareStatsDto {
@@ -173,6 +179,8 @@ export interface CareStatsDto {
   failed: number;
   notCaredYet: number;
   zaloSent: number;
+  contacted: number;
+  notContacted: number;
   good: number;
   fair: number;
   normal: number;
@@ -224,6 +232,10 @@ const careApi = {
 
   update: (id: string, input: UpdateCareRecordInput): Promise<CareRecordDto> =>
     api.put<CareRecordDto>(`${BASE}/${id}`, input).then((r) => r.data),
+
+  /** Đã liên hệ / Chưa liên hệ — the server logs every real change. */
+  setContactStatus: (id: string, contacted: boolean): Promise<CareRecordDto> =>
+    api.put<CareRecordDto>(`${BASE}/${id}/contact-status`, { contacted }).then((r) => r.data),
 
   /** Soft delete — the record leaves every list but stays in the database. */
   remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
@@ -285,6 +297,12 @@ export function useUpdateCareRecord() {
     const { id, ...body } = input;
     return careApi.update(id, body);
   });
+}
+
+export function useSetCareContactStatus() {
+  return useCareMutation((input: { id: string; contacted: boolean }) =>
+    careApi.setContactStatus(input.id, input.contacted),
+  );
 }
 
 export function useDeleteCareRecord() {

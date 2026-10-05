@@ -16,6 +16,9 @@ namespace BlueDental.CustomerCare;
 /// </summary>
 public class CareRecord : FullAuditedAggregateRoot<Guid>
 {
+    /// <summary>Nội dung of the sau-điều-trị task a continued công đoạn opens.</summary>
+    public const string AfterTreatmentSubject = "Chăm sóc sau điều trị";
+
     private readonly List<Guid> _stageIds = new();
 
     public Guid PatientId { get; private set; }
@@ -41,8 +44,17 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Nhắc lịch hẹn — the appointment this reminder follows up.</summary>
     public Guid? AppointmentId { get; private set; }
 
-    /// <summary>Ngày chăm sóc — when the care is due.</summary>
+    /// <summary>
+    /// Ngày chăm sóc — when the care is due. A sau-điều-trị task opens without
+    /// one and gets it when the patient is reached (<see cref="SetContacted"/>).
+    /// </summary>
     public DateTimeOffset? DueAt { get; private set; }
+
+    /// <summary>
+    /// Ngày điều trị — the clinic day of the visit a sau-điều-trị task follows
+    /// up. One task per patient per treatment day.
+    /// </summary>
+    public DateOnly? TreatmentDate { get; private set; }
 
     /// <summary>Khung giờ hẹn chăm sóc.</summary>
     public DateTimeOffset? ScheduledStart { get; private set; }
@@ -69,7 +81,8 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         DateTimeOffset? dueAt = null,
         Guid? careServiceId = null,
         IEnumerable<Guid>? stageIds = null,
-        Guid? appointmentId = null)
+        Guid? appointmentId = null,
+        DateOnly? treatmentDate = null)
         : base(id)
     {
         Check.NotNullOrWhiteSpace(subject, nameof(subject));
@@ -83,6 +96,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         DueAt = dueAt;
         CareServiceId = careServiceId;
         AppointmentId = appointmentId;
+        TreatmentDate = treatmentDate;
         Status = CareStatus.New;
         Outcome = CareOutcome.NotRated;
 
@@ -90,6 +104,84 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         {
             _stageIds.AddRange(stageIds.Distinct());
         }
+    }
+
+    /// <summary>
+    /// Sau điều trị — opened by the first "Tiếp tục công đoạn" of a treatment
+    /// day (owner, 2026-10-05). Ngày chăm sóc stays empty until someone calls.
+    /// </summary>
+    public static CareRecord AfterTreatment(
+        Guid id,
+        Guid patientId,
+        Guid branchId,
+        Guid treatingStaffId,
+        DateOnly treatmentDate,
+        Guid stageId)
+    {
+        return new CareRecord(
+            id,
+            patientId,
+            branchId,
+            CareType.AfterTreatment,
+            AfterTreatmentSubject,
+            treatingStaffId,
+            stageIds: [stageId],
+            treatmentDate: treatmentDate);
+    }
+
+    /// <summary>
+    /// Another công đoạn continued on the same treatment day — it joins this
+    /// task instead of opening a second one. Linking is bookkeeping, so even a
+    /// closed task takes it.
+    /// </summary>
+    public CareRecord FollowUpStage(Guid stageId)
+    {
+        if (!_stageIds.Contains(stageId))
+        {
+            _stageIds.Add(stageId);
+        }
+
+        return this;
+    }
+
+    /// <summary>Đã liên hệ — anything past "not reached yet", short of cancelled.</summary>
+    public bool IsContacted => Status is not (CareStatus.New or CareStatus.Cancelled);
+
+    /// <summary>
+    /// Đã liên hệ / Chưa liên hệ — the two states of the sau-điều-trị, sinh nhật,
+    /// nhắc lịch hẹn and đặt-lịch-không-đến tabs, and either may be set back. A
+    /// Thành công / Thất bại left by the older result dialog reads as contacted.
+    /// A sau-điều-trị task's Ngày chăm sóc is the moment the patient was
+    /// reached, so it follows the flag. Returns false when the task already was
+    /// in that state, so callers log real changes only.
+    /// </summary>
+    public bool SetContacted(bool contacted, DateTimeOffset at)
+    {
+        GuardNotCancelled();
+
+        if (IsContacted == contacted)
+        {
+            return false;
+        }
+
+        Status = contacted ? CareStatus.Contacted : CareStatus.New;
+        if (Type == CareType.AfterTreatment)
+        {
+            DueAt = contacted ? at : null;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Nhắc lịch hẹn / Đặt lịch không đến follow their appointment: a moved
+    /// appointment moves the task's date and doctor with it.
+    /// </summary>
+    public CareRecord FollowAppointment(DateTimeOffset start, Guid? dentistId)
+    {
+        DueAt = start;
+        AssignedStaffId = dentistId;
+        return this;
     }
 
     /// <summary>

@@ -90,6 +90,8 @@ export const ENTITY_QUERY_ROOTS = {
     // The treatment table reads a line's stage count and note off the slip.
     PATIENT_TREATMENTS,
     PATIENT_LISTS,
+    // "Tiếp tục công đoạn" opens the day's Sau điều trị CSKH task.
+    ["care-records"] satisfies RootOf<typeof careKeys>,
   ],
   payment: [
     PATIENT_TREATMENTS,
