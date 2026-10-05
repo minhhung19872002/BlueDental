@@ -506,6 +506,18 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 await _patientRepository.GetQueryableAsync());
         }
 
+        // Chúc mừng sinh nhật is about real birthdays only: a task whose
+        // patient has no date of birth, or was not born in the window (say one
+        // filed by hand through the API), stays off the tab.
+        if (input.Type == CareType.Birthday && input.FromDate.HasValue && input.ToDate.HasValue)
+        {
+            var bornInWindow = CareBirthdayRules.PatientIdsBornIn(
+                await _patientRepository.GetQueryableAsync(),
+                ClinicCalendar.DateOf(input.FromDate.Value),
+                ClinicCalendar.DateOf(input.ToDate.Value));
+            query = query.Where(r => bornInWindow.Contains(r.PatientId));
+        }
+
         // Nhắc lịch hẹn / Đặt lịch không đến read the window and the rule off
         // the live appointment, so a moved, cancelled or late-arrived booking
         // leaves the tab at once (owner, 2026-10-05).

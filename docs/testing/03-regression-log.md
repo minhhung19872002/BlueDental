@@ -6440,3 +6440,11 @@ Yêu cầu chủ dự án (3 ảnh chú thích). Chi tiết: `docs/clone/pages/c
 
 Kiểm chứng (dev server :5173, host thật :5000, PostgreSQL thật, migration qua DbMigrator): `e2e/cskh-generated-tabs.spec.ts` **6/6** (3 test × 2 lần): sinh nhật tháng này có trong mặc định Tháng, khách sinh tháng khác không có, bộ đếm Chưa liên hệ gửi `contacted=false`, đổi Đã liên hệ → reload giữ + có log; lịch hẹn ngày mai có trong Nhắc lịch hẹn, huỷ thì mất; lịch đã quá giờ chưa đến có trong Đặt lịch không đến, lịch còn phía trước thì không, check-in thì mất. `cskh.spec.ts` 7/8 (đỏ có sẵn: "creates a special care task"), `cskh-after-treatment.spec.ts` 1/1, `patient-care.spec.ts` 2/2. Domain.Tests CustomerCare 14/14, Application.Tests 187/187, `tsc` sạch.
 Retest level **2** (CSKH).
+
+## 2026-10-05 — CSKH › Sinh nhật hiện khách không có ngày sinh (R-681)
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-681 | Lọc tháng 9, tab Chúc mừng sinh nhật hiện khách "KHÔNG NGÀY SINH" (có khách 2 dòng). | Các dòng đó là phiếu "Happy Birthday" do test e2e cũ (`cskh.spec.ts` file-heart, đã sửa ở R-680) `POST` tay với `dueAt` = lúc chạy test; tab chỉ lọc theo `DueAt` nên hiện ra. Tab giờ chỉ lấy phiếu của bệnh nhân **có ngày sinh rơi vào khoảng lọc** (`CareBirthdayRules.PatientIdsBornIn`, dùng chung với `CareTaskSync`). Dữ liệu rác cũ vẫn nằm trong DB nhưng không còn hiện. |
+
+Kiểm chứng: `cskh-generated-tabs.spec.ts` 3/3 — thêm bước tạo tay phiếu sinh nhật cho khách không có ngày sinh → không hiện; `cskh.spec.ts` 7/8 (đỏ có sẵn "creates a special care task"). Retest level **2**.

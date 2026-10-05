@@ -101,12 +101,9 @@ public class CareTaskSync : ITransientDependency
     private async Task EnsureBirthdaysAsync(IReadOnlyList<Guid> branchFilter, DateOnly fromDay, DateOnly toDay)
     {
         var birthdays = new List<(Patient Patient, DateOnly Day)>();
-        for (var segment = fromDay; segment <= toDay;)
+        foreach (var (start, end) in CareBirthdayRules.MonthPieces(fromDay, toDay))
         {
-            var monthEnd = new DateOnly(segment.Year, segment.Month, DateTime.DaysInMonth(segment.Year, segment.Month));
-            var segmentEnd = monthEnd < toDay ? monthEnd : toDay;
-            birthdays.AddRange(await BirthdaysInAsync(branchFilter, segment, segmentEnd));
-            segment = segmentEnd.AddDays(1);
+            birthdays.AddRange(await BirthdaysInAsync(branchFilter, start, end));
         }
 
         if (birthdays.Count == 0)
@@ -154,21 +151,7 @@ public class CareTaskSync : ITransientDependency
         IReadOnlyList<Guid> branchFilter, DateOnly from, DateOnly to)
     {
         var month = from.Month;
-        var firstDay = from.Day;
-        var lastDay = to.Day;
-
-        // A 29 February birthday is greeted on the 28th in a common year.
-        var leapDayFolds = month == 2 && !DateTime.IsLeapYear(from.Year) && lastDay == 28;
-        if (leapDayFolds)
-        {
-            lastDay = 29;
-        }
-
-        var query = (await _patientRepository.GetQueryableAsync())
-            .Where(p => p.DateOfBirth.HasValue
-                && p.DateOfBirth.Value.Month == month
-                && p.DateOfBirth.Value.Day >= firstDay
-                && p.DateOfBirth.Value.Day <= lastDay);
+        var query = CareBirthdayRules.BornIn(await _patientRepository.GetQueryableAsync(), from, to);
         if (branchFilter.Count > 0)
         {
             query = query.Where(p => branchFilter.Contains(p.BranchId));

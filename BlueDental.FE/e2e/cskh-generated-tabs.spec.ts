@@ -171,6 +171,22 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
     await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(notThisMonth.name);
     await expect(page.getByText("Không có dữ liệu")).toBeVisible();
 
+    // A birthday task filed by hand for a patient with no date of birth is not
+    // a birthday: it stays off the tab even though its date is in the window.
+    const noBirthday = await newPatient(page, null);
+    const filed = await call(page, "POST", CARE, {
+      patientId: noBirthday.id,
+      branchId: BRANCH,
+      type: 2,
+      subject: "Happy Birthday",
+      dueAt: new Date().toISOString(),
+      status: 1,
+    });
+    expect(filed.status, filed.text).toBe(200);
+    await page.reload();
+    await search(page, noBirthday.name);
+    await expect(page.getByText("Không có dữ liệu")).toBeVisible();
+
     // The Chưa liên hệ counter narrows by contact state, not by one status.
     const narrowed = page.waitForRequest((r) => r.url().includes(`${CARE}?`) && r.url().includes("contacted=false"));
     await page.getByRole("button", { name: /\d+\s*Chưa liên hệ/ }).click();
