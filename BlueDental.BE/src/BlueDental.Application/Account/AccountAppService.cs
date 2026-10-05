@@ -72,6 +72,11 @@ public class AccountAppService(
             Roles = roles.ToList(),
             Permissions = await GetGrantedPermissionsAsync(),
             PasswordMustChange = false,
+            // Read here, not off /staff, so the client can act on them
+            // without the "Nhân viên – xem" permission.
+            IsDentist = user.ExtraProperties.GetOrDefault("IsDentist") is true,
+            IsAssistant = user.ExtraProperties.GetOrDefault("IsAssistant") is true,
+            IsHygienist = user.ExtraProperties.GetOrDefault("IsHygienist") is true,
         };
     }
 

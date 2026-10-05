@@ -76,6 +76,9 @@ export function LoginForm() {
         clinicTagline: user.clinicTagline,
         roles: user.roles,
         permissions: user.permissions,
+        isDentist: user.isDentist,
+        isAssistant: user.isAssistant,
+        isHygienist: user.isHygienist,
       });
       // The router's index decides where the app opens (Tiếp nhận, or Tổng
       // quan for an account that may not open it), so a user with few

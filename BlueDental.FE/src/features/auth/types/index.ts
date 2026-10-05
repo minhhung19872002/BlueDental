@@ -22,6 +22,10 @@ export interface CurrentUserDto {
   roles: string[];
   permissions: string[];
   passwordMustChange: boolean;
+  /** The "Bác sĩ", "Phụ tá" and "Y sĩ" ticks on the staff form. */
+  isDentist: boolean;
+  isAssistant: boolean;
+  isHygienist: boolean;
 }
 
 export interface ChangePasswordRequest {

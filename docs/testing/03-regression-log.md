@@ -6460,6 +6460,19 @@ Retest level **2** (hộp thoại lịch sử lịch hẹn).
 |---|---|---|
 | R-683 | Owner: trường "Màu" hiện mã hex (`#EF4444`) thay vì màu. | `HistoryFieldValue` (trong `HistoryValueList.tsx`) vẽ chấm tròn đúng màu đó (`.ah-color-swatch`, màu qua `--ah-swatch`), tên màu của bộ chọn ("Đỏ", "Xanh lá"…) ở `title` / `aria-label`; màu ngoài bộ chọn thì tooltip là mã hex. Dùng cho cả 2 cột Giá trị cũ / mới lẫn panel "So sánh trước / sau". Dòng Tạo mới giờ hiện cả "Màu". File xuất giữ mã hex (là text). Spec: sửa lịch hẹn đổi màu Đỏ → cột Giá trị mới có ảnh tên "Đỏ", dòng không chứa "#". `appointment-history.spec.ts` 5/5. |
 
+## 2026-10-05 — Tiếp nhận: tự lọc theo bác sĩ đăng nhập, tên bệnh nhân mở tab Hồ sơ (R-684 … R-686)
+
+Yêu cầu BA (owner, kèm ảnh): (1) tài khoản là bác sĩ thì danh sách Tiếp nhận tự lọc bác sĩ = chính mình; (2) bấm tên bệnh nhân trên thẻ thì mở tab "Hồ sơ". Owner chốt: "bác sĩ" = ô tick **Bác sĩ** trên form Cập nhật nhân viên (`IsDentist`), không theo tên vai trò; chỉ chọn sẵn — bác sĩ bấm X để xem tất cả (không chặn ở BE); chỉ chọn sẵn **một lần** khi vào trang, đổi ngày/tuần/tháng giữ lựa chọn hiện tại.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-684 | Ô lọc "Bác sĩ" đã có sẵn nhưng luôn trống khi bác sĩ mở trang. | Danh sách bác sĩ của trang (`useReceptionDoctors`, toàn bộ nhân viên chi nhánh) giữ thêm `isDentist`. Hook `useOwnDoctorDefault` (reception/hooks): khi danh sách tải xong lần đầu, nếu user đăng nhập (staffId = userId) có trong danh sách và `isDentist` → `setSelectedDoctorId(user.id)`; `useRef` đảm bảo chỉ quyết định một lần (đổi chi nhánh cũng không chọn lại). Chỉ FE, không đổi BE / current-user DTO. Danh sách không lọc có thể chớp một lần trước khi chọn sẵn (chờ danh sách bác sĩ). |
+| R-685 | Bấm tên bệnh nhân mở tab Lịch hẹn. | `ReceptionCard.handlePatientClick` → `?tab=profile`. Lịch tạm vẫn mở dialog "Tạo hồ sơ". |
+| R-686 | Spec mới: quay lại hôm nay sau khi bỏ lọc không phát request. | Danh sách hôm nay không lọc đã nằm trong cache TanStack (request đầu tiên trước khi chọn sẵn). Spec sang một ngày chưa tải thay vì quay lại. |
+
+Kiểm chứng (bản build production `vite preview` :8080, host thật :5000, DB thật, đăng nhập thật): `reception-own-doctor.spec.ts` **3/3** — `bs.anh` mở trang → request danh sách có `dentistId` = id của chính mình, mọi dòng trả về là của bác sĩ đó, ô lọc hiện "BS. Trần Quốc Anh"; sang ngày khác vẫn giữ; bấm X → request không `dentistId`, sang ngày khác vẫn trống; tải lại trang → chọn sẵn lại. `lt.huong` (không tick Bác sĩ) → không lọc. Bấm tên bệnh nhân → `/patient/{id}?tab=profile`, tab đang chọn "Hồ sơ". Spec reception cũ: follow-up / temporary / wait-time xanh hết; `reception.spec.ts` 2 đỏ có sẵn (chờ `/visits`, đã ghi ở F-11). `tsc` sạch.
+Retest level **2** (Tiếp nhận).
+
 ## 2026-10-05 — "Chọn Dịch Vụ": bảng dịch vụ rộng và dài theo màn hình (R-687)
 
 Owner (kèm ảnh): kéo dài dialog để bảng hiện hết thông tin — cột Ghi chú bị cắt, bảng cuộn ngang.
@@ -6467,6 +6480,20 @@ Owner (kèm ảnh): kéo dài dialog để bảng hiện hết thông tin — c�
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
 | R-687 | Bảng "Chọn Dịch Vụ" cuộn ngang, cột Ghi chú bị cắt; danh sách chỉ cao 400px cố định. | Bảng `min-width: 1190px` = đúng tổng 7 cột, nhưng thanh cuộn dọc của khung bảng ăn ~8px và dialog 1240px chỉ còn ~1182px → luôn tràn. Dialog lên `min(1760px, 100vw - 32px)` + `centered` (owner: rộng hơn nữa); các cột thành tỉ lệ (Đơn giá 11%, Số lượng 8%, Giảm giá 20%, Thành tiền 12%, Ghi chú 17%), cột Dịch vụ nhận phần còn lại, ô tick giữ 52px — dialog rộng thì mọi cột cùng giãn; `min-width` bảng 1131px. Khung bảng `max-height: max(240px, 100dvh - 600px)` (phần còn lại đo được ~534px + lề ~64px). Đo thật: 1920×1080 → dialog 1760, cột 52/490/186/136/339/203/288, bảng 480px, không cuộn ngang, thân dialog không cuộn; 1366×768 → không cuộn ngang, bảng 240px, thân cuộn ~70px (màn quá thấp). `consulting-delete-and-picker` + `consulting-review` (các test "Chọn Dịch Vụ") 3/3; test "Xoá phiếu chẩn đoán" đỏ một lần, chạy lại xanh (chập chờn, không đụng dialog). Retest level **1**. |
+
+## 2026-10-05 — Tên bệnh nhân mở "Chẩn đoán & Tư vấn" cho bác sĩ / phụ tá / y sĩ (Tiếp nhận + Lịch hẹn) (R-688 … R-690)
+
+BA đổi yêu cầu của R-685 (owner chuyển ảnh chat): tài khoản có **một trong 3** tick Bác sĩ / Phụ tá / Y sĩ trên form nhân viên → bấm tên bệnh nhân mở tab **Chẩn đoán & Tư vấn**; không tick nào → tab **Hồ sơ** (ai cũng vào được hồ sơ, vd kế toán vào thu tiền). Owner bổ sung: áp dụng tương tự bên Lịch hẹn. Tự lọc bác sĩ (R-684) **giữ chỉ tick Bác sĩ** (owner chốt).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-688 | Tiếp nhận: tên bệnh nhân luôn mở "Hồ sơ" (R-685), BA muốn nhân sự lâm sàng vào thẳng "Chẩn đoán & Tư vấn". | Hook dùng chung `src/hooks/usePatientLinkTab.ts`: đọc hồ sơ nhân viên của chính user (`GET /api/v1/app/staff/{userId}`, staffId = userId) → `consulting` nếu `isDentist || isAssistant || isHygienist`, ngược lại `profile`. Chưa tải xong / không đọc được (403) → `profile` (không toast). `ReceptionPage` truyền `patientTab` xuống `ReceptionCard`. |
+| R-689 | Lịch hẹn (chế độ Tuần): tên bệnh nhân trên thẻ mở `/patient/{id}` không có `tab` → trang hồ sơ rơi về tab mặc định. | `EventCard` dùng cùng hook → `?tab=consulting` / `?tab=profile`. Chế độ Ngày bấm khối mở dialog sửa lịch, chế độ Tháng không có link — không đổi. Hook nằm ở `src/hooks/` vì 2 feature cùng dùng (feature không import chéo). |
+| R-690 | Spec Lịch hẹn: `click()` vào tên bệnh nhân trên thẻ tuần bị thẻ khác chặn. | Các lần chạy e2e trước đặt nhiều lịch cùng khung giờ, thẻ chồng lên nhau. Spec mở link bằng bàn phím (`press("Enter")`, thẻ có hỗ trợ sẵn). |
+
+Kiểm chứng (bản build production `vite preview` :8080, host thật :5000, DB thật, đăng nhập thật): `reception-own-doctor.spec.ts` **6/6** (lọc bác sĩ 2 test + mở hồ sơ: `bs.anh`, `pt.linh`, `ys.trang` → `?tab=consulting`, tab active "Chẩn đoán & Tư vấn"; `lt.huong` → `?tab=profile`, "Hồ sơ"); `appointment-patient-link.spec.ts` (mới) **2/2** (`pt.linh` → Chẩn đoán & Tư vấn, `lt.huong` → Hồ sơ, từ thẻ chế độ Tuần). `tsc` + `eslint` sạch.
+Chạy hồi quy `e2e/reception*` + `appointment.spec` + `appointment-day-timeline` sau đó: 17 pass / 13 đỏ — **dữ liệu local cạn**: chỉ còn 3/88 bệnh nhân không có lịch trong 40 ngày tới, fixture `bookVisitToday` / đặt lịch báo "no visit could be booked" (kể cả các test vừa xanh ở trên). 2 đỏ của `reception.spec.ts` là có sẵn (F-11). Chưa dọn DB chung — cần dọn lịch e2e cũ rồi chạy lại.
+Retest level **2** (Tiếp nhận, Lịch hẹn).
 
 ## 2026-10-05 — Ô "Phụ tá" của công đoạn lấy thêm Y sĩ (R-691)
 
@@ -6477,3 +6504,50 @@ BA (ảnh chú thích trên dialog "Chi tiết phiếu" → Tiếp tục công �
 | R-691 | Ô "Phụ tá" (Thêm / Tiếp tục công đoạn, dialog tái khám công đoạn) chỉ liệt kê nhân viên tick "Phụ tá". | `useAssistantSearch` (`src/hooks/useStaffOptions.ts`) lọc `isAssistant`; nay lọc `isAssistant \|\| isHygienist` (`StaffDto.IsHygienist` đã có sẵn, BE không đổi). Vẫn giữ lọc OFF hôm nay (`AvailableOn`) và fallback "không ai được tick → mọi nhân viên". Hook chỉ dùng cho `StageForm` + `StageFollowUpDialog`. |
 
 Kiểm chứng: `tsc` sạch. **Chưa chạy runtime** (host :5000 đang tắt) — cần mở dialog công đoạn với seed `ys.trang` để thấy tên Y sĩ trong ô Phụ tá. Retest level **2** (công đoạn điều trị).
+
+## 2026-10-05 — Tab mở hồ sơ không còn phụ thuộc quyền "Nhân viên – xem" (R-692)
+
+Review lại R-688: hook đọc tick từ `GET /api/v1/app/staff/{userId}`, endpoint này đòi quyền `Staff.View`.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-692 | Tài khoản bác sĩ / phụ tá / y sĩ **không có** quyền "Nhân viên – xem" → `/staff/{id}` trả 403 → tên bệnh nhân mở "Hồ sơ" thay vì "Chẩn đoán & Tư vấn". Ngoài ra, bấm trước khi request đó về cũng mở "Hồ sơ". | 3 tick đưa vào `CurrentUserDto` (`IsDentist`, `IsAssistant`, `IsHygienist`, đọc từ `ExtraProperties` của user trong `AccountAppService`). `current-user` chỉ cần đăng nhập và đã được tải lúc vào app → lưu vào `useAuthStore` (`PrivateRoute`, `LoginForm`). `usePatientLinkTab` chỉ đọc store: không chờ request, không cần quyền. Thay thế cách đọc `/staff/{userId}` mô tả ở R-688. Tự lọc bác sĩ (R-684) vẫn dựa vào danh sách bác sĩ của Tiếp nhận (dropdown cần danh sách đó để hiện tên) — không đổi. |
+
+Kiểm chứng (host thật :5000 build lại, bản build production `vite preview` :8080, DB thật):
+- `e2e/current-user-ticks-api.spec.ts` (mới, HTTP thật) **4/4**: tạo nhân viên tạm với từng tick (Bác sĩ / Phụ tá / Y sĩ / không tick, không role), đăng nhập bằng chính tài khoản đó → `current-user` 200 trả đúng 3 tick, còn `/staff/{id}` trả **403** (đúng trường hợp lỗi cũ); xoá nhân viên tạm sau test.
+- `reception-own-doctor.spec.ts` lọc bác sĩ **2/2**.
+- 4 test mở hồ sơ ở Tiếp nhận và 2 test ở Lịch hẹn **đỏ ở bước đặt lịch** (`bookVisitToday`: không còn bệnh nhân trống lịch, chưa gửi POST nào). Dữ liệu cạn như ở R-688, không do code.
+- Kiểm tay trên trình duyệt thật (không tạo dữ liệu, bấm thẻ đã có sẵn trên bảng hôm nay): `pt.linh` → `?tab=consulting`, tab active "Chẩn đoán & Tư vấn"; `lt.huong` (`current-user` trả 3 tick false) → `?tab=profile`, "Hồ sơ".
+- `tsc -b` + `eslint` sạch, BE build 0 lỗi.
+
+Retest level **3** (đổi DTO `current-user` dùng chung — các nơi khác gọi `setAuth` đều spread `...user` nên không ảnh hưởng). Phải dọn lịch e2e cũ trong DB local rồi chạy lại 6 test mở hồ sơ.
+
+## 2026-10-05 — Tiếp nhận: danh sách bác sĩ đủ cả chi nhánh, không dừng ở 50 người (R-693)
+
+Review R-684: ô lọc bác sĩ (và ô chọn bác sĩ khi tạo phiếu, danh sách bác sĩ theo ngày) lấy `/staff?MaxResultCount=50` → chi nhánh hơn 50 nhân viên đang làm thì ai đứng sau 50 người đầu (xếp theo tên) không chọn được, bác sĩ đó đăng nhập cũng không được tự lọc. Owner chốt: lấy đủ, nhưng phải giữ tốt hiệu năng. Tài khoản không có quyền "Nhân viên – xem" giữ nguyên (ô trống) — owner: bác sĩ thường có quyền này.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-693 | Bác sĩ ngoài 50 nhân viên đầu của chi nhánh: không có trong ô lọc / ô chọn bác sĩ, không được tự lọc. | FE: `fetchReceptionDoctors` lấy `MaxResultCount=1000` (trần của ABP). BE: `StaffAppService.GetListAsync` trước map **2 query cho mỗi nhân viên** (`GetRolesAsync` + phân công chi nhánh) — Tiếp nhận gọi danh sách này cho mỗi ngày có lịch trên bảng (tháng ~30 lần), nên lấy đủ mà không sửa thì hàng nghìn query. Nay `MapListAsync`: role của cả trang bằng `IIdentityUserRepository.GetRoleNamesAsync(ids)` (1 query; dự án không gán role qua organization unit, test so khớp với `GetRolesAsync` từng dòng), chi nhánh bằng 1 query `StaffId IN (...)`. `GetAsync` / tạo / sửa vẫn map một người như cũ. |
+
+Kiểm chứng (host thật :5000 build lại, bản build production `vite preview` :8080, DB thật):
+- `e2e/reception-doctor-list.spec.ts` (mới) **2/2**. Tạo 52 nhân viên tạm "Aaa E2E …" (role xen kẽ: không role / `dentist` / `Quản lý chi nhánh`+`dentist`) và 1 bác sĩ tạm "Bác sĩ E2E …" (role `Quản lý chi nhánh`) → kiểm tra trước: bác sĩ **không** có trong `MaxResultCount=50` (đúng ca lỗi). `MaxResultCount=1000` trả đủ (`items = totalCount`), role + chi nhánh **từng dòng** khớp `GET /staff/{id}` (đường map một người cũ), có cả bản `AvailableOn`. Đăng nhập bằng bác sĩ tạm → bảng gọi `dentistId` = chính họ, ô lọc hiện tên họ. `afterAll` xoá theo tiền tố tên (dọn cả lần chạy bị ngắt giữa chừng).
+- Thời gian (log host): danh sách ~78 nhân viên **~20 ms** mỗi lần.
+- Spec tạo nhân viên song song bị `Volo.Abp.Identity:ConcurrencyFailure` (cùng role) → tạo tuần tự.
+- Hồi quy: `staff.spec`, `staff-day-off-api` 3/3, `role-permissions`, `reception-temporary` 3/3, `current-user-ticks-api` 4/4, `reception-own-doctor` lọc bác sĩ 2/2 — xanh. `reception-follow-up.spec.ts` 11 đỏ, cả 11 là "no visit could be booked for today" (DB local cạn bệnh nhân trống lịch, như R-688/R-692).
+- BE build 0 lỗi, `tsc -b` + `eslint` sạch.
+
+Retest level **3** (đổi `StaffAppService.GetListAsync` dùng chung với màn Nhân viên và các ô chọn nhân viên).
+
+### 2026-10-05 — dọn lịch e2e cũ trong DB local, chạy lại các test đỏ vì cạn dữ liệu (R-688 / R-692 / R-693)
+
+Owner duyệt dọn. Chỉ **xoá mềm** (`IsDeleted = true`) trong DB local, chỉ các lịch từ hôm nay trở đi, tạo trước đó hơn 30 phút (để không đụng test của session khác đang chạy):
+- lịch có `ChiefComplaint` bắt đầu `e2e-` (`searchKey` của `bookVisitToday` và các spec khác);
+- lịch tái khám (Type 5) mà một lịch `e2e-` trỏ tới qua `FollowUpAppointmentId`, với `Notes` rỗng.
+
+Tổng **104 lịch**. Không đụng 24 lịch khác do admin tạo (không có dấu e2e, không rõ nguồn) và 1 lịch tái khám có ghi chú tay. Sau khi dọn, chi nhánh 1 có **70** bệnh nhân không có lịch trong 40 ngày tới (trước là 0); chi nhánh 2 vẫn 3.
+
+Chạy lại trên bản build production (`vite preview`, thư mục riêng, cổng 8094 — cổng 8080 đang có preview của session khác) với host thật :5000:
+`reception-own-doctor` + `appointment-patient-link` + `reception-follow-up` + `reception-doctor-list` → **21/21 xanh**. Trong đó có 6 test mở hồ sơ của R-692 và 11 test của `reception-follow-up` trước đây đỏ ở bước đặt lịch.
+
+Dữ liệu sẽ lại cạn sau vài chục lần chạy, vì fixture không dọn lịch nó tạo. Chưa sửa fixture.

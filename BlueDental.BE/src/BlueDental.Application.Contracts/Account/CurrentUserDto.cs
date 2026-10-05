@@ -16,6 +16,11 @@ public class CurrentUserDto
     public List<string> Roles { get; set; } = [];
     public List<string> Permissions { get; set; } = [];
     public bool PasswordMustChange { get; set; }
+
+    /// <summary>The "Bác sĩ", "Phụ tá" and "Y sĩ" ticks on the staff form.</summary>
+    public bool IsDentist { get; set; }
+    public bool IsAssistant { get; set; }
+    public bool IsHygienist { get; set; }
 }
 
 public class ChangePasswordInput

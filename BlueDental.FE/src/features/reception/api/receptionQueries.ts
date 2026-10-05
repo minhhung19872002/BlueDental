@@ -35,20 +35,30 @@ export function useDentistBusySpans(dentistId: string | undefined, weekStart: st
   });
 }
 
-interface ReceptionDoctor {
+export interface ReceptionDoctor {
   id: string;
   name: string;
   title: string;
   branchIds?: string[];
+  /** The "Bác sĩ" tick on the staff form. */
+  isDentist: boolean;
 }
 
+/**
+ * Every active member of the branch, in one page: a doctor missing from the
+ * list can be neither picked nor preselected for themselves (R-693). 1000 is
+ * the most the server returns per page.
+ */
+const ALL_BRANCH_STAFF = 1000;
+
 async function fetchReceptionDoctors(branchId?: string, availableOn?: string): Promise<ReceptionDoctor[]> {
-  const result = await staffApi.list({ maxResultCount: 50, isActive: true, branchId, availableOn });
+  const result = await staffApi.list({ maxResultCount: ALL_BRANCH_STAFF, isActive: true, branchId, availableOn });
   return result.items.map((s) => ({
     id: s.id,
     name: s.name ?? s.userName ?? "",
     title: s.roleNames[0] ?? t("Reception:Doctor"),
     branchIds: s.branchIds,
+    isDentist: s.isDentist,
   }));
 }
 

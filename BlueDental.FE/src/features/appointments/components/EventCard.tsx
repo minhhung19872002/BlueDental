@@ -3,6 +3,7 @@ import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
 import { buildAppointmentCardMenu } from "./appointmentCardMenu";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
@@ -124,6 +125,7 @@ export const EventCard = React.memo(function EventCard({
     onAction?.(info.key, appointment.id);
   }, [onAction, appointment.id]);
 
+  const patientTab = usePatientLinkTab();
   const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
   const canNavigateToPatient = !appointment.isTemporary
     && appointment.patientId
@@ -132,9 +134,9 @@ export const EventCard = React.memo(function EventCard({
   const handlePatientClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (canNavigateToPatient) {
-      navigate(`/patient/${appointment.patientId}`);
+      navigate(`/patient/${appointment.patientId}?tab=${patientTab}`);
     }
-  }, [navigate, appointment.patientId, canNavigateToPatient]);
+  }, [navigate, appointment.patientId, canNavigateToPatient, patientTab]);
 
   return (
     <div

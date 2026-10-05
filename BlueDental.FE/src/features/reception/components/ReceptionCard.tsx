@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { SearchSelect } from "@/components/SearchSelect";
+import type { PatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
 import type {
   ReceptionItem,
@@ -30,6 +31,8 @@ interface ReceptionCardProps {
   doctors?: { id: string; name: string; title: string }[];
   /** Whether an API call for this card is in flight — shows a spinner overlay. */
   busy?: boolean;
+  /** The record tab the patient's name opens. */
+  patientTab?: PatientLinkTab;
   onOutcomeChange?: (id: string, outcome: AppointmentOutcome) => void;
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
@@ -102,6 +105,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   item,
   doctors = [],
   busy = false,
+  patientTab = "profile",
   onOutcomeChange,
   onDoctorChange,
   onStatusChange,
@@ -167,7 +171,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
       onTemporaryPatientClick?.(item.id);
       return;
     }
-    if (item.patientId) navigate(`/patient/${item.patientId}?tab=appointment`);
+    if (item.patientId) navigate(`/patient/${item.patientId}?tab=${patientTab}`);
   };
 
   return (

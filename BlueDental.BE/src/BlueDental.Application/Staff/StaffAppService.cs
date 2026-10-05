@@ -91,13 +91,7 @@ public class StaffAppService(
             ? users.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()
             : users;
 
-        var dtos = new List<StaffDto>();
-        foreach (var user in paged)
-        {
-            dtos.Add(await MapAsync(user));
-        }
-
-        return new PagedResultDto<StaffDto>(totalCount, dtos);
+        return new PagedResultDto<StaffDto>(totalCount, await MapListAsync(paged));
     }
 
     /// <summary>
@@ -418,7 +412,32 @@ public class StaffAppService(
     {
         var roles = await userManager.GetRolesAsync(user);
         var assignments = await assignmentRepository.GetListAsync(a => a.StaffId == user.Id);
+        return Map(user, roles, assignments.Select(a => a.ClinicBranchId));
+    }
 
+    /// <summary>
+    /// A whole page in two queries — roles, then branches — rather than two per
+    /// person: Tiếp nhận asks for every staff member of the branch once per day
+    /// on the board (R-693).
+    /// </summary>
+    private async Task<List<StaffDto>> MapListAsync(List<Volo.Abp.Identity.IdentityUser> users)
+    {
+        if (users.Count == 0) return [];
+
+        var ids = users.Select(u => u.Id).ToList();
+        var rolesByUser = (await userRepository.GetRoleNamesAsync(ids))
+            .ToDictionary(r => r.Id, r => r.RoleNames);
+        var branchesByUser = (await assignmentRepository.GetListAsync(a => ids.Contains(a.StaffId)))
+            .ToLookup(a => a.StaffId, a => a.ClinicBranchId);
+
+        return users
+            .Select(u => Map(u, rolesByUser.GetValueOrDefault(u.Id) ?? [], branchesByUser[u.Id]))
+            .ToList();
+    }
+
+    private static StaffDto Map(
+        Volo.Abp.Identity.IdentityUser user, IEnumerable<string> roles, IEnumerable<Guid> branchIds)
+    {
         return new StaffDto
         {
             Id = user.Id,
@@ -430,7 +449,7 @@ public class StaffAppService(
             IsActive = user.IsActive,
             CreationTime = user.CreationTime,
             RoleNames = roles.ToList(),
-            BranchIds = assignments.Select(a => a.ClinicBranchId).ToList(),
+            BranchIds = branchIds.ToList(),
 
             // Extended profile — read back from ExtraProperties
             Address            = user.ExtraProperties.GetOrDefault("Address") as string,

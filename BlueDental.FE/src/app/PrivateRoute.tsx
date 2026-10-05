@@ -35,6 +35,9 @@ export function PrivateRoute({ children }: Props) {
         clinicTagline: currentUser.data.clinicTagline,
         roles: currentUser.data.roles,
         permissions: currentUser.data.permissions,
+        isDentist: currentUser.data.isDentist,
+        isAssistant: currentUser.data.isAssistant,
+        isHygienist: currentUser.data.isHygienist,
       });
     } else if (currentUser.isError) {
       clearAuth();

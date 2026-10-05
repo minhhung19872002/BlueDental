@@ -14,6 +14,8 @@ import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import { FollowUpScheduler } from "../components/FollowUpScheduler";
 import { TemporaryPatientDialog, type TemporaryPatientTarget } from "../components/TemporaryPatientDialog";
+import { useOwnDoctorDefault } from "../hooks/useOwnDoctorDefault";
+import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import {
   planOutcomeClick,
   planStepClick,
@@ -87,7 +89,9 @@ export const ReceptionPage: React.FC = () => {
     fetchNextPage,
   } = useReceptionList(filter);
   const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode, branchId, doctorId: selectedDoctorId });
-  const { data: doctors = [] } = useReceptionDoctors(branchId);
+  const { data: doctors = [], isSuccess: doctorsLoaded } = useReceptionDoctors(branchId);
+  useOwnDoctorDefault(doctorsLoaded ? doctors : undefined, setSelectedDoctorId);
+  const patientTab = usePatientLinkTab();
   const updateStatusMutation = useUpdateReceptionStatus();
   const cancelMutation = useCancelReception();
   const assignDentistMutation = useAssignReceptionDentist();
@@ -301,6 +305,7 @@ export const ReceptionPage: React.FC = () => {
                   item={item}
                   doctors={doctorsByDay.get(visitDayOf(item)) ?? []}
                   busy={busyCards.has(item.id)}
+                  patientTab={patientTab}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}

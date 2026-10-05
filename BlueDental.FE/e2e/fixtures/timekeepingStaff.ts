@@ -94,6 +94,7 @@ export async function createRunStaff(
     name?: string;
     isDentist?: boolean;
     isAssistant?: boolean;
+    isHygienist?: boolean;
     roleNames?: string[];
     branchIds?: string[];
   } = {},
