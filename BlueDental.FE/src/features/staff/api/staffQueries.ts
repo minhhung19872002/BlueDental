@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { STAFF_ROLE } from "@/hooks/useStaffOptions";
 import {
   staffApi,
   type CreateStaffInput,
@@ -78,12 +79,17 @@ export function useDentistList(availableOn?: string) {
     // until the new day's list replaces it.
     placeholderData: availableOn ? keepPreviousData : undefined,
     queryFn: async () => {
-      const result = await staffApi.list({ maxResultCount: 50, isActive: true, availableOn });
-      const dentists = result.items.filter((s) => s.isDentist);
+      // Staff ticked "Bác sĩ", filtered on the server. Filtering a 50-row page
+      // here, with eight of anyone as a fallback, offered untagged staff as
+      // doctors (owner, 2026-10-05).
+      const result = await staffApi.list({
+        maxResultCount: 1000,
+        isActive: true,
+        availableOn,
+        role: STAFF_ROLE.Dentist,
+      });
 
-      const chosen = dentists.length > 0 ? dentists : result.items.slice(0, 8);
-
-      return chosen.map((s) => ({
+      return result.items.map((s) => ({
         ...s,
         name: s.fullName || s.userName,
       }));
