@@ -369,7 +369,7 @@ async function addStage(
       ).json();
       const service = plan.services.find((item: { id: string }) => item.id === target.serviceId);
       const staff = await (
-        await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
+        await fetch("/api/v1/app/staff?MaxResultCount=1&Role=1", { credentials: "include" })
       ).json();
 
       type Stage = {
@@ -1936,7 +1936,7 @@ test.describe("Bệnh nhân", () => {
         treatmentPlanId: string | null;
         teeth: unknown[];
       }[];
-      const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1")).json()).items[0]
+      const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1&Role=1")).json()).items[0]
         .id;
 
       // Two different services on one patient's diagnosis, so the slip really

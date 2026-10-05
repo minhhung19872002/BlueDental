@@ -121,7 +121,7 @@ async function freshLine(page: Page): Promise<Line> {
 }
 
 async function staffId(page: Page): Promise<string> {
-  const res = await call(page, "GET", "/api/v1/app/staff?MaxResultCount=1");
+  const res = await call(page, "GET", "/api/v1/app/staff?MaxResultCount=1&Role=1");
   return (res.json as { items: { id: string }[] }).items[0].id;
 }
 

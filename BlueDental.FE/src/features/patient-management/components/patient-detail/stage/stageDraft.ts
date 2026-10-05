@@ -81,6 +81,37 @@ export function initialDraft(
   };
 }
 
+/**
+ * Drops a starting name the matching picker would not offer — a Bác sĩ not
+ * ticked "Bác sĩ", a Phụ tá ticked neither "Phụ tá" nor "Y sĩ", or someone OFF
+ * today — so the form asks instead of carrying it in (owner, 2026-10-05).
+ * A pool still loading keeps the draft as it is.
+ */
+export function keepEligibleStaff(
+  draft: StageDraft,
+  dentists: ReadonlySet<string> | undefined,
+  assistants: ReadonlySet<string> | undefined,
+): StageDraft {
+  const fits = (id: string | undefined, pool: ReadonlySet<string> | undefined) =>
+    !id || !pool || pool.has(id);
+  const staffOk = fits(draft.staffId, dentists);
+  const subOk = fits(draft.subStaffId, assistants);
+  const secondOk = fits(draft.secondStaffId, dentists);
+  if (staffOk && subOk && secondOk) return draft;
+
+  return {
+    ...draft,
+    staffId: staffOk ? draft.staffId : undefined,
+    subStaffId: subOk ? draft.subStaffId : undefined,
+    secondStaffId: secondOk ? draft.secondStaffId : undefined,
+    labels: {
+      staff: staffOk ? draft.labels.staff : null,
+      subStaff: subOk ? draft.labels.subStaff : null,
+      secondStaff: secondOk ? draft.labels.secondStaff : null,
+    },
+  };
+}
+
 /** Whether closing now would throw this form's work away — see the dialog. */
 export const isDraftDirty = (draft: StageDraft): boolean =>
   draft.note.trim().length > 0 || draft.pending.length > 0;

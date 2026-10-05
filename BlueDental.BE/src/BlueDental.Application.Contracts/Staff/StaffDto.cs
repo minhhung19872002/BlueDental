@@ -57,6 +57,22 @@ public class GetStaffListInput : PagedAndSortedResultRequestDto
     /// registered either way still appear.
     /// </summary>
     public DateOnly? AvailableOn { get; set; }
+
+    /// <summary>
+    /// The role a picker fills, read off the Bác sĩ / Phụ tá / Y sĩ boxes on the
+    /// staff form. Staff with none of the boxes ticked never qualify.
+    /// </summary>
+    public StaffPickerRole? Role { get; set; }
+}
+
+/// <summary>Which people a staff picker offers (owner, 2026-10-05).</summary>
+public enum StaffPickerRole
+{
+    /// <summary>Bác sĩ, Bác sĩ hỗ trợ — staff ticked "Bác sĩ".</summary>
+    Dentist = 1,
+
+    /// <summary>Phụ tá — staff ticked "Phụ tá" or "Y sĩ".</summary>
+    Assistant = 2,
 }
 
 public class CreateStaffDto

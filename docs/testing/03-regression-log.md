@@ -6649,3 +6649,12 @@ Retest level **2** (CSKH).
 | R-706 | Lọc tháng 9, tab Chúc mừng sinh nhật hiện khách "KHÔNG NGÀY SINH" (có khách 2 dòng). | Các dòng đó là phiếu "Happy Birthday" do test e2e cũ (`cskh.spec.ts` file-heart, đã sửa ở R-705) `POST` tay với `dueAt` = lúc chạy test; tab chỉ lọc theo `DueAt` nên hiện ra. Tab giờ chỉ lấy phiếu của bệnh nhân **có ngày sinh rơi vào khoảng lọc** (`CareBirthdayRules.PatientIdsBornIn`, dùng chung với `CareTaskSync`). Dữ liệu rác cũ vẫn nằm trong DB nhưng không còn hiện. |
 
 Kiểm chứng: `cskh-generated-tabs.spec.ts` 3/3 — thêm bước tạo tay phiếu sinh nhật cho khách không có ngày sinh → không hiện; `cskh.spec.ts` 7/8 (đỏ có sẵn "creates a special care task"). Retest level **2**.
+
+## 2026-10-05 — Chi tiết phiếu: ô Bác sĩ / Phụ tá / Bác sĩ hỗ trợ hiện người chưa tick vai trò (R-682 … R-683)
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-682 | Nhân viên chưa tick Bác sĩ/Phụ tá/Y sĩ (vd. "BAC SI 993956") vẫn nằm sẵn trong ô Bác sĩ khi Tiếp tục công đoạn và có trong danh sách. | Hai nguyên nhân: (1) form điền sẵn bác sĩ của công đoạn trước / dòng / phiếu / người đăng nhập mà không kiểm tra vai trò, và `ServerSearchSelect` chèn giá trị đang chọn vào danh sách; (2) hook lọc `isDentist` trên trang 20 dòng ở trình duyệt, không ai khớp thì trả **tất cả**. Sửa: `GET staff?Role=1` (Bác sĩ) / `Role=2` (Phụ tá **hoặc Y sĩ**) lọc ở server, bỏ fallback; composer bỏ tên điền sẵn không thuộc nhóm (`keepEligibleStaff` + `useStaffRoleIds`, có tính cả OFF hôm nay) → form báo "Vui lòng chọn bác sĩ". `useDentistStaffOptions` (CSKH, Labo, báo cáo, lịch hẹn) cũng lọc ở server, không còn fallback. |
+| R-683 | E2E dựng công đoạn bằng "nhân viên đầu tiên" (người chưa tick vai trò) rồi Tiếp tục qua giao diện. | Các helper đổi sang `staff?MaxResultCount=1&Role=1`; `treatment-stage-chain` chọn bác sĩ trước khi lưu ở tab Thêm công đoạn (phiếu demo không có bác sĩ được tick). |
+
+Kiểm chứng (dev :5173, host thật :5000, PostgreSQL thật): `stage-staff-pickers.spec.ts` **1/1** mới — công đoạn trước do người chưa tick làm → ô Bác sĩ trống; tìm tên người đó ở cả 3 ô không ra; Y sĩ có trong Phụ tá, không có trong Bác sĩ; bác sĩ không có trong Phụ tá. `treatment-stage-chain` 8/8, `treatment-plan-detail` + `cskh-after-treatment` xanh, `patient-appointment` + `reception-doctor-list` xanh. `patient.spec` nhóm công đoạn: 7 đỏ **có sẵn** (6 do DB local hết dòng dịch vụ còn răng chưa làm — helper dòng 155; 1 ở nhãn "Nội dung điều trị" dòng 2247) — đỏ y hệt khi stash thay đổi này. `tsc` sạch. Retest level **3** (hook chọn nhân viên dùng chung).
