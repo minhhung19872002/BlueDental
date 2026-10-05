@@ -25,6 +25,14 @@ public static class ClinicCalendar
         return DateOnly.FromDateTime(local.DateTime);
     }
 
+    /// <summary>The instant a clinic-local day starts, in UTC.</summary>
+    public static DateTimeOffset StartOfDay(DateOnly day)
+    {
+        var local = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var offset = Zone?.GetUtcOffset(local) ?? FallbackOffset;
+        return new DateTimeOffset(local, offset).ToUniversalTime();
+    }
+
     private static TimeZoneInfo? FindZone()
     {
         foreach (var id in TimeZoneIds)

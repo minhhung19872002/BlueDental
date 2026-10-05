@@ -8,6 +8,7 @@ export type CareTabKey =
   | "birthday"
   | "remind-appointment"
   | "no-service"
+  | "missed-appointment"
   | "periodic"
   | "special";
 
@@ -63,9 +64,9 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showCareStaff: false,
     showCreate: false,
     showSend: true,
-    fileHeart: "result",
+    fileHeart: null,
     wideTable: false,
-    statusModel: "result",
+    statusModel: "contact",
   },
   {
     key: "remind-appointment",
@@ -75,9 +76,9 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showCareStaff: true,
     showCreate: false,
     showSend: true,
-    fileHeart: "result",
+    fileHeart: null,
     wideTable: true,
-    statusModel: "result",
+    statusModel: "contact",
   },
   {
     key: "no-service",
@@ -90,6 +91,19 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     fileHeart: "result",
     wideTable: false,
     statusModel: "result",
+  },
+  {
+    // Owner, 2026-10-05: bookings 5+ minutes past their time with no arrival.
+    key: "missed-appointment",
+    type: CARE_TYPE.MissedAppointment,
+    label: () => t("CSKH:Type:MissedAppointment"),
+    showDoctor: true,
+    showCareStaff: false,
+    showCreate: false,
+    showSend: false,
+    fileHeart: null,
+    wideTable: true,
+    statusModel: "contact",
   },
   {
     key: "periodic",

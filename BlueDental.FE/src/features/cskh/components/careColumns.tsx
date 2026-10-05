@@ -121,6 +121,13 @@ const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareR
     careDateColumn(),
     c.patient, c.phone, c.doctor, c.careStaff, c.upcoming, c.status, c.note, c.actions,
   ],
+  "missed-appointment": (c) => [
+    appointmentColumn(),
+    c.patient, c.phone, c.doctor,
+    appointmentContentColumn(),
+    appointmentStatusColumn(),
+    c.upcoming, c.status, c.note, c.actions,
+  ],
   periodic: periodicColumns,
   special: periodicColumns,
 };

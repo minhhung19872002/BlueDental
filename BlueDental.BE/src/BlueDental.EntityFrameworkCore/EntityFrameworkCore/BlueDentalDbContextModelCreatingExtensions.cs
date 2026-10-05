@@ -717,6 +717,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Outcome).HasConversion<short>();
             entity.PrimitiveCollection(x => x.StageIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.IsClosed);
+            entity.Ignore(x => x.IsContacted);
+            // Nhắc lịch hẹn / Đặt lịch không đến are joined to their appointment.
+            entity.HasIndex(x => new { x.Type, x.AppointmentId });
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.Type, x.DueAt });

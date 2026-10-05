@@ -957,6 +957,7 @@
     "CSKH:Type:Special": "CSKH đặc biệt",
     "CSKH:Type:Base": "Chăm sóc",
     "CSKH:Type:NoService": "Không làm dịch vụ",
+    "CSKH:Type:MissedAppointment": "Đặt lịch không đến",
     "CSKH:Treatment:Created": "Chưa phát sinh",
     "CSKH:Treatment:InProgress": "Đang điều trị",
     "CSKH:Treatment:Done": "Hoàn tất",

@@ -6426,3 +6426,17 @@ Yêu cầu chủ dự án: tiếp tục công đoạn → mỗi ngày điều tr
 
 Kiểm chứng (dev server :5173, host thật :5000 Development, PostgreSQL thật, migration áp bằng DbMigrator): `e2e/cskh-after-treatment.spec.ts` **1/1** — tiếp tục công đoạn qua dialog thật → đúng 1 phiếu hôm nay, tiếp tục lần 2 cùng ngày vẫn 1 phiếu, có cả 2 công đoạn → trang mở ở Tháng, cột Ngày điều trị, Ngày chăm sóc "—" → đổi sang Đã liên hệ → reload vẫn giữ, Ngày chăm sóc = hôm nay, `contact-logs` có dòng mới kèm người đổi. `treatment-stage-chain.spec.ts` 7/7, `patient-care.spec.ts` 2/2, `cskh.spec.ts` 6/8: đỏ có sẵn — "creates a special care task" (locator `combobox` lọc theo nhãn nổi, đỏ cả khi stash thay đổi này) và "file-heart … birthday" (không idempotent: chạy lại trong cùng ngày thì dòng đầu đã Thành công nên click bỏ chọn; lần chạy đầu xanh). Domain.Tests 47/47, Application.Tests (CustomerCare + TreatmentManagement) 187/187, `tsc` sạch.
 Retest level **3** (đụng `TreatmentStageAppService` dùng chung với Chi tiết phiếu).
+
+## 2026-10-05 — CSKH: Sinh nhật / Nhắc lịch hẹn lấy từ dữ liệu thật, thêm tab Đặt lịch không đến (R-677 … R-680)
+
+Yêu cầu chủ dự án (3 ảnh chú thích). Chi tiết: `docs/clone/pages/cskh-grouping.md`.
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-677 | Tab Sinh nhật / Nhắc lịch hẹn chỉ có dữ liệu seed — không có gì tạo phiếu. | `CareTaskSync` (gọi trong `FilteredQueryAsync`, chạy trong UoW riêng sau một khoá trong tiến trình vì list + stats tới cùng lúc) tạo phiếu còn thiếu cho khoảng đang xem; kiểm tra tồn tại bỏ qua soft-delete để phiếu đã xoá không sống lại. |
+| R-678 | Thêm tab Đặt lịch không đến. | `CareType.MissedAppointment = 8`; `CareAppointmentRules` dùng chung cho đồng bộ và truy vấn: quá giờ > 5 phút, trạng thái Requested/Confirmed/NoShow. Tab Nhắc lịch hẹn bỏ lịch Cancelled. Lọc theo lịch hẹn sống nên dời/huỷ/check-in có hiệu lực ngay. Migration `CareTabsFromAppointments` (index `Type, AppointmentId`). |
+| R-679 | Chuyển 2 trạng thái làm bộ đếm "Đã liên hệ" bỏ sót phiếu Thành công/Thất bại cũ; `SetContacted` từ chối phiếu đã đóng. | `CareRecord.IsContacted` = khác Mới và khác Huỷ; `SetContacted` chỉ chặn phiếu huỷ. Bộ đếm và bộ lọc dùng tham số `contacted` thay vì một `status`. |
+| R-680 | E2E: dropdown trạng thái không mở khi bấm ngay sau khi gõ tìm kiếm / trên tab bảng cuộn ngang. | Không phải lỗi UI: (1) bấm trước khi request tìm kiếm (debounce) về → dòng bị thay, dropdown đóng; (2) cuộn tối thiểu đặt dropdown dưới cột Thao tác ghim phải. Spec chờ request `filter=` và cuộn dropdown ra giữa trước khi bấm. Test file-heart cũ chuyển sang tab Không làm dịch vụ và nhắm đúng dòng vừa seed (hết phụ thuộc thứ tự chạy). |
+
+Kiểm chứng (dev server :5173, host thật :5000, PostgreSQL thật, migration qua DbMigrator): `e2e/cskh-generated-tabs.spec.ts` **6/6** (3 test × 2 lần): sinh nhật tháng này có trong mặc định Tháng, khách sinh tháng khác không có, bộ đếm Chưa liên hệ gửi `contacted=false`, đổi Đã liên hệ → reload giữ + có log; lịch hẹn ngày mai có trong Nhắc lịch hẹn, huỷ thì mất; lịch đã quá giờ chưa đến có trong Đặt lịch không đến, lịch còn phía trước thì không, check-in thì mất. `cskh.spec.ts` 7/8 (đỏ có sẵn: "creates a special care task"), `cskh-after-treatment.spec.ts` 1/1, `patient-care.spec.ts` 2/2. Domain.Tests CustomerCare 14/14, Application.Tests 187/187, `tsc` sạch.
+Retest level **2** (CSKH).

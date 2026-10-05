@@ -38,6 +38,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly CareTaskSync _taskSync;
 
     public CustomerCareAppService(
         IRepository<CareRecord, Guid> repository,
@@ -51,7 +52,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         IRepository<CatalogEntry, Guid> catalogRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        CareTaskSync taskSync)
     {
         _repository = repository;
         _contactLogRepository = contactLogRepository;
@@ -65,6 +67,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         _userRepository = userRepository;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
+        _taskSync = taskSync;
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.View)]
@@ -104,7 +107,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 NotCaredYet = g.Count(r =>
                     r.Status == CareStatus.New || r.Status == CareStatus.Contacted),
                 ZaloSent = g.Count(r => r.ZaloSentAt.HasValue),
-                Contacted = g.Count(r => r.Status == CareStatus.Contacted),
+                // A Thành công / Thất bại left by the older result dialog was reached too.
+                Contacted = g.Count(r => r.Status == CareStatus.Contacted
+                    || r.Status == CareStatus.Succeeded
+                    || r.Status == CareStatus.Failed),
                 NotContacted = g.Count(r => r.Status == CareStatus.New),
                 Good = g.Count(r => r.Outcome == CareOutcome.Good),
                 Fair = g.Count(r => r.Outcome == CareOutcome.Fair),
@@ -449,6 +455,12 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         GetCareRecordListInput input, bool applyStatus)
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
+
+        // Sinh nhật / Nhắc lịch hẹn / Đặt lịch không đến list rows the clinic
+        // never filed by hand; make sure each has its task before reading.
+        if (input.Type.HasValue && input.FromDate.HasValue && input.ToDate.HasValue)
+            await _taskSync.EnsureAsync(input.Type.Value, branchFilter, input.FromDate.Value, input.ToDate.Value);
+
         var query = (await _repository.GetQueryableAsync());
         if (branchFilter.Count > 0)
             query = query.Where(r => branchFilter.Contains(r.BranchId));
@@ -457,6 +469,14 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             query = query.Where(r => r.PatientId == input.PatientId.Value);
         if (applyStatus && input.Status.HasValue)
             query = query.Where(r => r.Status == input.Status.Value);
+        if (applyStatus && input.Contacted.HasValue)
+        {
+            query = input.Contacted.Value
+                ? query.Where(r => r.Status == CareStatus.Contacted
+                    || r.Status == CareStatus.Succeeded
+                    || r.Status == CareStatus.Failed)
+                : query.Where(r => r.Status == CareStatus.New);
+        }
         if (input.Type.HasValue)
             query = query.Where(r => r.Type == input.Type.Value);
         if (input.Outcome.HasValue)
@@ -486,6 +506,21 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 await _patientRepository.GetQueryableAsync());
         }
 
+        // Nhắc lịch hẹn / Đặt lịch không đến read the window and the rule off
+        // the live appointment, so a moved, cancelled or late-arrived booking
+        // leaves the tab at once (owner, 2026-10-05).
+        if (CareAppointmentRules.IsAppointmentDriven(input.Type))
+        {
+            var appointments = CareAppointmentRules.Matching(
+                await _appointmentRepository.GetQueryableAsync(),
+                input.Type!.Value, input.FromDate, input.ToDate, Clock.Now);
+            var appointmentIds = appointments.Select(a => a.Id);
+            query = query.Where(r => r.AppointmentId.HasValue && appointmentIds.Contains(r.AppointmentId.Value));
+
+            return ApplyPatientFilter(query, input.Filter, branchFilter,
+                await _patientRepository.GetQueryableAsync(), appointments);
+        }
+
         // The reference windows periodic/special by the care-appointment slot
         // and every other tab by the care date.
         // Npgsql requires UTC offset for timestamptz parameters.
@@ -510,11 +545,16 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             await _patientRepository.GetQueryableAsync());
     }
 
+    /// <summary>
+    /// Tìm kiếm — the patient profile, or for appointment-driven tabs also the
+    /// name and phone a Lịch tạm was booked under.
+    /// </summary>
     private static IQueryable<CareRecord> ApplyPatientFilter(
         IQueryable<CareRecord> query,
         string? filter,
         IReadOnlyList<Guid> branchFilter,
-        IQueryable<Patient> patientQuery)
+        IQueryable<Patient> patientQuery,
+        IQueryable<Appointment>? appointments = null)
     {
         if (string.IsNullOrWhiteSpace(filter))
             return query;
@@ -523,7 +563,17 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         if (branchFilter.Count > 0)
             patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
         var matchedIds = patientQuery.Select(p => p.Id);
-        return query.Where(r => matchedIds.Contains(r.PatientId));
+        if (appointments is null)
+            return query.Where(r => matchedIds.Contains(r.PatientId));
+
+        var text = filter.Trim().ToLower();
+        var temporaryIds = appointments
+            .Where(a => a.IsTemporary
+                && ((a.PatientName != null && a.PatientName.ToLower().Contains(text))
+                    || (a.PatientPhone != null && a.PatientPhone.Contains(text))))
+            .Select(a => a.Id);
+        return query.Where(r => matchedIds.Contains(r.PatientId)
+            || (r.AppointmentId.HasValue && temporaryIds.Contains(r.AppointmentId.Value)));
     }
 
     /// <summary>Tìm kiếm — patient code, full name or phone, case-insensitive.</summary>
@@ -541,7 +591,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         CareType.AfterTreatment => query
             .OrderByDescending(r => r.TreatmentDate)
             .ThenByDescending(r => r.CreationTime),
-        CareType.NoService => query.OrderByDescending(r => r.DueAt),
+        CareType.NoService or CareType.MissedAppointment => query.OrderByDescending(r => r.DueAt),
         CareType.Birthday or CareType.AppointmentReminder => query.OrderBy(r => r.DueAt),
         CareType.Periodic or CareType.Special => query.OrderByDescending(r => r.ScheduledStart),
         _ => query.OrderByDescending(r => r.CreationTime),
@@ -671,6 +721,13 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             if (record.AppointmentId.HasValue
                 && linkedAppointments.TryGetValue(record.AppointmentId.Value, out var appointment))
             {
+                // A Lịch tạm has no profile: show who the booking was made for.
+                if (appointment.IsTemporary && dto.PatientName is null)
+                {
+                    dto.PatientName = appointment.PatientName;
+                    dto.PatientPhone = appointment.PatientPhone;
+                }
+
                 dto.AppointmentStatus = appointment.Status;
                 dto.AppointmentContent = appointment.ChiefComplaint ?? appointment.Notes;
             }

@@ -13,6 +13,7 @@ export const CARE_TYPE = {
   Special: 5,
   Base: 6,
   NoService: 7,
+  MissedAppointment: 8,
 } as const;
 export type CareType = (typeof CARE_TYPE)[keyof typeof CARE_TYPE];
 
@@ -61,6 +62,7 @@ export const careTypeLabels = (): Record<CareType, string> => ({
   [CARE_TYPE.Special]: t("CSKH:Type:Special"),
   [CARE_TYPE.Base]: t("CSKH:Type:Base"),
   [CARE_TYPE.NoService]: t("CSKH:Type:NoService"),
+  [CARE_TYPE.MissedAppointment]: t("CSKH:Type:MissedAppointment"),
 });
 
 export const careGenderLabels = (): Record<CareGender, string> => ({
@@ -167,6 +169,8 @@ export interface GetCareRecordListInput {
   fromDate?: string;
   toDate?: string;
   filter?: string;
+  /** Đã liên hệ (true) / Chưa liên hệ (false) — the contact tabs' counters. */
+  contacted?: boolean;
 }
 
 export interface CareStatsDto {

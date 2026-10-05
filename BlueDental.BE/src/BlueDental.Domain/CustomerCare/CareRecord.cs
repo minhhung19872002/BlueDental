@@ -144,34 +144,44 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>Đã liên hệ — anything past "not reached yet", short of cancelled.</summary>
+    public bool IsContacted => Status is not (CareStatus.New or CareStatus.Cancelled);
+
     /// <summary>
-    /// Đã liên hệ / Chưa liên hệ — the two states of the sau-điều-trị tab, and
-    /// either may be set back. A sau-điều-trị task's Ngày chăm sóc is the moment
-    /// the patient was reached, so it follows the flag. Returns false when the
-    /// task already was in that state, so callers log real changes only.
+    /// Đã liên hệ / Chưa liên hệ — the two states of the sau-điều-trị, sinh nhật,
+    /// nhắc lịch hẹn and đặt-lịch-không-đến tabs, and either may be set back. A
+    /// Thành công / Thất bại left by the older result dialog reads as contacted.
+    /// A sau-điều-trị task's Ngày chăm sóc is the moment the patient was
+    /// reached, so it follows the flag. Returns false when the task already was
+    /// in that state, so callers log real changes only.
     /// </summary>
     public bool SetContacted(bool contacted, DateTimeOffset at)
     {
-        if (Status is not (CareStatus.New or CareStatus.Contacted))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.CustomerCare.InvalidTransition,
-                $"Phiếu chăm sóc ở trạng thái {Status} không đổi được trạng thái liên hệ.");
-        }
+        GuardNotCancelled();
 
-        var next = contacted ? CareStatus.Contacted : CareStatus.New;
-        if (Status == next)
+        if (IsContacted == contacted)
         {
             return false;
         }
 
-        Status = next;
+        Status = contacted ? CareStatus.Contacted : CareStatus.New;
         if (Type == CareType.AfterTreatment)
         {
             DueAt = contacted ? at : null;
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Nhắc lịch hẹn / Đặt lịch không đến follow their appointment: a moved
+    /// appointment moves the task's date and doctor with it.
+    /// </summary>
+    public CareRecord FollowAppointment(DateTimeOffset start, Guid? dentistId)
+    {
+        DueAt = start;
+        AssignedStaffId = dentistId;
+        return this;
     }
 
     /// <summary>

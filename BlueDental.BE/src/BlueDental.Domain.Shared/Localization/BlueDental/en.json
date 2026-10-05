@@ -1058,6 +1058,7 @@
     "CSKH:Type:Special": "Special care",
     "CSKH:Type:Base": "Care",
     "CSKH:Type:NoService": "No service",
+    "CSKH:Type:MissedAppointment": "Booked, no-show",
     "CSKH:Treatment:Created": "Not started",
     "CSKH:Treatment:InProgress": "In progress",
     "CSKH:Treatment:Done": "Completed",

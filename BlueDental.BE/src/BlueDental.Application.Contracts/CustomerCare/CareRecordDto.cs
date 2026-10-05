@@ -129,6 +129,9 @@ public class GetCareRecordListInput : PagedAndSortedResultRequestDto
 
     /// <summary>Tìm kiếm (reference <c>q</c>) — patient name / code / phone.</summary>
     public string? Filter { get; set; }
+
+    /// <summary>Đã liên hệ (true) / Chưa liên hệ (false) counters of the contact tabs.</summary>
+    public bool? Contacted { get; set; }
 }
 
 public class SucceedCareRecordDto

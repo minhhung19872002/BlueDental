@@ -360,3 +360,24 @@ Không phải hành vi đo từ bản gốc — chủ dự án yêu cầu trực
 - Mỗi lần đổi trạng thái liên hệ ghi một dòng `bd_care_contact_logs` (ai, lúc nào, trạng
   thái sau khi đổi, ghi chú). API đọc: `GET care-records/{id}/contact-logs`.
   UNKNOWN_REFERENCE_BEHAVIOR: giao diện xem lịch sử liên hệ — chủ dự án sẽ thiết kế sau.
+
+## Sinh nhật, Nhắc lịch hẹn, Đặt lịch không đến (yêu cầu chủ dự án, 2026-10-05)
+
+Không phải hành vi đo từ bản gốc — chủ dự án yêu cầu trực tiếp (ảnh chú thích 2026-10-05).
+
+- **Chúc mừng sinh nhật**: mọi bệnh nhân có ngày sinh rơi vào khoảng đang lọc — khách cũ
+  và khách mới tạo hồ sơ khi đặt lịch, kể cả lịch đã huỷ. Sinh nhật 29/02 năm thường tính
+  ngày 28/02. **Lịch tạm** (chỉ có tên + SĐT, chưa có hồ sơ) không có ngày sinh nên không
+  vào được tab này.
+- **Nhắc lịch hẹn**: mọi lịch hẹn trong khoảng lọc, trừ lịch đã huỷ (gồm cả Lịch tạm —
+  hiển thị tên/SĐT của lịch). Huỷ hoặc dời lịch thì dòng rời tab ngay.
+- **Đặt lịch không đến** (tab mới, `page=missed-appointment`, `CareType.MissedAppointment = 8`):
+  lịch đã quá giờ hẹn hơn 5 phút mà vẫn ở trạng thái Đã đặt / Đã xác nhận / Trễ hẹn.
+  Khách đến muộn (check-in) thì dòng rời tab. Cột: Lịch hẹn · Họ và tên · SĐT · Bác sĩ ·
+  Nội dung hẹn · Trạng thái lịch hẹn · Lịch hẹn sắp tới · Trạng thái · Ghi chú · Thao tác.
+- Cả ba: mặc định Tháng hiện tại; trạng thái Đã liên hệ / Chưa liên hệ có ghi log
+  (`bd_care_contact_logs`), bỏ hộp thoại kết quả Thành công/Thất bại trên hai tab cũ.
+  Phiếu Thành công/Thất bại cũ được tính là Đã liên hệ.
+- Cơ chế: khi bảng mở một khoảng ngày, `CareTaskSync` tạo phiếu còn thiếu (mỗi bệnh nhân
+  một phiếu cho mỗi lần sinh nhật; mỗi lịch hẹn một phiếu) — phiếu đã xoá không tạo lại.
+  Hai tab theo lịch hẹn lọc bằng giờ và trạng thái **hiện tại** của lịch hẹn.

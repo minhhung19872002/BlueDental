@@ -10,7 +10,8 @@ import { BRANCH2_USER, assertRealApiTraffic, login, runId } from "./fixtures/aut
  * The board keeps tab/page/care_dateMode/care_date in the URL; counters come
  * from GET /care-records/stats; each care-type tab windows the list by date.
  * Tạo mới exists only on CSKH định kì / CSKH đặc biệt; the file-heart dialog
- * on Chúc mừng sinh nhật / Nhắc lịch hẹn saves a Thành công/Thất bại result.
+ * on Không làm dịch vụ saves a Thành công/Thất bại result. Sinh nhật / Nhắc
+ * lịch hẹn use Đã liên hệ / Chưa liên hệ instead (cskh-generated-tabs.spec.ts).
  */
 
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
@@ -47,7 +48,7 @@ async function apiPost(
   page: Page,
   url: string,
   body: Record<string, unknown>,
-): Promise<{ status: number }> {
+): Promise<{ status: number; id: string | null }> {
   return page.evaluate(
     async (input: { url: string; body: Record<string, unknown> }) => {
       const xsrf = document.cookie
@@ -63,7 +64,8 @@ async function apiPost(
         },
         body: JSON.stringify(input.body),
       });
-      return { status: res.status };
+      const json = await res.json().catch(() => null);
+      return { status: res.status, id: json?.id ?? null };
     },
     { url, body },
   );
@@ -207,32 +209,31 @@ test.describe("CSKH", () => {
     await expect(persistedRow.locator("textarea.cskh-note-input")).toHaveValue(note);
   });
 
-  test("the file-heart dialog saves a care result on the birthday tab", async ({ page }) => {
-    await page.goto("/cskh-grouping?tab=care&page=birthday&care_dateMode=day");
+  test("the file-heart dialog saves a care result on the no-service tab", async ({ page }) => {
+    await page.goto("/cskh-grouping?tab=care&page=no-service&care_dateMode=day");
     await assertRealApiTraffic(page, "/api/v1/app/care-records/stats");
 
-    // The UI has no create path for birthday records (the reference generates
-    // them elsewhere), so seed one through the real API for today.
+    // Không làm dịch vụ tasks come from a nightly worker, so seed a fresh one
+    // through the real API for today — and target that row, not the first one,
+    // so a second run the same day does not reopen an already-saved task.
     const patientId = await firstPatientId(page);
     const now = new Date().toISOString();
     const seeded = await apiPost(page, "/api/v1/app/care-records", {
       patientId,
       branchId: BRANCH_ONE,
-      type: 2,
-      subject: "Happy Birthday",
+      type: 7,
+      subject: "Không làm dịch vụ",
       dueAt: now,
-      scheduledStart: now,
-      scheduledEnd: now,
       status: 1,
     });
-    expect(seeded.status, "seeding a birthday care record should succeed").toBeLessThan(300);
+    expect(seeded.status, "seeding a no-service care record should succeed").toBeLessThan(300);
     await page.reload();
 
-    const row = page.locator("tr.ant-table-row").first();
+    const row = page.locator(`tr.ant-table-row[data-row-key="${seeded.id}"]`);
     await expect(row).toBeVisible();
     await row.locator("button.cskh-action--care").click();
 
-    const dialog = page.getByRole("dialog").filter({ hasText: "Chúc mừng sinh nhật" });
+    const dialog = page.getByRole("dialog").filter({ hasText: "Không làm dịch vụ" });
     await expect(dialog).toBeVisible();
 
     // Lưu needs a result picked.

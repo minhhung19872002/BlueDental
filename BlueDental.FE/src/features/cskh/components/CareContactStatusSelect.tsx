@@ -11,9 +11,13 @@ interface CareContactStatusSelectProps {
   onChange: (contacted: boolean) => void;
 }
 
-/** Đã liên hệ / Chưa liên hệ of a Sau điều trị row; each change is logged server-side. */
+/**
+ * Đã liên hệ / Chưa liên hệ of a contact-tab row; each change is logged
+ * server-side. A Thành công / Thất bại from the older result dialog reads as
+ * reached, like the server's own rule.
+ */
 export function CareContactStatusSelect({ status, pending, disabled, onChange }: CareContactStatusSelectProps) {
-  const contacted = status === CARE_STATUS.Contacted;
+  const contacted = status !== CARE_STATUS.New && status !== CARE_STATUS.Cancelled;
   return (
     <Select<ContactValue>
       size="small"

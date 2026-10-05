@@ -84,13 +84,48 @@ public class AfterTreatmentCareTests
     }
 
     [Fact]
-    public void A_finished_task_refuses_the_contact_toggle()
+    public void A_result_left_by_the_old_dialog_reads_as_contacted_and_can_be_set_back()
     {
         var record = Open();
         record.Succeed(CareOutcome.Good);
 
-        Should.Throw<BusinessException>(() => record.SetContacted(false, DateTimeOffset.UtcNow))
+        record.IsContacted.ShouldBeTrue();
+        record.SetContacted(true, DateTimeOffset.UtcNow).ShouldBeFalse();
+        record.SetContacted(false, DateTimeOffset.UtcNow).ShouldBeTrue();
+        record.Status.ShouldBe(CareStatus.New);
+    }
+
+    [Fact]
+    public void A_cancelled_task_refuses_the_contact_toggle()
+    {
+        var record = Open();
+        record.Cancel("Trùng phiếu");
+
+        Should.Throw<BusinessException>(() => record.SetContacted(true, DateTimeOffset.UtcNow))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.CustomerCare.InvalidTransition);
+    }
+
+    [Fact]
+    public void A_reminder_follows_its_moved_appointment()
+    {
+        var start = new DateTimeOffset(2026, 10, 20, 2, 0, 0, TimeSpan.Zero);
+        var dentist = Guid.NewGuid();
+        var record = new CareRecord(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), CareType.AppointmentReminder, "Nhắc lịch hẹn",
+            dueAt: start.AddDays(-3), appointmentId: Guid.NewGuid());
+
+        record.FollowAppointment(start, dentist);
+
+        record.DueAt.ShouldBe(start);
+        record.AssignedStaffId.ShouldBe(dentist);
+    }
+
+    [Theory]
+    [InlineData("2026-10-05", "2026-10-04T17:00:00Z")]
+    [InlineData("2026-01-01", "2025-12-31T17:00:00Z")]
+    public void A_clinic_day_starts_at_local_midnight(string day, string expected)
+    {
+        ClinicCalendar.StartOfDay(DateOnly.Parse(day)).ShouldBe(DateTimeOffset.Parse(expected));
     }
 
     [Fact]

@@ -22,6 +22,7 @@ public static class CareExportColumns
         CareType.Birthday => Birthday,
         CareType.AppointmentReminder => Reminder,
         CareType.NoService => NoService,
+        CareType.MissedAppointment => Missed,
         _ => Scheduled,
     };
 
@@ -57,6 +58,23 @@ public static class CareExportColumns
     ];
 
     /// <summary>Nhắc lịch hẹn — 12 cột.</summary>
+    /// <summary>Đặt lịch không đến — the reminder sheet with Lịch hẹn sắp tới instead of NV chăm sóc.</summary>
+    private static readonly ExcelColumn<CareRecordDto>[] Missed =
+    [
+        new("Lịch hẹn", r => DateTimeText(r.DueAt), 20),
+        new("Mã KH", r => r.PatientCode, 14),
+        new("Họ và tên", r => r.PatientName, 24),
+        new("Giới tính", r => GenderLabel(r.PatientGender), 12),
+        new("Ngày sinh", r => DateText(r.PatientDateOfBirth), 16),
+        new("Số điện thoại", r => r.PatientPhone, 16),
+        new("Bác sĩ điều trị", r => r.AssignedStaffName, 20),
+        new("Nội dung lịch hẹn", r => r.AppointmentContent, 24),
+        new("Trạng thái lịch hẹn", r => AppointmentStatusLabel(r.AppointmentStatus), 20),
+        new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
+        new("Trạng thái", r => StatusLabel(r.Status), 16),
+        new("Ghi chú", r => r.Description, 36),
+    ];
+
     private static readonly ExcelColumn<CareRecordDto>[] Reminder =
     [
         new("Lịch hẹn", r => DateTimeText(r.DueAt), 20),

@@ -15,33 +15,39 @@ export type CareCounterKey =
   | "contacted"
   | "notContacted";
 
+/** What a counter narrows the list to; none = everything. */
+export interface CareCounterFilter {
+  status?: CareStatus;
+  contacted?: boolean;
+}
+
 interface CounterDef {
   key: CareCounterKey;
   label: () => string;
   value: (stats: CareStatsDto) => number;
-  status: CareStatus | undefined;
+  filter: CareCounterFilter;
 }
 
 const TOTAL: CounterDef = {
-  key: "total", label: () => t("CSKH:Counter:Total"), value: (s) => s.totalPatients, status: undefined,
+  key: "total", label: () => t("CSKH:Counter:Total"), value: (s) => s.totalPatients, filter: {},
 };
 const ZALO: CounterDef = {
-  key: "zalo", label: () => t("CSKH:Counter:ZaloSent"), value: (s) => s.zaloSent, status: undefined,
+  key: "zalo", label: () => t("CSKH:Counter:ZaloSent"), value: (s) => s.zaloSent, filter: {},
 };
 
 const COUNTERS: Record<CareStatusModel, readonly CounterDef[]> = {
   result: [
     TOTAL,
-    { key: "success", label: () => t("CSKH:Counter:Success"), value: (s) => s.succeeded, status: CARE_STATUS.Succeeded },
-    { key: "fail", label: () => t("CSKH:Counter:Failed"), value: (s) => s.failed, status: CARE_STATUS.Failed },
-    { key: "new", label: () => t("CSKH:Counter:NotCared"), value: (s) => s.notCaredYet, status: CARE_STATUS.New },
+    { key: "success", label: () => t("CSKH:Counter:Success"), value: (s) => s.succeeded, filter: { status: CARE_STATUS.Succeeded } },
+    { key: "fail", label: () => t("CSKH:Counter:Failed"), value: (s) => s.failed, filter: { status: CARE_STATUS.Failed } },
+    { key: "new", label: () => t("CSKH:Counter:NotCared"), value: (s) => s.notCaredYet, filter: { status: CARE_STATUS.New } },
     ZALO,
   ],
-  // Sau điều trị only has Đã liên hệ / Chưa liên hệ (owner, 2026-10-05).
+  // Only Đã liên hệ / Chưa liên hệ on these tabs (owner, 2026-10-05).
   contact: [
     TOTAL,
-    { key: "contacted", label: () => t("CSKH:Counter:Contacted"), value: (s) => s.contacted, status: CARE_STATUS.Contacted },
-    { key: "notContacted", label: () => t("CSKH:Counter:NotContacted"), value: (s) => s.notContacted, status: CARE_STATUS.New },
+    { key: "contacted", label: () => t("CSKH:Counter:Contacted"), value: (s) => s.contacted, filter: { contacted: true } },
+    { key: "notContacted", label: () => t("CSKH:Counter:NotContacted"), value: (s) => s.notContacted, filter: { contacted: false } },
     ZALO,
   ],
 };
@@ -56,7 +62,7 @@ interface CareCountersProps {
   model: CareStatusModel;
   stats: CareStatsDto | undefined;
   active: CareCounterKey;
-  onChange: (key: CareCounterKey, status: CareStatus | undefined) => void;
+  onChange: (key: CareCounterKey, filter: CareCounterFilter) => void;
 }
 
 export function CareCounters({ model, stats, active, onChange }: CareCountersProps) {
@@ -74,7 +80,7 @@ export function CareCounters({ model, stats, active, onChange }: CareCountersPro
           ]
             .filter(Boolean)
             .join(" ")}
-          onClick={() => onChange(counter.key, counter.status)}
+          onClick={() => onChange(counter.key, counter.filter)}
         >
           <div className="cskh-counter-value">{stats ? counter.value(stats) : 0}</div>
           <div className="cskh-counter-label">{counter.label()}</div>
