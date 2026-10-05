@@ -32,7 +32,7 @@ const COLUMNS = [
  * The service list of "Chọn Dịch Vụ": the "Lựa chọn dịch vụ" strip above,
  * then the table with a tick on every row and a select-all in the header.
  * As on the reference the list is the server's, twenty rows a page, and the
- * next page is asked for when the bottom of the 400px box comes into view.
+ * next page is asked for when the bottom of the box comes into view.
  * Picking a group only filters — a service is chosen by its tick.
  */
 export function AdviseServiceTable({

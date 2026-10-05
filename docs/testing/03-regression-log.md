@@ -6459,3 +6459,11 @@ Retest level **2** (hộp thoại lịch sử lịch hẹn).
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
 | R-683 | Owner: trường "Màu" hiện mã hex (`#EF4444`) thay vì màu. | `HistoryFieldValue` (trong `HistoryValueList.tsx`) vẽ chấm tròn đúng màu đó (`.ah-color-swatch`, màu qua `--ah-swatch`), tên màu của bộ chọn ("Đỏ", "Xanh lá"…) ở `title` / `aria-label`; màu ngoài bộ chọn thì tooltip là mã hex. Dùng cho cả 2 cột Giá trị cũ / mới lẫn panel "So sánh trước / sau". Dòng Tạo mới giờ hiện cả "Màu". File xuất giữ mã hex (là text). Spec: sửa lịch hẹn đổi màu Đỏ → cột Giá trị mới có ảnh tên "Đỏ", dòng không chứa "#". `appointment-history.spec.ts` 5/5. |
+
+## 2026-10-05 — "Chọn Dịch Vụ": bảng dịch vụ rộng và dài theo màn hình (R-687)
+
+Owner (kèm ảnh): kéo dài dialog để bảng hiện hết thông tin — cột Ghi chú bị cắt, bảng cuộn ngang.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-687 | Bảng "Chọn Dịch Vụ" cuộn ngang, cột Ghi chú bị cắt; danh sách chỉ cao 400px cố định. | Bảng `min-width: 1190px` = đúng tổng 7 cột, nhưng thanh cuộn dọc của khung bảng ăn ~8px và dialog 1240px chỉ còn ~1182px → luôn tràn. Dialog lên `min(1760px, 100vw - 32px)` + `centered` (owner: rộng hơn nữa); các cột thành tỉ lệ (Đơn giá 11%, Số lượng 8%, Giảm giá 20%, Thành tiền 12%, Ghi chú 17%), cột Dịch vụ nhận phần còn lại, ô tick giữ 52px — dialog rộng thì mọi cột cùng giãn; `min-width` bảng 1131px. Khung bảng `max-height: max(240px, 100dvh - 600px)` (phần còn lại đo được ~534px + lề ~64px). Đo thật: 1920×1080 → dialog 1760, cột 52/490/186/136/339/203/288, bảng 480px, không cuộn ngang, thân dialog không cuộn; 1366×768 → không cuộn ngang, bảng 240px, thân cuộn ~70px (màn quá thấp). `consulting-delete-and-picker` + `consulting-review` (các test "Chọn Dịch Vụ") 3/3; test "Xoá phiếu chẩn đoán" đỏ một lần, chạy lại xanh (chập chờn, không đụng dialog). Retest level **1**. |

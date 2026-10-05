@@ -114,7 +114,8 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
       open={open}
       onCancel={onClose}
       className="tp-dialog am-dialog"
-      width="min(1240px, calc(100vw - 32px))"
+      width="min(1760px, calc(100vw - 32px))"
+      centered
       closeIcon={<X size={20} />}
       destroyOnHidden
       title={
