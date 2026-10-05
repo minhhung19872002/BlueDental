@@ -4045,6 +4045,12 @@
   background: var(--bd-primary);
   color: #fff;
 }
+/* Finished — on the row that finished it and every later one (BA, 2026-10-05). */
+.pd-stage-histteeth > span.pd-stage-histtooth--done {
+  border-color: var(--bd-success);
+  background: var(--bd-success);
+  color: #fff;
+}
 .pd-stage-histshots {
   display: flex;
   flex-wrap: wrap;

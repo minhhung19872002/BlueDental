@@ -87,6 +87,51 @@ export function openTeeth(stage: TreatmentStageDto, line: TreatmentServiceDto): 
   return stageTeeth(stage, line).filter((tooth) => !handedOn.has(tooth.toothCode));
 }
 
+/**
+ * How a history row draws one tooth of its line: `worked` — this công đoạn
+ * works it; `done` — finished, on this row or an earlier one; `idle` — neither.
+ */
+export type HistoryToothState = "idle" | "worked" | "done";
+
+export interface HistoryTooth {
+  tooth: ToothSelectionDto;
+  state: HistoryToothState;
+}
+
+/**
+ * The teeth a history row prints — every tooth of its line — each with its
+ * state. A tooth reads as done (BA item, 2026-10-05) from the row of the
+ * công đoạn that finished it onwards, never on the rows before: worked 11 →
+ * 12 → 13 and finished on 13, it is green on 13 and every later row, still
+ * blue on 11 and 12. A row that works the tooth again — a warranty — shows it
+ * blue until that công đoạn is finished in turn.
+ */
+export function historyTeeth(
+  stage: TreatmentStageDto,
+  line: TreatmentServiceDto | null,
+  lineStages: TreatmentStageDto[],
+): HistoryTooth[] {
+  const shown = line && line.teeth.length > 0 ? line.teeth : stage.teeth;
+  const finishedBy = (each: TreatmentStageDto) =>
+    new Set(toothCodes(line ? openTeeth(each, line) : each.teeth));
+
+  const ownDone = isStageDone(stage) ? finishedBy(stage) : new Set<number>();
+  const doneBefore = new Set(
+    lineStages
+      .filter((each) => isStageDone(each) && each.creationTime <= stage.creationTime)
+      .flatMap((each) => [...finishedBy(each)]),
+  );
+  const works = (code: number) =>
+    stage.teeth.length === 0 || stage.teeth.some((each) => each.toothCode === code);
+
+  return shown.map((tooth): HistoryTooth => {
+    const code = tooth.toothCode;
+    if (ownDone.has(code)) return { tooth, state: "done" };
+    if (works(code)) return { tooth, state: "worked" };
+    return { tooth, state: doneBefore.has(code) ? "done" : "idle" };
+  });
+}
+
 /** Each tooth once, in the order first met. */
 function uniqueTeeth(teeth: ToothSelectionDto[]): ToothSelectionDto[] {
   const seen = new Set<number>();

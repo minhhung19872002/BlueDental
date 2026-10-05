@@ -6551,3 +6551,32 @@ Chạy lại trên bản build production (`vite preview`, thư mục riêng, c�
 `reception-own-doctor` + `appointment-patient-link` + `reception-follow-up` + `reception-doctor-list` → **21/21 xanh**. Trong đó có 6 test mở hồ sơ của R-692 và 11 test của `reception-follow-up` trước đây đỏ ở bước đặt lịch.
 
 Dữ liệu sẽ lại cạn sau vài chục lần chạy, vì fixture không dọn lịch nó tạo. Chưa sửa fixture.
+
+## 2026-10-05 — Chi tiết phiếu › Lịch sử điều trị: răng đã hoàn thành tô xanh lá (R-696 / R-697)
+
+Quy tắc do BA đưa ra (2026-10-05), **không lấy từ bản gốc**: bản gốc không tô màu "đã hoàn thành" cho răng. Owner đã xác nhận ba điểm:
+- "ngày hoàn thành" là ngày của dòng công đoạn (`creationTime`);
+- ở dòng bảo hành, răng đang làm lại hiện xanh tím;
+- chip xanh lá có viền và nền cùng màu như chip xanh tím.
+
+| ID | Thay đổi / lỗi | Sửa |
+|---|---|---|
+| R-696 | Bảng lịch sử chỉ có hai trạng thái răng: xanh tím (dòng này làm) và trắng. Không nhìn ra răng nào đã xong. | Thêm `historyTeeth` (`stage/stageModel.ts`): mỗi chip là `idle` / `worked` / `done`. Thứ tự xét: (1) công đoạn của dòng đã hoàn thành và còn giữ răng (`openTeeth`, tức răng chưa giao sang công đoạn sau) thì là done; (2) dòng này làm răng đó thì là worked; (3) có công đoạn hoàn thành của cùng dịch vụ với `creationTime <=` dòng này giữ răng đó thì là done; (4) còn lại là idle. Vậy một răng làm ngày 11-12-13 và xong ngày 13 thì xanh tím ở ngày 11, 12, xanh lá từ ngày 13 trở đi. Dòng bảo hành làm lại răng thì răng đó lại xanh tím ở dòng ấy. Bỏ tick Hoàn thành (`revert-status`) thì màu về như cũ vì màu được tính ra, không lưu. `StageHistory` dùng map `TOOTH_CLASS`. CSS `.pd-stage-histtooth--done` dùng viền và nền `--bd-success`, chữ trắng. Không đổi BE. |
+| R-697 | (Test) Lượt chạy cả file đỏ ở test mới, chạy riêng lại xanh. (a) `click({ force: true })` vào ô Hoàn thành chạy 32 ms sau khi mở modal, lúc AntD còn chạy hiệu ứng phóng to. `force` bỏ qua bước chờ phần tử đứng yên nên cú click rơi xuống mask, modal đóng, `waitForResponse` hết giờ. (b) Câu kiểm "không có chip xanh lá" quét cả hộp thoại, mà lịch sử liệt kê cả phiếu fixture dùng chung, đã có công đoạn hoàn thành của test bảo hành. | Bỏ `force`. Thu câu kiểm về `.pd-stage-histrow[data-line-id=<dòng của test>]`. |
+
+Kiểm chứng: bản build production `vite preview` :8080 (thư mục riêng `dist-tooth-done`, đã xoá sau khi chạy), host thật :5000, PostgreSQL thật, không chặn request.
+- `e2e/treatment-stage-chain.spec.ts` **8/8**, 1,2 phút. Test mới "a finished tooth is green…" chạy thêm `--repeat-each=3` **3/3**. Test mới đi qua chuỗi sau:
+  - dòng 11·12, rồi tiếp tục 11 sang dòng thứ hai, rồi dòng 13;
+  - tick Hoàn thành dòng thứ hai: dòng đó 11 xanh lá, dòng đầu 11·12 xanh tím, dòng sau 11 xanh lá cạnh 13 xanh tím;
+  - reload, kiểm lại cùng kết quả;
+  - bỏ tick, 11 về xanh tím và không còn chip xanh lá nào trên dịch vụ.
+- Test bảo hành có thêm câu kiểm:
+  - răng gốc 11·21·22 xanh lá;
+  - dòng bảo hành 11·21 xanh tím, 22 xanh lá;
+  - xong bảo hành thì cả ba xanh lá.
+- Fixture `freshLines`:
+  - chỉ lấy dịch vụ của phiếu chi nhánh 1, vì dịch vụ chi nhánh khác trả 403 Catalogs:0013;
+  - giới hạn đơn giá ở `originalPrice`, vì giá cao hơn trả 403 Treatment:0040.
+- `tsc -b` + `eslint` sạch.
+
+Retest level **2** (FE của tính năng Công đoạn điều trị; không đổi BE).

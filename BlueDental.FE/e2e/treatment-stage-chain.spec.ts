@@ -50,12 +50,21 @@ async function freshLines(
         patientId: string;
         branchId: string;
         status: number;
-        services: { id: string; serviceId: string; serviceName: string | null; warrantyDays: number }[];
+        services: {
+          id: string;
+          serviceId: string;
+          serviceName: string | null;
+          warrantyDays: number;
+          originalPrice: number;
+        }[];
       }[];
 
-      const lines = slips.flatMap((slip) => slip.services);
-      const warrantyService = lines.find((line) => line.warrantyDays > 0)?.serviceId;
-      const plainService = lines.find((line) => line.warrantyDays <= 0)?.serviceId ?? warrantyService;
+      // Only this branch's services: another branch's catalog entry is refused (Catalogs:0013).
+      const lines = slips.filter((slip) => slip.branchId === branch).flatMap((slip) => slip.services);
+      const warrantyLine = lines.find((line) => line.warrantyDays > 0);
+      const plainLine = lines.find((line) => line.warrantyDays <= 0) ?? warrantyLine;
+      const warrantyService = warrantyLine?.serviceId;
+      const plainService = plainLine?.serviceId;
       // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
       const slip = slips.find((item) => item.branchId === branch && item.status !== 5 && item.status !== 6);
       if (!slip || !warrantyService || !plainService) return null;
@@ -63,14 +72,15 @@ async function freshLines(
       const out = [];
       let known = new Set(slip.services.map((line) => line.id));
       for (const spec of wanted) {
-        const serviceId = spec.warranty ? warrantyService : plainService;
+        const source = spec.warranty ? warrantyLine! : plainLine!;
         const res = await fetch(`/api/v1/app/patient-treatments/${slip.id}/services`, {
           method: "POST",
           credentials: "include",
           headers,
           body: JSON.stringify({
-            serviceId,
-            price: 100000,
+            serviceId: source.serviceId,
+            // Never above the catalog's own price (Treatment:0040).
+            price: Math.min(100000, source.originalPrice),
             quantity: spec.teeth.length,
             discountType: 0,
             discountValue: 0,
@@ -450,6 +460,74 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("aria-disabled", "true");
   });
 
+  test("a finished tooth is green from the row that finished it on, blue before, and un-ticking takes it back", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    const [line] = await freshLines(page, [{ teeth: [{ code: 11 }, { code: 12 }, { code: 13 }] }]);
+    // 11·12 started, 11 carried on to a second visit, then 13 started later.
+    const first = await stageOn(page, line, [11, 12], false);
+    const carried = await call(page, "POST", `/api/v1/app/treatment-stages/${first}/continue`, {
+      staffId: await staffId(page),
+      note: `e2e răng xong ${runId()}`,
+      serviceItemIds: [],
+      toothCodes: [11],
+      alsoFrom: [],
+    });
+    expect(carried.status, carried.text).toBe(200);
+    const second = (carried.json as { id: string }).id;
+    const later = await stageOn(page, line, [13], false);
+
+    const dialog = await openSlipDialog(page, line);
+    const row = (id: string) => dialog.locator(`.pd-stage-histrow[data-stage-id="${id}"]`);
+    const teethIn = (id: string, state: "worked" | "done") =>
+      row(id).locator(`.pd-stage-histteeth > span.pd-stage-histtooth--${state}`);
+    // The history lists the whole shared slip; earlier tests finish stages on it.
+    const lineDone = dialog.locator(`.pd-stage-histrow[data-line-id="${line.lineId}"] .pd-stage-histtooth--done`);
+
+    // Nothing finished yet: only blue.
+    await expect(teethIn(second, "worked")).toHaveText(["11"]);
+    await expect(lineDone).toHaveCount(0);
+
+    const toggle = (id: string, action: "complete" | "revert-status") => {
+      const answered = page.waitForResponse(
+        (res) => res.url().includes(`/treatment-stages/${id}/${action}`) && res.request().method() === "POST",
+      );
+      // No force: right after opening, the modal is still zooming in, and a
+      // forced click lands on its mask and closes it.
+      return row(id)
+        .locator(".pd-stage-rowactions")
+        .getByRole("checkbox")
+        .click()
+        .then(() => answered);
+    };
+    expect((await toggle(second, "complete")).ok()).toBe(true);
+
+    const expectFinished = async () => {
+      // The visit that finished 11 shows it green…
+      await expect(teethIn(second, "done")).toHaveText(["11"]);
+      await expect(teethIn(second, "worked")).toHaveCount(0);
+      // …the visit before it keeps it blue…
+      await expect(teethIn(first, "worked")).toHaveText(["11", "12"]);
+      await expect(teethIn(first, "done")).toHaveCount(0);
+      // …and a later visit of another tooth shows it green beside its own blue.
+      await expect(teethIn(later, "done")).toHaveText(["11"]);
+      await expect(teethIn(later, "worked")).toHaveText(["13"]);
+    };
+    await expectFinished();
+    await dialog.screenshot({ path: "test-results/stage-tooth-done.png" });
+
+    // From the database, on a fresh load.
+    await page.reload();
+    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    await expectFinished();
+
+    // Un-ticking Hoàn thành makes 11 an ordinary blue tooth again, everywhere.
+    expect((await toggle(second, "revert-status")).ok()).toBe(true);
+    await expect(teethIn(second, "worked")).toHaveText(["11"]);
+    await expect(lineDone).toHaveCount(0);
+  });
+
   test("a warranty picks among the root's teeth, locks the line's Bảo hành until it is finished, and can follow itself", async ({
     page,
   }) => {
@@ -477,6 +555,13 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(firstWarranty.warrantyRootStageId).toBe(root);
     expect(firstWarranty.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([11, 21]);
     await expect(warranty).toBeHidden();
+
+    // The finished root is green; the warranty re-working 11·21 shows those
+    // blue on its own row, and 22 — finished, untouched — stays green.
+    await expect(rootRow.locator(".pd-stage-histtooth--done")).toHaveText(["11", "21", "22"]);
+    const warrantyRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${firstWarranty.id}"]`);
+    await expect(warrantyRow.locator(".pd-stage-histtooth--worked")).toHaveText(["11", "21"]);
+    await expect(warrantyRow.locator(".pd-stage-histtooth--done")).toHaveText(["22"]);
 
     // It waits under TIẾP TỤC BẢO HÀNH, and the line's Bảo hành is shut meanwhile.
     await expect(rootRow.getByRole("button", { name: "Bảo hành" })).toBeDisabled();
@@ -522,6 +607,8 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect((await completed).ok()).toBe(true);
     await expect(dialog.locator(`.pd-stage-picks button[data-stage-id="${nextWarranty.id}"]`)).toHaveCount(0);
     await expect(rootRow.getByRole("button", { name: "Bảo hành" })).toBeEnabled();
+    // Finished in turn, the warranty's own teeth go green again.
+    await expect(nextRow.locator(".pd-stage-histtooth--done")).toHaveText(["11", "21", "22"]);
 
     // A warranty off the finished warranty offers the root's teeth again.
     await nextRow.getByRole("button", { name: "Bảo hành" }).click();

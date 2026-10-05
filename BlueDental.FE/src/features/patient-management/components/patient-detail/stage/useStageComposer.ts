@@ -25,9 +25,11 @@ import type { StageFieldErrors } from "./stageFieldErrors";
 import {
   STAGE_TABS,
   buildStageItems,
+  historyTeeth,
   pickTeeth,
   stagesToContinue,
   warrantyState,
+  type HistoryTooth,
   type StageItem,
   type StageTab,
   type WarrantyState,
@@ -275,12 +277,6 @@ export function useStageComposer({
     if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
   };
 
-  /** The teeth a history row prints: all of its line's, its own ones marked. */
-  const lineTeethOf = (stage: TreatmentStageDto) => {
-    const line = services.find((item) => item.id === stage.treatmentServiceId);
-    return line && line.teeth.length > 0 ? line.teeth : stage.teeth;
-  };
-
   const save = async () => {
     if (!plan || chosen.length === 0 || saving) return;
 
@@ -381,7 +377,13 @@ export function useStageComposer({
 
     days: byDay(stages),
     stages,
-    lineTeethOf,
+    /** The teeth a history row prints: all of its line's, each with its state. */
+    historyTeethOf: (stage: TreatmentStageDto): HistoryTooth[] =>
+      historyTeeth(
+        stage,
+        lineOf(stage),
+        stages.filter((item) => item.treatmentServiceId === stage.treatmentServiceId),
+      ),
     imagesOf: (stageId: string) =>
       (images.data?.items ?? []).filter((image) => image.treatmentStageId === stageId),
     statusOf: (treatmentServiceId: string) =>

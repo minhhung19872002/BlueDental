@@ -3,12 +3,16 @@ import { Button, Checkbox, Image, Input } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
-import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageStepList } from "./StageStepList";
 import { StageWarrantyButton } from "./StageWarrantyButton";
-import { namedSteps, type WarrantyState } from "./stageModel";
+import {
+  namedSteps,
+  type HistoryTooth,
+  type HistoryToothState,
+  type WarrantyState,
+} from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
 export interface StageDay {
@@ -35,9 +39,15 @@ interface Props {
   onWarranty: (stage: TreatmentStageDto) => void;
   /** Which of the reference's warranty controls a finished row shows. */
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
-  /** Every tooth of the row's service, the row's own among them. */
-  lineTeethOf: (stage: TreatmentStageDto) => ToothSelectionDto[];
+  /** Every tooth of the row's service, each marked worked, done or neither. */
+  historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
 }
+
+const TOOTH_CLASS: Record<HistoryToothState, string | undefined> = {
+  idle: undefined,
+  worked: "pd-stage-histtooth--worked",
+  done: "pd-stage-histtooth--done",
+};
 
 /** The pencil that swaps a stage's note for an editor, in place. */
 function NoteCell({
@@ -146,7 +156,7 @@ export function StageHistory({
   onCreateLabo,
   onWarranty,
   warrantyOf,
-  lineTeethOf,
+  historyTeethOf,
 }: Props) {
   return (
     <div className="pd-stage-history">
@@ -204,21 +214,18 @@ export function StageHistory({
                               service is listed and this visit's ones are
                               blue, so the day's work reads at a glance; a
                               công đoạn written with no teeth stood for them
-                              all. */}
+                              all. A finished tooth is green from the row
+                              that finished it on — see historyTeeth. */}
                           <div className="pd-stage-histteeth">
-                            {lineTeethOf(stage).map((tooth) => {
-                              const worked =
-                                stage.teeth.length === 0 ||
-                                stage.teeth.some((each) => each.toothCode === tooth.toothCode);
-                              return (
-                                <span
-                                  key={tooth.toothCode}
-                                  className={worked ? "pd-stage-histtooth--worked" : undefined}
-                                >
-                                  {tooth.toothCode}
-                                </span>
-                              );
-                            })}
+                            {historyTeethOf(stage).map(({ tooth, state }) => (
+                              <span
+                                key={tooth.toothCode}
+                                className={TOOTH_CLASS[state]}
+                                data-state={state}
+                              >
+                                {tooth.toothCode}
+                              </span>
+                            ))}
                           </div>
                           {images.length > 0 && (
                             <div className="pd-stage-histshots">
