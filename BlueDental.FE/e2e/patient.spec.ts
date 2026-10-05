@@ -2333,25 +2333,25 @@ test.describe("Bệnh nhân", () => {
     ]);
   });
 
-  test("Thanh toán leaves the stage dialog for the slip's own detail screen", async ({ page }) => {
+  test("Thanh toán leaves the stage dialog for the slip's own payment tab", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const { serviceId } = await openPatientWithTreatment(page, "stageable");
 
     const dialog = await openStageDialog(page, serviceId);
     await dialog.getByRole("button", { name: "Thanh toán" }).click();
 
-    // The reference navigates rather than stacking a payment form on the
-    // dialog — and it lands on **that slip**, not the tab listing every slip.
-    // Measured on the reference 2026-09-07:
-    // /patient/:id/treatment-plan/:planId?planTab=detail&branchId=
+    // It navigates rather than stacking a payment form on the dialog, and lands
+    // on **that slip**, not the tab listing every slip. The reference (measured
+    // 2026-09-07) opened Chi tiết; the owner wants Thanh toán (2026-10-05):
+    // /patient/:id/treatment-plan/:planId?planTab=payment-v2&branchId=
     await expect(dialog).toBeHidden();
-    await expect(page).toHaveURL(/\/treatment-plan\/[^/?]+\?planTab=detail&branchId=/);
+    await expect(page).toHaveURL(/\/treatment-plan\/[^/?]+\?planTab=payment-v2&branchId=/);
 
-    // It is the slip the clicked row belongs to, and it opens on Chi tiết.
+    // It is the slip the clicked row belongs to, and it opens on Thanh toán.
     await expect(page.locator(".pdt-page")).toBeVisible();
     await expect(
       page.locator(".pdt-tab.active, [role=tab][aria-selected=true]").first(),
-    ).toHaveText("Chi tiết");
+    ).toHaveText("Thanh toán");
   });
 
   test("Tạo Labo opens Đặt mới filled from the công đoạn", async ({ page }) => {

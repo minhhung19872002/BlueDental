@@ -628,13 +628,13 @@ export function PatientProfileTab({ patient }: Props) {
         onClose={() => setStageRow(null)}
         onOpenPlan={() => {
           /*
-           * The reference leaves the dialog for **that slip's** detail screen,
-           * not the tab listing every slip: measured 2026-09-07 as
-           * /patient/:id/treatment-plan/:planId?planTab=detail&branchId=.
+           * Leaves the dialog for **that slip's** screen, not the tab listing
+           * every slip, and opens it on Thanh toán (owner, 2026-10-05) — the
+           * reference measured 2026-09-07 landed on Chi tiết instead.
            */
           setStageRow(null);
           if (stagePlan) {
-            navigate(planDetailPath(patient.id, stagePlan.id, branchId, PLAN_TAB.detail));
+            navigate(planDetailPath(patient.id, stagePlan.id, branchId, PLAN_TAB.payment));
           }
         }}
       />
