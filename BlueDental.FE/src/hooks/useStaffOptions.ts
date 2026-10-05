@@ -79,6 +79,7 @@ interface StaffSearchRow extends StaffRow {
   roleNames?: string[];
   isDentist?: boolean;
   isAssistant?: boolean;
+  isHygienist?: boolean;
 }
 
 function displayName(row: StaffSearchRow): string {
@@ -151,7 +152,8 @@ export function useDentistSearch(search: string, enabled = true, availableOn?: s
 }
 
 /**
- * Server-searched staff, narrowed to assistants via the `isAssistant` boolean.
+ * Server-searched staff, narrowed to the "Phụ tá" picker's people: staff ticked
+ * "Phụ tá" (`isAssistant`) or "Y sĩ" (`isHygienist`) — BA 2026-10-05.
  * Falls back to all staff if no one is tagged.
  */
 export function useAssistantSearch(search: string, enabled = true, availableOn?: string) {
@@ -163,7 +165,7 @@ export function useAssistantSearch(search: string, enabled = true, availableOn?:
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", { params: searchParams(term, availableOn) });
       const items: StaffSearchRow[] = response.data?.items ?? [];
-      const assistants = items.filter((row) => row.isAssistant);
+      const assistants = items.filter((row) => row.isAssistant || row.isHygienist);
       const chosen = assistants.length > 0 ? assistants : items;
       return chosen.map((row) => ({ value: row.id, label: displayName(row) }));
     },

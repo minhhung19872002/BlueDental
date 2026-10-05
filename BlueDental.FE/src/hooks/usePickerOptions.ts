@@ -31,7 +31,7 @@ export function useDentistOptionsToday(search: string, enabled: boolean): Option
   return { options: query.data ?? [], loading: query.isFetching };
 }
 
-/** Assistants who are not registered OFF today (Chấm công). */
+/** Phụ tá and Y sĩ who are not registered OFF today (Chấm công). */
 export function useAssistantOptionsToday(search: string, enabled: boolean): OptionSource {
   const query = useAssistantSearch(search, enabled, todayIsoDate());
   return { options: query.data ?? [], loading: query.isFetching };
@@ -43,7 +43,7 @@ export function useStaffOptionsSearch(search: string, enabled: boolean): OptionS
   return { options: query.data ?? [], loading: query.isFetching };
 }
 
-/** Staff filtered to assistants only (`isAssistant === true`). */
+/** Staff filtered to Phụ tá and Y sĩ (`isAssistant` or `isHygienist`). */
 export function useAssistantOptionsSearch(search: string, enabled: boolean): OptionSource {
   const query = useAssistantSearch(search, enabled);
   return { options: query.data ?? [], loading: query.isFetching };

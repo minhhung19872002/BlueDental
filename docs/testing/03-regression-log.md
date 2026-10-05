@@ -6467,3 +6467,13 @@ Owner (kèm ảnh): kéo dài dialog để bảng hiện hết thông tin — c�
 | ID | Hiện tượng | Nguyên nhân / xử lý |
 |---|---|---|
 | R-687 | Bảng "Chọn Dịch Vụ" cuộn ngang, cột Ghi chú bị cắt; danh sách chỉ cao 400px cố định. | Bảng `min-width: 1190px` = đúng tổng 7 cột, nhưng thanh cuộn dọc của khung bảng ăn ~8px và dialog 1240px chỉ còn ~1182px → luôn tràn. Dialog lên `min(1760px, 100vw - 32px)` + `centered` (owner: rộng hơn nữa); các cột thành tỉ lệ (Đơn giá 11%, Số lượng 8%, Giảm giá 20%, Thành tiền 12%, Ghi chú 17%), cột Dịch vụ nhận phần còn lại, ô tick giữ 52px — dialog rộng thì mọi cột cùng giãn; `min-width` bảng 1131px. Khung bảng `max-height: max(240px, 100dvh - 600px)` (phần còn lại đo được ~534px + lề ~64px). Đo thật: 1920×1080 → dialog 1760, cột 52/490/186/136/339/203/288, bảng 480px, không cuộn ngang, thân dialog không cuộn; 1366×768 → không cuộn ngang, bảng 240px, thân cuộn ~70px (màn quá thấp). `consulting-delete-and-picker` + `consulting-review` (các test "Chọn Dịch Vụ") 3/3; test "Xoá phiếu chẩn đoán" đỏ một lần, chạy lại xanh (chập chờn, không đụng dialog). Retest level **1**. |
+
+## 2026-10-05 — Ô "Phụ tá" của công đoạn lấy thêm Y sĩ (R-691)
+
+BA (ảnh chú thích trên dialog "Chi tiết phiếu" → Tiếp tục công đoạn): "Danh sách phụ tá — lấy thêm Y sĩ".
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-691 | Ô "Phụ tá" (Thêm / Tiếp tục công đoạn, dialog tái khám công đoạn) chỉ liệt kê nhân viên tick "Phụ tá". | `useAssistantSearch` (`src/hooks/useStaffOptions.ts`) lọc `isAssistant`; nay lọc `isAssistant \|\| isHygienist` (`StaffDto.IsHygienist` đã có sẵn, BE không đổi). Vẫn giữ lọc OFF hôm nay (`AvailableOn`) và fallback "không ai được tick → mọi nhân viên". Hook chỉ dùng cho `StageForm` + `StageFollowUpDialog`. |
+
+Kiểm chứng: `tsc` sạch. **Chưa chạy runtime** (host :5000 đang tắt) — cần mở dialog công đoạn với seed `ys.trang` để thấy tên Y sĩ trong ô Phụ tá. Retest level **2** (công đoạn điều trị).
