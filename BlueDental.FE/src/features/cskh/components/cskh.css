@@ -178,6 +178,9 @@
 
 /* antd 6: the root carries the outline, .ant-select-content the value. */
 .cskh-contact-select.ant-select {
+  /* A pill needs more inset than antd's 7px small padding, or the label hugs
+     the curve while the arrow sits well inside it. */
+  padding-inline: 12px 10px !important;
   border-radius: 999px !important;
   border-color: color-mix(in srgb, var(--contact-color) 35%, #ffffff) !important;
   background: color-mix(in srgb, var(--contact-color) 10%, #ffffff) !important;
