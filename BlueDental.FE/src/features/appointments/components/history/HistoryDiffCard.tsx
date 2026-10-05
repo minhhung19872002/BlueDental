@@ -25,10 +25,6 @@ function DiffRow({ change }: { change: HistoryFieldChange }) {
   );
 }
 
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 /** "So sánh trước / sau" and the chips of every field the change touched. */
 export function HistoryDiffCard({ entry }: { entry: HistoryEntry }) {
   const affected = entry.changedFields.length ? entry.changedFields : entry.diff.map((d) => d.field);
@@ -56,7 +52,7 @@ export function HistoryDiffCard({ entry }: { entry: HistoryEntry }) {
           <div className="ah-chips">
             {affected.map((field) => (
               <span key={field} className="ah-chip">
-                {capitalize(field)}
+                {fieldLabel(field)}
               </span>
             ))}
           </div>

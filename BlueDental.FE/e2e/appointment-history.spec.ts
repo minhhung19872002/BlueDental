@@ -216,10 +216,12 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
 
     const first = dialog.locator(".ah-table tbody tr.ant-table-row").first();
     await expect(first).toContainText("Cập nhật");
-    // The reference prints the raw field keys in "Thay đổi"; the untouched note
-    // must not show up there (null before, empty after is no change).
-    await expect(first).toContainText("content");
-    await expect(first).not.toContainText("note");
+    // "Thay đổi" names the fields in words (the reference prints raw keys; the
+    // owner asked for Vietnamese). The untouched note must not show up there
+    // (null before, empty after is no change).
+    await expect(first).toContainText("Nội dung");
+    await expect(first).not.toContainText("content");
+    await expect(first).not.toContainText("Ghi chú");
     await expect(first).toContainText(`${reason} → ${updated}`);
     await expect(dialog.getByTestId("ah-stats").getByText("Cập nhật", { exact: true })).toBeVisible();
 

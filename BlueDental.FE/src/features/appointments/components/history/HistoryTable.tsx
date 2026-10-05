@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import type { HistoryEntry } from "../../types/appointmentHistory";
 import { ActionBadge, SourceBadge, StatusText } from "./HistoryBadges";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
-import { formatOccurredAt, summarizeDiff } from "./historyLabels";
+import { fieldLabel, formatOccurredAt, summarizeDiff } from "./historyLabels";
 
 interface Props {
   entries: HistoryEntry[];
@@ -35,7 +35,7 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
       title: t("Appointment:History:Table:Changes"),
       dataIndex: "changedFields",
       render: (fields: string[]) => (
-        <span className="ah-fields">{fields.length ? fields.join(", ") : EMPTY}</span>
+        <span className="ah-fields">{fields.length ? fields.map(fieldLabel).join(", ") : EMPTY}</span>
       ),
     },
     {

@@ -6428,3 +6428,15 @@ Yêu cầu BA (ảnh chú thích): hàng sub-function dưới header lúc nào c
 
 Kiểm chứng (dev server :5173, host thật :5000, DB thật, đăng nhập thật): `header-navigation.spec.ts` 7/10 xanh (3 đỏ = R-677), `role-permissions.spec.ts` 1/1 xanh (dentist chỉ thấy "Bệnh nhân" trong ribbon). Đo trên trình duyệt 1440×900: ribbon 49px cả khi có item (/reception, /labo) lẫn khi trống (/dashboard). `tsc` + eslint sạch.
 Retest level **3** (thanh header dùng chung mọi trang).
+
+
+## 2026-10-05 — Lịch sử thay đổi lịch hẹn: tên trường tiếng Việt (R-678)
+
+Yêu cầu owner (ảnh chú thích): chip "Các trường bị ảnh hưởng" hiện `Status` thay vì "Trạng thái". Chỉ đổi FE. Ghi chú "Loại: Người dùng" owner chưa hiểu — **để sau**, chưa đổi.
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-678 | Tên trường hiện bằng khóa thô của server ở 3 chỗ: chip "Các trường bị ảnh hưởng" (`Status`), cột bảng "Thay đổi" (`status`, `content`), ô Before → After của dòng Tạo mới (`+ startTime`). Chỉ "So sánh trước / sau" và file xuất là đã dịch. | Cả 3 chỗ đi qua `fieldLabel()` (bản dịch `Appointment:History:Field:*` có sẵn). Thêm `id` → key có sẵn `Appointment:History:AppointmentId` ("Mã số lịch"). Bản gốc in khóa thô ở cột "Thay đổi" — lệch có chủ ý theo yêu cầu owner; spec đổi từ `content` sang "Nội dung". |
+
+Kiểm chứng (build production `vite preview` :8080, host thật :5000, DB thật): `appointment-history.spec.ts` **5/5**. `tsc` sạch.
+Retest level **2** (hộp thoại lịch sử lịch hẹn).

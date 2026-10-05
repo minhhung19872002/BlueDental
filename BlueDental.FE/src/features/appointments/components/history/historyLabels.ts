@@ -65,6 +65,7 @@ export const STATUS_GROUP_META: Record<HistoryStatusGroup, { label: string; tone
 
 /** Snapshot field keys, as the server names them, in words. */
 const FIELD_LABELS: Record<string, string> = {
+  id: "Appointment:History:AppointmentId",
   startTime: "Appointment:History:Field:StartTime",
   toTime: "Appointment:History:Field:EndTime",
   duration: "Appointment:History:Field:Duration",
@@ -129,7 +130,7 @@ export function summarizeDiff(entry: HistoryEntry): string {
   if (entry.action === "created") {
     return entry.diff
       .slice(0, CREATED_FIELDS_SHOWN)
-      .map((d) => `+ ${d.field}`)
+      .map((d) => `+ ${fieldLabel(d.field)}`)
       .join(" · ");
   }
   return entry.diff
