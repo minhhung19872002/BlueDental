@@ -14,7 +14,7 @@
 .bd-labo-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--bd-header-height) - 32px);
+  height: calc(100vh - var(--bd-topbar-height) - 32px);
   min-height: 420px;
   overflow: hidden;
   background: #fff;

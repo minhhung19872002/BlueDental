@@ -6413,3 +6413,18 @@ Yêu cầu BA (ảnh chú thích), **không** có trên bản gốc. Cột Thao 
 
 Kiểm chứng (build production `vite preview` :8091, host thật :5000 Development, DB thật): `appointment-history.spec.ts` **5/5** — test mới đặt 2 lịch, dời 1 lịch qua dialog Cập nhật thật, icon dòng đọc `appointmentId=` không `fromDate=`, đúng 2 dòng (Cập nhật `ngày giờ → ngày giờ` + Tạo mới), không lẫn lịch kia, không có `.ah-week`, toolbar vẫn có tuần, reload rồi kiểm lại; `patient-appointment.spec.ts` **6/6**. `tsc` sạch.
 Retest level **2** (Lịch hẹn của hồ sơ bệnh nhân + hộp thoại lịch sử).
+
+
+## 2026-10-05 — Header: ribbon sub-function luôn hiện (R-674 … R-677)
+
+Yêu cầu BA (ảnh chú thích): hàng sub-function dưới header lúc nào cũng hiện; nhóm không có sub-function (Tổng quan) thì hàng để trống; bấm nhóm nào thì đổi sub-function của nhóm đó. Chỉ đổi FE (`AppLayout`, `HeaderNav`, hook mới `useRibbonGroup`, CSS).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-674 | Ribbon chỉ mở khi bấm nhóm, tự đóng khi đổi trang / Esc / bấm ra ngoài. | `useRibbonGroup`: mặc định hiện nhóm chứa trang đang mở; bấm nhóm → hiện nhóm đó (gắn với `pathname`, đổi trang thì tự hết hiệu lực); Esc → về nhóm của trang. Bỏ tấm chặn click (`.app-nav-backdrop`) cho ribbon — nó giờ là một phần của thanh, không phải popup; tấm chặn chỉ còn cho chuông thông báo. Dưới 1100px ribbon ẩn cùng nhóm (drawer giữ menu). |
+| R-675 | Owner: bấm sub item của nhóm khác thì ribbon nháy về nhóm cũ một nhịp rồi mới qua nhóm mới. | `handleSelectEntry` reset ribbon trước khi router commit trang mới (router chạy trong transition, chậm hơn một nhịp). Bỏ reset ở đó; nhóm đang xem tự hết hiệu lực khi `pathname` đổi. Nhóm dạng link (Tổng quan) cũng `browse` trước khi navigate thay vì reset. Bỏ luôn `key` + animation `popIn` trên ribbon — trên một thanh luôn hiện, trượt 10px mỗi lần đổi nhóm trông như nháy. Spec có MutationObserver bắt nhóm cũ hiện lại dù chỉ 1 frame; đã xác nhận spec **đỏ** khi đưa lại dòng reset cũ. |
+| R-676 | Ribbon trống thấp hơn ribbon có item (chiều cao item phụ thuộc line box của font, đo lẻ 48.3–49.3px). | Item ribbon cố định `height: 34px`; token `--bd-ribbon-height: 49px` (= 7 + 34 + 7 + 1) làm `min-height`. Thêm `--bd-topbar-height` (header + ribbon, ribbon = 0 dưới 1100px) và đổi các trang tự tính chiều cao theo cửa sổ (`labo.css`, `patient-detail.css`, 3 chỗ trong `index.css`) từ `--bd-header-height` sang token này — nếu không các trang đó dư 49px và cuộn. |
+| R-677 | 3 test đỏ trong `header-navigation.spec.ts`: URL `/reception$` (nhận thêm `?branchId=`), drawer 15 mục (spec chờ 14), menu ngôn ngữ không có mục "Tiếng Việt" khi đang ở tiếng Anh. | **Không do thay đổi này**: phần đỏ nằm ở dòng spec không sửa, code liên quan (`nav.ts`, `HomeRedirect`, i18n) không đổi so với HEAD. Chưa sửa. Trang Labo dư 26px cuộn cũng có sẵn (phép tính cũ cho ra đúng 26px). |
+
+Kiểm chứng (dev server :5173, host thật :5000, DB thật, đăng nhập thật): `header-navigation.spec.ts` 7/10 xanh (3 đỏ = R-677), `role-permissions.spec.ts` 1/1 xanh (dentist chỉ thấy "Bệnh nhân" trong ribbon). Đo trên trình duyệt 1440×900: ribbon 49px cả khi có item (/reception, /labo) lẫn khi trống (/dashboard). `tsc` + eslint sạch.
+Retest level **3** (thanh header dùng chung mọi trang).

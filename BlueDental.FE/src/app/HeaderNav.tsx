@@ -88,7 +88,11 @@ interface RibbonProps {
   onSelect: (entry: NavEntry) => void;
 }
 
-/** The open group's members, drawn full width directly under the header. */
+/**
+ * The shown group's members, drawn full width directly under the header. It is
+ * always there — with no members it stands empty at its usual height, so the
+ * page beneath never jumps as groups change.
+ */
 export function NavRibbon({ items, pathname, onSelect }: RibbonProps) {
   const t = useT();
 

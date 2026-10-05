@@ -22,6 +22,7 @@ import { brand } from "@/theme/index";
 
 import { HeaderNavGroups, MobileNavDrawer, NavRibbon } from "./HeaderNav";
 import { type NavEntry, type NavGroup } from "./nav";
+import { useRibbonGroup } from "./useRibbonGroup";
 import { useVisibleNav } from "./useVisibleNav";
 
 function initialsOf(name: string | undefined): string {
@@ -34,7 +35,6 @@ function initialsOf(name: string | undefined): string {
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [currentLang, setLanguage] = useLanguage();
@@ -45,6 +45,8 @@ export function AppLayout() {
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const visibleNav = useVisibleNav();
+  const ribbon = useRibbonGroup(visibleNav.groups, location.pathname);
+  const resetRibbon = ribbon.reset;
 
   const queryClient = useQueryClient();
   const logoutMutation = useMutation({
@@ -62,9 +64,9 @@ export function AppLayout() {
 
   /* Nothing that hangs off the bar survives a change of page. */
   const closeMenus = useCallback(() => {
-    setOpenGroupId(null);
+    resetRibbon();
     setNotifOpen(false);
-  }, []);
+  }, [resetRibbon]);
 
   useEffect(() => {
     setDrawerOpen(false);
@@ -110,28 +112,27 @@ export function AppLayout() {
   }, [handleKeyDown]);
 
   /*
-   * A group either goes somewhere itself, or opens. It never toggles shut:
-   * moving along the bar would otherwise cost a click to re-open whichever
-   * group you happened to land on first.
+   * A group swaps its members into the ribbon — none, for a group that is a
+   * link — and a link-style group then goes where it points. The ribbon never
+   * closes.
    */
   const handleOpenGroup = (group: NavGroup) => {
     setNotifOpen(false);
-    if (group.path) {
-      setOpenGroupId(null);
-      navigate(group.path);
-      return;
-    }
-    setOpenGroupId(group.id);
+    ribbon.browse(group.id);
+    if (group.path) navigate(group.path);
   };
 
+  /*
+   * The ribbon is left on the group the entry came from. Resetting it here
+   * flashed the old page's group for a frame: the router commits the new page
+   * a beat after this handler, and the browsed group lapses by itself once it
+   * does.
+   */
   const handleSelectEntry = (entry: NavEntry) => {
-    closeMenus();
+    setNotifOpen(false);
     setDrawerOpen(false);
     navigate(entry.path);
   };
-
-  const openGroup = visibleNav.groups.find((g) => g.id === openGroupId);
-  const ribbonItems = openGroup?.items ?? [];
 
   const isSettingsPage = location.pathname === "/settings";
   const settingsTab = isSettingsPage
@@ -289,8 +290,6 @@ export function AppLayout() {
     </div>
   );
 
-  const menusOpen = openGroupId !== null || notifOpen;
-
   return (
     /* One column, full width: the design's v2 has no rail at all. */
     <div className="app-shell">
@@ -325,7 +324,7 @@ export function AppLayout() {
           <HeaderNavGroups
             groups={visibleNav.groups}
             pathname={location.pathname}
-            openGroupId={openGroupId}
+            openGroupId={ribbon.shownGroupId}
             onOpenGroup={handleOpenGroup}
           />
 
@@ -367,7 +366,7 @@ export function AppLayout() {
           <NotificationBell
             open={notifOpen}
             onOpen={() => {
-              setOpenGroupId(null);
+              ribbon.reset();
               setNotifOpen(true);
             }}
             onClose={() => setNotifOpen(false)}
@@ -391,21 +390,21 @@ export function AppLayout() {
           </Dropdown>
         </header>
 
-        {ribbonItems.length > 0 && (
-          <NavRibbon
-            items={ribbonItems}
-            pathname={location.pathname}
-            onSelect={handleSelectEntry}
-          />
-        )}
+        {/* Always on, and swapped in place: no slide-in, which on a bar that
+            never closes read as a flicker. */}
+        <NavRibbon
+          items={ribbon.items}
+          pathname={location.pathname}
+          onSelect={handleSelectEntry}
+        />
       </div>
 
       <div className="app-main">
-        {/* Catches the click that dismisses an open menu. It sits inside the
+        {/* Catches the click that dismisses an open popup. It sits inside the
             scrolling area, which starts below the bar, so the bar itself stays
-            live: over it, the second click of a group-to-group switch would
-            land here instead of on the button. */}
-        {menusOpen && <div className="app-nav-backdrop" onClick={closeMenus} />}
+            live. The ribbon is part of the bar now, not a popup, so a click on
+            the page goes to the page rather than to closing it. */}
+        {notifOpen && <div className="app-nav-backdrop" onClick={closeMenus} />}
 
         <main className="app-content">
           <Outlet />

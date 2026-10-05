@@ -8,7 +8,7 @@
   /* What .app-content leaves inside its padding (18px + 40px, 14px + 32px
      under 900px): taking only 32px off left the page 26px too tall, and the
      content area scrolled by that much on every table tab. */
-  height: calc(100vh - var(--bd-header-height) - 58px);
+  height: calc(100vh - var(--bd-topbar-height) - 58px);
   min-height: 520px;
   flex-direction: column;
   overflow: hidden;
@@ -125,7 +125,7 @@
    with its own scrollbar while the page behind it stayed still. */
 @media (max-width: 900px) {
   .pd-page {
-    height: calc(100vh - var(--bd-header-height) - 46px);
+    height: calc(100vh - var(--bd-topbar-height) - 46px);
   }
 }
 @media (max-width: 640px) {
