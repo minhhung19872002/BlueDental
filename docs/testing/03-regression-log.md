@@ -6413,3 +6413,16 @@ Yêu cầu BA (ảnh chú thích), **không** có trên bản gốc. Cột Thao 
 
 Kiểm chứng (build production `vite preview` :8091, host thật :5000 Development, DB thật): `appointment-history.spec.ts` **5/5** — test mới đặt 2 lịch, dời 1 lịch qua dialog Cập nhật thật, icon dòng đọc `appointmentId=` không `fromDate=`, đúng 2 dòng (Cập nhật `ngày giờ → ngày giờ` + Tạo mới), không lẫn lịch kia, không có `.ah-week`, toolbar vẫn có tuần, reload rồi kiểm lại; `patient-appointment.spec.ts` **6/6**. `tsc` sạch.
 Retest level **2** (Lịch hẹn của hồ sơ bệnh nhân + hộp thoại lịch sử).
+
+## 2026-10-05 — CSKH › Sau điều trị lấy từ "Tiếp tục công đoạn" (R-674 … R-676)
+
+Yêu cầu chủ dự án: tiếp tục công đoạn → mỗi ngày điều trị một phiếu Sau điều trị (Ngày chăm sóc rỗng, cột Ngày điều trị mới), lọc theo tháng mặc định, trạng thái 2 giá trị Đã liên hệ / Chưa liên hệ có ghi lịch sử. Chi tiết: `docs/clone/pages/cskh-grouping.md`.
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-674 | Tab Sau điều trị không bao giờ có dữ liệu thật — chỉ seeder tạo phiếu loại này. | `AfterTreatmentCareRecorder` gọi từ `TreatmentStageAppService.ContinueAsync` (bỏ qua bảo hành); tìm phiếu cùng bệnh nhân + chi nhánh + `TreatmentDate` (ngày UTC+7, `ClinicCalendar`) thì gắn thêm công đoạn, không thì tạo. Migration `AfterTreatmentCareByVisit`: cột `TreatmentDate`, bảng `bd_care_contact_logs`, backfill phiếu loại 1 cũ theo `CreationTime`. |
+| R-675 | "Lịch hẹn sắp tới" hiện `01/01/1 07:06` khi bệnh nhân không có lịch hẹn. | `FillAsync` dùng `GetValueOrDefault` trên `Dictionary<Guid, DateTimeOffset>` → `default(DateTimeOffset)` thay vì null. Đổi sang `TryGetValue`; giờ hiện "Chưa có lịch". |
+| R-676 | Export Sau điều trị ghi "Chưa liên hệ" cho phiếu đã liên hệ. | `CareExportColumns.StatusLabel` thiếu nhánh `Contacted`; thêm "Đã liên hệ" và cột "Ngày điều trị". |
+
+Kiểm chứng (dev server :5173, host thật :5000 Development, PostgreSQL thật, migration áp bằng DbMigrator): `e2e/cskh-after-treatment.spec.ts` **1/1** — tiếp tục công đoạn qua dialog thật → đúng 1 phiếu hôm nay, tiếp tục lần 2 cùng ngày vẫn 1 phiếu, có cả 2 công đoạn → trang mở ở Tháng, cột Ngày điều trị, Ngày chăm sóc "—" → đổi sang Đã liên hệ → reload vẫn giữ, Ngày chăm sóc = hôm nay, `contact-logs` có dòng mới kèm người đổi. `treatment-stage-chain.spec.ts` 7/7, `patient-care.spec.ts` 2/2, `cskh.spec.ts` 6/8: đỏ có sẵn — "creates a special care task" (locator `combobox` lọc theo nhãn nổi, đỏ cả khi stash thay đổi này) và "file-heart … birthday" (không idempotent: chạy lại trong cùng ngày thì dòng đầu đã Thành công nên click bỏ chọn; lần chạy đầu xanh). Domain.Tests 47/47, Application.Tests (CustomerCare + TreatmentManagement) 187/187, `tsc` sạch.
+Retest level **3** (đụng `TreatmentStageAppService` dùng chung với Chi tiết phiếu).

@@ -10,6 +10,7 @@ import {
   exportCareExcel,
   useCareRecordList,
   useCareStats,
+  useSetCareContactStatus,
   useUpdateCareRecord,
   type CareRecordDto,
   type CareStatus,
@@ -69,6 +70,10 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
   });
 
   const updateCare = useUpdateCareRecord();
+  const setContactStatus = useSetCareContactStatus();
+  const contactPendingId = setContactStatus.isPending
+    ? (setContactStatus.variables?.id ?? null)
+    : null;
 
   const handleCounterChange = (key: CareCounterKey, next: CareStatus | undefined) => {
     setCounter(key);
@@ -101,6 +106,15 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
         status: record.status,
         stageIds: record.stageIds,
       });
+    } catch (error) {
+      notifyError(extractApiError(error));
+    }
+  };
+
+  const handleContactStatus = async (record: CareRecordDto, contacted: boolean) => {
+    try {
+      await setContactStatus.mutateAsync({ id: record.id, contacted });
+      toast.success(t("CSKH:Contact:Saved"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
@@ -139,6 +153,8 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
     handleCounterChange,
     handleExport,
     handleNote,
+    handleContactStatus,
+    contactPendingId,
     handleCall: () => toast.error(t("CSKH:NoCallConfig")),
     openDialog,
     closeDialog,

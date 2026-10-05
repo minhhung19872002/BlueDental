@@ -342,3 +342,21 @@ Khác biệt chủ đích (house chrome, không phải lỗi parity):
   (sidebar xanh sáng, tab underline). Sidebar local rộng hơn nên vùng bảng hẹp hơn staging ~120px.
 
 E2E: 8/8 `e2e/cskh.spec.ts` xanh trên production build (2026-08-27).
+
+## Sau điều trị theo "Tiếp tục công đoạn" (yêu cầu chủ dự án, 2026-10-05)
+
+Không phải hành vi đo từ bản gốc — chủ dự án yêu cầu trực tiếp (ảnh chú thích 2026-10-05).
+
+- Trigger: `POST treatment-stages/{id}/continue` (nút **Tiếp tục công đoạn**) mở phiếu
+  CSKH loại Sau điều trị. Mỗi bệnh nhân **một phiếu cho một ngày điều trị** (ngày theo giờ
+  phòng khám, UTC+7); lần tiếp tục sau trong cùng ngày chỉ gắn thêm công đoạn vào phiếu đó.
+  Tiếp tục **bảo hành** không tạo phiếu (yêu cầu chỉ nêu "Tiếp tục công đoạn").
+- Ngày chăm sóc: rỗng khi tạo; được điền lúc chuyển sang Đã liên hệ, xoá khi chuyển lại
+  Chưa liên hệ. Cột mới **Ngày điều trị** = ngày công đoạn được thêm (`treatmentDate`).
+- Bộ lọc Ngày/Tuần/Tháng của tab này lọc theo Ngày điều trị. Mặc định khi vào trang:
+  **Tháng**, tháng hiện tại (áp dụng cả trang).
+- Trạng thái chỉ 2 giá trị: Đã liên hệ / Chưa liên hệ (dropdown trên dòng). Bộ đếm của
+  tab: Tổng khách · Đã liên hệ · Chưa liên hệ · Đã gửi Zalo.
+- Mỗi lần đổi trạng thái liên hệ ghi một dòng `bd_care_contact_logs` (ai, lúc nào, trạng
+  thái sau khi đổi, ghi chú). API đọc: `GET care-records/{id}/contact-logs`.
+  UNKNOWN_REFERENCE_BEHAVIOR: giao diện xem lịch sử liên hệ — chủ dự án sẽ thiết kế sau.

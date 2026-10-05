@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,15 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
 
     [HttpPost("{id:guid}/contacted")]
     public Task<CareRecordDto> MarkContactedAsync(Guid id) => service.MarkContactedAsync(id);
+
+    /// <summary>Đã liên hệ / Chưa liên hệ of the sau-điều-trị tab.</summary>
+    [HttpPut("{id:guid}/contact-status")]
+    public Task<CareRecordDto> SetContactStatusAsync(Guid id, [FromBody] SetCareContactStatusDto input) =>
+        service.SetContactStatusAsync(id, input);
+
+    /// <summary>Lịch sử liên hệ, newest first.</summary>
+    [HttpGet("{id:guid}/contact-logs")]
+    public Task<List<CareContactLogDto>> GetContactLogsAsync(Guid id) => service.GetContactLogsAsync(id);
 
     [HttpPost("{id:guid}/succeed")]
     public Task<CareRecordDto> SucceedAsync(Guid id, [FromBody] SucceedCareRecordDto input) =>

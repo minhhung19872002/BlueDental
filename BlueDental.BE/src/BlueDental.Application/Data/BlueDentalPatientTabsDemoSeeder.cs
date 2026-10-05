@@ -296,7 +296,10 @@ public class BlueDentalPatientTabsDemoSeeder(
                     subject,
                     staffIds[(index + slot) % staffIds.Count],
                     description: $"{subject} — {patient.PatientCode}",
-                    dueAt: DateTimeOffset.UtcNow.AddDays(slot * 7 - 3 + index % 10));
+                    dueAt: DateTimeOffset.UtcNow.AddDays(slot * 7 - 3 + index % 10),
+                    treatmentDate: type == CareType.AfterTreatment
+                        ? ClinicCalendar.DateOf(DateTimeOffset.UtcNow.AddDays(-(index % 10)))
+                        : null);
 
                 // The first is done, the second still open, so both halves of
                 // the Chăm sóc KH chips have something behind them.

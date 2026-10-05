@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
+using BlueDental.CustomerCare;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement.Values;
@@ -30,6 +31,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly StageTeethPolicy _teethPolicy;
+    private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
@@ -37,7 +39,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IRepository<TreatmentPlan, Guid> planRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
-        StageTeethPolicy teethPolicy)
+        StageTeethPolicy teethPolicy,
+        AfterTreatmentCareRecorder afterTreatmentCare)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
@@ -45,6 +48,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         _userRepository = userRepository;
         _branchAccess = branchAccess;
         _teethPolicy = teethPolicy;
+        _afterTreatmentCare = afterTreatmentCare;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
@@ -245,6 +249,14 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         await _repository.InsertAsync(next, autoSave: true);
 
         await MoveServiceLineAsync(next);
+
+        // Sau điều trị CSKH follows "Tiếp tục công đoạn" only — a warranty
+        // continue is not named as a trigger (owner, 2026-10-05).
+        if (!next.IsGuarantee)
+        {
+            await _afterTreatmentCare.RecordVisitAsync(next, Clock.Now);
+        }
+
         return MapToDto(next, await BuildLookupsAsync([next]));
     }
 

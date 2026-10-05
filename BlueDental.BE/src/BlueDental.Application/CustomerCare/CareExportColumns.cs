@@ -25,10 +25,11 @@ public static class CareExportColumns
         _ => Scheduled,
     };
 
-    /// <summary>Sau điều trị — 13 cột (width 20/14/24/12/16/16/20/28/30/16/20/16/36).</summary>
+    /// <summary>Sau điều trị — 14 cột: the staging 13 plus Ngày điều trị (owner, 2026-10-05).</summary>
     private static readonly ExcelColumn<CareRecordDto>[] AfterTreatment =
     [
         new("Ngày CSKH", r => DateTimeText(r.DueAt), 20),
+        new("Ngày điều trị", r => DateText(r.TreatmentDate), 16),
         new("Mã KH", r => r.PatientCode, 14),
         new("Họ và tên", r => r.PatientName, 24),
         new("Giới tính", r => GenderLabel(r.PatientGender), 12),
@@ -117,6 +118,7 @@ public static class CareExportColumns
         CareStatus.Succeeded => "Thành công",
         CareStatus.Failed => "Thất bại",
         CareStatus.Cancelled => "Đã hủy",
+        CareStatus.Contacted => "Đã liên hệ",
         _ => "Chưa liên hệ",
     };
 

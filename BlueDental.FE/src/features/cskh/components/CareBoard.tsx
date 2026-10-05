@@ -25,10 +25,14 @@ interface CareBoardProps {
   /** Permission gates — hide export when false/absent, hide create when false/absent. */
   canExport?: boolean;
   canCreate?: boolean;
+  /** Sau điều trị's Đã liên hệ / Chưa liên hệ dropdown is read-only without it. */
+  canUpdate?: boolean;
 }
 
 /** Head row, care-type tabs + toolbar row, table and dialogs of one care tab. */
-export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot, canExport, canCreate }: CareBoardProps) {
+export function CareBoard({
+  branchId, tab, mode, date, dateSlot, tabsSlot, canExport, canCreate, canUpdate,
+}: CareBoardProps) {
   const board = useCareBoard({ branchId, tab, mode, date });
   /* A tab whose columns fit a desktop still does not fit a phone: without a
      horizontal scroller the headers squeeze into each other. */
@@ -40,13 +44,15 @@ export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot, canEx
     onSend: (record: CareRecordDto) => board.openDialog("send", record),
     onCare: (record: CareRecordDto) => board.openDialog("result", record),
     onNote: board.handleNote,
-  });
+    onContactStatus: board.handleContactStatus,
+  }, { pendingId: board.contactPendingId, canUpdate: Boolean(canUpdate) });
 
   return (
     <>
       <div className="cskh-headrow">
         {dateSlot}
         <CareCounters
+          model={tab.statusModel}
           stats={board.stats.data}
           active={board.counter}
           onChange={board.handleCounterChange}

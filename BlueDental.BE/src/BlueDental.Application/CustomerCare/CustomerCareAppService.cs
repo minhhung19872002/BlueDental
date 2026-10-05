@@ -27,6 +27,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private const int ExportRowCap = 10_000;
 
     private readonly IRepository<CareRecord, Guid> _repository;
+    private readonly IRepository<CareContactLog, Guid> _contactLogRepository;
     private readonly IRepository<Patient, Guid> _patientRepository;
     private readonly IRepository<Appointment, Guid> _appointmentRepository;
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
@@ -40,6 +41,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
     public CustomerCareAppService(
         IRepository<CareRecord, Guid> repository,
+        IRepository<CareContactLog, Guid> contactLogRepository,
         IRepository<Patient, Guid> patientRepository,
         IRepository<Appointment, Guid> appointmentRepository,
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -52,6 +54,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _contactLogRepository = contactLogRepository;
         _patientRepository = patientRepository;
         _appointmentRepository = appointmentRepository;
         _planRepository = planRepository;
@@ -101,6 +104,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 NotCaredYet = g.Count(r =>
                     r.Status == CareStatus.New || r.Status == CareStatus.Contacted),
                 ZaloSent = g.Count(r => r.ZaloSentAt.HasValue),
+                Contacted = g.Count(r => r.Status == CareStatus.Contacted),
+                NotContacted = g.Count(r => r.Status == CareStatus.New),
                 Good = g.Count(r => r.Outcome == CareOutcome.Good),
                 Fair = g.Count(r => r.Outcome == CareOutcome.Fair),
                 Normal = g.Count(r => r.Outcome == CareOutcome.Normal),
@@ -119,6 +124,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             Failed = counters.Failed,
             NotCaredYet = counters.NotCaredYet,
             ZaloSent = counters.ZaloSent,
+            Contacted = counters.Contacted,
+            NotContacted = counters.NotContacted,
             Good = counters.Good,
             Fair = counters.Fair,
             Normal = counters.Normal,
@@ -237,7 +244,61 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         await GuardBranchAccessAsync(record);
         record.MarkContacted();
         await _repository.UpdateAsync(record, autoSave: true);
+        await _contactLogRepository.InsertAsync(
+            CareContactLog.Of(GuidGenerator.Create(), record), autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
+    }
+
+    [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
+    public async Task<CareRecordDto> SetContactStatusAsync(Guid id, SetCareContactStatusDto input)
+    {
+        var record = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(record);
+
+        // Re-picking the current state is a no-op, not a history row.
+        if (record.SetContacted(input.Contacted, Clock.Now))
+        {
+            await _repository.UpdateAsync(record, autoSave: true);
+            await _contactLogRepository.InsertAsync(
+                CareContactLog.Of(GuidGenerator.Create(), record, input.Note), autoSave: true);
+        }
+
+        var dto = ObjectMapper.Map<CareRecord, CareRecordDto>(record);
+        await FillAsync([record], [dto]);
+        return dto;
+    }
+
+    [Authorize(BlueDentalPermissions.CustomerCare.View)]
+    public async Task<List<CareContactLogDto>> GetContactLogsAsync(Guid id)
+    {
+        var record = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(record);
+
+        var logs = await AsyncExecuter.ToListAsync(
+            (await _contactLogRepository.GetQueryableAsync())
+                .Where(l => l.CareRecordId == id)
+                .OrderByDescending(l => l.CreationTime));
+
+        var creatorIds = logs
+            .Where(l => l.CreatorId.HasValue)
+            .Select(l => l.CreatorId!.Value)
+            .Distinct()
+            .ToList();
+        var creators = creatorIds.Count == 0
+            ? []
+            : (await _userRepository.GetListByIdsAsync(creatorIds))
+                .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        return logs.Select(l => new CareContactLogDto
+        {
+            Id = l.Id,
+            CareRecordId = l.CareRecordId,
+            Status = l.Status,
+            Note = l.Note,
+            CreatorId = l.CreatorId,
+            CreatorName = l.CreatorId.HasValue ? creators.GetValueOrDefault(l.CreatorId.Value) : null,
+            CreationTime = l.CreationTime,
+        }).ToList();
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
@@ -405,6 +466,26 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         if (input.AssignedStaffId.HasValue)
             query = query.Where(r => r.AssignedStaffId == input.AssignedStaffId.Value);
 
+        // Sau điều trị has no care date until someone calls, so it is windowed
+        // by the clinic day of the treatment instead (owner, 2026-10-05).
+        if (input.Type == CareType.AfterTreatment)
+        {
+            if (input.FromDate.HasValue)
+            {
+                var fromDay = ClinicCalendar.DateOf(input.FromDate.Value);
+                query = query.Where(r => r.TreatmentDate >= fromDay);
+            }
+
+            if (input.ToDate.HasValue)
+            {
+                var toDay = ClinicCalendar.DateOf(input.ToDate.Value);
+                query = query.Where(r => r.TreatmentDate <= toDay);
+            }
+
+            return ApplyPatientFilter(query, input.Filter, branchFilter,
+                await _patientRepository.GetQueryableAsync());
+        }
+
         // The reference windows periodic/special by the care-appointment slot
         // and every other tab by the care date.
         // Npgsql requires UTC offset for timestamptz parameters.
@@ -425,17 +506,24 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 : query.Where(r => r.DueAt <= to);
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-        {
-            var patientQuery = (await _patientRepository.GetQueryableAsync())
-                .Where(PatientMatches(input.Filter));
-            if (branchFilter.Count > 0)
-                patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
-            var matchedIds = patientQuery.Select(p => p.Id);
-            query = query.Where(r => matchedIds.Contains(r.PatientId));
-        }
+        return ApplyPatientFilter(query, input.Filter, branchFilter,
+            await _patientRepository.GetQueryableAsync());
+    }
 
-        return query;
+    private static IQueryable<CareRecord> ApplyPatientFilter(
+        IQueryable<CareRecord> query,
+        string? filter,
+        IReadOnlyList<Guid> branchFilter,
+        IQueryable<Patient> patientQuery)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return query;
+
+        patientQuery = patientQuery.Where(PatientMatches(filter));
+        if (branchFilter.Count > 0)
+            patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
+        var matchedIds = patientQuery.Select(p => p.Id);
+        return query.Where(r => matchedIds.Contains(r.PatientId));
     }
 
     /// <summary>Tìm kiếm — patient code, full name or phone, case-insensitive.</summary>
@@ -450,7 +538,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private static IOrderedQueryable<CareRecord> SortForBoard(
         IQueryable<CareRecord> query, CareType? type) => type switch
     {
-        CareType.AfterTreatment or CareType.NoService => query.OrderByDescending(r => r.DueAt),
+        CareType.AfterTreatment => query
+            .OrderByDescending(r => r.TreatmentDate)
+            .ThenByDescending(r => r.CreationTime),
+        CareType.NoService => query.OrderByDescending(r => r.DueAt),
         CareType.Birthday or CareType.AppointmentReminder => query.OrderBy(r => r.DueAt),
         CareType.Periodic or CareType.Special => query.OrderByDescending(r => r.ScheduledStart),
         _ => query.OrderByDescending(r => r.CreationTime),
@@ -564,7 +655,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             dto.CareServiceName = record.CareServiceId.HasValue
                 ? careServices.GetValueOrDefault(record.CareServiceId.Value)
                 : null;
-            dto.NextAppointmentAt = nextAppointments.GetValueOrDefault(record.PatientId);
+            // A miss must stay null ("Chưa có lịch hẹn"), not default(DateTimeOffset).
+            dto.NextAppointmentAt = nextAppointments.TryGetValue(record.PatientId, out var next)
+                ? next
+                : null;
             dto.ServiceNames = record.StageIds
                 .Select(id => stageServices.TryGetValue(id, out var serviceId)
                     ? stageServiceNames.GetValueOrDefault(serviceId)

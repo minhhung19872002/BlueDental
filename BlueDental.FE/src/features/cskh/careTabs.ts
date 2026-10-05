@@ -15,10 +15,16 @@ export type CareDateMode = "day" | "week" | "month";
 
 const CARE_DATE_MODES: readonly CareDateMode[] = ["day", "week", "month"];
 
-/** URL `care_dateMode=` value → validated mode, defaulting like the reference. */
+/** URL `care_dateMode=` value → validated mode; the page opens on this month (owner, 2026-10-05). */
 export function careDateModeOf(value: string | null): CareDateMode {
-  return CARE_DATE_MODES.includes(value as CareDateMode) ? (value as CareDateMode) : "day";
+  return CARE_DATE_MODES.includes(value as CareDateMode) ? (value as CareDateMode) : "month";
 }
+
+/**
+ * How a tab tracks care: "contact" is the two-state Đã liên hệ / Chưa liên hệ
+ * of Sau điều trị; "result" is the Thành công / Thất bại flow of the others.
+ */
+export type CareStatusModel = "contact" | "result";
 
 export interface CareTabConfig {
   key: CareTabKey;
@@ -33,6 +39,7 @@ export interface CareTabConfig {
   fileHeart: "result" | null;
   /** Tabs with 9–10 columns overflow the card and scroll horizontally. */
   wideTable: boolean;
+  statusModel: CareStatusModel;
 }
 
 export const CARE_TABS: readonly CareTabConfig[] = [
@@ -46,6 +53,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: false,
     fileHeart: null,
     wideTable: false,
+    statusModel: "contact",
   },
   {
     key: "birthday",
@@ -57,6 +65,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: true,
     fileHeart: "result",
     wideTable: false,
+    statusModel: "result",
   },
   {
     key: "remind-appointment",
@@ -68,6 +77,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: true,
     fileHeart: "result",
     wideTable: true,
+    statusModel: "result",
   },
   {
     key: "no-service",
@@ -79,6 +89,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: false,
     fileHeart: "result",
     wideTable: false,
+    statusModel: "result",
   },
   {
     key: "periodic",
@@ -90,6 +101,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: false,
     fileHeart: null,
     wideTable: true,
+    statusModel: "result",
   },
   {
     key: "special",
@@ -101,6 +113,7 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showSend: false,
     fileHeart: null,
     wideTable: true,
+    statusModel: "result",
   },
 ] as const;
 

@@ -93,6 +93,7 @@ export function CskhGroupingPage() {
               date={date}
               canExport={careAbility.canExport}
               canCreate={careAbility.canCreate}
+              canUpdate={careAbility.canUpdate}
               dateSlot={
                 <CareDateBar
                   mode={mode}
