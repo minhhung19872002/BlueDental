@@ -46,6 +46,8 @@ export function PlanServicesToolbar({
   const [form] = Form.useForm<PickerValues>();
   const stageAbility = useAbility("treatmentStage");
   const rxAbility = useAbility("prescription");
+  // "In Hóa Đơn" issues an e-invoice — the server's payment.finalize.
+  const canIssueInvoice = useAbility("payment").can("finalize");
 
   useEffect(() => {
     form.setFieldValue("serviceId", draftServiceId ?? undefined);
@@ -73,10 +75,12 @@ export function PlanServicesToolbar({
             {t("Treatment:Prescription:CreatePrescriptionButton")}
           </button>
         )}
-        <button type="button" className="tp-btn tp-btn--outline" onClick={onInvoice}>
-          <Receipt size={16} aria-hidden="true" />
-          {t("Treatment:Payment:PrintInvoiceAlt")}
-        </button>
+        {canIssueInvoice && (
+          <button type="button" className="tp-btn tp-btn--outline" onClick={onInvoice}>
+            <Receipt size={16} aria-hidden="true" />
+            {t("Treatment:Payment:PrintInvoiceAlt")}
+          </button>
+        )}
         <button type="button" className="pdt-print" aria-label={t("Treatment:Receipt:TreatmentSlipFor")} onClick={onPrint}>
           <Printer size={16} aria-hidden="true" />
         </button>

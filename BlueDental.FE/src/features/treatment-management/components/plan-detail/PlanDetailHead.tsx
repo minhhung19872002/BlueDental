@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 import type { PaymentSummaryDto } from "../../api/treatmentPlanApi";
 import { moneyText } from "../plan/planTypes";
-import { PLAN_TAB_KEYS, PLAN_TAB_LABELS, type PlanTabKey } from "./planDetailTypes";
+import { PLAN_TAB_LABELS, type PlanTabKey } from "./planDetailTypes";
 
 interface Stat {
   key: keyof PaymentSummaryDto;
@@ -30,16 +30,18 @@ const STATS: Stat[] = [
 
 interface Props {
   tab: PlanTabKey;
+  /** The tabs this user may open — the money tabs need payment.read. */
+  tabs: readonly PlanTabKey[];
   payment: PaymentSummaryDto;
   onTabChange: (tab: PlanTabKey) => void;
 }
 
 /** The pill tabs on the left and the slip's money summary on the right. */
-export function PlanDetailHead({ tab, payment, onTabChange }: Props) {
+export function PlanDetailHead({ tab, tabs, payment, onTabChange }: Props) {
   return (
     <div className="pdt-head">
       <div className="pdt-tabs" role="tablist" aria-label={t("Treatment:Plan:TreatmentPlan")}>
-        {PLAN_TAB_KEYS.map((key) => (
+        {tabs.map((key) => (
           <button
             key={key}
             type="button"

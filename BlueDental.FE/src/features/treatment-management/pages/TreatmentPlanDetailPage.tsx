@@ -2,6 +2,7 @@ import { Spin } from "antd";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { usePatientDto } from "@/features/patient-management/api/patientQueries";
+import { useAbility } from "@/hooks/useAbility";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { usePlanSlip } from "../api/treatmentPlanApi";
@@ -11,7 +12,12 @@ import { PlanDetailHeader } from "../components/plan-detail/PlanDetailHeader";
 import { PlanPaymentsTab } from "../components/plan-detail/PlanPaymentsTab";
 import { PlanRefundsTab } from "../components/plan-detail/PlanRefundsTab";
 import { PlanServicesTab } from "../components/plan-detail/PlanServicesTab";
-import { PLAN_TAB, isPlanTab, type PlanTabKey } from "../components/plan-detail/planDetailTypes";
+import {
+  PLAN_TAB,
+  PLAN_TAB_KEYS,
+  isPlanTab,
+  type PlanTabKey,
+} from "../components/plan-detail/planDetailTypes";
 import "../components/plan/treatment-plan.css";
 import "../components/plan-detail/plan-detail.css";
 
@@ -32,8 +38,12 @@ export function TreatmentPlanDetailPage() {
   const patient = usePatientDto(id);
   const plan = usePlanSlip(planId);
 
+  // Thanh toán, Hoàn tiền and Dư nợ are payment views: without payment.read
+  // only Chi tiết is offered, and a ?planTab= pointing at one falls back to it.
+  const canReadPayments = useAbility("payment").canRead;
+  const tabs: readonly PlanTabKey[] = canReadPayments ? PLAN_TAB_KEYS : [PLAN_TAB.detail];
   const rawTab = searchParams.get(TAB_PARAM);
-  const tab: PlanTabKey = isPlanTab(rawTab) ? rawTab : PLAN_TAB.detail;
+  const tab: PlanTabKey = isPlanTab(rawTab) && tabs.includes(rawTab) ? rawTab : PLAN_TAB.detail;
 
   const handleTabChange = (next: PlanTabKey) => {
     const params = new URLSearchParams(searchParams);
@@ -66,7 +76,7 @@ export function TreatmentPlanDetailPage() {
     <div className="page-container pdt-page">
       <PlanDetailHeader patient={patient.data} plan={plan.data} branchId={branchId} />
       <section className="pdt-body">
-        <PlanDetailHead tab={tab} payment={plan.data.payment} onTabChange={handleTabChange} />
+        <PlanDetailHead tab={tab} tabs={tabs} payment={plan.data.payment} onTabChange={handleTabChange} />
         {tab === PLAN_TAB.detail && <PlanServicesTab {...tabProps} />}
         {tab === PLAN_TAB.payment && <PlanPaymentsTab {...tabProps} />}
         {tab === PLAN_TAB.refund && <PlanRefundsTab {...tabProps} />}

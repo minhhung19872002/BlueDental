@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Modal } from "antd";
 import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
@@ -78,6 +79,8 @@ export function TreatmentStageDialog({
   onOpenPlan,
 }: Props) {
   const branch = useBranchInfo(branchId);
+  // "Thanh toán" leads to collecting money on the slip — payment.create.
+  const canPay = useAbility("payment").canCreate;
   const composer = useStageComposer({ open, patientId, branchId, plan, focusServiceId, focusStageId });
 
   const [printing, setPrinting] = useState(false);
@@ -134,9 +137,11 @@ export function TreatmentStageDialog({
             ))}
           </div>
           <div className="pd-stage-actions">
-            <Button className="pd-stage-pay" icon={<DollarOutlined />} onClick={onOpenPlan}>
-              {t("Patient:Misc:Payment")}
-            </Button>
+            {canPay && (
+              <Button className="pd-stage-pay" icon={<DollarOutlined />} onClick={onOpenPlan}>
+                {t("Patient:Misc:Payment")}
+              </Button>
+            )}
             <Button icon={<PrinterOutlined />} onClick={() => setPrinting(true)}>
               {t("Patient:MedRecord:PrintHistory")}
             </Button>

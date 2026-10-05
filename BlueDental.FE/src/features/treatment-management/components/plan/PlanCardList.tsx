@@ -55,16 +55,18 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
           <ClipboardList size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <ActionTooltip title={t("Treatment:Plan:Invoice")}>
-        <button
-          type="button"
-          className="bd-rc-action"
-          aria-label={t("Treatment:Plan:Receipt", plan.code)}
-          onClick={() => actions.onReceipt(plan)}
-        >
-          <Receipt size={16} aria-hidden="true" />
-        </button>
-      </ActionTooltip>
+      {actions.onReceipt && (
+        <ActionTooltip title={t("Treatment:Plan:Invoice")}>
+          <button
+            type="button"
+            className="bd-rc-action"
+            aria-label={t("Treatment:Plan:Receipt", plan.code)}
+            onClick={() => actions.onReceipt?.(plan)}
+          >
+            <Receipt size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
     </>
   );
 }

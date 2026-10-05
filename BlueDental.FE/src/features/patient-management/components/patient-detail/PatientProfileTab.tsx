@@ -24,6 +24,7 @@ import { DataTable } from "@/components/DataTable";
 import {
   SERVICE_LINE_STATUS,
   usePatientAccount,
+  useTreatmentPlans,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useReExaminations, useTreatmentStages } from "@/features/treatment-management/api/stageApi";
 import { usePatientDiagnoses } from "@/features/treatment-management/api/consultingQueries";
@@ -157,7 +158,15 @@ export function PatientProfileTab({ patient }: Props) {
   const [detailStageId, setDetailStageId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const pagination = useTablePagination(20);
-  const { data: account, isLoading } = usePatientAccount(patient.id, branchId);
+  /*
+   * The slips come from the treatment list (treatmentConsultation.read), not
+   * from patient-account: that one is money and needs payment.read, and a
+   * dentist without it must still see the treatment history — only the
+   * payment buttons go.
+   */
+  const plansQuery = useTreatmentPlans(patient.id, branchId);
+  const plans = plansQuery.data?.items;
+  const { data: account } = usePatientAccount(patient.id, branchId, paymentAbility.canRead);
   /*
    * The whole history in one request, because the table paginates and groups by
    * day in the browser: the công đoạn and the tái khám rows are two collections
@@ -243,12 +252,12 @@ export function PatientProfileTab({ patient }: Props) {
   const rows = useMemo(
     () =>
       buildTreatmentRows(
-        account?.plans ?? [],
+        plans ?? [],
         patientStages.data?.items ?? [],
         reExaminations.data?.items ?? [],
         diagnoses.data?.items ?? [],
       ),
-    [account, patientStages.data, reExaminations.data, diagnoses.data],
+    [plans, patientStages.data, reExaminations.data, diagnoses.data],
   );
   const visibleRows = useMemo(
     () =>
@@ -298,15 +307,15 @@ export function PatientProfileTab({ patient }: Props) {
         onOpenPlan: openTreatmentPlan,
         onAddStage: setStageRow,
         onWarranty: setWarrantyRow,
-        onPay: setPayingRow,
+        onPay: paymentAbility.canCreate ? setPayingRow : undefined,
       }),
     // openTreatmentPlan closes over the patient, the branch and the router's
     // navigate only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [patient.id, branchId],
+    [patient.id, branchId, paymentAbility.canCreate],
   );
   const planOf = (row: TreatmentRow | null) =>
-    (account?.plans ?? []).find((plan) => plan.id === row?.treatmentPlanId) ?? null;
+    (plans ?? []).find((plan) => plan.id === row?.treatmentPlanId) ?? null;
   const payingPlan = planOf(payingRow);
   const stagePlan = planOf(stageRow);
 
@@ -518,7 +527,7 @@ export function PatientProfileTab({ patient }: Props) {
           </div>
         </div>
         <DataTable<TreatmentRow>
-          loading={isLoading}
+          loading={plansQuery.isLoading}
           /*
            * A row is one công đoạn, so the line id alone repeats across every
            * công đoạn of a line. The key stays *prefixed* by the line id — that

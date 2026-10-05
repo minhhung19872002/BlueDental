@@ -19,7 +19,8 @@ export interface PlanRowActions {
   onAddStage: (plan: TreatmentPlanSlipDto) => void;
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
   onPrintRecord: (plan: TreatmentPlanSlipDto) => void;
-  onReceipt: (plan: TreatmentPlanSlipDto) => void;
+  /** The invoice icon; left out when the user may not issue one (payment.finalize). */
+  onReceipt?: (plan: TreatmentPlanSlipDto) => void;
   /** The code link — the slip's own screen. */
   onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
 }
@@ -154,16 +155,18 @@ export function buildPlanColumns(
               <ClipboardList size={16} aria-hidden="true" />
             </button>
           </ActionTooltip>
-          <ActionTooltip title={t("Treatment:Plan:Invoice")}>
-            <button
-              type="button"
-              className="tp-action"
-              aria-label={t("Treatment:Plan:Receipt", plan.code)}
-              onClick={() => actions.onReceipt(plan)}
-            >
-              <Receipt size={16} aria-hidden="true" />
-            </button>
-          </ActionTooltip>
+          {actions.onReceipt && (
+            <ActionTooltip title={t("Treatment:Plan:Invoice")}>
+              <button
+                type="button"
+                className="tp-action"
+                aria-label={t("Treatment:Plan:Receipt", plan.code)}
+                onClick={() => actions.onReceipt?.(plan)}
+              >
+                <Receipt size={16} aria-hidden="true" />
+              </button>
+            </ActionTooltip>
+          )}
         </span>
       ),
     },

@@ -46,6 +46,8 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   // The slip is opened through the consulting line, so the server gates it on
   // treatmentConsultation.create — there is no treatmentPlan subject.
   const ability = useAbility("treatmentConsultation");
+  // The invoice dialog issues an e-invoice — the server's payment.finalize.
+  const canIssueInvoice = useAbility("payment").can("finalize");
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [createOpen, setCreateOpen] = useState(false);
@@ -80,10 +82,10 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       // The reference's print dialog is about the patient, not the slip: it
       // reads the record files and the patient, and nothing off the row.
       onPrintRecord: () => setPrintOpen(true),
-      onReceipt: setInvoicePlan,
+      onReceipt: canIssueInvoice ? setInvoicePlan : undefined,
       onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
     }),
-    [navigate, patientId, branchId],
+    [navigate, patientId, branchId, canIssueInvoice],
   );
 
   const serviceRows =

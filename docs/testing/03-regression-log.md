@@ -6552,6 +6552,40 @@ Chạy lại trên bản build production (`vite preview`, thư mục riêng, c�
 
 Dữ liệu sẽ lại cạn sau vài chục lần chạy, vì fixture không dọn lịch nó tạo. Chưa sửa fixture.
 
+## 2026-10-05 — Khách hàng › Thanh toán: ẩn các nút thanh toán khi thiếu quyền (R-694 / R-695 / R-698)
+
+Owner: "Nếu user không có quyền thanh toán → ẩn các nút thanh toán". Mỗi nút gác theo đúng lá mà endpoint nó gọi kiểm ở server.
+
+| ID | Lỗi | Sửa |
+|---|---|---|
+| R-694 | Nha sĩ không có lá Thanh toán nào vẫn thấy: icon "Hóa đơn" ở dòng phiếu (Kế hoạch điều trị), "In Hóa Đơn" ở Chi tiết phiếu điều trị, "Thanh toán" trong hộp "Chi tiết phiếu", "Tạo phiếu thanh toán" ở dòng bảng điều trị (Hồ sơ), và 3 tab Thanh toán / Hoàn tiền / Dư nợ của trang chi tiết phiếu. Bấm vào thì server trả 403. | Hai nút hoá đơn điện tử (`TreatmentPlanPanel`/`planColumns`/`PlanCardList`, `PlanServicesToolbar`) gác `payment.finalize`, vì `IssueAsync`/`IssueFromPaymentAsync` đòi Chốt phiếu. Hai nút thu tiền (`TreatmentStageDialog`, `treatmentColumns` qua `PatientProfileTab`) gác `payment.create`. Ba tab tiền (`TreatmentPlanDetailPage` → `PlanDetailHead.tabs`) gác `payment.read`; nếu `?planTab=` trỏ vào tab bị ẩn thì quay về Chi tiết. |
+| R-695 | (Phát hiện khi test) Thiếu `payment.read` thì bảng điều trị ở tab Hồ sơ trống ("Chưa có điều trị"): các dòng dựng từ `GET patient-account` (`PatientPaymentAppService.GetAccountAsync`, `[Authorize(Payment.Read)]`). Có từ trước thay đổi này. | Owner (2026-10-05): "vẫn xem được data điều trị, chỉ ẩn nút thanh toán". `PatientProfileTab` dựng dòng từ `useTreatmentPlans` (`GET patient-treatments`, chỉ cần `treatmentConsultation.read`). `usePatientAccount` nhận thêm `enabled`, và chỉ gọi khi có `payment.read`. `useTreatmentPlans` lấy 100 phiếu (trước 50), bằng số patient-account lấy. Không có read thì các ô tiền ở Hồ sơ hiện 0; owner đã xác nhận không cần ẩn ô tiền. |
+| R-698 | Màn Thanh toán & hoá đơn: nút "Thu tiền" gác `payment.create`, nhưng `InvoiceAppService.RecordPaymentAsync` lại đòi `Payment.Update`. Kết quả là người có Thêm thấy nút nhưng bấm thì bị 403, còn người có Sửa thì không thấy nút. | Owner: "sửa cho khớp". BE đổi sang `[Authorize(Payment.Create)]`, giống `PatientPaymentAppService.RecordAsync` (thu tiền là Thêm). FE giữ nguyên. |
+
+Kiểm chứng: bản build production `vite preview` :8093 (thư mục riêng), host thật :5000, PostgreSQL thật, không chặn request.
+- `e2e/payment-permission-buttons.spec.ts` (mới) **1/1**, 1,1 phút. Admin tạo nha sĩ thật và bật lá trên tab Phân quyền; nha sĩ đăng nhập ở phiên riêng. Kiểm 5 nấc:
+  1. Không lá nào: mọi nút ẩn, `?planTab=payment-v2` về Chi tiết.
+  2. Chỉ Xem: hiện 3 tab tiền, chưa có nút nào.
+  3. Thêm: hiện 3 nút thu tiền (2 điểm vào hộp "Chi tiết phiếu" + dòng và toolbar Hồ sơ).
+  4. Chốt phiếu: hiện "Hóa đơn" và "In Hóa Đơn".
+  5. Chốt phiếu không có Thêm: hoá đơn hiện, nút thu tiền ẩn.
+  
+  Mọi locator "ẩn" đều có ít nhất một nấc phải hiện, nên không pass rỗng. Lá được trả về và nha sĩ bị xoá sau test.
+- `patient-permission-gates.spec.ts` **1/1**, `treatment-plan-detail.spec.ts` **15/15** (lần chạy đầu đỏ 1 test 640px, chạy lại xanh).
+- `treatment-plan.spec.ts:199` **đỏ**: `<th>` "Thêm công đoạn" chặn click vào nút "+" ở viewport 1280×720, vì thân bảng co về 0px khi bệnh nhân fixture đã có 11 phiếu. Bản build baseline (working tree **trừ** 9 file của thay đổi này) đỏ **y hệt**, nên đây là lỗi có sẵn. 6 test sau nó trong describe serial không chạy.
+- `tsc -b` + `eslint` sạch.
+
+Retest level **2** (FE của tính năng Thanh toán / Kế hoạch điều trị; không đổi BE).
+
+Đợt 2 (R-695 sửa, R-698):
+- Spec có thêm test 2: "payment.create alone collects on an invoice; read alone cannot". Admin tạo và phát hành hoá đơn. Nha sĩ chỉ có Xem thì không thấy "Thu tiền" và POST `/payment` trả 403. Bật Thêm thì thu được 40.000. Admin đọc lại thấy `paidAmount` 40000, `balanceDue` 60000. Cuối test hoá đơn bị huỷ. Test 2 xanh khi chạy riêng trên :8093 (host có thay đổi BE).
+- Nấc "không lá nào" của test 1 có thêm câu kiểm: dòng điều trị Hồ sơ vẫn hiện, không có nút thu tiền.
+- Lượt chạy chung `patient` + `treatment-stage-chain` + spec này (20,8 phút): 48 xanh, 28 đỏ. Trong đó 26 đỏ ở `patient.spec`, khớp nhóm đỏ có sẵn ở HEAD (xem e2e pre-existing reds 2026-10-01), cộng test 1 của spec này hết giờ 420 s trong lượt chung.
+- **Chưa đối chiếu xong với baseline.** Owner dừng các lượt Playwright ("không cần playwright"). Đã kiểm `tsc -b` sạch, `eslint` sạch (chỉ còn lỗi `react-hooks/exhaustive-deps` có sẵn ở HEAD), build `BlueDental.Application` thành công.
+- Trạng thái: chưa VERIFIED lại cho đợt 2.
+
+Retest level **3** (đổi quyền BE của Billing).
+
 ## 2026-10-05 — Chi tiết phiếu › Lịch sử điều trị: răng đã hoàn thành tô xanh lá (R-696 / R-697)
 
 Quy tắc do BA đưa ra (2026-10-05), **không lấy từ bản gốc**: bản gốc không tô màu "đã hoàn thành" cho răng. Owner đã xác nhận ba điểm:

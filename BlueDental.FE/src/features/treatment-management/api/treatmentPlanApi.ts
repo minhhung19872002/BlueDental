@@ -590,16 +590,19 @@ export function usePatientPayments(params: PatientPaymentListInput) {
 export function useTreatmentPlans(patientId: string, clinicBranchId: string) {
   return useQuery({
     queryKey: treatmentKeys.plans(patientId),
-    queryFn: () => treatmentApi.plans({ patientId, clinicBranchId, maxResultCount: 50 }),
+    // Hồ sơ builds its treatment table from this list too, so it asks for as
+    // many slips as patient-account does.
+    queryFn: () => treatmentApi.plans({ patientId, clinicBranchId, maxResultCount: 100 }),
     enabled: Boolean(patientId),
   });
 }
 
-export function usePatientAccount(patientId: string, clinicBranchId: string) {
+/** The money rollup — the server keeps it behind payment.read, so pass `enabled` false without it. */
+export function usePatientAccount(patientId: string, clinicBranchId: string, enabled = true) {
   return useQuery({
     queryKey: treatmentKeys.account(patientId),
     queryFn: () => treatmentApi.account(patientId, clinicBranchId),
-    enabled: Boolean(patientId),
+    enabled: enabled && Boolean(patientId),
   });
 }
 

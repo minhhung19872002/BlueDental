@@ -153,7 +153,9 @@ public class InvoiceAppService : BlueDentalAppService, IInvoiceAppService
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
+    // Collecting money is Thêm, like patient-payments' RecordAsync — the
+    // "Thu tiền" button is gated on payment.create.
+    [Authorize(BlueDentalAbilityPermissions.Payment.Create)]
     public async Task<InvoiceDto> RecordPaymentAsync(Guid id, RecordPaymentDto input)
     {
         var invoice = await _repository.GetAsync(id);

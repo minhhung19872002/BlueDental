@@ -25,8 +25,8 @@ interface Handlers {
   onAddStage: (row: TreatmentRow) => void;
   /** Bảo hành — offered once the row's công đoạn is finished. */
   onWarranty: (row: TreatmentRow) => void;
-  /** Thao tác — "Tạo phiếu thanh toán" for this row. */
-  onPay: (row: TreatmentRow) => void;
+  /** Thao tác — "Tạo phiếu thanh toán" for this row; left out without payment.create. */
+  onPay?: (row: TreatmentRow) => void;
 }
 
 /** The banknote glyph the reference puts under Thao tác. */
@@ -233,7 +233,7 @@ export function treatmentColumns({
       // A diagnosis row keeps the icon but greyed out (staging, 2026-09-28);
       // whether it answers a click is unobserved — docs/clone/unknowns.md.
       render: (_, row) =>
-        row.isWarranty ? null : (
+        row.isWarranty || !onPay ? null : (
           <Tooltip title={t("Patient:Payment:CreateSlip")}>
             <Button
               type="text"
