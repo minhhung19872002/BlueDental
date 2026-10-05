@@ -117,7 +117,7 @@ export function StageFollowUpDialog({
           <FloatingLabel label={t("Patient:Col:CreatedAt")} floated>
             <Input disabled value={formatDate(new Date().toISOString())} />
           </FloatingLabel>
-          <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(form.staffId)}>
+          <FloatingLabel label={t("Patient:Staff:Doctor")} required floated={Boolean(form.staffId)}>
             <ServerSearchSelect
               value={form.staffId}
               valueLabel={stage?.staffName}

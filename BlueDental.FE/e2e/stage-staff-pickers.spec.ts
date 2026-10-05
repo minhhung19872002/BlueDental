@@ -162,4 +162,27 @@ test.describe("Chi tiết phiếu — người được chọn theo vai trò", (
     expect(await offered(page, secondDoctor, nameOf(dentist))).toContain(nameOf(dentist));
     expect(await offered(page, secondDoctor, nameOf(untagged))).not.toContain(nameOf(untagged));
   });
+  test("on the slip's own page, Bác sĩ is marked required and Thanh toán moves to the payment tab", async ({
+    page,
+  }) => {
+    const { dentist } = await staffOfEachKind(page);
+    const line = await lineWithStageBy(page, dentist.id);
+
+    await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?planTab=detail&branchId=${BRANCH}`);
+    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
+    await dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
+    const form = dialog.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
+
+    // Bác sĩ is validated as required, so its label carries the asterisk.
+    const doctorLabel = form.locator(".floating-field").filter({ has: page.locator(".ant-select") }).first();
+    await expect(doctorLabel.locator(".floating-field-required")).toHaveText("*");
+
+    await dialog.getByRole("button", { name: "Thanh toán" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`/treatment-plan/${line.planId}[?]planTab=payment-v2&branchId=`));
+    await expect(page.locator(".pdt-tab.active, [role=tab][aria-selected=true]").first()).toHaveText("Thanh toán");
+  });
 });

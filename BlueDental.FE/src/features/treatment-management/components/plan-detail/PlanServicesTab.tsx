@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type HTMLAttributes } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
@@ -27,6 +28,8 @@ import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
 import { EMPTY_TOOTH_VALUE } from "../plan/toothPicker";
+import { planDetailPath } from "../plan/planTypes";
+import { PLAN_TAB } from "./planDetailTypes";
 import { ToothPickerDialog } from "../plan/ToothPickerDialog";
 import { PlanServicesToolbar } from "./PlanServicesToolbar";
 import { PlanSlipDialog } from "./PlanSlipDialog";
@@ -110,6 +113,7 @@ interface Props {
  * Picking a service in the toolbar puts the inline new row on top of them.
  */
 export function PlanServicesTab({ patient, plan, branchId }: Props) {
+  const navigate = useNavigate();
   const narrow = useMediaQuery(NARROW_SCREEN);
   // Adding, completing, converting, cancelling and reordering a line are all
   // one endpoint family on the server, guarded by treatmentConsultation.update.
@@ -300,7 +304,12 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         plan={plan}
         focusServiceId={null}
         onClose={() => setStageOpen(false)}
-        onOpenPlan={() => setStageOpen(false)}
+        onOpenPlan={() => {
+          // Already on this slip: Thanh toán moves it to its payment tab
+          // (owner, 2026-10-05), as the jump from the Hồ sơ tab does.
+          setStageOpen(false);
+          navigate(planDetailPath(patient.id, plan.id, branchId, PLAN_TAB.payment), { replace: true });
+        }}
       />
       <PrescriptionDialog
         open={prescriptionOpen}
