@@ -1,12 +1,13 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { Button, Table, type TableColumnsType } from "antd";
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { LetterAvatar } from "@/components/LetterAvatar";
 import { t } from "@/lib/i18n";
 import type { HistoryEntry } from "../../types/appointmentHistory";
-import { ActionBadge, SourceBadge, StatusText } from "./HistoryBadges";
+import { ActionBadge, StatusText } from "./HistoryBadges";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
-import { fieldLabel, formatOccurredAt, summarizeDiff } from "./historyLabels";
+import { HistoryValueList } from "./HistoryValueList";
+import { formatOccurredAt } from "./historyLabels";
 
 interface Props {
   entries: HistoryEntry[];
@@ -14,8 +15,6 @@ interface Props {
   expandedId: string | null;
   onToggle: (id: string) => void;
 }
-
-const EMPTY = "—";
 
 function buildColumns(expandedId: string | null, onToggle: (id: string) => void): TableColumnsType<HistoryEntry> {
   return [
@@ -32,16 +31,14 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
       render: (_, entry) => <ActionBadge action={entry.action} />,
     },
     {
-      title: t("Appointment:History:Table:Changes"),
-      dataIndex: "changedFields",
-      render: (fields: string[]) => (
-        <span className="ah-fields">{fields.length ? fields.map(fieldLabel).join(", ") : EMPTY}</span>
-      ),
+      title: t("Appointment:History:Table:OldValue"),
+      key: "before",
+      render: (_, entry) => <HistoryValueList entry={entry} side="before" />,
     },
     {
-      title: t("Appointment:History:Table:BeforeAfter"),
-      key: "diff",
-      render: (_, entry) => <span className="ah-diff-summary">{summarizeDiff(entry)}</span>,
+      title: t("Appointment:History:Table:NewValue"),
+      key: "after",
+      render: (_, entry) => <HistoryValueList entry={entry} side="after" />,
     },
     {
       title: t("Common:Status"),
@@ -59,12 +56,6 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
           <span className="ah-actor-name">{entry.actorName}</span>
         </span>
       ),
-    },
-    {
-      title: t("Appointment:History:Source"),
-      dataIndex: "source",
-      width: 90,
-      render: (_, entry) => <SourceBadge source={entry.source} />,
     },
     {
       key: "expand",

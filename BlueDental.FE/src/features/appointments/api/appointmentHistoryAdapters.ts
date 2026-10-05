@@ -26,7 +26,7 @@ const STATUS_GROUP_BY_CODE: Record<number, HistoryStatusGroup> = {
   7: "noShow",
 };
 
-/** The diff stores statuses by enum name; same buckets. */
+/** The stats dictionaries key statuses by enum name; same buckets. */
 const STATUS_GROUP_BY_NAME: Record<string, HistoryStatusGroup> = {
   Requested: "scheduled",
   Confirmed: "scheduled",
@@ -57,10 +57,6 @@ export function statusGroupOfCode(code: number | null | undefined): HistoryStatu
   return code == null ? null : (STATUS_GROUP_BY_CODE[code] ?? null);
 }
 
-export function statusGroupOfName(name: string | null | undefined): HistoryStatusGroup | null {
-  return name ? (STATUS_GROUP_BY_NAME[name] ?? null) : null;
-}
-
 /** An empty pick-list means "all": leave the parameter out. */
 function codes(values: number[]): number[] | undefined {
   return values.length > 0 ? values : undefined;
@@ -82,7 +78,6 @@ export function toServerListParams(
     toDate: filter.toDate ?? undefined,
     actions: codes(filter.actions.map((action) => HISTORY_ACTION_CODE[action])),
     statuses: codes(filter.statuses.flatMap((group) => STATUS_CODES_BY_GROUP[group])),
-    sources: codes(filter.sources.map((source) => HISTORY_SOURCE_CODE[source])),
     actor: blank(filter.actor),
     keyword: blank(filter.keyword),
     importantOnly: filter.importantOnly || undefined,

@@ -2,7 +2,8 @@ import { ArrowRightOutlined } from "@ant-design/icons";
 import { Hash } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { HistoryEntry, HistoryFieldChange } from "../../types/appointmentHistory";
-import { fieldLabel, formatFieldValue } from "./historyLabels";
+import { fieldLabel } from "./historyLabels";
+import { HistoryFieldValue } from "./HistoryValueList";
 
 /** One field on one line: its name, the red "before" box, an arrow, the green "after" box. */
 function DiffRow({ change }: { change: HistoryFieldChange }) {
@@ -14,12 +15,16 @@ function DiffRow({ change }: { change: HistoryFieldChange }) {
       </div>
       <div className="ah-diff-box ah-diff-box--before">
         <span className="ah-diff-tag">{t("Appointment:History:Before")}</span>
-        <span className="ah-diff-value">{formatFieldValue(change.field, change.before)}</span>
+        <span className="ah-diff-value">
+          <HistoryFieldValue field={change.field} value={change.before} />
+        </span>
       </div>
       <ArrowRightOutlined className="ah-diff-arrow" />
       <div className="ah-diff-box ah-diff-box--after">
         <span className="ah-diff-tag">{t("Appointment:History:After")}</span>
-        <span className="ah-diff-value">{formatFieldValue(change.field, change.after)}</span>
+        <span className="ah-diff-value">
+          <HistoryFieldValue field={change.field} value={change.after} />
+        </span>
       </div>
     </div>
   );

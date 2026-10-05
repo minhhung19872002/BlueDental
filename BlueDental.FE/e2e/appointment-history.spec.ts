@@ -147,7 +147,7 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
     await login(page);
   });
 
-  test("a booking leaves a Tạo mới row with the actor, source and expandable detail", async ({
+  test("a booking leaves a Tạo mới row with the actor, its new values and expandable detail", async ({
     page,
   }) => {
     const id = runId();
@@ -164,15 +164,31 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
     await expect(dialog.getByText("Bảng", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Dòng thời gian", { exact: true })).toBeVisible();
 
-    for (const header of ["Thời gian", "Loại", "Thay đổi", "Before → After", "Trạng thái", "Người", "Nguồn"]) {
-      await expect(dialog.getByRole("columnheader", { name: header })).toBeVisible();
+    // BA (2026-10-05): "Thay đổi" and "Nguồn" are gone, "Before → After" is
+    // split in two, and the actor column says who made the change.
+    const headers = dialog.locator(".ah-table thead th");
+    for (const header of ["Thời gian", "Loại", "Giá trị cũ", "Giá trị mới", "Trạng thái", "Người thay đổi"]) {
+      await expect(dialog.getByRole("columnheader", { name: header, exact: true })).toBeVisible();
     }
+    for (const gone of ["Thay đổi", "Before → After", "Nguồn", "Người"]) {
+      await expect(headers.filter({ hasText: new RegExp(`^${gone}$`) })).toHaveCount(0);
+    }
+    // The source filter went with its column.
+    await expect(dialog.getByTestId("ah-filters").locator(".ah-select")).toHaveCount(2);
+    await expect(dialog.getByTestId("ah-filters")).not.toContainText("Tất cả nguồn");
 
-    // The newest row is the booking just made: created, by the admin, from the web.
+    // The newest row is the booking just made, by the admin: nothing before it,
+    // and what it was set up with in words, not raw keys.
     const first = dialog.locator(".ah-table tbody tr.ant-table-row").first();
     await expect(first).toContainText("Tạo mới");
-    await expect(first).toContainText("Web");
+    await expect(first).not.toContainText("Web");
     await expect(first.locator(".ah-avatar")).toBeVisible();
+    await expect(first.locator(".ah-values--before")).toHaveText("—");
+    const created = first.locator(".ah-values--after");
+    await expect(created).toContainText(`Nội dung: ${reason}`);
+    await expect(created).toContainText("Trạng thái: Đã hẹn");
+    await expect(created).not.toContainText("startTime");
+    await expect(created).not.toContainText("Mã số lịch");
 
     // The chevron opens the detail panel beneath the row, with the diff inside.
     await first.getByRole("button", { name: "Mở rộng" }).click();
@@ -205,6 +221,7 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
     // The form is reset once the appointment arrives; type only after that.
     await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(reason);
     await edit.getByPlaceholder("Nội dung đặt lịch").fill(updated);
+    await edit.getByTitle("Đỏ", { exact: true }).click();
     const put = page.waitForResponse(
       (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "PUT",
     );
@@ -216,13 +233,17 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
 
     const first = dialog.locator(".ah-table tbody tr.ant-table-row").first();
     await expect(first).toContainText("Cập nhật");
-    // "Thay đổi" names the fields in words (the reference prints raw keys; the
-    // owner asked for Vietnamese). The untouched note must not show up there
-    // (null before, empty after is no change).
-    await expect(first).toContainText("Nội dung");
+    // Giá trị cũ / Giá trị mới name the field in words beside each value. The
+    // untouched note must not show up (null before, empty after is no change).
     await expect(first).not.toContainText("content");
     await expect(first).not.toContainText("Ghi chú");
-    await expect(first).toContainText(`${reason} → ${updated}`);
+    await expect(first.locator(".ah-values--before")).toContainText(`Nội dung: ${reason}`);
+    await expect(first.locator(".ah-values--after")).toContainText(`Nội dung: ${updated}`);
+    // The colour shows as a dot of itself, named on hover, never as its hex code.
+    const after = first.locator(".ah-values--after");
+    await expect(after).toContainText("Màu:");
+    await expect(after.getByRole("img", { name: "Đỏ" })).toBeVisible();
+    await expect(first).not.toContainText("#");
     await expect(dialog.getByTestId("ah-stats").getByText("Cập nhật", { exact: true })).toBeVisible();
 
     // Hành động is a multi-select. Tạo mới alone: the list is re-read with
@@ -291,14 +312,15 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
       // Subtitle names the appointment; the week picker is gone, the rest stays.
       await expect(dialog.getByText(/Mọi thay đổi của lịch hẹn \d{2}\/\d{2}\/\d{4} · \d{2}:\d{2} – \d{2}:\d{2}\./)).toBeVisible();
       await expect(dialog.locator(".ah-week")).toHaveCount(0);
-      await expect(dialog.getByTestId("ah-filters").locator(".ah-select")).toHaveCount(3);
+      await expect(dialog.getByTestId("ah-filters").locator(".ah-select")).toHaveCount(2);
 
       // Exactly the booking and the reschedule — nothing from the other appointment.
       const rows = dialog.locator(".ah-table tbody tr.ant-table-row");
       await expect(rows).toHaveCount(2);
       await expect(dialog.locator(".ah-stat-value").first()).toHaveText("2");
       await expect(rows.first()).toContainText("Cập nhật");
-      await expect(rows.first()).toContainText(`${from.day} ${from.time} → ${to.day} ${to.time}`);
+      await expect(rows.first().locator(".ah-values--before")).toContainText(`${from.day} ${from.time}`);
+      await expect(rows.first().locator(".ah-values--after")).toContainText(`${to.day} ${to.time}`);
       await expect(rows.nth(1)).toContainText("Tạo mới");
       await rows.nth(1).getByRole("button", { name: "Mở rộng" }).click();
       await expect(dialog.getByTestId("ah-detail")).toContainText(moved);

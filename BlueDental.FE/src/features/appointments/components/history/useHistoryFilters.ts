@@ -5,7 +5,6 @@ import { endOfWeek, startOfWeek, type WeekStart } from "@/utils/week";
 import type {
   HistoryAction,
   HistoryFilter,
-  HistorySource,
   HistoryStatusGroup,
 } from "../../types/appointmentHistory";
 
@@ -14,7 +13,6 @@ export interface HistoryFilterValues {
   week: Dayjs;
   actions: HistoryAction[];
   statuses: HistoryStatusGroup[];
-  sources: HistorySource[];
   actor: string;
   keyword: string;
   importantOnly: boolean;
@@ -30,7 +28,6 @@ function initialValues(): HistoryFilterValues {
     week: dayjs(),
     actions: [],
     statuses: [],
-    sources: [],
     actor: "",
     keyword: "",
     importantOnly: false,
@@ -54,7 +51,7 @@ export function useHistoryFilters(patientId: string, appointmentId: string | nul
 
   const clear = useCallback(() => setValues(initialValues()), []);
 
-  const { week, actions, statuses, sources, importantOnly } = values;
+  const { week, actions, statuses, importantOnly } = values;
   const filter = useMemo<HistoryFilter>(
     () => ({
       patientId,
@@ -63,18 +60,16 @@ export function useHistoryFilters(patientId: string, appointmentId: string | nul
       toDate: appointmentId ? null : endOfWeek(week, HISTORY_WEEK_START).format("YYYY-MM-DD"),
       actions,
       statuses,
-      sources,
       actor,
       keyword,
       importantOnly,
     }),
-    [patientId, appointmentId, week, actions, statuses, sources, actor, keyword, importantOnly],
+    [patientId, appointmentId, week, actions, statuses, actor, keyword, importantOnly],
   );
 
   const isDirty =
     actions.length > 0 ||
     statuses.length > 0 ||
-    sources.length > 0 ||
     importantOnly ||
     values.actor.trim() !== "" ||
     values.keyword.trim() !== "";

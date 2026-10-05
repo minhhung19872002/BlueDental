@@ -7,6 +7,12 @@ const APPT_COLORS = [
   { value: "#EF4444", labelKey: "Appointment:Color:Red" },
 ] as const;
 
+/** The picker's name for a stored colour ("Xanh lá"), or null for one it does not offer. */
+export function appointmentColorLabel(value: string): string | null {
+  const match = APPT_COLORS.find((c) => c.value.toLowerCase() === value.toLowerCase());
+  return match ? t(match.labelKey) : null;
+}
+
 interface Props {
   value?: string;
   onChange: (color: string) => void;

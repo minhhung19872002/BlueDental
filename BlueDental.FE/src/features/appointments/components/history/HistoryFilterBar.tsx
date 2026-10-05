@@ -3,12 +3,10 @@ import { Button, Checkbox, Input, Select } from "antd";
 import { CloseOutlined, SearchOutlined } from "@ant-design/icons";
 import { DateNavigator } from "@/components/DateNavigator/DateNavigator";
 import { t } from "@/lib/i18n";
-import type { HistoryAction, HistorySource, HistoryStatusGroup } from "../../types/appointmentHistory";
+import type { HistoryAction, HistoryStatusGroup } from "../../types/appointmentHistory";
 import {
   ACTION_META,
   ACTION_ORDER,
-  SOURCE_LABELS,
-  SOURCE_ORDER,
   STATUS_GROUP_META,
   STATUS_GROUP_ORDER,
 } from "./historyLabels";
@@ -39,17 +37,13 @@ function useFilterOptions() {
         value: key,
         label: t(STATUS_GROUP_META[key].label),
       })),
-      sources: SOURCE_ORDER.map<Option<HistorySource>>((key) => ({
-        value: key,
-        label: t(SOURCE_LABELS[key]),
-      })),
     }),
     [],
   );
 }
 
 /**
- * The three pick-lists take any number of values, as on the reference; an
+ * The two pick-lists take any number of values, as on the reference; an
  * empty one means "all". Chosen values show as small tags, overflow folded
  * into a "+n" tag so the 160px box keeps its height.
  */
@@ -62,7 +56,7 @@ const MULTI = {
   popupMatchSelectWidth: false,
 };
 
-/** The week navigator, three dropdowns, two search boxes, the important-only toggle and Xóa lọc. */
+/** The week navigator, two dropdowns, two search boxes, the important-only toggle and Xóa lọc. */
 export function HistoryFilterBar({ values, showWeek, dirty, onChange, onClear }: Props) {
   const options = useFilterOptions();
 
@@ -92,14 +86,6 @@ export function HistoryFilterBar({ values, showWeek, dirty, onChange, onClear }:
         options={options.statuses}
         value={values.statuses}
         onChange={(statuses) => onChange({ statuses })}
-      />
-      <Select<HistorySource[]>
-        {...MULTI}
-        className="ah-select"
-        placeholder={t("Appointment:History:Filter:AllSources")}
-        options={options.sources}
-        value={values.sources}
-        onChange={(sources) => onChange({ sources })}
       />
       <Input
         allowClear

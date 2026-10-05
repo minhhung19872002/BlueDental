@@ -1,9 +1,9 @@
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
-import { statusGroupOfName } from "../../api/appointmentHistoryAdapters";
 import type {
   HistoryAction,
   HistoryEntry,
+  HistoryFieldChange,
   HistorySource,
   HistoryStatusGroup,
 } from "../../types/appointmentHistory";
@@ -28,16 +28,6 @@ export const ACTION_META: Record<HistoryAction, { label: string; emoji: string; 
   cancelled: { label: "Appointment:History:ActionCancelled", emoji: "🔴", tone: "red" },
   deleted: { label: "Appointment:History:ActionDeleted", emoji: "⚫", tone: "gray" },
 };
-
-export const SOURCE_ORDER: readonly HistorySource[] = [
-  "web",
-  "mobile",
-  "api",
-  "import",
-  "system",
-  "ai",
-  "webhook",
-];
 
 export const SOURCE_LABELS: Record<HistorySource, string> = {
   web: "Web",
@@ -80,6 +70,23 @@ const FIELD_LABELS: Record<string, string> = {
   cancelNote: "Appointment:History:Field:CancelNote",
 };
 
+/**
+ * The diff stores a status by its enum name. Each one keeps its own word here,
+ * not its bucket's: CheckedIn → InProgress must not read "Đã đến → Đã đến".
+ */
+const STATUS_NAME_LABELS: Record<string, string> = {
+  Requested: "Appointment:Status:Scheduled2",
+  Confirmed: "Appointment:Status:Confirmed",
+  CheckedIn: "Appointment:Status:Arrived",
+  InProgress: "Appointment:Status:InProgress",
+  Completed: "Appointment:Status:Completed",
+  Cancelled: "Appointment:Status:CancelledAlt",
+  NoShow: "Appointment:Status:Late",
+};
+
+/** What a new appointment's row leaves out: the id, and what the dialog already says or nobody reads. */
+const CREATED_HIDDEN_FIELDS = new Set(["id", "duration", "patientName", "patientPhone"]);
+
 const DATE_TIME_FIELDS = new Set(["startTime", "toTime"]);
 const EMPTY = "—";
 
@@ -104,8 +111,8 @@ export function fieldLabel(field: string): string {
 export function formatFieldValue(field: string, value: string | null): string {
   if (value === null || value === "") return EMPTY;
   if (field === "status") {
-    const group = statusGroupOfName(value);
-    return group ? statusLabel(group) : value;
+    const label = STATUS_NAME_LABELS[value];
+    return label ? t(label) : value;
   }
   if (DATE_TIME_FIELDS.has(field)) {
     const parsed = dayjs(value);
@@ -122,20 +129,13 @@ export function statusTransition(entry: HistoryEntry): string {
   return `${statusLabel(entry.statusBefore)} → ${statusLabel(entry.statusAfter)}`;
 }
 
-const CREATED_FIELDS_SHOWN = 3;
-
-/** The table's "Before → After" cell: what a creation added, or each edit's old → new. */
-export function summarizeDiff(entry: HistoryEntry): string {
-  if (entry.diff.length === 0) return EMPTY;
-  if (entry.action === "created") {
-    return entry.diff
-      .slice(0, CREATED_FIELDS_SHOWN)
-      .map((d) => `+ ${fieldLabel(d.field)}`)
-      .join(" · ");
-  }
-  return entry.diff
-    .map((d) => `${formatFieldValue(d.field, d.before)} → ${formatFieldValue(d.field, d.after)}`)
-    .join(" · ");
+/**
+ * The fields the table's "Giá trị cũ" / "Giá trị mới" columns list, one line
+ * each: every edited field, or what a new appointment was set up with.
+ */
+export function tableChanges(entry: HistoryEntry): HistoryFieldChange[] {
+  if (entry.action !== "created") return entry.diff;
+  return entry.diff.filter((change) => !CREATED_HIDDEN_FIELDS.has(change.field));
 }
 
 export function formatOccurredAt(iso: string): string {

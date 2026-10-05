@@ -6440,3 +6440,22 @@ Yêu cầu owner (ảnh chú thích): chip "Các trường bị ảnh hưởng" 
 
 Kiểm chứng (build production `vite preview` :8080, host thật :5000, DB thật): `appointment-history.spec.ts` **5/5**. `tsc` sạch.
 Retest level **2** (hộp thoại lịch sử lịch hẹn).
+
+
+## 2026-10-05 — Lịch sử thay đổi lịch hẹn: cột bảng theo BA (R-679 … R-682)
+
+Yêu cầu BA (ảnh chú thích tab "Bảng"): đổi tiêu đề "Người" → "Người thay đổi"; bỏ cột "Thay đổi"; bỏ cột "Nguồn"; thay "Before → After" bằng 2 cột "Giá trị cũ" / "Giá trị mới". Cột "Trạng thái": đã giải thích logic (gộp 7 trạng thái thành 4 nhóm Đã hẹn / Đã đến / Đã huỷ / Trễ hẹn; cùng nhóm thì in một chữ, khác nhóm in "A → B") — BA chốt **giữ nguyên**. Chỉ đổi FE + chuỗi i18n (vi/en, nhúng trong `Domain.Shared` nên phải build lại và khởi động lại host).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-679 | Cột "Thay đổi", "Nguồn" và ô "Before → After" khó đọc; dòng Tạo mới in `+ Mã số lịch · + Giờ bắt đầu …`. | Component mới `HistoryValueList`: mỗi trường một dòng "Tên trường: giá trị", cùng thứ tự ở 2 cột. Phía không có lịch hẹn (trước khi tạo, sau khi xoá) chỉ in một "—". Dòng Tạo mới bỏ `id`, `duration`, `color`, `patientName`, `patientPhone` (`tableChanges()`). Key `Table:Changes`, `Table:BeforeAfter` bỏ; thêm `Table:OldValue`, `Table:NewValue`; `Table:Person` = "Người thay đổi" / "Changed by". |
+| R-680 | Đổi trạng thái trong cùng một nhóm hiện "Đã đến → Đã đến" (vd Đã đến → Đang khám). | `formatFieldValue("status")` dùng đúng tên trạng thái (Đã hẹn, Đã xác nhận, Đã đến, Đang khám, Hoàn thành, Đã huỷ, Trễ hẹn) thay vì tên nhóm. Ảnh hưởng cả panel chi tiết "So sánh trước / sau" và file xuất — đúng ý. Cột "Trạng thái" và bộ lọc trạng thái vẫn theo 4 nhóm. `statusGroupOfName` không còn dùng → bỏ. |
+| R-681 | Bỏ cột "Nguồn" nhưng bộ lọc "Tất cả nguồn" còn (mọi dòng hiện đều là Web). | Owner chốt bỏ luôn: bỏ khỏi `HistoryFilterBar`, `useHistoryFilters`, `HistoryFilter.sources`, `toServerListParams`. API BE vẫn nhận `sources` (không đổi). Nguồn vẫn hiện ở tab Dòng thời gian và file xuất. |
+| R-682 | Owner báo vẫn thấy tiêu đề "Người". | Chuỗi tải từ API host mỗi lần mở trang (FE không cache); tab mở trước khi host khởi động lại giữ bản cũ — tải lại trang là thấy "Người thay đổi". Spec kiểm tiêu đề `exact`. |
+
+Kiểm chứng (dev server :5173, host thật :5000 đã build lại, DB thật, đăng nhập thật): `appointment-history.spec.ts` **5/5** — tiêu đề cột đúng 6 cột và không còn cột cũ, bộ lọc còn 2 ô, dòng Tạo mới "Giá trị cũ" = "—" và "Giá trị mới" có "Nội dung: …", "Trạng thái: Đã hẹn"; dòng sửa nội dung: cũ/mới đúng một dòng "Nội dung: …"; dời lịch: giờ cũ/mới nằm đúng cột. `tsc` + eslint sạch.
+Retest level **2** (hộp thoại lịch sử lịch hẹn).
+
+| ID | Hiện tượng | Nguyên nhân / xử lý |
+|---|---|---|
+| R-683 | Owner: trường "Màu" hiện mã hex (`#EF4444`) thay vì màu. | `HistoryFieldValue` (trong `HistoryValueList.tsx`) vẽ chấm tròn đúng màu đó (`.ah-color-swatch`, màu qua `--ah-swatch`), tên màu của bộ chọn ("Đỏ", "Xanh lá"…) ở `title` / `aria-label`; màu ngoài bộ chọn thì tooltip là mã hex. Dùng cho cả 2 cột Giá trị cũ / mới lẫn panel "So sánh trước / sau". Dòng Tạo mới giờ hiện cả "Màu". File xuất giữ mã hex (là text). Spec: sửa lịch hẹn đổi màu Đỏ → cột Giá trị mới có ảnh tên "Đỏ", dòng không chứa "#". `appointment-history.spec.ts` 5/5. |
