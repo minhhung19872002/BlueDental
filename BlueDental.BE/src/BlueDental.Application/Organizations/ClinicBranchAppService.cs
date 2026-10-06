@@ -62,7 +62,10 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
         }
 
         var totalCount = query.Count();
+        // Creation order: the branch list numbers rows 1, 2, 3… from it, and
+        // paging without an ORDER BY returns an arbitrary slice.
         var items = query
+            .OrderBy(b => b.CreationTime)
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();

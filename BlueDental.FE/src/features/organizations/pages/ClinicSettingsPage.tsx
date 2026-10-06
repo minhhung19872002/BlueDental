@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -550,13 +550,29 @@ function BranchListTab() {
     }
   };
 
+  // Oldest branch first, so the display ID reads 1, 2, 3… and a branch keeps
+  // its number when it is edited (bug #20 — the GUID meant nothing to users).
+  const sortedBranches = useMemo(
+    () => [...(branches ?? [])].sort((a, b) => a.creationTime.localeCompare(b.creationTime)),
+    [branches],
+  );
+  const displayIds = useMemo(
+    () => new Map(sortedBranches.map((b, i) => [b.id, i + 1])),
+    [sortedBranches],
+  );
+
   const columns: ColumnsType<ClinicBranchDto> = [
     {
       key: "id",
       title: "ID",
-      dataIndex: "id",
-      width: 280,
-      render: (v: string) => <span style={{ fontSize: 13, color: "var(--bd-muted)" }}>{v}</span>,
+      width: 80,
+      render: (_: unknown, record: ClinicBranchDto) => displayIds.get(record.id),
+    },
+    {
+      key: "code",
+      title: t("Organization:BranchCodeLabel"),
+      dataIndex: "code",
+      width: 160,
     },
     {
       key: "name",
@@ -581,13 +597,13 @@ function BranchListTab() {
     {
       key: "lastModificationTime",
       title: t("Organization:LastUpdatedCol"),
-      dataIndex: "lastModificationTime",
       width: 200,
-      render: (v: string) => {
-        if (!v) return "—";
-        const d = new Date(v);
-        return d.toLocaleDateString(getLocale(), { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-      },
+      // A branch that was never edited has no LastModificationTime — show
+      // when it was created instead of "—".
+      render: (_: unknown, record: ClinicBranchDto) =>
+        new Date(record.lastModificationTime ?? record.creationTime).toLocaleDateString(getLocale(), {
+          day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+        }),
     },
     ...((ability.canUpdate || ability.canDelete) ? [{
       key: "actions" as const,
@@ -643,11 +659,7 @@ function BranchListTab() {
 
       <DataTable<ClinicBranchDto>
         columns={columns}
-        dataSource={[...(branches ?? [])].sort((a, b) => {
-          const ta = a.lastModificationTime ?? "";
-          const tb = b.lastModificationTime ?? "";
-          return tb.localeCompare(ta);
-        })}
+        dataSource={sortedBranches}
         rowKey="id"
         loading={isLoading}
         pagination={pagination.buildConfig((branches ?? []).length)}

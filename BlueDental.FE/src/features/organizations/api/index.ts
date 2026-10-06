@@ -15,6 +15,7 @@ export interface ClinicBranchDto {
   taxCode?: string;
   contactPerson?: string;
   status: string;
+  creationTime: string;
   lastModificationTime?: string;
   isDeleted?: boolean;
 }
