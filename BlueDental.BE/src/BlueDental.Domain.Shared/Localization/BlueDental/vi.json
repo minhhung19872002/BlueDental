@@ -716,7 +716,6 @@
     "Billing:PageSubtitle": "Bấm \"Thu tiền\" để ghi nhận thanh toán từng phiếu",
     "Billing:ExportExcel": "Xuất Excel",
     "Billing:KpiTotalInvoice": "Tổng giá trị hoá đơn",
-    "Billing:KpiOnThisPage": "trên trang này",
     "Billing:KpiDebt": "Công nợ còn lại",
     "Billing:SearchPlaceholder": "Tìm theo mã phiếu...",
     "Billing:StatusFilter": "Trạng thái",

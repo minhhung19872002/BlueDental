@@ -32,8 +32,8 @@ import "../components/billing.css";
  * Thanh toán & hoá đơn.
  *
  * The three cards sum the page on screen, not the clinic: the invoice endpoint
- * returns a page and a count, never an aggregate, so the labels say "trên trang
- * này" rather than implying a figure the server never sent.
+ * returns a page and a count, never an aggregate. The "trên trang này" caption
+ * was removed at the owner's request (2026-10-06).
  */
 export function BillingPage() {
   const ability = useAbility("payment");
@@ -211,21 +211,18 @@ export function BillingPage() {
         <div className="page-card billing-kpi">
           <div className="billing-kpi-label">{t("Billing:KpiTotalInvoice")}</div>
           <div className="billing-kpi-value">{formatVND(total)}</div>
-          <div className="billing-kpi-caption">{t("Billing:KpiOnThisPage")}</div>
         </div>
         <div className="page-card billing-kpi">
           <div className="billing-kpi-label">{t("Billing:Collected")}</div>
           <div className="billing-kpi-value" style={{ color: brand.green }}>
             {formatVND(paid)}
           </div>
-          <div className="billing-kpi-caption">{t("Billing:KpiOnThisPage")}</div>
         </div>
         <div className="page-card billing-kpi">
           <div className="billing-kpi-label">{t("Billing:KpiDebt")}</div>
           <div className="billing-kpi-value" style={{ color: brand.red }}>
             {formatVND(outstanding)}
           </div>
-          <div className="billing-kpi-caption">{t("Billing:KpiOnThisPage")}</div>
         </div>
       </div>
 

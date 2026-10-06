@@ -4370,12 +4370,6 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-ink);
 }
 
-.billing-kpi-caption {
-  margin-top: 3px;
-  font-size: 11.5px;
-  color: var(--bd-faint);
-}
-
 .billing-toolbar {
   display: flex;
   flex-wrap: wrap;

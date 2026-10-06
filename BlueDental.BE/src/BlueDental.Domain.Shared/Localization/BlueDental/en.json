@@ -817,7 +817,6 @@
     "Billing:PageSubtitle": "Click \"Collect\" to record payments for each invoice",
     "Billing:ExportExcel": "Export Excel",
     "Billing:KpiTotalInvoice": "Total Invoice Value",
-    "Billing:KpiOnThisPage": "on this page",
     "Billing:KpiDebt": "Outstanding Balance",
     "Billing:SearchPlaceholder": "Search by invoice code...",
     "Billing:StatusFilter": "Status",
