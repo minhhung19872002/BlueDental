@@ -3,19 +3,7 @@ import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import type { PrescriptionPatientSummary } from "../types/prescription";
-
-function ageOf(dateOfBirth: string | null): number | null {
-  if (!dateOfBirth) return null;
-  const born = new Date(dateOfBirth);
-  if (Number.isNaN(born.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - born.getFullYear();
-  const beforeBirthday =
-    now.getMonth() < born.getMonth() ||
-    (now.getMonth() === born.getMonth() && now.getDate() < born.getDate());
-  if (beforeBirthday) age -= 1;
-  return age;
-}
+import { ageOf } from "../utils/age";
 
 /**
  * The head of the "Thêm đơn thuốc" dialog: avatar, the patient's name, then

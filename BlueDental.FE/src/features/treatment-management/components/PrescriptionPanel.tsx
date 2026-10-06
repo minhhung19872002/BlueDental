@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Pagination, Tooltip, type TableColumnsType } from "antd";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, PlusOutlined, PrinterOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
@@ -16,6 +16,7 @@ import {
 } from "../api/prescriptionApi";
 import type { PrescriptionPatientSummary } from "../types/prescription";
 import { PrescriptionDialog } from "./PrescriptionDialog";
+import { PrescriptionViewDialog } from "./prescription-print/PrescriptionViewDialog";
 import "./prescription.css";
 
 /** The reference puts the open dialog in the URL, so a reload reopens it. */
@@ -28,12 +29,14 @@ function shownOfTotal(total: number, range: [number, number]): string {
 
 /**
  * The patient's Đơn thuốc tab: "Tạo đơn thuốc" over a table of the slips on
- * this branch, each with Sửa and Xóa, and the dialog both actions share.
+ * this branch, each with In, Sửa and Xóa, and the dialog Sửa shares with
+ * "Tạo đơn thuốc". In opens the slip read-only with its own print button.
  */
 export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSummary }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editing, setEditing] = useState<PrescriptionDto | null>(null);
   const [deleting, setDeleting] = useState<PrescriptionDto | null>(null);
+  const [viewing, setViewing] = useState<PrescriptionDto | null>(null);
   const ability = useAbility("prescription");
   const query = usePrescriptions(patient.id);
   const remove = useDeletePrescription();
@@ -90,13 +93,16 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
       width: 130,
       render: (value: string) => formatDate(value),
     },
-    ...((ability.canUpdate || ability.canDelete) ? [{
+    {
       title: t("Common:Actions"),
       key: "actions",
-      width: 90,
+      width: 130,
       fixed: "right" as const,
       render: (_: unknown, row: PrescriptionDto) => (
         <span className="pd-icon-actions">
+          <Tooltip title={t("Treatment:RxPrint:PrintAction")}>
+            <Button type="text" aria-label={t("Treatment:RxPrint:PrintAction")} icon={<PrinterOutlined />} onClick={() => setViewing(row)} />
+          </Tooltip>
           {ability.canUpdate && (
             <Tooltip title={t("Treatment:Rx:EditAction")}>
               <Button type="text" aria-label={t("Treatment:Rx:EditAction")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
@@ -109,7 +115,7 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
           )}
         </span>
       ),
-    }] : []),
+    },
   ];
 
   return (
@@ -148,6 +154,10 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
           if (creating) setCreating(false);
         }}
       />
+
+      {viewing && (
+        <PrescriptionViewDialog patient={patient} prescription={viewing} onClose={() => setViewing(null)} />
+      )}
 
       <ConfirmDeleteDialog
         open={Boolean(deleting)}

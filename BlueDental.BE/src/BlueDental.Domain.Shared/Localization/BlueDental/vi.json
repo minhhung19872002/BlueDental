@@ -5357,6 +5357,25 @@
     "Treatment:Combo:KindCombo": "COMBO",
     "Treatment:Combo:RemoveItem": "Bỏ {0}",
     "Treatment:Combo:GrossColon": "Tổng cộng (giá gốc):",
-    "Treatment:Combo:ComboDiscountColon": "Giảm giá combo:"
+    "Treatment:Combo:ComboDiscountColon": "Giảm giá combo:",
+    "Treatment:RxPrint:ViewTitle": "Xem đơn thuốc {0}",
+    "Treatment:RxPrint:PrintAction": "In đơn thuốc",
+    "Treatment:RxPrint:Title": "ĐƠN THUỐC",
+    "Treatment:RxPrint:Address": "Địa chỉ: {0}",
+    "Treatment:RxPrint:Phone": "Điện thoại: {0}",
+    "Treatment:RxPrint:Code": "Mã đơn",
+    "Treatment:RxPrint:PatientName": "Họ tên",
+    "Treatment:RxPrint:PatientCode": "Mã bệnh nhân",
+    "Treatment:RxPrint:DateOfBirth": "Ngày sinh",
+    "Treatment:RxPrint:Gender": "Giới tính",
+    "Treatment:RxPrint:PhoneLabel": "Điện thoại",
+    "Treatment:RxPrint:No": "STT",
+    "Treatment:RxPrint:Medicine": "Tên thuốc - Cách dùng",
+    "Treatment:RxPrint:Dosage": "Ngày uống {0} lần, mỗi lần {1}, trong {2} ngày",
+    "Treatment:RxPrint:Count": "Cộng khoản: {0} loại thuốc",
+    "Treatment:RxPrint:Advice": "Lời dặn",
+    "Treatment:RxPrint:Reminder": "Khám lại xin mang theo đơn này.",
+    "Treatment:RxPrint:Doctor": "Bác sĩ kê đơn",
+    "Treatment:RxPrint:SignHint": "(Ký, ghi rõ họ tên)"
   }
 }

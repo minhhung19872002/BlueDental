@@ -6944,3 +6944,17 @@ Dữ liệu local: e2e đã check-in 2 lịch Trễ hẹn cũ (thành Đã đế
 | ID | Lỗi | Xử lý / Kiểm chứng |
 |---|---|---|
 | R-767 | Bug list #21: Danh mục > Dịch vụ, bấm Xoá một dịch vụ chưa dùng → hộp thoại ghi "Hành động này không thể hoàn tác." nhưng dịch vụ chỉ bị gạch ngang (xoá mềm, R-87 — lấy lại bằng "Đang hoạt động"); hộp thoại không hiện mã dịch vụ. Nguyên nhân: `ConfirmDeleteDialog` dùng chung luôn in dòng "không thể hoàn tác", Danh mục chỉ truyền tên. | FE: `ConfirmDeleteDialog` thêm prop `note` (dòng phụ, mặc định vẫn `Common:CannotUndone` — mọi chỗ xoá khác không đổi). `TaxonomyTab.softDelete` bật cho đúng 6 danh mục có cặp "Đang hoạt động / Đã xoá" (Dịch vụ, Chẩn đoán, Dữ liệu tư vấn, Nguồn đến, Lịch sử bệnh, Nghề nghiệp); xoá **mục** ở các tab đó hiện `Taxonomy:Catalog:SoftDeleteNote` ("Mục này chỉ bị gạch ngang, có thể khôi phục lại." — owner rút gọn). Mục có mã → câu hỏi "Bạn có chắc muốn xoá dịch vụ **Tên** (mã **DV…**) không?" (`Taxonomy:Catalog:DeleteCode`). Xoá **nhóm** giữ nguyên "không thể hoàn tác". Key mới vi/en ở Domain.Shared — host phải build lại. e2e mới `taxonomy-service-in-use.spec.ts` "bug 21" (tạo nhóm + dịch vụ qua API thật, bấm thùng rác → hộp thoại có tên + mã do server cấp, có câu xoá mềm, không có "không thể hoàn tác" → Xoá → reload: dòng còn, tên gạch ngang, mất nút xoá, API `isDeleted: true`) **1/1**. Retest mức 3 (component dùng chung) trên build production (`vite preview` 127.0.0.1:8080, host :5000 build lại, PostgreSQL thật, không chặn API): `taxonomy*` + `payment-qr` + `branch-*` **67/71**, gồm `taxonomy-groups` (hộp xoá nhóm vẫn "không thể hoàn tác"). 4 đỏ chết ở bước dữ liệu, trước phần hộp thoại: `taxonomy-service-in-use` :90/:176 (`useInPlan` — chi nhánh demo không còn phiếu điều trị mở), `taxonomy-dialogs` :104 (không thấy option NCC "Labo e2e …"), :256 ("the branch should have a service group"). Chưa chạy lại 4 test đó trên HEAD sạch. tsc + eslint sạch. Chưa commit. |
+
+## 2026-10-06 — Bug list mục 23: Đơn thuốc không có nút In (R-768)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-768 | (mục 23, Low) Tab Đơn thuốc của hồ sơ (DH260039) chỉ có Sửa/Xóa, không in được đơn. | Cột Thao tác thêm nút In (máy in) cho mọi người xem được tab — cột không còn ẩn khi thiếu quyền sửa/xóa. Bấm mở `PrescriptionViewDialog` "Xem đơn thuốc {mã}": tờ ĐƠN THUỐC chỉ đọc (letterhead chi nhánh, mã đơn, bệnh nhân, chẩn đoán, điều trị, bảng STT / Tên thuốc - Cách dùng / Số lượng, lời dặn, tái khám, chữ ký bác sĩ kê đơn); "In đơn thuốc" mở print preview của trình duyệt chỉ với tờ A4 (cơ chế chung `.pd-print-sheet` + `body.pd-printing`, gom thành hook `usePrintSheet`). Bản gốc không có màn này — bố cục là thiết kế riêng của BlueDental. |
+
+Kiểm: E2E `prescription.spec` **6/6** trên build production (`vite preview` → host build riêng vì host :5000
+đang chạy bản chưa có key i18n mới), gồm test mới "In đơn thuốc": mở từ dòng, đúng mã/thuốc/cách dùng/lời dặn,
+không có ô nhập, `window.print` được gọi 1 lần, ở media print chỉ tờ đơn hiện, đóng modal thì gỡ tờ in và class.
+PDF A4 từ trang ra đúng 1 trang. `prescription-allergy.spec` không chạy được — lỗi có sẵn: import
+`e2e/fixtures/catalogApi` không tồn tại trong repo. Nửa sau của mục 23 (danh mục thuốc có tên gần trùng
+"Alphachymotrypsine"/"Alphachymotrypsin") là dữ liệu danh mục, không sửa bằng code. Retest level **2**.
+Cần khởi động lại backend để nạp key i18n `Treatment:RxPrint:*`.

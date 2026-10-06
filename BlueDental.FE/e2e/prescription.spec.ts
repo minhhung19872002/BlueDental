@@ -4,7 +4,7 @@ import { assertRealApiTraffic, BRANCH2_USER, login, runId } from "./fixtures/aut
 /**
  * Feature: Đơn thuốc — the patient's prescription tab.
  *
- * The tab lists the patient's slips on this branch with Sửa and Xóa on each
+ * The tab lists the patient's slips on this branch with In, Sửa and Xóa on each
  * row; "Tạo đơn thuốc" opens the dialog (which rides in the URL as
  * `create=true`), and ticking "Lưu đơn thuốc mẫu" files the lines back into
  * the Đơn thuốc mẫu catalog under the name typed for it.
@@ -212,6 +212,50 @@ test.describe.serial("Đơn thuốc", () => {
     await assertRealApiTraffic(page, PRESCRIPTIONS_API);
     await expect(page.getByRole("row", { name: new RegExp(revised) })).toBeVisible();
     await expect(page.getByRole("row", { name: new RegExp(diagnosis) })).toHaveCount(0);
+  });
+
+  test("In đơn thuốc shows the slip read-only and prints only the sheet", async ({ page }) => {
+    await login(page);
+    await page.goto(`${patientUrl}?tab=prescription`);
+    await assertRealApiTraffic(page, PRESCRIPTIONS_API);
+
+    const row = page.getByRole("row", { name: new RegExp(revised) });
+    const code = (await row.locator("td").first().textContent())?.trim() ?? "";
+    await row.getByRole("button", { name: "In đơn thuốc" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText(`Xem đơn thuốc ${code}`);
+    await expect(dialog).toContainText("ĐƠN THUỐC");
+    await expect(dialog).toContainText(revised);
+    await expect(dialog).toContainText(medicine);
+    await expect(dialog).toContainText("Ngày uống 2 lần, mỗi lần 1, trong 3 ngày");
+    await expect(dialog).toContainText(`Lời dặn e2e ${id}`);
+    // Read-only: nothing on the sheet can be typed into.
+    await expect(dialog.locator(".rx-sheet input, .rx-sheet textarea")).toHaveCount(0);
+
+    // The browser's own print dialog cannot be driven, so count the call and
+    // render print media the way the preview would.
+    await page.evaluate(() => {
+      const w = window as Window & { printCalls?: number };
+      w.printCalls = 0;
+      w.print = () => {
+        w.printCalls = (w.printCalls ?? 0) + 1;
+      };
+    });
+    await dialog.getByRole("button", { name: "In đơn thuốc" }).click();
+    expect(await page.evaluate(() => (window as Window & { printCalls?: number }).printCalls)).toBe(1);
+
+    await page.emulateMedia({ media: "print" });
+    const printed = page.locator(".rx-print-sheet");
+    await expect(printed).toBeVisible();
+    await expect(printed).toContainText(medicine);
+    await expect(dialog).toBeHidden();
+    await page.emulateMedia({ media: "screen" });
+
+    await dialog.locator("button").filter({ hasText: "Đóng" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(printed).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveClass(/pd-printing/);
   });
 
   test("an account limited to another branch is refused the slip", async ({ browser }) => {

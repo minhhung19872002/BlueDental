@@ -1,0 +1,188 @@
+/* "Xem đơn thuốc" and the ĐƠN THUỐC sheet it prints (bug list #23). Not in
+   the reference — BlueDental's own layout, built on the shared A4 print
+   mechanism (`.pd-print-sheet`, `body.pd-printing` in index.css). The sheet is
+   paper: black on white in Times New Roman, no brand colour. Prefix `rx-`. */
+
+.rx-view-dialog .ant-modal-body {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
+/* On screen the sheet sits on a soft desk so it reads as a page. */
+.rx-view-paper {
+  border-radius: var(--bd-radius-card, 12px);
+  padding: 16px;
+  background: var(--bd-bg-soft);
+}
+.rx-view-paper .rx-sheet {
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--bd-ink) 14%, transparent);
+}
+
+/* ---- The sheet ---- */
+.rx-sheet {
+  box-sizing: border-box;
+  display: flex;
+  max-width: 794px;
+  margin: 0 auto;
+  flex-direction: column;
+  padding: 32px 40px;
+  background: #fff;
+  color: #000;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.rx-sheet p {
+  margin: 0;
+}
+
+.rx-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #000;
+  font-size: 13px;
+}
+.rx-sheet-clinic {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.rx-sheet-clinic strong {
+  font-size: 15px;
+  text-transform: uppercase;
+}
+.rx-sheet-code {
+  flex: none;
+  white-space: nowrap;
+}
+
+.rx-sheet-title {
+  margin: 24px 0 20px;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.rx-sheet-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px 24px;
+}
+.rx-sheet-fact > span {
+  margin-right: 4px;
+}
+.rx-sheet-fact > strong {
+  font-weight: 600;
+}
+.rx-sheet-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.rx-sheet-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+.rx-sheet-table th {
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  padding: 6px 8px;
+  font-weight: 700;
+  text-align: left;
+}
+.rx-sheet-table td {
+  border-bottom: 1px dashed #9ca3af;
+  padding: 8px;
+  vertical-align: top;
+}
+.rx-sheet-table tr {
+  break-inside: avoid;
+}
+.rx-sheet-table td strong {
+  display: block;
+  font-weight: 700;
+}
+.rx-sheet-table td em {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+}
+.rx-sheet-table .rx-sheet-no {
+  width: 48px;
+  text-align: center;
+}
+.rx-sheet-table .rx-sheet-qty {
+  width: 96px;
+  text-align: right;
+}
+.rx-sheet-count {
+  margin-top: 8px !important;
+  font-style: italic;
+  text-align: right;
+}
+
+.rx-sheet-advice {
+  display: grid;
+  gap: 4px;
+  margin-top: 20px;
+}
+.rx-sheet-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rx-sheet-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 32px;
+  break-inside: avoid;
+}
+.rx-sheet-reminder {
+  font-size: 13px;
+  font-style: italic;
+}
+.rx-sheet-sign {
+  display: flex;
+  min-width: 240px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.rx-sheet-sign strong {
+  text-transform: uppercase;
+}
+.rx-sheet-sign .rx-sheet-signer {
+  margin-top: 64px;
+  text-transform: none;
+}
+
+/* The printed copy: the shared `.pd-print-sheet article` rule gives it the A4
+   box; it keeps the sheet's own padding rather than the letterhead's 32px. */
+.pd-print-sheet article.rx-sheet {
+  padding: 32px 40px;
+}
+
+@media (max-width: 640px) {
+  .rx-view-paper {
+    padding: 0;
+  }
+  .rx-sheet {
+    padding: 20px 16px;
+  }
+  .rx-sheet-head,
+  .rx-sheet-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rx-sheet-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

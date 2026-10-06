@@ -5357,6 +5357,25 @@
     "Treatment:Combo:KindCombo": "COMBO",
     "Treatment:Combo:RemoveItem": "Remove {0}",
     "Treatment:Combo:GrossColon": "Total (list price):",
-    "Treatment:Combo:ComboDiscountColon": "Combo discount:"
+    "Treatment:Combo:ComboDiscountColon": "Combo discount:",
+    "Treatment:RxPrint:ViewTitle": "Prescription {0}",
+    "Treatment:RxPrint:PrintAction": "Print prescription",
+    "Treatment:RxPrint:Title": "PRESCRIPTION",
+    "Treatment:RxPrint:Address": "Address: {0}",
+    "Treatment:RxPrint:Phone": "Phone: {0}",
+    "Treatment:RxPrint:Code": "Slip no.",
+    "Treatment:RxPrint:PatientName": "Full name",
+    "Treatment:RxPrint:PatientCode": "Patient code",
+    "Treatment:RxPrint:DateOfBirth": "Date of birth",
+    "Treatment:RxPrint:Gender": "Gender",
+    "Treatment:RxPrint:PhoneLabel": "Phone",
+    "Treatment:RxPrint:No": "No.",
+    "Treatment:RxPrint:Medicine": "Medicine - Directions",
+    "Treatment:RxPrint:Dosage": "{0} times a day, {1} each time, for {2} days",
+    "Treatment:RxPrint:Count": "Total: {0} medicine(s)",
+    "Treatment:RxPrint:Advice": "Advice",
+    "Treatment:RxPrint:Reminder": "Please bring this prescription to your follow-up visit.",
+    "Treatment:RxPrint:Doctor": "Prescribing doctor",
+    "Treatment:RxPrint:SignHint": "(Signature, full name)"
   }
 }
