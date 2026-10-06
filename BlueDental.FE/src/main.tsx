@@ -11,7 +11,8 @@ import "dayjs/locale/vi";
 import { queryClient } from "./lib/queryClient";
 import { router } from "./app/router";
 import { themeConfig } from "./theme/index";
-import { I18nProvider, useLanguage } from "./lib/i18n";
+import { I18nProvider, useLanguage, type OverlayUnavailableState } from "./lib/i18n";
+import { ServiceUnavailablePage } from "./components/ServiceUnavailablePage";
 import { initTableGrabScroll } from "./hooks/useDragScroll";
 import "flag-icons/css/flag-icons.min.css";
 import "./styles/index.css";
@@ -38,10 +39,18 @@ function LocalizedApp() {
   );
 }
 
+function renderUnavailable(state: OverlayUnavailableState) {
+  return (
+    <ConfigProvider locale={state.language === "en" ? enUS : viVN} theme={themeConfig}>
+      <ServiceUnavailablePage {...state} />
+    </ConfigProvider>
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
+      <I18nProvider renderUnavailable={renderUnavailable}>
         <LocalizedApp />
       </I18nProvider>
     </QueryClientProvider>

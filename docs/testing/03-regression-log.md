@@ -6661,3 +6661,16 @@ Yêu cầu chủ dự án (2 ảnh chú thích).
 
 Kiểm chứng (dev server :5173, host thật :5000, PostgreSQL thật): `e2e/billing-period.spec.ts` **1/1** — mở trang ở Ngày + hôm nay; API: hoá đơn vừa tạo có trong `fromDate=toDate=hôm nay`, không có trong hôm qua; màn hình: reload thấy dòng, lùi 1 ngày mất dòng + "Chưa có hoá đơn", chuyển Tháng thấy lại. `payment-permission-buttons.spec.ts` 2/2. `tsc` sạch, build BE sạch.
 Retest level **2** (Thanh toán).
+
+## 2026-10-06 — Lỗi máy chủ không báo gì / trắng trang khi API sập (R-709, R-710, R-711)
+
+Chủ dự án báo: API trả 502 (host :5000 chết sau proxy Vite) thì không có toast, danh sách hiện "Không có bệnh nhân phù hợp"; khi tải lại thì trắng trang.
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-709 | Query lỗi 5xx ở lần tải đầu không báo gì — màn hình hiện như danh sách rỗng. | `QueryCache.onError` trước đây bỏ qua mọi lỗi khi query chưa có dữ liệu (để màn hình tự hiện ErrorView — nhưng đa số màn không có). Giờ chỉ bỏ qua lỗi loại `user` (4xx: 403/404 do màn tự xử lý); lỗi `system` (5xx) và `network` luôn toast. Nhiều query lỗi cùng lúc ra cùng một câu → gộp một toast (id theo nội dung). |
+| R-710 | `describeApiError` ném lỗi với 502 từ proxy. | Body rỗng / HTML bị `JSON.parse` thẳng → SyntaxError ngay trong handler lỗi. Thêm `parseBody` nuốt lỗi parse, rơi về câu mặc định "Lỗi hệ thống". |
+| R-711 | API sập lúc mở app → trắng trang. | `I18nProvider` chờ `application-localization` mà không bắt reject, `ready` kẹt `false`. Giờ có pha `failed` → render `ServiceUnavailablePage` ("Hệ thống đang bảo trì" + "Thử lại"), tự thử lại mỗi 15 s, thử lại thì giữ màn bảo trì (nút loading) thay vì nháy trắng. Chữ trên trang này nằm cứng vi/en trong component — ngoại lệ có chủ đích vì chính nguồn i18n đang không truy cập được. |
+
+Kiểm chứng: host :5000 tắt, mở `/patient` trên dev server :5173 → hiện màn bảo trì (đã chụp). Chưa kiểm chứng trên trình duyệt: toast R-709 (cần API sống cho localization nhưng endpoint nghiệp vụ trả 5xx). `tsc` sạch, eslint sạch.
+Retest level **3** (handler lỗi query toàn cục + khởi động app) — chưa chạy e2e.

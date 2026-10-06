@@ -1,4 +1,5 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { describeApiError } from "./apiError";
 import { logApiError, notifyApiError } from "./notify";
 import { invalidateEntities } from "./queryEntities";
 
@@ -26,7 +27,12 @@ export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
       logApiError(error, query.queryHash);
-      if (isOptedOut(query.meta) || query.state.data === undefined) return;
+      if (isOptedOut(query.meta)) return;
+      // A first load that fails with a 4xx is the screen's to explain (403
+      // page, not-found state). A server or network fault is not: many screens
+      // would render it as an empty list, so it is always reported.
+      const isFirstLoad = query.state.data === undefined;
+      if (isFirstLoad && describeApiError(error).kind === "user") return;
       notifyApiError(error);
     },
   }),

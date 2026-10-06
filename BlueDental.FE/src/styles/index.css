@@ -322,6 +322,19 @@ button {
   min-height: 100vh;
 }
 
+/* Shown instead of the whole app when the API cannot be reached at start-up. */
+.service-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+.service-unavailable .ant-result {
+  max-width: 560px;
+}
+
 /* Scrollbars, as the design draws them: a thin inset thumb on a trough the
    colour of the ground. Left alone, the document's own bar paints a dark rail
    down the right edge of every page. */

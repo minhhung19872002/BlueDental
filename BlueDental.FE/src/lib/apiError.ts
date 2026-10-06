@@ -94,8 +94,18 @@ function readValidationErrors(
   }));
 }
 
+/** A proxy error (502/504) arrives as an empty or HTML body, not JSON. */
+function parseBody(data: unknown): unknown {
+  if (typeof data !== "string") return data;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return undefined;
+  }
+}
+
 function readErrorEnvelope(data: unknown): AbpErrorEnvelope | undefined {
-  const payload = typeof data === "string" ? JSON.parse(data) : data;
+  const payload = parseBody(data);
   if (!isRecord(payload)) return undefined;
   const abpError = payload.error;
   if (isRecord(abpError)) {

@@ -86,25 +86,60 @@ async function fetchOverlay(language: Language): Promise<Record<string, string>>
   return response.data.resources?.BlueDental?.texts ?? {};
 }
 
-export function I18nProvider({ children }: { children: ReactNode }) {
+/** How long the app waits before trying the server again on its own. */
+const AUTO_RETRY_MS = 15_000;
+
+type OverlayPhase = "loading" | "ready" | "failed" | "retrying";
+
+export interface OverlayUnavailableState {
+  language: Language;
+  retrying: boolean;
+  onRetry: () => void;
+}
+
+interface I18nProviderProps {
+  children: ReactNode;
+  /**
+   * Shown when the overlay cannot be fetched. Every screen needs it, so the app
+   * cannot start; without this the page would stay blank.
+   */
+  renderUnavailable: (state: OverlayUnavailableState) => ReactNode;
+}
+
+export function I18nProvider({ children, renderUnavailable }: I18nProviderProps) {
   const [language, setLanguageState] = useState<Language>(readStoredLanguage);
-  const [ready, setReady] = useState(false);
+  const [phase, setPhase] = useState<OverlayPhase>("loading");
+  const [attempt, setAttempt] = useState(0);
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
     setAcceptLanguage(language);
-    setReady(false);
+    // A retry keeps the maintenance screen up rather than blanking it.
+    setPhase((current) => (current === "failed" ? "retrying" : "loading"));
 
     let cancelled = false;
-    void fetchOverlay(language).then((texts) => {
-      if (cancelled) return;
-      overlay = texts;
-      setReady(true);
-    });
+    fetchOverlay(language).then(
+      (texts) => {
+        if (cancelled) return;
+        overlay = texts;
+        setPhase("ready");
+      },
+      () => {
+        if (!cancelled) setPhase("failed");
+      },
+    );
 
     return () => {
       cancelled = true;
     };
-  }, [language]);
+  }, [language, attempt]);
+
+  useEffect(() => {
+    if (phase !== "failed") return;
+    const timer = window.setTimeout(retry, AUTO_RETRY_MS);
+    return () => window.clearTimeout(timer);
+  }, [phase, retry]);
 
   const setLanguage = useCallback((next: Language) => {
     localStorage.setItem(STORAGE_KEY, next);
@@ -113,10 +148,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<I18nValue>(() => ({ language, setLanguage }), [language, setLanguage]);
 
+  if (phase === "failed" || phase === "retrying") {
+    return renderUnavailable({ language, retrying: phase === "retrying", onRetry: retry });
+  }
+
   // Nothing renders until the overlay is in place, so no screen flashes the
   // Vietnamese source before switching to English.
   return (
-    <I18nContext.Provider value={value}>{ready ? children : null}</I18nContext.Provider>
+    <I18nContext.Provider value={value}>
+      {phase === "ready" ? children : null}
+    </I18nContext.Provider>
   );
 }
 
