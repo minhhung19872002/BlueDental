@@ -463,6 +463,50 @@ public class AppointmentTests
         Assert.Equal(BlueDentalDomainErrorCodes.Appointments.NotTemporary, ex.Code);
     }
 
+    /// <summary>Bug list item 17: a booking turns Trễ hẹn once its time is over without an arrival.</summary>
+    [Fact]
+    public void IsMissedAt_Should_Hold_Only_Once_The_Booked_Time_Is_Over()
+    {
+        var appointment = NewAppointment();
+
+        Assert.False(appointment.IsMissedAt(_slot.Start));
+        Assert.False(appointment.IsMissedAt(_slot.End.AddSeconds(-1)));
+        Assert.True(appointment.IsMissedAt(_slot.End));
+
+        appointment.Confirm();
+        Assert.True(appointment.IsMissedAt(_slot.End.AddHours(1)));
+    }
+
+    [Fact]
+    public void IsMissedAt_Should_Not_Hold_For_An_Arrived_Cancelled_Or_Already_Late_Booking()
+    {
+        var after = _slot.End.AddHours(1);
+
+        var arrived = NewAppointment();
+        arrived.CheckIn();
+        Assert.False(arrived.IsMissedAt(after));
+
+        var cancelled = NewAppointment();
+        cancelled.Cancel(CancellationReason.PatientRequest);
+        Assert.False(cancelled.IsMissedAt(after));
+
+        var late = NewAppointment();
+        late.MarkNoShow();
+        Assert.False(late.IsMissedAt(after));
+    }
+
+    [Fact]
+    public void CheckIn_Should_Receive_A_Patient_Who_Arrives_After_Being_Marked_Late()
+    {
+        var appointment = NewAppointment();
+        appointment.MarkNoShow();
+
+        appointment.CheckIn();
+
+        Assert.Equal(AppointmentStatus.CheckedIn, appointment.Status);
+        Assert.NotNull(appointment.CheckedInAt);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

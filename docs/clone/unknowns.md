@@ -2866,3 +2866,21 @@ Còn mở:
 - Phiếu thu cũ (trước thay đổi) của dòng có thuế: HĐĐT của phiếu đó vẫn tách thuế ra từ số đã
   thu theo thuế dòng — với các phiếu đã thu thì dòng không có thuế (NULL) nên không đổi gì.
 - "Doanh thu dự kiến" ở đầu chi tiết kế hoạch đọc `payment.totalPrice`, nay gồm VAT.
+
+---
+
+## Lịch quá giờ không đến tự chuyển Trễ hẹn (bug list mục 17, 2026-10-06)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Lịch hẹn, Tiếp đón, Hồ sơ khách hàng › Lịch hẹn
+Control: trạng thái lịch hẹn sau khi quá giờ mà khách không đến
+Reason: bản gốc có trạng thái "Trễ hẹn" nhưng thời điểm nó tự chuyển (ngay giờ hẹn, sau giờ kết
+thúc, hay cuối ngày) và việc còn tiếp đón được khách đến muộn hay không thì phải chờ một lịch thật
+quá giờ trên production mới thấy — không quan sát được trong phiên đọc.
+Action taken: NONE trên production. BlueDental: worker `MissedAppointmentWorker` mỗi phút chuyển
+lịch Đã hẹn / Đã xác nhận đã **qua giờ kết thúc** (`slot_end <= now`) mà chưa check-in sang
+Trễ hẹn (`NoShow`), ghi lịch sử nguồn "Hệ thống". Từ giờ hẹn tới giờ kết thúc, Tiếp đón vẫn hiện
+"trễ" theo đồng hồ như cũ. Khách Trễ hẹn đến muộn vẫn check-in được (`CheckIn` nhận `NoShow`).
+Nếu BA muốn mốc khác (vd giờ hẹn + 5 phút như tab CSKH "Đặt lịch không đến", hoặc cuối ngày) thì
+chỉ đổi điều kiện trong `MissedAppointmentMarker`.

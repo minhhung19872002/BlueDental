@@ -151,8 +151,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const step1Done = !!item.step1Time;
   const step3Done = !!item.step3Time;
 
+  // Only a cancelled visit stops here: a Trễ hẹn patient who turns up after all is still received.
   const isCancelled = item.counterStatus === "Cancelled";
-  const isNoShow = item.counterStatus === "Late" && !item.isTimeLate;
 
   const getCardStyle = (): React.CSSProperties => {
     if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
@@ -253,7 +253,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             <div className="rc-col-progress">
               <ReceptionCardSteps
                 item={item}
-                canAdvance={!isCancelled && !isNoShow}
+                canAdvance={!isCancelled}
                 wait={wait}
                 onAdvance={(action) => onStatusChange?.(item.id, action)}
               />

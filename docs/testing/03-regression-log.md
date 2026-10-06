@@ -6870,3 +6870,29 @@ Hồi quy tiền (build production): 70/87 — 17 đỏ lặp lại ổn định
 `payment-permission-buttons:198` (đỏ ở bước Esc đóng "Chi tiết phiếu", không phải lưu phiếu thu).
 Dữ liệu local: spec VAT ghi một dòng + phiếu thu 972.000 vào phiếu mở đầu tiên (DT04 của DH260016) —
 cần sửa spec tự tạo phiếu riêng. Retest level **3** (thanh toán, HĐĐT, báo cáo, CSKH).
+
+## 2026-10-06 — Bug list mục 17: lịch quá giờ không đến không tự chuyển Trễ hẹn (R-755)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-755 | (mục 17, Medium) Lịch 05/10/2026 09:30 của DH260033, khách không đến → hôm sau vẫn "Đã đặt lịch"; kỳ vọng tự chuyển Trễ hẹn. Nguyên nhân: không có gì chuyển trạng thái theo giờ — `NoShow` (Trễ hẹn) chỉ đặt tay qua dialog / `no-show`. Local trước khi sửa: 477 lịch đã qua giờ kết thúc vẫn Đã hẹn (257) / Đã xác nhận (220). | `MissedAppointmentWorker` (mỗi phút) → `MissedAppointmentMarker`: lịch Đã hẹn / Đã xác nhận có `slot_end <= now` → `MarkNoShow()`, mỗi lượt tối đa 200 lịch, mỗi lịch ghi một dòng lịch sử `StatusChanged` nguồn `System` (không người thao tác). Quy tắc trong domain: `Appointment.IsMissedAt(now)`. `CheckIn()` nhận thêm `NoShow` — khách Trễ hẹn đến muộn vẫn tiếp đón được; thẻ Tiếp đón bỏ khoá `isNoShow` (chỉ lịch huỷ mới không bấm được bước). Từ giờ hẹn tới giờ kết thúc Tiếp đón vẫn hiện "trễ" theo đồng hồ như cũ. Mốc "qua giờ kết thúc" là giả định — ghi `unknowns.md`. |
+
+Kiểm: Domain.Tests **616** (3 mới: `IsMissedAt` ×2, check-in từ Trễ hẹn). E2E mới `appointment-missed-api` **1/1**
+(đăng nhập thật, host thật, PostgreSQL thật: chờ tới khi không còn lịch Đã hẹn/Đã xác nhận nào quá giờ kết
+thúc > 2 phút, lịch sử có dòng nguồn Hệ thống 1/2 → 7, check-in lịch Trễ hẹn → 3, đọc lại vẫn 3). Local sau
+sửa: 0 lịch quá giờ còn 1/2, DH260033 (05/10 16:12 trên dữ liệu local) → Trễ hẹn có dòng lịch sử Hệ thống.
+
+Hồi quy mức 3 (lịch hẹn, tiếp đón, hồ sơ › lịch hẹn, CSKH) trên build production (`vite preview` :8092 →
+host :5100 build riêng vì host :5000 đang thuộc phiên khác): 66 test, 12 đỏ lần đầu. Đối chứng với HEAD
+`291f8317` (worktree riêng, host :5200, preview :8093, cùng DB): **8 đỏ có sẵn** — `appointment.spec:85/:101`
+(dialog đặt lịch không đóng), `cskh.spec:168` (đã ghi ở R-750), `reception-temporary:132`, `reception.spec:24/:57`
+(chờ `/api/v1/app/visits`), `appointment-day-timeline:147` (kéo cuộn ngang, đỏ cả hai bản); `reception-doctor-roles:47`
+và `appointment-day-timeline:100`, `patient-appointment:126`, `reception-own-doctor:70` chập chờn, chạy lại xanh
+cả hai bản. **Do thay đổi này**: `cskh-generated-tabs:218` — lấy "lịch quá giờ chưa đến" chỉ theo trạng thái 1/2,
+nay lịch đó đã là 7 → thêm `statuses=7`; và tra phiếu CSKH thiếu `maxResultCount` (bệnh nhân E2E có 18 phiếu
+trong ngày, mặc định 10) → thêm `maxResultCount=1000`. Sau sửa **3/3**.
+
+Lưu ý triển khai: lần chạy đầu trên prod sẽ chuyển toàn bộ lịch cũ quá giờ chưa đến sang Trễ hẹn (200/phút),
+mỗi lịch một dòng lịch sử; số "Đã hẹn"/"Trễ hẹn" của báo cáo các kỳ cũ đổi theo. Đặt lại "Đã hẹn" cho một lịch
+đã qua mà không dời giờ thì worker sẽ chuyển lại Trễ hẹn trong vòng một phút.
+Dữ liệu local: e2e đã check-in 2 lịch Trễ hẹn cũ (thành Đã đến). Retest level **3**.
