@@ -375,8 +375,13 @@ Không phải hành vi đo từ bản gốc — chủ dự án yêu cầu trực
   và khách mới tạo hồ sơ khi đặt lịch, kể cả lịch đã huỷ. Sinh nhật 29/02 năm thường tính
   ngày 28/02. **Lịch tạm** (chỉ có tên + SĐT, chưa có hồ sơ) không có ngày sinh nên không
   vào được tab này.
-- **Nhắc lịch hẹn**: mọi lịch hẹn trong khoảng lọc, trừ lịch đã huỷ (gồm cả Lịch tạm —
-  hiển thị tên/SĐT của lịch). Huỷ hoặc dời lịch thì dòng rời tab ngay.
+- **Nhắc lịch hẹn**: ~~mọi lịch hẹn trong khoảng lọc, trừ lịch đã huỷ~~ — **đổi 2026-10-06
+  theo bug list mục 12**: chỉ lịch **sắp tới** (chưa quá giờ hẹn 5 phút) và khách **chưa đến**
+  (Đã đặt / Đã xác nhận), gồm cả Lịch tạm (hiển thị tên/SĐT của lịch). Huỷ, dời, check-in hoặc
+  quá giờ thì dòng rời tab ngay; lịch quá 5 phút chưa đến sang "Đặt lịch không đến" — cùng
+  mốc `CareAppointmentRules.MissedAfter`, nên hai tab không trùng, không sót. Ô tổng của hai
+  tab này là **"Tổng lịch hẹn"** (đếm theo lịch = Đã liên hệ + Chưa liên hệ), không còn
+  "Tổng khách" (đếm bệnh nhân khác nhau).
 - **Đặt lịch không đến** (tab mới, `page=missed-appointment`, `CareType.MissedAppointment = 8`):
   lịch đã quá giờ hẹn hơn 5 phút mà vẫn ở trạng thái Đã đặt / Đã xác nhận / Trễ hẹn.
   Khách đến muộn (check-in) thì dòng rời tab. Cột: Lịch hẹn · Họ và tên · SĐT · Bác sĩ ·

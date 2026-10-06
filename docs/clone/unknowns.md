@@ -2840,3 +2840,29 @@ UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau là 
   (không có chip "Tất cả").
 
 Action taken: NONE (ghi lại; không gọi gì lên production).
+
+---
+
+## VAT của dịch vụ vào kế hoạch / phiếu thu / HĐĐT (bug list mục 15, 2026-10-06)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Kế hoạch điều trị → Tạo phiếu thanh toán; Hóa đơn (HĐĐT)
+Control: số tiền phải thu và % thuế từng dòng
+Reason: bản gốc chỉ quan sát được thuế ở dialog Danh mục; payload kế hoạch / phiếu thu không có
+trường thuế, HĐĐT mở "Chưa xuất", thuế 0. Bản gốc có cộng VAT vào số khách trả hay không thì
+chưa quan sát được (phải lập phiếu thu thật).
+Action taken: NONE trên production. BlueDental theo yêu cầu chủ dự án (2026-10-06): khách trả
+gồm VAT — mỗi dòng chụp "% thuế" của dịch vụ khi vào phiếu, thuế = (thành tiền sau mọi giảm
+giá) × %, số còn nợ / tối đa phiếu thu / HĐĐT tính gồm VAT. Doanh thu báo cáo vẫn chưa VAT.
+
+Còn mở:
+- **Hóa đơn nhiều mức thuế**: XML có `VATRate` từng dòng nhưng một HĐ nhiều mức chưa thử với
+  EasyInvoice → server vẫn từ chối (`EInvoicing:0016`), HĐ phiếu điều trị tách mỗi mức thuế một
+  dòng; người dùng bỏ chọn dòng khác mức. Cần thử trên sandbox rồi mới mở.
+- **KKKNT** chưa có mã riêng đã thử → gửi như KCT (-1); cả hai đều không tính thuế.
+- **Dữ liệu cũ**: migration `TreatmentServiceTaxRate` gán thuế cho dòng của phiếu **chưa có phiếu
+  thu nào**; phiếu đã thu tiền giữ nguyên (không phát sinh nợ VAT cho tiền đã tất toán).
+- Phiếu thu cũ (trước thay đổi) của dòng có thuế: HĐĐT của phiếu đó vẫn tách thuế ra từ số đã
+  thu theo thuế dòng — với các phiếu đã thu thì dòng không có thuế (NULL) nên không đổi gì.
+- "Doanh thu dự kiến" ở đầu chi tiết kế hoạch đọc `payment.totalPrice`, nay gồm VAT.

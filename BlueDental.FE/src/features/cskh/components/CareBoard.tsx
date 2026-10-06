@@ -3,7 +3,7 @@ import { Table } from "antd";
 import type { Dayjs } from "dayjs";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { t } from "@/lib/i18n";
-import type { CareRecordDto } from "../api/careApi";
+import { CARE_TYPE, type CareRecordDto } from "../api/careApi";
 import type { CareDateMode, CareTabConfig } from "../careTabs";
 import { useCareBoard } from "../hooks/useCareBoard";
 import { CareCounters } from "./CareCounters";
@@ -53,6 +53,7 @@ export function CareBoard({
         {dateSlot}
         <CareCounters
           model={tab.statusModel}
+          byAppointment={tab.type === CARE_TYPE.AppointmentReminder || tab.type === CARE_TYPE.MissedAppointment}
           stats={board.stats.data}
           active={board.counter}
           onChange={board.handleCounterChange}

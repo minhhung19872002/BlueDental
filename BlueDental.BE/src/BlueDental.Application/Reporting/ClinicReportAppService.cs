@@ -527,7 +527,8 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
             var refunded = payments
                 .Where(p => p.TreatmentPlanId == plan.Id && p.Kind == PatientPaymentKind.Refund)
                 .Sum(p => p.Amount);
-            var debtIncurred = plan.TotalAmount - paid;
+            // Debt is what is owed, VAT included; revenue elsewhere stays pre-VAT.
+            var debtIncurred = plan.PayableAmount - paid;
             if (debtIncurred <= 0) continue;
 
             // The reference lists every service of the plan and chips the cancelled / replaced ones.
@@ -626,7 +627,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         var totalPaid = collected.Sum(p => p.Amount);
         var totalRefund = refunds.Sum(p => p.Amount);
 
-        var debtIncurred = plans.Sum(p => p.TotalAmount) - totalPaid;
+        var debtIncurred = plans.Sum(p => p.PayableAmount) - totalPaid;
         var prepaidDeposits = prepaid.Sum(p => p.Amount);
 
         // "BE:Field:CurrentDepositBalance" is what the clinic holds now, not the period's

@@ -98,6 +98,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         // by Npgsql, so compute the distinct patient count separately.
         var totalPatients = await AsyncExecuter.CountAsync(
             query.Select(r => r.PatientId).Distinct());
+        var totalRecords = await AsyncExecuter.CountAsync(query);
 
         var counters = await AsyncExecuter.FirstOrDefaultAsync(
             query.GroupBy(r => 1).Select(g => new
@@ -126,6 +127,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         return new CareStatsDto
         {
             TotalPatients = totalPatients,
+            TotalRecords = totalRecords,
             Succeeded = counters.Succeeded,
             Failed = counters.Failed,
             NotCaredYet = counters.NotCaredYet,
@@ -248,7 +250,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     {
         var record = await _repository.GetAsync(id);
         await GuardBranchAccessAsync(record);
-        record.MarkContacted();
+        record.MarkContacted(Clock.Now, CurrentUser.Id);
         await _repository.UpdateAsync(record, autoSave: true);
         await _contactLogRepository.InsertAsync(
             CareContactLog.Of(GuidGenerator.Create(), record), autoSave: true);
@@ -262,7 +264,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         await GuardBranchAccessAsync(record);
 
         // Re-picking the current state is a no-op, not a history row.
-        if (record.SetContacted(input.Contacted, Clock.Now))
+        // The person changing the state is recorded as the care staff (bug list item 13).
+        if (record.SetContacted(input.Contacted, Clock.Now, CurrentUser.Id))
         {
             await _repository.UpdateAsync(record, autoSave: true);
             await _contactLogRepository.InsertAsync(

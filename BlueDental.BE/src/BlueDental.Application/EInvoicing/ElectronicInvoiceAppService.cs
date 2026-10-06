@@ -265,7 +265,9 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         await EnsureNotInvoicedTwiceAsync(source);
 
         var draft = await BuildDraftAsync(source, settings.VatRate, input);
-        if (draft.Total > source.MaxAmount)
+        // Compared VAT included on both sides: the source is what was (or is to
+        // be) paid, and the draft's Amount is what the invoice will ask for.
+        if (draft.Amount > source.MaxAmount)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.AmountExceedsSource)
                 .WithData("Max", source.MaxAmount.ToString("N0"));
@@ -395,7 +397,8 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var slip = await LoadPlanAsync(treatmentPlanId!.Value);
         await _branchAccess.CheckAsync(slip.BranchId);
         return new InvoiceSource(
-            slip.BranchId, slip.PatientId, PlanIkeyOf(slip.Id), slip.TotalAmount,
+            // VAT included: the slip is invoiced at what the patient pays for it.
+            slip.BranchId, slip.PatientId, PlanIkeyOf(slip.Id), slip.PayableAmount,
             ElectronicInvoicePaymentMethod.CashOrTransfer, null, slip, slip);
     }
 
@@ -448,29 +451,62 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     {
         if (source.Payment == null)
         {
-            var planCode = source.Plan!.Code;
-            return
-            [
-                ElectronicInvoiceDraft.Line(
-                    planCode, L["Treatment:Plan:ServiceName", planCode], L["Treatment:Invoice:UnitTooth"],
-                    1m, source.MaxAmount, vatRate)
-            ];
+            return SlipLines(source.Plan!, vatRate);
         }
 
-        var lines = await NameLinesAsync(ReceiptParts(source), vatRate);
+        var parts = ReceiptParts(source);
+        var lines = await NameLinesAsync(parts);
 
-        if (lines.Count == 0 || lines.Sum(l => l.Total) != source.MaxAmount)
+        if (lines.Count == 0 || lines.Sum(l => l.Amount) != source.MaxAmount)
         {
+            // One line for the whole receipt, at the services' rate when they share one.
+            var rates = parts.Select(p => RateOf(p.Service)).Distinct().ToList();
             var code = source.Payment.Code;
             lines =
             [
-                ElectronicInvoiceDraft.Line(
+                ElectronicInvoiceDraft.LineFromGross(
                     code, L["Treatment:EInvoice:LineName", code], L["Treatment:EInvoice:DefaultUnit"],
-                    1m, source.MaxAmount, vatRate)
+                    1m, source.MaxAmount, rates.Count == 1 ? rates[0] : vatRate)
             ];
         }
 
         return lines;
+    }
+
+    /// <summary>The provider's VATRate for a slip line's stamped "% thuế"; an unstamped line is KCT.</summary>
+    private static int RateOf(TreatmentService line) =>
+        ElectronicInvoiceDraft.VatRateOf(line.TaxRate ?? ServiceTaxRate.NotTaxable);
+
+    /// <summary>
+    /// A whole slip, billed as the reference bills it — one line "Kế hoạch điều
+    /// trị DT…", unit Răng — at its Thành tiền before VAT, with the services' VAT
+    /// on top. Services of different "% thuế" make one such line per rate.
+    /// </summary>
+    private List<ElectronicInvoiceLine> SlipLines(TreatmentPlan plan, int fallbackRate)
+    {
+        var name = L["Treatment:Plan:ServiceName", plan.Code].Value;
+        var unit = L["Treatment:Invoice:UnitTooth"].Value;
+        var byRate = plan.Services
+            .Where(line => plan.ChargedAmountOf(line) > 0m)
+            .GroupBy(RateOf)
+            .OrderByDescending(group => group.Key)
+            .ToList();
+
+        if (byRate.Count == 0)
+        {
+            return [ElectronicInvoiceDraft.Line(plan.Code, name, unit, 1m, plan.TotalAmount, fallbackRate)];
+        }
+
+        return byRate.Select(group => ElectronicInvoiceDraft.LineOf(
+            plan.Code,
+            byRate.Count == 1
+                ? name
+                : $"{name} ({(group.Key < 0 ? L["Treatment:Invoice:TaxExempt"].Value : $"VAT {group.Key}%")})",
+            unit,
+            1m,
+            group.Sum(plan.ChargedAmountOf),
+            group.Sum(plan.TaxAmountOf),
+            group.Key)).ToList();
     }
 
     private static List<(TreatmentService Service, decimal Quantity, decimal Amount)> ReceiptParts(InvoiceSource source)
@@ -487,8 +523,12 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             .ToList();
     }
 
+    /// <summary>
+    /// One line per service of a receipt. What was collected is VAT included,
+    /// so each line backs its service's VAT out of the amount rather than adding it.
+    /// </summary>
     private async Task<List<ElectronicInvoiceLine>> NameLinesAsync(
-        List<(TreatmentService Service, decimal Quantity, decimal Amount)> parts, int vatRate)
+        List<(TreatmentService Service, decimal Quantity, decimal Amount)> parts)
     {
         if (parts.Count == 0)
         {
@@ -502,13 +542,13 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         return parts.Select(p =>
         {
             entries.TryGetValue(p.Service.ServiceId, out var entry);
-            return ElectronicInvoiceDraft.Line(
+            return ElectronicInvoiceDraft.LineFromGross(
                 entry?.Code ?? p.Service.Code,
                 entry?.Name ?? p.Service.Code,
                 entry?.Unit ?? unit,
                 p.Quantity,
-                p.Amount / p.Quantity,
-                vatRate);
+                p.Amount,
+                RateOf(p.Service));
         }).ToList();
     }
 

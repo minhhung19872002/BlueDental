@@ -223,6 +223,12 @@ export interface TreatmentServiceDto {
    * cancelled/replaced/transferred lines.
    */
   chargedAmount: number;
+  /** The service's "% thuế" percent stamped on the line (0 for KCT/KKKNT and lines older than VAT on slips). */
+  taxPercent: number;
+  /** VAT on chargedAmount. */
+  taxAmount: number;
+  /** chargedAmount + taxAmount — what a receipt may collect on the line. */
+  payableAmount: number;
   status: TreatmentServiceStatus;
   /** 1-based position on the slip; 0 on lines never dragged. */
   sortOrder: number;
@@ -348,6 +354,10 @@ export interface TreatmentPlanSlipDto {
   /** servicesDiscountAmount + planDiscountAmount = servicesGrossTotal − totalAmount. */
   totalDiscountAmount: number;
   totalAmount: number;
+  /** Σ VAT of the counted lines. */
+  taxAmount: number;
+  /** totalAmount + taxAmount: what the patient pays for the slip. */
+  payableAmount: number;
   payment: PaymentSummaryDto;
   services: TreatmentServiceDto[];
   /** The reference's `appliedCoupons[]`: vouchers redeemed when the slip opened. */

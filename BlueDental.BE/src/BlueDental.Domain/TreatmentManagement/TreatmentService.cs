@@ -5,6 +5,7 @@ using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 using BlueDental.Values;
+using BlueDental.Catalogs;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -49,6 +50,16 @@ public class TreatmentService : FullAuditedEntity<Guid>
     public int Quantity { get; private set; }
     public DiscountType DiscountType { get; private set; }
     public decimal DiscountValue { get; private set; }
+
+    /// <summary>
+    /// The service's "% thuế" when the line was put on the slip — a snapshot, so
+    /// changing the catalog later never re-prices a slip already agreed. Null on
+    /// lines written before VAT was carried onto slips: those charge none.
+    /// </summary>
+    public ServiceTaxRate? TaxRate { get; private set; }
+
+    /// <summary>The VAT percentage the line charges; KCT and KKKNT charge nothing.</summary>
+    public decimal TaxPercent => (TaxRate ?? ServiceTaxRate.NotTaxable).Percent();
 
     public TreatmentServiceStatus Status { get; private set; }
 
@@ -122,6 +133,13 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
     /// <summary>Only a finished line counts as value delivered to the patient.</summary>
     public bool IsCompleted => Status == TreatmentServiceStatus.Done;
+
+    /// <summary>Takes the service's "% thuế" from Danh mục as the line is put on the slip.</summary>
+    public TreatmentService StampTaxRate(ServiceTaxRate rate)
+    {
+        TaxRate = rate;
+        return this;
+    }
 
     protected TreatmentService() { }
 

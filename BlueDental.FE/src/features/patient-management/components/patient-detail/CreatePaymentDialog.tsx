@@ -325,10 +325,16 @@ export function CreatePaymentDialog({
                       <span className="pd-newpay-qty">
                         {t("Common:Quantity")}: {line.quantity}
                       </span>
+                      {line.taxAmount > 0 ? (
+                        <span className="pd-newpay-qty">
+                          {t("Patient:Payment:IncludesVat", line.taxPercent, formatMoneyUnit(line.taxAmount))}
+                        </span>
+                      ) : null}
                     </Checkbox>
-                    {/* The line at what it is charged after the slip discount and
-                        voucher, so Còn nợ can never exceed the figure beside it
-                        (R-585). */}
+                    {/* The line before VAT — after the slip discount and voucher —
+                        so the price reads as the price; its VAT sits under it and
+                        is added in the plan totals below. Còn nợ stays VAT included,
+                        as it is what the receipt collects. */}
                     <b>{formatMoneyUnit(line.chargedAmount)}</b>
                   </li>
                 ))}
@@ -349,6 +355,14 @@ export function CreatePaymentDialog({
             <Fact label={t("Patient:Payment:Total")} value={formatMoneyUnit(plan?.servicesGrossTotal ?? 0)} />
             <Fact label={t("Common:Discount")} value={formatMoneyUnit(plan?.totalDiscountAmount ?? 0)} />
             <Fact label={t("Patient:Payment:TotalAfterDiscount")} value={formatMoneyUnit(plan?.totalAmount ?? 0)} />
+            {/* The services' VAT (bug list item 15): shown only when a line carries
+                one, so a slip of KCT services reads as it always has. */}
+            {plan && plan.taxAmount > 0 ? (
+              <>
+                <Fact label={t("Patient:Payment:Vat")} value={formatMoneyUnit(plan.taxAmount)} />
+                <Fact label={t("Patient:Payment:TotalWithVat")} value={formatMoneyUnit(plan.payableAmount)} />
+              </>
+            ) : null}
             <Fact
               label={t("Patient:Payment:Paid")}
               value={formatMoneyUnit(plan?.payment.totalPaid ?? 0)}

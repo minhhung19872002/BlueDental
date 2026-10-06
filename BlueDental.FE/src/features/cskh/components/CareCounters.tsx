@@ -31,6 +31,14 @@ interface CounterDef {
 const TOTAL: CounterDef = {
   key: "total", label: () => t("CSKH:Counter:Total"), value: (s) => s.totalPatients, filter: {},
 };
+/**
+ * The appointment tabs list one row per booking, and a patient may hold
+ * several: their total counts bookings, so it is what Đã liên hệ + Chưa liên
+ * hệ add up to (bug list item 12).
+ */
+const TOTAL_APPOINTMENTS: CounterDef = {
+  key: "total", label: () => t("CSKH:Counter:TotalAppointments"), value: (s) => s.totalRecords, filter: {},
+};
 const ZALO: CounterDef = {
   key: "zalo", label: () => t("CSKH:Counter:ZaloSent"), value: (s) => s.zaloSent, filter: {},
 };
@@ -60,15 +68,18 @@ const TONE: Partial<Record<CareCounterKey, CareCounterKey>> = {
 
 interface CareCountersProps {
   model: CareStatusModel;
+  /** Nhắc lịch hẹn / Đặt lịch không đến: rows are bookings, so the total counts bookings. */
+  byAppointment?: boolean;
   stats: CareStatsDto | undefined;
   active: CareCounterKey;
   onChange: (key: CareCounterKey, filter: CareCounterFilter) => void;
 }
 
-export function CareCounters({ model, stats, active, onChange }: CareCountersProps) {
+export function CareCounters({ model, byAppointment = false, stats, active, onChange }: CareCountersProps) {
+  const counters = COUNTERS[model].map((counter) => (byAppointment && counter === TOTAL ? TOTAL_APPOINTMENTS : counter));
   return (
     <div className="cskh-counters">
-      {COUNTERS[model].map((counter) => (
+      {counters.map((counter) => (
         <button
           key={counter.key}
           type="button"

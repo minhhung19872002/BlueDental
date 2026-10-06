@@ -21,7 +21,8 @@ public class PatientMoneyCalculator : IDomainService
         var ofPlan = payments.Where(p => p.TreatmentPlanId == plan.Id).ToList();
 
         return PaymentSummary.From(
-            totalPrice: plan.TotalAmount,
+            // VAT included: what the patient is asked to pay, so Còn nợ counts it.
+            totalPrice: plan.PayableAmount,
             totalPaid: ofPlan.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plan.CompletedValue,
             totalRefund: ofPlan.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
@@ -36,7 +37,7 @@ public class PatientMoneyCalculator : IDomainService
         var againstSlips = payments.Where(p => p.Kind != PatientPaymentKind.Prepaid).ToList();
 
         return PaymentSummary.From(
-            totalPrice: plans.Sum(p => p.TotalAmount),
+            totalPrice: plans.Sum(p => p.PayableAmount),
             totalPaid: againstSlips.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plans.Sum(p => p.CompletedValue),
             totalRefund: againstSlips.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),

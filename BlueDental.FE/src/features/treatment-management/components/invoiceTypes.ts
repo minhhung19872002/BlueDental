@@ -3,12 +3,12 @@ import type { EInvoicePaymentMethod, EInvoiceSource } from "../api/eInvoiceApi";
 export type InvoicePaymentMethod = EInvoicePaymentMethod;
 
 /**
- * The tax select on a line, as the original offers it: "CX" takes the
- * account's default rate, "KCT" is not subject to VAT (-1). An invoice carries
- * one rate (the provider refuses mixed ones), so picking it on a line sets it
- * on every line.
+ * The tax select on a line. Each line opens on its service's "% thuế" (KCT is
+ * -1, the rest are whole percents); "CX" (Chưa xuất) leaves it to the account's
+ * default rate. One invoice still takes one rate — the server says so when the
+ * ticked lines disagree.
  */
-export type InvoiceTaxType = "CX" | "KCT";
+export type InvoiceTaxType = "CX" | "KCT" | "0" | "5" | "8" | "10";
 
 export interface InvoiceServiceRow {
   key: string;

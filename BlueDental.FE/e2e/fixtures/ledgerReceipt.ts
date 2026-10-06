@@ -26,7 +26,7 @@ export interface Receipt {
 export async function call(
   page: Page,
   url: string,
-  options: { method?: "GET" | "POST" | "DELETE"; json?: unknown } = {},
+  options: { method?: "GET" | "POST" | "PUT" | "DELETE"; json?: unknown } = {},
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   const cookies = await page.context().cookies();
   const xsrf = cookies.find((cookie) => cookie.name === "XSRF-TOKEN")?.value;

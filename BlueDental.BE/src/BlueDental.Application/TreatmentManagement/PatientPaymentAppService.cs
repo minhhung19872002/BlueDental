@@ -418,7 +418,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
                 line => line.Id,
                 line => refunding
                     ? Math.Max(0m, paid.GetValueOrDefault(line.Id))
-                    : Math.Max(0m, plan.ChargedAmountOf(line) - paid.GetValueOrDefault(line.Id)));
+                    // VAT included: the receipt collects what the patient is asked to pay.
+                    : Math.Max(0m, plan.PayableAmountOf(line) - paid.GetValueOrDefault(line.Id)));
     }
 
     /// <summary>
