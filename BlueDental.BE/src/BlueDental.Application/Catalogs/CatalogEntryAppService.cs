@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -26,19 +27,25 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     private readonly BranchAccessChecker _branchAccess;
     private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
     private readonly IRepository<LaboSupplier, Guid> _laboSupplierRepository;
+    private readonly IRepository<TreatmentPlan, Guid> _planRepository;
+    private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
 
     public CatalogEntryAppService(
         IRepository<CatalogEntry, Guid> repository,
         IRepository<Taxonomy, Guid> taxonomyRepository,
         BranchAccessChecker branchAccess,
         IDataFilter<ISoftDelete> softDeleteFilter,
-        IRepository<LaboSupplier, Guid> laboSupplierRepository)
+        IRepository<LaboSupplier, Guid> laboSupplierRepository,
+        IRepository<TreatmentPlan, Guid> planRepository,
+        IRepository<PatientAdvise, Guid> adviseRepository)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
         _branchAccess = branchAccess;
         _softDeleteFilter = softDeleteFilter;
         _laboSupplierRepository = laboSupplierRepository;
+        _planRepository = planRepository;
+        _adviseRepository = adviseRepository;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
@@ -280,6 +287,11 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         // the dialog sends decides whether this row is deleted.
         if (TaxonomyGroups.IsSoftDeletable(entry.Group))
         {
+            if (input.IsDeleted && !entry.IsDeleted)
+            {
+                await EnsureServiceNotInUseAsync(entry);
+            }
+
             entry.SetDeleted(input.IsDeleted);
         }
 
@@ -294,7 +306,38 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     {
         var entry = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(entry.ClinicBranchId);
+        await EnsureServiceNotInUseAsync(entry);
         await _repository.DeleteAsync(id, autoSave: true);
+    }
+
+    /// <summary>
+    /// A service that a treatment plan or a consultation still names cannot be
+    /// deleted — the line would point at a service the catalog no longer offers.
+    /// Deleted plans and consultations do not count, so the filter is switched
+    /// back on even when the caller (the edit dialog) turned it off.
+    /// </summary>
+    private async Task EnsureServiceNotInUseAsync(CatalogEntry entry)
+    {
+        if (entry.Group != TaxonomyGroups.CareService)
+        {
+            return;
+        }
+
+        using (_softDeleteFilter.Enable())
+        {
+            var plans = await _planRepository.GetQueryableAsync();
+            var advises = await _adviseRepository.GetQueryableAsync();
+            var inUse =
+                await AsyncExecuter.AnyAsync(plans.SelectMany(p => p.Services).Where(s => s.ServiceId == entry.Id))
+                || await AsyncExecuter.AnyAsync(advises.Where(a => a.ServiceId == entry.Id));
+
+            if (inUse)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Catalogs.ServiceInUse,
+                    "A treatment plan or a consultation still uses this service.");
+            }
+        }
     }
 
     /// <summary>

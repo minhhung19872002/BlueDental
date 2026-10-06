@@ -5269,6 +5269,7 @@
     "BlueDental:Catalogs:0030": "Tên nhóm đã tồn tại.",
     "BlueDental:Catalogs:0031": "Tên dịch vụ đã tồn tại trong nhóm.",
     "BlueDental:Catalogs:0032": "Tên đã tồn tại trong nhóm.",
+    "BlueDental:Catalogs:0033": "Dịch vụ đang được sử dụng, không thể xóa",
     "Taxonomy:Combo:Kind": "Loại",
     "Taxonomy:Combo:KindSingle": "Dịch vụ lẻ",
     "Taxonomy:Combo:KindCombo": "Combo",

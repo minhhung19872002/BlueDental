@@ -54,6 +54,8 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateServiceName = "BlueDental:Catalogs:0031";
         /// <summary>The same rule for every other catalog's entries.</summary>
         public const string DuplicateEntryName = "BlueDental:Catalogs:0032";
+        /// <summary>A treatment plan or a consultation still names the service, so it cannot be deleted.</summary>
+        public const string ServiceInUse = "BlueDental:Catalogs:0033";
     }
 
     public static class PatientManagement

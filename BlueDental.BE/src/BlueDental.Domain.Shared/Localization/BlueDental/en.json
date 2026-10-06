@@ -5269,6 +5269,7 @@
     "BlueDental:Catalogs:0030": "This group name already exists.",
     "BlueDental:Catalogs:0031": "This service name already exists in the group.",
     "BlueDental:Catalogs:0032": "This name already exists in the group.",
+    "BlueDental:Catalogs:0033": "This service is in use and cannot be deleted",
     "Taxonomy:Combo:Kind": "Type",
     "Taxonomy:Combo:KindSingle": "Single service",
     "Taxonomy:Combo:KindCombo": "Combo",
