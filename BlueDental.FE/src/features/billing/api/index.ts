@@ -74,6 +74,9 @@ export interface InvoiceListParams {
   patientId?: string;
   status?: InvoiceStatus;
   filter?: string;
+  /** `YYYY-MM-DD`, clinic-local, inclusive. */
+  fromDate?: string;
+  toDate?: string;
 }
 
 export interface RecordPaymentRequest {

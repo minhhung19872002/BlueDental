@@ -6649,3 +6649,15 @@ Retest level **2** (CSKH).
 | R-706 | Lọc tháng 9, tab Chúc mừng sinh nhật hiện khách "KHÔNG NGÀY SINH" (có khách 2 dòng). | Các dòng đó là phiếu "Happy Birthday" do test e2e cũ (`cskh.spec.ts` file-heart, đã sửa ở R-705) `POST` tay với `dueAt` = lúc chạy test; tab chỉ lọc theo `DueAt` nên hiện ra. Tab giờ chỉ lấy phiếu của bệnh nhân **có ngày sinh rơi vào khoảng lọc** (`CareBirthdayRules.PatientIdsBornIn`, dùng chung với `CareTaskSync`). Dữ liệu rác cũ vẫn nằm trong DB nhưng không còn hiện. |
 
 Kiểm chứng: `cskh-generated-tabs.spec.ts` 3/3 — thêm bước tạo tay phiếu sinh nhật cho khách không có ngày sinh → không hiện; `cskh.spec.ts` 7/8 (đỏ có sẵn "creates a special care task"). Retest level **2**.
+
+## 2026-10-06 — Thanh toán & hoá đơn: bỏ chú thích "trên trang này", thêm lọc Ngày / Tuần / Tháng (R-707, R-708)
+
+Yêu cầu chủ dự án (2 ảnh chú thích).
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-707 | Ba thẻ tổng có dòng "trên trang này" — chủ dự án bỏ. | Xoá caption, class `.billing-kpi-caption`, khoá `Billing:KpiOnThisPage`. Lưu ý: ba số vẫn là tổng của trang đang xem (API không trả tổng). |
+| R-708 | Thêm bộ lọc Ngày / Tuần / Tháng cho danh sách hoá đơn, mặc định Ngày = hôm nay. | Dùng `PeriodPicker` chung (không `clearableMode` — không có trạng thái "không lọc"). `GetInvoiceListInput.FromDate/ToDate` (`DateOnly`, ngày phòng khám, đóng hai đầu) lọc `IssuedAt` qua `ClinicCalendar.StartOfDay`; Xuất Excel gửi cùng khoảng. Đổi khoảng → về trang 1. |
+
+Kiểm chứng (dev server :5173, host thật :5000, PostgreSQL thật): `e2e/billing-period.spec.ts` **1/1** — mở trang ở Ngày + hôm nay; API: hoá đơn vừa tạo có trong `fromDate=toDate=hôm nay`, không có trong hôm qua; màn hình: reload thấy dòng, lùi 1 ngày mất dòng + "Chưa có hoá đơn", chuyển Tháng thấy lại. `payment-permission-buttons.spec.ts` 2/2. `tsc` sạch, build BE sạch.
+Retest level **2** (Thanh toán).

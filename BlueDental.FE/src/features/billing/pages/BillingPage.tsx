@@ -15,6 +15,7 @@ import { InvoiceRowActions } from "../components/InvoiceRowActions";
 import { PaymentModal } from "../components/PaymentModal";
 import { VoidInvoiceDialog } from "../components/VoidInvoiceDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PeriodPicker, periodRange, type Period } from "@/components/PeriodPicker";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -34,6 +35,9 @@ import "../components/billing.css";
  * The three cards sum the page on screen, not the clinic: the invoice endpoint
  * returns a page and a count, never an aggregate. The "trên trang này" caption
  * was removed at the owner's request (2026-10-06).
+ *
+ * The list is read one Ngày / Tuần / Tháng window at a time, opening on today
+ * (owner's request, 2026-10-06). There is no "no period" state to go back to.
  */
 export function BillingPage() {
   const ability = useAbility("payment");
@@ -42,11 +46,18 @@ export function BillingPage() {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
+  const [period, setPeriod] = useState<Period>(() => ({ mode: "day", anchor: new Date() }));
+  const range = periodRange(period);
   const [paying, setPaying] = useState<InvoiceDto | null>(null);
   const [issuing, setIssuing] = useState<InvoiceDto | null>(null);
   const [voiding, setVoiding] = useState<InvoiceDto | null>(null);
   const issueInvoice = useIssueInvoice();
   const voidInvoice = useVoidInvoice();
+
+  const handlePeriodChange = (next: Period) => {
+    setPeriod(next);
+    pagination.resetToFirstPage();
+  };
 
   const handleIssue = () => {
     if (!issuing) return;
@@ -75,6 +86,8 @@ export function BillingPage() {
     branchId,
     status: statusFilter,
     filter: debouncedSearch || undefined,
+    fromDate: range?.from,
+    toDate: range?.to,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   };
@@ -93,6 +106,8 @@ export function BillingPage() {
         branchId,
         status: statusFilter,
         filter: debouncedSearch || undefined,
+        fromDate: range?.from,
+        toDate: range?.to,
       });
     } catch (error) {
       notifyError(extractApiError(error));
@@ -252,6 +267,7 @@ export function BillingPage() {
             label: look.label,
           }))}
         />
+        <PeriodPicker value={period} onChange={handlePeriodChange} />
       </div>
 
       <div className="page-card billing-table-card">

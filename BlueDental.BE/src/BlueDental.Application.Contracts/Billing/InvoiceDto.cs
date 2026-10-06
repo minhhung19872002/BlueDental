@@ -55,4 +55,10 @@ public class GetInvoiceListInput : PagedAndSortedResultRequestDto
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
     public InvoiceStatus? Status { get; set; }
+
+    /// <summary>First clinic-local day of the window, inclusive (Ngày / Tuần / Tháng).</summary>
+    public DateOnly? FromDate { get; set; }
+
+    /// <summary>Last clinic-local day of the window, inclusive.</summary>
+    public DateOnly? ToDate { get; set; }
 }

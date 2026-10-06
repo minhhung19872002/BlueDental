@@ -57,6 +57,20 @@ public class InvoiceAppService : BlueDentalAppService, IInvoiceAppService
         if (input.PatientId.HasValue) query = query.Where(i => i.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(i => i.Status == input.Status.Value);
 
+        // A day is the clinic's (UTC+7) day, not the server's: an invoice issued
+        // at 06:30 local belongs to that morning even though it is 23:30 UTC.
+        if (input.FromDate.HasValue)
+        {
+            var from = ClinicCalendar.StartOfDay(input.FromDate.Value);
+            query = query.Where(i => i.IssuedAt >= from);
+        }
+
+        if (input.ToDate.HasValue)
+        {
+            var to = ClinicCalendar.StartOfDay(input.ToDate.Value.AddDays(1));
+            query = query.Where(i => i.IssuedAt < to);
+        }
+
         foreach (var term in SearchTerms.From(input.Filter))
             query = query.Where(i => i.InvoiceNumber.ToLower().Contains(term));
 
@@ -186,6 +200,8 @@ public class InvoiceAppService : BlueDentalAppService, IInvoiceAppService
             PatientId = input.PatientId,
             Status = input.Status,
             Filter = input.Filter,
+            FromDate = input.FromDate,
+            ToDate = input.ToDate,
             MaxResultCount = 1000
         });
 
