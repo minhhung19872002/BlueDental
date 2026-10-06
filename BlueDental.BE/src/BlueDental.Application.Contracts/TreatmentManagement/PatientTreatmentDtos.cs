@@ -78,6 +78,17 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// it. 0 on cancelled/replaced/transferred lines.
     /// </summary>
     public decimal ChargedAmount { get; set; }
+
+    /// <summary>The service's "% thuế" stamped on the line; null on lines older than VAT on slips.</summary>
+    public BlueDental.Catalogs.ServiceTaxRate? TaxRate { get; set; }
+
+    public decimal TaxPercent { get; set; }
+
+    /// <summary>VAT on <see cref="ChargedAmount"/>.</summary>
+    public decimal TaxAmount { get; set; }
+
+    /// <summary><see cref="ChargedAmount"/> + <see cref="TaxAmount"/> — what a receipt may collect on the line.</summary>
+    public decimal PayableAmount { get; set; }
     public TreatmentServiceStatus Status { get; set; }
 
     /// <summary>1-based position on the slip; 0 on lines never reordered.</summary>
@@ -290,6 +301,12 @@ public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
     /// <summary>ServicesDiscountAmount + PlanDiscountAmount = ServicesGrossTotal − TotalAmount.</summary>
     public decimal TotalDiscountAmount { get; set; }
     public decimal TotalAmount { get; set; }
+
+    /// <summary>Σ VAT of the counted lines.</summary>
+    public decimal TaxAmount { get; set; }
+
+    /// <summary><see cref="TotalAmount"/> + <see cref="TaxAmount"/>: what the patient pays for the slip.</summary>
+    public decimal PayableAmount { get; set; }
 
     public PaymentSummaryDto Payment { get; set; } = new();
     public List<TreatmentServiceDto> Services { get; set; } = new();

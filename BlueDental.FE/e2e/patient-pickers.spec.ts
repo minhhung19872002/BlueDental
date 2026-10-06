@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page, type Response } from "@playwrigh
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
- * Patient pickers outside the booking dialog (R-754, R-757).
+ * Patient pickers outside the booking dialog (R-759, R-762).
  *
  * Every picker pages patients in from the server — the most recent ones, or
  * the hits for what was typed — 30 at a time as the list is scrolled. A patient picked from a search used to vanish
@@ -151,7 +151,7 @@ async function expectAntdRowAfterScroll(page: Page, code: string) {
   }).toPass({ timeout: 10_000 });
 }
 
-test.describe("Patient pickers page in more patients as they scroll (R-757)", () => {
+test.describe("Patient pickers page in more patients as they scroll (R-762)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });

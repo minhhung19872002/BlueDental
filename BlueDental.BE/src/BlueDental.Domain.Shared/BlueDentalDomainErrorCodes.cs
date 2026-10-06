@@ -404,6 +404,8 @@ public static class BlueDentalDomainErrorCodes
         public const string SourceRequired = "BlueDental:EInvoicing:0011";
         public const string SourceAlreadyInvoiced = "BlueDental:EInvoicing:0012";
         public const string ConfigIncomplete = "BlueDental:EInvoicing:0013";
+        /// <summary>The lines carry different % thuế; one invoice takes one rate.</summary>
+        public const string MixedVatRates = "BlueDental:EInvoicing:0016";
         public const string PatternRequired = "BlueDental:EInvoicing:0014";
         public const string CurrencyNotSupported = "BlueDental:EInvoicing:0015";
     }

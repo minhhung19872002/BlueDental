@@ -173,6 +173,25 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
+    /// The line's VAT: its "% thuế" on what it is charged once every discount is
+    /// off — the base the catalog's "Thực thu gồm VAT" uses (giá sau giảm × thuế).
+    /// </summary>
+    public decimal TaxAmountOf(TreatmentService line) =>
+        line.TaxPercent == 0m ? 0m : Vnd.Round(ChargedAmountOf(line) * line.TaxPercent / 100m);
+
+    /// <summary>
+    /// What the patient pays for the line, VAT included — the most a receipt may
+    /// collect on it. <see cref="ChargedAmountOf"/> stays the pre-VAT revenue figure.
+    /// </summary>
+    public decimal PayableAmountOf(TreatmentService line) => ChargedAmountOf(line) + TaxAmountOf(line);
+
+    /// <summary>Σ of the counted lines' VAT.</summary>
+    public decimal TaxAmount => CountedServices.Sum(TaxAmountOf);
+
+    /// <summary>What the patient pays for the slip, VAT included: <see cref="TotalAmount"/> + <see cref="TaxAmount"/>.</summary>
+    public decimal PayableAmount => TotalAmount + TaxAmount;
+
+    /// <summary>
     /// Each line's <see cref="DiscountShares"/> split the way the reference's
     /// "Tổng giảm giá" tooltip prints it: <c>Own</c> is "Giảm KHDT"
     /// (<c>khdtDiscount</c>) and <c>Voucher</c> is "Voucher KHDT"

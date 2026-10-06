@@ -30,6 +30,9 @@ public class CareRecordDto : FullAuditedEntityDto<Guid>
     public DateTimeOffset? ScheduledEnd { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public DateTimeOffset? ZaloSentAt { get; set; }
+
+    /// <summary>When the task was last set to Đã liên hệ, by <see cref="CareStaffName"/>.</summary>
+    public DateTimeOffset? ContactedAt { get; set; }
     public List<Guid> StageIds { get; set; } = new();
 
     /* Enriched for the care board (reference hydrate=compact). */
@@ -178,6 +181,12 @@ public class CareContactLogDto : EntityDto<Guid>
 public class CareStatsDto
 {
     public int TotalPatients { get; set; }
+
+    /// <summary>
+    /// Rows the filter matches — on the appointment tabs one per booking, so it
+    /// is what Đã liên hệ + Chưa liên hệ add up to (bug list item 12).
+    /// </summary>
+    public int TotalRecords { get; set; }
     public int Succeeded { get; set; }
     public int Failed { get; set; }
     public int NotCaredYet { get; set; }

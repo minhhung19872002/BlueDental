@@ -65,6 +65,12 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Đã gửi Zalo — set when the reminder went out over Zalo.</summary>
     public DateTimeOffset? ZaloSentAt { get; private set; }
 
+    /// <summary>
+    /// When the task was last set to Đã liên hệ — kept with <see cref="CareStaffId"/>,
+    /// who did it (bug list item 13: the care staff column stayed "—").
+    /// </summary>
+    public DateTimeOffset? ContactedAt { get; private set; }
+
     /// <summary>Treatment stages this care follows up (reference: <c>stageIds</c>).</summary>
     public IReadOnlyCollection<Guid> StageIds => _stageIds.AsReadOnly();
 
@@ -156,7 +162,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// reached, so it follows the flag. Returns false when the task already was
     /// in that state, so callers log real changes only.
     /// </summary>
-    public bool SetContacted(bool contacted, DateTimeOffset at)
+    public bool SetContacted(bool contacted, DateTimeOffset at, Guid? byStaffId = null)
     {
         GuardNotCancelled();
 
@@ -166,6 +172,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         }
 
         Status = contacted ? CareStatus.Contacted : CareStatus.New;
+        RecordContact(contacted, at, byStaffId);
         if (Type == CareType.AfterTreatment)
         {
             DueAt = contacted ? at : null;
@@ -248,7 +255,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>Đã liên hệ khách, chưa có kết quả cuối.</summary>
-    public CareRecord MarkContacted()
+    public CareRecord MarkContacted(DateTimeOffset? at = null, Guid? byStaffId = null)
     {
         if (Status != CareStatus.New)
         {
@@ -258,7 +265,23 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         }
 
         Status = CareStatus.Contacted;
+        RecordContact(true, at ?? DateTimeOffset.UtcNow, byStaffId);
         return this;
+    }
+
+    /// <summary>
+    /// Whoever changes the contact state becomes the task's Nhân viên chăm sóc,
+    /// and the moment it was reached is kept; set back to Chưa liên hệ, the
+    /// moment goes and the name stays as who last touched it.
+    /// </summary>
+    private void RecordContact(bool contacted, DateTimeOffset at, Guid? byStaffId)
+    {
+        if (byStaffId.HasValue)
+        {
+            CareStaffId = byStaffId;
+        }
+
+        ContactedAt = contacted ? at : null;
     }
 
     /// <summary>

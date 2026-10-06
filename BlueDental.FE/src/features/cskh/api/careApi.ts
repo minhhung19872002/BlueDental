@@ -122,6 +122,8 @@ export interface CareRecordDto {
   patientDateOfBirth: string | null;
   assignedStaffName: string | null;
   careStaffName: string | null;
+  /** When the task was last set to Đã liên hệ, by careStaffName. */
+  contactedAt: string | null;
   careServiceName: string | null;
   serviceNames: string[];
   nextAppointmentAt: string | null;
@@ -181,6 +183,8 @@ export interface GetCareRecordListInput {
 
 export interface CareStatsDto {
   totalPatients: number;
+  /** Rows matched — one per booking on the appointment tabs. */
+  totalRecords: number;
   succeeded: number;
   failed: number;
   notCaredYet: number;

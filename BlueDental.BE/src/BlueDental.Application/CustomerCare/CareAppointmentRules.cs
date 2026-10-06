@@ -18,9 +18,13 @@ public static class CareAppointmentRules
         type is CareType.AppointmentReminder or CareType.MissedAppointment or CareType.CancelledAppointment;
 
     /// <summary>
-    /// Nhắc lịch hẹn: every booking in the window that is still on the book.
+    /// Nhắc lịch hẹn: bookings still to come — not yet <see cref="MissedAfter"/>
+    /// past their time — and not yet arrived (Đã hẹn / Đã xác nhận), the only
+    /// ones a reminder call is for (bug list item 12: the tab listed finished,
+    /// in-chair and past bookings).
     /// Đặt lịch không đến: bookings whose time is <see cref="MissedAfter"/>
-    /// behind <paramref name="now"/> and that never checked in.
+    /// behind <paramref name="now"/> and that never checked in. The two tabs
+    /// split an un-arrived booking at that same moment, so none is in both.
     /// Lịch hẹn hủy: bookings cancelled within the window (bug list #16) —
     /// windowed by when they were cancelled, since that is when the patient
     /// needs a call, not by the slot they gave up.
@@ -60,7 +64,10 @@ public static class CareAppointmentRules
                     || a.Status == AppointmentStatus.NoShow));
         }
 
-        return query.Where(a => a.Status != AppointmentStatus.Cancelled);
+        var dueFrom = now.ToUniversalTime() - MissedAfter;
+        return query.Where(a => a.Slot.Start > dueFrom
+            && (a.Status == AppointmentStatus.Requested
+                || a.Status == AppointmentStatus.Confirmed));
     }
 
     /// <summary>The task subject each appointment-driven tab files its rows under.</summary>

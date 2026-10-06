@@ -9,8 +9,8 @@ import type { InvoicePaymentMethod, InvoiceServiceRow, InvoiceTaxType } from "./
 import {
   DEFAULT_CURRENCY,
   DEFAULT_EXCHANGE_RATE,
-  DEFAULT_TAX_TYPE,
   taxOf,
+  taxTypeOf,
   vatRateLabel,
   vatRateOf,
 } from "./invoiceConstants";
@@ -31,7 +31,9 @@ function rowsOf(draft: ElectronicInvoiceDraftDto): InvoiceServiceRow[] {
         stt: index + 1,
         code: line.code,
         serviceName: line.name,
-        taxType: DEFAULT_TAX_TYPE,
+        // The service's own "% thuế", as the server worked it out for the line;
+        // a line at the account's default opens on "Chưa xuất", as the original does.
+        taxType: line.vatRate === draft.defaultVatRate ? "CX" : taxTypeOf(line.vatRate),
         unit: line.unit,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
@@ -122,10 +124,10 @@ export function useInvoiceForm(draft: ElectronicInvoiceDraftDto | undefined) {
     [],
   );
 
-  /** One rate per invoice: the provider refuses mixed ones, so it applies to every line. */
+  /** Each line keeps its own rate; the server refuses an invoice whose ticked lines disagree. */
   const handleTaxTypeChange = useCallback(
-    (_key: string, taxType: InvoiceTaxType) =>
-      setServiceRows((prev) => prev.map((r) => priced({ ...r, taxType }, defaultVatRate))),
+    (key: string, taxType: InvoiceTaxType) =>
+      setServiceRows((prev) => prev.map((r) => (r.key === key ? priced({ ...r, taxType }, defaultVatRate) : r))),
     [defaultVatRate],
   );
 

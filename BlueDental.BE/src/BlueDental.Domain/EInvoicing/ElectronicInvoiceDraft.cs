@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using BlueDental.Catalogs;
 using BlueDental.Values;
 using Volo.Abp;
 
@@ -81,6 +82,13 @@ public sealed record ElectronicInvoiceDraft
 
         // The invoice carries one VATRate in its header; a mixed-rate invoice
         // has never been tried against the provider (docs/clone/unknowns.md).
+        // Services of different % thuế on one slip land here, so the cashier is
+        // told what to do rather than handed the raw rule.
+        if (Lines.Any(l => l.VatRate != Lines[0].VatRate))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.MixedVatRates);
+        }
+
         if (!AllowedVatRates.Contains(VatRate) || Lines.Any(l => l.VatRate != VatRate))
         {
             throw Invalid("Every line must share one VAT rate among -1, 0, 5, 8, 10.");
@@ -96,6 +104,37 @@ public sealed record ElectronicInvoiceDraft
         var tax = vatRate > 0 ? Vnd.Round(total * vatRate / 100m) : 0m;
         return new ElectronicInvoiceLine(code, name, unit, quantity, unitPrice, total, vatRate, tax, total + tax);
     }
+
+    /// <summary>
+    /// A line for money already collected VAT included: the pre-VAT base is
+    /// backed out of <paramref name="gross"/> and the tax is the rest, so the
+    /// line adds up to exactly what was paid — never a đồng more.
+    /// </summary>
+    public static ElectronicInvoiceLine LineFromGross(
+        string code, string name, string unit, decimal quantity, decimal gross, int vatRate)
+    {
+        var total = vatRate > 0 ? Vnd.Round(gross * 100m / (100m + vatRate)) : gross;
+        return new ElectronicInvoiceLine(code, name, unit, quantity, total / quantity, total, vatRate, gross - total, gross);
+    }
+
+    /// <summary>A line whose base and tax were already worked out (a slip's lines of one rate, summed).</summary>
+    public static ElectronicInvoiceLine LineOf(
+        string code, string name, string unit, decimal quantity, decimal total, decimal tax, int vatRate) =>
+        new(code, name, unit, quantity, total / quantity, total, vatRate, tax, total + tax);
+
+    /// <summary>
+    /// The provider's VATRate for a service's "% thuế". KKKNT has no code of its
+    /// own in what has been tried against the provider, so it goes as KCT (-1),
+    /// which charges the same nothing (docs/clone/unknowns.md).
+    /// </summary>
+    public static int VatRateOf(ServiceTaxRate rate) => rate switch
+    {
+        ServiceTaxRate.Zero => 0,
+        ServiceTaxRate.Five => 5,
+        ServiceTaxRate.Eight => 8,
+        ServiceTaxRate.Ten => 10,
+        _ => -1
+    };
 
     private static BusinessException Invalid(string reason) =>
         new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.InvalidDraft).WithData("Reason", reason);

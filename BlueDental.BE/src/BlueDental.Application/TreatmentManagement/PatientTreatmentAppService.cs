@@ -128,9 +128,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             input.DiscountType,
             input.DiscountValue);
 
+        var opened = new List<TreatmentService>();
         foreach (var advise in advises)
         {
-            plan.AddService(
+            opened.Add(plan.AddService(
                 GuidGenerator.Create(),
                 advise.ServiceId,
                 advise.Id,
@@ -142,10 +143,12 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                 // The consulting line's list price is the line's giá gốc; an
                 // agreed price above it (never offered on the reference) is
                 // its own ceiling rather than a refusal at the last step.
-                originalPrice: Math.Max(advise.OriginalPrice, advise.Price));
+                originalPrice: Math.Max(advise.OriginalPrice, advise.Price)));
 
             advise.ConvertTo(plan.Id);
         }
+
+        await StampTaxRatesAsync(opened);
 
         // Redeemed in the same unit of work as the slip: if the slip fails to
         // write, no use is burnt; if a voucher refuses, no slip opens.
@@ -235,6 +238,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             // The catalog price the picker offered is the ceiling: the row may
             // lower it, never raise it (Treatment:0040).
             originalPrice: catalog.Price);
+        await StampTaxRatesAsync([line]);
 
         line.SetDetails(
             input.DiagnosisId,
@@ -463,6 +467,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
 
         var line = plan.ConvertService(
             serviceLineId, GuidGenerator.Create(), newServiceId, unitPrice, quantity, charge, teeth);
+        await StampTaxRatesAsync([line]);
 
         line.SetDetails(
             old.DiagnosisId,
@@ -477,6 +482,25 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         await MoveCollectedMoneyAsync(plan, old.Id, line.Id, charge, input.DifferenceHandling);
 
         return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// Copies each service's "% thuế" from Danh mục onto the new lines, so the
+    /// slip charges VAT as the catalog's "Thực thu gồm VAT" promised — and keeps
+    /// charging it that way if the catalog changes later. A service without a
+    /// service config (or no longer in the catalog) is KCT.
+    /// </summary>
+    private async Task StampTaxRatesAsync(IReadOnlyCollection<TreatmentService> lines)
+    {
+        var serviceIds = lines.Select(l => l.ServiceId).Distinct().ToList();
+        var query = await _catalogRepository.WithDetailsAsync(c => c.ServiceConfig);
+        var rates = (await AsyncExecuter.ToListAsync(query.Where(c => serviceIds.Contains(c.Id))))
+            .ToDictionary(c => c.Id, c => c.ServiceConfig?.TaxRate ?? ServiceTaxRate.NotTaxable);
+
+        foreach (var line in lines)
+        {
+            line.StampTaxRate(rates.GetValueOrDefault(line.ServiceId, ServiceTaxRate.NotTaxable));
+        }
     }
 
     private async Task<decimal> CatalogPriceAsync(Guid serviceId)
@@ -826,6 +850,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             PlanDiscountAmount = plan.PlanDiscountAmount,
             TotalDiscountAmount = plan.TotalDiscountAmount,
             TotalAmount = plan.TotalAmount,
+            TaxAmount = plan.TaxAmount,
+            PayableAmount = plan.PayableAmount,
             Payment = MapPayment(_money.ForPlan(plan, payments)),
             AppliedVouchers = plan.AppliedVouchers
                 .Select(v => new AppliedVoucherDto
@@ -863,6 +889,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     PlanDiscountShare = shareParts[plan.Id].GetValueOrDefault(line.Id).Own,
                     PlanVoucherShare = shareParts[plan.Id].GetValueOrDefault(line.Id).Voucher,
                     ChargedAmount = plan.ChargedAmountOf(line),
+                    TaxRate = line.TaxRate,
+                    TaxPercent = line.TaxPercent,
+                    TaxAmount = plan.TaxAmountOf(line),
+                    PayableAmount = plan.PayableAmountOf(line),
                     Status = line.Status,
                     SortOrder = line.SortOrder,
                     ReplacedId = line.ReplacedId,
@@ -888,7 +918,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     // Còn nợ is what the line is charged after the slip discount
                     // (voucher included), so the lines' Còn nợ add up to Thành tiền
                     // and a receipt can never collect the pre-voucher price (R-585).
-                    OutstandingAmount = Math.Max(0m, plan.ChargedAmountOf(line) - PaidOn(paidByService, line.Id)),
+                    // VAT included, like the receipt it is collected by.
+                    OutstandingAmount = Math.Max(0m, plan.PayableAmountOf(line) - PaidOn(paidByService, line.Id)),
                     AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id),
                     LabOrders = laboByService.TryGetValue(line.Id, out var labo) ? labo : [],
                     DiagnosisId = line.DiagnosisId,

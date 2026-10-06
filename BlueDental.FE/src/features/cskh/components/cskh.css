@@ -578,3 +578,9 @@
     flex-wrap: wrap;
   }
 }
+
+/* Second line of a cell: the moment under a name. */
+.cskh-cell-sub {
+  color: var(--bd-muted);
+  font-size: 12px;
+}

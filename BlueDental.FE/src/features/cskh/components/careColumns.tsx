@@ -204,7 +204,13 @@ export function buildCareColumns(
       dataIndex: "careStaffName",
       key: "careStaff",
       width: 160,
-      render: formatDash,
+      // Who set the task to Đã liên hệ, and when (bug list item 13).
+      render: (name: string | null, record) => (
+        <>
+          {formatDash(name)}
+          {record.contactedAt ? <div className="cskh-cell-sub">{formatDateTime(record.contactedAt)}</div> : null}
+        </>
+      ),
     },
     upcoming: {
       title: t("CSKH:Col:NextAppointment"),

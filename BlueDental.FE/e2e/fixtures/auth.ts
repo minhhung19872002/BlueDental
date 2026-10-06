@@ -76,7 +76,7 @@ const SLOT_DAY_SPREAD = 3000;
  * does not collide with the booking an earlier one left behind: the server
  * rejects a double booking, correctly. Bookings pile up run after run and the
  * run id repeats every ~17 minutes, so the grid is wide (3000 days x 16 starts)
- * to keep a repeat landing on an old booking rare (R-759). `offsetDays` keeps
+ * to keep a repeat landing on an old booking rare (R-764). `offsetDays` keeps
  * one run's bookings apart.
  */
 export function freeSlot(runSuffix: string, offsetDays: number): { day: string; time: string } {
