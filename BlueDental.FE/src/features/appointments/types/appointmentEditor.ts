@@ -13,4 +13,6 @@ export interface AppointmentEditorValues {
   notes: string;
   /** Trạng thái — shown while editing only; a new booking is always Đã hẹn. */
   status: AppointmentStatus;
+  /** Lý do hủy — required when the save cancels the booking. */
+  cancelNote: string;
 }

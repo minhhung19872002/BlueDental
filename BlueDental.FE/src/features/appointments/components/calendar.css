@@ -2035,3 +2035,8 @@ body.cal-fullscreen .cal-grid-wrap {
     grid-template-columns: 1fr;
   }
 }
+
+/* Lý do hủy under Trạng thái (bug list #16). */
+.appt-cancel-note {
+  resize: none;
+}

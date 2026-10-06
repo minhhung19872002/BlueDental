@@ -36,5 +36,17 @@ public enum CareType : short
     /// Đặt lịch không đến — the appointment time passed by more than five
     /// minutes and the patient never arrived (owner, 2026-10-05).
     /// </summary>
-    MissedAppointment = 8
+    MissedAppointment = 8,
+
+    /// <summary>
+    /// Lịch hẹn hủy — one task per cancelled appointment, to call the patient
+    /// back (bug list #16, feature checklist 2.7).
+    /// </summary>
+    CancelledAppointment = 9,
+
+    /// <summary>
+    /// Complain — a customer complaint filed by hand, with how the responsible
+    /// staff handled it (bug list #16, feature checklist 2.6).
+    /// </summary>
+    Complaint = 10
 }

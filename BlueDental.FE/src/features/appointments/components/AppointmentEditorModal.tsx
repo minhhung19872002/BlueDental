@@ -13,7 +13,7 @@ import "./calendar.css";
 import { useAppointment } from "../api/appointmentQueries";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { useSaveAppointment } from "../hooks/useSaveAppointment";
-import { APPOINTMENT_STATUSES } from "../types/appointment";
+import { APPOINTMENT_STATUSES, type AppointmentStatus } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -24,7 +24,11 @@ import { APPT_COLORS } from "./AppointmentColorPicker";
 import { AppointmentEditorForm } from "./AppointmentEditorForm";
 import { STATUS_GROUP } from "./appointmentStatusOptions";
 
-const buildSchema = () =>
+/**
+ * `storedStatus` is the edited booking's group: moving it to Đã huỷ needs a
+ * written reason (bug list #16), one already cancelled keeps the one it has.
+ */
+const buildSchema = (storedStatus?: AppointmentStatus) =>
   z.object({
     patientId: z.string().min(1, t("Appointment:Form:SelectPatientRequired")),
     branchId: z.string().min(1, t("Appointment:Form:SelectBranchRequired")),
@@ -39,6 +43,11 @@ const buildSchema = () =>
     color: z.string(),
     notes: z.string(),
     status: z.enum(APPOINTMENT_STATUSES),
+    cancelNote: z.string(),
+  }).superRefine((values, ctx) => {
+    if (values.status === "cancelled" && storedStatus !== "cancelled" && !values.cancelNote.trim()) {
+      ctx.addIssue({ code: "custom", path: ["cancelNote"], message: t("Common:CancelReasonRequired") });
+    }
   });
 
 interface Props {
@@ -79,13 +88,10 @@ export function AppointmentEditorModal({
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
   const { data: branches } = useClinicBranches(true);
 
-  const branchOptions = useMemo(
-    () => (branches ?? []).map((b) => ({ value: b.id, label: b.name })),
-    [branches],
-  );
-
+  const storedStatus = existingAppt ? STATUS_GROUP[existingAppt.status] : undefined;
+  const resolver = useMemo(() => zodResolver(buildSchema(storedStatus)), [storedStatus]);
   const { control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors, isValid } } = useForm<AppointmentEditorValues>({
-    resolver: zodResolver(buildSchema()),
+    resolver,
     defaultValues: {
       patientId: "",
       branchId: currentBranchId,
@@ -97,8 +103,14 @@ export function AppointmentEditorModal({
       color: APPT_COLORS[0].value,
       notes: "",
       status: "scheduled",
+      cancelNote: "",
     },
   });
+
+  const branchOptions = useMemo(
+    () => (branches ?? []).map((b) => ({ value: b.id, label: b.name })),
+    [branches],
+  );
 
   const watchedDoctorId = useWatch({ control, name: "doctorId" });
   const watchedDate = useWatch({ control, name: "date" });
@@ -155,6 +167,7 @@ export function AppointmentEditorModal({
         color: existingAppt.color ?? APPT_COLORS[0].value,
         notes: existingAppt.notes ?? "",
         status: STATUS_GROUP[existingAppt.status],
+        cancelNote: existingAppt.cancellationNote ?? "",
       });
       return;
     }
@@ -175,6 +188,7 @@ export function AppointmentEditorModal({
       color: APPT_COLORS[0].value,
       notes: "",
       status: "scheduled",
+      cancelNote: "",
     });
   }, [
     open,

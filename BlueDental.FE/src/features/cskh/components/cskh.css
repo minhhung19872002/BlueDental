@@ -391,6 +391,12 @@
   display: none;
 }
 
+/* ...so the resting label must not keep the room the global rule saves for it,
+   or it floats in a blank gap that reads as a missing icon. */
+.cskh-message-field:has(.ss-trigger) {
+  --ff-prefix-offset: 12px;
+}
+
 /* Date/time pickers fill their floating field like every other control. */
 .cskh-message-field .ant-picker {
   width: 100%;

@@ -199,7 +199,7 @@ public class AppointmentTests
     public void Reschedule_Should_Move_A_Cancelled_Appointment()
     {
         var appointment = NewAppointment();
-        appointment.Cancel(CancellationReason.PatientRequest);
+        appointment.Cancel(CancellationReason.PatientRequest, "sick");
         var later = new AppointmentSlot(_slot.Start.AddDays(1), _slot.End.AddDays(1));
 
         appointment.Reschedule(later);
@@ -229,10 +229,28 @@ public class AppointmentTests
     {
         var appointment = NewAppointment();
 
-        appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.PatientNoResponse);
+        appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.PatientNoResponse, " no answer ");
 
         Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
         Assert.Equal(CancellationReason.PatientNoResponse, appointment.CancellationReason);
+        Assert.Equal("no answer", appointment.CancellationNote);
+    }
+
+    /// <summary>Bug list #16: a cancel without a written reason is refused.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Cancel_Should_Require_A_Reason(string? note)
+    {
+        var appointment = NewAppointment();
+
+        var ex = Assert.Throws<BusinessException>(() => appointment.Cancel(CancellationReason.PatientRequest, note));
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.CancellationReasonRequired, ex.Code);
+        Assert.Throws<BusinessException>(() =>
+            appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.PatientRequest, note));
+        Assert.Equal(AppointmentStatus.Requested, appointment.Status);
+        Assert.Null(appointment.CancelledAt);
     }
 
     [Fact]
@@ -292,12 +310,12 @@ public class AppointmentTests
     {
         var appointment = NewAppointment();
 
-        appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.PatientRequest);
+        appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.PatientRequest, "busy");
         appointment.ChangeStatus(AppointmentStatus.NoShow, CancellationReason.PatientRequest);
         Assert.Equal(AppointmentStatus.NoShow, appointment.Status);
         Assert.Null(appointment.CancellationReason);
 
-        appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.Other);
+        appointment.ChangeStatus(AppointmentStatus.Cancelled, CancellationReason.Other, "moved away");
         Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
         Assert.Equal(CancellationReason.Other, appointment.CancellationReason);
     }
@@ -372,7 +390,7 @@ public class AppointmentTests
     {
         var appointment = NewAppointment();
         var first = appointment.BookFollowUp(Guid.NewGuid(), _slot, null);
-        first.Cancel(CancellationReason.PatientRequest);
+        first.Cancel(CancellationReason.PatientRequest, "sick");
         var secondId = Guid.NewGuid();
 
         appointment.BookFollowUp(secondId, _slot, first);
@@ -384,7 +402,7 @@ public class AppointmentTests
     public void BookFollowUp_Should_Refuse_A_Cancelled_Visit()
     {
         var appointment = NewAppointment();
-        appointment.Cancel(CancellationReason.PatientRequest);
+        appointment.Cancel(CancellationReason.PatientRequest, "sick");
 
         Assert.Throws<BusinessException>(() => appointment.BookFollowUp(Guid.NewGuid(), _slot, null));
         Assert.Null(appointment.FollowUpAppointmentId);

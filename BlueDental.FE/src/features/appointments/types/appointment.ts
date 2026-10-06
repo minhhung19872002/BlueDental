@@ -46,6 +46,8 @@ export interface AppointmentDto {
   checkedInAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  /** Lý do hủy, written when the booking was cancelled. */
+  cancellationNote: string | null;
 }
 
 export interface CreateAppointmentRequest {
@@ -70,6 +72,8 @@ export interface UpdateAppointmentRequest {
   notes?: string;
   color?: string;
   status?: AppointmentStatus;
+  /** Lý do hủy — the server refuses a cancel without one. */
+  cancelNote?: string;
   patientName?: string;
   patientPhone?: string;
   sourceTaxonomyId?: string;

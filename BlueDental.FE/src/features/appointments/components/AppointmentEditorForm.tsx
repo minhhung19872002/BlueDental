@@ -54,6 +54,7 @@ export function AppointmentEditorForm({
         />
         <AppointmentFormRight
           control={control}
+          errors={errors}
           setValue={setValue}
           notesValue={watchedNotes}
           isEdit={isEdit}

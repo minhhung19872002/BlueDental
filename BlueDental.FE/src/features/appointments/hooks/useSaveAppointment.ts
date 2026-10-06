@@ -51,6 +51,7 @@ export function useSaveAppointment(appointmentId?: string | null): SaveAppointme
       color: data.color,
       notes: data.notes,
       status: data.status,
+      cancelNote: data.status === "cancelled" ? data.cancelNote.trim() : undefined,
     });
   };
 

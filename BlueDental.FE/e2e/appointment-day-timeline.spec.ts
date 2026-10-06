@@ -105,7 +105,7 @@ test.describe("Lịch hẹn — view Ngày dạng timeline ngang", () => {
     // BA: "đã hủy không hiện ở đây" — a cancelled booking leaves no block.
     const cancelled = await book(page, branchId, working.id, at(day, "10:00"), at(day, "10:30"));
     bookings.push(cancelled.id);
-    const cancel = await call(page, `${APPOINTMENTS}/${cancelled.id}/cancel`, { method: "POST", branchId, json: { reason: 1 } });
+    const cancel = await call(page, `${APPOINTMENTS}/${cancelled.id}/cancel`, { method: "POST", branchId, json: { reason: 1, note: "e2e" } });
     expect(cancel.status, JSON.stringify(cancel.body.error)).toBe(200);
 
     await openDay(page, day);
@@ -113,10 +113,11 @@ test.describe("Lịch hẹn — view Ngày dạng timeline ngang", () => {
     await expect(row).toHaveCount(1);
     await expect(page.locator(".dtl-row").filter({ hasText: offName })).toHaveCount(0);
 
-    // The header keeps the working hours; nothing else rides on the name.
+    // The header keeps the working hours; the row is labelled with the
+    // doctor's full name (Tên + Họ, as the staff list returns it) and nothing else.
     await expect(page.locator(".dtl-tick").first()).toHaveText("07:00");
     await expect(page.locator(".dtl-tick").last()).toHaveText("19:30");
-    await expect(row.locator(".dtl-name")).toHaveText(workingName);
+    await expect(row.locator(".dtl-name")).toHaveText(working.fullName);
 
     const block = row.locator(".dtl-block");
     await expect(block).toHaveCount(1);
@@ -155,6 +156,11 @@ test.describe("Lịch hẹn — view Ngày dạng timeline ngang", () => {
     expect(await board.evaluate((el) => el.scrollLeft)).toBe(0);
 
     const cell = page.locator(".dtl-row").filter({ hasText: workingName }).locator('.dtl-cell[data-time="12:00"]');
+    // The run's doctor can sit below the fold once the branch has many
+    // doctors; a press off-screen lands on nothing, so bring the row up first.
+    await cell.scrollIntoViewIfNeeded();
+    // Bringing it up may nudge the board a few pixels sideways; measure from there.
+    const before = await board.evaluate((el) => el.scrollLeft);
     const box = await cell.boundingBox();
     if (!box) throw new Error("the 12:00 slot is not on screen");
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -162,7 +168,7 @@ test.describe("Lịch hẹn — view Ngày dạng timeline ngang", () => {
     await page.mouse.move(box.x - 500, box.y + box.height / 2, { steps: 12 });
     await page.mouse.up();
 
-    await expect.poll(() => board.evaluate((el) => el.scrollLeft)).toBeGreaterThan(300);
+    await expect.poll(() => board.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before + 300);
     // Letting go over a slot does not open the create dialog...
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // ...and the booking is where it was.

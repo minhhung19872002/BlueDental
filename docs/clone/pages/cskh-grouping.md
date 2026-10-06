@@ -387,3 +387,26 @@ Không phải hành vi đo từ bản gốc — chủ dự án yêu cầu trực
 - Cơ chế: khi bảng mở một khoảng ngày, `CareTaskSync` tạo phiếu còn thiếu (mỗi bệnh nhân
   một phiếu cho mỗi lần sinh nhật; mỗi lịch hẹn một phiếu) — phiếu đã xoá không tạo lại.
   Hai tab theo lịch hẹn lọc bằng giờ và trạng thái **hiện tại** của lịch hẹn.
+
+## Lịch hẹn hủy, Complain (bug list 2026-10-06 #16)
+
+Không phải hành vi đo từ bản gốc — bug list #16 + checklist tính năng 2.6/2.7
+(xem `docs/clone/unknowns.md`, mục "Lịch hẹn hủy / Complain").
+
+- **Lịch hẹn hủy** (`page=cancelled-appointment`, `CareType.CancelledAppointment = 9`):
+  mỗi lịch hẹn đã huỷ một phiếu (tạo bởi `CareTaskSync` như Nhắc lịch hẹn). Khoảng lọc
+  theo **ngày huỷ** (`CancelledAt`), không theo giờ hẹn — khách cần được gọi lại khi vừa
+  huỷ. Đặt lại lịch (Đã hẹn) thì dòng rời tab; huỷ lại dùng lại phiếu cũ. Cột: Lịch hẹn ·
+  Họ và tên · SĐT · Bác sĩ · Nội dung hẹn · **Ngày hủy** · **Lý do hủy** · Trạng thái ·
+  Ghi chú · Thao tác. Trạng thái Đã liên hệ / Chưa liên hệ như hai tab lịch hẹn. Không có
+  nút Tạo mới. Xuất Excel `cskh-lich-hen-huy`.
+- **Complain** (`page=complaint`, `CareType.Complaint = 10`): tạo tay bằng "Tạo mới".
+  Dialog: Khách hàng*, **Ngày ghi nhận** (không có nút +3/6/9 tháng), **Nhân viên phụ
+  trách**, **Nội dung complain*** (bắt buộc — Lưu tắt khi trống). Quá trình xử lý = hộp
+  thoại kết quả (Thành công / Thất bại + ghi chú) và nhân viên phụ trách. Cột như CSKH đặc
+  biệt, ghi chú đổi tên "Nội dung complain", thêm "Kết quả xử lý". Xuất Excel `cskh-complain`.
+- **Lý do huỷ bắt buộc**: `Appointment.Cancel(reason, note)` từ chối lý do trống
+  (`BlueDental:Appointment:0004`), lưu bản đã `trim`. Dialog Cập nhật lịch hẹn: chọn
+  Đã huỷ → hiện ô "Lý do hủy *" (tối đa 500 ký tự), Lưu tắt khi trống; lịch đã huỷ mở lại
+  thì ô hiện lý do cũ, chỉ đọc. API: `UpdateAppointmentDto.CancellationNote`,
+  `AppointmentDto.CancellationReason/CancellationNote`.

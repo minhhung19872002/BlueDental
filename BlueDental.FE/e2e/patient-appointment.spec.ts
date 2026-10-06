@@ -411,11 +411,20 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await expect(row).toContainText(`${reason} sửa`);
     await expect(row).toContainText("Trễ hẹn");
 
-    // Đã huỷ goes through the same save, and sticks.
+    // Đã huỷ goes through the same save, and sticks — but only with a written
+    // Lý do hủy (bug list #16): without one the dialog will not save.
+    const cancelReason = `E2E lý do hủy ${id}`;
+    const cancelNote = edit.getByLabel("Lý do hủy");
     await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
     await expect(edit).toBeVisible();
+    await expect(cancelNote).toHaveCount(0);
     await openStatusOptions(page, edit);
     await chooseStatus(page, "Đã huỷ");
+    await expect(cancelNote).toBeVisible();
+    await expect(edit.getByRole("button", { name: "Lưu" })).toBeDisabled();
+    await cancelNote.fill("   ");
+    await expect(edit.getByRole("button", { name: "Lưu" })).toBeDisabled();
+    await cancelNote.fill(cancelReason);
     await saveEdit(page, edit);
     await expect(page.locator("tbody tr", { hasText: reason }).first()).toContainText("Đã huỷ");
 
@@ -426,8 +435,12 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
     await expect(edit).toBeVisible();
     await expect(status(edit)).toContainText("Đã huỷ");
+    // The stored reason comes back, read-only.
+    await expect(cancelNote).toHaveValue(cancelReason);
+    await expect(cancelNote).toBeDisabled();
     expect(await openStatusOptions(page, edit)).toEqual(["Đã hẹn", "Đã huỷ", "Trễ hẹn"]);
     await chooseStatus(page, "Đã hẹn");
+    await expect(cancelNote).toHaveCount(0);
     await saveEdit(page, edit);
     await expect(page.locator("tbody tr", { hasText: reason }).first()).toContainText("Đã hẹn");
 

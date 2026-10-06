@@ -27,6 +27,8 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public DateTimeOffset? CancelledAt { get; set; }
+    public CancellationReason? CancellationReason { get; set; }
+    public string? CancellationNote { get; set; }
     public AppointmentOutcome? Outcome { get; set; }
 
     /// <summary>The appointment booked through "Đã hẹn tiếp", and when it starts.</summary>
@@ -88,6 +90,10 @@ public class UpdateAppointmentDto
     /// <summary>Why, when <see cref="Status"/> is Cancelled; defaults to the patient asking.</summary>
     public CancellationReason? CancellationReason { get; set; }
 
+    /// <summary>The written cancel reason; required when the save cancels.</summary>
+    [StringLength(500)]
+    public string? CancellationNote { get; set; }
+
     // Temp appointment fields
     public string? PatientName { get; set; }
     public string? PatientPhone { get; set; }
@@ -98,6 +104,9 @@ public class UpdateAppointmentDto
 public class CancelAppointmentDto
 {
     public CancellationReason Reason { get; set; }
+
+    /// <summary>The written reason; a blank one is refused.</summary>
+    [StringLength(500)]
     public string? Note { get; set; }
 }
 

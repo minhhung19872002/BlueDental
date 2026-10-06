@@ -400,7 +400,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color);
         if (input.Status is { } status)
         {
-            appointment.ChangeStatus(status, input.CancellationReason ?? CancellationReason.PatientRequest);
+            appointment.ChangeStatus(
+                status, input.CancellationReason ?? CancellationReason.PatientRequest, input.CancellationNote);
         }
 
         if (appointment.IsTemporary)

@@ -2840,3 +2840,22 @@ UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau là 
   (không có chip "Tất cả").
 
 Action taken: NONE (ghi lại; không gọi gì lên production).
+
+## Lịch hẹn hủy / Complain / Lý do huỷ (2026-10-06, bug list #16 — không phải hành vi bản gốc)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: CSKH (`/cskh-grouping`), Lịch hẹn (dialog Cập nhật lịch hẹn)
+Control: tab "Lịch hẹn hủy", tab "Complain", ô "Lý do hủy"
+Reason: bản gốc không có hai tab này (yêu cầu checklist 2.6/2.7); chưa quan sát được bản gốc
+có bắt nhập lý do khi đổi trạng thái sang Đã huỷ hay không — thao tác đó ghi dữ liệu.
+
+Giả định (chờ BA chốt):
+
+- Tab Lịch hẹn hủy lọc theo **ngày huỷ**, không theo giờ hẹn.
+- "Quá trình xử lý" complain = nhân viên phụ trách + kết quả Thành công/Thất bại + ghi chú;
+  ghi chú kết quả sửa cùng trường với nội dung complain (không có lịch sử từng bước xử lý).
+- Complain không gắn với lịch hẹn/điều trị nào, chỉ gắn khách hàng.
+- Lý do huỷ là ô chữ tự do; loại lý do (`CancellationReason`) vẫn mặc định "khách yêu cầu".
+
+Action taken: NONE (ghi lại; không gọi gì lên production).

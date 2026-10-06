@@ -23,6 +23,8 @@ public static class CareExportColumns
         CareType.AppointmentReminder => Reminder,
         CareType.NoService => NoService,
         CareType.MissedAppointment => Missed,
+        CareType.CancelledAppointment => Cancelled,
+        CareType.Complaint => Complaint,
         _ => Scheduled,
     };
 
@@ -57,7 +59,6 @@ public static class CareExportColumns
         new("Ghi chú", r => r.Description, 36),
     ];
 
-    /// <summary>Nhắc lịch hẹn — 12 cột.</summary>
     /// <summary>Đặt lịch không đến — the reminder sheet with Lịch hẹn sắp tới instead of NV chăm sóc.</summary>
     private static readonly ExcelColumn<CareRecordDto>[] Missed =
     [
@@ -75,6 +76,7 @@ public static class CareExportColumns
         new("Ghi chú", r => r.Description, 36),
     ];
 
+    /// <summary>Nhắc lịch hẹn — 12 cột.</summary>
     private static readonly ExcelColumn<CareRecordDto>[] Reminder =
     [
         new("Lịch hẹn", r => DateTimeText(r.DueAt), 20),
@@ -89,6 +91,40 @@ public static class CareExportColumns
         new("Trạng thái lịch hẹn", r => AppointmentStatusLabel(r.AppointmentStatus), 20),
         new("Trạng thái CSKH", r => StatusLabel(r.Status), 16),
         new("Ghi chú", r => r.Description, 36),
+    ];
+
+    /// <summary>Lịch hẹn hủy — the board's columns: when and why the booking was cancelled.</summary>
+    private static readonly ExcelColumn<CareRecordDto>[] Cancelled =
+    [
+        new("Ngày hủy", r => DateTimeText(r.AppointmentCancelledAt), 20),
+        new("Lịch hẹn", r => DateTimeText(r.DueAt), 20),
+        new("Mã KH", r => r.PatientCode, 14),
+        new("Họ và tên", r => r.PatientName, 24),
+        new("Giới tính", r => GenderLabel(r.PatientGender), 12),
+        new("Ngày sinh", r => DateText(r.PatientDateOfBirth), 16),
+        new("Số điện thoại", r => r.PatientPhone, 16),
+        new("Bác sĩ điều trị", r => r.AssignedStaffName, 20),
+        new("Nội dung lịch hẹn", r => r.AppointmentContent, 24),
+        new("Lý do hủy", r => r.AppointmentCancelNote, 30),
+        new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
+        new("Trạng thái", r => StatusLabel(r.Status), 16),
+        new("Ghi chú", r => r.Description, 36),
+    ];
+
+    /// <summary>Complain — the complaint (Ghi chú) and the handling result.</summary>
+    private static readonly ExcelColumn<CareRecordDto>[] Complaint =
+    [
+        new("Ngày ghi nhận", r => DateTimeText(r.DueAt), 20),
+        new("Mã KH", r => r.PatientCode, 14),
+        new("Họ và tên", r => r.PatientName, 24),
+        new("Giới tính", r => GenderLabel(r.PatientGender), 12),
+        new("Ngày sinh", r => DateText(r.PatientDateOfBirth), 16),
+        new("Số điện thoại", r => r.PatientPhone, 16),
+        new("Bác sĩ điều trị", r => r.AssignedStaffName, 20),
+        new("NV phụ trách", r => r.CareStaffName, 20),
+        new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
+        new("Kết quả xử lý", r => StatusLabel(r.Status), 16),
+        new("Nội dung", r => r.Description, 36),
     ];
 
     /// <summary>Không làm dịch vụ — 10 cột.</summary>

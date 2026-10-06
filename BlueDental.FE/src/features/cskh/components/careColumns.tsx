@@ -88,6 +88,22 @@ const appointmentStatusColumn = (): CareColumn => ({
       : "—",
 });
 
+const cancelledAtColumn = (): CareColumn => ({
+  title: t("CSKH:Col:CancelledAt"),
+  key: "cancelledAt",
+  width: 150,
+  render: (_, record) =>
+    record.appointmentCancelledAt ? formatDateTime(record.appointmentCancelledAt) : "—",
+});
+
+const cancelReasonColumn = (): CareColumn => ({
+  title: t("CSKH:Col:CancelReason"),
+  dataIndex: "appointmentCancelNote",
+  key: "cancelReason",
+  width: 200,
+  render: formatDash,
+});
+
 const careScheduleColumn = (): CareColumn => ({
   title: t("CSKH:Col:CareAppointment"),
   key: "careSchedule",
@@ -128,8 +144,23 @@ const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareR
     appointmentStatusColumn(),
     c.upcoming, c.status, c.note, c.actions,
   ],
+  "cancelled-appointment": (c) => [
+    cancelledAtColumn(),
+    appointmentColumn(),
+    c.patient, c.phone, c.doctor,
+    appointmentContentColumn(),
+    cancelReasonColumn(),
+    c.upcoming, c.status, c.note, c.actions,
+  ],
   periodic: periodicColumns,
   special: periodicColumns,
+  complaint: (c) => [
+    { ...careDateColumn(), title: t("CSKH:Col:ReceivedAt") },
+    c.patient, c.phone, c.doctor, c.careStaff, c.upcoming,
+    { ...c.status, title: t("CSKH:Col:HandlingResult") },
+    { ...c.note, title: t("CSKH:Col:ComplaintContent") },
+    c.actions,
+  ],
 };
 
 export function buildCareColumns(

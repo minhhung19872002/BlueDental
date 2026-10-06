@@ -58,20 +58,32 @@ export function runId(): string {
   return `${Date.now().toString().slice(-6)}`;
 }
 
-const SHIFT_HOURS = [8, 9, 10, 11, 13, 14, 15, 16] as const;
+/**
+ * Half-hour starts inside the dentist's default shifts (08-12, 13-17): a
+ * booking outside them is refused (R-742), and the dialog books 30 minutes.
+ */
+const SHIFT_STARTS = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+] as const;
+
+/** How many days past the 400-day margin a slot may land on. */
+const SLOT_DAY_SPREAD = 3000;
 
 /**
  * A slot far enough out that the seed data has nothing on it, and different on
- * every run — the run id picks both the day and the hour — so a re-run does not
- * collide with the booking the last one left behind: the server rejects a
- * double booking, correctly. `offsetDays` keeps one run's bookings apart.
+ * every run — the run id picks both the day and the half hour — so a re-run
+ * does not collide with the booking an earlier one left behind: the server
+ * rejects a double booking, correctly. Bookings pile up run after run and the
+ * run id repeats every ~17 minutes, so the grid is wide (3000 days x 16 starts)
+ * to keep a repeat landing on an old booking rare (R-757). `offsetDays` keeps
+ * one run's bookings apart.
  */
 export function freeSlot(runSuffix: string, offsetDays: number): { day: string; time: string } {
   const seed = Number(runSuffix);
   const date = new Date();
-  date.setDate(date.getDate() + 400 + (seed % 300) + offsetDays);
+  date.setDate(date.getDate() + 400 + (seed % SLOT_DAY_SPREAD) + offsetDays);
   const day = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
-  // A booking outside the dentist's shifts (default 08-12, 13-17) is refused (R-742).
-  const hour = SHIFT_HOURS[Math.floor(seed / 300) % SHIFT_HOURS.length];
-  return { day, time: `${String(hour).padStart(2, "0")}:00` };
+  const time = SHIFT_STARTS[Math.floor(seed / SLOT_DAY_SPREAD) % SHIFT_STARTS.length];
+  return { day, time };
 }

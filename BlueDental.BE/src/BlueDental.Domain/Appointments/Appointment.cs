@@ -106,7 +106,11 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    public Appointment Cancel(CancellationReason reason, string? note = null)
+    /// <summary>
+    /// Cancels the booking. The written reason is mandatory (bug list #16):
+    /// customer care calls the patient back from it on the "Lịch hẹn hủy" list.
+    /// </summary>
+    public Appointment Cancel(CancellationReason reason, string? note)
     {
         if (Status is AppointmentStatus.Completed or AppointmentStatus.Cancelled)
         {
@@ -115,9 +119,14 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
                 $"Cannot cancel an appointment in status {Status}.");
         }
 
+        if (string.IsNullOrWhiteSpace(note))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.CancellationReasonRequired);
+        }
+
         Status = AppointmentStatus.Cancelled;
         CancellationReason = reason;
-        CancellationNote = note;
+        CancellationNote = note.Trim();
         CancelledAt = DateTimeOffset.UtcNow;
         return this;
     }
@@ -221,15 +230,18 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// nothing. Cancelling and marking late go through their own transitions;
     /// Đã hẹn puts a cancelled or late appointment back on the book. Arrival
     /// is recorded by reception, so the dialog can neither set an arrival
-    /// status nor undo one.
+    /// status nor undo one. Cancelling needs <paramref name="cancellationNote"/>.
     /// </summary>
-    public Appointment ChangeStatus(AppointmentStatus target, CancellationReason cancellationReason)
+    public Appointment ChangeStatus(
+        AppointmentStatus target,
+        CancellationReason cancellationReason,
+        string? cancellationNote = null)
     {
         if (GroupOf(target) == GroupOf(Status)) return this;
 
         return target switch
         {
-            AppointmentStatus.Cancelled => Cancel(cancellationReason),
+            AppointmentStatus.Cancelled => Cancel(cancellationReason, cancellationNote),
             AppointmentStatus.NoShow => (Status == AppointmentStatus.Cancelled ? Restore() : this).MarkNoShow(),
             AppointmentStatus.Requested or AppointmentStatus.Confirmed => Restore(),
             _ => throw new BusinessException(

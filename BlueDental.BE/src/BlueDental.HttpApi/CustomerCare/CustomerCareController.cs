@@ -82,6 +82,8 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
         CareType.Special => "cskh-dac-biet",
         CareType.NoService => "cskh-khong-lam-dich-vu",
         CareType.MissedAppointment => "cskh-dat-lich-khong-den",
+        CareType.CancelledAppointment => "cskh-lich-hen-huy",
+        CareType.Complaint => "cskh-complain",
         _ => "cskh",
     };
 }

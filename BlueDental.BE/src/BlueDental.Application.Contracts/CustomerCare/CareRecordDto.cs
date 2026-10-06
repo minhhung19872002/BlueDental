@@ -48,11 +48,17 @@ public class CareRecordDto : FullAuditedEntityDto<Guid>
     /// <summary>Lịch hẹn sắp tới — the patient's next upcoming appointment.</summary>
     public DateTimeOffset? NextAppointmentAt { get; set; }
 
-    /// <summary>Trạng thái lịch hẹn — only on Nhắc lịch hẹn rows.</summary>
+    /// <summary>Trạng thái lịch hẹn — only on appointment-driven rows.</summary>
     public AppointmentStatus? AppointmentStatus { get; set; }
 
-    /// <summary>Nội dung hẹn — only on Nhắc lịch hẹn rows.</summary>
+    /// <summary>Nội dung hẹn — only on appointment-driven rows.</summary>
     public string? AppointmentContent { get; set; }
+
+    /// <summary>Ngày hủy — when the linked appointment was cancelled (Lịch hẹn hủy).</summary>
+    public DateTimeOffset? AppointmentCancelledAt { get; set; }
+
+    /// <summary>Lý do hủy — the written cancel reason (Lịch hẹn hủy).</summary>
+    public string? AppointmentCancelNote { get; set; }
 }
 
 public class CreateCareRecordDto

@@ -54,10 +54,14 @@ test.describe("Lịch hẹn", () => {
     await pickFirst(page, /Chọn bệnh nhân/);
     await pickFirst(page, /Chọn bác sĩ/);
 
-    // antd commits a typed date or time on Enter.
+    // The day picker is in mask mode (DATE_INPUT_FORMAT): fill() is ignored and
+    // typing edits the cell under the caret, so click the day cell at the left
+    // edge and type the digits bare; antd commits a typed date or time on Enter.
     const date = dialog.getByPlaceholder("Chọn thời điểm");
-    await date.fill(day);
+    await date.click({ position: { x: 4, y: 8 } });
+    await date.pressSequentially(day.replace(/\D/g, ""));
     await date.press("Enter");
+    await expect(date).toHaveValue(day);
 
     const time = dialog.getByPlaceholder("HH:mm");
     await time.fill("09:00");

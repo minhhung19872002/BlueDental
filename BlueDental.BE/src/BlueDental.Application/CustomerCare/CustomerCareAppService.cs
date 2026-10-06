@@ -518,7 +518,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             query = query.Where(r => bornInWindow.Contains(r.PatientId));
         }
 
-        // Nhắc lịch hẹn / Đặt lịch không đến read the window and the rule off
+        // Nhắc lịch hẹn / Đặt lịch không đến / Lịch hẹn hủy read the window and the rule off
         // the live appointment, so a moved, cancelled or late-arrived booking
         // leaves the tab at once (owner, 2026-10-05).
         if (CareAppointmentRules.IsAppointmentDriven(input.Type))
@@ -603,7 +603,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         CareType.AfterTreatment => query
             .OrderByDescending(r => r.TreatmentDate)
             .ThenByDescending(r => r.CreationTime),
-        CareType.NoService or CareType.MissedAppointment => query.OrderByDescending(r => r.DueAt),
+        CareType.NoService or CareType.MissedAppointment or CareType.CancelledAppointment or CareType.Complaint
+            => query.OrderByDescending(r => r.DueAt),
         CareType.Birthday or CareType.AppointmentReminder => query.OrderBy(r => r.DueAt),
         CareType.Periodic or CareType.Special => query.OrderByDescending(r => r.ScheduledStart),
         _ => query.OrderByDescending(r => r.CreationTime),
@@ -742,6 +743,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
                 dto.AppointmentStatus = appointment.Status;
                 dto.AppointmentContent = appointment.ChiefComplaint ?? appointment.Notes;
+                dto.AppointmentCancelledAt = appointment.CancelledAt;
+                dto.AppointmentCancelNote = appointment.CancellationNote;
             }
         }
     }

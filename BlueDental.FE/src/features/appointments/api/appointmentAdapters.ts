@@ -38,6 +38,7 @@ export interface ServerAppointmentDto {
   checkedInAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  cancellationNote: string | null;
 }
 
 /**
@@ -126,6 +127,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     checkedInAt: dto.checkedInAt,
     startedAt: dto.startedAt,
     completedAt: dto.completedAt,
+    cancellationNote: dto.cancellationNote,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),
@@ -193,6 +195,7 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     color: request.color,
     // Trạng thái from the edit dialog; left out, the server leaves it alone.
     status: request.status ? CODE_BY_STATUS[request.status] : undefined,
+    cancellationNote: request.cancelNote || undefined,
     patientName: request.patientName,
     patientPhone: request.patientPhone,
     sourceTaxonomyId: request.sourceTaxonomyId || undefined,

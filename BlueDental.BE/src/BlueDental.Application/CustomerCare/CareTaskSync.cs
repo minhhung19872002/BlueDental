@@ -23,7 +23,7 @@ namespace BlueDental.CustomerCare;
 ///
 /// - Chúc mừng sinh nhật: one task per patient per birthday — every patient
 ///   with a date of birth, old or newly booked, whatever became of the booking.
-/// - Nhắc lịch hẹn / Đặt lịch không đến: one task per appointment.
+/// - Nhắc lịch hẹn / Đặt lịch không đến / Lịch hẹn hủy: one task per appointment.
 ///
 /// A task once written is never written again, even after it was deleted.
 /// The work runs in its own committed unit of work behind a process-wide gate,
@@ -213,7 +213,7 @@ public class CareTaskSync : ITransientDependency
                 appointment.PatientId,
                 appointment.BranchId,
                 type,
-                type == CareType.MissedAppointment ? "Đặt lịch không đến" : "Nhắc lịch hẹn",
+                CareAppointmentRules.SubjectOf(type),
                 dentistId,
                 dueAt: appointment.Slot.Start,
                 appointmentId: appointment.Id));

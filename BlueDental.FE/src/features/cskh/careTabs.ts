@@ -2,15 +2,17 @@ import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 import { CARE_TYPE, type CareType } from "./api/careApi";
 
-/** URL `page=` keys of the 6 care-type tabs, reference order. */
+/** URL `page=` keys of the care-type tabs, reference order then our additions. */
 export type CareTabKey =
   | "after-treatment"
   | "birthday"
   | "remind-appointment"
   | "no-service"
   | "missed-appointment"
+  | "cancelled-appointment"
   | "periodic"
-  | "special";
+  | "special"
+  | "complaint";
 
 export type CareDateMode = "day" | "week" | "month";
 
@@ -106,6 +108,20 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     statusModel: "contact",
   },
   {
+    // Bug list #16 / feature checklist 2.7: patients who cancelled, windowed
+    // by when they cancelled. Not on the reference (UNKNOWN_REFERENCE_BEHAVIOR).
+    key: "cancelled-appointment",
+    type: CARE_TYPE.CancelledAppointment,
+    label: () => t("CSKH:Type:CancelledAppointment"),
+    showDoctor: true,
+    showCareStaff: false,
+    showCreate: false,
+    showSend: false,
+    fileHeart: null,
+    wideTable: true,
+    statusModel: "contact",
+  },
+  {
     key: "periodic",
     type: CARE_TYPE.Periodic,
     label: () => t("CSKH:Type:Periodic"),
@@ -129,6 +145,20 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     wideTable: true,
     statusModel: "result",
   },
+  {
+    // Bug list #16 / feature checklist 2.6: complaints filed by hand, closed
+    // with Thành công / Thất bại once handled. Not on the reference.
+    key: "complaint",
+    type: CARE_TYPE.Complaint,
+    label: () => t("CSKH:Type:Complaint"),
+    showDoctor: true,
+    showCareStaff: true,
+    showCreate: true,
+    showSend: false,
+    fileHeart: "result",
+    wideTable: true,
+    statusModel: "result",
+  },
 ] as const;
 
 export function careTabByKey(key: string | null): CareTabConfig {
@@ -137,7 +167,9 @@ export function careTabByKey(key: string | null): CareTabConfig {
 
 /** The subject the reference auto-fills when creating from the Tạo mới dialog. */
 export function autoSubject(type: CareType): string {
-  return type === CARE_TYPE.Periodic ? "Customer Care - recurring" : "Customer Care - special";
+  if (type === CARE_TYPE.Periodic) return "Customer Care - recurring";
+  if (type === CARE_TYPE.Complaint) return "Customer Care - complaint";
+  return "Customer Care - special";
 }
 
 /**

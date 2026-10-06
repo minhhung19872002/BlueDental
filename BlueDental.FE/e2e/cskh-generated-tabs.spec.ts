@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import * as XLSX from "xlsx";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { openShiftCovering } from "./fixtures/workShift";
 
@@ -9,6 +11,10 @@ import { openShiftCovering } from "./fixtures/workShift";
  * - Nhắc lịch hẹn: every booking in the window still on the book.
  * - Đặt lịch không đến: bookings 5+ minutes past their time with no arrival.
  * - All three: Đã liên hệ / Chưa liên hệ, persisted and written to the log.
+ * - Lịch hẹn hủy (bug list #16): bookings cancelled in the window, with the
+ *   reason the cancel now requires.
+ * - Complain (bug list #16): filed by hand, content required, handled through
+ *   the Thành công / Thất bại result dialog.
  *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted.
  * Fixtures go through the real API with the session the login screen gave.
@@ -110,6 +116,20 @@ async function search(page: Page, text: string): Promise<void> {
   await listed;
 }
 
+/** Xuất Excel on the open board: the file name and the first sheet's rows. */
+async function exportBoard(page: Page): Promise<{ filename: string; rows: string[][] }> {
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Xuất Excel" }).click();
+  const file = await download;
+  // The xlsx ESM build has no readFile.
+  const workbook = XLSX.read(readFileSync(await file.path()), { type: "buffer" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  return {
+    filename: file.suggestedFilename(),
+    rows: XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "" }),
+  };
+}
+
 /** The care board on one tab and day, searched down to one patient. */
 async function openBoard(page: Page, tab: string, query: string, day?: Date): Promise<void> {
   const dayParams = day ? `&care_dateMode=day&care_date=${localIsoDate(day)}` : "";
@@ -209,7 +229,7 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
     await openBoard(page, "remind-appointment", patient.name, start);
     await markContacted(page, patient.name);
 
-    const cancelled = await call(page, "POST", `/api/v1/app/appointments/${appointmentId}/cancel`, { reason: 1 });
+    const cancelled = await call(page, "POST", `/api/v1/app/appointments/${appointmentId}/cancel`, { reason: 1, note: "e2e" });
     expect(cancelled.status, cancelled.text).toBe(200);
     await openBoard(page, "remind-appointment", patient.name, start);
     await expect(page.getByText("Không có dữ liệu")).toBeVisible({ timeout: 15_000 });
@@ -264,5 +284,124 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
     expect(checkIn.status, checkIn.text).toBe(200);
     await openBoard(page, "missed-appointment", overdue!.patientCode, day);
     await expect(page.locator(`.cskh-table tbody tr[data-row-key="${task!.id}"]`)).toHaveCount(0, { timeout: 15_000 });
+  });
+});
+
+test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
+  test.beforeEach(async ({ page }) => {
+    test.setTimeout(120_000);
+    await login(page);
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+  });
+
+  test("a cancel needs a reason, and the cancelled booking is listed with it under Lịch hẹn hủy", async ({ page }) => {
+    const patient = await newPatient(page, null);
+    const start = new Date(Date.now() + 24 * 3600_000);
+    start.setMinutes(0, 0, 0);
+    const appointmentId = await book(page, patient.id, start);
+    const cancelUrl = `/api/v1/app/appointments/${appointmentId}/cancel`;
+
+    // No reason, or a blank one: refused, and the booking stays on the book.
+    for (const body of [{ reason: 1 }, { reason: 1, note: "   " }]) {
+      const refused = await call(page, "POST", cancelUrl, body);
+      expect(refused.status, refused.text).toBeGreaterThanOrEqual(400);
+      expect((refused.json as { error?: { code?: string } }).error?.code).toBe("BlueDental:Appointment:0004");
+    }
+    await openBoard(page, "cancelled-appointment", patient.name);
+    await expect(page.getByText("Không có dữ liệu")).toBeVisible({ timeout: 15_000 });
+
+    const reason = `E2E lý do hủy ${runId()}`;
+    const cancelled = await call(page, "POST", cancelUrl, { reason: 1, note: ` ${reason} ` });
+    expect(cancelled.status, cancelled.text).toBe(200);
+    expect((cancelled.json as { cancellationNote: string }).cancellationNote).toBe(reason);
+
+    // Windowed by the day it was cancelled — today — not by the slot given up.
+    await openBoard(page, "cancelled-appointment", patient.name, new Date());
+    await expect(page.getByRole("columnheader", { name: "Lý do hủy", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Ngày hủy", exact: true })).toBeVisible();
+    const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patient.name });
+    await expect(row).toHaveCount(1, { timeout: 15_000 });
+    await expect(row).toContainText(reason);
+    await markContacted(page, patient.name);
+
+    // Xuất Excel carries the cancel day and the reason.
+    const cancelledSheet = await exportBoard(page);
+    expect(cancelledSheet.filename).toMatch(/^cskh-lich-hen-huy-.*\.xlsx$/);
+    const cancelledHeader = cancelledSheet.rows[0];
+    expect(cancelledHeader.slice(0, 2)).toEqual(["Ngày hủy", "Lịch hẹn"]);
+    const cancelledLine = cancelledSheet.rows.find((r) => r.includes(patient.name));
+    expect(cancelledLine?.[cancelledHeader.indexOf("Lý do hủy")]).toBe(reason);
+    expect(cancelledLine?.[cancelledHeader.indexOf("Trạng thái")]).toBe("Đã liên hệ");
+
+    // The slot's own day is not the cancel day: nothing there.
+    await openBoard(page, "cancelled-appointment", patient.name, start);
+    await expect(page.getByText("Không có dữ liệu")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("a complaint is filed with its content and responsible staff, then handled", async ({ page }) => {
+    const patient = await newPatient(page, null);
+    const content = `E2E complain ${runId()}`;
+
+    await page.goto("/cskh-grouping?tab=care&page=complaint&care_dateMode=day");
+    await assertRealApiTraffic(page, `${CARE}/stats`);
+    await expect(page.getByRole("button", { name: "Complain", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "Tạo mới" }).click();
+    const dialog = page.getByRole("dialog").filter({ hasText: "Tạo công việc mới" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Ngày ghi nhận")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "+3 tháng" })).toHaveCount(0);
+
+    // The floating label sits beside the combobox, not inside it.
+    const picker = (label: string) =>
+      dialog.locator("div").filter({ has: page.getByRole("combobox"), hasText: label }).last().getByRole("combobox");
+    await picker("Chọn khách hàng").click();
+    await page.locator("#ss-portal-dropdown .ss-search-input").fill(patient.name);
+    await page.locator("#ss-portal-dropdown").getByRole("option", { name: new RegExp(patient.name) }).click();
+
+    // A patient alone is not a complaint: the content is required.
+    const save = dialog.getByRole("button", { name: "Lưu" });
+    await expect(save).toBeDisabled();
+    await picker("Nhân viên phụ trách").click();
+    const staffOption = page.locator("#ss-portal-dropdown").getByRole("option").first();
+    const staffName = ((await staffOption.textContent()) ?? "").trim();
+    await staffOption.click();
+    await dialog.getByRole("textbox", { name: "Nội dung complain" }).fill(content);
+
+    const created = page.waitForResponse((res) => res.url().endsWith(CARE) && res.request().method() === "POST");
+    await save.click();
+    expect((await created).status()).toBe(200);
+    await expect(page.getByText("Đã tạo công việc chăm sóc")).toBeVisible();
+
+    // Persisted: after a reload the row carries the content and the staff.
+    await page.reload();
+    await search(page, patient.name);
+    const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patient.name });
+    await expect(row).toHaveCount(1, { timeout: 15_000 });
+    await expect(row.locator("textarea.cskh-note-input")).toHaveValue(content);
+    if (staffName) await expect(row).toContainText(staffName);
+
+    // Handled: Thành công through the result dialog, and it sticks.
+    await row.locator("button.cskh-action--care").click();
+    const result = page.getByRole("dialog").filter({ hasText: patient.name });
+    await expect(result).toBeVisible();
+    await result.getByRole("checkbox", { name: "Thành công" }).click();
+    await result.getByRole("button", { name: "Lưu" }).click();
+    await expect(page.getByText("Đã lưu kết quả chăm sóc")).toBeVisible();
+
+    await page.reload();
+    await search(page, patient.name);
+    await expect(row).toContainText("Thành công", { timeout: 15_000 });
+
+    // Xuất Excel carries the complaint, who handles it and how it ended.
+    const sheet = await exportBoard(page);
+    expect(sheet.filename).toMatch(/^cskh-complain-.*\.xlsx$/);
+    const header = sheet.rows[0];
+    expect(header[0]).toBe("Ngày ghi nhận");
+    const line = sheet.rows.find((r) => r.includes(patient.name));
+    expect(line?.[header.indexOf("Nội dung")]).toBe(content);
+    expect(line?.[header.indexOf("Kết quả xử lý")]).toBe("Thành công");
+    if (staffName) expect(line?.[header.indexOf("NV phụ trách")]).toBe(staffName);
   });
 });

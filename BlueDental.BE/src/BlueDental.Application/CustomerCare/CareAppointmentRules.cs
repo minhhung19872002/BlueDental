@@ -15,12 +15,15 @@ public static class CareAppointmentRules
     public static readonly TimeSpan MissedAfter = TimeSpan.FromMinutes(5);
 
     public static bool IsAppointmentDriven(CareType? type) =>
-        type is CareType.AppointmentReminder or CareType.MissedAppointment;
+        type is CareType.AppointmentReminder or CareType.MissedAppointment or CareType.CancelledAppointment;
 
     /// <summary>
     /// Nhắc lịch hẹn: every booking in the window that is still on the book.
     /// Đặt lịch không đến: bookings whose time is <see cref="MissedAfter"/>
     /// behind <paramref name="now"/> and that never checked in.
+    /// Lịch hẹn hủy: bookings cancelled within the window (bug list #16) —
+    /// windowed by when they were cancelled, since that is when the patient
+    /// needs a call, not by the slot they gave up.
     /// </summary>
     public static IQueryable<Appointment> Matching(
         IQueryable<Appointment> query,
@@ -30,17 +33,23 @@ public static class CareAppointmentRules
         DateTimeOffset now)
     {
         // Npgsql requires UTC offset for timestamptz parameters.
-        if (from.HasValue)
+        var start = from?.ToUniversalTime();
+        var end = to?.ToUniversalTime();
+
+        if (type == CareType.CancelledAppointment)
         {
-            var start = from.Value.ToUniversalTime();
-            query = query.Where(a => a.Slot.Start >= start);
+            query = query.Where(a => a.Status == AppointmentStatus.Cancelled && a.CancelledAt.HasValue);
+            if (start.HasValue)
+                query = query.Where(a => a.CancelledAt >= start.Value);
+            if (end.HasValue)
+                query = query.Where(a => a.CancelledAt <= end.Value);
+            return query;
         }
 
-        if (to.HasValue)
-        {
-            var end = to.Value.ToUniversalTime();
-            query = query.Where(a => a.Slot.Start <= end);
-        }
+        if (start.HasValue)
+            query = query.Where(a => a.Slot.Start >= start.Value);
+        if (end.HasValue)
+            query = query.Where(a => a.Slot.Start <= end.Value);
 
         if (type == CareType.MissedAppointment)
         {
@@ -53,4 +62,12 @@ public static class CareAppointmentRules
 
         return query.Where(a => a.Status != AppointmentStatus.Cancelled);
     }
+
+    /// <summary>The task subject each appointment-driven tab files its rows under.</summary>
+    public static string SubjectOf(CareType type) => type switch
+    {
+        CareType.MissedAppointment => "Đặt lịch không đến",
+        CareType.CancelledAppointment => "Lịch hẹn hủy",
+        _ => "Nhắc lịch hẹn",
+    };
 }
