@@ -154,6 +154,11 @@ interface CatalogSearchInput {
    * the Danh mục screen, so a picker must ask for them to be left out (R-587).
    */
   includeInactive?: boolean;
+  /**
+   * Dịch vụ only: false offers single services alone, true combos alone —
+   * "Chọn Dịch Vụ" lists them on separate tabs. Unset offers both.
+   */
+  isCombo?: boolean;
   enabled?: boolean;
 }
 
@@ -176,6 +181,7 @@ export function useCatalogOptionSearch(group: CatalogGroup, input: CatalogSearch
       search,
       input.taxonomyId ?? null,
       input.includeInactive ?? false,
+      input.isCombo ?? null,
     ] as const,
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<CatalogOptionPage> => {
@@ -187,6 +193,7 @@ export function useCatalogOptionSearch(group: CatalogGroup, input: CatalogSearch
             isDeleted: false,
             ...(input.includeInactive ? {} : { isActive: true }),
             taxonomyId: input.taxonomyId,
+            isCombo: input.isCombo,
             filter: search || undefined,
             skipCount: pageParam,
             maxResultCount: CATALOG_PAGE_SIZE,

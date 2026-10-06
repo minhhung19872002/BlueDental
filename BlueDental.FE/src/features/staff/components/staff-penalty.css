@@ -1,0 +1,120 @@
+/* Nhân viên → Chế tài. Tokens come from :root in src/styles/index.css. */
+
+.staff-tabs {
+  margin-bottom: 12px;
+}
+
+.staff-penalty-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-penalty-toolbar__search {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.staff-penalty-toolbar__range {
+  flex: 0 1 280px;
+}
+
+.staff-penalty-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.staff-penalty-filters__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.staff-penalty-total {
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+
+.staff-penalty-total strong {
+  color: var(--bd-red-dark);
+}
+
+.staff-penalty-table {
+  padding: 0;
+}
+
+.staff-penalty-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.staff-penalty-pill--draft {
+  background: var(--bd-info-pale);
+  color: var(--bd-info);
+}
+
+.staff-penalty-pill--approved {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.staff-penalty-pill--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red-dark);
+}
+
+.staff-penalty-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.staff-penalty-muted {
+  color: var(--bd-muted);
+}
+
+.staff-penalty-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.staff-penalty-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 16px;
+}
+
+.staff-penalty-form__wide {
+  grid-column: 1 / -1;
+}
+
+.staff-penalty-form .ant-picker {
+  width: 100%;
+}
+
+.staff-violation-types__add {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .staff-penalty-form,
+  .staff-violation-types__add {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-penalty-toolbar__range {
+    flex: 1 1 100%;
+  }
+}

@@ -3,7 +3,7 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { BRANCH_ONE, call, ENTRIES, TAXONOMIES } from "./fixtures/catalogApi";
 
 /**
- * R-737 (QA dòng 6): a patient who declared "Dị ứng thuốc kháng sinh" in
+ * R-744 (QA dòng 6): a patient who declared "Dị ứng thuốc kháng sinh" in
  * Tiểu sử bệnh is prescribed a medicine of the antibiotic group. The dialog
  * warns as soon as the medicine is picked and asks again on Lưu; "Không"
  * keeps the slip unsaved, "Vẫn lưu" saves it. A medicine of another group

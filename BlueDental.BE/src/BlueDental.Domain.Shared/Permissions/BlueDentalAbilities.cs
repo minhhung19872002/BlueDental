@@ -119,6 +119,7 @@ public static class BlueDentalAbilities
         public const string RolePermission = "rolePermission";
         public const string PatientMedicalRecord = "patientMedicalRecord";
         public const string Staff = "staff";
+        public const string StaffPenalty = "staffPenalty";
         public const string ToolCall = "toolCall";
         public const string ToolMessage = "toolMessage";
         public const string TreatmentConsultation = "treatmentConsultation";
@@ -216,6 +217,8 @@ public static class BlueDentalAbilities
         ["rolePermission"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["patientMedicalRecord"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],
         ["staff"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
+        // BlueDental-local: Chế tài nhân viên has no counterpart on the reference.
+        ["staffPenalty"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Approve],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],

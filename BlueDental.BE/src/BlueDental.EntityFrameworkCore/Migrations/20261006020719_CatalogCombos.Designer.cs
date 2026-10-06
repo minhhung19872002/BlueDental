@@ -13,8 +13,8 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     [DbContext(typeof(BlueDentalDbContext))]
-    [Migration("20261006035206_ServiceCombo")]
-    partial class ServiceCombo
+    [Migration("20261006020719_CatalogCombos")]
+    partial class CatalogCombos
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -550,7 +550,7 @@ namespace BlueDental.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("UnitAmount")
+                    b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
@@ -620,6 +620,11 @@ namespace BlueDental.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCombo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -717,9 +722,6 @@ namespace BlueDental.Migrations
 
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("numeric(18,2)");
-
-                    b.Property<short>("Kind")
-                        .HasColumnType("smallint");
 
                     b.PrimitiveCollection<Guid[]>("LaboSupplierIds")
                         .IsRequired()

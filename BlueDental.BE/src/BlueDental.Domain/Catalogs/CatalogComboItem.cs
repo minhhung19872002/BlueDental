@@ -5,61 +5,68 @@ using Volo.Abp.Domain.Entities;
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// One row of "Thành phần combo" — a single service of the same branch, how
-/// many of it the combo holds, and what one of them costs inside the combo.
-/// BA request 2026-10-06, not observed on the reference.
+/// One "Thành phần combo" row of a combo: a single service of the same
+/// catalog, how many of it the combo holds, and what one of it costs inside
+/// the combo. Specified in review P0510 ("Thêm dịch vụ" → Loại: Combo).
+///
+/// The unit price is the combo's own — "sửa tiền không được ảnh hưởng tới
+/// master data" — so the component's catalogue price is never touched; the
+/// list reads that price live as "Giá lẻ".
 /// </summary>
 public class CatalogComboItem : Entity<Guid>
 {
     /// <summary>The combo this row belongs to.</summary>
     public Guid CatalogEntryId { get; private set; }
 
-    /// <summary>The single service, itself an entry of the dịch vụ catalog.</summary>
+    /// <summary>The single service the row puts in the combo.</summary>
     public Guid ComponentEntryId { get; private set; }
 
-    /// <summary>Số lượng.</summary>
     public int Quantity { get; private set; }
 
-    /// <summary>
-    /// "Thành tiền" — the price of <b>one</b> unit inside the combo (the combo
-    /// price is Σ unit amount × quantity). It starts as the service's own price
-    /// and the user may overwrite it; it lives here, so editing it never touches
-    /// the service in master data, and a later change of that price does not
-    /// reach into the combo.
-    /// </summary>
-    public decimal UnitAmount { get; private set; }
+    /// <summary>"Thành tiền" of the row — the price of one unit inside the combo.</summary>
+    public decimal UnitPrice { get; private set; }
 
     public int SortOrder { get; private set; }
 
+    /// <summary>"Giá combo" of the row: one unit's combo price times the quantity.</summary>
+    public decimal LineTotal => UnitPrice * Quantity;
+
     protected CatalogComboItem() { }
 
-    internal CatalogComboItem(
-        Guid id, Guid catalogEntryId, Guid componentEntryId, int quantity, decimal unitAmount, int sortOrder) : base(id)
+    public CatalogComboItem(
+        Guid id,
+        Guid catalogEntryId,
+        Guid componentEntryId,
+        int quantity,
+        decimal unitPrice,
+        int sortOrder)
+        : base(id)
     {
+        if (componentEntryId == Guid.Empty)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboItem,
+                "A combo row has to name a service.");
+        }
+
         if (quantity < 1)
         {
             throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.InvalidComboLine,
-                "A combo row holds at least one of its service.");
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboItem,
+                "A combo row holds at least one unit.");
         }
 
-        if (unitAmount < 0m)
+        if (unitPrice < 0m)
         {
             throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.InvalidComboLine,
-                "A combo row cannot be worth less than nothing.");
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboItem,
+                "A combo row cannot be priced below zero.");
         }
 
         CatalogEntryId = catalogEntryId;
         ComponentEntryId = componentEntryId;
         Quantity = quantity;
-        UnitAmount = unitAmount;
+        UnitPrice = unitPrice;
         SortOrder = sortOrder;
     }
-
-    /// <summary>Quantity × unit amount — this row's share of the combo price.</summary>
-    public decimal LineTotal => Quantity * UnitAmount;
 }
-
-/// <summary>What the dialog sends for one combo row, with the service already loaded.</summary>
-public sealed record ComboComponent(CatalogEntry Service, int Quantity, decimal UnitAmount);

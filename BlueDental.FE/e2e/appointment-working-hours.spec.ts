@@ -4,7 +4,7 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
 
 /**
  * Feature: Lịch hẹn — no booking outside the dentist's working hours (QA row 3,
- * R-735). BA: "Ngoài giờ làm việc khóa luôn, không cho book" — the server
+ * R-742). BA: "Ngoài giờ làm việc khóa luôn, không cho book" — the server
  * refuses, there is no override.
  *
  * The hours are the dentist's shifts in Lịch làm việc for that day, 08:00-12:00

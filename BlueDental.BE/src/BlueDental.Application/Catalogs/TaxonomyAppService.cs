@@ -95,6 +95,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         var clinicBranchId = await _branchAccess.ResolveWriteTargetAsync(
             input.ClinicBranchId,
             _branchResolver.GetRequiredClinicBranchId());
+        await EnsureNameFreeAsync(clinicBranchId, input.Group, input.Name, exceptId: null);
         var taxonomy = Taxonomy.Create(
             GuidGenerator.Create(),
             clinicBranchId,
@@ -116,6 +117,13 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     {
         var taxonomy = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
+
+        // Only a rename is checked: a group that already shared its name before
+        // the rule existed can still have its colour or priority changed.
+        if (!CatalogNames.Same(taxonomy.Name, input.Name))
+        {
+            await EnsureNameFreeAsync(taxonomy.ClinicBranchId, taxonomy.Group, input.Name, taxonomy.Id);
+        }
 
         taxonomy.Rename(input.Name, input.Alias);
         taxonomy.Recolor(input.Color);
@@ -198,6 +206,21 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         }
 
         await _repository.UpdateManyAsync(groups, autoSave: true);
+    }
+
+    /// <summary>
+    /// One name per group within a catalog and branch — the key the Excel import
+    /// already finds groups by. The name is compared in memory because "the same
+    /// name" ignores case and stray whitespace (<see cref="CatalogNames"/>).
+    /// </summary>
+    private async Task EnsureNameFreeAsync(Guid clinicBranchId, string group, string name, Guid? exceptId)
+    {
+        var query = await _repository.GetQueryableAsync();
+        var taken = await AsyncExecuter.ToListAsync(query
+            .Where(t => t.ClinicBranchId == clinicBranchId && t.Group == group && t.Id != exceptId)
+            .Select(t => t.Name));
+
+        CatalogNames.EnsureFree(name, taken, BlueDentalDomainErrorCodes.Catalogs.DuplicateTaxonomyName);
     }
 
     private async Task<Dictionary<Guid, int>> CountEntriesAsync(IReadOnlyCollection<Guid> taxonomyIds)

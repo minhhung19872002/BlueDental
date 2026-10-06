@@ -67,7 +67,9 @@ public class Taxonomy : FullAuditedAggregateRoot<Guid>
             Id = id,
             ClinicBranchId = clinicBranchId,
             Group = group,
-            Name = name,
+            // Stored without the spaces around it, so two names that only
+            // differ there are seen as the same name (bug list 2026-10-06).
+            Name = name.Trim(),
             Alias = alias,
             Color = color,
             Description = description,
@@ -82,7 +84,7 @@ public class Taxonomy : FullAuditedAggregateRoot<Guid>
         GuardNotSystem();
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
-        Name = name;
+        Name = name.Trim();
         Alias = alias ?? Alias;
         return this;
     }

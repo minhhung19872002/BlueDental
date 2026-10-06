@@ -459,6 +459,12 @@ internal static class PermissionTreeBuilder
             Leaf("staff.update", "BE:Common:EditVerb"),
             Leaf("staff.delete", "BE:Common:Delete"),
             Leaf("staff.export", "BE:Perm:Export")),
+        Group("staffPenalty", "BE:Perm:StaffPenalty",
+            Leaf("staffPenalty.read", "Xem"),
+            Leaf("staffPenalty.create", "BE:Common:Add"),
+            Leaf("staffPenalty.update", "BE:Common:EditVerb"),
+            Leaf("staffPenalty.delete", "BE:Common:Delete"),
+            Leaf("staffPenalty.approve", "BE:Perm:ApproveStaffPenalty")),
 
         Group("tools-group", "BE:Perm:Tools",
             Group("toolCall", "BE:Perm:VoiceCall",

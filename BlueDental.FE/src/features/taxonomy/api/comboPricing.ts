@@ -1,19 +1,28 @@
-import { TAX_PERCENT, roundToCents } from "./servicePricing";
+import { taxPercentOf } from "./servicePricing";
 import type { ServiceTaxRate } from "./taxonomyApi";
 
-/** What the combo view needs of one "Thành phần combo" row. */
-export interface ComboPricingRow {
+/** One "Thành phần combo" row as the dialog holds it. */
+export interface ComboRowDraft {
+  componentEntryId: string;
+  name: string;
+  /** "Đơn giá" — the service's own catalogue price, read-only here. */
+  retailPrice: number;
   quantity: number;
-  /** "Đơn giá" — the service's own price in master data. */
+  /** "Thành tiền" — one unit's price inside the combo, editable. */
   unitPrice: number;
-  /** "Thành tiền" — the price of one unit inside the combo. */
-  unitAmount: number;
+}
+
+export interface ComboPricingInput {
+  rows: ComboRowDraft[];
+  taxRate: ServiceTaxRate;
+  /** "Sau thuế": the combo price already carries VAT. */
+  priceIncludesTax: boolean;
 }
 
 export interface ComboPricing {
-  /** "Tổng giá lẻ" — Σ đơn giá × SL. */
+  /** "Tổng giá lẻ" — Σ đơn giá × số lượng. */
   retailTotal: number;
-  /** "Giá combo" — the price the combo is sold at, as typed (it starts at {@link comboRowsTotal}). */
+  /** "Giá combo" — Σ thành tiền × số lượng. */
   comboPrice: number;
   /** "Tiền thuế". */
   taxAmount: number;
@@ -21,55 +30,30 @@ export interface ComboPricing {
   amountCollected: number;
   /** "Khách tiết kiệm" — never below zero. */
   savings: number;
-  /** The saving as a share of Tổng giá lẻ, 0–100. */
+  /** The same saving as a whole percentage of Tổng giá lẻ. */
   savingsPercent: number;
 }
 
-const sum = (rows: ComboPricingRow[], pick: (row: ComboPricingRow) => number) =>
-  rows.reduce((total, row) => total + pick(row) * row.quantity, 0);
-
 /**
- * Giá combo as the formula gives it: Σ thành tiền × SL. The dialog fills the
- * field with it whenever the rows change; the user may then type over it
- * (BA 2026-10-06), and the typed figure is what gets saved.
- */
-export function comboRowsTotal(rows: ComboPricingRow[]): number {
-  return roundToCents(sum(rows, (row) => row.unitAmount));
-}
-
-/**
- * The combo view's figures for the price it is sold at, as the BA wrote them
- * (2026-10-06), mirroring
- * `CatalogServiceConfig.TaxAmount` / `AmountCollected` for a combo:
+ * The combo dialog's figures, exactly as review P0510 writes them:
  *
- * - Trước thuế: Tiền thuế = Giá combo × r;            Thực thu = Giá combo + Tiền thuế
- * - Sau thuế:   Tiền thuế = Giá combo × r ÷ (1 + r);  Thực thu = Giá combo − Tiền thuế
+ * - Tổng giá lẻ = Σ đơn giá × số lượng; Giá combo = Σ thành tiền × số lượng.
+ * - Tiền thuế: "Trước thuế" → Giá combo × % thuế; "Sau thuế" → Giá combo ×
+ *   % thuế ÷ (1 + % thuế). KCT, KKKNT and 0% give 0 đ.
+ * - Thực thu: "Trước thuế" → Giá combo + Tiền thuế; "Sau thuế" → Giá combo −
+ *   Tiền thuế.
  *
- * r is 0 for KCT, KKKNT and 0%. Two decimals like the API.
+ * The "Sau thuế" Thực thu is the review's own formula; it is recorded in
+ * docs/clone/unknowns.md because it reads as the price without VAT.
  */
-export function computeComboPricing(
-  rows: ComboPricingRow[],
-  price: number,
-  taxRate: ServiceTaxRate,
-  priceIncludesTax: boolean,
-): ComboPricing {
-  const retailTotal = roundToCents(sum(rows, (row) => row.unitPrice));
-  const comboPrice = roundToCents(Math.max(price, 0));
-  const rate = TAX_PERCENT[taxRate] / 100;
-  const taxAmount = roundToCents(
-    priceIncludesTax ? (comboPrice * rate) / (1 + rate) : comboPrice * rate,
-  );
-  const amountCollected = roundToCents(
-    priceIncludesTax ? comboPrice - taxAmount : comboPrice + taxAmount,
-  );
+export function computeComboPricing({ rows, taxRate, priceIncludesTax }: ComboPricingInput): ComboPricing {
+  const retailTotal = rows.reduce((sum, row) => sum + row.retailPrice * row.quantity, 0);
+  const comboPrice = rows.reduce((sum, row) => sum + row.unitPrice * row.quantity, 0);
+  const rate = taxPercentOf(taxRate) / 100;
+  const taxAmount = Math.round(priceIncludesTax ? (comboPrice * rate) / (1 + rate) : comboPrice * rate);
+  const amountCollected = priceIncludesTax ? comboPrice - taxAmount : comboPrice + taxAmount;
   const savings = Math.max(retailTotal - comboPrice, 0);
+  const savingsPercent = retailTotal > 0 ? Math.round((savings / retailTotal) * 100) : 0;
 
-  return {
-    retailTotal,
-    comboPrice,
-    taxAmount,
-    amountCollected,
-    savings,
-    savingsPercent: retailTotal > 0 ? (savings / retailTotal) * 100 : 0,
-  };
+  return { retailTotal, comboPrice, taxAmount, amountCollected, savings, savingsPercent };
 }

@@ -693,6 +693,33 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.ClinicBranchId);
         });
 
+        builder.Entity<Staff.StaffViolationType>(entity =>
+        {
+            entity.ToTable("bd_staff_violation_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(Staff.StaffViolationType.MaxNameLength).IsRequired();
+            entity.Property(x => x.DefaultFineAmount).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        builder.Entity<Staff.StaffPenalty>(entity =>
+        {
+            entity.ToTable("bd_staff_penalties");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.FineAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Description).HasMaxLength(Staff.StaffPenalty.MaxDescriptionLength);
+            entity.Property(x => x.CancelReason).HasMaxLength(Staff.StaffPenalty.MaxCancelReasonLength);
+            entity.HasOne<Staff.StaffViolationType>()
+                .WithMany()
+                .HasForeignKey(x => x.ViolationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            // The list is always one branch, newest violation first.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ViolationDate });
+            entity.HasIndex(x => x.StaffId);
+        });
+
         builder.Entity<LaboMaterial>(entity =>
         {
             entity.ToTable("bd_labo_materials");
@@ -1033,6 +1060,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.PrescriptionLines).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+            entity.Property(x => x.IsCombo).HasDefaultValue(false);
             entity.HasMany(x => x.ComboItems)
                 .WithOne()
                 .HasForeignKey(x => x.CatalogEntryId)
@@ -1047,7 +1075,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
         {
             entity.ToTable("bd_catalog_service_configs");
             entity.ConfigureByConvention();
-            entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.TaxRate).HasConversion<short>();
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
             entity.PrimitiveCollection(x => x.LaboSupplierIds).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -1076,6 +1103,18 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.CatalogEntryId).IsUnique();
         });
 
+        // Thanh phan combo
+        builder.Entity<CatalogComboItem>(entity =>
+        {
+            entity.ToTable("bd_catalog_combo_items");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.LineTotal);
+            entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
+            // "Which combos hold this service" — the suggestion in Chọn Dịch Vụ.
+            entity.HasIndex(x => x.ComponentEntryId);
+        });
+
         builder.Entity<PrescriptionTemplateLine>(entity =>
         {
             entity.ToTable("bd_prescription_template_lines");
@@ -1085,19 +1124,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.OtherUsage).HasMaxLength(200);
             entity.Ignore(x => x.Quantity);
             entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
-        });
-
-        // Thanh phan combo. The component is another entry of the same catalog,
-        // held as a bare id (like a prescription line's medicine) so deleting
-        // or editing that service never cascades into the combo.
-        builder.Entity<CatalogComboItem>(entity =>
-        {
-            entity.ToTable("bd_catalog_combo_items");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.UnitAmount).HasColumnType("numeric(18,2)");
-            entity.Ignore(x => x.LineTotal);
-            entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
-            entity.HasIndex(x => x.ComponentEntryId);
         });
 
         // Phan cong nhan vien theo chi nhanh

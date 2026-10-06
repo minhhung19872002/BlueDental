@@ -894,6 +894,17 @@ public static class BlueDentalAbilityPermissions
         public const string Update = "BlueDental.queue.update";
     }
 
+    /// <summary>Subject <c>staffPenalty</c> — Chế tài nhân viên (BlueDental-local).</summary>
+    public static class StaffPenalty
+    {
+        public const string Subject = "staffPenalty";
+        public const string Read = "BlueDental.staffPenalty.read";
+        public const string Create = "BlueDental.staffPenalty.create";
+        public const string Update = "BlueDental.staffPenalty.update";
+        public const string Delete = "BlueDental.staffPenalty.delete";
+        public const string Approve = "BlueDental.staffPenalty.approve";
+    }
+
     /// <summary>Subject <c>voucher</c>.</summary>
     public static class Voucher
     {

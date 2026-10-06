@@ -17,9 +17,6 @@ public class CatalogServiceConfig : Entity<Guid>
 {
     public Guid CatalogEntryId { get; private set; }
 
-    /// <summary>"Loại" — chosen on create and never changed afterwards.</summary>
-    public ServiceKind Kind { get; private set; }
-
     public ServiceTaxRate TaxRate { get; private set; }
 
     /// <summary>The "BE:Field:BeforeTax" / "BE:Field:AfterTax" switch over the price that was typed.</summary>
@@ -55,10 +52,9 @@ public class CatalogServiceConfig : Entity<Guid>
 
     protected CatalogServiceConfig() { }
 
-    public CatalogServiceConfig(Guid id, Guid catalogEntryId, ServiceKind kind = ServiceKind.Single) : base(id)
+    public CatalogServiceConfig(Guid id, Guid catalogEntryId) : base(id)
     {
         CatalogEntryId = catalogEntryId;
-        Kind = kind;
     }
 
     public void Update(
@@ -97,10 +93,8 @@ public class CatalogServiceConfig : Entity<Guid>
 
         TaxRate = taxRate;
         PriceIncludesTax = priceIncludesTax;
-        // A combo has no "Giảm giá" — its price comes from the component rows —
-        // so whatever was sent, it is saved without a discount.
-        DiscountIsPercent = Kind != ServiceKind.Combo && discountIsPercent;
-        DiscountValue = Kind == ServiceKind.Combo ? 0m : discountValue;
+        DiscountIsPercent = discountIsPercent;
+        DiscountValue = discountValue;
         RequireImage = requireImage;
         DeductDoctorOnWarranty = deductDoctorOnWarranty;
         SeparateRevenue = separateRevenue;
@@ -140,27 +134,7 @@ public class CatalogServiceConfig : Entity<Guid>
     {
         var net = NetOfDiscount(price);
 
-        // BA 2026-10-06, combo only: under "Sau thuế" the box shows the combo
-        // price with "Tiền thuế" taken off, not the price itself.
-        if (Kind == ServiceKind.Combo && PriceIncludesTax)
-        {
-            return Round(net - TaxAmount(price));
-        }
-
         return Round(PriceIncludesTax ? net : net * TaxFactor);
-    }
-
-    /// <summary>
-    /// "Tiền thuế" (BA 2026-10-06): the net × rate under "Trước thuế", the VAT
-    /// already inside the net — net × rate ÷ (1 + rate) — under "Sau thuế".
-    /// Zero for 0 %, KCT and KKKNT.
-    /// </summary>
-    public decimal TaxAmount(decimal price)
-    {
-        var net = NetOfDiscount(price);
-        var rate = TaxRate.Percent() / 100m;
-
-        return Round(PriceIncludesTax ? net * rate / (1m + rate) : net * rate);
     }
 
     /// <summary>The price with the discount taken off, never below zero.</summary>

@@ -1,13 +1,15 @@
 import { createContext, useContext, useMemo, type HTMLAttributes } from "react";
-import { Button, Tag, Tooltip } from "antd";
-import { DeleteOutlined, EditOutlined, HolderOutlined } from "@ant-design/icons";
+import { Button, Tooltip } from "antd";
+import { CopyOutlined, DeleteOutlined, EditOutlined, HolderOutlined } from "@ant-design/icons";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
-import { SERVICE_KIND, type CatalogEntryDto } from "../api/taxonomyApi";
+import type { CatalogEntryDto } from "../api/taxonomyApi";
 import { DataTable } from "@/components/DataTable";
 import { LetterAvatar } from "@/components/LetterAvatar";
 import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
 import { t } from "@/lib/i18n";
 import { formatDateTime, formatMoneyUnit } from "@/utils/format";
+import { ComboExpandedRow, ComboNameCell, ComboPriceCell } from "./ComboEntryParts";
 
 interface Props {
   entries: CatalogEntryDto[];
@@ -21,6 +23,8 @@ interface Props {
   canReorder: boolean;
   onEdit?: (entry: CatalogEntryDto) => void;
   onDelete?: (entry: CatalogEntryDto) => void;
+  /** "Sao chép" — offered on combo rows only. */
+  onCopy?: (entry: CatalogEntryDto) => void;
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
   pagination: NonNullable<Parameters<typeof DataTable>[0]["pagination"]>;
 }
@@ -75,6 +79,7 @@ export function CatalogEntryTable({
   canReorder,
   onEdit,
   onDelete,
+  onCopy,
   onReorder,
   pagination,
 }: Props) {
@@ -120,15 +125,12 @@ export function CatalogEntryTable({
       {
         key: "name",
         title: entityLabel,
-        render: (_, entry) => (
+        render: (_, entry) => entry.isCombo ? <ComboNameCell entry={entry} /> : (
           <div className="bd-cat-inline3">
             <LetterAvatar name={entry.name} />
             <div className="bd-min0">
               <p className={entry.isDeleted ? "bd-cat-name bd-cat-name--deleted" : "bd-cat-name"}>
                 {entry.name}
-                {entry.serviceConfig?.kind === SERVICE_KIND.Combo && (
-                  <Tag className="bd-combo-tag bd-combo-tag--table">{t("Taxonomy:Combo:Tag")}</Tag>
-                )}
               </p>
               {entry.code && <p className="bd-cat-subtle">{entry.code}</p>}
             </div>
@@ -157,7 +159,7 @@ export function CatalogEntryTable({
         title: t("Taxonomy:Table:Price"),
         width: 200,
         align: "right",
-        render: (_, entry) => (
+        render: (_, entry) => entry.isCombo ? <ComboPriceCell entry={entry} /> : (
           <span className="bd-cat-price">
             {entry.price == null ? "—" : formatMoneyUnit(entry.price)}
           </span>
@@ -179,11 +181,22 @@ export function CatalogEntryTable({
       ...((onEdit || onDelete) ? [{
         key: "actions" as const,
         title: t("Common:Actions"),
-        width: 100,
+        width: onCopy ? 128 : 100,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, entry: CatalogEntryDto) => (
           <div className="bd-cat-rowactions">
+            {onCopy && entry.isCombo && (
+              <Tooltip title={t("Taxonomy:Combo:Copy")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined />}
+                  aria-label={t("Taxonomy:Combo:CopyAriaLabel", entry.name)}
+                  onClick={() => onCopy(entry)}
+                />
+              </Tooltip>
+            )}
             {onEdit && (
               <Tooltip title={t("Common:Edit")}>
                 <Button
@@ -213,7 +226,10 @@ export function CatalogEntryTable({
     );
 
     return list;
-  }, [canReorder, drag, entityLabel, onDelete, onEdit, onReorder, priced, rows.length, showGroupColumn]);
+  }, [canReorder, drag, entityLabel, onCopy, onDelete, onEdit, onReorder, priced, rows.length, showGroupColumn]);
+
+  // Only combos open; a single service has nothing under it.
+  const hasCombos = rows.some((entry) => entry.isCombo);
 
   return (
     <DragContext.Provider value={drag}>
@@ -225,6 +241,27 @@ export function CatalogEntryTable({
         pagination={pagination}
         locale={{ emptyText: emptyText ?? t("Common:NoData") }}
         components={{ body: { row: DraggableRow } }}
+        expandable={
+          hasCombos
+            ? {
+                columnWidth: 36,
+                rowExpandable: (entry) => entry.isCombo,
+                expandedRowRender: (entry) => <ComboExpandedRow entry={entry} />,
+                expandIcon: ({ expanded, expandable, record, onExpand }) =>
+                  expandable ? (
+                    <button
+                      type="button"
+                      className="bd-combo-expand"
+                      aria-expanded={expanded}
+                      aria-label={t(expanded ? "Taxonomy:Combo:Collapse" : "Taxonomy:Combo:Expand", record.name)}
+                      onClick={(event) => onExpand(record, event)}
+                    >
+                      {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </button>
+                  ) : null,
+              }
+            : undefined
+        }
       />
     </DragContext.Provider>
   );

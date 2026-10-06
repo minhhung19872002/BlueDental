@@ -6,17 +6,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlueDental.Migrations
 {
     /// <inheritdoc />
-    public partial class ServiceCombo : Migration
+    public partial class CatalogCombos : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<short>(
-                name: "Kind",
-                table: "bd_catalog_service_configs",
-                type: "smallint",
+            migrationBuilder.AddColumn<bool>(
+                name: "IsCombo",
+                table: "bd_catalog_entries",
+                type: "boolean",
                 nullable: false,
-                defaultValue: (short)0);
+                defaultValue: false);
 
             migrationBuilder.CreateTable(
                 name: "bd_catalog_combo_items",
@@ -26,7 +26,7 @@ namespace BlueDental.Migrations
                     CatalogEntryId = table.Column<Guid>(type: "uuid", nullable: false),
                     ComponentEntryId = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
-                    UnitAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
@@ -58,8 +58,8 @@ namespace BlueDental.Migrations
                 name: "bd_catalog_combo_items");
 
             migrationBuilder.DropColumn(
-                name: "Kind",
-                table: "bd_catalog_service_configs");
+                name: "IsCombo",
+                table: "bd_catalog_entries");
         }
     }
 }

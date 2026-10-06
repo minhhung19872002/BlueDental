@@ -467,15 +467,6 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
 
         foreach (var (entry, draft, row) in plan.Existing)
         {
-            // The sheet has no component columns and a combo's price is worked
-            // out from them, so a row naming a combo cannot be written.
-            if (entry.IsCombo)
-            {
-                row.Action = CatalogImportRowAction.Error;
-                row.Errors.Add(L[BlueDentalDomainErrorCodes.Catalogs.ComboNotImportable]);
-                continue;
-            }
-
             plan.Lines.TryGetValue(ExcelCells.Key(draft.Name), out var lines);
             var merged = EntryMerge.Merge(entry, draft, lines);
 

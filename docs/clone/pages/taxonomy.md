@@ -790,63 +790,10 @@ Components: `ServiceCatalogSyncButton` → `ServiceCatalogSyncDialog`
 (+ `ServiceSyncResultTable`); `ServiceDialog` + `useServiceDialogSync`; logic chọn
 thuần trong `features/taxonomy/serviceCatalogSync.ts`.
 
-## Combo dịch vụ — BlueDental riêng, BA 2026-10-06
+## Combo dịch vụ — BlueDental riêng (2026-10-06, review P0510)
 
-Không có trên bản gốc; nguồn là mockup + ghi chú BA (2026-10-06). Chỉ thêm, không
-dựng lại dialog dịch vụ (§17).
+Tab Dịch vụ có thêm combo: công tắc "Loại" trong "Thêm dịch vụ", dialog combo riêng,
+bộ lọc "Tất cả / Dịch vụ lẻ / Combo", dòng combo mở ra thành phần và nút Sao chép.
+`ServiceDialog` chỉ đổi chỗ: bốn tab Cài đặt / Công đoạn / Bảo hành / Labo tách sang
+`ServiceSettingsTabs` (dùng chung với combo), hành vi giữ nguyên. Xem `docs/clone/pages/combo.md`.
 
-- Dialog "Thêm dịch vụ" có dòng đầu **Loại: [Dịch vụ lẻ | Combo]** + gợi ý "Gộp
-  nhiều dịch vụ / sản phẩm và bán với một giá". Dịch vụ lẻ: dialog y như cũ
-  (820px). Combo: rộng 1360px (màn nhỏ hơn thì co theo màn, 1366 → 1334px), cột trái là picker rộng 340px, nhãn tên "Tên combo", nút
-  "Huỷ" / "Lưu combo". **Loại khoá khi sửa** (server: `Catalogs:0026`).
-- Picker (cột trái): chỉ dịch vụ lẻ của chi nhánh, tìm trên server (debounce
-  300 ms, `kind=0`), chip "Dịch vụ (n)", cuộn tải thêm. Dịch vụ đã có trong combo:
-  thẻ nền xanh nhạt + viền xanh, badge "×n trong combo", nút + đổi thành ×
-  ("Bỏ … khỏi combo") — bấm là bỏ cả dòng; tăng/giảm SL chỉ ở bảng (R-733).
-- Bảng "Thành phần combo": THÀNH PHẦN (tag DV + tên) · SỐ LƯỢNG (−/+, tối thiểu
-  1) · ĐƠN GIÁ (giá master hiện tại, chỉ đọc) · THÀNH TIỀN (sửa được,
-  `CurrencyInput`, ≥ 0) · xoá. **Thành tiền = giá 1 đơn vị trong combo**: dòng
-  mới lấy bằng đơn giá; đổi SL không đổi thành tiền; lưu trên dòng combo
-  (`bd_catalog_combo_items.UnitAmount`), **không bao giờ ghi vào dịch vụ master**,
-  và đổi giá master sau đó không chạm vào combo (snapshot).
-- Chân bảng: **một dòng** "Tổng giá lẻ: X đ    Giá Combo: Y đ" — căn phải, kết
-  thúc ngay dưới cột Thành tiền; Giá Combo đậm, số màu xanh (R-733).
-- Riêng chế độ Combo, các ô phía trên cột phải (Tên combo, hai checkbox, Mô tả,
-  Mức độ ưu tiên) giãn thêm khoảng cách (`.bd-combo-main > …`); dialog Dịch vụ lẻ
-  giữ nguyên khoảng cách đã đo theo bản gốc.
-- Cấu hình giá & thuế (chỉ Combo): [Trước thuế | Sau thuế] · Tổng giá lẻ (khoá) ·
-  Giá combo * (**sửa được**) · Đơn vị (mặc định "Combo"); % thuế · Tiền thuế (chỉ đọc) ·
-  Thực thu (Đã gồm VAT) (khoá). Không có giảm giá — combo luôn lưu discount 0.
-
-| Ô | Công thức |
-|---|---|
-| Tổng giá lẻ | Σ đơn giá × SL |
-| Giá combo | Gợi ý = Σ thành tiền × SL, người dùng sửa đè được; lưu đúng số đã gõ (gửi rỗng → server lấy Σ) |
-| Tiền thuế (Trước thuế) | Giá combo × r |
-| Tiền thuế (Sau thuế) | Giá combo × r ÷ (1 + r) |
-| Thực thu (Trước thuế) | Giá combo + Tiền thuế |
-| Thực thu (Sau thuế) | Giá combo − Tiền thuế (đúng như BA ghi) |
-
-r = 0 với 0 %, KCT, KKKNT. Server làm tròn 2 số lẻ, giao diện hiện đồng chẵn.
-
-Giá combo sửa được (BA trả lời 2026-10-06: "Giá combo cho sửa nhé — tự tính theo
-công thức trước, rồi người dùng tự chỉnh sửa"): mỗi lần thêm / xoá dòng, đổi SL
-hay đổi thành tiền, ô Giá combo được điền lại bằng Σ thành tiền × SL; sau đó gõ
-đè thì giữ nguyên số đã gõ cho tới lần sửa dòng kế tiếp. Mở lại một combo đã lưu
-**không** tính lại — hiện giá đã lưu. Tiền thuế, Thực thu, banner tiết kiệm và
-"Giá Combo:" ở chân bảng đều theo giá đang có trong ô. Ô trống → "Vui lòng nhập
-giá combo", không gửi.
-Banner "Khách tiết kiệm X đ (x%) so với mua lẻ" = Tổng giá lẻ − Giá combo, ẩn
-khi ≤ 0. Nằm **ngay dưới Cấu hình giá & thuế** (theo mock BA), icon tag, chỉ số
-tiền in đậm (R-734).
-
-Quyết định (chủ dự án / BA 2026-10-06):
-
-- Thành phần: dịch vụ lẻ, cùng chi nhánh, không phải chính nó, không trùng
-  (`Catalogs:0028`); ≥ 1 dòng (`0027`); SL ≥ 1, thành tiền ≥ 0 (`0029`). Dịch vụ
-  đã xoá được **giữ** nếu đã có trong combo, nhưng không thêm mới (`0031`).
-- Bảng danh sách: dòng combo có tag "Combo" cạnh tên. Kế hoạch điều trị: combo
-  là **một dòng**, giá = `priceAfterDiscount` (= Giá combo khi Trước thuế,
-  Giá combo ÷ (1 + r) khi Sau thuế — bằng Thực thu Sau thuế của BA).
-- Nhập Excel: dòng trùng tên một combo bị báo lỗi (`0030`) — combo không nhập
-  được. Đồng bộ đối tác: combo gửi như một dịch vụ với Thực thu theo công thức BA.

@@ -2808,12 +2808,35 @@ UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau là 
 
 Action taken: NONE (ghi lại; không gọi gì lên production).
 
-## Lịch hẹn — chặn đặt lịch ngoài giờ làm của bác sĩ (2026-10-06, R-735, quyết định của BA)
+## Lịch hẹn — chặn đặt lịch ngoài giờ làm của bác sĩ (2026-10-06, R-742, quyết định của BA)
 
 UNKNOWN_REFERENCE_BEHAVIOR — bản gốc có chặn hay không chưa quan sát được (thử phải lưu một lịch hẹn trên production — cấm). Luật đang chạy là quyết định của BA ("ngoài giờ làm việc khóa luôn, không cho book"). Các điểm sau là giả định, BA chưa chốt:
 
 - Không có bản ghi Lịch làm việc ngày đó → ca mặc định 08:00-12:00, 13:00-17:00 cho mọi chi nhánh (chưa có cấu hình giờ mở cửa theo chi nhánh).
 - Lịch tạm chưa gán bác sĩ không bị kiểm; sửa lịch chỉ kiểm lại khi đổi giờ hoặc đổi bác sĩ.
 - Khách walk-in ở Tiếp nhận ngoài ca cũng bị chặn — phải mở ca ở Lịch làm việc trước.
+
+Action taken: NONE (ghi lại; không gọi gì lên production).
+
+## Combo dịch vụ (2026-10-06, review P0510 — không phải hành vi bản gốc)
+
+UNKNOWN_REFERENCE_BEHAVIOR — yêu cầu riêng của BA; các điểm sau là giả định, BA chưa chốt
+(chi tiết: `docs/clone/pages/combo.md`):
+
+- **Thực thu khi "Sau thuế"** làm theo đúng công thức review: Giá combo − Tiền thuế. Con số
+  này là giá **chưa** VAT, trái với nhãn "Thực thu (Đã gồm VAT)" — cần BA xác nhận. Dịch vụ
+  lẻ thì "Sau thuế" cho Thực thu = giá đã gồm VAT.
+- **Giá combo** chỉ là tổng các dòng (Σ Thành tiền × SL) nên ô hiển thị chỉ đọc; mockup vẽ
+  dấu `*` như ô nhập.
+- Thành phần **"SP" (sản phẩm, vd. Gel tẩy trắng)** trong mockup chưa làm — review ghi
+  "đổ danh sách dịch vụ đã tạo trong master data", nên combo chỉ gồm dịch vụ.
+- "Chọn combo" xoá **mọi** dịch vụ lẻ đã tick (đọc đúng chữ review), kể cả dịch vụ không
+  thuộc combo đó.
+- Combo vẫn hiện như một dịch vụ ở các ô chọn dịch vụ khác (kế hoạch điều trị, labo, …) —
+  chỉ "Chọn Dịch Vụ" tách hai tab.
+- Mã combo sinh bằng cùng bộ sinh mã dịch vụ (mockup ghi "CB-TT01").
+- Gợi ý chỉ xét tối đa 100 combo còn sống của chi nhánh.
+- Chip "Tất cả" đầu dải nhóm ở mockup "Chọn Dịch Vụ" không có chú thích đỏ → giữ như cũ
+  (không có chip "Tất cả").
 
 Action taken: NONE (ghi lại; không gọi gì lên production).

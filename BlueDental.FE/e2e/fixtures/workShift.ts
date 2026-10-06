@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { call } from "./timekeepingStaff";
 
 /**
- * A booking outside the dentist's shifts that day is refused (R-735): the
+ * A booking outside the dentist's shifts that day is refused (R-742): the
  * defaults are 08:00-12:00 and 13:00-17:00 on the clinic's clock (UTC+7).
  *
  * A spec that books "now + N minutes" runs at lunch or in the evening as

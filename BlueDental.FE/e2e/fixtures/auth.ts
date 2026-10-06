@@ -71,7 +71,7 @@ export function freeSlot(runSuffix: string, offsetDays: number): { day: string; 
   const date = new Date();
   date.setDate(date.getDate() + 400 + (seed % 300) + offsetDays);
   const day = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
-  // A booking outside the dentist's shifts (default 08-12, 13-17) is refused (R-735).
+  // A booking outside the dentist's shifts (default 08-12, 13-17) is refused (R-742).
   const hour = SHIFT_HOURS[Math.floor(seed / 300) % SHIFT_HOURS.length];
   return { day, time: `${String(hour).padStart(2, "0")}:00` };
 }

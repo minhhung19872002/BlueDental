@@ -1,5 +1,6 @@
-import { Input, Spin } from "antd";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import type { ReactNode } from "react";
+import { Spin } from "antd";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useChipScroller } from "@/hooks/useChipScroller";
 import type { TaxonomyGroupOption } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
@@ -8,13 +9,15 @@ import { splitChipRows } from "./splitChipRows";
 interface Props {
   groups: TaxonomyGroupOption[];
   activeGroupId: string | null;
-  search: string;
+  /** "Lựa chọn dịch vụ", its Dịch vụ lẻ / Combo switch and the search. */
+  head: ReactNode;
+  /** The combo suggestion, between the head and the strip. */
+  notice?: ReactNode;
   /** The first page of groups is still on its way. */
   loading: boolean;
   /** A later page is on its way — a spinner pill closes the last row. */
   loadingMore: boolean;
   onGroupChange: (groupId: string | null) => void;
-  onSearchChange: (search: string) => void;
   /** The strip scrolled near its end: time for the next page of groups. */
   onNearEnd: () => void;
 }
@@ -29,11 +32,11 @@ interface Props {
 export function AdviseGroupPicker({
   groups,
   activeGroupId,
-  search,
+  head,
+  notice,
   loading,
   loadingMore,
   onGroupChange,
-  onSearchChange,
   onNearEnd,
 }: Props) {
   const scroller = useChipScroller(groups.length, onNearEnd);
@@ -43,18 +46,8 @@ export function AdviseGroupPicker({
 
   return (
     <div className="am-picker">
-      <div className="am-picker-head">
-        <p>{label}</p>
-        <Input
-          className="am-picker-search"
-          allowClear
-          prefix={<Search size={16} />}
-          placeholder={t("Treatment:Advise:SearchService")}
-          aria-label={t("Treatment:Advise:SearchService")}
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
-      </div>
+      {head}
+      {notice}
 
       <div className="am-picker-strip">
         {loading && (

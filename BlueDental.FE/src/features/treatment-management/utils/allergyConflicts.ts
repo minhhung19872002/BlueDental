@@ -1,5 +1,5 @@
 /**
- * Allergy check for a prescription (R-737, QA dòng 6).
+ * Allergy check for a prescription (R-744, QA dòng 6).
  *
  * The catalogs carry no link between a Lịch sử bệnh entry and a Loại thuốc
  * group, so the check reads the names the clinic already types: an allergy

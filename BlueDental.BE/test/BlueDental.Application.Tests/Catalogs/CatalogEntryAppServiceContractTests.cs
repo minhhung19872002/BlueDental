@@ -46,6 +46,21 @@ public class CatalogEntryAppServiceContractTests
     }
 
     [Fact]
+    public void GetKindCountsAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("GetKindCountsAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void GetKindCountsAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("GetKindCountsAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+
+    [Fact]
     public void GetAsync_Should_Exist_On_Interface()
     {
         _interfaceType.GetMethod("GetAsync").ShouldNotBeNull();

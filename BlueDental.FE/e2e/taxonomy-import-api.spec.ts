@@ -342,6 +342,83 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     expect(again.sortOrder).toBe(7);
   });
 
+  test("updating a service from the sheet keeps the Labo suppliers it does not carry", async ({ page }) => {
+    await reset(page);
+    const id = runId();
+    const name = `Dịch vụ labo ${id}`;
+    const sheet = (price: number) =>
+      workbook([
+        {
+          name: "Dịch vụ",
+          rows: [["Nhóm phân loại *", "Tên dịch vụ *", "Giá"], [`Nhóm labo ${id}`, name, price]],
+        },
+      ]);
+
+    const created = await postImport(page, { group: "care_service", base64: sheet(100000) });
+    expect(created.body.createCount).toBe(1);
+    const [entry] = await listEntries(page, "care_service", name);
+
+    // The sheet has no Labo column, so the suppliers are set through the dialog's endpoint.
+    const suppliers = await getJson<{ items: { id: string }[] }>(
+      page,
+      `/api/v1/app/labo-suppliers?clinicBranchId=${BRANCH_ONE}&maxResultCount=1`,
+    );
+    const supplierId = suppliers.body.items?.[0]?.id;
+    expect(supplierId, "the demo branch should have a Labo supplier").toBeTruthy();
+    const put = await page.evaluate(
+      async ({ url, body }) => {
+        const xsrf = document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("XSRF-TOKEN="))
+          ?.substring("XSRF-TOKEN=".length);
+        const res = await fetch(url, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+          },
+          body: JSON.stringify(body),
+        });
+        return res.status;
+      },
+      {
+        url: `${ENTRIES}/${entry.id}`,
+        body: {
+          taxonomyId: entry.taxonomyId,
+          name,
+          price: 100000,
+          serviceConfig: {
+            taxRate: 0,
+            priceIncludesTax: false,
+            discountIsPercent: true,
+            discountValue: 0,
+            requireImage: false,
+            deductDoctorOnWarranty: false,
+            separateRevenue: false,
+            showToothOnInvoice: false,
+            revenueByStage: false,
+            requireStageSequence: false,
+            warrantyDays: 0,
+            laboSupplierIds: [supplierId],
+          },
+        },
+      },
+    );
+    expect(put).toBeLessThan(300);
+
+    const updated = await postImport(page, { group: "care_service", base64: sheet(120000) });
+    expect(updated.status).toBe(200);
+    expect(updated.body.updateCount).toBe(1);
+
+    const after = await getJson<{ price: number; serviceConfig: { laboSupplierIds: string[] } }>(
+      page,
+      `${ENTRIES}/${entry.id}`,
+    );
+    expect(after.body.price).toBe(120000);
+    expect(after.body.serviceConfig.laboSupplierIds).toEqual([supplierId]);
+  });
+
   test("one bad row rejects the whole file, named by row, and nothing is saved", async ({ page }) => {
     await reset(page);
     const id = runId();

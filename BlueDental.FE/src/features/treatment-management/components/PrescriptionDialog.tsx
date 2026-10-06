@@ -97,7 +97,7 @@ function linesOfTemplate(template: CatalogOption): PrescriptionLine[] {
  * ticking "Lưu đơn thuốc mẫu" asks for a name and files the lines back into
  * that catalog when the slip is saved. A medicine the patient declared an
  * allergy to (Tiểu sử bệnh) raises a warning over the lines and asks once
- * more on Lưu (R-737).
+ * more on Lưu (R-744).
  */
 export function PrescriptionDialog({ open, patient, prescription, onClose }: Props) {
   const navigate = useNavigate();

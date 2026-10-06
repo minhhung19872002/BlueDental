@@ -29,6 +29,12 @@ interface Props {
   onOpenGroups: (() => void) | null;
   /** Leads the action row — the Dịch vụ tab's "Đồng bộ danh mục dịch vụ", which owns its own state. */
   syncSlot?: ReactNode;
+  /** Sits right of the search — the Dịch vụ tab's "Tất cả / Dịch vụ lẻ / Combo". */
+  filterSlot?: ReactNode;
+  /** Overrides "Thêm {noun}" — Dịch vụ reads "Thêm dịch vụ / combo". */
+  createLabel?: string;
+  /** Overrides "Tìm theo tên {noun}...". */
+  searchPlaceholder?: string;
 }
 
 export function CatalogPanelHeader({
@@ -46,7 +52,12 @@ export function CatalogPanelHeader({
   importDisabled,
   onOpenGroups,
   syncSlot,
+  filterSlot,
+  createLabel,
+  searchPlaceholder,
 }: Props) {
+  const placeholder = searchPlaceholder ?? t("Taxonomy:Table:SearchPlaceholder", noun);
+
   return (
     <>
       {onOpenGroups && (
@@ -96,21 +107,24 @@ export function CatalogPanelHeader({
                 disabled={createDisabled}
                 onClick={onCreate}
               >
-                {t("Taxonomy:Table:AddBtn", noun)}
+                {createLabel ?? t("Taxonomy:Table:AddBtn", noun)}
               </Button>
             )}
           </div>
         </div>
 
-        <Input
-          className="bd-cat-search bd-mt2"
-          prefix={<SearchOutlined />}
-          placeholder={t("Taxonomy:Table:SearchPlaceholder", noun)}
-          aria-label={t("Taxonomy:Table:SearchPlaceholder", noun)}
-          value={keyword}
-          allowClear
-          onChange={(event) => onKeywordChange(event.target.value)}
-        />
+        <div className="bd-cat-searchrow bd-mt2">
+          <Input
+            className="bd-cat-search"
+            prefix={<SearchOutlined />}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            value={keyword}
+            allowClear
+            onChange={(event) => onKeywordChange(event.target.value)}
+          />
+          {filterSlot}
+        </div>
       </div>
     </>
   );

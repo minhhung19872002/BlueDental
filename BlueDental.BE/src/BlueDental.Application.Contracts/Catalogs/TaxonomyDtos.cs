@@ -96,9 +96,6 @@ public class GetTaxonomyListInput : PagedAndSortedResultRequestDto
 /// </summary>
 public class ServiceConfigDto
 {
-    /// <summary>"Loại" — Dịch vụ lẻ or Combo. Chosen on create; an update must send the stored kind.</summary>
-    public ServiceKind Kind { get; set; }
-
     public ServiceTaxRate TaxRate { get; set; }
     public bool PriceIncludesTax { get; set; }
     public bool DiscountIsPercent { get; set; } = true;
@@ -122,35 +119,6 @@ public class ServiceConfigDto
 
     /// <summary>Read side only — "BE:Field:AmountCollected".</summary>
     public decimal AmountCollected { get; set; }
-
-    /// <summary>Read side only — "Tiền thuế" (BA 2026-10-06).</summary>
-    public decimal TaxAmount { get; set; }
-}
-
-/// <summary>
-/// One row of "Thành phần combo" (BA 2026-10-06). The dialog sends the first
-/// three; the rest are filled in on the way out.
-/// </summary>
-public class ComboItemDto
-{
-    public Guid ComponentEntryId { get; set; }
-
-    public int Quantity { get; set; } = 1;
-
-    /// <summary>"Thành tiền" — the price of one unit inside the combo.</summary>
-    public decimal UnitAmount { get; set; }
-
-    /// <summary>Read side only — the service's name.</summary>
-    public string? Name { get; set; }
-
-    /// <summary>Read side only — the service's group, for the "group · price" line.</summary>
-    public string? TaxonomyName { get; set; }
-
-    /// <summary>Read side only — "Đơn giá", the service's own price in master data today.</summary>
-    public decimal UnitPrice { get; set; }
-
-    /// <summary>Read side only — the service has been deleted since it was added.</summary>
-    public bool IsDeleted { get; set; }
 }
 
 /// <summary>One row of the service dialog's "BE:Common:Stage" table.</summary>
@@ -209,6 +177,37 @@ public class PrescriptionTemplateLineDto
     public string? MedicineName { get; set; }
 }
 
+/// <summary>One "Thành phần combo" row of a combo (review P0510).</summary>
+public class CatalogComboItemDto
+{
+    public Guid Id { get; set; }
+
+    /// <summary>The single service the row puts in the combo.</summary>
+    public Guid ComponentEntryId { get; set; }
+
+    public int Quantity { get; set; } = 1;
+
+    /// <summary>"Thành tiền" — one unit's price inside the combo.</summary>
+    public decimal UnitPrice { get; set; }
+
+    /// <summary>Read side only — the component's name.</summary>
+    public string? ComponentName { get; set; }
+
+    /// <summary>Read side only — the component's code.</summary>
+    public string? ComponentCode { get; set; }
+
+    /// <summary>Read side only — "Giá lẻ", the component's own catalogue price, read live.</summary>
+    public decimal? ComponentPrice { get; set; }
+}
+
+/// <summary>How many entries the "Tất cả / Dịch vụ lẻ / Combo" filter of Danh mục holds.</summary>
+public class CatalogEntryKindCountsDto
+{
+    public int Total { get; set; }
+    public int Single { get; set; }
+    public int Combo { get; set; }
+}
+
 public class CatalogEntryDto : FullAuditedEntityDto<Guid>
 {
     public Guid ClinicBranchId { get; set; }
@@ -236,8 +235,16 @@ public class CatalogEntryDto : FullAuditedEntityDto<Guid>
     public List<ServiceStageDto> Stages { get; set; } = [];
     public List<PrescriptionTemplateLineDto> PrescriptionLines { get; set; } = [];
 
-    /// <summary>"Thành phần combo"; empty unless the service is a combo.</summary>
-    public List<ComboItemDto> ComboItems { get; set; } = [];
+    /// <summary>A combo of the dịch vụ catalog; its price is the sum of <see cref="ComboItems"/>.</summary>
+    public bool IsCombo { get; set; }
+
+    public List<CatalogComboItemDto> ComboItems { get; set; } = [];
+
+    /// <summary>
+    /// Read side, combos only — "Tổng giá lẻ": each component's catalogue price
+    /// times its quantity, summed. Null on a single service.
+    /// </summary>
+    public decimal? RetailPrice { get; set; }
 
     public string? TaxonomyName { get; set; }
 }
@@ -277,12 +284,11 @@ public class CreateCatalogEntryDto
     /// <summary>The whole medicine-line table of a prescription template.</summary>
     public List<PrescriptionTemplateLineDto>? PrescriptionLines { get; set; }
 
-    /// <summary>
-    /// The whole "Thành phần combo" table — required when the service config's
-    /// kind is Combo, refused otherwise. A combo is saved at <c>Price</c> as the
-    /// user typed it (BA 2026-10-06); left empty, it costs Σ unit amount × quantity.
-    /// </summary>
-    public List<ComboItemDto>? ComboItems { get; set; }
+    /// <summary>Creates a combo rather than a single service — dịch vụ catalog only.</summary>
+    public bool IsCombo { get; set; }
+
+    /// <summary>The whole "Thành phần combo" table; required when <see cref="IsCombo"/>.</summary>
+    public List<CatalogComboItemDto>? ComboItems { get; set; }
 }
 
 public class UpdateCatalogEntryDto
@@ -328,12 +334,8 @@ public class UpdateCatalogEntryDto
     /// <summary>The whole medicine-line table of a prescription template.</summary>
     public List<PrescriptionTemplateLineDto>? PrescriptionLines { get; set; }
 
-    /// <summary>
-    /// The whole "Thành phần combo" table — required when the service config's
-    /// kind is Combo, refused otherwise. A combo is saved at <c>Price</c> as the
-    /// user typed it (BA 2026-10-06); left empty, it costs Σ unit amount × quantity.
-    /// </summary>
-    public List<ComboItemDto>? ComboItems { get; set; }
+    /// <summary>The whole "Thành phần combo" table; null leaves a combo's rows as they are.</summary>
+    public List<CatalogComboItemDto>? ComboItems { get; set; }
 }
 
 public class GetCatalogEntryListInput : PagedAndSortedResultRequestDto
@@ -349,8 +351,13 @@ public class GetCatalogEntryListInput : PagedAndSortedResultRequestDto
     /// <c>isDeleted: false</c> — asks for <c>false</c>.
     /// </summary>
     public bool? IsDeleted { get; set; }
-    public string? Filter { get; set; }
 
-    /// <summary>Services only: just the single services, or just the combos. A service without a config counts as single.</summary>
-    public ServiceKind? Kind { get; set; }
+    /// <summary>
+    /// Narrows the dịch vụ catalog to its combos (true) or its single services
+    /// (false) — Danh mục's "Dịch vụ lẻ / Combo" filter, and "Chọn Dịch Vụ",
+    /// whose Dịch vụ lẻ list must not offer a combo as a service.
+    /// </summary>
+    public bool? IsCombo { get; set; }
+
+    public string? Filter { get; set; }
 }

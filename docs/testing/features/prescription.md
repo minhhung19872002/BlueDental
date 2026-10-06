@@ -85,12 +85,12 @@ scroller; neither is caused by the shared line editor.
   theme; both are global tokens, not feature choices.
 - Print / PDF is out of scope (owner: Sửa and Xóa only).
 
-## Allergy warning (R-737, 2026-10-06)
+## Allergy warning (R-744, 2026-10-06)
 
 Source: QA dòng 6 / BA — not reference behaviour (the reference was not observed
 doing this). Picking a medicine whose group (or name) matches an allergy ticked in
 the patient's Tiểu sử bệnh shows a warning over the lines; Lưu then asks
 "Không / Vẫn lưu". Warn, never block. Matching is by name (no catalog link
-exists) — see `03-regression-log.md` R-737 and
+exists) — see `03-regression-log.md` R-744 and
 `src/features/treatment-management/utils/allergyConflicts.ts`.
 Spec: `e2e/prescription-allergy.spec.ts` (2).

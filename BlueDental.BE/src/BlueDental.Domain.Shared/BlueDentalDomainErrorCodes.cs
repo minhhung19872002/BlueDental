@@ -44,12 +44,16 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidImportFile = "BlueDental:Catalogs:0023";
         public const string ImportNotSupported = "BlueDental:Catalogs:0024";
         public const string LaboSupplierNotInBranch = "BlueDental:Catalogs:0025";
-        public const string ServiceKindCannotChange = "BlueDental:Catalogs:0026";
-        public const string ComboWithoutComponents = "BlueDental:Catalogs:0027";
-        public const string InvalidComboComponent = "BlueDental:Catalogs:0028";
-        public const string InvalidComboLine = "BlueDental:Catalogs:0029";
-        public const string ComboNotImportable = "BlueDental:Catalogs:0030";
-        public const string ComboComponentDeleted = "BlueDental:Catalogs:0031";
+        public const string InvalidComboItem = "BlueDental:Catalogs:0026";
+        public const string ComboNeedsItems = "BlueDental:Catalogs:0027";
+        public const string ComboComponentNotAllowed = "BlueDental:Catalogs:0028";
+        public const string ComboNotSupported = "BlueDental:Catalogs:0029";
+        /// <summary>Another group of the same catalog, in the same branch, already has this name.</summary>
+        public const string DuplicateTaxonomyName = "BlueDental:Catalogs:0030";
+        /// <summary>Another service of the same group already has this name — a deleted one counts.</summary>
+        public const string DuplicateServiceName = "BlueDental:Catalogs:0031";
+        /// <summary>The same rule for every other catalog's entries.</summary>
+        public const string DuplicateEntryName = "BlueDental:Catalogs:0032";
     }
 
     public static class PatientManagement
@@ -333,6 +337,21 @@ public static class BlueDentalDomainErrorCodes
         public const string AvatarTooLarge = "BlueDental:Staff:0005";
         public const string AvatarNotFound = "BlueDental:Staff:0006";
         public const string DuplicateEmail = "BlueDental:Staff:0007";
+    }
+
+    public static class StaffPenalty
+    {
+        /// <summary>Only a draft can be edited, approved or deleted.</summary>
+        public const string NotDraft = "BlueDental:StaffPenalty:0001";
+        public const string AlreadyCancelled = "BlueDental:StaffPenalty:0002";
+        public const string FineAmountRequired = "BlueDental:StaffPenalty:0003";
+        public const string ViolationDateInFuture = "BlueDental:StaffPenalty:0004";
+        /// <summary>The staff member does not work at the record's branch.</summary>
+        public const string StaffNotInBranch = "BlueDental:StaffPenalty:0005";
+        /// <summary>The violation type belongs to another branch, or was deleted.</summary>
+        public const string InvalidViolationType = "BlueDental:StaffPenalty:0006";
+        public const string InvalidAmount = "BlueDental:StaffPenalty:0007";
+        public const string DuplicateViolationTypeName = "BlueDental:StaffPenalty:0008";
     }
 
     public static class Queue

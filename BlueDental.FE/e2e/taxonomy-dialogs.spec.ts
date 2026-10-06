@@ -112,7 +112,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     const supplierName = await ensureSupplier(page, branchId, id);
     await createGroup(page, `NHOM DV ${id}`);
 
-    await page.getByRole("button", { name: /Thêm dịch vụ$/ }).click();
+    await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
     let dialog = page.getByRole("dialog");
 
     // The reference dropped its "Mã dịch vụ" box and added a Labo tab.

@@ -68,11 +68,15 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     /// <summary>The medicine lines of a "BE:Common:RxTemplate".</summary>
     public IReadOnlyList<PrescriptionTemplateLine> PrescriptionLines => _prescriptionLines;
 
-    /// <summary>"Thành phần combo" — empty unless the service is a combo.</summary>
-    public IReadOnlyList<CatalogComboItem> ComboItems => _comboItems;
+    /// <summary>
+    /// A combo of the dịch vụ catalog (review P0510): several single services
+    /// sold at one price. Fixed when the entry is created — the dialog only
+    /// offers the "Dịch vụ lẻ" / "Combo" switch on a new entry.
+    /// </summary>
+    public bool IsCombo { get; private set; }
 
-    /// <summary>A service whose "Loại" is Combo.</summary>
-    public bool IsCombo => ServiceConfig?.Kind == ServiceKind.Combo;
+    /// <summary>"Thành phần combo" — empty unless <see cref="IsCombo"/>.</summary>
+    public IReadOnlyList<CatalogComboItem> ComboItems => _comboItems;
 
     protected CatalogEntry() { }
 
@@ -86,7 +90,8 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         decimal? price = null,
         string? content = null,
         string? description = null,
-        int sortOrder = 0)
+        int sortOrder = 0,
+        bool isCombo = false)
     {
         Check.NotNullOrWhiteSpace(group, nameof(group));
         Check.NotNullOrWhiteSpace(name, nameof(name));
@@ -101,26 +106,35 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         GuardPrice(group, price);
         GuardContent(group, content);
 
+        if (isCombo && group != TaxonomyGroups.CareService)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboNotSupported,
+                $"Catalog '{group}' has no combos; only the dịch vụ catalog does.");
+        }
+
         return new CatalogEntry
         {
             Id = id,
             ClinicBranchId = clinicBranchId,
             TaxonomyId = taxonomyId,
             Group = group,
-            Name = name,
+            // Stored without the spaces around it (bug list 2026-10-06).
+            Name = name.Trim(),
             Code = code,
             Price = price,
             Content = content,
             Description = description,
             IsActive = true,
-            SortOrder = sortOrder
+            SortOrder = sortOrder,
+            IsCombo = isCombo
         };
     }
 
     public CatalogEntry Rename(string name)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
-        Name = name;
+        Name = name.Trim();
         return this;
     }
 
@@ -130,8 +144,19 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Sets the listed price. A combo's price is the sum of its rows (see
+    /// <see cref="ReplaceComboItems"/>), so a price handed to a combo — by the
+    /// Excel importer matching it by name, say — is left unused rather than
+    /// letting the combo disagree with its own table.
+    /// </summary>
     public CatalogEntry ChangePrice(decimal? price)
     {
+        if (IsCombo)
+        {
+            return this;
+        }
+
         GuardPrice(Group, price);
         Price = price;
         return this;
@@ -160,96 +185,12 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// The service half of the entry. Created on first use so the row only
-    /// exists for the catalog that has one. Its "Loại" is fixed from then on.
+    /// exists for the catalog that has one.
     /// </summary>
-    public CatalogServiceConfig EnsureServiceConfig(Guid id, ServiceKind kind = ServiceKind.Single)
+    public CatalogServiceConfig EnsureServiceConfig(Guid id)
     {
-        if (ServiceConfig != null && ServiceConfig.Kind != kind)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.ServiceKindCannotChange,
-                "A service cannot be turned into a combo, nor a combo into a single service.");
-        }
-
-        ServiceConfig ??= new CatalogServiceConfig(id, Id, kind);
+        ServiceConfig ??= new CatalogServiceConfig(id, Id);
         return ServiceConfig;
-    }
-
-    /// <summary>
-    /// Saves "Thành phần combo" as the dialog sends it (BA 2026-10-06). Every
-    /// component must be a single service of this branch; the services
-    /// themselves are only read. A deleted service may stay where it already
-    /// was, but cannot be added. The price is the one the user settled on —
-    /// see <see cref="PriceCombo"/>.
-    /// </summary>
-    public void ConfigureCombo(IReadOnlyList<ComboComponent> components, Func<Guid> newId, decimal? price)
-    {
-        if (!IsCombo || Group != TaxonomyGroups.CareService)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.InvalidComboComponent,
-                "Only a combo of the service catalog has components.");
-        }
-
-        if (components.Count == 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.ComboWithoutComponents,
-                "A combo needs at least one service.");
-        }
-
-        var seen = new HashSet<Guid>();
-        foreach (var component in components)
-        {
-            GuardComponent(component.Service, seen);
-        }
-
-        var rows = components
-            .Select((component, index) => new CatalogComboItem(
-                newId(), Id, component.Service.Id, component.Quantity, component.UnitAmount, index))
-            .ToList();
-
-        _comboItems.Clear();
-        _comboItems.AddRange(rows);
-        PriceCombo(price);
-    }
-
-    /// <summary>
-    /// Giá combo: the dialog fills it with Σ unit amount × quantity and the
-    /// user may then type over it (BA 2026-10-06), so a typed price is kept as
-    /// it is. Only a missing one falls back to the sum of the rows.
-    /// </summary>
-    public void PriceCombo(decimal? price)
-    {
-        if (!IsCombo)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.InvalidComboComponent,
-                "Only a combo is priced from its components.");
-        }
-
-        ChangePrice(price ?? _comboItems.Sum(row => row.LineTotal));
-    }
-
-    private void GuardComponent(CatalogEntry service, HashSet<Guid> seen)
-    {
-        if (service.Id == Id
-            || service.Group != TaxonomyGroups.CareService
-            || service.ClinicBranchId != ClinicBranchId
-            || service.IsCombo
-            || !seen.Add(service.Id))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.InvalidComboComponent,
-                "A combo is made of distinct single services of its own branch.");
-        }
-
-        if (service.IsDeleted && _comboItems.All(item => item.ComponentEntryId != service.Id))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.ComboComponentDeleted,
-                "A deleted service cannot be added to a combo.");
-        }
     }
 
     public CatalogMedicine EnsureMedicine(Guid id)
@@ -306,6 +247,56 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         {
             _stages.Add(stage);
         }
+    }
+
+    /// <summary>
+    /// Saves the "Thành phần combo" table as the dialog sends it, in its
+    /// order, and prices the combo from it: "Giá combo" is the sum of each
+    /// row's Thành tiền × số lượng (review P0510), so it is never typed and
+    /// never drifts from its rows.
+    ///
+    /// The caller checks that every component is a live single service of
+    /// this branch — that needs the repository; what the rows can say about
+    /// themselves is checked here.
+    /// </summary>
+    public void ReplaceComboItems(IEnumerable<CatalogComboRow> rows, Func<Guid> newId)
+    {
+        if (!IsCombo)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboNotSupported,
+                "Only a combo has combo components.");
+        }
+
+        var list = rows.ToList();
+        if (list.Count == 0)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboNeedsItems,
+                "A combo needs at least one service.");
+        }
+
+        if (list.Any(row => row.ComponentEntryId == Id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboComponentNotAllowed,
+                "A combo cannot hold itself.");
+        }
+
+        // The picker's "+" adds to a row's quantity, so a service named twice
+        // is a crafted payload rather than something the dialog can send.
+        if (list.Select(row => row.ComponentEntryId).Distinct().Count() != list.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboItem,
+                "A service can appear only once in a combo; raise its quantity instead.");
+        }
+
+        _comboItems.Clear();
+        _comboItems.AddRange(list.Select((row, index) =>
+            new CatalogComboItem(newId(), Id, row.ComponentEntryId, row.Quantity, row.UnitPrice, index)));
+
+        Price = _comboItems.Sum(item => item.LineTotal);
     }
 
     public void ReplacePrescriptionLines(IEnumerable<PrescriptionTemplateLine> lines)

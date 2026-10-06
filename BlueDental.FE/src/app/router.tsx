@@ -70,6 +70,12 @@ const StaffPage = lazy(() =>
   })),
 );
 
+const StaffPenaltyPage = lazy(() =>
+  import("@/features/staff/pages/StaffPenaltyPage").then((m) => ({
+    default: m.StaffPenaltyPage,
+  })),
+);
+
 const LaboPage = lazy(() =>
   import("@/features/labo/pages/LaboPage").then((m) => ({
     default: m.LaboPage,
@@ -332,6 +338,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="staff">
             <StaffPage />
+          </G>
+        ),
+      },
+      {
+        path: "staff/penalties",
+        element: (
+          <G k="staffPenalty">
+            <StaffPenaltyPage />
           </G>
         ),
       },

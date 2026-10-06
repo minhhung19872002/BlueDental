@@ -93,18 +93,3 @@ public enum ServiceStageValueType
     /// <summary>An amount in VNĐ.</summary>
     Amount = 1
 }
-
-/// <summary>
-/// "Loại" on the service dialog (BA request 2026-10-06, not observed on the
-/// reference). A combo bundles several single services and sells them at one
-/// price. The kind is chosen once, on create.
-/// </summary>
-public enum ServiceKind
-{
-    /// <summary>Dịch vụ lẻ.</summary>
-    Single = 0,
-
-    /// <summary>Combo.</summary>
-    Combo = 1
-}
-

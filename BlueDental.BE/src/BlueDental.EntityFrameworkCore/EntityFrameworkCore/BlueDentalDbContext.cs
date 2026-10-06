@@ -75,6 +75,7 @@ public class BlueDentalDbContext :
     public DbSet<CatalogServiceStage> CatalogServiceStages { get; set; }
     public DbSet<CatalogMedicine> CatalogMedicines { get; set; }
     public DbSet<PrescriptionTemplateLine> PrescriptionTemplateLines { get; set; }
+    public DbSet<CatalogComboItem> CatalogComboItems { get; set; }
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }
@@ -130,6 +131,10 @@ public class BlueDentalDbContext :
     public DbSet<LaboOrder> LaboOrders { get; set; }
     public DbSet<LaboSupplier> LaboSuppliers { get; set; }
     public DbSet<LaboMaterial> LaboMaterials { get; set; }
+
+    // Staff — Chế tài nhân viên
+    public DbSet<Staff.StaffPenalty> StaffPenalties { get; set; }
+    public DbSet<Staff.StaffViolationType> StaffViolationTypes { get; set; }
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }

@@ -1,11 +1,4 @@
-import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type QueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { notifyApiError } from "@/lib/notify";
 import { api } from "@/lib/axios";
 import { invalidateEntities } from "@/lib/queryEntities";
@@ -75,34 +68,7 @@ export { PRESCRIPTION_USAGE, type PrescriptionUsageFlag } from "@/types/prescrip
 /** Warranty choices the reference lists, plus its free "Tuỳ chỉnh … Ngày". */
 export const WARRANTY_PRESETS = [0, 30, 90, 180, 270, 365, 730] as const;
 
-/** Mirrors BlueDental.Catalogs.ServiceKind — "Loại: Dịch vụ lẻ | Combo" (BA 2026-10-06). */
-export const SERVICE_KIND = {
-  Single: 0,
-  Combo: 1,
-} as const;
-
-export type ServiceKind = (typeof SERVICE_KIND)[keyof typeof SERVICE_KIND];
-
-/** One row of "Thành phần combo". */
-export interface ComboItemDto {
-  componentEntryId: string;
-  quantity: number;
-  /** "Thành tiền" — the price of one unit inside the combo; never the service's own price. */
-  unitAmount: number;
-  /** Read side only — filled by the server. */
-  name?: string | null;
-  taxonomyName?: string | null;
-  /** "Đơn giá" — the service's price in master data today. */
-  unitPrice?: number;
-  /** The service was deleted after it was put in the combo. */
-  isDeleted?: boolean;
-}
-
-export type ComboItemInput = Pick<ComboItemDto, "componentEntryId" | "quantity" | "unitAmount">;
-
 export interface ServiceConfigDto {
-  /** Chosen on create and fixed afterwards. */
-  kind: ServiceKind;
   taxRate: ServiceTaxRate;
   priceIncludesTax: boolean;
   discountIsPercent: boolean;
@@ -120,11 +86,7 @@ export interface ServiceConfigDto {
   priceAfterDiscount: number;
   /** Computed by the server — "Thực thu từ khách (Đã gồm VAT)". */
   amountCollected: number;
-  /** Computed by the server — "Tiền thuế" of the combo view. */
-  taxAmount: number;
 }
-
-type ServiceConfigInput = Omit<ServiceConfigDto, "priceAfterDiscount" | "amountCollected" | "taxAmount">;
 
 /** Mirrors BlueDental.Catalogs.ServiceStageValueType — the %/VNĐ toggle on a stage. */
 export const SERVICE_STAGE_VALUE_TYPE = {
@@ -167,6 +129,31 @@ export interface PrescriptionTemplateLineDto {
   medicineName?: string | null;
 }
 
+/** One "Thành phần combo" row of a combo — BlueDental.Catalogs.CatalogComboItemDto. */
+export interface CatalogComboItemDto {
+  id?: string;
+  /** The single service the row puts in the combo. */
+  componentEntryId: string;
+  quantity: number;
+  /** "Thành tiền" — one unit's price inside the combo; the service's own price is untouched. */
+  unitPrice: number;
+  /** Read side only. */
+  componentName?: string | null;
+  componentCode?: string | null;
+  /** Read side only — "Giá lẻ", the service's catalogue price today. */
+  componentPrice?: number | null;
+}
+
+/** The counts on Danh mục's "Tất cả / Dịch vụ lẻ / Combo" switch. */
+export interface CatalogEntryKindCounts {
+  total: number;
+  single: number;
+  combo: number;
+}
+
+/** Which rows of the dịch vụ catalog the table lists. */
+export type ServiceKindFilter = "all" | "single" | "combo";
+
 export interface CatalogEntryDto {
   id: string;
   clinicBranchId: string;
@@ -191,12 +178,18 @@ export interface CatalogEntryDto {
   medicine: MedicineDto | null;
   stages: ServiceStageDto[];
   prescriptionLines: PrescriptionTemplateLineDto[];
-  /** Empty unless the service is a combo. */
-  comboItems: ComboItemDto[];
+  /** A combo of the dịch vụ catalog — its price is the sum of `comboItems`. */
+  isCombo: boolean;
+  comboItems: CatalogComboItemDto[];
+  /** Combos only — "Tổng giá lẻ" at today's catalogue prices. */
+  retailPrice: number | null;
   taxonomyName: string | null;
   lastModificationTime: string | null;
   creationTime: string;
 }
+
+/** What a combo row sends — the read-side names stay behind. */
+export type CatalogComboItemInput = Pick<CatalogComboItemDto, "componentEntryId" | "quantity" | "unitPrice">;
 
 export interface CreateTaxonomyInput {
   clinicBranchId: string;
@@ -229,12 +222,13 @@ export interface CreateCatalogEntryInput {
   note?: string | null;
   unit?: string | null;
   /** Sent by the service dialog only; omitted means "leave as it is". */
-  serviceConfig?: ServiceConfigInput;
+  serviceConfig?: Omit<ServiceConfigDto, "priceAfterDiscount" | "amountCollected">;
   medicine?: MedicineDto;
   stages?: ServiceStageDto[];
   prescriptionLines?: Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">[];
-  /** A combo's rows; the server prices the combo from them and ignores `price`. */
-  comboItems?: ComboItemInput[];
+  /** Creates a combo instead of a single service; its price comes from `comboItems`. */
+  isCombo?: boolean;
+  comboItems?: CatalogComboItemInput[];
 }
 
 export interface UpdateCatalogEntryInput {
@@ -252,12 +246,24 @@ export interface UpdateCatalogEntryInput {
   note?: string | null;
   unit?: string | null;
   /** Sent by the service dialog only; omitted means "leave as it is". */
-  serviceConfig?: ServiceConfigInput;
+  serviceConfig?: Omit<ServiceConfigDto, "priceAfterDiscount" | "amountCollected">;
   medicine?: MedicineDto;
   stages?: ServiceStageDto[];
   prescriptionLines?: Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">[];
-  /** Omitted keeps the stored rows; a combo's price follows its rows. */
-  comboItems?: ComboItemInput[];
+  /** A combo's whole table; omitted leaves it as it is. */
+  comboItems?: CatalogComboItemInput[];
+}
+
+/** The list's filters, shared by the entry list and the kind counts. */
+interface EntryListParams {
+  clinicBranchId?: string;
+  group?: string;
+  taxonomyId?: string;
+  filter?: string;
+  isCombo?: boolean;
+  isDeleted?: boolean;
+  skipCount?: number;
+  maxResultCount?: number;
 }
 
 const taxonomyApi = {
@@ -279,18 +285,14 @@ const taxonomyApi = {
   deleteGroup: (id: string): Promise<void> =>
     api.delete(`/v1/app/taxonomies/${id}`).then(() => undefined),
 
-  entries: (params: {
-    clinicBranchId?: string;
-    group?: string;
-    taxonomyId?: string;
-    filter?: string;
-    kind?: ServiceKind;
-    isDeleted?: boolean;
-    skipCount?: number;
-    maxResultCount?: number;
-  }): Promise<PagedResult<CatalogEntryDto>> =>
+  entries: (params: EntryListParams): Promise<PagedResult<CatalogEntryDto>> =>
     api
       .get<PagedResult<CatalogEntryDto>>("/v1/app/catalog-entries", { params })
+      .then((r) => r.data),
+
+  kindCounts: (params: EntryListParams): Promise<CatalogEntryKindCounts> =>
+    api
+      .get<CatalogEntryKindCounts>("/v1/app/catalog-entries/kind-counts", { params })
       .then((r) => r.data),
 
   createEntry: (input: CreateCatalogEntryInput): Promise<CatalogEntryDto> =>
@@ -337,8 +339,16 @@ export interface CatalogEntryQuery {
   scope: "group" | "catalog";
   taxonomyId?: string;
   filter?: string;
+  /** Dịch vụ only — "Dịch vụ lẻ" or "Combo"; unset lists both. */
+  isCombo?: boolean;
   skipCount: number;
   maxResultCount: number;
+}
+
+/** The switch's choice as the list endpoint's `isCombo`. */
+export function isComboParam(kind: ServiceKindFilter): boolean | undefined {
+  if (kind === "all") return undefined;
+  return kind === "combo";
 }
 
 export const taxonomyKeys = {
@@ -354,9 +364,14 @@ export const taxonomyKeys = {
       query.scope,
       query.taxonomyId ?? null,
       query.filter?.trim() ?? "",
+      query.isCombo ?? null,
       query.skipCount,
       query.maxResultCount,
     ] as const,
+  kindCounts: (branchId: string | undefined, group: string, taxonomyId: string | null, filter: string) =>
+    [...taxonomyKeys.all, "kind-counts", branchId ?? "all", group, taxonomyId, filter] as const,
+  components: (branchId: string | undefined, taxonomyId: string | null, filter: string) =>
+    [...taxonomyKeys.all, "combo-components", branchId ?? "all", taxonomyId, filter] as const,
 };
 
 /**
@@ -402,6 +417,7 @@ export function useCatalogEntries(
         group,
         taxonomyId: query.taxonomyId,
         filter: query.filter?.trim() || undefined,
+        isCombo: query.isCombo,
         skipCount: query.skipCount,
         maxResultCount: query.maxResultCount,
       }),
@@ -411,34 +427,60 @@ export function useCatalogEntries(
   });
 }
 
-const COMBO_PICKER_PAGE_SIZE = 20;
+/**
+ * The numbers on "Tất cả / Dịch vụ lẻ / Combo", counted by the server under
+ * the same group and search as the table — Dịch vụ only.
+ */
+export function useCatalogEntryKindCounts(
+  branchId: string | undefined,
+  group: string,
+  taxonomyId: string | null,
+  filter: string,
+  enabled: boolean,
+) {
+  const term = filter.trim();
+  return useQuery({
+    queryKey: taxonomyKeys.kindCounts(branchId, group, taxonomyId, term),
+    queryFn: () =>
+      taxonomyApi.kindCounts({
+        clinicBranchId: branchId,
+        group,
+        taxonomyId: taxonomyId ?? undefined,
+        filter: term || undefined,
+      }),
+    placeholderData: (previous) => previous,
+    enabled: enabled && Boolean(taxonomyId),
+  });
+}
+
+/** How many services the combo dialog's "Danh mục" panel lists at once; a search narrows them. */
+export const COMBO_COMPONENT_PAGE_SIZE = 100;
 
 /**
- * The combo dialog's left column: live single services of the branch, searched
- * on the server and grown a page at a time as the list is scrolled — a clinic's
- * catalog outgrows any one page, so filtering a prefetched slice would hide rows.
+ * The single services a combo can be built from — the combo dialog's
+ * "Danh mục" panel. Searched on the server like every other catalog list;
+ * combos and deleted rows are left out, as the server would refuse them.
  */
-export function useComboServiceSearch(branchId: string | undefined, search: string, enabled: boolean) {
-  const term = search.trim();
-
-  return useInfiniteQuery({
-    queryKey: [...taxonomyKeys.all, "combo-picker", branchId ?? "all", term] as const,
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
+export function useComboComponentOptions(
+  branchId: string | undefined,
+  taxonomyId: string | null,
+  filter: string,
+  enabled: boolean,
+) {
+  const term = filter.trim();
+  return useQuery({
+    queryKey: taxonomyKeys.components(branchId, taxonomyId, term),
+    queryFn: () =>
       taxonomyApi.entries({
         clinicBranchId: branchId,
         group: TAXONOMY_GROUP.CareService,
-        kind: SERVICE_KIND.Single,
-        isDeleted: false,
+        taxonomyId: taxonomyId ?? undefined,
         filter: term || undefined,
-        skipCount: pageParam,
-        maxResultCount: COMBO_PICKER_PAGE_SIZE,
+        isCombo: false,
+        isDeleted: false,
+        maxResultCount: COMBO_COMPONENT_PAGE_SIZE,
       }),
-    getNextPageParam: (last, pages) => {
-      const loaded = pages.reduce((total, page) => total + page.items.length, 0);
-      return loaded < last.totalCount ? loaded : undefined;
-    },
-    placeholderData: keepPreviousData,
+    placeholderData: (previous) => previous,
     enabled: enabled && Boolean(branchId),
   });
 }

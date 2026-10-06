@@ -27,6 +27,10 @@ public interface ITaxonomyAppService : IApplicationService
 public interface ICatalogEntryAppService : IApplicationService
 {
     Task<PagedResultDto<CatalogEntryDto>> GetListAsync(GetCatalogEntryListInput input);
+
+    /// <summary>The counts behind "Tất cả / Dịch vụ lẻ / Combo", under the same filters as the list.</summary>
+    Task<CatalogEntryKindCountsDto> GetKindCountsAsync(GetCatalogEntryListInput input);
+
     Task<CatalogEntryDto> GetAsync(Guid id);
     Task<CatalogEntryDto> CreateAsync(CreateCatalogEntryDto input);
     Task<CatalogEntryDto> UpdateAsync(Guid id, UpdateCatalogEntryDto input);

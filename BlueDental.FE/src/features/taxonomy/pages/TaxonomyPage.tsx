@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
+  isComboParam,
   useCatalogEntries,
+  useCatalogEntryKindCounts,
   useCreateTaxonomyGroup,
   useDeleteCatalogEntry,
   useDeleteTaxonomyGroup,
@@ -12,6 +14,7 @@ import {
   useReorderTaxonomyGroups,
   useTaxonomyGroups,
   type CatalogEntryDto,
+  type ServiceKindFilter as ServiceKind,
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { CatalogEntryTable } from "../components/CatalogEntryTable";
@@ -21,7 +24,8 @@ import { MedicineDialog } from "../components/MedicineDialog";
 import { PrescriptionTemplateDialog } from "../components/PrescriptionTemplateDialog";
 import { RichCatalogDialog } from "../components/RichCatalogDialog";
 import { ServiceCatalogSyncButton } from "../components/ServiceCatalogSyncButton";
-import { ServiceDialog } from "../components/ServiceDialog";
+import { ServiceEntryDialog } from "../components/ServiceEntryDialog";
+import { ServiceKindFilter } from "../components/ServiceKindFilter";
 import { CatalogPanelHeader } from "../components/CatalogPanelHeader";
 import { PatientTagPanel } from "../components/PatientTagPanel";
 import { SimpleCatalogDialog } from "../components/SimpleCatalogDialog";
@@ -82,10 +86,18 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   const { page, pageSize } = pagination;
   const [groupsOpen, setGroupsOpen] = useState(false);
 
-  const [entryModal, setEntryModal] = useState<{ open: boolean; entry: CatalogEntryDto | null }>({
+  const [entryModal, setEntryModal] = useState<{
+    open: boolean;
+    entry: CatalogEntryDto | null;
+    /** "Sao chép" on a combo row — a new combo starting from that one. */
+    copyOf?: CatalogEntryDto | null;
+  }>({
     open: false,
     entry: null,
   });
+  /** Dịch vụ only — "Tất cả / Dịch vụ lẻ / Combo" (review P0510). */
+  const isService = tab.dialog === "service";
+  const [serviceKind, setServiceKind] = useState<ServiceKind>("all");
   const [groupModal, setGroupModal] = useState<{ open: boolean; group: TaxonomyDto | null }>({
     open: false,
     group: null,
@@ -106,9 +118,17 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     scope: grouped ? "group" : "catalog",
     taxonomyId: grouped ? (selectedGroupId ?? undefined) : undefined,
     filter: debouncedKeyword,
+    isCombo: isService ? isComboParam(serviceKind) : undefined,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
+  const kindCounts = useCatalogEntryKindCounts(
+    branchFilter,
+    group,
+    selectedGroupId,
+    debouncedKeyword,
+    isService && grouped,
+  );
 
   const createGroup = useCreateTaxonomyGroup();
   const reorderGroupsMutation = useReorderTaxonomyGroups();
@@ -208,6 +228,11 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
 
   const changeKeyword = (value: string) => {
     setKeyword(value);
+    pagination.resetToFirstPage();
+  };
+
+  const changeServiceKind = (value: ServiceKind) => {
+    setServiceKind(value);
     pagination.resetToFirstPage();
   };
 
@@ -334,7 +359,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   };
 
   const entryDialog = {
-    service: <ServiceDialog {...entryDialogProps} />,
+    service: <ServiceEntryDialog {...entryDialogProps} copyOf={entryModal.copyOf} />,
     medicine: <MedicineDialog {...entryDialogProps} />,
     rich: <RichCatalogDialog {...entryDialogProps} noun={tab.noun} />,
     prescription: <PrescriptionTemplateDialog {...entryDialogProps} />,
@@ -404,6 +429,13 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
               <ServiceCatalogSyncButton branchId={branchId} disabled={isAllBranches} />
             ) : null
           }
+          filterSlot={
+            isService ? (
+              <ServiceKindFilter value={serviceKind} counts={kindCounts.data} onChange={changeServiceKind} />
+            ) : null
+          }
+          createLabel={isService ? t("Taxonomy:Combo:AddServiceOrCombo") : undefined}
+          searchPlaceholder={isService ? t("Taxonomy:Combo:SearchServiceOrCombo") : undefined}
         />
 
         <div className="bd-cat-body">
@@ -425,6 +457,9 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
               onEdit={ability.canUpdate ? (entry) => setEntryModal({ open: true, entry }) : undefined}
               onDelete={ability.canDelete ? (entry) =>
                 setPendingDelete({ kind: "entry", id: entry.id, name: entry.name }) : undefined}
+              onCopy={isService && ability.canCreate && !isAllBranches
+                ? (entry) => setEntryModal({ open: true, entry: null, copyOf: entry })
+                : undefined}
               onReorder={reorderEntries}
               pagination={pagination.buildConfig(totalCount, countedTotal(t("Taxonomy:Common:Records")))}
             />
