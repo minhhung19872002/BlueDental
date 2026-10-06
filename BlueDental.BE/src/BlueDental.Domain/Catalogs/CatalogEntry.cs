@@ -119,7 +119,8 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
             ClinicBranchId = clinicBranchId,
             TaxonomyId = taxonomyId,
             Group = group,
-            Name = name,
+            // Stored without the spaces around it (bug list 2026-10-06).
+            Name = name.Trim(),
             Code = code,
             Price = price,
             Content = content,
@@ -133,7 +134,7 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     public CatalogEntry Rename(string name)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
-        Name = name;
+        Name = name.Trim();
         return this;
     }
 

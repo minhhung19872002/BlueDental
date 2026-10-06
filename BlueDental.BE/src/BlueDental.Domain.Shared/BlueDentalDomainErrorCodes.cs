@@ -48,6 +48,12 @@ public static class BlueDentalDomainErrorCodes
         public const string ComboNeedsItems = "BlueDental:Catalogs:0027";
         public const string ComboComponentNotAllowed = "BlueDental:Catalogs:0028";
         public const string ComboNotSupported = "BlueDental:Catalogs:0029";
+        /// <summary>Another group of the same catalog, in the same branch, already has this name.</summary>
+        public const string DuplicateTaxonomyName = "BlueDental:Catalogs:0030";
+        /// <summary>Another service of the same group already has this name — a deleted one counts.</summary>
+        public const string DuplicateServiceName = "BlueDental:Catalogs:0031";
+        /// <summary>The same rule for every other catalog's entries.</summary>
+        public const string DuplicateEntryName = "BlueDental:Catalogs:0032";
     }
 
     public static class PatientManagement
@@ -339,6 +345,7 @@ public static class BlueDentalDomainErrorCodes
         /// <summary>The violation type belongs to another branch, or was deleted.</summary>
         public const string InvalidViolationType = "BlueDental:StaffPenalty:0006";
         public const string InvalidAmount = "BlueDental:StaffPenalty:0007";
+        public const string DuplicateViolationTypeName = "BlueDental:StaffPenalty:0008";
     }
 
     public static class Queue

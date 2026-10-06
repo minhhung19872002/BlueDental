@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -52,6 +53,8 @@ public class StaffViolationTypeAppService(
             input.ClinicBranchId ?? Guid.Empty,
             branchResolver.GetRequiredClinicBranchId());
 
+        await EnsureNameFreeAsync(branchId, input.Name, exceptId: null);
+
         var type = StaffViolationType.Create(GuidGenerator.Create(), branchId, input.Name, input.DefaultFineAmount);
         await repository.InsertAsync(type, autoSave: true);
         return Map(type);
@@ -62,6 +65,10 @@ public class StaffViolationTypeAppService(
     {
         var type = await repository.GetAsync(id);
         await branchAccess.CheckAsync(type.ClinicBranchId);
+        if (!CatalogNames.Same(type.Name, input.Name))
+        {
+            await EnsureNameFreeAsync(type.ClinicBranchId, input.Name, type.Id);
+        }
 
         type.SetDetails(input.Name, input.DefaultFineAmount);
         await repository.UpdateAsync(type, autoSave: true);
@@ -74,6 +81,17 @@ public class StaffViolationTypeAppService(
         var type = await repository.GetAsync(id);
         await branchAccess.CheckAsync(type.ClinicBranchId);
         await repository.DeleteAsync(type, autoSave: true);
+    }
+
+    /// <summary>One name per type within a branch, case and stray spaces aside — the Danh mục rule.</summary>
+    private async Task EnsureNameFreeAsync(Guid branchId, string name, Guid? exceptId)
+    {
+        var query = await repository.GetQueryableAsync();
+        var taken = await AsyncExecuter.ToListAsync(query
+            .Where(x => x.ClinicBranchId == branchId && x.Id != exceptId)
+            .Select(x => x.Name));
+
+        CatalogNames.EnsureFree(name, taken, BlueDentalDomainErrorCodes.StaffPenalty.DuplicateViolationTypeName);
     }
 
     private static StaffViolationTypeDto Map(StaffViolationType type) => new()

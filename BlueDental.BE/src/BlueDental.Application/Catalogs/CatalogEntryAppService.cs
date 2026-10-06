@@ -100,6 +100,28 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     private IDisposable? ShowDeletedRowsOf(string? group) =>
         TaxonomyGroups.IsSoftDeletable(group ?? string.Empty) ? _softDeleteFilter.Disable() : null;
 
+    /// <summary>
+    /// One name per entry within a group — the key the Excel import finds rows by.
+    /// A deleted row counts only where the catalog still shows it (and can bring
+    /// it back): elsewhere it is gone for good and must not block its own name.
+    /// </summary>
+    private async Task EnsureNameFreeAsync(Guid taxonomyId, string name, Guid? exceptId)
+    {
+        var group = (await _taxonomyRepository.GetAsync(taxonomyId)).Group;
+        List<string> taken;
+        using (TaxonomyGroups.IsSoftDeletable(group) ? _softDeleteFilter.Disable() : _softDeleteFilter.Enable())
+        {
+            var query = await _repository.GetQueryableAsync();
+            taken = await AsyncExecuter.ToListAsync(query
+                .Where(e => e.TaxonomyId == taxonomyId && e.Id != exceptId)
+                .Select(e => e.Name));
+        }
+
+        CatalogNames.EnsureFree(name, taken, group == TaxonomyGroups.CareService
+            ? BlueDentalDomainErrorCodes.Catalogs.DuplicateServiceName
+            : BlueDentalDomainErrorCodes.Catalogs.DuplicateEntryName);
+    }
+
     /// <summary>Every filter of the list except the kind, which each caller applies its own way.</summary>
     private async Task<IQueryable<CatalogEntry>> FilterAsync(
         IQueryable<CatalogEntry> query, GetCatalogEntryListInput input)
@@ -152,6 +174,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         // The entry belongs wherever its group belongs, so the branch comes from
         // the group rather than from the client or the caller's own branch.
         await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
+        await EnsureNameFreeAsync(taxonomy.Id, input.Name, exceptId: null);
 
         // The service dialog has no code box any more; the server draws one,
         // which is what the partner sync keys on.
@@ -201,12 +224,20 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         var entry = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(entry.ClinicBranchId);
 
-        if (entry.TaxonomyId != input.TaxonomyId)
+        var entryMoved = entry.TaxonomyId != input.TaxonomyId;
+        if (entryMoved)
         {
-            var target = await _taxonomyRepository.FindAsync(input.TaxonomyId)
-                ?? throw new BusinessException(
+            var target = await _taxonomyRepository.FindAsync(input.TaxonomyId);
+
+            // A group of another branch is answered exactly like a missing one:
+            // an entry never leaves its branch, and the answer must not tell the
+            // caller what that branch holds.
+            if (target is null || target.ClinicBranchId != entry.ClinicBranchId)
+            {
+                throw new BusinessException(
                     BlueDentalDomainErrorCodes.Catalogs.TaxonomyNotFound,
                     $"Taxonomy group {input.TaxonomyId} was not found.");
+            }
 
             if (target.Group != entry.Group)
             {
@@ -216,6 +247,13 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             }
 
             entry.MoveTo(target.Id);
+        }
+
+        // Checked on a rename or a move only, so a row that already shared its
+        // name before the rule existed can still be edited otherwise.
+        if (!CatalogNames.Same(entry.Name, input.Name) || entryMoved)
+        {
+            await EnsureNameFreeAsync(entry.TaxonomyId, input.Name, entry.Id);
         }
 
         entry.Rename(input.Name);

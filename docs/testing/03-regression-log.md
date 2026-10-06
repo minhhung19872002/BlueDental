@@ -6787,3 +6787,28 @@ chỉ tạo 2 bảng; DbMigrator cấp `staffPenalty.*` cho 3 role tĩnh. E2E tr
 **4/4**. `role-permissions` và `role-permissions-abilities` đỏ ở bước "dentist chưa có quyền gì"
 — lỗi dữ liệu local đã ghi ở mục R-725..R-727 (nhóm `dentist` đang có **370** grant, **0** grant
 `staffPenalty`), không do thay đổi này. Retest level **2** (F-49, F-25).
+
+## 2026-10-06 — Danh mục: không cho tạo trùng tên (R-739..R-741)
+
+Từ bug list của tester (Danh mục > Dịch vụ, ưu tiên High). Bản gốc không quan sát được (không
+được submit form trên production) — BlueDental chọn quy tắc mà import Excel đã dùng để khớp dòng:
+cùng tên = bỏ khoảng trắng đầu/cuối và khoảng trắng thừa, không phân biệt hoa thường
+(`ExcelCells.Key`, gói lại trong `CatalogNames`).
+
+| # | Lỗi | Sửa |
+|---|-----|-----|
+| R-739 | Tạo được nhóm trùng tên: nhập "NHA KHOA TỔNG QUÁT" (đã có) → "Đã thêm nhóm", danh sách có 2 nhóm. | `TaxonomyAppService` từ chối tạo / đổi tên trùng một nhóm khác cùng danh mục (tab) cùng chi nhánh → `Catalogs:0030` "Tên nhóm đã tồn tại.". Chỉ kiểm khi đổi tên, nên dữ liệu cũ đã trùng vẫn sửa màu / ưu tiên được. Áp cho mọi tab dùng nhóm, kể cả Khớp cắn / Đường hoàn tất / Kiểu nhịp Labo. |
+| R-740 | Tạo được 2 dịch vụ cùng tên trong một nhóm ("DUNG-TEST Dịch vụ 1", mã c00K2 và CpH8). | `CatalogEntryAppService` từ chối tạo / đổi tên / chuyển nhóm khi nhóm đích đã có mục cùng tên → `Catalogs:0031` "Tên dịch vụ đã tồn tại trong nhóm." (dịch vụ), `0032` "Tên đã tồn tại trong nhóm." (danh mục khác). Mục "Đã xoá" chỉ tính ở danh mục còn hiện và khôi phục được nó; ở danh mục khác mục đã xoá không chặn tên. Cùng tên ở nhóm khác vẫn được — import cũng khoá theo (nhóm, tên). |
+| R-741 | (Security review của chính thay đổi này) Sửa một mục và đổi `taxonomyId` sang nhóm của **chi nhánh khác**: server chỉ kiểm chi nhánh của mục, không kiểm nhóm đích — mục chuyển được sang chi nhánh khác (lỗi có sẵn), và kiểm tra trùng tên mới còn cho biết một tên có tồn tại ở nhóm đó không. | Nhóm đích khác chi nhánh được trả lời y như nhóm không tồn tại (`Catalogs:0012`), trước mọi tra cứu tên. Spec `taxonomy-duplicate-names-api` khẳng định. |
+
+Kèm theo: `Taxonomy` / `CatalogEntry` lưu tên đã trim (Create + Rename). Theo ghi chú "áp dụng cho
+những bug tạo trùng", Loại vi phạm (Chế tài) cũng chặn trùng tên trong chi nhánh → `StaffPenalty:0008`.
+FE không đổi: các dialog vốn giữ nguyên khi server từ chối, thông báo hiện qua toast chung.
+
+Bẫy dữ liệu test: bản đầu của spec mới tạo nhóm rỗng ưu tiên 0 ở tab Loại thuốc → nhóm đó lên đầu, tab mở trên nó và 3 ca `taxonomy*` (cuộn bảng, thanh cuộn, "đang lưu") thấy bảng trống; spec khác còn thêm dịch vụ vào các nhóm rỗng ở đầu. Spec nay tạo nhóm ưu tiên 9999 và tự xoá nhóm rỗng của nó; các nhóm rác local đã đẩy xuống cuối / xoá.
+
+Kiểm: Domain.Tests **582** (thêm 2 ca trim), Application.Tests **671**. E2E mới `taxonomy-duplicate-names-api` **2/2** (đúng hai
+bước tái hiện của tester, cộng đổi tên / chuyển nhóm, khác tab / khác chi nhánh vẫn được). Bộ §17 trên
+build production :8080 + `catalog-combo` + `staff-penalty*` + spec mới: **72/74** — 2 đỏ là hai ca có sẵn do nhóm
+`dentist` local đang có grant (`taxonomy-import-api` "…gets 403…", `taxonomy-service-sync` "…may only
+read services…"), như ghi ở R-725..R-727. Retest level **2** (F-02, F-32, F-49).
