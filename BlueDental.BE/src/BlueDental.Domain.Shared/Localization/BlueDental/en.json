@@ -97,6 +97,8 @@
     "BlueDental:Appointment:0005": "An appointment cannot be booked in the past.",
     "BlueDental:Appointment:0006": "This patient already has an appointment at that time.",
     "BlueDental:Appointment:0007": "This appointment is not a temporary booking.",
+    "BlueDental:Appointment:0008": "Cannot book: the appointment time is outside the dentist's working hours ({Shifts}).",
+    "BlueDental:Appointment:0009": "Cannot book: the dentist is registered off for that whole day.",
     "BlueDental:Treatment:0001": "Treatment plan not found.",
     "BlueDental:Treatment:0002": "That treatment plan transition is not allowed.",
     "BlueDental:Treatment:0003": "Prescription not found.",

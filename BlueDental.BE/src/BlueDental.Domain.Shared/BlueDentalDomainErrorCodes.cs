@@ -77,6 +77,12 @@ public static class BlueDentalDomainErrorCodes
         public const string SlotInThePast = "BlueDental:Appointment:0005";
         public const string PatientAlreadyBooked = "BlueDental:Appointment:0006";
         public const string NotTemporary = "BlueDental:Appointment:0007";
+
+        /// <summary>The slot is not inside the dentist's shifts that day; the booking is refused.</summary>
+        public const string OutsideWorkingHours = "BlueDental:Appointment:0008";
+
+        /// <summary>The dentist is registered off that whole day; refused like <see cref="OutsideWorkingHours"/>.</summary>
+        public const string DentistOffDuty = "BlueDental:Appointment:0009";
     }
 
     public static class TreatmentManagement

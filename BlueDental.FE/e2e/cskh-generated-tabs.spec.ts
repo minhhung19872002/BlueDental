@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { openShiftCovering } from "./fixtures/workShift";
 
 /**
  * Feature: CSKH tabs filled from the clinic's own data (owner, 2026-10-05).
@@ -81,6 +82,8 @@ async function book(page: Page, patientId: string, start: Date): Promise<string>
   const staff = (await call(page, "GET", "/api/v1/app/staff?MaxResultCount=20")).json as { items: { id: string }[] };
   const end = new Date(start.getTime() + 30 * 60_000);
   for (const dentist of staff.items) {
+    // `start` follows the clock, so it may fall outside the default shifts.
+    if (!(await openShiftCovering(page, BRANCH, dentist.id, start, end))) continue;
     const res = await call(page, "POST", "/api/v1/app/appointments", {
       patientId,
       dentistId: dentist.id,

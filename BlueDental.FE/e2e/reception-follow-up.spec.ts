@@ -334,7 +334,9 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     const seed = Number(runId());
     const at = new Date();
     at.setDate(at.getDate() + 200 + (seed % 300));
-    at.setHours(8 + (Math.floor(seed / 300) % 8), 30, 0, 0);
+    // Inside the default shifts (08-12, 13-17): bookings outside them are refused (R-735).
+    const hours = [8, 9, 10, 11, 13, 14, 15, 16];
+    at.setHours(hours[Math.floor(seed / 300) % hours.length], 30, 0, 0);
     const slot = { slotStart: at.toISOString(), slotEnd: new Date(at.getTime() + 30 * 60_000).toISOString() };
 
     // Another branch cannot see the visit, let alone book from it.

@@ -49,6 +49,8 @@
     "BlueDental:Appointment:0005": "Không thể đặt lịch trong quá khứ.",
     "BlueDental:Appointment:0006": "Bệnh nhân đã có lịch hẹn vào khung giờ này.",
     "BlueDental:Appointment:0007": "Lịch hẹn này không phải lịch tạm.",
+    "BlueDental:Appointment:0008": "Không thể đặt lịch: giờ hẹn nằm ngoài ca làm của bác sĩ ({Shifts}).",
+    "BlueDental:Appointment:0009": "Không thể đặt lịch: bác sĩ đã đăng ký nghỉ cả ngày hôm đó.",
     "BlueDental:Treatment:0001": "Không tìm thấy kế hoạch điều trị.",
     "BlueDental:Treatment:0002": "Không thể thực hiện thao tác này trên kế hoạch điều trị.",
     "BlueDental:Treatment:0003": "Không tìm thấy đơn thuốc.",
