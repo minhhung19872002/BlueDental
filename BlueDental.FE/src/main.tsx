@@ -14,6 +14,7 @@ import { router } from "./app/router";
 import { themeConfig } from "./theme/index";
 import { I18nProvider, useLanguage, type OverlayUnavailableState } from "./lib/i18n";
 import { ServiceUnavailablePage } from "./components/ServiceUnavailablePage";
+import { ToastLifetimeGuard } from "./components/ToastLifetimeGuard";
 import { initTableGrabScroll } from "./hooks/useDragScroll";
 import "flag-icons/css/flag-icons.min.css";
 import "./styles/index.css";
@@ -44,6 +45,7 @@ function LocalizedApp() {
       <AntdApp>
         <RouterProvider key={language} router={router} />
         <Toaster position="top-center" richColors offset={80} />
+        <ToastLifetimeGuard />
       </AntdApp>
     </ConfigProvider>
   );
