@@ -6745,3 +6745,25 @@ phải bật lại vì đã dừng 18 giờ, host cũ đang trả 500): `catalog
 đang có **372** grant trên nhóm đó (do các spec khác bật lá quyền mà không trả lại) — không liên quan
 thay đổi này, chưa đụng vào dữ liệu đó. Domain.Tests **568**, EF.Tests **64**, Application.Tests **656**
 xanh; `tsc` sạch; `oxlint` không cảnh báo mới. Retest level **3**.
+
+## 2026-10-06 — Merge `feature/service-combo-f48` vào `main` (R-728, R-729)
+
+Nhánh `feature/service-combo-f48` (commit `34f24a8c`) dựng combo song song với combo đã có trên
+`main` (`134377ab`, R-725..R-727), cùng gốc `1863873e`. Khi merge: **phần combo giữ theo `main`**
+(`CatalogEntry.IsCombo` + `CatalogComboItem`, migration `CatalogCombos`, `ComboDialog`, "Chọn Dịch Vụ");
+mô hình combo của nhánh bỏ hẳn (`ServiceKind` trên `CatalogServiceConfig`, `TaxAmount` /
+`AmountCollected`, migration `ServiceCombo` — trùng bảng với `CatalogCombos`, các component
+`ComboComponentTable` / `ComboDialogLayout` / `ComboServicePicker` / `ComboSavingsBanner` /
+`TaxSegmented`, hook `useComboComponents` / `useComboPricePreview`, spec `taxonomy-combo*`,
+`treatment-plan-combo`). Hai sửa lỗi không thuộc combo của nhánh được giữ:
+
+| # | Lỗi | Sửa |
+|---|-----|-----|
+| R-728 | Nhập Excel cập nhật một dịch vụ làm mất NCC labo đã chọn (sheet không có cột Labo, `EntryMerge.MergeServiceConfig` trả `LaboSupplierIds = []` → `ReplaceLaboSuppliers([])`). Lỗi có sẵn, nhánh ghi trong R-725 của nó. | `EntryMerge.MergeServiceConfig` giữ `stored.LaboSupplierIds`. Spec mới `taxonomy-import-api` "updating a service from the sheet keeps the Labo suppliers it does not carry" (API thật: nhập → gắn NCC → nhập lại đổi giá → giá đổi, NCC còn). |
+| R-729 | Đổi chi nhánh rồi reload quay về chi nhánh cũ (R-730 của nhánh): `clinicBranch.syncToUrl` ghi `?branchId=` bằng `history.replaceState` ngoài React Router, lần `setSearchParams` kế tiếp ghi lại chi nhánh cũ. | Lấy nguyên từ nhánh: `clinicBranch.routeBranchUrlThrough(replacer)`, `main.tsx` đăng ký `router.navigate(..., { replace: true, preventScrollReset: true })`; URL không đổi thì không điều hướng. |
+
+Kiểm: `tsc -b` sạch; BE Catalog tests Domain **67**, Application **63**, EF **4** xanh. E2E trên build
+production (`vite preview` :8080, API thật :5000): `taxonomy-import-api` + `branch-*` **17/18**,
+`taxonomy*` + `payment-qr` + `catalog-combo` **48/49**. Hai ca đỏ là hai ca đỏ có sẵn do dữ liệu local
+đã ghi ở mục R-725..R-727 (`taxonomy-import-api` "…gets 403…", `taxonomy-service-sync` "…may only read
+services…": nhóm seed `dentist` trên DB local đang có grant) — không do merge này. Retest level **3**.
