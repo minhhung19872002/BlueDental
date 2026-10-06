@@ -52,6 +52,7 @@ async function call<T>(page: Page, method: string, url: string, body?: unknown):
 interface Entry {
   id: string;
   name: string;
+  code: string | null;
   isDeleted: boolean;
 }
 
@@ -140,6 +141,36 @@ test.describe("Danh mục > Dịch vụ — không xoá dịch vụ đang đư�
     await page.reload();
     await expect(freeRow.getByRole("button", { name: /^Xoá / })).toHaveCount(0);
     expect(await isDeleted(page, group.body.id, free.body.id)).toBe(true);
+  });
+
+  test("bug 21: the delete confirm shows the service code and says the row is only struck through", async ({ page }) => {
+    const id = runId();
+    const group = await call<{ id: string }>(page, "POST", TAXONOMIES, {
+      clinicBranchId: BRANCH, group: "care_service", name: `DUNG-TEST Xoá mềm ${id}`, sortOrder: 0,
+    });
+    expect(group.status).toBe(200);
+    const name = `DUNG-TEST Dịch vụ xoá mềm ${id}`;
+    const entry = await call<Entry>(page, "POST", ENTRIES, { taxonomyId: group.body.id, name, price: 100000, sortOrder: 0 });
+    expect(entry.status).toBe(200);
+    expect(entry.body.code, "the server draws a service code").toBeTruthy();
+
+    await page.goto(`/taxonomy/service?group=${group.body.id}`);
+    const row = page.getByRole("row", { name: new RegExp(name) });
+    await row.getByRole("button", { name: /^Xoá / }).click();
+
+    const confirm = page.getByRole("dialog").filter({ hasText: "Xác nhận xoá dịch vụ" });
+    await expect(confirm).toContainText(`Bạn có chắc muốn xoá dịch vụ ${name} (mã ${entry.body.code}) không?`);
+    await expect(confirm).toContainText("Mục này chỉ bị gạch ngang, có thể khôi phục lại.");
+    await expect(confirm).not.toContainText("không thể hoàn tác");
+
+    // …and that is what happens: the row stays, struck through, without its bin.
+    await confirm.getByRole("button", { name: /Xoá$/ }).click();
+    await expect(confirm).toBeHidden();
+    await page.reload();
+    await expect(row).toBeVisible();
+    await expect(row.locator(".bd-cat-name--deleted")).toHaveText(name);
+    await expect(row.getByRole("button", { name: /^Xoá / })).toHaveCount(0);
+    expect(await isDeleted(page, group.body.id, entry.body.id)).toBe(true);
   });
 
   test("a combo picked into a plan cannot be deleted; a combo whose services are in use still can", async ({ page }) => {

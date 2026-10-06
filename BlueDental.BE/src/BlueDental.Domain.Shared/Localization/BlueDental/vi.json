@@ -3977,6 +3977,8 @@
     "Taxonomy:Catalog:AddedSuccess": "Đã thêm",
     "Taxonomy:Catalog:UpdatedSuccess": "Đã cập nhật",
     "Taxonomy:Catalog:DeletedSuccess": "Đã xoá",
+    "Taxonomy:Catalog:DeleteCode": "mã {0}",
+    "Taxonomy:Catalog:SoftDeleteNote": "Mục này chỉ bị gạch ngang, có thể khôi phục lại.",
     "Taxonomy:Catalog:OnlyWhenEditing": "Chỉ dùng khi sửa bản ghi đã có",
     "Taxonomy:Service:ServiceLabel": "Dịch vụ",
     "Taxonomy:Service:ClassificationLabel": "Phân loại dịch vụ",

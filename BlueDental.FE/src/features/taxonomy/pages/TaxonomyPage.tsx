@@ -47,7 +47,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useBranchFilter, useCurrentBranchId, useIsAllBranches } from "@/lib/clinicBranch";
-import { t } from "@/lib/i18n";
+import { t, tRich } from "@/lib/i18n";
 import { moveItem } from "@/utils/array";
 import { exportToExcel } from "@/utils/exportExcel";
 import { formatDateTime } from "@/utils/format";
@@ -56,7 +56,19 @@ const DEFAULT_PAGE_SIZE = 20;
 
 /** Either a group or an entry queued for the shared confirmation dialog. */
 type PendingDelete =
-  { kind: "group"; id: string; name: string } | { kind: "entry"; id: string; name: string };
+  | { kind: "group"; id: string; name: string }
+  | { kind: "entry"; id: string; name: string; code: string | null };
+
+/** "… xoá dịch vụ **Tên** (mã **DV0001**) …" — the code tells same-named rows apart (bug #21). */
+function entryDeleteQuestion(noun: string, entry: { name: string; code: string | null }) {
+  if (!entry.code) return undefined;
+  const label = (
+    <>
+      <strong>{entry.name}</strong> ({tRich("Taxonomy:Catalog:DeleteCode", <strong>{entry.code}</strong>)})
+    </>
+  );
+  return tRich("Common:ConfirmDeleteQuestion", noun, label);
+}
 
 function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   const ability = useAbility(tab.subject);
@@ -456,7 +468,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
               canReorder={!debouncedKeyword && (!grouped || selectedGroupId !== null)}
               onEdit={ability.canUpdate ? (entry) => setEntryModal({ open: true, entry }) : undefined}
               onDelete={ability.canDelete ? (entry) =>
-                setPendingDelete({ kind: "entry", id: entry.id, name: entry.name }) : undefined}
+                setPendingDelete({ kind: "entry", id: entry.id, name: entry.name, code: entry.code }) : undefined}
               onCopy={isService && ability.canCreate && !isAllBranches
                 ? (entry) => setEntryModal({ open: true, entry: null, copyOf: entry })
                 : undefined}
@@ -497,6 +509,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
         open={pendingDelete !== null}
         noun={pendingDelete?.kind === "group" ? t("Taxonomy:Group:DeleteNoun") : tab.noun}
         name={pendingDelete?.name ?? ""}
+        question={pendingDelete?.kind === "entry" ? entryDeleteQuestion(tab.noun, pendingDelete) : undefined}
+        note={pendingDelete?.kind === "entry" && tab.softDelete ? t("Taxonomy:Catalog:SoftDeleteNote") : undefined}
         pending={deleteGroup.isPending || deleteEntry.isPending}
         onConfirm={() => void confirmDelete()}
         onClose={() => setPendingDelete(null)}

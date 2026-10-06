@@ -31,6 +31,12 @@ export interface TaxonomyTab {
    * priority form that Nguồn đến, Lịch sử bệnh and Nghề nghiệp share.
    */
   dialog?: "simple" | "rich" | "service" | "medicine" | "prescription" | "medical-record";
+  /**
+   * True on the catalogs whose dialog carries the "Đang hoạt động" / "Đã xoá"
+   * pair (R-87): a delete only strikes the row through and it can be brought
+   * back, so the delete confirm must not say it cannot be undone.
+   */
+  softDelete?: boolean;
   /** False on the catalogs the reference gives no "Xuất" button. */
   exportable?: boolean;
   /**
@@ -58,6 +64,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       noun: t("Taxonomy:Noun:Service"),
       priced: true,
       dialog: "service",
+      softDelete: true,
     },
     {
       key: "diagnosis",
@@ -67,6 +74,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       group: TAXONOMY_GROUP.Diagnosis,
       noun: t("Taxonomy:Noun:Diagnosis"),
       dialog: "rich",
+      softDelete: true,
     },
     {
       key: "medicine",
@@ -86,6 +94,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       group: TAXONOMY_GROUP.ConsultingData,
       noun: t("Taxonomy:Noun:Consulting"),
       dialog: "rich",
+      softDelete: true,
     },
     {
       key: "source",
@@ -95,6 +104,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       group: TAXONOMY_GROUP.Source,
       noun: t("Taxonomy:Noun:Source"),
       dialog: "simple",
+      softDelete: true,
     },
     {
       key: "history",
@@ -104,6 +114,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       group: TAXONOMY_GROUP.DiseaseHistory,
       noun: t("Taxonomy:Noun:History"),
       dialog: "simple",
+      softDelete: true,
     },
     {
       key: "prescription-template",
@@ -141,6 +152,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
       group: TAXONOMY_GROUP.Occupation,
       noun: t("Taxonomy:Noun:Occupation"),
       dialog: "simple",
+      softDelete: true,
       exportable: false,
       importable: true,
     },

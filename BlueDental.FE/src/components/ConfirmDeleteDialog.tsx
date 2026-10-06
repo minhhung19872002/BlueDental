@@ -14,6 +14,11 @@ interface Props {
   /** The question line, when the reference words it differently; the "cannot be undone" line stays. */
   question?: ReactNode;
   /**
+   * The muted line under the question. Defaults to "cannot be undone"; a soft
+   * delete, whose row stays and can be brought back, says that instead.
+   */
+  note?: ReactNode;
+  /**
    * The two footer labels, for the confirms the reference words differently —
    * "Hủy thay đổi" answers "Xác nhận hủy" / "Tiếp tục chỉnh sửa". Its own
    * component takes them the same way (`confirmLabel` / `cancelLabel`,
@@ -40,6 +45,7 @@ export function ConfirmDeleteDialog({
   name,
   title,
   question,
+  note,
   confirmLabel,
   cancelLabel,
   pending,
@@ -75,7 +81,7 @@ export function ConfirmDeleteDialog({
         {question ?? tRich("Common:ConfirmDeleteQuestion", noun, <strong>{name}</strong>)}
       </p>
       <p style={{ margin: "4px 0 0", color: "var(--bd-text-muted, #7d85a5)", fontSize: 13 }}>
-        {t("Common:CannotUndone")}
+        {note ?? t("Common:CannotUndone")}
       </p>
     </Modal>
   );

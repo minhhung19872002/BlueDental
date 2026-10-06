@@ -4078,6 +4078,8 @@
     "Taxonomy:Catalog:AddedSuccess": "Added",
     "Taxonomy:Catalog:UpdatedSuccess": "Updated",
     "Taxonomy:Catalog:DeletedSuccess": "Deleted",
+    "Taxonomy:Catalog:DeleteCode": "code {0}",
+    "Taxonomy:Catalog:SoftDeleteNote": "It is only struck through and can be restored.",
     "Taxonomy:Catalog:OnlyWhenEditing": "Only available when editing an existing record",
     "Taxonomy:Service:ServiceLabel": "Service",
     "Taxonomy:Service:ClassificationLabel": "Service classification",
