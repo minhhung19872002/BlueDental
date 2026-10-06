@@ -11,6 +11,7 @@ import {
   type LaboSampleFilter,
 } from "../api/laboApi";
 import { DataTable } from "@/components/DataTable";
+import { pagedSelectProps } from "@/components/pagedSelectProps";
 import { PeriodPicker, periodRange, type Period } from "@/components/PeriodPicker";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useAbility } from "@/hooks/useAbility";
@@ -184,6 +185,7 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
               onSearch={patientPicker.search}
               onOpenChange={(open) => !open && patientPicker.resetSearch()}
               onChange={(value) => refilter(() => setPatientId(value))}
+              {...pagedSelectProps(patientPicker)}
               options={patientPicker.patients.map((patient) => ({
                 value: patient.id,
                 label: `[${patient.code}] - ${patient.name}`,

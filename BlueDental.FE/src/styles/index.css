@@ -2493,6 +2493,14 @@ body::-webkit-scrollbar-track {
   text-align: center;
 }
 
+/* Paged option lists: the next page's spinner sits under the last row. */
+.ss-loading-more,
+.bd-select-loading-more {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {

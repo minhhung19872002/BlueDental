@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/useDebounce";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -37,24 +37,49 @@ export const patientOptionKeys = {
   all: ["patient-options"] as const,
 };
 
+const PAGE_SIZE = 30;
+
+interface PatientOptionPage {
+  items: PatientOption[];
+  totalCount: number;
+}
+
 /**
- * @param keyword server-side search over name, code and phone; omit for the
+ * Which branch a picker searches. Omitted, it is the header's branch; a scope
+ * whose `branchId` is undefined means every branch the account may see.
+ */
+export interface PatientScope {
+  branchId: string | undefined;
+}
+
+/**
+ * Patients a page at a time, for pickers that load more as they are scrolled.
+ *
+ * @param keyword server-side search over name, code and phone; empty for the
  * most recent patients.
  */
-export function usePatientOptions(keyword?: string) {
-  const branchId = useCurrentBranchId();
+function usePatientOptionPages(keyword: string, scope?: PatientScope) {
+  const currentBranchId = useCurrentBranchId();
+  const branchId = scope ? scope.branchId : currentBranchId;
 
-  return useQuery({
-    queryKey: [...patientOptionKeys.all, branchId, keyword ?? ""],
-    queryFn: async (): Promise<PatientOption[]> => {
+  return useInfiniteQuery({
+    queryKey: [...patientOptionKeys.all, "pages", branchId ?? "all", keyword],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<PatientOptionPage> => {
       const page = await api
         .get<PagedResult<PatientRow>>("/v1/app/patients", {
-          params: { branchId, filter: keyword || undefined, maxResultCount: 30 },
+          params: { branchId, filter: keyword || undefined, skipCount: pageParam, maxResultCount: PAGE_SIZE },
         })
         .then((r) => r.data);
 
-      return page.items.map(toOption);
+      return { items: page.items.map(toOption), totalCount: page.totalCount };
     },
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((sum, p) => sum + p.items.length, 0);
+      return loaded < last.totalCount ? loaded : undefined;
+    },
+    // A new keyword keeps the old rows up until its first page lands.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -69,8 +94,8 @@ function toOption(row: PatientRow): PatientOption {
 
 /**
  * One patient by id, for a picker whose value is not on the page
- * `usePatientOptions` returned — the list holds only the most recent patients,
- * so an older record's booking would otherwise open with a blank picker.
+ * the picker has loaded — the list starts at the most recent patients, so an
+ * older record's booking would otherwise open with a blank picker.
  *
  * @param enabled pass false while the id is already among the loaded options.
  */
@@ -87,10 +112,10 @@ export function usePatientOption(id: string | undefined, enabled = true) {
 }
 
 /**
- * `list` with the selected patient pinned to the front when the page does not
- * hold it. Every patient picker shows one server page — the most recent
- * patients or the last search's hits — so without this an older patient, or
- * one picked before the keyword changed, renders as a blank picker.
+ * `list` with the selected patient pinned to the front when the loaded rows do
+ * not hold it. Every patient picker shows only what it has paged in — the most
+ * recent patients or the last search's hits — so without this an older
+ * patient, or one picked before the keyword changed, renders as a blank picker.
  */
 export function usePinnedPatientOptions(
   list: PatientOption[] | undefined,
@@ -107,14 +132,31 @@ export function usePinnedPatientOptions(
 
 /**
  * Everything a server-searched patient picker needs: a debounced keyword, the
- * page it returns, and the selected patient pinned in.
+ * pages loaded so far, the selected patient pinned in, and `loadMore` for when
+ * the list is scrolled to its end.
  */
-export function usePatientPicker(selectedId: string | undefined) {
+export function usePatientPicker(selectedId: string | undefined, scope?: PatientScope) {
   const [keyword, setKeyword] = useState("");
   const debouncedKeyword = useDebounce(keyword, 300);
-  const { data, isFetching } = usePatientOptions(debouncedKeyword);
-  const patients = usePinnedPatientOptions(data, selectedId);
+  const { data, isFetching, isFetchingNextPage, isPlaceholderData, hasNextPage, fetchNextPage } =
+    usePatientOptionPages(debouncedKeyword, scope);
+  const listed = useMemo(() => data?.pages.flatMap((p) => p.items), [data]);
+  const patients = usePinnedPatientOptions(listed, selectedId);
   const resetSearch = useCallback(() => setKeyword(""), []);
 
-  return { patients, search: setKeyword, resetSearch, loading: isFetching };
+  // Placeholder rows belong to the previous keyword; paging them would mix two searches.
+  const hasMore = hasNextPage && !isPlaceholderData;
+  const loadMore = useCallback(() => {
+    if (hasMore && !isFetchingNextPage) void fetchNextPage();
+  }, [hasMore, isFetchingNextPage, fetchNextPage]);
+
+  return {
+    patients,
+    search: setKeyword,
+    resetSearch,
+    loading: isFetching,
+    hasMore,
+    loadingMore: isFetchingNextPage,
+    loadMore,
+  };
 }

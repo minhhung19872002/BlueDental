@@ -1,11 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Response } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
- * Patient pickers outside the booking dialog (R-754).
+ * Patient pickers outside the booking dialog (R-754, R-757).
  *
- * Every picker loads one server page of patients — the most recent ones, or
- * the hits for what was typed. A patient picked from a search used to vanish
+ * Every picker pages patients in from the server — the most recent ones, or
+ * the hits for what was typed — 30 at a time as the list is scrolled. A patient picked from a search used to vanish
  * from the options once the keyword moved on, and the picker then showed a raw
  * id (AntD) or went blank (SearchSelect). Real stack, nothing intercepted.
  */
@@ -115,5 +115,84 @@ test.describe("Patient pickers keep the picked patient", () => {
     await page.keyboard.press("Escape");
     await expect(picker).toContainText(nameMatch);
     await expect(picker).not.toContainText(/[0-9a-f]{8}-[0-9a-f]{4}-/);
+  });
+});
+
+/** The picker's second page of patients — it starts where the first 30 end. */
+const isSecondPage = (res: Response) =>
+  res.url().includes("/api/v1/app/patients?") &&
+  res.request().method() === "GET" &&
+  new URL(res.url()).searchParams.get("skipCount") === "30";
+
+interface PatientPage {
+  items: { patientCode: string }[];
+}
+
+/** Wheels `list` down until the next page is asked for — no further — and returns its rows. */
+async function scrollForNextPage(page: Page, list: Locator): Promise<PatientPage> {
+  let landed: Response | undefined;
+  const nextPage = page.waitForResponse(isSecondPage).then((res) => (landed = res));
+  await list.hover();
+  for (let i = 0; i < 20 && !landed; i += 1) {
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(150);
+  }
+  const res = await nextPage;
+  expect(res.status()).toBe(200);
+  return (await res.json()) as PatientPage;
+}
+
+/** The new page joins under the old rows: a little more wheel brings its first patient into view. */
+async function expectAntdRowAfterScroll(page: Page, code: string) {
+  const row = antdOption(page, new RegExp(escapeRegExp(`[${code}]`)));
+  await expect(async () => {
+    await page.mouse.wheel(0, 100);
+    await expect(row).toBeVisible({ timeout: 500 });
+  }).toPass({ timeout: 10_000 });
+}
+
+test.describe("Patient pickers page in more patients as they scroll (R-757)", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  test("CSKH Tạo công việc mới: scrolling past 30 patients loads the next page", async ({ page }) => {
+    await page.goto("/cskh-grouping?tab=care&page=special&care_dateMode=day");
+    await assertRealApiTraffic(page, "/api/v1/app/care-records/stats");
+    await page.getByRole("button", { name: "Tạo mới" }).click();
+    const dialog = page.getByRole("dialog").filter({ hasText: "Tạo công việc mới" });
+    await dialog.locator(".cskh-message-field").filter({ hasText: "Chọn khách hàng" }).getByRole("combobox").click();
+
+    const dropdown = page.locator("#ss-portal-dropdown");
+    const options = dropdown.getByRole("option");
+    await expect(options).toHaveCount(30);
+
+    const second = await scrollForNextPage(page, dropdown.locator(".ss-options"));
+    expect(second.items.length).toBeGreaterThan(0);
+    // The wheel keeps going, so later pages may land too — at least this one has.
+    await expect.poll(() => options.count()).toBeGreaterThanOrEqual(30 + second.items.length);
+    const last = second.items[second.items.length - 1]!;
+    await expect(options.filter({ hasText: last.patientCode })).toHaveCount(1);
+  });
+
+  test("Mẫu Labo: the customer filter loads the next page at the bottom of its list", async ({ page }) => {
+    await page.goto("/labo/mau-labo");
+    await page.locator(".bd-labo-picker").first().click();
+    const holder = page.locator(".ant-select-dropdown:visible .ant-select-dropdown-list-holder");
+    await expect(holder).toBeVisible();
+
+    const second = await scrollForNextPage(page, holder);
+    await expectAntdRowAfterScroll(page, second.items[0]!.patientCode);
+  });
+
+  test("Tiếp nhận: the customer picker loads the next page at the bottom of its list", async ({ page }) => {
+    await page.goto("/reception");
+    await page.getByRole("button", { name: "Tạo tiếp nhận" }).click();
+    await page.getByRole("dialog").locator(".ant-select").first().click();
+    const holder = page.locator(".ant-select-dropdown:visible .ant-select-dropdown-list-holder");
+    await expect(holder).toBeVisible();
+
+    const second = await scrollForNextPage(page, holder);
+    await expectAntdRowAfterScroll(page, second.items[0]!.patientCode);
   });
 });

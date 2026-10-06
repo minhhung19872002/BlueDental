@@ -5,9 +5,8 @@ import dayjs, { type Dayjs } from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { useCreateReception } from "../api/receptionMutations";
 import { useAvailableReceptionDoctors } from "../api/receptionQueries";
-import { usePatientList } from "@/features/patient-management/api/patientQueries";
-import { useDebounce } from "@/hooks/useDebounce";
-import { usePinnedPatientOptions, type PatientOption } from "@/hooks/usePatientOptions";
+import { pagedSelectProps } from "@/components/pagedSelectProps";
+import { usePatientPicker } from "@/hooks/usePatientOptions";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -41,9 +40,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const [form] = Form.useForm<FormValues>();
   const createMutation = useCreateReception();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
-  const [patientKeyword, setPatientKeyword] = useState("");
   const [newPatientOpen, setNewPatientOpen] = useState(false);
-  const debouncedPatientKeyword = useDebounce(patientKeyword);
 
   // Only doctors not registered OFF on the visit's day (BA 2026-10-02).
   const watchedDate = Form.useWatch("appointmentDate", form);
@@ -60,35 +57,19 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     form.setFields([{ name: "doctorId", value: undefined, errors: [t("Appointment:Form:DoctorOffOnDate")] }]);
   }, [doctorIsOff, form]);
 
-  const { data: patientData } = usePatientList({
-    branchId,
-    filter: debouncedPatientKeyword || undefined,
-    maxResultCount: 20,
-  });
-
-  const listedPatients = useMemo(
-    (): PatientOption[] =>
-      (patientData?.items ?? []).map((p) => ({
-        id: p.id,
-        name: p.fullName,
-        code: p.patientCode,
-        phone: p.phoneNumber ?? "",
-      })),
-    [patientData],
-  );
-  // The list is one page of search hits; the picked patient must survive a new
-  // keyword, or the picker shows a raw id and the save loses name and phone.
+  // Search hits paged in as the list scrolls; the picked patient must survive a
+  // new keyword, or the picker shows a raw id and the save loses name and phone.
   const watchedPatientId = Form.useWatch("patientId", form);
-  const pinnedPatients = usePinnedPatientOptions(listedPatients, watchedPatientId);
+  const patientPicker = usePatientPicker(watchedPatientId, { branchId });
   const patientOptions = useMemo(
     () =>
-      pinnedPatients.map((p) => ({
+      patientPicker.patients.map((p) => ({
         value: p.id,
         label: `[${p.code}] - ${p.name.toUpperCase()}`,
         phone: p.phone || undefined,
         name: p.name,
       })),
-    [pinnedPatients],
+    [patientPicker.patients],
   );
 
   const handlePatientChange = (patientId: string) => {
@@ -101,7 +82,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const handlePatientCreated = (created: PatientDto) => {
     form.setFieldValue("patientId", created.id);
     setSelectedPhone(created.phoneNumber ?? "---");
-    setPatientKeyword(created.fullName ?? "");
+    patientPicker.search(created.fullName ?? "");
   };
 
   const resolveBranchId = (doctorId?: string): string | undefined => {
@@ -188,8 +169,9 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                 <Select
                   showSearch
                   filterOption={false}
-                  onSearch={setPatientKeyword}
+                  onSearch={patientPicker.search}
                   onChange={(val: string) => handlePatientChange(val)}
+                  {...pagedSelectProps(patientPicker)}
                   options={patientOptions.map((p) => ({
                     value: p.value,
                     label: p.label,

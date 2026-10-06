@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { Spin } from "antd";
 import { t } from "@/lib/i18n";
+import { isNearScrollEnd } from "@/utils/scrollEnd";
 
 export interface SearchSelectOption {
   value: string;
@@ -50,6 +52,13 @@ export interface SearchSelectProps {
    * "Khác" escape hatch there for lists that cannot cover every answer.
    */
   footer?: React.ReactNode;
+  /**
+   * For options paged in from the server: called as the list is scrolled to
+   * its end. Leave it undefined once every page is in.
+   */
+  onLoadMore?: () => void;
+  /** A spinner under the last row while the next page loads. */
+  loadingMore?: boolean;
 }
 
 export const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -66,6 +75,8 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   filterLocally = true,
   onOpenChange,
   footer,
+  onLoadMore,
+  loadingMore = false,
 }) => {
   const resolvedPlaceholder = placeholder ?? t("Common:Search");
   const [open, setOpen] = useState(false);
@@ -163,6 +174,10 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     onSearch?.(e.target.value);
   };
 
+  const handleOptionsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (onLoadMore && isNearScrollEnd(e.currentTarget)) onLoadMore();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       closeDropdown();
@@ -200,7 +215,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 onKeyDown={handleKeyDown}
               />
             </div>
-            <div className="ss-options">
+            <div className="ss-options" onScroll={handleOptionsScroll}>
               {filtered.length === 0 ? (
                 <div className="ss-empty">{emptyText ?? t("Common:NoResults")}</div>
               ) : (
@@ -219,6 +234,11 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                     {renderOptionLabel(opt)}
                   </div>
                 ))
+              )}
+              {loadingMore && (
+                <div className="ss-loading-more">
+                  <Spin size="small" />
+                </div>
               )}
             </div>
             {footer ? <div className="ss-footer">{footer}</div> : null}
