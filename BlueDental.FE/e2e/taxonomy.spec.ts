@@ -43,7 +43,7 @@ test.describe("Danh mục", () => {
     await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
 
     const entryDialog = page.getByRole("dialog");
-    await entryDialog.getByLabel(/^Dịch vụ/).fill(serviceName);
+    await entryDialog.getByRole("textbox", { name: /^Dịch vụ/ }).fill(serviceName);
     // The reference dropped the "Mã dịch vụ" box; the server issues the code.
     await entryDialog.getByLabel(/^Giá$/).fill("180000");
     await entryDialog.getByRole("button", { name: /Lưu$/ }).click();
@@ -101,7 +101,7 @@ test.describe("Danh mục", () => {
     for (const name of [`A ${id}`, `B ${id}`]) {
       await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
       const dialog = page.getByRole("dialog");
-      await dialog.getByLabel(/^Dịch vụ/).fill(name);
+      await dialog.getByRole("textbox", { name: /^Dịch vụ/ }).fill(name);
       await dialog.getByRole("button", { name: /Lưu$/ }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
@@ -137,7 +137,7 @@ test.describe("Danh mục", () => {
     for (const name of [`ROW A ${id}`, `ROW B ${id}`]) {
       await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
       const dialog = page.getByRole("dialog");
-      await dialog.getByLabel(/^Dịch vụ/).fill(name);
+      await dialog.getByRole("textbox", { name: /^Dịch vụ/ }).fill(name);
       await dialog.getByRole("button", { name: /Lưu$/ }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();

@@ -14,6 +14,20 @@ export const DEFAULT_BRANCH_ID = "11111111-1111-1111-1111-111111111111";
 const STORAGE_KEY = "bd-current-branch-id";
 const URL_PARAM = "branchId";
 
+type UrlReplacer = (url: URL) => void;
+
+let replaceUrl: UrlReplacer = (url) => window.history.replaceState(null, "", url.toString());
+
+/**
+ * Hands the address bar to the router once it exists. Written past the router,
+ * the branch id left the router holding the old one, and the next screen that
+ * set a search param of its own (the taxonomy group) wrote that old branch back
+ * — so a reload opened the branch the user had just left (R-730).
+ */
+export function routeBranchUrlThrough(replacer: UrlReplacer): void {
+  replaceUrl = replacer;
+}
+
 function syncToUrl(id: string | null) {
   const url = new URL(window.location.href);
   if (id) {
@@ -21,7 +35,8 @@ function syncToUrl(id: string | null) {
   } else {
     url.searchParams.delete(URL_PARAM);
   }
-  window.history.replaceState(null, "", url.toString());
+  if (url.href === window.location.href) return;
+  replaceUrl(url);
 }
 
 function readFromUrl(): string | null {

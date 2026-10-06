@@ -129,6 +129,10 @@ internal static class EntryMerge
 
         return new ServiceConfigDto
         {
+            // Not columns of the sheet: the stored kind and Labo picks carry over,
+            // otherwise writing the merge back would wipe them.
+            Kind = stored.Kind,
+            LaboSupplierIds = stored.LaboSupplierIds.ToList(),
             TaxRate = Pick(Col.TaxRate, file.TaxRate, stored.TaxRate),
             PriceIncludesTax = Pick(Col.PriceIncludesTax, file.PriceIncludesTax, stored.PriceIncludesTax),
             DiscountIsPercent = Pick(Col.DiscountIsPercent, file.DiscountIsPercent, stored.DiscountIsPercent),

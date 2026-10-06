@@ -27,7 +27,7 @@ internal static class CatalogEntryParts
 
         if (serviceConfig != null)
         {
-            entry.EnsureServiceConfig(guids.Create()).Update(
+            entry.EnsureServiceConfig(guids.Create(), serviceConfig.Kind).Update(
                 serviceConfig.TaxRate,
                 serviceConfig.PriceIncludesTax,
                 serviceConfig.DiscountIsPercent,

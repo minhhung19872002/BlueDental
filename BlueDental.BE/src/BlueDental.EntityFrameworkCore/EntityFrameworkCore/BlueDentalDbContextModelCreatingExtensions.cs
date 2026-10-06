@@ -1033,6 +1033,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.PrescriptionLines).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+            entity.HasMany(x => x.ComboItems)
+                .WithOne()
+                .HasForeignKey(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.ComboItems).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
             entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
         });
@@ -1041,6 +1047,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         {
             entity.ToTable("bd_catalog_service_configs");
             entity.ConfigureByConvention();
+            entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.TaxRate).HasConversion<short>();
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
             entity.PrimitiveCollection(x => x.LaboSupplierIds).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -1078,6 +1085,19 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.OtherUsage).HasMaxLength(200);
             entity.Ignore(x => x.Quantity);
             entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
+        });
+
+        // Thanh phan combo. The component is another entry of the same catalog,
+        // held as a bare id (like a prescription line's medicine) so deleting
+        // or editing that service never cascades into the combo.
+        builder.Entity<CatalogComboItem>(entity =>
+        {
+            entity.ToTable("bd_catalog_combo_items");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.UnitAmount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.LineTotal);
+            entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
+            entity.HasIndex(x => x.ComponentEntryId);
         });
 
         // Phan cong nhan vien theo chi nhanh

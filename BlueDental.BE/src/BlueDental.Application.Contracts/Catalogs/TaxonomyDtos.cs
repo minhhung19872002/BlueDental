@@ -96,6 +96,9 @@ public class GetTaxonomyListInput : PagedAndSortedResultRequestDto
 /// </summary>
 public class ServiceConfigDto
 {
+    /// <summary>"Loại" — Dịch vụ lẻ or Combo. Chosen on create; an update must send the stored kind.</summary>
+    public ServiceKind Kind { get; set; }
+
     public ServiceTaxRate TaxRate { get; set; }
     public bool PriceIncludesTax { get; set; }
     public bool DiscountIsPercent { get; set; } = true;
@@ -119,6 +122,35 @@ public class ServiceConfigDto
 
     /// <summary>Read side only — "BE:Field:AmountCollected".</summary>
     public decimal AmountCollected { get; set; }
+
+    /// <summary>Read side only — "Tiền thuế" (BA 2026-10-06).</summary>
+    public decimal TaxAmount { get; set; }
+}
+
+/// <summary>
+/// One row of "Thành phần combo" (BA 2026-10-06). The dialog sends the first
+/// three; the rest are filled in on the way out.
+/// </summary>
+public class ComboItemDto
+{
+    public Guid ComponentEntryId { get; set; }
+
+    public int Quantity { get; set; } = 1;
+
+    /// <summary>"Thành tiền" — the price of one unit inside the combo.</summary>
+    public decimal UnitAmount { get; set; }
+
+    /// <summary>Read side only — the service's name.</summary>
+    public string? Name { get; set; }
+
+    /// <summary>Read side only — the service's group, for the "group · price" line.</summary>
+    public string? TaxonomyName { get; set; }
+
+    /// <summary>Read side only — "Đơn giá", the service's own price in master data today.</summary>
+    public decimal UnitPrice { get; set; }
+
+    /// <summary>Read side only — the service has been deleted since it was added.</summary>
+    public bool IsDeleted { get; set; }
 }
 
 /// <summary>One row of the service dialog's "BE:Common:Stage" table.</summary>
@@ -204,6 +236,9 @@ public class CatalogEntryDto : FullAuditedEntityDto<Guid>
     public List<ServiceStageDto> Stages { get; set; } = [];
     public List<PrescriptionTemplateLineDto> PrescriptionLines { get; set; } = [];
 
+    /// <summary>"Thành phần combo"; empty unless the service is a combo.</summary>
+    public List<ComboItemDto> ComboItems { get; set; } = [];
+
     public string? TaxonomyName { get; set; }
 }
 
@@ -241,6 +276,13 @@ public class CreateCatalogEntryDto
 
     /// <summary>The whole medicine-line table of a prescription template.</summary>
     public List<PrescriptionTemplateLineDto>? PrescriptionLines { get; set; }
+
+    /// <summary>
+    /// The whole "Thành phần combo" table — required when the service config's
+    /// kind is Combo, refused otherwise. A combo is saved at <c>Price</c> as the
+    /// user typed it (BA 2026-10-06); left empty, it costs Σ unit amount × quantity.
+    /// </summary>
+    public List<ComboItemDto>? ComboItems { get; set; }
 }
 
 public class UpdateCatalogEntryDto
@@ -285,6 +327,13 @@ public class UpdateCatalogEntryDto
 
     /// <summary>The whole medicine-line table of a prescription template.</summary>
     public List<PrescriptionTemplateLineDto>? PrescriptionLines { get; set; }
+
+    /// <summary>
+    /// The whole "Thành phần combo" table — required when the service config's
+    /// kind is Combo, refused otherwise. A combo is saved at <c>Price</c> as the
+    /// user typed it (BA 2026-10-06); left empty, it costs Σ unit amount × quantity.
+    /// </summary>
+    public List<ComboItemDto>? ComboItems { get; set; }
 }
 
 public class GetCatalogEntryListInput : PagedAndSortedResultRequestDto
@@ -301,4 +350,7 @@ public class GetCatalogEntryListInput : PagedAndSortedResultRequestDto
     /// </summary>
     public bool? IsDeleted { get; set; }
     public string? Filter { get; set; }
+
+    /// <summary>Services only: just the single services, or just the combos. A service without a config counts as single.</summary>
+    public ServiceKind? Kind { get; set; }
 }

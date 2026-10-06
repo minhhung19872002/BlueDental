@@ -44,6 +44,12 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidImportFile = "BlueDental:Catalogs:0023";
         public const string ImportNotSupported = "BlueDental:Catalogs:0024";
         public const string LaboSupplierNotInBranch = "BlueDental:Catalogs:0025";
+        public const string ServiceKindCannotChange = "BlueDental:Catalogs:0026";
+        public const string ComboWithoutComponents = "BlueDental:Catalogs:0027";
+        public const string InvalidComboComponent = "BlueDental:Catalogs:0028";
+        public const string InvalidComboLine = "BlueDental:Catalogs:0029";
+        public const string ComboNotImportable = "BlueDental:Catalogs:0030";
+        public const string ComboComponentDeleted = "BlueDental:Catalogs:0031";
     }
 
     public static class PatientManagement

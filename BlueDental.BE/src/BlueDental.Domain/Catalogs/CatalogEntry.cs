@@ -21,6 +21,7 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
 {
     private readonly List<CatalogServiceStage> _stages = new();
     private readonly List<PrescriptionTemplateLine> _prescriptionLines = new();
+    private readonly List<CatalogComboItem> _comboItems = new();
 
     public Guid ClinicBranchId { get; private set; }
 
@@ -66,6 +67,12 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
 
     /// <summary>The medicine lines of a "BE:Common:RxTemplate".</summary>
     public IReadOnlyList<PrescriptionTemplateLine> PrescriptionLines => _prescriptionLines;
+
+    /// <summary>"Thành phần combo" — empty unless the service is a combo.</summary>
+    public IReadOnlyList<CatalogComboItem> ComboItems => _comboItems;
+
+    /// <summary>A service whose "Loại" is Combo.</summary>
+    public bool IsCombo => ServiceConfig?.Kind == ServiceKind.Combo;
 
     protected CatalogEntry() { }
 
@@ -153,12 +160,96 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// The service half of the entry. Created on first use so the row only
-    /// exists for the catalog that has one.
+    /// exists for the catalog that has one. Its "Loại" is fixed from then on.
     /// </summary>
-    public CatalogServiceConfig EnsureServiceConfig(Guid id)
+    public CatalogServiceConfig EnsureServiceConfig(Guid id, ServiceKind kind = ServiceKind.Single)
     {
-        ServiceConfig ??= new CatalogServiceConfig(id, Id);
+        if (ServiceConfig != null && ServiceConfig.Kind != kind)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ServiceKindCannotChange,
+                "A service cannot be turned into a combo, nor a combo into a single service.");
+        }
+
+        ServiceConfig ??= new CatalogServiceConfig(id, Id, kind);
         return ServiceConfig;
+    }
+
+    /// <summary>
+    /// Saves "Thành phần combo" as the dialog sends it (BA 2026-10-06). Every
+    /// component must be a single service of this branch; the services
+    /// themselves are only read. A deleted service may stay where it already
+    /// was, but cannot be added. The price is the one the user settled on —
+    /// see <see cref="PriceCombo"/>.
+    /// </summary>
+    public void ConfigureCombo(IReadOnlyList<ComboComponent> components, Func<Guid> newId, decimal? price)
+    {
+        if (!IsCombo || Group != TaxonomyGroups.CareService)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboComponent,
+                "Only a combo of the service catalog has components.");
+        }
+
+        if (components.Count == 0)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboWithoutComponents,
+                "A combo needs at least one service.");
+        }
+
+        var seen = new HashSet<Guid>();
+        foreach (var component in components)
+        {
+            GuardComponent(component.Service, seen);
+        }
+
+        var rows = components
+            .Select((component, index) => new CatalogComboItem(
+                newId(), Id, component.Service.Id, component.Quantity, component.UnitAmount, index))
+            .ToList();
+
+        _comboItems.Clear();
+        _comboItems.AddRange(rows);
+        PriceCombo(price);
+    }
+
+    /// <summary>
+    /// Giá combo: the dialog fills it with Σ unit amount × quantity and the
+    /// user may then type over it (BA 2026-10-06), so a typed price is kept as
+    /// it is. Only a missing one falls back to the sum of the rows.
+    /// </summary>
+    public void PriceCombo(decimal? price)
+    {
+        if (!IsCombo)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboComponent,
+                "Only a combo is priced from its components.");
+        }
+
+        ChangePrice(price ?? _comboItems.Sum(row => row.LineTotal));
+    }
+
+    private void GuardComponent(CatalogEntry service, HashSet<Guid> seen)
+    {
+        if (service.Id == Id
+            || service.Group != TaxonomyGroups.CareService
+            || service.ClinicBranchId != ClinicBranchId
+            || service.IsCombo
+            || !seen.Add(service.Id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidComboComponent,
+                "A combo is made of distinct single services of its own branch.");
+        }
+
+        if (service.IsDeleted && _comboItems.All(item => item.ComponentEntryId != service.Id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboComponentDeleted,
+                "A deleted service cannot be added to a combo.");
+        }
     }
 
     public CatalogMedicine EnsureMedicine(Guid id)

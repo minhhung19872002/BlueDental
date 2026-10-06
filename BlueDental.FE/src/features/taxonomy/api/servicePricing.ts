@@ -1,7 +1,7 @@
 import { SERVICE_TAX_RATE, type ServiceTaxRate } from "./taxonomyApi";
 
 /** The percentage each "% thuế" choice charges; the two non-numeric ones charge nothing. */
-const TAX_PERCENT: Record<ServiceTaxRate, number> = {
+export const TAX_PERCENT: Record<ServiceTaxRate, number> = {
   [SERVICE_TAX_RATE.NotTaxable]: 0,
   [SERVICE_TAX_RATE.NotDeclared]: 0,
   [SERVICE_TAX_RATE.Zero]: 0,
@@ -25,7 +25,7 @@ export interface ServicePricing {
   amountCollected: number;
 }
 
-const roundToCents = (value: number) => Math.round(value * 100) / 100;
+export const roundToCents = (value: number) => Math.round(value * 100) / 100;
 
 /**
  * Mirrors `CatalogServiceConfig.PriceAfterDiscount` / `AmountCollected` so the

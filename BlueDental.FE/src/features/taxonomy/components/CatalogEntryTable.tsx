@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo, type HTMLAttributes } from "react";
-import { Button, Tooltip } from "antd";
+import { Button, Tag, Tooltip } from "antd";
 import { DeleteOutlined, EditOutlined, HolderOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import type { CatalogEntryDto } from "../api/taxonomyApi";
+import { SERVICE_KIND, type CatalogEntryDto } from "../api/taxonomyApi";
 import { DataTable } from "@/components/DataTable";
 import { LetterAvatar } from "@/components/LetterAvatar";
 import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
@@ -126,6 +126,9 @@ export function CatalogEntryTable({
             <div className="bd-min0">
               <p className={entry.isDeleted ? "bd-cat-name bd-cat-name--deleted" : "bd-cat-name"}>
                 {entry.name}
+                {entry.serviceConfig?.kind === SERVICE_KIND.Combo && (
+                  <Tag className="bd-combo-tag bd-combo-tag--table">{t("Taxonomy:Combo:Tag")}</Tag>
+                )}
               </p>
               {entry.code && <p className="bd-cat-subtle">{entry.code}</p>}
             </div>

@@ -119,7 +119,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await expect(dialog.getByLabel(/Mã dịch vụ/)).toHaveCount(0);
     await expect(dialog.getByRole("tab")).toHaveText(["Cài đặt", "Công đoạn", "Bảo hành", "Labo"]);
 
-    await dialog.getByLabel(/^Dịch vụ/).fill(name);
+    await dialog.getByRole("textbox", { name: /^Dịch vụ/ }).fill(name);
     await dialog.getByLabel(/Tên chi tiết/).fill("Tên chi tiết E2E");
     await dialog.getByLabel(/^Giá$/).fill("1000");
     await dialog.getByLabel(/Giảm giá/).fill("10");
