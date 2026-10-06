@@ -69,6 +69,11 @@ public sealed class CatalogEntryController(
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 
+    /// <summary>The combos the delete confirmation names.</summary>
+    [HttpGet("{id:guid}/combo-holders")]
+    public Task<ListResultDto<CatalogComboHolderDto>> GetComboHoldersAsync(Guid id) =>
+        service.GetComboHoldersAsync(id);
+
     /// <summary>One drag is one call carrying the whole order.</summary>
     [HttpPost("reorder")]
     public Task ReorderAsync([FromBody] ReorderCatalogEntryDto input) => service.ReorderAsync(input);

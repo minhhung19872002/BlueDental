@@ -299,6 +299,41 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         Price = _comboItems.Sum(item => item.LineTotal);
     }
 
+    /// <summary>
+    /// Takes a deleted service out of this combo. The combo's price follows,
+    /// as it always does: it is the sum of the rows that are left.
+    ///
+    /// The last row cannot go — a combo needs at least one service, so the
+    /// combo has to be edited or deleted first.
+    /// </summary>
+    public bool RemoveComboComponent(Guid componentEntryId)
+    {
+        if (!IsCombo)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.ComboNotSupported,
+                "Only a combo has combo components.");
+        }
+
+        var item = _comboItems.FirstOrDefault(x => x.ComponentEntryId == componentEntryId);
+        if (item == null)
+        {
+            return false;
+        }
+
+        if (_comboItems.Count == 1)
+        {
+            throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Catalogs.ServiceIsLastComboComponent,
+                    "The service is the only component of a combo.")
+                .WithData("comboName", Name);
+        }
+
+        _comboItems.Remove(item);
+        Price = _comboItems.Sum(x => x.LineTotal);
+        return true;
+    }
+
     public void ReplacePrescriptionLines(IEnumerable<PrescriptionTemplateLine> lines)
     {
         _prescriptionLines.Clear();

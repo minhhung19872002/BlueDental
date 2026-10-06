@@ -200,6 +200,20 @@ public class CatalogComboItemDto
     public decimal? ComponentPrice { get; set; }
 }
 
+/// <summary>
+/// A live combo that holds a service — what the delete confirmation names,
+/// since deleting the service takes it out of these combos.
+/// </summary>
+public class CatalogComboHolderDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Code { get; set; }
+
+    /// <summary>The service is the combo's only component, so the delete is refused.</summary>
+    public bool IsLastComponent { get; set; }
+}
+
 /// <summary>How many entries the "Tất cả / Dịch vụ lẻ / Combo" filter of Danh mục holds.</summary>
 public class CatalogEntryKindCountsDto
 {

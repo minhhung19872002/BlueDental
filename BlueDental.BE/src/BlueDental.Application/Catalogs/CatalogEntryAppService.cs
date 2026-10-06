@@ -290,6 +290,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             if (input.IsDeleted && !entry.IsDeleted)
             {
                 await EnsureServiceNotInUseAsync(entry);
+                await RemoveFromCombosAsync(entry);
             }
 
             entry.SetDeleted(input.IsDeleted);
@@ -307,7 +308,75 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         var entry = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(entry.ClinicBranchId);
         await EnsureServiceNotInUseAsync(entry);
+        await RemoveFromCombosAsync(entry);
         await _repository.DeleteAsync(id, autoSave: true);
+    }
+
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
+    public async Task<ListResultDto<CatalogComboHolderDto>> GetComboHoldersAsync(Guid id)
+    {
+        var entry = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(entry.ClinicBranchId);
+
+        var holders = await GetLiveComboHoldersAsync(entry);
+        return new ListResultDto<CatalogComboHolderDto>(holders
+            .Select(combo => new CatalogComboHolderDto
+            {
+                Id = combo.Id,
+                Name = combo.Name,
+                Code = combo.Code,
+                IsLastComponent = combo.ComboItems.Count == 1
+            })
+            .ToList());
+    }
+
+    /// <summary>
+    /// A deleted service leaves every live combo that holds it, and each
+    /// combo's price drops by the row it lost. Deleted combos are left as they
+    /// are — they sell nothing, and emptying one would break the rule that a
+    /// combo has a service. The audit log names the combos, next to the
+    /// deleter and the time the entry itself carries.
+    /// </summary>
+    private async Task RemoveFromCombosAsync(CatalogEntry entry)
+    {
+        var holders = await GetLiveComboHoldersAsync(entry);
+        if (holders.Count == 0)
+        {
+            return;
+        }
+
+        // All or nothing: a combo the service would empty refuses the delete
+        // before any combo is written.
+        foreach (var combo in holders)
+        {
+            combo.RemoveComboComponent(entry.Id);
+        }
+
+        await _repository.UpdateManyAsync(holders, autoSave: true);
+
+        LazyServiceProvider.LazyGetRequiredService<IAuditingManager>().Current?.Log.Comments.Add(
+            $"Catalog entry {entry.Id} removed from combos: "
+            + string.Join(", ", holders.Select(combo => combo.Id)));
+    }
+
+    /// <summary>The live combos of the service's own branch that hold it, rows loaded.</summary>
+    private async Task<List<CatalogEntry>> GetLiveComboHoldersAsync(CatalogEntry entry)
+    {
+        if (entry.Group != TaxonomyGroups.CareService || entry.IsCombo)
+        {
+            return [];
+        }
+
+        using (_softDeleteFilter.Enable())
+        {
+            var query = await _repository.WithDetailsAsync();
+            return await AsyncExecuter.ToListAsync(query
+                .Where(x => x.IsCombo
+                    && x.ClinicBranchId == entry.ClinicBranchId
+                    && x.ComboItems.Any(item => item.ComponentEntryId == entry.Id))
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Name));
+        }
     }
 
     /// <summary>
@@ -655,6 +724,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,
-        LastModifierId = entity.LastModifierId
+        LastModifierId = entity.LastModifierId,
+        DeleterId = entity.DeleterId
     };
 }

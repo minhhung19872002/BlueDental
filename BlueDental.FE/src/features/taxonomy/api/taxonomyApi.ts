@@ -188,6 +188,15 @@ export interface CatalogEntryDto {
   creationTime: string;
 }
 
+/** Mirrors BlueDental.Catalogs.CatalogComboHolderDto — a live combo holding a service. */
+export interface CatalogComboHolderDto {
+  id: string;
+  name: string;
+  code: string | null;
+  /** The service is the combo's only component, so the server refuses the delete. */
+  isLastComponent: boolean;
+}
+
 /** What a combo row sends — the read-side names stay behind. */
 export type CatalogComboItemInput = Pick<CatalogComboItemDto, "componentEntryId" | "quantity" | "unitPrice">;
 
@@ -304,6 +313,11 @@ const taxonomyApi = {
   deleteEntry: (id: string): Promise<void> =>
     api.delete(`/v1/app/catalog-entries/${id}`).then(() => undefined),
 
+  comboHolders: (id: string): Promise<CatalogComboHolderDto[]> =>
+    api
+      .get<{ items: CatalogComboHolderDto[] }>(`/v1/app/catalog-entries/${id}/combo-holders`)
+      .then((r) => r.data.items),
+
   reorderGroups: (input: ReorderGroupsInput): Promise<void> =>
     api.post("/v1/app/taxonomies/reorder", input).then(() => undefined),
 
@@ -372,6 +386,7 @@ export const taxonomyKeys = {
     [...taxonomyKeys.all, "kind-counts", branchId ?? "all", group, taxonomyId, filter] as const,
   components: (branchId: string | undefined, taxonomyId: string | null, filter: string) =>
     [...taxonomyKeys.all, "combo-components", branchId ?? "all", taxonomyId, filter] as const,
+  comboHolders: (entryId: string) => [...taxonomyKeys.all, "combo-holders", entryId] as const,
 };
 
 /**
@@ -624,6 +639,18 @@ export function useReorderCatalogEntries() {
       notifyApiError(error);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: taxonomyKeys.all }),
+  });
+}
+
+/**
+ * The live combos holding a service — the delete confirmation names them,
+ * since deleting the service takes it out of them (BA rule, R-768).
+ */
+export function useComboHolders(entryId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: taxonomyKeys.comboHolders(entryId ?? ""),
+    queryFn: () => taxonomyApi.comboHolders(entryId ?? ""),
+    enabled: enabled && Boolean(entryId),
   });
 }
 

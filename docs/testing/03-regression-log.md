@@ -6997,3 +6997,23 @@ Kiểm: E2E mới `payment-amount-cap` **1/1** (đăng nhập thật, phiếu đ
 dừng đúng Còn nợ, số nhỏ hơn giữ nguyên, Thủ công dừng ở Còn nợ dòng, lưu → đọc lại phiếu thu bằng request riêng
 đúng số Còn nợ, tải lại không còn dịch vụ để thu). Hồi quy `billing-ledger` + `debt-history` **9/9**. Chạy trên dev
 server :5173 → host :5000. Retest level **3** (`CurrencyInput` dùng chung; không truyền `max` thì hành vi như cũ).
+
+## 2026-10-06 — Xoá dịch vụ đang nằm trong combo: báo combo nào, gỡ khỏi combo, lưu người/ngày xoá (R-771, Danh mục, BA bổ sung bug list #11)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-771 | BA (sau bug #11): "Nếu nó đã khai báo trong combo thì hiển thị thông báo đang được sử dụng trong combo nào. Nếu xoá thì dịch vụ này sẽ mất trong combo đó. Xác nhận đồng ý thì xoá. Khi xoá ghi lại lịch sử xoá, người xoá, ngày xoá." Trước đó dịch vụ chỉ nằm trong combo vẫn xoá được nhưng combo giữ nguyên thành phần đã xoá (F-48), hộp xác nhận không nhắc gì. | BE: `CatalogEntry.RemoveComboComponent` gỡ dòng thành phần và tính lại `Price = Σ LineTotal` (domain vốn ép giá combo = tổng dòng → **giá combo giảm theo dòng bị gỡ**). Combo chỉ còn đúng dịch vụ đó → từ chối `Catalogs:0034` "Dịch vụ là thành phần duy nhất của combo \"{comboName}\"…" (domain không cho combo rỗng). `CatalogEntryAppService`: cả hai cửa xoá (DELETE thùng rác và PUT `isDeleted` từ dialog) chạy `EnsureServiceNotInUseAsync` (bug #11, `0033` giữ nguyên) → `RemoveFromCombosAsync`: gỡ khỏi mọi combo **còn sống** cùng chi nhánh trước rồi mới lưu (hỏng một combo là không đổi gì), ghi comment audit log "removed from combos: ids". Combo đã xoá không đụng tới; khôi phục dịch vụ không tự thêm lại vào combo. `DeleterId`/`DeletionTime` (ABP FullAudited) nay trả về trong DTO. Endpoint mới `GET catalog-entries/{id}/combo-holders` (`Catalogs.View`, kiểm chi nhánh) trả combo + `isLastComponent`. FE: `useComboHolders` + `ComboHoldersNotice` (`role=alert`; vàng = `Taxonomy:Catalog:InCombos` "Dịch vụ đang được sử dụng trong combo: …", đỏ = `LastInCombos`) hiện trong hộp xác nhận thùng rác và dưới ô "Đã xoá" của `ServiceDialog`. CSS ở `taxonomy.css`. Không có màn lịch sử xoá — người/ngày xoá lưu trên bản ghi + audit log. |
+
+Kiểm (build production `vite preview` 127.0.0.1:8091, host :5000 build lại, PostgreSQL thật, không chặn API):
+`taxonomy-service-in-use.spec.ts` **4/4** — test mới "BA: deleting a combo component…" (3 dịch vụ + combo 3 thành phần
++ combo 1 thành phần qua API thật; thùng rác → hộp thoại nêu tên combo → Xoá → reload: dịch vụ gạch, `deleterId` = user
+đăng nhập, `deletionTime` vừa xong, combo còn 2 dòng giá 180.000; dialog tick "Đã xoá" → cùng thông báo → Lưu → combo còn
+1 dòng 90.000; thành phần cuối: thông báo đỏ, DELETE bị từ chối + toast, PUT trả `0034`, không gì thay đổi); test combo cũ
+sửa theo luật mới (xoá thành phần → combo còn dòng A, giá 90.000, combo đã xoá giữ 2 dòng, lưu lại + đưa vào phiếu điều
+trị vẫn được). Lần chạy đầu 2 test cũ đỏ 500 ở `useInPlan`: DB local thiếu migration `TreatmentServiceTaxRate` +
+`CareRecordContactedAt` của origin → chạy DbMigrator, xanh lại.
+Hồi quy mức 3 `taxonomy*` + `payment-qr` + `branch-*` **69/72**. 3 đỏ chết ở bước chọn dữ liệu, không qua đường xoá:
+`taxonomy-dialogs` :104 / :256 lấy `clinic-branches/accessible[0]` = chi nhánh "DANHTEST01" (phiên khác tạo 12:54Z, không
+có nhóm dịch vụ / NCC labo → option NCC không thấy, "the branch should have a service group"); `taxonomy.spec` :283 mở
+nhóm đầu tiên = "KEO B …" (nhóm rỗng sortOrder 0 do test kéo-thả phiên khác để lại) → bảng không có dòng. Chưa chạy
+lại trên HEAD sạch; không xoá dữ liệu của phiên khác. tsc + eslint sạch. Chưa commit. Retest level **3**.

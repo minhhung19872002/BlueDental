@@ -8,6 +8,11 @@ import { login, runId } from "./fixtures/auth";
  * through — the bin icon or the dialog's "Đã xoá" status. A service nobody uses
  * still deletes as before.
  *
+ * BA rule (R-771): a service that only sits in combos may be deleted, but the
+ * confirmation names those combos first; the delete takes it out of them (the
+ * combo price drops by its row), and the deleter and the time are kept. A
+ * combo the service is the only part of refuses the delete (Catalogs:0034).
+ *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted;
  * every "nothing was saved" check is a separate read after a reload.
  */
@@ -17,6 +22,9 @@ const ENTRIES = "/api/v1/app/catalog-entries";
 const BRANCH = "11111111-1111-1111-1111-111111111111";
 const IN_USE_CODE = "BlueDental:Catalogs:0033";
 const IN_USE_MESSAGE = "Dịch vụ đang được sử dụng, không thể xóa";
+const LAST_PART_CODE = "BlueDental:Catalogs:0034";
+const IN_COMBOS = (names: string) =>
+  `Dịch vụ đang được sử dụng trong combo: ${names}. Nếu xoá, dịch vụ sẽ bị gỡ khỏi các combo này và giá combo giảm theo.`;
 
 interface Reply<T> {
   status: number;
@@ -56,14 +64,26 @@ interface Entry {
   isDeleted: boolean;
 }
 
-/** Read through the list, which — unlike GET by id — still carries a soft-deleted service. */
-async function isDeleted(page: Page, taxonomyId: string, id: string) {
-  const res = await call<{ items: Entry[] }>(
+interface ListedEntry extends Entry {
+  price: number | null;
+  deleterId: string | null;
+  deletionTime: string | null;
+  comboItems: { componentEntryId: string; componentName: string | null; quantity: number; unitPrice: number }[];
+}
+
+/** One entry as the list reads it — deleted rows included. */
+async function listed(page: Page, taxonomyId: string, id: string) {
+  const res = await call<{ items: ListedEntry[] }>(
     page, "GET", `${ENTRIES}?group=care_service&clinicBranchId=${BRANCH}&taxonomyId=${taxonomyId}&maxResultCount=100`,
   );
   const entry = res.body.items.find((e) => e.id === id);
-  expect(entry, "the service should still be listed").toBeTruthy();
-  return entry!.isDeleted;
+  expect(entry, "the entry should still be listed").toBeTruthy();
+  return entry!;
+}
+
+/** Read through the list, which — unlike GET by id — still carries a soft-deleted service. */
+async function isDeleted(page: Page, taxonomyId: string, id: string) {
+  return (await listed(page, taxonomyId, id)).isDeleted;
 }
 
 /** Puts `serviceId` on an open treatment slip of the branch — the "used in a plan" of the bug. */
@@ -215,23 +235,119 @@ test.describe("Danh mục > Dịch vụ — không xoá dịch vụ đang đư�
     // …and that leaves the service itself alone.
     expect(await isDeleted(page, taxonomyId, partA.body.id)).toBe(false);
 
-    // ── A service that is only a combo component is not "in use" (F-48: a combo keeps deleted components) ──
+    // ── A service that is only a combo component is not "in use": it deletes,
+    // and leaves the live combo that held it (BA rule) ──────────────────────
     const partOnly = await call(page, "DELETE", `${ENTRIES}/${partB.body.id}`);
     expect(partOnly.status, JSON.stringify(partOnly.body)).toBeLessThan(300);
     expect(await isDeleted(page, taxonomyId, partB.body.id)).toBe(true);
 
-    // …and the combo that holds it keeps working: still named, priced, saved and sold.
-    const combos = await call<{ items: (Entry & { retailPrice: number; comboItems: { componentEntryId: string; componentName: string | null; quantity: number; unitPrice: number }[] })[] }>(
-      page, "GET", `${ENTRIES}?group=care_service&clinicBranchId=${BRANCH}&taxonomyId=${taxonomyId}&isCombo=true&isDeleted=false&maxResultCount=100`,
-    );
-    const held = combos.body.items.find((e) => e.id === usedCombo.body.id);
-    expect(held?.comboItems.map((i) => i.componentName)).toEqual([`DUNG-TEST Thành phần A ${id}`, `DUNG-TEST Thành phần B ${id}`]);
-    expect(held?.retailPrice).toBe(200000);
+    // The combo keeps working with what is left: named, priced by its rows, saved and sold.
+    const held = await listed(page, taxonomyId, usedCombo.body.id);
+    expect(held.comboItems.map((i) => i.componentName)).toEqual([`DUNG-TEST Thành phần A ${id}`]);
+    expect(held.price).toBe(90000);
+    // A deleted combo is left as it was.
+    expect((await listed(page, taxonomyId, freeCombo.body.id)).comboItems).toHaveLength(2);
+
     const resaved = await call(page, "PUT", `${ENTRIES}/${usedCombo.body.id}`, {
-      taxonomyId, name: held!.name, sortOrder: 0, isActive: true, isDeleted: false, isCombo: true,
-      comboItems: held!.comboItems.map(({ componentEntryId, quantity, unitPrice }) => ({ componentEntryId, quantity, unitPrice })),
+      taxonomyId, name: held.name, sortOrder: 0, isActive: true, isDeleted: false, isCombo: true,
+      comboItems: held.comboItems.map(({ componentEntryId, quantity, unitPrice }) => ({ componentEntryId, quantity, unitPrice })),
     });
     expect(resaved.status, JSON.stringify(resaved.body)).toBe(200);
-    await useInPlan(page, usedCombo.body.id, 180000);
+    await useInPlan(page, usedCombo.body.id, 90000);
+  });
+
+  test("BA: deleting a combo component names the combo, takes it out, and keeps who and when", async ({ page }) => {
+    const id = runId();
+    const group = await call<{ id: string }>(page, "POST", TAXONOMIES, {
+      clinicBranchId: BRANCH, group: "care_service", name: `DUNG-TEST Gỡ combo ${id}`, sortOrder: 0,
+    });
+    expect(group.status).toBe(200);
+    const taxonomyId = group.body.id;
+    const me = await call<{ currentUser: { id: string } }>(page, "GET", "/api/abp/application-configuration");
+
+    const single = async (name: string) =>
+      (await call<Entry>(page, "POST", ENTRIES, { taxonomyId, name, price: 100000, sortOrder: 0 })).body;
+    const combo = (name: string, parts: Entry[]) =>
+      call<Entry>(page, "POST", ENTRIES, {
+        taxonomyId, name, sortOrder: 0, isCombo: true,
+        comboItems: parts.map((p) => ({ componentEntryId: p.id, quantity: 1, unitPrice: 90000 })),
+      });
+
+    const partC = await single(`DUNG-TEST Thành phần C ${id}`);
+    const partD = await single(`DUNG-TEST Thành phần D ${id}`);
+    const partE = await single(`DUNG-TEST Thành phần E ${id}`);
+    const trioName = `DUNG-TEST Combo ba ${id}`;
+    const soloName = `DUNG-TEST Combo một ${id}`;
+    const trio = await combo(trioName, [partC, partD, partE]);
+    const solo = await combo(soloName, [partE]);
+    expect(trio.status, JSON.stringify(trio.body)).toBe(200);
+    expect(solo.status, JSON.stringify(solo.body)).toBe(200);
+
+    await page.goto(`/taxonomy/service?group=${taxonomyId}`);
+    const confirm = page.getByRole("dialog").filter({ hasText: "Xác nhận xoá" });
+
+    // ── The bin icon: the confirmation names the combo, "Xoá" takes C out of it ──
+    const rowC = page.getByRole("row", { name: new RegExp(partC.name) });
+    await rowC.getByRole("button", { name: /^Xoá / }).click();
+    await expect(confirm.getByRole("alert")).toHaveText(IN_COMBOS(trioName));
+    const before = Date.now();
+    await confirm.getByRole("button", { name: /Xoá$/ }).click();
+    await expect(confirm).toBeHidden();
+
+    await page.reload();
+    const deletedC = await listed(page, taxonomyId, partC.id);
+    expect(deletedC.isDeleted).toBe(true);
+    expect(deletedC.deleterId).toBe(me.body.currentUser.id);
+    expect(new Date(deletedC.deletionTime!).getTime()).toBeGreaterThan(before - 60_000);
+    let held = await listed(page, taxonomyId, trio.body.id);
+    expect(held.comboItems.map((i) => i.componentEntryId)).toEqual([partD.id, partE.id]);
+    expect(held.price).toBe(180000);
+
+    // ── The dialog's "Đã xoá" is the same delete: the notice, then Lưu ───────
+    const rowD = page.getByRole("row", { name: new RegExp(partD.name) });
+    await rowD.getByRole("button", { name: /^Chỉnh sửa / }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Đã xoá").click();
+    await expect(dialog.getByRole("alert").filter({ hasText: "combo" })).toHaveText(IN_COMBOS(trioName));
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+
+    const deletedD = await listed(page, taxonomyId, partD.id);
+    expect(deletedD.isDeleted).toBe(true);
+    expect(deletedD.deleterId).toBe(me.body.currentUser.id);
+    expect(deletedD.deletionTime).toBeTruthy();
+    held = await listed(page, taxonomyId, trio.body.id);
+    expect(held.comboItems.map((i) => i.componentEntryId)).toEqual([partE.id]);
+    expect(held.price).toBe(90000);
+
+    // ── E is now the only part of both combos: named, and refused ────────────
+    const holders = await call<{ items: { name: string; isLastComponent: boolean }[] }>(
+      page, "GET", `${ENTRIES}/${partE.id}/combo-holders`,
+    );
+    expect(holders.body.items.map((h) => `${h.name}|${h.isLastComponent}`).sort()).toEqual(
+      [`${trioName}|true`, `${soloName}|true`].sort(),
+    );
+
+    await page.reload();
+    const rowE = page.getByRole("row", { name: new RegExp(partE.name) });
+    await rowE.getByRole("button", { name: /^Xoá / }).click();
+    await expect(confirm.getByRole("alert")).toContainText("Dịch vụ là thành phần duy nhất của combo:");
+    await expect(confirm.getByRole("alert")).toContainText(soloName);
+    const refused = page.waitForResponse(
+      (res) => res.request().method() === "DELETE" && res.url().includes(`${ENTRIES}/${partE.id}`),
+    );
+    await confirm.getByRole("button", { name: /Xoá$/ }).click();
+    expect((await refused).status()).toBeGreaterThanOrEqual(400);
+    await expect(page.getByText(/Dịch vụ là thành phần duy nhất của combo "DUNG-TEST Combo/)).toBeVisible();
+
+    const parked = await call(page, "PUT", `${ENTRIES}/${partE.id}`, {
+      taxonomyId, name: partE.name, price: 100000, sortOrder: 0, isActive: true, isDeleted: true,
+    });
+    expect(parked.body.error?.code).toBe(LAST_PART_CODE);
+
+    // Nothing moved: E is live and both combos still hold it.
+    expect(await isDeleted(page, taxonomyId, partE.id)).toBe(false);
+    expect((await listed(page, taxonomyId, trio.body.id)).comboItems).toHaveLength(1);
+    expect((await listed(page, taxonomyId, solo.body.id)).comboItems).toHaveLength(1);
   });
 });

@@ -7,6 +7,7 @@ import {
   isComboParam,
   useCatalogEntries,
   useCatalogEntryKindCounts,
+  useComboHolders,
   useCreateTaxonomyGroup,
   useDeleteCatalogEntry,
   useDeleteTaxonomyGroup,
@@ -27,6 +28,7 @@ import { ServiceCatalogSyncButton } from "../components/ServiceCatalogSyncButton
 import { ServiceEntryDialog } from "../components/ServiceEntryDialog";
 import { ServiceKindFilter } from "../components/ServiceKindFilter";
 import { CatalogPanelHeader } from "../components/CatalogPanelHeader";
+import { ComboHoldersNotice } from "../components/ComboHoldersNotice";
 import { PatientTagPanel } from "../components/PatientTagPanel";
 import { SimpleCatalogDialog } from "../components/SimpleCatalogDialog";
 import { PaymentAccountPanel } from "../components/PaymentAccountPanel";
@@ -147,6 +149,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   const reorderEntriesMutation = useReorderCatalogEntries();
   const deleteGroup = useDeleteTaxonomyGroup();
   const deleteEntry = useDeleteCatalogEntry();
+  const entryToDelete = pendingDelete?.kind === "entry" ? pendingDelete.id : undefined;
+  const comboHolders = useComboHolders(entryToDelete, isService);
 
   const entries = entriesQuery.data?.items ?? [];
   const totalCount = entriesQuery.data?.totalCount ?? 0;
@@ -510,7 +514,14 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
         noun={pendingDelete?.kind === "group" ? t("Taxonomy:Group:DeleteNoun") : tab.noun}
         name={pendingDelete?.name ?? ""}
         question={pendingDelete?.kind === "entry" ? entryDeleteQuestion(tab.noun, pendingDelete) : undefined}
-        note={pendingDelete?.kind === "entry" && tab.softDelete ? t("Taxonomy:Catalog:SoftDeleteNote") : undefined}
+        note={
+          pendingDelete?.kind === "entry" && tab.softDelete ? (
+            <>
+              {t("Taxonomy:Catalog:SoftDeleteNote")}
+              {isService && <ComboHoldersNotice holders={comboHolders.data} />}
+            </>
+          ) : undefined
+        }
         pending={deleteGroup.isPending || deleteEntry.isPending}
         onConfirm={() => void confirmDelete()}
         onClose={() => setPendingDelete(null)}

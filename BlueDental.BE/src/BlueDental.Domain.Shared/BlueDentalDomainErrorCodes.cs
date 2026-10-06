@@ -56,6 +56,8 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateEntryName = "BlueDental:Catalogs:0032";
         /// <summary>A treatment plan or a consultation still names the service, so it cannot be deleted.</summary>
         public const string ServiceInUse = "BlueDental:Catalogs:0033";
+        /// <summary>The service is the only component of a live combo, so deleting it would empty the combo.</summary>
+        public const string ServiceIsLastComboComponent = "BlueDental:Catalogs:0034";
     }
 
     public static class PatientManagement

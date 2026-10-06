@@ -823,3 +823,20 @@
 .bd-combo-detail-save b {
   color: var(--bd-green);
 }
+
+/* Deleting a service takes it out of its combos — named before the delete (R-768). */
+.bd-combo-holders {
+  display: block;
+  margin-top: 8px;
+  color: var(--bd-amber);
+}
+
+.bd-combo-holders--blocked {
+  color: var(--bd-red);
+}
+
+/* Under the "Đang hoạt động / Đã xoá" pair of the service dialog: a line of its own. */
+.bd-dialog-row > .bd-combo-holders {
+  flex-basis: 100%;
+  margin-top: 0;
+}

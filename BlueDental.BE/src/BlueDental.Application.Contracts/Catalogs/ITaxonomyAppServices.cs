@@ -36,6 +36,9 @@ public interface ICatalogEntryAppService : IApplicationService
     Task<CatalogEntryDto> UpdateAsync(Guid id, UpdateCatalogEntryDto input);
     Task DeleteAsync(Guid id);
 
+    /// <summary>The live combos holding a service — deleting it takes it out of them.</summary>
+    Task<ListResultDto<CatalogComboHolderDto>> GetComboHoldersAsync(Guid id);
+
     /// <summary>Applies a whole new order in one call.</summary>
     Task ReorderAsync(ReorderCatalogEntryDto input);
 }

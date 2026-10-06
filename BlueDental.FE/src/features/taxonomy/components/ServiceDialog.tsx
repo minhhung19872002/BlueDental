@@ -5,6 +5,7 @@ import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import {
   SERVICE_TAX_RATE,
   SERVICE_TAX_RATE_OPTIONS,
+  useComboHolders,
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
   type CatalogEntryDto,
@@ -21,6 +22,7 @@ import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
 import { useServiceDialogSync } from "../hooks/useServiceDialogSync";
 import { useServicePricePreview } from "../hooks/useServicePricePreview";
+import { ComboHoldersNotice } from "./ComboHoldersNotice";
 import { ServiceSettingsTabs } from "./ServiceSettingsTabs";
 
 interface Props {
@@ -103,6 +105,9 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwit
   const name = Form.useWatch("name", form) ?? "";
   const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
   const isDeleted = Form.useWatch("isDeleted", form) ?? false;
+  // Ticking "Đã xoá" on a live service takes it out of its combos on Lưu.
+  const deleting = open && isDeleted && entry?.isDeleted === false;
+  const comboHolders = useComboHolders(entry?.id, deleting);
   const pricing = useServicePricePreview(form);
   const partnerSync = useServiceDialogSync(branchId, open);
 
@@ -300,6 +305,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwit
           >
             {t("Taxonomy:Catalog:IsDeleted")}
           </Checkbox>
+          {deleting && <ComboHoldersNotice holders={comboHolders.data} />}
         </div>
         <Form.Item name="isDeleted" hidden>
           <Input />
