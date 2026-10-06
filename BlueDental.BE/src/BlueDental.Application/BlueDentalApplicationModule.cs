@@ -1,3 +1,4 @@
+using BlueDental.Appointments;
 using BlueDental.CustomerCare;
 using BlueDental.EInvoicing;
 using BlueDental.Permissions;
@@ -87,5 +88,6 @@ public class BlueDentalApplicationModule : AbpModule
         await context.AddBackgroundWorkerAsync<QueueWaitingTimeWorker>();
         await context.AddBackgroundWorkerAsync<NoServiceCareWorker>();
         await context.AddBackgroundWorkerAsync<ZaloTokenRefreshWorker>();
+        await context.AddBackgroundWorkerAsync<MissedAppointmentWorker>();
     }
 }

@@ -239,13 +239,15 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
     page,
   }) => {
     // The API refuses a booking in the past, so take a real overdue one the
-    // clinic already has: booked, never arrived, in the last month.
+    // clinic already has: booked, never arrived, in the last month. Once its
+    // time is over the server has moved it to Trễ hẹn (7, bug list item 17) —
+    // still a missed one, and still received if the patient turns up.
     const now = new Date();
     const monthAgo = new Date(now.getTime() - 30 * 24 * 3600_000);
     const found = await call(
       page,
       "GET",
-      `/api/v1/app/appointments?branchId=${BRANCH}&statuses=1&statuses=2&isTemporary=false` +
+      `/api/v1/app/appointments?branchId=${BRANCH}&statuses=1&statuses=2&statuses=7&isTemporary=false` +
         `&fromDate=${localIsoDate(monthAgo)}&toDate=${localIsoDate(now)}&maxResultCount=200`,
     );
     expect(found.status, found.text).toBe(200);
@@ -259,7 +261,7 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
     const tasks = await call(
       page,
       "GET",
-      `${CARE}?type=8&branchId=${BRANCH}&patientId=${overdue!.patientId}` +
+      `${CARE}?type=8&branchId=${BRANCH}&patientId=${overdue!.patientId}&maxResultCount=1000` +
         `&fromDate=${encodeURIComponent(new Date(day.getFullYear(), day.getMonth(), day.getDate()).toISOString())}` +
         `&toDate=${encodeURIComponent(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999).toISOString())}`,
     );

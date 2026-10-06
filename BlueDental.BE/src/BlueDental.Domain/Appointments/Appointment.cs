@@ -131,13 +131,17 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Records the arrival. A Trễ hẹn booking is still received: a patient who
+    /// turns up after the booked time was late, not absent (bug list item 17).
+    /// </summary>
     public Appointment CheckIn()
     {
-        if (Status is not (AppointmentStatus.Requested or AppointmentStatus.Confirmed))
+        if (Status is not (AppointmentStatus.Requested or AppointmentStatus.Confirmed or AppointmentStatus.NoShow))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
-                $"Cannot perform 'CheckIn' on appointment with status '{Status}'. Expected 'Requested' or 'Confirmed'.");
+                $"Cannot perform 'CheckIn' on appointment with status '{Status}'. Expected 'Requested', 'Confirmed' or 'NoShow'.");
         }
 
         Status = AppointmentStatus.CheckedIn;
@@ -171,6 +175,14 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Notes = notes;
         return this;
     }
+
+    /// <summary>
+    /// Trễ hẹn by the clock: the booked time is over and the patient never
+    /// arrived — the booking is still only Đã hẹn / Đã xác nhận.
+    /// </summary>
+    public bool IsMissedAt(DateTimeOffset now) =>
+        Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed
+        && Slot.End <= now;
 
     public Appointment MarkNoShow()
     {
