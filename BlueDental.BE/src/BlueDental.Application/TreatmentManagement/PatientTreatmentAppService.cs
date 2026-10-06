@@ -41,6 +41,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly BranchAccessChecker _branchAccess;
     private readonly PatientMoneyCalculator _money;
     private readonly StageTeethPolicy _teethPolicy;
+    private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
 
     public PatientTreatmentAppService(
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -54,8 +55,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money,
-        StageTeethPolicy teethPolicy)
+        StageTeethPolicy teethPolicy,
+        AfterTreatmentCareRecorder afterTreatmentCare)
     {
+        _afterTreatmentCare = afterTreatmentCare;
         _laboRepository = laboRepository;
         _voucherRepository = voucherRepository;
         _teethPolicy = teethPolicy;
@@ -303,10 +306,24 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     public async Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId)
     {
         var plan = await LoadAsync(id);
-        plan.GetService(serviceLineId).Complete();
+        var line = plan.GetService(serviceLineId).Complete();
         plan.CloseIfAllServicesDone();
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
+
+        // Finishing the line is the patient's treatment visit for Sau điều trị
+        // (QA 2026-10-06); the task links the line's live công đoạn.
+        var stageQuery = await _stageRepository.GetQueryableAsync();
+        var stageIds = await AsyncExecuter.ToListAsync(stageQuery
+            .Where(s => s.TreatmentServiceId == line.Id && !s.IsSuperseded && !s.IsGuarantee)
+            .Select(s => s.Id));
+        await _afterTreatmentCare.RecordVisitAsync(
+            line.PatientId,
+            line.ClinicBranchId,
+            line.DentistId ?? plan.DentistId,
+            stageIds,
+            Clock.Now);
+
         return (await MapManyAsync([plan])).Single();
     }
 

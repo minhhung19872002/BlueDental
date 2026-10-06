@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { runId } from "./auth";
+import { openShiftCovering } from "./workShift";
 
 /**
  * The Tiếp nhận board, driven through the real API: book a visit for today,
@@ -150,6 +151,8 @@ export async function bookVisitToday(
     const dentists = staff.body.items.filter((s) => !busy.has(s.id));
 
     for (const dentist of dentists.slice(0, 8)) {
+      // Off-hours runs (lunch, evening) need the dentist on shift first.
+      if (!(await openShiftCovering(page, branchId, dentist.id, start, end))) continue;
       for (const patient of candidates.slice(0, 20)) {
         const res = await call<Appointment>(page, branchId, APPOINTMENTS, {
           method: "POST",

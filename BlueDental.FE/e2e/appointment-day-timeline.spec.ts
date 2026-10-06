@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { DAY_OFF, setOwnDay } from "./fixtures/ownDayOff";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
+import { openShiftCovering } from "./fixtures/workShift";
 
 /**
  * Feature: Lịch hẹn khách hàng — view Ngày as a horizontal doctor timeline
@@ -175,6 +176,7 @@ test.describe("Lịch hẹn — view Ngày dạng timeline ngang", () => {
     const end = new Date(start.getTime() + 30 * 60_000);
     const clinicDayOfEnd = new Date(end.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
     test.skip(clinicDayOfEnd !== clinicToday(), "too close to midnight to book a visit for today");
+    expect(await openShiftCovering(page, branchId, working.id, start, end), "the run's dentist should be on shift then").toBe(true);
     const booking = await book(page, branchId, working.id, start.toISOString(), end.toISOString());
     bookings.push(booking.id);
 

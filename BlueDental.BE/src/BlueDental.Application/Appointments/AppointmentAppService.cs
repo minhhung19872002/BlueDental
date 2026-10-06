@@ -27,6 +27,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     private readonly AppointmentConflictChecker _conflictChecker;
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly AppointmentChangeRecorder _changeRecorder;
+    private readonly DentistShiftChecker _shiftChecker;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
@@ -35,9 +36,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         IIdentityUserRepository userRepository,
         AppointmentConflictChecker conflictChecker,
         ICurrentClinicBranchResolver branchResolver,
-        AppointmentChangeRecorder changeRecorder)
+        AppointmentChangeRecorder changeRecorder,
+        DentistShiftChecker shiftChecker)
     {
         _changeRecorder = changeRecorder;
+        _shiftChecker = shiftChecker;
         _repository = repository;
         _patientRepository = patientRepository;
         _procedureRepository = procedureRepository;
@@ -301,6 +304,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 "The patient already has an appointment in this time slot.");
         }
 
+        await _shiftChecker.EnsureWithinShiftAsync(input.DentistId, branchId, slot);
+
         var appointment = new Appointment(
             GuidGenerator.Create(),
             input.PatientId,
@@ -331,6 +336,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
                 "The dentist already has an appointment in this time slot.");
+        }
+
+        if (input.DentistId is { } dentistId)
+        {
+            await _shiftChecker.EnsureWithinShiftAsync(dentistId, branchId, slot);
         }
 
         var appointment = Appointment.CreateTemporary(
@@ -373,6 +383,16 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked,
                 "The patient already has an appointment in this time slot.");
+        }
+
+        // Only a new time or dentist is checked: editing the notes of a booking
+        // made before the shift rule existed must stay possible.
+        var movedOrReassigned = slot.Start != appointment.Slot.Start
+            || slot.End != appointment.Slot.End
+            || dentistId != appointment.DentistId;
+        if (movedOrReassigned && dentistId != Guid.Empty)
+        {
+            await _shiftChecker.EnsureWithinShiftAsync(dentistId, appointment.BranchId, slot);
         }
 
         var statusBefore = appointment.Status;
@@ -602,6 +622,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked,
                 "The patient already has an appointment in this time slot.");
         }
+
+        await _shiftChecker.EnsureWithinShiftAsync(followUp.DentistId, followUp.BranchId, slot);
 
         await _repository.InsertAsync(followUp, autoSave: true);
         await _repository.UpdateAsync(appointment, autoSave: true);

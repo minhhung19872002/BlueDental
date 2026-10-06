@@ -351,6 +351,12 @@ Không phải hành vi đo từ bản gốc — chủ dự án yêu cầu trực
   CSKH loại Sau điều trị. Mỗi bệnh nhân **một phiếu cho một ngày điều trị** (ngày theo giờ
   phòng khám, UTC+7); lần tiếp tục sau trong cùng ngày chỉ gắn thêm công đoạn vào phiếu đó.
   Tiếp tục **bảo hành** không tạo phiếu (yêu cầu chỉ nêu "Tiếp tục công đoạn").
+- Bổ sung QA 2026-10-06 (R-745): **Hoàn thành** cũng là một lần điều trị — dịch vụ một
+  lần khám được tích xong mà không qua "Tiếp tục". `POST treatment-stages/{id}/complete`
+  (công đoạn không bảo hành) và `POST patient-treatments/{planId}/services/{lineId}/complete`
+  (menu trạng thái dòng dịch vụ → Hoàn thành; gắn các công đoạn còn hiệu lực, không bảo hành,
+  của dòng) mở hoặc gắn vào phiếu cùng ngày như trên. Huỷ hoàn thành không xoá phiếu; các
+  lần hoàn thành trước bản sửa không được tạo bù.
 - Ngày chăm sóc: rỗng khi tạo; được điền lúc chuyển sang Đã liên hệ, xoá khi chuyển lại
   Chưa liên hệ. Cột mới **Ngày điều trị** = ngày công đoạn được thêm (`treatmentDate`).
 - Bộ lọc Ngày/Tuần/Tháng của tab này lọc theo Ngày điều trị. Mặc định khi vào trang:

@@ -58,6 +58,8 @@ export function runId(): string {
   return `${Date.now().toString().slice(-6)}`;
 }
 
+const SHIFT_HOURS = [8, 9, 10, 11, 13, 14, 15, 16] as const;
+
 /**
  * A slot far enough out that the seed data has nothing on it, and different on
  * every run — the run id picks both the day and the hour — so a re-run does not
@@ -69,6 +71,7 @@ export function freeSlot(runSuffix: string, offsetDays: number): { day: string; 
   const date = new Date();
   date.setDate(date.getDate() + 400 + (seed % 300) + offsetDays);
   const day = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
-  const hour = 7 + (Math.floor(seed / 300) % 12);
+  // A booking outside the dentist's shifts (default 08-12, 13-17) is refused (R-742).
+  const hour = SHIFT_HOURS[Math.floor(seed / 300) % SHIFT_HOURS.length];
   return { day, time: `${String(hour).padStart(2, "0")}:00` };
 }

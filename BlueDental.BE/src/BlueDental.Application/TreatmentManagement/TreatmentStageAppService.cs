@@ -268,6 +268,15 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         await _repository.UpdateAsync(stage, autoSave: true);
 
         await MoveServiceLineAsync(stage);
+
+        // Hoàn thành is a treatment visit too: a one-visit service is ticked
+        // done without ever being continued (QA 2026-10-06). Warranty work
+        // stays out, as it does for continue.
+        if (!stage.IsGuarantee)
+        {
+            await _afterTreatmentCare.RecordVisitAsync(stage, Clock.Now);
+        }
+
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 

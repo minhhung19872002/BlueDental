@@ -54,6 +54,23 @@ test.describe("Nhân viên", () => {
     // Edit: the phone number is optional on create, added here.
     await rowFor().getByRole("button").first().click();
     await expect(dialog).toBeVisible();
+
+    // QA row 5: the password boxes open blank and opt out of the browser's
+    // saved-login autofill, so Save cannot silently change the password.
+    const password = dialog.getByLabel(/^Mật khẩu/);
+    const confirmPassword = dialog.getByLabel(/Nhập lại mật khẩu/);
+    await expect(password).toHaveValue("");
+    await expect(confirmPassword).toHaveValue("");
+    await expect(password).toHaveAttribute("autocomplete", "new-password");
+    await expect(confirmPassword).toHaveAttribute("autocomplete", "new-password");
+
+    // A password typed (or autofilled) without its confirmation blocks Save.
+    await password.fill("Autofill@123");
+    await dialog.getByRole("button", { name: /Lưu/ }).click();
+    await expect(dialog.getByText("Vui lòng nhập lại mật khẩu")).toBeVisible();
+    await expect(dialog).toBeVisible();
+    await password.fill("");
+
     await dialog.getByLabel(/Số điện thoại/).fill("0912345678");
     await dialog.getByRole("button", { name: /Lưu/ }).click();
     await expect(dialog).toBeHidden();

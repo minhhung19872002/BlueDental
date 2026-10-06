@@ -107,16 +107,17 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Sau điều trị — opened by the first "Tiếp tục công đoạn" of a treatment
-    /// day (owner, 2026-10-05). Ngày chăm sóc stays empty until someone calls.
+    /// Sau điều trị — opened by the first "Tiếp tục công đoạn" or "Hoàn thành"
+    /// of a treatment day (owner 2026-10-05, QA 2026-10-06). Ngày chăm sóc
+    /// stays empty until someone calls.
     /// </summary>
     public static CareRecord AfterTreatment(
         Guid id,
         Guid patientId,
         Guid branchId,
-        Guid treatingStaffId,
+        Guid? treatingStaffId,
         DateOnly treatmentDate,
-        Guid stageId)
+        IEnumerable<Guid> stageIds)
     {
         return new CareRecord(
             id,
@@ -125,7 +126,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
             CareType.AfterTreatment,
             AfterTreatmentSubject,
             treatingStaffId,
-            stageIds: [stageId],
+            stageIds: stageIds,
             treatmentDate: treatmentDate);
     }
 

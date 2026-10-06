@@ -5,6 +5,7 @@ import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { toast } from "sonner";
 import { AppDialog } from "@/components/AppDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FloatingField } from "@/components/FloatingField";
 import {
   EMPTY_PRESCRIPTION_LINE,
@@ -26,7 +27,9 @@ import {
   type PrescriptionTreatmentType,
   type UpdatePrescriptionRequest,
 } from "../api/prescriptionApi";
+import { usePrescriptionAllergyConflicts } from "../hooks/usePrescriptionAllergyConflicts";
 import type { PrescriptionPatientSummary } from "../types/prescription";
+import { PrescriptionAllergyAlert } from "./PrescriptionAllergyAlert";
 import { PrescriptionPatientBlock } from "./PrescriptionPatientBlock";
 import "./prescription.css";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
@@ -92,7 +95,9 @@ function linesOfTemplate(template: CatalogOption): PrescriptionLine[] {
  * doctor, diagnosis and advice, then the medicine lines. Picking a Đơn thuốc
  * mẫu replaces the lines with the template's and fills the advice from it;
  * ticking "Lưu đơn thuốc mẫu" asks for a name and files the lines back into
- * that catalog when the slip is saved.
+ * that catalog when the slip is saved. A medicine the patient declared an
+ * allergy to (Tiểu sử bệnh) raises a warning over the lines and asks once
+ * more on Lưu (R-744).
  */
 export function PrescriptionDialog({ open, patient, prescription, onClose }: Props) {
   const navigate = useNavigate();
@@ -107,6 +112,9 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
   const saveAsTemplate = Form.useWatch("saveAsTemplate", form) ?? false;
   const templateName = Form.useWatch("templateName", form) ?? "";
   const [lines, setLines] = useState<PrescriptionLine[]>([{ ...EMPTY_PRESCRIPTION_LINE }]);
+  /** Values held back while the doctor confirms an allergy warning. */
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
+  const allergyConflicts = usePrescriptionAllergyConflicts(patient.diseaseHistoryEntryIds, lines, medicines);
 
   useEffect(() => {
     if (!open) return;
@@ -123,6 +131,7 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
         : EMPTY_FORM,
     );
     setLines(linesOf(prescription));
+    setPendingValues(null);
   }, [open, prescription, form]);
 
   const pickTemplate = (templateId: string | undefined) => {
@@ -166,10 +175,20 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
         await create.mutateAsync({ ...input, patientId: patient.id, clinicBranchId: branchId });
         toast.success(t("Treatment:Prescription:CreateSuccess"));
       }
+      setPendingValues(null);
       onClose();
     } catch {
       // queryClient reports the failure; nothing to add here.
     }
+  };
+
+  const handleFinish = (values: FormValues) => {
+    if (allergyConflicts.length > 0) setPendingValues(values);
+    else void submit(values);
+  };
+
+  const handleConfirmAllergy = () => {
+    if (pendingValues) void submit(pendingValues);
   };
 
   return (
@@ -190,7 +209,7 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
         layout="vertical"
         requiredMark={false}
         initialValues={EMPTY_FORM}
-        onFinish={(values) => void submit(values)}
+        onFinish={handleFinish}
       >
         {/* Two columns on a wide screen, as on the reference: the patient and
             the template picker on the left, the doctor and diagnosis on the
@@ -292,8 +311,18 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
           </div>
         </div>
 
+        <PrescriptionAllergyAlert conflicts={allergyConflicts} />
         <PrescriptionLineEditor lines={lines} medicines={medicines} onChange={setLines} paged />
       </Form>
+      <ConfirmDialog
+        open={pendingValues !== null}
+        title={t("Treatment:Rx:AllergyTitle")}
+        message={t("Treatment:Rx:AllergyConfirm")}
+        confirmLabel={t("Treatment:Rx:AllergyConfirmSave")}
+        pending={saving}
+        onConfirm={handleConfirmAllergy}
+        onClose={() => setPendingValues(null)}
+      />
     </AppDialog>
   );
 }

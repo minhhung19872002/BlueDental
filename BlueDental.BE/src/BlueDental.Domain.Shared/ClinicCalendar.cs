@@ -18,12 +18,13 @@ public static class ClinicCalendar
 
     /// <summary>The clinic-local calendar date an instant falls on.</summary>
     public static DateOnly DateOf(DateTimeOffset instant)
-    {
-        var local = Zone is null
+        => DateOnly.FromDateTime(ToLocal(instant).DateTime);
+
+    /// <summary>The same instant on the clinic's wall clock.</summary>
+    public static DateTimeOffset ToLocal(DateTimeOffset instant)
+        => Zone is null
             ? instant.ToOffset(FallbackOffset)
             : TimeZoneInfo.ConvertTime(instant, Zone);
-        return DateOnly.FromDateTime(local.DateTime);
-    }
 
     /// <summary>The instant a clinic-local day starts, in UTC.</summary>
     public static DateTimeOffset StartOfDay(DateOnly day)

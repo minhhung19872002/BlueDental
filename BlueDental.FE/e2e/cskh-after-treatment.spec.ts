@@ -226,7 +226,13 @@ test.describe("CSKH › Sau điều trị từ Tiếp tục công đoạn", () =
     await expect(page.getByRole("button", { name: /\d+\s*Chưa liên hệ/ })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Ngày điều trị" })).toBeVisible();
 
+    // The row may already sit in the unfiltered month list; wait for the
+    // searched list, or its re-render closes the status dropdown mid-click.
+    const searched = page.waitForResponse(
+      (res) => /\/care-records\?/.test(res.url()) && res.url().includes(`filter=${task.patientCode}`),
+    );
     await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(task.patientCode);
+    await searched;
     const row = page.locator(`.cskh-table tbody tr[data-row-key="${task.id}"]`);
     await expect(row).toBeVisible({ timeout: 15_000 });
     const cells = row.locator("td");
@@ -254,5 +260,72 @@ test.describe("CSKH › Sau điều trị từ Tiếp tục công đoạn", () =
     const [latest] = logs.json as { status: number; creatorName: string | null }[];
     expect(latest.status).toBe(2);
     expect(latest.creatorName).toBeTruthy();
+  });
+
+  /** Clears the patient's tasks for today so the next visit has to open one. */
+  async function clearToday(page: Page, patientId: string): Promise<void> {
+    for (const task of await todaysTasks(page, patientId)) {
+      const res = await call(page, "DELETE", `/api/v1/app/care-records/${task.id}`);
+      expect(res.status, res.text).toBeLessThan(300);
+    }
+    expect(await todaysTasks(page, patientId)).toHaveLength(0);
+  }
+
+  // QA dòng 7 (2026-10-06): a one-visit service is ticked Hoàn thành and never
+  // continued, so the tab stayed empty.
+  test("Hoàn thành a công đoạn opens the day's task", async ({ page }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const line = await freshLine(page);
+    const stage = await openStage(page, line, 11);
+    await clearToday(page, line.patientId);
+
+    const done = await call(page, "POST", `/api/v1/app/treatment-stages/${stage}/complete`);
+    expect(done.status, done.text).toBe(200);
+
+    const tasks = await todaysTasks(page, line.patientId);
+    expect(tasks, "Hoàn thành opens one Sau điều trị task for today").toHaveLength(1);
+    expect(tasks[0].treatmentDate).toBe(localIsoDate(new Date()));
+    expect(tasks[0].stageIds).toContain(stage);
+    expect(tasks[0].dueAt).toBeNull();
+  });
+
+  test("Hoàn thành a service line from the plan opens the day's task and lists it on the board", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const line = await freshLine(page);
+    const stage = await openStage(page, line, 11);
+    await clearToday(page, line.patientId);
+
+    await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${BRANCH}`);
+    const planRow = page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`);
+    await expect(planRow).toBeVisible({ timeout: 20_000 });
+    await planRow.locator(".pdt-status--menu").click();
+    const completed = page.waitForResponse(
+      (res) => res.url().endsWith(`/services/${line.lineId}/complete`) && res.request().method() === "POST",
+    );
+    await page.getByRole("menuitem", { name: "Hoàn thành" }).click();
+    expect((await completed).status()).toBe(200);
+    await expect(page.getByText("Đã hoàn thành dịch vụ")).toBeVisible();
+
+    const tasks = await todaysTasks(page, line.patientId);
+    expect(tasks, "Hoàn thành dịch vụ opens one Sau điều trị task for today").toHaveLength(1);
+    expect(tasks[0].stageIds).toContain(stage);
+
+    // A second Hoàn thành the same day joins it.
+    const again = await call(page, "POST", `/api/v1/app/treatment-stages/${stage}/complete`);
+    expect(again.status, again.text).toBe(200);
+    expect(await todaysTasks(page, line.patientId)).toHaveLength(1);
+
+    await page.goto("/cskh-grouping");
+    await assertRealApiTraffic(page, "/api/v1/app/care-records/stats");
+    await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(tasks[0].patientCode);
+    const row = page.locator(`.cskh-table tbody tr[data-row-key="${tasks[0].id}"]`);
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await expect(row.locator("td").nth(1)).toHaveText(displayDate(new Date()));
   });
 });

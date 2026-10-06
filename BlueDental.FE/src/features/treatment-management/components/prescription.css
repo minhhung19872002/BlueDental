@@ -261,3 +261,13 @@
 .rx-dialog .bd-line-table .ant-pagination-total-text {
   margin-inline-end: auto;
 }
+
+/* ── Dialog: allergy warning over the medicine lines (R-744) ──────────── */
+.rx-allergy-alert {
+  margin-bottom: 12px;
+}
+
+.rx-allergy-list {
+  margin: 0;
+  padding-left: 18px;
+}

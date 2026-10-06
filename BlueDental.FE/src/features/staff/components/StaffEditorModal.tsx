@@ -105,6 +105,8 @@ export function StaffEditorModal({
           isDentist: staff.isDentist,
           isAssistant: staff.isAssistant,
           isHygienist: staff.isHygienist,
+          password: "",
+          confirmPassword: "",
           morningStartTime: dayjs(staff.morningStartTime ?? "08:00", TIME_FORMAT),
           morningEndTime: dayjs(staff.morningEndTime ?? "12:00", TIME_FORMAT),
           afternoonStartTime: dayjs(staff.afternoonStartTime ?? "13:00", TIME_FORMAT),
@@ -323,7 +325,10 @@ export function StaffEditorModal({
               required={!isEditing}
               rules={isEditing ? [] : [{ required: true, message: t("Staff:PasswordRequired") }]}
             >
-              <Input.Password />
+              {/* new-password: otherwise the browser autofills the signed-in
+                  admin's saved password here and Save silently changes the
+                  staff member's password. Blank on edit = keep current one. */}
+              <Input.Password autoComplete="new-password" />
             </FloatingField>
           </Col>
           <Col xs={24} sm={12}>
@@ -336,13 +341,19 @@ export function StaffEditorModal({
                 ...(!isEditing ? [{ required: true, message: t("Staff:ConfirmPasswordRequired") }] : []),
                 ({ getFieldValue }: { getFieldValue: (name: string) => string }) => ({
                   validator(_: unknown, val: string) {
-                    if (!val || getFieldValue("password") === val) return Promise.resolve();
+                    const password = getFieldValue("password");
+                    // On edit a typed password still needs confirming, so a
+                    // stray autofill blocks Save instead of changing it.
+                    if (isEditing && password && !val) {
+                      return Promise.reject(new Error(t("Staff:ConfirmPasswordRequired")));
+                    }
+                    if (!val || password === val) return Promise.resolve();
                     return Promise.reject(new Error(t("Staff:PasswordMismatch")));
                   },
                 }),
               ]}
             >
-              <Input.Password />
+              <Input.Password autoComplete="new-password" />
             </FloatingField>
           </Col>
         </Row>
