@@ -50,6 +50,11 @@ public sealed class CatalogEntryController(
     public Task<PagedResultDto<CatalogEntryDto>> GetListAsync(
         [FromQuery] GetCatalogEntryListInput input) => service.GetListAsync(input);
 
+    /// <summary>"Tất cả / Dịch vụ lẻ / Combo" — the list's filters, counted per kind.</summary>
+    [HttpGet("kind-counts")]
+    public Task<CatalogEntryKindCountsDto> GetKindCountsAsync(
+        [FromQuery] GetCatalogEntryListInput input) => service.GetKindCountsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<CatalogEntryDto> GetAsync(Guid id) => service.GetAsync(id);
 

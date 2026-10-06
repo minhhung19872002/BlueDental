@@ -27,6 +27,8 @@ export function useAdviseCatalog(enabled: boolean) {
     search: term,
     taxonomyId: groupId ?? undefined,
     includeInactive: true,
+    // A combo is offered on the Combo tab, never as a single service.
+    isCombo: false,
     enabled,
   });
 
@@ -71,6 +73,8 @@ export function useAdviseCatalog(enabled: boolean) {
     groupsLoadingMore: fetchingGroups,
     loadMoreGroups,
     services,
+    /** "Dịch vụ lẻ (n)" — every single service the group and search match, not only the loaded page. */
+    servicesTotal: servicePages.data?.pages[0]?.totalCount ?? 0,
     // A new group or search swaps the whole list: while the old rows only hold
     // the place, the table shows it is loading — the reference empties it too.
     servicesLoading: servicePages.isLoading || servicePages.isPlaceholderData,

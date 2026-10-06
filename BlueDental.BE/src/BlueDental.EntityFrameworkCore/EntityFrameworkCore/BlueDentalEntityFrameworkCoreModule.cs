@@ -50,7 +50,8 @@ public class BlueDentalEntityFrameworkCoreModule : AbpModule
                     .Include(x => x.ServiceConfig)
                     .Include(x => x.Medicine)
                     .Include(x => x.Stages)
-                    .Include(x => x.PrescriptionLines));
+                    .Include(x => x.PrescriptionLines)
+                    .Include(x => x.ComboItems));
 
             // Lý do đến khám is a child list the profile card always renders,
             // and the hồ sơ dialog rewrites its root line — a patient read

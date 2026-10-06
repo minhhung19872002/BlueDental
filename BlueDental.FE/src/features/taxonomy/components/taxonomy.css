@@ -454,3 +454,372 @@
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
+
+/* ── Combo (review P0510) ─────────────────────────────────────────────── */
+
+/* Search and the "Tất cả / Dịch vụ lẻ / Combo" switch share one row. */
+.bd-cat-searchrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bd-kind-switch-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bd-kind-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-bg-soft);
+}
+
+.bd-kind-switch-label {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.bd-kind-switch-hint {
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+/* The dialog: the "Danh mục" picker on the left, the form on the right. */
+.bd-combo-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .bd-combo-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bd-combo-picker {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 70vh;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+
+.bd-combo-picker-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.bd-combo-picker-tab {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-primary);
+  color: var(--bd-card);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* One sideways row, as drawn: a clinic's dozens of groups must not push the
+   service list out of the panel. */
+.bd-combo-picker-groups {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.bd-combo-picker-groups button {
+  flex-shrink: 0;
+  max-width: 180px;
+  overflow: hidden;
+  padding: 2px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  color: var(--bd-body);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bd-combo-picker-groups button.active {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: var(--bd-card);
+}
+
+.bd-combo-picker-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.bd-combo-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bd-line-soft);
+}
+
+.bd-combo-picker-item > .bd-min0 {
+  flex: 1;
+}
+
+.bd-combo-picker-name {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-combo-picker-badge {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bd-combo-picker-empty {
+  padding: 16px 0;
+  color: var(--bd-muted);
+  text-align: center;
+}
+
+/* "Thành phần combo". */
+.bd-combo-items {
+  margin-block: 8px 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card);
+  overflow: hidden;
+}
+
+.bd-combo-items-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bd-bg-soft);
+}
+
+.bd-combo-items-head .bd-dialog-section-title {
+  margin: 0;
+}
+
+.bd-combo-table,
+.bd-combo-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.bd-combo-table th,
+.bd-combo-detail-table th {
+  padding: 10px 12px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.bd-combo-table td,
+.bd-combo-detail-table td {
+  padding: 8px 12px;
+  border-top: 1px solid var(--bd-line-soft);
+  color: var(--bd-body);
+}
+
+.bd-combo-table .bd-combo-col-money,
+.bd-combo-detail-table .bd-combo-col-money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-combo-table td.bd-combo-col-money .ant-input {
+  max-width: 140px;
+  text-align: right;
+}
+
+.bd-combo-col-qty {
+  width: 132px;
+}
+
+.bd-combo-col-action {
+  width: 44px;
+}
+
+.bd-combo-kind {
+  display: inline-flex;
+  margin-right: 8px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bd-combo-name {
+  color: var(--bd-ink);
+}
+
+.bd-combo-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-combo-empty {
+  padding: 20px 12px;
+  color: var(--bd-muted);
+  text-align: center;
+}
+
+.bd-combo-items-foot,
+.bd-combo-detail-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 24px;
+  margin: 0;
+  padding: 10px 16px;
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.bd-combo-items-foot b,
+.bd-combo-detail-foot b {
+  color: var(--bd-ink);
+}
+
+.bd-combo-strong {
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.bd-combo-savings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+/* The Danh mục table's combo rows. */
+.bd-combo-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bd-primary);
+  color: var(--bd-card);
+}
+
+.bd-combo-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.bd-combo-tag--off {
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
+}
+
+.bd-combo-price {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.bd-combo-price-was {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-combo-off {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bd-combo-expand {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+
+.bd-combo-expand:hover {
+  background: var(--bd-hover-tint);
+  color: var(--bd-primary);
+}
+
+.bd-combo-detail {
+  margin: 4px 0 4px 48px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card);
+  overflow: hidden;
+  background: var(--bd-card);
+}
+
+.bd-combo-qty {
+  color: var(--bd-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-combo-detail-save b {
+  color: var(--bd-green);
+}

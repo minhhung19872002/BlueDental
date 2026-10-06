@@ -102,6 +102,13 @@
   --bd-purple-pale: #f0ebfc;
   --bd-info-pale: #e2f2fb;
 
+  /* Combo suggestion in "Chọn Dịch Vụ" (review P0510): an orange notice whose
+     button is the deep orange the review drew. */
+  --bd-orange: #b45309;
+  --bd-orange-hover: #92400e;
+  --bd-orange-pale: #fff7ed;
+  --bd-orange-line: #fed7aa;
+
   /* Shape — v2 rounds much harder than v1's 8px. */
   --bd-radius: 12px;
   --bd-radius-control: 10px;

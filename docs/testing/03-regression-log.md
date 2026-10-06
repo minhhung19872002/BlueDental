@@ -6723,3 +6723,25 @@ Chủ dự án hỏi có thêm cột Thao tác như tab Thanh toán của kế h
 
 Kiểm chứng (build production :8080 proxy tới host mới build ra scratchpad :5001 — host :5000 của session khác khoá DLL nên không đụng; PostgreSQL thật, không chặn API): `billing-ledger.spec.ts` **5/5** (mới: API trả `canIssueEInvoice=true`; 👁 mở "Chi tiết phiếu" đúng mã, số dòng dịch vụ, tổng tiền, nút "In Hoá Đơn"; 📄 gọi `/e-invoices/draft` theo id phiếu, dialog "Hóa đơn" có dòng + "Lưu Nháp" — không phát hành). `payment-permission-buttons.spec.ts` **2/2** (chỉ `payment.read`: không 👁/📄; + `patient.read` + `treatmentConsultation.read`: 👁 mở phiếu, chưa có 📄; + `payment.finalize`: 📄 mở "Hóa đơn"). Hồi quy Level 3: `cross-screen-freshness`, `debt-history`, `einvoice-api`, `treatment-plan-detail`, `treatment-plan` — **33/33**. BE: `PaymentLedger*` 4/4, `ControllerConvention|PaymentLedger|ElectronicInvoice` 21/21. `tsc` + eslint sạch.
 Retest level **3** (dialog phiếu + `InvoiceModal` dùng chung với kế hoạch).
+
+## 2026-10-06 — Combo dịch vụ theo review P0510 (R-725 … R-727)
+
+Yêu cầu chủ dự án: `save/P0510.drawio` từ "Update thêm màn hình cho combo nhé" trở xuống
+(cộng phần "Thêm dịch vụ → Loại: Combo" mà các màn đó cần). Chi tiết: `docs/clone/pages/combo.md`,
+giả định: `docs/clone/unknowns.md` (mục Combo dịch vụ).
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-725 | Chưa có combo: Danh mục không tạo được, "Chọn Dịch Vụ" không có tab Combo, không có gợi ý. | BE: `CatalogEntry.IsCombo` + `CatalogComboItem`, giá combo tính ở domain (`ReplaceComboItems`, `ChangePrice` bỏ qua trên combo), kiểm thành phần ở AppService (cùng chi nhánh, dịch vụ lẻ, chưa xoá), lọc `isCombo`, `GET catalog-entries/kind-counts`. FE: `ServiceEntryDialog` (Loại), `ComboDialog` + `ComboComponentPicker` / `ComboItemsTable` / `ComboPriceSection`, bốn tab tách ra `ServiceSettingsTabs` dùng chung với `ServiceDialog`; bảng mở dòng combo (`ComboEntryParts`), `ServiceKindFilter`; "Chọn Dịch Vụ": `AdvisePickerHead`, `AdviseComboNotice`, `AdviseComboGrid`, `useAdviseCombos`, `comboSuggestion`, thẻ tóm tắt có danh sách LẺ/COMBO. |
+| R-726 | `taxonomy.spec` (3 ca) và `taxonomy-dialogs` (1 ca) đỏ sau khi thêm combo. | Không phải lỗi màn hình: `getByLabel(/^Dịch vụ/)` giờ khớp thêm nút radio "Dịch vụ lẻ", và nút đổi tên thành "Thêm dịch vụ / combo" theo review. Đổi locator sang `getByRole("textbox", { name: /^Dịch vụ/ })` và `/Thêm dịch vụ/`. |
+| R-727 | Dialog combo: panel Danh mục bị 34 chip nhóm đẩy mất danh sách dịch vụ (đo bằng ảnh chụp local). Mở sửa một combo thoáng hiện dialog dịch vụ lẻ một khung hình. | Chip nhóm thành một hàng cuộn ngang; loại của dialog lấy thẳng từ mục đang sửa, chỉ mục mới mới dùng công tắc (reset lúc render, không qua effect). |
+
+Kiểm chứng (vite preview :8080, host thật :5000, PostgreSQL thật — container `bluedental-postgres-1`
+phải bật lại vì đã dừng 18 giờ, host cũ đang trả 500): `catalog-combo.spec.ts` **3/3**;
+`taxonomy*.spec.ts` + `payment-qr` + `branch-isolation` + `branch-switcher` + `consulting-delete-and-picker`
++ `consulting-review`: 64 xanh lượt đầu, 8 đỏ — 4 là R-726 (xanh sau khi sửa), 2 ca `taxonomy-import-api`
+(183, 202) xanh khi chạy lại, còn **2 đỏ do dữ liệu local**: `taxonomy-import-api:604` và
+`taxonomy-service-sync:321` giả định nhóm quyền seed `dentist` không có quyền nào, nhưng DB local
+đang có **372** grant trên nhóm đó (do các spec khác bật lá quyền mà không trả lại) — không liên quan
+thay đổi này, chưa đụng vào dữ liệu đó. Domain.Tests **568**, EF.Tests **64**, Application.Tests **656**
+xanh; `tsc` sạch; `oxlint` không cảnh báo mới. Retest level **3**.

@@ -75,6 +75,7 @@ public class BlueDentalDbContext :
     public DbSet<CatalogServiceStage> CatalogServiceStages { get; set; }
     public DbSet<CatalogMedicine> CatalogMedicines { get; set; }
     public DbSet<PrescriptionTemplateLine> PrescriptionTemplateLines { get; set; }
+    public DbSet<CatalogComboItem> CatalogComboItems { get; set; }
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }

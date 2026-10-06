@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import type { CatalogComboOption } from "@/hooks/useCatalogCombos";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { newRowDraft, sumTotals, type AdviseRowDraft, type AdviseTotals } from "./adviseTypes";
 
@@ -11,6 +12,13 @@ export interface AdviseSelection {
   /** Ticks (or unticks) every service currently on screen. */
   toggleAll: (services: CatalogOption[], checked: boolean) => void;
   update: (serviceId: string, patch: Partial<AdviseRowDraft>) => void;
+  /** The picked combos, keyed by id, in the order they were picked. */
+  combos: ReadonlyMap<string, CatalogComboOption>;
+  /**
+   * "Chọn combo" / "Hủy dịch vụ". Picking one clears every ticked single
+   * service — review P0510 — and they do not come back if it is dropped.
+   */
+  toggleCombo: (combo: CatalogComboOption, picked: boolean) => void;
   clear: () => void;
 }
 
@@ -21,6 +29,7 @@ export interface AdviseSelection {
  */
 export function useAdviseSelection(): AdviseSelection {
   const [rows, setRows] = useState<Map<string, AdviseRowDraft>>(() => new Map());
+  const [combos, setCombos] = useState<Map<string, CatalogComboOption>>(() => new Map());
 
   const isSelected = useCallback((serviceId: string) => rows.has(serviceId), [rows]);
 
@@ -60,9 +69,22 @@ export function useAdviseSelection(): AdviseSelection {
     });
   }, []);
 
-  const clear = useCallback(() => setRows(new Map()), []);
+  const toggleCombo = useCallback((combo: CatalogComboOption, picked: boolean) => {
+    if (picked) setRows(new Map());
+    setCombos((current) => {
+      const next = new Map(current);
+      if (picked) next.set(combo.id, combo);
+      else next.delete(combo.id);
+      return next;
+    });
+  }, []);
 
-  const totals = useMemo(() => sumTotals(rows.values()), [rows]);
+  const clear = useCallback(() => {
+    setRows(new Map());
+    setCombos(new Map());
+  }, []);
 
-  return { rows, totals, isSelected, toggle, toggleAll, update, clear };
+  const totals = useMemo(() => sumTotals(rows.values(), combos.values()), [rows, combos]);
+
+  return { rows, totals, isSelected, toggle, toggleAll, update, combos, toggleCombo, clear };
 }

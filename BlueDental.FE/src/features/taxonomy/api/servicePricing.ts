@@ -10,6 +10,11 @@ const TAX_PERCENT: Record<ServiceTaxRate, number> = {
   [SERVICE_TAX_RATE.Ten]: 10,
 };
 
+/** The percentage a "% thuế" choice charges — 0 for KCT, KKKNT and 0%. */
+export function taxPercentOf(rate: ServiceTaxRate): number {
+  return TAX_PERCENT[rate];
+}
+
 export interface ServicePricingInput {
   price: number;
   discountIsPercent: boolean;

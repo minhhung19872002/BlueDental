@@ -44,20 +44,69 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<CatalogEntryDto>> GetListAsync(GetCatalogEntryListInput input)
     {
-        // The header can switch branches, so the caller names the one it wants;
-        // the checker narrows it to what this account may actually see.
-        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-
-        // A soft-deleted row stays in the list for the catalogs whose dialog can
-        // bring it back — it simply loses its delete action. Anywhere else the
-        // flag has no way to be cleared again, so those rows stay hidden.
-        using var _ = TaxonomyGroups.IsSoftDeletable(input.Group ?? string.Empty)
-            ? _softDeleteFilter.Disable()
-            : null;
+        using var _ = ShowDeletedRowsOf(input.Group);
 
         // WithDetails, not the bare queryable: the dialog behind each row edits
         // the catalog-specific parts, so the list has to carry them.
-        var query = await _repository.WithDetailsAsync();
+        var query = await FilterAsync(await _repository.WithDetailsAsync(), input);
+        if (input.IsCombo.HasValue)
+            query = query.Where(x => x.IsCombo == input.IsCombo.Value);
+
+        var totalCount = query.Count();
+        var items = query
+            .OrderBy(x => x.SortOrder)
+            // Newest first among equal priorities: a record just added carries
+            // the default priority, so this is what puts it at the top of the
+            // list the moment it is saved.
+            .ThenByDescending(x => x.CreationTime)
+            .Skip(input.SkipCount)
+            .Take(input.MaxResultCount)
+            .ToList();
+
+        var names = await GetTaxonomyNamesAsync(items);
+        var medicines = await GetMedicineNamesAsync(items);
+        var components = await GetComboComponentsAsync(items);
+        return new PagedResultDto<CatalogEntryDto>(
+            totalCount,
+            items.Select(x => MapToDto(x, names, medicines, components)).ToList());
+    }
+
+    /// <summary>
+    /// "Tất cả (8) · Dịch vụ lẻ (5) · Combo (3)" — the list's own filters
+    /// (branch, group, search, ...) counted once per kind, so the numbers on
+    /// the switch always agree with the rows each choice would show.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
+    public async Task<CatalogEntryKindCountsDto> GetKindCountsAsync(GetCatalogEntryListInput input)
+    {
+        using var _ = ShowDeletedRowsOf(input.Group);
+
+        var query = await FilterAsync(await _repository.GetQueryableAsync(), input);
+        var counts = query
+            .GroupBy(x => x.IsCombo)
+            .Select(g => new { IsCombo = g.Key, Count = g.Count() })
+            .ToList();
+
+        var combo = counts.Where(x => x.IsCombo).Sum(x => x.Count);
+        var single = counts.Where(x => !x.IsCombo).Sum(x => x.Count);
+        return new CatalogEntryKindCountsDto { Total = combo + single, Single = single, Combo = combo };
+    }
+
+    /// <summary>
+    /// A soft-deleted row stays in the list for the catalogs whose dialog can
+    /// bring it back — it simply loses its delete action. Anywhere else the
+    /// flag has no way to be cleared again, so those rows stay hidden.
+    /// </summary>
+    private IDisposable? ShowDeletedRowsOf(string? group) =>
+        TaxonomyGroups.IsSoftDeletable(group ?? string.Empty) ? _softDeleteFilter.Disable() : null;
+
+    /// <summary>Every filter of the list except the kind, which each caller applies its own way.</summary>
+    private async Task<IQueryable<CatalogEntry>> FilterAsync(
+        IQueryable<CatalogEntry> query, GetCatalogEntryListInput input)
+    {
+        // The header can switch branches, so the caller names the one it wants;
+        // the checker narrows it to what this account may actually see.
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
 
         if (branchFilter.Count > 0)
         {
@@ -80,22 +129,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                 (x.Description != null && x.Description.ToLower().Contains(term)));
         }
 
-        var totalCount = query.Count();
-        var items = query
-            .OrderBy(x => x.SortOrder)
-            // Newest first among equal priorities: a record just added carries
-            // the default priority, so this is what puts it at the top of the
-            // list the moment it is saved.
-            .ThenByDescending(x => x.CreationTime)
-            .Skip(input.SkipCount)
-            .Take(input.MaxResultCount)
-            .ToList();
-
-        var names = await GetTaxonomyNamesAsync(items);
-        var medicines = await GetMedicineNamesAsync(items);
-        return new PagedResultDto<CatalogEntryDto>(
-            totalCount,
-            items.Select(x => MapToDto(x, names, medicines)).ToList());
+        return query;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
@@ -104,7 +138,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         var entry = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(entry.ClinicBranchId);
         var names = await GetTaxonomyNamesAsync([entry]);
-        return MapToDto(entry, names, await GetMedicineNamesAsync([entry]));
+        return MapToDto(entry, names, await GetMedicineNamesAsync([entry]), await GetComboComponentsAsync([entry]));
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
@@ -135,21 +169,26 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             taxonomy.Group,
             input.Name,
             code,
-            input.Price,
+            // A combo is priced by its rows, never by a typed figure.
+            input.IsCombo ? null : input.Price,
             input.Content,
             input.Description,
-            input.SortOrder);
+            input.SortOrder,
+            input.IsCombo);
 
         await CheckLaboSuppliersAsync(taxonomy.ClinicBranchId, input.ServiceConfig);
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
+        // A new combo must arrive with its table, so a missing one is an empty one.
+        await ApplyComboItemsAsync(entry, entry.IsCombo ? input.ComboItems ?? [] : input.ComboItems);
 
         await _repository.InsertAsync(entry, autoSave: true);
 
         return MapToDto(
             entry,
             new Dictionary<Guid, string> { [taxonomy.Id] = taxonomy.Name },
-            await GetMedicineNamesAsync([entry]));
+            await GetMedicineNamesAsync([entry]),
+            await GetComboComponentsAsync([entry]));
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Edit)]
@@ -188,6 +227,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         await CheckLaboSuppliersAsync(entry.ClinicBranchId, input.ServiceConfig);
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
+        await ApplyComboItemsAsync(entry, input.ComboItems);
 
         if (input.IsActive)
         {
@@ -208,7 +248,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         await _repository.UpdateAsync(entry, autoSave: true);
 
         var names = await GetTaxonomyNamesAsync([entry]);
-        return MapToDto(entry, names, await GetMedicineNamesAsync([entry]));
+        return MapToDto(entry, names, await GetMedicineNamesAsync([entry]), await GetComboComponentsAsync([entry]));
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Delete)]
@@ -313,6 +353,89 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     }
 
     /// <summary>
+    /// Writes a combo's "Thành phần combo" table. Null leaves it as it is.
+    ///
+    /// Every component has to be a single service of the combo's own branch —
+    /// a combo inside a combo would price a price, and another branch's service
+    /// would sell what this branch never set up. A service already in the
+    /// combo may stay after it was deleted, so an old combo can still be saved;
+    /// a deleted one cannot be newly added.
+    /// </summary>
+    private async Task ApplyComboItemsAsync(CatalogEntry entry, List<CatalogComboItemDto>? rows)
+    {
+        if (rows == null)
+        {
+            return;
+        }
+
+        if (!entry.IsCombo)
+        {
+            if (rows.Count > 0)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Catalogs.ComboNotSupported,
+                    "Only a combo has combo components.");
+            }
+
+            return;
+        }
+
+        var ids = rows.Select(x => x.ComponentEntryId).Distinct().ToList();
+        var already = entry.ComboItems.Select(x => x.ComponentEntryId).ToList();
+
+        using (_softDeleteFilter.Disable())
+        {
+            var query = await _repository.GetQueryableAsync();
+            var allowed = query
+                .Where(x => ids.Contains(x.Id)
+                    && x.Id != entry.Id
+                    && x.ClinicBranchId == entry.ClinicBranchId
+                    && x.Group == TaxonomyGroups.CareService
+                    && !x.IsCombo
+                    && (!x.IsDeleted || already.Contains(x.Id)))
+                .Count();
+
+            if (allowed != ids.Count)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Catalogs.ComboComponentNotAllowed,
+                    "A combo component must be a single service of the combo's own branch.");
+            }
+        }
+
+        entry.ReplaceComboItems(
+            rows.Select(x => new CatalogComboRow(x.ComponentEntryId, x.Quantity, x.UnitPrice)),
+            GuidGenerator.Create);
+    }
+
+    /// <summary>Name, code and live catalogue price of every component the combos name.</summary>
+    private async Task<Dictionary<Guid, ComboComponent>> GetComboComponentsAsync(
+        IReadOnlyCollection<CatalogEntry> entries)
+    {
+        var ids = entries
+            .SelectMany(x => x.ComboItems)
+            .Select(x => x.ComponentEntryId)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, ComboComponent>();
+        }
+
+        // A component deleted after the combo was built still has to be named.
+        using var _ = _softDeleteFilter.Disable();
+        var query = await _repository.GetQueryableAsync();
+        return query
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new ComboComponent(x.Id, x.Name, x.Code, x.Price))
+            .ToList()
+            .ToDictionary(x => x.Id);
+    }
+
+    private sealed record ComboComponent(Guid Id, string Name, string? Code, decimal? Price);
+
+    /// <summary>
     /// The Labo tab's picks must be suppliers of the entry's own branch — a
     /// stranger's id would let a slip in this branch order from a supplier the
     /// branch never set up.
@@ -338,7 +461,8 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     private static CatalogEntryDto MapToDto(
         CatalogEntry entity,
         IReadOnlyDictionary<Guid, string> taxonomyNames,
-        IReadOnlyDictionary<Guid, string>? medicineNames = null) => new()
+        IReadOnlyDictionary<Guid, string>? medicineNames = null,
+        IReadOnlyDictionary<Guid, ComboComponent>? components = null) => new()
     {
         Id = entity.Id,
         ClinicBranchId = entity.ClinicBranchId,
@@ -419,6 +543,33 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                         : null
             })
             .ToList(),
+        IsCombo = entity.IsCombo,
+        ComboItems = entity.ComboItems
+            .OrderBy(x => x.SortOrder)
+            .Select(x =>
+            {
+                var component = components != null && components.TryGetValue(x.ComponentEntryId, out var found)
+                    ? found
+                    : null;
+                return new CatalogComboItemDto
+                {
+                    Id = x.Id,
+                    ComponentEntryId = x.ComponentEntryId,
+                    Quantity = x.Quantity,
+                    UnitPrice = x.UnitPrice,
+                    ComponentName = component?.Name,
+                    ComponentCode = component?.Code,
+                    ComponentPrice = component?.Price
+                };
+            })
+            .ToList(),
+        // "Tổng giá lẻ": what the same rows would cost bought one by one, at
+        // today's catalogue prices.
+        RetailPrice = entity.IsCombo
+            ? entity.ComboItems.Sum(x =>
+                (components != null && components.TryGetValue(x.ComponentEntryId, out var part) ? part.Price ?? 0m : 0m)
+                * x.Quantity)
+            : null,
         TaxonomyName = taxonomyNames.TryGetValue(entity.TaxonomyId, out var name) ? name : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,

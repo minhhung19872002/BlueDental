@@ -1900,3 +1900,12 @@ Billing invoices (`api/v1/app/invoices`): `POST {id}/issue` (Draft → Issued), 
 `InvoiceStatus`; codes 2–6 come from an unofficial DLL document, not yet seen on REST).
 
 Full contract, error codes, config and the provider protocol: `docs/clone/integrations/easyinvoice.md`.
+
+## Combo dịch vụ — BlueDental riêng (2026-10-06, review P0510)
+
+- `GET /api/v1/app/catalog-entries?isCombo=<bool>` — lọc dịch vụ lẻ / combo (bỏ trống = cả hai).
+- `GET /api/v1/app/catalog-entries/kind-counts?clinicBranchId&group&taxonomyId&filter` → `{ total, single, combo }`.
+- `POST /api/v1/app/catalog-entries` nhận thêm `isCombo: <bool>` và `comboItems: [{ componentEntryId, quantity, unitPrice }]`;
+  `PUT` nhận `comboItems` (bỏ trống = giữ nguyên). Giá combo do server tính, `price` gửi lên bị bỏ qua.
+- `CatalogEntryDto` thêm `isCombo`, `comboItems[{ id, componentEntryId, quantity, unitPrice, componentName, componentCode, componentPrice }]`, `retailPrice`.
+- Lỗi: `BlueDental:Catalogs:0026` dòng không hợp lệ, `0027` combo rỗng, `0028` thành phần không phải dịch vụ lẻ sống cùng chi nhánh, `0029` danh mục không có combo.

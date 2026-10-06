@@ -1033,6 +1033,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.PrescriptionLines).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+            entity.Property(x => x.IsCombo).HasDefaultValue(false);
+            entity.HasMany(x => x.ComboItems)
+                .WithOne()
+                .HasForeignKey(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.ComboItems).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
             entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
         });
@@ -1067,6 +1074,18 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.PrescriptionCode).HasMaxLength(100);
             entity.Property(x => x.PurchasePrice).HasColumnType("numeric(18,2)");
             entity.HasIndex(x => x.CatalogEntryId).IsUnique();
+        });
+
+        // Thanh phan combo
+        builder.Entity<CatalogComboItem>(entity =>
+        {
+            entity.ToTable("bd_catalog_combo_items");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.LineTotal);
+            entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
+            // "Which combos hold this service" — the suggestion in Chọn Dịch Vụ.
+            entity.HasIndex(x => x.ComponentEntryId);
         });
 
         builder.Entity<PrescriptionTemplateLine>(entity =>

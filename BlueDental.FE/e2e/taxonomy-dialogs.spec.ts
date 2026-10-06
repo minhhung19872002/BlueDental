@@ -112,14 +112,14 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     const supplierName = await ensureSupplier(page, branchId, id);
     await createGroup(page, `NHOM DV ${id}`);
 
-    await page.getByRole("button", { name: /Thêm dịch vụ$/ }).click();
+    await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
     let dialog = page.getByRole("dialog");
 
     // The reference dropped its "Mã dịch vụ" box and added a Labo tab.
     await expect(dialog.getByLabel(/Mã dịch vụ/)).toHaveCount(0);
     await expect(dialog.getByRole("tab")).toHaveText(["Cài đặt", "Công đoạn", "Bảo hành", "Labo"]);
 
-    await dialog.getByLabel(/^Dịch vụ/).fill(name);
+    await dialog.getByRole("textbox", { name: /^Dịch vụ/ }).fill(name);
     await dialog.getByLabel(/Tên chi tiết/).fill("Tên chi tiết E2E");
     await dialog.getByLabel(/^Giá$/).fill("1000");
     await dialog.getByLabel(/Giảm giá/).fill("10");

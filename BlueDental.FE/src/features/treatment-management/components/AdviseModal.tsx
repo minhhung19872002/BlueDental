@@ -7,11 +7,15 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import type { PatientDiagnosisDto } from "../api/consultingApi";
 import { ToothPickerDialog } from "./plan/ToothPickerDialog";
+import { AdviseComboGrid } from "./advise/AdviseComboGrid";
+import { AdviseComboNotice } from "./advise/AdviseComboNotice";
 import { AdviseGroupPicker } from "./advise/AdviseGroupPicker";
 import { AdviseHeaderFields } from "./advise/AdviseHeaderFields";
+import { AdvisePickerHead } from "./advise/AdvisePickerHead";
 import { AdviseServiceTable } from "./advise/AdviseServiceTable";
-import { AdviseSummaryFooter } from "./advise/AdviseSummaryFooter";
+import { AdviseSummaryFooter, type AdviseSummaryItem } from "./advise/AdviseSummaryFooter";
 import type { AdviseHeaderValues } from "./advise/adviseTypes";
+import { summaryItemsOf, useAdviseCombos } from "./advise/useAdviseCombos";
 import { useAdviseCatalog } from "./advise/useAdviseCatalog";
 import { useAdviseSelection } from "./advise/useAdviseSelection";
 import { useCreateAdvises } from "./advise/useCreateAdvises";
@@ -66,6 +70,7 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
   const catalog = useAdviseCatalog(open);
   const allStaff = useStaffOptions();
   const selection = useAdviseSelection();
+  const combos = useAdviseCombos(open, selection);
   const { save, saving } = useCreateAdvises({ patientId, branchId, diagnosis, onCreated, onClose });
 
   // Every open starts from the slip: its teeth, its doctors as the default
@@ -75,12 +80,13 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     setTeeth(toothSelectionsToValue(diagnosis.teeth));
     setSecondOpen(Boolean(diagnosis.secondStaffId));
     catalog.reset();
+    combos.reset();
     selection.clear();
     form.setFieldsValue({
       staffId: diagnosis.staffId,
       secondStaffId: diagnosis.secondStaffId ?? undefined,
     });
-  }, [open, diagnosis, form, selection.clear, catalog.reset]);
+  }, [open, diagnosis, form, selection.clear, catalog.reset, combos.reset]);
 
   const staff = useMemo(() => {
     const options = [...(allStaff.data ?? [])];
@@ -106,8 +112,33 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     } catch {
       return; // the field shows its own message
     }
-    await save({ header, teeth, rows: selection.rows });
+    await save({ header, teeth, rows: selection.rows, combos: selection.combos });
   };
+
+  const items = summaryItemsOf(selection);
+  const handleRemove = (item: AdviseSummaryItem) => {
+    if (item.kind === "combo") {
+      const combo = selection.combos.get(item.id);
+      if (combo) selection.toggleCombo(combo, false);
+      return;
+    }
+    const row = selection.rows.get(item.id);
+    if (row) selection.toggle(row.service, false);
+  };
+
+  const pickerHead = (
+    <AdvisePickerHead
+      kind={combos.kind}
+      singleCount={catalog.servicesTotal}
+      comboCount={combos.total}
+      search={combos.kind === "combo" ? combos.search : catalog.search}
+      onKindChange={combos.setKind}
+      onSearchChange={combos.kind === "combo" ? combos.setSearch : catalog.setSearch}
+    />
+  );
+  const notice = combos.suggestion ? (
+    <AdviseComboNotice suggestion={combos.suggestion} onApply={() => combos.setKind("combo")} />
+  ) : null;
 
   return (
     <Modal
@@ -127,10 +158,11 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
       footer={
         <AdviseSummaryFooter
           slipCode={diagnosis.code}
-          count={selection.rows.size}
+          items={items}
           totals={selection.totals}
           saving={saving}
-          canSave={selection.rows.size > 0}
+          canSave={items.length > 0}
+          onRemove={handleRemove}
           onSave={() => void handleSave()}
         />
       }
@@ -144,26 +176,41 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
           onPickTeeth={() => setToothOpen(true)}
           onSecondOpenChange={handleSecondOpenChange}
         />
-        <AdviseServiceTable
-          services={catalog.services}
-          loading={catalog.servicesLoading}
-          loadingMore={catalog.servicesLoadingMore}
-          hasMore={catalog.hasMoreServices}
-          selection={selection}
-          onLoadMore={catalog.loadMoreServices}
-          picker={
-            <AdviseGroupPicker
-              groups={catalog.groups}
-              activeGroupId={catalog.groupId}
-              search={catalog.search}
-              loading={catalog.groupsLoading}
-              loadingMore={catalog.groupsLoadingMore}
-              onGroupChange={catalog.setGroupId}
-              onSearchChange={catalog.setSearch}
-              onNearEnd={catalog.loadMoreGroups}
+        {combos.kind === "combo" ? (
+          <div className="am-services">
+            <div className="am-picker">
+              {pickerHead}
+              {notice}
+            </div>
+            <AdviseComboGrid
+              combos={combos.combos}
+              loading={combos.loading}
+              picked={selection.combos}
+              onToggle={selection.toggleCombo}
             />
-          }
-        />
+          </div>
+        ) : (
+          <AdviseServiceTable
+            services={catalog.services}
+            loading={catalog.servicesLoading}
+            loadingMore={catalog.servicesLoadingMore}
+            hasMore={catalog.hasMoreServices}
+            selection={selection}
+            onLoadMore={catalog.loadMoreServices}
+            picker={
+              <AdviseGroupPicker
+                groups={catalog.groups}
+                activeGroupId={catalog.groupId}
+                head={pickerHead}
+                notice={notice}
+                loading={catalog.groupsLoading}
+                loadingMore={catalog.groupsLoadingMore}
+                onGroupChange={catalog.setGroupId}
+                onNearEnd={catalog.loadMoreGroups}
+              />
+            }
+          />
+        )}
       </Form>
       <ToothPickerDialog
         open={toothOpen}

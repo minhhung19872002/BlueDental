@@ -1,4 +1,5 @@
 import { DISCOUNT_TYPE, type DiscountType } from "../../api/consultingApi";
+import type { CatalogComboOption } from "@/hooks/useCatalogCombos";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 
 /** What the clinician has typed on one ticked row of "Chọn Dịch Vụ". */
@@ -17,8 +18,12 @@ export interface AdviseRowDraft {
 }
 
 export interface AdviseTotals {
+  /** "Tổng cộng (giá gốc)" — a combo counts at its Tổng giá lẻ. */
   gross: number;
+  /** What was typed off the single rows. */
   discount: number;
+  /** "Giảm giá combo" — what the picked combos save against buying their parts. */
+  comboDiscount: number;
   effective: number;
 }
 
@@ -55,16 +60,30 @@ export function rowTotals(row: AdviseRowDraft): AdviseTotals {
         ? (gross * row.discountValue) / 100
         : 0;
   const capped = Math.min(Math.max(discount, 0), gross);
-  return { gross, discount: capped, effective: gross - capped };
+  return { gross, discount: capped, comboDiscount: 0, effective: gross - capped };
 }
 
-export function sumTotals(rows: Iterable<AdviseRowDraft>): AdviseTotals {
+/**
+ * The summary card's figures: the single rows as the server will price them,
+ * and each picked combo at its Tổng giá lẻ less what it saves — so Thành
+ * tiền is what the combo lines are sold at.
+ */
+export function sumTotals(
+  rows: Iterable<AdviseRowDraft>,
+  combos: Iterable<CatalogComboOption> = [],
+): AdviseTotals {
   let gross = 0;
   let discount = 0;
+  let comboDiscount = 0;
   for (const row of rows) {
     const totals = rowTotals(row);
     gross += totals.gross;
     discount += totals.discount;
   }
-  return { gross, discount, effective: gross - discount };
+  for (const combo of combos) {
+    const retail = Math.max(combo.retailPrice, combo.salePrice);
+    gross += retail;
+    comboDiscount += retail - combo.salePrice;
+  }
+  return { gross, discount, comboDiscount, effective: gross - discount - comboDiscount };
 }

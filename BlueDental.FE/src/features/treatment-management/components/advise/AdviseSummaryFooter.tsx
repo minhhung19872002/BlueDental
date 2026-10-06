@@ -1,15 +1,24 @@
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, X } from "lucide-react";
 import { t, tRich } from "@/lib/i18n";
 import { moneyText } from "../plan/planTypes";
 import type { AdviseTotals } from "./adviseTypes";
 
+/** One line of the summary card — a ticked service (LẺ) or a picked combo (COMBO). */
+export interface AdviseSummaryItem {
+  id: string;
+  kind: "single" | "combo";
+  name: string;
+  amount: number;
+}
+
 interface Props {
   /** The diagnosis slip's code, e.g. CD10. */
   slipCode: string;
-  count: number;
+  items: AdviseSummaryItem[];
   totals: AdviseTotals;
   saving: boolean;
   canSave: boolean;
+  onRemove: (item: AdviseSummaryItem) => void;
   onSave: () => void;
 }
 
@@ -18,23 +27,48 @@ interface Props {
  * services are ticked, against which slip, and what they come to — and the
  * save button on the right, which stays off until something is ticked.
  */
-export function AdviseSummaryFooter({ slipCode, count, totals, saving, canSave, onSave }: Props) {
+export function AdviseSummaryFooter({ slipCode, items, totals, saving, canSave, onRemove, onSave }: Props) {
   return (
     <div className="am-foot">
       <div className="am-summary">
         <div className="am-summary-head">
-          <span className="am-summary-count">{count}</span>
+          <span className="am-summary-count">{items.length}</span>
           <span>
             {tRich("Treatment:Advise:SelectedServicesSlip", <b className="am-summary-code">{slipCode}</b>)}
           </span>
         </div>
+        {items.length > 0 && (
+          <ul className="am-summary-items">
+            {items.map((item) => (
+              <li key={`${item.kind}:${item.id}`}>
+                <span className={item.kind === "combo" ? "am-summary-kind am-summary-kind--combo" : "am-summary-kind"}>
+                  {item.kind === "combo" ? t("Treatment:Combo:KindCombo") : t("Treatment:Combo:KindSingle")}
+                </span>
+                <span className="am-summary-name">{item.name}</span>
+                <b>{moneyText(item.amount)}</b>
+                <button
+                  type="button"
+                  className="am-summary-remove"
+                  aria-label={t("Treatment:Combo:RemoveItem", item.name)}
+                  onClick={() => onRemove(item)}
+                >
+                  <X size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="am-summary-row">
-          <span>{t("Treatment:Pricing:TotalColon")}</span>
+          <span>{t("Treatment:Combo:GrossColon")}</span>
           <span>{moneyText(totals.gross)}</span>
         </div>
         <div className="am-summary-row">
           <span>{t("Treatment:Pricing:DiscountColon")}</span>
           <span>{moneyText(totals.discount)}</span>
+        </div>
+        <div className="am-summary-row">
+          <span>{t("Treatment:Combo:ComboDiscountColon")}</span>
+          <span className="am-summary-combo-off">{moneyText(totals.comboDiscount)}</span>
         </div>
         <div className="am-summary-row am-summary-row--total">
           <span>{t("Treatment:Pricing:NetAmountColon")}</span>

@@ -129,6 +129,31 @@ export interface PrescriptionTemplateLineDto {
   medicineName?: string | null;
 }
 
+/** One "Thành phần combo" row of a combo — BlueDental.Catalogs.CatalogComboItemDto. */
+export interface CatalogComboItemDto {
+  id?: string;
+  /** The single service the row puts in the combo. */
+  componentEntryId: string;
+  quantity: number;
+  /** "Thành tiền" — one unit's price inside the combo; the service's own price is untouched. */
+  unitPrice: number;
+  /** Read side only. */
+  componentName?: string | null;
+  componentCode?: string | null;
+  /** Read side only — "Giá lẻ", the service's catalogue price today. */
+  componentPrice?: number | null;
+}
+
+/** The counts on Danh mục's "Tất cả / Dịch vụ lẻ / Combo" switch. */
+export interface CatalogEntryKindCounts {
+  total: number;
+  single: number;
+  combo: number;
+}
+
+/** Which rows of the dịch vụ catalog the table lists. */
+export type ServiceKindFilter = "all" | "single" | "combo";
+
 export interface CatalogEntryDto {
   id: string;
   clinicBranchId: string;
@@ -153,10 +178,18 @@ export interface CatalogEntryDto {
   medicine: MedicineDto | null;
   stages: ServiceStageDto[];
   prescriptionLines: PrescriptionTemplateLineDto[];
+  /** A combo of the dịch vụ catalog — its price is the sum of `comboItems`. */
+  isCombo: boolean;
+  comboItems: CatalogComboItemDto[];
+  /** Combos only — "Tổng giá lẻ" at today's catalogue prices. */
+  retailPrice: number | null;
   taxonomyName: string | null;
   lastModificationTime: string | null;
   creationTime: string;
 }
+
+/** What a combo row sends — the read-side names stay behind. */
+export type CatalogComboItemInput = Pick<CatalogComboItemDto, "componentEntryId" | "quantity" | "unitPrice">;
 
 export interface CreateTaxonomyInput {
   clinicBranchId: string;
@@ -193,6 +226,9 @@ export interface CreateCatalogEntryInput {
   medicine?: MedicineDto;
   stages?: ServiceStageDto[];
   prescriptionLines?: Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">[];
+  /** Creates a combo instead of a single service; its price comes from `comboItems`. */
+  isCombo?: boolean;
+  comboItems?: CatalogComboItemInput[];
 }
 
 export interface UpdateCatalogEntryInput {
@@ -214,6 +250,20 @@ export interface UpdateCatalogEntryInput {
   medicine?: MedicineDto;
   stages?: ServiceStageDto[];
   prescriptionLines?: Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">[];
+  /** A combo's whole table; omitted leaves it as it is. */
+  comboItems?: CatalogComboItemInput[];
+}
+
+/** The list's filters, shared by the entry list and the kind counts. */
+interface EntryListParams {
+  clinicBranchId?: string;
+  group?: string;
+  taxonomyId?: string;
+  filter?: string;
+  isCombo?: boolean;
+  isDeleted?: boolean;
+  skipCount?: number;
+  maxResultCount?: number;
 }
 
 const taxonomyApi = {
@@ -235,16 +285,14 @@ const taxonomyApi = {
   deleteGroup: (id: string): Promise<void> =>
     api.delete(`/v1/app/taxonomies/${id}`).then(() => undefined),
 
-  entries: (params: {
-    clinicBranchId?: string;
-    group?: string;
-    taxonomyId?: string;
-    filter?: string;
-    skipCount?: number;
-    maxResultCount?: number;
-  }): Promise<PagedResult<CatalogEntryDto>> =>
+  entries: (params: EntryListParams): Promise<PagedResult<CatalogEntryDto>> =>
     api
       .get<PagedResult<CatalogEntryDto>>("/v1/app/catalog-entries", { params })
+      .then((r) => r.data),
+
+  kindCounts: (params: EntryListParams): Promise<CatalogEntryKindCounts> =>
+    api
+      .get<CatalogEntryKindCounts>("/v1/app/catalog-entries/kind-counts", { params })
       .then((r) => r.data),
 
   createEntry: (input: CreateCatalogEntryInput): Promise<CatalogEntryDto> =>
@@ -291,8 +339,16 @@ export interface CatalogEntryQuery {
   scope: "group" | "catalog";
   taxonomyId?: string;
   filter?: string;
+  /** Dịch vụ only — "Dịch vụ lẻ" or "Combo"; unset lists both. */
+  isCombo?: boolean;
   skipCount: number;
   maxResultCount: number;
+}
+
+/** The switch's choice as the list endpoint's `isCombo`. */
+export function isComboParam(kind: ServiceKindFilter): boolean | undefined {
+  if (kind === "all") return undefined;
+  return kind === "combo";
 }
 
 export const taxonomyKeys = {
@@ -308,9 +364,14 @@ export const taxonomyKeys = {
       query.scope,
       query.taxonomyId ?? null,
       query.filter?.trim() ?? "",
+      query.isCombo ?? null,
       query.skipCount,
       query.maxResultCount,
     ] as const,
+  kindCounts: (branchId: string | undefined, group: string, taxonomyId: string | null, filter: string) =>
+    [...taxonomyKeys.all, "kind-counts", branchId ?? "all", group, taxonomyId, filter] as const,
+  components: (branchId: string | undefined, taxonomyId: string | null, filter: string) =>
+    [...taxonomyKeys.all, "combo-components", branchId ?? "all", taxonomyId, filter] as const,
 };
 
 /**
@@ -356,12 +417,71 @@ export function useCatalogEntries(
         group,
         taxonomyId: query.taxonomyId,
         filter: query.filter?.trim() || undefined,
+        isCombo: query.isCombo,
         skipCount: query.skipCount,
         maxResultCount: query.maxResultCount,
       }),
     // Paging through a catalog should not blank the table on every step.
     placeholderData: (previous) => previous,
     enabled: Boolean(group && (query.scope === "catalog" || query.taxonomyId)),
+  });
+}
+
+/**
+ * The numbers on "Tất cả / Dịch vụ lẻ / Combo", counted by the server under
+ * the same group and search as the table — Dịch vụ only.
+ */
+export function useCatalogEntryKindCounts(
+  branchId: string | undefined,
+  group: string,
+  taxonomyId: string | null,
+  filter: string,
+  enabled: boolean,
+) {
+  const term = filter.trim();
+  return useQuery({
+    queryKey: taxonomyKeys.kindCounts(branchId, group, taxonomyId, term),
+    queryFn: () =>
+      taxonomyApi.kindCounts({
+        clinicBranchId: branchId,
+        group,
+        taxonomyId: taxonomyId ?? undefined,
+        filter: term || undefined,
+      }),
+    placeholderData: (previous) => previous,
+    enabled: enabled && Boolean(taxonomyId),
+  });
+}
+
+/** How many services the combo dialog's "Danh mục" panel lists at once; a search narrows them. */
+export const COMBO_COMPONENT_PAGE_SIZE = 100;
+
+/**
+ * The single services a combo can be built from — the combo dialog's
+ * "Danh mục" panel. Searched on the server like every other catalog list;
+ * combos and deleted rows are left out, as the server would refuse them.
+ */
+export function useComboComponentOptions(
+  branchId: string | undefined,
+  taxonomyId: string | null,
+  filter: string,
+  enabled: boolean,
+) {
+  const term = filter.trim();
+  return useQuery({
+    queryKey: taxonomyKeys.components(branchId, taxonomyId, term),
+    queryFn: () =>
+      taxonomyApi.entries({
+        clinicBranchId: branchId,
+        group: TAXONOMY_GROUP.CareService,
+        taxonomyId: taxonomyId ?? undefined,
+        filter: term || undefined,
+        isCombo: false,
+        isDeleted: false,
+        maxResultCount: COMBO_COMPONENT_PAGE_SIZE,
+      }),
+    placeholderData: (previous) => previous,
+    enabled: enabled && Boolean(branchId),
   });
 }
 

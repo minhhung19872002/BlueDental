@@ -789,3 +789,11 @@ Components: `ServiceCatalogSyncButton` → `ServiceCatalogSyncDialog`
 (+ `ServiceSyncGroupRow`, `useServiceSyncSelection`) → `ServiceCatalogSyncResultDialog`
 (+ `ServiceSyncResultTable`); `ServiceDialog` + `useServiceDialogSync`; logic chọn
 thuần trong `features/taxonomy/serviceCatalogSync.ts`.
+
+## Combo dịch vụ — BlueDental riêng (2026-10-06, review P0510)
+
+Tab Dịch vụ có thêm combo: công tắc "Loại" trong "Thêm dịch vụ", dialog combo riêng,
+bộ lọc "Tất cả / Dịch vụ lẻ / Combo", dòng combo mở ra thành phần và nút Sao chép.
+`ServiceDialog` chỉ đổi chỗ: bốn tab Cài đặt / Công đoạn / Bảo hành / Labo tách sang
+`ServiceSettingsTabs` (dùng chung với combo), hành vi giữ nguyên. Xem `docs/clone/pages/combo.md`.
+

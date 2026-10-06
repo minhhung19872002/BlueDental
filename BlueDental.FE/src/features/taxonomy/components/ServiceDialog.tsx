@@ -1,12 +1,10 @@
-import { Alert, Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, Tabs } from "antd";
+import { Alert, Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select } from "antd";
 import { toast } from "sonner";
-import { useEffect, useRef, useState } from "react";
-import { PlusOutlined, SyncOutlined, WarningOutlined } from "@ant-design/icons";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import {
-  SERVICE_STAGE_VALUE_TYPE,
   SERVICE_TAX_RATE,
   SERVICE_TAX_RATE_OPTIONS,
-  WARRANTY_PRESETS,
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
   type CatalogEntryDto,
@@ -23,14 +21,15 @@ import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
 import { useServiceDialogSync } from "../hooks/useServiceDialogSync";
 import { useServicePricePreview } from "../hooks/useServicePricePreview";
-import { ServiceLaboTab } from "./ServiceLaboTab";
-import { ServiceStageTable } from "./ServiceStageTable";
+import { ServiceSettingsTabs } from "./ServiceSettingsTabs";
 
 interface Props {
   open: boolean;
   entry: CatalogEntryDto | null;
   groups: TaxonomyDto[];
   defaultTaxonomyId?: string;
+  /** "Loại: Dịch vụ lẻ | Combo", drawn above the form on a new entry. */
+  kindSwitch?: ReactNode;
   onClose: () => void;
 }
 
@@ -88,38 +87,6 @@ const EMPTY: FormValues = {
   laboSupplierIds: [],
 };
 
-/** Labels for the reference's fixed row of warranty choices. */
-function warrantyLabel(days: number): string {
-  if (days === 0) return t("Taxonomy:Service:WarrantyNone");
-  if (days === 365) return t("Taxonomy:Service:Warranty1Year");
-  if (days === 730) return t("Taxonomy:Service:Warranty2Years");
-  return t("Taxonomy:Service:WarrantyMonths", String(Math.round(days / 30)));
-}
-
-/** One labelled checkbox with any number of explanation lines under it. */
-function CheckRow({
-  name,
-  label,
-  hints = [],
-}: {
-  name: keyof FormValues;
-  label: string;
-  hints?: string[];
-}) {
-  return (
-    <div className="bd-check-row">
-      <Form.Item name={name} valuePropName="checked" noStyle>
-        <Checkbox>{label}</Checkbox>
-      </Form.Item>
-      {hints.map((hint) => (
-        <p key={hint} className="bd-check-hint">
-          {hint}
-        </p>
-      ))}
-    </div>
-  );
-}
-
 /**
  * Dịch vụ — the reference's largest catalog dialog: the entry itself, a price
  * and tax block, and four tabs of settings (Cài đặt, Công đoạn, Bảo hành, Labo).
@@ -127,7 +94,7 @@ function CheckRow({
  * "Giá sau giảm" and "Thực thu từ khách" follow the price inputs live, as the
  * reference's do; the formula is the domain's, mirrored in `servicePricing.ts`.
  */
-export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose }: Props) {
+export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwitch, onClose }: Props) {
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
@@ -135,7 +102,6 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
   const [form] = Form.useForm<FormValues>();
   const name = Form.useWatch("name", form) ?? "";
   const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
-  const warrantyDays = Form.useWatch("warrantyDays", form) ?? 0;
   const isDeleted = Form.useWatch("isDeleted", form) ?? false;
   const pricing = useServicePricePreview(form);
   const partnerSync = useServiceDialogSync(branchId, open);
@@ -186,22 +152,6 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
   }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending;
-
-  const addStage = () => {
-    const trimmed = (form.getFieldValue("stageDraft") as string | undefined)?.trim() ?? "";
-    if (!trimmed) return;
-    // A new row starts as a percentage share, as the reference's does.
-    setStages((current) => [
-      ...current,
-      {
-        name: trimmed,
-        value: 0,
-        valueType: SERVICE_STAGE_VALUE_TYPE.Percentage,
-        isMarketingSalary: false,
-      },
-    ]);
-    form.setFieldValue("stageDraft", "");
-  };
 
   const submit = async (values: FormValues) => {
     const trimmed = values.name.trim();
@@ -299,6 +249,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
+        {kindSwitch}
+
         <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={8}>
             <FloatingField
@@ -425,105 +377,11 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         </div>
 
         {/* ── Cài đặt | Công đoạn | Bảo hành | Labo ───────────────────── */}
-        <Tabs
-          className="bd-dialog-tabs"
-          items={[
-            {
-              key: "settings",
-              label: t("Taxonomy:Service:Settings"),
-              children: (
-                <div className="bd-check-list">
-                  <CheckRow name="requireImage" label={t("Taxonomy:Service:RequireImage")} />
-                  <CheckRow
-                    name="deductDoctorOnWarranty"
-                    label={t("Taxonomy:Service:DeductOnWarranty")}
-                  />
-                  <CheckRow name="separateRevenue" label={t("Taxonomy:Service:SeparateRevenue")} />
-                  <CheckRow name="showToothOnInvoice" label={t("Taxonomy:Service:ShowToothInvoice")} />
-                </div>
-              ),
-            },
-            {
-              key: "stages",
-              label: t("Taxonomy:Service:Stages"),
-              children: (
-                <div className="bd-check-list">
-                  <CheckRow
-                    name="revenueByStage"
-                    label={t("Taxonomy:Service:RevenueByStage")}
-                    hints={[t("Taxonomy:Service:RevenueByStageHint")]}
-                  />
-                  <CheckRow
-                    name="requireStageSequence"
-                    label={t("Taxonomy:Service:RequireSequence")}
-                    hints={[
-                      t("Taxonomy:Service:RequireStageSequenceHint"),
-                      t("Taxonomy:Service:RequireStageSequenceHintOn"),
-                    ]}
-                  />
-
-                  <Row gutter={[8, 12]} align="middle" className="bd-stage-add">
-                    <Col flex="auto">
-                      <FloatingField name="stageDraft" label={t("Taxonomy:Service:AddStageBtn")}>
-                        <Input
-                          maxLength={100}
-                          onPressEnter={(event) => {
-                            event.preventDefault();
-                            addStage();
-                          }}
-                        />
-                      </FloatingField>
-                    </Col>
-                    <Col flex="none">
-                      <Button type="primary" icon={<PlusOutlined />} onClick={addStage}>
-                        {t("Taxonomy:Service:AddStageBtn")}
-                      </Button>
-                    </Col>
-                  </Row>
-
-                  <ServiceStageTable stages={stages} onChange={setStages} />
-                </div>
-              ),
-            },
-            {
-              key: "warranty",
-              label: t("Taxonomy:Service:Warranty"),
-              children: (
-                <div className="bd-check-list">
-                  <Row gutter={[16, 8]}>
-                    {WARRANTY_PRESETS.map((days) => (
-                      <Col xs={12} sm={8} key={days}>
-                        <Checkbox
-                          // The reference shows these as checkboxes but only one
-                          // period can be in force, so picking one clears the rest.
-                          checked={warrantyDays === days}
-                          onChange={() => form.setFieldValue("warrantyDays", days)}
-                        >
-                          {warrantyLabel(days)}
-                        </Checkbox>
-                      </Col>
-                    ))}
-                  </Row>
-
-                  <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
-                    <Col xs={24} sm={12}>
-                      <FloatingField name="warrantyDays" label={t("Taxonomy:Service:Custom")}>
-                        <InputNumber min={0} style={{ width: "100%" }} />
-                      </FloatingField>
-                    </Col>
-                  </Row>
-                  <p className="bd-cat-hint">{t("Taxonomy:Service:UnitDays")}</p>
-                </div>
-              ),
-            },
-            {
-              key: "labo",
-              label: t("Taxonomy:Service:TabLabo"),
-              children: (
-                <ServiceLaboTab options={suppliers.data ?? []} loading={suppliers.isPending} />
-              ),
-            },
-          ]}
+        <ServiceSettingsTabs
+          stages={stages}
+          onStagesChange={setStages}
+          suppliers={suppliers.data ?? []}
+          suppliersLoading={suppliers.isPending}
         />
       </Form>
     </AppDialog>
@@ -534,7 +392,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
  * The price toggle stores a boolean but reads as two words, so it translates
  * between the two for whichever Form.Item holds it.
  */
-function TaxSegmented({
+export function TaxSegmented({
   value,
   onChange,
 }: {
