@@ -34,13 +34,24 @@ const TAB_STATUSES: Record<Exclude<ReceptionStatus, "All">, number[]> = {
   Completed: [SERVER_STATUS.Completed],
 };
 
-const COUNTER_STATUSES: Record<keyof ReceptionCounters, number[]> = {
-  scheduledCount: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed],
-  arrivedCount: [SERVER_STATUS.CheckedIn, SERVER_STATUS.InProgress, SERVER_STATUS.Completed],
-  cancelledCount: [SERVER_STATUS.Cancelled],
-  lateCount: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed, SERVER_STATUS.NoShow],
-  temporaryCount: [],
-  convertedCount: [],
+interface CounterQuery {
+  statuses?: number[];
+  isLate?: boolean;
+  isTemporary?: boolean;
+}
+
+/**
+ * What each chip lists. Đã hẹn, Đã đến, Huỷ hẹn and Trễ hẹn split the board
+ * between them, so they add up to Tất cả: a booking past its start time with
+ * no arrival is Trễ hẹn, not Đã hẹn. Lịch tạm cuts across them.
+ */
+const COUNTER_QUERIES: Record<keyof ReceptionCounters, CounterQuery> = {
+  scheduledCount: { statuses: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed], isLate: false },
+  arrivedCount: { statuses: [SERVER_STATUS.CheckedIn, SERVER_STATUS.InProgress, SERVER_STATUS.Completed] },
+  cancelledCount: { statuses: [SERVER_STATUS.Cancelled] },
+  lateCount: { isLate: true },
+  temporaryCount: { isTemporary: true },
+  convertedCount: {},
 };
 
 function mapStatusFromBe(beStatus: number): ReceptionStatus {
@@ -131,11 +142,12 @@ const BUSY_STATUSES = [
   SERVER_STATUS.Completed,
 ];
 
+/** Past its start time and still only booked — the server's `isLate` rule for a booking not yet marked Trễ hẹn. */
 function isLateAppointment(dto: ServerAppointmentDto): boolean {
   const isWaiting =
     dto.status === SERVER_STATUS.Requested ||
     dto.status === SERVER_STATUS.Confirmed;
-  if (!isWaiting && !dto.isTemporary) return false;
+  if (!isWaiting) return false;
   if (dto.checkedInAt) return false;
   if (!dto.slotStart) return false;
   return dayjs(dto.slotStart).isBefore(dayjs());
@@ -188,38 +200,25 @@ export const receptionApi = {
     skipCount = 0,
     maxResultCount = 20,
   ): Promise<{ items: ReceptionItem[]; total: number }> {
-    let statuses: number[] | undefined;
-    let isTemporary: boolean | undefined;
-
-    if (filter.counterFilter) {
-      if (filter.counterFilter === "temporaryCount") {
-        isTemporary = true;
-      } else {
-        const mapped = COUNTER_STATUSES[filter.counterFilter];
-        if (mapped.length > 0) statuses = mapped;
-      }
-    } else if (filter.status && filter.status !== "All") {
-      statuses = TAB_STATUSES[filter.status];
-    }
+    const counterQuery: CounterQuery = filter.counterFilter
+      ? COUNTER_QUERIES[filter.counterFilter]
+      : { statuses: filter.status && filter.status !== "All" ? TAB_STATUSES[filter.status] : undefined };
 
     const res = await api.get(APPT_BASE, {
       params: {
         filter: filter.keyword,
         dentistId: filter.doctorId,
-        statuses,
-        isTemporary,
+        statuses: counterQuery.statuses,
+        isLate: counterQuery.isLate,
+        isTemporary: counterQuery.isTemporary,
         skipCount,
         maxResultCount,
         ...dateWindow(filter),
       },
     });
-    let items: ReceptionItem[] = (res.data?.items ?? []).map(
+    const items: ReceptionItem[] = (res.data?.items ?? []).map(
       (dto: ServerAppointmentDto) => mapAppointmentDto(dto),
     );
-
-    if (filter.counterFilter === "lateCount") {
-      items = items.filter((i) => i.counterStatus === "Late");
-    }
 
     return { items, total: res.data?.totalCount ?? items.length };
   },
@@ -230,19 +229,22 @@ export const receptionApi = {
     });
     const stats = res.data ?? {};
 
-    const scheduled = (stats.requested ?? 0) + (stats.confirmed ?? 0);
+    const booked = (stats.requested ?? 0) + (stats.confirmed ?? 0);
+    const overdue = stats.overdue ?? 0;
     const arrived = (stats.checkedIn ?? 0) + (stats.inProgress ?? 0) + (stats.completed ?? 0);
+    const scheduled = booked - overdue;
+    const late = (stats.noShow ?? 0) + overdue;
 
     return {
-      totalCount: scheduled + arrived + (stats.cancelled ?? 0) + (stats.noShow ?? 0),
-      waitingCount: scheduled + (stats.checkedIn ?? 0),
+      totalCount: scheduled + arrived + (stats.cancelled ?? 0) + late,
+      waitingCount: booked + (stats.checkedIn ?? 0),
       inProgressCount: stats.inProgress ?? 0,
       completedCount: stats.completed ?? 0,
       counters: {
         scheduledCount: scheduled,
         arrivedCount: arrived,
         cancelledCount: stats.cancelled ?? 0,
-        lateCount: stats.noShow ?? 0,
+        lateCount: late,
         temporaryCount: stats.temporary ?? 0,
         convertedCount: 0,
       },

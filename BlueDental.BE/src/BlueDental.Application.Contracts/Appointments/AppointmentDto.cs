@@ -165,6 +165,13 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     public AppointmentStatus? Status { get; set; }
     public List<AppointmentStatus>? Statuses { get; set; }
     public bool? IsTemporary { get; set; }
+
+    /// <summary>
+    /// Trễ hẹn on the reception board: marked late, or still only booked
+    /// (Đã hẹn / Đã xác nhận) once its start time has passed. False keeps the rest.
+    /// </summary>
+    public bool? IsLate { get; set; }
+
     public DateOnly? Date { get; set; }
 
     /// <summary>Inclusive range, for the week and month grids.</summary>
@@ -182,4 +189,10 @@ public class AppointmentStatsDto
     public int Cancelled { get; set; }
     public int NoShow { get; set; }
     public int Temporary { get; set; }
+
+    /// <summary>
+    /// Of <see cref="Requested"/> and <see cref="Confirmed"/>, those whose start
+    /// time has passed with no arrival — the board counts them Trễ hẹn, not Đã hẹn.
+    /// </summary>
+    public int Overdue { get; set; }
 }

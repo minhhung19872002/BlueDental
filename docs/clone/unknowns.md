@@ -2897,9 +2897,9 @@ Control: trạng thái lịch hẹn sau khi quá giờ mà khách không đến
 Reason: bản gốc có trạng thái "Trễ hẹn" nhưng thời điểm nó tự chuyển (ngay giờ hẹn, sau giờ kết
 thúc, hay cuối ngày) và việc còn tiếp đón được khách đến muộn hay không thì phải chờ một lịch thật
 quá giờ trên production mới thấy — không quan sát được trong phiên đọc.
-Action taken: NONE trên production. BlueDental: worker `MissedAppointmentWorker` mỗi phút chuyển
-lịch Đã hẹn / Đã xác nhận đã **qua giờ kết thúc** (`slot_end <= now`) mà chưa check-in sang
-Trễ hẹn (`NoShow`), ghi lịch sử nguồn "Hệ thống". Từ giờ hẹn tới giờ kết thúc, Tiếp đón vẫn hiện
-"trễ" theo đồng hồ như cũ. Khách Trễ hẹn đến muộn vẫn check-in được (`CheckIn` nhận `NoShow`).
-Nếu BA muốn mốc khác (vd giờ hẹn + 5 phút như tab CSKH "Đặt lịch không đến", hoặc cuối ngày) thì
-chỉ đổi điều kiện trong `MissedAppointmentMarker`.
+Action taken: NONE trên production. BlueDental theo chủ dự án (2026-10-06): **qua giờ hẹn là
+Trễ hẹn ngay**, không chờ. Worker `MissedAppointmentWorker` mỗi 15 giây chuyển lịch Đã hẹn / Đã xác
+nhận có `slot_start <= now` mà chưa check-in sang Trễ hẹn (`NoShow`), ghi lịch sử nguồn "Hệ thống",
+rồi đẩy `AppointmentsChanged` (chỉ branch id) qua hub `/signalr/notifications` để màn đang mở tải
+lại — không cần F5. Tab CSKH "Đặt lịch không đến" bỏ 5 phút chờ (`MissedAfter = 0`) cho khớp.
+Khách Trễ hẹn đến muộn vẫn check-in được (`CheckIn` nhận `NoShow`).

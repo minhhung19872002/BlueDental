@@ -6958,3 +6958,26 @@ PDF A4 từ trang ra đúng 1 trang. `prescription-allergy.spec` không chạy �
 `e2e/fixtures/catalogApi` không tồn tại trong repo. Nửa sau của mục 23 (danh mục thuốc có tên gần trùng
 "Alphachymotrypsine"/"Alphachymotrypsin") là dữ liệu danh mục, không sửa bằng code. Retest level **2**.
 Cần khởi động lại backend để nạp key i18n `Treatment:RxPrint:*`.
+
+## 2026-10-06 — Tiếp nhận: "Tất cả" không bằng tổng các chip; Trễ hẹn ngay khi qua giờ, realtime (R-769, R-770)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-769 | Tiếp nhận hôm nay: "Tất cả (47)" nhưng Đã hẹn 17 + Đã đến 8 + Huỷ hẹn 8 + Trễ hẹn 1 = 34 (ba tab Chờ khám/Đang khám/Hoàn thành = 25). Nguyên nhân (`d795506d`, 24/09): `ReceptionPage.adjustedMetrics` ghi đè chip Trễ hẹn bằng số **thẻ đã tải** đang trễ theo đồng hồ (Đã hẹn quá giờ) — bỏ mất lịch `NoShow` (14) mà "Tất cả" vẫn cộng; lịch trễ theo đồng hồ đồng thời vẫn nằm trong Đã hẹn. Bấm chip lọc phía trình duyệt nên tổng trang lệch `total`. | Server quyết "trễ": `GetAppointmentListInput.IsLate` (true = `NoShow` hoặc Đã hẹn/Đã xác nhận có giờ bắt đầu ≤ now; false = phần còn lại) và `AppointmentStatsDto.Overdue`. FE: Đã hẹn = requested + confirmed − overdue, Trễ hẹn = noShow + overdue → bốn chip chia nhau "Tất cả". Chip Đã hẹn lọc `statuses=1,2&isLate=false`, chip Trễ hẹn `isLate=true`; bỏ `adjustedMetrics` và lọc phía client. `isLateAppointment` bỏ ngoại lệ Lịch tạm (lịch tạm đã huỷ không còn hiện "Trễ hẹn"). Ba tab không cộng ra "Tất cả" là đúng — huỷ/trễ không thuộc tab nào. |
+| R-770 | Chủ dự án: qua giờ hẹn là Trễ hẹn luôn, không chờ 5 phút; và không phải F5 mới thấy. | `MissedAppointmentMarker` đổi mốc từ giờ kết thúc sang **giờ bắt đầu** (`Appointment.IsMissedAt`: `Slot.Start <= now`); worker 60 s → **15 s**; tab CSKH "Đặt lịch không đến" `MissedAfter` 5 phút → 0 cho khớp. Realtime: worker xong (sau commit) gọi `IAppointmentNotifier` → `SignalRAppointmentNotifier` phát `AppointmentsChanged(branchId)` trên hub `/signalr/notifications` (đã `[Authorize]`, chỉ mang branch id, không PHI); FE `useAppointmentLiveUpdates` (mount ở `AppLayout`) invalidate các query `appointments`, `appointment-history`, `receptions`, `receptionMetrics`, `care-records` khi đúng chi nhánh đang xem ("Tất cả chi nhánh" thì nhận mọi chi nhánh), và tải lại khi kết nối lại. Dự phòng: `useRefetchWhenDue` ở Tiếp nhận hẹn giờ tải lại ngay sau giờ bắt đầu gần nhất của các thẻ đang chờ — thẻ đổi Trễ hẹn đúng giờ kể cả giữa hai lượt worker hay khi lỡ một tin đẩy. |
+
+Kiểm: Domain.Tests **616**; `tsc`/eslint sạch. E2E mới `reception-live-late` **3/3** (×2 lần chạy liền cho hai test
+đầu): bốn chip cộng = "Tất cả" và chip Trễ hẹn liệt kê đúng số nó đếm; một Lịch tạm bắt đầu sau 60 s, bảng mở sẵn
+**không reload** đổi badge thành Trễ hẹn trong vòng 60 s sau giờ hẹn, server thành `NoShow`; bảng không tải thẻ nào
+(tìm tên không có) vẫn tăng chip Trễ hẹn chỉ nhờ tin đẩy. `appointment-missed-api`, `cskh-generated-tabs`,
+`cskh-reminder-api` xanh.
+
+Hồi quy mức 3 (build production :8092 → host :5100, cùng DB): 68 test, 56 xanh. Đỏ có sẵn như đối chứng R-755
+(`appointment.spec:85/:101`, `cskh.spec:168`, `reception-temporary:132`, `reception.spec:24/:57`,
+`appointment-day-timeline:147`; `:100` chập chờn). Mới đỏ nhưng **không do thay đổi**: `reception-follow-up:419/:431` —
+fixture `bookVisitToday` đặt lịch +200/+210 phút "trong hôm nay", chạy sau ~20:40 là sang ngày mai nên bỏ cuộc ngay.
+Lần chạy đầu `reception-live-late` đỏ: một tiến trình khác (build/test của phiên khác lúc 20:25, chạy code mới trên
+cùng DB) đánh dấu lịch trước → worker :5100 gặp `AbpDbConcurrencyException`, không phát tin; trang nối vào :5100 không
+nhận. Prod chỉ một backend nên không gặp; dự phòng `useRefetchWhenDue` vẫn che trường hợp này. Lượt worker gặp xung đột
+(vd lễ tân check-in đúng lúc) rollback cả lượt và làm lại sau 15 s.
+Retest level **3**.

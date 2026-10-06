@@ -16,6 +16,7 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useClinicBranches } from "@/features/organizations/api";
+import { useAppointmentLiveUpdates } from "@/hooks/useAppointmentLiveUpdates";
 import { useBranchStore } from "@/lib/clinicBranch";
 import { useLanguage, useT } from "@/lib/i18n";
 import { brand } from "@/theme/index";
@@ -44,6 +45,7 @@ export function AppLayout() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  useAppointmentLiveUpdates(!!user);
   const visibleNav = useVisibleNav();
   const ribbon = useRibbonGroup(visibleNav.groups, location.pathname);
   const resetRibbon = ribbon.reset;

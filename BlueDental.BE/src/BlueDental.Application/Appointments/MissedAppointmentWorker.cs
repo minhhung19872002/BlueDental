@@ -9,8 +9,9 @@ using Volo.Abp.Uow;
 namespace BlueDental.Appointments;
 
 /// <summary>
-/// Runs every minute so a booking turns Trễ hẹn soon after its time is over,
-/// on every screen at once. See <see cref="MissedAppointmentMarker"/>.
+/// Runs every 15 seconds so a booking turns Trễ hẹn right as its time passes,
+/// then tells open screens to refetch — no reload needed. See
+/// <see cref="MissedAppointmentMarker"/>.
 /// </summary>
 public class MissedAppointmentWorker : AsyncPeriodicBackgroundWorkerBase
 {
@@ -19,18 +20,28 @@ public class MissedAppointmentWorker : AsyncPeriodicBackgroundWorkerBase
         IServiceScopeFactory serviceScopeFactory)
         : base(timer, serviceScopeFactory)
     {
-        Timer.Period = 60 * 1000; // every minute
+        Timer.Period = 15 * 1000; // every 15 seconds
     }
 
     [UnitOfWork]
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         var marker = workerContext.ServiceProvider.GetRequiredService<MissedAppointmentMarker>();
-        var count = await marker.MarkAsync(DateTimeOffset.UtcNow);
+        var branchIds = await marker.MarkAsync(DateTimeOffset.UtcNow);
+        if (branchIds.Count == 0) return;
 
-        if (count > 0)
+        // After the commit, so a screen that refetches on the message sees the change.
+        var unitOfWork = workerContext.ServiceProvider.GetRequiredService<IUnitOfWorkManager>().Current;
+        var notifier = workerContext.ServiceProvider.GetRequiredService<IAppointmentNotifier>();
+        if (unitOfWork is null)
         {
-            Logger.LogInformation("MissedAppointmentWorker: moved {Count} appointment(s) to NoShow.", count);
+            await notifier.NotifyAppointmentsChangedAsync(branchIds);
         }
+        else
+        {
+            unitOfWork.OnCompleted(() => notifier.NotifyAppointmentsChangedAsync(branchIds));
+        }
+
+        Logger.LogInformation("MissedAppointmentWorker: moved appointments of {Count} branch(es) to NoShow.", branchIds.Count);
     }
 }

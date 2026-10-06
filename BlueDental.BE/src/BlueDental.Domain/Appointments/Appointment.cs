@@ -177,12 +177,12 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Trễ hẹn by the clock: the booked time is over and the patient never
-    /// arrived — the booking is still only Đã hẹn / Đã xác nhận.
+    /// Trễ hẹn by the clock: the booked start time has passed and the patient
+    /// has not arrived — the booking is still only Đã hẹn / Đã xác nhận.
     /// </summary>
     public bool IsMissedAt(DateTimeOffset now) =>
         Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed
-        && Slot.End <= now;
+        && Slot.Start <= now;
 
     public Appointment MarkNoShow()
     {

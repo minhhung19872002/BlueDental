@@ -11,8 +11,12 @@ namespace BlueDental.CustomerCare;
 /// </summary>
 public static class CareAppointmentRules
 {
-    /// <summary>Đặt lịch không đến — this long past the booked time with no arrival.</summary>
-    public static readonly TimeSpan MissedAfter = TimeSpan.FromMinutes(5);
+    /// <summary>
+    /// Đặt lịch không đến — this long past the booked time with no arrival.
+    /// None: a booking is late as soon as its time passes, the same moment the
+    /// appointment itself turns Trễ hẹn (owner 2026-10-06, was 5 minutes).
+    /// </summary>
+    public static readonly TimeSpan MissedAfter = TimeSpan.Zero;
 
     public static bool IsAppointmentDriven(CareType? type) =>
         type is CareType.AppointmentReminder or CareType.MissedAppointment or CareType.CancelledAppointment;

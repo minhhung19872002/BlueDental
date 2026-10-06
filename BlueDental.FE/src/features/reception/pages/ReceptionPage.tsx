@@ -15,6 +15,7 @@ import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import { FollowUpScheduler } from "../components/FollowUpScheduler";
 import { TemporaryPatientDialog, type TemporaryPatientTarget } from "../components/TemporaryPatientDialog";
 import { useOwnDoctorDefault } from "../hooks/useOwnDoctorDefault";
+import { useRefetchWhenDue } from "../hooks/useRefetchWhenDue";
 import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import {
   planOutcomeClick,
@@ -101,6 +102,7 @@ export const ReceptionPage: React.FC = () => {
     () => listData?.pages.flatMap((p) => p.items) ?? [],
     [listData],
   );
+  useRefetchWhenDue(items);
 
   // A card's doctor can only be changed to someone not OFF on that visit's day.
   const visitDays = useMemo(
@@ -108,15 +110,6 @@ export const ReceptionPage: React.FC = () => {
     [items],
   );
   const doctorsByDay = useAvailableReceptionDoctorsByDay(branchId, visitDays);
-
-  const adjustedMetrics = useMemo(() => {
-    if (!metrics) return metrics;
-    const lateCount = items.filter((i) => i.isTimeLate).length;
-    return {
-      ...metrics,
-      counters: { ...metrics.counters, lateCount },
-    };
-  }, [metrics, items]);
 
   // Once booked, the picker stays up until the refetch brings the follow-up
   // back, so the card never flashes its old outcome in between.
@@ -248,7 +241,7 @@ export const ReceptionPage: React.FC = () => {
         <ReceptionStatusTabs
           activeTab={activeTab}
           activeCounter={activeCounter}
-          metrics={adjustedMetrics}
+          metrics={metrics}
           selectedDoctorId={selectedDoctorId}
           doctors={doctors}
           onChange={(status) => { setActiveTab(status); setActiveCounter(undefined); }}

@@ -481,15 +481,17 @@ public class AppointmentTests
         Assert.Equal(BlueDentalDomainErrorCodes.Appointments.NotTemporary, ex.Code);
     }
 
-    /// <summary>Bug list item 17: a booking turns Trễ hẹn once its time is over without an arrival.</summary>
+    /// <summary>
+    /// Bug list item 17: a booking turns Trễ hẹn as soon as its start time
+    /// passes without an arrival — no grace (owner 2026-10-06).
+    /// </summary>
     [Fact]
-    public void IsMissedAt_Should_Hold_Only_Once_The_Booked_Time_Is_Over()
+    public void IsMissedAt_Should_Hold_As_Soon_As_The_Start_Time_Passes()
     {
         var appointment = NewAppointment();
 
-        Assert.False(appointment.IsMissedAt(_slot.Start));
-        Assert.False(appointment.IsMissedAt(_slot.End.AddSeconds(-1)));
-        Assert.True(appointment.IsMissedAt(_slot.End));
+        Assert.False(appointment.IsMissedAt(_slot.Start.AddSeconds(-1)));
+        Assert.True(appointment.IsMissedAt(_slot.Start));
 
         appointment.Confirm();
         Assert.True(appointment.IsMissedAt(_slot.End.AddHours(1)));

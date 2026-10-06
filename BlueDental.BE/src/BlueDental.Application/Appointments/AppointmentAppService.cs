@@ -76,7 +76,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input)
     {
         var query = await FilteredQueryAsync(input, skipTextSearch: true);
-        var all = await AsyncExecuter.ToListAsync(query.Select(a => new { a.Status, a.IsTemporary }));
+        var all = await AsyncExecuter.ToListAsync(query.Select(a => new { a.Status, a.IsTemporary, a.Slot.Start }));
+        var now = DateTimeOffset.UtcNow;
 
         return new AppointmentStatsDto
         {
@@ -88,6 +89,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             Cancelled = all.Count(a => a.Status == AppointmentStatus.Cancelled),
             NoShow = all.Count(a => a.Status == AppointmentStatus.NoShow),
             Temporary = all.Count(a => a.IsTemporary),
+            Overdue = all.Count(a =>
+                a.Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed && a.Start <= now),
         };
     }
 
@@ -108,6 +111,19 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         }
 
         if (input.IsTemporary.HasValue) query = query.Where(a => a.IsTemporary == input.IsTemporary.Value);
+
+        if (input.IsLate.HasValue)
+        {
+            // Npgsql requires UTC offset for timestamptz parameters.
+            var now = DateTimeOffset.UtcNow;
+            query = input.IsLate.Value
+                ? query.Where(a => a.Status == AppointmentStatus.NoShow
+                    || ((a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
+                        && a.Slot.Start <= now))
+                : query.Where(a => a.Status != AppointmentStatus.NoShow
+                    && !((a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
+                        && a.Slot.Start <= now));
+        }
 
         if (input.Date.HasValue)
         {
