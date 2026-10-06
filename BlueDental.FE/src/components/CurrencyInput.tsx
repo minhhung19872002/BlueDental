@@ -8,6 +8,11 @@ interface CurrencyInputProps
   /** Contract khớp Form.Item: form giữ number, không phải chuỗi đã format. */
   value?: number;
   onChange?: (value: number | undefined) => void;
+  /**
+   * The most the box will hold. Typing or pasting past it puts the box at
+   * exactly this amount instead, so an over-limit figure is never on screen.
+   */
+  max?: number;
 }
 
 /**
@@ -18,7 +23,8 @@ interface CurrencyInputProps
 /** Ten digits: the largest amount the reference lets anyone type. */
 export const MAX_VND = 9_999_999_999;
 
-export function CurrencyInput({ value, onChange, isAllowed, ...rest }: CurrencyInputProps) {
+export function CurrencyInput({ value, onChange, isAllowed, max, ...rest }: CurrencyInputProps) {
+  const ceiling = max === undefined ? MAX_VND : Math.min(Math.max(max, 0), MAX_VND);
   return (
     <NumericFormat
       customInput={Input}
@@ -30,7 +36,16 @@ export function CurrencyInput({ value, onChange, isAllowed, ...rest }: CurrencyI
       decimalSeparator=","
       decimalScale={0}
       allowNegative={false}
-      isAllowed={isAllowed ?? ((values) => !values.floatValue || values.floatValue <= MAX_VND)}
+      isAllowed={
+        isAllowed ??
+        ((values) => {
+          if (!values.floatValue || values.floatValue <= ceiling) return true;
+          // Refused keystroke: the box settles on the ceiling rather than
+          // keeping whatever was there before.
+          if (max !== undefined) onChange?.(ceiling);
+          return false;
+        })
+      }
       {...rest}
     />
   );

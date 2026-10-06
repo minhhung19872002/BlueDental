@@ -6981,3 +6981,19 @@ cùng DB) đánh dấu lịch trước → worker :5100 gặp `AbpDbConcurrencyE
 nhận. Prod chỉ một backend nên không gặp; dự phòng `useRefetchWhenDue` vẫn che trường hợp này. Lượt worker gặp xung đột
 (vd lễ tân check-in đúng lúc) rollback cả lượt và làm lại sau 15 s.
 Retest level **3**.
+
+## 2026-10-06 — Bug list mục 24: công nợ âm do thu vượt (R-769)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-769 | (mục 24) CSKH › Phân nhóm CSKH: Số tiền 36.400.000, Thực thu 38.200.000, Công nợ −1.800.000. Ô "Số tiền thanh toán" của "Tạo phiếu thanh toán" cho gõ vượt số còn phải trả (chỉ báo lỗi khi bấm Lưu). | Theo yêu cầu: chặn ngay ở ô nhập. `CurrencyInput` có thêm prop `max` — gõ hoặc dán vượt thì ô dừng đúng ở mức tối đa. Tự động: tối đa = tổng Còn nợ (gồm VAT) của các dịch vụ đã tick (Dư nợ: thêm giới hạn số dư đang giữ); bỏ tick làm mức tối đa giảm thì số đã gõ giảm theo. Thủ công: mỗi ô tối đa = Còn nợ của dịch vụ đó. |
+
+Phân tích nguyên nhân (không sửa trong lượt này): ngoài ô nhập, công nợ âm còn đến từ (1) CSKH › Phân nhóm tính
+Số tiền bằng `TotalAmount` chưa VAT và Thực thu cộng cả tiền nạp trước; (2) huỷ dịch vụ đã thu, chuyển đổi sang
+dịch vụ rẻ hơn mà không hoàn chênh lệch, giảm giá/voucher sau khi đã thu — giá trị phiếu giảm nhưng tiền đã thu
+không được hoàn hay chuyển thành tạm ứng.
+
+Kiểm: E2E mới `payment-amount-cap` **1/1** (đăng nhập thật, phiếu điều trị mới, gõ từng phím và dán số vượt → ô
+dừng đúng Còn nợ, số nhỏ hơn giữ nguyên, Thủ công dừng ở Còn nợ dòng, lưu → đọc lại phiếu thu bằng request riêng
+đúng số Còn nợ, tải lại không còn dịch vụ để thu). Hồi quy `billing-ledger` + `debt-history` **9/9**. Chạy trên dev
+server :5173 → host :5000. Retest level **3** (`CurrencyInput` dùng chung; không truyền `max` thì hành vi như cũ).

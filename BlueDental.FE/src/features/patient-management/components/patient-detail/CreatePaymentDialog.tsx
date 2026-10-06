@@ -144,9 +144,15 @@ export function CreatePaymentDialog({
 
   const chosen = lines.filter((line) => picked.includes(line.id));
   const chosenDue = chosen.reduce((sum, line) => sum + line.outstandingAmount, 0);
-  /** A box the user has not touched offers the whole of what that line owes. */
+  /**
+   * A box the user has not touched offers the whole of what that line owes,
+   * and no box may take more than that (bug list item 24: a receipt above
+   * what is owed left the clinic owing the patient).
+   */
   const shareOf = (line: TreatmentServiceDto) =>
-    manual[line.id] === undefined ? line.outstandingAmount : manual[line.id];
+    manual[line.id] === undefined
+      ? line.outstandingAmount
+      : Math.min(manual[line.id] ?? 0, line.outstandingAmount);
   const manualTotal = chosen.reduce((sum, line) => sum + (shareOf(line) ?? 0), 0);
 
   /** What the slip still owes altogether — the reference's "Còn lại". */
@@ -167,7 +173,12 @@ export function CreatePaymentDialog({
     method === PAYMENT_METHOD.OutstandingDebt
       ? Math.min(Math.max(heldForPatient, 0), Math.max(chosenDue, 0))
       : Math.max(chosenDue, 0);
-  const autoAmount = amount ?? autoDefault;
+  /**
+   * That default is also the ceiling: the receipt can never collect more than
+   * the ticked services still owe, VAT included (bug list item 24). Unticking
+   * a service lowers it, and a figure typed earlier follows it down.
+   */
+  const autoAmount = amount === undefined ? autoDefault : Math.min(amount, autoDefault);
   const total = mode === "auto" ? autoAmount : manualTotal;
   /**
    * Only meaningful once a line is ticked — with nothing chosen the cap is 0
@@ -403,6 +414,7 @@ export function CreatePaymentDialog({
                 <CurrencyInput
                   className="pd-newpay-amount"
                   value={autoAmount}
+                  max={autoDefault}
                   onChange={setAmount}
                 />
               </FloatingLabel>
@@ -416,6 +428,7 @@ export function CreatePaymentDialog({
                       <span>{line.serviceName ?? line.code}</span>
                       <CurrencyInput
                         value={shareOf(line)}
+                        max={line.outstandingAmount}
                         onChange={(value) =>
                           setManual((current) => ({ ...current, [line.id]: value }))
                         }
