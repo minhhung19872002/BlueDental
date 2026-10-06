@@ -5,6 +5,7 @@ import { DateNavigator } from "@/components/DateNavigator";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { useStaffList } from "@/features/staff/api/staffQueries";
+import { STAFF_ROLE } from "@/hooks/useStaffOptions";
 import { REPORT_VIEW_MODES, type ReportViewMode } from "../types/viewMode";
 
 const VIEW_MODE_LABELS: Record<ReportViewMode, () => string> = {
@@ -37,9 +38,11 @@ export function ReportToolbar({
   onDateChange,
   onDoctorChange,
 }: Props) {
-  const { data: staffResult } = useStaffList({ isActive: true, maxResultCount: 200 });
+  // Bác sĩ filter: staff ticked "Bác sĩ", filtered on the server so a clinic
+  // past one page still lists every doctor.
+  const { data: staffResult } = useStaffList({ isActive: true, maxResultCount: 1000, role: STAFF_ROLE.Dentist });
   const doctorOptions = useMemo(
-    () => (staffResult?.items ?? []).filter((d) => d.isDentist).map((d) => ({ value: d.id, label: d.fullName })),
+    () => (staffResult?.items ?? []).map((d) => ({ value: d.id, label: d.fullName })),
     [staffResult],
   );
 

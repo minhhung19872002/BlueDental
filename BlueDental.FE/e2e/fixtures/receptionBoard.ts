@@ -96,25 +96,23 @@ export async function bookVisitToday(
   keyPrefix = "e2e-hentiep",
 ): Promise<Appointment & { searchKey: string }> {
   const searchKey = `${keyPrefix}-${runId()}-${minutesAhead}`;
-  const start = new Date(Date.now() + minutesAhead * 60_000);
-  start.setSeconds(0, 0);
-  test.skip(dayOf(start) !== dayOf(new Date()), "too close to midnight to book a visit for today");
-  const end = new Date(start.getTime() + 15 * 60_000);
+  const firstStart = new Date(Date.now() + minutesAhead * 60_000);
+  firstStart.setSeconds(0, 0);
+  test.skip(dayOf(firstStart) !== dayOf(new Date()), "too close to midnight to book a visit for today");
   const today = dayOf(new Date());
 
   const todays = await call<{ items: Appointment[] }>(page, branchId, `${APPOINTMENTS}?fromDate=${today}&toDate=${today}`);
-  const busyDentists = new Set(
-    todays.body.items
-      .filter((a) => a.status !== 6 && a.status !== 7)
-      .filter((a) => new Date(a.slotStart) < end && new Date(a.slotEnd) > start)
-      .map((a) => a.dentistId),
-  );
+  const live = todays.body.items.filter((a) => a.status !== 6 && a.status !== 7);
+  const busyAt = (start: Date, end: Date) =>
+    new Set(live.filter((a) => new Date(a.slotStart) < end && new Date(a.slotEnd) > start).map((a) => a.dentistId));
 
   const patients = await call<{ items: { id: string; patientCode: string }[] }>(
-    page, branchId, `/api/v1/app/patients?MaxResultCount=200&ClinicBranchId=${branchId}`,
+    page, branchId, `/api/v1/app/patients?MaxResultCount=1000&ClinicBranchId=${branchId}`,
   );
+  // Only staff ticked "Bác sĩ": Tiếp nhận offers no one else as a visit's
+  // doctor, and the follow-up picker drops anyone else (owner, 2026-10-05).
   const staff = await call<{ items: { id: string; branchIds: string[] }[] }>(
-    page, branchId, `/api/v1/app/staff?MaxResultCount=200&IsActive=true&BranchId=${branchId}`,
+    page, branchId, `/api/v1/app/staff?MaxResultCount=200&IsActive=true&BranchId=${branchId}&Role=1`,
   );
   // Earlier runs leave follow-ups weeks ahead; a patient already booked then
   // would be refused a follow-up the picker (which shows the doctor's slots) offers.
@@ -127,28 +125,48 @@ export async function bookVisitToday(
     upcoming.body.items.filter((a) => a.status !== 6 && a.status !== 7).map((a) => a.patientId),
   );
   const candidates = patients.body.items.filter((p) => p.patientCode && !bookedPatients.has(p.id));
-  // A dentist may be booked in another branch at that time, which this
-  // branch's list does not show; the server says so and the next one is tried.
-  const dentists = staff.body.items.filter((s) => !busyDentists.has(s.id));
+  // Every run books patients weeks ahead, so the free pool runs dry on a busy
+  // day; a fresh patient through the real API keeps the fixture standing.
+  if (candidates.length === 0) {
+    const suffix = `${runId()}${minutesAhead}`.slice(-8).padStart(8, "0");
+    const created = await call<{ id: string; patientCode: string }>(page, branchId, "/api/v1/app/patients", {
+      method: "POST",
+      json: { firstName: `Tiếp nhận ${suffix}`, lastName: "E2E", gender: "male", phoneNumber: `07${suffix}` },
+    });
+    if (created.status === 200) candidates.push(created.body);
+  }
 
-  let lastError: unknown;
-  for (const dentist of dentists.slice(0, 8)) {
-    for (const patient of candidates.slice(0, 20)) {
-      const res = await call<Appointment>(page, branchId, APPOINTMENTS, {
-        method: "POST",
-        json: {
-          patientId: patient.id,
-          dentistId: dentist.id,
-          branchId,
-          slotStart: start.toISOString(),
-          slotEnd: end.toISOString(),
-          type: 2,
-          chiefComplaint: searchKey,
-        },
-      });
-      if (res.status === 200) return { ...res.body, searchKey };
-      lastError = res.body.error;
-      if (res.body.error?.code === "BlueDental:Appointment:0002") break;
+  // Only ticked dentists may take a visit — a handful per branch — and earlier
+  // runs today keep them busy, so a slot where every one of them is booked
+  // slides on 10 minutes, for up to eight hours but never past today.
+  let lastError: unknown = "every dentist was booked at each slot tried";
+  for (let shift = 0; shift < 48; shift++) {
+    const start = new Date(firstStart.getTime() + shift * 10 * 60_000);
+    if (dayOf(start) !== today) break;
+    const end = new Date(start.getTime() + 15 * 60_000);
+    // A dentist may be booked in another branch at that time, which this
+    // branch's list does not show; the server says so and the next one is tried.
+    const busy = busyAt(start, end);
+    const dentists = staff.body.items.filter((s) => !busy.has(s.id));
+
+    for (const dentist of dentists.slice(0, 8)) {
+      for (const patient of candidates.slice(0, 20)) {
+        const res = await call<Appointment>(page, branchId, APPOINTMENTS, {
+          method: "POST",
+          json: {
+            patientId: patient.id,
+            dentistId: dentist.id,
+            branchId,
+            slotStart: start.toISOString(),
+            slotEnd: end.toISOString(),
+            type: 2,
+            chiefComplaint: searchKey,
+          },
+        });
+        if (res.status === 200) return { ...res.body, searchKey };
+        lastError = res.body.error;
+        if (res.body.error?.code === "BlueDental:Appointment:0002") break;
+      }
     }
   }
   throw new Error(`no visit could be booked for today: ${JSON.stringify(lastError)}`);

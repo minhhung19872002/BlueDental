@@ -80,6 +80,12 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Bác sĩ filter beside the status tabs — wide enough for "BS. " + a full
+   Vietnamese name; 160px cut most of them to "Nguyễn …". */
+.reception-doctor-filter .ss-wrapper {
+  width: 260px;
+}
+
 /* ── Mobile: hide doctor filter, scroll tabs & stat chips ── */
 @media (max-width: 640px) {
   .reception-doctor-filter {

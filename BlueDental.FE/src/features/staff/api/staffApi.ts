@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import type { StaffRole } from "@/hooks/useStaffOptions";
 import type { PagedResult } from "@/types";
 
 export interface StaffDto {
@@ -39,6 +40,8 @@ export interface GetStaffListInput {
   branchId?: string;
   /** "YYYY-MM-DD" — leaves out staff registered OFF that day (Chấm công). */
   availableOn?: string;
+  /** Only staff ticked for this role on the staff form — see `STAFF_ROLE`. */
+  role?: StaffRole;
 }
 
 export interface CreateStaffInput {

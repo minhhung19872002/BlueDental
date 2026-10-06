@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { receptionApi } from "./receptionApi";
 import { staffApi } from "@/features/staff/api/staffApi";
+import { STAFF_ROLE } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import type { ReceptionFilter } from "../types/reception";
 
@@ -45,14 +46,21 @@ export interface ReceptionDoctor {
 }
 
 /**
- * Every active member of the branch, in one page: a doctor missing from the
+ * Every active doctor of the branch, in one page: a doctor missing from the
  * list can be neither picked nor preselected for themselves (R-693). 1000 is
- * the most the server returns per page.
+ * the most the server returns per page. Only staff ticked "Bác sĩ" — the
+ * whole branch used to be offered as doctors (owner, 2026-10-05).
  */
 const ALL_BRANCH_STAFF = 1000;
 
 async function fetchReceptionDoctors(branchId?: string, availableOn?: string): Promise<ReceptionDoctor[]> {
-  const result = await staffApi.list({ maxResultCount: ALL_BRANCH_STAFF, isActive: true, branchId, availableOn });
+  const result = await staffApi.list({
+    maxResultCount: ALL_BRANCH_STAFF,
+    isActive: true,
+    branchId,
+    availableOn,
+    role: STAFF_ROLE.Dentist,
+  });
   return result.items.map((s) => ({
     id: s.id,
     name: s.name ?? s.userName ?? "",

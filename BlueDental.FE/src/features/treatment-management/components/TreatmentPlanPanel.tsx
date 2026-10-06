@@ -152,11 +152,12 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         focusServiceId={null}
         onClose={() => setStagePlan(null)}
         onOpenPlan={() => {
-          // Same jump as from the Hồ sơ tab: the slip's own Chi tiết screen.
+          // Same jump as from the Hồ sơ tab: the slip's own Thanh toán tab
+          // (owner, 2026-10-05).
           const target = stagePlan;
           setStagePlan(null);
           if (target) {
-            navigate(planDetailPath(patientId, target.id, branchId, PLAN_TAB.detail));
+            navigate(planDetailPath(patientId, target.id, branchId, PLAN_TAB.payment));
           }
         }}
       />

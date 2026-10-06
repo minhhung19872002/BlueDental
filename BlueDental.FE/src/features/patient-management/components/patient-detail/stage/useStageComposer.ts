@@ -5,6 +5,8 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { validateImageFile } from "@/utils/validateImageFile";
+import { todayIsoDate } from "@/utils/todayIsoDate";
+import { STAFF_ROLE, useStaffRoleIds } from "@/hooks/useStaffOptions";
 import {
   useContinueStage,
   useCreateStage,
@@ -18,6 +20,7 @@ import {
   draftErrors,
   initialDraft,
   isDraftDirty,
+  keepEligibleStaff,
   type StageDraft,
   type StaffFallback,
 } from "./stageDraft";
@@ -163,10 +166,17 @@ export function useStageComposer({
       ? { id: currentUser.id, name: currentUser.name ?? null }
       : null;
 
+  // A starting name only stands if the picker would offer it: ticked for the
+  // role on the staff form, and not OFF today (owner, 2026-10-05).
+  const today = todayIsoDate();
+  const dentistIds = useStaffRoleIds(STAFF_ROLE.Dentist, today, open);
+  const assistantIds = useStaffRoleIds(STAFF_ROLE.Assistant, today, open);
+
   const seed = (item: StageItem): StageDraft =>
     initialDraft(item, newestByLine.get(item.line.id), fallbackDoctor);
 
-  const draftOf = (item: StageItem): StageDraft => drafts[item.id] ?? seed(item);
+  const draftOf = (item: StageItem): StageDraft =>
+    keepEligibleStaff(drafts[item.id] ?? seed(item), dentistIds, assistantIds);
 
   const patchDraft = (item: StageItem, patch: Partial<StageDraft>) => {
     setDrafts((current) => ({

@@ -59,7 +59,7 @@ public class StaffAppService(
 
         var term = input.Filter?.Trim();
         var needsInMemoryFilter = branchStaffIds != null || offStaffIds != null
-            || input.IsActive.HasValue || !term.IsNullOrEmpty();
+            || input.IsActive.HasValue || !term.IsNullOrEmpty() || input.Role.HasValue;
 
         var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
@@ -84,6 +84,11 @@ public class StaffAppService(
         if (offStaffIds != null)
         {
             users = users.Where(u => !offStaffIds.Contains(u.Id)).ToList();
+        }
+
+        if (input.Role.HasValue)
+        {
+            users = users.Where(u => FillsRole(u, input.Role.Value)).ToList();
         }
 
         var totalCount = users.Count;
@@ -113,6 +118,15 @@ public class StaffAppService(
     /// Whether a member of staff answers to what was typed — the same fields the
     /// identity repository looks at, matched without regard to case or spacing.
     /// </summary>
+    /// <summary>The Bác sĩ / Phụ tá / Y sĩ boxes of the staff form, as a picker reads them.</summary>
+    private static bool FillsRole(Volo.Abp.Identity.IdentityUser user, StaffPickerRole role) => role switch
+    {
+        StaffPickerRole.Dentist => user.ExtraProperties.GetOrDefault("IsDentist") is true,
+        StaffPickerRole.Assistant => user.ExtraProperties.GetOrDefault("IsAssistant") is true
+            || user.ExtraProperties.GetOrDefault("IsHygienist") is true,
+        _ => false,
+    };
+
     private static bool MatchesTerm(Volo.Abp.Identity.IdentityUser user, string term)
     {
         var needle = term.ToLowerInvariant();

@@ -863,7 +863,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       ).json();
       const line = plan.services[0];
       const staff = await (
-        await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
+        await fetch("/api/v1/app/staff?MaxResultCount=1&Role=1", { credentials: "include" })
       ).json();
       const add = async (note: string, teeth: unknown[]) => {
         const res = await fetch("/api/v1/app/treatment-stages", {

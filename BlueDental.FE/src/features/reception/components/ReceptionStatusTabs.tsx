@@ -118,7 +118,6 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
             allowClear
             options={doctors.map((d) => ({ value: d.id, label: d.name }))}
             onChange={(val) => onDoctorSelect?.(val)}
-            style={{ width: 160 }}
           />
         </div>
       </div>

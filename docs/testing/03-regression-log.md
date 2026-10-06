@@ -6650,6 +6650,26 @@ Retest level **2** (CSKH).
 
 Kiểm chứng: `cskh-generated-tabs.spec.ts` 3/3 — thêm bước tạo tay phiếu sinh nhật cho khách không có ngày sinh → không hiện; `cskh.spec.ts` 7/8 (đỏ có sẵn "creates a special care task"). Retest level **2**.
 
+> Đánh số lại khi merge `origin/main` (2026-10-06): hai mục 2026-10-05 dưới đây bên origin ghi R-682 … R-685, trùng số với các mục Lịch sử lịch hẹn / Tiếp nhận đã có ở trên → đổi thành R-721 … R-724.
+
+## 2026-10-05 — Chi tiết phiếu: ô Bác sĩ / Phụ tá / Bác sĩ hỗ trợ hiện người chưa tick vai trò (R-721 … R-722)
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-721 | Nhân viên chưa tick Bác sĩ/Phụ tá/Y sĩ (vd. "BAC SI 993956") vẫn nằm sẵn trong ô Bác sĩ khi Tiếp tục công đoạn và có trong danh sách. | Hai nguyên nhân: (1) form điền sẵn bác sĩ của công đoạn trước / dòng / phiếu / người đăng nhập mà không kiểm tra vai trò, và `ServerSearchSelect` chèn giá trị đang chọn vào danh sách; (2) hook lọc `isDentist` trên trang 20 dòng ở trình duyệt, không ai khớp thì trả **tất cả**. Sửa: `GET staff?Role=1` (Bác sĩ) / `Role=2` (Phụ tá **hoặc Y sĩ**) lọc ở server, bỏ fallback; composer bỏ tên điền sẵn không thuộc nhóm (`keepEligibleStaff` + `useStaffRoleIds`, có tính cả OFF hôm nay) → form báo "Vui lòng chọn bác sĩ". `useDentistStaffOptions` (CSKH, Labo, báo cáo, lịch hẹn) cũng lọc ở server, không còn fallback. |
+| R-722 | E2E dựng công đoạn bằng "nhân viên đầu tiên" (người chưa tick vai trò) rồi Tiếp tục qua giao diện. | Các helper đổi sang `staff?MaxResultCount=1&Role=1`; `treatment-stage-chain` chọn bác sĩ trước khi lưu ở tab Thêm công đoạn (phiếu demo không có bác sĩ được tick). |
+
+Kiểm chứng (dev :5173, host thật :5000, PostgreSQL thật): `stage-staff-pickers.spec.ts` **1/1** mới — công đoạn trước do người chưa tick làm → ô Bác sĩ trống; tìm tên người đó ở cả 3 ô không ra; Y sĩ có trong Phụ tá, không có trong Bác sĩ; bác sĩ không có trong Phụ tá. `treatment-stage-chain` 8/8, `treatment-plan-detail` + `cskh-after-treatment` xanh, `patient-appointment` + `reception-doctor-list` xanh. `patient.spec` nhóm công đoạn: 7 đỏ **có sẵn** (6 do DB local hết dòng dịch vụ còn răng chưa làm — helper dòng 155; 1 ở nhãn "Nội dung điều trị" dòng 2247) — đỏ y hệt khi stash thay đổi này. `tsc` sạch. Retest level **3** (hook chọn nhân viên dùng chung).
+
+## 2026-10-05 — Rà soát ô chọn Bác sĩ / Phụ tá toàn FE (R-723 … R-724)
+
+| ID | Triệu chứng | Xử lý |
+|---|---|---|
+| R-723 | "Tạo tiếp nhận" liệt kê Nguyễn Văn A (chỉ tick Phụ tá + Y sĩ) và cả nhân viên không tick vai trò làm Bác sĩ điều trị. | Rà mọi nguồn danh sách nhân viên ở FE. Sai 3 chỗ, đều sửa sang `role: STAFF_ROLE.Dentist` lọc ở server: (1) `receptionQueries.fetchReceptionDoctors` lấy **cả chi nhánh** — dùng cho bộ lọc, ô bác sĩ trên thẻ, Tạo tiếp nhận, Hẹn tái khám; (2) `staffQueries.useDentistList` lọc `isDentist` trên 50 dòng, không ai khớp thì lấy 8 người bất kỳ — dùng ở Lịch hẹn, Labo, Chẩn đoán & Tư vấn, CSKH bệnh nhân, Dashboard; (3) `ReportToolbar` lọc 200 dòng ở trình duyệt. Đúng sẵn: ô Phụ tá (chỉ ở form công đoạn, Phụ tá + Y sĩ — R-721), Bác sĩ chẩn đoán (`useDentistOptions`), Nhân sự tư vấn / Người tạo / Nhân viên / Chấm công (mọi nhân viên là đúng nghĩa). |
+| R-724 | E2E `bookVisitToday` đặt lịch với bất kỳ nhân viên nào làm bác sĩ; Hẹn tái khám giờ bỏ người không phải bác sĩ → 4 đỏ ở `reception-follow-up`. Chỉ còn ~8 bác sĩ chi nhánh 1 nên khung giờ hay kín, và bệnh nhân rảnh cạn sau nhiều lượt chạy. | Fixture: `Role=1`; khung giờ kín thì lùi 10 phút (tối đa 8 giờ, không qua ngày); lấy 1000 bệnh nhân và tạo bệnh nhân mới qua API khi hết người rảnh. Xoá `reception-patient-link.spec.ts` (trùng 4 test sẵn có trong `reception-own-doctor.spec.ts`). |
+
+Kiểm chứng (dev :5173, host thật :5000, PostgreSQL thật): `reception-doctor-roles.spec.ts` **1/1** mới (bộ lọc bác sĩ và Bác sĩ điều trị của Tạo tiếp nhận chỉ có người tick Bác sĩ) — **đỏ khi stash bản sửa**; `reception-follow-up` + `reception-own-doctor` + `appointment-patient-link` 20/20; `reception-doctor-list`, `labo-orders-actions`, `doctor-day-off-pickers` xanh. Đỏ **có sẵn** (y hệt khi stash): `appointment-day-timeline` 2, `reception-temporary` 1, `reception.spec` 2. `tsc` sạch. Retest level **3**.
+
 ## 2026-10-06 — Thanh toán & hoá đơn: bỏ chú thích "trên trang này", thêm lọc Ngày / Tuần / Tháng (R-707, R-708)
 
 Yêu cầu chủ dự án (2 ảnh chú thích).

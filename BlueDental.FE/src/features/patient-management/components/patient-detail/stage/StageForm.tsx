@@ -70,7 +70,7 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
         <FloatingLabel label={t("Patient:Col:CreatedAt")} floated>
           <Input disabled value={formatDate(new Date().toISOString())} />
         </FloatingLabel>
-        <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(draft.staffId)}>
+        <FloatingLabel label={t("Patient:Staff:Doctor")} required floated={Boolean(draft.staffId)}>
           <ServerSearchSelect
             value={draft.staffId}
             valueLabel={draft.labels.staff}

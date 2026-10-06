@@ -150,7 +150,7 @@ async function call(
 }
 
 async function staffId(page: Page): Promise<string> {
-  const res = await call(page, "GET", "/api/v1/app/staff?MaxResultCount=1");
+  const res = await call(page, "GET", "/api/v1/app/staff?MaxResultCount=1&Role=1");
   return ((res.json as { items: { id: string }[] }).items[0]).id;
 }
 
@@ -186,6 +186,14 @@ async function openSlipDialog(page: Page, line: Line): Promise<Locator> {
   const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
   await expect(dialog).toBeVisible();
   return dialog;
+}
+
+/** Picks the first doctor the Bác sĩ picker offers, when the form starts without one. */
+async function pickDoctor(page: Page, form: Locator): Promise<void> {
+  const doctor = form.locator(".ant-select").first();
+  if ((await doctor.locator(".ant-select-content-has-value").count()) > 0) return;
+  await doctor.click();
+  await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
 }
 
 const chips = (form: Locator) => form.locator(".pd-stage-teeth > div > button:not(.pd-stage-chartbtn)");
@@ -241,6 +249,8 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await chips(formA).filter({ hasText: "22" }).click();
     expect(await chipStates(formA)).toEqual(["11*", "21*", "22"]);
     await formA.locator("textarea").fill(`e2e một thẻ ${runId()} A`);
+    // The slip's doctor is not ticked "Bác sĩ", so the form starts without one.
+    await pickDoctor(page, formA);
 
     const posted: Record<string, unknown>[] = [];
     page.on("request", (request) => {
@@ -263,6 +273,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     // B kept what was typed into it while A was open.
     await cardB.click();
     await expect(formB.locator("textarea")).toHaveValue(noteB);
+    await pickDoctor(page, formB);
     await dialog.getByRole("button", { name: "Lưu công đoạn" }).click();
     await expect.poll(() => posted.length).toBe(2);
     expect(posted[1].treatmentServiceId).toBe(second.lineId);

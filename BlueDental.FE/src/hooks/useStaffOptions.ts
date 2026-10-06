@@ -30,6 +30,14 @@ export const staffOptionKeys = {
   all: ["staff-options"] as const,
 };
 
+/**
+ * Matches BlueDental.Staff.StaffPickerRole: the server keeps only staff whose
+ * Bác sĩ (Dentist) or Phụ tá / Y sĩ (Assistant) box is ticked. Staff with no
+ * box ticked are offered by neither picker (owner, 2026-10-05).
+ */
+export const STAFF_ROLE = { Dentist: 1, Assistant: 2 } as const;
+export type StaffRole = (typeof STAFF_ROLE)[keyof typeof STAFF_ROLE];
+
 export function useStaffOptions() {
   return useQuery({
     queryKey: staffOptionKeys.all,
@@ -50,8 +58,8 @@ export function useStaffOptions() {
 }
 
 /**
- * Prefetched list filtered to staff where `isDentist === true`; with
- * `availableOn` ("YYYY-MM-DD") doctors registered OFF that day are left out.
+ * Prefetched list of staff ticked "Bác sĩ"; with `availableOn` ("YYYY-MM-DD")
+ * doctors registered OFF that day are left out.
  */
 export function useDentistStaffOptions(availableOn?: string) {
   return useQuery({
@@ -59,19 +67,36 @@ export function useDentistStaffOptions(availableOn?: string) {
     staleTime: availabilityStaleTime(availableOn) ?? 5 * 60 * 1000,
     queryFn: async (): Promise<StaffOption[]> => {
       const response = await api.get("/v1/app/staff", {
-        params: { MaxResultCount: 200, AvailableOn: availableOn },
+        params: { MaxResultCount: 200, AvailableOn: availableOn, Role: STAFF_ROLE.Dentist },
       });
 
       const items: StaffRow[] = response.data?.items ?? [];
-      const dentists = items.filter((row) => row.isDentist);
-      const chosen = dentists.length > 0 ? dentists : items;
-
-      return chosen.map((row) => ({
+      return items.map((row) => ({
         value: row.id,
         label: buildLabel(row),
       }));
     },
   });
+}
+
+/**
+ * Ids of every active member of staff who fills `role` — for checking a
+ * name a form starts with before it is put in a picker that would not offer
+ * it. Undefined until loaded.
+ */
+export function useStaffRoleIds(role: StaffRole, availableOn?: string, enabled = true) {
+  return useQuery({
+    queryKey: [...staffOptionKeys.all, "role-ids", role, availableOn ?? null] as const,
+    staleTime: availabilityStaleTime(availableOn) ?? 5 * 60 * 1000,
+    queryFn: async (): Promise<ReadonlySet<string>> => {
+      const response = await api.get("/v1/app/staff", {
+        params: { MaxResultCount: 1000, IsActive: true, AvailableOn: availableOn, Role: role },
+      });
+      const items: StaffRow[] = response.data?.items ?? [];
+      return new Set(items.map((row) => row.id));
+    },
+    enabled,
+  }).data;
 }
 
 interface StaffSearchRow extends StaffRow {
@@ -116,8 +141,8 @@ export function useStaffSearch(search: string, enabled = true) {
  * Query params for a server-side staff search. `availableOn` ("YYYY-MM-DD")
  * leaves out staff registered OFF that day on Chấm công.
  */
-function searchParams(term: string, availableOn?: string) {
-  return { MaxResultCount: 20, IsActive: true, Filter: term || undefined, AvailableOn: availableOn };
+function searchParams(term: string, availableOn: string | undefined, role: StaffRole) {
+  return { MaxResultCount: 20, IsActive: true, Filter: term || undefined, AvailableOn: availableOn, Role: role };
 }
 
 /**
@@ -130,8 +155,9 @@ function availabilityStaleTime(availableOn?: string) {
 }
 
 /**
- * The same search, narrowed to dentists. Prefers the `isDentist` boolean; a
- * clinic that has not tagged its dentists still gets all names.
+ * The same search, narrowed on the server to staff ticked "Bác sĩ". Filtering a
+ * 20-row page in the browser, with every name as a fallback, offered untagged
+ * staff whenever the page held no dentist (owner, 2026-10-05).
  */
 export function useDentistSearch(search: string, enabled = true, availableOn?: string) {
   const term = search.trim();
@@ -140,11 +166,11 @@ export function useDentistSearch(search: string, enabled = true, availableOn?: s
     queryKey: [...staffOptionKeys.all, "dentists", "search", term, availableOn ?? null] as const,
     staleTime: availabilityStaleTime(availableOn),
     queryFn: async (): Promise<StaffOption[]> => {
-      const response = await api.get("/v1/app/staff", { params: searchParams(term, availableOn) });
+      const response = await api.get("/v1/app/staff", {
+        params: searchParams(term, availableOn, STAFF_ROLE.Dentist),
+      });
       const items: StaffSearchRow[] = response.data?.items ?? [];
-      const dentists = items.filter((row) => row.isDentist);
-      const chosen = dentists.length > 0 ? dentists : items;
-      return chosen.map((row) => ({ value: row.id, label: displayName(row) }));
+      return items.map((row) => ({ value: row.id, label: displayName(row) }));
     },
     placeholderData: keepPreviousData,
     enabled,
@@ -153,8 +179,7 @@ export function useDentistSearch(search: string, enabled = true, availableOn?: s
 
 /**
  * Server-searched staff, narrowed to the "Phụ tá" picker's people: staff ticked
- * "Phụ tá" (`isAssistant`) or "Y sĩ" (`isHygienist`) — BA 2026-10-05.
- * Falls back to all staff if no one is tagged.
+ * "Phụ tá" or "Y sĩ" (owner, 2026-10-05). No one ticked means no one offered.
  */
 export function useAssistantSearch(search: string, enabled = true, availableOn?: string) {
   const term = search.trim();
@@ -163,11 +188,11 @@ export function useAssistantSearch(search: string, enabled = true, availableOn?:
     queryKey: [...staffOptionKeys.all, "assistants", "search", term, availableOn ?? null] as const,
     staleTime: availabilityStaleTime(availableOn),
     queryFn: async (): Promise<StaffOption[]> => {
-      const response = await api.get("/v1/app/staff", { params: searchParams(term, availableOn) });
+      const response = await api.get("/v1/app/staff", {
+        params: searchParams(term, availableOn, STAFF_ROLE.Assistant),
+      });
       const items: StaffSearchRow[] = response.data?.items ?? [];
-      const assistants = items.filter((row) => row.isAssistant || row.isHygienist);
-      const chosen = assistants.length > 0 ? assistants : items;
-      return chosen.map((row) => ({ value: row.id, label: displayName(row) }));
+      return items.map((row) => ({ value: row.id, label: displayName(row) }));
     },
     placeholderData: keepPreviousData,
     enabled,
