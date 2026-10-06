@@ -17,7 +17,7 @@ public class AfterTreatmentCareTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             TreatedOn,
-            stageId ?? Guid.NewGuid());
+            [stageId ?? Guid.NewGuid()]);
 
     [Fact]
     public void A_visit_opens_an_uncontacted_task_with_no_care_date()
