@@ -40,24 +40,19 @@ function collectLeafIds(node: PermissionTreeNode): string[] {
   return (node.children ?? []).flatMap(collectLeafIds);
 }
 
-function countGranted(nodes: PermissionTreeNode[], granted: Set<string>): { total: number; checked: number } {
-  let total = 0;
-  let checked = 0;
-  for (const n of nodes) {
-    if (n.type === "leaf") {
-      total++;
-      if (granted.has(n.id)) checked++;
-    } else if (n.children) {
-      const sub = countGranted(n.children, granted);
-      total += sub.total;
-      checked += sub.checked;
-    }
-  }
-  return { total, checked };
+/** Each permission once, even if the tree ever lists a leaf under two groups (R-747). */
+function uniqueLeafIds(nodes: PermissionTreeNode[]): string[] {
+  return [...new Set(nodes.flatMap(collectLeafIds))];
 }
 
+function countGranted(nodes: PermissionTreeNode[], granted: Set<string>): { total: number; checked: number } {
+  const ids = uniqueLeafIds(nodes);
+  return { total: ids.length, checked: ids.filter((id) => granted.has(id)).length };
+}
+
+// Labels are localization keys ("BE:Perm:Appointments"): match what the user reads.
 function matchesSearch(node: PermissionTreeNode, q: string): boolean {
-  if (node.label.toLowerCase().includes(q)) return true;
+  if (t(node.label).toLowerCase().includes(q)) return true;
   if (node.id.toLowerCase().includes(q)) return true;
   return (node.children ?? []).some((c) => matchesSearch(c, q));
 }
@@ -200,10 +195,7 @@ function RolePermissionEditor({
     });
   }, [initLocal, rolePerms]);
 
-  const allLeafIds = useMemo(() =>
-    treeData ? treeData.flatMap(collectLeafIds) : [],
-    [treeData]
-  );
+  const allLeafIds = useMemo(() => uniqueLeafIds(treeData ?? []), [treeData]);
 
   const totalPerms = allLeafIds.length;
   const checkedCount = allLeafIds.filter((id) => granted.has(id)).length;
@@ -235,7 +227,7 @@ function RolePermissionEditor({
   }, [hasChanges, onDirtyChange]);
 
   const isLoading = treeLoading || permsLoading;
-  const lowerQuery = searchQuery.toLowerCase();
+  const lowerQuery = searchQuery.trim().toLowerCase();
 
   const expandKey = allExpanded ? "expanded" : "collapsed";
 
@@ -379,10 +371,7 @@ export function PermissionsTab() {
   const createRole = useCreateIdentityRole();
   const deleteRole = useDeleteIdentityRole();
 
-  const treeLeafIds = useMemo(() =>
-    treeData ? treeData.flatMap(collectLeafIds) : [],
-    [treeData]
-  );
+  const treeLeafIds = useMemo(() => uniqueLeafIds(treeData ?? []), [treeData]);
 
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [addRoleOpen, setAddRoleOpen] = useState(false);

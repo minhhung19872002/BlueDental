@@ -39,12 +39,8 @@ internal static class PermissionTreeBuilder
                 Leaf("treatmentStage.continue", "BE:Treatment:ResumeStage"),
                 Leaf("treatmentStage.complete", "BE:Treatment:CompleteStage"),
                 Leaf("treatmentStage.print", "BE:Treatment:PrintStage")),
-            Group("appointment-in-treatment", "BE:Perm:Appointments",
-                Leaf("appointment.read", "Xem"),
-                Leaf("appointment.create", "BE:Common:Add"),
-                Leaf("appointment.update", "BE:Common:EditVerb"),
-                Leaf("appointment.delete", "BE:Common:Delete"),
-                Leaf("appointment.export", "BE:Perm:Export")),
+            // The patient's Lịch hẹn tab runs on the appointment.* leaves, which live
+            // once, under Lịch hẹn > Lịch hẹn khách hàng (R-747).
             Group("treatmentImage", "BE:Common:Images",
                 Leaf("treatmentImage.read", "Xem"),
                 Leaf("treatmentImage.create", "BE:Common:Add"),

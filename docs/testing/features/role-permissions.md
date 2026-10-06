@@ -204,6 +204,26 @@ after `patient.create` → "Tạo hồ sơ" visible, "Xuất file" still absent.
 passed (26 s) on preview 8082 + host 5000. Backend: Host.Tests 19/19,
 Application.Tests 588/588, Domain.Tests 310/310.
 
+## Each permission in one group (R-747, 2026-10-06, QA row 10)
+
+The tree used to list the five `appointment.*` leaves twice (under Điều trị
+and under Lịch hẹn), so ticking one group ticked the other and the counter
+read 14/378 for 9 distinct permissions. The copy under Điều trị is gone:
+`appointment.*` lives only under Lịch hẹn > Lịch hẹn khách hàng, and the tree
+now has **373** leaves. `PermissionsTab` also counts and saves distinct leaf
+ids, so a repeated leaf can never be counted twice again. Granted permissions
+are unchanged (same ABP names). Evidence: `e2e/role-permissions-tree.spec.ts`
+1/1 on preview 8091 + host 5000.
+
+## Search matches group names (R-748, 2026-10-06)
+
+Group labels are i18n keys (`BE:Perm:Appointments`), and the search used to
+compare against the raw key, so typing "Lịch hẹn" found nothing while
+staging lists the Lịch hẹn groups. `matchesSearch` now compares the
+translated label (and the id) with a trimmed query; a matching group opens
+and its children are filtered by the same rule, as on staging. Evidence:
+`e2e/role-permissions-tree.spec.ts` 2/2 on preview 8091 + host 5000.
+
 ## Known gaps (not fixed here)
 
 - Dashboard widgets need `reportSales.read` / appointment abilities; for a
