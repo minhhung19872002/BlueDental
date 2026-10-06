@@ -327,6 +327,20 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateEmail = "BlueDental:Staff:0007";
     }
 
+    public static class StaffPenalty
+    {
+        /// <summary>Only a draft can be edited, approved or deleted.</summary>
+        public const string NotDraft = "BlueDental:StaffPenalty:0001";
+        public const string AlreadyCancelled = "BlueDental:StaffPenalty:0002";
+        public const string FineAmountRequired = "BlueDental:StaffPenalty:0003";
+        public const string ViolationDateInFuture = "BlueDental:StaffPenalty:0004";
+        /// <summary>The staff member does not work at the record's branch.</summary>
+        public const string StaffNotInBranch = "BlueDental:StaffPenalty:0005";
+        /// <summary>The violation type belongs to another branch, or was deleted.</summary>
+        public const string InvalidViolationType = "BlueDental:StaffPenalty:0006";
+        public const string InvalidAmount = "BlueDental:StaffPenalty:0007";
+    }
+
     public static class Queue
     {
         public const string TicketNotFound = "BlueDental:Queue:0001";

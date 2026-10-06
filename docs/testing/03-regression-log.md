@@ -6767,3 +6767,23 @@ production (`vite preview` :8080, API thật :5000): `taxonomy-import-api` + `br
 `taxonomy*` + `payment-qr` + `catalog-combo` **48/49**. Hai ca đỏ là hai ca đỏ có sẵn do dữ liệu local
 đã ghi ở mục R-725..R-727 (`taxonomy-import-api` "…gets 403…", `taxonomy-service-sync` "…may only read
 services…": nhóm seed `dentist` trên DB local đang có grant) — không do merge này. Retest level **3**.
+
+## 2026-10-06 — Chế tài nhân viên (F-49, R-735..R-738)
+
+Tính năng mới, BlueDental riêng (bản gốc không có) — `docs/clone/pages/staff-penalty.md`.
+Hai lỗi tìm thấy khi chạy thật trên trình duyệt trước khi viết E2E, sửa luôn:
+
+| # | Lỗi | Sửa |
+|---|-----|-----|
+| R-735 | Dialog "Lập phiếu chế tài": ô Ngày vi phạm mở ra trống thay vì hôm nay. `form.setFieldsValue` trong `useEffect` chạy khi Form trong Modal (`destroyOnHidden`) chưa mount nên bị bỏ qua. | Dùng `initialValues` của Form — dialog bị huỷ khi đóng nên mỗi lần mở là một lần mount mới. |
+| R-736 | Chọn Loại vi phạm có mức phạt mặc định: hình thức chuyển sang Phạt tiền nhưng ô Số tiền phạt trống. Ô này chỉ render khi `action === Fine`, nên giá trị gán cùng lúc với `action` rơi vào field chưa đăng ký. | Ô luôn có trong form, chỉ `hidden`; luật bắt buộc > 0 chỉ áp khi là Phạt tiền. |
+| R-737 | Nhãn "Tổng tiền phạt đã duyệt" in ra `{0}`. Khoá có placeholder nhưng số tiền render riêng trong `<strong>`. | Khoá thành nhãn thuần. |
+| R-738 | Chủ dự án: cột Thao tác trống trên các dòng Đã huỷ (phiếu đã huỷ không còn thao tác nào), và không có chỗ xem lý do huỷ / người duyệt ngoài tooltip. | Nút **Xem chi tiết** trên mọi dòng mở `PenaltyDetailDialog` (người lập, người duyệt, lý do huỷ, kèm thời điểm); nút căn trái theo tiêu đề cột. `staff-penalty.spec` khẳng định dòng đã huỷ còn đúng 1 nút và dialog có lý do huỷ. |
+
+Kiểm: `tsc -b` sạch, `oxlint` không cảnh báo. BE: Domain.Tests **580** (StaffPenalty **12**,
+catalog quyền 88 subject), Application.Tests **671** (contract **11**). Migration `StaffPenalties`
+chỉ tạo 2 bảng; DbMigrator cấp `staffPenalty.*` cho 3 role tĩnh. E2E trên build production
+(:8080, API thật :5000): `staff-penalty-api` **4/4**, `staff-penalty` **1/1**, `staff` + `staff-day-off-api`
+**4/4**. `role-permissions` và `role-permissions-abilities` đỏ ở bước "dentist chưa có quyền gì"
+— lỗi dữ liệu local đã ghi ở mục R-725..R-727 (nhóm `dentist` đang có **370** grant, **0** grant
+`staffPenalty`), không do thay đổi này. Retest level **2** (F-49, F-25).

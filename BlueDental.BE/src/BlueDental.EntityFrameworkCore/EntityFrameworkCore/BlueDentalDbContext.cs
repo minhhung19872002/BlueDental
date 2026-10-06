@@ -132,6 +132,10 @@ public class BlueDentalDbContext :
     public DbSet<LaboSupplier> LaboSuppliers { get; set; }
     public DbSet<LaboMaterial> LaboMaterials { get; set; }
 
+    // Staff — Chế tài nhân viên
+    public DbSet<Staff.StaffPenalty> StaffPenalties { get; set; }
+    public DbSet<Staff.StaffViolationType> StaffViolationTypes { get; set; }
+
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
     public DbSet<CareContactLog> CareContactLogs { get; set; }

@@ -22,6 +22,8 @@ import {
 } from "../api/staffQueries";
 import { staffApi, type StaffDto } from "../api/staffApi";
 import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
+import { StaffTabBar } from "../components/StaffTabBar";
+import "../components/staff-penalty.css";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useBranchStore } from "@/lib/clinicBranch";
 import { invalidateEntities } from "@/lib/queryEntities";
@@ -245,6 +247,7 @@ export function StaffPage() {
         title={t("Staff:PageTitle")}
         subtitle={t("Staff:PageSubtitle")}
       />
+      <StaffTabBar activeKey="list" />
 
       {/* ── Desktop: inline toolbar ── */}
       <div className="reception-card reception-card--toolbar desktop-only">

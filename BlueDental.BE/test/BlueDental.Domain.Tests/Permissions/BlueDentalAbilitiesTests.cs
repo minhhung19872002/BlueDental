@@ -23,8 +23,10 @@ public class BlueDentalAbilitiesTests
         //
         // queue guards the reception ticket queue; the reference has no such
         // subject at all (see the note beside it in BlueDentalAbilities.Catalog).
-        Assert.Equal(87, BlueDentalAbilities.Catalog.Count);
+        // staffPenalty guards Chế tài nhân viên, which the reference lacks too.
+        Assert.Equal(88, BlueDentalAbilities.Catalog.Count);
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.Queue));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.StaffPenalty));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.BranchManager));
     }
 

@@ -693,6 +693,33 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.ClinicBranchId);
         });
 
+        builder.Entity<Staff.StaffViolationType>(entity =>
+        {
+            entity.ToTable("bd_staff_violation_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(Staff.StaffViolationType.MaxNameLength).IsRequired();
+            entity.Property(x => x.DefaultFineAmount).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        builder.Entity<Staff.StaffPenalty>(entity =>
+        {
+            entity.ToTable("bd_staff_penalties");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.FineAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Description).HasMaxLength(Staff.StaffPenalty.MaxDescriptionLength);
+            entity.Property(x => x.CancelReason).HasMaxLength(Staff.StaffPenalty.MaxCancelReasonLength);
+            entity.HasOne<Staff.StaffViolationType>()
+                .WithMany()
+                .HasForeignKey(x => x.ViolationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            // The list is always one branch, newest violation first.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ViolationDate });
+            entity.HasIndex(x => x.StaffId);
+        });
+
         builder.Entity<LaboMaterial>(entity =>
         {
             entity.ToTable("bd_labo_materials");
