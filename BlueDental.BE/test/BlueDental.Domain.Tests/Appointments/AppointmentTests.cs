@@ -507,7 +507,7 @@ public class AppointmentTests
         Assert.False(arrived.IsMissedAt(after));
 
         var cancelled = NewAppointment();
-        cancelled.Cancel(CancellationReason.PatientRequest);
+        cancelled.Cancel(CancellationReason.PatientRequest, "sick");
         Assert.False(cancelled.IsMissedAt(after));
 
         var late = NewAppointment();
