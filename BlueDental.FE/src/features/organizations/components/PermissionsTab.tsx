@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PERMISSION_GROUP } from "@/lib/permissionConstants";
 import { Button, Checkbox, Empty, Form, Input, Modal, Spin } from "antd";
 import {
@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { FloatingField } from "@/components/FloatingField";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import {
   usePermissionTree,
   useRolePermissions,
@@ -30,6 +31,7 @@ import {
   useCreateIdentityRole,
   useDeleteIdentityRole,
 } from "@/features/identity/api";
+import { UnsavedPermsDialog } from "./UnsavedPermsDialog";
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -154,9 +156,11 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
 function RolePermissionEditor({
   roleName,
   readonly: isReadonly,
+  onDirtyChange,
 }: {
   roleName: string;
   readonly?: boolean;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const { data: treeData, isLoading: treeLoading } = usePermissionTree();
   const { data: rolePerms, isLoading: permsLoading } = useRolePermissions(roleName);
@@ -219,9 +223,19 @@ function RolePermissionEditor({
     }
   }, [localGranted, allLeafIds, roleName, updatePerms]);
 
+  // Ticking a box and unticking it again leaves nothing to save or to warn about.
+  const hasChanges = useMemo(() => {
+    if (!localGranted || !rolePerms) return false;
+    return allLeafIds.some((id) => localGranted.has(id) !== rolePerms.grantedIds.has(id));
+  }, [localGranted, rolePerms, allLeafIds]);
+
+  useEffect(() => {
+    onDirtyChange(hasChanges);
+    return () => onDirtyChange(false);
+  }, [hasChanges, onDirtyChange]);
+
   const isLoading = treeLoading || permsLoading;
   const lowerQuery = searchQuery.toLowerCase();
-  const hasChanges = localGranted !== null;
 
   const expandKey = allExpanded ? "expanded" : "collapsed";
 
@@ -374,6 +388,33 @@ export function PermissionsTab() {
   const [addRoleOpen, setAddRoleOpen] = useState(false);
   const [addRoleForm] = Form.useForm<{ roleName: string }>();
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [pendingRole, setPendingRole] = useState<string | null>(null);
+  const leaveGuard = useUnsavedChangesGuard(isDirty);
+
+  const handleSelectRole = (roleName: string) => {
+    if (roleName === selectedRole) return;
+    if (isDirty) {
+      setPendingRole(roleName);
+      return;
+    }
+    setSelectedRole(roleName);
+  };
+
+  const handleDiscardChanges = () => {
+    setIsDirty(false);
+    if (pendingRole) {
+      setSelectedRole(pendingRole);
+      setPendingRole(null);
+      return;
+    }
+    leaveGuard.proceed();
+  };
+
+  const handleStay = () => {
+    setPendingRole(null);
+    leaveGuard.stay();
+  };
 
   const handleAddRole = async () => {
     try {
@@ -444,7 +485,7 @@ export function PermissionsTab() {
               isActive={selectedRole === role.name}
               isStatic={role.isStatic}
               treeLeafIds={treeLeafIds}
-              onClick={() => setSelectedRole(role.name)}
+              onClick={() => handleSelectRole(role.name)}
               onDelete={() => setDeleteConfirm({ id: role.id, name: role.name })}
             />
           ))}
@@ -458,6 +499,7 @@ export function PermissionsTab() {
             key={selectedRole}
             roleName={selectedRole}
             readonly={roles.find((r) => r.name === selectedRole)?.isStatic}
+            onDirtyChange={setIsDirty}
           />
         ) : (
           <div className="perm-empty">
@@ -507,6 +549,13 @@ export function PermissionsTab() {
           <p>{t("Organization:DeleteRoleConfirm")} <strong>{deleteConfirm.name}</strong>?</p>
         )}
       </Modal>
+
+      <UnsavedPermsDialog
+        open={pendingRole !== null || leaveGuard.isBlocked}
+        roleName={selectedRole}
+        onStay={handleStay}
+        onDiscard={handleDiscardChanges}
+      />
     </div>
   );
 }
