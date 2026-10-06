@@ -7,6 +7,13 @@ import {
   resetDentistLeaves,
   setDentistLeaf,
 } from "./fixtures/restrictedDentist";
+import {
+  PAYMENTS_API,
+  call,
+  collectOnFirstLine,
+  openNewSlip,
+  type Receipt,
+} from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: the payment commands on a patient's slips follow Khách hàng ›
@@ -88,36 +95,6 @@ async function findStageableSlip(admin: Page, branchId: string): Promise<Slip> {
   }, branchId);
   expect(found, "the dentist's branch should have a slip with an open line").toBeTruthy();
   return found!;
-}
-
-/** A real request from inside a signed-in page — its cookie session and antiforgery header. */
-async function call(
-  page: Page,
-  url: string,
-  options: { method?: "GET" | "POST"; json?: unknown } = {},
-): Promise<{ status: number; body: Record<string, unknown> }> {
-  return page.evaluate(
-    async ({ url, options }) => {
-      const xsrf = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
-        ?.substring("XSRF-TOKEN=".length);
-      const headers: Record<string, string> = {
-        accept: "application/json",
-        ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
-      };
-      if (options.json !== undefined) headers["content-type"] = "application/json";
-      const res = await fetch(url, {
-        method: options.method ?? "GET",
-        credentials: "include",
-        headers,
-        body: options.json === undefined ? undefined : JSON.stringify(options.json),
-      });
-      const text = await res.text();
-      return { status: res.status, body: text ? JSON.parse(text) : {} };
-    },
-    { url, options },
-  );
 }
 
 const profilePath = (slip: Slip) =>
@@ -286,23 +263,32 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
   });
 });
 
-const INVOICES = "/api/v1/app/invoices";
+const LEDGER = "/api/v1/app/payment-ledger";
+const LEDGER_LEAVES = [
+  "payment.read",
+  "payment.export",
+  "payment.finalize",
+  "patient.read",
+  "treatmentConsultation.read",
+] as const;
 
-/** The invoice's row on Thanh toán & hoá đơn, found through the code search. */
-async function invoiceRow(page: Page, invoiceNumber: string) {
-  await page.goto("/billing");
-  await page.getByPlaceholder("Tìm theo mã phiếu...").fill(invoiceNumber);
-  const row = page.locator(".ant-table-tbody tr").filter({ hasText: invoiceNumber });
-  await expect(row).toBeVisible({ timeout: 20_000 });
-  return row;
+/**
+ * The status alone — the Excel file is not JSON. Both headers are the ones the
+ * app's axios client sends: a dentist has no branch claim to fall back on, and
+ * without a JSON `Accept` ABP rethrows a refused file action as a 500.
+ */
+async function statusOf(page: Page, url: string, branchId: string): Promise<number> {
+  const headers = { "X-Clinic-Branch-Id": branchId, Accept: "application/json, text/plain, */*" };
+  return (await page.request.get(url, { headers })).status();
 }
 
-test.describe("Thanh toán & hoá đơn — Thu tiền follows Thêm", () => {
-  test("payment.create alone collects on an invoice; read alone cannot", async ({
+test.describe("Tài chính → Thanh toán — Xem opens the list, Xuất file the Excel, Chốt phiếu the e-invoice", () => {
+  test("no read: 403; read: the list; + patient/slip read: its sheet; export: the file; finalize: the e-invoice", async ({
     page,
     browser,
   }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
+    await page.setViewportSize({ width: 1600, height: 900 });
 
     const id = runId();
     const userName = `bs${id}`;
@@ -310,74 +296,86 @@ test.describe("Thanh toán & hoá đơn — Thu tiền follows Thêm", () => {
     const fullName = `BAC SI ${id}`;
 
     await login(page);
-    await resetDentistLeaves(page, PAYMENT_LEAVES);
+    await resetDentistLeaves(page, LEDGER_LEAVES);
     await createDentist(page, fullName, userName, password);
-    await setDentistLeaf(page, "payment.read", true);
 
     const { context, page: dentist } = await openDentistSession(browser, userName, password);
-    let invoiceId: string | undefined;
+    let receipt: Receipt | undefined;
     try {
+      await dentist.setViewportSize({ width: 1600, height: 900 });
       await dentist.goto("/patient");
       await expect(dentist).toHaveURL(/branchId=/);
       const branchId = new URL(dentist.url()).searchParams.get("branchId")!;
 
-      // An issued invoice in the dentist's branch, made by admin.
-      const slips = await call(page, "/api/v1/app/patient-treatments?maxResultCount=300");
-      const slip = (slips.body.items as { patientId: string; branchId: string }[]).find(
-        (one) => one.branchId === branchId,
-      );
-      expect(slip, "the dentist's branch should have a patient").toBeTruthy();
-      const created = await call(page, INVOICES, {
-        method: "POST",
-        json: {
-          patientId: slip!.patientId,
-          branchId,
-          subTotal: 100000,
-          taxAmount: 0,
-          discountAmount: 0,
-          currency: "VND",
-          dueAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
-        },
+      // Today's receipt for the row actions, written by admin on the BA's path.
+      await openNewSlip(page);
+      await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
+      receipt = await collectOnFirstLine(page);
+      expect(receipt.clinicBranchId, "admin and the dentist share a branch").toBe(branchId);
+      const viewButton = dentist.getByRole("button", { name: `Xem phiếu ${receipt.code}` });
+      const invoiceButton = dentist.getByRole("button", {
+        name: `Xuất hóa đơn điện tử cho phiếu ${receipt.code}`,
       });
-      expect(created.status).toBe(200);
-      invoiceId = created.body.id as string;
-      const invoiceNumber = created.body.invoiceNumber as string;
-      expect((await call(page, `${INVOICES}/${invoiceId}/issue`, { method: "POST" })).status).toBe(200);
 
-      // ── Xem only: no "Thu tiền", and the server refuses the payment ──────
-      let row = await invoiceRow(dentist, invoiceNumber);
-      await expect(row.getByRole("button", { name: "Thu tiền" })).toHaveCount(0);
-      const refused = await call(dentist, `${INVOICES}/${invoiceId}/payment`, {
-        method: "POST",
-        json: { amount: 40000, currency: "VND", method: 1 },
+      // ── Nothing granted: the route and the endpoint both refuse ──────────
+      await dentist.goto("/billing");
+      await expect(dentist.getByText("Không có quyền truy cập")).toBeVisible();
+      expect(await statusOf(dentist, LEDGER, branchId)).toBe(403);
+
+      // ── Xem: the list, but no "Xuất Excel" and no file ───────────────────
+      await setDentistLeaf(page, "payment.read", true);
+      await dentist.goto("/billing");
+      await expect(dentist.getByPlaceholder(/Tìm theo mã thanh toán/)).toBeVisible();
+      await expect(dentist.locator(".billing-kpi-label").first()).toHaveText("Tổng tiền đã thu");
+      await expect(dentist.getByRole("button", { name: "Xuất Excel" })).toHaveCount(0);
+      expect(await statusOf(dentist, LEDGER, branchId)).toBe(200);
+      expect(await statusOf(dentist, `${LEDGER}/excel`, branchId)).toBe(403);
+
+      // The row is listed, but its sheet reads the patient and the slip: no
+      // 👁 on payment.read alone, and no e-invoice before finalize.
+      await dentist.getByPlaceholder(/Tìm theo mã thanh toán/).fill(receipt.code);
+      await expect(dentist.locator(".ant-table-row").filter({ hasText: receipt.code })).toBeVisible({
+        timeout: 20_000,
       });
-      expect(refused.status).toBe(403);
+      await expect(viewButton).toHaveCount(0);
+      await expect(invoiceButton).toHaveCount(0);
 
-      // ── Thêm, still no Sửa: the button collects for real ──────────────────
-      await setDentistLeaf(page, "payment.create", true);
-      row = await invoiceRow(dentist, invoiceNumber);
-      await row.getByRole("button", { name: "Thu tiền" }).click();
-      const dialog = dentist.getByRole("dialog", { name: "Ghi nhận thanh toán" });
-      await expect(dialog).toBeVisible();
-      await dialog.getByLabel("Số tiền").fill("40000");
-      await dialog.getByRole("button", { name: "Xác nhận thanh toán" }).click();
-      await expect(dentist.getByText("Đã ghi nhận thanh toán")).toBeVisible();
-      await expect(dialog).toBeHidden();
+      // ── + Bệnh nhân Xem + Tư vấn Xem: 👁 opens "Chi tiết phiếu" ──────────
+      await setDentistLeaf(page, "patient.read", true);
+      await setDentistLeaf(page, "treatmentConsultation.read", true);
+      await dentist.goto("/billing");
+      await dentist.getByPlaceholder(/Tìm theo mã thanh toán/).fill(receipt.code);
+      await expect(viewButton).toBeVisible({ timeout: 20_000 });
+      await expect(invoiceButton).toHaveCount(0);
+      await viewButton.click();
+      const detail = dentist.getByRole("dialog", { name: "Chi tiết phiếu" });
+      await expect(detail.locator(".pdt-receipt-head")).toContainText(receipt.code, { timeout: 20_000 });
+      await dentist.keyboard.press("Escape");
+      await expect(detail).toBeHidden();
 
-      // Persisted: read back by admin in a separate request.
-      const after = await call(page, `${INVOICES}/${invoiceId}`);
-      expect(after.body.paidAmount).toBe(40000);
-      expect(after.body.balanceDue).toBe(60000);
+      // ── Xem + Chốt phiếu: "Xuất hoá đơn điện tử" on the row ──────────────
+      await setDentistLeaf(page, "payment.finalize", true);
+      await dentist.goto("/billing");
+      await dentist.getByPlaceholder(/Tìm theo mã thanh toán/).fill(receipt.code);
+      await expect(invoiceButton).toBeVisible({ timeout: 20_000 });
+      await invoiceButton.click();
+      const invoice = dentist.getByRole("dialog", { name: "Hóa đơn" });
+      await expect(invoice.locator("tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
+      await dentist.keyboard.press("Escape");
+      await expect(invoice).toBeHidden();
+
+      // ── Xem + Xuất file: the button downloads the server's workbook ──────
+      await setDentistLeaf(page, "payment.export", true);
+      await dentist.goto("/billing");
+      const exportButton = dentist.getByRole("button", { name: "Xuất Excel" });
+      await expect(exportButton).toBeVisible();
+      const download = dentist.waitForEvent("download");
+      await exportButton.click();
+      expect((await download).suggestedFilename()).toMatch(/\.xlsx$/);
     } finally {
       await context.close();
-      // A partly paid invoice may still be voided — leave nothing open behind.
-      if (invoiceId) {
-        await call(page, `${INVOICES}/${invoiceId}/void`, {
-          method: "POST",
-          json: { reason: "E2E cleanup" },
-        });
-      }
-      await resetDentistLeaves(page, PAYMENT_LEAVES);
+      if (receipt) await call(page, `${PAYMENTS_API}/${receipt.id}`, { method: "DELETE" });
+      await resetDentistLeaves(page, LEDGER_LEAVES);
       await deleteDentist(page, fullName);
     }
   });

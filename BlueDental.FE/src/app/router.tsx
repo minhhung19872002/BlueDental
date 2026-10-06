@@ -77,8 +77,8 @@ const LaboPage = lazy(() =>
 );
 
 const BillingPage = lazy(() =>
-  import("@/features/billing/pages/BillingPage").then((m) => ({
-    default: m.BillingPage,
+  import("./BillingRoute").then((m) => ({
+    default: m.BillingRoute,
   })),
 );
 

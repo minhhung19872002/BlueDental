@@ -97,20 +97,7 @@ const billingApi = {
 
   recordPayment: (id: string, data: RecordPaymentRequest): Promise<InvoiceDto> =>
     api.post(`/v1/app/invoices/${id}/payment`, data).then((r) => r.data),
-
-  issue: (id: string): Promise<InvoiceDto> =>
-    api.post(`/v1/app/invoices/${id}/issue`).then((r) => r.data),
-
-  void: (id: string, reason: string): Promise<void> =>
-    api.post(`/v1/app/invoices/${id}/void`, { reason }).then(() => undefined),
 };
-
-export function useInvoiceList(params: InvoiceListParams = {}) {
-  return useQuery({
-    queryKey: ["invoices", params],
-    queryFn: () => billingApi.list(params),
-  });
-}
 
 export function useInvoice(id: string) {
   return useQuery({
@@ -125,23 +112,6 @@ export function useRecordPayment() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: RecordPaymentRequest }) =>
       billingApi.recordPayment(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
-  });
-}
-
-export function useIssueInvoice() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => billingApi.issue(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
-  });
-}
-
-export function useVoidInvoice() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      billingApi.void(id, reason),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
 }

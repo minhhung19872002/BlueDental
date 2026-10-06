@@ -112,7 +112,7 @@ External link:
 
 | Route | Screen | Where it comes from |
 |-------|--------|---------------------|
-| /billing | Thanh toán & hoá đơn | The Claude Design file `BlueDental.dc.html`, which gives invoices a clinic-wide screen. The reference keeps invoices only under `/patient/:id?tab=invoice`, so since 2026-09-05 this route is reachable by URL only and has no sidebar entry. |
+| /billing | Tài chính → Thanh toán | Since 2026-10-06 (BA note, R-712): the branch's "Tạo Phiếu Thanh Toán" receipts (PatientPayment Kind=Payment, mã THANHTOAN…) written on treatment plans, read from `GET /api/v1/app/payment-ledger`. Read-only; each row links to its plan's Thanh toán tab. Thao tác column (R-717..R-720): 👁 opens the plan tab's own "Chi tiết phiếu" (print), 📄 the e-invoice dialog for that receipt; edit/cancel stay on the plan. Reached from the header menu Tài chính → Thanh toán. The older clinic-wide invoice list (from the Claude Design file `BlueDental.dc.html`) is gone; invoices stay under `/patient/:id?tab=invoice`. |
 | /settings | Cài đặt phòng khám | Same design file; reached from the account menu. |
 | /dashboard | Tổng quan | BlueDental's own, kept for internal use. |
 

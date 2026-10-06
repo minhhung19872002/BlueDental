@@ -1,14 +1,65 @@
-/* Thanh toán & hoá đơn — feature-local styles (the older billing-* blocks
+/* Tài chính → Thanh toán — feature-local styles (the older billing-* blocks
    still live in index.css until that file is split). */
 
-.billing-row-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.billing-kpis--two {
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.billing-dialog-footer {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+.billing-kpi-value--paid {
+  color: var(--bd-green);
+}
+
+.billing-search {
+  max-width: 340px;
+}
+
+.billing-search-icon {
+  color: var(--bd-faint);
+}
+
+.billing-ledger-code {
+  color: var(--bd-blue);
+}
+
+.billing-ledger-amount {
+  color: var(--bd-ink);
+}
+
+.billing-ledger-sub {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.billing-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.billing-row-action {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  padding: 0;
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.billing-row-action:hover {
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink);
+}
+
+@media (max-width: 900px) {
+  .billing-kpis--two {
+    grid-template-columns: 1fr;
+  }
 }

@@ -153,6 +153,7 @@ public class ControllerConventionTests
     [Theory]
     [InlineData(typeof(IPatientTreatmentAppService), typeof(PatientTreatmentController))]
     [InlineData(typeof(IPatientPaymentAppService), typeof(PatientPaymentController))]
+    [InlineData(typeof(BlueDental.Billing.IPaymentLedgerAppService), typeof(BlueDental.Billing.PaymentLedgerController))]
     public void Hand_Written_Controllers_Should_Route_Every_AppService_Method(
         Type contract, Type controller)
     {

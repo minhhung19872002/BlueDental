@@ -8,6 +8,7 @@ import { paymentAccountOptionKeys } from "@/hooks/usePaymentAccountOptions";
 import { serviceGroupOptionKeys } from "@/hooks/useServiceGroupOptions";
 import { staffOptionKeys } from "@/hooks/useStaffOptions";
 import type { appointmentKeys } from "@/features/appointments/api/appointmentQueries";
+import type { paymentLedgerKeys } from "@/features/billing/api/paymentLedgerApi";
 import type { careKeys } from "@/features/cskh/api/careApi";
 import type { laboMaterialKeys, laboSupplierKeys } from "@/features/labo/api/laboCatalogApi";
 import type { laboCatalogKeys } from "@/features/labo/api/laboCatalogListApi";
@@ -102,6 +103,8 @@ export const ENTITY_QUERY_ROOTS = {
     ["care-records"] satisfies RootOf<typeof careKeys>,
     // A receipt change may affect the e-invoice state for that receipt.
     ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
+    // Tài chính → Thanh toán lists every receipt of the branch.
+    ["payment-ledger"] satisfies RootOf<typeof paymentLedgerKeys>,
   ],
   eInvoice: [
     ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
