@@ -25,7 +25,7 @@ interface DropdownPos {
   width: number;
 }
 
-interface SearchSelectProps {
+export interface SearchSelectProps {
   value?: string;
   options: SearchSelectOption[];
   placeholder?: string;
@@ -37,6 +37,12 @@ interface SearchSelectProps {
   emptyText?: string;
   onChange?: (value: string | undefined) => void;
   onSearch?: (keyword: string) => void;
+  /**
+   * False when `onSearch` already narrows `options` on the server: matching
+   * the label again here would drop hits on fields the label does not show
+   * (phone) or that the server matches without diacritics.
+   */
+  filterLocally?: boolean;
   /** Reported the way AntD pickers report it, so floating-label wrappers work. */
   onOpenChange?: (open: boolean) => void;
   /**
@@ -57,6 +63,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   emptyText,
   onChange,
   onSearch,
+  filterLocally = true,
   onOpenChange,
   footer,
 }) => {
@@ -69,7 +76,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
 
   const selectedOption = options.find((o) => o.value === value);
 
-  const filtered = keyword.trim()
+  const filtered = filterLocally && keyword.trim()
     ? options.filter((o) =>
         o.label.toLowerCase().includes(keyword.trim().toLowerCase())
       )
@@ -85,11 +92,14 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     });
   }, []);
 
+  // The keyword is dropped on close, so a server-searched list must hear it too
+  // — or it reopens narrowed to a search the box no longer shows.
   const closeDropdown = useCallback(() => {
     setOpen(false);
     setKeyword("");
+    if (keyword) onSearch?.("");
     onOpenChange?.(false);
-  }, [onOpenChange]);
+  }, [keyword, onSearch, onOpenChange]);
 
   // Close on outside click
   useEffect(() => {

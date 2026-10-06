@@ -14,8 +14,7 @@ import { DataTable } from "@/components/DataTable";
 import { PeriodPicker, periodRange, type Period } from "@/components/PeriodPicker";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useAbility } from "@/hooks/useAbility";
-import { useDebounce } from "@/hooks/useDebounce";
-import { usePatientOptions } from "@/hooks/usePatientOptions";
+import { usePatientPicker } from "@/hooks/usePatientOptions";
 import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -111,14 +110,12 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
   const [period, setPeriod] = useState<Period>({ mode: null, anchor: new Date() });
   const [patientId, setPatientId] = useState<string | undefined>();
   const [dentistId, setDentistId] = useState<string | undefined>();
-  const [patientKeyword, setPatientKeyword] = useState("");
   const [detail, setDetail] = useState<LaboOrderDto | null>(null);
 
   const pagination = useTablePagination(20);
   const range = periodRange(period);
 
-  const debouncedPatientKeyword = useDebounce(patientKeyword, 300);
-  const patientOptions = usePatientOptions(debouncedPatientKeyword);
+  const patientPicker = usePatientPicker(patientId);
   const dentistOptions = useDentistStaffOptions();
 
   const query = useLaboOrderList({
@@ -184,9 +181,10 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
               placeholder={t("Common:SelectCustomer")}
               aria-label={t("Common:SelectCustomer")}
               value={patientId}
-              onSearch={setPatientKeyword}
+              onSearch={patientPicker.search}
+              onOpenChange={(open) => !open && patientPicker.resetSearch()}
               onChange={(value) => refilter(() => setPatientId(value))}
-              options={(patientOptions.data ?? []).map((patient) => ({
+              options={patientPicker.patients.map((patient) => ({
                 value: patient.id,
                 label: `[${patient.code}] - ${patient.name}`,
               }))}

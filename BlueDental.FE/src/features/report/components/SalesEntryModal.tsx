@@ -6,12 +6,12 @@ import { AppDialog } from "@/components/AppDialog";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import { FloatingLabel } from "@/components/FloatingLabel";
-import { SearchSelect } from "@/components/SearchSelect";
+import { PatientSearchSelect, SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useStaffList } from "@/features/staff/api/staffQueries";
-import { usePatientList } from "@/features/patient-management/api/patientQueries";
+import type { PatientOption } from "@/hooks/usePatientOptions";
 import {
   API_DATE_FORMAT,
   PAYMENT_CHANNEL,
@@ -75,6 +75,8 @@ function ChannelSelect({ value, onChange, onOpenChange, options }: ChannelSelect
   );
 }
 
+const patientLabel = (p: PatientOption) => `${p.code} - ${p.name}`;
+
 const COPY: Record<SalesEntryType, { create: () => string; edit: () => string; paidDate: () => string; payer: () => string; category: () => string; description: () => string }> = {
   [SALES_ENTRY_TYPE.Income]: {
     create: () => t("Report:SalesModal:AddIncome"),
@@ -104,16 +106,11 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
   const branchId = useCurrentBranchId();
   const currentUserId = useAuthStore((s) => s.user?.id ?? "");
   const { data: staffResult } = useStaffList({ isActive: true, maxResultCount: 200 });
-  const { data: patientResult } = usePatientList({ maxResultCount: 200 });
   const { data: categoryResult } = useCashflowCategories(branchId, false);
 
   const staff = useMemo(
     () => (staffResult?.items ?? []).map((s) => ({ value: s.id, label: s.fullName })),
     [staffResult],
-  );
-  const patients = useMemo(
-    () => (patientResult?.items ?? []).map((p) => ({ value: p.id, label: `${p.patientCode} - ${p.fullName}` })),
-    [patientResult],
   );
   const categories = useMemo(
     () => (categoryResult?.items ?? []).filter((c) => c.type === type),
@@ -226,7 +223,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
           <Col xs={24} md={12}>
             {isIncome ? (
               <FloatingField name="patientId" label={t("Report:SalesModal:CustomerSelect")}>
-                <SearchSelect options={patients} allowClear />
+                <PatientSearchSelect formatLabel={patientLabel} allowClear />
               </FloatingField>
             ) : (
               payerField

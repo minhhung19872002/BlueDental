@@ -178,7 +178,8 @@ test.describe("CSKH", () => {
     // Lưu is disabled until a patient is picked.
     await expect(dialog.getByRole("button", { name: "Lưu" })).toBeDisabled();
 
-    await dialog.getByRole("combobox").filter({ hasText: "Chọn khách hàng" }).click();
+    // The floating label sits beside the combobox, not inside it.
+    await dialog.locator(".cskh-message-field").filter({ hasText: "Chọn khách hàng" }).getByRole("combobox").click();
     const option = page.locator("#ss-portal-dropdown").getByRole("option").first();
     await expect(option).toBeVisible();
     const optionLabel = (await option.textContent()) ?? "";

@@ -15,7 +15,6 @@ import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { useSaveAppointment } from "../hooks/useSaveAppointment";
 import { APPOINTMENT_STATUSES } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
-import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -78,13 +77,8 @@ export function AppointmentEditorModal({
   const currentBranchId = useCurrentBranchId();
 
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
-  const { data: patients } = usePatientOptions();
   const { data: branches } = useClinicBranches(true);
 
-  const patientOptions = useMemo(
-    () => (patients ?? []).map((p) => ({ value: p.id, label: `[${p.code}] - ${p.name.toUpperCase()}` })),
-    [patients],
-  );
   const branchOptions = useMemo(
     () => (branches ?? []).map((b) => ({ value: b.id, label: b.name })),
     [branches],
@@ -245,7 +239,6 @@ export function AppointmentEditorModal({
           control={control}
           errors={errors}
           setValue={setValue}
-          patientOptions={patientOptions}
           branchOptions={branchOptions}
           doctorOptions={doctorOptions}
           watchedDoctorId={watchedDoctorId}

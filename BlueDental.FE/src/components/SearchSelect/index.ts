@@ -1,2 +1,3 @@
 export { SearchSelect } from "./SearchSelect";
-export type { SearchSelectOption } from "./SearchSelect";
+export { PatientSearchSelect } from "./PatientSearchSelect";
+export type { SearchSelectOption, SearchSelectProps } from "./SearchSelect";

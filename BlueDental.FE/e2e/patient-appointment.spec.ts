@@ -318,6 +318,52 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await expectNoRow(page, reason);
   });
 
+  test("an older patient, past the picker's first page, still shows when the booking is reopened", async ({
+    page,
+  }) => {
+    const id = runId();
+    const reason = `E2E bệnh nhân cũ ${id}`;
+
+    // The picker loads one page of the most recent patients. Take a patient
+    // from the list's last page, so it is not on that page.
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    const names = page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name");
+    await expect(names.first()).toBeVisible();
+    const lastPage = page.locator(".bd-patient-tablecard .ant-pagination-item").last();
+    if (!(await lastPage.getAttribute("class"))?.includes("ant-pagination-item-active")) {
+      const loaded = page.waitForResponse(
+        (res) => res.url().includes("/api/v1/app/patients") && res.request().method() === "GET",
+      );
+      await lastPage.click();
+      await loaded;
+    }
+    // The cell reads "[CODE] – Name"; the picker writes "[CODE] - NAME".
+    const patientName = (await names.last().innerText()).split(/\s[–-]\s/).pop()!.trim().toUpperCase();
+    await names.last().click();
+    await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+    await page.getByRole("link", { name: "Lịch hẹn" }).click();
+    await expect(page).toHaveURL(/tab=appointment/);
+
+    const patientPicker = (dialog: ReturnType<Page["getByRole"]>) =>
+      dialog.locator(".appt-field").filter({ hasText: /Chọn bệnh nhân/ }).first().getByRole("combobox");
+
+    await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
+    const create = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    await expect(patientPicker(create)).toContainText(patientName);
+    await chooseSlot(create, freeSlot(id, 5));
+    await pickFirstDoctor(page);
+    await create.getByPlaceholder("Nội dung đặt lịch").fill(reason);
+    await create.getByRole("button", { name: "Lưu" }).click();
+    await expect(create).toBeHidden();
+
+    const row = await findRow(page, reason);
+    await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
+    const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
+    await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(reason);
+    await expect(patientPicker(edit)).toContainText(patientName);
+  });
+
   test("Trạng thái in the edit dialog always offers booked, cancelled and late, and each sticks", async ({
     page,
   }) => {

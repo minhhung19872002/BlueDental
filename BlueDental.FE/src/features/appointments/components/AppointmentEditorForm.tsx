@@ -9,7 +9,6 @@ import { AppointmentMiniCalendar } from "./AppointmentMiniCalendar";
 interface Props {
   control: Control<AppointmentEditorValues>;
   errors: FieldErrors<AppointmentEditorValues>;
-  patientOptions: { value: string; label: string }[];
   branchOptions: { value: string; label: string }[];
   doctorOptions: { value: string; label: string }[];
   setValue: UseFormSetValue<AppointmentEditorValues>;
@@ -27,7 +26,6 @@ interface Props {
 export function AppointmentEditorForm({
   control,
   errors,
-  patientOptions,
   branchOptions,
   doctorOptions,
   setValue,
@@ -45,7 +43,6 @@ export function AppointmentEditorForm({
         <AppointmentFormLeft
           control={control}
           errors={errors}
-          patientOptions={patientOptions}
           branchOptions={branchOptions}
           lockPatient={lockPatient}
           onOpenNewPatient={onOpenNewPatient}

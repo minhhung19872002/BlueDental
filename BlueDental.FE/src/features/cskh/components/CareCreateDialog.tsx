@@ -6,9 +6,9 @@ import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { AppDialog } from "@/components/AppDialog";
-import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
+import { PatientSearchSelect, SearchSelect } from "@/components/SearchSelect";
 import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
-import { usePatientOptions } from "@/hooks/usePatientOptions";
+import type { PatientOption } from "@/hooks/usePatientOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useCreateCareRecord, CARE_STATUS } from "../api/careApi";
 import { autoSubject, type CareTabConfig } from "../careTabs";
@@ -16,6 +16,8 @@ import { MessageField } from "./MessageField";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 const QUICK_MONTHS = [3, 6, 9] as const;
+
+const patientLabel = (p: PatientOption) => `${p.name} (${p.code})`;
 
 interface CareCreateDialogProps {
   open: boolean;
@@ -36,10 +38,8 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
   const [patientId, setPatientId] = useState<string | undefined>();
   const [staffId, setStaffId] = useState<string | undefined>();
   const [note, setNote] = useState("");
-  const [patientKeyword, setPatientKeyword] = useState("");
 
   const dentists = useDentistStaffOptions();
-  const patients = usePatientOptions(patientKeyword);
   const createCare = useCreateCareRecord();
 
   useEffect(() => {
@@ -49,7 +49,6 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
     setPatientId(undefined);
     setStaffId(undefined);
     setNote("");
-    setPatientKeyword("");
   }, [open]);
 
   const handleSave = async () => {
@@ -124,15 +123,11 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
 
         <div className="cskh-message-row">
           <MessageField label={t("CSKH:SelectCustomer")} required hasValue={Boolean(patientId)}>
-            <SearchSelect
+            <PatientSearchSelect
               value={patientId}
-              options={(patients.data ?? []).map((p) => ({
-                value: p.id,
-                label: `${p.name} (${p.code})`,
-              }))}
+              formatLabel={patientLabel}
               allowClear
               onChange={setPatientId}
-              onSearch={setPatientKeyword}
             />
           </MessageField>
 

@@ -7,6 +7,7 @@ import { useCreateReception } from "../api/receptionMutations";
 import { useAvailableReceptionDoctors } from "../api/receptionQueries";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePinnedPatientOptions, type PatientOption } from "@/hooks/usePatientOptions";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -65,15 +66,29 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     maxResultCount: 20,
   });
 
-  const patientOptions = useMemo(
-    () =>
+  const listedPatients = useMemo(
+    (): PatientOption[] =>
       (patientData?.items ?? []).map((p) => ({
-        value: p.id,
-        label: `[${p.patientCode}] - ${p.fullName.toUpperCase()}`,
-        phone: p.phoneNumber,
+        id: p.id,
         name: p.fullName,
+        code: p.patientCode,
+        phone: p.phoneNumber ?? "",
       })),
     [patientData],
+  );
+  // The list is one page of search hits; the picked patient must survive a new
+  // keyword, or the picker shows a raw id and the save loses name and phone.
+  const watchedPatientId = Form.useWatch("patientId", form);
+  const pinnedPatients = usePinnedPatientOptions(listedPatients, watchedPatientId);
+  const patientOptions = useMemo(
+    () =>
+      pinnedPatients.map((p) => ({
+        value: p.id,
+        label: `[${p.code}] - ${p.name.toUpperCase()}`,
+        phone: p.phone || undefined,
+        name: p.name,
+      })),
+    [pinnedPatients],
   );
 
   const handlePatientChange = (patientId: string) => {

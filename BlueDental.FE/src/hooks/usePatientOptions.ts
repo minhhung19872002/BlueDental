@@ -1,4 +1,6 @@
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PagedResult } from "@/types";
@@ -51,12 +53,68 @@ export function usePatientOptions(keyword?: string) {
         })
         .then((r) => r.data);
 
-      return page.items.map((row) => ({
-        id: row.id,
-        name: row.fullName,
-        code: row.patientCode,
-        phone: row.phoneNumber ?? "",
-      }));
+      return page.items.map(toOption);
     },
   });
+}
+
+function toOption(row: PatientRow): PatientOption {
+  return {
+    id: row.id,
+    name: row.fullName,
+    code: row.patientCode,
+    phone: row.phoneNumber ?? "",
+  };
+}
+
+/**
+ * One patient by id, for a picker whose value is not on the page
+ * `usePatientOptions` returned — the list holds only the most recent patients,
+ * so an older record's booking would otherwise open with a blank picker.
+ *
+ * @param enabled pass false while the id is already among the loaded options.
+ */
+export function usePatientOption(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: [...patientOptionKeys.all, "by-id", id],
+    queryFn: async (): Promise<PatientOption> => {
+      const row = await api.get<PatientRow>(`/v1/app/patients/${id}`).then((r) => r.data);
+      return toOption(row);
+    },
+    enabled: Boolean(id) && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * `list` with the selected patient pinned to the front when the page does not
+ * hold it. Every patient picker shows one server page — the most recent
+ * patients or the last search's hits — so without this an older patient, or
+ * one picked before the keyword changed, renders as a blank picker.
+ */
+export function usePinnedPatientOptions(
+  list: PatientOption[] | undefined,
+  selectedId: string | undefined,
+): PatientOption[] {
+  const listed = (list ?? []).some((p) => p.id === selectedId);
+  const { data: selected } = usePatientOption(selectedId, !listed);
+
+  return useMemo(() => {
+    const rows = list ?? [];
+    return selected && !rows.some((p) => p.id === selected.id) ? [selected, ...rows] : rows;
+  }, [list, selected]);
+}
+
+/**
+ * Everything a server-searched patient picker needs: a debounced keyword, the
+ * page it returns, and the selected patient pinned in.
+ */
+export function usePatientPicker(selectedId: string | undefined) {
+  const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebounce(keyword, 300);
+  const { data, isFetching } = usePatientOptions(debouncedKeyword);
+  const patients = usePinnedPatientOptions(data, selectedId);
+  const resetSearch = useCallback(() => setKeyword(""), []);
+
+  return { patients, search: setKeyword, resetSearch, loading: isFetching };
 }

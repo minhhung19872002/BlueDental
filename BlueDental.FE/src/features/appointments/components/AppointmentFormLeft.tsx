@@ -1,7 +1,7 @@
 import { Button, InputNumber } from "antd";
 import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
-import { SearchSelect } from "@/components/SearchSelect";
+import { PatientSearchSelect, SearchSelect } from "@/components/SearchSelect";
 import { ClockPicker, DayPicker } from "@/components/StringPickers";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { t } from "@/lib/i18n";
@@ -11,7 +11,6 @@ import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 interface Props {
   control: Control<AppointmentEditorValues>;
   errors: FieldErrors<AppointmentEditorValues>;
-  patientOptions: { value: string; label: string }[];
   branchOptions: { value: string; label: string }[];
   /** Opened from a patient's record: the patient is fixed, as the reference fixes it. */
   lockPatient?: boolean;
@@ -21,7 +20,6 @@ interface Props {
 export function AppointmentFormLeft({
   control,
   errors,
-  patientOptions,
   branchOptions,
   lockPatient,
   onOpenNewPatient,
@@ -38,10 +36,9 @@ export function AppointmentFormLeft({
             name="patientId"
             control={control}
             render={({ field }) => (
-              <SearchSelect
+              <PatientSearchSelect
                 value={field.value || undefined}
                 placeholder={t("Appointment:Form:SelectPatient")}
-                options={patientOptions}
                 disabled={lockPatient}
                 onChange={(v) => field.onChange(v ?? "")}
                 status={errors.patientId ? "error" : ""}
