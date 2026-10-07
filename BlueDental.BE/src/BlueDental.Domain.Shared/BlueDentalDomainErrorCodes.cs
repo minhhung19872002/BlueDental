@@ -84,6 +84,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The name holds something other than letters, digits, spaces and - . ' (see PersonName).</summary>
         public const string InvalidPatientName = "BlueDental:Patient:0020";
+
+        /// <summary>Another record in the branch already holds this phone number (bug list item 29).</summary>
+        public const string DuplicatePhone = "BlueDental:Patient:0021";
     }
 
     public static class Appointments

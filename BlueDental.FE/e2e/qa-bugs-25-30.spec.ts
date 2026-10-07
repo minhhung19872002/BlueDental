@@ -10,7 +10,7 @@ import { openShiftCovering } from "./fixtures/workShift";
  * 26 Thanh toán: a receipt cannot be dated after today.
  * 27 Danh mục › Dịch vụ: a VNĐ discount larger than the price is refused.
  * 28 Thanh toán: a receipt is cancelled with a reason and stays listed "Đã hủy".
- * 29 Bệnh nhân: the duplicate-phone warning names every record on the number.
+ * 29 Bệnh nhân: a phone another record holds is named and cannot be saved.
  * 30 Bệnh nhân: a name holds only letters, digits, spaces and - . '
  *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted.
@@ -268,28 +268,54 @@ test.describe("27 · Danh mục › Dịch vụ: a VNĐ discount cannot exceed t
 });
 
 test.describe("29 + 30 · Bệnh nhân", () => {
-  test("the duplicate-phone warning names every record on the number", async ({ page }) => {
+  test("a phone another record holds is named and cannot be saved, in the dialog or through the API", async ({
+    page,
+  }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, PATIENTS);
     const id = runId();
     const phone = phoneOf(id, "29");
-    const first = await newPatient(page, `Trung So A ${id}`, phone);
-    const second = await newPatient(page, `Trung So B ${id}`, phone);
+    const holder = await newPatient(page, `Trung So A ${id}`, phone);
+    const other = await newPatient(page, `Trung So B ${id}`, phoneOf(id, "28"));
 
+    // The API refuses a second record, and moving another record onto the number.
+    const created = await call<AbpError>(page, "POST", PATIENTS, {
+      firstName: `Trung So C ${id}`,
+      lastName: "E2E",
+      gender: 1,
+      phoneNumber: phone,
+    });
+    expect(created.status).toBeGreaterThanOrEqual(400);
+    expect(created.body.error?.code).toBe("BlueDental:Patient:0021");
+    const moved = await call<AbpError>(page, "PUT", `${PATIENTS}/${other.id}`, {
+      firstName: `Trung So B ${id}`,
+      lastName: "E2E",
+      gender: 1,
+      phoneNumber: phone,
+    });
+    expect(moved.status).toBeGreaterThanOrEqual(400);
+    expect(moved.body.error?.code).toBe("BlueDental:Patient:0021");
+
+    // The check names every holder (only one can exist now that saves are refused).
     const check = await call<{ exists: boolean; owners: { patientCode: string }[] }>(
       page,
       "GET",
       `${PATIENTS}/check-phone?phone=${phone}`,
     );
-    expect(check.body.owners.map((o) => o.patientCode).sort()).toEqual([first.code, second.code].sort());
+    expect(check.body.owners.map((o) => o.patientCode)).toEqual([holder.code]);
 
+    // The dialog names the holder and shuts Lưu; another number opens it again.
     await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Tạo hồ sơ" }).click();
     const dialog = page.getByRole("dialog", { name: "Tạo hồ sơ" });
+    await dialog.getByRole("textbox", { name: "Họ và tên *" }).fill(`Trung So D ${id}`);
     await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(phone);
     const warning = dialog.locator(".bd-patient-dupe");
-    await expect(warning).toContainText("2 hồ sơ", { timeout: 15_000 });
-    await expect(warning).toContainText(`[${first.code}] ${first.name}`);
-    await expect(warning).toContainText(`[${second.code}] ${second.name}`);
+    await expect(warning).toContainText(`[${holder.code}] ${holder.name}`, { timeout: 15_000 });
+    await expect(warning).toContainText("Không thể lưu");
+    await expect(dialog.getByRole("button", { name: "Lưu" })).toBeDisabled();
+    await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(phoneOf(id, "27"));
+    await expect(warning).toHaveCount(0, { timeout: 15_000 });
+    await expect(dialog.getByRole("button", { name: "Lưu" })).toBeEnabled();
   });
 
   test("a name with HTML or symbols is refused; letters, digits and - . ' are kept", async ({ page }) => {

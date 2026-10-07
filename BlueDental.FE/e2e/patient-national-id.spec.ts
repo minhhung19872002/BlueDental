@@ -88,7 +88,8 @@ function patient(id: string, tag: string, nationalId: string | null): PatientInp
     firstName: `Cccd ${tag}`,
     lastName: `E2E ${id}`,
     gender: 1,
-    phoneNumber: `09${id}${tag.length}0`.slice(0, 10),
+    // One number per record: a phone another record holds is refused (bug list item 29).
+    phoneNumber: `09${id}${tag.charCodeAt(0)}`.slice(0, 10),
     nationalId,
   };
 }

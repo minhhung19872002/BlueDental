@@ -172,6 +172,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             input.NationalId);
 
         await EnsureNationalIdIsFreeAsync(branchId, patient.NationalId, excludeId: null);
+        await EnsurePhoneIsFreeAsync(branchId, patient.Contact.PhoneNumber, excludeId: null);
         patient.SetOldAddress(input.OldAddress);
 
         await ApplyProfileAsync(
@@ -205,6 +206,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         patient.UpdateContact(new ContactInfo(input.PhoneNumber, input.Email, input.Address));
         patient.SetNationalId(input.NationalId);
         await EnsureNationalIdIsFreeAsync(patient.BranchId, patient.NationalId, patient.Id);
+        await EnsurePhoneIsFreeAsync(patient.BranchId, patient.Contact.PhoneNumber, patient.Id);
         patient.SetOldAddress(input.OldAddress);
 
         if (!string.IsNullOrWhiteSpace(input.PatientCode) && input.PatientCode.Trim() != patient.PatientCode)
@@ -746,6 +748,31 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     /// one. The refusal names the holder so the front desk can open that record
     /// instead of typing a second one.
     /// </summary>
+    /// <summary>
+    /// One phone number, one record per branch: a number another record holds
+    /// is not only warned about, the save is refused (bug list item 29, owner
+    /// 2026-10-07). The same match as <see cref="CheckPhoneAsync"/>, so the
+    /// dialog's warning and this refusal agree.
+    /// </summary>
+    private async Task EnsurePhoneIsFreeAsync(Guid branchId, string? phone, Guid? excludeId)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return;
+        }
+
+        var trimmed = phone.Trim();
+        var query = await _repository.GetQueryableAsync();
+        var exists = await AsyncExecuter.AnyAsync(query
+            .Where(p => p.BranchId == branchId && p.Contact.PhoneNumber == trimmed)
+            .Where(p => !excludeId.HasValue || p.Id != excludeId.Value));
+
+        if (exists)
+        {
+            throw new Volo.Abp.BusinessException(BlueDentalDomainErrorCodes.PatientManagement.DuplicatePhone);
+        }
+    }
+
     private async Task EnsureNationalIdIsFreeAsync(Guid branchId, string? nationalId, Guid? excludeId)
     {
         if (string.IsNullOrWhiteSpace(nationalId))

@@ -7110,3 +7110,15 @@ Hồi quy mức 3 Tiếp nhận / Bệnh nhân / Thanh toán trên preview (`rec
   dòng dịch vụ, chờ request lưu thứ tự) — đỏ cả khi chạy lại; không đi qua code của lượt này (không check-in, không
   phiếu thu, không tên bệnh nhân); chưa đối chứng trên HEAD.
 tsc sạch; eslint chỉ còn lỗi có sẵn "Definition for rule 'react-hooks/exhaustive-deps' was not found". Retest level **3**.
+
+## 2026-10-07 — Bug list mục 29 bổ sung: trùng SĐT thì không cho lưu/tạo (R-784)
+
+| ID | Yêu cầu | Sửa |
+|---|---|---|
+| R-784 | Owner (sau R-782): ngoài cảnh báo liệt kê các hồ sơ đang dùng số, khi trùng SĐT thì **không cho lưu/tạo** (hoặc disable nút Lưu). | BE: `PatientAppService.EnsurePhoneIsFreeAsync` (cùng chi nhánh, trừ chính hồ sơ đang sửa, cùng cách so như `CheckPhoneAsync`) ở `RegisterAsync` và `UpdateAsync` → `BlueDental:Patient:0021` "Số điện thoại này đã được dùng cho hồ sơ khác trong chi nhánh." (0013–0019 của người giám hộ, 0020 của tên). FE `PatientEditorDialog`: cảnh báo đổi sang `type="error"` + dòng `Patient:Editor:PhoneTakenBlocked` "Không thể lưu: mỗi số điện thoại chỉ được dùng cho một hồ sơ…", `canSave` thêm `!phoneTaken` → nút Lưu khoá; lỗi 0021 từ server (đua giữa lúc kiểm và lúc lưu) hiện dưới ô Điện thoại. Áp cho mọi cửa mở dialog (Bệnh nhân, Tiếp nhận, Lịch hẹn, Lịch tạm → hồ sơ, Quét CCCD). Dữ liệu cũ đang trùng số (vd DH260039/DH260040): sửa hồ sơ nào cũng bị khoá Lưu cho tới khi đổi sang số khác — đúng yêu cầu "không cho edit". Seeder demo gọi thẳng domain nên không bị ảnh hưởng. |
+
+E2E: `qa-bugs-25-30` ca #29 viết lại (API tạo trùng → 0021, PUT chuyển hồ sơ khác sang số đó → 0021, dialog nêu `[mã] tên` + "Không thể lưu", Lưu khoá, đổi số khác thì mở lại) — **5/5** cả spec trên dev :5173.
+Sửa test cũ tạo trùng số: `patient-national-id` (các tag A–H cùng độ dài nên cùng SĐT → mỗi tag một số), `patient.spec`
+"the save stays disabled…" (số cố định 0912345678 → số theo `runId`). Chạy lại xanh: `patient-national-id` 3/3,
+`reception-temporary` 3/3, `patient-scan-id` 4/4, `patient-guardian-api` 6/6, "the save stays disabled…" 1/1.
+`patient.spec` "Lưu Chẩn Đoán…" đỏ — thuộc nhóm đỏ có sẵn (tab mặc định "Chẩn đoán & Tư vấn"). Retest level **2**.

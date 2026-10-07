@@ -677,7 +677,8 @@ test.describe("Bệnh nhân", () => {
     await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill("123");
     await expect(save).toBeDisabled();
 
-    await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill("0912345678");
+    // A number no record holds — one already on file now shuts Lưu (bug list item 29).
+    await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(`09${runId()}55`.slice(0, 10));
     await expect(save).toBeEnabled();
   });
 

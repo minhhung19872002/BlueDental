@@ -80,6 +80,7 @@ function titleCaseName(name: string): string {
 /** The server's refusal of a CCCD another record in the branch already holds. */
 const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
 const INVALID_NAME = "BlueDental:Patient:0020";
+const DUPLICATE_PHONE = "BlueDental:Patient:0021";
 
 /** Names every record on the number (bug list item 29: only the first one was named). */
 function phoneTakenMessage(owners: readonly PhoneOwner[]): string {
@@ -340,13 +341,21 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         form.setFields([{ name: "fullName", errors: [failure.message] }]);
         return;
       }
+      if (failure.code === DUPLICATE_PHONE) {
+        form.setFields([{ name: "phone", errors: [failure.message] }]);
+        return;
+      }
       notifyError(failure.message);
     }
   };
 
   // A name with no given name is still a name; the server only needs one word.
   // BA: under 16 the record cannot be saved without a guardian.
-  const canSave = fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim()) && !guardianMissing;
+  // Bug list item 29 (owner 2026-10-07): a number another record in the branch
+  // holds is not only warned about, it cannot be saved — the server refuses it too.
+  const phoneTaken = duplicate.data?.exists === true;
+  const canSave =
+    fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim()) && !guardianMissing && !phoneTaken;
 
   const handleGuardianDelete = (index: number) => {
     guardians.remove(index);
@@ -374,12 +383,13 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
-        {duplicate.data?.exists && (
+        {phoneTaken && duplicate.data && (
           <Alert
-            type="warning"
+            type="error"
             showIcon
             className="bd-patient-dupe"
             message={phoneTakenMessage(duplicate.data.owners)}
+            description={t("Patient:Editor:PhoneTakenBlocked")}
           />
         )}
 
