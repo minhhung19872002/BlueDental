@@ -52,7 +52,7 @@ const FILE_HEART = (
 interface CareRowActionsProps {
   onCall?: () => void;
   onMessage?: () => void;
-  /** Reference shows send on Nhắc lịch hẹn and Chúc mừng sinh nhật rows. */
+  /** Reference shows send on Nhắc lịch hẹn and Chúc mừng sinh nhật rows; we show it on every care tab. */
   onSend?: () => void;
   /** Reference varies the file-heart dialog per tab; absent on periodic/special. */
   onCare?: () => void;

@@ -9,12 +9,13 @@ import { openShiftCovering } from "./fixtures/workShift";
  *
  * - Chúc mừng sinh nhật: every patient whose birthday falls in the window.
  * - Nhắc lịch hẹn: every booking in the window still on the book.
- * - Đặt lịch không đến: bookings 5+ minutes past their time with no arrival.
+ * - Đặt lịch không đến: bookings past their time with no arrival.
  * - All three: Đã liên hệ / Chưa liên hệ, persisted and written to the log.
  * - Lịch hẹn hủy (bug list #16): bookings cancelled in the window, with the
  *   reason the cancel now requires.
  * - Complain (bug list #16): filed by hand, content required, handled through
  *   the Thành công / Thất bại result dialog.
+ * - Every tab: Lưu tin nhắn (SMS) and Gửi ZBS qua Zalo on each row.
  *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted.
  * Fixtures go through the real API with the session the login screen gave.
@@ -171,6 +172,39 @@ async function markContacted(page: Page, rowText: string, rowKey?: string): Prom
   expect(latest.creatorName).toBeTruthy();
 }
 
+/**
+ * Checklist 2.x "SMS, Zalo chăm sóc theo kịch bản riêng": the row offers
+ * Lưu tin nhắn (SMS) and Gửi ZBS qua Zalo. Gửi lists the branch's own ZNS
+ * templates from Zalo and refuses to send without one picked. No local branch
+ * is linked to a Zalo OA, so the delivery itself is not exercised here.
+ */
+async function expectMessaging(page: Page, patientName: string): Promise<void> {
+  const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patientName });
+  await expect(row.getByRole("button", { name: "Lưu tin nhắn" })).toBeVisible();
+  const send = row.getByRole("button", { name: "Gửi ZBS qua Zalo" });
+  await send.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
+
+  const templates = page.waitForRequest((req) => req.url().includes("/api/v1/app/zalo/templates"));
+  await send.click();
+  await templates;
+  const dialog = page.getByRole("dialog").filter({ hasText: "Gửi ZBS qua Zalo" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(patientName);
+
+  let posted = false;
+  const onRequest = (req: { url(): string; method(): string }) => {
+    if (req.url().includes("/api/v1/app/zalo/messages") && req.method() === "POST") posted = true;
+  };
+  page.on("request", onRequest);
+  await dialog.getByRole("button", { name: /Gửi$/ }).click();
+  await expect(page.getByText("Vui lòng chọn mẫu ZBS")).toBeVisible();
+  page.off("request", onRequest);
+  expect(posted).toBe(false);
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+}
+
 test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không đến", () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
@@ -235,57 +269,37 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
     await expect(page.getByText("Không có dữ liệu")).toBeVisible({ timeout: 15_000 });
   });
 
-  test("a booking five minutes overdue with no arrival is a missed one, until the patient checks in", async ({
-    page,
-  }) => {
-    // The API refuses a booking in the past, so take a real overdue one the
-    // clinic already has: booked, never arrived, in the last month. Once its
-    // time is over the server has moved it to Trễ hẹn (7, bug list item 17) —
-    // still a missed one, and still received if the patient turns up.
-    const now = new Date();
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 3600_000);
-    const found = await call(
-      page,
-      "GET",
-      `/api/v1/app/appointments?branchId=${BRANCH}&statuses=1&statuses=2&statuses=7&isTemporary=false` +
-        `&fromDate=${localIsoDate(monthAgo)}&toDate=${localIsoDate(now)}&maxResultCount=200`,
-    );
-    expect(found.status, found.text).toBe(200);
-    const overdue = (found.json as { items: { id: string; slotStart: string; patientId: string; patientCode: string }[] })
-      .items.find((a) => new Date(a.slotStart).getTime() < now.getTime() - 10 * 60_000);
-    expect(overdue, "the demo clinic should have an overdue booking with no arrival").toBeTruthy();
-    const day = new Date(overdue!.slotStart);
+  test("a booking past its time with no arrival is a missed one, until the patient checks in", async ({ page }) => {
+    test.setTimeout(240_000);
+    // The API refuses a booking in the past and checks in only today's
+    // (Appointment:0011), so book the coming minute and let it pass. Once its
+    // time is over it is missed at once (MissedAfter = 0), whether the server
+    // has moved it to Trễ hẹn yet or not — and still received if the patient
+    // turns up.
+    const patient = await newPatient(page, null);
+    const start = new Date(Date.now() + 90_000);
+    start.setSeconds(0, 0);
+    const appointmentId = await book(page, patient.id, start);
 
-    await openBoard(page, "missed-appointment", overdue!.patientCode, day);
-    await expect(page.getByRole("columnheader", { name: "Lịch hẹn", exact: true })).toBeVisible();
-    const tasks = await call(
-      page,
-      "GET",
-      `${CARE}?type=8&branchId=${BRANCH}&patientId=${overdue!.patientId}&maxResultCount=1000` +
-        `&fromDate=${encodeURIComponent(new Date(day.getFullYear(), day.getMonth(), day.getDate()).toISOString())}` +
-        `&toDate=${encodeURIComponent(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999).toISOString())}`,
-    );
-    const task = (tasks.json as { items: { id: string; appointmentId: string }[] }).items.find(
-      (t) => t.appointmentId === overdue!.id,
-    );
-    expect(task, "the overdue booking should have its Đặt lịch không đến task").toBeTruthy();
-    await call(page, "PUT", `${CARE}/${task!.id}/contact-status`, { contacted: false });
-    await page.reload();
-    await search(page, overdue!.patientCode);
-    await markContacted(page, overdue!.patientCode, task!.id);
-
-    // A booking still ahead is not missed.
-    const later = await newPatient(page, null);
-    const ahead = new Date(Date.now() + 2 * 3600_000);
-    await book(page, later.id, ahead);
-    await openBoard(page, "missed-appointment", later.name, ahead);
+    // Still ahead: not missed.
+    await openBoard(page, "missed-appointment", patient.name, start);
     await expect(page.getByText("Không có dữ liệu")).toBeVisible({ timeout: 15_000 });
 
+    // The clock decides, nothing to wait on but the slot's own time.
+    await page.waitForTimeout(Math.max(0, start.getTime() - Date.now()) + 2_000);
+    await openBoard(page, "missed-appointment", patient.name, start);
+    await expect(page.getByRole("columnheader", { name: "Lịch hẹn", exact: true })).toBeVisible();
+    const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patient.name });
+    await expect(row).toHaveCount(1, { timeout: 15_000 });
+    const taskId = await row.getAttribute("data-row-key");
+    await expectMessaging(page, patient.name);
+    await markContacted(page, patient.name);
+
     // Arriving late takes the row off the tab.
-    const checkIn = await call(page, "POST", `/api/v1/app/appointments/${overdue!.id}/check-in`);
+    const checkIn = await call(page, "POST", `/api/v1/app/appointments/${appointmentId}/check-in`);
     expect(checkIn.status, checkIn.text).toBe(200);
-    await openBoard(page, "missed-appointment", overdue!.patientCode, day);
-    await expect(page.locator(`.cskh-table tbody tr[data-row-key="${task!.id}"]`)).toHaveCount(0, { timeout: 15_000 });
+    await openBoard(page, "missed-appointment", patient.name, start);
+    await expect(page.locator(`.cskh-table tbody tr[data-row-key="${taskId}"]`)).toHaveCount(0, { timeout: 15_000 });
   });
 });
 
@@ -325,6 +339,7 @@ test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
     const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patient.name });
     await expect(row).toHaveCount(1, { timeout: 15_000 });
     await expect(row).toContainText(reason);
+    await expectMessaging(page, patient.name);
     await markContacted(page, patient.name);
 
     // Xuất Excel carries the cancel day and the reason.
@@ -383,6 +398,7 @@ test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
     await expect(row).toHaveCount(1, { timeout: 15_000 });
     await expect(row.locator("textarea.cskh-note-input")).toHaveValue(content);
     if (staffName) await expect(row).toContainText(staffName);
+    await expectMessaging(page, patient.name);
 
     // Handled: Thành công through the result dialog, and it sticks.
     await row.locator("button.cskh-action--care").click();

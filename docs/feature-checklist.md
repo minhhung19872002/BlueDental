@@ -25,10 +25,10 @@ Kiểm tra lần cuối: 2026-09-23
 - [x] 2.1 Nhắc hẹn — Chi tiết chăm sóc - Nhắc lịch khách hàng. Được quản lý bởi bộ phận telesale hoặc chăm sóc khách hàng. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.2 Không làm dịch vụ — Chi tiết chăm sóc khách hàng không phát sinh dịch vụ. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.3 Ngày sinh nhật — Chi tiết chăm sóc - Sinh nhật khách hàng. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
-- [ ] 2.4 Đặt lịch không đến — Chi tiết chăm sóc - Đặt lịch nhưng không đến. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
+- [x] 2.4 Đặt lịch không đến — Chi tiết chăm sóc - Đặt lịch nhưng không đến. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.5 Sau điều trị - Đánh giá sau điều trị — Chi tiết chăm sóc khách hàng sau điều trị, ghi nhận các ý kiến đánh giá của khách theo từng tiêu chí cụ thể. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
-- [ ] 2.6 Complain — Ghi nhận các complain của khách hàng và quá trình xử lý của nhân viên chịu trách nhiệm đối với complain đó. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
-- [ ] 2.7 Lịch hẹn hủy — Chăm sóc Khách hàng hủy lịch hẹn. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
+- [x] 2.6 Complain — Ghi nhận các complain của khách hàng và quá trình xử lý của nhân viên chịu trách nhiệm đối với complain đó. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
+- [x] 2.7 Lịch hẹn hủy — Chăm sóc Khách hàng hủy lịch hẹn. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.8 Chăm sóc định kỳ — Chăm sóc định kỳ từng khách hàng theo khoảng thời gian cố định. Ví dụ 1 tháng, 3 tháng, 1 tuần 3 tuần. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [x] 2.9 Chăm sóc Khách hàng — Sau khi lọc dữ liệu và phân lại cho nhân viên phụ trách tiến hành resale. Nhân viên sử dụng chức năng này để chăm sóc. SMS, Zalo chăm sóc theo kịch bản riêng (nếu kết nối).
 - [ ] 2.10 Tự động SMS-Email, Zalo chăm sóc — Gửi SMS, ZALO chăm sóc tự động. Nội dung chăm sóc được hệ thống tạo ra tự động theo từng ngữ cảnh.
@@ -184,7 +184,7 @@ Kiểm tra lần cuối: 2026-09-23
 | Nhóm | Tổng | Đã xong | Chưa xong |
 |---|---|---|---|
 | 1. Lịch hẹn | 11 | 8 | 3 |
-| 2. Chăm sóc | 10 | 5 | 5 |
+| 2. Chăm sóc | 10 | 8 | 2 |
 | 3. Thẻ trả trước | 2 | 0 | 2 |
 | 4. Khách hàng | 28 | 18 | 10 |
 | 5. Kế toán | 7 | 2 | 5 |
@@ -199,4 +199,4 @@ Kiểm tra lần cuối: 2026-09-23
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 4 | 9 |
-| **Tổng cộng** | **123** | **58** | **65** |
+| **Tổng cộng** | **123** | **61** | **62** |

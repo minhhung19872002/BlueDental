@@ -37,8 +37,12 @@ export interface CareTabConfig {
   showDoctor: boolean;
   showCareStaff: boolean;
   showCreate: boolean;
-  /** Row-action matrix: send is on reminder + birthday; file-heart opens the result dialog. */
-  showSend: boolean;
+  /**
+   * Row-action matrix: file-heart opens the result dialog. Call, Lưu tin nhắn
+   * and Gửi ZBS are on every tab — the reference sends only on reminder +
+   * birthday, but checklist 2.x asks "SMS, Zalo chăm sóc theo kịch bản riêng"
+   * of each kind of care.
+   */
   fileHeart: "result" | null;
   /** Tabs with 9–10 columns overflow the card and scroll horizontally. */
   wideTable: boolean;
@@ -53,7 +57,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: false,
     showCreate: false,
-    showSend: false,
     fileHeart: null,
     wideTable: false,
     statusModel: "contact",
@@ -65,7 +68,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: false,
     showCareStaff: false,
     showCreate: false,
-    showSend: true,
     fileHeart: null,
     wideTable: false,
     statusModel: "contact",
@@ -77,7 +79,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: true,
     showCreate: false,
-    showSend: true,
     fileHeart: null,
     wideTable: true,
     statusModel: "contact",
@@ -89,7 +90,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: true,
     showCreate: false,
-    showSend: false,
     fileHeart: "result",
     wideTable: false,
     statusModel: "result",
@@ -102,7 +102,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: false,
     showCreate: false,
-    showSend: false,
     fileHeart: null,
     wideTable: true,
     statusModel: "contact",
@@ -116,7 +115,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: false,
     showCreate: false,
-    showSend: false,
     fileHeart: null,
     wideTable: true,
     statusModel: "contact",
@@ -128,7 +126,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: true,
     showCreate: true,
-    showSend: false,
     fileHeart: null,
     wideTable: true,
     statusModel: "result",
@@ -140,7 +137,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: true,
     showCreate: true,
-    showSend: false,
     fileHeart: null,
     wideTable: true,
     statusModel: "result",
@@ -154,7 +150,6 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showDoctor: true,
     showCareStaff: true,
     showCreate: true,
-    showSend: false,
     fileHeart: "result",
     wideTable: true,
     statusModel: "result",

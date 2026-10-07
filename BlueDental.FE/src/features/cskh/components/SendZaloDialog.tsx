@@ -17,7 +17,7 @@ interface SendZaloDialogProps {
 }
 
 /**
- * "Gửi ZBS qua Zalo" (reminder + birthday tabs). Mẫu ZBS lists the branch's
+ * "Gửi ZBS qua Zalo" (every care tab). Mẫu ZBS lists the branch's
  * approved ZNS templates straight from Zalo; Gửi posts the care record and the
  * template, and the server fills the template's parameters from the patient
  * and the record before asking Zalo to deliver it.

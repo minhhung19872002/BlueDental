@@ -251,13 +251,13 @@ export function buildCareColumns(
     actions: {
       title: t("CSKH:Col:Actions"),
       key: "actions",
-      width: actionsColumnWidth(2 + Number(tab.showSend) + Number(Boolean(tab.fileHeart))),
+      width: actionsColumnWidth(3 + Number(Boolean(tab.fileHeart))),
       fixed: "right",
       render: (_, record) => (
         <CareRowActions
           onCall={() => handlers.onCall(record)}
           onMessage={() => handlers.onMessage(record)}
-          onSend={tab.showSend ? () => handlers.onSend(record) : undefined}
+          onSend={() => handlers.onSend(record)}
           onCare={tab.fileHeart ? () => handlers.onCare(record) : undefined}
         />
       ),
