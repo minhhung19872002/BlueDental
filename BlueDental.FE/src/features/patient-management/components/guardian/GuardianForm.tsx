@@ -8,6 +8,7 @@ import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 import type { GuardianCandidate } from "../../types/patient";
 import { GuardianRelationField } from "./GuardianRelationField";
 import { GuardianSearch } from "./GuardianSearch";
+import { PATIENT_PHONE_PATTERN } from "../../utils/patientPhone";
 
 interface Props {
   index: number;
@@ -53,7 +54,7 @@ export function GuardianForm({ index, patientAddress, excludePatientId, onPick, 
           alwaysFloat
           rules={[
             requiredRule("Patient:Guardian:PhoneRequired"),
-            { pattern: /^\d{8,15}$/, message: t("Patient:Guardian:PhoneInvalid") },
+            { pattern: PATIENT_PHONE_PATTERN, message: t("Patient:Guardian:PhoneInvalid") },
           ]}
         >
           <Input inputMode="numeric" maxLength={15} placeholder={t("Patient:Guardian:PhoneHint")} />

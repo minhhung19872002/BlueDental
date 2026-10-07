@@ -4,6 +4,8 @@ using BlueDental.Hubs;
 using BlueDental.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -65,6 +67,11 @@ public class BlueDentalHttpApiHostModule : AbpModule
             builder.SetAccessTokenLifetime(TimeSpan.FromMinutes(15));
             builder.SetRefreshTokenLifetime(TimeSpan.FromDays(14));
         });
+
+        // Sign-in refuses an address outside the account's branch networks or
+        // a time outside its branches' allowed hours (Cụm 11 mục 11, 13).
+        // Registered after ABP's AbpSignInManager, so it wins.
+        PreConfigure<IdentityBuilder>(builder => builder.AddSignInManager<BlueDentalSignInManager>());
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
@@ -73,6 +80,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         var hostingEnvironment = context.Services.GetHostingEnvironment();
 
         ConfigureAuthentication(context);
+        ConfigureForwardedHeaders(context);
         ConfigureUrls(configuration);
         ConfigureCors(context, configuration);
         ConfigureSwagger(context, configuration);
@@ -82,6 +90,10 @@ public class BlueDentalHttpApiHostModule : AbpModule
         ConfigureAntiForgery();
         ConfigureExceptionStatusCodes();
         ConfigureUnitOfWork();
+
+        // Cụm 11 mục 9: "Ẩn số điện thoại" masks patient phones on the way out.
+        Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+            options.Filters.AddService<PatientPhoneMaskingFilter>());
 
         context.Services.AddSignalR(options =>
         {
@@ -147,6 +159,33 @@ public class BlueDentalHttpApiHostModule : AbpModule
                 ctx.Response.Redirect(ctx.RedirectUri);
                 return System.Threading.Tasks.Task.CompletedTask;
             };
+        });
+    }
+
+    /// <summary>
+    /// Which address counts as the client's when X-Forwarded-For is honoured
+    /// (production sets ASPNETCORE_FORWARDEDHEADERS_ENABLED).
+    ///
+    /// Requests pass Caddy, then the frontend's nginx, so the header reads
+    /// "client, caddy". The default (trust everything, one hop) took the last
+    /// entry — Caddy's own address — and the branch IP check (Cụm 11 mục 11)
+    /// would have compared every user against the proxy. Trusting only the
+    /// loopback and private networks the proxies live on, with no hop limit,
+    /// walks back to the first address that is not a proxy: the client's.
+    /// A client cannot forge its way in by sending the header itself — any
+    /// public address it writes is to the left of the real one.
+    /// </summary>
+    private static void ConfigureForwardedHeaders(ServiceConfigurationContext context)
+    {
+        context.Services.PostConfigure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardLimit = null;
+            options.KnownProxies.Clear();
+            options.KnownNetworks.Clear();
+            foreach (var network in new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "::1/128", "fc00::/7" })
+            {
+                options.KnownNetworks.Add(Microsoft.AspNetCore.HttpOverrides.IPNetwork.Parse(network));
+            }
         });
     }
 
@@ -291,6 +330,11 @@ public class BlueDentalHttpApiHostModule : AbpModule
         });
     }
 
+    public override async Task OnPostApplicationInitializationAsync(ApplicationInitializationContext context)
+    {
+        await context.ServiceProvider.GetRequiredService<HidePhoneCacheReset>().ResetAsync();
+    }
+
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
         var app = context.GetApplicationBuilder();
@@ -315,6 +359,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         app.UseAbpOpenIddictValidation();
         app.UseUnitOfWork();
         app.UseDynamicClaims();
+        app.UseMiddleware<SignInRestrictionMiddleware>();
         app.UseAuthorization();
 
         if (env.IsDevelopment())

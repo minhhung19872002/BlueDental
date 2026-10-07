@@ -24,6 +24,7 @@ import { staffApi, type StaffDto } from "../api/staffApi";
 import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
 import { StaffTabBar } from "../components/StaffTabBar";
 import "../components/staff-penalty.css";
+import "../components/staff.css";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useBranchStore } from "@/lib/clinicBranch";
 import { invalidateEntities } from "@/lib/queryEntities";
@@ -116,6 +117,10 @@ export function StaffPage() {
       isDentist: values.isDentist,
       isAssistant: values.isAssistant,
       isHygienist: values.isHygienist,
+      allowLoginOutsideOffice: values.allowLoginOutsideOffice,
+      allowLoginOutsideHours: values.allowLoginOutsideHours,
+      maxDiscountPercent: values.maxDiscountPercent ?? null,
+      maxDiscountAmount: values.maxDiscountAmount ?? null,
       morningStartTime: values.morningStartTime || undefined,
       morningEndTime: values.morningEndTime || undefined,
       afternoonStartTime: values.afternoonStartTime || undefined,

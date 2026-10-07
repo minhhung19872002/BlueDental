@@ -18,7 +18,9 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
     public BlueDentalApplicationAutoMapperProfile()
     {
         /* Organizations */
-        CreateMap<ClinicBranch, ClinicBranchDto>();
+        CreateMap<ClinicBranch, ClinicBranchDto>()
+            .ForMember(d => d.UsageStartTime, o => o.MapFrom(s => s.UsageStartTime.HasValue ? s.UsageStartTime.Value.ToString("HH:mm") : null))
+            .ForMember(d => d.UsageEndTime, o => o.MapFrom(s => s.UsageEndTime.HasValue ? s.UsageEndTime.Value.ToString("HH:mm") : null));
         CreateMap<Department, DepartmentDto>();
 
         /* Catalogs */

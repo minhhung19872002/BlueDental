@@ -16,6 +16,16 @@ public class ClinicBranchDto : FullAuditedEntityDto<Guid>
     public string? Slogan { get; set; }
     public string? TaxCode { get; set; }
     public string? ContactPerson { get; set; }
+
+    /// <summary>
+    /// Networks staff may sign in from, one per line; null when the branch does
+    /// not restrict sign-in by IP. Left out of the header's accessible list.
+    /// </summary>
+    public string? AllowedIpRanges { get; set; }
+
+    /// <summary>"Giờ được phép sử dụng", clinic time "HH:mm"; both null when unrestricted.</summary>
+    public string? UsageStartTime { get; set; }
+    public string? UsageEndTime { get; set; }
     public BranchStatus Status { get; set; }
 }
 
@@ -53,6 +63,14 @@ public class CreateClinicBranchDto
 
     [StringLength(200, ErrorMessage = "Người liên hệ tối đa 200 ký tự.")]
     public string? ContactPerson { get; set; }
+
+    /// <summary>Addresses or CIDR blocks, separated by lines, commas or spaces.</summary>
+    [StringLength(2000, ErrorMessage = "Danh sách IP tối đa 2000 ký tự.")]
+    public string? AllowedIpRanges { get; set; }
+
+    /// <summary>"HH:mm"; both or neither. An end before the start spans midnight.</summary>
+    public string? UsageStartTime { get; set; }
+    public string? UsageEndTime { get; set; }
 }
 
 public class UpdateClinicBranchDto
@@ -86,6 +104,20 @@ public class UpdateClinicBranchDto
 
     [StringLength(200, ErrorMessage = "Người liên hệ tối đa 200 ký tự.")]
     public string? ContactPerson { get; set; }
+
+    /// <summary>
+    /// Addresses or CIDR blocks, separated by lines, commas or spaces. Null
+    /// keeps the current list; an empty string clears it.
+    /// </summary>
+    [StringLength(2000, ErrorMessage = "Danh sách IP tối đa 2000 ký tự.")]
+    public string? AllowedIpRanges { get; set; }
+
+    /// <summary>
+    /// "HH:mm", both or neither. Both null keep the current window; both ""
+    /// clear it. An end before the start spans midnight.
+    /// </summary>
+    public string? UsageStartTime { get; set; }
+    public string? UsageEndTime { get; set; }
 }
 
 public class GetClinicBranchListInput : PagedAndSortedResultRequestDto

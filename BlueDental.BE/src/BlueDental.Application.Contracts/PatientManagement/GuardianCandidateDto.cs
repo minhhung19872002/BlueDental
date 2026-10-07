@@ -33,6 +33,7 @@ public class GuardianCandidateDto
     public string? PatientCode { get; set; }
 
     public string FullName { get; set; } = default!;
+    [PatientPhone]
     public string? Phone { get; set; }
     public string? NationalId { get; set; }
     public DateOnly? DateOfBirth { get; set; }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
+using BlueDental.PatientManagement;
 
 namespace BlueDental.Appointments;
 
@@ -10,6 +11,7 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public Guid PatientId { get; set; }
     public string? PatientCode { get; set; }
     public string PatientName { get; set; } = default!;
+    [PatientPhone]
     public string? PatientPhone { get; set; }
     public Guid DentistId { get; set; }
     public string DentistName { get; set; } = default!;

@@ -7,6 +7,7 @@ import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
 import { PERSON_NAME_PATTERN } from "@/utils/vietnameseName";
+import { PATIENT_PHONE_PATTERN } from "../utils/patientPhone";
 
 interface Props {
   /** The fixed half of the code, greyed inside the field. */
@@ -78,7 +79,7 @@ export function PatientSourceColumn({
         required
         rules={[
           { required: true, message: t("Patient:Form:RequiredPhone") },
-          { pattern: /^\d{8,15}$/, message: t("Patient:Form:InvalidPhone") },
+          { pattern: PATIENT_PHONE_PATTERN, message: t("Patient:Form:InvalidPhone") },
         ]}
       >
         <Input type="tel" autoComplete="off" maxLength={15} />

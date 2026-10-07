@@ -294,7 +294,9 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
         var (patient, careRecord) = await ResolveRecipientAsync(input, branchId);
         var phone = ZaloPhoneNumber.Normalize(
-            string.IsNullOrWhiteSpace(input.Phone) ? patient?.Contact.PhoneNumber : input.Phone);
+            string.IsNullOrWhiteSpace(input.Phone)
+                ? patient?.Contact.PhoneNumber
+                : BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.Phone, patient?.Contact.PhoneNumber));
 
         var detail = await FetchTemplateDetailAsync(branchId, connection, input.TemplateId);
 
@@ -370,11 +372,16 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
             q = q.Where(x => x.CreationTime <= input.DateTo.Value);
         }
 
+        // A masked account (Cụm 11 mục 9) finds a message by the whole number
+        // only, and not through the phone quoted in its text.
+        var wholePhone = await LazyServiceProvider
+            .LazyGetRequiredService<BlueDental.PatientManagement.PatientPhoneMasker>().ShouldMaskAsync();
         foreach (var term in SearchTerms.From(input.Filter))
         {
+            var digits = term.All(char.IsDigit);
             q = q.Where(x => x.RecipientName.ToLower().Contains(term)
-                || x.RecipientPhone.ToLower().Contains(term)
-                || x.Content.ToLower().Contains(term));
+                || (wholePhone ? x.RecipientPhone == term : x.RecipientPhone.ToLower().Contains(term))
+                || (!(wholePhone && digits) && x.Content.ToLower().Contains(term)));
         }
 
         var totalCount = q.Count();

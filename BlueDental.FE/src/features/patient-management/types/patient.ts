@@ -224,6 +224,11 @@ export interface PatientCodeEstimate {
  * a new "Tạo hồ sơ" before the desk reviews it.
  */
 export interface PatientPrefill {
+  /**
+   * The Lịch tạm card the record is made from: lets the server save a phone
+   * shown masked (Cụm 11 mục 9, "Ẩn số điện thoại") as the card's real number.
+   */
+  sourceAppointmentId?: string;
   nationalId?: string;
   fullName?: string;
   phone?: string;
@@ -262,6 +267,7 @@ export interface PhoneAvailability {
  * match exactly or the request 400s.
  */
 export interface RegisterPatientRequest {
+  sourceAppointmentId?: string;
   firstName: string;
   lastName: string;
   /** "YYYY-MM-DD", or null — the server binds this to DateOnly?. */

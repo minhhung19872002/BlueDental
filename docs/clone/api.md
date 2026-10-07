@@ -1909,3 +1909,33 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
   `PUT` nhận `comboItems` (bỏ trống = giữ nguyên). Giá combo do server tính, `price` gửi lên bị bỏ qua.
 - `CatalogEntryDto` thêm `isCombo`, `comboItems[{ id, componentEntryId, quantity, unitPrice, componentName, componentCode, componentPrice }]`, `retailPrice`.
 - Lỗi: `BlueDental:Catalogs:0026` dòng không hợp lệ, `0027` combo rỗng, `0028` thành phần không phải dịch vụ lẻ sống cùng chi nhánh, `0029` danh mục không có combo.
+
+## Xác thực IP theo chi nhánh — BlueDental riêng (2026-10-07, cụm 11 mục 11)
+
+- `GET /api/v1/app/account/client-ip` → `{ ipAddress }` — địa chỉ server thấy (mọi user đã đăng nhập).
+- `ClinicBranchDto.allowedIpRanges`: `"<ip|cidr>\n…"` hoặc `null`; `/accessible` luôn trả `null`.
+  `POST/PUT clinic-branches` nhận `allowedIpRanges` (PUT: `null` = giữ nguyên, `""` = xoá). Sai định dạng → 403 `BlueDental:Organizations:0007` (data `value`).
+- `StaffDto` / create / update thêm `allowLoginOutsideOffice: <bool>`.
+- `POST /api/account/login` (ABP) → 403 `BlueDental:Auth:LoginIpNotAllowed` khi đúng mật khẩu nhưng ngoài mạng chi nhánh;
+  mọi request đã đăng nhập → 401 cùng mã + đăng xuất. Chi tiết: `docs/clone/pages/branch-ip-restriction.md`.
+
+## Quản lý thời gian sử dụng — BlueDental riêng (2026-10-07, cụm 11 mục 13)
+
+- `ClinicBranchDto.usageStartTime` / `usageEndTime`: `"HH:mm"` hoặc `null` (giờ Việt Nam; kết thúc trước bắt đầu = qua đêm).
+  `POST/PUT clinic-branches` nhận hai trường này (PUT: cả hai `null` = giữ nguyên, cả hai `""` = xoá). Nửa khung / hai giờ bằng nhau / sai định dạng → 403 `BlueDental:Organizations:0008`.
+- `StaffDto` / create / update thêm `allowLoginOutsideHours: <bool>`.
+- `POST /api/account/login` → 403 `BlueDental:Auth:LoginOutsideHours` (message nêu khung giờ); mọi request đã đăng nhập → 401 cùng mã + đăng xuất.
+  Chi tiết: `docs/clone/pages/usage-hours.md`.
+
+## Ẩn số điện thoại — quyền `patient.hidePhone` (2026-10-07, cụm 11 mục 9)
+
+- Tài khoản có quyền (trừ vai trò `admin`): mọi thuộc tính `[PatientPhone]` trong response trả về dạng `090****567`; file Excel Bệnh nhân / CSKH cũng vậy.
+- Ghi (`PUT patients/{id}`, guardians, `PUT appointments/{id}` lịch tạm, hoá đơn điện tử, Zalo): giá trị có `*` chỉ hợp lệ khi là mặt nạ của đúng một số đã biết → giữ số thật; khác → 403 `BlueDental:Patient:0022`.
+- `POST patients` nhận thêm `sourceAppointmentId` (Lịch tạm → Tạo hồ sơ) để lưu số thật của thẻ khi số hiện bị che.
+  Chi tiết: `docs/clone/pages/hide-phone.md`.
+
+## Quy định giảm giá — BlueDental riêng (2026-10-07, cụm 11 mục 12)
+
+- `StaffDto` / create / update thêm `maxDiscountPercent` (0–100) và `maxDiscountAmount` (VNĐ), `null` = không giới hạn; sai → 403 `BlueDental:Staff:0008`.
+- Ghi giảm giá vượt giới hạn của người đang thao tác (tư vấn, báo giá, phiếu điều trị) → 403 `BlueDental:Treatment:0042` (data `MaxPercent`) hoặc `0043` (data `MaxAmount`).
+  Chi tiết: `docs/clone/pages/discount-limit.md`.

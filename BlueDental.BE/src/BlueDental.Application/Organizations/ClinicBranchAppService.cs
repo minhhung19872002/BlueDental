@@ -93,8 +93,12 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
         }
 
         var items = query.OrderBy(b => b.Name).ToList();
-        return new ListResultDto<ClinicBranchDto>(
-            ObjectMapper.Map<System.Collections.Generic.List<ClinicBranch>, System.Collections.Generic.List<ClinicBranchDto>>(items));
+        var dtos = ObjectMapper.Map<System.Collections.Generic.List<ClinicBranch>, System.Collections.Generic.List<ClinicBranchDto>>(items);
+
+        // Every signed-in user reads this list; the office networks are for
+        // the people who administer branches, not for the header picker.
+        dtos.ForEach(d => d.AllowedIpRanges = null);
+        return new ListResultDto<ClinicBranchDto>(dtos);
     }
 
     [Authorize(BlueDentalPermissions.Organizations.View)]
@@ -128,6 +132,8 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
         branch.SetSlogan(input.Slogan);
         branch.SetTaxCode(input.TaxCode);
         branch.SetContactPerson(input.ContactPerson);
+        branch.SetAllowedIpRanges(input.AllowedIpRanges);
+        SetUsageHours(branch, input.UsageStartTime, input.UsageEndTime);
 
         await _repository.InsertAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
@@ -142,8 +148,38 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
         branch.SetSlogan(input.Slogan);
         branch.SetTaxCode(input.TaxCode);
         branch.SetContactPerson(input.ContactPerson);
+
+        // Null leaves the list alone: Cài đặt → Thông tin phòng khám saves the
+        // branch without it. The branch dialog sends "" to clear it.
+        if (input.AllowedIpRanges is not null)
+        {
+            branch.SetAllowedIpRanges(input.AllowedIpRanges);
+        }
+
+        // Same rule for the hours: both null leave the window alone.
+        if (input.UsageStartTime is not null || input.UsageEndTime is not null)
+        {
+            SetUsageHours(branch, input.UsageStartTime, input.UsageEndTime);
+        }
+
         await _repository.UpdateAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
+    }
+
+    /// <summary>"HH:mm" pair → the branch window; blank clears, anything else unreadable is refused.</summary>
+    private static void SetUsageHours(ClinicBranch branch, string? start, string? end)
+    {
+        branch.SetUsageHours(ParseClockTime(start), ParseClockTime(end));
+    }
+
+    private static TimeOnly? ParseClockTime(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        return TimeOnly.TryParseExact(text.Trim(), ["HH:mm", "H:mm"], System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var time)
+            ? time
+            : throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidUsageHours);
     }
 
     [Authorize(BlueDentalPermissions.Organizations.Delete)]

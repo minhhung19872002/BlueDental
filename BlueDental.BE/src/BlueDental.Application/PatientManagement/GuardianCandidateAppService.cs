@@ -71,6 +71,11 @@ public class GuardianCandidateAppService : BlueDentalAppService, IGuardianCandid
         IReadOnlyList<string> terms,
         Guid? excludeId)
     {
+        // "Ẩn số điện thoại" (Cụm 11 mục 9): a masked account finds a record
+        // by its whole number only, so typing digit after digit cannot spell
+        // out the part it is not shown.
+        var wholePhone = await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync();
+
         var query = (await _repository.GetQueryableAsync())
             .Where(p => p.BranchId == branchId)
             .Where(p => !excludeId.HasValue || p.Id != excludeId.Value);
@@ -80,7 +85,8 @@ public class GuardianCandidateAppService : BlueDentalAppService, IGuardianCandid
             query = query.Where(p =>
                 (p.LastName + " " + p.FirstName).ToLower().Contains(term)
                 || p.PatientCode.ToLower().Contains(term)
-                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(term))
+                || (p.Contact.PhoneNumber != null
+                    && (wholePhone ? p.Contact.PhoneNumber == term : p.Contact.PhoneNumber.Contains(term)))
                 || (p.NationalId != null && p.NationalId.ToLower().Contains(term)));
         }
 
@@ -108,6 +114,11 @@ public class GuardianCandidateAppService : BlueDentalAppService, IGuardianCandid
         IReadOnlyList<string> terms,
         Guid? excludeId)
     {
+        // "Ẩn số điện thoại" (Cụm 11 mục 9): a masked account finds a record
+        // by its whole number only, so typing digit after digit cannot spell
+        // out the part it is not shown.
+        var wholePhone = await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync();
+
         var query = (await _repository.GetQueryableAsync())
             .Where(p => p.BranchId == branchId)
             .Where(p => !excludeId.HasValue || p.Id != excludeId.Value)
@@ -124,7 +135,7 @@ public class GuardianCandidateAppService : BlueDentalAppService, IGuardianCandid
         {
             query = query.Where(x =>
                 x.Guardian.FullName.ToLower().Contains(term)
-                || x.Guardian.Phone.Contains(term)
+                || (wholePhone ? x.Guardian.Phone == term : x.Guardian.Phone.Contains(term))
                 || x.Guardian.NationalId.ToLower().Contains(term));
         }
 

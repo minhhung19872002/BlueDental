@@ -38,6 +38,7 @@ public class CareRecordDto : FullAuditedEntityDto<Guid>
     /* Enriched for the care board (reference hydrate=compact). */
     public string? PatientName { get; set; }
     public string? PatientCode { get; set; }
+    [PatientPhone]
     public string? PatientPhone { get; set; }
     public Gender? PatientGender { get; set; }
     public DateOnly? PatientDateOfBirth { get; set; }
@@ -243,6 +244,7 @@ public class CareGroupingPatientDto
     public Guid Id { get; set; }
     public string Code { get; set; } = default!;
     public string Name { get; set; } = default!;
+    [PatientPhone]
     public string? Phone { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public CareTreatmentStatus TreatmentStatus { get; set; }

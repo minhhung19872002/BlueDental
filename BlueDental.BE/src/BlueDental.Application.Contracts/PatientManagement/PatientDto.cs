@@ -16,6 +16,7 @@ public class PatientDto : FullAuditedEntityDto<Guid>
     public DateOnly? DateOfBirth { get; set; }
 
     public Gender Gender { get; set; }
+    [PatientPhone]
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? NationalId { get; set; }
@@ -101,6 +102,7 @@ public class PatientListItemDto
     public string FullName { get; set; } = default!;
 
     public DateOnly? DateOfBirth { get; set; }
+    [PatientPhone]
     public string? PhoneNumber { get; set; }
 
     /// <summary>Trạng thái — derived from the patient's treatment slips.</summary>
@@ -174,6 +176,12 @@ public class NationalIdLookupDto
 
 public class RegisterPatientDto
 {
+    /// <summary>
+    /// The Lịch tạm card the record is made from, if any — lets a phone that
+    /// was shown masked (Cụm 11 mục 9) be saved as the card's real number.
+    /// </summary>
+    public Guid? SourceAppointmentId { get; set; }
+
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
 

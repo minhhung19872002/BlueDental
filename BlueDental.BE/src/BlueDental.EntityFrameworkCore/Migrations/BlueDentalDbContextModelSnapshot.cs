@@ -4277,6 +4277,10 @@ namespace BlueDental.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("AllowedIpRanges")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<TimeOnly?>("ClosingTime")
                         .HasColumnType("time without time zone");
 
@@ -4361,6 +4365,12 @@ namespace BlueDental.Migrations
                     b.Property<string>("TaxCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<TimeOnly?>("UsageEndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeOnly?>("UsageStartTime")
+                        .HasColumnType("time without time zone");
 
                     b.Property<string>("WardId")
                         .HasMaxLength(20)

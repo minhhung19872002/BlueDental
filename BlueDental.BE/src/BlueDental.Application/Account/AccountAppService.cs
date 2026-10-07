@@ -18,8 +18,12 @@ public class AccountAppService(
     ICurrentClinicBranchResolver branchResolver,
     IRepository<ClinicBranch, Guid> branchRepository,
     IPermissionDefinitionManager permissionDefinitionManager,
-    IPermissionChecker permissionChecker) : ApplicationService, IAccountAppService
+    IPermissionChecker permissionChecker,
+    SignInRestrictionGuard signInGuard) : ApplicationService, IAccountAppService
 {
+    public Task<ClientIpDto> GetClientIpAsync() =>
+        Task.FromResult(new ClientIpDto { IpAddress = signInGuard.ClientAddress?.ToString() });
+
     public async Task<CurrentUserDto> GetCurrentUserAsync()
     {
         var userId = CurrentUser.Id

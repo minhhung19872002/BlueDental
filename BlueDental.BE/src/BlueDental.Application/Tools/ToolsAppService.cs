@@ -334,8 +334,12 @@ public class ToolsAppService(
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (input.Status.HasValue)
             q = q.Where(x => (int)x.Status == input.Status.Value);
+        // A masked account (Cụm 11 mục 9) finds a log by the whole number only.
+        var wholePhone = await LazyServiceProvider
+            .LazyGetRequiredService<BlueDental.PatientManagement.PatientPhoneMasker>().ShouldMaskAsync();
         foreach (var term in SearchTerms.From(input.Filter))
-            q = q.Where(x => x.RecipientName.ToLower().Contains(term) || x.RecipientPhone.ToLower().Contains(term));
+            q = q.Where(x => x.RecipientName.ToLower().Contains(term)
+                || (wholePhone ? x.RecipientPhone == term : x.RecipientPhone.ToLower().Contains(term)));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)

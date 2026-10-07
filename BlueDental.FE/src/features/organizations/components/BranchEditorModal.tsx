@@ -6,6 +6,9 @@ import {
   useUpdateBranch,
   type ClinicBranchDto,
 } from "../api";
+import dayjs, { type Dayjs } from "dayjs";
+import { BranchIpRangesField } from "./BranchIpRangesField";
+import { BranchUsageHoursField, USAGE_TIME_FORMAT } from "./BranchUsageHoursField";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { t } from "@/lib/i18n";
 
@@ -19,7 +22,13 @@ interface BranchFormValues {
   provinceId?: string;
   wardId?: string;
   address?: string;
+  allowedIpRanges?: string;
+  usageStartTime?: Dayjs | null;
+  usageEndTime?: Dayjs | null;
 }
+
+const toClockTime = (text: string | null | undefined) => (text ? dayjs(text, USAGE_TIME_FORMAT) : null);
+const fromClockTime = (value: Dayjs | null | undefined) => value?.format(USAGE_TIME_FORMAT) ?? "";
 
 interface BranchEditorModalProps {
   open: boolean;
@@ -68,6 +77,9 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
           provinceId: branch.provinceId ?? undefined,
           wardId: branch.wardId ?? undefined,
           address: branch.address ?? "",
+          allowedIpRanges: branch.allowedIpRanges ?? "",
+          usageStartTime: toClockTime(branch.usageStartTime),
+          usageEndTime: toClockTime(branch.usageEndTime),
         });
         if (branch.provinceId) loadWards(branch.provinceId);
       } else {
@@ -89,6 +101,11 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
       contactPerson: clean(values.contactPerson),
       provinceId: values.provinceId || undefined,
       wardId: values.wardId || undefined,
+      // Always sent: "" is how the dialog clears the list (omitted = keep).
+      allowedIpRanges: values.allowedIpRanges?.trim() ?? "",
+      // Same for the hours: "" clears the window.
+      usageStartTime: fromClockTime(values.usageStartTime),
+      usageEndTime: fromClockTime(values.usageEndTime),
     };
     try {
       if (branch) {
@@ -103,6 +120,9 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             email: payload.email,
             taxCode: payload.taxCode,
             contactPerson: payload.contactPerson,
+            allowedIpRanges: payload.allowedIpRanges,
+            usageStartTime: payload.usageStartTime,
+            usageEndTime: payload.usageEndTime,
           },
         });
         toast.success(t("Organization:BranchUpdated"));
@@ -198,6 +218,8 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         <Form.Item name="address" label={t("Organization:AddressLabel")}>
           <Input placeholder={t("Organization:AddressPlaceholder")} />
         </Form.Item>
+        <BranchIpRangesField />
+        <BranchUsageHoursField />
       </Form>
     </Modal>
   );

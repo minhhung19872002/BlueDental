@@ -7,6 +7,15 @@ public static class BlueDentalDomainErrorCodes
         public const string CrossBranchAccess = "BlueDental:Authorization:0001";
     }
 
+    public static class Authentication
+    {
+        /// <summary>Cụm 11 mục 11: the account may only sign in from its branches' networks.</summary>
+        public const string LoginIpNotAllowed = "BlueDental:Auth:LoginIpNotAllowed";
+
+        /// <summary>Cụm 11 mục 13: outside the account's branches' "Giờ được phép sử dụng".</summary>
+        public const string LoginOutsideHours = "BlueDental:Auth:LoginOutsideHours";
+    }
+
     public static class Organizations
     {
         public const string BranchNotFound = "BlueDental:Organizations:0001";
@@ -15,6 +24,8 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidOperatingHours = "BlueDental:Organizations:0004";
         public const string BranchNotAssigned = "BlueDental:Organizations:0005";
         public const string DuplicateName = "BlueDental:Organizations:0006";
+        public const string InvalidIpRange = "BlueDental:Organizations:0007";
+        public const string InvalidUsageHours = "BlueDental:Organizations:0008";
     }
 
     public static class Catalogs
@@ -87,6 +98,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>Another record in the branch already holds this phone number (bug list item 29).</summary>
         public const string DuplicatePhone = "BlueDental:Patient:0021";
+
+        /// <summary>
+        /// A masked phone ("090****567", Cụm 11 mục 9) came back in an edit and
+        /// matches no number the record knows, so it cannot stand for one.
+        /// </summary>
+        public const string MaskedPhoneUnresolved = "BlueDental:Patient:0022";
     }
 
     public static class Appointments
@@ -214,6 +231,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A continue asked for a tooth its công đoạn no longer holds open.</summary>
         public const string StageToothNotOpen = "BlueDental:Treatment:0041";
+
+        /// <summary>The discount is above the account's "giảm tối đa %" (Cụm 11 mục 12).</summary>
+        public const string DiscountAbovePercent = "BlueDental:Treatment:0042";
+
+        /// <summary>The discount is above the account's "giảm tối đa VNĐ" (Cụm 11 mục 12).</summary>
+        public const string DiscountAboveUserAmount = "BlueDental:Treatment:0043";
     }
 
     public static class Billing
@@ -366,6 +389,9 @@ public static class BlueDentalDomainErrorCodes
         public const string AvatarTooLarge = "BlueDental:Staff:0005";
         public const string AvatarNotFound = "BlueDental:Staff:0006";
         public const string DuplicateEmail = "BlueDental:Staff:0007";
+
+        /// <summary>"Quy định giảm giá": % outside 0–100 or a negative amount (Cụm 11 mục 12).</summary>
+        public const string InvalidDiscountLimit = "BlueDental:Staff:0008";
     }
 
     public static class StaffPenalty
