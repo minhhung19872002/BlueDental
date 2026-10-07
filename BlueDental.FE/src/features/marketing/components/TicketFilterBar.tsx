@@ -22,7 +22,7 @@ interface Props {
 
 /**
  * The header's second row: the status tabs, each with its count, then the three
- * pickers a marketer works by — Người phụ trách, Nguồn and Thẻ (R-796).
+ * pickers a marketer works by — Người phụ trách, Nguồn and Thẻ (R-803).
  */
 export function TicketFilterBar(props: Props) {
   const { state, stats, onChange, isFiltered, onReset } = props;

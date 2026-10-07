@@ -101,7 +101,7 @@ public class TicketMapper(
         }).ToList();
     }
 
-    private async Task<Dictionary<Guid, string>> UserNamesAsync(IEnumerable<Guid?> ids)
+    public async Task<Dictionary<Guid, string>> UserNamesAsync(IEnumerable<Guid?> ids)
     {
         var userIds = ids.OfType<Guid>().Distinct().ToList();
         if (userIds.Count == 0)

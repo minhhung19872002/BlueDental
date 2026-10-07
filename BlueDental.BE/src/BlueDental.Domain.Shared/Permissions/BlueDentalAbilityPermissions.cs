@@ -274,7 +274,7 @@ public static class BlueDentalAbilityPermissions
     }
 
     /// <summary>
-    /// Subject <c>marketingTicket</c> — Marketing → Ticket (F-51). BlueDental-local.
+    /// Subject <c>marketingTicket</c> — Marketing → Ticket (F-55). BlueDental-local.
     /// Without <see cref="ReadAll"/> a user sees only the tickets assigned to
     /// them and the unassigned pool.
     /// </summary>

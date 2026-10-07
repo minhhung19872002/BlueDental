@@ -75,8 +75,31 @@ public class GetTicketListInput : PagedResultRequestDto
 
     public bool? ReturningCustomer { get; set; }
 
+    /// <summary>Only the tickets one Ticket File created (BA 8.4).</summary>
+    public Guid? ImportFileId { get; set; }
+
     /// <summary>The Đã xoá list instead of the live one.</summary>
     public bool Deleted { get; set; }
+}
+
+/// <summary>
+/// Chuyển Ticket (BA 8.3): every ticket the list filter matches goes to the
+/// chosen staff, dealt in turn so several people share them evenly.
+/// </summary>
+public class TransferTicketsDto : GetTicketListInput
+{
+    [Required]
+    [MinLength(1)]
+    public List<Guid> AssigneeIds { get; set; } = [];
+}
+
+public class TicketTransferResultDto
+{
+    /// <summary>Tickets the filter matched.</summary>
+    public int Matched { get; set; }
+
+    /// <summary>Of those, the ones that changed hands (a ticket dealt to its own assignee stays as it is).</summary>
+    public int Transferred { get; set; }
 }
 
 /// <summary>The KPI strip: counts for the filter, every status at once.</summary>

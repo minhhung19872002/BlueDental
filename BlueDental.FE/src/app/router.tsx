@@ -82,6 +82,12 @@ const MarketingTicketPage = lazy(() =>
   })),
 );
 
+const MarketingFilePage = lazy(() =>
+  import("@/features/marketing/pages/MarketingFilePage").then((m) => ({
+    default: m.MarketingFilePage,
+  })),
+);
+
 const MarketingTagPage = lazy(() =>
   import("@/features/marketing/pages/MarketingTagPage").then((m) => ({
     default: m.MarketingTagPage,
@@ -318,6 +324,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="marketingTicket">
             <MarketingTicketPage />
+          </G>
+        ),
+      },
+      {
+        path: "marketing/files",
+        element: (
+          <G k="marketingTicketFiles">
+            <MarketingFilePage />
           </G>
         ),
       },

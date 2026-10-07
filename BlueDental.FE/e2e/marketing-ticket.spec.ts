@@ -3,7 +3,7 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { call, removeTicket, syntheticPhone, TAGS, TICKETS } from "./fixtures/marketingTicket";
 
 /**
- * Feature: Marketing → Ticket (F-51) — the screen, end to end, against the real
+ * Feature: Marketing → Ticket (F-55) — the screen, end to end, against the real
  * API and database. BlueDental-local; see docs/clone/pages/marketing-ticket.md.
  * The rules the server keeps on its own are in marketing-ticket-api.spec.ts.
  */
@@ -57,14 +57,22 @@ test.describe("Marketing → Ticket", () => {
     await searchFor(page, phone);
     await expect(ticketRow(page, name)).toContainText("Đang chăm sóc");
 
-    // The row opens the detail drawer with the care history.
+    // The row opens the detail modal with the care history.
     await ticketRow(page, name).getByText(phone).click();
-    const drawer = page.getByRole("dialog", { name: new RegExp(`· ${name}$`) });
-    await expect(drawer.getByRole("heading", { name: "Lịch sử chăm sóc" })).toBeVisible();
-    await expect(drawer.getByText("Hỏi giá niềng răng")).toBeVisible();
-    await expect(drawer.getByText("Tạo ticket")).toBeVisible();
+    const detail = page.getByRole("dialog", { name: new RegExp(`· ${name}$`) });
+    await expect(detail.getByRole("heading", { name: "Lịch sử chăm sóc" })).toBeVisible();
+    await expect(detail.getByText("Hỏi giá niềng răng")).toBeVisible();
+    await expect(detail.getByText("Tạo ticket")).toBeVisible();
+    await expect(detail.getByRole("definition").filter({ hasText: phone })).toBeVisible();
+    // Its footer actions open their dialog over the detail, not behind it.
+    await detail.getByRole("button", { name: /Ghi nhận liên hệ$/ }).click();
+    await expect(contact).toBeVisible();
+    // The corner X ("Đóng") is the dialog's first button.
+    await contact.getByRole("button", { name: "Đóng", exact: true }).first().click();
+    await expect(contact).toBeHidden();
+    await expect(detail).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(drawer).toBeHidden();
+    await expect(detail).toBeHidden();
 
     // Xoá needs a reason; the ticket leaves the list for Đã xoá.
     await ticketRow(page, name).getByRole("button", { name: "Thêm", exact: true }).click();

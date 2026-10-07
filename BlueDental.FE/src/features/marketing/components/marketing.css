@@ -1,4 +1,4 @@
-/* Marketing → Ticket (F-51). BlueDental-local screen — docs/clone/pages/marketing-ticket.md.
+/* Marketing → Ticket (F-55). BlueDental-local screen — docs/clone/pages/marketing-ticket.md.
    The frame copies Mẫu Labo (labo.css): a fixed-height page under the PageHeader, a
    PageTabBar, and one pane per tab built from the shared .bd-cat-header / .bd-cat-body
    / .bd-cat-card classes, so the table scrolls inside the card, not the page. */
@@ -186,11 +186,88 @@
   font-size: 13px;
 }
 
-/* ── Detail drawer ─────────────────────────────────────────── */
+/* ── Detail modal ──────────────────────────────────────────── */
+/* The details on top, the care history below; the body grows with the history. */
 .mkt-detail {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: 420px;
+}
+.mkt-detail-block {
+  min-width: 0;
+}
+.mkt-detail-history {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.mkt-detail-history__list {
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+/* Thông tin ticket: label over value, three to a row, like the other detail grids. */
+.mkt-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 24px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+}
+.mkt-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.mkt-detail-field--wide {
+  grid-column: 1 / -1;
+}
+.mkt-detail-field > dt {
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.mkt-detail-field > dd {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.mkt-detail-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1100px) {
+  .mkt-detail-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .mkt-detail {
+    height: auto;
+    min-height: 0;
+  }
+  .mkt-detail-history__list {
+    overflow: visible;
+  }
+  .mkt-detail-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mkt-detail-dialog .bd-modal-foot {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 }
 .mkt-section-title {
   margin-bottom: 8px;
@@ -233,7 +310,69 @@
   font-size: 12px;
 }
 
-/* The table card runs edge to edge under the toolbar, so the two line up (R-795);
+/* ── Ticket File (BA 8.4) ──────────────────────────────────── */
+.mkt-file-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 320px;
+  margin-inline-end: 0;
+  padding: 3px 8px;
+  border-color: var(--bd-green);
+  background: var(--bd-green-pale);
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mkt-file-chip .anticon-file-excel {
+  color: var(--bd-green);
+}
+.mkt-file-row {
+  cursor: pointer;
+}
+.mkt-file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.mkt-file-name .anticon {
+  flex: none;
+  color: var(--bd-green);
+  font-size: 16px;
+}
+.mkt-file-name__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mkt-import-steps {
+  margin-bottom: 16px;
+}
+.mkt-import-hint {
+  margin: 0 0 12px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.mkt-import-template {
+  margin-top: 8px;
+  padding-inline: 0;
+}
+.mkt-import-alert {
+  margin-bottom: 12px;
+}
+.mkt-import-errors {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--bd-red);
+  white-space: normal;
+}
+
+/* The table card runs edge to edge under the toolbar, so the two line up (R-802);
    the frame still gives it every pixel the toolbar leaves, as on Labo. */
 .mkt-screen > .bd-cat-body {
   padding: 16px 0 0;

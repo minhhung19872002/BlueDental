@@ -7,7 +7,7 @@ using Xunit;
 namespace BlueDental.Marketing;
 
 /// <summary>
-/// Marketing → Ticket (F-51): Mới → Đang chăm sóc → Đã đặt hẹn → Đã đến,
+/// Marketing → Ticket (F-55): Mới → Đang chăm sóc → Đã đặt hẹn → Đã đến,
 /// Không tiềm năng by hand, the SLA clock, and following the booked appointment.
 /// </summary>
 public class TicketTests

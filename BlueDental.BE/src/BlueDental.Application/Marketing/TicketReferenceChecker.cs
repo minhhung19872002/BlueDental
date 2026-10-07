@@ -109,5 +109,72 @@ public class TicketReferenceChecker(
         }
     }
 
+    /// <summary>
+    /// The open tickets of the branch holding any of the phones, by phone — the
+    /// batch form of <see cref="FindOpenByPhoneAsync"/>, for a whole import file.
+    /// </summary>
+    public async Task<Dictionary<string, Ticket>> FindOpenByPhonesAsync(Guid branchId, IReadOnlyCollection<string> phones)
+    {
+        if (phones.Count == 0)
+        {
+            return [];
+        }
+
+        var open = await ticketRepository.GetListAsync(t => t.ClinicBranchId == branchId
+            && phones.Contains(t.Phone)
+            && (t.Status == TicketStatus.New || t.Status == TicketStatus.InCare || t.Status == TicketStatus.Booked));
+        return open.GroupBy(t => t.Phone).ToDictionary(g => g.Key, g => g.First());
+    }
+
+    /// <summary>The batch form of <see cref="FindPatientIdAsync"/>: the patient of each phone that has one.</summary>
+    public async Task<Dictionary<string, Guid>> FindPatientIdsAsync(Guid branchId, IReadOnlyCollection<string> phones)
+    {
+        var byVariant = phones
+            .SelectMany(phone => TicketPhone.Variants(phone).Select(variant => (variant, phone)))
+            .GroupBy(x => x.variant)
+            .ToDictionary(g => g.Key, g => g.First().phone);
+        if (byVariant.Count == 0)
+        {
+            return [];
+        }
+
+        var variants = byVariant.Keys.ToList();
+        var patients = await asyncExecuter.ToListAsync((await patientRepository.GetQueryableAsync())
+            .Where(p => p.BranchId == branchId && variants.Contains(p.Contact.PhoneNumber))
+            .OrderBy(p => p.CreationTime)
+            .Select(p => new { p.Id, p.Contact.PhoneNumber }));
+
+        var result = new Dictionary<string, Guid>();
+        foreach (var patient in patients)
+        {
+            result.TryAdd(byVariant[patient.PhoneNumber!], patient.Id);
+        }
+
+        return result;
+    }
+
+    /// <summary>The next <paramref name="count"/> free codes, in order — <see cref="NextCodeAsync"/> for a whole file.</summary>
+    public async Task<List<string>> NextCodesAsync(Guid branchId, int count)
+    {
+        using (dataFilter.Disable<ISoftDelete>())
+        {
+            var taken = (await asyncExecuter.ToListAsync((await ticketRepository.GetQueryableAsync())
+                    .Where(t => t.ClinicBranchId == branchId)
+                    .Select(t => t.Code)))
+                .ToHashSet();
+            var codes = new List<string>(count);
+            for (var next = taken.Count + 1; codes.Count < count; next++)
+            {
+                var code = Format(next);
+                if (!taken.Contains(code))
+                {
+                    codes.Add(code);
+                }
+            }
+
+            return codes;
+        }
+    }
+
     private static string Format(int number) => $"TK{number:D6}";
 }

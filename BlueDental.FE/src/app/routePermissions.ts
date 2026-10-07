@@ -72,6 +72,8 @@ export const ROUTE_PERMISSIONS = {
   marketing: readOf(["marketingTicket", "marketingTicketTag"]),
   marketingTicket: readOf(["marketingTicket"]),
   marketingTicketTag: readOf(["marketingTicketTag"]),
+  /* Ticket File imports tickets, which is the create leaf's (BA 8.4). */
+  marketingTicketFiles: [abilityPermission("marketingTicket", "create")] as readonly string[],
   /* Đã xoá is where tickets are restored, which is the delete leaf's. */
   marketingTicketDeleted: [abilityPermission("marketingTicket", "delete")] as readonly string[],
   billing: readOf(["payment"]),

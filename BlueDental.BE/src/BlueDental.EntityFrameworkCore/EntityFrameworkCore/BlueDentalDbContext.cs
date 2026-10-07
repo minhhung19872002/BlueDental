@@ -136,10 +136,11 @@ public class BlueDentalDbContext :
     public DbSet<Staff.StaffPenalty> StaffPenalties { get; set; }
     public DbSet<Staff.StaffViolationType> StaffViolationTypes { get; set; }
 
-    // Marketing — Ticket (F-51)
+    // Marketing — Ticket (F-55)
     public DbSet<Marketing.Ticket> MarketingTickets { get; set; }
     public DbSet<Marketing.TicketActivity> MarketingTicketActivities { get; set; }
     public DbSet<Marketing.TicketTag> MarketingTicketTags { get; set; }
+    public DbSet<Marketing.TicketImportFile> MarketingTicketImportFiles { get; set; }
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }

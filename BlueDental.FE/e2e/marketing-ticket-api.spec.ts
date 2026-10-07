@@ -4,7 +4,7 @@ import { BRANCH_ONE, BRANCH_TWO, call, removeTicket, syntheticPhone, TAGS, TICKE
 import { createDentist, deleteDentist, DENTIST_ROLE, openDentistSession } from "./fixtures/restrictedDentist";
 
 /**
- * Feature: Marketing → Ticket (F-51) — the rules the API keeps on its own.
+ * Feature: Marketing → Ticket (F-55) — the rules the API keeps on its own.
  * BlueDental-local; see docs/clone/pages/marketing-ticket.md.
  *
  * Every call is a real HTTP request from inside a page logged in through the

@@ -17,7 +17,7 @@ public sealed record TicketDetails(
     Guid? SourceEntryId);
 
 /// <summary>
-/// Marketing → Ticket (F-51): one lead the clinic has to turn into a visit.
+/// Marketing → Ticket (F-55): one lead the clinic has to turn into a visit.
 /// BlueDental-local — the rules are the ones agreed in
 /// docs/clone/pages/marketing-ticket.md:
 /// <list type="bullet">
@@ -59,6 +59,9 @@ public class Ticket : FullAuditedAggregateRoot<Guid>
     public Guid? SourceEntryId { get; private set; }
 
     public TicketChannel Channel { get; private set; }
+
+    /// <summary>The Ticket File it was imported from (BA 8.4); null for a typed-in ticket.</summary>
+    public Guid? ImportFileId { get; private set; }
 
     /// <summary>Người phụ trách. Null = the unassigned pool.</summary>
     public Guid? AssigneeId { get; private set; }
@@ -317,6 +320,13 @@ public class Ticket : FullAuditedAggregateRoot<Guid>
         Status = target;
         return new TicketActivity(activityId, Id, TicketActivityKind.AppointmentChanged, from, Status)
             .WithAppointment(appointmentId);
+    }
+
+    /// <summary>Marks a ticket the import created, so its file can count it.</summary>
+    public Ticket FromFile(Guid importFileId)
+    {
+        ImportFileId = importFileId;
+        return this;
     }
 
     /// <summary>Records why, before the soft delete.</summary>

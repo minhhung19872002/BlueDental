@@ -6581,7 +6581,7 @@ html:has(.ant-modal-wrap) {
    stacks every pinned cell, header or body, at `--z-offset-reverse + 2`, and
    that offset grows with the column count: a 12-column table puts its pinned
    body cells at 14. Any fixed number below that loses, and the rows scroll
-   straight over the header — "Thao tác", then "Mã ticket" (R-795), vanished
+   straight over the header — "Thao tác", then "Mã ticket" (R-802), vanished
    behind the row beneath. The header's pinned cells sit well above any body
    cell here; `.bd-cat-card` isolates the stack so it never reaches past the card.
 

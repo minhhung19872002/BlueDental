@@ -184,6 +184,59 @@ public class MarketingTicketAppService(
         return await SaveAsync(ticket, ticket.Assign(GuidGenerator.Create(), input.AssigneeId, Clock.Now));
     }
 
+    /// <summary>
+    /// Chuyển Ticket (BA 8.3): the tickets the list filter matches — status tab
+    /// included — dealt in turn, oldest first, to the chosen staff; several staff
+    /// is "a group", which gets an even split. One branch at a time, since an
+    /// assignee belongs to a branch. A ticket already with the staff member it
+    /// would go to is left alone.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.MarketingTicket.Transfer)]
+    public async Task<TicketTransferResultDto> TransferAsync(TransferTicketsDto input)
+    {
+        var branchId = input.ClinicBranchId ?? branchResolver.GetRequiredClinicBranchId();
+        await branchAccess.CheckAsync(branchId);
+        var assignees = input.AssigneeIds.Where(x => x != Guid.Empty).Distinct().ToList();
+        if (assignees.Count == 0)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.MarketingTicket.AssigneeNotInBranch);
+        }
+
+        foreach (var assigneeId in assignees)
+        {
+            await references.CheckAssigneeAsync(branchId, assigneeId);
+        }
+
+        input.ClinicBranchId = branchId;
+        input.Deleted = false;
+        var tickets = await AsyncExecuter.ToListAsync(
+            TicketListQuery.WithStatuses(await FilteredAsync(input), input.Statuses)
+                .OrderBy(x => x.ReceivedAt)
+                .ThenBy(x => x.Code));
+
+        var moved = new List<Ticket>();
+        var activities = new List<TicketActivity>();
+        for (var i = 0; i < tickets.Count; i++)
+        {
+            var assigneeId = TicketDistribution.AssigneeAt(assignees, i);
+            if (tickets[i].AssigneeId == assigneeId)
+            {
+                continue;
+            }
+
+            activities.Add(tickets[i].Assign(GuidGenerator.Create(), assigneeId, Clock.Now));
+            moved.Add(tickets[i]);
+        }
+
+        if (moved.Count > 0)
+        {
+            await activityRepository.InsertManyAsync(activities);
+            await repository.UpdateManyAsync(moved, autoSave: true);
+        }
+
+        return new TicketTransferResultDto { Matched = tickets.Count, Transferred = moved.Count };
+    }
+
     [Authorize(BlueDentalAbilityPermissions.MarketingTicket.Update)]
     public async Task<TicketDto> MarkNotPotentialAsync(Guid id, TicketReasonDto input)
     {

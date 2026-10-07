@@ -171,7 +171,7 @@ public static class BlueDentalAbilities
         ["laboRhythm"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboSupplier"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboTemplate"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
-        // BlueDental-local: Marketing → Ticket (F-51) has no counterpart on the reference.
+        // BlueDental-local: Marketing → Ticket (F-55) has no counterpart on the reference.
         ["marketingTicket"] = [Actions.Read, Actions.ReadAll, Actions.Create, Actions.Update, Actions.Delete, Actions.Transfer],
         ["marketingTicketTag"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["materials"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Approve, Actions.Export],

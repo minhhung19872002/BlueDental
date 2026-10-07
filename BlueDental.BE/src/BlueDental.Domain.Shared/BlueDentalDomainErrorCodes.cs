@@ -409,7 +409,7 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateViolationTypeName = "BlueDental:StaffPenalty:0008";
     }
 
-    /// <summary>Marketing → Ticket (F-51). BlueDental-local.</summary>
+    /// <summary>Marketing → Ticket (F-55). BlueDental-local.</summary>
     public static class MarketingTicket
     {
         /// <summary>Not a Vietnamese phone number once spaces and +84 are taken off.</summary>
@@ -432,6 +432,12 @@ public static class BlueDentalDomainErrorCodes
         public const string NotYours = "BlueDental:MarketingTicket:0010";
         /// <summary>Booking goes into the branch the screen is on, so the ticket has to be of that branch.</summary>
         public const string BookFromOtherBranch = "BlueDental:MarketingTicket:0012";
+        /// <summary>Ticket File: not an .xlsx workbook ClosedXML can open.</summary>
+        public const string ImportInvalidFile = "BlueDental:MarketingTicket:0013";
+        /// <summary>Ticket File: no data row under the header row.</summary>
+        public const string ImportNoRows = "BlueDental:MarketingTicket:0014";
+        /// <summary>Ticket File: Họ tên or Số điện thoại is not mapped to a column of the file, or a mapping points outside it.</summary>
+        public const string ImportColumnMissing = "BlueDental:MarketingTicket:0015";
     }
 
     public static class Queue

@@ -33,6 +33,7 @@ internal static class TicketListQuery
         if (input.SourceEntryId is { } entry) query = query.Where(x => x.SourceEntryId == entry);
         if (input.Channel is { } channel) query = query.Where(x => x.Channel == channel);
         if (input.ReturningCustomer is { } returning) query = query.Where(x => x.IsReturningCustomer == returning);
+        if (input.ImportFileId is { } fileId) query = query.Where(x => x.ImportFileId == fileId);
 
         if (input.FromDate is { } from)
         {

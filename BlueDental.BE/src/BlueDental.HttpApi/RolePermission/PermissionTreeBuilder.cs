@@ -462,7 +462,7 @@ internal static class PermissionTreeBuilder
             Leaf("staffPenalty.delete", "BE:Common:Delete"),
             Leaf("staffPenalty.approve", "BE:Perm:ApproveStaffPenalty")),
 
-        // BlueDental-local: Marketing → Ticket (F-51).
+        // BlueDental-local: Marketing → Ticket (F-55).
         Group("marketing-group", "BE:Perm:Marketing",
             Group("marketingTicket", "BE:Perm:MarketingTicket",
                 Leaf("marketingTicket.read", "Xem"),

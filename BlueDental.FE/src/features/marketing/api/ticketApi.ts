@@ -4,7 +4,7 @@ import { useBranchFilter, useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PagedResult } from "@/types";
 
 /**
- * Marketing → Ticket (F-51). BlueDental-local — docs/clone/pages/marketing-ticket.md:
+ * Marketing → Ticket (F-55). BlueDental-local — docs/clone/pages/marketing-ticket.md:
  * the reference has no such screen. Filtering, paging, the status workflow and
  * who may see which ticket are all the server's.
  */
@@ -100,7 +100,7 @@ export interface TicketStats {
   callBackDue: number;
 }
 
-/** What the list and the KPI strip are filtered by. Saved filters store exactly this. */
+/** What the list, the KPI strip and Chuyển ticket are filtered by. */
 export interface TicketFilter {
   filter?: string;
   statuses?: TicketStatus[];
@@ -115,6 +115,8 @@ export interface TicketFilter {
   overdueOnly?: boolean;
   callBackDue?: boolean;
   returningCustomer?: boolean;
+  /** Only the tickets one Ticket File created (BA 8.4). */
+  importFileId?: string;
 }
 
 export interface TicketQuery extends TicketFilter {
@@ -135,6 +137,12 @@ export interface TicketInput {
 
 export interface CreateTicketInput extends TicketInput {
   assigneeId?: string | null;
+}
+
+/** Chuyển ticket (BA 8.3): how many tickets the filter matched, and how many changed hands. */
+export interface TicketTransferResult {
+  matched: number;
+  transferred: number;
 }
 
 export interface CreateTicketResult {
@@ -180,6 +188,7 @@ function toParams(branchId: string | undefined, filter: TicketFilter) {
     OverdueOnly: filter.overdueOnly || undefined,
     CallBackDue: filter.callBackDue || undefined,
     ReturningCustomer: filter.returningCustomer,
+    ImportFileId: filter.importFileId,
   };
 }
 
@@ -270,6 +279,14 @@ export function useTicketCommands() {
     onSuccess: invalidate,
   });
   const restore = useMutation({ mutationFn: (id: string) => post(id, "restore"), onSuccess: invalidate });
+  /** Every ticket the filter matches, dealt in turn to the chosen staff — at the current branch only. */
+  const transfer = useMutation({
+    mutationFn: ({ filter, assigneeIds }: { filter: TicketFilter; assigneeIds: string[] }) =>
+      api
+        .post<TicketTransferResult>(`${TICKET_BASE}/transfer`, { ...toParams(clinicBranchId, filter), assigneeIds })
+        .then((r) => r.data),
+    onSuccess: invalidate,
+  });
 
-  return { create, update, contact, claim, assign, notPotential, reopen, book, remove, restore };
+  return { create, update, contact, claim, assign, notPotential, reopen, book, remove, restore, transfer };
 }

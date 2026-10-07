@@ -101,13 +101,13 @@ Kiểm tra lần cuối: 2026-10-07
 
 ## 8. MARKETING (Quản lý việc xử lý ticket & chuyển đổi)
 
-- [ ] 8.1 Danh sách Ticket — Quản lý danh sách ticket của từng nhân viên và trạng thái xử lý.
-- [ ] 8.2 Ticket Tag List — Quản lý & phân loại ticket theo từng Tag, cấu hình số ngày xử lý tối đa theo tag. Chuyển data cho telesale khác.
-- [ ] 8.3 Chuyển Ticket — Chuyển dữ liệu ticket theo điều kiện lọc cho nhân viên xử lý hoặc cho nhóm nhân viên khác.
-- [ ] 8.4 Ticket File — Quản lý ticket theo file, tình trạng xử lý theo từng file import. Import theo template có sẵn hoặc template tùy chọn. Chia dữ liệu cho nhóm hoặc cho nhân viên.
-- [ ] 8.5 Ticket đã xóa — Ghi nhận các ticket đã xóa, lý do xóa và khôi phục.
+- [x] 8.1 Danh sách Ticket — Quản lý danh sách ticket của từng nhân viên và trạng thái xử lý.
+- [x] 8.2 Ticket Tag List — Quản lý & phân loại ticket theo từng Tag, cấu hình số ngày xử lý tối đa theo tag. Chuyển data cho telesale khác.
+- [x] 8.3 Chuyển Ticket — Chuyển dữ liệu ticket theo điều kiện lọc cho nhân viên xử lý hoặc cho nhóm nhân viên khác.
+- [x] 8.4 Ticket File — Quản lý ticket theo file, tình trạng xử lý theo từng file import. Import theo template có sẵn hoặc template tùy chọn. Chia dữ liệu cho nhóm hoặc cho nhân viên.
+- [x] 8.5 Ticket đã xóa — Ghi nhận các ticket đã xóa, lý do xóa và khôi phục.
 - [ ] 8.6 Ticket Website — Ghi nhận các ticket từ website. Cung cấp API để đặt tại landing page, tích hợp trực tiếp dữ liệu từ website khách hàng về VTTECH.
-- [ ] 8.7 Lọc Ticket — Lọc dữ liệu ticket theo điều kiện tùy chỉnh.
+- [x] 8.7 Lọc Ticket — Lọc dữ liệu ticket theo điều kiện tùy chỉnh.
 - [ ] 8.8 Lọc Khách hàng — Lọc dữ liệu khách hàng theo điều kiện tùy chỉnh, chia dữ liệu đến nhân viên xử lý hoặc gửi sms, email.
 - [x] 8.9 Voucher — Khởi tạo voucher, cài đặt luật sử dụng, báo cáo khách hàng sử dụng voucher. Quản lý áp dụng theo dịch vụ, nhóm dịch vụ, thời gian, số lượng. Quản lý phát hành voucher, số lượng, template và chi tiết sử dụng.
 - [ ] 8.10 Chương trình Khuyến mãi — Tạo các CTKM & luật áp dụng, báo cáo theo từng chương trình. Quản lý áp dụng theo dịch vụ, nhóm dịch vụ, thời gian, số lượng.
@@ -139,9 +139,9 @@ Kiểm tra lần cuối: 2026-10-07
 - [x] 11.8 Phân quyền chỉnh sửa — Phân quyền chỉnh sửa, xóa, xuất dữ liệu.
 - [x] 11.9 Phân quyền chức năng theo nhóm user — Phân quyền truy cập chức năng theo nhóm user. Phân quyền các dữ liệu nhạy cảm, số điện thoại khách hàng.
 - [x] 11.10 Phân quyền xem report — Phân quyền xem báo cáo hệ thống.
-- [ ] 11.11 Xác thực IP theo chi nhánh — Quản lý việc đăng nhập theo địa chỉ IP. Cho phép hay không cho phép nhân viên đăng nhập khi ở ngoài công ty.
-- [ ] 11.12 Quy định giảm giá — Quy định chi tiết số phần trăm, tổng tiền giảm tối đa của user khi tư vấn, lên dịch vụ cho khách hàng.
-- [ ] 11.13 Quản lý thời gian sử dụng — Cấu hình thời gian mà user có thể sử dụng phần mềm. Ví dụ chỉ được đăng nhập vào hệ thống từ 6g sáng đến 8g tối.
+- [x] 11.11 Xác thực IP theo chi nhánh — Quản lý việc đăng nhập theo địa chỉ IP. Cho phép hay không cho phép nhân viên đăng nhập khi ở ngoài công ty.
+- [x] 11.12 Quy định giảm giá — Quy định chi tiết số phần trăm, tổng tiền giảm tối đa của user khi tư vấn, lên dịch vụ cho khách hàng.
+- [x] 11.13 Quản lý thời gian sử dụng — Cấu hình thời gian mà user có thể sử dụng phần mềm. Ví dụ chỉ được đăng nhập vào hệ thống từ 6g sáng đến 8g tối.
 
 ## 12. LABO (Quản lý phiếu yêu cầu & NCC Labo)
 
@@ -190,13 +190,13 @@ Kiểm tra lần cuối: 2026-10-07
 | 5. Kế toán | 7 | 2 | 5 |
 | 6. Dịch vụ | 7 | 2 | 5 |
 | 7. Kho | 7 | 3 | 4 |
-| 8. Marketing | 13 | 1 | 12 |
+| 8. Marketing | 13 | 7 | 6 |
 | 9. Đơn thuốc | 3 | 1 | 2 |
 | 10. Tích hợp | 3 | 1 | 2 |
-| 11. Nhân viên & User | 13 | 8 | 5 |
+| 11. Nhân viên & User | 13 | 11 | 2 |
 | 12. Labo | 3 | 3 | 0 |
 | 13. Cấu hình | 1 | 1 | 0 |
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 4 | 9 |
-| **Tổng cộng** | **123** | **65** | **58** |
+| **Tổng cộng** | **123** | **74** | **49** |

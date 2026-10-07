@@ -792,6 +792,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.ClinicBranchId, x.Phone });
             entity.HasIndex(x => x.AppointmentId);
             entity.HasIndex(x => x.AssigneeId);
+            // Ticket File (BA 8.4): the file list counts each file's tickets.
+            entity.HasIndex(x => x.ImportFileId);
         });
 
         builder.Entity<Marketing.TicketActivity>(entity =>
@@ -817,6 +819,16 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(Marketing.TicketTag.MaxNameLength).IsRequired();
             entity.Property(x => x.Color).HasMaxLength(Marketing.TicketTag.MaxColorLength).IsRequired();
             entity.HasIndex(x => new { x.ClinicBranchId, x.Name });
+        });
+
+        builder.Entity<Marketing.TicketImportFile>(entity =>
+        {
+            entity.ToTable("bd_marketing_ticket_import_files");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.FileName).HasMaxLength(Marketing.TicketImportFile.MaxFileNameLength).IsRequired();
+            entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.AssigneeIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.CreationTime });
         });
     }
 
