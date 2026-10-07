@@ -440,6 +440,23 @@ public static class BlueDentalDomainErrorCodes
         public const string ImportColumnMissing = "BlueDental:MarketingTicket:0015";
     }
 
+    /// <summary>Bảng lương (Cụm 11 mục 5–6). BlueDental-local.</summary>
+    public static class Payroll
+    {
+        /// <summary>Lương cơ bản / phụ cấp below zero.</summary>
+        public const string InvalidCompensation = "BlueDental:Payroll:0001";
+        /// <summary>A month outside 1–12 or a year outside 2000–2100.</summary>
+        public const string InvalidPeriod = "BlueDental:Payroll:0002";
+        /// <summary>Ngày công chuẩn outside (0, 31] or hệ số tăng ca outside [1, 5].</summary>
+        public const string InvalidTerms = "BlueDental:Payroll:0003";
+        /// <summary>A finalized sheet cannot be recalculated, edited or deleted.</summary>
+        public const string NotDraft = "BlueDental:Payroll:0004";
+        /// <summary>A negative bonus / deduction, or a corrected ngày công outside 0–31.</summary>
+        public const string InvalidAdjustment = "BlueDental:Payroll:0005";
+        /// <summary>The branch already has a sheet for that month.</summary>
+        public const string DuplicatePeriod = "BlueDental:Payroll:0006";
+    }
+
     public static class Queue
     {
         public const string TicketNotFound = "BlueDental:Queue:0001";

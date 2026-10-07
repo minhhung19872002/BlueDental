@@ -7279,3 +7279,17 @@ Host chung :5000 (của phiên khác) vẫn chạy code cũ — chưa có 3 sử
 | R-811 | Owner: xem phiếu thu ở tab riêng, không phải modal. Tab mở sau khi PDF về bị trình duyệt chặn (không còn trong cử chỉ click). | `openReceiptTab()` gọi `window.open("", "_blank")` **đồng bộ** trong click, ghi "Đang tạo phiếu thu…", PDF về thì `tab.location.href = blobURL` (thu hồi sau 10 phút); lỗi thì đóng tab. Không có tab (bị chặn) → thử mở lại, vẫn bị chặn → toast `Treatment:PaymentReceipt:PopupBlocked`. Lỗi API của request `responseType: "blob"` phải đọc lại JSON từ Blob (`withReadableError`) để toast toàn cục hiện đúng thông báo ABP. Phát Hành không tick → hộp thoại vẫn mở để sửa và in lại; tick và ký thành công → đóng như cũ. |
 | R-812 | e2e: lần đầu không thấy ô "Xuất hóa đơn đỏ" — cổng 8091 đang là `vite preview` của phiên khác (bản build cũ), preview của mình báo "Port 8091 is already in use" mà lệnh vẫn chạy tiếp. Sau đó tab mới đứng ở `about:blank`. | Kiểm `index-*.js` mà cổng trả về so với `dist-*/assets` trước khi chạy spec; dùng cổng trống (:8098). Headless Chromium không có trình xem PDF → điều hướng tab tới blob PDF thành **download** của tab đó, URL tab giữ `about:blank`; spec chấp nhận một trong hai (URL tab `blob:` hoặc `download.url()` là `blob:`). Không tick "Xuất hóa đơn đỏ" trong e2e (sẽ ký HĐĐT thật trên nhà cung cấp). |
 | R-813 | Bằng chứng. | Build production :8098 → host :5000 → PostgreSQL + Gotenberg thật, không chặn API: `payment-receipt-pdf` **3/3**; hồi quy mức 3 (InvoiceModal dùng chung): `billing-ledger` + `einvoice-api` + `payment-permission-buttons` + `vat-payment-einvoice-api` **13/13**, `treatment-plan` **9/9**. Application.Tests `PaymentReceiptTemplateTests` + `ElectronicInvoiceAppServiceContractTests` **15/15**. Mẫu chưa điền đổi qua Gotenberg ra PDF đúng dấu tiếng Việt, logo, bố cục. Retest level **3**. Chưa commit (`wwwroot/` và `Printing/` đang untracked). |
+## 2026-10-07 — Cụm 11 mục 5–6: Bảng lương (R-814, F-57)
+
+Quyết định ghi ở `docs/clone/pages/payroll.md`.
+
+| ID | Vấn đề / yêu cầu | Xử lý |
+|---|---|---|
+| R-814 | Rà bảo mật trước khi push: `SetCompensationAsync` bỏ qua kiểm tra chi nhánh khi nhân viên đích không gán chi nhánh nào, nên quản lý một chi nhánh đặt được lương cho tài khoản toàn phòng khám (admin, quản lý phòng khám). | Nhân viên không gán chi nhánh chỉ người toàn phòng khám mới đặt lương; kiểm tra trước khi đọc tài khoản. e2e thêm ca 403. |
+
+Ghi chú môi trường: DbMigrator local hỏng ở seed demo (`SlotInThePast`, có từ trước) nên seed quyền bị rollback — quyền `payroll.*`
+cho 3 vai trò tĩnh được cấp ở local qua API permission-management; production bỏ qua seed demo nên seed quyền chạy bình thường.
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): `payroll` **3/3**.
+BE: Domain.Tests **726** (mới `PayrollTests` 16, catalog 89 subject), Application.Tests **676**, HttpApi.Host.Tests **24**. Migration `Payroll` tạo 3 bảng.
+Hồi quy (`staff`, `staff-penalty`, `staff-penalty-api`, `staff-day-off-api`, `timekeeping-api`, `timekeeping-leave`, `role-permissions-tree`,
+`role-permissions-unsaved`, `payroll`, `discount-limit`): **25/25**. tsc + eslint sạch. Retest level **3**.

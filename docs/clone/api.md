@@ -1939,3 +1939,9 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
 - `StaffDto` / create / update thêm `maxDiscountPercent` (0–100) và `maxDiscountAmount` (VNĐ), `null` = không giới hạn; sai → 403 `BlueDental:Staff:0008`.
 - Ghi giảm giá vượt giới hạn của người đang thao tác (tư vấn, báo giá, phiếu điều trị) → 403 `BlueDental:Treatment:0042` (data `MaxPercent`) hoặc `0043` (data `MaxAmount`).
   Chi tiết: `docs/clone/pages/discount-limit.md`.
+
+## Bảng lương — BlueDental riêng (2026-10-07, cụm 11 mục 5–6)
+
+`/api/v1/app/payroll/periods` (list / get / create / recalculate / terms / entries / finalize / delete / excel) và
+`/api/v1/app/payroll/compensations` (lương cơ bản & phụ cấp). Quyền subject `payroll`; lỗi `BlueDental:Payroll:0001`–`0006`.
+Chi tiết hợp đồng API: `docs/clone/pages/payroll.md`.

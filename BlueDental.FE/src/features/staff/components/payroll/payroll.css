@@ -1,0 +1,42 @@
+/* Nhân viên → Bảng lương (Cụm 11 mục 5–6) */
+.payroll-views {
+  margin-bottom: 12px;
+}
+
+.payroll-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.payroll-toolbar__terms {
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.payroll-toolbar__total {
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+
+.payroll-table {
+  overflow: hidden;
+}
+
+.payroll-hint {
+  margin: 0 0 12px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.payroll-overridden {
+  border-bottom: 1px dashed var(--bd-primary);
+  cursor: help;
+}
+
+.payroll-dialog__number {
+  width: 100%;
+}
