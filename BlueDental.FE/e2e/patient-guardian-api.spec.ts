@@ -28,6 +28,7 @@ const CODE = {
   otherIncomplete: "BlueDental:Patient:0017",
   invalidDocument: "BlueDental:Patient:0018",
   incomplete: "BlueDental:Patient:0019",
+  duplicateNationalId: "BlueDental:Patient:0012",
 } as const;
 
 const RELATION = { Father: 1, Mother: 2, Other: 8 } as const;
@@ -53,6 +54,7 @@ interface PatientInput {
   gender: number;
   phoneNumber: string;
   dateOfBirth: string | null;
+  nationalId?: string | null;
   guardians?: GuardianInput[] | null;
   guardiansConsented?: boolean;
 }
@@ -67,6 +69,8 @@ interface Body {
   id?: string;
   firstName?: string;
   phoneNumber?: string | null;
+  /** `GET /patients/check-phone`. */
+  exists?: boolean;
   guardians?: (GuardianInput & { id: string; consentedAt: string })[];
   blobName?: string;
   fileName?: string;
@@ -118,7 +122,7 @@ async function send(
       }
       const res = await fetch(url, { method, credentials: "include", headers, body });
       const text = await res.text();
-      let parsed: unknown = {};
+      let parsed: unknown;
       try {
         parsed = text ? JSON.parse(text) : {};
       } catch {
@@ -136,6 +140,37 @@ async function sendAsOwnBranch(page: Page, url: string): Promise<number> {
     const res = await fetch(target, { credentials: "include", headers: { accept: "application/json" } });
     return res.status;
   }, url);
+}
+
+const CANDIDATES = `${PATIENTS}/guardian-candidates`;
+const SOURCE = { Patient: 1, Guardian: 2 } as const;
+
+interface Candidate {
+  source: number;
+  patientId: string | null;
+  fullName: string;
+  phone: string | null;
+  nationalId: string | null;
+  wards: { patientId: string; patientCode: string; fullName: string }[];
+}
+
+/** `GET /patients/guardian-candidates` — the guardian popup's search box. */
+async function findCandidates(
+  page: Page,
+  filter: string,
+  excludePatientId?: string,
+): Promise<{ status: number; items: Candidate[] }> {
+  const query = new URLSearchParams({ filter, ...(excludePatientId ? { excludePatientId } : {}) });
+  return page.evaluate(
+    async ({ url, branch }) => {
+      const res = await fetch(url, {
+        credentials: "include",
+        headers: { accept: "application/json", "X-Clinic-Branch-Id": branch },
+      });
+      return { status: res.status, items: (await res.json()) as Candidate[] };
+    },
+    { url: `${CANDIDATES}?${query}`, branch: BRANCH_ONE },
+  );
 }
 
 /** Two digits that differ for every person one run makes, so no two share a phone or a CCCD. */
@@ -285,6 +320,132 @@ test.describe("Patient guardians (real API)", () => {
       child(id, "A", [guardian(id, "1", { isPrimaryContact: true })]),
     );
     expect(withGuardian.status, JSON.stringify(withGuardian.body)).toBe(200);
+  });
+
+  test("a guardian is not a hồ sơ: one person can guard several patients, and only hồ sơ stay unique", async ({ page }) => {
+    // BA, 2026-10-07: "hồ sơ khách hàng / bệnh nhân thì unique, còn người giám hộ
+    // thì ko unique" — siblings A and B declare the same mother, same phone.
+    const id = runId();
+    const mother = guardian(id, "1", { isPrimaryContact: true });
+    const father = guardian(id, "2", { relation: RELATION.Father });
+
+    // The mother is also a patient here: her own hồ sơ holds that phone and CCCD.
+    const adult = await send(page, "POST", PATIENTS, {
+      firstName: "Mẹ",
+      lastName: `Giám hộ E2E ${id}`,
+      gender: 2,
+      phoneNumber: mother.phone,
+      nationalId: mother.nationalId,
+      dateOfBirth: yearsAgo(35),
+    });
+    expect(adult.status, JSON.stringify(adult.body)).toBe(200);
+
+    const childA = await send(page, "POST", PATIENTS, child(id, "A", [mother, father]));
+    expect(childA.status, JSON.stringify(childA.body)).toBe(200);
+    const childB = await send(page, "POST", PATIENTS, child(id, "B", [{ ...mother }]));
+    expect(childB.status, JSON.stringify(childB.body)).toBe(200);
+    // Two rows, one per child, with the same phone and CCCD.
+    expect(childB.body.guardians?.[0]).toMatchObject({ phone: mother.phone, nationalId: mother.nationalId });
+    expect(childB.body.guardians?.[0].id).not.toBe(childA.body.guardians?.[0].id);
+
+    // Adding the same mother again through the Hồ sơ tab's block is fine too.
+    const readded = await send(page, "PUT", `${PATIENTS}/${childB.body.id}/guardians`, {
+      guardians: [{ ...childB.body.guardians![0] }, { ...father }],
+      guardiansConsented: true,
+    });
+    expect(readded.status, JSON.stringify(readded.body)).toBe(200);
+    expect(readded.body.guardians).toHaveLength(2);
+
+    // Declaring a guardian makes no hồ sơ: the father's phone belongs to none.
+    const fatherPhone = await send(page, "GET", `${PATIENTS}/check-phone?phone=${father.phone}`);
+    expect(fatherPhone.body.exists).toBe(false);
+    // The mother's phone is found once — her own hồ sơ, not her guardian rows.
+    const motherPhone = await send(page, "GET", `${PATIENTS}/check-phone?phone=${mother.phone}`);
+    expect(motherPhone.body.exists).toBe(true);
+
+    // A second hồ sơ with her CCCD is still refused: hồ sơ stay unique.
+    const twin = await send(page, "POST", PATIENTS, {
+      firstName: "Mẹ 2",
+      lastName: `Giám hộ E2E ${id}`,
+      gender: 2,
+      phoneNumber: `08${id}${serial()}`,
+      nationalId: mother.nationalId,
+      dateOfBirth: yearsAgo(35),
+    });
+    expect(twin.body.error?.code).toBe(CODE.duplicateNationalId);
+  });
+
+  test("the guardian search finds hồ sơ and guardians already on file, one person once", async ({ page, browser }) => {
+    // BA, 2026-10-07: "tìm cả 2 đi e … Quản lý tập trung 1 số đt" — a phone may
+    // be on file only as somebody's guardian; the box must find it there too.
+    const id = runId();
+    const mother = guardian(id, "Mẹ", { isPrimaryContact: true });
+    const father = guardian(id, "Bố", { relation: RELATION.Father });
+
+    const childA = await send(page, "POST", PATIENTS, child(id, "A", [mother, father]));
+    expect(childA.status, JSON.stringify(childA.body)).toBe(200);
+    const childB = await send(page, "POST", PATIENTS, child(id, "B", [{ ...mother }]));
+    expect(childB.status, JSON.stringify(childB.body)).toBe(200);
+
+    // The mother has no hồ sơ, yet her phone finds her — once, with both children.
+    const byPhone = await findCandidates(page, mother.phone);
+    expect(byPhone.status).toBe(200);
+    expect(byPhone.items).toEqual([
+      expect.objectContaining({
+        source: SOURCE.Guardian,
+        patientId: null,
+        fullName: mother.fullName,
+        phone: mother.phone,
+        nationalId: mother.nationalId,
+      }),
+    ]);
+    expect(byPhone.items[0].wards.map((w) => w.fullName).sort()).toEqual([
+      `Giám hộ E2E ${id} A`,
+      `Giám hộ E2E ${id} B`,
+    ]);
+
+    // So does her CCCD.
+    const byNationalId = await findCandidates(page, mother.nationalId);
+    expect(byNationalId.items.map((c) => c.fullName)).toEqual([mother.fullName]);
+
+    // The hồ sơ being edited never offers its own guardians: the father guards only A.
+    expect((await findCandidates(page, father.phone)).items).toHaveLength(1);
+    expect((await findCandidates(page, father.phone, childA.body.id)).items).toEqual([]);
+    // Editing B still finds the mother through A.
+    const fromB = await findCandidates(page, mother.phone, childB.body.id);
+    expect(fromB.items[0].wards.map((w) => w.patientId)).toEqual([childA.body.id]);
+
+    // A person with a hồ sơ who also guards somebody is offered once, as the hồ sơ.
+    const grandma = guardian(id, "Bà");
+    const adult = await send(page, "POST", PATIENTS, {
+      firstName: "Bà",
+      lastName: `Giám hộ E2E ${id}`,
+      gender: 2,
+      phoneNumber: grandma.phone,
+      nationalId: grandma.nationalId,
+      dateOfBirth: yearsAgo(60),
+    });
+    expect(adult.status, JSON.stringify(adult.body)).toBe(200);
+    const childC = await send(page, "POST", PATIENTS, child(id, "C", [{ ...grandma, isPrimaryContact: true }]));
+    expect(childC.status, JSON.stringify(childC.body)).toBe(200);
+    const both = await findCandidates(page, grandma.phone);
+    expect(both.items).toEqual([
+      expect.objectContaining({ source: SOURCE.Patient, patientId: adult.body.id, nationalId: grandma.nationalId }),
+    ]);
+
+    // An empty box asks nothing.
+    expect((await findCandidates(page, " ")).items).toEqual([]);
+
+    // Another branch finds none of them.
+    const elsewhere = await browser.newPage();
+    await login(elsewhere, BRANCH2_USER);
+    await elsewhere.goto("/patient");
+    const foreign = await elsewhere.evaluate(async (url) => {
+      const res = await fetch(url, { credentials: "include", headers: { accept: "application/json" } });
+      return { status: res.status, body: (await res.json()) as unknown };
+    }, `${CANDIDATES}?filter=${mother.phone}`);
+    expect(foreign).toEqual({ status: 200, body: [] });
+    await elsewhere.close();
   });
 
   test("the Hồ sơ tab's block writes the group alone, keeps consent dates, and stays in its branch", async ({ page, browser }) => {

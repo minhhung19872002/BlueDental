@@ -5,6 +5,7 @@ import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
+import type { GuardianCandidate } from "../../types/patient";
 import { GuardianRelationField } from "./GuardianRelationField";
 import { GuardianSearch } from "./GuardianSearch";
 
@@ -13,7 +14,7 @@ interface Props {
   /** "Lấy theo: …" — the patient's address as the hồ sơ dialog currently holds it. */
   patientAddress: string;
   excludePatientId?: string;
-  onPick: (patientId: string) => void;
+  onPick: (found: GuardianCandidate) => void;
   onPrimaryChange: (checked: boolean) => void;
 }
 

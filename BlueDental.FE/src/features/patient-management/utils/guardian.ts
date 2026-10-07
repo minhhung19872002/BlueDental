@@ -9,7 +9,7 @@ import {
   type GenderCode,
   type GuardianProofTypeCode,
   type GuardianRelationCode,
-  type PatientDto,
+  type GuardianCandidate,
   type PatientGuardianDto,
   type PatientGuardianInput,
 } from "../types/patient";
@@ -152,20 +152,24 @@ export function guardianFromDto(dto: PatientGuardianDto): GuardianDraft {
 }
 
 /**
- * "Tìm & điền": an existing hồ sơ's details over the guardian being typed.
- * The relation, address choice and primary tick stay the desk's to decide.
+ * "Tìm & điền": a hồ sơ's — or a guardian already on file's — details over the
+ * guardian being typed (R-780). The relation, address choice and primary tick
+ * stay the desk's to decide; a hồ sơ carries no CCCD issue date or place, so
+ * whatever was typed there stays.
  */
-export function fillGuardianFromPatient(draft: GuardianDraft, patient: PatientDto): GuardianDraft {
+export function fillGuardianFromCandidate(draft: GuardianDraft, found: GuardianCandidate): GuardianDraft {
   return {
     ...draft,
-    linkedPatientId: patient.id,
-    fullName: patient.fullName,
-    phone: patient.phoneNumber ?? "",
-    nationalId: patient.nationalId ?? "",
-    dateOfBirth: patient.dateOfBirth ? dayjs(patient.dateOfBirth) : null,
-    gender: GENDER_BY_CODE[patient.gender],
-    email: patient.email ?? "",
-    occupationEntryId: patient.occupationEntryId ?? undefined,
+    linkedPatientId: found.patientId,
+    fullName: found.fullName,
+    phone: found.phone ?? "",
+    nationalId: found.nationalId ?? "",
+    dateOfBirth: found.dateOfBirth ? dayjs(found.dateOfBirth) : null,
+    idIssuedOn: found.idIssuedOn ? dayjs(found.idIssuedOn) : draft.idIssuedOn,
+    idIssuedPlace: found.idIssuedPlace ?? draft.idIssuedPlace,
+    gender: found.gender === null ? undefined : GENDER_BY_CODE[found.gender],
+    email: found.email ?? "",
+    occupationEntryId: found.occupationEntryId ?? undefined,
   };
 }
 

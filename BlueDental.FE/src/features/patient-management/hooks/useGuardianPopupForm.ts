@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Form } from "antd";
 import { t } from "@/lib/i18n";
-import { GUARDIAN_LIMITS, type PatientDto } from "../types/patient";
+import { GUARDIAN_LIMITS, type GuardianCandidate } from "../types/patient";
 import {
   emptyGuardian,
-  fillGuardianFromPatient,
+  fillGuardianFromCandidate,
   type GuardianDraft,
   type GuardianGroup,
 } from "../utils/guardian";
@@ -86,11 +86,11 @@ export function useGuardianPopupForm(focus: GuardianPopupFocus | null, group: Gu
     [current, form],
   );
 
-  const fillFromPatient = useCallback(
-    (index: number, patient: PatientDto) => {
+  const fillFrom = useCallback(
+    (index: number, found: GuardianCandidate) => {
       const list = current();
       if (!list[index]) return;
-      form.setFieldValue(["guardians", index], fillGuardianFromPatient(list[index], patient));
+      form.setFieldValue(["guardians", index], fillGuardianFromCandidate(list[index], found));
       void form.validateFields(
         ["fullName", "phone", "nationalId"].map((field) => ["guardians", index, field]),
       ).catch(() => undefined);
@@ -122,5 +122,5 @@ export function useGuardianPopupForm(focus: GuardianPopupFocus | null, group: Gu
     return { guardians: values.guardians, consented: values.consented };
   }, [current, form]);
 
-  return { form, guardians, activeKeys, setActiveKeys, add, remove, setPrimary, fillFromPatient, submit };
+  return { form, guardians, activeKeys, setActiveKeys, add, remove, setPrimary, fillFrom, submit };
 }

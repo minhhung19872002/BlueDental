@@ -6,20 +6,39 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  *
  * A 9-year-old cannot be saved until a guardian is entered: the age chip, the
  * banner, the red dot and the footer note say so, and Lưu stays disabled.
- * "Nhập ngay" opens the popup; one guardian is typed in, a second is found by
- * phone among the existing hồ sơ ("Tìm & điền"), and "Lưu & quay lại hồ sơ"
- * hands both back as cards. Lưu writes them; after a reload the edit dialog
- * reads the same group back from the database.
+ * "Nhập ngay" opens the popup; one guardian is typed in. The search box finds
+ * both an existing hồ sơ and somebody on file only as another child's guardian
+ * (BA 2026-10-07, R-780); the latter is filled in with "Tìm & điền", and
+ * "Lưu & quay lại hồ sơ" hands both back as cards. Lưu writes them; after a
+ * reload the edit dialog reads the same group back from the database.
  *
- * Real login, real API, real database; nothing is intercepted. The adult who is
- * found by the search is created through the real API first.
+ * Real login, real API, real database; nothing is intercepted. The adult and the
+ * other child (with its guardian) are created through the real API first.
  */
 
 const PATIENTS = "/api/v1/app/patients";
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
 
-/** An adult hồ sơ to be found by phone, made through the logged-in page. */
-async function createAdult(page: Page, lastName: string, phone: string): Promise<void> {
+interface NewPatient {
+  firstName: string;
+  lastName: string;
+  gender: number;
+  phoneNumber: string;
+  dateOfBirth: string;
+  guardians?: {
+    relation: number;
+    fullName: string;
+    phone: string;
+    nationalId: string;
+    idIssuedPlace: string;
+    sameAddressAsPatient: boolean;
+    isPrimaryContact: boolean;
+  }[];
+  guardiansConsented?: boolean;
+}
+
+/** A hồ sơ made through the logged-in page, to be found by the search box. */
+async function createPatient(page: Page, body: NewPatient): Promise<void> {
   const status = await page.evaluate(
     async ({ url, branch, body }) => {
       const xsrf = document.cookie
@@ -42,7 +61,7 @@ async function createAdult(page: Page, lastName: string, phone: string): Promise
     {
       url: PATIENTS,
       branch: BRANCH_ONE,
-      body: { firstName: "Bố", lastName, gender: 1, phoneNumber: phone, dateOfBirth: "1985-03-10" },
+      body,
     },
   );
   expect(status).toBe(200);
@@ -62,7 +81,28 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   const id = runId();
   const childName = `E2E ${id} Giám Hộ`;
   const fatherPhone = `03${id}88`;
-  await createAdult(page, `E2E ${id}`, fatherPhone);
+  await createPatient(page, { firstName: "Bố", lastName: `E2E ${id}`, gender: 1, phoneNumber: fatherPhone, dateOfBirth: "1985-03-10" });
+  // A grandmother with no hồ sơ of her own, declared for another grandchild.
+  const grandma = { name: `Bà E2E ${id}`, phone: `07${id}33`, nationalId: `0791${id}33`, issuedPlace: "Cục CS QLHC về TTXH" };
+  await createPatient(page, {
+    firstName: "Cháu",
+    lastName: `E2E ${id}`,
+    gender: 2,
+    phoneNumber: `09${id}77`,
+    dateOfBirth: `${new Date().getFullYear() - 7}-02-01`,
+    guardians: [
+      {
+        relation: 4,
+        fullName: grandma.name,
+        phone: grandma.phone,
+        nationalId: grandma.nationalId,
+        idIssuedPlace: grandma.issuedPlace,
+        sameAddressAsPatient: true,
+        isPrimaryContact: true,
+      },
+    ],
+    guardiansConsented: true,
+  });
 
   await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Tạo hồ sơ" }).click();
   const editor = page.getByRole("dialog", { name: "Tạo hồ sơ" });
@@ -108,17 +148,42 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   await field(popup, "Điện thoại").fill(`07${id}11`);
   await field(popup, "CCCD").fill(`0791${id}11`);
 
-  // Guardian 2, found by phone among the existing hồ sơ.
+  // Guardian 2, found by the search box.
   await popup.getByRole("button", { name: "Thêm người giám hộ thứ 2" }).click();
   await expect(popup.getByText("NHÓM NGƯỜI GIÁM HỘ (2)")).toBeVisible();
   await expect(popup.getByText("2 người giám hộ trong nhóm")).toBeVisible();
   const second = popup.locator(".ant-collapse-item").nth(1);
-  await second.getByRole("textbox", { name: "Tìm người giám hộ đã có hồ sơ" }).fill(fatherPhone);
+  const search = second.getByRole("textbox", { name: "Tìm người giám hộ đã có hồ sơ" });
+
+  // Typing a CCCD no hồ sơ holds never flashes the most recent patients (R-779).
+  await page.evaluate(() => {
+    new MutationObserver(() => {
+      if (document.querySelector(".bd-guardian-search-results")) document.body.dataset.guardianListShown = "1";
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  const unknownId = `0791${id}99`;
+  const searched = page.waitForResponse((r) => r.url().includes(`guardian-candidates?filter=${unknownId}`));
+  await search.pressSequentially(unknownId, { delay: 40 });
+  await searched;
+  await expect(second.locator(".bd-guardian-search-results")).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.dataset.guardianListShown ?? "")).toBe("");
+
+  // An existing hồ sơ is offered with its code…
+  const results = second.locator(".bd-guardian-search-results");
+  await search.fill(fatherPhone);
+  await expect(results.getByRole("button")).toHaveCount(1);
+  await expect(results.getByRole("button")).toContainText(`${fatherPhone} · `);
+
+  // …and somebody on file only as another child's guardian, with whom she guards.
+  await search.fill(grandma.phone);
+  await expect(results.getByRole("button")).toHaveCount(1);
+  await expect(results.getByRole("button")).toContainText(`${grandma.phone} · Người giám hộ của E2E ${id} Cháu`);
   await second.getByRole("button", { name: "Tìm & điền" }).click();
-  await expect(field(second, "Điện thoại")).toHaveValue(fatherPhone);
-  await expect(field(second, "Họ và tên")).toHaveValue(new RegExp(`E2E ${id}`, "i"));
-  await second.getByRole("radio", { name: "Bố" }).click();
-  await field(second, "CCCD").fill(`0791${id}22`);
+  await expect(field(second, "Điện thoại")).toHaveValue(grandma.phone);
+  await expect(field(second, "Họ và tên")).toHaveValue(grandma.name);
+  await expect(field(second, "CCCD")).toHaveValue(grandma.nationalId);
+  await expect(field(second, "Nơi cấp")).toHaveValue(grandma.issuedPlace);
+  await second.getByRole("radio", { name: "Bà" }).click();
 
   await popup.getByRole("checkbox", { name: /Các người giám hộ xác nhận/ }).check();
   await popup.getByRole("button", { name: "Lưu & quay lại hồ sơ" }).click();
@@ -131,7 +196,7 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   await expect(cards).toHaveCount(2);
   await expect(cards.first()).toContainText(`Mẹ E2E ${id}`);
   await expect(cards.first()).toContainText("Liên hệ chínhCó");
-  await expect(cards.nth(1)).toContainText(fatherPhone);
+  await expect(cards.nth(1)).toContainText(grandma.phone);
   await editor.getByRole("button", { name: SAVE }).click();
   await expect(editor).toBeHidden({ timeout: 15_000 });
 
@@ -144,6 +209,6 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   await expect(saved).toHaveCount(2);
   await expect(saved.first()).toContainText(`Mẹ E2E ${id}`);
   await expect(saved.first()).toContainText("Đã xác nhận");
-  await expect(saved.nth(1)).toContainText(fatherPhone);
+  await expect(saved.nth(1)).toContainText(grandma.phone);
   await expect(reopened.getByRole("button", { name: SAVE })).toBeEnabled();
 });

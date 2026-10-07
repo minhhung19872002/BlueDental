@@ -81,6 +81,43 @@ export interface UpdatePatientGuardiansRequest {
   guardiansConsented: boolean;
 }
 
+/** Mirrors BlueDental.PatientManagement.GuardianCandidateSource. */
+export const GUARDIAN_CANDIDATE_SOURCE = {
+  Patient: 1,
+  Guardian: 2,
+} as const;
+export type GuardianCandidateSourceCode =
+  (typeof GUARDIAN_CANDIDATE_SOURCE)[keyof typeof GUARDIAN_CANDIDATE_SOURCE];
+
+/** Mirrors BlueDental.PatientManagement.GuardianWardDto — a patient a guardian already answers for. */
+export interface GuardianWard {
+  patientId: string;
+  patientCode: string;
+  fullName: string;
+}
+
+/**
+ * Mirrors BlueDental.PatientManagement.GuardianCandidateDto: a hồ sơ, or a
+ * guardian already on file for another patient (BA 2026-10-07, R-780).
+ */
+export interface GuardianCandidate {
+  source: GuardianCandidateSourceCode;
+  /** The hồ sơ a copied guardian links to, if any. */
+  patientId: string | null;
+  patientCode: string | null;
+  fullName: string;
+  phone: string | null;
+  nationalId: string | null;
+  /** "YYYY-MM-DD". */
+  dateOfBirth: string | null;
+  idIssuedOn: string | null;
+  idIssuedPlace: string | null;
+  gender: GenderCode | null;
+  email: string | null;
+  occupationEntryId: string | null;
+  wards: GuardianWard[];
+}
+
 /** What the guardian-document upload hands back. */
 export interface GuardianDocument {
   blobName: string;

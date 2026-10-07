@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import { downloadFile } from "@/lib/download";
 import type {
+  GuardianCandidate,
   GuardianDocument,
   PagedResult,
   PatientCodeEstimate,
@@ -31,6 +32,12 @@ export const patientApi = {
   checkPhone: (phone: string, excludeId?: string): Promise<PhoneAvailability> =>
     api
       .get<PhoneAvailability>(`${BASE}/check-phone`, { params: { phone, excludeId } })
+      .then((r) => r.data),
+
+  /** "Tìm người giám hộ đã có hồ sơ": hồ sơ and guardians already on file (R-780). */
+  guardianCandidates: (filter: string, excludePatientId?: string): Promise<GuardianCandidate[]> =>
+    api
+      .get<GuardianCandidate[]>(`${BASE}/guardian-candidates`, { params: { filter, excludePatientId } })
       .then((r) => r.data),
 
   /** "Quét CCCD" — the record in this branch that already holds the number, if any. */

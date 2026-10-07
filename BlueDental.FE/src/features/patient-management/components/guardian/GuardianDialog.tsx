@@ -1,9 +1,6 @@
 import { Button, Checkbox, Form, Modal } from "antd";
 import { ArrowLeftOutlined, PlusOutlined, RightOutlined, SaveOutlined } from "@ant-design/icons";
-import { notifyError } from "@/lib/notify";
-import { describeApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import { useFetchPatientDto } from "../../api/patientQueries";
 import { useGuardianPopupForm } from "../../hooks/useGuardianPopupForm";
 import type { GuardianPopupFocus } from "../../hooks/usePatientGuardians";
 import { GUARDIAN_LIMITS } from "../../types/patient";
@@ -49,17 +46,8 @@ export function GuardianDialog({
   saving,
 }: Props) {
   const popup = useGuardianPopupForm(focus, group);
-  const fetchPatient = useFetchPatientDto();
   const grouped = popup.guardians.length > 1;
   const full = popup.guardians.length >= GUARDIAN_LIMITS.maxPerPatient;
-
-  const handlePick = async (index: number, id: string) => {
-    try {
-      popup.fillFromPatient(index, await fetchPatient(id));
-    } catch (error) {
-      notifyError(describeApiError(error).message);
-    }
-  };
 
   const handleSave = async () => {
     const next = await popup.submit();
@@ -71,7 +59,7 @@ export function GuardianDialog({
       index={index}
       patientAddress={patientAddress}
       excludePatientId={patientId}
-      onPick={(id) => void handlePick(index, id)}
+      onPick={(found) => popup.fillFrom(index, found)}
       onPrimaryChange={(checked) => popup.setPrimary(index, checked)}
     />
   );

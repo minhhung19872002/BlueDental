@@ -35,6 +35,7 @@ The popup **Thông tin người giám hộ**:
   - Footer: "n người giám hộ trong nhóm".
 - **Each form**:
   - The label "Tìm người giám hộ đã có hồ sơ"; the input "Nhập số điện thoại hoặc CCCD để tự động điền thông tin"; a pale-blue **Tìm & điền**.
+    - BA chat 2026-10-07 (R-780): it searches hồ sơ **and** guardians already declared for other patients ("tìm cả 2 … quản lý tập trung 1 số đt"). Hồ sơ rows show "SĐT · mã"; guardian rows show "SĐT · Người giám hộ của …". Picking one fills the form from it.
   - Relation pills: Bố, Mẹ, Ông, Bà, Anh/Chị ruột, Cô/Dì/Chú/Bác, Người giám hộ hợp pháp, Khác.
     - **Khác** adds Ghi rõ quan hệ\*, Giấy tờ chứng minh quyền giám hộ\*, and an upload (JPG, PNG, PDF ≤ 5MB).
   - Họ và tên\*, Điện thoại\*, CCCD / Hộ chiếu\*.

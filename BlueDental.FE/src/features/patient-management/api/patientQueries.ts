@@ -1,8 +1,9 @@
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 import { patientApi } from "./patientApi";
 import { adaptPatient } from "./patientAdapters";
-import type { PatientListQuery } from "../types/patient";
+import type { GuardianCandidate, PatientListQuery } from "../types/patient";
 
 export const patientKeys = {
   all: ["patients"] as const,
@@ -33,40 +34,53 @@ export function useNationalIdLookup() {
   );
 }
 
-/**
- * One whole record on demand — the guardian popup's "Tìm & điền" copies an
- * existing hồ sơ's details into the form the moment one is picked.
- */
-export function useFetchPatientDto() {
-  const queryClient = useQueryClient();
+/** What the guardian search box asked, and what came back for it. */
+export interface GuardianCandidateResults {
+  /** The text these rows answer — a kept placeholder answers an older one. */
+  keyword: string;
+  items: GuardianCandidate[];
+}
 
-  return useCallback(
-    (id: string) =>
-      queryClient.fetchQuery({
-        queryKey: [...patientKeys.detail(id), "dto"],
-        queryFn: () => patientApi.get(id),
-      }),
-    [queryClient],
-  );
+const guardianCandidateKey = (keyword: string, excludeId?: string) =>
+  [...patientKeys.all, "guardian-candidates", keyword, excludeId ?? null] as const;
+
+const fetchGuardianCandidates = async (
+  keyword: string,
+  excludeId?: string,
+): Promise<GuardianCandidateResults> => ({
+  keyword,
+  items: await patientApi.guardianCandidates(keyword, excludeId),
+});
+
+/**
+ * "Tìm người giám hộ đã có hồ sơ" as the desk types: hồ sơ and guardians
+ * already declared for other patients (BA 2026-10-07, R-780). Nothing is
+ * asked for an empty box.
+ */
+export function useGuardianCandidates(keyword: string, excludeId?: string) {
+  const debounced = useDebounce(keyword, 300);
+  return useQuery({
+    queryKey: guardianCandidateKey(debounced, excludeId),
+    queryFn: () => fetchGuardianCandidates(debounced, excludeId),
+    enabled: debounced !== "",
+    placeholderData: (previous) => previous,
+  });
 }
 
 /**
- * The guardian popup's "Tìm & điền": the records matching a phone or CCCD as
- * typed, asked the moment Enter is pressed rather than after the picker's
- * debounce.
+ * The same search the moment Enter or "Tìm & điền" is pressed, rather than
+ * after the debounce. Never served stale: someone may have been declared since.
  */
-export function useFindPatients() {
+export function useFindGuardianCandidates() {
   const queryClient = useQueryClient();
 
   return useCallback(
-    (filter: string) => {
-      const params: PatientListQuery = { filter, maxResultCount: 5 };
-      return queryClient.fetchQuery({
-        queryKey: patientKeys.list(params),
-        queryFn: () => patientApi.list(params),
+    (keyword: string, excludeId?: string) =>
+      queryClient.fetchQuery({
+        queryKey: guardianCandidateKey(keyword, excludeId),
+        queryFn: () => fetchGuardianCandidates(keyword, excludeId),
         staleTime: 0,
-      });
-    },
+      }),
     [queryClient],
   );
 }
