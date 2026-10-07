@@ -201,7 +201,7 @@ export const ReceptionPage: React.FC = () => {
     if (!item) return;
     setTemporaryTarget({
       appointmentId: id,
-      prefill: { fullName: item.patientName, phone: item.patientPhone || undefined },
+      prefill: { sourceAppointmentId: id, fullName: item.patientName, phone: item.patientPhone || undefined },
     });
   };
 

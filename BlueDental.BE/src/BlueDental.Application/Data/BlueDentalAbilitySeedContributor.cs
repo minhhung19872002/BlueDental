@@ -41,7 +41,13 @@ public class BlueDentalAbilitySeedContributor(
     {
         var tenantId = context?.TenantId;
 
-        var allPermissionNames = await GetAllPermissionNamesAsync();
+        // "Ẩn số điện thoại" takes something away rather than granting it
+        // (Cụm 11 mục 9): the static roles must not get it with "everything".
+        // Migration HidePhoneOffStaticRoles took it back from the databases
+        // seeded before this.
+        var allPermissionNames = (await GetAllPermissionNamesAsync())
+            .Where(name => name != BlueDentalAbilityPermissions.Patient.HidePhone)
+            .ToArray();
 
         await EnsureStaticRoleAsync(AdminRoleName);
         await EnsureStaticRoleAsync(ClinicManagerRoleName);

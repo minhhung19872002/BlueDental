@@ -17,6 +17,7 @@ public class PatientGuardianDto
 
     public string? ProofFileName { get; set; }
     public string FullName { get; set; } = default!;
+    [PatientPhone]
     public string Phone { get; set; } = default!;
     public string NationalId { get; set; } = default!;
     public DateOnly? DateOfBirth { get; set; }

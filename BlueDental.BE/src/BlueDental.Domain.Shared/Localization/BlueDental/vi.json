@@ -252,6 +252,7 @@
     "BlueDental:Patient:0019": "Người giám hộ cần có họ tên, điện thoại và CCCD/Hộ chiếu.",
     "BlueDental:Patient:0020": "Họ tên chỉ được chứa chữ, số, khoảng trắng và các ký tự - . '",
     "BlueDental:Patient:0021": "Số điện thoại này đã được dùng cho hồ sơ khác trong chi nhánh.",
+    "BlueDental:Patient:0022": "Số điện thoại đang bị ẩn nên không lưu được. Nhập số điện thoại đầy đủ.",
     "BlueDental:Queue:0001": "Không tìm thấy số thứ tự.",
     "BlueDental:Queue:0002": "Không thể chuyển trạng thái hàng đợi.",
     "BlueDental:Queue:0003": "Bệnh nhân đã có số thứ tự hôm nay.",

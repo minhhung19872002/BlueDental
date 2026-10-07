@@ -362,7 +362,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = Appointment.CreateTemporary(
             GuidGenerator.Create(),
             input.PatientName,
-            input.PatientPhone,
+            // Typed fresh: a masked value (Cụm 11 mục 9) has nothing to stand for.
+            BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.PatientPhone),
             branchId,
             slot,
             input.DentistId,
@@ -424,7 +425,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         {
             if (!string.IsNullOrWhiteSpace(input.PatientName))
             {
-                appointment.UpdateTempPatientInfo(input.PatientName, input.PatientPhone);
+                // The editor sends back the phone it showed, masked for an
+                // account with "Ẩn số điện thoại" (Cụm 11 mục 9).
+                appointment.UpdateTempPatientInfo(
+                    input.PatientName,
+                    BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.PatientPhone, appointment.PatientPhone));
             }
 
             appointment.UpdateSourceInfo(input.SourceTaxonomyId, input.SourceEntryId);

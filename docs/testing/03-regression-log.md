@@ -7163,3 +7163,23 @@ BE: Domain.Tests **685** (mới `BranchUsageHoursTests` 21), Application.Tests *
 Hồi quy mức 3 (`auth`, `branch-isolation`, `branch-switcher`, `branch-list`, `staff`, `staff-penalty-api`, `staff-day-off-api`,
 `current-user-ticks-api`, `role-permissions`, `role-permissions-abilities`, `header-navigation`): **33 xanh, 5 đỏ** — đều đã ghi nhận từ trước:
 `header-navigation` 3 (R-677), `role-permissions` + `role-permissions-abilities` (dữ liệu role `dentist` local, R-725..R-727). tsc + eslint sạch. Retest level **3**.
+
+## 2026-10-07 — Cụm 11 mục 9: Ẩn số điện thoại (R-792, R-793, F-53)
+
+Quyết định ghi ở `docs/clone/pages/hide-phone.md`.
+
+| ID | Vấn đề / yêu cầu | Xử lý |
+|---|---|---|
+| R-792 | Tick "Ẩn số điện thoại" (`patient.hidePhone`) có trên Phân quyền nhưng không có tác dụng; seed lại cấp nó cho cả 3 vai trò tĩnh (nên làm thật thì admin cũng mất số); form sửa hồ sơ / người giám hộ / lịch tạm / hoá đơn điện tử gửi lại số đang hiện, nên số bị che sẽ ghi đè số thật. | Che ở biên ra (result filter + `[PatientPhone]`, Excel tự che), admin không bao giờ bị che, seed bỏ quyền này khỏi vai trò tĩnh + migration `HidePhoneOffStaticRoles` + xoá cache quyền lúc khởi động API; mọi đường ghi đi qua `PatientPhoneMask.Resolve` (giá trị che chỉ là "giữ nguyên" khi khớp đúng số đã biết, khác → 403 `BlueDental:Patient:0022`); FE nhận giá trị che trong ô SĐT; Lịch tạm → Tạo hồ sơ gửi `sourceAppointmentId`. |
+
+| R-793 | Rà bảo mật (trước khi push): (1) `MessageLogDto.Content` / `RecipientName` (và `ZaloMessageDto.RecipientName`) vẫn trả số đầy đủ (`phone=09…` trong nội dung tin ZNS); (2) tìm kiếm theo số vẫn so `Contains` trên số thật, nên tài khoản bị che gõ dần từng chữ số là dò ra phần bị che; `check-phone` trả tên chủ số. | Đánh dấu `[PatientPhone(Embedded = true)]` cho các trường đó; tài khoản bị che chỉ khớp **nguyên số** ở danh sách bệnh nhân, tìm người giám hộ, CSKH, nhật ký tin nhắn / Zalo (nội dung tin không tìm theo chuỗi số); `check-phone` chỉ trả `exists`. Spec thêm ca: tên + 6 số đầu → 0 dòng (admin: 1), `check-phone` không có owners (admin: có). |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): `patient-hide-phone` **3/3** (cả các ca dò số).
+BE: Domain.Tests **700** (mới `PatientPhoneMaskTests` 15), Application.Tests **676** (mới `PatientPhoneMaskerTests` 5), HttpApi.Host.Tests **24**.
+Hồi quy mức 3 (`patient-guardian-api`, `patient-guardian`, `patient-guardian-detail`, `patient-editor-inputs`, `patient-national-id`,
+`reception-temporary`, `qa-bugs-25-30`, `appointment-history`, `einvoice-api`, `export`, `cskh`, `cskh-reminder-api`,
+`patient-permission-gates`, `appointment-patient-link`): **46 xanh, 3 đỏ**, không cái nào do thay đổi này:
+- `patient-guardian-api` "proof files…" — MinIO local đang tắt; bật lên chạy lại **xanh**.
+- `export` "a prescription row has an In đơn button…" chờ `getByRole('tab', { name: 'Đơn thuốc' })`, và `patient-permission-gates` :112 đếm
+  link "Chẩn đoán & Tư vấn" — thanh "Chi tiết bệnh nhân" giờ là link, không còn tab (ảnh chụp có đủ "Đơn thuốc"); test cũ, chưa sửa.
+tsc sạch; eslint chỉ còn lỗi có sẵn `react-hooks/exhaustive-deps`. Retest level **3**.

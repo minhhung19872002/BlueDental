@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
+using BlueDental.PatientManagement;
 
 namespace BlueDental.EInvoicing;
 
@@ -132,6 +133,7 @@ public class ElectronicInvoiceDraftDto
     public string CustomerCode { get; set; } = string.Empty;
     public string BuyerName { get; set; } = string.Empty;
     public string? Address { get; set; }
+    [PatientPhone]
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? NationalId { get; set; }

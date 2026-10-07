@@ -357,6 +357,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
         var dtos = ObjectMapper.Map<List<CareRecord>, List<CareRecordDto>>(items);
         await FillAsync(items, dtos);
+        // A file leaves the API without the response filter: mask it here (Cụm 11 mục 9).
+        await LazyServiceProvider.LazyGetRequiredService<BlueDental.PatientManagement.PatientPhoneMasker>().MaskIfRequiredAsync(dtos);
 
         // The staging file is one unstyled sheet, every value a string.
         return ExcelSheet.BuildPlain(
@@ -376,7 +378,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
-            query = query.Where(PatientMatches(input.Filter));
+            query = query.Where(PatientMatches(input.Filter, await WholePhoneOnlyAsync()));
         }
 
         if (input.BirthdayDate.HasValue)
@@ -505,7 +507,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 query = query.Where(r => r.TreatmentDate <= toDay);
             }
 
-            return ApplyPatientFilter(query, input.Filter, branchFilter,
+            return ApplyPatientFilter(query, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
                 await _patientRepository.GetQueryableAsync());
         }
 
@@ -532,7 +534,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             var appointmentIds = appointments.Select(a => a.Id);
             query = query.Where(r => r.AppointmentId.HasValue && appointmentIds.Contains(r.AppointmentId.Value));
 
-            return ApplyPatientFilter(query, input.Filter, branchFilter,
+            return ApplyPatientFilter(query, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
                 await _patientRepository.GetQueryableAsync(), appointments);
         }
 
@@ -556,7 +558,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 : query.Where(r => r.DueAt <= to);
         }
 
-        return ApplyPatientFilter(query, input.Filter, branchFilter,
+        return ApplyPatientFilter(query, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
             await _patientRepository.GetQueryableAsync());
     }
 
@@ -567,6 +569,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private static IQueryable<CareRecord> ApplyPatientFilter(
         IQueryable<CareRecord> query,
         string? filter,
+        bool wholePhone,
         IReadOnlyList<Guid> branchFilter,
         IQueryable<Patient> patientQuery,
         IQueryable<Appointment>? appointments = null)
@@ -574,7 +577,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         if (string.IsNullOrWhiteSpace(filter))
             return query;
 
-        patientQuery = patientQuery.Where(PatientMatches(filter));
+        patientQuery = patientQuery.Where(PatientMatches(filter, wholePhone));
         if (branchFilter.Count > 0)
             patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
         var matchedIds = patientQuery.Select(p => p.Id);
@@ -585,20 +588,28 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         var temporaryIds = appointments
             .Where(a => a.IsTemporary
                 && ((a.PatientName != null && a.PatientName.ToLower().Contains(text))
-                    || (a.PatientPhone != null && a.PatientPhone.Contains(text))))
+                    || (a.PatientPhone != null && (wholePhone ? a.PatientPhone == text : a.PatientPhone.Contains(text)))))
             .Select(a => a.Id);
         return query.Where(r => matchedIds.Contains(r.PatientId)
             || (r.AppointmentId.HasValue && temporaryIds.Contains(r.AppointmentId.Value)));
     }
 
     /// <summary>Tìm kiếm — patient code, full name or phone, case-insensitive.</summary>
-    private static Expression<Func<Patient, bool>> PatientMatches(string rawFilter)
+    private static Expression<Func<Patient, bool>> PatientMatches(string rawFilter, bool wholePhone)
     {
         var filter = rawFilter.Trim().ToLower();
         return p => p.PatientCode.ToLower().Contains(filter)
             || (p.LastName + " " + p.FirstName).ToLower().Contains(filter)
-            || p.Contact.PhoneNumber.Contains(filter);
+            || (wholePhone ? p.Contact.PhoneNumber == filter : p.Contact.PhoneNumber.Contains(filter));
     }
+
+    /// <summary>
+    /// "Ẩn số điện thoại" (Cụm 11 mục 9): a masked account finds a record by
+    /// its whole number only, so typing digit after digit cannot spell out
+    /// the part it is not shown.
+    /// </summary>
+    private Task<bool> WholePhoneOnlyAsync() =>
+        LazyServiceProvider.LazyGetRequiredService<BlueDental.PatientManagement.PatientPhoneMasker>().ShouldMaskAsync();
 
     private static IOrderedQueryable<CareRecord> SortForBoard(
         IQueryable<CareRecord> query, CareType? type) => type switch

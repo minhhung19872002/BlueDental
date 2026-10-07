@@ -117,6 +117,14 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             .OrderBy(p => p.PatientCode)
             .Select(p => new { p.Id, p.LastName, p.FirstName, p.PatientCode }));
 
+        // A masked account (Cụm 11 mục 9) learns only that the number is
+        // taken, not whose it is: naming the holder would turn this check
+        // into a way to look up whose number a guess is.
+        if (await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync())
+        {
+            return new PhoneAvailabilityDto { Exists = owners.Count > 0 };
+        }
+
         return new PhoneAvailabilityDto
         {
             Exists = owners.Count > 0,
@@ -158,7 +166,11 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var contact = new ContactInfo(input.PhoneNumber, input.Email, input.Address);
+        // "Tạo hồ sơ" on a Lịch tạm card pre-fills the walk-in's phone, masked
+        // for an account with "Ẩn số điện thoại" (Cụm 11 mục 9): the card the
+        // dialog came from knows the real number.
+        var phone = PatientPhoneMask.Resolve(input.PhoneNumber, await SourceAppointmentPhoneAsync(input.SourceAppointmentId, branchId));
+        var contact = new ContactInfo(phone, input.Email, input.Address);
 
         var patient = Patient.Register(
             GuidGenerator.Create(),
@@ -203,7 +215,9 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         GuardBranchAccess(patient);
 
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
-        patient.UpdateContact(new ContactInfo(input.PhoneNumber, input.Email, input.Address));
+        // A masked phone sent back unchanged (Cụm 11 mục 9) keeps the real one.
+        var phone = PatientPhoneMask.Resolve(input.PhoneNumber, patient.Contact.PhoneNumber);
+        patient.UpdateContact(new ContactInfo(phone, input.Email, input.Address));
         patient.SetNationalId(input.NationalId);
         await EnsureNationalIdIsFreeAsync(patient.BranchId, patient.NationalId, patient.Id);
         await EnsurePhoneIsFreeAsync(patient.BranchId, patient.Contact.PhoneNumber, patient.Id);
@@ -287,6 +301,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var branchName = (await _branchRepository.FindAsync(branchId))?.Name ?? string.Empty;
         var page = await ReadPageAsync(input, branchId, skipCount: 0, maxResultCount: ExportRowCap);
+        // A file leaves the API without the response filter: mask it here (Cụm 11 mục 9).
+        await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().MaskIfRequiredAsync(page);
 
         // Same twelve columns, in the same order, as the reference's export.
         return ExcelSheet.Build(
@@ -331,6 +347,10 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         query = query.Where(p => p.BranchId == branchId);
 
         var terms = SearchTerms.From(input.Filter);
+        // "Ẩn số điện thoại" (Cụm 11 mục 9): a masked account finds a record
+        // by its whole number only, so typing digit after digit cannot spell
+        // out the part it is not shown.
+        var wholePhone = await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync();
         foreach (var term in terms)
         {
             query = query.Where(p =>
@@ -338,7 +358,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 || p.LastName.ToLower().Contains(term)
                 || (p.LastName + " " + p.FirstName).ToLower().Contains(term)
                 || p.PatientCode.ToLower().Contains(term)
-                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(term))
+                || (p.Contact.PhoneNumber != null
+                    && (wholePhone ? p.Contact.PhoneNumber == term : p.Contact.PhoneNumber.Contains(term)))
                 || (p.NationalId != null && p.NationalId.Contains(term)));
         }
 
@@ -605,6 +626,17 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 branchId,
                 inputs.Select(input => input.OccupationEntryId).OfType<Guid>().ToList());
 
+            // The real numbers a masked guardian phone may stand for: the
+            // guardian's own on file, or the linked patient's (Cụm 11 mục 9).
+            var linkedPhones = linkable.Count == 0
+                ? new Dictionary<Guid, string?>()
+                : (await _repository.GetListAsync(p => linkable.Contains(p.Id)))
+                    .ToDictionary(p => p.Id, p => p.Contact.PhoneNumber);
+            string? GuardianPhone(PatientGuardianInput input) => PatientPhoneMask.Resolve(
+                input.Phone,
+                patient.Guardians.FirstOrDefault(g => input.Id.HasValue && g.Id == input.Id.Value)?.Phone,
+                input.LinkedPatientId is { } linked ? linkedPhones.GetValueOrDefault(linked) : null);
+
             var guardians = inputs
                 .Select(input => new PatientGuardianData(
                     input.Id,
@@ -615,7 +647,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                     input.ProofBlobName?.Trim(),
                     input.ProofFileName,
                     input.FullName,
-                    input.Phone,
+                    GuardianPhone(input),
                     input.NationalId,
                     input.DateOfBirth,
                     input.IdIssuedOn,
@@ -632,6 +664,14 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         }
 
         patient.EnsureGuardianRequirement(ClinicToday);
+    }
+
+    /// <summary>The phone of the Lịch tạm card a new record is made from, when it is this branch's.</summary>
+    private async Task<string?> SourceAppointmentPhoneAsync(Guid? appointmentId, Guid branchId)
+    {
+        if (appointmentId is null) return null;
+        var appointment = await _appointmentRepository.FindAsync(appointmentId.Value);
+        return appointment?.BranchId == branchId ? appointment.PatientPhone : null;
     }
 
     private static HashSet<string> GuardianDocuments(Patient patient) =>

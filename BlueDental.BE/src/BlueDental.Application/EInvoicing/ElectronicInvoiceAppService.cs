@@ -427,7 +427,10 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             CustomerName = Blank(input.CompanyName) ?? buyer,
             BuyerName = buyer,
             CustomerAddress = Blank(input.Address) ?? patient.Contact?.Address ?? patient.OldAddress,
-            CustomerPhone = Blank(input.Phone) ?? patient.Contact?.PhoneNumber,
+            // The draft showed the phone masked for an account with "Ẩn số điện
+            // thoại" (Cụm 11 mục 9); the provider must get the real one.
+            CustomerPhone = BlueDental.PatientManagement.PatientPhoneMask.Resolve(
+                Blank(input.Phone), patient.Contact?.PhoneNumber) ?? patient.Contact?.PhoneNumber,
             CustomerTaxCode = Blank(input.TaxCode),
             PaymentMethod = input.PaymentMethod switch
             {

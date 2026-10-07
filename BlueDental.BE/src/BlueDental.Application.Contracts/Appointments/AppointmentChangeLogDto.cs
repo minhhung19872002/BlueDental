@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
+using BlueDental.PatientManagement;
 
 namespace BlueDental.Appointments;
 
@@ -20,17 +21,26 @@ public class AppointmentSnapshotDto
     public Guid BranchId { get; set; }
     public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }
+    [PatientPhone]
     public string? PatientPhone { get; set; }
     public CancellationReason? CancelReason { get; set; }
     public string? CancelNote { get; set; }
     public bool IsTemporary { get; set; }
 }
 
-public class AppointmentFieldChangeDto
+public class AppointmentFieldChangeDto : IPatientPhoneMaskable
 {
     public string Field { get; set; } = "";
     public string? Before { get; set; }
     public string? After { get; set; }
+
+    /// <summary>Only the "patientPhone" row holds a phone.</summary>
+    public void MaskPatientPhones(Func<string?, string?> mask)
+    {
+        if (Field != "patientPhone") return;
+        Before = mask(Before);
+        After = mask(After);
+    }
 }
 
 public class AppointmentChangeLogDto : EntityDto<Guid>

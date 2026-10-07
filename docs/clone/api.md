@@ -1926,3 +1926,10 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
 - `StaffDto` / create / update thêm `allowLoginOutsideHours: <bool>`.
 - `POST /api/account/login` → 403 `BlueDental:Auth:LoginOutsideHours` (message nêu khung giờ); mọi request đã đăng nhập → 401 cùng mã + đăng xuất.
   Chi tiết: `docs/clone/pages/usage-hours.md`.
+
+## Ẩn số điện thoại — quyền `patient.hidePhone` (2026-10-07, cụm 11 mục 9)
+
+- Tài khoản có quyền (trừ vai trò `admin`): mọi thuộc tính `[PatientPhone]` trong response trả về dạng `090****567`; file Excel Bệnh nhân / CSKH cũng vậy.
+- Ghi (`PUT patients/{id}`, guardians, `PUT appointments/{id}` lịch tạm, hoá đơn điện tử, Zalo): giá trị có `*` chỉ hợp lệ khi là mặt nạ của đúng một số đã biết → giữ số thật; khác → 403 `BlueDental:Patient:0022`.
+- `POST patients` nhận thêm `sourceAppointmentId` (Lịch tạm → Tạo hồ sơ) để lưu số thật của thẻ khi số hiện bị che.
+  Chi tiết: `docs/clone/pages/hide-phone.md`.

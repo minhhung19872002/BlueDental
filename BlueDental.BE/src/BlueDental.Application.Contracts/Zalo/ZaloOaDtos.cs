@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
+using BlueDental.PatientManagement;
 
 namespace BlueDental.Zalo;
 
@@ -134,8 +135,11 @@ public class ZaloMessageDto
 {
     public Guid Id { get; set; }
     public Guid? PatientId { get; set; }
+    [PatientPhone(Embedded = true)]
     public string RecipientName { get; set; } = string.Empty;
+    [PatientPhone]
     public string RecipientPhone { get; set; } = string.Empty;
+    [PatientPhone(Embedded = true)]
     public string Content { get; set; } = string.Empty;
     public int Status { get; set; }
     public decimal? Cost { get; set; }

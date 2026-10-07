@@ -98,6 +98,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>Another record in the branch already holds this phone number (bug list item 29).</summary>
         public const string DuplicatePhone = "BlueDental:Patient:0021";
+
+        /// <summary>
+        /// A masked phone ("090****567", Cụm 11 mục 9) came back in an edit and
+        /// matches no number the record knows, so it cannot stand for one.
+        /// </summary>
+        public const string MaskedPhoneUnresolved = "BlueDental:Patient:0022";
     }
 
     public static class Appointments

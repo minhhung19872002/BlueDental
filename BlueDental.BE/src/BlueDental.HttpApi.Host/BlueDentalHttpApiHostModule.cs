@@ -91,6 +91,10 @@ public class BlueDentalHttpApiHostModule : AbpModule
         ConfigureExceptionStatusCodes();
         ConfigureUnitOfWork();
 
+        // Cụm 11 mục 9: "Ẩn số điện thoại" masks patient phones on the way out.
+        Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+            options.Filters.AddService<PatientPhoneMaskingFilter>());
+
         context.Services.AddSignalR(options =>
         {
             options.EnableDetailedErrors = hostingEnvironment.IsDevelopment();
@@ -324,6 +328,11 @@ public class BlueDentalHttpApiHostModule : AbpModule
             options.Map(BlueDentalDomainErrorCodes.CustomerCare.InvalidTransition, HttpStatusCode.UnprocessableEntity);
             options.Map(BlueDentalDomainErrorCodes.Operations.InvalidTaskTransition, HttpStatusCode.UnprocessableEntity);
         });
+    }
+
+    public override async Task OnPostApplicationInitializationAsync(ApplicationInitializationContext context)
+    {
+        await context.ServiceProvider.GetRequiredService<HidePhoneCacheReset>().ResetAsync();
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)

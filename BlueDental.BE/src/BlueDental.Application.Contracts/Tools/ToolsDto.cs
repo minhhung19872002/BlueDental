@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using BlueDental.PatientManagement;
 
 namespace BlueDental.Tools;
 
@@ -94,6 +95,7 @@ public class CallLogDto
     public string BranchName { get; set; } = string.Empty;
     public string CallCode { get; set; } = string.Empty;
     public string? ExtensionCode { get; set; }
+    [PatientPhone]
     public string PhoneNumber { get; set; } = string.Empty;
     public int Status { get; set; }
     public int Provider { get; set; }
@@ -170,8 +172,11 @@ public class MessageLogDto
     public Guid Id { get; set; }
     public Guid? PatientId { get; set; }
     public Guid? TemplateId { get; set; }
+    [PatientPhone(Embedded = true)]
     public string RecipientName { get; set; } = string.Empty;
+    [PatientPhone]
     public string RecipientPhone { get; set; } = string.Empty;
+    [PatientPhone(Embedded = true)]
     public string Content { get; set; } = string.Empty;
     public int Channel { get; set; }
     public int Status { get; set; }

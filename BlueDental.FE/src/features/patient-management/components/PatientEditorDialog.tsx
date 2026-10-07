@@ -14,6 +14,7 @@ import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQueries";
 import { GENDER_BY_CODE } from "../api/patientAdapters";
 import type { Gender, PatientDto, PatientPrefill, PhoneOwner, RegisterPatientRequest } from "../types/patient";
+import { PATIENT_PHONE_PATTERN } from "../utils/patientPhone";
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { useGuardianSubject } from "../hooks/useGuardianSubject";
 import { usePatientGuardians } from "../hooks/usePatientGuardians";
@@ -282,6 +283,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     const words = name.split(/\s+/).filter(Boolean);
 
     const payload: RegisterPatientRequest = {
+      sourceAppointmentId: prefill?.sourceAppointmentId,
       // The dialog collects one "Họ và tên"; the record keeps họ and tên apart,
       // so the last word is the given name and the rest the family name.
       lastName: words.length > 1 ? words.slice(0, -1).join(" ") : name,
@@ -355,7 +357,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   // holds is not only warned about, it cannot be saved — the server refuses it too.
   const phoneTaken = duplicate.data?.exists === true;
   const canSave =
-    fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim()) && !guardianMissing && !phoneTaken;
+    fullName.trim().length > 0 && PATIENT_PHONE_PATTERN.test(phone.trim()) && !guardianMissing && !phoneTaken;
 
   const handleGuardianDelete = (index: number) => {
     guardians.remove(index);

@@ -300,6 +300,7 @@
     "BlueDental:Patient:0019": "A guardian needs a full name, phone number and national ID/passport.",
     "BlueDental:Patient:0020": "A name may only contain letters, digits, spaces and - . '",
     "BlueDental:Patient:0021": "This phone number is already used by another record in the branch.",
+    "BlueDental:Patient:0022": "The phone number is hidden, so it cannot be saved. Enter the full number.",
     "BlueDental:Queue:0001": "Queue ticket not found.",
     "BlueDental:Queue:0002": "That queue transition is not allowed.",
     "BlueDental:Queue:0003": "This patient already has a waiting ticket today.",
