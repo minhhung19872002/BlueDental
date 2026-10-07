@@ -156,7 +156,9 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   // Bug list item 25: a booking is received on its own day only, so a 21/10
   // card seen on 07/10 cannot be checked in — nor sent to the chair or
   // finished, which check it in on the way. The server refuses it too.
-  const awaitsItsDay = !step1Done && !!item.arrivalTime && !dayjs(item.arrivalTime).isSame(dayjs(), "day");
+  // TEMP-BUG25-OFF (2026-10-07): switched off while BA tests; restore the line below.
+  // const awaitsItsDay = !step1Done && !!item.arrivalTime && !dayjs(item.arrivalTime).isSame(dayjs(), "day");
+  const awaitsItsDay = false;
 
   const getCardStyle = (): React.CSSProperties => {
     if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };

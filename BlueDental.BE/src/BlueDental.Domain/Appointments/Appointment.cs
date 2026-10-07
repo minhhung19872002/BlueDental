@@ -159,13 +159,16 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public void EnsureCanArriveOn(DateOnly today)
     {
-        if ((Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed or AppointmentStatus.NoShow)
-            && ClinicCalendar.DateOf(Slot.Start) != today)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Appointments.CheckInNotToday,
-                "Only a booking for today can be checked in.");
-        }
+        // TEMP-BUG25-OFF (2026-10-07): BA asked to switch the same-day check-in
+        // rule off while they test. Uncomment to restore it — grep the tag for
+        // the two FE locks that go with it.
+        // if ((Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed or AppointmentStatus.NoShow)
+        //     && ClinicCalendar.DateOf(Slot.Start) != today)
+        // {
+        //     throw new BusinessException(
+        //         BlueDentalDomainErrorCodes.Appointments.CheckInNotToday,
+        //         "Only a booking for today can be checked in.");
+        // }
     }
 
     public Appointment Start()

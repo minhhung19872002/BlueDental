@@ -1,4 +1,5 @@
-import dayjs from "dayjs";
+// TEMP-BUG25-OFF: restore with isToday below.
+// import dayjs from "dayjs";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
@@ -60,8 +61,10 @@ function CheckIcon() {
  * halves of its rail, with the outer edges hidden, exactly as the reference
  * builds it.
  */
-function isToday(instant: string): boolean {
-  return dayjs(instant).isSame(dayjs(), "day");
+// TEMP-BUG25-OFF (2026-10-07): switched off while BA tests; restore the line below.
+function isToday(_instant: string): boolean {
+  // return dayjs(instant).isSame(dayjs(), "day");
+  return true;
 }
 
 export function ReceptionSteps({ appointment, onAdvanced }: Props) {
