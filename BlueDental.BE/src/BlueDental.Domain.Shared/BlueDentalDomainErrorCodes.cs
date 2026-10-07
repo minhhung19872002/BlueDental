@@ -494,6 +494,13 @@ public static class BlueDentalDomainErrorCodes
         public const string CurrencyNotSupported = "BlueDental:EInvoicing:0015";
     }
 
+    /// <summary>PHIẾU THU printed by Phát Hành in the Hóa đơn dialog.</summary>
+    public static class PaymentReceipt
+    {
+        public const string TemplateMissing = "BlueDental:PaymentReceipt:0001";
+        public const string RenderFailed = "BlueDental:PaymentReceipt:0002";
+    }
+
     public static class BranchManager
     {
         public const string DuplicateEmail = "BlueDental:BranchManager:0001";

@@ -211,3 +211,25 @@ public class IssueElectronicInvoiceDto
     /// <summary>Empty takes the lines the server would prefill.</summary>
     public List<ElectronicInvoiceLineInput> Lines { get; set; } = [];
 }
+
+/// <summary>
+/// The PHIẾU THU that Phát Hành prints, from what the Hóa đơn dialog holds.
+/// Nothing is stored: a wrong receipt is fixed in the dialog and printed again.
+/// </summary>
+public class RenderPaymentReceiptDto
+{
+    /// <summary>Exactly one of the receipt or the slip.</summary>
+    public Guid? PatientPaymentId { get; set; }
+
+    public Guid? TreatmentPlanId { get; set; }
+
+    /// <summary>Họ tên khách hàng; blank takes the patient's name.</summary>
+    [StringLength(200)]
+    public string? BuyerName { get; set; }
+
+    /// <summary>Ngày lập phiếu; blank is today on the clinic's calendar.</summary>
+    public DateTime? ArisingDate { get; set; }
+
+    /// <summary>The lines ticked in the dialog; empty takes the prefilled ones.</summary>
+    public List<ElectronicInvoiceLineInput> Lines { get; set; } = [];
+}

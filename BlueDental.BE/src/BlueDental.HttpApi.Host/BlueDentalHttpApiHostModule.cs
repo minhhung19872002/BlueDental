@@ -15,6 +15,7 @@ using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.ExceptionHandling;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.AntiForgery;
+using Volo.Abp.AspNetCore.Mvc.Libs;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.AspNetCore.Uow;
 using Volo.Abp.Autofac;
@@ -90,6 +91,10 @@ public class BlueDentalHttpApiHostModule : AbpModule
         ConfigureAntiForgery();
         ConfigureExceptionStatusCodes();
         ConfigureUnitOfWork();
+
+        // wwwroot only holds print templates (PHIẾU THU.docx); this host serves
+        // no client-side libs, so ABP's wwwroot/libs startup check is noise.
+        Configure<AbpMvcLibsOptions>(options => options.CheckLibs = false);
 
         // Cụm 11 mục 9: "Ẩn số điện thoại" masks patient phones on the way out.
         Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>

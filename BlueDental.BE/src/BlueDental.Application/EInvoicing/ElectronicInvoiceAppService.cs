@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
@@ -9,14 +10,19 @@ using BlueDental.ClinicIntegration;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
+using BlueDental.Printing;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 using Volo.Abp.Uow;
+using Volo.Abp.Users;
 
 namespace BlueDental.EInvoicing;
 
@@ -247,6 +253,103 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         return outcome.Data;
     }
 
+    /// <summary>
+    /// PHIẾU THU for Phát Hành, whether or not an e-invoice goes out with it.
+    /// Same permission as Phát Hành: the receipt says money was collected.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
+    public async Task<byte[]> RenderReceiptAsync(RenderPaymentReceiptDto input)
+    {
+        var source = await LoadSourceAsync(input.PatientPaymentId, input.TreatmentPlanId);
+        if (source.Payment is { Kind: not PatientPaymentKind.Payment })
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.ReceiptNotInvoiceable);
+        }
+
+        var account = await _accounts.FindForBranchAsync(source.ClinicBranchId);
+        var vatRate = account?.Settings.VatRate ?? _options.Value.VatRate;
+        var lines = await LinesOfAsync(source, vatRate, input.Lines);
+        var paid = lines.Sum(l => l.Amount);
+        if (paid > source.MaxAmount)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.AmountExceedsSource)
+                .WithData("Max", source.MaxAmount.ToString("N0"));
+        }
+
+        var patient = await _patients.GetAsync(source.PatientId);
+        var content = new PaymentReceiptContent(
+            CustomerName: Blank(input.BuyerName) ?? patient.FullName,
+            TreatmentWork: string.Join(", ", (await TreatmentWorkAsync(source, lines)).Distinct()),
+            PaidAmount: paid,
+            SlipTotal: source.Slip?.PayableAmount ?? source.MaxAmount,
+            PayerName: patient.FullName,
+            IssueDate: input.ArisingDate is { } day
+                ? DateOnly.FromDateTime(day)
+                : ClinicCalendar.DateOf(DateTimeOffset.UtcNow),
+            CashierName: await CashierNameAsync());
+
+        var docx = DocxTemplate.Fill(await ReceiptTemplateAsync(), content.ToPlaceholders());
+        return await LazyServiceProvider.LazyGetRequiredService<IDocxPdfConverter>()
+            .ConvertAsync(docx, "phieu-thu.docx");
+    }
+
+    /// <summary>The lines ticked in the dialog, priced VAT included as the invoice would be.</summary>
+    private async Task<List<ElectronicInvoiceLine>> LinesOfAsync(
+        InvoiceSource source, int defaultVatRate, List<ElectronicInvoiceLineInput> input) =>
+        input.Count > 0
+            ? input.Select(l => ElectronicInvoiceDraft.Line(
+                l.Code.Trim(), l.Name.Trim(), l.Unit.Trim(), l.Quantity, l.UnitPrice,
+                l.VatRate ?? defaultVatRate)).ToList()
+            : await DefaultLinesAsync(source, defaultVatRate);
+
+    /// <summary>
+    /// Công việc điều trị: a whole slip is billed as one "Kế hoạch điều trị DT…"
+    /// line, so the receipt names the slip's services instead; a receipt names
+    /// its own lines.
+    /// </summary>
+    private async Task<List<string>> TreatmentWorkAsync(InvoiceSource source, List<ElectronicInvoiceLine> lines)
+    {
+        if (source.Plan == null)
+        {
+            return lines.Select(l => l.Name).ToList();
+        }
+
+        var charged = source.Plan.Services.Where(s => source.Plan.ChargedAmountOf(s) > 0m).ToList();
+        var serviceIds = charged.Select(s => s.ServiceId).Distinct().ToList();
+        var names = (await _catalog.GetListAsync(c => serviceIds.Contains(c.Id))).ToDictionary(c => c.Id, c => c.Name);
+        return charged.Select(s => names.GetValueOrDefault(s.ServiceId) ?? s.Code).ToList();
+    }
+
+    /// <summary>Người lập phiếu: the signed-in user's full name, as the staff screens show it.</summary>
+    private async Task<string> CashierNameAsync()
+    {
+        var userId = CurrentUser.GetId();
+        var user = await LazyServiceProvider.LazyGetRequiredService<IIdentityUserRepository>().FindAsync(userId);
+        if (user == null)
+        {
+            return CurrentUser.UserName ?? string.Empty;
+        }
+
+        var fullName = string.Join(" ", new[] { user.Surname, user.Name }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return string.IsNullOrWhiteSpace(fullName) ? user.UserName : fullName;
+    }
+
+    private async Task<byte[]> ReceiptTemplateAsync()
+    {
+        var configured = LazyServiceProvider.LazyGetRequiredService<IOptions<PaymentReceiptOptions>>().Value.TemplatePath;
+        var path = Path.IsPathRooted(configured)
+            ? configured
+            : Path.Combine(LazyServiceProvider.LazyGetRequiredService<IHostEnvironment>().ContentRootPath, configured);
+
+        if (!File.Exists(path))
+        {
+            Logger.LogError("PHIẾU THU template not found at {Path}", path);
+            throw new BusinessException(BlueDentalDomainErrorCodes.PaymentReceipt.TemplateMissing);
+        }
+
+        return await File.ReadAllBytesAsync(path);
+    }
+
     private async Task<ElectronicInvoiceDto> IssueLockedAsync(
         InvoiceSource source, EasyInvoiceSettings settings, IssueElectronicInvoiceDto input)
     {
@@ -413,11 +516,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         InvoiceSource source, int defaultVatRate, IssueElectronicInvoiceDto input)
     {
         var patient = await _patients.GetAsync(source.PatientId);
-        var lines = input.Lines.Count > 0
-            ? input.Lines.Select(l => ElectronicInvoiceDraft.Line(
-                l.Code.Trim(), l.Name.Trim(), l.Unit.Trim(), l.Quantity, l.UnitPrice,
-                l.VatRate ?? defaultVatRate)).ToList()
-            : await DefaultLinesAsync(source, defaultVatRate);
+        var lines = await LinesOfAsync(source, defaultVatRate, input.Lines);
 
         var buyer = Blank(input.BuyerName) ?? patient.FullName;
         return new ElectronicInvoiceDraft

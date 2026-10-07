@@ -15,6 +15,7 @@ x-backend-environment: &backend-environment
   MalwareScan__Host: clamav
   MalwareScan__Port: "3310"
   EasyInvoice__Password: ${EASYINVOICE_PASSWORD:-}
+  PaymentReceipt__GotenbergUrl: http://gotenberg:3000
 
 services:
   postgres:
@@ -99,10 +100,32 @@ services:
       bluedental:
         ipv4_address: 172.29.0.70
 
+  # PHIẾU THU: LibreOffice behind an HTTP API; the api posts a filled .docx
+  # and gets the PDF back. Stateless, nothing to persist.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    command:
+      - gotenberg
+      - --api-timeout=60s
+      - --libreoffice-restart-after=10
+      - --libreoffice-auto-start=true
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${GOTENBERG_PORT:-13000}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.80
+
   # migrator / api / frontend must stay defined here: deploy.sh builds and
   # starts them by name on the server. To run only the infrastructure while
   # developing against `dotnet run` / `npm run dev`, name what you want:
-  #   docker compose up -d postgres redis minio clamav
+  #   docker compose up -d postgres redis minio clamav gotenberg
   migrator:
     build:
       context: ./BlueDental.BE
@@ -138,6 +161,8 @@ services:
       minio:
         condition: service_healthy
       clamav:
+        condition: service_healthy
+      gotenberg:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://127.0.0.1:8080/health/ready"]

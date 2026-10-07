@@ -30,6 +30,8 @@ public class ElectronicInvoiceAppServiceContractTests
         Policy(nameof(ElectronicInvoiceAppService.GetListAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Read);
         Policy(nameof(ElectronicInvoiceAppService.SyncAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Read);
         Policy(nameof(ElectronicInvoiceAppService.GetPdfAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Read);
+        // PHIẾU THU says money was collected: same ability as Phát Hành.
+        Policy(nameof(ElectronicInvoiceAppService.RenderReceiptAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Finalize);
     }
 
     [Fact]

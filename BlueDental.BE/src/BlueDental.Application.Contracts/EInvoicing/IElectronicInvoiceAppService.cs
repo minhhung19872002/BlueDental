@@ -31,4 +31,7 @@ public interface IElectronicInvoiceAppService : IApplicationService
 
     /// <summary>The invoice as the provider renders it.</summary>
     Task<byte[]> GetPdfAsync(Guid id);
+
+    /// <summary>PHIẾU THU of what the dialog holds, filled into the template and rendered as PDF.</summary>
+    Task<byte[]> RenderReceiptAsync(RenderPaymentReceiptDto input);
 }

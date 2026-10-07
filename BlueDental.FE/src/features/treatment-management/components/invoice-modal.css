@@ -147,6 +147,12 @@
   padding: 16px 0;
 }
 
+/* "Xuất hóa đơn đỏ" rides on the left, the buttons stay on the right. */
+.inv-footer-option {
+  margin-right: auto;
+  align-self: center;
+}
+
 
 /* Unit price input in table */
 .inv-price-input {

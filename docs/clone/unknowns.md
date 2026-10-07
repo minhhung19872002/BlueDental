@@ -2903,3 +2903,19 @@ nhận có `slot_start <= now` mà chưa check-in sang Trễ hẹn (`NoShow`), g
 rồi đẩy `AppointmentsChanged` (chỉ branch id) qua hub `/signalr/notifications` để màn đang mở tải
 lại — không cần F5. Tab CSKH "Đặt lịch không đến" bỏ 5 phút chờ (`MissedAfter = 0`) cho khớp.
 Khách Trễ hẹn đến muộn vẫn check-in được (`CheckIn` nhận `NoShow`).
+
+---
+
+## PHIẾU THU — "Số tiền còn lại" khi thu nhiều lần (F-56, 2026-10-07)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Hộp thoại "Hóa đơn" (Tài chính › Thanh toán, Kế hoạch điều trị) → Phát Hành → PHIẾU THU
+Control: dòng "Số tiền còn lại" / "Viết bằng chữ" trên phiếu thu
+Reason: tính năng riêng của BlueDental theo BA, bản gốc không có. BA mới chốt "Số tiền còn lại =
+Tổng phiếu điều trị − Thanh toán (thành tiền sau thuế)"; chưa định nghĩa khi một phiếu điều trị thu
+nhiều lần (trừ số thu lần này hay trừ luỹ kế các lần đã thu), và logic sau khi xác nhận thanh toán
+BA sẽ gửi sau.
+Action taken: NONE trên production. BlueDental tạm tính `max(0, Tổng phải trả của phiếu − số tiền
+các dòng đang tick)` (`PaymentReceiptContent.RemainingAmount`); nguồn là phiếu thu không gắn phiếu
+điều trị thì "Tổng" = số đã thu của phiếu thu đó. Đổi công thức khi BA chốt.

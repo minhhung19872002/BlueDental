@@ -72,6 +72,14 @@ public class BlueDentalApplicationModule : AbpModule
             client => client.Timeout = TimeSpan.FromSeconds(
                 configuration.GetValue<int?>($"{EasyInvoiceOptions.SectionName}:TimeoutSeconds") ?? 30));
 
+        // PHIẾU THU: the .docx template is filled here and rendered to PDF by
+        // Gotenberg (LibreOffice in its own container).
+        Configure<Printing.PaymentReceiptOptions>(configuration.GetSection(Printing.PaymentReceiptOptions.SectionName));
+        context.Services.AddHttpClient(
+            Printing.GotenbergPdfConverter.ClientName,
+            client => client.Timeout = TimeSpan.FromSeconds(
+                configuration.GetValue<int?>($"{Printing.PaymentReceiptOptions.SectionName}:TimeoutSeconds") ?? 60));
+
         // Legacy module permissions are satisfied by the ability leaves the
         // Phân quyền screen grants. Registered last so it only decides names
         // the user/role/client providers left undefined.

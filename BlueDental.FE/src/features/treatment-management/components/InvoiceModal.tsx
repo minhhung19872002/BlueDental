@@ -1,48 +1,29 @@
-import { useState } from "react";
-import { Button, Modal } from "antd";
-import { toast } from "sonner";
+import { Button, Checkbox, Modal } from "antd";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
-import { useEInvoiceDraft, useIssueEInvoice } from "../api/eInvoiceApi";
+import { useEInvoiceDraft } from "../api/eInvoiceApi";
 import type { InvoiceModalProps } from "./invoiceTypes";
 import { useInvoiceForm } from "./useInvoiceForm";
 import { InvoiceCustomerInfo } from "./InvoiceCustomerInfo";
 import { InvoiceFormInfo } from "./InvoiceFormInfo";
 import { InvoiceServiceTable } from "./InvoiceServiceTable";
+import { useInvoiceIssue } from "./useInvoiceIssue";
 import "./invoice-modal.css";
 
 /**
  * "Hóa đơn": Lưu Nháp files a draft on EasyInvoice (the same key overwrites
- * it); Phát Hành files and signs it in one call — the provider then owns the
- * number and it can no longer change. The dialog keeps the original layout:
- * a missing account, a published invoice or an amount over the cap come back
- * from the server as the usual error toast.
+ * it). Phát Hành opens the PHIẾU THU in a new tab and, with "Xuất hóa đơn đỏ" ticked, also
+ * signs the e-invoice — the provider then owns the number and it can no
+ * longer change. A missing account, a published invoice or an amount over the
+ * cap come back from the server as the usual error toast.
  */
 export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
   const draft = useEInvoiceDraft(source, open).data;
   const form = useInvoiceForm(draft);
-  const issue = useIssueEInvoice();
-  const [confirmingPublish, setConfirmingPublish] = useState(false);
+  const flow = useInvoiceIssue({ source, buildBuyer: form.buildBuyer, buildLines: form.buildLines, onClose });
 
-  const busy = !draft || issue.isPending;
-
-  const send = (publish: boolean) => {
-    issue.mutate(
-      { ...source, publish, ...form.buildBuyer(), lines: form.buildLines() },
-      {
-        onSuccess: (invoice) => {
-          setConfirmingPublish(false);
-          toast.success(
-            publish
-              ? t("Treatment:EInvoice:Published", invoice.no ?? invoice.ikey)
-              : t("Treatment:EInvoice:Issued", invoice.ikey),
-          );
-          onClose();
-        },
-      },
-    );
-  };
+  const busy = !draft || flow.pending;
 
   return (
     <Modal
@@ -54,10 +35,23 @@ export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
       destroyOnHidden
       footer={
         <div className="inv-footer">
-          <Button onClick={() => send(false)} disabled={busy} loading={issue.isPending && !confirmingPublish}>
+          <Checkbox
+            className="inv-footer-option"
+            checked={flow.redInvoice}
+            onChange={(e) => flow.onRedInvoiceChange(e.target.checked)}
+            disabled={busy}
+          >
+            {t("Treatment:Invoice:RedInvoice")}
+          </Checkbox>
+          <Button onClick={flow.saveDraft} disabled={busy} loading={flow.savingDraft}>
             {t("Treatment:Invoice:SaveDraft")}
           </Button>
-          <Button type="primary" onClick={() => setConfirmingPublish(true)} disabled={busy}>
+          <Button
+            type="primary"
+            onClick={flow.onIssueClick}
+            disabled={busy}
+            loading={flow.publishing && !flow.confirmingPublish}
+          >
             {t("Treatment:Invoice:Issue")}
           </Button>
         </div>
@@ -122,13 +116,13 @@ export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
       </div>
 
       <ConfirmDialog
-        open={confirmingPublish}
+        open={flow.confirmingPublish}
         title={t("Treatment:EInvoice:PublishTitle")}
         message={t("Treatment:EInvoice:PublishBody", `${formatVND(form.grandTotal)} ${t("Treatment:Pricing:CurrencyUnit")}`)}
         confirmLabel={t("Treatment:Invoice:Issue")}
-        pending={issue.isPending}
-        onConfirm={() => send(true)}
-        onClose={() => setConfirmingPublish(false)}
+        pending={flow.publishing}
+        onConfirm={flow.confirmPublish}
+        onClose={flow.cancelPublish}
       />
     </Modal>
   );

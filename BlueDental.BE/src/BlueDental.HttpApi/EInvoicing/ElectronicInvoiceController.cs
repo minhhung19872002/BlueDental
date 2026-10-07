@@ -37,4 +37,8 @@ public sealed class ElectronicInvoiceController(IElectronicInvoiceAppService ser
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> GetPdfAsync(Guid id) =>
         Pdf(await service.GetPdfAsync(id), $"hoa-don-dien-tu-{id:N}");
+
+    [HttpPost("receipt-pdf")]
+    public async Task<IActionResult> RenderReceiptAsync([FromBody] RenderPaymentReceiptDto input) =>
+        Pdf(await service.RenderReceiptAsync(input), "phieu-thu");
 }
