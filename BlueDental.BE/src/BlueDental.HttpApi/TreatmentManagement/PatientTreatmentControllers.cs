@@ -94,8 +94,9 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
     public Task<PatientPaymentDto> UpdateAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
         service.UpdateAsync(id, input);
 
-    [HttpDelete("{id:guid}")]
-    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+    [HttpPost("{id:guid}/cancel")]
+    public Task CancelAsync(Guid id, [FromBody] CancelPatientPaymentDto input) =>
+        service.CancelAsync(id, input);
 }
 
 /// <summary>Đơn thuốc.</summary>

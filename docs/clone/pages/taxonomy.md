@@ -327,6 +327,15 @@ price and `taxConfig: "afterTax"` unchanged and answered
 `priceAfterDiscount: 863636.36`, `actualCustomerPayment: 950000` — two
 decimals server-side, whole đồng in the dialog. Nothing is normalised on save.
 
+**Save-time rule added 2026-10-07 (bug list item 27, R-780):** the live preview
+above is unchanged (it still clamps at 0), but **Lưu** now refuses a VNĐ
+discount larger than `Giá`, as it already refused a % one over 100: the
+`Giảm giá` box shows "Giảm giá không hợp lệ" (re-checked when Giá or the
+%/VNĐ toggle changes) and the API answers `BlueDental:Catalogs:0019`. Excel
+import reports the row (`Taxonomy:Import:Err:DiscountOverPrice`).
+UNKNOWN_REFERENCE_BEHAVIOR: staging was only observed in preview for this
+case (the 20.000.000 VNĐ row above was never saved); this follows the QA report.
+
 Also seen on that save: staging **keeps the dialog open** after a create
 (title still "Thêm dịch vụ", `Lưu` disabled, a new `Đồng bộ dịch vụ này`
 button beside it). BlueDental closes the dialog on save; not adopted in this

@@ -207,10 +207,16 @@ export interface NationalIdLookup {
   exists: boolean;
 }
 
+export interface PhoneOwner {
+  id: string;
+  patientCode: string;
+  patientName: string;
+}
+
 export interface PhoneAvailability {
   exists: boolean;
-  patientName: string | null;
-  patientCode: string | null;
+  /** Every record in the branch on this number, by code. */
+  owners: PhoneOwner[];
 }
 
 /**

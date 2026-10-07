@@ -109,20 +109,26 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         var trimmed = phone.Trim();
         var query = await _repository.GetQueryableAsync();
 
-        var owner = query
+        // Every holder, not the first one found (bug list item 29: a number
+        // shared by DH260039 and DH260040 named only one of them).
+        var owners = await AsyncExecuter.ToListAsync(query
             .Where(p => p.BranchId == branchId && p.Contact.PhoneNumber == trimmed)
             .Where(p => !excludeId.HasValue || p.Id != excludeId.Value)
-            .Select(p => new { p.LastName, p.FirstName, p.PatientCode })
-            .FirstOrDefault();
+            .OrderBy(p => p.PatientCode)
+            .Select(p => new { p.Id, p.LastName, p.FirstName, p.PatientCode }));
 
-        return owner is null
-            ? new PhoneAvailabilityDto { Exists = false }
-            : new PhoneAvailabilityDto
-            {
-                Exists = true,
-                PatientName = $"{owner.LastName} {owner.FirstName}".Trim(),
-                PatientCode = owner.PatientCode
-            };
+        return new PhoneAvailabilityDto
+        {
+            Exists = owners.Count > 0,
+            Owners = owners
+                .Select(o => new PhoneOwnerDto
+                {
+                    Id = o.Id,
+                    PatientCode = o.PatientCode,
+                    PatientName = $"{o.LastName} {o.FirstName}".Trim()
+                })
+                .ToList()
+        };
     }
 
     /// <summary>

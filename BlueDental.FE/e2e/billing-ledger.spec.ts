@@ -66,7 +66,7 @@ test.describe("Tài chính → Thanh toán", () => {
     if (!receipt) return;
     const page = await browser.newPage();
     await login(page);
-    await call(page, `${PAYMENTS_API}/${receipt.id}`, { method: "DELETE" });
+    await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
     await page.close();
   });
 
@@ -159,7 +159,7 @@ test.describe("Tài chính → Thanh toán", () => {
       );
       expect(byPlan.body.totalCount).toBe(0);
     } finally {
-      await call(page, `${PAYMENTS_API}/${String(refund.body.id)}`, { method: "DELETE" });
+      await call(page, `${PAYMENTS_API}/${String(refund.body.id)}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
     }
 
     // Screen, after a full page load.
@@ -229,11 +229,11 @@ test.describe("Tài chính → Thanh toán", () => {
     expect(listed.body.totalAmount).toBe(0);
   });
 
-  test("a receipt deleted on its plan leaves the list", async ({ page }) => {
+  test("a receipt cancelled on its plan leaves the list", async ({ page }) => {
     expect(receipt).toBeDefined();
     const saved = receipt!;
     await login(page);
-    const deleted = await call(page, `${PAYMENTS_API}/${saved.id}`, { method: "DELETE" });
+    const deleted = await call(page, `${PAYMENTS_API}/${saved.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
     expect([200, 204]).toContain(deleted.status);
     receipt = undefined;
 

@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -23,7 +22,7 @@ import {
 } from "../../api/eInvoiceApi";
 import {
   PAYMENT_KIND,
-  useDeletePayment,
+  useCancelPayment,
   usePatientAccount,
   usePatientPayments,
   type PatientPaymentDto,
@@ -31,6 +30,7 @@ import {
 } from "../../api/treatmentPlanApi";
 import { InvoiceModal } from "../InvoiceModal";
 import { EInvoiceBadge } from "./EInvoiceBadge";
+import { PaymentCancelDialog } from "./PaymentCancelDialog";
 import { PaymentCardList } from "./PaymentCardList";
 import { PaymentEditDialog } from "./PaymentEditDialog";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
@@ -59,6 +59,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
     clinicBranchId: branchId,
     treatmentPlanId: plan.id,
     kind: PAYMENT_KIND.Payment,
+    includeCancelled: true,
     maxResultCount: PAGE_CAP,
   });
   const account = usePatientAccount(patient.id, branchId);
@@ -69,7 +70,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   const [receipt, setReceipt] = useState<ReceiptView | null>(null);
   const [editing, setEditing] = useState<PatientPaymentDto | null>(null);
   const [cancelling, setCancelling] = useState<PatientPaymentDto | null>(null);
-  const remove = useDeletePayment();
+  const cancel = useCancelPayment();
 
   // ── E-invoice ───────────────────────────────────────────────────────────
   const canFinalize = useAbility("payment").can("finalize");
@@ -104,17 +105,19 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   };
 
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
+  // A cancelled receipt is listed, but no money on a printed receipt counts it.
+  const activeReceipts = useMemo(() => receipts.filter((r) => !r.isDeleted), [receipts]);
   const pageRows = receipts.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
   const showTotal = countedTotal(t("Treatment:Payment:PaymentNoun"));
 
-  const handleView = (payment: PatientPaymentDto) => setReceipt(receiptOf(payment, plan, receipts));
+  const handleView = (payment: PatientPaymentDto) => setReceipt(receiptOf(payment, plan, activeReceipts));
   const handleAggregate = () => setReceipt(aggregateReceiptOf(plan, new Date()));
 
   /** Huỷ takes the movement back off the slip, so every rollup is recomputed. */
-  const handleCancel = async () => {
+  const handleCancel = async (reason: string) => {
     if (!cancelling) return;
     try {
-      await remove.mutateAsync({ id: cancelling.id });
+      await cancel.mutateAsync({ id: cancelling.id, reason });
       toast.success(t("Treatment:Payment:CancelSuccess"));
       setCancelling(null);
     } catch (error) {
@@ -132,7 +135,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         canIssueInvoice,
         renderEInvoice,
       }),
-    [plan, receipts, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
+    [plan, activeReceipts, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (
@@ -192,13 +195,11 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onClose={() => setEditing(null)}
         onSaved={() => setEditing(null)}
       />
-      <ConfirmDeleteDialog
+      <PaymentCancelDialog
         open={cancelling !== null}
-        noun={t("Treatment:Payment:PaymentNoun")}
-        name={cancelling?.code}
-        title={t("Treatment:Payment:CancelPaymentConfirm")}
-        pending={remove.isPending}
-        onConfirm={() => void handleCancel()}
+        code={cancelling?.code}
+        pending={cancel.isPending}
+        onConfirm={(reason) => void handleCancel(reason)}
         onClose={() => setCancelling(null)}
       />
       {invoicing && (

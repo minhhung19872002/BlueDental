@@ -23,6 +23,9 @@ import {
 import { moneyText } from "../plan/planTypes";
 
 /** Ngân hàng and Ví momo collect into one of the clinic's accounts; the rest do not. */
+/** Bug list item 26: a receipt is dated today or earlier; the server refuses a later day too. */
+const isAfterToday = (date: Dayjs) => date.isAfter(dayjs(), "day");
+
 const ACCOUNT_KIND_BY_METHOD: Partial<Record<PaymentMethodKind, PaymentAccountKindCode>> = {
   [PAYMENT_METHOD.Banking]: PAYMENT_ACCOUNT_KIND.Bank,
   [PAYMENT_METHOD.EWallet]: PAYMENT_ACCOUNT_KIND.MoMo,
@@ -139,7 +142,12 @@ export function PaymentEditDialog({ payment, branchId, onClose, onSaved }: Props
               required
               rules={[{ required: true, message: t("Treatment:Payment:DateRequired") }]}
             >
-              <DatePicker showTime format="DD/MM/YYYY HH:mm" className="tp-input-full" />
+              <DatePicker
+                showTime
+                format="DD/MM/YYYY HH:mm"
+                className="tp-input-full"
+                disabledDate={isAfterToday}
+              />
             </FloatingField>
           </div>
 

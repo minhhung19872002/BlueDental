@@ -378,6 +378,17 @@ the per-service split are read-only there: the slip's rollup and every line's
 `Huỷ` asks for confirmation and then deletes the movement (a soft delete — the
 aggregate is fully audited), which recomputes every figure on the slip.
 
+Since 2026-10-07 (bug list item 28, R-781) `Huỷ` asks for a **required reason**
+(`POST patient-payments/{id}/cancel { reason }`, `DELETE` retired). The receipt
+is still soft-deleted, so no rollup, debt, ledger or report counts it, but the
+tab lists it with `includeCancelled=true`: `Trạng thái` reads `Đã hủy` with
+"{người} hủy lúc {giờ}" and "Lý do: …" under it, and only `Xem` stays on the row.
+A cancelled receipt keeps its number — the next one does not reuse it.
+`Ngày tạo` in `Chỉnh sửa` cannot be a later day than today (bug list item 26,
+`BlueDental:Billing:0094`). UNKNOWN_REFERENCE_BEHAVIOR: whether the reference
+lists cancelled receipts or asks for a reason was not observed (it would mean
+cancelling a production receipt); this follows the QA bug report.
+
 `Tạo Phiếu Thanh Toán` opens the shared "Tạo phiếu thanh toán" dialog
 (`CreatePaymentDialog`, already built for the Hồ sơ tab) with every service of
 the slip pre-ticked. The dialog imports its own stylesheet, so it is dressed on

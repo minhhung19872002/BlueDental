@@ -81,6 +81,9 @@ public static class BlueDentalDomainErrorCodes
         public const string GuardianOtherRelationIncomplete = "BlueDental:Patient:0017";
         public const string InvalidGuardianDocument = "BlueDental:Patient:0018";
         public const string GuardianIncomplete = "BlueDental:Patient:0019";
+
+        /// <summary>The name holds something other than letters, digits, spaces and - . ' (see PersonName).</summary>
+        public const string InvalidPatientName = "BlueDental:Patient:0020";
     }
 
     public static class Appointments
@@ -98,6 +101,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The dentist is registered off that whole day; refused like <see cref="OutsideWorkingHours"/>.</summary>
         public const string DentistOffDuty = "BlueDental:Appointment:0009";
+
+        /// <summary>
+        /// A booking can only be received on its own day (bug list item 25). 0010
+        /// is taken inline by <c>Appointment.UpdateTempPatientInfo</c>.
+        /// </summary>
+        public const string CheckInNotToday = "BlueDental:Appointment:0011";
     }
 
     public static class TreatmentManagement
@@ -220,6 +229,12 @@ public static class BlueDentalDomainErrorCodes
         public const string PaymentExceedsOutstanding = "BlueDental:Billing:0092";
 
         public const string RefundExceedsPaid = "BlueDental:Billing:0093";
+
+        /// <summary>A receipt cannot be dated after today (bug list item 26).</summary>
+        public const string PaymentDateInFuture = "BlueDental:Billing:0094";
+
+        /// <summary>A receipt is cancelled with a reason, never silently (bug list item 28).</summary>
+        public const string PaymentCancelReasonRequired = "BlueDental:Billing:0095";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

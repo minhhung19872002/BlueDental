@@ -153,6 +153,10 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
   // Only a cancelled visit stops here: a Trễ hẹn patient who turns up after all is still received.
   const isCancelled = item.counterStatus === "Cancelled";
+  // Bug list item 25: a booking is received on its own day only, so a 21/10
+  // card seen on 07/10 cannot be checked in — nor sent to the chair or
+  // finished, which check it in on the way. The server refuses it too.
+  const awaitsItsDay = !step1Done && !!item.arrivalTime && !dayjs(item.arrivalTime).isSame(dayjs(), "day");
 
   const getCardStyle = (): React.CSSProperties => {
     if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
@@ -250,10 +254,10 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             </div>
 
             {/* Col 2: progress steps + doctor select */}
-            <div className="rc-col-progress">
+            <div className="rc-col-progress" title={awaitsItsDay ? t("Reception:CheckInOnItsDay") : undefined}>
               <ReceptionCardSteps
                 item={item}
-                canAdvance={!isCancelled}
+                canAdvance={!isCancelled && !awaitsItsDay}
                 wait={wait}
                 onAdvance={(action) => onStatusChange?.(item.id, action)}
               />
@@ -274,7 +278,10 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
               {OUTCOME_KEYS.map((key) => {
                 const isBooked = isBookedOutcome(key);
                 const isSelected = shownOutcome === key;
-                const isDisabled = isCancelled || OUTCOME_LOCKS.some((lock) => lock(key, selectedOutcome, pendingBooking));
+                const isDisabled =
+                  isCancelled ||
+                  (awaitsItsDay && key !== "FollowUp") ||
+                  OUTCOME_LOCKS.some((lock) => lock(key, selectedOutcome, pendingBooking));
                 const bookedAt = selectedOutcome === key ? item.followUpAt : undefined;
                 return (
                   <button

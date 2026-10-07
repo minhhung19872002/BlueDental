@@ -149,6 +149,25 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// A patient arrives on the day they are booked for: a booking on 21/10
+    /// cannot be received on 07/10, and its wait timer must not start (bug list
+    /// item 25). Only a booking not yet received is checked — every step that
+    /// would receive it (check-in, and Start/Complete/Hẹn tái khám, which check
+    /// in on the way) asks first. Kept out of <see cref="CheckIn"/> so seeding a
+    /// past day's visits still works.
+    /// </summary>
+    public void EnsureCanArriveOn(DateOnly today)
+    {
+        if ((Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed or AppointmentStatus.NoShow)
+            && ClinicCalendar.DateOf(Slot.Start) != today)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.CheckInNotToday,
+                "Only a booking for today can be checked in.");
+        }
+    }
+
     public Appointment Start()
     {
         // Auto check-in if not done yet (outcome shortcuts skip the step buttons).

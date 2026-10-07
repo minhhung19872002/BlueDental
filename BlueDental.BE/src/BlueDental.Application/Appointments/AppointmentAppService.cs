@@ -481,6 +481,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
+        appointment.EnsureCanArriveOn(ClinicToday());
         appointment.CheckIn();
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
@@ -494,6 +495,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
+        appointment.EnsureCanArriveOn(ClinicToday());
         appointment.Start();
         if (input?.Outcome is { } outcome)
             await SetOutcomeHoldingSlotAsync(appointment, outcome);
@@ -509,6 +511,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
+        appointment.EnsureCanArriveOn(ClinicToday());
         appointment.Complete(input.Notes);
         if (input.Outcome is { } outcome)
             await SetOutcomeHoldingSlotAsync(appointment, outcome);
@@ -618,6 +621,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
+        // Hẹn tái khám also receives a booking not yet received.
+        if (input.Outcome is AppointmentOutcome.Revisit)
+            appointment.EnsureCanArriveOn(ClinicToday());
 
         var currentFollowUp = appointment.FollowUpAppointmentId is { } currentId
             ? await _repository.FindAsync(currentId)
@@ -680,6 +686,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             await _changeRecorder.RecordAsync(AppointmentChangeAction.Deleted, appointment, before, null);
         }
     }
+
+    private static DateOnly ClinicToday() => ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
 
     private void GuardBranchAccess(Appointment entity)
     {

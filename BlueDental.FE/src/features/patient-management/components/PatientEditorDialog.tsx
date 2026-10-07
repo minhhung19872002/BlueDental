@@ -13,7 +13,7 @@ import "./patient.css";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQueries";
 import { GENDER_BY_CODE } from "../api/patientAdapters";
-import type { Gender, PatientDto, PatientPrefill, RegisterPatientRequest } from "../types/patient";
+import type { Gender, PatientDto, PatientPrefill, PhoneOwner, RegisterPatientRequest } from "../types/patient";
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { useGuardianSubject } from "../hooks/useGuardianSubject";
 import { usePatientGuardians } from "../hooks/usePatientGuardians";
@@ -79,6 +79,15 @@ function titleCaseName(name: string): string {
 
 /** The server's refusal of a CCCD another record in the branch already holds. */
 const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
+const INVALID_NAME = "BlueDental:Patient:0020";
+
+/** Names every record on the number (bug list item 29: only the first one was named). */
+function phoneTakenMessage(owners: readonly PhoneOwner[]): string {
+  const named = owners.map((owner) => `[${owner.patientCode}] ${owner.patientName}`);
+  return owners.length === 1
+    ? t("Patient:Editor:PhoneTaken", owners[0].patientCode, owners[0].patientName)
+    : t("Patient:Editor:PhoneTakenMany", owners.length, named.join(", "));
+}
 
 /** The server's guardian refusals (Patient:0013–0019) — shown on the guardian pane. */
 const GUARDIAN_ERROR = /^BlueDental:Patient:001[3-9]$/;
@@ -327,6 +336,10 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         setGuardianError(failure.message);
         return;
       }
+      if (failure.code === INVALID_NAME) {
+        form.setFields([{ name: "fullName", errors: [failure.message] }]);
+        return;
+      }
       notifyError(failure.message);
     }
   };
@@ -366,11 +379,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
             type="warning"
             showIcon
             className="bd-patient-dupe"
-            message={t(
-              "Patient:Editor:PhoneTaken",
-              duplicate.data.patientCode ?? "",
-              duplicate.data.patientName ?? "",
-            )}
+            message={phoneTakenMessage(duplicate.data.owners)}
           />
         )}
 
