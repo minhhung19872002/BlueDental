@@ -11,8 +11,10 @@ using BlueDental.PatientManagement.Values;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.BlobStoring;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
@@ -35,6 +37,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     private readonly IIdentityUserRepository _userRepository;
     private readonly PatientListRollupCalculator _rollup;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly IBlobContainer _blobContainer;
 
     public PatientAppService(
         IRepository<Patient, Guid> repository,
@@ -46,8 +49,10 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         IRepository<ClinicBranch, Guid> branchRepository,
         IIdentityUserRepository userRepository,
         PatientListRollupCalculator rollup,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        IBlobContainer blobContainer)
     {
+        _blobContainer = blobContainer;
         _repository = repository;
         _tagRepository = tagRepository;
         _catalogRepository = catalogRepository;
@@ -178,6 +183,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             input.TagIds,
             input.DiseaseHistoryEntryIds);
 
+        await ApplyGuardiansAsync(patient, branchId, input.Guardians, input.GuardiansConsented);
+
         await _repository.InsertAsync(patient, autoSave: true);
         return MapToDto(patient);
     }
@@ -214,7 +221,11 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             input.TagIds,
             input.DiseaseHistoryEntryIds);
 
+        var documentsBefore = GuardianDocuments(patient);
+        await ApplyGuardiansAsync(patient, patient.BranchId, input.Guardians, input.GuardiansConsented);
+
         await _repository.UpdateAsync(patient, autoSave: true);
+        await DeleteDroppedDocumentsAsync(documentsBefore, GuardianDocuments(patient));
         return MapToDto(patient);
     }
 
@@ -532,6 +543,115 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     }
 
     /// <summary>
+    /// Người giám hộ. A null list keeps the group on file; either way an
+    /// under-16 record is refused while it has nobody — that also stops an old
+    /// record being edited and saved without one (BA 2026-10-07).
+    /// </summary>
+    private async Task ApplyGuardiansAsync(
+        Patient patient,
+        Guid branchId,
+        List<PatientGuardianInput>? inputs,
+        bool consented)
+    {
+        if (inputs is not null)
+        {
+            var onFile = GuardianDocuments(patient);
+            foreach (var blobName in inputs
+                         .Where(input => input.Relation == GuardianRelation.Other)
+                         .Select(input => input.ProofBlobName?.Trim())
+                         .OfType<string>()
+                         .Where(name => name.Length > 0 && !onFile.Contains(name)))
+            {
+                // A fresh upload: it must be this branch's and actually stored.
+                if (!PatientGuardianDocuments.BelongsToBranch(blobName, branchId)
+                    || !await _blobContainer.ExistsAsync(blobName))
+                {
+                    throw new Volo.Abp.BusinessException(
+                        BlueDentalDomainErrorCodes.PatientManagement.InvalidGuardianDocument);
+                }
+            }
+
+            var linkable = await OwnBranchPatientsAsync(
+                branchId,
+                inputs.Select(input => input.LinkedPatientId).OfType<Guid>().Where(id => id != patient.Id).ToList());
+            var occupations = await OwnBranchCatalogEntriesAsync(
+                branchId,
+                inputs.Select(input => input.OccupationEntryId).OfType<Guid>().ToList());
+
+            var guardians = inputs
+                .Select(input => new PatientGuardianData(
+                    input.Id,
+                    input.LinkedPatientId is { } linked && linkable.Contains(linked) ? linked : null,
+                    input.Relation,
+                    input.RelationNote,
+                    input.ProofType,
+                    input.ProofBlobName?.Trim(),
+                    input.ProofFileName,
+                    input.FullName,
+                    input.Phone,
+                    input.NationalId,
+                    input.DateOfBirth,
+                    input.IdIssuedOn,
+                    input.IdIssuedPlace,
+                    input.Gender,
+                    input.Email,
+                    input.OccupationEntryId is { } occupation && occupations.Contains(occupation) ? occupation : null,
+                    input.SameAddressAsPatient,
+                    input.Address,
+                    input.IsPrimaryContact))
+                .ToList();
+
+            patient.SetGuardians(guardians, consented, GuidGenerator.Create, Clock.Now);
+        }
+
+        patient.EnsureGuardianRequirement(ClinicToday);
+    }
+
+    private static HashSet<string> GuardianDocuments(Patient patient) =>
+        patient.Guardians.Select(guardian => guardian.ProofBlobName).OfType<string>().ToHashSet();
+
+    /// <summary>
+    /// Papers whose guardian was removed, or replaced by a new upload. Uploads
+    /// abandoned by a cancelled dialog are never referenced and stay behind.
+    /// </summary>
+    private async Task DeleteDroppedDocumentsAsync(HashSet<string> before, HashSet<string> after)
+    {
+        foreach (var blobName in before.Where(name => !after.Contains(name)))
+        {
+            try
+            {
+                await _blobContainer.DeleteAsync(blobName);
+            }
+            catch (Exception exception)
+            {
+                // The record is already saved; a stray blob is not worth failing it over.
+                Logger.LogWarning(exception, "Could not delete guardian document blob {BlobName}.", blobName);
+            }
+        }
+    }
+
+    /// <summary>The ids that are patients of this branch — guardians may only link to those.</summary>
+    private async Task<List<Guid>> OwnBranchPatientsAsync(Guid branchId, List<Guid> patientIds)
+    {
+        if (patientIds.Count == 0)
+        {
+            return patientIds;
+        }
+
+        var query = await _repository.GetQueryableAsync();
+        return await AsyncExecuter.ToListAsync(query
+            .Where(p => p.BranchId == branchId && patientIds.Contains(p.Id))
+            .Select(p => p.Id));
+    }
+
+    /// <summary>
+    /// The clinic's calendar day (UTC+7, no DST). <c>Clock.Now</c> is UTC, so its
+    /// own date runs a day behind between 00:00 and 07:00 local time.
+    /// </summary>
+    private DateOnly ClinicToday =>
+        DateOnly.FromDateTime(DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc).AddHours(7));
+
+    /// <summary>
     /// Keeps only ids that exist in this branch's Thẻ hồ sơ catalog, so a
     /// client cannot pin another branch's tag (or a random id) on a patient.
     /// </summary>
@@ -684,6 +804,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         Note = patient.Note,
         TagIds = patient.TagIds.ToList(),
         DiseaseHistoryEntryIds = patient.DiseaseHistoryEntryIds.ToList(),
+        Guardians = patient.Guardians.Select(MapGuardian).ToList(),
         CreationTime = patient.CreationTime,
         CreatorId = patient.CreatorId,
         LastModificationTime = patient.LastModificationTime,
@@ -691,6 +812,30 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         IsDeleted = patient.IsDeleted,
         DeleterId = patient.DeleterId,
         DeletionTime = patient.DeletionTime
+    };
+
+    private static PatientGuardianDto MapGuardian(PatientGuardian guardian) => new()
+    {
+        Id = guardian.Id,
+        LinkedPatientId = guardian.LinkedPatientId,
+        Relation = guardian.Relation,
+        RelationNote = guardian.RelationNote,
+        ProofType = guardian.ProofType,
+        ProofBlobName = guardian.ProofBlobName,
+        ProofFileName = guardian.ProofFileName,
+        FullName = guardian.FullName,
+        Phone = guardian.Phone,
+        NationalId = guardian.NationalId,
+        DateOfBirth = guardian.DateOfBirth,
+        IdIssuedOn = guardian.IdIssuedOn,
+        IdIssuedPlace = guardian.IdIssuedPlace,
+        Gender = guardian.Gender,
+        Email = guardian.Email,
+        OccupationEntryId = guardian.OccupationEntryId,
+        SameAddressAsPatient = guardian.SameAddressAsPatient,
+        Address = guardian.Address,
+        IsPrimaryContact = guardian.IsPrimaryContact,
+        ConsentedAt = guardian.ConsentedAt
     };
 
     private void GuardBranchAccess(Patient entity)

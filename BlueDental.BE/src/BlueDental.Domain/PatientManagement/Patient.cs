@@ -16,6 +16,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     private readonly List<Guid> _tagIds = new();
     private readonly List<Guid> _diseaseHistoryEntryIds = new();
     private readonly List<PatientExaminationReason> _examinationReasons = new();
+    private readonly List<PatientGuardian> _guardians = new();
 
     public string PatientCode { get; private set; } = default!;
     public string FirstName { get; private set; } = default!;
@@ -91,6 +92,10 @@ public class Patient : FullAuditedAggregateRoot<Guid>
 
     /// <summary>Tiểu sử bệnh — entry ids from the Lịch sử bệnh catalog.</summary>
     public IReadOnlyCollection<Guid> DiseaseHistoryEntryIds => _diseaseHistoryEntryIds.AsReadOnly();
+
+    /// <summary>Người giám hộ — in the order the dialog lists them.</summary>
+    public IReadOnlyCollection<PatientGuardian> Guardians =>
+        _guardians.OrderBy(guardian => guardian.SortOrder).ToList().AsReadOnly();
 
     protected Patient() { }
 
@@ -296,6 +301,76 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         _diseaseHistoryEntryIds.AddRange(entryIds.Distinct());
         return this;
     }
+
+    /// <summary>
+    /// Replaces the guardian group whole, as the popup edits it: rows whose id
+    /// is already on file are rewritten in place (keeping when they consented),
+    /// new rows are added and rows left out are dropped. The consent tick is one
+    /// box for the whole group, so it is checked once, not per guardian.
+    /// </summary>
+    public Patient SetGuardians(
+        IReadOnlyList<PatientGuardianData> guardians,
+        bool consented,
+        Func<Guid> newId,
+        DateTimeOffset now)
+    {
+        if (guardians.Count > PatientGuardianConsts.MaxPerPatient)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.TooManyGuardians);
+        }
+
+        if (guardians.Count > 0)
+        {
+            if (guardians.Count(guardian => guardian.IsPrimaryContact) != 1)
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.GuardianPrimaryContactRequired);
+            }
+
+            if (!consented)
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.GuardianConsentRequired);
+            }
+        }
+
+        var kept = new List<PatientGuardian>(guardians.Count);
+        for (var index = 0; index < guardians.Count; index++)
+        {
+            var data = guardians[index];
+            var existing = data.Id.HasValue
+                ? _guardians.FirstOrDefault(guardian => guardian.Id == data.Id.Value)
+                : null;
+
+            if (existing is null)
+            {
+                kept.Add(new PatientGuardian(newId(), data, index, now));
+            }
+            else
+            {
+                existing.Apply(data, index);
+                kept.Add(existing);
+            }
+        }
+
+        _guardians.RemoveAll(guardian => !kept.Contains(guardian));
+        _guardians.AddRange(kept.Where(guardian => !_guardians.Contains(guardian)));
+        return this;
+    }
+
+    /// <summary>
+    /// Under-16s need someone to answer for them. Age is the BA's "năm hiện
+    /// tại − năm sinh", so a child turns 16 on 1 January of that year, not on
+    /// the birthday. A record without a birth date is not held to it.
+    /// </summary>
+    public void EnsureGuardianRequirement(DateOnly today)
+    {
+        if (RequiresGuardian(today) && _guardians.Count == 0)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.GuardianRequired);
+        }
+    }
+
+    public bool RequiresGuardian(DateOnly today) =>
+        DateOfBirth.HasValue && today.Year - DateOfBirth.Value.Year < PatientGuardianConsts.RequiredUnderAge;
 
     public Patient Deactivate()
     {

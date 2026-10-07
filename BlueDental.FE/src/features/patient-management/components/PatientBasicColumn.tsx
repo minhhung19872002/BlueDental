@@ -1,23 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Checkbox, DatePicker, Form, Input, Radio } from "antd";
+import { CalendarOutlined, CheckOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
+import { GUARDIAN_LIMITS } from "../types/patient";
 import { PatientDiseaseHistoryPanel } from "./PatientDiseaseHistoryPanel";
 
+export type PatientEditorTab = "basic" | "history" | "guardian";
+
+/** The "Người giám hộ" pill's mark: a red dot while one is owed, a tick once some are in. */
+export type GuardianMark = "missing" | "filled" | "none";
+
 interface Props {
-  tab: "basic" | "history";
-  onTabChange: (tab: "basic" | "history") => void;
+  tab: PatientEditorTab;
+  onTabChange: (tab: PatientEditorTab) => void;
   diseaseHistoryEntryIds: string[];
   onDiseaseHistoryChange: (next: string[]) => void;
+  /** Age by year, shown as a chip inside "Ngày sinh"; null without a birth date. */
+  age: number | null;
+  guardianMark: GuardianMark;
+  guardianPane: ReactNode;
+  /** BA: the under-16 warning sits right under "Ngày sinh". */
+  ageNotice?: ReactNode;
 }
 
 /**
- * Column two of the hồ sơ dialog, behind two pills: the basic details, or the
- * "Tiểu sử bệnh" tick list.
+ * Column two of the hồ sơ dialog, behind three pills: the basic details, the
+ * "Tiểu sử bệnh" tick list, or the guardians (BA, 2026-10-07).
  *
  * Both panes stay mounted-on-demand as the reference does — switching tabs is
  * not supposed to lose what has been typed, so the values live in the form,
@@ -28,6 +41,10 @@ export function PatientBasicColumn({
   onTabChange,
   diseaseHistoryEntryIds,
   onDiseaseHistoryChange,
+  age,
+  guardianMark,
+  guardianPane,
+  ageNotice,
 }: Props) {
   const occupations = useCatalogOptions(CATALOG_GROUP.Occupation);
   const form = Form.useFormInstance();
@@ -54,6 +71,7 @@ export function PatientBasicColumn({
               label: t("Patient:Tab:DiseaseHistory"),
               count: diseaseHistoryEntryIds.length,
             },
+            { key: "guardian" as const, label: t("Patient:Guardian:Tab"), count: 0 },
           ]
         ).map((item) => (
           <button
@@ -71,6 +89,12 @@ export function PatientBasicColumn({
           >
             {item.label}
             {item.count > 0 && <span className="bd-patient-subtab-count">{item.count}</span>}
+            {item.key === "guardian" && guardianMark === "missing" && (
+              <span className="bd-patient-subtab-dot" aria-label={t("Patient:Guardian:Missing")} />
+            )}
+            {item.key === "guardian" && guardianMark === "filled" && (
+              <CheckOutlined className="bd-patient-subtab-check" aria-label={t("Patient:Guardian:Filled")} />
+            )}
           </button>
         ))}
       </div>
@@ -91,8 +115,27 @@ export function PatientBasicColumn({
             format={DATE_INPUT_FORMAT}
             // The reference refuses a future birth date; so does the server.
             disabledDate={(date) => date.isAfter(dayjs(), "day")}
+            // BA: once there is a date, the age by year takes the calendar's place.
+            suffixIcon={
+              age === null ? (
+                <CalendarOutlined />
+              ) : (
+                <span
+                  className={[
+                    "bd-patient-agechip",
+                    age < GUARDIAN_LIMITS.requiredUnderAge && "bd-patient-agechip--minor",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {t("Patient:Guardian:AgeYears", age)}
+                </span>
+              )
+            }
           />
         </FloatingField>
+
+        {ageNotice}
 
         <FloatingField
           label={t("Patient:Form:NationalId")}
@@ -165,6 +208,8 @@ export function PatientBasicColumn({
           onChange={onDiseaseHistoryChange}
         />
       </div>
+
+      <div hidden={tab !== "guardian"}>{guardianPane}</div>
     </>
   );
 }

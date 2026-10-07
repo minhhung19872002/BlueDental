@@ -55,10 +55,12 @@ public class BlueDentalEntityFrameworkCoreModule : AbpModule
 
             // Lý do đến khám is a child list the profile card always renders,
             // and the hồ sơ dialog rewrites its root line — a patient read
-            // without it would save an empty list back over the record.
+            // without it would save an empty list back over the record. The
+            // guardians the same: the under-16 rule reads them on every save.
             options.Entity<Patient>(entity =>
                 entity.DefaultWithDetailsFunc = query => query
-                    .Include(x => x.ExaminationReasons));
+                    .Include(x => x.ExaminationReasons)
+                    .Include(x => x.Guardians));
         });
 
         Configure<AbpDbContextOptions>(options =>

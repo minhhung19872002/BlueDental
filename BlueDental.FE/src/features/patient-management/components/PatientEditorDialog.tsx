@@ -15,9 +15,14 @@ import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQuer
 import { GENDER_BY_CODE } from "../api/patientAdapters";
 import type { Gender, PatientDto, PatientPrefill, RegisterPatientRequest } from "../types/patient";
 import { PatientAddressColumn } from "./PatientAddressColumn";
-import { PatientBasicColumn } from "./PatientBasicColumn";
+import { useGuardianSubject } from "../hooks/useGuardianSubject";
+import { usePatientGuardians } from "../hooks/usePatientGuardians";
+import { PatientBasicColumn, type PatientEditorTab } from "./PatientBasicColumn";
 import { PatientSourceColumn } from "./PatientSourceColumn";
 import { AddSourceGroupDialog } from "./AddSourceGroupDialog";
+import { GuardianDialog } from "./guardian/GuardianDialog";
+import { GuardianPane } from "./guardian/GuardianPane";
+import { GuardianRequiredBanner } from "./guardian/GuardianRequiredBanner";
 
 interface Props {
   open: boolean;
@@ -74,6 +79,9 @@ function titleCaseName(name: string): string {
 
 /** The server's refusal of a CCCD another record in the branch already holds. */
 const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
+
+/** The server's guardian refusals (Patient:0013–0019) — shown on the guardian pane. */
+const GUARDIAN_ERROR = /^BlueDental:Patient:001[3-9]$/;
 
 const EMPTY: PatientFormValues = {
   codeSequence: "",
@@ -137,7 +145,9 @@ function splitPatientCode(code: string): { prefix: string; sequence: string } {
  */
 export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill }: Props) {
   const [form] = Form.useForm<PatientFormValues>();
-  const [tab, setTab] = useState<"basic" | "history">("basic");
+  const [tab, setTab] = useState<PatientEditorTab>("basic");
+  const [guardianError, setGuardianError] = useState<string | null>(null);
+  const guardians = usePatientGuardians();
   const [diseaseHistoryEntryIds, setDiseaseHistoryEntryIds] = useState<string[]>([]);
   const [addingSource, setAddingSource] = useState(false);
 
@@ -160,11 +170,16 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     ? splitPatientCode(patient.patientCode)
     : { prefix: estimate.data?.prefix ?? "", sequence: estimate.data?.sequence ?? "" };
 
+  const subject = useGuardianSubject(form, codePrefix);
+  const guardianMissing = subject.summary.required && guardians.group.guardians.length === 0;
+
   useEffect(() => {
     if (!open) return;
 
     setTab("basic");
     setDiseaseHistoryEntryIds(patient?.diseaseHistoryEntryIds ?? []);
+    guardians.reset(patient);
+    setGuardianError(null);
 
     form.setFieldsValue(
       patient
@@ -199,6 +214,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
             createdAtLabel: dayjs().format("DD/MM/YYYY"),
           },
     );
+    // `guardians.reset` is a stable callback; it is left out of the list on purpose.
   }, [open, patient, prefill, form]);
 
   // The suggestion only arrives once the dialog is open, so it is filled in
@@ -284,6 +300,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
       // rather than clearing them on every edit.
       tagIds: patient?.tagIds ?? [],
       diseaseHistoryEntryIds,
+      ...guardians.toPayload(),
     };
 
     try {
@@ -305,12 +322,23 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         form.setFields([{ name: "nationalId", errors: [failure.message] }]);
         return;
       }
+      if (failure.code && GUARDIAN_ERROR.test(failure.code)) {
+        setTab("guardian");
+        setGuardianError(failure.message);
+        return;
+      }
       notifyError(failure.message);
     }
   };
 
   // A name with no given name is still a name; the server only needs one word.
-  const canSave = fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim());
+  // BA: under 16 the record cannot be saved without a guardian.
+  const canSave = fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim()) && !guardianMissing;
+
+  const handleGuardianDelete = (index: number) => {
+    guardians.remove(index);
+    setGuardianError(null);
+  };
 
   return (
     <AppDialog
@@ -320,6 +348,9 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
       title={patient ? t("Patient:Form:EditTitle") : t("Patient:Profile:CreateTitle")}
       canSave={canSave}
       saving={saving}
+      footerLeft={
+        guardianMissing ? <span className="bd-guardian-footnote">{t("Patient:Guardian:FooterMissing")}</span> : null
+      }
       onSave={() => form.submit()}
       onClose={onClose}
     >
@@ -360,6 +391,20 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
               onTabChange={setTab}
               diseaseHistoryEntryIds={diseaseHistoryEntryIds}
               onDiseaseHistoryChange={setDiseaseHistoryEntryIds}
+              age={subject.summary.age}
+              guardianMark={guardianMissing ? "missing" : guardians.group.guardians.length > 0 ? "filled" : "none"}
+              ageNotice={guardianMissing && <GuardianRequiredBanner onEnter={guardians.openNew} />}
+              guardianPane={
+                <>
+                  {guardianError && <div className="ant-form-item-explain-error">{guardianError}</div>}
+                  <GuardianPane
+                    group={guardians.group}
+                    onAdd={guardians.openNew}
+                    onEdit={guardians.openExisting}
+                    onDelete={handleGuardianDelete}
+                  />
+                </>
+              }
             />
           </Col>
 
@@ -377,6 +422,20 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         saving={createSourceGroup.isPending}
         onSave={(name) => void handleAddSourceGroup(name)}
         onClose={() => setAddingSource(false)}
+      />
+
+      <GuardianDialog
+        focus={guardians.popupFocus}
+        group={guardians.group}
+        parentTitle={patient ? t("Patient:Form:EditTitle") : t("Patient:Profile:CreateTitle")}
+        patient={subject.summary}
+        patientAddress={subject.address}
+        patientId={patient?.id}
+        onSave={(next) => {
+          guardians.commitPopup(next);
+          setGuardianError(null);
+        }}
+        onClose={guardians.closePopup}
       />
     </AppDialog>
   );

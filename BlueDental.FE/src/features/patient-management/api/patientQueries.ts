@@ -33,6 +33,44 @@ export function useNationalIdLookup() {
   );
 }
 
+/**
+ * One whole record on demand — the guardian popup's "Tìm & điền" copies an
+ * existing hồ sơ's details into the form the moment one is picked.
+ */
+export function useFetchPatientDto() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (id: string) =>
+      queryClient.fetchQuery({
+        queryKey: [...patientKeys.detail(id), "dto"],
+        queryFn: () => patientApi.get(id),
+      }),
+    [queryClient],
+  );
+}
+
+/**
+ * The guardian popup's "Tìm & điền": the records matching a phone or CCCD as
+ * typed, asked the moment Enter is pressed rather than after the picker's
+ * debounce.
+ */
+export function useFindPatients() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (filter: string) => {
+      const params: PatientListQuery = { filter, maxResultCount: 5 };
+      return queryClient.fetchQuery({
+        queryKey: patientKeys.list(params),
+        queryFn: () => patientApi.list(params),
+        staleTime: 0,
+      });
+    },
+    [queryClient],
+  );
+}
+
 export function usePatientList(params: PatientListQuery) {
   return useQuery({
     queryKey: patientKeys.list(params),

@@ -27,6 +27,14 @@ export function useUpdatePatient(id: string) {
   });
 }
 
+/** The scan behind a "Khác" guardian — stored now, attached by the hồ sơ save. */
+export function useUploadGuardianDocument() {
+  return useMutation({
+    mutationKey: ["patients", "guardian-document"],
+    mutationFn: (file: File) => patientApi.uploadGuardianDocument(file),
+  });
+}
+
 /** The + beside "Lý do đến khám" — appends one dated line to the card's list. */
 export function useAddExaminationReason(id: string) {
   const queryClient = useQueryClient();

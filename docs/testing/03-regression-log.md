@@ -7017,3 +7017,45 @@ Hồi quy mức 3 `taxonomy*` + `payment-qr` + `branch-*` **69/72**. 3 đỏ ch�
 có nhóm dịch vụ / NCC labo → option NCC không thấy, "the branch should have a service group"); `taxonomy.spec` :283 mở
 nhóm đầu tiên = "KEO B …" (nhóm rỗng sortOrder 0 do test kéo-thả phiên khác để lại) → bảng không có dòng. Chưa chạy
 lại trên HEAD sạch; không xoá dữ liệu của phiên khác. tsc + eslint sạch. Chưa commit. Retest level **3**.
+
+## 2026-10-07 — Người giám hộ cho hồ sơ dưới 16 tuổi (R-772, Bệnh nhân, F-50, BA)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-772 | BA (ảnh, 2026-10-07): dialog Tạo / Chỉnh sửa hồ sơ chưa có người giám hộ; khách dưới 16 tuổi vẫn lưu được không cần ai đứng tên. | BE: bảng riêng `bd_patient_guardians` (FK `PatientId`, `LinkedPatientId` khi chọn từ hồ sơ có sẵn; migration `20261007013037_PatientGuardians`), `Patient.ReplaceGuardians` giữ luật: dưới 16 theo năm cần ≥ 1 (`0013`), tối đa 3 (`0014`), đúng 1 liên hệ chính (`0015`), đồng ý (`0016`), "Khác" cần ghi rõ + loại giấy tờ (`0017`), file sai loại / > 5MB / blob ngoài chi nhánh (`0018`), thiếu tên/SĐT/CCCD (`0019`). PUT `guardians: null` giữ nhóm cũ, `[]` xoá. Upload `POST patients/guardian-documents` (MinIO `patient-guardians/{branchId}/`, kiểm chữ ký file), tải `GET patients/{id}/guardians/{guardianId}/document`; giấy tờ chỉ giữ cho quan hệ Khác; giấy tờ của người bị gỡ / bị thay xoá sau khi lưu. FE: chip tuổi ở Ngày sinh, pill thứ 3 "Người giám hộ" (chấm đỏ / ✓), banner cam "Nhập ngay", ghi chú chân dialog + Lưu khoá, thẻ người giám hộ; popup `GuardianDialog` (← + breadcrumb, thẻ tóm tắt khách, 1 người = form đơn, 2–3 = accordion nhóm, Tìm & điền theo SĐT/CCCD, pill quan hệ, đồng ý chung, lỗi dưới ô). Pill: `.bd-patient-subtab` padding 8px 12px, gap 6px, `nowrap` để ba pill nằm một hàng. 78 khoá i18n vi/en. |
+
+Kiểm (build production `vite preview` 127.0.0.1:8080, host :5000, PostgreSQL + MinIO thật, không chặn API):
+`patient-guardian-api.spec.ts` **5/5**, `patient-guardian.spec.ts` **1/1** (thêm kiểm ba pill cùng một hàng), Domain
+`PatientGuardianTests` 13 ca xanh. Hồi quy mức 2 cùng lượt: `patient-national-id` 3/3, `patient-editor-inputs` 3/3,
+`patient.spec` **35/65**. 30 đỏ không chạm dialog hồ sơ: 7 chết ở `.pd-profile-card` / nút "Chỉnh sửa hồ sơ" / "Nhãn
+bệnh nhân" / "Thêm lý do đến khám" vì trang chi tiết mặc định mở tab Chẩn đoán & Tư vấn (`PatientProfilePage.tsx:124`,
+không đổi so với HEAD fb305fb3); 10 dừng ở "the demo clinic should have a slip with a service line / an open line with
+công đoạn" (thiếu seed); 2 chờ `tab=consulting`; còn lại drift công đoạn (`.pd-stage-*`), `.pd-money` ≠ 7, nhãn phiếu
+thanh toán, chờ response tag, và PUT đổi bác sĩ lịch hẹn bị từ chối (luật ca trực R-742). Cùng nhóm với 27 đỏ patient
+có sẵn ở HEAD ngày 2026-10-01 (R-649); chưa chạy lại trên bản HEAD sạch. Retest level **2** (hồ sơ bệnh nhân) + **1**
+(CSS pill). Chưa commit.
+
+## 2026-10-07 — Người giám hộ: giao diện theo mock BA (R-773, Bệnh nhân, F-50)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-773 | Owner so ảnh local với mock BA: chip "13 tuổi" sát chữ; banner cảnh báo nằm trên đầu dialog thay vì dưới Ngày sinh; popup "Thông tin người giám hộ" hẹp (760px), các ô dính nhau (`.app-dialog` bỏ margin Form.Item, luật `.bd-patient-dialog` chỉ áp cho dialog chính), không giống mock. | Chip: padding 2px 10px, viền; dưới 16 thì cam (`.bd-patient-agechip--minor`). Banner chuyển vào cột giữa ngay dưới Ngày sinh (`PatientBasicColumn` prop `ageNotice`): icon nhóm người, câu đầu đậm (`RequiredBannerTitle` + `RequiredBannerBody`), nút "Nhập ngay" primary. Popup: rộng 880px, nút ← viền vuông, thẻ khách nền cam + avatar tím đặc + chip cảnh báo có icon, nhãn "Tìm người giám hộ đã có hồ sơ" trên ô tìm + placeholder mới, nút "Tìm & điền" xanh nhạt, tiêu đề "Thông tin cá nhân", lưới 3 cột (gap 22/16px, Giới tính vào hàng 3), nhãn luôn nổi + placeholder ví dụ, DatePicker full width, "Cùng địa chỉ" trong khung xám, bỏ vạch kẻ trên ô đồng ý; ≤ 900px lưới 2 cột, ≤ 640px 1 cột. Khoảng cách do `.bd-guardian-form` (flex gap 18px) lo, Form.Item trong popup margin 0. 9 khoá i18n vi/en mới. |
+
+Kiểm (build production `vite preview` 127.0.0.1:8080, host :5000 build lại để phục vụ khoá i18n mới): `patient-guardian` 1/1,
+`patient-guardian-api` 5/5, `patient-national-id` 3/3, `patient-editor-inputs` 3/3 (**12/12**). Ảnh chụp dialog chính, popup
+đơn, popup có lỗi và popup nhóm 2 người đã so với mock BA. Retest level **1** (CSS) + **2** (đổi vị trí banner / cấu trúc form). Chưa commit.
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-774 | Chủ dự án (2026-10-07, ảnh dialog local): chip tuổi nằm cạnh icon lịch trong Ngày sinh; trong khối "Khác" hiện nút native "Choose File / No file chosen" dù `<input hidden>` — reset của AntD `.ant-form input[type="file"] { display: block }` đè thuộc tính `hidden`; popup 880px còn hẹp; radio Giới tính thấp hơn ô Email / Nghề nghiệp (đo: radio tâm 758px, ô tâm 744px); khoảng giữa ô đồng ý và vạch footer 46px = body padding 20 + footer margin-top 12 + 14 margin của ô đồng ý (luật `.app-dialog .ant-form > .ant-form-item:not(.ant-form-item-hidden)` 0,4,0 thắng `.app-dialog .ant-form > *:last-child` 0,3,0) và min-height 32px của control. | Có ngày sinh thì chip **thay** icon lịch (chưa có thì vẫn icon), bỏ `.bd-patient-dob-suffix`. `.bd-guardian-upload > input[type="file"][hidden] { display: none }`. Popup `width={1000}`. Giới tính: nhãn absolute trên mép trên ô (như nhãn nổi), Radio.Group cao `--ff-input-height` 42px căn giữa → cùng hàng với Email (cả hai 759–801px). Popup: body padding-bottom 14px, footer margin-top 0, ô đồng ý margin-bottom 0 + control min-height 0 → còn 14px tới vạch footer. |
+
+Kiểm (build production `vite preview` 127.0.0.1:8080, host :5000): đo bằng getBoundingClientRect + ảnh chụp dialog chính, popup "Khác", popup cuộn
+xuống cuối; `patient-guardian` 1/1, `patient-guardian-api` 5/5, `patient-national-id` 3/3, `patient-editor-inputs` 3/3 (**12/12**). Retest level **1** (CSS/bố cục). Chưa commit.
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-775 | Chủ dự án hỏi popup người giám hộ đã responsive chưa. Đo 1280 / 1024 / 768 / 390px: không tràn ngang ở cỡ nào, nhưng ở 390px: (1) footer — "+ Thêm người giám hộ thứ 2" bị nút Hủy đè, Playwright báo `.bd-modal-foot-actions` chặn pointer, không bấm được; (2) thẻ khách — chip "9 tuổi · Bắt buộc…" không co, bóp ngày sinh còn 1–2 ký tự mỗi dòng; (3) "Tìm & điền" xếp dọc mất chiều cao (≈20px); (4) nút tải giấy tờ chạm mép khung cam; (5) đầu accordion — tên + tag + "Đang nhập thông tin" chen một hàng, tag xếp dọc; tiêu đề nhóm gãy dòng cạnh nút Thêm. | Thêm vào media ≤ 640px của `patient.css`: footer popup `flex-wrap`, phần trái chiếm cả dòng (căn trái), Hủy/Lưu xuống dòng dưới căn phải; `.bd-guardian-patient` wrap, chip xuống dưới tên thụt 50px; nút tìm cao 40px; nút upload `white-space: normal`, `max-width: 100%`; tiêu đề nhóm và đầu panel wrap — nút Thêm xuống dưới tiêu đề, trạng thái nhập xuống dưới tên (thụt 38px = avatar 28 + gap 10). ≥ 641px không đổi. |
+
+Kiểm (build production `vite preview` 127.0.0.1:8080, host :5000): spec tạm đo tràn ngang + chụp dialog chính, popup đơn "Khác", popup cuộn cuối,
+popup nhóm 2 người ở 1280 / 1024 / 768 / 390px → 4/4, 0 phần tử tràn, nút "Thêm người giám hộ thứ 2" bấm được ở 390px (spec tạm đã xoá);
+`patient-guardian` 1/1, `patient-guardian-api` 5/5, `patient-national-id` 3/3, `patient-editor-inputs` 3/3 (**12/12**). Retest level **1**. Chưa commit.

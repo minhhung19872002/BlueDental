@@ -307,6 +307,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Navigation(x => x.ExaminationReasons).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.ExaminationReason);
 
+            entity.HasMany(x => x.Guardians)
+                .WithOne()
+                .HasForeignKey(x => x.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Guardians).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             entity.OwnsOne(x => x.Contact, contact =>
             {
                 contact.Property(c => c.PhoneNumber).HasColumnName("phone_number").HasMaxLength(50);
@@ -328,6 +334,32 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .IsRequired();
             entity.Property(x => x.Note).HasMaxLength(PatientExaminationReason.MaxNoteLength);
             entity.HasIndex(x => new { x.PatientId, x.RecordedAt });
+        });
+
+        builder.Entity<PatientGuardian>(entity =>
+        {
+            entity.ToTable("bd_patient_guardians");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Relation).HasConversion<short>();
+            entity.Property(x => x.ProofType).HasConversion<short?>();
+            entity.Property(x => x.Gender).HasConversion<short?>();
+            entity.Property(x => x.RelationNote).HasMaxLength(PatientGuardianConsts.MaxRelationNoteLength);
+            entity.Property(x => x.ProofBlobName).HasMaxLength(PatientGuardianConsts.MaxProofBlobNameLength);
+            entity.Property(x => x.ProofFileName).HasMaxLength(PatientGuardianConsts.MaxProofFileNameLength);
+            entity.Property(x => x.FullName).HasMaxLength(PatientGuardianConsts.MaxFullNameLength).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(PatientGuardianConsts.MaxPhoneLength).IsRequired();
+            entity.Property(x => x.NationalId).HasMaxLength(PatientGuardianConsts.MaxNationalIdLength).IsRequired();
+            entity.Property(x => x.IdIssuedPlace).HasMaxLength(PatientGuardianConsts.MaxIdIssuedPlaceLength);
+            entity.Property(x => x.Email).HasMaxLength(PatientGuardianConsts.MaxEmailLength);
+            entity.Property(x => x.Address).HasMaxLength(PatientGuardianConsts.MaxAddressLength);
+            entity.HasIndex(x => new { x.PatientId, x.SortOrder });
+
+            // The guardian's own hồ sơ, when picked from the search box. Deleting
+            // that record must not take this child's guardian with it.
+            entity.HasOne<Patient>()
+                .WithMany()
+                .HasForeignKey(x => x.LinkedPatientId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 

@@ -74,6 +74,13 @@ public static class BlueDentalDomainErrorCodes
         public const string MedicalRecordTooLarge = "BlueDental:Patient:0009";
         public const string InvalidNationalId = "BlueDental:Patient:0011";
         public const string DuplicateNationalId = "BlueDental:Patient:0012";
+        public const string GuardianRequired = "BlueDental:Patient:0013";
+        public const string TooManyGuardians = "BlueDental:Patient:0014";
+        public const string GuardianPrimaryContactRequired = "BlueDental:Patient:0015";
+        public const string GuardianConsentRequired = "BlueDental:Patient:0016";
+        public const string GuardianOtherRelationIncomplete = "BlueDental:Patient:0017";
+        public const string InvalidGuardianDocument = "BlueDental:Patient:0018";
+        public const string GuardianIncomplete = "BlueDental:Patient:0019";
     }
 
     public static class Appointments

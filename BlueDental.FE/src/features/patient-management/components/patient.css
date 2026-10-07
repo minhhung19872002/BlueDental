@@ -499,10 +499,12 @@
 }
 
 /* The two pills over column two. */
+/* Three pills since "Người giám hộ" (BA 2026-10-07): 12px sides and a 6px gap
+   keep them on one line in the middle column; wrapping is the narrow fallback. */
 .bd-patient-subtabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 16px;
 }
 
@@ -513,8 +515,9 @@
   border: 0;
   border-radius: var(--bd-radius-pill);
   background: var(--bd-line-soft);
-  padding: 8px 16px;
+  padding: 8px 12px;
   color: var(--bd-muted);
+  white-space: nowrap;
   font: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -923,5 +926,647 @@
 
   .bd-idcard-body {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Người giám hộ (BA, 2026-10-07) ──────────────────────────────────── */
+
+/* The pill's marks: a red dot while an under-16 record has no guardian, a
+   tick once some are in. */
+.bd-patient-subtab-dot {
+  width: 8px;
+  height: 8px;
+  margin-inline-start: 6px;
+  border-radius: 50%;
+  background: var(--bd-red);
+}
+
+.bd-patient-subtab-check {
+  margin-inline-start: 6px;
+  color: var(--bd-green);
+  font-size: 12px;
+}
+
+.bd-patient-subtab--active .bd-patient-subtab-check {
+  color: #fff;
+}
+
+/* "9 tuổi" inside the Ngày sinh box, beside the calendar icon. */
+.bd-patient-agechip,
+.bd-guardian-agechip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--bd-radius-pill);
+  gap: 4px;
+  border: 1px solid transparent;
+  background: var(--bd-blue-pale);
+  padding: 2px 10px;
+  color: var(--bd-blue);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+/* Under 16: the chip turns the banner's orange. */
+.bd-patient-agechip--minor,
+.bd-guardian-agechip--required {
+  border-color: var(--bd-orange-line);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+
+/* Right under Ngày sinh in the middle column (BA mock): icon, two sentences
+   that wrap in the narrow column, and the shortcut into the popup. */
+.bd-guardian-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 16px;
+  border: 1px solid var(--bd-orange-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-orange-pale);
+  padding: 10px 12px;
+  color: var(--bd-orange);
+  font-size: 13px;
+}
+
+.bd-guardian-banner-icon {
+  flex: none;
+  font-size: 18px;
+}
+
+.bd-guardian-banner-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.bd-guardian-banner-text strong {
+  font-weight: 600;
+}
+
+.bd-guardian-banner > .ant-btn {
+  flex: none;
+}
+
+.bd-guardian-footnote {
+  color: var(--bd-orange);
+  font-size: 13px;
+}
+
+/* ── Pane: one card per guardian ─────────────────────────────────────── */
+
+.bd-guardian-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bd-guardian-empty {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.bd-guardian-card {
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  padding: 12px 14px;
+}
+
+.bd-guardian-card-head,
+.bd-guardian-panel-head,
+.bd-guardian-patient {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bd-guardian-card-who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bd-guardian-card-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-ink);
+}
+
+.bd-guardian-tag {
+  margin: 0;
+  border-color: var(--bd-blue-pale);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+
+.bd-guardian-card-phone {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-guardian-avatar {
+  display: inline-flex;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bd-guardian-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.bd-guardian-card-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 10px 0 0;
+  border-top: 1px dashed var(--bd-line);
+  padding-top: 10px;
+  font-size: 12px;
+}
+
+.bd-guardian-card-facts dt {
+  color: var(--bd-muted);
+}
+
+.bd-guardian-card-facts dd {
+  margin: 0;
+  color: var(--bd-ink);
+}
+
+.bd-guardian-ok {
+  color: var(--bd-green);
+  font-weight: 500;
+}
+
+/* ── Popup "Thông tin người giám hộ" ─────────────────────────────────── */
+
+.bd-guardian-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bd-guardian-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.bd-guardian-crumb .anticon {
+  font-size: 10px;
+}
+
+/* The ← back: a bordered square, as the BA drew it. */
+.bd-guardian-back.ant-btn {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--bd-radius-control);
+  padding: 0;
+}
+
+/* The popup spaces its own fields: every Form.Item sits in a flex column or a
+   grid with a gap, so the items carry no margin of their own. */
+.bd-guardian-dialog .ant-form-item {
+  margin-bottom: 0;
+}
+
+.bd-guardian-dialog .ant-picker {
+  width: 100%;
+}
+
+/* AntD's 20px body bottom, the footer's 12px margin and the consent row's
+   32px control height left a wide band between the consent and the footer rule. */
+.ant-modal.bd-guardian-dialog .ant-modal-body {
+  padding-bottom: 14px;
+}
+
+.ant-modal.bd-guardian-dialog .ant-modal-footer {
+  margin-top: 0;
+}
+
+.bd-guardian-patient {
+  margin-bottom: 20px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-soft);
+  padding: 12px 14px;
+}
+
+.bd-guardian-patient--required {
+  border-color: var(--bd-orange-line);
+  background: var(--bd-orange-pale);
+}
+
+.bd-guardian-patient > .bd-guardian-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--bd-blue);
+  color: #fff;
+  font-size: 14px;
+}
+
+.bd-guardian-patient strong {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bd-guardian-patient > .bd-min0 {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bd-guardian-patient > .bd-min0 span {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-guardian-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.bd-guardian-search-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* "Tìm & điền": pale blue, quieter than the popup's primary save; faded, not
+   grey, until there is something to look up. */
+.bd-guardian-search-row .bd-guardian-find.ant-btn,
+.bd-guardian-search-row .bd-guardian-find.ant-btn:disabled {
+  border-color: var(--bd-blue-pale);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-weight: 500;
+}
+
+.bd-guardian-search-row .bd-guardian-find.ant-btn:disabled {
+  opacity: 0.6;
+}
+
+.bd-guardian-search-row .bd-guardian-find.ant-btn:not(:disabled):hover {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+}
+
+.bd-guardian-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.bd-guardian-search-row > .ant-btn {
+  height: auto;
+  flex: none;
+  padding-inline: 16px;
+}
+
+.bd-guardian-search-results {
+  margin: 6px 0 0;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  padding: 4px;
+  list-style: none;
+}
+
+.bd-guardian-search-results button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: var(--bd-radius-sm);
+  background: transparent;
+  padding: 6px 8px;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.bd-guardian-search-results button:hover {
+  background: var(--bd-blue-pale);
+}
+
+.bd-guardian-search-results span {
+  color: var(--bd-muted);
+}
+
+.bd-guardian-label {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bd-guardian-relations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bd-guardian-relation {
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  padding: 5px 14px;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bd-guardian-relation:hover {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.bd-guardian-relation--active,
+.bd-guardian-relation--active:hover {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-guardian-other {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: -6px;
+  border: 1px dashed var(--bd-orange-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-orange-pale);
+  padding: 16px 12px 12px;
+}
+
+/* AntD's form reset (`.ant-form input[type="file"] { display: block }`)
+   outranks the input's own `hidden`; the button stands in for it. */
+.bd-guardian-upload > input[type="file"][hidden] {
+  display: none;
+}
+
+.bd-guardian-upload-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 8px;
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+
+.bd-guardian-section {
+  margin: 0 0 -4px;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Three columns, the rows far enough apart for the floated labels. */
+.bd-guardian-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 22px 16px;
+}
+
+/* Giới tính sits in the grid like a field: its label where the floated labels
+   sit (on the row's top edge), the radios centred in an input-high row. */
+.bd-guardian-gender {
+  position: relative;
+}
+
+.bd-guardian-gender .ant-form-item-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+  line-height: 16px;
+  transform: translateY(-50%);
+}
+
+.bd-guardian-gender .ant-form-item-label > label {
+  height: 16px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bd-guardian-gender .ant-radio-group {
+  display: flex;
+  min-height: var(--ff-input-height, 42px);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* "Cùng địa chỉ với khách hàng" in its grey well, "Lấy theo: …" beneath. */
+.bd-guardian-sameaddress {
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-soft);
+  padding: 10px 14px;
+}
+
+.bd-guardian-sameaddress .ant-checkbox-wrapper {
+  align-items: flex-start;
+}
+
+.bd-guardian-sameaddress strong {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.bd-guardian-hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-guardian-consent {
+  margin-top: 14px;
+}
+
+.bd-guardian-consent .ant-form-item-control-input {
+  min-height: 0;
+}
+
+/* The consent closes the form, but `.app-dialog .ant-form > .ant-form-item:not(…)`
+   outranks the shared `:last-child` reset, so its 12px would fall out into the body. */
+.app-dialog.bd-guardian-dialog .ant-form > .bd-guardian-consent {
+  margin-bottom: 0;
+}
+
+.bd-guardian-count {
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+/* ── Group view: two guardians or more ───────────────────────────────── */
+
+.bd-guardian-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.bd-guardian-group-head h3 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.bd-guardian-group-head p {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-guardian-panel-head > .bd-min0 {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bd-guardian-panel-relation,
+.bd-guardian-panel-primary {
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  padding: 0 8px;
+  color: var(--bd-blue);
+  font-size: 12px;
+}
+
+.bd-guardian-panel-primary {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.bd-guardian-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--bd-orange);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bd-guardian-status--done {
+  color: var(--bd-green);
+}
+
+@media (max-width: 900px) {
+  .bd-guardian-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .bd-guardian-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bd-guardian-search-row {
+    flex-direction: column;
+  }
+
+  /* Stacked, the button no longer borrows the input's height from the row. */
+  .bd-guardian-search-row > .ant-btn {
+    height: 40px;
+  }
+
+  /* The age chip drops under the name instead of squeezing the birth date
+     to a character per line; it lines up with the text, past the avatar. */
+  .bd-guardian-patient {
+    flex-wrap: wrap;
+  }
+
+  .bd-guardian-patient > .bd-min0 {
+    flex-basis: calc(100% - 50px);
+  }
+
+  .bd-guardian-patient > .bd-guardian-agechip {
+    margin-inline-start: 50px;
+  }
+
+  .bd-guardian-upload .ant-btn {
+    max-width: 100%;
+    height: auto;
+    min-height: 32px;
+    white-space: normal;
+    text-align: start;
+  }
+
+  /* "+ Thêm người giám hộ thứ 2" / the count gets its own line; Hủy and Lưu
+     sit under it on the right, rather than over it. */
+  .bd-guardian-dialog .bd-modal-foot {
+    flex-wrap: wrap;
+  }
+
+  .bd-guardian-dialog .bd-modal-foot > .bd-min0 {
+    flex: 1 0 100%;
+    text-align: start;
+  }
+
+  /* The group header and each panel header stack too: the add button under
+     the title, the entry status under the name and its tags. */
+  .bd-guardian-group-head {
+    flex-wrap: wrap;
+  }
+
+  .bd-guardian-group-head > div {
+    flex: 1 0 100%;
+  }
+
+  .bd-guardian-panel-head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .bd-guardian-panel-head > .bd-min0 {
+    flex-basis: calc(100% - 38px);
+  }
+
+  .bd-guardian-panel-head > .bd-guardian-status {
+    margin-inline-start: 38px;
+  }
+
+  .bd-guardian-dialog .bd-modal-foot-actions {
+    margin-inline-start: auto;
   }
 }

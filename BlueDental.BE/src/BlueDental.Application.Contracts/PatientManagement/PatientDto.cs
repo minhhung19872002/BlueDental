@@ -55,6 +55,9 @@ public class PatientDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Tiểu sử bệnh — entry ids from the Lịch sử bệnh catalog.</summary>
     public List<Guid> DiseaseHistoryEntryIds { get; set; } = new();
+
+    /// <summary>Người giám hộ, in the order the dialog lists them.</summary>
+    public List<PatientGuardianDto> Guardians { get; set; } = new();
 }
 
 /// <summary>One dated line of "BE:Field:ReasonForVisit".</summary>
@@ -192,6 +195,12 @@ public class RegisterPatientDto
 
     public List<Guid>? TagIds { get; set; }
     public List<Guid>? DiseaseHistoryEntryIds { get; set; }
+
+    /// <summary>Người giám hộ — required (at least one) when the patient is under 16.</summary>
+    public List<PatientGuardianInput>? Guardians { get; set; }
+
+    /// <summary>The popup's single consent tick for the whole group.</summary>
+    public bool GuardiansConsented { get; set; }
 }
 
 public class UpdatePatientDto
@@ -224,6 +233,15 @@ public class UpdatePatientDto
 
     /// <summary>Null = keep the current history; a list replaces it whole.</summary>
     public List<Guid>? DiseaseHistoryEntryIds { get; set; }
+
+    /// <summary>
+    /// Null = keep the current guardians; a list replaces the group whole.
+    /// Either way an under-16 record is refused while it has none.
+    /// </summary>
+    public List<PatientGuardianInput>? Guardians { get; set; }
+
+    /// <summary>The popup's single consent tick; only read when <see cref="Guardians"/> is sent.</summary>
+    public bool GuardiansConsented { get; set; }
 }
 
 public class GetPatientListInput : PagedAndSortedResultRequestDto

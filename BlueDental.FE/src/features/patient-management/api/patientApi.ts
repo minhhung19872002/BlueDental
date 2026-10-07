@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import { downloadFile } from "@/lib/download";
 import type {
+  GuardianDocument,
   PagedResult,
   PatientCodeEstimate,
   PatientDto,
@@ -52,6 +53,16 @@ export const patientApi = {
     api
       .post<PatientDto>(`${BASE}/${id}/examination-reasons`, { content })
       .then((r) => r.data),
+
+  /**
+   * "Tải ảnh / PDF giấy tờ" behind a "Khác" guardian. Uploaded before the hồ
+   * sơ is saved; the save carries the returned blob name.
+   */
+  uploadGuardianDocument: (file: File): Promise<GuardianDocument> => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post<GuardianDocument>(`${BASE}/guardian-documents`, form).then((r) => r.data);
+  },
 
   delete: (id: string): Promise<void> =>
     api.post(`${BASE}/${id}/deactivate`).then(() => undefined),

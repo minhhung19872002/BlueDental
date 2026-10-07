@@ -15,6 +15,74 @@ export type PatientStatusCode = (typeof PATIENT_STATUS)[keyof typeof PATIENT_STA
 export const TREATMENT_STATUS = { None: 1, Created: 2, InProgress: 3, Done: 4 } as const;
 export type TreatmentStatusCode = (typeof TREATMENT_STATUS)[keyof typeof TREATMENT_STATUS];
 
+/** Matches BlueDental.PatientManagement.GuardianRelation — the popup's relation pills. */
+export const GUARDIAN_RELATION = {
+  Father: 1,
+  Mother: 2,
+  Grandfather: 3,
+  Grandmother: 4,
+  Sibling: 5,
+  AuntUncle: 6,
+  LegalGuardian: 7,
+  Other: 8,
+} as const;
+export type GuardianRelationCode = (typeof GUARDIAN_RELATION)[keyof typeof GUARDIAN_RELATION];
+
+/** Matches BlueDental.PatientManagement.GuardianProofType — "Giấy tờ chứng minh quyền giám hộ". */
+export const GUARDIAN_PROOF_TYPE = {
+  PowerOfAttorney: 1,
+  GuardianshipDecision: 2,
+  BirthCertificate: 3,
+  Other: 4,
+} as const;
+export type GuardianProofTypeCode = (typeof GUARDIAN_PROOF_TYPE)[keyof typeof GUARDIAN_PROOF_TYPE];
+
+/** PatientGuardianConsts — the BA's limits, enforced again by the server. */
+export const GUARDIAN_LIMITS = {
+  maxPerPatient: 3,
+  /** Age as "năm hiện tại − năm sinh"; below this a guardian is required. */
+  requiredUnderAge: 16,
+  maxProofFileBytes: 5 * 1024 * 1024,
+} as const;
+
+/** Mirrors BlueDental.PatientManagement.PatientGuardianDto. */
+export interface PatientGuardianDto {
+  id: string;
+  linkedPatientId: string | null;
+  relation: GuardianRelationCode;
+  relationNote: string | null;
+  proofType: GuardianProofTypeCode | null;
+  proofBlobName: string | null;
+  proofFileName: string | null;
+  fullName: string;
+  phone: string;
+  nationalId: string;
+  /** "YYYY-MM-DD". */
+  dateOfBirth: string | null;
+  idIssuedOn: string | null;
+  idIssuedPlace: string | null;
+  gender: GenderCode | null;
+  email: string | null;
+  occupationEntryId: string | null;
+  sameAddressAsPatient: boolean;
+  address: string | null;
+  isPrimaryContact: boolean;
+  consentedAt: string;
+}
+
+/** Mirrors BlueDental.PatientManagement.PatientGuardianInput; no id = a new guardian. */
+export type PatientGuardianInput = Omit<PatientGuardianDto, "id" | "consentedAt"> & {
+  id: string | null;
+};
+
+/** What the guardian-document upload hands back. */
+export interface GuardianDocument {
+  blobName: string;
+  fileName: string;
+  contentType: string;
+  sizeInBytes: number;
+}
+
 /** The four tabs above the list. "All" is the absence of a filter. */
 export type TreatmentTab = "All" | "Completed" | "InTreatment" | "Pending";
 
@@ -71,6 +139,8 @@ export interface PatientDto {
 
   tagIds: string[];
   diseaseHistoryEntryIds: string[];
+  /** Người giám hộ, in the order the popup lists them. */
+  guardians: PatientGuardianDto[];
 
   creationTime: string;
   lastModificationTime: string | null;
@@ -169,6 +239,11 @@ export interface RegisterPatientRequest {
   /** On update: omit = keep what is stored; a list replaces it whole. */
   tagIds?: string[];
   diseaseHistoryEntryIds?: string[];
+
+  /** On update: omit = keep the guardians on file; a list replaces them whole. */
+  guardians?: PatientGuardianInput[];
+  /** The popup's "xác nhận thông tin … đồng ý cho khách hàng được thăm khám" tick. */
+  guardiansConsented?: boolean;
 }
 
 export type UpdatePatientRequest = RegisterPatientRequest;
