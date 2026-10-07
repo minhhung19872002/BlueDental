@@ -98,7 +98,7 @@ export interface GuardianWard {
 
 /**
  * Mirrors BlueDental.PatientManagement.GuardianCandidateDto: a hồ sơ, or a
- * guardian already on file for another patient (BA 2026-10-07, R-780).
+ * guardian already on file for another patient (BA 2026-10-07, R-787).
  */
 export interface GuardianCandidate {
   source: GuardianCandidateSourceCode;
@@ -244,10 +244,16 @@ export interface NationalIdLookup {
   exists: boolean;
 }
 
+export interface PhoneOwner {
+  id: string;
+  patientCode: string;
+  patientName: string;
+}
+
 export interface PhoneAvailability {
   exists: boolean;
-  patientName: string | null;
-  patientCode: string | null;
+  /** Every record in the branch on this number, by code. */
+  owners: PhoneOwner[];
 }
 
 /**

@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { openShiftCovering } from "./fixtures/workShift";
 
 /** --bd-primary, the clone's own brand — see src/styles/index.css. */
 const APP_PRIMARY = "rgb(99, 102, 241)";
@@ -676,7 +677,8 @@ test.describe("Bệnh nhân", () => {
     await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill("123");
     await expect(save).toBeDisabled();
 
-    await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill("0912345678");
+    // A number no record holds — one already on file now shuts Lưu (bug list item 29).
+    await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(`09${runId()}55`.slice(0, 10));
     await expect(save).toBeEnabled();
   });
 
@@ -3404,7 +3406,9 @@ typed by hand`);
     // rather than looked for. Walking the stepper checks that booking in, so
     // every run consumed one: hunting for a not-yet-arrived booking passed for
     // a while and then ran the demo clinic dry.
-    const booked = await page.evaluate(async () => {
+    // Picks a patient with no live booking and a dentist free at [start, end).
+    const pickFree = (start: Date, end: Date) =>
+      page.evaluate(async ({ startIso, endIso }) => {
       interface Row {
         patientId: string;
         dentistId: string;
@@ -3421,12 +3425,8 @@ typed by hand`);
       const branchId = all.find((row) => row.branchId)?.branchId;
       if (!branchId) return null;
 
-      // A slot far enough out that no seeded booking reaches it, so neither the
-      // dentist nor the patient guard can trip.
-      const start = new Date();
-      start.setUTCDate(start.getUTCDate() + 120);
-      start.setUTCHours(3, 0, 0, 0);
-      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const start = new Date(startIso);
+      const end = new Date(endIso);
       const overlaps = (row: Row) => new Date(row.slotStart) < end && new Date(row.slotEnd) > start;
 
       const busy = new Set(all.filter((row) => live(row) && overlaps(row)).map((r) => r.dentistId));
@@ -3450,29 +3450,54 @@ typed by hand`);
       const dentist = staff.find((row) => !busy.has(row.id));
       if (!dentist) return null;
 
-      const res = await fetch("/api/v1/app/appointments", {
-        method: "POST",
-        credentials: "include",
-        // The branch rides on this header, not in the body — see src/lib/axios.ts.
-        headers: { "Content-Type": "application/json", "X-Clinic-Branch-Id": branchId },
-        body: JSON.stringify({
-          patientId: free.id,
-          dentistId: dentist.id,
-          branchId,
-          slotStart: start.toISOString(),
-          slotEnd: end.toISOString(),
-          type: 2,
-          chiefComplaint: "e2e tiếp nhận",
-        }),
-      });
-      if (!res.ok) return null;
+      return { patientId: free.id, dentistId: dentist.id, branchId };
+    }, { startIso: start.toISOString(), endIso: end.toISOString() });
 
-      return { patientId: free.id, branchId };
-    });
-    expect(
-      booked,
-      "the test should be able to book a fresh appointment for a patient who has none",
-    ).toBeTruthy();
+    const book = async (start: Date, end: Date) => {
+      const pick = await pickFree(start, end);
+      expect(pick, "the test should find a patient with no booking and a free dentist").toBeTruthy();
+      expect(await openShiftCovering(page, pick!.branchId, pick!.dentistId, start, end)).toBe(true);
+      const ok = await page.evaluate(
+        async ({ pick, startIso, endIso }) => {
+          const res = await fetch("/api/v1/app/appointments", {
+            method: "POST",
+            credentials: "include",
+            // The branch rides on this header, not in the body — see src/lib/axios.ts.
+            headers: { "Content-Type": "application/json", "X-Clinic-Branch-Id": pick.branchId },
+            body: JSON.stringify({
+              patientId: pick.patientId,
+              dentistId: pick.dentistId,
+              branchId: pick.branchId,
+              slotStart: startIso,
+              slotEnd: endIso,
+              type: 2,
+              chiefComplaint: "e2e tiếp nhận",
+            }),
+          });
+          return res.ok;
+        },
+        { pick: pick!, startIso: start.toISOString(), endIso: end.toISOString() },
+      );
+      expect(ok, "the test should be able to book a fresh appointment").toBe(true);
+      return pick!;
+    };
+
+    // Bug list item 25: a booking is received on its own day only. One far
+    // enough out that no seeded booking reaches it shows the bar shut...
+    const farStart = new Date();
+    farStart.setUTCDate(farStart.getUTCDate() + 120);
+    farStart.setUTCHours(3, 0, 0, 0);
+    const far = await book(farStart, new Date(farStart.getTime() + 30 * 60 * 1000));
+    await page.goto(`/patient/${far.patientId}?branchId=${far.branchId}&tab=profile`);
+    await expect(page.locator(".pd-appt-steps button")).toHaveCount(3);
+    await expect(page.locator(".pd-appt-steps button").first()).toBeDisabled();
+
+    // ...and one later today is walked through.
+    const todayStart = new Date(Date.now() + 10 * 60 * 1000);
+    todayStart.setSeconds(0, 0);
+    const todayEnd = new Date(todayStart.getTime() + 30 * 60 * 1000);
+    test.skip(todayEnd.getDate() !== new Date().getDate(), "too close to midnight for a booking today");
+    const booked = await book(todayStart, todayEnd);
 
     await page.goto(`/patient/${booked!.patientId}?branchId=${booked!.branchId}&tab=profile`);
     const steps = page.locator(".pd-appt-steps button");

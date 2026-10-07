@@ -39,7 +39,8 @@ internal static class CatalogEntryParts
                 serviceConfig.RevenueByStage,
                 serviceConfig.RequireStageSequence,
                 serviceConfig.WarrantyDays);
-            entry.ServiceConfig!.ReplaceLaboSuppliers(serviceConfig.LaboSupplierIds ?? []);
+            entry.ServiceConfig!.EnsureDiscountFits(entry.Price);
+            entry.ServiceConfig.ReplaceLaboSuppliers(serviceConfig.LaboSupplierIds ?? []);
         }
 
         if (medicine != null)

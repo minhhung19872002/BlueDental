@@ -8,7 +8,7 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  * banner, the red dot and the footer note say so, and Lưu stays disabled.
  * "Nhập ngay" opens the popup; one guardian is typed in. The search box finds
  * both an existing hồ sơ and somebody on file only as another child's guardian
- * (BA 2026-10-07, R-780); the latter is filled in with "Tìm & điền", and
+ * (BA 2026-10-07, R-787); the latter is filled in with "Tìm & điền", and
  * "Lưu & quay lại hồ sơ" hands both back as cards. Lưu writes them; after a
  * reload the edit dialog reads the same group back from the database.
  *
@@ -155,7 +155,7 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   const second = popup.locator(".ant-collapse-item").nth(1);
   const search = second.getByRole("textbox", { name: "Tìm người giám hộ đã có hồ sơ" });
 
-  // Typing a CCCD no hồ sơ holds never flashes the most recent patients (R-779).
+  // Typing a CCCD no hồ sơ holds never flashes the most recent patients (R-786).
   await page.evaluate(() => {
     new MutationObserver(() => {
       if (document.querySelector(".bd-guardian-search-results")) document.body.dataset.guardianListShown = "1";

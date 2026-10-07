@@ -137,6 +137,23 @@ public class CatalogServiceConfig : Entity<Guid>
         return Round(PriceIncludesTax ? net : net * TaxFactor);
     }
 
+    /// <summary>
+    /// A VNĐ discount larger than the price is refused on save, as a % one over
+    /// 100 is (bug list item 27: 500.000 off a 300.000 service saved as 0).
+    /// Kept apart from <see cref="Update"/>, which does not know the price, and
+    /// from <see cref="NetOfDiscount"/>, whose never-below-zero clamp is the
+    /// reference's measured preview formula.
+    /// </summary>
+    public void EnsureDiscountFits(decimal? price)
+    {
+        if (!DiscountIsPercent && DiscountValue > (price ?? 0m))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidServiceDiscount,
+                "A discount cannot be more than the price.");
+        }
+    }
+
     /// <summary>The price with the discount taken off, never below zero.</summary>
     private decimal NetOfDiscount(decimal price)
     {

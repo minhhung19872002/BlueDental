@@ -408,6 +408,12 @@ export interface PatientPaymentDto {
   paymentAccountId: string | null;
   staffName: string | null;
   treatmentPlanCode: string | null;
+  /** A cancelled receipt ("Đã hủy"), listed only with `includeCancelled`; no total counts it. */
+  isDeleted: boolean;
+  /** When it was cancelled. */
+  deletionTime: string | null;
+  cancelReason: string | null;
+  cancelledByName: string | null;
 }
 
 export interface PatientAccountDto {
@@ -463,6 +469,8 @@ export interface PatientPaymentListInput {
   clinicBranchId: string;
   treatmentPlanId?: string;
   kind?: PatientPaymentKind;
+  /** Lists cancelled receipts too, as the Thanh toán tab does (bug list item 28). */
+  includeCancelled?: boolean;
   skipCount?: number;
   maxResultCount?: number;
 }
@@ -558,8 +566,8 @@ const treatmentApi = {
   updatePayment: (id: string, input: UpdatePaymentInput): Promise<PatientPaymentDto> =>
     api.put<PatientPaymentDto>(`${PAYMENTS}/${id}`, input).then((r) => r.data),
 
-  deletePayment: (id: string): Promise<void> =>
-    api.delete(`${PAYMENTS}/${id}`).then(() => undefined),
+  cancelPayment: (id: string, reason: string): Promise<void> =>
+    api.post(`${PAYMENTS}/${id}/cancel`, { reason }).then(() => undefined),
 };
 
 /** Body of `PUT patient-payments/{id}` — how the money was taken, not how much. */
@@ -719,10 +727,13 @@ export function useUpdatePayment() {
   }, ["payment"]);
 }
 
-/** "Huỷ" on a receipt row — the movement is taken back off the slip. */
-export function useDeletePayment() {
+/**
+ * "Huỷ" on a receipt row — the movement is taken back off the slip, with a
+ * reason; the row stays listed as "Đã hủy" (bug list item 28).
+ */
+export function useCancelPayment() {
   return useTreatmentMutation(
-    (input: { id: string }) => treatmentApi.deletePayment(input.id),
+    (input: { id: string; reason: string }) => treatmentApi.cancelPayment(input.id, input.reason),
     ["payment"],
   );
 }

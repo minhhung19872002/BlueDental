@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
@@ -59,6 +60,10 @@ function CheckIcon() {
  * halves of its rail, with the outer edges hidden, exactly as the reference
  * builds it.
  */
+function isToday(instant: string): boolean {
+  return dayjs(instant).isSame(dayjs(), "day");
+}
+
 export function ReceptionSteps({ appointment, onAdvanced }: Props) {
   const advanceReception = useAdvanceReception();
   const busy = advanceReception.isPending;
@@ -88,8 +93,9 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
     <ol className="pd-appt-steps">
       {LABELS.map((label, index) => {
         const done = reached >= index + 1;
-        // Only the step immediately after the one reached is live.
-        const next = reached === index;
+        // Only the step immediately after the one reached is live — and a
+        // booking is received on its own day only (bug list item 25).
+        const next = reached === index && (index > 0 || isToday(appointment.startTime));
 
         return (
           <li key={label} data-step={index + 1} className={done ? "reached" : undefined}>

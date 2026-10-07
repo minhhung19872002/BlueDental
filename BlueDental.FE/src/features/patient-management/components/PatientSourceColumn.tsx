@@ -6,6 +6,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
+import { PERSON_NAME_PATTERN } from "@/utils/vietnameseName";
 
 interface Props {
   /** The fixed half of the code, greyed inside the field. */
@@ -61,6 +62,7 @@ export function PatientSourceColumn({
         rules={[
           { required: true, message: t("Patient:Form:RequiredFullName") },
           { max: 50, message: t("Patient:Misc:Max50Chars") },
+          { pattern: PERSON_NAME_PATTERN, message: t("Patient:Form:InvalidFullName") },
         ]}
       >
         <Input maxLength={50} />

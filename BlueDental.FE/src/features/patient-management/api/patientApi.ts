@@ -34,7 +34,7 @@ export const patientApi = {
       .get<PhoneAvailability>(`${BASE}/check-phone`, { params: { phone, excludeId } })
       .then((r) => r.data),
 
-  /** "Tìm người giám hộ đã có hồ sơ": hồ sơ and guardians already on file (R-780). */
+  /** "Tìm người giám hộ đã có hồ sơ": hồ sơ and guardians already on file (R-787). */
   guardianCandidates: (filter: string, excludePatientId?: string): Promise<GuardianCandidate[]> =>
     api
       .get<GuardianCandidate[]>(`${BASE}/guardian-candidates`, { params: { filter, excludePatientId } })

@@ -58,6 +58,16 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public Guid? PaymentAccountId { get; private set; }
 
+    public const int MaxCancelReasonLength = 500;
+
+    /// <summary>
+    /// Why the receipt was cancelled. A cancelled receipt is soft-deleted — so
+    /// no rollup, debt or report counts it — and keeps who cancelled it and
+    /// when in <c>DeleterId</c> / <c>DeletionTime</c>; the Thanh toán tab still
+    /// lists it as "Đã hủy" (bug list item 28).
+    /// </summary>
+    public string? CancelReason { get; private set; }
+
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
 
@@ -238,6 +248,39 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     /// slip's rollup and every per-line "BE:PaymentKind:StillOwed" are built from, so correcting
     /// them means voiding the receipt and writing a new one.
     /// </summary>
+    /// <summary>
+    /// Money is collected today or was collected before: a receipt dated
+    /// 28/10 typed in on 07/10 is refused (bug list item 26). Compared by the
+    /// clinic's calendar day, so any time later today is still today.
+    /// </summary>
+    public static void EnsureNotAfterToday(DateTimeOffset paidAt, DateTimeOffset now)
+    {
+        if (ClinicCalendar.DateOf(paidAt) > ClinicCalendar.DateOf(now))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentDateInFuture,
+                "A receipt cannot be dated after today.");
+        }
+    }
+
+    /// <summary>
+    /// Records why the receipt is being cancelled; the caller then soft-deletes
+    /// it. A receipt with no reason is not cancelled (bug list item 28: one
+    /// vanished from the list with no reason and no trace).
+    /// </summary>
+    public PatientPayment Cancel(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentCancelReasonRequired,
+                "A receipt is cancelled with a reason.");
+        }
+
+        CancelReason = Check.Length(reason.Trim(), nameof(reason), MaxCancelReasonLength);
+        return this;
+    }
+
     public PatientPayment Revise(
         PaymentMethodKind method,
         Guid? paymentAccountId,

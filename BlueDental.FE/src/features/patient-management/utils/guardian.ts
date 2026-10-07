@@ -153,7 +153,7 @@ export function guardianFromDto(dto: PatientGuardianDto): GuardianDraft {
 
 /**
  * "Tìm & điền": a hồ sơ's — or a guardian already on file's — details over the
- * guardian being typed (R-780). The relation, address choice and primary tick
+ * guardian being typed (R-787). The relation, address choice and primary tick
  * stay the desk's to decide; a hồ sơ carries no CCCD issue date or place, so
  * whatever was typed there stays.
  */

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.CustomerCare;
@@ -397,6 +398,23 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Tài khoản nhận tiền, on Ngân hàng and Ví momo payments.</summary>
     public Guid? PaymentAccountId { get; set; }
+
+    /// <summary>
+    /// Set on a cancelled receipt ("Đã hủy"), listed only when asked for with
+    /// <see cref="GetPatientPaymentListInput.IncludeCancelled"/>; who and when
+    /// are <c>DeleterId</c> / <c>DeletionTime</c>.
+    /// </summary>
+    public string? CancelReason { get; set; }
+
+    public string? CancelledByName { get; set; }
+}
+
+/// <summary>"Hủy phiếu" — a receipt is cancelled with a reason (bug list item 28).</summary>
+public class CancelPatientPaymentDto
+{
+    [Required]
+    [StringLength(500)]
+    public string Reason { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -455,6 +473,12 @@ public class GetPatientPaymentListInput : PagedAndSortedResultRequestDto
     public PatientPaymentKind? Kind { get; set; }
     public DateTimeOffset? FromDate { get; set; }
     public DateTimeOffset? ToDate { get; set; }
+
+    /// <summary>
+    /// Lists cancelled receipts too, as the Thanh toán tab does. Never used by
+    /// anything that adds money up.
+    /// </summary>
+    public bool IncludeCancelled { get; set; }
 }
 
 /// <summary>Everything the patient's money tab needs in one call.</summary>
@@ -564,5 +588,5 @@ public interface IPatientPaymentAppService : IApplicationService
     Task<PatientPaymentDto> RecordAsync(RecordPatientPaymentDto input);
     Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input);
     Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(GetDebtHistoryInput input);
-    Task DeleteAsync(Guid id);
+    Task CancelAsync(Guid id, CancelPatientPaymentDto input);
 }

@@ -3,6 +3,7 @@ using System;
 using BlueDental.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Volo.Abp.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     [DbContext(typeof(BlueDentalDbContext))]
-    partial class BlueDentalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007025548_PatientPaymentCancelReason")]
+    partial class PatientPaymentCancelReason
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4385,95 +4388,6 @@ namespace BlueDental.Migrations
                     b.HasIndex("PatientId", "RecordedAt");
 
                     b.ToTable("bd_patient_examination_reasons", (string)null);
-                });
-
-            modelBuilder.Entity("BlueDental.PatientManagement.PatientGuardian", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTimeOffset>("ConsentedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly?>("DateOfBirth")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<short?>("Gender")
-                        .HasColumnType("smallint");
-
-                    b.Property<DateOnly?>("IdIssuedOn")
-                        .HasColumnType("date");
-
-                    b.Property<string>("IdIssuedPlace")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("IsPrimaryContact")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("LinkedPatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("NationalId")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid?>("OccupationEntryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ProofBlobName")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("ProofFileName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<short?>("ProofType")
-                        .HasColumnType("smallint");
-
-                    b.Property<short>("Relation")
-                        .HasColumnType("smallint");
-
-                    b.Property<string>("RelationNote")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("SameAddressAsPatient")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LinkedPatientId");
-
-                    b.HasIndex("PatientId", "SortOrder");
-
-                    b.ToTable("bd_patient_guardians", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.PatientManagement.PatientImage", b =>
@@ -8926,20 +8840,6 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("BlueDental.PatientManagement.PatientGuardian", b =>
-                {
-                    b.HasOne("BlueDental.PatientManagement.Patient", null)
-                        .WithMany()
-                        .HasForeignKey("LinkedPatientId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("BlueDental.PatientManagement.Patient", null)
-                        .WithMany("Guardians")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("BlueDental.Staff.StaffPenalty", b =>
                 {
                     b.HasOne("BlueDental.Staff.StaffViolationType", null)
@@ -9509,8 +9409,6 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.PatientManagement.Patient", b =>
                 {
                     b.Navigation("ExaminationReasons");
-
-                    b.Navigation("Guardians");
                 });
 
             modelBuilder.Entity("BlueDental.TreatmentManagement.Prescription", b =>

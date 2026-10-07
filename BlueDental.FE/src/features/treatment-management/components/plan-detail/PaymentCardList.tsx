@@ -52,7 +52,7 @@ export function PaymentCardList({
                   >
                     <Eye size={16} aria-hidden="true" />
                   </button>
-                  {onEdit && (
+                  {onEdit && !payment.isDeleted && (
                     <button
                       type="button"
                       className="bd-rc-action"
@@ -62,7 +62,7 @@ export function PaymentCardList({
                       <Pencil size={16} aria-hidden="true" />
                     </button>
                   )}
-                  {onCancel && (
+                  {onCancel && !payment.isDeleted && (
                     <button
                       type="button"
                       className="bd-rc-action"
@@ -72,7 +72,7 @@ export function PaymentCardList({
                       <Trash2 size={16} aria-hidden="true" />
                     </button>
                   )}
-                  {onIssueInvoice && canIssueInvoice?.(payment) !== false && (
+                  {onIssueInvoice && !payment.isDeleted && canIssueInvoice?.(payment) !== false && (
                     <button
                       type="button"
                       className="bd-rc-action"

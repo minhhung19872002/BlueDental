@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select } from "antd";
+import { Alert, Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, type FormRule } from "antd";
 import { toast } from "sonner";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
@@ -90,7 +90,23 @@ const EMPTY: FormValues = {
 };
 
 /**
- * Dịch vụ — the reference's largest catalog dialog: the entry itself, a price
+ * Bug list item 27: a % discount over 100, or a VNĐ one over the price, is
+ * refused as the server refuses it — 500.000 off a 300.000 service saved as 0.
+ */
+const DISCOUNT_RULES: FormRule[] = [
+  ({ getFieldValue }) => ({
+    validator(_, value: number | undefined) {
+      const limit = getFieldValue("discountIsPercent") ? 100 : Number(getFieldValue("price") ?? 0);
+      return Number(value ?? 0) > limit
+        ? Promise.reject(new Error(t("Taxonomy:Service:InvalidDiscount")))
+        : Promise.resolve();
+    },
+  }),
+];
+const DISCOUNT_DEPENDENCIES = ["price", "discountIsPercent"];
+
+/**
+ * Dịch vụ —the reference's largest catalog dialog: the entry itself, a price
  * and tax block, and four tabs of settings (Cài đặt, Công đoạn, Bảo hành, Labo).
  *
  * "Giá sau giảm" and "Thực thu từ khách" follow the price inputs live, as the
@@ -356,7 +372,12 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwit
               </Form.Item>
             </Col>
             <Col flex="auto">
-              <FloatingField name="discountValue" label={t("Taxonomy:Service:DiscountLabel")}>
+              <FloatingField
+                name="discountValue"
+                label={t("Taxonomy:Service:DiscountLabel")}
+                rules={DISCOUNT_RULES}
+                dependencies={DISCOUNT_DEPENDENCIES}
+              >
                 <CurrencyInput />
               </FloatingField>
             </Col>

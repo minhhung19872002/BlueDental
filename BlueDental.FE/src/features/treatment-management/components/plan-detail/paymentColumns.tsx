@@ -13,9 +13,25 @@ import { ActionTooltip } from "@/components/ActionTooltip";
 import { moneyText } from "../plan/planTypes";
 import { dash, paymentServiceNames } from "./planDetailTypes";
 
-/** Every receipt on file is settled; the reference prints "Hoàn tất" on each. */
-function StatusPill() {
-  return <span className="tp-pill tp-pill--done">{t("Treatment:Payment:Completed")}</span>;
+/**
+ * Every receipt on file is settled; the reference prints "Hoàn tất" on each.
+ * A cancelled one reads "Đã hủy" with who, when and why (bug list item 28).
+ */
+function StatusPill({ payment }: { payment: PatientPaymentDto }) {
+  if (!payment.isDeleted) {
+    return <span className="tp-pill tp-pill--done">{t("Treatment:Payment:Completed")}</span>;
+  }
+  return (
+    <span className="pdt-cancelled">
+      <span className="tp-pill tp-pill--cancelled">{t("Treatment:Payment:Cancelled")}</span>
+      <span className="pdt-cancelled-by">
+        {t("Treatment:Payment:CancelledBy", payment.cancelledByName ?? "-", formatDateTime(payment.deletionTime ?? ""))}
+      </span>
+      {payment.cancelReason && (
+        <span className="pdt-cancelled-reason">{t("Treatment:Payment:CancelReasonShown", payment.cancelReason)}</span>
+      )}
+    </span>
+  );
 }
 
 function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPaymentDto) => void) {
@@ -50,7 +66,7 @@ export interface PaymentRowActions {
 function statusCell(payment: PatientPaymentDto, renderEInvoice?: (payment: PatientPaymentDto) => ReactNode) {
   return (
     <span className="pdt-status-cell">
-      <StatusPill />
+      <StatusPill payment={payment} />
       {renderEInvoice?.(payment)}
     </span>
   );
@@ -61,7 +77,9 @@ function statusCell(payment: PatientPaymentDto, renderEInvoice?: (payment: Patie
  * red Huỷ. They sit in a 28px ghost button each, the last one in the danger
  * colour, as its own toolbar does.
  */
-function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
+function rowActions(payment: PatientPaymentDto, allActions: PaymentRowActions) {
+  // A cancelled receipt can still be looked at, but not edited, cancelled again or invoiced.
+  const actions: PaymentRowActions = payment.isDeleted ? { onView: allActions.onView } : allActions;
   return (
     <span className="pdt-row-actions">
       <ActionTooltip title={t("Xem")}>

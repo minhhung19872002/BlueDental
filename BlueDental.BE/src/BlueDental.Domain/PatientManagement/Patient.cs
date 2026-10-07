@@ -117,6 +117,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         // Only the family name is required: the dialog collects one "BE:Field:FullName"
         // and a single-word name is a whole name, not half of one.
         Check.NotNullOrWhiteSpace(lastName, nameof(lastName));
+        GuardName(firstName, lastName);
         GuardDateOfBirth(dateOfBirth);
 
         var patient = new Patient
@@ -143,6 +144,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         Gender gender)
     {
         Check.NotNullOrWhiteSpace(lastName, nameof(lastName));
+        GuardName(firstName, lastName);
         GuardDateOfBirth(dateOfBirth);
 
         FirstName = firstName;
@@ -150,6 +152,18 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         DateOfBirth = dateOfBirth;
         Gender = gender;
         return this;
+    }
+
+    /// <summary>
+    /// Bug list item 30: "DUNG-TEST &lt;b&gt;@#$%&lt;/b&gt; 123" was saved as a name. Only
+    /// letters, digits, spaces and - . ' are kept (owner 2026-10-07).
+    /// </summary>
+    private static void GuardName(string? firstName, string lastName)
+    {
+        if (!PersonName.IsValid(lastName) || (!string.IsNullOrEmpty(firstName) && !PersonName.IsValid(firstName)))
+        {
+            throw new Volo.Abp.BusinessException(BlueDentalDomainErrorCodes.PatientManagement.InvalidPatientName);
+        }
     }
 
     public Patient UpdateContact(ContactInfo contact)

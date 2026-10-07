@@ -13,7 +13,7 @@ interface Props {
 
 /**
  * Whether rows found for `searched` can stand in for `typed` — a search the
- * text has only grown from, never an older one kept as a placeholder (R-779).
+ * text has only grown from, never an older one kept as a placeholder (R-786).
  */
 function answers(searched: string | undefined, typed: string) {
   return !!searched && typed.toLowerCase().includes(searched.toLowerCase());
@@ -35,7 +35,7 @@ function candidateDetail(found: GuardianCandidate) {
  * "Tìm người giám hộ đã có hồ sơ": a phone or CCCD, then a pick from the
  * matches, Enter, or "Tìm & điền" — each copies that person into the form.
  * The matches are hồ sơ and guardians already declared for other patients, so
- * one phone stays one person (BA 2026-10-07, R-780).
+ * one phone stays one person (BA 2026-10-07, R-787).
  */
 export function GuardianSearch({ excludePatientId, onPick }: Props) {
   const [text, setText] = useState("");

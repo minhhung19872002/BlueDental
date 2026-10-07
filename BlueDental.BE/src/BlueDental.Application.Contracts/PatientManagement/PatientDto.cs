@@ -148,10 +148,17 @@ public class PhoneAvailabilityDto
 {
     public bool Exists { get; set; }
 
-    /// <summary>Who already holds it, so the dialog can name them.</summary>
-    public string? PatientName { get; set; }
+    /// <summary>Everyone in the branch who already holds it, by code, so the dialog can name them all.</summary>
+    public List<PhoneOwnerDto> Owners { get; set; } = [];
+}
 
-    public string? PatientCode { get; set; }
+public class PhoneOwnerDto
+{
+    public Guid Id { get; set; }
+
+    public string PatientCode { get; set; } = default!;
+
+    public string PatientName { get; set; } = default!;
 }
 
 /// <summary>

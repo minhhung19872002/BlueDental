@@ -13,7 +13,7 @@ import "./patient.css";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQueries";
 import { GENDER_BY_CODE } from "../api/patientAdapters";
-import type { Gender, PatientDto, PatientPrefill, RegisterPatientRequest } from "../types/patient";
+import type { Gender, PatientDto, PatientPrefill, PhoneOwner, RegisterPatientRequest } from "../types/patient";
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { useGuardianSubject } from "../hooks/useGuardianSubject";
 import { usePatientGuardians } from "../hooks/usePatientGuardians";
@@ -79,6 +79,16 @@ function titleCaseName(name: string): string {
 
 /** The server's refusal of a CCCD another record in the branch already holds. */
 const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
+const INVALID_NAME = "BlueDental:Patient:0020";
+const DUPLICATE_PHONE = "BlueDental:Patient:0021";
+
+/** Names every record on the number (bug list item 29: only the first one was named). */
+function phoneTakenMessage(owners: readonly PhoneOwner[]): string {
+  const named = owners.map((owner) => `[${owner.patientCode}] ${owner.patientName}`);
+  return owners.length === 1
+    ? t("Patient:Editor:PhoneTaken", owners[0].patientCode, owners[0].patientName)
+    : t("Patient:Editor:PhoneTakenMany", owners.length, named.join(", "));
+}
 
 /** The server's guardian refusals (Patient:0013–0019) — shown on the guardian pane. */
 const GUARDIAN_ERROR = /^BlueDental:Patient:001[3-9]$/;
@@ -327,13 +337,25 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         setGuardianError(failure.message);
         return;
       }
+      if (failure.code === INVALID_NAME) {
+        form.setFields([{ name: "fullName", errors: [failure.message] }]);
+        return;
+      }
+      if (failure.code === DUPLICATE_PHONE) {
+        form.setFields([{ name: "phone", errors: [failure.message] }]);
+        return;
+      }
       notifyError(failure.message);
     }
   };
 
   // A name with no given name is still a name; the server only needs one word.
   // BA: under 16 the record cannot be saved without a guardian.
-  const canSave = fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim()) && !guardianMissing;
+  // Bug list item 29 (owner 2026-10-07): a number another record in the branch
+  // holds is not only warned about, it cannot be saved — the server refuses it too.
+  const phoneTaken = duplicate.data?.exists === true;
+  const canSave =
+    fullName.trim().length > 0 && /^\d{8,15}$/.test(phone.trim()) && !guardianMissing && !phoneTaken;
 
   const handleGuardianDelete = (index: number) => {
     guardians.remove(index);
@@ -361,16 +383,13 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
-        {duplicate.data?.exists && (
+        {phoneTaken && duplicate.data && (
           <Alert
-            type="warning"
+            type="error"
             showIcon
             className="bd-patient-dupe"
-            message={t(
-              "Patient:Editor:PhoneTaken",
-              duplicate.data.patientCode ?? "",
-              duplicate.data.patientName ?? "",
-            )}
+            message={phoneTakenMessage(duplicate.data.owners)}
+            description={t("Patient:Editor:PhoneTakenBlocked")}
           />
         )}
 

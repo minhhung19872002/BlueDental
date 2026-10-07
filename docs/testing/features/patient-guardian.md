@@ -1,6 +1,6 @@
 # F-50 — Người giám hộ trong hồ sơ bệnh nhân
 
-Status: `VERIFIED` (uncommitted) · Source: BA spec (ảnh), 2026-10-07 · Regression log: R-773, R-774 (UI theo mock), R-775 (UI tweaks), R-776 (responsive), R-777 (Hồ sơ tab section), R-778 (guardians not unique), R-779 (search flash), R-780 (search covers guardians on file) · Not committed yet
+Status: `VERIFIED` (uncommitted) · Source: BA spec (ảnh), 2026-10-07 · Regression log: R-773, R-774 (UI theo mock), R-775 (UI tweaks), R-776 (responsive), R-777 (Hồ sơ tab section), R-785 (guardians not unique), R-786 (search flash), R-787 (search covers guardians on file) · Not committed yet
 
 Not a reference-clone feature: app.nfcdental.com has no guardian section. It is a BA
 addition to the "Tạo hồ sơ" / "Chỉnh sửa hồ sơ" dialog.
@@ -89,7 +89,7 @@ All runs used the real login, the host on :5000 and real PostgreSQL. The browser
 | Test | Result |
 |---|---|
 | `BlueDental.Domain.Tests/PatientManagement/PatientGuardianTests.cs` | 13 facts, green |
-| `e2e/patient-guardian-api.spec.ts` | **8/8** (R-777 adds the `PUT …/guardians` test; R-778 proves guardians are not unique; R-780 the combined search) |
+| `e2e/patient-guardian-api.spec.ts` | **8/8** (R-777 adds the `PUT …/guardians` test; R-785 proves guardians are not unique; R-787 the combined search) |
 | `e2e/patient-guardian.spec.ts` | **1/1** |
 | `e2e/patient-guardian-detail.spec.ts` | **1/1** (R-777: chip, phone owner, add / edit / delete on the Hồ sơ tab, card click folds, reload) |
 
@@ -105,7 +105,7 @@ All runs used the real login, the host on :5000 and real PostgreSQL. The browser
 - uploads: `.txt`, a fake `.pdf` and a > 5MB file → `0018`; a real PDF → saved on "Khác" and downloaded (`%PDF-`);
 - a forged blob name on "Khác" → `0018`; the same name on a parent is dropped (null);
 - the BRANCH2 user downloading the paper → refused;
-- guardian search (R-780): a guardian with no hồ sơ is found by phone and by CCCD, once, with both wards; the edited patient's own guardians are excluded; a hồ sơ who also guards someone comes back once, as the hồ sơ; an empty box → `[]`; BRANCH2 → `[]`.
+- guardian search (R-787): a guardian with no hồ sơ is found by phone and by CCCD, once, with both wards; the edited patient's own guardians are excluded; a hồ sơ who also guards someone comes back once, as the hồ sơ; an empty box → `[]`; BRANCH2 → `[]`.
 
 `e2e/patient-guardian.spec.ts` walks the dialog in the browser:
 
@@ -113,7 +113,7 @@ All runs used the real login, the host on :5000 and real PostgreSQL. The browser
 2. The three pills share one row.
 3. "Nhập ngay" opens the popup: breadcrumb "Tạo hồ sơ" and the chip "9 tuổi · Bắt buộc có người giám hộ".
 4. An empty "Lưu & quay lại" leaves the errors under the inputs.
-5. Guardian 1 is typed in. In guardian 2's search box: an unknown CCCD never flashes a list (R-779); the father's phone lists his hồ sơ; the grandmother's phone lists her as "Người giám hộ của …" (she exists only as another child's guardian, made through the API), and "Tìm & điền" copies her name, phone, CCCD and nơi cấp.
+5. Guardian 1 is typed in. In guardian 2's search box: an unknown CCCD never flashes a list (R-786); the father's phone lists his hồ sơ; the grandmother's phone lists her as "Người giám hộ của …" (she exists only as another child's guardian, made through the API), and "Tìm & điền" copies her name, phone, CCCD and nơi cấp.
 6. Tick consent, then "Lưu & quay lại": the ✓ shows, with 2 cards and the first one as primary contact.
 7. Lưu, reload, "Chỉnh sửa": the same 2 cards come back from the DB, marked "Đã xác nhận".
 

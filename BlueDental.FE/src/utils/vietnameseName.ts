@@ -19,3 +19,10 @@ export function splitVietnameseName(fullName: string): {
     lastName: parts.slice(0, -1).join(" "),
   };
 }
+
+/**
+ * The characters a person's name may hold: letters (Vietnamese marks
+ * included), digits, spaces and - . ' (owner 2026-10-07, bug list item 30).
+ * Mirrors `BlueDental.PersonName` on the server.
+ */
+export const PERSON_NAME_PATTERN = /^[\p{L}\p{M}0-9 .'-]+$/u;

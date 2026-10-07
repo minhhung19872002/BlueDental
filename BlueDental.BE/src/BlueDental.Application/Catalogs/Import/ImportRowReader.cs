@@ -90,7 +90,7 @@ internal sealed class ImportRowReader
                 Code = Optional(Col.Code, CodeMax),
                 Price = Money(Col.Price),
                 Unit = Optional(Col.Unit, UnitMax),
-                ServiceConfig = ReadServiceConfig(),
+                ServiceConfig = ReadServiceConfig(Money(Col.Price)),
                 Stages = ReadStages()
             },
             TaxonomyGroups.MedicationType => new EntryDraft
@@ -158,7 +158,8 @@ internal sealed class ImportRowReader
         };
     }
 
-    private ServiceConfigDto ReadServiceConfig()
+    /// <param name="price">The row's price, when the file gives one.</param>
+    private ServiceConfigDto ReadServiceConfig(decimal? price)
     {
         if (!ExcelCells.TryTaxRate(Text(Col.TaxRate), out var taxRate))
         {
@@ -170,6 +171,10 @@ internal sealed class ImportRowReader
         if (discountIsPercent && discountValue > 100m)
         {
             _errors.Add(_l["Taxonomy:Import:Err:DiscountPercent", Header(Col.DiscountValue)]);
+        }
+        else if (!discountIsPercent && price.HasValue && discountValue > price.Value)
+        {
+            _errors.Add(_l["Taxonomy:Import:Err:DiscountOverPrice", Header(Col.DiscountValue), Header(Col.Price)]);
         }
 
         return new ServiceConfigDto

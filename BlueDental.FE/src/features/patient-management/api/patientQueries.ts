@@ -54,7 +54,7 @@ const fetchGuardianCandidates = async (
 
 /**
  * "Tìm người giám hộ đã có hồ sơ" as the desk types: hồ sơ and guardians
- * already declared for other patients (BA 2026-10-07, R-780). Nothing is
+ * already declared for other patients (BA 2026-10-07, R-787). Nothing is
  * asked for an empty box.
  */
 export function useGuardianCandidates(keyword: string, excludeId?: string) {

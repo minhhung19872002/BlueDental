@@ -268,6 +268,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         }
 
         var lines = await AllocateAsync(input);
+        var paidAt = input.PaidAt ?? Clock.Now;
+        PatientPayment.EnsureNotAfterToday(paidAt, DateTimeOffset.UtcNow);
 
         var payment = PatientPayment.Record(
             GuidGenerator.Create(),
@@ -278,7 +280,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             input.Amount,
             await GenerateCodeAsync(input.ClinicBranchId, input.Kind, input.TreatmentPlanId),
             input.StaffId,
-            input.PaidAt ?? Clock.Now,
+            paidAt,
             input.TreatmentPlanId,
             input.Note,
             input.PaymentAccountId,
@@ -432,6 +434,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     {
         var payment = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
+        if (input.PaidAt is { } paidAt)
+            PatientPayment.EnsureNotAfterToday(paidAt, DateTimeOffset.UtcNow);
 
         payment.Revise(
             input.Method,
@@ -443,11 +447,17 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         return (await MapManyAsync([payment])).Single();
     }
 
+    /// <summary>
+    /// "Hủy phiếu": the receipt is soft-deleted, so nothing counts it any more
+    /// and the debt comes back, but it keeps its reason, who and when, and the
+    /// Thanh toán tab still lists it as "Đã hủy" (bug list item 28).
+    /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Delete)]
-    public async Task DeleteAsync(Guid id)
+    public async Task CancelAsync(Guid id, CancelPatientPaymentDto input)
     {
         var payment = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
+        payment.Cancel(input.Reason);
 
         // A signed e-invoice puts the money on a tax document: the receipt
         // stays. A draft only lives at the provider and goes with the receipt.
@@ -458,12 +468,16 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             await _electronicInvoices.DeleteAsync(invoice);
         }
 
-        await _repository.DeleteAsync(id, autoSave: true);
+        // Saved before the delete: ABP reloads a soft-deleted entity, which
+        // would drop the reason otherwise.
+        await _repository.UpdateAsync(payment, autoSave: true);
+        await _repository.DeleteAsync(payment, autoSave: true);
     }
 
     private async Task<List<PatientPayment>> QueryAsync(GetPatientPaymentListInput input)
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+        using var cancelled = input.IncludeCancelled ? DataFilter.Disable<ISoftDelete>() : null;
         var query = await _repository.WithDetailsAsync(x => x.Lines);
 
         if (branchFilter.Count > 0)
@@ -523,6 +537,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     private async Task<string> GenerateCodeAsync(Guid clinicBranchId, PatientPaymentKind kind, Guid? treatmentPlanId)
     {
         var year = Clock.Now.Year;
+        // A cancelled receipt keeps its number: the next one must not reuse it.
+        using var cancelled = DataFilter.Disable<ISoftDelete>();
         var query = await _repository.GetQueryableAsync();
         var sequence = query.Count(x =>
             x.ClinicBranchId == clinicBranchId
@@ -549,7 +565,10 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             return [];
         }
 
-        var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
+        var staffIds = items.Select(x => x.StaffId)
+            .Concat(items.Where(x => x.DeleterId.HasValue).Select(x => x.DeleterId!.Value))
+            .Distinct()
+            .ToList();
         var users = await _userRepository.GetListByIdsAsync(staffIds);
         var staffNames = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
 
@@ -593,7 +612,14 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             CreationTime = x.CreationTime,
             CreatorId = x.CreatorId,
             LastModificationTime = x.LastModificationTime,
-            LastModifierId = x.LastModifierId
+            LastModifierId = x.LastModifierId,
+            IsDeleted = x.IsDeleted,
+            DeleterId = x.DeleterId,
+            DeletionTime = x.DeletionTime,
+            CancelReason = x.CancelReason,
+            CancelledByName = x.DeleterId.HasValue && staffNames.TryGetValue(x.DeleterId.Value, out var deleter)
+                ? deleter
+                : null
         }).ToList();
     }
 }
