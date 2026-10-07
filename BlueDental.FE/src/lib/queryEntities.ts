@@ -7,6 +7,7 @@ import { patientTagOptionKeys } from "@/hooks/usePatientTagOptions";
 import { paymentAccountOptionKeys } from "@/hooks/usePaymentAccountOptions";
 import { serviceGroupOptionKeys } from "@/hooks/useServiceGroupOptions";
 import { staffOptionKeys } from "@/hooks/useStaffOptions";
+import type { appointmentHistoryKeys } from "@/features/appointments/api/appointmentHistoryQueries";
 import type { appointmentKeys } from "@/features/appointments/api/appointmentQueries";
 import type { paymentLedgerKeys } from "@/features/billing/api/paymentLedgerApi";
 import type { careKeys } from "@/features/cskh/api/careApi";
@@ -74,6 +75,10 @@ export const ENTITY_QUERY_ROOTS = {
     ["receptionMetrics"],
     // Next appointment and last visit.
     PATIENT_LISTS,
+    // Every status change is logged.
+    ["appointment-history"] satisfies RootOf<typeof appointmentHistoryKeys>,
+    // Nhắc lịch hẹn / Đặt lịch không đến / Lịch hẹn hủy read the booking's status.
+    ["care-records"] satisfies RootOf<typeof careKeys>,
   ],
   treatment: [
     PATIENT_TREATMENTS,

@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
- * Feature: Hồ sơ bệnh nhân → Người giám hộ, in the browser (BA, 2026-10-07; R-772).
+ * Feature: Hồ sơ bệnh nhân → Người giám hộ, in the browser (BA, 2026-10-07; R-773).
  *
  * A 9-year-old cannot be saved until a guardian is entered: the age chip, the
  * banner, the red dot and the footer note say so, and Lưu stays disabled.

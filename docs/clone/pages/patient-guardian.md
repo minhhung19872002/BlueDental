@@ -3,7 +3,7 @@
 **BlueDental-local.** The reference (app.nfcdental.com) has no guardian section
 in its hồ sơ dialog, so nothing here is cloned. The source is the BA's spec
 images (2026-10-07). The owner answered the open questions on the same day (see below).
-Test record: `docs/testing/features/patient-guardian.md` (F-50, R-772).
+Test record: `docs/testing/features/patient-guardian.md` (F-50, R-773).
 
 ## What the BA drew
 

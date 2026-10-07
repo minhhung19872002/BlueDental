@@ -27,21 +27,21 @@ public class MissedAppointmentWorker : AsyncPeriodicBackgroundWorkerBase
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         var marker = workerContext.ServiceProvider.GetRequiredService<MissedAppointmentMarker>();
-        var branchIds = await marker.MarkAsync(DateTimeOffset.UtcNow);
-        if (branchIds.Count == 0) return;
+        var batches = await marker.MarkAsync(DateTimeOffset.UtcNow);
+        if (batches.Count == 0) return;
 
         // After the commit, so a screen that refetches on the message sees the change.
         var unitOfWork = workerContext.ServiceProvider.GetRequiredService<IUnitOfWorkManager>().Current;
         var notifier = workerContext.ServiceProvider.GetRequiredService<IAppointmentNotifier>();
         if (unitOfWork is null)
         {
-            await notifier.NotifyAppointmentsChangedAsync(branchIds);
+            await notifier.NotifyMarkedLateAsync(batches);
         }
         else
         {
-            unitOfWork.OnCompleted(() => notifier.NotifyAppointmentsChangedAsync(branchIds));
+            unitOfWork.OnCompleted(() => notifier.NotifyMarkedLateAsync(batches));
         }
 
-        Logger.LogInformation("MissedAppointmentWorker: moved appointments of {Count} branch(es) to NoShow.", branchIds.Count);
+        Logger.LogInformation("MissedAppointmentWorker: moved appointments of {Count} branch(es) to NoShow.", batches.Count);
     }
 }

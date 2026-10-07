@@ -1,6 +1,6 @@
 # F-50 — Người giám hộ trong hồ sơ bệnh nhân
 
-Status: `VERIFIED` (uncommitted) · Source: BA spec (ảnh), 2026-10-07 · Regression log: R-772, R-773 (UI theo mock), R-774 (UI tweaks), R-775 (responsive) · Not committed yet
+Status: `VERIFIED` (uncommitted) · Source: BA spec (ảnh), 2026-10-07 · Regression log: R-773, R-774 (UI theo mock), R-775 (UI tweaks), R-776 (responsive) · Not committed yet
 
 Not a reference-clone feature: app.nfcdental.com has no guardian section. It is a BA
 addition to the "Tạo hồ sơ" / "Chỉnh sửa hồ sơ" dialog.
@@ -116,15 +116,15 @@ Regression on the same build (level 2):
   - The detail page opens on Chẩn đoán & Tư vấn, as it does at HEAD, so the tests that expect `.pd-profile-card` or "Chỉnh sửa hồ sơ" there time out.
   - The demo seed has no slip with a service line.
   - The rest is công đoạn and money UI drift.
-  - These match the pre-existing patient reds (R-649). Details are in R-772.
+  - These match the pre-existing patient reds (R-649). Details are in R-773.
 
-UI polish against the BA mock (R-773), same build:
+UI polish against the BA mock (R-774), same build:
 
 - The banner sits under Ngày sinh in the middle column.
-- The popup is 880px wide with a 3-column grid (1000px since R-774).
+- The popup is 880px wide with a 3-column grid (1000px since R-775).
 - `patient-guardian` 1/1, `patient-guardian-api` 5/5, `patient-national-id` 3/3, `patient-editor-inputs` 3/3.
 
-Owner tweaks (R-774), same build:
+Owner tweaks (R-775), same build:
 
 - Once a birth date is set, the age chip replaces the calendar icon in Ngày sinh.
 - The native file input under "Khác" is hidden. AntD's form reset had forced `display: block` over `hidden`.
@@ -133,7 +133,7 @@ Owner tweaks (R-774), same build:
 - 14px from the consent to the footer rule (was 46px).
 - 12/12 on the same four specs.
 
-Responsive check (R-775), same build, at 1280 / 1024 / 768 / 390px:
+Responsive check (R-776), same build, at 1280 / 1024 / 768 / 390px:
 
 - No horizontal overflow at any size.
 - ≤ 900px the grid has 2 columns; ≤ 640px it has 1.

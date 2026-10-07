@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login, runId } from "./fixtures/auth";
 
 /**
- * Feature: Hồ sơ bệnh nhân → Người giám hộ (BA, 2026-10-07; R-772).
+ * Feature: Hồ sơ bệnh nhân → Người giám hộ (BA, 2026-10-07; R-773).
  *
  * The rules the server keeps on its own, whatever the dialog sends:
  * - under 16 by year (current year − birth year) needs at least one guardian,
