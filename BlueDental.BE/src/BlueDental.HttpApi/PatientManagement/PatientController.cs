@@ -55,6 +55,13 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
         [FromBody] AddExaminationReasonDto input) =>
         service.AddExaminationReasonAsync(id, input);
 
+    /// <summary>"Người giám hộ" on the Hồ sơ tab — replaces the group alone.</summary>
+    [HttpPut("{id:guid}/guardians")]
+    public Task<PatientDto> UpdateGuardiansAsync(
+        Guid id,
+        [FromBody] UpdatePatientGuardiansDto input) =>
+        service.UpdateGuardiansAsync(id, input);
+
     [HttpPost("{id:guid}/deactivate")]
     public Task DeactivateAsync(Guid id) => service.DeactivateAsync(id);
 }

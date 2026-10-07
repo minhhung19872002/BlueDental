@@ -4539,3 +4539,206 @@
 .pd-debt-table .ant-table-tbody > tr > td:first-child {
   padding-left: 16px;
 }
+
+/* ── Hồ sơ tab: "NGƯỜI GIÁM HỘ (n)" under the identity grid (BA mock 2026-10-07) ── */
+
+.pd-underage-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-info strong > .pd-phone-owner {
+  display: block;
+  margin-top: 2px;
+  color: var(--bd-faint);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.pd-guardians {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bd-divider);
+}
+.pd-guardians-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-guardians-icon {
+  color: var(--bd-blue);
+  font-size: 16px;
+}
+.pd-guardians-head > h4 {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.pd-guardians-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-guardians-add {
+  margin-left: auto;
+}
+.pd-guardians-empty {
+  margin: 10px 0 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-guardians-empty--warn {
+  color: var(--bd-orange);
+}
+.pd-guardians-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pd-guardian {
+  padding: 12px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.pd-guardian:hover {
+  border-color: var(--bd-blue-light);
+}
+.pd-guardian-actions {
+  display: inline-flex;
+  gap: 6px;
+  cursor: default;
+}
+.pd-guardian--primary {
+  border-color: var(--bd-blue-light);
+  background: var(--bd-blue-pale);
+}
+.pd-guardian-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-guardian-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-guardian--primary .pd-guardian-avatar {
+  background: var(--bd-card);
+}
+.pd-guardian-who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.pd-guardian-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.pd-guardian-name > strong {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-guardian-relation,
+.pd-guardian-primary {
+  margin: 0;
+  font-weight: 500;
+}
+.pd-guardian-relation {
+  border-color: var(--bd-purple-pale);
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+.pd-guardian-primary {
+  border-color: var(--bd-green-pale);
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.pd-guardian-contact {
+  overflow: hidden;
+  color: var(--bd-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-guardian-who:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--bd-blue);
+  outline-offset: 2px;
+}
+.pd-guardian-delete.ant-btn {
+  border-color: transparent;
+  background: var(--bd-bg-soft);
+}
+.pd-guardian-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--bd-line);
+}
+.pd-guardian-facts dt {
+  color: var(--bd-faint);
+  font-size: 12px;
+}
+.pd-guardian-facts dd {
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.pd-guardian-consent {
+  margin: 10px 0 0;
+  color: var(--bd-green);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .pd-guardian-head {
+    flex-wrap: wrap;
+  }
+  .pd-guardian-who {
+    flex-basis: calc(100% - 46px);
+  }
+  .pd-guardian-contact {
+    white-space: normal;
+  }
+  .pd-guardian-facts {
+    grid-template-columns: 1fr;
+  }
+}

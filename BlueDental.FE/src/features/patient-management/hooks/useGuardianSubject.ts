@@ -17,7 +17,7 @@ export interface GuardianSubjectFields {
 }
 
 /** "Số nhà, Phường, Tỉnh" — the ward and province resolved from their codes. */
-function useAddressLabel(address: string, provinceCode?: string, wardCode?: string): string {
+export function useAddressLabel(address: string, provinceCode?: string, wardCode?: string): string {
   const [label, setLabel] = useState("");
 
   useEffect(() => {

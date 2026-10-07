@@ -23,6 +23,8 @@ interface Props {
   patientId?: string;
   onSave: (group: GuardianGroup) => void;
   onClose: () => void;
+  /** The Hồ sơ tab writes on save; the button waits for the server. */
+  saving?: boolean;
 }
 
 const consentRule = {
@@ -31,11 +33,21 @@ const consentRule = {
 };
 
 /**
- * "Thông tin người giám hộ" — edits a copy of the hồ sơ dialog's group. Every
- * way out but "Lưu & quay lại hồ sơ" drops the copy; that one hands it back,
- * and nothing is written to the server until the hồ sơ's own Lưu.
+ * "Thông tin người giám hộ" — edits a copy of the guardian group. Every way
+ * out but "Lưu & quay lại hồ sơ" drops the copy; that one hands it back. The
+ * hồ sơ dialog holds it until its own Lưu; the Hồ sơ tab writes it at once.
  */
-export function GuardianDialog({ focus, group, parentTitle, patient, patientAddress, patientId, onSave, onClose }: Props) {
+export function GuardianDialog({
+  focus,
+  group,
+  parentTitle,
+  patient,
+  patientAddress,
+  patientId,
+  onSave,
+  onClose,
+  saving,
+}: Props) {
   const popup = useGuardianPopupForm(focus, group);
   const fetchPatient = useFetchPatientDto();
   const grouped = popup.guardians.length > 1;
@@ -101,7 +113,13 @@ export function GuardianDialog({ focus, group, parentTitle, patient, patientAddr
           </div>
           <div className="bd-modal-foot-actions">
             <Button onClick={onClose}>{t("Common:Cancel")}</Button>
-            <Button type="primary" icon={<SaveOutlined />} onClick={() => void handleSave()}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={saving}
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
               {t("Patient:Guardian:SaveAndBack")}
             </Button>
           </div>

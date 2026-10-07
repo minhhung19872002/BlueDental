@@ -244,6 +244,19 @@ public class UpdatePatientDto
     public bool GuardiansConsented { get; set; }
 }
 
+/// <summary>
+/// The "Người giám hộ" block on the record's Hồ sơ tab: the whole group,
+/// replaced without touching the rest of the hồ sơ.
+/// </summary>
+public class UpdatePatientGuardiansDto
+{
+    [Required]
+    public List<PatientGuardianInput> Guardians { get; set; } = new();
+
+    /// <summary>The popup's single consent tick for the whole group.</summary>
+    public bool GuardiansConsented { get; set; }
+}
+
 public class GetPatientListInput : PagedAndSortedResultRequestDto
 {
     // No BranchId here on purpose. The branch in view travels in the

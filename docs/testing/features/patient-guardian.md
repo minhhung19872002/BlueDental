@@ -1,6 +1,6 @@
 # F-50 — Người giám hộ trong hồ sơ bệnh nhân
 
-Status: `VERIFIED` (uncommitted) · Source: BA spec (ảnh), 2026-10-07 · Regression log: R-773, R-774 (UI theo mock), R-775 (UI tweaks), R-776 (responsive) · Not committed yet
+Status: `VERIFIED` (uncommitted) · Source: BA spec (ảnh), 2026-10-07 · Regression log: R-773, R-774 (UI theo mock), R-775 (UI tweaks), R-776 (responsive), R-777 (Hồ sơ tab section) · Not committed yet
 
 Not a reference-clone feature: app.nfcdental.com has no guardian section. It is a BA
 addition to the "Tạo hồ sơ" / "Chỉnh sửa hồ sơ" dialog.
@@ -45,13 +45,14 @@ addition to the "Tạo hồ sơ" / "Chỉnh sửa hồ sơ" dialog.
 | Pill visibility | Always shown, not only for under-16. |
 | Primary contact | Only stored; nothing sends SMS to it yet. |
 | Relation → gender | No auto-fill. |
-| Detail page "Hồ sơ" tab | Does not show guardians. |
+| Detail page "Hồ sơ" tab | **Changed by BA mock 2026-10-07 (R-777):** a "NGƯỜI GIÁM HỘ (n)" section under the info grid. + opens the popup on a new guardian, the pencil on an existing one, the trash asks first; each is written at once via `PUT /patients/{id}/guardians`. The primary card is open by default; a click anywhere on a card folds/unfolds it; there is no chevron button (owner), the name block is the keyboard toggle. |
 
 ## API surface
 
 ```
 POST /api/v1/app/patients                     guardians?: [...], guardiansConsented: bool
 PUT  /api/v1/app/patients/{id}                guardians: null = keep the saved group, [] = clear it (refused under 16)
+PUT  /api/v1/app/patients/{id}/guardians      { guardians, guardiansConsented } — the group alone (Hồ sơ tab); same rules, patient.update, branch-checked
 GET  /api/v1/app/patients/{id}                → guardians[] (id, relation 1–8, proof*, consentedAt, …)
 POST /api/v1/app/patients/guardian-documents  multipart "file" → { blobName, fileName }
 GET  /api/v1/app/patients/{id}/guardians/{guardianId}/document
@@ -83,8 +84,9 @@ All runs used the real login, the host on :5000 and real PostgreSQL. The browser
 | Test | Result |
 |---|---|
 | `BlueDental.Domain.Tests/PatientManagement/PatientGuardianTests.cs` | 13 facts, green |
-| `e2e/patient-guardian-api.spec.ts` | **5/5** |
+| `e2e/patient-guardian-api.spec.ts` | **6/6** (R-777 adds the `PUT …/guardians` test) |
 | `e2e/patient-guardian.spec.ts` | **1/1** |
+| `e2e/patient-guardian-detail.spec.ts` | **1/1** (R-777: chip, phone owner, add / edit / delete on the Hồ sơ tab, card click folds, reload) |
 
 `e2e/patient-guardian-api.spec.ts` sends real HTTP from the logged-in page and covers:
 
@@ -148,7 +150,8 @@ Responsive check (R-776), same build, at 1280 / 1024 / 768 / 390px:
 
 - **Orphaned blobs**: a file uploaded in the popup and then abandoned (Hủy, or the hồ sơ dialog closed without Lưu) stays in MinIO under `patient-guardians/{branchId}/`. No cleanup job exists yet.
 - The primary contact is not used by SMS/Zalo reminders yet.
-- Guardians are not shown on the patient detail page's Hồ sơ tab (by decision).
+- "Người đưa đến" from the BA mock of the Hồ sơ tab is not built: nothing records who brought the patient (R-777).
+- `patient-guardian.spec.ts` can go red when run in parallel with the other guardian specs (two creates at once); it is green alone and with `--workers=1`.
 - Not tested yet:
   - the "Khác" upload through the browser (it is covered over the API);
   - the 3-guardian cap in the UI (the Add button disables at 3; the BE cap is tested).

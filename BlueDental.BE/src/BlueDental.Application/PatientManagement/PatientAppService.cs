@@ -245,6 +245,25 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         return MapToDto(patient);
     }
 
+    /// <summary>
+    /// "Người giám hộ" on the record's Hồ sơ tab (BA 2026-10-07): add, edit and
+    /// delete write the group straight away. Same rules as the hồ sơ save — an
+    /// under-16 record is refused once its last guardian goes.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
+    public async Task<PatientDto> UpdateGuardiansAsync(Guid id, UpdatePatientGuardiansDto input)
+    {
+        var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
+
+        var documentsBefore = GuardianDocuments(patient);
+        await ApplyGuardiansAsync(patient, patient.BranchId, input.Guardians, input.GuardiansConsented);
+
+        await _repository.UpdateAsync(patient, autoSave: true);
+        await DeleteDroppedDocumentsAsync(documentsBefore, GuardianDocuments(patient));
+        return MapToDto(patient);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task DeactivateAsync(Guid id)
     {

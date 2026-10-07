@@ -16,6 +16,9 @@ public interface IPatientAppService : IApplicationService
     /// <summary>The + beside "BE:Field:ReasonForVisit" — appends one dated line.</summary>
     Task<PatientDto> AddExaminationReasonAsync(Guid id, AddExaminationReasonDto input);
 
+    /// <summary>"Người giám hộ" on the Hồ sơ tab — replaces the group alone.</summary>
+    Task<PatientDto> UpdateGuardiansAsync(Guid id, UpdatePatientGuardiansDto input);
+
     /// <summary>The code the "BE:Common:CreateRecord" dialog opens with.</summary>
     Task<PatientCodeEstimateDto> GetCodeEstimateAsync();
 

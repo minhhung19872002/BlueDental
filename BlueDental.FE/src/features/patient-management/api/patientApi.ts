@@ -10,6 +10,7 @@ import type {
   NationalIdLookup,
   PhoneAvailability,
   RegisterPatientRequest,
+  UpdatePatientGuardiansRequest,
   UpdatePatientRequest,
 } from "../types/patient";
 
@@ -53,6 +54,14 @@ export const patientApi = {
     api
       .post<PatientDto>(`${BASE}/${id}/examination-reasons`, { content })
       .then((r) => r.data),
+
+  /**
+   * "Người giám hộ" on the record's Hồ sơ tab. Its own endpoint for the same
+   * reason as the reason line: the block replaces the group and must not send
+   * the rest of the hồ sơ back to do it.
+   */
+  updateGuardians: (id: string, data: UpdatePatientGuardiansRequest): Promise<PatientDto> =>
+    api.put<PatientDto>(`${BASE}/${id}/guardians`, data).then((r) => r.data),
 
   /**
    * "Tải ảnh / PDF giấy tờ" behind a "Khác" guardian. Uploaded before the hồ

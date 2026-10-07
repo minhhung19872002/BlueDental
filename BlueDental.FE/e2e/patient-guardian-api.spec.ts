@@ -57,8 +57,16 @@ interface PatientInput {
   guardiansConsented?: boolean;
 }
 
+/** `PUT /patients/{id}/guardians` — the Hồ sơ tab's guardian block. */
+interface GuardiansInput {
+  guardians: GuardianInput[];
+  guardiansConsented: boolean;
+}
+
 interface Body {
   id?: string;
+  firstName?: string;
+  phoneNumber?: string | null;
   guardians?: (GuardianInput & { id: string; consentedAt: string })[];
   blobName?: string;
   fileName?: string;
@@ -83,7 +91,7 @@ async function send(
   page: Page,
   method: "GET" | "POST" | "PUT",
   url: string,
-  payload?: PatientInput | Upload,
+  payload?: PatientInput | GuardiansInput | Upload,
 ): Promise<ApiResult> {
   return page.evaluate(
     async ({ method, url, payload, branch }) => {
@@ -277,6 +285,81 @@ test.describe("Patient guardians (real API)", () => {
       child(id, "A", [guardian(id, "1", { isPrimaryContact: true })]),
     );
     expect(withGuardian.status, JSON.stringify(withGuardian.body)).toBe(200);
+  });
+
+  test("the Hồ sơ tab's block writes the group alone, keeps consent dates, and stays in its branch", async ({ page, browser }) => {
+    const id = runId();
+    const created = await send(
+      page,
+      "POST",
+      PATIENTS,
+      child(id, "A", [guardian(id, "1", { isPrimaryContact: true, relation: RELATION.Father })]),
+    );
+    expect(created.status, JSON.stringify(created.body)).toBe(200);
+    const first = created.body.guardians![0];
+    const url = `${PATIENTS}/${created.body.id}/guardians`;
+
+    // + on the tab: the first guardian is sent back by id, the second is new.
+    const added = await send(page, "PUT", url, {
+      guardians: [{ ...first, id: first.id }, guardian(id, "22")],
+      guardiansConsented: true,
+    });
+    expect(added.status, JSON.stringify(added.body)).toBe(200);
+    expect(added.body.guardians).toHaveLength(2);
+    // Same moment; the POST echoes .NET ticks, the database keeps microseconds.
+    expect(added.body.guardians?.[0].id).toBe(first.id);
+    expect(Date.parse(added.body.guardians![0].consentedAt)).toBe(Date.parse(first.consentedAt));
+    // Nothing else on the hồ sơ moved.
+    expect(added.body).toMatchObject({ firstName: "A", phoneNumber: created.body.phoneNumber });
+
+    // A separate GET reads the same group back.
+    const read = await send(page, "GET", `${PATIENTS}/${created.body.id}`);
+    expect(read.body.guardians?.map((g) => [g.id === first.id, g.isPrimaryContact])).toEqual([
+      [true, true],
+      [false, false],
+    ]);
+
+    // The same rules as the hồ sơ save: consent, and never empty under 16.
+    const unconsented = await send(page, "PUT", url, { guardians: [{ ...first, id: first.id }], guardiansConsented: false });
+    expect(unconsented.body.error?.code).toBe(CODE.consent);
+    const emptied = await send(page, "PUT", url, { guardians: [], guardiansConsented: false });
+    expect(emptied.body.error?.code).toBe(CODE.required);
+
+    // Deleting the primary: the one left is promoted by the caller and saved.
+    const second = read.body.guardians![1];
+    const trimmed = await send(page, "PUT", url, {
+      guardians: [{ ...second, id: second.id, isPrimaryContact: true }],
+      guardiansConsented: true,
+    });
+    expect(trimmed.status, JSON.stringify(trimmed.body)).toBe(200);
+    expect(trimmed.body.guardians).toEqual([expect.objectContaining({ id: second.id, isPrimaryContact: true })]);
+
+    // Another branch cannot write this record's guardians.
+    const elsewhere = await browser.newPage();
+    await login(elsewhere, BRANCH2_USER);
+    await elsewhere.goto("/patient");
+    const status = await elsewhere.evaluate(
+      async ({ target, body }) => {
+        const xsrf = document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("XSRF-TOKEN="))
+          ?.substring("XSRF-TOKEN=".length);
+        const res = await fetch(target, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+          },
+          body: JSON.stringify(body),
+        });
+        return res.status;
+      },
+      { target: url, body: { guardians: [], guardiansConsented: false } },
+    );
+    expect([403, 404]).toContain(status);
+    await elsewhere.close();
   });
 
   test("proof files: JPG / PNG / PDF up to 5MB, read back only inside the branch", async ({ page, browser }) => {

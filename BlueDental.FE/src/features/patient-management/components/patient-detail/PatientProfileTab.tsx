@@ -39,8 +39,10 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { getLocale, t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
 import type { PatientDto } from "../../types/patient";
-import { GENDER, type GenderCode } from "../../types/patient";
+import { GENDER, GUARDIAN_LIMITS, type GenderCode } from "../../types/patient";
+import { ageByYear, RELATION_LABEL, requiresGuardian } from "../../utils/guardian";
 import { PatientEditorDialog } from "../PatientEditorDialog";
+import { PatientGuardianSection } from "./PatientGuardianSection";
 import { AppointmentDoctorPicker } from "./AppointmentDoctorPicker";
 import { ReceptionSteps } from "./ReceptionSteps";
 import { CreatePaymentDialog } from "./CreatePaymentDialog";
@@ -75,6 +77,18 @@ function ageOf(date: string | null) {
   let age = now.getFullYear() - birth.getFullYear();
   if (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate())) age -= 1;
   return age;
+}
+
+/**
+ * "SĐT của Mẹ - Trần Thị Hoa" under Số điện thoại, when the number on the
+ * record is a guardian's own (BA mock 2026-10-07) — a child often has none.
+ */
+function phoneOwnerOf(patient: PatientDto): string | null {
+  const digits = (value: string | null) => (value ?? "").replace(/\D/g, "");
+  const phone = digits(patient.phoneNumber);
+  if (!phone) return null;
+  const owner = (patient.guardians ?? []).find((guardian) => digits(guardian.phone) === phone);
+  return owner ? t("Patient:Guardian:PhoneOf", t(RELATION_LABEL[owner.relation]), owner.fullName) : null;
 }
 
 function InfoItem({
@@ -292,6 +306,7 @@ export function PatientProfileTab({ patient }: Props) {
     [visibleRows, pagination.skipCount, pagination.pageSize],
   );
   const payment = account?.payment;
+  const phoneOwner = phoneOwnerOf(patient);
 
   /*
    * The code on a row goes straight to that slip's detail screen, not the tab
@@ -350,6 +365,11 @@ export function PatientProfileTab({ patient }: Props) {
               <strong>
                 ({patient.patientCode}) - {patient.fullName}
               </strong>
+              {requiresGuardian(ageByYear(patient.dateOfBirth)) && (
+                <span className="pd-underage-chip">
+                  {t("Patient:Guardian:UnderAge", GUARDIAN_LIMITS.requiredUnderAge)}
+                </span>
+              )}
               {patientAbility.canUpdate && (
                 <Button
                   type="text"
@@ -373,7 +393,14 @@ export function PatientProfileTab({ patient }: Props) {
             <InfoItem
               icon={<PhoneOutlined />}
               label={t("Patient:Col:Phone")}
-              value={patient.phoneNumber}
+              value={
+                patient.phoneNumber && (
+                  <>
+                    {patient.phoneNumber}
+                    {phoneOwner && <em className="pd-phone-owner">{phoneOwner}</em>}
+                  </>
+                )
+              }
             />
             <InfoItem icon={<MailOutlined />} label={t("Email")} value={patient.email} />
             <InfoItem
@@ -390,6 +417,7 @@ export function PatientProfileTab({ patient }: Props) {
               value={patient.address}
             />
           </div>
+          <PatientGuardianSection patient={patient} canEdit={patientAbility.canUpdate} />
         </div>
         <div className="pd-profile-column">
           <h3>

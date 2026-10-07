@@ -57,9 +57,10 @@ The popup **Thông tin người giám hộ**:
 | Relation → guardian gender | Not filled in automatically | Assumed, not objected |
 | "Lưu & quay lại hồ sơ" | Hands the group back to the dialog; only the hồ sơ's Lưu writes to the DB. Hủy / X / ← drop the popup's edits | Assumed, not objected |
 | Validation messages | Under the inputs, never toasts (R-307) | House rule |
-| Detail page Hồ sơ tab | Does not show guardians | Assumed, not objected |
+| Detail page Hồ sơ tab | Shows "NGƯỜI GIÁM HỘ (n)" under the info grid, with + / pencil / trash written at once through `PUT /patients/{id}/guardians`; "Dưới 16 tuổi" chip by the name; "SĐT của {quan hệ} - {tên}" under the phone when it is a guardian's number; whole card folds on click | BA mock 2026-10-07 + owner (R-777) |
 
 ## Not decided / not built
 
 - A cleanup job for papers uploaded in a popup that was then cancelled. They stay in MinIO.
 - Sending reminders to the primary contact.
+- "Người đưa đến" on the Hồ sơ tab mock: no data source, not built.
