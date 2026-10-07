@@ -1,7 +1,7 @@
 # F-56 — Phát Hành in PHIẾU THU (PDF) + ô "Xuất hóa đơn đỏ"
 
-Status: `VERIFIED` · Verified on: uncommitted work on top of `840ac5c5` (2026-10-07)
-— see `01-feature-verification-registry.md`, regression log R-809..R-813.
+Status: `VERIFIED` · Verified on: `41eac777` (2026-10-07)
+— see `01-feature-verification-registry.md`, regression log R-809..R-813, R-815.
 
 BlueDental-only (BA message, 2026-10-07); the reference has no such receipt.
 
@@ -47,14 +47,15 @@ The spec never ticks "Xuất hóa đơn đỏ": ticked, it would sign a real e-i
 
 ## Backend
 
-- `PaymentReceiptTemplateTests` (7):
+- `PaymentReceiptTemplateTests` (8):
   - every key in the shipped template is filled, with XML escaping;
   - the template's key set equals `ToPlaceholders()`;
+  - a filled value drops the dot leader of the tab after it, a blank value keeps it, and tab positions do not move (R-815);
   - the remaining amount is never negative;
   - money formatting;
   - the Gotenberg converter is exposed as `IDocxPdfConverter`.
 - `ElectronicInvoiceAppServiceContractTests`: `RenderReceiptAsync` requires `payment.finalize`.
-- Result: 15/15.
+- Result: 16/16.
 
 ## Regression (level 3, shared `InvoiceModal`)
 

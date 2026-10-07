@@ -52,6 +52,25 @@ public class PaymentReceiptTemplateTests
         keys.ShouldBe(Sample.ToPlaceholders().Keys.OrderBy(k => k));
     }
 
+    /// <summary>The blanks are dot-leader tabs: a filled value drops its dots, the tab stops stay put.</summary>
+    [Fact]
+    public void A_Filled_Placeholder_Drops_The_Dots_After_It_And_A_Blank_One_Keeps_Them()
+    {
+        // Six dotted blanks follow a placeholder (2 + 2 on the money lines, 1 + 1 on
+        // name and treatment); other paragraphs carry dotted stops but no tab.
+        var template = File.ReadAllBytes(TemplatePath());
+        var dotted = DotLeaders(DocumentXml(template));
+        var stops = TabStopPositions(DocumentXml(template));
+
+        var filled = DocumentXml(DocxTemplate.Fill(template, Sample.ToPlaceholders()));
+        DotLeaders(filled).ShouldBe(dotted - 6);
+        TabStopPositions(filled).ShouldBe(stops);
+
+        var values = Sample.ToPlaceholders().ToDictionary(p => p.Key, p => p.Value);
+        values["RemainingAmountInWords"] = "";
+        DotLeaders(DocumentXml(DocxTemplate.Fill(template, values))).ShouldBe(dotted - 5);
+    }
+
     [Fact]
     public void Remaining_Is_The_Slip_Total_Less_What_Is_Paid_And_Never_Negative()
     {
@@ -71,6 +90,11 @@ public class PaymentReceiptTemplateTests
     public void Gotenberg_Is_Registered_As_The_Docx_Pdf_Converter() =>
         typeof(GotenbergPdfConverter).GetCustomAttribute<ExposeServicesAttribute>()!
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
+
+    private static int DotLeaders(string xml) => Regex.Matches(xml, "w:leader=\"dot\"").Count;
+
+    private static string[] TabStopPositions(string xml) =>
+        Regex.Matches(xml, "<w:tab w:val=\"\\w+\"[^>]*w:pos=\"(\\d+)\"").Select(m => m.Groups[1].Value).ToArray();
 
     private static string DocumentXml(byte[] docx)
     {
