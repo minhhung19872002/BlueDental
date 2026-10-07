@@ -95,7 +95,7 @@ test("a medicine of a group the patient is allergic to is warned on pick and con
 
   const dialog = await openDialog(page, data.patientId);
   await expect(dialog).toContainText(`Tiểu sử bệnh: ${data.allergy}`);
-  await dialog.getByLabel("Nhập chẩn đoán").fill(`Dị ứng e2e ${id}`);
+  await dialog.getByLabel("Nhập lời dặn").fill(`Dị ứng e2e ${id}`);
 
   // Picking the antibiotic raises the warning over the lines, naming the
   // medicine, its group and the allergy it falls under.
@@ -124,12 +124,15 @@ test("a medicine of a group the patient is allergic to is warned on pick and con
   await dialog.getByRole("button", { name: /Lưu$/ }).click();
   const created = posted(page);
   await confirm.getByRole("button", { name: "Vẫn lưu" }).click();
-  expect((await created).ok()).toBeTruthy();
+  const response = await created;
+  expect(response.ok()).toBeTruthy();
+  const { code } = (await response.json()) as { code: string };
   await expect(dialog).toBeHidden();
 
+  // The list shows no advice column, so the saved slip is found by its code.
   await page.reload();
   await assertRealApiTraffic(page, PRESCRIPTIONS_API);
-  await expect(page.getByRole("row", { name: new RegExp(`Dị ứng e2e ${id}`) })).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(code) })).toBeVisible();
 });
 
 test("a medicine of another group raises nothing and saves straight away", async ({ page }) => {
@@ -138,13 +141,15 @@ test("a medicine of another group raises nothing and saves straight away", async
   const data = await seed(page, id);
 
   const dialog = await openDialog(page, data.patientId);
-  await dialog.getByLabel("Nhập chẩn đoán").fill(`Không dị ứng e2e ${id}`);
+  await dialog.getByLabel("Nhập lời dặn").fill(`Không dị ứng e2e ${id}`);
   await pickMedicine(page, dialog, data.painkiller);
   await expect(dialog.getByText("Cảnh báo dị ứng")).toHaveCount(0);
 
   const created = posted(page);
   await dialog.getByRole("button", { name: /Lưu$/ }).click();
-  expect((await created).ok()).toBeTruthy();
+  const response = await created;
+  expect(response.ok()).toBeTruthy();
+  const { code } = (await response.json()) as { code: string };
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("row", { name: new RegExp(`Không dị ứng e2e ${id}`) })).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(code) })).toBeVisible();
 });

@@ -29,19 +29,44 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly IRepository<TreatmentPlan, Guid> _planRepository;
+    private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
+    private readonly IRepository<PatientDiagnosis, Guid> _patientDiagnosisRepository;
 
     public PrescriptionAppService(
         IRepository<Prescription, Guid> repository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IRepository<Taxonomy, Guid> taxonomyRepository,
         IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        IRepository<TreatmentPlan, Guid> planRepository,
+        IRepository<PatientAdvise, Guid> adviseRepository,
+        IRepository<PatientDiagnosis, Guid> patientDiagnosisRepository)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
         _taxonomyRepository = taxonomyRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
+        _planRepository = planRepository;
+        _adviseRepository = adviseRepository;
+        _patientDiagnosisRepository = patientDiagnosisRepository;
+    }
+
+    /// <summary>
+    /// The "Phiếu điều trị" picker of the Chẩn đoán block (F-58): every
+    /// diagnosis on the patient's phiếu điều trị in this branch, one row per
+    /// (phiếu, chẩn đoán), newest phiếu first. Cancelled phiếu and cancelled,
+    /// replaced or transferred lines are left out; a line with no diagnosis
+    /// has nothing to offer and is skipped.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Prescription.Read)]
+    public async Task<ListResultDto<PrescriptionDiagnosisSourceDto>> GetDiagnosisSourcesAsync(
+        GetPrescriptionDiagnosisSourcesInput input)
+    {
+        await _branchAccess.CheckAsync(input.ClinicBranchId);
+        return new ListResultDto<PrescriptionDiagnosisSourceDto>(
+            await LoadDiagnosisSourcesAsync(input.PatientId, input.ClinicBranchId));
     }
 
     [Authorize(BlueDentalAbilityPermissions.Prescription.Read)]
@@ -49,7 +74,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     {
         var branchIds = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
 
-        var query = await _repository.WithDetailsAsync(x => x.Items);
+        var query = await _repository.WithDetailsAsync(x => x.Items, x => x.Diagnoses);
 
         // An empty filter means the caller is clinic-wide and named no branch.
         if (branchIds.Count > 0)
@@ -81,6 +106,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
         GuardTemplateName(input.SaveAsTemplate, input.TemplateName);
 
         var items = await BuildItemsAsync(input.ClinicBranchId, input.Items);
+        var diagnoses = await BuildDiagnosesAsync(
+            input.PatientId, input.ClinicBranchId, input.Diagnoses, kept: []);
 
         var prescription = Prescription.Issue(
             GuidGenerator.Create(),
@@ -93,7 +120,9 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             input.Note,
             input.TreatmentType,
             input.FollowUpDate,
-            Clock.Now);
+            Clock.Now,
+            diagnoses,
+            input.DiagnosisNote);
 
         await _repository.InsertAsync(prescription, autoSave: true);
 
@@ -110,6 +139,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
         GuardTemplateName(input.SaveAsTemplate, input.TemplateName);
 
         var items = await BuildItemsAsync(prescription.ClinicBranchId, input.Items);
+        var diagnoses = await BuildDiagnosesAsync(
+            prescription.PatientId, prescription.ClinicBranchId, input.Diagnoses, prescription.Diagnoses);
 
         prescription.UpdateDetails(
             input.StaffId,
@@ -117,7 +148,9 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             input.Note,
             input.TreatmentType,
             input.FollowUpDate,
-            items);
+            items,
+            diagnoses,
+            input.DiagnosisNote);
 
         await _repository.UpdateAsync(prescription, autoSave: true);
 
@@ -137,7 +170,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     private async Task<Prescription> LoadAsync(Guid id)
     {
         var prescription = await AsyncExecuter.FirstOrDefaultAsync(
-            (await _repository.WithDetailsAsync(x => x.Items)).Where(x => x.Id == id));
+            (await _repository.WithDetailsAsync(x => x.Items, x => x.Diagnoses)).Where(x => x.Id == id));
 
         if (prescription == null || !await _branchAccess.IsAllowedAsync(prescription.ClinicBranchId))
         {
@@ -181,12 +214,149 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             GuidGenerator.Create(),
             line.MedicationId,
             names[line.MedicationId],
-            line.TimesPerDay,
-            line.AmountPerTime,
+            line.Morning,
+            line.Noon,
+            line.Afternoon,
+            line.Evening,
             line.Days,
             line.Usage,
             line.OtherUsage,
             index)).ToList();
+    }
+
+    /// <summary>
+    /// Turns the picked (phiếu, chẩn đoán) pairs into snapshots built from the
+    /// database, never from what the client claims. A pick the slip already
+    /// holds keeps its snapshot, so a slip stays editable after its phiếu điều
+    /// trị is cancelled; any new pick must be a live source of this patient in
+    /// this branch.
+    /// </summary>
+    private async Task<List<PrescriptionDiagnosis>> BuildDiagnosesAsync(
+        Guid patientId,
+        Guid clinicBranchId,
+        IReadOnlyList<PrescriptionDiagnosisInput>? picks,
+        IReadOnlyCollection<PrescriptionDiagnosis> kept)
+    {
+        if (picks == null || picks.Count == 0)
+            return [];
+
+        var keptByPair = kept.ToDictionary(d => (d.TreatmentPlanId, d.DiagnosisId));
+        var sources = picks.All(p => keptByPair.ContainsKey((p.TreatmentPlanId, p.DiagnosisId)))
+            ? new Dictionary<(Guid, Guid), PrescriptionDiagnosisSourceDto>()
+            : (await LoadDiagnosisSourcesAsync(patientId, clinicBranchId))
+                .ToDictionary(x => (x.TreatmentPlanId, x.DiagnosisId));
+
+        return picks.Select((pick, index) =>
+        {
+            var pair = (pick.TreatmentPlanId, pick.DiagnosisId);
+
+            if (sources.TryGetValue(pair, out var source))
+            {
+                return new PrescriptionDiagnosis(
+                    GuidGenerator.Create(), source.TreatmentPlanId, source.DiagnosisId,
+                    source.PlanCode, source.DiagnosisName, source.ToothCodes, index);
+            }
+
+            if (keptByPair.TryGetValue(pair, out var old))
+            {
+                return new PrescriptionDiagnosis(
+                    GuidGenerator.Create(), old.TreatmentPlanId, old.DiagnosisId,
+                    old.PlanCode, old.DiagnosisName, old.ToothCodeList(), index);
+            }
+
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.PrescriptionDiagnosisSourceInvalid,
+                $"Diagnosis {pick.DiagnosisId} of treatment plan {pick.TreatmentPlanId} is not a live source of this patient.");
+        }).ToList();
+    }
+
+    private async Task<List<PrescriptionDiagnosisSourceDto>> LoadDiagnosisSourcesAsync(
+        Guid patientId,
+        Guid clinicBranchId)
+    {
+        var plans = await AsyncExecuter.ToListAsync(
+            (await _planRepository.WithDetailsAsync(p => p.Services))
+                .Where(p => p.PatientId == patientId
+                            && p.BranchId == clinicBranchId
+                            && p.Status != TreatmentPlanStatus.Cancelled));
+
+        var lines = plans
+            .SelectMany(p => p.Services.Select(line => (Plan: p, Line: line)))
+            .Where(x => x.Line.Status is not (TreatmentServiceStatus.Cancelled
+                or TreatmentServiceStatus.Replaced
+                or TreatmentServiceStatus.Transferred))
+            .ToList();
+
+        // Lines pulled from Tư vấn carry their diagnosis on the advise, and its
+        // note on the phiếu chẩn đoán behind that advise.
+        var adviseIds = lines
+            .Where(x => x.Line.SourceAdviseId.HasValue)
+            .Select(x => x.Line.SourceAdviseId!.Value)
+            .Distinct()
+            .ToList();
+        var advises = adviseIds.Count == 0
+            ? new Dictionary<Guid, PatientAdvise>()
+            : (await _adviseRepository.GetListAsync(a => adviseIds.Contains(a.Id)))
+                .ToDictionary(a => a.Id);
+
+        var slipIds = advises.Values
+            .Where(a => a.PatientDiagnosisId.HasValue)
+            .Select(a => a.PatientDiagnosisId!.Value)
+            .Distinct()
+            .ToList();
+        var slips = slipIds.Count == 0
+            ? new Dictionary<Guid, PatientDiagnosis>()
+            : (await _patientDiagnosisRepository.GetListAsync(d => slipIds.Contains(d.Id)))
+                .ToDictionary(d => d.Id);
+
+        var resolved = lines
+            .Select(x =>
+            {
+                var advise = x.Line.SourceAdviseId is { } adviseId ? advises.GetValueOrDefault(adviseId) : null;
+                var slip = advise?.PatientDiagnosisId is { } slipId ? slips.GetValueOrDefault(slipId) : null;
+                var note = string.IsNullOrWhiteSpace(x.Line.Note) ? slip?.Note : x.Line.Note;
+
+                return (
+                    x.Plan,
+                    x.Line,
+                    DiagnosisId: x.Line.DiagnosisId ?? advise?.DiagnosisId ?? slip?.DiagnosisId,
+                    Note: note?.Trim());
+            })
+            .Where(x => x.DiagnosisId.HasValue)
+            .ToList();
+
+        var diagnosisIds = resolved.Select(x => x.DiagnosisId!.Value).Distinct().ToList();
+        var names = diagnosisIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : (await _catalogRepository.GetListAsync(c => diagnosisIds.Contains(c.Id)))
+                .ToDictionary(c => c.Id, c => c.Name);
+
+        return resolved
+            .Where(x => names.ContainsKey(x.DiagnosisId!.Value))
+            .GroupBy(x => (PlanId: x.Plan.Id, DiagnosisId: x.DiagnosisId!.Value))
+            .Select(g => (
+                FirstLine: g.Min(x => x.Line.SortOrder),
+                Source: new PrescriptionDiagnosisSourceDto
+                {
+                    TreatmentPlanId = g.Key.PlanId,
+                    PlanCode = g.First().Plan.Code,
+                    PlanCreationTime = g.First().Plan.CreationTime,
+                    DiagnosisId = g.Key.DiagnosisId,
+                    DiagnosisName = names[g.Key.DiagnosisId],
+                    ToothCodes = g.SelectMany(x => x.Line.Teeth.Select(t => t.ToothCode))
+                        .Distinct()
+                        .Order()
+                        .ToList(),
+                    Notes = g.Select(x => x.Note)
+                        .OfType<string>()
+                        .Where(n => n.Length > 0)
+                        .Distinct()
+                        .ToList()
+                }))
+            .OrderByDescending(x => x.Source.PlanCreationTime)
+            .ThenBy(x => x.FirstLine)
+            .Select(x => x.Source)
+            .ToList();
     }
 
     private static void GuardTemplateName(bool saveAsTemplate, string? templateName)
@@ -201,7 +371,9 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     /// <summary>
     /// "BE:Treatment:SaveRxTemplate": stores the slip's lines and lời dặn as a new entry
     /// of the "BE:Common:RxTemplate" catalog, exactly as the Danh mục screen would
-    /// (the lời dặn lives in <c>Description</c> there).
+    /// (the lời dặn lives in <c>Description</c> there). A template line still
+    /// doses "ngày uống × mỗi lần", so the sessions fold back into it: times =
+    /// sessions above zero, amount = their mean, and the daily total survives.
     /// </summary>
     private async Task SaveTemplateAsync(Prescription prescription, string templateName)
     {
@@ -235,8 +407,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
                 GuidGenerator.Create(),
                 template.Id,
                 item.MedicationId,
-                item.TimesPerDay,
-                item.AmountPerTime,
+                TimesPerDayOf(item),
+                Math.Round(item.DailyAmount / TimesPerDayOf(item), 2),
                 item.Days,
                 item.Usage,
                 item.OtherUsage,
@@ -244,6 +416,9 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
 
         await _catalogRepository.InsertAsync(template, autoSave: true);
     }
+
+    private static int TimesPerDayOf(PrescriptionItem item) =>
+        new[] { item.Morning, item.Noon, item.Afternoon, item.Evening }.Count(amount => amount > 0m);
 
     /// <summary>
     /// "DT26-0001": two-digit year and a per-branch, per-year sequence. Two
@@ -281,6 +456,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             StaffId = p.StaffId,
             StaffName = staffNames.GetValueOrDefault(p.StaffId),
             DiagnosisText = p.DiagnosisText,
+            DiagnosisNote = p.DiagnosisNote,
             Note = p.Note,
             TreatmentType = p.TreatmentType,
             FollowUpDate = p.FollowUpDate,
@@ -292,6 +468,18 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             IsDeleted = p.IsDeleted,
             DeletionTime = p.DeletionTime,
             DeleterId = p.DeleterId,
+            Diagnoses = p.Diagnoses
+                .OrderBy(d => d.SortOrder)
+                .Select(d => new PrescriptionDiagnosisDto
+                {
+                    TreatmentPlanId = d.TreatmentPlanId,
+                    DiagnosisId = d.DiagnosisId,
+                    PlanCode = d.PlanCode,
+                    DiagnosisName = d.DiagnosisName,
+                    ToothCodes = d.ToothCodeList().ToList(),
+                    SortOrder = d.SortOrder
+                })
+                .ToList(),
             Items = p.Items
                 .OrderBy(i => i.SortOrder)
                 .Select(i => new PrescriptionItemDto
@@ -299,8 +487,10 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
                     Id = i.Id,
                     MedicationId = i.MedicationId,
                     MedicationName = i.MedicationName,
-                    TimesPerDay = i.TimesPerDay,
-                    AmountPerTime = i.AmountPerTime,
+                    Morning = i.Morning,
+                    Noon = i.Noon,
+                    Afternoon = i.Afternoon,
+                    Evening = i.Evening,
                     Days = i.Days,
                     Quantity = i.Quantity,
                     Usage = i.Usage,

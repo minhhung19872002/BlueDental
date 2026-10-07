@@ -65,13 +65,23 @@ public class PrescriptionMappingTests
     }
 
     [Fact]
-    public void PrescriptionItem_Should_Store_Template_Style_Dosing()
+    public void PrescriptionItem_Should_Store_Session_Dosing()
     {
         using var ctx = CreateContext();
         var entity = ctx.Model.FindEntityType(typeof(PrescriptionItem))!;
 
-        entity.FindProperty(nameof(PrescriptionItem.TimesPerDay)).ShouldNotBeNull();
-        entity.FindProperty(nameof(PrescriptionItem.AmountPerTime))!.GetColumnType().ShouldBe("numeric(18,2)");
+        foreach (var session in new[]
+                 {
+                     nameof(PrescriptionItem.Morning), nameof(PrescriptionItem.Noon),
+                     nameof(PrescriptionItem.Afternoon), nameof(PrescriptionItem.Evening)
+                 })
+        {
+            entity.FindProperty(session)!.GetColumnType().ShouldBe("numeric(18,2)");
+        }
+
+        entity.FindProperty("TimesPerDay").ShouldBeNull();
+        entity.FindProperty("AmountPerTime").ShouldBeNull();
+        entity.FindProperty(nameof(PrescriptionItem.DailyAmount)).ShouldBeNull();
         entity.FindProperty(nameof(PrescriptionItem.Days)).ShouldNotBeNull();
         entity.FindProperty(nameof(PrescriptionItem.Usage)).ShouldNotBeNull();
         entity.FindProperty(nameof(PrescriptionItem.OtherUsage))!.GetMaxLength().ShouldBe(200);

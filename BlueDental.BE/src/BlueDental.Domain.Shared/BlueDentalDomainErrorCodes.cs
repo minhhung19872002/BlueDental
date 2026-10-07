@@ -237,6 +237,15 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The discount is above the account's "giảm tối đa VNĐ" (Cụm 11 mục 12).</summary>
         public const string DiscountAboveUserAmount = "BlueDental:Treatment:0043";
+
+        /// <summary>
+        /// A prescription picked a diagnosis from a phiếu điều trị that is not the
+        /// patient's live one in this branch, or that phiếu carries no such diagnosis.
+        /// </summary>
+        public const string PrescriptionDiagnosisSourceInvalid = "BlueDental:Treatment:0044";
+
+        /// <summary>The same diagnosis of the same phiếu điều trị is picked twice.</summary>
+        public const string DuplicatePrescriptionDiagnosis = "BlueDental:Treatment:0045";
     }
 
     public static class Billing

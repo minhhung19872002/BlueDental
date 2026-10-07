@@ -18,11 +18,13 @@ Rebuilt 2026-09-05 against the staging reference (see
 GET    /api/v1/app/prescriptions?patientId&clinicBranchId
 GET    /api/v1/app/prescriptions/{id}
 POST   /api/v1/app/prescriptions
-         { patientId, clinicBranchId, staffId, diagnosisText, note, treatmentType,
+         { patientId, clinicBranchId, staffId, diagnosisText, diagnosisNote,
+           diagnoses[{ treatmentPlanId, diagnosisId }], note, treatmentType,
            followUpDate, saveAsTemplate, templateName,
-           items[{ medicationId, timesPerDay, amountPerTime, days, usage, otherUsage }] }
+           items[{ medicationId, morning, noon, afternoon, evening, days, usage, otherUsage }] }
 PUT    /api/v1/app/prescriptions/{id}      (same body minus patientId/clinicBranchId)
 DELETE /api/v1/app/prescriptions/{id}
+GET    /api/v1/app/prescriptions/diagnosis-sources?patientId&clinicBranchId   (F-58)
 GET    /api/v1/app/catalog-entries?group=prescription_template   (template picker)
 GET    /api/v1/app/catalog-entries?group=medication_type         (medicine picker)
 ```
@@ -30,7 +32,9 @@ GET    /api/v1/app/catalog-entries?group=medication_type         (medicine picke
 ## Rules under test
 
 - A slip needs a doctor and at least one medicine line; `Số lượng` is
-  `Ngày uống × Mỗi lần × Số ngày`, computed by the domain and shown disabled.
+  `(Sáng + Trưa + Chiều + Tối) × Số ngày` since F-58 (was `Ngày uống × Mỗi lần
+  × Số ngày`), computed by the domain and shown disabled. The diagnosis is now
+  picked from the patient's phiếu điều trị — see `prescription-diagnosis.md`.
 - The code is `DT{yy}-{nnnn}`, unique per branch.
 - `saveAsTemplate` with a `templateName` creates a `prescription_template`
   catalog entry carrying the lines and the lời dặn; picking that template on

@@ -95,8 +95,9 @@ public class PrescriptionAppServiceContractTests
 
         foreach (var field in new[]
                  {
-                     "PatientId", "ClinicBranchId", "StaffId", "DiagnosisText", "Note",
-                     "TreatmentType", "FollowUpDate", "SaveAsTemplate", "TemplateName", "Items"
+                     "PatientId", "ClinicBranchId", "StaffId", "DiagnosisText", "DiagnosisNote",
+                     "Diagnoses", "Note", "TreatmentType", "FollowUpDate", "SaveAsTemplate",
+                     "TemplateName", "Items"
                  })
         {
             dto.GetProperty(field).ShouldNotBeNull(field);
@@ -107,14 +108,17 @@ public class PrescriptionAppServiceContractTests
     }
 
     [Fact]
-    public void Item_Dto_Should_Dose_Like_A_Template_Line()
+    public void Item_Dto_Should_Dose_By_Session()
     {
         var dto = typeof(CreatePrescriptionItemDto);
 
-        foreach (var field in new[] { "MedicationId", "TimesPerDay", "AmountPerTime", "Days", "Usage", "OtherUsage" })
+        foreach (var field in new[] { "MedicationId", "Morning", "Noon", "Afternoon", "Evening", "Days", "Usage", "OtherUsage" })
         {
             dto.GetProperty(field).ShouldNotBeNull(field);
         }
+
+        dto.GetProperty("TimesPerDay").ShouldBeNull();
+        dto.GetProperty("AmountPerTime").ShouldBeNull();
 
         dto.GetProperty("Quantity").ShouldBeNull();
         dto.GetProperty("Dosage").ShouldBeNull();

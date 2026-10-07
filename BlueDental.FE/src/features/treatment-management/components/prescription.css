@@ -103,163 +103,518 @@
   height: 40px;
 }
 
-/* The reference's secondary buttons — Hủy, Thêm mới — are a pale blue fill. */
+/* The secondary buttons — Hủy, Danh mục ICD-10, Thêm loại thuốc — are a pale blue fill. */
 .rx-dialog .ant-modal-footer .ant-btn-default,
-.rx-dialog .bd-rx-add {
+.rx-dialog .rx-soft-btn.ant-btn {
   background: var(--bd-blue-pale);
   border-color: var(--bd-blue-pale-hover);
   color: var(--bd-primary);
 }
 
 .rx-dialog .ant-modal-footer .ant-btn-default:hover,
-.rx-dialog .bd-rx-add:hover {
+.rx-dialog .rx-soft-btn.ant-btn:hover {
   background: var(--bd-blue-pale-hover);
   border-color: var(--bd-blue-light);
   color: var(--bd-blue-dark);
 }
 
-.rx-dialog .bd-rx-add {
-  height: 40px;
-  padding: 0 18px;
-}
-
-/* ── Dialog: the two-column form ──────────────────────────────────────── */
-.rx-grid {
+/* ── Dialog (F-58): patient | doctor over [Điều trị | Tái khám] ──────── */
+.rx-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 24px 20px;
-  margin-bottom: 24px;
+  gap: 16px 24px;
+  margin-bottom: 20px;
 }
 
 @media (min-width: 1024px) {
-  .rx-grid {
+  .rx-head {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
 }
 
-.rx-cell > * + * {
-  margin-top: 24px;
-}
-
-.rx-cell > .rx-patient + * {
-  margin-top: 20px;
-}
-
-.rx-cell .ant-form-item {
+.rx-head .rx-patient {
   margin-bottom: 0;
 }
 
-.rx-dialog textarea.ant-input {
-  min-height: 96px;
-}
-
-/* Template picker beside "Thêm loại thuốc"; the reference leaves the last
-   44px of the column empty. */
-.rx-template-row {
-  display: flex;
-  gap: 12px;
-  padding-right: 44px;
-}
-
-.rx-template-row .ant-select {
-  flex: 1;
-  min-width: 0;
-}
-
-.rx-template-row .ant-btn {
-  flex: none;
-  width: 180px;
-  height: 40px;
-}
-
-@media (max-width: 640px) {
-  .rx-template-row {
-    flex-direction: column;
-    padding-right: 0;
-  }
-
-  .rx-template-row .ant-btn {
-    width: 100%;
-  }
-}
-
-/* Checkbox "Lưu đơn thuốc mẫu" + the template name field: stacked on narrow
-   screens, side by side on desktop. */
-.rx-template-save-row {
+.rx-head-fields {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-@media (min-width: 1024px) {
-  .rx-template-save-row {
-    flex-direction: row;
-    align-items: center;
-  }
-}
-
-.rx-template-save-row > .ant-form-item {
-  flex: none;
+.rx-head-fields .ant-form-item,
+.rx-head-pair .ant-form-item {
   margin-bottom: 0;
 }
 
-.rx-template-save-row > .floating-field {
-  flex: 1;
-  min-width: 0;
+.rx-head-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
 }
 
 .rx-full {
   width: 100%;
 }
 
-/* ── Dialog: the line table sits in its own rounded frame, pager inside ── */
-.rx-dialog .bd-rx-table-desktop {
-  margin-top: 12px;
+/* ── Dialog: a framed section (Chẩn đoán, Danh sách thuốc) ─────────────── */
+.rx-section {
   border: 1px solid var(--bd-line);
-  border-radius: 10px;
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  margin-bottom: 16px;
+}
+
+.rx-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  background: var(--bd-bg-soft);
+  border-radius: var(--bd-radius-card) var(--bd-radius-card) 0 0;
+}
+
+.rx-section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.rx-section-toggle {
+  margin-left: auto;
+}
+
+.rx-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.rx-chip {
+  padding: 1px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rx-code-tag {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.rx-muted {
+  color: var(--bd-muted);
+  font-style: italic;
+}
+
+/* ── Chẩn đoán: ICD-10 search + catalog toggle ─────────────────────────── */
+.rx-dx-toolbar {
+  display: flex;
+  gap: 12px;
+}
+
+.rx-dx-toolbar .rx-icd-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.rx-dx-toolbar > .ant-btn {
+  flex: none;
+  height: 40px;
+}
+
+.rx-icd-results {
+  width: 360px;
+  max-width: calc(100vw - 48px);
+}
+
+.rx-icd-empty {
+  margin: 0 0 6px;
+  color: var(--bd-muted);
+}
+
+.rx-icd-browse.ant-btn {
+  padding-inline: 0;
+}
+
+/* ── Chẩn đoán: "Danh mục ICD-10" panel ─────────────────────────────────── */
+.rx-slip-panel {
+  border: 1px solid var(--bd-blue-light);
+  border-radius: var(--bd-radius-card);
+  box-shadow: var(--bd-shadow-card);
   overflow: hidden;
 }
 
-.rx-dialog .bd-line-table .ant-table-thead > tr > th {
+.rx-slip-panel-head,
+.rx-slip-panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
   background: var(--bd-bg-soft);
-  color: var(--bd-ink);
-  font-size: 13.5px;
+}
+
+.rx-slip-panel-head {
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.rx-slip-panel-foot {
+  justify-content: space-between;
+  border-top: 1px solid var(--bd-line);
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+
+.rx-slip-panel-title {
   font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  padding: 10px 8px !important;
+  color: var(--bd-ink);
+  white-space: nowrap;
 }
 
-.rx-dialog .bd-line-table .ant-table-tbody > tr > td {
-  padding: 9px 8px !important;
+.ant-modal.rx-dialog .rx-slip-filter {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
 }
 
-.rx-dialog .bd-line-table .ant-table-thead > tr > th:first-child,
-.rx-dialog .bd-line-table .ant-table-tbody > tr > td:first-child {
+.rx-slip-panel-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  min-height: 200px;
+  max-height: 320px;
+}
+
+.rx-slip-nav {
+  padding: 8px;
+  border-right: 1px solid var(--bd-line);
+}
+
+.rx-slip-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--bd-radius-sm);
+  font-weight: 500;
+}
+
+.rx-slip-nav-item--active {
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.rx-slip-nav-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.rx-slip-list {
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.rx-slip-spin {
+  display: block;
+  margin: 48px auto;
+}
+
+.rx-slip-empty {
+  margin: 48px 0;
+  text-align: center;
+  color: var(--bd-muted);
+}
+
+.rx-slip-group + .rx-slip-group {
+  margin-top: 8px;
+}
+
+.rx-slip-heading {
+  margin: 4px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--bd-sub);
+  text-transform: uppercase;
+}
+
+.rx-slip-row.ant-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--bd-radius-sm);
+}
+
+.rx-slip-row.ant-checkbox-wrapper:hover {
+  background: var(--bd-hover-tint);
+}
+
+.rx-slip-row > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rx-slip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rx-slip-name {
+  color: var(--bd-ink);
+}
+
+.rx-slip-teeth {
+  font-size: 12.5px;
+  color: var(--bd-muted);
+}
+
+/* ── Chẩn đoán: picked diagnoses table ──────────────────────────────────── */
+.rx-dx-table .ant-table-wrapper {
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  overflow: hidden;
+}
+
+.rx-dx-name {
+  color: var(--bd-ink);
+}
+
+.rx-teeth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rx-tooth-chip {
+  padding: 0 6px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.rx-dx-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rx-pending-action {
+  display: inline-block;
+  cursor: not-allowed;
+}
+
+.rx-dx-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.rx-dx-printed {
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+
+.rx-dx-note.ant-form-item {
+  margin-bottom: 16px;
+}
+
+/* ── Lời dặn + "Lưu đơn thuốc mẫu" ──────────────────────────────────────── */
+.rx-advice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rx-advice > .ant-form-item {
+  flex: none;
+  margin-bottom: 0;
+}
+
+.rx-advice > .rx-advice-note {
+  flex: 1;
+  min-width: 0;
+}
+
+.rx-advice > .rx-advice-template {
+  flex: 0 1 280px;
+  margin-bottom: 0;
+}
+
+/* ── Danh sách thuốc ────────────────────────────────────────────────────── */
+.rx-meds-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bd-bg-soft);
+  border-radius: var(--bd-radius-card) var(--bd-radius-card) 0 0;
+}
+
+.rx-meds-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.rx-meds-actions .ant-btn {
+  height: 40px;
+}
+
+.rx-template-select {
+  width: 260px;
+}
+
+.rx-med-table .ant-table-thead > tr > th {
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 6px !important;
+}
+
+.rx-med-table .ant-table-tbody > tr > td {
+  padding: 8px 6px !important;
+}
+
+.rx-med-table .ant-table-thead > tr > th:first-child,
+.rx-med-table .ant-table-tbody > tr > td:first-child {
   padding-left: 16px !important;
 }
 
-.rx-dialog .bd-line-table .ant-table-thead > tr > th:last-child,
-.rx-dialog .bd-line-table .ant-table-tbody > tr > td:last-child {
-  padding-right: 16px !important;
+.rx-med-table .ant-table-thead > tr > th:last-child,
+.rx-med-table .ant-table-tbody > tr > td:last-child {
+  padding-right: 12px !important;
 }
 
-/* "20 / trang" first, then "Hiển thị n trên m", the page buttons on the right. */
-.rx-dialog .bd-line-table .ant-table-pagination.ant-pagination {
+.rx-med-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.rx-med-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+}
+
+.rx-med-card-head {
   display: flex;
   align-items: center;
-  margin: 12px 16px 16px;
+  justify-content: space-between;
 }
 
-/* Ant Design already orders the total text at -2; the size picker goes ahead of it. */
-.rx-dialog .bd-line-table .ant-pagination-options {
-  order: -3;
-  margin-inline: 0 12px;
+.rx-med-card-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-weight: 600;
+  font-size: 12px;
 }
 
-.rx-dialog .bd-line-table .ant-pagination-total-text {
-  margin-inline-end: auto;
+.rx-med-card-sessions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rx-med-card-session {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--bd-sub);
+}
+
+.rx-med-card-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.rx-med-card .ant-form-item {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .rx-head-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rx-dx-toolbar,
+  .rx-advice {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rx-advice > .rx-advice-template {
+    flex: none;
+  }
+
+  .rx-slip-panel-head {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  /* The filter takes its own row under the title and "Thu gọn". */
+  .ant-modal.rx-dialog .rx-slip-filter {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .rx-slip-panel-body {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: 360px;
+  }
+
+  .rx-slip-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--bd-line);
+  }
+
+  .rx-dx-foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rx-meds-actions {
+    flex-direction: column;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .rx-template-select {
+    width: 100%;
+  }
 }
 
 /* ── Dialog: allergy warning over the medicine lines (R-744) ──────────── */

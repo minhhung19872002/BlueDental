@@ -9,6 +9,7 @@ import {
 } from "../../api/prescriptionApi";
 import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { ageOf } from "../../utils/age";
+import { doseText } from "../../utils/rxDose";
 
 interface Props {
   clinic: BranchInfo | undefined;
@@ -16,9 +17,9 @@ interface Props {
   prescription: PrescriptionDto;
 }
 
-/** "Ngày uống 2 lần, mỗi lần 1, trong 5 ngày · Sau khi ăn". */
+/** "Sáng 1 · Tối 1 · 5 ngày · Sau khi ăn". */
 function directionsOf(item: PrescriptionItemDto): string {
-  const dose = t("Treatment:RxPrint:Dosage", item.timesPerDay, item.amountPerTime, item.days);
+  const dose = doseText(item);
   const usage = item.usage === 0 ? null : usageLabel(item);
   return usage ? `${dose} · ${usage}` : dose;
 }

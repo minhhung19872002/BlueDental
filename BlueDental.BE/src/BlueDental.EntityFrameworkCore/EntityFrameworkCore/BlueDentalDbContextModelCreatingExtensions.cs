@@ -467,7 +467,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_prescriptions");
             entity.ConfigureByConvention();
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
-            entity.Property(x => x.DiagnosisText).HasMaxLength(500);
+            entity.Property(x => x.DiagnosisText).HasMaxLength(2000);
+            entity.Property(x => x.DiagnosisNote).HasMaxLength(2000);
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.Property(x => x.TreatmentType).HasConversion<short>();
             entity.HasMany(x => x.Items)
@@ -475,6 +476,11 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .HasForeignKey(x => x.PrescriptionId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasMany(x => x.Diagnoses)
+                .WithOne()
+                .HasForeignKey(x => x.PrescriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Diagnoses).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.PatientId, x.IssuedAt });
             entity.HasIndex(x => new { x.ClinicBranchId, x.IssuedAt });
             entity.HasIndex(x => x.Code);
@@ -485,12 +491,27 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_prescription_items");
             entity.ConfigureByConvention();
             entity.Property(x => x.MedicationName).HasMaxLength(300).IsRequired();
-            entity.Property(x => x.AmountPerTime).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Morning).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Noon).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Afternoon).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Evening).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Usage).HasConversion<int>();
             entity.Property(x => x.OtherUsage).HasMaxLength(200);
             // Số lượng is derived on the entity, never stored.
             entity.Ignore(x => x.Quantity);
+            entity.Ignore(x => x.DailyAmount);
             entity.HasIndex(x => new { x.PrescriptionId, x.SortOrder });
+        });
+
+        builder.Entity<PrescriptionDiagnosis>(entity =>
+        {
+            entity.ToTable("bd_prescription_diagnoses");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.PlanCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.DiagnosisName).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.ToothCodes).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.PrescriptionId, x.SortOrder });
+            entity.HasIndex(x => x.TreatmentPlanId);
         });
 
         builder.Entity<DiagnosticRecord>(entity =>

@@ -1,49 +1,20 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Checkbox, DatePicker, Form, Input, Select } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import dayjs, { type Dayjs } from "dayjs";
-import { toast } from "sonner";
+import { Form, Input } from "antd";
 import { AppDialog } from "@/components/AppDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { FloatingField } from "@/components/FloatingField";
-import {
-  EMPTY_PRESCRIPTION_LINE,
-  PrescriptionLineEditor,
-  type PrescriptionLine,
-} from "@/components/prescription-lines";
-import { RequiredPlaceholder } from "@/components/RequiredPlaceholder";
-import { ServerSearchSelect } from "@/components/ServerSearchSelect";
-import { CATALOG_GROUP, useCatalogOptions, type CatalogOption } from "@/hooks/useCatalogOptions";
-import { useDentistOptions } from "@/hooks/usePickerOptions";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import {
-  PRESCRIPTION_TREATMENT_TYPE,
-  treatmentTypeOptions,
-  useCreatePrescription,
-  useUpdatePrescription,
-  type PrescriptionDto,
-  type PrescriptionTreatmentType,
-  type UpdatePrescriptionRequest,
-} from "../api/prescriptionApi";
+import type { PrescriptionDto } from "../api/prescriptionApi";
 import { usePrescriptionAllergyConflicts } from "../hooks/usePrescriptionAllergyConflicts";
+import { usePrescriptionDialogForm, type RxFormValues } from "../hooks/usePrescriptionDialogForm";
+import { usePrescriptionSave } from "../hooks/usePrescriptionSave";
 import type { PrescriptionPatientSummary } from "../types/prescription";
+import { printedDiagnosisText } from "../utils/rxDiagnosis";
 import { PrescriptionAllergyAlert } from "./PrescriptionAllergyAlert";
-import { PrescriptionPatientBlock } from "./PrescriptionPatientBlock";
+import { RxAdviceRow } from "./prescription-dialog/RxAdviceRow";
+import { RxDiagnosisSection } from "./prescription-dialog/RxDiagnosisSection";
+import { RxHeaderFields } from "./prescription-dialog/RxHeaderFields";
+import { RxMedicineSection } from "./prescription-dialog/RxMedicineSection";
 import "./prescription.css";
-import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
-
-interface FormValues {
-  templateId?: string;
-  staffId?: string;
-  diagnosisText: string;
-  note: string;
-  saveAsTemplate: boolean;
-  templateName: string;
-  treatmentType: PrescriptionTreatmentType;
-  followUpDate: Dayjs | null;
-}
 
 interface Props {
   open: boolean;
@@ -53,275 +24,97 @@ interface Props {
   onClose: () => void;
 }
 
-const EMPTY_FORM: FormValues = {
-  templateId: undefined,
-  staffId: undefined,
-  diagnosisText: "",
-  note: "",
-  saveAsTemplate: false,
-  templateName: "",
-  treatmentType: PRESCRIPTION_TREATMENT_TYPE.Outpatient,
-  followUpDate: null,
-};
-
-function linesOf(prescription: PrescriptionDto | null): PrescriptionLine[] {
-  if (!prescription || prescription.items.length === 0) return [{ ...EMPTY_PRESCRIPTION_LINE }];
-  return prescription.items.map((item) => ({
-    id: item.id,
-    medicineEntryId: item.medicationId,
-    timesPerDay: item.timesPerDay,
-    amountPerTime: item.amountPerTime,
-    days: item.days,
-    usage: item.usage,
-    otherUsage: item.otherUsage,
-  }));
-}
-
-/** A template's lines, ready to edit; the template's own ids stay behind. */
-function linesOfTemplate(template: CatalogOption): PrescriptionLine[] {
-  if (template.prescriptionLines.length === 0) return [{ ...EMPTY_PRESCRIPTION_LINE }];
-  return template.prescriptionLines.map((line) => ({
-    medicineEntryId: line.medicineEntryId,
-    timesPerDay: line.timesPerDay,
-    amountPerTime: line.amountPerTime,
-    days: line.days,
-    usage: line.usage,
-    otherUsage: line.otherUsage,
-  }));
-}
-
 /**
- * "Thêm đơn thuốc" / "Cập nhật đơn thuốc" — the patient at the top, the
- * doctor, diagnosis and advice, then the medicine lines. Picking a Đơn thuốc
- * mẫu replaces the lines with the template's and fills the advice from it;
- * ticking "Lưu đơn thuốc mẫu" asks for a name and files the lines back into
- * that catalog when the slip is saved. A medicine the patient declared an
- * allergy to (Tiểu sử bệnh) raises a warning over the lines and asks once
- * more on Lưu (R-744).
+ * "Thêm đơn thuốc" / "Cập nhật đơn thuốc" (F-58): the patient beside the
+ * doctor, Điều trị and Tái khám; then the diagnoses picked from the patient's
+ * phiếu điều trị and their note; the advice; then the medicine lines dosed
+ * Sáng / Trưa / Chiều / Tối. A medicine the patient declared an allergy to
+ * (Tiểu sử bệnh) raises a warning and asks once more on Lưu (R-744).
  */
 export function PrescriptionDialog({ open, patient, prescription, onClose }: Props) {
   const navigate = useNavigate();
-  const branchId = useCurrentBranchId();
-  const templates = useCatalogOptions(CATALOG_GROUP.PrescriptionTemplate).data ?? [];
-  const medicines = useCatalogOptions(CATALOG_GROUP.MedicationType).data ?? [];
-  const create = useCreatePrescription();
-  const update = useUpdatePrescription();
+  const state = usePrescriptionDialogForm(open, patient.id, prescription);
+  const { form, lines, medicines, diagnoses, legacyDiagnosisText } = state;
 
-  const [form] = Form.useForm<FormValues>();
   const staffId = Form.useWatch("staffId", form);
   const saveAsTemplate = Form.useWatch("saveAsTemplate", form) ?? false;
   const templateName = Form.useWatch("templateName", form) ?? "";
-  const [lines, setLines] = useState<PrescriptionLine[]>([{ ...EMPTY_PRESCRIPTION_LINE }]);
-  /** Values held back while the doctor confirms an allergy warning. */
-  const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
   const allergyConflicts = usePrescriptionAllergyConflicts(patient.diseaseHistoryEntryIds, lines, medicines);
 
-  useEffect(() => {
-    if (!open) return;
-    form.setFieldsValue(
-      prescription
-        ? {
-            ...EMPTY_FORM,
-            staffId: prescription.staffId,
-            diagnosisText: prescription.diagnosisText ?? "",
-            note: prescription.note ?? "",
-            treatmentType: prescription.treatmentType,
-            followUpDate: prescription.followUpDate ? dayjs(prescription.followUpDate) : null,
-          }
-        : EMPTY_FORM,
-    );
-    setLines(linesOf(prescription));
-    setPendingValues(null);
-  }, [open, prescription, form]);
-
-  const pickTemplate = (templateId: string | undefined) => {
-    const template = templates.find((option) => option.id === templateId);
-    if (!template) return;
-    setLines(linesOfTemplate(template));
-    if (template.description) form.setFieldValue("note", template.description);
-  };
-
   const filledLines = lines.filter((line) => line.medicineEntryId);
+  const save = usePrescriptionSave({
+    patientId: patient.id,
+    prescription,
+    lines: filledLines,
+    diagnoses: diagnoses.rows,
+    legacyDiagnosisText,
+    hasAllergyConflict: allergyConflicts.length > 0,
+    onSaved: onClose,
+  });
+
   const canSave =
     Boolean(staffId) &&
     filledLines.length > 0 &&
     (!saveAsTemplate || templateName.trim().length > 0);
-  const saving = create.isPending || update.isPending;
-
-  const submit = async (values: FormValues) => {
-    const input: UpdatePrescriptionRequest = {
-      staffId: values.staffId ?? "",
-      diagnosisText: values.diagnosisText.trim() || null,
-      note: values.note.trim() || null,
-      treatmentType: values.treatmentType,
-      followUpDate: values.followUpDate ? values.followUpDate.format("YYYY-MM-DD") : null,
-      saveAsTemplate: values.saveAsTemplate,
-      templateName: values.saveAsTemplate ? values.templateName.trim() : null,
-      items: filledLines.map((line) => ({
-        medicationId: line.medicineEntryId,
-        timesPerDay: line.timesPerDay,
-        amountPerTime: line.amountPerTime,
-        days: line.days,
-        usage: line.usage,
-        otherUsage: line.otherUsage,
-      })),
-    };
-
-    try {
-      if (prescription) {
-        await update.mutateAsync({ id: prescription.id, input });
-        toast.success(t("Treatment:Prescription:UpdateSuccess"));
-      } else {
-        await create.mutateAsync({ ...input, patientId: patient.id, clinicBranchId: branchId });
-        toast.success(t("Treatment:Prescription:CreateSuccess"));
-      }
-      setPendingValues(null);
-      onClose();
-    } catch {
-      // queryClient reports the failure; nothing to add here.
-    }
-  };
-
-  const handleFinish = (values: FormValues) => {
-    if (allergyConflicts.length > 0) setPendingValues(values);
-    else void submit(values);
-  };
-
-  const handleConfirmAllergy = () => {
-    if (pendingValues) void submit(pendingValues);
-  };
+  const printedText = diagnoses.rows.length > 0 ? printedDiagnosisText(diagnoses.rows) : legacyDiagnosisText;
 
   return (
     <AppDialog
       open={open}
       title={prescription ? t("Treatment:Prescription:UpdatePrescription") : t("Treatment:Prescription:AddPrescription")}
-      width={1024}
+      width={1120}
       centered
       className="rx-dialog"
       canSave={canSave}
-      saving={saving}
+      saving={save.saving}
       cancelLabel={t("Common:Cancel")}
       onSave={() => form.submit()}
       onClose={onClose}
     >
-      <Form<FormValues>
+      <Form<RxFormValues>
         form={form}
         layout="vertical"
         requiredMark={false}
-        initialValues={EMPTY_FORM}
-        onFinish={handleFinish}
+        initialValues={state.initialValues}
+        onFinish={save.handleFinish}
       >
-        {/* Two columns on a wide screen, as on the reference: the patient and
-            the template picker on the left, the doctor and diagnosis on the
-            right; then lời dặn beside Điều trị / Tái khám. Read top to bottom
-            on a narrow one, the cells fall into the reference's single-column
-            order. */}
-        <div className="rx-grid">
-          <div className="rx-cell">
-            <PrescriptionPatientBlock patient={patient} />
-            <div className="rx-template-row">
-              <Form.Item name="templateId" noStyle>
-                <Select
-                  showSearch
-                  allowClear
-                  optionFilterProp="label"
-                  placeholder={t("Treatment:Prescription:SelectTemplate")}
-                  aria-label={t("Treatment:Prescription:SelectTemplate")}
-                  prefix={<SearchOutlined />}
-                  notFoundContent={t("Treatment:Common:NotFound")}
-                  options={templates.map((template) => ({ value: template.id, label: template.name }))}
-                  onChange={pickTemplate}
-                />
-              </Form.Item>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/taxonomy/medicine")}
-              >
-                {t("Treatment:Prescription:AddMedicine")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="rx-cell">
-            <Form.Item
-              name="staffId"
-              rules={[{ required: true, message: t("Treatment:Common:DoctorRequired") }]}
-            >
-              {/* "Chọn bác sĩ*" — the reference names the field in its own
-                  placeholder, asterisk included, with no label above it. */}
-              <ServerSearchSelect
-                aria-label={t("Treatment:Common:SelectDoctor")}
-                placeholder={<RequiredPlaceholder text={t("Treatment:Common:SelectDoctor")} />}
-                allowClear={false}
-                useOptions={useDentistOptions}
-                notFoundText={t("Treatment:Common:DoctorNotFound")}
-              />
-            </Form.Item>
-            <Form.Item name="diagnosisText">
-              <Input.TextArea
-                rows={3}
-                placeholder={t("Treatment:Diagnosis:DiagnosisPlaceholder")}
-                aria-label={t("Treatment:Diagnosis:DiagnosisPlaceholder")}
-                maxLength={500}
-              />
-            </Form.Item>
-          </div>
-
-          <div className="rx-cell">
-            <Form.Item name="note">
-              <Input
-                placeholder={t("Treatment:Prescription:NotePlaceholder")}
-                aria-label={t("Treatment:Prescription:NotePlaceholder")}
-                maxLength={1000}
-              />
-            </Form.Item>
-            <div className="rx-template-save-row">
-              <Form.Item name="saveAsTemplate" valuePropName="checked">
-                <Checkbox>{t("Treatment:Prescription:SaveTemplate")}</Checkbox>
-              </Form.Item>
-              {saveAsTemplate && (
-                <FloatingField
-                  name="templateName"
-                  label={t("Treatment:Prescription:TemplateName")}
-                  required
-                  rules={[
-                    { required: true, whitespace: true, message: t("Treatment:Prescription:TemplateNameRequired") },
-                  ]}
-                >
-                  <Input maxLength={200} />
-                </FloatingField>
-              )}
-            </div>
-          </div>
-
-          <div className="rx-cell">
-            <FloatingField name="treatmentType" label={t("Treatment:Prescription:TypeTreatment")}>
-              <Select showSearch optionFilterProp="label" options={treatmentTypeOptions()} />
-            </FloatingField>
-            <Form.Item name="followUpDate">
-              <DatePicker
-                format={DATE_INPUT_FORMAT}
-                placeholder={t("Treatment:Prescription:TypeRecheck")}
-                aria-label={t("Treatment:Prescription:TypeRecheck")}
-                className="rx-full"
-                disabledDate={(date) => date.isBefore(dayjs(), "day")}
-              />
-            </Form.Item>
-          </div>
-        </div>
-
+        <RxHeaderFields patient={patient} />
+        <RxDiagnosisSection
+          rows={diagnoses.rows}
+          printedText={printedText}
+          sources={state.sources}
+          sourcesLoading={state.sourcesLoading}
+          pickedKeys={diagnoses.pickedKeys}
+          onToggle={diagnoses.toggle}
+          onRemove={diagnoses.remove}
+        />
+        <Form.Item name="diagnosisNote" label={t("Treatment:Rx:DiagnosisNote")} className="rx-dx-note">
+          <Input.TextArea
+            autoSize={{ minRows: 2, maxRows: 6 }}
+            maxLength={1000}
+            placeholder={t("Treatment:Rx:DiagnosisNotePlaceholder")}
+            aria-label={t("Treatment:Rx:DiagnosisNote")}
+          />
+        </Form.Item>
         <PrescriptionAllergyAlert conflicts={allergyConflicts} />
-        <PrescriptionLineEditor lines={lines} medicines={medicines} onChange={setLines} paged />
+        <RxAdviceRow saveAsTemplate={saveAsTemplate} />
+        <RxMedicineSection
+          lines={lines}
+          medicines={medicines}
+          templates={state.templates}
+          onChange={state.setLines}
+          onPickTemplate={state.pickTemplate}
+          onAddMedicineType={() => navigate("/taxonomy/medicine")}
+        />
       </Form>
       <ConfirmDialog
-        open={pendingValues !== null}
+        open={save.confirmingAllergy}
         title={t("Treatment:Rx:AllergyTitle")}
         message={t("Treatment:Rx:AllergyConfirm")}
         confirmLabel={t("Treatment:Rx:AllergyConfirmSave")}
-        pending={saving}
-        onConfirm={handleConfirmAllergy}
-        onClose={() => setPendingValues(null)}
+        pending={save.saving}
+        onConfirm={save.handleConfirmAllergy}
+        onClose={save.handleCancelAllergy}
       />
     </AppDialog>
   );

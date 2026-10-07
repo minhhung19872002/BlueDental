@@ -116,6 +116,10 @@ public sealed class PrescriptionController(IPrescriptionAppService service) : Bl
     [HttpGet("{id:guid}")]
     public Task<PrescriptionDto> GetAsync(Guid id) => service.GetAsync(id);
 
+    [HttpGet("diagnosis-sources")]
+    public Task<ListResultDto<PrescriptionDiagnosisSourceDto>> GetDiagnosisSourcesAsync(
+        [FromQuery] GetPrescriptionDiagnosisSourcesInput input) => service.GetDiagnosisSourcesAsync(input);
+
     [HttpPost]
     public Task<PrescriptionDto> CreateAsync([FromBody] CreatePrescriptionDto input) =>
         service.CreateAsync(input);

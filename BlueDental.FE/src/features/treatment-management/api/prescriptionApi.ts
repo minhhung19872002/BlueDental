@@ -4,6 +4,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { invalidateEntities } from "@/lib/queryEntities";
 import type { PagedResult } from "@/types";
+import type { RxDiagnosisRow } from "../types/prescription";
 
 /** Matches BlueDental.TreatmentManagement.PrescriptionTreatmentType. */
 export const PRESCRIPTION_TREATMENT_TYPE = { Outpatient: 1, Inpatient: 2 } as const;
@@ -18,19 +19,35 @@ export function treatmentTypeOptions(): { value: PrescriptionTreatmentType; labe
   ];
 }
 
+/** The dose of one line by session — 0 when the session is skipped (F-58). */
+export interface PrescriptionSessionDose {
+  morning: number;
+  noon: number;
+  afternoon: number;
+  evening: number;
+  days: number;
+}
+
 /** Mirrors BlueDental.TreatmentManagement.PrescriptionItemDto. */
-export interface PrescriptionItemDto {
+export interface PrescriptionItemDto extends PrescriptionSessionDose {
   id: string;
   medicationId: string;
   medicationName: string;
-  timesPerDay: number;
-  amountPerTime: number;
-  days: number;
-  /** Computed by the server: timesPerDay × amountPerTime × days. */
+  /** Computed by the server: (sáng + trưa + chiều + tối) × days. */
   quantity: number;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;
   otherUsage: string | null;
+  sortOrder: number;
+}
+
+/** One diagnosis picked from a phiếu điều trị, as it stood when the slip was saved. */
+export interface PrescriptionDiagnosisDto {
+  treatmentPlanId: string;
+  diagnosisId: string;
+  planCode: string;
+  diagnosisName: string;
+  toothCodes: number[];
   sortOrder: number;
 }
 
@@ -42,7 +59,10 @@ export interface PrescriptionDto {
   code: string;
   staffId: string;
   staffName: string | null;
+  /** The diagnosis as printed — built from `diagnoses` since F-58. */
   diagnosisText: string | null;
+  diagnosisNote: string | null;
+  diagnoses: PrescriptionDiagnosisDto[];
   note: string | null;
   treatmentType: PrescriptionTreatmentType;
   /** "YYYY-MM-DD" or null. */
@@ -54,11 +74,8 @@ export interface PrescriptionDto {
 }
 
 /** Mirrors CreatePrescriptionItemDto — one medicine line as sent. */
-export interface PrescriptionLineInput {
+export interface PrescriptionLineInput extends PrescriptionSessionDose {
   medicationId: string;
-  timesPerDay: number;
-  amountPerTime: number;
-  days: number;
   usage: number;
   otherUsage: string | null;
 }
@@ -69,6 +86,9 @@ export interface CreatePrescriptionRequest {
   clinicBranchId: string;
   staffId: string;
   diagnosisText: string | null;
+  diagnosisNote: string | null;
+  /** The server rebuilds the snapshot from these and checks they are the patient's. */
+  diagnoses: { treatmentPlanId: string; diagnosisId: string }[];
   note: string | null;
   treatmentType: PrescriptionTreatmentType;
   /** "YYYY-MM-DD" or null. */
@@ -82,13 +102,57 @@ export interface CreatePrescriptionRequest {
 /** Mirrors UpdatePrescriptionDto — the patient and branch never change. */
 export type UpdatePrescriptionRequest = Omit<CreatePrescriptionRequest, "patientId" | "clinicBranchId">;
 
+/** Mirrors PrescriptionDiagnosisSourceDto — one diagnosis of one phiếu điều trị. */
+interface PrescriptionDiagnosisSourceDto {
+  treatmentPlanId: string;
+  planCode: string;
+  planCreationTime: string;
+  diagnosisId: string;
+  diagnosisName: string;
+  toothCodes: number[];
+  notes: string[];
+}
+
 const BASE = "/v1/app/prescriptions";
 
 export const prescriptionKeys = {
   all: ["prescriptions"] as const,
   list: (patientId: string, branchId: string) =>
     [...prescriptionKeys.all, "list", patientId, branchId] as const,
+  diagnosisSources: (patientId: string, branchId: string) =>
+    [...prescriptionKeys.all, "diagnosis-sources", patientId, branchId] as const,
 };
+
+export function rxDiagnosisKey(treatmentPlanId: string, diagnosisId: string): string {
+  return `${treatmentPlanId}:${diagnosisId}`;
+}
+
+function adaptDiagnosisSource(dto: PrescriptionDiagnosisSourceDto): RxDiagnosisRow {
+  return {
+    key: rxDiagnosisKey(dto.treatmentPlanId, dto.diagnosisId),
+    treatmentPlanId: dto.treatmentPlanId,
+    diagnosisId: dto.diagnosisId,
+    planCode: dto.planCode,
+    planDate: dto.planCreationTime,
+    diagnosisName: dto.diagnosisName,
+    toothCodes: dto.toothCodes,
+    notes: dto.notes,
+  };
+}
+
+/** A saved pick read back — the snapshot carries no notes and no plan date. */
+export function adaptPickedDiagnosis(dto: PrescriptionDiagnosisDto): RxDiagnosisRow {
+  return {
+    key: rxDiagnosisKey(dto.treatmentPlanId, dto.diagnosisId),
+    treatmentPlanId: dto.treatmentPlanId,
+    diagnosisId: dto.diagnosisId,
+    planCode: dto.planCode,
+    planDate: null,
+    diagnosisName: dto.diagnosisName,
+    toothCodes: dto.toothCodes,
+    notes: [],
+  };
+}
 
 /**
  * A patient's slips on the current branch, newest first. The tab pages them
@@ -106,6 +170,28 @@ export function usePrescriptions(patientId: string) {
         })
         .then((r) => r.data),
     enabled: Boolean(patientId) && Boolean(branchId),
+  });
+}
+
+/**
+ * The diagnoses of the patient's phiếu điều trị on the current branch, one row
+ * per diagnosis of a plan, newest plan first; cancelled plans are left out.
+ */
+export function usePrescriptionDiagnosisSources(patientId: string, enabled: boolean) {
+  const branchId = useCurrentBranchId();
+
+  return useQuery({
+    queryKey: prescriptionKeys.diagnosisSources(patientId, branchId),
+    queryFn: () =>
+      api
+        .get<{ items: PrescriptionDiagnosisSourceDto[] }>(`${BASE}/diagnosis-sources`, {
+          params: { patientId, clinicBranchId: branchId },
+        })
+        .then((r) => r.data.items.map(adaptDiagnosisSource)),
+    enabled: enabled && Boolean(patientId) && Boolean(branchId),
+    // Phiếu điều trị are made on other tabs while this one stays mounted: every
+    // opening of the dialog must see them, not a list cached minutes earlier.
+    staleTime: 0,
   });
 }
 

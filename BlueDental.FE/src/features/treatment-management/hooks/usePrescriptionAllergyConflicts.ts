@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import type { PrescriptionLine } from "@/components/prescription-lines";
 import { CATALOG_GROUP, useCatalogOptions, type CatalogOption } from "@/hooks/useCatalogOptions";
 import { findAllergyConflicts, type AllergyConflict } from "../utils/allergyConflicts";
 
@@ -9,7 +8,7 @@ import { findAllergyConflicts, type AllergyConflict } from "../utils/allergyConf
  */
 export function usePrescriptionAllergyConflicts(
   diseaseHistoryEntryIds: string[],
-  lines: PrescriptionLine[],
+  lines: readonly { medicineEntryId: string }[],
   medicines: CatalogOption[],
 ): AllergyConflict[] {
   const diseases = useCatalogOptions(CATALOG_GROUP.DiseaseHistory).data;

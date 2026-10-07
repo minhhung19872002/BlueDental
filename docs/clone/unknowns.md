@@ -2919,3 +2919,19 @@ BA sẽ gửi sau.
 Action taken: NONE trên production. BlueDental tạm tính `max(0, Tổng phải trả của phiếu − số tiền
 các dòng đang tick)` (`PaymentReceiptContent.RemainingAmount`); nguồn là phiếu thu không gắn phiếu
 điều trị thì "Tổng" = số đã thu của phiếu thu đó. Đổi công thức khi BA chốt.
+
+---
+
+## Đơn thuốc — danh mục ICD-10 và thuốc gợi ý theo phác đồ (F-58, 2026-10-08)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Hồ sơ bệnh nhân › Đơn thuốc → "Thêm/Cập nhật đơn thuốc", khối "Chẩn đoán"
+Control: ô "Gõ mã ICD-10, tên bệnh hoặc số răng để thêm…", cột "Thuốc gợi ý theo phác đồ",
+nút "+ Thêm vào đơn" và "Thêm thuốc của tất cả chẩn đoán"
+Reason: thiết kế riêng của BlueDental theo mock BA `P0710.drawio`, bản gốc không có. BlueDental chưa
+có danh mục ICD-10 và chưa có phác đồ (chẩn đoán → thuốc), nên chưa có dữ liệu để tìm hoặc gợi ý.
+Action taken: NONE trên production. BlueDental chỉ dựng phần giao diện. Ô tìm hiện "Chưa liên kết
+danh mục ICD-10" kèm link mở panel; cột gợi ý hiện "Chưa có phác đồ (chờ ICD-10)"; hai nút bị khóa
+và có tooltip giải thích. Panel "Danh mục ICD-10" hiện chỉ có nhóm "Phiếu điều trị". Nối dữ liệu khi
+BA giao danh mục ICD-10 và phác đồ.
