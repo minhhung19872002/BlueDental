@@ -14,6 +14,8 @@ export interface ClinicBranchDto {
   slogan?: string;
   taxCode?: string;
   contactPerson?: string;
+  /** Networks staff may sign in from, one per line; absent = no IP restriction. */
+  allowedIpRanges?: string | null;
   status: string;
   creationTime: string;
   lastModificationTime?: string;
@@ -31,6 +33,7 @@ export interface CreateClinicBranchDto {
   slogan?: string;
   taxCode?: string;
   contactPerson?: string;
+  allowedIpRanges?: string;
 }
 
 export interface UpdateClinicBranchDto {
@@ -43,6 +46,8 @@ export interface UpdateClinicBranchDto {
   slogan?: string;
   taxCode?: string;
   contactPerson?: string;
+  /** Omitted keeps the current list; "" clears it. */
+  allowedIpRanges?: string;
 }
 
 export interface DepartmentDto {
@@ -81,6 +86,10 @@ const organizationApi = {
 
   updateBranch: (id: string, data: UpdateClinicBranchDto): Promise<ClinicBranchDto> =>
     api.put(`/v1/app/clinic-branches/${id}`, data).then((r) => r.data),
+
+  /** The caller's address as the server sees it. */
+  getClientIp: (): Promise<{ ipAddress: string | null }> =>
+    api.get("/v1/app/account/client-ip").then((r) => r.data),
 
   deleteBranch: (id: string): Promise<void> =>
     api.delete(`/v1/app/clinic-branches/${id}`).then(() => undefined),
@@ -121,6 +130,17 @@ export function useClinicBranch(id: string) {
     queryFn: () => organizationApi.getBranch(id),
     enabled: Boolean(id),
     staleTime: 10 * 60_000,
+  });
+}
+
+/** What the branch dialog offers to add to "IP được phép đăng nhập". */
+export function useClientIp(enabled: boolean) {
+  return useQuery({
+    queryKey: ["account", "client-ip"],
+    queryFn: () => organizationApi.getClientIp(),
+    select: (d) => d.ipAddress,
+    enabled,
+    staleTime: 60_000,
   });
 }
 

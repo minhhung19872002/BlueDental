@@ -55,6 +55,7 @@ import { useStaff } from "@/features/staff/api/staffQueries";
 import { invalidateEntities } from "@/lib/queryEntities";
 import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
 import { getLocale, t } from "@/lib/i18n";
+import "../components/organizations.css";
 
 type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage";
 

@@ -6,6 +6,7 @@ import {
   useUpdateBranch,
   type ClinicBranchDto,
 } from "../api";
+import { BranchIpRangesField } from "./BranchIpRangesField";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { t } from "@/lib/i18n";
 
@@ -19,6 +20,7 @@ interface BranchFormValues {
   provinceId?: string;
   wardId?: string;
   address?: string;
+  allowedIpRanges?: string;
 }
 
 interface BranchEditorModalProps {
@@ -68,6 +70,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
           provinceId: branch.provinceId ?? undefined,
           wardId: branch.wardId ?? undefined,
           address: branch.address ?? "",
+          allowedIpRanges: branch.allowedIpRanges ?? "",
         });
         if (branch.provinceId) loadWards(branch.provinceId);
       } else {
@@ -89,6 +92,8 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
       contactPerson: clean(values.contactPerson),
       provinceId: values.provinceId || undefined,
       wardId: values.wardId || undefined,
+      // Always sent: "" is how the dialog clears the list (omitted = keep).
+      allowedIpRanges: values.allowedIpRanges?.trim() ?? "",
     };
     try {
       if (branch) {
@@ -103,6 +108,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             email: payload.email,
             taxCode: payload.taxCode,
             contactPerson: payload.contactPerson,
+            allowedIpRanges: payload.allowedIpRanges,
           },
         });
         toast.success(t("Organization:BranchUpdated"));
@@ -198,6 +204,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         <Form.Item name="address" label={t("Organization:AddressLabel")}>
           <Input placeholder={t("Organization:AddressPlaceholder")} />
         </Form.Item>
+        <BranchIpRangesField />
       </Form>
     </Modal>
   );

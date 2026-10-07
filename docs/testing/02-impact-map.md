@@ -88,6 +88,7 @@ What to retest when a shared piece changes. Levels are defined in
 | `src/components/prescription-lines/` (shared line editor) | 3 | F-23 and F-34 (Đơn thuốc mẫu dialog) |
 | `PatientImage` / blob storage / `patient-images` reorder | 2 | F-24, and the Chẩn đoán & Tư vấn tab's "Chọn ảnh hiển thị" picker, which reads the same list |
 | `AccountAppService` (`current-user`, granted permissions) | 3 | F-24 and any screen that hides a control by permission; the login flow itself (F-01) |
+| `LoginIpGuard`, `BlueDentalSignInManager`, `LoginIpRestrictionMiddleware`, `ClinicBranch.AllowedIpRanges`, `IpAddressRange`, `LoginIpPolicy`, `ConfigureForwardedHeaders` | 3 | F-51 `branch-ip-restriction` first, then the login flow (F-01: `auth`, `branch-*`, `staff`, `current-user-ticks-api`). The middleware runs on every authenticated request, and a branch left with an IP list locks every clinic-wide non-admin account (e.g. `manager`) out of later specs — the spec sweeps its `CN IP <n>` branches before and after (R-789) |
 | `Visit` / `VisitAppService` | 2 | F-11 |
 | `Appointment` / appointment adapters | 3 | F-10, and the patient Lịch hẹn tab |
 | `StaffAppService` / identity | 3 | F-25, and every screen that picks a dentist |

@@ -116,6 +116,7 @@ export function StaffPage() {
       isDentist: values.isDentist,
       isAssistant: values.isAssistant,
       isHygienist: values.isHygienist,
+      allowLoginOutsideOffice: values.allowLoginOutsideOffice,
       morningStartTime: values.morningStartTime || undefined,
       morningEndTime: values.morningEndTime || undefined,
       afternoonStartTime: values.afternoonStartTime || undefined,

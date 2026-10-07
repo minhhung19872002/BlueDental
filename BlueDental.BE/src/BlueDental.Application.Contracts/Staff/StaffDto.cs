@@ -30,6 +30,12 @@ public class StaffDto : EntityDto<Guid>
     public bool IsAssistant { get; set; }
     public bool IsHygienist { get; set; }
 
+    /// <summary>
+    /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
+    /// its branches' IP ranges (Cụm 11 mục 11).
+    /// </summary>
+    public bool AllowLoginOutsideOffice { get; set; }
+
     /// <summary>Morning shift start time in "HH:mm" format.</summary>
     public string? MorningStartTime { get; set; }
 
@@ -100,6 +106,12 @@ public class CreateStaffDto
     public bool IsAssistant { get; set; }
     public bool IsHygienist { get; set; }
 
+    /// <summary>
+    /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
+    /// its branches' IP ranges (Cụm 11 mục 11).
+    /// </summary>
+    public bool AllowLoginOutsideOffice { get; set; }
+
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }
     public string? AfternoonStartTime { get; set; }
@@ -132,6 +144,12 @@ public class UpdateStaffDto
     public bool IsDentist { get; set; }
     public bool IsAssistant { get; set; }
     public bool IsHygienist { get; set; }
+
+    /// <summary>
+    /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
+    /// its branches' IP ranges (Cụm 11 mục 11).
+    /// </summary>
+    public bool AllowLoginOutsideOffice { get; set; }
 
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }

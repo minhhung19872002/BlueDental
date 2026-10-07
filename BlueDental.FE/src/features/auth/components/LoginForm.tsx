@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "../api";
 import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { IP_SIGNED_OUT_REASON } from "@/lib/axios";
 import { t } from "@/lib/i18n";
 import { brand } from "@/theme/index";
 import type { LoginResponse } from "../types";
@@ -47,6 +48,10 @@ export function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const setAuth = useAuthStore((s) => s.setAuth);
+  // Sent here by the 401 handler when a session was used from outside the
+  // account's branch networks; a fresh failure replaces the notice.
+  const ipSignedOut =
+    new URLSearchParams(location.search).get("reason") === IP_SIGNED_OUT_REASON;
 
   const {
     control,
@@ -92,6 +97,9 @@ export function LoginForm() {
       setError("root", { message: extractApiError(error) });
     },
   });
+
+  const rootMessage =
+    errors.root?.message ?? (ipSignedOut ? t("Auth:SignedOutOutsideOffice") : undefined);
 
   const onSubmit = (values: LoginFormValues) => {
     loginMutation.mutate(values);
@@ -156,11 +164,11 @@ export function LoginForm() {
         />
       </Form.Item>
 
-      {errors.root && (
+      {rootMessage && (
         <Form.Item>
           {/* role="alert" so the failure is announced, not just coloured. */}
           <span role="alert" style={{ color: brand.red, fontSize: 13 }}>
-            {errors.root.message}
+            {rootMessage}
           </span>
         </Form.Item>
       )}

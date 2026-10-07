@@ -20,4 +20,7 @@ public sealed class AccountController(IAccountAppService service) : BlueDentalCo
 
     [HttpPost("change-password")]
     public Task ChangePasswordAsync([FromBody] ChangePasswordInput input) => service.ChangePasswordAsync(input);
+
+    [HttpGet("client-ip")]
+    public Task<ClientIpDto> GetClientIpAsync() => service.GetClientIpAsync();
 }

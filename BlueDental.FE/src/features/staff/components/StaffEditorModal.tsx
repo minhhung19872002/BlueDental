@@ -39,6 +39,7 @@ export interface StaffFormValues {
   isDentist: boolean;
   isAssistant: boolean;
   isHygienist: boolean;
+  allowLoginOutsideOffice: boolean;
   isActive: boolean;
   morningStartTime: string;
   morningEndTime: string;
@@ -105,6 +106,7 @@ export function StaffEditorModal({
           isDentist: staff.isDentist,
           isAssistant: staff.isAssistant,
           isHygienist: staff.isHygienist,
+          allowLoginOutsideOffice: staff.allowLoginOutsideOffice,
           password: "",
           confirmPassword: "",
           morningStartTime: dayjs(staff.morningStartTime ?? "08:00", TIME_FORMAT),
@@ -139,6 +141,7 @@ export function StaffEditorModal({
         isDentist: values.isDentist ?? false,
         isAssistant: values.isAssistant ?? false,
         isHygienist: values.isHygienist ?? false,
+        allowLoginOutsideOffice: values.allowLoginOutsideOffice ?? false,
         isActive: values.isActive ?? true,
       };
       onSubmit(result, avatarFile);
@@ -236,6 +239,7 @@ export function StaffEditorModal({
           isDentist: false,
           isAssistant: false,
           isHygienist: false,
+          allowLoginOutsideOffice: false,
           branchIds: [],
           morningStartTime: dayjs("08:00", TIME_FORMAT),
           morningEndTime: dayjs("12:00", TIME_FORMAT),
@@ -447,6 +451,15 @@ export function StaffEditorModal({
               <Checkbox>{t("Staff:RoleMedic")}</Checkbox>
             </Form.Item>
         </div>
+
+        {/* Cụm 11 mục 11 — only matters for a branch with an IP list */}
+        <Form.Item
+          name="allowLoginOutsideOffice"
+          valuePropName="checked"
+          extra={t("Staff:AllowLoginOutsideOfficeHint")}
+        >
+          <Checkbox>{t("Staff:AllowLoginOutsideOffice")}</Checkbox>
+        </Form.Item>
 
         {/* Tình trạng làm việc */}
         <Form.Item name="isActive" label={t("Staff:WorkStatus")}>

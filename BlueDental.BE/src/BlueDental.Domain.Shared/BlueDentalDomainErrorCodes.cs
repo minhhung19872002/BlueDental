@@ -7,6 +7,12 @@ public static class BlueDentalDomainErrorCodes
         public const string CrossBranchAccess = "BlueDental:Authorization:0001";
     }
 
+    public static class Authentication
+    {
+        /// <summary>Cụm 11 mục 11: the account may only sign in from its branches' networks.</summary>
+        public const string LoginIpNotAllowed = "BlueDental:Auth:LoginIpNotAllowed";
+    }
+
     public static class Organizations
     {
         public const string BranchNotFound = "BlueDental:Organizations:0001";
@@ -15,6 +21,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidOperatingHours = "BlueDental:Organizations:0004";
         public const string BranchNotAssigned = "BlueDental:Organizations:0005";
         public const string DuplicateName = "BlueDental:Organizations:0006";
+        public const string InvalidIpRange = "BlueDental:Organizations:0007";
     }
 
     public static class Catalogs

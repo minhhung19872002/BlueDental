@@ -1,0 +1,18 @@
+/* Cụm 11 mục 11 — "IP được phép đăng nhập" on the branch dialog */
+.branch-ip-field .ant-form-item {
+  margin-bottom: 4px !important;
+}
+
+.branch-ip-field__current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.branch-ip-field__current .ant-btn {
+  padding-inline: 4px;
+}

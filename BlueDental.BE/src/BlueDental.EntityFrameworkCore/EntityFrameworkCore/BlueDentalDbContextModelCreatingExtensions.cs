@@ -128,6 +128,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Slogan).HasMaxLength(500);
             entity.Property(x => x.TaxCode).HasMaxLength(50);
             entity.Property(x => x.ContactPerson).HasMaxLength(200);
+            entity.Property(x => x.AllowedIpRanges).HasMaxLength(2000);
             entity.Property(x => x.Status).HasConversion<short>();
             entity.HasIndex(x => x.Code).IsUnique();
         });

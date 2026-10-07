@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Net;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -19,6 +21,15 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
     public BranchStatus Status { get; private set; }
     public TimeOnly? OpeningTime { get; private set; }
     public TimeOnly? ClosingTime { get; private set; }
+
+    /// <summary>
+    /// Networks staff of this branch may sign in from, one entry per line
+    /// (Cụm 11 mục 11). Empty means the branch does not restrict sign-in by IP.
+    /// Stored normalized: each entry parsed and rewritten by <see cref="IpAddressRange"/>.
+    /// </summary>
+    public string? AllowedIpRanges { get; private set; }
+
+    public bool RestrictsLoginByIp => !string.IsNullOrWhiteSpace(AllowedIpRanges);
 
     protected ClinicBranch() { }
 
@@ -84,6 +95,16 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
         ContactPerson = contactPerson?.Trim();
         return this;
     }
+
+    public ClinicBranch SetAllowedIpRanges(string? allowedIpRanges)
+    {
+        var ranges = IpAddressRange.ParseList(allowedIpRanges);
+        AllowedIpRanges = ranges.Count == 0 ? null : string.Join('\n', ranges.Select(r => r.ToString()));
+        return this;
+    }
+
+    public bool AllowsLoginFrom(IPAddress? address) =>
+        IpAddressRange.ParseList(AllowedIpRanges).Any(r => r.Contains(address));
 
     public ClinicBranch Deactivate()
     {

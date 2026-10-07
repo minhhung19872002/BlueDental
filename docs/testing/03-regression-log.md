@@ -7130,3 +7130,22 @@ Sửa test cũ tạo trùng số: `patient-national-id` (các tag A–H cùng đ
 | R-787 | BA 2026-10-07 (chat): ô "Tìm người giám hộ đã có hồ sơ" phải tìm **cả** hồ sơ khách hàng/bệnh nhân **lẫn** danh sách người giám hộ đã khai cho bệnh nhân khác — "có thể số đt có nhưng ko phải bệnh nhân, do người đó đã làm giám hộ cho 1 người khác", "quản lý tập trung 1 số đt". Trước đây ô chỉ tìm hồ sơ (R-785), nên SĐT 0722722911 (chỉ là người giám hộ) báo "Không tìm thấy". | API mới `GET /api/v1/app/patients/guardian-candidates?filter=&excludePatientId=` (`GuardianCandidateAppService`, `Patient.Read`, theo chi nhánh): tối đa 5 hồ sơ (tên/mã/SĐT/CCCD, mới nhất trước) rồi tối đa 5 người giám hộ (tên/SĐT/CCCD), gộp theo CCCD, kèm `wards` (đang giám hộ cho ai); người giám hộ trùng một hồ sơ trong kết quả (liên kết hoặc cùng CCCD) bị bỏ — hồ sơ thắng; không trả người giám hộ của chính hồ sơ đang sửa. FE: `GuardianSearch` dùng `useGuardianCandidates` (debounce 300 ms, vẫn giữ quy tắc R-786) + `useFindGuardianCandidates` cho Enter/"Tìm & điền"; dòng người giám hộ hiện "SĐT · Người giám hộ của …"; chọn thì điền thẳng từ kết quả (`fillGuardianFromCandidate`, có cả ngày/nơi cấp CCCD), không gọi thêm `GET /patients/{id}`. Gỡ `resultsFor` khỏi `usePatientOptions` (R-786) vì không còn ai dùng. Test: `patient-guardian-api.spec.ts` thêm 1 test (người giám hộ không hồ sơ tìm ra bằng SĐT/CCCD, một lần, có 2 bé; loại trừ hồ sơ đang sửa; người có hồ sơ kiêm người giám hộ chỉ ra 1 dòng hồ sơ; ô trống → []; BRANCH2 → []); `patient-guardian.spec.ts` tìm bố (hồ sơ) rồi bà (chỉ là người giám hộ của bé khác) và "Tìm & điền" bà. Guardian specs 10/10. |
 
 Sau merge origin 383c6cf4 (bug list 25–30 chiếm R-778 → R-784): 3 dòng trên đổi số R-778/779/780 → R-785/786/787 (cập nhật cả comment code, spec, tài liệu). Kiểm lại trên bản merge (BE build, DbMigrator áp `PatientPaymentCancelReason`, preview :8080, `--workers=1`): `patient-guardian*` 10/10, `patient-national-id` 3/3, `qa-bugs-25-30` 5/5 (**18/18**). Chặn trùng SĐT của R-784 chỉ áp cho hồ sơ — người giám hộ vẫn không unique (R-785). Retest level **2**.
+
+## 2026-10-07 — Cụm 11 mục 11: Xác thực IP theo chi nhánh (R-788 → R-790, F-51)
+
+BlueDental riêng; quyết định ghi ở `docs/clone/pages/branch-ip-restriction.md`.
+
+| ID | Vấn đề / yêu cầu | Xử lý |
+|---|---|---|
+| R-788 | Cài đặt → Thông tin phòng khám lưu chi nhánh mà không gửi `allowedIpRanges`; nếu BE hiểu `null` là "xoá" thì mỗi lần lưu Cài đặt sẽ xoá mất danh sách IP. | `UpdateAsync`: `null` giữ nguyên, `""` xoá. Dialog chi nhánh luôn gửi chuỗi. Có test (`setBranchIps(…, undefined)` giữ danh sách). |
+| R-789 | Lần chạy hồi quy đầu: test giao diện của spec mới hết giờ trước `finally`, để lại chi nhánh `IP718573` mang `203.0.113.0/24` → mọi tài khoản toàn phòng khám không phải admin bị chặn đăng nhập → `current-user-ticks-api` 4 ca đỏ dây chuyền. | Xoá mềm chi nhánh sót trong DB local; spec có `sweepLeftoverBranches` (phiên admin mới) ở `beforeAll`/`afterAll`, timeout 90 s, chờ bảng chi nhánh hiện rồi mới phân trang. Chạy lại: `current-user-ticks-api` xanh. |
+| R-790 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` (production) mặc định tin mọi proxy nhưng chỉ 1 bước: với Caddy → nginx → API, địa chỉ client mà API thấy là địa chỉ của Caddy, không phải của người dùng — kiểm IP theo chi nhánh sẽ so mọi người với địa chỉ proxy. | `ConfigureForwardedHeaders`: chỉ tin loopback + mạng riêng, không giới hạn bước → lấy địa chỉ đầu tiên không phải proxy. Chưa kiểm trên production: gọi `GET /api/v1/app/account/client-ip` từ mạng phòng khám trước khi nhập danh sách IP. |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): `branch-ip-restriction` **5/5**.
+BE: Domain.Tests **664** (mới `BranchIpRestrictionTests` 27), Application.Tests **671**, HttpApi.Host.Tests **24**.
+Migration `BranchAllowedIpRanges` chỉ thêm 1 cột. DbMigrator: schema migrate xong, seed demo lỗi `SlotInThePast` — có từ trước (xem mục trên).
+Hồi quy mức 3 (auth/chi nhánh/nhân viên/phân quyền: `auth`, `branch-isolation`, `branch-switcher`, `branch-list`, `staff`,
+`staff-penalty-api`, `staff-day-off-api`, `role-permissions`, `role-permissions-abilities`, `current-user-ticks-api`,
+`header-navigation`, `routes`): **49 xanh, 6 đỏ** — tất cả đã ghi nhận từ trước: `header-navigation` 3 (R-677),
+`role-permissions` + `role-permissions-abilities` (dữ liệu role `dentist` local, R-725..R-727), `routes` `/timekeeping` (route cũ).
+tsc + eslint sạch. Retest level **3**.

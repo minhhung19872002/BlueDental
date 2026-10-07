@@ -7,4 +7,5 @@ public interface IAccountAppService : IApplicationService
 {
     Task<CurrentUserDto> GetCurrentUserAsync();
     Task ChangePasswordAsync(ChangePasswordInput input);
+    Task<ClientIpDto> GetClientIpAsync();
 }

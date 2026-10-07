@@ -1,6 +1,15 @@
 import axios from "axios";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useBranchStore } from "@/lib/clinicBranch";
+import { describeApiError } from "@/lib/apiError";
+
+/**
+ * Server code for a session ended because it is used from outside the
+ * account's branch networks (Cụm 11 mục 11), and the reason the login screen
+ * is told so it can say why the user was signed out.
+ */
+const LOGIN_IP_NOT_ALLOWED = "BlueDental:Auth:LoginIpNotAllowed";
+export const IP_SIGNED_OUT_REASON = "ip";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -44,7 +53,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       useAuthStore.getState().clearAuth();
       if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+        const ipBlocked = describeApiError(error).code === LOGIN_IP_NOT_ALLOWED;
+        window.location.href = ipBlocked ? `/login?reason=${IP_SIGNED_OUT_REASON}` : "/login";
       }
     }
     return Promise.reject(error);

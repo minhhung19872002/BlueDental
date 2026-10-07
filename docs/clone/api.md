@@ -1909,3 +1909,12 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
   `PUT` nhận `comboItems` (bỏ trống = giữ nguyên). Giá combo do server tính, `price` gửi lên bị bỏ qua.
 - `CatalogEntryDto` thêm `isCombo`, `comboItems[{ id, componentEntryId, quantity, unitPrice, componentName, componentCode, componentPrice }]`, `retailPrice`.
 - Lỗi: `BlueDental:Catalogs:0026` dòng không hợp lệ, `0027` combo rỗng, `0028` thành phần không phải dịch vụ lẻ sống cùng chi nhánh, `0029` danh mục không có combo.
+
+## Xác thực IP theo chi nhánh — BlueDental riêng (2026-10-07, cụm 11 mục 11)
+
+- `GET /api/v1/app/account/client-ip` → `{ ipAddress }` — địa chỉ server thấy (mọi user đã đăng nhập).
+- `ClinicBranchDto.allowedIpRanges`: `"<ip|cidr>\n…"` hoặc `null`; `/accessible` luôn trả `null`.
+  `POST/PUT clinic-branches` nhận `allowedIpRanges` (PUT: `null` = giữ nguyên, `""` = xoá). Sai định dạng → 403 `BlueDental:Organizations:0007` (data `value`).
+- `StaffDto` / create / update thêm `allowLoginOutsideOffice: <bool>`.
+- `POST /api/account/login` (ABP) → 403 `BlueDental:Auth:LoginIpNotAllowed` khi đúng mật khẩu nhưng ngoài mạng chi nhánh;
+  mọi request đã đăng nhập → 401 cùng mã + đăng xuất. Chi tiết: `docs/clone/pages/branch-ip-restriction.md`.

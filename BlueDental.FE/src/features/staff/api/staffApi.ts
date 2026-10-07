@@ -22,6 +22,8 @@ export interface StaffDto {
   isDentist: boolean;
   isAssistant: boolean;
   isHygienist: boolean;
+  /** "Cho phép đăng nhập ngoài công ty" — skips the branch IP check. */
+  allowLoginOutsideOffice: boolean;
 
   morningStartTime: string | null;
   morningEndTime: string | null;
@@ -62,6 +64,7 @@ export interface CreateStaffInput {
   isDentist?: boolean;
   isAssistant?: boolean;
   isHygienist?: boolean;
+  allowLoginOutsideOffice?: boolean;
 
   morningStartTime?: string;
   morningEndTime?: string;
@@ -86,6 +89,7 @@ export interface UpdateStaffInput {
   isDentist?: boolean;
   isAssistant?: boolean;
   isHygienist?: boolean;
+  allowLoginOutsideOffice?: boolean;
 
   morningStartTime?: string;
   morningEndTime?: string;
