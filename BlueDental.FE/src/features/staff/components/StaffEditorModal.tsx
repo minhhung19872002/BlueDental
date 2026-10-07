@@ -21,6 +21,7 @@ import dayjs from "dayjs";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
+import { StaffDiscountLimitFields } from "./StaffDiscountLimitFields";
 import type { StaffDto } from "../api/staffApi";
 import { t } from "@/lib/i18n";
 
@@ -41,6 +42,8 @@ export interface StaffFormValues {
   isHygienist: boolean;
   allowLoginOutsideOffice: boolean;
   allowLoginOutsideHours: boolean;
+  maxDiscountPercent?: number | null;
+  maxDiscountAmount?: number | null;
   isActive: boolean;
   morningStartTime: string;
   morningEndTime: string;
@@ -109,6 +112,8 @@ export function StaffEditorModal({
           isHygienist: staff.isHygienist,
           allowLoginOutsideOffice: staff.allowLoginOutsideOffice,
           allowLoginOutsideHours: staff.allowLoginOutsideHours,
+          maxDiscountPercent: staff.maxDiscountPercent ?? undefined,
+          maxDiscountAmount: staff.maxDiscountAmount ?? undefined,
           password: "",
           confirmPassword: "",
           morningStartTime: dayjs(staff.morningStartTime ?? "08:00", TIME_FORMAT),
@@ -145,6 +150,9 @@ export function StaffEditorModal({
         isHygienist: values.isHygienist ?? false,
         allowLoginOutsideOffice: values.allowLoginOutsideOffice ?? false,
         allowLoginOutsideHours: values.allowLoginOutsideHours ?? false,
+        // A cleared field comes back undefined: no limit.
+        maxDiscountPercent: values.maxDiscountPercent ?? null,
+        maxDiscountAmount: values.maxDiscountAmount ?? null,
         isActive: values.isActive ?? true,
       };
       onSubmit(result, avatarFile);
@@ -472,6 +480,9 @@ export function StaffEditorModal({
         >
           <Checkbox>{t("Staff:AllowLoginOutsideHours")}</Checkbox>
         </Form.Item>
+
+        {/* Cụm 11 mục 12 — Quy định giảm giá */}
+        <StaffDiscountLimitFields />
 
         {/* Tình trạng làm việc */}
         <Form.Item name="isActive" label={t("Staff:WorkStatus")}>

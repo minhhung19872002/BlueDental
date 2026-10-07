@@ -231,6 +231,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A continue asked for a tooth its công đoạn no longer holds open.</summary>
         public const string StageToothNotOpen = "BlueDental:Treatment:0041";
+
+        /// <summary>The discount is above the account's "giảm tối đa %" (Cụm 11 mục 12).</summary>
+        public const string DiscountAbovePercent = "BlueDental:Treatment:0042";
+
+        /// <summary>The discount is above the account's "giảm tối đa VNĐ" (Cụm 11 mục 12).</summary>
+        public const string DiscountAboveUserAmount = "BlueDental:Treatment:0043";
     }
 
     public static class Billing
@@ -383,6 +389,9 @@ public static class BlueDentalDomainErrorCodes
         public const string AvatarTooLarge = "BlueDental:Staff:0005";
         public const string AvatarNotFound = "BlueDental:Staff:0006";
         public const string DuplicateEmail = "BlueDental:Staff:0007";
+
+        /// <summary>"Quy định giảm giá": % outside 0–100 or a negative amount (Cụm 11 mục 12).</summary>
+        public const string InvalidDiscountLimit = "BlueDental:Staff:0008";
     }
 
     public static class StaffPenalty

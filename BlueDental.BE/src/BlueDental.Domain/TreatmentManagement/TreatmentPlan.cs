@@ -100,7 +100,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     public decimal PlanDiscountAmount => Math.Min(OwnDiscountUncapped + (VoucherDiscountAmount ?? 0m), ServicesTotal);
 
     /// <summary>The slip's own %/money discount, before the cap.</summary>
-    private decimal OwnDiscountUncapped => DiscountType switch
+    public decimal OwnDiscountUncapped => DiscountType switch
     {
         DiscountType.Money => DiscountValue,
         DiscountType.Percentage => Vnd.Round(ServicesTotal * DiscountValue / 100m),

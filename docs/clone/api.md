@@ -1933,3 +1933,9 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
 - Ghi (`PUT patients/{id}`, guardians, `PUT appointments/{id}` lịch tạm, hoá đơn điện tử, Zalo): giá trị có `*` chỉ hợp lệ khi là mặt nạ của đúng một số đã biết → giữ số thật; khác → 403 `BlueDental:Patient:0022`.
 - `POST patients` nhận thêm `sourceAppointmentId` (Lịch tạm → Tạo hồ sơ) để lưu số thật của thẻ khi số hiện bị che.
   Chi tiết: `docs/clone/pages/hide-phone.md`.
+
+## Quy định giảm giá — BlueDental riêng (2026-10-07, cụm 11 mục 12)
+
+- `StaffDto` / create / update thêm `maxDiscountPercent` (0–100) và `maxDiscountAmount` (VNĐ), `null` = không giới hạn; sai → 403 `BlueDental:Staff:0008`.
+- Ghi giảm giá vượt giới hạn của người đang thao tác (tư vấn, báo giá, phiếu điều trị) → 403 `BlueDental:Treatment:0042` (data `MaxPercent`) hoặc `0043` (data `MaxAmount`).
+  Chi tiết: `docs/clone/pages/discount-limit.md`.

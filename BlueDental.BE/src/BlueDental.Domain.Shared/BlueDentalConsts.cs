@@ -15,4 +15,8 @@ public static class BlueDentalConsts
     /// its branches' "Giờ được phép sử dụng" (Cụm 11 mục 13).
     /// </summary>
     public const string UserAllowLoginOutsideHoursPropertyName = "AllowLoginOutsideHours";
+
+    /// <summary>IdentityUser extra properties: "Quy định giảm giá" — giảm tối đa % / VNĐ (Cụm 11 mục 12).</summary>
+    public const string UserMaxDiscountPercentPropertyName = "MaxDiscountPercent";
+    public const string UserMaxDiscountAmountPropertyName = "MaxDiscountAmount";
 }

@@ -21,6 +21,9 @@ public sealed record QuoteLinePricing(
 
     public decimal Gross => AdvisePricing.Gross(Price, Quantity);
 
+    /// <summary>What the line charges after its own discount.</summary>
+    public decimal Effective => Gross - AdvisePricing.Discount(Gross, DiscountType, DiscountValue);
+
     public void EnsureValid()
     {
         AdvisePricing.EnsurePricingValid(Price, Quantity);

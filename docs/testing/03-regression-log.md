@@ -7183,3 +7183,19 @@ Hồi quy mức 3 (`patient-guardian-api`, `patient-guardian`, `patient-guardian
 - `export` "a prescription row has an In đơn button…" chờ `getByRole('tab', { name: 'Đơn thuốc' })`, và `patient-permission-gates` :112 đếm
   link "Chẩn đoán & Tư vấn" — thanh "Chi tiết bệnh nhân" giờ là link, không còn tab (ảnh chụp có đủ "Đơn thuốc"); test cũ, chưa sửa.
 tsc sạch; eslint chỉ còn lỗi có sẵn `react-hooks/exhaustive-deps`. Retest level **3**.
+
+## 2026-10-07 — Cụm 11 mục 12: Quy định giảm giá (R-794, F-54)
+
+Quyết định ghi ở `docs/clone/pages/discount-limit.md`.
+
+| ID | Vấn đề / yêu cầu | Xử lý |
+|---|---|---|
+| R-794 | Rà bảo mật trước khi push tìm 3 lỗ lách giới hạn: (1) so "mức giảm cũ" bằng tiền nên giảm số lượng dưới cùng số tiền giảm là vượt % (tới 100%); (2) giảm giá phiếu chỉ kiểm lúc đặt — thêm dịch vụ (giảm % phình theo), huỷ / hạ giá dịch vụ (giảm VNĐ thành tỉ lệ lớn) không kiểm lại, và đo sau khi đã cắt ở tổng phiếu; (3) chuyển đổi "giữ dịch vụ" nhân đơn giá đã hạ lên nhiều răng mà không kiểm. | `DiscountLimit.Measure`: so % với % cũ, tiền với tiền cũ; kiểm lại giảm giá phiếu (trước khi cắt, `OwnDiscountUncapped`) sau thêm / sửa / huỷ / chuyển đổi dịch vụ; chuyển đổi đo trên giá danh mục × số răng. Domain + e2e thêm ca giảm số lượng và huỷ dịch vụ. |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): `discount-limit` **3/3**.
+BE: Domain.Tests **710** (mới `DiscountLimitTests` 10), Application.Tests **676**.
+Hồi quy mức 3 (`catalog-combo`, `consulting-delete-and-picker`, `consulting-plan`, `consulting-review`, `treatment-plan`, `treatment-plan-detail`,
+`payment-amount-cap`, `voucher`, `staff`, `discount-limit`): **47 xanh, 5 đỏ** (bản trước khi vá), không cái nào ghi giảm giá:
+`consulting-delete-and-picker` :200 (danh sách "Chọn Dịch Vụ" không thấy dịch vụ vừa tạo), `consulting-plan` :433 (không tìm thấy dòng có giá
+cho voucher), :556 (ảnh còn shimmer — MinIO local), :806 (khoảng chữ ký bản in), `treatment-plan-detail` :565 (kéo-thả, đỏ có sẵn).
+Sau khi vá: `treatment-plan-detail` chạy lại — chỉ :565 đỏ. tsc + eslint sạch. Retest level **3**.

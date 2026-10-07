@@ -26,6 +26,9 @@ export interface StaffDto {
   allowLoginOutsideOffice: boolean;
   /** "Cho phép dùng ngoài giờ" — skips the branch's allowed hours. */
   allowLoginOutsideHours: boolean;
+  /** "Quy định giảm giá": giảm tối đa % / VNĐ; null = no limit. */
+  maxDiscountPercent: number | null;
+  maxDiscountAmount: number | null;
 
   morningStartTime: string | null;
   morningEndTime: string | null;
@@ -68,6 +71,8 @@ export interface CreateStaffInput {
   isHygienist?: boolean;
   allowLoginOutsideOffice?: boolean;
   allowLoginOutsideHours?: boolean;
+  maxDiscountPercent?: number | null;
+  maxDiscountAmount?: number | null;
 
   morningStartTime?: string;
   morningEndTime?: string;
@@ -94,6 +99,8 @@ export interface UpdateStaffInput {
   isHygienist?: boolean;
   allowLoginOutsideOffice?: boolean;
   allowLoginOutsideHours?: boolean;
+  maxDiscountPercent?: number | null;
+  maxDiscountAmount?: number | null;
 
   morningStartTime?: string;
   morningEndTime?: string;

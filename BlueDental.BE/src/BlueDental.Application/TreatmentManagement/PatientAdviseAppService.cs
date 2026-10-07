@@ -202,6 +202,8 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             input.SecondStaffId,
             input.AdviseGroupId);
 
+        await EnsureDiscountLimitAsync(advise, previous: null);
+
         await _repository.InsertAsync(advise, autoSave: true);
         return MapToDto(advise);
     }
@@ -210,9 +212,11 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     public async Task<PatientAdviseDto> UpdateAsync(Guid id, UpdatePatientAdviseDto input)
     {
         var advise = await GetInBranchAsync(id);
+        var before = await DiscountOfAsync(advise);
 
         advise.ChangePricing(input.Price, input.Quantity);
         advise.ApplyDiscount(input.DiscountType, input.DiscountValue);
+        await EnsureDiscountLimitAsync(advise, before);
         advise.MoveToGroup(input.AdviseGroupId);
         advise.Reorder(input.SortOrder);
 
@@ -251,9 +255,29 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     public async Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, decimal voucherDiscountAmount)
     {
         var advise = await GetInBranchAsync(id);
+        var before = await DiscountOfAsync(advise);
         advise.ApplyVoucher(voucherDiscountAmount);
+        await EnsureDiscountLimitAsync(advise, before);
         await _repository.UpdateAsync(advise, autoSave: true);
         return MapToDto(advise);
+    }
+
+    /// <summary>
+    /// "Quy định giảm giá" (Cụm 11 mục 12): what the line takes off the price it
+    /// would otherwise sell at — a lowered unit price and a %/VNĐ discount alike.
+    /// </summary>
+    private async Task<DiscountLimit.Measure> DiscountOfAsync(PatientAdvise advise)
+    {
+        var guard = LazyServiceProvider.LazyGetRequiredService<DiscountLimitGuard>();
+        var list = await guard.ReferencePriceAsync(advise.ServiceId, advise.OriginalPrice) * advise.Quantity;
+        return new DiscountLimit.Measure(list, Math.Max(list - advise.EffectiveAmount, 0m));
+    }
+
+    private async Task EnsureDiscountLimitAsync(PatientAdvise advise, DiscountLimit.Measure? previous)
+    {
+        var now = await DiscountOfAsync(advise);
+        await LazyServiceProvider.LazyGetRequiredService<DiscountLimitGuard>()
+            .EnsureAsync(now.ListAmount, now.Discount, previous ?? DiscountLimit.Measure.None);
     }
 
     /// <summary>

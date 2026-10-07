@@ -134,10 +134,26 @@ public class PatientQuoteAppService : ApplicationService, IPatientQuoteAppServic
     public async Task<PatientQuoteDto> RepriceLineAsync(Guid id, Guid adviseId, RepricePatientQuoteLineDto input)
     {
         var quote = await LoadAsync(id);
+        var pricing = new QuoteLinePricing(input.Price, input.Quantity, input.DiscountType, input.DiscountValue);
 
-        quote.RepriceLine(
-            adviseId,
-            new QuoteLinePricing(input.Price, input.Quantity, input.DiscountType, input.DiscountValue));
+        // "Quy định giảm giá" (Cụm 11 mục 12): measured against the service's
+        // catalogue price, and only when the line's discount grows.
+        var advise = (await LoadAdvisesAsync([adviseId])).GetValueOrDefault(adviseId);
+        if (advise is not null)
+        {
+            var guard = LazyServiceProvider.LazyGetRequiredService<DiscountLimitGuard>();
+            var unit = await guard.ReferencePriceAsync(advise.ServiceId, advise.OriginalPrice);
+            var current = quote.Lines.FirstOrDefault(l => l.AdviseId == adviseId)?.GetPricing()
+                ?? QuoteLinePricing.Of(advise);
+            await guard.EnsureAsync(
+                unit * pricing.Quantity,
+                Math.Max(unit * pricing.Quantity - pricing.Effective, 0m),
+                new DiscountLimit.Measure(
+                    unit * current.Quantity,
+                    Math.Max(unit * current.Quantity - current.Effective, 0m)));
+        }
+
+        quote.RepriceLine(adviseId, pricing);
 
         await _repository.UpdateAsync(quote, autoSave: true);
         return MapToDto(quote, await LoadAdvisesAsync(quote.Lines.Select(line => line.AdviseId)));

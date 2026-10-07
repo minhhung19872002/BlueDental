@@ -42,6 +42,13 @@ public class StaffDto : EntityDto<Guid>
     /// </summary>
     public bool AllowLoginOutsideHours { get; set; }
 
+    /// <summary>
+    /// "Quy định giảm giá" (Cụm 11 mục 12): the most this account may take
+    /// off a line or a slip — % of the price and VNĐ. Null = no limit.
+    /// </summary>
+    public decimal? MaxDiscountPercent { get; set; }
+    public decimal? MaxDiscountAmount { get; set; }
+
     /// <summary>Morning shift start time in "HH:mm" format.</summary>
     public string? MorningStartTime { get; set; }
 
@@ -124,6 +131,13 @@ public class CreateStaffDto
     /// </summary>
     public bool AllowLoginOutsideHours { get; set; }
 
+    /// <summary>
+    /// "Quy định giảm giá" (Cụm 11 mục 12): the most this account may take
+    /// off a line or a slip — % of the price and VNĐ. Null = no limit.
+    /// </summary>
+    public decimal? MaxDiscountPercent { get; set; }
+    public decimal? MaxDiscountAmount { get; set; }
+
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }
     public string? AfternoonStartTime { get; set; }
@@ -168,6 +182,13 @@ public class UpdateStaffDto
     /// branches' allowed hours (Cụm 11 mục 13).
     /// </summary>
     public bool AllowLoginOutsideHours { get; set; }
+
+    /// <summary>
+    /// "Quy định giảm giá" (Cụm 11 mục 12): the most this account may take
+    /// off a line or a slip — % of the price and VNĐ. Null = no limit.
+    /// </summary>
+    public decimal? MaxDiscountPercent { get; set; }
+    public decimal? MaxDiscountAmount { get; set; }
 
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }

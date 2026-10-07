@@ -1,0 +1,10 @@
+/* Staff dialog — Cụm 11 mục 12 "Quy định giảm giá" */
+.staff-discount-limit__input {
+  width: 100%;
+}
+
+.staff-discount-limit__hint {
+  margin: -8px 0 12px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}

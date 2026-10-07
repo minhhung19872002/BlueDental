@@ -150,6 +150,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
 
         await StampTaxRatesAsync(opened);
 
+        // "Quy định giảm giá" (Cụm 11 mục 12): the slip's own discount, before
+        // vouchers (a voucher is a promotion, not the user's discount). The
+        // lines were checked when they were consulted.
+        await EnsurePlanDiscountAsync(plan, DiscountLimit.Measure.None);
+
         // Redeemed in the same unit of work as the slip: if the slip fails to
         // write, no use is burnt; if a voucher refuses, no slip opens.
         var vouchers = await RedeemVouchersAsync(plan, input.VoucherIds);
@@ -210,7 +215,9 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     public async Task<TreatmentPlanSlipDto> ApplyDiscountAsync(Guid id, ApplyPlanDiscountDto input)
     {
         var plan = await LoadAsync(id);
+        var before = PlanDiscountOf(plan);
         plan.ApplyDiscount(input.DiscountType, input.DiscountValue);
+        await EnsurePlanDiscountAsync(plan, before);
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
@@ -220,6 +227,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     public async Task<TreatmentPlanSlipDto> AddServiceAsync(Guid id, AddTreatmentServiceDto input)
     {
         var plan = await LoadAsync(id);
+        var slipBefore = PlanDiscountOf(plan);
 
         var catalog = await _catalogRepository.FirstOrDefaultAsync(c => c.Id == input.ServiceId)
             ?? throw new BusinessException(
@@ -238,6 +246,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             // The catalog price the picker offered is the ceiling: the row may
             // lower it, never raise it (Treatment:0040).
             originalPrice: catalog.Price);
+        await EnsureLineDiscountAsync(line, DiscountLimit.Measure.None);
+        await EnsurePlanDiscountAsync(plan, slipBefore);
         await StampTaxRatesAsync([line]);
 
         line.SetDetails(
@@ -284,6 +294,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var stageQuery = await _stageRepository.GetQueryableAsync();
         var lineStages = stageQuery.Where(s => s.TreatmentServiceId == line.Id).ToList();
         var staged = _teethPolicy.CoveredTeeth(line.Teeth, lineStages);
+        var before = await LineDiscountAsync(line);
+        var slipBefore = PlanDiscountOf(plan);
 
         line.Revise(
             input.Price,
@@ -292,6 +304,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             input.DiagnosisId,
             paidOnLine,
             staged);
+        await EnsureLineDiscountAsync(line, before);
+        await EnsurePlanDiscountAsync(plan, slipBefore);
 
         line.SetDetails(
             input.DiagnosisId,
@@ -336,8 +350,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     {
         var plan = await LoadAsync(id);
         await GuardNoOpenLaboOrderAsync(serviceLineId);
+        var slipBefore = PlanDiscountOf(plan);
         plan.GetService(serviceLineId).Cancel();
         plan.CloseIfAllServicesDone();
+        // A VNĐ slip discount over fewer services is a bigger share (Cụm 11 mục 12).
+        await EnsurePlanDiscountAsync(plan, slipBefore);
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
@@ -464,10 +481,17 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var quantity = Math.Max(teeth.Count, 1);
         var gross = unitPrice * quantity;
         var charge = Math.Clamp(input.PaymentAmount ?? gross, 0m, gross);
+        // "Thanh toán" below the price is a discount too (Cụm 11 mục 12), and
+        // so is carrying a lowered unit price onto more teeth: measured
+        // against the catalogue price of what the line becomes.
+        var convertedList = await DiscountGuard.ReferencePriceAsync(newServiceId, unitPrice) * quantity;
+        var slipBefore = PlanDiscountOf(plan);
+        await DiscountGuard.EnsureAsync(convertedList, Math.Max(convertedList - charge, 0m));
 
         var line = plan.ConvertService(
             serviceLineId, GuidGenerator.Create(), newServiceId, unitPrice, quantity, charge, teeth);
         await StampTaxRatesAsync([line]);
+        await EnsurePlanDiscountAsync(plan, slipBefore);
 
         line.SetDetails(
             old.DiagnosisId,
@@ -501,6 +525,43 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         {
             line.StampTaxRate(rates.GetValueOrDefault(line.ServiceId, ServiceTaxRate.NotTaxable));
         }
+    }
+
+    private DiscountLimitGuard DiscountGuard => LazyServiceProvider.LazyGetRequiredService<DiscountLimitGuard>();
+
+    /// <summary>
+    /// The slip's own %/VNĐ discount — before the cap at the slip total, so a
+    /// VNĐ discount bigger than the slip cannot hide behind it — against the
+    /// slip's services. Vouchers are left out (a promotion, not the user's).
+    /// </summary>
+    private static DiscountLimit.Measure PlanDiscountOf(TreatmentPlan plan) =>
+        new(plan.ServicesTotal, plan.OwnDiscountUncapped);
+
+    /// <summary>
+    /// The slip's own discount must still fit after anything that changes the
+    /// services it is taken off (Cụm 11 mục 12): adding services grows a % slip
+    /// discount, cancelling or cheapening them grows a VNĐ one's share.
+    /// </summary>
+    private async Task EnsurePlanDiscountAsync(TreatmentPlan plan, DiscountLimit.Measure before)
+    {
+        var now = PlanDiscountOf(plan);
+        await DiscountGuard.EnsureAsync(now.ListAmount, now.Discount, before);
+    }
+
+    /// <summary>
+    /// What a line takes off its service's catalogue price ("Giá sau giảm") —
+    /// a lowered unit price and a carried-over discount alike.
+    /// </summary>
+    private async Task<DiscountLimit.Measure> LineDiscountAsync(TreatmentService line)
+    {
+        var list = await DiscountGuard.ReferencePriceAsync(line.ServiceId, line.OriginalPrice) * line.Quantity;
+        return new DiscountLimit.Measure(list, Math.Max(list - line.EffectiveAmount, 0m));
+    }
+
+    private async Task EnsureLineDiscountAsync(TreatmentService line, DiscountLimit.Measure previous)
+    {
+        var now = await LineDiscountAsync(line);
+        await DiscountGuard.EnsureAsync(now.ListAmount, now.Discount, previous);
     }
 
     private async Task<decimal> CatalogPriceAsync(Guid serviceId)
