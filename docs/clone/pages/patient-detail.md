@@ -40,7 +40,14 @@ Tab query params (CONFIRMED from network capture + JS bundle):
 
 ## Breadcrumb Navigation
 
-- Back link: "Quay lại" → `/patient?branchId=<id>`
+- Back link: "Quay lại" → `/patient?branchId=<id>` on the reference.
+  **BlueDental (owner 2026-10-08, R-816):** goes back to the screen the record
+  was opened from — Tiếp nhận, Lịch hẹn, CSKH, Labo, the header search, the
+  patient list… — even after switching the record's tabs, opening its plans or
+  reloading. `useTrackPatientOrigin` (AppLayout) stores it per patient in
+  session storage; only a record opened from a bare link, with nothing before
+  it, falls back to `/patient`. The screen comes back in its default state
+  (Tiếp nhận = today), not the filters it had.
 - Separator: `/`
 - Current page: `[PATIENT_CODE] - PATIENT_NAME` (patient code + full name)
 

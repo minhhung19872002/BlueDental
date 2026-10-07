@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageTabBar, type PageTab } from "@/components/PageTabBar";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useAbility } from "@/hooks/useAbility";
+import { readPatientOrigin } from "@/hooks/usePatientOrigin";
 import { t } from "@/lib/i18n";
 import { usePatientDto } from "../api/patientQueries";
 import { PatientDetailContent } from "../components/patient-detail/PatientDetailContent";
@@ -86,6 +87,13 @@ export function PatientProfilePage() {
   listSearch.delete("tab");
   listSearch.delete("view");
 
+  /** Back to wherever the record was opened from; the list when unknown. */
+  const handleGoBack = () => {
+    const origin = readPatientOrigin(id);
+    if (origin) navigate(origin);
+    else navigate({ pathname: "/patient", search: listSearch.toString() });
+  };
+
   /** The view rides in the URL, so a bệnh án can be linked to. */
   const openView = (next: RecordView) => {
     const params = new URLSearchParams(searchParams);
@@ -163,10 +171,7 @@ export function PatientProfilePage() {
   return (
     <div className="page-container pd-page">
       <div className="pd-breadcrumb">
-        <button
-          type="button"
-          onClick={() => navigate({ pathname: "/patient", search: listSearch.toString() })}
-        >
+        <button type="button" onClick={handleGoBack}>
           <ArrowLeftOutlined /> {t("Patient:Misc:GoBack")}
         </button>
         <span>/</span>

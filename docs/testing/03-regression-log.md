@@ -7294,3 +7294,9 @@ Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, kh�
 BE: Domain.Tests **726** (mới `PayrollTests` 16, catalog 89 subject), Application.Tests **676**, HttpApi.Host.Tests **24**. Migration `Payroll` tạo 3 bảng.
 Hồi quy (`staff`, `staff-penalty`, `staff-penalty-api`, `staff-day-off-api`, `timekeeping-api`, `timekeeping-leave`, `role-permissions-tree`,
 `role-permissions-unsaved`, `payroll`, `discount-limit`): **25/25**. tsc + eslint sạch. Retest level **3**.
+
+## 2026-10-08 — Hồ sơ bệnh nhân: "Quay lại" về nơi xuất phát (R-816)
+
+| ID | Vấn đề / yêu cầu | Xử lý & bằng chứng |
+|---|---|---|
+| R-816 | Chủ dự án: bấm tên bệnh nhân trên thẻ Tiếp nhận mở hồ sơ, bấm "Quay lại" lại về danh sách Bệnh nhân thay vì Tiếp nhận. Chốt: áp dụng mọi nơi mở hồ sơ, nút luôn về nơi xuất phát, màn hình quay về ở trạng thái mặc định (Tiếp nhận = hôm nay, không giữ bộ lọc). | Không truyền router state qua từng link (tab hồ sơ, trang kế hoạch, đồng bộ `branchId` trong AppLayout bằng `history.replaceState(null…)` đều làm rơi state). `src/hooks/usePatientOrigin.ts`: `useTrackPatientOrigin()` chạy trong AppLayout, khi URL vào `/patient/:id…` từ một trang không thuộc cùng bệnh nhân thì ghi trang trước (pathname + search) vào sessionStorage `bd.patientOrigin.<id>`; đi lại trong cùng hồ sơ (tab, view, kế hoạch điều trị) giữ nguyên; reload giữ nguyên. `PatientProfilePage` "Quay lại" đọc `readPatientOrigin(id)`, không có thì về `/patient` như cũ. e2e `patient-back-origin` (build production :8093, API thật :5000, PostgreSQL thật, không chặn API): Tiếp nhận → tên → đổi tab + reload → Quay lại = `/reception`; Lịch hẹn → tìm kiếm Ctrl K → hồ sơ → Quay lại = `/calendar`; danh sách → hồ sơ → Quay lại = `/patient`; link trần ở tab mới → `/patient`. **4/4**, chạy 2 lần. tsc + eslint sạch. Retest level **2**. Ghi chú: `appointment-patient-link` đỏ ở bước tìm thẻ tuần theo `searchKey` (0 thẻ), trước khi chạm tới hồ sơ — chưa đối chiếu với HEAD. |
