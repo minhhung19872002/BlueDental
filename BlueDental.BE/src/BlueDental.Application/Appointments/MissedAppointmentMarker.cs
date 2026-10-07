@@ -28,8 +28,8 @@ public class MissedAppointmentMarker(
     /// <summary>Kept small so one pass stays one short unit of work; the next pass takes the rest.</summary>
     public const int BatchSize = 200;
 
-    /// <returns>The branches whose bookings were moved to Trễ hẹn — empty when none was.</returns>
-    public async Task<IReadOnlyCollection<Guid>> MarkAsync(DateTimeOffset now)
+    /// <returns>The bookings moved to Trễ hẹn, by branch — empty when none was.</returns>
+    public async Task<IReadOnlyCollection<LateAppointmentBatch>> MarkAsync(DateTimeOffset now)
     {
         // Npgsql requires UTC offset for timestamptz parameters.
         var cutoff = now.ToUniversalTime();
@@ -66,6 +66,9 @@ public class MissedAppointmentMarker(
                 AppointmentSnapshot.From(appointment, dentistName, patient.Name, patient.Phone));
         }
 
-        return missed.Select(a => a.BranchId).Distinct().ToList();
+        return missed
+            .GroupBy(a => a.BranchId)
+            .Select(g => new LateAppointmentBatch(g.Key, g.Select(a => a.Id).ToList()))
+            .ToList();
     }
 }

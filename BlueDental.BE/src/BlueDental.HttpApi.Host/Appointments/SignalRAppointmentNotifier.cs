@@ -9,17 +9,17 @@ namespace BlueDental.Appointments;
 
 /// <summary>
 /// Broadcasts on the signed-in notification hub. The message is only a branch
-/// id: each screen refetches through the API, which applies its own branch
-/// and permission checks.
+/// id and booking ids: each screen refetches through the API, which applies
+/// its own branch and permission checks, so no patient data rides the socket.
 /// </summary>
 public class SignalRAppointmentNotifier(IHubContext<NotificationHub> hubContext)
     : IAppointmentNotifier, ITransientDependency
 {
-    public async Task NotifyAppointmentsChangedAsync(IReadOnlyCollection<Guid> branchIds)
+    public async Task NotifyMarkedLateAsync(IReadOnlyCollection<LateAppointmentBatch> batches)
     {
-        foreach (var branchId in branchIds)
+        foreach (var batch in batches)
         {
-            await hubContext.Clients.All.SendAsync("AppointmentsChanged", branchId);
+            await hubContext.Clients.All.SendAsync("AppointmentsMarkedLate", batch.BranchId, batch.AppointmentIds);
         }
     }
 }

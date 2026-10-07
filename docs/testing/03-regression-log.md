@@ -7017,3 +7017,15 @@ Hồi quy mức 3 `taxonomy*` + `payment-qr` + `branch-*` **69/72**. 3 đỏ ch�
 có nhóm dịch vụ / NCC labo → option NCC không thấy, "the branch should have a service group"); `taxonomy.spec` :283 mở
 nhóm đầu tiên = "KEO B …" (nhóm rỗng sortOrder 0 do test kéo-thả phiên khác để lại) → bảng không có dòng. Chưa chạy
 lại trên HEAD sạch; không xoá dữ liệu của phiên khác. tsc + eslint sạch. Chưa commit. Retest level **3**.
+
+## 2026-10-07 — CSKH: Nhắc lịch hẹn → Đặt lịch không đến realtime, toast báo lịch trễ (R-772)
+
+| ID | Triệu chứng | Sửa |
+|---|---|---|
+| R-772 | Owner: khi lịch qua giờ mà chưa đến, ngoài Tiếp nhận thì CSKH (Nhắc lịch hẹn → Đặt lịch không đến) và các trạng thái liên quan cũng phải cập nhật realtime, kèm sonner báo cho phòng khám biết. Đo trước khi sửa: bảng CSKH đã tự refetch nhờ push `AppointmentsChanged(branchId)` (dòng rời Nhắc lịch hẹn trong ~15 s), nhưng **không có thông báo** — push chỉ mang branchId nên FE không biết lịch nào. | BE: `MissedAppointmentMarker.MarkAsync` trả `LateAppointmentBatch(BranchId, AppointmentIds)`; `IAppointmentNotifier.NotifyMarkedLateAsync` → SignalR `AppointmentsMarkedLate(branchId, appointmentIds)` (thay `AppointmentsChanged`, chỉ id — không có dữ liệu bệnh nhân trên socket). FE: `useAppointmentLiveUpdates` nghe event mới → `invalidateEntities(["appointment"])`; entity `appointment` trong `queryEntities` thêm `appointment-history` + `care-records` (nên check-in/huỷ… do người dùng làm cũng làm mới CSKH). `announceLateAppointments` đọc lại tối đa 5 lịch qua `GET appointments/{id}` (có kiểm quyền; lịch không mở được thì bỏ, không mở được lịch nào thì không toast) → `toast.warning` 10 s: 1 lịch "Trễ hẹn: {tên}" / "Hẹn lúc HH:mm với {bác sĩ}, chưa đến"; nhiều lịch "{n} lịch hẹn chuyển sang Trễ hẹn" + danh sách, "và {k} lịch khác". Key i18n `Appointment:LateToast:*` (vi/en). Toast hiện cho mọi người đang xem chi nhánh đó (hoặc "Tất cả"), không chỉ bác sĩ của lịch. |
+
+Kiểm (build production `vite preview` localhost:8080, host :5000 build lại, PostgreSQL thật, không chặn API):
+E2E mới `cskh-live-missed` **1/1** (lịch tạm 45 s tới qua API, mở Nhắc lịch hẹn theo ngày, không reload → toast có tên
++ "Trễ hẹn", dòng rời Nhắc lịch hẹn trong vòng 45 s sau giờ hẹn, tab Đặt lịch không đến có dòng). Hồi quy
+`reception-live-late` 3/3 (push mới), `appointment-missed-api`, `cskh-generated-tabs` 5/5, `cross-screen-freshness`
+— tổng **12/12**. tsc + eslint sạch, BE build 0 lỗi. Retest level **3** (đổi map invalidation dùng chung).
