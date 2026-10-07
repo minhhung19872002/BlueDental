@@ -106,6 +106,12 @@ const MarketingHomeRedirect = lazy(() =>
   })),
 );
 
+const StaffPayrollPage = lazy(() =>
+  import("@/features/staff/pages/StaffPayrollPage").then((m) => ({
+    default: m.StaffPayrollPage,
+  })),
+);
+
 const LaboPage = lazy(() =>
   import("@/features/labo/pages/LaboPage").then((m) => ({
     default: m.LaboPage,
@@ -416,6 +422,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="staffPenalty">
             <StaffPenaltyPage />
+          </G>
+        ),
+      },
+      {
+        path: "staff/payroll",
+        element: (
+          <G k="payroll">
+            <StaffPayrollPage />
           </G>
         ),
       },

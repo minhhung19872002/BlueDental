@@ -142,6 +142,10 @@ public class BlueDentalDbContext :
     public DbSet<Marketing.TicketTag> MarketingTicketTags { get; set; }
     public DbSet<Marketing.TicketImportFile> MarketingTicketImportFiles { get; set; }
 
+    // Staff — Bảng lương
+    public DbSet<Staff.StaffCompensation> StaffCompensations { get; set; }
+    public DbSet<Staff.PayrollPeriod> PayrollPeriods { get; set; }
+
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
     public DbSet<CareContactLog> CareContactLogs { get; set; }

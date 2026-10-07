@@ -1,4 +1,4 @@
-﻿namespace BlueDental.Permissions;
+namespace BlueDental.Permissions;
 
 /// <summary>
 /// Compile-time permission names for every ability pair, so controllers and
@@ -929,6 +929,18 @@ public static class BlueDentalAbilityPermissions
         public const string Update = "BlueDental.staffPenalty.update";
         public const string Delete = "BlueDental.staffPenalty.delete";
         public const string Approve = "BlueDental.staffPenalty.approve";
+    }
+
+    /// <summary>Subject <c>payroll</c> — Bảng lương (BlueDental-local). Approve = "Chốt".</summary>
+    public static class Payroll
+    {
+        public const string Subject = "payroll";
+        public const string Read = "BlueDental.payroll.read";
+        public const string Create = "BlueDental.payroll.create";
+        public const string Update = "BlueDental.payroll.update";
+        public const string Delete = "BlueDental.payroll.delete";
+        public const string Approve = "BlueDental.payroll.approve";
+        public const string Export = "BlueDental.payroll.export";
     }
 
     /// <summary>Subject <c>voucher</c>.</summary>

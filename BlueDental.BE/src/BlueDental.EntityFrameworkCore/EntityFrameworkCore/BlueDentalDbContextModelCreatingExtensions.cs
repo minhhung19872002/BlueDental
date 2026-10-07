@@ -757,6 +757,53 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.StaffId);
         });
 
+        builder.Entity<Staff.StaffCompensation>(entity =>
+        {
+            entity.ToTable("bd_staff_compensations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.BaseSalary).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Allowance).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.StaffId).IsUnique().HasFilter("\"IsDeleted\" = false");
+        });
+
+        builder.Entity<Staff.PayrollPeriod>(entity =>
+        {
+            entity.ToTable("bd_payroll_periods");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.StandardWorkDays).HasColumnType("numeric(5,2)");
+            entity.Property(x => x.OvertimeRate).HasColumnType("numeric(5,2)");
+            entity.Ignore(x => x.NetTotal);
+            entity.HasMany(x => x.Entries).WithOne().HasForeignKey(x => x.PayrollPeriodId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Entries).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // One sheet per branch and month.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Year, x.Month }).IsUnique().HasFilter("\"IsDeleted\" = false");
+        });
+
+        builder.Entity<Staff.PayrollEntry>(entity =>
+        {
+            entity.ToTable("bd_payroll_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.StaffName).HasMaxLength(256).IsRequired();
+            foreach (var money in new[]
+                     {
+                         nameof(Staff.PayrollEntry.BaseSalary), nameof(Staff.PayrollEntry.Allowance),
+                         nameof(Staff.PayrollEntry.CommissionAmount), nameof(Staff.PayrollEntry.PenaltyAmount),
+                         nameof(Staff.PayrollEntry.Bonus), nameof(Staff.PayrollEntry.OtherDeduction),
+                         nameof(Staff.PayrollEntry.SalaryByWorkDays), nameof(Staff.PayrollEntry.OvertimePay),
+                         nameof(Staff.PayrollEntry.GrossSalary), nameof(Staff.PayrollEntry.NetSalary),
+                     })
+            {
+                entity.Property<decimal>(money).HasColumnType("numeric(18,2)");
+            }
+            entity.Property(x => x.WorkedDays).HasColumnType("numeric(5,2)");
+            entity.Property(x => x.LeaveDays).HasColumnType("numeric(5,2)");
+            entity.Property(x => x.WorkDaysOverride).HasColumnType("numeric(5,2)");
+            entity.Property(x => x.Note).HasMaxLength(500);
+            entity.Ignore(x => x.PayableWorkDays);
+            entity.HasIndex(x => new { x.PayrollPeriodId, x.StaffId }).IsUnique();
+        });
+
         builder.Entity<LaboMaterial>(entity =>
         {
             entity.ToTable("bd_labo_materials");
