@@ -69,6 +69,11 @@ export const ROUTE_PERMISSIONS = {
   calendar: readOf(["appointment", "workSchedule"]),
   patients: readOf(["patient"]),
   cskh: readOf(["cskhGroup", "cskhCare"]),
+  marketing: readOf(["marketingTicket", "marketingTicketTag"]),
+  marketingTicket: readOf(["marketingTicket"]),
+  marketingTicketTag: readOf(["marketingTicketTag"]),
+  /* Đã xoá is where tickets are restored, which is the delete leaf's. */
+  marketingTicketDeleted: [abilityPermission("marketingTicket", "delete")] as readonly string[],
   billing: readOf(["payment"]),
   voucher: readOf(["voucher"]),
   reports: readOf([

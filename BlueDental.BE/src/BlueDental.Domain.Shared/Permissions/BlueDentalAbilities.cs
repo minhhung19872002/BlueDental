@@ -38,6 +38,8 @@ public static class BlueDentalAbilities
         public const string HidePhone = "hidePhone";
         public const string AttendanceOthers = "attendanceOthers";
         public const string Manage = "manage";
+        /// <summary>BlueDental-local: see every ticket of the branch, not only one's own.</summary>
+        public const string ReadAll = "readAll";
     }
 
     /// <summary>Every subject the reference exposes.</summary>
@@ -69,6 +71,8 @@ public static class BlueDentalAbilities
         public const string LaboRhythm = "laboRhythm";
         public const string LaboSupplier = "laboSupplier";
         public const string LaboTemplate = "laboTemplate";
+        public const string MarketingTicket = "marketingTicket";
+        public const string MarketingTicketTag = "marketingTicketTag";
         public const string Materials = "materials";
         public const string OperationsAssistantHome = "operationsAssistantHome";
         public const string OperationsAssistantProcess = "operationsAssistantProcess";
@@ -167,6 +171,9 @@ public static class BlueDentalAbilities
         ["laboRhythm"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboSupplier"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboTemplate"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
+        // BlueDental-local: Marketing → Ticket (F-51) has no counterpart on the reference.
+        ["marketingTicket"] = [Actions.Read, Actions.ReadAll, Actions.Create, Actions.Update, Actions.Delete, Actions.Transfer],
+        ["marketingTicketTag"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["materials"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Approve, Actions.Export],
         ["operationsAssistantHome"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["operationsAssistantProcess"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

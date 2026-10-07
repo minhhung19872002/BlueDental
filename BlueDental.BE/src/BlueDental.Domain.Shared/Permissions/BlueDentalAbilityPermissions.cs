@@ -273,6 +273,32 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.laboTemplate.export";
     }
 
+    /// <summary>
+    /// Subject <c>marketingTicket</c> — Marketing → Ticket (F-51). BlueDental-local.
+    /// Without <see cref="ReadAll"/> a user sees only the tickets assigned to
+    /// them and the unassigned pool.
+    /// </summary>
+    public static class MarketingTicket
+    {
+        public const string Subject = "marketingTicket";
+        public const string Read = "BlueDental.marketingTicket.read";
+        public const string ReadAll = "BlueDental.marketingTicket.readAll";
+        public const string Create = "BlueDental.marketingTicket.create";
+        public const string Update = "BlueDental.marketingTicket.update";
+        public const string Delete = "BlueDental.marketingTicket.delete";
+        public const string Transfer = "BlueDental.marketingTicket.transfer";
+    }
+
+    /// <summary>Subject <c>marketingTicketTag</c> — the ticket tags and their SLA. BlueDental-local.</summary>
+    public static class MarketingTicketTag
+    {
+        public const string Subject = "marketingTicketTag";
+        public const string Read = "BlueDental.marketingTicketTag.read";
+        public const string Create = "BlueDental.marketingTicketTag.create";
+        public const string Update = "BlueDental.marketingTicketTag.update";
+        public const string Delete = "BlueDental.marketingTicketTag.delete";
+    }
+
     /// <summary>Subject <c>materials</c>.</summary>
     public static class Materials
     {

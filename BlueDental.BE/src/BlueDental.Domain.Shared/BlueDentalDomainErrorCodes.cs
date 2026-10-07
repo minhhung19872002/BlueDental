@@ -383,6 +383,31 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateViolationTypeName = "BlueDental:StaffPenalty:0008";
     }
 
+    /// <summary>Marketing → Ticket (F-51). BlueDental-local.</summary>
+    public static class MarketingTicket
+    {
+        /// <summary>Not a Vietnamese phone number once spaces and +84 are taken off.</summary>
+        public const string InvalidPhone = "BlueDental:MarketingTicket:0001";
+        /// <summary>Đã đến / Không tiềm năng: nothing more to record until it is reopened.</summary>
+        public const string TicketClosed = "BlueDental:MarketingTicket:0002";
+        /// <summary>Hẹn gọi lại needs a time to call back, later than now.</summary>
+        public const string CallBackTimeRequired = "BlueDental:MarketingTicket:0003";
+        /// <summary>The ticket's status does not allow this step.</summary>
+        public const string InvalidTransition = "BlueDental:MarketingTicket:0004";
+        /// <summary>The customer has a record, so the appointment needs a dentist.</summary>
+        public const string DentistRequired = "BlueDental:MarketingTicket:0005";
+        public const string AssigneeNotInBranch = "BlueDental:MarketingTicket:0006";
+        /// <summary>A tag of another branch, or one deleted.</summary>
+        public const string InvalidTag = "BlueDental:MarketingTicket:0007";
+        public const string DuplicateTagName = "BlueDental:MarketingTicket:0008";
+        /// <summary>Another open ticket of the branch already holds the phone.</summary>
+        public const string DuplicateOpenPhone = "BlueDental:MarketingTicket:0009";
+        /// <summary>The ticket is someone else's and the caller may only see their own.</summary>
+        public const string NotYours = "BlueDental:MarketingTicket:0010";
+        /// <summary>Booking goes into the branch the screen is on, so the ticket has to be of that branch.</summary>
+        public const string BookFromOtherBranch = "BlueDental:MarketingTicket:0012";
+    }
+
     public static class Queue
     {
         public const string TicketNotFound = "BlueDental:Queue:0001";

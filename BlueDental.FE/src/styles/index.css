@@ -5931,6 +5931,7 @@ html:has(.ant-modal-wrap) {
 /* ── Card and table ─────────────────────────────────────────────────────── */
 .bd-cat-card {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -6576,11 +6577,13 @@ html:has(.ant-modal-wrap) {
   z-index: 3;
 }
 
-/* A pinned column is sticky sideways as well as under the header, and Ant
-   Design gives its header cell and its body cells the same z-index. A tie is
-   settled by document order, so the rows won and scrolled straight over the
-   header — the "Thao tác" heading vanished behind the row beneath it. The
-   header's pinned cells outrank the body's here.
+/* A pinned column is sticky sideways as well as under the header. Ant Design 6
+   stacks every pinned cell, header or body, at `--z-offset-reverse + 2`, and
+   that offset grows with the column count: a 12-column table puts its pinned
+   body cells at 14. Any fixed number below that loses, and the rows scroll
+   straight over the header — "Thao tác", then "Mã ticket" (R-795), vanished
+   behind the row beneath. The header's pinned cells sit well above any body
+   cell here; `.bd-cat-card` isolates the stack so it never reaches past the card.
 
    Both spellings are covered on purpose: Ant Design 6 names these `fix-start`
    and `fix-end`, earlier versions `fix-left` and `fix-right`. */
@@ -6589,7 +6592,7 @@ html:has(.ant-modal-wrap) {
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-end,
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-left,
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-right {
-  z-index: 5;
+  z-index: 60;
 }
 
 .bd-cat-card .ant-table-pagination.ant-pagination {
@@ -8266,6 +8269,13 @@ html:has(.ant-modal-wrap) {
   height: auto;
   min-height: 42px;
   padding: 10px 13px;
+}
+
+/* A showCount textarea sits in an affix wrapper too. The 42px above would pin it to
+   one row (the flex wrapper stretches the textarea to its own height): let `rows` set it. */
+.ant-modal .ant-input-textarea-affix-wrapper,
+.ant-drawer .ant-input-textarea-affix-wrapper {
+  height: auto;
 }
 
 /* The A4 medical-record sheet draws its own boxes; leave it alone. */

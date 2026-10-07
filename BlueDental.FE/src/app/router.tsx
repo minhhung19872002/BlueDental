@@ -76,6 +76,30 @@ const StaffPenaltyPage = lazy(() =>
   })),
 );
 
+const MarketingTicketPage = lazy(() =>
+  import("@/features/marketing/pages/MarketingTicketPage").then((m) => ({
+    default: m.MarketingTicketPage,
+  })),
+);
+
+const MarketingTagPage = lazy(() =>
+  import("@/features/marketing/pages/MarketingTagPage").then((m) => ({
+    default: m.MarketingTagPage,
+  })),
+);
+
+const MarketingDeletedPage = lazy(() =>
+  import("@/features/marketing/pages/MarketingDeletedPage").then((m) => ({
+    default: m.MarketingDeletedPage,
+  })),
+);
+
+const MarketingHomeRedirect = lazy(() =>
+  import("@/features/marketing/pages/MarketingHomeRedirect").then((m) => ({
+    default: m.MarketingHomeRedirect,
+  })),
+);
+
 const LaboPage = lazy(() =>
   import("@/features/labo/pages/LaboPage").then((m) => ({
     default: m.LaboPage,
@@ -278,6 +302,38 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="cskh">
             <CskhGroupingPage />
+          </G>
+        ),
+      },
+      {
+        path: "marketing",
+        element: (
+          <G k="marketing">
+            <MarketingHomeRedirect />
+          </G>
+        ),
+      },
+      {
+        path: "marketing/tickets",
+        element: (
+          <G k="marketingTicket">
+            <MarketingTicketPage />
+          </G>
+        ),
+      },
+      {
+        path: "marketing/tags",
+        element: (
+          <G k="marketingTicketTag">
+            <MarketingTagPage />
+          </G>
+        ),
+      },
+      {
+        path: "marketing/deleted",
+        element: (
+          <G k="marketingTicketDeleted">
+            <MarketingDeletedPage />
           </G>
         ),
       },

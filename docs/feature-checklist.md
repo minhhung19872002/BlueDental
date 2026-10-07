@@ -2,7 +2,7 @@
 
 Nguồn: `Danh-muc-chuc-nang-nha-khoa-v2.pdf`
 
-Kiểm tra lần cuối: 2026-09-23
+Kiểm tra lần cuối: 2026-10-07
 
 ---
 
@@ -12,10 +12,10 @@ Kiểm tra lần cuối: 2026-09-23
 - [x] 1.2 Lịch hẹn theo ngày — Theo dõi lịch hẹn tùy chọn theo ngày.
 - [x] 1.3 Calendar — Danh sách lịch hẹn theo thời gian biểu.
 - [x] 1.4 Lịch Bác sĩ — Lên mới lịch tạm và lịch hẹn cho khách hàng. Quản lý lịch hẹn theo từng cá nhân bác sĩ trên thời gian làm việc riêng, giúp theo dõi khối lượng công việc để điều phối khách hàng một cách hợp lý.
-- [ ] 1.5 Điều phối lịch hẹn theo thời gian thực — Thực hiện điều phối lịch hẹn khách hàng theo thời gian thực. Khách hàng được điều phối đến từng bộ phận: tư vấn, điều trị, thu ngân, bộ phận hình ảnh.
+- [x] 1.5 Điều phối lịch hẹn theo thời gian thực — Thực hiện điều phối lịch hẹn khách hàng theo thời gian thực. Khách hàng được điều phối đến từng bộ phận: tư vấn, điều trị, thu ngân, bộ phận hình ảnh.
 - [ ] 1.6 Trạng thái phòng — Chuyển khách hàng lên phòng, quản lý tình trạng phòng trống hay đang điều trị. Khách hàng đang ở phòng nào, bác sĩ phụ tá nào đang điều trị. Giờ vào và giờ ra.
 - [x] 1.7 Màn hình đợi — Màn hình số thứ tự đợi đến lượt. Lấy số tự động.
-- [ ] 1.8 Lịch tái khám — Tạo danh sách lịch tái khám theo tháng, năm cho khách hàng bằng 1 thao tác, tránh sai sót và thiếu lịch. Tự động dời lịch tái khám khi có thay đổi.
+- [x] 1.8 Lịch tái khám — Tạo danh sách lịch tái khám theo tháng, năm cho khách hàng bằng 1 thao tác, tránh sai sót và thiếu lịch. Tự động dời lịch tái khám khi có thay đổi.
 - [x] 1.9 Lịch tuần — Tạo danh sách lịch hẹn theo thứ trong tuần bằng 1 thao tác, tránh sai sót và thiếu lịch. Tự động dời lịch khi có thay đổi.
 - [x] 1.10 Cảnh báo thời gian đợi — Kiểm tra thời gian khách hàng đến trước đến sau của từng khách hàng. Tự động cảnh báo thời gian khi khách đợi lâu.
 - [x] 1.11 Lịch sử chỉnh sửa, chuyển trạng thái Lịch hẹn — Lịch sử người dùng chỉnh sửa lịch hẹn, ai chỉnh sửa và chỉnh sửa vào lúc nào. Chi tiết thời gian điều trị, tư vấn & thời gian đợi khi checked in.
@@ -48,7 +48,7 @@ Kiểm tra lần cuối: 2026-09-23
 - [x] 4.6 Tiền sử — Lưu trữ các thông tin khai thác tiền sử.
 - [x] 4.7 Khám bệnh — Ghi nhận thông tin khám chữa bệnh gồm: khám cận lâm sàng, lâm sàng, chỉ định xét nghiệm,...
 - [ ] 4.8 Mối quan hệ — Quản lý các hồ sơ có cùng mối quan hệ với nhau.
-- [ ] 4.9 Người giám hộ — Thiết lập người giám hộ khi khách hàng nhỏ hơn 16 tuổi.
+- [x] 4.9 Người giám hộ — Thiết lập người giám hộ khi khách hàng nhỏ hơn 16 tuổi.
 - [ ] 4.10 Hồ sơ nhóm — Thiết lập và quản lý tập trung các hồ sơ có mối quan hệ y khoa. Giúp bác sĩ dễ dàng tra cứu và quản lý hồ sơ của các thành viên trong nhóm.
 - [x] 4.11 Chẩn đoán - tư vấn — Lưu trữ các thông tin chẩn đoán & tư vấn.
 - [x] 4.12 Chẩn đoán theo hình ảnh — Sử dụng hình ảnh theo bộ phận liên quan để chẩn đoán khách hàng. Giao diện chẩn đoán được thiết kế trực quan.
@@ -183,10 +183,10 @@ Kiểm tra lần cuối: 2026-09-23
 
 | Nhóm | Tổng | Đã xong | Chưa xong |
 |---|---|---|---|
-| 1. Lịch hẹn | 11 | 8 | 3 |
-| 2. Chăm sóc | 10 | 8 | 2 |
+| 1. Lịch hẹn | 11 | 10 | 1 |
+| 2. Chăm sóc | 10 | 9 | 1 |
 | 3. Thẻ trả trước | 2 | 0 | 2 |
-| 4. Khách hàng | 28 | 18 | 10 |
+| 4. Khách hàng | 28 | 19 | 9 |
 | 5. Kế toán | 7 | 2 | 5 |
 | 6. Dịch vụ | 7 | 2 | 5 |
 | 7. Kho | 7 | 3 | 4 |
@@ -199,4 +199,4 @@ Kiểm tra lần cuối: 2026-09-23
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 4 | 9 |
-| **Tổng cộng** | **123** | **61** | **62** |
+| **Tổng cộng** | **123** | **65** | **58** |

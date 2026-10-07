@@ -4,6 +4,7 @@ import { PERMISSION_GROUP } from "@/lib/permissionConstants";
 /** The action half of an ability leaf, as the Phân quyền tree names them. */
 export type AbilityAction =
   | "read"
+  | "readAll"
   | "create"
   | "update"
   | "delete"

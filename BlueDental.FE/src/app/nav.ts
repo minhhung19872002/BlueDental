@@ -104,6 +104,12 @@ export const NAV_ENTRIES = {
     icon: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
     permissions: ROUTE_PERMISSIONS.cskh,
   },
+  marketing: {
+    path: "/marketing",
+    label: "Menu:Marketing",
+    icon: "M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1zm13.5 1a4.5 4.5 0 00-2.5-4v8a4.5 4.5 0 002.5-4zM14 3.2v2.1a7 7 0 010 13.4v2.1a9 9 0 000-17.6z",
+    permissions: ROUTE_PERMISSIONS.marketing,
+  },
   voucher: {
     path: "/voucher",
     label: "Menu:Voucher",
@@ -154,7 +160,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "clinic",
     label: "Menu:ClinicGroup",
     icon: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
-    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh, NAV_ENTRIES.queue],
+    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh, NAV_ENTRIES.marketing, NAV_ENTRIES.queue],
   },
   {
     id: "dashboard",

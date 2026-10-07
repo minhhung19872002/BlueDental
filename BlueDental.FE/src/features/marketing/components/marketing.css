@@ -1,0 +1,261 @@
+/* Marketing → Ticket (F-51). BlueDental-local screen — docs/clone/pages/marketing-ticket.md.
+   The frame copies Mẫu Labo (labo.css): a fixed-height page under the PageHeader, a
+   PageTabBar, and one pane per tab built from the shared .bd-cat-header / .bd-cat-body
+   / .bd-cat-card classes, so the table scrolls inside the card, not the page. */
+
+/* ── Frame ─────────────────────────────────────────────────── */
+.mkt-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--bd-topbar-height) - 32px);
+  min-height: 420px;
+  overflow: hidden;
+  background: var(--bd-card);
+}
+
+.bd-shell-page > .mkt-page {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+/* Same zero-specificity margin reset the Labo / Danh mục screens get (index.css). */
+:where(.mkt-page, .mkt-detail) :where(p, h1, h2, h3, h4, ul, ol, figure) {
+  margin: 0;
+}
+
+.mkt-screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bd-bg);
+}
+
+/* Labo's toolbar sizing: no Danh mục min-height, 12px / 16px 20px padding. */
+.bd-cat-header.mkt-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px;
+}
+
+@media (min-width: 768px) {
+  .bd-cat-header.mkt-header {
+    padding: 16px 20px;
+  }
+}
+
+.mkt-headgroup > .seg-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mkt-headgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* .bd-cat-search is width 100% for a row of its own; here it shares the row with the period picker. */
+.mkt-headgroup > .bd-cat-search {
+  width: 360px;
+}
+
+.mkt-filter {
+  width: 180px;
+}
+
+/* ActionTooltip wraps a disabled button in a span; keep it inline with its row. */
+.mkt-tip {
+  display: inline-flex;
+}
+
+/* ── Table cells ───────────────────────────────────────────── */
+.ticket-row {
+  cursor: pointer;
+}
+.ticket-row--overdue > td:first-child {
+  box-shadow: inset 3px 0 0 var(--bd-red);
+}
+
+.mkt-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mkt-overdue {
+  color: var(--bd-red);
+  font-weight: 600;
+}
+
+.mkt-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.mkt-tag {
+  --mkt-tag-color: var(--bd-primary);
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--mkt-tag-color);
+  border-radius: var(--bd-radius-pill);
+  background: color-mix(in srgb, var(--mkt-tag-color) 12%, var(--bd-card));
+  color: var(--mkt-tag-color);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Dialogs ───────────────────────────────────────────────── */
+.mkt-full {
+  width: 100%;
+}
+
+.mkt-dialog-note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+
+/* Kết quả liên hệ: plain radios laid out as an even grid of tiles; the picked one takes the primary tint. */
+.mkt-result-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+.mkt-result-options .ant-radio-wrapper {
+  align-items: center;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-card);
+  color: var(--bd-sub);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.mkt-result-options .ant-radio-wrapper:hover {
+  border-color: var(--bd-blue-light);
+}
+.mkt-result-options .ant-radio-wrapper-checked {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+  font-weight: 600;
+}
+
+.mkt-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mkt-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--bd-card);
+  border-radius: 50%;
+  background: var(--mkt-tag-color);
+  box-shadow: 0 0 0 1px var(--bd-line);
+  cursor: pointer;
+}
+.mkt-swatch:focus-visible {
+  outline: none;
+  box-shadow: var(--bd-shadow-focus);
+}
+.mkt-swatch--active {
+  box-shadow: 0 0 0 2px var(--mkt-tag-color);
+}
+.mkt-tag-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+/* ── Detail drawer ─────────────────────────────────────────── */
+.mkt-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.mkt-section-title {
+  margin-bottom: 8px;
+  color: var(--bd-title);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mkt-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+.mkt-timeline__item {
+  padding: 10px 12px;
+  border: 1px solid var(--bd-line);
+  border-left: 3px solid var(--bd-primary);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+.mkt-timeline__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.mkt-timeline__note {
+  margin-top: 6px;
+  color: var(--bd-sub);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.mkt-timeline__meta {
+  margin-top: 4px;
+  color: var(--bd-faint);
+  font-size: 12px;
+}
+
+/* The table card runs edge to edge under the toolbar, so the two line up (R-795);
+   the frame still gives it every pixel the toolbar leaves, as on Labo. */
+.mkt-screen > .bd-cat-body {
+  padding: 16px 0 0;
+}
+
+/* A phone has no room for a fixed frame under four rows of filters: let the page scroll instead. */
+@media (max-width: 767px) {
+  .bd-shell-page:has(> .mkt-page) {
+    height: auto;
+  }
+  .bd-shell-page > .mkt-page,
+  .mkt-screen,
+  .mkt-screen > .bd-cat-body {
+    flex: none;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .mkt-headgroup > .bd-cat-search,
+  .mkt-filter {
+    width: 100%;
+  }
+}

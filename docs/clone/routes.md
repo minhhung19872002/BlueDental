@@ -115,6 +115,9 @@ External link:
 | /billing | Tài chính → Thanh toán | Since 2026-10-06 (BA note, R-712): the branch's "Tạo Phiếu Thanh Toán" receipts (PatientPayment Kind=Payment, mã THANHTOAN…) written on treatment plans, read from `GET /api/v1/app/payment-ledger`. Read-only; each row links to its plan's Thanh toán tab. Thao tác column (R-717..R-720): 👁 opens the plan tab's own "Chi tiết phiếu" (print), 📄 the e-invoice dialog for that receipt; edit/cancel stay on the plan. Reached from the header menu Tài chính → Thanh toán. The older clinic-wide invoice list (from the Claude Design file `BlueDental.dc.html`) is gone; invoices stay under `/patient/:id?tab=invoice`. |
 | /settings | Cài đặt phòng khám | Same design file; reached from the account menu. |
 | /dashboard | Tổng quan | BlueDental's own, kept for internal use. |
+| /marketing/tickets | Marketing → Ticket | BA PDF cluster 8 (F-51, 2026-10-07). `/marketing` redirects to the first tab the user may open. See `pages/marketing-ticket.md`. |
+| /marketing/tags | Marketing → Thẻ ticket | Same; tag list with Thời gian xử lý (SLA days). |
+| /marketing/deleted | Marketing → Đã xoá | Same; deleted tickets with reason, Khôi phục. Needs `marketingTicket.delete`. |
 
 These are additions, not clone gaps. Nothing here was inferred from the
 reference, and the reference's own screens are unchanged by them.

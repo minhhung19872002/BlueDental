@@ -56,6 +56,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureClinicIntegration(builder);
         ConfigureZalo(builder);
         ConfigureEInvoicing(builder);
+        ConfigureMarketing(builder);
     }
 
     private static void ConfigureZalo(ModelBuilder builder)
@@ -759,6 +760,59 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             // The table is read one branch at a time, and usually one group too.
             entity.HasIndex(x => new { x.ClinicBranchId, x.TaxonomyId });
+        });
+    }
+
+    private static void ConfigureMarketing(ModelBuilder builder)
+    {
+        builder.Entity<Marketing.Ticket>(entity =>
+        {
+            entity.ToTable("bd_marketing_tickets");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(Marketing.Ticket.MaxCodeLength).IsRequired();
+            entity.Property(x => x.FullName).HasMaxLength(Marketing.Ticket.MaxFullNameLength).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(Marketing.Ticket.MaxPhoneLength).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(Marketing.Ticket.MaxEmailLength);
+            entity.Property(x => x.Note).HasMaxLength(Marketing.Ticket.MaxNoteLength);
+            entity.Property(x => x.NotPotentialReason).HasMaxLength(Marketing.Ticket.MaxReasonLength);
+            entity.Property(x => x.DeleteReason).HasMaxLength(Marketing.Ticket.MaxReasonLength);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.LastContactResult).HasConversion<short?>();
+            entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // The list is one branch, newest first; the code is numbered per branch
+            // (deleted tickets keep theirs, so no filter on the index).
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ReceivedAt });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Code }).IsUnique();
+            // Dedup on create, and patient-side lookups.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Phone });
+            entity.HasIndex(x => x.AppointmentId);
+            entity.HasIndex(x => x.AssigneeId);
+        });
+
+        builder.Entity<Marketing.TicketActivity>(entity =>
+        {
+            entity.ToTable("bd_marketing_ticket_activities");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.ContactResult).HasConversion<short?>();
+            entity.Property(x => x.FromStatus).HasConversion<short?>();
+            entity.Property(x => x.ToStatus).HasConversion<short?>();
+            entity.Property(x => x.Note).HasMaxLength(Marketing.Ticket.MaxNoteLength);
+            entity.HasOne<Marketing.Ticket>()
+                .WithMany()
+                .HasForeignKey(x => x.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.TicketId, x.CreationTime });
+        });
+
+        builder.Entity<Marketing.TicketTag>(entity =>
+        {
+            entity.ToTable("bd_marketing_ticket_tags");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(Marketing.TicketTag.MaxNameLength).IsRequired();
+            entity.Property(x => x.Color).HasMaxLength(Marketing.TicketTag.MaxColorLength).IsRequired();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Name });
         });
     }
 
