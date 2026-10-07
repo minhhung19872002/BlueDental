@@ -14,6 +14,7 @@ import {
   vatRateLabel,
   vatRateOf,
 } from "./invoiceConstants";
+import { missingRedInvoiceFields } from "./redInvoiceRules";
 
 /** A line priced and taxed under the chosen type; CX falls back to the account's rate. */
 function priced(row: InvoiceServiceRow, defaultVatRate: number): InvoiceServiceRow {
@@ -205,6 +206,7 @@ export function useInvoiceForm(draft: ElectronicInvoiceDraftDto | undefined) {
     totalBeforeTax,
     totalTax,
     grandTotal: totalBeforeTax + totalTax,
+    redInvoiceMissing: missingRedInvoiceFields({ customerName, taxCode, phone, email }),
     buildLines,
     buildBuyer,
   };

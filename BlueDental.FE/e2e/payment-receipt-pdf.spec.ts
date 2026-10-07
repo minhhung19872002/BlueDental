@@ -13,7 +13,8 @@ import { PAYMENTS_API, call, collectOnFirstLine, openNewSlip, type Receipt } fro
  * Gotenberg. Nothing is intercepted.
  */
 
-const RECEIPT_PDF = "/api/v1/app/e-invoices/receipt-pdf";
+const EINVOICES = "/api/v1/app/e-invoices";
+const RECEIPT_PDF = `${EINVOICES}/receipt-pdf`;
 const SEARCH = "Tìm theo mã thanh toán, tên hoặc mã khách hàng...";
 
 let receipt: Receipt | undefined;
@@ -110,5 +111,68 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
     await expect(invoice).toBeVisible();
     await expect(invoice.getByRole("button", { name: "Phát Hành" })).toBeEnabled();
     await tab.close();
+  });
+
+  // BA 2026-10-08: ticked, Tên khách hàng, Mã số thuế, Số ĐT and Email are required.
+  // Both checks stop before EasyInvoice: the dialog never sends, the server refuses first.
+  test("Xuất hóa đơn đỏ requires the buyer's name, tax code, phone and email", async ({ page }) => {
+    expect(receipt).toBeDefined();
+    const saved = receipt!;
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+
+    const refused = await call(page, `${EINVOICES}/issue`, {
+      method: "POST",
+      json: {
+        patientPaymentId: saved.id,
+        publish: true,
+        buyerName: "E2E Buyer",
+        taxCode: "0100000000",
+        phone: "0900000000",
+        email: "   ",
+        paymentMethod: 1,
+        lines: [],
+      },
+    });
+    expect(refused.status).toBeGreaterThanOrEqual(400);
+    expect(refused.body).toMatchObject({ error: { code: "BlueDental:EInvoicing:0017" } });
+
+    await page.goto("/billing");
+    await page.getByPlaceholder(SEARCH).fill(saved.code);
+    const row = page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: saved.code });
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await row.getByRole("button", { name: `Xuất hóa đơn điện tử cho phiếu ${saved.code}` }).click();
+
+    const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
+    await expect(invoice.locator("tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
+    const taxCode = invoice.getByRole("textbox", { name: /^Mã số thuế/ });
+    const email = invoice.getByRole("textbox", { name: /^Email/ });
+    await taxCode.fill("");
+    await email.fill("");
+
+    // Unticked, the blank fields are fine: no asterisk, no error.
+    await expect(invoice.locator(".floating-field-required")).toHaveCount(0);
+
+    await invoice.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
+    await expect(invoice.locator(".floating-field-required")).toHaveCount(4);
+
+    let sent = false;
+    page.on("request", (req) => {
+      if (req.url().includes(`${EINVOICES}/issue`) || req.url().includes(RECEIPT_PDF)) sent = true;
+    });
+    await invoice.getByRole("button", { name: "Phát Hành" }).click();
+    await expect(invoice.getByText("Vui lòng nhập Mã số thuế")).toBeVisible();
+    await expect(invoice.getByText("Vui lòng nhập Email")).toBeVisible();
+    await expect(taxCode).toHaveAttribute("aria-invalid", "true");
+    // No confirm, no receipt, nothing sent.
+    await expect(page.getByRole("dialog", { name: /^Phát hành hóa đơn/ })).toHaveCount(0);
+    expect(sent).toBe(false);
+
+    // Typing clears that field's error; unticking clears the rest.
+    await taxCode.fill("0100000000");
+    await expect(invoice.getByText("Vui lòng nhập Mã số thuế")).toHaveCount(0);
+    await invoice.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).uncheck();
+    await expect(invoice.getByText("Vui lòng nhập Email")).toHaveCount(0);
+    await expect(invoice.locator(".floating-field-required")).toHaveCount(0);
   });
 });

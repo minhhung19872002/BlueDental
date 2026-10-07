@@ -47,6 +47,15 @@
   width: 100%;
 }
 
+/* "Vui lòng nhập …" under a field "Xuất hóa đơn đỏ" made mandatory. */
+.inv-field-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--bd-red);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .inv-field .ant-input[disabled] {
   color: var(--bd-text);
   background: var(--bd-bg-soft);

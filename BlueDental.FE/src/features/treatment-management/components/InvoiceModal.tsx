@@ -9,6 +9,7 @@ import { InvoiceCustomerInfo } from "./InvoiceCustomerInfo";
 import { InvoiceFormInfo } from "./InvoiceFormInfo";
 import { InvoiceServiceTable } from "./InvoiceServiceTable";
 import { useInvoiceIssue } from "./useInvoiceIssue";
+import { redInvoiceErrors } from "./redInvoiceRules";
 import "./invoice-modal.css";
 
 /**
@@ -21,9 +22,16 @@ import "./invoice-modal.css";
 export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
   const draft = useEInvoiceDraft(source, open).data;
   const form = useInvoiceForm(draft);
-  const flow = useInvoiceIssue({ source, buildBuyer: form.buildBuyer, buildLines: form.buildLines, onClose });
+  const flow = useInvoiceIssue({
+    source,
+    buildBuyer: form.buildBuyer,
+    buildLines: form.buildLines,
+    redInvoiceComplete: form.redInvoiceMissing.length === 0,
+    onClose,
+  });
 
   const busy = !draft || flow.pending;
+  const buyerErrors = flow.showRequiredErrors ? redInvoiceErrors(form.redInvoiceMissing) : {};
 
   return (
     <Modal
@@ -73,6 +81,8 @@ export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
           onEmailChange={form.onEmailChange}
           phone={form.phone}
           onPhoneChange={form.onPhoneChange}
+          redInvoice={flow.redInvoice}
+          errors={buyerErrors}
         />
         <InvoiceFormInfo
           numberings={draft?.numberings ?? []}

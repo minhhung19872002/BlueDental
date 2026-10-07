@@ -15,6 +15,8 @@ interface Options {
   source: EInvoiceSource;
   buildBuyer: () => Buyer;
   buildLines: () => ElectronicInvoiceLineInput[];
+  /** Whether the buyer fields "Xuất hóa đơn đỏ" needs are all filled. */
+  redInvoiceComplete: boolean;
   onClose: () => void;
 }
 
@@ -48,13 +50,21 @@ function showReceipt(tab: Window | null, pdf: Blob): void {
  * - Lưu Nháp only files a draft on EasyInvoice; nothing is printed.
  * - Phát Hành always opens the PHIẾU THU in a new tab. With "Xuất hóa đơn đỏ"
  *   ticked it also signs the e-invoice, and a failure there (shown by the
- *   global error toast) does not hold back the receipt.
+ *   global error toast) does not hold back the receipt. Ticked, Tên khách
+ *   hàng, Mã số thuế, Số ĐT and Email are required: Phát Hành then stops and
+ *   flags the blank ones under their fields until they are filled.
  */
-export function useInvoiceIssue({ source, buildBuyer, buildLines, onClose }: Options) {
+export function useInvoiceIssue({ source, buildBuyer, buildLines, redInvoiceComplete, onClose }: Options) {
   const issue = useIssueEInvoice();
   const receipt = useRenderPaymentReceipt();
   const [redInvoice, setRedInvoice] = useState(false);
+  const [requiredChecked, setRequiredChecked] = useState(false);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
+
+  const handleRedInvoiceChange = useCallback((checked: boolean) => {
+    setRedInvoice(checked);
+    if (!checked) setRequiredChecked(false);
+  }, []);
 
   const saveDraft = useCallback(() => {
     issue.mutate(
@@ -90,13 +100,19 @@ export function useInvoiceIssue({ source, buildBuyer, buildLines, onClose }: Opt
   }, [receipt, issue, redInvoice, source, buildBuyer, buildLines, onClose]);
 
   const handleIssueClick = useCallback(() => {
-    if (redInvoice) setConfirmingPublish(true);
-    else void publish();
-  }, [redInvoice, publish]);
+    if (!redInvoice) {
+      void publish();
+      return;
+    }
+    setRequiredChecked(true);
+    if (redInvoiceComplete) setConfirmingPublish(true);
+  }, [redInvoice, redInvoiceComplete, publish]);
 
   return {
     redInvoice,
-    onRedInvoiceChange: setRedInvoice,
+    onRedInvoiceChange: handleRedInvoiceChange,
+    /** Errors show only after a Phát Hành with the box ticked, as a form's do after submit. */
+    showRequiredErrors: redInvoice && requiredChecked,
     confirmingPublish,
     cancelPublish: () => setConfirmingPublish(false),
     saveDraft,

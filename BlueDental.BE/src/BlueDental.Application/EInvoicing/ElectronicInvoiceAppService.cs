@@ -139,6 +139,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         }
 
         EnsureVnd(input);
+        EnsureBuyerForPublish(input);
         var account = await _accounts.GetForBranchAsync(source.ClinicBranchId);
         var pattern = Blank(input.Pattern);
         var settings = pattern == null
@@ -428,6 +429,21 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             || (input.ExchangeRate is { } rate && rate != 1m))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.CurrencyNotSupported);
+        }
+    }
+
+    /// <summary>
+    /// "Xuất hóa đơn đỏ" (BA): a signed invoice must carry Tên khách hàng, Mã số
+    /// thuế, Số ĐT and Email as typed — no fallback to the patient record. A
+    /// draft (Lưu Nháp) may still go out incomplete.
+    /// </summary>
+    private static void EnsureBuyerForPublish(IssueElectronicInvoiceDto input)
+    {
+        if (input.Publish
+            && (Blank(input.BuyerName) == null || Blank(input.TaxCode) == null
+                || Blank(input.Phone) == null || Blank(input.Email) == null))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.BuyerDetailsRequired);
         }
     }
 

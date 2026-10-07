@@ -509,6 +509,8 @@ public static class BlueDentalDomainErrorCodes
         public const string MixedVatRates = "BlueDental:EInvoicing:0016";
         public const string PatternRequired = "BlueDental:EInvoicing:0014";
         public const string CurrencyNotSupported = "BlueDental:EInvoicing:0015";
+        /// <summary>"Xuất hóa đơn đỏ" needs Tên khách hàng, Mã số thuế, Số ĐT and Email.</summary>
+        public const string BuyerDetailsRequired = "BlueDental:EInvoicing:0017";
     }
 
     /// <summary>PHIẾU THU printed by Phát Hành in the Hóa đơn dialog.</summary>
