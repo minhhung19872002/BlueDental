@@ -39,9 +39,10 @@ any authenticated request                   401 { error: { code: "BlueDental:Aut
 - `IpAddressRange` (value object) and `ClinicBranch.AllowedIpRanges` /
   `SetAllowedIpRanges` / `AllowsLoginFrom`; the rule itself is
   `LoginIpPolicy.IsAllowed` (pure, Domain).
-- `LoginIpGuard` (Application) loads the account's flag, roles and branches.
+- `SignInRestrictionGuard` (Application) loads the account's flags, roles and
+  branches (shared with item 13, `usage-hours.md`).
 - `BlueDentalSignInManager.SignInOrTwoFactorAsync` (host) refuses sign-in;
-  `LoginIpRestrictionMiddleware` (after `UseDynamicClaims`) ends sessions.
+  `SignInRestrictionMiddleware` (after `UseDynamicClaims`) ends sessions.
 - Client address behind the proxies: production enables
   `ASPNETCORE_FORWARDEDHEADERS_ENABLED`; `ConfigureForwardedHeaders` trusts only
   loopback and private networks with no hop limit, so the address is the first

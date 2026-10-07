@@ -24,6 +24,8 @@ export interface StaffDto {
   isHygienist: boolean;
   /** "Cho phép đăng nhập ngoài công ty" — skips the branch IP check. */
   allowLoginOutsideOffice: boolean;
+  /** "Cho phép dùng ngoài giờ" — skips the branch's allowed hours. */
+  allowLoginOutsideHours: boolean;
 
   morningStartTime: string | null;
   morningEndTime: string | null;
@@ -65,6 +67,7 @@ export interface CreateStaffInput {
   isAssistant?: boolean;
   isHygienist?: boolean;
   allowLoginOutsideOffice?: boolean;
+  allowLoginOutsideHours?: boolean;
 
   morningStartTime?: string;
   morningEndTime?: string;
@@ -90,6 +93,7 @@ export interface UpdateStaffInput {
   isAssistant?: boolean;
   isHygienist?: boolean;
   allowLoginOutsideOffice?: boolean;
+  allowLoginOutsideHours?: boolean;
 
   morningStartTime?: string;
   morningEndTime?: string;

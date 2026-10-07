@@ -16,6 +16,9 @@ export interface ClinicBranchDto {
   contactPerson?: string;
   /** Networks staff may sign in from, one per line; absent = no IP restriction. */
   allowedIpRanges?: string | null;
+  /** "Giờ được phép sử dụng", clinic time "HH:mm"; null when unrestricted. */
+  usageStartTime?: string | null;
+  usageEndTime?: string | null;
   status: string;
   creationTime: string;
   lastModificationTime?: string;
@@ -34,6 +37,8 @@ export interface CreateClinicBranchDto {
   taxCode?: string;
   contactPerson?: string;
   allowedIpRanges?: string;
+  usageStartTime?: string;
+  usageEndTime?: string;
 }
 
 export interface UpdateClinicBranchDto {
@@ -48,6 +53,9 @@ export interface UpdateClinicBranchDto {
   contactPerson?: string;
   /** Omitted keeps the current list; "" clears it. */
   allowedIpRanges?: string;
+  /** Both omitted keep the window; both "" clear it. */
+  usageStartTime?: string;
+  usageEndTime?: string;
 }
 
 export interface DepartmentDto {

@@ -31,6 +31,23 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
     public bool RestrictsLoginByIp => !string.IsNullOrWhiteSpace(AllowedIpRanges);
 
+    /// <summary>
+    /// "Giờ được phép sử dụng" on the clinic's wall clock (Cụm 11 mục 13):
+    /// staff of this branch may use the software from <see cref="UsageStartTime"/>
+    /// up to <see cref="UsageEndTime"/>. Both or neither; an end before the
+    /// start spans midnight (22:00 → 06:00). Neither means no restriction.
+    /// </summary>
+    public TimeOnly? UsageStartTime { get; private set; }
+
+    public TimeOnly? UsageEndTime { get; private set; }
+
+    public bool RestrictsUsageHours => UsageStartTime.HasValue && UsageEndTime.HasValue;
+
+    /// <summary>The window as people read it, e.g. "06:00–20:00"; null when unrestricted.</summary>
+    public string? UsageHoursText => RestrictsUsageHours
+        ? $"{UsageStartTime!.Value:HH\\:mm}–{UsageEndTime!.Value:HH\\:mm}"
+        : null;
+
     protected ClinicBranch() { }
 
     public ClinicBranch(
@@ -105,6 +122,30 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
     public bool AllowsLoginFrom(IPAddress? address) =>
         IpAddressRange.ParseList(AllowedIpRanges).Any(r => r.Contains(address));
+
+    public ClinicBranch SetUsageHours(TimeOnly? start, TimeOnly? end)
+    {
+        if (start.HasValue != end.HasValue || (start.HasValue && start == end))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidUsageHours);
+        }
+
+        UsageStartTime = start;
+        UsageEndTime = end;
+        return this;
+    }
+
+    /// <summary>Whether <paramref name="clinicTime"/> falls in the window; start inclusive, end exclusive.</summary>
+    public bool AllowsUsageAt(TimeOnly clinicTime)
+    {
+        if (!RestrictsUsageHours) return true;
+
+        var start = UsageStartTime!.Value;
+        var end = UsageEndTime!.Value;
+        return start < end
+            ? clinicTime >= start && clinicTime < end
+            : clinicTime >= start || clinicTime < end;
+    }
 
     public ClinicBranch Deactivate()
     {

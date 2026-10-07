@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "../api";
 import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
-import { IP_SIGNED_OUT_REASON } from "@/lib/axios";
+import type { SignedOutReason } from "@/lib/axios";
 import { t } from "@/lib/i18n";
 import { brand } from "@/theme/index";
 import type { LoginResponse } from "../types";
@@ -24,6 +24,15 @@ const LOGIN_RESULT_MESSAGES: Record<number, () => string> = {
   4: () => t("Auth:AccountLockedOut"),
   5: () => t("Auth:TwoFactorRequired"),
 };
+
+const SIGNED_OUT_NOTICES: Record<SignedOutReason, () => string> = {
+  ip: () => t("Auth:SignedOutOutsideOffice"),
+  hours: () => t("Auth:SignedOutOutsideHours"),
+};
+
+function signedOutMessage(reason: string | null): string | undefined {
+  return reason === "ip" || reason === "hours" ? SIGNED_OUT_NOTICES[reason]() : undefined;
+}
 
 function loginResultMessage(result: LoginResponse): string {
   if (result.result === 4 && result.lockoutMinutes) {
@@ -48,10 +57,9 @@ export function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const setAuth = useAuthStore((s) => s.setAuth);
-  // Sent here by the 401 handler when a session was used from outside the
-  // account's branch networks; a fresh failure replaces the notice.
-  const ipSignedOut =
-    new URLSearchParams(location.search).get("reason") === IP_SIGNED_OUT_REASON;
+  // Sent here by the 401 handler when the server ended the session (outside
+  // the branch networks or hours); a fresh failure replaces the notice.
+  const signedOutNotice = signedOutMessage(new URLSearchParams(location.search).get("reason"));
 
   const {
     control,
@@ -99,7 +107,7 @@ export function LoginForm() {
   });
 
   const rootMessage =
-    errors.root?.message ?? (ipSignedOut ? t("Auth:SignedOutOutsideOffice") : undefined);
+    errors.root?.message ?? signedOutNotice;
 
   const onSubmit = (values: LoginFormValues) => {
     loginMutation.mutate(values);

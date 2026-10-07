@@ -7149,3 +7149,17 @@ Hồi quy mức 3 (auth/chi nhánh/nhân viên/phân quyền: `auth`, `branch-is
 `header-navigation`, `routes`): **49 xanh, 6 đỏ** — tất cả đã ghi nhận từ trước: `header-navigation` 3 (R-677),
 `role-permissions` + `role-permissions-abilities` (dữ liệu role `dentist` local, R-725..R-727), `routes` `/timekeeping` (route cũ).
 tsc + eslint sạch. Retest level **3**.
+
+## 2026-10-07 — Cụm 11 mục 13: Quản lý thời gian sử dụng (R-791, F-52)
+
+BlueDental riêng; quyết định ghi ở `docs/clone/pages/usage-hours.md`.
+
+| ID | Vấn đề / yêu cầu | Xử lý |
+|---|---|---|
+| R-791 | Mục 13 dùng chung đường đăng nhập với mục 11: guard/middleware IP được tổng quát hoá (`LoginIpGuard` → `SignInRestrictionGuard` trả `SignInRefusal`, `LoginIpRestrictionMiddleware` → `SignInRestrictionMiddleware`), mọi tài khoản đi qua cùng một lần kiểm (IP trước, giờ sau). | Spec F-51 chuyển sang fixture chung `e2e/fixtures/restrictedStaff.ts` (chi nhánh + nhân viên dùng một lần, bộ dọn `CN <prefix> <n>`); chạy lại **5/5**. |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): `branch-usage-hours` **5/5**, `branch-ip-restriction` **5/5**.
+BE: Domain.Tests **685** (mới `BranchUsageHoursTests` 21), Application.Tests **671**, HttpApi.Host.Tests **24**. Migration `BranchUsageHours` chỉ thêm 2 cột `time`.
+Hồi quy mức 3 (`auth`, `branch-isolation`, `branch-switcher`, `branch-list`, `staff`, `staff-penalty-api`, `staff-day-off-api`,
+`current-user-ticks-api`, `role-permissions`, `role-permissions-abilities`, `header-navigation`): **33 xanh, 5 đỏ** — đều đã ghi nhận từ trước:
+`header-navigation` 3 (R-677), `role-permissions` + `role-permissions-abilities` (dữ liệu role `dentist` local, R-725..R-727). tsc + eslint sạch. Retest level **3**.

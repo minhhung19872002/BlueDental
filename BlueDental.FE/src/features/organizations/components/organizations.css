@@ -16,3 +16,8 @@
 .branch-ip-field__current .ant-btn {
   padding-inline: 4px;
 }
+
+/* Cụm 11 mục 13 — "Giờ được phép sử dụng" */
+.branch-usage-hours__picker {
+  width: 100%;
+}

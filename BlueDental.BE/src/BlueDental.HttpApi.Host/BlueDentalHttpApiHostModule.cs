@@ -68,8 +68,9 @@ public class BlueDentalHttpApiHostModule : AbpModule
             builder.SetRefreshTokenLifetime(TimeSpan.FromDays(14));
         });
 
-        // Sign-in refuses an address outside the account's branch networks
-        // (Cụm 11 mục 11). Registered after ABP's AbpSignInManager, so it wins.
+        // Sign-in refuses an address outside the account's branch networks or
+        // a time outside its branches' allowed hours (Cụm 11 mục 11, 13).
+        // Registered after ABP's AbpSignInManager, so it wins.
         PreConfigure<IdentityBuilder>(builder => builder.AddSignInManager<BlueDentalSignInManager>());
     }
 
@@ -349,7 +350,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         app.UseAbpOpenIddictValidation();
         app.UseUnitOfWork();
         app.UseDynamicClaims();
-        app.UseMiddleware<LoginIpRestrictionMiddleware>();
+        app.UseMiddleware<SignInRestrictionMiddleware>();
         app.UseAuthorization();
 
         if (env.IsDevelopment())

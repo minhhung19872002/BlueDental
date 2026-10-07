@@ -1918,3 +1918,11 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
 - `StaffDto` / create / update thêm `allowLoginOutsideOffice: <bool>`.
 - `POST /api/account/login` (ABP) → 403 `BlueDental:Auth:LoginIpNotAllowed` khi đúng mật khẩu nhưng ngoài mạng chi nhánh;
   mọi request đã đăng nhập → 401 cùng mã + đăng xuất. Chi tiết: `docs/clone/pages/branch-ip-restriction.md`.
+
+## Quản lý thời gian sử dụng — BlueDental riêng (2026-10-07, cụm 11 mục 13)
+
+- `ClinicBranchDto.usageStartTime` / `usageEndTime`: `"HH:mm"` hoặc `null` (giờ Việt Nam; kết thúc trước bắt đầu = qua đêm).
+  `POST/PUT clinic-branches` nhận hai trường này (PUT: cả hai `null` = giữ nguyên, cả hai `""` = xoá). Nửa khung / hai giờ bằng nhau / sai định dạng → 403 `BlueDental:Organizations:0008`.
+- `StaffDto` / create / update thêm `allowLoginOutsideHours: <bool>`.
+- `POST /api/account/login` → 403 `BlueDental:Auth:LoginOutsideHours` (message nêu khung giờ); mọi request đã đăng nhập → 401 cùng mã + đăng xuất.
+  Chi tiết: `docs/clone/pages/usage-hours.md`.

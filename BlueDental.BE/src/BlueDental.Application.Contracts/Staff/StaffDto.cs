@@ -36,6 +36,12 @@ public class StaffDto : EntityDto<Guid>
     /// </summary>
     public bool AllowLoginOutsideOffice { get; set; }
 
+    /// <summary>
+    /// "Cho phép dùng ngoài giờ": the account may use the software outside its
+    /// branches' allowed hours (Cụm 11 mục 13).
+    /// </summary>
+    public bool AllowLoginOutsideHours { get; set; }
+
     /// <summary>Morning shift start time in "HH:mm" format.</summary>
     public string? MorningStartTime { get; set; }
 
@@ -112,6 +118,12 @@ public class CreateStaffDto
     /// </summary>
     public bool AllowLoginOutsideOffice { get; set; }
 
+    /// <summary>
+    /// "Cho phép dùng ngoài giờ": the account may use the software outside its
+    /// branches' allowed hours (Cụm 11 mục 13).
+    /// </summary>
+    public bool AllowLoginOutsideHours { get; set; }
+
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }
     public string? AfternoonStartTime { get; set; }
@@ -150,6 +162,12 @@ public class UpdateStaffDto
     /// its branches' IP ranges (Cụm 11 mục 11).
     /// </summary>
     public bool AllowLoginOutsideOffice { get; set; }
+
+    /// <summary>
+    /// "Cho phép dùng ngoài giờ": the account may use the software outside its
+    /// branches' allowed hours (Cụm 11 mục 13).
+    /// </summary>
+    public bool AllowLoginOutsideHours { get; set; }
 
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }

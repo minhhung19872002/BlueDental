@@ -185,7 +185,7 @@ public class StaffAppService(
         }
 
         SetExtraProperties(user, input.Address, input.ProvinceId, input.DistrictId, input.WardId,
-            input.IsDentist, input.IsAssistant, input.IsHygienist, input.AllowLoginOutsideOffice,
+            input.IsDentist, input.IsAssistant, input.IsHygienist, input.AllowLoginOutsideOffice, input.AllowLoginOutsideHours,
             input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
 
@@ -215,7 +215,7 @@ public class StaffAppService(
         (await userManager.SetPhoneNumberAsync(user, input.PhoneNumber)).CheckErrors();
 
         SetExtraProperties(user, input.Address, input.ProvinceId, input.DistrictId, input.WardId,
-            input.IsDentist, input.IsAssistant, input.IsHygienist, input.AllowLoginOutsideOffice,
+            input.IsDentist, input.IsAssistant, input.IsHygienist, input.AllowLoginOutsideOffice, input.AllowLoginOutsideHours,
             input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
 
@@ -376,7 +376,7 @@ public class StaffAppService(
     }
 
     /// <summary>
-    /// Writes all 12 extended-profile fields as ExtraProperties on the IdentityUser.
+    /// Writes all 13 extended-profile fields as ExtraProperties on the IdentityUser.
     /// Null/empty strings are stored as null so reads can use a clean null-check.
     /// </summary>
     private static void SetExtraProperties(
@@ -389,6 +389,7 @@ public class StaffAppService(
         bool isAssistant,
         bool isHygienist,
         bool allowLoginOutsideOffice,
+        bool allowLoginOutsideHours,
         string? morningStartTime,
         string? morningEndTime,
         string? afternoonStartTime,
@@ -402,6 +403,7 @@ public class StaffAppService(
         user.ExtraProperties["IsAssistant"]       = isAssistant;
         user.ExtraProperties["IsHygienist"]       = isHygienist;
         user.ExtraProperties[BlueDentalConsts.UserAllowLoginOutsideOfficePropertyName] = allowLoginOutsideOffice;
+        user.ExtraProperties[BlueDentalConsts.UserAllowLoginOutsideHoursPropertyName] = allowLoginOutsideHours;
         user.ExtraProperties["MorningStartTime"]  = morningStartTime.IsNullOrWhiteSpace() ? null : morningStartTime;
         user.ExtraProperties["MorningEndTime"]    = morningEndTime.IsNullOrWhiteSpace() ? null : morningEndTime;
         user.ExtraProperties["AfternoonStartTime"] = afternoonStartTime.IsNullOrWhiteSpace() ? null : afternoonStartTime;
@@ -477,6 +479,8 @@ public class StaffAppService(
             IsHygienist        = user.ExtraProperties.GetOrDefault("IsHygienist") is true,
             AllowLoginOutsideOffice = user.ExtraProperties
                 .GetOrDefault(BlueDentalConsts.UserAllowLoginOutsideOfficePropertyName) is true,
+            AllowLoginOutsideHours = user.ExtraProperties
+                .GetOrDefault(BlueDentalConsts.UserAllowLoginOutsideHoursPropertyName) is true,
             MorningStartTime   = user.ExtraProperties.GetOrDefault("MorningStartTime") as string,
             MorningEndTime     = user.ExtraProperties.GetOrDefault("MorningEndTime") as string,
             AfternoonStartTime = user.ExtraProperties.GetOrDefault("AfternoonStartTime") as string,

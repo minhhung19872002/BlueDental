@@ -11,6 +11,9 @@ public static class BlueDentalDomainErrorCodes
     {
         /// <summary>Cụm 11 mục 11: the account may only sign in from its branches' networks.</summary>
         public const string LoginIpNotAllowed = "BlueDental:Auth:LoginIpNotAllowed";
+
+        /// <summary>Cụm 11 mục 13: outside the account's branches' "Giờ được phép sử dụng".</summary>
+        public const string LoginOutsideHours = "BlueDental:Auth:LoginOutsideHours";
     }
 
     public static class Organizations
@@ -22,6 +25,7 @@ public static class BlueDentalDomainErrorCodes
         public const string BranchNotAssigned = "BlueDental:Organizations:0005";
         public const string DuplicateName = "BlueDental:Organizations:0006";
         public const string InvalidIpRange = "BlueDental:Organizations:0007";
+        public const string InvalidUsageHours = "BlueDental:Organizations:0008";
     }
 
     public static class Catalogs

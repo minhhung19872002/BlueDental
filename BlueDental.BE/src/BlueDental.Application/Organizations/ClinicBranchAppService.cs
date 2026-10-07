@@ -133,6 +133,7 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
         branch.SetTaxCode(input.TaxCode);
         branch.SetContactPerson(input.ContactPerson);
         branch.SetAllowedIpRanges(input.AllowedIpRanges);
+        SetUsageHours(branch, input.UsageStartTime, input.UsageEndTime);
 
         await _repository.InsertAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
@@ -155,8 +156,30 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
             branch.SetAllowedIpRanges(input.AllowedIpRanges);
         }
 
+        // Same rule for the hours: both null leave the window alone.
+        if (input.UsageStartTime is not null || input.UsageEndTime is not null)
+        {
+            SetUsageHours(branch, input.UsageStartTime, input.UsageEndTime);
+        }
+
         await _repository.UpdateAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
+    }
+
+    /// <summary>"HH:mm" pair → the branch window; blank clears, anything else unreadable is refused.</summary>
+    private static void SetUsageHours(ClinicBranch branch, string? start, string? end)
+    {
+        branch.SetUsageHours(ParseClockTime(start), ParseClockTime(end));
+    }
+
+    private static TimeOnly? ParseClockTime(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        return TimeOnly.TryParseExact(text.Trim(), ["HH:mm", "H:mm"], System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var time)
+            ? time
+            : throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidUsageHours);
     }
 
     [Authorize(BlueDentalPermissions.Organizations.Delete)]
