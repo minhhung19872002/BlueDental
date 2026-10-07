@@ -74,7 +74,7 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
           total={refunds.length}
           pagination={pagination}
           cardRows={(payment) => refundCardRows(payment, plan)}
-          onView={handleView}
+          actions={{ onView: handleView }}
           showTotal={showTotal}
         />
       ) : (

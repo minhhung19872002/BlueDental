@@ -499,10 +499,22 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
         if (patientPaymentId is { } paymentId)
         {
-            var paymentQuery = await _payments.WithDetailsAsync(x => x.Lines);
-            var payment = await AsyncExecuter.FirstOrDefaultAsync(paymentQuery.Where(x => x.Id == paymentId))
-                ?? throw new EntityNotFoundException(typeof(PatientPayment), paymentId);
+            PatientPayment payment;
+            using (DataFilter.Disable<ISettleable>())
+            {
+                var paymentQuery = await _payments.WithDetailsAsync(x => x.Lines);
+                payment = await AsyncExecuter.FirstOrDefaultAsync(paymentQuery.Where(x => x.Id == paymentId))
+                    ?? throw new EntityNotFoundException(typeof(PatientPayment), paymentId);
+            }
+
             await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+            // A receipt still "Chưa thanh toán" has no money behind it: no
+            // PHIẾU THU and no e-invoice until it is confirmed (BA 2026-10-08).
+            if (payment.IsPending)
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.Billing.PaymentNotCompleted);
+            }
 
             var plan = payment.TreatmentPlanId is { } id ? await LoadPlanAsync(id) : null;
             return new InvoiceSource(

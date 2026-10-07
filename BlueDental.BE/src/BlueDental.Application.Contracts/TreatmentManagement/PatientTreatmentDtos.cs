@@ -407,6 +407,13 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     public string? CancelReason { get; set; }
 
     public string? CancelledByName { get; set; }
+
+    /// <summary>
+    /// Chưa thanh toán / Hoàn tất. A pending receipt is listed only when asked
+    /// for with <see cref="GetPatientPaymentListInput.IncludePending"/>; until
+    /// it is confirmed <see cref="PaidAt"/> is just when it was written.
+    /// </summary>
+    public PatientPaymentStatus Status { get; set; }
 }
 
 /// <summary>"Hủy phiếu" — a receipt is cancelled with a reason (bug list item 28).</summary>
@@ -418,14 +425,25 @@ public class CancelPatientPaymentDto
 }
 
 /// <summary>
-/// "BE:Common:Edit" on a receipt row: how the money was taken, not how much. The
-/// amount and the service split are fixed once written — correcting those means
-/// voiding the receipt and collecting again.
+/// "Chỉnh sửa" and "Xác nhận thanh toán" on a receipt still "Chưa thanh toán"
+/// (BA 2026-10-08): the same big dialog as "Tạo phiếu thanh toán", so the same
+/// fields — services, split, amount, channel, account and note. Each line is
+/// re-checked against what the slip still owes in collected money.
 /// </summary>
 public class UpdatePatientPaymentDto
 {
+    /// <summary>Services for Chia Tiền Tự Động; see <see cref="RecordPatientPaymentDto.TreatmentServiceIds"/>.</summary>
+    public List<Guid> TreatmentServiceIds { get; set; } = new();
+
+    public PaymentSplitMode SplitMode { get; set; } = PaymentSplitMode.Auto;
+
+    /// <summary>Required when <see cref="SplitMode"/> is Manual.</summary>
+    public List<PatientPaymentLineDto> Items { get; set; } = new();
+
     public PaymentMethodKind Method { get; set; }
-    public DateTimeOffset? PaidAt { get; set; }
+    public decimal Amount { get; set; }
+
+    [StringLength(1000)]
     public string? Note { get; set; }
 
     /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
@@ -479,6 +497,13 @@ public class GetPatientPaymentListInput : PagedAndSortedResultRequestDto
     /// anything that adds money up.
     /// </summary>
     public bool IncludeCancelled { get; set; }
+
+    /// <summary>
+    /// Lists "Chưa thanh toán" receipts too, as the Thanh toán tab does. Like
+    /// <see cref="IncludeCancelled"/>, never used by anything that adds money up:
+    /// a pending receipt has not been collected and still counts as debt.
+    /// </summary>
+    public bool IncludePending { get; set; }
 }
 
 /// <summary>Everything the patient's money tab needs in one call.</summary>
@@ -587,6 +612,7 @@ public interface IPatientPaymentAppService : IApplicationService
     Task<PatientAccountDto> GetAccountAsync(Guid patientId, Guid? clinicBranchId = null);
     Task<PatientPaymentDto> RecordAsync(RecordPatientPaymentDto input);
     Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input);
+    Task<PatientPaymentDto> ConfirmAsync(Guid id, UpdatePatientPaymentDto input);
     Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(GetDebtHistoryInput input);
     Task CancelAsync(Guid id, CancelPatientPaymentDto input);
 }

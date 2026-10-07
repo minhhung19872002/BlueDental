@@ -18,7 +18,7 @@ namespace BlueDental.Billing;
 /// A movement with no slip is money held for the patient ("BE:PaymentKind:HeldForCustomer");
 /// spending it later is a payment against a slip funded from that balance.
 /// </summary>
-public class PatientPayment : FullAuditedAggregateRoot<Guid>
+public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 {
     private readonly List<PatientPaymentLine> _lines = new();
 
@@ -68,6 +68,15 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public string? CancelReason { get; private set; }
 
+    /// <summary>
+    /// "Chưa thanh toán" until the cashier confirms the money was taken, then
+    /// "Hoàn tất". Only a payment waits; a refund or money held for the patient
+    /// is written already settled. See <see cref="ISettleable"/>.
+    /// </summary>
+    public PatientPaymentStatus Status { get; private set; } = PatientPaymentStatus.Completed;
+
+    public bool IsPending => Status == PatientPaymentStatus.Pending;
+
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
 
@@ -88,9 +97,17 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
         Guid? paymentAccountId = null,
         PaymentSplitMode splitMode = PaymentSplitMode.Auto,
         IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines = null,
-        Func<Guid>? lineIdFactory = null)
+        Func<Guid>? lineIdFactory = null,
+        PatientPaymentStatus status = PatientPaymentStatus.Completed)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
+
+        if (status == PatientPaymentStatus.Pending && kind != PatientPaymentKind.Payment)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition,
+                "Only a payment waits for confirmation; refunds and held money are settled when written.");
+        }
 
         if (amount <= 0m)
         {
@@ -116,12 +133,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
         // The reference's dialog will not save a bank or e-wallet payment until
         // one of the clinic's accounts is picked, so the record keeps that rule.
         // A refund goes the other way — its dialog only names the channel.
-        if (kind != PatientPaymentKind.Refund && RequiresAccount(method) && !paymentAccountId.HasValue)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired,
-                "A bank or e-wallet payment must name the account it was collected into.");
-        }
+        EnsureAccount(kind, method, paymentAccountId);
 
         var payment = new PatientPayment
         {
@@ -137,25 +149,51 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
             PaidAt = paidAt,
             Note = note,
             PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null,
-            SplitMode = splitMode
+            SplitMode = splitMode,
+            Status = status
         };
 
+        payment.ReplaceLines(lines, lineIdFactory);
+        return payment;
+    }
+
+    private void ReplaceLines(
+        IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines, Func<Guid>? lineIdFactory)
+    {
+        _lines.Clear();
         foreach (var (serviceId, share) in lines ?? [])
         {
-            payment._lines.Add(
-                new PatientPaymentLine(lineIdFactory?.Invoke() ?? Guid.NewGuid(), serviceId, share));
+            _lines.Add(new PatientPaymentLine(lineIdFactory?.Invoke() ?? Guid.NewGuid(), serviceId, share));
         }
 
         // The lines are how the receipt is spent; letting them disagree with the
         // total would make every per-line "BE:PaymentKind:StillOwed" a lie.
-        if (payment._lines.Count > 0 && payment._lines.Sum(line => line.Amount) != amount)
+        if (_lines.Count > 0 && _lines.Sum(line => line.Amount) != Amount)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
                 "The receipt's service lines must add up to its total.");
         }
+    }
 
-        return payment;
+    private static void EnsureAccount(PatientPaymentKind kind, PaymentMethodKind method, Guid? paymentAccountId)
+    {
+        if (kind != PatientPaymentKind.Refund && RequiresAccount(method) && !paymentAccountId.HasValue)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired,
+                "A bank or e-wallet payment must name the account it was collected into.");
+        }
+    }
+
+    private void EnsurePending()
+    {
+        if (!IsPending)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
+                "A completed receipt is final.");
+        }
     }
 
     /// <summary>
@@ -203,13 +241,13 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     public decimal AmountFor(Guid treatmentServiceId) =>
         _lines.Where(line => line.TreatmentServiceId == treatmentServiceId).Sum(line => line.Amount);
 
-    /// <summary>Ngân hàng and Ví momo collect into a named account; the rest do not.</summary>
     /// <summary>
     /// What each service line of this receipt was paid. One receipt covers
     /// several services, the way the reference's dialog collects them.
     /// </summary>
     public IReadOnlyCollection<PatientPaymentLine> Lines => _lines.AsReadOnly();
 
+    /// <summary>Ngân hàng and Ví momo collect into a named account; the rest do not.</summary>
     public static bool RequiresAccount(PaymentMethodKind method) =>
         method is PaymentMethodKind.Banking or PaymentMethodKind.EWallet;
 
@@ -243,12 +281,6 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// "BE:Common:Edit" on a receipt: the facts about how the money was taken, not
-    /// how much. The amount and the service lines stay put — they are what the
-    /// slip's rollup and every per-line "BE:PaymentKind:StillOwed" are built from, so correcting
-    /// them means voiding the receipt and writing a new one.
-    /// </summary>
-    /// <summary>
     /// Money is collected today or was collected before: a receipt dated
     /// 28/10 typed in on 07/10 is refused (bug list item 26). Compared by the
     /// clinic's calendar day, so any time later today is still today.
@@ -270,6 +302,9 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public PatientPayment Cancel(string? reason)
     {
+        // BA 2026-10-08: a "Hoàn tất" receipt hides Sửa and Xoá — the money was taken.
+        EnsurePending();
+
         if (string.IsNullOrWhiteSpace(reason))
         {
             throw new BusinessException(
@@ -281,23 +316,53 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Chỉnh sửa" on a receipt still "Chưa thanh toán": nothing has been
+    /// collected, so everything the create dialog asked can be rewritten — the
+    /// split, the amount and its service lines, the channel and the note. The
+    /// caller re-checks each line against what the slip still owes.
+    /// </summary>
     public PatientPayment Revise(
+        PaymentSplitMode splitMode,
         PaymentMethodKind method,
+        decimal amount,
         Guid? paymentAccountId,
-        DateTimeOffset paidAt,
-        string? note)
+        string? note,
+        IEnumerable<(Guid TreatmentServiceId, decimal Amount)> lines,
+        Func<Guid> lineIdFactory)
     {
-        if (Kind != PatientPaymentKind.Refund && RequiresAccount(method) && !paymentAccountId.HasValue)
+        EnsurePending();
+
+        if (amount <= 0m)
         {
             throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired,
-                "A bank or e-wallet payment must name the account it was collected into.");
+                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
+                "A money movement must be greater than zero.");
         }
 
+        EnsureAccount(Kind, method, paymentAccountId);
+
+        SplitMode = splitMode;
         Method = method;
+        Amount = amount;
         PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null;
-        PaidAt = paidAt;
         Note = note;
+        ReplaceLines(lines, lineIdFactory);
+        return this;
+    }
+
+    /// <summary>
+    /// "Xác nhận thanh toán": the money is in. From here the receipt counts
+    /// everywhere and is dated by when it was collected — revenue is reported
+    /// by this day, while <c>CreationTime</c> keeps when it was written.
+    /// </summary>
+    public PatientPayment Confirm(DateTimeOffset collectedAt, Guid cashierId)
+    {
+        EnsurePending();
+
+        Status = PatientPaymentStatus.Completed;
+        PaidAt = collectedAt;
+        StaffId = cashierId;
         return this;
     }
 }

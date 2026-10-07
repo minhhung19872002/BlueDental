@@ -261,6 +261,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A receipt is cancelled with a reason, never silently (bug list item 28).</summary>
         public const string PaymentCancelReasonRequired = "BlueDental:Billing:0095";
+
+        /// <summary>A "Hoàn tất" receipt is final: it cannot be edited, confirmed again or cancelled.</summary>
+        public const string PaymentAlreadyCompleted = "BlueDental:Billing:0096";
+
+        /// <summary>A "Chưa thanh toán" receipt has no money behind it yet, so it cannot be e-invoiced.</summary>
+        public const string PaymentNotCompleted = "BlueDental:Billing:0097";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

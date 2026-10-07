@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/DataTable";
-import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
+import {
+  CreatePaymentDialog,
+  type PaymentRevision,
+} from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
@@ -22,6 +25,7 @@ import {
 } from "../../api/eInvoiceApi";
 import {
   PAYMENT_KIND,
+  PAYMENT_STATUS,
   useCancelPayment,
   usePatientAccount,
   usePatientPayments,
@@ -32,9 +36,8 @@ import { InvoiceModal } from "../InvoiceModal";
 import { EInvoiceBadge } from "./EInvoiceBadge";
 import { PaymentCancelDialog } from "./PaymentCancelDialog";
 import { PaymentCardList } from "./PaymentCardList";
-import { PaymentEditDialog } from "./PaymentEditDialog";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
-import { buildPaymentColumns, paymentCardRows } from "./paymentColumns";
+import { buildPaymentColumns, paymentCardRows, type PaymentRowActions } from "./paymentColumns";
 import { aggregateReceiptOf, receiptOf, type ReceiptView } from "./receiptView";
 
 const NARROW_SCREEN = "(max-width: 640px)";
@@ -60,6 +63,8 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
     treatmentPlanId: plan.id,
     kind: PAYMENT_KIND.Payment,
     includeCancelled: true,
+    // "Chưa thanh toán" receipts are listed here, and only here (BA 2026-10-08).
+    includePending: true,
     maxResultCount: PAGE_CAP,
   });
   const account = usePatientAccount(patient.id, branchId);
@@ -68,7 +73,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
 
   const [creating, setCreating] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptView | null>(null);
-  const [editing, setEditing] = useState<PatientPaymentDto | null>(null);
+  const [revision, setRevision] = useState<PaymentRevision | null>(null);
   const [cancelling, setCancelling] = useState<PatientPaymentDto | null>(null);
   const cancel = useCancelPayment();
 
@@ -105,8 +110,11 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   };
 
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
-  // A cancelled receipt is listed, but no money on a printed receipt counts it.
-  const activeReceipts = useMemo(() => receipts.filter((r) => !r.isDeleted), [receipts]);
+  // A cancelled or still-pending receipt is listed, but no money on a printed receipt counts it.
+  const activeReceipts = useMemo(
+    () => receipts.filter((r) => !r.isDeleted && r.status === PAYMENT_STATUS.Completed),
+    [receipts],
+  );
   const pageRows = receipts.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
   const showTotal = countedTotal(t("Treatment:Payment:PaymentNoun"));
 
@@ -125,16 +133,18 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
     }
   };
 
+  const rowActions: PaymentRowActions = {
+    onView: handleView,
+    // Xác nhận thanh toán is a write on the receipt, so it rides on payment.update.
+    onConfirm: canUpdate ? (payment) => setRevision({ payment, action: "confirm" }) : undefined,
+    onEdit: canUpdate ? (payment) => setRevision({ payment, action: "edit" }) : undefined,
+    onCancel: canDelete ? setCancelling : undefined,
+    onIssueInvoice: canFinalize ? setInvoicing : undefined,
+    canIssueInvoice,
+    renderEInvoice,
+  };
   const columns = useMemo(
-    () =>
-      buildPaymentColumns(plan, {
-        onView: handleView,
-        onEdit: canUpdate ? setEditing : undefined,
-        onCancel: canDelete ? setCancelling : undefined,
-        onIssueInvoice: canFinalize ? setInvoicing : undefined,
-        canIssueInvoice,
-        renderEInvoice,
-      }),
+    () => buildPaymentColumns(plan, rowActions),
     [plan, activeReceipts, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -159,11 +169,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
           total={receipts.length}
           pagination={pagination}
           cardRows={(payment) => paymentCardRows(payment, plan, renderEInvoice)}
-          onView={handleView}
-          onEdit={canUpdate ? setEditing : undefined}
-          onCancel={canDelete ? setCancelling : undefined}
-          onIssueInvoice={canFinalize ? setInvoicing : undefined}
-          canIssueInvoice={canIssueInvoice}
+          actions={rowActions}
           showTotal={showTotal}
         />
       ) : (
@@ -189,11 +195,17 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onClose={() => setCreating(false)}
         onSaved={() => setCreating(false)}
       />
-      <PaymentEditDialog
-        payment={editing}
+      {/* Chỉnh sửa and Xác nhận thanh toán reopen the same big dialog on the receipt. */}
+      <CreatePaymentDialog
+        open={revision !== null}
+        patientId={patient.id}
         branchId={branchId}
-        onClose={() => setEditing(null)}
-        onSaved={() => setEditing(null)}
+        plan={plan}
+        focusServiceId={null}
+        heldForPatient={account.data?.heldForPatient ?? 0}
+        revision={revision}
+        onClose={() => setRevision(null)}
+        onSaved={() => setRevision(null)}
       />
       <PaymentCancelDialog
         open={cancelling !== null}

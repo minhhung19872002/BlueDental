@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -267,7 +268,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             await GuardRefundFitsAsync(input);
         }
 
-        var lines = await AllocateAsync(input);
+        var lines = await AllocateAsync(
+            input.Kind, input.TreatmentPlanId, input.SplitMode, input.TreatmentServiceIds, input.Items, input.Amount);
         var paidAt = input.PaidAt ?? Clock.Now;
         PatientPayment.EnsureNotAfterToday(paidAt, DateTimeOffset.UtcNow);
 
@@ -286,7 +288,13 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             input.PaymentAccountId,
             input.SplitMode,
             lines,
-            GuidGenerator.Create);
+            GuidGenerator.Create,
+            // BA 2026-10-08: a payment is written "Chưa thanh toán" and counts
+            // nowhere until "Xác nhận thanh toán"; refunds and held money are
+            // settled as they are written.
+            input.Kind == PatientPaymentKind.Payment
+                ? PatientPaymentStatus.Pending
+                : PatientPaymentStatus.Completed);
 
         await _repository.InsertAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
@@ -302,17 +310,22 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     /// <c>maxAllowedAmount</c> rule.
     /// </summary>
     private async Task<List<(Guid TreatmentServiceId, decimal Amount)>> AllocateAsync(
-        RecordPatientPaymentDto input)
+        PatientPaymentKind kind,
+        Guid? treatmentPlanId,
+        PaymentSplitMode splitMode,
+        IReadOnlyCollection<Guid> treatmentServiceIds,
+        IReadOnlyCollection<PatientPaymentLineDto> items,
+        decimal amount)
     {
         // Money held for the patient is not against any service.
-        if (input.Kind == PatientPaymentKind.Prepaid || !input.TreatmentPlanId.HasValue)
+        if (kind == PatientPaymentKind.Prepaid || !treatmentPlanId.HasValue)
         {
             return [];
         }
 
-        var chosen = input.SplitMode == PaymentSplitMode.Manual
-            ? input.Items.Select(item => item.TreatmentServiceId).Distinct().ToList()
-            : input.TreatmentServiceIds.Distinct().ToList();
+        var chosen = splitMode == PaymentSplitMode.Manual
+            ? items.Select(item => item.TreatmentServiceId).Distinct().ToList()
+            : treatmentServiceIds.Distinct().ToList();
 
         if (chosen.Count == 0)
         {
@@ -324,12 +337,12 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         // Money coming in may not push a line past what it still owes; money
         // going back out may not exceed what that line actually holds. Capping a
         // refund by "BE:PaymentKind:StillOwed" refused every refund on a line paid in full.
-        var refunding = input.Kind == PatientPaymentKind.Refund;
-        var cap = await CapByServiceAsync(input.TreatmentPlanId.Value, chosen, refunding);
+        var refunding = kind == PatientPaymentKind.Refund;
+        var cap = await CapByServiceAsync(treatmentPlanId.Value, chosen, refunding);
 
-        if (input.SplitMode == PaymentSplitMode.Manual)
+        if (splitMode == PaymentSplitMode.Manual)
         {
-            var manual = input.Items
+            var manual = items
                 .Where(item => item.Amount > 0m)
                 .Select(item => (item.TreatmentServiceId, item.Amount))
                 .ToList();
@@ -343,7 +356,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         }
 
         var spread = new List<(Guid, decimal)>();
-        var left = input.Amount;
+        var left = amount;
 
         foreach (var serviceId in chosen)
         {
@@ -383,10 +396,11 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
                 : BlueDentalDomainErrorCodes.Billing.PaymentExceedsOutstanding);
     }
 
-    /// <summary>Còn nợ per line: what it is worth, less what receipts already put on it.</summary>
     /// <summary>
     /// The most each named line may take: what it still owes when money is
     /// coming in, what it has actually collected when money is going back out.
+    /// Only "Hoàn tất" receipts count (the <see cref="ISettleable"/> filter), so
+    /// a pending receipt never blocks another and is re-checked when confirmed.
     /// </summary>
     private async Task<Dictionary<Guid, decimal>> CapByServiceAsync(
         Guid treatmentPlanId,
@@ -425,26 +439,75 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     }
 
     /// <summary>
-    /// "BE:Common:Edit" on the Thanh toán row. Only the channel, the account, the
-    /// date and the note move; the amount and the per-service split stay, so no
-    /// rollup can drift out from under the slip.
+    /// "Chỉnh sửa" on a "Chưa thanh toán" row: the big create dialog again, so
+    /// services, split, amount, channel, account and note can all change. A
+    /// "Hoàn tất" receipt is final and the entity refuses (Billing:0096).
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
     public async Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input)
     {
-        var payment = await _repository.GetAsync(id);
+        using var pending = DataFilter.Disable<ISettleable>();
+        var payment = await GetWithLinesAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
-        if (input.PaidAt is { } paidAt)
-            PatientPayment.EnsureNotAfterToday(paidAt, DateTimeOffset.UtcNow);
 
-        payment.Revise(
-            input.Method,
-            input.PaymentAccountId,
-            input.PaidAt ?? payment.PaidAt,
-            input.Note);
+        await ReviseAsync(payment, input);
 
         await _repository.UpdateAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
+    }
+
+    /// <summary>
+    /// "Xác nhận thanh toán": the dialog's figures are saved — the amount may be
+    /// corrected to what was really handed over, still capped by what each line
+    /// owes — and the receipt becomes "Hoàn tất", dated now and credited to the
+    /// cashier confirming it. From here it counts in debt, revenue and the cash book.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
+    public async Task<PatientPaymentDto> ConfirmAsync(Guid id, UpdatePatientPaymentDto input)
+    {
+        using var pending = DataFilter.Disable<ISettleable>();
+        var payment = await GetWithLinesAsync(id);
+        await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+        await ReviseAsync(payment, input);
+        payment.Confirm(Clock.Now, CurrentUser.Id ?? payment.StaffId);
+
+        await _repository.UpdateAsync(payment, autoSave: true);
+        return (await MapManyAsync([payment])).Single();
+    }
+
+    private async Task ReviseAsync(PatientPayment payment, UpdatePatientPaymentDto input)
+    {
+        // Checked against collected money only: the cap query runs with the
+        // filter back on, so neither this receipt nor any other pending one counts.
+        List<(Guid TreatmentServiceId, decimal Amount)> lines;
+        using (DataFilter.Enable<ISettleable>())
+        {
+            lines = await AllocateAsync(
+                payment.Kind,
+                payment.TreatmentPlanId,
+                input.SplitMode,
+                input.TreatmentServiceIds,
+                input.Items,
+                input.Amount);
+        }
+
+        payment.Revise(
+            input.SplitMode,
+            input.Method,
+            input.Amount,
+            input.PaymentAccountId,
+            string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim(),
+            lines,
+            GuidGenerator.Create);
+    }
+
+    /// <summary>A bare GetAsync leaves the lines unloaded, and a revise would then orphan them.</summary>
+    private async Task<PatientPayment> GetWithLinesAsync(Guid id)
+    {
+        var query = await _repository.WithDetailsAsync(x => x.Lines);
+        return query.FirstOrDefault(x => x.Id == id)
+            ?? throw new EntityNotFoundException(typeof(PatientPayment), id);
     }
 
     /// <summary>
@@ -455,6 +518,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     [Authorize(BlueDentalAbilityPermissions.Payment.Delete)]
     public async Task CancelAsync(Guid id, CancelPatientPaymentDto input)
     {
+        // Only a pending receipt can be cancelled, and the filter hides those.
+        using var pending = DataFilter.Disable<ISettleable>();
         var payment = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
         payment.Cancel(input.Reason);
@@ -478,6 +543,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         using var cancelled = input.IncludeCancelled ? DataFilter.Disable<ISoftDelete>() : null;
+        using var pending = input.IncludePending ? DataFilter.Disable<ISettleable>() : null;
         var query = await _repository.WithDetailsAsync(x => x.Lines);
 
         if (branchFilter.Count > 0)
@@ -539,6 +605,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         var year = Clock.Now.Year;
         // A cancelled receipt keeps its number: the next one must not reuse it.
         using var cancelled = DataFilter.Disable<ISoftDelete>();
+        // Nor may a receipt still waiting for its money.
+        using var pending = DataFilter.Disable<ISettleable>();
         var query = await _repository.GetQueryableAsync();
         var sequence = query.Count(x =>
             x.ClinicBranchId == clinicBranchId
@@ -617,6 +685,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             DeleterId = x.DeleterId,
             DeletionTime = x.DeletionTime,
             CancelReason = x.CancelReason,
+            Status = x.Status,
             CancelledByName = x.DeleterId.HasValue && staffNames.TryGetValue(x.DeleterId.Value, out var deleter)
                 ? deleter
                 : null

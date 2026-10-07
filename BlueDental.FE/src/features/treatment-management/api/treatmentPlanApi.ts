@@ -53,6 +53,14 @@ export const serviceLineStatusConfig = (): Record<
 export const PAYMENT_KIND = { Payment: 1, Refund: 2, Prepaid: 3 } as const;
 export type PatientPaymentKind = (typeof PAYMENT_KIND)[keyof typeof PAYMENT_KIND];
 
+/**
+ * Matches BlueDental.Billing.PatientPaymentStatus. A payment is written
+ * "Chưa thanh toán" and counts nowhere until "Xác nhận thanh toán" makes it
+ * "Hoàn tất" (BA 2026-10-08); refunds and held money are always Completed.
+ */
+export const PAYMENT_STATUS = { Pending: 1, Completed: 2 } as const;
+export type PatientPaymentStatus = (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS];
+
 export const paymentKindConfig = (): Record<PatientPaymentKind, { label: string; color: string }> => ({
   [PAYMENT_KIND.Payment]: { label: t("Treatment:Payment:PaymentKindPayment"), color: "green" },
   [PAYMENT_KIND.Refund]: { label: t("Treatment:Refund:Refund"), color: "red" },
@@ -408,6 +416,9 @@ export interface PatientPaymentDto {
   paymentAccountId: string | null;
   staffName: string | null;
   treatmentPlanCode: string | null;
+  status: PatientPaymentStatus;
+  /** When the receipt was written ("Ngày tạo"); `paidAt` is when it was confirmed. */
+  creationTime: string;
   /** A cancelled receipt ("Đã hủy"), listed only with `includeCancelled`; no total counts it. */
   isDeleted: boolean;
   /** When it was cancelled. */
@@ -471,6 +482,8 @@ export interface PatientPaymentListInput {
   kind?: PatientPaymentKind;
   /** Lists cancelled receipts too, as the Thanh toán tab does (bug list item 28). */
   includeCancelled?: boolean;
+  /** Lists "Chưa thanh toán" receipts too; every other reader sees only settled money. */
+  includePending?: boolean;
   skipCount?: number;
   maxResultCount?: number;
 }
@@ -566,14 +579,23 @@ const treatmentApi = {
   updatePayment: (id: string, input: UpdatePaymentInput): Promise<PatientPaymentDto> =>
     api.put<PatientPaymentDto>(`${PAYMENTS}/${id}`, input).then((r) => r.data),
 
+  confirmPayment: (id: string, input: UpdatePaymentInput): Promise<PatientPaymentDto> =>
+    api.put<PatientPaymentDto>(`${PAYMENTS}/${id}/confirm`, input).then((r) => r.data),
+
   cancelPayment: (id: string, reason: string): Promise<void> =>
     api.post(`${PAYMENTS}/${id}/cancel`, { reason }).then(() => undefined),
 };
 
-/** Body of `PUT patient-payments/{id}` — how the money was taken, not how much. */
+/**
+ * Body of `PUT patient-payments/{id}` and `…/{id}/confirm`: the whole "Tạo phiếu
+ * thanh toán" dialog again, since a pending receipt may change in every figure.
+ */
 export interface UpdatePaymentInput {
+  treatmentServiceIds: string[];
+  splitMode: PaymentSplitMode;
+  items: PatientPaymentLineDto[];
   method: PaymentMethodKind;
-  paidAt?: string;
+  amount: number;
   note?: string | null;
   paymentAccountId?: string | null;
 }
@@ -716,14 +738,24 @@ export function useRecordPayment() {
 }
 
 /**
- * "Chỉnh sửa" on a receipt row: the channel, the account, the date and the
- * note. The amount and the per-service split cannot move — the slip's rollup is
- * built from them, so a wrong amount is voided and collected again instead.
+ * "Chỉnh sửa" on a "Chưa thanh toán" row: services, split, amount, channel,
+ * account and note. A "Hoàn tất" receipt is final (Billing:0096).
  */
 export function useUpdatePayment() {
   return useTreatmentMutation((input: { id: string } & UpdatePaymentInput) => {
     const { id, ...body } = input;
     return treatmentApi.updatePayment(id, body);
+  }, ["payment"]);
+}
+
+/**
+ * "Xác nhận thanh toán": the dialog's figures are saved and the receipt turns
+ * "Hoàn tất" — from then on it counts in the debt, revenue and the cash book.
+ */
+export function useConfirmPayment() {
+  return useTreatmentMutation((input: { id: string } & UpdatePaymentInput) => {
+    const { id, ...body } = input;
+    return treatmentApi.confirmPayment(id, body);
   }, ["payment"]);
 }
 

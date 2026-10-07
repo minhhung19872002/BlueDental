@@ -3,6 +3,7 @@ using System;
 using BlueDental.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Volo.Abp.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     [DbContext(typeof(BlueDentalDbContext))]
-    partial class BlueDentalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007210116_PatientPaymentStatus")]
+    partial class PatientPaymentStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -6781,9 +6784,13 @@ namespace BlueDental.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("DeletionTime");
 
+                    b.Property<string>("DiagnosisNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("DiagnosisText")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
@@ -6834,16 +6841,60 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_prescriptions", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.TreatmentManagement.PrescriptionDiagnosis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DiagnosisName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PlanCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("PrescriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToothCodes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("TreatmentPlanId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TreatmentPlanId");
+
+                    b.HasIndex("PrescriptionId", "SortOrder");
+
+                    b.ToTable("bd_prescription_diagnoses", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.TreatmentManagement.PrescriptionItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("AmountPerTime")
+                    b.Property<decimal>("Afternoon")
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Days")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("Evening")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<Guid>("MedicationId")
                         .HasColumnType("uuid");
@@ -6853,6 +6904,12 @@ namespace BlueDental.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<decimal>("Morning")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Noon")
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("OtherUsage")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -6861,9 +6918,6 @@ namespace BlueDental.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TimesPerDay")
                         .HasColumnType("integer");
 
                     b.Property<int>("Usage")
@@ -9787,6 +9841,15 @@ namespace BlueDental.Migrations
                     b.Navigation("Teeth");
                 });
 
+            modelBuilder.Entity("BlueDental.TreatmentManagement.PrescriptionDiagnosis", b =>
+                {
+                    b.HasOne("BlueDental.TreatmentManagement.Prescription", null)
+                        .WithMany("Diagnoses")
+                        .HasForeignKey("PrescriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlueDental.TreatmentManagement.PrescriptionItem", b =>
                 {
                     b.HasOne("BlueDental.TreatmentManagement.Prescription", null)
@@ -10104,6 +10167,8 @@ namespace BlueDental.Migrations
 
             modelBuilder.Entity("BlueDental.TreatmentManagement.Prescription", b =>
                 {
+                    b.Navigation("Diagnoses");
+
                     b.Navigation("Items");
                 });
 

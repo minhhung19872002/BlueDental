@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
+import { confirmOnRow } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: tab "Lịch sử dư nợ" của hồ sơ bệnh nhân (F-40), `?tab=debt-history`.
@@ -98,7 +99,11 @@ async function refundOnANewSlip(page: Page): Promise<{ patientUrl: string; refun
   const paid = Math.max(2, Math.floor(due / 2));
   await payDialog.locator(".pd-newpay-amount").fill(String(paid));
   await payDialog.getByRole("button", { name: "Lưu" }).click();
-  expect((await collected).ok()).toBeTruthy();
+  const written = await collected;
+  expect(written.ok()).toBeTruthy();
+  await expect(payDialog).toBeHidden();
+  // A new receipt is "Chưa thanh toán"; only the confirmed one is money in.
+  await confirmOnRow(page, ((await written.json()) as { code: string }).code);
 
   // The refund is capped at what the line actually holds, so wait for the slip
   // to have taken the money in before asking for any of it back.
@@ -208,8 +213,10 @@ test.describe("Lịch sử dư nợ", () => {
     );
     await payDialog.locator(".pd-newpay-amount").fill(String(owed));
     await payDialog.getByRole("button", { name: "Lưu" }).click();
-    expect((await settled).ok()).toBeTruthy();
+    const written = await settled;
+    expect(written.ok()).toBeTruthy();
     await expect(payDialog).toBeHidden();
+    await confirmOnRow(page, ((await written.json()) as { code: string }).code);
 
     await page.getByRole("tab", { name: "Hoàn tiền", exact: true }).click();
     await page.getByRole("button", { name: "Hoàn Tiền" }).click();
@@ -231,7 +238,7 @@ test.describe("Lịch sử dư nợ", () => {
 
     // One toast, not two: the screen's own message and the global handler share
     // a sonner id, so the same failure can never stack.
-    await expect(page.locator("[data-sonner-toast]")).toHaveCount(1);
+    await expect(page.locator("[data-sonner-toast]", { hasText: "Đã tạo phiếu hoàn tiền" })).toHaveCount(1);
   });
 
   test("an account limited to another branch is refused the history", async ({ browser }) => {

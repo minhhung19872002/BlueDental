@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { login } from "./fixtures/auth";
-import { call, money, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
+import { call, confirmOnRow, money, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
  * Bug list item 24: Công nợ went negative because a receipt could collect
@@ -54,8 +54,9 @@ test("Tạo phiếu thanh toán never takes more than the ticked services owe", 
   expect(response.ok()).toBeTruthy();
   await expect(dialog).toBeHidden();
 
-  // Read back with a separate request: the receipt holds exactly what was owed.
-  const receipt = (await response.json()) as Receipt;
+  // Confirmed as written ("Chưa thanh toán" receipts settle nothing), then read
+  // back with a separate request: the receipt holds exactly what was owed.
+  const receipt = await confirmOnRow(page, ((await response.json()) as Receipt).code);
   const stored = await call(page, `${PAYMENTS_API}?patientId=${receipt.patientId}&maxResultCount=1000`);
   const items = (stored.body.items ?? []) as Receipt[];
   expect(items.find((item) => item.id === receipt.id)?.amount).toBe(due);

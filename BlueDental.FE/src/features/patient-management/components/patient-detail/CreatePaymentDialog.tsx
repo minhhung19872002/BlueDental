@@ -8,6 +8,7 @@ import {
   FileTextOutlined,
   InfoCircleOutlined,
   ProfileOutlined,
+  CheckCircleOutlined,
   SaveOutlined,
   SearchOutlined,
   WalletOutlined,
@@ -31,7 +32,10 @@ import {
   PAYMENT_METHOD_ORDER,
   SPLIT_MODE,
   paymentMethodLabels,
+  useConfirmPayment,
   useRecordPayment,
+  useUpdatePayment,
+  type PatientPaymentDto,
   type PaymentMethodKind,
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
@@ -48,9 +52,26 @@ interface Props {
   focusServiceId: string | null;
   /** Dư nợ — money the clinic already holds for the patient. */
   heldForPatient: number;
+  /**
+   * A "Chưa thanh toán" receipt reopened from its row: "edit" saves the
+   * dialog's figures, "confirm" saves them and settles the receipt (BA
+   * 2026-10-08). Left out, the dialog writes a new receipt.
+   */
+  revision?: PaymentRevision | null;
   onClose: () => void;
   onSaved: () => void;
 }
+
+export interface PaymentRevision {
+  payment: PatientPaymentDto;
+  action: "edit" | "confirm";
+}
+
+const TITLE_KEYS = {
+  create: "Patient:Payment:CreateTitle",
+  edit: "Treatment:Payment:EditPayment",
+  confirm: "Treatment:Payment:ConfirmPayment",
+} as const;
 
 /** Chia Tiền Tự Động / Chia Tiền Thủ Công. */
 type SplitMode = "auto" | "manual";
@@ -98,11 +119,16 @@ export function CreatePaymentDialog({
   plan,
   focusServiceId,
   heldForPatient,
+  revision = null,
   onClose,
   onSaved,
 }: Props) {
   const staffId = useAuthStore((state) => state.user?.id) ?? "";
   const record = useRecordPayment();
+  const update = useUpdatePayment();
+  const confirm = useConfirmPayment();
+  const intent = revision?.action ?? "create";
+  const saving = record.isPending || update.isPending || confirm.isPending;
 
   const [picked, setPicked] = useState<string[]>([]);
   const [mode, setMode] = useState<SplitMode>("auto");
@@ -115,11 +141,12 @@ export function CreatePaymentDialog({
   const [keyword, setKeyword] = useState("");
 
   // Only lines that still owe something can be paid; a settled one has nothing
-  // for the dialog to collect.
-  const lines = useMemo(
-    () => (plan?.services ?? []).filter((line) => line.outstandingAmount > 0),
-    [plan],
-  );
+  // for the dialog to collect. A receipt being reopened keeps its own lines in
+  // view even when another receipt has since settled them, so they can be unticked.
+  const lines = useMemo(() => {
+    const onReceipt = new Set(revision?.payment.lines.map((line) => line.treatmentServiceId));
+    return (plan?.services ?? []).filter((line) => line.outstandingAmount > 0 || onReceipt.has(line.id));
+  }, [plan, revision]);
   const visible = useMemo(() => {
     const needle = keyword.trim().toLocaleLowerCase("vi");
     if (!needle) return lines;
@@ -130,6 +157,21 @@ export function CreatePaymentDialog({
 
   useEffect(() => {
     if (!open) return;
+    setSearching(false);
+    setKeyword("");
+    const payment = revision?.payment;
+    if (payment) {
+      // The receipt as it was written; a pending one counts nowhere, so every
+      // line's Còn nợ is still the whole of what it owes.
+      setPicked(payment.lines.map((line) => line.treatmentServiceId));
+      setMode(payment.splitMode === SPLIT_MODE.Manual ? "manual" : "auto");
+      setAmount(payment.amount);
+      setManual(Object.fromEntries(payment.lines.map((line) => [line.treatmentServiceId, line.amount])));
+      setMethod(payment.method);
+      setAccountId(payment.paymentAccountId ?? undefined);
+      setNote(payment.note ?? "");
+      return;
+    }
     const focused = lines.find((line) => line.id === focusServiceId);
     setPicked(focused ? [focused.id] : []);
     setMode("auto");
@@ -138,9 +180,7 @@ export function CreatePaymentDialog({
     setMethod(PAYMENT_METHOD.Cash);
     setAccountId(undefined);
     setNote("");
-    setSearching(false);
-    setKeyword("");
-  }, [open, focusServiceId, lines]);
+  }, [open, focusServiceId, lines, revision]);
 
   const chosen = lines.filter((line) => picked.includes(line.id));
   const chosenDue = chosen.reduce((sum, line) => sum + line.outstandingAmount, 0);
@@ -209,34 +249,43 @@ export function CreatePaymentDialog({
       return;
     }
 
-    try {
-      // One receipt naming every chosen service, as the reference posts it.
-      // Tự động leaves the split to the server, which is the only side that
-      // knows what each line still owes.
-      await record.mutateAsync({
-        patientId,
-        clinicBranchId: branchId,
-        treatmentPlanId: plan.id,
-        treatmentServiceIds: chosen.map((line) => line.id),
-        splitMode: mode === "auto" ? SPLIT_MODE.Auto : SPLIT_MODE.Manual,
-        items:
-          mode === "manual"
-            ? chosen
-                .map((line) => ({
-                  treatmentServiceId: line.id,
-                  amount: shareOf(line) ?? 0,
-                }))
-                .filter((item) => item.amount > 0)
-            : undefined,
-        kind: PAYMENT_KIND.Payment,
-        method,
-        amount: total,
-        staffId,
-        note: note.trim() || undefined,
-        paymentAccountId: needsAccount ? accountId : undefined,
-      });
+    // One receipt naming every chosen service, as the reference posts it.
+    // Tự động leaves the split to the server, which is the only side that
+    // knows what each line still owes.
+    const figures = {
+      treatmentServiceIds: chosen.map((line) => line.id),
+      splitMode: mode === "auto" ? SPLIT_MODE.Auto : SPLIT_MODE.Manual,
+      items:
+        mode === "manual"
+          ? chosen
+              .map((line) => ({ treatmentServiceId: line.id, amount: shareOf(line) ?? 0 }))
+              .filter((item) => item.amount > 0)
+          : [],
+      method,
+      amount: total,
+    };
+    const trimmedNote = note.trim() || undefined;
+    const account = needsAccount ? accountId : undefined;
 
-      toast.success(t("Patient:Payment:CreateSuccess"));
+    try {
+      if (revision) {
+        const body = { id: revision.payment.id, ...figures, note: trimmedNote ?? null, paymentAccountId: account ?? null };
+        const confirming = revision.action === "confirm";
+        await (confirming ? confirm : update).mutateAsync(body);
+        toast.success(t(confirming ? "Treatment:Payment:ConfirmSuccess" : "Treatment:Payment:UpdateSuccess"));
+      } else {
+        await record.mutateAsync({
+          ...figures,
+          patientId,
+          clinicBranchId: branchId,
+          treatmentPlanId: plan.id,
+          kind: PAYMENT_KIND.Payment,
+          staffId,
+          note: trimmedNote,
+          paymentAccountId: account,
+        });
+        toast.success(t("Patient:Payment:CreateSuccess"));
+      }
       onSaved();
       onClose();
     } catch (error) {
@@ -245,7 +294,8 @@ export function CreatePaymentDialog({
   };
 
   const methodLabels = paymentMethodLabels();
-  const today = formatDate(new Date().toISOString());
+  // A reopened receipt keeps the day it was written ("Ngày tạo").
+  const today = formatDate(revision?.payment.creationTime ?? new Date().toISOString());
 
   return (
     <Modal
@@ -253,7 +303,7 @@ export function CreatePaymentDialog({
       // 1024px, measured off the reference's own dialog.
       width="min(1024px, calc(100vw - 48px))"
       className="pd-newpay-dialog"
-      title={t("Patient:Payment:CreateTitle")}
+      title={t(TITLE_KEYS[intent])}
       onCancel={onClose}
       destroyOnHidden
       footer={
@@ -264,12 +314,12 @@ export function CreatePaymentDialog({
           </p>
           <Button
             type="primary"
-            icon={<SaveOutlined />}
-            loading={record.isPending}
-            disabled={record.isPending}
+            icon={intent === "confirm" ? <CheckCircleOutlined /> : <SaveOutlined />}
+            loading={saving}
+            disabled={saving}
             onClick={() => void save()}
           >
-            {t("Common:Save")}
+            {intent === "confirm" ? t("Treatment:Payment:ConfirmPayment") : t("Common:Save")}
           </Button>
         </div>
       }

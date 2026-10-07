@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
+import { confirmOnRow } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: Chi tiết kế hoạch điều trị (F-38), /patient/:id/treatment-plan/:planId.
@@ -367,13 +368,22 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     expect((await collected).ok()).toBeTruthy();
     await expect(dialog).toBeHidden();
 
-    // The receipt lands in the table and the head figures move.
+    // The receipt lands in the table as "Chưa thanh toán": nothing moves yet (BA 2026-10-08).
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect(row).toBeVisible();
     paymentCode = (await row.locator("td").first().innerText()).trim();
     expect(paymentCode.length).toBeGreaterThan(0);
+    await expect(row.locator(".tp-pill")).toHaveText("Chưa thanh toán");
+    expect(await statValue(page, "Đã thanh toán")).toBe(0);
+
+    // "Xác nhận thanh toán" settles it: Hoàn tất, the head figures move, and
+    // the receipt can no longer be edited or cancelled.
+    await confirmOnRow(page, paymentCode);
     await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(paidAmount);
+    await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${paymentCode}` })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: `Huỷ phiếu ${paymentCode}` })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: `Xác nhận thanh toán phiếu ${paymentCode}` })).toHaveCount(0);
 
     await row.getByRole("button", { name: `Xem phiếu ${paymentCode}` }).click();
     const receipt = page.getByRole("dialog", { name: "Chi tiết phiếu" });
@@ -961,7 +971,10 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     );
     await payDialog.locator(".pd-newpay-amount").fill(String(due));
     await payDialog.getByRole("button", { name: "Lưu" }).click();
-    expect((await collected).ok()).toBeTruthy();
+    const written = await collected;
+    expect(written.ok()).toBeTruthy();
+    await expect(payDialog).toBeHidden();
+    await confirmOnRow(page, ((await written.json()) as { code: string }).code);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(due);
 
     // Convert it, charging 1 đ, so almost everything collected is left over.
@@ -1227,8 +1240,12 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await box.fill(String(owed));
     await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Lưu" }).click();
-    expect((await collected).ok()).toBeTruthy();
+    const written = await collected;
+    expect(written.ok()).toBeTruthy();
     await expect(dialog).toBeHidden();
+    // Still "Chưa thanh toán" until it is confirmed; the slip owes it all.
+    expect(await statValue(page, "Công nợ")).toBe(owed);
+    await confirmOnRow(page, ((await written.json()) as { code: string }).code);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(owed);
     await expect.poll(() => statValue(page, "Công nợ")).toBe(0);
 

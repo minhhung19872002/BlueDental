@@ -353,24 +353,19 @@ a.pdt-crumb:hover {
   color: #e5484d;
 }
 
-/* The two read-only facts at the top of "Chỉnh sửa phiếu thanh toán". */
-.pdt-edit-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  border-radius: 8px;
-  background: var(--tp-ground);
-  padding: 10px 12px;
+/* "Xác nhận thanh toán" on a "Chưa thanh toán" row, in the primary colour. */
+.pdt-row-action--confirm {
+  color: var(--tp-blue);
 }
-.pdt-edit-facts > p {
-  margin: 0;
-  color: var(--tp-label);
-  font-size: 13px;
-  line-height: 20px;
+.pdt-row-action--confirm:hover {
+  background: var(--tp-blue-pale);
+  color: var(--tp-blue-dark);
 }
-.pdt-edit-facts b {
-  color: var(--tp-ink);
-  font-weight: 600;
+
+/* "Chưa thanh toán": written, not yet collected (BA 2026-10-08). */
+.tp-pill--pending {
+  background: var(--tp-orange-pale);
+  color: var(--tp-orange);
 }
 
 /* ── The inline new row the picker appends (Lưu / Hủy) ── */

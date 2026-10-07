@@ -1040,6 +1040,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.Method).HasConversion<short>();
             entity.Property(x => x.SplitMode).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Ignore(x => x.SignedAmount);
             entity.HasMany(x => x.Lines)

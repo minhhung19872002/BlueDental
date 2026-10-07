@@ -18,7 +18,10 @@ using BlueDental.Queue;
 using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
 using BlueDental.Zalo;
+using System;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
 using Volo.Abp.Data;
@@ -198,5 +201,29 @@ public class BlueDentalDbContext :
         builder.ConfigureFeatureManagement();
 
         builder.ConfigureBlueDental();
+    }
+
+    /// <summary>On unless a caller turns it off: see <see cref="ISettleable"/>.</summary>
+    protected bool IsSettleableFilterEnabled => DataFilter?.IsEnabled<ISettleable>() ?? false;
+
+    protected override bool ShouldFilterEntity<TEntity>(IMutableEntityType entityType)
+    {
+        return typeof(ISettleable).IsAssignableFrom(typeof(TEntity))
+            || base.ShouldFilterEntity<TEntity>(entityType);
+    }
+
+    protected override Expression<Func<TEntity, bool>>? CreateFilterExpression<TEntity>(ModelBuilder modelBuilder)
+    {
+        var expression = base.CreateFilterExpression<TEntity>(modelBuilder);
+        if (!typeof(ISettleable).IsAssignableFrom(typeof(TEntity)))
+        {
+            return expression;
+        }
+
+        Expression<Func<TEntity, bool>> settled = e =>
+            !IsSettleableFilterEnabled
+            || EF.Property<PatientPaymentStatus>(e, nameof(ISettleable.Status)) == PatientPaymentStatus.Completed;
+
+        return expression == null ? settled : QueryFilterExpressionHelper.CombineExpressions(expression, settled);
     }
 }

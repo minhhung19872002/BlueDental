@@ -19,7 +19,9 @@ export interface Receipt {
   treatmentPlanId: string;
   treatmentPlanCode: string;
   staffId: string;
-  lines: { treatmentServiceId: string }[];
+  /** 1 = "Chưa thanh toán", 2 = "Hoàn tất" (BA 2026-10-08). */
+  status: number;
+  lines: { treatmentServiceId: string; amount?: number }[];
 }
 
 /** A real request on the signed-in session, with the antiforgery header the app sends. */
@@ -92,8 +94,35 @@ export async function openNewSlip(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}\/treatment-plan\/[0-9a-f-]{36}/);
 }
 
-/** "Tạo Phiếu Thanh Toán" for half of the first line; returns the saved receipt. */
+/**
+ * "Tạo Phiếu Thanh Toán" for half of the first line, then "Xác nhận thanh
+ * toán" on its row: a new receipt waits as "Chưa thanh toán" and only the
+ * confirmed one moves money (BA 2026-10-08). Returns the confirmed receipt.
+ */
 export async function collectOnFirstLine(page: Page): Promise<Receipt> {
+  const pending = await writePendingOnFirstLine(page);
+  return confirmOnRow(page, pending.code);
+}
+
+/** "Xác nhận thanh toán" on the receipt's row, the dialog's figures left as written. */
+export async function confirmOnRow(page: Page, code: string): Promise<Receipt> {
+  await page.getByRole("button", { name: `Xác nhận thanh toán phiếu ${code}` }).click();
+  const dialog = page.getByRole("dialog", { name: "Xác nhận thanh toán" });
+  await expect(dialog).toBeVisible();
+  const confirmed = page.waitForResponse(
+    (res) => res.url().includes(PAYMENTS_API) && res.url().endsWith("/confirm") && res.request().method() === "PUT",
+  );
+  await dialog.getByRole("button", { name: "Xác nhận thanh toán" }).click();
+  const response = await confirmed;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  await expect(dialog).toBeHidden();
+  const receipt = (await response.json()) as Receipt;
+  expect(receipt.status).toBe(2);
+  return receipt;
+}
+
+/** "Tạo Phiếu Thanh Toán" for half of the first line; returns the receipt still "Chưa thanh toán". */
+export async function writePendingOnFirstLine(page: Page): Promise<Receipt> {
   await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
   const line = dialog.locator(".pd-newpay-lines > li").first();
@@ -107,5 +136,37 @@ export async function collectOnFirstLine(page: Page): Promise<Receipt> {
   const response = await saved;
   expect(response.ok()).toBeTruthy();
   await expect(dialog).toBeHidden();
-  return (await response.json()) as Receipt;
+  const receipt = (await response.json()) as Receipt;
+  expect(receipt.status).toBe(1);
+  return receipt;
+}
+
+/** The body PUT …/{id} and PUT …/{id}/confirm take: the receipt's own figures unless overridden. */
+export function revisionOf(receipt: Receipt & { splitMode?: number; note?: string | null; paymentAccountId?: string | null }, amount = receipt.amount) {
+  const splitMode = receipt.splitMode ?? 1;
+  return {
+    treatmentServiceIds: receipt.lines.map((line) => line.treatmentServiceId),
+    splitMode,
+    // Thủ công (2) names each line's share; Tự động leaves the split to the server.
+    items: splitMode === 2 ? receipt.lines.map((line) => ({ treatmentServiceId: line.treatmentServiceId, amount: line.amount ?? 0 })) : [],
+    method: receipt.method,
+    amount,
+    note: receipt.note ?? null,
+    paymentAccountId: receipt.paymentAccountId ?? null,
+  };
+}
+
+/**
+ * "Xác nhận thanh toán" through the API, the receipt's figures unchanged. For
+ * receipts written where the screen offers no confirm button (the patient
+ * record's treatment tab); the button itself lives on the plan's Thanh toán tab.
+ */
+export async function confirmAsWritten(page: Page, receipt: Receipt): Promise<Receipt> {
+  const confirmed = await call(page, `${PAYMENTS_API}/${receipt.id}/confirm`, {
+    method: "PUT",
+    json: revisionOf(receipt),
+  });
+  expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
+  expect(confirmed.body.status).toBe(2);
+  return confirmed.body as unknown as Receipt;
 }

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { collectOnFirstLine, openNewSlip } from "./fixtures/ledgerReceipt";
+import { openNewSlip, revisionOf, writePendingOnFirstLine } from "./fixtures/ledgerReceipt";
 import { openShiftCovering } from "./fixtures/workShift";
 
 /**
@@ -138,31 +138,30 @@ test.describe("26 + 28 · Thanh toán: no future date; cancelling needs a reason
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
     await expect(page).toHaveURL(/planTab=payment-v2/);
-    const receipt = await collectOnFirstLine(page);
+    // A "Hoàn tất" receipt is final (BA 2026-10-08), so this one stays "Chưa thanh toán".
+    const receipt = await writePendingOnFirstLine(page);
 
-    // ── 26: the server refuses tomorrow; the picker does not offer it ──
+    // ── 26: the receipt keeps the day it was written. Since the BA's
+    // 2026-10-08 rework the edit dialog shows that day and offers no picker,
+    // and a date smuggled into the edit is not taken. ──
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const moved = await call<AbpError>(page, "PUT", `${PAYMENTS}/${receipt.id}`, {
-      method: receipt.method,
+    const moved = await call<{ paidAt: string }>(page, "PUT", `${PAYMENTS}/${receipt.id}`, {
+      ...revisionOf(receipt),
       paidAt: tomorrow.toISOString(),
     });
-    expect(moved.status).toBeGreaterThanOrEqual(400);
-    expect(moved.body.error?.code).toBe("BlueDental:Billing:0094");
+    expect(moved.status).toBe(200);
+    expect(new Date(moved.body.paidAt).getTime()).toBeLessThanOrEqual(Date.now());
 
     const row = page.locator("tr.ant-table-row", { hasText: receipt.code });
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.getByRole("button", { name: `Chỉnh sửa phiếu ${receipt.code}` }).click();
-    const editor = page.getByRole("dialog");
-    await editor.getByLabel("Ngày tạo").click();
+    const editor = page.getByRole("dialog", { name: "Chỉnh sửa phiếu thanh toán" });
+    await expect(editor).toBeVisible();
+    await expect(editor.locator(".ant-picker")).toHaveCount(0);
     const pad = (n: number) => String(n).padStart(2, "0");
-    const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    const panel = page.locator(".ant-picker-dropdown:visible");
-    await expect(panel.locator(`td[title="${iso(new Date())}"]`)).not.toHaveClass(/ant-picker-cell-disabled/);
-    if (tomorrow.getMonth() === new Date().getMonth()) {
-      await expect(panel.locator(`td[title="${iso(tomorrow)}"]`)).toHaveClass(/ant-picker-cell-disabled/);
-    }
-    await page.keyboard.press("Escape");
+    const now = new Date();
+    await expect(editor).toContainText(`${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`);
     await editor.getByRole("button", { name: /Huỷ|Đóng/ }).first().click();
 
     // ── 28: no reason, no cancel ──
@@ -189,7 +188,9 @@ test.describe("26 + 28 · Thanh toán: no future date; cancelling needs a reason
     await expect(row.getByRole("button", { name: `Huỷ phiếu ${receipt.code}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${receipt.code}` })).toHaveCount(0);
 
-    // Nothing that adds money up counts it; the tab's own list keeps it.
+    // Nothing that adds money up counts it; the tab's own list keeps it. It was
+    // cancelled while still "Chưa thanh toán", so like the tab the list asks
+    // for pending receipts too.
     const counted = await call<{ items: { id: string }[] }>(
       page,
       "GET",
@@ -199,7 +200,7 @@ test.describe("26 + 28 · Thanh toán: no future date; cancelling needs a reason
     const listed = await call<{ items: { id: string; isDeleted: boolean; cancelReason: string; deleterId: string }[] }>(
       page,
       "GET",
-      `${PAYMENTS}?patientId=${receipt.patientId}&treatmentPlanId=${receipt.treatmentPlanId}&includeCancelled=true&maxResultCount=200`,
+      `${PAYMENTS}?patientId=${receipt.patientId}&treatmentPlanId=${receipt.treatmentPlanId}&includeCancelled=true&includePending=true&maxResultCount=200`,
     );
     const kept = listed.body.items.find((p) => p.id === receipt.id);
     expect(kept?.isDeleted).toBe(true);
