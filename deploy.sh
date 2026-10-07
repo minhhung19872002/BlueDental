@@ -15,10 +15,10 @@ echo "==> [2/6] Build image api + frontend (co the mat 5-10 phut lan dau)"
 docker compose build --pull api frontend migrator
 
 echo
-echo "==> [3/6] Khoi dong infra (postgres, redis, minio, clamav)"
-docker compose up -d postgres redis minio clamav
+echo "==> [3/6] Khoi dong infra (postgres, redis, minio, clamav, gotenberg)"
+docker compose up -d postgres redis minio clamav gotenberg
 echo "    Cho healthcheck..."
-for svc in postgres redis minio clamav; do
+for svc in postgres redis minio clamav gotenberg; do
   for _ in $(seq 1 60); do
     st=$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q $svc)" 2>/dev/null || echo starting)
     [[ "$st" == healthy ]] && break
