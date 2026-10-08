@@ -14,7 +14,7 @@ Ngày kiểm tra: **03/09/2026**
 | Hoàn thiện (BE + FE + Test) | **60** |
 | Một phần (có BE hoặc FE, thiếu phần kia) | **21** |
 | Chưa triển khai | **42** |
-| **Tiến độ weighted** | **57.3%** |
+| **Tiến độ weighted** | **58.9%** |
 
 > Tính weighted: Hoàn thiện = 100%, Một phần = 50%, Chưa có = 0%.
 > Tính theo feature có code: (60 + 21) / 123 = 65.9%.
@@ -57,7 +57,7 @@ Ngày kiểm tra: **03/09/2026**
 |---|---|---|---|---|---|
 | 1. Lịch hẹn | 11 | 6 | 2 | 3 | 63.6% |
 | 2. Chăm sóc | 10 | 8 | 2 | 0 | 90.0% |
-| 3. Thẻ trả trước | 2 | 0 | 0 | 2 | **0.0%** |
+| 3. Thẻ trả trước | 2 | 2 | 0 | 0 | **100%** |
 | 4. Khách hàng | 28 | 17 | 3 | 8 | 66.1% |
 | 5. Kế toán | 7 | 3 | 3 | 1 | 64.3% |
 | 6. Dịch vụ | 7 | 1 | 0 | 6 | **14.3%** |
@@ -71,7 +71,7 @@ Ngày kiểm tra: **03/09/2026**
 | 14. Form in | 1 | 0 | 1 | 0 | 50.0% |
 | 15. Media | 1 | 1 | 0 | 0 | 100% |
 | 16. Báo cáo | 13 | 6 | 5 | 2 | 65.4% |
-| **TỔNG** | **123** | **60** | **21** | **42** | **57.3%** |
+| **TỔNG** | **123** | **62** | **21** | **40** | **58.9%** |
 
 ---
 
@@ -112,8 +112,8 @@ Ngày kiểm tra: **03/09/2026**
 
 | TT | Chức năng | BE | FE | Trạng thái | Ghi chú |
 |---|---|---|---|---|---|
-| 1 | Tạo thẻ trả trước | ❌ | ❌ | **Chưa có** | Không có PrepaidCard entity |
-| 2 | Tình trạng thẻ | ❌ | ❌ | **Chưa có** | |
+| 1 | Tạo thẻ trả trước | ✅ | ✅ | Hoàn thiện | F-63 (2026-10-08): `PrepaidCardType` + `PrepaidCard`, /prepaid-card tab Loại thẻ + Bán thẻ; hoa hồng vào Bảng lương |
+| 2 | Tình trạng thẻ | ✅ | ✅ | Hoàn thiện | F-63: danh sách thẻ + sổ giao dịch, nạp thêm, khoá; thanh toán bằng thẻ trong "Tạo phiếu thanh toán" |
 
 ### 4. Khách hàng (Bệnh nhân) — 28 chức năng
 

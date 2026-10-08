@@ -58,6 +58,12 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     /// </summary>
     public Guid? PaymentAccountId { get; private set; }
 
+    /// <summary>
+    /// The Thẻ trả trước a <see cref="PaymentMethodKind.PrepaidCard"/> receipt is
+    /// paid from (BlueDental-local, cụm 3); null on every other method.
+    /// </summary>
+    public Guid? PrepaidCardId { get; private set; }
+
     public const int MaxCancelReasonLength = 500;
 
     /// <summary>
@@ -98,7 +104,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         PaymentSplitMode splitMode = PaymentSplitMode.Auto,
         IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines = null,
         Func<Guid>? lineIdFactory = null,
-        PatientPaymentStatus status = PatientPaymentStatus.Completed)
+        PatientPaymentStatus status = PatientPaymentStatus.Completed,
+        Guid? prepaidCardId = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
 
@@ -134,6 +141,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         // one of the clinic's accounts is picked, so the record keeps that rule.
         // A refund goes the other way — its dialog only names the channel.
         EnsureAccount(kind, method, paymentAccountId);
+        EnsureCard(kind, method, prepaidCardId);
 
         var payment = new PatientPayment
         {
@@ -149,6 +157,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
             PaidAt = paidAt,
             Note = note,
             PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null,
+            PrepaidCardId = method == PaymentMethodKind.PrepaidCard ? prepaidCardId : null,
             SplitMode = splitMode,
             Status = status
         };
@@ -183,6 +192,25 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired,
                 "A bank or e-wallet payment must name the account it was collected into.");
+        }
+    }
+
+    /// <summary>
+    /// A card pays a slip's services, so only a payment can name one — and a
+    /// payment by card must say which card.
+    /// </summary>
+    private static void EnsureCard(PatientPaymentKind kind, PaymentMethodKind method, Guid? prepaidCardId)
+    {
+        if (method != PaymentMethodKind.PrepaidCard)
+        {
+            return;
+        }
+
+        if (kind != PatientPaymentKind.Payment || !prepaidCardId.HasValue)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PrepaidCard.CardRequired,
+                "A receipt paid by prepaid card must be a payment naming the card.");
         }
     }
 
@@ -329,7 +357,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         Guid? paymentAccountId,
         string? note,
         IEnumerable<(Guid TreatmentServiceId, decimal Amount)> lines,
-        Func<Guid> lineIdFactory)
+        Func<Guid> lineIdFactory,
+        Guid? prepaidCardId = null)
     {
         EnsurePending();
 
@@ -341,11 +370,13 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         }
 
         EnsureAccount(Kind, method, paymentAccountId);
+        EnsureCard(Kind, method, prepaidCardId);
 
         SplitMode = splitMode;
         Method = method;
         Amount = amount;
         PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null;
+        PrepaidCardId = method == PaymentMethodKind.PrepaidCard ? prepaidCardId : null;
         Note = note;
         ReplaceLines(lines, lineIdFactory);
         return this;

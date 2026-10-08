@@ -1,0 +1,189 @@
+/* Thẻ trả trước (cụm 3) — BlueDental-local */
+.prepaid-views {
+  margin-bottom: 12px;
+}
+
+.prepaid-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.prepaid-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 12px;
+  background: var(--bd-card);
+}
+
+.prepaid-tile span {
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.prepaid-tile strong {
+  color: var(--bd-title);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.prepaid-panel {
+  overflow: hidden;
+}
+
+.prepaid-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.prepaid-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.prepaid-search {
+  width: 280px;
+}
+
+.prepaid-filter {
+  width: 200px;
+}
+
+.prepaid-hint {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.prepaid-muted {
+  color: var(--bd-muted);
+}
+
+.prepaid-link.ant-btn {
+  padding: 0;
+  height: auto;
+  font-weight: 600;
+}
+
+.prepaid-row-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.prepaid-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+}
+
+.prepaid-form-switches {
+  display: flex;
+  gap: 32px;
+}
+
+.prepaid-number {
+  width: 100%;
+}
+
+.prepaid-commission {
+  display: flex;
+  gap: 8px;
+}
+
+.prepaid-commission > :last-child {
+  flex: 1;
+}
+
+.prepaid-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bd-bg-soft);
+}
+
+.prepaid-term {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.prepaid-term span {
+  color: var(--bd-muted);
+}
+
+.prepaid-members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prepaid-members__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prepaid-members-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.prepaid-members-editor .prepaid-members {
+  width: 100%;
+}
+
+.prepaid-drawer-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.prepaid-section-title {
+  margin: 20px 0 8px;
+  color: var(--bd-title);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.prepaid-credit {
+  color: var(--bd-green);
+  font-weight: 500;
+}
+
+.prepaid-debit {
+  color: var(--bd-red);
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .prepaid-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .prepaid-tiles,
+  .prepaid-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .prepaid-search,
+  .prepaid-filter {
+    width: 100%;
+  }
+}

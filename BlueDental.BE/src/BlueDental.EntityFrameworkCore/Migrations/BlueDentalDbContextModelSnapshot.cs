@@ -580,6 +580,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("PaymentAccountId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PrepaidCardId")
+                        .HasColumnType("uuid");
+
                     b.Property<short>("SplitMode")
                         .HasColumnType("smallint");
 
@@ -595,6 +598,8 @@ namespace BlueDental.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PaymentAccountId");
+
+                    b.HasIndex("PrepaidCardId");
 
                     b.HasIndex("TreatmentPlanId");
 
@@ -5282,6 +5287,287 @@ namespace BlueDental.Migrations
                         .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("bd_patient_relationships", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.PrepaidCards.PrepaidCard", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowFamily")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CardTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("CommissionAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<Guid[]>("MemberPatientIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("MemberPatientIds");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("OwnerPatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("SalePrice")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("SellerStaffId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<Guid[]>("ServiceGroupIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("ServiceGroupIds");
+
+                    b.PrimitiveCollection<Guid[]>("ServiceIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("ServiceIds");
+
+                    b.Property<DateTimeOffset>("SoldAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("TotalLoaded")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UsageValue")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("UsedCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardTypeId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerPatientId");
+
+                    b.HasIndex("ClinicBranchId", "SoldAt");
+
+                    b.ToTable("bd_prepaid_cards", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.PrepaidCards.PrepaidCardTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<short?>("Method")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PatientPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PaymentAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PrepaidCardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Type")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientPaymentId");
+
+                    b.HasIndex("PrepaidCardId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("bd_prepaid_card_transactions", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.PrepaidCards.PrepaidCardType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowFamily")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("CommissionType")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("CommissionValue")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<bool>("IsOnSale")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("SalePrice")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.PrimitiveCollection<Guid[]>("ServiceGroupIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("ServiceGroupIds");
+
+                    b.PrimitiveCollection<Guid[]>("ServiceIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("ServiceIds");
+
+                    b.Property<decimal>("UsageValue")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId");
+
+                    b.ToTable("bd_prepaid_card_types", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.Promotions.Voucher", b =>
@@ -10057,6 +10343,15 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.PrepaidCards.PrepaidCardTransaction", b =>
+                {
+                    b.HasOne("BlueDental.PrepaidCards.PrepaidCard", null)
+                        .WithMany("Transactions")
+                        .HasForeignKey("PrepaidCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlueDental.Staff.OrgUnit", b =>
                 {
                     b.HasOne("BlueDental.Staff.OrgUnit", null)
@@ -10668,6 +10963,11 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.PatientManagement.PatientGroup", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("BlueDental.PrepaidCards.PrepaidCard", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("BlueDental.Staff.PayrollPeriod", b =>

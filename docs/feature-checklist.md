@@ -35,8 +35,8 @@ Kiểm tra lần cuối: 2026-10-08
 
 ## 3. THẺ TRẢ TRƯỚC (Quản lý thẻ & việc sử dụng thẻ)
 
-- [ ] 3.1 Tạo thẻ trả trước — Khởi tạo, bán và phát hành thẻ. Thẻ có thể áp dụng cho thành viên trong gia đình hoặc không áp dụng. Cài đặt số lần tối đa sử dụng, hoa hồng khi bán, giá trị bán - giá trị sử dụng và các dịch vụ, nhóm dịch vụ được sử dụng thẻ.
-- [ ] 3.2 Tình trạng thẻ — Quản lý & ghi nhận tình trạng sử dụng thẻ của từng khách hàng. Topup giá trị sử dụng thẻ.
+- [x] 3.1 Tạo thẻ trả trước — Khởi tạo, bán và phát hành thẻ. Thẻ có thể áp dụng cho thành viên trong gia đình hoặc không áp dụng. Cài đặt số lần tối đa sử dụng, hoa hồng khi bán, giá trị bán - giá trị sử dụng và các dịch vụ, nhóm dịch vụ được sử dụng thẻ.
+- [x] 3.2 Tình trạng thẻ — Quản lý & ghi nhận tình trạng sử dụng thẻ của từng khách hàng. Topup giá trị sử dụng thẻ.
 
 ## 4. KHÁCH HÀNG (Thống kê danh sách khách hàng phát sinh lịch hẹn, Checked in, phát sinh dịch vụ và thanh toán)
 
@@ -187,7 +187,7 @@ Kiểm tra lần cuối: 2026-10-08
 |---|---|---|---|
 | 1. Lịch hẹn | 11 | 10 | 1 |
 | 2. Chăm sóc | 10 | 9 | 1 |
-| 3. Thẻ trả trước | 2 | 0 | 2 |
+| 3. Thẻ trả trước | 2 | 2 | 0 |
 | 4. Khách hàng | 28 | 19 | 9 |
 | 5. Kế toán | 7 | 2 | 5 |
 | 6. Dịch vụ | 7 | 3 | 4 |
@@ -201,4 +201,4 @@ Kiểm tra lần cuối: 2026-10-08
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 6 | 7 |
-| **Tổng cộng** | **123** | **79** | **44** |
+| **Tổng cộng** | **123** | **81** | **42** |

@@ -32,6 +32,9 @@ public class PaymentStatSummaryDto
     /// <summary>Ví điện tử — the reference's "BE:PaymentKind:Momo".</summary>
     public decimal ByEWallet { get; set; }
 
+    /// <summary>Paid from a Thẻ trả trước (BlueDental-local, cụm 3).</summary>
+    public decimal ByPrepaidCard { get; set; }
+
     public decimal RefundByCash { get; set; }
     public decimal RefundByBanking { get; set; }
     public decimal RefundByCard { get; set; }

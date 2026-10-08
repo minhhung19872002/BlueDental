@@ -29,6 +29,7 @@ export const refundMethodLabels = (): Record<PaymentMethodKind, string> => ({
   [PAYMENT_METHOD.Card]: t("Treatment:Payment:Card"),
   [PAYMENT_METHOD.EWallet]: t("Treatment:Payment:EWallet"),
   [PAYMENT_METHOD.OutstandingDebt]: t("Treatment:Debt:Outstanding"),
+  [PAYMENT_METHOD.PrepaidCard]: t("Treatment:Payment:PrepaidCard"),
 });
 
 /** One row of the refund table: the line, what it can still give back, what was typed. */

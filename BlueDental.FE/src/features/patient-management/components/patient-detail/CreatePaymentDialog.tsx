@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button, Checkbox, Input, Modal } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AccountBookOutlined,
   BankOutlined,
   CreditCardOutlined,
   DollarOutlined,
   FileTextOutlined,
+  IdcardOutlined,
   InfoCircleOutlined,
   ProfileOutlined,
   CheckCircleOutlined,
@@ -22,6 +24,7 @@ import {
   usePaymentAccountOptions,
   type PaymentAccountKindCode,
 } from "@/hooks/usePaymentAccountOptions";
+import { prepaidCardOptionKeys, usePrepaidCardOptions } from "@/hooks/usePrepaidCardOptions";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
@@ -40,6 +43,7 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
+import { PrepaidCardChoice } from "./PrepaidCardChoice";
 import "./patient-detail.css";
 
 interface Props {
@@ -82,7 +86,11 @@ const METHOD_ICONS: Record<PaymentMethodKind, ReactNode> = {
   [PAYMENT_METHOD.EWallet]: <WalletOutlined />,
   [PAYMENT_METHOD.Card]: <CreditCardOutlined />,
   [PAYMENT_METHOD.OutstandingDebt]: <AccountBookOutlined />,
+  [PAYMENT_METHOD.PrepaidCard]: <IdcardOutlined />,
 };
+
+/** The reference's five pills, then BlueDental's Thẻ trả trước (cụm 3). */
+const METHODS: PaymentMethodKind[] = [...PAYMENT_METHOD_ORDER, PAYMENT_METHOD.PrepaidCard];
 
 const NOTE_LIMIT = 500;
 
@@ -124,6 +132,7 @@ export function CreatePaymentDialog({
   onSaved,
 }: Props) {
   const staffId = useAuthStore((state) => state.user?.id) ?? "";
+  const queryClient = useQueryClient();
   const record = useRecordPayment();
   const update = useUpdatePayment();
   const confirm = useConfirmPayment();
@@ -137,6 +146,7 @@ export function CreatePaymentDialog({
   const [method, setMethod] = useState<PaymentMethodKind>(PAYMENT_METHOD.Cash);
   const [note, setNote] = useState("");
   const [accountId, setAccountId] = useState<string>();
+  const [cardId, setCardId] = useState<string>();
   const [searching, setSearching] = useState(false);
   const [keyword, setKeyword] = useState("");
 
@@ -169,6 +179,7 @@ export function CreatePaymentDialog({
       setManual(Object.fromEntries(payment.lines.map((line) => [line.treatmentServiceId, line.amount])));
       setMethod(payment.method);
       setAccountId(payment.paymentAccountId ?? undefined);
+      setCardId(payment.prepaidCardId ?? undefined);
       setNote(payment.note ?? "");
       return;
     }
@@ -179,6 +190,7 @@ export function CreatePaymentDialog({
     setManual({});
     setMethod(PAYMENT_METHOD.Cash);
     setAccountId(undefined);
+    setCardId(undefined);
     setNote("");
   }, [open, focusServiceId, lines, revision]);
 
@@ -204,6 +216,18 @@ export function CreatePaymentDialog({
   const needsAccount = accountKind !== null;
   const missingAccount = needsAccount && !accountId;
 
+  const payingByCard = method === PAYMENT_METHOD.PrepaidCard;
+  const cardOptions = usePrepaidCardOptions(patientId, open && payingByCard);
+  const cards = cardOptions.data ?? [];
+  const card = cards.find((option) => option.id === cardId);
+  /**
+   * What the card can still give this receipt. A receipt being reopened has
+   * already taken its own amount off the card, so that is added back.
+   */
+  const cardRoom = card
+    ? card.balance + (revision?.payment.prepaidCardId === card.id ? revision.payment.amount : 0)
+    : 0;
+
   /**
    * What Tự động offers before anything is typed — the reference prefills the
    * box with the whole of what is owed, and caps Dư nợ at the balance actually
@@ -212,7 +236,9 @@ export function CreatePaymentDialog({
   const autoDefault =
     method === PAYMENT_METHOD.OutstandingDebt
       ? Math.min(Math.max(heldForPatient, 0), Math.max(chosenDue, 0))
-      : Math.max(chosenDue, 0);
+      : payingByCard
+        ? Math.min(cardRoom, Math.max(chosenDue, 0))
+        : Math.max(chosenDue, 0);
   /**
    * That default is also the ceiling: the receipt can never collect more than
    * the ticked services still owe, VAT included (bug list item 24). Unticking
@@ -248,6 +274,14 @@ export function CreatePaymentDialog({
       toast.error(t("Patient:Payment:SelectMethod"));
       return;
     }
+    if (payingByCard && !card) {
+      toast.error(t("PrepaidCard:Pay:SelectCard"));
+      return;
+    }
+    if (payingByCard && total > cardRoom) {
+      toast.error(t("PrepaidCard:Pay:OverBalance"));
+      return;
+    }
 
     // One receipt naming every chosen service, as the reference posts it.
     // Tự động leaves the split to the server, which is the only side that
@@ -263,6 +297,7 @@ export function CreatePaymentDialog({
           : [],
       method,
       amount: total,
+      prepaidCardId: payingByCard ? cardId : undefined,
     };
     const trimmedNote = note.trim() || undefined;
     const account = needsAccount ? accountId : undefined;
@@ -286,6 +321,7 @@ export function CreatePaymentDialog({
         });
         toast.success(t("Patient:Payment:CreateSuccess"));
       }
+      if (payingByCard) await queryClient.invalidateQueries({ queryKey: prepaidCardOptionKeys.all });
       onSaved();
       onClose();
     } catch (error) {
@@ -509,7 +545,7 @@ export function CreatePaymentDialog({
               <CreditCardOutlined /> {t("Patient:Payment:MethodHeader")}
             </h4>
             <div className="pd-newpay-methods">
-              {PAYMENT_METHOD_ORDER.map((kind) => (
+              {METHODS.map((kind) => (
                 <button
                   type="button"
                   key={kind}
@@ -517,6 +553,7 @@ export function CreatePaymentDialog({
                   onClick={() => {
                     setMethod(kind);
                     setAccountId(undefined);
+                    setCardId(undefined);
                   }}
                 >
                   <i>{METHOD_ICONS[kind]}</i>
@@ -572,6 +609,15 @@ export function CreatePaymentDialog({
                   ))
                 )}
               </div>
+            ) : null}
+            {payingByCard ? (
+              <PrepaidCardChoice
+                cards={cards}
+                loading={cardOptions.isLoading}
+                patientId={patientId}
+                value={cardId}
+                onChange={setCardId}
+              />
             ) : null}
             {overpaid ? (
               <p className="pd-newpay-error">

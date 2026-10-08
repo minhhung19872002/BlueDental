@@ -62,7 +62,8 @@ public class PaymentLedgerAppService : BlueDentalAppService, IPaymentLedgerAppSe
         [PaymentMethodKind.Banking] = "Treatment:Payment:Banking",
         [PaymentMethodKind.EWallet] = "Treatment:Payment:EWallet",
         [PaymentMethodKind.Card] = "Treatment:Payment:Card",
-        [PaymentMethodKind.OutstandingDebt] = "Treatment:Debt:OutstandingDebt"
+        [PaymentMethodKind.OutstandingDebt] = "Treatment:Debt:OutstandingDebt",
+        [PaymentMethodKind.PrepaidCard] = "Treatment:Payment:PrepaidCard"
     };
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]

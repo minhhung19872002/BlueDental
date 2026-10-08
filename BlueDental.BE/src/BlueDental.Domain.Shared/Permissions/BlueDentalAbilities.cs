@@ -129,6 +129,7 @@ public static class BlueDentalAbilities
         public const string Payroll = "payroll";
         public const string OrgChart = "orgChart";
         public const string PatientGroup = "patientGroup";
+        public const string PrepaidCard = "prepaidCard";
         public const string ToolCall = "toolCall";
         public const string ToolMessage = "toolMessage";
         public const string TreatmentConsultation = "treatmentConsultation";
@@ -242,6 +243,9 @@ public static class BlueDentalAbilities
         ["orgChart"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         // BlueDental-local: Hồ sơ nhóm (4.10) has no counterpart on the reference.
         ["patientGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
+        // BlueDental-local: Thẻ trả trước (cụm 3) has no counterpart on the reference.
+        // Create = sell a card or add a card type; Update = top up, members, lock, edit a type.
+        ["prepaidCard"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],

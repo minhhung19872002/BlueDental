@@ -7739,3 +7739,27 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 - Hồi quy: `queue`, `prescription-allergy`, `stage-treatment-date`, `role-permissions-unsaved`, `auth`, `header-navigation` → 25 xanh, 4 đỏ. Cả 4 đỏ y hệt khi **không có** thay đổi này, tức là lỗi có sẵn: header-navigation "signing in opens Tiếp nhận", "below 1100px…drawer", lần đổi ngôn ngữ thứ hai trong "account menu toggles…"; queue "the counter's page lists its queue…".
 
 **Ghi nhận thêm (chưa sửa):** khi OS bật giảm chuyển động (`prefers-reduced-motion: reduce`, ví dụ Windows tắt "Animation effects"), antd 6.6.1 tắt animation bằng CSS. Vòng đời motion của popup khi đó không bao giờ kết thúc (`inMotion` kẹt), nên dropdown không được định vị (nằm ở −16000px, không thấy). Đặt `theme.token.motion = false` không cứu được, nên đã bỏ cách đó.
+## 2026-10-08 — Cụm 3: Thẻ trả trước (R-853, R-854, F-63)
+
+BlueDental riêng; quyết định ghi ở `docs/clone/pages/prepaid-card.md`.
+
+| ID | Vấn đề / yêu cầu | Xử lý |
+|---|---|---|
+| R-853 | Trang `/prepaid-card` sập ngay khi mở (React #310): `Form.useWatch` gọi trong callback `.find()` của dialog Bán thẻ — dialog luôn được mount nên số hook đổi giữa các lần render. | Đưa `useWatch` ra đầu component. |
+| R-854 | Thêm mục "Thẻ trả trước" vào nhóm Tài chính làm lệch 2 danh sách ribbon trong `header-navigation.spec.ts`. | Cập nhật 2 danh sách (Thanh toán · Voucher · Thẻ trả trước · Báo cáo). Ca drawer (chờ 14, thực tế 16 trước thay đổi này, nay 17) vẫn là R-677, không sửa ở đây. |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, đăng nhập thật, không chặn API): `prepaid-card` **3/3**.
+BE: Domain.Tests **789** (mới `PrepaidCardTests` 15), Application.Tests **703** (mới `PrepaidCardAppServiceContractTests`,
+`CrossBranchDenialTests` thêm `PrepaidCardAppService`), HttpApi.Host.Tests **24**. Migration `PrepaidCards` (3 bảng + cột
+`bd_patient_payments.PrepaidCardId`). tsc + oxlint + eslint sạch; Vitest 3/3.
+Hồi quy mức 3 (luồng thanh toán dùng chung, Bảng lương, báo cáo, menu, cây phân quyền: `payment-amount-cap`, `payment-status`,
+`payment-permission-buttons`, `payment-receipt-pdf`, `debt-history`, `billing-ledger`, `treatment-plan-detail`, `payroll`, `report`,
+`finance`, `routes`, `role-permissions-tree`, `role-permissions-abilities`, `header-navigation`, `vat-payment-einvoice-api`,
+`qa-bugs-25-30`): **60 xanh, 13 đỏ** lần 1; sau R-854 chạy lại các ca đỏ — còn đỏ:
+- đã ghi nhận từ trước: `header-navigation` 3 (R-677), `role-permissions-abilities` (dữ liệu role `dentist` local, R-725..R-727),
+  `routes` `/timekeeping`, `payment-permission-buttons:198` (Esc đóng "Chi tiết phiếu"), `report:294` (cột Excel đã đổi
+  "Phương thức thanh toán" → "Hình thức");
+- **chưa đối chứng với bản trước thay đổi**, nằm ngoài vùng code của F-63: `qa-bugs-25-30:99` (check-in lịch hẹn ngày mai trả 200),
+  `report:377` / `report:574` (nút Xoá / Hủy giao dịch trong modal "element is not stable"), `treatment-plan-detail:575` (kéo-thả
+  dòng dịch vụ; 6 ca sau bị bỏ qua theo chuỗi serial).
+Retest level **3**.

@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
+using BlueDental.Catalogs;
 using BlueDental.EInvoicing;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.PrepaidCards;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -32,6 +34,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     private readonly PatientMoneyCalculator _money;
     private readonly IPatientTreatmentAppService _treatments;
     private readonly IRepository<ElectronicInvoice, Guid> _electronicInvoices;
+    private readonly IRepository<PrepaidCard, Guid> _cards;
+    private readonly IRepository<CatalogEntry, Guid> _catalog;
 
     public PatientPaymentAppService(
         IRepository<PatientPayment, Guid> repository,
@@ -40,7 +44,9 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money,
         IPatientTreatmentAppService treatments,
-        IRepository<ElectronicInvoice, Guid> electronicInvoices)
+        IRepository<ElectronicInvoice, Guid> electronicInvoices,
+        IRepository<PrepaidCard, Guid> cards,
+        IRepository<CatalogEntry, Guid> catalog)
     {
         _repository = repository;
         _planRepository = planRepository;
@@ -49,6 +55,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         _money = money;
         _treatments = treatments;
         _electronicInvoices = electronicInvoices;
+        _cards = cards;
+        _catalog = catalog;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -294,7 +302,13 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             // settled as they are written.
             input.Kind == PatientPaymentKind.Payment
                 ? PatientPaymentStatus.Pending
-                : PatientPaymentStatus.Completed);
+                : PatientPaymentStatus.Completed,
+            input.PrepaidCardId);
+
+        if (payment.PrepaidCardId.HasValue)
+        {
+            await SpendFromCardAsync(payment);
+        }
 
         await _repository.InsertAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
@@ -478,6 +492,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
 
     private async Task ReviseAsync(PatientPayment payment, UpdatePatientPaymentDto input)
     {
+        var before = CardShare.Of(payment);
+
         // Checked against collected money only: the cap query runs with the
         // filter back on, so neither this receipt nor any other pending one counts.
         List<(Guid TreatmentServiceId, decimal Amount)> lines;
@@ -499,7 +515,89 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             input.PaymentAccountId,
             string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim(),
             lines,
-            GuidGenerator.Create);
+            GuidGenerator.Create,
+            // The confirm dialog may resend a card receipt without its card.
+            input.PrepaidCardId
+                ?? (input.Method == PaymentMethodKind.PrepaidCard ? payment.PrepaidCardId : null));
+
+        // Re-settle the card only when what it pays changed: confirming a
+        // receipt as written must not write a refund and a second use.
+        if (before == CardShare.Of(payment))
+        {
+            return;
+        }
+
+        if (before.CardId.HasValue)
+        {
+            await ReleaseFromCardAsync(before.CardId.Value, payment.Id, L["PrepaidCard:ReleasedByEdit"]);
+        }
+
+        if (payment.PrepaidCardId.HasValue)
+        {
+            await SpendFromCardAsync(payment);
+        }
+    }
+
+    /// <summary>What a receipt asks of a card: which card, how much, for which lines.</summary>
+    private sealed record CardShare(Guid? CardId, decimal Amount, string Lines)
+    {
+        public static CardShare Of(PatientPayment payment) => new(
+            payment.PrepaidCardId,
+            payment.PrepaidCardId.HasValue ? payment.Amount : 0m,
+            payment.PrepaidCardId.HasValue
+                ? string.Join(",", payment.Lines.Select(l => $"{l.TreatmentServiceId}:{l.Amount}").Order())
+                : string.Empty);
+    }
+
+    /// <summary>
+    /// Pays the receipt from its Thẻ trả trước. The card checks the holder, its
+    /// lock, balance, uses left and that every service on the receipt is one
+    /// it covers — by catalog service or by the service's group.
+    /// </summary>
+    private async Task SpendFromCardAsync(PatientPayment payment)
+    {
+        var card = await GetCardAsync(payment.PrepaidCardId!.Value);
+
+        var lineIds = payment.Lines.Select(l => l.TreatmentServiceId).ToList();
+        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services);
+        var serviceIds = planQuery
+            .Where(x => x.Id == payment.TreatmentPlanId)
+            .SelectMany(x => x.Services)
+            .Where(line => lineIds.Contains(line.Id))
+            .Select(line => line.ServiceId)
+            .ToList();
+
+        var catalogQuery = await _catalog.GetQueryableAsync();
+        var groups = catalogQuery
+            .Where(entry => serviceIds.Contains(entry.Id))
+            .Select(entry => new { entry.Id, entry.TaxonomyId })
+            .ToList()
+            .ToDictionary(entry => entry.Id, entry => (Guid?)entry.TaxonomyId);
+
+        card.Spend(
+            payment.Id,
+            payment.PatientId,
+            payment.Amount,
+            serviceIds.Distinct().Select(id => (id, groups.GetValueOrDefault(id))).ToList(),
+            Clock.Now,
+            CurrentUser.Id,
+            GuidGenerator.Create());
+
+        await _cards.UpdateAsync(card, autoSave: true);
+    }
+
+    private async Task ReleaseFromCardAsync(Guid cardId, Guid paymentId, string note)
+    {
+        var card = await GetCardAsync(cardId);
+        card.Release(paymentId, Clock.Now, CurrentUser.Id, note, GuidGenerator.Create());
+        await _cards.UpdateAsync(card, autoSave: true);
+    }
+
+    private async Task<PrepaidCard> GetCardAsync(Guid cardId)
+    {
+        var query = await _cards.WithDetailsAsync(x => x.Transactions);
+        return query.FirstOrDefault(x => x.Id == cardId)
+            ?? throw new EntityNotFoundException(typeof(PrepaidCard), cardId);
     }
 
     /// <summary>A bare GetAsync leaves the lines unloaded, and a revise would then orphan them.</summary>
@@ -531,6 +629,12 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         {
             invoice.EnsureReceiptRemovable();
             await _electronicInvoices.DeleteAsync(invoice);
+        }
+
+        // The card gets back what the receipt took from it.
+        if (payment.PrepaidCardId.HasValue)
+        {
+            await ReleaseFromCardAsync(payment.PrepaidCardId.Value, payment.Id, payment.CancelReason!);
         }
 
         // Saved before the delete: ABP reloads a soft-deleted entity, which
@@ -650,6 +754,18 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             ? new Dictionary<Guid, string>()
             : planQuery.Where(x => planIds.Contains(x.Id)).ToDictionary(x => x.Id, x => x.Code);
 
+        var cardIds = items.Where(x => x.PrepaidCardId.HasValue)
+            .Select(x => x.PrepaidCardId!.Value)
+            .Distinct()
+            .ToList();
+        var cardCodes = new Dictionary<Guid, string>();
+        if (cardIds.Count > 0)
+        {
+            using var deletedCards = DataFilter.Disable<ISoftDelete>();
+            var cardQuery = await _cards.GetQueryableAsync();
+            cardCodes = cardQuery.Where(x => cardIds.Contains(x.Id)).ToDictionary(x => x.Id, x => x.Code);
+        }
+
         return items.Select(x => new PatientPaymentDto
         {
             Id = x.Id,
@@ -672,6 +788,10 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             StaffId = x.StaffId,
             Note = x.Note,
             PaymentAccountId = x.PaymentAccountId,
+            PrepaidCardId = x.PrepaidCardId,
+            PrepaidCardCode = x.PrepaidCardId.HasValue && cardCodes.TryGetValue(x.PrepaidCardId.Value, out var card)
+                ? card
+                : null,
             StaffName = staffNames.TryGetValue(x.StaffId, out var staff) ? staff : null,
             TreatmentPlanCode = x.TreatmentPlanId.HasValue
                 && planCodes.TryGetValue(x.TreatmentPlanId.Value, out var code)

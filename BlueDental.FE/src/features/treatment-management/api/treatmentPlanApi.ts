@@ -74,6 +74,8 @@ export const PAYMENT_METHOD = {
   Card: 3,
   OutstandingDebt: 4,
   EWallet: 5,
+  /** Thẻ trả trước (BlueDental-local, cụm 3). Not in PAYMENT_METHOD_ORDER: the dialog adds it itself. */
+  PrepaidCard: 6,
 } as const;
 export type PaymentMethodKind = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
 
@@ -84,6 +86,7 @@ export const paymentMethodLabels = (): Record<PaymentMethodKind, string> => ({
   [PAYMENT_METHOD.EWallet]: t("Treatment:Payment:EWallet"),
   [PAYMENT_METHOD.Card]: t("Treatment:Payment:Card"),
   [PAYMENT_METHOD.OutstandingDebt]: t("Treatment:Debt:OutstandingDebt"),
+  [PAYMENT_METHOD.PrepaidCard]: t("Treatment:Payment:PrepaidCard"),
 });
 
 /** Left to right, as the dialog lays the pills out. */
@@ -414,6 +417,9 @@ export interface PatientPaymentDto {
   note: string | null;
   /** Which of the clinic's accounts took the money; only Ngân hàng and Ví momo carry one. */
   paymentAccountId: string | null;
+  /** The Thẻ trả trước a "Thẻ trả trước" receipt is paid from, and its number. */
+  prepaidCardId?: string | null;
+  prepaidCardCode?: string | null;
   staffName: string | null;
   treatmentPlanCode: string | null;
   status: PatientPaymentStatus;
@@ -472,6 +478,8 @@ export interface RecordPaymentInput {
   note?: string;
   /** Required when `method` is Banking or EWallet — the account collected into. */
   paymentAccountId?: string;
+  /** Required when `method` is PrepaidCard — the card paying. */
+  prepaidCardId?: string;
 }
 
 /** Filters of `GET patient-payments`; the server pages and sorts by `paidAt` desc. */
@@ -598,6 +606,8 @@ export interface UpdatePaymentInput {
   amount: number;
   note?: string | null;
   paymentAccountId?: string | null;
+  /** Required when `method` is PrepaidCard. */
+  prepaidCardId?: string | null;
 }
 
 export const treatmentKeys = {

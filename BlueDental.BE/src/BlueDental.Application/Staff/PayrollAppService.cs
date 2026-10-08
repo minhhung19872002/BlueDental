@@ -6,6 +6,7 @@ using BlueDental.Catalogs;
 using BlueDental.Exporting;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.PrepaidCards;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,7 @@ public class PayrollAppService(
     IRepository<TreatmentStage, Guid> stageRepository,
     IRepository<TreatmentPlan, Guid> planRepository,
     IRepository<CatalogServiceStage, Guid> catalogStageRepository,
+    IRepository<PrepaidCard, Guid> prepaidCardRepository,
     IIdentityUserRepository userRepository,
     ICurrentClinicBranchResolver branchResolver,
     BranchAccessChecker branchAccess) : ApplicationService, IPayrollAppService
@@ -271,6 +273,10 @@ public class PayrollAppService(
             .ToDictionary(g => g.Key, g => g.Sum(p => p.FineAmount));
 
         var commissions = await CommissionsAsync(period, ids);
+        foreach (var (staffId, amount) in await CardSaleCommissionsAsync(period, ids))
+        {
+            commissions[staffId] = commissions.GetValueOrDefault(staffId) + amount;
+        }
 
         return staff.Select(u =>
         {
@@ -339,6 +345,28 @@ public class PayrollAppService(
         }
 
         return totals;
+    }
+
+    /// <summary>
+    /// Hoa hồng bán Thẻ trả trước (cụm 3): what each card sold by the branch in
+    /// the month earned its seller, fixed when the card was sold.
+    /// </summary>
+    private async Task<Dictionary<Guid, decimal>> CardSaleCommissionsAsync(PayrollPeriod period, List<Guid> staffIds)
+    {
+        var monthStart = ClinicCalendar.StartOfDay(period.FirstDay);
+        var monthEnd = ClinicCalendar.StartOfDay(period.LastDay.AddDays(1));
+
+        var query = await prepaidCardRepository.GetQueryableAsync();
+        var sold = await AsyncExecuter.ToListAsync(query
+            .Where(c => c.ClinicBranchId == period.ClinicBranchId
+                        && staffIds.Contains(c.SellerStaffId)
+                        && c.SoldAt >= monthStart && c.SoldAt < monthEnd
+                        && c.CommissionAmount > 0m)
+            .Select(c => new { c.SellerStaffId, c.CommissionAmount }));
+
+        return sold
+            .GroupBy(c => c.SellerStaffId)
+            .ToDictionary(g => g.Key, g => g.Sum(c => c.CommissionAmount));
     }
 
     private async Task<PayrollPeriodDto> MapAsync(PayrollPeriod period)

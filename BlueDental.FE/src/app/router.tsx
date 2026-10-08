@@ -164,6 +164,11 @@ const PatientGroupPage = lazy(() =>
     default: m.PatientGroupPage,
   })),
 );
+const PrepaidCardPage = lazy(() =>
+  import("@/features/prepaid-card/pages/PrepaidCardPage").then((m) => ({
+    default: m.PrepaidCardPage,
+  })),
+);
 
 const QueuePage = lazy(() =>
   import("@/features/queue/pages/QueuePage").then((m) => ({
@@ -522,6 +527,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="patientGroup">
             <PatientGroupPage />
+          </G>
+        ),
+      },
+      {
+        // BlueDental-local: Thẻ trả trước (function list cụm 3).
+        path: "prepaid-card",
+        element: (
+          <G k="prepaidCard">
+            <PrepaidCardPage />
           </G>
         ),
       },

@@ -168,6 +168,12 @@ function rowActions(payment: PatientPaymentDto, allActions: PaymentRowActions) {
   );
 }
 
+/** The method, and for a Thẻ trả trước receipt the card it was paid from. */
+function methodText(payment: PatientPaymentDto, methods: Record<number, string>): string {
+  const label = methods[payment.method];
+  return payment.prepaidCardCode ? `${label} (${payment.prepaidCardCode})` : label;
+}
+
 /** Tab "Thanh toán": the nine columns of production's receipt table. */
 export function buildPaymentColumns(
   plan: TreatmentPlanSlipDto,
@@ -181,7 +187,7 @@ export function buildPaymentColumns(
     { key: "services", title: t("Treatment:Payment:TreatmentServices"), width: 220, render: (_, p) => paymentServiceNames(p, plan) },
     { key: "planTotal", title: t("Treatment:Payment:PlanTotal"), width: 170, align: "right", render: () => moneyText(plan.totalAmount) },
     { key: "amount", title: t("Treatment:Payment:Payment"), width: 160, align: "right", render: (_, p) => moneyText(p.amount) },
-    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 230, render: (_, p) => methods[p.method] },
+    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 230, render: (_, p) => methodText(p, methods) },
     { key: "note", title: t("Treatment:Common:Note"), width: 180, render: (_, p) => dash(p.note) },
     { key: "status", title: t("Common:Status"), width: 200, render: (_, p) => statusCell(p, actions.renderEInvoice) },
     {
@@ -210,7 +216,7 @@ export function paymentCardRows(
   ];
   const moreRows: RecordCardRow[] = [
     { key: "amount", label: t("Treatment:Payment:Payment"), value: moneyText(payment.amount) },
-    { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methods[payment.method] },
+    { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methodText(payment, methods) },
     { key: "note", label: t("Treatment:Common:Note"), value: dash(payment.note) },
     { key: "status", label: t("Common:Status"), value: statusCell(payment, renderEInvoice) },
   ];
@@ -228,7 +234,7 @@ export function buildRefundColumns(
     { key: "paidAt", title: t("Treatment:Payment:DateCreated"), width: 150, render: (_, p) => formatDateTime(p.paidAt) },
     { key: "services", title: t("Treatment:Service:Service"), width: 320, render: (_, p) => paymentServiceNames(p, plan) },
     { key: "amount", title: t("Treatment:Refund:AmountRefunded"), width: 150, align: "right", render: (_, p) => moneyText(p.amount) },
-    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 220, render: (_, p) => methods[p.method] },
+    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 220, render: (_, p) => methodText(p, methods) },
     { key: "note", title: t("Treatment:Common:Note"), width: 220, render: (_, p) => dash(p.note) },
     {
       key: "actions",
@@ -250,7 +256,7 @@ export function refundCardRows(payment: PatientPaymentDto, plan: TreatmentPlanSl
     { key: "amount", label: t("Treatment:Refund:AmountRefunded"), value: moneyText(payment.amount) },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methods[payment.method] },
+    { key: "method", label: t("Treatment:Payment:PaymentMethod"), value: methodText(payment, methods) },
     { key: "note", label: t("Treatment:Common:Note"), value: dash(payment.note) },
   ];
   return { rows, moreRows };

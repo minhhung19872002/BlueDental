@@ -523,6 +523,13 @@ internal static class PermissionTreeBuilder
             Leaf("patientGroup.update", "BE:Common:EditVerb"),
             Leaf("patientGroup.delete", "BE:Common:Delete")),
 
+        // BlueDental-local: Thẻ trả trước (cụm 3).
+        Group("prepaidCard", "BE:Perm:PrepaidCard",
+            Leaf("prepaidCard.read", "Xem"),
+            Leaf("prepaidCard.create", "BE:Perm:SellPrepaidCard"),
+            Leaf("prepaidCard.update", "BE:Perm:ManagePrepaidCard"),
+            Leaf("prepaidCard.delete", "BE:Common:Delete")),
+
         Group("chatbot-group", "BE:Perm:AIAssistant",
             Group("chatbot", "BE:Common:Overview",
                 Leaf("chatbot.read", "Xem"),

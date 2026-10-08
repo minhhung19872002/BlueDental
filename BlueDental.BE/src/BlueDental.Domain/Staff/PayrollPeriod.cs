@@ -164,7 +164,10 @@ public class PayrollEntry : Entity<Guid>
     /// <summary>Days registered off (nghỉ phép), half a day per half-day leave.</summary>
     public decimal LeaveDays { get; private set; }
     public int OvertimeMinutes { get; private set; }
-    /// <summary>Hoa hồng: the công đoạn steps this dentist completed in the month.</summary>
+    /// <summary>
+    /// Hoa hồng: the công đoạn steps this dentist completed in the month, plus
+    /// the commission on Thẻ trả trước they sold in it.
+    /// </summary>
     public decimal CommissionAmount { get; private set; }
     /// <summary>Approved Phạt tiền of the month.</summary>
     public decimal PenaltyAmount { get; private set; }

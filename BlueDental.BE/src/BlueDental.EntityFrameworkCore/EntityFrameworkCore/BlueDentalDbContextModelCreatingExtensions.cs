@@ -52,6 +52,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureFinance(builder);
         ConfigurePromotions(builder);
         ConfigurePatientRelations(builder);
+        ConfigurePrepaidCards(builder);
         ConfigureTaxonomyCatalog(builder);
         ConfigureQueue(builder);
         ConfigureClinicIntegration(builder);
@@ -1123,6 +1124,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => new { x.ClinicBranchId, x.PaidAt });
             entity.HasIndex(x => x.PaymentAccountId);
+            entity.HasIndex(x => x.PrepaidCardId);
         });
 
         builder.Entity<PatientPaymentLine>(entity =>
@@ -1709,6 +1711,83 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasOne<Patient>().WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.PatientGroupId, x.PatientId }).IsUnique();
             entity.HasIndex(x => x.PatientId);
+        });
+    }
+
+    /// <summary>Thẻ trả trước (cụm 3). BlueDental-local.</summary>
+    private static void ConfigurePrepaidCards(ModelBuilder builder)
+    {
+        builder.Entity<PrepaidCards.PrepaidCardType>(entity =>
+        {
+            entity.ToTable("bd_prepaid_card_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNameLength).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNoteLength);
+            entity.Property(x => x.SalePrice).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.UsageValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.CommissionValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.CommissionType).HasConversion<short>();
+            entity.PrimitiveCollection(x => x.ServiceIds)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("ServiceIds");
+            entity.PrimitiveCollection(x => x.ServiceGroupIds)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("ServiceGroupIds");
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        builder.Entity<PrepaidCards.PrepaidCard>(entity =>
+        {
+            entity.ToTable("bd_prepaid_cards");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxCodeLength).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNameLength).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNoteLength);
+            entity.Property(x => x.Status).HasConversion<short>();
+            foreach (var money in new[]
+                     {
+                         nameof(PrepaidCards.PrepaidCard.SalePrice), nameof(PrepaidCards.PrepaidCard.UsageValue),
+                         nameof(PrepaidCards.PrepaidCard.CommissionAmount), nameof(PrepaidCards.PrepaidCard.Balance),
+                         nameof(PrepaidCards.PrepaidCard.TotalLoaded),
+                     })
+            {
+                entity.Property<decimal>(money).HasColumnType("numeric(18,2)");
+            }
+            entity.PrimitiveCollection(x => x.MemberPatientIds)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("MemberPatientIds");
+            entity.PrimitiveCollection(x => x.ServiceIds)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("ServiceIds");
+            entity.PrimitiveCollection(x => x.ServiceGroupIds)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("ServiceGroupIds");
+            entity.Ignore(x => x.RemainingUses);
+            entity.Ignore(x => x.IsExhausted);
+            entity.HasMany(x => x.Transactions)
+                .WithOne()
+                .HasForeignKey(x => x.PrepaidCardId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Transactions).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // The number is never reused, not even after a card is deleted.
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.SoldAt });
+            entity.HasIndex(x => x.OwnerPatientId);
+            entity.HasIndex(x => x.CardTypeId);
+        });
+
+        builder.Entity<PrepaidCards.PrepaidCardTransaction>(entity =>
+        {
+            entity.ToTable("bd_prepaid_card_transactions");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Method).HasConversion<short?>();
+            entity.Property(x => x.Value).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.PaidAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Note).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNoteLength);
+            entity.Ignore(x => x.SignedValue);
+            entity.HasIndex(x => new { x.PrepaidCardId, x.Sequence }).IsUnique();
+            entity.HasIndex(x => x.PatientPaymentId);
         });
     }
 

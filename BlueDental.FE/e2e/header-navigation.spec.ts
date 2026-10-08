@@ -38,6 +38,7 @@ test.describe("Header navigation", () => {
     await expect(ribbon.locator(".app-ribbon-item")).toHaveText([
       "Thanh toán",
       "Voucher",
+      "Thẻ trả trước",
       "Báo cáo",
     ]);
   });
@@ -82,7 +83,7 @@ test.describe("Header navigation", () => {
       await page.evaluate(() => (window as Window & { __oldGroupFlashed?: boolean }).__oldGroupFlashed),
     ).toBe(false);
     await expect(page.locator(".app-ribbon-item--active")).toHaveText("Báo cáo");
-    await expect(page.locator(".app-ribbon-item")).toHaveText(["Thanh toán", "Voucher", "Báo cáo"]);
+    await expect(page.locator(".app-ribbon-item")).toHaveText(["Thanh toán", "Voucher", "Thẻ trả trước", "Báo cáo"]);
   });
 
   test("another group swaps the ribbon, the same group leaves it open", async ({ page }) => {

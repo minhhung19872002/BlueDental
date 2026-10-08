@@ -548,6 +548,39 @@ public static class BlueDentalDomainErrorCodes
         public const string AlreadyInFamily = "BlueDental:PatientRelation:0008";
     }
 
+    /// <summary>Thẻ trả trước (cụm 3). BlueDental-local.</summary>
+    public static class PrepaidCard
+    {
+        /// <summary>Giá trị sử dụng not above zero, or giá bán below zero.</summary>
+        public const string InvalidValue = "BlueDental:PrepaidCard:0001";
+        /// <summary>Số lần sử dụng tối đa below one.</summary>
+        public const string InvalidMaxUses = "BlueDental:PrepaidCard:0002";
+        /// <summary>Hoa hồng outside 0–100 % or a fixed amount above the sale price.</summary>
+        public const string InvalidCommission = "BlueDental:PrepaidCard:0003";
+        /// <summary>The card type is no longer on sale.</summary>
+        public const string TypeNotOnSale = "BlueDental:PrepaidCard:0004";
+        /// <summary>Family members on a card whose type does not allow them.</summary>
+        public const string FamilyNotAllowed = "BlueDental:PrepaidCard:0005";
+        /// <summary>The owner listed as a member, a repeated member, or too many members.</summary>
+        public const string InvalidMembers = "BlueDental:PrepaidCard:0006";
+        /// <summary>The card is locked.</summary>
+        public const string CardLocked = "BlueDental:PrepaidCard:0007";
+        /// <summary>The patient is neither the card's owner nor one of its members.</summary>
+        public const string NotCardHolder = "BlueDental:PrepaidCard:0008";
+        /// <summary>The card's balance does not cover the amount.</summary>
+        public const string InsufficientBalance = "BlueDental:PrepaidCard:0009";
+        /// <summary>The card has been used as many times as it allows.</summary>
+        public const string UsesExhausted = "BlueDental:PrepaidCard:0010";
+        /// <summary>A service on the receipt is outside the card's services / service groups.</summary>
+        public const string ServiceNotCovered = "BlueDental:PrepaidCard:0011";
+        /// <summary>A top-up adding nothing, or money received below zero.</summary>
+        public const string InvalidTopup = "BlueDental:PrepaidCard:0012";
+        /// <summary>A receipt paid by card names no card, or a card on anything but a payment.</summary>
+        public const string CardRequired = "BlueDental:PrepaidCard:0013";
+        /// <summary>A card is sold or topped up by Dư nợ or by another card.</summary>
+        public const string InvalidSaleMethod = "BlueDental:PrepaidCard:0014";
+    }
+
     public static class Queue
     {
         public const string TicketNotFound = "BlueDental:Queue:0001";

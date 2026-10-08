@@ -122,6 +122,12 @@ export const NAV_ENTRIES = {
     icon: "M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4V8zm12-2v12",
     permissions: ROUTE_PERMISSIONS.voucher,
   },
+  prepaidCard: {
+    path: "/prepaid-card",
+    label: "Menu:PrepaidCard",
+    icon: "M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 3h18M7 15h3m4 0h3",
+    permissions: ROUTE_PERMISSIONS.prepaidCard,
+  },
   queue: {
     path: "/queue",
     label: "Menu:WaitingScreen",
@@ -187,7 +193,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "finance",
     label: "Menu:FinanceGroup",
     icon: "M3 10h18M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm4 8h4",
-    items: [NAV_ENTRIES.billing, NAV_ENTRIES.voucher, NAV_ENTRIES.reports],
+    items: [NAV_ENTRIES.billing, NAV_ENTRIES.voucher, NAV_ENTRIES.prepaidCard, NAV_ENTRIES.reports],
   },
   {
     id: "ops",

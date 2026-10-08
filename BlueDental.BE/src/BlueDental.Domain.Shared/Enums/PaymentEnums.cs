@@ -18,7 +18,13 @@ public enum PaymentMethodKind
     OutstandingDebt = 4,
 
     /// <summary>Ví điện tử — the reference names MoMo.</summary>
-    EWallet = 5
+    EWallet = 5,
+
+    /// <summary>
+    /// Paid from a Thẻ trả trước (BlueDental-local, cụm 3). Like Dư nợ, no money
+    /// changes hands: it was taken when the card was sold or topped up.
+    /// </summary>
+    PrepaidCard = 6
 }
 
 /// <summary>

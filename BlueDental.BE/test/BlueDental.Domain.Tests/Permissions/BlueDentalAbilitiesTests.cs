@@ -26,10 +26,12 @@ public class BlueDentalAbilitiesTests
         // staffPenalty guards Chế tài nhân viên, which the reference lacks too,
         // and so do marketingTicket / marketingTicketTag (Marketing → Ticket, F-55)
         // and payroll (Bảng lương, F-57), and reportTelesale / reportCare
-        // (Báo cáo Telesale 16.8, Báo cáo CSKH 16.11), and patientGroup (Hồ sơ nhóm, 4.10),
-        // and orgChart (Sơ đồ tổ chức, F-67).
-        Assert.Equal(95, BlueDentalAbilities.Catalog.Count);
+        // (Báo cáo Telesale 16.8, Báo cáo CSKH 16.11), patientGroup (Hồ sơ nhóm, 4.10),
+        // orgChart (Sơ đồ tổ chức, F-67) and prepaidCard (Thẻ trả trước, cụm 3).
+        Assert.Equal(96, BlueDentalAbilities.Catalog.Count);
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.PatientGroup));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.PrepaidCard));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.OrgChart));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.ReportTelesale));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.ReportCare));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.MarketingTicket));

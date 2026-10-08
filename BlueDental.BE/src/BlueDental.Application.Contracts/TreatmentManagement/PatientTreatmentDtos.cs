@@ -399,6 +399,12 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     /// <summary>Tài khoản nhận tiền, on Ngân hàng and Ví momo payments.</summary>
     public Guid? PaymentAccountId { get; set; }
 
+    /// <summary>The Thẻ trả trước a PrepaidCard receipt is paid from.</summary>
+    public Guid? PrepaidCardId { get; set; }
+
+    /// <summary>That card's number, for the receipt row.</summary>
+    public string? PrepaidCardCode { get; set; }
+
     /// <summary>
     /// Set on a cancelled receipt ("Đã hủy"), listed only when asked for with
     /// <see cref="GetPatientPaymentListInput.IncludeCancelled"/>; who and when
@@ -448,6 +454,9 @@ public class UpdatePatientPaymentDto
 
     /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
     public Guid? PaymentAccountId { get; set; }
+
+    /// <summary>The Thẻ trả trước paying the receipt; required when Method is PrepaidCard.</summary>
+    public Guid? PrepaidCardId { get; set; }
 }
 
 public class RecordPatientPaymentDto
@@ -481,6 +490,9 @@ public class RecordPatientPaymentDto
 
     /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
     public Guid? PaymentAccountId { get; set; }
+
+    /// <summary>The Thẻ trả trước paying the receipt; required when Method is PrepaidCard.</summary>
+    public Guid? PrepaidCardId { get; set; }
 }
 
 public class GetPatientPaymentListInput : PagedAndSortedResultRequestDto

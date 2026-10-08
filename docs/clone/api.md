@@ -1970,3 +1970,10 @@ Quyền `BlueDental.SystemAdmin.DataMigration`; chi nhánh qua `BranchAccessChec
 `/api/v1/app/patient-groups` (list, `{id}`, `by-patient?patientId=`, POST / PUT / DELETE). Mối quan hệ dùng quyền
 `patient.read` / `patient.update`; Hồ sơ nhóm subject `patientGroup`.
 Lỗi `BlueDental:PatientRelation:0001`–`0008`. Chi tiết: `docs/clone/pages/patient-relations.md`.
+## Thẻ trả trước — BlueDental riêng (2026-10-08, cụm 3)
+
+`/api/v1/app/prepaid-cards` — loại thẻ (`types`), danh sách / `summary` / chi tiết, bán (`POST`), `{id}/topup`,
+`{id}/members`, `{id}/lock` · `unlock`, và `usable?patientId=` cho dialog thanh toán. Quyền subject `prepaidCard`
+(riêng `usable` dùng `payment.create`); lỗi `BlueDental:PrepaidCard:0001`–`0014`.
+`patient-payments` nhận `method: 6` (Thẻ trả trước) kèm `prepaidCardId`; DTO trả thêm `prepaidCardId`, `prepaidCardCode`.
+`PaymentStatSummaryDto.byPrepaidCard`. Chi tiết: `docs/clone/pages/prepaid-card.md`.

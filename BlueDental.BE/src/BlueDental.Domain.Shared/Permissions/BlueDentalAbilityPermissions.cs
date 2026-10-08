@@ -979,6 +979,16 @@ public static class BlueDentalAbilityPermissions
         public const string Delete = "BlueDental.patientGroup.delete";
     }
 
+    /// <summary>Subject <c>prepaidCard</c> — Thẻ trả trước (BlueDental-local).</summary>
+    public static class PrepaidCard
+    {
+        public const string Subject = "prepaidCard";
+        public const string Read = "BlueDental.prepaidCard.read";
+        public const string Create = "BlueDental.prepaidCard.create";
+        public const string Update = "BlueDental.prepaidCard.update";
+        public const string Delete = "BlueDental.prepaidCard.delete";
+    }
+
     /// <summary>Subject <c>voucher</c>.</summary>
     public static class Voucher
     {

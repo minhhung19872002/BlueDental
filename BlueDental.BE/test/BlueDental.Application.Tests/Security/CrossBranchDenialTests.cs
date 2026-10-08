@@ -6,6 +6,7 @@ using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.CustomerCare;
 using BlueDental.PatientManagement;
+using BlueDental.PrepaidCards;
 using BlueDental.Promotions;
 using BlueDental.TreatmentManagement;
 
@@ -27,6 +28,7 @@ public class CrossBranchDenialTests
         typeof(TreatmentPlanAppService),
         typeof(CustomerCareAppService),
         typeof(VoucherAppService),
+        typeof(PrepaidCardAppService),
     ];
 
     /// <summary>
@@ -134,8 +136,8 @@ public class CrossBranchDenialTests
     [Fact]
     public void All_Known_Services_Should_Be_Covered()
     {
-        ServicesWithGuard.Length.ShouldBe(7,
-            "Expected 7 services with GuardBranchAccess. " +
+        ServicesWithGuard.Length.ShouldBe(8,
+            "Expected 8 services with GuardBranchAccess. " +
             "If a new service gets GuardBranchAccess, add it to ServicesWithGuard.");
     }
 

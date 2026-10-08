@@ -99,6 +99,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
             ByCard = SumBy(collected, PaymentMethodKind.Card),
             ByOutstandingDebt = SumBy(collected, PaymentMethodKind.OutstandingDebt),
             ByEWallet = SumBy(collected, PaymentMethodKind.EWallet),
+            ByPrepaidCard = SumBy(collected, PaymentMethodKind.PrepaidCard),
             RefundByCash = SumBy(refunds, PaymentMethodKind.Cash),
             RefundByBanking = SumBy(refunds, PaymentMethodKind.Banking),
             RefundByCard = SumBy(refunds, PaymentMethodKind.Card),

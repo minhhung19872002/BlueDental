@@ -120,6 +120,10 @@ public class BlueDentalDbContext :
     public DbSet<PatientManagement.PatientRelationship> PatientRelationships { get; set; }
     public DbSet<PatientManagement.PatientGroup> PatientGroups { get; set; }
 
+    // Thẻ trả trước
+    public DbSet<PrepaidCards.PrepaidCardType> PrepaidCardTypes { get; set; }
+    public DbSet<PrepaidCards.PrepaidCard> PrepaidCards { get; set; }
+
     // Billing
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InsuranceClaim> InsuranceClaims { get; set; }

@@ -79,6 +79,7 @@ export const ROUTE_PERMISSIONS = {
   marketingTicketDeleted: [abilityPermission("marketingTicket", "delete")] as readonly string[],
   billing: readOf(["payment"]),
   voucher: readOf(["voucher"]),
+  prepaidCard: readOf(["prepaidCard"]),
   reports: readOf([
     "reportSales",
     "reportIncome",
