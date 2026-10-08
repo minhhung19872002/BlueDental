@@ -16,6 +16,9 @@ public interface IStaffAppService : IApplicationService
     Task<StaffDto> UpdateAsync(Guid id, UpdateStaffDto input);
     Task DeleteAsync(Guid id);
     Task<List<string>> GetRoleNamesAsync();
+
+    /// <summary>"Chức vụ" already in use, for the field's suggestions (Cụm 11 mục 1).</summary>
+    Task<List<string>> GetPositionsAsync();
     Task<AvatarResultDto> UploadAvatarAsync(Guid id, RemoteStreamContent file);
     Task DeleteAvatarAsync(Guid id);
     Task<Stream> GetAvatarContentAsync(Guid id);

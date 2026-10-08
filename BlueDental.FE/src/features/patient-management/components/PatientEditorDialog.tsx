@@ -83,8 +83,13 @@ const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
 const INVALID_NAME = "BlueDental:Patient:0020";
 const DUPLICATE_PHONE = "BlueDental:Patient:0021";
 
-/** Names every record on the number (bug list item 29: only the first one was named). */
+/**
+ * Names every record on the number (bug list item 29: only the first one was
+ * named). An account that sees phones masked (Cụm 11 mục 9) is told only that
+ * the number is taken — the server sends no owners — so it is not named.
+ */
 function phoneTakenMessage(owners: readonly PhoneOwner[]): string {
+  if (owners.length === 0) return t("Patient:Editor:PhoneTakenHidden");
   const named = owners.map((owner) => `[${owner.patientCode}] ${owner.patientName}`);
   return owners.length === 1
     ? t("Patient:Editor:PhoneTaken", owners[0].patientCode, owners[0].patientName)

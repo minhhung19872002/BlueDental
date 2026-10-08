@@ -288,4 +288,31 @@ test.describe("Ẩn số điện thoại", () => {
       await tearDown(page, fixture);
     }
   });
+
+  test("a number another record holds is refused without naming it — never '0 hồ sơ'", async ({ page, browser }) => {
+    const fixture = await setUp(page);
+    const otherPhone = `08${fixture.phone.slice(2)}`;
+    const other = await call<Patient>(page, PATIENTS, {
+      method: "POST",
+      ...asBranchOne,
+      json: { firstName: "Khác", lastName: `Chủ Số ${fixture.userName}`, gender: 1, phoneNumber: otherPhone, dateOfBirth: "1991-01-01" },
+    });
+    expect(other.status, JSON.stringify(other.body)).toBe(200);
+    const masked = await openSession(browser, fixture.userName);
+    try {
+      await masked.page.goto(`/patient/${fixture.patient.id}`);
+      await masked.page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
+      const dialog = masked.page.getByRole("dialog");
+      await dialog.getByLabel(/Điện thoại/).first().fill(otherPhone);
+
+      const alert = dialog.locator(".bd-patient-dupe");
+      await expect(alert).toContainText("Số điện thoại này đã được dùng cho một hồ sơ khác");
+      await expect(alert).not.toContainText("0 hồ sơ");
+      await expect(alert).not.toContainText(other.body.lastName);
+      await expect(dialog.getByRole("button", { name: /Lưu/ })).toBeDisabled();
+    } finally {
+      await masked.context.close();
+      await tearDown(page, fixture);
+    }
+  });
 });

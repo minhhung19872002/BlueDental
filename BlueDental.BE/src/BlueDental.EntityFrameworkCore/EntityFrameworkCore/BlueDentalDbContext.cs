@@ -229,7 +229,7 @@ public class BlueDentalDbContext :
     }
 
     /// <summary>
-    /// Set by the old-system import (F-60) while it adds tens of thousands of
+    /// Set by the old-system import (F-61) while it adds tens of thousands of
     /// rows. ABP queues one "created" event per added entity and, when the unit
     /// of work completes, folds every queued event against all earlier ones
     /// (<c>UnitOfWork.GetEventsRecords</c>, O(n²)): 5 000 patients spent minutes

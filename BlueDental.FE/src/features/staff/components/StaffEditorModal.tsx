@@ -17,12 +17,13 @@ import {
   DeleteOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
 import { StaffDiscountLimitFields } from "./StaffDiscountLimitFields";
-import type { StaffDto } from "../api/staffApi";
+import { StaffEmploymentFields } from "./StaffEmploymentFields";
+import type { ContractType, StaffDto } from "../api/staffApi";
 import { t } from "@/lib/i18n";
 
 export interface StaffFormValues {
@@ -44,6 +45,13 @@ export interface StaffFormValues {
   allowLoginOutsideHours: boolean;
   maxDiscountPercent?: number | null;
   maxDiscountAmount?: number | null;
+  position: string | null;
+  practiceCertificateNumber: string | null;
+  practiceCertificateIssuedOn: string | null;
+  practiceCertificateIssuedPlace: string | null;
+  contractType: ContractType | null;
+  contractStartDate: string | null;
+  contractEndDate: string | null;
   isActive: boolean;
   morningStartTime: string;
   morningEndTime: string;
@@ -62,6 +70,11 @@ interface Props {
 }
 
 const TIME_FORMAT = "HH:mm";
+const ISO_DAY = "YYYY-MM-DD";
+
+/** "YYYY-MM-DD" from the server ↔ the date pickers' Dayjs. */
+const toDay = (value: string | null | undefined) => (value ? dayjs(value, ISO_DAY) : undefined);
+const fromDay = (value: Dayjs | null | undefined) => (value ? value.format(ISO_DAY) : null);
 
 export function StaffEditorModal({
   open,
@@ -114,6 +127,13 @@ export function StaffEditorModal({
           allowLoginOutsideHours: staff.allowLoginOutsideHours,
           maxDiscountPercent: staff.maxDiscountPercent ?? undefined,
           maxDiscountAmount: staff.maxDiscountAmount ?? undefined,
+          position: staff.position ?? undefined,
+          practiceCertificateNumber: staff.practiceCertificateNumber ?? undefined,
+          practiceCertificateIssuedOn: toDay(staff.practiceCertificateIssuedOn),
+          practiceCertificateIssuedPlace: staff.practiceCertificateIssuedPlace ?? undefined,
+          contractType: staff.contractType ?? undefined,
+          contractStartDate: toDay(staff.contractStartDate),
+          contractEndDate: toDay(staff.contractEndDate),
           password: "",
           confirmPassword: "",
           morningStartTime: dayjs(staff.morningStartTime ?? "08:00", TIME_FORMAT),
@@ -153,6 +173,13 @@ export function StaffEditorModal({
         // A cleared field comes back undefined: no limit.
         maxDiscountPercent: values.maxDiscountPercent ?? null,
         maxDiscountAmount: values.maxDiscountAmount ?? null,
+        position: values.position?.trim() || null,
+        practiceCertificateNumber: values.practiceCertificateNumber?.trim() || null,
+        practiceCertificateIssuedOn: fromDay(values.practiceCertificateIssuedOn),
+        practiceCertificateIssuedPlace: values.practiceCertificateIssuedPlace?.trim() || null,
+        contractType: values.contractType ?? null,
+        contractStartDate: fromDay(values.contractStartDate),
+        contractEndDate: fromDay(values.contractEndDate),
         isActive: values.isActive ?? true,
       };
       onSubmit(result, avatarFile);
@@ -480,6 +507,9 @@ export function StaffEditorModal({
         >
           <Checkbox>{t("Staff:AllowLoginOutsideHours")}</Checkbox>
         </Form.Item>
+
+        {/* Cụm 11 mục 1 — Hồ sơ công việc */}
+        <StaffEmploymentFields />
 
         {/* Cụm 11 mục 12 — Quy định giảm giá */}
         <StaffDiscountLimitFields />

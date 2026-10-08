@@ -1917,14 +1917,14 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
   `POST/PUT clinic-branches` nhận `allowedIpRanges` (PUT: `null` = giữ nguyên, `""` = xoá). Sai định dạng → 403 `BlueDental:Organizations:0007` (data `value`).
 - `StaffDto` / create / update thêm `allowLoginOutsideOffice: <bool>`.
 - `POST /api/account/login` (ABP) → 403 `BlueDental:Auth:LoginIpNotAllowed` khi đúng mật khẩu nhưng ngoài mạng chi nhánh;
-  mọi request đã đăng nhập → 401 cùng mã + đăng xuất. Chi tiết: `docs/clone/pages/branch-ip-restriction.md`.
+  mọi request đã đăng nhập → 401 cùng mã (giữ cookie, trừ các endpoint màn đăng nhập cần). Chi tiết: `docs/clone/pages/branch-ip-restriction.md`.
 
 ## Quản lý thời gian sử dụng — BlueDental riêng (2026-10-07, cụm 11 mục 13)
 
 - `ClinicBranchDto.usageStartTime` / `usageEndTime`: `"HH:mm"` hoặc `null` (giờ Việt Nam; kết thúc trước bắt đầu = qua đêm).
   `POST/PUT clinic-branches` nhận hai trường này (PUT: cả hai `null` = giữ nguyên, cả hai `""` = xoá). Nửa khung / hai giờ bằng nhau / sai định dạng → 403 `BlueDental:Organizations:0008`.
 - `StaffDto` / create / update thêm `allowLoginOutsideHours: <bool>`.
-- `POST /api/account/login` → 403 `BlueDental:Auth:LoginOutsideHours` (message nêu khung giờ); mọi request đã đăng nhập → 401 cùng mã + đăng xuất.
+- `POST /api/account/login` → 403 `BlueDental:Auth:LoginOutsideHours` (message nêu khung giờ); mọi request đã đăng nhập → 401 cùng mã (giữ cookie, trừ các endpoint màn đăng nhập cần).
   Chi tiết: `docs/clone/pages/usage-hours.md`.
 
 ## Ẩn số điện thoại — quyền `patient.hidePhone` (2026-10-07, cụm 11 mục 9)
@@ -1946,7 +1946,13 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
 `/api/v1/app/payroll/compensations` (lương cơ bản & phụ cấp). Quyền subject `payroll`; lỗi `BlueDental:Payroll:0001`–`0006`.
 Chi tiết hợp đồng API: `docs/clone/pages/payroll.md`.
 
-## Chuyển dữ liệu hệ thống cũ — BlueDental riêng (2026-10-08, F-60)
+## Hồ sơ công việc nhân viên — BlueDental riêng (2026-10-08, cụm 11 mục 1)
+
+- `StaffDto` / create / update thêm `position`, `practiceCertificateNumber`, `practiceCertificateIssuedOn` ("YYYY-MM-DD"),
+  `practiceCertificateIssuedPlace`, `contractType` (1 Thử việc · 2 Có thời hạn · 3 Không thời hạn · 4 Thời vụ), `contractStartDate`, `contractEndDate`.
+- `GET /api/v1/app/staff/positions` → các chức vụ đã dùng. Lỗi `BlueDental:Staff:0009`–`0011`. Chi tiết: `docs/clone/pages/staff-employment.md`.
+
+## Chuyển dữ liệu hệ thống cũ — BlueDental riêng (2026-10-08, F-61)
 
 Quyền `BlueDental.SystemAdmin.DataMigration`; chi nhánh qua `BranchAccessChecker` (ngoài phạm vi → 403). Không có màn hình — gọi bằng Swagger/curl.
 

@@ -16,7 +16,7 @@ the owner, and are the ones to revisit if the owner decides otherwise.
 | "Cho phép / không cho phép" per staff | Checkbox "Cho phép đăng nhập ngoài công ty" on the staff dialog, **off** by default: once a branch has a list, its staff are held to it unless ticked |
 | Who is never restricted | The `admin` role (so the people who set the list cannot lock themselves out) and staff ticked as above |
 | Which branches count | The account's own: its branch assignments; else its home-branch property; else — a clinic-wide account — **every** branch. An account may sign in from the network of any of its branches that has a list; branches without a list are ignored. So a clinic-wide non-admin account (e.g. `manager`) is held to the union of all lists once any branch has one |
-| When it is checked | At sign-in, **after** the password is accepted (a wrong password says nothing about IP rules) → 403 `BlueDental:Auth:LoginIpNotAllowed`, shown on the login form. And on every authenticated request: a session that signed in at the clinic and carries on from elsewhere is signed out (401, same code) and the login screen says why (`/login?reason=ip`) |
+| When it is checked | At sign-in, **after** the password is accepted (a wrong password says nothing about IP rules) → 403 `BlueDental:Auth:LoginIpNotAllowed`, shown on the login form. And on every authenticated request: a session that signed in at the clinic and carries on from elsewhere is refused on every request (401, same code — the cookie is kept so the reason never gets lost; the login screen's own start-up calls and sign-in / sign-out pass) and the login screen says why (`/login?reason=ip`) |
 | How fast a change applies | The per-request answer is cached for one minute per account and address, so a new list or tick takes effect within a minute; sign-in always reads the current settings |
 | Helping the admin | The dialog shows "IP hiện tại của bạn: …" (what the server sees) with "Thêm vào danh sách" |
 | Who sees the list | Branch administration (`GET /clinic-branches`, `/{id}`). The header's `/accessible` list, which every signed-in user reads, returns it as `null` |
@@ -31,7 +31,7 @@ PUT  /api/v1/app/clinic-branches/{id}       { …, allowedIpRanges? }   null = k
 GET  /api/v1/app/clinic-branches[/{id}]     → { …, allowedIpRanges: "a\nb" | null }
 POST/PUT /api/v1/app/staff[/{id}]           { …, allowLoginOutsideOffice }
 POST /api/account/login (ABP)               403 { error: { code: "BlueDental:Auth:LoginIpNotAllowed" } }
-any authenticated request                   401 { error: { code: "BlueDental:Auth:LoginIpNotAllowed" } } + sign-out
+any authenticated request                   401 { error: { code: "BlueDental:Auth:LoginIpNotAllowed" } } (cookie kept; every request refused the same way)
 ```
 
 ## Implementation

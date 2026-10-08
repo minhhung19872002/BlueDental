@@ -97,7 +97,7 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
 
     public async Task<byte[]> GetTemplateAsync(Guid? clinicBranchId)
     {
-        // Only the branch check: the file carries no branch data (R-843, R-847).
+        // Only the branch check: the file carries no branch data (R-846, R-850).
         await ResolveBranchAsync(clinicBranchId);
 
         using var workbook = new XLWorkbook();

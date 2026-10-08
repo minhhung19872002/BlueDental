@@ -23,6 +23,9 @@ public sealed class StaffController(IStaffAppService service) : BlueDentalContro
     [HttpGet("roles")]
     public Task<List<string>> GetRoleNamesAsync() => service.GetRoleNamesAsync();
 
+    [HttpGet("positions")]
+    public Task<List<string>> GetPositionsAsync() => service.GetPositionsAsync();
+
     [HttpGet("{id:guid}")]
     public Task<StaffDto> GetAsync(Guid id) => service.GetAsync(id);
 

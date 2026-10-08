@@ -8,7 +8,7 @@ namespace BlueDental.Data;
 
 /// <summary>
 /// Writes the patients and treatment history planned by the old-system import
-/// (F-60). Thousands of new aggregates in one change tracker make every save
+/// (F-61). Thousands of new aggregates in one change tracker make every save
 /// slower than the last, so the writer flushes them a few hundred patients at
 /// a time. All batches share the caller's unit of work and its transaction:
 /// the import still lands whole or not at all.

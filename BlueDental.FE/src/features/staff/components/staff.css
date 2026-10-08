@@ -1,10 +1,38 @@
 /* Staff dialog — Cụm 11 mục 12 "Quy định giảm giá" */
+.staff-discount-limit {
+  margin-bottom: 16px;
+}
+
+/* The row's own gap spaces the two fields; the hint sits right under them. */
+.staff-discount-limit .ant-form-item {
+  margin-bottom: 0;
+}
+
 .staff-discount-limit__input {
   width: 100%;
 }
 
+/* Reads like the dialog's other field hints (Form.Item `extra`). */
 .staff-discount-limit__hint {
-  margin: -8px 0 12px;
-  color: var(--bd-muted);
-  font-size: 12px;
+  margin-top: 6px;
+  color: var(--bd-faint);
+  font-size: 13px;
+  line-height: 21px;
+}
+
+/* Staff dialog — Cụm 11 mục 1 "Hồ sơ công việc" */
+.staff-employment {
+  margin: 4px 0 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.staff-employment__title {
+  margin-bottom: 12px;
+  color: var(--bd-title);
+  font-weight: 600;
+}
+
+.staff-employment__date {
+  width: 100%;
 }
