@@ -5543,6 +5543,7 @@
     "Patient:MedRecord:ConsultingDate": "Ngày tư vấn",
     "Patient:Editor:PhoneTaken": "Số điện thoại này đã thuộc về [{0}] {1}",
     "Patient:Editor:PhoneTakenMany": "Số điện thoại này đang được dùng cho {0} hồ sơ: {1}",
+    "Patient:Editor:PhoneTakenHidden": "Số điện thoại này đã được dùng cho một hồ sơ khác",
     "Patient:Editor:PhoneTakenBlocked": "Không thể lưu: mỗi số điện thoại chỉ được dùng cho một hồ sơ. Vui lòng nhập số khác.",
     "Patient:Editor:Uppercase": "IN HOA",
     "Patient:List:ViewLabel": "Xem {0}",

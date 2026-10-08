@@ -5543,6 +5543,7 @@
     "Patient:MedRecord:ConsultingDate": "Consulting date",
     "Patient:Editor:PhoneTaken": "This phone number already belongs to [{0}] {1}",
     "Patient:Editor:PhoneTakenMany": "This phone number is used by {0} records: {1}",
+    "Patient:Editor:PhoneTakenHidden": "This phone number is already used by another record",
     "Patient:Editor:PhoneTakenBlocked": "Cannot save: each phone number may belong to one record only. Please enter another number.",
     "Patient:Editor:Uppercase": "UPPERCASE",
     "Patient:List:ViewLabel": "View {0}",

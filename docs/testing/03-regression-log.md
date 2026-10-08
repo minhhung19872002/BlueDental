@@ -7353,3 +7353,11 @@ BE: Domain.Tests **759** (mới `StaffEmploymentTests` 7), Application.Tests **6
 
 Kiểm chứng: `branch-ip-restriction` + `branch-usage-hours` **10/10**, `branch-list` xanh. Hồi quy nhân sự (`staff`, `staff-penalty`, `payroll`,
 `current-user-ticks-api`, `discount-limit`, `reception-doctor-*`, `stage-staff-pickers`, `staff-day-off-api`, `staff-employment`): xanh (27/30 trước khi sửa, 3 đỏ đều là R-831).
+
+## 2026-10-08 — Ẩn số điện thoại: câu báo trùng số (R-832)
+
+| ID | Lỗi | Sửa |
+|----|-----|-----|
+| R-832 | Tài khoản bị ẩn SĐT (F-53) nhập số đã thuộc hồ sơ khác → dialog bệnh nhân báo "Số điện thoại này đang được dùng cho 0 hồ sơ:". `check-phone` cố ý không trả chủ số cho tài khoản bị ẩn, FE vẫn ghép câu `PhoneTakenMany` từ danh sách rỗng. | FE `phoneTakenMessage`: không có chủ số → `Patient:Editor:PhoneTakenHidden` "Số điện thoại này đã được dùng cho một hồ sơ khác" (vi/en), không nêu tên/mã; Lưu vẫn khoá. BE không đổi. |
+
+Kiểm chứng: `patient-hide-phone` **4/4** (thêm test: nhập số của hồ sơ khác → câu mới, không "0 hồ sơ", không lộ tên, Lưu khoá), API + PostgreSQL thật, bản build `vite preview`.
