@@ -629,3 +629,68 @@ hai con số khác nhau).
 - Cột Thao tác tab 2 rộng 180/100 thay vì 70 sticky (cùng 4 nút, không gãy
   dòng). `@page` A4 10mm là giả định.
 - Local xoá cứng dòng tab 4 nên không có kiểu "dòng đã xoá" như staging.
+
+## Tab Telesale & CSKH — BlueDental riêng (2026-10-08, F-59)
+
+Checklist 16.8 và 16.11. Bản gốc **không có** hai báo cáo này, nên không có gì
+để quan sát; thiết kế theo câu chữ BA và khung báo cáo sẵn có. Hai tab nằm sau
+"Luân chuyển dòng tiền V2", dùng chung bộ chọn kỳ (Ngày / Tuần / Tháng / Năm)
+và chi nhánh trên URL (`reportTab=telesale` / `reportTab=care`).
+
+API (`CustomerReportController`, `[Authorize]` + quyền theo từng hàm):
+
+```
+GET /api/v1/app/clinic-reports/telesale            ?clinicBranchId&fromDate&toDate   reportTelesale.read
+GET /api/v1/app/clinic-reports/telesale/excel      (cùng tham số)                     reportTelesale.export
+GET /api/v1/app/clinic-reports/customer-care       (cùng tham số)                     reportCare.read
+GET /api/v1/app/clinic-reports/customer-care/excel (cùng tham số)                     reportCare.export
+```
+
+Chi nhánh lọc qua `BranchAccessChecker.ResolveFilterAsync` (user chi nhánh 2
+hỏi chi nhánh 1 → 403). Quyền mới nằm trong cây phân quyền nhóm Báo cáo
+(`BE:Perm:ReportTelesale`, `BE:Perm:ReportCare`, mỗi nhóm Xem + Xuất).
+
+### Telesale - follow khách hàng
+
+- Lấy ticket Marketing **tiếp nhận trong kỳ**, đếm theo **trạng thái hiện
+  tại**: Mới, Đang chăm sóc, Đã đặt lịch, Đã đến, Không tiềm năng. "Quá hạn"
+  = hạn xử lý đã qua mà vẫn Mới / Đang chăm sóc. "Tỉ lệ đặt lịch" = (Đã đặt
+  lịch + Đã đến) / Tổng.
+- Người xem báo cáo thấy ticket của mọi telesale (phạm vi "ticket của tôi"
+  của `/marketing/tickets` không áp dụng).
+- Bố cục: 8 ô số liệu + Xuất Excel; "Ticket tiếp nhận theo thời gian" (cột
+  theo ngày/tháng); donut "Tình trạng xử lý"; thanh xếp chồng "Theo nguồn dữ
+  liệu", "Hiệu quả theo file import" (file tải lên trong kỳ); donut "Khách
+  mới / khách cũ" (`Ticket.IsReturningCustomer`), "Theo kênh nhập"; thanh
+  "Theo nhân viên telesale"; dưới cùng 5 tab bảng chi tiết cùng cột.
+
+### Chăm sóc khách hàng
+
+- 9 loại hình theo thứ tự tab của `/cskh-grouping`: Sau điều trị, Chúc mừng
+  sinh nhật, Nhắc lịch hẹn, Không làm dịch vụ, Đặt lịch không đến, Lịch hẹn
+  hủy, CSKH định kì, CSKH đặc biệt, Complain.
+- Mỗi loại đọc qua `CareRecordWindow` — đúng cửa sổ ngày tab đó dùng (Sau
+  điều trị theo ngày điều trị, Sinh nhật theo ngày sinh…), nên tổng mỗi loại
+  bằng số dòng của tab ở cùng kỳ (spec kiểm từng loại).
+- Cột: Tổng lượt, Chưa chăm sóc, Đã liên hệ, Thành công, Thất bại, Đã hủy, Đã
+  gửi Zalo, Tỉ lệ đã chăm sóc = (Đã liên hệ + Thành công + Thất bại) / (Tổng −
+  Đã hủy).
+- Bố cục: 8 ô số liệu + Xuất Excel; thanh xếp chồng "Theo loại hình chăm
+  sóc"; donut "Đánh giá sau chăm sóc" (Tốt / Khá / Bình thường / Chưa đánh
+  giá / Khiếu nại — chỉ tính các lượt Thành công); thanh "Theo nhân viên chăm
+  sóc"; 2 tab bảng.
+
+### Quy ước hiển thị chung
+
+- Thanh xếp chồng vẽ tối đa 8 dòng (loại hình CSKH: 9). Dài hơn thì chỉ vẽ
+  các dòng có số, lớn nhất trước, kèm ghi chú "… xem ở bảng bên dưới"; bảng
+  luôn đủ dòng.
+- Nhân viên / nguồn đã xoá mềm vẫn hiện tên cũ; không có người →
+  "Chưa phân công" / "Chưa có nhân viên"; có id mà mất tên → "Không xác định".
+- Tên dài cắt một dòng có "…", rê chuột xem tên đủ.
+
+### Giới hạn
+
+- Kỳ dài hơn 62 ngày (chế độ Năm) không sinh task tự động trước khi đếm
+  (giống board CSKH) — Sinh nhật / Nhắc lịch hẹn / Đặt lịch không đến chỉ đếm
+  task đã có.

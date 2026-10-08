@@ -3,11 +3,25 @@ import { formatMoneyUnit } from "@/utils/format";
 
 export type StatTone = "green" | "blue" | "gold" | "red" | "ink" | "violet";
 
+export type StatValueFormat = "money" | "count" | "percent";
+
 export interface StatCardItem {
   label: string;
   value: number;
   tone: StatTone;
   icon?: ReactNode;
+  /** Money ("1.300.000 đ") unless the tile counts things or shows a rate. */
+  format?: StatValueFormat;
+}
+
+const COUNT_FORMAT = new Intl.NumberFormat("vi-VN");
+const PERCENT_FORMAT = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 });
+
+/** Value text of a tile: money with its unit, a plain count, or a rate with "%". */
+export function formatStatValue(value: number, format: StatValueFormat = "money"): string {
+  if (format === "count") return COUNT_FORMAT.format(value);
+  if (format === "percent") return `${PERCENT_FORMAT.format(value)}%`;
+  return formatMoneyUnit(value);
 }
 
 type Props =
@@ -26,7 +40,7 @@ type Props =
 function CompactCard({ item }: { item: StatCardItem }) {
   return (
     <div className={`report-stat-tile report-stat-tile--${item.tone}`}>
-      <div className="report-stat-tile-value">{formatMoneyUnit(item.value)}</div>
+      <div className="report-stat-tile-value">{formatStatValue(item.value, item.format)}</div>
       <div className="report-stat-tile-label">{item.label}</div>
     </div>
   );
@@ -37,7 +51,7 @@ function IconCard({ item }: { item: StatCardItem }) {
     <div className={`report-stat-card report-stat-card--${item.tone}`}>
       {item.icon && <span className="report-stat-card-icon">{item.icon}</span>}
       <div className="report-stat-card-body">
-        <div className="report-stat-card-value">{formatMoneyUnit(item.value)}</div>
+        <div className="report-stat-card-value">{formatStatValue(item.value, item.format)}</div>
         <div className="report-stat-card-label">{item.label}</div>
       </div>
     </div>

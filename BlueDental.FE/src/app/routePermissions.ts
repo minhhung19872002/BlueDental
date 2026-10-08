@@ -84,6 +84,8 @@ export const ROUTE_PERMISSIONS = {
     "reportCost",
     "reportResult",
     "reportTransfer",
+    "reportTelesale",
+    "reportCare",
   ]),
   materials: readOf(["materials"]),
   labo: readOf([

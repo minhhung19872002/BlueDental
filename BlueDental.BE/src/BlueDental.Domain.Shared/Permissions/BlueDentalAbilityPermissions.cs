@@ -750,6 +750,22 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.reportResult.export";
     }
 
+    /// <summary>Subject <c>reportTelesale</c> — BlueDental-local (16.8).</summary>
+    public static class ReportTelesale
+    {
+        public const string Subject = "reportTelesale";
+        public const string Read = "BlueDental.reportTelesale.read";
+        public const string Export = "BlueDental.reportTelesale.export";
+    }
+
+    /// <summary>Subject <c>reportCare</c> — BlueDental-local (16.11).</summary>
+    public static class ReportCare
+    {
+        public const string Subject = "reportCare";
+        public const string Read = "BlueDental.reportCare.read";
+        public const string Export = "BlueDental.reportCare.export";
+    }
+
     /// <summary>Subject <c>reportSales</c>.</summary>
     public static class ReportSales
     {

@@ -1306,6 +1306,205 @@
   background: var(--swatch, var(--bd-bg-soft));
 }
 
+/* ---------- Telesale / CSKH insight tabs (checklist 16.8, 16.11) ---------- */
+
+.report-insight-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.report-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.report-insight-grid--wide { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.report-insight-grid--trio { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); }
+
+.report-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.report-chart-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.report-chart-note {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.report-chart-body {
+  min-width: 0;
+}
+
+.report-chart-body .recharts-cartesian-axis-tick-value,
+.report-chart-tick {
+  fill: var(--bd-sub);
+}
+
+.report-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.report-chart-grid line { stroke: var(--bd-line); }
+.report-chart-cursor { fill: var(--bd-bg-soft); }
+
+.report-bar--violet path { fill: var(--bd-violet); }
+
+/* 2px card-coloured gap between stacked segments. */
+.report-bar--stacked path {
+  stroke: var(--bd-card);
+  stroke-width: 2;
+}
+
+.report-fill--green { fill: var(--bd-green); }
+.report-fill--blue { fill: var(--bd-blue); }
+.report-fill--gold { fill: var(--bd-gold); }
+.report-fill--red { fill: var(--bd-red); }
+.report-fill--violet { fill: var(--bd-violet); }
+.report-fill--ink { fill: var(--bd-ink); }
+
+.report-fill {
+  stroke: var(--bd-card);
+  stroke-width: 2;
+}
+
+.report-pie-legend-dot--violet { --stat-tone: var(--bd-violet); }
+
+.report-donut--solo .report-fill {
+  stroke: none;
+}
+
+.report-chart-more {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+.report-donut {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.report-donut-chart {
+  position: relative;
+}
+
+.report-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.report-donut-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-donut-caption {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.report-donut-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-donut-share {
+  display: inline-block;
+  min-width: 52px;
+  margin-left: 8px;
+  text-align: right;
+  font-weight: 400;
+  color: var(--bd-muted);
+}
+
+.report-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-count--zero {
+  font-weight: 400;
+  color: var(--bd-muted);
+}
+
+.report-rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-rate-bar {
+  flex: 1;
+  min-width: 60px;
+  margin: 0;
+}
+
+.report-rate-bar .ant-progress-bg {
+  background: var(--bd-green);
+}
+
+.report-rate-value {
+  min-width: 44px;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-ink);
+}
+
+.report-breakdown-tabs .pill-tabs-row {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1280px) {
+  .report-insight-grid--trio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-insight-grid--trio > :last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 1100px) {
+  .report-insight-grid,
+  .report-insight-grid--wide,
+  .report-insight-grid--trio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .report-insight-head > .ant-btn {
+    width: 100%;
+  }
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1280px) {

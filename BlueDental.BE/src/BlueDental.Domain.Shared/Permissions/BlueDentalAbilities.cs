@@ -120,6 +120,8 @@ public static class BlueDentalAbilities
         public const string ReportSales = "reportSales";
         public const string ReportTransfer = "reportTransfer";
         public const string ReportTransferCategory = "reportTransferCategory";
+        public const string ReportTelesale = "reportTelesale";
+        public const string ReportCare = "reportCare";
         public const string RolePermission = "rolePermission";
         public const string PatientMedicalRecord = "patientMedicalRecord";
         public const string Staff = "staff";
@@ -222,6 +224,10 @@ public static class BlueDentalAbilities
         ["reportSales"] = [Actions.Read, Actions.Export],
         ["reportTransfer"] = [Actions.Read, Actions.Update, Actions.Delete, Actions.Deposit, Actions.Withdraw, Actions.Transfer, Actions.Export],
         ["reportTransferCategory"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
+        // BlueDental-local: Báo cáo Telesale (16.8) and Báo cáo CSKH (16.11) have
+        // no counterpart on the reference.
+        ["reportTelesale"] = [Actions.Read, Actions.Export],
+        ["reportCare"] = [Actions.Read, Actions.Export],
         ["rolePermission"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["patientMedicalRecord"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],
         ["staff"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

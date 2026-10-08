@@ -38,7 +38,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
-    private readonly CareTaskSync _taskSync;
+    private readonly CareRecordWindow _window;
 
     public CustomerCareAppService(
         IRepository<CareRecord, Guid> repository,
@@ -53,7 +53,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver,
-        CareTaskSync taskSync)
+        CareRecordWindow window)
     {
         _repository = repository;
         _contactLogRepository = contactLogRepository;
@@ -67,7 +67,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         _userRepository = userRepository;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
-        _taskSync = taskSync;
+        _window = window;
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.View)]
@@ -461,11 +461,6 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
 
-        // Sinh nhật / Nhắc lịch hẹn / Đặt lịch không đến list rows the clinic
-        // never filed by hand; make sure each has its task before reading.
-        if (input.Type.HasValue && input.FromDate.HasValue && input.ToDate.HasValue)
-            await _taskSync.EnsureAsync(input.Type.Value, branchFilter, input.FromDate.Value, input.ToDate.Value);
-
         var query = (await _repository.GetQueryableAsync());
         if (branchFilter.Count > 0)
             query = query.Where(r => branchFilter.Contains(r.BranchId));
@@ -491,75 +486,9 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         if (input.AssignedStaffId.HasValue)
             query = query.Where(r => r.AssignedStaffId == input.AssignedStaffId.Value);
 
-        // Sau điều trị has no care date until someone calls, so it is windowed
-        // by the clinic day of the treatment instead (owner, 2026-10-05).
-        if (input.Type == CareType.AfterTreatment)
-        {
-            if (input.FromDate.HasValue)
-            {
-                var fromDay = ClinicCalendar.DateOf(input.FromDate.Value);
-                query = query.Where(r => r.TreatmentDate >= fromDay);
-            }
-
-            if (input.ToDate.HasValue)
-            {
-                var toDay = ClinicCalendar.DateOf(input.ToDate.Value);
-                query = query.Where(r => r.TreatmentDate <= toDay);
-            }
-
-            return ApplyPatientFilter(query, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
-                await _patientRepository.GetQueryableAsync());
-        }
-
-        // Chúc mừng sinh nhật is about real birthdays only: a task whose
-        // patient has no date of birth, or was not born in the window (say one
-        // filed by hand through the API), stays off the tab.
-        if (input.Type == CareType.Birthday && input.FromDate.HasValue && input.ToDate.HasValue)
-        {
-            var bornInWindow = CareBirthdayRules.PatientIdsBornIn(
-                await _patientRepository.GetQueryableAsync(),
-                ClinicCalendar.DateOf(input.FromDate.Value),
-                ClinicCalendar.DateOf(input.ToDate.Value));
-            query = query.Where(r => bornInWindow.Contains(r.PatientId));
-        }
-
-        // Nhắc lịch hẹn / Đặt lịch không đến / Lịch hẹn hủy read the window and the rule off
-        // the live appointment, so a moved, cancelled or late-arrived booking
-        // leaves the tab at once (owner, 2026-10-05).
-        if (CareAppointmentRules.IsAppointmentDriven(input.Type))
-        {
-            var appointments = CareAppointmentRules.Matching(
-                await _appointmentRepository.GetQueryableAsync(),
-                input.Type!.Value, input.FromDate, input.ToDate, Clock.Now);
-            var appointmentIds = appointments.Select(a => a.Id);
-            query = query.Where(r => r.AppointmentId.HasValue && appointmentIds.Contains(r.AppointmentId.Value));
-
-            return ApplyPatientFilter(query, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
-                await _patientRepository.GetQueryableAsync(), appointments);
-        }
-
-        // The reference windows periodic/special by the care-appointment slot
-        // and every other tab by the care date.
-        // Npgsql requires UTC offset for timestamptz parameters.
-        var bySchedule = input.Type is CareType.Periodic or CareType.Special;
-        if (input.FromDate.HasValue)
-        {
-            var from = input.FromDate.Value.ToUniversalTime();
-            query = bySchedule
-                ? query.Where(r => r.ScheduledStart >= from)
-                : query.Where(r => r.DueAt >= from);
-        }
-
-        if (input.ToDate.HasValue)
-        {
-            var to = input.ToDate.Value.ToUniversalTime();
-            query = bySchedule
-                ? query.Where(r => r.ScheduledStart <= to)
-                : query.Where(r => r.DueAt <= to);
-        }
-
-        return ApplyPatientFilter(query, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
-            await _patientRepository.GetQueryableAsync());
+        var windowed = await _window.ApplyAsync(query, input.Type, branchFilter, input.FromDate, input.ToDate);
+        return ApplyPatientFilter(windowed.Records, input.Filter, await WholePhoneOnlyAsync(), branchFilter,
+            await _patientRepository.GetQueryableAsync(), windowed.Appointments);
     }
 
     /// <summary>

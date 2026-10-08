@@ -3,9 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import dayjs, { type Dayjs } from "dayjs";
 import { REPORT_VIEW_MODES, type ReportViewMode } from "../types/viewMode";
 
-export type ReportTabKey = "sales" | "cashflow" | "result" | "cashflow-v2";
+export type ReportTabKey = "sales" | "cashflow" | "result" | "cashflow-v2" | "telesale" | "care";
 
-const REPORT_TAB_KEYS: ReportTabKey[] = ["sales", "cashflow", "result", "cashflow-v2"];
+const REPORT_TAB_KEYS: ReportTabKey[] = ["sales", "cashflow", "result", "cashflow-v2", "telesale", "care"];
 
 /** Older local links used `expense` for the first tab; keep them opening the same view. */
 const LEGACY_TAB_ALIASES: Record<string, ReportTabKey> = { expense: "sales" };

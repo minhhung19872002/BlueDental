@@ -35,6 +35,11 @@ export const REPORT_PERMISSION = {
   transferCategoryCreate: abilityPermission("reportTransferCategory", "create"),
   transferCategoryUpdate: abilityPermission("reportTransferCategory", "update"),
   transferCategoryDelete: abilityPermission("reportTransferCategory", "delete"),
+  // BlueDental-local tabs (checklist 16.8 / 16.11), no reference subject behind them.
+  telesaleRead: abilityPermission("reportTelesale", "read"),
+  telesaleExport: abilityPermission("reportTelesale", "export"),
+  careRead: abilityPermission("reportCare", "read"),
+  careExport: abilityPermission("reportCare", "export"),
 } as const;
 
 export type ReportPermission = (typeof REPORT_PERMISSION)[keyof typeof REPORT_PERMISSION];

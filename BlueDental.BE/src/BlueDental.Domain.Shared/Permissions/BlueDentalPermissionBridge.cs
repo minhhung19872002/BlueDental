@@ -85,6 +85,7 @@ public static class BlueDentalPermissionBridge
     private static readonly string[] ReportSubjects =
     [
         "reportSales", "reportIncome", "reportCost", "reportResult", "reportTransfer",
+        "reportTelesale", "reportCare",
     ];
 
     private static readonly string[] FinanceSubjects =

@@ -170,10 +170,10 @@ Kiểm tra lần cuối: 2026-10-07
 - [x] 16.5 Kế toán công nợ — Báo cáo công nợ phải thu khách hàng, công nợ nhà cung cấp.
 - [ ] 16.6 Kế toán kho — Báo cáo thống kê xuất nhập, tồn kho. Tình trạng nguyên vật liệu, tình trạng sản phẩm.
 - [ ] 16.7 Trả góp, bảo hành, bảo hiểm — Thống kê dịch vụ sử dụng trả góp, bảo hành hoặc bảo hiểm - bảo lãnh.
-- [ ] 16.8 Telesale - follow khách hàng — Báo cáo thống kê tình trạng xử lý telesale, hiệu quả theo file import, nguồn dữ liệu, loại khách hàng mới cũ.
+- [x] 16.8 Telesale - follow khách hàng — Báo cáo thống kê tình trạng xử lý telesale, hiệu quả theo file import, nguồn dữ liệu, loại khách hàng mới cũ.
 - [ ] 16.9 Khuyến mãi, voucher, thẻ — Báo cáo thống kê, chi phí giảm giá và hiệu quả sử dụng.
 - [ ] 16.10 Điều trị - Tình trạng dịch vụ — Báo cáo thống kê hiệu quả, giờ làm bác sĩ, phụ tá và kỹ thuật viên điều trị. Tình trạng điều trị của dịch vụ.
-- [ ] 16.11 Chăm sóc khách hàng — Báo cáo thống kê các loại hình chăm sóc như nhắc lịch, sau điều trị, chăm sóc định kỳ, phàn nàn.
+- [x] 16.11 Chăm sóc khách hàng — Báo cáo thống kê các loại hình chăm sóc như nhắc lịch, sau điều trị, chăm sóc định kỳ, phàn nàn.
 - [ ] 16.12 Labo — Báo cáo thống kê phiếu labo, tình trạng sử dụng, lý do làm mới hay bảo hành labo. Công nợ nhà cung cấp labo & Công việc labo.
 - [ ] 16.13 Khác — Các loại báo cáo theo thông tư Bộ y tế, kế hoạch điều trị, tình trạng sử dụng phòng, giường, chấm công và các loại khác.
 
@@ -198,5 +198,5 @@ Kiểm tra lần cuối: 2026-10-07
 | 13. Cấu hình | 1 | 1 | 0 |
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
-| 16. Báo cáo | 13 | 4 | 9 |
-| **Tổng cộng** | **123** | **74** | **49** |
+| 16. Báo cáo | 13 | 6 | 7 |
+| **Tổng cộng** | **123** | **76** | **47** |

@@ -25,8 +25,11 @@ public class BlueDentalAbilitiesTests
         // subject at all (see the note beside it in BlueDentalAbilities.Catalog).
         // staffPenalty guards Chế tài nhân viên, which the reference lacks too,
         // and so do marketingTicket / marketingTicketTag (Marketing → Ticket, F-55)
-        // and payroll (Bảng lương, F-57).
-        Assert.Equal(91, BlueDentalAbilities.Catalog.Count);
+        // and payroll (Bảng lương, F-57), and reportTelesale / reportCare
+        // (Báo cáo Telesale 16.8, Báo cáo CSKH 16.11).
+        Assert.Equal(93, BlueDentalAbilities.Catalog.Count);
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.ReportTelesale));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.ReportCare));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.MarketingTicket));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.MarketingTicketTag));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.Payroll));
@@ -81,6 +84,8 @@ public class BlueDentalAbilitiesTests
     // Read-only sections: report/access style subjects never allow writes.
     [InlineData("reportResult")]
     [InlineData("reportSales")]
+    [InlineData("reportTelesale")]
+    [InlineData("reportCare")]
     [InlineData("operationsOverviewReport")]
     [InlineData("operationsTreatmentAccess")]
     [InlineData("operationsFinanceInvoice")]

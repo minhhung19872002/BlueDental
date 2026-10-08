@@ -99,6 +99,9 @@ What to retest when a shared piece changes. Levels are defined in
 | `Appointment` / appointment adapters | 3 | F-10, and the patient Lịch hẹn tab |
 | `StaffAppService` / identity | 3 | F-25, and every screen that picks a dentist |
 | `ClinicReportAppService` | 2 | F-17, F-18 |
+| `TelesaleReportAppService` / `CareReportAppService` | 2 | F-59 |
+| `CareRecordWindow` (cửa sổ ngày của từng loại CSKH) | 3 | F-37/CSKH board `/cskh-grouping`, F-59 — board và báo cáo đọc cùng một cửa sổ; đổi nó thì chạy `e2e/cskh*` + `report-customer` |
+| `Ticket` (Marketing) status / `DueAt` / `IsReturningCustomer` | 2 | F-55, F-59 |
 | Localization resources (`en.json` / `vi.json`) | 3 | Every spec that asserts a refusal message |
 
 ## Cross-feature couplings worth remembering

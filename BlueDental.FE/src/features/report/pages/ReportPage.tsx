@@ -9,6 +9,8 @@ import { ExpenseTab } from "../components/ExpenseTab";
 import { CashflowTab } from "../components/CashflowTab";
 import { BusinessResultTab } from "../components/BusinessResultTab";
 import { CashflowV2Tab } from "../components/CashflowV2Tab";
+import { TelesaleReportTab } from "../components/TelesaleReportTab";
+import { CareReportTab } from "../components/CareReportTab";
 import { REPORT_PERMISSION } from "../hooks/useReportPermissions";
 import { useReportUrlState, type ReportTabKey } from "../hooks/useReportUrlState";
 import type { ReportViewMode } from "../types/viewMode";
@@ -19,10 +21,12 @@ const REPORT_TABS: { key: ReportTabKey; label: () => string; permissions: string
   { key: "cashflow", label: () => t("Report:MainTab:Cashflow"), permissions: [REPORT_PERMISSION.incomeRead, REPORT_PERMISSION.costRead, REPORT_PERMISSION.cashflowCategoryRead] },
   { key: "result", label: () => t("Report:MainTab:Result"), permissions: [REPORT_PERMISSION.resultRead] },
   { key: "cashflow-v2", label: () => t("Report:MainTab:CashflowV2"), permissions: [REPORT_PERMISSION.transferRead, REPORT_PERMISSION.transferCategoryRead] },
+  { key: "telesale", label: () => t("Report:MainTab:Telesale"), permissions: [REPORT_PERMISSION.telesaleRead] },
+  { key: "care", label: () => t("Report:MainTab:Care"), permissions: [REPORT_PERMISSION.careRead] },
 ];
 
-/** Tabs where the reference hides the "Bác sĩ điều trị" filter. */
-const TABS_WITHOUT_DOCTOR: ReportTabKey[] = ["result"];
+/** Tabs where the reference hides the "Bác sĩ điều trị" filter; the local telesale/CSKH tabs have no doctor either. */
+const TABS_WITHOUT_DOCTOR: ReportTabKey[] = ["result", "telesale", "care"];
 
 /** Tabs where the reference replaces the date navigator with a locked "Tổng" (all-time). */
 const TABS_WITH_LOCKED_PERIOD: ReportTabKey[] = ["cashflow-v2"];
@@ -101,6 +105,8 @@ export function ReportPage() {
         {safeTab === "cashflow" && <CashflowTab {...range} sub={cashflowSub} onSubChange={setCashflowSub} />}
         {safeTab === "result" && <BusinessResultTab {...range} />}
         {safeTab === "cashflow-v2" && <CashflowV2Tab />}
+        {safeTab === "telesale" && <TelesaleReportTab {...range} />}
+        {safeTab === "care" && <CareReportTab {...range} />}
       </section>
     </div>
   );
