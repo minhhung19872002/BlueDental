@@ -13,7 +13,7 @@ login form, nothing intercepted. `e2e/branch-ip-restriction.spec.ts` **5/5**:
 | Outside the network | Wrong password → generic message, nothing about IP. Right password → `POST /api/account/login` 403 `BlueDental:Auth:LoginIpNotAllowed`, the form shows "Tài khoản này chỉ được đăng nhập từ mạng của phòng khám…", reload stays on `/login` |
 | Listed or exempt | `client-ip` returns the address the server sees; a loosely typed list is stored normalized (`203.0.113.9/24` → `203.0.113.0/24`, one per line); a PUT without the field keeps it; `/accessible` hides it; the account signs in once its address is listed; with the list back to the office only, ticking "Cho phép đăng nhập ngoài công ty" (read back by a separate GET) lets it in |
 | Bad entry | `203.0.113.x` → 403 `BlueDental:Organizations:0007`, message names the entry, the stored list is unchanged |
-| Session carried on | Signed in while listed; the address is removed; within the one-minute cache the next page load lands on `/login?reason=ip` with "Bạn đã bị đăng xuất vì đang dùng mạng ngoài phòng khám", and the cookie is gone (`current-user` 401) |
+| Session carried on | Signed in while listed; the address is removed; within the one-minute cache the next page load lands on `/login?reason=ip` with "Bạn đã bị đăng xuất vì đang dùng mạng ngoài phòng khám", and every later call is refused with the same code (`current-user` 401 + code) |
 | Dialogs | Branch dialog shows "IP hiện tại của bạn: …", "Thêm vào danh sách" appends it and turns into "Đã có trong danh sách", Lưu persists (separate GET); staff dialog tick persists across a reload |
 
 Isolation: each run creates its own branch (`CN IP <n>`) and staff member, and

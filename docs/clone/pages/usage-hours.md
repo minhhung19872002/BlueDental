@@ -18,7 +18,7 @@ the two rules behave alike.
 | Per staff | Checkbox "Cho phép dùng ngoài giờ" on the staff dialog, **off** by default, separate from item 11's "Cho phép đăng nhập ngoài công ty" |
 | Who is never restricted | The `admin` role |
 | Which branches count | Same as item 11: the account's assignments, else its home branch, else (clinic-wide account) every branch. Allowed when the clinic time falls in the window of any of its branches that has one |
-| When it is checked | At sign-in after the password is accepted → 403 `BlueDental:Auth:LoginOutsideHours`, message names the window ("Tài khoản này chỉ được dùng phần mềm trong khung giờ 06:00–20:00…"). On every authenticated request: a session still open when the window ends is signed out (401, same code) and the login screen says why (`/login?reason=hours`) |
+| When it is checked | At sign-in after the password is accepted → 403 `BlueDental:Auth:LoginOutsideHours`, message names the window ("Tài khoản này chỉ được dùng phần mềm trong khung giờ 06:00–20:00…"). On every authenticated request: a session still open when the window ends is refused on every request (401, same code — the cookie is kept so the reason never gets lost; the login screen's own start-up calls and sign-in / sign-out pass) and the login screen says why (`/login?reason=hours`) |
 | How late the cut-off is | The per-request answer is cached a minute per account and address, so a session ends at most a minute after the window closes (or after the window / tick changes) |
 | Both rules | IP is checked first, then hours; the refusal names the first that fails |
 | Cài đặt → Thông tin phòng khám | Saves the branch without the times; both `null` keep the window, both `""` clear it |
@@ -31,7 +31,7 @@ PUT  /api/v1/app/clinic-branches/{id}       same; both null = keep, both "" = cl
 GET  /api/v1/app/clinic-branches[/{id}]     → { …, usageStartTime: "06:00" | null, usageEndTime: "20:00" | null }
 POST/PUT /api/v1/app/staff[/{id}]           { …, allowLoginOutsideHours }
 POST /api/account/login (ABP)               403 { error: { code: "BlueDental:Auth:LoginOutsideHours", message } }
-any authenticated request                   401 same code + sign-out
+any authenticated request                   401 same code, on every request (cookie kept)
 ```
 
 ## Implementation

@@ -7333,3 +7333,23 @@ Hồi quy (`staff`, `staff-penalty`, `staff-penalty-api`, `staff-day-off-api`, `
 | R-827 | Seed quyền bằng DbMigrator xong, admin vẫn 403 ở mọi endpoint mới, Excel 500. | Host dùng Redis cache quyền, DbMigrator không có Redis → còn bản ghi `{"isGranted":false}` cũ. Xoá key `*reportTelesale*` / `*reportCare*` trong `bluedental-redis-1` là hết. Sau mỗi lần thêm quyền + seed phải xoá cache (hoặc restart Redis). |
 | R-828 | Soát giao diện tab Telesale: (1) "Hiệu quả theo file import" liệt kê cả file 0 ticket → thẻ rất dài; (2) "Chưa phân công" hiện 2 dòng; (3) donut 1 lát có vạch trắng ở đỉnh; (4) tên nhân viên dài bị Recharts bẻ 3 dòng đè thanh dưới. | (1) `ReportStackedBars maxRows` (mặc định 8): quá số dòng thì chỉ vẽ các dòng có số, lớn nhất trước, kèm dòng "Hiển thị {0} mục nhiều nhất · {1} mục khác xem ở bảng bên dưới"; bảng vẫn đủ. (2) dòng thứ hai là ticket của user đã xoá mềm → đọc tên với `DataFilter.Disable<ISoftDelete>()` (cả nhân viên CSKH); id có mà không tên → "Không xác định". (3) `report-donut--solo` bỏ stroke + paddingAngle 0. (4) tick tự vẽ một dòng, cắt theo bề rộng đo bằng canvas, `<title>` giữ tên đủ. Chụp lại sau sửa. |
 | R-829 | Hồi quy mức 3 vì `CustomerCareAppService` chuyển sang `CareRecordWindow` dùng chung. | `e2e/cskh*.spec.ts` + `patient-care.spec.ts` + `report-customer.spec.ts` 28/28; `BlueDentalAbilitiesTests` 26/26. Giới hạn đã biết: kỳ dài hơn 62 ngày (Năm) không chạy `CareTaskSync` (giống board) nên các loại sinh tự động (Sinh nhật, Nhắc lịch, Đặt lịch không đến) chỉ đếm task đã sinh. |
+
+## 2026-10-08 — Cụm 11 mục 1: Hồ sơ công việc nhân viên (R-830, F-60)
+
+Quyết định ghi ở `docs/clone/pages/staff-employment.md`.
+
+| ID | Vấn đề | Xử lý |
+|---|---|---|
+| R-830 | Ngày hợp đồng / ngày cấp CCHN lưu dạng chuỗi "yyyy-MM-dd" trong extra property đọc lại ra `null`: bộ đọc JSON của ABP trả chuỗi trông như ngày về dạng `DateTime`. | `ReadDate` nhận cả `DateTime`, `DateOnly` và chuỗi. Spec đọc lại bằng GET riêng nên bắt được. |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): `staff-employment` **2/2**.
+BE: Domain.Tests **759** (mới `StaffEmploymentTests` 7), Application.Tests **683**.
+
+## 2026-10-08 — Hồi quy sau mục 1: danh sách chi nhánh 50 dòng, lý do đăng xuất bị mất (R-831)
+
+| ID | Lỗi | Xử lý |
+|---|---|---|
+| R-831 | (a) Cài đặt → Danh sách chi nhánh chỉ tải 50 chi nhánh (`maxResultCount: 50`, kể cả đã xoá): quá 50 thì chi nhánh mới nhất không hiện — lộ ra khi DB local tích luỹ chi nhánh test. (b) Phiên bị chặn IP / giờ: middleware đăng xuất ở request đầu tiên bị từ chối (vd. SignalR), request kế của màn hình chỉ nhận 401 trơn → màn đăng nhập mất lý do (chập chờn). | (a) Tải tới 1000. (b) Không đăng xuất nữa: mọi request của phiên bị từ chối đều trả 401 + mã lý do; các endpoint màn đăng nhập cần (`/api/abp/application-configuration`, `application-localization`, `/api/account/login`, `logout`) được cho qua — lần đầu thử giữ cookie thì màn đăng nhập rơi vào "Hệ thống đang bảo trì" vì cấu hình khởi động bị 401. Spec IP / giờ kiểm thêm mã lý do ở lần gọi sau. |
+
+Kiểm chứng: `branch-ip-restriction` + `branch-usage-hours` **10/10**, `branch-list` xanh. Hồi quy nhân sự (`staff`, `staff-penalty`, `payroll`,
+`current-user-ticks-api`, `discount-limit`, `reception-doctor-*`, `stage-staff-pickers`, `staff-day-off-api`, `staff-employment`): xanh (27/30 trước khi sửa, 3 đỏ đều là R-831).

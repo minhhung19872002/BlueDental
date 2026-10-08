@@ -159,8 +159,10 @@ test.describe("Quản lý thời gian sử dụng", () => {
         .toContain("/login?reason=hours");
       await expect(user.page.getByRole("alert")).toContainText("Bạn đã bị đăng xuất vì đã hết khung giờ được phép sử dụng phần mềm");
 
-      const after = await call(user.page, "/api/v1/app/account/current-user");
+      // Every later call of the session is refused the same way, reason and all.
+      const after = await call<{ error?: { code?: string } }>(user.page, "/api/v1/app/account/current-user");
       expect(after.status).toBe(401);
+      expect(after.body.error?.code).toBe(HOURS_REFUSED);
     } finally {
       await user.context.close();
       await tearDownRestricted(page, fixture);

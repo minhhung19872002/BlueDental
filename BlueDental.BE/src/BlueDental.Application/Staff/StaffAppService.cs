@@ -151,6 +151,23 @@ public class StaffAppService(
         return await MapAsync(user);
     }
 
+    /// <summary>
+    /// "Chức vụ" already in use, for the field's suggestions: one clinic's
+    /// list grows as people type new ones, without a separate catalogue.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Staff.Read)]
+    public async Task<List<string>> GetPositionsAsync()
+    {
+        var users = await userRepository.GetListAsync();
+        return users
+            .Select(u => u.ExtraProperties.GetOrDefault(PositionProperty) as string)
+            .OfType<string>()
+            .Where(p => p.Length > 0)
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(p => p, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Staff.Read)]
     public async Task<List<string>> GetRoleNamesAsync()
     {
@@ -190,6 +207,7 @@ public class StaffAppService(
             input.MaxDiscountPercent, input.MaxDiscountAmount,
             input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
+        SetEmployment(user, input);
 
         (await userManager.CreateAsync(user, input.Password)).CheckErrors();
 
@@ -221,6 +239,7 @@ public class StaffAppService(
             input.MaxDiscountPercent, input.MaxDiscountAmount,
             input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
+        SetEmployment(user, input);
 
         // Roles are replaced wholesale: the form shows the full set, not a delta.
         var current = await userManager.GetRolesAsync(user);
@@ -498,8 +517,71 @@ public class StaffAppService(
             AvatarUrl          = (user.ExtraProperties.GetOrDefault("AvatarBlobName") as string) is not null
                                      ? $"/api/v1/app/staff/{user.Id}/avatar"
                                      : null,
+
+            // Hồ sơ công việc (Cụm 11 mục 1)
+            Position                       = user.ExtraProperties.GetOrDefault(PositionProperty) as string,
+            PracticeCertificateNumber      = user.ExtraProperties.GetOrDefault(CertificateNumberProperty) as string,
+            PracticeCertificateIssuedOn    = ReadDate(user, CertificateIssuedOnProperty),
+            PracticeCertificateIssuedPlace = user.ExtraProperties.GetOrDefault(CertificateIssuedPlaceProperty) as string,
+            ContractType                   = ReadContractType(user),
+            ContractStartDate              = ReadDate(user, ContractStartProperty),
+            ContractEndDate                = ReadDate(user, ContractEndProperty),
         };
     }
+
+    // --- Hồ sơ công việc (Cụm 11 mục 1): extra properties of the IdentityUser ---
+
+    private const string PositionProperty = "Position";
+    private const string CertificateNumberProperty = "PracticeCertificateNumber";
+    private const string CertificateIssuedOnProperty = "PracticeCertificateIssuedOn";
+    private const string CertificateIssuedPlaceProperty = "PracticeCertificateIssuedPlace";
+    private const string ContractTypeProperty = "ContractType";
+    private const string ContractStartProperty = "ContractStartDate";
+    private const string ContractEndProperty = "ContractEndDate";
+    private const string DateFormat = "yyyy-MM-dd";
+
+    private static void SetEmployment(Volo.Abp.Identity.IdentityUser user, IStaffEmploymentFields input)
+    {
+        StaffEmployment.EnsureValid(
+            input.ContractStartDate,
+            input.ContractEndDate,
+            input.PracticeCertificateIssuedOn,
+            ClinicCalendar.DateOf(DateTimeOffset.UtcNow));
+
+        if (input.ContractType is { } type && !Enum.IsDefined(type))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.InvalidContractType);
+        }
+
+        user.ExtraProperties[PositionProperty] = StaffEmployment.Clean(input.Position);
+        user.ExtraProperties[CertificateNumberProperty] = StaffEmployment.Clean(input.PracticeCertificateNumber);
+        user.ExtraProperties[CertificateIssuedOnProperty] = input.PracticeCertificateIssuedOn?.ToString(DateFormat);
+        user.ExtraProperties[CertificateIssuedPlaceProperty] = StaffEmployment.Clean(input.PracticeCertificateIssuedPlace);
+        user.ExtraProperties[ContractTypeProperty] = input.ContractType.HasValue ? (int)input.ContractType.Value : null;
+        user.ExtraProperties[ContractStartProperty] = input.ContractStartDate?.ToString(DateFormat);
+        user.ExtraProperties[ContractEndProperty] = input.ContractEndDate?.ToString(DateFormat);
+    }
+
+    /// <summary>
+    /// Stored as "yyyy-MM-dd"; ABP's JSON reader hands a string that looks
+    /// like a date back as a <see cref="DateTime"/>, so both shapes are read.
+    /// </summary>
+    private static DateOnly? ReadDate(Volo.Abp.Identity.IdentityUser user, string name) =>
+        user.ExtraProperties.GetOrDefault(name) switch
+        {
+            DateTime dateTime => DateOnly.FromDateTime(dateTime),
+            DateOnly date => date,
+            var value when DateOnly.TryParseExact(value?.ToString(), DateFormat,
+                System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed)
+                => parsed,
+            _ => null,
+        };
+
+    private static StaffContractType? ReadContractType(Volo.Abp.Identity.IdentityUser user) =>
+        int.TryParse(user.ExtraProperties.GetOrDefault(ContractTypeProperty)?.ToString(), out var value)
+        && Enum.IsDefined(typeof(StaffContractType), (short)value)
+            ? (StaffContractType)value
+            : null;
 
     private static decimal? ReadDecimal(Volo.Abp.Identity.IdentityUser user, string name) =>
         user.ExtraProperties.GetOrDefault(name) switch

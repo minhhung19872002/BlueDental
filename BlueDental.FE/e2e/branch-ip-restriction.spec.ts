@@ -158,9 +158,10 @@ test.describe("Xác thực IP theo chi nhánh", () => {
         .toContain("/login?reason=ip");
       await expect(user.page.getByRole("alert")).toContainText("Bạn đã bị đăng xuất vì đang dùng mạng ngoài phòng khám");
 
-      // The cookie went with it: the next call is simply unauthenticated.
-      const after = await call(user.page, "/api/v1/app/account/current-user");
+      // Every later call of the session is refused the same way, reason and all.
+      const after = await call<{ error?: { code?: string } }>(user.page, "/api/v1/app/account/current-user");
       expect(after.status).toBe(401);
+      expect(after.body.error?.code).toBe(IP_REFUSED);
     } finally {
       await user.context.close();
       await tearDownRestricted(page, fixture);

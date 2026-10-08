@@ -79,7 +79,9 @@ export interface UpdateDepartmentDto {
 const organizationApi = {
   listBranches: (accessibleOnly = false, includeDeleted = false): Promise<PagedResult<ClinicBranchDto>> =>
     api
-      .get("/v1/app/clinic-branches", { params: { maxResultCount: 50, accessibleOnly, includeDeleted } })
+      // Every branch, deleted ones included on Cài đặt: a cap of 50 hid the
+      // newest once a clinic (or a test database) passed it (R-831).
+      .get("/v1/app/clinic-branches", { params: { maxResultCount: 1000, accessibleOnly, includeDeleted } })
       .then((r) => r.data),
 
   /** The branches this account may switch to; needs only a signed-in user. */

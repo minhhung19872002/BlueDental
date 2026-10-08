@@ -2,6 +2,10 @@ import { api } from "@/lib/axios";
 import type { StaffRole } from "@/hooks/useStaffOptions";
 import type { PagedResult } from "@/types";
 
+/** Mirrors BlueDental.Staff.StaffContractType — "Loại hợp đồng". */
+export const CONTRACT_TYPES = [1, 2, 3, 4] as const;
+export type ContractType = (typeof CONTRACT_TYPES)[number];
+
 export interface StaffDto {
   id: string;
   userName: string;
@@ -29,6 +33,14 @@ export interface StaffDto {
   /** "Quy định giảm giá": giảm tối đa % / VNĐ; null = no limit. */
   maxDiscountPercent: number | null;
   maxDiscountAmount: number | null;
+  /** Hồ sơ công việc (Cụm 11 mục 1). Dates are "YYYY-MM-DD". */
+  position: string | null;
+  practiceCertificateNumber: string | null;
+  practiceCertificateIssuedOn: string | null;
+  practiceCertificateIssuedPlace: string | null;
+  contractType: ContractType | null;
+  contractStartDate: string | null;
+  contractEndDate: string | null;
 
   morningStartTime: string | null;
   morningEndTime: string | null;
@@ -73,6 +85,13 @@ export interface CreateStaffInput {
   allowLoginOutsideHours?: boolean;
   maxDiscountPercent?: number | null;
   maxDiscountAmount?: number | null;
+  position?: string | null;
+  practiceCertificateNumber?: string | null;
+  practiceCertificateIssuedOn?: string | null;
+  practiceCertificateIssuedPlace?: string | null;
+  contractType?: ContractType | null;
+  contractStartDate?: string | null;
+  contractEndDate?: string | null;
 
   morningStartTime?: string;
   morningEndTime?: string;
@@ -101,6 +120,13 @@ export interface UpdateStaffInput {
   allowLoginOutsideHours?: boolean;
   maxDiscountPercent?: number | null;
   maxDiscountAmount?: number | null;
+  position?: string | null;
+  practiceCertificateNumber?: string | null;
+  practiceCertificateIssuedOn?: string | null;
+  practiceCertificateIssuedPlace?: string | null;
+  contractType?: ContractType | null;
+  contractStartDate?: string | null;
+  contractEndDate?: string | null;
 
   morningStartTime?: string;
   morningEndTime?: string;
@@ -119,6 +145,10 @@ export const staffApi = {
 
   roleNames: (): Promise<string[]> =>
     api.get<string[]>(`${BASE}/roles`).then((r) => r.data),
+
+  /** "Chức vụ" already in use, for the field's suggestions. */
+  positions: (): Promise<string[]> =>
+    api.get<string[]>(`${BASE}/positions`).then((r) => r.data),
 
   create: (input: CreateStaffInput): Promise<StaffDto> =>
     api.post<StaffDto>(BASE, input).then((r) => r.data),

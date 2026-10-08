@@ -29,6 +29,15 @@ export function useStaff(id: string) {
   });
 }
 
+/** "Chức vụ" the clinic already uses (Cụm 11 mục 1). */
+export function useStaffPositions() {
+  return useQuery({
+    queryKey: [...staffKeys.all, "positions"],
+    queryFn: () => staffApi.positions(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useStaffRoleNames() {
   return useQuery({
     queryKey: [...staffKeys.all, "roles"],

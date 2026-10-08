@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Staff;
 
-public class StaffDto : EntityDto<Guid>
+public class StaffDto : EntityDto<Guid>, IStaffEmploymentFields
 {
     public string UserName { get; set; } = default!;
     public string? Name { get; set; }
@@ -48,6 +49,23 @@ public class StaffDto : EntityDto<Guid>
     /// </summary>
     public decimal? MaxDiscountPercent { get; set; }
     public decimal? MaxDiscountAmount { get; set; }
+
+    // --- Hồ sơ công việc (Cụm 11 mục 1) ---
+
+    [StringLength(100)]
+    public string? Position { get; set; }
+
+    [StringLength(50)]
+    public string? PracticeCertificateNumber { get; set; }
+
+    public DateOnly? PracticeCertificateIssuedOn { get; set; }
+
+    [StringLength(200)]
+    public string? PracticeCertificateIssuedPlace { get; set; }
+
+    public StaffContractType? ContractType { get; set; }
+    public DateOnly? ContractStartDate { get; set; }
+    public DateOnly? ContractEndDate { get; set; }
 
     /// <summary>Morning shift start time in "HH:mm" format.</summary>
     public string? MorningStartTime { get; set; }
@@ -94,7 +112,7 @@ public enum StaffPickerRole
     Assistant = 2,
 }
 
-public class CreateStaffDto
+public class CreateStaffDto : IStaffEmploymentFields
 {
     public string UserName { get; set; } = default!;
     public string Password { get; set; } = default!;
@@ -138,6 +156,23 @@ public class CreateStaffDto
     public decimal? MaxDiscountPercent { get; set; }
     public decimal? MaxDiscountAmount { get; set; }
 
+    // --- Hồ sơ công việc (Cụm 11 mục 1) ---
+
+    [StringLength(100)]
+    public string? Position { get; set; }
+
+    [StringLength(50)]
+    public string? PracticeCertificateNumber { get; set; }
+
+    public DateOnly? PracticeCertificateIssuedOn { get; set; }
+
+    [StringLength(200)]
+    public string? PracticeCertificateIssuedPlace { get; set; }
+
+    public StaffContractType? ContractType { get; set; }
+    public DateOnly? ContractStartDate { get; set; }
+    public DateOnly? ContractEndDate { get; set; }
+
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }
     public string? AfternoonStartTime { get; set; }
@@ -149,7 +184,7 @@ public class AvatarResultDto
     public string Url { get; set; } = default!;
 }
 
-public class UpdateStaffDto
+public class UpdateStaffDto : IStaffEmploymentFields
 {
     public string? Password { get; set; }
     public string? Name { get; set; }
@@ -190,8 +225,40 @@ public class UpdateStaffDto
     public decimal? MaxDiscountPercent { get; set; }
     public decimal? MaxDiscountAmount { get; set; }
 
+    // --- Hồ sơ công việc (Cụm 11 mục 1) ---
+
+    [StringLength(100)]
+    public string? Position { get; set; }
+
+    [StringLength(50)]
+    public string? PracticeCertificateNumber { get; set; }
+
+    public DateOnly? PracticeCertificateIssuedOn { get; set; }
+
+    [StringLength(200)]
+    public string? PracticeCertificateIssuedPlace { get; set; }
+
+    public StaffContractType? ContractType { get; set; }
+    public DateOnly? ContractStartDate { get; set; }
+    public DateOnly? ContractEndDate { get; set; }
+
     public string? MorningStartTime { get; set; }
     public string? MorningEndTime { get; set; }
     public string? AfternoonStartTime { get; set; }
     public string? AfternoonEndTime { get; set; }
+}
+
+/// <summary>
+/// Chức vụ, chứng chỉ hành nghề and hợp đồng of a staff member (Cụm 11 mục 1),
+/// shared by the read and write DTOs so the service maps them in one place.
+/// </summary>
+public interface IStaffEmploymentFields
+{
+    string? Position { get; }
+    string? PracticeCertificateNumber { get; }
+    DateOnly? PracticeCertificateIssuedOn { get; }
+    string? PracticeCertificateIssuedPlace { get; }
+    StaffContractType? ContractType { get; }
+    DateOnly? ContractStartDate { get; }
+    DateOnly? ContractEndDate { get; }
 }

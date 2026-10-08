@@ -407,6 +407,15 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>"Quy định giảm giá": % outside 0–100 or a negative amount (Cụm 11 mục 12).</summary>
         public const string InvalidDiscountLimit = "BlueDental:Staff:0008";
+
+        /// <summary>"Ngày kết thúc hợp đồng" before "Ngày bắt đầu" (Cụm 11 mục 1).</summary>
+        public const string ContractEndsBeforeStart = "BlueDental:Staff:0009";
+
+        /// <summary>A chứng chỉ hành nghề issued after today (Cụm 11 mục 1).</summary>
+        public const string CertificateIssuedInFuture = "BlueDental:Staff:0010";
+
+        /// <summary>A "Loại hợp đồng" value the list does not have.</summary>
+        public const string InvalidContractType = "BlueDental:Staff:0011";
     }
 
     public static class StaffPenalty

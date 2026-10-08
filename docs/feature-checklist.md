@@ -2,7 +2,7 @@
 
 Nguồn: `Danh-muc-chuc-nang-nha-khoa-v2.pdf`
 
-Kiểm tra lần cuối: 2026-10-07
+Kiểm tra lần cuối: 2026-10-08
 
 ---
 
@@ -132,8 +132,8 @@ Kiểm tra lần cuối: 2026-10-07
 - [x] 11.1 Nhân viên — Quản lý thông tin nhân viên, vai trò trên hệ thống. Thông tin lương, phụ cấp, chức vụ, chứng chỉ hành nghề, loại hợp đồng.
 - [x] 11.2 Danh sách user — Khởi tạo & quản lý tài khoản, phạm vi & quyền hoạt động trên chi nhánh.
 - [x] 11.3 Lịch làm việc — Quản lý lịch làm việc của từng nhân viên trên chi nhánh.
-- [ ] 11.4 Chế tài nhân viên — Quản lý các chế tài xử phạt nhân viên.
-- [ ] 11.5 Bảng lương — Theo dõi lương, phụ cấp, hoa hồng của nhân viên.
+- [x] 11.4 Chế tài nhân viên — Quản lý các chế tài xử phạt nhân viên.
+- [x] 11.5 Bảng lương — Theo dõi lương, phụ cấp, hoa hồng của nhân viên.
 - [x] 11.6 Chấm công — Chấm công tại phần mềm VTTECH. Theo dõi lịch sử chấm công của nhân viên, tích hợp lịch làm việc phục vụ cho việc tính lương.
 - [x] 11.7 Ghi log thao tác — Ghi lại lịch sử thao tác của nhân viên.
 - [x] 11.8 Phân quyền chỉnh sửa — Phân quyền chỉnh sửa, xóa, xuất dữ liệu.
