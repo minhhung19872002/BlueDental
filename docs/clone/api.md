@@ -1945,3 +1945,13 @@ Full contract, error codes, config and the provider protocol: `docs/clone/integr
 `/api/v1/app/payroll/periods` (list / get / create / recalculate / terms / entries / finalize / delete / excel) và
 `/api/v1/app/payroll/compensations` (lương cơ bản & phụ cấp). Quyền subject `payroll`; lỗi `BlueDental:Payroll:0001`–`0006`.
 Chi tiết hợp đồng API: `docs/clone/pages/payroll.md`.
+
+## Chuyển dữ liệu hệ thống cũ — BlueDental riêng (2026-10-08, F-60)
+
+Quyền `BlueDental.SystemAdmin.DataMigration`; chi nhánh qua `BranchAccessChecker` (ngoài phạm vi → 403). Không có màn hình — gọi bằng Swagger/curl.
+
+- `GET /api/v1/app/data-migration/template?clinicBranchId=<guid>` → file `BlueDental_Migration.xlsx` (Khách hàng, Điều trị, Hướng dẫn), không chứa dữ liệu chi nhánh. Dropdown cố định: Giới tính, Quan hệ GH, Trạng thái. Tên dịch vụ / bác sĩ / nguồn đến / kênh / nghề nghiệp / thẻ / tiền sử bệnh ghi đúng như trên BlueDental, sai thì `dryRun` chỉ ra dòng.
+- `POST /api/v1/app/data-migration/import` multipart `file`, `clinicBranchId`, `dryRun` →
+  `{ dryRun, committed, errorCount, patientsCreated, patientsSkipped, treatmentPlansCreated, treatmentStagesCreated, fileErrors: [<string>], sheets: [{ name, totalRows, rows: [{ row, patientCode, action: 0|1|2, errors: [<string>] }] }] }`
+  (`rows` chỉ gồm dòng Skip=1 / Error=2). Có lỗi bất kỳ → `committed: false`, không ghi gì.
+- `POST /api/v1/app/data-migration/import-errors` cùng multipart → file gốc thêm cột "Lỗi" ở hai sheet dữ liệu.

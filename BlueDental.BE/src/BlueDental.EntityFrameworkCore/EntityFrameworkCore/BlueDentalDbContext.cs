@@ -21,6 +21,7 @@ using BlueDental.Zalo;
 using System;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
@@ -225,5 +226,26 @@ public class BlueDentalDbContext :
             || EF.Property<PatientPaymentStatus>(e, nameof(ISettleable.Status)) == PatientPaymentStatus.Completed;
 
         return expression == null ? settled : QueryFilterExpressionHelper.CombineExpressions(expression, settled);
+    }
+
+    /// <summary>
+    /// Set by the old-system import (F-60) while it adds tens of thousands of
+    /// rows. ABP queues one "created" event per added entity and, when the unit
+    /// of work completes, folds every queued event against all earlier ones
+    /// (<c>UnitOfWork.GetEventsRecords</c>, O(n²)): 5 000 patients spent minutes
+    /// there. Nothing listens to those events for imported rows, so the import
+    /// skips queuing them; audit concepts (creator, creation time) still apply.
+    /// </summary>
+    public bool SkipEntityCreatedEvents { get; set; }
+
+    protected override void PublishEventsForTrackedEntity(EntityEntry entry)
+    {
+        if (SkipEntityCreatedEvents && entry.State == EntityState.Added)
+        {
+            ApplyAbpConceptsForAddedEntity(entry);
+            return;
+        }
+
+        base.PublishEventsForTrackedEntity(entry);
     }
 }

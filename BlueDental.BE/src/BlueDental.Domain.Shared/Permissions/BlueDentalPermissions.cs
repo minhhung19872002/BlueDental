@@ -217,5 +217,12 @@ public static class BlueDentalPermissions
         /// to the Phân quyền screen; syncing itself is gated by catalogService.
         /// </summary>
         public const string ClinicConnections = Default + ".ClinicConnections";
+
+        /// <summary>
+        /// One-time import of a clinic's old system (patients + treatment history)
+        /// from the BlueDental_Migration workbook. Endpoint only, no screen, so it
+        /// is not bridged to the Phân quyền screen either.
+        /// </summary>
+        public const string DataMigration = Default + ".DataMigration";
     }
 }

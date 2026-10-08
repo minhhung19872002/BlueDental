@@ -147,6 +147,7 @@ public class BlueDentalAbilitySeedContributor(
             BlueDentalPermissions.SystemAdministration.Roles.ManagePermissions,
             BlueDentalPermissions.SystemAdministration.AuditLogs,
             BlueDentalPermissions.SystemAdministration.Settings,
+            BlueDentalPermissions.SystemAdministration.DataMigration,
         };
 
         var permissions = allPermissionNames

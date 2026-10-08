@@ -2,7 +2,7 @@
 
 Nguồn: `Danh-muc-chuc-nang-nha-khoa-v2.pdf`
 
-Kiểm tra lần cuối: 2026-10-07
+Kiểm tra lần cuối: 2026-10-08
 
 ---
 
@@ -81,7 +81,8 @@ Kiểm tra lần cuối: 2026-10-07
 
 ## 6. DỊCH VỤ (Thiết lập danh sách dịch vụ, sản phẩm & cấu hình chi tiết)
 
-- [ ] 6.1 Combo Dịch vụ — Thiết lập danh sách dịch vụ, sản phẩm bán theo dạng combo.
+- [x] 6.1 Combo Dịch vụ — Thiết lập danh sách dịch vụ, sản phẩm bán theo dạng combo.
+  - F-48. Thành phần combo chỉ là dịch vụ lẻ: hệ thống chưa có danh mục sản phẩm bán.
 - [ ] 6.2 Bảng giá theo chi nhánh — Thiết lập giá tiền của dịch vụ khác nhau trên từng chi nhánh. Setup các giá theo đơn vị tiền tệ khác VND.
 - [x] 6.3 Quản lý các bước điều trị — Cài đặt các bước điều trị chi tiết theo từng dịch vụ.
 - [ ] 6.4 Thiết lập hoa hồng nhân viên — Công thức & phần trăm, số tiền hoa hồng. Hoa hồng tư vấn, Bác sĩ điều trị, phụ tá. Nhân viên sale và chăm sóc khách hàng.
@@ -132,8 +133,9 @@ Kiểm tra lần cuối: 2026-10-07
 - [x] 11.1 Nhân viên — Quản lý thông tin nhân viên, vai trò trên hệ thống. Thông tin lương, phụ cấp, chức vụ, chứng chỉ hành nghề, loại hợp đồng.
 - [x] 11.2 Danh sách user — Khởi tạo & quản lý tài khoản, phạm vi & quyền hoạt động trên chi nhánh.
 - [x] 11.3 Lịch làm việc — Quản lý lịch làm việc của từng nhân viên trên chi nhánh.
-- [ ] 11.4 Chế tài nhân viên — Quản lý các chế tài xử phạt nhân viên.
-- [ ] 11.5 Bảng lương — Theo dõi lương, phụ cấp, hoa hồng của nhân viên.
+- [x] 11.4 Chế tài nhân viên — Quản lý các chế tài xử phạt nhân viên.
+- [x] 11.5 Bảng lương — Theo dõi lương, phụ cấp, hoa hồng của nhân viên.
+  - F-57. Hoa hồng mới tính cho bác sĩ theo công đoạn; hoa hồng tư vấn, phụ tá, sale, CSKH chờ 6.4. Câu hỏi mở cho BA ở `docs/clone/pages/payroll.md`.
 - [x] 11.6 Chấm công — Chấm công tại phần mềm VTTECH. Theo dõi lịch sử chấm công của nhân viên, tích hợp lịch làm việc phục vụ cho việc tính lương.
 - [x] 11.7 Ghi log thao tác — Ghi lại lịch sử thao tác của nhân viên.
 - [x] 11.8 Phân quyền chỉnh sửa — Phân quyền chỉnh sửa, xóa, xuất dữ liệu.
@@ -188,15 +190,15 @@ Kiểm tra lần cuối: 2026-10-07
 | 3. Thẻ trả trước | 2 | 0 | 2 |
 | 4. Khách hàng | 28 | 19 | 9 |
 | 5. Kế toán | 7 | 2 | 5 |
-| 6. Dịch vụ | 7 | 2 | 5 |
+| 6. Dịch vụ | 7 | 3 | 4 |
 | 7. Kho | 7 | 3 | 4 |
 | 8. Marketing | 13 | 7 | 6 |
 | 9. Đơn thuốc | 3 | 1 | 2 |
 | 10. Tích hợp | 3 | 1 | 2 |
-| 11. Nhân viên & User | 13 | 11 | 2 |
+| 11. Nhân viên & User | 13 | 13 | 0 |
 | 12. Labo | 3 | 3 | 0 |
 | 13. Cấu hình | 1 | 1 | 0 |
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 6 | 7 |
-| **Tổng cộng** | **123** | **76** | **47** |
+| **Tổng cộng** | **123** | **79** | **44** |
