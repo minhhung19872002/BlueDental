@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [main]
+    branches-ignore: [main, develop]
   # Called by cd.yml so main deploys only after the same checks pass.
   workflow_call:
 

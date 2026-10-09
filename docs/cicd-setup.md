@@ -4,10 +4,18 @@ Hai workflow trong `.github/workflows/`:
 
 | File | Trigger | Lam gi |
 |---|---|---|
-| `ci.yml` | pull request, push (nhanh khac main) | Lint + typecheck + format + unit test + build cho FE; build + test cho BE; build thu 2 Docker image |
-| `cd.yml` | push vao `main`, hoac chay tay | Chay lai toan bo CI, roi SSH vao VM deploy va smoke test |
+| `ci.yml` | pull request, push (nhanh khac main/develop) | Lint + typecheck + format + unit test + build cho FE; build + test cho BE; build thu 2 Docker image |
+| `cd.yml` | push vao `main` / `develop`, hoac chay tay | Chay lai toan bo CI, roi SSH vao VM deploy va smoke test |
 
-`cd.yml` goi `ci.yml` qua `workflow_call`, nen **main chi deploy khi CI xanh**.
+`cd.yml` goi `ci.yml` qua `workflow_call`, nen **chi deploy khi CI xanh**.
+
+| Nhanh | GitHub environment | VM | URL |
+|---|---|---|---|
+| `main` | `production` | `hung@14.225.83.131` (bluestar-02) | https://duchanhpremium.vn |
+| `develop` | `staging` | `hung@14.225.83.93` (bluestar01) | https://bluedental.bluestar.com.vn |
+
+Chay tay (Run workflow) se deploy theo nhanh duoc chon: `main` -> production,
+nhanh khac -> staging.
 
 ## 1. Tao SSH key rieng cho deploy
 
@@ -45,33 +53,35 @@ roi `sudo systemctl restart ssh`, va cai `fail2ban`.
 
 ## 3. Khai bao secrets / variables tren GitHub
 
-`Settings -> Secrets and variables -> Actions`.
+`Settings -> Environments -> production | staging`. Moi environment co bo
+secrets/variables rieng; secrets cung ten o cap repo chi la du phong.
 
-**Secrets** (tab *Secrets*):
+**Secrets** (moi environment):
 
 | Ten | Gia tri |
 |---|---|
-| `SSH_HOST` | `14.225.83.131` (IP public cua VM bluestar-02) |
+| `SSH_HOST` | production: `14.225.83.131`, staging: `14.225.83.93` |
 | `SSH_PORT` | Port da forward, vi du `2222`. Bo trong -> mac dinh `22` |
 | `SSH_USER` | `hung` |
 | `SSH_PRIVATE_KEY` | Toan bo noi dung `~/.ssh/bluedental_deploy` (ca dong `-----BEGIN...` va `-----END...`) |
 | `SSH_KNOWN_HOSTS` | Ket qua cua lenh ben duoi |
 
-Lay `SSH_KNOWN_HOSTS` (chay tu may ban, sau khi da forward port):
+Lay `SSH_KNOWN_HOSTS` (chay tu may ban):
 
 ```bash
-ssh-keyscan 14.225.83.131
+ssh-keyscan 14.225.83.131   # production
+ssh-keyscan 14.225.83.93    # staging
 ```
 
 Dan **nguyen ca output**. Day la host key pinning — thieu no thi deploy se
 phai tat `StrictHostKeyChecking`, tuc la chap nhan bat ky host key nao.
 
-**Variables** (tab *Variables*, khong phai secret):
+**Variables** (moi environment, khong phai secret):
 
 | Ten | Mac dinh neu bo trong |
 |---|---|
 | `DEPLOY_PATH` | `/home/hung/BlueDental` |
-| `SITE_URL` | `https://duchanhpremium.vn` |
+| `SITE_URL` | `https://duchanhpremium.vn` (staging dat `https://bluedental.bluestar.com.vn`) |
 
 ## 4. Quyen docker cho user deploy
 
