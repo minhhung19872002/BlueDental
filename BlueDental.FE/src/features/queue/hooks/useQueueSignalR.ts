@@ -28,7 +28,11 @@ interface UseQueueSignalROptions {
   onWaitingTimeWarning?: (payload: WaitingTimeWarningPayload) => void;
 }
 
-export function useQueueSignalR({ branchId, onTicketCalled, onWaitingTimeWarning }: UseQueueSignalROptions) {
+export function useQueueSignalR({
+  branchId,
+  onTicketCalled,
+  onWaitingTimeWarning,
+}: UseQueueSignalROptions) {
   const queryClient = useQueryClient();
   const connRef = useRef<HubConnection | null>(null);
   const callbackRef = useRef(onTicketCalled);
@@ -45,9 +49,7 @@ export function useQueueSignalR({ branchId, onTicketCalled, onWaitingTimeWarning
         transport: HttpTransportType.WebSockets,
       })
       .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
-      .configureLogging(
-        import.meta.env.DEV ? LogLevel.Information : LogLevel.Warning,
-      )
+      .configureLogging(import.meta.env.DEV ? LogLevel.Information : LogLevel.Warning)
       .build();
 
     connRef.current = connection;

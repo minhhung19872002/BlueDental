@@ -491,6 +491,14 @@ public static class BlueDentalDomainErrorCodes
         public const string AlreadyQueued = "BlueDental:Queue:0003";
         public const string CounterRequired = "BlueDental:Queue:0004";
         public const string CounterPaused = "BlueDental:Queue:0005";
+        public const string CounterPausedTakeNumber = "BlueDental:Queue:0006";
+        public const string DuplicatePrefix = "BlueDental:Queue:0007";
+        public const string DentistLocked = "BlueDental:Queue:0008";
+        public const string DentistTaken = "BlueDental:Queue:0009";
+        public const string InvalidPrefix = "BlueDental:Queue:0010";
+        public const string InvalidCounterSettings = "BlueDental:Queue:0011";
+        public const string NotADentist = "BlueDental:Queue:0012";
+        public const string DentistRequired = "BlueDental:Queue:0013";
     }
 
     public static class Tools

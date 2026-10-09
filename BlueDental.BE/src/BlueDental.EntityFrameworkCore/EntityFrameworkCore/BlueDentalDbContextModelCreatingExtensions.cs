@@ -1642,8 +1642,16 @@ public static class BlueDentalDbContextModelCreatingExtensions
         {
             entity.ToTable("bd_service_counters");
             entity.ConfigureByConvention();
-            entity.Property(x => x.Name).HasMaxLength(50).IsRequired();
-            entity.HasIndex(x => new { x.ClinicBranchId, x.Name }).IsUnique();
+            entity.Property(x => x.Name).HasMaxLength(ServiceCounter.MaxNameLength).IsRequired();
+            entity.Property(x => x.NumberPrefix).HasMaxLength(ServiceCounter.MaxPrefixLength).IsRequired();
+            entity.Property(x => x.StartNumber).HasDefaultValue(1);
+            entity.Property(x => x.AutoResetDaily).HasDefaultValue(true);
+            entity.Property(x => x.WaitWarningMinutes).HasDefaultValue(ServiceCounter.DefaultWaitWarningMinutes);
+            entity.Property(x => x.MinutesPerPatient).HasDefaultValue(ServiceCounter.DefaultMinutesPerPatient);
+            // A deleted counter must not block its name or prefix for a new one.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Name }).IsUnique().HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => new { x.ClinicBranchId, x.NumberPrefix }).IsUnique().HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => x.DentistId);
         });
 
         builder.Entity<QueueTicket>(entity =>
@@ -1656,8 +1664,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.ServiceType).HasMaxLength(100);
             entity.Property(x => x.Note).HasMaxLength(500);
 
-            entity.HasIndex(x => new { x.ClinicBranchId, x.QueueDate, x.TicketNumber }).IsUnique();
+            // Numbers belong to a counter's own sequence, which may restart
+            // ("Đặt lại số thứ tự ngay"), so a number is not unique per day.
             entity.HasIndex(x => new { x.ClinicBranchId, x.QueueDate, x.Status });
+            entity.HasIndex(x => new { x.CounterId, x.QueueDate, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.QueueDate });
         });
     }

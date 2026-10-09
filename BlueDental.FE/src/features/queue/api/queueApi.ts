@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import type {
   CallTicketInput,
   CounterBoard,
+  CounterQueue,
   CreateQueueTicketInput,
   CreateServiceCounterInput,
   PagedResult,
@@ -66,6 +67,9 @@ export const queueApi = {
       .get<CounterBoard[]>("/v1/app/queue/display/board", { params: { branchId } })
       .then((r) => r.data),
 
+  counterQueue: (id: string): Promise<CounterQueue> =>
+    api.get<CounterQueue>(`${COUNTER_BASE}/${id}/queue`).then((r) => r.data),
+
   // Service Counters
   getCounters: (): Promise<ServiceCounter[]> =>
     api.get<ServiceCounter[]>(COUNTER_BASE).then((r) => r.data),
@@ -78,6 +82,9 @@ export const queueApi = {
 
   toggleCounter: (id: string): Promise<ServiceCounter> =>
     api.post<ServiceCounter>(`${COUNTER_BASE}/${id}/toggle`).then((r) => r.data),
+
+  resetCounterSequence: (id: string): Promise<ServiceCounter> =>
+    api.post<ServiceCounter>(`${COUNTER_BASE}/${id}/reset-sequence`).then((r) => r.data),
 
   deleteCounter: (id: string): Promise<void> =>
     api.delete(`${COUNTER_BASE}/${id}`).then(() => undefined),

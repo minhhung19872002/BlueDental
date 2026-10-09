@@ -1,500 +1,863 @@
-/* ── TV display — standalone public page, dark theme ── */
+/* ── Màn hình đợi (F-45, BA redesign): board, counter page, counter form, TV ── */
 
-.queue-display {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  font-family: system-ui, -apple-system, sans-serif;
+/* Wait colours: below 70% of the counter's threshold, from 70%, past it. */
+.queue-wait--normal,
+.queue-stat--normal,
+.queue-legend__item--normal,
+.queue-waitbar__track--normal {
+  --queue-wait: var(--bd-green);
+  --queue-wait-pale: var(--bd-green-pale);
 }
 
-.queue-display__header {
-  padding: 24px 40px;
-  text-align: center;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+.queue-wait--warning,
+.queue-stat--warning,
+.queue-legend__item--warning,
+.queue-waitbar__track--warning {
+  --queue-wait: var(--bd-amber);
+  --queue-wait-pale: var(--bd-amber-pale);
 }
 
-.queue-display__title {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: 1px;
+.queue-wait--danger,
+.queue-stat--danger,
+.queue-legend__item--danger,
+.queue-waitbar__track--danger {
+  --queue-wait: var(--bd-red);
+  --queue-wait-pale: var(--bd-red-pale);
 }
 
-.queue-display__time {
-  font-size: 18px;
-  opacity: 0.7;
-  margin-top: 8px;
-}
-
-.queue-display__body {
-  flex: 1;
-  display: flex;
-  gap: 24px;
-  padding: 24px 40px;
-}
-
-.queue-display__current {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
-}
-
-.queue-display__current-label {
-  font-size: 20px;
-  opacity: 0.7;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.queue-display__current-number {
-  font-size: 96px;
-  font-weight: 800;
-  line-height: 1;
-  color: #60a5fa;
-}
-
-.queue-display__current-status {
-  font-size: 18px;
-  margin-top: 12px;
-  opacity: 0.6;
-}
-
-.queue-display__waiting {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 16px;
-  padding: 24px;
-  overflow-y: auto;
-}
-
-.queue-display__waiting-title {
-  font-size: 20px;
+.queue-wait {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  background: var(--queue-wait-pale);
+  color: var(--queue-wait);
+}
+
+/* ── Summary: four figures, no sub-lines ── */
+
+.queue-summary,
+.queue-detail__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.queue-summary {
   margin-bottom: 16px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: 0.7;
 }
 
-.queue-display__waiting-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 12px;
+.queue-detail__stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 16px;
 }
 
-.queue-display__waiting-item {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+.queue-stat__value {
+  margin-top: 6px;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-stat--normal .queue-stat__value,
+.queue-stat--warning .queue-stat__value,
+.queue-stat--danger .queue-stat__value {
+  color: var(--queue-wait);
+}
+
+/* A wait at or past 70% tints the whole tile, as the mockup's red "Chờ lâu nhất". */
+.bd-kpi.queue-stat--warning,
+.bd-kpi.queue-stat--danger {
+  border-color: color-mix(in srgb, var(--queue-wait) 35%, transparent);
+  background: var(--queue-wait-pale);
+}
+
+.queue-stat--warning .bd-kpi__label,
+.queue-stat--danger .bd-kpi__label {
+  color: var(--queue-wait);
+}
+
+/* "/ 3" after 2, "· Quầy số 2" after 34 phút. */
+.queue-stat__note {
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--bd-muted);
+}
+
+.queue-stat--warning .queue-stat__note,
+.queue-stat--danger .queue-stat__note {
+  color: var(--queue-wait);
+}
+
+.queue-stat__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.queue-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.queue-legend__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--queue-wait);
+}
+
+/* ── Board panel "Các quầy khám": title + legend, then the grid ── */
+
+.queue-board-panel {
   padding: 16px;
-  text-align: center;
-  font-size: 24px;
-  font-weight: 700;
-  transition: background 0.3s;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
 }
 
-.queue-display__waiting-item--urgent {
-  border: 2px solid #f59e0b;
-  color: #fbbf24;
-}
-
-.queue-display__waiting-item--called {
-  background: rgba(59, 130, 246, 0.2);
-  border: 2px solid #3b82f6;
-  animation: queue-pulse 2s ease-in-out infinite;
-}
-
-@keyframes queue-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-/* ── Multi-counter grid (TV display) ── */
-
-.queue-display__counters {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  align-content: start;
-}
-
-.queue-display__counter-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
-  padding: 24px;
+.queue-board-panel__head {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 14px;
 }
 
-.queue-display__counter-name {
-  font-size: 16px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: 0.7;
-}
-
-.queue-display__counter-number {
-  font-size: 64px;
-  font-weight: 800;
-  line-height: 1;
-  color: #60a5fa;
-}
-
-.queue-display__counter-serving {
-  font-size: 14px;
-  opacity: 0.6;
-  margin-top: 4px;
-}
-
-.queue-display__empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  opacity: 0.4;
-}
-
-.queue-display__footer {
-  padding: 16px 40px;
-  text-align: center;
-  font-size: 14px;
-  opacity: 0.4;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-@media (max-width: 640px) {
-  .queue-display__body {
-    flex-direction: column;
-    padding: 16px;
-  }
-  .queue-display__current-number {
-    font-size: 64px;
-  }
-  .queue-display__header {
-    padding: 16px 20px;
-  }
-  .queue-display__title {
-    font-size: 24px;
-  }
-}
-
-/* ── "Các quầy tiếp nhận" — one card per reception counter (BA item 22) ── */
-
-/* Accent cycles per card, as in the BA mockup: blue, purple, green. */
-.queue-counter--accent-0 { --counter-accent: var(--bd-primary); --counter-accent-pale: var(--bd-blue-pale); --counter-accent-rgb: 99, 102, 241; }
-.queue-counter--accent-1 { --counter-accent: var(--bd-purple); --counter-accent-pale: var(--bd-purple-pale); --counter-accent-rgb: 124, 92, 224; }
-.queue-counter--accent-2 { --counter-accent: var(--bd-green); --counter-accent-pale: var(--bd-green-pale); --counter-accent-rgb: 14, 159, 110; }
-
-.queue-board {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 16px;
-}
-
-.queue-board__title {
+.queue-board-panel__title {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
   color: var(--bd-title);
 }
 
-.queue-board__loading {
+/* ── Board: compact grid, ten counters at 1920 px (5 × 2) ── */
+
+.queue-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.queue-board__loading,
+.queue-detail__loading {
   display: flex;
   justify-content: center;
-  padding: 24px 0;
+  padding: 32px 0;
 }
 
-.queue-board__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 18px;
-}
-
-.queue-counter {
+.queue-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
   border: 1px solid var(--bd-border);
-  border-radius: 14px;
+  border-radius: var(--bd-radius-card);
   background: var(--bd-card);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.queue-counter:hover {
+/* The mockup's three card colours, in board order. */
+.queue-card--accent-0 {
+  --queue-accent: var(--bd-primary);
+  --queue-accent-pale: var(--bd-blue-pale);
+}
+
+.queue-card--accent-1 {
+  --queue-accent: var(--bd-purple);
+  --queue-accent-pale: var(--bd-purple-pale);
+}
+
+.queue-card--accent-2 {
+  --queue-accent: var(--bd-green);
+  --queue-accent-pale: var(--bd-green-pale);
+}
+
+.queue-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(var(--counter-accent-rgb), 0.4);
-  box-shadow: 0 12px 26px -14px rgba(var(--counter-accent-rgb), 0.4);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 14px 30px -18px rgba(99, 102, 241, 0.45);
 }
 
-.queue-counter--paused {
-  --counter-accent: var(--bd-muted);
-  --counter-accent-pale: var(--bd-bg-soft);
-  --counter-accent-rgb: 100, 116, 139;
-  background: var(--bd-bg-soft);
-  color: var(--bd-muted);
-}
-
-.queue-counter--paused:hover {
-  transform: none;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.queue-counter__head {
+.queue-card__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-}
-
-.queue-counter__identity {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
   min-width: 0;
 }
 
-/* Solid accent disc with a white user glyph, as drawn in the mockup. */
-.queue-counter__avatar {
+.queue-card__avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.queue-card__avatar--sm {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.queue-card__avatar--lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   font-size: 18px;
-  background: var(--counter-accent);
-  color: #fff;
-  box-shadow: 0 4px 10px -4px rgba(var(--counter-accent-rgb), 0.6);
 }
 
-.queue-counter--paused .queue-counter__avatar {
-  box-shadow: none;
+.queue-card .queue-card__avatar {
+  background: var(--queue-accent);
+  color: var(--bd-card);
 }
 
-.queue-counter__name {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--bd-title);
+.queue-card__who {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.queue-card__name,
+.queue-card__dentist {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.queue-counter--paused .queue-counter__name {
+.queue-card__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bd-title);
+}
+
+.queue-card__dentist {
+  font-size: 12px;
   color: var(--bd-muted);
 }
 
-/* Plain "● Đang phục vụ" text, no pill. */
-.queue-counter__status {
+.queue-card__status {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   flex-shrink: 0;
-  gap: 6px;
-  white-space: nowrap;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--bd-green);
 }
 
-.queue-counter__dot {
-  width: 8px;
-  height: 8px;
+.queue-card__dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: currentColor;
 }
 
-.queue-counter--paused .queue-counter__status {
-  color: var(--bd-amber);
-}
-
-.queue-counter__serving,
-.queue-counter__next {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.queue-counter__label-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 22px;
-}
-
-.queue-counter__label {
-  font-size: 12px;
-  font-weight: 500;
+.queue-card--paused .queue-card__status {
   color: var(--bd-muted);
 }
 
-.ant-tag.queue-counter__urgent {
-  margin: 0;
-  line-height: 18px;
-}
-
-.queue-counter__line {
+.queue-card__now,
+.queue-card__next {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 6px 8px;
 }
 
-.queue-counter__desc {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--bd-ink);
+.queue-card__now {
+  gap: 4px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bd-bg-soft);
 }
 
-/* Ticket numbers sit in a pale accent chip. */
-.queue-counter__number,
-.queue-counter__next-number {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  flex-shrink: 0;
-  min-height: 30px;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 16px;
+.queue-card__number {
+  font-size: 26px;
   font-weight: 800;
-  line-height: 1.3;
+  line-height: 1.15;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
-  background: var(--counter-accent-pale);
-  color: var(--counter-accent);
+  color: var(--queue-accent);
 }
 
-.queue-counter__number {
-  min-height: 32px;
-  font-size: 18px;
+.queue-card__number--urgent {
+  color: var(--bd-red);
 }
 
-.queue-counter__number--idle,
-.queue-counter__next-number--empty {
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--bd-bg-soft);
+.queue-card__number--none {
   color: var(--bd-faint);
 }
 
-.queue-counter--paused .queue-counter__number,
-.queue-counter--paused .queue-counter__next-number {
-  background: var(--bd-line);
-  color: var(--bd-muted);
-}
-
-.queue-counter__meta {
+.queue-card__now .queue-card__meta {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 18px;
-  padding-left: 2px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.queue-card__label {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--bd-muted);
 }
 
-.queue-counter__next {
-  padding-top: 12px;
+.queue-card__meta {
+  font-size: 12px;
+  color: var(--bd-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-card__chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.queue-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.queue-card .queue-chip {
+  background: var(--queue-accent-pale);
+  color: var(--queue-accent);
+}
+
+.queue-chip--urgent,
+.queue-card .queue-chip--urgent {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+  box-shadow: inset 3px 0 0 var(--bd-red);
+}
+
+/* "Hết số chờ", "+3 số", and every number of a paused counter. */
+.queue-chip--muted,
+.queue-card .queue-chip--muted,
+.queue-card--paused .queue-chip {
+  font-size: 12px;
+  /* Same box height as a 14px number chip, so an empty card's rows line up with its neighbours. */
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
+  box-shadow: none;
+}
+
+.queue-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding-top: 10px;
   border-top: 1px solid var(--bd-line);
 }
 
-.ant-btn.queue-counter__call {
+.queue-card__facts dt {
+  font-size: 11px;
+  color: var(--bd-muted);
+}
+
+.queue-card__facts dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-card__actions {
+  display: flex;
+  gap: 8px;
   margin-top: auto;
-  height: 42px;
-  border-radius: 10px;
+}
+
+.ant-btn.queue-card__call {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
 }
 
-.ant-btn.ant-btn-primary.queue-counter__call:not(:disabled) {
-  background: var(--counter-accent);
-  border-color: var(--counter-accent);
-  box-shadow: 0 6px 14px -6px rgba(var(--counter-accent-rgb), 0.55);
+.queue-card .ant-btn-primary.queue-card__call:not(:disabled) {
+  border-color: var(--queue-accent);
+  background: var(--queue-accent);
 }
 
-.ant-btn.ant-btn-primary.queue-counter__call:not(:disabled):hover {
-  background: var(--counter-accent);
-  border-color: var(--counter-accent);
-  filter: brightness(1.07);
+.queue-card .ant-btn-primary.queue-card__call:not(:disabled):hover {
+  filter: brightness(1.08);
 }
 
-/* ── Quản lý quầy modal ── */
-
-.queue-counter-form {
-  margin-bottom: 16px;
+/* Nothing to call or the counter is paused: a grey, flat button, not the pale theme blue. */
+.queue-card .ant-btn-primary.queue-card__call:disabled {
+  border-color: var(--bd-line);
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
 }
 
-.queue-counter-form__row {
+/* ── Counter page "Hàng chờ · Quầy …" ── */
+
+.queue-detail__who {
   display: flex;
+  align-items: center;
   gap: 12px;
-  align-items: flex-end;
+  min-width: 0;
 }
 
-.queue-counter-form__name {
+.queue-detail__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.queue-detail__list-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bd-title);
+}
+
+.queue-waitbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+  padding-right: 24px;
+}
+
+.queue-waitbar__track {
   flex: 1;
-  margin-bottom: 0 !important;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bd-line);
+}
+
+.queue-waitbar__fill {
+  display: block;
+  width: var(--queue-wait-share, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--queue-wait);
+}
+
+.queue-waitbar__value {
+  min-width: 52px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-ink);
+}
+
+/* ── Quản lý quầy + counter form ── */
+
+.queue-manager__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.queue-manager__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
 }
 
 .queue-counter-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-size: 12.5px;
 }
 
-.queue-counter-toggle__label--active {
-  color: var(--bd-green);
-  font-weight: 600;
+/* Thêm / Chỉnh sửa quầy — the BA mock: a soft body, white fields with their
+   labels above, the fixed dentist as a locked card, the reset box in red. */
+.queue-counter-dialog .ant-modal-body {
+  background: var(--bd-bg-soft);
 }
 
-.queue-counter-toggle__label--paused {
-  color: var(--bd-amber);
-  font-weight: 600;
+.queue-counter-dialog .ant-input,
+.queue-counter-dialog .ant-input-number,
+.queue-counter-dialog .ant-select,
+.queue-counter-dialog .ant-select-selector {
+  background: var(--bd-card);
 }
 
-/* ── TV display additions ── */
-
-.queue-display__counter-card--paused {
-  opacity: 0.45;
-  border-color: rgba(255, 255, 255, 0.15);
+/* The soft body runs down to the footer rule, as on the mock. */
+.queue-counter-dialog .ant-modal-footer {
+  margin-top: 0;
 }
 
-.queue-display__counter-paused {
-  margin-left: 8px;
+.queue-form__dentist-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bd-line) 55%, var(--bd-bg-soft));
+}
+
+.queue-form__dentist-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--bd-primary) 14%, var(--bd-card));
+  color: var(--bd-primary);
+}
+
+.queue-form__dentist-card .bd-min0 {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.queue-form__dentist-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--bd-title);
+}
+
+.queue-form__dentist-sub {
   font-size: 12px;
-  color: #fbbf24;
+  color: var(--bd-muted);
 }
 
-.queue-display__counter-label {
+.queue-form__dentist-lock {
+  color: var(--bd-muted);
+}
+
+.queue-form__dentist-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.ant-btn.queue-form__change {
+  flex-shrink: 0;
+  height: auto;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.queue-form__number {
+  width: 100%;
+}
+
+.queue-form__auto-reset {
+  padding: 14px 16px 22px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: var(--bd-card);
+}
+
+.queue-reset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--bd-red) 25%, transparent);
+  border-radius: 10px;
+  background: var(--bd-red-pale);
+}
+
+.queue-reset__title {
   font-size: 13px;
-  opacity: 0.6;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--bd-red-dark);
 }
 
-.queue-display__waiting-empty {
+.queue-reset__state {
+  font-size: 12px;
+  color: var(--bd-red-dark);
+}
+
+.ant-btn.queue-reset__button:not(:disabled) {
+  background: var(--bd-card);
+}
+
+/* ── TV display — standalone public page, dark theme, ten counters on one screen ── */
+
+.queue-tv {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #fff;
+  font-family: var(--bd-font);
+}
+
+.queue-tv__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.queue-tv__title {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.queue-tv__time {
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.queue-tv__grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px 32px;
+}
+
+.queue-tv__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.queue-tv__card--paused {
+  opacity: 0.45;
+}
+
+.queue-tv__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.queue-tv__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 800;
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+
+.queue-tv__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.queue-tv__name,
+.queue-tv__dentist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-tv__name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.queue-tv__dentist {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.queue-tv__label,
+.queue-tv__next-label {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.queue-tv__number {
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: #60a5fa;
+}
+
+.queue-tv__card--paused .queue-tv__number {
+  font-size: 22px;
+  color: #cbd5e1;
+}
+
+.queue-tv__next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 15px;
+}
+
+.queue-tv__next-label {
+  flex-basis: 100%;
+}
+
+.queue-tv__chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.queue-tv__more {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.queue-tv__empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  opacity: 0.6;
+}
+
+.queue-tv__footer {
+  padding: 10px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
   text-align: center;
-  opacity: 0.4;
-  margin-top: 40px;
+  opacity: 0.5;
+}
+
+/* ── Responsive (1280 / 1100 / 640) ── */
+
+@media (max-width: 1600px) {
+  .queue-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1280px) {
+  .queue-board,
+  .queue-tv__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .queue-detail__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .queue-board,
+  .queue-summary,
+  .queue-detail__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .queue-board,
+  .queue-summary,
+  .queue-detail__stats,
+  .queue-tv__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .queue-tv__header {
+    flex-direction: column;
+    padding: 14px 16px;
+  }
+
+  .queue-tv__grid {
+    padding: 16px;
+  }
+
+  .queue-reset {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* "Lấy số thứ tự": the modal-wide rule zeroes item margins, so space the
+   fields here; and the radios sit under their label instead of being centred
+   in AntD's 40 px control box. */
+.ant-modal .queue-ticket-form .ant-form-item {
+  margin-bottom: 14px;
+}
+
+.ant-modal .queue-ticket-form .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+.queue-ticket-form__priority .ant-form-item-control-input {
+  min-height: 0;
 }

@@ -1,190 +1,185 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { BRANCH_ONE } from "./fixtures/catalogApi";
+import { deleteCounters, freePrefixes, listCounters, type Counter } from "./fixtures/queueApi";
 
 /**
- * Feature: Màn hình đợi (F-43) — BA item 22 through the real UI.
+ * Feature: Màn hình đợi (F-45, BA redesign 2026-10-09) through the real UI:
+ * add a counter with its required dentist, take numbers at that counter,
+ * call them from the board and from the counter's own page, pause it, and
+ * watch the TV.
  *
  * Real login, real routes, real backend, real PostgreSQL. The only direct
- * HTTP here is the set-up that empties today's shared pool (so the order the
- * cards show is the order this spec created) and the clean-up that removes
- * the counters it added; both go through the real API with the real cookie.
+ * HTTP is reading which prefixes are free and deleting the counter at the
+ * end, both with the real session.
  */
 
-const BASE = "/api/v1/app/queue";
+const ENABLED_OPTION = ".ant-select-item-option:not(.ant-select-item-option-disabled)";
 
-interface BoardCounter {
-  id: string;
-  name: string;
+function dialogNamed(page: Page, title: string): Locator {
+  return page.getByRole("dialog", { name: title, exact: true });
 }
 
-async function api(page: Page, url: string, method: "GET" | "POST" | "DELETE" = "GET") {
-  return page.evaluate(
-    async ({ url, method }) => {
-      const xsrf = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
-        ?.substring("XSRF-TOKEN=".length);
-      const res = await fetch(url, {
-        method,
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
-        },
-        ...(method === "POST" ? { body: "{}" } : {}),
-      });
-      const text = await res.text();
-      return { status: res.status, body: text ? (JSON.parse(text) as unknown) : null };
-    },
-    { url, method },
-  );
+/** The screens put "BS." in front themselves; some seeded names already carry it. */
+function titled(label: string): string {
+  return `BS. ${label.replace(/^\s*bs\.?\s+/i, "")}`;
 }
 
-async function drainPool(page: Page, counterId: string): Promise<void> {
-  for (let i = 0; i < 300; i += 1) {
-    const res = await page.evaluate(
-      async ({ url, counterId }) => {
-        const xsrf = document.cookie
-          .split("; ")
-          .find((c) => c.startsWith("XSRF-TOKEN="))
-          ?.substring("XSRF-TOKEN=".length);
-        const r = await fetch(url, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "content-type": "application/json",
-            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
-          },
-          body: JSON.stringify({ counterId }),
-        });
-        return r.status;
-      },
-      { url: `${BASE}/tickets/call-next`, counterId },
-    );
-    if (res !== 200) return;
-  }
+function cardOf(page: Page, name: string): Locator {
+  return page.locator(".queue-card").filter({ has: page.locator(".queue-card__name", { hasText: name }) });
 }
 
-function card(page: Page, name: string): Locator {
-  return page.locator(".queue-counter", { has: page.locator(".queue-counter__name", { hasText: name }) });
-}
-
-async function addCounter(page: Page, name: string): Promise<void> {
-  const dialog = page.getByRole("dialog", { name: "Quản lý quầy" });
-  await dialog.getByPlaceholder("VD: Quầy 1").fill(name);
-  await dialog.getByRole("button", { name: "Thêm quầy" }).click();
-  await expect(dialog.getByRole("cell", { name, exact: true })).toBeVisible();
-}
-
-async function takeNumber(page: Page, urgent: boolean): Promise<string> {
+async function takeNumber(page: Page, counterName: string, priority: "Bình thường" | "Ưu tiên"): Promise<void> {
   await page.getByRole("button", { name: "Lấy số mới" }).click();
-  const dialog = page.getByRole("dialog", { name: "Lấy số thứ tự" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("Bệnh nhân")).toHaveCount(0);
-  await expect(dialog.getByText("Quầy", { exact: true })).toHaveCount(0);
-  if (urgent) await dialog.getByRole("radio", { name: "Ưu tiên" }).check();
-  const created = page.waitForResponse(
-    (res) => res.url().includes(`${BASE}/tickets`) && res.request().method() === "POST",
-  );
-  await dialog.getByRole("button", { name: "Lấy số" }).click();
-  const body = (await (await created).json()) as { displayNumber: string };
-  await expect(dialog).toBeHidden();
-  return body.displayNumber;
+  const modal = dialogNamed(page, "Lấy số thứ tự");
+  await modal.getByRole("combobox").click();
+  await page.keyboard.type(counterName);
+  await page.locator(ENABLED_OPTION).filter({ hasText: counterName }).click();
+  await modal.getByLabel(priority).check();
+  const created = page.waitForResponse((r) => r.url().endsWith("/queue/tickets") && r.request().method() === "POST");
+  await modal.getByRole("button", { name: "Lấy số" }).click();
+  expect((await created).status()).toBe(200);
+  await expect(modal).toBeHidden();
 }
 
-test.describe("Màn hình đợi — counter cards call from one shared queue", () => {
-  const run = runId();
-  const nameA = `Quầy A ${run}`;
-  const nameB = `Quầy B ${run}`;
-  const created: BoardCounter[] = [];
+test.describe("Màn hình đợi — per-counter queues in the browser", () => {
+  test.describe.configure({ mode: "serial" });
 
-  test.afterEach(async ({ page }) => {
-    for (const counter of created) {
-      await api(page, `${BASE}/counters/${counter.id}`, "DELETE");
+  const run = runId();
+  const name = `E2E Quầy ${run}`;
+  let page: Page;
+  let prefix: string;
+  let dentistLabel: string;
+  let counter: Counter | undefined;
+
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage();
+    await login(page);
+    await page.goto("/queue");
+    [prefix] = await freePrefixes(page, 1);
+  });
+
+  test.afterAll(async () => {
+    await deleteCounters(page, [counter]);
+    await page.context().close();
+  });
+
+  test("a counter cannot be saved until its dentist is chosen", async () => {
+    await expect(page.getByRole("region", { name: "Tổng quan hàng chờ" })).toBeVisible();
+    await page.getByRole("button", { name: "Quản lý quầy" }).click();
+    const manager = dialogNamed(page, "Quản lý quầy");
+    await manager.getByRole("button", { name: "Thêm quầy" }).click();
+
+    const form = dialogNamed(page, "Thêm quầy");
+    await expect(form).toBeVisible();
+    await expect(manager, "the form takes the manager's place").toBeHidden();
+    const save = form.getByRole("button", { name: /Lưu$/ });
+    const prefixBox = form.getByRole("textbox", { name: /^\*?\s*Ký hiệu số/ });
+    await form.getByRole("textbox", { name: /^\*?\s*Tên quầy/ }).fill(name);
+    await prefixBox.fill(prefix.toLowerCase());
+    await expect(prefixBox, "prefix is upper-cased").toHaveValue(prefix);
+    await expect(form.getByText(`Hiển thị: ${prefix}001`)).toBeVisible();
+    await expect(save, "no dentist yet").toBeDisabled();
+
+    await form.getByRole("combobox", { name: /^\*?\s*Bác sĩ phụ trách/ }).click();
+    const option = page.locator(ENABLED_OPTION).first();
+    dentistLabel = (await option.innerText()).trim();
+    expect(dentistLabel).not.toBe("");
+    await option.click();
+    await expect(form.locator(".queue-form__dentist-name"), "the pick turns into the locked card").toHaveText(
+      titled(dentistLabel),
+    );
+    await expect(form.getByRole("button", { name: "Đổi bác sĩ…" })).toBeEnabled();
+    await expect(save).toBeEnabled();
+
+    const saved = page.waitForResponse((r) => r.url().endsWith("/queue/counters") && r.request().method() === "POST");
+    await save.click();
+    expect((await saved).status()).toBe(200);
+    await expect(form).toBeHidden();
+    await expect(manager, "closing the form brings the manager back").toBeVisible();
+
+    const row = manager.locator("tr", { hasText: name });
+    await expect(row).toContainText(dentistLabel);
+    await manager.locator(".ant-modal-close").click();
+
+    counter = (await listCounters(page)).find((c) => c.name === name);
+    expect(counter?.numberPrefix).toBe(prefix);
+    await expect(cardOf(page, name).locator(".queue-card__dentist")).toHaveText(titled(dentistLabel));
+  });
+
+  test("numbers taken at the counter are called urgent first from its card", async () => {
+    await takeNumber(page, name, "Bình thường");
+    await takeNumber(page, name, "Ưu tiên");
+
+    const card = cardOf(page, name);
+    const call = card.getByRole("button", { name: `Gọi ${prefix}002` });
+    await expect(call, "the urgent number is next").toBeVisible();
+    await call.click();
+    await expect(card.locator(".queue-card__now")).toContainText(`${prefix}002`);
+    await expect(card.getByRole("button", { name: `Gọi ${prefix}001` })).toBeVisible();
+
+    // ↻ reloads the board from the server and stays on the board (it is not "Gọi lại").
+    const reloaded = page.waitForResponse(
+      (r) => r.url().endsWith("/queue/counters/board") && r.request().method() === "GET",
+    );
+    await card.getByRole("button", { name: "Làm mới" }).click();
+    expect((await reloaded).status()).toBe(200);
+    await expect(page).toHaveURL(/\/queue(\?|$)/);
+    await expect(card.locator(".queue-card__now")).toContainText(`${prefix}002`);
+  });
+
+  test("the counter's page lists its queue, survives a reload, skips and calls", async () => {
+    await cardOf(page, name).locator(".queue-card__name").click();
+    await expect(page).toHaveURL(new RegExp(`/queue/counters/${counter?.id}$`));
+    await expect(page.getByRole("heading", { name: `Hàng chờ · ${name}` })).toBeVisible();
+
+    const table = page.locator(".queue-detail__list");
+    await expect(table.getByRole("columnheader")).toHaveText(["Số", "Lấy số lúc", "Đã chờ", "Dự kiến gọi", "Mức chờ"]);
+    await expect(table.locator("tr.ant-table-row")).toHaveCount(1);
+    await expect(table.locator("tr.ant-table-row").first()).toContainText(`${prefix}001`);
+
+    await page.reload();
+    await expect(table.locator("tr.ant-table-row").first(), "persisted").toContainText(`${prefix}001`);
+
+    await page.getByRole("button", { name: `Bỏ qua ${prefix}002` }).click();
+    await expect(page.getByRole("button", { name: /Bỏ qua$/ })).toBeDisabled();
+
+    await page.getByRole("button", { name: `Gọi số tiếp theo · ${prefix}001` }).click();
+    await expect(page.getByRole("button", { name: "Hết số chờ" })).toBeDisabled();
+    await expect(table.getByText("Không có bệnh nhân chờ")).toBeVisible();
+  });
+
+  test("the TV shows the counter, its dentist and the number being seen", async ({ browser }) => {
+    const tv = await browser.newPage();
+    try {
+      await tv.goto(`/queue/display?branchId=${BRANCH_ONE}`);
+      const card = tv.locator(".queue-tv__card").filter({ hasText: name });
+      await expect(card.locator(".queue-tv__dentist")).toHaveText(titled(dentistLabel));
+      await expect(card.locator(".queue-tv__number")).toHaveText(`${prefix}001`);
+    } finally {
+      await tv.context().close();
     }
   });
 
-  test("take numbers, call per counter, persist, pause", async ({ page }) => {
-    await login(page);
+  test("a paused counter is marked paused and hands out no number", async () => {
     await page.goto("/queue");
-    await expect(page.getByRole("heading", { name: "Màn hình đợi" })).toBeVisible();
-
-    // The board replaces the old KPI cards and ticket table (owner, 2026-09-25).
-    await expect(page.getByRole("table")).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Các quầy tiếp nhận" })).toBeVisible();
-
-    // Quản lý quầy → two counters, each becomes a card on the board.
     await page.getByRole("button", { name: "Quản lý quầy" }).click();
-    await addCounter(page, nameA);
-    await addCounter(page, nameB);
-    await page.getByRole("dialog", { name: "Quản lý quầy" }).getByLabel("Close").click();
-    await expect(card(page, nameA)).toBeVisible();
-    await expect(card(page, nameB)).toBeVisible();
+    const manager = dialogNamed(page, "Quản lý quầy");
+    await manager.getByRole("switch", { name }).click();
+    await expect(manager.locator("tr", { hasText: name })).toContainText("Tạm nghỉ");
+    await manager.locator(".ant-modal-close").click();
 
-    const board = (await api(page, `${BASE}/counters/board`)).body as BoardCounter[];
-    created.push(...board.filter((c) => c.name === nameA || c.name === nameB));
-    const idA = created.find((c) => c.name === nameA)?.id ?? "";
-    await drainPool(page, idA);
+    const card = cardOf(page, name);
+    await expect(card).toHaveClass(/queue-card--paused/);
+    await expect(card.getByRole("button", { name: "Quầy tạm nghỉ" })).toBeDisabled();
+    const newWait = card.locator(".queue-card__facts > div").filter({ hasText: "Số mới chờ" }).locator("dd");
+    await expect(newWait, "no number is handed out, so no wait is quoted").toHaveText("—");
 
-    // Three numbers: two normal, one urgent. Both cards offer the urgent one next.
-    const n1 = await takeNumber(page, false);
-    const n2 = await takeNumber(page, false);
-    const urgent = await takeNumber(page, true);
-    await expect(card(page, nameA).locator(".queue-counter__next-number")).toHaveText(urgent);
-    await expect(card(page, nameB).locator(".queue-counter__next-number")).toHaveText(urgent);
-    await expect(card(page, nameA).locator(".queue-counter__next")).toContainText("Ưu tiên");
-
-    // Counter A calls: it now serves the urgent number; both cards move on to n1.
-    await card(page, nameA).getByRole("button", { name: "Gọi số tiếp theo" }).click();
-    await expect(card(page, nameA).locator(".queue-counter__number")).toHaveText(urgent);
-    await expect(card(page, nameA).locator(".queue-counter__meta")).toHaveText(/\d{2}:\d{2}/);
-    await expect(card(page, nameA).locator(".queue-counter__next-number")).toHaveText(n1);
-    await expect(card(page, nameB).locator(".queue-counter__next-number")).toHaveText(n1);
-
-    // Counter B calls n1; counter A calls again and gets n2, its urgent one completes.
-    await card(page, nameB).getByRole("button", { name: "Gọi số tiếp theo" }).click();
-    await expect(card(page, nameB).locator(".queue-counter__number")).toHaveText(n1);
-    await card(page, nameA).getByRole("button", { name: "Gọi số tiếp theo" }).click();
-    await expect(card(page, nameA).locator(".queue-counter__number")).toHaveText(n2);
-    await expect(card(page, nameA).locator(".queue-counter__next-number")).toHaveText("Hết số chờ");
-
-    // A's first number was auto-completed by its second call (owner decision 2).
-    // Paged list: ask for the whole day so earlier runs' completed numbers do not push ours off page 1.
-    const urgentTicket = (await api(page, `${BASE}/tickets?status=4&maxResultCount=1000`)).body as {
-      items: { displayNumber: string; status: number }[];
-    };
-    expect(urgentTicket.items.some((item) => item.displayNumber === urgent)).toBe(true);
-
-    // Persisted: a reload shows the same picture.
-    await page.reload();
-    await expect(card(page, nameA).locator(".queue-counter__number")).toHaveText(n2);
-    await expect(card(page, nameB).locator(".queue-counter__number")).toHaveText(n1);
-
-    // Pause counter B: still on the board, dimmed, its button locked.
-    await page.getByRole("button", { name: "Quản lý quầy" }).click();
-    const dialog = page.getByRole("dialog", { name: "Quản lý quầy" });
-    await dialog.getByRole("switch", { name: nameB }).click();
-    await expect(dialog.getByRole("row", { name: new RegExp(nameB) })).toContainText("Tạm ngưng");
-    await dialog.getByLabel("Close").click();
-    await expect(card(page, nameB)).toHaveClass(/queue-counter--paused/);
-    await expect(card(page, nameB).locator(".queue-counter__status")).toHaveText("Tạm ngưng");
-    await expect(card(page, nameB).getByRole("button", { name: "Gọi số tiếp theo" })).toBeDisabled();
-    await expect(card(page, nameA).getByRole("button", { name: "Gọi số tiếp theo" })).toBeEnabled();
-
-    // The public TV board shows the same numbers, with no session at all.
-    const branchId = (await api(page, `${BASE}/counters`)).body as { clinicBranchId: string }[];
-    const tv = await page.context().browser()!.newContext();
-    const tvPage = await tv.newPage();
-    try {
-      await tvPage.goto(`/queue/display?branchId=${branchId[0].clinicBranchId}`);
-      const tvCard = tvPage.locator(".queue-display__counter-card", { hasText: nameA });
-      await expect(tvCard.locator(".queue-display__counter-number")).toHaveText(n2);
-      await expect(tvPage.locator(".queue-display__counter-card", { hasText: nameB })).toHaveClass(
-        /queue-display__counter-card--paused/,
-      );
-    } finally {
-      await tv.close();
-    }
+    await page.getByRole("button", { name: "Lấy số mới" }).click();
+    await dialogNamed(page, "Lấy số thứ tự").getByRole("combobox").click();
+    await page.keyboard.type(name);
+    await expect(page.locator(".ant-select-item-option").filter({ hasText: name })).toHaveClass(
+      /ant-select-item-option-disabled/,
+    );
   });
 });

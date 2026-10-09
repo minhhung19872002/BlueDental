@@ -65,6 +65,9 @@ public sealed class QueueTicketController(IQueueTicketAppService service) : Blue
     [HttpGet("counters/board")]
     public Task<List<CounterBoardDto>> GetBoardAsync() => service.GetBoardAsync();
 
+    [HttpGet("counters/{id:guid}/queue")]
+    public Task<CounterQueueDto> GetCounterQueueAsync(Guid id) => service.GetCounterQueueAsync(id);
+
     [HttpGet("counters")]
     public Task<List<ServiceCounterDto>> GetCountersAsync() =>
         service.GetCountersAsync();
@@ -80,6 +83,10 @@ public sealed class QueueTicketController(IQueueTicketAppService service) : Blue
     [HttpPost("counters/{id:guid}/toggle")]
     public Task<ServiceCounterDto> ToggleCounterAsync(Guid id) =>
         service.ToggleCounterAsync(id);
+
+    [HttpPost("counters/{id:guid}/reset-sequence")]
+    public Task<ServiceCounterDto> ResetCounterSequenceAsync(Guid id) =>
+        service.ResetCounterSequenceAsync(id);
 
     [HttpDelete("counters/{id:guid}")]
     public Task DeleteCounterAsync(Guid id) =>

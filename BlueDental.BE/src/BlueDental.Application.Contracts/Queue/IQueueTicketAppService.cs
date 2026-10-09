@@ -21,11 +21,13 @@ public interface IQueueTicketAppService : IApplicationService
     Task<List<QueueDisplayDto>> GetDisplayAsync(Guid branchId, Guid? counterId = null);
     Task<List<CounterBoardDto>> GetBoardAsync();
     Task<List<CounterBoardDto>> GetDisplayBoardAsync(Guid branchId);
+    Task<CounterQueueDto> GetCounterQueueAsync(Guid counterId);
 
     // Service Counter management
     Task<List<ServiceCounterDto>> GetCountersAsync();
     Task<ServiceCounterDto> CreateCounterAsync(CreateServiceCounterDto input);
     Task<ServiceCounterDto> UpdateCounterAsync(Guid id, UpdateServiceCounterDto input);
     Task<ServiceCounterDto> ToggleCounterAsync(Guid id);
+    Task<ServiceCounterDto> ResetCounterSequenceAsync(Guid id);
     Task DeleteCounterAsync(Guid id);
 }

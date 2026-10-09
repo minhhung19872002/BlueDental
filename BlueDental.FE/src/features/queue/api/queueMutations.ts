@@ -14,6 +14,8 @@ function useInvalidateQueue() {
     void queryClient.invalidateQueries({ queryKey: queueKeys.lists() });
     void queryClient.invalidateQueries({ queryKey: queueKeys.statsBase() });
     void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
+    void queryClient.invalidateQueries({ queryKey: queueKeys.counterQueues() });
+    void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
   };
 }
 
@@ -30,8 +32,7 @@ export function useCallQueueTicket() {
   const invalidate = useInvalidateQueue();
   return useMutation({
     mutationKey: ["queue", "call"],
-    mutationFn: ({ id, input }: { id: string; input: CallTicketInput }) =>
-      queueApi.call(id, input),
+    mutationFn: ({ id, input }: { id: string; input: CallTicketInput }) => queueApi.call(id, input),
     onSuccess: invalidate,
   });
 }
@@ -84,50 +85,48 @@ export function useRecallQueueTicket() {
 
 // Service Counter mutations
 export function useCreateServiceCounter() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateQueue();
   return useMutation({
     mutationKey: ["queue", "createCounter"],
     mutationFn: (data: CreateServiceCounterInput) => queueApi.createCounter(data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
-      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useUpdateServiceCounter() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateQueue();
   return useMutation({
     mutationKey: ["queue", "updateCounter"],
     mutationFn: ({ id, data }: { id: string; data: UpdateServiceCounterInput }) =>
       queueApi.updateCounter(id, data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
-      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useToggleServiceCounter() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateQueue();
   return useMutation({
     mutationKey: ["queue", "toggleCounter"],
     mutationFn: (id: string) => queueApi.toggleCounter(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
-      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useDeleteServiceCounter() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateQueue();
   return useMutation({
     mutationKey: ["queue", "deleteCounter"],
     mutationFn: (id: string) => queueApi.deleteCounter(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queueKeys.counters() });
-      void queryClient.invalidateQueries({ queryKey: queueKeys.board() });
-    },
+    onSuccess: invalidate,
+  });
+}
+
+/** "Đặt lại số thứ tự ngay": waiting numbers keep theirs, new ones restart. */
+export function useResetCounterSequence() {
+  const invalidate = useInvalidateQueue();
+  return useMutation({
+    mutationKey: ["queue", "resetCounterSequence"],
+    mutationFn: (id: string) => queueApi.resetCounterSequence(id),
+    onSuccess: invalidate,
   });
 }

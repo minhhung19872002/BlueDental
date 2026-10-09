@@ -1,138 +1,129 @@
 import { useState } from "react";
-import { Button, Form, Input, Modal, Space, Switch, Table, Tooltip } from "antd";
-import { EditOutlined } from "@ant-design/icons";
+import { Button, Modal, Switch, Tooltip } from "antd";
+import { EditOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
+import { DataTable } from "@/components/DataTable";
 import { useQueueCounters } from "../api/queueQueries";
-import {
-  useCreateServiceCounter,
-  useUpdateServiceCounter,
-  useToggleServiceCounter,
-} from "../api/queueMutations";
+import { useToggleServiceCounter } from "../api/queueMutations";
 import type { ServiceCounter } from "../types";
+import { CounterFormDialog } from "./CounterFormDialog";
 
 interface CounterManagerModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-interface CounterFormValues {
-  name: string;
-}
+/** null = closed, "new" = adding, otherwise the id being edited. */
+type Editing = null | "new" | string;
 
-export function CounterManagerModal({ open, onClose }: CounterManagerModalProps) {
-  const { data: counters, isLoading } = useQueueCounters();
-  const createMutation = useCreateServiceCounter();
-  const updateMutation = useUpdateServiceCounter();
-  const toggleMutation = useToggleServiceCounter();
-
-  const [form] = Form.useForm<CounterFormValues>();
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      const nextOrder = (counters ?? []).length;
-      if (editingId) {
-        const current = (counters ?? []).find((c) => c.id === editingId);
-        updateMutation.mutate(
-          { id: editingId, data: { ...values, sortOrder: current?.sortOrder ?? nextOrder } },
-          { onSuccess: () => { form.resetFields(); setEditingId(null); } },
-        );
-      } else {
-        createMutation.mutate({ ...values, sortOrder: nextOrder }, {
-          onSuccess: () => form.resetFields(),
-        });
-      }
-    });
-  };
-
-  const handleEdit = (record: ServiceCounter) => {
-    setEditingId(record.id);
-    form.setFieldsValue({ name: record.name });
-  };
-
-  const handleCancel = () => {
-    setEditingId(null);
-    form.resetFields();
-  };
-
-  const columns: ColumnsType<ServiceCounter> = [
+function useCounterColumns(onEdit: (id: string) => void): ColumnsType<ServiceCounter> {
+  const toggle = useToggleServiceCounter();
+  return [
     {
       title: t("Queue:Counter:Name"),
-      dataIndex: "name",
+      key: "name",
+      render: (_: unknown, counter) => (
+        <span className="queue-manager__name">
+          <span className="queue-card__avatar queue-card__avatar--sm" aria-hidden>
+            {counter.numberPrefix}
+          </span>
+          {counter.name}
+        </span>
+      ),
+    },
+    {
+      title: t("Queue:Form:Dentist"),
+      key: "dentist",
+      render: (_: unknown, counter) => counter.dentistName ?? "—",
+    },
+    {
+      title: t("Queue:Counter:IssuedUpTo"),
+      key: "issued",
+      render: (_: unknown, counter) => counter.lastIssuedNumber ?? "—",
+    },
+    {
+      title: t("Queue:Counter:Threshold"),
+      key: "threshold",
+      render: (_: unknown, counter) => t("Queue:Minutes", counter.waitWarningMinutes),
     },
     {
       title: t("Queue:Counter:Status"),
-      dataIndex: "isActive",
-      width: 160,
-      render: (val: boolean, record) => (
+      key: "status",
+      width: 150,
+      render: (_: unknown, counter) => (
         <span className="queue-counter-toggle">
           <Switch
-            checked={val}
+            checked={counter.isActive}
             size="small"
-            aria-label={record.name}
-            loading={toggleMutation.isPending}
-            onChange={() => toggleMutation.mutate(record.id)}
+            aria-label={counter.name}
+            loading={toggle.isPending && toggle.variables === counter.id}
+            onChange={() => toggle.mutate(counter.id)}
           />
-          <span className={val ? "queue-counter-toggle__label--active" : "queue-counter-toggle__label--paused"}>
-            {val ? t("Queue:Counter:Active") : t("Queue:Counter:Paused")}
-          </span>
+          {counter.isActive ? t("Queue:Counter:Active") : t("Queue:Counter:Paused")}
         </span>
       ),
     },
     {
       title: t("Queue:Counter:Actions"),
       key: "actions",
-      width: 60,
+      width: 72,
       align: "center",
-      render: (_: unknown, record: ServiceCounter) => (
+      render: (_: unknown, counter) => (
         <Tooltip title={t("Queue:Counter:Edit")}>
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            aria-label={t("Queue:Counter:EditNamed", counter.name)}
+            onClick={() => onEdit(counter.id)}
+          />
         </Tooltip>
       ),
     },
   ];
+}
 
-  const saving = createMutation.isPending || updateMutation.isPending;
+/** "Quản lý quầy": every counter of the branch, its pause switch, and the add / edit dialog. */
+export function CounterManagerModal({ open, onClose }: CounterManagerModalProps) {
+  const { data: counters = [], isLoading } = useQueueCounters();
+  const [editing, setEditing] = useState<Editing>(null);
+  const columns = useCounterColumns(setEditing);
+  const editedCounter =
+    editing && editing !== "new" ? (counters.find((c) => c.id === editing) ?? null) : null;
 
+  // Thêm / Sửa quầy takes the manager's place and hands it back when it closes;
+  // the dialog lives outside the manager so hiding the manager keeps it mounted.
   return (
-    <Modal
-      title={t("Queue:Counter:Title")}
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      width={600}
-      destroyOnClose
-    >
-      <Form form={form} layout="vertical" className="queue-counter-form">
-        <div className="queue-counter-form__row">
-          <Form.Item
-            name="name"
-            label={t("Queue:Counter:Name")}
-            rules={[{ required: true, message: t("Queue:Counter:NameRequired") }]}
-            className="queue-counter-form__name"
-          >
-            <Input placeholder={t("Queue:Counter:NamePlaceholder")} />
-          </Form.Item>
-          <Space size={4}>
-            <Button type="primary" onClick={handleSubmit} loading={saving} disabled={saving}>
-              {editingId ? t("Queue:Counter:Update") : t("Queue:Counter:Add")}
-            </Button>
-            {editingId && (
-              <Button onClick={handleCancel}>{t("Hủy")}</Button>
-            )}
-          </Space>
+    <>
+      <Modal
+        title={<h2 className="bd-modal-title">{t("Queue:Counter:Title")}</h2>}
+        open={open && editing === null}
+        onCancel={onClose}
+        footer={null}
+        width={860}
+        destroyOnHidden
+      >
+        <div className="queue-manager__toolbar">
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing("new")}>
+            {t("Queue:Counter:Add")}
+          </Button>
         </div>
-      </Form>
-
-      <Table<ServiceCounter>
-        rowKey="id"
-        columns={columns}
-        dataSource={counters ?? []}
-        loading={isLoading}
-        pagination={false}
-        size="small"
+        <DataTable<ServiceCounter>
+          rowKey="id"
+          columns={columns}
+          dataSource={counters}
+          loading={isLoading}
+          pagination={false}
+          size="small"
+        />
+      </Modal>
+      <CounterFormDialog
+        open={open && editing !== null}
+        counter={editedCounter}
+        counters={counters}
+        onClose={() => setEditing(null)}
       />
-    </Modal>
+    </>
   );
 }

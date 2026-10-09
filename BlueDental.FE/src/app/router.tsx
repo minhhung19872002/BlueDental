@@ -159,6 +159,12 @@ const QueuePage = lazy(() =>
   })),
 );
 
+const CounterQueuePage = lazy(() =>
+  import("@/features/queue/pages/CounterQueuePage").then((m) => ({
+    default: m.CounterQueuePage,
+  })),
+);
+
 const QueueDisplayPage = lazy(() =>
   import("@/features/queue/pages/QueueDisplayPage").then((m) => ({
     default: m.QueueDisplayPage,
@@ -514,6 +520,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="queue">
             <QueuePage />
+          </G>
+        ),
+      },
+      {
+        path: "queue/counters/:id",
+        element: (
+          <G k="queue">
+            <CounterQueuePage />
           </G>
         ),
       },

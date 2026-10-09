@@ -7,16 +7,14 @@ export const QueueTicketStatus = {
   Expired: 6,
 } as const;
 
-export type QueueTicketStatus =
-  (typeof QueueTicketStatus)[keyof typeof QueueTicketStatus];
+export type QueueTicketStatus = (typeof QueueTicketStatus)[keyof typeof QueueTicketStatus];
 
 export const QueueTicketPriority = {
   Normal: 0,
   Urgent: 1,
 } as const;
 
-export type QueueTicketPriority =
-  (typeof QueueTicketPriority)[keyof typeof QueueTicketPriority];
+export type QueueTicketPriority = (typeof QueueTicketPriority)[keyof typeof QueueTicketPriority];
 
 export interface QueueTicket {
   id: string;
@@ -102,25 +100,50 @@ export interface ServiceCounter {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  dentistId?: string | null;
+  dentistName?: string | null;
+  numberPrefix: string;
+  startNumber: number;
+  autoResetDaily: boolean;
+  waitWarningMinutes: number;
+  minutesPerPatient: number;
+  /** "Hiện đã cấp đến A018"; null until the current run hands out a number. */
+  lastIssuedNumber?: string | null;
+  /** Numbers waiting at, or being seen by, this counter. */
+  inQueueCount: number;
 }
 
 export interface CreateServiceCounterInput {
   name: string;
   sortOrder: number;
+  dentistId?: string | null;
+  numberPrefix: string;
+  startNumber: number;
+  autoResetDaily: boolean;
+  waitWarningMinutes: number;
+  minutesPerPatient: number;
 }
 
-export interface UpdateServiceCounterInput {
-  name: string;
-  sortOrder: number;
-}
+export type UpdateServiceCounterInput = CreateServiceCounterInput;
 
-/** One reception counter on the board: what it serves now and the shared queue's next number. */
+/** One counter on the board and the TV: its dentist, the number it sees and its own queue. No PHI. */
 export interface CounterBoard {
   id: string;
   name: string;
   isActive: boolean;
+  numberPrefix: string;
+  dentistId?: string | null;
+  dentistName?: string | null;
+  waitWarningMinutes: number;
+  /** Today's real average once a visit has finished, else the configured value. */
+  minutesPerPatient: number;
   current: BoardTicket | null;
-  next: BoardTicket | null;
+  /** The first numbers of the counter's queue, in calling order. */
+  upcoming: BoardTicket[];
+  waitingCount: number;
+  longestWaitMinutes: number;
+  /** How long a number taken now would wait. */
+  newTicketWaitMinutes: number;
 }
 
 export interface BoardTicket {
@@ -130,6 +153,26 @@ export interface BoardTicket {
   priority: QueueTicketPriority;
   serviceType?: string | null;
   calledAt?: string | null;
+}
+
+/** "Hàng chờ · Quầy số 2": one counter's waiting list with its estimates. */
+export interface CounterQueue {
+  counter: CounterBoard;
+  configuredMinutesPerPatient: number;
+  actualMinutesPerPatient: number | null;
+  /** The number the counter will hand out next, e.g. "B016". */
+  nextNumber: string;
+  waiting: CounterQueueRow[];
+}
+
+export interface CounterQueueRow {
+  id: string;
+  displayNumber: string;
+  priority: QueueTicketPriority;
+  serviceType?: string | null;
+  takenAt: string;
+  waitedMinutes: number;
+  estimatedCallAt: string;
 }
 
 export interface PagedResult<T> {

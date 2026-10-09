@@ -13,9 +13,9 @@ export const queueKeys = {
     [...queueKeys.all, "stats", date, counterId] as const,
   counters: () => [...queueKeys.all, "counters"] as const,
   board: () => [...queueKeys.all, "board"] as const,
+  counterQueues: () => [...queueKeys.all, "counterQueue"] as const,
+  counterQueue: (id: string) => [...queueKeys.counterQueues(), id] as const,
   displayBoard: (branchId: string) => [...queueKeys.all, "displayBoard", branchId] as const,
-  display: (branchId: string, counterId?: string) =>
-    [...queueKeys.all, "display", branchId, counterId] as const,
 };
 
 export function useQueueList(params: QueueListQuery) {
@@ -57,19 +57,20 @@ export function useCounterBoard() {
   });
 }
 
-export function useDisplayBoard(branchId: string) {
+/** One counter's waiting list ("Hàng chờ · Quầy …"); waited minutes move, so it polls too. */
+export function useCounterQueue(id: string) {
   return useQuery({
-    queryKey: queueKeys.displayBoard(branchId),
-    queryFn: () => queueApi.displayBoard(branchId),
-    enabled: Boolean(branchId),
+    queryKey: queueKeys.counterQueue(id),
+    queryFn: () => queueApi.counterQueue(id),
+    enabled: Boolean(id),
     refetchInterval: 10_000,
   });
 }
 
-export function useQueueDisplay(branchId: string, counterId?: string) {
+export function useDisplayBoard(branchId: string) {
   return useQuery({
-    queryKey: queueKeys.display(branchId, counterId),
-    queryFn: () => queueApi.display(branchId, counterId),
+    queryKey: queueKeys.displayBoard(branchId),
+    queryFn: () => queueApi.displayBoard(branchId),
     enabled: Boolean(branchId),
     refetchInterval: 10_000,
   });

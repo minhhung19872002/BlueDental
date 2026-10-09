@@ -1,110 +1,93 @@
-import { Button, Tag } from "antd";
-import { ClockCircleOutlined, SoundOutlined, UserOutlined } from "@ant-design/icons";
-import { t, getLocale } from "@/lib/i18n";
-import { QueueTicketPriority, type BoardTicket, type CounterBoard } from "../types";
+import { ClockCircleOutlined } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
+import { bareDentistName } from "../utils/dentistName";
+import { formatClock, minutesSince } from "../utils/waitLevel";
+import { QueueTicketPriority, type CounterBoard } from "../types";
+import { CounterCardActions, type CounterCardActionsConfig } from "./CounterCardActions";
+import { CounterFacts, UpcomingNumbers } from "./CounterCardParts";
 
 interface CounterBoardCardProps {
   counter: CounterBoard;
-  /** Position on the board; picks the card's accent (blue, purple, green, …). */
-  index: number;
-  canCall: boolean;
-  calling: boolean;
-  onCallNext: (counterId: string) => void;
+  /** Which of the board's colours (0 blue, 1 purple, 2 green) the card wears. */
+  accent: number;
+  now: number;
+  actions: CounterCardActionsConfig;
 }
 
-const ACCENT_COUNT = 3;
-
-function formatCalledAt(value: string | null | undefined): string | null {
-  if (!value) return null;
-  return new Date(value).toLocaleTimeString(getLocale(), { hour: "2-digit", minute: "2-digit" });
-}
-
-/** Section label; the Ưu tiên tag sits on this row when the ticket is urgent (owner). */
-function LabelRow({ label, ticket }: { label: string; ticket: BoardTicket | null }) {
-  return (
-    <div className="queue-counter__label-row">
-      <span className="queue-counter__label">{label}</span>
-      {ticket?.priority === QueueTicketPriority.Urgent && (
-        <Tag color="red" className="queue-counter__urgent">
-          {t("Queue:Priority:Urgent")}
-        </Tag>
-      )}
-    </div>
-  );
-}
-
-function TicketLine({ ticket, numberClass }: { ticket: BoardTicket; numberClass: string }) {
-  return (
-    <div className="queue-counter__line">
-      <span className={numberClass}>{ticket.displayNumber}</span>
-      {ticket.serviceType && <span className="queue-counter__desc">{ticket.serviceType}</span>}
-    </div>
-  );
-}
-
-/** One reception counter: status, the number it serves, and the queue's next number. */
-export function CounterBoardCard({ counter, index, canCall, calling, onCallNext }: CounterBoardCardProps) {
-  const calledAt = formatCalledAt(counter.current?.calledAt);
+/**
+ * One counter on the board: its fixed dentist, the number being seen, its own
+ * next numbers and waits. A click anywhere opens the counter's waiting list;
+ * the list button is the keyboard way there.
+ */
+export function CounterBoardCard({ counter, accent, now, actions }: CounterBoardCardProps) {
+  const current = counter.current;
   const className = [
-    "queue-counter",
-    `queue-counter--accent-${index % ACCENT_COUNT}`,
-    !counter.isActive && "queue-counter--paused",
+    "queue-card",
+    `queue-card--accent-${accent}`,
+    !counter.isActive && "queue-card--paused",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const numberClass = [
+    "queue-card__number",
+    !current && "queue-card__number--none",
+    current?.priority === QueueTicketPriority.Urgent && "queue-card__number--urgent",
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className={className} data-testid={`counter-card-${counter.id}`}>
-      <div className="queue-counter__head">
-        <span className="queue-counter__identity">
-          <span className="queue-counter__avatar" aria-hidden>
-            <UserOutlined />
-          </span>
-          <span className="queue-counter__name">{counter.name}</span>
+    <div
+      className={className}
+      data-testid={`counter-card-${counter.id}`}
+      onClick={() => actions.onOpen(counter.id)}
+    >
+      <div className="queue-card__head">
+        <span className="queue-card__avatar" aria-hidden>
+          {counter.numberPrefix}
         </span>
-        <span className="queue-counter__status">
-          <span className="queue-counter__dot" aria-hidden />
+        <span className="queue-card__who">
+          <span className="queue-card__name">{counter.name}</span>
+          <span className="queue-card__dentist">
+            {counter.dentistName
+              ? t("Queue:Card:Dentist", bareDentistName(counter.dentistName))
+              : t("Queue:Card:NoDentist")}
+          </span>
+        </span>
+        <span className="queue-card__status">
+          <span className="queue-card__dot" aria-hidden />
           {counter.isActive ? t("Queue:Counter:Active") : t("Queue:Counter:Paused")}
         </span>
       </div>
 
-      <div className="queue-counter__serving">
-        <LabelRow label={t("Queue:Board:Serving")} ticket={counter.current} />
-        {counter.current ? (
-          <TicketLine ticket={counter.current} numberClass="queue-counter__number" />
-        ) : (
-          <span className="queue-counter__number queue-counter__number--idle">—</span>
-        )}
-        <span className="queue-counter__meta">
+      <div className="queue-card__now">
+        <span className="queue-card__label">{t("Queue:Card:Seeing")}</span>
+        <span
+          className={numberClass}
+          title={
+            current?.priority === QueueTicketPriority.Urgent
+              ? t("Queue:Priority:Urgent")
+              : undefined
+          }
+        >
+          {current?.displayNumber ?? "—"}
+        </span>
+        <span className="queue-card__meta">
           <ClockCircleOutlined aria-hidden />
-          {calledAt ?? t("Queue:Board:Idle")}
+          {current?.calledAt
+            ? t(
+                "Queue:Card:CalledAt",
+                formatClock(current.calledAt),
+                minutesSince(current.calledAt, now),
+              )
+            : t("Queue:Board:Idle")}
         </span>
       </div>
 
-      <div className="queue-counter__next">
-        <LabelRow label={t("Queue:Board:Next")} ticket={counter.next} />
-        {counter.next ? (
-          <TicketLine ticket={counter.next} numberClass="queue-counter__next-number" />
-        ) : (
-          <span className="queue-counter__next-number queue-counter__next-number--empty">
-            {t("Queue:Board:NoNext")}
-          </span>
-        )}
-      </div>
+      <UpcomingNumbers counter={counter} />
+      <CounterFacts counter={counter} />
 
-      {canCall && (
-        <Button
-          type="primary"
-          block
-          className="queue-counter__call"
-          icon={<SoundOutlined />}
-          loading={calling}
-          disabled={!counter.isActive || calling}
-          onClick={() => onCallNext(counter.id)}
-        >
-          {t("Queue:CallNext")}
-        </Button>
-      )}
+      <CounterCardActions counter={counter} actions={actions} />
     </div>
   );
 }

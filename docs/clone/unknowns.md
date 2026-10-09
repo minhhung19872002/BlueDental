@@ -2935,3 +2935,15 @@ Action taken: NONE trên production. BlueDental chỉ dựng phần giao diện.
 danh mục ICD-10" kèm link mở panel; cột gợi ý hiện "Chưa có phác đồ (chờ ICD-10)"; hai nút bị khóa
 và có tooltip giải thích. Panel "Danh mục ICD-10" hiện chỉ có nhóm "Phiếu điều trị". Nối dữ liệu khi
 BA giao danh mục ICD-10 và phác đồ.
+
+---
+
+## Màn hình đợi — "Chuyên khoa" của quầy (F-45, 2026-10-09)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/queue` (thẻ quầy, trang quầy, TV) và form "Thêm/Sửa quầy"
+Control: dòng "Chuyên khoa" dưới tên bác sĩ trên mockup BA
+Reason: tính năng riêng của BlueDental, bản gốc không có màn hình này. BlueDental chưa có danh mục
+chuyên khoa và hồ sơ nhân sự không có trường chuyên khoa, BA chưa nói lấy từ đâu.
+Action taken: NONE trên production. Không dựng — thẻ chỉ hiện "BS. <tên>". Làm khi BA chốt nguồn dữ liệu.
