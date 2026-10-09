@@ -1,65 +1,83 @@
-/* ── Prescription lines: table on desktop, cards on mobile ─────────────── */
+/* ── Prescription lines: table on a wide screen, cards on a narrow one ── */
 
-.bd-rx-cards-mobile { display: none; }
+.bd-rx-table .ant-table-thead > tr > th {
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 6px !important;
+}
 
-@media (max-width: 640px) {
-  .bd-rx-table-desktop { display: none; }
-  .bd-rx-cards-mobile { display: flex; flex-direction: column; gap: 16px; }
+.bd-rx-table .ant-table-tbody > tr > td {
+  padding: 8px 6px !important;
+}
+
+.bd-rx-table .ant-table-thead > tr > th:first-child,
+.bd-rx-table .ant-table-tbody > tr > td:first-child {
+  padding-left: 16px !important;
+}
+
+.bd-rx-table .ant-table-thead > tr > th:last-child,
+.bd-rx-table .ant-table-tbody > tr > td:last-child {
+  padding-right: 12px !important;
+}
+
+.bd-rx-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
 }
 
 .bd-rx-card {
-  border: 2px solid var(--bd-primary, #4361ee);
-  border-radius: 10px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
 }
 
 .bd-rx-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  background: var(--bd-primary, #4361ee);
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
 }
 
-.bd-rx-card-del {
-  color: #fff !important;
+.bd-rx-card-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-weight: 600;
+  font-size: 12px;
 }
 
-.bd-rx-card-del:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+.bd-rx-card-sessions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.bd-rx-card-body {
+.bd-rx-card-session {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--bd-sub);
 }
 
-.bd-rx-card-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--bd-ink);
+.bd-rx-card-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
 }
 
-.bd-rx-card-toggle svg {
-  transition: transform 0.2s;
-}
-
-.bd-rx-flip {
-  transform: rotate(180deg);
+.bd-rx-card .ant-form-item {
+  margin-bottom: 0;
 }
 
 /* Controls fill their table cell / card row; antd renders them inline-block. */

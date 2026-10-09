@@ -207,11 +207,14 @@ public class CatalogEntryTests
     {
         var line = new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            timesPerDay: 2, amountPerTime: 1.5m, days: 5,
+            morning: 1m, noon: 0m, afternoon: 0m, evening: 0.5m, days: 5,
             PrescriptionUsage.AfterMeal | PrescriptionUsage.BeforeSleep,
             otherUsage: null, sortOrder: 0);
 
-        Assert.Equal(15m, line.Quantity);
+        // (sáng + trưa + chiều + tối) × số ngày, kept exact: an uneven dose
+        // no longer folds into "lần × mỗi lần" (R-884).
+        Assert.Equal(7.5m, line.Quantity);
+        Assert.Equal(0.5m, line.Evening);
         Assert.True(line.Usage.HasFlag(PrescriptionUsage.BeforeSleep));
     }
 
@@ -221,7 +224,7 @@ public class CatalogEntryTests
         // The reference marks the box required the moment "Khác" is ticked.
         Assert.Throws<BusinessException>(() => new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            timesPerDay: 1, amountPerTime: 1m, days: 1, PrescriptionUsage.Other,
+            morning: 1m, noon: 0m, afternoon: 0m, evening: 0m, days: 1, PrescriptionUsage.Other,
             otherUsage: "   ", sortOrder: 0));
     }
 
@@ -230,7 +233,7 @@ public class CatalogEntryTests
     {
         var line = new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            timesPerDay: 1, amountPerTime: 1m, days: 1, PrescriptionUsage.AfterMeal,
+            morning: 1m, noon: 0m, afternoon: 0m, evening: 0m, days: 1, PrescriptionUsage.AfterMeal,
             otherUsage: "Ngậm dưới lưỡi", sortOrder: 0);
 
         // Nothing would ever show it, so it is not kept.
@@ -242,19 +245,23 @@ public class CatalogEntryTests
     {
         var line = new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            timesPerDay: 1, amountPerTime: 1m, days: 1,
+            morning: 1m, noon: 0m, afternoon: 0m, evening: 0m, days: 1,
             PrescriptionUsage.AfterMeal | PrescriptionUsage.Other,
             otherUsage: "  Ngậm dưới lưỡi  ", sortOrder: 0);
 
         Assert.Equal("Ngậm dưới lưỡi", line.OtherUsage);
     }
 
-    [Fact]
-    public void Should_Refuse_An_Empty_Prescription_Line()
+    [Theory]
+    [InlineData(0, 0, 0, 0, 1)]   // no session at all
+    [InlineData(1, 0, 0, 0, 0)]   // no days
+    [InlineData(1, -0.5, 0, 0, 1)] // a negative session
+    public void Should_Refuse_An_Empty_Prescription_Line(
+        decimal morning, decimal noon, decimal afternoon, decimal evening, int days)
     {
         Assert.Throws<BusinessException>(() => new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            timesPerDay: 0, amountPerTime: 1m, days: 1, PrescriptionUsage.None,
+            morning, noon, afternoon, evening, days, PrescriptionUsage.None,
             otherUsage: null, sortOrder: 0));
     }
 

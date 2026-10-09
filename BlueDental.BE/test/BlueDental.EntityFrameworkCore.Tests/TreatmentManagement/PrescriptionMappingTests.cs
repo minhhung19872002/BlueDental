@@ -1,3 +1,4 @@
+using BlueDental.Catalogs;
 using BlueDental.EntityFrameworkCore;
 using BlueDental.TreatmentManagement;
 using Microsoft.EntityFrameworkCore;
@@ -87,6 +88,27 @@ public class PrescriptionMappingTests
         entity.FindProperty(nameof(PrescriptionItem.OtherUsage))!.GetMaxLength().ShouldBe(200);
         entity.FindProperty(nameof(PrescriptionItem.SortOrder)).ShouldNotBeNull();
         entity.FindProperty(nameof(PrescriptionItem.MedicationName))!.GetMaxLength().ShouldBe(300);
+    }
+
+    [Fact]
+    public void PrescriptionTemplateLine_Should_Store_Session_Dosing_Like_A_Prescription()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(PrescriptionTemplateLine))!;
+
+        foreach (var session in new[]
+                 {
+                     nameof(PrescriptionTemplateLine.Morning), nameof(PrescriptionTemplateLine.Noon),
+                     nameof(PrescriptionTemplateLine.Afternoon), nameof(PrescriptionTemplateLine.Evening)
+                 })
+        {
+            entity.FindProperty(session)!.GetColumnType().ShouldBe("numeric(18,2)");
+        }
+
+        entity.FindProperty("TimesPerDay").ShouldBeNull();
+        entity.FindProperty("AmountPerTime").ShouldBeNull();
+        entity.FindProperty(nameof(PrescriptionTemplateLine.DailyAmount)).ShouldBeNull();
+        entity.FindProperty(nameof(PrescriptionTemplateLine.Quantity)).ShouldBeNull();
     }
 
     [Fact]

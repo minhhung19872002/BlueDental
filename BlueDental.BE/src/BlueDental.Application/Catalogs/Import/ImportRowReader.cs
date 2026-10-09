@@ -146,12 +146,30 @@ internal sealed class ImportRowReader
             _errors.Add(_l["Taxonomy:Import:Err:OtherUsageRequired", Header(Col.OtherUsage)]);
         }
 
+        var templateName = Required(Col.Template, NameMax);
+        var medicineName = Required(Col.Medicine, NameMax);
+        var errorsBefore = _errors.Count;
+        var morning = Money(Col.Morning);
+        var noon = Money(Col.Noon);
+        var afternoon = Money(Col.Afternoon);
+        var evening = Money(Col.Evening);
+        // Money() already reported a bad or negative cell; only an all-blank
+        // (or all-zero) dose is left to say.
+        if (_errors.Count == errorsBefore
+            && (morning ?? 0m) + (noon ?? 0m) + (afternoon ?? 0m) + (evening ?? 0m) <= 0m)
+        {
+            _errors.Add(_l["Taxonomy:Import:Err:NoSession",
+                Header(Col.Morning), Header(Col.Noon), Header(Col.Afternoon), Header(Col.Evening)]);
+        }
+
         return new LineDraft
         {
-            TemplateName = Required(Col.Template, NameMax),
-            MedicineName = Required(Col.Medicine, NameMax),
-            TimesPerDay = PositiveInteger(Col.TimesPerDay),
-            AmountPerTime = PositiveMoney(Col.AmountPerTime),
+            TemplateName = templateName,
+            MedicineName = medicineName,
+            Morning = morning ?? 0m,
+            Noon = noon ?? 0m,
+            Afternoon = afternoon ?? 0m,
+            Evening = evening ?? 0m,
             Days = PositiveInteger(Col.Days),
             Usage = usage,
             OtherUsage = otherUsage
@@ -280,29 +298,6 @@ internal sealed class ImportRowReader
         {
             _errors.Add(_l["Taxonomy:Import:Err:Negative", Header(key)]);
             return null;
-        }
-
-        return value;
-    }
-
-    private decimal PositiveMoney(string key)
-    {
-        var text = Text(key);
-        if (text == null)
-        {
-            _errors.Add(_l["Taxonomy:Import:Err:Required", Header(key)]);
-            return 0m;
-        }
-
-        if (!ExcelCells.TryMoney(text, out var value))
-        {
-            _errors.Add(_l["Taxonomy:Import:Err:NotANumber", Header(key)]);
-            return 0m;
-        }
-
-        if (value <= 0m)
-        {
-            _errors.Add(_l["Taxonomy:Import:Err:NotPositive", Header(key)]);
         }
 
         return value;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import type { PrescriptionLine } from "@/components/prescription-lines";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import {
@@ -8,7 +9,7 @@ import {
   type PrescriptionDto,
   type UpdatePrescriptionRequest,
 } from "../api/prescriptionApi";
-import type { RxDiagnosisRow, RxMedicineLine } from "../types/prescription";
+import type { RxDiagnosisRow } from "../types/prescription";
 import { printedDiagnosisText } from "../utils/rxDiagnosis";
 import type { RxFormValues } from "./usePrescriptionDialogForm";
 
@@ -16,7 +17,7 @@ interface Options {
   patientId: string;
   prescription: PrescriptionDto | null;
   /** Only the lines with a medicine picked. */
-  lines: RxMedicineLine[];
+  lines: PrescriptionLine[];
   diagnoses: RxDiagnosisRow[];
   legacyDiagnosisText: string | null;
   hasAllergyConflict: boolean;

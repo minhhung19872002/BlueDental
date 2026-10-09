@@ -33,8 +33,10 @@ internal sealed class LineDraft
 {
     public string TemplateName { get; init; } = string.Empty;
     public string MedicineName { get; init; } = string.Empty;
-    public int TimesPerDay { get; init; }
-    public decimal AmountPerTime { get; init; }
+    public decimal Morning { get; init; }
+    public decimal Noon { get; init; }
+    public decimal Afternoon { get; init; }
+    public decimal Evening { get; init; }
     public int Days { get; init; }
     public PrescriptionUsage Usage { get; init; }
     public string? OtherUsage { get; init; }

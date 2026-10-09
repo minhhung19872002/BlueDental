@@ -11,9 +11,15 @@ design, not observed on the reference. Owner decisions (2026-10-08):
   plus the printed text, so the print and the edit dialog survive later changes
   to the phiếu.
 - Source = every phiếu of the patient on the branch **except cancelled** ones.
-- Session dosing is for the prescription screen only. The Đơn thuốc mẫu
+- ~~Session dosing is for the prescription screen only. The Đơn thuốc mẫu
   (`/taxonomy`, section 17) keeps "lần × mỗi lần"; a picked template is
-  converted (`doseFromTemplate`).
+  converted (`doseFromTemplate`).~~ **Reversed by the owner 2026-10-10 (R-884):**
+  the Đơn thuốc mẫu dialog uses the same line table as "Danh sách thuốc"
+  (Sáng / Trưa / Chiều / Tối · Số ngày · Số lượng · Sử dụng). Templates store
+  the four sessions, so "Lưu đơn thuốc mẫu" and picking a template copy them
+  as they are; `doseFromTemplate` is gone. Migration
+  `20261009201645_RxTemplateSessionDoses` backfills old template lines with the
+  same rule as below.
 - The diagnosis is optional, so a patient with no phiếu can still be prescribed.
 
 ## Behaviour
@@ -106,3 +112,32 @@ Visual check: desktop 1440 and mobile 390 screenshots against the mock.
   own row (`.rx-slip-filter` flex 100%).
 - Card doses used to read "1.0". They now go through `plainDose`.
 - At mobile width the picked table scrolls sideways (accepted).
+
+## R-884 (2026-10-10) — Đơn thuốc mẫu dosed by session too
+
+Owner reversed the "template keeps lần × mỗi lần" decision.
+
+- `PrescriptionTemplateLine`: Morning / Noon / Afternoon / Evening (numeric
+  18,2) + Days; Quantity = sum × days. TimesPerDay / AmountPerTime removed.
+- Migration `20261009201645_RxTemplateSessionDoses`: adds the 4 columns,
+  backfills with the rule above (1 → Sáng, 2 → Sáng + Tối, 3 → Sáng + Trưa +
+  Tối, 4 → all, beyond 4 → Sáng), drops the old columns; Down folds back.
+  Checked in the local DB: e.g. 2 lần × 1.5 became Sáng 1.5 + Tối 1.5.
+- "Lưu đơn thuốc mẫu" and picking a template copy the sessions as they are;
+  `doseFromTemplate` removed.
+- FE: the line table, cards and "Thêm mới" moved to
+  `src/components/prescription-lines/` (`PrescriptionLineList`,
+  `PrescriptionLineTable`, `PrescriptionLineCard`, `dose.ts`); the
+  treatment-management `RxMedicineTable` / `RxMedicineCard` were deleted.
+  i18n `Treatment:Rx:Morning…` → `Common:Rx:*`; `Common:Rx:TimesPerDay` /
+  `AmountPerTime` removed.
+- `e2e/prescription.spec.ts`: the line now carries Chiều 0.5 (7.5 thuốc), a
+  dose "n lần × mỗi lần" could not hold; the next slip picks the template and
+  gets Sáng 1 / Trưa 0 / Chiều 0.5 / Tối 1 × 3 back; print "Sáng 1 · Chiều 0.5 ·
+  Tối 1 · 3 ngày".
+
+Evidence (Build production :8093 → host :5000 (bản build mới) → PostgreSQL thật, không chặn API): Domain **824/824**, Application **704/704**, EF prescription/catalog
+**13/13**; `prescription` + `prescription-allergy` + `taxonomy-dialogs`
+(template tests) + `taxonomy-import*` **24/25**. The red one is the 403 test
+whose cleanup cannot find the new staff row on `/staff`; it fails identically on
+a HEAD build.

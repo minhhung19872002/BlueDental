@@ -1304,10 +1304,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
         {
             entity.ToTable("bd_prescription_template_lines");
             entity.ConfigureByConvention();
-            entity.Property(x => x.AmountPerTime).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Morning).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Noon).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Afternoon).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Evening).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Usage).HasConversion<int>();
             entity.Property(x => x.OtherUsage).HasMaxLength(200);
             entity.Ignore(x => x.Quantity);
+            entity.Ignore(x => x.DailyAmount);
             entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
         });
 

@@ -49,7 +49,16 @@ interface Entry {
   price?: number | null;
   unit?: string | null;
   medicine?: { purchasePrice: number; activeIngredient?: string | null } | null;
-  prescriptionLines: { medicineEntryId: string; timesPerDay: number; days: number; usage: number }[];
+  prescriptionLines: {
+    medicineEntryId: string;
+    morning: number;
+    noon: number;
+    afternoon: number;
+    evening: number;
+    days: number;
+    quantity: number;
+    usage: number;
+  }[];
 }
 
 interface ApiResult<T> {
@@ -604,8 +613,10 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     const linesHeader = [
       "Tên đơn thuốc mẫu",
       "Tên thuốc",
-      "Số lần/ngày",
-      "Liều/lần",
+      "Sáng",
+      "Trưa",
+      "Chiều",
+      "Tối",
       "Số ngày",
       "Cách dùng",
       "Cách dùng khác",
@@ -616,9 +627,11 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
         name: "Thuốc",
         rows: [
           linesHeader,
-          [template, med, 2, 1, 5, "Sau khi ăn; Trước khi ngủ", null],
-          [template, `Không có ${id}`, 1, 1, 1, null, null],
-          [`Đơn khác ${id}`, med, 1, 1, 1, "Khác", null],
+          [template, med, 1, null, null, 0.5, 5, "Sau khi ăn; Trước khi ngủ", null],
+          [template, `Không có ${id}`, 1, 0, 0, 0, 1, null, null],
+          [`Đơn khác ${id}`, med, 1, 0, 0, 0, 1, "Khác", null],
+          // Every session blank or 0: the line doses nothing (R-884).
+          [template, med, null, 0, null, 0, 3, null, null],
         ],
       },
     ]);
@@ -626,14 +639,18 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     expect(bad.status).toBe(200);
     expect(bad.body.committed).toBe(false);
     const lines = bad.body.sheets[1].rows;
-    expect(lines.map((r) => r.action)).toEqual([3, 4, 4]);
+    expect(lines.map((r) => r.action)).toEqual([3, 4, 4, 4]);
     expect(lines[1].errors.join(" ")).toContain("Không tìm thấy thuốc");
     expect(lines[2].errors.join(" ")).toContain("Không tìm thấy đơn thuốc mẫu");
+    expect(lines[3].errors.join(" ")).toContain("Cần ít nhất một buổi");
     expect(await listEntries(page, "prescription_template", template)).toHaveLength(0);
 
     const good = workbook([
       { name: "Đơn thuốc mẫu", rows: [["Tên đơn thuốc mẫu", "Lời dặn"], [template, "Uống đủ nước"]] },
-      { name: "Thuốc", rows: [linesHeader, [template, med, 2, 1, 5, "Sau khi ăn; Trước khi ngủ", null]] },
+      {
+        name: "Thuốc",
+        rows: [linesHeader, [template, med, 1, null, null, 0.5, 5, "Sau khi ăn; Trước khi ngủ", null]],
+      },
     ]);
     const ok = await postImport(page, { group: "prescription_template", base64: good });
     expect(ok.body.committed).toBe(true);
@@ -642,15 +659,25 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     const [saved] = await listEntries(page, "prescription_template", template);
     expect(saved.prescriptionLines).toHaveLength(1);
     expect(saved.prescriptionLines[0].medicineEntryId).toBe(medicine.id);
-    expect(saved.prescriptionLines[0].timesPerDay).toBe(2);
-    expect(saved.prescriptionLines[0].days).toBe(5);
+    // Blank sessions read as 0; the quantity is (1 + 0.5) × 5.
+    expect(saved.prescriptionLines[0]).toMatchObject({
+      morning: 1,
+      noon: 0,
+      afternoon: 0,
+      evening: 0.5,
+      days: 5,
+      quantity: 7.5,
+    });
     expect(saved.prescriptionLines[0].usage).toBe(1 + 16);
 
     // The template exists; only a line differs (7 days) → the template is
     // updated and its lines replaced by the file's.
     const longer = workbook([
       { name: "Đơn thuốc mẫu", rows: [["Tên đơn thuốc mẫu", "Lời dặn"], [template, "Uống đủ nước"]] },
-      { name: "Thuốc", rows: [linesHeader, [template, med, 2, 1, 7, "Sau khi ăn; Trước khi ngủ", null]] },
+      {
+        name: "Thuốc",
+        rows: [linesHeader, [template, med, 1, null, null, 0.5, 7, "Sau khi ăn; Trước khi ngủ", null]],
+      },
     ]);
     const upd = await postImport(page, { group: "prescription_template", base64: longer });
     expect(upd.body.committed).toBe(true);

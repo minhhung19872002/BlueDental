@@ -261,6 +261,9 @@ Không có trên bản gốc (yêu cầu BA, xem `unknowns.md`). Ba endpoint dư
 GET  /api/v1/app/catalog-entries/import-template?group=<slug>
      → .xlsx: sheet dữ liệu (header có dấu * cho cột bắt buộc, dòng 1 đóng băng)
        + sheet "Hướng dẫn"; prescription_template có thêm sheet "Thuốc"
+       (cột: Tên đơn thuốc mẫu* · Tên thuốc* · Sáng · Trưa · Chiều · Tối ·
+       Số ngày* · Cách dùng · Cách dùng khác — R-884: buổi để trống = 0, cần
+       ít nhất một buổi > 0, trước đây là "Số lần/ngày" + "Liều/lần")
 
 POST /api/v1/app/catalog-entries/import           multipart/form-data
      file=<xlsx>  group=<slug>  clinicBranchId=<guid>  dryRun=<bool>

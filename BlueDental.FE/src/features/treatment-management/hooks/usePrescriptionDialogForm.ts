@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Form } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { EMPTY_PRESCRIPTION_LINE, type PrescriptionLine } from "@/components/prescription-lines";
 import { CATALOG_GROUP, useCatalogOptions, type CatalogOption } from "@/hooks/useCatalogOptions";
 import {
   adaptPickedDiagnosis,
@@ -9,8 +10,7 @@ import {
   type PrescriptionDto,
   type PrescriptionTreatmentType,
 } from "../api/prescriptionApi";
-import type { RxDiagnosisRow, RxMedicineLine } from "../types/prescription";
-import { doseFromTemplate, EMPTY_RX_LINE } from "../utils/rxDose";
+import type { RxDiagnosisRow } from "../types/prescription";
 import { useRxDiagnosisSelection } from "./useRxDiagnosisSelection";
 
 export interface RxFormValues {
@@ -49,8 +49,8 @@ function formOf(prescription: PrescriptionDto | null): RxFormValues {
   };
 }
 
-function linesOf(prescription: PrescriptionDto | null): RxMedicineLine[] {
-  if (!prescription || prescription.items.length === 0) return [{ ...EMPTY_RX_LINE }];
+function linesOf(prescription: PrescriptionDto | null): PrescriptionLine[] {
+  if (!prescription || prescription.items.length === 0) return [{ ...EMPTY_PRESCRIPTION_LINE }];
   return prescription.items.map((item) => ({
     id: item.id,
     medicineEntryId: item.medicationId,
@@ -64,12 +64,15 @@ function linesOf(prescription: PrescriptionDto | null): RxMedicineLine[] {
   }));
 }
 
-/** A template's lines, ready to edit; the template's "n lần × mỗi lần" becomes sessions. */
-function linesOfTemplate(template: CatalogOption): RxMedicineLine[] {
-  if (template.prescriptionLines.length === 0) return [{ ...EMPTY_RX_LINE }];
+/** A template's lines, ready to edit; it doses by session too, so they copy across (R-884). */
+function linesOfTemplate(template: CatalogOption): PrescriptionLine[] {
+  if (template.prescriptionLines.length === 0) return [{ ...EMPTY_PRESCRIPTION_LINE }];
   return template.prescriptionLines.map((line) => ({
     medicineEntryId: line.medicineEntryId,
-    ...doseFromTemplate(line.timesPerDay, line.amountPerTime),
+    morning: line.morning,
+    noon: line.noon,
+    afternoon: line.afternoon,
+    evening: line.evening,
     days: line.days,
     usage: line.usage,
     otherUsage: line.otherUsage,
@@ -91,7 +94,7 @@ export function usePrescriptionDialogForm(
   const sources = usePrescriptionDiagnosisSources(patientId, open);
 
   const [form] = Form.useForm<RxFormValues>();
-  const [lines, setLines] = useState<RxMedicineLine[]>([{ ...EMPTY_RX_LINE }]);
+  const [lines, setLines] = useState<PrescriptionLine[]>([{ ...EMPTY_PRESCRIPTION_LINE }]);
 
   const readNote = useCallback((): string => form.getFieldValue("diagnosisNote") ?? "", [form]);
   const writeNote = useCallback((note: string) => form.setFieldValue("diagnosisNote", note), [form]);
