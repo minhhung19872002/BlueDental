@@ -2307,6 +2307,13 @@ body.cal-fullscreen .cal-grid-wrap {
 
 .appt-series-range { font-size: 13px; color: var(--bd-muted); }
 
+/* Where reception's "Đã hẹn tiếp" moved a session. */
+.appt-series-moved {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--bd-amber);
+}
+
 /* A clicked session shown in Lịch đã hẹn (day view). */
 .mcal-day-focus {
   position: absolute;

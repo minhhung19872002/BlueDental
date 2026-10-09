@@ -27,6 +27,7 @@ interface Session {
   state: number;
   conflictReason: number | null;
   appointmentId: string | null;
+  movedTo: string | null;
 }
 
 interface Series {
@@ -211,5 +212,45 @@ test.describe("Lặp lại lịch hẹn — API", () => {
     const remove = await call(page, `${APPOINTMENTS}/${ids[4]}`, { method: "DELETE", branchId });
     expect(remove.body.error?.code).toBe(SESSION_FINISHED);
     bookings.splice(bookings.indexOf(ids[4]), 1);
+  });
+
+  test("Đã hẹn tiếp at reception on a session moves it: Đổi giờ the same day, Đã đổi lịch on another", async ({ page }) => {
+    const day = farDay();
+    const created = await call<Series>(page, SERIES, {
+      method: "POST", branchId, json: weekly(day, "09:00", "09:30", 3),
+    });
+    expect(created.status, JSON.stringify(created.body.error)).toBe(200);
+    const ids = created.body.sessions.map((s) => s.appointmentId!);
+    bookings.push(...ids);
+
+    const followUp = async (id: string, onDay: string, time: string) => {
+      const res = await call<{ followUpAppointmentId: string }>(page, `${APPOINTMENTS}/${id}/follow-up`, {
+        method: "POST",
+        branchId,
+        json: { outcome: 2, slotStart: at(onDay, time), slotEnd: at(onDay, time.replace(":00", ":30")), dentistId: dentist.id },
+      });
+      expect(res.status, JSON.stringify(res.body.error)).toBe(200);
+      bookings.push(res.body.followUpAppointmentId);
+      return res.body.followUpAppointmentId;
+    };
+    const sameDay = await followUp(ids[1], plusDays(day, 7), "15:00");
+    await followUp(ids[2], plusDays(day, 16), "09:00");
+
+    let view = await call<Series>(page, `${SERIES}/by-appointment/${ids[0]}`, { branchId });
+    expect(view.body.sessions.map((s) => s.state)).toEqual([State.Booked, State.TimeChanged, State.Rescheduled]);
+    expect(new Date(view.body.sessions[1].movedTo!).getTime()).toBe(new Date(at(plusDays(day, 7), "15:00")).getTime());
+    expect(new Date(view.body.sessions[2].movedTo!).getTime()).toBe(new Date(at(plusDays(day, 16), "09:00")).getTime());
+    expect(view.body.sessions[0].movedTo).toBeNull();
+    // The session keeps its own slot; only its state says it moved.
+    expect(new Date(view.body.sessions[1].start).getTime()).toBe(new Date(at(plusDays(day, 7), "09:00")).getTime());
+
+    // The follow-up cancelled: the session is back to Đã hẹn.
+    const cancelled = await call(page, `${APPOINTMENTS}/${sameDay}/cancel`, {
+      method: "POST", branchId, json: { reason: 1, note: "e2e đổi ý" },
+    });
+    expect(cancelled.status).toBe(200);
+    view = await call<Series>(page, `${SERIES}/by-appointment/${ids[0]}`, { branchId });
+    expect(view.body.sessions[1].state).toBe(State.Booked);
+    expect(view.body.sessions[1].movedTo).toBeNull();
   });
 });

@@ -68,6 +68,8 @@ export interface SeriesSession {
   conflictReason: SeriesConflictReason | null;
   /** The booked appointment; null on a preview. */
   appointmentId: string | null;
+  /** Where "Đã hẹn tiếp" at reception moved a session the patient never came to. */
+  movedTo: string | null;
 }
 
 export interface AppointmentSeriesView {

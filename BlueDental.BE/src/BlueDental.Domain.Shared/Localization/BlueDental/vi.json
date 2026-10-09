@@ -3111,6 +3111,7 @@
     "Appointment:Series:State:Booked": "Đã hẹn",
     "Appointment:Series:State:TimeChanged": "Đổi giờ",
     "Appointment:Series:State:Rescheduled": "Đã đổi lịch",
+    "Appointment:Series:MovedTo": "Đã hẹn tiếp sang {0}",
     "Appointment:Series:State:Cancelled": "Đã huỷ hẹn",
     "Appointment:Series:State:Finished": "Kết thúc",
     "Appointment:Series:Reason:DentistBusy": "Bác sĩ đã có lịch hẹn khác trong khung giờ này",

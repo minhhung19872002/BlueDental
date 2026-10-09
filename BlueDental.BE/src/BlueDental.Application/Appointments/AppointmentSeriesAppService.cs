@@ -139,10 +139,20 @@ public class AppointmentSeriesAppService : BlueDentalAppService, IAppointmentSer
 
         var series = await _seriesRepository.GetAsync(appointment.SeriesId.Value);
         var sessions = await _appointmentRepository.GetListAsync(a => a.SeriesId == series.Id);
-        return ToDto(series, sessions);
+        var followUpIds = sessions
+            .Where(s => s.FollowUpAppointmentId.HasValue)
+            .Select(s => s.FollowUpAppointmentId!.Value)
+            .ToList();
+        var followUps = followUpIds.Count == 0
+            ? new Dictionary<Guid, Appointment>()
+            : (await _appointmentRepository.GetListAsync(a => followUpIds.Contains(a.Id))).ToDictionary(a => a.Id);
+        return ToDto(series, sessions, followUps);
     }
 
-    private static AppointmentSeriesDto ToDto(AppointmentSeries series, IEnumerable<Appointment> sessions) => new()
+    private static AppointmentSeriesDto ToDto(
+        AppointmentSeries series,
+        IEnumerable<Appointment> sessions,
+        IReadOnlyDictionary<Guid, Appointment>? followUps = null) => new()
     {
         Id = series.Id,
         Recurrence = new AppointmentRecurrenceDto
@@ -156,13 +166,18 @@ public class AppointmentSeriesAppService : BlueDentalAppService, IAppointmentSer
         },
         Sessions = sessions
             .OrderBy(a => a.Slot.Start)
-            .Select((a, i) => new AppointmentSeriesSessionDto
+            .Select((a, i) =>
             {
-                Index = i + 1,
-                Start = a.Slot.Start,
-                End = a.Slot.End,
-                State = a.SeriesState(),
-                AppointmentId = a.Id,
+                var followUp = a.FollowUpAppointmentId is { } id ? followUps?.GetValueOrDefault(id) : null;
+                return new AppointmentSeriesSessionDto
+                {
+                    Index = i + 1,
+                    Start = a.Slot.Start,
+                    End = a.Slot.End,
+                    State = a.SeriesState(followUp),
+                    AppointmentId = a.Id,
+                    MovedTo = a.MovedTo(followUp),
+                };
             })
             .ToList(),
     };

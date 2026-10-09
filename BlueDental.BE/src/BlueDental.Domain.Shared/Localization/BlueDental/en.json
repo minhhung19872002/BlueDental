@@ -2855,6 +2855,7 @@
     "Appointment:Series:State:Booked": "Booked",
     "Appointment:Series:State:TimeChanged": "Time changed",
     "Appointment:Series:State:Rescheduled": "Rescheduled",
+    "Appointment:Series:MovedTo": "Moved by a follow-up to {0}",
     "Appointment:Series:State:Cancelled": "Cancelled",
     "Appointment:Series:State:Finished": "Finished",
     "Appointment:Series:Reason:DentistBusy": "The dentist already has another booking at this time",

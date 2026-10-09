@@ -509,16 +509,39 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>How this session of a series stands against what the series planned.</summary>
-    public SeriesOccurrenceState SeriesState()
+    /// <param name="followUp">
+    /// The appointment <see cref="FollowUpAppointmentId"/> points at, or null.
+    /// A session the patient never came to whose "Đã hẹn tiếp" booked another
+    /// slot was moved there (owner, 2026-10-09): Đổi giờ on the planned day,
+    /// Đã đổi lịch on another.
+    /// </param>
+    public SeriesOccurrenceState SeriesState(Appointment? followUp = null)
     {
-        if (Status is AppointmentStatus.Completed) return SeriesOccurrenceState.Finished;
         if (Status is AppointmentStatus.Cancelled) return SeriesOccurrenceState.Cancelled;
-        if (SeriesPlannedStart is not { } planned || planned == Slot.Start) return SeriesOccurrenceState.Booked;
+        var planned = SeriesPlannedStart ?? Slot.Start;
+        if (MovedTo(followUp) is { } movedTo) return MoveState(planned, movedTo);
+        if (Status is AppointmentStatus.Completed) return SeriesOccurrenceState.Finished;
+        if (planned == Slot.Start) return SeriesOccurrenceState.Booked;
+        return MoveState(planned, Slot.Start);
+    }
 
-        return ClinicCalendar.DateOf(planned) == ClinicCalendar.DateOf(Slot.Start)
+    /// <summary>
+    /// Where a session was moved by a follow-up booked from it: only one the
+    /// patient never came to — a visit that took place and booked its next
+    /// one was not moved, it was followed up.
+    /// </summary>
+    public DateTimeOffset? MovedTo(Appointment? followUp)
+    {
+        if (followUp is null || followUp.Id != FollowUpAppointmentId) return null;
+        if (followUp.Status is AppointmentStatus.Cancelled) return null;
+        if (Status is not (AppointmentStatus.Requested or AppointmentStatus.Confirmed or AppointmentStatus.NoShow)) return null;
+        return followUp.Slot.Start;
+    }
+
+    private static SeriesOccurrenceState MoveState(DateTimeOffset planned, DateTimeOffset now) =>
+        ClinicCalendar.DateOf(planned) == ClinicCalendar.DateOf(now)
             ? SeriesOccurrenceState.TimeChanged
             : SeriesOccurrenceState.Rescheduled;
-    }
 
     private void EnsureStatus(AppointmentStatus expected, string operation)
     {

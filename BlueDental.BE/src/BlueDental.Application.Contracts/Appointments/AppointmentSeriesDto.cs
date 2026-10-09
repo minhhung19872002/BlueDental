@@ -56,6 +56,12 @@ public class AppointmentSeriesSessionDto
 
     /// <summary>The booked appointment; null on a preview.</summary>
     public Guid? AppointmentId { get; set; }
+
+    /// <summary>
+    /// Where "Đã hẹn tiếp" at reception moved a session the patient never came
+    /// to — the follow-up's start; null otherwise.
+    /// </summary>
+    public DateTimeOffset? MovedTo { get; set; }
 }
 
 public class AppointmentSeriesDto
