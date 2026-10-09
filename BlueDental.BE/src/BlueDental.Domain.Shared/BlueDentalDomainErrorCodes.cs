@@ -246,6 +246,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The same diagnosis of the same phiếu điều trị is picked twice.</summary>
         public const string DuplicatePrescriptionDiagnosis = "BlueDental:Treatment:0045";
+
+        /// <summary>"Ngày điều trị" after today — a công đoạn is written for a day already worked.</summary>
+        public const string StageTreatmentDateInFuture = "BlueDental:Treatment:0046";
     }
 
     public static class Billing

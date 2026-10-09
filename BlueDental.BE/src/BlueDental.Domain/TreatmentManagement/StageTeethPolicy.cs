@@ -106,7 +106,7 @@ public class StageTeethPolicy : IDomainService
                 "This service carries no warranty.");
         }
 
-        if (WarrantyDaysLeft(warrantyDays, source.CreationTime, now) <= 0)
+        if (WarrantyDaysLeft(warrantyDays, source.TreatmentDate, now) <= 0)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyExpired,
@@ -138,9 +138,11 @@ public class StageTeethPolicy : IDomainService
     /// <summary>
     /// The reference's <c>getWarrantyDaysRemaining</c>: the period less the whole
     /// days since the công đoạn was worked, counted calendar day to calendar day.
+    /// The period runs from its Ngày điều trị (owner, 2026-10-09), so a công
+    /// đoạn entered late is covered from the day it was actually worked.
     /// </summary>
-    public static int WarrantyDaysLeft(int warrantyDays, DateTime workedAt, DateTimeOffset now) =>
-        warrantyDays - (now.Date - workedAt.Date).Days;
+    public static int WarrantyDaysLeft(int warrantyDays, DateOnly workedOn, DateTimeOffset now) =>
+        warrantyDays - (ClinicCalendar.DateOf(now).DayNumber - workedOn.DayNumber);
 
     private static void EnsurePickedAmong(
         IReadOnlyCollection<ToothSelection> allowed,

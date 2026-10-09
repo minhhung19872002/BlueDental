@@ -77,6 +77,34 @@ public class PatientReExaminationTests
     }
 
     [Fact]
+    public void Ngay_dieu_tri_defaults_to_today_and_keeps_a_picked_past_day()
+    {
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        Raise().TreatmentDate.ShouldBe(today);
+
+        var picked = today.AddDays(-5);
+        PatientReExamination.Raise(
+                Guid.NewGuid(), _patientId, _branchId, "REX001", _stageId,
+                _treatmentServiceId, _serviceId, _staffId,
+                teeth: new[] { new ToothSelection(38, selected: true) },
+                treatmentDate: picked)
+            .TreatmentDate.ShouldBe(picked);
+    }
+
+    [Fact]
+    public void Ngay_dieu_tri_cannot_be_after_today()
+    {
+        var tomorrow = ClinicCalendar.DateOf(DateTimeOffset.UtcNow).AddDays(1);
+
+        Should.Throw<BusinessException>(() => PatientReExamination.Raise(
+                Guid.NewGuid(), _patientId, _branchId, "REX001", _stageId,
+                _treatmentServiceId, _serviceId, _staffId,
+                teeth: new[] { new ToothSelection(38, selected: true) },
+                treatmentDate: tomorrow))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateInFuture);
+    }
+
+    [Fact]
     public void Pictures_are_kept_in_order_and_never_twice()
     {
         var visit = Raise();

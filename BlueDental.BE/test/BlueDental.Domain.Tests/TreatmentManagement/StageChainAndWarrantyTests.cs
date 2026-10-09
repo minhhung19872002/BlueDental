@@ -49,12 +49,15 @@ public class StageChainAndWarrantyTests
             isGuarantee: isGuarantee,
             warrantyRootStageId: warrantyRootStageId);
 
-    /// <summary>ABP stamps CreationTime on save; a unit test has to put it there itself.</summary>
+    /// <summary>
+    /// Back-dates the Ngày điều trị the warranty counts from. The factory refuses
+    /// no past day, but the tests' clock is fixed and the factory's is not.
+    /// </summary>
     private static TreatmentStage WorkedOn(TreatmentStage stage, DateTimeOffset when)
     {
         typeof(TreatmentStage)
-            .GetProperty(nameof(TreatmentStage.CreationTime))!
-            .SetValue(stage, when.UtcDateTime);
+            .GetProperty(nameof(TreatmentStage.TreatmentDate))!
+            .SetValue(stage, ClinicCalendar.DateOf(when));
         return stage;
     }
 
@@ -292,8 +295,32 @@ public class StageChainAndWarrantyTests
     public void Warranty_days_count_calendar_days_like_the_reference()
     {
         // getWarrantyDaysRemaining: period − whole days between the two dates.
-        StageTeethPolicy.WarrantyDaysLeft(30, Now.UtcDateTime, Now).ShouldBe(30);
-        StageTeethPolicy.WarrantyDaysLeft(30, Now.AddDays(-29).UtcDateTime, Now).ShouldBe(1);
-        StageTeethPolicy.WarrantyDaysLeft(30, Now.AddDays(-30).UtcDateTime, Now).ShouldBe(0);
+        var today = ClinicCalendar.DateOf(Now);
+        StageTeethPolicy.WarrantyDaysLeft(30, today, Now).ShouldBe(30);
+        StageTeethPolicy.WarrantyDaysLeft(30, today.AddDays(-29), Now).ShouldBe(1);
+        StageTeethPolicy.WarrantyDaysLeft(30, today.AddDays(-30), Now).ShouldBe(0);
+    }
+
+    [Fact]
+    public void Treatment_date_is_today_unless_picked_and_never_after_today()
+    {
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        Stage(Teeth(11)).TreatmentDate.ShouldBe(today);
+
+        var picked = today.AddDays(-5);
+        var first = TreatmentStage.Add(
+            Guid.NewGuid(), _patientId, _branchId, _planId, _lineId, _serviceId, 1,
+            "Trồng răng", _staffId, teeth: Teeth(11), treatmentDate: picked);
+        first.TreatmentDate.ShouldBe(picked);
+
+        // A continue is the next visit: its day is its own, not the chain's.
+        var next = first.ContinueAs(
+            Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null, treatmentDate: today.AddDays(-1));
+        next.TreatmentDate.ShouldBe(today.AddDays(-1));
+
+        Should.Throw<BusinessException>(() => TreatmentStage.Add(
+                Guid.NewGuid(), _patientId, _branchId, _planId, _lineId, _serviceId, 1,
+                "Trồng răng", _staffId, treatmentDate: today.AddDays(1)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateInFuture);
     }
 }

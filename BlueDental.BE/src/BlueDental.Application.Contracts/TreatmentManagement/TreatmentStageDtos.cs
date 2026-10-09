@@ -23,6 +23,13 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     /// <summary>Phụ tá — the reference's <c>subStaffId</c>.</summary>
     public Guid? SubStaffId { get; set; }
     public DateOnly? ScheduledDate { get; set; }
+
+    /// <summary>
+    /// Ngày điều trị — the day the doctor picked on the form. What the history
+    /// and the treatment tab print; <c>CreationTime</c> is tracking only.
+    /// </summary>
+    public DateOnly TreatmentDate { get; set; }
+
     public TreatmentStageStatus Status { get; set; }
     public bool IsImageRequired { get; set; }
     /// <summary>Bảo hành — the reference's <c>isGuarantee</c>.</summary>
@@ -75,6 +82,10 @@ public class CreateTreatmentStageDto
     public Guid? SecondStaffId { get; set; }
     public Guid? SubStaffId { get; set; }
     public DateOnly? ScheduledDate { get; set; }
+
+    /// <summary>Ngày điều trị; today when omitted, and never after today.</summary>
+    public DateOnly? TreatmentDate { get; set; }
+
     /// <summary>Set by "Tạo bảo hành"; an ordinary công đoạn leaves it false.</summary>
     public bool IsGuarantee { get; set; }
 
@@ -136,6 +147,9 @@ public class ContinueTreatmentStageDto
 
     /// <summary>The steps ticked under "Danh sách công đoạn"; stored unticked.</summary>
     public List<Guid> ServiceItemIds { get; set; } = new();
+
+    /// <summary>Ngày điều trị of this visit; today when omitted, and never after today.</summary>
+    public DateOnly? TreatmentDate { get; set; }
 
     /// <summary>
     /// The teeth to carry on, among those the công đoạn still holds open.

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
+import { todayIsoDate } from "@/utils/todayIsoDate";
 import { validateImageFile } from "@/utils/validateImageFile";
 import {
   useAttachReExaminationImage,
@@ -76,6 +77,8 @@ export function useFollowUpForm({
   const [subStaffId, setSubStaffId] = useState<string>();
   const [secondStaffId, setSecondStaffId] = useState<string>();
   const [note, setNote] = useState("");
+  /** Ngày điều trị, "YYYY-MM-DD" — today or earlier, today when the form opens. */
+  const [treatmentDate, setTreatmentDate] = useState(todayIsoDate);
   const [pending, setPending] = useState<File[]>([]);
   /** Tooth codes ticked in the form. */
   const [picked, setPicked] = useState<number[]>([]);
@@ -108,6 +111,7 @@ export function useFollowUpForm({
     setSubStaffId(stage?.subStaffId ?? undefined);
     setSecondStaffId(stage?.secondStaffId ?? undefined);
     setNote("");
+    setTreatmentDate(todayIsoDate());
     setPending([]);
     // A warranty starts with the source công đoạn's teeth picked; a tái khám
     // starts with none.
@@ -159,6 +163,11 @@ export function useFollowUpForm({
     setStaffId(value);
   };
 
+  const changeTreatmentDate = (value: string) => {
+    if (value) setErrors((current) => ({ ...current, treatmentDate: undefined }));
+    setTreatmentDate(value);
+  };
+
   const changeNote = (value: string) => {
     if (value.trim()) setErrors((current) => ({ ...current, note: undefined }));
     setNote(value);
@@ -192,7 +201,10 @@ export function useFollowUpForm({
   const save = async () => {
     if (!stage || !line || !plan) return;
 
-    const found = stageFieldErrors({ staffId, note, teethPicked: picked.length > 0 });
+    const found = {
+      ...stageFieldErrors({ staffId, note, teethPicked: picked.length > 0 }),
+      treatmentDate: treatmentDate ? undefined : t("Patient:Stage:RequiredTreatmentDate"),
+    };
     setErrors(found);
     if (hasStageFieldError(found) || !staffId) return;
 
@@ -208,6 +220,7 @@ export function useFollowUpForm({
           subStaffId,
           secondStaffId,
           note: note.trim(),
+          treatmentDate,
           teeth: candidates.filter((tooth) => picked.includes(tooth.toothCode)),
         });
 
@@ -231,6 +244,7 @@ export function useFollowUpForm({
           isGuarantee: true,
           warrantySourceStageId: stage.id,
           serviceItemIds: pickedSteps,
+          treatmentDate,
         });
 
         for (const file of pending) {
@@ -266,6 +280,8 @@ export function useFollowUpForm({
     setSecondStaffId,
     note,
     setNote: changeNote,
+    treatmentDate,
+    setTreatmentDate: changeTreatmentDate,
     pending,
     picked,
     toggleTooth,

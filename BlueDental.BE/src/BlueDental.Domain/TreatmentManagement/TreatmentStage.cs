@@ -78,6 +78,14 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 
     public DateOnly? ScheduledDate { get; private set; }
 
+    /// <summary>
+    /// Ngày điều trị — the clinic day the visit was worked, picked by the doctor
+    /// on the form (BA, 2026-10-09). The history, the treatment tab and the
+    /// warranty period all read this day; <c>CreationTime</c> stays as the
+    /// moment the row was written, kept for tracking only.
+    /// </summary>
+    public DateOnly TreatmentDate { get; private set; }
+
     public TreatmentStageStatus Status { get; private set; }
 
     /// <summary>Copied from the service at creation: the step needs a photo to close.</summary>
@@ -180,7 +188,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         bool isGuarantee = false,
         IEnumerable<Guid>? serviceItemIds = null,
         Guid? continuedFromId = null,
-        Guid? warrantyRootStageId = null)
+        Guid? warrantyRootStageId = null,
+        DateOnly? treatmentDate = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -189,6 +198,14 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageSequence,
                 "A stage sequence number starts at 1.");
+        }
+
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        if (treatmentDate > today)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateInFuture,
+                "A công đoạn cannot be dated after today.");
         }
 
         var toothList = teeth?.ToList() ?? new List<ToothSelection>();
@@ -209,6 +226,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             SecondStaffId = secondStaffId,
             SubStaffId = subStaffId,
             ScheduledDate = scheduledDate,
+            TreatmentDate = treatmentDate ?? today,
             IsImageRequired = isImageRequired,
             IsGuarantee = isGuarantee,
             ContinuedFromId = continuedFromId,
@@ -240,7 +258,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         Guid? subStaffId,
         IEnumerable<Guid>? serviceItemIds,
         IEnumerable<int>? toothCodes = null,
-        IEnumerable<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>? alsoFrom = null)
+        IEnumerable<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>? alsoFrom = null,
+        DateOnly? treatmentDate = null)
     {
         var carried = HandOnTeeth(toothCodes);
 
@@ -280,7 +299,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             IsGuarantee,
             serviceItemIds,
             continuedFromId: Id,
-            warrantyRootStageId: WarrantyRootStageId);
+            warrantyRootStageId: WarrantyRootStageId,
+            treatmentDate: treatmentDate);
     }
 
     /// <summary>

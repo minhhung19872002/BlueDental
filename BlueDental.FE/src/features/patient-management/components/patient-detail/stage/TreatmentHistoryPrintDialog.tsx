@@ -56,7 +56,7 @@ function Rows({ stages, statusOf }: Pick<Props, "stages" | "statusOf">) {
               <p>{stage.serviceName ?? stage.name}</p>
             </td>
             <td>
-              <p>{formatShortDate(stage.creationTime)}</p>
+              <p>{formatShortDate(stage.treatmentDate)}</p>
               <div className={`pd-print-chip pd-print-chip--${status}`}>
                 {stageRowStatusLabel(status)}
               </div>

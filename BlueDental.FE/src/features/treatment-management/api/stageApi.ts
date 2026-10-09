@@ -72,6 +72,12 @@ export interface TreatmentStageDto {
   secondStaffName: string | null;
   subStaffName: string | null;
   serviceName: string | null;
+  /**
+   * Ngày điều trị, "YYYY-MM-DD" — the day the doctor picked on the form. What
+   * the history, the treatment tab and the print show; `creationTime` is kept
+   * for tracking only (BA, 2026-10-09).
+   */
+  treatmentDate: string;
   creationTime: string;
 }
 
@@ -114,6 +120,8 @@ export interface CreateTreatmentStageInput {
   warrantySourceStageId?: string;
   /** The steps ticked under "Danh sách công đoạn"; they are stored unticked. */
   serviceItemIds?: string[];
+  /** Ngày điều trị, "YYYY-MM-DD"; the server takes today when omitted. */
+  treatmentDate?: string;
 }
 
 /** What the reference's PUT /patient-stages/{id} carries. */
@@ -145,6 +153,8 @@ export interface ContinueTreatmentStageInput {
    * on — the visit is one new công đoạn, not one per chain.
    */
   alsoFrom: { stageId: string; toothCodes: number[] }[];
+  /** Ngày điều trị of this visit, "YYYY-MM-DD"; today when omitted. */
+  treatmentDate?: string;
 }
 
 export interface StageListInput {
@@ -233,6 +243,8 @@ export interface PatientReExaminationDto {
   staffName: string | null;
   subStaffName: string | null;
   secondStaffName: string | null;
+  /** Ngày điều trị picked in the form, "YYYY-MM-DD"; creationTime is tracking only. */
+  treatmentDate: string;
   creationTime: string;
 }
 
@@ -244,6 +256,8 @@ export interface CreateReExaminationInput {
   subStaffId?: string;
   secondStaffId?: string;
   note?: string;
+  /** Ngày điều trị, "YYYY-MM-DD"; today when omitted, never after today. */
+  treatmentDate?: string;
   teeth: ToothSelectionDto[];
 }
 

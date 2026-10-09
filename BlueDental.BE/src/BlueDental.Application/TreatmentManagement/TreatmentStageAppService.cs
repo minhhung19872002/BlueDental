@@ -108,7 +108,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
 
         var latest = query
             .Where(x => x.PatientId == patientId)
-            .OrderByDescending(x => x.CreationTime)
+            .OrderByDescending(x => x.TreatmentDate)
+            .ThenByDescending(x => x.CreationTime)
             .FirstOrDefault();
 
         if (latest == null)
@@ -124,7 +125,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             TreatmentServiceId = latest.TreatmentServiceId,
             ServiceName = lookups.ServiceNames.TryGetValue(latest.ServiceId, out var name) ? name : null,
             StageNote = latest.Note,
-            StageDate = latest.CreationTime
+            StageDate = ClinicCalendar.StartOfDay(latest.TreatmentDate)
         };
     }
 
@@ -182,7 +183,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.SubStaffId,
             input.IsGuarantee,
             input.ServiceItemIds,
-            warrantyRootStageId: warrantyRootStageId);
+            warrantyRootStageId: warrantyRootStageId,
+            treatmentDate: input.TreatmentDate);
 
         await _repository.InsertAsync(stage, autoSave: true);
 
@@ -239,7 +241,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.SubStaffId,
             input.ServiceItemIds,
             input.ToothCodes,
-            others);
+            others,
+            input.TreatmentDate);
 
         await _repository.UpdateAsync(stage);
         foreach (var (other, _) in others)
@@ -550,6 +553,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         SecondStaffId = entity.SecondStaffId,
         SubStaffId = entity.SubStaffId,
         ScheduledDate = entity.ScheduledDate,
+        TreatmentDate = entity.TreatmentDate,
         Status = entity.Status,
         IsImageRequired = entity.IsImageRequired,
         IsGuarantee = entity.IsGuarantee,

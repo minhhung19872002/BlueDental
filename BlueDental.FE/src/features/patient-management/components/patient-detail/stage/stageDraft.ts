@@ -1,4 +1,6 @@
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
+import { t } from "@/lib/i18n";
+import { todayIsoDate } from "@/utils/todayIsoDate";
 import { toothCodes, type StageItem } from "./stageModel";
 import { hasStageFieldError, stageFieldErrors, type StageFieldErrors } from "./stageFieldErrors";
 
@@ -10,6 +12,11 @@ export interface StageDraft {
   /** Bác sĩ hỗ trợ — the reference's `assistantStaffId`. */
   secondStaffId: string | undefined;
   note: string;
+  /**
+   * Ngày điều trị, "YYYY-MM-DD" — today unless the doctor picks an earlier day;
+   * never a later one (BA, 2026-10-09). Empty once the picker is cleared.
+   */
+  treatmentDate: string;
   /** Pictures chosen before the công đoạn exists; attached once it is saved. */
   pending: File[];
   /** Step ids ticked under "Danh sách công đoạn". */
@@ -49,7 +56,13 @@ export function initialDraft(
   newestOfLine: TreatmentStageDto | undefined,
   fallback: StaffFallback | null,
 ): StageDraft {
-  const base = { note: "", pending: [], steps: [], teeth: toothCodes(item.teeth) };
+  const base = {
+    note: "",
+    treatmentDate: todayIsoDate(),
+    pending: [],
+    steps: [],
+    teeth: toothCodes(item.teeth),
+  };
 
   const [stage] = item.stages;
   if (stage) {
@@ -126,10 +139,13 @@ export const isDraftDirty = (draft: StageDraft): boolean =>
  * check for such a line too (StageTeethPolicy.EnsureNewStageTeeth).
  */
 export function draftErrors(draft: StageDraft, item: StageItem): StageFieldErrors | null {
-  const errors = stageFieldErrors({
-    staffId: draft.staffId,
-    note: draft.note,
-    teethPicked: item.teeth.length === 0 || draft.teeth.length > 0,
-  });
+  const errors: StageFieldErrors = {
+    ...stageFieldErrors({
+      staffId: draft.staffId,
+      note: draft.note,
+      teethPicked: item.teeth.length === 0 || draft.teeth.length > 0,
+    }),
+    treatmentDate: draft.treatmentDate ? undefined : t("Patient:Stage:RequiredTreatmentDate"),
+  };
   return hasStageFieldError(errors) ? errors : null;
 }

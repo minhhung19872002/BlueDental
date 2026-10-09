@@ -72,7 +72,8 @@ public class PatientReExaminationAppService : ApplicationService, IPatientReExam
 
         var totalCount = query.Count();
         var items = query
-            .OrderByDescending(x => x.CreationTime)
+            .OrderByDescending(x => x.TreatmentDate)
+            .ThenByDescending(x => x.CreationTime)
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();
@@ -107,7 +108,8 @@ public class PatientReExaminationAppService : ApplicationService, IPatientReExam
             input.Note,
             PatientDiagnosisAppService.ToToothSelections(input.Teeth),
             input.SubStaffId,
-            input.SecondStaffId);
+            input.SecondStaffId,
+            input.TreatmentDate);
 
         await _repository.InsertAsync(visit, autoSave: true);
 
@@ -210,6 +212,7 @@ public class PatientReExaminationAppService : ApplicationService, IPatientReExam
                 StaffName = NameOf(x.StaffId),
                 SubStaffName = NameOf(x.SubStaffId),
                 SecondStaffName = NameOf(x.SecondStaffId),
+                TreatmentDate = x.TreatmentDate,
                 CreationTime = x.CreationTime,
             })
             .ToList();

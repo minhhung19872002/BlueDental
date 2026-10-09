@@ -58,6 +58,13 @@ public class PatientReExamination : FullAuditedAggregateRoot<Guid>
     /// <summary>Nội dung điều trị.</summary>
     public string? Note { get; private set; }
 
+    /// <summary>
+    /// Ngày điều trị — the clinic day of the visit, picked in the Tạo tái khám
+    /// form (BA, 2026-10-09), today or earlier. The treatment tab shows this
+    /// day; <c>CreationTime</c> stays as the moment the row was written.
+    /// </summary>
+    public DateOnly TreatmentDate { get; private set; }
+
     /// <summary>The teeth ticked in the form — the reference's selectedContent.</summary>
     public IReadOnlyCollection<ToothSelection> Teeth => _teeth.AsReadOnly();
 
@@ -77,9 +84,18 @@ public class PatientReExamination : FullAuditedAggregateRoot<Guid>
         string? note = null,
         IEnumerable<ToothSelection>? teeth = null,
         Guid? subStaffId = null,
-        Guid? secondStaffId = null)
+        Guid? secondStaffId = null,
+        DateOnly? treatmentDate = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
+
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        if (treatmentDate > today)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateInFuture,
+                "A follow-up visit cannot be dated after today.");
+        }
 
         var chosen = teeth?.ToList() ?? new List<ToothSelection>();
         if (chosen.Count == 0)
@@ -109,6 +125,7 @@ public class PatientReExamination : FullAuditedAggregateRoot<Guid>
             SubStaffId = subStaffId,
             SecondStaffId = secondStaffId,
             Note = note,
+            TreatmentDate = treatmentDate ?? today,
         };
 
         visit._teeth.AddRange(chosen);

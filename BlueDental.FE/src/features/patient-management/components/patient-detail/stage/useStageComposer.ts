@@ -28,6 +28,7 @@ import type { StageFieldErrors } from "./stageFieldErrors";
 import {
   STAGE_TABS,
   buildStageItems,
+  byWorkedOrder,
   historyTeeth,
   pickTeeth,
   stagesToContinue,
@@ -53,17 +54,20 @@ interface Args {
   focusStageId?: string | null;
 }
 
-/** Stages bucketed by the calendar day they were worked, newest day first. */
+/**
+ * Stages bucketed by their Ngày điều trị — the day the doctor picked, not the
+ * day the row was typed in (BA, 2026-10-09) — newest day first.
+ */
 function byDay(stages: TreatmentStageDto[]): StageDay[] {
   const days = new Map<string, StageDay>();
 
   for (const stage of stages) {
-    const key = stage.creationTime.slice(0, 10);
+    const key = stage.treatmentDate;
     const day = days.get(key);
     if (day) {
       day.stages.push(stage);
     } else {
-      days.set(key, { key, date: stage.creationTime, stages: [stage] });
+      days.set(key, { key, date: stage.treatmentDate, stages: [stage] });
     }
   }
 
@@ -121,9 +125,7 @@ export function useStageComposer({
 
   const stages = useMemo(
     () =>
-      [...(stagesQuery.data?.items ?? [])].sort((a, b) =>
-        b.creationTime.localeCompare(a.creationTime),
-      ),
+      [...(stagesQuery.data?.items ?? [])].sort((a, b) => byWorkedOrder(b, a)),
     [stagesQuery.data],
   );
 
@@ -196,6 +198,8 @@ export function useStageComposer({
           staff: "staffId" in patch && patch.staffId ? undefined : held.staff,
           note: "note" in patch && patch.note?.trim() ? undefined : held.note,
           teeth: "teeth" in patch && (patch.teeth?.length ?? 0) > 0 ? undefined : held.teeth,
+          treatmentDate:
+            "treatmentDate" in patch && patch.treatmentDate ? undefined : held.treatmentDate,
         },
       };
     });
@@ -260,6 +264,7 @@ export function useStageComposer({
         secondStaffId: draft.secondStaffId,
         note: draft.note.trim(),
         serviceItemIds: draft.steps,
+        treatmentDate: draft.treatmentDate,
       });
       if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
       return;
@@ -280,6 +285,7 @@ export function useStageComposer({
           secondStaffId: draft.secondStaffId,
           teeth: pickTeeth(item.teeth, draft.teeth),
           serviceItemIds: draft.steps,
+          treatmentDate: draft.treatmentDate,
         });
 
     // Pictures chosen in the form belong to a công đoạn that did not exist

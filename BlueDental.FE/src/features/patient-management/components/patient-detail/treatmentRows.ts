@@ -52,7 +52,13 @@ export interface TreatmentRow extends TreatmentServiceDto {
    * see {@link warrantyState}. `none` on a row still being worked.
    */
   warranty: WarrantyState;
+  /**
+   * The day the Ngày column prints. A công đoạn row carries its Ngày điều trị
+   * ("YYYY-MM-DD", BA 2026-10-09); every other row its creation time.
+   */
   createdAt: string;
+  /** When the row was written — orders the rows inside one day. */
+  writtenAt: string;
   /** Nội dung điều trị — the công đoạn's own note. */
   stageNote: string | null;
   /** The công đoạn's teeth, falling back to the line's. */
@@ -110,6 +116,7 @@ export function buildTreatmentRows(
           isWarranty: false,
           warranty: { kind: "none" },
           createdAt: plan.creationTime,
+          writtenAt: plan.creationTime,
           stageNote: null,
           rowTeeth: service.teeth,
           assistant: null,
@@ -128,7 +135,8 @@ export function buildTreatmentRows(
           stageDone: stage.status === STAGE_STATUS.Completed,
           isWarranty: stage.isGuarantee,
           warranty: warrantyState(stage, service, lineStages),
-          createdAt: stage.creationTime,
+          createdAt: stage.treatmentDate,
+          writtenAt: stage.creationTime,
           stageNote: stage.note,
           rowTeeth: stage.teeth.length > 0 ? stage.teeth : service.teeth,
           dentist: stage.staffName ?? plan.dentistName,
@@ -164,7 +172,8 @@ export function buildTreatmentRows(
       stageDone: false,
       isWarranty: false,
       warranty: { kind: "none" },
-      createdAt: visit.creationTime,
+      createdAt: visit.treatmentDate,
+      writtenAt: visit.creationTime,
       stageNote: visit.note,
       rowTeeth: visit.teeth,
       quantity: visit.quantity,
@@ -177,7 +186,11 @@ export function buildTreatmentRows(
 
   for (const slip of diagnoses) rows.push(diagnosisRow(slip));
 
-  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  rows.sort(
+    (a, b) =>
+      dayOf(b.createdAt).localeCompare(dayOf(a.createdAt)) ||
+      b.writtenAt.localeCompare(a.writtenAt),
+  );
 
   // The spans are left to regroupByDay: they are positional, and every caller
   // filters and pages this list before rendering it, so a span worked out here
@@ -275,6 +288,7 @@ function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
     isWarranty: false,
     warranty: { kind: "none" },
     createdAt: slip.creationTime,
+    writtenAt: slip.creationTime,
     stageNote: slip.note,
     rowTeeth: slip.teeth,
     dentist: slip.staffName,

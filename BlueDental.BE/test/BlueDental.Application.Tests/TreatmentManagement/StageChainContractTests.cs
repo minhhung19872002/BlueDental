@@ -58,6 +58,19 @@ public class StageChainContractTests
     }
 
     [Fact]
+    public void A_stage_should_carry_the_treatment_date_the_doctor_picked()
+    {
+        // BA 2026-10-09: "Ngày điều trị" replaces the read-only "Ngày tạo".
+        // Optional on the way in (today), always there on the way out.
+        typeof(CreateTreatmentStageDto).GetProperty("TreatmentDate")!
+            .PropertyType.ShouldBe(typeof(DateOnly?));
+        typeof(ContinueTreatmentStageDto).GetProperty("TreatmentDate")!
+            .PropertyType.ShouldBe(typeof(DateOnly?));
+        typeof(TreatmentStageDto).GetProperty("TreatmentDate")!
+            .PropertyType.ShouldBe(typeof(DateOnly));
+    }
+
+    [Fact]
     public void A_warranty_should_name_the_stage_it_is_raised_from()
     {
         typeof(CreateTreatmentStageDto).GetProperty("WarrantySourceStageId")!

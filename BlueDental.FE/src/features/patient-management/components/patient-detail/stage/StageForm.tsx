@@ -8,7 +8,7 @@ import {
   useDentistOptionsToday,
 } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
+import { StageDateField } from "./StageDateField";
 import { StageShots } from "./StageShots";
 import { StageStepList } from "./StageStepList";
 import { StageTeethPicker } from "./StageTeethPicker";
@@ -57,7 +57,9 @@ function usePreviews(files: File[]): string[] {
 }
 
 /**
- * One công đoạn form — "Ngày - Nhân sự", "Dịch vụ đã chọn" and "Nội dung điều
+ * One công đoạn form — "Ngày - Nhân sự" (Ngày điều trị, which the doctor
+ * picks; the creation date is kept server-side for tracking only — BA,
+ * 2026-10-09), "Dịch vụ đã chọn" and "Nội dung điều
  * trị" side by side inside one blue-bordered card, as the reference draws it.
  * Several of them stack when several cards are picked.
  */
@@ -67,9 +69,11 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
   return (
     <div className="pd-stage-form" data-item-id={item.id}>
       <div>
-        <FloatingLabel label={t("Patient:Col:CreatedAt")} floated>
-          <Input disabled value={formatDate(new Date().toISOString())} />
-        </FloatingLabel>
+        <StageDateField
+          value={draft.treatmentDate}
+          error={errors.treatmentDate}
+          onChange={(treatmentDate) => handlers.onChange({ treatmentDate })}
+        />
         <FloatingLabel label={t("Patient:Staff:Doctor")} required floated={Boolean(draft.staffId)}>
           <ServerSearchSelect
             value={draft.staffId}

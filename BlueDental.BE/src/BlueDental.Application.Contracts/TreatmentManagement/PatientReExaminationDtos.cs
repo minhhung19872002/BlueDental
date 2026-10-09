@@ -32,6 +32,9 @@ public class PatientReExaminationDto : FullAuditedEntityDto<Guid>
 
     public string? Note { get; set; }
 
+    /// <summary>Ngày điều trị picked in the form; <c>CreationTime</c> is tracking only.</summary>
+    public DateOnly TreatmentDate { get; set; }
+
     /// <summary>The teeth ticked in the form — the reference's selectedContent.</summary>
     public List<ToothSelectionDto> Teeth { get; set; } = new();
     public List<string> ImageUrls { get; set; } = new();
@@ -57,6 +60,9 @@ public class CreatePatientReExaminationDto
     public Guid? SubStaffId { get; set; }
     public Guid? SecondStaffId { get; set; }
     public string? Note { get; set; }
+
+    /// <summary>Ngày điều trị; today when omitted, and never after today.</summary>
+    public DateOnly? TreatmentDate { get; set; }
 
     /// <summary>Only the teeth ticked in the form.</summary>
     public List<ToothSelectionDto> Teeth { get; set; } = new();

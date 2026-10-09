@@ -118,7 +118,7 @@ export function historyTeeth(
   const ownDone = isStageDone(stage) ? finishedBy(stage) : new Set<number>();
   const doneBefore = new Set(
     lineStages
-      .filter((each) => isStageDone(each) && each.creationTime <= stage.creationTime)
+      .filter((each) => isStageDone(each) && byWorkedOrder(each, stage) <= 0)
       .flatMap((each) => [...finishedBy(each)]),
   );
   const works = (code: number) =>
@@ -220,13 +220,31 @@ function dayNumber(value: Date): number {
   );
 }
 
+/** A "YYYY-MM-DD" day, read as that calendar day whatever the browser's zone. */
+function isoDayNumber(isoDate: string): number {
+  const [year, month, day] = isoDate.slice(0, 10).split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
 /**
  * The reference's `getWarrantyDaysRemaining`: the period less the whole days
- * since the công đoạn was worked; null when the service carries no warranty.
+ * since the công đoạn was worked — its Ngày điều trị, "YYYY-MM-DD" (BA,
+ * 2026-10-09); null when the service carries no warranty.
  */
-export function warrantyDaysLeft(warrantyDays: number, workedAt: string, now: Date): number | null {
+export function warrantyDaysLeft(warrantyDays: number, workedOn: string, now: Date): number | null {
   if (warrantyDays <= 0) return null;
-  return warrantyDays - (dayNumber(now) - dayNumber(new Date(workedAt)));
+  return warrantyDays - (dayNumber(now) - isoDayNumber(workedOn));
+}
+
+/**
+ * Oldest first by Ngày điều trị, then by when the row was written — two công
+ * đoạn of one day keep the order they were entered in. Negate for newest first.
+ */
+export function byWorkedOrder(a: TreatmentStageDto, b: TreatmentStageDto): number {
+  return (
+    a.treatmentDate.localeCompare(b.treatmentDate) ||
+    a.creationTime.localeCompare(b.creationTime)
+  );
 }
 
 /**
@@ -253,7 +271,7 @@ export function warrantyState(
 ): WarrantyState {
   if (stage.isSuperseded || !isStageDone(stage)) return { kind: "none" };
 
-  const daysLeft = warrantyDaysLeft(line.warrantyDays, stage.creationTime, now);
+  const daysLeft = warrantyDaysLeft(line.warrantyDays, stage.treatmentDate, now);
   if (daysLeft === null) return { kind: "noWarranty" };
   if (hasOpenWarranty(lineStages)) return { kind: "blocked", reason: "openWarranty" };
   if (daysLeft <= 0) return { kind: "blocked", reason: "expired" };

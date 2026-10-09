@@ -3689,6 +3689,7 @@
 }
 /* The reference's fields all run the full width of their column. */
 .pd-stage-form .floating-field,
+.pd-stage-form .ant-picker,
 .pd-stage-form .ant-select,
 .pd-stage-form .ant-input,
 .pd-stage-form .ant-input-affix-wrapper,

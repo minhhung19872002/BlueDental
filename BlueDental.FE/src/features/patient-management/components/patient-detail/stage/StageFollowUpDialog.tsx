@@ -7,11 +7,11 @@ import {
   useDentistOptionsToday,
 } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { FollowUpShots } from "./FollowUpShots";
 import { FollowUpTeeth } from "./FollowUpTeeth";
+import { StageDateField } from "./StageDateField";
 import { StageStepList } from "./StageStepList";
 import { StageTeethPicker } from "./StageTeethPicker";
 import { useFollowUpForm } from "./useFollowUpForm";
@@ -114,9 +114,11 @@ export function StageFollowUpDialog({
     >
       <div className="pd-stage-form">
         <div>
-          <FloatingLabel label={t("Patient:Col:CreatedAt")} floated>
-            <Input disabled value={formatDate(new Date().toISOString())} />
-          </FloatingLabel>
+          <StageDateField
+            value={form.treatmentDate}
+            error={form.errors.treatmentDate}
+            onChange={form.setTreatmentDate}
+          />
           <FloatingLabel label={t("Patient:Staff:Doctor")} required floated={Boolean(form.staffId)}>
             <ServerSearchSelect
               value={form.staffId}

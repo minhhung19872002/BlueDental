@@ -486,6 +486,17 @@ A tinted card (`#F7FAFF`, radius 16, padding 12, border `#DCE3EE`) holds:
   | Column | Contents |
   |---|---|
   | Ngày - Nhân sự | **Ngày tạo** (*disabled*, today) · Bác sĩ · Phụ tá · Bác sĩ hỗ trợ |
+
+  > **BlueDental override (BA, 2026-10-09 — not a reference observation, F-62):**
+  > "Ngày tạo" is replaced by **Ngày điều trị**, a required `DD/MM/YYYY` date
+  > picker the doctor fills in. It defaults to today; days after today are disabled
+  > on the calendar and refused by the server (`BlueDental:Treatment:0046`).
+  > `CreationTime` is still stored for tracking but is no longer shown. Lịch sử
+  > điều trị, the Hồ sơ treatment table's Ngày column, the print dialog, the recall
+  > dialog and the warranty day count all read Ngày điều trị. The "Tạo bảo hành /
+  > Tạo tái khám" dialogs swap their disabled "Ngày tạo" for the same picker
+  > (R-853); a tái khám stores it too and its treatment-table row shows it.
+
   | Dịch vụ đã chọn | **Dịch vụ** (*disabled*) · `Răng:` over blue filled chips (`min-w-9 rounded-sm p-1 text-[13px]`, disabled, `opacity-70`) · `Hình ảnh:` and `(Trống)` on **two stacked lines** · full-width `Tải Ảnh` outline button |
   | Nội dung điều trị | textarea `min-h-16` rows 5, `maxlength 1000`, floating label with **no asterisk** · `Danh sách công đoạn` (14px/600) / `(Trống)` · right-aligned `Hủy` + `💾 Thêm/Tiếp tục công đoạn` (`min-w-[100px]`) |
 

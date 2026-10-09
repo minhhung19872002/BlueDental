@@ -504,7 +504,8 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
                 draft.Content,
                 teeth: draft.Teeth.Select(tooth => new ToothSelection(tooth, selected: true)),
                 secondStaffId: draft.AssistingDoctorId,
-                subStaffId: draft.AssistantId);
+                subStaffId: draft.AssistantId,
+                treatmentDate: draft.TreatedOn);
 
             if (draft.Completed)
             {

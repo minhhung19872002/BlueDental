@@ -57,7 +57,7 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
               key={stage.id}
             >
               <div className="pd-recall-when">
-                <p>{formatShortDate(stage.completedAt ?? stage.creationTime)}</p>
+                <p>{formatShortDate(stage.treatmentDate)}</p>
                 <p>
                   {t("Patient:Staff:Doctor")}: {stage.staffName ?? "—"}
                 </p>

@@ -76,4 +76,15 @@ public class PatientReExaminationAppServiceContractTests
         typeof(PatientReExaminationDto).GetProperty("Code").ShouldNotBeNull();
         typeof(PatientReExaminationDto).GetProperty("Status").ShouldBeNull();
     }
+
+    [Fact]
+    public void A_Follow_Up_Should_Carry_A_Picked_Ngay_Dieu_Tri()
+    {
+        // BA 2026-10-09: the Tạo tái khám form picks the day; optional on create
+        // (today when omitted), always present on the row.
+        typeof(CreatePatientReExaminationDto).GetProperty("TreatmentDate")!
+            .PropertyType.ShouldBe(typeof(DateOnly?));
+        typeof(PatientReExaminationDto).GetProperty("TreatmentDate")!
+            .PropertyType.ShouldBe(typeof(DateOnly));
+    }
 }

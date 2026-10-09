@@ -13,6 +13,8 @@ export interface StageFieldErrors {
   staff?: string;
   note?: string;
   teeth?: string;
+  /** Ngày điều trị — every công đoạn and follow-up form carries the field. */
+  treatmentDate?: string;
 }
 
 interface Draft {
@@ -35,4 +37,4 @@ export function stageFieldErrors({ staffId, note, teethPicked }: Draft): StageFi
 }
 
 export const hasStageFieldError = (errors: StageFieldErrors): boolean =>
-  Boolean(errors.staff || errors.note || errors.teeth);
+  Boolean(errors.staff || errors.note || errors.teeth || errors.treatmentDate);
