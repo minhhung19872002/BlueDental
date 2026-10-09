@@ -162,8 +162,11 @@ public class PrescriptionTemplateLineDto
 {
     public Guid Id { get; set; }
     public Guid MedicineEntryId { get; set; }
-    public int TimesPerDay { get; set; } = 1;
-    public decimal AmountPerTime { get; set; } = 1;
+    /// <summary>Sáng / trưa / chiều / tối — the same session dosing as a prescription line.</summary>
+    public decimal Morning { get; set; } = 1;
+    public decimal Noon { get; set; }
+    public decimal Afternoon { get; set; }
+    public decimal Evening { get; set; }
     public int Days { get; set; } = 1;
     public PrescriptionUsage Usage { get; set; }
 

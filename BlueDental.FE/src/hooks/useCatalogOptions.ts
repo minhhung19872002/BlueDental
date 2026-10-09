@@ -52,8 +52,11 @@ export interface CatalogPrescriptionLine {
   id: string;
   medicineEntryId: string;
   medicineName: string | null;
-  timesPerDay: number;
-  amountPerTime: number;
+  /** The dose by session (R-884): 0 when that session is skipped. */
+  morning: number;
+  noon: number;
+  afternoon: number;
+  evening: number;
   days: number;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;

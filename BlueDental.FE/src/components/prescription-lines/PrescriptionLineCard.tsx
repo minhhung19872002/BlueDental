@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Button, InputNumber, Select, Tooltip } from "antd";
+import { Button, InputNumber, Select } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { doseQuantity, lineFieldLabel, plainDose, RX_SESSIONS, sessionLabel } from "./dose";
+import type { MedicineOption, PrescriptionLine } from "./types";
 import { UsagePicker } from "./UsagePicker";
-import { lineQuantity, type MedicineOption, type PrescriptionLine } from "./types";
 
 interface Props {
   line: PrescriptionLine;
@@ -15,63 +15,54 @@ interface Props {
   onDelete: () => void;
 }
 
-/** One line as a card — the narrow-screen shape of the line table. */
-export function PrescriptionLineCard({
-  line,
-  index,
-  medicines,
-  canDelete,
-  onPatch,
-  onDelete,
-}: Props) {
-  const [expanded, setExpanded] = useState(false);
+/** One medicine line as a card — the narrow-screen shape of the line table. */
+export function PrescriptionLineCard({ line, index, medicines, canDelete, onPatch, onDelete }: Props) {
+  const number = index + 1;
 
   return (
     <div className="bd-rx-card">
       <div className="bd-rx-card-head">
-        <span className="bd-rx-card-num">{index + 1}</span>
+        <span className="bd-rx-card-num">{number}</span>
         {canDelete && (
-          <Tooltip title={t("Common:Rx:DeleteLine")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<DeleteOutlined />}
-              className="bd-rx-card-del"
-              aria-label={t("Common:Rx:DeleteLineN", String(index + 1))}
-              onClick={onDelete}
-            />
-          </Tooltip>
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            aria-label={t("Common:Rx:DeleteLineN", String(number))}
+            onClick={onDelete}
+          />
         )}
       </div>
-      <div className="bd-rx-card-body">
-        <FloatingField label={t("Common:Rx:MedicineName")} required>
-          <Select
-            showSearch
-            optionFilterProp="label"
-            className="bd-rx-full"
-            placeholder={t("Common:Rx:MedicineName")}
-            value={line.medicineEntryId || undefined}
-            onChange={(next) => onPatch({ medicineEntryId: next })}
-            options={medicines.map((m) => ({ value: m.id, label: m.name }))}
-          />
-        </FloatingField>
-        <FloatingField label={t("Common:Rx:TimesPerDay")}>
-          <InputNumber
-            min={0}
-            className="bd-rx-full"
-            value={line.timesPerDay}
-            onChange={(next) => onPatch({ timesPerDay: Number(next) || 0 })}
-          />
-        </FloatingField>
-        <FloatingField label={t("Common:Rx:AmountPerTime")}>
-          <InputNumber
-            min={0}
-            step={0.5}
-            className="bd-rx-full"
-            value={line.amountPerTime}
-            onChange={(next) => onPatch({ amountPerTime: Number(next) || 0 })}
-          />
-        </FloatingField>
+      <FloatingField label={t("Common:Rx:MedicineName")} required>
+        <Select
+          showSearch
+          optionFilterProp="label"
+          className="bd-rx-full"
+          aria-label={t("Common:Rx:MedicineName")}
+          notFoundContent={t("Common:Rx:NotFound")}
+          value={line.medicineEntryId || undefined}
+          onChange={(next) => onPatch({ medicineEntryId: next })}
+          options={medicines.map((medicine) => ({ value: medicine.id, label: medicine.name }))}
+        />
+      </FloatingField>
+      <div className="bd-rx-card-sessions">
+        {RX_SESSIONS.map((session) => (
+          <label key={session} className="bd-rx-card-session">
+            <span>{sessionLabel(session)}</span>
+            <InputNumber
+              min={0}
+              step={0.5}
+              formatter={plainDose}
+              className="bd-rx-full"
+              aria-label={lineFieldLabel(sessionLabel(session), number)}
+              value={line[session]}
+              onChange={(next) => onPatch({ [session]: Number(next) || 0 })}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="bd-rx-card-pair">
         <FloatingField label={t("Common:Rx:NumberOfDays")}>
           <InputNumber
             min={0}
@@ -80,32 +71,14 @@ export function PrescriptionLineCard({
             onChange={(next) => onPatch({ days: Number(next) || 0 })}
           />
         </FloatingField>
-
-        {expanded && (
-          <>
-            <FloatingField label={t("Common:Rx:Quantity")}>
-              <InputNumber disabled className="bd-rx-full" value={lineQuantity(line)} />
-            </FloatingField>
-            <FloatingField label={t("Common:Rx:Usage")}>
-              <UsagePicker
-                value={{ usage: line.usage, otherUsage: line.otherUsage ?? null }}
-                onChange={(next) => onPatch(next)}
-              />
-            </FloatingField>
-          </>
-        )}
-
-        <button
-          type="button"
-          className="bd-rx-card-toggle"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? t("Common:ShowLess") : t("Common:ShowMore")}
-          <svg width="12" height="12" viewBox="0 0 12 12" className={expanded ? "bd-rx-flip" : ""}>
-            <path d="M2.5 4.5L6 8L9.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        <FloatingField label={t("Common:Rx:Quantity")}>
+          <InputNumber disabled className="bd-rx-full" value={doseQuantity(line)} />
+        </FloatingField>
       </div>
+      <UsagePicker
+        value={{ usage: line.usage, otherUsage: line.otherUsage }}
+        onChange={(next) => onPatch(next)}
+      />
     </div>
   );
 }

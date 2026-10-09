@@ -371,9 +371,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     /// <summary>
     /// "BE:Treatment:SaveRxTemplate": stores the slip's lines and lời dặn as a new entry
     /// of the "BE:Common:RxTemplate" catalog, exactly as the Danh mục screen would
-    /// (the lời dặn lives in <c>Description</c> there). A template line still
-    /// doses "ngày uống × mỗi lần", so the sessions fold back into it: times =
-    /// sessions above zero, amount = their mean, and the daily total survives.
+    /// (the lời dặn lives in <c>Description</c> there). A template line doses by
+    /// session too, so every line is copied as it is (R-884).
     /// </summary>
     private async Task SaveTemplateAsync(Prescription prescription, string templateName)
     {
@@ -407,8 +406,10 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
                 GuidGenerator.Create(),
                 template.Id,
                 item.MedicationId,
-                TimesPerDayOf(item),
-                Math.Round(item.DailyAmount / TimesPerDayOf(item), 2),
+                item.Morning,
+                item.Noon,
+                item.Afternoon,
+                item.Evening,
                 item.Days,
                 item.Usage,
                 item.OtherUsage,
@@ -416,9 +417,6 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
 
         await _catalogRepository.InsertAsync(template, autoSave: true);
     }
-
-    private static int TimesPerDayOf(PrescriptionItem item) =>
-        new[] { item.Morning, item.Noon, item.Afternoon, item.Evening }.Count(amount => amount > 0m);
 
     /// <summary>
     /// "DT26-0001": two-digit year and a per-branch, per-year sequence. Two

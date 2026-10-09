@@ -519,6 +519,16 @@ Empty state: "Không có phương thức MoMo"
 **Search**: "Tìm theo tên đơn thuốc..."
 **State**: 0 records
 
+**Dialog "Thêm/Cập nhật đơn thuốc mẫu" — BlueDental riêng (R-884, 2026-10-10)**:
+chủ dự án yêu cầu bảng thuốc đồng bộ với "Danh sách thuốc" của Đơn thuốc bệnh
+nhân (F-58). Phần còn lại giữ nguyên: Tên đơn thuốc mẫu, Lời dặn, nút "Thêm mới",
+Mức độ ưu tiên. Bảng: Tên thuốc · Sáng · Trưa · Chiều · Tối · Số ngày ·
+Số lượng (khoá, = (Sáng + Trưa + Chiều + Tối) × Số ngày) · Sử dụng · xoá. Dòng
+mới = Sáng 1, Số ngày 1. ≤ 640px chuyển thành thẻ, giống màn Đơn thuốc. Cả hai
+màn dùng chung `PrescriptionLineList` (`src/components/prescription-lines/`).
+Trước đây là Ngày uống × Mỗi lần × Số ngày như bản gốc — đây là chỗ lệch bản gốc
+có chủ đích.
+
 ---
 
 ## /taxonomy/medical-record-template — Bệnh án mẫu

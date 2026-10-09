@@ -1,12 +1,13 @@
-﻿using System;
+using System;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 
 namespace BlueDental.Catalogs;
 
 /// <summary>
-/// One medicine line of a "BE:Common:RxTemplate". Reference: the table inside the
-/// prescription-template dialog.
+/// One medicine line of a "BE:Common:RxTemplate". Doses by session (sáng / trưa /
+/// chiều / tối) exactly as a patient's prescription line does, so picking the
+/// template on the prescription screen copies the numbers as they are (R-884).
 /// </summary>
 public class PrescriptionTemplateLine : Entity<Guid>
 {
@@ -15,11 +16,17 @@ public class PrescriptionTemplateLine : Entity<Guid>
     /// <summary>The medicine, which is itself an entry of the thuốc catalog.</summary>
     public Guid MedicineEntryId { get; private set; }
 
-    /// <summary>Ngày uống — how many times a day.</summary>
-    public int TimesPerDay { get; private set; }
+    /// <summary>Sáng — amount in the morning (half a tablet is allowed, 0 = none).</summary>
+    public decimal Morning { get; private set; }
 
-    /// <summary>Mỗi lần — how much each time.</summary>
-    public decimal AmountPerTime { get; private set; }
+    /// <summary>Trưa.</summary>
+    public decimal Noon { get; private set; }
+
+    /// <summary>Chiều.</summary>
+    public decimal Afternoon { get; private set; }
+
+    /// <summary>Tối.</summary>
+    public decimal Evening { get; private set; }
 
     /// <summary>Số ngày.</summary>
     public int Days { get; private set; }
@@ -38,9 +45,11 @@ public class PrescriptionTemplateLine : Entity<Guid>
 
     /// <summary>
     /// "BE:Col:Quantity" — the reference shows it as a disabled box, so it is derived
-    /// rather than stored, and cannot drift from the three numbers behind it.
+    /// rather than stored: (sáng + trưa + chiều + tối) × số ngày.
     /// </summary>
-    public decimal Quantity => TimesPerDay * AmountPerTime * Days;
+    public decimal Quantity => DailyAmount * Days;
+
+    public decimal DailyAmount => Morning + Noon + Afternoon + Evening;
 
     protected PrescriptionTemplateLine() { }
 
@@ -48,18 +57,21 @@ public class PrescriptionTemplateLine : Entity<Guid>
         Guid id,
         Guid catalogEntryId,
         Guid medicineEntryId,
-        int timesPerDay,
-        decimal amountPerTime,
+        decimal morning,
+        decimal noon,
+        decimal afternoon,
+        decimal evening,
         int days,
         PrescriptionUsage usage,
         string? otherUsage,
         int sortOrder) : base(id)
     {
-        if (timesPerDay <= 0 || days <= 0 || amountPerTime <= 0m)
+        if (morning < 0m || noon < 0m || afternoon < 0m || evening < 0m
+            || days <= 0 || morning + noon + afternoon + evening <= 0m)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Catalogs.InvalidPrescriptionLine,
-                "A prescription line needs a positive dose, frequency and duration.");
+                "A prescription line needs at least one session above zero, none below, and a duration.");
         }
 
         var wantsOther = usage.HasFlag(PrescriptionUsage.Other);
@@ -74,8 +86,10 @@ public class PrescriptionTemplateLine : Entity<Guid>
 
         CatalogEntryId = catalogEntryId;
         MedicineEntryId = medicineEntryId;
-        TimesPerDay = timesPerDay;
-        AmountPerTime = amountPerTime;
+        Morning = morning;
+        Noon = noon;
+        Afternoon = afternoon;
+        Evening = evening;
         Days = days;
         Usage = usage;
         // Dropped when "BE:Common:Other" is not among the choices: keeping it would leave

@@ -117,8 +117,11 @@ export interface MedicineDto {
 export interface PrescriptionTemplateLineDto {
   id?: string;
   medicineEntryId: string;
-  timesPerDay: number;
-  amountPerTime: number;
+  /** The dose by session (R-884): 0 when that session is skipped. */
+  morning: number;
+  noon: number;
+  afternoon: number;
+  evening: number;
   days: number;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;

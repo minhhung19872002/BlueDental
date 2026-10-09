@@ -1,38 +1,41 @@
 import { Button, InputNumber, Select, Table, Tooltip } from "antd";
 import { DeleteOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { type MedicineOption, UsagePicker } from "@/components/prescription-lines";
 import { RequiredPlaceholder } from "@/components/RequiredPlaceholder";
 import { t } from "@/lib/i18n";
-import type { RxMedicineLine } from "../../types/prescription";
-import { doseQuantity, plainDose, RX_SESSIONS, sessionLabel } from "../../utils/rxDose";
+import { doseQuantity, lineFieldLabel, plainDose, RX_SESSIONS, sessionLabel } from "./dose";
+import type { MedicineOption, PrescriptionLine } from "./types";
+import { UsagePicker } from "./UsagePicker";
 
-export interface RxLineEditing {
-  lines: RxMedicineLine[];
+interface Props {
+  lines: PrescriptionLine[];
   medicines: MedicineOption[];
-  onPatch: (line: RxMedicineLine, change: Partial<RxMedicineLine>) => void;
-  onRemove: (line: RxMedicineLine) => void;
+  onPatch: (line: PrescriptionLine, change: Partial<PrescriptionLine>) => void;
+  onRemove: (line: PrescriptionLine) => void;
 }
 
 const toNumber = (value: number | string | null) => Number(value) || 0;
 
 /**
  * The medicine lines on a wide screen: Tên thuốc, the four sessions of the
- * day, Số ngày, then Số lượng — never typed, always the sessions × days (F-58).
+ * day, Số ngày, then Số lượng — never typed, always the sessions × days, so a
+ * stored line can never carry a quantity that disagrees with its own dose.
  */
-export function RxMedicineTable({ lines, medicines, onPatch, onRemove }: RxLineEditing) {
-  const lineNumber = (line: RxMedicineLine) => lines.indexOf(line) + 1;
+export function PrescriptionLineTable({ lines, medicines, onPatch, onRemove }: Props) {
+  const lineNumber = (line: PrescriptionLine) => lines.indexOf(line) + 1;
 
-  const columns: ColumnsType<RxMedicineLine> = [
+  const columns: ColumnsType<PrescriptionLine> = [
     {
       key: "medicine",
       title: t("Common:Rx:MedicineName"),
       width: 240,
+      // "Tên thuốc*" behind a magnifier: the column name doubles as the
+      // required placeholder.
       render: (_, line) => (
         <Select
           showSearch
           optionFilterProp="label"
-          className="rx-full"
+          className="bd-rx-full"
           aria-label={t("Common:Rx:MedicineName")}
           placeholder={<RequiredPlaceholder text={t("Common:Rx:MedicineName")} />}
           prefix={<SearchOutlined />}
@@ -47,13 +50,13 @@ export function RxMedicineTable({ lines, medicines, onPatch, onRemove }: RxLineE
       key: session,
       title: sessionLabel(session),
       width: 76,
-      render: (_: unknown, line: RxMedicineLine) => (
+      render: (_: unknown, line: PrescriptionLine) => (
         <InputNumber
           min={0}
           step={0.5}
           formatter={plainDose}
-          className="rx-full"
-          aria-label={t("Treatment:Rx:SessionOfLine", sessionLabel(session), lineNumber(line))}
+          className="bd-rx-full"
+          aria-label={lineFieldLabel(sessionLabel(session), lineNumber(line))}
           value={line[session]}
           onChange={(next) => onPatch(line, { [session]: toNumber(next) })}
         />
@@ -66,8 +69,8 @@ export function RxMedicineTable({ lines, medicines, onPatch, onRemove }: RxLineE
       render: (_, line) => (
         <InputNumber
           min={0}
-          className="rx-full"
-          aria-label={t("Treatment:Rx:SessionOfLine", t("Common:Rx:NumberOfDays"), lineNumber(line))}
+          className="bd-rx-full"
+          aria-label={lineFieldLabel(t("Common:Rx:NumberOfDays"), lineNumber(line))}
           value={line.days}
           onChange={(next) => onPatch(line, { days: toNumber(next) })}
         />
@@ -80,8 +83,8 @@ export function RxMedicineTable({ lines, medicines, onPatch, onRemove }: RxLineE
       render: (_, line) => (
         <InputNumber
           disabled
-          className="rx-full"
-          aria-label={t("Treatment:Rx:SessionOfLine", t("Common:Rx:Quantity"), lineNumber(line))}
+          className="bd-rx-full"
+          aria-label={lineFieldLabel(t("Common:Rx:Quantity"), lineNumber(line))}
           value={doseQuantity(line)}
         />
       ),
@@ -119,14 +122,17 @@ export function RxMedicineTable({ lines, medicines, onPatch, onRemove }: RxLineE
   ];
 
   return (
-    <Table<RxMedicineLine>
+    <Table<PrescriptionLine>
       columns={columns}
       dataSource={lines}
       rowKey={(line) => line.id ?? `new-${lines.indexOf(line)}`}
       pagination={false}
       size="small"
+      // Fixed: the columns keep their widths, so a long medicine name or usage
+      // ellipsises instead of pushing the table past the dialog.
+      tableLayout="fixed"
       scroll={{ x: 960 }}
-      className="rx-med-table"
+      className="bd-rx-table"
     />
   );
 }

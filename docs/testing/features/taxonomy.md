@@ -54,7 +54,9 @@ system. Owner decisions, all implemented:
 
 - 8 catalogs: service, diagnosis, medicine, consulting, source, history,
   occupation, prescription-template (2-sheet file; medicines looked up by
-  name in Loại thuốc of the branch, missing → error). Bệnh án mẫu deferred;
+  name in Loại thuốc of the branch, missing → error; since R-884 the "Thuốc"
+  sheet doses by session — Sáng · Trưa · Chiều · Tối, blank = 0, at least one
+  above 0 — instead of "Số lần/ngày" + "Liều/lần"). Bệnh án mẫu deferred;
   Thẻ hồ sơ and Phương thức thanh toán not needed.
 - "Nhóm phân loại" column: group exists in the branch → add into it; missing
   → created on commit. Same name twice in the file (same group) → error;
@@ -139,3 +141,20 @@ Acceptance evidence (real stack, preview build on 8080 + API on 5000):
   through `SyncStages`).
 
 Regression log: R-565..R-573.
+
+## Đơn thuốc mẫu dosed by session (R-884, 2026-10-10)
+
+Owner request: the template dialog's medicine table matches the patient
+prescription's "Danh sách thuốc" (Sáng / Trưa / Chiều / Tối · Số ngày ·
+Số lượng · Sử dụng). Storage, import and the template round trip changed with
+it — see `features/prescription-diagnosis.md` and regression log R-884.
+
+- `e2e/taxonomy-dialogs.spec.ts` "a prescription template stores its lines…":
+  defaults Sáng 1 / Trưa 0; Sáng 1.5 + Tối 1.5 × 5 ngày → Số lượng 15; after a
+  reload every session comes back.
+- `e2e/taxonomy-import-api.spec.ts`: header Sáng/Trưa/Chiều/Tối; blank cells
+  read as 0; a row with every session 0 is an error ("Cần ít nhất một buổi");
+  the saved line is `{morning 1, evening 0.5, days 5, quantity 7.5}`.
+- Section 17 suite on the production build: green except 6 tests that fail
+  identically on a HEAD build against the same host and DB (local data drift,
+  listed in R-884).

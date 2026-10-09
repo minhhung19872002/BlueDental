@@ -1,26 +1,36 @@
 import { t } from "@/lib/i18n";
 import { PRESCRIPTION_USAGE } from "@/types/prescriptionUsage";
 
+/** The dose of one line by session — 0 when the session is skipped. */
+export interface SessionDose {
+  morning: number;
+  noon: number;
+  afternoon: number;
+  evening: number;
+  days: number;
+}
+
 /**
  * One medicine line as the editor holds it — the same shape the server takes
  * for a template line and for a slip line, minus what it computes itself.
+ * Both dose by session of the day (F-58, R-884).
  */
-export interface PrescriptionLine {
+export interface PrescriptionLine extends SessionDose {
   id?: string;
   medicineEntryId: string;
-  timesPerDay: number;
-  amountPerTime: number;
-  days: number;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;
   /** What the user wrote for "Khác"; null unless that flag is set. */
   otherUsage: string | null;
 }
 
+/** A new line: one in the morning for one day. */
 export const EMPTY_PRESCRIPTION_LINE: PrescriptionLine = {
   medicineEntryId: "",
-  timesPerDay: 1,
-  amountPerTime: 1,
+  morning: 1,
+  noon: 0,
+  afternoon: 0,
+  evening: 0,
   days: 1,
   usage: 0,
   otherUsage: null,
@@ -30,11 +40,6 @@ export const EMPTY_PRESCRIPTION_LINE: PrescriptionLine = {
 export interface MedicineOption {
   id: string;
   name: string;
-}
-
-/** "Số lượng" — never typed, always Ngày uống × Mỗi lần × Số ngày. */
-export function lineQuantity(line: PrescriptionLine): number {
-  return line.timesPerDay * line.amountPerTime * line.days;
 }
 
 /** The six choices the reference lists, in its order. */

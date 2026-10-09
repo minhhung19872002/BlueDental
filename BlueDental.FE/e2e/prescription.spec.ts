@@ -353,6 +353,10 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(quantity).toHaveValue("7.5");
     await lineField(dialog, "Trưa — thuốc 1").fill("0");
     await expect(quantity).toHaveValue("6");
+    // A dose "n lần × mỗi lần" could not hold, so the template round trip
+    // below proves the sessions are copied straight across (R-884).
+    await lineField(dialog, "Chiều — thuốc 1").fill("0.5");
+    await expect(quantity).toHaveValue("7.5");
     await expect(save).toBeEnabled();
 
     // Ticking "Lưu đơn thuốc mẫu" asks for the template's name before saving.
@@ -379,7 +383,7 @@ test.describe.serial("Đơn thuốc", () => {
       { treatmentPlanId: seed.planId, diagnosisId: seed.first.id },
       { treatmentPlanId: seed.planId, diagnosisId: seed.second.id },
     ]);
-    expect(sent.items[0]).toMatchObject({ morning: 1, noon: 0, afternoon: 0, evening: 1, days: 3 });
+    expect(sent.items[0]).toMatchObject({ morning: 1, noon: 0, afternoon: 0.5, evening: 1, days: 3 });
     // The server rebuilt the snapshot from the slip, and worked out the quantity.
     const slip = (await response.json()) as {
       diagnoses: { planCode: string; diagnosisName: string; toothCodes: number[] }[];
@@ -389,7 +393,7 @@ test.describe.serial("Đơn thuốc", () => {
       [seed.planCode, seed.first.name, [36, 37]],
       [seed.planCode, seed.second.name, [11, 12]],
     ]);
-    expect(slip.items[0].quantity).toBe(6);
+    expect(slip.items[0].quantity).toBe(7.5);
 
     await expect(dialog).toBeHidden();
     await expect(page).not.toHaveURL(/create=true/);
@@ -401,15 +405,18 @@ test.describe.serial("Đơn thuốc", () => {
     await assertRealApiTraffic(page, PRESCRIPTIONS_API);
     await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(printedBoth)) })).toBeVisible();
 
-    // The template the tick made is offered on the next slip, spread back over
-    // the same sessions, advice included.
+    // The template the tick made is offered on the next slip with the very
+    // same sessions — the template doses by session too (R-884) — advice included.
     await page.getByRole("button", { name: "Tạo đơn thuốc" }).click();
     const next = page.getByRole("dialog");
     await next.getByLabel("Chọn đơn thuốc mẫu").fill(template);
     await pickOption(page, template);
     await expect(lineField(next, "Sáng — thuốc 1")).toHaveValue("1");
+    await expect(lineField(next, "Trưa — thuốc 1")).toHaveValue("0");
+    await expect(lineField(next, "Chiều — thuốc 1")).toHaveValue("0.5");
     await expect(lineField(next, "Tối — thuốc 1")).toHaveValue("1");
-    await expect(lineField(next, "Số lượng — thuốc 1")).toHaveValue("6");
+    await expect(lineField(next, "Số ngày — thuốc 1")).toHaveValue("3");
+    await expect(lineField(next, "Số lượng — thuốc 1")).toHaveValue("7.5");
     await expect(next.getByLabel("Nhập lời dặn")).toHaveValue(`Lời dặn e2e ${id}`);
     await next.getByRole("button", { name: /Hủy$/ }).click();
     await expect(next).toBeHidden();
@@ -430,9 +437,10 @@ test.describe.serial("Đơn thuốc", () => {
     const note = dialog.getByLabel("Ghi chú chẩn đoán (không bắt buộc)");
     await expect(note).toHaveValue(`- ${noteA}\n- ${noteB}`);
     await expect(lineField(dialog, "Sáng — thuốc 1")).toHaveValue("1");
+    await expect(lineField(dialog, "Chiều — thuốc 1")).toHaveValue("0.5");
     await expect(lineField(dialog, "Tối — thuốc 1")).toHaveValue("1");
     await expect(lineField(dialog, "Số ngày — thuốc 1")).toHaveValue("3");
-    await expect(lineField(dialog, "Số lượng — thuốc 1")).toHaveValue("6");
+    await expect(lineField(dialog, "Số lượng — thuốc 1")).toHaveValue("7.5");
 
     // A note the doctor typed is never overwritten by a pick change.
     await note.fill(editedNote);
@@ -473,7 +481,7 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(dialog).toContainText("ĐƠN THUỐC");
     await expect(dialog).toContainText(printedFirst);
     await expect(dialog).toContainText(medicine);
-    await expect(dialog).toContainText("Sáng 1 · Tối 1 · 3 ngày");
+    await expect(dialog).toContainText("Sáng 1 · Chiều 0.5 · Tối 1 · 3 ngày");
     await expect(dialog).toContainText(`Lời dặn e2e ${id}`);
     // Read-only: nothing on the sheet can be typed into.
     await expect(dialog.locator(".rx-sheet input, .rx-sheet textarea")).toHaveCount(0);

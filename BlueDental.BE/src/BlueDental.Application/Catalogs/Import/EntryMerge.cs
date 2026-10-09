@@ -188,14 +188,18 @@ internal static class EntryMerge
         || Normalize(stored.PrescriptionCode) != merged.PrescriptionCode
         || Normalize(stored.UsageNote) != merged.UsageNote;
 
-    private static (Guid, int, decimal, int, PrescriptionUsage, string?) LineKey(PrescriptionTemplateLine line) =>
-        (line.MedicineEntryId, line.TimesPerDay, line.AmountPerTime, line.Days, line.Usage, Normalize(line.OtherUsage));
+    private static (Guid, decimal, decimal, decimal, decimal, int, PrescriptionUsage, string?) LineKey(
+        PrescriptionTemplateLine line) =>
+        (line.MedicineEntryId, line.Morning, line.Noon, line.Afternoon, line.Evening,
+            line.Days, line.Usage, Normalize(line.OtherUsage));
 
-    private static (Guid, int, decimal, int, PrescriptionUsage, string?) LineKey(PrescriptionTemplateLineDto line)
+    private static (Guid, decimal, decimal, decimal, decimal, int, PrescriptionUsage, string?) LineKey(
+        PrescriptionTemplateLineDto line)
     {
         // The line entity drops "cách dùng khác" unless "Khác" is ticked; compare what it would store.
         var other = line.Usage.HasFlag(PrescriptionUsage.Other) ? Normalize(line.OtherUsage?.Trim()) : null;
-        return (line.MedicineEntryId, line.TimesPerDay, line.AmountPerTime, line.Days, line.Usage, other);
+        return (line.MedicineEntryId, line.Morning, line.Noon, line.Afternoon, line.Evening,
+            line.Days, line.Usage, other);
     }
 
     /// <summary>An empty string and null are the same absence, whichever a dialog once saved.</summary>

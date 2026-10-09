@@ -69,8 +69,10 @@ export function PrescriptionTemplateDialog({
         ? entry.prescriptionLines.map((line) => ({
             id: line.id,
             medicineEntryId: line.medicineEntryId,
-            timesPerDay: line.timesPerDay,
-            amountPerTime: line.amountPerTime,
+            morning: line.morning,
+            noon: line.noon,
+            afternoon: line.afternoon,
+            evening: line.evening,
             days: line.days,
             usage: line.usage,
             otherUsage: line.otherUsage ?? null,
@@ -135,7 +137,7 @@ export function PrescriptionTemplateDialog({
     <AppDialog
       open={open}
       title={entry ? t("Taxonomy:Rx:UpdateTitle") : t("Taxonomy:Rx:CreateTitle")}
-      width={1040}
+      width={1120}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}

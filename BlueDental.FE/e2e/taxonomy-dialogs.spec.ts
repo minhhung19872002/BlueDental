@@ -413,12 +413,16 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
       .filter({ hasText: medicine })
       .first()
       .click();
-    await dialog.getByLabel("Ngày uống").fill("2");
-    await dialog.getByLabel("Mỗi lần").fill("1.5");
-    await dialog.getByLabel("Số ngày").fill("5");
+    // Dosed by session like the patient's Đơn thuốc (R-884): a new line
+    // starts at one in the morning, the other sessions at 0.
+    await expect(dialog.getByLabel("Sáng — thuốc 1")).toHaveValue("1");
+    await expect(dialog.getByLabel("Trưa — thuốc 1")).toHaveValue("0");
+    await dialog.getByLabel("Sáng — thuốc 1").fill("1.5");
+    await dialog.getByLabel("Tối — thuốc 1").fill("1.5");
+    await dialog.getByLabel("Số ngày — thuốc 1").fill("5");
 
-    // "Số lượng" is derived, and the reference shows it disabled.
-    const quantity = dialog.getByLabel("Số lượng");
+    // "Số lượng" = (sáng + trưa + chiều + tối) × số ngày, never typed.
+    const quantity = dialog.getByLabel("Số lượng — thuốc 1");
     await expect(quantity).toBeDisabled();
     await expect(quantity).toHaveValue("15");
 
@@ -441,7 +445,11 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
 
     await page.reload();
     dialog = await reopen(page, template);
-    await expect(dialog.getByLabel("Số lượng")).toHaveValue("15");
+    await expect(dialog.getByLabel("Sáng — thuốc 1")).toHaveValue("1.5");
+    await expect(dialog.getByLabel("Trưa — thuốc 1")).toHaveValue("0");
+    await expect(dialog.getByLabel("Chiều — thuốc 1")).toHaveValue("0");
+    await expect(dialog.getByLabel("Tối — thuốc 1")).toHaveValue("1.5");
+    await expect(dialog.getByLabel("Số lượng — thuốc 1")).toHaveValue("15");
     await expect(dialog.getByRole("button", { name: /Sau khi ăn/ })).toContainText("Trước khi ngủ");
   });
 

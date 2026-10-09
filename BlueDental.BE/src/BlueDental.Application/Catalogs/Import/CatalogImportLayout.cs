@@ -82,8 +82,10 @@ public sealed class ImportLayout
         public const string Advice = "advice";
         public const string Template = "template";
         public const string Medicine = "medicine";
-        public const string TimesPerDay = "timesPerDay";
-        public const string AmountPerTime = "amountPerTime";
+        public const string Morning = "morning";
+        public const string Noon = "noon";
+        public const string Afternoon = "afternoon";
+        public const string Evening = "evening";
         public const string Days = "days";
         public const string OtherUsage = "otherUsage";
     }
@@ -162,8 +164,12 @@ public sealed class ImportLayout
     [
         new(Col.Template, "Tên đơn thuốc mẫu", true, "Taxonomy:Import:Hint:RxTemplate", 36),
         new(Col.Medicine, "Tên thuốc", true, "Taxonomy:Import:Hint:Medicine", 36),
-        new(Col.TimesPerDay, "Số lần/ngày", true, "Taxonomy:Import:Hint:PositiveInt", 14),
-        new(Col.AmountPerTime, "Liều/lần", true, "Taxonomy:Import:Hint:PositiveNumber", 14),
+        // Dosed by session like the dialog (R-884): a blank cell is 0, and one
+        // session at least must be above 0 — checked on the row, not the column.
+        new(Col.Morning, "Sáng", false, "Taxonomy:Import:Hint:SessionDose", 10),
+        new(Col.Noon, "Trưa", false, "Taxonomy:Import:Hint:SessionDose", 10),
+        new(Col.Afternoon, "Chiều", false, "Taxonomy:Import:Hint:SessionDose", 10),
+        new(Col.Evening, "Tối", false, "Taxonomy:Import:Hint:SessionDose", 10),
         new(Col.Days, "Số ngày", true, "Taxonomy:Import:Hint:PositiveInt", 12),
         new(Col.Usage, "Cách dùng", false, "Taxonomy:Import:Hint:RxUsage", 40),
         new(Col.OtherUsage, "Cách dùng khác", false, "Taxonomy:Import:Hint:OtherUsage", 30)

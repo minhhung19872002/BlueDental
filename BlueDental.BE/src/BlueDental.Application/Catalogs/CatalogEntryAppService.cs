@@ -681,8 +681,10 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             {
                 Id = x.Id,
                 MedicineEntryId = x.MedicineEntryId,
-                TimesPerDay = x.TimesPerDay,
-                AmountPerTime = x.AmountPerTime,
+                Morning = x.Morning,
+                Noon = x.Noon,
+                Afternoon = x.Afternoon,
+                Evening = x.Evening,
                 Days = x.Days,
                 Usage = x.Usage,
                 OtherUsage = x.OtherUsage,

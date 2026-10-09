@@ -445,8 +445,10 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
             lines.Add(new PrescriptionTemplateLineDto
             {
                 MedicineEntryId = medicineId,
-                TimesPerDay = draft.TimesPerDay,
-                AmountPerTime = draft.AmountPerTime,
+                Morning = draft.Morning,
+                Noon = draft.Noon,
+                Afternoon = draft.Afternoon,
+                Evening = draft.Evening,
                 Days = draft.Days,
                 Usage = draft.Usage,
                 OtherUsage = draft.OtherUsage

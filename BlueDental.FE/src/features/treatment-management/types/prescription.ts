@@ -31,18 +31,3 @@ export interface RxDiagnosisRow {
   /** The source diagnosis notes, distinct; empty for a saved pick. */
   notes: string[];
 }
-
-/** One medicine line of the slip, dosed by session (F-58). */
-export interface RxMedicineLine {
-  id?: string;
-  medicineEntryId: string;
-  morning: number;
-  noon: number;
-  afternoon: number;
-  evening: number;
-  days: number;
-  /** Flags of PRESCRIPTION_USAGE. */
-  usage: number;
-  /** What was written for "Khác"; null unless that flag is set. */
-  otherUsage: string | null;
-}
