@@ -19,6 +19,9 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Nội dung of the sau-điều-trị task a continued công đoạn opens.</summary>
     public const string AfterTreatmentSubject = "Chăm sóc sau điều trị";
 
+    /// <summary>Nội dung of the task a follow-up saved without a date opens.</summary>
+    public const string UndatedRebookSubject = "Hẹn lại - Chưa chốt ngày";
+
     private readonly List<Guid> _stageIds = new();
 
     public Guid PatientId { get; private set; }
@@ -135,6 +138,47 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
             stageIds: stageIds,
             treatmentDate: treatmentDate);
     }
+
+    /// <summary>
+    /// Hẹn lại - Chưa chốt ngày — filed when reception saves a follow-up with
+    /// no date: one task per visit, due the moment it was saved. Its Nội dung
+    /// is the booking note, so the caller knows what the patient is coming
+    /// back for, and Ghi chú stays the caller's own.
+    /// </summary>
+    public static CareRecord UndatedRebook(
+        Guid id,
+        Guid patientId,
+        Guid branchId,
+        Guid? dentistId,
+        Guid appointmentId,
+        DateTimeOffset at,
+        string? note)
+    {
+        return new CareRecord(
+            id,
+            patientId,
+            branchId,
+            CareType.UndatedRebook,
+            UndatedRebookSubjectOf(note),
+            dentistId,
+            dueAt: at,
+            appointmentId: appointmentId);
+    }
+
+    /// <summary>
+    /// Saved again from reception: the doctor and the booking note follow,
+    /// the care already done stays.
+    /// </summary>
+    public CareRecord RefreshUndatedRebook(Guid? dentistId, string? note)
+    {
+        GuardNotCancelled();
+        AssignedStaffId = dentistId;
+        Subject = UndatedRebookSubjectOf(note);
+        return this;
+    }
+
+    private static string UndatedRebookSubjectOf(string? note) =>
+        string.IsNullOrWhiteSpace(note) ? UndatedRebookSubject : note.Trim();
 
     /// <summary>
     /// Another công đoạn continued on the same treatment day — it joins this

@@ -2947,3 +2947,18 @@ Control: dòng "Chuyên khoa" dưới tên bác sĩ trên mockup BA
 Reason: tính năng riêng của BlueDental, bản gốc không có màn hình này. BlueDental chưa có danh mục
 chuyên khoa và hồ sơ nhân sự không có trường chuyên khoa, BA chưa nói lấy từ đâu.
 Action taken: NONE trên production. Không dựng — thẻ chỉ hiện "BS. <tên>". Làm khi BA chốt nguồn dữ liệu.
+
+---
+
+## Hẹn lại - Chưa chốt ngày (2026-10-09, mock chủ dự án `save/P0910_3.drawio`)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/reception` (panel "Chọn lịch hẹn tiếp theo") và `/cskh-grouping` (tab mới)
+Control: nút "Hẹn lại - Chưa chốt ngày", tab CSKH cùng tên
+Reason: yêu cầu riêng của chủ dự án, bản gốc không có. Mock chỉ nói "bỏ qua field bắt buộc, lưu
+lịch hẹn, ghi nhận sang CSKH" và "đổ data từ bước trên".
+Action taken: NONE trên production. Các điểm BlueDental tự chọn, chờ chủ dự án xác nhận:
+- Phiếu **ở lại** tab sau khi đã chốt ngày thật; cột "Lịch hẹn sắp tới" cho biết đã chốt.
+- Tab lọc theo ngày bấm nút, không theo ngày khám.
+- Ghi chú tối đa 300 ký tự (giới hạn của Nội dung phiếu CSKH), còn ghi chú lịch hẹn có ngày là 500.

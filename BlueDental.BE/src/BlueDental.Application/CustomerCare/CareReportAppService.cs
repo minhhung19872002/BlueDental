@@ -35,6 +35,7 @@ public class CareReportAppService(
         CareType.AfterTreatment,
         CareType.Birthday,
         CareType.AppointmentReminder,
+        CareType.UndatedRebook,
         CareType.NoService,
         CareType.MissedAppointment,
         CareType.CancelledAppointment,

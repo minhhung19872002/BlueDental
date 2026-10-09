@@ -9,7 +9,7 @@ const BASE = "/v1/app/clinic-reports";
 export const REPORT_TICKET_CHANNEL = { 1: "Manual", 2: "File", 3: "Website" } as const;
 export type ReportTicketChannel = keyof typeof REPORT_TICKET_CHANNEL;
 
-/** Mirrors BlueDental.CustomerCare.CareType — the 9 tabs of /cskh-grouping. */
+/** Mirrors BlueDental.CustomerCare.CareType — the 10 tabs of /cskh-grouping. */
 export const REPORT_CARE_TYPE = {
   1: "AfterTreatment",
   2: "Birthday",
@@ -20,6 +20,7 @@ export const REPORT_CARE_TYPE = {
   8: "MissedAppointment",
   9: "CancelledAppointment",
   10: "Complaint",
+  11: "UndatedRebook",
 } as const;
 export type ReportCareType = keyof typeof REPORT_CARE_TYPE;
 

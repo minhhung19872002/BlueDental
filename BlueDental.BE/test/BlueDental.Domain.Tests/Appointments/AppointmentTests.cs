@@ -459,6 +459,73 @@ public class AppointmentTests
     }
 
     [Fact]
+    public void MarkRebookUndated_Should_Save_The_Outcome_Without_A_Booking()
+    {
+        var appointment = NewAppointment();
+
+        appointment.MarkRebookUndated(AppointmentOutcome.FollowUp, null);
+
+        Assert.Equal(AppointmentOutcome.FollowUp, appointment.Outcome);
+        Assert.Null(appointment.FollowUpAppointmentId);
+        Assert.Null(appointment.CompletedAt);
+    }
+
+    [Fact]
+    public void MarkRebookUndated_Should_Move_A_Revisit_Like_A_Booked_One()
+    {
+        var appointment = NewAppointment();
+        appointment.Start();
+
+        appointment.MarkRebookUndated(AppointmentOutcome.Revisit, null);
+
+        Assert.Equal(AppointmentOutcome.Revisit, appointment.Outcome);
+        Assert.Equal(AppointmentStatus.Completed, appointment.Status);
+    }
+
+    [Fact]
+    public void MarkRebookUndated_Should_Leave_The_Date_To_Be_Booked_Later()
+    {
+        var appointment = NewAppointment();
+        appointment.MarkRebookUndated(AppointmentOutcome.FollowUp, null);
+        var followUpId = Guid.NewGuid();
+
+        appointment.BookFollowUp(followUpId, _slot, null);
+
+        Assert.Equal(followUpId, appointment.FollowUpAppointmentId);
+    }
+
+    [Fact]
+    public void MarkRebookUndated_Should_Refuse_When_A_Live_Follow_Up_Is_Booked()
+    {
+        var appointment = NewAppointment();
+        var booked = appointment.BookFollowUp(Guid.NewGuid(), _slot, null);
+
+        Assert.Throws<BusinessException>(() =>
+            appointment.MarkRebookUndated(AppointmentOutcome.FollowUp, booked));
+    }
+
+    [Fact]
+    public void MarkRebookUndated_Should_Refuse_A_Cancelled_Visit()
+    {
+        var appointment = NewAppointment();
+        appointment.Cancel(CancellationReason.PatientRequest, "sick");
+
+        Assert.Throws<BusinessException>(() =>
+            appointment.MarkRebookUndated(AppointmentOutcome.FollowUp, null));
+        Assert.Null(appointment.Outcome);
+    }
+
+    [Theory]
+    [InlineData(AppointmentOutcome.EndTreatment)]
+    [InlineData(AppointmentOutcome.TransferDoctor)]
+    public void MarkRebookUndated_Should_Refuse_An_Outcome_Without_A_Next_Visit(AppointmentOutcome outcome)
+    {
+        var appointment = NewAppointment();
+
+        Assert.Throws<BusinessException>(() => appointment.MarkRebookUndated(outcome, null));
+    }
+
+    [Fact]
     public void AttachPatient_Turns_A_Temporary_Appointment_Into_The_Patients()
     {
         var appointment = Appointment.CreateTemporary(

@@ -1,6 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { receptionApi } from "./receptionApi";
-import type { AppointmentOutcome, BookFollowUpInput, BookedOutcome, CreateReceptionInput } from "../types/reception";
+import type {
+  AppointmentOutcome,
+  BookFollowUpInput,
+  BookedOutcome,
+  CreateReceptionInput,
+  RebookUndatedInput,
+} from "../types/reception";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 /**
@@ -59,6 +65,14 @@ export function useBookFollowUp() {
   return useMutation({
     mutationFn: ({ id, input, outcome }: { id: string; input: BookFollowUpInput; outcome: BookedOutcome }) =>
       receptionApi.bookFollowUp(id, input, outcome),
+    meta: INVALIDATES_APPOINTMENTS,
+  });
+}
+
+export function useRebookUndated() {
+  return useMutation({
+    mutationFn: ({ id, input, outcome }: { id: string; input: RebookUndatedInput; outcome: BookedOutcome }) =>
+      receptionApi.rebookUndated(id, input, outcome),
     meta: INVALIDATES_APPOINTMENTS,
   });
 }

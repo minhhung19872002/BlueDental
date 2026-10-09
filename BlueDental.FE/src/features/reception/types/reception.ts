@@ -113,6 +113,17 @@ export interface BookFollowUpInput {
   chiefComplaint?: string;
 }
 
+/**
+ * "Hẹn lại - Chưa chốt ngày": the outcome saved with no date, handed to CSKH.
+ * The note is the care task's Nội dung, which holds {@link REBOOK_NOTE_MAX}.
+ */
+export interface RebookUndatedInput {
+  dentistId?: string;
+  note?: string;
+}
+
+export const REBOOK_NOTE_MAX = 300;
+
 /** A span a doctor is already booked for, as epoch milliseconds. */
 export interface BusySpan {
   start: number;

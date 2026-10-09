@@ -23,6 +23,7 @@ public interface IAppointmentAppService : IApplicationService
     Task<AppointmentDto> AttachPatientAsync(Guid id, AttachPatientDto input);
     Task<AppointmentDto> SetOutcomeAsync(Guid id, SetOutcomeDto input);
     Task<AppointmentDto> BookFollowUpAsync(Guid id, BookFollowUpDto input);
+    Task<AppointmentDto> RebookUndatedAsync(Guid id, RebookUndatedDto input);
     Task DeleteAsync(Guid id);
     Task DeleteManyAsync(List<Guid> ids);
     Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input);

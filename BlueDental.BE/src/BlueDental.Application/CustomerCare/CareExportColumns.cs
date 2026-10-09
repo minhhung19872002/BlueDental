@@ -25,8 +25,25 @@ public static class CareExportColumns
         CareType.MissedAppointment => Missed,
         CareType.CancelledAppointment => Cancelled,
         CareType.Complaint => Complaint,
+        CareType.UndatedRebook => UndatedRebook,
         _ => Scheduled,
     };
+
+    /// <summary>Hẹn lại - Chưa chốt ngày — the board's columns (owner, 2026-10-09).</summary>
+    private static readonly ExcelColumn<CareRecordDto>[] UndatedRebook =
+    [
+        new("Ngày ghi nhận", r => DateTimeText(r.DueAt), 20),
+        new("Mã KH", r => r.PatientCode, 14),
+        new("Họ và tên", r => r.PatientName, 24),
+        new("Giới tính", r => GenderLabel(r.PatientGender), 12),
+        new("Ngày sinh", r => DateText(r.PatientDateOfBirth), 16),
+        new("Số điện thoại", r => r.PatientPhone, 16),
+        new("Bác sĩ điều trị", r => r.AssignedStaffName, 20),
+        new("Nội dung hẹn", r => r.Subject, 30),
+        new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
+        new("Trạng thái", r => StatusLabel(r.Status), 16),
+        new("Ghi chú", r => r.Description, 36),
+    ];
 
     /// <summary>Sau điều trị — 14 cột: the staging 13 plus Ngày điều trị (owner, 2026-10-05).</summary>
     private static readonly ExcelColumn<CareRecordDto>[] AfterTreatment =

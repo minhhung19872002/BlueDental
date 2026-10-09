@@ -386,21 +386,56 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
             AppointmentType.FollowUp,
             chiefComplaint: chiefComplaint);
 
-        // "Hẹn tái khám" moves the bar one step, and that step is the last one
-        // ("Đã hẹn lại") with its time: a visit not yet in the chair stops at
-        // step 2, one already in the chair finishes at step 3. "Đã hẹn tiếp"
-        // leaves the bar where it is.
-        if (outcome is AppointmentOutcome.Revisit)
-        {
-            if (Status is AppointmentStatus.InProgress)
-                Complete(Notes);
-            else if (Status is not AppointmentStatus.Completed)
-                Start();
-        }
-
+        AdvanceForOutcome(outcome);
         Outcome = outcome;
         FollowUpAppointmentId = followUpId;
         return followUp;
+    }
+
+    /// <summary>
+    /// "Hẹn lại - Chưa chốt ngày" (owner, 2026-10-09): the patient will come
+    /// back but no date is fixed yet. Saves "Đã hẹn tiếp" / "Hẹn tái khám"
+    /// without a booking — the card keeps "Cần chọn ngày giờ hẹn", so the date
+    /// can still be booked from it later — and customer care calls the patient
+    /// to fix one.
+    /// </summary>
+    /// <param name="currentFollowUp">As for <see cref="BookFollowUp"/>: a live one refuses.</param>
+    public Appointment MarkRebookUndated(AppointmentOutcome outcome, Appointment? currentFollowUp)
+    {
+        if (outcome is not (AppointmentOutcome.FollowUp or AppointmentOutcome.Revisit))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Outcome {outcome} is not booked with a next appointment.");
+        }
+
+        var hasLiveFollowUp = currentFollowUp is { Status: not AppointmentStatus.Cancelled };
+        if (Status is AppointmentStatus.Cancelled || IsTemporary || hasLiveFollowUp)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot rebook appointment {Id} without a date (status {Status}).");
+        }
+
+        AdvanceForOutcome(outcome);
+        Outcome = outcome;
+        return this;
+    }
+
+    /// <summary>
+    /// "Hẹn tái khám" moves the bar one step, and that step is the last one
+    /// ("Đã hẹn lại") with its time: a visit not yet in the chair stops at
+    /// step 2, one already in the chair finishes at step 3. "Đã hẹn tiếp"
+    /// leaves the bar where it is.
+    /// </summary>
+    private void AdvanceForOutcome(AppointmentOutcome outcome)
+    {
+        if (outcome is not AppointmentOutcome.Revisit) return;
+
+        if (Status is AppointmentStatus.InProgress)
+            Complete(Notes);
+        else if (Status is not AppointmentStatus.Completed)
+            Start();
     }
 
     public Appointment UpdateDetails(

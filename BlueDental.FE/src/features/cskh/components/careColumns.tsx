@@ -104,6 +104,15 @@ const cancelReasonColumn = (): CareColumn => ({
   render: formatDash,
 });
 
+/** Hẹn lại - Chưa chốt ngày — the booking note reception typed, kept as the task's Nội dung. */
+const rebookContentColumn = (): CareColumn => ({
+  title: t("CSKH:Col:RebookContent"),
+  dataIndex: "subject",
+  key: "rebookContent",
+  width: 200,
+  render: formatDash,
+});
+
 const careScheduleColumn = (): CareColumn => ({
   title: t("CSKH:Col:CareAppointment"),
   key: "careSchedule",
@@ -132,6 +141,12 @@ const COLUMNS_BY_TAB: Record<CareTabKey, (c: SharedColumns) => ColumnsType<CareR
     appointmentStatusColumn(),
     { ...c.status, title: t("CSKH:Col:CareStatus") },
     c.note, c.actions,
+  ],
+  "undated-rebook": (c) => [
+    { ...careDateColumn(), title: t("CSKH:Col:ReceivedAt") },
+    c.patient, c.phone, c.doctor,
+    rebookContentColumn(),
+    c.upcoming, c.status, c.note, c.actions,
   ],
   "no-service": (c) => [
     careDateColumn(),

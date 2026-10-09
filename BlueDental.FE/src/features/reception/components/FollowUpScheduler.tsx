@@ -1,16 +1,14 @@
-import { toast } from "sonner";
-import { Button, Input } from "antd";
-import dayjs from "dayjs";
+import { Button, Input, Tooltip } from "antd";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
-import { useBookFollowUp } from "../api/receptionMutations";
+import { useFollowUpActions } from "../hooks/useFollowUpActions";
 import { useFollowUpDoctors } from "../hooks/useFollowUpDoctors";
 import { useFollowUpPicker } from "../hooks/useFollowUpPicker";
 import { QUICK_PICKS, quickPickDate } from "../utils/followUpSlots";
 import { FollowUpWeekStrip } from "./FollowUpWeekStrip";
 import { FollowUpSlotGrid } from "./FollowUpSlotGrid";
-import type { BookedOutcome } from "../types/reception";
+import { REBOOK_NOTE_MAX, type BookedOutcome } from "../types/reception";
 
 interface FollowUpSchedulerProps {
   appointmentId: string;
@@ -27,43 +25,23 @@ const QUICK_PICK_LABEL = {
   "1m": "Reception:FollowUpQuick1m",
 } as const;
 
-const OUTCOME_TEXT: Record<BookedOutcome, { hint: string; confirm: string; success: string }> = {
-  FollowUp: {
-    hint: "Reception:FollowUpHint",
-    confirm: "Reception:FollowUpConfirm",
-    success: "Reception:FollowUpSuccess",
-  },
-  Revisit: {
-    hint: "Reception:RevisitHint",
-    confirm: "Reception:RevisitConfirm",
-    success: "Reception:RevisitSuccess",
-  },
+const OUTCOME_TEXT: Record<BookedOutcome, { hint: string; confirm: string }> = {
+  FollowUp: { hint: "Reception:FollowUpHint", confirm: "Reception:FollowUpConfirm" },
+  Revisit: { hint: "Reception:RevisitHint", confirm: "Reception:RevisitConfirm" },
 };
 
 /**
  * "Đã hẹn tiếp" and "Hẹn tái khám" open this under the card: the next
  * appointment must have a date before the outcome can be saved. The doctor is optional — left empty,
  * the follow-up goes to the card's doctor and no busy slots are shown.
+ * "Hẹn lại - Chưa chốt ngày" saves the outcome without the date and hands the
+ * patient to CSKH to fix one (owner, 2026-10-09).
  */
 export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, branchId, onClose }: FollowUpSchedulerProps) {
   const text = OUTCOME_TEXT[outcome];
   const picker = useFollowUpPicker(defaultDoctorId);
-  const bookMutation = useBookFollowUp();
   const doctors = useFollowUpDoctors(picker, branchId);
-
-  const handleConfirm = () => {
-    const input = picker.buildInput();
-    if (!input) return;
-    bookMutation.mutate(
-      { id: appointmentId, input, outcome },
-      {
-        onSuccess: () => {
-          // No onClose: the page hides the picker once the card shows the booking.
-          toast.success(t(text.success, dayjs(input.slotStart).format("HH:mm DD/MM/YYYY")));
-        },
-      },
-    );
-  };
+  const actions = useFollowUpActions(appointmentId, outcome, picker, onClose);
 
   return (
     <section className="fu-panel" aria-label={t("Reception:FollowUpTitle")}>
@@ -119,12 +97,21 @@ export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, bra
       </label>
 
       <footer className="fu-foot">
-        <Button onClick={onClose} disabled={bookMutation.isPending}>{t("Common:Cancel")}</Button>
+        <Button onClick={onClose} disabled={actions.pending}>{t("Common:Cancel")}</Button>
+        <Tooltip title={picker.undatedNoteTooLong ? t("Reception:RebookUndatedNoteTooLong", REBOOK_NOTE_MAX) : undefined}>
+          <Button
+            disabled={actions.pending || picker.undatedNoteTooLong}
+            icon={actions.rebooking ? <Loader2 size={14} className="fu-spin" /> : undefined}
+            onClick={actions.handleRebookUndated}
+          >
+            {t("Reception:RebookUndated")}
+          </Button>
+        </Tooltip>
         <Button
           type="primary"
-          disabled={!picker.canConfirm || bookMutation.isPending}
-          icon={bookMutation.isPending ? <Loader2 size={14} className="fu-spin" /> : undefined}
-          onClick={handleConfirm}
+          disabled={!picker.canConfirm || actions.pending}
+          icon={actions.confirming ? <Loader2 size={14} className="fu-spin" /> : undefined}
+          onClick={actions.handleConfirm}
         >
           {t(text.confirm)}
         </Button>

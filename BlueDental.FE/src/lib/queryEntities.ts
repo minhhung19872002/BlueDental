@@ -77,7 +77,8 @@ export const ENTITY_QUERY_ROOTS = {
     PATIENT_LISTS,
     // Every status change is logged.
     ["appointment-history"] satisfies RootOf<typeof appointmentHistoryKeys>,
-    // Nhắc lịch hẹn / Đặt lịch không đến / Lịch hẹn hủy read the booking's status.
+    // Nhắc lịch hẹn / Đặt lịch không đến / Lịch hẹn hủy read the booking's status;
+    // "Hẹn lại - Chưa chốt ngày" files a task there.
     ["care-records"] satisfies RootOf<typeof careKeys>,
   ],
   treatment: [

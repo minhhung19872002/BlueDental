@@ -161,6 +161,23 @@ public class BookFollowUpDto
     public string? ChiefComplaint { get; set; }
 }
 
+/// <summary>
+/// "Hẹn lại - Chưa chốt ngày": "Đã hẹn tiếp" / "Hẹn tái khám" saved without a
+/// date, handed to customer care (owner, 2026-10-09).
+/// </summary>
+public class RebookUndatedDto
+{
+    /// <summary>FollowUp or Revisit; any other outcome is refused.</summary>
+    public AppointmentOutcome Outcome { get; set; } = AppointmentOutcome.FollowUp;
+
+    /// <summary>The doctor picked in the panel; left null, this visit's dentist.</summary>
+    public Guid? DentistId { get; set; }
+
+    /// <summary>Nội dung đặt lịch — the care task's Nội dung, which holds 300.</summary>
+    [StringLength(300)]
+    public string? Note { get; set; }
+}
+
 public class GetAppointmentListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }

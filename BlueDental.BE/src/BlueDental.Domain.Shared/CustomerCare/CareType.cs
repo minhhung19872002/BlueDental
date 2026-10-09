@@ -48,5 +48,12 @@ public enum CareType : short
     /// Complain — a customer complaint filed by hand, with how the responsible
     /// staff handled it (bug list #16, feature checklist 2.6).
     /// </summary>
-    Complaint = 10
+    Complaint = 10,
+
+    /// <summary>
+    /// Hẹn lại - Chưa chốt ngày — the visit ended with "Đã hẹn tiếp" / "Hẹn tái
+    /// khám" but no date was fixed; customer care calls back to fix one
+    /// (owner, 2026-10-09).
+    /// </summary>
+    UndatedRebook = 11
 }

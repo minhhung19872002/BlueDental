@@ -547,6 +547,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             .OrderByDescending(r => r.TreatmentDate)
             .ThenByDescending(r => r.CreationTime),
         CareType.NoService or CareType.MissedAppointment or CareType.CancelledAppointment or CareType.Complaint
+            or CareType.UndatedRebook
             => query.OrderByDescending(r => r.DueAt),
         CareType.Birthday or CareType.AppointmentReminder => query.OrderBy(r => r.DueAt),
         CareType.Periodic or CareType.Special => query.OrderByDescending(r => r.ScheduledStart),

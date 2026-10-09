@@ -15,7 +15,7 @@ import { createDentist, deleteDentist, openDentistSession } from "./fixtures/res
 const REPORTS = "/api/v1/app/clinic-reports";
 const CARE = "/api/v1/app/care-records";
 // The tabs of /cskh-grouping in order: Sau điều trị … Lịch hẹn hủy, CSKH định kì, CSKH đặc biệt, Complain.
-const BOARD_TYPES = [1, 2, 3, 7, 8, 9, 4, 5, 10];
+const BOARD_TYPES = [1, 2, 3, 11, 7, 8, 9, 4, 5, 10];
 const CHANNEL_MANUAL = 1;
 
 interface StatusRow {
@@ -127,7 +127,7 @@ test.describe("Báo cáo Telesale & CSKH (API)", () => {
     expect(gone.summary.total).toBe(before.body.summary.total);
   });
 
-  test("the care report lists the nine board types and adds up to each /cskh-grouping tab", async ({ page }) => {
+  test("the care report lists the ten board types and adds up to each /cskh-grouping tab", async ({ page }) => {
     const res = await call<CareReport>(
       page,
       "GET",

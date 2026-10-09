@@ -7,6 +7,7 @@ export type CareTabKey =
   | "after-treatment"
   | "birthday"
   | "remind-appointment"
+  | "undated-rebook"
   | "no-service"
   | "missed-appointment"
   | "cancelled-appointment"
@@ -81,6 +82,19 @@ export const CARE_TABS: readonly CareTabConfig[] = [
     showCreate: false,
     fileHeart: null,
     wideTable: true,
+    statusModel: "contact",
+  },
+  {
+    // Owner, 2026-10-09: reception saved "Đã hẹn tiếp" / "Hẹn tái khám" with
+    // "Hẹn lại - Chưa chốt ngày"; customer care calls to fix the date.
+    key: "undated-rebook",
+    type: CARE_TYPE.UndatedRebook,
+    label: () => t("CSKH:Type:UndatedRebook"),
+    showDoctor: true,
+    showCareStaff: false,
+    showCreate: false,
+    fileHeart: null,
+    wideTable: false,
     statusModel: "contact",
   },
   {

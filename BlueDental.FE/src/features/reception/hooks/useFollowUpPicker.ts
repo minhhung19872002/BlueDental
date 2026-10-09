@@ -10,7 +10,7 @@ import {
   slotState,
   type QuickPickKey,
 } from "../utils/followUpSlots";
-import type { BookFollowUpInput } from "../types/reception";
+import { REBOOK_NOTE_MAX, type BookFollowUpInput, type RebookUndatedInput } from "../types/reception";
 
 /** "auto" follows the first free slot of the day, even after the busy list arrives. */
 type TimeChoice = { kind: "auto" } | { kind: "manual"; time: string } | null;
@@ -75,6 +75,12 @@ export function useFollowUpPicker(defaultDoctorId: string | undefined) {
     };
   };
 
+  /** "Hẹn lại - Chưa chốt ngày" skips the day and time; the doctor and note still go along. */
+  const buildUndatedInput = (): RebookUndatedInput => ({
+    dentistId: doctorId,
+    note: notes.trim() || undefined,
+  });
+
   return {
     today,
     now,
@@ -88,6 +94,7 @@ export function useFollowUpPicker(defaultDoctorId: string | undefined) {
     busyLoading: !!doctorId && busyQuery.isFetching,
     canGoBack,
     canConfirm: !!selectedTime && !(doctorId && busyQuery.isFetching),
+    undatedNoteTooLong: notes.trim().length > REBOOK_NOTE_MAX,
     setDoctorId,
     setNotes,
     handleQuickPick,
@@ -96,6 +103,7 @@ export function useFollowUpPicker(defaultDoctorId: string | undefined) {
     handlePrevWeek,
     handleNextWeek,
     buildInput,
+    buildUndatedInput,
   };
 }
 

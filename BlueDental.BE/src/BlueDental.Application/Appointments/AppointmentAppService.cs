@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Appointments.Values;
 using BlueDental.Catalogs;
+using BlueDental.CustomerCare;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
@@ -661,6 +662,59 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
+    }
+
+    /// <summary>
+    /// "Hẹn lại - Chưa chốt ngày" (owner, 2026-10-09): saves "Đã hẹn tiếp" /
+    /// "Hẹn tái khám" with no date and files the visit on the CSKH tab of the
+    /// same name, in one save. Saving it again keeps the one care task and
+    /// refreshes its doctor and note.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> RebookUndatedAsync(Guid id, RebookUndatedDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
+        if (input.Outcome is AppointmentOutcome.Revisit)
+            appointment.EnsureCanArriveOn(ClinicToday());
+
+        var currentFollowUp = appointment.FollowUpAppointmentId is { } currentId
+            ? await _repository.FindAsync(currentId)
+            : null;
+        appointment.MarkRebookUndated(input.Outcome, currentFollowUp);
+
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+        await FileUndatedRebookCareAsync(appointment, input);
+        return await ToDtoAsync(appointment);
+    }
+
+    private async Task FileUndatedRebookCareAsync(Appointment appointment, RebookUndatedDto input)
+    {
+        var careRepository = LazyServiceProvider.LazyGetRequiredService<IRepository<CareRecord, Guid>>();
+        var dentistId = input.DentistId ?? appointment.DentistId;
+        var existing = await careRepository.FirstOrDefaultAsync(r =>
+            r.Type == CareType.UndatedRebook && r.AppointmentId == appointment.Id);
+        if (existing is null)
+        {
+            await careRepository.InsertAsync(
+                CareRecord.UndatedRebook(
+                    GuidGenerator.Create(),
+                    appointment.PatientId,
+                    appointment.BranchId,
+                    dentistId,
+                    appointment.Id,
+                    Clock.Now,
+                    input.Note),
+                autoSave: true);
+            return;
+        }
+
+        if (existing.Status is CareStatus.Cancelled) return;
+        existing.RefreshUndatedRebook(dentistId, input.Note);
+        await careRepository.UpdateAsync(existing, autoSave: true);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Delete)]

@@ -415,3 +415,25 @@ Không phải hành vi đo từ bản gốc — bug list #16 + checklist tính n
   Đã huỷ → hiện ô "Lý do hủy *" (tối đa 500 ký tự), Lưu tắt khi trống; lịch đã huỷ mở lại
   thì ô hiện lý do cũ, chỉ đọc. API: `UpdateAppointmentDto.CancellationNote`,
   `AppointmentDto.CancellationReason/CancellationNote`.
+
+## Hẹn lại - Chưa chốt ngày (yêu cầu chủ dự án, 2026-10-09)
+
+Không phải hành vi đo từ bản gốc — mock chủ dự án `save/P0910_3.drawio` (xem
+`docs/clone/unknowns.md`, mục "Hẹn lại - Chưa chốt ngày").
+
+- **Tiếp nhận**: panel "Chọn lịch hẹn tiếp theo" (mở từ "Đã hẹn tiếp" hoặc "Hẹn tái khám")
+  có nút **"Hẹn lại - Chưa chốt ngày"** giữa Hủy và Xác nhận. Nút bỏ qua ngày/giờ bắt buộc:
+  `POST appointments/{id}/rebook-undated` `{ outcome, dentistId?, note? }` lưu kết quả
+  (FollowUp/Revisit) **không** kèm lịch hẹn tiếp — `Appointment.MarkRebookUndated`. "Hẹn tái
+  khám" vẫn đẩy thanh tiến trình như khi có ngày. Thẻ giữ "Cần chọn ngày giờ hẹn"; bấm lại vẫn
+  mở panel để chốt ngày sau (đặt ngày thật thì `BookFollowUp` chạy bình thường). Đã có lịch hẹn
+  tiếp còn hiệu lực thì từ chối. Ghi chú tối đa **300** ký tự (cột `Subject` của phiếu) — nút
+  khoá kèm tooltip khi vượt.
+- **CSKH** (`page=undated-rebook`, `CareType.UndatedRebook = 11`), tab nằm sau "Nhắc lịch hẹn":
+  mỗi lượt khám một phiếu, tạo cùng lúc với lưu kết quả (cùng unit of work). Ngày chăm sóc
+  (`DueAt`) = lúc bấm; lọc Ngày/Tuần/Tháng theo ngày đó. Bấm lại lần nữa dùng lại phiếu cũ,
+  cập nhật bác sĩ và nội dung, giữ trạng thái liên hệ và ghi chú. Nội dung hẹn = ghi chú
+  của Tiếp nhận (trống → "Hẹn lại - Chưa chốt ngày"), để ô **Ghi chú** riêng cho CSKH. Cột:
+  Ngày ghi nhận · Họ và tên · SĐT · Bác sĩ điều trị · **Nội dung hẹn** · Lịch hẹn sắp tới ·
+  Trạng thái (Đã liên hệ / Chưa liên hệ) · Ghi chú · Thao tác. Không có nút Tạo mới. Xuất
+  Excel `cskh-hen-lai-chua-chot-ngay`. Báo cáo CSKH có thêm dòng loại này.

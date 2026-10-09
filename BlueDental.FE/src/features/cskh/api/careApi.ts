@@ -16,6 +16,7 @@ export const CARE_TYPE = {
   MissedAppointment: 8,
   CancelledAppointment: 9,
   Complaint: 10,
+  UndatedRebook: 11,
 } as const;
 export type CareType = (typeof CARE_TYPE)[keyof typeof CARE_TYPE];
 
@@ -67,6 +68,7 @@ export const careTypeLabels = (): Record<CareType, string> => ({
   [CARE_TYPE.MissedAppointment]: t("CSKH:Type:MissedAppointment"),
   [CARE_TYPE.CancelledAppointment]: t("CSKH:Type:CancelledAppointment"),
   [CARE_TYPE.Complaint]: t("CSKH:Type:Complaint"),
+  [CARE_TYPE.UndatedRebook]: t("CSKH:Type:UndatedRebook"),
 });
 
 export const careGenderLabels = (): Record<CareGender, string> => ({
