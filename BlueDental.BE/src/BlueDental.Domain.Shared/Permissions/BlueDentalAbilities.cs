@@ -127,6 +127,7 @@ public static class BlueDentalAbilities
         public const string Staff = "staff";
         public const string StaffPenalty = "staffPenalty";
         public const string Payroll = "payroll";
+        public const string PatientGroup = "patientGroup";
         public const string ToolCall = "toolCall";
         public const string ToolMessage = "toolMessage";
         public const string TreatmentConsultation = "treatmentConsultation";
@@ -236,6 +237,8 @@ public static class BlueDentalAbilities
         // BlueDental-local: Bảng lương (Cụm 11 mục 5–6) has no counterpart on the reference.
         // Approve = "Chốt" the month.
         ["payroll"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Approve, Actions.Export],
+        // BlueDental-local: Hồ sơ nhóm (4.10) has no counterpart on the reference.
+        ["patientGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],

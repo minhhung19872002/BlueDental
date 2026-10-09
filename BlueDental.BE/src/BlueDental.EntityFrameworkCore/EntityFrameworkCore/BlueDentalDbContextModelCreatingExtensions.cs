@@ -51,6 +51,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureTimekeeping(builder);
         ConfigureFinance(builder);
         ConfigurePromotions(builder);
+        ConfigurePatientRelations(builder);
         ConfigureTaxonomyCatalog(builder);
         ConfigureQueue(builder);
         ConfigureClinicIntegration(builder);
@@ -1614,6 +1615,47 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.IsExhausted);
             entity.HasIndex(x => x.Code).IsUnique();
             entity.HasIndex(x => new { x.IsPublished, x.Status, x.ValidFrom, x.ValidTo });
+        });
+    }
+
+    /// <summary>Mối quan hệ (4.8) and Hồ sơ nhóm (4.10). BlueDental-local.</summary>
+    private static void ConfigurePatientRelations(ModelBuilder builder)
+    {
+        builder.Entity<PatientRelationship>(entity =>
+        {
+            entity.ToTable("bd_patient_relationships");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Note).HasMaxLength(PatientRelationConsts.MaxNoteLength);
+            entity.HasOne<Patient>().WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Patient>().WithMany().HasForeignKey(x => x.RelatedPatientId).OnDelete(DeleteBehavior.Cascade);
+            // One row per pair; the reverse pair is refused by the app service.
+            entity.HasIndex(x => new { x.PatientId, x.RelatedPatientId }).IsUnique().HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => x.RelatedPatientId);
+        });
+
+        builder.Entity<PatientGroup>(entity =>
+        {
+            entity.ToTable("bd_patient_groups");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(PatientRelationConsts.MaxGroupNameLength).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(PatientRelationConsts.MaxGroupNoteLength);
+            entity.Property(x => x.SharedMedicalNote).HasMaxLength(PatientRelationConsts.MaxSharedMedicalNoteLength);
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Ignore(x => x.Head);
+            entity.HasMany(x => x.Members).WithOne().HasForeignKey(x => x.PatientGroupId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Members).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        builder.Entity<PatientGroupMember>(entity =>
+        {
+            entity.ToTable("bd_patient_group_members");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Role).HasConversion<short>();
+            entity.HasOne<Patient>().WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.PatientGroupId, x.PatientId }).IsUnique();
+            entity.HasIndex(x => x.PatientId);
         });
     }
 

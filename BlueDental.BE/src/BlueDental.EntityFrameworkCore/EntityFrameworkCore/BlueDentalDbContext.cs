@@ -115,6 +115,10 @@ public class BlueDentalDbContext :
     // Promotions
     public DbSet<Voucher> Vouchers { get; set; }
 
+    // Mối quan hệ / Hồ sơ nhóm
+    public DbSet<PatientManagement.PatientRelationship> PatientRelationships { get; set; }
+    public DbSet<PatientManagement.PatientGroup> PatientGroups { get; set; }
+
     // Billing
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InsuranceClaim> InsuranceClaims { get; set; }

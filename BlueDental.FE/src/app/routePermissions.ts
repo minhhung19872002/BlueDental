@@ -68,6 +68,7 @@ export const ROUTE_PERMISSIONS = {
   reception: readOf(["reception"]),
   calendar: readOf(["appointment", "workSchedule"]),
   patients: readOf(["patient"]),
+  patientGroup: readOf(["patientGroup"]),
   cskh: readOf(["cskhGroup", "cskhCare"]),
   marketing: readOf(["marketingTicket", "marketingTicketTag"]),
   marketingTicket: readOf(["marketingTicket"]),

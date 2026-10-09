@@ -74,6 +74,12 @@ export const NAV_ENTRIES = {
     icon: "M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zm11 17v-2a4 4 0 00-3-3.87",
     permissions: ROUTE_PERMISSIONS.patients,
   },
+  patientGroup: {
+    path: "/patient-group",
+    label: "Menu:PatientGroup",
+    icon: "M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.28 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
+    permissions: ROUTE_PERMISSIONS.patientGroup,
+  },
   billing: {
     path: "/billing",
     label: "Menu:Billing",
@@ -160,7 +166,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "clinic",
     label: "Menu:ClinicGroup",
     icon: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
-    items: [NAV_ENTRIES.reception, NAV_ENTRIES.calendar, NAV_ENTRIES.patients, NAV_ENTRIES.cskh, NAV_ENTRIES.marketing, NAV_ENTRIES.queue],
+    items: [
+      NAV_ENTRIES.reception,
+      NAV_ENTRIES.calendar,
+      NAV_ENTRIES.patients,
+      NAV_ENTRIES.patientGroup,
+      NAV_ENTRIES.cskh,
+      NAV_ENTRIES.marketing,
+      NAV_ENTRIES.queue,
+    ],
   },
   {
     id: "dashboard",

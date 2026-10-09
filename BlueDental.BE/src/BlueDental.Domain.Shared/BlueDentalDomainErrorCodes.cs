@@ -484,6 +484,27 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicatePeriod = "BlueDental:Payroll:0006";
     }
 
+    /// <summary>Mối quan hệ (4.8) and Hồ sơ nhóm (4.10). BlueDental-local.</summary>
+    public static class PatientRelation
+    {
+        /// <summary>A record related to itself.</summary>
+        public const string SelfRelation = "BlueDental:PatientRelation:0001";
+        /// <summary>The two records are already related.</summary>
+        public const string DuplicateRelation = "BlueDental:PatientRelation:0002";
+        /// <summary>An unknown relation or group kind / role.</summary>
+        public const string InvalidType = "BlueDental:PatientRelation:0003";
+        /// <summary>A group with no member.</summary>
+        public const string GroupNeedsMember = "BlueDental:PatientRelation:0004";
+        /// <summary>The same record twice in a group.</summary>
+        public const string DuplicateMember = "BlueDental:PatientRelation:0005";
+        /// <summary>More members than a group may hold.</summary>
+        public const string TooManyMembers = "BlueDental:PatientRelation:0006";
+        /// <summary>More than one Chủ hộ / Trưởng nhóm.</summary>
+        public const string OneHead = "BlueDental:PatientRelation:0007";
+        /// <summary>The record already belongs to another family group.</summary>
+        public const string AlreadyInFamily = "BlueDental:PatientRelation:0008";
+    }
+
     public static class Queue
     {
         public const string TicketNotFound = "BlueDental:Queue:0001";

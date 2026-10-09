@@ -511,6 +511,13 @@ internal static class PermissionTreeBuilder
             Leaf("voucher.delete", "BE:Common:Delete"),
             Leaf("voucher.export", "BE:Perm:Export")),
 
+        // BlueDental-local: Hồ sơ nhóm (4.10).
+        Group("patientGroup", "BE:Perm:PatientGroup",
+            Leaf("patientGroup.read", "Xem"),
+            Leaf("patientGroup.create", "BE:Common:Add"),
+            Leaf("patientGroup.update", "BE:Common:EditVerb"),
+            Leaf("patientGroup.delete", "BE:Common:Delete")),
+
         Group("chatbot-group", "BE:Perm:AIAssistant",
             Group("chatbot", "BE:Common:Overview",
                 Leaf("chatbot.read", "Xem"),

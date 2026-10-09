@@ -959,6 +959,16 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.payroll.export";
     }
 
+    /// <summary>Subject <c>patientGroup</c> — Hồ sơ nhóm (BlueDental-local, 4.10).</summary>
+    public static class PatientGroup
+    {
+        public const string Subject = "patientGroup";
+        public const string Read = "BlueDental.patientGroup.read";
+        public const string Create = "BlueDental.patientGroup.create";
+        public const string Update = "BlueDental.patientGroup.update";
+        public const string Delete = "BlueDental.patientGroup.delete";
+    }
+
     /// <summary>Subject <c>voucher</c>.</summary>
     public static class Voucher
     {

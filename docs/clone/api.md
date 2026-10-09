@@ -1961,3 +1961,9 @@ Quyền `BlueDental.SystemAdmin.DataMigration`; chi nhánh qua `BranchAccessChec
   `{ dryRun, committed, errorCount, patientsCreated, patientsSkipped, treatmentPlansCreated, treatmentStagesCreated, fileErrors: [<string>], sheets: [{ name, totalRows, rows: [{ row, patientCode, action: 0|1|2, errors: [<string>] }] }] }`
   (`rows` chỉ gồm dòng Skip=1 / Error=2). Có lỗi bất kỳ → `committed: false`, không ghi gì.
 - `POST /api/v1/app/data-migration/import-errors` cùng multipart → file gốc thêm cột "Lỗi" ở hai sheet dữ liệu.
+## Mối quan hệ · Hồ sơ nhóm — BlueDental riêng (2026-10-09, 4.8 / 4.10)
+
+`/api/v1/app/patient-relations` (`?patientId=`, `/family?patientId=`, POST / PUT / DELETE) và
+`/api/v1/app/patient-groups` (list, `{id}`, `by-patient?patientId=`, POST / PUT / DELETE). Mối quan hệ dùng quyền
+`patient.read` / `patient.update`; Hồ sơ nhóm subject `patientGroup`.
+Lỗi `BlueDental:PatientRelation:0001`–`0008`. Chi tiết: `docs/clone/pages/patient-relations.md`.

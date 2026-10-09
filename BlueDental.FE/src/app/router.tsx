@@ -152,6 +152,11 @@ const VoucherPage = lazy(() =>
     default: m.VoucherPage,
   })),
 );
+const PatientGroupPage = lazy(() =>
+  import("@/features/patient-group/pages/PatientGroupPage").then((m) => ({
+    default: m.PatientGroupPage,
+  })),
+);
 
 const QueuePage = lazy(() =>
   import("@/features/queue/pages/QueuePage").then((m) => ({
@@ -493,6 +498,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="voucher">
             <VoucherPage />
+          </G>
+        ),
+      },
+      {
+        // BlueDental-local: Hồ sơ nhóm (function list 4.10).
+        path: "patient-group",
+        element: (
+          <G k="patientGroup">
+            <PatientGroupPage />
           </G>
         ),
       },

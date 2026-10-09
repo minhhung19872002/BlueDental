@@ -1,0 +1,160 @@
+/* Hồ sơ nhóm (4.10) — BlueDental-local */
+.pg-panel {
+  overflow: hidden;
+}
+
+.pg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pg-toolbar__filters {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pg-search {
+  width: 320px;
+}
+
+.pg-filter {
+  width: 180px;
+}
+
+.pg-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pg-muted {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+/* Fields in the shared dialog lose their margin unless they sit straight
+   under the form; this one nests, so every field keeps the rhythm. */
+.pg-dialog .ant-form .ant-form-item:not(.ant-form-item-hidden) {
+  margin-bottom: 16px;
+}
+
+.pg-dialog .ant-form > .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+.pg-members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pg-members__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pg-members__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+
+.pg-members__name {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pg-detail-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pg-detail-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pg-loading {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+}
+
+.pg-medical {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bd-amber-pale);
+}
+
+.pg-medical h4 {
+  margin: 0 0 4px;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pg-medical h4 .anticon {
+  color: var(--bd-amber);
+}
+
+.pg-medical p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.pg-medical small {
+  display: block;
+  margin-top: 6px;
+  color: var(--bd-muted);
+}
+
+.pg-member {
+  display: flex;
+  flex-direction: column;
+}
+
+.pg-member a {
+  font-weight: 600;
+}
+
+.pg-member small {
+  color: var(--bd-muted);
+}
+
+.pg-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pg-debt {
+  color: var(--bd-red);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .pg-search,
+  .pg-filter {
+    width: 100%;
+  }
+}
