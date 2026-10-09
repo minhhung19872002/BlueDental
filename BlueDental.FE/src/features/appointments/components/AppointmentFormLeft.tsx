@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, InputNumber } from "antd";
 import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
@@ -15,6 +16,8 @@ interface Props {
   /** Opened from a patient's record: the patient is fixed, as the reference fixes it. */
   lockPatient?: boolean;
   onOpenNewPatient?: () => void;
+  /** Placed under Giờ hẹn / Phút — "Lặp lại lịch hẹn". */
+  children?: ReactNode;
 }
 
 export function AppointmentFormLeft({
@@ -23,6 +26,7 @@ export function AppointmentFormLeft({
   branchOptions,
   lockPatient,
   onOpenNewPatient,
+  children,
 }: Props) {
   return (
     <div>
@@ -133,6 +137,7 @@ export function AppointmentFormLeft({
           />
         </div>
       </div>
+      {children}
     </div>
   );
 }

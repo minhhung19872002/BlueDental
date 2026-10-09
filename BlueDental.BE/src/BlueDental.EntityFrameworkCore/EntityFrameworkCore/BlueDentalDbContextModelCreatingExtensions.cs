@@ -396,6 +396,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.IsTemporary });
+            entity.HasIndex(x => x.SeriesId);
+        });
+
+        builder.Entity<AppointmentSeries>(entity =>
+        {
+            entity.ToTable("bd_appointment_series");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Frequency).HasConversion<short>();
+            entity.Property(x => x.End).HasConversion<short>();
+            entity.Property(x => x.WeekDays).HasMaxLength(20).IsRequired();
+            entity.HasIndex(x => new { x.BranchId, x.PatientId });
         });
 
         builder.Entity<AppointmentChangeLog>(entity =>

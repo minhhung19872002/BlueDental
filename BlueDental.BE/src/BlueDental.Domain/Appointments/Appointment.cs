@@ -39,6 +39,15 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public Guid? SourceTaxonomyId { get; private set; }
     public Guid? SourceEntryId { get; private set; }
 
+    /// <summary>The "Lặp lại lịch hẹn" series this booking is a session of, if any.</summary>
+    public Guid? SeriesId { get; private set; }
+
+    /// <summary>
+    /// Where the series first put this session. Comparing it with the slot
+    /// today tells "Đổi giờ" (same day, new time) from "Đã đổi lịch" (another day).
+    /// </summary>
+    public DateTimeOffset? SeriesPlannedStart { get; private set; }
+
     protected Appointment() { }
 
     public Appointment(
@@ -441,6 +450,39 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         SourceTaxonomyId = sourceTaxonomyId;
         SourceEntryId = sourceEntryId;
         return this;
+    }
+
+    /// <summary>Makes this freshly booked appointment a session of <paramref name="seriesId"/>.</summary>
+    public Appointment JoinSeries(Guid seriesId)
+    {
+        Check.NotDefaultOrNull<Guid>(seriesId, nameof(seriesId));
+        SeriesId = seriesId;
+        SeriesPlannedStart = Slot.Start;
+        return this;
+    }
+
+    /// <summary>
+    /// A finished session of a series ("Kết thúc") is read-only: it can be
+    /// neither edited nor deleted (BA).
+    /// </summary>
+    public void EnsureSeriesSessionEditable()
+    {
+        if (SeriesId.HasValue && Status is AppointmentStatus.Completed)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.SeriesSessionFinished);
+        }
+    }
+
+    /// <summary>How this session of a series stands against what the series planned.</summary>
+    public SeriesOccurrenceState SeriesState()
+    {
+        if (Status is AppointmentStatus.Completed) return SeriesOccurrenceState.Finished;
+        if (Status is AppointmentStatus.Cancelled) return SeriesOccurrenceState.Cancelled;
+        if (SeriesPlannedStart is not { } planned || planned == Slot.Start) return SeriesOccurrenceState.Booked;
+
+        return ClinicCalendar.DateOf(planned) == ClinicCalendar.DateOf(Slot.Start)
+            ? SeriesOccurrenceState.TimeChanged
+            : SeriesOccurrenceState.Rescheduled;
     }
 
     private void EnsureStatus(AppointmentStatus expected, string operation)

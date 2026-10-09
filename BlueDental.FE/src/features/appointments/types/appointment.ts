@@ -48,6 +48,8 @@ export interface AppointmentDto {
   completedAt: string | null;
   /** Lý do hủy, written when the booking was cancelled. */
   cancellationNote: string | null;
+  /** The "Lặp lại lịch hẹn" series this booking belongs to; null for a single booking. */
+  seriesId: string | null;
 }
 
 export interface CreateAppointmentRequest {

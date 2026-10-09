@@ -11,6 +11,7 @@ import { AppDialog } from "@/components/AppDialog";
 // Without this the modal renders full-width with its two columns collapsed.
 import "./calendar.css";
 import { useAppointment } from "../api/appointmentQueries";
+import { useAppointmentSeriesDialog } from "../hooks/useAppointmentSeriesDialog";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { useSaveAppointment } from "../hooks/useSaveAppointment";
 import { APPOINTMENT_STATUSES, type AppointmentStatus } from "../types/appointment";
@@ -22,6 +23,7 @@ import { PatientEditorDialog } from "@/features/patient-management/components/Pa
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { APPT_COLORS } from "./AppointmentColorPicker";
 import { AppointmentEditorForm } from "./AppointmentEditorForm";
+import { buildSeriesSlots } from "./appointmentSeriesSlots";
 import { STATUS_GROUP } from "./appointmentStatusOptions";
 
 /**
@@ -115,6 +117,25 @@ export function AppointmentEditorModal({
   const watchedDoctorId = useWatch({ control, name: "doctorId" });
   const watchedDate = useWatch({ control, name: "date" });
   const watchedNotes = useWatch({ control, name: "notes" });
+  const watchedPatientId = useWatch({ control, name: "patientId" });
+  const watchedStartTime = useWatch({ control, name: "startTime" });
+  const watchedDuration = useWatch({ control, name: "durationMinutes" });
+
+  // "Lặp lại lịch hẹn" (F-65): the rule's sessions are previewed against the
+  // booking as it is filled in, and saved together.
+  const series = useAppointmentSeriesDialog({
+    open,
+    editing: appointmentId ? { id: appointmentId, seriesId: existingAppt?.seriesId ?? null } : undefined,
+    booking: {
+      patientId: watchedPatientId,
+      doctorId: watchedDoctorId,
+      date: watchedDate,
+      startTime: watchedStartTime,
+      durationMinutes: watchedDuration,
+    },
+  });
+  const seriesSlots = buildSeriesSlots(series, watchedDate, isEdit);
+  const creatingSeries = series.active && !isEdit;
 
   const handleDoctorOff = useCallback(() => {
     setValue("doctorId", "", { shouldValidate: false });
@@ -224,6 +245,10 @@ export function AppointmentEditorModal({
         return;
       }
     }
+    if (creatingSeries) {
+      await saveSeries(data);
+      return;
+    }
     try {
       await save(data);
     } catch {
@@ -235,6 +260,29 @@ export function AppointmentEditorModal({
     onClose();
   };
 
+  const saveSeries = async (data: AppointmentEditorValues) => {
+    // Any clash refuses the whole series; the rows already show which.
+    if (series.hasConflict) {
+      toast.error(t("BlueDental:Appointment:0012"));
+      return;
+    }
+    let created: number;
+    try {
+      created = await series.saveSeries(data);
+    } catch {
+      void series.refreshPreview(); // someone booked under us: show the new clash
+      return;
+    }
+    toast.success(t("Appointment:Series:Created", created));
+    reset();
+    onSuccess?.();
+    onClose();
+  };
+
+  const seriesBlocksSave = creatingSeries
+    ? series.loading || series.sessions.length === 0
+    : series.currentFinished;
+
   return (
     <>
       <AppDialog
@@ -244,8 +292,10 @@ export function AppointmentEditorModal({
         title={isEdit ? t("Appointment:Modal:EditTitle") : t("Appointment:Modal:CreateTitle")}
         width="calc(100vw - 80px)"
         className="appt-editor-dialog"
-        canSave={isValid && !saving}
-        saving={saving}
+        canSave={isValid && !saving && !series.savingSeries && !seriesBlocksSave}
+        saving={saving || series.savingSeries}
+        saveLabel={seriesSlots.saveLabel}
+        footerLeft={seriesSlots.footerLeft}
         onSave={handleSubmit(onSubmit)}
         onClose={onClose}
       >
@@ -262,6 +312,7 @@ export function AppointmentEditorModal({
           currentStatus={existingAppt?.status}
           lockPatient={lockPatient}
           onOpenNewPatient={handleOpenNewPatient}
+          series={seriesSlots}
         />
       </AppDialog>
 

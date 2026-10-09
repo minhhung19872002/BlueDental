@@ -39,6 +39,7 @@ export interface ServerAppointmentDto {
   startedAt: string | null;
   completedAt: string | null;
   cancellationNote: string | null;
+  seriesId: string | null;
 }
 
 /**
@@ -128,6 +129,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     startedAt: dto.startedAt,
     completedAt: dto.completedAt,
     cancellationNote: dto.cancellationNote,
+    seriesId: dto.seriesId ?? null,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),

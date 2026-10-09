@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
-import { buildAppointmentCardMenu } from "./appointmentCardMenu";
+import { buildAppointmentCardMenu, isFinishedSeriesSession } from "./appointmentCardMenu";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 
 interface StatusLook {
@@ -118,7 +118,8 @@ export const EventCard = React.memo(function EventCard({
   const durationMinutes = end.diff(start, "minute");
   const timeLabel = `${start.format("HH:mm")} - ${end.format("HH:mm")} (${durationMinutes} ${t("Patient:Misc:Minutes")})`;
 
-  const menuItems = useMemo(() => buildAppointmentCardMenu(selected), [selected]);
+  const undeletable = isFinishedSeriesSession(appointment);
+  const menuItems = useMemo(() => buildAppointmentCardMenu(selected, undeletable), [selected, undeletable]);
 
   const handleMenuClick = useCallback<NonNullable<MenuProps["onClick"]>>((info) => {
     info.domEvent.stopPropagation();

@@ -383,6 +383,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        appointment.EnsureSeriesSessionEditable();
         var before = await SnapshotAsync(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         var dentistId = input.DentistId ?? appointment.DentistId;
@@ -667,6 +668,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        appointment.EnsureSeriesSessionEditable();
         var before = await SnapshotAsync(appointment);
         await _repository.DeleteAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(AppointmentChangeAction.Deleted, appointment, before, null);
@@ -682,6 +684,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var snapshots = new List<(Appointment Appointment, AppointmentSnapshot Before)>();
         foreach (var appointment in appointments)
         {
+            appointment.EnsureSeriesSessionEditable();
             snapshots.Add((appointment, await SnapshotAsync(appointment)));
         }
 

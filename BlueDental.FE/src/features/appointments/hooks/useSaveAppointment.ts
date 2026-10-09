@@ -3,7 +3,7 @@ import { useCreateAppointment, useUpdateAppointment } from "../api/appointmentMu
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 
 /** The booked window as the API takes it: local wall-clock, no offset. */
-function slotOf(data: AppointmentEditorValues) {
+export function slotOf(data: Pick<AppointmentEditorValues, "date" | "startTime" | "durationMinutes">) {
   const startTime = `${data.date}T${data.startTime}:00`;
   const endTime = dayjs(startTime)
     .add(data.durationMinutes, "minute")

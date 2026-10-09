@@ -4,6 +4,7 @@ import { MenuOutlined, TableOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator/DateNavigator";
 import { useAppointmentList } from "../api/appointmentQueries";
+import type { CalendarFocus } from "../types/appointmentSeries";
 import { t } from "@/lib/i18n";
 import { MiniCalDayView } from "./MiniCalDayView";
 import { MiniCalWeekView } from "./MiniCalWeekView";
@@ -14,9 +15,11 @@ export type DaySubMode = "time" | "doctor";
 interface Props {
   date: string;
   doctorId?: string;
+  /** A session picked in "Danh sách buổi hẹn": shown on its day, at its time. */
+  focus?: CalendarFocus | null;
 }
 
-export function AppointmentMiniCalendar({ date, doctorId }: Props) {
+export function AppointmentMiniCalendar({ date, doctorId, focus = null }: Props) {
   const [mode, setMode] = useState<DateNavigatorMode>("day");
   const [daySubMode, setDaySubMode] = useState<DaySubMode>("time");
   const [viewDate, setViewDate] = useState<Dayjs>(() => (date ? dayjs(date) : dayjs()));
@@ -29,6 +32,12 @@ export function AppointmentMiniCalendar({ date, doctorId }: Props) {
       setViewDate(dayjs(date));
     }
   }, [date]);
+
+  useEffect(() => {
+    if (!focus) return;
+    setMode("day");
+    setViewDate(dayjs(focus.start));
+  }, [focus]);
 
   const queryParams = useMemo(() => {
     const base = { doctorId: doctorId || undefined, maxResultCount: 500 };
@@ -92,6 +101,7 @@ export function AppointmentMiniCalendar({ date, doctorId }: Props) {
             appointments={appointments}
             date={viewDate.format("YYYY-MM-DD")}
             subMode={daySubMode}
+            focus={focus}
           />
         )}
         {mode === "week" && (

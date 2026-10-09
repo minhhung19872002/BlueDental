@@ -41,6 +41,9 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public bool IsTemporary { get; set; }
     public Guid? SourceTaxonomyId { get; set; }
     public Guid? SourceEntryId { get; set; }
+
+    /// <summary>The "Lặp lại lịch hẹn" series this booking is a session of, if any.</summary>
+    public Guid? SeriesId { get; set; }
 }
 
 public class CreateTempAppointmentDto

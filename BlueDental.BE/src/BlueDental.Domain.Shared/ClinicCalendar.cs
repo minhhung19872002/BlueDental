@@ -34,6 +34,14 @@ public static class ClinicCalendar
         return new DateTimeOffset(local, offset).ToUniversalTime();
     }
 
+    /// <summary>The instant a clinic-local day and time fall on, in UTC.</summary>
+    public static DateTimeOffset AtLocal(DateOnly day, TimeOnly time)
+    {
+        var local = day.ToDateTime(time, DateTimeKind.Unspecified);
+        var offset = Zone?.GetUtcOffset(local) ?? FallbackOffset;
+        return new DateTimeOffset(local, offset).ToUniversalTime();
+    }
+
     private static TimeZoneInfo? FindZone()
     {
         foreach (var id in TimeZoneIds)

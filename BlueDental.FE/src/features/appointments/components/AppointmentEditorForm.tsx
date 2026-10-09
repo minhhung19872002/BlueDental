@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import type { Control, FieldErrors, UseFormSetValue } from "react-hook-form";
+import type { CalendarFocus } from "../types/appointmentSeries";
 import type { AppointmentStatus } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 import { AppointmentFormLeft } from "./AppointmentFormLeft";
@@ -21,6 +23,12 @@ interface Props {
   /** Opened from a patient's record: the patient is fixed. */
   lockPatient?: boolean;
   onOpenNewPatient?: () => void;
+  /**
+   * "Lặp lại lịch hẹn": the field under Giờ hẹn / Phút, the session list that
+   * takes the third column while repeating (Ghi chú then moves under Nội
+   * dung), and the slot a clicked session shows in Lịch đã hẹn.
+   */
+  series?: { field: ReactNode; list: ReactNode | null; focus: CalendarFocus | null };
 }
 
 export function AppointmentEditorForm({
@@ -36,7 +44,21 @@ export function AppointmentEditorForm({
   currentStatus,
   lockPatient,
   onOpenNewPatient,
+  series,
 }: Props) {
+  const center = <AppointmentFormCenter control={control} errors={errors} doctorOptions={doctorOptions} />;
+  const right = (
+    <AppointmentFormRight
+      control={control}
+      errors={errors}
+      setValue={setValue}
+      notesValue={watchedNotes}
+      isEdit={isEdit}
+      currentStatus={currentStatus}
+    />
+  );
+  const sessionList = series?.list ?? null;
+
   return (
     <div className="appt-editor-body">
       <div className="appt-editor-cols">
@@ -46,22 +68,23 @@ export function AppointmentEditorForm({
           branchOptions={branchOptions}
           lockPatient={lockPatient}
           onOpenNewPatient={onOpenNewPatient}
-        />
-        <AppointmentFormCenter
-          control={control}
-          errors={errors}
-          doctorOptions={doctorOptions}
-        />
-        <AppointmentFormRight
-          control={control}
-          errors={errors}
-          setValue={setValue}
-          notesValue={watchedNotes}
-          isEdit={isEdit}
-          currentStatus={currentStatus}
-        />
+        >
+          {series?.field}
+        </AppointmentFormLeft>
+        {sessionList ? (
+          <div>
+            {center}
+            {right}
+          </div>
+        ) : (
+          <>
+            {center}
+            {right}
+          </>
+        )}
+        {sessionList}
       </div>
-      <AppointmentMiniCalendar date={watchedDate} doctorId={watchedDoctorId} />
+      <AppointmentMiniCalendar date={watchedDate} doctorId={watchedDoctorId} focus={series?.focus ?? null} />
     </div>
   );
 }

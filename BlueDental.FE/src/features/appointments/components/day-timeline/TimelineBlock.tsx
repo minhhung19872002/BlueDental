@@ -3,7 +3,7 @@ import { Dropdown, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
-import { buildAppointmentCardMenu } from "../appointmentCardMenu";
+import { buildAppointmentCardMenu, isFinishedSeriesSession } from "../appointmentCardMenu";
 import { BLOCK_STATE_LABEL_KEY, type BlockState } from "./blockState";
 import type { PlacedBlock } from "./timelineLayout";
 
@@ -38,7 +38,8 @@ function BlockTooltip({ placed, state }: Pick<Props, "placed" | "state">) {
 /** One booking on a doctor's row: click opens it, ⋮ offers the card menu. */
 export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, selected, onAction }: Props) {
   const id = placed.appointment.id;
-  const menuItems = useMemo(() => buildAppointmentCardMenu(selected), [selected]);
+  const undeletable = isFinishedSeriesSession(placed.appointment);
+  const menuItems = useMemo(() => buildAppointmentCardMenu(selected, undeletable), [selected, undeletable]);
 
   const handleOpen = useCallback(() => onAction?.("edit", id), [onAction, id]);
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {

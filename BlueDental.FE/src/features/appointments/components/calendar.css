@@ -2028,6 +2028,12 @@ body.cal-fullscreen .cal-grid-wrap {
   .appt-editor-cols {
     grid-template-columns: 1fr 1fr;
   }
+
+  /* Wrapped under the form there is no row height to fill: own 330px. */
+  .appt-series {
+    grid-column: 1 / -1;
+    height: 330px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2039,4 +2045,273 @@ body.cal-fullscreen .cal-grid-wrap {
 /* Lý do hủy under Trạng thái (bug list #16). */
 .appt-cancel-note {
   resize: none;
+}
+
+/* "Lặp lại lịch hẹn" under Giờ hẹn / Phút (F-65). */
+.appt-recur-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+}
+
+.appt-recur-preset { width: 100%; }
+
+.appt-recur-custom,
+.appt-recur-end {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.appt-recur-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.appt-recur-caption {
+  font-size: 13px;
+  color: var(--bd-sub);
+}
+
+/* "Mỗi" / "Kết thúc" / "Vào thứ" share one width so the controls line up. */
+.appt-recur-line > .appt-recur-caption:first-child { min-width: 56px; }
+
+.appt-recur-until { width: 100%; }
+
+/* Tuỳ chỉnh / Kết thúc controls, per the BA mock: 32px, quieter than the
+   form's 40px fields since they sit inside the soft panel. */
+.appt-recur-stepper {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 2px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+
+.appt-recur-stepper > .ant-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  background: transparent;
+  color: var(--bd-sub);
+  font-size: 10px;
+}
+
+.appt-recur-stepper > .ant-btn:not(:disabled):hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
+.appt-recur-stepper > .ant-btn:disabled { background: transparent; color: var(--bd-faint); }
+
+.appt-recur-stepper .ant-input-number {
+  /* Fits "100", the most a count can be. */
+  width: 38px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.appt-recur-stepper .ant-input-number-input {
+  width: 100%;
+  height: 28px;
+  padding: 0;
+  text-align: center;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+/* Ngày / tuần / tháng and Sau số lần / Đến ngày: a grey track with the picked
+   item lifted in white, not the toolbar's blue fill. */
+.appt-recur-body .ant-segmented {
+  height: 32px;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-line);
+}
+
+.appt-recur-body .ant-segmented .ant-segmented-item {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: var(--bd-sub);
+  font-weight: 400;
+}
+
+.appt-recur-body .ant-segmented .ant-segmented-item-selected,
+.appt-recur-body .ant-segmented .ant-segmented-thumb {
+  height: 26px;
+  border-radius: 6px;
+  background: var(--bd-card);
+  box-shadow: 0 1px 2px rgba(23, 28, 51, 0.08);
+}
+
+.appt-recur-body .ant-segmented .ant-segmented-item-selected {
+  color: var(--bd-blue);
+  font-weight: 600;
+}
+
+.appt-recur-body .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  color: var(--bd-ink);
+}
+
+.appt-recur-preset-icon { color: var(--bd-blue); }
+
+.appt-recur-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.appt-recur-day {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.appt-recur-day:hover:not(:disabled):not(.appt-recur-day--on) { border-color: var(--bd-blue); color: var(--bd-blue); }
+
+.appt-recur-day--on {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: var(--bd-card);
+  font-weight: 600;
+}
+
+/* Ngày hẹn's own weekday: always on, so not clickable — but still full blue. */
+.appt-recur-day:disabled { cursor: default; }
+
+/* "Danh sách buổi hẹn": the third column while repeating. It takes the row's
+   height (set by the form columns) and scrolls inside — `contain: size` keeps
+   100 rows from stretching the row instead (R-876). */
+.appt-series {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 330px;
+  contain: size;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  overflow: hidden;
+}
+
+.appt-series-body,
+.appt-series-body > .ant-spin-container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.appt-series-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bd-line);
+  background: var(--bd-bg-soft);
+}
+
+.appt-series-title { font-size: 13px; font-weight: 600; color: var(--bd-sub); }
+.appt-series-count { font-size: 12px; color: var(--bd-muted); }
+
+.appt-series-note {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+.appt-series-note--error { color: var(--bd-red); }
+
+.appt-series-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.appt-series-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--bd-radius-sm);
+  background: transparent;
+  font-size: 13px;
+  color: var(--bd-sub);
+  text-align: left;
+  cursor: pointer;
+}
+
+.appt-series-row:hover { background: var(--bd-blue-pale); }
+.appt-series-row--current { border-color: var(--bd-blue); }
+
+.appt-series-row--conflict { background: var(--bd-red-pale); color: var(--bd-red-dark); }
+.appt-series-row--conflict:hover { background: var(--bd-red-pale); border-color: var(--bd-red); }
+
+.appt-series-row--finished { color: var(--bd-faint); }
+
+.appt-series-index { font-size: 12px; color: var(--bd-faint); text-align: right; }
+.appt-series-day { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appt-series-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.appt-series-state {
+  padding: 2px 8px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.appt-series-state--free { background: var(--bd-green-pale); color: var(--bd-green); }
+.appt-series-state--conflict { background: var(--bd-red); color: var(--bd-white, #fff); }
+.appt-series-state--booked { background: var(--bd-blue-pale); color: var(--bd-blue); }
+.appt-series-state--timeChanged { background: var(--bd-amber-pale); color: var(--bd-amber); }
+.appt-series-state--rescheduled { background: var(--bd-info-pale); color: var(--bd-info); }
+.appt-series-state--cancelled { background: var(--bd-line-soft); color: var(--bd-muted); text-decoration: line-through; }
+.appt-series-state--finished { background: var(--bd-line-soft); color: var(--bd-faint); }
+
+.appt-series-range { font-size: 13px; color: var(--bd-muted); }
+
+/* A clicked session shown in Lịch đã hẹn (day view). */
+.mcal-day-focus {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--mcal-focus-left, 0);
+  width: var(--mcal-focus-width, 0);
+  border: 2px dashed var(--bd-blue);
+  border-radius: var(--bd-radius-sm);
+  background: color-mix(in srgb, var(--bd-blue) 8%, transparent);
+  pointer-events: none;
+  z-index: 3;
 }

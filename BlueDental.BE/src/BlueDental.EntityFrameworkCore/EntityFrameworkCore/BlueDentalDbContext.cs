@@ -89,6 +89,7 @@ public class BlueDentalDbContext :
     // Appointments
     public DbSet<Appointment> Appointments { get; set; }
     public DbSet<AppointmentChangeLog> AppointmentChangeLogs { get; set; }
+    public DbSet<AppointmentSeries> AppointmentSeries { get; set; }
 
     // Treatment Management
     public DbSet<TreatmentPlan> TreatmentPlans { get; set; }

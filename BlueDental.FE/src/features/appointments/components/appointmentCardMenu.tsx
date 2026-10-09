@@ -1,5 +1,6 @@
 import type { MenuProps } from "antd";
 import { t } from "@/lib/i18n";
+import type { AppointmentDto } from "../types/appointment";
 
 const EditIcon = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,15 +30,23 @@ const TrashIcon = (
 );
 
 /**
+ * A finished session of a "Lặp lại lịch hẹn" series stays as it was: the
+ * server refuses to delete it (Appointment:0015), so the menu does not offer to.
+ */
+export function isFinishedSeriesSession(appointment: Pick<AppointmentDto, "seriesId" | "status">): boolean {
+  return appointment.seriesId !== null && appointment.status === "completed";
+}
+
+/**
  * The ⋮ menu every appointment card offers: update, pick for multi-delete
  * (or drop the pick), delete. Keys are the actions the calendar page handles.
  */
-export function buildAppointmentCardMenu(selected: boolean | undefined): MenuProps["items"] {
+export function buildAppointmentCardMenu(selected: boolean | undefined, undeletable = false): MenuProps["items"] {
   return [
     { key: "edit", label: t("Appointment:EventCard:Update"), icon: EditIcon },
     selected
       ? { key: "deselect", label: t("Appointment:EventCard:Deselect"), icon: CheckedBoxIcon }
-      : { key: "select-delete", label: t("Appointment:EventCard:SelectForMultiDelete"), icon: EmptyBoxIcon },
-    { key: "delete", label: t("Common:Delete"), danger: true, icon: TrashIcon },
+      : { key: "select-delete", label: t("Appointment:EventCard:SelectForMultiDelete"), icon: EmptyBoxIcon, disabled: undeletable },
+    { key: "delete", label: t("Common:Delete"), danger: true, icon: TrashIcon, disabled: undeletable },
   ];
 }

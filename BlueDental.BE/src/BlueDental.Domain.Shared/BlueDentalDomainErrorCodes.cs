@@ -127,6 +127,18 @@ public static class BlueDentalDomainErrorCodes
         /// is taken inline by <c>Appointment.UpdateTempPatientInfo</c>.
         /// </summary>
         public const string CheckInNotToday = "BlueDental:Appointment:0011";
+
+        /// <summary>A session of a recurring booking is taken; none of the series is saved.</summary>
+        public const string SeriesConflict = "BlueDental:Appointment:0012";
+
+        /// <summary>A recurring booking may hold at most <c>AppointmentRecurrence.MaxSessions</c> sessions.</summary>
+        public const string SeriesTooLong = "BlueDental:Appointment:0013";
+
+        /// <summary>The repeat rule is malformed: interval, count or end date out of range.</summary>
+        public const string InvalidRecurrence = "BlueDental:Appointment:0014";
+
+        /// <summary>A finished session of a recurring booking can be neither edited nor deleted (BA).</summary>
+        public const string SeriesSessionFinished = "BlueDental:Appointment:0015";
     }
 
     public static class TreatmentManagement

@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Tooltip } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import type { Appointment } from "../types/appointment";
+import type { CalendarFocus } from "../types/appointmentSeries";
 import type { DaySubMode } from "./AppointmentMiniCalendar";
 
 const HOUR_START = 6;
@@ -14,6 +15,8 @@ interface Props {
   appointments: Appointment[];
   date: string;
   subMode: DaySubMode;
+  /** A session picked in "Danh sách buổi hẹn"; marked when it falls on this day. */
+  focus?: CalendarFocus | null;
 }
 
 function buildSlots(): string[] {
@@ -26,7 +29,7 @@ function buildSlots(): string[] {
   return result;
 }
 
-function calcPosition(appt: Appointment) {
+function calcPosition(appt: Pick<Appointment, "startTime" | "endTime">) {
   const start = dayjs(appt.startTime);
   const end = dayjs(appt.endTime);
   const startMin = start.hour() * 60 + start.minute();
@@ -69,7 +72,35 @@ function EvtBlock({ appt, label }: { appt: Appointment; label: string }) {
   );
 }
 
-function TimeView({ appointments, slots }: { appointments: Appointment[]; slots: string[] }) {
+/**
+ * Outlines the picked session's slot and scrolls the diary to it. Laid over
+ * the slot row, so it sits beside any booking already there instead of
+ * hiding it.
+ */
+function FocusMarker({ focus }: { focus: CalendarFocus }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { left, width } = calcPosition({ startTime: focus.start, endTime: focus.end });
+
+  useEffect(() => {
+    const marker = ref.current;
+    const box = marker?.closest(".appt-mini-cal-content");
+    if (!marker || !box) return;
+    const offset = marker.getBoundingClientRect().left - box.getBoundingClientRect().left;
+    box.scrollLeft += offset - box.clientWidth / 2 + marker.offsetWidth / 2;
+  }, [focus]);
+
+  if (left < 0) return null;
+  const position = { "--mcal-focus-left": `${left}px`, "--mcal-focus-width": `${width}px` } as React.CSSProperties;
+  return <div ref={ref} className="mcal-day-focus" style={position} aria-hidden />;
+}
+
+interface ViewProps {
+  appointments: Appointment[];
+  slots: string[];
+  focus: CalendarFocus | null;
+}
+
+function TimeView({ appointments, slots, focus }: ViewProps) {
   return (
     <>
       <div className="mcal-day-header">
@@ -82,6 +113,7 @@ function TimeView({ appointments, slots }: { appointments: Appointment[]; slots:
           {slots.map((s) => (
             <div key={s} className="mcal-day-slot" />
           ))}
+          {focus && <FocusMarker focus={focus} />}
           {appointments.map((appt) => {
             const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
             const label = `${appt.doctorName} — ${patientLabel}`;
@@ -93,7 +125,7 @@ function TimeView({ appointments, slots }: { appointments: Appointment[]; slots:
   );
 }
 
-function DoctorView({ appointments, slots }: { appointments: Appointment[]; slots: string[] }) {
+function DoctorView({ appointments, slots, focus }: ViewProps) {
   const doctors = useMemo(() => {
     const map = new Map<string, { id: string; name: string; appts: Appointment[] }>();
     for (const a of appointments) {
@@ -115,13 +147,14 @@ function DoctorView({ appointments, slots }: { appointments: Appointment[]; slot
           <div key={s} className="mcal-day-time-cell">{s}</div>
         ))}
       </div>
-      {doctors.map((doc) => (
+      {doctors.map((doc, row) => (
         <div key={doc.id} className="mcal-day-row">
           <div className="mcal-day-doctor">{doc.name}</div>
           <div className="mcal-day-slots">
             {slots.map((s) => (
               <div key={s} className="mcal-day-slot" />
             ))}
+            {focus && row === 0 && <FocusMarker focus={focus} />}
             {doc.appts.map((appt) => {
               const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
               const label = `${patientLabel} ${appt.reason || ""}`;
@@ -134,15 +167,16 @@ function DoctorView({ appointments, slots }: { appointments: Appointment[]; slot
   );
 }
 
-export function MiniCalDayView({ appointments, date, subMode }: Props) {
+export function MiniCalDayView({ appointments, date, subMode, focus = null }: Props) {
   const slots = useMemo(buildSlots, []);
   const isEmpty = appointments.length === 0;
+  const dayFocus = focus && dayjs(focus.start).format("YYYY-MM-DD") === date ? focus : null;
 
   return (
     <div className="mcal-day">
       {subMode === "time"
-        ? <TimeView appointments={appointments} slots={slots} />
-        : <DoctorView appointments={appointments} slots={slots} />}
+        ? <TimeView appointments={appointments} slots={slots} focus={dayFocus} />
+        : <DoctorView appointments={appointments} slots={slots} focus={dayFocus} />}
       {isEmpty && (
         <div className="mcal-empty">
           {t("Appointment:MiniCal:NoAppointmentsDay")} {dayjs(date).format("DD/MM/")}
