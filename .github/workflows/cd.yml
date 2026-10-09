@@ -104,7 +104,7 @@ jobs:
 
       - name: Smoke test
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://bluedental.bluestar.com.vn' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://duchanhpremium.vn' }}
         run: |
           set -euo pipefail
           fail=0

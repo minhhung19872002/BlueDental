@@ -51,7 +51,7 @@ roi `sudo systemctl restart ssh`, va cai `fail2ban`.
 
 | Ten | Gia tri |
 |---|---|
-| `SSH_HOST` | `14.225.83.93` (IP public cua VM) |
+| `SSH_HOST` | `14.225.83.131` (IP public cua VM bluestar-02) |
 | `SSH_PORT` | Port da forward, vi du `2222`. Bo trong -> mac dinh `22` |
 | `SSH_USER` | `hung` |
 | `SSH_PRIVATE_KEY` | Toan bo noi dung `~/.ssh/bluedental_deploy` (ca dong `-----BEGIN...` va `-----END...`) |
@@ -60,7 +60,7 @@ roi `sudo systemctl restart ssh`, va cai `fail2ban`.
 Lay `SSH_KNOWN_HOSTS` (chay tu may ban, sau khi da forward port):
 
 ```bash
-ssh-keyscan -p 2222 14.225.83.93
+ssh-keyscan 14.225.83.131
 ```
 
 Dan **nguyen ca output**. Day la host key pinning — thieu no thi deploy se
@@ -71,7 +71,7 @@ phai tat `StrictHostKeyChecking`, tuc la chap nhan bat ky host key nao.
 | Ten | Mac dinh neu bo trong |
 |---|---|
 | `DEPLOY_PATH` | `/home/hung/BlueDental` |
-| `SITE_URL` | `https://bluedental.bluestar.com.vn` |
+| `SITE_URL` | `https://duchanhpremium.vn` |
 
 ## 4. Quyen docker cho user deploy
 
