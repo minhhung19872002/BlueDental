@@ -15,7 +15,7 @@ namespace BlueDental.Appointments;
 public sealed record AppointmentRecurrence
 {
     /// <summary>The most sessions one recurring booking may hold.</summary>
-    public const int MaxSessions = 100;
+    public const int MaxSessions = 60;
 
     /// <summary>The largest "Mỗi N" the custom panel allows.</summary>
     public const int MaxInterval = 99;

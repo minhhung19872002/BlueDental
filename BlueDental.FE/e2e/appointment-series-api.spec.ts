@@ -13,6 +13,7 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
 const APPOINTMENTS = "/api/v1/app/appointments";
 const SERIES = "/api/v1/app/appointment-series";
 const SERIES_CONFLICT = "BlueDental:Appointment:0012";
+const SERIES_TOO_LONG = "BlueDental:Appointment:0013";
 const SESSION_FINISHED = "BlueDental:Appointment:0015";
 
 const WEEKLY = 2;
@@ -123,6 +124,24 @@ test.describe("Lặp lại lịch hẹn — API", () => {
     const view = await call<Series>(page, `${SERIES}/by-appointment/${stored[2].id}`, { branchId });
     expect(view.status).toBe(200);
     expect(view.body.sessions.map((s) => s.state)).toEqual(Array(6).fill(State.Booked));
+  });
+
+  test("at most 60 sessions (BA): 60 lays out, 61 is refused and nothing is booked", async ({ page }) => {
+    const day = farDay();
+
+    const sixty = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: weekly(day, "09:00", "09:30", 60) });
+    expect(sixty.status, JSON.stringify(sixty.body.error)).toBe(200);
+    expect(sixty.body.sessions).toHaveLength(60);
+
+    const tooLong = weekly(day, "09:00", "09:30", 61);
+    const preview = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: tooLong });
+    expect(preview.status).not.toBe(200);
+    expect(preview.body.error?.code).toBe(SERIES_TOO_LONG);
+    const refused = await call<Series>(page, SERIES, { method: "POST", branchId, json: tooLong });
+    expect(refused.status).not.toBe(200);
+    expect(refused.body.error?.code).toBe(SERIES_TOO_LONG);
+
+    expect(await dentistBookings(page, day, plusDays(day, 7 * 61))).toHaveLength(0);
   });
 
   test("one clash refuses the whole series: Trùng lịch on that session, nothing stored", async ({ page }) => {

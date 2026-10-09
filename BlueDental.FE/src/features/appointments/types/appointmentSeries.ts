@@ -33,7 +33,7 @@ export function isoWeekday(date: string): number {
   return new Date(`${date}T00:00:00`).getDay() || 7;
 }
 
-export const MAX_SERIES_SESSIONS = 100;
+export const MAX_SERIES_SESSIONS = 60;
 export const MAX_RECURRENCE_INTERVAL = 99;
 
 export const DEFAULT_RECURRENCE: RecurrenceValues = {

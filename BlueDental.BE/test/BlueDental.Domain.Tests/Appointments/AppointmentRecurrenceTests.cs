@@ -111,16 +111,16 @@ public class AppointmentRecurrenceTests
     }
 
     [Fact]
-    public void More_Than_100_Sessions_Is_Refused()
+    public void More_Than_60_Sessions_Is_Refused()
     {
-        var byCount = Assert.Throws<BusinessException>(() => Rule(RecurrenceFrequency.Daily, count: 101));
+        var byCount = Assert.Throws<BusinessException>(() => Rule(RecurrenceFrequency.Daily, count: 61));
         Assert.Equal(BlueDentalDomainErrorCodes.Appointments.SeriesTooLong, byCount.Code);
 
-        var byDate = Rule(RecurrenceFrequency.Daily, until: Thursday.AddDays(100));
+        var byDate = Rule(RecurrenceFrequency.Daily, until: Thursday.AddDays(60));
         var ex = Assert.Throws<BusinessException>(() => byDate.DatesFrom(Thursday));
         Assert.Equal(BlueDentalDomainErrorCodes.Appointments.SeriesTooLong, ex.Code);
 
-        Assert.Equal(100, Rule(RecurrenceFrequency.Daily, until: Thursday.AddDays(99)).DatesFrom(Thursday).Count);
+        Assert.Equal(60, Rule(RecurrenceFrequency.Daily, until: Thursday.AddDays(59)).DatesFrom(Thursday).Count);
     }
 
     [Theory]

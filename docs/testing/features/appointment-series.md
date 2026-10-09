@@ -19,8 +19,8 @@ Phút. Ticked, it shows the repeat rule and a third column "Danh sách buổi h�
     hẹn's weekday always on (locked) (R-874).
 - **Kết thúc** (shown for every option, not only Tuỳ chỉnh — local decision,
   mockup only drew it under Tuỳ chỉnh): `Segmented` "Sau số lần | Đến ngày", and
-  under it only the chosen input — stepper "− 6 + lần" (default 6, 1–100) or a
-  date (no date before Ngày hẹn). At most **100 sessions**
+  under it only the chosen input — stepper "− 6 + lần" (default 6, 1–60) or a
+  date (no date before Ngày hẹn). At most **60 sessions** (BA, R-877; was 100)
   (`BlueDental:Appointment:0013`), interval 1–99 (`0014`).
 - Every session keeps the first one's clinic wall-clock time (UTC+7) and length.
 - **Danh sách buổi hẹn**: index, "T5, 08/10/2026", "09:00 – 09:30", status chip.
@@ -80,7 +80,7 @@ FE (`src/features/appointments/`)
 |---|---|---|
 | Domain | `AppointmentRecurrenceTests` (rule dates, month-end fallback, limits) | in Domain **810/810** |
 | Application | `AppointmentSeriesAppServiceContractTests` (base class, permissions, contract) | **5/5**; Application **704/704** |
-| API (real HTTP + PostgreSQL) | `e2e/appointment-series-api.spec.ts` | **4/4** |
+| API (real HTTP + PostgreSQL) | `e2e/appointment-series-api.spec.ts` (incl. 60 ok / 61 refused) | **5/5** |
 | UI (real browser, no interception) | `e2e/appointment-series-ui.spec.ts` | **2/2** |
 | Regression (Level 2, production build) | series ui/api + `appointment*`, `appointment-working-hours`, `day-timeline`, `patient-appointment` | **23/23** |
 
