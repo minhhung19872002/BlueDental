@@ -60,4 +60,8 @@ public sealed class PrepaidCardController(IPrepaidCardAppService service) : Blue
 
     [HttpPost("{id:guid}/unlock")]
     public Task<PrepaidCardDetailDto> UnlockAsync(Guid id) => service.UnlockAsync(id);
+
+    [HttpPost("{id:guid}/cancel")]
+    public Task<PrepaidCardDetailDto> CancelAsync(Guid id, [FromBody] CancelPrepaidCardDto input) =>
+        service.CancelAsync(id, input);
 }

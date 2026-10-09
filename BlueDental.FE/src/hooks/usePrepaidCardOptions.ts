@@ -28,6 +28,29 @@ export const prepaidCardOptionKeys = {
   usable: (patientId: string) => [...prepaidCardOptionKeys.all, "usable", patientId] as const,
 };
 
+/** A card as the patient record lists it — every card the patient owns or shares, whatever its state. */
+export interface PatientPrepaidCard extends PrepaidCardOption {
+  /** 1 Active · 2 Locked · 3 Cancelled (BlueDental.PrepaidCards.PrepaidCardStatus). */
+  status: number;
+  isExhausted: boolean;
+  isExpired: boolean;
+  expiresOn: string | null;
+}
+
+/** The patient record's "Thẻ trả trước" strip; needs prepaidCard.read, so the caller passes `enabled`. */
+export function usePatientPrepaidCards(patientId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...prepaidCardOptionKeys.all, "patient", patientId],
+    queryFn: async () =>
+      (
+        await api.get<{ items: PatientPrepaidCard[] }>("/v1/app/prepaid-cards", {
+          params: { PatientId: patientId, MaxResultCount: 50 },
+        })
+      ).data.items,
+    enabled: enabled && Boolean(patientId),
+  });
+}
+
 /** Fetched only once "Thẻ trả trước" is picked as the payment method. */
 export function usePrepaidCardOptions(patientId: string, enabled: boolean) {
   return useQuery({

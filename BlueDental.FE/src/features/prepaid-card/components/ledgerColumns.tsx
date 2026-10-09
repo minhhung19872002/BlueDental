@@ -9,6 +9,7 @@ const TYPE_CONFIG: Record<TransactionType, { key: string; color: string; credit:
   [TRANSACTION_TYPE.Topup]: { key: "PrepaidCard:Tx:Topup", color: "green", credit: true },
   [TRANSACTION_TYPE.Use]: { key: "PrepaidCard:Tx:Use", color: "orange", credit: false },
   [TRANSACTION_TYPE.Refund]: { key: "PrepaidCard:Tx:Refund", color: "purple", credit: true },
+  [TRANSACTION_TYPE.Cancel]: { key: "PrepaidCard:Tx:Cancel", color: "red", credit: false },
 };
 
 /** What a line was about: the receipt and who spent, or the money taken. */
@@ -16,7 +17,8 @@ function detailOf(row: CardTransactionDto): string {
   if (row.patientPaymentCode) {
     return [row.patientPaymentCode, row.patientName].filter(Boolean).join(" · ");
   }
-  return row.paidAmount > 0 ? t("PrepaidCard:Tx:Paid", formatVND(row.paidAmount)) : "";
+  if (row.paidAmount <= 0) return "";
+  return t(row.type === TRANSACTION_TYPE.Cancel ? "PrepaidCard:Tx:PaidBack" : "PrepaidCard:Tx:Paid", formatVND(row.paidAmount));
 }
 
 /** "Lịch sử sử dụng thẻ" — every movement, with the balance it left behind. */

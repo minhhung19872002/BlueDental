@@ -6,6 +6,7 @@ export interface CardTypeFormValues {
   salePrice?: number;
   usageValue?: number;
   maxUses?: number | null;
+  validityMonths?: number | null;
   commissionType: CommissionType;
   commissionValue?: number;
   allowFamily: boolean;
@@ -30,6 +31,7 @@ export function cardTypeToForm(type: CardTypeDto): CardTypeFormValues {
     salePrice: type.salePrice,
     usageValue: type.usageValue,
     maxUses: type.maxUses,
+    validityMonths: type.validityMonths,
     commissionType: type.commissionType,
     commissionValue: type.commissionValue,
     allowFamily: type.allowFamily,
@@ -46,6 +48,7 @@ export function formToCardType(values: CardTypeFormValues): SaveCardTypeInput {
     salePrice: values.salePrice ?? 0,
     usageValue: values.usageValue ?? 0,
     maxUses: values.maxUses ?? null,
+    validityMonths: values.validityMonths ?? null,
     commissionType: values.commissionType,
     commissionValue: values.commissionValue ?? 0,
     allowFamily: values.allowFamily,

@@ -235,16 +235,19 @@ test("UI: a card type is set up, a card sold and topped up, and both survive a r
   const card = (await response.json()) as Card;
 
   // The new card opens: its balance is the usage value.
-  const drawer = page.locator(".ant-drawer");
-  await expect(drawer.getByText(card.code)).toBeVisible();
-  await expect(drawer.getByText("5.000.000").first()).toBeVisible();
+  // The new card opens in its dialog (not a drawer).
+  const detail = page.getByRole("dialog", { name: `${card.code} · ${name}` });
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText("5.000.000").first()).toBeVisible();
 
-  await drawer.getByRole("button", { name: "Nạp thêm" }).click();
+  await detail.getByRole("button", { name: "Nạp thêm" }).click();
   const topup = page.getByRole("dialog", { name: `Nạp thêm giá trị cho thẻ ${card.code}` });
   await topup.getByLabel("Giá trị nạp thêm").fill("1000000");
   await topup.getByRole("button", { name: "Nạp tiền" }).click();
   await expect(topup).toBeHidden();
-  await expect(drawer.getByText("6.000.000").first()).toBeVisible();
+  await expect(detail.getByText("6.000.000").first()).toBeVisible();
+  await detail.locator(".prepaid-detail-foot").getByRole("button", { name: "Đóng" }).click();
+  await expect(detail).toBeHidden();
 
   // Read back after a reload, from the server.
   await page.reload();
@@ -253,6 +256,10 @@ test("UI: a card type is set up, a card sold and topped up, and both survive a r
   await expect(row).toBeVisible();
   await expect(row).toContainText("6.000.000");
   await expect(row).toContainText("Đang hoạt động");
+
+  // "Xem" in the sticky Thao tác column opens the same dialog.
+  await row.getByRole("button", { name: `Xem thẻ ${card.code}` }).click();
+  await expect(page.getByRole("dialog", { name: `${card.code} · ${name}` })).toBeVisible();
 });
 
 test("UI: the payment dialog pays a slip from the patient's card, once, through confirmation", async ({ page }) => {
@@ -269,7 +276,7 @@ test("UI: the payment dialog pays a slip from the patient's card, once, through 
   const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
   await dialog.locator(".pd-newpay-lines > li").first().locator("input[type=checkbox]").check();
   await dialog.getByRole("button", { name: /Thẻ trả trước/ }).click();
-  await dialog.locator(".pd-newpay-accrow", { hasText: card.code }).click();
+  await dialog.locator(".pd-newpay-cardrow", { hasText: card.code }).click();
 
   const saved = page.waitForResponse((res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST");
   await dialog.getByRole("button", { name: "Lưu" }).click();
@@ -286,4 +293,106 @@ test("UI: the payment dialog pays a slip from the patient's card, once, through 
   expect(stored.balance).toBe(1_000_000 - receipt.amount);
   expect(stored.usedCount).toBe(1);
   expect(stored.transactions.filter((tx) => tx.type === 3)).toHaveLength(1);
+
+  // Hoàn tiền: money the card paid goes back onto the card, chosen as the channel.
+  await page.getByRole("tab", { name: "Hoàn tiền", exact: true }).click();
+  await page.getByRole("button", { name: "Hoàn Tiền" }).click();
+  const refund = page.getByRole("dialog", { name: "Hoàn tiền" });
+  await refund.getByRole("combobox", { name: "Hình thức" }).click();
+  await page.locator(".ant-select-dropdown:visible .ant-select-item-option", { hasText: "Thẻ trả trước" }).click();
+  await refund.getByRole("textbox", { name: /^Số tiền hoàn / }).first().fill(String(receipt.amount));
+  const filed = page.waitForResponse((res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST");
+  await refund.getByRole("button", { name: "Lưu" }).click();
+  const refunded = await filed;
+  expect(refunded.ok(), await refunded.text()).toBeTruthy();
+  await expect(refund).toBeHidden();
+  const back = await readCard(page, card.id);
+  expect(back.balance).toBe(1_000_000);
+  expect(back.transactions[0].type).toBe(4);
+
+  // The patient record lists the card; it opens the card list searched by its number.
+  await page.goto(`/patient/${patientId}`);
+  await page.getByRole("link", { name: "Hồ sơ", exact: true }).click();
+  const chip = page.locator(".pd-card-chip", { hasText: card.code });
+  await expect(chip).toBeVisible();
+  await expect(chip).toContainText("1.000.000");
+  await chip.click();
+  await expect(page).toHaveURL(new RegExp(`/prepaid-card\\?q=${card.code}`));
+  await expect(page.getByRole("row", { name: new RegExp(card.code) })).toBeVisible();
+});
+
+test("API: card-paid money is refunded only onto the card, an unused card can be cancelled, and cards count as money held", async ({
+  page,
+}) => {
+  await login(page);
+  const staffId = await currentUserId(page);
+  const line = await addPlanLine(page);
+  const plan = await call(page, `/api/v1/app/patient-treatments/${line.planId}`);
+  const target = (plan.body.services as { id: string; outstandingAmount: number }[]).find((s) => s.id === line.lineId)!;
+  const amount = Math.min(target.outstandingAmount, 50_000);
+
+  const typeRes = await call(page, `${CARDS}/types`, {
+    method: "POST",
+    json: {
+      clinicBranchId: BRANCH_ONE, name: `E2E Thẻ 12 tháng ${runId()}`, salePrice: 900_000, usageValue: 1_000_000,
+      maxUses: null, validityMonths: 12, commissionType: PERCENT, commissionValue: 10, allowFamily: false,
+      serviceIds: [], serviceGroupIds: [], isOnSale: true,
+    },
+  });
+  expect(typeRes.status, JSON.stringify(typeRes.body)).toBe(200);
+  const card = await sell(page, (typeRes.body as unknown as CardType).id, line.patientId, staffId);
+  const expires = (card as Card & { expiresOn: string }).expiresOn;
+  expect(expires).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(Number(expires.slice(0, 4))).toBe(new Date().getFullYear() + 1);
+
+  const figures = {
+    treatmentServiceIds: [line.lineId], splitMode: 1, items: [], method: PAY_BY_CARD, amount, prepaidCardId: card.id,
+  };
+  const paid = await call(page, PAYMENTS_API, {
+    method: "POST",
+    json: { ...figures, patientId: line.patientId, clinicBranchId: line.branchId, treatmentPlanId: line.planId, kind: 1, staffId },
+  });
+  expect(paid.status, JSON.stringify(paid.body)).toBe(200);
+  const confirmed = await call(page, `${PAYMENTS_API}/${(paid.body as unknown as Receipt).id}/confirm`, {
+    method: "PUT",
+    json: figures,
+  });
+  expect((confirmed.body as unknown as Receipt).status).toBe(2);
+
+  const refund = (method: number, cardId?: string) =>
+    call(page, PAYMENTS_API, {
+      method: "POST",
+      json: {
+        patientId: line.patientId, clinicBranchId: line.branchId, treatmentPlanId: line.planId, kind: 2,
+        treatmentServiceIds: [line.lineId], splitMode: 2, items: [{ treatmentServiceId: line.lineId, amount }],
+        method, amount, staffId, prepaidCardId: cardId,
+      },
+    });
+
+  // Cash may not give back what the card paid.
+  expect(errorCode((await refund(1)).body)).toBe("BlueDental:Billing:0093");
+  // Onto the card it goes: value back, the use stays used.
+  const back = await refund(PAY_BY_CARD, card.id);
+  expect(back.status, JSON.stringify(back.body)).toBe(200);
+  const stored = await readCard(page, card.id);
+  expect(stored.balance).toBe(1_000_000);
+  expect(stored.usedCount).toBe(1);
+  expect(stored.transactions[0].type).toBe(4);
+
+  // A card that paid for a service cannot be cancelled …
+  const usedCancel = await call(page, `${CARDS}/${card.id}/cancel`, { method: "POST", json: { reason: "E2E" } });
+  expect(errorCode(usedCancel.body)).toBe("BlueDental:PrepaidCard:0017");
+
+  // … an unused one can: money back, no commission, nothing more to spend.
+  const unused = await sell(page, (typeRes.body as unknown as CardType).id, line.patientId, staffId);
+  const cancelled = await call(page, `${CARDS}/${unused.id}/cancel`, { method: "POST", json: { reason: "Bán nhầm" } });
+  expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+  expect(cancelled.body).toMatchObject({ status: 3, balance: 0, commissionAmount: 0, cancelReason: "Bán nhầm" });
+  expect((cancelled.body as unknown as Card).transactions[0]).toMatchObject({ type: 5, paidAmount: 900_000 });
+
+  // What the branch's cards still hold is counted as money held for customers.
+  const balance = await call(page, `/api/v1/app/cash-management/balance?clinicBranchId=${BRANCH_ONE}`);
+  const prepaidCardBalance = balance.body.prepaidCardBalance as number;
+  expect(prepaidCardBalance).toBeGreaterThanOrEqual(1_000_000);
+  expect(balance.body.customerPrepaid as number).toBeGreaterThanOrEqual(prepaidCardBalance);
 });

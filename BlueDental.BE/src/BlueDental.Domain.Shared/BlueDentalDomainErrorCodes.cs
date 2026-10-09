@@ -579,6 +579,16 @@ public static class BlueDentalDomainErrorCodes
         public const string CardRequired = "BlueDental:PrepaidCard:0013";
         /// <summary>A card is sold or topped up by Dư nợ or by another card.</summary>
         public const string InvalidSaleMethod = "BlueDental:PrepaidCard:0014";
+        /// <summary>The card's thời hạn has passed.</summary>
+        public const string CardExpired = "BlueDental:PrepaidCard:0015";
+        /// <summary>Thời hạn outside 1–120 months.</summary>
+        public const string InvalidValidity = "BlueDental:PrepaidCard:0016";
+        /// <summary>A card that has paid for a service cannot be cancelled.</summary>
+        public const string CardAlreadyUsed = "BlueDental:PrepaidCard:0017";
+        /// <summary>The card was cancelled.</summary>
+        public const string CardCancelled = "BlueDental:PrepaidCard:0018";
+        /// <summary>A cancelled card's reason is missing.</summary>
+        public const string CancelReasonRequired = "BlueDental:PrepaidCard:0019";
     }
 
     public static class Queue

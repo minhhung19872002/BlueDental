@@ -75,6 +75,12 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
 
     public PrepaidCardStatus Status { get; private set; }
 
+    /// <summary>Last day the card can be used or topped up; null when it never expires.</summary>
+    public DateOnly? ExpiresOn { get; private set; }
+
+    /// <summary>Why the sale was undone ("Huỷ thẻ").</summary>
+    public string? CancelReason { get; private set; }
+
     public string? Note { get; private set; }
 
     public IReadOnlyCollection<PrepaidCardTransaction> Transactions => _transactions.AsReadOnly();
@@ -83,6 +89,9 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
 
     /// <summary>Nothing left to spend, or no use left.</summary>
     public bool IsExhausted => Balance <= 0m || RemainingUses == 0;
+
+    /// <summary>The thời hạn has passed on <paramref name="today"/> (the clinic's calendar day).</summary>
+    public bool IsExpiredOn(DateOnly today) => ExpiresOn.HasValue && today > ExpiresOn.Value;
 
     protected PrepaidCard() { }
 
@@ -135,6 +144,9 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
             Balance = type.UsageValue,
             TotalLoaded = type.UsageValue,
             Status = PrepaidCardStatus.Active,
+            ExpiresOn = type.ValidityMonths.HasValue
+                ? ClinicCalendar.DateOf(soldAt).AddMonths(type.ValidityMonths.Value)
+                : null,
             Note = TrimNote(note),
         };
 
@@ -148,6 +160,8 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
     /// <summary>Who besides the owner may spend the card.</summary>
     public PrepaidCard SetMembers(IEnumerable<Guid>? memberPatientIds)
     {
+        EnsureNotCancelled();
+
         var members = (memberPatientIds ?? []).Where(id => id != Guid.Empty).ToList();
 
         if (members.Count > 0 && !AllowFamily)
@@ -178,7 +192,7 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
         string? note,
         Guid transactionId)
     {
-        EnsureActive();
+        EnsureUsableOn(occurredAt);
 
         if (value <= 0m || paidAmount < 0m)
         {
@@ -209,7 +223,7 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
         Guid? staffId,
         Guid transactionId)
     {
-        EnsureActive();
+        EnsureUsableOn(occurredAt);
 
         if (!CanBeUsedBy(patientId))
         {
@@ -264,6 +278,33 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Hoàn tiền" on services the card paid for: the money goes back onto the
+    /// card, never out as cash. The use the payment took stays used — the
+    /// service was paid, then refunded. Allowed on a locked card. The caller
+    /// caps the amount at what this card paid on those services.
+    /// </summary>
+    public PrepaidCard CreditRefund(
+        Guid refundPaymentId,
+        Guid patientId,
+        decimal amount,
+        DateTimeOffset occurredAt,
+        Guid? staffId,
+        string? note,
+        Guid transactionId)
+    {
+        if (amount <= 0m)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.InvalidTopup);
+        }
+
+        Balance += amount;
+        Append(new PrepaidCardTransaction(
+            transactionId, NextSequence, PrepaidCardTransactionType.Refund, amount, occurredAt, staffId,
+            TrimNote(note), patientId: patientId, patientPaymentId: refundPaymentId));
+        return this;
+    }
+
     /// <summary>What a receipt currently has taken from the card.</summary>
     public decimal HeldFor(Guid patientPaymentId) =>
         _transactions
@@ -272,13 +313,46 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
 
     public PrepaidCard Lock()
     {
+        EnsureNotCancelled();
         Status = PrepaidCardStatus.Locked;
         return this;
     }
 
     public PrepaidCard Unlock()
     {
+        EnsureNotCancelled();
         Status = PrepaidCardStatus.Active;
+        return this;
+    }
+
+    /// <summary>
+    /// "Huỷ thẻ" — undoes a sale made by mistake: only a card that has never
+    /// paid for a service. Its value is written off and the money taken for it
+    /// (sale and top-ups) is recorded as given back; the seller earns nothing.
+    /// </summary>
+    public PrepaidCard Cancel(string? reason, DateTimeOffset occurredAt, Guid? staffId, Guid transactionId)
+    {
+        EnsureNotCancelled();
+
+        if (_transactions.Any(t => t.Type == PrepaidCardTransactionType.Use))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.CardAlreadyUsed);
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.CancelReasonRequired);
+        }
+
+        var moneyBack = _transactions.Sum(t => t.PaidAmount);
+        Append(new PrepaidCardTransaction(
+            transactionId, NextSequence, PrepaidCardTransactionType.Cancel, Balance, occurredAt, staffId,
+            TrimNote(reason), moneyBack));
+
+        CancelReason = TrimNote(reason);
+        Balance = 0m;
+        CommissionAmount = 0m;
+        Status = PrepaidCardStatus.Cancelled;
         return this;
     }
 
@@ -295,11 +369,27 @@ public class PrepaidCard : FullAuditedAggregateRoot<Guid>
 
     private void Append(PrepaidCardTransaction transaction) => _transactions.Add(transaction);
 
-    private void EnsureActive()
+    private void EnsureUsableOn(DateTimeOffset at)
     {
+        EnsureNotCancelled();
+
         if (Status == PrepaidCardStatus.Locked)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.CardLocked);
+        }
+
+        if (IsExpiredOn(ClinicCalendar.DateOf(at)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.CardExpired)
+                .WithData("Date", ExpiresOn!.Value.ToString("dd/MM/yyyy"));
+        }
+    }
+
+    private void EnsureNotCancelled()
+    {
+        if (Status == PrepaidCardStatus.Cancelled)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.CardCancelled);
         }
     }
 

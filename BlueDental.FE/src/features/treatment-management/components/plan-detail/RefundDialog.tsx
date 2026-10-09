@@ -4,16 +4,17 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
-import type { PatientPaymentDto, TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
+import { PAYMENT_METHOD, type PatientPaymentDto, type TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { moneyText } from "../plan/planTypes";
 import { RefundLinesTable } from "./RefundLinesTable";
-import { REFUND_METHODS, REFUND_TYPE, refundMethodLabels, useRefundForm, type RefundType } from "./useRefundForm";
+import { REFUND_TYPE, refundMethodLabels, useRefundForm, type RefundType } from "./useRefundForm";
 
 interface Props {
   open: boolean;
   plan: TreatmentPlanSlipDto;
   branchId: string;
   refunds: PatientPaymentDto[];
+  payments: PatientPaymentDto[];
   heldForPatient: number;
   onClose: () => void;
   onSaved: () => void;
@@ -25,8 +26,8 @@ interface Props {
  * service (or one box for the held balance) and the total the patient gets back.
  * The channel is a label only — production picks no account for a refund.
  */
-export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, onClose, onSaved }: Props) {
-  const form = useRefundForm({ open, plan, branchId, refunds, heldForPatient, onSaved });
+export function RefundDialog({ open, plan, branchId, refunds, payments, heldForPatient, onClose, onSaved }: Props) {
+  const form = useRefundForm({ open, plan, branchId, refunds, payments, heldForPatient, onSaved });
   const methods = refundMethodLabels();
   const typeOptions: { value: RefundType; label: string }[] = [
     { value: REFUND_TYPE.service, label: t("Treatment:Refund:RefundService") },
@@ -63,12 +64,22 @@ export function RefundDialog({ open, plan, branchId, refunds, heldForPatient, on
           <FloatingLabel label={t("Treatment:Payment:Form")} floated>
             <Select
               value={form.method}
-              options={REFUND_METHODS.map((method) => ({ value: method, label: methods[method] }))}
+              options={form.methods.map((method) => ({ value: method, label: methods[method] }))}
               onChange={form.setMethod}
               prefix={<Search size={16} aria-hidden="true" />}
               aria-label={t("Treatment:Payment:Form")}
             />
           </FloatingLabel>
+          {form.method === PAYMENT_METHOD.PrepaidCard ? (
+            <FloatingLabel label={t("PrepaidCard:Col:Code")} floated>
+              <Select
+                value={form.cardId}
+                options={form.cards.map((card) => ({ value: card.cardId, label: card.code }))}
+                onChange={form.setCardId}
+                aria-label={t("PrepaidCard:Col:Code")}
+              />
+            </FloatingLabel>
+          ) : null}
           <FloatingLabel label={t("Treatment:Common:CreatedDate")} floated>
             <Input
               value={formatShortDate(new Date())}

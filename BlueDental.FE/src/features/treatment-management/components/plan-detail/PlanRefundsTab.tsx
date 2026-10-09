@@ -43,6 +43,14 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
     kind: PAYMENT_KIND.Refund,
     maxResultCount: PAGE_CAP,
   });
+  // The slip's collected payments: what a Thẻ trả trước paid can only go back onto it.
+  const collected = usePatientPayments({
+    patientId: patient.id,
+    clinicBranchId: branchId,
+    treatmentPlanId: plan.id,
+    kind: PAYMENT_KIND.Payment,
+    maxResultCount: PAGE_CAP,
+  });
   const account = usePatientAccount(patient.id, branchId);
   const clinic = useBranchInfo(branchId);
   const advises = usePatientAdvises({ patientId: patient.id, clinicBranchId: branchId, maxResultCount: PAGE_CAP });
@@ -95,6 +103,7 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
         plan={plan}
         branchId={branchId}
         refunds={refunds}
+        payments={collected.data?.items ?? []}
         heldForPatient={account.data?.heldForPatient ?? 0}
         onClose={() => setCreating(false)}
         onSaved={() => setCreating(false)}

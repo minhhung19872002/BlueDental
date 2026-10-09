@@ -27,6 +27,7 @@ public interface IPrepaidCardAppService : IApplicationService
     Task<PrepaidCardDetailDto> SetMembersAsync(Guid id, SetPrepaidCardMembersDto input);
     Task<PrepaidCardDetailDto> LockAsync(Guid id);
     Task<PrepaidCardDetailDto> UnlockAsync(Guid id);
+    Task<PrepaidCardDetailDto> CancelAsync(Guid id, CancelPrepaidCardDto input);
 
     /// <summary>Cards a patient may pay with right now — the payment dialog's picker.</summary>
     Task<ListResultDto<PrepaidCardDto>> GetUsableAsync(Guid patientId);
@@ -48,6 +49,7 @@ public class PrepaidCardTypeDto : EntityDto<Guid>
     public decimal SalePrice { get; set; }
     public decimal UsageValue { get; set; }
     public int? MaxUses { get; set; }
+    public int? ValidityMonths { get; set; }
     public PrepaidCardCommissionType CommissionType { get; set; }
     public decimal CommissionValue { get; set; }
     public bool AllowFamily { get; set; }
@@ -74,6 +76,10 @@ public class SavePrepaidCardTypeDto
     public decimal SalePrice { get; set; }
     public decimal UsageValue { get; set; }
     public int? MaxUses { get; set; }
+
+    /// <summary>"Thời hạn sử dụng" in months from the sale; null = no expiry.</summary>
+    public int? ValidityMonths { get; set; }
+
     public PrepaidCardCommissionType CommissionType { get; set; } = PrepaidCardCommissionType.Percent;
     public decimal CommissionValue { get; set; }
     public bool AllowFamily { get; set; }
@@ -100,14 +106,17 @@ public class GetPrepaidCardListInput : PagedResultRequestDto
     public PrepaidCardListState? State { get; set; }
 }
 
-/// <summary>The status filter of the card list: the stored status plus the two read off the figures.</summary>
+/// <summary>The status filter of the card list: the stored status plus the ones read off the figures and the date.</summary>
 public enum PrepaidCardListState
 {
-    /// <summary>Active with value and uses left.</summary>
+    /// <summary>Active, not expired, with value and uses left.</summary>
     Usable = 1,
     Locked = 2,
-    /// <summary>Active but nothing left to spend, or no use left.</summary>
+    /// <summary>Active and not expired, but nothing left to spend or no use left.</summary>
     Exhausted = 3,
+    /// <summary>Active or locked, past its thời hạn.</summary>
+    Expired = 4,
+    Cancelled = 5,
 }
 
 public class PrepaidCardDto : EntityDto<Guid>
@@ -142,6 +151,14 @@ public class PrepaidCardDto : EntityDto<Guid>
     public DateTimeOffset SoldAt { get; set; }
     public PrepaidCardStatus Status { get; set; }
     public bool IsExhausted { get; set; }
+
+    /// <summary>Last day of use, "yyyy-MM-dd"; null when the card never expires.</summary>
+    public DateOnly? ExpiresOn { get; set; }
+
+    /// <summary>Past <see cref="ExpiresOn"/> today, on the clinic's calendar.</summary>
+    public bool IsExpired { get; set; }
+
+    public string? CancelReason { get; set; }
     public string? Note { get; set; }
 }
 
@@ -224,6 +241,13 @@ public class TopupPrepaidCardDto
 
     [StringLength(PrepaidCardConsts.MaxNoteLength)]
     public string? Note { get; set; }
+}
+
+public class CancelPrepaidCardDto
+{
+    [Required]
+    [StringLength(PrepaidCardConsts.MaxNoteLength)]
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class SetPrepaidCardMembersDto

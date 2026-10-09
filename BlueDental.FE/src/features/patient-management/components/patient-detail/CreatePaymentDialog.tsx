@@ -89,8 +89,8 @@ const METHOD_ICONS: Record<PaymentMethodKind, ReactNode> = {
   [PAYMENT_METHOD.PrepaidCard]: <IdcardOutlined />,
 };
 
-/** The reference's five pills, then BlueDental's Thẻ trả trước (cụm 3). */
-const METHODS: PaymentMethodKind[] = [...PAYMENT_METHOD_ORDER, PAYMENT_METHOD.PrepaidCard];
+/** The reference's five pills, then BlueDental's Thẻ trả trước (cụm 3) for a patient who has a card. */
+const WITH_CARD: PaymentMethodKind[] = [...PAYMENT_METHOD_ORDER, PAYMENT_METHOD.PrepaidCard];
 
 const NOTE_LIMIT = 500;
 
@@ -217,8 +217,11 @@ export function CreatePaymentDialog({
   const missingAccount = needsAccount && !accountId;
 
   const payingByCard = method === PAYMENT_METHOD.PrepaidCard;
-  const cardOptions = usePrepaidCardOptions(patientId, open && payingByCard);
+  const cardOptions = usePrepaidCardOptions(patientId, open);
   const cards = cardOptions.data ?? [];
+  // The pill only appears for a patient with a usable card (or a card receipt
+  // being reopened), so the dialog stays the reference's five pills otherwise.
+  const methods = cards.length > 0 || revision?.payment.prepaidCardId ? WITH_CARD : PAYMENT_METHOD_ORDER;
   const card = cards.find((option) => option.id === cardId);
   /**
    * What the card can still give this receipt. A receipt being reopened has
@@ -545,7 +548,7 @@ export function CreatePaymentDialog({
               <CreditCardOutlined /> {t("Patient:Payment:MethodHeader")}
             </h4>
             <div className="pd-newpay-methods">
-              {METHODS.map((kind) => (
+              {methods.map((kind) => (
                 <button
                   type="button"
                   key={kind}

@@ -1743,6 +1743,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Code).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxCodeLength).IsRequired();
             entity.Property(x => x.Name).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNameLength).IsRequired();
             entity.Property(x => x.Note).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNoteLength);
+            entity.Property(x => x.CancelReason).HasMaxLength(PrepaidCards.PrepaidCardConsts.MaxNoteLength);
             entity.Property(x => x.Status).HasConversion<short>();
             foreach (var money in new[]
                      {

@@ -47,6 +47,7 @@ public class PrepaidCardAppServiceContractTests
     [InlineData("LockAsync", BlueDentalAbilityPermissions.PrepaidCard.Update)]
     [InlineData("UnlockAsync", BlueDentalAbilityPermissions.PrepaidCard.Update)]
     [InlineData("DeleteTypeAsync", BlueDentalAbilityPermissions.PrepaidCard.Delete)]
+    [InlineData("CancelAsync", BlueDentalAbilityPermissions.PrepaidCard.Delete)]
     [InlineData("GetUsableAsync", BlueDentalAbilityPermissions.Payment.Create)]
     public void Each_Method_Names_Its_Leaf(string method, string permission)
     {

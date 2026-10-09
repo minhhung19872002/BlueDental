@@ -277,7 +277,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         }
 
         var lines = await AllocateAsync(
-            input.Kind, input.TreatmentPlanId, input.SplitMode, input.TreatmentServiceIds, input.Items, input.Amount);
+            input.Kind, input.TreatmentPlanId, input.SplitMode, input.TreatmentServiceIds, input.Items, input.Amount,
+            new RefundSource(input.Method, input.PrepaidCardId));
         var paidAt = input.PaidAt ?? Clock.Now;
         PatientPayment.EnsureNotAfterToday(paidAt, DateTimeOffset.UtcNow);
 
@@ -307,7 +308,14 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
 
         if (payment.PrepaidCardId.HasValue)
         {
-            await SpendFromCardAsync(payment);
+            if (payment.Kind == PatientPaymentKind.Refund)
+            {
+                await RefundToCardAsync(payment);
+            }
+            else
+            {
+                await SpendFromCardAsync(payment);
+            }
         }
 
         await _repository.InsertAsync(payment, autoSave: true);
@@ -329,7 +337,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         PaymentSplitMode splitMode,
         IReadOnlyCollection<Guid> treatmentServiceIds,
         IReadOnlyCollection<PatientPaymentLineDto> items,
-        decimal amount)
+        decimal amount,
+        RefundSource source)
     {
         // Money held for the patient is not against any service.
         if (kind == PatientPaymentKind.Prepaid || !treatmentPlanId.HasValue)
@@ -352,7 +361,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         // going back out may not exceed what that line actually holds. Capping a
         // refund by "BE:PaymentKind:StillOwed" refused every refund on a line paid in full.
         var refunding = kind == PatientPaymentKind.Refund;
-        var cap = await CapByServiceAsync(treatmentPlanId.Value, chosen, refunding);
+        var cap = await CapByServiceAsync(treatmentPlanId.Value, chosen, refunding, source);
 
         if (splitMode == PaymentSplitMode.Manual)
         {
@@ -411,15 +420,31 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     }
 
     /// <summary>
+    /// Which money a refund may give back. What a Thẻ trả trước paid goes back
+    /// onto that card only; cash, bank, card swipe and e-wallet refunds give
+    /// back only what was not paid by a card — otherwise card value would walk
+    /// out of the clinic as cash.
+    /// </summary>
+    private sealed record RefundSource(PaymentMethodKind Method, Guid? PrepaidCardId)
+    {
+        public bool Counts(PaymentMethodKind method, Guid? prepaidCardId) =>
+            Method == PaymentMethodKind.PrepaidCard
+                ? method == PaymentMethodKind.PrepaidCard && prepaidCardId == PrepaidCardId
+                : method != PaymentMethodKind.PrepaidCard;
+    }
+
+    /// <summary>
     /// The most each named line may take: what it still owes when money is
-    /// coming in, what it has actually collected when money is going back out.
+    /// coming in, what it has actually collected when money is going back out
+    /// — through the refund's own channel, see <see cref="RefundSource"/>.
     /// Only "Hoàn tất" receipts count (the <see cref="ISettleable"/> filter), so
     /// a pending receipt never blocks another and is re-checked when confirmed.
     /// </summary>
     private async Task<Dictionary<Guid, decimal>> CapByServiceAsync(
         Guid treatmentPlanId,
         IReadOnlyCollection<Guid> serviceIds,
-        bool refunding)
+        bool refunding,
+        RefundSource source)
     {
         // WithDetails, or plan.Services comes back empty and every line reads
         // as owing nothing.
@@ -427,14 +452,22 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         var plan = planQuery.Single(x => x.Id == treatmentPlanId);
 
         var paymentQuery = await _repository.GetQueryableAsync();
-        var paid = paymentQuery
+        var paidLines = paymentQuery
             .Where(payment => payment.TreatmentPlanId == treatmentPlanId)
             .SelectMany(payment => payment.Lines.Select(line => new
             {
                 line.TreatmentServiceId,
+                payment.Method,
+                payment.PrepaidCardId,
                 Signed = payment.Kind == PatientPaymentKind.Refund ? -line.Amount : line.Amount
             }))
-            .ToList()
+            .ToList();
+
+        var paid = paidLines
+            .GroupBy(x => x.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
+        var refundable = paidLines
+            .Where(x => source.Counts(x.Method, x.PrepaidCardId))
             .GroupBy(x => x.TreatmentServiceId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
 
@@ -447,7 +480,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             .ToDictionary(
                 line => line.Id,
                 line => refunding
-                    ? Math.Max(0m, paid.GetValueOrDefault(line.Id))
+                    ? Math.Max(0m, Math.Min(paid.GetValueOrDefault(line.Id), refundable.GetValueOrDefault(line.Id)))
                     // VAT included: the receipt collects what the patient is asked to pay.
                     : Math.Max(0m, plan.PayableAmountOf(line) - paid.GetValueOrDefault(line.Id)));
     }
@@ -505,7 +538,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
                 input.SplitMode,
                 input.TreatmentServiceIds,
                 input.Items,
-                input.Amount);
+                input.Amount,
+                new RefundSource(input.Method, input.PrepaidCardId ?? payment.PrepaidCardId));
         }
 
         payment.Revise(
@@ -583,6 +617,15 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             CurrentUser.Id,
             GuidGenerator.Create());
 
+        await _cards.UpdateAsync(card, autoSave: true);
+    }
+
+    /// <summary>A refund on services the card paid: the money goes back onto the card.</summary>
+    private async Task RefundToCardAsync(PatientPayment refund)
+    {
+        var card = await GetCardAsync(refund.PrepaidCardId!.Value);
+        card.CreditRefund(
+            refund.Id, refund.PatientId, refund.Amount, Clock.Now, CurrentUser.Id, refund.Note, GuidGenerator.Create());
         await _cards.UpdateAsync(card, autoSave: true);
     }
 

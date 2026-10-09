@@ -70,7 +70,7 @@ public class PrepaidCardAppService(
         var type = new PrepaidCardType(
             GuidGenerator.Create(), branchId, input.Name, input.SalePrice, input.UsageValue, input.MaxUses,
             input.CommissionType, input.CommissionValue, input.AllowFamily, input.ServiceIds,
-            input.ServiceGroupIds, input.Note);
+            input.ServiceGroupIds, input.Note, input.ValidityMonths);
         type.SetOnSale(input.IsOnSale);
 
         await typeRepository.InsertAsync(type, autoSave: true);
@@ -84,7 +84,8 @@ public class PrepaidCardAppService(
         await GuardBranchAccessAsync(type);
 
         type.Update(input.Name, input.SalePrice, input.UsageValue, input.MaxUses, input.CommissionType,
-            input.CommissionValue, input.AllowFamily, input.ServiceIds, input.ServiceGroupIds, input.Note);
+            input.CommissionValue, input.AllowFamily, input.ServiceIds, input.ServiceGroupIds, input.Note,
+            input.ValidityMonths);
         type.SetOnSale(input.IsOnSale);
 
         await typeRepository.UpdateAsync(type, autoSave: true);
@@ -118,6 +119,7 @@ public class PrepaidCardAppService(
     public async Task<PrepaidCardSummaryDto> GetSummaryAsync(GetPrepaidCardListInput input)
     {
         var query = await FilterAsync(new GetPrepaidCardListInput { ClinicBranchId = input.ClinicBranchId });
+        var today = ClinicCalendar.DateOf(Clock.Now);
         var cards = await AsyncExecuter.ToListAsync(query.Select(c => new
         {
             c.Id,
@@ -125,24 +127,27 @@ public class PrepaidCardAppService(
             c.Balance,
             c.MaxUses,
             c.UsedCount,
+            c.ExpiresOn,
             c.CommissionAmount,
         }));
 
         var cardIds = cards.Select(c => c.Id).ToList();
         var withLedger = await cardRepository.WithDetailsAsync(c => c.Transactions);
-        var received = await AsyncExecuter.ToListAsync(withLedger
+        var money = await AsyncExecuter.ToListAsync(withLedger
             .Where(c => cardIds.Contains(c.Id))
             .SelectMany(c => c.Transactions)
-            .Select(t => t.PaidAmount));
+            .Select(t => new { t.Type, t.PaidAmount }));
 
         return new PrepaidCardSummaryDto
         {
-            CardCount = cards.Count,
+            CardCount = cards.Count(c => c.Status != PrepaidCardStatus.Cancelled),
             UsableCount = cards.Count(c =>
                 c.Status == PrepaidCardStatus.Active && c.Balance > 0m
+                && (!c.ExpiresOn.HasValue || c.ExpiresOn.Value >= today)
                 && (!c.MaxUses.HasValue || c.UsedCount < c.MaxUses.Value)),
             OutstandingBalance = cards.Sum(c => c.Balance),
-            MoneyReceived = received.Sum(),
+            // A cancelled sale gives its money back.
+            MoneyReceived = money.Sum(t => t.Type == PrepaidCardTransactionType.Cancel ? -t.PaidAmount : t.PaidAmount),
             CommissionTotal = cards.Sum(c => c.CommissionAmount),
         };
     }
@@ -216,6 +221,16 @@ public class PrepaidCardAppService(
         return await MapDetailAsync(card);
     }
 
+    /// <summary>"Huỷ thẻ" — only a card that has never paid for a service; see <see cref="PrepaidCard.Cancel"/>.</summary>
+    [Authorize(BlueDentalAbilityPermissions.PrepaidCard.Delete)]
+    public async Task<PrepaidCardDetailDto> CancelAsync(Guid id, CancelPrepaidCardDto input)
+    {
+        var card = await LoadAsync(id);
+        card.Cancel(input.Reason, Clock.Now, CurrentUser.Id, GuidGenerator.Create());
+        await cardRepository.UpdateAsync(card, autoSave: true);
+        return await MapDetailAsync(card);
+    }
+
     /// <summary>
     /// What the payment dialog offers under "Thẻ trả trước": active cards the
     /// patient owns or shares, with value and a use left. Any branch — the
@@ -224,10 +239,12 @@ public class PrepaidCardAppService(
     [Authorize(BlueDentalAbilityPermissions.Payment.Create)]
     public async Task<ListResultDto<PrepaidCardDto>> GetUsableAsync(Guid patientId)
     {
+        var today = ClinicCalendar.DateOf(Clock.Now);
         var query = await cardRepository.GetQueryableAsync();
         var cards = await AsyncExecuter.ToListAsync(query
             .Where(c => c.OwnerPatientId == patientId || c.MemberPatientIds.Contains(patientId))
             .Where(c => c.Status == PrepaidCardStatus.Active && c.Balance > 0m)
+            .Where(c => !c.ExpiresOn.HasValue || c.ExpiresOn.Value >= today)
             .Where(c => !c.MaxUses.HasValue || c.UsedCount < c.MaxUses.Value)
             .OrderBy(c => c.SoldAt));
 
@@ -247,14 +264,20 @@ public class PrepaidCardAppService(
             query = query.Where(c => c.OwnerPatientId == patientId || c.MemberPatientIds.Contains(patientId));
         }
 
+        var today = ClinicCalendar.DateOf(Clock.Now);
         query = input.State switch
         {
             PrepaidCardListState.Locked => query.Where(c => c.Status == PrepaidCardStatus.Locked),
+            PrepaidCardListState.Cancelled => query.Where(c => c.Status == PrepaidCardStatus.Cancelled),
+            PrepaidCardListState.Expired => query.Where(c =>
+                c.Status != PrepaidCardStatus.Cancelled && c.ExpiresOn.HasValue && c.ExpiresOn.Value < today),
             PrepaidCardListState.Usable => query.Where(c =>
                 c.Status == PrepaidCardStatus.Active && c.Balance > 0m
+                && (!c.ExpiresOn.HasValue || c.ExpiresOn.Value >= today)
                 && (!c.MaxUses.HasValue || c.UsedCount < c.MaxUses.Value)),
             PrepaidCardListState.Exhausted => query.Where(c =>
                 c.Status == PrepaidCardStatus.Active
+                && (!c.ExpiresOn.HasValue || c.ExpiresOn.Value >= today)
                 && (c.Balance <= 0m || (c.MaxUses.HasValue && c.UsedCount >= c.MaxUses.Value))),
             _ => query,
         };
@@ -352,6 +375,7 @@ public class PrepaidCardAppService(
         SalePrice = t.SalePrice,
         UsageValue = t.UsageValue,
         MaxUses = t.MaxUses,
+        ValidityMonths = t.ValidityMonths,
         CommissionType = t.CommissionType,
         CommissionValue = t.CommissionValue,
         AllowFamily = t.AllowFamily,
@@ -366,13 +390,14 @@ public class PrepaidCardAppService(
     private async Task<List<PrepaidCardDto>> MapCardsAsync(IReadOnlyCollection<PrepaidCard> cards)
     {
         var names = await NamesAsync(cards, []);
-        return cards.Select(c => Fill(new PrepaidCardDto(), c, names)).ToList();
+        var today = ClinicCalendar.DateOf(Clock.Now);
+        return cards.Select(c => Fill(new PrepaidCardDto(), c, names, today)).ToList();
     }
 
     private async Task<PrepaidCardDetailDto> MapDetailAsync(PrepaidCard card)
     {
         var names = await NamesAsync([card], card.Transactions.ToList());
-        var dto = Fill(new PrepaidCardDetailDto(), card, names);
+        var dto = Fill(new PrepaidCardDetailDto(), card, names, ClinicCalendar.DateOf(Clock.Now));
 
         var balance = 0m;
         var lines = new List<PrepaidCardTransactionDto>();
@@ -405,7 +430,7 @@ public class PrepaidCardAppService(
         return dto;
     }
 
-    private static T Fill<T>(T dto, PrepaidCard c, Names names) where T : PrepaidCardDto
+    private static T Fill<T>(T dto, PrepaidCard c, Names names, DateOnly today) where T : PrepaidCardDto
     {
         var owner = names.Patients.GetValueOrDefault(c.OwnerPatientId);
         dto.Id = c.Id;
@@ -440,6 +465,9 @@ public class PrepaidCardAppService(
         dto.SoldAt = c.SoldAt;
         dto.Status = c.Status;
         dto.IsExhausted = c.IsExhausted;
+        dto.ExpiresOn = c.ExpiresOn;
+        dto.IsExpired = c.IsExpiredOn(today);
+        dto.CancelReason = c.CancelReason;
         dto.Note = c.Note;
         return dto;
     }

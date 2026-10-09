@@ -76,6 +76,13 @@ export function CardTypeDialog({ editing, saving, onSubmit, onClose }: Props) {
             <Form.Item name="maxUses" label={t("PrepaidCard:Field:MaxUses")} extra={t("PrepaidCard:Field:MaxUsesHint")}>
               <InputNumber min={1} max={10000} precision={0} className="prepaid-number" />
             </Form.Item>
+            <Form.Item
+              name="validityMonths"
+              label={t("PrepaidCard:Field:Validity")}
+              extra={t("PrepaidCard:Field:ValidityHint")}
+            >
+              <InputNumber min={1} max={120} precision={0} suffix={t("PrepaidCard:Months")} className="prepaid-number" />
+            </Form.Item>
             <Form.Item label={t("PrepaidCard:Field:Commission")} required>
               <div className="prepaid-commission">
                 <Form.Item name="commissionType" noStyle>

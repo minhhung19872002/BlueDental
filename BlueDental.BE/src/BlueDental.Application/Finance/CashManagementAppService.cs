@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.PrepaidCards;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -26,19 +27,22 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
     private readonly IRepository<PatientPayment, Guid> _paymentRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly IIdentityUserRepository _userRepository;
+    private readonly IRepository<PrepaidCard, Guid> _cardRepository;
 
     public CashManagementAppService(
         IRepository<CashflowEntry, Guid> repository,
         IRepository<CashflowCategory, Guid> categoryRepository,
         IRepository<PatientPayment, Guid> paymentRepository,
         ICurrentClinicBranchResolver branchResolver,
-        IIdentityUserRepository userRepository)
+        IIdentityUserRepository userRepository,
+        IRepository<PrepaidCard, Guid> cardRepository)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
         _paymentRepository = paymentRepository;
         _branchResolver = branchResolver;
         _userRepository = userRepository;
+        _cardRepository = cardRepository;
     }
 
     [Authorize(BlueDentalPermissions.Finance.View)]
@@ -253,7 +257,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
     /// refunds, and card-pending is every card payment net of card refunds plus
     /// whatever was deposited into the <see cref="CashHolding.Card"/> holding.
     /// </summary>
-    private async Task<(decimal ServiceRevenue, decimal CardPending)> GetPatientMoneyAsync(Guid clinicBranchId)
+    private async Task<PatientMoney> GetPatientMoneyAsync(Guid clinicBranchId)
     {
         var query = await _paymentRepository.GetQueryableAsync();
         var payments = query
@@ -269,12 +273,26 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             .Where(x => x.Method == PaymentMethodKind.Card)
             .Sum(x => x.Kind == PatientPaymentKind.Refund ? -x.Amount : x.Amount);
 
-        return (serviceRevenue, cardPending);
+        // Thẻ trả trước (cụm 3): what the branch's cards still hold is money the
+        // clinic keeps for its customers until they are treated — like Dư nợ,
+        // it becomes revenue when a receipt is paid from the card. A card sold
+        // or topped up by card swipe waits for the bank like any card payment.
+        var cards = await _cardRepository.WithDetailsAsync(x => x.Transactions);
+        var branchCards = cards.Where(x => x.ClinicBranchId == clinicBranchId);
+        var cardBalance = branchCards.Sum(x => x.Balance);
+        var cardSwiped = branchCards
+            .SelectMany(x => x.Transactions)
+            .Where(t => t.Method == PaymentMethodKind.Card)
+            .Sum(t => t.PaidAmount);
+
+        return new PatientMoney(serviceRevenue, cardPending + cardSwiped, cardBalance);
     }
+
+    private sealed record PatientMoney(decimal ServiceRevenue, decimal CardPending, decimal PrepaidCardBalance);
 
     private static CashBalanceDto BuildBalance(
         IReadOnlyCollection<CashflowEntry> entries,
-        (decimal ServiceRevenue, decimal CardPending) patientMoney)
+        PatientMoney patientMoney)
     {
         var cash = entries.Sum(x => x.EffectOn(CashHolding.Cash));
         var bank = entries.Sum(x => x.EffectOn(CashHolding.Bank));
@@ -285,7 +303,8 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         {
             Cash = cash,
             Bank = bank,
-            CustomerPrepaid = prepaid,
+            CustomerPrepaid = prepaid + patientMoney.PrepaidCardBalance,
+            PrepaidCardBalance = patientMoney.PrepaidCardBalance,
             // "BE:Field:GrandTotalAmt" is what the clinic can spend: money held for customers
             // and card takings the bank has not settled are both excluded.
             Total = cash + bank,

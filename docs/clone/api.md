@@ -1976,4 +1976,6 @@ Lỗi `BlueDental:PatientRelation:0001`–`0008`. Chi tiết: `docs/clone/pages/
 `{id}/members`, `{id}/lock` · `unlock`, và `usable?patientId=` cho dialog thanh toán. Quyền subject `prepaidCard`
 (riêng `usable` dùng `payment.create`); lỗi `BlueDental:PrepaidCard:0001`–`0014`.
 `patient-payments` nhận `method: 6` (Thẻ trả trước) kèm `prepaidCardId`; DTO trả thêm `prepaidCardId`, `prepaidCardCode`.
-`PaymentStatSummaryDto.byPrepaidCard`. Chi tiết: `docs/clone/pages/prepaid-card.md`.
+`PaymentStatSummaryDto.byPrepaidCard`. Đợt 2: hoàn tiền `kind: 2` + `method: 6` + `prepaidCardId` (về thẻ); `{id}/cancel`;
+`validityMonths` / `expiresOn`; `CashBalanceDto.prepaidCardBalance` (nằm trong `customerPrepaid`). Lỗi tới `0019`.
+Chi tiết: `docs/clone/pages/prepaid-card.md`.

@@ -141,7 +141,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         // one of the clinic's accounts is picked, so the record keeps that rule.
         // A refund goes the other way — its dialog only names the channel.
         EnsureAccount(kind, method, paymentAccountId);
-        EnsureCard(kind, method, prepaidCardId);
+        EnsureCard(kind, method, prepaidCardId, treatmentPlanId.HasValue);
 
         var payment = new PatientPayment
         {
@@ -196,21 +196,23 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     }
 
     /// <summary>
-    /// A card pays a slip's services, so only a payment can name one — and a
-    /// payment by card must say which card.
+    /// A card pays a slip's services, and money refunded on services it paid
+    /// goes back onto it — so only a payment or a refund against a slip can
+    /// name one, and it must say which card.
     /// </summary>
-    private static void EnsureCard(PatientPaymentKind kind, PaymentMethodKind method, Guid? prepaidCardId)
+    private static void EnsureCard(
+        PatientPaymentKind kind, PaymentMethodKind method, Guid? prepaidCardId, bool againstSlip)
     {
         if (method != PaymentMethodKind.PrepaidCard)
         {
             return;
         }
 
-        if (kind != PatientPaymentKind.Payment || !prepaidCardId.HasValue)
+        if (kind == PatientPaymentKind.Prepaid || !againstSlip || !prepaidCardId.HasValue)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.PrepaidCard.CardRequired,
-                "A receipt paid by prepaid card must be a payment naming the card.");
+                "A receipt by prepaid card must be a payment or refund on a slip, naming the card.");
         }
     }
 
@@ -370,7 +372,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         }
 
         EnsureAccount(Kind, method, paymentAccountId);
-        EnsureCard(Kind, method, prepaidCardId);
+        EnsureCard(Kind, method, prepaidCardId, TreatmentPlanId.HasValue);
 
         SplitMode = splitMode;
         Method = method;

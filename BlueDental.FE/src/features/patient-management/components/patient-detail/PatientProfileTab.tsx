@@ -46,6 +46,7 @@ import { PatientGuardianSection } from "./PatientGuardianSection";
 import { AppointmentDoctorPicker } from "./AppointmentDoctorPicker";
 import { ReceptionSteps } from "./ReceptionSteps";
 import { CreatePaymentDialog } from "./CreatePaymentDialog";
+import { PatientPrepaidCards } from "./PatientPrepaidCards";
 import { TreatmentStageDialog } from "./TreatmentStageDialog";
 import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
 import {
@@ -515,6 +516,8 @@ export function PatientProfileTab({ patient }: Props) {
           </div>
         ))}
       </div>
+
+      <PatientPrepaidCards patientId={patient.id} />
 
       <div className="bd-cat-card">
         <div className="pd-table-toolbar">

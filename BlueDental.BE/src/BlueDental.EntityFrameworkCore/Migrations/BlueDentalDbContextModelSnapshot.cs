@@ -5300,6 +5300,10 @@ namespace BlueDental.Migrations
                     b.Property<decimal>("Balance")
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("CardTypeId")
                         .HasColumnType("uuid");
 
@@ -5336,6 +5340,9 @@ namespace BlueDental.Migrations
                     b.Property<DateTime?>("DeletionTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("DeletionTime");
+
+                    b.Property<DateOnly?>("ExpiresOn")
+                        .HasColumnType("date");
 
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
@@ -5562,6 +5569,9 @@ namespace BlueDental.Migrations
 
                     b.Property<decimal>("UsageValue")
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("ValidityMonths")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

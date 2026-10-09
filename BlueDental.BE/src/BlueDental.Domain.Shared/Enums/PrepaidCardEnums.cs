@@ -13,6 +13,9 @@ public enum PrepaidCardStatus : short
 
     /// <summary>Tạm khoá — nothing can be spent or loaded until it is unlocked.</summary>
     Locked = 2,
+
+    /// <summary>Đã huỷ — a sale undone before the card was ever used; final.</summary>
+    Cancelled = 3,
 }
 
 /// <summary>"Hoa hồng khi bán" — a share of the sale price or a fixed amount.</summary>
@@ -37,6 +40,12 @@ public enum PrepaidCardTransactionType : short
     /// <summary>Sử dụng — a payment receipt was paid from the card.</summary>
     Use = 3,
 
-    /// <summary>Hoàn lại — the receipt paid from the card was cancelled or changed.</summary>
+    /// <summary>
+    /// Hoàn lại — the receipt paid from the card was cancelled or changed, or
+    /// money refunded on services the card paid went back onto it.
+    /// </summary>
     Refund = 4,
+
+    /// <summary>Huỷ thẻ — the remaining value is written off and the money taken is given back.</summary>
+    Cancel = 5,
 }

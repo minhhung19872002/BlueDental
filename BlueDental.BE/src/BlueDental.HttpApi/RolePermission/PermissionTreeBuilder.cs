@@ -528,7 +528,7 @@ internal static class PermissionTreeBuilder
             Leaf("prepaidCard.read", "Xem"),
             Leaf("prepaidCard.create", "BE:Perm:SellPrepaidCard"),
             Leaf("prepaidCard.update", "BE:Perm:ManagePrepaidCard"),
-            Leaf("prepaidCard.delete", "BE:Common:Delete")),
+            Leaf("prepaidCard.delete", "BE:Perm:CancelPrepaidCard")),
 
         Group("chatbot-group", "BE:Perm:AIAssistant",
             Group("chatbot", "BE:Common:Overview",

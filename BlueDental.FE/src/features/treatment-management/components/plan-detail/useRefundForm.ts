@@ -14,6 +14,7 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "../../api/treatmentPlanApi";
+import { cardHeldOnLine, cardsOnSlip } from "./cardRefunds";
 import { refundedByService } from "./planDetailTypes";
 
 /** "Loại" on the refund dialog: money back on services, or the held balance. */
@@ -48,11 +49,13 @@ interface Args {
   plan: TreatmentPlanSlipDto;
   branchId: string;
   refunds: PatientPaymentDto[];
+  /** The slip's collected payments — tells which part of each line a Thẻ trả trước paid. */
+  payments: PatientPaymentDto[];
   heldForPatient: number;
   onSaved: () => void;
 }
 
-export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, onSaved }: Args) {
+export function useRefundForm({ open, plan, branchId, refunds, payments, heldForPatient, onSaved }: Args) {
   const staffId = useAuthStore((state) => state.user?.id) ?? "";
   const record = useRecordPayment();
 
@@ -61,11 +64,16 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
   const [note, setNote] = useState("");
   const [amounts, setAmounts] = useState<Record<string, number | undefined>>({});
   const [debtAmount, setDebtAmount] = useState<number>();
+  const [cardId, setCardId] = useState<string>();
+  const cards = useMemo(() => cardsOnSlip(payments, refunds), [payments, refunds]);
+  const byCard = method === PAYMENT_METHOD.PrepaidCard;
+  const card = cards.find((one) => one.cardId === cardId);
 
   useEffect(() => {
     if (!open) return;
     setType(REFUND_TYPE.service);
     setMethod(PAYMENT_METHOD.Cash);
+    setCardId(undefined);
     setNote("");
     setAmounts({});
     setDebtAmount(undefined);
@@ -80,12 +88,15 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
           service,
           paid: service.paidAmount + back,
           refunded: back,
-          refundable: Math.max(0, service.paidAmount),
+          // Card money goes back onto its card only; any other channel gives back the rest.
+          refundable: byCard
+            ? Math.max(0, card?.byLine.get(service.id) ?? 0)
+            : Math.max(0, service.paidAmount - cardHeldOnLine(cards, service.id)),
           amount: amounts[service.id],
         };
       })
       .filter((line) => line.paid > 0);
-  }, [plan.services, refunds, amounts]);
+  }, [plan.services, refunds, amounts, byCard, card, cards]);
 
   const serviceTotal = lines.reduce((sum, line) => sum + (line.amount ?? 0), 0);
   const total = type === REFUND_TYPE.service ? serviceTotal : (debtAmount ?? 0);
@@ -97,7 +108,27 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
   const setLineAmount = (serviceId: string, amount: number | undefined) =>
     setAmounts((current) => ({ ...current, [serviceId]: amount }));
 
+  /** Thẻ trả trước is a channel only for services a card paid. */
+  const methods = useMemo(
+    () => (type === REFUND_TYPE.service && cards.length > 0 ? [...REFUND_METHODS, PAYMENT_METHOD.PrepaidCard] : REFUND_METHODS),
+    [type, cards.length],
+  );
+
+  const chooseMethod = (next: PaymentMethodKind) => {
+    setMethod(next);
+    setCardId(next === PAYMENT_METHOD.PrepaidCard ? cards[0]?.cardId : undefined);
+  };
+
+  const chooseType = (next: RefundType) => {
+    setType(next);
+    if (next !== REFUND_TYPE.service && byCard) chooseMethod(PAYMENT_METHOD.Cash);
+  };
+
   const save = async () => {
+    if (byCard && !card) {
+      toast.error(t("PrepaidCard:Pay:SelectCard"));
+      return;
+    }
     if (total <= 0) {
       toast.error(t("Treatment:Refund:AmountRequired"));
       return;
@@ -122,6 +153,7 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
         amount: total,
         staffId,
         note: note.trim() || undefined,
+        prepaidCardId: byCard ? cardId : undefined,
       });
       toast.success(t("Treatment:Refund:RefundSuccess"));
       onSaved();
@@ -131,8 +163,9 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
   };
 
   return {
-    type, setType,
-    method, setMethod,
+    type, setType: chooseType,
+    method, setMethod: chooseMethod, methods,
+    cards, cardId, setCardId,
     note, setNote,
     lines, setLineAmount,
     debtAmount, setDebtAmount,

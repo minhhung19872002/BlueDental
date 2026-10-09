@@ -107,6 +107,10 @@ export function SellCardDialog({ open, saving, currentStaffId, onSubmit, onClose
               <Term label={t("PrepaidCard:Field:SalePrice")} value={formatVND(type.salePrice)} />
               <Term label={t("PrepaidCard:Field:UsageValue")} value={formatVND(type.usageValue)} />
               <Term label={t("PrepaidCard:Field:MaxUses")} value={type.maxUses ? String(type.maxUses) : t("PrepaidCard:Unlimited")} />
+              <Term
+                label={t("PrepaidCard:Field:Validity")}
+                value={type.validityMonths ? `${type.validityMonths} ${t("PrepaidCard:Months")}` : t("PrepaidCard:NoExpiry")}
+              />
               <Term label={t("PrepaidCard:Field:Commission")} value={formatVND(commissionOf(type))} />
               <Term label={t("PrepaidCard:Field:Scope")} value={scopeSummary(type)} />
             </div>

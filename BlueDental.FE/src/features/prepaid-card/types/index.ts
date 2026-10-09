@@ -5,11 +5,11 @@
  */
 
 /** Mirrors BlueDental.PrepaidCards.PrepaidCardStatus. */
-export const CARD_STATUS = { Active: 1, Locked: 2 } as const;
+export const CARD_STATUS = { Active: 1, Locked: 2, Cancelled: 3 } as const;
 export type CardStatus = (typeof CARD_STATUS)[keyof typeof CARD_STATUS];
 
 /** Mirrors BlueDental.PrepaidCards.PrepaidCardListState — the status filter of the list. */
-export const CARD_STATE = { Usable: 1, Locked: 2, Exhausted: 3 } as const;
+export const CARD_STATE = { Usable: 1, Locked: 2, Exhausted: 3, Expired: 4, Cancelled: 5 } as const;
 export type CardState = (typeof CARD_STATE)[keyof typeof CARD_STATE];
 
 /** Mirrors BlueDental.PrepaidCards.PrepaidCardCommissionType. */
@@ -17,7 +17,7 @@ export const COMMISSION_TYPE = { Percent: 1, Amount: 2 } as const;
 export type CommissionType = (typeof COMMISSION_TYPE)[keyof typeof COMMISSION_TYPE];
 
 /** Mirrors BlueDental.PrepaidCards.PrepaidCardTransactionType. */
-export const TRANSACTION_TYPE = { Issue: 1, Topup: 2, Use: 3, Refund: 4 } as const;
+export const TRANSACTION_TYPE = { Issue: 1, Topup: 2, Use: 3, Refund: 4, Cancel: 5 } as const;
 export type TransactionType = (typeof TRANSACTION_TYPE)[keyof typeof TRANSACTION_TYPE];
 
 /**
@@ -34,6 +34,8 @@ export interface CardTypeDto {
   salePrice: number;
   usageValue: number;
   maxUses: number | null;
+  /** Thời hạn sử dụng in months from the sale; null = never expires. */
+  validityMonths: number | null;
   commissionType: CommissionType;
   commissionValue: number;
   allowFamily: boolean;
@@ -50,6 +52,7 @@ export interface SaveCardTypeInput {
   salePrice: number;
   usageValue: number;
   maxUses: number | null;
+  validityMonths: number | null;
   commissionType: CommissionType;
   commissionValue: number;
   allowFamily: boolean;
@@ -91,6 +94,10 @@ export interface CardDto {
   soldAt: string;
   status: CardStatus;
   isExhausted: boolean;
+  /** Last day of use ("YYYY-MM-DD"); null when it never expires. */
+  expiresOn: string | null;
+  isExpired: boolean;
+  cancelReason: string | null;
   note: string | null;
 }
 

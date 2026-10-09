@@ -123,5 +123,11 @@ export function useCardCommands() {
     onSuccess: invalidate,
   });
 
-  return { createType, updateType, deleteType, sell, topup, setMembers, setLocked };
+  const cancel = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.post<CardDetailDto>(`${BASE}/${id}/cancel`, { reason }).then((r) => r.data),
+    onSuccess: invalidate,
+  });
+
+  return { createType, updateType, deleteType, sell, topup, setMembers, setLocked, cancel };
 }

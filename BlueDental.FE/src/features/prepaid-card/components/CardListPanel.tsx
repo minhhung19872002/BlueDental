@@ -7,7 +7,8 @@ import { useCardDetail, useCards, useCardSummary, useCardTypes } from "../api/pr
 import { useCardActions } from "../hooks/useCardActions";
 import { useCardListFilters } from "../hooks/useCardListFilters";
 import type { CardDto } from "../types";
-import { CardDetailDrawer } from "./CardDetailDrawer";
+import { CancelCardDialog } from "./CancelCardDialog";
+import { CardDetailDialog } from "./CardDetailDialog";
 import { cardColumns } from "./cardColumns";
 import { CardSummaryTiles } from "./CardSummaryTiles";
 import { CardToolbar } from "./CardToolbar";
@@ -76,7 +77,13 @@ export function CardListPanel() {
         onSubmit={(input) => void actions.topup(input)}
         onClose={actions.closeTopup}
       />
-      <CardDetailDrawer
+      <CancelCardDialog
+        card={actions.cancelling}
+        saving={actions.savingCancel}
+        onSubmit={(reason) => void actions.cancel(reason)}
+        onClose={actions.closeCancel}
+      />
+      <CardDetailDialog
         open={actions.openId !== null}
         card={detail.data}
         loading={detail.isLoading}
@@ -85,6 +92,7 @@ export function CardListPanel() {
           onTopup: ability.canUpdate ? actions.openTopup : undefined,
           onToggleLock: ability.canUpdate ? actions.toggleLock : undefined,
           onSaveMembers: ability.canUpdate ? actions.saveMembers : undefined,
+          onCancel: ability.canDelete ? actions.openCancel : undefined,
           savingMembers: actions.savingMembers,
           togglingLock: actions.togglingLock,
         }}

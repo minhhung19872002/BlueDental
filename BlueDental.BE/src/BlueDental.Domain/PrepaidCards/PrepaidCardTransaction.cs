@@ -22,7 +22,10 @@ public class PrepaidCardTransaction : Entity<Guid>
     /// <summary>Usage value moved, always positive; the direction lives in <see cref="Type"/>.</summary>
     public decimal Value { get; private set; }
 
-    /// <summary>Money the customer handed over — only on Phát hành and Nạp thêm.</summary>
+    /// <summary>
+    /// Money the customer handed over on Phát hành and Nạp thêm; on Huỷ thẻ,
+    /// the money given back.
+    /// </summary>
     public decimal PaidAmount { get; private set; }
 
     /// <summary>How that money was taken — only on Phát hành and Nạp thêm.</summary>
@@ -43,7 +46,8 @@ public class PrepaidCardTransaction : Entity<Guid>
     public string? Note { get; private set; }
 
     /// <summary>Signed effect on the balance.</summary>
-    public decimal SignedValue => Type == PrepaidCardTransactionType.Use ? -Value : Value;
+    public decimal SignedValue =>
+        Type is PrepaidCardTransactionType.Use or PrepaidCardTransactionType.Cancel ? -Value : Value;
 
     protected PrepaidCardTransaction() { }
 

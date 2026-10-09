@@ -203,8 +203,14 @@ public class CashBalanceDto
     /// <summary>Tổng Chuyển Khoản.</summary>
     public decimal Bank { get; set; }
 
-    /// <summary>Đang Giữ Hộ Khách.</summary>
+    /// <summary>
+    /// Đang Giữ Hộ Khách — the CustomerPrepaid holding plus what the branch's
+    /// Thẻ trả trước still hold (<see cref="PrepaidCardBalance"/>).
+    /// </summary>
     public decimal CustomerPrepaid { get; set; }
+
+    /// <summary>The part of <see cref="CustomerPrepaid"/> still on prepaid cards (BlueDental-local, cụm 3).</summary>
+    public decimal PrepaidCardBalance { get; set; }
 
     /// <summary>
     /// "BE:Col:ServiceRevenue" — treatment payments net of refunds, all time.

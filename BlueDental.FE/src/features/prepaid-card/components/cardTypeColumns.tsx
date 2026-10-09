@@ -26,6 +26,12 @@ export function cardTypeColumns({ onEdit, onDelete }: CardTypeRowActions): Colum
       align: "right",
       render: (value: number | null) => value ?? t("PrepaidCard:Unlimited"),
     },
+    {
+      title: t("PrepaidCard:Field:Validity"),
+      dataIndex: "validityMonths",
+      align: "right",
+      render: (value: number | null) => (value ? `${value} ${t("PrepaidCard:Months")}` : t("PrepaidCard:NoExpiry")),
+    },
     { title: t("PrepaidCard:Field:Commission"), key: "commission", align: "right", render: (_, row) => commissionText(row) },
     {
       title: t("PrepaidCard:Field:AllowFamily"),

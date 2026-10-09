@@ -69,9 +69,8 @@
   color: var(--bd-muted);
 }
 
-.prepaid-link.ant-btn {
-  padding: 0;
-  height: auto;
+.prepaid-code {
+  color: var(--bd-title);
   font-weight: 600;
 }
 
@@ -148,8 +147,35 @@
   width: 100%;
 }
 
-.prepaid-drawer-actions {
+/* The shared dialog zeroes a field's margin and only gives it back to fields
+   sitting directly under the form; these dialogs lay fields out in two-column
+   grids and switch rows, so every field carries the rhythm itself. */
+.prepaid-dialog .ant-form .ant-form-item:not(.ant-form-item-hidden) {
+  margin-bottom: 16px;
+}
+
+.prepaid-dialog .ant-form > .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+.prepaid-detail-loading {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+}
+
+.prepaid-detail-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.prepaid-detail-foot__main {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 

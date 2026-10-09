@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { CardListFilter, CardState } from "../types";
 
@@ -6,7 +7,9 @@ const PAGE_SIZE = 20;
 
 /** Search, status, type and page of the card list; any change returns to page 1. */
 export function useCardListFilters() {
-  const [keyword, setKeywordState] = useState("");
+  // The patient record links here with ?q=<mã thẻ>.
+  const [params] = useSearchParams();
+  const [keyword, setKeywordState] = useState(() => params.get("q") ?? "");
   const [state, setStateValue] = useState<CardState | undefined>();
   const [cardTypeId, setCardTypeIdValue] = useState<string | undefined>();
   const [page, setPage] = useState(1);

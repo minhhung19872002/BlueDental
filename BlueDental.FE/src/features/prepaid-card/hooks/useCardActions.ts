@@ -14,6 +14,7 @@ export function useCardActions() {
   const [selling, setSelling] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [toppingUp, setToppingUp] = useState<CardDto | null>(null);
+  const [cancelling, setCancelling] = useState<CardDetailDto | null>(null);
 
   const sell = async (input: SellCardInput) => {
     let soldId: string | undefined;
@@ -42,7 +43,18 @@ export function useCardActions() {
     );
   };
 
+  const cancel = async (reason: string) => {
+    if (!cancelling) return;
+    const id = cancelling.id;
+    if (await run(() => commands.cancel.mutateAsync({ id, reason }), t("PrepaidCard:Cancel:Done"))) setCancelling(null);
+  };
+
   return {
+    cancelling,
+    openCancel: setCancelling,
+    closeCancel: () => setCancelling(null),
+    cancel,
+    savingCancel: commands.cancel.isPending,
     selling,
     openSell: () => setSelling(true),
     closeSell: () => setSelling(false),

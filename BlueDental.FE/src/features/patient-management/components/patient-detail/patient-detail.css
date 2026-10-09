@@ -500,6 +500,46 @@
   font-size: 32px;
   color: var(--bd-line);
 }
+/* Thẻ trả trước on the patient record (BlueDental-local, cụm 3) */
+.pd-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.pd-cards__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-card-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+.pd-card-chip:hover {
+  border-color: var(--bd-primary);
+}
+.pd-card-chip strong {
+  color: var(--bd-green);
+}
+.pd-card-chip small {
+  color: var(--bd-muted);
+}
+.pd-card-chip--off strong {
+  color: var(--bd-muted);
+}
 .pd-money-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -4262,6 +4302,101 @@
 .pd-newpay-accounts .pd-newpay-empty {
   padding: 20px 12px;
   text-align: center;
+}
+
+/* Thẻ trả trước under its method pill (BlueDental-local, cụm 3): a card row
+   carries two lines per side — number over type, balance over uses left — so
+   it gets its own grid instead of the account rows' one-line cells. */
+.pd-newpay-cards {
+  margin-top: 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pd-newpay-cardhead,
+.pd-newpay-cardrow {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) minmax(120px, auto);
+  align-items: center;
+  column-gap: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+.pd-newpay-cardhead {
+  border-bottom: 1px solid var(--bd-border);
+  background: var(--bd-bg-head);
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+.pd-newpay-cardhead > span:last-child,
+.pd-newpay-cardmoney {
+  text-align: right;
+}
+.pd-newpay-cardlist {
+  max-height: 264px;
+  overflow-y: auto;
+}
+.pd-newpay-cardrow {
+  position: relative;
+  border-top: 1px solid var(--bd-line-soft);
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+.pd-newpay-cardrow:first-child {
+  border-top: 0;
+}
+.pd-newpay-cardrow:hover {
+  background: var(--bd-row-alt);
+}
+.pd-newpay-cardrow input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.pd-newpay-cardrow .pd-newpay-radio {
+  justify-self: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+.pd-newpay-cardrow input:focus-visible + .pd-newpay-radio {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+.pd-newpay-cardrow:has(input:checked) {
+  background: color-mix(in srgb, var(--bd-primary) 6%, #fff);
+}
+.pd-newpay-cardrow:has(input:checked) .pd-newpay-radio {
+  border-color: var(--bd-primary);
+}
+.pd-newpay-cardrow:has(input:checked) .pd-newpay-radio::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bd-primary);
+}
+.pd-newpay-cardname,
+.pd-newpay-cardmoney {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pd-newpay-cardname b,
+.pd-newpay-cardname small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-newpay-cardname small,
+.pd-newpay-cardmoney small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-newpay-cardmoney b {
+  color: var(--bd-green);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {

@@ -215,6 +215,96 @@ public class PrepaidCardTests
     }
 
     [Fact]
+    public void A_Refund_Goes_Back_Onto_The_Card_And_Keeps_The_Use()
+    {
+        var card = Spend(Sell(Type(maxUses: 2)), 3_000_000m);
+
+        card.CreditRefund(Guid.NewGuid(), Owner, 1_000_000m, Now, Seller, "Hoàn dịch vụ", Guid.NewGuid());
+
+        card.Balance.ShouldBe(8_000_000m);
+        card.UsedCount.ShouldBe(1);
+        card.Transactions.Last().Type.ShouldBe(PrepaidCardTransactionType.Refund);
+        ShouldFail(() => card.CreditRefund(Guid.NewGuid(), Owner, 0m, Now, Seller, null, Guid.NewGuid()),
+            BlueDentalDomainErrorCodes.PrepaidCard.InvalidTopup);
+    }
+
+    [Fact]
+    public void A_Card_Expires_After_Its_Validity_And_Then_Neither_Pays_Nor_Loads()
+    {
+        var type = new PrepaidCardType(Guid.NewGuid(), Branch, "Thẻ 6 tháng", 900m, 1_000m, null,
+            PrepaidCardCommissionType.Percent, 0m, false, null, null, validityMonths: 6);
+        var card = Sell(type);
+
+        card.ExpiresOn.ShouldBe(new DateOnly(2027, 4, 8));
+        card.IsExpiredOn(new DateOnly(2027, 4, 8)).ShouldBeFalse();
+        card.IsExpiredOn(new DateOnly(2027, 4, 9)).ShouldBeTrue();
+
+        var later = new DateTimeOffset(2027, 4, 9, 9, 0, 0, TimeSpan.FromHours(7));
+        ShouldFail(() => card.Spend(Guid.NewGuid(), Owner, 1m, [(Scaling, null)], later, Seller, Guid.NewGuid()),
+            BlueDentalDomainErrorCodes.PrepaidCard.CardExpired);
+        ShouldFail(() => card.Topup(1m, 1m, PaymentMethodKind.Cash, null, later, Seller, null, Guid.NewGuid()),
+            BlueDentalDomainErrorCodes.PrepaidCard.CardExpired);
+        Sell(Type()).ExpiresOn.ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_Validity_Must_Be_Between_1_And_120_Months()
+    {
+        ShouldFail(() => new PrepaidCardType(Guid.NewGuid(), Branch, "X", 1m, 1m, null,
+                PrepaidCardCommissionType.Percent, 0m, false, null, null, validityMonths: 0),
+            BlueDentalDomainErrorCodes.PrepaidCard.InvalidValidity);
+        ShouldFail(() => new PrepaidCardType(Guid.NewGuid(), Branch, "X", 1m, 1m, null,
+                PrepaidCardCommissionType.Percent, 0m, false, null, null, validityMonths: 121),
+            BlueDentalDomainErrorCodes.PrepaidCard.InvalidValidity);
+    }
+
+    [Fact]
+    public void An_Unused_Card_Can_Be_Cancelled_Giving_Its_Money_Back_And_No_Commission()
+    {
+        var card = Sell(Type());
+        card.Topup(1_000_000m, 1_000_000m, PaymentMethodKind.Cash, null, Now, Seller, null, Guid.NewGuid());
+
+        ShouldFail(() => card.Cancel(" ", Now, Seller, Guid.NewGuid()),
+            BlueDentalDomainErrorCodes.PrepaidCard.CancelReasonRequired);
+        card.Cancel("Bán nhầm", Now, Seller, Guid.NewGuid());
+
+        card.Status.ShouldBe(PrepaidCardStatus.Cancelled);
+        card.Balance.ShouldBe(0m);
+        card.CommissionAmount.ShouldBe(0m);
+        var cancel = card.Transactions.Last();
+        cancel.Type.ShouldBe(PrepaidCardTransactionType.Cancel);
+        cancel.Value.ShouldBe(11_000_000m);
+        cancel.PaidAmount.ShouldBe(10_000_000m);
+        ShouldFail(() => Spend(card, 1m), BlueDentalDomainErrorCodes.PrepaidCard.CardCancelled);
+        ShouldFail(() => card.Unlock(), BlueDentalDomainErrorCodes.PrepaidCard.CardCancelled);
+    }
+
+    [Fact]
+    public void A_Card_That_Paid_For_A_Service_Cannot_Be_Cancelled()
+    {
+        var payment = Guid.NewGuid();
+        var card = Spend(Sell(Type()), 1_000m, payment: payment);
+        card.Release(payment, Now, Seller, null, Guid.NewGuid());
+
+        ShouldFail(() => card.Cancel("Bán nhầm", Now, Seller, Guid.NewGuid()),
+            BlueDentalDomainErrorCodes.PrepaidCard.CardAlreadyUsed);
+    }
+
+    [Fact]
+    public void A_Card_Refund_Must_Name_Its_Card_And_Its_Slip()
+    {
+        var cardId = Guid.NewGuid();
+        PatientPayment.Record(Guid.NewGuid(), Owner, Branch, PatientPaymentKind.Refund,
+                PaymentMethodKind.PrepaidCard, 100m, "HOANTIEN-01/2026", Seller, Now, Guid.NewGuid(),
+                prepaidCardId: cardId)
+            .PrepaidCardId.ShouldBe(cardId);
+
+        ShouldFail(() => PatientPayment.Record(Guid.NewGuid(), Owner, Branch, PatientPaymentKind.Prepaid,
+                PaymentMethodKind.PrepaidCard, 100m, "TAMUNG-01/2026", Seller, Now, prepaidCardId: cardId),
+            BlueDentalDomainErrorCodes.PrepaidCard.CardRequired);
+    }
+
+    [Fact]
     public void A_Card_Receipt_Must_Be_A_Payment_Naming_Its_Card()
     {
         ShouldFail(() => PatientPayment.Record(Guid.NewGuid(), Owner, Branch, PatientPaymentKind.Payment,

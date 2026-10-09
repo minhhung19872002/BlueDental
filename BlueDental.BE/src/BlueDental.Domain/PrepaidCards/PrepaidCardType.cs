@@ -52,6 +52,9 @@ public class PrepaidCardType : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public IReadOnlyList<Guid> ServiceGroupIds => _serviceGroupIds;
 
+    /// <summary>"Thời hạn sử dụng" in months from the day a card is sold; null means it never expires.</summary>
+    public int? ValidityMonths { get; private set; }
+
     /// <summary>"Đang bán" — a type taken off sale keeps its sold cards working.</summary>
     public bool IsOnSale { get; private set; }
 
@@ -71,12 +74,13 @@ public class PrepaidCardType : FullAuditedAggregateRoot<Guid>
         bool allowFamily,
         IEnumerable<Guid>? serviceIds,
         IEnumerable<Guid>? serviceGroupIds,
-        string? note = null) : base(id)
+        string? note = null,
+        int? validityMonths = null) : base(id)
     {
         ClinicBranchId = clinicBranchId;
         IsOnSale = true;
         Update(name, salePrice, usageValue, maxUses, commissionType, commissionValue, allowFamily,
-            serviceIds, serviceGroupIds, note);
+            serviceIds, serviceGroupIds, note, validityMonths);
     }
 
     public PrepaidCardType Update(
@@ -89,7 +93,8 @@ public class PrepaidCardType : FullAuditedAggregateRoot<Guid>
         bool allowFamily,
         IEnumerable<Guid>? serviceIds,
         IEnumerable<Guid>? serviceGroupIds,
-        string? note)
+        string? note,
+        int? validityMonths = null)
     {
         if (usageValue <= 0m || salePrice < 0m)
         {
@@ -99,6 +104,12 @@ public class PrepaidCardType : FullAuditedAggregateRoot<Guid>
         if (maxUses is < 1)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.InvalidMaxUses);
+        }
+
+        if (validityMonths is < 1 or > PrepaidCardConsts.MaxValidityMonths)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.InvalidValidity)
+                .WithData("Max", PrepaidCardConsts.MaxValidityMonths);
         }
 
         var commissionValid = commissionType switch
@@ -116,6 +127,7 @@ public class PrepaidCardType : FullAuditedAggregateRoot<Guid>
         SalePrice = salePrice;
         UsageValue = usageValue;
         MaxUses = maxUses;
+        ValidityMonths = validityMonths;
         CommissionType = commissionType;
         CommissionValue = commissionValue;
         AllowFamily = allowFamily;

@@ -7763,3 +7763,16 @@ Hồi quy mức 3 (luồng thanh toán dùng chung, Bảng lương, báo cáo, m
   `report:377` / `report:574` (nút Xoá / Hủy giao dịch trong modal "element is not stable"), `treatment-plan-detail:575` (kéo-thả
   dòng dịch vụ; 6 ca sau bị bỏ qua theo chuỗi serial).
 Retest level **3**.
+
+## 2026-10-09 — Thẻ trả trước: góp ý giao diện của chủ dự án (R-855 → R-858, F-63)
+
+| ID | Góp ý | Xử lý |
+|---|---|---|
+| R-855 | Dialog "Thêm loại thẻ" — các ô sát nhau, không có khoảng cách dọc | CSS chung `.app-dialog` đặt margin ô về 0 và chỉ trả lại cho ô nằm trực tiếp dưới form; ô của dialog thẻ nằm trong lưới 2 cột / hàng switch nên mất. `prepaid-card.css`: mọi ô trong `.prepaid-dialog` cách nhau 16px |
+| R-856 | Danh sách thẻ: bấm vào mã thẻ khó thấy | Mã thẻ là chữ thường; thêm cột **Thao tác** cố định bên phải với nút "Xem" (aria "Xem thẻ {mã}"); cột Trạng thái 150px |
+| R-857 | "Các chức năng mở drawer phải thay bằng dialog" | Chi tiết thẻ chuyển từ `Drawer` sang `Modal` (`CardDetailDialog` + `CardDetailFooter`: Huỷ thẻ bên trái; Khoá / Mở khoá, Nạp thêm, Đóng bên phải). Ghi thành quy ước lâu dài |
+| R-858 | Dialog thanh toán: danh sách thẻ khi chọn "Thẻ trả trước" lệch / vỡ dòng | Bỏ dùng lại lưới dòng tài khoản (một dòng mỗi ô); `PrepaidCardChoice` có lưới riêng `.pd-newpay-card*`: ô chọn căn giữa, mã thẻ đậm + loại thẻ bên dưới, số dư + số lượt căn phải, danh sách cuộn tối đa 264px |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): ảnh chụp 3 màn hình đúng như mô tả;
+`prepaid-card` **4/4** sau khi khởi động lại BE (lượt trước 3/4: BE cũ chưa nạp 2 key i18n mới `PrepaidCard:View` / `PrepaidCard:ViewCard`).
+tsc + oxlint sạch. Retest level **1** (giao diện) + spec của feature.
