@@ -11,6 +11,8 @@ import { APPOINTMENTS, bookVisitToday, call, cardOf, dayOf, getAppointment, open
  * - The visit is filed on the CSKH tab of the same name, its booking note as
  *   Nội dung hẹn; saving again keeps the one task.
  * - The date can still be booked from the card later.
+ * - "Lịch hẹn sắp tới" never shows the visit itself — these visits are booked
+ *   later today, so their own slot is still to come.
  *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted.
  */
@@ -27,6 +29,7 @@ interface CareRow {
   subject: string;
   appointmentId: string | null;
   assignedStaffId: string | null;
+  nextAppointmentAt: string | null;
 }
 
 const outcome = (card: Locator, name: string | RegExp) =>
@@ -84,6 +87,7 @@ test.describe("Tiếp nhận — Hẹn lại - Chưa chốt ngày", () => {
     expect(tasks[0].subject).toBe(note);
     expect(tasks[0].assignedStaffId).toBe(visit.dentistId);
     expect(tasks[0].status).toBe(1);
+    expect(tasks[0].nextAppointmentAt).toBeNull();
 
     await page.reload();
     const reloaded = await cardOf(page, visit);
@@ -116,6 +120,7 @@ test.describe("Tiếp nhận — Hẹn lại - Chưa chốt ngày", () => {
     const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: secondNote });
     await expect(row).toHaveCount(1, { timeout: 15_000 });
     await expect(row.locator(".cskh-contact-select")).toContainText("Chưa liên hệ");
+    await expect(row).toContainText("Chưa có lịch");
 
     // The date is fixed later from the same card: the follow-up books normally.
     await openBoard(page);
@@ -127,6 +132,9 @@ test.describe("Tiếp nhận — Hẹn lại - Chưa chốt ngày", () => {
     await expect(picker).toBeHidden({ timeout: 10_000 });
     stored = await getAppointment(page, branchId, visit.id);
     expect(stored.followUpAt).toBeTruthy();
+    // Now the task reads as rebooked, with the follow-up — not the visit — as next.
+    tasks = await careTasksOf(page, branchId, visit);
+    expect(new Date(tasks[0].nextAppointmentAt ?? 0).getTime()).toBe(new Date(stored.followUpAt!).getTime());
 
     // A booked follow-up cannot be turned back into an undated one.
     const refused = await call(page, branchId, `${APPOINTMENTS}/${visit.id}/rebook-undated`, {

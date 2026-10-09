@@ -7475,3 +7475,11 @@ Kiểm chứng (build production :8081, host :5000 build mới, PostgreSQL thậ
 | R-880 | `report-customer.spec.ts` khẳng định cứng 9 loại CSKH. | Cập nhật `BOARD_TYPES` thành 10 loại, loại 11 nằm sau Nhắc lịch hẹn. |
 
 Kiểm chứng (build production :8080, host :5000, PostgreSQL thật, không chặn API): Domain **822/822** (thêm 7 test `MarkRebookUndated` và `UndatedRebookCareTests` 5/5), Application **704/704**, `reception-rebook-undated` **3/3** (UI → API → DB → reload → tab CSKH; lưu lại không nhân đôi phiếu; chốt ngày sau được; server từ chối khi đã có follow-up và khi note > 300). Hồi quy mức 3 (lịch hẹn domain + bảng CSKH dùng chung): `reception-follow-up` 11/11, `cskh*` 19/19, `patient-care` 2/2, `report-customer` 7/7 (sau R-880). Ảnh chụp panel 1600px và tab CSKH 1600/390px. Seed của DbMigrator đang lỗi `BusinessException` sẵn từ trước, không liên quan; schema đã cập nhật.
+
+## 2026-10-09 — CSKH "Lịch hẹn sắp tới" hiện chính lượt khám của phiếu (R-881, F-66)
+
+| ID | Việc | Xử lý |
+|---|---|---|
+| R-881 | Chủ dự án (ảnh tab "Hẹn lại - Chưa chốt ngày"): đang ở tab chưa chốt ngày mà cột "Lịch hẹn sắp tới" lại có ngày giờ. | Cột lấy lịch hẹn sống gần nhất **trong tương lai** của bệnh nhân, và đang tính cả **chính lượt khám** gắn với phiếu. Lượt khám có giờ hẹn chưa tới (khách đến sớm, hoặc lượt e2e đặt vào cuối ngày) nên hiện ra như đã có lịch hẹn lại. DB xác nhận cả 5 dòng có giờ đều là giờ của chính lượt khám. Sửa `CustomerCareAppService.FillAsync`: bỏ `AppointmentId` của phiếu khỏi cột này (`UpcomingAppointmentsAsync` trả về danh sách theo bệnh nhân; Phân nhóm CSKH vẫn lấy lịch gần nhất). Áp dụng cho mọi tab có phiếu gắn lịch hẹn. `reception-rebook-undated`: trước khi chốt ngày `nextAppointmentAt` = null và dòng hiện "Chưa có lịch"; sau khi chốt ngày, giá trị này bằng đúng lịch hẹn tiếp vừa đặt. |
+
+Kiểm chứng (build production :8080, host :5000 build mới, PostgreSQL thật): `reception-rebook-undated` **3/3**, `cskh-after-treatment` 3/3, `cskh-generated-tabs` 5/5, `patient-care` 2/2, `cskh.spec` 7/8. Test đỏ là "branch-scoped account never sees another branch's care records": danh sách của admin có một phiếu **Sinh nhật** thuộc chi nhánh 2, do `CareTaskSync` tự sinh lúc 17:52 trong lượt hồi quy trước. Test này phụ thuộc dữ liệu DB local, không liên quan đến thay đổi này; chưa xử lý.

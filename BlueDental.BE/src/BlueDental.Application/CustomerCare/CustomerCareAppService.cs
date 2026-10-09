@@ -637,7 +637,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             }
         }
 
-        var nextAppointments = await NextAppointmentsAsync(branchIds, patientIds);
+        var upcoming = await UpcomingAppointmentsAsync(branchIds, patientIds);
 
         for (var i = 0; i < entities.Count; i++)
         {
@@ -663,8 +663,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 ? careServices.GetValueOrDefault(record.CareServiceId.Value)
                 : null;
             // A miss must stay null ("Chưa có lịch hẹn"), not default(DateTimeOffset).
-            dto.NextAppointmentAt = nextAppointments.TryGetValue(record.PatientId, out var next)
-                ? next
+            // The task's own booking is what it is about, not what comes next: a
+            // visit filed as "Hẹn lại - Chưa chốt ngày" before its slot (early
+            // arrival) must not read as already rebooked.
+            dto.NextAppointmentAt = upcoming.TryGetValue(record.PatientId, out var bookings)
+                ? bookings.FirstOrDefault(b => b.Id != record.AppointmentId)?.Start
                 : null;
             dto.ServiceNames = record.StageIds
                 .Select(id => stageServices.TryGetValue(id, out var serviceId)
@@ -696,6 +699,16 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private async Task<Dictionary<Guid, DateTimeOffset>> NextAppointmentsAsync(
         IReadOnlyList<Guid> branchIds, IReadOnlyCollection<Guid> patientIds)
     {
+        return (await UpcomingAppointmentsAsync(branchIds, patientIds))
+            .ToDictionary(p => p.Key, p => p.Value[0].Start);
+    }
+
+    private sealed record UpcomingBooking(Guid Id, DateTimeOffset Start);
+
+    /// <summary>Each patient's live bookings still to come, soonest first.</summary>
+    private async Task<Dictionary<Guid, List<UpcomingBooking>>> UpcomingAppointmentsAsync(
+        IReadOnlyList<Guid> branchIds, IReadOnlyCollection<Guid> patientIds)
+    {
         var now = DateTimeOffset.UtcNow;
         var appointmentQuery = (await _appointmentRepository.GetQueryableAsync())
             .Where(a => patientIds.Contains(a.PatientId));
@@ -704,10 +717,12 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         return appointmentQuery
             .Where(a => a.Slot.Start > now)
             .Where(a => a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.NoShow)
-            .Select(a => new { a.PatientId, a.Slot.Start })
+            .Select(a => new { a.Id, a.PatientId, a.Slot.Start })
             .ToList()
             .GroupBy(a => a.PatientId)
-            .ToDictionary(g => g.Key, g => g.Min(a => a.Start));
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(a => a.Start).Select(a => new UpcomingBooking(a.Id, a.Start)).ToList());
     }
 
     private async Task<List<CareGroupingPatientDto>> BuildGroupingRowsAsync(
