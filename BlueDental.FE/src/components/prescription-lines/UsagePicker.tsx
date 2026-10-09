@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button, Checkbox, Input, Popover } from "antd";
+import { useRef, useState } from "react";
+import { Button, Checkbox, Input, Popover, Tooltip } from "antd";
 import { DownOutlined, ExclamationCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { PRESCRIPTION_USAGE } from "@/types/prescriptionUsage";
@@ -21,6 +21,15 @@ export function UsagePicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<UsageValue>(value);
   const [error, setError] = useState<string | null>(null);
+  const [tipOpen, setTipOpen] = useState(false);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  // The fixed-width column ellipsises a long choice, so the whole of it shows
+  // on hover — but only when it is actually cut off (R-886).
+  const showTip = (next: boolean) => {
+    const text = textRef.current;
+    setTipOpen(next && text !== null && text.scrollWidth > text.clientWidth);
+  };
 
   // Re-opening starts from what is actually stored, not from an abandoned draft.
   const show = (next: boolean) => {
@@ -98,29 +107,37 @@ export function UsagePicker({ value, onChange }: Props) {
     </div>
   );
 
+  // The tooltip hangs on a wrapper so its hover handlers never meet the
+  // popover's click handlers on the same element.
   return (
-    <Popover
-      content={content}
-      trigger="click"
-      placement="bottomLeft"
-      arrow={false}
-      classNames={{ root: "bd-usage-popover" }}
-      open={open}
-      onOpenChange={show}
-    >
-      {/* Looks like the selects beside it — a placeholder until something is
-          picked, a chevron on the right — but opens the checkbox sheet. */}
-      <button
-        type="button"
-        className={["bd-usage-trigger", value.usage === 0 && "bd-usage-trigger--empty", open && "bd-usage-trigger--open"]
-          .filter(Boolean)
-          .join(" ")}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        <span className="bd-usage-trigger-text">{usageLabel(value)}</span>
-        <DownOutlined className="bd-usage-trigger-arrow" aria-hidden="true" />
-      </button>
-    </Popover>
+    <Tooltip title={usageLabel(value)} placement="top" open={tipOpen && !open} onOpenChange={showTip}>
+      <span className="bd-usage-trigger-wrap">
+        <Popover
+          content={content}
+          trigger="click"
+          placement="bottomLeft"
+          arrow={false}
+          classNames={{ root: "bd-usage-popover" }}
+          open={open}
+          onOpenChange={show}
+        >
+          {/* Looks like the selects beside it — a placeholder until something is
+              picked, a chevron on the right — but opens the checkbox sheet. */}
+          <button
+            type="button"
+            className={["bd-usage-trigger", value.usage === 0 && "bd-usage-trigger--empty", open && "bd-usage-trigger--open"]
+              .filter(Boolean)
+              .join(" ")}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+          >
+            <span ref={textRef} className="bd-usage-trigger-text">
+              {usageLabel(value)}
+            </span>
+            <DownOutlined className="bd-usage-trigger-arrow" aria-hidden="true" />
+          </button>
+        </Popover>
+      </span>
+    </Tooltip>
   );
 }

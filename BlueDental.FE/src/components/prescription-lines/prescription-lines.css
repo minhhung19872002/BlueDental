@@ -88,6 +88,11 @@
 /* Same box as the selects beside it in the line table: the dialog's control
    height, a hairline, the control radius; a placeholder tone until a usage is
    picked; primary on hover and while the sheet is open, as a select does. */
+.bd-usage-trigger-wrap {
+  display: block;
+  min-width: 0;
+}
+
 .bd-usage-trigger {
   display: flex;
   align-items: center;
