@@ -167,9 +167,26 @@ function DoctorView({ appointments, slots, focus }: ViewProps) {
   );
 }
 
+/**
+ * Under the diary: a preview session is not on the book yet, so say what the
+ * dashed slot is; otherwise an empty day says so — but never while a picked
+ * session sits on it.
+ */
+function DayNote({ date, isEmpty, focus }: { date: string; isEmpty: boolean; focus: CalendarFocus | null }) {
+  if (focus?.planned) {
+    const when = `${dayjs(focus.start).format("HH:mm")} – ${dayjs(focus.end).format("HH:mm")} ${dayjs(focus.start).format("DD/MM/YYYY")}`;
+    return <div className="mcal-empty mcal-empty--planned">{t("Appointment:MiniCal:PlannedSession", when)}</div>;
+  }
+  if (!isEmpty || focus) return null;
+  return (
+    <div className="mcal-empty">
+      {t("Appointment:MiniCal:NoAppointmentsDay")} {dayjs(date).format("DD/MM/YYYY")}
+    </div>
+  );
+}
+
 export function MiniCalDayView({ appointments, date, subMode, focus = null }: Props) {
   const slots = useMemo(buildSlots, []);
-  const isEmpty = appointments.length === 0;
   const dayFocus = focus && dayjs(focus.start).format("YYYY-MM-DD") === date ? focus : null;
 
   return (
@@ -177,11 +194,7 @@ export function MiniCalDayView({ appointments, date, subMode, focus = null }: Pr
       {subMode === "time"
         ? <TimeView appointments={appointments} slots={slots} focus={dayFocus} />
         : <DoctorView appointments={appointments} slots={slots} focus={dayFocus} />}
-      {isEmpty && (
-        <div className="mcal-empty">
-          {t("Appointment:MiniCal:NoAppointmentsDay")} {dayjs(date).format("DD/MM/")}
-        </div>
-      )}
+      <DayNote date={date} isEmpty={appointments.length === 0} focus={dayFocus} />
     </div>
   );
 }

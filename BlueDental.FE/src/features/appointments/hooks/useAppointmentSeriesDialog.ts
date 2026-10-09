@@ -45,7 +45,7 @@ export function useAppointmentSeriesDialog({ open, editing, booking }: Options) 
     if (!open) setFocus(null);
   }, [open]);
   const selectSession = useCallback((session: SeriesSession) => {
-    setFocus({ start: session.start, end: session.end });
+    setFocus({ start: session.start, end: session.end, planned: session.appointmentId === null });
   }, []);
 
   const create = useCreateAppointmentSeries();

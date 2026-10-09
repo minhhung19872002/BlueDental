@@ -3065,6 +3065,7 @@
     "Appointment:MiniCal:ViewByDoctor": "Xem theo bác sĩ",
     "Appointment:MiniCal:ViewByTime": "Xem theo giờ",
     "Appointment:MiniCal:NoAppointmentsDay": "Chưa có lịch hẹn ngày",
+    "Appointment:MiniCal:PlannedSession": "Buổi hẹn dự kiến {0} — chưa lưu, sẽ được tạo khi bấm Lưu",
     "Appointment:MiniCal:Customer": "Khách hàng",
     "Appointment:Series:Repeat": "Lặp lại lịch hẹn",
     "Appointment:Series:RuleLabel": "Kiểu lặp lại",

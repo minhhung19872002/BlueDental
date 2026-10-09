@@ -99,4 +99,6 @@ export interface SeriesPreviewRequest {
 export interface CalendarFocus {
   start: string;
   end: string;
+  /** A preview session — nothing is on the book for it until the series is saved. */
+  planned: boolean;
 }

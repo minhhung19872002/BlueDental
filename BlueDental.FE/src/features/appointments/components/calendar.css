@@ -1783,6 +1783,11 @@ body.cal-fullscreen .cal-grid-wrap {
   font-size: 13px;
 }
 
+.mcal-empty--planned {
+  padding: 16px;
+  color: var(--bd-blue);
+}
+
 /* ── Mini Cal — Week View ────────────────────────────────────────────── */
 
 .mcal-week {
@@ -2313,5 +2318,6 @@ body.cal-fullscreen .cal-grid-wrap {
   border-radius: var(--bd-radius-sm);
   background: color-mix(in srgb, var(--bd-blue) 8%, transparent);
   pointer-events: none;
-  z-index: 3;
+  /* Above the bookings, below the sticky time header (z-index 2). */
+  z-index: 1;
 }

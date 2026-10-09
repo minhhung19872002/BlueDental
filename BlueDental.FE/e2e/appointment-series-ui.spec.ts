@@ -128,7 +128,18 @@ test.describe("Lặp lại lịch hẹn — hộp thoại Tạo lịch hẹn", (
     const dayRead = page.waitForRequest((r) => r.url().includes(APPOINTMENTS) && r.url().includes(`date=${third}`));
     await rows.nth(2).click();
     await dayRead;
-    await expect(dialog.locator(".mcal-day-focus")).toBeVisible();
+    const focus = dialog.locator(".mcal-day-focus");
+    await expect(focus).toBeVisible();
+    // Not on the book yet: the day says what the dashed slot is, never "Chưa có lịch hẹn".
+    await expect(dialog).toContainText(new RegExp(`Buổi hẹn dự kiến 09:00 – \\d{2}:\\d{2} ${vnDate(third)}`));
+    await expect(dialog).not.toContainText("Chưa có lịch hẹn ngày");
+    // Scrolled, the slot slides under the sticky time header, not over it.
+    const content = dialog.locator(".appt-mini-cal-content");
+    const layers = await content.evaluate((box) => {
+      const z = (sel: string) => Number(getComputedStyle(box.querySelector(sel)!).zIndex);
+      return { header: z(".mcal-day-header"), focus: z(".mcal-day-focus") };
+    });
+    expect(layers.focus).toBeLessThan(layers.header);
 
     await dialog.getByRole("button", { name: "Lưu 6 lịch hẹn" }).click();
     await expect(page.getByText("Đã tạo 6 lịch hẹn")).toBeVisible();
