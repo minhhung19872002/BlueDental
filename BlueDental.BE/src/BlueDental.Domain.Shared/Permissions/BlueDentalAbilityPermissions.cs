@@ -959,6 +959,16 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.payroll.export";
     }
 
+    /// <summary>Subject <c>orgChart</c> — Sơ đồ tổ chức (BlueDental-local, F-67).</summary>
+    public static class OrgChart
+    {
+        public const string Subject = "orgChart";
+        public const string Read = "BlueDental.orgChart.read";
+        public const string Create = "BlueDental.orgChart.create";
+        public const string Update = "BlueDental.orgChart.update";
+        public const string Delete = "BlueDental.orgChart.delete";
+    }
+
     /// <summary>Subject <c>patientGroup</c> — Hồ sơ nhóm (BlueDental-local, 4.10).</summary>
     public static class PatientGroup
     {

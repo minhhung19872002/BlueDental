@@ -61,6 +61,8 @@ export interface GetStaffListInput {
   availableOn?: string;
   /** Only staff ticked for this role on the staff form — see `STAFF_ROLE`. */
   role?: StaffRole;
+  /** Lịch làm việc / Chấm công: only staff the org chart lets the caller see (F-67). */
+  scheduleScope?: boolean;
 }
 
 export interface CreateStaffInput {

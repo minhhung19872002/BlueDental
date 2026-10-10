@@ -85,6 +85,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
     maxResultCount: 100,
     isActive: true,
     branchId: branchFilter,
+    scheduleScope: true,
   });
   const records = useMemo(() => {
     const tkItems = data?.items ?? [];

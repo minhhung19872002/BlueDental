@@ -2,23 +2,25 @@ import { PageTabBar } from "@/components/PageTabBar";
 import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 
-export type StaffTabKey = "list" | "penalties" | "payroll";
+export type StaffTabKey = "list" | "orgChart" | "penalties" | "payroll";
 
 interface Props {
   activeKey: StaffTabKey;
 }
 
 /**
- * Danh sách nhân viên | Chế tài | Bảng lương — routes under /staff, each behind its own
+ * Danh sách nhân viên | Sơ đồ tổ chức | Chế tài | Bảng lương — routes under /staff, each behind its own
  * subject, so a tab the account cannot read is absent rather than refused.
  */
 export function StaffTabBar({ activeKey }: Props) {
   const staff = useAbility("staff");
+  const orgChart = useAbility("orgChart");
   const penalty = useAbility("staffPenalty");
   const payroll = useAbility("payroll");
 
   const tabs = [
     staff.canRead && { key: "list", label: t("Staff:Tab:List"), to: "/staff" },
+    orgChart.canRead && { key: "orgChart", label: t("Staff:Tab:OrgChart"), to: "/staff/org-chart" },
     penalty.canRead && { key: "penalties", label: t("Staff:Tab:Penalties"), to: "/staff/penalties" },
     payroll.canRead && { key: "payroll", label: t("Staff:Tab:Payroll"), to: "/staff/payroll" },
   ].filter((tab) => tab !== false);
