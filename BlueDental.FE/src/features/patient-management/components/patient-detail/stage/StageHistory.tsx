@@ -244,11 +244,13 @@ export function StageHistory({
                         {/* Công đoạn — the service steps this công đoạn covers,
                             listed as plain text: they are chosen on the form,
                             not ticked off here. */}
-                        <ul className="pd-stage-histstage">
-                          {namedSteps(stage.serviceItems).map((step) => (
-                            <li key={step.id}>{step.name}</li>
-                          ))}
-                        </ul>
+                        <div className="pd-stage-histstage">
+                          <ul>
+                            {namedSteps(stage.serviceItems).map((step) => (
+                              <li key={step.id}>{step.name}</li>
+                            ))}
+                          </ul>
+                        </div>
 
                         <div className="pd-stage-rowactions">
                           {/* Turns both ways: the reference keeps a
