@@ -2215,7 +2215,7 @@ test.describe("Bệnh nhân", () => {
     await expect(dialog.locator(".pd-stage-histhead > div")).toHaveText([
       "Ngày",
       "Dịch vụ & răng",
-      "Ghi chú",
+      "Nội dung điều trị",
       "Công đoạn",
       "Hành động",
     ]);
@@ -2640,7 +2640,7 @@ test.describe("Bệnh nhân", () => {
     await page.emulateMedia({ media: "screen" });
   });
 
-  test("Danh sách công đoạn picks the service's steps, then ticks them off from the row", async ({
+  test("Danh sách công đoạn picks the service's steps, and the row lists them as text", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1800, height: 950 });
@@ -2746,44 +2746,24 @@ test.describe("Bệnh nhân", () => {
       "a chosen step is stored unticked — it is not done yet",
     ).toBe(false);
 
-    // The row shows it, and the checkbox there turns **both** ways, each with
-    // the reference's own toast. Addressed by the id the save answered with:
-    // a line can hold several chains, so "the first row" is not reliably it.
+    // The row lists the chosen step as plain text — no checkbox: steps are
+    // picked on the form, the history only reads them back. Addressed by the
+    // id the save answered with: a line can hold several chains.
     const row = dialog.locator(`.pd-stage-histrow[data-stage-id="${madeStage.id}"]`);
-    const rowBoxes = row.locator(".pd-stage-histstage .ant-checkbox-wrapper");
-    await expect(rowBoxes).toHaveCount(1);
-    await expect(rowBoxes.first()).toContainText(target!.steps[0]);
-    await expect(row.locator(".pd-stage-histstage .ant-checkbox-checked")).toHaveCount(0);
+    const rowSteps = row.locator(".pd-stage-histstage li");
+    await expect(rowSteps).toHaveCount(1);
+    await expect(rowSteps.first()).toHaveText(target!.steps[0]);
+    await expect(row.locator(".pd-stage-histstage .ant-checkbox")).toHaveCount(0);
 
-    const ticked = page.waitForResponse(
-      (res) => res.url().includes("/service-items") && res.request().method() === "PUT",
-    );
-    await rowBoxes.first().click();
-    const afterTick = await (await ticked).json();
-    expect(afterTick.serviceItems[0].isCompleted).toBe(true);
-    expect(afterTick.serviceItems[0].completedAt, "ticking stamps when").not.toBeNull();
-    expect(afterTick.serviceItems[0].staffId, "ticking stamps who").not.toBeNull();
-    await expect(page.getByText("Cập nhật thành công")).toBeVisible();
-    await expect(row.locator(".pd-stage-histstage .ant-checkbox-checked")).toHaveCount(1);
-
-    const unticked = page.waitForResponse(
-      (res) => res.url().includes("/service-items") && res.request().method() === "PUT",
-    );
-    await rowBoxes.first().click();
-    const afterUntick = await (await unticked).json();
-    expect(afterUntick.serviceItems[0].isCompleted).toBe(false);
-    expect(afterUntick.serviceItems[0].completedAt, "unticking clears when").toBeNull();
-    await expect(row.locator(".pd-stage-histstage .ant-checkbox-checked")).toHaveCount(0);
-
-    // And it survives a reload, so the tick really reached the database.
+    // And it survives a reload, so the step really reached the database.
     await page.reload();
     await widenTreatmentTable(page);
     const reopened = await openStageDialog(page, target!.serviceId);
     await expect(
       reopened
         .locator(`.pd-stage-histrow[data-stage-id="${madeStage.id}"]`)
-        .locator(".pd-stage-histstage .ant-checkbox"),
-    ).toHaveCount(1);
+        .locator(".pd-stage-histstage li"),
+    ).toHaveText([target!.steps[0]]);
   });
 
   test("the công đoạn form lists the pictures it is holding, not just a count", async ({

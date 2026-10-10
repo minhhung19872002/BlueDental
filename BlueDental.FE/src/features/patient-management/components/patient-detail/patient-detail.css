@@ -4142,16 +4142,13 @@
   color: var(--bd-ink);
 }
 .pd-stage-histstage {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   color: var(--bd-ink);
-  font-weight: 600;
-}
-/* Inside the history row the heading is redundant — the column is already
-   called Công đoạn — so only the boxes show. */
-.pd-stage-histstage .pd-stage-list {
-  display: none;
-}
-.pd-stage-histstage .ant-checkbox-wrapper {
-  font-weight: 400;
 }
 .pd-stage-rowactions {
   display: grid;

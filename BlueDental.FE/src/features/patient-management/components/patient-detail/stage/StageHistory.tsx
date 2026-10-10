@@ -5,7 +5,6 @@ import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
-import { StageStepList } from "./StageStepList";
 import { StageWarrantyButton } from "./StageWarrantyButton";
 import {
   namedSteps,
@@ -28,11 +27,8 @@ interface Props {
   savingNoteFor: string | null;
   uploadingFor: string | null;
   completingId: string | null;
-  /** The công đoạn whose steps are mid-request, so its list is disabled. */
-  togglingStepFor: string | null;
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
   onComplete: (stage: TreatmentStageDto) => void;
-  onToggleStep: (stage: TreatmentStageDto, stepId: string, next: boolean) => void;
   onUpload: (stage: TreatmentStageDto) => void;
   onCreateLabo: (stage: TreatmentStageDto) => void;
   /** Bảo hành, offered in place of Tạo Labo once a công đoạn is finished. */
@@ -148,10 +144,8 @@ export function StageHistory({
   savingNoteFor,
   uploadingFor,
   completingId,
-  togglingStepFor,
   onSaveNote,
   onComplete,
-  onToggleStep,
   onUpload,
   onCreateLabo,
   onWarranty,
@@ -172,7 +166,7 @@ export function StageHistory({
             <div className="pd-stage-histhead">
               <div>{t("Patient:Misc:Date")}</div>
               <div>{t("Patient:Plan:ServiceAndTooth")}</div>
-              <div>{t("Patient:Misc:Note")}</div>
+              <div>{t("Patient:Stage:TreatmentContent")}</div>
               <div>{t("Patient:Stage:Title")}</div>
               <div>{t("Patient:Misc:Actions")}</div>
             </div>
@@ -248,19 +242,13 @@ export function StageHistory({
                         />
 
                         {/* Công đoạn — the service steps this công đoạn covers,
-                            ticked off here as they are done. The reference puts
-                            the checkboxes in this column, not the stage name. */}
-                        <div className="pd-stage-histstage">
-                          <StageStepList
-                            steps={namedSteps(stage.serviceItems)}
-                            checked={stage.serviceItems
-                              .filter((item) => item.isCompleted)
-                              .map((item) => item.catalogServiceStageId)}
-                            onToggle={(stepId, next) => void onToggleStep(stage, stepId, next)}
-                            // A finished công đoạn's steps are settled.
-                            busy={togglingStepFor === stage.id || done || !live}
-                          />
-                        </div>
+                            listed as plain text: they are chosen on the form,
+                            not ticked off here. */}
+                        <ul className="pd-stage-histstage">
+                          {namedSteps(stage.serviceItems).map((step) => (
+                            <li key={step.id}>{step.name}</li>
+                          ))}
+                        </ul>
 
                         <div className="pd-stage-rowactions">
                           {/* Turns both ways: the reference keeps a
