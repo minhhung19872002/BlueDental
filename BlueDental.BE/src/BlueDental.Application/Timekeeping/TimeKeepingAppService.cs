@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Timekeeping.Values;
 using BlueDental.Permissions;
+using BlueDental.Staff;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -25,17 +26,20 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly IRepository<StaffBranchAssignment, Guid> _assignmentRepository;
+    private readonly OrgChartScopeResolver _scopeResolver;
 
     public TimeKeepingAppService(
         IRepository<TimeKeepingRecord, Guid> repository,
         IIdentityUserRepository userRepository,
         ICurrentClinicBranchResolver branchResolver,
-        IRepository<StaffBranchAssignment, Guid> assignmentRepository)
+        IRepository<StaffBranchAssignment, Guid> assignmentRepository,
+        OrgChartScopeResolver scopeResolver)
     {
         _repository = repository;
         _userRepository = userRepository;
         _branchResolver = branchResolver;
         _assignmentRepository = assignmentRepository;
+        _scopeResolver = scopeResolver;
     }
 
     /// <summary>
@@ -103,6 +107,12 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             .Select(u => u.Id)
             .ToHashSet();
 
+        // Sơ đồ tổ chức (F-67): a dentist counts only the people they may see.
+        if (await _scopeResolver.VisibleScheduleStaffAsync() is { } visible)
+        {
+            eligibleStaffIds.IntersectWith(visible);
+        }
+
         var query = await _repository.GetQueryableAsync();
         var records = query
             .Where(x => branchIds.Contains(x.ClinicBranchId) && x.WorkDate == workDate)
@@ -125,6 +135,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> OpenWorkDayAsync(OpenWorkDayDto input)
     {
+        await _scopeResolver.EnsureVisibleAsync([input.StaffId]);
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         if (input.WorkDate != ClinicToday &&
             !await AuthorizationService.IsGrantedAsync(BlueDentalAbilityPermissions.WorkSchedule.AttendanceOthers))
@@ -458,6 +469,9 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
                 BlueDentalDomainErrorCodes.Authorization.CrossBranchAccess,
                 "Record does not belong to the current branch.");
         }
+
+        // Out of sight on the Sơ đồ tổ chức means out of reach too (F-67).
+        await _scopeResolver.EnsureVisibleAsync([record.StaffId]);
         return record;
     }
 
@@ -508,6 +522,11 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         var query = await _repository.GetQueryableAsync();
 
         query = query.Where(x => branchIds.Contains(x.ClinicBranchId));
+        if (await _scopeResolver.VisibleScheduleStaffAsync() is { } visible)
+        {
+            var visibleIds = visible.ToList();
+            query = query.Where(x => visibleIds.Contains(x.StaffId));
+        }
         if (input.StaffId.HasValue)
             query = query.Where(x => x.StaffId == input.StaffId.Value);
         if (input.FromDate.HasValue)

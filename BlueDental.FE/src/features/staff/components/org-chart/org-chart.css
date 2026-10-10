@@ -1,0 +1,1078 @@
+/* Nhân viên → Sơ đồ tổ chức (/staff/org-chart). Tokens come from :root in src/styles/index.css. */
+
+/* ── Kind colours as on the BA mock: chief indigo, department teal, team orange ── */
+.org-node--root,
+.org-legend__item--root,
+.org-dot--root,
+.org-initials--root {
+  --org-kind: var(--bd-blue-dark);
+  --org-kind-pale: var(--bd-blue-pale);
+}
+
+.org-node--dept,
+.org-legend__item--dept,
+.org-dot--dept,
+.org-initials--dept {
+  --org-kind: var(--bd-teal);
+  --org-kind-pale: var(--bd-info-pale);
+}
+
+.org-node--team,
+.org-legend__item--team,
+.org-dot--team,
+.org-initials--team {
+  --org-kind: var(--bd-orange);
+  --org-kind-pale: var(--bd-orange-pale);
+}
+
+.org-muted {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.org-nowrap {
+  white-space: nowrap;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+.org-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.org-toolbar__search {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.org-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ── Layout: tree on the left, detail panel on the right ──────────────────── */
+.org-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 16px;
+}
+
+/* ── Tree card ────────────────────────────────────────────────────────────── */
+.org-tree-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.org-tree-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.org-tree-card__title {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.org-tree-card__miss {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-amber-pale);
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+
+.org-tree-card__scroll {
+  min-height: 240px;
+  padding: 8px 4px 16px;
+  overflow-x: auto;
+}
+
+.org-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.org-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-legend__item::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--org-kind);
+  content: "";
+}
+
+/* Classic nested-list org chart: each child draws half of the bar above it. */
+.org-tree,
+.org-tree__children {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.org-tree {
+  width: max-content;
+  min-width: 100%;
+}
+
+.org-tree__children {
+  position: relative;
+  padding-top: 20px;
+}
+
+.org-tree__children::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 20px;
+  border-left: 1px solid var(--bd-border);
+  content: "";
+}
+
+.org-tree__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 8px 0;
+}
+
+.org-tree > .org-tree__item {
+  padding-top: 0;
+}
+
+.org-tree__children > .org-tree__item::before,
+.org-tree__children > .org-tree__item::after {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 20px;
+  border-top: 1px solid var(--bd-border);
+  content: "";
+}
+
+.org-tree__children > .org-tree__item::before {
+  right: 50%;
+}
+
+.org-tree__children > .org-tree__item::after {
+  left: 50%;
+  border-left: 1px solid var(--bd-border);
+}
+
+.org-tree__children > .org-tree__item:first-child::before,
+.org-tree__children > .org-tree__item:last-child::after {
+  border-top: 0;
+}
+
+.org-tree__children > .org-tree__item:only-child::before {
+  display: none;
+}
+
+.org-tree__children > .org-tree__item:only-child {
+  padding-top: 0;
+}
+
+.org-tree__children > .org-tree__item:only-child::after {
+  border-top: 0;
+  height: 0;
+}
+
+/* ── Node: built around the head, as on the BA mock ───────────────────────── */
+.org-node {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 200px;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.org-node:hover {
+  box-shadow: var(--bd-shadow-lift);
+}
+
+.org-node:focus-visible {
+  outline: none;
+  box-shadow: var(--bd-shadow-focus);
+}
+
+.org-node--selected {
+  border-color: var(--org-kind);
+  box-shadow: 0 0 0 3px var(--org-kind-pale), var(--bd-shadow-lift);
+}
+
+.org-node--match {
+  background: var(--bd-amber-pale);
+}
+
+.org-node--dim {
+  opacity: 0.45;
+}
+
+.org-node--root {
+  width: 210px;
+}
+
+.org-node__label {
+  overflow: hidden;
+  color: var(--org-kind);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-node--dept .org-node__label {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.org-node--team .org-node__label {
+  font-size: 12px;
+}
+
+.org-node__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.org-node__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.org-node__head-name {
+  overflow: hidden;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-node__head-empty {
+  color: var(--bd-red);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 18px;
+}
+
+.org-node__role {
+  color: var(--bd-sub);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.org-node--root .org-node__role {
+  color: var(--org-kind);
+}
+
+.org-node__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* The app keeps buttons on one line; the head-count and the pill may wrap inside the node. */
+  white-space: normal;
+}
+
+.org-node__faces {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.org-node__more {
+  margin-left: 2px;
+  color: var(--bd-sub);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.org-node__size {
+  min-width: 0;
+  color: var(--bd-sub);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.org-node__scope {
+  flex: 0 1 auto;
+  max-width: 55%;
+  padding: 2px 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--org-kind-pale);
+  color: var(--org-kind);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/* ── Initials, people, tags, dots, pills ──────────────────────────────────── */
+.org-initials {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bd-bg-soft);
+  color: var(--bd-sub);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.org-initials--sm {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--bd-line);
+  font-size: 8px;
+}
+
+.org-initials--md {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.org-initials--lg {
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+}
+
+.org-initials--dept,
+.org-initials--team {
+  background: var(--org-kind-pale);
+  color: var(--org-kind);
+}
+
+.org-initials--root {
+  background: var(--org-kind);
+  color: var(--bd-card);
+}
+
+.org-initials--empty {
+  border: 1px dashed var(--bd-border);
+  background: transparent;
+}
+
+.org-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 0;
+}
+
+.org-person__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.org-person__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.org-person__sub {
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-person__note {
+  color: var(--bd-amber);
+  font-size: 12px;
+}
+
+.org-tag {
+  padding: 0 6px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.org-tag--head {
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
+}
+
+.org-tag--dentist {
+  background: var(--bd-info-pale);
+  color: var(--bd-info);
+}
+
+.org-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--org-kind);
+}
+
+.org-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.org-pill--green {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.org-pill--blue {
+  background: var(--bd-info-pale);
+  color: var(--bd-info);
+}
+
+.org-pill--red {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+.org-pill--amber {
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
+}
+
+.org-pill--purple {
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+
+/* ── Detail panel ─────────────────────────────────────────────────────────── */
+/* The card never runs past the screen: its body scrolls and the action buttons
+   stay at the foot of the card, as on the BA mock. */
+.org-detail {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--bd-topbar-height) - 32px);
+  padding-bottom: 0;
+}
+
+.org-detail__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  margin-right: -8px;
+  padding-right: 8px;
+  padding-bottom: 14px;
+  overflow-y: auto;
+}
+
+.org-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.org-detail__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.org-detail__name {
+  margin: 0;
+  overflow: hidden;
+  color: var(--bd-title);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-detail__sub {
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-detail__unit {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.org-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.org-detail__section h3 {
+  margin: 0 0 2px;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Plain buttons at the foot of the card (BA mock), sharing its width equally. */
+.org-detail__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.org-detail__actions .ant-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.org-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.org-facts dt {
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-facts dd {
+  margin: 2px 0 0;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.org-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+}
+
+.org-scope__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.org-scope__head h3 {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.org-scope__badge {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.org-scope__intro {
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-scope__rows {
+  margin: 0;
+}
+
+.org-scope__rows > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--bd-line-soft);
+  font-size: 13px;
+}
+
+.org-scope__rows dt {
+  color: var(--bd-ink);
+}
+
+.org-scope__rows dd {
+  margin: 0;
+  color: var(--bd-title);
+  font-weight: 700;
+  text-align: right;
+}
+
+.org-scope__sub {
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--bd-line-soft);
+  background: transparent;
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.org-child:hover .org-child__name {
+  color: var(--bd-primary);
+}
+
+.org-child__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-child__unit {
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--bd-sub);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Unassigned strip: cream band along the bottom of the tree card ───────── */
+.org-unassigned {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -20px -20px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--bd-line);
+  border-radius: 0 0 var(--bd-radius-card) var(--bd-radius-card);
+  background: var(--bd-amber-pale);
+}
+
+.org-unassigned__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.org-unassigned__title {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.org-unassigned__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.org-unassigned__note {
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+.org-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 12px;
+}
+
+.org-chip--more {
+  color: var(--bd-sub);
+  font-weight: 600;
+}
+
+/* ── Unit dialog form ─────────────────────────────────────────────────────── */
+.org-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+.org-form--single {
+  grid-template-columns: 1fr;
+}
+
+.org-form__wide {
+  grid-column: 1 / -1;
+}
+
+.org-form__error {
+  margin-bottom: 12px;
+}
+
+.org-form__error-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.org-kind-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.org-kind-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.org-kind-card:hover {
+  border-color: var(--bd-primary);
+}
+
+.org-kind-card:focus-visible {
+  outline: none;
+  box-shadow: var(--bd-shadow-focus);
+}
+
+.org-kind-card--active {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  box-shadow: 0 0 0 1px var(--bd-primary);
+}
+
+.org-kind-card__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+  color: var(--bd-primary);
+  font-size: 16px;
+}
+
+.org-kind-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+.org-kind-card__text strong {
+  color: var(--bd-title);
+  font-size: 14px;
+}
+
+.org-members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.org-members__list {
+  max-height: 240px;
+  padding: 0 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  overflow-y: auto;
+}
+
+.org-members__list .org-person + .org-person {
+  border-top: 1px solid var(--bd-line-soft);
+}
+
+.org-members__list > .org-muted {
+  padding: 10px 0;
+}
+
+.org-members__lock {
+  color: var(--bd-muted);
+}
+
+.org-members__picker {
+  width: 100%;
+}
+
+.org-preview {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-info-pale);
+  font-size: 13px;
+}
+
+.org-preview__title {
+  margin: 0 0 6px;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.org-preview__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--bd-ink);
+}
+
+/* ── Change history dialog ────────────────────────────────────────────────── */
+.org-history-modal {
+  max-width: calc(100vw - 32px);
+}
+
+.org-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.org-history__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.org-history__filters .ant-input-affix-wrapper,
+.org-history__filters .ant-select,
+.org-history__filters .ant-picker {
+  height: 36px;
+}
+
+.org-history__search {
+  flex: 1 1 240px;
+}
+
+.org-history__action {
+  flex: 0 1 200px;
+}
+
+.org-history__range {
+  flex: 0 1 280px;
+}
+
+.org-history__table .ant-table-thead > tr > th {
+  height: 40px;
+  background: var(--bd-bg-soft);
+}
+
+.org-history-unit,
+.org-history-actor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.org-history-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 8px;
+}
+
+.org-history-diff__row {
+  display: grid;
+  grid-template-columns: 152px 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.org-history-diff__field {
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.org-history-diff__box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-left: 3px solid var(--bd-border);
+  border-radius: 4px;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.org-history-diff__box--before {
+  border-left-color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.org-history-diff__box--after {
+  border-left-color: var(--bd-green);
+  background: var(--bd-green-pale);
+}
+
+.org-history-diff__tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.org-history-diff__box--before .org-history-diff__tag {
+  color: var(--bd-red);
+}
+
+.org-history-diff__box--after .org-history-diff__tag {
+  color: var(--bd-green);
+}
+
+.org-history-diff__arrow {
+  color: var(--bd-muted);
+}
+
+.org-history-diff__empty {
+  padding: 4px 8px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 1280px) {
+  .org-layout {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+@media (max-width: 1100px) {
+  /* minmax(0, …): a wide tree scrolls inside its card instead of stretching the page. */
+  .org-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .org-detail {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .org-toolbar__search {
+    max-width: none;
+  }
+
+  .org-toolbar__actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .org-unassigned {
+    margin: 0 -16px -16px;
+    padding: 14px 16px;
+  }
+
+  .org-unassigned > .ant-btn {
+    width: 100%;
+  }
+
+  .org-form,
+  .org-kind-cards,
+  .org-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .org-history-diff__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .org-history-diff__arrow {
+    transform: rotate(90deg);
+    justify-self: start;
+  }
+}

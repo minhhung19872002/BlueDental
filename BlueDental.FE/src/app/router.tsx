@@ -106,6 +106,12 @@ const MarketingHomeRedirect = lazy(() =>
   })),
 );
 
+const StaffOrgChartPage = lazy(() =>
+  import("@/features/staff/pages/StaffOrgChartPage").then((m) => ({
+    default: m.StaffOrgChartPage,
+  })),
+);
+
 const StaffPayrollPage = lazy(() =>
   import("@/features/staff/pages/StaffPayrollPage").then((m) => ({
     default: m.StaffPayrollPage,
@@ -433,6 +439,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="staffPenalty">
             <StaffPenaltyPage />
+          </G>
+        ),
+      },
+      {
+        path: "staff/org-chart",
+        element: (
+          <G k="orgChart">
+            <StaffOrgChartPage />
           </G>
         ),
       },

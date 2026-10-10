@@ -837,6 +837,44 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PayrollPeriodId, x.StaffId }).IsUnique();
         });
 
+        builder.Entity<Staff.OrgUnit>(entity =>
+        {
+            entity.ToTable("bd_org_units");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(Staff.OrgUnit.MaxCodeLength).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(Staff.OrgUnit.MaxNameLength).IsRequired();
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Ignore(x => x.IsRoot);
+            entity.HasOne<Staff.OrgUnit>().WithMany().HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.ParentId);
+            // Each person heads at most one unit.
+            entity.HasIndex(x => x.HeadStaffId).IsUnique().HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"IsDeleted\" = false");
+        });
+
+        builder.Entity<Staff.OrgUnitMember>(entity =>
+        {
+            entity.ToTable("bd_org_unit_members");
+            entity.ConfigureByConvention();
+            entity.HasOne<Staff.OrgUnit>().WithMany().HasForeignKey(x => x.OrgUnitId).OnDelete(DeleteBehavior.Cascade);
+            // One đơn vị chính per person.
+            entity.HasIndex(x => x.StaffId).IsUnique();
+            entity.HasIndex(x => x.OrgUnitId);
+        });
+
+        builder.Entity<Staff.OrgUnitChangeLog>(entity =>
+        {
+            entity.ToTable("bd_org_unit_change_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.OrgUnitName).HasMaxLength(Staff.OrgUnit.MaxNameLength).IsRequired();
+            entity.Property(x => x.OrgUnitKind).HasConversion<short>();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.ChangesJson).IsRequired();
+            entity.Property(x => x.ActorName).HasMaxLength(256);
+            entity.HasIndex(x => x.OccurredAt);
+            entity.HasIndex(x => x.OrgUnitId);
+        });
+
         builder.Entity<LaboMaterial>(entity =>
         {
             entity.ToTable("bd_labo_materials");

@@ -64,6 +64,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
     maxResultCount: 200,
     isActive: true,
     branchId: branchFilter,
+    scheduleScope: true,
   });
 
   const today = dayjs().format("YYYY-MM-DD");

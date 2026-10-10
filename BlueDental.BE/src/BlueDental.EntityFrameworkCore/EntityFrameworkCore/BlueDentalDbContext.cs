@@ -155,6 +155,11 @@ public class BlueDentalDbContext :
     public DbSet<Staff.StaffCompensation> StaffCompensations { get; set; }
     public DbSet<Staff.PayrollPeriod> PayrollPeriods { get; set; }
 
+    // Staff — Sơ đồ tổ chức
+    public DbSet<Staff.OrgUnit> OrgUnits { get; set; }
+    public DbSet<Staff.OrgUnitMember> OrgUnitMembers { get; set; }
+    public DbSet<Staff.OrgUnitChangeLog> OrgUnitChangeLogs { get; set; }
+
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
     public DbSet<CareContactLog> CareContactLogs { get; set; }

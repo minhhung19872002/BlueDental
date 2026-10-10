@@ -474,6 +474,11 @@ internal static class PermissionTreeBuilder
             Leaf("payroll.delete", "BE:Common:Delete"),
             Leaf("payroll.approve", "BE:Perm:FinalizePayroll"),
             Leaf("payroll.export", "BE:Perm:Export")),
+        Group("orgChart", "BE:Perm:OrgChart",
+            Leaf("orgChart.read", "Xem"),
+            Leaf("orgChart.create", "BE:Common:Add"),
+            Leaf("orgChart.update", "BE:Common:EditVerb"),
+            Leaf("orgChart.delete", "BE:Common:Delete")),
 
         // BlueDental-local: Marketing → Ticket (F-55).
         Group("marketing-group", "BE:Perm:Marketing",

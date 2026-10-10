@@ -101,6 +101,7 @@ export const ROUTE_PERMISSIONS = {
   staff: readOf(["staff"]),
   staffPenalty: readOf(["staffPenalty"]),
   payroll: readOf(["payroll"]),
+  orgChart: readOf(["orgChart"]),
   operations: readOf([
     ...OPERATIONS_DEPARTMENTS.flatMap((department) =>
       OPERATIONS_SECTIONS.map((section) => `operations${department}${section}`),

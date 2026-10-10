@@ -28,7 +28,10 @@ public class StaffAppService(
     IRepository<StaffBranchAssignment, Guid> assignmentRepository,
     IRepository<TimeKeepingRecord, Guid> timeKeepingRepository,
     ICurrentClinicBranchResolver branchResolver,
-    IBlobContainer blobContainer) : ApplicationService, IStaffAppService
+    IBlobContainer blobContainer,
+    OrgChartScopeResolver scopeResolver,
+    IRepository<OrgUnit, Guid> orgUnitRepository,
+    IRepository<OrgUnitMember, Guid> orgMemberRepository) : ApplicationService, IStaffAppService
 {
     private const long MaxAvatarBytes = 5 * 1024 * 1024; // 5 MB
     private static readonly HashSet<string> AllowedContentTypes = ["image/png", "image/jpeg", "image/webp"];
@@ -58,9 +61,15 @@ public class StaffAppService(
             ? await GetDayOffStaffIdsAsync(input.AvailableOn.Value, input.BranchId)
             : null;
 
+        // Lịch làm việc / Chấm công rows follow the Sơ đồ tổ chức (F-67).
+        var scheduleStaffIds = input.ScheduleScope == true
+            ? await scopeResolver.VisibleScheduleStaffAsync()
+            : null;
+
         var term = input.Filter?.Trim();
         var needsInMemoryFilter = branchStaffIds != null || offStaffIds != null
-            || input.IsActive.HasValue || !term.IsNullOrEmpty() || input.Role.HasValue;
+            || input.IsActive.HasValue || !term.IsNullOrEmpty() || input.Role.HasValue
+            || scheduleStaffIds != null;
 
         var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
@@ -90,6 +99,11 @@ public class StaffAppService(
         if (input.Role.HasValue)
         {
             users = users.Where(u => FillsRole(u, input.Role.Value)).ToList();
+        }
+
+        if (scheduleStaffIds != null)
+        {
+            users = users.Where(u => scheduleStaffIds.Contains(u.Id)).ToList();
         }
 
         var totalCount = users.Count;
@@ -272,10 +286,32 @@ public class StaffAppService(
         }
 
         var user = await userRepository.GetAsync(id);
+        await LeaveOrgChartAsync(id);
 
         // Leaving the assignments behind would silently re-scope a recreated user.
         await ReplaceBranchAssignmentsAsync(id, []);
         (await userManager.DeleteAsync(user)).CheckErrors();
+    }
+
+    /// <summary>
+    /// Sơ đồ tổ chức (F-67): every Phòng ban / Team must keep a head, so a head is
+    /// refused until someone replaces them; the Tổng giám đốc seat is simply emptied.
+    /// </summary>
+    private async Task LeaveOrgChartAsync(Guid staffId)
+    {
+        var headed = await orgUnitRepository.FirstOrDefaultAsync(u => u.HeadStaffId == staffId);
+        if (headed is { IsRoot: false })
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.OrgChart.StaffHeadsUnit).WithData("name", headed.Name);
+        }
+
+        if (headed is not null)
+        {
+            headed.ChangeRootHead(null);
+            await orgUnitRepository.UpdateAsync(headed, autoSave: true);
+        }
+
+        await orgMemberRepository.DeleteAsync(m => m.StaffId == staffId, autoSave: true);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Staff.Update)]

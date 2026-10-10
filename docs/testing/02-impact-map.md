@@ -99,6 +99,9 @@ What to retest when a shared piece changes. Levels are defined in
 | `Visit` / `VisitAppService` | 2 | F-11 |
 | `Appointment` / appointment adapters | 3 | F-10, and the patient Lịch hẹn tab |
 | `StaffAppService` / identity | 3 | F-25, and every screen that picks a dentist |
+| `Staff/OrgUnit*`, `OrgChartAppService`, `features/staff/components/org-chart/*`, `useOrgChartActions` | 2 | F-67 `org-chart-api` + `org-chart` |
+| `OrgChartScopeResolver`, `StaffAppService.GetListAsync` `ScheduleScope`, the scope checks in `TimeKeepingAppService` (list, open work day, single record) | 3 | F-67 `org-chart-api` (scope test), then F-03 `timekeeping*`, `work-schedule-own-dayoff`, `staff-day-off-api` — a wrong scope empties Lịch làm việc / Chấm công for every dentist |
+| `StaffAppService.DeleteAsync` (`LeaveOrgChartAsync`, `OrgChart:0013`) | 2 | F-67 `org-chart-api` test 2, F-25 `staff`, and every spec whose cleanup deletes run staff (`timekeeping*`, `doctor-day-off-pickers`, `staff-penalty*`) — a head left in a unit makes their cleanup fail |
 | `ClinicReportAppService` | 2 | F-17, F-18 |
 | `TelesaleReportAppService` / `CareReportAppService` | 2 | F-59 |
 | `CareRecordWindow` (cửa sổ ngày của từng loại CSKH) | 3 | F-37/CSKH board `/cskh-grouping`, F-59 — board và báo cáo đọc cùng một cửa sổ; đổi nó thì chạy `e2e/cskh*` + `report-customer` |

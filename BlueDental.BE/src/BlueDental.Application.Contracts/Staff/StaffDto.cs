@@ -100,6 +100,12 @@ public class GetStaffListInput : PagedAndSortedResultRequestDto
     /// staff form. Staff with none of the boxes ticked never qualify.
     /// </summary>
     public StaffPickerRole? Role { get; set; }
+
+    /// <summary>
+    /// Lịch làm việc / Chấm công: keep only the people the caller may see on
+    /// the Sơ đồ tổ chức (F-67). Other screens leave it off.
+    /// </summary>
+    public bool? ScheduleScope { get; set; }
 }
 
 /// <summary>Which people a staff picker offers (owner, 2026-10-05).</summary>

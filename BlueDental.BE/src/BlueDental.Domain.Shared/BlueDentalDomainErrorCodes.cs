@@ -448,6 +448,33 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateViolationTypeName = "BlueDental:StaffPenalty:0008";
     }
 
+    /// <summary>Nhân sự → Sơ đồ tổ chức (F-67). BlueDental-local.</summary>
+    public static class OrgChart
+    {
+        /// <summary>Another unit already carries the name — case and stray spaces aside, accents kept.</summary>
+        public const string DuplicateName = "BlueDental:OrgChart:0001";
+        /// <summary>Another unit already carries the code.</summary>
+        public const string DuplicateCode = "BlueDental:OrgChart:0002";
+        /// <summary>A Phòng ban sits under the root; a Team under a Phòng ban or the root.</summary>
+        public const string InvalidParent = "BlueDental:OrgChart:0003";
+        /// <summary>Every unit below the root needs a Trưởng đơn vị.</summary>
+        public const string HeadRequired = "BlueDental:OrgChart:0004";
+        /// <summary>One person heads at most one unit.</summary>
+        public const string AlreadyHeadsUnit = "BlueDental:OrgChart:0005";
+        /// <summary>The root (Tổng giám đốc) cannot be deleted, renamed or moved.</summary>
+        public const string RootLocked = "BlueDental:OrgChart:0006";
+        /// <summary>A Phòng ban that still has teams under it.</summary>
+        public const string HasChildren = "BlueDental:OrgChart:0007";
+        /// <summary>A member who heads another unit cannot be moved out of it.</summary>
+        public const string MemberHeadsOtherUnit = "BlueDental:OrgChart:0010";
+        /// <summary>No such active staff member.</summary>
+        public const string UnknownStaff = "BlueDental:OrgChart:0011";
+        /// <summary>A dentist reaching for the Lịch làm việc of someone outside their part of the chart.</summary>
+        public const string OutsideScheduleScope = "BlueDental:OrgChart:0012";
+        /// <summary>A staff member who heads a Phòng ban / Team cannot be deleted until someone else heads it.</summary>
+        public const string StaffHeadsUnit = "BlueDental:OrgChart:0013";
+    }
+
     /// <summary>Marketing → Ticket (F-55). BlueDental-local.</summary>
     public static class MarketingTicket
     {
