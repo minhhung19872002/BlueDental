@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { usePatientDto } from "@/features/patient-management/api/patientQueries";
 import { useAbility } from "@/hooks/useAbility";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { usePlanSlip } from "../api/treatmentPlanApi";
 import { PlanDebtTab } from "../components/plan-detail/PlanDebtTab";
@@ -27,7 +27,8 @@ const TAB_PARAM = "planTab";
  * /patient/:id/treatment-plan/:planId — "Chi tiết kế hoạch điều trị".
  *
  * The reference keeps the open tab in `?planTab=` (detail, payment-v2,
- * refund, debt) and the branch in `?branchId=`; both survive a reload here.
+ * refund, debt) and the branch in `?branchId=` (here `?branch=<code>`); both
+ * survive a reload.
  * Tabs, toolbar and table sit together in one white card under the breadcrumb.
  */
 export function TreatmentPlanDetailPage() {
@@ -64,7 +65,7 @@ export function TreatmentPlanDetailPage() {
         <EmptyState
           title={t("Treatment:Plan:PlanNotFound")}
           actionLabel={t("Treatment:Plan:BackToRecord")}
-          onAction={() => navigate(`/patient/${id}?tab=treatment-plan&branchId=${encodeURIComponent(branchId)}`)}
+          onAction={() => navigate(withBranch(`/patient/${id}?tab=treatment-plan`, branchId))}
         />
       </div>
     );

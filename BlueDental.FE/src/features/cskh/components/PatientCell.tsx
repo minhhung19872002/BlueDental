@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { withBranch } from "@/lib/clinicBranch";
 import { formatDate } from "@/utils/format";
 import { careGenderLabels, type CareGender } from "../api/careApi";
 
@@ -31,7 +32,7 @@ export function PatientCell({
     <div>
       <Link
         className="cskh-patient-link"
-        to={`/patient/${patientId}?branchId=${branchId}`}
+        to={withBranch(`/patient/${patientId}`, branchId)}
       >
         {code ? `[${code}] - ${name ?? ""}` : name}
       </Link>

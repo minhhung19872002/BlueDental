@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { BRANCH_IN_URL, workingBranchId } from "./fixtures/branch";
 import {
   createDentist,
   deleteDentist,
@@ -216,8 +217,8 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
     try {
       await dentist.setViewportSize({ width: 1600, height: 900 });
       await dentist.goto("/patient");
-      await expect(dentist).toHaveURL(/branchId=/);
-      const branchId = new URL(dentist.url()).searchParams.get("branchId")!;
+      await expect(dentist).toHaveURL(BRANCH_IN_URL);
+      const branchId = (await workingBranchId(dentist))!;
       const slip = await findStageableSlip(page, branchId);
 
       // ── no Thanh toán leaf: the history stays, every payment command goes ─
@@ -304,8 +305,8 @@ test.describe("Tài chính → Thanh toán — Xem opens the list, Xuất file t
     try {
       await dentist.setViewportSize({ width: 1600, height: 900 });
       await dentist.goto("/patient");
-      await expect(dentist).toHaveURL(/branchId=/);
-      const branchId = new URL(dentist.url()).searchParams.get("branchId")!;
+      await expect(dentist).toHaveURL(BRANCH_IN_URL);
+      const branchId = (await workingBranchId(dentist))!;
 
       // Today's receipt for the row actions, written by admin on the BA's path.
       await openNewSlip(page);

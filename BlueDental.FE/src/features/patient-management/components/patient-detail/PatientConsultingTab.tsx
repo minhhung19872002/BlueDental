@@ -9,7 +9,7 @@ import { CreatePlanDialog } from "@/features/treatment-management/components/pla
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useAdviseQuotes } from "../../hooks/useAdviseQuotes";
 import { useConsultingActions } from "../../hooks/useConsultingActions";
@@ -159,7 +159,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
             )
             .then((opened) => {
               if (opened) {
-                navigate(`?tab=treatment-plan${branchId ? `&branchId=${branchId}` : ""}`);
+                navigate(withBranch("?tab=treatment-plan", branchId));
               }
             });
         } : undefined}

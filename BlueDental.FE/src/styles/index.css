@@ -665,6 +665,13 @@ body::-webkit-scrollbar-track {
   animation: fadeIn 0.22s ease;
 }
 
+/* Held while a `?branch=` code waits for the branch list. */
+.app-content-pending {
+  display: flex;
+  justify-content: center;
+  padding-top: 80px;
+}
+
 /* Mark and name. The name is allowed two lines and no more: the clinics in
    this system have long ones, and a single ellipsised line loses the branch. */
 .app-header-brand {

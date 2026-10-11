@@ -1,6 +1,7 @@
 import type { ColumnsType } from "antd/es/table";
 import { Link } from "react-router-dom";
 import { t } from "@/lib/i18n";
+import { withBranch } from "@/lib/clinicBranch";
 import { formatDash, formatDate, formatDateTime, formatVND } from "@/utils/format";
 import {
   CARE_TREATMENT_STATUS,
@@ -43,7 +44,7 @@ export function buildGroupColumns(
       width: 220,
       render: (_, p) => (
         <div>
-          <Link className="cskh-patient-link" to={`/patient/${p.id}?branchId=${branchId}`}>
+          <Link className="cskh-patient-link" to={withBranch(`/patient/${p.id}`, branchId)}>
             [{p.code}] - {p.name}
           </Link>
           {p.dateOfBirth && (

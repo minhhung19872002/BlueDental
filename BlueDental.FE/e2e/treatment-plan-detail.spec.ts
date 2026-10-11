@@ -866,7 +866,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
      */
     const planId = page.url().split("?")[0].split("/").pop()!;
     const done = await page.evaluate(async (id) => {
-      const branchId = new URLSearchParams(location.search).get("branchId")!;
+      const branchId = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null)!;
       const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branchId };
       const plan = await (
         await fetch(`/api/v1/app/patient-treatments/${id}`, { credentials: "include", headers })

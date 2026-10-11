@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { workingBranchId } from "./fixtures/branch";
 
 /**
  * Cross-screen freshness: a change saved on one screen reaches another screen
@@ -52,8 +53,8 @@ async function callApi(page: Page, call: ApiCall): Promise<ApiResult> {
 }
 
 /** The branch the screens read and write: the header's, else the account's own. */
-function workingBranchId(page: Page): string {
-  return new URL(page.url()).searchParams.get("branchId") ?? FALLBACK_BRANCH;
+async function workingBranch(page: Page): Promise<string> {
+  return (await workingBranchId(page)) ?? FALLBACK_BRANCH;
 }
 
 /** One fixed group holds every run's service, so the runs do not pile up groups. */
@@ -175,11 +176,13 @@ async function openCatalogFromMenu(page: Page): Promise<void> {
 }
 
 /**
- * The route a URL names, without `branchId` — the header writes that one in
- * with `replaceState` whenever a route settles, so it comes and goes.
+ * The route a URL names, without the branch (`branch`, or a legacy `branchId`) —
+ * the header writes that one in with `replaceState` whenever a route settles,
+ * so it comes and goes.
  */
 function routeOf(url: string): string {
   const parsed = new URL(url);
+  parsed.searchParams.delete("branch");
   parsed.searchParams.delete("branchId");
   parsed.searchParams.sort();
   return `${parsed.pathname}?${parsed.searchParams}`;
@@ -233,7 +236,7 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
     const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
     await expect(firstName).toBeVisible();
     const serviceName = `DV CACHE ${runId()}`;
-    const service = await createService(page, workingBranchId(page), serviceName);
+    const service = await createService(page, await workingBranch(page), serviceName);
     const serviceId = service.id;
 
     try {

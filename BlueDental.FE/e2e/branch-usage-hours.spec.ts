@@ -196,7 +196,9 @@ test.describe("Quản lý thời gian sử dụng", () => {
       const saved = (await call<RestrictedBranch>(page, `${BRANCHES}/${fixture.branch.id}`)).body;
       expect([saved.usageStartTime, saved.usageEndTime]).toEqual(["07:00", "19:30"]);
 
+      // Twenty to a page, by name: the throw-away member is found by search.
       await page.goto("/staff");
+      await page.getByPlaceholder(/Tìm theo tên/).fill(fixture.staffName);
       const staffRow = page.getByRole("row").filter({ hasText: fixture.staffName });
       await staffRow.getByRole("button").first().click();
       const staffDialog = page.getByRole("dialog");
@@ -210,6 +212,7 @@ test.describe("Quản lý thời gian sử dụng", () => {
       expect(staff.allowLoginOutsideOffice).toBe(false);
 
       await page.reload();
+      await page.getByPlaceholder(/Tìm theo tên/).fill(fixture.staffName);
       await staffRow.getByRole("button").first().click();
       await expect(page.getByRole("dialog").getByRole("checkbox", { name: "Cho phép dùng ngoài giờ" })).toBeChecked();
     } finally {

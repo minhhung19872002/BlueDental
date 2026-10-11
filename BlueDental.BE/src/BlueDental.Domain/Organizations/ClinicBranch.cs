@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -8,6 +9,14 @@ namespace BlueDental.Organizations;
 
 public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 {
+    public const int MaxCodeLength = 50;
+
+    /// <summary>
+    /// The code is what the address bar shows (<c>?branch=BD-001</c>), so it is
+    /// kept to characters a URL carries as typed: no spaces, no diacritics.
+    /// </summary>
+    private static readonly Regex CodePattern = new($"^[A-Za-z0-9_-]{{1,{MaxCodeLength}}}$", RegexOptions.Compiled);
+
     public string Code { get; private set; } = default!;
     public string Name { get; private set; } = default!;
     public string? Address { get; private set; }
@@ -59,12 +68,30 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
         string? email = null)
         : base(id)
     {
-        Code = Check.NotNullOrWhiteSpace(code, nameof(code));
+        SetCode(code);
         Name = Check.NotNullOrWhiteSpace(name, nameof(name), maxLength: 200);
         Address = address;
         PhoneNumber = phoneNumber;
         Email = email;
         Status = BranchStatus.Active;
+    }
+
+    /// <summary>
+    /// Format only. Codes are also unique among live branches, ignoring case —
+    /// that needs the other branches, so the application service checks it and
+    /// a unique index on lower("Code") backs it up.
+    /// </summary>
+    public ClinicBranch SetCode(string code)
+    {
+        var trimmed = code?.Trim() ?? string.Empty;
+        if (!CodePattern.IsMatch(trimmed))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidCode)
+                .WithData("value", trimmed);
+        }
+
+        Code = trimmed;
+        return this;
     }
 
     public ClinicBranch SetName(string name)

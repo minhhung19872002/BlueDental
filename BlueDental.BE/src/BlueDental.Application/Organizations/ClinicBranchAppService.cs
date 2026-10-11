@@ -111,10 +111,7 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
     [Authorize(BlueDentalPermissions.Organizations.Create)]
     public async Task<ClinicBranchDto> CreateAsync(CreateClinicBranchDto input)
     {
-        if (await _repository.AnyAsync(b => b.Code == input.Code))
-        {
-            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.DuplicateCode);
-        }
+        await EnsureCodeIsFreeAsync(input.Code, exceptBranchId: null);
 
         if (await _repository.AnyAsync(b => b.Name == input.Name))
         {
@@ -143,6 +140,15 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
     public async Task<ClinicBranchDto> UpdateAsync(Guid id, UpdateClinicBranchDto input)
     {
         var branch = await _repository.GetAsync(id);
+
+        // Null leaves the code alone: Cài đặt → Thông tin phòng khám saves the
+        // branch without it. Only the branch dialog edits it.
+        if (input.Code is not null && input.Code.Trim() != branch.Code)
+        {
+            await EnsureCodeIsFreeAsync(input.Code, exceptBranchId: id);
+            branch.SetCode(input.Code);
+        }
+
         branch.SetName(input.Name);
         branch.SetContactInfo(input.PhoneNumber, input.Email, input.Address, input.ProvinceId, input.WardId);
         branch.SetSlogan(input.Slogan);
@@ -164,6 +170,24 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
 
         await _repository.UpdateAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
+    }
+
+    /// <summary>
+    /// The address bar names the branch by its code (<c>?branch=BD-001</c>), so
+    /// two live branches may not share one — not even as "bd-001" and "BD-001",
+    /// since the link is matched ignoring case. A deleted branch keeps its code:
+    /// it still lists (struck through), and an old link to it must not open a
+    /// newer branch that took the code over.
+    /// </summary>
+    private async Task EnsureCodeIsFreeAsync(string? code, Guid? exceptBranchId)
+    {
+        var normalized = (code ?? string.Empty).Trim().ToLower();
+        using var _ = _softDeleteFilter.Disable();
+        if (await _repository.AnyAsync(b => b.Id != exceptBranchId && b.Code.ToLower() == normalized))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.DuplicateCode)
+                .WithData("code", (code ?? string.Empty).Trim());
+        }
     }
 
     /// <summary>"HH:mm" pair → the branch window; blank clears, anything else unreadable is refused.</summary>

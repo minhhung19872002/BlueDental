@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import type { PatientDto } from "@/features/patient-management/types/patient";
+import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 
@@ -16,9 +17,8 @@ interface Props {
  */
 export function PlanDetailHeader({ patient, plan, branchId }: Props) {
   const navigate = useNavigate();
-  const branch = branchId ? `&branchId=${encodeURIComponent(branchId)}` : "";
-  const patientPath = `/patient/${patient.id}?tab=profile${branch}`;
-  const plansPath = `/patient/${patient.id}?tab=treatment-plan${branch}`;
+  const patientPath = withBranch(`/patient/${patient.id}?tab=profile`, branchId);
+  const plansPath = withBranch(`/patient/${patient.id}?tab=treatment-plan`, branchId);
 
   return (
     <div className="pdt-header">

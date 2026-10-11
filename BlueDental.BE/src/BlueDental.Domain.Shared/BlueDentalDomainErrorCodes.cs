@@ -26,6 +26,7 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateName = "BlueDental:Organizations:0006";
         public const string InvalidIpRange = "BlueDental:Organizations:0007";
         public const string InvalidUsageHours = "BlueDental:Organizations:0008";
+        public const string InvalidCode = "BlueDental:Organizations:0009";
     }
 
     public static class Catalogs

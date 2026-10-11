@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Avatar, Dropdown, Popover, type MenuProps } from "antd";
+import { Avatar, Dropdown, Popover, Spin, type MenuProps } from "antd";
 import {
   CheckOutlined,
   DownOutlined,
@@ -18,7 +18,13 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useAppointmentLiveUpdates } from "@/hooks/useAppointmentLiveUpdates";
 import { useTrackPatientOrigin } from "@/hooks/usePatientOrigin";
-import { useBranchStore } from "@/lib/clinicBranch";
+import {
+  adoptBranchFromUrl,
+  dropPendingBranch,
+  registerBranches,
+  useBranchPending,
+  useBranchStore,
+} from "@/lib/clinicBranch";
 import { useLanguage, useT } from "@/lib/i18n";
 import { brand } from "@/theme/index";
 
@@ -75,26 +81,13 @@ export function AppLayout() {
   useEffect(() => {
     setDrawerOpen(false);
     closeMenus();
-
-    const storeBranchId = useBranchStore.getState().currentBranchId;
-    const url = new URL(window.location.href);
-    const urlBranchId = url.searchParams.get("branchId");
-
-    if (urlBranchId && urlBranchId !== storeBranchId) {
-      useBranchStore.getState().setCurrentBranchId(urlBranchId);
-      return;
-    }
-
-    if (storeBranchId) {
-      if (urlBranchId !== storeBranchId) {
-        url.searchParams.set("branchId", storeBranchId);
-        window.history.replaceState(null, "", url.toString());
-      }
-    } else if (url.searchParams.has("branchId")) {
-      url.searchParams.delete("branchId");
-      window.history.replaceState(null, "", url.toString());
-    }
   }, [location.pathname, closeMenus]);
+
+  // On the search too: a screen that rewrites its own params (`?tab=`) or a
+  // link that names another branch changes only the query.
+  useEffect(() => {
+    adoptBranchFromUrl();
+  }, [location.pathname, location.search]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -218,9 +211,10 @@ export function AppLayout() {
   const clinicName = user?.clinicName ?? t("App:DefaultClinic");
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
 
-  const { data: branches } = useClinicBranches(true);
+  const { data: branches, isError: branchesFailed } = useClinicBranches(true);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
   const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
+  const branchPending = useBranchPending();
 
   const handleBranchChange = (id: string | null) => {
     setBranchMenuOpen(false);
@@ -228,7 +222,18 @@ export function AppLayout() {
     void queryClient.invalidateQueries();
   };
 
-  // A branch id belongs to one account's world: a link or a stored id from
+  // The list turns `?branch=` codes into ids and puts the current code in the
+  // address bar — again after a branch's code is renamed.
+  useEffect(() => {
+    if (!branches) return;
+    if (registerBranches(branches)) void queryClient.invalidateQueries();
+  }, [branches, queryClient]);
+
+  useEffect(() => {
+    if (branchesFailed) dropPendingBranch();
+  }, [branchesFailed]);
+
+  // A branch belongs to one account's world: a link or a stored id from
   // another account points at a branch this one may not open, so drop it.
   useEffect(() => {
     if (!branches || !currentBranchId) return;
@@ -411,7 +416,9 @@ export function AppLayout() {
         {notifOpen && <div className="app-nav-backdrop" onClick={closeMenus} />}
 
         <main className="app-content">
-          <Outlet />
+          {/* A `?branch=` code this browser has not met waits for the branch
+              list, so the page does not load another branch's data first. */}
+          {branchPending ? <Spin className="app-content-pending" /> : <Outlet />}
         </main>
       </div>
 

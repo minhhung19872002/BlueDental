@@ -359,7 +359,7 @@ async function addStage(
       // The server reads the branch off this header, not out of the body — see
       // src/lib/axios.ts — so a raw fetch has to send it or the row lands in
       // whichever branch the account defaults to.
-      const branchId = target.branchId ?? new URLSearchParams(location.search).get("branchId");
+      const branchId = target.branchId ?? (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
       const branchHeader: Record<string, string> = branchId
         ? { "X-Clinic-Branch-Id": branchId }
         : {};
@@ -463,7 +463,7 @@ async function addLine<
   T extends { patientId: string; planId: string; serviceId: string; branchId?: string },
 >(page: Page, line: T): Promise<T> {
   const made = await page.evaluate(async (target) => {
-    const branchId = target.branchId ?? new URLSearchParams(location.search).get("branchId");
+    const branchId = target.branchId ?? (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(branchId ? { "X-Clinic-Branch-Id": branchId } : {}),
@@ -522,7 +522,7 @@ async function addLine<
 async function paidByService(page: Page, planId: string) {
   return page.evaluate(async (id) => {
     const patientId = location.pathname.split("/").pop();
-    const branchId = new URLSearchParams(location.search).get("branchId");
+    const branchId = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
     const res = await fetch(
       `/api/v1/app/patient-payments/account?patientId=${patientId}&clinicBranchId=${branchId}`,
       { credentials: "include" },
@@ -1108,7 +1108,7 @@ test.describe("Bệnh nhân", () => {
     const patientId = new URL(page.url()).pathname.split("/").pop()!;
     const countSlips = () =>
       page.evaluate(async (id) => {
-        const branchId = new URLSearchParams(location.search).get("branchId");
+        const branchId = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
         const res = await fetch(`/api/v1/app/patient-diagnoses?patientId=${id}&maxResultCount=1`, {
           credentials: "include",
           headers: branchId ? { "X-Clinic-Branch-Id": branchId } : {},
@@ -1893,7 +1893,7 @@ test.describe("Bệnh nhân", () => {
       const send = (url: string, init?: RequestInit) =>
         fetch(url, { credentials: "include", ...init });
 
-      const branch = new URLSearchParams(location.search).get("branchId");
+      const branch = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
       const owing = await (await send("/api/v1/app/patient-treatments?maxResultCount=50")).json();
       const candidates = owing.items as {
         id: string;
@@ -2029,7 +2029,7 @@ test.describe("Bệnh nhân", () => {
     // Open the dialog on that slip and take every service on it.
     const owingLine = await page.evaluate(async (planId) => {
       const patientId = location.pathname.split("/").pop();
-      const branchId = new URLSearchParams(location.search).get("branchId");
+      const branchId = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
       const res = await fetch(
         `/api/v1/app/patient-payments/account?patientId=${patientId}&clinicBranchId=${branchId}`,
         { credentials: "include" },
@@ -2354,9 +2354,9 @@ test.describe("Bệnh nhân", () => {
     // It navigates rather than stacking a payment form on the dialog, and lands
     // on **that slip**, not the tab listing every slip. The reference (measured
     // 2026-09-07) opened Chi tiết; the owner wants Thanh toán (2026-10-05):
-    // /patient/:id/treatment-plan/:planId?planTab=payment-v2&branchId=
+    // /patient/:id/treatment-plan/:planId?planTab=payment-v2&branch=
     await expect(dialog).toBeHidden();
-    await expect(page).toHaveURL(/\/treatment-plan\/[^/?]+\?planTab=payment-v2&branchId=/);
+    await expect(page).toHaveURL(/\/treatment-plan\/[^/?]+\?planTab=payment-v2&branch=/);
 
     // It is the slip the clicked row belongs to, and it opens on Thanh toán.
     await expect(page.locator(".pdt-page")).toBeVisible();
@@ -3284,7 +3284,7 @@ typed by hand`);
       .first()
       .innerText();
     await recall.locator(".pd-tr-code").click();
-    await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}\?branchId=/);
+    await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}\?branch=/);
     await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode ?? slipCode);
   });
 
@@ -3801,7 +3801,7 @@ typed by hand`);
     // The figure comes from the server's rollup, not a placeholder.
     const prepaid = await page.evaluate(async () => {
       const id = location.pathname.split("/").pop();
-      const branchId = new URLSearchParams(location.search).get("branchId");
+      const branchId = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
       const res = await fetch(
         `/api/v1/app/patient-payments/account?patientId=${id}&clinicBranchId=${branchId}`,
         { credentials: "include" },

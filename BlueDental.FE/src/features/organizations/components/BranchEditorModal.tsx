@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Form, Input, Modal, Select } from "antd";
+import type { Rule } from "antd/es/form";
 import { toast } from "sonner";
+import { describeApiError } from "@/lib/apiError";
+import { notifyApiError } from "@/lib/notify";
 import {
   useCreateBranch,
   useUpdateBranch,
@@ -27,7 +30,21 @@ interface BranchFormValues {
   usageEndTime?: Dayjs | null;
 }
 
-const toClockTime = (text: string | null | undefined) => (text ? dayjs(text, USAGE_TIME_FORMAT) : null);
+/**
+ * The code names the branch in the address bar (`?branch=BD-001`), so it is
+ * kept to what reads cleanly there — the same rule the server enforces.
+ */
+const BRANCH_CODE_MAX = 50;
+const codeRules = (): Rule[] => [
+  { required: true, message: t("Organization:BranchCodeRequired") },
+  { pattern: /^[A-Za-z0-9_-]+$/, message: t("Organization:BranchCodeInvalid") },
+  { max: BRANCH_CODE_MAX, message: t("Organization:BranchCodeInvalid") },
+];
+
+/** Server refusals that belong under the code field: taken by another branch, or malformed. */
+const CODE_FIELD_ERRORS = new Set(["BlueDental:Organizations:0002", "BlueDental:Organizations:0009"]);
+
+const toClockTime =(text: string | null | undefined) => (text ? dayjs(text, USAGE_TIME_FORMAT) : null);
 const fromClockTime = (value: Dayjs | null | undefined) => value?.format(USAGE_TIME_FORMAT) ?? "";
 
 interface BranchEditorModalProps {
@@ -38,8 +55,8 @@ interface BranchEditorModalProps {
 
 export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalProps) {
   const [form] = Form.useForm<BranchFormValues>();
-  const createBranch = useCreateBranch();
-  const updateBranch = useUpdateBranch();
+  const createBranch = useCreateBranch({ reportsOwnErrors: true });
+  const updateBranch = useUpdateBranch({ reportsOwnErrors: true });
   const isEditing = Boolean(branch);
   const saving = createBranch.isPending || updateBranch.isPending;
 
@@ -112,6 +129,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         await updateBranch.mutateAsync({
           id: branch.id,
           data: {
+            code: payload.code,
             name: payload.name,
             provinceId: payload.provinceId,
             wardId: payload.wardId,
@@ -131,8 +149,13 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         toast.success(t("Organization:BranchCreated"));
       }
       onClose();
-    } catch {
-      // Global MutationCache.onError already shows the toast
+    } catch (error) {
+      const info = describeApiError(error);
+      if (info.code && CODE_FIELD_ERRORS.has(info.code)) {
+        form.setFields([{ name: "code", errors: [info.message] }]);
+        return;
+      }
+      notifyApiError(error);
     }
   };
 
@@ -153,9 +176,9 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
           <Form.Item
             name="code"
             label={t("Organization:BranchCodeLabel")}
-            rules={isEditing ? [] : [{ required: true, message: t("Organization:BranchCodeRequired") }]}
+            rules={codeRules()}
           >
-            <Input disabled={isEditing} placeholder={t("Organization:BranchCodePlaceholder")} />
+            <Input maxLength={BRANCH_CODE_MAX} placeholder={t("Organization:BranchCodePlaceholder")} />
           </Form.Item>
           <Form.Item
             name="name"
