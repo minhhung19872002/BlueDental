@@ -1,5 +1,6 @@
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
+import { branchCodeOf } from "@/lib/clinicBranch";
 import { PLAN_STATUS } from "@/utils/planStatus";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import type {
@@ -171,7 +172,7 @@ export function planPill(plan: TreatmentPlanSlipDto) {
  * The slip's own screen.
  *
  * `tab` is left off by default on purpose: the reference's DT code chip lands
- * on `?branchId=` alone and lets the page fall back to Chi tiết, while the
+ * on the branch param alone and lets the page fall back to Chi tiết, while the
  * jumps that mean a particular tab — "Thanh toán" on "Chi tiết phiếu" — spell
  * `planTab=` out ahead of the branch. Both measured 2026-09-07.
  */
@@ -183,7 +184,8 @@ export function planDetailPath(
 ): string {
   const params = new URLSearchParams();
   if (tab) params.set("planTab", tab);
-  if (branchId) params.set("branchId", branchId);
+  const branchCode = branchCodeOf(branchId);
+  if (branchCode) params.set("branch", branchCode);
   const search = params.toString();
   return `/patient/${patientId}/treatment-plan/${planId}${search ? `?${search}` : ""}`;
 }

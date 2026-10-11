@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { ColumnsType } from "antd/es/table";
+import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import {
@@ -28,9 +29,9 @@ const dash = (value: string | undefined) => value ?? <span className="bd-cat-num
  * the dentist, material and teeth, the returned-file folder and Thao tác.
  */
 export function buildLaboOrderColumns({ branchId, ...actions }: Options): ColumnsType<LaboOrderDto> {
-  const patientHref = (row: LaboOrderDto) => `/patient/${row.patientId}?branchId=${branchId}`;
+  const patientHref = (row: LaboOrderDto) => withBranch(`/patient/${row.patientId}`, branchId);
   const planHref = (row: LaboOrderDto) =>
-    `/patient/${row.patientId}/treatment-plan/${row.treatmentPlanId}?branchId=${branchId}`;
+    withBranch(`/patient/${row.patientId}/treatment-plan/${row.treatmentPlanId}`, branchId);
 
   return [
     {

@@ -7554,3 +7554,53 @@ Kiểm chứng R-894 (build production `vite preview` :8113 → host :5000 → P
 | R-895 | Chủ dự án (DH260548): buổi 17/10 14:30 của loạt được đổi sang 15:30, hệ thống sinh lịch 15:30 mới, nhưng "Danh sách buổi hẹn" vẫn ghi buổi 17/10 là "Đã hẹn". Phải là "Đổi giờ"; dời sang ngày khác thì "Đã đổi lịch". | Log API: lịch 15:30 do `POST appointments/{id}/follow-up` ("Đã hẹn tiếp" ở Tiếp nhận) tạo, không phải do sửa trong "Cập nhật lịch hẹn". Buổi gốc giữ nguyên 14:30, mà `SeriesState()` chỉ so giờ của chính buổi với `SeriesPlannedStart`. Nay `Appointment.SeriesState(followUp)` / `MovedTo(followUp)`: buổi **chưa diễn ra** (Đã hẹn / Đã xác nhận / Trễ hẹn) có lịch hẹn tiếp còn hiệu lực ⇒ cùng ngày dự kiến = Đổi giờ, khác ngày = Đã đổi lịch. Buổi đã khám rồi mới đặt hẹn tiếp vẫn là Kết thúc. Huỷ lịch hẹn tiếp thì buổi quay về Đã hẹn. `GetByAppointmentAsync` nạp các lịch hẹn tiếp trong một truy vấn; DTO có thêm `MovedTo`. Danh sách buổi hiện "→ 15:30" (khác ngày: "→ 09:00 26/10"), title `Appointment:Series:MovedTo`. Buổi gốc vẫn giữ giờ của nó. |
 
 Kiểm chứng (build production :8080, host :5000 build mới, PostgreSQL thật): Domain **827/827** (thêm 5 test trạng thái theo lịch hẹn tiếp), `appointment-series-api` **6/6** (thêm: Đã hẹn tiếp cùng ngày → Đổi giờ, khác ngày → Đã đổi lịch, huỷ lịch hẹn tiếp → Đã hẹn), `appointment-series-ui` 2/2. Ca thật DH260548: buổi 2 nay trả về Đổi giờ, `movedTo` 15:30. `reception-follow-up` 9/11: 2 test đỏ vì fixture không còn khung giờ trống hôm nay (chạy lúc 20:16), không liên quan đến thay đổi này.
+
+## 2026-10-11 — Mã chi nhánh trên URL + sửa mã chi nhánh (R-896, F-68)
+
+| ID | Việc | Xử lý |
+|---|---|---|
+| R-896 | Đồng nghiệp (ảnh chat): URL production `?branchId=11111111-1111-1111-1111-111111111111` "j mà nhiều 11111 dữ". Chủ dự án chọn hiện mã chi nhánh (`?branch=BD-001`), và yêu cầu thêm "chỗ form cho sửa mã nữa nhưng nhớ check trùng". | FE `lib/clinicBranch.ts`: store vẫn giữ id (gửi API qua `X-Clinic-Branch-Id`), URL chỉ hiện mã. Store nhớ bảng id → mã (persist), link `?branchId=` cũ được nhận rồi viết lại thành mã. Mã lạ (link của người khác, gõ chữ thường) đặt `pendingCode`: `AppLayout` hiện Spin thay Outlet cho tới khi `/accessible` trả về; mã không có thì về chi nhánh đang chọn hoặc chi nhánh của tài khoản. `merge` của persist chỉ đọc URL, không ghi, vì `/queue/display` dùng `?branchId=` riêng. Link nội bộ dựng bằng `withBranch` / `branchCodeOf` (CSKH, Labo, kế hoạch điều trị, tab Tư vấn). BE: `ClinicBranch.SetCode` (trim, `^[A-Za-z0-9_-]{1,50}$`, `Organizations:0009`), `UpdateClinicBranchDto.Code` (null = giữ nguyên), `EnsureCodeIsFreeAsync` không phân biệt hoa thường và tính cả chi nhánh đã xoá (`0002`). Lý do: chi nhánh đã xoá vẫn hiện (gạch) trong danh sách, link cũ tới nó không được mở nhầm chi nhánh mới, và DB vốn đã có unique `IX_bd_clinic_branches_Code` từ InitialCreate. Migration `20261011090000_UniqueBranchCode` (viết tay): đổi tên bản trùng có sẵn (giữ bản đang hoạt động, rồi bản cũ nhất; bản còn lại thêm hậu tố 8 ký tự id), tạo unique index `lower("Code")`. Dialog: ô mã được sửa, rule chữ không dấu / số / `-` / `_`; lỗi `0002` / `0009` hiện dưới ô (`form.setFields`), không toast (`meta.skipGlobalErrorToast`). |
+
+Kiểm chứng (build production `vite preview` :8081 → host :5000 → PostgreSQL thật, không chặn API): `branch-code-url` **3/3**. Test API: trùng khi tạo / sửa (khác hoa thường, có khoảng trắng), mã có dấu và khoảng trắng, lưu lại chính mã cũ, đổi mã rồi GET, mã của chi nhánh đã xoá. Test UI: đổi chi nhánh ở header → `?branch=MÃ` (không còn `branchId`), reload giữ chi nhánh; dialog báo lỗi định dạng và trùng dưới ô, dialog không đóng; đổi mã thành công → bảng + URL đổi theo, reload vẫn đúng. Test link: `?branchId=` cũ được viết lại, mã chữ thường khi trình duyệt chưa biết (localStorage trống) mở đúng chi nhánh, mã không có thì về chi nhánh trước, "Tất cả chi nhánh" bỏ tham số. tsc sạch.
+
+Hồi quy mức 3 (cùng build/host/DB):
+- `branch-*`, `cross-screen-freshness`, `payment-permission-buttons`, `stage-staff-pickers`: **28/28** sau khi sửa spec.
+- `taxonomy*` + `payment-qr` + `patient` (2 test có link kế hoạch): **59 xanh, 5 đỏ, không cái nào do F-68**.
+  - `patient:3153` dừng ở điều kiện seed "demo clinic should have a slip with a service line", trước assert URL.
+  - `taxonomy-dialogs` ×2 dùng `accessible[0]` = DANHTEST01 (chi nhánh session khác để lại, không có nhóm dịch vụ).
+  - `taxonomy-import-api:708` và `taxonomy-service-sync:321` không thấy dòng nhân viên: `/staff` 20 dòng/trang, sắp theo tên, chi nhánh 1 có 28 người đứng trước chữ "N".
+- Lỗi phân trang `/staff` đó cũng làm đỏ `branch-ip-restriction` và `branch-usage-hours` (dialog chi nhánh vẫn qua). Hai spec này đã sửa: tìm nhân viên bằng ô "Tìm theo tên…" trước và sau reload, xanh lại.
+
+Spec cập nhật vì URL không còn id: `fixtures/branch.ts` (`workingBranchId` đọc localStorage, `BRANCH_IN_URL`), `cross-screen-freshness`, `payment-permission-buttons`, `patient` (2 assert), `stage-staff-pickers`. Chưa commit.
+
+Rà lại sau khi chủ dự án hỏi "các trang dùng branchId để gọi API có ảnh hưởng không":
+- **API của app không bị ảnh hưởng.** Mọi request lấy chi nhánh từ store (`useCurrentBranchId` / `useBranchFilter`), store vẫn giữ GUID, nên header `X-Clinic-Branch-Id` và query `clinicBranchId` không đổi.
+- Trong `src`, chỗ duy nhất đọc `branchId` từ URL là `/queue/display`. Đây là màn TV, cố ý giữ nguyên.
+- Phía BE không sinh link FE nào mang chi nhánh.
+- Bỏ sót 1 link: "Xem kế hoạch" ở sổ thanh toán (`billing/components/paymentLedgerColumns.tsx`) vẫn ghi `?branchId=GUID`. Link vẫn mở đúng nhờ cơ chế nhận link cũ, nhưng GUID lộ ra một nhịp. Đã đổi sang `branchCodeOf` để link ghi `?branch=MÃ`.
+- E2E: 8 chỗ trong `patient.spec` và `treatment-plan-detail.spec` lấy `branchId` từ URL trong `page.evaluate`, rồi tự `fetch` API với giá trị đó. Sau F-68 chúng sẽ nhận `null`. Đã chuyển sang đọc store `bd-current-branch-id`. `cross-screen-freshness` `routeOf` bỏ cả `branch` lẫn `branchId`.
+- Kiểm chứng: `patient` + `treatment-plan-detail` + `cross-screen-freshness` chạy trên build production :8081 → 45 xanh, 29 đỏ. Chạy cùng bộ spec trên HEAD (git archive, build riêng ở :8082, cùng host/DB) → 44 xanh, 30 đỏ. **Không có test nào chỉ đỏ khi có thay đổi**; HEAD đỏ thêm `Hoàn thành ticks with no image…`. 29 test đỏ có sẵn gồm: thiếu seed "demo clinic should have a slip", UI đã lệch so với spec (`.pd-profile-card`, `.pd-money`, nút "Chỉnh sửa hồ sơ", nhãn có `*`), và `tab=consulting`.
+
+## R-897 (2026-10-11, mức 2: chỉ sửa spec, không đổi code app) Sửa các test e2e đỏ có sẵn trong `patient.spec` và `treatment-plan-detail.spec`
+
+Chủ dự án hỏi "có thể sửa những test đỏ không". Ở R-896, ba spec `patient` + `treatment-plan-detail` + `cross-screen-freshness` có **29 test đỏ** và các test này đã đỏ từ trước F-68. Với từng test, tôi xác định spec sai hay app sai. Kết quả: không test nào đỏ do app sai, nên **không sửa code app**.
+
+Nguyên nhân và cách sửa:
+- **Tab mặc định.** Từ 86ccaf00, hồ sơ mở ở tab Chẩn đoán & Tư vấn. Các spec giả định mở ở Hồ sơ nên không tìm thấy bảng điều trị (`.pd-profile-card`, `.pd-money`, nút "Chỉnh sửa hồ sơ"). Sửa: thêm `tab=profile` vào link.
+- **Nhãn bắt buộc.** c5b52d52 thêm dấu `*` vào nhãn bắt buộc, R-852 thêm ô Ngày điều trị. Spec "the stage form fills its columns" giờ kiểm dấu `*` bắt buộc.
+- **Dòng giữ chỗ.** Dịch vụ chưa có công đoạn vẫn chiếm một dòng giữ chỗ, nên phép đếm "grouped by day" lệch 1. Sửa: thêm một công đoạn khởi động trước khi đếm.
+- **Seed `warrantable` cạn.** Mỗi lần chạy lại dùng hết răng của các line bảo hành còn mở. `openPatientWithTreatment` mượn dịch vụ bảo hành của một phiếu còn mở và tạo line mới (`addLine`).
+- **Tái khám.** Dialog tái khám lấy line đầu tiên. Spec chọn dòng theo `recallNote` và tìm phiếu theo `rex.treatmentServiceId`.
+- **`findStageRow` đua với refetch.** Sau khi lưu, bảng đọc lại dữ liệu ở nền, nên trên bảng chỉ có một trang hàm bỏ cuộc ngay. Sửa: chờ `attached` 8 giây trước khi duyệt sang trang khác. Test "a stage is added there" cũng sửa số ô `input[disabled]` còn 1.
+- **Đổi bác sĩ trên thẻ lịch hẹn.** Spec chọn phải lịch đã qua giờ. Server đúng khi từ chối `Appointment:0005`. Sửa: chỉ chọn lịch còn ở tương lai, và in body lỗi khi assert.
+- **`otherServiceOptions`** (treatment-plan-detail). Option dịch vụ có in giá bên cạnh, nên regex loại trừ trên cả option không bao giờ khớp. Spec chọn lại đúng dịch vụ cũ, nên test kéo-thả và test Chuyển đổi không đổi gì. Sửa: so khớp trên `.tp-opt-name`.
+- **Phiếu có chiết khấu.** Bug 24 (5d238e37) đổi cách xử lý số tiền vượt mức: ô tự kẹp về số còn nợ, không còn dòng lỗi. Spec cập nhật theo.
+- **Tổng kế hoạch.** R-620 đổi nhãn "Tổng thành tiền:" / "Tổng tiền:" thành Tổng cộng / Giảm giá / Voucher áp dụng / Thành tiền. Spec kiểm đúng thứ tự 4 dòng `.pd-plan-row`.
+- **Đặt mới Labo.** Line `stageable` có thể là line cả hàm. Khi đó hàng Răng là pill "(Trống)" và không có checkbox (R-310). Spec kiểm cả hai trường hợp: có chip thì phải có "Chọn tất cả"; không có chip thì phải có "(Trống)" và 0 checkbox.
+
+Kết quả trên build production :8081, cùng host và DB:
+- `treatment-plan-detail`: **13/13**.
+- `cross-screen-freshness`: **2/2**.
+- `patient`: **64/65**. Test còn đỏ là `the Tiếp nhận steps advance one at a time`. Test này **cố ý để đỏ**: luật check-in trong ngày đang được comment tạm cho BA test (TEMP-BUG25-OFF, e1cbbba6), nên đừng sửa spec. Khi bật lại luật, test sẽ xanh lại.
+
+ESLint và tsc sạch trên cả hai spec. Chưa commit.

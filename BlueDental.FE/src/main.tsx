@@ -21,7 +21,7 @@ import "./styles/index.css";
 
 dayjs.locale("vi");
 
-// The branch switcher's ?branchId= goes through the router, so screens that
+// The branch switcher's ?branch= goes through the router, so screens that
 // set their own search params build on the current branch, not a stale one.
 routeBranchUrlThrough((url) => {
   void router.navigate(`${url.pathname}${url.search}${url.hash}`, {

@@ -78,6 +78,18 @@ async function pickPricedService(page: Page, dropdown: Locator): Promise<void> {
   throw new Error("Danh mục dịch vụ không có mục nào còn giá");
 }
 
+/**
+ * The service options other than one already on the slip. Matched on the name
+ * span alone: the option prints its price beside it, so the whole option never
+ * reads as the bare name and an exclusion on it excludes nothing.
+ */
+function otherServiceOptions(page: Page, name: string): Locator {
+  const exact = new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+  return openDropdown(page, ".tp-service-dropdown")
+    .locator(".ant-select-item-option:has(.tp-opt-service)")
+    .filter({ hasNot: page.locator(".tp-opt-name", { hasText: exact }) });
+}
+
 /** Makes a slip with one line on the first patient and returns its code. */
 async function createSlip(page: Page, teeth: number[] = [14]): Promise<string> {
   await page.goto("/patient");
@@ -588,10 +600,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       .first()
       .innerText();
     await page.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-    const option = openDropdown(page, ".tp-service-dropdown")
-      .locator(".ant-select-item-option:has(.tp-opt-service)")
-      .filter({ hasNot: page.locator(".tp-opt-service", { hasText: new RegExp(`^${firstName}$`) }) })
-      .first();
+    const option = otherServiceOptions(page, firstName).first();
     await expect(option).toBeVisible();
     await option.click();
 
@@ -733,10 +742,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
 
     // Another service than the old one, or the two rows below read the same.
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-    const service = openDropdown(page, ".tp-service-dropdown")
-      .locator(".ant-select-item-option:has(.tp-opt-service)")
-      .filter({ hasNot: page.locator(".tp-opt-service", { hasText: new RegExp(`^${oldName}$`) }) })
-      .first();
+    const service = otherServiceOptions(page, oldName).first();
     await expect(service).toBeVisible();
     await service.click();
     await dialog.getByRole("textbox", { name: /Ghi chú/ }).fill("Chuyển đổi trong kiểm thử");
@@ -866,7 +872,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
      */
     const planId = page.url().split("?")[0].split("/").pop()!;
     const done = await page.evaluate(async (id) => {
-      const branchId = new URLSearchParams(location.search).get("branchId")!;
+      const branchId = (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null)!;
       const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branchId };
       const plan = await (
         await fetch(`/api/v1/app/patient-treatments/${id}`, { credentials: "include", headers })
@@ -1174,11 +1180,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     expect(money(await fact("Tổng tiền sau giảm").locator("span").last().innerText())).toBe(owed);
     expect((await fact("Còn lại").locator("span").last().innerText()).trim()).toBe("0 đ");
 
-    // Typing the gross figure is refused on the screen…
+    // Typing the gross figure is refused on the screen: the box stops at what
+    // is owed after discount, no error line (bug list item 24, 5d238e37)…
     await box.fill(String(grossOwed));
-    await expect(dialog.locator(".pd-newpay-error")).toHaveText(
-      "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán",
-    );
+    await expect.poll(async () => Number((await box.inputValue()).replace(/\D/g, ""))).toBe(owed);
+    await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
 
     // …and by the server, which is the side that actually guards the money.
     const refused = await page.evaluate(
@@ -1225,13 +1231,13 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
 
     // With no line ticked the only complaint is the missing service — the
     // "over the balance" one must not pile on top of it (R-588); ticking
-    // again brings the cap back and the gross figure is refused once more.
+    // again brings the cap back, so the box can never read past the balance.
     await dialog.locator(".pd-newpay-head--split input[type=checkbox]").uncheck();
     await expect(dialog.locator(".pd-newpay-error")).toHaveText("Bạn cần chọn ít nhất 1 dịch vụ");
     await dialog.locator(".pd-newpay-head--split input[type=checkbox]").check();
-    await expect(dialog.locator(".pd-newpay-error")).toHaveText(
-      "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán",
-    );
+    await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
+    await box.fill(String(grossOwed));
+    await expect.poll(async () => Number((await box.inputValue()).replace(/\D/g, ""))).toBe(owed);
 
     // The after-discount amount goes through and settles the slip.
     const collected = page.waitForResponse(

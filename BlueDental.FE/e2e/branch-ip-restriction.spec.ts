@@ -184,7 +184,9 @@ test.describe("Xác thực IP theo chi nhánh", () => {
       await expect(page.getByText("Cập nhật chi nhánh thành công")).toBeVisible();
       expect((await call<RestrictedBranch>(page, `${BRANCHES}/${fixture.branch.id}`)).body.allowedIpRanges).toBe(`${OFFICE}\n${ip}`);
 
+      // Twenty to a page, by name: the throw-away member is found by search.
       await page.goto("/staff");
+      await page.getByPlaceholder(/Tìm theo tên/).fill(fixture.staffName);
       const staffRow = page.getByRole("row").filter({ hasText: fixture.staffName });
       await staffRow.getByRole("button").first().click();
       const staffDialog = page.getByRole("dialog");
@@ -196,6 +198,7 @@ test.describe("Xác thực IP theo chi nhánh", () => {
       expect((await call<RestrictedStaff>(page, `${STAFF}/${fixture.staff.id}`)).body.allowLoginOutsideOffice).toBe(true);
 
       await page.reload();
+      await page.getByPlaceholder(/Tìm theo tên/).fill(fixture.staffName);
       await staffRow.getByRole("button").first().click();
       await expect(page.getByRole("dialog").getByRole("checkbox", { name: "Cho phép đăng nhập ngoài công ty" })).toBeChecked();
     } finally {

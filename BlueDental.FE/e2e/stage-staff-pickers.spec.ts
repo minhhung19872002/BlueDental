@@ -182,7 +182,7 @@ test.describe("Chi tiết phiếu — người được chọn theo vai trò", (
 
     await dialog.getByRole("button", { name: "Thanh toán" }).click();
     await expect(dialog).toBeHidden();
-    await expect(page).toHaveURL(new RegExp(`/treatment-plan/${line.planId}[?]planTab=payment-v2&branchId=`));
+    await expect(page).toHaveURL(new RegExp(`/treatment-plan/${line.planId}[?]planTab=payment-v2&branch=`));
     await expect(page.locator(".pdt-tab.active, [role=tab][aria-selected=true]").first()).toHaveText("Thanh toán");
   });
 });

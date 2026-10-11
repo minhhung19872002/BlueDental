@@ -42,6 +42,8 @@ export interface CreateClinicBranchDto {
 }
 
 export interface UpdateClinicBranchDto {
+  /** Omitted keeps the current code. */
+  code?: string;
   name: string;
   provinceId?: string;
   wardId?: string;
@@ -157,21 +159,34 @@ export function useClientIp(enabled: boolean) {
 /** Printed letterheads (branch info) and Cài đặt's clinic info read branches too. */
 const INVALIDATES_BRANCHES = { invalidates: ["branch"] } as const;
 
-export function useCreateBranch() {
+/**
+ * The branch dialog shows a taken or malformed code under the field itself, so
+ * it reports its own errors; other callers keep the global toast.
+ */
+interface BranchMutationOptions {
+  reportsOwnErrors?: boolean;
+}
+
+const branchMutationMeta = ({ reportsOwnErrors = false }: BranchMutationOptions) => ({
+  ...INVALIDATES_BRANCHES,
+  skipGlobalErrorToast: reportsOwnErrors,
+});
+
+export function useCreateBranch(options: BranchMutationOptions = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateClinicBranchDto) => organizationApi.createBranch(data),
-    meta: INVALIDATES_BRANCHES,
+    meta: branchMutationMeta(options),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-branches"] }),
   });
 }
 
-export function useUpdateBranch() {
+export function useUpdateBranch(options: BranchMutationOptions = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateClinicBranchDto }) =>
       organizationApi.updateBranch(id, data),
-    meta: INVALIDATES_BRANCHES,
+    meta: branchMutationMeta(options),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-branches"] }),
   });
 }

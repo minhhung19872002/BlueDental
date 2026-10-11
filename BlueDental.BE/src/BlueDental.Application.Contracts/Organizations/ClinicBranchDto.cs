@@ -32,6 +32,7 @@ public class ClinicBranchDto : FullAuditedEntityDto<Guid>
 public class CreateClinicBranchDto
 {
     [Required(ErrorMessage = "Vui lòng nhập mã chi nhánh.")]
+    [StringLength(50, ErrorMessage = "Mã chi nhánh tối đa 50 ký tự.")]
     public string Code { get; set; } = default!;
 
     [Required(ErrorMessage = "Vui lòng nhập tên chi nhánh.")]
@@ -75,6 +76,10 @@ public class CreateClinicBranchDto
 
 public class UpdateClinicBranchDto
 {
+    /// <summary>Null keeps the current code (Cài đặt → Thông tin phòng khám never sends it).</summary>
+    [StringLength(50, ErrorMessage = "Mã chi nhánh tối đa 50 ký tự.")]
+    public string? Code { get; set; }
+
     [Required(ErrorMessage = "Vui lòng nhập tên chi nhánh.")]
     [StringLength(200, ErrorMessage = "Tên chi nhánh tối đa 200 ký tự.")]
     public string Name { get; set; } = default!;

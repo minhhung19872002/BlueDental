@@ -4,6 +4,7 @@ import { Eye, FileText } from "lucide-react";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { branchCodeOf } from "@/lib/clinicBranch";
 import { ledgerMethodLabels, type LedgerMethod, type PaymentLedgerItemDto } from "../api/paymentLedgerApi";
 
 /**
@@ -12,7 +13,8 @@ import { ledgerMethodLabels, type LedgerMethod, type PaymentLedgerItemDto } from
  */
 function planPaymentPath(patientId: string, planId: string, branchId: string): string {
   const params = new URLSearchParams({ planTab: "payment-v2" });
-  if (branchId) params.set("branchId", branchId);
+  const branchCode = branchCodeOf(branchId);
+  if (branchCode) params.set("branch", branchCode);
   return `/patient/${patientId}/treatment-plan/${planId}?${params.toString()}`;
 }
 
