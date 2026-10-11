@@ -205,10 +205,8 @@ export function TreatmentStageDialog({
         savingNoteFor={composer.savingNoteFor}
         uploadingFor={composer.uploadingFor}
         completingId={composer.completingId}
-        togglingStepFor={composer.togglingStepFor}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onComplete={(stage) => void composer.finish(stage)}
-        onToggleStep={(stage, stepId, next) => void composer.toggleStageStep(stage, stepId, next)}
         onUpload={composer.pickForStage}
         onCreateLabo={setLaboStage}
         onWarranty={setWarrantyStage}

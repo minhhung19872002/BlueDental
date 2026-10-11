@@ -26,8 +26,7 @@ interface Props {
  *
  * Used wherever that heading appears, which is why it takes its state rather
  * than owning it: on the công đoạn form it picks which of the service's steps
- * the công đoạn will cover, in the treatment history row it ticks them off as
- * they are done, and on the tái khám screens it carries the single synthesised
+ * the công đoạn will cover, and on the tái khám screens it carries the single synthesised
  * entry from {@link reExaminationChecklist}. An empty list prints "(Trống)",
  * the reference's own empty state.
  */

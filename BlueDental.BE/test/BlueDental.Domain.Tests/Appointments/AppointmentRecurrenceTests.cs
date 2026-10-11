@@ -206,6 +206,61 @@ public class AppointmentRecurrenceTests
         Assert.Equal(BlueDentalDomainErrorCodes.Appointments.SeriesSessionFinished, ex.Code);
     }
 
+    // "Đã hẹn tiếp" at reception on a session the patient never came to moves
+    // it (owner, 2026-10-09): the session itself keeps its slot.
+
+    [Fact]
+    public void A_Follow_Up_The_Same_Day_Is_Time_Changed()
+    {
+        var session = Session();
+        var followUp = session.BookFollowUp(Guid.NewGuid(), SlotAt(SessionDay, 15), null);
+
+        Assert.Equal(SeriesOccurrenceState.TimeChanged, session.SeriesState(followUp));
+        Assert.Equal(followUp.Slot.Start, session.MovedTo(followUp));
+    }
+
+    [Fact]
+    public void A_Follow_Up_On_Another_Day_Is_Rescheduled()
+    {
+        var session = Session();
+        var followUp = session.BookFollowUp(Guid.NewGuid(), SlotAt(SessionDay.AddDays(2), 9), null);
+
+        Assert.Equal(SeriesOccurrenceState.Rescheduled, session.SeriesState(followUp));
+    }
+
+    [Fact]
+    public void A_Cancelled_Follow_Up_Moves_Nothing()
+    {
+        var session = Session();
+        var followUp = session.BookFollowUp(Guid.NewGuid(), SlotAt(SessionDay, 15), null);
+        followUp.Cancel(CancellationReason.PatientRequest, "Đổi ý");
+
+        Assert.Equal(SeriesOccurrenceState.Booked, session.SeriesState(followUp));
+        Assert.Null(session.MovedTo(followUp));
+    }
+
+    [Fact]
+    public void A_Visit_That_Took_Place_And_Booked_Its_Next_One_Is_Finished_Not_Moved()
+    {
+        var session = Session();
+        session.Start();
+        var followUp = session.BookFollowUp(Guid.NewGuid(), SlotAt(SessionDay.AddDays(7), 9), null);
+        session.Complete();
+
+        Assert.Equal(SeriesOccurrenceState.Finished, session.SeriesState(followUp));
+        Assert.Null(session.MovedTo(followUp));
+    }
+
+    [Fact]
+    public void Another_Appointment_Is_Not_Taken_For_The_Follow_Up()
+    {
+        var session = Session();
+        session.BookFollowUp(Guid.NewGuid(), SlotAt(SessionDay, 15), null);
+        var unrelated = Session();
+
+        Assert.Equal(SeriesOccurrenceState.Booked, session.SeriesState(unrelated));
+    }
+
     [Fact]
     public void A_Finished_Booking_Outside_A_Series_Is_Not_Locked_By_The_Series_Rule()
     {

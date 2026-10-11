@@ -45,6 +45,7 @@ export interface ServerSeriesSessionDto {
   state: number;
   conflictReason: number | null;
   appointmentId: string | null;
+  movedTo?: string | null;
 }
 
 export interface ServerSeriesDto {
@@ -79,6 +80,7 @@ function adaptSession(dto: ServerSeriesSessionDto): SeriesSession {
     state: STATE_BY_CODE[dto.state] ?? "free",
     conflictReason: dto.conflictReason ? REASON_BY_CODE[dto.conflictReason] ?? null : null,
     appointmentId: dto.appointmentId,
+    movedTo: dto.movedTo ?? null,
   };
 }
 

@@ -72,6 +72,17 @@ interface RowProps {
   onSelect: (session: SeriesSession) => void;
 }
 
+/** "→ 15:30", plus the day when the follow-up landed on another one. */
+function MovedTo({ start, movedTo }: { start: string; movedTo: string }) {
+  const to = dayjs(movedTo);
+  const sameDay = to.isSame(dayjs(start), "day");
+  return (
+    <span className="appt-series-moved" title={t("Appointment:Series:MovedTo", to.format("HH:mm DD/MM/YYYY"))}>
+      → {to.format(sameDay ? "HH:mm" : "HH:mm DD/MM")}
+    </span>
+  );
+}
+
 function SessionRow({ session, current, onSelect }: RowProps) {
   const className = [
     "appt-series-row",
@@ -87,6 +98,7 @@ function SessionRow({ session, current, onSelect }: RowProps) {
         <span className="appt-series-day">{sessionDayLabel(session.start)}</span>
         <span className="appt-series-time">
           {dayjs(session.start).format("HH:mm")} – {dayjs(session.end).format("HH:mm")}
+          {session.movedTo && <MovedTo start={session.start} movedTo={session.movedTo} />}
         </span>
         {session.conflictReason ? <Tooltip title={t(REASON_LABEL_KEY[session.conflictReason])}>{label}</Tooltip> : label}
       </button>
