@@ -141,15 +141,16 @@ public class BlueDentalDemoSeedContributor(
 
     public async Task SeedAsync(DataSeedContext context)
     {
-        var patients = await patientRepository.GetListAsync(p => p.BranchId == _branchId);
-
-        // Development always gets the demo. Anywhere else it fills a clinic that
-        // is still empty — a fresh install, which is the only time synthetic
-        // records are welcome — and never touches one that has real ones.
-        if (!IsDevelopment() && patients.Count > 0)
+        // Development only. A live clinic with no patients is not a fresh install:
+        // it may have just been wiped for go-live (deploy/db/clear-transactional-data.sql),
+        // and every deploy runs the migrator — so seeding "empty" clinics put demo
+        // patients, dentists and invoices back into production.
+        if (!IsDevelopment())
         {
             return;
         }
+
+        var patients = await patientRepository.GetListAsync(p => p.BranchId == _branchId);
 
         var dentistIds = await EnsureDentistsAsync();
         var staffIds = await EnsureExtraStaffAsync();

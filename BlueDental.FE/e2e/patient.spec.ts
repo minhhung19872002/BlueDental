@@ -35,6 +35,25 @@ const REFERENCE_STATUS = {
  * filter that quietly narrowed the list in the browser would fail here.
  */
 
+/** A tab of the record; the one on screen carries `aria-current="page"`. */
+function recordTab(page: Page, name: string): Locator {
+  return page
+    .getByRole("navigation", { name: "Chi tiết bệnh nhân" })
+    .getByRole("link", { name, exact: true });
+}
+
+/**
+ * Opens the list's first patient on the Hồ sơ tab. A click on the name lands on
+ * Chẩn đoán & Tư vấn whenever the account may see it (86ccaf00, R-688), so the
+ * profile is reached through its own tab.
+ */
+async function openFirstPatientProfile(page: Page): Promise<void> {
+  await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+  await recordTab(page, "Hồ sơ").click();
+  await expect(recordTab(page, "Hồ sơ")).toHaveAttribute("aria-current", "page");
+}
+
 /** Opens an AntD select and takes its first option from the portal it renders into. */
 async function pickFirstOption(page: Page, combobox: Locator): Promise<void> {
   await combobox.click();
@@ -101,6 +120,7 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
       id: string;
       patientId: string;
       branchId: string;
+      status: number;
       services: {
         id: string;
         outstandingAmount: number;
@@ -149,13 +169,32 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
           serviceId: line.id,
           planId: slip.id,
           branchId: slip.branchId,
+          needsFreshLine: false,
+        };
+      }
+    }
+    if (want !== "warrantable") return null;
+    // Every run stages a tooth of some warranty line, so the open ones run out
+    // of free teeth. Any warranty line on a slip still open lends its service
+    // to a fresh line instead — 5 = Completed, 6 = Cancelled take no new line.
+    for (const slip of items) {
+      if (slip.status === 5 || slip.status === 6) continue;
+      const donor = slip.services.find((service) => service.warrantyDays > 0);
+      if (donor) {
+        return {
+          patientId: slip.patientId,
+          serviceId: donor.id,
+          planId: slip.id,
+          branchId: slip.branchId,
+          needsFreshLine: true,
         };
       }
     }
     return null;
   }, mode);
   expect(found, "the demo clinic should have a slip with a service line").toBeTruthy();
-  const target = found!;
+  const { needsFreshLine, ...picked } = found!;
+  const target = needsFreshLine ? await addLine(page, picked) : picked;
 
   // `tab=profile` spelled out: since 86ccaf00 the record opens on Chẩn đoán &
   // Tư vấn when that tab is visible, and the treatment table lives on Hồ sơ.
@@ -204,6 +243,15 @@ async function widenTreatmentTable(page: Page) {
 async function findStageRow(page: Page, serviceId: string, stageId: string): Promise<Locator> {
   const row = page.locator(`.pd-treatment-table tbody tr[data-row-key="${serviceId}:${stageId}"]`);
   const next = page.locator(".pd-treatment-table li.ant-pagination-next");
+
+  // A save re-reads the table in the background, so a row just written may
+  // still be on its way when this is called — give the page in view a moment
+  // before walking on, or a one-page table is given up on at once.
+  const landed = await row.waitFor({ state: "attached", timeout: 8000 }).then(
+    () => true,
+    () => false,
+  );
+  if (landed) return row;
 
   for (let guard = 0; guard < 40; guard += 1) {
     if ((await row.count()) > 0) return row;
@@ -813,10 +861,7 @@ test.describe("Bệnh nhân", () => {
   test("the patient detail keeps all ten tabs in the URL-driven layout", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
 
     await expect(page.locator(".pd-profile-card")).toBeVisible();
     await expect(page.locator(".pd-money")).toHaveCount(7);
@@ -849,8 +894,9 @@ test.describe("Bệnh nhân", () => {
     await expect(page).toHaveURL(/tab=invoice/);
     await expect(page.getByRole("columnheader", { name: "MÃ HÓA ĐƠN" })).toBeVisible();
 
-    await page.getByRole("link", { name: "Hồ sơ" }).click();
-    await expect(page).not.toHaveURL(/tab=/);
+    await recordTab(page, "Hồ sơ").click();
+    await expect(page).toHaveURL(/tab=profile/);
+    await expect(recordTab(page, "Hồ sơ")).toHaveAttribute("aria-current", "page");
     await expect(page.locator(".pd-profile-card")).toBeVisible();
   });
 
@@ -859,10 +905,7 @@ test.describe("Bệnh nhân", () => {
   }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
 
     // Each note is one line — "label: value" — not a stacked label over a value.
     for (const label of ["Tiểu sử bệnh:", "Về KH:", "Nguồn đến:"]) {
@@ -988,7 +1031,8 @@ test.describe("Bệnh nhân", () => {
     expect(code).toMatch(/^CD\d{2}-\d{4}$/);
 
     await page.reload();
-    await expect(page).toHaveURL(/tab=consulting/);
+    // Chẩn đoán & Tư vấn is the default tab, so the URL names no tab for it.
+    await expect(recordTab(page, "Chẩn đoán & Tư vấn")).toHaveAttribute("aria-current", "page");
     const row = page.locator(".pd-diagnosis-card tbody tr.ant-table-row", { hasText: code });
     await expect(row.locator(".pd-cell-link")).toHaveText("18, 16");
   });
@@ -1165,8 +1209,8 @@ test.describe("Bệnh nhân", () => {
       .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
       .first()
       .click();
-    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
-    await expect(page).toHaveURL(/tab=consulting/);
+    await recordTab(page, "Chẩn đoán & Tư vấn").click();
+    await expect(recordTab(page, "Chẩn đoán & Tư vấn")).toHaveAttribute("aria-current", "page");
     await expect(page.locator(".pd-image-panel")).toBeVisible({ timeout: 20000 });
 
     // The round + beside the heading, at the reference's own size: 28px with a
@@ -1243,9 +1287,15 @@ test.describe("Bệnh nhân", () => {
     await page.locator(".pd-column-popover").getByRole("button", { name: "Lưu" }).click();
     await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
 
+    // The block reads in the order its figure is worked out (R-620): Tổng cộng,
+    // Giảm giá, the voucher line, then Thành tiền.
     await expect(advise.getByText("TỔNG KẾ HOẠCH")).toBeVisible();
-    await expect(advise.getByText("Tổng thành tiền:")).toBeVisible();
-    await expect(advise.getByText("Tổng tiền:")).toBeVisible();
+    await expect(advise.locator(".pd-plan-row > span")).toHaveText([
+      "Tổng cộng",
+      "Giảm giá",
+      "Voucher áp dụng",
+      "Thành tiền",
+    ]);
 
     // Nothing ticked prices nothing, so the voucher line says what to do about
     // it and its button is shut: there is no amount to judge a voucher against.
@@ -1425,10 +1475,7 @@ test.describe("Bệnh nhân", () => {
     // The same dialog, opened from the patient's own record. It used to render
     // unstyled there: the dialog's CSS lived in the list's stylesheet, which
     // the record's page never imported.
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
@@ -1448,10 +1495,7 @@ test.describe("Bệnh nhân", () => {
   test("the hồ sơ dialog's name switch shouts and un-shouts", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
     const dialog = page.locator(".bd-patient-dialog");
@@ -1473,10 +1517,7 @@ test.describe("Bệnh nhân", () => {
   test("the hồ sơ dialog offers a priority when filing a new source type", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
     const dialog = page.locator(".bd-patient-dialog");
@@ -1547,10 +1588,7 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
 
     const button = page.getByRole("button", { name: "Nhãn bệnh nhân" });
     const buttonBox = (await button.boundingBox())!;
@@ -1586,10 +1624,7 @@ test.describe("Bệnh nhân", () => {
   test("the occupation list carries the reference's Khác escape hatch", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
     const dialog = page.locator(".bd-patient-dialog");
@@ -1609,10 +1644,7 @@ test.describe("Bệnh nhân", () => {
   test("the lý do đến khám box has room to write in", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await page.getByRole("button", { name: "Thêm lý do đến khám" }).click();
 
     // A single-row box was what the app's own modal styling forced; the
@@ -1633,10 +1665,7 @@ test.describe("Bệnh nhân", () => {
     const first = `e2e lý do A ${runId()}`;
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await expect(page.locator(".pd-profile-card")).toBeVisible();
 
     const rows = page.locator(".pd-reason");
@@ -1680,10 +1709,7 @@ test.describe("Bệnh nhân", () => {
   test("a tag put on the record shows beside the name and survives a reload", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
     await expect(page.locator(".pd-profile-card")).toBeVisible();
 
     await page.getByRole("button", { name: "Nhãn bệnh nhân" }).click();
@@ -2184,12 +2210,13 @@ test.describe("Bệnh nhân", () => {
     ]);
     const historyBefore = await dialog.locator(".pd-stage-histrow").count();
 
-    // Ngày tạo and Dịch vụ are read-outs, as the reference disables them. The
-    // card is this line's own: a slip lists all its lines, and the reference
-    // opens with none picked.
+    // Dịch vụ is a read-out, as the reference disables it; the date beside it
+    // is Ngày điều trị, picked by the user since R-852. The card is this
+    // line's own: a slip lists all its lines, and the reference opens with
+    // none picked.
     await dialog.locator(`.pd-stage-picks button[data-line-id="${serviceId}"]`).first().click();
     const form = dialog.locator(".pd-stage-form");
-    await expect(form.locator("input[disabled]")).toHaveCount(2);
+    await expect(form.locator("input[disabled]")).toHaveCount(1);
 
     const note = `e2e công đoạn ${runId()}`;
     const created = page.waitForResponse(
@@ -2254,8 +2281,10 @@ test.describe("Bệnh nhân", () => {
     // Tải Ảnh is live before the công đoạn exists — the reference keeps a file
     // input inside the form card, not only on a saved row.
     await expect(form.getByRole("button", { name: "Tải Ảnh" })).toBeEnabled();
-    // And the note carries no asterisk there.
-    await expect(form.locator(".floating-field-label").last()).toHaveText("Nội dung điều trị");
+    // And the note is required, asterisk and all (c5b52d52).
+    const noteLabel = form.locator(".floating-field-label").last();
+    await expect(noteLabel).toContainText("Nội dung điều trị");
+    await expect(noteLabel.locator(".floating-field-required")).toHaveText("*");
   });
 
   test("a history row's pencil rewrites the note in place", async ({ page }) => {
@@ -2411,6 +2440,14 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "stageable");
 
+    // A line with no công đoạn yet still holds one placeholder row, which its
+    // first công đoạn takes over — so one is written before counting.
+    await addStage(page, line, `e2e nhóm 0 ${runId()}`);
+    await page.reload();
+    await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({
+      timeout: 20000,
+    });
+    await widenTreatmentTable(page);
     const before = await treatmentTotal(page);
 
     // Two more công đoạn on the same line, both today.
@@ -2501,7 +2538,17 @@ test.describe("Bệnh nhân", () => {
     // Two chip strips with the reference's own empty pills, then the teeth row.
     await expect(labo.locator(".pd-labo-strip > p")).toHaveText([/Lựa chọn dịch vụ/, /Vật liệu/]);
     await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
-    await expect(labo.locator(".pd-labo-teeth")).toContainText("Chọn tất cả");
+    // The teeth row follows the line it was opened from: chips with "Chọn tất
+    // cả" when the line names teeth, the "(Trống)" pill and no tick box when it
+    // is a whole-mouth line (R-310) — and the stageable pick may be either.
+    const teethRow = labo.locator(".pd-labo-teeth");
+    await expect(teethRow).toContainText(/Chọn tất cả|\(Trống\)/);
+    if ((await teethRow.locator("button").count()) > 0) {
+      await expect(teethRow).toContainText("Chọn tất cả");
+    } else {
+      await expect(teethRow).toContainText("(Trống)");
+      await expect(teethRow.locator(".ant-checkbox")).toHaveCount(0);
+    }
     await expect(labo.locator(".pd-labo-drop")).toBeVisible();
 
     // A floating label rests muted and only takes the accent while its field
@@ -3235,7 +3282,8 @@ typed by hand`);
     await shots.first().getByRole("button").click();
     await expect(shots).toHaveCount(1);
 
-    await form.locator("textarea").first().fill(`e2e tái khám ${runId()}`);
+    const recallNote = `e2e REX ${runId()}`;
+    await form.locator("textarea").first().fill(recallNote);
 
     // It is its own resource, not another công đoạn.
     const saved = page.waitForResponse(
@@ -3246,7 +3294,8 @@ typed by hand`);
     await form.locator(".ant-modal-footer").getByRole("button", { name: "Lưu" }).click();
     const created = await saved;
     expect(created.ok(), "the follow-up should be accepted").toBeTruthy();
-    expect((await created.json()).code, "a REX code of its own").toMatch(/^REX\d+$/);
+    const rex = (await created.json()) as { code: string; treatmentServiceId: string };
+    expect(rex.code, "a REX code of its own").toMatch(/^REX\d+$/);
 
     // And the table gains a row of its own — not a công đoạn: the reference
     // leaves its Công đoạn and Chăm sóc cells empty and drops the Phụ tá line.
@@ -3259,9 +3308,11 @@ typed by hand`);
       .poll(() => treatmentTotal(page), { message: "the table should have gained exactly one row" })
       .toBe(rowsBefore + 1);
 
+    // This run's, by its note: the patient may carry tái khám from earlier runs,
+    // on other slips too.
     const recall = page
       .locator(".pd-treatment-table tbody tr.ant-table-row:has(.pd-tr-chip--recall)")
-      .first();
+      .filter({ hasText: recallNote });
     await expect(recall).toBeVisible();
     await expect(recall.locator(".pd-tr-code")).toContainText("REX");
     const chip = recall.locator(".pd-tr-chip--recall");
@@ -3278,14 +3329,28 @@ typed by hand`);
     // on **that slip's** detail screen — not the tab listing every slip. A tái
     // khám has no screen of its own, so its REX code opens the slip it hangs off,
     // whose code closes the breadcrumb.
-    const planCode = (await recall.locator(".pd-tr-service p").innerText()).match(/DT\d+/)?.[0];
-    const slipCode = await page
-      .locator(".pd-treatment-table tbody tr.ant-table-row .pd-tr-code", { hasText: /^DT/ })
-      .first()
-      .innerText();
+    // The slip is read back from the server: the dialog lists every finished
+    // công đoạn on the record, so the one followed up may sit on another slip.
+    const slip = await page.evaluate(
+      async ({ patientId, lineId, branchId }) => {
+        const res = await fetch(
+          `/api/v1/app/patient-treatments?patientId=${patientId}&maxResultCount=1000`,
+          { credentials: "include", headers: { "X-Clinic-Branch-Id": branchId } },
+        );
+        const items = (await res.json()).items as {
+          id: string;
+          code: string;
+          services: { id: string }[];
+        }[];
+        const owner = items.find((item) => item.services.some((service) => service.id === lineId));
+        return owner ? { id: owner.id, code: owner.code } : null;
+      },
+      { patientId: line.patientId, lineId: rex.treatmentServiceId, branchId: line.branchId },
+    );
+    expect(slip, "the tái khám's line should sit on one of the patient's slips").toBeTruthy();
     await recall.locator(".pd-tr-code").click();
-    await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}\?branch=/);
-    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode ?? slipCode);
+    await expect(page).toHaveURL(new RegExp(`/treatment-plan/${slip!.id}\\?branch=`));
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(slip!.code);
   });
 
   test("finishing one công đoạn leaves the others open", async ({ page }) => {
@@ -3672,6 +3737,9 @@ typed by hand`);
     //   0002 the target dentist is already booked in that slot
     //   0006 the *patient* already has another booking in that slot
     //
+    // and a third that the seeded rows trip as the days go by: 0005 refuses to
+    // move a booking whose slot is already past, so only one still to come will do.
+    //
     // 0006 is the awkward one: the seeder gives some patients several bookings
     // on the same slot, and no doctor change on those can ever be accepted, so
     // the search wants a patient holding exactly **one** live booking. That
@@ -3708,6 +3776,7 @@ typed by hand`);
       for (const [patientId, held] of byPatient) {
         if (held.length !== 1) continue;
         const shown = held[0];
+        if (new Date(shown.slotStart) <= new Date()) continue;
 
         const busy = new Set(
           all
@@ -3763,7 +3832,8 @@ typed by hand`);
       (res) => res.url().includes("/api/v1/app/appointments/") && res.request().method() === "PUT",
     );
     await other.click();
-    expect((await saved).ok()).toBeTruthy();
+    const answer = await saved;
+    expect(answer.ok(), await answer.text()).toBeTruthy();
 
     // The card's Bác sĩ line and the picker both follow, and it survives a reload.
     await expect.poll(() => picker.locator(".ss-value").innerText()).toContain(chosen);
@@ -3775,10 +3845,7 @@ typed by hand`);
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
 
     const tiles = page.locator(".pd-money");
     await expect(tiles).toHaveCount(7);
@@ -3817,10 +3884,7 @@ typed by hand`);
   test("the tag button offers only the patient's own branch tags", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page
-      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
-      .first()
-      .click();
+    await openFirstPatientProfile(page);
 
     const branchId = await page.evaluate(async () => {
       const id = location.pathname.split("/").pop();

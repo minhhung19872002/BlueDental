@@ -7572,3 +7572,27 @@ Rà lại sau khi chủ dự án hỏi "các trang dùng branchId để gọi AP
 - Bỏ sót 1 link: "Xem kế hoạch" ở sổ thanh toán (`billing/components/paymentLedgerColumns.tsx`) vẫn ghi `?branchId=GUID`. Link vẫn mở đúng nhờ cơ chế nhận link cũ, nhưng GUID lộ ra một nhịp. Đã đổi sang `branchCodeOf` để link ghi `?branch=MÃ`.
 - E2E: 8 chỗ trong `patient.spec` và `treatment-plan-detail.spec` lấy `branchId` từ URL trong `page.evaluate`, rồi tự `fetch` API với giá trị đó. Sau F-68 chúng sẽ nhận `null`. Đã chuyển sang đọc store `bd-current-branch-id`. `cross-screen-freshness` `routeOf` bỏ cả `branch` lẫn `branchId`.
 - Kiểm chứng: `patient` + `treatment-plan-detail` + `cross-screen-freshness` chạy trên build production :8081 → 45 xanh, 29 đỏ. Chạy cùng bộ spec trên HEAD (git archive, build riêng ở :8082, cùng host/DB) → 44 xanh, 30 đỏ. **Không có test nào chỉ đỏ khi có thay đổi**; HEAD đỏ thêm `Hoàn thành ticks with no image…`. 29 test đỏ có sẵn gồm: thiếu seed "demo clinic should have a slip", UI đã lệch so với spec (`.pd-profile-card`, `.pd-money`, nút "Chỉnh sửa hồ sơ", nhãn có `*`), và `tab=consulting`.
+
+## R-896 (2026-10-11, mức 2: chỉ sửa spec, không đổi code app) Sửa các test e2e đỏ có sẵn trong `patient.spec` và `treatment-plan-detail.spec`
+
+Chủ dự án hỏi "có thể sửa những test đỏ không". Ở R-895, ba spec `patient` + `treatment-plan-detail` + `cross-screen-freshness` có **29 test đỏ** và các test này đã đỏ từ trước F-68. Với từng test, tôi xác định spec sai hay app sai. Kết quả: không test nào đỏ do app sai, nên **không sửa code app**.
+
+Nguyên nhân và cách sửa:
+- **Tab mặc định.** Từ 86ccaf00, hồ sơ mở ở tab Chẩn đoán & Tư vấn. Các spec giả định mở ở Hồ sơ nên không tìm thấy bảng điều trị (`.pd-profile-card`, `.pd-money`, nút "Chỉnh sửa hồ sơ"). Sửa: thêm `tab=profile` vào link.
+- **Nhãn bắt buộc.** c5b52d52 thêm dấu `*` vào nhãn bắt buộc, R-852 thêm ô Ngày điều trị. Spec "the stage form fills its columns" giờ kiểm dấu `*` bắt buộc.
+- **Dòng giữ chỗ.** Dịch vụ chưa có công đoạn vẫn chiếm một dòng giữ chỗ, nên phép đếm "grouped by day" lệch 1. Sửa: thêm một công đoạn khởi động trước khi đếm.
+- **Seed `warrantable` cạn.** Mỗi lần chạy lại dùng hết răng của các line bảo hành còn mở. `openPatientWithTreatment` mượn dịch vụ bảo hành của một phiếu còn mở và tạo line mới (`addLine`).
+- **Tái khám.** Dialog tái khám lấy line đầu tiên. Spec chọn dòng theo `recallNote` và tìm phiếu theo `rex.treatmentServiceId`.
+- **`findStageRow` đua với refetch.** Sau khi lưu, bảng đọc lại dữ liệu ở nền, nên trên bảng chỉ có một trang hàm bỏ cuộc ngay. Sửa: chờ `attached` 8 giây trước khi duyệt sang trang khác. Test "a stage is added there" cũng sửa số ô `input[disabled]` còn 1.
+- **Đổi bác sĩ trên thẻ lịch hẹn.** Spec chọn phải lịch đã qua giờ. Server đúng khi từ chối `Appointment:0005`. Sửa: chỉ chọn lịch còn ở tương lai, và in body lỗi khi assert.
+- **`otherServiceOptions`** (treatment-plan-detail). Option dịch vụ có in giá bên cạnh, nên regex loại trừ trên cả option không bao giờ khớp. Spec chọn lại đúng dịch vụ cũ, nên test kéo-thả và test Chuyển đổi không đổi gì. Sửa: so khớp trên `.tp-opt-name`.
+- **Phiếu có chiết khấu.** Bug 24 (5d238e37) đổi cách xử lý số tiền vượt mức: ô tự kẹp về số còn nợ, không còn dòng lỗi. Spec cập nhật theo.
+- **Tổng kế hoạch.** R-620 đổi nhãn "Tổng thành tiền:" / "Tổng tiền:" thành Tổng cộng / Giảm giá / Voucher áp dụng / Thành tiền. Spec kiểm đúng thứ tự 4 dòng `.pd-plan-row`.
+- **Đặt mới Labo.** Line `stageable` có thể là line cả hàm. Khi đó hàng Răng là pill "(Trống)" và không có checkbox (R-310). Spec kiểm cả hai trường hợp: có chip thì phải có "Chọn tất cả"; không có chip thì phải có "(Trống)" và 0 checkbox.
+
+Kết quả trên build production :8081, cùng host và DB:
+- `treatment-plan-detail`: **13/13**.
+- `cross-screen-freshness`: **2/2**.
+- `patient`: **64/65**. Test còn đỏ là `the Tiếp nhận steps advance one at a time`. Test này **cố ý để đỏ**: luật check-in trong ngày đang được comment tạm cho BA test (TEMP-BUG25-OFF, e1cbbba6), nên đừng sửa spec. Khi bật lại luật, test sẽ xanh lại.
+
+ESLint và tsc sạch trên cả hai spec. Chưa commit.
