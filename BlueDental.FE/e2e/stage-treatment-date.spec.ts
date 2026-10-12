@@ -22,6 +22,8 @@ interface Line {
   serviceId: string;
   serviceName: string;
   warrantyDays: number;
+  /** "YYYY-MM-DD" the slip was opened — the earliest Ngày điều trị (QA #32). */
+  openedOn: string;
 }
 
 /** "YYYY-MM-DD" of the browser's today shifted by `days`. */
@@ -30,6 +32,16 @@ function isoDay(days: number): string {
   day.setDate(day.getDate() + days);
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
+}
+
+/** Whole days from `day` ("YYYY-MM-DD") back to today. */
+function daysAgo(day: string): number {
+  const [y, m, d] = day.split("-").map(Number);
+  const today = new Date();
+  return Math.round(
+    (new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() - new Date(y, m - 1, d).getTime()) /
+      86_400_000,
+  );
 }
 
 /** "YYYY-MM-DD" → the DD/MM/YYYY the picker and the treatment table print. */
@@ -74,9 +86,10 @@ async function call(
 }
 
 /**
- * A fresh line on an open slip of branch 1, so the test owns its teeth. With
- * `serviceId` the line is that catalog service; otherwise any service without a
- * warranty already used in branch 1.
+ * A fresh line on the oldest open slip of branch 1, so the test owns its teeth
+ * and has the most days to date a công đoạn on — none may be dated before the
+ * slip was opened. With `serviceId` the line is that catalog service; otherwise
+ * any service without a warranty already used in branch 1.
  */
 async function freshLine(page: Page, tooth: number, serviceId?: string): Promise<Line> {
   await page.goto("/patient");
@@ -92,6 +105,7 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
         patientId: string;
         branchId: string;
         status: number;
+        creationTime: string;
         services: { id: string; serviceId: string; serviceName: string | null; warrantyDays: number; originalPrice: number }[];
       }[];
 
@@ -100,7 +114,9 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
         ? { serviceId, originalPrice: 100000 }
         : lines.find((line) => line.warrantyDays <= 0);
       // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
-      const slip = slips.find((item) => item.branchId === branch && item.status !== 5 && item.status !== 6);
+      const slip = slips
+        .filter((item) => item.branchId === branch && item.status !== 5 && item.status !== 6)
+        .sort((a, b) => a.creationTime.localeCompare(b.creationTime))[0];
       if (!slip || !source) return { error: "no open slip or source service in branch 1" };
 
       const known = new Set(slip.services.map((line) => line.id));
@@ -121,6 +137,8 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
       if (!res.ok) return { error: `${res.status} ${await res.text()}` };
       const updated = (await res.json()) as typeof slip;
       const line = updated.services.find((item) => !known.has(item.id))!;
+      const opened = new Date(slip.creationTime);
+      const pad = (value: number) => String(value).padStart(2, "0");
       return {
         line: {
           patientId: slip.patientId,
@@ -130,6 +148,7 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
           serviceId: line.serviceId,
           serviceName: line.serviceName ?? "",
           warrantyDays: line.warrantyDays,
+          openedOn: `${opened.getFullYear()}-${pad(opened.getMonth() + 1)}-${pad(opened.getDate())}`,
         },
       };
     },
@@ -241,8 +260,9 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     await page.setViewportSize({ width: 1700, height: 950 });
     const line = await freshLine(page, 48);
 
-    // A day of its own, years back, so its group holds this công đoạn alone.
-    const picked = isoDay(-(1500 + (Date.now() % 1500)));
+    // A past day no earlier than the slip, so it is not today's group.
+    const room = daysAgo(line.openedOn);
+    const picked = isoDay(-(room > 0 ? 1 + (Date.now() % room) : 0));
 
     await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${line.branchId}`);
     await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toBeVisible({ timeout: 20_000 });
@@ -321,9 +341,11 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect(continuedLate.text).toContain("BlueDental:Treatment:0046");
 
     // Worked longer ago than the service's warranty: written today, yet its
-    // warranty has run out — the count starts from Ngày điều trị.
-    const oldLine = await freshLine(page, 37, await warrantyService(page, 30));
-    expect(oldLine.warrantyDays).toBe(30);
+    // warranty has run out — the count starts from Ngày điều trị. The day must
+    // still be on or after the slip's own, so the period is kept short.
+    const oldLine = await freshLine(page, 37, await warrantyService(page, 2));
+    expect(oldLine.warrantyDays).toBe(2);
+    test.skip(daysAgo(oldLine.openedOn) < 3, "needs an open slip at least 3 days old");
     const aged = await call(
       page,
       "POST",
@@ -368,7 +390,14 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     await page.setViewportSize({ width: 1700, height: 950 });
     const staff = await staffId(page);
     const line = await freshLine(page, 35, await warrantyService(page, 30));
-    const source = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 35, staff, isoDay(-3)));
+    const room = daysAgo(line.openedOn);
+    test.skip(room < 1, "needs an open slip opened before today");
+    const source = await call(
+      page,
+      "POST",
+      "/api/v1/app/treatment-stages",
+      stageBody(line, 35, staff, isoDay(-Math.min(3, room))),
+    );
     expect(source.status, source.text).toBe(200);
     const sourceId = (source.json as { id: string }).id;
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${sourceId}/complete`)).status).toBe(200);
@@ -411,8 +440,8 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
 
     const recall = page.locator(".pd-recall-form-dialog");
     await expect(recall).toBeVisible();
-    // A day of its own, years back, so the tái khám row is easy to tell apart.
-    const recallDay = isoDay(-(1500 + (Date.now() % 1500)));
+    // A past day no earlier than the slip, so the tái khám row is easy to tell apart.
+    const recallDay = isoDay(-(1 + (Date.now() % room)));
     await pickTreatmentDate(page, recall, recallDay);
     await recall.locator(".pd-stage-teeth > div > button").first().click();
     await recall.locator("textarea").fill(`e2e tái khám ngày điều trị ${runId()}`);
@@ -449,5 +478,87 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     const omitted = await call(page, "POST", "/api/v1/app/patient-re-examinations", reExamBody());
     expect(omitted.status, omitted.text).toBe(200);
     expect((omitted.json as { treatmentDate: string }).treatmentDate).toBe(isoDay(0));
+  });
+
+  test("QA #31/#32: a day before the slip cannot be picked or saved, and typing one does not crash the form", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    const crashes: string[] = [];
+    page.on("pageerror", (error) => crashes.push(String(error)));
+
+    const line = await freshLine(page, 34);
+    const room = daysAgo(line.openedOn);
+    test.skip(room < 1, "needs an open slip opened before today");
+    const staff = await staffId(page);
+
+    // The server refuses a day before the slip, for a new công đoạn, a continue
+    // and a tái khám — and still takes the slip's own day.
+    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, isoDay(-(room + 1))));
+    expect(early.status).not.toBe(200);
+    expect(early.text).toContain("BlueDental:Treatment:0047");
+    const onOpening = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, line.openedOn));
+    expect(onOpening.status, onOpening.text).toBe(200);
+    const opened = onOpening.json as { id: string; treatmentDate: string };
+    expect(opened.treatmentDate).toBe(line.openedOn);
+
+    const continuedEarly = await call(page, "POST", `/api/v1/app/treatment-stages/${opened.id}/continue`, {
+      staffId: staff,
+      note: "e2e",
+      treatmentDate: "2000-01-01",
+      toothCodes: [],
+      alsoFrom: [],
+    });
+    expect(continuedEarly.status).not.toBe(200);
+    expect(continuedEarly.text).toContain("BlueDental:Treatment:0047");
+
+    expect((await call(page, "POST", `/api/v1/app/treatment-stages/${opened.id}/complete`)).status).toBe(200);
+    const recallEarly = await call(page, "POST", "/api/v1/app/patient-re-examinations", {
+      patientId: line.patientId,
+      clinicBranchId: line.branchId,
+      patientStageId: opened.id,
+      staffId: staff,
+      note: "e2e",
+      treatmentDate: "2000-01-01",
+      teeth: [{ toothCode: 34, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+    });
+    expect(recallEarly.status).not.toBe(200);
+    expect(recallEarly.text).toContain("BlueDental:Treatment:0047");
+
+    // The form: the QA steps — Ctrl+A, type 01/01/2000, Enter, click Nội dung
+    // điều trị. The page stays up, the field says why, and the day is unchanged.
+    const other = await freshLine(page, 33);
+    await page.goto(`/patient/${other.patientId}/treatment-plan/${other.planId}?branchId=${other.branchId}`);
+    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${other.lineId}"]`)).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    await dialog.locator(`.pd-stage-picks button[data-line-id="${other.lineId}"]`).click();
+    const form = dialog.locator(`.pd-stage-form[data-item-id="${other.lineId}"]`);
+    const date = form.locator(".pd-stage-date input");
+    await expect(date).toHaveValue(typed(isoDay(0)));
+
+    await date.click({ position: { x: 6, y: 8 } });
+    const panel = page.locator(".ant-picker-dropdown:visible");
+    await date.press("Control+a");
+    await date.pressSequentially("01/01/2000");
+    await date.press("Enter");
+    await form.locator("textarea").click();
+
+    await expect(form.getByText(`Chỉ được chọn từ ngày tạo phiếu (${typed(other.openedOn)}) đến hôm nay`)).toBeVisible();
+    await expect(date).toHaveValue(typed(isoDay(0)));
+    await expect(dialog).toBeVisible();
+    expect(crashes).toEqual([]);
+
+    // The calendar shuts the day before the slip and leaves the slip's own open.
+    await date.click({ position: { x: 6, y: 8 } });
+    await date.press("Control+a");
+    await date.pressSequentially(typed(other.openedOn).replaceAll("/", ""));
+    await expect(panel.locator(`td[title="${other.openedOn}"]`)).not.toHaveClass(/ant-picker-cell-disabled/);
+    await expect(panel.locator(`td[title="${isoDay(-(daysAgo(other.openedOn) + 1))}"]`)).toHaveClass(
+      /ant-picker-cell-disabled/,
+    );
+    await date.press("Enter");
+    await expect(date).toHaveValue(typed(other.openedOn));
+    await expect(form.locator(".pd-stage-error")).toHaveCount(0);
   });
 });

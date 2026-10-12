@@ -262,6 +262,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>"Ngày điều trị" after today — a công đoạn is written for a day already worked.</summary>
         public const string StageTreatmentDateInFuture = "BlueDental:Treatment:0046";
+
+        /// <summary>"Ngày điều trị" before the phiếu điều trị it belongs to was opened.</summary>
+        public const string StageTreatmentDateBeforeSlip = "BlueDental:Treatment:0047";
     }
 
     public static class Billing

@@ -12,6 +12,7 @@ import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/t
 import { FollowUpShots } from "./FollowUpShots";
 import { FollowUpTeeth } from "./FollowUpTeeth";
 import { StageDateField } from "./StageDateField";
+import { slipOpenedOn } from "./stageModel";
 import { StageStepList } from "./StageStepList";
 import { StageTeethPicker } from "./StageTeethPicker";
 import { useFollowUpForm } from "./useFollowUpForm";
@@ -116,6 +117,7 @@ export function StageFollowUpDialog({
         <div>
           <StageDateField
             value={form.treatmentDate}
+            minDate={slipOpenedOn(plan)}
             error={form.errors.treatmentDate}
             onChange={form.setTreatmentDate}
           />

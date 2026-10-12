@@ -109,7 +109,8 @@ public class PatientReExaminationAppService : ApplicationService, IPatientReExam
             PatientDiagnosisAppService.ToToothSelections(input.Teeth),
             input.SubStaffId,
             input.SecondStaffId,
-            input.TreatmentDate);
+            input.TreatmentDate,
+            await _planRepository.OpenedOnAsync(stage.TreatmentId));
 
         await _repository.InsertAsync(visit, autoSave: true);
 
