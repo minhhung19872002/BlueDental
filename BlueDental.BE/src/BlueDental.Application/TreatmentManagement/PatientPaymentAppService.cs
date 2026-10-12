@@ -295,6 +295,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             input.Kind == PatientPaymentKind.Payment
                 ? PatientPaymentStatus.Pending
                 : PatientPaymentStatus.Completed);
+        payment.RequestRedInvoice(input.RedInvoiceRequested);
 
         await _repository.InsertAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
@@ -500,6 +501,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim(),
             lines,
             GuidGenerator.Create);
+        payment.RequestRedInvoice(input.RedInvoiceRequested);
     }
 
     /// <summary>A bare GetAsync leaves the lines unloaded, and a revise would then orphan them.</summary>
@@ -686,6 +688,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             DeletionTime = x.DeletionTime,
             CancelReason = x.CancelReason,
             Status = x.Status,
+            RedInvoiceRequested = x.RedInvoiceRequested,
             CancelledByName = x.DeleterId.HasValue && staffNames.TryGetValue(x.DeleterId.Value, out var deleter)
                 ? deleter
                 : null

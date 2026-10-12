@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
+import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
@@ -8,8 +9,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { usePatientAdvises } from "../api/consultingQueries";
-import { useTreatmentPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
-import { InvoiceModal } from "./InvoiceModal";
+import { usePatientAccount, useTreatmentPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
 import { CreatePlanDialog } from "./plan/CreatePlanDialog";
 import { PlanColumnConfigPopover } from "./plan/PlanColumnConfigPopover";
 import { PrintMedicalRecordDialog } from "./plan/PrintMedicalRecordDialog";
@@ -46,17 +46,19 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   // The slip is opened through the consulting line, so the server gates it on
   // treatmentConsultation.create — there is no treatmentPlan subject.
   const ability = useAbility("treatmentConsultation");
-  // The invoice dialog issues an e-invoice — the server's payment.finalize.
-  const canIssueInvoice = useAbility("payment").can("finalize");
+  // Hóa đơn opens "Tạo phiếu thanh toán" on the slip (owner 2026-10-12) — payment.create.
+  const paymentAbility = useAbility("payment");
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [createOpen, setCreateOpen] = useState(false);
   const [serviceList, setServiceList] = useState<ServiceListTarget | null>(null);
   const [stagePlan, setStagePlan] = useState<TreatmentPlanSlipDto | null>(null);
-  const [invoicePlan, setInvoicePlan] = useState<TreatmentPlanSlipDto | null>(null);
+  const [payPlan, setPayPlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
 
   const plansQuery = useTreatmentPlans(patientId, branchId);
+  // Dư nợ for the payment dialog; the server keeps it behind payment.read.
+  const account = usePatientAccount(patientId, branchId, payPlan !== null && paymentAbility.canRead);
   const advises = usePatientAdvises({ patientId, clinicBranchId: branchId, maxResultCount: 200 });
 
   const plans = useMemo(
@@ -82,10 +84,10 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       // The reference's print dialog is about the patient, not the slip: it
       // reads the record files and the patient, and nothing off the row.
       onPrintRecord: () => setPrintOpen(true),
-      onReceipt: canIssueInvoice ? setInvoicePlan : undefined,
+      onReceipt: paymentAbility.canCreate ? setPayPlan : undefined,
       onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
     }),
-    [navigate, patientId, branchId, canIssueInvoice],
+    [navigate, patientId, branchId, paymentAbility.canCreate],
   );
 
   const serviceRows =
@@ -164,9 +166,16 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       {printOpen && (
         <PrintMedicalRecordDialog patient={patient} onClose={() => setPrintOpen(false)} />
       )}
-      {invoicePlan && (
-        <InvoiceModal open source={{ treatmentPlanId: invoicePlan.id }} onClose={() => setInvoicePlan(null)} />
-      )}
+      <CreatePaymentDialog
+        open={payPlan !== null}
+        patientId={patientId}
+        branchId={branchId}
+        plan={payPlan}
+        focusServiceId={null}
+        heldForPatient={account.data?.heldForPatient ?? 0}
+        onClose={() => setPayPlan(null)}
+        onSaved={() => setPayPlan(null)}
+      />
     </div>
   );
 }

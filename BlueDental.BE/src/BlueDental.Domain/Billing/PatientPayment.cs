@@ -77,6 +77,13 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 
     public bool IsPending => Status == PatientPaymentStatus.Pending;
 
+    /// <summary>
+    /// The patient asked for a red (VAT) invoice when the receipt was written
+    /// ("Xuất hóa đơn đỏ" on Tạo phiếu thanh toán). Only remembered here — the
+    /// e-invoice itself is issued later from another screen (owner 2026-10-12).
+    /// </summary>
+    public bool RedInvoiceRequested { get; private set; }
+
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
 
@@ -272,6 +279,12 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         return kind == PatientPaymentKind.Refund
             ? $"HOANTIEN-{sequence:D2}/{year}"
             : $"TAMUNG-{sequence:D2}/{year}";
+    }
+
+    public PatientPayment RequestRedInvoice(bool requested)
+    {
+        RedInvoiceRequested = requested;
+        return this;
     }
 
     public PatientPayment UpdateNote(string? note)

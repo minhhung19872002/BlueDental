@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
+import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import { GENDER, type GenderCode, type PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
@@ -19,11 +20,11 @@ import {
   PLAN_STATUS,
   useCancelServiceLine,
   useCompleteServiceLine,
+  usePatientAccount,
   useReorderServiceLine,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
 import type { PrescriptionPatientSummary } from "../../types/prescription";
-import { InvoiceModal } from "../InvoiceModal";
 import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
@@ -118,6 +119,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   // Adding, completing, converting, cancelling and reordering a line are all
   // one endpoint family on the server, guarded by treatmentConsultation.update.
   const canEditLines = useAbility("treatmentConsultation").canUpdate;
+  const paymentAbility = useAbility("payment");
   const pagination = useTablePagination(10);
   const advises = usePatientAdvises({ patientId: patient.id, clinicBranchId: branchId, maxResultCount: 200 });
   const clinic = useBranchInfo(branchId);
@@ -132,7 +134,9 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const [converting, setConverting] = useState<PlanDetailRow | null>(null);
   const [stageOpen, setStageOpen] = useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
-  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  // Dư nợ for the payment dialog; the server keeps it behind payment.read.
+  const account = usePatientAccount(patient.id, branchId, payOpen && paymentAbility.canRead);
   const [slipOpen, setSlipOpen] = useState(false);
 
   const rows = useMemo(() => planDetailRows(plan, advises.data?.items ?? []), [plan, advises.data]);
@@ -238,7 +242,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         }}
         onAddStage={() => setStageOpen(true)}
         onPrescription={() => setPrescriptionOpen(true)}
-        onInvoice={() => setInvoiceOpen(true)}
+        onInvoice={() => setPayOpen(true)}
         onPrint={() => setSlipOpen(true)}
       />
 
@@ -317,7 +321,16 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         prescription={null}
         onClose={() => setPrescriptionOpen(false)}
       />
-      {invoiceOpen && <InvoiceModal open source={{ treatmentPlanId: plan.id }} onClose={() => setInvoiceOpen(false)} />}
+      <CreatePaymentDialog
+        open={payOpen}
+        patientId={patient.id}
+        branchId={branchId}
+        plan={plan}
+        focusServiceId={null}
+        heldForPatient={account.data?.heldForPatient ?? 0}
+        onClose={() => setPayOpen(false)}
+        onSaved={() => setPayOpen(false)}
+      />
       <PlanSlipDialog open={slipOpen} patient={patient} plan={plan} clinic={clinic.data} onClose={() => setSlipOpen(false)} />
     </div>
   );

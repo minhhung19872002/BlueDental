@@ -30,8 +30,9 @@ public class ElectronicInvoiceAppServiceContractTests
         Policy(nameof(ElectronicInvoiceAppService.GetListAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Read);
         Policy(nameof(ElectronicInvoiceAppService.SyncAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Read);
         Policy(nameof(ElectronicInvoiceAppService.GetPdfAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Read);
-        // PHIẾU THU says money was collected: same ability as Phát Hành.
-        Policy(nameof(ElectronicInvoiceAppService.RenderReceiptAsync)).ShouldBe(BlueDentalAbilityPermissions.Payment.Finalize);
+        // PHIẾU THU prints for payment.create OR payment.finalize (owner 2026-10-12):
+        // two [Authorize] would AND, so the method checks either one itself.
+        Policy(nameof(ElectronicInvoiceAppService.RenderReceiptAsync)).ShouldBeNull();
     }
 
     [Fact]

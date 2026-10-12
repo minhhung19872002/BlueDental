@@ -7785,3 +7785,25 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên build production + BE thật.
 
 **Lưu ý.** Nếu dữ liệu đã có sẵn hai hồ sơ cùng SĐT (ví dụ nhập từ hệ thống cũ), sửa một trong hai bằng `E` sẽ bị từ chối, giống hệt khi lưu bằng dialog.
+
+## R-907 (2026-10-12, mức 3: thanh toán theo phiếu + quyền in phiếu thu) "In Hóa Đơn" / icon "Hóa đơn" mở "Tạo phiếu thanh toán"
+
+**Yêu cầu (chủ sở hữu, kèm mock).** Nút "In Hóa Đơn" ở chi tiết phiếu điều trị và icon "Hóa đơn" (`Phiếu thu DTxx`) ở danh sách phiếu mở dialog **Tạo phiếu thanh toán**, không còn mở dialog hóa đơn điện tử.
+
+**Làm.**
+- Dialog đi theo 3 bước: ① Chọn số phiếu → ② Chọn dịch vụ → ③ Thông tin thanh toán. Thanh bước nằm trên nền xám nhạt trải hết bề ngang dialog. Bước xong là vòng tròn tím có ✓, bước đang làm là vòng viền tím có số. Giữa các bước có đường nối ngắn.
+- Ô "Số phiếu cần thanh toán *":
+  - Popup có ô tìm theo số phiếu hoặc ngày tạo, hai cột SỐ PHIẾU / CÒN NỢ, nhãn "Chưa thanh toán" / "Thanh toán một phần" và dòng "Ngày tạo … · N dịch vụ".
+  - Phiếu đã trả đủ bị ẩn.
+  - Khi đã chọn, ô hiện kính lúp, mã đậm và dòng phụ màu xám.
+- Chỉ liệt kê dịch vụ còn nợ, có nút "Chọn tất cả" và nhãn "Còn nợ". Bảng "Tổng tiền dịch vụ đã chọn" có 7 dòng. Số tiền tự bằng tổng còn nợ của các dịch vụ đã chọn.
+- "Xuất hóa đơn đỏ" chỉ lưu cờ `PatientPayment.RedInvoiceRequested` (migration `PaymentRedInvoiceRequested`) và **không** gọi EasyInvoice; màn khác sẽ đẩy sau.
+- Lưu xong, PHIẾU THU mở ở tab mới. Phiếu đang "Chưa thanh toán" vẫn in được.
+- `receipt-pdf` nhận quyền `payment.create` **hoặc** `payment.finalize`. Các nút mở dialog gắn với `payment.create`.
+
+**Kiểm chứng (build production + BE thật + PostgreSQL).**
+- Test mới `payment-from-slip.spec`: mở từ phiếu, chọn phiếu, chọn dịch vụ, kiểm tra tổng tiền, tích cờ hóa đơn đỏ, Lưu → PDF 200 ở tab mới. Reload rồi gọi một GET riêng để đọc lại cờ. Xác nhận thanh toán xong thì phiếu biến khỏi picker của phiếu khác.
+- Chỉnh lại: `payment-permission-buttons.spec` (nút theo `create`), `payment-status.spec` (phiếu chờ in được, 200) và `treatment-plan.spec` (icon Hóa đơn mở dialog mới).
+- Kết quả: 3 spec trên cùng `payment-receipt-pdf.spec` xanh (12/12 + 9/9).
+
+**Gotcha e2e.** Ô tìm nằm trong `popupRender` của AntD Select: `fill()` không kích hoạt lọc, phải `click()` + `pressSequentially()`. Headless Chromium không có trình xem PDF nên tab blob biến thành download; test chấp nhận cả hai.

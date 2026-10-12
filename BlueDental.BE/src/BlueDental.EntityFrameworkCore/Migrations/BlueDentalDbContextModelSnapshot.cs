@@ -580,6 +580,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("PaymentAccountId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("RedInvoiceRequested")
+                        .HasColumnType("boolean");
+
                     b.Property<short>("SplitMode")
                         .HasColumnType("smallint");
 

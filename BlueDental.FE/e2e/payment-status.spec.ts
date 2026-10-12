@@ -190,12 +190,12 @@ test.describe("Thanh toán: Chưa thanh toán → Xác nhận thanh toán → Ho
       const withPending = (await call(page, `${base}&includePending=true`)).body.items as { id: string; status: number }[];
       expect(withPending.find((p) => p.id === pendingId)?.status).toBe(1);
 
-      // No e-invoice and no printed PHIẾU THU before the money is taken.
+      // No e-invoice before the money is taken — but the PHIẾU THU prints
+      // straight off "Tạo phiếu thanh toán" (owner 2026-10-12, R-907).
       const draft = await call(page, `/api/v1/app/e-invoices/draft?patientPaymentId=${pendingId}`);
       expect(errorCode(draft.body)).toBe(NOT_COMPLETED);
       const pdf = await renderReceipt(page, { patientPaymentId: pendingId, lines: [] });
-      expect(pdf.status, JSON.stringify(pdf.body)).toBe(403);
-      expect(errorCode(pdf.body)).toBe(NOT_COMPLETED);
+      expect(pdf.status, JSON.stringify(pdf.body)).toBe(200);
     } finally {
       // A pending receipt can still be taken back.
       const dropped = await call(page, `${PAYMENTS_API}/${pendingId}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
