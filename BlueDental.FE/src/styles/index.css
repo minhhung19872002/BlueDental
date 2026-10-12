@@ -4250,6 +4250,39 @@ html:has(.ant-modal-wrap) {
 }
 
 /*
+ * Dialogs fade in and out; they never scale or slide (QA #37, #39). A picker
+ * opened while its dialog was still zooming in measured the shrunken field —
+ * antd sizes and places a dropdown once, from getBoundingClientRect, and does
+ * not look again when the transform ends — so Tên thuốc / Chọn bác sĩ opened
+ * ~50px wide off the dialog's corner and stayed there. With no transform the
+ * field is its real size from the first frame. antd's own zoom keyframes are
+ * swapped for fades; the container's entrance is a fade too.
+ */
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialogFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.ant-modal-root .ant-modal.ant-zoom-enter-active,
+.ant-modal-root .ant-modal.ant-zoom-appear-active {
+  animation-name: dialogFadeIn;
+}
+.ant-modal-root .ant-modal.ant-zoom-leave-active {
+  animation-name: dialogFadeOut;
+}
+
+/*
  * Dialogs are the one surface besides the header the design blurs — cards stay
  * opaque, these do not. Ant Design 6 renames the shell, so both are named.
  */
@@ -4262,7 +4295,7 @@ html:has(.ant-modal-wrap) {
   backdrop-filter: blur(22px);
   border: 1px solid #fff;
   box-shadow: 0 30px 70px -20px rgba(35, 42, 86, 0.4);
-  animation: popIn 0.18s ease;
+  animation: dialogFadeIn 0.18s ease;
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
