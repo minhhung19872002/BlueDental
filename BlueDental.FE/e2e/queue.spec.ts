@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { BRANCH_ONE } from "./fixtures/catalogApi";
-import { deleteCounters, freePrefixes, listCounters, type Counter } from "./fixtures/queueApi";
+import { deleteCounters, freeDentists, freePrefixes, listCounters, type Counter } from "./fixtures/queueApi";
 
 /**
  * Feature: Màn hình đợi (F-45, BA redesign 2026-10-09) through the real UI:
@@ -29,6 +29,20 @@ function cardOf(page: Page, name: string): Locator {
   return page.locator(".queue-card").filter({ has: page.locator(".queue-card__name", { hasText: name }) });
 }
 
+/**
+ * Picks a dentist who heads no counter yet. Typed into the search first: the
+ * picker is a virtual list and, once the branch has many counters, the taken
+ * (disabled) dentists fill the visible window.
+ */
+async function pickFreeDentist(page: Page, form: Locator, label: string): Promise<string> {
+  await form.getByRole("combobox", { name: /^\*?\s*Bác sĩ phụ trách/ }).click();
+  await page.keyboard.type(label);
+  const option = page.locator(ENABLED_OPTION).filter({ hasText: label }).first();
+  const text = (await option.innerText()).trim();
+  await option.click();
+  return text;
+}
+
 async function takeNumber(page: Page, counterName: string, priority: "Bình thường" | "Ưu tiên"): Promise<void> {
   await page.getByRole("button", { name: "Lấy số mới" }).click();
   const modal = dialogNamed(page, "Lấy số thứ tự");
@@ -50,6 +64,7 @@ test.describe("Màn hình đợi — per-counter queues in the browser", () => {
   let page: Page;
   let prefix: string;
   let dentistLabel: string;
+  let freeDentistLabel: string;
   let counter: Counter | undefined;
 
   test.beforeAll(async ({ browser }) => {
@@ -57,6 +72,7 @@ test.describe("Màn hình đợi — per-counter queues in the browser", () => {
     await login(page);
     await page.goto("/queue");
     [prefix] = await freePrefixes(page, 1);
+    [{ label: freeDentistLabel }] = await freeDentists(page, 1);
   });
 
   test.afterAll(async () => {
@@ -81,11 +97,8 @@ test.describe("Màn hình đợi — per-counter queues in the browser", () => {
     await expect(form.getByText(`Hiển thị: ${prefix}001`)).toBeVisible();
     await expect(save, "no dentist yet").toBeDisabled();
 
-    await form.getByRole("combobox", { name: /^\*?\s*Bác sĩ phụ trách/ }).click();
-    const option = page.locator(ENABLED_OPTION).first();
-    dentistLabel = (await option.innerText()).trim();
+    dentistLabel = await pickFreeDentist(page, form, freeDentistLabel);
     expect(dentistLabel).not.toBe("");
-    await option.click();
     await expect(form.locator(".queue-form__dentist-name"), "the pick turns into the locked card").toHaveText(
       titled(dentistLabel),
     );
@@ -105,6 +118,43 @@ test.describe("Màn hình đợi — per-counter queues in the browser", () => {
     counter = (await listCounters(page)).find((c) => c.name === name);
     expect(counter?.numberPrefix).toBe(prefix);
     await expect(cardOf(page, name).locator(".queue-card__dentist")).toHaveText(titled(dentistLabel));
+  });
+
+  test("a second counter cannot take the same name in another case or spacing (bug #34)", async () => {
+    await page.getByRole("button", { name: "Quản lý quầy" }).click();
+    const manager = dialogNamed(page, "Quản lý quầy");
+    await manager.getByRole("button", { name: "Thêm quầy" }).click();
+    const form = dialogNamed(page, "Thêm quầy");
+
+    const posts: string[] = [];
+    const onRequest = (r: { url(): string; method(): string }) => {
+      if (r.url().endsWith("/queue/counters") && r.method() === "POST") posts.push(r.url());
+    };
+    page.on("request", onRequest);
+    try {
+      await form.getByRole("textbox", { name: /^\*?\s*Tên quầy/ }).fill(`  ${name.toUpperCase().replace(" ", "   ")} `);
+      await expect(form.getByText("Tên quầy đã tồn tại"), "shown under the field as it is typed").toBeVisible();
+
+      // The prefix clash shows the same way, under its field, before Lưu.
+      const prefixBox = form.getByRole("textbox", { name: /^\*?\s*Ký hiệu số/ });
+      await prefixBox.fill(prefix.toLowerCase());
+      await expect(form.getByText("Ký hiệu số đã được quầy khác dùng")).toBeVisible();
+      await prefixBox.fill("Z0");
+      await expect(form.getByText("Ký hiệu số đã được quầy khác dùng")).toBeHidden();
+      const [other] = await freeDentists(page, 1);
+      await pickFreeDentist(page, form, other.label);
+      await form.getByRole("button", { name: /Lưu$/ }).click();
+      await expect(form.getByText("Tên quầy đã tồn tại")).toBeVisible();
+      await expect(form, "the dialog stays open").toBeVisible();
+      expect(posts, "nothing is sent to the server").toEqual([]);
+    } finally {
+      page.off("request", onRequest);
+    }
+
+    await form.locator(".ant-modal-close").click();
+    await expect(manager).toBeVisible();
+    await manager.locator(".ant-modal-close").click();
+    expect((await listCounters(page)).filter((c) => c.name.toLowerCase() === name.toLowerCase())).toHaveLength(1);
   });
 
   test("numbers taken at the counter are called urgent first from its card", async () => {

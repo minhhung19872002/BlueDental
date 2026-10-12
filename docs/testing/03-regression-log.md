@@ -7604,3 +7604,21 @@ Kết quả trên build production :8081, cùng host và DB:
 - `patient`: **64/65**. Test còn đỏ là `the Tiếp nhận steps advance one at a time`. Test này **cố ý để đỏ**: luật check-in trong ngày đang được comment tạm cho BA test (TEMP-BUG25-OFF, e1cbbba6), nên đừng sửa spec. Khi bật lại luật, test sẽ xanh lại.
 
 ESLint và tsc sạch trên cả hai spec. Chưa commit.
+
+## R-898 (2026-10-12, mức 2: F-45) Bug list #34: tên quầy bị trùng nếu chỉ khác hoa/thường
+
+Bug #34: đã có quầy "DUNG-TEST Quay 1", tạo thêm quầy "dung-test quay 1" vẫn lưu được, nên có 2 quầy cùng tên. Kết quả mong đợi: báo "Tên quầy đã tồn tại", không phân biệt hoa thường, bỏ khoảng trắng thừa.
+
+Nguyên nhân: server chỉ chặn trùng ký hiệu (`Queue:0007`) và bác sĩ (`0009`), không kiểm tra tên. `ServiceCounter.Update` chỉ cắt khoảng trắng ở hai đầu.
+
+Đã sửa:
+- **Domain.** `ServiceCounter.NormalizeName` cắt khoảng trắng hai đầu và gộp khoảng trắng ở giữa thành một; tên được lưu sau khi chuẩn hoá. `HasSameName` so sánh `OrdinalIgnoreCase`.
+- **AppService.** `EnsureNameFreeAsync` chạy trong Create và Update, trả mã mới `BlueDental:Queue:0014` "Tên quầy đã tồn tại.". Phạm vi so: cùng chi nhánh, trừ chính quầy đang sửa. Quầy tạm nghỉ vẫn tính, quầy đã xoá mềm thì không. Việc so diễn ra trong bộ nhớ, không dùng `lower()` của PostgreSQL vì locale `C` không hạ chữ có dấu (Đ, Ầ); mỗi chi nhánh chỉ có vài quầy.
+- **FE `CounterFormDialog`.** Hai rule trên form báo lỗi dưới ô ngay khi gõ (R-307): Tên quầy trùng (`isCounterNameTaken`) và **Ký hiệu số trùng** (`isCounterPrefixTaken`). Chủ dự án hỏi vì sao ký hiệu trùng chỉ báo khi bấm Lưu, bằng toast server, nên đưa về cùng cách với Tên quầy. Server vẫn là chốt cuối (`0007`/`0014` qua toast chung) khi danh sách trên màn hình chưa cập nhật. `toCounterInput` gửi tên đã chuẩn hoá.
+- **Không có unique index.** Hai lần tạo đồng thời cùng tên vẫn có thể lọt, giống kiểm tra ký hiệu. Dữ liệu đã trùng từ trước không tự sửa: khi sửa một quầy trong cặp trùng, phải đổi tên mới lưu được.
+
+Test (build production :8135 → host :5000 → PostgreSQL thật, không chặn API):
+- `queue-api.spec`: thêm 1 test. Tên trùng khác hoa/thường + khoảng trắng → `0014`; sửa sang tên của quầy khác → `0014`; chữ có dấu "QUẦY ĐẶC BIỆT" trùng "Quầy Đặc biệt" → `0014`; tên được lưu đã chuẩn hoá; sửa giữ tên của chính mình (đổi hoa/thường) → 200, đọc lại thấy tên mới. Test chi nhánh 2: dùng lại tên của quầy X ở chi nhánh 1 → 200.
+- `queue.spec`: thêm 1 test. Gõ tên trùng thì thấy lỗi dưới ô; ký hiệu trùng cũng báo dưới ô và hết lỗi khi đổi; bấm Lưu không gửi POST, dialog vẫn mở, DB vẫn chỉ có 1 quầy tên đó.
+- Sửa spec có sẵn. Ô "Bác sĩ phụ trách" dùng virtual list: khi DB local có nhiều quầy, các bác sĩ đã bận (bị khoá) chiếm hết phần hiển thị, nên `.first()` không tìm thấy option bấm được và test treo. `pickFreeDentist` lấy một bác sĩ còn trống qua API (`freeDentists`), gõ tên vào ô tìm rồi mới chọn.
+- Kết quả **19/19** (`queue-api` 13 + `queue` 6). tsc/eslint sạch. Chưa commit.

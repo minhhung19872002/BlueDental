@@ -71,7 +71,10 @@ Error codes (`BlueDental:Queue:`): `0001` nobody waiting · `0004` counter
 required · `0005` call on a paused counter · `0006` take a number at a paused
 counter · `0007` prefix used in the branch · `0008` dentist locked (queue busy)
 · `0009` dentist already heads a counter · `0010` invalid prefix · `0011`
-invalid settings · `0012` not a dentist · `0013` dentist required.
+invalid settings · `0012` not a dentist · `0013` dentist required · `0014`
+name used in the branch (bug #34, R-898: ignoring case, ends trimmed and inner
+spaces folded; the name is stored normalized; the dialog flags a taken name and
+a taken prefix under the field as it is typed).
 
 Migration `20261009050840_PerCounterQueue`: counter columns `DentistId`,
 `NumberPrefix`, `StartNumber`, `MinutesPerPatient`, `WaitWarningMinutes`,
@@ -86,7 +89,10 @@ skipping / counter management `BlueDental.queue.update`.
 
 ## Rules under test
 
-`e2e/queue-api.spec.ts` (12, real HTTP from the logged-in page):
+`e2e/queue-api.spec.ts` (13, real HTTP from the logged-in page; the name rule
+of bug #34 sits between 2 and 3: other case/spacing, an edit onto X's name and
+"QUẦY ĐẶC BIỆT" vs "Quầy Đặc biệt" → `0014`, own name in another case → 200,
+and in 12 branch 2 reuses X's name → 200):
 
 1. No dentist → `0013`; a non-dentist id → `0012`; prefix `A-` → `0010`.
 2. Create X (start 5, lower-case prefix stored upper-case) and Y; same prefix →
@@ -104,8 +110,13 @@ skipping / counter management `BlueDental.queue.update`.
 11. Anonymous TV board answers with no session and no `patientId/patientName`.
 12. Branch 2 does not see X and gets 404 calling or taking a number through it.
 
-`e2e/queue.spec.ts` (5, real UI): Lưu disabled until a dentist is picked, card
-shows "BS. <dentist>"; two numbers taken through "Lấy số mới", the card calls
+`e2e/queue.spec.ts` (6, real UI): Lưu disabled until a dentist is picked, card
+shows "BS. <dentist>" (the dentist is typed into the picker — it is a virtual
+list and taken dentists fill its window once the branch has many counters);
+bug #34: a second counter with the name in upper case and extra spaces shows
+"Tên quầy đã tồn tại" as it is typed, a taken prefix shows "Ký hiệu số đã được
+quầy khác dùng" until changed, Lưu sends no POST and only one counter carries
+the name; two numbers taken through "Lấy số mới", the card calls
 the urgent one first ("Gọi X002" then "Gọi X001"), ↻ "Làm mới" reloads the board; the counter page shows the
 five columns, one waiting row, survives a reload, "Bỏ qua X002", "Gọi số tiếp
 theo · X001", then "Hết số chờ" + "Không có bệnh nhân chờ"; the TV shows the

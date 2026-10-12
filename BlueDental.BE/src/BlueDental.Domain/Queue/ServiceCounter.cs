@@ -19,6 +19,7 @@ public class ServiceCounter : FullAuditedAggregateRoot<Guid>
     public const int DefaultMinutesPerPatient = 12;
 
     private static readonly Regex PrefixPattern = new("^[A-Z0-9]{1,2}$", RegexOptions.Compiled);
+    private static readonly Regex WhitespaceRun = new(@"\s+", RegexOptions.Compiled);
 
     public Guid ClinicBranchId { get; private set; }
     public string Name { get; private set; } = default!;
@@ -60,7 +61,7 @@ public class ServiceCounter : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Queue.InvalidCounterSettings);
         }
 
-        Name = name.Trim();
+        Name = NormalizeName(name);
         SortOrder = sortOrder;
         NumberPrefix = prefix;
         StartNumber = settings.StartNumber;
@@ -134,6 +135,13 @@ public class ServiceCounter : FullAuditedAggregateRoot<Guid>
     }
 
     public string FormatNumber(int number) => $"{NumberPrefix}{number:D3}";
+
+    /// <summary>Two names are the same counter when they match ignoring case once normalized.</summary>
+    public bool HasSameName(string otherName) =>
+        string.Equals(Name, NormalizeName(otherName), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Trims the ends and folds every inner run of whitespace into one space.</summary>
+    public static string NormalizeName(string name) => WhitespaceRun.Replace(name.Trim(), " ");
 
     private static string NormalizePrefix(string? prefix) => (prefix ?? string.Empty).Trim().ToUpperInvariant();
 }

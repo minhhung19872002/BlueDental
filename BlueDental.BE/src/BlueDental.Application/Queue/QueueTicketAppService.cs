@@ -398,6 +398,7 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
         var counter = new ServiceCounter(
             GuidGenerator.Create(), branchId, input.Name, input.SortOrder, ToSettings(input));
 
+        await EnsureNameFreeAsync(counter);
         await EnsurePrefixFreeAsync(counter);
         await EnsureDentistAvailableAsync(counter, input.DentistId);
         counter.AssignDentist(input.DentistId, hasPatientsInQueue: false);
@@ -412,6 +413,7 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
     {
         var counter = await GetCounterInBranchAsync(id);
         counter.Update(input.Name, input.SortOrder, ToSettings(input));
+        await EnsureNameFreeAsync(counter);
         await EnsurePrefixFreeAsync(counter);
 
         // A counter saved before the dentist became required still has none.
@@ -475,6 +477,23 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
         var counter = await _counterRepository.GetAsync(id);
         GuardCounterBranchAccess(counter);
         return counter;
+    }
+
+    /// <summary>
+    /// Two live counters of a branch may not share a name, ignoring case and
+    /// extra spaces. Compared in memory: PostgreSQL lower() under a C locale
+    /// leaves Vietnamese letters (Đ, Ầ) alone, and a branch has few counters.
+    /// </summary>
+    private async Task EnsureNameFreeAsync(ServiceCounter counter)
+    {
+        var otherNames = await AsyncExecuter.ToListAsync(
+            (await _counterRepository.GetQueryableAsync())
+                .Where(c => c.ClinicBranchId == counter.ClinicBranchId && c.Id != counter.Id)
+                .Select(c => c.Name));
+        if (otherNames.Any(counter.HasSameName))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Queue.DuplicateName);
+        }
     }
 
     /// <summary>Two live counters of a branch may not share a prefix — the numbers would collide.</summary>

@@ -5,6 +5,8 @@ import { t } from "@/lib/i18n";
 import { AppDialog } from "@/components/AppDialog";
 import { useCreateServiceCounter, useUpdateServiceCounter } from "../api/queueMutations";
 import {
+  isCounterNameTaken,
+  isCounterPrefixTaken,
   MAX_COUNTER_NAME,
   PREFIX_PATTERN,
   previewNumber,
@@ -40,6 +42,7 @@ export function CounterFormDialog({ open, counter, counters, onClose }: CounterF
   const dentistId = Form.useWatch("dentistId", form);
   const create = useCreateServiceCounter();
   const update = useUpdateServiceCounter();
+  const otherCounters = counters.filter((c) => c.id !== counter?.id);
 
   // The list refetches while the dialog is open; reading the counter through a
   // ref keeps a refetch from resetting what is being typed.
@@ -92,6 +95,12 @@ export function CounterFormDialog({ open, counter, counters, onClose }: CounterF
               label={t("Queue:Form:Name")}
               rules={[
                 { required: true, whitespace: true, message: t("Queue:Counter:NameRequired") },
+                {
+                  validator: (_, value?: string) =>
+                    value && isCounterNameTaken(value, otherCounters)
+                      ? Promise.reject(new Error(t("Queue:Counter:NameTaken")))
+                      : Promise.resolve(),
+                },
               ]}
             >
               <Input autoFocus maxLength={MAX_COUNTER_NAME} />
@@ -100,7 +109,7 @@ export function CounterFormDialog({ open, counter, counters, onClose }: CounterF
           <Col span={24}>
             <DentistPickerField
               counter={counter}
-              otherCounters={counters.filter((c) => c.id !== counter?.id)}
+              otherCounters={otherCounters}
             />
           </Col>
           <Col xs={24} sm={12}>
@@ -112,6 +121,12 @@ export function CounterFormDialog({ open, counter, counters, onClose }: CounterF
               rules={[
                 { required: true, message: t("Queue:Form:PrefixRequired") },
                 { pattern: PREFIX_PATTERN, message: t("Queue:Form:PrefixInvalid") },
+                {
+                  validator: (_, value?: string) =>
+                    value && isCounterPrefixTaken(value, otherCounters)
+                      ? Promise.reject(new Error(t("Queue:Form:PrefixTaken")))
+                      : Promise.resolve(),
+                },
               ]}
             >
               <Input maxLength={2} />

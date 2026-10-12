@@ -18,6 +18,7 @@ import {
   freePrefixes,
   getBoard,
   getTicket,
+  listCounters,
   saveCounter,
   takeNumber,
   type BoardCounter,
@@ -123,6 +124,48 @@ test.describe("Queue API — per-counter queues", () => {
       counterY.id,
     );
     expect(errorCode(dropped)).toBe("BlueDental:Queue:0013");
+  });
+
+  test("a counter name is unique in the branch, ignoring case and extra spaces (bug #34)", async () => {
+    const spaced = `  ${counterX.name.toLowerCase().replace(" ", "   ")} `;
+    const duplicate = await saveCounter(page, { name: spaced, numberPrefix: "Z0", dentistId: dentists[2].id });
+    expect(duplicate.status).toBe(403);
+    expect(errorCode(duplicate)).toBe("BlueDental:Queue:0014");
+
+    const renamedOnto = await saveCounter(
+      page,
+      { name: counterX.name.toUpperCase(), numberPrefix: prefixes[1], dentistId: dentists[1].id },
+      counterY.id,
+    );
+    expect(errorCode(renamedOnto), "an edit cannot take another counter's name").toBe("BlueDental:Queue:0014");
+
+    // Vietnamese letters fold too; the stored name is trimmed and single-spaced.
+    const vietnamese = await saveCounter(
+      page,
+      { name: ` Quầy   Đặc biệt ${run} `, numberPrefix: prefixes[1], dentistId: dentists[1].id },
+      counterY.id,
+    );
+    expect(vietnamese.status).toBe(200);
+    expect(vietnamese.body.name).toBe(`Quầy Đặc biệt ${run}`);
+    counterY = vietnamese.body;
+
+    const accented = await saveCounter(page, {
+      name: `QUẦY ĐẶC BIỆT ${run}`,
+      numberPrefix: "Z0",
+      dentistId: dentists[2].id,
+    });
+    expect(errorCode(accented)).toBe("BlueDental:Queue:0014");
+
+    // Saving a counter under its own name, in another case, is not a clash.
+    const ownName = await saveCounter(
+      page,
+      { name: counterY.name.toLowerCase(), numberPrefix: prefixes[1], dentistId: dentists[1].id },
+      counterY.id,
+    );
+    expect(ownName.status).toBe(200);
+    const listed = (await listCounters(page)).find((c) => c.id === counterY.id);
+    expect(listed?.name, "persisted").toBe(counterY.name.toLowerCase());
+    counterY = ownName.body;
   });
 
   test("a number is taken at a chosen counter, from that counter's sequence", async () => {
@@ -280,6 +323,30 @@ test.describe("Queue API — per-counter queues", () => {
 
       expect((await callNext(other, counterX.id, BRANCH_TWO)).status).toBe(404);
       expect((await takeNumber(other, counterX.id, NORMAL, BRANCH_TWO)).status).toBe(404);
+
+      // Names are unique per branch only: branch 2 may reuse counter X's name.
+      const own = await listCounters(other, BRANCH_TWO);
+      const dentist = dentists.find((d) => !own.some((c) => c.dentistId === d.id));
+      const prefix = ["Q9", "W9", "X9", "Y9", "Z9"].find((p) => !own.some((c) => c.numberPrefix === p));
+      expect(dentist && prefix, "a free dentist and prefix in branch 2").toBeTruthy();
+      const sameName = await call<Counter>(
+        other,
+        "POST",
+        `${QUEUE}/counters`,
+        {
+          name: counterX.name,
+          numberPrefix: prefix,
+          dentistId: dentist?.id,
+          sortOrder: 99,
+          startNumber: 1,
+          autoResetDaily: true,
+          waitWarningMinutes: 30,
+          minutesPerPatient: 12,
+        },
+        BRANCH_TWO,
+      );
+      expect(sameName.status, `branch 2 reuses the name: ${errorCode(sameName)}`).toBe(200);
+      await call(other, "DELETE", `${QUEUE}/counters/${sameName.body.id}`, undefined, BRANCH_TWO);
     } finally {
       await other.context().close();
     }
