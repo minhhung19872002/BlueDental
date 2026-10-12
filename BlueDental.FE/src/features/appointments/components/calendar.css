@@ -706,6 +706,13 @@
 
 /* ── Month view ───────────────────────────────────────────────────── */
 
+/* .cal-grid-wrap clips vertically (day/week scroll themselves), so the
+   month grid needs its own scroller too. */
+.cal-month-scroll {
+  overflow: auto;
+  max-height: 100%;
+}
+
 .cal-month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -720,6 +727,10 @@
   font-weight: 500;
   color: #5c6484;
   border-bottom: 1px solid #e7eaf6;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
 }
 
 /* ── Fullscreen mode ─────────────────────────────────────────────── */
