@@ -133,7 +133,7 @@ export function MonthViewCalendar({
 
   return (
     <Spin spinning={isFetching} wrapperClassName="cal-spin-wrap">
-    <div>
+    <div className="cal-month-scroll">
       <div className="cal-month-grid">
         {WEEKDAY_KEYS.map((key) => (
           <div key={key} className="cal-month-weekday">{t(key)}</div>
