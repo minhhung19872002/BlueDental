@@ -7739,14 +7739,15 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 - Hồi quy: `queue`, `prescription-allergy`, `stage-treatment-date`, `role-permissions-unsaved`, `auth`, `header-navigation` → 25 xanh, 4 đỏ. Cả 4 đỏ y hệt khi **không có** thay đổi này, tức là lỗi có sẵn: header-navigation "signing in opens Tiếp nhận", "below 1100px…drawer", lần đổi ngôn ngữ thứ hai trong "account menu toggles…"; queue "the counter's page lists its queue…".
 
 **Ghi nhận thêm (chưa sửa):** khi OS bật giảm chuyển động (`prefers-reduced-motion: reduce`, ví dụ Windows tắt "Animation effects"), antd 6.6.1 tắt animation bằng CSS. Vòng đời motion của popup khi đó không bao giờ kết thúc (`inMotion` kẹt), nên dropdown không được định vị (nằm ở −16000px, không thấy). Đặt `theme.token.motion = false` không cứu được, nên đã bỏ cách đó.
-## 2026-10-08 — Cụm 3: Thẻ trả trước (R-853, R-854, F-63)
+
+## 2026-10-08 — Cụm 3: Thẻ trả trước (R-904, R-905, F-63)
 
 BlueDental riêng; quyết định ghi ở `docs/clone/pages/prepaid-card.md`.
 
 | ID | Vấn đề / yêu cầu | Xử lý |
 |---|---|---|
-| R-853 | Trang `/prepaid-card` sập ngay khi mở (React #310): `Form.useWatch` gọi trong callback `.find()` của dialog Bán thẻ — dialog luôn được mount nên số hook đổi giữa các lần render. | Đưa `useWatch` ra đầu component. |
-| R-854 | Thêm mục "Thẻ trả trước" vào nhóm Tài chính làm lệch 2 danh sách ribbon trong `header-navigation.spec.ts`. | Cập nhật 2 danh sách (Thanh toán · Voucher · Thẻ trả trước · Báo cáo). Ca drawer (chờ 14, thực tế 16 trước thay đổi này, nay 17) vẫn là R-677, không sửa ở đây. |
+| R-904 | Trang `/prepaid-card` sập ngay khi mở (React #310): `Form.useWatch` gọi trong callback `.find()` của dialog Bán thẻ — dialog luôn được mount nên số hook đổi giữa các lần render. | Đưa `useWatch` ra đầu component. |
+| R-905 | Thêm mục "Thẻ trả trước" vào nhóm Tài chính làm lệch 2 danh sách ribbon trong `header-navigation.spec.ts`. | Cập nhật 2 danh sách (Thanh toán · Voucher · Thẻ trả trước · Báo cáo). Ca drawer (chờ 14, thực tế 16 trước thay đổi này, nay 17) vẫn là R-677, không sửa ở đây. |
 
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, đăng nhập thật, không chặn API): `prepaid-card` **3/3**.
 BE: Domain.Tests **789** (mới `PrepaidCardTests` 15), Application.Tests **703** (mới `PrepaidCardAppServiceContractTests`,
@@ -7755,7 +7756,7 @@ BE: Domain.Tests **789** (mới `PrepaidCardTests` 15), Application.Tests **703*
 Hồi quy mức 3 (luồng thanh toán dùng chung, Bảng lương, báo cáo, menu, cây phân quyền: `payment-amount-cap`, `payment-status`,
 `payment-permission-buttons`, `payment-receipt-pdf`, `debt-history`, `billing-ledger`, `treatment-plan-detail`, `payroll`, `report`,
 `finance`, `routes`, `role-permissions-tree`, `role-permissions-abilities`, `header-navigation`, `vat-payment-einvoice-api`,
-`qa-bugs-25-30`): **60 xanh, 13 đỏ** lần 1; sau R-854 chạy lại các ca đỏ — còn đỏ:
+`qa-bugs-25-30`): **60 xanh, 13 đỏ** lần 1; sau R-905 chạy lại các ca đỏ — còn đỏ:
 - đã ghi nhận từ trước: `header-navigation` 3 (R-677), `role-permissions-abilities` (dữ liệu role `dentist` local, R-725..R-727),
   `routes` `/timekeeping`, `payment-permission-buttons:198` (Esc đóng "Chi tiết phiếu"), `report:294` (cột Excel đã đổi
   "Phương thức thanh toán" → "Hình thức");
@@ -7764,29 +7765,29 @@ Hồi quy mức 3 (luồng thanh toán dùng chung, Bảng lương, báo cáo, m
   dòng dịch vụ; 6 ca sau bị bỏ qua theo chuỗi serial).
 Retest level **3**.
 
-## 2026-10-09 — Thẻ trả trước: góp ý giao diện của chủ dự án (R-855 → R-858, F-63)
+## 2026-10-09 — Thẻ trả trước: góp ý giao diện của chủ dự án (R-906 → R-909, F-63)
 
 | ID | Góp ý | Xử lý |
 |---|---|---|
-| R-855 | Dialog "Thêm loại thẻ" — các ô sát nhau, không có khoảng cách dọc | CSS chung `.app-dialog` đặt margin ô về 0 và chỉ trả lại cho ô nằm trực tiếp dưới form; ô của dialog thẻ nằm trong lưới 2 cột / hàng switch nên mất. `prepaid-card.css`: mọi ô trong `.prepaid-dialog` cách nhau 16px |
-| R-856 | Danh sách thẻ: bấm vào mã thẻ khó thấy | Mã thẻ là chữ thường; thêm cột **Thao tác** cố định bên phải với nút "Xem" (aria "Xem thẻ {mã}"); cột Trạng thái 150px |
-| R-857 | "Các chức năng mở drawer phải thay bằng dialog" | Chi tiết thẻ chuyển từ `Drawer` sang `Modal` (`CardDetailDialog` + `CardDetailFooter`: Huỷ thẻ bên trái; Khoá / Mở khoá, Nạp thêm, Đóng bên phải). Ghi thành quy ước lâu dài |
-| R-858 | Dialog thanh toán: danh sách thẻ khi chọn "Thẻ trả trước" lệch / vỡ dòng | Bỏ dùng lại lưới dòng tài khoản (một dòng mỗi ô); `PrepaidCardChoice` có lưới riêng `.pd-newpay-card*`: ô chọn căn giữa, mã thẻ đậm + loại thẻ bên dưới, số dư + số lượt căn phải, danh sách cuộn tối đa 264px |
+| R-906 | Dialog "Thêm loại thẻ" — các ô sát nhau, không có khoảng cách dọc | CSS chung `.app-dialog` đặt margin ô về 0 và chỉ trả lại cho ô nằm trực tiếp dưới form; ô của dialog thẻ nằm trong lưới 2 cột / hàng switch nên mất. `prepaid-card.css`: mọi ô trong `.prepaid-dialog` cách nhau 16px |
+| R-907 | Danh sách thẻ: bấm vào mã thẻ khó thấy | Mã thẻ là chữ thường; thêm cột **Thao tác** cố định bên phải với nút "Xem" (aria "Xem thẻ {mã}"); cột Trạng thái 150px |
+| R-908 | "Các chức năng mở drawer phải thay bằng dialog" | Chi tiết thẻ chuyển từ `Drawer` sang `Modal` (`CardDetailDialog` + `CardDetailFooter`: Huỷ thẻ bên trái; Khoá / Mở khoá, Nạp thêm, Đóng bên phải). Ghi thành quy ước lâu dài |
+| R-909 | Dialog thanh toán: danh sách thẻ khi chọn "Thẻ trả trước" lệch / vỡ dòng | Bỏ dùng lại lưới dòng tài khoản (một dòng mỗi ô); `PrepaidCardChoice` có lưới riêng `.pd-newpay-card*`: ô chọn căn giữa, mã thẻ đậm + loại thẻ bên dưới, số dư + số lượt căn phải, danh sách cuộn tối đa 264px |
 
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): ảnh chụp 3 màn hình đúng như mô tả;
 `prepaid-card` **4/4** sau khi khởi động lại BE (lượt trước 3/4: BE cũ chưa nạp 2 key i18n mới `PrepaidCard:View` / `PrepaidCard:ViewCard`).
 tsc + oxlint sạch. Retest level **1** (giao diện) + spec của feature.
 
-## 2026-10-09 — Mối quan hệ (4.8) · Hồ sơ nhóm (4.10) · thẻ gia đình (3.1) (R-859 → R-861, F-64)
+## 2026-10-09 — Mối quan hệ (4.8) · Hồ sơ nhóm (4.10) · thẻ gia đình (3.1) (R-910 → R-912, F-64)
 
 BlueDental riêng; quyết định ghi ở `docs/clone/pages/patient-relations.md`. Người giám hộ (4.9) giữ nguyên code — chỉ được
 gắn vào tab mới và đọc `LinkedPatientId`.
 
 | ID | Vấn đề | Xử lý |
 |---|---|---|
-| R-859 | Ô chọn quan hệ 10 mục: dropdown cuộn mất "Bố/Mẹ", e2e không bấm được | `showSearch` + `listHeight=400`, test gõ "Bố" để lọc |
-| R-860 | Khối Người giám hộ đặt trong thẻ riêng của tab mới có đường kẻ + khoảng trống thừa ở đầu (thiết kế để nằm dưới lưới thông tin tab Hồ sơ) | CSS phạm vi tab: `.pf-card > .pd-guardians` bỏ margin / padding / border trên — không sửa component |
-| R-861 | Bảng thành viên trong dialog nhóm cắt cột Công nợ | Dialog 1200px, cột Thành viên 200 / Tiểu sử bệnh 260, cuộn ngang 1120 |
+| R-910 | Ô chọn quan hệ 10 mục: dropdown cuộn mất "Bố/Mẹ", e2e không bấm được | `showSearch` + `listHeight=400`, test gõ "Bố" để lọc |
+| R-911 | Khối Người giám hộ đặt trong thẻ riêng của tab mới có đường kẻ + khoảng trống thừa ở đầu (thiết kế để nằm dưới lưới thông tin tab Hồ sơ) | CSS phạm vi tab: `.pf-card > .pd-guardians` bỏ margin / padding / border trên — không sửa component |
+| R-912 | Bảng thành viên trong dialog nhóm cắt cột Công nợ | Dialog 1200px, cột Thành viên 200 / Tiểu sử bệnh 260, cuộn ngang 1120 |
 
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, đăng nhập thật, không chặn API): `patient-relations` **2/2**,
 ảnh chụp tab "Gia đình & Quan hệ" và dialog nhóm. BE: Domain.Tests **810** (mới `PatientRelationTests` 13), Application.Tests
@@ -7796,32 +7797,43 @@ Hồi quy (`patient-relations`, `prepaid-card`, `patient-guardian`, `patient-gua
 `role-permissions-tree`, `routes`): **41 xanh, 4 đỏ** — đều đã ghi nhận: `header-navigation` 3 (R-677; ca drawer nay chờ 14, thực tế 18
 vì thêm "Hồ sơ nhóm"), `routes` `/timekeeping`. Retest level **2** (feature) + **3** cho thẻ trả trước (chung bộ tra người nhà).
 
-## 2026-10-09 — Gia đình & Quan hệ: một chỗ cho người giám hộ (R-862, F-64 / F-50)
+## 2026-10-09 — Gia đình & Quan hệ: một chỗ cho người giám hộ (R-913, F-64 / F-50)
 
 | ID | Góp ý của chủ dự án | Xử lý |
 |---|---|---|
-| R-862 | Người giám hộ hiện ở 3 nơi (khối ở tab Hồ sơ, bước trong modal hồ sơ, tab Gia đình & Quan hệ); thẻ trả trước trong tab Gia đình "lạc quẻ". Chủ dự án chọn: tab Gia đình & Quan hệ là nơi chính | Bỏ khối `PatientGuardianSection` khỏi tab Hồ sơ (chỉ gỡ chỗ gắn, component giám hộ không đổi); modal giữ bước giám hộ để hồ sơ dưới 16 tuổi vẫn bị chặn lưu khi thiếu giám hộ (quy tắc F-50 giữ nguyên); bỏ khối thẻ trả trước khỏi tab Gia đình (dải thẻ ở tab Hồ sơ vẫn còn). `patient-guardian-detail.spec.ts` mở tab Gia đình & Quan hệ trước khi tìm khối giám hộ |
+| R-913 | Người giám hộ hiện ở 3 nơi (khối ở tab Hồ sơ, bước trong modal hồ sơ, tab Gia đình & Quan hệ); thẻ trả trước trong tab Gia đình "lạc quẻ". Chủ dự án chọn: tab Gia đình & Quan hệ là nơi chính | Bỏ khối `PatientGuardianSection` khỏi tab Hồ sơ (chỉ gỡ chỗ gắn, component giám hộ không đổi); modal giữ bước giám hộ để hồ sơ dưới 16 tuổi vẫn bị chặn lưu khi thiếu giám hộ (quy tắc F-50 giữ nguyên); bỏ khối thẻ trả trước khỏi tab Gia đình (dải thẻ ở tab Hồ sơ vẫn còn). `patient-guardian-detail.spec.ts` mở tab Gia đình & Quan hệ trước khi tìm khối giám hộ |
 
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-guardian` 1/1, `patient-guardian-api` 8/8,
 `patient-guardian-detail` 1/1, `patient-relations` 2/2, `prepaid-card` 4/4 — **16/16**. tsc + oxlint sạch. Retest level **2**.
 
-## 2026-10-09 — Gia đình & Quan hệ vào hẳn modal hồ sơ (R-863, F-64 / F-50)
+## 2026-10-09 — Gia đình & Quan hệ vào hẳn modal hồ sơ (R-914, F-64 / F-50)
 
 | ID | Góp ý của chủ dự án | Xử lý |
 |---|---|---|
-| R-863 | "Để nguyên Gia đình và quan hệ trong modal luôn, khỏi cần tab; bấm qua thì mở modal khác để nhìn to rõ hơn" | Bỏ tab `?tab=family` của trang hồ sơ. Pill thứ ba của modal hồ sơ đổi từ "Người giám hộ" thành "Gia đình" (tooltip "Gia đình & Quan hệ" — tên đầy đủ làm pill rớt dòng ở 1280px): người giám hộ (vẫn staged, lưu bằng nút Lưu của hồ sơ — quy tắc dưới 16 tuổi giữ nguyên), Mối quan hệ, Hồ sơ nhóm. Nút "Xem rộng" mở dialog 1080px hai cột với cùng nội dung. Link tên / nhóm mở tab trình duyệt mới để không mất dữ liệu đang nhập. Xoá `PatientFamilyTab`, `PatientGuardianSection`, `PatientGuardianCard`, `usePatientGuardianBlock`, `useUpdatePatientGuardians` (endpoint BE giữ nguyên). Spec `patient-guardian-detail` viết lại theo modal; `patient-relations`, `patient-guardian` đổi locator pill |
+| R-914 | "Để nguyên Gia đình và quan hệ trong modal luôn, khỏi cần tab; bấm qua thì mở modal khác để nhìn to rõ hơn" | Bỏ tab `?tab=family` của trang hồ sơ. Pill thứ ba của modal hồ sơ đổi từ "Người giám hộ" thành "Gia đình" (tooltip "Gia đình & Quan hệ" — tên đầy đủ làm pill rớt dòng ở 1280px): người giám hộ (vẫn staged, lưu bằng nút Lưu của hồ sơ — quy tắc dưới 16 tuổi giữ nguyên), Mối quan hệ, Hồ sơ nhóm. Nút "Xem rộng" mở dialog 1080px hai cột với cùng nội dung. Link tên / nhóm mở tab trình duyệt mới để không mất dữ liệu đang nhập. Xoá `PatientFamilyTab`, `PatientGuardianSection`, `PatientGuardianCard`, `usePatientGuardianBlock`, `useUpdatePatientGuardians` (endpoint BE giữ nguyên). Spec `patient-guardian-detail` viết lại theo modal; `patient-relations`, `patient-guardian` đổi locator pill |
 
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-guardian` 1/1, `patient-guardian-api` 8/8,
 `patient-guardian-detail` 1/1, `patient-relations` 2/2, `prepaid-card` 4/4 — **16/16**. tsc sạch. Retest level **2**.
 
-## 2026-10-09 — Pill "Gia đình & Quan hệ" mở thẳng dialog (R-864, F-64 / F-50)
+## 2026-10-09 — Pill "Gia đình & Quan hệ" mở thẳng dialog (R-915, F-64 / F-50)
 
 | ID | Góp ý của chủ dự án | Xử lý |
 |---|---|---|
-| R-864 | "Bấm qua Gia đình là mở modal mới luôn, nhìn vầy hơi chật" + "nút đó nên là Gia đình & Quan hệ" | Pill thứ ba không còn là tab: là nút "Gia đình & Quan hệ" mở thẳng `PatientFamilyDialog` (1080px, 2 cột; 600px 1 cột khi đang tạo hồ sơ). Bỏ pane trong cột và nút "Xem rộng" (`PatientFamilyContent` gộp vào dialog). Để vừa một hàng với 2 pill của bản gốc (không đụng padding của chúng): pill này cỡ chữ 12px, padding ngang 8px, dấu giám hộ (chấm đỏ / tích xanh) thành badge ở góc. Lỗi giám hộ từ server khi lưu sẽ mở dialog. Bỏ khoá `Patient:Family:Pill`, `Patient:Family:Expand` |
+| R-915 | "Bấm qua Gia đình là mở modal mới luôn, nhìn vầy hơi chật" + "nút đó nên là Gia đình & Quan hệ" | Pill thứ ba không còn là tab: là nút "Gia đình & Quan hệ" mở thẳng `PatientFamilyDialog` (1080px, 2 cột; 600px 1 cột khi đang tạo hồ sơ). Bỏ pane trong cột và nút "Xem rộng" (`PatientFamilyContent` gộp vào dialog). Để vừa một hàng với 2 pill của bản gốc (không đụng padding của chúng): pill này cỡ chữ 12px, padding ngang 8px, dấu giám hộ (chấm đỏ / tích xanh) thành badge ở góc. Lỗi giám hộ từ server khi lưu sẽ mở dialog. Bỏ khoá `Patient:Family:Pill`, `Patient:Family:Expand` |
 
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-guardian` 1/1, `patient-guardian-api` 8/8,
 `patient-guardian-detail` 1/1, `patient-relations` 2/2, `prepaid-card` 4/4 — **16/16** (3 pill cùng một hàng ở 1280px được assert). tsc sạch. Retest level **2**.
+
+## 2026-10-09 — Rebase phần local lên origin sau khi đẩy Hồ sơ nhóm (R-916)
+
+| ID | Việc | Xử lý |
+|---|---|---|
+| R-916 | Sau R-869, sáu commit local (F-63 Thẻ trả trước ×2, F-64, R-913 → R-915) rebase lên `origin/main` (hàng đợi `c867311b` + Hồ sơ nhóm `32af0d4f`) | Xung đột "hai bên cùng thêm" (mã lỗi, quyền, DbContext, router, i18n) giữ cả hai; phần F-64 trùng với commit đã đẩy thì lấy bản đã đẩy (Designer migration, i18n không lặp khoá). Model snapshot sinh lại cho `PrepaidCards`; `migrations add` thử sau rebase ra **rỗng**. Số R- local trùng với origin (R-853 → R-864) đổi thành R-870 → R-881 trong log và tài liệu (message commit cũ vẫn ghi số cũ) |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-groups` 2/2, `patient-relations` 2/2,
+`patient-guardian` 1/1, `patient-guardian-detail` 1/1, `patient-guardian-api` 8/8, `prepaid-card` 4/4 — **18/18**; Domain **810**,
+Application **719**, Host **24**; tsc sạch. `queue-api` + `queue` 12/13: đỏ ổn định `queue.spec:67` (chọn bác sĩ đầu danh sách, thẻ
+hiện bác sĩ khác — giống lần đỏ R-865 ghi), code hàng đợi giống hệt `origin/main` nên không do rebase; để chủ phần hàng đợi xem.
 
 ## 2026-10-12 — Gia đình & Quan hệ: một câu chuyện, gắn cả dữ liệu (R-917, F-64 / F-50)
 

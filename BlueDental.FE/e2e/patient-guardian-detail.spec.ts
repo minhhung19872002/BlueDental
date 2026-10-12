@@ -3,7 +3,7 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
  * Feature: patient detail → "Chỉnh sửa hồ sơ" → pill "Gia đình & Quan hệ"
- * (owner, 2026-10-09; R-863). Replaces the record's own family tab.
+ * (owner, 2026-10-09; R-914). Replaces the record's own family tab.
  *
  * A 9-year-old with one guardian: the "Dưới 16 tuổi" chip and the phone note
  * stay on the Hồ sơ tab; the guardians sit, as people, in the one list of the

@@ -72,7 +72,7 @@ relation when there is one, plus `GuardianDirection` / `GuardianRelation` /
 
 ## "Gia đình & Quan hệ" in the hồ sơ editor
 
-No tab of its own (owner, 2026-10-09, R-863 / R-864): the third pill of "Chỉnh sửa
+No tab of its own (owner, 2026-10-09, R-914 / R-915): the third pill of "Chỉnh sửa
 hồ sơ" / "Tạo hồ sơ", **Gia đình & Quan hệ**, is a button, not a tab — it opens
 `PatientFamilyDialog` straight away (the column was too narrow to read a family in).
 

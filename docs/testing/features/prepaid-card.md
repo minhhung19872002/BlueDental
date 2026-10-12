@@ -30,7 +30,7 @@ sale dialog broke the rules of hooks and crashed the page (React #310) — hoist
 
 ## Regression (level 3 — shared payment path, payroll, reports, nav, permission tree)
 
-See `03-regression-log.md` (2026-10-08, R-853 / R-854): 60 green, 13 red on the first pass; every red case is
+See `03-regression-log.md` (2026-10-08, R-904 / R-905): 60 green, 13 red on the first pass; every red case is
 either already logged (R-677, R-725..R-727, `/timekeeping`, `payment-permission-buttons:198`, `report:294`) or outside
 this feature's code and not yet compared against the pre-change build (`qa-bugs-25-30:99`, `report:377`, `report:574`,
 `treatment-plan-detail:575`).
