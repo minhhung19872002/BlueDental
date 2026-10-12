@@ -356,7 +356,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await tab(page, "Thanh toán").click();
     await expect(page).toHaveURL(/planTab=payment-v2/);
     await expect(tab(page, "Thanh toán")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("button", { name: "In hóa đơn tổng" })).toBeVisible();
+    // "In hóa đơn tổng" is hidden for now (owner 2026-10-12, SHOW_TOTAL_INVOICE in PlanPaymentsTab).
+    await expect(page.getByRole("button", { name: "In hóa đơn tổng" })).toHaveCount(0);
     await expect(
       page.locator(".pdt-table thead th").filter({ hasText: /^Mã thanh toán$/ }),
     ).toBeVisible();
@@ -404,14 +405,6 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(receipt.getByText("Tổng thanh toán dịch vụ")).toBeVisible();
     await expect(receipt.locator(".pdt-receipt-table tbody tr.ant-table-row")).toHaveCount(1);
     await expect(receipt.getByRole("button", { name: "In Hoá Đơn" })).toBeVisible();
-    await receipt.getByRole("button", { name: "Đóng", exact: true }).last().click();
-    await expect(receipt).toBeHidden();
-
-    // "In hóa đơn tổng" is the same layout for the whole slip.
-    await page.getByRole("button", { name: "In hóa đơn tổng" }).click();
-    await expect(receipt).toBeVisible();
-    await expect(receipt.locator(".pdt-receipt-facts").first()).toContainText("Tổng hợp");
-    await expect(receipt.locator(".pdt-receipt-totals")).toContainText("Doanh thu dự kiến");
     // What "In Hoá Đơn" sends to the printer is the off-screen receipt sheet,
     // not the dialog: letterhead, title, the sum in words, two signatures.
     const sheet = receipt.locator(".pdt-sheet");
