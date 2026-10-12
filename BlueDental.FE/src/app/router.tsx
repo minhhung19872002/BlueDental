@@ -5,6 +5,7 @@ import { Spin } from "antd";
 import { AppLayout } from "./AppLayout";
 import { HomeRedirect } from "./HomeRedirect";
 import { PermissionRoute } from "./PermissionRoute";
+import { NotFoundPage } from "./NotFoundPage";
 import { PrivateRoute } from "./PrivateRoute";
 import { PublicOnlyRoute } from "./PublicOnlyRoute";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
@@ -622,7 +623,7 @@ const appRoutes: RouteObject[] = [
       },
       {
         path: "*",
-        element: <RouteErrorBoundary />,
+        element: <NotFoundPage />,
       },
     ],
   },
