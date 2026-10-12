@@ -189,7 +189,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<Guid>? serviceItemIds = null,
         Guid? continuedFromId = null,
         Guid? warrantyRootStageId = null,
-        DateOnly? treatmentDate = null)
+        DateOnly? treatmentDate = null,
+        DateOnly? slipOpenedOn = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -200,13 +201,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
                 "A stage sequence number starts at 1.");
         }
 
-        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
-        if (treatmentDate > today)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateInFuture,
-                "A công đoạn cannot be dated after today.");
-        }
+        var day = TreatmentDateRule.Resolve(treatmentDate, slipOpenedOn);
 
         var toothList = teeth?.ToList() ?? new List<ToothSelection>();
         GuardNoDuplicateTeeth(toothList);
@@ -226,7 +221,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             SecondStaffId = secondStaffId,
             SubStaffId = subStaffId,
             ScheduledDate = scheduledDate,
-            TreatmentDate = treatmentDate ?? today,
+            TreatmentDate = day,
             IsImageRequired = isImageRequired,
             IsGuarantee = isGuarantee,
             ContinuedFromId = continuedFromId,
@@ -259,7 +254,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<Guid>? serviceItemIds,
         IEnumerable<int>? toothCodes = null,
         IEnumerable<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>? alsoFrom = null,
-        DateOnly? treatmentDate = null)
+        DateOnly? treatmentDate = null,
+        DateOnly? slipOpenedOn = null)
     {
         var carried = HandOnTeeth(toothCodes);
 
@@ -300,7 +296,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             serviceItemIds,
             continuedFromId: Id,
             warrantyRootStageId: WarrantyRootStageId,
-            treatmentDate: treatmentDate);
+            treatmentDate: treatmentDate,
+            slipOpenedOn: slipOpenedOn);
     }
 
     /// <summary>

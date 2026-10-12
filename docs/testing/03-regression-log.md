@@ -7622,3 +7622,21 @@ Test (build production :8135 → host :5000 → PostgreSQL thật, không chặn
 - `queue.spec`: thêm 1 test. Gõ tên trùng thì thấy lỗi dưới ô; ký hiệu trùng cũng báo dưới ô và hết lỗi khi đổi; bấm Lưu không gửi POST, dialog vẫn mở, DB vẫn chỉ có 1 quầy tên đó.
 - Sửa spec có sẵn. Ô "Bác sĩ phụ trách" dùng virtual list: khi DB local có nhiều quầy, các bác sĩ đã bận (bị khoá) chiếm hết phần hiển thị, nên `.first()` không tìm thấy option bấm được và test treo. `pickFreeDentist` lấy một bác sĩ còn trống qua API (`freeDentists`), gõ tên vào ô tìm rồi mới chọn.
 - Kết quả **19/19** (`queue-api` 13 + `queue` 6). tsc/eslint sạch. Chưa commit.
+
+## R-899 (2026-10-12, mức 2: công đoạn / tái khám) QA #31, #32: ô "Ngày điều trị" — chặn ngày trước khi tạo phiếu, không crash khi gõ ngày sai
+
+**#32.** Ở Chi tiết phiếu, ô Ngày điều trị chỉ chặn ngày tương lai. Vì vậy chọn và lưu được ngày 09/10/2000, trước cả ngày tạo phiếu.
+- BE: thêm `TreatmentDateRule.Resolve` (Domain) dùng chung cho `TreatmentStage.Add` / `ContinueAs` và `PatientReExamination.Raise`. Ngày sau hôm nay vẫn trả `Treatment:0046`. Ngày trước ngày tạo phiếu (theo lịch phòng khám) trả mã mới `Treatment:0047`: "Ngày điều trị không được trước ngày tạo phiếu điều trị ({date})". AppService lấy ngày tạo phiếu qua `TreatmentPlanOpenedOn`. Import dữ liệu và seeder không truyền cận dưới nên không bị ảnh hưởng.
+- FE: `StageDateField` nhận thêm `minDate` = ngày tạo phiếu (`slipOpenedOn(plan)`). Lịch khoá các ngày trước đó. Áp dụng cho form công đoạn, Tạo bảo hành và Tạo tái khám.
+
+**#31.** Không tái hiện được trên local: thử 108 kiểu gõ (Ctrl+A, có hoặc không có "/", Enter / Tab, rồi click Nội dung điều trị) trên cả dev và build production, đều không gặp React #185. Đã sửa các điểm có thể gây vòng render:
+- `value` của DatePicker giờ là một `Dayjs` được memo theo ngày. Trước đây mỗi lần render lại tạo object mới, làm rc-picker phải đồng bộ lại giá trị bên trong.
+- `onChange` chỉ được gọi khi ngày thật sự thay đổi.
+- Theo kỳ vọng của QA: gõ một ngày ngoài khoảng (Enter hoặc rời ô) thì hiện lỗi ngay dưới ô: "Chỉ được chọn từ ngày tạo phiếu (dd/mm/yyyy) đến hôm nay". Ngày cũ được giữ nguyên.
+- CSS: thêm `.pd-stage-error + .floating-field { margin-top: 12px }`. Trước đây dòng lỗi (kể cả lỗi Bác sĩ) bị nhãn của ô kế tiếp đè lên.
+
+**Kiểm chứng:**
+- BE: Domain.Tests TreatmentManagement 228/228, có thêm 2 test cận dưới. Application.Tests (Stage / ReExamination) 30/30.
+- E2E trên build production :8080, BE + PostgreSQL thật: `stage-treatment-date` 4/4. Test mới đi theo đúng các bước QA, kiểm `0047` cho tạo / tiếp tục / tái khám, ô lỗi, ngày giữ nguyên, không có pageerror. Ba test cũ đổi sang chọn ngày nằm trong khoảng [ngày tạo phiếu, hôm nay], và dùng phiếu mở cũ nhất.
+- Hồi quy: `treatment-plan-detail`, `cskh-after-treatment`, `treatment-stage`, `treatment-stage-chain` — tổng 30/30 cùng lượt chạy.
+- Lưu ý môi trường: DB local thiếu migration của mẫu đơn thuốc (`PrescriptionTemplateLine.Afternoon`), khiến `catalog-entries` trả 500. Đã chạy DbMigrator trên local, không liên quan thay đổi này.

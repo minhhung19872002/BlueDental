@@ -184,7 +184,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.IsGuarantee,
             input.ServiceItemIds,
             warrantyRootStageId: warrantyRootStageId,
-            treatmentDate: input.TreatmentDate);
+            treatmentDate: input.TreatmentDate,
+            slipOpenedOn: await _planRepository.OpenedOnAsync(input.TreatmentId));
 
         await _repository.InsertAsync(stage, autoSave: true);
 
@@ -242,7 +243,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.ServiceItemIds,
             input.ToothCodes,
             others,
-            input.TreatmentDate);
+            input.TreatmentDate,
+            await _planRepository.OpenedOnAsync(stage.TreatmentId));
 
         await _repository.UpdateAsync(stage);
         foreach (var (other, _) in others)

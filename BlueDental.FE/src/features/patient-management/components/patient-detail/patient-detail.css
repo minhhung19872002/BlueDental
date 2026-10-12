@@ -3684,7 +3684,8 @@
   padding: 16px;
   background: #fff;
 }
-.pd-stage-form > div > .floating-field + .floating-field {
+.pd-stage-form > div > .floating-field + .floating-field,
+.pd-stage-form > div > .pd-stage-error + .floating-field {
   margin-top: 12px;
 }
 /* The reference's fields all run the full width of their column. */

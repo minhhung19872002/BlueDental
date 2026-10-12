@@ -85,17 +85,12 @@ public class PatientReExamination : FullAuditedAggregateRoot<Guid>
         IEnumerable<ToothSelection>? teeth = null,
         Guid? subStaffId = null,
         Guid? secondStaffId = null,
-        DateOnly? treatmentDate = null)
+        DateOnly? treatmentDate = null,
+        DateOnly? slipOpenedOn = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
 
-        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
-        if (treatmentDate > today)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateInFuture,
-                "A follow-up visit cannot be dated after today.");
-        }
+        var day = TreatmentDateRule.Resolve(treatmentDate, slipOpenedOn);
 
         var chosen = teeth?.ToList() ?? new List<ToothSelection>();
         if (chosen.Count == 0)
@@ -125,7 +120,7 @@ public class PatientReExamination : FullAuditedAggregateRoot<Guid>
             SubStaffId = subStaffId,
             SecondStaffId = secondStaffId,
             Note = note,
-            TreatmentDate = treatmentDate ?? today,
+            TreatmentDate = day,
         };
 
         visit._teeth.AddRange(chosen);
