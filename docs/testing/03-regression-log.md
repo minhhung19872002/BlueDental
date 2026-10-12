@@ -7640,3 +7640,18 @@ Test (build production :8135 → host :5000 → PostgreSQL thật, không chặn
 - E2E trên build production :8080, BE + PostgreSQL thật: `stage-treatment-date` 4/4. Test mới đi theo đúng các bước QA, kiểm `0047` cho tạo / tiếp tục / tái khám, ô lỗi, ngày giữ nguyên, không có pageerror. Ba test cũ đổi sang chọn ngày nằm trong khoảng [ngày tạo phiếu, hôm nay], và dùng phiếu mở cũ nhất.
 - Hồi quy: `treatment-plan-detail`, `cskh-after-treatment`, `treatment-stage`, `treatment-stage-chain` — tổng 30/30 cùng lượt chạy.
 - Lưu ý môi trường: DB local thiếu migration của mẫu đơn thuốc (`PrescriptionTemplateLine.Afternoon`), khiến `catalog-entries` trả 500. Đã chạy DbMigrator trên local, không liên quan thay đổi này.
+
+## R-900 (2026-10-12, mức 2: Đơn thuốc) QA dòng 6 mở lại: kê Amoxicillin cho khách dị ứng kháng sinh không có cảnh báo
+
+QC: TEST DUNG Khach 1 có tiểu sử "Dị ứng thuốc kháng sinh", kê Amoxicillin 500mg, lưu được DT26-0001, không có cảnh báo.
+
+Nguyên nhân: bản sửa R-744 chỉ so chữ. Thuốc bị cảnh báo khi **tên nhóm** hoặc **tên thuốc** chứa "kháng sinh". "Amoxicillin 500mg" nằm trong "Nhóm thuốc chung" (dữ liệu local cũng vậy), tên không chứa chữ "kháng sinh", nên lọt.
+
+Sửa (FE, không đổi schema, không đụng màn Danh mục §17):
+- Thêm `treatment-management/utils/drugClasses.ts`: các nhóm dược lý mà mục dị ứng có thể nhắc tới, kèm hoạt chất / biệt dược hay dùng trong nha khoa. Gồm kháng sinh (penicillin, cephalosporin, macrolid, metronidazol, clindamycin, tetracyclin, quinolon…; Klamentin, Augmentin, Rodogyl…), thuốc tê (lidocain, articain, mepivacain…), NSAID (ibuprofen, diclofenac, meloxicam, celecoxib, aspirin…) và paracetamol.
+- So khớp theo **đầu từ**, nên "Amoxicilin" và "Amoxicillin" đều khớp.
+- `findAllergyConflicts` cảnh báo thêm khi tên thuốc thuộc nhóm dược lý mà mục dị ứng nêu ra, bất kể thuốc được xếp ở nhóm danh mục nào. Hai cách so cũ (theo tên nhóm, theo tên thuốc) vẫn giữ.
+
+Kiểm chứng: `e2e/prescription-allergy.spec.ts` **3/3** trên build production :8080 (BE + PostgreSQL thật). Test mới tạo "Amoxicillin 500mg" trong "Nhóm thuốc chung", rồi kiểm cảnh báo nêu thuốc, nhóm, mục dị ứng, và Lưu vẫn hỏi lại.
+
+Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang hoạt động. Danh mục Loại thuốc local hiện có 239 mục, nên thuốc ngoài 200 mục đầu không chọn được trong đơn thuốc.
