@@ -77,7 +77,7 @@ export function InvoiceRequestFormDialog({ target, onClose }: Props) {
   return (
     <AppDialog
       open={Boolean(target)}
-      width={760}
+      width={900}
       className="ir-dialog"
       title={t(creating ? "Patient:InvoiceRequest:Create" : "Patient:InvoiceRequest:Edit")}
       subtitle={t("Patient:InvoiceRequest:FormHint")}
@@ -101,19 +101,7 @@ export function InvoiceRequestFormDialog({ target, onClose }: Props) {
             />
           </FloatingField>
         )}
-        {summary && (
-          <dl className="ir-summary">
-            <div>
-              <dt>{t("Patient:InvoiceRequest:Field:Service")}</dt>
-              <dd>{summary.serviceName || "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("Patient:InvoiceRequest:Field:Amount")}</dt>
-              <dd>{formatMoneyUnit(summary.amount)}</dd>
-            </div>
-          </dl>
-        )}
-        <InvoiceRequestFormFields />
+        <InvoiceRequestFormFields summary={summary} />
       </Form>
     </AppDialog>
   );

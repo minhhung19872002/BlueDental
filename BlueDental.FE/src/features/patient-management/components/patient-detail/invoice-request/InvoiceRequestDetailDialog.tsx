@@ -1,10 +1,32 @@
 import { PrinterOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
 import { t } from "@/lib/i18n";
+import { formatDateTime } from "@/utils/format";
 import type { InvoiceRequestDto } from "../../../api/invoiceRequestApi";
 import { InvoiceRequestDetailActions, type InvoiceRequestDetailHandlers } from "./InvoiceRequestDetailActions";
 import { InvoiceRequestSheet } from "./InvoiceRequestSheet";
+import { InvoiceRequestStatusTag } from "./InvoiceRequestStatusTag";
 import { printInvoiceRequest } from "./printInvoiceRequest";
+
+/** Where the request stands — on screen only; the paper form has no room for it. */
+function RequestMeta({ request }: { request: InvoiceRequestDto }) {
+  return (
+    <div className="ir-detail-meta">
+      <span className="ir-detail-meta__code">{request.code}</span>
+      <span>{formatDateTime(request.requestedAt)}</span>
+      <span>
+        {t("Patient:InvoiceRequest:Field:Receipt")}: <b>{request.paymentCode}</b>
+      </span>
+      <InvoiceRequestStatusTag status={request.status} />
+      {request.invoiceNo && <span>{t("Patient:InvoiceRequest:InvoiceNoShort", request.invoiceNo)}</span>}
+      {request.reason && (
+        <span className="ir-detail-meta__reason">
+          {t("Patient:InvoiceRequest:Field:Reason")}: {request.reason}
+        </span>
+      )}
+    </div>
+  );
+}
 
 interface Props extends InvoiceRequestDetailHandlers {
   request: InvoiceRequestDto | null;
@@ -16,7 +38,7 @@ export function InvoiceRequestDetailDialog({ request, onClose, ...handlers }: Pr
   return (
     <AppDialog
       open={Boolean(request)}
-      width={760}
+      width={900}
       className="ir-detail-dialog"
       title={t("Patient:InvoiceRequest:DetailTitle")}
       canSave
@@ -27,7 +49,12 @@ export function InvoiceRequestDetailDialog({ request, onClose, ...handlers }: Pr
       onSave={printInvoiceRequest}
       onClose={onClose}
     >
-      {request && <InvoiceRequestSheet request={request} />}
+      {request && (
+        <>
+          <RequestMeta request={request} />
+          <InvoiceRequestSheet request={request} />
+        </>
+      )}
     </AppDialog>
   );
 }

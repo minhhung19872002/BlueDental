@@ -1,94 +1,84 @@
-import { Col, Form, Input, InputNumber, Radio, Row } from "antd";
-import { FloatingField } from "@/components/FloatingField";
+import { Input, InputNumber } from "antd";
+import {
+  InvoicePaper,
+  PaperChoiceInput,
+  PaperInput,
+  PaperLinedInput,
+  PaperNote,
+  PaperRow,
+  PaperText,
+} from "@/components/InvoicePaper";
 import { t } from "@/lib/i18n";
-import { formRules, type InvoiceRequestFormState } from "./invoiceRequestForm";
+import { formatMoneyUnit } from "@/utils/format";
+import { formRules } from "./invoiceRequestForm";
+
+const field = (key: string) => t(`Patient:InvoiceRequest:Field:${key}`);
+
+/** Dịch vụ / Số tiền of the receipt; blank lines until one is picked. */
+export interface InvoiceRequestSummary {
+  serviceName?: string | null;
+  amount: number;
+}
 
 /**
- * The THÔNG TIN XUẤT HÓA ĐƠN form of the BA, minus Cân nặng / Chiều cao: those
- * are left blank on the printed sheet for the customer to write in by hand.
+ * The BA's paper THÔNG TIN XUẤT HÓA ĐƠN filled in on screen, line for line,
+ * minus Cân nặng / Chiều cao (written by hand on the printed sheet). No
+ * personal / company switch: the company lines stay optional under the note.
  */
-export function InvoiceRequestFormFields() {
-  const buyerKind = Form.useWatch<InvoiceRequestFormState["buyerKind"]>("buyerKind");
+export function InvoiceRequestFormFields({ summary }: { summary?: InvoiceRequestSummary }) {
   const rules = formRules();
   return (
-    <>
-      <h4 className="ir-form__section">{t("Patient:InvoiceRequest:Section:Customer")}</h4>
-      <Row gutter={[16, 12]}>
-        <Col xs={24} md={16}>
-          <FloatingField label={t("Patient:InvoiceRequest:Field:FullName")} name="fullName" required rules={rules.fullName}>
-            <Input maxLength={200} />
-          </FloatingField>
-        </Col>
-        <Col xs={24} md={8}>
-          <FloatingField label={t("Patient:InvoiceRequest:Field:BirthYear")} name="birthYear" rules={rules.birthYear}>
-            <InputNumber className="ir-full" controls={false} precision={0} />
-          </FloatingField>
-        </Col>
-        <Col xs={24} md={12}>
-          <FloatingField label={t("Patient:InvoiceRequest:Field:Phone")} name="phone" required rules={rules.phone}>
-            <Input maxLength={15} inputMode="tel" />
-          </FloatingField>
-        </Col>
-        <Col xs={24} md={12}>
-          <FloatingField label={t("Patient:InvoiceRequest:Field:NationalId")} name="nationalId" rules={rules.nationalId}>
-            <Input maxLength={12} inputMode="numeric" />
-          </FloatingField>
-        </Col>
-        <Col span={24}>
-          <FloatingField label={t("Patient:InvoiceRequest:Field:PersonalAddress")} name="personalAddress">
-            <Input maxLength={500} />
-          </FloatingField>
-        </Col>
-      </Row>
+    <InvoicePaper title={t("Patient:InvoiceRequest:SheetTitle")}>
+      <PaperRow>
+        <PaperInput label={field("FullName")} name="fullName" required rules={rules.fullName} width="name">
+          <Input maxLength={200} />
+        </PaperInput>
+        <PaperInput label={field("BirthYear")} name="birthYear" rules={rules.birthYear} width="year">
+          <InputNumber controls={false} precision={0} />
+        </PaperInput>
+        <PaperInput label={field("Phone")} name="phone" required rules={rules.phone} width="phone">
+          <Input maxLength={15} inputMode="tel" />
+        </PaperInput>
+      </PaperRow>
+      <PaperRow>
+        <PaperInput label={field("NationalId")} name="nationalId" rules={rules.nationalId}>
+          <Input maxLength={12} inputMode="numeric" />
+        </PaperInput>
+      </PaperRow>
+      <PaperLinedInput
+        label={`${field("PersonalAddress")}: ${t("Patient:InvoiceRequest:AddressHint")}`}
+        name="personalAddress"
+        maxLength={500}
+      />
 
-      <div className="ir-form__kind">
-        <h4 className="ir-form__section">{t("Patient:InvoiceRequest:Section:Invoice")}</h4>
-        <Form.Item name="buyerKind" noStyle>
-          <Radio.Group
-            optionType="button"
-            options={[
-              { value: "personal", label: t("Patient:InvoiceRequest:Personal") },
-              { value: "company", label: t("Patient:InvoiceRequest:Company") },
-            ]}
-          />
-        </Form.Item>
-      </div>
-      <Row gutter={[16, 12]}>
-        {buyerKind === "company" && (
-          <>
-            <Col xs={24} md={16}>
-              <FloatingField label={t("Patient:InvoiceRequest:Field:CompanyName")} name="companyName" required rules={rules.companyName}>
-                <Input maxLength={200} />
-              </FloatingField>
-            </Col>
-            <Col xs={24} md={8}>
-              <FloatingField label={t("Patient:InvoiceRequest:Field:TaxCode")} name="taxCode" required rules={rules.taxCode}>
-                <Input maxLength={13} inputMode="numeric" />
-              </FloatingField>
-            </Col>
-            <Col span={24}>
-              <FloatingField label={t("Patient:InvoiceRequest:Field:CompanyAddress")} name="companyAddress">
-                <Input maxLength={500} />
-              </FloatingField>
-            </Col>
-          </>
-        )}
-        <Col xs={24} md={16}>
-          <FloatingField label={t("Patient:InvoiceRequest:Field:Email")} name="email" required rules={rules.email}>
-            <Input maxLength={256} inputMode="email" />
-          </FloatingField>
-        </Col>
-        <Col xs={24} md={8}>
-          <Form.Item name="wantsPaperInvoice" label={t("Patient:InvoiceRequest:Field:PaperInvoice")} className="ir-form__paper">
-            <Radio.Group
-              options={[
-                { value: true, label: t("Common:Yes") },
-                { value: false, label: t("Common:No") },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
+      <PaperNote>{t("Patient:InvoiceRequest:CompanyNote")}</PaperNote>
+      <PaperRow>
+        <PaperInput label={field("CompanyName")} name="companyName" rules={rules.companyName}>
+          <Input maxLength={200} />
+        </PaperInput>
+      </PaperRow>
+      <PaperRow>
+        <PaperInput label={field("TaxCode")} name="taxCode" rules={rules.taxCode}>
+          <Input maxLength={13} inputMode="numeric" />
+        </PaperInput>
+      </PaperRow>
+      <PaperRow>
+        <PaperInput label={field("CompanyAddress")} name="companyAddress">
+          <Input maxLength={500} />
+        </PaperInput>
+      </PaperRow>
+      <PaperRow>
+        <PaperInput label={field("Email")} name="email" required rules={rules.email} strong>
+          <Input maxLength={256} inputMode="email" />
+        </PaperInput>
+      </PaperRow>
+      <PaperRow>
+        <PaperText label={field("Service")} value={summary?.serviceName} strong />
+      </PaperRow>
+      <PaperRow>
+        <PaperText label={field("Amount")} value={summary && formatMoneyUnit(summary.amount)} strong />
+      </PaperRow>
+      <PaperChoiceInput label={field("PaperInvoice")} name="wantsPaperInvoice" />
+    </InvoicePaper>
   );
 }

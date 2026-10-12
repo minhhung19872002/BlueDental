@@ -194,120 +194,33 @@
   color: var(--bd-muted);
 }
 
-/* ── Create / edit dialog ── */
-.ir-form__section {
-  margin: 4px 0 10px;
-  color: var(--bd-ink);
-  font-size: 14px;
-  font-weight: 700;
-}
-.ir-form__kind {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 16px 0 10px;
-}
-.ir-form__kind .ir-form__section {
-  margin: 0;
-}
-.ir-form__paper {
-  margin-bottom: 0;
-}
-.ir-full {
-  width: 100%;
-}
-.ir-summary {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 12px;
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border-radius: var(--bd-radius-card);
-  background: var(--bd-bg-soft);
-}
-.ir-summary dt {
-  color: var(--bd-muted);
-  font-size: 12px;
-}
-.ir-summary dd {
-  margin: 0;
-  color: var(--bd-ink);
-  font-weight: 600;
-}
-
 /* ── Detail dialog and the printed sheet ── */
 .ir-detail-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.ir-sheet {
-  color: var(--bd-ink);
-}
-.ir-sheet__head {
-  margin-bottom: 12px;
-  text-align: center;
-}
-.ir-sheet__title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.ir-sheet__meta {
-  margin: 4px 0 0;
-  color: var(--bd-muted);
-  font-size: 13px;
-}
-.ir-sheet__section {
-  margin: 16px 0 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--bd-divider);
-  font-size: 14px;
-  font-weight: 700;
-}
-.ir-sheet__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 24px;
-  margin: 0;
-}
-.ir-sheet__row {
-  display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
-  gap: 8px;
-  font-size: 13px;
-}
-.ir-sheet__row dt {
-  color: var(--bd-muted);
-}
-.ir-sheet__row dd {
-  margin: 0;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.ir-sheet__row--blank dd {
+.ir-detail-meta {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-soft);
+  color: var(--bd-sub);
+  font-size: 13px;
 }
-.ir-sheet__line {
-  flex: 1;
-  height: 16px;
-  border-bottom: 1px dotted var(--bd-sub);
+.ir-detail-meta__code {
+  color: var(--bd-ink);
+  font-weight: 700;
 }
-.ir-sheet__unit {
-  color: var(--bd-muted);
-  font-weight: 400;
+.ir-detail-meta__reason {
+  flex-basis: 100%;
 }
 
 /* ── Responsive ── */
-@media (max-width: 1100px) {
-  .ir-sheet__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 @media (max-width: 640px) {
   .ir-head {
     flex-direction: column;
@@ -316,15 +229,12 @@
   .ir-banner {
     flex-wrap: wrap;
   }
-  .ir-summary {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .ir-sheet__row {
-    grid-template-columns: 110px minmax(0, 1fr);
-  }
 }
 
-/* ── Print: only the sheet of the open detail dialog ── */
+/* ── Print: only the copied sheet of the open detail dialog, filling an A5 landscape page ── */
+.ir-print-root {
+  display: none;
+}
 @media print {
   html.ir-printing body {
     background: #fff;
@@ -332,39 +242,33 @@
   html.ir-printing body::before {
     display: none;
   }
-  html.ir-printing body > *:not(:has(.ir-sheet)) {
+  html.ir-printing body > *:not(.ir-print-root) {
     display: none !important;
   }
-  html.ir-printing .ant-modal-root,
-  html.ir-printing .ant-modal-wrap,
-  html.ir-printing .ir-detail-dialog.ant-modal,
-  html.ir-printing .ir-detail-dialog .ant-modal-content,
-  html.ir-printing .ir-detail-dialog .ant-modal-body {
-    position: static !important;
-    display: block !important;
-    width: auto !important;
-    max-width: none !important;
-    margin: 0;
-    padding: 0;
-    overflow: visible !important;
-    background: none;
-    box-shadow: none;
+  html.ir-printing .ir-print-root {
+    display: block;
   }
-  html.ir-printing .ant-modal-mask,
-  html.ir-printing .ir-detail-dialog .ant-modal-header,
-  html.ir-printing .ir-detail-dialog .ant-modal-footer,
-  html.ir-printing .ir-detail-dialog .ant-modal-close {
-    display: none !important;
+  html.ir-printing .ir-print-root .inv-paper {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8mm 12mm;
+    border: 0;
+    font-size: 12.5pt;
+    line-height: 1.3;
+    break-inside: avoid;
   }
-  html.ir-printing .ir-sheet {
-    padding: 12mm 15mm;
+  html.ir-printing .ir-print-root .inv-paper__title {
+    margin-bottom: 4mm;
+    font-size: 18pt;
   }
-  html.ir-printing .ir-sheet__grid {
-    grid-template-columns: minmax(0, 1fr);
+  html.ir-printing .ir-print-root .inv-paper__row {
+    margin-bottom: 2.6mm;
   }
-  html.ir-printing .ir-status {
-    padding: 0;
-    background: none;
+  html.ir-printing .ir-print-root .inv-paper__note {
+    margin: 1mm 0 2.6mm;
+  }
+  html.ir-printing .ir-print-root .inv-paper__lined {
+    margin-bottom: 2mm;
   }
 }
 

@@ -63,14 +63,13 @@ public sealed class InvoiceRequestController(IInvoiceRequestAppService service) 
 
 /// <summary>The page behind the QR on a PHIẾU THU; no sign-in, the token is the key.</summary>
 [RemoteService]
+[AllowAnonymous]
 [Route("api/v1/public/invoice-requests")]
 public sealed class PublicInvoiceRequestController(IPublicInvoiceRequestAppService service) : BlueDentalController
 {
-    [AllowAnonymous]
     [HttpGet("{token}")]
     public Task<PublicInvoiceRequestFormDto> GetFormAsync(string token) => service.GetFormAsync(token);
 
-    [AllowAnonymous]
     [HttpPost("{token}")]
     public Task<PublicInvoiceRequestResultDto> SubmitAsync(string token, [FromBody] SubmitPublicInvoiceRequestDto input) =>
         service.SubmitAsync(token, input);

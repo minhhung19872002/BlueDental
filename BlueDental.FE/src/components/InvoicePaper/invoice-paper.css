@@ -1,0 +1,272 @@
+/* THÔNG TIN XUẤT HÓA ĐƠN — the BA's paper form, line for line (Times, dotted blanks).
+   Shared by the QR page, the staff dialog and the printed Chi tiết sheet. */
+.inv-paper {
+  --inv-paper-font: "Times New Roman", Times, serif;
+  --inv-paper-size: 16px;
+  padding: 28px 36px 24px;
+  border: 1px solid var(--bd-border);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-family: var(--inv-paper-font);
+  font-size: var(--inv-paper-size);
+  line-height: 1.35;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.inv-paper__title {
+  margin: 0 0 20px;
+  color: inherit;
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+.inv-paper__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0 10px;
+  margin: 0 0 14px;
+}
+.inv-paper__field {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+/* Read back, a long answer takes the room it needs before the blanks share the rest. */
+span.inv-paper__field {
+  flex-basis: auto;
+}
+.inv-paper__field--name {
+  flex-grow: 3.2;
+}
+.inv-paper__field--year {
+  flex-grow: 1.1;
+}
+.inv-paper__field--phone {
+  flex-grow: 1.9;
+}
+.inv-paper__field--id {
+  flex-grow: 2.6;
+}
+.inv-paper__field--weight {
+  flex-grow: 1.3;
+}
+.inv-paper__field--height {
+  flex-grow: 1.6;
+}
+.inv-paper__label {
+  flex: none;
+  color: inherit;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.inv-paper__field--strong .inv-paper__label {
+  font-weight: 700;
+}
+.inv-paper__required {
+  margin-left: 2px;
+  color: var(--bd-red);
+}
+.inv-paper__fill {
+  flex: 1;
+  min-width: 24px;
+  min-height: 1.35em;
+  padding: 0 6px;
+  border-bottom: 1.5px dotted currentColor;
+  overflow-wrap: anywhere;
+}
+/* Two dotted lines the address writes across; the label masks the dots under it. */
+.inv-paper__lined {
+  min-height: 4em;
+  margin: 0 0 10px;
+  line-height: 2em;
+  background: radial-gradient(circle at 50% calc(100% - 5px), currentColor 0 0.8px, transparent 1.1px) 0 0 / 4px
+    2em repeat;
+  overflow-wrap: anywhere;
+}
+.inv-paper__lined .inv-paper__label {
+  padding: 2px 6px 0.5em 0;
+  background: var(--bd-card);
+  white-space: normal;
+}
+.inv-paper__note {
+  margin: 6px 0 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.inv-paper__row--choices {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 28px;
+  margin-bottom: 0;
+}
+.inv-paper__choices {
+  display: inline-flex;
+  gap: 0 28px;
+}
+.inv-paper__choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.inv-paper__box {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid currentColor;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.inv-paper__box--checked::after {
+  content: "✓";
+}
+
+/* ── Blanks the customer or staff fill in: the dotted line is the input ── */
+.inv-paper__row:has(.inv-paper__control),
+.inv-paper__field:has(> .inv-paper__control) {
+  align-items: baseline;
+}
+.inv-paper .inv-paper__control.ant-form-item {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-bottom: 0;
+  font-family: inherit;
+}
+.inv-paper .inv-paper__control .ant-input,
+.inv-paper .inv-paper__control .ant-input-number {
+  width: 100%;
+  border: 0;
+  border-bottom: 1.5px dotted currentColor;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  /* AntD's wrappers between the paper and the input reset the font to the app's 14px sans. */
+  font-family: var(--inv-paper-font);
+  font-size: var(--inv-paper-size);
+}
+.inv-paper .inv-paper__control .ant-input {
+  padding: 0 6px;
+}
+/* index.css stands dialog inputs 42px tall; a blank on the paper is one line of text. */
+.inv-paper .inv-paper__control .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
+.inv-paper .inv-paper__control .ant-input-number.ant-input-number {
+  height: auto;
+}
+.inv-paper .inv-paper__control .ant-input-number-input {
+  height: auto;
+  padding: 0 6px;
+  color: inherit;
+  font: inherit;
+  font-family: var(--inv-paper-font);
+  font-size: var(--inv-paper-size);
+}
+.inv-paper .inv-paper__control .ant-input:focus,
+.inv-paper .inv-paper__control .ant-input-number-focused {
+  border-bottom: 1.5px solid var(--bd-primary);
+  box-shadow: none;
+}
+.inv-paper .inv-paper__control .ant-input-status-error,
+.inv-paper .inv-paper__control .ant-input-number-status-error {
+  border-bottom-color: var(--bd-red);
+}
+.inv-paper .inv-paper__control .ant-form-item-control-input {
+  min-height: 0;
+}
+.inv-paper .inv-paper__control .ant-form-item-extra,
+.inv-paper .inv-paper__control .ant-form-item-explain {
+  font-size: 13px;
+}
+
+/* The address: its label sits on the first dotted line, the answer starts after it. */
+.inv-paper__lined-field {
+  position: relative;
+  margin: 0 0 10px;
+}
+.inv-paper__lined-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  max-width: 100%;
+  padding-right: 6px;
+  background: var(--bd-card);
+  line-height: 2em;
+  pointer-events: none;
+}
+.inv-paper__lined-label .inv-paper__label {
+  pointer-events: auto;
+}
+.inv-paper .inv-paper__lined-field .inv-paper__control textarea.ant-input {
+  min-height: 4em;
+  padding: 0;
+  border: 0;
+  background: radial-gradient(circle at 50% calc(100% - 5px), currentColor 0 0.8px, transparent 1.1px) 0 0 / 4px
+    2em repeat local;
+  line-height: 2em;
+  text-indent: var(--paper-indent, 0);
+  resize: none;
+}
+.inv-paper .inv-paper__lined-field .inv-paper__control textarea.ant-input:focus {
+  border: 0;
+}
+
+/* ☐ Có ☐ Không as one choice. */
+.inv-paper__choice--button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.inv-paper__choice--button:hover .inv-paper__box {
+  border-color: var(--bd-primary);
+}
+.inv-paper__choice--button:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .inv-paper {
+    --inv-paper-size: 15px;
+    padding: 18px 16px;
+  }
+  .inv-paper__title {
+    font-size: 20px;
+  }
+  .inv-paper__row {
+    flex-wrap: wrap;
+    gap: 12px 10px;
+  }
+  .inv-paper__field {
+    flex-basis: 100%;
+  }
+  /* Năm sinh and SĐT are short: they keep sharing a line on a phone. */
+  .inv-paper__field--year {
+    flex-basis: 34%;
+  }
+  .inv-paper__field--phone {
+    flex-basis: 52%;
+  }
+  .inv-paper__label {
+    white-space: normal;
+  }
+  .inv-paper__lined-label {
+    position: static;
+    display: block;
+    padding: 0;
+    line-height: 1.35;
+  }
+  .inv-paper .inv-paper__lined-field .inv-paper__control textarea.ant-input {
+    text-indent: 0;
+  }
+}

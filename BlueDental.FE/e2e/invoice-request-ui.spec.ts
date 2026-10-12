@@ -49,16 +49,19 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
       try {
         const phone = await phoneContext.newPage();
         await phone.goto(publicPath);
-        await expect(phone.getByRole("heading", { name: "Thông tin xuất hóa đơn", level: 1 })).toBeVisible();
-        await expect(phone.locator(".pir-receipt")).toContainText(viaQr.code);
+        await expect(phone.getByRole("heading", { name: "Thông tin xuất hóa đơn", level: 2 })).toBeVisible();
+        await expect(phone.locator(".pir-head__receipt")).toContainText(viaQr.code);
+        // The paper's order: the MÃ SỐ THUẾ note over the company lines, Dịch vụ / Số tiền read-only.
+        await expect(phone.getByText("BẮT BUỘC phải ghi MÃ SỐ THUẾ")).toBeVisible();
+        await expect(phone.locator(".inv-paper__field", { hasText: "Số tiền:" })).toBeVisible();
 
-        await phone.locator(".pir-kind label", { hasText: "Công ty" }).click();
+        // No personal / company switch: one company line written asks for the other.
+        await phone.getByLabel("Tên công ty").fill("Công ty TNHH E2E QR");
         await phone.getByRole("button", { name: "Gửi thông tin" }).click();
         await expect(phone.getByText("Xuất hóa đơn cho công ty cần nhập Tên công ty và Mã số thuế.").first()).toBeVisible();
 
-        await phone.getByLabel("Tên công ty").fill("Công ty TNHH E2E QR");
         await phone.getByLabel("Mã số thuế").fill("0101234567");
-        await phone.getByLabel("Email nhận hóa đơn").fill("e2e.qr.ui@example.com");
+        await phone.getByLabel(/^Email/).fill("e2e.qr.ui@example.com");
         const sent = phone.waitForResponse((res) => res.url().includes("/api/v1/public/invoice-requests/") && res.request().method() === "POST");
         await phone.getByRole("button", { name: "Gửi thông tin" }).click();
         const response = await sent;
@@ -88,6 +91,16 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
       await expect(qrRow).toContainText("Công ty TNHH E2E QR");
       await expect(qrRow).toContainText("Chờ xử lý");
 
+      // The detail is the paper sheet: company lines filled, "Không" ticked for paper.
+      await qrRow.getByRole("button", { name: "Chi tiết" }).click();
+      const detail = page.getByRole("dialog", { name: "Chi tiết yêu cầu xuất hóa đơn" });
+      await expect(detail.locator(".inv-paper")).toContainText("0101234567");
+      await expect(detail.getByText("BẮT BUỘC phải ghi MÃ SỐ THUẾ")).toBeVisible();
+      await expect(detail.getByRole("checkbox", { name: "Không" })).toHaveAttribute("aria-checked", "true");
+      await expect(detail.getByRole("checkbox", { name: "Có" })).toHaveAttribute("aria-checked", "false");
+      await detail.locator(".ant-modal-footer").getByRole("button", { name: "Đóng" }).click();
+      await expect(detail).toBeHidden();
+
       const listed = await call(page, `${REQUESTS}?patientId=${viaQr.patientId}&maxResultCount=50`);
       const qrId = (listed.body.items as { id: string; code: string }[]).find((r) => r.code === qrCode)?.id ?? "";
       expect(qrId).not.toBe("");
@@ -100,9 +113,9 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
       await dialog.getByRole("combobox", { name: "Phiếu thu" }).click();
       await page.locator(".ant-select-dropdown .ant-select-item-option", { hasText: byStaff.code }).click();
       await expect(dialog.getByLabel("Họ và tên")).not.toHaveValue("");
-      const phoneField = dialog.getByLabel("Số điện thoại");
+      const phoneField = dialog.getByLabel("SĐT");
       if (!(await phoneField.inputValue())) await phoneField.fill("0900000071");
-      await dialog.getByLabel("Email nhận hóa đơn").fill("staff.e2e.ui@example.com");
+      await dialog.getByLabel("Email").fill("staff.e2e.ui@example.com");
       const posted = page.waitForResponse((res) => res.url().endsWith(REQUESTS) && res.request().method() === "POST");
       await dialog.getByRole("button", { name: "Lưu" }).click();
       const createdRes = await posted;

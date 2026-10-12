@@ -7844,3 +7844,16 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 **Đỏ có sẵn (không do F-71).** `treatment-plan-detail` "a discounted slip…" tìm dòng "Còn lại" mà dialog Tạo phiếu thanh toán đã bỏ ở R-907 (8c58c99e). Đổi sang "Còn nợ cần thanh toán" = số còn nợ. Spec xanh 13/13.
 
 **Còn đỏ, không liên quan.** `patient.spec` "ten tabs" đỏ ở dòng 878: dialog Tạo tái khám của bệnh nhân đầu danh sách không còn "Chưa có dịch vụ hoàn tất". Đây là dữ liệu local, xảy ra trước đoạn tab Hóa đơn, nên đoạn đã sửa chưa chạy tới.
+
+## R-910 (2026-10-12, mức 2: F-71) Form "Thông tin xuất hóa đơn" theo đúng tờ giấy của BA, in đầy trang
+
+**Yêu cầu.** Chủ dự án gửi ảnh tờ giấy BA: "làm cho giống hình đi". Bản in cũ bị cắt sau dòng Email, chữ nhỏ, còn khung modal. Chrome in thêm ngày giờ và URL localhost ở lề trên/dưới.
+
+**Sửa.**
+- Component chung `src/components/InvoicePaper` (`InvoicePaper`, `PaperRow`, `PaperText`, `PaperLinedText`, `PaperBox`, `PaperInput`, `PaperLinedInput`, `PaperChoiceInput`). Dùng cho trang QR, dialog Tạo/Sửa yêu cầu và tờ Chi tiết, theo đúng thứ tự dòng của tờ giấy. Bỏ công tắc Cá nhân / Công ty.
+- CSS AntD (CSS-in-JS) thắng rule cùng độ ưu tiên, nên mọi rule input đều có tiền tố `.inv-paper`. Font và cỡ chữ ghim bằng `--inv-paper-font` / `--inv-paper-size`: wrapper của Form.Item reset về sans 14px, `font: inherit` không đủ. Bỏ chiều cao 42px của input trong dialog (`index.css`) bên trong tờ giấy.
+- In: chép tờ ra `.ir-print-root` ngoài modal. `@page { size: A5 landscape; margin: 0 }` cho ra 1 trang, đầy khổ, không còn header/footer của trình duyệt.
+
+**Kiểm chứng.** Build production :8081 → host :5000 → PostgreSQL. Ảnh chụp điện thoại 390 và desktop 1280 của trang QR, dialog staff, tờ in (PDF 1 trang). `invoice-request-ui` 1/1, `invoice-request-api` 1/1, `patient-permission-gates` 1/1.
+
+**Spec cập nhật.** Heading form QR giờ là h2 của tờ giấy (level 2). `.pir-static` → `.inv-paper__field`, `.ir-paper` → `.inv-paper`. Label Email có dấu ":" nên dùng `getByLabel(/^Email/)`.

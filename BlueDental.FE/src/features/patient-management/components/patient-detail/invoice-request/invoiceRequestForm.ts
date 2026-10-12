@@ -1,17 +1,15 @@
 import type { Rule } from "antd/es/form";
 import { t } from "@/lib/i18n";
+import { invoiceCompanyRules } from "@/utils/invoiceCompanyRules";
 import type {
   InvoiceRequestDraftDto,
   InvoiceRequestDto,
   InvoiceRequestFormValues,
 } from "../../../api/invoiceRequestApi";
 
-export type BuyerKind = "personal" | "company";
-
 /** What the dialog's AntD form holds; the server checks every field again. */
 export interface InvoiceRequestFormState {
   patientPaymentId?: string;
-  buyerKind: BuyerKind;
   fullName: string;
   birthYear?: number | null;
   phone: string;
@@ -25,7 +23,6 @@ export interface InvoiceRequestFormState {
 }
 
 export const EMPTY_FORM: InvoiceRequestFormState = {
-  buyerKind: "personal",
   fullName: "",
   phone: "",
   email: "",
@@ -52,11 +49,7 @@ export function formRules() {
       { required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0003") },
       { type: "email", message: t("BlueDental:InvoiceRequest:0003") },
     ],
-    companyName: [{ required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0004") }],
-    taxCode: [
-      { required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0004") },
-      { pattern: /^\d{10}(\d{3})?$/, message: t("BlueDental:InvoiceRequest:0005") },
-    ],
+    ...invoiceCompanyRules(),
     nationalId: [{ pattern: /^(\d{9}|\d{12})$/, message: t("BlueDental:InvoiceRequest:0006") }],
     birthYear: [
       { type: "number", min: 1900, max: new Date().getFullYear(), message: t("BlueDental:InvoiceRequest:0007") },
@@ -67,18 +60,17 @@ export function formRules() {
 
 const blankToNull = (value: string | undefined) => (value?.trim() ? value.trim() : null);
 
-/** The body both create and update send; a personal invoice drops the company fields. */
+/** The body both create and update send; blank company lines make it a personal invoice. */
 export function toRequestBody(values: InvoiceRequestFormState): InvoiceRequestFormValues {
-  const company = values.buyerKind === "company";
   return {
     fullName: values.fullName.trim(),
     birthYear: values.birthYear ?? null,
     phone: blankToNull(values.phone),
     nationalId: blankToNull(values.nationalId),
     personalAddress: blankToNull(values.personalAddress),
-    companyName: company ? blankToNull(values.companyName) : null,
-    taxCode: company ? blankToNull(values.taxCode) : null,
-    companyAddress: company ? blankToNull(values.companyAddress) : null,
+    companyName: blankToNull(values.companyName),
+    taxCode: blankToNull(values.taxCode),
+    companyAddress: blankToNull(values.companyAddress),
     email: blankToNull(values.email),
     wantsPaperInvoice: values.wantsPaperInvoice,
   };
@@ -88,7 +80,6 @@ export function toRequestBody(values: InvoiceRequestFormState): InvoiceRequestFo
 export function fromRequest(row: InvoiceRequestDto): InvoiceRequestFormState {
   return {
     patientPaymentId: row.patientPaymentId,
-    buyerKind: row.isCompany ? "company" : "personal",
     fullName: row.fullName,
     birthYear: row.birthYear,
     phone: row.phone,

@@ -1,11 +1,10 @@
 import type { Rule } from "antd/es/form";
 import { t } from "@/lib/i18n";
+import { invoiceCompanyRules } from "@/utils/invoiceCompanyRules";
 import type {
   PublicInvoiceRequestFormDto,
   PublicInvoiceRequestSubmitDto,
 } from "../api/publicInvoiceRequestApi";
-
-export type BuyerKind = "personal" | "company";
 
 export interface PublicInvoiceRequestValues {
   fullName: string;
@@ -13,7 +12,6 @@ export interface PublicInvoiceRequestValues {
   phone?: string;
   nationalId?: string;
   personalAddress?: string;
-  buyerKind: BuyerKind;
   companyName?: string;
   taxCode?: string;
   companyAddress?: string;
@@ -25,7 +23,6 @@ export function initialValues(form: PublicInvoiceRequestFormDto): PublicInvoiceR
   return {
     fullName: form.fullName,
     birthYear: form.birthYear,
-    buyerKind: "personal",
     wantsPaperInvoice: false,
   };
 }
@@ -49,28 +46,23 @@ export function publicRules(form: PublicInvoiceRequestFormDto) {
       { required: !form.emailHint, whitespace: true, message: t("BlueDental:InvoiceRequest:0003") },
       { type: "email", message: t("BlueDental:InvoiceRequest:0003") },
     ],
-    companyName: [{ required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0004") }],
-    taxCode: [
-      { required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0004") },
-      { pattern: /^\d{10}(\d{3})?$/, message: t("BlueDental:InvoiceRequest:0005") },
-    ],
+    ...invoiceCompanyRules(),
   } satisfies Record<string, Rule[]>;
 }
 
 const blankToNull = (value: string | undefined) => (value?.trim() ? value.trim() : null);
 
-/** A personal invoice drops the company fields; a blank contact keeps the one on file. */
+/** Blank company lines make it a personal invoice; a blank contact keeps the one on file. */
 export function toSubmitBody(values: PublicInvoiceRequestValues): PublicInvoiceRequestSubmitDto {
-  const company = values.buyerKind === "company";
   return {
     fullName: values.fullName.trim(),
     birthYear: values.birthYear ?? null,
     phone: blankToNull(values.phone),
     nationalId: blankToNull(values.nationalId),
     personalAddress: blankToNull(values.personalAddress),
-    companyName: company ? blankToNull(values.companyName) : null,
-    taxCode: company ? blankToNull(values.taxCode) : null,
-    companyAddress: company ? blankToNull(values.companyAddress) : null,
+    companyName: blankToNull(values.companyName),
+    taxCode: blankToNull(values.taxCode),
+    companyAddress: blankToNull(values.companyAddress),
     email: blankToNull(values.email),
     wantsPaperInvoice: values.wantsPaperInvoice,
   };

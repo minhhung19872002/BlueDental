@@ -4,11 +4,10 @@ import { CheckCircleFilled, ClockCircleOutlined, FileDoneOutlined, DisconnectOut
 import { useParams } from "react-router-dom";
 import { describeApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import { formatDateTime, formatMoneyUnit } from "@/utils/format";
+import { formatDateTime } from "@/utils/format";
 import {
   usePublicInvoiceRequestForm,
   useSubmitPublicInvoiceRequest,
-  type PublicInvoiceRequestFormDto,
   type PublicInvoiceRequestResultDto,
 } from "../api/publicInvoiceRequestApi";
 import { PublicInvoiceRequestForm } from "../components/PublicInvoiceRequestForm";
@@ -33,25 +32,6 @@ function Notice({ icon, title, text }: { icon: ReactNode; title: string; text: s
         <p className="pir-notice__text">{text}</p>
       </div>
     </Shell>
-  );
-}
-
-function ReceiptSummary({ form }: { form: PublicInvoiceRequestFormDto }) {
-  return (
-    <dl className="pir-receipt">
-      <div>
-        <dt>{t("Patient:InvoiceRequest:Field:Receipt")}</dt>
-        <dd>{form.paymentCode}</dd>
-      </div>
-      <div>
-        <dt>{t("Patient:InvoiceRequest:Field:Amount")}</dt>
-        <dd>{formatMoneyUnit(form.amount)}</dd>
-      </div>
-      <div className="pir-receipt__wide">
-        <dt>{t("Patient:InvoiceRequest:Field:Service")}</dt>
-        <dd>{form.serviceName || "—"}</dd>
-      </div>
-    </dl>
   );
 }
 
@@ -98,10 +78,11 @@ export function PublicInvoiceRequestPage() {
     <Shell>
       <header className="pir-head">
         <p className="pir-head__clinic">{form.clinicName}</p>
-        <h1 className="pir-head__title">{t("Patient:InvoiceRequest:SheetTitle")}</h1>
+        <p className="pir-head__receipt">
+          {t("Patient:InvoiceRequest:Field:Receipt")}: <b>{form.paymentCode}</b>
+        </p>
         <p className="pir-head__intro">{t("PublicInvoiceRequest:Intro")}</p>
       </header>
-      <ReceiptSummary form={form} />
       {submit.isError && (
         <Alert type="error" showIcon className="pir-error" message={describeApiError(submit.error).message} />
       )}

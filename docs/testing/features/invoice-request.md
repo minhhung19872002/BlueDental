@@ -44,7 +44,7 @@ reference app has no such screen.
   - Thời gian gửi
   - Phiếu thu / Dịch vụ
   - Số tiền
-  - Thông tin xuất HĐ (Cá nhân / Công ty + MST, Số HĐ once issued)
+  - Thông tin xuất HĐ (company + MST when written, Số HĐ once issued)
   - Trạng thái
   - Hạn xử lý
   - Phụ trách
@@ -53,6 +53,30 @@ reference app has no such screen.
   yet. The dialog uses the same fields, with the patient's data filled in.
 - The detail dialog shows the THÔNG TIN XUẤT HÓA ĐƠN sheet and can print it.
   On the printed sheet, Cân nặng and Chiều cao are left blank.
+
+## Paper form (R-910)
+
+The BA's paper THÔNG TIN XUẤT HÓA ĐƠN is the single layout for the QR page,
+the staff "Tạo yêu cầu" / edit dialog and the Chi tiết sheet: the shared
+`src/components/InvoicePaper` (Times, "Label: ……" dotted blanks, several per
+row, ☐ Có ☐ Không). Line order: Họ và tên khách / Năm sinh / SĐT · Căn cước
+công dân / Cân nặng / Chiều cao (print only) · Địa chỉ cá nhân over two dotted
+lines · bold note "BẮT BUỘC phải ghi MÃ SỐ THUẾ" · Tên công ty · Mã số thuế ·
+Địa chỉ công ty · **Email** · **Dịch vụ** · **Số tiền** · **Khách hàng có lấy
+hoá đơn giấy không**.
+
+- No Cá nhân / Công ty switch. Company lines are optional; once any is written,
+  Tên công ty and Mã số thuế are both required.
+- On screen the blanks are AntD inputs drawn as the dotted line. Font family and
+  size are pinned through `--inv-paper-font` / `--inv-paper-size`: AntD's form
+  wrappers reset them, so `inherit` is not enough. The 42px dialog input height
+  from `index.css` is undone inside the paper.
+- Có / Không on the forms are `role="radio"` buttons; on the read-only sheet
+  they are `role="checkbox"` with `aria-checked`.
+- Print: `printInvoiceRequest()` copies the sheet out of the modal into
+  `.ir-print-root` and prints only that, `@page { size: A5 landscape; margin: 0 }`.
+  One page, full width. Margin 0 also leaves no room for Chrome's date / title /
+  URL header and footer.
 
 ## Workflow (`InvoiceRequest`, server-side guards)
 
