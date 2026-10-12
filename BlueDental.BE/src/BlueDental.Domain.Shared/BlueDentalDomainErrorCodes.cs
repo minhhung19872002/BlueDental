@@ -560,6 +560,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidCounterSettings = "BlueDental:Queue:0011";
         public const string NotADentist = "BlueDental:Queue:0012";
         public const string DentistRequired = "BlueDental:Queue:0013";
+        public const string DuplicateName = "BlueDental:Queue:0014";
     }
 
     public static class Tools

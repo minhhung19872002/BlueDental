@@ -25,6 +25,23 @@ export const NEW_COUNTER_VALUES: CounterFormValues = {
 export const PREFIX_PATTERN = /^[A-Z0-9]{1,2}$/;
 export const MAX_COUNTER_NAME = 50;
 
+/** Same rule as ServiceCounter.NormalizeName: trimmed, inner whitespace folded to one space. */
+export function normalizeCounterName(name: string): string {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+/** Whether another counter of the branch already has this name, ignoring case and extra spaces. */
+export function isCounterNameTaken(name: string, otherCounters: readonly ServiceCounter[]): boolean {
+  const wanted = normalizeCounterName(name).toLowerCase();
+  return otherCounters.some((c) => normalizeCounterName(c.name).toLowerCase() === wanted);
+}
+
+/** Whether another counter of the branch already numbers with this prefix (the server's Queue:0007). */
+export function isCounterPrefixTaken(prefix: string, otherCounters: readonly ServiceCounter[]): boolean {
+  const wanted = prefix.trim().toUpperCase();
+  return otherCounters.some((c) => c.numberPrefix === wanted);
+}
+
 export function toCounterFormValues(counter: ServiceCounter | null): CounterFormValues {
   if (!counter) return NEW_COUNTER_VALUES;
   return {
@@ -44,7 +61,7 @@ export function toCounterInput(
 ): CreateServiceCounterInput {
   return {
     ...values,
-    name: values.name.trim(),
+    name: normalizeCounterName(values.name),
     numberPrefix: values.numberPrefix.trim().toUpperCase(),
     dentistId: values.dentistId ?? null,
     sortOrder,
