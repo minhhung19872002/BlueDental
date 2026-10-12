@@ -12,4 +12,10 @@ public class PaymentReceiptOptions
     public string GotenbergUrl { get; set; } = "http://127.0.0.1:13000";
 
     public int TimeoutSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// The web app the QR of a receipt with "Xuất hóa đơn đỏ" points at:
+    /// <c>{PublicFormBaseUrl}/invoice-request/{token}</c>.
+    /// </summary>
+    public string PublicFormBaseUrl { get; set; } = "http://localhost:8080";
 }

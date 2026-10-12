@@ -613,6 +613,27 @@ public static class BlueDentalDomainErrorCodes
         public const string BuyerDetailsRequired = "BlueDental:EInvoicing:0017";
     }
 
+    /// <summary>"Yêu cầu xuất HĐ" and the QR form behind it (F-71).</summary>
+    public static class InvoiceRequest
+    {
+        public const string FullNameRequired = "BlueDental:InvoiceRequest:0001";
+        public const string InvalidPhone = "BlueDental:InvoiceRequest:0002";
+        public const string InvalidEmail = "BlueDental:InvoiceRequest:0003";
+        public const string CompanyTaxCodeRequired = "BlueDental:InvoiceRequest:0004";
+        public const string InvalidTaxCode = "BlueDental:InvoiceRequest:0005";
+        public const string InvalidNationalId = "BlueDental:InvoiceRequest:0006";
+        public const string InvalidBirthYear = "BlueDental:InvoiceRequest:0007";
+        /// <summary>The receipt already has a request that is not cancelled.</summary>
+        public const string AlreadyRequested = "BlueDental:InvoiceRequest:0008";
+        public const string InvalidTransition = "BlueDental:InvoiceRequest:0009";
+        public const string ReasonRequired = "BlueDental:InvoiceRequest:0010";
+        public const string InvoiceNoRequired = "BlueDental:InvoiceRequest:0011";
+        public const string LinkExpired = "BlueDental:InvoiceRequest:0012";
+        public const string LinkUsed = "BlueDental:InvoiceRequest:0013";
+        /// <summary>Only a payment receipt can be invoiced, not a refund or a cancelled one.</summary>
+        public const string ReceiptNotEligible = "BlueDental:InvoiceRequest:0014";
+    }
+
     /// <summary>PHIẾU THU printed by Phát Hành in the Hóa đơn dialog.</summary>
     public static class PaymentReceipt
     {

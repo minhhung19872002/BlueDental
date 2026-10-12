@@ -7807,3 +7807,40 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 - Kết quả: 3 spec trên cùng `payment-receipt-pdf.spec` xanh (12/12 + 9/9).
 
 **Gotcha e2e.** Ô tìm nằm trong `popupRender` của AntD Select: `fill()` không kích hoạt lọc, phải `click()` + `pressSequentially()`. Headless Chromium không có trình xem PDF nên tab blob biến thành download; test chấp nhận cả hai.
+
+## R-908 (2026-10-12, mức 2: F-71 mới + mức 3 vì PHIẾU THU và PageTabBar) Yêu cầu xuất HĐ từ QR trên phiếu thu
+
+**Yêu cầu (BA, mockup + drawio `P1210_01`).** Khi khách nhập vào form THÔNG TIN XUẤT HÓA ĐƠN thì dữ liệu đổ về tab Hóa đơn của hồ sơ bệnh nhân. Thông tin đã có thì điền sẵn, phần còn lại để khách nhập.
+
+**Chủ dự án chốt:**
+- QR theo phiếu thu.
+- Trang công khai điền sẵn một phần, che SĐT/CCCD.
+- Link có hạn và chỉ gửi được một lần.
+- Cân nặng / Chiều cao để trống trên bản in.
+- Nút "Chi tiết phiếu" đổi thành "In phiếu thu".
+
+**Làm.**
+- BE: aggregate `InvoiceRequest` (5 trạng thái, guard ở domain, `0001`..`0014`) và `InvoiceRequestLink` (token 43 ký tự, 30 ngày, một lần gửi). Controller staff + public anonymous. QR vẽ vào `PHIẾU THU.docx` khi phiếu có cờ hóa đơn đỏ. Migration `InvoiceRequests`.
+- FE: trang `/invoice-request/:token` ưu tiên điện thoại. Tab Hóa đơn tách 2 segment; danh sách Yêu cầu xuất HĐ theo mockup (badge, banner, chip, SLA, Phụ trách), dialog tạo/sửa/chi tiết/in, và các thao tác Xử lý / Cần bổ sung / Hoàn tất / Hủy.
+
+**Kiểm chứng.** Build production :8081 → host :5000 → PostgreSQL, không chặn API.
+- `invoice-request-api` 1/1.
+- `invoice-request-ui` 1/1: điện thoại 390×844 không đăng nhập gửi form QR, rồi staff thấy dòng trên tab, tạo yêu cầu, reload, Xử lý → Hoàn tất, lọc Cần xử lý, reload.
+- `billing-ledger` 5/5.
+
+**Gotcha e2e.**
+- Nút Hoàn tất bị khóa khi chưa nhập Số hóa đơn: kiểm `toBeDisabled()`, đừng click (click nút khóa sẽ treo tới hết timeout).
+- Radio-button AntD nằm ngoài viewport: click `label`.
+- Hai file khác nhau chỉ ở hoa/thường (`PublicInvoiceRequestForm.tsx` / `publicInvoiceRequestForm.ts`) làm tsc lỗi TS1261 trên Windows.
+
+## R-909 (2026-10-12, mức 3: hồi quy của R-908) Badge đổi tên tab, spec cũ còn "In Hoá Đơn" / "Còn lại"
+
+**Lỗi.** `patient-permission-gates` đỏ vì số trong badge nằm trong link, nên tên truy cập thành "Hóa đơn 2" và `exact` không khớp. **Sửa:** badge `aria-hidden`; banner trong pane vẫn nói số lượng.
+
+**Spec cập nhật:**
+- `treatment-plan-detail` và `billing-ledger`: nút "In Hoá Đơn" → "In phiếu thu".
+- `patient.spec` (ten tabs): tab Hóa đơn giờ kiểm heading rồi bấm segment "Phiếu thu" để thấy cột MÃ HÓA ĐƠN.
+
+**Đỏ có sẵn (không do F-71).** `treatment-plan-detail` "a discounted slip…" tìm dòng "Còn lại" mà dialog Tạo phiếu thanh toán đã bỏ ở R-907 (8c58c99e). Đổi sang "Còn nợ cần thanh toán" = số còn nợ. Spec xanh 13/13.
+
+**Còn đỏ, không liên quan.** `patient.spec` "ten tabs" đỏ ở dòng 878: dialog Tạo tái khám của bệnh nhân đầu danh sách không còn "Chưa có dịch vụ hoàn tất". Đây là dữ liệu local, xảy ra trước đoạn tab Hóa đơn, nên đoạn đã sửa chưa chạy tới.

@@ -16,6 +16,7 @@ x-backend-environment: &backend-environment
   MalwareScan__Port: "3310"
   EasyInvoice__Password: ${EASYINVOICE_PASSWORD:-}
   PaymentReceipt__GotenbergUrl: http://gotenberg:3000
+  PaymentReceipt__PublicFormBaseUrl: ${FRONTEND_URL:-http://localhost:8080}
 
 services:
   postgres:

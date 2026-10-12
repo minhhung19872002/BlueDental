@@ -6,6 +6,8 @@ export interface PageTab {
   key: string;
   label: string;
   to: string;
+  /** A count of things waiting on that pane, shown only while above zero. */
+  badge?: number;
 }
 
 interface Props {
@@ -40,6 +42,8 @@ export function PageTabBar({ tabs, activeKey, label, className }: Props) {
               className={cn("pill-tab", active && "pill-tab--active")}
             >
               {tab.label}
+              {/* Out of the link's name: the tab stays "Hóa đơn", the pane says how many. */}
+              {tab.badge ? <span className="pill-tab__badge" aria-hidden="true">{tab.badge}</span> : null}
             </NavLink>
           );
         })}

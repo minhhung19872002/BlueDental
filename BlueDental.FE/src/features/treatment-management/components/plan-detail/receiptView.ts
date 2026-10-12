@@ -1,6 +1,7 @@
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 import {
+  PAYMENT_KIND,
   paymentMethodLabels,
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
@@ -36,6 +37,8 @@ export interface ReceiptView {
   sheetDateLabel: string;
   staffName: string | null;
   amount: number;
+  /** The receipt whose PHIẾU THU "In phiếu thu" renders; null for "In hóa đơn tổng" and refunds, which print this sheet. */
+  paymentId: string | null;
 }
 
 /** "Ngày 7 tháng 9 năm 2026" — how every printed sheet dates itself. */
@@ -66,6 +69,7 @@ export function receiptOf(
     sheetDateLabel: longDate(new Date(payment.paidAt)),
     staffName: payment.staffName,
     amount: payment.amount,
+    paymentId: payment.kind === PAYMENT_KIND.Payment ? payment.id : null,
     totals: [
       // Gross, so the sheet's "Tổng phí" − "Giảm giá" lands on what is owed.
       { label: t("Treatment:Receipt:TotalFee"), value: planMoney(plan).total },
@@ -89,6 +93,7 @@ export function aggregateReceiptOf(plan: TreatmentPlanSlipDto, today: Date): Rec
     sheetDateLabel: longDate(today),
     staffName: null,
     amount: plan.payment.totalPaid,
+    paymentId: null,
     totals: [
       { label: t("Treatment:Receipt:ExpectedRevenue"), value: plan.payment.totalPrice },
       { label: t("Treatment:Receipt:TotalPaid"), value: plan.payment.totalPaid },

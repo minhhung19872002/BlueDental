@@ -1,0 +1,125 @@
+/* ── Public THÔNG TIN XUẤT HÓA ĐƠN page (QR on a PHIẾU THU) — phone first ── */
+
+.pir-page {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px 40px;
+  background: var(--bd-bg);
+}
+.pir-card {
+  width: 100%;
+  max-width: 560px;
+  align-self: flex-start;
+  padding: 24px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+}
+.pir-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.pir-head {
+  margin-bottom: 16px;
+  text-align: center;
+}
+.pir-head__clinic {
+  margin: 0;
+  color: var(--bd-primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pir-head__title {
+  margin: 4px 0 6px;
+  color: var(--bd-ink);
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pir-head__intro {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.pir-receipt {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-soft);
+}
+.pir-receipt__wide {
+  grid-column: 1 / -1;
+}
+.pir-receipt dt {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pir-receipt dd {
+  margin: 0;
+  color: var(--bd-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pir-error {
+  margin-bottom: 16px;
+}
+.pir-section {
+  margin: 8px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--bd-divider);
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pir-full {
+  width: 100%;
+}
+.pir-kind {
+  display: flex;
+}
+.pir-kind .ant-radio-button-wrapper {
+  flex: 1;
+  text-align: center;
+}
+
+.pir-notice {
+  padding: 24px 0;
+  text-align: center;
+}
+.pir-notice__icon {
+  color: var(--bd-primary);
+  font-size: 44px;
+}
+.pir-notice__title {
+  margin: 12px 0 8px;
+  color: var(--bd-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+.pir-notice__text {
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .pir-page {
+    padding: 0;
+  }
+  .pir-card {
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

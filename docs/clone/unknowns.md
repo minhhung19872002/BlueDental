@@ -2962,3 +2962,21 @@ Action taken: NONE trên production. Các điểm BlueDental tự chọn, chờ 
 - Phiếu **ở lại** tab sau khi đã chốt ngày thật; cột "Lịch hẹn sắp tới" cho biết đã chốt.
 - Tab lọc theo ngày bấm nút, không theo ngày khám.
 - Ghi chú tối đa 300 ký tự (giới hạn của Nội dung phiếu CSKH), còn ghi chú lịch hẹn có ngày là 500.
+
+## Yêu cầu xuất HĐ — các mặc định BlueDental tự chọn (F-71, 2026-10-12)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: tab Hóa đơn của hồ sơ bệnh nhân (`/patient/:id?tab=invoice`) và trang công khai `/invoice-request/:token`
+Control: danh sách "Yêu cầu xuất HĐ", QR trên PHIẾU THU, form THÔNG TIN XUẤT HÓA ĐƠN
+Reason: tính năng riêng của BlueDental theo mockup và drawio của BA; bản gốc không có. Mockup chưa nói các điểm dưới đây.
+Action taken: NONE trên production. Đã làm theo mặc định sau, chờ BA xác nhận:
+- Hạn xử lý = lúc gửi + 24 giờ. Lúc "Cần bổ sung" thì hiện "Chờ khách bổ sung", không đếm trễ.
+- Link QR sống 30 ngày; hết hạn thì in lại phiếu sẽ ra link mới.
+- "Phụ trách" = người bấm Xử lý / Cần bổ sung / Hoàn tất; trước đó hiện "Chưa phân công". Chưa có màn phân công.
+- "Cần xử lý" = Chờ xử lý + Đang xử lý + Cần bổ sung.
+- Nhãn "MỚI" = Chờ xử lý và gửi chưa tới 24 giờ.
+- QR 20 mm, đặt ở trái 182 mm / trên 120 mm trên mẫu A5 ngang (chờ BA gửi vị trí trên mẫu thật).
+- "Cần bổ sung": khách **không** gửi lại được qua QR cũ (mỗi link gửi một lần). Nhân viên liên hệ khách rồi Sửa yêu cầu, yêu cầu quay về Chờ xử lý.
+- Chưa có thông báo (Zalo/email/chuông) khi khách gửi, và chưa có màn tổng hợp mọi bệnh nhân.
+- Form công khai không ghi ngược thông tin vào hồ sơ bệnh nhân; dữ liệu chỉ nằm trong yêu cầu.

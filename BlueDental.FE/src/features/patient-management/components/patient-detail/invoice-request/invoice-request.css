@@ -1,0 +1,373 @@
+/* ── Yêu cầu xuất HĐ (patient record, Hóa đơn tab) ── */
+
+.ir-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.ir-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ir-head__title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.ir-head__sub {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.ir-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--bd-orange-line);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-amber-pale);
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+.ir-banner__icon {
+  color: var(--bd-amber);
+  font-size: 16px;
+}
+.ir-banner__text {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.ir-banner__late {
+  color: var(--bd-red);
+  font-weight: 600;
+}
+
+.ir-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ir-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  color: var(--bd-body);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ir-chip:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.ir-chip--active,
+.ir-chip--active:hover {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-weight: 600;
+}
+.ir-chip__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-bg-soft);
+  color: var(--bd-sub);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.ir-chip--active .ir-chip__count {
+  background: var(--bd-primary);
+  color: var(--bd-card);
+}
+
+/* ── Table cells ── */
+.ir-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ir-cell small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.ir-cell__note {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.ir-code {
+  color: var(--bd-link);
+}
+.ir-new {
+  align-self: flex-start;
+  padding: 0 6px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-red);
+  color: var(--bd-card);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-transform: uppercase;
+}
+.ir-clamp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ir-muted {
+  color: var(--bd-faint);
+  font-style: italic;
+}
+.ir-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.ir-status {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ir-status--amber {
+  background: var(--bd-amber-pale);
+  color: var(--bd-gold-deep);
+}
+.ir-status--blue {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+}
+.ir-status--orange {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.ir-status--green {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.ir-status--grey {
+  background: var(--bd-bg-soft);
+  color: var(--bd-sub);
+}
+
+.ir-due {
+  font-weight: 600;
+}
+.ir-due--ok {
+  color: var(--bd-green);
+}
+.ir-due--soon {
+  color: var(--bd-amber);
+}
+.ir-due--late {
+  color: var(--bd-red);
+}
+.ir-due--paused,
+.ir-due--none {
+  color: var(--bd-muted);
+}
+
+/* ── Create / edit dialog ── */
+.ir-form__section {
+  margin: 4px 0 10px;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.ir-form__kind {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 10px;
+}
+.ir-form__kind .ir-form__section {
+  margin: 0;
+}
+.ir-form__paper {
+  margin-bottom: 0;
+}
+.ir-full {
+  width: 100%;
+}
+.ir-summary {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-soft);
+}
+.ir-summary dt {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.ir-summary dd {
+  margin: 0;
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+/* ── Detail dialog and the printed sheet ── */
+.ir-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ir-sheet {
+  color: var(--bd-ink);
+}
+.ir-sheet__head {
+  margin-bottom: 12px;
+  text-align: center;
+}
+.ir-sheet__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.ir-sheet__meta {
+  margin: 4px 0 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.ir-sheet__section {
+  margin: 16px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--bd-divider);
+  font-size: 14px;
+  font-weight: 700;
+}
+.ir-sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 24px;
+  margin: 0;
+}
+.ir-sheet__row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+}
+.ir-sheet__row dt {
+  color: var(--bd-muted);
+}
+.ir-sheet__row dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ir-sheet__row--blank dd {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.ir-sheet__line {
+  flex: 1;
+  height: 16px;
+  border-bottom: 1px dotted var(--bd-sub);
+}
+.ir-sheet__unit {
+  color: var(--bd-muted);
+  font-weight: 400;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .ir-sheet__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .ir-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ir-banner {
+    flex-wrap: wrap;
+  }
+  .ir-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ir-sheet__row {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+}
+
+/* ── Print: only the sheet of the open detail dialog ── */
+@media print {
+  html.ir-printing body {
+    background: #fff;
+  }
+  html.ir-printing body::before {
+    display: none;
+  }
+  html.ir-printing body > *:not(:has(.ir-sheet)) {
+    display: none !important;
+  }
+  html.ir-printing .ant-modal-root,
+  html.ir-printing .ant-modal-wrap,
+  html.ir-printing .ir-detail-dialog.ant-modal,
+  html.ir-printing .ir-detail-dialog .ant-modal-content,
+  html.ir-printing .ir-detail-dialog .ant-modal-body {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0;
+    padding: 0;
+    overflow: visible !important;
+    background: none;
+    box-shadow: none;
+  }
+  html.ir-printing .ant-modal-mask,
+  html.ir-printing .ir-detail-dialog .ant-modal-header,
+  html.ir-printing .ir-detail-dialog .ant-modal-footer,
+  html.ir-printing .ir-detail-dialog .ant-modal-close {
+    display: none !important;
+  }
+  html.ir-printing .ir-sheet {
+    padding: 12mm 15mm;
+  }
+  html.ir-printing .ir-sheet__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html.ir-printing .ir-status {
+    padding: 0;
+    background: none;
+  }
+}
+
+.pd-invoice-tabs {
+  align-self: flex-start;
+}

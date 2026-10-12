@@ -193,7 +193,7 @@ test.describe("Tài chính → Thanh toán", () => {
     await expect(detail.locator(".pdt-receipt-head")).toContainText(saved.code);
     await expect(detail.locator(".pdt-receipt-table tbody tr.ant-table-row")).toHaveCount(saved.lines.length);
     await expect(detail.locator(".pdt-receipt-sum")).toContainText(vnd(saved.amount));
-    await expect(detail.getByRole("button", { name: "In Hoá Đơn" })).toBeEnabled();
+    await expect(detail.getByRole("button", { name: "In phiếu thu" })).toBeEnabled();
     await page.keyboard.press("Escape");
     await expect(detail).toBeHidden();
 

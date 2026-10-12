@@ -1287,3 +1287,13 @@ a.pdt-crumb:hover {
     transform: rotate(360deg);
   }
 }
+
+/* "In phiếu thu" while the PHIẾU THU renders. */
+.pdt-spin {
+  animation: pdt-spin 1s linear infinite;
+}
+@keyframes pdt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
