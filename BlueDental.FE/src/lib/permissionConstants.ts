@@ -35,6 +35,7 @@ export const LegacyPermissions = {
     RolesCreate: `${PERMISSION_GROUP}.SystemAdmin.Roles.Create`,
     RolesDelete: `${PERMISSION_GROUP}.SystemAdmin.Roles.Delete`,
     AuditLogs: `${PERMISSION_GROUP}.SystemAdmin.AuditLogs`,
+    PatientRoster: `${PERMISSION_GROUP}.SystemAdmin.PatientRoster`,
   },
 } as const;
 

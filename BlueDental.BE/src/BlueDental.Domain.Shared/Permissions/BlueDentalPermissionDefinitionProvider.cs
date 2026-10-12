@@ -201,6 +201,7 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
         sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.Settings, L("Permission:SystemAdmin.Settings"));
         sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.ClinicConnections, L("Permission:SystemAdmin.ClinicConnections"));
         sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.DataMigration, L("Permission:SystemAdmin.DataMigration"));
+        sysAdminPerm.AddChild(BlueDentalPermissions.SystemAdministration.PatientRoster, L("Permission:SystemAdmin.PatientRoster"));
 
         // Medical History (child of PatientManagement)
         var mhPerm = patientMgmt.AddChild(

@@ -74,6 +74,13 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     public string? Note { get; private set; }
 
     /// <summary>
+    /// ID hệ thống — the record's id in the clinic's old software, carried by
+    /// the patient roster file (F-69). A record with one came from the old
+    /// system; unique within a branch.
+    /// </summary>
+    public string? LegacyId { get; private set; }
+
+    /// <summary>
     /// Lý do đến khám — a dated list, not one note. The profile card prints
     /// every line; the hồ sơ dialog only ever edits the root one.
     /// </summary>
@@ -244,6 +251,14 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         Note = Trimmed(note);
         return this;
     }
+
+    public Patient SetLegacyId(string? legacyId)
+    {
+        LegacyId = Check.Length(Trimmed(legacyId), nameof(legacyId), MaxLegacyIdLength);
+        return this;
+    }
+
+    public const int MaxLegacyIdLength = 50;
 
     /// <summary>
     /// What the hồ sơ dialog's Lý do đến khám box writes: it rewrites the root

@@ -31,6 +31,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Tỉnh / phường names for the patient roster file (F-69). -->
+    <EmbeddedResource Include="PatientManagement/Roster/vn-locations.json" LogicalName="BlueDental.PatientManagement.Roster.vn-locations.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The report window arithmetic is internal; its tests need to see it. -->
     <InternalsVisibleTo Include="BlueDental.Application.Tests" />
   </ItemGroup>

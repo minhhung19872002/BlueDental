@@ -110,6 +110,8 @@ public class BlueDentalAbilitySeedContributor(
         {
             BlueDentalPermissions.Organizations.Create,
             BlueDentalAbilities.Permission("branchManager", BlueDentalAbilities.Actions.Create),
+            // Xuất / nhập danh sách bệnh nhân is admin only (F-69).
+            BlueDentalPermissions.SystemAdministration.PatientRoster,
         };
 
         var permissions = allPermissionNames
@@ -148,6 +150,7 @@ public class BlueDentalAbilitySeedContributor(
             BlueDentalPermissions.SystemAdministration.AuditLogs,
             BlueDentalPermissions.SystemAdministration.Settings,
             BlueDentalPermissions.SystemAdministration.DataMigration,
+            BlueDentalPermissions.SystemAdministration.PatientRoster,
         };
 
         var permissions = allPermissionNames
