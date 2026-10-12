@@ -47,11 +47,17 @@ test.describe("Dropdowns in dialogs", () => {
     // At once, not after the dialog has settled — the moment #37 was about.
     await doctor.click({ force: true });
 
-    await expect.poll(async () => (await openSelectBoxes(page)).length).toBe(1);
-    const field = (await doctor.boundingBox())!;
-    const [popup] = await openSelectBoxes(page);
-    expect(Math.abs(popup.width - field.width)).toBeLessThan(2);
-    expect(Math.abs(popup.x - field.x)).toBeLessThan(2);
+    // How far the open list is from the field, in width and in left edge.
+    const misfit = async () => {
+      const field = await doctor.boundingBox();
+      const popups = await openSelectBoxes(page);
+      if (!field || field.width === 0 || popups.length !== 1) return Number.POSITIVE_INFINITY;
+      return Math.max(Math.abs(popups[0].width - field.width), Math.abs(popups[0].x - field.x));
+    };
+    await expect.poll(misfit).toBeLessThan(2);
+    // And it stays put: a list placed off to one side was never moved back.
+    await page.waitForTimeout(800);
+    expect(await misfit()).toBeLessThan(2);
   });
 
   test("Hủy closes the dialog and its open medicine list with it (#39)", async ({ page }) => {
