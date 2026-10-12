@@ -25,7 +25,6 @@ interface Props {
 interface FormValues {
   name: string;
   taxonomyId: string;
-  isActive: boolean;
   isDeleted: boolean;
   priority: number;
 }
@@ -70,7 +69,6 @@ export function SimpleCatalogDialog({
     form.setFieldsValue({
       name: entry?.name ?? "",
       taxonomyId: entry?.taxonomyId ?? fallback,
-      isActive: entry?.isActive ?? true,
       isDeleted: entry?.isDeleted ?? false,
       priority: entry?.sortOrder ?? 0,
     });
@@ -93,7 +91,7 @@ export function SimpleCatalogDialog({
             price: entry.price,
             content: entry.content,
             description: entry.description ?? undefined,
-            isActive: values.isActive,
+            isActive: entry.isActive,
             isDeleted: values.isDeleted,
             sortOrder,
           },
@@ -128,7 +126,7 @@ export function SimpleCatalogDialog({
         form={form}
         layout="vertical"
         requiredMark={false}
-        initialValues={{ name: "", taxonomyId: "", isActive: true, isDeleted: false, priority: 0 }}
+        initialValues={{ name: "", taxonomyId: "", isDeleted: false, priority: 0 }}
         onFinish={(values) => void submit(values)}
       >
         <Row gutter={[16, { xs: 20, sm: 12 }]}>

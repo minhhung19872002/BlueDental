@@ -274,11 +274,15 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
         await ApplyComboItemsAsync(entry, input.ComboItems);
 
-        if (input.IsActive)
+        // The dialog shows "Đang hoạt động" for every entry that is not deleted,
+        // so saving it that way must leave the entry live — the pickers list
+        // live entries only (bug list item 36).
+        var active = input.IsDeleted ? input.IsActive : true;
+        if (active == true)
         {
             entry.Activate();
         }
-        else
+        else if (active == false)
         {
             entry.Deactivate();
         }

@@ -316,7 +316,13 @@ public class UpdateCatalogEntryDto
     public decimal? Price { get; set; }
     public string? Content { get; set; }
     public string? Description { get; set; }
-    public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Read only for an entry saved as deleted — one saved as "Đang hoạt động"
+    /// is always live. Left out (null), the stored value stays: a request
+    /// that omits it must not switch the entry off (bug list item 36).
+    /// </summary>
+    public bool? IsActive { get; set; }
 
     /// <summary>
     /// The other half of the dialog's one state: true parks this entry as

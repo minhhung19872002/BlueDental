@@ -5,9 +5,13 @@
  * group, so the check reads the names the clinic already types: an allergy
  * entry ("Dị ứng thuốc kháng sinh") is reduced to what the patient reacts to
  * ("khang sinh"), and a medicine is flagged when its group ("Nhóm Kháng Sinh")
- * or its own name says the same thing. It errs on the side of warning: an
- * allergy to "kháng sinh nhóm Penicillin" flags the whole antibiotic group.
+ * or its own name says the same thing — or when the name is a known member of
+ * the class the allergy names ({@link DRUG_CLASSES}): "Amoxicillin 500mg" is an
+ * antibiotic whatever group the clinic filed it under. It errs on the side of
+ * warning: an allergy to "kháng sinh nhóm Penicillin" flags every antibiotic.
  */
+
+import { DRUG_CLASSES } from "./drugClasses";
 
 /** A catalog entry as the check needs it — a name and, for medicines, the group. */
 export interface NamedEntry {
@@ -58,10 +62,24 @@ function isAllergy(entry: NamedEntry): boolean {
   return [entry.name, entry.taxonomyName ?? ""].some((text) => hasPhrase(normalize(text), ALLERGY_PHRASE));
 }
 
+/** The name is a member of a drug class the allergy names: "Amoxicillin" under "khang sinh". */
+function inNamedClass(medicineName: string, allergySubject: string): boolean {
+  const words = normalize(medicineName).split(" ");
+  return DRUG_CLASSES.some(
+    (drugClass) =>
+      drugClass.aliases.some((alias) => hasPhrase(allergySubject, alias)) &&
+      words.some((word) => drugClass.stems.some((stem) => word.startsWith(stem))),
+  );
+}
+
 function falls(medicine: NamedEntry, allergySubject: string): boolean {
   const group = subjectOf(medicine.taxonomyName ?? "");
   const sameGroup = group.length > 0 && (hasPhrase(allergySubject, group) || hasPhrase(group, allergySubject));
-  return sameGroup || hasPhrase(normalize(medicine.name), allergySubject);
+  return (
+    sameGroup ||
+    hasPhrase(normalize(medicine.name), allergySubject) ||
+    inNamedClass(medicine.name, allergySubject)
+  );
 }
 
 /**

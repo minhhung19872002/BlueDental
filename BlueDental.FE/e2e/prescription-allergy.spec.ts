@@ -9,6 +9,10 @@ import { BRANCH_ONE, call, ENTRIES, TAXONOMIES } from "./fixtures/catalogApi";
  * keeps the slip unsaved, "Vẫn lưu" saves it. A medicine of another group
  * raises nothing.
  *
+ * QA dòng 6 reopened: an antibiotic filed under a group that does not say so
+ * ("Amoxicillin 500mg" in "Nhóm thuốc chung") is known by its active
+ * ingredient and warned all the same.
+ *
  * Real stack only: the allergy, the medicine groups and the patient are made
  * through the real API, the slip through the real dialog.
  */
@@ -20,6 +24,8 @@ interface Seed {
   patientId: string;
   antibiotic: string;
   painkiller: string;
+  /** An antibiotic filed under a group whose name does not say so. */
+  amoxicillin: string;
   allergy: string;
 }
 
@@ -49,6 +55,8 @@ async function seed(page: Page, id: string): Promise<Seed> {
   await catalogEntry(page, "medication_type", `Nhóm Kháng Sinh ${id}`, antibiotic);
   const painkiller = `Paracetamol 500mg ${id}`;
   await catalogEntry(page, "medication_type", `Nhóm Giảm Đau ${id}`, painkiller);
+  const amoxicillin = `Amoxicillin 500mg ${id}`;
+  await catalogEntry(page, "medication_type", `Nhóm thuốc chung ${id}`, amoxicillin);
 
   const patient = await call<{ id: string }>(page, "POST", PATIENTS_API, {
     firstName: `Dị ứng ${id}`,
@@ -59,7 +67,7 @@ async function seed(page: Page, id: string): Promise<Seed> {
     diseaseHistoryEntryIds: [allergyId],
   });
   expect(patient.status, JSON.stringify(patient.body)).toBe(200);
-  return { patientId: patient.body.id, antibiotic, painkiller, allergy };
+  return { patientId: patient.body.id, antibiotic, painkiller, amoxicillin, allergy };
 }
 
 async function pickOption(page: Page, text: string) {
@@ -152,4 +160,27 @@ test("a medicine of another group raises nothing and saves straight away", async
   const { code } = (await response.json()) as { code: string };
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("row", { name: new RegExp(code) })).toBeVisible();
+});
+
+test("an antibiotic in a group that does not say so is still warned (QA dòng 6 reopened)", async ({ page }) => {
+  const id = runId();
+  await login(page);
+  const data = await seed(page, id);
+
+  const dialog = await openDialog(page, data.patientId);
+  await dialog.getByLabel("Nhập lời dặn").fill(`Amoxicillin e2e ${id}`);
+  await pickMedicine(page, dialog, data.amoxicillin);
+
+  const warning = dialog.getByRole("alert").filter({ hasText: "Cảnh báo dị ứng" });
+  await expect(warning).toBeVisible();
+  await expect(warning).toContainText(data.amoxicillin);
+  await expect(warning).toContainText(`Nhóm thuốc chung ${id}`);
+  await expect(warning).toContainText(data.allergy);
+
+  // Lưu still asks before saving.
+  await dialog.getByRole("button", { name: /Lưu$/ }).click();
+  const confirm = page.getByRole("dialog").filter({ hasText: "Bạn vẫn muốn lưu đơn thuốc?" });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole("button", { name: "Không" }).click();
+  await expect(dialog).toBeVisible();
 });
