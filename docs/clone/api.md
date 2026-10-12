@@ -1968,8 +1968,12 @@ Quyền `BlueDental.SystemAdmin.DataMigration`; chi nhánh qua `BranchAccessChec
 
 `/api/v1/app/patient-relations` (`?patientId=`, `/family?patientId=`, POST / PUT / DELETE) và
 `/api/v1/app/patient-groups` (list, `{id}`, `by-patient?patientId=`, POST / PUT / DELETE). Mối quan hệ dùng quyền
-`patient.read` / `patient.update`; Hồ sơ nhóm subject `patientGroup`.
-Lỗi `BlueDental:PatientRelation:0001`–`0008`. Chi tiết: `docs/clone/pages/patient-relations.md`.
+`patient.read` / `patient.update`; Hồ sơ nhóm subject `patientGroup`. Thẻ trả trước nhận `newRelations`.
+Từ 2026-10-12: danh sách quan hệ trả **một dòng mỗi người** (thêm `guardianRelation`, `setByGuardian`,
+`inFamilyGroup`); thành viên nhóm gia đình gửi `relationToHead`; người giám hộ chọn từ hồ sơ với quan hệ
+họ hàng tự ghi Mối quan hệ khi lưu hồ sơ.
+Lỗi `BlueDental:PatientRelation:0001`–`0012`, `BlueDental:PrepaidCard:0020`. Chi tiết: `docs/clone/pages/patient-relations.md`.
+
 ## Thẻ trả trước — BlueDental riêng (2026-10-08, cụm 3)
 
 `/api/v1/app/prepaid-cards` — loại thẻ (`types`), danh sách / `summary` / chi tiết, bán (`POST`), `{id}/topup`,

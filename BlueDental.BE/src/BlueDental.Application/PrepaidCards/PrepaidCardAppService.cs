@@ -34,7 +34,8 @@ public class PrepaidCardAppService(
     IRepository<PatientPayment, Guid> paymentRepository,
     IIdentityUserRepository userRepository,
     ICurrentClinicBranchResolver branchResolver,
-    BranchAccessChecker branchAccess) : ApplicationService, IPrepaidCardAppService
+    BranchAccessChecker branchAccess,
+    PatientFamilyResolver family) : ApplicationService, IPrepaidCardAppService
 {
     [Authorize(BlueDentalAbilityPermissions.PrepaidCard.Read)]
     public async Task<ListResultDto<PrepaidCardTypeDto>> GetTypeListAsync(GetPrepaidCardTypeListInput input)
@@ -165,6 +166,7 @@ public class PrepaidCardAppService(
             input.ClinicBranchId ?? Guid.Empty, type.ClinicBranchId);
         await EnsurePatientsExistAsync([input.OwnerPatientId, .. input.MemberPatientIds]);
         await EnsureStaffExistsAsync(input.SellerStaffId);
+        await EnsureFamilyAsync(input.OwnerPatientId, input.MemberPatientIds, input.NewRelations);
 
         var soldAt = input.SoldAt ?? Clock.Now;
         PatientPayment.EnsureNotAfterToday(soldAt, DateTimeOffset.UtcNow);
@@ -197,6 +199,11 @@ public class PrepaidCardAppService(
     {
         var card = await LoadAsync(id);
         await EnsurePatientsExistAsync(input.MemberPatientIds);
+        // Members already on the card stay; only newcomers must be family.
+        await EnsureFamilyAsync(
+            card.OwnerPatientId,
+            input.MemberPatientIds.Where(m => !card.MemberPatientIds.Contains(m)).ToList(),
+            input.NewRelations);
         card.SetMembers(input.MemberPatientIds);
 
         await cardRepository.UpdateAsync(card, autoSave: true);
@@ -336,6 +343,34 @@ public class PrepaidCardAppService(
         if (found != ids.Count)
         {
             throw new EntityNotFoundException(typeof(Patient));
+        }
+    }
+
+    /// <summary>
+    /// "Áp dụng cho thành viên trong gia đình": every member must be the
+    /// owner's người nhà — a family relation, a guardian link or the same
+    /// family group. One that is not yet must come with its relation, which is
+    /// declared now (Mối quan hệ, 4.8); otherwise the card is refused (0020).
+    /// </summary>
+    private async Task EnsureFamilyAsync(
+        Guid ownerPatientId, IReadOnlyCollection<Guid> memberPatientIds,
+        IReadOnlyCollection<PrepaidCardMemberRelationDto> newRelations)
+    {
+        if (memberPatientIds.Count == 0) return;
+
+        var known = await family.FamilyOfAsync(ownerPatientId);
+        var owner = await patientRepository.GetAsync(ownerPatientId);
+        foreach (var memberId in memberPatientIds.Where(m => m != ownerPatientId && !known.Contains(m)))
+        {
+            var declared = newRelations.FirstOrDefault(r => r.PatientId == memberId);
+            if (declared is null || !PatientRelationTypes.IsFamily(declared.Type))
+            {
+                var member = await patientRepository.GetAsync(memberId);
+                throw new BusinessException(BlueDentalDomainErrorCodes.PrepaidCard.MemberNotFamily)
+                    .WithData("Name", member.FullName);
+            }
+
+            await family.RelateAsync(owner.BranchId, ownerPatientId, memberId, declared.Type, null);
         }
     }
 

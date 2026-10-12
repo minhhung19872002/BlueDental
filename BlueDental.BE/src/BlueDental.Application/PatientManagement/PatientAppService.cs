@@ -205,6 +205,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         await ApplyGuardiansAsync(patient, branchId, input.Guardians, input.GuardiansConsented);
 
         await _repository.InsertAsync(patient, autoSave: true);
+        await SyncGuardianRelationsAsync(patient);
         return MapToDto(patient);
     }
 
@@ -247,6 +248,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         await ApplyGuardiansAsync(patient, patient.BranchId, input.Guardians, input.GuardiansConsented);
 
         await _repository.UpdateAsync(patient, autoSave: true);
+        await SyncGuardianRelationsAsync(patient);
         await DeleteDroppedDocumentsAsync(documentsBefore, GuardianDocuments(patient));
         return MapToDto(patient);
     }
@@ -282,6 +284,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         await ApplyGuardiansAsync(patient, patient.BranchId, input.Guardians, input.GuardiansConsented);
 
         await _repository.UpdateAsync(patient, autoSave: true);
+        await SyncGuardianRelationsAsync(patient);
         await DeleteDroppedDocumentsAsync(documentsBefore, GuardianDocuments(patient));
         return MapToDto(patient);
     }
@@ -673,6 +676,13 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         var appointment = await _appointmentRepository.FindAsync(appointmentId.Value);
         return appointment?.BranchId == branchId ? appointment.PatientPhone : null;
     }
+
+    /// <summary>
+    /// A guardian picked from a patient record with Bố / Mẹ / Ông / Bà… is that
+    /// person's Mối quan hệ to the record too (owner, 2026-10-12).
+    /// </summary>
+    private Task SyncGuardianRelationsAsync(Patient patient) =>
+        LazyServiceProvider.LazyGetRequiredService<PatientFamilyResolver>().SyncGuardiansAsync(patient);
 
     private static HashSet<string> GuardianDocuments(Patient patient) =>
         patient.Guardians.Select(guardian => guardian.ProofBlobName).OfType<string>().ToHashSet();

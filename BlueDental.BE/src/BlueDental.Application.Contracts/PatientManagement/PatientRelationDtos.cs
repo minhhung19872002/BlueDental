@@ -14,7 +14,10 @@ namespace BlueDental.PatientManagement;
 /// </summary>
 public interface IPatientRelationshipAppService : IApplicationService
 {
-    /// <summary>Every record related to the patient — declared relations and guardian links.</summary>
+    /// <summary>
+    /// Every person tied to the patient, one row each: the declared relation,
+    /// and whether they are also a guardian / ward or in the family group.
+    /// </summary>
     Task<ListResultDto<PatientRelationDto>> GetListAsync(Guid patientId);
 
     /// <summary>
@@ -28,11 +31,11 @@ public interface IPatientRelationshipAppService : IApplicationService
     Task DeleteAsync(Guid id);
 }
 
-/// <summary>Where a relation comes from; only <see cref="Relationship"/> rows can be edited here.</summary>
+/// <summary>Where a row's relation comes from: a declared one first, else the guardian card, else the family group.</summary>
 public enum PatientRelationSource
 {
     Relationship = 1,
-    /// <summary>A guardian picked from a patient record (Người giám hộ, 4.9) — edited there.</summary>
+    /// <summary>A guardian picked from a patient record (Người giám hộ, 4.9) with no declared relation.</summary>
     Guardian = 2,
     /// <summary>A fellow member of the family group (Hồ sơ nhóm) with no declared relation.</summary>
     FamilyGroup = 3,
@@ -66,6 +69,15 @@ public class PatientRelationDto
 
     public bool IsFamily { get; set; }
     public string? Note { get; set; }
+
+    /// <summary>The guardian card's relation pill, when the person is a guardian or ward of this patient.</summary>
+    public GuardianRelation? GuardianRelation { get; set; }
+
+    /// <summary>The relation follows a guardian card's kinship pill: changed on the card, not here.</summary>
+    public bool SetByGuardian { get; set; }
+
+    /// <summary>A fellow member of this patient's family group.</summary>
+    public bool InFamilyGroup { get; set; }
 }
 
 public class CreatePatientRelationDto
@@ -175,4 +187,10 @@ public class SavePatientGroupMemberDto
 {
     public Guid PatientId { get; set; }
     public PatientGroupRole Role { get; set; } = PatientGroupRole.Member;
+
+    /// <summary>
+    /// Family groups: what this member is to the Chủ hộ, written as the pair's
+    /// Mối quan hệ. Null keeps the relation on file, which is then required.
+    /// </summary>
+    public PatientRelationType? RelationToHead { get; set; }
 }

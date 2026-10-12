@@ -32,6 +32,7 @@ public class PatientGroupAppService(
     IRepository<Appointment, Guid> appointmentRepository,
     IRepository<CatalogEntry, Guid> catalogRepository,
     PatientListRollupCalculator rollup,
+    PatientFamilyResolver family,
     ICurrentClinicBranchResolver branchResolver) : ApplicationService, IPatientGroupAppService
 {
     [Authorize(BlueDentalAbilityPermissions.PatientGroup.Read)]
@@ -99,7 +100,8 @@ public class PatientGroupAppService(
 
     /// <summary>
     /// Members must be records of the branch, and a record sits in one family
-    /// group at most — "gia đình của tôi" has to be one answer.
+    /// group at most — "gia đình của tôi" has to be one answer. A family group
+    /// also says what each member is to its Chủ hộ, kept as Mối quan hệ.
     /// </summary>
     private async Task ApplyAsync(PatientGroup group, SavePatientGroupDto input)
     {
@@ -129,6 +131,59 @@ public class PatientGroupAppService(
             throw new BusinessException(BlueDentalDomainErrorCodes.PatientRelation.AlreadyInFamily)
                 .WithData("Name", patient.FullName)
                 .WithData("Group", clash.Name);
+        }
+
+        await RelateToHeadAsync(group, input);
+    }
+
+    /// <summary>
+    /// Owner, 2026-10-12: a family is people related to each other, so each
+    /// member's relation to the Chủ hộ is given here or already on file, and
+    /// what is given is written as the pair's Mối quan hệ. A relation that
+    /// follows a guardian card is changed on the card, not here.
+    /// </summary>
+    private async Task RelateToHeadAsync(PatientGroup group, SavePatientGroupDto input)
+    {
+        var headId = group.Head?.PatientId
+            ?? throw new BusinessException(BlueDentalDomainErrorCodes.PatientRelation.FamilyNeedsHead);
+        var given = input.Members
+            .Where(m => m.RelationToHead.HasValue && m.PatientId != headId)
+            .ToDictionary(m => m.PatientId, m => m.RelationToHead!.Value);
+        var links = (await family.LinksOfAsync(headId)).ToDictionary(l => l.OtherPatientId);
+        var names = await PatientsAsync(group.Members.Select(m => m.PatientId));
+        string NameOf(Guid id) => names.TryGetValue(id, out var p) ? p.FullName : string.Empty;
+
+        var writes = new List<(Guid PatientId, PatientRelationType Type)>();
+        foreach (var member in group.Members.Where(m => m.PatientId != headId).OrderBy(m => m.SortOrder))
+        {
+            links.TryGetValue(member.PatientId, out var link);
+            if (given.TryGetValue(member.PatientId, out var type))
+            {
+                if (!PatientRelationTypes.IsFamily(type))
+                {
+                    throw new BusinessException(BlueDentalDomainErrorCodes.PatientRelation.NotFamilyRelation)
+                        .WithData("Name", NameOf(member.PatientId));
+                }
+
+                if (link is { SetByGuardian: true } && link.Type != type)
+                {
+                    var ward = link.GuardianDirection == GuardianDirection.GuardsPatient ? headId : member.PatientId;
+                    throw new BusinessException(BlueDentalDomainErrorCodes.PatientRelation.SetByGuardian)
+                        .WithData("Name", NameOf(ward));
+                }
+
+                writes.Add((member.PatientId, type));
+            }
+            else if (link?.Type is not { } onFile || !PatientRelationTypes.IsFamily(onFile))
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.PatientRelation.RelationToHeadMissing)
+                    .WithData("Name", NameOf(member.PatientId));
+            }
+        }
+
+        foreach (var (patientId, type) in writes)
+        {
+            await family.SetAsync(group.ClinicBranchId, headId, patientId, type);
         }
     }
 

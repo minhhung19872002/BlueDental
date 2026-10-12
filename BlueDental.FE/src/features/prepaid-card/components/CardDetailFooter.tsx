@@ -1,12 +1,12 @@
 import { Button } from "antd";
 import { CloseCircleOutlined, LockOutlined, PlusCircleOutlined, UnlockOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { CARD_STATUS, TRANSACTION_TYPE, type CardDetailDto } from "../types";
+import { CARD_STATUS, TRANSACTION_TYPE, type CardDetailDto, type MembersInput } from "../types";
 
 export interface CardDetailActions {
   onTopup?: (card: CardDetailDto) => void;
   onToggleLock?: (card: CardDetailDto) => void;
-  onSaveMembers?: (card: CardDetailDto, memberPatientIds: string[]) => void;
+  onSaveMembers?: (card: CardDetailDto, input: MembersInput) => void;
   onCancel?: (card: CardDetailDto) => void;
   savingMembers: boolean;
   togglingLock: boolean;

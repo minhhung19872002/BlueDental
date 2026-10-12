@@ -3,14 +3,15 @@ import { api } from "@/lib/axios";
 import type { PatientRelationType, RelationSource } from "@/utils/patientRelation";
 
 /**
- * One record related to a patient (Mối quan hệ 4.8, guardian links 4.9, family
- * group 4.10), as `GET patient-relations` returns it.
+ * One person related to a patient, as `GET patient-relations` returns it: the
+ * declared relation (Mối quan hệ 4.8) when there is one, and whether they are
+ * also a guardian / ward (4.9) or in the family group (4.10). One row per person.
  *
  * Shared rather than feature-local: the patient record lists them, and the
  * family prepaid card suggests the owner's người nhà as members.
  */
 export interface PatientRelationRow {
-  /** The relationship's id; null for guardian and family-group rows (edited elsewhere). */
+  /** The relationship's id; null when no relation is declared (a guardian or family-group tie only). */
   id: string | null;
   source: RelationSource;
   guardianDirection: number | null;
@@ -23,6 +24,11 @@ export interface PatientRelationRow {
   type: PatientRelationType | null;
   isFamily: boolean;
   note: string | null;
+  /** The guardian card's relation pill (GuardianRelation), when a guardian or ward of this patient. */
+  guardianRelation: number | null;
+  /** The relation follows a guardian card's kinship pill and is changed on the card. */
+  setByGuardian: boolean;
+  inFamilyGroup: boolean;
 }
 
 export const patientRelationKeys = {

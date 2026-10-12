@@ -4,7 +4,6 @@ import { patientApi } from "./patientApi";
 import { patientKeys } from "./patientQueries";
 import type {
   RegisterPatientRequest,
-  UpdatePatientGuardiansRequest,
   UpdatePatientRequest,
 } from "../types/patient";
 
@@ -27,15 +26,6 @@ export function useUpdatePatient(id: string) {
   return useMutation({
     mutationKey: ["patients", "update", id],
     mutationFn: (data: UpdatePatientRequest) => patientApi.update(id, data),
-    meta: INVALIDATES_PATIENTS,
-  });
-}
-
-/** "Người giám hộ" on the Hồ sơ tab — add, edit and delete write the group at once. */
-export function useUpdatePatientGuardians(id: string) {
-  return useMutation({
-    mutationKey: ["patients", "guardians", id],
-    mutationFn: (data: UpdatePatientGuardiansRequest) => patientApi.updateGuardians(id, data),
     meta: INVALIDATES_PATIENTS,
   });
 }

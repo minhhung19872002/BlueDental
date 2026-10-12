@@ -136,6 +136,62 @@
   gap: 6px;
 }
 
+/* The editable list: one member per row, with its relation to the owner. */
+ul.prepaid-members__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+ul.prepaid-members__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+
+.prepaid-members__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prepaid-members__relation {
+  width: 160px;
+}
+
+.prepaid-members__remove {
+  margin: 0;
+  cursor: pointer;
+}
+
+.prepaid-members__suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.prepaid-members__suggest small {
+  color: var(--bd-muted);
+}
+
+.prepaid-members__chip {
+  margin: 0;
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.prepaid-members__chip:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+
 .prepaid-members-editor {
   display: flex;
   flex-direction: column;

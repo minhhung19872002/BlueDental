@@ -58,6 +58,21 @@ public static class PatientRelationTypes
 
     public static bool IsDefined(PatientRelationType type) =>
         type is >= PatientRelationType.Spouse and <= PatientRelationType.Other;
+
+    /// <summary>
+    /// What a guardian card's relation pill says the guardian is to the ward, in
+    /// the relation list's words; null for "Người giám hộ hợp pháp" / "Khác",
+    /// which say nothing about kinship. A guardian with kinship, picked from a
+    /// patient record, writes the pair's Mối quan hệ.
+    /// </summary>
+    public static PatientRelationType? KinshipOf(GuardianRelation relation) => relation switch
+    {
+        GuardianRelation.Father or GuardianRelation.Mother => PatientRelationType.Parent,
+        GuardianRelation.Grandfather or GuardianRelation.Grandmother => PatientRelationType.Grandparent,
+        GuardianRelation.Sibling => PatientRelationType.Sibling,
+        GuardianRelation.AuntUncle => PatientRelationType.Relative,
+        _ => null,
+    };
 }
 
 public static class PatientRelationConsts

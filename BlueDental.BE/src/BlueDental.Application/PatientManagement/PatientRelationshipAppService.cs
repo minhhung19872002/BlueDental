@@ -54,6 +54,7 @@ public class PatientRelationshipAppService(
     public async Task<PatientRelationDto> UpdateAsync(Guid id, UpdatePatientRelationDto input)
     {
         var relationship = await GetRelationshipAsync(id);
+        await EnsureNotSetByGuardianAsync(relationship);
         relationship.Change(input.PatientId, input.Type, input.Note);
         await repository.UpdateAsync(relationship, autoSave: true);
         return await MapOneAsync(relationship, input.PatientId);
@@ -62,7 +63,29 @@ public class PatientRelationshipAppService(
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task DeleteAsync(Guid id)
     {
-        await repository.DeleteAsync(await GetRelationshipAsync(id), autoSave: true);
+        var relationship = await GetRelationshipAsync(id);
+        await EnsureNotSetByGuardianAsync(relationship);
+        await repository.DeleteAsync(relationship, autoSave: true);
+    }
+
+    /// <summary>
+    /// A pair tied by a guardian card with a kinship pill keeps its relation in
+    /// step with the card — edited here, the next save of the hồ sơ would undo it.
+    /// </summary>
+    private async Task EnsureNotSetByGuardianAsync(PatientRelationship relationship)
+    {
+        var link = (await family.LinksOfAsync(relationship.PatientId))
+            .FirstOrDefault(l => l.OtherPatientId == relationship.RelatedPatientId);
+        if (link?.SetByGuardian != true)
+        {
+            return;
+        }
+
+        var ward = link.GuardianDirection == GuardianDirection.GuardsPatient
+            ? relationship.PatientId
+            : relationship.RelatedPatientId;
+        throw new BusinessException(BlueDentalDomainErrorCodes.PatientRelation.SetByGuardian)
+            .WithData("Name", (await patientRepository.GetAsync(ward)).FullName);
     }
 
     private async Task<PatientRelationship> GetRelationshipAsync(Guid id)
@@ -121,6 +144,9 @@ public class PatientRelationshipAppService(
                     Type = l.Type,
                     IsFamily = l.IsFamily,
                     Note = l.Note,
+                    GuardianRelation = l.GuardianRelation,
+                    SetByGuardian = l.SetByGuardian,
+                    InFamilyGroup = l.InFamilyGroup,
                 };
             })
             .ToList();

@@ -1,0 +1,208 @@
+/* "Gia đình & Quan hệ", the dialog behind the hồ sơ editor's third pill: the
+   family group on top, then one list of people — guardians (4.9), relations
+   (4.8), the family group's members (4.10). BlueDental-local. */
+.pf-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pf-note {
+  margin: 10px 0 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.pf-card {
+  padding: 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  background: var(--bd-card);
+}
+
+.pf-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pf-section__head > h4 {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pf-section__icon {
+  color: var(--bd-primary);
+}
+
+.pf-section__count {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pf-section__tools {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pf-section__link {
+  flex: none;
+  font-size: 13px;
+}
+
+.pf-empty {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.pf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-relation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+}
+
+.pf-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pf-relation__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pf-relation__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf-relation__title .ant-tag {
+  margin: 0;
+}
+
+.pf-relation__name {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.pf-relation__body small,
+.pf-family small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.pf-relation__actions {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+}
+
+.pf-relation__lock {
+  flex: none;
+  color: var(--bd-muted);
+}
+
+/* The family group: one band above the people, other groups as links. */
+.pf-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-family {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--bd-blue-light);
+  border-radius: 12px;
+  background: var(--bd-blue-pale);
+}
+
+.pf-family .pf-section__icon {
+  margin-top: 3px;
+}
+
+.pf-family__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pf-family__body strong {
+  color: var(--bd-ink);
+}
+
+.pf-group__medical {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bd-amber-pale);
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+
+.pf-group__medical .anticon {
+  color: var(--bd-amber);
+}
+
+.pf-groups__others {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.pf-groups__others small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .pf-relation {
+    flex-wrap: wrap;
+  }
+
+  .pf-section__tools {
+    width: 100%;
+    margin-left: 0;
+  }
+}

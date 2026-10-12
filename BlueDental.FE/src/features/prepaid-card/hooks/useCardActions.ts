@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { t } from "@/lib/i18n";
 import { useCardCommands } from "../api/prepaidCardApi";
-import { CARD_STATUS, type CardDetailDto, type CardDto, type SellCardInput, type TopupCardInput } from "../types";
+import { CARD_STATUS, type CardDetailDto, type CardDto, type MembersInput, type SellCardInput, type TopupCardInput } from "../types";
 import { useRunCommand } from "./useRunCommand";
 
 /**
@@ -32,8 +32,8 @@ export function useCardActions() {
     if (await run(() => commands.topup.mutateAsync({ id, input }), t("PrepaidCard:Topup:Done"))) setToppingUp(null);
   };
 
-  const saveMembers = (card: CardDetailDto, memberPatientIds: string[]) =>
-    void run(() => commands.setMembers.mutateAsync({ id: card.id, memberPatientIds }), t("PrepaidCard:Members:Saved"));
+  const saveMembers = (card: CardDetailDto, input: MembersInput) =>
+    void run(() => commands.setMembers.mutateAsync({ id: card.id, ...input }), t("PrepaidCard:Members:Saved"));
 
   const toggleLock = (card: CardDetailDto) => {
     const locked = card.status !== CARD_STATUS.Locked;

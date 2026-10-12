@@ -546,6 +546,14 @@ public static class BlueDentalDomainErrorCodes
         public const string OneHead = "BlueDental:PatientRelation:0007";
         /// <summary>The record already belongs to another family group.</summary>
         public const string AlreadyInFamily = "BlueDental:PatientRelation:0008";
+        /// <summary>A family group with no Chủ hộ — its members' relations are read from the head.</summary>
+        public const string FamilyNeedsHead = "BlueDental:PatientRelation:0009";
+        /// <summary>A family member with no relation to the Chủ hộ, given or on file.</summary>
+        public const string RelationToHeadMissing = "BlueDental:PatientRelation:0010";
+        /// <summary>A family member said to be a friend, colleague or "other" of the Chủ hộ.</summary>
+        public const string NotFamilyRelation = "BlueDental:PatientRelation:0011";
+        /// <summary>The pair's relation follows a guardian card (Bố / Mẹ / Ông / Bà…) and is changed there.</summary>
+        public const string SetByGuardian = "BlueDental:PatientRelation:0012";
     }
 
     /// <summary>Thẻ trả trước (cụm 3). BlueDental-local.</summary>
@@ -589,6 +597,8 @@ public static class BlueDentalDomainErrorCodes
         public const string CardCancelled = "BlueDental:PrepaidCard:0018";
         /// <summary>A cancelled card's reason is missing.</summary>
         public const string CancelReasonRequired = "BlueDental:PrepaidCard:0019";
+        /// <summary>A member of a family card is not the owner's family and no relation was given.</summary>
+        public const string MemberNotFamily = "BlueDental:PrepaidCard:0020";
     }
 
     public static class Queue

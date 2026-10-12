@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using BlueDental.Billing;
+using BlueDental.PatientManagement;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
@@ -216,6 +217,10 @@ public class SellPrepaidCardDto
 
     public Guid OwnerPatientId { get; set; }
     public List<Guid> MemberPatientIds { get; set; } = new();
+
+    /// <summary>Members not yet declared as the owner's family, with what each is to the owner.</summary>
+    public List<PrepaidCardMemberRelationDto> NewRelations { get; set; } = new();
+
     public Guid SellerStaffId { get; set; }
     public DateTimeOffset? SoldAt { get; set; }
     public PaymentMethodKind Method { get; set; } = PaymentMethodKind.Cash;
@@ -253,4 +258,20 @@ public class CancelPrepaidCardDto
 public class SetPrepaidCardMembersDto
 {
     public List<Guid> MemberPatientIds { get; set; } = new();
+
+    /// <summary>Members not yet declared as the owner's family, with what each is to the owner.</summary>
+    public List<PrepaidCardMemberRelationDto> NewRelations { get; set; } = new();
+}
+
+/// <summary>
+/// A family card is shared with người nhà only (function list 3.1). A member
+/// with no family link to the owner yet comes with the relation to declare —
+/// it is written as a Mối quan hệ (4.8) when the card is saved.
+/// </summary>
+public class PrepaidCardMemberRelationDto
+{
+    public Guid PatientId { get; set; }
+
+    /// <summary>What the member is to the card's owner.</summary>
+    public PatientRelationType Type { get; set; }
 }

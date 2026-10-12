@@ -8,6 +8,7 @@ import type {
   CardListFilter,
   CardSummaryDto,
   CardTypeDto,
+  MembersInput,
   SaveCardTypeInput,
   SellCardInput,
   TopupCardInput,
@@ -113,8 +114,8 @@ export function useCardCommands() {
     onSuccess: invalidate,
   });
   const setMembers = useMutation({
-    mutationFn: ({ id, memberPatientIds }: { id: string; memberPatientIds: string[] }) =>
-      api.put<CardDetailDto>(`${BASE}/${id}/members`, { memberPatientIds }).then((r) => r.data),
+    mutationFn: ({ id, ...input }: { id: string } & MembersInput) =>
+      api.put<CardDetailDto>(`${BASE}/${id}/members`, input).then((r) => r.data),
     onSuccess: invalidate,
   });
   const setLocked = useMutation({

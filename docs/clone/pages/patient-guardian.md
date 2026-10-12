@@ -58,7 +58,8 @@ The popup **Thông tin người giám hộ**:
 | Relation → guardian gender | Not filled in automatically | Assumed, not objected |
 | "Lưu & quay lại hồ sơ" | Hands the group back to the dialog; only the hồ sơ's Lưu writes to the DB. Hủy / X / ← drop the popup's edits | Assumed, not objected |
 | Validation messages | Under the inputs, never toasts (R-307) | House rule |
-| Detail page Hồ sơ tab | Shows "NGƯỜI GIÁM HỘ (n)" under the info grid, with + / pencil / trash written at once through `PUT /patients/{id}/guardians`; "Dưới 16 tuổi" chip by the name; "SĐT của {quan hệ} - {tên}" under the phone when it is a guardian's number; whole card folds on click | BA mock 2026-10-07 + owner (R-777) |
+| Detail page (R-862 → R-863, 2026-10-09) | No guardian block of its own any more: the guardians sit only in the hồ sơ editor: its third pill "Gia đình & Quan hệ" opens a dialog with them, the relations and the groups. The Hồ sơ tab keeps the "Dưới 16 tuổi" chip by the name and "SĐT của {quan hệ} - {tên}" under the phone. `PUT /patients/{id}/guardians` stays on the server (covered by `patient-guardian-api`) but the UI no longer calls it | BA mock 2026-10-07 + owner (R-777, R-862, R-863, R-864) |
+| Guardians and Mối quan hệ (2026-10-12) | In that dialog each guardian is a row of the one "Người nhà & quan hệ" list, joined with its hồ sơ's relation. A guardian picked from a hồ sơ with Bố / Mẹ / Ông / Bà / Anh/Chị ruột / Cô/Dì/Chú/Bác writes that pair's Mối quan hệ on the hồ sơ's save and owns it. See `patient-relations.md` | Owner (R-917) |
 
 ## Not decided / not built
 

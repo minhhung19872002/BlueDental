@@ -22,8 +22,8 @@ import { PatientBasicColumn, type PatientEditorTab } from "./PatientBasicColumn"
 import { PatientSourceColumn } from "./PatientSourceColumn";
 import { AddSourceGroupDialog } from "./AddSourceGroupDialog";
 import { GuardianDialog } from "./guardian/GuardianDialog";
-import { GuardianPane } from "./guardian/GuardianPane";
 import { GuardianRequiredBanner } from "./guardian/GuardianRequiredBanner";
+import { PatientFamilyDialog } from "./patient-detail/family/PatientFamilyDialog";
 
 interface Props {
   open: boolean;
@@ -163,6 +163,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const [form] = Form.useForm<PatientFormValues>();
   const [tab, setTab] = useState<PatientEditorTab>("basic");
   const [guardianError, setGuardianError] = useState<string | null>(null);
+  const [familyOpen, setFamilyOpen] = useState(false);
   const guardians = usePatientGuardians();
   const [diseaseHistoryEntryIds, setDiseaseHistoryEntryIds] = useState<string[]>([]);
   const [addingSource, setAddingSource] = useState(false);
@@ -193,6 +194,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     if (!open) return;
 
     setTab("basic");
+    setFamilyOpen(false);
     setDiseaseHistoryEntryIds(patient?.diseaseHistoryEntryIds ?? []);
     guardians.reset(patient);
     setGuardianError(null);
@@ -340,7 +342,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         return;
       }
       if (failure.code && GUARDIAN_ERROR.test(failure.code)) {
-        setTab("guardian");
+        setFamilyOpen(true);
         setGuardianError(failure.message);
         return;
       }
@@ -367,6 +369,15 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const handleGuardianDelete = (index: number) => {
     guardians.remove(index);
     setGuardianError(null);
+  };
+
+  // The guardian cards, shown as people in the "Gia đình & Quan hệ" dialog.
+  const guardianCards = {
+    group: guardians.group,
+    error: guardianError,
+    add: guardians.openNew,
+    edit: guardians.openExisting,
+    remove: handleGuardianDelete,
   };
 
   return (
@@ -420,17 +431,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
               age={subject.summary.age}
               guardianMark={guardianMissing ? "missing" : guardians.group.guardians.length > 0 ? "filled" : "none"}
               ageNotice={guardianMissing && <GuardianRequiredBanner onEnter={guardians.openNew} />}
-              guardianPane={
-                <>
-                  {guardianError && <div className="ant-form-item-explain-error">{guardianError}</div>}
-                  <GuardianPane
-                    group={guardians.group}
-                    onAdd={guardians.openNew}
-                    onEdit={guardians.openExisting}
-                    onDelete={handleGuardianDelete}
-                  />
-                </>
-              }
+              onOpenFamily={() => setFamilyOpen(true)}
             />
           </Col>
 
@@ -448,6 +449,14 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         saving={createSourceGroup.isPending}
         onSave={(name) => void handleAddSourceGroup(name)}
         onClose={() => setAddingSource(false)}
+      />
+
+      <PatientFamilyDialog
+        open={familyOpen}
+        patient={patient}
+        patientName={subject.summary.fullName || patient?.fullName || ""}
+        guardians={guardianCards}
+        onClose={() => setFamilyOpen(false)}
       />
 
       <GuardianDialog

@@ -2,13 +2,13 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
- * Feature: patient detail → Hồ sơ tab → "NGƯỜI GIÁM HỘ (n)" (BA mock 2026-10-07; R-777).
+ * Feature: patient detail → "Chỉnh sửa hồ sơ" → pill "Gia đình & Quan hệ"
+ * (owner, 2026-10-09; R-863). Replaces the record's own family tab.
  *
- * A 9-year-old with one guardian: the "Dưới 16 tuổi" chip, the section with
- * its count, the primary card open with its consent line, and its trash off
- * (the last guardian of an under-16 record). + opens the "Thông tin người giám
- * hộ" popup on a new guardian, the pencil on an existing one, the trash asks
- * first — and each one is written at once. A reload reads the group back.
+ * A 9-year-old with one guardian: the "Dưới 16 tuổi" chip and the phone note
+ * stay on the Hồ sơ tab; the guardians sit, as people, in the one list of the
+ * editor's third pill (owner, 2026-10-12). A guardian added there is staged
+ * with the editor and written by its Lưu. A reload reads the group back.
  *
  * Real login, real API, real database; nothing is intercepted. The child is
  * created through the real API first.
@@ -67,7 +67,17 @@ async function createChild(page: Page, id: string): Promise<string> {
 
 const field = (scope: Locator, label: string) => scope.getByRole("textbox", { name: new RegExp(`^${label}`) });
 
-test("the Hồ sơ tab adds, edits and deletes guardians, each written at once", async ({ page }) => {
+/** Opens the hồ sơ editor, then its "Gia đình & Quan hệ" dialog. */
+async function openFamily(page: Page) {
+  await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
+  const editor = page.getByRole("dialog", { name: "Chỉnh sửa hồ sơ" });
+  await editor.getByRole("button", { name: /^Gia đình & Quan hệ/ }).click();
+  const family = page.getByRole("dialog", { name: /^Gia đình & Quan hệ — / });
+  await expect(family).toBeVisible();
+  return { editor, family };
+}
+
+test("the editor's Gia đình & Quan hệ pill opens the guardians, relations and groups in a dialog", async ({ page }) => {
   test.setTimeout(90_000);
   await login(page);
   await page.goto("/patient");
@@ -80,22 +90,27 @@ test("the Hồ sơ tab adds, edits and deletes guardians, each written at once",
   // The child's header and phone say who they belong to.
   await expect(page.locator(".pd-underage-chip")).toHaveText("Dưới 16 tuổi");
   await expect(page.locator(".pd-phone-owner")).toHaveText(`SĐT của Mẹ - Mẹ E2E ${id}`);
+  // The record has no family tab of its own any more.
+  await expect(page.getByRole("link", { name: "Gia đình & Quan hệ" })).toHaveCount(0);
 
-  const section = page.getByRole("region", { name: "Người giám hộ" });
-  const count = section.locator(".pd-guardians-count");
-  const cards = section.locator("article.pd-guardian");
-  await expect(count).toHaveText("1");
-  const mother = cards.first();
-  await expect(mother).toContainText(`Mẹ E2E ${id}`);
-  await expect(mother).toContainText("Liên hệ chính");
-  // No chevron: the card itself is the toggle; its name block carries the state.
-  await expect(mother.locator(".pd-guardian-who")).toHaveAttribute("aria-expanded", "true");
-  await expect(mother.locator(".pd-guardian-consent")).toContainText("Đã xác nhận đồng ý điều trị");
-  // The only guardian of an under-16 record cannot be removed.
-  await expect(mother.getByRole("button", { name: "Xoá" })).toBeDisabled();
+  const { editor, family } = await openFamily(page);
+  // The three pills share one row, the family one included.
+  const rows = await editor
+    .locator(".bd-patient-subtab")
+    .evaluateAll((pills) => pills.map((pill) => Math.round(pill.getBoundingClientRect().top)));
+  expect(rows).toHaveLength(3);
+  expect(new Set(rows).size, "the three pills share one row").toBe(1);
 
-  // + opens the popup on a new, second guardian.
-  await section.getByRole("button", { name: "Thêm người giám hộ" }).click();
+  const people = family.getByRole("region", { name: "Người nhà & quan hệ" });
+  const guardianRows = people.locator(".pf-relation", { hasText: "Người giám hộ" });
+  await expect(people.locator(".pf-section__count")).toHaveText("1");
+  await expect(guardianRows).toHaveCount(1);
+  await expect(guardianRows.first()).toContainText(`Mẹ E2E ${id}`);
+  await expect(guardianRows.first()).toContainText("Liên hệ chính");
+  await expect(family.getByRole("region", { name: "Hồ sơ nhóm" })).toBeVisible();
+
+  // A second guardian: the popup comes up over the family dialog.
+  await people.getByRole("button", { name: "Thêm người giám hộ" }).click();
   const popup = page.getByRole("dialog", { name: /Thông tin người giám hộ/ });
   await expect(popup).toBeVisible();
   await expect(popup.getByText("NHÓM NGƯỜI GIÁM HỘ (2)")).toBeVisible();
@@ -105,50 +120,23 @@ test("the Hồ sơ tab adds, edits and deletes guardians, each written at once",
   await field(second, "Điện thoại").fill(`03${id}22`);
   await field(second, "CCCD").fill(`0791${id}22`);
   await popup.getByRole("button", { name: "Lưu & quay lại hồ sơ" }).click();
-  await expect(popup).toBeHidden({ timeout: 15_000 });
-  await expect(page.getByText("Đã cập nhật người giám hộ")).toBeVisible();
-  await expect(count).toHaveText("2");
+  await expect(popup).toBeHidden();
+  await expect(people.locator(".pf-section__count")).toHaveText("2");
+  await expect(guardianRows.nth(1)).toContainText(`Bố E2E ${id}`);
+  await expect(guardianRows.nth(1)).toContainText("Chưa lưu");
 
-  // The new one is folded; the mother's trash is free now.
-  const father = cards.nth(1);
-  await expect(father).toContainText(`Bố E2E ${id}`);
-  await expect(father.locator(".pd-guardian-who")).toHaveAttribute("aria-expanded", "false");
-  await expect(section.locator(".pd-guardian-toggle")).toHaveCount(0);
-  await expect(mother.getByRole("button", { name: "Xoá" })).toBeEnabled();
-
-  // A click anywhere on a card folds or unfolds it, not just on the chevron.
-  await father.getByText(`Bố E2E ${id}`).click();
-  await expect(father.locator(".pd-guardian-who")).toHaveAttribute("aria-expanded", "true");
-  await expect(father.locator(".pd-guardian-facts")).toBeVisible();
-  await mother.locator(".pd-guardian-consent").click();
-  await expect(mother.locator(".pd-guardian-facts")).toBeHidden();
-  // From the keyboard: Enter on the name block unfolds it again.
-  await mother.locator(".pd-guardian-who").press("Enter");
-  await expect(mother.locator(".pd-guardian-facts")).toBeVisible();
-
-  // The pencil opens the popup on that guardian.
-  await father.getByRole("button", { name: "Sửa" }).click();
-  await expect(popup).toBeVisible();
-  const editing = popup.locator(".ant-collapse-item").nth(1);
-  await expect(field(editing, "Họ và tên")).toHaveValue(`Bố E2E ${id}`);
-  await field(editing, "Họ và tên").fill(`Ba E2E ${id}`);
-  await popup.getByRole("button", { name: "Lưu & quay lại hồ sơ" }).click();
-  await expect(popup).toBeHidden({ timeout: 15_000 });
-  await expect(cards.nth(1)).toContainText(`Ba E2E ${id}`);
-  // The pencil opened the popup without folding the card behind it.
-  await expect(cards.nth(1).locator(".pd-guardian-facts")).toBeVisible();
-
-  // The trash asks first, then writes.
-  await cards.nth(1).getByRole("button", { name: "Xoá" }).click();
-  const confirm = page.getByRole("dialog").filter({ hasText: `Ba E2E ${id}` });
-  await confirm.getByRole("button", { name: /Xoá|Xóa/ }).last().click();
-  await expect(page.getByText("Đã xoá người giám hộ")).toBeVisible();
-  await expect(count).toHaveText("1");
+  // Closing the dialog keeps the pair staged; the editor's Lưu writes it.
+  await family.locator(".ant-modal-close").click();
+  await expect(family).toBeHidden();
+  await expect(editor.getByRole("button", { name: /^Gia đình & Quan hệ/ }).getByLabel("Đã có người giám hộ")).toBeVisible();
+  await editor.getByRole("button", { name: /^(save )?Lưu$/ }).click();
+  await expect(editor).toBeHidden({ timeout: 15_000 });
 
   // A reload reads the same group back from the database.
   await page.reload();
-  await expect(count).toHaveText("1");
-  await expect(cards).toHaveCount(1);
-  await expect(cards.first()).toContainText(`Mẹ E2E ${id}`);
-  await expect(cards.first()).toContainText("Liên hệ chính");
+  const reopened = await openFamily(page);
+  const saved = reopened.family.locator(".pf-relation", { hasText: "Người giám hộ" });
+  await expect(saved).toHaveCount(2);
+  await expect(saved.first()).toContainText(`Mẹ E2E ${id}`);
+  await expect(saved.nth(1)).toContainText(`Bố E2E ${id}`);
 });

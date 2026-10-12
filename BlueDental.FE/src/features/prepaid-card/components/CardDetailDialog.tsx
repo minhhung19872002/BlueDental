@@ -77,7 +77,7 @@ export function CardDetailDialog({ open, card, loading, actions, onClose }: Prop
           <CardMembersEditor
             card={card}
             saving={actions.savingMembers}
-            onSave={actions.onSaveMembers && !cancelled ? (ids) => actions.onSaveMembers?.(card, ids) : undefined}
+            onSave={actions.onSaveMembers && !cancelled ? (input) => actions.onSaveMembers?.(card, input) : undefined}
           />
 
           <h4 className="prepaid-section-title">{t("PrepaidCard:Detail:Ledger")}</h4>

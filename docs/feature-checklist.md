@@ -47,9 +47,9 @@ Kiểm tra lần cuối: 2026-10-08
 - [ ] 4.5 Tùy chọn & giới hạn chỉnh sửa thông tin khách hàng — Setup luật bắt buộc hoặc không bắt buộc nhập các thông tin của khách hàng. Giới hạn việc chỉnh sửa thông tin, tránh trường hợp người dùng thay đổi thông tin quan trọng.
 - [x] 4.6 Tiền sử — Lưu trữ các thông tin khai thác tiền sử.
 - [x] 4.7 Khám bệnh — Ghi nhận thông tin khám chữa bệnh gồm: khám cận lâm sàng, lâm sàng, chỉ định xét nghiệm,...
-- [ ] 4.8 Mối quan hệ — Quản lý các hồ sơ có cùng mối quan hệ với nhau.
+- [x] 4.8 Mối quan hệ — Quản lý các hồ sơ có cùng mối quan hệ với nhau.
 - [x] 4.9 Người giám hộ — Thiết lập người giám hộ khi khách hàng nhỏ hơn 16 tuổi.
-- [ ] 4.10 Hồ sơ nhóm — Thiết lập và quản lý tập trung các hồ sơ có mối quan hệ y khoa. Giúp bác sĩ dễ dàng tra cứu và quản lý hồ sơ của các thành viên trong nhóm.
+- [x] 4.10 Hồ sơ nhóm — Thiết lập và quản lý tập trung các hồ sơ có mối quan hệ y khoa. Giúp bác sĩ dễ dàng tra cứu và quản lý hồ sơ của các thành viên trong nhóm.
 - [x] 4.11 Chẩn đoán - tư vấn — Lưu trữ các thông tin chẩn đoán & tư vấn.
 - [x] 4.12 Chẩn đoán theo hình ảnh — Sử dụng hình ảnh theo bộ phận liên quan để chẩn đoán khách hàng. Giao diện chẩn đoán được thiết kế trực quan.
 - [ ] 4.13 Xét nghiệm — Quản lý thông số các mẫu xét nghiệm.
@@ -188,7 +188,7 @@ Kiểm tra lần cuối: 2026-10-08
 | 1. Lịch hẹn | 11 | 10 | 1 |
 | 2. Chăm sóc | 10 | 9 | 1 |
 | 3. Thẻ trả trước | 2 | 2 | 0 |
-| 4. Khách hàng | 28 | 19 | 9 |
+| 4. Khách hàng | 28 | 21 | 7 |
 | 5. Kế toán | 7 | 2 | 5 |
 | 6. Dịch vụ | 7 | 3 | 4 |
 | 7. Kho | 7 | 3 | 4 |
@@ -201,4 +201,4 @@ Kiểm tra lần cuối: 2026-10-08
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 6 | 7 |
-| **Tổng cộng** | **123** | **81** | **42** |
+| **Tổng cộng** | **123** | **83** | **40** |

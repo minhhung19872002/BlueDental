@@ -12,6 +12,7 @@ import { BRANCH_ONE, call } from "./fixtures/catalogApi";
 
 const RELATIONS = "/api/v1/app/patient-relations";
 const GROUPS = "/api/v1/app/patient-groups";
+const SPOUSE = 1;
 const PARENT = 2;
 const CHILD = 3;
 const SIBLING = 4;
@@ -31,6 +32,7 @@ interface RelationRow {
   relatedPatientId: string;
   type: number | null;
   isFamily: boolean;
+  inFamilyGroup: boolean;
 }
 
 const errorCode = (body: unknown) => (body as { error?: { code?: string } }).error?.code;
@@ -71,7 +73,22 @@ test("API: a relation reads both ways and a family group joins people once", asy
   const self = await call(page, "POST", RELATIONS, { patientId: child.id, relatedPatientId: child.id, type: SIBLING });
   expect(errorCode(self.body)).toBe("BlueDental:PatientRelation:0001");
 
-  // Hồ sơ nhóm: a family with the father as head; the mother becomes the child's người nhà through it.
+  // A family says what each member is to its Chủ hộ (owner, 2026-10-12): no head, or a
+  // member with no relation given or on file, or a friend, is refused.
+  const family3 = (members: object[]) =>
+    call(page, "POST", GROUPS, { name: `Gia đình NH ${run}`, kind: FAMILY, members }, BRANCH_ONE);
+  expect(errorCode((await family3([{ patientId: father.id, role: MEMBER }, { patientId: child.id, role: MEMBER }])).body)).toBe(
+    "BlueDental:PatientRelation:0009",
+  );
+  expect(errorCode((await family3([{ patientId: father.id, role: HEAD }, { patientId: mother.id, role: MEMBER }])).body)).toBe(
+    "BlueDental:PatientRelation:0010",
+  );
+  expect(
+    errorCode((await family3([{ patientId: father.id, role: HEAD }, { patientId: mother.id, role: MEMBER, relationToHead: 8 }])).body),
+  ).toBe("BlueDental:PatientRelation:0011");
+
+  // Hồ sơ nhóm: a family with the father as head. The child's relation is on file; the
+  // mother's is given with the group and kept as the pair's Mối quan hệ.
   const group = await call<{ id: string; members: { patientId: string; role: number; relationToHead: number | null }[] }>(
     page,
     "POST",
@@ -82,7 +99,7 @@ test("API: a relation reads both ways and a family group joins people once", asy
       sharedMedicalNote: "Tiền sử tiểu đường bên nội",
       members: [
         { patientId: father.id, role: HEAD },
-        { patientId: mother.id, role: MEMBER },
+        { patientId: mother.id, role: MEMBER, relationToHead: SPOUSE },
         { patientId: child.id, role: MEMBER },
       ],
     },
@@ -91,6 +108,11 @@ test("API: a relation reads both ways and a family group joins people once", asy
   expect(group.status, JSON.stringify(group.body)).toBe(200);
   expect(group.body.members[0]).toMatchObject({ patientId: father.id, role: HEAD });
   expect(group.body.members.find((m) => m.patientId === child.id)?.relationToHead).toBe(CHILD);
+  expect(group.body.members.find((m) => m.patientId === mother.id)?.relationToHead).toBe(SPOUSE);
+  // Read separately: the mother's record now has the father as its spouse, once.
+  const motherRows = (await relationsOf(page, mother.id)).filter((r) => r.relatedPatientId === father.id);
+  expect(motherRows).toHaveLength(1);
+  expect(motherRows[0]).toMatchObject({ type: SPOUSE, inFamilyGroup: true });
 
   // One family group per record.
   const second = await call(page, "POST", GROUPS, {
@@ -129,6 +151,18 @@ test("UI: Hồ sơ nhóm gathers a family, shows it, and keeps it after a reload
   await page.locator("#ss-portal-dropdown .ss-search-input").fill(sister.code);
   await page.locator("#ss-portal-dropdown .ss-option", { hasText: sister.code }).first().click();
   await form.getByLabel("Thông tin y khoa chung").fill("Dị ứng Penicillin cả nhà");
+
+  // A family member needs a relation to the Chủ hộ: refused under the field, nothing sent.
+  let posted = false;
+  page.on("request", (req) => {
+    if (req.method() === "POST" && req.url().endsWith(GROUPS)) posted = true;
+  });
+  await form.getByRole("button", { name: "Lưu" }).click();
+  await expect(form.getByText(`Chọn quan hệ với chủ hộ cho [${sister.code}]`)).toBeVisible();
+  expect(posted).toBe(false);
+
+  await form.getByRole("combobox", { name: /^Là gì của chủ hộ/ }).click();
+  await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: "Anh/Chị/Em" }).click();
   await form.getByRole("button", { name: "Lưu" }).click();
   await expect(form).toBeHidden();
 
@@ -146,7 +180,11 @@ test("UI: Hồ sơ nhóm gathers a family, shows it, and keeps it after a reload
   await expect(reopened).toBeVisible();
   await expect(reopened.getByRole("link", { name: child.name })).toBeVisible();
 
-  // And the server reads the same group for the record.
+  // And the server reads the same group for the record, and the sister as its sibling.
   const byPatient = await call<{ items: { name: string }[] }>(page, "GET", `${GROUPS}/by-patient?patientId=${child.id}`);
   expect(byPatient.body.items.map((g) => g.name)).toEqual([groupName]);
+  expect((await relationsOf(page, child.id)).find((r) => r.relatedPatientId === sister.id)).toMatchObject({
+    type: SIBLING,
+    inFamilyGroup: true,
+  });
 });

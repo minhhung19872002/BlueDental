@@ -7776,3 +7776,71 @@ Retest level **3**.
 Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, không chặn API): ảnh chụp 3 màn hình đúng như mô tả;
 `prepaid-card` **4/4** sau khi khởi động lại BE (lượt trước 3/4: BE cũ chưa nạp 2 key i18n mới `PrepaidCard:View` / `PrepaidCard:ViewCard`).
 tsc + oxlint sạch. Retest level **1** (giao diện) + spec của feature.
+
+## 2026-10-09 — Mối quan hệ (4.8) · Hồ sơ nhóm (4.10) · thẻ gia đình (3.1) (R-859 → R-861, F-64)
+
+BlueDental riêng; quyết định ghi ở `docs/clone/pages/patient-relations.md`. Người giám hộ (4.9) giữ nguyên code — chỉ được
+gắn vào tab mới và đọc `LinkedPatientId`.
+
+| ID | Vấn đề | Xử lý |
+|---|---|---|
+| R-859 | Ô chọn quan hệ 10 mục: dropdown cuộn mất "Bố/Mẹ", e2e không bấm được | `showSearch` + `listHeight=400`, test gõ "Bố" để lọc |
+| R-860 | Khối Người giám hộ đặt trong thẻ riêng của tab mới có đường kẻ + khoảng trống thừa ở đầu (thiết kế để nằm dưới lưới thông tin tab Hồ sơ) | CSS phạm vi tab: `.pf-card > .pd-guardians` bỏ margin / padding / border trên — không sửa component |
+| R-861 | Bảng thành viên trong dialog nhóm cắt cột Công nợ | Dialog 1200px, cột Thành viên 200 / Tiểu sử bệnh 260, cuộn ngang 1120 |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật, đăng nhập thật, không chặn API): `patient-relations` **2/2**,
+ảnh chụp tab "Gia đình & Quan hệ" và dialog nhóm. BE: Domain.Tests **810** (mới `PatientRelationTests` 13), Application.Tests
+**719** (mới `PatientRelationAppServiceContractTests`), HttpApi.Host.Tests **24**. Migration `PatientRelationsAndGroups` (3 bảng mới).
+tsc + oxlint sạch (2 cảnh báo có sẵn ở `BranchEditorModal`).
+Hồi quy (`patient-relations`, `prepaid-card`, `patient-guardian`, `patient-guardian-api`, `patient-guardian-detail`, `header-navigation`,
+`role-permissions-tree`, `routes`): **41 xanh, 4 đỏ** — đều đã ghi nhận: `header-navigation` 3 (R-677; ca drawer nay chờ 14, thực tế 18
+vì thêm "Hồ sơ nhóm"), `routes` `/timekeeping`. Retest level **2** (feature) + **3** cho thẻ trả trước (chung bộ tra người nhà).
+
+## 2026-10-09 — Gia đình & Quan hệ: một chỗ cho người giám hộ (R-862, F-64 / F-50)
+
+| ID | Góp ý của chủ dự án | Xử lý |
+|---|---|---|
+| R-862 | Người giám hộ hiện ở 3 nơi (khối ở tab Hồ sơ, bước trong modal hồ sơ, tab Gia đình & Quan hệ); thẻ trả trước trong tab Gia đình "lạc quẻ". Chủ dự án chọn: tab Gia đình & Quan hệ là nơi chính | Bỏ khối `PatientGuardianSection` khỏi tab Hồ sơ (chỉ gỡ chỗ gắn, component giám hộ không đổi); modal giữ bước giám hộ để hồ sơ dưới 16 tuổi vẫn bị chặn lưu khi thiếu giám hộ (quy tắc F-50 giữ nguyên); bỏ khối thẻ trả trước khỏi tab Gia đình (dải thẻ ở tab Hồ sơ vẫn còn). `patient-guardian-detail.spec.ts` mở tab Gia đình & Quan hệ trước khi tìm khối giám hộ |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-guardian` 1/1, `patient-guardian-api` 8/8,
+`patient-guardian-detail` 1/1, `patient-relations` 2/2, `prepaid-card` 4/4 — **16/16**. tsc + oxlint sạch. Retest level **2**.
+
+## 2026-10-09 — Gia đình & Quan hệ vào hẳn modal hồ sơ (R-863, F-64 / F-50)
+
+| ID | Góp ý của chủ dự án | Xử lý |
+|---|---|---|
+| R-863 | "Để nguyên Gia đình và quan hệ trong modal luôn, khỏi cần tab; bấm qua thì mở modal khác để nhìn to rõ hơn" | Bỏ tab `?tab=family` của trang hồ sơ. Pill thứ ba của modal hồ sơ đổi từ "Người giám hộ" thành "Gia đình" (tooltip "Gia đình & Quan hệ" — tên đầy đủ làm pill rớt dòng ở 1280px): người giám hộ (vẫn staged, lưu bằng nút Lưu của hồ sơ — quy tắc dưới 16 tuổi giữ nguyên), Mối quan hệ, Hồ sơ nhóm. Nút "Xem rộng" mở dialog 1080px hai cột với cùng nội dung. Link tên / nhóm mở tab trình duyệt mới để không mất dữ liệu đang nhập. Xoá `PatientFamilyTab`, `PatientGuardianSection`, `PatientGuardianCard`, `usePatientGuardianBlock`, `useUpdatePatientGuardians` (endpoint BE giữ nguyên). Spec `patient-guardian-detail` viết lại theo modal; `patient-relations`, `patient-guardian` đổi locator pill |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-guardian` 1/1, `patient-guardian-api` 8/8,
+`patient-guardian-detail` 1/1, `patient-relations` 2/2, `prepaid-card` 4/4 — **16/16**. tsc sạch. Retest level **2**.
+
+## 2026-10-09 — Pill "Gia đình & Quan hệ" mở thẳng dialog (R-864, F-64 / F-50)
+
+| ID | Góp ý của chủ dự án | Xử lý |
+|---|---|---|
+| R-864 | "Bấm qua Gia đình là mở modal mới luôn, nhìn vầy hơi chật" + "nút đó nên là Gia đình & Quan hệ" | Pill thứ ba không còn là tab: là nút "Gia đình & Quan hệ" mở thẳng `PatientFamilyDialog` (1080px, 2 cột; 600px 1 cột khi đang tạo hồ sơ). Bỏ pane trong cột và nút "Xem rộng" (`PatientFamilyContent` gộp vào dialog). Để vừa một hàng với 2 pill của bản gốc (không đụng padding của chúng): pill này cỡ chữ 12px, padding ngang 8px, dấu giám hộ (chấm đỏ / tích xanh) thành badge ở góc. Lỗi giám hộ từ server khi lưu sẽ mở dialog. Bỏ khoá `Patient:Family:Pill`, `Patient:Family:Expand` |
+
+Kiểm chứng (build production :8080, API thật :5000, PostgreSQL thật): `patient-guardian` 1/1, `patient-guardian-api` 8/8,
+`patient-guardian-detail` 1/1, `patient-relations` 2/2, `prepaid-card` 4/4 — **16/16** (3 pill cùng một hàng ở 1280px được assert). tsc sạch. Retest level **2**.
+
+## 2026-10-12 — Gia đình & Quan hệ: một câu chuyện, gắn cả dữ liệu (R-917, F-64 / F-50)
+
+| ID | Góp ý của chủ dự án | Xử lý |
+|---|---|---|
+| R-917 | Người giám hộ, Mối quan hệ, nhóm gia đình "có liên quan nhưng layout cứ như tách biệt, dữ liệu phải được gắn kết": chọn giám hộ "Bố" không ra mối quan hệ, tạo nhóm gia đình không biết ai là gì của ai. Chủ dự án chọn "Gắn cả dữ liệu" | **Dữ liệu.** Mối quan hệ là nơi duy nhất trả lời "X là gì của Y". Giám hộ chọn từ hồ sơ với pill họ hàng (Bố/Mẹ → Bố/Mẹ, Ông/Bà → Ông/Bà, Anh/Chị ruột → Anh chị em, Cô/Dì/Chú/Bác → Họ hàng) tự ghi Mối quan hệ khi lưu hồ sơ (`PatientFamilyResolver.SyncGuardiansAsync`) và **thẻ giám hộ giữ quan hệ đó**: sửa / xoá ở danh sách quan hệ hay nhóm gia đình → `PatientRelation:0012`. Nhóm gia đình bắt buộc có chủ hộ (`0009`), mỗi thành viên khác phải có quan hệ với chủ hộ, chọn trong form hoặc đã có (`0010`), và phải là người nhà (`0011`); quan hệ chọn trong form được ghi thành Mối quan hệ. Migration dữ liệu `GuardianRelationships` ghi quan hệ cho giám hộ đã có. **API.** Danh sách quan hệ trả một dòng mỗi người (thêm `guardianRelation`, `setByGuardian`, `inFamilyGroup`). **Giao diện.** Dialog một cột 780px: dải Hồ sơ nhóm ở trên (nhóm gia đình, chủ hộ, số người, thông tin y khoa chung; nhóm khác là link), dưới là **Người nhà & quan hệ**: mỗi người một dòng, thẻ giám hộ (staged) ghép với dòng quan hệ của hồ sơ đó, tag Người giám hộ / Được giám hộ / Cùng nhóm gia đình / Liên hệ chính / Chưa có hồ sơ / Chưa lưu, khoá khi quan hệ theo thẻ giám hộ, nút "Chọn quan hệ" cho thành viên nhóm chưa có quan hệ. Form nhóm: ô "Là gì của chủ hộ" mỗi thành viên, điền sẵn từ quan hệ đã có, khoá nếu theo thẻ giám hộ; báo lỗi dưới ô (R-307). Bỏ `GuardianPane`, `GuardianCard`, `PatientRelationsSection`, `PatientGroupsSection`, `RelationRow` và CSS thẻ giám hộ cũ |
+
+Cũng trong lượt này: rebase `feat/prepaid-card-family` lên `develop` `26f09a84` (đánh lại số R-898 → R-910 của nhánh thành
+R-904 → R-916, vì develop đã dùng R-898 → R-903) và gộp bốn commit F-64 / R-913 → R-915 thành một.
+
+Kiểm chứng (build production `vite preview` :8136, API thật :5000, PostgreSQL thật, đăng nhập thật, không chặn API):
+`patient-relations` 3/3 (thêm test API: giám hộ "Bố" chọn từ hồ sơ → một dòng duy nhất, quan hệ Bố/Mẹ đọc hai chiều, `0012` khi
+sửa / xoá / nhóm nói khác, đổi pill sang "Ông" → quan hệ theo sang Ông/Bà), `patient-groups` 2/2 (`0009` / `0010` / `0011`; UI: Lưu
+khi thiếu quan hệ báo dưới ô, không gửi POST; chọn "Anh/Chị/Em" → đọc lại thấy quan hệ), `patient-guardian` 1/1,
+`patient-guardian-detail` 1/1, `patient-guardian-api` 8/8, `prepaid-card` 4/4: **19/19**. BE: Domain **879**, Application **735**, Host **24** (thêm 8 ca
+pill → quan hệ). Ảnh chụp dialog (bố giám hộ + bà chưa có hồ sơ + mẹ cùng nhóm chưa rõ quan hệ + bạn) và form nhóm đúng như mô tả.
+tsc + eslint sạch.
+
+Ghi chú test: UI `patient-relations` đỏ ổn định ở bước chọn "Bố/Mẹ". Nguyên nhân: dialog "Gia đình & Quan hệ" còn đang hiện ra (antd
+`-appear`) khi dialog "Thêm mối quan hệ" mở chồng lên; hiện xong, dialog dưới lấy lại focus và đóng dropdown đang mở ở dialog trên.
+Người dùng chỉ gặp nếu mở dialog thứ hai trong ~0,3 giây. Spec chờ từng dialog hiện xong (`settled`).
+Retest level **2** (F-64) + **3** cho `prepaid-card` (chung bộ tra người nhà) và luồng lưu hồ sơ có giám hộ.

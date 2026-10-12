@@ -49,12 +49,15 @@ export interface SavePatientGroupInput {
   kind: GroupKind;
   note: string | null;
   sharedMedicalNote: string | null;
-  members: { patientId: string; role: GroupRole }[];
+  /** relationToHead: family groups — what the member is to the Chủ hộ; null keeps the relation on file. */
+  members: { patientId: string; role: GroupRole; relationToHead: PatientRelationType | null }[];
 }
 
-/** A member while the group is being edited: who, how to show them, and their role. */
+/** A member while the group is being edited: who, how to show them, their role and, in a family, what they are to the Chủ hộ. */
 export interface MemberDraft {
   patientId: string;
   label: string;
   role: GroupRole;
+  /** Picked in the form; unset means the relation on file, if any. Cleared when the Chủ hộ changes. */
+  relationToHead?: PatientRelationType;
 }

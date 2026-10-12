@@ -1,12 +1,14 @@
 import { Form, Input, Select } from "antd";
 import { AppDialog } from "@/components/AppDialog";
 import { PatientSearchSelect } from "@/components/SearchSelect";
+import { toast } from "sonner";
+import { usePatientFamily } from "@/hooks/usePatientFamily";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
 import { useCardTypes } from "../api/prepaidCardApi";
 import { COMMISSION_TYPE, SALE_METHOD, type CardTypeDto, type SaleMethod, type SellCardInput } from "../types";
-import { MemberPicker, type MemberChoice } from "./MemberPicker";
+import { MemberPicker, membersMissingRelation, toMembersInput, type MemberChoice } from "./MemberPicker";
 import { MoneyTakenFields } from "./MoneyTakenFields";
 import { scopeSummary } from "./ServiceScopeFields";
 
@@ -55,18 +57,26 @@ export function SellCardDialog({ open, saving, currentStaffId, onSubmit, onClose
   const { data: staff = [], isLoading: staffLoading } = useStaffOptions();
   const cardTypeId = Form.useWatch("cardTypeId", form);
   const ownerId = Form.useWatch("ownerPatientId", form);
+  const { data: family = [] } = usePatientFamily(ownerId);
   const type = types.find((x) => x.id === cardTypeId);
 
-  const handleFinish = (values: FormValues) =>
+  const handleFinish = (values: FormValues) => {
+    const members = type?.allowFamily ? values.members : [];
+    const missing = membersMissingRelation(members, new Set(family.map((f) => f.relatedPatientId)));
+    if (missing.length > 0) {
+      toast.error(t("PrepaidCard:Members:NeedRelation", missing[0].label));
+      return;
+    }
     onSubmit({
       cardTypeId: values.cardTypeId ?? "",
       ownerPatientId: values.ownerPatientId ?? "",
-      memberPatientIds: type?.allowFamily ? values.members.map((m) => m.patientId) : [],
+      ...toMembersInput(members),
       sellerStaffId: values.sellerStaffId ?? "",
       method: values.method,
       paymentAccountId: values.paymentAccountId ?? null,
       note: values.note?.trim() || null,
     });
+  };
 
   return (
     <AppDialog

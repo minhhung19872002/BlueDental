@@ -10,9 +10,9 @@ import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 import { GUARDIAN_LIMITS } from "../types/patient";
 import { PatientDiseaseHistoryPanel } from "./PatientDiseaseHistoryPanel";
 
-export type PatientEditorTab = "basic" | "history" | "guardian";
+export type PatientEditorTab = "basic" | "history";
 
-/** The "Người giám hộ" pill's mark: a red dot while one is owed, a tick once some are in. */
+/** The "Gia đình & Quan hệ" pill's mark: a red dot while a guardian is owed, a tick once some are in. */
 export type GuardianMark = "missing" | "filled" | "none";
 
 interface Props {
@@ -23,14 +23,17 @@ interface Props {
   /** Age by year, shown as a chip inside "Ngày sinh"; null without a birth date. */
   age: number | null;
   guardianMark: GuardianMark;
-  guardianPane: ReactNode;
+  /** Opens "Gia đình & Quan hệ" — Người giám hộ, Mối quan hệ, Hồ sơ nhóm — in its own dialog. */
+  onOpenFamily: () => void;
   /** BA: the under-16 warning sits right under "Ngày sinh". */
   ageNotice?: ReactNode;
 }
 
 /**
- * Column two of the hồ sơ dialog, behind three pills: the basic details, the
- * "Tiểu sử bệnh" tick list, or the guardians (BA, 2026-10-07).
+ * Column two of the hồ sơ dialog, behind two pills: the basic details or the
+ * "Tiểu sử bệnh" tick list. A third pill, "Gia đình & Quan hệ", is not a tab:
+ * the guardians (BA, 2026-10-07) with the record's relations and groups need
+ * more room than this column, so it opens them in a dialog (owner, 2026-10-09).
  *
  * Both panes stay mounted-on-demand as the reference does — switching tabs is
  * not supposed to lose what has been typed, so the values live in the form,
@@ -43,7 +46,7 @@ export function PatientBasicColumn({
   onDiseaseHistoryChange,
   age,
   guardianMark,
-  guardianPane,
+  onOpenFamily,
   ageNotice,
 }: Props) {
   const occupations = useCatalogOptions(CATALOG_GROUP.Occupation);
@@ -71,7 +74,6 @@ export function PatientBasicColumn({
               label: t("Patient:Tab:DiseaseHistory"),
               count: diseaseHistoryEntryIds.length,
             },
-            { key: "guardian" as const, label: t("Patient:Guardian:Tab"), count: 0 },
           ]
         ).map((item) => (
           <button
@@ -89,14 +91,22 @@ export function PatientBasicColumn({
           >
             {item.label}
             {item.count > 0 && <span className="bd-patient-subtab-count">{item.count}</span>}
-            {item.key === "guardian" && guardianMark === "missing" && (
-              <span className="bd-patient-subtab-dot" aria-label={t("Patient:Guardian:Missing")} />
-            )}
-            {item.key === "guardian" && guardianMark === "filled" && (
-              <CheckOutlined className="bd-patient-subtab-check" aria-label={t("Patient:Guardian:Filled")} />
-            )}
           </button>
         ))}
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          className="bd-patient-subtab bd-patient-subtab--family"
+          onClick={onOpenFamily}
+        >
+          {t("Patient:Tab:Family")}
+          {guardianMark === "missing" && (
+            <span className="bd-patient-subtab-dot" aria-label={t("Patient:Guardian:Missing")} />
+          )}
+          {guardianMark === "filled" && (
+            <CheckOutlined className="bd-patient-subtab-check" aria-label={t("Patient:Guardian:Filled")} />
+          )}
+        </button>
       </div>
 
       {/* Hidden rather than unmounted: an unmounted Form.Item drops its value,
@@ -209,7 +219,6 @@ export function PatientBasicColumn({
         />
       </div>
 
-      <div hidden={tab !== "guardian"}>{guardianPane}</div>
     </>
   );
 }

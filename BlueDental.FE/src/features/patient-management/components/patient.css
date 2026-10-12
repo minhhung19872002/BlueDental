@@ -951,6 +951,35 @@
   color: #fff;
 }
 
+/* "Gia đình & Quan hệ" is not a tab: it opens a dialog (owner, 2026-10-09).
+   It has to share one row with the reference's two pills, so it runs a size
+   smaller and carries the guardian mark as a corner badge, not inline. */
+.bd-patient-subtab--family {
+  position: relative;
+  padding-inline: 8px;
+  font-size: 12px;
+}
+
+.bd-patient-subtab--family .bd-patient-subtab-dot,
+.bd-patient-subtab--family .bd-patient-subtab-check {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  margin: 0;
+  box-shadow: 0 0 0 2px var(--bd-card);
+}
+
+.bd-patient-subtab--family .bd-patient-subtab-check {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bd-green);
+  color: #fff;
+  font-size: 8px;
+}
+
 /* "9 tuổi" inside the Ngày sinh box, beside the calendar icon. */
 .bd-patient-agechip,
 .bd-guardian-agechip {
@@ -1016,7 +1045,7 @@
   font-size: 13px;
 }
 
-/* ── Pane: one card per guardian ─────────────────────────────────────── */
+/* ── Guardian group list and avatars ─────────────────────────────────────── */
 
 .bd-guardian-pane {
   display: flex;
@@ -1024,52 +1053,11 @@
   gap: 12px;
 }
 
-.bd-guardian-empty {
-  margin: 0;
-  color: var(--bd-muted);
-  font-size: 13px;
-}
-
-.bd-guardian-card {
-  border: 1px solid var(--bd-line);
-  border-radius: var(--bd-radius-card);
-  background: var(--bd-card);
-  padding: 12px 14px;
-}
-
-.bd-guardian-card-head,
 .bd-guardian-panel-head,
 .bd-guardian-patient {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.bd-guardian-card-who {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.bd-guardian-card-name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  color: var(--bd-ink);
-}
-
-.bd-guardian-tag {
-  margin: 0;
-  border-color: var(--bd-blue-pale);
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue);
-}
-
-.bd-guardian-card-phone {
-  color: var(--bd-muted);
-  font-size: 12px;
 }
 
 .bd-guardian-avatar {
@@ -1090,30 +1078,6 @@
   width: 28px;
   height: 28px;
   font-size: 11px;
-}
-
-.bd-guardian-card-facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 4px 12px;
-  margin: 10px 0 0;
-  border-top: 1px dashed var(--bd-line);
-  padding-top: 10px;
-  font-size: 12px;
-}
-
-.bd-guardian-card-facts dt {
-  color: var(--bd-muted);
-}
-
-.bd-guardian-card-facts dd {
-  margin: 0;
-  color: var(--bd-ink);
-}
-
-.bd-guardian-ok {
-  color: var(--bd-green);
-  font-weight: 500;
 }
 
 /* ── Popup "Thông tin người giám hộ" ─────────────────────────────────── */

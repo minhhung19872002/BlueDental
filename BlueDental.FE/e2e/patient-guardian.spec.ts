@@ -117,7 +117,8 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   await expect(editor.locator(".bd-patient-agechip")).toHaveText("9 tuổi");
 
   // Everything that says a guardian is missing, and Lưu held back.
-  const pill = editor.getByRole("tab", { name: /Người giám hộ/ });
+  // The third pill is a button: "Gia đình & Quan hệ" opens in its own dialog.
+  const pill = editor.getByRole("button", { name: /^Gia đình & Quan hệ/ });
   await expect(pill.getByLabel("Chưa có người giám hộ")).toBeVisible();
   const banner = editor.getByRole("alert").filter({ hasText: "Khách hàng dưới 16 tuổi" });
   await expect(banner).toBeVisible();
@@ -126,7 +127,7 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
 
   // The third pill fits on the row beside the other two, dot included.
   const rows = await editor
-    .getByRole("tab")
+    .locator(".bd-patient-subtab")
     .evaluateAll((tabs) => tabs.map((tab) => Math.round(tab.getBoundingClientRect().top)));
   expect(new Set(rows).size, "the three pills share one row").toBe(1);
 
@@ -192,11 +193,15 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   // Back on the hồ sơ: the ✓, two cards, the first one the primary contact, Lưu free.
   await expect(pill.getByLabel("Đã có người giám hộ")).toBeVisible();
   await expect(banner).toBeHidden();
-  const cards = editor.locator(".bd-guardian-card");
+  await pill.click();
+  const family = page.getByRole("dialog", { name: /^Gia đình & Quan hệ/ });
+  const cards = family.locator(".pf-relation", { hasText: "Người giám hộ" });
   await expect(cards).toHaveCount(2);
   await expect(cards.first()).toContainText(`Mẹ E2E ${id}`);
-  await expect(cards.first()).toContainText("Liên hệ chínhCó");
+  await expect(cards.first()).toContainText("Liên hệ chính");
   await expect(cards.nth(1)).toContainText(grandma.phone);
+  await family.locator(".ant-modal-close").click();
+  await expect(family).toBeHidden();
   await editor.getByRole("button", { name: SAVE }).click();
   await expect(editor).toBeHidden({ timeout: 15_000 });
 
@@ -204,11 +209,16 @@ test("an under-16 hồ sơ is saved only with its guardians, and reads them back
   await page.reload();
   await page.getByRole("button", { name: `Chỉnh sửa ${childName.toUpperCase()}` }).click();
   const reopened = page.getByRole("dialog", { name: "Chỉnh sửa hồ sơ" });
-  await reopened.getByRole("tab", { name: /Người giám hộ/ }).click();
-  const saved = reopened.locator(".bd-guardian-card");
+  await reopened.getByRole("button", { name: /^Gia đình & Quan hệ/ }).click();
+  const saved = page.getByRole("dialog", { name: /^Gia đình & Quan hệ/ }).locator(".pf-relation", { hasText: "Người giám hộ" });
   await expect(saved).toHaveCount(2);
   await expect(saved.first()).toContainText(`Mẹ E2E ${id}`);
-  await expect(saved.first()).toContainText("Đã xác nhận");
   await expect(saved.nth(1)).toContainText(grandma.phone);
+  // The group's consent came back too: the card's popup shows it ticked.
+  await saved.first().getByRole("button", { name: "Sửa" }).click();
+  const consent = page.getByRole("dialog", { name: /Thông tin người giám hộ/ });
+  await expect(consent.getByRole("checkbox", { name: /Các người giám hộ xác nhận/ })).toBeChecked();
+  await consent.getByRole("button", { name: "Hủy" }).click();
+  await expect(consent).toBeHidden();
   await expect(reopened.getByRole("button", { name: SAVE })).toBeEnabled();
 });

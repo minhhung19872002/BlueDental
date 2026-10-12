@@ -1,8 +1,10 @@
 import { Form, Input, Segmented } from "antd";
 import { AppDialog } from "@/components/AppDialog";
 import { t } from "@/lib/i18n";
+import { useHeadRelations, type KnownRelation } from "../hooks/useHeadRelations";
 import {
   GROUP_KIND,
+  GROUP_ROLE,
   type GroupKind,
   type MemberDraft,
   type PatientGroupDetailDto,
@@ -38,13 +40,26 @@ const initialOf = (editing: NonNullable<Props["editing"]>): FormValues =>
       };
 
 /**
+ * A family needs its Chủ hộ, and every other member's relation to them —
+ * picked here or on file (the server checks the same, PatientRelation:0009/0010).
+ */
+function familyProblem(members: MemberDraft[], known: ReadonlyMap<string, KnownRelation>): string | null {
+  const head = members.find((m) => m.role === GROUP_ROLE.Head);
+  if (!head) return t("PatientGroup:Validation:Head");
+  const missing = members.find((m) => m !== head && m.relationToHead === undefined && !known.has(m.patientId));
+  return missing ? t("PatientGroup:Validation:RelationToHead", missing.label) : null;
+}
+
+/**
  * "Tạo / Cập nhật hồ sơ nhóm" — a family (one per record) or another group,
  * its members with one Chủ hộ / Trưởng nhóm, and the medical background the
- * members share.
+ * members share. A family's members say what they are to the Chủ hộ.
  */
 export function GroupFormDialog({ editing, saving, onSubmit, onClose }: Props) {
   const [form] = Form.useForm<FormValues>();
   const kind = Form.useWatch("kind", form) ?? GROUP_KIND.Family;
+  const members = Form.useWatch("members", form);
+  const known = useHeadRelations(members?.find((m) => m.role === GROUP_ROLE.Head)?.patientId);
   const isNew = editing !== null && "seed" in editing;
 
   const handleFinish = (values: FormValues) =>
@@ -53,7 +68,11 @@ export function GroupFormDialog({ editing, saving, onSubmit, onClose }: Props) {
       kind: values.kind,
       note: values.note?.trim() || null,
       sharedMedicalNote: values.sharedMedicalNote?.trim() || null,
-      members: values.members.map((m) => ({ patientId: m.patientId, role: m.role })),
+      members: values.members.map((m) => ({
+        patientId: m.patientId,
+        role: m.role,
+        relationToHead: values.kind === GROUP_KIND.Family ? (m.relationToHead ?? null) : null,
+      })),
     });
 
   return (
@@ -89,9 +108,17 @@ export function GroupFormDialog({ editing, saving, onSubmit, onClose }: Props) {
             name="members"
             label={t("PatientGroup:Field:Members")}
             extra={t(kind === GROUP_KIND.Family ? "PatientGroup:MembersHintFamily" : "PatientGroup:MembersHintOther")}
-            rules={[{ validator: (_, v: MemberDraft[]) => (v?.length ? Promise.resolve() : Promise.reject(new Error(t("PatientGroup:Validation:Members")))) }]}
+            rules={[
+              {
+                validator: (_, v: MemberDraft[] | undefined) => {
+                  if (!v?.length) return Promise.reject(new Error(t("PatientGroup:Validation:Members")));
+                  const problem = kind === GROUP_KIND.Family ? familyProblem(v, known) : null;
+                  return problem ? Promise.reject(new Error(problem)) : Promise.resolve();
+                },
+              },
+            ]}
           >
-            <GroupMembersEditor kind={kind} />
+            <GroupMembersEditor kind={kind} known={known} />
           </Form.Item>
           <Form.Item name="sharedMedicalNote" label={t("PatientGroup:Field:SharedMedicalNote")} extra={t("PatientGroup:SharedMedicalHint")}>
             <Input.TextArea rows={3} maxLength={2000} showCount />

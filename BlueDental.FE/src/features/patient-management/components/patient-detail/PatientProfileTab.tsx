@@ -42,7 +42,6 @@ import type { PatientDto } from "../../types/patient";
 import { GENDER, GUARDIAN_LIMITS, type GenderCode } from "../../types/patient";
 import { ageByYear, RELATION_LABEL, requiresGuardian } from "../../utils/guardian";
 import { PatientEditorDialog } from "../PatientEditorDialog";
-import { PatientGuardianSection } from "./PatientGuardianSection";
 import { AppointmentDoctorPicker } from "./AppointmentDoctorPicker";
 import { ReceptionSteps } from "./ReceptionSteps";
 import { CreatePaymentDialog } from "./CreatePaymentDialog";
@@ -418,7 +417,8 @@ export function PatientProfileTab({ patient }: Props) {
               value={patient.address}
             />
           </div>
-          <PatientGuardianSection patient={patient} canEdit={patientAbility.canUpdate} />
+          {/* Người giám hộ, with the relations and groups, lives on the hồ sơ
+              editor's "Gia đình & Quan hệ" pill (owner, 2026-10-09). */}
         </div>
         <div className="pd-profile-column">
           <h3>

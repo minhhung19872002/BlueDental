@@ -145,10 +145,18 @@ export interface MoneyTaken {
   paymentAccountId: string | null;
 }
 
-export interface SellCardInput extends MoneyTaken {
+/**
+ * Who shares a family card: the members, plus — for any member not yet the
+ * owner's người nhà — what they are to the owner (recorded as a Mối quan hệ).
+ */
+export interface MembersInput {
+  memberPatientIds: string[];
+  newRelations: { patientId: string; type: number }[];
+}
+
+export interface SellCardInput extends MoneyTaken, MembersInput {
   cardTypeId: string;
   ownerPatientId: string;
-  memberPatientIds: string[];
   sellerStaffId: string;
   note: string | null;
 }

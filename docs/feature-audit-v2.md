@@ -14,7 +14,7 @@ Ngày kiểm tra: **03/09/2026**
 | Hoàn thiện (BE + FE + Test) | **60** |
 | Một phần (có BE hoặc FE, thiếu phần kia) | **21** |
 | Chưa triển khai | **42** |
-| **Tiến độ weighted** | **58.9%** |
+| **Tiến độ weighted** | **61.4%** |
 
 > Tính weighted: Hoàn thiện = 100%, Một phần = 50%, Chưa có = 0%.
 > Tính theo feature có code: (60 + 21) / 123 = 65.9%.
@@ -58,7 +58,7 @@ Ngày kiểm tra: **03/09/2026**
 | 1. Lịch hẹn | 11 | 6 | 2 | 3 | 63.6% |
 | 2. Chăm sóc | 10 | 8 | 2 | 0 | 90.0% |
 | 3. Thẻ trả trước | 2 | 2 | 0 | 0 | **100%** |
-| 4. Khách hàng | 28 | 17 | 3 | 8 | 66.1% |
+| 4. Khách hàng | 28 | 20 | 3 | 5 | 76.8% |
 | 5. Kế toán | 7 | 3 | 3 | 1 | 64.3% |
 | 6. Dịch vụ | 7 | 1 | 0 | 6 | **14.3%** |
 | 7. Kho | 7 | 3 | 1 | 3 | 50.0% |
@@ -71,7 +71,7 @@ Ngày kiểm tra: **03/09/2026**
 | 14. Form in | 1 | 0 | 1 | 0 | 50.0% |
 | 15. Media | 1 | 1 | 0 | 0 | 100% |
 | 16. Báo cáo | 13 | 6 | 5 | 2 | 65.4% |
-| **TỔNG** | **123** | **62** | **21** | **40** | **58.9%** |
+| **TỔNG** | **123** | **65** | **21** | **37** | **61.4%** |
 
 ---
 
@@ -126,9 +126,9 @@ Ngày kiểm tra: **03/09/2026**
 | 5 | Tùy chọn & giới hạn chỉnh sửa | ❌ | ❌ | **Chưa có** | Không có dynamic field rules config |
 | 6 | Tiền sử | ✅ | ✅ | Hoàn thiện | MedicalHistoryPanel + PatientDiseaseHistoryPanel |
 | 7 | Khám bệnh | ✅ | ✅ | Hoàn thiện | TreatmentStagePanel + DiagnosisModal |
-| 8 | Mối quan hệ | ❌ | ❌ | **Chưa có** | Không có PatientRelationship entity |
-| 9 | Người giám hộ | ❌ | ❌ | **Chưa có** | Không có Guardian field |
-| 10 | Hồ sơ nhóm | ❌ | ❌ | **Chưa có** | |
+| 8 | Mối quan hệ | ✅ | ✅ | Hoàn thiện | F-64 (2026-10-09): `PatientRelationship`, tab "Gia đình & Quan hệ" |
+| 9 | Người giám hộ | ✅ | ✅ | Hoàn thiện | F-50 (2026-10-07) — dòng này trước đây chưa cập nhật |
+| 10 | Hồ sơ nhóm | ✅ | ✅ | Hoàn thiện | F-64: `PatientGroup`, trang /patient-group, thông tin y khoa chung |
 | 11 | Chẩn đoán — tư vấn | ✅ | ✅ | Hoàn thiện | DiagnosticRecord + ConsultationRecord + AdviseModal |
 | 12 | Chẩn đoán theo hình ảnh | ✅ | ✅ | Hoàn thiện | PatientImagePanel + upload ảnh X-ray |
 | 13 | Xét nghiệm | ❌ | ❌ | **Chưa có** | Không có LabTest entity |

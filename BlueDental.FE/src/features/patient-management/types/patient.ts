@@ -75,12 +75,6 @@ export type PatientGuardianInput = Omit<PatientGuardianDto, "id" | "consentedAt"
   id: string | null;
 };
 
-/** Mirrors BlueDental.PatientManagement.UpdatePatientGuardiansDto — the Hồ sơ tab's guardian block. */
-export interface UpdatePatientGuardiansRequest {
-  guardians: PatientGuardianInput[];
-  guardiansConsented: boolean;
-}
-
 /** Mirrors BlueDental.PatientManagement.GuardianCandidateSource. */
 export const GUARDIAN_CANDIDATE_SOURCE = {
   Patient: 1,

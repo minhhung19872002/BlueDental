@@ -100,4 +100,25 @@ public class PatientRelationTests
         ShouldFail(() => group.Update((PatientGroupKind)9, "X", null, null),
             BlueDentalDomainErrorCodes.PatientRelation.InvalidType);
     }
+
+    [Theory]
+    [InlineData(GuardianRelation.Father, PatientRelationType.Parent)]
+    [InlineData(GuardianRelation.Mother, PatientRelationType.Parent)]
+    [InlineData(GuardianRelation.Grandfather, PatientRelationType.Grandparent)]
+    [InlineData(GuardianRelation.Grandmother, PatientRelationType.Grandparent)]
+    [InlineData(GuardianRelation.Sibling, PatientRelationType.Sibling)]
+    [InlineData(GuardianRelation.AuntUncle, PatientRelationType.Relative)]
+    public void A_Guardian_Kinship_Pill_Is_A_Family_Relation(GuardianRelation pill, PatientRelationType expected)
+    {
+        PatientRelationTypes.KinshipOf(pill).ShouldBe(expected);
+        PatientRelationTypes.IsFamily(expected).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(GuardianRelation.LegalGuardian)]
+    [InlineData(GuardianRelation.Other)]
+    public void A_Guardian_Without_Kinship_Writes_No_Relation(GuardianRelation pill)
+    {
+        PatientRelationTypes.KinshipOf(pill).ShouldBeNull();
+    }
 }
