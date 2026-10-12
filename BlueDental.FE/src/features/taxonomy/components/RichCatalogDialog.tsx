@@ -19,7 +19,6 @@ interface FormValues {
   taxonomyId: string;
   content: string;
   note: string;
-  isActive: boolean;
   isDeleted: boolean;
   priority: number;
 }
@@ -70,7 +69,6 @@ export function RichCatalogDialog({
       taxonomyId: entry?.taxonomyId ?? fallback,
       content: entry?.content ?? "",
       note: entry?.note ?? "",
-      isActive: entry?.isActive ?? true,
       isDeleted: entry?.isDeleted ?? false,
       priority: entry?.sortOrder ?? 0,
     });
@@ -87,7 +85,6 @@ export function RichCatalogDialog({
     const noteText = values.note?.trim() || null;
     const taxonomyIdValue = values.taxonomyId;
     const isDeleted = values.isDeleted;
-    const isActive = values.isActive;
 
     try {
       if (entry) {
@@ -101,7 +98,7 @@ export function RichCatalogDialog({
             content: body,
             note: noteText,
             description: entry.description ?? undefined,
-            isActive,
+            isActive: entry.isActive,
             isDeleted,
             sortOrder,
           },
@@ -144,7 +141,6 @@ export function RichCatalogDialog({
           taxonomyId: "",
           content: "",
           note: "",
-          isActive: true,
           isDeleted: false,
           priority: 0,
         }}

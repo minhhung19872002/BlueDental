@@ -39,7 +39,6 @@ interface FormValues {
   name: string;
   taxonomyId: string;
   detailName: string;
-  isActive: boolean;
   isDeleted: boolean;
   description: string;
   priority: number;
@@ -68,7 +67,6 @@ const EMPTY: FormValues = {
   name: "",
   taxonomyId: "",
   detailName: "",
-  isActive: true,
   isDeleted: false,
   description: "",
   priority: 0,
@@ -146,7 +144,6 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwit
       name: entry?.name ?? "",
       taxonomyId: entry?.taxonomyId ?? fallback,
       detailName: entry?.detailName ?? "",
-      isActive: entry?.isActive ?? true,
       isDeleted: entry?.isDeleted ?? false,
       description: entry?.description ?? "",
       priority: entry?.sortOrder ?? 0,
@@ -208,7 +205,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwit
       if (entry) {
         saved = await updateEntry.mutateAsync({
           id: entry.id,
-          input: { ...shared, isActive: values.isActive, isDeleted: values.isDeleted },
+          input: { ...shared, isActive: entry.isActive, isDeleted: values.isDeleted },
         });
 
         toast.success(values.isDeleted ? t("Common:Deleted") : t("Taxonomy:Service:UpdatedSuccess"));

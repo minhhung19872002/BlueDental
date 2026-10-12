@@ -7640,3 +7640,42 @@ Test (build production :8135 → host :5000 → PostgreSQL thật, không chặn
 - E2E trên build production :8080, BE + PostgreSQL thật: `stage-treatment-date` 4/4. Test mới đi theo đúng các bước QA, kiểm `0047` cho tạo / tiếp tục / tái khám, ô lỗi, ngày giữ nguyên, không có pageerror. Ba test cũ đổi sang chọn ngày nằm trong khoảng [ngày tạo phiếu, hôm nay], và dùng phiếu mở cũ nhất.
 - Hồi quy: `treatment-plan-detail`, `cskh-after-treatment`, `treatment-stage`, `treatment-stage-chain` — tổng 30/30 cùng lượt chạy.
 - Lưu ý môi trường: DB local thiếu migration của mẫu đơn thuốc (`PrescriptionTemplateLine.Afternoon`), khiến `catalog-entries` trả 500. Đã chạy DbMigrator trên local, không liên quan thay đổi này.
+
+## R-900 (2026-10-12, mức 3: Danh mục + mọi picker danh mục) Bug list #36: dịch vụ lưu lại bị tắt, không chọn được ở Kế hoạch điều trị
+
+**Lỗi.** Phần lớn dịch vụ trong Danh mục có `IsActive = false`, nên khi tạo kế hoạch điều trị thì ô chọn dịch vụ báo "Không tìm thấy dịch vụ". Dialog vẫn hiển thị "Đang hoạt động ✓".
+
+**Nguyên nhân.**
+- Từ khi cặp "Đang hoạt động / Đã xoá" chuyển thành xoá mềm (`isDeleted`), `ServiceDialog`, `RichCatalogDialog` (Chẩn đoán, Dữ liệu tư vấn) và `SimpleCatalogDialog` (Nguồn đến, Lịch sử bệnh, Nghề nghiệp) vẫn đọc `values.isActive` từ AntD Form.
+- Không có `Form.Item` nào tên `isActive`, nên `onFinish` trả `undefined`. Payload gửi đi vì vậy thiếu trường này, `bool IsActive` ở BE nhận mặc định `false`, và `UpdateAsync` gọi `Deactivate()`. Mỗi lần bấm Lưu, mục bị tắt.
+- Mọi picker (`useCatalogOptionSearch`) chỉ lấy `isActive=true`, nên mục bị tắt biến mất mà không có lỗi nào hiện ra.
+- Tạo mới (POST) không bị lỗi: `CatalogEntry.Create` luôn đặt `IsActive = true`. Mục chỉ hỏng sau lần lưu lại đầu tiên.
+
+**Sửa (chủ sở hữu duyệt quy tắc + cách sửa dữ liệu):**
+- BE: `UpdateCatalogEntryDto.IsActive` đổi thành `bool?`. `CatalogEntryAppService.UpdateAsync` áp dụng:
+  - lưu ở trạng thái "Đang hoạt động" (`IsDeleted = false`) thì luôn `Activate()`;
+  - khi xoá, dùng giá trị client gửi; nếu là `null` thì giữ nguyên giá trị đang lưu.
+- FE: ba dialog bỏ trường ma `isActive` khỏi FormValues và gửi `entry.isActive`, giống như Combo, Thuốc, Đơn thuốc mẫu và Bệnh án mẫu vốn đã làm.
+- Dữ liệu: thêm migration `20261012090000_ReactivateCatalogEntries`, chỉ chứa SQL, không có Designer và snapshot không đổi. Câu lệnh: `UPDATE bd_catalog_entries SET "IsActive" = true WHERE "IsActive" = false AND "IsDeleted" = false`.
+  - Không động vào mục đã xoá mềm. Mục đã xoá sẽ được bật lại khi khôi phục qua dialog.
+  - Nhờ `__EFMigrationsHistory`, migration chỉ chạy một lần trên mỗi DB. DbMigrator chạy khi compose khởi động, nên staging và production tự được sửa khi deploy.
+  - Trên local: trước migration có 11 dịch vụ và 22 nghề nghiệp đang tắt mà chưa xoá; sau migration còn 0. Có 17 dịch vụ đã xoá mềm vẫn tắt, đúng như dự định.
+
+**Kiểm chứng (build production `vite preview` + BE thật + PostgreSQL thật, không chặn API):**
+- `taxonomy-active-state` 3/3 (spec mới):
+  - API: PUT không có `isActive` vẫn giữ mục bật; `isActive:false` + `isDeleted:false` vẫn bật và hiện trong picker; xoá thì lưu đúng giá trị gửi và ẩn khỏi picker; khôi phục thì bật lại.
+  - UI theo bước QA: tạo dịch vụ, mở lại, bấm Lưu, reload, đọc lại vẫn `isActive=true`, rồi chọn được dịch vụ đó ở "Tạo phiếu dịch vụ" của bệnh nhân.
+  - UI: chẩn đoán lưu lại vẫn bật và có trong picker.
+- Replay đúng các bước của QA, script tạm đã xoá sau khi chạy. Bệnh nhân dùng DH260036 vì DH260001 ở local nằm ở chi nhánh 2.
+  1. Gõ "Cạo vôi": ra 7 dịch vụ.
+  2. Tạo nhóm "TEST DUNG Nhom" và dịch vụ "TEST DUNG Dich vu 1": server trả `isActive=true`.
+  3. Mở lại rồi bấm Lưu, đọc lại vẫn `isActive=true`.
+  4. Tìm lại ở "Tạo phiếu dịch vụ": thấy dịch vụ.
+- Hồi quy `taxonomy*`, `payment-qr`, `branch-*`, `catalog-combo`, `treatment-plan*` cùng một lượt: 100 passed, 6 failed, 7 không chạy. Chạy lại riêng 6 test hỏng thì `branch-list` xanh; 5 test còn đỏ đều dừng ở chỗ không đi qua đường lưu mục danh mục:
+  - `taxonomy-dialogs:104` dừng ở option nhà cung cấp Labo, chưa tới bước Lưu.
+  - `taxonomy-dialogs:256`: chi nhánh đang làm việc không có nhóm dịch vụ.
+  - `taxonomy-import-api:708` và `taxonomy-service-sync:321`: dọn tài khoản test, không thấy dòng trên `/staff`.
+  - `treatment-plan:199` hết thời gian chờ GET danh sách kế hoạch.
+  
+  Kết luận là do môi trường hoặc dữ liệu local, không do thay đổi này. Chưa chứng minh bằng cách chạy lại trên HEAD vì checkout đang dùng chung với các session khác.
+- Chưa kiểm được dữ liệu staging (SSH bị từ chối). Sau khi deploy, nhờ QA chạy lại đúng các bước #36 trên staging.
