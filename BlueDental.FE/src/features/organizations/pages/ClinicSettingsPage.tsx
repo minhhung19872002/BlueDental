@@ -935,7 +935,23 @@ function BranchManageTab() {
 export function ClinicSettingsPage() {
   const branchId = useCurrentBranchId();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") as TabKey) || "info";
+  const requestedTab = searchParams.get("tab");
+  // A tab name that does not exist (a typo, an old link) opens the first tab,
+  // which needs no permission; only a real tab the account may not use is 403.
+  const activeTab = TAB_ITEMS.find((item) => item.key === requestedTab)?.key ?? TAB_ITEMS[0].key;
+
+  useEffect(() => {
+    if (requestedTab === null || requestedTab === activeTab) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", activeTab);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requestedTab, activeTab, setSearchParams]);
+
   const permissions = useAuthStore((s) => s.user?.permissions);
   const grantedSet = new Set(permissions ?? []);
   const visibleTabs = TAB_ITEMS.filter((item) => isAnyGranted(item.permissions, (p) => grantedSet.has(p)));

@@ -1506,6 +1506,19 @@ body::-webkit-scrollbar-track {
   font-size: 13px;
 }
 
+/* ── Route result (404 inside the shell, crash screen outside it) ── */
+
+.route-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.route-result--fullscreen {
+  min-height: 100vh;
+}
+
 /* ── Login page ── */
 
 .login-page {

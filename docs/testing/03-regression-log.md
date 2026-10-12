@@ -7694,3 +7694,30 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
   
   Kết luận là do môi trường hoặc dữ liệu local, không do thay đổi này. Chưa chứng minh bằng cách chạy lại trên HEAD vì checkout đang dùng chung với các session khác.
 - Chưa kiểm được dữ liệu staging (SSH bị từ chối). Sau khi deploy, nhờ QA chạy lại đúng các bước #36 trên staging.
+
+## R-902 (2026-10-12, mức 2: routing FE) Bug list #38: URL không tồn tại hiện "Đã xảy ra lỗi ngoài dự kiến" thay vì trang 404
+
+**Lỗi.** Mở `https://duchanhpremium.vn/catalog` (hoặc `/patients`) thì thấy màn "Đã xảy ra lỗi ngoài dự kiến", console in `Lỗi điều hướng: null`. Mong đợi: trang 404 "Không tìm thấy trang" kèm nút về trang chủ.
+
+**Nguyên nhân.** Route bắt mọi URL lạ (`path: "*"`) render thẳng `RouteErrorBoundary` như một trang thường. Component này đọc lỗi bằng `useRouteError()`, mà hook đó chỉ trả lỗi khi chạy ở vị trí `errorElement`; ở route `*` nó trả `null`. `null` không phải 404 nên rơi vào nhánh "lỗi ngoài dự kiến" và log `null`.
+
+**Sửa (chủ sở hữu duyệt: chưa đăng nhập thì vẫn về login; 404 nằm trong khung app):**
+- `src/app/NotFoundPage.tsx` mới: AntD `Result status="404"`, "Không tìm thấy trang" + "Trang bạn tìm kiếm không tồn tại hoặc đã bị di chuyển.", nút "Về trang chủ" điều hướng bằng router (không tải lại trang). Key i18n đã có sẵn.
+- Route `*` render `NotFoundPage` bên trong `AppLayout`, nên menu trên header vẫn còn.
+- `RouteErrorBoundary` chỉ còn lo lỗi thật; lỗi điều hướng 404 dùng lại `NotFoundPage fullscreen`. Bỏ `style={{}}` inline, thay bằng class `.route-result` / `.route-result--fullscreen` trong `index.css` (khung chung của app).
+
+**Kiểm chứng (build production `vite preview` + BE thật, không chặn API):** `e2e/routes.spec.ts` 19/19.
+- 2 test mới: `/catalog` và `/patients` hiện 404, không có chữ "Đã xảy ra lỗi ngoài dự kiến", header vẫn hiện, console không có `Lỗi điều hướng`; bấm "Về trang chủ" thì rời URL lạ và trang 404 biến mất.
+- Dòng smoke `/timekeeping` (đỏ sẵn từ 2026-10-01, cả trên HEAD sạch) là địa chỉ cũ không còn route: Chấm công giờ là tab của lịch (`/calendar?tab=timekeeping`). Đổi spec sang địa chỉ thật, xanh. Nay địa chỉ cũ ra 404, đúng hành vi mới.
+- Ảnh chụp `/catalog` sau đăng nhập: trang 404 giữa vùng nội dung, menu header giữ nguyên.
+
+**Rà thêm các case (theo yêu cầu chủ sở hữu), chạy thật trên build production:**
+- Ra 404 đúng: `/catalog/` (có `/` cuối), `/catalog?x=1#h`, `/abc/def/ghi`, đường con sai của trang có thật (`/patient/abc/xyz`, `/settings/xyz`, `/reception/xyz`). Chuyển trong app sang URL lạ rồi bấm Back thì quay lại trang trước. Bấm menu ngay trên trang 404 vẫn mở được. Mobile 390px gọn. Key en đã có.
+- Chưa đăng nhập mở `/catalog`: về login, đăng nhập xong quay lại `/catalog` và hiện 404 (chủ sở hữu duyệt).
+- Không ra 404, để nguyên (không vỡ trang): ID sai (`/patient/<id lạ>` hiện "Không tìm thấy hồ sơ bệnh nhân"; `/queue/counters/<id lạ>` hiện "Không tìm thấy quầy"), và tab lạ ở `/taxonomy/:section`, `/labo`, `/materials`, `/operations`, `/tools`, `/calendar?tab=`: âm thầm mở tab đầu. `/taxonomy` là màn đã chốt (mục 17), không đụng.
+
+**Sửa thêm (chủ sở hữu duyệt): `/settings?tab=abc` mở tab đầu thay vì báo 403.**
+- `ClinicSettingsPage`: `?tab=` không thuộc `TAB_ITEMS` thì mở tab đầu ("Thông tin cá nhân", không cần quyền) và sửa URL thành `tab=info` (`replace`, giữ các tham số khác như `?branch=`). Tab có thật mà tài khoản không có quyền vẫn hiện "Không có quyền truy cập", không đổi. Bỏ luôn ép kiểu `as TabKey`.
+- Kiểm chứng: `routes.spec` thêm test `/settings?tab=abc&x=1` (URL thành `tab=info`, giữ `x=1`, tab "Thông tin cá nhân" sáng, không có 403). Chạy cùng `branch-list`, `role-permissions-tree`: 23/24 xanh.
+- Đỏ 1: `role-permissions.spec:53` dừng ở dòng 93 (bác sĩ thấy 3 nhóm menu thay vì 1). Bước này nằm trước khi mở `/settings`, chỉ phụ thuộc quyền vai trò `dentist` trong DB local, nên không do thay đổi này. Chưa chạy lại trên HEAD (checkout dùng chung).
+- Vì `role-permissions` dừng trước bước 403, đã kiểm riêng bằng spec tạm (xoá sau khi chạy): tạo nhân viên vai trò `dentist` qua API thật, đăng nhập, `/settings?tab=permission` vẫn 403 và giữ URL, `/settings?tab=abc` ra "Thông tin cá nhân". 1/1 xanh, nhân viên + chi nhánh tạm đã xoá.
