@@ -7721,3 +7721,21 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 - Kiểm chứng: `routes.spec` thêm test `/settings?tab=abc&x=1` (URL thành `tab=info`, giữ `x=1`, tab "Thông tin cá nhân" sáng, không có 403). Chạy cùng `branch-list`, `role-permissions-tree`: 23/24 xanh.
 - Đỏ 1: `role-permissions.spec:53` dừng ở dòng 93 (bác sĩ thấy 3 nhóm menu thay vì 1). Bước này nằm trước khi mở `/settings`, chỉ phụ thuộc quyền vai trò `dentist` trong DB local, nên không do thay đổi này. Chưa chạy lại trên HEAD (checkout dùng chung).
 - Vì `role-permissions` dừng trước bước 403, đã kiểm riêng bằng spec tạm (xoá sau khi chạy): tạo nhân viên vai trò `dentist` qua API thật, đăng nhập, `/settings?tab=permission` vẫn 403 và giữ URL, `/settings?tab=abc` ra "Thông tin cá nhân". 1/1 xanh, nhân viên + chi nhánh tạm đã xoá.
+
+## R-903 (2026-10-12, mức 3: dialog dùng chung + header) QA #37, #39: dropdown trong dialog lệch / hẹp; menu tài khoản không đóng
+
+**#37.** Đơn thuốc: gợi ý "Tên thuốc" và danh sách "Chọn bác sĩ" hiện ở góc phải ngoài dialog, rộng ~49px.
+- Tái hiện: mở ô chọn ngay khi dialog vừa bật → popup ở `x=1260`, rộng **50px** (ô thật rộng 523px), và đứng yên ở đó.
+- Nguyên nhân: dialog antd vào bằng hiệu ứng zoom (`antZoomIn`, scale 0.2 → 1). Popup đo ô một lần bằng `getBoundingClientRect` lúc ô còn bị thu nhỏ, và không đo lại khi transform kết thúc. Máy chậm (staging) kéo dài hiệu ứng nên người dùng dễ bấm trúng lúc đó.
+- Sửa (`styles/index.css`, phần AntD override): dialog chỉ mờ vào/ra. `antZoomIn`/`antZoomOut` của `.ant-modal` đổi thành `dialogFadeIn`/`dialogFadeOut`; `popIn` của `.ant-modal-container` (translateY + scale 0.985) đổi thành `dialogFadeIn`.
+
+**#39.** Dropdown / menu vẫn nổi sau khi đóng dialog hoặc chuyển trang.
+- Tái hiện được ca menu tài khoản khi thao tác bằng chạm: chọn "Cài đặt" → đã sang `/settings` nhưng menu vẫn mở. Log: menu click đóng (`source: menu`), rồi hover-open trễ 0,15s của `mouseenter` giả (do chạm sinh ra) nổ sau đó và mở lại (`source: trigger`).
+- Sửa (`app/AppLayout.tsx`): menu tài khoản do component giữ `open`; chọn một mục thì đóng; lệnh mở lại từ trigger trong 300ms sau khi chọn bị bỏ qua. Đã thử `mouseEnterDelay={0}` nhưng cách đó làm chạm không mở được menu, nên bỏ.
+- Hai ca dialog (Thêm quầy → Bác sĩ phụ trách → Hủy; Đơn thuốc → gõ "Alpha" → Hủy): trên local, cả chuột lẫn chạm, ở 1600 / 1366 / 1280 px, mở sớm hay muộn, dropdown đều đóng cùng dialog. Chưa tái hiện được hiện tượng của QC. Có thể là hệ quả của popup lệch #37; cần QC test lại sau bản này.
+
+**Kiểm chứng:**
+- `e2e/popup-placement.spec.ts` mới **3/3** trên build production :8080 (real login, không chặn API): popup mở ngay khi dialog bật phải rộng bằng và thẳng hàng với ô; Hủy đóng dialog và danh sách thuốc; chạm "Cài đặt" thì menu đóng. Không có bản sửa → 2 đỏ (popup hẹp hơn ô 104px; menu còn mở).
+- Hồi quy: `queue`, `prescription-allergy`, `stage-treatment-date`, `role-permissions-unsaved`, `auth`, `header-navigation` → 25 xanh, 4 đỏ. Cả 4 đỏ y hệt khi **không có** thay đổi này, tức là lỗi có sẵn: header-navigation "signing in opens Tiếp nhận", "below 1100px…drawer", lần đổi ngôn ngữ thứ hai trong "account menu toggles…"; queue "the counter's page lists its queue…".
+
+**Ghi nhận thêm (chưa sửa):** khi OS bật giảm chuyển động (`prefers-reduced-motion: reduce`, ví dụ Windows tắt "Animation effects"), antd 6.6.1 tắt animation bằng CSS. Vòng đời motion của popup khi đó không bao giờ kết thúc (`inMotion` kẹt), nên dropdown không được định vị (nằm ở −16000px, không thấy). Đặt `theme.token.motion = false` không cứu được, nên đã bỏ cách đó.

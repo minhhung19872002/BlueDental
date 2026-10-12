@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, Dropdown, Popover, Spin, type MenuProps } from "antd";
 import {
@@ -33,6 +33,9 @@ import { type NavEntry, type NavGroup } from "./nav";
 import { useRibbonGroup } from "./useRibbonGroup";
 import { useVisibleNav } from "./useVisibleNav";
 
+/** Longer than the account menu's hover-open delay (0.15s); see the menu below. */
+const USER_MENU_REOPEN_GUARD_MS = 300;
+
 function initialsOf(name: string | undefined): string {
   const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return "BD";
@@ -45,6 +48,8 @@ export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuPickedAt = useRef(0);
   const [currentLang, setLanguage] = useLanguage();
 
   const t = useT();
@@ -138,6 +143,15 @@ export function AppLayout() {
   const userMenuActiveKey = settingsTab === "info" ? "profile"
     : settingsTab === "password" ? "change-password"
     : isSettingsPage ? "settings" : undefined;
+
+  const handleUserMenuPick = () => {
+    userMenuPickedAt.current = Date.now();
+    setUserMenuOpen(false);
+  };
+  const handleUserMenuOpenChange = (next: boolean) => {
+    if (next && Date.now() - userMenuPickedAt.current < USER_MENU_REOPEN_GUARD_MS) return;
+    setUserMenuOpen(next);
+  };
 
   const userMenuItems: MenuProps["items"] = [
     {
@@ -382,7 +396,21 @@ export function AppLayout() {
           />
           */}
 
-          <Dropdown menu={{ items: userMenuItems, selectedKeys: userMenuActiveKey ? [userMenuActiveKey] : [] }} placement="bottomRight">
+          {/* Picking an entry closes the menu and keeps it closed (QA #39). A
+              tap fires a synthetic mouseenter whose delayed open (0.15s) lands
+              after the click has closed the menu, so it reopened over the page
+              it had just navigated to; an open that soon after a pick is
+              dropped. */}
+          <Dropdown
+            open={userMenuOpen}
+            onOpenChange={handleUserMenuOpenChange}
+            menu={{
+              items: userMenuItems,
+              selectedKeys: userMenuActiveKey ? [userMenuActiveKey] : [],
+              onClick: handleUserMenuPick,
+            }}
+            placement="bottomRight"
+          >
             <div
               className="app-header-user"
               role="button"
