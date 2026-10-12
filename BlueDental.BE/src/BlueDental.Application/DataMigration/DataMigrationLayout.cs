@@ -36,6 +36,13 @@ internal static class DataMigrationLayout
         public const string GuardianNationalId = "guardianNationalId";
         public const string GuardianRelation = "guardianRelation";
 
+        // Patient roster only (F-69).
+        public const string LegacyId = "legacyId";
+        public const string Branch = "branch";
+        public const string Province = "province";
+        public const string Ward = "ward";
+        public const string Action = "action";
+
         public const string TreatedOn = "treatedOn";
         public const string SlipCode = "slipCode";
         public const string Service = "service";

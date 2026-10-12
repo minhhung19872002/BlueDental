@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Input } from "antd";
 import { DownloadOutlined, IdcardOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { PeriodPicker, type Period } from "@/components/PeriodPicker";
@@ -17,6 +18,8 @@ interface Props {
   onCreate: () => void;
   /** "Quét CCCD" — offered alongside "Tạo hồ sơ", since it ends in one. */
   onScanId: () => void;
+  /** Extra buttons placed ahead of "Xuất file" — the admin roster tools. */
+  children?: ReactNode;
 }
 
 /**
@@ -36,6 +39,7 @@ export function PatientListToolbar({
   onExport,
   onCreate,
   onScanId,
+  children,
 }: Props) {
   return (
     <div className="bd-patient-toolbar">
@@ -56,6 +60,8 @@ export function PatientListToolbar({
       </div>
 
       <div className="bd-patient-toolbar-actions">
+        {children}
+
         {canExport && (
           <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
             {t("Patient:Export")}

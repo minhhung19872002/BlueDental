@@ -4746,6 +4746,10 @@ namespace BlueDental.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("LegacyId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("MedicalAlerts")
                         .HasColumnType("text");
 
@@ -4801,6 +4805,10 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("PatientCode")
                         .IsUnique();
+
+                    b.HasIndex("BranchId", "LegacyId")
+                        .IsUnique()
+                        .HasFilter("\"LegacyId\" IS NOT NULL AND \"IsDeleted\" = false");
 
                     b.ToTable("bd_patients", (string)null);
                 });

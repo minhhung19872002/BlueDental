@@ -329,6 +329,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             });
 
             entity.HasIndex(x => x.PatientCode).IsUnique();
+
+            // ID hệ thống (F-69): one live record per old-system id in a branch.
+            entity.Property(x => x.LegacyId).HasMaxLength(Patient.MaxLegacyIdLength);
+            entity.HasIndex(x => new { x.BranchId, x.LegacyId })
+                .IsUnique()
+                .HasFilter("\"LegacyId\" IS NOT NULL AND \"IsDeleted\" = false");
         });
 
         builder.Entity<PatientExaminationReason>(entity =>

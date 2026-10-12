@@ -12,6 +12,7 @@ using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.BlobStoring;
@@ -769,8 +770,13 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
 
     private async Task<string> EnsureCodeIsFreeAsync(string code, Guid? excludeId)
     {
-        var query = await _repository.GetQueryableAsync();
-        var taken = query.Any(p => p.PatientCode == code && (!excludeId.HasValue || p.Id != excludeId.Value));
+        // A deleted record keeps its code — the unique index still counts it.
+        bool taken;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var query = await _repository.GetQueryableAsync();
+            taken = query.Any(p => p.PatientCode == code && (!excludeId.HasValue || p.Id != excludeId.Value));
+        }
 
         if (taken)
         {
@@ -842,9 +848,14 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         var query = await _repository.GetQueryableAsync();
         var sequence = query.Count(p => p.BranchId == branchId && p.CreationTime.Year == year) + 1;
 
-        while (query.Any(p => p.PatientCode == FormatPatientCode(year, sequence)))
+        // Walk past deleted records too: their codes still hold the unique index.
+        using (DataFilter.Disable<ISoftDelete>())
         {
-            sequence++;
+            var all = await _repository.GetQueryableAsync();
+            while (all.Any(p => p.PatientCode == FormatPatientCode(year, sequence)))
+            {
+                sequence++;
+            }
         }
 
         return sequence;

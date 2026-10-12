@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useScrolledPast } from "@/hooks/useScrolledPast";
@@ -11,6 +12,7 @@ import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { useBranchFilter } from "@/lib/clinicBranch";
+import { LegacyPermissions } from "@/lib/permissionConstants";
 import { patientApi } from "../api/patientApi";
 import { usePatientDto, usePatientList } from "../api/patientQueries";
 import { usePatientListFilters } from "../hooks/usePatientListFilters";
@@ -22,6 +24,7 @@ import { PatientListFilters } from "../components/PatientListFilters";
 import { PatientListToolbar } from "../components/PatientListToolbar";
 import { PatientStickyToolbar } from "../components/PatientStickyToolbar";
 import { PatientTable } from "../components/PatientTable";
+import { PatientRosterActions } from "../components/roster/PatientRosterActions";
 import "../components/patient.css";
 
 /**
@@ -46,6 +49,7 @@ export function PatientManagementPage() {
   const [editing, setEditing] = useState<Editing>({ mode: "closed" });
   const [exporting, setExporting] = useState(false);
   const ability = useAbility("patient");
+  const canRoster = useAuthStore((s) => s.hasPermission(LegacyPermissions.SystemAdmin.PatientRoster));
 
   // The compact toolbar takes over once the real one has scrolled under the
   // app header, which is what the header's own height is doing here.
@@ -155,7 +159,9 @@ export function PatientManagementPage() {
         onExport={() => void handleExport()}
         onCreate={openCreate}
         onScanId={scan.openScan}
-      />
+      >
+        {canRoster && <PatientRosterActions />}
+      </PatientListToolbar>
 
       <PatientListFilters
         filters={filters.filters}

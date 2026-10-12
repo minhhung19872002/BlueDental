@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using BlueDental.Catalogs.Import;
 using BlueDental.PatientManagement;
+using BlueDental.PatientManagement.Roster;
 using BlueDental.TreatmentManagement.Values;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Localization;
@@ -38,7 +39,22 @@ internal sealed record PatientDraft(
     string? EmergencyName,
     string? EmergencyPhone,
     DateOnly? RegisteredOn,
-    GuardianDraft? Guardian);
+    GuardianDraft? Guardian,
+    string? LegacyId = null,
+    string? ProvinceCode = null,
+    string? WardCode = null);
+
+/// <summary>
+/// How strict a Khách hàng row is. The migration file (F-61) keys rows by a
+/// required Mã KH; the patient roster (F-69) lets a new row leave it blank for
+/// the app to number, requires the phone instead, and carries a guardian
+/// relation of "Khác" back when the record already had one.
+/// </summary>
+internal sealed record PatientReadOptions(bool CodeRequired, bool PhoneRequired, bool AllowOtherRelation)
+{
+    public static readonly PatientReadOptions Migration = new(CodeRequired: true, PhoneRequired: false, AllowOtherRelation: false);
+    public static readonly PatientReadOptions Roster = new(CodeRequired: false, PhoneRequired: true, AllowOtherRelation: true);
+}
 
 internal sealed record TreatmentDraft(
     string Code,
@@ -107,6 +123,9 @@ internal sealed class MigrationRowReader
         ["người giám hộ hợp pháp"] = GuardianRelation.LegalGuardian
     };
 
+    /// <summary>"Khác": read only where the record already says so (roster), never for a new guardian.</summary>
+    private static readonly HashSet<string> OtherRelation = ["khác", "khac"];
+
     private static readonly int[] UpperJaw = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
     private static readonly int[] LowerJaw = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
@@ -136,6 +155,7 @@ internal sealed class MigrationRowReader
     private readonly IXLRow _row;
     private readonly DataMigrationLookups _lookups;
     private readonly DateOnly _today;
+    private readonly PatientReadOptions _options;
     private readonly List<string> _errors = [];
 
     private MigrationRowReader(
@@ -144,7 +164,8 @@ internal sealed class MigrationRowReader
         IReadOnlyDictionary<string, int> columns,
         IXLRow row,
         DataMigrationLookups lookups,
-        DateOnly today)
+        DateOnly today,
+        PatientReadOptions? options = null)
     {
         _l = l;
         _layout = layout;
@@ -152,6 +173,7 @@ internal sealed class MigrationRowReader
         _row = row;
         _lookups = lookups;
         _today = today;
+        _options = options ?? PatientReadOptions.Migration;
     }
 
     /// <summary>The Mã KH cell of a row, before anything else is read — rows are grouped by it.</summary>
@@ -160,9 +182,15 @@ internal sealed class MigrationRowReader
 
     public static (PatientDraft? Draft, List<string> Errors) ReadPatient(
         IStringLocalizer l, IReadOnlyDictionary<string, int> columns, IXLRow row, DataMigrationLookups lookups,
-        DateOnly today)
+        DateOnly today) =>
+        ReadPatient(l, Patients, columns, row, lookups, today, PatientReadOptions.Migration);
+
+    /// <summary>A patient row of any sheet that uses the Khách hàng column keys.</summary>
+    public static (PatientDraft? Draft, List<string> Errors) ReadPatient(
+        IStringLocalizer l, ImportSheetLayout layout, IReadOnlyDictionary<string, int> columns, IXLRow row,
+        DataMigrationLookups lookups, DateOnly today, PatientReadOptions options)
     {
-        var reader = new MigrationRowReader(l, Patients, columns, row, lookups, today);
+        var reader = new MigrationRowReader(l, layout, columns, row, lookups, today, options);
         var draft = reader.ReadPatient();
         return (reader._errors.Count == 0 ? draft : null, reader._errors);
     }
@@ -180,7 +208,8 @@ internal sealed class MigrationRowReader
 
     private PatientDraft? ReadPatient()
     {
-        var code = Required(Col.Code, CodeMax);
+        var code = _options.CodeRequired ? Required(Col.Code, CodeMax) : Optional(Col.Code, CodeMax) ?? string.Empty;
+        var legacyId = Optional(Col.LegacyId, Patient.MaxLegacyIdLength);
         var fullName = Required(Col.FullName, NamePartMax * 2);
         var (firstName, lastName) = SplitName(fullName);
         if (fullName != null && (lastName.Length > NamePartMax || firstName.Length > NamePartMax))
@@ -190,15 +219,21 @@ internal sealed class MigrationRowReader
 
         var dateOfBirth = OptionalDate(Col.DateOfBirth);
         var gender = ReadGender();
+        if (_options.PhoneRequired && Cell(Col.Phone) == null)
+        {
+            Error("Taxonomy:Import:Err:Required", Header(Col.Phone));
+        }
+
         var phone = FormPhone(Col.Phone);
         var email = Optional(Col.Email, EmailMax);
-        if (phone == null && email == null)
+        if (!_options.PhoneRequired && phone == null && email == null)
         {
             // ContactInfo refuses a patient with neither; say which columns instead of its generic message.
             Error("DataMigration:Err:NoContact", Header(Col.Phone), Header(Col.Email));
         }
 
         var address = Optional(Col.Address, AddressMax);
+        var (provinceCode, wardCode) = ReadResidence();
         var oldAddress = Optional(Col.OldAddress, AddressMax);
         var nationalId = NationalId(Col.NationalId);
         var insurance = Optional(Col.InsuranceNumber, InsuranceMax);
@@ -220,7 +255,49 @@ internal sealed class MigrationRowReader
 
         return new PatientDraft(code, firstName, lastName, dateOfBirth, gender, phone, email, address, oldAddress,
             nationalId, insurance, sourceId, channelId, occupationId, occupationOther,
-            diseases, tags, reason, note, emergencyName, emergencyPhone, registeredOn, guardian);
+            diseases, tags, reason, note, emergencyName, emergencyPhone, registeredOn, guardian,
+            legacyId, provinceCode, wardCode);
+    }
+
+    /// <summary>
+    /// Tỉnh/TP and Phường/Xã by name, as the hồ sơ dialog lists them after the
+    /// 2025 merger ("Hà Nội" and "Thành phố Hà Nội" alike). A name the list
+    /// does not hold is refused rather than dropped.
+    /// </summary>
+    private (string? Province, string? Ward) ReadResidence()
+    {
+        var provinceText = Optional(Col.Province, int.MaxValue);
+        var wardText = Optional(Col.Ward, int.MaxValue);
+        if (provinceText == null)
+        {
+            if (wardText != null)
+            {
+                Error("PatientRoster:Err:WardWithoutProvince", Header(Col.Ward), Header(Col.Province));
+            }
+
+            return (null, null);
+        }
+
+        var locations = VietnamLocations.Instance;
+        var province = locations.FindProvince(provinceText);
+        if (province == null)
+        {
+            Error("PatientRoster:Err:BadProvince", Header(Col.Province), provinceText);
+            return (null, null);
+        }
+
+        if (wardText == null)
+        {
+            return (province, null);
+        }
+
+        var ward = locations.FindWard(province, wardText);
+        if (ward == null)
+        {
+            Error("PatientRoster:Err:BadWard", wardText, locations.ProvinceName(province)!);
+        }
+
+        return (province, ward);
     }
 
     /// <summary>The hồ sơ dialog's split: the last word is the given name, the rest the family name; one word is all family name.</summary>
@@ -304,7 +381,7 @@ internal sealed class MigrationRowReader
     private List<Guid> Many(string key, IReadOnlyList<LookupItem> catalog)
     {
         var ids = new List<Guid>();
-        foreach (var name in Split(Optional(key, int.MaxValue), ';', ','))
+        foreach (var name in Names(Optional(key, int.MaxValue), catalog))
         {
             var item = DataMigrationLookups.FindByName(catalog, name);
             if (item == null)
@@ -318,6 +395,28 @@ internal sealed class MigrationRowReader
         }
 
         return ids;
+    }
+
+    /// <summary>
+    /// The names of a list cell. ";" always separates; "," only where the
+    /// piece is not itself a catalog name, so "Tim mạch, huyết áp" written by
+    /// the roster export reads back as the one entry it is.
+    /// </summary>
+    private static IEnumerable<string> Names(string? text, IReadOnlyList<LookupItem> catalog)
+    {
+        foreach (var piece in Split(text, ';'))
+        {
+            if (DataMigrationLookups.FindByName(catalog, piece) != null)
+            {
+                yield return piece;
+                continue;
+            }
+
+            foreach (var name in Split(piece, ','))
+            {
+                yield return name;
+            }
+        }
     }
 
     private GuardianDraft? ReadGuardian()
@@ -340,13 +439,15 @@ internal sealed class MigrationRowReader
             return null;
         }
 
-        if (!Relations.TryGetValue(ExcelCells.Key(relationText), out var relation))
+        if (!Relations.TryGetValue(ExcelCells.Key(relationText), out var relation)
+            && !(_options.AllowOtherRelation && OtherRelation.Contains(ExcelCells.Key(relationText))))
         {
             Error("DataMigration:Err:BadRelation", Header(Col.GuardianRelation), relationText);
             return null;
         }
 
-        return new GuardianDraft(name, phone, nationalId, relation);
+        return new GuardianDraft(name, phone, nationalId,
+            OtherRelation.Contains(ExcelCells.Key(relationText)) ? GuardianRelation.Other : relation);
     }
 
     // -------------------------------------------------------------- treatments

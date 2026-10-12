@@ -224,5 +224,12 @@ public static class BlueDentalPermissions
         /// is not bridged to the Phân quyền screen either.
         /// </summary>
         public const string DataMigration = Default + ".DataMigration";
+
+        /// <summary>
+        /// Xuất / nhập danh sách bệnh nhân (F-69): the whole roster of every
+        /// branch as one Excel file, edited offline and imported back. Admin
+        /// only — the static manager roles do not get it.
+        /// </summary>
+        public const string PatientRoster = Default + ".PatientRoster";
     }
 }

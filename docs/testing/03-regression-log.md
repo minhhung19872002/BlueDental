@@ -7774,3 +7774,49 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
   - Tài khoản lễ tân `lt.huong` lấy được danh sách nhóm và thấy ô lọc nhóm.
 - Chạy lại cùng `reception-doctor-priority`, `reception-own-doctor`, `reception-doctor-list`, `reception.spec`: tất cả xanh.
 - DB local chưa có Team bác sĩ nào hợp lệ, nên ô nhóm hiện "Chưa có team bác sĩ nào". Các nhóm T1 và 21520417 trong ảnh là dữ liệu staging.
+
+## R-903 (2026-10-12, mức 3: danh sách bệnh nhân + quyền) F-69 xuất / nhập danh sách bệnh nhân
+
+**Yêu cầu.** BA cần xuất toàn bộ bệnh nhân ra Excel, sửa, rồi nhập lại. Chi tiết quy tắc và quyết định của chủ sở hữu: `docs/testing/features/patient-roster.md`.
+
+**Làm.**
+- BE: `PatientRosterAppService` (export / import với `dryRun` / import-errors), controller `api/v1/app/patient-roster`, quyền `BlueDental.SystemAdmin.PatientRoster` (chỉ vai trò admin), cột `Patient.LegacyId` (migration `20261012075641_AddPatientLegacyId`).
+- FE: `PatientRosterActions` (2 nút trên toolbar chính của `/patient`, ẩn khi thiếu quyền), dialog 3 bước theo khung import của Danh mục, `usePatientRosterImport`, CSS `bd-roster-*` trong `patient.css`, 18 key i18n.
+
+**Kiểm chứng (build production `vite preview` + BE thật, không chặn API).**
+- `patient-roster-api.spec` 8/8 và `patient-roster.spec` 4/4.
+- Hồi quy `patient.spec` + `patient-permission-gates` + `patient-scan-id`: lần đầu 61/70, lỗi chính là R-904. Sau khi sửa, 7/9 test đỏ chạy lại đều xanh.
+- Còn 2 đỏ:
+  - "Tiếp nhận steps": đỏ có chủ đích (TEMP-BUG25-OFF).
+  - "payment dialog … momo": số tiền bị kẹp về mức các dòng còn nợ (bug 24). Với dữ liệu local hiện tại, gõ 100000 rồi 50000 thì "còn lại" chỉ đổi 10000. Test phụ thuộc dữ liệu, không liên quan danh sách bệnh nhân. Chưa chứng minh trên HEAD vì checkout dùng chung.
+
+## R-904 (2026-10-12, mức 2: tạo hồ sơ bệnh nhân) Mã gợi ý trùng mã của bệnh nhân đã xoá → lưu hồ sơ báo 500
+
+**Lỗi.** Tạo hồ sơ mới thì toast "Hệ thống đang gặp sự cố". Log host: `23505 duplicate key value violates unique constraint "IX_bd_patients_PatientCode"` với mã gợi ý DH260468, mã của một bệnh nhân test đã bị xoá mềm.
+
+**Nguyên nhân (có sẵn, không do F-69).** `PatientAppService.NextFreeSequenceAsync` và `EnsureCodeIsFreeAsync` dò mã trống bằng query có bộ lọc xoá mềm. Mã của hồ sơ đã xoá bị coi là còn trống, trong khi unique index vẫn tính cả bản đã xoá. Ngoài ra, xoá một hồ sơ làm số đếm theo năm giảm, nên số gợi ý lùi đúng về mã vừa xoá. Bất kỳ lần xoá bệnh nhân nào cũng gây ra lỗi này; spec roster chỉ làm lộ nó ra.
+
+**Sửa.** Hai chỗ dò mã chạy trong `DataFilter.Disable<ISoftDelete>()`, giống `AssignCodesAsync` của roster. Mã nhập tay trùng mã hồ sơ đã xoá giờ nhận lỗi nghiệp vụ `DuplicatePatientCode` thay vì 500.
+
+**Kiểm chứng.**
+- `patient-roster-api.spec` "D deletes the patient" thêm bước: sau khi xoá, `GET patients/code-estimate` không trả lại mã vừa xoá. Xanh.
+- Test tạo hồ sơ trong `patient.spec` xanh trở lại.
+
+## R-905 (2026-10-12, mức 2: F-69 nhập danh sách bệnh nhân) Nhập file bỏ qua quy tắc SĐT / CCCD không trùng của hồ sơ
+
+**Lỗi (chủ sở hữu bắt được khi đọc báo cáo).** Tôi ghi "cho phép trùng số điện thoại", nhưng dialog hồ sơ chặn cả SĐT trùng (`Patient:0021`, bug list 29, 2026-10-07) lẫn CCCD trùng (`Patient:0012`) trong cùng chi nhánh. Import roster gọi thẳng domain, không qua `PatientAppService`, nên cả hai quy tắc bị bỏ qua: một file có thể tạo hai hồ sơ cùng số.
+
+**Sửa.**
+- `CheckLegacyIdsAsync` thành `CheckUniqueValuesAsync`, dùng chung cho ID hệ thống, Số điện thoại và CCCD. So khớp giống dialog: giá trị đã chuẩn hoá, cùng chi nhánh, chỉ hồ sơ chưa xoá.
+- Lỗi khi giá trị lặp trong file (`PatientRoster:Err:DuplicateInFile`) hoặc đã thuộc hồ sơ khác (`PatientRoster:Err:ValueTaken`, nêu mã bệnh nhân đang giữ).
+- Giá trị được coi là trống khi chính file đó xoá hồ sơ đang giữ hoặc đổi hồ sơ đó sang giá trị khác.
+- Hai key cũ `DuplicateLegacyId` / `LegacyIdTaken` đổi tên thành key chung (câu chữ giữ nguyên).
+- Không có unique index ở DB cho SĐT/CCCD (quy tắc chỉ ở tầng ứng dụng), nên không cần thứ tự ghi đặc biệt.
+
+**Kiểm chứng.** `patient-roster-api.spec` thêm test "a phone or CCCD already held in the branch, or repeated in the file, is an error":
+- SĐT của hồ sơ khác, CCCD của hồ sơ khác, và SĐT lặp trong file đều báo lỗi (3 lỗi).
+- Đổi hồ sơ đang giữ sang số khác trong cùng file thì không lỗi.
+
+Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên build production + BE thật.
+
+**Lưu ý.** Nếu dữ liệu đã có sẵn hai hồ sơ cùng SĐT (ví dụ nhập từ hệ thống cũ), sửa một trong hai bằng `E` sẽ bị từ chối, giống hệt khi lưu bằng dialog.
