@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo, useId } from "react";
 import { createPortal } from "react-dom";
 import { Spin } from "antd";
 import { t } from "@/lib/i18n";
 import { isNearScrollEnd } from "@/utils/scrollEnd";
+import { filterOptions } from "./filterOptions";
+import { useActiveOption } from "./useActiveOption";
 
 export interface SearchSelectOption {
   value: string;
@@ -20,6 +22,9 @@ export interface SearchSelectOption {
 function renderOptionLabel(option: SearchSelectOption): React.ReactNode {
   return option.label;
 }
+
+/** Keys that open the list from the focused field. */
+const OPEN_KEYS = new Set(["Enter", " ", "ArrowDown", "ArrowUp"]);
 
 interface DropdownPos {
   top: number;
@@ -83,15 +88,15 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   const [keyword, setKeyword] = useState("");
   const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const comboRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
 
   const selectedOption = options.find((o) => o.value === value);
 
-  const filtered = filterLocally && keyword.trim()
-    ? options.filter((o) =>
-        o.label.toLowerCase().includes(keyword.trim().toLowerCase())
-      )
-    : options;
+  const filtered = useMemo(
+    () => (filterLocally ? filterOptions(options, keyword) : options),
+    [filterLocally, options, keyword]
+  );
 
   const calcPos = useCallback(() => {
     if (!triggerRef.current) return;
@@ -143,22 +148,35 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     };
   }, [open, calcPos]);
 
+  // Focus goes back to the field, so Tab carries on to the next one.
+  const closeAndRefocus = useCallback(() => {
+    closeDropdown();
+    comboRef.current?.focus();
+  }, [closeDropdown]);
+
+  const handleSelect = useCallback(
+    (opt: SearchSelectOption) => {
+      onChange?.(opt.value);
+      closeAndRefocus();
+    },
+    [onChange, closeAndRefocus]
+  );
+
+  const { activeIndex, setActiveIndex, listRef, handleListKeyDown } = useActiveOption({
+    items: filtered,
+    open,
+    onPick: handleSelect,
+  });
+
   const handleOpen = useCallback(() => {
     if (disabled) return;
     calcPos();
     setOpen(true);
     setKeyword("");
+    // Start on the current value, so ↓ carries on from it.
+    setActiveIndex(Math.max(options.findIndex((o) => o.value === value), 0));
     onOpenChange?.(true);
-    setTimeout(() => searchRef.current?.focus(), 30);
-  }, [disabled, calcPos, onOpenChange]);
-
-  const handleSelect = useCallback(
-    (opt: SearchSelectOption) => {
-      onChange?.(opt.value);
-      closeDropdown();
-    },
-    [onChange, closeDropdown]
-  );
+  }, [disabled, calcPos, setActiveIndex, options, value, onOpenChange]);
 
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
@@ -171,6 +189,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
 
   const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setKeyword(e.target.value);
+    setActiveIndex(0);
     onSearch?.(e.target.value);
   };
 
@@ -178,10 +197,22 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     if (onLoadMore && isNearScrollEnd(e.currentTarget)) onLoadMore();
   };
 
+  // Type a few letters, Enter takes the top hit; ↑/↓ walk the list first.
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
-      closeDropdown();
+    if (e.key === "Escape" || e.key === "Tab") {
+      // The portal still bubbles through React: a Modal around the field must
+      // neither close on this Escape nor wrap focus on this Tab.
+      e.stopPropagation();
+      closeAndRefocus();
+      return;
     }
+    handleListKeyDown(e);
+  };
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (open || !OPEN_KEYS.has(e.key)) return;
+    e.preventDefault();
+    handleOpen();
   };
 
   const isError = status === "error";
@@ -207,25 +238,36 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 </svg>
               </span>
               <input
-                ref={searchRef}
+                // Focused as it mounts, not after a timer: keys pressed right
+                // after opening (↓ ↓ Enter) must not be lost.
+                autoFocus
                 className="ss-search-input"
                 value={keyword}
                 placeholder={t("Common:Search")}
                 onChange={handleKeywordChange}
                 onKeyDown={handleKeyDown}
+                aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
               />
             </div>
-            <div className="ss-options" onScroll={handleOptionsScroll}>
+            <div ref={listRef} className="ss-options" onScroll={handleOptionsScroll}>
               {filtered.length === 0 ? (
                 <div className="ss-empty">{emptyText ?? t("Common:NoResults")}</div>
               ) : (
-                filtered.map((opt) => (
+                filtered.map((opt, index) => (
                   <div
                     key={opt.value}
+                    id={`${listId}-${index}`}
+                    data-index={index}
                     role="option"
                     aria-selected={opt.value === value}
-                    className={`ss-option${opt.value === value ? " ss-option--selected" : ""}`}
+                    className={[
+                      "ss-option",
+                      opt.value === value && "ss-option--selected",
+                      index === activeIndex && "ss-option--active",
+                    ].filter(Boolean).join(" ")}
                     title={opt.label}
+                    // Move, not enter: a row scrolled under a still mouse must not take the highlight.
+                    onMouseMove={() => setActiveIndex(index)}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       handleSelect(opt);
@@ -259,11 +301,10 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
           role="combobox"
           aria-expanded={open}
           aria-haspopup="listbox"
+          ref={comboRef}
           tabIndex={disabled ? -1 : 0}
           onClick={handleOpen}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") handleOpen();
-          }}
+          onKeyDown={handleTriggerKeyDown}
         >
           <span className="ss-icon ss-icon--search">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

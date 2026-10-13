@@ -2343,10 +2343,13 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-trigger:hover,
+.ss-trigger:focus,
 .ss-wrapper--open .ss-trigger {
   border-color: var(--bd-blue);
 }
 
+/* Focused (Tab or after a pick) reads the same as open, like the AntD inputs beside it. */
+.ss-trigger:focus,
 .ss-wrapper--open .ss-trigger {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
@@ -2492,8 +2495,10 @@ body::-webkit-scrollbar-track {
   text-overflow: ellipsis;
 }
 
-.ss-option:hover {
-  background: #eef0ff;
+/* The row under the mouse or the arrow keys — one highlight for both. */
+.ss-option--active,
+.ss-option--selected.ss-option--active {
+  background: var(--bd-blue-pale-hover);
 }
 
 .ss-option--selected {
@@ -2502,9 +2507,6 @@ body::-webkit-scrollbar-track {
   font-weight: 500;
 }
 
-.ss-option--selected:hover {
-  background: #eef0ff;
-}
 
 .ss-empty {
   padding: 12px 14px;
