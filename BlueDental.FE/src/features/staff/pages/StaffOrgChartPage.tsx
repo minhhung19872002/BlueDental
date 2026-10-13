@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
-import { t } from "@/lib/i18n";
-import { useOrgChart, type OrgUnitDto } from "../api/orgChartApi";
+import { t, tRich } from "@/lib/i18n";
+import { ORG_UNIT_KIND, useOrgChart, type OrgStaffDto, type OrgUnitDto } from "../api/orgChartApi";
 import { OrgAssignDialog } from "../components/org-chart/OrgAssignDialog";
 import { OrgChartHistoryModal } from "../components/org-chart/OrgChartHistoryModal";
 import { OrgChartToolbar } from "../components/org-chart/OrgChartToolbar";
@@ -20,6 +21,11 @@ import "../components/org-chart/org-chart.css";
 
 /** Matches the CSS breakpoint where the detail card drops below the tree. */
 const SINGLE_COLUMN_QUERY = "(max-width: 1100px)";
+
+/** The root reads as its role, "Tổng giám đốc", not as the clinic name it carries. */
+function unitTitle(unit: OrgUnitDto): string {
+  return unit.kind === ORG_UNIT_KIND.Root ? t("OrgChart:Kind:Root") : unit.name;
+}
 
 /** Nhân viên → Sơ đồ tổ chức (/staff/org-chart). BlueDental-local — docs/clone/pages/org-chart.md. */
 export function StaffOrgChartPage() {
@@ -48,12 +54,15 @@ export function StaffOrgChartPage() {
   const { pending } = actions;
   const editing = pending.kind === "edit" ? pending.unit : null;
   const deleting = pending.kind === "delete" ? pending.unit : null;
+  const removing = pending.kind === "removeMember" ? pending : null;
 
   const detailActions = ability.canUpdate
     ? {
         onEdit: (unit: OrgUnitDto) => actions.open({ kind: "edit", unit }),
         onAddMembers: (unitId: string) => actions.open({ kind: "assign", unitId }),
         onChangeRootHead: () => actions.open({ kind: "rootHead" }),
+        onRemoveMember: (unit: OrgUnitDto, person: OrgStaffDto) =>
+          actions.open({ kind: "removeMember", unit, person }),
       }
     : undefined;
 
@@ -112,6 +121,24 @@ export function StaffOrgChartPage() {
         note={t("OrgChart:Delete:Note")}
         pending={actions.deleting}
         onConfirm={actions.removeUnit}
+        onClose={actions.close}
+      />
+      <ConfirmDialog
+        open={removing !== null}
+        title={t("OrgChart:RemoveMember:Title")}
+        message={
+          removing && (
+            <>
+              {tRich("OrgChart:RemoveMember:Question", <strong>{removing.person.name}</strong>, unitTitle(removing.unit))}
+              <br />
+              {t("OrgChart:RemoveMember:Note")}
+            </>
+          )
+        }
+        confirmLabel={t("OrgChart:RemoveMember:Confirm")}
+        cancelLabel={t("Common:Cancel")}
+        pending={actions.removingMember}
+        onConfirm={actions.removeMember}
         onClose={actions.close}
       />
       <OrgAssignDialog

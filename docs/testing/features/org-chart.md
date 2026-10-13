@@ -3,7 +3,24 @@
 BA mockup + notes 2026-10-09, owner answers 2026-10-10. BlueDental-local, nothing
 measured on the reference. Behaviour and API: `docs/clone/pages/org-chart.md`.
 
-Status: `VERIFIED` (2026-10-10, uncommitted; re-verified after the BA answers, R-891, and after the BA-mock UI pass, R-892, after the panel-foot fix, R-893, and after the 50/50 buttons + responsive pass, R-894).
+Status: `VERIFIED` (2026-10-10, uncommitted; re-verified after the BA answers, R-891, and after the BA-mock UI pass, R-892, after the panel-foot fix, R-893, and after the 50/50 buttons + responsive pass, R-894; re-verified 2026-10-13 after R-918: Thêm thành viên + × on the root).
+
+## BA 2026-10-13 (R-918)
+
+- "Thêm thành viên" on the Tổng giám đốc: BS tới may run a team of their own.
+- Its member dentists see only themselves on Lịch làm việc / Chấm công (rule 4 of
+  the scope, unchanged). Non-dentists keep their permissions (BA answer A).
+- Owner chose option B: a × per member, with a confirm, logged as
+  "Gỡ khỏi đơn vị" (action 6). Removing a unit's head is refused (`0014`).
+- Owner, same day: the × is red (`danger`) with the tooltip "Gỡ khỏi đơn vị", and
+  every unit's panel has it (Phòng ban, Team, root), not only the root. The head's
+  row has none.
+- Evidence: Domain `OrgChartTests` 20/20 (new: a dentist in the root's team sees
+  only themself, a non-dentist is not narrowed), Application `OrgChart` 12/12
+  (RemoveMemberAsync needs `OrgChart.Update`), e2e `org-chart-api` 5/5 (new test 5)
+  and `org-chart` 3/3 (new UI tests: root Thêm thành viên + × with tooltip and
+  Hủy/Gỡ; a team member removed from the panel, the head row without ×) on vite
+  preview :8113 → host :5000 → PostgreSQL.
 
 ## Owner decisions (2026-10-10)
 

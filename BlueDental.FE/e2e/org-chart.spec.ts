@@ -14,6 +14,7 @@ import { call, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/tim
  */
 
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
+const ROOT_ID = "0f9a0000-0000-4000-8000-000000000001";
 
 function dialog(page: Page) {
   return page.locator(".org-unit-dialog");
@@ -41,7 +42,11 @@ test.describe("Sơ đồ tổ chức — screen", () => {
     for (const unit of chart.body.units?.filter((u) => u.name === unitName) ?? []) {
       await call(page, `/api/v1/app/org-chart/units/${unit.id}`, { method: "DELETE", branchId: BRANCH_ONE });
     }
-    if (dentist) await deleteStaff(page, dentist.id);
+    if (dentist) {
+      // A no-op unless a failed run left the dentist in the Tổng giám đốc's own team.
+      await call(page, `/api/v1/app/org-chart/units/${ROOT_ID}/members/${dentist.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+      await deleteStaff(page, dentist.id);
+    }
   });
 
   test("a team is added through the dialog, survives a reload, shows in the history and is deleted from Sửa đơn vị", async ({ page }) => {
@@ -125,5 +130,105 @@ test.describe("Sơ đồ tổ chức — screen", () => {
 
     await page.reload();
     await expect(page.locator(".org-node").filter({ hasText: unitName })).toHaveCount(0);
+  });
+
+  test("the Tổng giám đốc takes members through Thêm thành viên and loses one only after a confirm", async ({ page }) => {
+    await openOrgChart(page);
+    const unassigned = page.locator(".org-unassigned__title");
+    await expect(unassigned).toHaveText(/\(\d+\)/);
+    const freeBefore = Number((await unassigned.textContent())?.match(/\((\d+)\)/)?.[1]);
+
+    // The panel opens on the root; it now has Thêm thành viên beside Đổi người đứng đầu (BA 2026-10-13).
+    const detail = page.getByRole("complementary", { name: /chi tiết|đơn vị/i });
+    await expect(detail.getByRole("button", { name: "Đổi người đứng đầu" })).toBeVisible();
+    await detail.getByRole("button", { name: "Thêm thành viên" }).click();
+    const assign = page.locator(".app-dialog").filter({ hasText: "Thêm thành viên" });
+    await expect(assign.locator(".bd-modal-subtitle")).toHaveText("Tổng giám đốc");
+    await assign.getByLabel("Thêm thành viên…").fill(run);
+    await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: run }).first().click();
+    await expect(assign.getByRole("listitem").filter({ hasText: run })).toHaveCount(1);
+    const assigned = page.waitForResponse((r) => r.url().endsWith("/api/v1/app/org-chart/assign") && r.request().method() === "POST");
+    await assign.getByRole("button", { name: "Lưu" }).click();
+    expect((await assigned).status()).toBeLessThan(300);
+    await expect(page.getByText("Đã phân nhân sự vào đơn vị")).toBeVisible();
+    await expect(unassigned).toContainText(`(${freeBefore - 1})`);
+
+    await page.reload();
+    const member = detail.locator(".org-detail__members .org-person__name").filter({ hasText: run });
+    await expect(member).toBeVisible();
+
+    // × asks first; Hủy leaves the person where they are.
+    const removeButton = detail.getByRole("button", { name: new RegExp(`^Bỏ .*${run}.* khỏi đơn vị$`) });
+    await removeButton.hover();
+    await expect(page.getByRole("tooltip", { name: "Gỡ khỏi đơn vị" })).toBeVisible();
+    await removeButton.click();
+    const confirm = page.getByRole("dialog", { name: "Gỡ thành viên" });
+    await expect(confirm).toContainText(new RegExp(`Gỡ E2E ${run}.* khỏi Tổng giám đốc\\?`));
+    await expect(confirm).toContainText("Chưa thuộc đơn vị nào");
+    await confirm.getByRole("button", { name: "Hủy" }).click();
+    await expect(confirm).toBeHidden();
+    await expect(member).toBeVisible();
+
+    await removeButton.click();
+    const removed = page.waitForResponse((r) => r.url().includes(`/units/${ROOT_ID}/members/`) && r.request().method() === "DELETE");
+    await confirm.getByRole("button", { name: /Gỡ$/ }).click();
+    expect((await removed).status()).toBeLessThan(300);
+    await expect(page.getByText("Đã gỡ nhân sự khỏi đơn vị")).toBeVisible();
+    await expect(member).toBeHidden();
+    await expect(unassigned).toContainText(`(${freeBefore})`);
+
+    await page.reload();
+    await expect(detail.locator(".org-detail__members .org-person__name").filter({ hasText: run })).toHaveCount(0);
+    await expect(unassigned).toContainText(`(${freeBefore})`);
+
+    await page.getByRole("button", { name: "Lịch sử thay đổi" }).click();
+    const historyModal = page.locator(".org-history-modal");
+    // Newest first: the removal heads the log, above the assignment it undid.
+    await expect(historyModal.locator(".ant-table-row").first()).toContainText("Gỡ khỏi đơn vị");
+    await expect(historyModal.locator(".ant-table-row").nth(1)).toContainText("Phân vào đơn vị");
+  });
+
+  test("a team member is removed straight from the panel, the head is not", async ({ page }) => {
+    const nurse = await createRunStaff(page, BRANCH_ONE, `${run}m`, { name: `NV ${run}` });
+    try {
+      const created = await call<{ id: string }>(page, "/api/v1/app/org-chart/units", {
+        method: "POST",
+        branchId: BRANCH_ONE,
+        json: { kind: 3, name: unitName, parentId: ROOT_ID, headStaffId: dentist.id, memberStaffIds: [nurse.id] },
+      });
+      expect(created.status, JSON.stringify(created.body.error)).toBe(200);
+
+      await openOrgChart(page);
+      await page.locator(".org-node").filter({ hasText: unitName }).click();
+      const detail = page.getByRole("complementary", { name: /chi tiết|đơn vị/i });
+      const rows = detail.locator(".org-detail__members .org-person");
+      await expect(rows).toHaveCount(2);
+      // The head leaves only through a head change, so their row has no ×.
+      await expect(rows.filter({ hasText: "Trưởng" }).getByRole("button")).toHaveCount(0);
+
+      const removeButton = detail.getByRole("button", { name: new RegExp(`^Bỏ .*${run}m.* khỏi đơn vị$`) });
+      await removeButton.hover();
+      await expect(page.getByRole("tooltip", { name: "Gỡ khỏi đơn vị" })).toBeVisible();
+      await removeButton.click();
+      const confirm = page.getByRole("dialog", { name: "Gỡ thành viên" });
+      await expect(confirm).toContainText(new RegExp(`Gỡ E2E ${run}m.* khỏi ${unitName}\\?`));
+      const removed = page.waitForResponse((r) => r.url().includes(`/units/${created.body.id}/members/${nurse.id}`) && r.request().method() === "DELETE");
+      await confirm.getByRole("button", { name: /Gỡ$/ }).click();
+      expect((await removed).status()).toBeLessThan(300);
+      await expect(page.getByText("Đã gỡ nhân sự khỏi đơn vị")).toBeVisible();
+      await expect(rows).toHaveCount(1);
+
+      await page.reload();
+      await page.locator(".org-node").filter({ hasText: unitName }).click();
+      await expect(rows).toHaveCount(1);
+      await expect(rows).toContainText("Trưởng");
+    } finally {
+      // The team goes first: its members, the nurse included, fall back to unassigned.
+      const chart = await call<{ units: { id: string; name: string }[] }>(page, "/api/v1/app/org-chart", { branchId: BRANCH_ONE });
+      for (const unit of chart.body.units?.filter((u) => u.name === unitName) ?? []) {
+        await call(page, `/api/v1/app/org-chart/units/${unit.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+      }
+      await deleteStaff(page, nurse.id);
+    }
   });
 });

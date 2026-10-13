@@ -31,9 +31,12 @@ Layout, top to bottom:
   badge and rows Lịch làm việc / Chấm công / Các màn hình khác ("Theo phân quyền được
   cấp"); Cấp dưới trực tiếp listed by head name + unit; members (a Phòng ban or the
   root lists them only when someone besides the head sits there).
-- Panel foot (R-893): plain **Sửa đơn vị** · **Thêm thành viên** on Phòng ban and Team
-  ("Chỉ có nhánh phòng ban / hoặc team bác sĩ mới có chức năng này"), **Đổi người đứng
-  đầu** on the root. The panel is capped at the screen height and its body scrolls, so
+- Panel foot (R-893): plain **Sửa đơn vị** · **Thêm thành viên** on Phòng ban and Team,
+  **Đổi người đứng đầu** · **Thêm thành viên** on the root (R-918, BA 2026-10-13:
+  "trong trường hợp BS tới vẫn phải quản lý team"). In every unit's members list, the
+  root's included, each member other than the head has a red × (tooltip "Gỡ khỏi đơn
+  vị"; owner 2026-10-13: teams too, not only through Sửa đơn vị). It asks first ("Gỡ
+  thành viên — Gỡ {người} khỏi {đơn vị}?", the person returns to "Chưa thuộc đơn vị nào"). The panel is capped at the screen height and its body scrolls, so
   the foot is always at the bottom of the card. The two buttons split the row 50/50 (R-894).
 - Responsive (R-894): ≤1100 the card drops under the tree, the tree scrolls sideways
   inside its card, and tapping a node scrolls the card into view; ≤640 the
@@ -59,8 +62,8 @@ Layout, top to bottom:
   The chart is one tree for the whole clinic.
 - A staff member heads at most one unit and belongs to at most one unit. The head
   of a unit cannot be a plain member elsewhere.
-- Only Phòng ban and Team bác sĩ have members ("Chỉ có nhánh phòng ban / hoặc team
-  bác sĩ mới có chức năng này"). Members show as a list.
+- ~~Only Phòng ban and Team bác sĩ have members.~~ BA, 2026-10-13: the root takes
+  members too, the Tổng giám đốc's own team (R-918). Members show as a list.
 
 ## Rules (BA note → behaviour)
 
@@ -70,7 +73,8 @@ Layout, top to bottom:
 | "check trùng match case – hiển thị recommend – tên đã tồn tại thì không cho tạo" | Name compared ignoring case and repeated spaces, accents kept, across the whole system. The dialog suggests existing names while typing and shows "Tên đơn vị đã tồn tại"; server refuses `0001`. Code likewise `0002` |
 | "Phòng ban chỉ under Tổng giám đốc; Team bác sĩ chọn Phòng ban hoặc Tổng giám đốc" | Parent picker offers only those; server refuses `0003` |
 | "Bắt buộc phải có 1 người làm trưởng đơn vị" | Form rule + server `0004` |
-| "Ghi nhận lại log trên 1 popup" | Every write logs a row (Tạo / Sửa / Xoá / Đổi trưởng đơn vị / Gán nhân sự) shown in the history popup: search, action and date filters, paged |
+| "BS tới vẫn phải quản lý team" (BA, 2026-10-13, R-918) | "Thêm thành viên" on the root; × removes one member after a confirm (`DELETE /units/{id}/members/{staffId}`, idempotent). The head cannot be removed from their own unit (`0014`) |
+| "Ghi nhận lại log trên 1 popup" | Every write logs a row (Tạo / Sửa / Xoá / Đổi trưởng đơn vị / Gán nhân sự / Gỡ khỏi đơn vị) shown in the history popup: search, action and date filters, paged |
 | Delete (owner answer 6) | Xoá sits inside "Sửa đơn vị"; a Phòng ban with teams is refused (`0007`); members of a deleted unit become unassigned |
 | Team head (BA, 2026-10-10, replaces owner answer 7) | Anyone, dentist or not: "ai cũng được vì có trường hợp team lễ tân cũng có trưởng phòng". `0008` and `0009` are retired |
 
@@ -85,6 +89,11 @@ team chỉ thấy lịch của mình; user ngoài bác sĩ thấy hết (theo ph
 2. head of the root → no restriction;
 3. head of a unit → self + every member and head in that unit's subtree;
 4. any other dentist, in a unit or not → self only.
+
+BA (2026-10-13, R-918): "Các member trong team sẽ không đc thấy lịch của các bác sĩ
+khác cũng như các nhánh cây bên dưới" — a dentist in the Tổng giám đốc's own team
+falls under rule 4 (self only). Asked whether a non-dentist there should be narrowed
+too: "(A) Không, giữ như hiện tại. Giới hạn chỉ áp dụng cho bác sĩ" — rule 1 stays.
 
 BA (2026-10-10): "em xem sao cho phù hợp là được" — kept as above. A non-dentist
 head (e.g. a lễ tân trưởng phòng) falls under rule 1 and keeps what their
@@ -112,6 +121,7 @@ PUT    /api/v1/app/org-chart/units/{id}              (same body)
 DELETE /api/v1/app/org-chart/units/{id}
 PUT    /api/v1/app/org-chart/root/head               { headStaffId | null }
 POST   /api/v1/app/org-chart/assign                  { orgUnitId, staffIds[] }
+DELETE /api/v1/app/org-chart/units/{id}/members/{staffId}   (update; head → 0014; logs action 6 MemberRemoved)
 ```
 
 Tables `bd_org_units`, `bd_org_unit_members`, `bd_org_unit_change_logs`

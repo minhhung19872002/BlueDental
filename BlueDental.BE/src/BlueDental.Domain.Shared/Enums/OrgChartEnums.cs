@@ -24,6 +24,7 @@ public enum OrgChartAction : short
     Deleted = 3,
     HeadChanged = 4,
     MembersAssigned = 5,
+    MemberRemoved = 6,
 }
 
 public static class OrgUnitConsts

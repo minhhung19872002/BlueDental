@@ -7913,6 +7913,22 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 - Tổng 21/21. `tsc -b` và eslint sạch, `dotnet build` 0 lỗi.
 - Bổ sung (mức 1, theo ảnh chụp của chủ dự án): nhiều quầy với tên dài làm bảng "Quản lý quầy" tràn ngang và cắt mất cột Thao tác. Modal rộng 860 → 1000. Bảng dùng `tableLayout="fixed"` và bỏ `scroll x: max-content`. Các cột Đã cấp đến 110, Ngưỡng cảnh báo 170, Trạng thái 150, Thao tác 96 rộng cố định; Tên quầy và Bác sĩ chia phần còn lại, tên dài cắt "…" và rê chuột thì hiện đủ. Đã kiểm bằng ảnh chụp ở viewport 1896 và 1280 với một quầy tạm tên 48 ký tự (tạo rồi xoá): bảng 958 = khung 958, không có thanh cuộn ngang. Chưa sửa: gọi API trực tiếp với tên quá 50 ký tự trả 500 thay vì 400 (form đã chặn bằng `maxLength`).
 
+## R-918 (2026-10-13, mức 2: F-67) "Thêm thành viên" cho nhánh Tổng giám đốc + gỡ thành viên có xác nhận
+
+**Yêu cầu.** BA: thêm nút "Thêm thành viên" ở nhánh Tổng giám đốc, vì BS tới vẫn có thể trực tiếp quản lý một team. Các thành viên trong team đó không được thấy lịch của bác sĩ khác và các nhánh bên dưới. BA trả lời câu hỏi phạm vi: (A) chỉ giới hạn bác sĩ, tiếp tân vẫn thấy tất cả theo phân quyền. Chủ dự án chọn cách B: mỗi thành viên của gốc có nút × để gỡ, phải hỏi xác nhận.
+
+**Sửa.**
+- BE: `DELETE /api/v1/app/org-chart/units/{id}/members/{staffId}` (`RemoveMemberAsync`, quyền `OrgChart.Update`). Gỡ người đứng đầu đơn vị → `BlueDental:OrgChart:0014`. Gỡ người không có trong đơn vị → không làm gì. Mỗi lần gỡ ghi lịch sử với action mới `MemberRemoved = 6` ("Gỡ khỏi đơn vị", danh sách thành viên trước/sau).
+- Phạm vi dữ liệu không đổi: bác sĩ là thành viên (kể cả của gốc) chỉ thấy mình; người không phải bác sĩ không bị thu hẹp. Có test domain mới khoá lại.
+- FE: panel gốc có "Đổi người đứng đầu" · "Thêm thành viên" (chia 50/50). Danh sách thành viên của gốc có nút × cho mọi người trừ người đứng đầu. Bấm × mở `ConfirmDialog` "Gỡ thành viên", xác nhận rồi mới gọi API, toast "Đã gỡ nhân sự khỏi đơn vị". Hộp phạm vi ở gốc cũng hiện dòng "bác sĩ thành viên chỉ thấy lịch của mình". Lịch sử có pill cam "Gỡ khỏi đơn vị". Mọi chữ qua i18n vi/en.
+
+**Kiểm chứng.** Build production (vite preview 8113) → host 5000 → PostgreSQL, đăng nhập thật, không chặn request.
+- Domain `OrgChartTests` 20/20, Application `OrgChart` 12/12.
+- `org-chart-api` 5/5. Test mới: phân B (bác sĩ) và Y (không phải bác sĩ) vào gốc. B đăng nhập chỉ thấy mình; admin không phải bác sĩ thấy tất cả. Gỡ B → B về "chưa thuộc đơn vị", lịch sử action 6 có trước/sau đúng. Gỡ lại là no-op. Gỡ trưởng team → 0014.
+- `org-chart` 2/2. Test UI mới: panel gốc → Thêm thành viên → chọn bác sĩ → Lưu → toast, số "chưa thuộc" giảm 1, reload vẫn còn. Bấm × → hộp xác nhận → Hủy thì người vẫn còn → bấm × lại → Gỡ → DELETE thành công, toast, số "chưa thuộc" trở lại, reload vẫn mất. Lịch sử: dòng mới nhất "Gỡ khỏi đơn vị", ngay dưới là "Phân vào đơn vị".
+- `tsc -b` và eslint sạch, `dotnet build` 0 lỗi.
+- Bổ sung (chủ dự án, cùng ngày): nút × hover không có tooltip, và nên gỡ được ngay trên panel ở mọi đơn vị chứ không riêng gốc; nút nên màu đỏ. Sửa: × hiện ở danh sách thành viên của mọi Phòng ban / Team / gốc (trừ người đứng đầu), `danger` đỏ, bọc `Tooltip` "Gỡ khỏi đơn vị". Hộp xác nhận ghi tên đơn vị thật ("Gỡ … khỏi {team}?"). Thêm test UI "a team member is removed straight from the panel, the head is not": dòng trưởng team không có ×, hover hiện tooltip, xác nhận → DELETE, reload chỉ còn trưởng. Test gốc cũng kiểm tooltip. `org-chart` 3/3 + `org-chart-api` 5/5 = 8/8 trên vite preview 8113. Ảnh chụp: × đỏ, tooltip nằm ngay trên nút.
+
 ## R-919 (2026-10-13, mức 2: F-69) Cột Action của file nhập danh sách bệnh nhân: A thêm mới, E chỉ sửa, D xoá
 
 **Yêu cầu.** BA: thêm action "A" = Thêm mới. Nếu dữ liệu không tồn tại mà action là E thì báo lỗi, không cho import. Trước đây E vừa thêm vừa sửa. Chủ dự án chốt: A trùng Mã khách hàng đã có thì báo lỗi (không tự đổi sang sửa). A có Mã khách hàng chưa dùng thì tạo bệnh nhân với đúng mã đó, để trống thì cấp mã DH kế tiếp. File xuất có drop-down A/E/D ở cột Action.
@@ -7933,3 +7949,4 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
   - "payment dialog momo": phụ thuộc dữ liệu, đã biết.
   - "Đặt mới … blocks": chập chờn, chạy lại xanh.
   - data-migration "every Khách hàng column": `catalogPicks` chọn mục nghề nghiệp rác "Thợ 791507" trong DB local nên lưu thành nghề tự do. Lỗi do dữ liệu; phần DataMigration chỉ đổi visibility.
+- Hồi quy cấp 3 cho R-918 (cùng ngày, vite preview 8113 → host 5000 → PostgreSQL, 12 spec: org-chart*, staff, staff-day-off-api, staff-penalty(-api), staff-employment, timekeeping(-api, -leave), work-schedule-own-dayoff, doctor-day-off-pickers): **30 pass, 5 đỏ** — đúng 5 đỏ có sẵn đã chứng minh ở HEAD ngày 2026-10-10 (timekeeping KPI testid đã mất; doctor-day-off-pickers ×3: picker drift + "the branch needs a patient"; staff-employment UI do dữ liệu tăng, sort theo tên 20/trang). Không đỏ nào do F-67/R-918. Đã xoá 1 user "Nhân viên hồ sơ …" bị sót do `finally` không chạy.

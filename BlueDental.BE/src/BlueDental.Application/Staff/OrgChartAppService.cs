@@ -232,6 +232,36 @@ public class OrgChartAppService(
         }
     }
 
+    /// <summary>
+    /// Gỡ one member back to "Chưa thuộc đơn vị nào" — the root has no Sửa đơn
+    /// vị dialog to drop people from (BA, 2026-10-13). The head stays: change
+    /// the head first. Someone already gone is a no-op, so a stale screen is harmless.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.OrgChart.Update)]
+    public async Task RemoveMemberAsync(Guid unitId, Guid staffId)
+    {
+        var unit = await unitRepository.GetAsync(unitId);
+        var staff = await LoadStaffAsync();
+        if (unit.HeadStaffId == staffId)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.OrgChart.HeadCannotLeave)
+                .WithData("staff", NameOf(staffId, staff) ?? "")
+                .WithData("unit", unit.Name);
+        }
+
+        var before = await memberRepository.GetListAsync(m => m.OrgUnitId == unitId);
+        var row = before.FirstOrDefault(m => m.StaffId == staffId);
+        if (row is null)
+        {
+            return;
+        }
+
+        await memberRepository.DeleteAsync(row, autoSave: true);
+        var beforeIds = before.Select(m => m.StaffId).ToList();
+        await LogAsync(unit, OrgChartAction.MemberRemoved,
+            [new("members", Names(beforeIds, staff), Names(beforeIds.Where(id => id != staffId), staff))]);
+    }
+
     public async Task<PagedResultDto<OrgUnitChangeLogDto>> GetHistoryAsync(GetOrgChartHistoryInput input)
     {
         var query = await logRepository.GetQueryableAsync();

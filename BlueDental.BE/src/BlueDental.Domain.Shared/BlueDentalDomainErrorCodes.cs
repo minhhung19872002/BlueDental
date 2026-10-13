@@ -477,6 +477,8 @@ public static class BlueDentalDomainErrorCodes
         public const string OutsideScheduleScope = "BlueDental:OrgChart:0012";
         /// <summary>A staff member who heads a Phòng ban / Team cannot be deleted until someone else heads it.</summary>
         public const string StaffHeadsUnit = "BlueDental:OrgChart:0013";
+        /// <summary>The head cannot be removed from their own unit; change the head first.</summary>
+        public const string HeadCannotLeave = "BlueDental:OrgChart:0014";
     }
 
     /// <summary>Marketing → Ticket (F-55). BlueDental-local.</summary>

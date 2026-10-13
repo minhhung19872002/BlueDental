@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import {
   useOrgChartCommands,
   type CreateOrgUnitInput,
+  type OrgStaffDto,
   type OrgUnitDto,
   type OrgUnitInput,
 } from "../api/orgChartApi";
@@ -14,6 +15,7 @@ export type OrgChartPending =
   | { kind: "create" }
   | { kind: "edit" | "delete"; unit: OrgUnitDto }
   | { kind: "assign"; unitId: string | null }
+  | { kind: "removeMember"; unit: OrgUnitDto; person: OrgStaffDto }
   | { kind: "rootHead" }
   | { kind: "history" };
 
@@ -62,6 +64,12 @@ export function useOrgChartActions() {
   const changeRootHead = (headStaffId: string | null) =>
     void run(() => commands.changeRootHead.mutateAsync(headStaffId), t("OrgChart:Toast:HeadChanged"));
 
+  const removeMember = () => {
+    if (pending.kind !== "removeMember") return;
+    const input = { unitId: pending.unit.id, staffId: pending.person.id };
+    void run(() => commands.removeMember.mutateAsync(input), t("OrgChart:Toast:MemberRemoved"));
+  };
+
   return {
     pending,
     open: setPending,
@@ -70,9 +78,11 @@ export function useOrgChartActions() {
     removeUnit,
     assign,
     changeRootHead,
+    removeMember,
     saveError: commands.create.error ?? commands.update.error,
     saving: commands.create.isPending || commands.update.isPending,
     assigning: commands.assign.isPending || commands.changeRootHead.isPending,
     deleting: commands.remove.isPending,
+    removingMember: commands.removeMember.isPending,
   };
 }

@@ -39,4 +39,7 @@ public sealed class OrgChartController(IOrgChartAppService service) : BlueDental
 
     [HttpPost("assign")]
     public Task AssignAsync([FromBody] AssignOrgUnitMembersDto input) => service.AssignAsync(input);
+
+    [HttpDelete("units/{unitId:guid}/members/{staffId:guid}")]
+    public Task RemoveMemberAsync(Guid unitId, Guid staffId) => service.RemoveMemberAsync(unitId, staffId);
 }

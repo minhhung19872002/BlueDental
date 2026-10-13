@@ -491,6 +491,11 @@
   color: var(--bd-purple);
 }
 
+.org-pill--orange {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+
 /* ── Detail panel ─────────────────────────────────────────────────────────── */
 /* The card never runs past the screen: its body scrolls and the action buttons
    stay at the foot of the card, as on the BA mock. */
