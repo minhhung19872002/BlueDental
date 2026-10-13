@@ -435,6 +435,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A "Loại hợp đồng" value the list does not have.</summary>
         public const string InvalidContractType = "BlueDental:Staff:0011";
+
+        /// <summary>A negative "Mức độ ưu tiên".</summary>
+        public const string InvalidPriority = "BlueDental:Staff:0012";
     }
 
     public static class StaffPenalty

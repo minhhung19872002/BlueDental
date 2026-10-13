@@ -51,7 +51,12 @@ export interface ReceptionDoctor {
   branchIds?: string[];
   /** The "Bác sĩ" tick on the staff form. */
   isDentist: boolean;
+  /** "Mức độ ưu tiên" on the staff form: a lower number comes first. */
+  priority: number;
 }
+
+/** Lowest "Mức độ ưu tiên" first; a tie keeps the server's name order. */
+const byPriority = (a: ReceptionDoctor, b: ReceptionDoctor) => a.priority - b.priority;
 
 /**
  * Every active doctor of the branch, in one page: a doctor missing from the
@@ -75,7 +80,8 @@ async function fetchReceptionDoctors(branchId?: string, availableOn?: string): P
     title: s.roleNames[0] ?? t("Reception:Doctor"),
     branchIds: s.branchIds,
     isDentist: s.isDentist,
-  }));
+    priority: s.priority,
+  })).sort(byPriority);
 }
 
 /** Every doctor at the branch — the board's filters, whoever is off today. */
@@ -83,6 +89,10 @@ export function useReceptionDoctors(branchId?: string) {
   return useQuery({
     queryKey: ["receptionDoctors", branchId],
     queryFn: () => fetchReceptionDoctors(branchId),
+    // "Mức độ ưu tiên" is often changed on Nhân viên in another tab; coming
+    // back re-reads it — fresh or not — and the board follows the new order
+    // (rankDoctorIds).
+    refetchOnWindowFocus: "always",
   });
 }
 

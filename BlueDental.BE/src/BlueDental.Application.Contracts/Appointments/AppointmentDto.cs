@@ -185,9 +185,9 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     public Guid? DentistId { get; set; }
 
     /// <summary>
-    /// The reception board's Bác sĩ filter: visits of any of these dentists. The
-    /// order is the board's priority — the list comes back grouped by dentist in
-    /// this order, then by start time.
+    /// The reception board's Bác sĩ filter: visits of any of these dentists,
+    /// grouped by dentist in their "Mức độ ưu tiên" (staff form), then by start
+    /// time. The order they are listed in here does not matter.
     /// </summary>
     public List<Guid>? DentistIds { get; set; }
 

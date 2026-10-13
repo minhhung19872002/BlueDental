@@ -31,6 +31,9 @@ public class StaffDto : EntityDto<Guid>, IStaffEmploymentFields
     public bool IsAssistant { get; set; }
     public bool IsHygienist { get; set; }
 
+    /// <summary>"Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first.</summary>
+    public int Priority { get; set; }
+
     /// <summary>
     /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
     /// its branches' IP ranges (Cụm 11 mục 11).
@@ -143,6 +146,9 @@ public class CreateStaffDto : IStaffEmploymentFields
     public bool IsAssistant { get; set; }
     public bool IsHygienist { get; set; }
 
+    /// <summary>"Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first.</summary>
+    public int Priority { get; set; }
+
     /// <summary>
     /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
     /// its branches' IP ranges (Cụm 11 mục 11).
@@ -211,6 +217,9 @@ public class UpdateStaffDto : IStaffEmploymentFields
     public bool IsDentist { get; set; }
     public bool IsAssistant { get; set; }
     public bool IsHygienist { get; set; }
+
+    /// <summary>"Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first.</summary>
+    public int Priority { get; set; }
 
     /// <summary>
     /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside

@@ -7841,3 +7841,23 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
   - "payment dialog momo": phụ thuộc dữ liệu, đã biết.
   - "Đặt mới … blocks": chập chờn, chạy lại xanh.
   - data-migration "every Khách hàng column": `catalogPicks` chọn mục nghề nghiệp rác "Thợ 791507" trong DB local nên lưu thành nghề tự do. Lỗi do dữ liệu; phần DataMigration chỉ đổi visibility.
+
+## R-906 (2026-10-13, mức 2: Nhân viên + Tiếp nhận + API lịch hẹn) Lọc nhiều bác sĩ theo "Mức độ ưu tiên" lấy từ hồ sơ nhân viên, thay cho kéo-thả (sửa R-904)
+
+**Yêu cầu (chủ sở hữu):** khi lọc nhiều bác sĩ, thứ tự hiển thị phải theo độ ưu tiên giống danh mục: mỗi nhân viên có ô "Mức độ ưu tiên" (đúng tên này, không phải "Thứ tự ưu tiên"), mặc định là 0, giống ô cùng tên ở dialog "Thêm dịch vụ". Người dùng không kéo-thả để sắp xếp trong ô lọc nữa.
+
+**Thay đổi:**
+- BE: thêm thuộc tính mở rộng `Priority` của IdentityUser, xử lý trong `StaffPriority` ở Domain (đọc, ghi, sắp xếp). Mặc định là 0; nhân viên lưu trước khi có trường này cũng được tính là 0. Giá trị âm bị từ chối với lỗi `BlueDental:Staff:0012`. Thêm `int Priority` vào `StaffDto`, `CreateStaffDto` và `UpdateStaffDto`. `AppointmentAppService.GetListAsync` sắp xếp theo mức ưu tiên tăng dần, cùng mức thì theo tên, áp dụng cho cả `DentistIds` (từ 2 bác sĩ trở lên) lẫn `DoctorTeamId`. Thứ tự gửi lên trong request không còn ảnh hưởng.
+- FE: thêm ô "Mức độ ưu tiên" (`StaffPriorityField`) vào form nhân viên, nhãn `Common:Priority`, InputNumber mặc định 0, tối thiểu 0, giống `ServiceDialog`. `SortableMultiSearchSelect` đổi tên thành `RankedMultiSearchSelect`: các bác sĩ đã chọn xếp theo thứ tự của danh sách option, tức là theo mức ưu tiên. Bỏ tay nắm kéo-thả và phím ↑/↓; `PriorityList` chỉ còn đánh số và nút ✕. Danh sách bác sĩ ở Tiếp nhận sắp theo mức ưu tiên bằng sort ổn định, nên những người cùng mức giữ thứ tự tên.
+- Làm mới khi đổi mức ưu tiên: lúc đầu, nếu sửa mức ưu tiên ở tab Nhân viên khác thì bảng Tiếp nhận đang mở vẫn giữ thứ tự cũ. Nguyên nhân là danh sách bác sĩ được cache 5 phút, còn `refetchOnWindowFocus` tắt cho toàn app. Cách sửa gồm hai phần. Thứ nhất, `useReceptionDoctors` dùng `refetchOnWindowFocus: "always"`, nên quay lại tab là danh sách bác sĩ được đọc lại. Thứ hai, ReceptionPage gửi `doctorIds` đã xếp lại theo danh sách bác sĩ mới nhất (`rankDoctorIds`). Khi thứ tự đổi thì key của query thay đổi, nên bảng tự tải lại theo thứ tự mới.
+- i18n: `Staff:PriorityHint`, `Staff:PriorityInvalid`, `Common:PriorityFromStaff`, `BlueDental:Staff:0012`.
+
+**Kiểm chứng (backend thật + build production `vite preview` 8080, không chặn API):**
+- `reception-doctor-priority.spec` (viết lại, 4/4):
+  - API nhóm lịch hẹn theo mức ưu tiên, request gửi theo thứ tự nào cũng vậy. Đổi mức (kể cả về 0) thì thứ tự đảo theo.
+  - Trên trình duyệt: bấm A trước B, nhưng B có mức nhỏ hơn thì request là `[B,A]`, danh sách đánh số B trước A, không có tay nắm kéo, thẻ đầu tiên là của B. Bấm ✕ bỏ được một người.
+  - Form nhân viên: nhân viên mới có mức 0; lưu 3 thì tải lại trang vẫn còn 3; xoá trống thì về 0. API từ chối -1 (403, `Staff:0012`).
+  - Sửa mức ưu tiên ở tab khác rồi quay lại: bảng đang lọc A, B gửi lại request với `[B,A]`, thẻ và danh sách đánh số đổi theo. Kiểm chứng ngược: tắt refetch thì test này đỏ.
+- Hồi quy:
+  - Xanh: `reception-doctor-team` 3/3, `reception-own-doctor` 6/6, `reception-doctor-list` 2/2, `staff-employment` 2/2.
+  - `staff.spec` đỏ ở bước chọn chi nhánh "Nha Khoa Đức Hạnh Premium". DB local đã tích luỹ hàng chục chi nhánh test ("CN HOA HONG …"), danh sách cuộn ảo tháo option khỏi DOM đúng lúc đang click. Đã chạy lại khi bỏ thay đổi form nhân viên và test vẫn đỏ y hệt, nên lỗi có từ trước.

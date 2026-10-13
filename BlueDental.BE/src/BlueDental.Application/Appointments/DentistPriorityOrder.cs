@@ -6,7 +6,7 @@ namespace BlueDental.Appointments;
 
 /// <summary>
 /// The reception board's doctor priority: a visit ranks by where its dentist
-/// stands in the picked list. Built as a chain of CASE branches so the database
+/// stands in the ranked list. Built as a chain of CASE branches so the database
 /// sorts it and paging stays correct.
 /// </summary>
 internal static class DentistPriorityOrder

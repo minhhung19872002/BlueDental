@@ -1,5 +1,5 @@
 import React from "react";
-import { SearchSelect, SortableMultiSearchSelect } from "@/components/SearchSelect";
+import { SearchSelect, RankedMultiSearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type { ReceptionDoctor } from "../api/receptionQueries";
 import type { DoctorFilter } from "../hooks/useDoctorFilter";
@@ -26,9 +26,10 @@ export const ReceptionDoctorFilters: React.FC<ReceptionDoctorFiltersProps> = ({ 
     />
   );
   const doctorSelect = (
-    <SortableMultiSearchSelect
+    <RankedMultiSearchSelect
       value={filter.doctorIds}
       placeholder={t("Reception:Doctor")}
+      rankHint={t("Common:PriorityFromStaff")}
       options={doctors.map((d) => ({ value: d.id, label: d.name }))}
       onChange={filter.selectDoctors}
     />

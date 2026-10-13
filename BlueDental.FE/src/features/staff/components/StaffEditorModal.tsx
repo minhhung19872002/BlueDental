@@ -23,6 +23,7 @@ import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
 import { StaffDiscountLimitFields } from "./StaffDiscountLimitFields";
 import { StaffEmploymentFields } from "./StaffEmploymentFields";
+import { StaffPriorityField } from "./StaffPriorityField";
 import type { ContractType, StaffDto } from "../api/staffApi";
 import { t } from "@/lib/i18n";
 
@@ -41,6 +42,7 @@ export interface StaffFormValues {
   isDentist: boolean;
   isAssistant: boolean;
   isHygienist: boolean;
+  priority: number;
   allowLoginOutsideOffice: boolean;
   allowLoginOutsideHours: boolean;
   maxDiscountPercent?: number | null;
@@ -123,6 +125,7 @@ export function StaffEditorModal({
           isDentist: staff.isDentist,
           isAssistant: staff.isAssistant,
           isHygienist: staff.isHygienist,
+          priority: staff.priority,
           allowLoginOutsideOffice: staff.allowLoginOutsideOffice,
           allowLoginOutsideHours: staff.allowLoginOutsideHours,
           maxDiscountPercent: staff.maxDiscountPercent ?? undefined,
@@ -168,6 +171,8 @@ export function StaffEditorModal({
         isDentist: values.isDentist ?? false,
         isAssistant: values.isAssistant ?? false,
         isHygienist: values.isHygienist ?? false,
+        // A cleared field comes back undefined: the default, 0.
+        priority: values.priority ?? 0,
         allowLoginOutsideOffice: values.allowLoginOutsideOffice ?? false,
         allowLoginOutsideHours: values.allowLoginOutsideHours ?? false,
         // A cleared field comes back undefined: no limit.
@@ -277,6 +282,7 @@ export function StaffEditorModal({
           isDentist: false,
           isAssistant: false,
           isHygienist: false,
+          priority: 0,
           allowLoginOutsideOffice: false,
           allowLoginOutsideHours: false,
           branchIds: [],
@@ -490,6 +496,8 @@ export function StaffEditorModal({
               <Checkbox>{t("Staff:RoleMedic")}</Checkbox>
             </Form.Item>
         </div>
+
+        <StaffPriorityField />
 
         {/* Cụm 11 mục 11 — only matters for a branch with an IP list */}
         <Form.Item

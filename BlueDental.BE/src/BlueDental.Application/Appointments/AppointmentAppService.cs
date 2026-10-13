@@ -8,6 +8,7 @@ using BlueDental.CustomerCare;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
+using BlueDental.Staff;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -61,8 +62,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
 
-        // Several doctors picked on the board: their visits come in that order.
-        var priority = input.DentistIds?.Distinct().ToList() ?? [];
+        var priority = await DentistPriorityAsync(input);
         var ordered = (priority.Count > 1
                 ? query.OrderBy(DentistPriorityOrder.RankOf(priority)).ThenBy(a => a.Slot.Start)
                 : query.OrderBy(a => a.Slot.Start))
@@ -77,6 +77,27 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await FillNamesAsync(items, dtos);
 
         return new PagedResultDto<AppointmentDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// Several doctors on the board — picked one by one or as a Nhóm bác sĩ:
+    /// their visits come by each doctor's "Mức độ ưu tiên" on the staff form,
+    /// whatever order the request named them in.
+    /// </summary>
+    private async Task<List<Guid>> DentistPriorityAsync(GetAppointmentListInput input)
+    {
+        var dentistIds = input.DentistIds is { Count: > 1 }
+            ? input.DentistIds.Distinct().ToList()
+            : input.DoctorTeamId.HasValue
+                ? await _doctorTeams.GetMemberIdsAsync(input.DoctorTeamId.Value)
+                : [];
+        if (dentistIds.Count < 2) return dentistIds;
+
+        var ranked = StaffPriority.Order(await _userRepository.GetListByIdsAsync(dentistIds))
+            .Select(u => u.Id)
+            .ToList();
+        // An id with no account behind it any more goes last.
+        return [.. ranked, .. dentistIds.Except(ranked)];
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]

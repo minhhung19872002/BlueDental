@@ -29,3 +29,14 @@ export function useDoctorFilter() {
 }
 
 export type DoctorFilter = ReturnType<typeof useDoctorFilter>;
+
+/**
+ * The picked doctors in the order of `doctors` — their "Mức độ ưu tiên". A
+ * doctor renumbered on the staff form reorders the list the next time
+ * `doctors` is read, and with it the board's query key, so the board asks
+ * again in the new order. A pick not in `doctors` keeps its place at the end.
+ */
+export function rankDoctorIds(doctorIds: string[], doctors: { id: string }[]): string[] {
+  const ranked = doctors.filter((d) => doctorIds.includes(d.id)).map((d) => d.id);
+  return [...ranked, ...doctorIds.filter((id) => !ranked.includes(id))];
+}

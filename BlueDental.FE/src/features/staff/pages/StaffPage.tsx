@@ -117,6 +117,7 @@ export function StaffPage() {
       isDentist: values.isDentist,
       isAssistant: values.isAssistant,
       isHygienist: values.isHygienist,
+      priority: values.priority,
       allowLoginOutsideOffice: values.allowLoginOutsideOffice,
       allowLoginOutsideHours: values.allowLoginOutsideHours,
       maxDiscountPercent: values.maxDiscountPercent ?? null,

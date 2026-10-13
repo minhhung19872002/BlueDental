@@ -1,5 +1,5 @@
 export { SearchSelect } from "./SearchSelect";
 export { PatientSearchSelect } from "./PatientSearchSelect";
-export { SortableMultiSearchSelect } from "./SortableMultiSearchSelect";
+export { RankedMultiSearchSelect } from "./RankedMultiSearchSelect";
 export type { SearchSelectOption, SearchSelectProps } from "./SearchSelect";
-export type { SortableMultiSearchSelectProps } from "./SortableMultiSearchSelect";
+export type { RankedMultiSearchSelectProps } from "./RankedMultiSearchSelect";
