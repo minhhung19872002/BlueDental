@@ -101,10 +101,15 @@ public class DentistShiftChecker : ITransientDependency
             return false;
         }
 
-        var start = TimeOnly.FromDateTime(localStart.DateTime);
-        var end = TimeOnly.FromDateTime(localEnd.DateTime);
+        // Shifts are whole minutes; a client stamp carrying stray seconds or
+        // milliseconds (18:30:00.4 → 19:00:00.4) must not miss a 19:00 end.
+        var start = ToMinute(localStart);
+        var end = ToMinute(localEnd);
         return windows.Any(w => w.Start <= start && end <= w.End);
     }
+
+    private static TimeOnly ToMinute(DateTimeOffset local)
+        => new(local.Hour, local.Minute);
 
     /// <summary>"08:00-12:00, 13:00-17:00".</summary>
     public static string Describe(IEnumerable<ShiftWindow> windows)

@@ -41,6 +41,21 @@ public class DentistShiftCheckerTests
     }
 
     [Fact]
+    public void A_Slot_Ending_On_The_Shift_End_Fits_Despite_Stray_Milliseconds()
+    {
+        // Bug 2026-10-13 (Tạo tiếp nhận): the day came from dayjs() with its
+        // milliseconds, so 18:30-19:00 arrived as 18:30:00.437-19:00:00.437.
+        var record = Record().RescheduleShifts(
+            WorkShift.DefaultMorning(),
+            new WorkShift(WorkShiftKind.Afternoon, new TimeOnly(13, 0), new TimeOnly(19, 0)));
+        var windows = DentistShiftChecker.WorkingWindows(record);
+
+        Assert.True(DentistShiftChecker.Fits(
+            windows, At(18, 30).AddMilliseconds(437), At(19, 0).AddMilliseconds(437)));
+        Assert.False(DentistShiftChecker.Fits(windows, At(18, 45), At(19, 1)));
+    }
+
+    [Fact]
     public void A_Record_Wins_Over_The_Profile_Hours()
     {
         var dentist = new IdentityUser(Guid.NewGuid(), "bs.toi", "bs.toi@example.test");

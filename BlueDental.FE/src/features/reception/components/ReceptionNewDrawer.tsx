@@ -101,6 +101,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       .hour(time.hour())
       .minute(time.minute())
       .second(0)
+      .millisecond(0)
       .toISOString();
 
     createMutation.mutate(

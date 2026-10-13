@@ -128,6 +128,20 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     const late = await create(page, day, "20:00", "20:30");
     expect(late.body.error?.code).toBe(OUTSIDE_HOURS);
     expect(late.body.error?.message).toContain("08:00-12:00, 13:00-20:00");
+
+    // Bug 2026-10-13: a slot ending right on the shift end, stamped with stray
+    // milliseconds (Tạo tiếp nhận sent dayjs()'s), was refused.
+    const stamped = (time: string) => at(day, time).replace(".000Z", ".437Z");
+    const lastSlot = await call<Booking>(page, APPOINTMENTS, {
+      method: "POST",
+      branchId,
+      json: {
+        patientId, dentistId: dentist.id, branchId, type: 2,
+        slotStart: stamped("19:30"), slotEnd: stamped("20:00"), chiefComplaint: `e2e-giolam-${runId()}`,
+      },
+    });
+    expect(lastSlot.status, JSON.stringify(lastSlot.body.error)).toBe(200);
+    bookings.push(lastSlot.body.id);
   });
 
   test("no shift opened: the profile hours apply — 17:15 is booked against a 19:00 profile end, 19:15 refused", async ({ page }) => {
