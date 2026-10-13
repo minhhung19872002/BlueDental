@@ -632,6 +632,10 @@ public static class BlueDentalDomainErrorCodes
         public const string LinkUsed = "BlueDental:InvoiceRequest:0013";
         /// <summary>Only a payment receipt can be invoiced, not a refund or a cancelled one.</summary>
         public const string ReceiptNotEligible = "BlueDental:InvoiceRequest:0014";
+        /// <summary>The receipt was "Hủy phiếu": its QR and its link are void.</summary>
+        public const string ReceiptCancelled = "BlueDental:InvoiceRequest:0015";
+        /// <summary>A personal invoice (Cá nhân) needs the CCCD.</summary>
+        public const string NationalIdRequired = "BlueDental:InvoiceRequest:0016";
     }
 
     /// <summary>PHIẾU THU printed by Phát Hành in the Hóa đơn dialog.</summary>

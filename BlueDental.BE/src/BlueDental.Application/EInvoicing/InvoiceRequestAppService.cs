@@ -152,7 +152,7 @@ public class InvoiceRequestAppService(
             await sources.NextCodeAsync(payment.ClinicBranchId),
             InvoiceRequestSource.Staff,
             // A phone hidden from this account comes back masked: keep the one on file.
-            DetailsOf(input, PatientPhoneMask.IsMasked(input.Phone) ? patient.Contact?.PhoneNumber : input.Phone),
+            DetailsOf(input, PatientPhoneMask.IsMasked(input.Phone) ? patient.Contact?.PhoneNumber : input.Phone, patient.FullName),
             await sources.ServiceNameAsync(payment),
             payment.Amount,
             DateTimeOffset.UtcNow);
@@ -165,7 +165,7 @@ public class InvoiceRequestAppService(
     public async Task<InvoiceRequestDto> UpdateAsync(Guid id, UpdateInvoiceRequestDto input)
     {
         var request = await LoadAsync(id);
-        request.UpdateDetails(DetailsOf(input, PatientPhoneMask.IsMasked(input.Phone) ? request.Phone : input.Phone));
+        request.UpdateDetails(DetailsOf(input, PatientPhoneMask.IsMasked(input.Phone) ? request.Phone : input.Phone, request.FullName));
         return await SaveAsync(request);
     }
 
@@ -201,8 +201,11 @@ public class InvoiceRequestAppService(
         return await SaveAsync(request);
     }
 
-    internal static InvoiceRequestDetails DetailsOf(InvoiceRequestFormDto input, string? phone) => new(
-        input.FullName, input.BirthYear, phone, input.NationalId, input.PersonalAddress,
+    /// <summary>A Công ty request does not ask the name: it keeps <paramref name="nameOnFile"/>.</summary>
+    internal static InvoiceRequestDetails DetailsOf(InvoiceRequestFormDto input, string? phone, string nameOnFile) => new(
+        input.IsCompany,
+        input.IsCompany ? nameOnFile : input.FullName,
+        input.BirthYear, phone, input.NationalId, input.PersonalAddress,
         input.CompanyName, input.TaxCode, input.CompanyAddress, input.Email, input.WantsPaperInvoice);
 
     private async Task<IQueryable<InvoiceRequest>> ScopedAsync(Guid? patientId, Guid? clinicBranchId)

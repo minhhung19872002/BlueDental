@@ -7857,3 +7857,42 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 **Kiểm chứng.** Build production :8081 → host :5000 → PostgreSQL. Ảnh chụp điện thoại 390 và desktop 1280 của trang QR, dialog staff, tờ in (PDF 1 trang). `invoice-request-ui` 1/1, `invoice-request-api` 1/1, `patient-permission-gates` 1/1.
 
 **Spec cập nhật.** Heading form QR giờ là h2 của tờ giấy (level 2). `.pir-static` → `.inv-paper__field`, `.ir-paper` → `.inv-paper`. Label Email có dấu ":" nên dùng `getByLabel(/^Email/)`.
+
+## R-914 (2026-10-13, mức 1: F-71 trang QR) BA: bỏ dòng gợi ý "Để trống để giữ …"
+
+**Yêu cầu.** BA khoanh 3 dòng xám dưới SĐT, Căn cước công dân và Địa chỉ cá nhân trên trang QR: "Bỏ cái place holder này giúp anh".
+
+**Sửa.**
+- Bỏ `extra` gợi ý che trên SĐT, CCCD, địa chỉ và email. Bỏ hàm `keepHint`, prop `extra` của `PaperInput` / `PaperLinedInput`, và khóa i18n `PublicInvoiceRequest:KeepHint`.
+- Hành vi giữ nguyên: để trống thì giữ thông tin phòng khám đã có. SĐT và Email chỉ bắt buộc khi phòng khám chưa có.
+
+**Kiểm chứng.** Build production → host → PostgreSQL. `invoice-request-ui` và `invoice-request-api`.
+
+## R-915 (2026-10-13, mức 2: F-71 + Thanh toán) Hủy phiếu thu bỏ quên yêu cầu xuất HĐ đang mở
+
+**Triệu chứng.** Chi tiết YC-HD-0025 → "Sao chép link QR" báo "Không có thực thể nào PatientPayment với id = …". Phiếu thu của yêu cầu đã bị "Hủy phiếu" (xoá mềm), còn yêu cầu vẫn ở Chờ xử lý. QR in trên PHIẾU THU cũng chỉ ra trang "không tìm thấy".
+
+**Nguyên nhân.** `PatientPaymentAppService.CancelAsync` dọn hóa đơn điện tử nháp nhưng không đụng tới `InvoiceRequest`. `InvoiceRequestSources.EligiblePaymentAsync` không phân biệt phiếu đã hủy với id không tồn tại.
+
+**Sửa.**
+- Hủy phiếu thu thì hủy luôn mọi yêu cầu đang mở của phiếu đó (Chờ xử lý / Đang xử lý / Cần bổ sung). Lý do ghi "Phiếu thu đã bị hủy: {lý do hủy phiếu}". Yêu cầu Đã xuất HĐ giữ nguyên làm lịch sử. Service chuyển sang kế thừa `BlueDentalAppService` để `L[]` dịch được.
+- Phiếu đã hủy trả mã lỗi mới `BlueDental:InvoiceRequest:0015` ("Phiếu thu này đã bị hủy …"). Mã này dùng cho link QR công khai, Sao chép link, Tạo yêu cầu và bản nháp. Id không tồn tại vẫn trả 404.
+- Trang QR: gặp mã 0015 thì hiện thông báo "Phiếu thu đã bị hủy", không hiện form.
+- Sau khi bị hủy, nút Sao chép link QR tự biến mất vì yêu cầu đã đóng.
+- Migration dữ liệu `20261013090000_CancelOrphanInvoiceRequests` hủy các yêu cầu mồ côi có sẵn. Local đã hủy 5 yêu cầu: YC-HD-0020, 0025, 0027, 0028, 0029.
+
+**Kiểm chứng.** Build production (vite preview 8098) → host 5000 → PostgreSQL.
+- `invoice-request-api` có test mới "R-915". Test giữ một yêu cầu ở Đang xử lý và một ở Đã xuất HĐ, rồi hủy cả hai phiếu. Kết quả: yêu cầu đang xử lý thành Đã hủy kèm lý do, yêu cầu đã xuất giữ trạng thái 4 và số HĐ. Link và QR công khai trả 403/0015, và trang QR hiện tiêu đề "Phiếu thu đã bị hủy". Spec này cùng `invoice-request-ui` đạt 3/3.
+- Hồi quy thanh toán (`billing-ledger`, `debt-history`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-receipt-pdf`, `payment-status`) đạt 21/21.
+
+## R-916 (2026-10-13, mức 2: F-71) Loại hóa đơn Cá nhân / Công ty trên form xuất HĐ
+
+**Yêu cầu.** BA mockup: form THÔNG TIN XUẤT HÓA ĐƠN thêm lựa chọn "Loại hóa đơn" ☐ Cá nhân ☐ Công ty. Cá nhân bắt buộc Tên khách hàng, SĐT, CCCD và ẩn phần công ty + Email. Công ty ẩn phần thông tin cá nhân, bắt buộc Tên công ty, MST, Email. Chủ dự án chọn: áp dụng cả trang QR lẫn dialog "Tạo yêu cầu xuất HĐ", chọn sẵn Cá nhân.
+
+**Sửa.**
+- BE: `InvoiceRequestFormDto.IsCompany`, `FullName` hết `[Required]`. `InvoiceRequestDetails` nhận loại, bỏ các dòng của loại kia rồi mới kiểm. Mã lỗi mới `BlueDental:InvoiceRequest:0016` (thiếu CCCD). Công ty giữ tên bệnh nhân làm `FullName`, `Phone = ""`; Cá nhân `Email = ""` (cột NOT NULL, không cần migration).
+- FE: `PaperChoices` dùng chung cho Có/Không và Cá nhân/Công ty. Trang QR, dialog nhân viên và tờ Chi tiết hiện đúng phần theo loại; body gửi đi chỉ chứa dòng của loại đã chọn. Cột Người yêu cầu hiện Email cho Công ty, SĐT cho Cá nhân.
+
+**Kiểm chứng.** Build production (vite preview 8098, `dist-r916`) → host 5000 → PostgreSQL.
+- `invoice-request-api` + `invoice-request-ui` đạt 3/3 (có thêm các assert R-916: 0016, 0003, bỏ dòng loại kia, Cá nhân chọn sẵn, đổi sang Công ty thì các dòng đổi theo).
+- Hồi quy thanh toán (`billing-ledger`, `debt-history`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-receipt-pdf`, `payment-status`) đạt 21/21.

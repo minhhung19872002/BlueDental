@@ -55,17 +55,33 @@ public class PublicInvoiceRequestAppService(
         await sources.EnsureNoLiveRequestAsync(payment.Id);
         var patient = await patients.GetAsync(link.PatientId);
 
-        var details = new InvoiceRequestDetails(
-            Kept(input.FullName, patient.FullName),
-            input.BirthYear ?? patient.DateOfBirth?.Year,
-            Kept(input.Phone, patient.Contact?.PhoneNumber),
-            Kept(input.NationalId, patient.NationalId),
-            Kept(input.PersonalAddress, patient.Contact?.Address ?? patient.OldAddress),
-            input.CompanyName,
-            input.TaxCode,
-            input.CompanyAddress,
-            Kept(input.Email, patient.Contact?.Email),
-            input.WantsPaperInvoice);
+        // Loại hóa đơn (R-916): Công ty keeps only the patient's name of the
+        // personal lines; Cá nhân does not ask the Email.
+        var details = input.IsCompany
+            ? new InvoiceRequestDetails(
+                true,
+                patient.FullName,
+                null,
+                null,
+                null,
+                null,
+                input.CompanyName,
+                input.TaxCode,
+                input.CompanyAddress,
+                Kept(input.Email, patient.Contact?.Email),
+                input.WantsPaperInvoice)
+            : new InvoiceRequestDetails(
+                false,
+                Kept(input.FullName, patient.FullName),
+                input.BirthYear ?? patient.DateOfBirth?.Year,
+                Kept(input.Phone, patient.Contact?.PhoneNumber),
+                Kept(input.NationalId, patient.NationalId),
+                Kept(input.PersonalAddress, patient.Contact?.Address ?? patient.OldAddress),
+                null,
+                null,
+                null,
+                null,
+                input.WantsPaperInvoice);
 
         var request = InvoiceRequest.Create(
             GuidGenerator.Create(),

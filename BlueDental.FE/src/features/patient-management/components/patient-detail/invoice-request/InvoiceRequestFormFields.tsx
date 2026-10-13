@@ -1,4 +1,4 @@
-import { Input, InputNumber } from "antd";
+import { Form, Input, InputNumber } from "antd";
 import {
   InvoicePaper,
   PaperChoiceInput,
@@ -14,21 +14,18 @@ import { formRules } from "./invoiceRequestForm";
 
 const field = (key: string) => t(`Patient:InvoiceRequest:Field:${key}`);
 
+type Rules = ReturnType<typeof formRules>;
+
 /** Dịch vụ / Số tiền of the receipt; blank lines until one is picked. */
 export interface InvoiceRequestSummary {
   serviceName?: string | null;
   amount: number;
 }
 
-/**
- * The BA's paper THÔNG TIN XUẤT HÓA ĐƠN filled in on screen, line for line,
- * minus Cân nặng / Chiều cao (written by hand on the printed sheet). No
- * personal / company switch: the company lines stay optional under the note.
- */
-export function InvoiceRequestFormFields({ summary }: { summary?: InvoiceRequestSummary }) {
-  const rules = formRules();
+/** Cá nhân: who the invoice is for. */
+function PersonalLines({ rules }: { rules: Rules }) {
   return (
-    <InvoicePaper title={t("Patient:InvoiceRequest:SheetTitle")}>
+    <>
       <PaperRow>
         <PaperInput label={field("FullName")} name="fullName" required rules={rules.fullName} width="name">
           <Input maxLength={200} />
@@ -41,7 +38,7 @@ export function InvoiceRequestFormFields({ summary }: { summary?: InvoiceRequest
         </PaperInput>
       </PaperRow>
       <PaperRow>
-        <PaperInput label={field("NationalId")} name="nationalId" rules={rules.nationalId}>
+        <PaperInput label={field("NationalId")} name="nationalId" required rules={rules.nationalId}>
           <Input maxLength={12} inputMode="numeric" />
         </PaperInput>
       </PaperRow>
@@ -50,15 +47,22 @@ export function InvoiceRequestFormFields({ summary }: { summary?: InvoiceRequest
         name="personalAddress"
         maxLength={500}
       />
+    </>
+  );
+}
 
+/** Công ty: the company lines and the Email the invoice goes to. */
+function CompanyLines({ rules }: { rules: Rules }) {
+  return (
+    <>
       <PaperNote>{t("Patient:InvoiceRequest:CompanyNote")}</PaperNote>
       <PaperRow>
-        <PaperInput label={field("CompanyName")} name="companyName" rules={rules.companyName}>
+        <PaperInput label={field("CompanyName")} name="companyName" required rules={rules.companyName}>
           <Input maxLength={200} />
         </PaperInput>
       </PaperRow>
       <PaperRow>
-        <PaperInput label={field("TaxCode")} name="taxCode" rules={rules.taxCode}>
+        <PaperInput label={field("TaxCode")} name="taxCode" required rules={rules.taxCode}>
           <Input maxLength={13} inputMode="numeric" />
         </PaperInput>
       </PaperRow>
@@ -72,6 +76,27 @@ export function InvoiceRequestFormFields({ summary }: { summary?: InvoiceRequest
           <Input maxLength={256} inputMode="email" />
         </PaperInput>
       </PaperRow>
+    </>
+  );
+}
+
+/**
+ * The BA's paper THÔNG TIN XUẤT HÓA ĐƠN filled in on screen, minus Cân nặng /
+ * Chiều cao (written by hand on the printed sheet). Loại hóa đơn (R-916) shows
+ * either the personal lines or the company lines + Email.
+ */
+export function InvoiceRequestFormFields({ summary }: { summary?: InvoiceRequestSummary }) {
+  const form = Form.useFormInstance();
+  const isCompany = Form.useWatch("isCompany", form) ?? false;
+  const rules = formRules();
+  const kinds = [
+    { value: false, label: t("Patient:InvoiceRequest:Personal") },
+    { value: true, label: t("Patient:InvoiceRequest:Company") },
+  ];
+  return (
+    <InvoicePaper title={t("Patient:InvoiceRequest:SheetTitle")}>
+      <PaperChoiceInput label={field("InvoiceKind")} name="isCompany" options={kinds} />
+      {isCompany ? <CompanyLines rules={rules} /> : <PersonalLines rules={rules} />}
       <PaperRow>
         <PaperText label={field("Service")} value={summary?.serviceName} strong />
       </PaperRow>

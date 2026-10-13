@@ -199,13 +199,14 @@ public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
         var valid = details.Validated();
         FullName = valid.FullName!;
         BirthYear = valid.BirthYear;
-        Phone = valid.Phone!;
+        // Công ty asks no phone and Cá nhân no email: the columns keep an empty string.
+        Phone = valid.Phone ?? string.Empty;
         NationalId = valid.NationalId;
         PersonalAddress = valid.PersonalAddress;
         CompanyName = valid.CompanyName;
         TaxCode = valid.TaxCode;
         CompanyAddress = valid.CompanyAddress;
-        Email = valid.Email!;
+        Email = valid.Email ?? string.Empty;
         WantsPaperInvoice = valid.WantsPaperInvoice;
     }
 

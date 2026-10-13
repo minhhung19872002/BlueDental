@@ -97,6 +97,10 @@ span.inv-paper__field {
   font-weight: 700;
   text-align: center;
 }
+/* Loại hóa đơn at the top keeps the row gap; the last choice closes the sheet. */
+.inv-paper__row--choices:not(:last-child) {
+  margin-bottom: 18px;
+}
 .inv-paper__row--choices {
   flex-wrap: wrap;
   align-items: center;
@@ -180,7 +184,6 @@ span.inv-paper__field {
 .inv-paper .inv-paper__control .ant-form-item-control-input {
   min-height: 0;
 }
-.inv-paper .inv-paper__control .ant-form-item-extra,
 .inv-paper .inv-paper__control .ant-form-item-explain {
   font-size: 13px;
 }

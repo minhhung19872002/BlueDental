@@ -24,7 +24,10 @@ export interface PublicInvoiceRequestFormDto {
 
 /** The THÔNG TIN XUẤT HÓA ĐƠN answers; a blank contact field keeps the one on file. */
 export interface PublicInvoiceRequestSubmitDto {
-  fullName: string;
+  /** Loại hóa đơn: Công ty (true) or Cá nhân. */
+  isCompany: boolean;
+  /** Cá nhân only; Công ty takes the patient's name. */
+  fullName: string | null;
   birthYear: number | null;
   phone: string | null;
   nationalId: string | null;

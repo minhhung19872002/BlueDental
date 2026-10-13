@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Alert, Spin } from "antd";
-import { CheckCircleFilled, ClockCircleOutlined, FileDoneOutlined, DisconnectOutlined } from "@ant-design/icons";
+import { CheckCircleFilled, ClockCircleOutlined, CloseCircleOutlined, FileDoneOutlined, DisconnectOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import { describeApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
@@ -13,6 +13,9 @@ import {
 import { PublicInvoiceRequestForm } from "../components/PublicInvoiceRequestForm";
 import { toSubmitBody, type PublicInvoiceRequestValues } from "../components/publicInvoiceRequestValues";
 import "../components/public-invoice-request.css";
+
+/** The receipt behind the QR was "Hủy phiếu": the link is void for good. */
+const RECEIPT_CANCELLED = "BlueDental:InvoiceRequest:0015";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
@@ -62,6 +65,9 @@ export function PublicInvoiceRequestPage() {
         text={t("PublicInvoiceRequest:SuccessText", result.code, formatDateTime(result.dueAt))}
       />
     );
+  }
+  if (query.isError && describeApiError(query.error).code === RECEIPT_CANCELLED) {
+    return <Notice icon={<CloseCircleOutlined />} title={t("PublicInvoiceRequest:CancelledTitle")} text={t(RECEIPT_CANCELLED)} />;
   }
   const form = query.data;
   if (!form) {

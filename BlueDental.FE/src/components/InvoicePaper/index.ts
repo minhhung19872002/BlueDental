@@ -8,4 +8,4 @@ export {
   PaperText,
   type PaperWidth,
 } from "./InvoicePaper";
-export { PaperChoiceInput, PaperInput, PaperLinedInput } from "./PaperInputs";
+export { PaperChoiceInput, PaperInput, PaperLinedInput, type PaperOption } from "./PaperInputs";

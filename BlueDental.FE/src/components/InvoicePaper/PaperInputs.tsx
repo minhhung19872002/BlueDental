@@ -15,7 +15,6 @@ interface PaperInputProps {
   name: string;
   rules?: Rule[];
   required?: boolean;
-  extra?: ReactNode;
   width?: PaperWidth;
   strong?: boolean;
   children: ReactElement<PaperControlProps>;
@@ -35,12 +34,12 @@ function PaperLabel({ htmlFor, label, required }: { htmlFor: string; label: Reac
 }
 
 /** "Label: ……" whose dotted line is the input. */
-export function PaperInput({ label, name, rules, required, extra, width, strong, children }: PaperInputProps) {
+export function PaperInput({ label, name, rules, required, width, strong, children }: PaperInputProps) {
   const id = useId();
   return (
     <div className={paperFieldClass(width, strong)}>
       <PaperLabel htmlFor={id} label={`${label}:`} required={required} />
-      <Form.Item name={name} rules={rules} extra={extra} className="inv-paper__control">
+      <Form.Item name={name} rules={rules} className="inv-paper__control">
         {cloneElement(children, { id, variant: "borderless" })}
       </Form.Item>
     </div>
@@ -64,12 +63,11 @@ interface PaperLinedInputProps {
   label: string;
   name: string;
   rules?: Rule[];
-  extra?: ReactNode;
   maxLength: number;
 }
 
 /** "Label: (hint) ……" over two dotted lines: the text starts after the label, then runs full width. */
-export function PaperLinedInput({ label, name, rules, extra, maxLength }: PaperLinedInputProps) {
+export function PaperLinedInput({ label, name, rules, maxLength }: PaperLinedInputProps) {
   const id = useId();
   const labelRef = useRef<HTMLSpanElement>(null);
   const indent = useWidthOf(labelRef);
@@ -78,48 +76,64 @@ export function PaperLinedInput({ label, name, rules, extra, maxLength }: PaperL
       <span ref={labelRef} className="inv-paper__lined-label">
         <PaperLabel htmlFor={id} label={label} />
       </span>
-      <Form.Item name={name} rules={rules} extra={extra} className="inv-paper__control">
+      <Form.Item name={name} rules={rules} className="inv-paper__control">
         <Input.TextArea id={id} variant="borderless" maxLength={maxLength} autoSize={{ minRows: 2, maxRows: 6 }} />
       </Form.Item>
     </div>
   );
 }
 
-interface PaperYesNoProps {
+/** One ☐ of a paper choice. */
+export interface PaperOption {
+  value: boolean;
   label: string;
+}
+
+interface PaperChoicesProps {
+  label: string;
+  options: readonly PaperOption[];
   value?: boolean | null;
   onChange?: (value: boolean) => void;
 }
 
-const ANSWERS = [true, false] as const;
-
-/** ☐ Có ☐ Không as one choice; neither is ticked until one is picked. */
-function PaperYesNo({ label, value, onChange }: PaperYesNoProps) {
+/** ☐ A ☐ B as one choice; neither is ticked until one is picked. */
+function PaperChoices({ label, options, value, onChange }: PaperChoicesProps) {
   return (
     <span role="radiogroup" aria-label={label} className="inv-paper__choices">
-      {ANSWERS.map((answer) => (
+      {options.map((option) => (
         <button
-          key={String(answer)}
+          key={String(option.value)}
           type="button"
           role="radio"
-          aria-checked={value === answer}
+          aria-checked={value === option.value}
           className="inv-paper__choice inv-paper__choice--button"
-          onClick={() => onChange?.(answer)}
+          onClick={() => onChange?.(option.value)}
         >
-          <span className={value === answer ? "inv-paper__box inv-paper__box--checked" : "inv-paper__box"} aria-hidden="true" />
-          {answer ? t("Common:Yes") : t("Common:No")}
+          <span className={value === option.value ? "inv-paper__box inv-paper__box--checked" : "inv-paper__box"} aria-hidden="true" />
+          {option.label}
         </button>
       ))}
     </span>
   );
 }
 
-/** "Question: ☐ Có ☐ Không" bound to a boolean form field. */
-export function PaperChoiceInput({ label, name }: { label: string; name: string }) {
+interface PaperChoiceInputProps {
+  label: string;
+  name: string;
+  /** ☐ Có ☐ Không when left out. */
+  options?: readonly PaperOption[];
+}
+
+/** "Question: ☐ Có ☐ Không" (or the given options) bound to a boolean form field. */
+export function PaperChoiceInput({ label, name, options }: PaperChoiceInputProps) {
+  const choices = options ?? [
+    { value: true, label: t("Common:Yes") },
+    { value: false, label: t("Common:No") },
+  ];
   return (
     <PaperChoiceRow label={label}>
       <Form.Item name={name} noStyle>
-        <PaperYesNo label={label} />
+        <PaperChoices label={label} options={choices} />
       </Form.Item>
     </PaperChoiceRow>
   );

@@ -27,7 +27,10 @@ interface InvoiceRequest {
   patientPaymentId: string;
   paymentCode: string;
   fullName: string;
+  birthYear: number | null;
   phone: string;
+  nationalId: string | null;
+  email: string;
   companyName: string | null;
   taxCode: string | null;
   isCompany: boolean;
@@ -70,6 +73,7 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
     const viaQr = await writePendingOnFirstLine(page);
     const byStaff = await writePendingOnFirstLine(page);
     const created: string[] = [];
+    let patientName: string | undefined;
 
     try {
       // ── ① A red-invoice receipt prints its PHIẾU THU (QR inside) and owns one link ──
@@ -105,6 +109,7 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
         expect(form.body.paymentCode).toBe(viaQr.code);
         expect(form.body.amount).toBe(viaQr.amount);
         expect(String(form.body.fullName).length).toBeGreaterThan(0);
+        patientName = String(form.body.fullName);
         expect(form.body.submitted).toBe(false);
         expect(form.body.expired).toBe(false);
         for (const hint of ["phoneHint", "nationalIdHint"] as const) {
@@ -113,14 +118,18 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
         }
 
         const invalid = await json(await phone.post(`${PUBLIC}/${tokenOf(url)}`, {
-          data: { fullName: "Khách QR", companyName: "Công ty E2E", email: "e2e.qr@example.com" },
+          data: { isCompany: true, companyName: "Công ty E2E", email: "e2e.qr@example.com" },
         }));
         expect(invalid.status, "a company needs its MST").toBe(403);
         expect(errorCode(invalid.body)).toBe("BlueDental:InvoiceRequest:0004");
 
         const sent = await json(await phone.post(`${PUBLIC}/${tokenOf(url)}`, {
           data: {
+            isCompany: true,
+            // Công ty asks no personal lines: whatever comes is dropped (R-916).
             fullName: "Khách QR E2E",
+            phone: "0900000916",
+            nationalId: "012345678916",
             companyName: "Công ty TNHH E2E",
             taxCode: "0101234567",
             companyAddress: "1 Đường Thử, Hà Nội",
@@ -150,6 +159,9 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
       expect(request.source).toBe(1);
       expect(request.isCompany).toBe(true);
       expect(request.taxCode).toBe("0101234567");
+      expect(request.fullName, "Công ty keeps the patient's name, not the one typed").toBe(patientName);
+      expect([request.phone, request.nationalId, request.birthYear], "Công ty stores no personal lines").toEqual(["", null, null]);
+      expect(request.email).toBe("e2e.qr@example.com");
       expect(request.paymentCode).toBe(viaQr.code);
       expect(new Date(request.dueAt).getTime() - new Date(request.requestedAt).getTime()).toBe(24 * 3600 * 1000);
 
@@ -175,17 +187,17 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
       const edited = await call(page, `${REQUESTS}/${request.id}`, {
         method: "PUT",
         json: {
-          fullName: "Khách QR E2E",
+          isCompany: true,
           companyName: "Công ty TNHH E2E",
           taxCode: "0101234567",
           companyAddress: "2 Đường Đã Sửa, Hà Nội",
           email: "e2e.qr@example.com",
-          phone: request.phone,
           wantsPaperInvoice: true,
         },
       });
       expect(edited.status, JSON.stringify(edited.body)).toBe(200);
       expect(edited.body.companyAddress).toBe("2 Đường Đã Sửa, Hà Nội");
+      expect(edited.body.fullName, "an edit keeps the name on the request").toBe(patientName);
       expect(edited.body.status, "a fix sends it back to the queue").toBe(1);
 
       expect((await call(page, path("start"), { method: "POST" })).body.status).toBe(2);
@@ -209,12 +221,29 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
       expect(draft.status).toBe(200);
       expect(draft.body.paymentCode).toBe(byStaff.code);
       // The dialog sends the drafted phone back as it shows it, masked or not.
-      const staffForm = { patientPaymentId: byStaff.id, phone: draft.body.phone ?? "0900000071", email: "staff.e2e@example.com" };
+      const staffForm = { patientPaymentId: byStaff.id, phone: draft.body.phone ?? "0900000071", nationalId: "012345678971" };
+
+      // Loại hóa đơn (R-916): Cá nhân needs the CCCD, Công ty the Email.
+      const noCccd = await call(page, REQUESTS, {
+        method: "POST",
+        json: { ...staffForm, nationalId: null, fullName: String(draft.body.fullName) },
+      });
+      expect(noCccd.status, JSON.stringify(noCccd.body)).toBe(403);
+      expect(errorCode(noCccd.body)).toBe("BlueDental:InvoiceRequest:0016");
+      const noEmail = await call(page, REQUESTS, {
+        method: "POST",
+        json: { patientPaymentId: byStaff.id, isCompany: true, companyName: "Công ty E2E", taxCode: "0101234567" },
+      });
+      expect(noEmail.status, JSON.stringify(noEmail.body)).toBe(403);
+      expect(errorCode(noEmail.body)).toBe("BlueDental:InvoiceRequest:0003");
+
       const keyed = await call(page, REQUESTS, {
         method: "POST",
-        json: { ...staffForm, fullName: String(draft.body.fullName) },
+        // A company line sent with Cá nhân is dropped; the Email is not asked.
+        json: { ...staffForm, fullName: String(draft.body.fullName), companyName: "Bỏ qua", email: "staff.e2e@example.com" },
       });
       expect(keyed.status, JSON.stringify(keyed.body)).toBe(200);
+      expect([keyed.body.companyName, keyed.body.nationalId]).toEqual([null, "012345678971"]);
       created.push(String(keyed.body.id));
       expect(keyed.body.source).toBe(2);
       expect(keyed.body.isCompany).toBe(false);
@@ -256,6 +285,72 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
         await call(page, `${REQUESTS}/${id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
       }
       for (const receipt of [viaQr, byStaff]) {
+        await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
+      }
+    }
+  });
+
+  test("R-915: Hủy phiếu cancels its open request and voids the QR; an issued one stays", async ({ page, baseURL }) => {
+    await login(page);
+    await openNewSlip(page);
+    await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
+    const issuedOn = await writePendingOnFirstLine(page);
+    const openOn = await writePendingOnFirstLine(page);
+    const created: string[] = [];
+
+    try {
+      // One request carried to Đã xuất HĐ, one left in Đang xử lý, each with its QR.
+      await markRedInvoice(page, issuedOn);
+      const issuedLink = await call(page, `${REQUESTS}/links/${issuedOn.id}`, { method: "POST" });
+      const keyed = async (receipt: Receipt) => {
+        const draft = await call(page, `${REQUESTS}/draft/${receipt.id}`);
+        const res = await call(page, REQUESTS, {
+          method: "POST",
+          json: { patientPaymentId: receipt.id, fullName: String(draft.body.fullName), phone: draft.body.phone ?? "0900000915", nationalId: "012345678915" },
+        });
+        expect(res.status, JSON.stringify(res.body)).toBe(200);
+        created.push(String(res.body.id));
+        return String(res.body.id);
+      };
+      const issuedId = await keyed(issuedOn);
+      await call(page, `${REQUESTS}/${issuedId}/start`, { method: "POST" });
+      expect((await call(page, `${REQUESTS}/${issuedId}/complete`, { method: "POST", json: { invoiceNo: "0000915" } })).body.status).toBe(4);
+      const openId = await keyed(openOn);
+      expect((await call(page, `${REQUESTS}/${openId}/start`, { method: "POST" })).body.status).toBe(2);
+
+      for (const receipt of [issuedOn, openOn]) {
+        const res = await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e R-915" } });
+        expect(res.status, JSON.stringify(res.body)).toBeLessThan(300);
+      }
+
+      // Read back with separate GETs.
+      const open = await call(page, `${REQUESTS}/${openId}`);
+      expect(open.body.status, "the open request died with its receipt").toBe(5);
+      expect(String(open.body.reason)).toMatch(/^(Phiếu thu đã bị hủy|Receipt cancelled): e2e R-915$/);
+      const issued = await call(page, `${REQUESTS}/${issuedId}`);
+      expect(issued.body.status, "an issued request stays as history").toBe(4);
+      expect(issued.body.invoiceNo).toBe("0000915");
+
+      // The link button and the QR now say "cancelled", not "no entity".
+      const link = await call(page, `${REQUESTS}/links/${openOn.id}`, { method: "POST" });
+      expect(link.status).toBe(403);
+      expect(errorCode(link.body)).toBe("BlueDental:InvoiceRequest:0015");
+      const phone = await anonymous(baseURL ?? "http://127.0.0.1:8080");
+      try {
+        const form = await json(await phone.get(`${PUBLIC}/${tokenOf(String(issuedLink.body.url))}`));
+        expect(form.status).toBe(403);
+        expect(errorCode(form.body)).toBe("BlueDental:InvoiceRequest:0015");
+      } finally {
+        await phone.dispose();
+      }
+      await page.goto(`/invoice-request/${tokenOf(String(issuedLink.body.url))}`);
+      await expect(page.getByRole("heading", { name: /Phiếu thu đã bị hủy|Receipt cancelled/ })).toBeVisible();
+      await expect(page.locator("form")).toHaveCount(0);
+    } finally {
+      for (const id of created) {
+        await call(page, `${REQUESTS}/${id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
+      }
+      for (const receipt of [issuedOn, openOn]) {
         await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
       }
     }

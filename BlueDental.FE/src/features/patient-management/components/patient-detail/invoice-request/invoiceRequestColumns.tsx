@@ -41,7 +41,8 @@ function BuyerCell({ row }: { row: InvoiceRequestDto }) {
     <div className="ir-cell">
       <strong>{row.isCompany ? row.companyName ?? row.fullName : row.fullName}</strong>
       <small>{buyerKind(row)}</small>
-      <small>{row.email}</small>
+      {/* The contact each kind asks: Email for Công ty, SĐT for Cá nhân (R-916). */}
+      <small>{row.isCompany ? row.email : row.phone}</small>
     </div>
   );
 }

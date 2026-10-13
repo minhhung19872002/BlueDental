@@ -6,8 +6,10 @@ import type {
   PublicInvoiceRequestSubmitDto,
 } from "../api/publicInvoiceRequestApi";
 
+/** Only the lines of the chosen Loại hóa đơn are on screen, so any other may be missing. */
 export interface PublicInvoiceRequestValues {
-  fullName: string;
+  isCompany: boolean;
+  fullName?: string;
   birthYear?: number | null;
   phone?: string;
   nationalId?: string;
@@ -19,8 +21,10 @@ export interface PublicInvoiceRequestValues {
   wantsPaperInvoice: boolean;
 }
 
+/** Cá nhân is ticked first (BA, R-916). */
 export function initialValues(form: PublicInvoiceRequestFormDto): PublicInvoiceRequestValues {
   return {
+    isCompany: false,
     fullName: form.fullName,
     birthYear: form.birthYear,
     wantsPaperInvoice: false,
@@ -28,8 +32,9 @@ export function initialValues(form: PublicInvoiceRequestFormDto): PublicInvoiceR
 }
 
 /**
- * Built per render so the messages follow the language. A contact the clinic
- * already holds (it has a hint) may be left blank; the server keeps it.
+ * Built per render so the messages follow the language. Cá nhân needs name,
+ * phone and CCCD; Công ty needs company name, MST and email. A contact the
+ * clinic already holds (it has a hint) may be left blank; the server keeps it.
  */
 export function publicRules(form: PublicInvoiceRequestFormDto) {
   return {
@@ -41,7 +46,10 @@ export function publicRules(form: PublicInvoiceRequestFormDto) {
       { required: !form.phoneHint, whitespace: true, message: t("BlueDental:InvoiceRequest:0002") },
       { pattern: /^\d{8,15}$/, message: t("BlueDental:InvoiceRequest:0002") },
     ],
-    nationalId: [{ pattern: /^(\d{9}|\d{12})$/, message: t("BlueDental:InvoiceRequest:0006") }],
+    nationalId: [
+      { required: !form.nationalIdHint, whitespace: true, message: t("BlueDental:InvoiceRequest:0016") },
+      { pattern: /^(\d{9}|\d{12})$/, message: t("BlueDental:InvoiceRequest:0006") },
+    ],
     email: [
       { required: !form.emailHint, whitespace: true, message: t("BlueDental:InvoiceRequest:0003") },
       { type: "email", message: t("BlueDental:InvoiceRequest:0003") },
@@ -52,23 +60,20 @@ export function publicRules(form: PublicInvoiceRequestFormDto) {
 
 const blankToNull = (value: string | undefined) => (value?.trim() ? value.trim() : null);
 
-/** Blank company lines make it a personal invoice; a blank contact keeps the one on file. */
+/** Only the chosen kind's lines go out; a blank contact keeps the one on file. */
 export function toSubmitBody(values: PublicInvoiceRequestValues): PublicInvoiceRequestSubmitDto {
+  const company = values.isCompany;
   return {
-    fullName: values.fullName.trim(),
-    birthYear: values.birthYear ?? null,
-    phone: blankToNull(values.phone),
-    nationalId: blankToNull(values.nationalId),
-    personalAddress: blankToNull(values.personalAddress),
-    companyName: blankToNull(values.companyName),
-    taxCode: blankToNull(values.taxCode),
-    companyAddress: blankToNull(values.companyAddress),
-    email: blankToNull(values.email),
+    isCompany: company,
+    fullName: company ? null : blankToNull(values.fullName),
+    birthYear: company ? null : (values.birthYear ?? null),
+    phone: company ? null : blankToNull(values.phone),
+    nationalId: company ? null : blankToNull(values.nationalId),
+    personalAddress: company ? null : blankToNull(values.personalAddress),
+    companyName: company ? blankToNull(values.companyName) : null,
+    taxCode: company ? blankToNull(values.taxCode) : null,
+    companyAddress: company ? blankToNull(values.companyAddress) : null,
+    email: company ? blankToNull(values.email) : null,
     wantsPaperInvoice: values.wantsPaperInvoice,
   };
-}
-
-/** "Để trống để giữ 09******89" under a field the clinic already holds. */
-export function keepHint(hint: string | null): string | undefined {
-  return hint ? t("PublicInvoiceRequest:KeepHint", hint) : undefined;
 }

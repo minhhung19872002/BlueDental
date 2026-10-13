@@ -43,7 +43,7 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
       const publicPath = new URL(String(link.body.url)).pathname;
       expect(publicPath).toMatch(/^\/invoice-request\/[A-Za-z0-9_-]{43}$/);
 
-      // ── ① The customer's phone: no session, the receipt on top, contacts as hints ──
+      // ── ① The customer's phone: no session, the receipt on top, contacts hidden ──
       const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
       let qrCode = "";
       try {
@@ -51,11 +51,27 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
         await phone.goto(publicPath);
         await expect(phone.getByRole("heading", { name: "Thông tin xuất hóa đơn", level: 2 })).toBeVisible();
         await expect(phone.locator(".pir-head__receipt")).toContainText(viaQr.code);
-        // The paper's order: the MÃ SỐ THUẾ note over the company lines, Dịch vụ / Số tiền read-only.
+        // Loại hóa đơn (BA, R-916): Cá nhân ticked first, only the personal lines on screen.
+        const kind = phone.getByRole("radiogroup", { name: "Loại hóa đơn" });
+        await expect(kind.getByRole("radio", { name: "Cá nhân" })).toHaveAttribute("aria-checked", "true");
+        await expect(phone.getByLabel(/^Căn cước công dân/)).toBeVisible();
+        await expect(phone.getByLabel("Tên công ty")).toHaveCount(0);
+        await expect(phone.getByLabel(/^Email/)).toHaveCount(0);
+        await expect(phone.getByText("BẮT BUỘC phải ghi MÃ SỐ THUẾ")).toHaveCount(0);
+        await expect(phone.locator(".inv-paper__field", { hasText: "Số tiền:" })).toBeVisible();
+        // A contact on file stays hidden: blank line, no "Để trống để giữ …" hint (BA, R-914).
+        await expect(phone.getByLabel(/^SĐT/)).toHaveValue("");
+        await expect(phone.getByText(/Để trống để giữ/)).toHaveCount(0);
+
+        // Công ty swaps the personal lines for the MÃ SỐ THUẾ note, the company lines and Email.
+        await kind.getByRole("radio", { name: "Công ty" }).click();
+        await expect(kind.getByRole("radio", { name: "Công ty" })).toHaveAttribute("aria-checked", "true");
         await expect(phone.getByText("BẮT BUỘC phải ghi MÃ SỐ THUẾ")).toBeVisible();
+        await expect(phone.getByLabel(/^SĐT/)).toHaveCount(0);
+        await expect(phone.getByLabel(/^Căn cước công dân/)).toHaveCount(0);
         await expect(phone.locator(".inv-paper__field", { hasText: "Số tiền:" })).toBeVisible();
 
-        // No personal / company switch: one company line written asks for the other.
+        // Tên công ty and Mã số thuế are both required.
         await phone.getByLabel("Tên công ty").fill("Công ty TNHH E2E QR");
         await phone.getByRole("button", { name: "Gửi thông tin" }).click();
         await expect(phone.getByText("Xuất hóa đơn cho công ty cần nhập Tên công ty và Mã số thuế.").first()).toBeVisible();
@@ -115,7 +131,10 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
       await expect(dialog.getByLabel("Họ và tên")).not.toHaveValue("");
       const phoneField = dialog.getByLabel("SĐT");
       if (!(await phoneField.inputValue())) await phoneField.fill("0900000071");
-      await dialog.getByLabel("Email").fill("staff.e2e.ui@example.com");
+      // Cá nhân (the default) asks the CCCD, not the Email (R-916).
+      await expect(dialog.getByRole("radio", { name: "Cá nhân" })).toHaveAttribute("aria-checked", "true");
+      await expect(dialog.getByLabel("Email")).toHaveCount(0);
+      await dialog.getByLabel("Căn cước công dân").fill("012345678971");
       const posted = page.waitForResponse((res) => res.url().endsWith(REQUESTS) && res.request().method() === "POST");
       await dialog.getByRole("button", { name: "Lưu" }).click();
       const createdRes = await posted;

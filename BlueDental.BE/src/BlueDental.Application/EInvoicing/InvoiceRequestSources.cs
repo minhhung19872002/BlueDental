@@ -48,6 +48,16 @@ public class InvoiceRequestSources(
 
         if (payment == null)
         {
+            // "Hủy phiếu" soft-deletes the receipt: say so rather than "no entity".
+            using (dataFilter.Disable<ISoftDelete>())
+            using (dataFilter.Disable<ISettleable>())
+            {
+                if (await payments.AnyAsync(x => x.Id == patientPaymentId))
+                {
+                    throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.ReceiptCancelled);
+                }
+            }
+
             throw new EntityNotFoundException(typeof(PatientPayment), patientPaymentId);
         }
 

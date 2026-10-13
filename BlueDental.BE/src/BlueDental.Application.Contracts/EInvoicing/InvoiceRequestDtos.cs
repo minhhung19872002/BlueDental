@@ -123,9 +123,12 @@ public class InvoiceRequestDraftDto
 /// <summary>The THÔNG TIN XUẤT HÓA ĐƠN fields; the server checks them again.</summary>
 public class InvoiceRequestFormDto
 {
-    [Required]
+    /// <summary>Loại hóa đơn: Công ty (true) or Cá nhân; the other kind's lines are ignored.</summary>
+    public bool IsCompany { get; set; }
+
+    /// <summary>Asked on Cá nhân only; Công ty takes the patient's name.</summary>
     [StringLength(200)]
-    public string FullName { get; set; } = string.Empty;
+    public string? FullName { get; set; }
 
     public int? BirthYear { get; set; }
 

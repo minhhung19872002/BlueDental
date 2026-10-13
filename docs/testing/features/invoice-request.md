@@ -1,7 +1,7 @@
 # F-71 — Yêu cầu xuất HĐ (QR trên PHIẾU THU → tab Hóa đơn)
 
 Status: `VERIFIED` · Verified on: uncommitted working tree (2026-10-12)
-— see `01-feature-verification-registry.md`, regression log R-908, R-909.
+— see `01-feature-verification-registry.md`, regression log R-908, R-909, R-910, R-914, R-915, R-916.
 
 BlueDental-only. Sources: the BA mockup of the patient's Hóa đơn tab, the BA
 note "khách hàng nhập thông tin vào form xuất hoá đơn thì đổ dữ liệu về đây",
@@ -18,8 +18,10 @@ reference app has no such screen.
 3. The page shows the receipt (code, amount, service) and the THÔNG TIN XUẤT
    HÓA ĐƠN form:
    - **Prefilled:** full name and year of birth.
-   - **Hidden, shown only as a masked hint** ("Để trống để giữ 09•••••12"):
-     phone, CCCD, address and email.
+   - **Not shown:** phone, CCCD, address and email the clinic already holds.
+     The lines stay blank, with no "Để trống để giữ …" hint (BA, R-914); SĐT
+     and Email lose their `*` when one is on file.
+   - **Loại hóa đơn:** Cá nhân is ticked first; see "Loại hóa đơn (R-916)".
    - **Blank:** company name, tax code and company address.
    - **Not asked:** Cân nặng and Chiều cao. The customer writes them by hand on
      the printed sheet.
@@ -65,8 +67,8 @@ lines · bold note "BẮT BUỘC phải ghi MÃ SỐ THUẾ" · Tên công ty ·
 Địa chỉ công ty · **Email** · **Dịch vụ** · **Số tiền** · **Khách hàng có lấy
 hoá đơn giấy không**.
 
-- No Cá nhân / Công ty switch. Company lines are optional; once any is written,
-  Tên công ty and Mã số thuế are both required.
+- Loại hóa đơn ☐ Cá nhân ☐ Công ty sits on top (R-916) and decides which lines
+  are shown; see below. Cân nặng / Chiều cao stay on the print only.
 - On screen the blanks are AntD inputs drawn as the dotted line. Font family and
   size are pinned through `--inv-paper-font` / `--inv-paper-size`: AntD's form
   wrappers reset them, so `inherit` is not enough. The 42px dialog input height
@@ -144,6 +146,38 @@ end. No e-invoice is ever issued.
 
 Not covered: no backend xUnit tests were added; the API spec is the real-HTTP
 evidence.
+
+## Cancelled receipt (R-915)
+
+"Hủy phiếu" on a receipt cancels its open request (Chờ xử lý / Đang xử lý /
+Cần bổ sung) with the reason "Phiếu thu đã bị hủy: …"; an issued one stays.
+The QR, Sao chép link, Tạo yêu cầu and the draft answer
+`BlueDental:InvoiceRequest:0015`; the QR page shows "Phiếu thu đã bị hủy".
+Covered by the "R-915" test in `e2e/invoice-request-api.spec.ts`.
+
+## Loại hóa đơn (R-916)
+
+BA mockup 2026-10-13. A choice on top of the form, on the QR page, the staff
+dialog and the Chi tiết sheet (`isCompany` in the DTOs; the entity still derives
+`IsCompany` from the company name / MST, no new column).
+
+| | Cá nhân (default) | Công ty |
+|---|---|---|
+| Shown | Họ và tên, Năm sinh, SĐT, CCCD, Địa chỉ cá nhân | MÃ SỐ THUẾ note, Tên công ty, MST, Địa chỉ công ty, Email |
+| Required | Họ và tên (0001), SĐT (0002), CCCD (0016) | Tên công ty + MST (0004), Email (0003) |
+| Always | Dịch vụ, Số tiền, Khách hàng có lấy hoá đơn giấy | same |
+
+- `InvoiceRequestDetails.Validated()` drops the other kind's lines before the
+  rules run, for every source (QR, staff create, staff edit).
+- Công ty keeps the patient's name as `FullName` (lists show it) and stores
+  `Phone = ""`; Cá nhân stores `Email = ""` — both columns are NOT NULL.
+- On the QR page a contact on file (hint) may still be left blank: SĐT / CCCD
+  for Cá nhân, Email for Công ty.
+
+Covered by `e2e/invoice-request-api.spec.ts` (0016 without CCCD, 0003 without
+Email, Công ty drops the personal lines and keeps the patient's name, Cá nhân
+drops the company lines) and `e2e/invoice-request-ui.spec.ts` (Cá nhân ticked
+first, the lines swap on Công ty, staff dialog asks CCCD not Email).
 
 ## Open with the BA (`docs/clone/unknowns.md`)
 

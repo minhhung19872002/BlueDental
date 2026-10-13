@@ -20,26 +20,31 @@ interface Props {
 /**
  * THÔNG TIN XUẤT HÓA ĐƠN laid out like the BA's paper form, line for line, so
  * the print can go straight to the accountant. Cân nặng / Chiều cao stay blank
- * for the customer to write in by hand; company lines stay blank on a personal
- * invoice.
+ * for the customer to write in by hand. Loại hóa đơn is ticked (R-916) and the
+ * other kind's lines stay blank: a company invoice prints no personal details.
  */
 export function InvoiceRequestSheet({ request }: Props) {
   const company = request.isCompany;
+  const person = !company;
   return (
     <InvoicePaper title={t("Patient:InvoiceRequest:SheetTitle")} className="ir-sheet">
+      <PaperChoiceRow label={field("InvoiceKind")}>
+        <PaperBox checked={person} label={t("Patient:InvoiceRequest:Personal")} />
+        <PaperBox checked={company} label={t("Patient:InvoiceRequest:Company")} />
+      </PaperChoiceRow>
       <PaperRow>
-        <PaperText label={field("FullName")} value={request.fullName} width="name" />
-        <PaperText label={field("BirthYear")} value={request.birthYear} width="year" />
-        <PaperText label={field("Phone")} value={request.phone} width="phone" />
+        <PaperText label={field("FullName")} value={person && request.fullName} width="name" />
+        <PaperText label={field("BirthYear")} value={person && request.birthYear} width="year" />
+        <PaperText label={field("Phone")} value={person && request.phone} width="phone" />
       </PaperRow>
       <PaperRow>
-        <PaperText label={field("NationalId")} value={request.nationalId} width="id" />
+        <PaperText label={field("NationalId")} value={person && request.nationalId} width="id" />
         <PaperText label={field("Weight")} width="weight" />
         <PaperText label={field("Height")} width="height" />
       </PaperRow>
       <PaperLinedText
         label={`${field("PersonalAddress")}: ${t("Patient:InvoiceRequest:AddressHint")}`}
-        value={request.personalAddress}
+        value={person && request.personalAddress}
       />
 
       <PaperNote>{t("Patient:InvoiceRequest:CompanyNote")}</PaperNote>

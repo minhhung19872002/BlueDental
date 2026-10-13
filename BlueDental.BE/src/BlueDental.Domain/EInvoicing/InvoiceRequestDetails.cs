@@ -7,8 +7,11 @@ namespace BlueDental.EInvoicing;
 /// <summary>
 /// What the THÔNG TIN XUẤT HÓA ĐƠN form asks. Cân nặng and Chiều cao are on the
 /// printed sheet only, written by hand (owner 2026-10-12), so they are not here.
+/// <see cref="IsCompany"/> is the form's Loại hóa đơn (BA, R-916): each kind
+/// asks its own lines and the other kind's lines are dropped.
 /// </summary>
 public sealed partial record InvoiceRequestDetails(
+    bool IsCompany,
     string? FullName,
     int? BirthYear,
     string? Phone,
@@ -21,61 +24,98 @@ public sealed partial record InvoiceRequestDetails(
     bool? WantsPaperInvoice)
 {
     /// <summary>
-    /// Trimmed, blanks as null, and checked. Họ tên, SĐT and Email are always
-    /// needed; a company invoice needs the company name and, as the form says in
-    /// bold, the MÃ SỐ THUẾ.
+    /// Trimmed, blanks as null, and checked. Cá nhân needs Họ tên, SĐT and CCCD
+    /// (Email optional); Công ty needs the company name, the MÃ SỐ THUẾ and the
+    /// Email, and keeps only the customer's name (taken from the patient).
     /// </summary>
     public InvoiceRequestDetails Validated()
     {
-        var details = this with
-        {
-            FullName = Clean(FullName, InvoiceRequest.MaxNameLength),
-            Phone = CleanPhone(Phone),
-            NationalId = Clean(NationalId, InvoiceRequest.MaxNationalIdLength),
-            PersonalAddress = Clean(PersonalAddress, InvoiceRequest.MaxAddressLength),
-            CompanyName = Clean(CompanyName, InvoiceRequest.MaxNameLength),
-            TaxCode = Clean(TaxCode, InvoiceRequest.MaxTaxCodeLength),
-            CompanyAddress = Clean(CompanyAddress, InvoiceRequest.MaxAddressLength),
-            Email = Clean(Email, InvoiceRequest.MaxEmailLength)
-        };
+        var details = IsCompany
+            ? this with
+            {
+                FullName = Clean(FullName, InvoiceRequest.MaxNameLength),
+                BirthYear = null,
+                Phone = null,
+                NationalId = null,
+                PersonalAddress = null,
+                CompanyName = Clean(CompanyName, InvoiceRequest.MaxNameLength),
+                TaxCode = Clean(TaxCode, InvoiceRequest.MaxTaxCodeLength),
+                CompanyAddress = Clean(CompanyAddress, InvoiceRequest.MaxAddressLength),
+                Email = Clean(Email, InvoiceRequest.MaxEmailLength)
+            }
+            : this with
+            {
+                FullName = Clean(FullName, InvoiceRequest.MaxNameLength),
+                Phone = CleanPhone(Phone),
+                NationalId = Clean(NationalId, InvoiceRequest.MaxNationalIdLength),
+                PersonalAddress = Clean(PersonalAddress, InvoiceRequest.MaxAddressLength),
+                CompanyName = null,
+                TaxCode = null,
+                CompanyAddress = null,
+                Email = Clean(Email, InvoiceRequest.MaxEmailLength)
+            };
 
         if (details.FullName == null)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.FullNameRequired);
         }
 
-        if (details.Phone == null || !PhonePattern().IsMatch(details.Phone))
+        if (IsCompany)
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidPhone);
+            details.CheckCompany();
+        }
+        else
+        {
+            details.CheckPersonal();
         }
 
-        if (details.Email == null || !EmailPattern().IsMatch(details.Email))
+        if (details.Email != null && !EmailPattern().IsMatch(details.Email))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidEmail);
         }
 
-        if (details.NationalId != null && !NationalIdPattern().IsMatch(details.NationalId))
+        return details;
+    }
+
+    private void CheckPersonal()
+    {
+        if (Phone == null || !PhonePattern().IsMatch(Phone))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidPhone);
+        }
+
+        if (NationalId == null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.NationalIdRequired);
+        }
+
+        if (!NationalIdPattern().IsMatch(NationalId))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidNationalId);
         }
 
-        if (details.BirthYear is { } year && (year < 1900 || year > DateTime.UtcNow.Year))
+        if (BirthYear is { } year && (year < 1900 || year > DateTime.UtcNow.Year))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidBirthYear);
         }
+    }
 
-        var asksCompany = details.CompanyName != null || details.TaxCode != null || details.CompanyAddress != null;
-        if (asksCompany && (details.CompanyName == null || details.TaxCode == null))
+    private void CheckCompany()
+    {
+        if (CompanyName == null || TaxCode == null)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.CompanyTaxCodeRequired);
         }
 
-        if (details.TaxCode != null && !TaxCodePattern().IsMatch(details.TaxCode))
+        if (!TaxCodePattern().IsMatch(TaxCode))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTaxCode);
         }
 
-        return details;
+        if (Email == null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidEmail);
+        }
     }
 
     private static string? Clean(string? value, int max)

@@ -96,7 +96,10 @@ export interface InvoiceRequestLinkDto {
 
 /** The THÔNG TIN XUẤT HÓA ĐƠN fields; the server checks them again. */
 export interface InvoiceRequestFormValues {
-  fullName: string;
+  /** Loại hóa đơn: Công ty (true) or Cá nhân. */
+  isCompany: boolean;
+  /** Cá nhân only; Công ty keeps the patient's name. */
+  fullName: string | null;
   birthYear: number | null;
   phone: string | null;
   nationalId: string | null;
