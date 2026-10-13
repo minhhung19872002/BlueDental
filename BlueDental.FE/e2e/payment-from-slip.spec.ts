@@ -1,14 +1,15 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login } from "./fixtures/auth";
-import { call, confirmOnRow, money, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
+import { answerQuestionYes, call, money, openNewSlip, paymentQuestion, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
  * R-907 (owner 2026-10-12): "In Hóa Đơn" on the slip and the "Hóa đơn" icon on
  * its row open "Tạo phiếu thanh toán" — not the e-invoice dialog. The dialog
  * walks ① Chọn số phiếu → ② Chọn dịch vụ → ③ Thông tin thanh toán, lists only
  * the slips and services that still owe, totals the ticked ones, stores
- * "Xuất hóa đơn đỏ" as a flag (nothing is sent to EasyInvoice), and on Lưu
- * opens the PHIẾU THU in a new tab even though the receipt is still pending.
+ * "Xuất hóa đơn đỏ" as a flag (nothing is sent to EasyInvoice), and on Lưu →
+ * "Có" writes the receipt "Hoàn tất" (owner 2026-10-13, R-929) and opens its
+ * PHIẾU THU in a new tab.
  *
  * Real stack only: real login, a fresh slip through the real dialogs, the
  * receipt through the real API into PostgreSQL, read back with a separate GET.
@@ -85,8 +86,10 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
   await expect(dialog.getByText("Tự động bằng tổng còn nợ của các dịch vụ đã chọn")).toBeVisible();
   await expect.poll(async () => money(await dialog.locator(".pd-newpay-amount").inputValue())).toBe(due);
 
-  // ── ③ Xuất hóa đơn đỏ is only remembered; Lưu prints the PHIẾU THU ───────
+  // ── ③ Xuất hóa đơn đỏ is only remembered; Lưu → Có prints the PHIẾU THU ──
   await dialog.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
+  await dialog.getByRole("button", { name: "Lưu" }).click();
+  // The tab opens on "Có", the click that writes the receipt.
   const saved = page.waitForResponse(
     (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
   );
@@ -94,11 +97,11 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
     (res) => res.url().endsWith(RECEIPT_PDF) && res.request().method() === "POST",
   );
   const tab = context.waitForEvent("page");
-  await dialog.getByRole("button", { name: "Lưu" }).click();
+  await answerQuestionYes(page);
   const response = await saved;
   expect(response.ok(), await response.text()).toBeTruthy();
   const receipt = (await response.json()) as StoredReceipt;
-  expect(receipt.status).toBe(1);
+  expect(receipt.status).toBe(2);
   expect(receipt.redInvoiceRequested).toBe(true);
   expect(receipt.amount).toBe(due);
   const pdf = await printed;
@@ -113,18 +116,18 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
   ]);
   expect(landed).toMatch(/^blob:/);
   await receiptTab.close();
+  await expect(paymentQuestion(page)).toBeHidden();
   await expect(dialog).toBeHidden();
 
   // ── Persisted: a separate GET after a reload reads the same flag ─────────
   await page.reload();
   await expect.poll(async () => (await storedReceipt(page, receipt))?.redInvoiceRequested).toBe(true);
-  expect((await storedReceipt(page, receipt))?.status).toBe(1);
+  expect((await storedReceipt(page, receipt))?.status).toBe(2);
   await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
   const row = page.locator(".ant-table-row", { hasText: receipt.code });
-  await expect(row.locator(".tp-pill")).toHaveText("Chưa thanh toán");
+  await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
 
-  // ── Settled in full, the slip drops out of every other slip's picker ─────
-  await confirmOnRow(page, receipt.code);
+  // ── Paid in full on Có, the slip drops out of every other slip's picker ──
   // The patient's Kế hoạch điều trị tab, keeping the branch the URL names.
   const list = new URL(page.url());
   list.pathname = `/patient/${receipt.patientId}`;

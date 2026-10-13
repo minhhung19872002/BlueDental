@@ -292,12 +292,10 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             input.SplitMode,
             lines,
             GuidGenerator.Create,
-            // BA 2026-10-08: a payment is written "Chưa thanh toán" and counts
-            // nowhere until "Xác nhận thanh toán"; refunds and held money are
-            // settled as they are written.
-            input.Kind == PatientPaymentKind.Payment
-                ? PatientPaymentStatus.Pending
-                : PatientPaymentStatus.Completed);
+            // Owner 2026-10-13: the cashier confirms in the dialog before it
+            // saves, so a new receipt is "Hoàn tất" and counts at once. Receipts
+            // written "Chưa thanh toán" before then still settle through ConfirmAsync.
+            PatientPaymentStatus.Completed);
         payment.RequestRedInvoice(input.RedInvoiceRequested);
 
         await _repository.InsertAsync(payment, autoSave: true);

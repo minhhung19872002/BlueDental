@@ -5,11 +5,14 @@ import { PriorityList } from "./PriorityList";
 import { usePortalDropdown } from "./usePortalDropdown";
 import type { SearchSelectOption } from "./SearchSelect";
 
-export interface SortableMultiSearchSelectProps {
-  /** The picked values, highest priority first. */
+export interface RankedMultiSearchSelectProps {
+  /** The picked values; they are kept in the options' order. */
   value: string[];
+  /** Highest priority first — the order the picks are ranked in. */
   options: SearchSelectOption[];
   placeholder?: string;
+  /** Says where the ranking comes from, beside the list's heading. */
+  rankHint?: string;
   onChange: (value: string[]) => void;
 }
 
@@ -21,22 +24,22 @@ const SearchIcon: React.FC<{ size: number }> = ({ size }) => (
 
 /**
  * SearchSelect's look, picking several: rows tick on and off and the dropdown
- * stays open, while the picked ones stack on top as a numbered list whose order
- * the user drags — that order is the priority handed to `onChange`.
+ * stays open, while the picked ones stack on top as a numbered list. The
+ * options come ranked, so the picks follow their order — that order is the
+ * priority handed to `onChange`, not the order they were clicked in.
  */
-export const SortableMultiSearchSelect: React.FC<SortableMultiSearchSelectProps> = ({
+export const RankedMultiSearchSelect: React.FC<RankedMultiSearchSelectProps> = ({
   value,
   options,
   placeholder,
+  rankHint,
   onChange,
 }) => {
   const [keyword, setKeyword] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdown = usePortalDropdown(() => setKeyword(""));
 
-  const byValue = useMemo(() => new Map(options.map((o) => [o.value, o])), [options]);
-  // A value whose option is not loaded (yet) is kept, just not shown.
-  const picked = value.flatMap((v) => byValue.get(v) ?? []);
+  const picked = useMemo(() => options.filter((o) => value.includes(o.value)), [options, value]);
   const needle = keyword.trim().toLowerCase();
   const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
 
@@ -49,8 +52,12 @@ export const SortableMultiSearchSelect: React.FC<SortableMultiSearchSelectProps>
     setTimeout(() => searchRef.current?.focus(), 30);
   };
 
-  const toggle = (optionValue: string) =>
-    onChange(value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue]);
+  const toggle = (optionValue: string) => {
+    const next = value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue];
+    // A value whose option is not loaded (yet) is kept, just not shown, after the ranked ones.
+    const ranked = options.filter((o) => next.includes(o.value)).map((o) => o.value);
+    onChange([...ranked, ...next.filter((v) => !ranked.includes(v))]);
+  };
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -75,11 +82,7 @@ export const SortableMultiSearchSelect: React.FC<SortableMultiSearchSelectProps>
         />
       </div>
       {picked.length > 0 && (
-        <PriorityList
-          items={picked}
-          onReorder={(next) => onChange(next.map((o) => o.value))}
-          onRemove={toggle}
-        />
+        <PriorityList items={picked} hint={rankHint} onRemove={toggle} />
       )}
       <div className="ss-options" role="listbox" aria-multiselectable="true">
         {filtered.length === 0 && <div className="ss-empty">{t("Common:NoResults")}</div>}

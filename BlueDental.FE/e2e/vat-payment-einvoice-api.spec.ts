@@ -133,17 +133,22 @@ test.describe("VAT của dịch vụ vào kế hoạch, phiếu thu và hóa đ�
     });
     expect(receipt.status, JSON.stringify(receipt.body)).toBe(200);
 
-    // "Chưa thanh toán" moves nothing and bills nothing until it is confirmed (BA 2026-10-08).
-    const waiting = (await call(page, `/api/v1/app/patient-treatments/${slip.id}`)).body as unknown as Slip;
-    expect(waiting.services.find((s) => s.id === line.id)!.outstandingAmount).toBe(972_000);
-    const early = await call(page, `/api/v1/app/e-invoices/draft?patientPaymentId=${receipt.body.id as string}`);
-    expect((early.body.error as { code: string }).code).toBe("BlueDental:Billing:0097");
-    const confirmed = await call(page, `/api/v1/app/patient-payments/${receipt.body.id as string}/confirm`, {
+    // Written "Hoàn tất" at once (owner 2026-10-13): it settles the line and can
+    // be billed straight away; there is nothing left to confirm. A confirm is
+    // still refused, though on this fully-paid line the cap check (0092) runs
+    // before the "already Hoàn tất" one; a cancel meets 0096 head-on.
+    expect(receipt.body.status).toBe(2);
+    const reConfirm = await call(page, `/api/v1/app/patient-payments/${receipt.body.id as string}/confirm`, {
       method: "PUT",
       json: { treatmentServiceIds: [line.id], splitMode: 1, items: [], method: 1, amount: 972_000 },
     });
-    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
-    expect(confirmed.body.status).toBe(2);
+    expect(reConfirm.status, JSON.stringify(reConfirm.body)).toBe(403);
+    const taken = await call(page, `/api/v1/app/patient-payments/${receipt.body.id as string}/cancel`, {
+      method: "POST",
+      json: { reason: "e2e" },
+    });
+    expect(taken.status, JSON.stringify(taken.body)).toBe(403);
+    expect((taken.body.error as { code: string }).code).toBe("BlueDental:Billing:0096");
 
     const after = (await call(page, `/api/v1/app/patient-treatments/${slip.id}`)).body as unknown as Slip;
     const paidLine = after.services.find((s) => s.id === line.id)!;

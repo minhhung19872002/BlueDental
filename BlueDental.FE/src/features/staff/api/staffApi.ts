@@ -26,6 +26,8 @@ export interface StaffDto {
   isDentist: boolean;
   isAssistant: boolean;
   isHygienist: boolean;
+  /** "Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first. */
+  priority: number;
   /** "Cho phép đăng nhập ngoài công ty" — skips the branch IP check. */
   allowLoginOutsideOffice: boolean;
   /** "Cho phép dùng ngoài giờ" — skips the branch's allowed hours. */
@@ -83,6 +85,7 @@ export interface CreateStaffInput {
   isDentist?: boolean;
   isAssistant?: boolean;
   isHygienist?: boolean;
+  priority?: number;
   allowLoginOutsideOffice?: boolean;
   allowLoginOutsideHours?: boolean;
   maxDiscountPercent?: number | null;
@@ -118,6 +121,7 @@ export interface UpdateStaffInput {
   isDentist?: boolean;
   isAssistant?: boolean;
   isHygienist?: boolean;
+  priority?: number;
   allowLoginOutsideOffice?: boolean;
   allowLoginOutsideHours?: boolean;
   maxDiscountPercent?: number | null;

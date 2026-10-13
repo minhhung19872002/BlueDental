@@ -13,11 +13,21 @@
 }
 
 /* Reads like the dialog's other field hints (Form.Item `extra`). */
-.staff-discount-limit__hint {
+.staff-discount-limit__hint,
+.staff-priority__hint {
   margin-top: 6px;
   color: var(--bd-faint);
   font-size: 13px;
   line-height: 21px;
+}
+
+/* Staff dialog — "Thứ tự ưu tiên" */
+.staff-priority .ant-form-item {
+  margin-bottom: 0;
+}
+
+.staff-priority__input {
+  width: 100%;
 }
 
 /* Staff dialog — Cụm 11 mục 1 "Hồ sơ công việc" */

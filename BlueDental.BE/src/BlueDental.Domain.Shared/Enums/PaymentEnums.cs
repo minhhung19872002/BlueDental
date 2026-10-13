@@ -36,9 +36,10 @@ public enum PaymentSplitMode
 
 /// <summary>
 /// Whether the money on a receipt has actually been taken (BA, 2026-10-08).
-/// A new payment receipt is written as "Chưa thanh toán" and only counts —
-/// against the slip's debt, in revenue, the cash book, Dư nợ and e-invoices —
-/// once "Xác nhận thanh toán" moves it to "Hoàn tất".
+/// A "Chưa thanh toán" receipt only counts — against the slip's debt, in
+/// revenue, the cash book, Dư nợ and e-invoices — once "Xác nhận thanh toán"
+/// moves it to "Hoàn tất". Since 2026-10-13 a new receipt is confirmed in its
+/// dialog and written "Hoàn tất"; only older receipts can still be pending.
 /// </summary>
 public enum PatientPaymentStatus
 {

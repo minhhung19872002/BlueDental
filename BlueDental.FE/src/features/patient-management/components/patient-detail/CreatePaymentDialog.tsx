@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { Button, Modal } from "antd";
 import { CheckCircleOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined } from "@ant-design/icons";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   PAYMENT_ACCOUNT_KIND,
   usePaymentAccountOptions,
   type PaymentAccountKindCode,
 } from "@/hooks/usePaymentAccountOptions";
 import { t } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import {
   PAYMENT_METHOD,
   useTreatmentPlans,
@@ -102,7 +103,7 @@ export function CreatePaymentDialog({
 
   const accountKind = ACCOUNT_KIND_BY_METHOD[payment.form.method] ?? null;
   const accounts = usePaymentAccountOptions(branchId, accountKind).data ?? [];
-  const { save, saving } = useSavePayment(payment, {
+  const submit = useSavePayment(payment, {
     patientId,
     branchId,
     intent,
@@ -127,14 +128,16 @@ export function CreatePaymentDialog({
       footer={
         <div className="pd-newpay-footer">
           <p>
-            <InfoCircleOutlined /> {t("Patient:Payment:EditWarning")}
+            <InfoCircleOutlined />{" "}
+            {/* A new receipt is "Hoàn tất" at once, and a Hoàn tất one is final. */}
+            {t(revision ? "Patient:Payment:EditWarning" : "Patient:Payment:FinalWarning")}
           </p>
           <Button
             type="primary"
             icon={intent === "confirm" ? <CheckCircleOutlined /> : <SaveOutlined />}
-            loading={saving}
-            disabled={saving}
-            onClick={() => void save()}
+            loading={submit.pending}
+            disabled={submit.pending}
+            onClick={submit.request}
           >
             {intent === "confirm" ? t("Treatment:Payment:ConfirmPayment") : t("Common:Save")}
           </Button>
@@ -184,6 +187,14 @@ export function CreatePaymentDialog({
           accounts={accounts}
         />
       </div>
+      <ConfirmDialog
+        open={submit.confirming}
+        title={t("Treatment:Payment:ConfirmPayment")}
+        message={t("Patient:Payment:ConfirmCreate", formatMoneyUnit(payment.total))}
+        pending={submit.pending}
+        onConfirm={() => void submit.commit()}
+        onClose={submit.cancel}
+      />
     </Modal>
   );
 }

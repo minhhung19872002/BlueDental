@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login } from "./fixtures/auth";
-import { call, openNewSlip, PAYMENTS_API, revisionOf, writePendingOnFirstLine, type Receipt } from "./fixtures/ledgerReceipt";
+import { call, collectOnFirstLine, openNewSlip } from "./fixtures/ledgerReceipt";
 
 /**
  * F-71 Yêu cầu xuất HĐ through the screens (BA 2026-10-12): the customer opens
@@ -8,20 +8,12 @@ import { call, openNewSlip, PAYMENTS_API, revisionOf, writePendingOnFirstLine, t
  * THÔNG TIN XUẤT HÓA ĐƠN; staff see it on the patient's Hóa đơn tab, key one
  * in for another receipt, and work it to Đã xuất HĐ.
  *
- * Real stack only — no route interception. The receipts stay "Chưa thanh
- * toán" and are cancelled at the end, so no e-invoice is ever issued.
+ * Real stack only — no route interception. The receipts are written "Hoàn
+ * tất" with "Xuất hóa đơn đỏ" ticked as they are made — a Hoàn tất receipt is
+ * final (owner 2026-10-13, R-929) — and nothing here issues an e-invoice.
  */
 
 const REQUESTS = "/api/v1/app/invoice-requests";
-
-async function markRedInvoice(page: Page, receipt: Receipt): Promise<void> {
-  const res = await call(page, `${PAYMENTS_API}/${receipt.id}`, {
-    method: "PUT",
-    json: { ...revisionOf(receipt), redInvoiceRequested: true },
-  });
-  expect(res.status, JSON.stringify(res.body)).toBe(200);
-  expect(res.body.status, "the receipt must stay unconfirmed").toBe(1);
-}
 
 const rowOf = (page: Page, code: string) => page.locator("tr.ant-table-row", { hasText: code });
 
@@ -32,12 +24,11 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
     await login(page);
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
-    const viaQr = await writePendingOnFirstLine(page);
-    const byStaff = await writePendingOnFirstLine(page);
+    const viaQr = await collectOnFirstLine(page, { redInvoice: true });
+    const byStaff = await collectOnFirstLine(page);
     const created: string[] = [];
 
     try {
-      await markRedInvoice(page, viaQr);
       const link = await call(page, `${REQUESTS}/links/${viaQr.id}`, { method: "POST" });
       expect(link.status, JSON.stringify(link.body)).toBe(200);
       const publicPath = new URL(String(link.body.url)).pathname;
@@ -172,9 +163,6 @@ test.describe("F-71 Yêu cầu xuất HĐ — screens", () => {
     } finally {
       for (const id of created) {
         await call(page, `${REQUESTS}/${id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
-      }
-      for (const receipt of [viaQr, byStaff]) {
-        await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
       }
     }
   });

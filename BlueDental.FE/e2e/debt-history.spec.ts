@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
-import { confirmOnRow } from "./fixtures/ledgerReceipt";
+import { answerYes } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: tab "Lịch sử dư nợ" của hồ sơ bệnh nhân (F-40), `?tab=debt-history`.
@@ -91,19 +91,13 @@ async function refundOnANewSlip(page: Page): Promise<{ patientUrl: string; refun
   const payLine = payDialog.locator(".pd-newpay-lines > li").first();
   await payLine.locator("input[type=checkbox]").check();
   const due = money(await payLine.locator(".pd-newpay-due").innerText());
-  const collected = page.waitForResponse(
-    (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
-  );
   // Half, the way the plan-detail spec does it: the whole "Còn nợ" is more than
   // the server will take in one receipt.
   const paid = Math.max(2, Math.floor(due / 2));
   await payDialog.locator(".pd-newpay-amount").fill(String(paid));
   await payDialog.getByRole("button", { name: "Lưu" }).click();
-  const written = await collected;
-  expect(written.ok()).toBeTruthy();
-  await expect(payDialog).toBeHidden();
-  // A new receipt is "Chưa thanh toán"; only the confirmed one is money in.
-  await confirmOnRow(page, ((await written.json()) as { code: string }).code);
+  // "Có" writes the receipt "Hoàn tất": the money is in at once (owner 2026-10-13).
+  await answerYes(page, payDialog);
 
   // The refund is capped at what the line actually holds, so wait for the slip
   // to have taken the money in before asking for any of it back.
@@ -208,15 +202,9 @@ test.describe("Lịch sử dư nợ", () => {
     const payLine = payDialog.locator(".pd-newpay-lines > li").first();
     await payLine.locator("input[type=checkbox]").check();
     const owed = money(await payLine.locator(".pd-newpay-due").innerText());
-    const settled = page.waitForResponse(
-      (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
-    );
     await payDialog.locator(".pd-newpay-amount").fill(String(owed));
     await payDialog.getByRole("button", { name: "Lưu" }).click();
-    const written = await settled;
-    expect(written.ok()).toBeTruthy();
-    await expect(payDialog).toBeHidden();
-    await confirmOnRow(page, ((await written.json()) as { code: string }).code);
+    await answerYes(page, payDialog);
 
     await page.getByRole("tab", { name: "Hoàn tiền", exact: true }).click();
     await page.getByRole("button", { name: "Hoàn Tiền" }).click();

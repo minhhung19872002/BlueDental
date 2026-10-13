@@ -2579,11 +2579,6 @@ body::-webkit-scrollbar-track {
   color: var(--bd-ink);
 }
 
-.ms-priority-row--dragging {
-  border-color: var(--bd-blue-light);
-  box-shadow: 0 6px 16px rgba(13, 27, 42, 0.12);
-}
-
 .ms-priority-rank {
   display: inline-flex;
   flex-shrink: 0;

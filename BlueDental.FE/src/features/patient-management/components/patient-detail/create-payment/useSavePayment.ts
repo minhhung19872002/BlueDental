@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useRenderPaymentReceipt } from "@/features/treatment-management/api/eInvoiceApi";
@@ -37,8 +38,10 @@ function blocker(payment: PaymentForm, needsAccount: boolean): string | null {
 }
 
 /**
- * Lưu / Xác nhận thanh toán. A new receipt opens its PHIẾU THU in a new tab
- * straight away, while it is still "Chưa thanh toán" (owner 2026-10-12).
+ * Lưu / Xác nhận thanh toán. A new receipt is written "Hoàn tất" and counts at
+ * once, so the cashier confirms the amount first (owner 2026-10-13); then its
+ * PHIẾU THU opens in a new tab (owner 2026-10-12). A reopened receipt saves
+ * straight away.
  */
 export function useSavePayment(payment: PaymentForm, options: Options) {
   const { patientId, branchId, intent, revision, needsAccount, onSaved, onClose } = options;
@@ -47,6 +50,7 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
   const update = useUpdatePayment();
   const confirm = useConfirmPayment();
   const receipt = useRenderPaymentReceipt();
+  const [confirming, setConfirming] = useState(false);
 
   const figures = () => {
     const { form, chosen, shareOf, total } = payment;
@@ -101,17 +105,14 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
       .catch(() => tab?.close());
   };
 
-  const save = async () => {
-    const problem = blocker(payment, needsAccount);
-    if (problem) {
-      toast.error(t(problem));
-      return;
-    }
+  /** Writes the receipt; for a new one this is the "Có" of the confirmation. */
+  const commit = async () => {
     // Opened inside the click, before any await, or the browser blocks it.
     const tab = revision || !payment.slip ? null : openReceiptTab();
     try {
       if (revision) await saveRevision(revision);
       else if (payment.slip) await saveNew(payment.slip.id, tab);
+      setConfirming(false);
       onSaved();
       onClose();
     } catch {
@@ -120,8 +121,22 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
     }
   };
 
+  /** Lưu / Xác nhận thanh toán: a new receipt waits on the cashier's yes first. */
+  const request = () => {
+    const problem = blocker(payment, needsAccount);
+    if (problem) {
+      toast.error(t(problem));
+      return;
+    }
+    if (revision) void commit();
+    else setConfirming(true);
+  };
+
   return {
-    save,
-    saving: record.isPending || update.isPending || confirm.isPending,
+    request,
+    commit,
+    confirming,
+    cancel: () => setConfirming(false),
+    pending: record.isPending || update.isPending || confirm.isPending,
   };
 }

@@ -15,7 +15,7 @@ import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import { FollowUpScheduler } from "../components/FollowUpScheduler";
 import { TemporaryPatientDialog, type TemporaryPatientTarget } from "../components/TemporaryPatientDialog";
 import { useOwnDoctorDefault } from "../hooks/useOwnDoctorDefault";
-import { useDoctorFilter } from "../hooks/useDoctorFilter";
+import { rankDoctorIds, useDoctorFilter } from "../hooks/useDoctorFilter";
 import { useRefetchWhenDue } from "../hooks/useRefetchWhenDue";
 import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import {
@@ -73,12 +73,17 @@ export const ReceptionPage: React.FC = () => {
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
   const debouncedKeyword = useDebounce(keyword);
+  const { data: doctors = [], isSuccess: doctorsLoaded } = useReceptionDoctors(branchId);
+  const rankedDoctorIds = useMemo(
+    () => rankDoctorIds(doctorFilter.doctorIds, doctors),
+    [doctorFilter.doctorIds, doctors],
+  );
 
   const filter: ReceptionFilter = {
     status: activeTab,
     counterFilter: activeCounter,
     keyword: debouncedKeyword,
-    doctorIds: doctorFilter.doctorIds,
+    doctorIds: rankedDoctorIds,
     doctorTeamId: doctorFilter.teamId,
     branchId,
     date: currentDate.format("YYYY-MM-DD"),
@@ -99,7 +104,6 @@ export const ReceptionPage: React.FC = () => {
     doctorIds: filter.doctorIds,
     doctorTeamId: filter.doctorTeamId,
   });
-  const { data: doctors = [], isSuccess: doctorsLoaded } = useReceptionDoctors(branchId);
   const { data: doctorTeams = [] } = useReceptionDoctorTeams();
   const { selectDoctors } = doctorFilter;
   const selectOwnDoctor = useCallback((id: string) => selectDoctors([id]), [selectDoctors]);

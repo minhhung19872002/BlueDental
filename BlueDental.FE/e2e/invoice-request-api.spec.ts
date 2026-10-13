@@ -1,6 +1,6 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
 import { BRANCH2_USER, login } from "./fixtures/auth";
-import { call, openNewSlip, PAYMENTS_API, revisionOf, writePendingOnFirstLine, type Receipt } from "./fixtures/ledgerReceipt";
+import { call, collectOnFirstLine, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
  * F-71 Yêu cầu xuất HĐ (BA 2026-10-12): a receipt marked "Xuất hóa đơn đỏ"
@@ -10,9 +10,10 @@ import { call, openNewSlip, PAYMENTS_API, revisionOf, writePendingOnFirstLine, t
  *
  * Real stack only: real login, a fresh slip and receipts through the real
  * dialogs, every call a real HTTP request into PostgreSQL, the public page
- * called from a context with no session at all. The receipts stay "Chưa
- * thanh toán" and are cancelled at the end — none is confirmed, so no
- * e-invoice is ever issued.
+ * called from a context with no session at all. The receipts are written
+ * "Hoàn tất" with "Xuất hóa đơn đỏ" ticked as they are made — a Hoàn tất
+ * receipt is final (owner 2026-10-13, R-929) — and nothing here issues an
+ * e-invoice: the requests are keyed and closed by hand.
  */
 
 const REQUESTS = "/api/v1/app/invoice-requests";
@@ -53,16 +54,6 @@ async function json(res: Awaited<ReturnType<APIRequestContext["get"]>>) {
   return { status: res.status(), body: (await res.json().catch(() => ({}))) as Record<string, unknown> };
 }
 
-async function markRedInvoice(page: Page, receipt: Receipt): Promise<void> {
-  const res = await call(page, `${PAYMENTS_API}/${receipt.id}`, {
-    method: "PUT",
-    json: { ...revisionOf(receipt), redInvoiceRequested: true },
-  });
-  expect(res.status, JSON.stringify(res.body)).toBe(200);
-  expect(res.body.redInvoiceRequested).toBe(true);
-  expect(res.body.status, "the receipt must stay unconfirmed").toBe(1);
-}
-
 test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
   test.setTimeout(180_000);
 
@@ -70,14 +61,13 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
     await login(page);
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
-    const viaQr = await writePendingOnFirstLine(page);
-    const byStaff = await writePendingOnFirstLine(page);
+    const viaQr = await collectOnFirstLine(page, { redInvoice: true });
+    const byStaff = await collectOnFirstLine(page);
     const created: string[] = [];
     let patientName: string | undefined;
 
     try {
       // ── ① A red-invoice receipt prints its PHIẾU THU (QR inside) and owns one link ──
-      await markRedInvoice(page, viaQr);
       const pdf = await page.request.post(RECEIPT_PDF, {
         data: { patientPaymentId: viaQr.id, lines: [] },
         headers: {
@@ -284,23 +274,22 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
       for (const id of created) {
         await call(page, `${REQUESTS}/${id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
       }
-      for (const receipt of [viaQr, byStaff]) {
-        await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
-      }
     }
   });
 
-  test("R-915: Hủy phiếu cancels its open request and voids the QR; an issued one stays", async ({ page, baseURL }) => {
+  // R-929 (owner 2026-10-13): every new receipt is Hoàn tất and final, so Hủy
+  // phiếu — and with it R-915 — only reaches receipts written "Chưa thanh toán"
+  // before then, which the API can no longer make. Kept for when that changes.
+  test.fixme("R-915: Hủy phiếu cancels its open request and voids the QR; an issued one stays", async ({ page, baseURL }) => {
     await login(page);
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
-    const issuedOn = await writePendingOnFirstLine(page);
-    const openOn = await writePendingOnFirstLine(page);
+    const issuedOn = await collectOnFirstLine(page, { redInvoice: true });
+    const openOn = await collectOnFirstLine(page);
     const created: string[] = [];
 
     try {
       // One request carried to Đã xuất HĐ, one left in Đang xử lý, each with its QR.
-      await markRedInvoice(page, issuedOn);
       const issuedLink = await call(page, `${REQUESTS}/links/${issuedOn.id}`, { method: "POST" });
       const keyed = async (receipt: Receipt) => {
         const draft = await call(page, `${REQUESTS}/draft/${receipt.id}`);
@@ -349,9 +338,6 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
     } finally {
       for (const id of created) {
         await call(page, `${REQUESTS}/${id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
-      }
-      for (const receipt of [issuedOn, openOn]) {
-        await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
       }
     }
   });

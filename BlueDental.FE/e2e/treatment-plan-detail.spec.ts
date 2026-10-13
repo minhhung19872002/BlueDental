@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
-import { confirmOnRow } from "./fixtures/ledgerReceipt";
+import { answerYes } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: Chi tiết kế hoạch điều trị (F-38), /patient/:id/treatment-plan/:planId.
@@ -373,25 +373,17 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // Leave part of the line unpaid so the refund below stays inside what it may take.
     paidAmount = Math.max(1, Math.floor(due / 2));
 
-    const collected = page.waitForResponse(
-      (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
-    );
     await dialog.locator(".pd-newpay-amount").fill(String(paidAmount));
     await dialog.getByRole("button", { name: "Lưu" }).click();
-    expect((await collected).ok()).toBeTruthy();
-    await expect(dialog).toBeHidden();
+    // "Có" in the question writes it (owner 2026-10-13).
+    const written = await answerYes(page, dialog);
 
-    // The receipt lands in the table as "Chưa thanh toán": nothing moves yet (BA 2026-10-08).
+    // The receipt lands in the table already "Hoàn tất": the head figures move
+    // at once, and it can never be edited, cancelled or confirmed again.
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect(row).toBeVisible();
     paymentCode = (await row.locator("td").first().innerText()).trim();
-    expect(paymentCode.length).toBeGreaterThan(0);
-    await expect(row.locator(".tp-pill")).toHaveText("Chưa thanh toán");
-    expect(await statValue(page, "Đã thanh toán")).toBe(0);
-
-    // "Xác nhận thanh toán" settles it: Hoàn tất, the head figures move, and
-    // the receipt can no longer be edited or cancelled.
-    await confirmOnRow(page, paymentCode);
+    expect(paymentCode).toBe(written.code);
     await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(paidAmount);
     await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${paymentCode}` })).toHaveCount(0);
@@ -965,15 +957,9 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await payLine.locator("input[type=checkbox]").check();
     const due = money(await payLine.locator(".pd-newpay-due").innerText());
     expect(due).toBeGreaterThan(1);
-    const collected = page.waitForResponse(
-      (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
-    );
     await payDialog.locator(".pd-newpay-amount").fill(String(due));
     await payDialog.getByRole("button", { name: "Lưu" }).click();
-    const written = await collected;
-    expect(written.ok()).toBeTruthy();
-    await expect(payDialog).toBeHidden();
-    await confirmOnRow(page, ((await written.json()) as { code: string }).code);
+    await answerYes(page, payDialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(due);
 
     // Convert it, charging 1 đ, so almost everything collected is left over.
@@ -1234,18 +1220,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect.poll(async () => Number((await box.inputValue()).replace(/\D/g, ""))).toBe(owed);
 
     // The after-discount amount goes through and settles the slip.
-    const collected = page.waitForResponse(
-      (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
-    );
     await box.fill(String(owed));
     await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Lưu" }).click();
-    const written = await collected;
-    expect(written.ok()).toBeTruthy();
-    await expect(dialog).toBeHidden();
-    // Still "Chưa thanh toán" until it is confirmed; the slip owes it all.
-    expect(await statValue(page, "Công nợ")).toBe(owed);
-    await confirmOnRow(page, ((await written.json()) as { code: string }).code);
+    // Written "Hoàn tất" on "Có" (owner 2026-10-13): the slip is settled at once.
+    await answerYes(page, dialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(owed);
     await expect.poll(() => statValue(page, "Công nợ")).toBe(0);
 

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { openNewSlip, revisionOf, writePendingOnFirstLine } from "./fixtures/ledgerReceipt";
+import { collectOnFirstLine, openNewSlip, revisionOf } from "./fixtures/ledgerReceipt";
 import { openShiftCovering } from "./fixtures/workShift";
 
 /**
@@ -9,7 +9,8 @@ import { openShiftCovering } from "./fixtures/workShift";
  * 25 Tiếp nhận: a booking on another day cannot be checked in.
  * 26 Thanh toán: a receipt cannot be dated after today.
  * 27 Danh mục › Dịch vụ: a VNĐ discount larger than the price is refused.
- * 28 Thanh toán: a receipt is cancelled with a reason and stays listed "Đã hủy".
+ * 28 Thanh toán: a receipt cannot be taken back once written (owner 2026-10-13;
+ *    it used to be cancelled with a reason and stay listed "Đã hủy").
  * 29 Bệnh nhân: a phone another record holds is named and cannot be saved.
  * 30 Bệnh nhân: a name holds only letters, digits, spaces and - . '
  *
@@ -20,6 +21,7 @@ const BRANCH = "11111111-1111-1111-1111-111111111111";
 const APPOINTMENTS = "/api/v1/app/appointments";
 const PATIENTS = "/api/v1/app/patients";
 const PAYMENTS = "/api/v1/app/patient-payments";
+const ALREADY_COMPLETED = "BlueDental:Billing:0096";
 
 interface ApiResult<T> {
   status: number;
@@ -130,86 +132,80 @@ test.describe("25 · Tiếp nhận: only today's bookings are received", () => {
   });
 });
 
-test.describe("26 + 28 · Thanh toán: no future date; cancelling needs a reason and leaves a trace", () => {
-  test("a receipt cannot move to tomorrow, and a cancelled one stays listed as Đã hủy with who, when and why", async ({
+test.describe("26 + 28 · Thanh toán: no future date; a written receipt is final", () => {
+  // Owner 2026-10-13: a receipt is written "Hoàn tất" the moment "Có" is
+  // answered, and a Hoàn tất receipt can be neither edited nor cancelled. So
+  // the old item-28 walk (cancel a "Chưa thanh toán" receipt with a reason and
+  // see it listed "Đã hủy") can no longer be set up from the app: no new
+  // receipt is ever pending. What is left to hold is that the date and the
+  // money cannot be moved or taken back once written.
+  test("a receipt cannot be dated tomorrow, and a written one cannot be moved, edited or cancelled", async ({
     page,
   }) => {
     test.setTimeout(180_000);
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
     await expect(page).toHaveURL(/planTab=payment-v2/);
-    // A "Hoàn tất" receipt is final (BA 2026-10-08), so this one stays "Chưa thanh toán".
-    const receipt = await writePendingOnFirstLine(page);
+    const receipt = await collectOnFirstLine(page);
 
-    // ── 26: the receipt keeps the day it was written. Since the BA's
-    // 2026-10-08 rework the edit dialog shows that day and offers no picker,
-    // and a date smuggled into the edit is not taken. ──
+    // ── 26: a receipt dated tomorrow is refused when it is written… ──
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const moved = await call<{ paidAt: string }>(page, "PUT", `${PAYMENTS}/${receipt.id}`, {
+    const ahead = await call<AbpError>(page, "POST", PAYMENTS, {
+      patientId: receipt.patientId,
+      clinicBranchId: receipt.clinicBranchId,
+      treatmentPlanId: receipt.treatmentPlanId,
+      treatmentServiceIds: [receipt.lines[0].treatmentServiceId],
+      splitMode: 1,
+      items: [],
+      kind: 1,
+      method: 1,
+      amount: 1,
+      staffId: receipt.staffId,
+      paidAt: tomorrow.toISOString(),
+    });
+    expect(ahead.status, JSON.stringify(ahead.body)).toBe(403);
+    expect(ahead.body.error?.code).toBe("BlueDental:Billing:0094");
+
+    // …and the written one keeps the day it was written: an edit carrying
+    // another date is refused outright, because a Hoàn tất receipt is final.
+    const moved = await call<AbpError>(page, "PUT", `${PAYMENTS}/${receipt.id}`, {
       ...revisionOf(receipt),
       paidAt: tomorrow.toISOString(),
     });
-    expect(moved.status).toBe(200);
-    expect(new Date(moved.body.paidAt).getTime()).toBeLessThanOrEqual(Date.now());
+    expect(moved.status).toBe(403);
+    expect(moved.body.error?.code).toBe(ALREADY_COMPLETED);
 
     const row = page.locator("tr.ant-table-row", { hasText: receipt.code });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await row.getByRole("button", { name: `Chỉnh sửa phiếu ${receipt.code}` }).click();
-    const editor = page.getByRole("dialog", { name: "Chỉnh sửa phiếu thanh toán" });
-    await expect(editor).toBeVisible();
-    await expect(editor.locator(".ant-picker")).toHaveCount(0);
     const pad = (n: number) => String(n).padStart(2, "0");
     const now = new Date();
-    await expect(editor).toContainText(`${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`);
-    await editor.getByRole("button", { name: /Huỷ|Đóng/ }).first().click();
+    await expect(row).toContainText(`${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`);
 
-    // ── 28: no reason, no cancel ──
-    await row.getByRole("button", { name: `Huỷ phiếu ${receipt.code}` }).click();
-    const dialog = page.getByRole("dialog", { name: /Xác nhận huỷ phiếu thanh toán/ });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /Huỷ$/ }).click();
-    await expect(dialog.getByText("Vui lòng nhập lý do hủy phiếu")).toBeVisible();
-
-    const reason = `Thu nhầm e2e ${runId()}`;
-    await dialog.getByLabel("Lý do hủy").fill(reason);
-    const cancelled = page.waitForResponse((r) => r.url().endsWith(`${receipt.id}/cancel`) && r.request().method() === "POST");
-    await dialog.getByRole("button", { name: /Huỷ$/ }).click();
-    expect((await cancelled).ok()).toBeTruthy();
-    await expect(dialog).toBeHidden();
-
-    // Still listed, after a reload too, as Đã hủy with who, when and why — and
-    // it can no longer be edited or cancelled again.
-    await page.reload();
-    await expect(row).toBeVisible({ timeout: 15_000 });
-    await expect(row).toContainText("Đã hủy");
-    await expect(row).toContainText(`Lý do: ${reason}`);
-    await expect(row).toContainText(/admin.*hủy lúc|hủy lúc/);
+    // ── 28: no Sửa, no Huỷ on the row; the API refuses a cancel with or without a reason ──
+    await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
     await expect(row.getByRole("button", { name: `Huỷ phiếu ${receipt.code}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${receipt.code}` })).toHaveCount(0);
+    const withReason = await call<AbpError>(page, "POST", `${PAYMENTS}/${receipt.id}/cancel`, {
+      reason: `Thu nhầm e2e ${runId()}`,
+    });
+    expect(withReason.status).toBe(403);
+    expect(withReason.body.error?.code).toBe(ALREADY_COMPLETED);
+    const blank = await call<AbpError>(page, "POST", `${PAYMENTS}/${receipt.id}/cancel`, { reason: "  " });
+    expect(blank.status).toBeGreaterThanOrEqual(400);
+    expect(blank.status).toBeLessThan(500);
 
-    // Nothing that adds money up counts it; the tab's own list keeps it. It was
-    // cancelled while still "Chưa thanh toán", so like the tab the list asks
-    // for pending receipts too.
-    const counted = await call<{ items: { id: string }[] }>(
+    // Still counted, after a reload too — nothing was taken back.
+    await page.reload();
+    await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất", { timeout: 15_000 });
+    const counted = await call<{ items: { id: string; amount: number; isDeleted?: boolean }[] }>(
       page,
       "GET",
       `${PAYMENTS}?patientId=${receipt.patientId}&treatmentPlanId=${receipt.treatmentPlanId}&maxResultCount=200`,
     );
-    expect(counted.body.items.map((p) => p.id)).not.toContain(receipt.id);
-    const listed = await call<{ items: { id: string; isDeleted: boolean; cancelReason: string; deleterId: string }[] }>(
-      page,
-      "GET",
-      `${PAYMENTS}?patientId=${receipt.patientId}&treatmentPlanId=${receipt.treatmentPlanId}&includeCancelled=true&includePending=true&maxResultCount=200`,
-    );
-    const kept = listed.body.items.find((p) => p.id === receipt.id);
-    expect(kept?.isDeleted).toBe(true);
-    expect(kept?.cancelReason).toBe(reason);
-    expect(kept?.deleterId).toBeTruthy();
-
-    // The API refuses a cancel without a reason.
-    const blank = await call<AbpError>(page, "POST", `${PAYMENTS}/${receipt.id}/cancel`, { reason: "  " });
-    expect(blank.status).toBeGreaterThanOrEqual(400);
+    const kept = counted.body.items.find((p) => p.id === receipt.id);
+    expect(kept?.amount).toBe(receipt.amount);
+    expect(kept?.isDeleted ?? false).toBe(false);
   });
 });
 

@@ -8126,3 +8126,51 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
   - `consulting-delete-and-picker` + `consulting-review` 9/9.
 - **Không đụng:** `/taxonomy` (chỉ prop `onCreated` từ R-925).
 - **Đổi chữ (owner, cùng ngày):** tooltip nút + đổi từ "Thêm nhanh chẩn đoán" thành **"Thêm chẩn đoán"** (`Patient:Diagnosis:QuickCreate`). Nhãn đọc màn hình (aria-label) dùng khoá riêng `Patient:Diagnosis:QuickCreateLabel` = "Thêm mới chẩn đoán vào danh mục": form đã có nút lệnh "Thêm chẩn đoán" (lưu phiếu, tiếp phiếu mới), trùng tên sẽ làm `getByRole("button", { name: "Thêm chẩn đoán" })` khớp 2 nút. Spec kiểm thêm tooltip hiện đúng chữ. Kiểm chứng: `diagnosis-quick-create.spec.ts` 2/2 + `patient.spec.ts:1142` (nút lệnh Thêm chẩn đoán) 1/1, build production :8145.
+
+## R-928 (ex R-906) (2026-10-13, mức 2: Nhân viên + Tiếp nhận + API lịch hẹn) Lọc nhiều bác sĩ theo "Mức độ ưu tiên" lấy từ hồ sơ nhân viên, thay cho kéo-thả (sửa R-922)
+
+**Yêu cầu (chủ sở hữu):** khi lọc nhiều bác sĩ, thứ tự hiển thị phải theo độ ưu tiên giống danh mục: mỗi nhân viên có ô "Mức độ ưu tiên" (đúng tên này, không phải "Thứ tự ưu tiên"), mặc định là 0, giống ô cùng tên ở dialog "Thêm dịch vụ". Người dùng không kéo-thả để sắp xếp trong ô lọc nữa.
+
+**Thay đổi:**
+- BE: thêm thuộc tính mở rộng `Priority` của IdentityUser, xử lý trong `StaffPriority` ở Domain (đọc, ghi, sắp xếp). Mặc định là 0; nhân viên lưu trước khi có trường này cũng được tính là 0. Giá trị âm bị từ chối với lỗi `BlueDental:Staff:0012`. Thêm `int Priority` vào `StaffDto`, `CreateStaffDto` và `UpdateStaffDto`. `AppointmentAppService.GetListAsync` sắp xếp theo mức ưu tiên tăng dần, cùng mức thì theo tên, áp dụng cho cả `DentistIds` (từ 2 bác sĩ trở lên) lẫn `DoctorTeamId`. Thứ tự gửi lên trong request không còn ảnh hưởng.
+- FE: thêm ô "Mức độ ưu tiên" (`StaffPriorityField`) vào form nhân viên, nhãn `Common:Priority`, InputNumber mặc định 0, tối thiểu 0, giống `ServiceDialog`. `SortableMultiSearchSelect` đổi tên thành `RankedMultiSearchSelect`: các bác sĩ đã chọn xếp theo thứ tự của danh sách option, tức là theo mức ưu tiên. Bỏ tay nắm kéo-thả và phím ↑/↓; `PriorityList` chỉ còn đánh số và nút ✕. Danh sách bác sĩ ở Tiếp nhận sắp theo mức ưu tiên bằng sort ổn định, nên những người cùng mức giữ thứ tự tên.
+- Làm mới khi đổi mức ưu tiên: lúc đầu, nếu sửa mức ưu tiên ở tab Nhân viên khác thì bảng Tiếp nhận đang mở vẫn giữ thứ tự cũ. Nguyên nhân là danh sách bác sĩ được cache 5 phút, còn `refetchOnWindowFocus` tắt cho toàn app. Cách sửa gồm hai phần. Thứ nhất, `useReceptionDoctors` dùng `refetchOnWindowFocus: "always"`, nên quay lại tab là danh sách bác sĩ được đọc lại. Thứ hai, ReceptionPage gửi `doctorIds` đã xếp lại theo danh sách bác sĩ mới nhất (`rankDoctorIds`). Khi thứ tự đổi thì key của query thay đổi, nên bảng tự tải lại theo thứ tự mới.
+- i18n: `Staff:PriorityHint`, `Staff:PriorityInvalid`, `Common:PriorityFromStaff`, `BlueDental:Staff:0012`.
+
+**Kiểm chứng (backend thật + build production `vite preview` 8080, không chặn API):**
+- `reception-doctor-priority.spec` (viết lại, 4/4):
+  - API nhóm lịch hẹn theo mức ưu tiên, request gửi theo thứ tự nào cũng vậy. Đổi mức (kể cả về 0) thì thứ tự đảo theo.
+  - Trên trình duyệt: bấm A trước B, nhưng B có mức nhỏ hơn thì request là `[B,A]`, danh sách đánh số B trước A, không có tay nắm kéo, thẻ đầu tiên là của B. Bấm ✕ bỏ được một người.
+  - Form nhân viên: nhân viên mới có mức 0; lưu 3 thì tải lại trang vẫn còn 3; xoá trống thì về 0. API từ chối -1 (403, `Staff:0012`).
+  - Sửa mức ưu tiên ở tab khác rồi quay lại: bảng đang lọc A, B gửi lại request với `[B,A]`, thẻ và danh sách đánh số đổi theo. Kiểm chứng ngược: tắt refetch thì test này đỏ.
+- Hồi quy:
+  - Xanh: `reception-doctor-team` 3/3, `reception-own-doctor` 6/6, `reception-doctor-list` 2/2, `staff-employment` 2/2.
+  - `staff.spec` đỏ ở bước chọn chi nhánh "Nha Khoa Đức Hạnh Premium". DB local đã tích luỹ hàng chục chi nhánh test ("CN HOA HONG …"), danh sách cuộn ảo tháo option khỏi DOM đúng lúc đang click. Đã chạy lại khi bỏ thay đổi form nhân viên và test vẫn đỏ y hệt, nên lỗi có từ trước.
+
+## R-929 (ex R-907) (2026-10-13, mức 2: Thanh toán bệnh nhân) Tạo phiếu thanh toán là "Hoàn tất" ngay, có hộp xác nhận trước khi lưu (bỏ bước "Chưa thanh toán" của BA 2026-10-08)
+
+**Yêu cầu (chủ sở hữu):** bấm lưu phiếu thanh toán thì phiếu phải ở trạng thái đã thanh toán luôn, không để "Chưa thanh toán" với công nợ còn nguyên. Trước khi lưu phải có hộp xác nhận. Chủ sở hữu chốt: phiếu "Hoàn tất" là cuối cùng, không sửa và không huỷ được; thu nhầm thì xử lý bằng phiếu hoàn tiền.
+
+**Thay đổi:**
+- BE: `PatientPaymentAppService.RecordAsync` luôn ghi phiếu với `PatientPaymentStatus.Completed`. `ConfirmAsync`, `UpdateAsync` và `Cancel` giữ nguyên, chỉ còn dùng cho các phiếu "Chưa thanh toán" đã lưu từ trước.
+- FE: `CreatePaymentDialog` tách bước kiểm tra (`readyToSave`) ra khỏi bước lưu. Ở chế độ tạo mới, bấm "Lưu" sẽ mở `ConfirmDialog` ("Xác nhận đã thu {số tiền}?"); chọn "Có" mới gửi POST, chọn "Không" thì không gửi gì và giữ nguyên dialog. Chân dialog đổi thành "Phiếu được ghi nhận đã thanh toán ngay khi lưu và không thể sửa hay huỷ." Khi mở lại một phiếu cũ còn "Chưa thanh toán", dialog vẫn hiện ghi chú 7 ngày như trước.
+- i18n: `Patient:Payment:ConfirmCreate`, `Patient:Payment:FinalWarning`.
+
+**Kiểm chứng (backend thật + build production 8080, không chặn API):**
+- `payment-status.spec` (viết lại, 4/4): "Không" không gửi POST; "Có" gửi đúng một POST và phiếu ở trạng thái Hoàn tất. Đã thanh toán và Công nợ đổi ngay, tải lại trang vẫn đúng. Dòng phiếu chỉ còn nút Xem. API từ chối sửa, xác nhận và huỷ với 403 `Billing:0096`; chi nhánh khác cũng bị từ chối.
+- Đã chuyển sang hành vi mới và đều xanh: `treatment-plan-detail` 13/13, `billing-ledger` 5/5, `debt-history` 4/4, `payment-amount-cap` 1/1, `payment-receipt-pdf` 4/4, và 3/4 test thanh toán của `patient.spec`.
+- `qa-bugs-25-30` (#26, #28): luồng huỷ có lý do và dòng "Đã hủy" không còn tới được với phiếu mới, nên đã thay bằng các kiểm tra từ chối (sửa ngày, huỷ, phiếu ghi ngày mai). Từ nay luồng huỷ phiếu "Chưa thanh toán" không còn test e2e nào bao phủ.
+- Còn đỏ, không do thay đổi này:
+  - `qa-bugs` #25: quy tắc check-in trong ngày đang bị tắt trong `Appointment.cs` (commit e1cbbba6).
+  - `vat-payment-einvoice-api` dòng 102: phiếu dịch vụ dùng chung đang có giảm giá cấp phiếu. Bản sao tạm bỏ qua phiếu đó thì xanh.
+  - `patient.spec` "the payment dialog carries the reference's fields": dialog có thêm dòng VAT do dữ liệu demo bị các test VAT thêm vào.
+  - `payment-permission-buttons` và `staff.spec`: không chọn được chi nhánh trong form nhân viên. Đã chạy thử khi bỏ thay đổi form nhân viên (R-928) và vẫn đỏ y hệt, nên lỗi có sẵn từ dữ liệu chi nhánh test tích luỹ.
+
+**Ghi nhận thêm (chưa sửa):** xác nhận lại một phiếu đã Hoàn tất trên dòng đã trả đủ thì trả về 403 `Billing:0092` ("vượt số còn nợ") thay vì `0096`. Nguyên nhân là `ConfirmAsync` và `UpdateAsync` kiểm tra hạn mức trước `EnsurePending()`. Yêu cầu vẫn bị từ chối, chỉ có mã lỗi gây hiểu nhầm.
+
+**Merge vào develop (2026-10-13):** develop đã tách `CreatePaymentDialog` thành `create-payment/` (F-70, R-907 của develop). Bước xác nhận nằm trong `useSavePayment`: `request` kiểm tra rồi mở `ConfirmDialog` (phiếu mới) hoặc lưu luôn (sửa / xác nhận phiếu cũ), `commit` là nút "Có". Tab PHIẾU THU vẫn mở ngay trong cú bấm "Có". `RecordAsync` ghi `Completed` và vẫn giữ cờ `RequestRedInvoice` của develop.
+- Spec của develop dựa vào phiếu "Chưa thanh toán" được chuyển sang hành vi mới:
+  - `payment-from-slip`: Lưu → "Có" → Hoàn tất, bỏ bước `confirmOnRow`.
+  - `invoice-request-api` / `-ui`: cờ HĐ đỏ tick ngay lúc tạo (`collectOnFirstLine(page, { redInvoice: true })`), vì phiếu Hoàn tất từ chối `PUT`. Bỏ bước dọn dẹp huỷ phiếu.
+  - Test R-915 (Hủy phiếu huỷ yêu cầu xuất HĐ) chuyển sang `test.fixme`: phiếu mới không huỷ được nữa, nên R-915 chỉ còn áp dụng cho phiếu "Chưa thanh toán" cũ. **Chủ dự án cần chốt.**
+  - Chưa chạy lại các spec này sau merge.

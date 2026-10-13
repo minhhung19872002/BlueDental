@@ -19,7 +19,7 @@ export interface Receipt {
   treatmentPlanId: string;
   treatmentPlanCode: string;
   staffId: string;
-  /** 1 = "Chưa thanh toán", 2 = "Hoàn tất" (BA 2026-10-08). */
+  /** 1 = "Chưa thanh toán" (legacy only), 2 = "Hoàn tất" — every new receipt (owner 2026-10-13). */
   status: number;
   lines: { treatmentServiceId: string; amount?: number }[];
 }
@@ -95,53 +95,60 @@ export async function openNewSlip(page: Page): Promise<void> {
 }
 
 /**
- * "Tạo Phiếu Thanh Toán" for half of the first line, then "Xác nhận thanh
- * toán" on its row: a new receipt waits as "Chưa thanh toán" and only the
- * confirmed one moves money (BA 2026-10-08). Returns the confirmed receipt.
+ * "Tạo Phiếu Thanh Toán" for half of the first line, "Lưu", then "Có" in the
+ * "Xác nhận thanh toán" question: the receipt is written "Hoàn tất" and moves
+ * money at once (owner 2026-10-13). Returns the saved receipt.
+ *
+ * `redInvoice` ticks "Xuất hóa đơn đỏ" first: a Hoàn tất receipt refuses every
+ * later write, so the flag can only go on as the receipt is made.
  */
-export async function collectOnFirstLine(page: Page): Promise<Receipt> {
-  const pending = await writePendingOnFirstLine(page);
-  return confirmOnRow(page, pending.code);
-}
-
-/** "Xác nhận thanh toán" on the receipt's row, the dialog's figures left as written. */
-export async function confirmOnRow(page: Page, code: string): Promise<Receipt> {
-  await page.getByRole("button", { name: `Xác nhận thanh toán phiếu ${code}` }).click();
-  const dialog = page.getByRole("dialog", { name: "Xác nhận thanh toán" });
-  await expect(dialog).toBeVisible();
-  const confirmed = page.waitForResponse(
-    (res) => res.url().includes(PAYMENTS_API) && res.url().endsWith("/confirm") && res.request().method() === "PUT",
-  );
-  await dialog.getByRole("button", { name: "Xác nhận thanh toán" }).click();
-  const response = await confirmed;
-  expect(response.ok(), await response.text()).toBeTruthy();
-  await expect(dialog).toBeHidden();
-  const receipt = (await response.json()) as Receipt;
-  expect(receipt.status).toBe(2);
-  return receipt;
-}
-
-/** "Tạo Phiếu Thanh Toán" for half of the first line; returns the receipt still "Chưa thanh toán". */
-export async function writePendingOnFirstLine(page: Page): Promise<Receipt> {
+export async function collectOnFirstLine(page: Page, { redInvoice = false } = {}): Promise<Receipt> {
   await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
   const line = dialog.locator(".pd-newpay-lines > li").first();
   await line.locator("input[type=checkbox]").check();
   const due = money(await line.locator(".pd-newpay-due").innerText());
   await dialog.locator(".pd-newpay-amount").fill(String(Math.max(2, Math.floor(due / 2))));
-  const saved = page.waitForResponse(
-    (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
-  );
+  if (redInvoice) await dialog.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
   await dialog.getByRole("button", { name: "Lưu" }).click();
+  return answerYes(page, dialog);
+}
+
+/**
+ * The "Xác nhận thanh toán" question "Lưu" raises on a new receipt: "Có" sends
+ * the one POST, and both dialogs close on the Hoàn tất receipt it returns.
+ */
+export async function answerYes(page: Page, createDialog: Locator): Promise<Receipt> {
+  const saved = page.waitForResponse(
+    (res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST",
+  );
+  await answerQuestionYes(page);
   const response = await saved;
-  expect(response.ok()).toBeTruthy();
-  await expect(dialog).toBeHidden();
+  expect(response.ok(), await response.text()).toBeTruthy();
+  await expect(paymentQuestion(page)).toBeHidden();
+  await expect(createDialog).toBeHidden();
   const receipt = (await response.json()) as Receipt;
-  expect(receipt.status).toBe(1);
+  expect(receipt.status).toBe(2);
   return receipt;
 }
 
-/** The body PUT …/{id} and PUT …/{id}/confirm take: the receipt's own figures unless overridden. */
+/** The question "Lưu" raises on a new receipt, the create dialog still open behind it. */
+export function paymentQuestion(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Xác nhận thanh toán", exact: true });
+}
+
+/**
+ * "Có" in that question — for specs that watch the POST themselves. The
+ * question names the amount and says the receipt is paid once saved.
+ */
+export async function answerQuestionYes(page: Page): Promise<void> {
+  const question = paymentQuestion(page);
+  await expect(question).toBeVisible();
+  await expect(question).toContainText("Phiếu sẽ được ghi nhận là đã thanh toán ngay khi lưu.");
+  await question.getByRole("button", { name: "Có" }).click();
+}
+
+/** The body PUT …/{id} and PUT …/{id}/confirm take: the receipt's own figures unless overridden. Both refuse a Hoàn tất receipt. */
 export function revisionOf(receipt: Receipt & { splitMode?: number; note?: string | null; paymentAccountId?: string | null }, amount = receipt.amount) {
   const splitMode = receipt.splitMode ?? 1;
   return {
@@ -154,19 +161,4 @@ export function revisionOf(receipt: Receipt & { splitMode?: number; note?: strin
     note: receipt.note ?? null,
     paymentAccountId: receipt.paymentAccountId ?? null,
   };
-}
-
-/**
- * "Xác nhận thanh toán" through the API, the receipt's figures unchanged. For
- * receipts written where the screen offers no confirm button (the patient
- * record's treatment tab); the button itself lives on the plan's Thanh toán tab.
- */
-export async function confirmAsWritten(page: Page, receipt: Receipt): Promise<Receipt> {
-  const confirmed = await call(page, `${PAYMENTS_API}/${receipt.id}/confirm`, {
-    method: "PUT",
-    json: revisionOf(receipt),
-  });
-  expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
-  expect(confirmed.body.status).toBe(2);
-  return confirmed.body as unknown as Receipt;
 }
