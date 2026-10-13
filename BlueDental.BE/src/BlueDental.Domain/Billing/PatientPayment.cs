@@ -84,6 +84,13 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     /// </summary>
     public bool RedInvoiceRequested { get; private set; }
 
+    /// <summary>
+    /// Moved in from the clinic's old system by the data migration (F-61).
+    /// The money was taken years ago, so such a receipt never offers itself to
+    /// "Yêu cầu xuất HĐ" — the old system dealt with its invoices.
+    /// </summary>
+    public bool IsImported { get; private set; }
+
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
 
@@ -284,6 +291,12 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     public PatientPayment RequestRedInvoice(bool requested)
     {
         RedInvoiceRequested = requested;
+        return this;
+    }
+
+    public PatientPayment MarkImported()
+    {
+        IsImported = true;
         return this;
     }
 

@@ -3,6 +3,7 @@ import type {
   Appointment,
   AppointmentListQuery,
   AppointmentStatus,
+  AppointmentStatusCounts,
   CreateAppointmentRequest,
   CreateTempAppointmentRequest,
   UpdateAppointmentRequest,
@@ -82,6 +83,35 @@ const CODE_BY_STATUS: Record<AppointmentStatus, number> = {
   noShow: SERVER_STATUS.NoShow,
 };
 
+/** The server codes behind view statuses: "inProgress" also covers CheckedIn. */
+function serverCodesOf(statuses: readonly AppointmentStatus[]): number[] {
+  return Object.entries(STATUS_BY_CODE)
+    .filter(([, status]) => statuses.includes(status))
+    .map(([code]) => Number(code));
+}
+
+export interface ServerAppointmentStatsDto {
+  requested: number;
+  confirmed: number;
+  checkedIn: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+}
+
+/** Folds the server's seven counts into the view's six statuses. */
+export function adaptStatusCounts(dto: ServerAppointmentStatsDto): AppointmentStatusCounts {
+  return {
+    scheduled: dto.requested,
+    confirmed: dto.confirmed,
+    inProgress: dto.checkedIn + dto.inProgress,
+    completed: dto.completed,
+    cancelled: dto.cancelled,
+    noShow: dto.noShow,
+  };
+}
+
 const statusLabels = (): Record<AppointmentStatus, string> => ({
   scheduled: t("Appointment:Status:Scheduled"),
   confirmed: t("Appointment:Status:Confirmed"),
@@ -144,6 +174,8 @@ export function toServerQuery(query: AppointmentListQuery): Record<string, unkno
     fromDate: query.fromDate,
     toDate: query.toDate,
     status: query.status ? CODE_BY_STATUS[query.status] : undefined,
+    statuses: query.statuses?.length ? serverCodesOf(query.statuses) : undefined,
+    sorting: query.newestFirst ? "Start desc" : undefined,
     filter: query.filter || undefined,
     skipCount: query.skipCount,
     maxResultCount: query.maxResultCount,

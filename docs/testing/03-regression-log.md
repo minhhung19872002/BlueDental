@@ -8015,6 +8015,37 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 - Chạy lại cùng `reception-doctor-priority`, `reception-own-doctor`, `reception-doctor-list`, `reception.spec`: tất cả xanh.
 - DB local chưa có Team bác sĩ nào hợp lệ, nên ô nhóm hiện "Chưa có team bác sĩ nào". Các nhóm T1 và 21520417 trong ảnh là dữ liệu staging.
 
+## R-924 (2026-10-13, mức 3: F-61 + PatientPayment + Yêu cầu xuất HĐ) Mẫu chuyển dữ liệu chứa đủ file khách Đức Hạnh: tiền, gom kế hoạch, thanh toán
+
+**Yêu cầu (chủ dự án):** BA tự chép file xuất của hệ thống cũ Đức Hạnh vào `BlueDental_Migration.xlsx` rồi import qua API. Mẫu F-61 chỉ chứa được khách hàng và dòng dịch vụ giá 0, nên phải mở rộng để chứa tiền dịch vụ, các lần thu tiền, và gom phiếu chỉnh nha thành một kế hoạch. Nếu không gom, mỗi khách chỉnh nha có 50–165 kế hoạch, mà hồ sơ chỉ tải 100. Giữ luật bắt buộc SĐT hoặc Email; vẫn chỉ có API.
+
+**Thay đổi:**
+- Sheet Điều trị thêm 5 cột không bắt buộc: Kế hoạch, Số lượng, Đơn giá gốc, Đơn giá, Thành tiền.
+  - Khoá gom là Kế hoạch, trống thì Mã phiếu, trống nữa thì ngày.
+  - Dòng có giá mở một dòng dịch vụ mới: giá gốc = max(gốc, giá); Thành tiền nhỏ hơn SL×ĐG thì phần chênh là giảm giá; lớn hơn là lỗi.
+  - Dòng không giá thành công đoạn của dòng dịch vụ gần nhất cùng tên.
+- Sheet mới Thanh toán, 9 cột, không bắt buộc. Tiền chia theo phiếu rồi theo kế hoạch; dư là lỗi.
+  Mỗi kế hoạch được chia tiền sinh một `PatientPayment.Record` Completed lúc 17:00 ngày thu cũ, mã `THANHTOAN-{seq}/{DTxx}/{năm}`.
+- `PatientPayment.IsImported` (migration `20261013100000_ImportedPayments`). `InvoiceRequestSources.OpenPaymentsAsync` bỏ qua các phiếu này.
+- Template, guide và file lỗi chuyển từ 2 sheet cố định sang danh sách sheet. Mã KH ở sheet lịch sử có gợi ý riêng (`Hint:patientRef`).
+- nginx: location `/api/v1/app/data-migration/` cho body 60 MB và timeout 600 s; controller đặt `[RequestSizeLimit]` 60 MB.
+- Tạo lại `docs/migration/BlueDental_Migration.xlsx`. Viết hướng dẫn BA `docs/migration/huong-dan-chuyen-du-lieu-duc-hanh.md`: ánh xạ cột, danh mục 47 dịch vụ / 23 nhãn bác sĩ, các lỗi dữ liệu phải sửa, cách chia file.
+
+**Kiểm chứng (host thật :5000 + build production :8187 + PostgreSQL, không chặn API):**
+- `data-migration-api.spec` **17/17**, cộng 1 test hiệu năng bị skip mặc định.
+  Các test mới: gom Kế hoạch + tiền + 4 kiểu thanh toán; lỗi tiền và thanh toán + file lỗi; file layout F-61 cũ vẫn nhập giá 0.
+  Sửa spec: `catalogPicks` bỏ các mục `isDeleted`, vì API danh mục trả cả mục đã xoá mềm.
+- Hiệu năng (`MIGRATION_PERF=1`): 5.000 KH / 70.000 dòng / 3.000 thu, file SheetJS 21,8 MB, lưu thật 25,6 s.
+- Hồi quy mức 3: `patient-roster` (31 qua + 1 skip khi chạy cùng), `invoice-request` + payment + vat 14/14.
+- Thử thật trên DB local với 200 khách lấy từ file khách (script ở scratchpad, không commit dữ liệu).
+  - Dry run báo 3 lỗi, đều là lỗi của dữ liệu cũ: 2 họ tên có ngoặc, 1 phiếu thu 200k trên phiếu giá 0.
+  - Sửa 3 dòng đó rồi nhập: 200 KH, 698 kế hoạch, 4.387 công đoạn, 272 phiếu thu, 1,4 s. Tổng phiếu thu khớp file (473.544.000 đ).
+  - Hồ sơ hiển thị đúng Tổng phiếu / Đã trả.
+
+**Còn mở:**
+- Giới hạn body của Caddy dùng chung trên VM (`~/proxy`) chưa kiểm.
+- Công nợ khoảng 36,8 tỷ nếu nhập đủ tiền như file cũ: chủ dự án chốt trước khi nhập (hướng dẫn BA mục 7).
+
 ## R-925 (2026-10-13, mức 2: Chẩn đoán & Tư vấn + 1 prop mới ở /taxonomy) QA #28 — Thêm nhanh chẩn đoán ngay cạnh ô "Chẩn đoán"
 
 **Yêu cầu (QA #28 + BA):** form "Tạo chẩn đoán" cần nút thêm nhanh chẩn đoán thay vì sang Danh mục; tạo xong thì chọn luôn chẩn đoán đó.
@@ -8035,6 +8066,52 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 **Còn mở:**
 - Ô Chẩn đoán (`useCatalogOptions`) chỉ gửi `isActive: true`, không gửi `isDeleted: false` → chẩn đoán đã xoá mềm vẫn được chọn trên phiếu (như R-587 ở picker khác). → **Đã sửa ở R-927.**
 - BE: quyền cũ `Catalogs.Create` được cấp khi có quyền tạo của BẤT KỲ danh mục nào (`BlueDentalPermissionBridge`), nên người chỉ có quyền tạo danh mục khác vẫn gọi được API tạo chẩn đoán; FE đã ẩn nút theo đúng `catalogDiagnosis.create`.
+
+## R-926 (2026-10-13, mức 3: Lịch hẹn + báo cáo + CSKH) F-61 — Sheet "Lịch hẹn" trong file chuyển dữ liệu
+
+**Yêu cầu (chủ dự án):** chuyển toàn bộ lịch hẹn của hệ thống cũ Đức Hạnh, khoảng 478 nghìn dòng, cả lịch đã qua lẫn lịch sắp tới.
+
+**Thay đổi:**
+- Mẫu có thêm sheet "Lịch hẹn" (7 cột): Mã KH, Ngày giờ hẹn, Thời lượng, Bác sĩ, Trạng thái (drop-down), Nội dung, Lý do hủy.
+- Luật nhập:
+  - Chỉ có ngày, hoặc giờ 00:00 → 09:00.
+  - Thời lượng để trống → 30 phút.
+  - Trạng thái để trống: lịch đã qua → Đã đến, lịch sắp tới → Đã hẹn.
+  - Trạng thái mâu thuẫn với ngày → lỗi dòng.
+- `Appointment.Import` + `IsImported` (migration `20261013101316_ImportedAppointments`):
+  - Lịch nhập vào không sinh việc CSKH (`CareAppointmentRules`, `NoServiceCareWorker`).
+  - Seeder nhật ký đổi lịch bỏ qua lịch nhập vào.
+- Ngày tạo hồ sơ lùi về lần hẹn sớm nhất.
+- Vì có nhiều lịch, các chỗ tải nguyên bảng lịch hẹn được thu hẹp:
+  - `GET /appointments` nhận `sorting=Start desc`.
+  - `/appointments/stats` đếm bằng `GroupBy` trong DB.
+  - Báo cáo vận hành lọc lịch theo cửa sổ ±1 ngày trong DB.
+  - Báo cáo phòng khám (cả năm) chỉ lấy trạng thái + giờ.
+  - Tab Lịch hẹn của hồ sơ phân trang ở server, mới nhất trước, số đếm lấy từ server.
+- Hướng dẫn BA (`docs/migration/huong-dan-chuyen-du-lieu-duc-hanh.md`) có thêm ánh xạ sheet Lịch hẹn và mục 3.5.
+
+**Kiểm chứng (host :5100 build từ working tree + build production :8187 + PostgreSQL, không chặn API):**
+- `data-migration-api.spec`: **19/19** + 1 skip.
+  - Test mới 1: nhập 6 lịch → đọc lại trạng thái / giờ / thời lượng / mốc → stats → phân trang → lọc trạng thái → không có CSKH → chạy lại bỏ qua.
+  - Test mới 2: 9 dòng lỗi + file lỗi.
+- Hiệu năng: 5.000 KH / 70.000 dòng / 3.000 thu / 65.000 lịch hẹn, file 32,1 MB, lưu thật 35,3 s. Toàn bộ 478 nghìn lịch ≈ 7–8 file như vậy.
+- Hồi quy (appointment*, patient-appointment, cskh, patient-care, reception*, operations-reports, report, report-customer): **104 qua, 21 đỏ, 1 skip**. Không đỏ nào do thay đổi này:
+  - `report.spec` xuất Excel: mong tiêu đề "Phương thức thanh toán", nhưng chuỗi đã là "Hình thức" từ commit 2eec1e9e.
+  - `patient-appointment.spec:156`: `getByText("Chọn bệnh nhân")` khớp cả label lẫn placeholder (strict mode). Dialog không sửa.
+  - `reception-live-late.spec:137`: chạy lại thì qua (9/10 cùng spec patient-appointment).
+  - 18 đỏ `operations-reports`: request work-log mất 7–15 s hoặc bị huỷ (499).
+    - Nguyên nhân: tải nguyên bảng kế hoạch + dịch vụ, công đoạn, thanh toán, chẩn đoán, tư vấn (`OperationsReportAppService` :167/:204/:209/:222/:330/:339/:607).
+    - DB local đang có dữ liệu hiệu năng: khoảng 5,9 nghìn BN, 75 nghìn công đoạn.
+    - Ở HEAD đã có 8 đỏ cùng spec (`e2e-preexisting-reds`). Thay đổi này chỉ thu hẹp truy vấn lịch.
+
+**Còn mở:**
+- Rủi ro sau khi nhập thật Đức Hạnh (232 nghìn dòng dịch vụ): báo cáo Vận hành dùng không được, cho tới khi các truy vấn trên được lọc theo cửa sổ trong DB.
+- Các chỗ tải nguyên bảng khác cũng nên lọc theo cửa sổ trong DB:
+  - `ClinicReportAppService.GetSalesSummaryAsync` (mọi phiếu thu)
+  - `PatientPaymentAppService.QueryAsync` (phân trang trong bộ nhớ)
+  - `CashManagementAppService.GetPatientMoneyAsync`
+  - `PatientRosterAppService.ExportAsync`
+- Chưa sửa: chờ chủ dự án.
 
 ## R-927 (2026-10-13, mức 2: Chẩn đoán & Tư vấn) Ô "Chẩn đoán" không còn đưa chẩn đoán đã xoá mềm; phiếu cũ giữ tên chẩn đoán đã xoá
 

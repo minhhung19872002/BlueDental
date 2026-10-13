@@ -699,7 +699,8 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         if (branchFilter.Count > 0)
             apptQuery = apptQuery.Where(a => branchFilter.Contains(a.BranchId));
         apptQuery = apptQuery.Where(a => a.Slot.Start >= ToInstant(yearStart) && a.Slot.Start < ToInstant(yearEnd).AddDays(1));
-        var fullYearAppointments = apptQuery.ToList();
+        // Status and start only: the year can hold tens of thousands of visits.
+        var fullYearAppointments = await AsyncExecuter.ToListAsync(apptQuery.Select(a => new YearVisit(a.Status, a.Slot.Start)));
 
         var periods = new[]
         {
@@ -723,7 +724,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
             var plInRange = isAll ? fullYearPlans : fullYearPlans
                 .Where(p => DateOnly.FromDateTime(p.CreationTime) >= from && DateOnly.FromDateTime(p.CreationTime) <= to).ToList();
             var aInRange = isAll ? fullYearAppointments : fullYearAppointments
-                .Where(a => DateOnly.FromDateTime(a.Slot.Start.UtcDateTime) >= from && DateOnly.FromDateTime(a.Slot.Start.UtcDateTime) <= to).ToList();
+                .Where(a => DateOnly.FromDateTime(a.Start.UtcDateTime) >= from && DateOnly.FromDateTime(a.Start.UtcDateTime) <= to).ToList();
             var sInRange = isAll ? fullYearSales : fullYearSales
                 .Where(s => s.EntryDate >= from && s.EntryDate <= to).ToList();
 
@@ -760,7 +761,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
 
             var mPayments = fullYearPayments.Where(p => DateOnly.FromDateTime(p.PaidAt.UtcDateTime) >= mStart && DateOnly.FromDateTime(p.PaidAt.UtcDateTime) <= mEnd).ToList();
             var mPlans = fullYearPlans.Where(p => DateOnly.FromDateTime(p.CreationTime) >= mStart && DateOnly.FromDateTime(p.CreationTime) <= mEnd).ToList();
-            var mAppts = fullYearAppointments.Where(a => DateOnly.FromDateTime(a.Slot.Start.UtcDateTime) >= mStart && DateOnly.FromDateTime(a.Slot.Start.UtcDateTime) <= mEnd).ToList();
+            var mAppts = fullYearAppointments.Where(a => DateOnly.FromDateTime(a.Start.UtcDateTime) >= mStart && DateOnly.FromDateTime(a.Start.UtcDateTime) <= mEnd).ToList();
             var mSales = fullYearSales.Where(s => s.EntryDate >= mStart && s.EntryDate <= mEnd).ToList();
 
             var newP = mPlans.GroupBy(p => p.PatientId).Count(g => g.OrderBy(p => p.CreationTime).First().CreationTime >= ToInstant(mStart).UtcDateTime);
@@ -882,4 +883,6 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
 
     private static DateTimeOffset ToInstant(DateOnly date) =>
         new(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+    private sealed record YearVisit(AppointmentStatus Status, DateTimeOffset Start);
 }

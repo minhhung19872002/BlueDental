@@ -755,7 +755,7 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
             await CurrentUnitOfWork.SaveChangesAsync();
         }
 
-        await _patientWriter.WriteAsync(plan.Creates, [], []);
+        await _patientWriter.WriteAsync(plan.Creates, [], [], [], []);
     }
 
     private void Apply(Patient patient, PatientDraft draft)

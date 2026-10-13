@@ -35,7 +35,8 @@ public class InvoiceRequestSources(
 
     /// <summary>
     /// The receipt, "Chưa thanh toán" included (its PHIẾU THU prints, so its QR
-    /// must work); a refund or a cancelled receipt gets no invoice.
+    /// must work); a refund, a cancelled receipt or one moved in from the old
+    /// system (F-61) gets no invoice.
     /// </summary>
     public async Task<PatientPayment> EligiblePaymentAsync(Guid patientPaymentId)
     {
@@ -61,7 +62,7 @@ public class InvoiceRequestSources(
             throw new EntityNotFoundException(typeof(PatientPayment), patientPaymentId);
         }
 
-        if (payment.Kind != PatientPaymentKind.Payment)
+        if (payment.Kind != PatientPaymentKind.Payment || payment.IsImported)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.ReceiptNotEligible);
         }
@@ -77,7 +78,7 @@ public class InvoiceRequestSources(
         {
             var query = await payments.WithDetailsAsync(x => x.Lines);
             list = await executer.ToListAsync(query
-                .Where(x => x.PatientId == patientId && x.Kind == PatientPaymentKind.Payment)
+                .Where(x => x.PatientId == patientId && x.Kind == PatientPaymentKind.Payment && !x.IsImported)
                 .OrderByDescending(x => x.PaidAt));
         }
 

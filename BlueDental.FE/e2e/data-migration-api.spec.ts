@@ -36,6 +36,8 @@ interface MigrationResult {
   patientsSkipped: number;
   treatmentPlansCreated: number;
   treatmentStagesCreated: number;
+  paymentsCreated: number;
+  appointmentsCreated: number;
   fileErrors: string[];
   sheets: { name: string; totalRows: number; rows: RowResult[] }[];
 }
@@ -80,7 +82,36 @@ interface Slip {
   title: string;
   status: number;
   payableAmount: number;
-  services: { price: number; quantity: number }[];
+  services: SlipLine[];
+}
+
+interface SlipLine {
+  id: string;
+  serviceName: string | null;
+  price: number;
+  originalPrice: number;
+  quantity: number;
+  discountAmount: number;
+  payableAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  stageCount: number;
+}
+
+interface Receipt {
+  id: string;
+  code: string;
+  kind: number; // 1 Payment
+  method: number; // 1 Tiền mặt, 2 Chuyển khoản, 3 Thẻ, 5 Ví điện tử
+  status: number; // 2 Completed
+  amount: number;
+  paidAt: string;
+  creationTime: string;
+  note: string | null;
+  staffId: string;
+  paymentAccountId: string | null;
+  treatmentPlanCode: string | null;
+  lines: { treatmentServiceId: string; amount: number }[];
 }
 
 interface Stage {
@@ -214,14 +245,15 @@ function readSheet(base64: string, index: number): Cell[][] {
   return XLSX.utils.sheet_to_json<Cell[]>(sheet, { header: 1, defval: null, raw: false });
 }
 
-/** The template's own two data sheets, header row taken from the template itself, rows appended. */
-function fill(template: string, patients: Cell[][], treatments: Cell[][]): string {
+/** The template's own four data sheets, header row taken from the template itself, rows appended. */
+function fill(
+  template: string, patients: Cell[][], treatments: Cell[][], payments: Cell[][] = [], bookings: Cell[][] = [],
+): string {
   const book = XLSX.read(template, { type: "base64" });
-  const [patientSheet, treatmentSheet] = book.SheetNames;
-  const patientHeader = readSheet(template, 0)[0];
-  const treatmentHeader = readSheet(template, 1)[0];
-  book.Sheets[patientSheet] = XLSX.utils.aoa_to_sheet([patientHeader, ...patients]);
-  book.Sheets[treatmentSheet] = XLSX.utils.aoa_to_sheet([treatmentHeader, ...treatments]);
+  [patients, treatments, payments, bookings].forEach((rows, index) => {
+    const header = readSheet(template, index)[0];
+    book.Sheets[book.SheetNames[index]] = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  });
   return XLSX.write(book, { type: "base64", bookType: "xlsx" });
 }
 
@@ -273,7 +305,19 @@ function patientRow(values: Partial<Record<PatientColumn, Cell>>): Cell[] {
   return PATIENT_COLUMNS.map((key) => values[key] ?? null);
 }
 
-/** Điều trị columns: Mã KH, Ngày, Mã phiếu, Dịch vụ, Công đoạn, Răng, Nội dung, BS điều trị, BS hỗ trợ, Phụ tá, Trạng thái. */
+/** The Điều trị columns added after F-61 (L–P); all optional. */
+interface TreatmentMoney {
+  plan?: string;
+  quantity?: Cell;
+  originalPrice?: Cell;
+  price?: Cell;
+  amount?: Cell;
+}
+
+/**
+ * Điều trị columns: Mã KH, Ngày, Mã phiếu, Dịch vụ, Công đoạn, Răng, Nội dung, BS điều trị, BS hỗ trợ, Phụ tá,
+ * Trạng thái, then Kế hoạch, Số lượng, Đơn giá gốc, Đơn giá, Thành tiền.
+ */
 function treatmentRow(
   code: string,
   day: string,
@@ -284,8 +328,49 @@ function treatmentRow(
   content: string | null,
   dentist: string | null,
   status: string | null,
+  money: TreatmentMoney = {},
 ): Cell[] {
-  return [code, day, slip, service, stage, teeth, content, dentist, null, null, status];
+  return [
+    code, day, slip, service, stage, teeth, content, dentist, null, null, status,
+    money.plan ?? null, money.quantity ?? null, money.originalPrice ?? null, money.price ?? null, money.amount ?? null,
+  ];
+}
+
+/** Thanh toán columns, in the template's order (DataMigrationLayout.Payments). */
+const PAYMENT_COLUMNS = ["code", "slip", "plan", "paidOn", "amount", "method", "account", "cashier", "note"] as const;
+
+function paymentRow(values: Partial<Record<(typeof PAYMENT_COLUMNS)[number], Cell>>): Cell[] {
+  return PAYMENT_COLUMNS.map((key) => values[key] ?? null);
+}
+
+/** Lịch hẹn columns, in the template's order (DataMigrationLayout.Bookings). */
+const BOOKING_COLUMNS = ["code", "at", "minutes", "dentist", "status", "note", "cancelNote"] as const;
+
+function bookingRow(values: Partial<Record<(typeof BOOKING_COLUMNS)[number], Cell>>): Cell[] {
+  return BOOKING_COLUMNS.map((key) => values[key] ?? null);
+}
+
+interface Booking {
+  id: string;
+  slotStart: string;
+  slotEnd: string;
+  status: number; // 1 Đã hẹn, 5 Đã đến, 6 Hủy hẹn, 7 Trễ hẹn
+  dentistId: string;
+  notes: string | null;
+  cancellationNote: string | null;
+  checkedInAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  creationTime: string;
+}
+
+async function bookingsOf(page: Page, patientId: string, query = ""): Promise<{ items: Booking[]; totalCount: number }> {
+  const res = await getJson<{ items: Booking[]; totalCount: number }>(
+    page,
+    `/api/v1/app/appointments?patientId=${patientId}&sorting=${encodeURIComponent("Start desc")}${query || "&maxResultCount=100"}`,
+  );
+  expect(res.status).toBe(200);
+  return res.body;
 }
 
 interface CatalogPicks {
@@ -308,6 +393,8 @@ interface NamedRow {
   code?: string | null;
   isActive?: boolean;
   isCombo?: boolean;
+  /** Soft-deleted entries stay in the catalog list (they can be restored); the import does not match them. */
+  isDeleted?: boolean;
 }
 
 interface StaffRow {
@@ -330,7 +417,7 @@ async function catalogPicks(page: Page): Promise<CatalogPicks> {
   const entries = (group: string, extra = "") =>
     list<NamedRow>(
       `/api/v1/app/catalog-entries?ClinicBranchId=${BRANCH_ONE}&Group=${group}&IsActive=true&MaxResultCount=1000${extra}`,
-    ).then((rows) => rows.filter((r) => r.isActive !== false && !r.isCombo).map((r) => r.name));
+    ).then((rows) => rows.filter((r) => r.isActive !== false && !r.isDeleted && !r.isCombo).map((r) => r.name));
   const unique = (values: string[]) => values.filter((v) => values.filter((x) => x === v).length === 1);
   const listable = (values: string[]) => [...new Set(values.filter((v) => !/[;,]/.test(v)))];
 
@@ -377,6 +464,57 @@ async function findPatient(page: Page, code: string): Promise<PatientListItem[]>
   return (res.body.items ?? []).filter((p) => p.patientCode === code);
 }
 
+interface AccountRow {
+  id: string;
+  holderName: string;
+}
+
+/** Holder names the Tài khoản nhận cells use: no digits, so only the name can match. */
+const BANK_HOLDER = "MIG E2E NGAN HANG";
+const WALLET_HOLDER = "MIG E2E VI";
+
+/**
+ * A bank account and a MoMo wallet of branch one for Chuyển khoản / Ví điện tử
+ * rows, created once and reused by later runs (a second one of the same name
+ * would make the cell ambiguous).
+ */
+async function migrationAccounts(page: Page): Promise<{ bank: string; wallet: string }> {
+  const ensure = async (kind: 1 | 2, holderName: string, extra: Record<string, string>) => {
+    const url = `/api/v1/app/payment-accounts?clinicBranchId=${BRANCH_ONE}&kind=${kind}&maxResultCount=1000`;
+    const listed = await getJson<{ items: AccountRow[] }>(page, url);
+    expect(listed.status, url).toBe(200);
+    const found = listed.body.items.find((a) => a.holderName === holderName);
+    if (found) return found.id;
+    const created = await sendJson<AccountRow>(page, "POST", "/api/v1/app/payment-accounts", {
+      clinicBranchId: BRANCH_ONE, kind, holderName, ...extra,
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(200);
+    return created.body.id;
+  };
+  return {
+    bank: await ensure(2, BANK_HOLDER, { bankName: "Ngân hàng thử", accountNumber: "970400000001" }),
+    wallet: await ensure(1, WALLET_HOLDER, { phoneNumber: "0900000001" }),
+  };
+}
+
+async function receiptsOf(page: Page, patientId: string): Promise<Receipt[]> {
+  const res = await getJson<{ items: Receipt[] }>(
+    page,
+    `/api/v1/app/patient-payments?patientId=${patientId}&clinicBranchId=${BRANCH_ONE}&includeCancelled=true&includePending=true&maxResultCount=100`,
+  );
+  expect(res.status).toBe(200);
+  return res.body.items;
+}
+
+async function slipsOf(page: Page, patientId: string): Promise<Slip[]> {
+  const res = await getJson<{ items: Slip[] }>(
+    page,
+    `/api/v1/app/patient-treatments?patientId=${patientId}&clinicBranchId=${BRANCH_ONE}&maxResultCount=100`,
+  );
+  expect(res.status).toBe(200);
+  return res.body.items;
+}
+
 /** Same instant as the clinic's wall clock (UTC+7) says. */
 const clinicTime = (iso: string) => Date.parse(`${iso}+07:00`);
 
@@ -391,7 +529,7 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     await Promise.all([assertRealApiTraffic(page, "/api/v1/app/patients"), page.goto("/patient")]);
   });
 
-  test("hands out BlueDental_Migration.xlsx with both data sheets and a guide", async ({ page }) => {
+  test("hands out BlueDental_Migration.xlsx with the four data sheets and a guide", async ({ page }) => {
     const file = await getFile(page, `${API}/template?clinicBranchId=${BRANCH_ONE}`);
     expect(file.status).toBe(200);
     expect(file.contentType).toContain("spreadsheetml");
@@ -399,16 +537,29 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     expect(atob(file.base64).slice(0, 2)).toBe("PK");
 
     const book = XLSX.read(file.base64, { type: "base64" });
-    expect(book.SheetNames).toEqual(["Khách hàng", "Điều trị", "Hướng dẫn"]);
+    expect(book.SheetNames).toEqual(["Khách hàng", "Điều trị", "Thanh toán", "Lịch hẹn", "Hướng dẫn"]);
 
     const patientHeader = readSheet(file.base64, 0)[0];
     expect(patientHeader).toHaveLength(24);
     expect(patientHeader[0]).toBe("Mã KH *");
     expect(patientHeader[1]).toBe("Họ và tên *");
+    // F-61's eleven columns first, unchanged, so an old file still lines up; the money after.
     expect(readSheet(file.base64, 1)[0]).toEqual([
       "Mã KH *", "Ngày điều trị *", "Mã phiếu", "Dịch vụ *", "Công đoạn", "Răng",
       "Nội dung điều trị", "Bác sĩ điều trị *", "Bác sĩ hỗ trợ", "Phụ tá", "Trạng thái",
+      "Kế hoạch", "Số lượng", "Đơn giá gốc", "Đơn giá", "Thành tiền",
     ]);
+    expect(readSheet(file.base64, 2)[0]).toEqual([
+      "Mã KH *", "Mã phiếu", "Kế hoạch", "Ngày thu *", "Số tiền *", "Hình thức", "Tài khoản nhận", "Người thu", "Ghi chú",
+    ]);
+    expect(readSheet(file.base64, 3)[0]).toEqual([
+      "Mã KH *", "Ngày giờ hẹn *", "Thời lượng (phút)", "Bác sĩ *", "Trạng thái", "Nội dung", "Lý do hủy",
+    ]);
+    // The guide names every column of the four sheets.
+    const guide = readSheet(file.base64, 4).flat().map(String).join(" | ");
+    for (const column of ["Kế hoạch", "Thành tiền", "Ngày thu", "Tài khoản nhận", "Ngày giờ hẹn", "Lý do hủy"]) {
+      expect(guide).toContain(column);
+    }
 
     template = file.base64;
     picks = await catalogPicks(page);
@@ -417,18 +568,28 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
   test("drop-down lists sit only on the fixed-choice columns and every value they offer imports clean", async ({ page }) => {
     const patientLists = pickLists(template, 1);
     const treatmentLists = pickLists(template, 2);
-    // D Giới tính, X Quan hệ | K Trạng thái. Catalog and staff columns carry none:
-    // the file is filled offline, a list from one database would refuse names valid on another.
+    const paymentLists = pickLists(template, 3);
+    const bookingLists = pickLists(template, 4);
+    // D Giới tính, X Quan hệ | K Trạng thái | F Hình thức | E Trạng thái. Catalog, staff and account columns carry
+    // none: the file is filled offline, a list from one database would refuse names valid on another.
     expect([...patientLists.keys()].sort()).toEqual(["D", "X"]);
     expect([...treatmentLists.keys()]).toEqual(["K"]);
-    for (const [columns, list] of [...patientLists, ...treatmentLists]) expect(list.style, columns).toBe("stop");
+    expect([...paymentLists.keys()]).toEqual(["F"]);
+    expect([...bookingLists.keys()]).toEqual(["E"]);
+    for (const [columns, list] of [...patientLists, ...treatmentLists, ...paymentLists, ...bookingLists]) {
+      expect(list.style, columns).toBe("stop");
+    }
 
     const genders = inlineValues(patientLists.get("D")!.formula);
     const relations = inlineValues(patientLists.get("X")!.formula);
     const statuses = inlineValues(treatmentLists.get("K")!.formula);
+    const methods = inlineValues(paymentLists.get("F")!.formula);
+    const bookingStatuses = inlineValues(bookingLists.get("E")!.formula);
     expect(genders).toEqual(["Nam", "Nữ", "Khác"]);
     expect(relations).toEqual(["Bố", "Mẹ", "Ông", "Bà", "Anh / Chị ruột", "Cô / Dì / Chú / Bác", "Người giám hộ hợp pháp"]);
     expect(statuses).toEqual(["Hoàn thành", "Đang điều trị"]);
+    expect(methods).toEqual(["Tiền mặt", "Chuyển khoản", "Thẻ", "Ví điện tử"]);
+    expect(bookingStatuses).toEqual(["Đã hẹn", "Đã đến", "Trễ hẹn", "Hủy hẹn"]);
 
     // Every offered value, each on its own row, must pass the import's own reading.
     const id = runId();
@@ -445,9 +606,18 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
       })),
     ];
     const treatments: Cell[][] = statuses.map((status, i) =>
-      [code("G", 0), `0${i + 1}/03/2023`, null, picks.service, null, null, null, picks.staffName, null, null, status]);
+      treatmentRow(code("G", 0), `0${i + 1}/03/2023`, "PT1", picks.service, null, null, null, picks.staffName, status,
+        i === 0 ? { price: 1_000_000 } : {}));
+    await migrationAccounts(page);
+    const accountOf: Record<string, string | null> = { "Chuyển khoản": BANK_HOLDER, "Ví điện tử": WALLET_HOLDER };
+    const payments = methods.map((method) =>
+      paymentRow({ code: code("G", 0), slip: "PT1", paidOn: "05/03/2023", amount: 100_000, method, account: accountOf[method] ?? null }));
+    // Đã hẹn only fits a booking still to come; the other three one already past.
+    const bookings = bookingStatuses.map((status) => bookingRow({
+      code: code("G", 0), at: status === "Đã hẹn" ? "02/01/2099 10:00" : "06/03/2023 10:00", dentist: picks.staffName, status,
+    }));
     const dry = await post<MigrationResult>(page, "import", {
-      base64: fill(template, patients, treatments), clinicBranchId: BRANCH_ONE, dryRun: true,
+      base64: fill(template, patients, treatments, payments, bookings), clinicBranchId: BRANCH_ONE, dryRun: true,
     });
     expect(dry.status, JSON.stringify(dry.body)).toBe(200);
     const errors = dry.body.sheets.flatMap((s) => s.rows.filter((r) => r.errors.length).map((r) => `${s.name} ${r.row}: ${r.errors}`));
@@ -455,11 +625,15 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     expect(dry.body.fileErrors).toEqual([]);
     expect(dry.body.patientsCreated).toBe(patients.length);
     expect(dry.body.treatmentStagesCreated).toBe(treatments.length);
+    expect(dry.body.paymentsCreated).toBe(payments.length);
+    expect(dry.body.appointmentsCreated).toBe(bookings.length);
 
     // The error file copies the sheets, drop-downs included.
     const errorFile = await post<MigrationResult>(page, "import-errors", { base64: template, clinicBranchId: BRANCH_ONE });
     expect(errorFile.status).toBe(200);
     expect(pickLists(errorFile.base64, 2).get("K")?.formula).toBe(treatmentLists.get("K")?.formula);
+    expect(pickLists(errorFile.base64, 3).get("F")?.formula).toBe(paymentLists.get("F")?.formula);
+    expect(pickLists(errorFile.base64, 4).get("E")?.formula).toBe(bookingLists.get("E")?.formula);
   });
 
   test("dry run plans everything and writes nothing; a real import backdates the history at price 0", async ({ page }) => {
@@ -1009,6 +1183,380 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
       `/api/v1/app/treatment-stages?patientId=${patient.id}&clinicBranchId=${BRANCH_ONE}&maxResultCount=50`,
     );
     expect(stages.body.items.map((s) => s.staffId)).toEqual([created.body.id]);
+  });
+
+  test("Kế hoạch gathers slips into one plan; priced rows open lines, unpriced rows follow; payments settle them back-dated", async ({ page }) => {
+    const id = runId();
+    const code = `MIG${id}K`;
+    await migrationAccounts(page);
+    const orthodontics = (day: string, slip: string, service: string, money: TreatmentMoney, plan = "Chỉnh nha") =>
+      treatmentRow(code, day, slip, service, null, null, `Lần ${day}`, picks.staff, null, { plan, ...money });
+    const file = fill(
+      template,
+      [patientRow({ code, fullName: `Mai Chỉnh Nha ${id}`, phone: "0955555555" })],
+      [
+        // 30 000 000 sold for 28 000 000: the 2 000 000 is the line's discount.
+        orthodontics("01/02/2021", "PX1", picks.service, { quantity: 1, originalPrice: 30_000_000, price: "30.000.000", amount: 28_000_000 }),
+        orthodontics("01/03/2021", "PX2", picks.service, {}),
+        // Kế hoạch matched without case or extra spaces.
+        orthodontics("01/04/2021", "PX3", picks.service, {}, "chỉnh   NHA"),
+        // Sold above its list price: the list price is raised, nothing refused.
+        orthodontics("01/04/2021", "PX3", picks.service2, { quantity: 2, originalPrice: 500_000, price: 600_000 }),
+        // A second priced row of the same service opens a line of its own.
+        orthodontics("05/05/2021", "PX4", picks.service, { price: 1_000_000 }),
+        // Outside the plan, given away (Thành tiền 0): the guide's advice for the old qty-0 rows.
+        treatmentRow(code, "10/06/2021", "PX5", picks.service, null, null, null, picks.staff, null, { price: 200_000, amount: 0 }),
+      ],
+      [
+        paymentRow({ code, slip: "PX1", paidOn: "15/02/2021", amount: 10_000_000, cashier: picks.staffName, note: "Đợt 1" }),
+        // PX3's own line first, then the line PX3 visited, then the rest of the plan.
+        paymentRow({ code, slip: "px3", paidOn: "01/04/2021", amount: "20.000.000", method: "Chuyển khoản", account: BANK_HOLDER }),
+        paymentRow({ code, plan: "Chỉnh nha", paidOn: "06/05/2021", amount: 100_000, method: "Thẻ" }),
+        // The old system logged zero receipts: skipped, not refused.
+        paymentRow({ code, slip: "PX5", paidOn: "10/06/2021", amount: 0 }),
+      ],
+    );
+
+    const res = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.errorCount, JSON.stringify(res.body.sheets)).toBe(0);
+    expect(res.body.committed).toBe(true);
+    expect(res.body.treatmentPlansCreated).toBe(2);
+    expect(res.body.treatmentStagesCreated).toBe(6);
+    expect(res.body.paymentsCreated).toBe(3);
+    expect(res.body.sheets[2].rows).toEqual([expect.objectContaining({ row: 5, action: RowAction.Skip, errors: [] })]);
+
+    const [listed] = await findPatient(page, code);
+    const slips = new Map((await slipsOf(page, listed.id)).map((s) => [s.code, s]));
+    expect([...slips.keys()].sort()).toEqual(["DT01", "DT02"]);
+    const plan = slips.get("DT01")!;
+    expect(plan.title).toBe("Chỉnh nha");
+    expect(plan.payableAmount).toBe(30_200_000);
+    const byPrice = new Map(plan.services.map((line) => [line.price, line]));
+    expect([...byPrice.keys()].sort((a, b) => a - b)).toEqual([600_000, 1_000_000, 30_000_000]);
+    expect(byPrice.get(30_000_000)).toMatchObject({
+      quantity: 1, originalPrice: 30_000_000, discountAmount: 2_000_000, payableAmount: 28_000_000, stageCount: 3,
+      paidAmount: 28_000_000, outstandingAmount: 0,
+    });
+    expect(byPrice.get(600_000)).toMatchObject({
+      quantity: 2, originalPrice: 600_000, payableAmount: 1_200_000, stageCount: 1, paidAmount: 1_200_000,
+    });
+    expect(byPrice.get(1_000_000)).toMatchObject({
+      quantity: 1, payableAmount: 1_000_000, stageCount: 1, paidAmount: 900_000, outstandingAmount: 100_000,
+    });
+    const given = slips.get("DT02")!;
+    expect(given.title).toBe("Kế hoạch điều trị (PX5)");
+    expect(given.services).toEqual([expect.objectContaining({ price: 200_000, discountAmount: 200_000, payableAmount: 0 })]);
+
+    // Completed receipts, dated the day the money came in, numbered in that order.
+    const receipts = (await receiptsOf(page, listed.id)).sort((a, b) => Date.parse(a.paidAt) - Date.parse(b.paidAt));
+    expect(receipts).toHaveLength(3);
+    const lineId = (price: number) => byPrice.get(price)!.id;
+    const [first, second, third] = receipts;
+    expect(first).toMatchObject({ kind: 1, status: 2, method: 1, amount: 10_000_000, treatmentPlanCode: "DT01", paymentAccountId: null });
+    expect(first.note).toBe("Nhập từ hệ thống cũ: PX1 — Đợt 1");
+    expect(first.lines).toEqual([{ treatmentServiceId: lineId(30_000_000), amount: 10_000_000 }]);
+    expect(second).toMatchObject({ method: 2, amount: 20_000_000, paymentAccountId: expect.any(String) });
+    expect(new Map(second.lines.map((l) => [l.treatmentServiceId, l.amount]))).toEqual(new Map([
+      [lineId(600_000), 1_200_000],
+      [lineId(30_000_000), 18_000_000],
+      [lineId(1_000_000), 800_000],
+    ]));
+    expect(third).toMatchObject({ method: 3, amount: 100_000, note: "Nhập từ hệ thống cũ: Chỉnh nha" });
+    expect(third.lines).toEqual([{ treatmentServiceId: lineId(1_000_000), amount: 100_000 }]);
+    for (const [receipt, day] of [[first, "2021-02-15"], [second, "2021-04-01"], [third, "2021-05-06"]] as const) {
+      expect(Date.parse(receipt.paidAt), receipt.code).toBe(clinicTime(`${day}T17:00:00`));
+      expect(Date.parse(receipt.creationTime), receipt.code).toBe(clinicTime(`${day}T17:00:00`));
+      expect(receipt.code).toMatch(/^THANHTOAN-\d{2,}\/DT01\/2021$/);
+    }
+    const sequence = (receipt: Receipt) => Number(/^THANHTOAN-(\d+)/.exec(receipt.code)![1]);
+    expect([sequence(second) - sequence(first), sequence(third) - sequence(second)]).toEqual([1, 1]);
+
+    // What is left is the patient's debt, and old receipts are not offered for a VAT invoice request.
+    const account = await getJson<{ payment: { debt: number; totalPaid: number } }>(
+      page,
+      `/api/v1/app/patient-payments/account?patientId=${listed.id}&clinicBranchId=${BRANCH_ONE}`,
+    );
+    expect(account.status).toBe(200);
+    expect(account.body.payment).toMatchObject({ totalPaid: 30_100_000, debt: 100_000 });
+    const options = await getJson<unknown[]>(page, `/api/v1/app/invoice-requests/payment-options/${listed.id}`);
+    expect(options.status).toBe(200);
+    expect(options.body).toEqual([]);
+
+    // The same file again: patient, history and receipts all skipped.
+    const again = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(again.status, JSON.stringify(again.body)).toBe(200);
+    expect(again.body).toMatchObject({ errorCount: 0, patientsSkipped: 1, treatmentPlansCreated: 0, paymentsCreated: 0 });
+    expect(again.body.sheets[2].rows.map((r) => r.action)).toEqual([RowAction.Skip, RowAction.Skip, RowAction.Skip, RowAction.Skip]);
+    expect(await receiptsOf(page, listed.id)).toHaveLength(3);
+  });
+
+  test("bad money and payment rows are named on their own row, the file is refused, the error file marks Thanh toán", async ({ page }) => {
+    const id = runId();
+    const payer = `MIG${id}P`;
+    const priced = `MIG${id}M`;
+    const visit = (code: string, slip: string, money: TreatmentMoney) =>
+      treatmentRow(code, "01/03/2022", slip, picks.service, null, null, null, picks.staff, null, money);
+    const file = fill(
+      template,
+      [
+        patientRow({ code: payer, fullName: `Lý Trả Tiền ${id}`, phone: "0911222333" }),
+        patientRow({ code: priced, fullName: `Lý Sai Giá ${id}`, phone: "0911222444" }),
+      ],
+      [
+        visit(payer, "PE1", { price: 1_000_000 }), // 2: fine
+        visit(priced, "PE2", { price: 500_000, amount: 600_000 }), // 3
+        visit(priced, "PE3", { amount: 100_000 }), // 4
+        visit(priced, "PE4", { quantity: 0, price: 100_000 }), // 5
+        visit(priced, "PE5", { price: "năm trăm" }), // 6
+      ],
+      [
+        paymentRow({ code: payer, slip: "PE1", paidOn: "02/03/2022", amount: 1_500_000 }), // 2
+        paymentRow({ code: payer, slip: "PE-KHONG", paidOn: "02/03/2022", amount: 100_000 }), // 3
+        paymentRow({ code: payer, slip: "PE1", paidOn: "02/03/2022", amount: 100_000, method: "Chuyển khoản" }), // 4
+        paymentRow({ code: payer, slip: "PE1", paidOn: "02/03/2022", amount: 100_000, method: "Bitcoin" }), // 5
+        paymentRow({ code: payer, paidOn: "02/03/2022", amount: 100_000 }), // 6
+        paymentRow({ code: `MIG${id}NONE`, slip: "PE1", paidOn: "02/03/2022", amount: 100_000 }), // 7
+        paymentRow({ code: payer, slip: "PE1", paidOn: "01/01/2099", amount: 100_000 }), // 8
+        paymentRow({ code: payer, slip: "PE1", paidOn: "02/03/2022", amount: 100_000, method: "Chuyển khoản", account: `TK lạ ${id}` }), // 9
+        paymentRow({ code: payer, slip: "PE1", paidOn: "02/03/2022", amount: 100_000, method: "ck", account: BANK_HOLDER }), // 10: fine
+      ],
+    );
+
+    const res = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.committed).toBe(false);
+    expect(res.body.fileErrors).toEqual([]);
+    const errorsOf = (sheet: number) =>
+      new Map(res.body.sheets[sheet].rows.filter((r) => r.errors.length).map((r) => [r.row, r.errors.join(" | ")]));
+
+    const visits = errorsOf(1);
+    expect([...visits.keys()]).toEqual([3, 4, 5, 6]);
+    expect(visits.get(3)).toBe('Cột "Thành tiền": 600.000 lớn hơn Số lượng × Đơn giá = 500.000');
+    expect(visits.get(4)).toBe('Có "Thành tiền" thì phải có "Đơn giá"');
+    expect(visits.get(5)).toBe('Cột "Số lượng" phải là số nguyên từ 1 đến 1000');
+    expect(visits.get(6)).toBe('"Đơn giá" phải là số');
+
+    const payments = errorsOf(2);
+    expect([...payments.keys()]).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(payments.get(2)).toBe('Số tiền 1.500.000 vượt quá phần còn phải trả của "PE1" (1.000.000)');
+    expect(payments.get(3)).toBe('Khách hàng không có dòng nào ở sheet "Điều trị" thuộc "PE-KHONG"');
+    expect(payments.get(4)).toBe('Cần có "Tài khoản nhận" khi "Hình thức" là Chuyển khoản hoặc Ví điện tử');
+    expect(payments.get(5)).toContain('"Bitcoin" không phải hình thức thanh toán');
+    expect(payments.get(6)).toBe('Cần có "Mã phiếu" hoặc "Kế hoạch" để biết khoản thu trả cho phiếu nào');
+    expect(payments.get(7)).toContain(`MIG${id}NONE`);
+    expect(payments.get(8)).toContain("tương lai");
+    expect(payments.get(9)).toContain(`TK lạ ${id}`);
+    expect(await findPatient(page, payer)).toHaveLength(0);
+
+    const errors = await post<MigrationResult>(page, "import-errors", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(errors.status).toBe(200);
+    expect(XLSX.read(errors.base64, { type: "base64" }).SheetNames).toEqual(["Khách hàng", "Điều trị", "Thanh toán", "Lịch hẹn"]);
+    const sheet = readSheet(errors.base64, 2);
+    const errorColumn = sheet[0].indexOf("Lỗi");
+    expect(errorColumn).toBe(9);
+    expect(String(sheet[1][errorColumn])).toContain("1.500.000");
+    expect(sheet[9][errorColumn]).toBeNull();
+  });
+
+  test("bookings come in past, upcoming and cancelled as the old system had them, latest first on the record", async ({ page }) => {
+    const id = runId();
+    const code = `MIG${id}H`;
+    const nextYear = new Date().getFullYear() + 1;
+    // Excel serial 42737.625 = 02/01/2017 15:00: a real date cell, as the customer's export holds them.
+    const file = fill(
+      template,
+      [patientRow({ code, fullName: `Đặng Lịch Hẹn ${id}`, phone: "0966000111" })],
+      [],
+      [],
+      [
+        bookingRow({ code, at: "10/03/2018", dentist: picks.staffName, note: "Khám định kỳ" }), // date only → 09:00, Đã đến
+        bookingRow({ code, at: "20/04/2019 14:30", minutes: 45, dentist: picks.staff, status: "Trễ hẹn", note: "Tái khám" }),
+        bookingRow({ code, at: "05/05/2020 00:00", dentist: picks.staffName, status: "Hủy hẹn" }), // 00:00 → 09:00
+        bookingRow({ code, at: "06/05/2020 10:00", dentist: picks.staffName, status: "hủy hẹn", cancelNote: "Khách bận" }),
+        bookingRow({ code, at: `15/06/${nextYear} 08:15`, minutes: 60, dentist: picks.staffName, note: "Lấy dấu" }),
+        bookingRow({ code, at: 42737.625, dentist: picks.staffName, status: "Đã khám" }),
+      ],
+    );
+
+    const res = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body).toMatchObject({ committed: true, errorCount: 0, patientsCreated: 1, appointmentsCreated: 6 });
+    const sheet = res.body.sheets.find((s) => s.name === "Lịch hẹn")!;
+    // Like Thanh toán, only rows skipped or refused are listed.
+    expect(sheet).toMatchObject({ totalRows: 6, rows: [] });
+
+    const [listed] = await findPatient(page, code);
+    const { items, totalCount } = await bookingsOf(page, listed.id);
+    expect(totalCount).toBe(6);
+    const minutes = (b: Booking) => (Date.parse(b.slotEnd) - Date.parse(b.slotStart)) / 60_000;
+    expect(items.map((b) => [Date.parse(b.slotStart), b.status, minutes(b)])).toEqual([
+      [clinicTime(`${nextYear}-06-15T08:15:00`), 1, 60],
+      [clinicTime("2020-05-06T10:00:00"), 6, 30],
+      [clinicTime("2020-05-05T09:00:00"), 6, 30],
+      [clinicTime("2019-04-20T14:30:00"), 7, 45],
+      [clinicTime("2018-03-10T09:00:00"), 5, 30],
+      [clinicTime("2017-01-02T15:00:00"), 5, 30],
+    ]);
+    const [upcoming, busy, cancelled, missed, kept, oldest] = items;
+    expect(upcoming).toMatchObject({ notes: "Lấy dấu", checkedInAt: null, completedAt: null, cancelledAt: null });
+    expect(busy.cancellationNote).toBe("Khách bận");
+    expect(cancelled.cancellationNote).toBe("Hủy trên hệ thống cũ");
+    expect(Date.parse(cancelled.cancelledAt!)).toBe(Date.parse(cancelled.slotStart));
+    expect(missed).toMatchObject({ notes: "Tái khám", completedAt: null, cancelledAt: null });
+    expect(kept.notes).toBe("Khám định kỳ");
+    expect(Date.parse(kept.checkedInAt!)).toBe(Date.parse(kept.slotStart));
+    expect(Date.parse(kept.completedAt!)).toBe(Date.parse(kept.slotEnd));
+    // Booked on the day they were for; the upcoming one was booked today.
+    for (const past of items.slice(1)) expect(Date.parse(past.creationTime)).toBe(Date.parse(past.slotStart));
+    expect(Date.now() - Date.parse(upcoming.creationTime)).toBeLessThan(60 * 60_000);
+    // The record starts with the first visit kept, there being no Ngày đăng ký and no treatment.
+    const patient = (await getJson<Patient>(page, `/api/v1/app/patients/${listed.id}`)).body;
+    expect(Date.parse(patient.creationTime)).toBe(Date.parse(oldest.slotStart));
+
+    // The record's Lịch hẹn tab: counted by the server, filtered and paged by it, latest first.
+    const stats = await getJson<Record<string, number>>(page, `/api/v1/app/appointments/stats?patientId=${listed.id}`);
+    expect(stats.status).toBe(200);
+    expect(stats.body).toMatchObject({ requested: 1, completed: 2, noShow: 1, cancelled: 2, overdue: 0 });
+    const firstPage = await bookingsOf(page, listed.id, "&skipCount=0&maxResultCount=2");
+    expect(firstPage.totalCount).toBe(6);
+    expect(firstPage.items.map((b) => b.id)).toEqual([upcoming.id, busy.id]);
+    const cancelledOnly = await bookingsOf(page, listed.id, "&statuses=6&maxResultCount=100");
+    expect(cancelledOnly.items.map((b) => b.id)).toEqual([busy.id, cancelled.id]);
+
+    // Moved-in history does not raise Chăm sóc khách hàng work.
+    const care = await getJson<{ items: unknown[] }>(
+      page, `/api/v1/app/care-records?branchId=${BRANCH_ONE}&patientId=${listed.id}&maxResultCount=50`,
+    );
+    expect(care.status).toBe(200);
+    expect(care.body.items).toEqual([]);
+
+    // The same file again: the patient and its bookings are skipped.
+    const again = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(again.status, JSON.stringify(again.body)).toBe(200);
+    expect(again.body).toMatchObject({ errorCount: 0, patientsSkipped: 1, appointmentsCreated: 0 });
+    expect(again.body.sheets.find((s) => s.name === "Lịch hẹn")!.rows.map((r) => r.action)).toEqual(Array(6).fill(RowAction.Skip));
+    expect((await bookingsOf(page, listed.id)).totalCount).toBe(6);
+  });
+
+  test("bad booking rows are named on their own row, the file is refused, the error file marks Lịch hẹn", async ({ page }) => {
+    const id = runId();
+    const code = `MIG${id}B`;
+    const nextYear = new Date().getFullYear() + 1;
+    const booking = (values: Parameters<typeof bookingRow>[0]) =>
+      bookingRow({ code, at: "01/02/2020 10:00", dentist: picks.staffName, ...values });
+    const file = fill(
+      template,
+      [patientRow({ code, fullName: `Đặng Sai Hẹn ${id}`, phone: "0966000222" })],
+      [],
+      [],
+      [
+        booking({}), // 2: fine
+        booking({ status: "Đã hẹn" }), // 3
+        booking({ at: `01/02/${nextYear} 10:00`, status: "Đã đến" }), // 4
+        booking({ at: "32/13/2020 10:00" }), // 5
+        booking({ minutes: 0 }), // 6
+        booking({ minutes: "nửa giờ" }), // 7
+        booking({ status: "Lung tung" }), // 8
+        booking({ code: `MIG${id}NONE` }), // 9
+        booking({ dentist: `BS Không Có ${id}` }), // 10
+        booking({ at: null }), // 11
+      ],
+    );
+
+    const res = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body).toMatchObject({ committed: false, errorCount: 9, fileErrors: [] });
+    const sheet = res.body.sheets.find((s) => s.name === "Lịch hẹn")!;
+    const errors = new Map(sheet.rows.filter((r) => r.errors.length).map((r) => [r.row, r.errors.join(" | ")]));
+    expect([...errors.keys()]).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(errors.get(3)).toBe('Cột "Trạng thái": lịch hẹn đã qua không được để "Đã hẹn" — ghi Đã đến, Trễ hẹn hoặc Hủy hẹn');
+    expect(errors.get(4)).toBe('Cột "Trạng thái": lịch hẹn chưa tới không thể là "Đã đến" hay "Trễ hẹn"');
+    expect(errors.get(5)).toBe('Cột "Ngày giờ hẹn": "32/13/2020 10:00" không phải ngày giờ (dd/MM/yyyy HH:mm)');
+    expect(errors.get(6)).toBe('Cột "Thời lượng (phút)": phải là số phút nguyên từ 1 đến 480');
+    expect(errors.get(7)).toBe(errors.get(6));
+    expect(errors.get(8)).toBe('Cột "Trạng thái": "Lung tung" không phải trạng thái lịch hẹn (Đã hẹn, Đã đến, Trễ hẹn, Hủy hẹn)');
+    expect(errors.get(9)).toContain(`MIG${id}NONE`);
+    expect(errors.get(10)).toContain(`BS Không Có ${id}`);
+    expect(errors.get(11)).toContain("Ngày giờ hẹn");
+    expect(await findPatient(page, code)).toHaveLength(0);
+
+    const errorFile = await post<MigrationResult>(page, "import-errors", { base64: file, clinicBranchId: BRANCH_ONE });
+    expect(errorFile.status).toBe(200);
+    expect(XLSX.read(errorFile.base64, { type: "base64" }).SheetNames).toEqual(["Khách hàng", "Điều trị", "Thanh toán", "Lịch hẹn"]);
+    const marked = readSheet(errorFile.base64, 3);
+    const errorColumn = marked[0].indexOf("Lỗi");
+    expect(errorColumn).toBe(7);
+    expect(marked[1][errorColumn]).toBeNull();
+    expect(String(marked[2][errorColumn])).toContain("Đã hẹn");
+  });
+
+  test("a file in the F-61 layout (11 Điều trị columns, no Thanh toán) still imports at price 0", async ({ page }) => {
+    const id = runId();
+    const code = `MIG${id}V`;
+    const source = XLSX.read(fill(
+      template,
+      [patientRow({ code, fullName: `Tô Mẫu Cũ ${id}`, phone: "0977000111" })],
+      [
+        treatmentRow(code, "01/02/2020", "PC1", picks.service, null, "11 12", null, picks.staff, null),
+        treatmentRow(code, "02/02/2020", "PC1", picks.service, null, "13", null, picks.staff, null),
+      ],
+    ), { type: "base64" });
+    const book = XLSX.utils.book_new();
+    const old = XLSX.utils.sheet_to_json<Cell[]>(source.Sheets["Điều trị"], { header: 1, defval: null }).map((r) => r.slice(0, 11));
+    XLSX.utils.book_append_sheet(book, source.Sheets["Khách hàng"], "Khách hàng");
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(old), "Điều trị");
+    XLSX.utils.book_append_sheet(book, source.Sheets["Hướng dẫn"], "Hướng dẫn");
+
+    const res = await post<MigrationResult>(page, "import", {
+      base64: XLSX.write(book, { type: "base64", bookType: "xlsx" }),
+      clinicBranchId: BRANCH_ONE,
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.errorCount, JSON.stringify(res.body)).toBe(0);
+    expect(res.body.sheets.map((s) => s.name)).toEqual(["Khách hàng", "Điều trị"]);
+    expect(res.body.paymentsCreated).toBe(0);
+
+    const [listed] = await findPatient(page, code);
+    const slips = await slipsOf(page, listed.id);
+    expect(slips).toHaveLength(1);
+    expect(slips[0]).toMatchObject({ title: "Kế hoạch điều trị (PC1)", payableAmount: 0 });
+    expect(slips[0].services).toEqual([expect.objectContaining({ price: 0, quantity: 3, stageCount: 2 })]);
+  });
+
+  test("performance: ~5 000 patients, 70 000 treatment rows, 3 000 payments and 65 000 bookings in one file", async ({ page }) => {
+    test.skip(!process.env.MIGRATION_PERF, "set MIGRATION_PERF=1 to run the size check");
+    test.setTimeout(30 * 60_000);
+    const id = runId();
+    const patients: Cell[][] = [];
+    const treatments: Cell[][] = [];
+    const payments: Cell[][] = [];
+    const bookings: Cell[][] = [];
+    const day = (n: number) => {
+      const date = new Date(Date.UTC(2018, 0, 1 + n));
+      return `${String(date.getUTCDate()).padStart(2, "0")}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${date.getUTCFullYear()}`;
+    };
+    for (let p = 0; p < 5_000; p++) {
+      const code = `MIGP${id}${p}`;
+      patients.push(patientRow({ code, fullName: `Khách Hiệu Năng ${p}`, phone: `09${String(p).padStart(8, "0")}` }));
+      for (let v = 0; v < 14; v++) {
+        treatments.push(treatmentRow(code, day(p % 1_500 + v * 7), `PF${p}-${v % 4}`, v % 2 ? picks.service : picks.service2,
+          null, null, `Lần ${v}`, picks.staff, null, v % 4 === 0 ? { plan: v < 8 ? "Chỉnh nha" : undefined, price: 1_000_000 } : {}));
+      }
+      if (p % 5 < 3) payments.push(paymentRow({ code, slip: `PF${p}-0`, paidOn: day(p % 1_500 + 1), amount: 500_000 }));
+      // The customer's file holds ~13 bookings a patient (478k for 36.6k patients).
+      for (let b = 0; b < 13; b++) bookings.push(bookingRow({ code, at: `${day(p % 1_500 + b * 7)} 10:00`, dentist: picks.staff }));
+    }
+    const file = fill(template, patients, treatments, payments, bookings);
+    test.info().annotations.push({ type: "file size", description: `${Math.round((file.length * 3) / 4 / 1024)} KB` });
+
+    const startedAt = Date.now();
+    const res = await post<MigrationResult>(page, "import", { base64: file, clinicBranchId: BRANCH_ONE });
+    const seconds = (Date.now() - startedAt) / 1000;
+    test.info().annotations.push({ type: "import seconds", description: seconds.toFixed(1) });
+    expect(res.status, JSON.stringify(res.body).slice(0, 2000)).toBe(200);
+    expect(res.body.errorCount, JSON.stringify(res.body.sheets.map((s) => s.rows.slice(0, 5)))).toBe(0);
+    expect(res.body).toMatchObject({ patientsCreated: 5_000, treatmentStagesCreated: 70_000, paymentsCreated: 3_000, appointmentsCreated: 65_000 });
   });
 
   test("a file that is not .xlsx, or has no rows, is refused with a message", async ({ page }) => {

@@ -7,6 +7,8 @@ export const appointmentKeys = {
   lists: () => [...appointmentKeys.all, "list"] as const,
   list: (params: AppointmentListQuery) =>
     [...appointmentKeys.lists(), params] as const,
+  stats: (params: AppointmentListQuery) =>
+    [...appointmentKeys.all, "stats", params] as const,
   details: () => [...appointmentKeys.all, "detail"] as const,
   detail: (id: string) => [...appointmentKeys.details(), id] as const,
 };
@@ -18,6 +20,12 @@ export function useAppointmentList(params: AppointmentListQuery) {
   });
 }
 
+export function useAppointmentStats(params: AppointmentListQuery) {
+  return useQuery({
+    queryKey: appointmentKeys.stats(params),
+    queryFn: () => appointmentApi.stats(params),
+  });
+}
 
 export function useAppointment(id: string) {
   return useQuery({

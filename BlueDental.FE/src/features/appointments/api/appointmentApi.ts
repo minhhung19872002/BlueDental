@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import type {
   Appointment,
   AppointmentListQuery,
+  AppointmentStatusCounts,
   CreateAppointmentRequest,
   CreateTempAppointmentRequest,
   PagedResult,
@@ -9,11 +10,13 @@ import type {
 } from "../types/appointment";
 import {
   adaptAppointment,
+  adaptStatusCounts,
   toCreateRequest,
   toCreateTempRequest,
   toServerQuery,
   toUpdateRequest,
   type ServerAppointmentDto,
+  type ServerAppointmentStatsDto,
 } from "./appointmentAdapters";
 import type { CancellationReason } from "../types/appointment";
 
@@ -31,6 +34,12 @@ export const appointmentApi = {
 
     return { totalCount: page.totalCount, items: page.items.map(adaptAppointment) };
   },
+
+  /** Counts per status over the same filter as the list, without paging. */
+  stats: (params: AppointmentListQuery): Promise<AppointmentStatusCounts> =>
+    api
+      .get<ServerAppointmentStatsDto>(`${BASE}/stats`, { params: toServerQuery(params) })
+      .then((r) => adaptStatusCounts(r.data)),
 
   get: (id: string): Promise<Appointment> =>
     api.get<ServerAppointmentDto>(`${BASE}/${id}`).then((r) => adaptAppointment(r.data)),

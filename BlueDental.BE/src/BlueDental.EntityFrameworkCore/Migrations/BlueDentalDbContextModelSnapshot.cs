@@ -96,6 +96,9 @@ namespace BlueDental.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
 
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsTemporary")
                         .HasColumnType("boolean");
 
@@ -552,6 +555,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("boolean");
 
                     b.Property<short>("Kind")
                         .HasColumnType("smallint");
@@ -2596,7 +2602,6 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.EInvoicing.InvoiceRequest", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
@@ -2753,7 +2758,6 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.EInvoicing.InvoiceRequestLink", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ClinicBranchId")
@@ -9911,6 +9915,8 @@ namespace BlueDental.Migrations
                                 .HasColumnName("slot_start");
 
                             b1.HasKey("AppointmentId");
+
+                            b1.HasIndex("Start");
 
                             b1.ToTable("bd_appointments");
 

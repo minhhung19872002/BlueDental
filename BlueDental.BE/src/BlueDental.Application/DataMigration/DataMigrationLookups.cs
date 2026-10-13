@@ -10,6 +10,12 @@ namespace BlueDental.DataMigration;
 internal sealed record LookupItem(Guid Id, string Name, string? Code = null);
 
 /// <summary>
+/// A receiving account of /taxonomy/payment-method: Number is the bank
+/// account number, or the phone of a MoMo wallet.
+/// </summary>
+internal sealed record AccountItem(Guid Id, PaymentAccountKind Kind, string HolderName, string? Number);
+
+/// <summary>
 /// The branch's live catalogs, keyed by the case- and space-insensitive name
 /// the file writes. Every name the file uses must resolve here: an unknown
 /// service or doctor refuses the file (BA 2026-10-08), and so does an unknown
@@ -28,6 +34,9 @@ internal sealed class DataMigrationLookups
     public required IReadOnlyList<LookupItem> DiseaseHistory { get; init; }
     public required IReadOnlyList<LookupItem> Tags { get; init; }
 
+    /// <summary>The branch's receiving accounts, inactive ones too — old payments went into accounts since closed.</summary>
+    public IReadOnlyList<AccountItem> Accounts { get; init; } = [];
+
     private Dictionary<string, LookupItem?>? _services;
     private Dictionary<string, LookupItem?>? _staff;
 
@@ -42,6 +51,25 @@ internal sealed class DataMigrationLookups
 
     /// <summary>A staff member of the branch by full name or user name.</summary>
     public LookupItem? FindStaff(string text, out bool ambiguous) => Find(StaffIndex, text, out ambiguous);
+
+    /// <summary>
+    /// The account a Thanh toán row names, of the kind its method needs: by
+    /// its number (four digits or more, separators ignored) or by its holder's
+    /// name. Two accounts answering to the text leave it ambiguous.
+    /// </summary>
+    public AccountItem? FindAccount(string text, PaymentAccountKind kind, out bool ambiguous)
+    {
+        var digits = Digits(text);
+        var key = ExcelCells.Key(text);
+        var matches = Accounts
+            .Where(a => a.Kind == kind)
+            .Where(a => (digits.Length >= 4 && Digits(a.Number) == digits) || ExcelCells.Key(a.HolderName) == key)
+            .ToList();
+        ambiguous = matches.Count > 1;
+        return matches.Count == 1 ? matches[0] : null;
+    }
+
+    private static string Digits(string? text) => new((text ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
 
     public static LookupItem? FindByName(IReadOnlyList<LookupItem> items, string text) =>
         items.FirstOrDefault(item => ExcelCells.Key(item.Name) == ExcelCells.Key(text));

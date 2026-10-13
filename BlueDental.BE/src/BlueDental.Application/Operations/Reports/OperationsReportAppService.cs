@@ -254,8 +254,13 @@ public class OperationsReportAppService(
         var staff = await StaffNamesAsync();
         var catalog = await CatalogNamesAsync();
 
-        var visits = (await appointmentRepository.GetListAsync())
-            .Where(v => InScope(branchIds, v.BranchId))
+        // Only the window's visits (a day either side covers the clock offset):
+        // a clinic that moved its old system in holds years of bookings.
+        var from = new DateTimeOffset(DateTime.SpecifyKind(window.Start.AddDays(-1), DateTimeKind.Utc));
+        var until = new DateTimeOffset(DateTime.SpecifyKind(window.End.AddDays(1), DateTimeKind.Utc));
+        var visits = (await AsyncExecuter.ToListAsync((await appointmentRepository.GetQueryableAsync())
+                .Where(v => (branchIds.Count == 0 || branchIds.Contains(v.BranchId))
+                            && v.Slot.Start >= from && v.Slot.Start < until)))
             .GroupBy(v => (v.PatientId, v.Slot.Start.Date))
             .ToDictionary(g => g.Key, g => g.OrderBy(v => v.Slot.Start).First());
 

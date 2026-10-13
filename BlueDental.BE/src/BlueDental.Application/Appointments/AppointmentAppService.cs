@@ -53,6 +53,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         _branchResolver = branchResolver;
     }
 
+    /// <summary>The one <c>Sorting</c> the list honours: latest visit first.</summary>
+    private const string NewestFirst = "Start desc";
+
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input)
     {
@@ -62,11 +65,15 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
 
         // Several doctors picked on the board: their visits come in that order.
+        // A patient's record asks for its latest visits first ("Start desc"),
+        // since a clinic's moved-in history reaches back years.
         var priority = input.DentistIds?.Distinct().ToList() ?? [];
-        var ordered = (priority.Count > 1
-                ? query.OrderBy(DentistPriorityOrder.RankOf(priority)).ThenBy(a => a.Slot.Start)
-                : query.OrderBy(a => a.Slot.Start))
-            .ThenBy(a => a.Id);
+        var newestFirst = string.Equals(input.Sorting?.Trim(), NewestFirst, StringComparison.OrdinalIgnoreCase);
+        var ordered = priority.Count > 1
+            ? query.OrderBy(DentistPriorityOrder.RankOf(priority)).ThenBy(a => a.Slot.Start).ThenBy(a => a.Id)
+            : newestFirst
+                ? query.OrderByDescending(a => a.Slot.Start).ThenByDescending(a => a.Id)
+                : query.OrderBy(a => a.Slot.Start).ThenBy(a => a.Id);
 
         var items = hasDateFilter
             ? await AsyncExecuter.ToListAsync(ordered)
@@ -83,21 +90,30 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input)
     {
         var query = await FilteredQueryAsync(input, skipTextSearch: true);
-        var all = await AsyncExecuter.ToListAsync(query.Select(a => new { a.Status, a.IsTemporary, a.Slot.Start }));
         var now = DateTimeOffset.UtcNow;
+
+        // Counted in the database: with no date window the query spans every
+        // visit of the branch, years of them once an old system is moved in.
+        var byStatus = (await AsyncExecuter.ToListAsync(query
+                .GroupBy(a => a.Status)
+                .Select(g => new { Status = g.Key, Count = g.Count() })))
+            .ToDictionary(g => g.Status, g => g.Count);
+        var temporary = await AsyncExecuter.CountAsync(query.Where(a => a.IsTemporary));
+        var overdue = await AsyncExecuter.CountAsync(query.Where(a =>
+            (a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
+            && a.Slot.Start <= now));
 
         return new AppointmentStatsDto
         {
-            Requested = all.Count(a => a.Status == AppointmentStatus.Requested),
-            Confirmed = all.Count(a => a.Status == AppointmentStatus.Confirmed),
-            CheckedIn = all.Count(a => a.Status == AppointmentStatus.CheckedIn),
-            InProgress = all.Count(a => a.Status == AppointmentStatus.InProgress),
-            Completed = all.Count(a => a.Status == AppointmentStatus.Completed),
-            Cancelled = all.Count(a => a.Status == AppointmentStatus.Cancelled),
-            NoShow = all.Count(a => a.Status == AppointmentStatus.NoShow),
-            Temporary = all.Count(a => a.IsTemporary),
-            Overdue = all.Count(a =>
-                a.Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed && a.Start <= now),
+            Requested = byStatus.GetValueOrDefault(AppointmentStatus.Requested),
+            Confirmed = byStatus.GetValueOrDefault(AppointmentStatus.Confirmed),
+            CheckedIn = byStatus.GetValueOrDefault(AppointmentStatus.CheckedIn),
+            InProgress = byStatus.GetValueOrDefault(AppointmentStatus.InProgress),
+            Completed = byStatus.GetValueOrDefault(AppointmentStatus.Completed),
+            Cancelled = byStatus.GetValueOrDefault(AppointmentStatus.Cancelled),
+            NoShow = byStatus.GetValueOrDefault(AppointmentStatus.NoShow),
+            Temporary = temporary,
+            Overdue = overdue,
         };
     }
 

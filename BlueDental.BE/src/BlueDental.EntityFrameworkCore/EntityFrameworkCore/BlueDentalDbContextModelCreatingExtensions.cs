@@ -396,6 +396,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             {
                 slot.Property(s => s.Start).HasColumnName("slot_start").IsRequired();
                 slot.Property(s => s.End).HasColumnName("slot_end").IsRequired();
+
+                // Reports and the calendar read a date window; an imported clinic holds years of bookings.
+                slot.HasIndex(s => s.Start);
             });
 
             entity.HasIndex(x => new { x.DentistId, x.Status });

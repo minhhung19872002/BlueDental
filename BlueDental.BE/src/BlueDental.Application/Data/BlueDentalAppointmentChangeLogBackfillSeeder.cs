@@ -9,6 +9,7 @@ using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Guids;
 using Volo.Abp.Identity;
+using Volo.Abp.Linq;
 
 namespace BlueDental.Data;
 
@@ -19,14 +20,17 @@ namespace BlueDental.Data;
 /// starts in the middle, with an update to something it never saw created.
 ///
 /// Idempotent: an appointment that already has a row is left alone, so it
-/// is safe to run on every migration, in every environment.
+/// is safe to run on every migration, in every environment. Bookings moved in
+/// from a clinic's old system (F-61) get none: their history starts with the
+/// import, and a clinic brings hundreds of thousands of them.
 /// </summary>
 public class BlueDentalAppointmentChangeLogBackfillSeeder(
     IRepository<Appointment, Guid> appointmentRepository,
     IRepository<AppointmentChangeLog, Guid> logRepository,
     IRepository<Patient, Guid> patientRepository,
     IIdentityUserRepository userRepository,
-    IGuidGenerator guidGenerator) : IDataSeedContributor, ITransientDependency
+    IGuidGenerator guidGenerator,
+    IAsyncQueryableExecuter asyncExecuter) : IDataSeedContributor, ITransientDependency
 {
     private static readonly AppointmentChangeClient SystemClient =
         new(AppointmentChangeSource.System, null, null, null, null);
@@ -35,10 +39,9 @@ public class BlueDentalAppointmentChangeLogBackfillSeeder(
 
     public async Task<int> BackfillAsync()
     {
-        var logged = (await logRepository.GetListAsync()).Select(l => l.AppointmentId).ToHashSet();
-        var appointments = (await appointmentRepository.GetListAsync())
-            .Where(a => !logged.Contains(a.Id))
-            .ToList();
+        var logs = await logRepository.GetQueryableAsync();
+        var appointments = await asyncExecuter.ToListAsync((await appointmentRepository.GetQueryableAsync())
+            .Where(a => !a.IsImported && !logs.Any(l => l.AppointmentId == a.Id)));
 
         if (appointments.Count == 0)
         {
@@ -56,7 +59,7 @@ public class BlueDentalAppointmentChangeLogBackfillSeeder(
         var patients = (await patientRepository.GetListAsync(p => patientIds.Contains(p.Id)))
             .ToDictionary(p => p.Id);
 
-        var logs = new List<AppointmentChangeLog>(appointments.Count);
+        var backfill = new List<AppointmentChangeLog>(appointments.Count);
         foreach (var appointment in appointments)
         {
             var dentist = users.GetValueOrDefault(appointment.DentistId);
@@ -75,7 +78,7 @@ public class BlueDentalAppointmentChangeLogBackfillSeeder(
                 creator?.UserName,
                 null);
 
-            logs.Add(AppointmentChangeLog.Record(
+            backfill.Add(AppointmentChangeLog.Record(
                 guidGenerator.Create(),
                 AppointmentChangeAction.Created,
                 appointment.Id,
@@ -88,7 +91,7 @@ public class BlueDentalAppointmentChangeLogBackfillSeeder(
                 DateTime.SpecifyKind(appointment.CreationTime, DateTimeKind.Utc)));
         }
 
-        await logRepository.InsertManyAsync(logs, autoSave: true);
-        return logs.Count;
+        await logRepository.InsertManyAsync(backfill, autoSave: true);
+        return backfill.Count;
     }
 }

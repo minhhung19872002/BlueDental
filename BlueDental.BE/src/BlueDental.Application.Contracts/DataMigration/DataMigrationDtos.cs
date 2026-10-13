@@ -77,6 +77,8 @@ public class DataMigrationResultDto
     public int PatientsSkipped { get; set; }
     public int TreatmentPlansCreated { get; set; }
     public int TreatmentStagesCreated { get; set; }
+    public int PaymentsCreated { get; set; }
+    public int AppointmentsCreated { get; set; }
 
     /// <summary>Problems with the file itself: a missing sheet or column, no data at all.</summary>
     public List<string> FileErrors { get; set; } = [];

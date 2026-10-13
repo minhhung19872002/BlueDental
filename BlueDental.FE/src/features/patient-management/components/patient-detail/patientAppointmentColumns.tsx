@@ -17,12 +17,6 @@ export function appointmentGroups() {
 
 export type AppointmentGroupKey = "scheduled" | "arrived" | "cancelled" | "late";
 
-/** Whether an appointment in `status` counts under the group `key`. */
-export function inAppointmentGroup(key: AppointmentGroupKey, status: AppointmentStatus): boolean {
-  const group = appointmentGroups().find((item) => item.key === key);
-  return group !== undefined && (group.of as readonly string[]).includes(status);
-}
-
 function statusTones(): Record<AppointmentStatus, { label: string; bg: string; color: string }> {
   return {
     scheduled: { label: t("Patient:Appt:Scheduled"), bg: "#e3f2fd", color: "#1565c0" },

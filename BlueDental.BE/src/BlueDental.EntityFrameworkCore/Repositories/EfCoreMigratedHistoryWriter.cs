@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BlueDental.Appointments;
+using BlueDental.Billing;
 using BlueDental.Data;
 using BlueDental.EntityFrameworkCore;
 using BlueDental.PatientManagement;
@@ -14,7 +16,7 @@ namespace BlueDental.EntityFrameworkCore.Repositories;
 public class EfCoreMigratedHistoryWriter : IMigratedHistoryWriter, ITransientDependency
 {
     /// <summary>
-    /// Patients per save, each with all of its slips and stages. One save over
+    /// Patients per save, each with all of its slips, stages, payments and bookings. One save over
     /// 5 000 patients / 20 000 stages slowed with every tracked entity; batches
     /// plus no created-events keep it at ~11 s (10 000 / 40 000: ~22 s).
     /// </summary>
@@ -31,11 +33,15 @@ public class EfCoreMigratedHistoryWriter : IMigratedHistoryWriter, ITransientDep
         IReadOnlyList<Patient> patients,
         IReadOnlyList<TreatmentPlan> plans,
         IReadOnlyList<TreatmentStage> stages,
+        IReadOnlyList<PatientPayment> payments,
+        IReadOnlyList<Appointment> appointments,
         CancellationToken cancellationToken = default)
     {
         var dbContext = await _dbContextProvider.GetDbContextAsync();
         var plansOf = plans.ToLookup(p => p.PatientId);
         var stagesOf = stages.ToLookup(s => s.PatientId);
+        var paymentsOf = payments.ToLookup(p => p.PatientId);
+        var appointmentsOf = appointments.ToLookup(a => a.PatientId);
 
         dbContext.SkipEntityCreatedEvents = true;
         try
@@ -45,6 +51,8 @@ public class EfCoreMigratedHistoryWriter : IMigratedHistoryWriter, ITransientDep
                 await dbContext.AddRangeAsync(batch, cancellationToken);
                 await dbContext.AddRangeAsync(batch.SelectMany(p => plansOf[p.Id]), cancellationToken);
                 await dbContext.AddRangeAsync(batch.SelectMany(p => stagesOf[p.Id]), cancellationToken);
+                await dbContext.AddRangeAsync(batch.SelectMany(p => paymentsOf[p.Id]), cancellationToken);
+                await dbContext.AddRangeAsync(batch.SelectMany(p => appointmentsOf[p.Id]), cancellationToken);
                 await dbContext.SaveChangesAsync(cancellationToken);
 
                 // Saved rows stay in the transaction; nothing reads them back here,

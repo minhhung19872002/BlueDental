@@ -28,13 +28,22 @@ internal static class DataMigrationPickLists
 
     public static readonly string[] Statuses = ["Hoàn thành", "Đang điều trị"];
 
+    public static readonly string[] Methods = ["Tiền mặt", "Chuyển khoản", "Thẻ", "Ví điện tử"];
+
+    /// <summary>The calendar's own words for how a booking ended (Đã đến = kept).</summary>
+    public static readonly string[] BookingStatuses = ["Đã hẹn", "Đã đến", "Trễ hẹn", "Hủy hẹn"];
+
     private const int FirstDataRow = 2;
 
-    public static void Apply(IXLWorksheet patients, IXLWorksheet treatments, PickListMessages messages)
+    public static void Apply(
+        IXLWorksheet patients, IXLWorksheet treatments, IXLWorksheet payments, IXLWorksheet appointments,
+        PickListMessages messages)
     {
         Restrict(patients, Patients, Col.Gender, messages, Genders);
         Restrict(patients, Patients, Col.GuardianRelation, messages, Relations);
         Restrict(treatments, Treatments, Col.Status, messages, Statuses);
+        Restrict(payments, Payments, Col.Method, messages, Methods);
+        Restrict(appointments, Bookings, Col.BookedStatus, messages, BookingStatuses);
     }
 
     /// <summary>A drop-down on one column of a layout's sheet; the patient roster file (F-69) uses it too.</summary>

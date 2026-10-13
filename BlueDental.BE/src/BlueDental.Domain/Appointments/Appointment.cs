@@ -48,6 +48,13 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public DateTimeOffset? SeriesPlannedStart { get; private set; }
 
+    /// <summary>
+    /// Moved in from the clinic's old system (F-61). Its past is settled: no
+    /// change-log entry is backfilled for it and customer care draws no task
+    /// from it.
+    /// </summary>
+    public bool IsImported { get; private set; }
+
     protected Appointment() { }
 
     public Appointment(
@@ -106,6 +113,55 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
             Color = color,
             Notes = notes,
         };
+    }
+
+    /// <summary>
+    /// A booking from the clinic's old system (F-61), in the state it ended
+    /// there. Đã hẹn stays open (it lies ahead); an arrived visit is checked
+    /// in, started and completed on its own slot; a cancelled one is cancelled
+    /// at its start with <paramref name="cancellationNote"/>; Trễ hẹn is a
+    /// no-show. The steps carry the old dates, not today's.
+    /// </summary>
+    public static Appointment Import(
+        Guid id,
+        Guid patientId,
+        Guid dentistId,
+        Guid branchId,
+        AppointmentSlot slot,
+        AppointmentStatus status,
+        string? notes = null,
+        string? cancellationNote = null)
+    {
+        var appointment = new Appointment(id, patientId, dentistId, branchId, slot, AppointmentType.Examination,
+            notes: notes)
+        {
+            IsImported = true,
+            Status = status,
+        };
+
+        switch (status)
+        {
+            case AppointmentStatus.Requested:
+            case AppointmentStatus.NoShow:
+                break;
+            case AppointmentStatus.Completed:
+                appointment.CheckedInAt = slot.Start;
+                appointment.StartedAt = slot.Start;
+                appointment.CompletedAt = slot.End;
+                break;
+            case AppointmentStatus.Cancelled:
+                Check.NotNullOrWhiteSpace(cancellationNote, nameof(cancellationNote));
+                appointment.CancellationReason = Appointments.CancellationReason.Other;
+                appointment.CancellationNote = cancellationNote!.Trim();
+                appointment.CancelledAt = slot.Start;
+                break;
+            default:
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                    $"An imported appointment cannot be {status}.");
+        }
+
+        return appointment;
     }
 
     public Appointment Confirm()
