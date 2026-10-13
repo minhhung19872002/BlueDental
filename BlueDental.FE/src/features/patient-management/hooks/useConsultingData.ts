@@ -34,7 +34,9 @@ export function useConsultingData(patientId: string, branchId: string | null) {
   // A diagnosis is made today: doctors registered OFF today are not offered.
   const dentistsToday = useDentistList(todayIsoDate()).data ?? [];
   const appointmentDoctor = useAppointmentDoctor(patientId);
-  const diagnosisOptions = useCatalogOptions(CATALOG_GROUP.Diagnosis).data ?? [];
+  // Only offered for picking; a saved slip names its own diagnosis.
+  const diagnosisOptions =
+    useCatalogOptions(CATALOG_GROUP.Diagnosis, { liveOnly: true }).data ?? [];
   const imageQuery = usePatientImages(patientId, branchId ?? "");
   const images = imageQuery.data?.items ?? [];
 

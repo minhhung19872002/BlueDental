@@ -8014,3 +8014,38 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
   - Tài khoản lễ tân `lt.huong` lấy được danh sách nhóm và thấy ô lọc nhóm.
 - Chạy lại cùng `reception-doctor-priority`, `reception-own-doctor`, `reception-doctor-list`, `reception.spec`: tất cả xanh.
 - DB local chưa có Team bác sĩ nào hợp lệ, nên ô nhóm hiện "Chưa có team bác sĩ nào". Các nhóm T1 và 21520417 trong ảnh là dữ liệu staging.
+
+## R-925 (2026-10-13, mức 2: Chẩn đoán & Tư vấn + 1 prop mới ở /taxonomy) QA #28 — Thêm nhanh chẩn đoán ngay cạnh ô "Chẩn đoán"
+
+**Yêu cầu (QA #28 + BA):** form "Tạo chẩn đoán" cần nút thêm nhanh chẩn đoán thay vì sang Danh mục; tạo xong thì chọn luôn chẩn đoán đó.
+
+**Thay đổi:**
+- `DiagnosisCatalogField` (patient-detail): ô Chẩn đoán + nút tròn `+` (tooltip/aria "Thêm nhanh chẩn đoán"), chỉ hiện khi có quyền `catalogDiagnosis.create`; nút chờ danh sách nhóm tải xong.
+- Dùng lại **đúng dialog của Danh mục** (`RichCatalogDialog`, tiêu đề "Thêm chẩn đoán") — chủ dự án hỏi vì sao không dùng lại, bản modal riêng ban đầu đã bỏ.
+- `RichCatalogDialog` thêm prop tuỳ chọn `onCreated(entry)` (chỉ gọi khi tạo mới); Danh mục không truyền nên không đổi hành vi.
+- Tạo xong: mục mới được thêm ngay vào options và `setFieldValue("diagnosisId", id)`; trùng tên → dialog giữ nguyên, toast lỗi từ server.
+- i18n `Patient:Diagnosis:QuickCreate` (vi/en).
+
+**Kiểm chứng (host thật :5000 + build production :8143 + PostgreSQL, không chặn API):**
+- `diagnosis-quick-create.spec` **2/2**: tạo → POST 200 → dialog đóng → ô hiện tên mới → trùng tên bị từ chối, dialog ở lại → lưu phiếu, `diagnosisId` = mục mới, còn sau reload → API Danh mục liệt kê đúng nhóm; vai trò không có quyền tạo danh mục: không có nút `+`, POST trả 403.
+- `patient.spec` nhóm chẩn đoán 5/5.
+- Hồi quy /taxonomy + payment-qr + branch-*: 83 qua, 4 đỏ ngoài đường đi của RichCatalogDialog (picker NCC Labo của dialog Dịch vụ, chi nhánh 2 không có nhóm dịch vụ, 2 test tạo nhân sự không thấy dòng trong danh sách).
+- `consulting-plan.spec` 12 đỏ do dữ liệu: bệnh nhân seed `3a238cc0-…` không có trong DB local.
+
+**Còn mở:**
+- Ô Chẩn đoán (`useCatalogOptions`) chỉ gửi `isActive: true`, không gửi `isDeleted: false` → chẩn đoán đã xoá mềm vẫn được chọn trên phiếu (như R-587 ở picker khác). → **Đã sửa ở R-927.**
+- BE: quyền cũ `Catalogs.Create` được cấp khi có quyền tạo của BẤT KỲ danh mục nào (`BlueDentalPermissionBridge`), nên người chỉ có quyền tạo danh mục khác vẫn gọi được API tạo chẩn đoán; FE đã ẩn nút theo đúng `catalogDiagnosis.create`.
+
+## R-927 (2026-10-13, mức 2: Chẩn đoán & Tư vấn) Ô "Chẩn đoán" không còn đưa chẩn đoán đã xoá mềm; phiếu cũ giữ tên chẩn đoán đã xoá
+
+- **Lỗi (có từ trước, thấy khi làm R-925):** `useCatalogOptions` chỉ gửi `isActive: true`. Danh mục xoá mềm vẫn để `isActive = true`, nên ô "Chẩn đoán" của "Tạo chẩn đoán" vẫn đưa ra mục đã xoá (cùng lỗi R-587 bên picker dịch vụ). Ngược lại, xoá một chẩn đoán trong Danh mục thì các phiếu đã lập với nó **mất tên**: `PatientDiagnosisAppService` / `PatientAdviseAppService` tra tên qua repository có bộ lọc `ISoftDelete` của ABP → `diagnosisName = null`, bảng hiện trống, mở lại phiếu thì ô chẩn đoán trống.
+- **Sửa:**
+  - FE `useCatalogOptions(group, { liveOnly })`: tuỳ chọn mới gửi thêm `isDeleted: false`, query key có `liveOnly`. Chỉ ô chọn chẩn đoán (`useConsultingData`) bật nó. Các nơi khác (nghề nghiệp, nguồn, tiền sử bệnh…) dùng danh sách để **đặt tên** cho giá trị đã lưu nên giữ nguyên, tránh làm trống tên cũ.
+  - FE `PatientDiagnosisForm`: khi mở phiếu đã lưu, chẩn đoán của chính phiếu được thêm vào options (helper `withNamedDoctors` → `withNamedOptions`, dùng chung cho bác sĩ và chẩn đoán).
+  - BE `PatientDiagnosisAppService` + `PatientAdviseAppService`: tra tên danh mục trong `DataFilter.Disable<ISoftDelete>()`.
+- **Kiểm chứng (API thật :5000 sau rebuild, build production :8144, PostgreSQL thật):**
+  - `diagnosis-quick-create.spec.ts` 2/2 — test 1 thêm bước: xoá mềm chẩn đoán vừa tạo qua PUT → phiếu mới gõ tên không ra kết quả ("Không tìm thấy kết quả"), dòng phiếu cũ vẫn có tên, bấm dòng mở lại phiếu thì ô chẩn đoán hiện đúng tên.
+  - `patient.spec.ts --grep chẩn đoán/tư vấn` 7/7.
+  - `consulting-delete-and-picker` + `consulting-review` 9/9.
+- **Không đụng:** `/taxonomy` (chỉ prop `onCreated` từ R-925).
+- **Đổi chữ (owner, cùng ngày):** tooltip nút + đổi từ "Thêm nhanh chẩn đoán" thành **"Thêm chẩn đoán"** (`Patient:Diagnosis:QuickCreate`). Nhãn đọc màn hình (aria-label) dùng khoá riêng `Patient:Diagnosis:QuickCreateLabel` = "Thêm mới chẩn đoán vào danh mục": form đã có nút lệnh "Thêm chẩn đoán" (lưu phiếu, tiếp phiếu mới), trùng tên sẽ làm `getByRole("button", { name: "Thêm chẩn đoán" })` khớp 2 nút. Spec kiểm thêm tooltip hiện đúng chữ. Kiểm chứng: `diagnosis-quick-create.spec.ts` 2/2 + `patient.spec.ts:1142` (nút lệnh Thêm chẩn đoán) 1/1, build production :8145.

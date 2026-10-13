@@ -2560,6 +2560,8 @@
     "Patient:Diagnosis:Delete": "Delete diagnosis",
     "Patient:Diagnosis:Add": "Add diagnosis",
     "Patient:Diagnosis:AddDoctor": "Add diagnosing doctor",
+    "Patient:Diagnosis:QuickCreate": "Add diagnosis",
+    "Patient:Diagnosis:QuickCreateLabel": "Add a new diagnosis to the catalog",
     "Patient:Diagnosis:Print": "Print diagnosis",
     "Patient:Diagnosis:Second": "Diagnosis 2",
     "Patient:Diagnosis:DisableSecond": "Disable Diagnosis 2",

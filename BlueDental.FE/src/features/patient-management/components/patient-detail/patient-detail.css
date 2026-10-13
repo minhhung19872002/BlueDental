@@ -1102,6 +1102,16 @@
   /* Starts below the close button, as on staging. */
   padding-top: 40px;
 }
+/* "Chẩn đoán" and the round + that adds one to the catalog (QA #28). */
+.pd-diagnosis-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-diagnosis-pick .floating-field {
+  min-width: 0;
+  flex: 1;
+}
 .pd-diagnosis-note.ant-input {
   height: 120px;
   resize: none;

@@ -30,6 +30,8 @@ interface Props {
   defaultTaxonomyId?: string;
   /** Lowercase noun of the catalog, e.g. "chẩn đoán". */
   noun: string;
+  /** A new entry, once saved — the quick add beside the slip's picker selects it (QA #28). */
+  onCreated?: (entry: CatalogEntryDto) => void;
   onClose: () => void;
 }
 
@@ -43,6 +45,7 @@ export function RichCatalogDialog({
   groups,
   defaultTaxonomyId,
   noun,
+  onCreated,
   onClose,
 }: Props) {
   const branchId = useCurrentBranchId();
@@ -106,7 +109,7 @@ export function RichCatalogDialog({
 
         toast.success(isDeleted ? t("Taxonomy:Catalog:SoftDeleted") : t("Taxonomy:Catalog:Updated"));
       } else {
-        await createEntry.mutateAsync({
+        const created = await createEntry.mutateAsync({
           clinicBranchId: branchId,
           taxonomyId: taxonomyIdValue,
           name: trimmed,
@@ -115,6 +118,7 @@ export function RichCatalogDialog({
           sortOrder,
         });
         toast.success(t("Taxonomy:Catalog:Created"));
+        onCreated?.(created);
       }
       onClose();
     } catch {

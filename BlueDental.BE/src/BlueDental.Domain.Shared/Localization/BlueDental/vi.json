@@ -2816,6 +2816,8 @@
     "Patient:Diagnosis:Delete": "Xoá chẩn đoán",
     "Patient:Diagnosis:Add": "Thêm chẩn đoán",
     "Patient:Diagnosis:AddDoctor": "Thêm bác sĩ chẩn đoán",
+    "Patient:Diagnosis:QuickCreate": "Thêm chẩn đoán",
+    "Patient:Diagnosis:QuickCreateLabel": "Thêm mới chẩn đoán vào danh mục",
     "Patient:Diagnosis:Print": "In chẩn đoán",
     "Patient:Diagnosis:Second": "Chẩn đoán 2",
     "Patient:Diagnosis:DisableSecond": "Tắt Chẩn đoán 2",

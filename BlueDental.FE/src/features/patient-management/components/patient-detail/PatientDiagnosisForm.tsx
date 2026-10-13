@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Form, Input, Select, Tooltip } from "antd";
-import { CloseOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Form, Input, Tooltip } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
 import {
   DentitionRadio,
@@ -13,6 +13,7 @@ import type { PatientDiagnosisDto } from "@/features/treatment-management/api/co
 import { t } from "@/lib/i18n";
 import { useDiagnosisDraft } from "../../hooks/useDiagnosisDraft";
 import type { DiagnosisIntent, DiagnosisSubmission } from "../../hooks/useDiagnosisEditor";
+import { DiagnosisCatalogField } from "./DiagnosisCatalogField";
 import { DiagnosisDoctorFields, type DiagnosisOption } from "./DiagnosisDoctorFields";
 import { DiagnosisFormCommands } from "./DiagnosisFormCommands";
 import { DiagnosisSelectedTeeth } from "./DiagnosisSelectedTeeth";
@@ -38,21 +39,21 @@ interface Props {
   onClose: () => void;
 }
 
-interface NamedDoctor {
+interface NamedOption {
   value?: string | null;
   label?: string | null;
 }
 
 /**
- * `dentists` is only who is not OFF today; a saved slip's own doctors, and the
- * appointment's doctor a blank form starts with, stay listed so the field never
- * shows a bare id.
+ * `dentists` is only who is not OFF today, the diagnoses only live entries; a
+ * saved slip's own doctors and diagnosis, and the appointment's doctor a blank
+ * form starts with, stay listed so the field never shows a bare id.
  */
-function withNamedDoctors(dentists: DiagnosisOption[], named: NamedDoctor[]) {
+function withNamedOptions(options: DiagnosisOption[], named: NamedOption[]) {
   const extra = named.flatMap(({ value, label }) =>
-    value && !dentists.some((d) => d.value === value) ? [{ value, label: label ?? "" }] : [],
+    value && !options.some((o) => o.value === value) ? [{ value, label: label ?? "" }] : [],
   );
-  return extra.length ? [...dentists, ...extra] : dentists;
+  return extra.length ? [...options, ...extra] : options;
 }
 
 /**
@@ -114,7 +115,7 @@ export function PatientDiagnosisForm({
 
   const doctorOptions = useMemo(
     () =>
-      withNamedDoctors(
+      withNamedOptions(
         dentists,
         editing
           ? [
@@ -124,6 +125,15 @@ export function PatientDiagnosisForm({
           : [defaultDoctor ?? {}],
       ),
     [dentists, editing, defaultDoctor],
+  );
+
+  const diagnosisOptions = useMemo(
+    () =>
+      withNamedOptions(
+        diagnoses,
+        editing ? [{ value: editing.diagnosisId, label: editing.diagnosisName }] : [],
+      ),
+    [diagnoses, editing],
   );
 
   const staffId = Form.useWatch("staffId", form);
@@ -187,15 +197,7 @@ export function PatientDiagnosisForm({
       </div>
 
       <div className="pd-diagnosis-side">
-        <FloatingField name="diagnosisId" label={t("Patient:Tab:Diagnosis")} required>
-          <Select
-            showSearch
-            optionFilterProp="label"
-            prefix={<SearchOutlined />}
-            options={diagnoses}
-            notFoundContent={t("Common:NoResults")}
-          />
-        </FloatingField>
+        <DiagnosisCatalogField options={diagnosisOptions} />
         <FloatingField name="note" label={t("Common:Note")}>
           <Input.TextArea className="pd-diagnosis-note" />
         </FloatingField>
