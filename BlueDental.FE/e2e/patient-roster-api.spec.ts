@@ -106,6 +106,14 @@ async function call<T>(
 const importFile = (page: Page, base64: string, dryRun: boolean) =>
   call<RosterResult>(page, "POST", `${API}/import`, { base64, dryRun });
 
+/** The raw XML of the first sheet — SheetJS does not read data validations, but keeps the zip entries. */
+function sheetXml(base64: string): string {
+  const book: XLSX.WorkBook & { files?: Record<string, { content: ArrayLike<number> }> } =
+    XLSX.read(base64, { type: "base64", bookFiles: true });
+  const entry = Object.entries(book.files ?? {}).find(([path]) => /xl\/worksheets\/sheet1\.xml$/.test(path))?.[1];
+  return entry ? new TextDecoder().decode(Uint8Array.from(entry.content)) : "";
+}
+
 function readRows(base64: string): Cell[][] {
   const book = XLSX.read(base64, { type: "base64" });
   return XLSX.utils.sheet_to_json<Cell[]>(book.Sheets[book.SheetNames[0]], { header: 1, defval: null, raw: false });
@@ -145,7 +153,7 @@ test.describe("F-69 patient roster — real HTTP", () => {
     await login(page);
   });
 
-  test("export: every patient on one sheet, Action left blank", async ({ page }) => {
+  test("export: every patient on one sheet, Action left blank with an A/E/D drop-down", async ({ page }) => {
     const res = await call<never>(page, "GET", `${API}/export`);
     expect(res.status).toBe(200);
     expect(res.contentType).toContain("spreadsheetml");
@@ -156,6 +164,11 @@ test.describe("F-69 patient roster — real HTTP", () => {
     const action = header.indexOf("Action");
     expect(rows.length).toBeGreaterThan(1);
     expect(rows.slice(1).every((row) => !row[action])).toBe(true);
+
+    const column = XLSX.utils.encode_col(action);
+    const validation = sheetXml(res.base64).match(/<x:dataValidation\b[\s\S]*?<\/x:dataValidation>|<dataValidation\b[\s\S]*?<\/dataValidation>/)?.[0] ?? "";
+    expect(validation).toContain(`sqref="${column}2:${column}1048576"`);
+    expect(validation).toMatch(/<(x:)?formula1>"A,E,D"<\/(x:)?formula1>/);
   });
 
   test("the file exported as it is changes nothing", async ({ page }) => {
@@ -167,9 +180,9 @@ test.describe("F-69 patient roster — real HTTP", () => {
     expect(res.body.fileErrors.join(" ")).toMatch(/Action/);
   });
 
-  test("E with no code adds a patient with a fresh DH code", async ({ page }) => {
+  test("A with no code adds a patient with a fresh DH code", async ({ page }) => {
     const file = sheetOf(header, [
-      { "Họ và tên": name, "Số điện thoại": phone, "Chi nhánh": BRANCH_ONE_NAME, "Giới tính": "Nữ", Email: "roster@example.test", Action: "E" },
+      { "Họ và tên": name, "Số điện thoại": phone, "Chi nhánh": BRANCH_ONE_NAME, "Giới tính": "Nữ", Email: "roster@example.test", Action: "A" },
     ]);
 
     const check = await importFile(page, file, true);
@@ -204,11 +217,35 @@ test.describe("F-69 patient roster — real HTTP", () => {
     expect(patient.body.email ?? null).toBeNull();
   });
 
+  // BA 2026-10-13: A only adds, E only edits — the wrong letter refuses the file.
+  test("A on a taken code, E on an unknown or blank code are errors; A keeps an unused code", async ({ page }) => {
+    const unknown = `RT${run}`;
+    const file = sheetOf(header, [
+      { "Họ và tên": name, "Số điện thoại": phone, "Mã khách hàng": code, "Chi nhánh": BRANCH_ONE_NAME, Action: "A" },
+      { "Họ và tên": `${name} B`, "Số điện thoại": otherPhone, "Mã khách hàng": unknown, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
+      { "Họ và tên": `${name} B`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
+    ]);
+    const res = await importFile(page, file, false);
+    expect(res.body.committed).toBe(false);
+    expect(res.body.errorCount, JSON.stringify(res.body.rows)).toBe(3);
+    expect(res.body.rows[0].errors.join(" ")).toContain(`Mã khách hàng ${code} đã có trong hệ thống`);
+    expect(res.body.rows[1].errors.join(" ")).toContain(`Không có bệnh nhân mã ${unknown} để sửa`);
+    expect(res.body.rows[2].errors.join(" ")).toContain('Dòng E (sửa) phải có "Mã khách hàng"');
+    expect(await findPatient(page, `${name} B`)).toBeUndefined();
+
+    const added = await importFile(page, sheetOf(header, [
+      { "Họ và tên": `${name} B`, "Số điện thoại": otherPhone, "Mã khách hàng": unknown, "Chi nhánh": BRANCH_ONE_NAME, Action: "a" },
+    ]), true);
+    expect(added.body.errorCount, JSON.stringify(added.body.rows)).toBe(0);
+    expect(added.body.rows[0].action).toBe(RowAction.Create);
+    expect(added.body.rows[0].patientCode).toBe(unknown);
+  });
+
   test("any other Action, or a wrong row, refuses the whole file", async ({ page }) => {
     const file = sheetOf(header, [
-      { "Họ và tên": `${name} B`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
+      { "Họ và tên": `${name} B`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, Action: "A" },
       { "Họ và tên": name, "Số điện thoại": phone, "Mã khách hàng": code, "Chi nhánh": BRANCH_ONE_NAME, Action: "X" },
-      { "Họ và tên": name, "Số điện thoại": phone, "Chi nhánh": "Chi nhánh không có", Action: "E" },
+      { "Họ và tên": name, "Số điện thoại": phone, "Chi nhánh": "Chi nhánh không có", Action: "A" },
     ]);
     const res = await importFile(page, file, false);
     expect(res.body.committed).toBe(false);
@@ -235,9 +272,9 @@ test.describe("F-69 patient roster — real HTTP", () => {
     expect(owner.body.errorCount, JSON.stringify(owner.body.rows)).toBe(0);
 
     const file = sheetOf(header, [
-      { "Họ và tên": `${name} C`, "Số điện thoại": phone, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
-      { "Họ và tên": `${name} D`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, CCCD: nationalId, Action: "E" },
-      { "Họ và tên": `${name} E`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
+      { "Họ và tên": `${name} C`, "Số điện thoại": phone, "Chi nhánh": BRANCH_ONE_NAME, Action: "A" },
+      { "Họ và tên": `${name} D`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, CCCD: nationalId, Action: "A" },
+      { "Họ và tên": `${name} E`, "Số điện thoại": otherPhone, "Chi nhánh": BRANCH_ONE_NAME, Action: "A" },
     ]);
     const res = await importFile(page, file, true);
     expect(res.body.errorCount, JSON.stringify(res.body.rows)).toBe(3);
@@ -249,7 +286,7 @@ test.describe("F-69 patient roster — real HTTP", () => {
     // Moving the owner off the number in the same file frees it.
     const swap = await importFile(page, sheetOf(header, [
       { "Họ và tên": name, "Số điện thoại": otherPhone, "Mã khách hàng": code, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
-      { "Họ và tên": `${name} C`, "Số điện thoại": phone, "Chi nhánh": BRANCH_ONE_NAME, Action: "E" },
+      { "Họ và tên": `${name} C`, "Số điện thoại": phone, "Chi nhánh": BRANCH_ONE_NAME, Action: "A" },
     ]), true);
     expect(swap.body.errorCount, JSON.stringify(swap.body.rows)).toBe(0);
   });

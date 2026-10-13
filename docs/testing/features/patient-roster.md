@@ -4,20 +4,24 @@ BA request (Nha Khoa Đức Hạnh), owner answers 2026-10-12. BlueDental-local;
 the reference has no such screen. The BA's own Excel holds real patient data
 and stays outside the repo; every test row is synthetic.
 
-Status: `VERIFIED` (2026-10-12, uncommitted).
+Status: `VERIFIED` (2026-10-12, uncommitted). Re-verified 2026-10-13 after R-919 (A / E / D).
 
 ## What it does
 
 - **Xuất danh sách**: one sheet with every patient of every branch. The
-  Action column is left blank.
+  Action column is left blank and carries an A / E / D drop-down (R-919).
 - **Nhập danh sách**: the same sheet back. Rows are matched by Mã khách hàng
   within the row's branch.
-  - `E` adds or edits.
+  - `A` adds (Thêm mới).
+  - `E` edits the patient Mã khách hàng names — only edits (R-919; it used to add as well).
   - `D` soft-deletes.
   - A blank Action skips the row.
   - Any other value is an error.
-- **Codes**: a blank code on an `E` row gets the hồ sơ dialog's next `DH{yy}{seq:D4}`.
-  A filled code that is not found creates a patient with that code.
+- **Codes**: a blank code on an `A` row gets the hồ sơ dialog's next `DH{yy}{seq:D4}`.
+  A filled, unused code on an `A` row creates a patient with that code.
+  `A` on a code a live patient holds (this or another branch) is an error
+  (`PatientRoster:Err:CodeTaken`). `E` with a blank code (`EditNeedsCode`) or a code
+  not in the system (`EditCodeNotFound`) is an error — nothing is imported.
 - **Clearing**: on an edit, a blank cell clears the value.
 - **All or nothing**: one wrong row refuses the whole file.
   - "Kiểm tra" is a full dry run.
@@ -56,6 +60,13 @@ Status: `VERIFIED` (2026-10-12, uncommitted).
 7. Branches are created by hand before an import.
 8. Admin only, in the patient toolbar. The modal follows the other imports.
 
+## Owner decisions (2026-10-13, R-919 — BA asked for an A action)
+
+1. `A` = add, `E` = edit only, `D` = delete. `E` on data that does not exist is an error and blocks the import (BA).
+2. `A` on a Mã khách hàng that already exists is an error — it is not turned into an edit.
+3. `A` with a filled, unused Mã khách hàng keeps that code; a blank one gets the next `DH` code.
+4. The exported file gets an A / E / D drop-down on the Action column.
+
 Taken during the build (not asked), to revisit if the owner disagrees:
 
 - `D` is refused for a patient who has a booking, treatment slip, payment,
@@ -69,7 +80,16 @@ Taken during the build (not asked), to revisit if the owner disagrees:
   manager roles do not get it until the owner says so.
 - The buttons are in the main toolbar only, not in the sticky one.
 
-## Evidence (production build `vite preview` :8093 → host :5000 → PostgreSQL, nothing intercepted)
+## Evidence R-919 (2026-10-13, production build `vite preview` :8111 → host :5000 → PostgreSQL, nothing intercepted)
+
+| Spec | Result |
+|------|--------|
+| `e2e/patient-roster-api.spec.ts` | **10/10**: export also checks the A,E,D list validation on the Action column (AC2:AC1048576); `A` with no code adds with a DH code; new test — `A` on a taken code, `E` on an unknown code and `E` with a blank code are 3 errors with their messages, and a dry-run `A` with the unused code returns Create keeping that code; the rest as before with new rows marked `A` |
+| `e2e/patient-roster.spec.ts` | **4/4**: the import dialog shows the A / E / D hint; `A` add → preview → import → reload finds it; `D` deletes it |
+
+Regression level 3 (`DataMigrationPickLists.Restrict` went public; patient list): `patient.spec`, `patient-permission-gates`, `patient-national-id`, `data-migration-api` — 73/77. Reds not from this change: "Tiếp nhận steps" (TEMP-BUG25-OFF), "payment dialog … momo" (data-dependent, known), "Đặt mới … blocks" (flaky, green on rerun), data-migration "every Khách hàng column" (`catalogPicks` picks a left-over local occupation "Thợ 791507" that the import stores as free text — local data; R-919 only changed `Restrict`'s visibility).
+
+## Evidence F-69 (production build `vite preview` :8093 → host :5000 → PostgreSQL, nothing intercepted)
 
 | Spec | Result |
 |------|--------|

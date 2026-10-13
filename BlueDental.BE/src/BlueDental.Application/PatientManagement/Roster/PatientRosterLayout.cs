@@ -12,9 +12,16 @@ namespace BlueDental.PatientManagement.Roster;
 /// </summary>
 internal static class PatientRosterLayout
 {
-    /// <summary>E adds or edits the row's patient; D deletes it; a blank cell leaves the row alone.</summary>
+    /// <summary>
+    /// A adds a patient, E edits the one Mã khách hàng names, D deletes it; a
+    /// blank cell leaves the row alone (BA 2026-10-13 — E used to add as well).
+    /// </summary>
+    public const string AddAction = "a";
     public const string EditAction = "e";
     public const string DeleteAction = "d";
+
+    /// <summary>The Action column's drop-down.</summary>
+    public static readonly string[] ActionChoices = ["A", "E", "D"];
 
     private static ImportColumn Column(string key, string header, bool required, double width = 20) =>
         new(key, header, required, "DataMigration:Hint:" + key, width);
