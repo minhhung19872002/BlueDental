@@ -22,6 +22,9 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<AppointmentStatsDto> GetStatsAsync(
         [FromQuery] GetAppointmentListInput input) => service.GetStatsAsync(input);
 
+    [HttpGet("doctor-teams")]
+    public Task<List<AppointmentDoctorTeamDto>> GetDoctorTeamsAsync() => service.GetDoctorTeamsAsync();
+
     [HttpGet("{id:guid}")]
     public Task<AppointmentDto> GetAsync(Guid id) => service.GetAsync(id);
 

@@ -183,6 +183,20 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     public string? Filter { get; set; }
     public Guid? PatientId { get; set; }
     public Guid? DentistId { get; set; }
+
+    /// <summary>
+    /// The reception board's Bác sĩ filter: visits of any of these dentists. The
+    /// order is the board's priority — the list comes back grouped by dentist in
+    /// this order, then by start time.
+    /// </summary>
+    public List<Guid>? DentistIds { get; set; }
+
+    /// <summary>
+    /// The reception board's Nhóm bác sĩ filter: visits of the members of this
+    /// Team bác sĩ (Nhân sự → Sơ đồ tổ chức), read at the time of the request.
+    /// </summary>
+    public Guid? DoctorTeamId { get; set; }
+
     public Guid? BranchId { get; set; }
     public AppointmentStatus? Status { get; set; }
     public List<AppointmentStatus>? Statuses { get; set; }
@@ -199,6 +213,16 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     /// <summary>Inclusive range, for the week and month grids.</summary>
     public DateOnly? FromDate { get; set; }
     public DateOnly? ToDate { get; set; }
+}
+
+/// <summary>
+/// A Team bác sĩ the reception board can filter by: its head is ticked "Bác sĩ".
+/// </summary>
+public class AppointmentDoctorTeamDto : EntityDto<Guid>
+{
+    public string Code { get; set; } = default!;
+    public string Name { get; set; } = default!;
+    public string HeadName { get; set; } = default!;
 }
 
 public class AppointmentStatsDto

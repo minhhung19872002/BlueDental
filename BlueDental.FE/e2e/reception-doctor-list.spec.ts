@@ -134,7 +134,7 @@ test.describe.serial("Tiếp nhận — chi nhánh hơn 50 nhân viên", () => {
     const ownList = page.waitForResponse((r) => {
       const url = r.url();
       return url.includes(APPOINTMENTS) && !url.includes("/stats") && r.request().method() === "GET"
-        && new URL(url).searchParams.get("dentistId") === dentist.id;
+        && new URL(url).searchParams.getAll("dentistIds").join() === dentist.id;
     });
     await openBoard(page);
     expect((await ownList).ok()).toBe(true);

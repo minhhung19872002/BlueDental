@@ -10,6 +10,7 @@ import type {
   RebookUndatedInput,
   CreateReceptionInput,
   ReceptionCounters,
+  ReceptionDoctorTeam,
   ReceptionFilter,
   ReceptionItem,
   ReceptionMetrics,
@@ -208,7 +209,8 @@ export const receptionApi = {
     const res = await api.get(APPT_BASE, {
       params: {
         filter: filter.keyword,
-        dentistId: filter.doctorId,
+        dentistIds: filter.doctorIds,
+        doctorTeamId: filter.doctorTeamId,
         statuses: counterQuery.statuses,
         isLate: counterQuery.isLate,
         isTemporary: counterQuery.isTemporary,
@@ -226,7 +228,7 @@ export const receptionApi = {
 
   async getMetrics(filter: ReceptionFilter = {}): Promise<ReceptionMetrics> {
     const res = await api.get(`${APPT_BASE}/stats`, {
-      params: { ...dateWindow(filter), dentistId: filter.doctorId },
+      params: { ...dateWindow(filter), dentistIds: filter.doctorIds, doctorTeamId: filter.doctorTeamId },
     });
     const stats = res.data ?? {};
 
@@ -250,6 +252,12 @@ export const receptionApi = {
         convertedCount: 0,
       },
     };
+  },
+
+  /** The org chart's doctor teams the board can filter by. */
+  async getDoctorTeams(): Promise<ReceptionDoctorTeam[]> {
+    const res = await api.get<ReceptionDoctorTeam[]>(`${APPT_BASE}/doctor-teams`);
+    return res.data ?? [];
   },
 
   async create(input: CreateReceptionInput & { branchId: string }): Promise<ReceptionItem> {

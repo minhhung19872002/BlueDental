@@ -74,7 +74,10 @@ export interface ReceptionFilter {
   status?: ReceptionStatus;
   counterFilter?: keyof ReceptionCounters;
   keyword?: string;
-  doctorId?: string;
+  /** The Bác sĩ filter, highest priority first: the board lists their visits in this order. */
+  doctorIds?: string[];
+  /** The Nhóm bác sĩ filter: visits of that Team bác sĩ's members. Never set with `doctorIds`. */
+  doctorTeamId?: string;
   branchId?: string;
   date?: string;
   /** Which window around `date` the board is showing. Defaults to one day. */
@@ -142,4 +145,12 @@ export interface CreateReceptionInput {
   scheduledAt?: string;
   estimatedDurationMinutes?: number;
   overrideBranchId?: string;
+}
+
+/** A Team bác sĩ of the org chart whose head is ticked "Bác sĩ". */
+export interface ReceptionDoctorTeam {
+  id: string;
+  code: string;
+  name: string;
+  headName: string;
 }

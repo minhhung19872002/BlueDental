@@ -29,6 +29,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly AppointmentChangeRecorder _changeRecorder;
     private readonly DentistShiftChecker _shiftChecker;
+    private readonly DoctorTeamLookup _doctorTeams;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
@@ -38,8 +39,10 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         AppointmentConflictChecker conflictChecker,
         ICurrentClinicBranchResolver branchResolver,
         AppointmentChangeRecorder changeRecorder,
-        DentistShiftChecker shiftChecker)
+        DentistShiftChecker shiftChecker,
+        DoctorTeamLookup doctorTeams)
     {
+        _doctorTeams = doctorTeams;
         _changeRecorder = changeRecorder;
         _shiftChecker = shiftChecker;
         _repository = repository;
@@ -58,8 +61,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
 
-        var ordered = query
-            .OrderBy(a => a.Slot.Start)
+        // Several doctors picked on the board: their visits come in that order.
+        var priority = input.DentistIds?.Distinct().ToList() ?? [];
+        var ordered = (priority.Count > 1
+                ? query.OrderBy(DentistPriorityOrder.RankOf(priority)).ThenBy(a => a.Slot.Start)
+                : query.OrderBy(a => a.Slot.Start))
             .ThenBy(a => a.Id);
 
         var items = hasDateFilter
@@ -95,6 +101,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         };
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
+    public Task<List<AppointmentDoctorTeamDto>> GetDoctorTeamsAsync() => _doctorTeams.GetTeamsAsync();
+
     private async Task<IQueryable<Appointment>> FilteredQueryAsync(
         GetAppointmentListInput input, bool skipTextSearch = false)
     {
@@ -104,6 +113,18 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         query = query.Where(a => a.BranchId == branchId);
         if (input.PatientId.HasValue) query = query.Where(a => a.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue) query = query.Where(a => a.DentistId == input.DentistId.Value);
+        if (input.DentistIds is { Count: > 0 })
+        {
+            var dentistIds = input.DentistIds;
+            query = query.Where(a => dentistIds.Contains(a.DentistId));
+        }
+
+        if (input.DoctorTeamId.HasValue)
+        {
+            var teamMemberIds = await _doctorTeams.GetMemberIdsAsync(input.DoctorTeamId.Value);
+            query = query.Where(a => teamMemberIds.Contains(a.DentistId));
+        }
+
         if (input.Status.HasValue) query = query.Where(a => a.Status == input.Status.Value);
         if (input.Statuses is { Count: > 0 })
         {

@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useEffect } from "react";
 import { Segmented } from "antd";
-import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type {
   ReceptionStatus,
@@ -8,23 +7,16 @@ import type {
   ReceptionCounters,
 } from "../types/reception";
 
-interface DoctorOption {
-  id: string;
-  name: string;
-  title: string;
-}
-
 type CounterKey = keyof ReceptionCounters;
 
 interface ReceptionStatusTabsProps {
   activeTab: ReceptionStatus;
   activeCounter?: CounterKey;
   metrics?: ReceptionMetrics;
-  selectedDoctorId?: string;
-  doctors?: DoctorOption[];
   onChange: (status: ReceptionStatus) => void;
   onCounterClick?: (counter: CounterKey) => void;
-  onDoctorSelect?: (doctorId: string | undefined) => void;
+  /** The doctor filters, beside the tabs. */
+  children?: React.ReactNode;
 }
 
 interface TabConfig {
@@ -66,11 +58,9 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
   activeTab,
   activeCounter,
   metrics,
-  selectedDoctorId,
-  doctors = [],
   onChange,
   onCounterClick,
-  onDoctorSelect,
+  children,
 }) => {
   const counters = metrics?.counters;
   const filterLeftRef = useRef<HTMLDivElement>(null);
@@ -111,15 +101,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
           onChange={(val) => onChange(val as ReceptionStatus)}
         />
 
-        <div className="reception-doctor-filter">
-          <SearchSelect
-            value={selectedDoctorId}
-            placeholder={t("Reception:Doctor")}
-            allowClear
-            options={doctors.map((d) => ({ value: d.id, label: d.name }))}
-            onChange={(val) => onDoctorSelect?.(val)}
-          />
-        </div>
+        {children}
       </div>
 
       <div className="reception-stat-chips">
