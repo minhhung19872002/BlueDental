@@ -7958,3 +7958,24 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 - `timekeeping` KPI: `data-testid="timekeeping-kpis"` đã bị bỏ khỏi `TimekeepingStatChips`; spec scope theo `.tk-stat-chips`.
 - `staff-employment` UI: `/staff` sắp theo tên 20 dòng/trang, nhân viên của lượt chạy rơi sang trang sau → spec gõ tên vào ô "Tìm theo tên, email, số điện thoại..." (trước và sau reload) rồi mới tìm dòng.
 - Kết quả (vite preview 8113 → host 5000 → PostgreSQL): 3 spec đã sửa + mọi spec dùng `firstBranchId` (current-user-ticks-api, einvoice-api, reception-doctor-list, staff-day-off-api, timekeeping-api, timekeeping-leave, work-schedule-own-dayoff) **32/32**; org-chart-api, org-chart, staff, staff-penalty-api, staff-penalty **14/14**. Bộ hồi quy R-918 giờ xanh hết (trước: 30 pass / 5 đỏ).
+
+## R-921 (2026-10-13, mức 2: F-71/F-56) PHIẾU THU mẫu mới: QR vào ô vuông của mẫu, ẩn dòng "quét mã QR" khi không có QR
+
+**Yêu cầu.** Chủ dự án đổi `PHIẾU THU.docx`. Mẫu mới có một ô vuông (shape) đánh dấu chỗ đặt QR, đặt dưới cột "Người lập phiếu", và footer thêm dòng "Nếu có nhu cầu xuất hóa đơn đỏ, vui lòng quét mã QR…". Chủ dự án chốt:
+- QR thay vào ô vuông, to hơn một chút, phóng theo tâm ô.
+- Phiếu không có QR thì ẩn dòng hướng dẫn quét.
+
+**Sửa.**
+- `DocxPicture.ReplaceBox` / `RemoveBox` thay `Place` (toạ độ trang cố định 182/120 mm).
+  - Shape nổi duy nhất trong body là ô đánh dấu (cả `mc:AlternateContent` lẫn VML fallback).
+  - QR giữ neo của ô (column/paragraph), to hơn ô 2 mm mỗi cạnh, cùng tâm.
+  - QR không còn quiet zone riêng: giấy trắng quanh ô đóng vai trò đó.
+- Đổi vị trí QR về sau = kéo ô trong Word, không cần sửa code. Mẫu phải có đúng 1 ô; nếu không có thì báo lỗi rõ.
+- `PaymentReceiptQr.Leave`: phiếu không "Xuất hóa đơn đỏ" thì bỏ ô và mọi đoạn chứa "mã QR" (`DocxTemplate.DropParagraphs`).
+- **Lỗi kèm theo:** khi Word lưu lại mẫu, mỗi placeholder bị tách thành 3 run (`{{` / `Key` / `}}`, do dấu kiểm tra chính tả) → phiếu sẽ in nguyên dấu ngoặc. `DocxTemplate` giờ tự ghép placeholder bị tách về run đầu trước khi điền, nên lưu mẫu bằng Word không còn làm hỏng phiếu.
+
+**Kiểm chứng.**
+- `PaymentReceiptTemplateTests` 11/11. Test mới: QR thay ô, cùng tâm, +2 mm/cạnh, không còn shape/VML; phiếu không QR mất ô và dòng hướng dẫn, còn "Lưu ý". Test khoá đọc placeholder xuyên run.
+- Đã render qua Gotenberg cả hai bản (có QR / không QR) và xem PDF.
+- Lưu ý: ô trong mẫu nằm sát mép dưới. QR to thêm 2 mm thì đáy QR cách mép giấy khoảng 1–2 mm, máy in có lề cứng có thể cắt. Muốn an toàn thì kéo ô lên trong Word, code tự theo.
+- **Chưa** chạy e2e trên stack thật (`payment-receipt-pdf`, `invoice-request-api`): host 5000 đang chạy bản cũ, cần khởi động lại host rồi chạy.

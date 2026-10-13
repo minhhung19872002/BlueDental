@@ -298,10 +298,9 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             CashierName: await CashierNameAsync());
 
         var docx = DocxTemplate.Fill(await ReceiptTemplateAsync(), content.ToPlaceholders());
-        if (source.Payment is { RedInvoiceRequested: true } payment)
-        {
-            docx = await WithInvoiceRequestQrAsync(docx, payment);
-        }
+        docx = source.Payment is { RedInvoiceRequested: true } payment
+            ? await WithInvoiceRequestQrAsync(docx, payment)
+            : PaymentReceiptQr.Leave(docx);
 
         return await LazyServiceProvider.LazyGetRequiredService<IDocxPdfConverter>()
             .ConvertAsync(docx, "phieu-thu.docx");
@@ -309,16 +308,14 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
     /// <summary>
     /// "Xuất hóa đơn đỏ" ticked: the receipt carries a QR to the THÔNG TIN XUẤT
-    /// HÓA ĐƠN form for this receipt (BA 2026-10-12). Bottom-right of the A5
-    /// page until the BA sends the final design.
+    /// HÓA ĐƠN form for this receipt (BA 2026-10-12), in the box the template
+    /// draws for it.
     /// </summary>
     private async Task<byte[]> WithInvoiceRequestQrAsync(byte[] docx, PatientPayment payment)
     {
         var sources = LazyServiceProvider.LazyGetRequiredService<InvoiceRequestSources>();
         var link = await sources.EnsureLinkAsync(payment, GuidGenerator.Create());
-        var png = PaymentReceiptQr.Png(sources.PublicUrlOf(link));
-        return DocxPicture.Place(docx, png,
-            PaymentReceiptQr.LeftMm, PaymentReceiptQr.TopMm, PaymentReceiptQr.SizeMm, "invoice-request-qr");
+        return PaymentReceiptQr.Place(docx, sources.PublicUrlOf(link));
     }
 
     /// <summary>The lines ticked in the dialog, priced VAT included as the invoice would be.</summary>
