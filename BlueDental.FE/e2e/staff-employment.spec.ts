@@ -120,9 +120,13 @@ test.describe("Hồ sơ công việc nhân viên", () => {
     const created = await createStaff(page, id);
     expect(created.status).toBe(200);
     const staffId = created.body.id;
+    // The list is sorted by name, 20 a page: search for the run's member, or
+    // they land on a later page once the database holds enough staff.
+    const search = page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").first();
+    const row = page.getByRole("row").filter({ hasText: `Nhân viên hồ sơ ${id}` });
     try {
       await page.goto("/staff");
-      const row = page.getByRole("row").filter({ hasText: `Nhân viên hồ sơ ${id}` });
+      await search.fill(`Nhân viên hồ sơ ${id}`);
       await row.getByRole("button").first().click();
       const dialog = page.getByRole("dialog");
       await expect(dialog.getByText("Hồ sơ công việc")).toBeVisible();
@@ -150,6 +154,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
       expect(saved.practiceCertificateNumber).toBe(`CCHN-${id}`);
 
       await page.reload();
+      await search.fill(`Nhân viên hồ sơ ${id}`);
       await row.getByRole("button").first().click();
       const reopened = page.getByRole("dialog");
       await expect(reopened.getByLabel("Chức vụ")).toHaveValue(`Phụ tá trưởng ${id}`);

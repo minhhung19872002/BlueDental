@@ -101,7 +101,8 @@ Run with `org-chart*` on the same build:
 | `staff-employment` | 1/2 |
 | `doctor-day-off-pickers` | 0/3 |
 
-Total: 26 pass, 5 red. None of the reds comes from F-67:
+Total: 26 pass, 5 red. None of the reds comes from F-67 (all five fixed spec-side
+on 2026-10-13, R-920; the same set is now fully green):
 
 - **Pre-existing at HEAD.** The same build of HEAD (git archive, without F-67) on
   :8113 against the same host and DB gives the same 4 reds with the same errors:

@@ -73,12 +73,20 @@ export async function call<T = Record<string, unknown>>(
   );
 }
 
-/** The first branch the signed-in account may work in. */
+/** The seeded main branch (BD-001), the one the app opens on by default. */
+const MAIN_BRANCH_ID = "11111111-1111-1111-1111-111111111111";
+
+/**
+ * The branch the signed-in account works in: the main branch when it may,
+ * else the first it may. The list is sorted by name, so a branch someone
+ * added by hand ("DANHTEST01") sorts ahead of BD-001, while the pages still
+ * open on BD-001 — staff and days off written there were never seen.
+ */
 export async function firstBranchId(page: Page): Promise<string> {
   const res = await call<{ items: { id: string }[] }>(page, "/api/v1/app/clinic-branches/accessible");
   expect(res.status, "list accessible branches").toBe(200);
   expect(res.body.items.length, "the account needs a branch").toBeGreaterThan(0);
-  return res.body.items[0].id;
+  return res.body.items.find((b) => b.id === MAIN_BRANCH_ID)?.id ?? res.body.items[0].id;
 }
 
 /** The clinic's calendar day (UTC+7), the day the server calls "today". */
