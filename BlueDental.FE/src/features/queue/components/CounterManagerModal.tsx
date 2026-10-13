@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Button, Modal, Switch, Tooltip } from "antd";
-import { EditOutlined, PlusOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { Button, Modal } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { toast } from "sonner";
 import { t } from "@/lib/i18n";
+import { notifyError } from "@/lib/notify";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { useQueueCounters } from "../api/queueQueries";
-import { useToggleServiceCounter } from "../api/queueMutations";
+import { useDeleteServiceCounter } from "../api/queueMutations";
 import type { ServiceCounter } from "../types";
 import { CounterFormDialog } from "./CounterFormDialog";
+import { useCounterColumns } from "./useCounterColumns";
 
 interface CounterManagerModalProps {
   open: boolean;
@@ -17,78 +20,44 @@ interface CounterManagerModalProps {
 /** null = closed, "new" = adding, otherwise the id being edited. */
 type Editing = null | "new" | string;
 
-function useCounterColumns(onEdit: (id: string) => void): ColumnsType<ServiceCounter> {
-  const toggle = useToggleServiceCounter();
-  return [
-    {
-      title: t("Queue:Counter:Name"),
-      key: "name",
-      render: (_: unknown, counter) => (
-        <span className="queue-manager__name">
-          <span className="queue-card__avatar queue-card__avatar--sm" aria-hidden>
-            {counter.numberPrefix}
-          </span>
-          {counter.name}
-        </span>
-      ),
-    },
-    {
-      title: t("Queue:Form:Dentist"),
-      key: "dentist",
-      render: (_: unknown, counter) => counter.dentistName ?? "—",
-    },
-    {
-      title: t("Queue:Counter:IssuedUpTo"),
-      key: "issued",
-      render: (_: unknown, counter) => counter.lastIssuedNumber ?? "—",
-    },
-    {
-      title: t("Queue:Counter:Threshold"),
-      key: "threshold",
-      render: (_: unknown, counter) => t("Queue:Minutes", counter.waitWarningMinutes),
-    },
-    {
-      title: t("Queue:Counter:Status"),
-      key: "status",
-      width: 150,
-      render: (_: unknown, counter) => (
-        <span className="queue-counter-toggle">
-          <Switch
-            checked={counter.isActive}
-            size="small"
-            aria-label={counter.name}
-            loading={toggle.isPending && toggle.variables === counter.id}
-            onChange={() => toggle.mutate(counter.id)}
-          />
-          {counter.isActive ? t("Queue:Counter:Active") : t("Queue:Counter:Paused")}
-        </span>
-      ),
-    },
-    {
-      title: t("Queue:Counter:Actions"),
-      key: "actions",
-      width: 72,
-      align: "center",
-      render: (_: unknown, counter) => (
-        <Tooltip title={t("Queue:Counter:Edit")}>
-          <Button
-            type="text"
-            size="small"
-            icon={<EditOutlined />}
-            aria-label={t("Queue:Counter:EditNamed", counter.name)}
-            onClick={() => onEdit(counter.id)}
-          />
-        </Tooltip>
-      ),
-    },
-  ];
+/**
+ * Xoá quầy: a counter with anyone waiting, called or being seen today is
+ * refused at once with a toast — the server refuses it too (Queue:0015), in
+ * case the list is stale. An empty counter, paused or not, asks first.
+ */
+function useCounterDelete() {
+  const remove = useDeleteServiceCounter();
+  const [target, setTarget] = useState<ServiceCounter | null>(null);
+
+  const request = (counter: ServiceCounter) => {
+    if (counter.inQueueCount > 0) {
+      notifyError(t("Queue:Counter:DeleteBusy", counter.name, counter.inQueueCount));
+      return;
+    }
+    setTarget(counter);
+  };
+
+  const confirm = async () => {
+    if (!target) return;
+    try {
+      await remove.mutateAsync(target.id);
+      toast.success(t("Common:Deleted"));
+    } catch {
+      // queryClient reports the failure.
+    } finally {
+      setTarget(null);
+    }
+  };
+
+  return { target, pending: remove.isPending, request, confirm, cancel: () => setTarget(null) };
 }
 
-/** "Quản lý quầy": every counter of the branch, its pause switch, and the add / edit dialog. */
+/** "Quản lý quầy": every counter of the branch, its pause switch, and the add / edit / delete actions. */
 export function CounterManagerModal({ open, onClose }: CounterManagerModalProps) {
   const { data: counters = [], isLoading } = useQueueCounters();
   const [editing, setEditing] = useState<Editing>(null);
-  const columns = useCounterColumns(setEditing);
+  const deletion = useCounterDelete();
+  const columns = useCounterColumns({ onEdit: setEditing, onDelete: deletion.request });
   const editedCounter =
     editing && editing !== "new" ? (counters.find((c) => c.id === editing) ?? null) : null;
 
@@ -101,7 +70,7 @@ export function CounterManagerModal({ open, onClose }: CounterManagerModalProps)
         open={open && editing === null}
         onCancel={onClose}
         footer={null}
-        width={860}
+        width={1000}
         destroyOnHidden
       >
         <div className="queue-manager__toolbar">
@@ -116,6 +85,9 @@ export function CounterManagerModal({ open, onClose }: CounterManagerModalProps)
           loading={isLoading}
           pagination={false}
           size="small"
+          // Fits the modal: long names are cut with "…" instead of a sideways scroll.
+          tableLayout="fixed"
+          scroll={undefined}
         />
       </Modal>
       <CounterFormDialog
@@ -123,6 +95,14 @@ export function CounterManagerModal({ open, onClose }: CounterManagerModalProps)
         counter={editedCounter}
         counters={counters}
         onClose={() => setEditing(null)}
+      />
+      <ConfirmDeleteDialog
+        open={open && deletion.target !== null}
+        noun={t("Queue:Counter:Noun")}
+        name={deletion.target?.name}
+        pending={deletion.pending}
+        onConfirm={() => void deletion.confirm()}
+        onClose={deletion.cancel}
       />
     </>
   );

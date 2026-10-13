@@ -7896,3 +7896,19 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 **Kiểm chứng.** Build production (vite preview 8098, `dist-r916`) → host 5000 → PostgreSQL.
 - `invoice-request-api` + `invoice-request-ui` đạt 3/3 (có thêm các assert R-916: 0016, 0003, bỏ dòng loại kia, Cá nhân chọn sẵn, đổi sang Công ty thì các dòng đổi theo).
 - Hồi quy thanh toán (`billing-ledger`, `debt-history`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-receipt-pdf`, `payment-status`) đạt 21/21.
+
+## R-917 (2026-10-13, mức 2: F-45) Nút Xoá quầy trong "Quản lý quầy"
+
+**Yêu cầu.** Chủ dự án: thêm nút xoá quầy ở cột Thao tác của "Quản lý quầy". Hai quyết định: quầy còn bệnh nhân trong hàng đợi thì chặn và báo toast; quầy tạm nghỉ nhưng hàng đợi trống thì được xoá.
+
+**Sửa.**
+- BE: `DeleteCounterAsync` từ chối khi quầy còn số đang chờ / đã gọi / đang khám trong ngày, mã lỗi mới `BlueDental:Queue:0015` ("Không thể xoá {counter} vì còn {count} bệnh nhân trong hàng đợi."). Vẫn xoá mềm. Tên quầy trên vé cũ đọc cả quầy đã xoá (`GetCounterNamesAsync` tắt `ISoftDelete`), nên lịch sử vẫn ghi đúng tên.
+- FE: cột Thao tác tách ra `useCounterColumns.tsx`, thêm nút thùng rác đỏ cạnh bút chì (aria-label "Xoá {quầy}"). Quầy có `inQueueCount > 0` thì hiện toast lỗi ngay, không mở hộp thoại. Quầy trống thì mở `ConfirmDeleteDialog` dùng chung ("Xác nhận xoá quầy"), xoá xong toast "Đã xoá". Mọi chữ đều qua i18n vi/en.
+- E2E fixture: `deleteCounters` rút hết hàng đợi (skip / complete) trước khi xoá, vì quy tắc mới chặn xoá quầy còn hàng đợi.
+- `queue.spec.ts`: assert URL của trang quầy chấp nhận `?branch=` mà F-68 thêm vào (đỏ từ F-68, sửa trong spec).
+
+**Kiểm chứng.** Build production (vite preview 8098) → host 5000 → PostgreSQL, đăng nhập thật, không chặn request.
+- `queue-api` 14/14: test mới cho 0015 (quầy tạm nghỉ còn số chờ, quầy đang gọi số), xoá khi đã trống, quầy biến mất khỏi danh sách và bảng, vé cũ giữ tên quầy, quầy mới dùng lại ký hiệu và bác sĩ. Chi nhánh 2 xoá quầy chi nhánh 1 → 404.
+- `queue` 7/7: toast từ chối, không có hộp thoại và không gửi DELETE. Sau khi rút hết hàng đợi thì hỏi xác nhận, xoá, toast "Đã xoá", reload vẫn mất.
+- Tổng 21/21. `tsc -b` và eslint sạch, `dotnet build` 0 lỗi.
+- Bổ sung (mức 1, theo ảnh chụp của chủ dự án): nhiều quầy với tên dài làm bảng "Quản lý quầy" tràn ngang và cắt mất cột Thao tác. Modal rộng 860 → 1000. Bảng dùng `tableLayout="fixed"` và bỏ `scroll x: max-content`. Các cột Đã cấp đến 110, Ngưỡng cảnh báo 170, Trạng thái 150, Thao tác 96 rộng cố định; Tên quầy và Bác sĩ chia phần còn lại, tên dài cắt "…" và rê chuột thì hiện đủ. Đã kiểm bằng ảnh chụp ở viewport 1896 và 1280 với một quầy tạm tên 48 ký tự (tạo rồi xoá): bảng 958 = khung 958, không có thanh cuộn ngang. Chưa sửa: gọi API trực tiếp với tên quá 50 ký tự trả 500 thay vì 400 (form đã chặn bằng `maxLength`).
