@@ -7739,3 +7739,38 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 - Hồi quy: `queue`, `prescription-allergy`, `stage-treatment-date`, `role-permissions-unsaved`, `auth`, `header-navigation` → 25 xanh, 4 đỏ. Cả 4 đỏ y hệt khi **không có** thay đổi này, tức là lỗi có sẵn: header-navigation "signing in opens Tiếp nhận", "below 1100px…drawer", lần đổi ngôn ngữ thứ hai trong "account menu toggles…"; queue "the counter's page lists its queue…".
 
 **Ghi nhận thêm (chưa sửa):** khi OS bật giảm chuyển động (`prefers-reduced-motion: reduce`, ví dụ Windows tắt "Animation effects"), antd 6.6.1 tắt animation bằng CSS. Vòng đời motion của popup khi đó không bao giờ kết thúc (`inMotion` kẹt), nên dropdown không được định vị (nằm ở −16000px, không thấy). Đặt `theme.token.motion = false` không cứu được, nên đã bỏ cách đó.
+
+## R-904 (2026-10-13, mức 2: Tiếp nhận + API danh sách lịch hẹn) QA #27: lọc bác sĩ chọn được nhiều, sắp xếp thứ tự ưu tiên
+
+**Yêu cầu:** ô "Bác sĩ" trên bảng Tiếp nhận chỉ chọn được một người. Cần chọn nhiều và cho người dùng sắp thứ tự ưu tiên.
+
+**Cách hiểu đã chọn (tính năng tự thiết kế, không quan sát từ bản gốc):** thứ tự ưu tiên là thứ tự các thẻ trên bảng: thẻ của bác sĩ ưu tiên 1 lên trước, rồi đến bác sĩ 2…, và trong cùng một bác sĩ vẫn xếp theo giờ hẹn.
+
+**Thay đổi:**
+- BE: `GetAppointmentListInput.DentistIds` (danh sách, có thứ tự) lọc lịch hẹn của bất kỳ bác sĩ nào trong đó. Khi chọn từ 2 bác sĩ trở lên, `GetListAsync` sắp theo vị trí của bác sĩ trong danh sách (`DentistPriorityOrder`: chuỗi CASE chạy trong DB, nên phân trang vẫn đúng), rồi đến `Slot.Start`. `/stats` dùng chung bộ lọc. `DentistId` (một bác sĩ) giữ nguyên cho các màn khác.
+- FE: component dùng chung `SortableMultiSearchSelect` (cùng giao diện `ss-*` với SearchSelect). Bấm dòng để tick hoặc bỏ tick, dropdown vẫn mở. Các bác sĩ đã chọn nằm trên cùng thành danh sách đánh số; đổi thứ tự bằng cách kéo tay nắm (`useDragReorder`) hoặc bấm ↑/↓ khi tay nắm đang được focus; bấm ✕ để bỏ. Ô chọn hiện tên bác sĩ ưu tiên 1, kèm "+N" cho những người còn lại. Bảng Tiếp nhận và bộ lọc mobile gửi `dentistIds` theo đúng thứ tự. Bác sĩ đăng nhập vẫn được chọn sẵn chính mình (`useOwnDoctorDefault`).
+- i18n: `Common:PriorityOrder`, `Common:DragOrArrowSort` (vi/en).
+
+**Kiểm chứng (backend thật + build production `vite preview` 8080, không chặn API):**
+- `reception-doctor-priority.spec` (mới, 2/2): API trả về theo nhóm bác sĩ đúng thứ tự gửi lên, đảo thứ tự gửi thì kết quả đảo theo, trong từng bác sĩ vẫn theo giờ, tổng `/stats` bằng `totalCount`. Trên trình duyệt: chọn A rồi B thì request mang `dentistIds=[A,B]` và thẻ đầu là của A, thẻ cuối là của B; bấm ↑ trên tay nắm của B thì request thành `[B,A]` và thẻ đảo theo; bấm xoá thì quay về toàn bộ.
+- Sửa test cũ sang `dentistIds`: `reception-own-doctor` (6/6), `reception-doctor-list` (2/2) đều xanh.
+- `reception-doctor-roles` (0/1): phần bộ lọc bác sĩ trên bảng qua, nhưng test dừng ở dòng 72, chỗ dialog "Tạo tiếp nhận" không có "BS. Lê Thu Hà". Dialog đó chỉ hiện bác sĩ không nghỉ trong ngày và không bị thay đổi này đụng tới, nên khả năng cao là do dữ liệu chấm công local. Chưa kiểm chứng.
+
+## R-905 (2026-10-13, mức 2: Tiếp nhận + API lịch hẹn) Lọc theo nhóm bác sĩ (Team bác sĩ của Sơ đồ tổ chức)
+
+**Yêu cầu (chủ sở hữu):** thêm ô lọc theo nhóm, ví dụ "T1" hoặc "21520417" trên Sơ đồ tổ chức. Danh sách chỉ gồm các Team bác sĩ có trưởng nhóm là Bác sĩ. Chọn một nhóm thì xoá các bác sĩ đã chọn ở ô "Bác sĩ" (R-904).
+
+**Thay đổi:**
+- BE: `GET /api/v1/app/appointments/doctor-teams` (quyền `appointment.read`, không cần `orgChart.read` vì lễ tân cũng lọc được) trả về các đơn vị `Kind = DoctorTeam` có trưởng đơn vị được tick "Bác sĩ", sắp theo tên (`DoctorTeamLookup`). `GetAppointmentListInput.DoctorTeamId` lọc lịch hẹn theo các thành viên hiện tại của nhóm, `/stats` dùng chung bộ lọc này.
+- FE: ô "Nhóm bác sĩ" (SearchSelect) nằm bên trái ô "Bác sĩ", có cả trong bộ lọc mobile. `useDoctorFilter` cho hai ô loại trừ nhau: chọn nhóm thì xoá bác sĩ, chọn bác sĩ thì xoá nhóm, để bảng không bao giờ hiển thị phần giao của hai bộ lọc. `ReceptionStatusTabs` nhận các ô lọc qua `children`.
+- Bố cục: ở màn 1440px, hàng lọc chỉ vừa đúng các tab, hai ô lọc và các ô đếm. Vì vậy hai ô lọc co lại trước (nhóm từ 200 xuống tối thiểu 156px, bác sĩ từ 260 xuống tối thiểu 196px), các ô đếm vẫn nằm bên phải. Tên bị cắt có `title` để rê chuột xem đủ. Đã kiểm tra bằng ảnh chụp ở 1920, 1440, 1280 và 1100px (ở 1100px hai ô lọc xuống dòng dưới tab).
+- i18n: `Reception:DoctorTeam`, `Reception:NoDoctorTeams`.
+
+**Kiểm chứng (backend thật + build production 8080, không chặn API):**
+- `reception-doctor-team.spec` (mới, 3/3). Mỗi lần chạy tạo bằng API thật một bác sĩ, một nhóm do bác sĩ đó làm trưởng, một nhóm do nhân viên không tick Bác sĩ làm trưởng, và một lịch hẹn; chạy xong thì dọn hết.
+  - Danh sách nhóm có nhóm thứ nhất, không có nhóm thứ hai, và mọi nhóm trả về đều là Team bác sĩ có trưởng là Bác sĩ (đối chiếu với `/org-chart`).
+  - `doctorTeamId` trả về lịch hẹn của thành viên nhóm, tổng `/stats` khớp `totalCount`.
+  - Trên bảng: chọn bác sĩ rồi chọn nhóm thì request chỉ còn `doctorTeamId` và ô bác sĩ trống; chọn lại bác sĩ thì ô nhóm trống.
+  - Tài khoản lễ tân `lt.huong` lấy được danh sách nhóm và thấy ô lọc nhóm.
+- Chạy lại cùng `reception-doctor-priority`, `reception-own-doctor`, `reception-doctor-list`, `reception.spec`: tất cả xanh.
+- DB local chưa có Team bác sĩ nào hợp lệ, nên ô nhóm hiện "Chưa có team bác sĩ nào". Các nhóm T1 và 21520417 trong ảnh là dữ liệu staging.

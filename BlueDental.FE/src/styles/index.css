@@ -2521,6 +2521,140 @@ body::-webkit-scrollbar-track {
   padding: 8px 0;
 }
 
+/* SortableMultiSearchSelect — several picks, ordered by priority. */
+.ms-more {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.ms-priority {
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--bd-line-soft);
+  background: var(--bd-bg-soft);
+}
+
+.ms-priority-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-sub);
+}
+
+.ms-priority-hint {
+  font-weight: 400;
+  color: var(--bd-faint);
+}
+
+.ms-priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 168px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ms-priority-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+  font-size: 13px;
+  color: var(--bd-ink);
+}
+
+.ms-priority-row--dragging {
+  border-color: var(--bd-blue-light);
+  box-shadow: 0 6px 16px rgba(13, 27, 42, 0.12);
+}
+
+.ms-priority-rank {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bd-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ms-priority-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-priority-remove {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--bd-faint);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ms-priority-remove:hover,
+.ms-priority-remove:focus-visible {
+  color: var(--bd-red);
+}
+
+.ms-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ms-check {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--bd-faint);
+  border-radius: 4px;
+  background: var(--bd-card);
+}
+
+.ms-check--on {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+}
+
+.ms-check--on::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {

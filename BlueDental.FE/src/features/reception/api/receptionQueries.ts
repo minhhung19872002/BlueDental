@@ -27,6 +27,14 @@ export function useReceptionMetrics(filter: ReceptionFilter = {}) {
   });
 }
 
+/** The Team bác sĩ boxes of the org chart, for the board's Nhóm bác sĩ filter. */
+export function useReceptionDoctorTeams() {
+  return useQuery({
+    queryKey: ["receptionDoctorTeams"],
+    queryFn: () => receptionApi.getDoctorTeams(),
+  });
+}
+
 /** A doctor's booked spans for one week (Monday → Sunday); idle without a doctor. */
 export function useDentistBusySpans(dentistId: string | undefined, weekStart: string, weekEnd: string) {
   return useQuery({

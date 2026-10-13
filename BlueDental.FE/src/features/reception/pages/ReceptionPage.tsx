@@ -6,15 +6,16 @@ import dayjs, { type Dayjs } from "dayjs";
 import { PageHeader } from "@/components/PageHeader";
 import { ConfirmCancelDialog } from "@/components/ConfirmCancelDialog";
 import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
-import { SearchSelect } from "@/components/SearchSelect";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
+import { ReceptionDoctorFilters } from "../components/ReceptionDoctorFilters";
 import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import { FollowUpScheduler } from "../components/FollowUpScheduler";
 import { TemporaryPatientDialog, type TemporaryPatientTarget } from "../components/TemporaryPatientDialog";
 import { useOwnDoctorDefault } from "../hooks/useOwnDoctorDefault";
+import { useDoctorFilter } from "../hooks/useDoctorFilter";
 import { useRefetchWhenDue } from "../hooks/useRefetchWhenDue";
 import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import {
@@ -27,6 +28,7 @@ import {
   useReceptionList,
   useReceptionMetrics,
   useReceptionDoctors,
+  useReceptionDoctorTeams,
   useAvailableReceptionDoctorsByDay,
 } from "../api/receptionQueries";
 import {
@@ -56,7 +58,7 @@ const visitDayOf = (item: ReceptionItem) => dayjs(item.arrivalTime || item.creat
 export const ReceptionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReceptionStatus>("All");
   const [keyword, setKeyword] = useState("");
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string | undefined>();
+  const doctorFilter = useDoctorFilter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
@@ -64,7 +66,7 @@ export const ReceptionPage: React.FC = () => {
   const [cancelTarget, setCancelTarget] = useState<{ id: string; name: string } | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftKeyword, setDraftKeyword] = useState("");
-  const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
+  const draftDoctorFilter = useDoctorFilter();
   const [busyCards, setBusyCards] = useState<Set<string>>(new Set());
   const [bookingTarget, setBookingTarget] = useState<{ id: string; outcome: BookedOutcome } | null>(null);
   const [temporaryTarget, setTemporaryTarget] = useState<TemporaryPatientTarget | null>(null);
@@ -76,7 +78,8 @@ export const ReceptionPage: React.FC = () => {
     status: activeTab,
     counterFilter: activeCounter,
     keyword: debouncedKeyword,
-    doctorId: selectedDoctorId,
+    doctorIds: doctorFilter.doctorIds,
+    doctorTeamId: doctorFilter.teamId,
     branchId,
     date: currentDate.format("YYYY-MM-DD"),
     viewMode,
@@ -89,9 +92,18 @@ export const ReceptionPage: React.FC = () => {
     isFetchingNextPage,
     fetchNextPage,
   } = useReceptionList(filter);
-  const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode, branchId, doctorId: selectedDoctorId });
+  const { data: metrics } = useReceptionMetrics({
+    date: filter.date,
+    viewMode,
+    branchId,
+    doctorIds: filter.doctorIds,
+    doctorTeamId: filter.doctorTeamId,
+  });
   const { data: doctors = [], isSuccess: doctorsLoaded } = useReceptionDoctors(branchId);
-  useOwnDoctorDefault(doctorsLoaded ? doctors : undefined, setSelectedDoctorId);
+  const { data: doctorTeams = [] } = useReceptionDoctorTeams();
+  const { selectDoctors } = doctorFilter;
+  const selectOwnDoctor = useCallback((id: string) => selectDoctors([id]), [selectDoctors]);
+  useOwnDoctorDefault(doctorsLoaded ? doctors : undefined, selectOwnDoctor);
   const patientTab = usePatientLinkTab();
   const updateStatusMutation = useUpdateReceptionStatus();
   const cancelMutation = useCancelReception();
@@ -242,21 +254,20 @@ export const ReceptionPage: React.FC = () => {
           activeTab={activeTab}
           activeCounter={activeCounter}
           metrics={metrics}
-          selectedDoctorId={selectedDoctorId}
-          doctors={doctors}
           onChange={(status) => { setActiveTab(status); setActiveCounter(undefined); }}
           onCounterClick={handleCounterClick}
-          onDoctorSelect={setSelectedDoctorId}
-        />
+        >
+          <ReceptionDoctorFilters filter={doctorFilter} teams={doctorTeams} doctors={doctors} layout="inline" />
+        </ReceptionStatusTabs>
       </div>
 
       <div className="mobile-only mobile-filter-block">
         <MobileFilterDrawer
           open={filterOpen}
-          onOpen={() => { setDraftKeyword(keyword); setDraftDoctorId(selectedDoctorId); setFilterOpen(true); }}
+          onOpen={() => { setDraftKeyword(keyword); draftDoctorFilter.reset(doctorFilter); setFilterOpen(true); }}
           onClose={() => setFilterOpen(false)}
-          onClear={() => { setDraftKeyword(""); setDraftDoctorId(undefined); }}
-          onApply={() => { setKeyword(draftKeyword); setSelectedDoctorId(draftDoctorId); }}
+          onClear={() => { setDraftKeyword(""); draftDoctorFilter.reset({ doctorIds: [] }); }}
+          onApply={() => { setKeyword(draftKeyword); doctorFilter.reset(draftDoctorFilter); }}
         >
           <div>
             <div className="mobile-filter-label">{t("Reception:SearchLabel")}</div>
@@ -268,17 +279,7 @@ export const ReceptionPage: React.FC = () => {
               allowClear
             />
           </div>
-          <div>
-            <div className="mobile-filter-label">{t("Reception:Doctor")}</div>
-            <SearchSelect
-              value={draftDoctorId}
-              placeholder={t("Reception:Doctor")}
-              allowClear
-              options={doctors.map((d) => ({ value: d.id, label: d.name }))}
-              onChange={(val) => setDraftDoctorId(val)}
-              style={{ width: "100%" }}
-            />
-          </div>
+          <ReceptionDoctorFilters filter={draftDoctorFilter} teams={doctorTeams} doctors={doctors} layout="stacked" />
         </MobileFilterDrawer>
       </div>
 

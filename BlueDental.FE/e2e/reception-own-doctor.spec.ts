@@ -24,7 +24,8 @@ const isBoardList = (r: Response) => {
   return url.includes(APPOINTMENTS) && !url.includes("/stats") && r.request().method() === "GET" && r.ok();
 };
 
-const dentistIdOf = (r: Response) => new URL(r.url()).searchParams.get("dentistId");
+/** The Bác sĩ filter's picks, comma-joined; null when nobody is picked. */
+const dentistIdOf = (r: Response) => new URL(r.url()).searchParams.getAll("dentistIds").join(",") || null;
 
 const doctorFilter = (page: Page) => page.locator(".reception-doctor-filter");
 

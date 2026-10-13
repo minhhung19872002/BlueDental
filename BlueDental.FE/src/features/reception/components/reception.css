@@ -82,13 +82,30 @@
 
 /* Bác sĩ filter beside the status tabs — wide enough for "BS. " + a full
    Vietnamese name; 160px cut most of them to "Nguyễn …". */
-.reception-doctor-filter .ss-wrapper {
-  width: 260px;
+.reception-doctor-filter {
+  flex: 1 1 196px;
+  max-width: 260px;
+}
+
+/* Nhóm bác sĩ, left of Bác sĩ — team names are short ("T1", "Team Chỉnh nha").
+   Both shrink to their minimum before the stat chips are pushed onto a second
+   line: at 1440px the row fits the tabs, both filters and the chips only so. */
+.reception-team-filter {
+  flex: 1 1 156px;
+  max-width: 200px;
+}
+
+@media (min-width: 641px) {
+  .reception-filter-row > .reception-filter-left {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 /* ── Mobile: hide doctor filter, scroll tabs & stat chips ── */
 @media (max-width: 640px) {
-  .reception-doctor-filter {
+  .reception-doctor-filter,
+  .reception-team-filter {
     display: none;
   }
 
