@@ -107,10 +107,15 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             .Distinct()
             .ToList();
 
-        var catalogQuery = await _catalogRepository.GetQueryableAsync();
-        var catalogs = (await AsyncExecuter.ToListAsync(
-                catalogQuery.Where(c => catalogIds.Contains(c.Id))))
-            .ToDictionary(c => c.Id, c => c.Name);
+        // A service or diagnosis deleted in Danh mục since still names the advice.
+        Dictionary<Guid, string> catalogs;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var catalogQuery = await _catalogRepository.GetQueryableAsync();
+            catalogs = (await AsyncExecuter.ToListAsync(
+                    catalogQuery.Where(c => catalogIds.Contains(c.Id))))
+                .ToDictionary(c => c.Id, c => c.Name);
+        }
 
         foreach (var dto in dtos)
         {

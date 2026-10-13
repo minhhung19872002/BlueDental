@@ -7,6 +7,7 @@ using BlueDental.Organizations;
 using BlueDental.TreatmentManagement.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -92,10 +93,15 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
 
         var diagnosisIds = dtos.Select(d => d.DiagnosisId).Distinct().ToList();
-        var diagnosisQuery = await _catalogRepository.GetQueryableAsync();
-        var diagnoses = (await AsyncExecuter.ToListAsync(
-                diagnosisQuery.Where(c => diagnosisIds.Contains(c.Id))))
-            .ToDictionary(c => c.Id, c => c.Name);
+        // A diagnosis deleted in Danh mục since still names the slips made with it.
+        Dictionary<Guid, string> diagnoses;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var diagnosisQuery = await _catalogRepository.GetQueryableAsync();
+            diagnoses = (await AsyncExecuter.ToListAsync(
+                    diagnosisQuery.Where(c => diagnosisIds.Contains(c.Id))))
+                .ToDictionary(c => c.Id, c => c.Name);
+        }
 
         foreach (var dto in dtos)
         {

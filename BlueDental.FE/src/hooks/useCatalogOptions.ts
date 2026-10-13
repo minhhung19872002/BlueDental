@@ -88,16 +88,32 @@ export const catalogOptionKeys = {
     [...catalogOptionKeys.all, branchId, group] as const,
 };
 
+interface CatalogOptionsInput {
+  /**
+   * Leave soft-deleted rows out. A soft-deletable catalog keeps them active,
+   * so a picker offering a fresh choice must ask (R-587); a list read to name
+   * what a record already holds keeps them, or an old pick goes blank.
+   */
+  liveOnly?: boolean;
+}
+
 /** Active entries of one catalog, shaped for a Select. */
-export function useCatalogOptions(group: CatalogGroup) {
+export function useCatalogOptions(group: CatalogGroup, input: CatalogOptionsInput = {}) {
   const branchId = useCurrentBranchId();
+  const liveOnly = input.liveOnly ?? false;
 
   return useQuery({
-    queryKey: catalogOptionKeys.group(branchId, group),
+    queryKey: [...catalogOptionKeys.group(branchId, group), { liveOnly }] as const,
     queryFn: async (): Promise<CatalogOption[]> => {
       const page = await api
         .get<PagedResult<CatalogEntryResponse>>("/v1/app/catalog-entries", {
-          params: { clinicBranchId: branchId, group, isActive: true, maxResultCount: 200 },
+          params: {
+            clinicBranchId: branchId,
+            group,
+            isActive: true,
+            ...(liveOnly ? { isDeleted: false } : {}),
+            maxResultCount: 200,
+          },
         })
         .then((r) => r.data);
 
