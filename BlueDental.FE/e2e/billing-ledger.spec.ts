@@ -221,9 +221,11 @@ test.describe("Tài chính → Thanh toán", () => {
     expect(listed.body.totalAmount).toBe(0);
   });
 
-  // BA 2026-10-08: only "Hoàn tất" money is collected money. A Hoàn tất
-  // receipt is final; one still "Chưa thanh toán" never reaches the list.
-  test("a Hoàn tất receipt stays listed for good; a Chưa thanh toán one is never listed", async ({ page }) => {
+  // Owner 2026-10-13: every new receipt is written "Hoàn tất", and a Hoàn tất
+  // receipt is final. The old "a Chưa thanh toán one is never listed" half
+  // cannot be set up any more — no new receipt is ever pending — so what is
+  // held instead is that a freshly written one is listed straight away.
+  test("a Hoàn tất receipt stays listed for good; a new one is listed as soon as it is written", async ({ page }) => {
     expect(receipt).toBeDefined();
     const saved = receipt!;
     await login(page);
@@ -232,7 +234,7 @@ test.describe("Tài chính → Thanh toán", () => {
     expect((refused.body.error as { code: string }).code).toBe("BlueDental:Billing:0096");
     expect((await call(page, `${LEDGER_API}?filter=${saved.code}`)).body.totalCount).toBe(1);
 
-    const pending = await call(page, PAYMENTS_API, {
+    const written = await call(page, PAYMENTS_API, {
       method: "POST",
       json: {
         patientId: saved.patientId,
@@ -247,17 +249,12 @@ test.describe("Tài chính → Thanh toán", () => {
         staffId: saved.staffId,
       },
     });
-    expect(pending.status, JSON.stringify(pending.body)).toBe(200);
-    expect(pending.body.status).toBe(1);
-    const code = String(pending.body.code);
-    try {
-      expect((await call(page, `${LEDGER_API}?filter=${code}`)).body.totalCount).toBe(0);
-      await page.goto("/billing");
-      await page.getByPlaceholder(SEARCH).fill(code);
-      await expect(page.getByText(EMPTY_TEXT)).toBeVisible({ timeout: 20_000 });
-      await expect(ledgerRow(page, code)).toHaveCount(0);
-    } finally {
-      await call(page, `${PAYMENTS_API}/${String(pending.body.id)}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
-    }
+    expect(written.status, JSON.stringify(written.body)).toBe(200);
+    expect(written.body.status).toBe(2);
+    const code = String(written.body.code);
+    expect((await call(page, `${LEDGER_API}?filter=${code}`)).body.totalCount).toBe(1);
+    await page.goto("/billing");
+    await page.getByPlaceholder(SEARCH).fill(code);
+    await expect(ledgerRow(page, code)).toBeVisible({ timeout: 20_000 });
   });
 });

@@ -5597,6 +5597,8 @@
     "Patient:Payment:AmountLabel": "Số tiền thanh toán",
     "Patient:Payment:BankName": "Tên ngân hàng",
     "Patient:Payment:CreateSuccess": "Đã tạo phiếu thanh toán",
+    "Patient:Payment:FinalWarning": "Phiếu được ghi nhận đã thanh toán ngay khi lưu và không thể sửa hay huỷ.",
+    "Patient:Payment:ConfirmCreate": "Xác nhận đã thu {0}? Phiếu sẽ được ghi nhận là đã thanh toán ngay khi lưu.",
     "Patient:Payment:CreateTitle": "Tạo phiếu thanh toán",
     "Patient:Payment:DateLabel": "Ngày thanh toán",
     "Patient:Payment:Description": "Nội dung",

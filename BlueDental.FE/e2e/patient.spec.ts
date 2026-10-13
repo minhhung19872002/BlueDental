@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { confirmAsWritten, type Receipt } from "./fixtures/ledgerReceipt";
+import { answerQuestionYes, answerYes, type Receipt } from "./fixtures/ledgerReceipt";
 import { openShiftCovering } from "./fixtures/workShift";
 
 /** --bd-primary, the clone's own brand — see src/styles/index.css. */
@@ -1794,18 +1794,10 @@ test.describe("Bệnh nhân", () => {
     await expect(dialog.locator(".pd-newpay-error")).toHaveText("Bạn cần chọn ít nhất 1 dịch vụ");
     await dialog.locator(".pd-newpay-lines > li input[type=checkbox]").first().check();
 
-    const collected = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/patient-payments") && res.request().method() === "POST",
-    );
     await dialog.locator(".pd-newpay-amount").fill(String(paid));
     await dialog.getByRole("button", { name: "Lưu" }).click();
-    const written = await collected;
-    expect(written.ok()).toBeTruthy();
-    await expect(dialog).toBeHidden();
-    // A new receipt is "Chưa thanh toán" and moves nothing until it is
-    // confirmed (BA 2026-10-08) — confirmed here as written.
-    await confirmAsWritten(page, (await written.json()) as Receipt);
+    // "Có" in the question writes the receipt "Hoàn tất" at once (owner 2026-10-13).
+    await answerYes(page, dialog);
 
     // Written through the real API: the line owes that much less, still after a
     // reload. The money row's Đã thu moved by the same amount.
@@ -2097,6 +2089,7 @@ test.describe("Bệnh nhân", () => {
     );
     await dialog.locator("input.pd-newpay-amount").fill(String(paying));
     await dialog.getByRole("button", { name: "Lưu" }).click();
+    await answerQuestionYes(page);
 
     // One request, naming every service — not one request per service.
     const response = await posted;
@@ -2107,8 +2100,8 @@ test.describe("Bệnh nhân", () => {
     expect(body.splitMode).toBe(1);
     expect(body.items ?? [], "auto leaves the split to the server").toHaveLength(0);
     await expect(dialog).toBeHidden();
-    // Only a confirmed receipt reaches the account (BA 2026-10-08).
-    await confirmAsWritten(page, (await response.json()) as Receipt);
+    // Written "Hoàn tất", so it reaches the account at once (owner 2026-10-13).
+    expect(((await response.json()) as Receipt).status).toBe(2);
 
     // The server spread it in the order the dialog named the lines, capped per
     // line, and it persisted. A shared demo slip may already carry receipts, so
@@ -2174,6 +2167,7 @@ test.describe("Bệnh nhân", () => {
     expect(owed, "the chosen line should still owe something").toBeGreaterThan(0);
     await dialog.locator("input.pd-newpay-amount").fill(String(Math.min(10_000, owed)));
     await dialog.getByRole("button", { name: "Lưu" }).click();
+    await answerQuestionYes(page);
 
     const body = JSON.parse((await posted).postData() ?? "{}");
     // 5 = PaymentMethodKind.EWallet, the reference's "momo".

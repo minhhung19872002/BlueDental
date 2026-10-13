@@ -14,6 +14,7 @@ import {
   WalletOutlined,
 } from "@ant-design/icons";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -139,6 +140,7 @@ export function CreatePaymentDialog({
   const [accountId, setAccountId] = useState<string>();
   const [searching, setSearching] = useState(false);
   const [keyword, setKeyword] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   // Only lines that still owe something can be paid; a settled one has nothing
   // for the dialog to collect. A receipt being reopened keeps its own lines in
@@ -159,6 +161,7 @@ export function CreatePaymentDialog({
     if (!open) return;
     setSearching(false);
     setKeyword("");
+    setConfirming(false);
     const payment = revision?.payment;
     if (payment) {
       // The receipt as it was written; a pending one counts nowhere, so every
@@ -233,21 +236,43 @@ export function CreatePaymentDialog({
 
   const toggleAll = (on: boolean) => setPicked(on ? lines.map((line) => line.id) : []);
 
-  const save = async () => {
-    if (!plan || noService) return;
+  /** Refuses, with the reason, what the server would refuse anyway. */
+  const readyToSave = () => {
+    if (!plan || noService) return false;
 
     if (total <= 0) {
       toast.error(t("Patient:Payment:EnterAmount"));
-      return;
+      return false;
     }
     if (overpaid) {
       toast.error(t("Patient:Payment:AmountExceedsBalance"));
-      return;
+      return false;
     }
     if (missingAccount) {
       toast.error(t("Patient:Payment:SelectMethod"));
-      return;
+      return false;
     }
+    return true;
+  };
+
+  /**
+   * A new receipt is written "Hoàn tất" — the money counts at once — so the
+   * cashier says yes to the amount first (owner, 2026-10-13). A reopened
+   * receipt saves straight away: its own button already says what it does.
+   */
+  const handleSave = () => {
+    if (!readyToSave()) return;
+    if (revision) void save();
+    else setConfirming(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    await save();
+    setConfirming(false);
+  };
+
+  const save = async () => {
+    if (!plan) return;
 
     // One receipt naming every chosen service, as the reference posts it.
     // Tự động leaves the split to the server, which is the only side that
@@ -310,14 +335,15 @@ export function CreatePaymentDialog({
         <div className="pd-newpay-footer">
           <p>
             <InfoCircleOutlined />{" "}
-            {t("Patient:Payment:EditWarning")}
+            {/* A new receipt is "Hoàn tất" at once, and a Hoàn tất one is final. */}
+            {t(revision ? "Patient:Payment:EditWarning" : "Patient:Payment:FinalWarning")}
           </p>
           <Button
             type="primary"
             icon={intent === "confirm" ? <CheckCircleOutlined /> : <SaveOutlined />}
             loading={saving}
             disabled={saving}
-            onClick={() => void save()}
+            onClick={handleSave}
           >
             {intent === "confirm" ? t("Treatment:Payment:ConfirmPayment") : t("Common:Save")}
           </Button>
@@ -581,6 +607,14 @@ export function CreatePaymentDialog({
           </section>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirming}
+        title={t("Treatment:Payment:ConfirmPayment")}
+        message={t("Patient:Payment:ConfirmCreate", formatMoneyUnit(total))}
+        pending={record.isPending}
+        onConfirm={() => void handleConfirmCreate()}
+        onClose={() => setConfirming(false)}
+      />
     </Modal>
   );
 }

@@ -5597,6 +5597,8 @@
     "Patient:Payment:AmountLabel": "Payment amount",
     "Patient:Payment:BankName": "Bank name",
     "Patient:Payment:CreateSuccess": "Payment created",
+    "Patient:Payment:FinalWarning": "The receipt is recorded as paid as soon as it is saved and cannot be edited or cancelled.",
+    "Patient:Payment:ConfirmCreate": "Confirm that {0} has been collected? The receipt is recorded as paid as soon as it is saved.",
     "Patient:Payment:CreateTitle": "Create Payment",
     "Patient:Payment:DateLabel": "Payment date",
     "Patient:Payment:Description": "Description",

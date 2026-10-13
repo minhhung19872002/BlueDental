@@ -7861,3 +7861,24 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
 - Hồi quy:
   - Xanh: `reception-doctor-team` 3/3, `reception-own-doctor` 6/6, `reception-doctor-list` 2/2, `staff-employment` 2/2.
   - `staff.spec` đỏ ở bước chọn chi nhánh "Nha Khoa Đức Hạnh Premium". DB local đã tích luỹ hàng chục chi nhánh test ("CN HOA HONG …"), danh sách cuộn ảo tháo option khỏi DOM đúng lúc đang click. Đã chạy lại khi bỏ thay đổi form nhân viên và test vẫn đỏ y hệt, nên lỗi có từ trước.
+
+## R-907 (2026-10-13, mức 2: Thanh toán bệnh nhân) Tạo phiếu thanh toán là "Hoàn tất" ngay, có hộp xác nhận trước khi lưu (bỏ bước "Chưa thanh toán" của BA 2026-10-08)
+
+**Yêu cầu (chủ sở hữu):** bấm lưu phiếu thanh toán thì phiếu phải ở trạng thái đã thanh toán luôn, không để "Chưa thanh toán" với công nợ còn nguyên. Trước khi lưu phải có hộp xác nhận. Chủ sở hữu chốt: phiếu "Hoàn tất" là cuối cùng, không sửa và không huỷ được; thu nhầm thì xử lý bằng phiếu hoàn tiền.
+
+**Thay đổi:**
+- BE: `PatientPaymentAppService.RecordAsync` luôn ghi phiếu với `PatientPaymentStatus.Completed`. `ConfirmAsync`, `UpdateAsync` và `Cancel` giữ nguyên, chỉ còn dùng cho các phiếu "Chưa thanh toán" đã lưu từ trước.
+- FE: `CreatePaymentDialog` tách bước kiểm tra (`readyToSave`) ra khỏi bước lưu. Ở chế độ tạo mới, bấm "Lưu" sẽ mở `ConfirmDialog` ("Xác nhận đã thu {số tiền}?"); chọn "Có" mới gửi POST, chọn "Không" thì không gửi gì và giữ nguyên dialog. Chân dialog đổi thành "Phiếu được ghi nhận đã thanh toán ngay khi lưu và không thể sửa hay huỷ." Khi mở lại một phiếu cũ còn "Chưa thanh toán", dialog vẫn hiện ghi chú 7 ngày như trước.
+- i18n: `Patient:Payment:ConfirmCreate`, `Patient:Payment:FinalWarning`.
+
+**Kiểm chứng (backend thật + build production 8080, không chặn API):**
+- `payment-status.spec` (viết lại, 4/4): "Không" không gửi POST; "Có" gửi đúng một POST và phiếu ở trạng thái Hoàn tất. Đã thanh toán và Công nợ đổi ngay, tải lại trang vẫn đúng. Dòng phiếu chỉ còn nút Xem. API từ chối sửa, xác nhận và huỷ với 403 `Billing:0096`; chi nhánh khác cũng bị từ chối.
+- Đã chuyển sang hành vi mới và đều xanh: `treatment-plan-detail` 13/13, `billing-ledger` 5/5, `debt-history` 4/4, `payment-amount-cap` 1/1, `payment-receipt-pdf` 4/4, và 3/4 test thanh toán của `patient.spec`.
+- `qa-bugs-25-30` (#26, #28): luồng huỷ có lý do và dòng "Đã hủy" không còn tới được với phiếu mới, nên đã thay bằng các kiểm tra từ chối (sửa ngày, huỷ, phiếu ghi ngày mai). Từ nay luồng huỷ phiếu "Chưa thanh toán" không còn test e2e nào bao phủ.
+- Còn đỏ, không do thay đổi này:
+  - `qa-bugs` #25: quy tắc check-in trong ngày đang bị tắt trong `Appointment.cs` (commit e1cbbba6).
+  - `vat-payment-einvoice-api` dòng 102: phiếu dịch vụ dùng chung đang có giảm giá cấp phiếu. Bản sao tạm bỏ qua phiếu đó thì xanh.
+  - `patient.spec` "the payment dialog carries the reference's fields": dialog có thêm dòng VAT do dữ liệu demo bị các test VAT thêm vào.
+  - `payment-permission-buttons` và `staff.spec`: không chọn được chi nhánh trong form nhân viên. Đã chạy thử khi bỏ thay đổi form nhân viên (R-906) và vẫn đỏ y hệt, nên lỗi có sẵn từ dữ liệu chi nhánh test tích luỹ.
+
+**Ghi nhận thêm (chưa sửa):** xác nhận lại một phiếu đã Hoàn tất trên dòng đã trả đủ thì trả về 403 `Billing:0092` ("vượt số còn nợ") thay vì `0096`. Nguyên nhân là `ConfirmAsync` và `UpdateAsync` kiểm tra hạn mức trước `EnsurePending()`. Yêu cầu vẫn bị từ chối, chỉ có mã lỗi gây hiểu nhầm.
