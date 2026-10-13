@@ -22,6 +22,7 @@ async function openImport(page: Page) {
   await page.getByRole("button", { name: "Nhập danh sách" }).click();
   const dialog = page.getByRole("dialog").filter({ hasText: "Nhập danh sách bệnh nhân" });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(/A = thêm mới, E = sửa .*, D = xoá/)).toBeVisible();
   return dialog;
 }
 
@@ -69,8 +70,8 @@ test.describe("F-69 patient roster — browser", () => {
     expect((await download).suggestedFilename()).toMatch(/\.xlsx$/);
   });
 
-  test("E adds the patient: check, preview, import, then it is on the list after a reload", async ({ page }) => {
-    const dialog = await upload(page, "them.xlsx", rosterFile([[name, phone, null, BRANCH_NAME, "E"]]));
+  test("A adds the patient: check, preview, import, then it is on the list after a reload", async ({ page }) => {
+    const dialog = await upload(page, "them.xlsx", rosterFile([[name, phone, null, BRANCH_NAME, "A"]]));
 
     const row = dialog.locator(".bd-roster-table .ant-table-row").filter({ hasText: name });
     await expect(row).toContainText("Thêm mới");

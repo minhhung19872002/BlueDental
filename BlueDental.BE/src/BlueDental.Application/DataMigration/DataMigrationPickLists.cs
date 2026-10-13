@@ -37,7 +37,8 @@ internal static class DataMigrationPickLists
         Restrict(treatments, Treatments, Col.Status, messages, Statuses);
     }
 
-    private static void Restrict(
+    /// <summary>A drop-down on one column of a layout's sheet; the patient roster file (F-69) uses it too.</summary>
+    public static void Restrict(
         IXLWorksheet sheet,
         ImportSheetLayout layout,
         string key,

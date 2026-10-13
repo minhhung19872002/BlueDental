@@ -7820,3 +7820,24 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên build production + BE thật.
 
 **Lưu ý.** Nếu dữ liệu đã có sẵn hai hồ sơ cùng SĐT (ví dụ nhập từ hệ thống cũ), sửa một trong hai bằng `E` sẽ bị từ chối, giống hệt khi lưu bằng dialog.
+
+## R-919 (2026-10-13, mức 2: F-69) Cột Action của file nhập danh sách bệnh nhân: A thêm mới, E chỉ sửa, D xoá
+
+**Yêu cầu.** BA: thêm action "A" = Thêm mới. Nếu dữ liệu không tồn tại mà action là E thì báo lỗi, không cho import. Trước đây E vừa thêm vừa sửa. Chủ dự án chốt: A trùng Mã khách hàng đã có thì báo lỗi (không tự đổi sang sửa). A có Mã khách hàng chưa dùng thì tạo bệnh nhân với đúng mã đó, để trống thì cấp mã DH kế tiếp. File xuất có drop-down A/E/D ở cột Action.
+
+**Sửa.**
+- BE `PatientRosterAppService`: mỗi dòng có `RowKind` (Add / Edit / Delete / Unknown) thay cho cờ `Delete`. `MatchCodesAsync`:
+  - Dòng E: thiếu mã → `EditNeedsCode`; mã không có → `EditCodeNotFound`; mã đã xoá / chi nhánh khác → lỗi như cũ.
+  - Dòng A: mã của bệnh nhân còn sống (bất kỳ chi nhánh nào) → `CodeTaken`, mã đã xoá → `CodeDeleted`.
+  - D giữ nguyên.
+- Export gắn data validation A,E,D cho cột Action, dùng `DataMigrationPickLists.Restrict` (đổi từ private sang public).
+- i18n vi/en: sửa `BadAction`, `NoMarkedRows`, `Hint:Action`; thêm `CodeTaken`, `EditCodeNotFound`, `EditNeedsCode`.
+
+**Kiểm chứng.** Build production (vite preview 8111) → host 5000 → PostgreSQL, đăng nhập thật, không chặn request.
+- `patient-roster-api` 10/10. Export có list "A,E,D" trên AC2:AC1048576. Test mới: A trên mã đã có + E mã không có + E thiếu mã → 3 lỗi đúng câu; A với mã chưa dùng → Thêm mới giữ đúng mã. Các dòng thêm mới trong spec cũ đổi sang A.
+- `patient-roster` 4/4: hộp thoại nhập hiện gợi ý A / E / D; A thêm → xem trước → nhập → reload thấy; D xoá.
+- Hồi quy mức 3: `patient`, `patient-permission-gates`, `patient-national-id`, `data-migration-api` 73/77. 4 đỏ không do thay đổi này:
+  - "Tiếp nhận steps": TEMP-BUG25-OFF.
+  - "payment dialog momo": phụ thuộc dữ liệu, đã biết.
+  - "Đặt mới … blocks": chập chờn, chạy lại xanh.
+  - data-migration "every Khách hàng column": `catalogPicks` chọn mục nghề nghiệp rác "Thợ 791507" trong DB local nên lưu thành nghề tự do. Lỗi do dữ liệu; phần DataMigration chỉ đổi visibility.

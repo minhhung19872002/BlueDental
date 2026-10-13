@@ -25,10 +25,12 @@ namespace BlueDental.PatientManagement.Roster;
 /// branch exported to one sheet, edited offline, and imported back.
 ///
 /// <list type="bullet">
-/// <item>Only rows with an Action are read: E adds a patient (blank or unused
-/// Mã khách hàng — a blank one is numbered as the hồ sơ dialog numbers it) or
-/// edits the one the code names; D deletes it. A blank Action leaves the row
-/// alone, so a slip of the hand on an unmarked row changes nothing.</item>
+/// <item>Only rows with an Action are read: A adds a patient (blank or unused
+/// Mã khách hàng — a blank one is numbered as the hồ sơ dialog numbers it), E
+/// edits the one the code names and D deletes it; an E or D whose code names
+/// no live patient refuses the file, and so does an A whose code is taken
+/// (BA 2026-10-13). A blank Action leaves the row alone, so a slip of the hand
+/// on an unmarked row changes nothing.</item>
 /// <item>An edit writes every column: a blank cell clears the field. Ngày tạo
 /// hồ sơ left blank keeps the record's date.</item>
 /// <item>A patient moves to no other branch, and D refuses a record anyone has
@@ -115,6 +117,9 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
         }
 
         sheet.Range(HeaderRow, 1, row, Sheet.Columns.Count).SetAutoFilter();
+        DataMigrationPickLists.Restrict(sheet, Sheet, Col.Action, new PickListMessages(
+            L["DataMigration:PickList:Title"].Value,
+            L["DataMigration:PickList:NotInList"].Value), ActionChoices);
         return Save(workbook);
     }
 
@@ -215,10 +220,20 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
         public void Dispose() => Workbook.Dispose();
     }
 
+    /// <summary>What the Action cell asks for; <see cref="Unknown"/> is a value the file may not use.</summary>
+    private enum RowKind
+    {
+        Unknown,
+        Add,
+        Edit,
+        Delete
+    }
+
     private sealed class RosterRow
     {
         public required IXLRow Row { get; init; }
-        public required bool Delete { get; init; }
+        public required RowKind Kind { get; init; }
+        public bool Delete => Kind == RowKind.Delete;
         public required PatientRosterRowDto Status { get; init; }
         public List<string> Errors => Status.Errors;
         public ClinicBranch? Branch { get; set; }
@@ -298,7 +313,7 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
                 continue;
             }
 
-            var key = ExcelCells.Key(action);
+            var kind = KindOf(ExcelCells.Key(action));
             var status = new PatientRosterRowDto
             {
                 Row = number,
@@ -306,10 +321,15 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
                 FullName = columns.TryGetValue(Col.FullName, out var nameColumn)
                     ? ExcelCells.Text(row.Cell(nameColumn))
                     : null,
-                Action = key == DeleteAction ? PatientRosterRowAction.Delete : PatientRosterRowAction.Create
+                Action = kind switch
+                {
+                    RowKind.Delete => PatientRosterRowAction.Delete,
+                    RowKind.Edit => PatientRosterRowAction.Update,
+                    _ => PatientRosterRowAction.Create
+                }
             };
-            var rosterRow = new RosterRow { Row = row, Delete = key == DeleteAction, Status = status, Code = status.PatientCode };
-            if (key != EditAction && key != DeleteAction)
+            var rosterRow = new RosterRow { Row = row, Kind = kind, Status = status, Code = status.PatientCode };
+            if (kind == RowKind.Unknown)
             {
                 rosterRow.Errors.Add(L["PatientRoster:Err:BadAction", Sheet[Col.Action].Header, action]);
             }
@@ -317,6 +337,14 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
             plan.Rows.Add(rosterRow);
         }
     }
+
+    private static RowKind KindOf(string key) => key switch
+    {
+        AddAction => RowKind.Add,
+        EditAction => RowKind.Edit,
+        DeleteAction => RowKind.Delete,
+        _ => RowKind.Unknown
+    };
 
     /// <summary>Chi nhánh by name or code; the clinic adds branches by hand before importing (BA).</summary>
     private async Task ResolveBranchesAsync(RosterPlan plan)
@@ -355,9 +383,10 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
     }
 
     /// <summary>
-    /// Mã khách hàng decides between add and edit. The code index is unique
-    /// across branches and deleted records alike, so a code held anywhere else
-    /// cannot be given to a new patient either.
+    /// Mã khách hàng names the patient an E or D row works on, and must name
+    /// nobody on an A row (BA 2026-10-13). The code index is unique across
+    /// branches and deleted records alike, so a code held anywhere else cannot
+    /// be given to a new patient either.
     /// </summary>
     private async Task MatchCodesAsync(RosterPlan plan)
     {
@@ -377,7 +406,11 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
         {
             if (row.Code == null)
             {
-                if (row.Delete)
+                if (row.Kind == RowKind.Edit)
+                {
+                    row.Errors.Add(L["PatientRoster:Err:EditNeedsCode", codeHeader]);
+                }
+                else if (row.Delete)
                 {
                     row.Errors.Add(L["PatientRoster:Err:DeleteNeedsCode", codeHeader]);
                 }
@@ -387,7 +420,11 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
 
             if (!stored.TryGetValue(row.Code, out var patient))
             {
-                if (row.Delete)
+                if (row.Kind == RowKind.Edit)
+                {
+                    row.Errors.Add(L["PatientRoster:Err:EditCodeNotFound", row.Code]);
+                }
+                else if (row.Delete)
                 {
                     row.Errors.Add(L["PatientRoster:Err:CodeNotFound", row.Code]);
                 }
@@ -398,6 +435,11 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
             if (patient.IsDeleted)
             {
                 row.Errors.Add(L["PatientRoster:Err:CodeDeleted", row.Code]);
+            }
+            else if (row.Kind == RowKind.Add)
+            {
+                row.Errors.Add(L["PatientRoster:Err:CodeTaken", row.Code,
+                    branchNames.GetValueOrDefault(patient.BranchId) ?? string.Empty]);
             }
             else if (row.Branch != null && patient.BranchId != row.Branch.Id)
             {
