@@ -97,6 +97,9 @@ export async function createRunStaff(
     isHygienist?: boolean;
     roleNames?: string[];
     branchIds?: string[];
+    /** Profile working hours ("HH:mm"), as the Nhân viên editor saves them. */
+    afternoonStartTime?: string;
+    afternoonEndTime?: string;
   } = {},
 ): Promise<RunStaff> {
   const res = await call<RunStaff>(page, "/api/v1/app/staff", {

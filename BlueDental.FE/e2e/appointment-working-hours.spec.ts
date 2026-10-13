@@ -7,8 +7,8 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
  * R-742). BA: "Ngoài giờ làm việc khóa luôn, không cho book" — the server
  * refuses, there is no override.
  *
- * The hours are the dentist's shifts in Lịch làm việc for that day, 08:00-12:00
- * and 13:00-17:00 when nothing was registered. Real stack: a throw-away
+ * The hours are the dentist's shifts in Lịch làm việc for that day; with nothing
+ * registered, the hours on the dentist's profile, else 08:00-12:00 and 13:00-17:00. Real stack: a throw-away
  * dentist, real bookings, a real shift opened through the timekeeping API.
  */
 
@@ -128,6 +128,74 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     const late = await create(page, day, "20:00", "20:30");
     expect(late.body.error?.code).toBe(OUTSIDE_HOURS);
     expect(late.body.error?.message).toContain("08:00-12:00, 13:00-20:00");
+  });
+
+  test("no shift opened: the profile hours apply — 17:15 is booked against a 19:00 profile end, 19:15 refused", async ({ page }) => {
+    // Bug 2026-10-13: Bs Tới's profile ran to 19:00 and the Chấm công board
+    // showed it, yet a 17:15 booking was refused against the 17:00 default.
+    const run = `${runId()}${test.info().workerIndex}p`;
+    const late = await createRunStaff(page, branchId, `wh${run}`, {
+      name: `BSHoSo${run}`, isDentist: true, afternoonStartTime: "13:00", afternoonEndTime: "19:00",
+    });
+    try {
+      const day = farDay();
+      const book = (from: string, to: string) => call<Booking>(page, APPOINTMENTS, {
+        method: "POST",
+        branchId,
+        json: {
+          patientId, dentistId: late.id, branchId, type: 2,
+          slotStart: at(day, from), slotEnd: at(day, to), chiefComplaint: `e2e-giolam-${runId()}`,
+        },
+      });
+
+      const evening = await book("17:15", "17:45");
+      expect(evening.status, JSON.stringify(evening.body.error)).toBe(200);
+      bookings.push(evening.body.id);
+
+      const tooLate = await book("19:15", "19:45");
+      expect(tooLate.body.error?.code).toBe(OUTSIDE_HOURS);
+      expect(tooLate.body.error?.message).toContain("08:00-12:00, 13:00-19:00");
+    } finally {
+      for (const id of bookings.splice(0)) await call(page, `${APPOINTMENTS}/${id}`, { method: "DELETE", branchId });
+      await deleteStaff(page, late.id);
+    }
+  });
+
+  test("checked in today, then Cập nhật thông tin moves the afternoon end: the plan saves, the clock stays, bookings follow", async ({ page }) => {
+    // Owner 2026-10-13 (R-912): the edit used to be dropped silently once the
+    // day had a check-in, so the dentist stayed on the 17:00 he opened with.
+    const TK = "/api/v1/app/time-keepings";
+    const today = clinicToday();
+    const opened = await call<{ id: string }>(page, `${TK}/open-day`, {
+      method: "POST", branchId, json: { staffId: dentist.id, clinicBranchId: branchId, workDate: today },
+    });
+    expect(opened.status, JSON.stringify(opened.body.error)).toBe(200);
+    const checkIn = await call(page, `${TK}/${opened.body.id}/check-in`, { method: "POST", branchId, json: { shift: 1 } });
+    expect(checkIn.status, JSON.stringify(checkIn.body.error)).toBe(200);
+
+    const edited = await call(page, `${TK}/${opened.body.id}/info`, {
+      method: "PUT",
+      branchId,
+      json: { note: null, morningStart: "08:00", morningEnd: "12:00", afternoonStart: "13:00", afternoonEnd: "23:59" },
+    });
+    expect(edited.status, JSON.stringify(edited.body.error)).toBe(200);
+
+    // A separate read: the new plan is stored and the morning clock-in survived.
+    const stored = await call<{
+      morningShift: { checkedInAt: string | null };
+      afternoonShift: { plannedEnd: string };
+    }>(page, `${TK}/${opened.body.id}`, { branchId });
+    expect(stored.body.afternoonShift.plannedEnd).toContain("23:59");
+    expect(stored.body.morningShift.checkedInAt).not.toBeNull();
+
+    // Booking after 17:00 today now passes the shift check (a slot still ahead of now).
+    const nowMinutes = Math.floor(((Date.now() / 60_000) + 7 * 60) % (24 * 60));
+    const startMinutes = Math.max(17 * 60 + 15, Math.ceil((nowMinutes + 10) / 15) * 15);
+    test.skip(startMinutes + 30 > 23 * 60 + 59, "too late in the clinic day to book a slot after 17:00");
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const evening = await create(page, today, hhmm(startMinutes), hhmm(startMinutes + 30));
+    expect(evening.status, JSON.stringify(evening.body.error)).toBe(200);
+    bookings.push(evening.body.id);
   });
 
   test("the editor: 12:15 is refused with the reason and the dialog stays open, 09:00 then saves", async ({ page }) => {

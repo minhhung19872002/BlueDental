@@ -6,8 +6,10 @@ using BlueDental.Appointments.Values;
 using BlueDental.Timekeeping;
 using BlueDental.Timekeeping.Values;
 using Volo.Abp;
+using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Appointments;
 
@@ -16,17 +18,23 @@ namespace BlueDental.Appointments;
 ///
 /// The shifts are the dentist's Lịch làm việc at the branch: the planned
 /// morning and afternoon windows less any leave registered through "Đăng ký
-/// nghỉ". With nothing registered the clinic's default 08:00-12:00 and
-/// 13:00-17:00 apply. A slot outside them is refused outright, with no
-/// override (QA bug row 3; BA: "ngoài giờ làm việc khóa luôn, không cho book").
+/// nghỉ". With no record that day the hours on the dentist's profile apply,
+/// as the Chấm công board shows them, and the clinic's default 08:00-12:00 and
+/// 13:00-17:00 only where the profile has none. A slot outside them is refused
+/// outright, with no override (QA bug row 3; BA: "ngoài giờ làm việc khóa luôn,
+/// không cho book").
 /// </summary>
 public class DentistShiftChecker : ITransientDependency
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _timeKeepingRepository;
+    private readonly IIdentityUserRepository _userRepository;
 
-    public DentistShiftChecker(IRepository<TimeKeepingRecord, Guid> timeKeepingRepository)
+    public DentistShiftChecker(
+        IRepository<TimeKeepingRecord, Guid> timeKeepingRepository,
+        IIdentityUserRepository userRepository)
     {
         _timeKeepingRepository = timeKeepingRepository;
+        _userRepository = userRepository;
     }
 
     /// <summary>Throws Appointment:0008 (or 0009 on a day off) unless the slot fits.</summary>
@@ -40,7 +48,9 @@ public class DentistShiftChecker : ITransientDependency
         var records = await _timeKeepingRepository.GetListAsync(r =>
             r.StaffId == dentistId && r.ClinicBranchId == branchId && r.WorkDate == day);
 
-        var windows = WorkingWindows(records.FirstOrDefault());
+        var record = records.FirstOrDefault();
+        var dentist = record is null ? await _userRepository.FindAsync(dentistId, includeDetails: false) : null;
+        var windows = WorkingWindows(record, dentist);
         if (Fits(windows, start, ClinicCalendar.ToLocal(slot.End)))
         {
             return;
@@ -57,17 +67,18 @@ public class DentistShiftChecker : ITransientDependency
 
     /// <summary>
     /// The hours the dentist works that day, earliest first, with touching
-    /// windows joined. Empty on a day off.
+    /// windows joined. Empty on a day off. <paramref name="dentist"/> supplies
+    /// the profile hours for a day with no record.
     /// </summary>
-    public static IReadOnlyList<ShiftWindow> WorkingWindows(TimeKeepingRecord? record)
+    public static IReadOnlyList<ShiftWindow> WorkingWindows(TimeKeepingRecord? record, IHasExtraProperties? dentist = null)
     {
         if (record?.Registration == WorkRegistration.DayOff)
         {
             return [];
         }
 
-        var morning = record?.MorningShift ?? WorkShift.DefaultMorning();
-        var afternoon = record?.AfternoonShift ?? WorkShift.DefaultAfternoon();
+        var morning = record?.MorningShift ?? StaffWorkingHours.PlannedOrDefault(dentist, WorkShiftKind.Morning);
+        var afternoon = record?.AfternoonShift ?? StaffWorkingHours.PlannedOrDefault(dentist, WorkShiftKind.Afternoon);
         IEnumerable<ShiftWindow> windows =
         [
             new(morning.PlannedStart, morning.PlannedEnd),

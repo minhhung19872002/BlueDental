@@ -1,6 +1,7 @@
 using System;
 using BlueDental.Timekeeping;
 using BlueDental.Timekeeping.Values;
+using Volo.Abp.Identity;
 using Xunit;
 
 namespace BlueDental.Appointments;
@@ -20,6 +21,33 @@ public class DentistShiftCheckerTests
     public void Without_A_Record_The_Default_Shifts_Apply()
     {
         var windows = DentistShiftChecker.WorkingWindows(null);
+
+        Assert.Equal("08:00-12:00, 13:00-17:00", DentistShiftChecker.Describe(windows));
+    }
+
+    [Fact]
+    public void Without_A_Record_The_Profile_Hours_Apply()
+    {
+        // Bug: profile afternoon ran to 19:00 (as the Chấm công board showed),
+        // yet a 17:15 booking was refused against the 17:00 clinic default.
+        var dentist = new IdentityUser(Guid.NewGuid(), "bs.toi", "bs.toi@example.test");
+        dentist.ExtraProperties["AfternoonStartTime"] = "13:00";
+        dentist.ExtraProperties["AfternoonEndTime"] = "19:00";
+
+        var windows = DentistShiftChecker.WorkingWindows(null, dentist);
+
+        Assert.Equal("08:00-12:00, 13:00-19:00", DentistShiftChecker.Describe(windows));
+        Assert.True(DentistShiftChecker.Fits(windows, At(17, 15), At(17, 45)));
+    }
+
+    [Fact]
+    public void A_Record_Wins_Over_The_Profile_Hours()
+    {
+        var dentist = new IdentityUser(Guid.NewGuid(), "bs.toi", "bs.toi@example.test");
+        dentist.ExtraProperties["AfternoonStartTime"] = "13:00";
+        dentist.ExtraProperties["AfternoonEndTime"] = "19:00";
+
+        var windows = DentistShiftChecker.WorkingWindows(Record(), dentist);
 
         Assert.Equal("08:00-12:00, 13:00-17:00", DentistShiftChecker.Describe(windows));
     }

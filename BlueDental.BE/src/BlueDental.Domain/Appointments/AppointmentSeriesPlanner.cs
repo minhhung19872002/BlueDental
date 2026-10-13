@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Timekeeping;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Appointments;
 
@@ -20,13 +21,16 @@ public class AppointmentSeriesPlanner : ITransientDependency
 {
     private readonly IRepository<Appointment, Guid> _appointmentRepository;
     private readonly IRepository<TimeKeepingRecord, Guid> _timeKeepingRepository;
+    private readonly IIdentityUserRepository _userRepository;
 
     public AppointmentSeriesPlanner(
         IRepository<Appointment, Guid> appointmentRepository,
-        IRepository<TimeKeepingRecord, Guid> timeKeepingRepository)
+        IRepository<TimeKeepingRecord, Guid> timeKeepingRepository,
+        IIdentityUserRepository userRepository)
     {
         _appointmentRepository = appointmentRepository;
         _timeKeepingRepository = timeKeepingRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<IReadOnlyList<PlannedSession>> PlanAsync(
@@ -54,6 +58,7 @@ public class AppointmentSeriesPlanner : ITransientDependency
                 && r.WorkDate >= firstDay && r.WorkDate <= lastDay))
             .GroupBy(r => r.WorkDate)
             .ToDictionary(g => g.Key, g => g.First());
+        var dentist = await _userRepository.FindAsync(dentistId, includeDetails: false);
 
         // The minute already under way still counts, as for a single booking.
         var utcNow = DateTimeOffset.UtcNow;
@@ -61,7 +66,7 @@ public class AppointmentSeriesPlanner : ITransientDependency
         return sessions.Select((s, i) =>
         {
             var end = s.Start + length;
-            var reason = ReasonFor(s.Day, s.Start, end, nowMinute, records, busy, patientId, dentistId);
+            var reason = ReasonFor(s.Day, s.Start, end, nowMinute, records, dentist, busy, patientId, dentistId);
             return new PlannedSession(i + 1, s.Start, end, reason);
         }).ToList();
     }
@@ -72,13 +77,14 @@ public class AppointmentSeriesPlanner : ITransientDependency
         DateTimeOffset end,
         DateTimeOffset nowMinute,
         IReadOnlyDictionary<DateOnly, TimeKeepingRecord> records,
+        IdentityUser? dentist,
         IReadOnlyList<Appointment> busy,
         Guid patientId,
         Guid dentistId)
     {
         if (start < nowMinute) return SeriesConflictReason.InThePast;
 
-        var windows = DentistShiftChecker.WorkingWindows(records.GetValueOrDefault(day));
+        var windows = DentistShiftChecker.WorkingWindows(records.GetValueOrDefault(day), dentist);
         if (windows.Count == 0) return SeriesConflictReason.DentistOff;
         if (!DentistShiftChecker.Fits(windows, ClinicCalendar.ToLocal(start), ClinicCalendar.ToLocal(end)))
         {
