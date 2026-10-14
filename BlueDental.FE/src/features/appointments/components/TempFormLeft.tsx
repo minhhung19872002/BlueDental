@@ -1,5 +1,6 @@
 import { Input, InputNumber } from "antd";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
+import { PhoneInput } from "@/components/PhoneInput";
 import { ClockPicker, DayPicker } from "@/components/StringPickers";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { t } from "@/lib/i18n";
@@ -41,13 +42,15 @@ export function TempFormLeft({ control, errors }: Props) {
           name="patientPhone"
           control={control}
           render={({ field }) => (
-            <Input
-              {...field}
+            <PhoneInput
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
               placeholder={t("Appointment:Form:PhoneNumber")}
-              style={{ height: 40 }}
             />
           )}
         />
+        {errors.patientPhone && <span className="appt-field-error">{errors.patientPhone.message}</span>}
       </div>
 
       {/* Date */}

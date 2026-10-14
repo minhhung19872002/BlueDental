@@ -168,7 +168,8 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
                 "Cannot check in on a day registered as off.");
         }
 
-        ApplyToShift(shift, s => s.CheckIn(at));
+        var dueAt = ClinicCalendar.AtLocal(WorkDate, DueStartOf(shift));
+        ApplyToShift(shift, s => s.CheckIn(at, dueAt));
 
         Registration = WorkRegistration.Working;
         Status = AttendanceStatus.Working;
@@ -274,6 +275,23 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     {
         Note = note;
         return this;
+    }
+
+    /// <summary>
+    /// The clinic-local time a shift is due to start: its planned start, or the
+    /// end of a leave that opens the shift (nghỉ 08:00-10:00 → due at 10:00).
+    /// The board flips a card to OFF at the same moment (BA 2026-10-14).
+    /// </summary>
+    public TimeOnly DueStartOf(WorkShiftKind kind)
+    {
+        var shift = kind == WorkShiftKind.Morning ? MorningShift : AfternoonShift;
+        var leaveCoversShift = LeaveShift == (kind == WorkShiftKind.Morning
+            ? Timekeeping.LeaveShift.Morning
+            : Timekeeping.LeaveShift.Afternoon);
+
+        return leaveCoversShift && LeaveStart <= shift.PlannedStart && LeaveEnd > shift.PlannedStart
+            ? LeaveEnd!.Value
+            : shift.PlannedStart;
     }
 
     public bool HasAnyAttendance => MorningShift.IsStarted || AfternoonShift.IsStarted;

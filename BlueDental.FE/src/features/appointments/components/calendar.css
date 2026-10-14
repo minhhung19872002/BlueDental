@@ -1436,6 +1436,13 @@ body.cal-fullscreen .cal-grid-wrap {
   justify-content: center;
 }
 
+/* The temp form's fields stand 40px, under the dialogs' 42px default
+   (whose rule weighs (0,4,1), hence the doubled class). */
+.ant-modal .appt-field .phone-input .ant-input.phone-input-number,
+.ant-modal .appt-field .phone-input .ant-select.phone-input-country {
+  height: 40px;
+}
+
 .appt-field-error {
   color: var(--bd-red, #e5484d);
   font-size: 12px;

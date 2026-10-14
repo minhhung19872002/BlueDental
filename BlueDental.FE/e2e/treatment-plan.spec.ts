@@ -146,7 +146,7 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(pager.locator(".ant-pagination-next")).toBeVisible();
   });
 
-  test("the form says what is missing under the field, and the price is the catalog's", async ({
+  test("the form says what is missing under the field, and the price starts from the catalog's", async ({
     page,
   }) => {
     await login(page);
@@ -164,13 +164,23 @@ test.describe("Kế hoạch điều trị", () => {
     const listed = (await service.locator(".tp-opt-price").innerText()).trim();
     await service.click();
 
-    // The service sets the money, and neither figure can be typed over.
+    // The service fills the money in, and both figures stay open to type over
+    // (BA, R-930) — the price down to anything, up no further than the giá gốc.
     const price = dialog.getByRole("textbox", { name: "Đơn giá" });
     const quantity = dialog.getByRole("spinbutton", { name: "Số lượng" });
-    await expect(price).toBeDisabled();
-    await expect(quantity).toBeDisabled();
+    await expect(price).toBeEnabled();
+    await expect(quantity).toBeEnabled();
     expect(`${await price.inputValue()} đ`).toBe(listed);
     await expect(quantity).toHaveValue("1");
+
+    const priceField = dialog.locator(".floating-field", { hasText: "Đơn giá" });
+    await price.fill(String(money(listed) + 1_000));
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(priceField).toContainText("Đơn giá không được lớn hơn giá gốc của dịch vụ.");
+    await price.fill("");
+    await expect(priceField).toContainText("Vui lòng nhập đơn giá");
+    await price.fill(String(money(listed)));
+    await expect(priceField).not.toContainText("Vui lòng");
 
     // Neither diagnosis field can be touched: a slip raised here files no
     // chẩn đoán, so there is nothing to pick and nothing to require.
@@ -333,9 +343,9 @@ test.describe("Kế hoạch điều trị", () => {
     await pickFirstOption(page, dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }));
 
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-    // The price is the catalog's now — it cannot be typed — so the figures
-    // below are read off the service rather than dictated to it. A service
-    // worth more than the discount, or there would be nothing left to check.
+    // The price is left at the catalog's here, so the figures below are read
+    // off the service rather than dictated to it. A service worth more than
+    // the discount, or there would be nothing left to check.
     const DISCOUNT = 100_000;
     const options = openDropdown(page, ".tp-service-dropdown").locator(
       ".ant-select-item-option:has(.tp-opt-service)",

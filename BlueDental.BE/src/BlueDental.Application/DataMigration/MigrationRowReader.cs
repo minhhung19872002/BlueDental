@@ -968,10 +968,11 @@ internal sealed class MigrationRowReader
     }
 
     /// <summary>
-    /// A phone the hồ sơ forms check (the patient's and the guardian's): 8–15
-    /// digits, as PATIENT_PHONE_PATTERN has it, so the record saves again from
-    /// the UI. Spaces, dots and dashes the old system kept are dropped first;
-    /// the pattern's "*" is left out, as it only lets a masked number come back.
+    /// A phone the hồ sơ forms check (the patient's and the guardian's), by the
+    /// rule the dialogs save with (<see cref="PatientPhoneFormat"/>): 8–15 digits,
+    /// or "+" country code for a foreign number, so the record saves again from
+    /// the UI and an exported roster re-imports. Spaces, dots, dashes and
+    /// brackets the old system kept are dropped first.
     /// </summary>
     private string? FormPhone(string key, int max = PhoneMax)
     {
@@ -981,17 +982,14 @@ internal sealed class MigrationRowReader
             return null;
         }
 
-        var digits = PhoneSeparators.Replace(text, string.Empty);
-        if (!FormPhonePattern.IsMatch(digits))
+        var phone = PatientPhoneFormat.Normalize(text);
+        if (!PatientPhoneFormat.IsValid(phone))
         {
             Error("DataMigration:Err:BadPhone", Header(key), text);
         }
 
-        return digits;
+        return phone;
     }
-
-    private static readonly Regex PhoneSeparators = new(@"[\s.\-]", RegexOptions.Compiled);
-    private static readonly Regex FormPhonePattern = new(@"^\d{8,15}$", RegexOptions.Compiled);
 
     private string? NationalId(string key) => Optional(key, int.MaxValue, padDigits: 12);
 

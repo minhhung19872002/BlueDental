@@ -12,6 +12,8 @@ public class WorkShiftDto
     public TimeOnly PlannedEnd { get; set; }
     public DateTimeOffset? CheckedInAt { get; set; }
     public DateTimeOffset? CheckedOutAt { get; set; }
+    /// <summary>Minutes late at check-in, frozen then; null until checked in.</summary>
+    public int? LateMinutes { get; set; }
     public int PlannedMinutes { get; set; }
     public int WorkedMinutes { get; set; }
     public bool IsOpen { get; set; }

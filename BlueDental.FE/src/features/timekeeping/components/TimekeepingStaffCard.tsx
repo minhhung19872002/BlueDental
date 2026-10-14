@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { WorkStatusToggle, type WorkStatus } from "./WorkStatusToggle";
+import { WorkStatusToggle } from "./WorkStatusToggle";
 import { ShiftTimeline } from "./ShiftTimeline";
 import { TimekeepingInfoModal } from "./TimekeepingInfoModal";
 import {
@@ -10,9 +10,11 @@ import {
   type WorkShiftKind,
 } from "../api/timekeepingApi";
 import { useCheckIn, useCheckOut, useOpenWorkDay } from "../api/timekeepingQueries";
+import { resolveWorkStatus } from "../utils/workStatus";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
+import { useNow } from "@/hooks/useNow";
 import dayjs from "dayjs";
 
 interface Props {
@@ -25,13 +27,6 @@ function formatDuration(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-/** A day registered off (X on the grid) is OFF even before it comes. */
-function resolveWorkStatus(day: { hasAttendance: boolean; isDayOff: boolean; isFutureDay: boolean }): WorkStatus {
-  if (day.hasAttendance) return "working";
-  if (day.isDayOff) return "dayOff";
-  return day.isFutureDay ? "notCheckedIn" : "absent";
 }
 
 function formatPlanned(time: string): string {
@@ -73,15 +68,13 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const isVirtual = record.id.startsWith("virtual-");
   const isPastDay = dayjs(record.workDate).isBefore(dayjs(), "day");
   const isToday = dayjs(record.workDate).isSame(dayjs(), "day");
-  const isFutureDay = dayjs(record.workDate).isAfter(dayjs(), "day");
   const isNotRegistered = record.registration === WORK_REGISTRATION.NotRegistered;
   const isDayOff = record.registration === WORK_REGISTRATION.DayOff;
   const isBeforeCreation = staffCreationDate ? record.workDate < staffCreationDate : false;
   const isAbsent = isPastDay && isNotRegistered && !isBeforeCreation;
-  const hasAttendance = Boolean(
-    record.morningShift.checkedInAt || record.afternoonShift.checkedInAt,
-  );
-  const workStatus = resolveWorkStatus({ hasAttendance, isDayOff, isFutureDay });
+  // Ticks only on today, so the card turns OFF the minute the shift is due.
+  const now = useNow(isToday, 30_000);
+  const workStatus = resolveWorkStatus(record, isDayOff, now);
   const isSaving = openWorkDay.isPending || checkIn.isPending || checkOut.isPending;
 
   // A staff member with no record yet shows a virtual card, so the first

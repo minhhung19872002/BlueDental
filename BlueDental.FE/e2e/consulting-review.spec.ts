@@ -491,4 +491,69 @@ test.describe("Chẩn đoán & Tư vấn — rà soát P2909", () => {
     await expect(totals.locator(".pq-totals-row--net > strong")).toHaveText(money(PRICE - 150_000));
     await totals.screenshot({ path: "test-results/quote-detail-totals.png" });
   });
+
+  test("Cập nhật phiếu dịch vụ saves a typed Đơn giá and Số lượng, never above the giá gốc", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    const { patientId, adviseId } = await provision(page);
+    const LOWER = 800_000;
+
+    await openConsulting(page, patientId);
+    await page.getByRole("tab", { name: "Phiếu tư vấn" }).click();
+    await page.locator(".pd-advise-table tbody tr.ant-table-row").first().locator(".pd-cell-strong").click();
+    const dialog = page.getByRole("dialog", { name: "Cập nhật phiếu dịch vụ" });
+    await expect(dialog).toBeVisible();
+
+    // Both figures open (BA, R-930), starting from what the line carries.
+    const price = dialog.getByRole("textbox", { name: "Đơn giá" });
+    const quantity = dialog.getByRole("spinbutton", { name: "Số lượng" });
+    await expect(price).toBeEnabled();
+    await expect(quantity).toBeEnabled();
+    await expect(price).toHaveValue(PRICE.toLocaleString("vi-VN"));
+    await expect(quantity).toHaveValue("1");
+
+    // Above the giá gốc is refused under the field, and nothing is sent.
+    const puts: string[] = [];
+    page.on("request", (req) => {
+      if (req.method() === "PUT" && req.url().includes(`/api/v1/app/patient-advises/${adviseId}`)) puts.push(req.url());
+    });
+    await price.fill(String(PRICE + 100_000));
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(dialog.locator(".floating-field", { hasText: "Đơn giá" })).toContainText(
+      "Đơn giá không được lớn hơn giá gốc của dịch vụ.",
+    );
+    expect(puts).toHaveLength(0);
+
+    // Lower and two of them: the summary follows as it is typed.
+    await price.fill(String(LOWER));
+    await quantity.fill("2");
+    const summary = dialog.locator(".tp-create-summary");
+    await expect(summary.locator("p", { hasText: "Tổng cộng" }).locator("b")).toHaveText(money(LOWER * 2));
+    await expect(summary.locator("p", { hasText: "Thành tiền" }).locator("b")).toHaveText(money(LOWER * 2));
+
+    const saved = page.waitForResponse(
+      (res) => res.url().includes(`/api/v1/app/patient-advises/${adviseId}`) && res.request().method() === "PUT",
+    );
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    expect((await saved).status()).toBe(200);
+    await expect(dialog).toBeHidden();
+
+    // Read back from PostgreSQL in a separate request…
+    const advise = await api<{ price: number; originalPrice: number; quantity: number; effectiveAmount: number }>(
+      page, "GET", `/api/v1/app/patient-advises/${adviseId}`,
+    );
+    expect(advise.price).toBe(LOWER);
+    expect(advise.quantity).toBe(2);
+    expect(advise.originalPrice).toBe(PRICE);
+    expect(advise.effectiveAmount).toBe(LOWER * 2);
+
+    // …and on screen after a reload, the dialog reopens on the saved figures.
+    await page.reload();
+    await page.locator(".pd-advise-table tbody tr.ant-table-row").first().locator(".pd-cell-strong").click();
+    await expect(dialog).toBeVisible();
+    await expect(price).toHaveValue(LOWER.toLocaleString("vi-VN"));
+    await expect(quantity).toHaveValue("2");
+    await dialog.locator(".tp-create-money").screenshot({ path: "test-results/update-plan-price-open.png" });
+  });
 });

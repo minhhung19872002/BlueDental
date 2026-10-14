@@ -551,6 +551,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         PlannedEnd = shift.PlannedEnd,
         CheckedInAt = shift.CheckedInAt,
         CheckedOutAt = shift.CheckedOutAt,
+        LateMinutes = shift.LateMinutes,
         PlannedMinutes = shift.PlannedMinutes,
         WorkedMinutes = shift.WorkedMinutes,
         IsOpen = shift.IsOpen

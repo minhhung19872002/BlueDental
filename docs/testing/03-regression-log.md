@@ -8191,3 +8191,135 @@ Kiểm chứng (host :5000 build mới → PostgreSQL thật): Domain `TimeKeepi
 | R-913 | Chủ dự án (ảnh, localhost): Tạo tiếp nhận 13/10 18:30 + 30 phút bị từ chối dù thông báo ghi ca "13:00-19:00". | `ReceptionNewDrawer` ghép ngày từ `dayjs()` (giữ mili-giây lúc mở trang) và chỉ `.second(0)` → gửi 18:30:00.xxx–19:00:00.xxx, `Fits` so `TimeOnly` có phần lẻ nên 19:00:00.xxx > 19:00. Mọi lịch kết thúc **đúng** giờ hết ca từ màn này đều dính (vd. 16:30–17:00), không riêng R-911. Sửa: FE thêm `.millisecond(0)` (các dialog khác đã có); BE `DentistShiftChecker.Fits` cắt về phút trước khi so ca, nên client nào gửi lẻ giây cũng không bị chặn oan. |
 
 Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 19:00, 18:45–19:01 vẫn bị chặn); e2e `appointment-working-hours` + `timekeeping-api` 8/8 (thêm POST slot 19:30.437–20:00.437 vào ca tới 20:00 → 200); `tsc` sạch. Chưa commit.
+
+## R-932 (ex R-928 trên main) (2026-10-14, mức 3: component chung PhoneInput + BE bệnh nhân / lịch hẹn) Mã vùng quốc gia + cờ cho số điện thoại (F-72)
+
+- **Yêu cầu (owner, 2026-10-13):** "Cập nhật số điện thoại cho chọn số vùng". Áp dụng cho Tạo/Sửa hồ sơ bệnh nhân, Người giám hộ và Lịch hẹn tạm. Có cờ cho đẹp. Bản gốc không có mã vùng nên không cần quan sát app.nfcdental.com. BlueDental riêng.
+- **Lưu trữ (không thêm cột):** số Việt Nam vẫn lưu dạng trong nước có số 0 (`0901234567`), nên dữ liệu cũ, tìm kiếm, Zalo và kiểm trùng không đổi. Số nước ngoài lưu E.164 (`+14155550123`).
+- **BE:**
+  - `Domain.Shared/PatientManagement/PatientPhoneFormat.cs` (mới):
+    - `Normalize`: bỏ khoảng trắng, `.`, `-` và `()`; `00…` thành `+…`; `+84…` thành `0…`.
+    - `IsValid`: `^(\+[1-9]\d{6,14}|\d{8,15})$`.
+    - `Prepare(phone, known…)`: số đã có trên hồ sơ thì bỏ qua kiểm tra, để số cũ không chuẩn vẫn sửa được hồ sơ.
+  - Lỗi mới `BlueDental:Patient:0023` (vi/en).
+  - Đi qua `Prepare` sau `PatientPhoneMask.Resolve`: `PatientAppService` (CheckPhone, Register, Update, SĐT người giám hộ) và `AppointmentAppService` (tạo/sửa lịch tạm).
+  - `MigrationRowReader.FormPhone` dùng chung Normalize + IsValid; câu báo `DataMigration:Err:BadPhone` cập nhật theo.
+- **FE:**
+  - `src/components/PhoneInput/` (mới): `Space.Compact`, gồm Select cờ (`flag-icons`) + `+mã` và ô số `type="tel"`.
+    - Tìm được theo tên nước tiếng Việt/Anh (`Intl.DisplayNames` + `foldForSearch`) hoặc theo mã.
+    - Chọn nước ngoài thì số 0 đầu bị bỏ ngay khi gõ.
+    - Dán `+…` / `00…` thì tự đổi nước.
+    - Giá trị không bị đụng (kể cả số bị che `*`) gửi lại y nguyên.
+  - Dùng ở `PatientSourceColumn`, `guardian/GuardianForm`, `TempFormLeft`. `PATIENT_PHONE_PATTERN` = `PHONE_PATTERN` chung. Refine zod của `TempAppointmentEditorModal` cũng theo pattern chung.
+  - `calendar.css`: hai ô của PhoneInput trong form lịch tạm cao 40px như các ô khác. Rule 42px của dialog nặng (0,4,1) nên selector lặp class.
+- **Kiểm chứng (API thật :5000 sau rebuild, build production :8093, PostgreSQL thật):**
+  - `BlueDental.Domain.Tests` `PatientPhoneFormatTests` 43/43.
+  - `e2e/patient-phone-country.spec.ts` 4/4:
+    - Tạo hồ sơ với Hoa Kỳ: lưu `+1…`, GET riêng đọc lại đúng; mở Sửa hồ sơ thấy cờ `fi-us` + số; dán `+44 …` thì đổi sang +44, PUT lưu đúng.
+    - API: chuẩn hoá `+84 93…` → `093…` và `0082 10-…` → `+8210…`; từ chối `09ab…`, `+0…`, `12345` với 0023.
+    - Người giám hộ `+61 412…`: popup hiện cờ Úc.
+    - Lịch hẹn tạm: chọn Hàn Quốc, ô cao [40, 40]; API lưu `+8210…`; `+82` bị từ chối 0023.
+  - `tsc` + oxlint sạch.
+  - Hồi quy xanh: `patient-guardian`, `patient-guardian-api`, `patient-guardian-detail`, `patient-hide-phone`, `reception-temporary`, `patient-roster-api`.
+  - Hồi quy xanh phần lớn: `patient.spec`, `patient-editor-inputs`, `data-migration-api`.
+- **Đỏ không do thay đổi này** (không liên quan SĐT; chưa chạy lại trên HEAD để chứng minh):
+  - `data-migration-api` 665: `occupationOther` ra "Thợ …" thay vì null.
+  - `data-migration-api` 750 history: "Dịch vụ … không có trong danh mục". Phần sau của spec serial bị bỏ qua.
+  - `patient-editor-inputs:125`: class option thứ n của picker địa chỉ khi dùng bàn phím.
+  - `patient.spec`:
+    - momo trong dialog thanh toán;
+    - màu nhãn Labo "Đặt mới";
+    - "Chi tiết phiếu" không đóng (2898, 3153, 3330, 3365);
+    - bước Tiếp nhận 3447 (TEMP-BUG25-OFF đã biết);
+    - đổi bác sĩ trên thẻ lịch hẹn 3702.
+- **Không đổi:** bộ chuẩn hoá chỉ-VN của `ZaloPhoneNumber`. Số nước ngoài không gửi Zalo.
+- **Ghi chú môi trường:** engine Docker Desktop đã dừng giữa chừng (Postgres 15432 chết). Đã `docker desktop restart`.
+- Chưa commit.
+
+## R-933 (ex R-929 trên main) (2026-10-14, mức 2: PhoneInput) Kiểm đủ 243 nước: số 0 của Ý / Bờ Biển Ngà, cờ vùng lãnh thổ dùng chung mã (F-72)
+
+- **Owner hỏi:** "b có test các nước chưa". E2E của R-932 chỉ chạy qua VN, US, GB, AU, KR.
+- **Kiểm hết danh sách 243 nước** (script tạm, đã xoá). Với mỗi nước:
+  - có cờ SVG;
+  - có tên vi và en;
+  - gõ `0` + số thì ghép đúng;
+  - qua pattern FE và BE;
+  - mở lại hoặc dán thì ra đúng nước và ghép lại y nguyên.
+- **Lỗi thật tìm ra:** `composePhone` bỏ số 0 đầu với mọi nước ngoài. Ở Ý, Vatican, San Marino, Bờ Biển Ngà, Congo và Gabon, số 0 là một phần của số, vẫn bấm sau mã nước (`+39 06…`, `+225 07…`). Hệ quả là số Rome bị lưu thành `+39 6…`, gọi không được.
+  - **Sửa:** `countries.ts` thêm `keepsLeadingZero` (IT, VA, SM, CI, CG, GA); `composePhone` giữ số 0 cho các nước này.
+- **Cải thiện:** 15 vùng lãnh thổ dùng chung mã với nước khác trước đây mở lại hoặc dán đều hiện cờ nước chính (Canada → Mỹ, Kazakhstan → Nga…). Số vẫn đúng, chỉ sai cờ.
+  - `REGION_PREFIXES` nhận theo đầu số: mã vùng Canada dưới `+1`; `+76` / `+77` Kazakhstan; Guernsey `441481`, Jersey `441534`, Isle of Man `441624`; Vatican `3906698`; Åland `35818`; Cocos `6189162`, Christmas `6189164`; Mayotte `262269` / `262639`.
+  - Saint-Martin / Saint-Barthélemy / Guadeloupe, Bonaire / Curaçao, Tây Sahara / Maroc và Svalbard / Na Uy có dải số chồng nhau, không tách được, nên vẫn hiện cờ nước chính (số vẫn đúng).
+  - Khi người dùng đã tự chọn nước thì vẫn giữ lựa chọn đó.
+- **Kiểm chứng (API thật :5000, build production :8093):**
+  - Script logic 243/243 nước + 24 số mẫu theo vùng.
+  - Trên trình duyệt (Chromium, spec tạm, đã xoá):
+    - đủ 243 cờ tải được (HTTP 200, là SVG, kích thước 20×15);
+    - gõ tên tiếng Việt của từng nước trong 243 nước đều ra đúng nước, có cờ;
+    - chọn tay Canada (bỏ 0), Ý và Bờ Biển Ngà (giữ 0) hiện đúng số.
+  - `patient-phone-country` + `patient-guardian` + `patient-hide-phone` 9/9.
+  - `tsc` + oxlint sạch.
+- **Ghi nhận:** tên nước lấy từ `Intl.DisplayNames` của trình duyệt. Chrome gọi CI là "Côte d’Ivoire", nên gõ "Bờ Biển Ngà" không ra; gõ "Ivoire" hoặc `+225` thì ra.
+- Chưa commit. Phần sửa trong `countries.ts` / `phoneValue.ts` **chưa được stage** (các file khác của F-72 đã được stage từ trước).
+
+## R-930 (2026-10-14, mức 2: form phiếu dịch vụ của F-09) Mở "Đơn giá" và "Số lượng" cho sửa ở "Tạo / Cập nhật phiếu dịch vụ"
+
+- **Owner (ảnh dialog "Cập nhật phiếu dịch vụ"):** "Chỗ này mở ra cho sửa đơn giá luôn nhé". Owner đã hỏi lại BA: mở **cả Đơn giá và Số lượng**, ở **cả** hai dialog Tạo và Cập nhật. Quyết định này **đảo ngược R-442** (trước đó khoá cả hai, chỉ cho sửa Giảm giá) và khác bản gốc.
+- **Chỉ sửa FE, BE không đổi:**
+  - `PUT patient-advises/{id}` và `PUT patient-quotes/{id}/lines/{adviseId}` vốn đã nhận `price` / `quantity`.
+  - Quy định giảm giá đã tính việc hạ đơn giá là giảm giá.
+- `PlanPricingFields`:
+  - Hai ô mở, có dấu `*`, bắt buộc nhập ("Vui lòng nhập đơn giá" / "Vui lòng nhập số lượng").
+  - Số lượng phải ≥ 1 và là số nguyên.
+  - Ô trống phải bị chặn. Nếu không, `adviseToUpdateDto` sẽ âm thầm giữ giá cũ.
+- **Đơn giá không được vượt giá gốc:**
+  - Dùng lại `unitPriceError` của màn chi tiết kế hoạch, báo dưới ô: "Đơn giá không được lớn hơn giá gốc của dịch vụ."
+  - Trần là `service.price` khi tạo và `advise.originalPrice` khi cập nhật. Giá gốc = 0 thì không có trần.
+  - **Lý do:** khi mở kế hoạch, `TreatmentService.FromAdvise` từ chối giá cao hơn giá gốc (Treatment:0040). Ở dialog Tạo, lỗi này xảy ra **sau khi** phiếu tư vấn đã được tạo và duyệt, nên sẽ để lại một dòng mồ côi.
+  - Hạ giá thì được.
+- **Kiểm chứng (API thật :5000 đã build lại cho key i18n mới, build production :18931):**
+  - Test mới `consulting-review` › "Cập nhật phiếu dịch vụ saves a typed Đơn giá and Số lượng…":
+    - nhập giá cao hơn giá gốc thì bị chặn, không có PUT nào được gửi;
+    - 800.000 × 2 thì phần tổng cập nhật ngay, PUT trả 200;
+    - GET riêng trả về price 800.000, quantity 2, originalPrice giữ nguyên;
+    - reload rồi mở lại thấy đúng giá trị đã lưu.
+  - `treatment-plan` › "price starts from the catalog's": ô mở, điền sẵn giá danh mục, vượt trần thì báo lỗi, để trống thì báo bắt buộc.
+  - Kết quả: `consulting-review` 7/7; `treatment-plan` 8/9 (1 đỏ không liên quan, xem ghi nhận); `cross-screen-freshness` + `debt-history` + `taxonomy-active-state` 9/9; `tsc` + eslint sạch.
+- **Ghi nhận:**
+  - `treatment-plan` › "the slip survives a reload…" đỏ ở dòng 316: form hóa đơn có 7 ô `.inv-field`, test đang chờ 13. Lỗi nằm ở form hóa đơn (Loại hóa đơn mặc định Cá nhân, R-916), không phải ở dialog này.
+  - Luồng Tạo với giá / số lượng tự gõ chưa có test e2e riêng. Nó đi qua cùng ô nhập và cùng `values.price` / `values.quantity` như trước.
+- Chưa commit.
+
+## R-931 (2026-10-14, mức 2: Lịch làm việc / chấm công + migration) OFF/ON theo giờ vào ca, lưu số phút đi trễ
+
+- **BA góp ý trên ảnh `/calendar?tab=timekeeping`:** mới đầu ngày, chưa tới giờ vào ca mà thẻ đã báo OFF đỏ. `resolveWorkStatus` coi hôm nay giống ngày đã qua: chưa check-in là OFF.
+- **Quy tắc owner chốt:**
+  - Check-in bất kỳ ca nào là ON, kể cả check-in trễ. Sáng có check-in, chiều chưa thì vẫn ON.
+  - Chưa tới giờ vào ca đầu tiên thì ở giữa ("Không điểm danh").
+  - Tới giờ mà chưa check-in thì OFF đỏ ("Vắng"). Đúng giờ là OFF, không có thời gian ân hạn.
+  - Ngày đã qua không check-in là OFF. Ngày chưa tới ở giữa. Ngày đăng ký nghỉ (X) vẫn OFF "Nghỉ" (R-654).
+  - **Giờ vào ca** = giờ bắt đầu theo kế hoạch. Nếu có đơn nghỉ trong ca đó bắt đầu từ đầu ca thì lấy giờ kết thúc đơn nghỉ (nghỉ 08:00–10:00 thì 10:00 mới tới giờ). Nghỉ trọn ca sáng thì xét ca chiều.
+- **FE:**
+  - `features/timekeeping/utils/workStatus.ts` (mới) chứa một quy tắc chung cho mọi ngày: so `now` với giờ vào ca đầu tiên.
+  - `TimekeepingStaffCard` dùng `useNow(isToday, 30_000)`, nên thẻ tự chuyển OFF trong vòng 30 giây sau giờ vào ca mà không cần tải lại.
+  - Chú thích của `WorkStatusToggle` đã cập nhật theo quy tắc mới.
+- **Lưu số phút đi trễ để sau này thống kê** (owner: "lưu lại data trước … ít bữa cần có thể làm thống kê"):
+  - `WorkShift.LateMinutes` (cột `MorningLateMinutes` / `AfternoonLateMinutes`, kiểu int, nullable) được chốt ngay lúc check-in: `max(0, floor(phút từ giờ vào ca tới lúc check-in))`.
+  - Check-out và việc đổi giờ ca sau check-in (R-912) không làm thay đổi giá trị này. Null = chưa check-in. 0 = đúng giờ hoặc sớm.
+  - `TimeKeepingRecord.DueStartOf` tính giờ vào ca. `WorkShiftDto.lateMinutes` được trả ra API. Chưa có màn thống kê.
+  - Migration `AddShiftLateMinutes` điền lại dữ liệu cho các ca đã check-in (giờ Asia/Ho_Chi_Minh).
+  - Giới hạn của dữ liệu điền lại: ca đã bị dời giờ sau check-in thì được đo theo giờ mới.
+  - DB local: 110/110 ca sáng và 49/49 ca chiều có giá trị. Đã soát tay: 08:24:28 so với 08:00 ra 24 phút.
+- **Rủi ro còn để ngỏ:** owner chốt vẫn nhận `AttendanceInput.At` từ client ("vẫn nhận At đi"). Ai gọi API trực tiếp có thể gửi giờ check-in tuỳ ý, và số phút trễ sẽ tính theo giờ đó.
+- **Kiểm chứng** (API thật build riêng ở :5055 vì :5000 là host của phiên khác; build production `vite preview` ở :8098; DB thật):
+  - Domain.Tests (Timekeeping + Payroll) 40/40, trong đó có 5 test mới: chốt số phút, ca chưa check-in, giữ nguyên qua check-out và đổi giờ, đơn nghỉ đầu ca dời giờ vào ca, đơn nghỉ giữa ca giữ giờ cũ.
+  - `timekeeping-api`: thêm 2 test mới.
+    - Ca bắt đầu 00:00 → `lateMinutes` = số phút từ nửa đêm theo giờ phòng khám. PUT `/info` đổi giờ xong, GET riêng thấy giá trị không đổi.
+    - Ca bắt đầu 23:56 → 0.
+  - `timekeeping`:
+    - Test "today" đã cố định giờ ca bằng giờ hồ sơ 00:00, nên OFF "Vắng" trước khi check-in là chắc chắn, rồi chuyển ON và vẫn ON sau khi reload.
+    - Test mới: ca 23:56 hôm nay thì thẻ ở "Không điểm danh", không có "Vắng".
+  - `work-schedule-own-dayoff` xanh.
+  - Kết quả: 12/13. Một test đỏ có sẵn, không liên quan: `timekeeping` › "the work schedule board loads its KPIs" chờ `data-testid="timekeeping-kpis"` nhưng testid này đã mất khỏi `TimekeepingStatChips` từ một commit trước. File đó không nằm trong thay đổi này.
+  - `tsc` + eslint sạch.
+- Chưa commit.

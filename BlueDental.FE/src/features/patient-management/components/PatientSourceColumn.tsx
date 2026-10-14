@@ -3,6 +3,7 @@ import { Button, Checkbox, Form, Input } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
+import { PhoneInput } from "@/components/PhoneInput";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
@@ -82,7 +83,7 @@ export function PatientSourceColumn({
           { pattern: PATIENT_PHONE_PATTERN, message: t("Patient:Form:InvalidPhone") },
         ]}
       >
-        <Input type="tel" autoComplete="off" maxLength={15} />
+        <PhoneInput />
       </FloatingField>
 
       <div className="bd-patient-sourcerow">

@@ -1,6 +1,7 @@
 import { Checkbox, DatePicker, Form, Input, Radio } from "antd";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
+import { PhoneInput } from "@/components/PhoneInput";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
@@ -57,7 +58,7 @@ export function GuardianForm({ index, patientAddress, excludePatientId, onPick, 
             { pattern: PATIENT_PHONE_PATTERN, message: t("Patient:Guardian:PhoneInvalid") },
           ]}
         >
-          <Input inputMode="numeric" maxLength={15} placeholder={t("Patient:Guardian:PhoneHint")} />
+          <PhoneInput placeholder={t("Patient:Guardian:PhoneHint")} />
         </FloatingField>
 
         <FloatingField

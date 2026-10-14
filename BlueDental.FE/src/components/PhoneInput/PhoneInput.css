@@ -1,0 +1,57 @@
+/* ── PhoneInput: flag + calling code, then the number ── */
+.phone-input,
+.floating-field:has(.phone-input) {
+  --phone-input-country-width: 104px;
+}
+
+.phone-input .phone-input-country {
+  flex: 0 0 var(--phone-input-country-width);
+  width: var(--phone-input-country-width);
+}
+
+.phone-input .phone-input-number {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* flag-icons draws a 4:3 flag 1em tall: 15px → 20 × 15. */
+.phone-input-flag {
+  flex: none;
+  font-size: 15px;
+  border-radius: 3px;
+  background-size: cover;
+  box-shadow: 0 0 0 1px rgba(23, 28, 51, 0.1);
+}
+
+.phone-input-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-input-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.phone-input-option-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-input-option-dial {
+  flex: none;
+  color: var(--bd-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A resting FloatingField label sits in the number box, past the country. */
+.floating-field:not(.floating-field--floated):has(.phone-input) .floating-field-label {
+  left: calc(var(--phone-input-country-width) + 12px);
+}

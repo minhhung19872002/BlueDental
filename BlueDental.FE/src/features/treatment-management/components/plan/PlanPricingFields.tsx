@@ -5,6 +5,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
 import { DISCOUNT_TYPE } from "../../api/consultingApi";
+import { unitPriceError } from "../plan-detail/planDetailTypes";
 import type { CreatePlanValues, PlanTotals } from "./useCreatePlanForm";
 
 const DISCOUNT_UNITS = [
@@ -15,31 +16,51 @@ const DISCOUNT_UNITS = [
 interface Props {
   form: FormInstance<CreatePlanValues>;
   totals: PlanTotals;
+  /** The service's giá gốc: the ceiling "Đơn giá" may not rise above (0 = none). */
+  originalPrice: number;
 }
 
 /**
- * Right column of "Tạo phiếu dịch vụ": price, quantity, discount and the
- * payment summary.
+ * Right column of "Tạo / Cập nhật phiếu dịch vụ": price, quantity, discount and
+ * the payment summary.
  *
- * "Đơn giá" and "Số lượng" are **never typed** — they come from the service
- * that was picked, so letting them be edited would put a slip on the books at a
- * price the catalog does not know. Only the discount is the clinic's to set.
+ * "Đơn giá" and "Số lượng" start from the picked service and are open to edit
+ * (BA, R-930). The price may go below the giá gốc but never above it — the
+ * slip's plan line refuses that (Treatment:0040), the same rule plan detail's
+ * rows check on ✓.
  */
-export function PlanPricingFields({ form, totals }: Props) {
+export function PlanPricingFields({ form, totals, originalPrice }: Props) {
   const discountType = Form.useWatch("discountType", form) ?? DISCOUNT_TYPE.Percentage;
 
   return (
     <div>
       <div className="tp-create-money">
-        <FloatingField name="price" label={t("Treatment:Pricing:UnitPrice")}>
-          <CurrencyInput disabled />
+        <FloatingField
+          name="price"
+          label={t("Treatment:Pricing:UnitPrice")}
+          required
+          rules={[
+            { required: true, message: t("Treatment:Pricing:UnitPriceRequired") },
+            {
+              validator: (_, value?: number) => {
+                const error = value === undefined ? null : unitPriceError(value, originalPrice);
+                return error ? Promise.reject(new Error(error)) : Promise.resolve();
+              },
+            },
+          ]}
+        >
+          <CurrencyInput />
         </FloatingField>
         <FloatingField
           name="quantity"
           label={t("Treatment:Pricing:Quantity")}
-          rules={[{ type: "number", min: 1, message: t("Treatment:Pricing:QuantityMin") }]}
+          required
+          rules={[
+            { required: true, message: t("Treatment:Pricing:QuantityRequired") },
+            { type: "number", min: 1, message: t("Treatment:Pricing:QuantityMin") },
+          ]}
         >
-          <InputNumber disabled className="tp-input-full" />
+          <InputNumber min={1} precision={0} className="tp-input-full" />
         </FloatingField>
       </div>
       <div className="tp-create-discount">

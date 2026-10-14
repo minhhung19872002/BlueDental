@@ -34,8 +34,8 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
 /**
  * "Tạo phiếu dịch vụ": one service, its diagnosis, teeth and price → a new
  * slip. Given an `advise` it is the reference's "Cập nhật phiếu dịch vụ": the
- * advising staff on top, service/doctor/diagnosis/price locked, discount,
- * note and teeth open.
+ * advising staff on top, service/doctor/diagnosis locked, price, quantity,
+ * discount, note and teeth open.
  */
 export function CreatePlanDialog({ open, patientId, branchId, advise, quote, onClose }: Props) {
   const editing = Boolean(advise);
@@ -168,7 +168,11 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, onC
               <Input.TextArea rows={4} maxLength={255} />
             </FloatingField>
           </div>
-          <PlanPricingFields form={form} totals={totals} />
+          <PlanPricingFields
+            form={form}
+            totals={totals}
+            originalPrice={state.selectedService?.price ?? 0}
+          />
         </div>
       </Form>
 
