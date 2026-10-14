@@ -115,3 +115,90 @@ test.describe("patient birth date typed as digits", () => {
     await expect(dob).toHaveValue("");
   });
 });
+
+/**
+ * BA request 2026-10-13: the Tỉnh / Xã pickers are worked from the keyboard —
+ * type a few letters and Enter takes the top hit, ↑ / ↓ walk the list, and
+ * focus comes back to the field so Tab carries on.
+ */
+test.describe("address pickers from the keyboard", () => {
+  test("Enter picks the top hit, arrows walk the list, and the record saves", async ({ page }) => {
+    await login(page);
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, PATIENTS);
+
+    await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Tạo hồ sơ" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo hồ sơ" });
+    await expect(dialog).toBeVisible();
+
+    const id = runId();
+    const name = `E2E ${id} Kbd`;
+    await dialog.getByRole("textbox", { name: "Họ và tên *" }).fill(name);
+    await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(`09${id}0078`.slice(0, 10));
+
+    const picker = (label: RegExp) =>
+      dialog.locator(".floating-field").filter({ hasText: label }).locator(".ss-trigger");
+    const province = picker(/Tỉnh/);
+    const ward = picker(/Phường|Xã/);
+    const listbox = page.locator("#ss-portal-dropdown");
+
+    // A few letters, then Enter: the top hit is taken and focus returns.
+    await province.click();
+    await expect(listbox.locator(".ss-search-input")).toBeFocused();
+    await page.keyboard.type("Hồ Chí");
+    await expect(listbox.getByRole("option").first()).toHaveClass(/ss-option--active/);
+    await page.keyboard.press("Enter");
+    await expect(listbox).toBeHidden();
+    await expect(province).toContainText("Thành phố Hồ Chí Minh");
+    await expect(province).toBeFocused();
+
+    // Tab to Xã / Phường, ↓ opens it on the first row, two more ↓ and Enter.
+    await page.keyboard.press("Tab");
+    await expect(ward).toBeFocused();
+    // Reached by Tab, the field shows it has focus.
+    await expect(ward).not.toHaveCSS("box-shadow", "none");
+    await page.keyboard.press("ArrowDown");
+    await expect(listbox).toBeVisible();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    const third = listbox.getByRole("option").nth(2);
+    await expect(third).toHaveClass(/ss-option--active/);
+    const wardName = (await third.textContent()) ?? "";
+    await page.keyboard.press("Enter");
+    await expect(ward).toContainText(wardName);
+
+    // The picked codes reach the API and the record is created.
+    const created = page.waitForResponse(
+      (res) => res.request().method() === "POST" && res.url().endsWith(PATIENTS)
+    );
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    const response = await created;
+    expect(response.ok(), await response.text()).toBe(true);
+    const body: { provinceCode?: string; wardCode?: string } = response.request().postDataJSON();
+    expect(body.provinceCode).toBeTruthy();
+    expect(body.wardCode).toBeTruthy();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+  });
+
+  test("Escape closes the list without picking and keeps focus on the field", async ({ page }) => {
+    await login(page);
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, PATIENTS);
+
+    await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Tạo hồ sơ" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo hồ sơ" });
+    const province = dialog.locator(".floating-field").filter({ hasText: /Tỉnh/ }).locator(".ss-trigger");
+    const listbox = page.locator("#ss-portal-dropdown");
+
+    await province.click();
+    await expect(listbox.locator(".ss-search-input")).toBeFocused();
+    // ↑ from the first row wraps to the last one.
+    await page.keyboard.press("ArrowUp");
+    await expect(listbox.getByRole("option").last()).toHaveClass(/ss-option--active/);
+    await page.keyboard.press("Escape");
+    await expect(listbox).toBeHidden();
+    await expect(province).toBeFocused();
+    await expect(province.locator(".ss-value--selected")).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+  });
+});

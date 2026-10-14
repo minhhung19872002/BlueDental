@@ -102,8 +102,25 @@ public class TimeKeepingRecordTests
         record.CheckIn(WorkShiftKind.Morning, At(8));
 
         Assert.Throws<BusinessException>(() => record.RegisterDayOff());
-        Assert.Throws<BusinessException>(() => record.RescheduleShifts(
-            WorkShift.DefaultMorning(), WorkShift.DefaultAfternoon()));
+    }
+
+    [Fact]
+    public void Rescheduling_After_A_Check_In_Moves_The_Plan_And_Keeps_The_Clock()
+    {
+        var record = OpenDay();
+        record.CheckIn(WorkShiftKind.Morning, At(8));
+        record.CheckOut(WorkShiftKind.Morning, At(12));
+        record.CheckIn(WorkShiftKind.Afternoon, At(13));
+
+        record.RescheduleShifts(
+            WorkShift.DefaultMorning(),
+            new WorkShift(WorkShiftKind.Afternoon, new TimeOnly(13, 0), new TimeOnly(19, 0)));
+
+        Assert.Equal(new TimeOnly(19, 0), record.AfternoonShift.PlannedEnd);
+        Assert.Equal(At(13), record.AfternoonShift.CheckedInAt);
+        Assert.Equal(At(8), record.MorningShift.CheckedInAt);
+        Assert.Equal(At(12), record.MorningShift.CheckedOutAt);
+        Assert.Equal(AttendanceStatus.Working, record.Status);
     }
 
     [Fact]

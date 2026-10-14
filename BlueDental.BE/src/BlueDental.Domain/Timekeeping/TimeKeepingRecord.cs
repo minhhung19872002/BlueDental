@@ -258,17 +258,15 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Moves the planned windows. Allowed after a check-in too (owner 2026-10-13:
+    /// a dentist kept on to 19:00 is edited the same day) — the clock in/out
+    /// already recorded stays on its shift; only the plan moves.
+    /// </summary>
     public TimeKeepingRecord RescheduleShifts(WorkShift morningShift, WorkShift afternoonShift)
     {
-        if (HasAnyAttendance)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
-                "Shifts cannot be rescheduled after attendance has been recorded.");
-        }
-
-        MorningShift = morningShift;
-        AfternoonShift = afternoonShift;
+        MorningShift = MorningShift.Reschedule(morningShift.PlannedStart, morningShift.PlannedEnd);
+        AfternoonShift = AfternoonShift.Reschedule(afternoonShift.PlannedStart, afternoonShift.PlannedEnd);
         return this;
     }
 

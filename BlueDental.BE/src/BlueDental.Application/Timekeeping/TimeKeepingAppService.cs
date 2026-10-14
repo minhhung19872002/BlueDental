@@ -156,13 +156,18 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             return MapToDto(existing);
         }
 
+        // Unset hours come from the staff profile, as the board shows them
+        // before the day is opened — not from the clinic default.
+        var staff = await _userRepository.FindAsync(input.StaffId, includeDetails: false);
         var record = TimeKeepingRecord.OpenDay(
             GuidGenerator.Create(),
             input.StaffId,
             clinicBranchId,
             input.WorkDate,
-            BuildShift(WorkShiftKind.Morning, input.MorningStart, input.MorningEnd),
-            BuildShift(WorkShiftKind.Afternoon, input.AfternoonStart, input.AfternoonEnd));
+            BuildShift(WorkShiftKind.Morning, input.MorningStart, input.MorningEnd)
+                ?? StaffWorkingHours.FromProfile(staff, WorkShiftKind.Morning),
+            BuildShift(WorkShiftKind.Afternoon, input.AfternoonStart, input.AfternoonEnd)
+                ?? StaffWorkingHours.FromProfile(staff, WorkShiftKind.Afternoon));
 
         await _repository.InsertAsync(record, autoSave: true);
         return MapToDto(record);
@@ -225,17 +230,15 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
         record.UpdateNote(input.Note);
 
-        if (!record.HasAnyAttendance)
-        {
-            var ms = input.MorningStart ?? record.MorningShift.PlannedStart;
-            var me = input.MorningEnd ?? record.MorningShift.PlannedEnd;
-            var afs = input.AfternoonStart ?? record.AfternoonShift.PlannedStart;
-            var afe = input.AfternoonEnd ?? record.AfternoonShift.PlannedEnd;
+        // Also after a check-in: the clock in/out stays, only the plan moves (R-912).
+        var ms = input.MorningStart ?? record.MorningShift.PlannedStart;
+        var me = input.MorningEnd ?? record.MorningShift.PlannedEnd;
+        var afs = input.AfternoonStart ?? record.AfternoonShift.PlannedStart;
+        var afe = input.AfternoonEnd ?? record.AfternoonShift.PlannedEnd;
 
-            record.RescheduleShifts(
-                new Values.WorkShift(WorkShiftKind.Morning, ms, me),
-                new Values.WorkShift(WorkShiftKind.Afternoon, afs, afe));
-        }
+        record.RescheduleShifts(
+            new Values.WorkShift(WorkShiftKind.Morning, ms, me),
+            new Values.WorkShift(WorkShiftKind.Afternoon, afs, afe));
 
         if (input.OvertimeMinutes.HasValue && input.OvertimeMinutes.Value > 0)
         {
@@ -318,6 +321,9 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
                 "Only your own day off can be set or cleared, on a day not yet passed or clocked in.");
         }
 
+        // Every item is the caller's own day (checked above). A day off cleared
+        // later keeps the record, so it must carry the profile hours.
+        var staff = await _userRepository.FindAsync(currentUserId, includeDetails: false);
         var count = 0;
         foreach (var item in input.Items)
         {
@@ -336,7 +342,9 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
                     GuidGenerator.Create(),
                     item.StaffId,
                     clinicBranchId,
-                    item.WorkDate);
+                    item.WorkDate,
+                    StaffWorkingHours.FromProfile(staff, WorkShiftKind.Morning),
+                    StaffWorkingHours.FromProfile(staff, WorkShiftKind.Afternoon));
 
                 if (item.Registration == WorkRegistration.DayOff)
                     newRecord.RegisterDayOff();
@@ -414,8 +422,8 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
                 input.StaffId,
                 clinicBranchId,
                 day.WorkDate,
-                StaffShift(staff, WorkShiftKind.Morning),
-                StaffShift(staff, WorkShiftKind.Afternoon));
+                StaffWorkingHours.FromProfile(staff, WorkShiftKind.Morning),
+                StaffWorkingHours.FromProfile(staff, WorkShiftKind.Afternoon));
 
             record.RegisterLeave(BuildLeaveWindow(record, day), reason);
 
@@ -442,21 +450,6 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         };
 
         return new LeaveWindow(day.Shift, day.Start ?? defaultStart, day.End ?? defaultEnd);
-    }
-
-    /// <summary>The staff member's own shift hours from Nhân viên, when set.</summary>
-    private static WorkShift? StaffShift(IdentityUser staff, WorkShiftKind kind)
-    {
-        var prefix = kind == WorkShiftKind.Morning ? "Morning" : "Afternoon";
-        var start = staff.ExtraProperties.GetOrDefault($"{prefix}StartTime") as string;
-        var end = staff.ExtraProperties.GetOrDefault($"{prefix}EndTime") as string;
-
-        if (!TimeOnly.TryParse(start, out var s) || !TimeOnly.TryParse(end, out var e) || e <= s)
-        {
-            return null;
-        }
-
-        return new WorkShift(kind, s, e);
     }
 
     private async Task<TimeKeepingRecord> GetRecordForCurrentBranchAsync(Guid id)

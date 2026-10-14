@@ -1,6 +1,7 @@
 using System;
 using BlueDental.Timekeeping;
 using BlueDental.Timekeeping.Values;
+using Volo.Abp.Identity;
 using Xunit;
 
 namespace BlueDental.Appointments;
@@ -20,6 +21,48 @@ public class DentistShiftCheckerTests
     public void Without_A_Record_The_Default_Shifts_Apply()
     {
         var windows = DentistShiftChecker.WorkingWindows(null);
+
+        Assert.Equal("08:00-12:00, 13:00-17:00", DentistShiftChecker.Describe(windows));
+    }
+
+    [Fact]
+    public void Without_A_Record_The_Profile_Hours_Apply()
+    {
+        // Bug: profile afternoon ran to 19:00 (as the Chấm công board showed),
+        // yet a 17:15 booking was refused against the 17:00 clinic default.
+        var dentist = new IdentityUser(Guid.NewGuid(), "bs.toi", "bs.toi@example.test");
+        dentist.ExtraProperties["AfternoonStartTime"] = "13:00";
+        dentist.ExtraProperties["AfternoonEndTime"] = "19:00";
+
+        var windows = DentistShiftChecker.WorkingWindows(null, dentist);
+
+        Assert.Equal("08:00-12:00, 13:00-19:00", DentistShiftChecker.Describe(windows));
+        Assert.True(DentistShiftChecker.Fits(windows, At(17, 15), At(17, 45)));
+    }
+
+    [Fact]
+    public void A_Slot_Ending_On_The_Shift_End_Fits_Despite_Stray_Milliseconds()
+    {
+        // Bug 2026-10-13 (Tạo tiếp nhận): the day came from dayjs() with its
+        // milliseconds, so 18:30-19:00 arrived as 18:30:00.437-19:00:00.437.
+        var record = Record().RescheduleShifts(
+            WorkShift.DefaultMorning(),
+            new WorkShift(WorkShiftKind.Afternoon, new TimeOnly(13, 0), new TimeOnly(19, 0)));
+        var windows = DentistShiftChecker.WorkingWindows(record);
+
+        Assert.True(DentistShiftChecker.Fits(
+            windows, At(18, 30).AddMilliseconds(437), At(19, 0).AddMilliseconds(437)));
+        Assert.False(DentistShiftChecker.Fits(windows, At(18, 45), At(19, 1)));
+    }
+
+    [Fact]
+    public void A_Record_Wins_Over_The_Profile_Hours()
+    {
+        var dentist = new IdentityUser(Guid.NewGuid(), "bs.toi", "bs.toi@example.test");
+        dentist.ExtraProperties["AfternoonStartTime"] = "13:00";
+        dentist.ExtraProperties["AfternoonEndTime"] = "19:00";
+
+        var windows = DentistShiftChecker.WorkingWindows(Record(), dentist);
 
         Assert.Equal("08:00-12:00, 13:00-17:00", DentistShiftChecker.Describe(windows));
     }
