@@ -41,6 +41,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
+    private readonly PatientMoneyCalculator _money;
 
     public ClinicReportAppService(
         IRepository<PatientPayment, Guid> paymentRepository,
@@ -53,8 +54,10 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         IRepository<ClinicBranch, Guid> branchRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
-        IDataFilter<ISoftDelete> softDeleteFilter)
+        IDataFilter<ISoftDelete> softDeleteFilter,
+        PatientMoneyCalculator money)
     {
+        _money = money;
         _paymentRepository = paymentRepository;
         _planRepository = planRepository;
         _salesRepository = salesRepository;
@@ -105,7 +108,8 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
             RefundByEWallet = SumBy(refunds, PaymentMethodKind.EWallet),
             TotalIncome = otherIncome,
             TotalExpense = expense,
-            TotalOutstandingDebt = plans.Sum(p => p.CompletedValue) - totalPaid + totalRefund,
+            // Per slip, floored at zero: prepayments are Tạm ứng, not negative debt.
+            TotalOutstandingDebt = _money.UnpaidFinishedWork(plans, payments),
             TotalPrepaid = payments.Where(p => p.Kind == PatientPaymentKind.Prepaid).Sum(p => p.Amount),
             TotalActualReceived = totalPaid - totalRefund + otherIncome,
             PatientVisits = payments.Select(p => p.PatientId).Distinct().Count()

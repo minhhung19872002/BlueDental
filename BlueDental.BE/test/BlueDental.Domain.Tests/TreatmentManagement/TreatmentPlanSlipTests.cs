@@ -208,6 +208,22 @@ public class TreatmentPlanSlipTests
     }
 
     [Fact]
+    public void Cong_no_ton_sums_each_slips_unpaid_finished_work_and_never_goes_negative()
+    {
+        // Finished and unpaid: 1.000.000 is owed.
+        var owed = OpenPlan();
+        AddLine(owed, 1_000_000m).Complete();
+        // Paid in full ahead of the work: Tạm ứng, not a negative debt.
+        var prepaid = OpenPlan();
+        AddLine(prepaid, 90_000_000m);
+
+        var payments = new List<PatientPayment> { Pay(prepaid, 90_000_000m) };
+
+        _money.UnpaidFinishedWork([owed, prepaid], payments).ShouldBe(1_000_000m);
+        _money.UnpaidFinishedWork([prepaid], payments).ShouldBe(0m);
+    }
+
+    [Fact]
     public void Phai_thu_only_counts_the_lines_already_finished()
     {
         var plan = OpenPlan();

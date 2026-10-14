@@ -8436,3 +8436,13 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** `treatment-leaf-permissions.spec` thêm 1 test: chỉ Thêm + Tiếp tục thì không có nút "Thêm công đoạn {mã}" lẫn nút trên thanh Chi tiết phiếu; bật Xem thì cả hai hiện và mở được dialog. Spec 3/3 + `treatment-plan-delete` 3/3 trên build production.
 
+## R-924 (2026-10-14, mức 2: Tổng quan) "Công nợ tồn" hôm nay âm 99 triệu
+
+**Báo lỗi (chủ dự án):** `/dashboard` ghi Công nợ tồn -99.750.000 đ.
+
+**Nguyên nhân:** `GetPaymentStatAsync` tính `TotalOutstandingDebt = Σ giá trị đã hoàn tất − đã thu + đã hoàn` trên **tất cả** phiếu cùng lúc và không chặn 0. Tiền khách trả trước cho dịch vụ chưa làm (Tạm ứng) bị trừ thẳng vào, nên một ngày nhiều tiền trả trước ra số âm, và tạm ứng phiếu này "trả" luôn nợ của phiếu khác.
+
+**Sửa:** `PatientMoneyCalculator.UnpaidFinishedWork`: Phải thu từng phiếu (theo đúng `ForPlan`), chặn 0, rồi mới cộng. Báo cáo dùng hàm này.
+
+**Test:** Domain `TreatmentPlanSlipTests` thêm 1 test (phiếu xong 1 triệu chưa thu + phiếu trả trước 90 triệu chưa làm → 1 triệu, không phải −89 triệu); 41/41. Application 715/715. Chạy thật: thẻ Công nợ tồn hôm nay 0 ₫.
+

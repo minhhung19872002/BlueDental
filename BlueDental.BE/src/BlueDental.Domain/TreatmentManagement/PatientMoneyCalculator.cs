@@ -29,6 +29,25 @@ public class PatientMoneyCalculator : IDomainService
             discount: plan.PlanDiscountAmount + plan.ServicesDiscountAmount);
     }
 
+    /// <summary>
+    /// "Công nợ tồn": finished work not yet paid for, slip by slip. Each slip's
+    /// Phải thu is floored at zero before the sum, so money paid ahead on one
+    /// slip (Tạm ứng) never cancels what is owed on another — summed as one
+    /// figure, a day of prepayments read as a large negative debt.
+    /// </summary>
+    public decimal UnpaidFinishedWork(
+        IReadOnlyCollection<TreatmentPlan> plans,
+        IReadOnlyCollection<PatientPayment> payments)
+    {
+        var byPlan = payments
+            .Where(p => p.TreatmentPlanId.HasValue)
+            .GroupBy(p => p.TreatmentPlanId!.Value)
+            .ToDictionary(g => g.Key, g => (IReadOnlyCollection<PatientPayment>)g.ToList());
+
+        return plans.Sum(plan =>
+            System.Math.Max(0m, ForPlan(plan, byPlan.GetValueOrDefault(plan.Id, [])).Receivable));
+    }
+
     /// <summary>Rollup of everything a patient owes and has paid, across every slip.</summary>
     public PaymentSummary ForPatient(
         IReadOnlyCollection<TreatmentPlan> plans,
