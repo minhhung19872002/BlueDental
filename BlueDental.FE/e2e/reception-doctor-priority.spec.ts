@@ -268,6 +268,9 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
       expect(negative.body.error?.code).toBe("BlueDental:Staff:0012");
 
       await page.goto("/staff");
+      // Found by name: the list runs by Mức độ ưu tiên, so a new 0 can land on
+      // any page depending on who else the branch holds.
+      await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(`Bác sĩ ưu tiên ${id}`);
       const row = page.getByRole("row").filter({ hasText: `Bác sĩ ưu tiên ${id}` });
       await row.getByRole("button").first().click();
       const dialog = page.getByRole("dialog");
@@ -281,6 +284,7 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
       expect((await readStaff(page, staffId)).priority).toBe(3);
 
       await page.reload();
+      await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(`Bác sĩ ưu tiên ${id}`);
       await row.getByRole("button").first().click();
       const reopened = page.getByRole("dialog");
       await expect(reopened.getByLabel("Mức độ ưu tiên")).toHaveValue("3");

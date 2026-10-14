@@ -67,7 +67,11 @@ public class StaffAppService(
             : null;
 
         var term = input.Filter?.Trim();
-        var needsInMemoryFilter = branchStaffIds != null || offStaffIds != null
+        // With no sort asked for, the list runs by "Mức độ ưu tiên" (0 first,
+        // a tie by name) like the reception board. The priority is an extra
+        // property the database cannot order by, so the whole list is read.
+        var byPriority = input.Sorting.IsNullOrWhiteSpace();
+        var needsInMemoryFilter = byPriority || branchStaffIds != null || offStaffIds != null
             || input.IsActive.HasValue || !term.IsNullOrEmpty() || input.Role.HasValue
             || scheduleStaffIds != null;
 
@@ -104,6 +108,11 @@ public class StaffAppService(
         if (scheduleStaffIds != null)
         {
             users = users.Where(u => scheduleStaffIds.Contains(u.Id)).ToList();
+        }
+
+        if (byPriority)
+        {
+            users = StaffPriority.Order(users).ToList();
         }
 
         var totalCount = users.Count;

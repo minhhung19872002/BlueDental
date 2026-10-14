@@ -8418,3 +8418,13 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** Domain `PrescriptionTests` 28/28 (3 mới: lùi ngày giữ giờ phòng khám, chặn ngày mai, giữ nguyên khi cùng ngày). e2e thật trên build production: `prescription.spec` **8/8** (mới: mở Sửa thấy ngày của đơn + ngày mai bị khoá, lùi 6 ngày → lưu → tải lại vẫn đúng → bản in "Ngày … tháng … năm …" đúng ngày đó; PUT với ngày mai → 403 `0048`), `prescription-allergy` 3/3.
 
+## R-922 (2026-10-14, mức 3: danh sách nhân sự) Nhân sự sắp theo "Mức độ ưu tiên" (0 trước)
+
+**Yêu cầu (chủ dự án):** `/staff` sắp xếp theo mức độ ưu tiên từ cao đến thấp (0 → …), như bảng Tiếp nhận.
+
+**Làm:** `GET /api/v1/app/staff` không có `sorting` thì sắp theo `StaffPriority.Order` (số nhỏ trước, cùng mức theo tên tiếng Việt). Mức ưu tiên là thuộc tính mở rộng của user nên sắp trong bộ nhớ, đọc cả danh sách rồi mới phân trang. Các ô chọn nhân sự dùng cùng endpoint nên cũng theo thứ tự này. Truyền `sorting` thì vẫn sắp theo trường đó như cũ.
+
+**Test:** `e2e/staff-priority-order.spec.ts` (mới, thật): tạo nhân sự "Aaa ưu tiên …" mức 0 thì đứng đầu cả API lẫn màn Nhân sự; đổi mức 9999 thì xuống cuối, danh sách không giảm theo mức. Các spec tìm dòng nhân sự trên trang 1 được sửa sang gõ tên vào ô tìm kiếm (nhân sự mới có thể rơi sang trang khác): `staff`, `reception-doctor-priority`, `staff-employment`, `discount-limit`, `role-permissions`, `patient-permission-gates`, `taxonomy-import-api`, fixture `restrictedDentist`. Ô Chi nhánh của dialog nhân viên được chọn bằng id seed (ô này tìm theo value), sửa luôn lỗi chọn chi nhánh có từ R-906 ở `staff.spec`.
+
+**Kết quả trên build production:** `staff-priority-order` 1/1, `reception-doctor-priority` 4/4, `staff` 1/1 (trước đỏ, R-906), `staff-employment`, `discount-limit`, `patient-permission-gates`, `treatment-plan-delete` xanh. Còn đỏ do DB local: `role-permissions` ("dentist không quyền → /dashboard") và `taxonomy-import-api` ("không quyền → 403"), vì role `dentist` trên máy đang có hơn 350 quyền chủ dự án tự tick (R-920).
+

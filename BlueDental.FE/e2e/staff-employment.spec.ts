@@ -120,7 +120,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
     const created = await createStaff(page, id);
     expect(created.status).toBe(200);
     const staffId = created.body.id;
-    // The list is sorted by name, 20 a page: search for the run's member, or
+    // The list is sorted by Mức độ ưu tiên then name, 20 a page: search for the run's member, or
     // they land on a later page once the database holds enough staff.
     const search = page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").first();
     const row = page.getByRole("row").filter({ hasText: `Nhân viên hồ sơ ${id}` });

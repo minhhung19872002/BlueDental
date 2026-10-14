@@ -40,7 +40,10 @@ test.describe("Nhân viên", () => {
     await page.locator('.ant-select-item-option[title="admin"]').click();
 
     // The main branch, so the new row shows up in admin's default branch list.
+    // Searched by its seeded id first (the select searches option values):
+    // test runs pile up branches and push it out of the virtual list.
     await dialog.getByLabel(/Chi nhánh/).click();
+    await dialog.getByLabel(/Chi nhánh/).fill("11111111-1111-1111-1111-111111111111");
     await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh Premium"]').click();
     // A multi-select keeps its dropdown open; clicking another field closes it.
     await dialog.getByLabel(/Họ và tên/).click();
@@ -48,6 +51,11 @@ test.describe("Nhân viên", () => {
     await dialog.getByRole("button", { name: /Lưu/ }).click();
     await expect(dialog).toBeHidden();
 
+    // Narrowed by name: the list runs by Mức độ ưu tiên, so a new 0 can land
+    // on any page depending on who else the branch holds.
+    const search = () =>
+      page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fullName);
+    await search();
     const rowFor = () => page.getByRole("row").filter({ hasText: fullName });
     await expect(rowFor()).toBeVisible();
 
@@ -77,6 +85,7 @@ test.describe("Nhân viên", () => {
 
     // The edit survives a reload, i.e. it really persisted.
     await page.reload();
+    await search();
     await rowFor().getByRole("button").first().click();
     await expect(dialog.getByLabel(/Số điện thoại/)).toHaveValue("0912345678");
     await page.keyboard.press("Escape");
@@ -90,6 +99,7 @@ test.describe("Nhân viên", () => {
 
     await expect(rowFor()).toHaveCount(0);
     await page.reload();
+    await search();
     await expect(rowFor()).toHaveCount(0);
   });
 });

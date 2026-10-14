@@ -723,7 +723,10 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     await dialog.getByLabel(/Nhập lại mật khẩu/).fill(password);
     await dialog.getByLabel(/Nhóm quyền/).click();
     await page.locator('.ant-select-item-option[title="dentist"]').click();
+    // By the seeded id: the select searches option values, and test runs pile
+    // up branches that push this one out of the virtual list.
     await dialog.getByLabel(/Chi nhánh/).click();
+    await dialog.getByLabel(/Chi nhánh/).fill("11111111-1111-1111-1111-111111111111");
     await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh Premium"]').click();
     await dialog.getByLabel(/Họ và tên/).click();
     await dialog.getByRole("button", { name: /Lưu/ }).click();
@@ -739,6 +742,7 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     } finally {
       await other.context.close();
       await page.goto("/staff");
+      await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fullName);
       const row = page.getByRole("row").filter({ hasText: fullName });
       await expect(row).toBeVisible();
       await row.getByRole("button").nth(1).click();

@@ -280,6 +280,7 @@ test.describe("Quy định giảm giá", () => {
     const fixture = await setUp(page);
     try {
       await page.goto("/staff");
+      await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fixture.staffName);
       const row = page.getByRole("row").filter({ hasText: fixture.staffName });
       await row.getByRole("button").first().click();
       const dialog = page.getByRole("dialog");

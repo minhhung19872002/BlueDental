@@ -70,16 +70,21 @@ async function createDentist(page: Page, fullName: string, userName: string, pas
   await dialog.getByLabel(/Nhập lại mật khẩu/).fill(password);
   await dialog.getByLabel(/Nhóm quyền/).click();
   await page.locator(`.ant-select-item-option[title="${DENTIST_ROLE}"]`).click();
+  // By the seeded id: the select searches option values, and test runs pile
+  // up branches that push this one out of the virtual list.
   await dialog.getByLabel(/Chi nhánh/).click();
+  await dialog.getByLabel(/Chi nhánh/).fill("11111111-1111-1111-1111-111111111111");
   await page.locator(`.ant-select-item-option[title="${MAIN_BRANCH}"]`).click();
   await dialog.getByLabel(/Họ và tên/).click();
   await dialog.getByRole("button", { name: /Lưu/ }).click();
   await expect(dialog).toBeHidden();
+  await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fullName);
   await expect(page.getByRole("row").filter({ hasText: fullName })).toBeVisible();
 }
 
 async function deleteDentist(page: Page, fullName: string) {
   await page.goto("/staff");
+  await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fullName);
   const row = page.getByRole("row").filter({ hasText: fullName });
   await expect(row).toBeVisible();
   await row.getByRole("button").nth(1).click();

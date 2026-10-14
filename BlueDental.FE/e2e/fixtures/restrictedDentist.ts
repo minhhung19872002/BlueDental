@@ -79,11 +79,14 @@ export async function createDentist(page: Page, fullName: string, userName: stri
   await dialog.getByLabel(/Họ và tên/).click();
   await dialog.getByRole("button", { name: /Lưu/ }).click();
   await expect(dialog).toBeHidden();
+  // The list runs by Mức độ ưu tiên, so the new row can land on any page.
+  await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fullName);
   await expect(page.getByRole("row").filter({ hasText: fullName })).toBeVisible();
 }
 
 export async function deleteDentist(page: Page, fullName: string) {
   await page.goto("/staff");
+  await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fullName);
   const row = page.getByRole("row").filter({ hasText: fullName });
   await expect(row).toBeVisible();
   await row.getByRole("button").nth(1).click();
