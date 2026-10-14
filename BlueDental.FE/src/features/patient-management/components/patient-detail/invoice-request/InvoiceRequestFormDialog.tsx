@@ -21,6 +21,7 @@ import {
   toRequestBody,
   type InvoiceRequestFormState,
 } from "./invoiceRequestForm";
+import { SelectLoading } from "@/components/SelectLoading";
 
 /** "+ Tạo yêu cầu xuất HĐ" for a receipt of the patient, or Chỉnh sửa on a request filed. */
 export type InvoiceRequestFormTarget =
@@ -92,7 +93,7 @@ export function InvoiceRequestFormDialog({ target, onClose }: Props) {
           <FloatingField label={t("Patient:InvoiceRequest:Field:Receipt")} name="patientPaymentId" required rules={formRules().patientPaymentId}>
             <Select
               loading={options.isLoading}
-              notFoundContent={t("Patient:InvoiceRequest:NoReceipt")}
+              notFoundContent={options.isLoading ? <SelectLoading /> : t("Patient:InvoiceRequest:NoReceipt")}
               onChange={(value: string) => setPaymentId(value)}
               options={(options.data ?? []).map((option) => ({
                 value: option.patientPaymentId,

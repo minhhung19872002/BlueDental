@@ -19,7 +19,7 @@ interface Props {
  * Trưởng nhóm (clicking it again clears it). Works inside a Form.Item.
  */
 export function GroupMembersEditor({ value = [], onChange, kind }: Props) {
-  const { patients, search, hasMore, loadingMore, loadMore } = usePatientPicker(undefined);
+  const { patients, search, hasMore, loading, loadingMore, loadMore } = usePatientPicker(undefined);
   const taken = new Set(value.map((m) => m.patientId));
   const full = value.length >= MAX_MEMBERS;
   const headLabel = t(kind === GROUP_KIND.Family ? "PatientGroup:Role:HeadFamily" : "PatientGroup:Role:HeadOther");
@@ -52,6 +52,7 @@ export function GroupMembersEditor({ value = [], onChange, kind }: Props) {
         filterLocally={false}
         onLoadMore={hasMore ? loadMore : undefined}
         loadingMore={loadingMore}
+        loading={loading}
         onChange={add}
       />
       {value.length === 0 ? (

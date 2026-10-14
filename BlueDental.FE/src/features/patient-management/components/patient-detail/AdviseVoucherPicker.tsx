@@ -1,4 +1,4 @@
-import { Button, Input, Popover, Spin } from "antd";
+import { Button, Input, Popover } from "antd";
 import { CheckCircleFilled, CloseOutlined, SearchOutlined, TagOutlined } from "@ant-design/icons";
 import {
   calculateVoucherDiscount,
@@ -8,6 +8,7 @@ import {
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
+import { SelectLoading } from "@/components/SelectLoading";
 
 /**
  * "Voucher áp dụng" under the plan total — staging's tag button that drops a
@@ -56,13 +57,8 @@ function VoucherRow({
 }
 
 function VoucherList({ plan }: { plan: PlanVoucherState }) {
-  if (plan.loading) {
-    return (
-      <div className="pd-voucher-list pd-voucher-list--empty">
-        <Spin size="small" />
-      </div>
-    );
-  }
+  // Placeholder cards rather than a spinner the list then pushes open.
+  if (plan.loading) return <SelectLoading rows={3} rowHeight={70} trailing />;
   if (plan.vouchers.length === 0) {
     return (
       <div className="pd-voucher-list pd-voucher-list--empty">

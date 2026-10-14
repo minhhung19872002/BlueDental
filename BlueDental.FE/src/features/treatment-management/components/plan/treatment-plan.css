@@ -1095,6 +1095,29 @@
   justify-content: center;
   padding: 8px 0;
 }
+/* Inside the group's own scroller: stuck to its bottom, its height taken back
+   by the margin, so it covers the last rows instead of adding to them. */
+.tp-more-spinner--sticky {
+  position: sticky;
+  bottom: 0;
+  margin-top: -36px;
+  background: linear-gradient(to bottom, transparent, #fff 60%);
+  pointer-events: none;
+}
+.tp-group-table .tp-group-empty.tp-group-empty--loading {
+  padding: 0;
+}
+
+/* Over the bottom of the list rather than under it: the popup keeps its height. */
+.tp-more-spinner--overlay {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(to bottom, transparent, #fff 60%);
+  pointer-events: none;
+}
 
 /* Group mode, a group opened: round back button + name over a bordered table.
    560 wide with 12px around it on the reference (8 here + the popup's own 4). */

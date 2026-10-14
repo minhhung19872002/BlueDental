@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import type { ServiceCounter } from "../types";
 import { bareDentistName, dentistInitials } from "../utils/dentistName";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface DentistPickerFieldProps {
   /** The counter being edited; null on a new counter. */
@@ -78,6 +79,7 @@ function DentistControl({ counter, otherCounters, id, value, onChange }: Dentist
       showSearch
       optionFilterProp="label"
       loading={isLoading}
+      notFoundContent={isLoading ? <SelectLoading /> : undefined}
       autoFocus={picking}
       defaultOpen={picking}
       placeholder={t("Queue:Form:DentistRequired")}

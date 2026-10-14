@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { cn } from "@/lib/cn";
+import { TruncatedText } from "@/components/TruncatedText";
 import { t } from "@/lib/i18n";
 
 /**
@@ -126,9 +127,13 @@ const GroupRow = memo(function GroupRow({
             className={cn(active ? "bd-primary-text" : "bd-muted-text")}
           />
           <span className="bd-min0 bd-flex1 bd-text-left">
-            <span className={cn("bd-group-name", active ? "bd-semibold" : "bd-medium")}>
-              {group.name}
-            </span>
+            {/* A long name is cut with "…" rather than pushing the row wider
+                than the panel, which hid the menu and the grip off its edge;
+                the whole name shows in a tooltip. */}
+            <TruncatedText
+              text={group.name}
+              className={cn("bd-group-name", active ? "bd-semibold" : "bd-medium")}
+            />
           </span>
         </button>
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo, useId } from "react";
 import { createPortal } from "react-dom";
 import { Spin } from "antd";
+import { SelectLoading } from "@/components/SelectLoading";
 import { t } from "@/lib/i18n";
 import { isNearScrollEnd } from "@/utils/scrollEnd";
 import { filterOptions } from "./filterOptions";
@@ -62,8 +63,13 @@ export interface SearchSelectProps {
    * its end. Leave it undefined once every page is in.
    */
   onLoadMore?: () => void;
-  /** A spinner under the last row while the next page loads. */
+  /** A spinner over the bottom of the list while the next page loads. */
   loadingMore?: boolean;
+  /**
+   * The options are on their way: placeholder rows instead of "Không tìm thấy
+   * kết quả", which was both wrong and a single line the list then jumped out of.
+   */
+  loading?: boolean;
 }
 
 export const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -82,6 +88,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   footer,
   onLoadMore,
   loadingMore = false,
+  loading = false,
 }) => {
   const resolvedPlaceholder = placeholder ?? t("Common:Search");
   const [open, setOpen] = useState(false);
@@ -250,7 +257,9 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
               />
             </div>
             <div ref={listRef} className="ss-options" onScroll={handleOptionsScroll}>
-              {filtered.length === 0 ? (
+              {filtered.length === 0 && loading ? (
+                <SelectLoading rows={5} rowHeight={39} />
+              ) : filtered.length === 0 ? (
                 <div className="ss-empty">{emptyText ?? t("Common:NoResults")}</div>
               ) : (
                 filtered.map((opt, index) => (

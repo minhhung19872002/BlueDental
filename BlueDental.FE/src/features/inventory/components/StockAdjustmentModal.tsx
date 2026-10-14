@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Modal, Button, Form, Select, Input, InputNumber } from "antd";
 import { useAdjustStock, useInventoryList } from "../api/index";
 import { t } from "@/lib/i18n";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface Props {
   open: boolean;
@@ -109,6 +110,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
                 showSearch
                 placeholder={t("Inventory:SearchMaterial")}
                 loading={inventoryLoading}
+                notFoundContent={inventoryLoading ? <SelectLoading /> : undefined}
                 options={itemOptions}
                 optionFilterProp="label"
                 filterOption={(input, option) =>

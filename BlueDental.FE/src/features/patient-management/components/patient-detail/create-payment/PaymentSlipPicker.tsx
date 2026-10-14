@@ -4,6 +4,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
 import type { SlipOption } from "./paymentDialogModel";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface Props {
   options: SlipOption[];
@@ -95,7 +96,8 @@ export function PaymentSlipPicker({ options, value, loading, locked, onChange }:
       loading={loading}
       disabled={locked}
       placeholder={t("Patient:Payment:SlipPlaceholder")}
-      notFoundContent={t("Patient:Payment:NoSlips")}
+      // While the slips load, rows of their height — not "Không có phiếu", which was untrue.
+      notFoundContent={loading ? <SelectLoading rows={4} rowHeight={56} /> : t("Patient:Payment:NoSlips")}
       options={visible.map((option) => ({ value: option.slip.id, label: option.slip.code, option }))}
       optionRender={(item) => <SlipRow option={item.data.option} />}
       popupRender={popup}

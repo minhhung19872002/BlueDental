@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useRef, useState, type ReactElement } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactElement, type UIEvent } from "react";
 import { Form, Select, Spin, Tooltip } from "antd";
 import type { RefSelectProps } from "antd";
 import { ArrowLeft, BookOpen, Folder } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
+import { SelectLoading } from "@/components/SelectLoading";
 import {
   CATALOG_GROUP,
   useCatalogOptionSearch,
@@ -44,13 +45,7 @@ interface GroupListProps {
 
 /** Group mode, nothing opened yet: the groups, a folder in front of each. */
 function GroupList({ groups, loading, onOpen }: GroupListProps) {
-  if (loading && groups.length === 0) {
-    return (
-      <div className="tp-group-list-empty">
-        <Spin size="small" />
-      </div>
-    );
-  }
+  if (loading && groups.length === 0) return <SelectLoading rows={6} rowHeight={42} />;
   if (groups.length === 0) {
     return <div className="tp-group-list-empty">{t("Treatment:Service:NoServiceGroup")}</div>;
   }
@@ -125,9 +120,15 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
           <tbody>
             {services.length === 0 && (
               <tr>
-                <td colSpan={4} className="tp-group-empty">
-                  {query.isFetching ? <Spin size="small" /> : t("Treatment:Service:NoService")}
-                </td>
+                {query.isFetching ? (
+                  <td colSpan={4} className="tp-group-empty tp-group-empty--loading">
+                    <SelectLoading rows={5} rowHeight={48} trailing />
+                  </td>
+                ) : (
+                  <td colSpan={4} className="tp-group-empty">
+                    {t("Treatment:Service:NoService")}
+                  </td>
+                )}
               </tr>
             )}
             {services.map((service) => (
@@ -142,7 +143,7 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
         </table>
         <div ref={sentinelRef} className="tp-more-sentinel" />
         {query.isFetchingNextPage && (
-          <div className="tp-more-spinner">
+          <div className="tp-more-spinner tp-more-spinner--sticky">
             <Spin size="small" />
           </div>
         )}
@@ -181,11 +182,9 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
     search: debouncedSearch,
     enabled: open && mode === "service",
   });
-  const groups = useTaxonomyGroupSearch(
-    CATALOG_GROUP.CareService,
-    debouncedSearch,
-    open && mode === "group" && group === null,
-  );
+  // Asked for with the picker, not when the folder is clicked: the list then
+  // opens full instead of as a spinner the groups push open.
+  const groups = useTaxonomyGroupSearch(CATALOG_GROUP.CareService, debouncedSearch, group === null);
 
   const services = useMemo(() => {
     const found = flat.data?.pages.flatMap((page) => page.items) ?? [];
@@ -205,10 +204,17 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
     [services],
   );
 
-  const loadMore = useCallback(() => {
-    void flat.fetchNextPage();
-  }, [flat]);
-  const sentinelRef = useLoadMoreSentinel(flat.hasNextPage && !flat.isFetchingNextPage, loadMore);
+  /**
+   * The next page once the list is scrolled near its end. A sentinel below the
+   * menu sat outside the list's own scroller, so it was always "in view": the
+   * picker fetched page after page as soon as it opened, and each spinner
+   * stretched the popup.
+   */
+  const handlePopupScroll = (event: UIEvent<HTMLDivElement>) => {
+    const list = event.currentTarget;
+    const nearEnd = list.scrollTop + list.clientHeight >= list.scrollHeight - 120;
+    if (nearEnd && flat.hasNextPage && !flat.isFetchingNextPage) void flat.fetchNextPage();
+  };
 
   // A picked service must stay named even after the search moves on, so the
   // last one is kept and merged back in when the current page lacks it.
@@ -244,12 +250,15 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
 
   const renderPopup = (menu: ReactElement) => {
     if (mode === "service") {
+      // The first page, still on its way: rows of the list's own height in
+      // place of a lone spinner, so the popup opens at its full size instead
+      // of jumping from one line to six when the services land.
+      if (flat.isLoading && options.length === 0) return <SelectLoading rows={6} rowHeight={42} trailing />;
       return (
         <>
           {menu}
-          <div ref={sentinelRef} className="tp-more-sentinel" />
           {flat.isFetchingNextPage && (
-            <div className="tp-more-spinner">
+            <div className="tp-more-spinner tp-more-spinner--overlay">
               <Spin size="small" />
             </div>
           )}
@@ -310,6 +319,7 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
           }
           classNames={{ popup: { root: "tp-service-dropdown" } }}
           popupRender={renderPopup}
+          onPopupScroll={mode === "service" ? handlePopupScroll : undefined}
           onSelect={(value) => {
             const service = services.find((item) => item.id === value);
             if (service) remember(service);

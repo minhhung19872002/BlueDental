@@ -2,6 +2,7 @@ import { Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface Props {
   /** "Người tạo" on the work log, "Nhân viên" on the call history, … */
@@ -32,7 +33,7 @@ export function StaffFilter({ label, value, onChange }: Props) {
       onChange={(next) => onChange(next ?? undefined)}
       optionFilterProp="label"
       options={data ?? []}
-      notFoundContent={isLoading ? t("Common:Loading") : t("Common:NoData")}
+      notFoundContent={isLoading ? <SelectLoading /> : t("Common:NoData")}
     />
   );
 }

@@ -4,6 +4,7 @@ import { CloseOutlined, InfoCircleOutlined, SlidersOutlined } from "@ant-design/
 import { useDepartmentList, type DepartmentDto } from "../api/departmentApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
+import { SelectLoading } from "@/components/SelectLoading";
 
 /** The two notes the reference hangs off the ⓘ beside "Phân bổ". */
 const ALLOCATION_NOTES = [
@@ -85,9 +86,7 @@ export function AllocationBar({
         filterOption={false}
         searchValue={search}
         onSearch={setSearch}
-        notFoundContent={
-          departmentsQuery.isFetching ? t("Materials:SearchingDept") : t("Materials:DeptNotFound")
-        }
+        notFoundContent={departmentsQuery.isFetching ? <SelectLoading /> : t("Materials:DeptNotFound")}
         options={departments.map((department: DepartmentDto) => ({
           value: department.id,
           label: department.name,

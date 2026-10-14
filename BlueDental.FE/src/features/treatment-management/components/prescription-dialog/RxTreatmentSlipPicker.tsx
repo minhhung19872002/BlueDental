@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Checkbox, Input, Spin } from "antd";
+import { Button, Checkbox, Input } from "antd";
 import { FileTextOutlined, SearchOutlined, UpOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { RxDiagnosisRow } from "../../types/prescription";
@@ -9,6 +9,7 @@ import {
   teethLabel,
   type RxSessionGroup,
 } from "../../utils/rxDiagnosis";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface Props {
   sources: RxDiagnosisRow[];
@@ -37,7 +38,8 @@ export function RxTreatmentSlipPicker({ sources, loading, pickedKeys, onToggle, 
   const groups = groupBySession(sources.filter((row) => matchesSlipFilter(row, filter)));
 
   const renderList = () => {
-    if (loading) return <Spin className="rx-slip-spin" />;
+    // Rows filling the panel rather than a spinner the list then pushes open.
+    if (loading) return <SelectLoading rows={8} />;
     if (sources.length === 0)
       return <p className="rx-slip-empty">{t("Treatment:Rx:NoTreatmentSlip")}</p>;
     if (groups.length === 0)

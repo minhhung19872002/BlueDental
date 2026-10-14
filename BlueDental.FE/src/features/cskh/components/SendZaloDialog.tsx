@@ -28,7 +28,7 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
   const [touched, setTouched] = useState(false);
 
   const debouncedSearch = useDebounce(templateSearch);
-  const { data: templates, error: templatesError } = useZaloTemplates(debouncedSearch, open);
+  const { data: templates, error: templatesError, isFetching: templatesLoading } = useZaloTemplates(debouncedSearch, open);
   const send = useSendZaloMessage();
 
   useEffect(() => {
@@ -90,6 +90,7 @@ export function SendZaloDialog({ open, record, onClose }: SendZaloDialogProps) {
               status={touched && !templateId ? "error" : undefined}
               onChange={handleTemplateChange}
               onSearch={setTemplateSearch}
+              loading={templatesLoading}
             />
           </MessageField>
 

@@ -3,7 +3,7 @@ import { SearchSelect, type SearchSelectProps } from "./SearchSelect";
 
 type PatientSearchSelectProps = Omit<
   SearchSelectProps,
-  "options" | "onSearch" | "filterLocally" | "onLoadMore" | "loadingMore"
+  "options" | "onSearch" | "filterLocally" | "onLoadMore" | "loadingMore" | "loading"
 > & {
   /** Defaults to the reference's "[CODE] - NAME". */
   formatLabel?: (patient: PatientOption) => string;
@@ -20,7 +20,7 @@ const defaultLabel = (p: PatientOption) => `[${p.code}] - ${p.name.toUpperCase()
  * bare or inside FloatingField / Form.Item (value, onChange, onOpenChange).
  */
 export function PatientSearchSelect({ formatLabel = defaultLabel, ...rest }: PatientSearchSelectProps) {
-  const { patients, search, hasMore, loadingMore, loadMore } = usePatientPicker(rest.value);
+  const { patients, search, hasMore, loading, loadingMore, loadMore } = usePatientPicker(rest.value);
 
   return (
     <SearchSelect
@@ -30,6 +30,7 @@ export function PatientSearchSelect({ formatLabel = defaultLabel, ...rest }: Pat
       filterLocally={false}
       onLoadMore={hasMore ? loadMore : undefined}
       loadingMore={loadingMore}
+      loading={loading}
     />
   );
 }

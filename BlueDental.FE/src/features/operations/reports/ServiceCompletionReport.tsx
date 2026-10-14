@@ -29,6 +29,7 @@ import { exportToExcel } from "@/utils/exportExcel";
 import { t } from "@/lib/i18n";
 import { formatMoney } from "./formatMoney";
 import { formatDate } from "@/utils/format";
+import { SelectLoading } from "@/components/SelectLoading";
 
 /**
  * Khối tài chính → Hoàn thành theo dịch vụ.
@@ -192,6 +193,7 @@ export function ServiceCompletionReport() {
             showSearch
             allowClear
             loading={dentists.isLoading}
+            notFoundContent={dentists.isLoading ? <SelectLoading /> : undefined}
             placeholder={t("Operations:TreatingDentist")}
             aria-label={t("Operations:TreatingDentist")}
             optionFilterProp="label"
@@ -208,6 +210,7 @@ export function ServiceCompletionReport() {
             showSearch
             allowClear
             loading={serviceGroups.isLoading}
+            notFoundContent={serviceGroups.isLoading ? <SelectLoading /> : undefined}
             placeholder={t("Operations:ServiceGroup")}
             aria-label={t("Operations:ServiceGroup")}
             optionFilterProp="label"

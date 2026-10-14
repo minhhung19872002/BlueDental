@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, Spin } from "antd";
+import { Input } from "antd";
 import {
   CalendarOutlined,
   HeartOutlined,
@@ -12,6 +12,7 @@ import { usePatientList } from "@/features/patient-management/api/patientQueries
 import { useDebounce } from "@/hooks/useDebounce";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
+import { SelectLoading } from "@/components/SelectLoading";
 
 /** What the empty state offers before anything has been typed. */
 const searchCategories = () => [
@@ -104,9 +105,8 @@ export function GlobalSearch({ open, onClose }: Props) {
         {enabled ? (
           <div className="app-search-results">
             {isFetching && hits.length === 0 ? (
-              <div className="app-search-loading">
-                <Spin size="small" />
-              </div>
+              // Hits-high rows rather than a spinner the results then push open.
+              <SelectLoading rows={3} rowHeight={61} />
             ) : hits.length === 0 ? (
               <div className="app-search-hint">
                 {t("Common:NoResultsFor", debounced.trim())}

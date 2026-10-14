@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Select, Spin } from "antd";
+import { Select } from "antd";
 import { ChevronDown, Search } from "lucide-react";
+import { SelectLoading } from "@/components/SelectLoading";
 import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
 
@@ -73,7 +74,10 @@ export function ServerSearchSelect({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debounced = useDebounce(search, 300);
-  const { options, loading } = useOptions(debounced, open || Boolean(value));
+  // Asked for as soon as the field is on screen, not when it is opened: a list
+  // fetched on open opened as one spinner line and then jumped to its full
+  // height. The empty search is one cached request however many fields share it.
+  const { options, loading } = useOptions(debounced, true);
 
   // Keep whatever is selected on the list even once the search has moved past
   // it — either what was picked here, or the name the caller came in with.
@@ -115,7 +119,7 @@ export function ServerSearchSelect({
       aria-label={ariaLabel}
       prefix={<Search size={20} aria-hidden="true" />}
       suffixIcon={<ChevronDown size={16} aria-hidden="true" />}
-      notFoundContent={loading ? <Spin size="small" /> : (notFoundText ?? t("Common:NoResults"))}
+      notFoundContent={loading ? <SelectLoading /> : (notFoundText ?? t("Common:NoResults"))}
       onChange={(next, option) => {
         const picked = Array.isArray(option) ? null : (option ?? null);
         setChosen(picked);

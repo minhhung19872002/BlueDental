@@ -8569,3 +8569,30 @@ Danh sách nhóm (chip, bộ lọc) đọc `/taxonomies`, vốn đúng thứ t�
 - Giữ dạng từng răng: lịch sử công đoạn và bộ chọn răng công đoạn (mỗi răng mang trạng thái riêng).
 
 **Test:** `e2e/diagnosis-jaw-label.spec.ts` (mới, thật): tạo 5 chẩn đoán qua API — hàm trên, hàm dưới, nguyên hàm, 15/16 răng hàm trên, 16+26 — tab Chẩn đoán & Tư vấn hiện "Hàm trên", "Hàm dưới", "Nguyên hàm", còn 15 răng và "16, 26" vẫn liệt kê. Pass. Domain `ToothArchTests` 5/5. Vitest liên quan 3/3.
+
+## R-946 (2026-10-14, mức 3: combobox dùng chung + panel nhóm Danh mục) Dropdown giật chiều cao khi tải lần đầu; tên nhóm dài tràn khỏi panel
+
+**Báo lỗi (chủ dự án):**
+1. Combobox "Thêm dịch vụ mới": lần đầu mở có biểu tượng loading làm dropdown giật chiều cao. Rà và sửa mọi combobox cùng kiểu trong hệ thống.
+2. Danh mục → panel nhóm: tên nhóm dài tràn khỏi panel, che nút ⋮; cần "…" và tooltip tên đầy đủ; panel rộng thêm.
+
+**Nguyên nhân:**
+- Dropdown chỉ tải dữ liệu khi mở, lúc chờ hiện một dòng spinner/"Đang tải"/"Không tìm thấy" rồi bung ra cả danh sách.
+- Picker dịch vụ: phần tử canh "tải thêm" nằm ngoài vùng cuộn của danh sách nên luôn "trong tầm nhìn" → vừa mở là tự tải trang 2, 3… và mỗi spinner chèn thêm ~34px (đo: 266 → 267 → 301 → 267).
+- Panel nhóm: nút của hàng `white-space: nowrap` mà tên không `overflow: hidden` → chữ tràn, đẩy nút ⋮ và tay kéo ra ngoài.
+
+**Sửa:**
+- `SelectLoading` (mới, dùng chung): các dòng khung xương cao bằng dòng thật thay cho spinner trong dropdown.
+- Dùng chung: `ServerSearchSelect` (bác sĩ / phụ tá / tư vấn / chẩn đoán — tải sẵn khi ô hiển thị thay vì khi mở), `pagedSelectProps` (khung xương lần đầu, spinner tải thêm đè đáy), `SearchSelect` + `PatientSearchSelect` (prop `loading`, không còn "Không tìm thấy" khi đang tải; spinner tải thêm dính đáy), `StaffFilter`, ô tìm kiếm Ctrl+K.
+- Picker dịch vụ: tải trang tiếp khi cuộn gần cuối (`onPopupScroll`); chế độ nhóm tải sẵn danh sách nhóm, khung xương cho nhóm và bảng dịch vụ trong nhóm.
+- Riêng từng chỗ: chọn phiếu (Tạo phiếu thu), chọn phiếu thu (Yêu cầu xuất hoá đơn), voucher của tư vấn, thẻ hồ sơ, phiếu điều trị trong đơn thuốc, phòng ban nhận (Vật tư, giữ danh sách cũ khi gõ tìm), báo cáo hoàn thành dịch vụ, giao cuộc gọi, điều chỉnh tồn kho, chọn bác sĩ ở màn hình đợi, labo của dịch vụ (Danh mục), picker dịch vụ voucher, mẫu Zalo, thêm thành viên nhóm.
+- Panel nhóm (`GroupPanel`, dùng chung Danh mục/Labo/Vật tư): tên cắt "…", `TruncatedText` hiện tooltip tên đầy đủ khi bị cắt. Panel nhóm Danh mục 272px → 320px.
+
+**Đo:** picker dịch vụ mở lần đầu: 266 (khung xương) → 266 (danh sách), không còn bước nhảy; chỉ tải trang 1 khi mở, cuộn mới tải 20/40/60/80. Panel nhóm: tràn ngang 0, nút ⋮ của 53/53 hàng nằm trong khung, tooltip hiện tên đầy đủ.
+
+**E2E các ô chọn đã sửa (thật, dev server):** `service-priority-order`, `consulting-delete-and-picker`, `debt-history`, `cross-screen-freshness`, `stage-staff-pickers`, `prescription`, `payment-from-slip`, `invoice-request-ui`, `patient-groups`, `reception`, `labo-orders-actions`, `voucher`, `queue`, `materials`, `appointment`, `diagnosis-jaw-label`: 47/52. 5 đỏ không do thay đổi này:
+- `stage-staff-pickers` ×2: bước tạo dữ liệu qua API trả 403 "Catalog entry not found" trước khi mở giao diện;
+- `labo-orders-actions`: test chờ link `?branchId=`, app dùng `?branch=BD-001`;
+- `prescription` (phiếu điều trị thứ hai không hiện) và `queue` (Quản lý quầy rỗng): đỏ y hệt khi đã cất toàn bộ thay đổi combobox.
+
+**Danh mục (mục 17):** `taxonomy*`, `payment-qr`, `branch-*` trên bản build production: 82/87. 5 đỏ: 4 cũng đỏ trên bản build HEAD không có thay đổi này (worktree riêng, cổng 8090) — `branch-list` tạo chi nhánh, `taxonomy-dialogs` cấu hình giá dịch vụ, `taxonomy-import-api` 403, `taxonomy-service-sync` quyền chỉ đọc; `taxonomy-groups` "Đang lưu" (nhóm vừa tạo không hiện — BD-001 có hơn 155 nhóm, R-944) đỏ 2/2 cả khi có lẫn khi đã cất thay đổi này. Chạy lại sau khi nới panel 320px: vẫn 82/87, cùng 5 test.

@@ -13,6 +13,7 @@ import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface Props {
   open: boolean;
@@ -134,6 +135,7 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
             showSearch
             optionFilterProp="label"
             loading={staffLoading}
+            notFoundContent={staffLoading ? <SelectLoading /> : undefined}
             options={staff ?? []}
           />
         </FloatingField>

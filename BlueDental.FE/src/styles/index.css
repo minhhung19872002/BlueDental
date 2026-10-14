@@ -2515,12 +2515,77 @@ body::-webkit-scrollbar-track {
   text-align: center;
 }
 
-/* Paged option lists: the next page's spinner sits under the last row. */
+/* Paged option lists: the next page's spinner. It lies over the bottom of the
+   list rather than under it, so the popup keeps its height while a page loads. */
 .ss-loading-more,
 .bd-select-loading-more {
   display: flex;
   justify-content: center;
   padding: 8px 0;
+}
+
+/* Inside SearchSelect's own scroller: stuck to its bottom, its height taken
+   back by the margin, so it covers the last rows instead of adding to them. */
+.ss-loading-more {
+  position: sticky;
+  bottom: 0;
+  margin-top: -36px;
+  background: linear-gradient(to bottom, transparent, #fff 60%);
+  pointer-events: none;
+}
+
+.bd-select-loading-more {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(to bottom, transparent, #fff 60%);
+  pointer-events: none;
+}
+
+/* SelectLoading: placeholder rows the height of real options while the first
+   ones load. In a Select's empty slot it cancels that slot's own padding. */
+.bd-select-loading {
+  overflow: hidden;
+}
+
+.ant-select-item-empty:has(> .bd-select-loading) {
+  padding: 0;
+}
+
+.bd-select-loading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: var(--row-h, 40px);
+  padding: 0 12px;
+}
+
+.bd-select-loading-row span {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bd-line) 25%, var(--bd-bg-soft) 50%, var(--bd-line) 75%);
+  background-size: 200% 100%;
+  animation: bd-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.bd-select-loading-row span:first-child {
+  width: var(--bar);
+}
+
+.bd-select-loading-row .bd-select-loading-tail {
+  flex: none;
+  width: 72px;
+}
+
+@keyframes bd-skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }
 
 /* SortableMultiSearchSelect — several picks, ordered by priority. */
@@ -5981,9 +6046,11 @@ html:has(.ant-modal-wrap) {
   height: 100%;
 }
 
+/* 272px on the reference; widened at the owner's request (2026-10-14) so the
+   longer group names fit before they are cut with "…". */
 .bd-taxonomy-aside {
   display: none;
-  width: 272px;
+  width: 320px;
   flex-shrink: 0;
   border-right: 1px solid var(--bd-line);
 }
@@ -6354,6 +6421,14 @@ html:has(.ant-modal-wrap) {
 .bd-group-name {
   display: block;
   font-size: 14px;
+}
+
+/* One line, cut with "…" — see TruncatedText, which adds the full text on hover. */
+.bd-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Revealed on hover, and always once focused, so the menu is keyboard-reachable. */

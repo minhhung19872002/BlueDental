@@ -13,6 +13,7 @@ import {
   type CatalogEntryQuery,
 } from "@/features/taxonomy/api/taxonomyApi";
 import type { VoucherFormValues } from "../types/voucherForm";
+import { SelectLoading } from "@/components/SelectLoading";
 
 const ENTRIES_QUERY: CatalogEntryQuery = {
   scope: "catalog",
@@ -44,8 +45,8 @@ export function VoucherServicePicker({ form }: Props) {
   const [open, setOpen] = useState(false);
   const selected = Form.useWatch("targetIds", form) ?? [];
 
-  const { data: groups } = useTaxonomyGroups(branchId, TAXONOMY_GROUP.CareService);
-  const { data: entries } = useCatalogEntries(
+  const { data: groups, isLoading: groupsLoading } = useTaxonomyGroups(branchId, TAXONOMY_GROUP.CareService);
+  const { data: entries, isLoading: entriesLoading } = useCatalogEntries(
     branchId,
     TAXONOMY_GROUP.CareService,
     ENTRIES_QUERY,
@@ -113,6 +114,9 @@ export function VoucherServicePicker({ form }: Props) {
           suffixIcon={null}
           tagRender={() => <></>}
           classNames={{ popup: { root: "voucher-service-dropdown" } }}
+          notFoundContent={
+            (mode === "group" ? groupsLoading : entriesLoading) ? <SelectLoading rowHeight={42} /> : undefined
+          }
           filterOption={(input, option) =>
             option?.label.toLowerCase().includes(input.toLowerCase()) ?? false
           }

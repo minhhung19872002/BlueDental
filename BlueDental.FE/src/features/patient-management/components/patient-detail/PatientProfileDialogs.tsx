@@ -18,6 +18,7 @@ import { GENDER_BY_CODE } from "../../api/patientAdapters";
 import type { PatientDto, UpdatePatientRequest } from "../../types/patient";
 // These dialogs carry their own styling, so they look right wherever opened.
 import "./patient-detail.css";
+import { SelectLoading } from "@/components/SelectLoading";
 
 function patientPayload(patient: PatientDto): UpdatePatientRequest {
   return {
@@ -104,6 +105,7 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
             onChange={(event) => setFilter(event.target.value)}
           />
           <div className="pd-tag-options">
+            {tags.isLoading && visible.length === 0 ? <SelectLoading rows={4} /> : null}
             {visible.map((tag) => {
               const selected = patient.tagIds.includes(tag.value);
               return (

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -57,6 +57,9 @@ export function useDepartmentList(filter?: string, branchId?: string) {
   return useQuery({
     queryKey: ["departments", branchId, term],
     queryFn: () => departmentApi.list({ branchId, filter: term, maxResultCount: 200 }),
+    // The last answer stays on screen while a typed term is asked for: an
+    // emptied list collapsed the picker to one line on every keystroke.
+    placeholderData: keepPreviousData,
   });
 }
 

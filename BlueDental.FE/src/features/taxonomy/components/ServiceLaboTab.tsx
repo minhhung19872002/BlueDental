@@ -3,6 +3,7 @@ import { CloseOutlined, InfoCircleOutlined, SearchOutlined } from "@ant-design/i
 import { FloatingField } from "@/components/FloatingField";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { t } from "@/lib/i18n";
+import { SelectLoading } from "@/components/SelectLoading";
 
 interface Props {
   options: PickerOption[];
@@ -35,6 +36,7 @@ export function ServiceLaboTab({ options, loading }: Props) {
           allowClear
           optionFilterProp="label"
           loading={loading}
+          notFoundContent={loading ? <SelectLoading /> : undefined}
           options={options}
           prefix={<SearchOutlined />}
           // The reference shows a count, not a row of tags.
