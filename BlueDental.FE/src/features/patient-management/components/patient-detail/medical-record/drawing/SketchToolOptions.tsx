@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { Slider } from "antd";
 import { Circle, Minus, MoveUpRight, Square, type LucideIcon } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { SIZE_RANGE, SKETCH_COLORS, type ShapeKind, type SketchSettings, type SketchTool } from "./sketch";
+import { SIZE_RANGE, type ShapeKind, type SizedTool, type SketchSettings } from "./sketch";
 
 const SHAPES: ReadonlyArray<{ kind: ShapeKind; icon: LucideIcon; label: string }> = [
   { kind: "line", icon: Minus, label: "Patient:MedRecord:ShapeLine" },
@@ -12,39 +12,17 @@ const SHAPES: ReadonlyArray<{ kind: ShapeKind; icon: LucideIcon; label: string }
 ];
 
 interface Props {
-  tool: SketchTool;
+  tool: SizedTool;
   settings: SketchSettings;
   onChange: (next: SketchSettings) => void;
 }
 
-/** The style a tool draws with — the key it is kept under in the settings. */
-const STYLE_KEY = { pen: "pen", highlighter: "highlighter", shape: "shapeStyle" } as const;
-
 /**
- * The panel under a tool's arrow, laid out as Snipping Tool lays it out: the
- * shapes (for the shape tool), "Màu" as a grid of thirty, and "Cỡ nét" as a
- * slider over a sample of the line it will draw.
+ * The panel under a tool's arrow: which shape, for the shape tool, and how
+ * thick. The colour is not here — it is the one colour box every tool shares.
  */
 export function SketchToolOptions({ tool, settings, onChange }: Props) {
   const range = SIZE_RANGE[tool];
-
-  if (tool === "eraser") {
-    return (
-      <div className="sketch-options">
-        <SizeSlider
-          size={settings.eraser.size}
-          min={range.min}
-          max={range.max}
-          onChange={(size) => onChange({ ...settings, eraser: { size } })}
-        />
-      </div>
-    );
-  }
-
-  const key = STYLE_KEY[tool];
-  const style = settings[key];
-  const setStyle = (patch: Partial<typeof style>) =>
-    onChange({ ...settings, [key]: { ...style, ...patch } });
 
   return (
     <div className="sketch-options">
@@ -67,29 +45,13 @@ export function SketchToolOptions({ tool, settings, onChange }: Props) {
         </div>
       )}
 
-      <p className="sketch-options-label">{t("Patient:MedRecord:Colors")}</p>
-      <div className="sketch-swatches" role="radiogroup" aria-label={t("Patient:MedRecord:Colors")}>
-        {SKETCH_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            role="radio"
-            aria-checked={style.color === color}
-            aria-label={color}
-            className={["sketch-swatch", style.color === color && "sketch-swatch--active"].filter(Boolean).join(" ")}
-            style={{ "--swatch": color } as CSSProperties}
-            onClick={() => setStyle({ color })}
-          />
-        ))}
-      </div>
-
       <SizeSlider
-        size={style.size}
+        size={settings.sizes[tool]}
         min={range.min}
         max={range.max}
-        color={style.color}
+        color={tool === "eraser" ? undefined : settings.color}
         translucent={tool === "highlighter"}
-        onChange={(size) => setStyle({ size })}
+        onChange={(size) => onChange({ ...settings, sizes: { ...settings.sizes, [tool]: size } })}
       />
     </div>
   );
@@ -103,9 +65,13 @@ interface SizeSliderProps {
   color?: string;
   translucent?: boolean;
   onChange: (size: number) => void;
+  /** Called once the knob is let go, for a change that becomes a step of undo. */
+  onChangeComplete?: (size: number) => void;
 }
 
-function SizeSlider({ size, min, max, color, translucent, onChange }: SizeSliderProps) {
+export function SizeSlider({ size, min, max, color, translucent, onChange, onChangeComplete }: SizeSliderProps) {
+  const sample = { "--sample-color": color ?? "#94a3b8", "--sample-size": Math.min(size, 40) } as CSSProperties;
+
   return (
     <>
       <p className="sketch-options-label">{t("Patient:MedRecord:StrokeSize")}</p>
@@ -113,7 +79,7 @@ function SizeSlider({ size, min, max, color, translucent, onChange }: SizeSlider
         <path
           d="M14 34 C 70 6, 110 46, 160 24 S 220 10, 226 16"
           className={translucent ? "sketch-size-path sketch-size-path--translucent" : "sketch-size-path"}
-          style={{ "--sample-color": color ?? "#94a3b8", "--sample-size": Math.min(size, 40) } as CSSProperties}
+          style={sample}
         />
       </svg>
       <Slider
@@ -121,6 +87,7 @@ function SizeSlider({ size, min, max, color, translucent, onChange }: SizeSlider
         max={max}
         value={size}
         onChange={onChange}
+        onChangeComplete={onChangeComplete}
         aria-label={t("Patient:MedRecord:StrokeSize")}
         tooltip={{ formatter: (value) => `${value}px` }}
       />

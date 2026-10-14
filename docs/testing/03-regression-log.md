@@ -8499,3 +8499,15 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 - `e2e/medical-record-drawing.spec.ts` (mới, thật, không chặn API): vẽ bút + mũi tên → Áp dụng → Lưu (POST ảnh + PUT) → tải lại, ảnh tải được qua GET thật (`image/png`) → user `branch2` nhận 404 → Sửa (tẩy + bút) → link mới, link cũ 404 (đã xoá khỏi MinIO) → Xoá → Lưu → tải lại ô trống, link 404. Upload file không phải PNG → `BlueDental:Patient:0024`. Chưa đăng nhập → 401. 3/3 xanh, chạy lặp 2 lần.
 - BE: `MedicalRecordDrawingTests` 7/7, `PatientMedicalRecordAppServiceContractTests` 9/9 (quyền từng method).
 - `e2e/patient-medical-record.spec.ts`: 22/24 xanh. 2 đỏ có sẵn, xem R-942 (cũng đỏ trên worktree sạch của `660e86bc` và `0235db1e`).
+
+**Vòng 2 (cùng ngày, phản hồi chủ dự án):** vẽ còn trễ, đầu bút giật; thêm công cụ chữ kiểu Paint; bảng màu
+chung cho mọi công cụ; con trỏ Chọn để chỉ định lại nét/chữ.
+- Trễ: nét bị xoá khỏi lớp xem trước trước khi trang được vẽ lại (chờ React) → chớp; `getBoundingClientRect`
+  mỗi điểm; tẩy bỏ sót điểm gộp. Đầu bút giật: do điểm dự đoán (`getPredictedEvents`) và canvas
+  `desynchronized` thử thêm giữa chừng — đã bỏ cả hai. Đo trong trình duyệt: không long task, mỗi khung vẽ
+  trung vị 0,10 ms, p95 0,30 ms.
+- Mô hình đổi từ "danh sách nét để replay" sang danh sách đối tượng (nét, hình, chữ) + lịch sử phiên bản;
+  đối tượng nhúng trong PNG để mở lại vẫn sửa được. Tẩy đổi sang tẩy theo nét.
+- Test: `e2e/medical-record-drawing.spec.ts` 5 test (thêm: chữ — Esc, Enter xuống dòng, In đậm giữ con trỏ,
+  Tô nền, bấm ngoài để chốt, nhấp đúp sửa lại, lưu → mở lại vẫn sửa được chữ; Chọn — chọn, Esc bỏ chọn,
+  đổi màu (đo màu điểm ảnh), kéo di chuyển, Delete, hoàn tác, tẩy cả nét). 10/10 xanh (chạy lặp 2 lần).

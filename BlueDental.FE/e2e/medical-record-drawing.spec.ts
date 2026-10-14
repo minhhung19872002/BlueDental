@@ -98,6 +98,51 @@ async function pictureLoaded(page: Page): Promise<boolean> {
     });
 }
 
+/** How many pixels of the drawing page carry ink. */
+async function inkOn(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>(".sketch-canvas:not(.sketch-canvas--input)");
+    const data = canvas?.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+    let count = 0;
+    if (data) for (let at = 3; at < data.length; at += 4) if (data[at]) count += 1;
+    return count;
+  });
+}
+
+/** The colour at a spot of the drawing page, given as fractions of its size; "" when bare. */
+async function colourAt(page: Page, x: number, y: number): Promise<string> {
+  return page.evaluate(
+    ([fx, fy]) => {
+      const canvas = document.querySelector<HTMLCanvasElement>(".sketch-canvas:not(.sketch-canvas--input)");
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) return "";
+      const [r, g, b, a] = ctx.getImageData(Math.round(canvas.width * fx), Math.round(canvas.height * fy), 1, 1).data;
+      return a ? `${r},${g},${b}` : "";
+    },
+    [x, y],
+  );
+}
+
+async function inkAt(page: Page, x: number, y: number): Promise<boolean> {
+  return (await colourAt(page, x, y)) !== "";
+}
+
+/** Removes the copy a test added, through the real API. */
+async function deleteSheet(page: Page, id: string): Promise<number> {
+  return page.evaluate(async (sheet: string) => {
+    const xsrf = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("XSRF-TOKEN="))
+      ?.substring("XSRF-TOKEN=".length);
+    const res = await fetch(`/api/v1/app/patient-medical-records/${sheet}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {},
+    });
+    return res.status;
+  }, id);
+}
+
 async function statusOf(page: Page, url: string): Promise<number> {
   return (await page.request.get(url)).status();
 }
@@ -190,19 +235,122 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await expect.poll(() => statusOf(page, second)).toBe(404);
 
     // Tidy up the copy this test added.
-    const removed = await page.evaluate(async (id: string) => {
-      const xsrf = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
-        ?.substring("XSRF-TOKEN=".length);
-      const res = await fetch(`/api/v1/app/patient-medical-records/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {},
-      });
-      return res.status;
-    }, sheetId);
-    expect(removed).toBe(204);
+    expect(await deleteSheet(page, sheetId)).toBe(204);
+  });
+
+  test("words are typed, formatted and typed over again, and stay editable once saved", async ({ page }) => {
+    test.slow();
+    const sheetId = await openNewSheet(page);
+    await sheet(page).getByRole("button", { name: "Vẽ lược đồ" }).click();
+    const dialog = page.getByRole("dialog", { name: "Vẽ lược đồ phẫu thuật/thủ thuật" });
+    const area = page.getByRole("img", { name: "Vùng vẽ lược đồ" });
+    const box = dialog.getByRole("textbox", { name: "Nhập chữ lên lược đồ" });
+
+    await dialog.getByRole("button", { name: "Chữ", exact: true }).click();
+    await area.click({ position: { x: 60, y: 60 } });
+    await expect(box).toBeFocused();
+
+    // Esc drops the words, and only the words: the dialog stays open.
+    await box.pressSequentially("bỏ");
+    await box.press("Escape");
+    await expect(box).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Hoàn tác" })).toBeDisabled();
+
+    // As in Paint: Enter is a new line; the text bar formats without taking the caret.
+    await area.click({ position: { x: 60, y: 60 } });
+    await box.pressSequentially("Răng 36");
+    await box.press("Enter");
+    await box.pressSequentially("Cắt chóp");
+    await expect(box).toHaveValue("Răng 36\nCắt chóp");
+    const bar = dialog.getByRole("toolbar", { name: "Định dạng chữ" });
+    await bar.getByRole("button", { name: "In đậm" }).click();
+    await expect(bar.getByRole("button", { name: "In đậm" })).toHaveAttribute("aria-pressed", "true");
+    await expect(box).toBeFocused();
+    await bar.getByText("Tô nền").click();
+
+    // A click elsewhere on the page puts the words down.
+    await area.click({ position: { x: 500, y: 330 } });
+    await expect(box).toBeHidden();
+    await expect(dialog.getByRole("button", { name: "Hoàn tác" })).toBeEnabled();
+    expect(await inkOn(page)).toBeGreaterThan(200);
+
+    // Picked out again with the select tool, they open for typing.
+    await dialog.getByRole("button", { name: "Chọn", exact: true }).click();
+    await area.dblclick({ position: { x: 70, y: 70 } });
+    await expect(box).toHaveValue("Răng 36\nCắt chóp");
+    await box.press("Control+End");
+    await box.pressSequentially(" 2 chân");
+    await box.press("Control+Enter");
+    await expect(box).toBeHidden();
+
+    await page.keyboard.press("Control+z");
+    await expect(dialog.getByRole("button", { name: "Làm lại" })).toBeEnabled();
+    await page.keyboard.press("Control+y");
+
+    await dialog.getByRole("button", { name: "Áp dụng" }).click();
+    expect(await drawingSource(page)).toMatch(/^data:image\/png;base64,/);
+    await save(page);
+    await reopen(page);
+    expect(await drawingSource(page)).toMatch(SAVED_LINK);
+    expect(await pictureLoaded(page)).toBe(true);
+
+    // Saved and reopened, the words are still words, not pixels.
+    await sheet(page).getByRole("button", { name: "Sửa bản vẽ" }).click();
+    await expect(dialog.locator(".ant-spin-spinning")).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Chọn", exact: true }).click();
+    await area.dblclick({ position: { x: 70, y: 70 } });
+    await expect(box).toHaveValue("Răng 36\nCắt chóp 2 chân");
+    await box.press("Escape");
+    await dialog.getByRole("button", { name: "Huỷ" }).click();
+
+    expect(await deleteSheet(page, sheetId)).toBe(204);
+  });
+
+  test("a stroke is picked out with the select tool: moved, recoloured, deleted, erased whole", async ({ page }) => {
+    const sheetId = await openNewSheet(page);
+    await sheet(page).getByRole("button", { name: "Vẽ lược đồ" }).click();
+    const dialog = page.getByRole("dialog", { name: "Vẽ lược đồ phẫu thuật/thủ thuật" });
+    const area = page.getByRole("img", { name: "Vùng vẽ lược đồ" });
+    const selection = dialog.getByRole("toolbar", { name: "Đối tượng đang chọn" });
+
+    await drag(page, [0.2, 0.5], [0.6, 0.5]);
+    expect(await inkAt(page, 0.4, 0.5)).toBe(true);
+
+    await dialog.getByRole("button", { name: "Chọn", exact: true }).click();
+    const box = (await area.boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.5);
+    await expect(selection).toBeVisible();
+
+    // Esc lets go of it, and only of it.
+    await page.keyboard.press("Escape");
+    await expect(selection).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.5);
+    await expect(selection).toBeVisible();
+
+    // Recoloured from the shared colour box.
+    await dialog.getByRole("button", { name: "#22b14c" }).click();
+    expect(await colourAt(page, 0.4, 0.5)).toBe("34,177,76");
+
+    // Moved by dragging it.
+    await drag(page, [0.4, 0.5], [0.4, 0.8]);
+    expect(await inkAt(page, 0.4, 0.8)).toBe(true);
+    expect(await inkAt(page, 0.4, 0.5)).toBe(false);
+
+    // Deleted with the key, back with undo.
+    await page.keyboard.press("Delete");
+    expect(await inkOn(page)).toBe(0);
+    await page.keyboard.press("Control+z");
+    expect(await inkAt(page, 0.4, 0.8)).toBe(true);
+
+    // The eraser takes a stroke it touches away whole.
+    await dialog.getByRole("button", { name: "Tẩy", exact: true }).click();
+    await drag(page, [0.3, 0.7], [0.3, 0.9]);
+    expect(await inkOn(page)).toBe(0);
+
+    await dialog.getByRole("button", { name: "Huỷ" }).click();
+    expect(await deleteSheet(page, sheetId)).toBe(204);
   });
 
   test("only a PNG is accepted as a drawing", async ({ page }) => {
