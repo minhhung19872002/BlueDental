@@ -3642,8 +3642,9 @@ trang — nên tab này chuyển sang đúng kiến trúc của bản gốc: **t
   (2026-10-14, R-942): "Số nhà, Phường, Tỉnh" ở Bìa, Chỉnh nha, TVTQ, TV+đồng ý;
   tờ Ngoại trú tách ba ô Số nhà / Xã, phường / Tỉnh (Thôn và Huyện để trống —
   hồ sơ không lưu). `country` vẫn không điền.
-- **Chẩn đoán** (R-942, thiết kế của BlueDental): ô "Chẩn đoán" đầu tiên của bảy
-  mẫu nhận các chẩn đoán chưa huỷ ở tab Chẩn đoán & Tư vấn, dạng
+- **Chẩn đoán** (R-942, thiết kế của BlueDental): ô "Chẩn đoán" đầu tiên của sáu
+  mẫu (không gồm "II. CHẨN ĐOÁN" của TV+đồng ý — chủ dự án muốn để trống, bác sĩ
+  viết tay) nhận các chẩn đoán chưa huỷ ở tab Chẩn đoán & Tư vấn, dạng
   `Tên (răng 16, 26); …`. Mẫu có ngày lấy chẩn đoán từ ngày đó trở đi (như bản
   gốc gọi `patientDiagnoses?fromDate=`), không có thì lấy tất cả. Ô nhận dạng
   còn sót cũng được nối: TVTQ (họ tên, năm sinh, số hồ sơ), TV+đồng ý (mã hồ sơ),

@@ -155,13 +155,14 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
  *
  * Bệnh án ngoại trú prints the diagnosis of the examining clinic (mục 5), not
  * the referring one's (mục 13) nor the discharge one, which the clinic writes
- * when the record is closed.
+ * when the record is closed. "Phiếu tư vấn và xác nhận đồng ý điều trị" is left
+ * out: its "II. CHẨN ĐOÁN" is written by hand at the consultation (clinic,
+ * 2026-10-14).
  */
 const DIAGNOSIS_FIELDS = [
   "outpatient-dental.text.43",
   "orthodontic.text.86",
   "custom.text.9959ffa6f36f45b89e42d5a486996216",
-  "consultation.text.5",
   "surgery-consent.text.4",
   "procedure-record.text.1",
   "care.diagnosis",

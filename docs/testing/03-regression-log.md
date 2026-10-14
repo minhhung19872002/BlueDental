@@ -8478,7 +8478,7 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Sửa (FE):**
 - `useAddressParts` (tách từ `useAddressLabel`) → `patient.address` / `addressStreet` / `ward` / `province`; tờ Ngoại trú tách ba ô.
-- `useSheetDiagnoses` + `diagnosisFieldValues`: ô Chẩn đoán đầu tiên của 7 mẫu (Ngoại trú mục 5, Chỉnh nha VIII, TVTQ, TV+đồng ý II, Đồng ý PT, Phiếu PT "trước PT", Chăm sóc); mẫu có ngày lấy từ ngày đó trở đi, rỗng thì lấy tất cả; bỏ chẩn đoán đã huỷ; không có quyền `treatmentDiagnosis.read` thì để trống.
+- `useSheetDiagnoses` + `diagnosisFieldValues`: ô Chẩn đoán đầu tiên của 6 mẫu (Ngoại trú mục 5, Chỉnh nha VIII, TVTQ, Đồng ý PT, Phiếu PT "trước PT", Chăm sóc). "II. CHẨN ĐOÁN" của TV+đồng ý để trống theo chủ dự án (bác sĩ viết tay); mẫu có ngày lấy từ ngày đó trở đi, rỗng thì lấy tất cả; bỏ chẩn đoán đã huỷ; không có quyền `treatmentDiagnosis.read` thì để trống.
 - `documentKey` của tờ theo toàn bộ giá trị tự điền, không chỉ tên chi nhánh.
 - Vẫn chỉ lưu ô đã ghi đè: sửa hồ sơ sau này vẫn hiện lên phiếu.
 

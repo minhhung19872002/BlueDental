@@ -1031,7 +1031,8 @@ test.describe("Bệnh án", () => {
         {
           "consultation.text.1": patient.body.patientCode,
           "consultation.patient.address": address,
-          "consultation.text.5": diagnosed,
+          // "II. CHẨN ĐOÁN" is the doctor's to write at the consultation.
+          "consultation.text.5": "",
         },
       ],
       ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", { "surgery-consent.text.4": diagnosed }],
@@ -1053,7 +1054,7 @@ test.describe("Bệnh án", () => {
     await page.reload();
     await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
     await expect(blank(page, "consultation.patient.address")).toHaveText(address);
-    await expect(blank(page, "consultation.text.5")).toHaveText(diagnosed);
+    await expect(blank(page, "consultation.text.5")).toBeEmpty();
   });
 
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {
