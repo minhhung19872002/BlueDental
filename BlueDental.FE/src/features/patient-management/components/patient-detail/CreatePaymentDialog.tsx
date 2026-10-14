@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Button, Modal } from "antd";
+import dayjs from "dayjs";
 import { CheckCircleOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -17,6 +18,7 @@ import {
   type TreatmentPlanSlipDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { owingSlipOptions } from "./create-payment/paymentDialogModel";
+import { PaymentDateField } from "./create-payment/PaymentDateField";
 import { PaymentInfoPanel } from "./create-payment/PaymentInfoPanel";
 import { Fact, PaymentSelectedTotals } from "./create-payment/PaymentSelectedTotals";
 import { PaymentServiceList } from "./create-payment/PaymentServiceList";
@@ -113,8 +115,8 @@ export function CreatePaymentDialog({
     onClose,
   });
 
-  // A reopened receipt keeps the day it was written ("Ngày tạo").
-  const today = formatDate(revision?.payment.creationTime ?? new Date().toISOString());
+  // A new receipt is dated the day picked; a reopened one keeps the day it was written.
+  const paidOn = formatDate(dayjs(payment.form.paidOn).toDate());
 
   return (
     <Modal
@@ -151,8 +153,12 @@ export function CreatePaymentDialog({
             <h4 className="pd-newpay-head">
               <FileTextOutlined /> {t("Patient:Payment:SummaryHeader")}
             </h4>
-            <Fact label={t("Patient:Payment:Description")} value={t("Patient:Payment:DefaultDescription", today)} />
-            <Fact label={t("Patient:Payment:DateLabel")} value={today} />
+            <Fact label={t("Patient:Payment:Description")} value={t("Patient:Payment:DefaultDescription", paidOn)} />
+            {revision ? (
+              <Fact label={t("Patient:Payment:DateLabel")} value={paidOn} />
+            ) : (
+              <PaymentDateField value={payment.form.paidOn} onChange={(day) => payment.update({ paidOn: day })} />
+            )}
           </section>
 
           <section>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import dayjs from "dayjs";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useRenderPaymentReceipt } from "@/features/treatment-management/api/eInvoiceApi";
@@ -35,6 +36,15 @@ function blocker(payment: PaymentForm, needsAccount: boolean): string | null {
   if (payment.overpaid) return "Patient:Payment:AmountExceedsBalance";
   if (needsAccount && !payment.form.accountId) return "Patient:Payment:SelectMethod";
   return null;
+}
+
+/**
+ * The picked day at the current time of day, so receipts written for the same
+ * day still list in the order they were entered. Today is simply now.
+ */
+function paidAtOf(paidOn: string): string {
+  const now = dayjs();
+  return dayjs(paidOn).hour(now.hour()).minute(now.minute()).second(now.second()).toISOString();
 }
 
 /**
@@ -85,7 +95,7 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
   };
 
   const saveNew = async (planId: string, tab: Window | null) => {
-    const { note, accountId } = payment.form;
+    const { note, accountId, paidOn } = payment.form;
     const created = await record.mutateAsync({
       ...figures(),
       patientId,
@@ -93,13 +103,15 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
       treatmentPlanId: planId,
       kind: PAYMENT_KIND.Payment,
       staffId,
+      paidAt: paidAtOf(paidOn),
       note: note.trim() || undefined,
       paymentAccountId: needsAccount ? accountId : undefined,
     });
     toast.success(t("Patient:Payment:CreateSuccess"));
     // The receipt is saved; a PHIẾU THU that fails to render does not undo it.
+    // It is dated the day the money was taken, not the day it was entered.
     receipt
-      .mutateAsync({ patientPaymentId: created.id, buyerName: null, arisingDate: null, lines: [] })
+      .mutateAsync({ patientPaymentId: created.id, buyerName: null, arisingDate: paidOn, lines: [] })
       .then((pdf) => showReceipt(tab, pdf))
       // The failure itself is toasted by the global MutationCache.
       .catch(() => tab?.close());

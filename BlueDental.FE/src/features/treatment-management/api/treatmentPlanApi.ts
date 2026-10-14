@@ -471,6 +471,8 @@ export interface RecordPaymentInput {
   method: PaymentMethodKind;
   amount: number;
   staffId: string;
+  /** When the money was taken; left out = now. Any day up to today (`PaymentDateInFuture`). */
+  paidAt?: string;
   note?: string;
   /** Required when `method` is Banking or EWallet — the account collected into. */
   paymentAccountId?: string;

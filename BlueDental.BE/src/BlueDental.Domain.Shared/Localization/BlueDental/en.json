@@ -1826,6 +1826,7 @@
     "Treatment:Payment:ConfirmPaymentFor": "Confirm payment {0}",
     "Treatment:Payment:ConfirmSuccess": "Payment confirmed",
     "Treatment:Payment:DateCreated": "Date Created",
+    "Treatment:Payment:PaidDate": "Payment date",
     "Treatment:Payment:Cash": "Cash",
     "Treatment:Payment:Banking": "Banking",
     "Treatment:Payment:EWallet": "Momo Wallet",

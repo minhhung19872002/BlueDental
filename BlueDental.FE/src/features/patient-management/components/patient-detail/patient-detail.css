@@ -3345,8 +3345,16 @@
 .pd-newpay-fact + .pd-newpay-fact {
   margin-top: 16px;
 }
-.pd-newpay-fact > span:first-child {
+.pd-newpay-fact > span:first-child,
+.pd-newpay-fact > label {
   color: var(--bd-muted);
+}
+/* "Ngày thanh toán" is a picker on a new receipt (owner 2026-10-14). */
+.pd-newpay-fact--field {
+  align-items: center;
+}
+.pd-newpay-date {
+  width: 160px;
 }
 .pd-newpay-strong {
   font-size: 16px;

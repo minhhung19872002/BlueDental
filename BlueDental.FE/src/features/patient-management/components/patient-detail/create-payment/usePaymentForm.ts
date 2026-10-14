@@ -1,4 +1,5 @@
 import { useState } from "react";
+import dayjs from "dayjs";
 import {
   PAYMENT_METHOD,
   SPLIT_MODE,
@@ -23,7 +24,15 @@ export interface PaymentFormState {
   note: string;
   /** "Xuất hóa đơn đỏ" — only stored on the receipt; issuing happens on another screen. */
   redInvoice: boolean;
+  /**
+   * Ngày thanh toán, "YYYY-MM-DD": today or any day before it, so money taken
+   * earlier can be entered afterwards (owner 2026-10-14). A reopened receipt
+   * shows the day it was written; only a new one sends this.
+   */
+  paidOn: string;
 }
+
+export const ISO_DAY = "YYYY-MM-DD";
 
 interface Options {
   open: boolean;
@@ -52,6 +61,7 @@ function initialState({ initialSlipId, focusServiceId, revision }: Options): Pay
       accountId: revision.paymentAccountId ?? undefined,
       note: revision.note ?? "",
       redInvoice: revision.redInvoiceRequested,
+      paidOn: dayjs(revision.creationTime).format(ISO_DAY),
     };
   }
   return {
@@ -64,6 +74,7 @@ function initialState({ initialSlipId, focusServiceId, revision }: Options): Pay
     accountId: undefined,
     note: "",
     redInvoice: false,
+    paidOn: dayjs().format(ISO_DAY),
   };
 }
 

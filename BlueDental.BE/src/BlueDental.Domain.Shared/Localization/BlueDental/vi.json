@@ -1725,6 +1725,7 @@
     "Treatment:Payment:ConfirmPaymentFor": "Xác nhận thanh toán phiếu {0}",
     "Treatment:Payment:ConfirmSuccess": "Đã xác nhận thanh toán",
     "Treatment:Payment:DateCreated": "Ngày tạo",
+    "Treatment:Payment:PaidDate": "Ngày thanh toán",
     "Treatment:Payment:Cash": "Tiền mặt",
     "Treatment:Payment:Banking": "Ngân hàng",
     "Treatment:Payment:EWallet": "Ví momo",

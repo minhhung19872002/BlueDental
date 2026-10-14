@@ -8323,3 +8323,41 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - Kết quả: 12/13. Một test đỏ có sẵn, không liên quan: `timekeeping` › "the work schedule board loads its KPIs" chờ `data-testid="timekeeping-kpis"` nhưng testid này đã mất khỏi `TimekeepingStatChips` từ một commit trước. File đó không nằm trong thay đổi này.
   - `tsc` + eslint sạch.
 - Chưa commit.
+
+## R-934 (2026-10-14, mức 2: dialog "Tạo phiếu thanh toán" của F-70 + bảng Thanh toán) Chọn "Ngày thanh toán", cho phép ngày quá khứ; cột "Ngày tạo" thành "Ngày thanh toán"
+
+- **Owner (ảnh dialog "Tạo phiếu thanh toán"):** "Chỗ này cho chọn ngày thanh toán giúp anh nhé ---> Cho phép chọn ngày trong quá khứ luôn". Không chặn ngày sớm nhất. Ngày tương lai vẫn bị chặn. Sau đó thêm: "thay thế cột Ngày tạo thành Ngày thanh toán luôn nha".
+- **BE không đổi logic:**
+  - `RecordPatientPaymentDto.PaidAt` vốn đã có (null = bây giờ).
+  - `PatientPayment.EnsureNotAfterToday` từ chối ngày sau hôm nay (`BlueDental:Billing:0094`, HTTP 403).
+  - Chỉ thêm key `Treatment:Payment:PaidDate` (vi "Ngày thanh toán" / en "Payment date"). Key được nhúng trong assembly, nên phải build lại và khởi động lại API mới thấy.
+- **FE:**
+  - `create-payment/PaymentDateField.tsx` (mới): `DatePicker` theo `DATE_INPUT_FORMAT`, dùng `disabledDate` cho ngày sau hôm nay, không cho xoá trống.
+  - `usePaymentForm`: thêm `paidOn` ("YYYY-MM-DD"), mặc định là hôm nay.
+  - `useSavePayment`:
+    - gửi `paidAt` = ngày đã chọn + giờ hiện tại;
+    - PHIẾU THU in với `arisingDate` = ngày đã chọn;
+    - "Nội dung" ("Thanh toán ngày …") đi theo ngày đã chọn.
+  - Phiếu "Chưa thanh toán" mở lại để sửa hoặc xác nhận vẫn hiện ngày chỉ đọc: API cập nhật không nhận `PaidAt`, còn `Confirm` đặt `PaidAt = Clock.Now`.
+  - `paymentColumns`: cột thứ 2 ở tab Thanh toán (cả bảng lẫn thẻ mobile) đổi từ `creationTime` "Ngày tạo" sang `paidAt` "Ngày thanh toán".
+  - Chưa đổi: tab Hoàn tiền (đã hiện `paidAt` nhưng nhãn vẫn "Ngày tạo") và dialog "Xem phiếu" (`PaymentReceiptDialog`).
+- **Hệ quả nghiệp vụ:** phiếu lùi ngày được tính vào doanh thu và báo cáo của ngày đã chọn, không phải ngày nhập.
+- **Test:** `payment-from-slip` thêm test "Ngày thanh toán: a past day is picked, saved, printed and listed; a later day is refused". Test kiểm:
+  - mặc định là hôm nay, ô ngày mai bị khoá;
+  - chọn lùi 3 ngày: POST có `paidAt` = ngày đó và `creationTime` = hôm nay;
+  - receipt-pdf có `arisingDate` = ngày đó;
+  - reload rồi GET lại vẫn đúng;
+  - cột "Ngày thanh toán" hiện ngày đó, không còn cột "Ngày tạo";
+  - POST thẳng API với ngày mai trả 403 `Billing:0094`.
+- **Owner xem bảng:** "hiện lên ngày thôi". Cột "Ngày thanh toán" chỉ hiện ngày (`formatDate`), không hiện giờ, vì giờ của phiếu lùi ngày chỉ là giờ lúc nhập. Test kiểm ô thứ 2 của dòng đúng bằng `DD/MM/YYYY`.
+- **Kiểm chứng: VERIFIED.** Chạy trên API thật :5000 (owner cho dừng host cũ, đã build lại có key mới), build production `vite preview` :18934 và PostgreSQL thật.
+  - `payment-from-slip` 2/2, `payment-status` 4/4, `payment-permission-buttons` 2/2: tổng 8/8.
+  - Sau khi đổi sang chỉ hiện ngày, chạy lại `payment-from-slip` 2/2.
+  - `tsc` + eslint sạch.
+- **Dialog "Xem phiếu" (Chi tiết phiếu), theo yêu cầu owner "sửa dialog Xem phiếu trước":** phiếu thu đổi dòng "Ngày tạo" thành **"Ngày thanh toán"**, chỉ hiện ngày `paidAt`, giống cột trong bảng.
+  - `ReceiptView.createdLabel` tách thành `dateTitle` + `dateText`.
+  - Phiếu hoàn tiền vẫn ghi "Ngày tạo" + giờ, chờ owner quyết khi sửa tab Hoàn tiền.
+  - "In hóa đơn tổng" vẫn là "Ngày tạo" = hôm nay.
+  - Test `payment-from-slip` mở 👁 và kiểm `dd` của "Ngày thanh toán" đúng ngày đã lùi, không còn `dt` "Ngày tạo".
+  - Chạy lại trên API :5000 + build production :18934: `payment-from-slip` 2/2, `payment-status` 4/4, `treatment-plan-detail` 13/13, `billing-ledger` 5/5.
+- Chưa commit.

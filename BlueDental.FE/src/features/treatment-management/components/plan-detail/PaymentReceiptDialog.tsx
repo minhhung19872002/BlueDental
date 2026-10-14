@@ -87,7 +87,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
               <ReceiptFacts
                 facts={[
                   { label: t("Treatment:Payment:PaymentCode"), value: receipt.code },
-                  { label: t("Treatment:Payment:DateCreated"), value: receipt.createdLabel },
+                  { label: receipt.dateTitle, value: receipt.dateText },
                   { label: t("Treatment:Payment:PaymentMethod"), value: receipt.methodLabel },
                   { label: t("Treatment:Common:Note"), value: dash(receipt.note) },
                 ]}

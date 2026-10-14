@@ -147,3 +147,107 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
   await typeSlipSearch(nextPopup, slipCode);
   await expect(nextPopup.locator(".ant-select-item-option", { hasText: slipCode })).toHaveCount(0);
 });
+
+/** The local calendar day `offset` days from today, as "YYYY-MM-DD" and "DD/MM/YYYY". */
+function dayFromToday(offset: number): { iso: string; shown: string } {
+  const day = new Date();
+  day.setDate(day.getDate() + offset);
+  const dd = String(day.getDate()).padStart(2, "0");
+  const mm = String(day.getMonth() + 1).padStart(2, "0");
+  return { iso: `${day.getFullYear()}-${mm}-${dd}`, shown: `${dd}/${mm}/${day.getFullYear()}` };
+}
+
+/** The clinic's calendar day (UTC+7) of a stored instant. */
+const clinicDay = (instant: string) =>
+  new Date(instant).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+
+test("Ngày thanh toán: a past day is picked, saved, printed and listed; a later day is refused", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  await openNewSlip(page);
+
+  const today = dayFromToday(0);
+  const past = dayFromToday(-3);
+  const tomorrow = dayFromToday(1);
+
+  // ── Opens on today; Nội dung follows the picked day ──────────────────────
+  await page.getByRole("button", { name: "In Hóa Đơn" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
+  await expect(dialog).toBeVisible();
+  const dateBox = dialog.getByLabel("Ngày thanh toán");
+  await expect(dateBox).toHaveValue(today.shown);
+  await expect(dialog).toContainText(`Thanh toán điều trị ngày ${today.shown}`);
+
+  await dateBox.click();
+  const panel = page.locator(".ant-picker-dropdown:visible");
+  await expect(panel.locator(`td[title="${tomorrow.iso}"]`)).toHaveClass(/ant-picker-cell-disabled/);
+  await panel.locator(`td[title="${past.iso}"]`).click();
+  await expect(dateBox).toHaveValue(past.shown);
+  await expect(dialog).toContainText(`Thanh toán điều trị ngày ${past.shown}`);
+
+  // ── Saved with that day; PHIẾU THU is dated with it too ──────────────────
+  // Half the line, so it still owes for the server check at the end.
+  await dialog.getByRole("checkbox", { name: "Chọn Tất Cả" }).check();
+  const due = money(await dialog.locator(".pd-newpay-lines > li .pd-newpay-due").first().innerText());
+  await dialog.locator(".pd-newpay-amount").fill(String(Math.max(2, Math.floor(due / 2))));
+  await dialog.getByRole("button", { name: "Lưu" }).click();
+  const saved = page.waitForResponse(
+    (res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST",
+  );
+  const printed = page.waitForRequest(
+    (req) => req.url().endsWith(RECEIPT_PDF) && req.method() === "POST",
+  );
+  const tab = context.waitForEvent("page");
+  await answerQuestionYes(page);
+  const response = await saved;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const receipt = (await response.json()) as StoredReceipt & { paidAt: string; creationTime: string };
+  expect(clinicDay(receipt.paidAt)).toBe(past.iso);
+  expect(clinicDay(receipt.creationTime)).toBe(today.iso);
+  expect((await printed).postDataJSON()).toMatchObject({ patientPaymentId: receipt.id, arisingDate: past.iso });
+  await (await tab).close();
+  await expect(dialog).toBeHidden();
+
+  // ── Persisted: after a reload, a separate GET and the Thanh toán tab ─────
+  await page.reload();
+  const stored = (await storedReceipt(page, receipt)) as (StoredReceipt & { paidAt: string }) | undefined;
+  expect(stored && clinicDay(stored.paidAt)).toBe(past.iso);
+  await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Ngày thanh toán" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Ngày tạo", exact: true })).toHaveCount(0);
+  const row = page.locator(".ant-table-row", { hasText: receipt.code });
+  // The day only, no clock time (owner 2026-10-14).
+  await expect(row.locator("td").nth(1)).toHaveText(past.shown);
+
+  // "Xem phiếu" says the same: "Ngày thanh toán", the day only, no "Ngày tạo".
+  await row.getByRole("button", { name: `Xem phiếu ${receipt.code}` }).click();
+  const detail = page.locator(".pdt-receipt.pdt-screen");
+  const dateFact = detail.locator(".pdt-receipt-fact", { has: page.locator("dt", { hasText: /^Ngày thanh toán$/ }) });
+  await expect(dateFact.locator("dd")).toHaveText(past.shown);
+  await expect(detail.locator("dt", { hasText: /^Ngày tạo$/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // ── The server refuses a later day whatever the picker allows ────────────
+  const future = await call(page, PAYMENTS_API, {
+    method: "POST",
+    json: {
+      patientId: receipt.patientId,
+      clinicBranchId: receipt.clinicBranchId,
+      treatmentPlanId: receipt.treatmentPlanId,
+      treatmentServiceIds: [receipt.lines[0].treatmentServiceId],
+      splitMode: 1,
+      items: [],
+      kind: 1,
+      method: 1,
+      amount: 1,
+      staffId: receipt.staffId,
+      paidAt: `${tomorrow.iso}T10:00:00+07:00`,
+    },
+  });
+  expect(future.status).toBe(403);
+  expect((future.body.error as { code?: string } | undefined)?.code).toBe("BlueDental:Billing:0094");
+});
