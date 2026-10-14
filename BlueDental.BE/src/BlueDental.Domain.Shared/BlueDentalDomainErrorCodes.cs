@@ -111,6 +111,9 @@ public static class BlueDentalDomainErrorCodes
         /// international one ("+" country code, at most 15 digits in all).
         /// </summary>
         public const string InvalidPhone = "BlueDental:Patient:0023";
+
+        /// <summary>A sheet's drawing is not a PNG, or is larger than MedicalRecordDrawing allows.</summary>
+        public const string InvalidMedicalRecordDrawing = "BlueDental:Patient:0024";
     }
 
     public static class Appointments

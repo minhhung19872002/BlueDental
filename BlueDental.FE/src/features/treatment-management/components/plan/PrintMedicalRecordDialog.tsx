@@ -12,6 +12,7 @@ import { useSheetFieldValues } from "@/features/patient-management/components/pa
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { t } from "@/lib/i18n";
 import {
+  copiedPicturesReady,
   copySheetsForPrint,
   framesForSheets,
 } from "@/features/patient-management/components/patient-detail/medical-record/printing";
@@ -89,6 +90,7 @@ export function PrintMedicalRecordDialog({ patient, onClose }: Props) {
 
     restorePage.current?.();
     restorePage.current = copySheetsForPrint(frames);
+    await copiedPicturesReady();
     window.print();
   };
 

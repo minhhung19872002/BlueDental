@@ -49,11 +49,12 @@ export function MedicalRecordSheetView({
       stored={values}
       /*
        * Rebuilt when the sheet changes, when the server hands back a newer copy
-       * of it — and when the letterhead lands, which is a request of its own and
-       * may arrive after the sheet is first drawn. Never while it is being
-       * written on: the branch cannot change under someone's hands.
+       * of it — and when what the record answers changes: the letterhead, the
+       * address and the diagnoses are requests of their own and may land after
+       * the sheet is first drawn. Never while it is being written on: typing
+       * changes what is stored, not what the record answers.
        */
-      documentKey={`${sheet.id}:${sheet.lastModificationTime ?? ""}:${String(auto["branch.name"] ?? "")}`}
+      documentKey={`${sheet.id}:${sheet.lastModificationTime ?? ""}:${JSON.stringify(auto)}`}
       editable={editable}
       zoom={zoom}
       canAddRows={mayEditRows && Boolean(spec.canAddRows)}

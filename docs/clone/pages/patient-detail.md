@@ -3638,7 +3638,17 @@ trang — nên tab này chuyển sang đúng kiến trúc của bản gốc: **t
   genderMale · genderFemale · phone · cccd · email · job · reason · history ·
   insuranceNumber · address · country`.
 - **`address` và `country` khai ô nhưng bản gốc cố tình không điền** — để phòng
-  khám viết tay. BlueDental làm y hệt.
+  khám viết tay. BlueDental **có điền địa chỉ** theo yêu cầu chủ dự án
+  (2026-10-14, R-942): "Số nhà, Phường, Tỉnh" ở Bìa, Chỉnh nha, TVTQ, TV+đồng ý;
+  tờ Ngoại trú tách ba ô Số nhà / Xã, phường / Tỉnh (Thôn và Huyện để trống —
+  hồ sơ không lưu). `country` vẫn không điền.
+- **Chẩn đoán** (R-942, thiết kế của BlueDental): ô "Chẩn đoán" đầu tiên của sáu
+  mẫu (không gồm "II. CHẨN ĐOÁN" của TV+đồng ý — chủ dự án muốn để trống, bác sĩ
+  viết tay) nhận các chẩn đoán chưa huỷ ở tab Chẩn đoán & Tư vấn, dạng
+  `Tên (răng 16, 26); …`. Mẫu có ngày lấy chẩn đoán từ ngày đó trở đi (như bản
+  gốc gọi `patientDiagnoses?fromDate=`), không có thì lấy tất cả. Ô nhận dạng
+  còn sót cũng được nối: TVTQ (họ tên, năm sinh, số hồ sơ), TV+đồng ý (mã hồ sơ),
+  Chỉnh nha (CCCD).
 - Ô nào **không** khác với dữ liệu hồ sơ thì **không lưu**. Bản gốc chỉ lưu ô đã
   ghi đè; nhờ vậy sửa hồ sơ bệnh nhân sau này vẫn hiện lên phiếu.
 
@@ -4015,6 +4025,44 @@ Hai lỗi cùng đường đi, lộ ra khi sửa và sửa luôn:
 - "In nhanh" từ thẻ phiếu in **nhầm tờ trước đó**: nó gọi in ngay sau
   `setActiveId`, trước khi React kịp vẽ tờ mới. Nay chờ khung của đúng tờ xuất
   hiện và tải xong (`framesForSheets`) rồi mới in.
+
+### 11. Lược đồ phẫu thuật/thủ thuật — bác sĩ vẽ trên phiếu (yêu cầu chủ dự án, 2026-10-14)
+
+**Tự phát triển, không phải hành vi bản gốc.** Bản gốc in ô "LƯỢC ĐỒ PHẪU THUẬT/ THỦ THUẬT"
+của mẫu số 7 trống để vẽ tay. Chủ dự án yêu cầu vẽ ngay trên màn hình; công cụ
+theo Snipping Tool của Windows (ảnh mẫu kèm yêu cầu).
+
+- Ô là một blank `data-medical-record-field="procedure-record.diagram"`, `data-field-type="drawing"`.
+  Giá trị lưu là **đường dẫn** tới ảnh (`/api/v1/app/patient-medical-records/{id}/drawings/{drawingId}`),
+  không phải base64 trong `Content`.
+- Ô là bản preview: ảnh lấp đầy ô (`object-fit: contain`); ô cao theo cột "Trình tự" bên cạnh (đo: 334 × 219 px).
+  Trên mép trên của ô: "Vẽ lược đồ" (ô trống), hoặc "Sửa bản vẽ" + "Xoá". Nhấp đúp vào ảnh cũng mở được. Nút không in ra.
+- Dialog "Vẽ lược đồ phẫu thuật/thủ thuật" (vòng 2, theo phản hồi chủ dự án cùng ngày):
+  - Công cụ: **Chọn**, Bút, Bút dạ quang, Tẩy, Hình (đường thẳng, mũi tên, chữ nhật, elip), **Chữ**.
+    Mũi tên cạnh công cụ có cỡ nét chỉ mở cỡ nét (và loại hình).
+  - **Bảng màu chung kiểu Paint** cho mọi công cụ: ô màu đang dùng, 20 màu của Paint, 10 ô màu tuỳ chỉnh
+    (bảng chọn màu hệ thống, giữ trong phiên). Vòng 3: bỏ Màu 2 cùng "Tô nền", nới rộng ô màu.
+  - **Chữ kiểu Paint**: bấm lên trang → ô nhập tại chỗ + thanh định dạng nổi (phông, cỡ chữ pt, đậm, nghiêng,
+    gạch chân, gạch ngang, căn trái/giữa/phải). Enter xuống dòng; bấm ra ngoài / Ctrl+Enter / đổi
+    công cụ / Áp dụng thì chốt; Esc huỷ, không đóng dialog. Cỡ 1pt = 4 px trang (trang gấp 3 ô in).
+  - **Chọn**: trỏ lên nét/hình/chữ → con trỏ di chuyển; bấm → khung nét đứt + thanh (độ dày nét, Xoá;
+    chữ thì "Sửa chữ"). Kéo để di chuyển, Delete xoá, bấm màu để đổi màu, nhấp đúp vào chữ để sửa, Esc bỏ chọn.
+  - **Tẩy theo nét** (như Snipping Tool): chạm vào nét nào xoá cả nét đó.
+  - Hoàn tác / Làm lại theo phiên bản của cả bản vẽ (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z), "Xoá tất cả".
+  - **Mở lại vẫn sửa được từng nét**: danh sách nét/hình/chữ được nhúng vào chính file PNG (chunk `tEXt`
+    `bluedental-sketch`); BE vẫn chỉ thấy một PNG. Bản vẽ lưu trước vòng 2 (không có chunk) mở ra như ảnh nền.
+  - Vẽ mượt: không qua React khi đang vẽ, vẽ ngay trong sự kiện chuột (như tab Hình ảnh), nét lên trang
+    ngay khi nhả chuột. Vòng 3: bút/dạ quang vẽ trên lớp "mực" riêng dùng canvas `desynchronized`
+    (bỏ chờ khung hình), chỉ vẽ nối thêm đoạn mới, không xoá-vẽ lại; dạ quang vẽ đặc, lớp hiện mờ 40%.
+    Nét lưu là polyline qua mọi điểm mẫu, trùng với nét đang vẽ. Không dùng điểm dự đoán (làm giật đầu bút).
+    Lưu ý: ảnh chụp headless của Playwright có thể hiện khung cũ của lớp mực — đọc điểm ảnh thay vì chụp.
+- "Áp dụng" chỉ đưa ảnh lên phiếu (PNG trong bộ nhớ). Ảnh được tải lên khi bấm **Lưu** phiếu
+  (`POST …/{id}/drawings`, multipart), rồi phiếu lưu đường dẫn. Xoá cũng chỉ có hiệu lực khi Lưu.
+- BE: chỉ nhận PNG (kiểm theo chữ ký file, ≤ 2 MB, lỗi `BlueDental:Patient:0024`); ảnh nằm trong MinIO dưới
+  `patient-medical-records/{id}/drawings/`. Upload cần `patientMedicalRecord.update`, đọc cần `.read`,
+  phiếu ngoài chi nhánh → 404. Ảnh không bao giờ sửa tại chỗ (sửa = ảnh mới, cache `immutable`);
+  khi phiếu lưu xong mà không còn trỏ tới ảnh cũ, ảnh cũ bị xoá khỏi kho.
+- In: bản sao để in chờ ảnh tải xong (`copiedPicturesReady`) mới gọi `window.print()`.
 
 ## Chẩn đoán & Tư vấn — bác sĩ chẩn đoán mặc định (yêu cầu BA, 2026-10-03)
 

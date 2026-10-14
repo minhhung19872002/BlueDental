@@ -25,7 +25,12 @@ export interface SheetPatientFacts {
   phone?: string;
   cccd?: string;
   email?: string;
+  /** "Số nhà, Phường, Tỉnh" — the whole address on one line. */
   address?: string;
+  /** The three parts, for the form that prints them in separate blanks. */
+  addressStreet?: string;
+  ward?: string;
+  province?: string;
   job?: string;
   reason?: string;
   history?: string;
@@ -59,9 +64,9 @@ function normalise(value: string): string {
 /**
  * The record's facts, under the names the templates ask for.
  *
- * Address and country are deliberately absent: the reference declares blanks
- * for them but never fills them, leaving the clinic to write the address by
- * hand on the printed sheet.
+ * The address is filled although the reference leaves it to be written by
+ * hand: the clinic asked for it (2026-10-14), since the hồ sơ already holds it.
+ * Country still is not — the hồ sơ has nowhere to keep it.
  */
 export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   const values: FieldValues = {};
@@ -74,6 +79,10 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   put(values, "patient.phone", facts.phone);
   put(values, "patient.cccd", facts.cccd);
   put(values, "patient.email", facts.email);
+  put(values, "patient.address", facts.address);
+  put(values, "patient.addressStreet", facts.addressStreet);
+  put(values, "patient.ward", facts.ward);
+  put(values, "patient.province", facts.province);
   put(values, "patient.job", facts.job);
   put(values, "patient.reason", facts.reason);
   put(values, "patient.history", facts.history);
@@ -95,9 +104,8 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   }
 
   /*
-   * The cover and the consultation sheet were drawn before `data-field-source`
+   * The cover and the consultation sheets were drawn before `data-field-source`
    * existed, so their blanks carry no source and have to be named one by one.
-   * Address is not among them on purpose — see above.
    */
   const alias = (field: string, source: string) => {
     const value = values[source];
@@ -112,11 +120,71 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   alias("cover.patient.birth-month", "patient.birthMonth");
   alias("cover.patient.birth-year", "patient.birthYear");
   alias("cover.patient.age", "patient.age");
+  alias("cover.patient.address", "patient.address");
+  alias("consultation.text.1", "patient.code");
   alias("consultation.text.2", "patient.cccd");
   alias("consultation.text.51", "patient.name");
   alias("consultation.text.54", "patient.name");
   alias("consultation.text.56", "patient.name");
+  alias("orthodontic.text.2", "patient.cccd");
+  alias("general-consultation.text.10", "patient.nameUppercase");
+  alias("general-consultation.text.11", "patient.birthYear");
+  alias("general-consultation.text.12", "patient.address");
+  alias("general-consultation.text.13", "patient.code");
 
+  /*
+   * Bệnh án ngoại trú splits the address over Số nhà / Thôn, phố / Xã, phường /
+   * Huyện / Tỉnh. Its Số nhà blank asks for the whole address by source, so it
+   * is answered by id with the street alone — the ward and province have
+   * blanks of their own. The hồ sơ keeps no hamlet or district (the 2025
+   * two-level units), so those two stay for the pen.
+   */
+  if (values["patient.address"] !== undefined) {
+    // Even empty: left unanswered it would fall back to the whole address.
+    values["outpatient.patient.address"] = values["patient.addressStreet"] ?? "";
+  }
+  alias("outpatient-dental.text.5", "patient.ward");
+  alias("outpatient-dental.text.7", "patient.province");
+
+  return values;
+}
+
+/**
+ * The "Chẩn đoán" blank of each form. Where a form gives the diagnosis several
+ * lines, the first takes it; the rest stay free for the doctor's notes.
+ *
+ * Bệnh án ngoại trú prints the diagnosis of the examining clinic (mục 5), not
+ * the referring one's (mục 13) nor the discharge one, which the clinic writes
+ * when the record is closed. "Phiếu tư vấn và xác nhận đồng ý điều trị" is left
+ * out: its "II. CHẨN ĐOÁN" is written by hand at the consultation (clinic,
+ * 2026-10-14).
+ */
+const DIAGNOSIS_FIELDS = [
+  "outpatient-dental.text.43",
+  "orthodontic.text.86",
+  "custom.text.9959ffa6f36f45b89e42d5a486996216",
+  "surgery-consent.text.4",
+  "procedure-record.text.1",
+  "care.diagnosis",
+] as const;
+
+/** One diagnosis as a sheet prints it. */
+export interface SheetDiagnosis {
+  name: string;
+  /** "16, 26" — empty when the diagnosis names no tooth. */
+  teeth: string;
+}
+
+/** "Viêm tủy (răng 16, 26); Sâu răng (răng 11)" into every form's Chẩn đoán. */
+export function diagnosisFieldValues(diagnoses: readonly SheetDiagnosis[]): FieldValues {
+  const lines = diagnoses
+    .filter((item) => item.name.trim())
+    .map((item) => (item.teeth ? `${item.name.trim()} (răng ${item.teeth})` : item.name.trim()));
+  const text = [...new Set(lines)].join("; ");
+
+  const values: FieldValues = {};
+  if (!text) return values;
+  for (const field of DIAGNOSIS_FIELDS) values[field] = text;
   return values;
 }
 

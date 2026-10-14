@@ -4,6 +4,9 @@ import type { FieldValues } from "./fieldValues";
 import { renderSheetHtml, sheetDocument } from "./renderSheet";
 import { GENERATED_ROW_ATTR } from "./rowEditing";
 import { attachRowHandles } from "./rowHandles";
+import { drawingOf, isDrawingField, showDrawing } from "./drawing/drawingField";
+import { SheetDrawingDialogs } from "./drawing/SheetDrawingDialogs";
+import { useSheetDrawing } from "./drawing/useSheetDrawing";
 
 /** A4 at 96dpi, plus the 20px margin the sheet's own page leaves around it. */
 const PAGE_WIDTH = 834;
@@ -108,6 +111,13 @@ export function MedicalRecordDocument({
        */
       const generated = Boolean(node.closest(`[${GENERATED_ROW_ATTR}]`));
 
+      // A drawing is never answered by the record: it is kept when there is one.
+      if (isDrawingField(node)) {
+        const drawn = drawingOf(node);
+        if (drawn) next[id] = drawn;
+        return;
+      }
+
       if (node.tagName === "INPUT") {
         const ticked = (node as HTMLInputElement).checked;
         if (generated || ticked !== (answer === true)) next[id] = ticked;
@@ -120,6 +130,9 @@ export function MedicalRecordDocument({
 
     return next;
   }, []);
+
+  const drawing = useSheetDrawing(frame, () => report.current?.(collect()));
+  const attachDrawing = drawing.attach;
 
   const handleLoad = useCallback(() => {
     const doc = frame.current?.contentDocument;
@@ -156,6 +169,8 @@ export function MedicalRecordDocument({
           })
         : () => undefined;
 
+    const detachDrawing = editable ? attachDrawing(doc) : () => undefined;
+
     frame.current?.addEventListener(
       "beforeunload",
       () => {
@@ -163,10 +178,11 @@ export function MedicalRecordDocument({
         doc.removeEventListener("input", push);
         doc.removeEventListener("change", push);
         detachHandles();
+        detachDrawing();
       },
       { once: true },
     );
-  }, [collect, editable, canAddRows, canDeleteRows]);
+  }, [collect, editable, canAddRows, canDeleteRows, attachDrawing]);
 
   // A page swapped out while its observers are live would keep measuring a
   // document nobody can see.
@@ -186,6 +202,11 @@ export function MedicalRecordDocument({
       const node = doc.querySelector(`[data-medical-record-field="${id}"]`);
       if (!node || node === doc.activeElement) continue;
 
+      if (isDrawingField(node)) {
+        if (drawingOf(node) !== value) showDrawing(node, value, editable);
+        continue;
+      }
+
       if (node.tagName === "INPUT") {
         const box = node as HTMLInputElement;
         if (typeof value === "boolean" && box.checked !== value) box.checked = value;
@@ -193,7 +214,7 @@ export function MedicalRecordDocument({
       }
       if (typeof value === "string" && node.textContent !== value) node.textContent = value;
     }
-  }, [stored]);
+  }, [stored, editable]);
 
   return (
     <div
@@ -209,6 +230,7 @@ export function MedicalRecordDocument({
         onLoad={handleLoad}
         style={{ width: PAGE_WIDTH, height }}
       />
+      {editable && <SheetDrawingDialogs drawing={drawing} />}
     </div>
   );
 }

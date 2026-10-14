@@ -113,7 +113,23 @@ export const SHEET_CSS = String.raw`
 }
 /* Đóng float lại trong phạm vi phiếu, không để nó tràn ra ngoài. */
 .nfc-tpl::after{content:'';display:table;clear:both}
-.nfc-tpl img{max-width:100%}`;
+.nfc-tpl img{max-width:100%}
+/* A drawing blank fills its cell, whose height the column beside it sets; the
+   picture keeps its proportions inside it. The buttons sit on its top edge and
+   never print. */
+.nfc-tpl td.nfc-medical-record-drawing-cell{position:relative;padding:0}
+.nfc-tpl .nfc-medical-record-drawing{position:absolute;inset:4px 8px}
+.nfc-tpl:not([data-readonly]) .nfc-medical-record-drawing{background:#fffde7;outline:1px dashed #f4b942}
+.nfc-tpl .nfc-medical-record-drawing-img{display:block;width:100%;height:100%;max-width:none;object-fit:contain}
+.nfc-tpl .nfc-medical-record-drawing-tools{position:absolute;top:6px;right:6px;display:flex;gap:6px}
+.nfc-tpl .nfc-medical-record-drawing-btn{font:500 12px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;padding:5px 10px;border:1px solid #2671d8;border-radius:6px;background:#fff;color:#2671d8;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.nfc-tpl .nfc-medical-record-drawing-btn:hover{background:#2671d8;color:#fff}
+.nfc-tpl .nfc-medical-record-drawing-btn--delete{border-color:#dc2626;color:#dc2626}
+.nfc-tpl .nfc-medical-record-drawing-btn--delete:hover{background:#dc2626;color:#fff}
+@media print{
+  .nfc-tpl .nfc-medical-record-drawing-tools{display:none}
+  .nfc-tpl:not([data-readonly]) .nfc-medical-record-drawing{background:transparent;outline:none}
+}`;
 
 /*
  * The three field states the reference draws: filled (blue on pale blue),

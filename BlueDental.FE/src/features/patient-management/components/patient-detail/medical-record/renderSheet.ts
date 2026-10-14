@@ -1,6 +1,7 @@
 import { SHEET_CSS, SHEET_PAGE_CSS } from "./sheetCss";
 import type { FieldValues } from "./fieldValues";
 import { applyStoredRows } from "./rowEditing";
+import { isDrawingField, showDrawing } from "./drawing/drawingField";
 
 /**
  * Turning a blank form into the sheet on screen.
@@ -48,6 +49,11 @@ function fillFields(root: ParentNode, options: RenderOptions) {
     if (UNBOUND_OUTPATIENT_NUMBER.test(id)) node.removeAttribute("data-field-source");
     const source = node.getAttribute("data-field-source") ?? id;
     const value = valueOf(id, source, options);
+
+    if (isDrawingField(node)) {
+      showDrawing(node, value, options.editable);
+      return;
+    }
 
     if (node instanceof HTMLInputElement && node.type === "checkbox") {
       if (typeof value === "boolean") node.checked = value;

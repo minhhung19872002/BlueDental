@@ -8466,8 +8466,60 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Đỏ có sẵn (chạy lại trên code gốc, cả BE lẫn FE, vẫn đỏ y hệt 11/11):** `report.spec` 294 / 377 / 574 (header Excel, thẻ thu chi, sổ quỹ V2), `operations-reports` 8 test.
 
+## R-942 (2026-10-14, mức 2: Bệnh nhân → Bệnh án) Các phiếu bệnh án không điền địa chỉ và chẩn đoán
 
-## R-942 (2026-10-14, mức 3: danh sách dịch vụ dùng chung) Dịch vụ sắp theo "Mức độ ưu tiên", từng nhóm một
+**Báo lỗi (chủ dự án):** Bệnh án số 2 (Ngoại trú RHM) và số 5 (Tư vấn và xác nhận đồng ý điều trị) để trống Địa chỉ và Chẩn đoán; rà các mẫu khác.
+
+**Nguyên nhân:**
+- Địa chỉ cố tình không điền để giống bản gốc (bản gốc để phòng khám viết tay); ô Bìa và TVTQ còn không có nguồn.
+- Chẩn đoán chưa từng được nối vào phiếu (phần "ngày sinh dòng chẩn đoán" của bản gốc ghi UNKNOWN, chưa dựng).
+- Rà thêm: "Phiếu Tư Vấn Tổng Quát" không điền họ tên, năm sinh, số hồ sơ; "MÃ HỒ SƠ" tờ 5 và "CCCD số" tờ Chỉnh nha trống.
+- Phụ: tờ chỉ dựng lại khi tên chi nhánh đổi, nên dữ liệu đến muộn (nghề nghiệp, tiền sử bệnh, địa chỉ, chẩn đoán) không hiện nếu tới sau tờ.
+
+**Sửa (FE):**
+- `useAddressParts` (tách từ `useAddressLabel`) → `patient.address` / `addressStreet` / `ward` / `province`; tờ Ngoại trú tách ba ô.
+- `useSheetDiagnoses` + `diagnosisFieldValues`: ô Chẩn đoán đầu tiên của 6 mẫu (Ngoại trú mục 5, Chỉnh nha VIII, TVTQ, Đồng ý PT, Phiếu PT "trước PT", Chăm sóc). "II. CHẨN ĐOÁN" của TV+đồng ý để trống theo chủ dự án (bác sĩ viết tay); mẫu có ngày lấy từ ngày đó trở đi, rỗng thì lấy tất cả; bỏ chẩn đoán đã huỷ; không có quyền `treatmentDiagnosis.read` thì để trống.
+- `documentKey` của tờ theo toàn bộ giá trị tự điền, không chỉ tên chi nhánh.
+- Vẫn chỉ lưu ô đã ghi đè: sửa hồ sơ sau này vẫn hiện lên phiếu.
+
+**Test:** `e2e/patient-medical-record.spec.ts` — test mới (thật, không chặn API): tạo bệnh nhân có địa chỉ + một chẩn đoán răng 16 qua API, mở 8 mẫu, kiểm từng ô; lưu, tải lại, đọc lại từ PostgreSQL. Pass. Test Bìa bỏ khẳng định "địa chỉ để trống". 20/24 xanh trên bản build (`vite preview`).
+
+**Đỏ có sẵn, không do thay đổi này** (chạy lại với phần chẩn đoán tắt, và trên worktree sạch của `660e86bc` — commit trước — vẫn đỏ y hệt): "nine forms" (`.pd-medical-doctor` / `.pd-profile-card` không thấy), "picking the day prints it" (ô ngày rỗng sau khi chọn). Lúc chạy có phiên khác đang sửa Bệnh án (vẽ lược đồ) và khởi động lại BE.
+
+## R-943 (2026-10-14, mức 2: Bệnh nhân → Bệnh án) Vẽ "Lược đồ phẫu thuật/thủ thuật" trên mẫu số 7
+
+**Yêu cầu (chủ dự án):** ô Lược đồ của Phiếu phẫu thuật/thủ thuật là preview của bản vẽ; một nút mở dialog có công cụ vẽ như Snipping Tool; thêm, sửa, xoá bản vẽ. Tính năng tự phát triển — xem `docs/clone/pages/patient-detail.md` §11.
+
+**Thay đổi:**
+- BE: `MedicalRecordDrawing` (Domain) — chỉ PNG ≤ 2 MB, blob theo phiếu, đọc id ảnh từ `Content`. `PatientMedicalRecordAppService.UploadDrawingAsync` / `GetDrawingAsync`; `UpdateAsync` xoá ảnh phiếu không còn trỏ tới, sau khi UoW hoàn tất. Controller `POST/GET {id}/drawings[/{drawingId}]`; GET trả 404 cho phiếu không thấy được (ABP chỉ đổi thành 404 với request JSON).
+- FE: blank `drawing` trong template mẫu 7, `drawing/` (dialog, toolbar, hook canvas, vẽ theo danh sách nét để hoàn tác), lưu: `useSaveMedicalRecord` tải ảnh chưa lưu lên trước rồi mới PUT; in chờ ảnh tải xong.
+- Test đếm ô của mẫu 7: 38 → 39 (ô vẽ).
+
+**Test:**
+- `e2e/medical-record-drawing.spec.ts` (mới, thật, không chặn API): vẽ bút + mũi tên → Áp dụng → Lưu (POST ảnh + PUT) → tải lại, ảnh tải được qua GET thật (`image/png`) → user `branch2` nhận 404 → Sửa (tẩy + bút) → link mới, link cũ 404 (đã xoá khỏi MinIO) → Xoá → Lưu → tải lại ô trống, link 404. Upload file không phải PNG → `BlueDental:Patient:0024`. Chưa đăng nhập → 401. 3/3 xanh, chạy lặp 2 lần.
+- BE: `MedicalRecordDrawingTests` 7/7, `PatientMedicalRecordAppServiceContractTests` 9/9 (quyền từng method).
+- `e2e/patient-medical-record.spec.ts`: 22/24 xanh. 2 đỏ có sẵn, xem R-942 (cũng đỏ trên worktree sạch của `660e86bc` và `0235db1e`).
+
+**Vòng 2 (cùng ngày, phản hồi chủ dự án):** vẽ còn trễ, đầu bút giật; thêm công cụ chữ kiểu Paint; bảng màu
+chung cho mọi công cụ; con trỏ Chọn để chỉ định lại nét/chữ.
+- Trễ: nét bị xoá khỏi lớp xem trước trước khi trang được vẽ lại (chờ React) → chớp; `getBoundingClientRect`
+  mỗi điểm; tẩy bỏ sót điểm gộp. Đầu bút giật: do điểm dự đoán (`getPredictedEvents`) và canvas
+  `desynchronized` thử thêm giữa chừng — đã bỏ cả hai. Đo trong trình duyệt: không long task, mỗi khung vẽ
+  trung vị 0,10 ms, p95 0,30 ms.
+- Mô hình đổi từ "danh sách nét để replay" sang danh sách đối tượng (nét, hình, chữ) + lịch sử phiên bản;
+  đối tượng nhúng trong PNG để mở lại vẫn sửa được. Tẩy đổi sang tẩy theo nét.
+- Test: `e2e/medical-record-drawing.spec.ts` 5 test (thêm: chữ — Esc, Enter xuống dòng, In đậm giữ con trỏ,
+  Tô nền, bấm ngoài để chốt, nhấp đúp sửa lại, lưu → mở lại vẫn sửa được chữ; Chọn — chọn, Esc bỏ chọn,
+  đổi màu (đo màu điểm ảnh), kéo di chuyển, Delete, hoàn tác, tẩy cả nét). 10/10 xanh (chạy lặp 2 lần).
+
+**Vòng 3 (cùng ngày):** bỏ "Tô nền" của chữ (và Màu 2); bảng màu rộng, thoáng hơn; nét vẽ còn trễ nhẹ.
+- Trễ còn lại là một khung hình chờ trình duyệt ghép lớp. Bút/dạ quang chuyển sang lớp "mực" `desynchronized`
+  (Chrome xác nhận `desynchronized: true`), vẽ nối thêm từng đoạn, không bao giờ xoá giữa chừng — chính việc
+  xoá-vẽ lại trên canvas này ở vòng trước gây giật. Đã đọc điểm ảnh: trang đủ nét, lớp mực sạch sau khi nhả;
+  chụp có cửa sổ (`--headed`) hiển thị đúng.
+- Test: bỏ bước "Tô nền"; điểm bấm theo tỉ lệ vùng vẽ. `e2e/medical-record-drawing.spec.ts` 10/10 (lặp 2 lần).
+
+## R-944 (2026-10-14, mức 3: danh sách dịch vụ dùng chung) Dịch vụ sắp theo "Mức độ ưu tiên", từng nhóm một
 
 **Báo lỗi (chủ dự án):** picker "Thêm dịch vụ mới" (Tạo phiếu dịch vụ) và bảng "Chọn Dịch Vụ" (Tư vấn) trộn dịch vụ của các nhóm: Cạo vôi 1, Trám răng 300, Tháo mắc cài, Kontact, Cạo vôi 2… Muốn sắp theo mức độ ưu tiên như danh sách nhân sự (R-938). Chủ dự án chọn: cùng mức ưu tiên thì mới nhất lên trước, như màn Danh mục.
 

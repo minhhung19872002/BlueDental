@@ -80,6 +80,18 @@ export function copySheetsForPrint(frames: readonly HTMLIFrameElement[]): () => 
 }
 
 /**
+ * Settles once every picture in the copies has loaded — the drawing on Phiếu
+ * phẫu thuật/thủ thuật. A copy is a new document's worth of `<img>` that starts
+ * loading only when it is made, and printing straight away put an empty cell on
+ * paper. A picture that fails is printed without, rather than holding the print.
+ */
+export async function copiedPicturesReady(within = 4000): Promise<void> {
+  const pictures = Array.from(document.querySelectorAll<HTMLImageElement>(`.${COPY_CLASS} img`));
+  const loaded = Promise.all(pictures.map((picture) => picture.decode().catch(() => undefined)));
+  await Promise.race([loaded, new Promise((settle) => window.setTimeout(settle, within))]);
+}
+
+/**
  * The frames drawing these sheets, once each of them has a form in it.
  *
  * Printing usually follows a click that opens the sheet, and React has not

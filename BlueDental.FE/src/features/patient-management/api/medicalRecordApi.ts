@@ -63,7 +63,51 @@ const medicalRecordApi = {
     api.put<PatientMedicalRecordDto>(`${BASE}/${id}`, input).then((r) => r.data),
 
   remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
+
+  uploadDrawing: (id: string, png: Blob): Promise<MedicalRecordDrawingDto> => {
+    const form = new FormData();
+    form.append("file", png, "drawing.png");
+    return api.post<MedicalRecordDrawingDto>(`${BASE}/${id}/drawings`, form).then((r) => r.data);
+  },
 };
+
+/** A drawing on a sheet, stored on its own; the sheet links to it by `url`. */
+export interface MedicalRecordDrawingDto {
+  id: string;
+  url: string;
+}
+
+/**
+ * A drawing made since the sheet was last saved: still the PNG itself, as the
+ * drawing pad hands it over. Matches drawing/drawingField.ts.
+ */
+const UNSAVED_DRAWING = /data:image\/png;base64,[A-Za-z0-9+/]+={0,2}/g;
+
+function pngOf(dataUrl: string): Blob {
+  const text = atob(dataUrl.slice(dataUrl.indexOf(",") + 1));
+  const bytes = new Uint8Array(text.length);
+  for (let at = 0; at < text.length; at += 1) bytes[at] = text.charCodeAt(at);
+  return new Blob([bytes], { type: "image/png" });
+}
+
+/**
+ * Stores every drawing still carried inside the content and links to it
+ * instead, so what is saved on the sheet is only words and links — a picture
+ * in the row would ship again with every read of the patient's sheets.
+ *
+ * Read off the content as text, so it holds wherever on the sheet a drawing
+ * sits. The server drops a drawing once the sheet stops linking to it.
+ */
+async function uploadUnsavedDrawings(id: string, content: string | null): Promise<string | null> {
+  if (!content) return content;
+
+  let saved = content;
+  for (const png of new Set(content.match(UNSAVED_DRAWING) ?? [])) {
+    const { url } = await medicalRecordApi.uploadDrawing(id, pngOf(png));
+    saved = saved.split(png).join(url);
+  }
+  return saved;
+}
 
 export const medicalRecordKeys = {
   all: ["patient-medical-records"] as const,
@@ -101,8 +145,8 @@ export function useAddMedicalRecord(patientId: string) {
 export function useSaveMedicalRecord(patientId: string) {
   return useRecordMutation(
     patientId,
-    (input: { id: string; content: string | null }) =>
-      medicalRecordApi.update(input.id, { content: input.content }),
+    async (input: { id: string; content: string | null }) =>
+      medicalRecordApi.update(input.id, { content: await uploadUnsavedDrawings(input.id, input.content) }),
   );
 }
 

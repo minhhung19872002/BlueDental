@@ -16,21 +16,48 @@ export interface GuardianSubjectFields {
   wardCode?: string;
 }
 
-/** "Số nhà, Phường, Tỉnh" — the ward and province resolved from their codes. */
-export function useAddressLabel(address: string, provinceCode?: string, wardCode?: string): string {
-  const [label, setLabel] = useState("");
+/** An address with its ward and province resolved from their codes. */
+export interface AddressParts {
+  /** Số nhà / đường, as typed on the hồ sơ. */
+  street: string;
+  ward: string;
+  province: string;
+  /** "Số nhà, Phường, Tỉnh". */
+  full: string;
+}
+
+const NO_ADDRESS: AddressParts = { street: "", ward: "", province: "", full: "" };
+
+export function useAddressParts(
+  address: string | null | undefined,
+  provinceCode?: string | null,
+  wardCode?: string | null,
+): AddressParts {
+  const [parts, setParts] = useState<AddressParts>(NO_ADDRESS);
 
   useEffect(() => {
     let cancelled = false;
     void Promise.all([getWardName(provinceCode, wardCode), getProvinceName(provinceCode)]).then(([ward, province]) => {
-      if (!cancelled) setLabel([address.trim(), ward, province].filter(Boolean).join(", "));
+      if (cancelled) return;
+      const street = address?.trim() ?? "";
+      setParts({
+        street,
+        ward: ward ?? "",
+        province: province ?? "",
+        full: [street, ward, province].filter(Boolean).join(", "),
+      });
     });
     return () => {
       cancelled = true;
     };
   }, [address, provinceCode, wardCode]);
 
-  return label;
+  return parts;
+}
+
+/** "Số nhà, Phường, Tỉnh" — the ward and province resolved from their codes. */
+export function useAddressLabel(address: string, provinceCode?: string, wardCode?: string): string {
+  return useAddressParts(address, provinceCode, wardCode).full;
 }
 
 /**

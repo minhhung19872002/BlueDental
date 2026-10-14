@@ -1,0 +1,415 @@
+/*
+ * "Lược đồ phẫu thuật/thủ thuật" — the drawing dialog: a row of tools, the
+ * colour box every tool shares (after Paint), and the page drawn on, with the
+ * text bar, the text box and the selection bar laid over it.
+ */
+
+.sketch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-bg-soft);
+}
+
+.sketch-tools,
+.sketch-history {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sketch-history {
+  margin-left: auto;
+}
+
+.sketch-tool {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.sketch-tool--active {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+}
+
+.sketch-tool-pick,
+.sketch-tool-more,
+.sketch-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--bd-ink);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.sketch-tool-pick {
+  width: 38px;
+  height: 38px;
+}
+
+.sketch-tool-more {
+  width: 20px;
+  color: var(--bd-muted);
+}
+
+.sketch-tool-pick:hover,
+.sketch-tool-more:hover,
+.sketch-action:hover:not(:disabled) {
+  background: var(--bd-line);
+}
+
+.sketch-tool--active .sketch-tool-pick {
+  color: var(--bd-primary);
+}
+
+.sketch-action {
+  height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+  font: inherit;
+}
+
+.sketch-action:disabled {
+  color: var(--bd-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sketch-action--danger {
+  color: var(--bd-red);
+}
+
+/* The shared colour box: the colour in use, then three rows of ten. */
+.sketch-colors {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+}
+
+.sketch-colors-current {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--bd-primary);
+}
+
+.sketch-colors-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 22px);
+  gap: 7px 8px;
+}
+
+.sketch-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 50%;
+  background: var(--swatch);
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.sketch-swatch:hover {
+  transform: scale(1.12);
+}
+
+.sketch-swatch--active {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink);
+}
+
+.sketch-swatch--empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.sketch-colors-picker {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sketch-alert {
+  margin-bottom: 12px;
+}
+
+/*
+ * The page keeps the proportions of the cell it is printed into, and is
+ * never taller than the window leaves room for.
+ */
+.sketch-page {
+  position: relative;
+  width: min(100%, max(600px, calc((100vh - 400px) * 1002 / 657)));
+  aspect-ratio: 1002 / 657;
+  margin: 0 auto;
+  border: 1px solid var(--bd-border);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  /* Lets what is laid over the page size itself in page pixels (1002 across). */
+  container-type: inline-size;
+}
+
+.sketch-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* A highlighter is laid solid on the ink layer, and seen through here. */
+.sketch-canvas--ink {
+  pointer-events: none;
+}
+
+.sketch-canvas--ink[data-highlighter="true"] {
+  opacity: 0.4;
+}
+
+.sketch-canvas--input {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sketch-canvas--select {
+  cursor: default;
+}
+
+.sketch-canvas--select[data-hover="item"] {
+  cursor: move;
+}
+
+.sketch-canvas--eraser {
+  cursor: none;
+}
+
+.sketch-canvas--text {
+  cursor: text;
+}
+
+/* The box words are typed into, drawn as they will land. */
+.sketch-text-box {
+  position: absolute;
+  left: calc(var(--text-x) * 100%);
+  top: calc(var(--text-y) * 100%);
+  z-index: 1;
+  min-width: 2ch;
+  max-width: calc(100% - var(--text-x) * 100%);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 1px dashed var(--bd-primary);
+  background: transparent;
+  color: var(--text-color);
+  font-family: var(--text-font), sans-serif;
+  font-size: calc(var(--text-size) * 100cqw / 1002);
+  font-weight: var(--text-weight);
+  font-style: var(--text-slant);
+  text-decoration-line: var(--text-deco);
+  text-align: var(--text-align);
+  line-height: 1.25;
+  white-space: pre;
+  overflow: hidden;
+  resize: none;
+  field-sizing: content;
+}
+
+/* Paint's text bar, over the page above (or below) the box being typed into. */
+.sketch-text-bar {
+  position: absolute;
+  left: clamp(6px, calc(var(--bar-x) * 100%), calc(100% - 480px));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--bd-shadow-pop);
+}
+
+.sketch-text-bar--above {
+  top: calc(var(--bar-y) * 100% - 52px);
+}
+
+.sketch-text-bar--below {
+  top: calc(var(--bar-y) * 100% + 56px);
+}
+
+.sketch-text-font {
+  width: 140px;
+}
+
+.sketch-text-size {
+  width: 64px;
+}
+
+.sketch-text-sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--bd-line);
+}
+
+.sketch-text-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+
+.sketch-text-btn:hover {
+  background: var(--bd-bg-soft);
+}
+
+.sketch-text-btn--active {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+/* What can be done to the selected item, under it (or above, near the bottom). */
+.sketch-selection-bar {
+  position: absolute;
+  left: clamp(6px, calc(var(--sel-x) * 100% - 110px), calc(100% - 226px));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--bd-shadow-pop);
+}
+
+.sketch-selection-bar--below {
+  top: calc(var(--sel-bottom) * 100% + 14px);
+}
+
+.sketch-selection-bar--above {
+  top: calc(var(--sel-top) * 100% - 52px);
+}
+
+.sketch-selection-size {
+  width: 140px;
+  margin: 6px 8px;
+}
+
+.sketch-selection-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bd-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sketch-selection-btn:hover {
+  background: var(--bd-bg-soft);
+}
+
+.sketch-selection-btn--danger {
+  color: var(--bd-red);
+}
+
+/* The options panel under a tool's arrow. */
+.sketch-options {
+  width: 240px;
+}
+
+.sketch-options-label {
+  margin: 8px 0 6px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.sketch-options-shapes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.sketch-shape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+
+.sketch-shape--active {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.sketch-size-sample {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+.sketch-size-path {
+  fill: none;
+  stroke: var(--sample-color);
+  stroke-width: calc(var(--sample-size) * 1px);
+  stroke-linecap: round;
+}
+
+.sketch-size-path--translucent {
+  stroke-opacity: 0.4;
+}
+
+@media (max-width: 1100px) {
+  .sketch-history {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .sketch-page {
+    width: 100%;
+  }
+}

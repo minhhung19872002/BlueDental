@@ -2426,7 +2426,9 @@ Reason: Đọc bundle thấy ngày không chỉ được in vào tờ — nó c�
   chọn ngày thật trên hồ sơ đang chạy, mà chọn ngày rất có thể ghi.
 Action taken: NONE — không chọn ngày trên bản gốc.
 BlueDental: ô ngày dựng đúng năm mẫu, đúng nhãn, in vào `dateFieldKeys` và lưu
-  cùng phiếu. Phần sinh dòng từ chẩn đoán/công đoạn **chưa dựng**; chỗ nối là
+  cùng phiếu. Từ 2026-10-14 (R-942) ngày còn lọc chẩn đoán in vào ô "Chẩn đoán"
+  (từ ngày đó trở đi; không có thì lấy tất cả) — `useSheetDiagnoses`. Phần sinh
+  dòng từ công đoạn **chưa dựng**; chỗ nối là
   `useSheetFieldValues` cộng một bước mọc dòng như `applyStoredRows` đang làm.
 
 ---
