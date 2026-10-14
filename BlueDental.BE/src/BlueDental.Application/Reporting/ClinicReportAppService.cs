@@ -301,7 +301,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         var plans = await PlansAsync(input);
         if (plans.Count == 0) return [];
 
-        var payments = await PaymentsAsync(input);
+        var paidByService = await PaidByServiceAsync(plans.Select(p => p.Id).ToList());
 
         var patientIds = plans.Select(p => p.PatientId).Distinct().ToList();
         var patientQuery = await _patientRepository.GetQueryableAsync();
@@ -338,12 +338,6 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
                     ? staffNames.GetValueOrDefault(svc.ConsultantStaffId.Value) ?? ""
                     : "";
 
-                var paidAmount = payments
-                    .Where(p => p.TreatmentPlanId == plan.Id && p.Kind == PatientPaymentKind.Payment)
-                    .SelectMany(p => p.Lines)
-                    .Where(l => l.TreatmentServiceId == svc.Id)
-                    .Sum(l => l.Amount);
-
                 var statusStr = svc.Status switch
                 {
                     TreatmentServiceStatus.Created => "created",
@@ -368,7 +362,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
                     Cancelled = cancelled,
                     Quantity = svc.Quantity,
                     TotalAmount = cancelled ? -svc.EffectiveAmount : svc.EffectiveAmount,
-                    PaidAmount = paidAmount,
+                    PaidAmount = paidByService.GetValueOrDefault(svc.Id),
                     BranchName = branchNames.GetValueOrDefault(plan.BranchId) ?? ""
                 });
             }
@@ -864,6 +858,27 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
             query = query.Where(x => x.EntryDate <= input.ToDate.Value);
 
         return query.ToList();
+    }
+
+    /// <summary>
+    /// Đã thanh toán of each service line on these slips: every collected
+    /// receipt's share of the line, less refunds — whenever the money moved, not
+    /// only inside the report period (bug 31, owner 2026-10-14). The
+    /// <see cref="ISettleable"/> filter keeps out receipts still "Chưa thanh toán".
+    /// </summary>
+    private async Task<Dictionary<Guid, decimal>> PaidByServiceAsync(List<Guid> planIds)
+    {
+        var query = await _paymentRepository.WithDetailsAsync(x => x.Lines);
+        return query
+            .Where(p => p.TreatmentPlanId.HasValue && planIds.Contains(p.TreatmentPlanId.Value))
+            .ToList()
+            .SelectMany(p => p.Lines.Select(line => new
+            {
+                line.TreatmentServiceId,
+                Signed = p.Kind == PatientPaymentKind.Refund ? -line.Amount : line.Amount
+            }))
+            .GroupBy(x => x.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
     }
 
     private async Task<List<TreatmentPlan>> PlansAsync(ClinicReportQueryDto input)

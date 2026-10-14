@@ -8361,3 +8361,29 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - Test `payment-from-slip` mở 👁 và kiểm `dd` của "Ngày thanh toán" đúng ngày đã lùi, không còn `dt` "Ngày tạo".
   - Chạy lại trên API :5000 + build production :18934: `payment-from-slip` 2/2, `payment-status` 4/4, `treatment-plan-detail` 13/13, `billing-ledger` 5/5.
 - Chưa commit.
+
+## R-935 (2026-10-14, mức 2: /report › Doanh số và lượt khách) Lỗi QA 31: cột "Đã thanh toán" ở "Khách hàng phát sinh dịch vụ" luôn 0 đ
+
+- **Triệu chứng:** mọi dòng dịch vụ trong bảng (và trong file "Xuất Excel" của tab con này) đều ghi "Đã thanh toán" = 0 đ, kể cả khi phiếu đã thu tiền.
+- **Nguyên nhân** (`ClinicReportAppService.GetServiceLinesAsync`):
+  - Phiếu thu lấy qua `PaymentsAsync` (`GetQueryableAsync`), không include `Lines`. Tiền chia theo dòng dịch vụ nằm ở `Lines`, nên tổng luôn rỗng.
+  - Chỉ lấy phiếu thu có `PaidAt` trong kỳ báo cáo, nên dịch vụ tạo hôm nay mà thu hôm khác vẫn ra 0.
+  - Không trừ phiếu hoàn tiền.
+- **Owner chốt (2026-10-14):**
+  - (A) "Đã thanh toán" = tổng đã thu thực tế của dòng dịch vụ, trừ hoàn tiền, không phụ thuộc ngày thu. Đây đúng là số "Đã thu" ở trang chi tiết kế hoạch.
+  - Phiếu "Chưa thanh toán" không tính. Bộ lọc `ISettleable` mặc định đã loại các phiếu này, nên không cần thêm điều kiện.
+- **Sửa:** thêm `PaidByServiceAsync(planIds)`:
+  - lấy phiếu thu kèm `Lines` của đúng các phiếu dịch vụ trong bảng, không lọc theo ngày;
+  - cộng theo `TreatmentServiceId`, phiếu hoàn tiền mang dấu âm;
+  - tính một lần thành dictionary, thay cho việc lọc lại toàn bộ danh sách phiếu thu với từng dòng.
+  - Phiếu đã huỷ (soft-delete) vẫn bị loại như cũ. FE không đổi.
+- **Test:** thêm `e2e/report-service-paid.spec.ts`, chạy stack thật, không chặn API:
+  - tạo phiếu dịch vụ mới và thu một nửa bằng UI;
+  - qua API: thêm phiếu thu 3 đ đề ngày hôm qua và phiếu hoàn 1 đ;
+  - kiểm `service-lines` hôm nay trả `paidAmount` = nửa đầu + 3 − 1;
+  - kiểm ô "Đã thanh toán" của dòng (`data-row-key` = id dòng dịch vụ) trên /report hiện đúng số đó, reload vẫn đúng.
+  - Chạy trên code cũ: test đỏ (`Expected: 125002, Received: 0`).
+- **Kiểm chứng: VERIFIED** (đã chạy trên API thật :5000 build lại, build production `vite preview` :8081 `dist-bug31`, PostgreSQL thật).
+  - `report-service-paid` 1/1, `report-customer` 7/7.
+  - `report` 4/5. Ca đỏ "tab Doanh số và lượt khách…" nằm ở file Excel của tab con **Thanh toán**: tiêu đề cột 13 là "Hình thức", spec chờ "Phương thức thanh toán". Key `Report:Column:PaymentMethod` = "Hình thức" có từ commit `2eec1e9e` (2026-09-23), không liên quan bản sửa này, nên để mở.
+- Chưa commit.

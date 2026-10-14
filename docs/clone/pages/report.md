@@ -137,7 +137,14 @@ observed (no refunds in the period), so cell formats are inferred from the
 | 5 | Dịch vụ điều trị | Treatment service | Can show "(đã hủy)" badge inline |
 | 6 | Số lượng | Quantity | |
 | 7 | Thành tiền | Total amount | VND, negative for cancelled |
-| 8 | Đã thanh toán | Paid amount | VND |
+| 8 | Đã thanh toán | Paid amount | VND — see note below |
+
+"Đã thanh toán" (local, owner decision 2026-10-14, R-935): what the line's slip
+has really collected for that service line, less refunds, whenever the money
+moved — not only receipts inside the report period; receipts still "Chưa thanh
+toán" do not count. Same figure as "Đã thu" on the plan detail.
+UNKNOWN_REFERENCE_BEHAVIOR: whether the reference limits this column to the
+receipts of the period (not observable without paying on production).
 
 Pagination text: "Hiển thị 1–N trên N dòng"
 Per-page options: 5, 10, 20 (default), 25, 50, 100
