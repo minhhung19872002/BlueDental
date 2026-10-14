@@ -1842,6 +1842,8 @@
     "Treatment:Pricing:UnitPrice": "Unit Price",
     "Treatment:Pricing:Quantity": "Quantity",
     "Treatment:Pricing:QuantityMin": "Quantity must be greater than 0",
+    "Treatment:Pricing:UnitPriceRequired": "Please enter the unit price",
+    "Treatment:Pricing:QuantityRequired": "Please enter the quantity",
     "Treatment:Pricing:DiscountUnit": "Discount Unit",
     "Treatment:Pricing:Discount": "Discount",
     "Treatment:Pricing:DiscountColon": "Discount:",

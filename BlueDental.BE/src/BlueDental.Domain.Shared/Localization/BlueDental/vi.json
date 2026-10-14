@@ -1741,6 +1741,8 @@
     "Treatment:Pricing:UnitPrice": "Đơn giá",
     "Treatment:Pricing:Quantity": "Số lượng",
     "Treatment:Pricing:QuantityMin": "Số lượng phải lớn hơn 0",
+    "Treatment:Pricing:UnitPriceRequired": "Vui lòng nhập đơn giá",
+    "Treatment:Pricing:QuantityRequired": "Vui lòng nhập số lượng",
     "Treatment:Pricing:DiscountUnit": "Đơn vị giảm giá",
     "Treatment:Pricing:Discount": "Giảm giá",
     "Treatment:Pricing:DiscountColon": "Giảm giá:",

@@ -8003,3 +8003,31 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - `tsc` + oxlint sạch.
 - **Ghi nhận:** tên nước lấy từ `Intl.DisplayNames` của trình duyệt. Chrome gọi CI là "Côte d’Ivoire", nên gõ "Bờ Biển Ngà" không ra; gõ "Ivoire" hoặc `+225` thì ra.
 - Chưa commit. Phần sửa trong `countries.ts` / `phoneValue.ts` **chưa được stage** (các file khác của F-72 đã được stage từ trước).
+
+## R-930 (2026-10-14, mức 2: form phiếu dịch vụ của F-09) Mở "Đơn giá" và "Số lượng" cho sửa ở "Tạo / Cập nhật phiếu dịch vụ"
+
+- **Owner (ảnh dialog "Cập nhật phiếu dịch vụ"):** "Chỗ này mở ra cho sửa đơn giá luôn nhé". Owner đã hỏi lại BA: mở **cả Đơn giá và Số lượng**, ở **cả** hai dialog Tạo và Cập nhật. Quyết định này **đảo ngược R-442** (trước đó khoá cả hai, chỉ cho sửa Giảm giá) và khác bản gốc.
+- **Chỉ sửa FE, BE không đổi:**
+  - `PUT patient-advises/{id}` và `PUT patient-quotes/{id}/lines/{adviseId}` vốn đã nhận `price` / `quantity`.
+  - Quy định giảm giá đã tính việc hạ đơn giá là giảm giá.
+- `PlanPricingFields`:
+  - Hai ô mở, có dấu `*`, bắt buộc nhập ("Vui lòng nhập đơn giá" / "Vui lòng nhập số lượng").
+  - Số lượng phải ≥ 1 và là số nguyên.
+  - Ô trống phải bị chặn. Nếu không, `adviseToUpdateDto` sẽ âm thầm giữ giá cũ.
+- **Đơn giá không được vượt giá gốc:**
+  - Dùng lại `unitPriceError` của màn chi tiết kế hoạch, báo dưới ô: "Đơn giá không được lớn hơn giá gốc của dịch vụ."
+  - Trần là `service.price` khi tạo và `advise.originalPrice` khi cập nhật. Giá gốc = 0 thì không có trần.
+  - **Lý do:** khi mở kế hoạch, `TreatmentService.FromAdvise` từ chối giá cao hơn giá gốc (Treatment:0040). Ở dialog Tạo, lỗi này xảy ra **sau khi** phiếu tư vấn đã được tạo và duyệt, nên sẽ để lại một dòng mồ côi.
+  - Hạ giá thì được.
+- **Kiểm chứng (API thật :5000 đã build lại cho key i18n mới, build production :18931):**
+  - Test mới `consulting-review` › "Cập nhật phiếu dịch vụ saves a typed Đơn giá and Số lượng…":
+    - nhập giá cao hơn giá gốc thì bị chặn, không có PUT nào được gửi;
+    - 800.000 × 2 thì phần tổng cập nhật ngay, PUT trả 200;
+    - GET riêng trả về price 800.000, quantity 2, originalPrice giữ nguyên;
+    - reload rồi mở lại thấy đúng giá trị đã lưu.
+  - `treatment-plan` › "price starts from the catalog's": ô mở, điền sẵn giá danh mục, vượt trần thì báo lỗi, để trống thì báo bắt buộc.
+  - Kết quả: `consulting-review` 7/7; `treatment-plan` 8/9 (1 đỏ không liên quan, xem ghi nhận); `cross-screen-freshness` + `debt-history` + `taxonomy-active-state` 9/9; `tsc` + eslint sạch.
+- **Ghi nhận:**
+  - `treatment-plan` › "the slip survives a reload…" đỏ ở dòng 316: form hóa đơn có 7 ô `.inv-field`, test đang chờ 13. Lỗi nằm ở form hóa đơn (Loại hóa đơn mặc định Cá nhân, R-916), không phải ở dialog này.
+  - Luồng Tạo với giá / số lượng tự gõ chưa có test e2e riêng. Nó đi qua cùng ô nhập và cùng `values.price` / `values.quantity` như trước.
+- Chưa commit.
