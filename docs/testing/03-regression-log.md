@@ -8485,3 +8485,17 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 **Test:** `e2e/patient-medical-record.spec.ts` — test mới (thật, không chặn API): tạo bệnh nhân có địa chỉ + một chẩn đoán răng 16 qua API, mở 8 mẫu, kiểm từng ô; lưu, tải lại, đọc lại từ PostgreSQL. Pass. Test Bìa bỏ khẳng định "địa chỉ để trống". 20/24 xanh trên bản build (`vite preview`).
 
 **Đỏ có sẵn, không do thay đổi này** (chạy lại với phần chẩn đoán tắt, và trên worktree sạch của `660e86bc` — commit trước — vẫn đỏ y hệt): "nine forms" (`.pd-medical-doctor` / `.pd-profile-card` không thấy), "picking the day prints it" (ô ngày rỗng sau khi chọn). Lúc chạy có phiên khác đang sửa Bệnh án (vẽ lược đồ) và khởi động lại BE.
+
+## R-943 (2026-10-14, mức 2: Bệnh nhân → Bệnh án) Vẽ "Lược đồ phẫu thuật/thủ thuật" trên mẫu số 7
+
+**Yêu cầu (chủ dự án):** ô Lược đồ của Phiếu phẫu thuật/thủ thuật là preview của bản vẽ; một nút mở dialog có công cụ vẽ như Snipping Tool; thêm, sửa, xoá bản vẽ. Tính năng tự phát triển — xem `docs/clone/pages/patient-detail.md` §11.
+
+**Thay đổi:**
+- BE: `MedicalRecordDrawing` (Domain) — chỉ PNG ≤ 2 MB, blob theo phiếu, đọc id ảnh từ `Content`. `PatientMedicalRecordAppService.UploadDrawingAsync` / `GetDrawingAsync`; `UpdateAsync` xoá ảnh phiếu không còn trỏ tới, sau khi UoW hoàn tất. Controller `POST/GET {id}/drawings[/{drawingId}]`; GET trả 404 cho phiếu không thấy được (ABP chỉ đổi thành 404 với request JSON).
+- FE: blank `drawing` trong template mẫu 7, `drawing/` (dialog, toolbar, hook canvas, vẽ theo danh sách nét để hoàn tác), lưu: `useSaveMedicalRecord` tải ảnh chưa lưu lên trước rồi mới PUT; in chờ ảnh tải xong.
+- Test đếm ô của mẫu 7: 38 → 39 (ô vẽ).
+
+**Test:**
+- `e2e/medical-record-drawing.spec.ts` (mới, thật, không chặn API): vẽ bút + mũi tên → Áp dụng → Lưu (POST ảnh + PUT) → tải lại, ảnh tải được qua GET thật (`image/png`) → user `branch2` nhận 404 → Sửa (tẩy + bút) → link mới, link cũ 404 (đã xoá khỏi MinIO) → Xoá → Lưu → tải lại ô trống, link 404. Upload file không phải PNG → `BlueDental:Patient:0024`. Chưa đăng nhập → 401. 3/3 xanh, chạy lặp 2 lần.
+- BE: `MedicalRecordDrawingTests` 7/7, `PatientMedicalRecordAppServiceContractTests` 9/9 (quyền từng method).
+- `e2e/patient-medical-record.spec.ts`: 22/24 xanh. 2 đỏ có sẵn, xem R-942 (cũng đỏ trên worktree sạch của `660e86bc` và `0235db1e`).

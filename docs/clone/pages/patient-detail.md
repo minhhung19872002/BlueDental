@@ -4025,6 +4025,28 @@ Hai lỗi cùng đường đi, lộ ra khi sửa và sửa luôn:
   `setActiveId`, trước khi React kịp vẽ tờ mới. Nay chờ khung của đúng tờ xuất
   hiện và tải xong (`framesForSheets`) rồi mới in.
 
+### 11. Lược đồ phẫu thuật/thủ thuật — bác sĩ vẽ trên phiếu (yêu cầu chủ dự án, 2026-10-14)
+
+**Tự phát triển, không phải hành vi bản gốc.** Bản gốc in ô "LƯỢC ĐỒ PHẪU THUẬT/ THỦ THUẬT"
+của mẫu số 7 trống để vẽ tay. Chủ dự án yêu cầu vẽ ngay trên màn hình; công cụ
+theo Snipping Tool của Windows (ảnh mẫu kèm yêu cầu).
+
+- Ô là một blank `data-medical-record-field="procedure-record.diagram"`, `data-field-type="drawing"`.
+  Giá trị lưu là **đường dẫn** tới ảnh (`/api/v1/app/patient-medical-records/{id}/drawings/{drawingId}`),
+  không phải base64 trong `Content`.
+- Ô là bản preview: ảnh lấp đầy ô (`object-fit: contain`); ô cao theo cột "Trình tự" bên cạnh (đo: 334 × 219 px).
+  Trên mép trên của ô: "Vẽ lược đồ" (ô trống), hoặc "Sửa bản vẽ" + "Xoá". Nhấp đúp vào ảnh cũng mở được. Nút không in ra.
+- Dialog "Vẽ lược đồ phẫu thuật/thủ thuật": Bút, Bút dạ quang, Tẩy, Hình (đường thẳng, mũi tên, chữ nhật, elip);
+  mỗi công cụ có mũi tên mở bảng **Màu** (30 màu của Snipping Tool) + **Cỡ nét**. Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y),
+  "Xoá tất cả". Trang vẽ 1002 × 657 px (gấp 3 ô) để in vẫn nét.
+- "Áp dụng" chỉ đưa ảnh lên phiếu (PNG trong bộ nhớ). Ảnh được tải lên khi bấm **Lưu** phiếu
+  (`POST …/{id}/drawings`, multipart), rồi phiếu lưu đường dẫn. Xoá cũng chỉ có hiệu lực khi Lưu.
+- BE: chỉ nhận PNG (kiểm theo chữ ký file, ≤ 2 MB, lỗi `BlueDental:Patient:0024`); ảnh nằm trong MinIO dưới
+  `patient-medical-records/{id}/drawings/`. Upload cần `patientMedicalRecord.update`, đọc cần `.read`,
+  phiếu ngoài chi nhánh → 404. Ảnh không bao giờ sửa tại chỗ (sửa = ảnh mới, cache `immutable`);
+  khi phiếu lưu xong mà không còn trỏ tới ảnh cũ, ảnh cũ bị xoá khỏi kho.
+- In: bản sao để in chờ ảnh tải xong (`copiedPicturesReady`) mới gọi `window.print()`.
+
 ## Chẩn đoán & Tư vấn — bác sĩ chẩn đoán mặc định (yêu cầu BA, 2026-10-03)
 
 Đây **không** phải hành vi quan sát từ bản gốc. Xem R-665 trong `docs/testing/03-regression-log.md`.

@@ -229,7 +229,8 @@ test.describe("Bệnh án", () => {
       { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
       { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 82, boxes: 21, pages: 2 },
       { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 49, boxes: 26, pages: 2 },
-      { form: "Phiếu phẫu thuật/thủ thuật", blanks: 38, boxes: 2, pages: 1 },
+      // 38 of the reference's, plus our drawing blank for "Lược đồ".
+      { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
       { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },
       { form: "Phiếu chăm sóc", blanks: 118, boxes: 2, pages: 1 },
     ];

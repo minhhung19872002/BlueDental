@@ -2,6 +2,7 @@ using System;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using System.Threading.Tasks;
+using Volo.Abp.Content;
 
 namespace BlueDental.PatientManagement;
 
@@ -34,6 +35,21 @@ public class GetPatientMedicalRecordListInput : PagedAndSortedResultRequestDto
     public MedicalRecordForm? Form { get; set; }
 }
 
+/// <summary>A drawing stored for a sheet; the sheet's content links to it by <see cref="Url"/>.</summary>
+public class MedicalRecordDrawingDto
+{
+    public Guid Id { get; set; }
+
+    /// <summary>Relative, as the content stores it: a host baked in would break when the app moved.</summary>
+    public string Url { get; set; } = string.Empty;
+}
+
+public class UploadMedicalRecordDrawingDto
+{
+    /// <summary>Null when the request carried no file — reported as an invalid drawing.</summary>
+    public IRemoteStreamContent? File { get; set; }
+}
+
 public interface IPatientMedicalRecordAppService : IApplicationService
 {
     Task<PagedResultDto<PatientMedicalRecordDto>> GetListAsync(GetPatientMedicalRecordListInput input);
@@ -45,4 +61,12 @@ public interface IPatientMedicalRecordAppService : IApplicationService
     Task<PatientMedicalRecordDto> UpdateAsync(Guid id, UpdatePatientMedicalRecordDto input);
 
     Task DeleteAsync(Guid id);
+
+    /// <summary>
+    /// Stores a drawing for the sheet. The sheet only links to it once its
+    /// content is saved with the returned link.
+    /// </summary>
+    Task<MedicalRecordDrawingDto> UploadDrawingAsync(Guid id, UploadMedicalRecordDrawingDto input);
+
+    Task<IRemoteStreamContent> GetDrawingAsync(Guid id, Guid drawingId);
 }

@@ -12,7 +12,7 @@ import { notifyError } from "@/lib/notify";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
-import { copySheetsForPrint, framesForSheets } from "./medical-record/printing";
+import { copiedPicturesReady, copySheetsForPrint, framesForSheets } from "./medical-record/printing";
 import {
   useAddMedicalRecord,
   useDeleteMedicalRecord,
@@ -285,6 +285,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
     restorePage.current?.();
     restorePage.current = copySheetsForPrint(frames);
+    await copiedPicturesReady();
     window.print();
   };
 
