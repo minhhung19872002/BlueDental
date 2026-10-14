@@ -8446,3 +8446,23 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** Domain `TreatmentPlanSlipTests` thêm 1 test (phiếu xong 1 triệu chưa thu + phiếu trả trước 90 triệu chưa làm → 1 triệu, không phải −89 triệu); 41/41. Application 715/715. Chạy thật: thẻ Công nợ tồn hôm nay 0 ₫.
 
+## R-925 (2026-10-14, mức 3: Báo cáo + Tài chính → Thanh toán) Số liệu các tab không thống nhất; dữ liệu cũ khi quay lại tab
+
+**Báo lỗi (chủ dự án):** Quản lý thu chi ghi thu nhập 0 đ trong khi Kết quả kinh doanh / Doanh số ghi doanh thu khác; muốn mỗi lần quay lại tab là đọc dữ liệu mới.
+
+**Nguyên nhân:**
+- Báo cáo (`clinic-reports/*`, Telesale, CSKH) không gửi chi nhánh, nên tài khoản cả phòng khám thấy **tổng mọi chi nhánh**, còn Quản lý thu chi chỉ thấy chi nhánh trên header.
+- Ngày cắt theo nửa đêm UTC: tiền thu 00:00–07:00 Hà Nội tính sang hôm trước; "Tổng quan" tính hôm nay / tuần theo `DateTime.UtcNow`, và chủ nhật thì đầu tuần ra thứ hai tuần sau.
+- Cache mặc định 5 phút, không đọc lại khi quay về cửa sổ.
+- Khác định nghĩa (chưa sửa, chờ chủ dự án): Quản lý thu chi chỉ cộng phiếu thu/chi nhập tay (`SalesEntry`); Kết quả kinh doanh = tiền điều trị + thu khác; Doanh số = tổng giá trị phiếu điều trị tạo trong kỳ.
+
+**Sửa:**
+- FE: mọi hook báo cáo đi qua `useReport` gửi `clinicBranchId` của header (`useBranchFilter`, "Tất cả chi nhánh" không gửi).
+- Báo cáo, Quản lý thu chi / sổ quỹ, Tài chính → Thanh toán dùng `ALWAYS_FRESH` (đọc lại khi quay về cửa sổ, `staleTime` 10 s). Trang Báo cáo đọc lại `clinic-reports` + `finance` mỗi lần đổi tab / tab con (`useRefreshOnTabChange`, không huỷ lượt đọc đang chạy).
+- BE: `ToInstant` theo ngày phòng khám (giữ hai đầu mở của "Toàn bộ"), lọc trong bộ nhớ theo `ClinicCalendar.DateOf`, "hôm nay" theo `Clock.Now` giờ phòng khám, đầu tuần thứ hai đúng cả chủ nhật.
+- Lần thử đầu dùng `refetchOnMount: "always"` + `staleTime: 0` làm spinner quay mãi (thẻ ẩn bảng khi đang tải → bảng mount lại → đọc lại); đã bỏ.
+
+**Test:** `e2e/report-freshness.spec.ts` (mới, thật): Kết quả kinh doanh gửi `clinicBranchId` của BD-001; đổi tab rồi quay lại là đọc lại; thu tiền ở tab trình duyệt khác rồi quay lại cửa sổ → Doanh thu điều trị tăng đúng số tiền phiếu thu. Pass. `report-customer`, `finance`, `billing-ledger` xanh. Application 715/715, HttpApi.Host 24/24.
+
+**Đỏ có sẵn (chạy lại trên code gốc, cả BE lẫn FE, vẫn đỏ y hệt 11/11):** `report.spec` 294 / 377 / 574 (header Excel, thẻ thu chi, sổ quỹ V2), `operations-reports` 8 test.
+

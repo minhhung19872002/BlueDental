@@ -1,4 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useBranchFilter } from "@/lib/clinicBranch";
+import { ALWAYS_FRESH } from "@/lib/queryFreshness";
 import { api } from "@/lib/axios";
 import { downloadFile } from "@/lib/download";
 import { clinicReportKeys, type ClinicReportQuery, type RangeQuery } from "./clinicReportApi";
@@ -112,19 +114,26 @@ function toParams(q: RangeQuery): ClinicReportQuery {
   return { fromDate: q.fromDate, toDate: q.toDate };
 }
 
+/** The header's branch ("Tất cả chi nhánh" sends none), like the other report tabs. */
+function useScopedParams(q: RangeQuery): ClinicReportQuery {
+  return { ...toParams(q), clinicBranchId: useBranchFilter() };
+}
+
 export function useTelesaleReport(q: RangeQuery) {
-  const params = toParams(q);
+  const params = useScopedParams(q);
   return useQuery({
     queryKey: customerReportKeys.telesale(params),
     queryFn: () => api.get<TelesaleReportDto>(`${BASE}/telesale`, { params }).then((r) => r.data),
+    ...ALWAYS_FRESH,
   });
 }
 
 export function useCareReport(q: RangeQuery) {
-  const params = toParams(q);
+  const params = useScopedParams(q);
   return useQuery({
     queryKey: customerReportKeys.care(params),
     queryFn: () => api.get<CareReportDto>(`${BASE}/customer-care`, { params }).then((r) => r.data),
+    ...ALWAYS_FRESH,
   });
 }
 

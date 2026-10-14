@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ALWAYS_FRESH } from "@/lib/queryFreshness";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
 import type { PagedResult } from "@/types";
@@ -77,10 +78,14 @@ export const cashHoldingsFor = (transactionType: CashTransactionType): CashHoldi
  * "Hình thức" of a cash movement: "Tiền mặt → Chuyển khoản" for a transfer,
  * the single holding for a deposit/withdrawal, "—" when neither side is set.
  */
-export function formatCashMovement(fromHolding: CashHolding | null, toHolding: CashHolding | null): string {
+export function formatCashMovement(
+  fromHolding: CashHolding | null,
+  toHolding: CashHolding | null,
+): string {
   const labels = cashHoldingLabels();
   const label = (value: CashHolding | null) => (value === null ? "—" : labels[value]);
-  if (fromHolding !== null && toHolding !== null) return `${label(fromHolding)} → ${label(toHolding)}`;
+  if (fromHolding !== null && toHolding !== null)
+    return `${label(fromHolding)} → ${label(toHolding)}`;
   return label(fromHolding ?? toHolding);
 }
 
@@ -352,6 +357,7 @@ export function useCashflowCategories(clinicBranchId: string, appliesToTransfers
         maxResultCount: 100,
       }),
     enabled: Boolean(clinicBranchId),
+    ...ALWAYS_FRESH,
   });
 }
 
@@ -373,7 +379,9 @@ function useFinanceMutation<TVariables, TData>(fn: (variables: TVariables) => Pr
 }
 
 export function useCreateCashflowCategory() {
-  return useFinanceMutation((input: CreateCashflowCategoryInput) => financeApi.createCategory(input));
+  return useFinanceMutation((input: CreateCashflowCategoryInput) =>
+    financeApi.createCategory(input),
+  );
 }
 
 export function useUpdateCashflowCategory() {
@@ -424,6 +432,7 @@ export function useSalesEntries(params: SalesQueryInput) {
   return useQuery({
     queryKey: financeKeys.sales(params),
     queryFn: () => financeApi.sales(params),
+    ...ALWAYS_FRESH,
   });
 }
 
@@ -431,6 +440,7 @@ export function useSalesStats(params: SalesQueryInput) {
   return useQuery({
     queryKey: financeKeys.salesStats(params),
     queryFn: () => financeApi.salesStats(params),
+    ...ALWAYS_FRESH,
   });
 }
 
@@ -439,6 +449,7 @@ export function useCashBalance(clinicBranchId: string) {
     queryKey: financeKeys.cashBalance(clinicBranchId),
     queryFn: () => financeApi.cashBalance(clinicBranchId),
     enabled: Boolean(clinicBranchId),
+    ...ALWAYS_FRESH,
   });
 }
 
@@ -446,6 +457,7 @@ export function useCashflowOverview(params: CashflowQueryInput) {
   return useQuery({
     queryKey: financeKeys.cashflowOverview(params),
     queryFn: () => financeApi.cashflowOverview(params),
+    ...ALWAYS_FRESH,
   });
 }
 
@@ -453,5 +465,6 @@ export function useCashflowEntries(params: CashflowQueryInput) {
   return useQuery({
     queryKey: financeKeys.cashflowEntries(params),
     queryFn: () => financeApi.cashflowEntries(params),
+    ...ALWAYS_FRESH,
   });
 }

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PillTabs } from "@/components/PillTabs";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
+import { useRefreshOnTabChange } from "@/lib/queryFreshness";
 import { ReportToolbar } from "../components/ReportToolbar";
 import { ExpenseTab } from "../components/ExpenseTab";
 import { CashflowTab } from "../components/CashflowTab";
@@ -43,6 +44,9 @@ function getBounds(mode: ReportViewMode, date: Dayjs) {
  * underline main tabs, then the active tab's content. Tab, period and date
  * live in the URL like the reference's, so a link reopens the same view.
  */
+/** clinic-reports and finance (thu chi, sổ quỹ) — everything the tabs read. */
+const REFRESHED_ROOTS = [["clinic-reports"], ["finance"]] as const;
+
 export function ReportPage() {
   const {
     activeTab,
@@ -57,6 +61,8 @@ export function ReportPage() {
     setCashflowSub,
   } = useReportUrlState();
   const [doctorId, setDoctorId] = useState<string | undefined>();
+  // Each switch of tab or sub-tab reads the figures again, so the tabs agree.
+  useRefreshOnTabChange(`${activeTab}/${salesSub}/${cashflowSub}`, REFRESHED_ROOTS);
   const permissions = useAuthStore((s) => s.user?.permissions);
   const grantedSet = useMemo(() => new Set(permissions ?? []), [permissions]);
 

@@ -663,9 +663,10 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
 
-        var now = DateTime.UtcNow;
-        var today = DateOnly.FromDateTime(now);
-        var weekStart = today.AddDays(-(int)now.DayOfWeek + 1);
+        // The clinic's day, not UTC's: before 07:00 Hà Nội UTC is still yesterday.
+        var today = ClinicCalendar.DateOf(Clock.Now);
+        // Monday-based; Sunday belongs to the week that started six days before.
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var weekEnd = weekStart.AddDays(6);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
@@ -718,11 +719,11 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         {
             var isAll = from == DateOnly.MinValue;
             var pInRange = isAll ? fullYearPayments : fullYearPayments
-                .Where(p => DateOnly.FromDateTime(p.PaidAt.UtcDateTime) >= from && DateOnly.FromDateTime(p.PaidAt.UtcDateTime) <= to).ToList();
+                .Where(p => ClinicCalendar.DateOf(p.PaidAt) >= from && ClinicCalendar.DateOf(p.PaidAt) <= to).ToList();
             var plInRange = isAll ? fullYearPlans : fullYearPlans
-                .Where(p => DateOnly.FromDateTime(p.CreationTime) >= from && DateOnly.FromDateTime(p.CreationTime) <= to).ToList();
+                .Where(p => DayOf(p.CreationTime) >= from && DayOf(p.CreationTime) <= to).ToList();
             var aInRange = isAll ? fullYearAppointments : fullYearAppointments
-                .Where(a => DateOnly.FromDateTime(a.Start.UtcDateTime) >= from && DateOnly.FromDateTime(a.Start.UtcDateTime) <= to).ToList();
+                .Where(a => ClinicCalendar.DateOf(a.Start) >= from && ClinicCalendar.DateOf(a.Start) <= to).ToList();
             var sInRange = isAll ? fullYearSales : fullYearSales
                 .Where(s => s.EntryDate >= from && s.EntryDate <= to).ToList();
 
@@ -757,9 +758,9 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
             var mStart = new DateOnly(today.Year, m, 1);
             var mEnd = mStart.AddMonths(1).AddDays(-1);
 
-            var mPayments = fullYearPayments.Where(p => DateOnly.FromDateTime(p.PaidAt.UtcDateTime) >= mStart && DateOnly.FromDateTime(p.PaidAt.UtcDateTime) <= mEnd).ToList();
-            var mPlans = fullYearPlans.Where(p => DateOnly.FromDateTime(p.CreationTime) >= mStart && DateOnly.FromDateTime(p.CreationTime) <= mEnd).ToList();
-            var mAppts = fullYearAppointments.Where(a => DateOnly.FromDateTime(a.Start.UtcDateTime) >= mStart && DateOnly.FromDateTime(a.Start.UtcDateTime) <= mEnd).ToList();
+            var mPayments = fullYearPayments.Where(p => ClinicCalendar.DateOf(p.PaidAt) >= mStart && ClinicCalendar.DateOf(p.PaidAt) <= mEnd).ToList();
+            var mPlans = fullYearPlans.Where(p => DayOf(p.CreationTime) >= mStart && DayOf(p.CreationTime) <= mEnd).ToList();
+            var mAppts = fullYearAppointments.Where(a => ClinicCalendar.DateOf(a.Start) >= mStart && ClinicCalendar.DateOf(a.Start) <= mEnd).ToList();
             var mSales = fullYearSales.Where(s => s.EntryDate >= mStart && s.EntryDate <= mEnd).ToList();
 
             var newP = mPlans.GroupBy(p => p.PatientId).Count(g => g.OrderBy(p => p.CreationTime).First().CreationTime >= ToInstant(mStart).UtcDateTime);
@@ -900,8 +901,20 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         return query.ToList();
     }
 
+    /// <summary>
+    /// The instant a clinic day starts. It was UTC midnight, so money taken
+    /// between 00:00 and 07:00 Hà Nội counted towards the day before.
+    /// The open ends of "Toàn bộ" (DateOnly.MinValue / MaxValue) stay open:
+    /// shifting them by the clinic's offset would leave the calendar.
+    /// </summary>
     private static DateTimeOffset ToInstant(DateOnly date) =>
-        new(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        date == DateOnly.MinValue ? DateTimeOffset.MinValue
+        : date == DateOnly.MaxValue ? DateTimeOffset.MaxValue.AddDays(-1)
+        : ClinicCalendar.StartOfDay(date);
+
+    /// <summary>The clinic day of an audit time, which is stored as UTC.</summary>
+    private static DateOnly DayOf(DateTime utc) =>
+        ClinicCalendar.DateOf(new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)));
 
     private sealed record YearVisit(AppointmentStatus Status, DateTimeOffset Start);
 }

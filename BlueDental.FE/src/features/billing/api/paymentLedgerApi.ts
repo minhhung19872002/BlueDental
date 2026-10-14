@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { ALWAYS_FRESH } from "@/lib/queryFreshness";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
 
@@ -78,5 +79,6 @@ export function usePaymentLedger(branchId: string, params: PaymentLedgerParams) 
     queryFn: () =>
       api.get<PaymentLedgerResult>(LEDGER_URL, { params }).then((response) => response.data),
     placeholderData: keepPreviousData,
+    ...ALWAYS_FRESH,
   });
 }

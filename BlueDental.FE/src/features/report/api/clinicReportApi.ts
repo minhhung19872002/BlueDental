@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useBranchFilter } from "@/lib/clinicBranch";
+import { ALWAYS_FRESH } from "@/lib/queryFreshness";
 import dayjs from "dayjs";
 import { api } from "@/lib/axios";
 import type { PaymentChannel } from "./financeApi";
@@ -228,28 +230,49 @@ export const clinicReportKeys = {
     [...clinicReportKeys.all, "overview-stats", params] as const,
 };
 
-export function usePaymentStat(params: ClinicReportQuery) {
+/**
+ * One report read: scoped to the header's branch — "Tất cả chi nhánh" sends
+ * none, which the server reads as every branch this account may see — unless
+ * the caller names one, and re-read on every visit (see ALWAYS_FRESH).
+ * Without the branch a clinic-wide account summed every branch here while
+ * Quản lý thu chi showed one, so the tabs disagreed.
+ */
+function useReport<T, P extends ClinicReportQuery>(
+  key: (params: P) => readonly unknown[],
+  path: string,
+  params: P,
+) {
+  const branch = useBranchFilter();
+  const scoped: P = { ...params, clinicBranchId: params.clinicBranchId ?? branch };
   return useQuery({
-    queryKey: clinicReportKeys.paymentStat(params),
-    queryFn: () =>
-      api.get<PaymentStatSummaryDto>(`${BASE}/payment-stat`, { params }).then((r) => r.data),
+    queryKey: key(scoped),
+    queryFn: () => api.get<T>(`${BASE}/${path}`, { params: scoped }).then((r) => r.data),
+    ...ALWAYS_FRESH,
   });
+}
+
+export function usePaymentStat(params: ClinicReportQuery) {
+  return useReport<PaymentStatSummaryDto, ClinicReportQuery>(
+    clinicReportKeys.paymentStat,
+    "payment-stat",
+    params,
+  );
 }
 
 export function usePatientHistory(params: ClinicReportQuery) {
-  return useQuery({
-    queryKey: clinicReportKeys.patientHistory(params),
-    queryFn: () =>
-      api.get<PatientHistoryRowDto[]>(`${BASE}/patient-history`, { params }).then((r) => r.data),
-  });
+  return useReport<PatientHistoryRowDto[], ClinicReportQuery>(
+    clinicReportKeys.patientHistory,
+    "patient-history",
+    params,
+  );
 }
 
 export function useBusinessResult(params: ClinicReportQuery) {
-  return useQuery({
-    queryKey: clinicReportKeys.businessResult(params),
-    queryFn: () =>
-      api.get<BusinessResultDto>(`${BASE}/business-result`, { params }).then((r) => r.data),
-  });
+  return useReport<BusinessResultDto, ClinicReportQuery>(
+    clinicReportKeys.businessResult,
+    "business-result",
+    params,
+  );
 }
 
 export interface RangeQuery {
@@ -258,67 +281,63 @@ export interface RangeQuery {
   doctorId?: string;
 }
 
+const range = (q: RangeQuery): ClinicReportQuery => ({ fromDate: q.fromDate, toDate: q.toDate });
+
 export function useServiceLines(q: RangeQuery) {
-  const params: ClinicReportQueryWithDoctor = { fromDate: q.fromDate, toDate: q.toDate, doctorId: q.doctorId };
-  return useQuery({
-    queryKey: clinicReportKeys.serviceLines(params),
-    queryFn: () =>
-      api.get<ServiceLineDto[]>(`${BASE}/service-lines`, { params }).then((r) => r.data),
-  });
+  const params: ClinicReportQueryWithDoctor = { ...range(q), doctorId: q.doctorId };
+  return useReport<ServiceLineDto[], ClinicReportQueryWithDoctor>(
+    clinicReportKeys.serviceLines,
+    "service-lines",
+    params,
+  );
 }
 
 export function usePaymentLines(q: RangeQuery) {
-  const params: ClinicReportQuery = { fromDate: q.fromDate, toDate: q.toDate };
-  return useQuery({
-    queryKey: clinicReportKeys.paymentLines(params),
-    queryFn: () =>
-      api.get<PaymentLineDto[]>(`${BASE}/payment-lines`, { params }).then((r) => r.data),
-  });
+  return useReport<PaymentLineDto[], ClinicReportQuery>(
+    clinicReportKeys.paymentLines,
+    "payment-lines",
+    range(q),
+  );
 }
 
 export function useRefundLines(q: RangeQuery) {
-  const params: ClinicReportQuery = { fromDate: q.fromDate, toDate: q.toDate };
-  return useQuery({
-    queryKey: clinicReportKeys.refundLines(params),
-    queryFn: () =>
-      api.get<RefundLineDto[]>(`${BASE}/refund-lines`, { params }).then((r) => r.data),
-  });
+  return useReport<RefundLineDto[], ClinicReportQuery>(
+    clinicReportKeys.refundLines,
+    "refund-lines",
+    range(q),
+  );
 }
 
 export function useDebtLines(q: RangeQuery) {
-  const params: ClinicReportQuery = { fromDate: q.fromDate, toDate: q.toDate };
-  return useQuery({
-    queryKey: clinicReportKeys.debtLines(params),
-    queryFn: () =>
-      api.get<DebtLineDto[]>(`${BASE}/debt-lines`, { params }).then((r) => r.data),
-  });
+  return useReport<DebtLineDto[], ClinicReportQuery>(
+    clinicReportKeys.debtLines,
+    "debt-lines",
+    range(q),
+  );
 }
 
 export function usePrepaidLines(q: RangeQuery) {
-  const params: ClinicReportQuery = { fromDate: q.fromDate, toDate: q.toDate };
-  return useQuery({
-    queryKey: clinicReportKeys.prepaidLines(params),
-    queryFn: () =>
-      api.get<PrepaidLineDto[]>(`${BASE}/prepaid-lines`, { params }).then((r) => r.data),
-  });
+  return useReport<PrepaidLineDto[], ClinicReportQuery>(
+    clinicReportKeys.prepaidLines,
+    "prepaid-lines",
+    range(q),
+  );
 }
 
 export function useSalesSummary(q: RangeQuery) {
-  const params: ClinicReportQuery = { fromDate: q.fromDate, toDate: q.toDate };
-  return useQuery({
-    queryKey: clinicReportKeys.salesSummary(params),
-    queryFn: () =>
-      api.get<SalesSummaryDto>(`${BASE}/sales-summary`, { params }).then((r) => r.data),
-  });
+  return useReport<SalesSummaryDto, ClinicReportQuery>(
+    clinicReportKeys.salesSummary,
+    "sales-summary",
+    range(q),
+  );
 }
 
 export function useOverviewStats(q: RangeQuery) {
-  const params: ClinicReportQuery = { fromDate: q.fromDate, toDate: q.toDate };
-  return useQuery({
-    queryKey: clinicReportKeys.overviewStats(params),
-    queryFn: () =>
-      api.get<OverviewStatsDto>(`${BASE}/overview-stats`, { params }).then((r) => r.data),
-  });
+  return useReport<OverviewStatsDto, ClinicReportQuery>(
+    clinicReportKeys.overviewStats,
+    "overview-stats",
+    range(q),
+  );
 }
 
 export function buildDailyTotals(
