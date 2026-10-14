@@ -52,6 +52,8 @@ interface Args {
   focusServiceId: string | null;
   /** The công đoạn of that row, when it has one. */
   focusStageId?: string | null;
+  /** The tabs the user's leaves allow (treatmentStage.create / .continue). */
+  allowedTabs?: readonly StageTab[];
 }
 
 /**
@@ -94,6 +96,7 @@ export function useStageComposer({
   plan,
   focusServiceId,
   focusStageId = null,
+  allowedTabs = STAGE_TABS,
 }: Args) {
   const currentUser = useAuthStore((state) => state.user);
   const createStage = useCreateStage();
@@ -148,7 +151,8 @@ export function useStageComposer({
   const focused =
     everyItem.find((item) => item.stages.some((stage) => stage.id === focusStageId)) ??
     items.add.find((item) => item.id === focusServiceId);
-  const tab: StageTab = chosenTab ?? focused?.tab ?? "add";
+  const landing = focused && allowedTabs.includes(focused.tab) ? focused.tab : allowedTabs[0];
+  const tab: StageTab = chosenTab ?? landing ?? "add";
   const offered = items[tab];
   /** The open forms, in the order their cards are listed. */
   const chosen = offered.filter((item) => selectedIds.includes(item.id));

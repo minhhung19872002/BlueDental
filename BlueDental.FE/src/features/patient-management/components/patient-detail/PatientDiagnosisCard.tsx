@@ -115,8 +115,9 @@ export function PatientDiagnosisCard({
     ...((onCreateService || onPrint || onDelete) ? [{
       title: t("Common:Actions"),
       key: "actions",
-      width: 200,
-      align: "right" as const,
+      // "Tạo dịch vụ" is the wide one; the icons alone need far less.
+      width: onCreateService ? 200 : 110,
+      align: "center" as const,
       fixed: "right" as const,
       render: (_: unknown, row: PatientDiagnosisDto) => (
         <div className="bd-cat-rowactions">

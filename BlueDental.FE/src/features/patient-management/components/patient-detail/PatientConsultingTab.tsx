@@ -39,7 +39,10 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
   const navigate = useNavigate();
   const diagnosisAbility = useAbility("treatmentDiagnosis");
   const consultationAbility = useAbility("treatmentConsultation");
-  const data = useConsultingData(patientId, branchId);
+  const data = useConsultingData(patientId, branchId, {
+    diagnoses: diagnosisAbility.canRead,
+    advises: consultationAbility.canRead,
+  });
   const actions = useConsultingActions(patientId, branchId);
   const permissions = usePatientImagePermissions();
 
@@ -109,62 +112,71 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
           onReorder={(day, from, to) => void actions.reorderImage(day, from, to)}
         />
 
-        <PatientDiagnosisCard
-          rows={data.diagnoses.data?.items ?? []}
-          totalCount={data.diagnoses.data?.totalCount ?? 0}
-          loading={data.diagnoses.isFetching}
-          pagination={data.diagnosisPaging}
-          expanded={editor.expanded}
-          onToggleForm={diagnosisAbility.canCreate ? editor.toggle : undefined}
-          onEdit={diagnosisAbility.canUpdate ? editor.edit : undefined}
-          onCreateService={consultationAbility.canCreate ? setAdviseDiagnosis : undefined}
-          onPrint={setPrinting}
-          onDelete={diagnosisAbility.canUpdate ? actions.setRemovingDiagnosis : undefined}
-        >
-          {editor.expanded && (
-            <PatientDiagnosisForm
-              dentists={data.dentists}
-              defaultDoctor={data.appointmentDoctor}
-              diagnoses={data.diagnosisOptions}
-              submitting={actions.creating || actions.updating}
-              editing={editor.editing}
-              blankCount={editor.blankCount}
-              onSubmit={(submission) => void editor.submit(submission)}
-              onClose={editor.close}
-            />
-          )}
-        </PatientDiagnosisCard>
+        {diagnosisAbility.canRead && (
+          <PatientDiagnosisCard
+            rows={data.diagnoses.data?.items ?? []}
+            totalCount={data.diagnoses.data?.totalCount ?? 0}
+            loading={data.diagnoses.isFetching}
+            pagination={data.diagnosisPaging}
+            expanded={editor.expanded}
+            onToggleForm={diagnosisAbility.canCreate ? editor.toggle : undefined}
+            onEdit={diagnosisAbility.canUpdate ? editor.edit : undefined}
+            onCreateService={consultationAbility.canCreate ? setAdviseDiagnosis : undefined}
+            // "In chẩn đoán" is a leaf of Phiếu tư vấn on the Phân quyền tree.
+            onPrint={consultationAbility.can("print") ? setPrinting : undefined}
+            onDelete={diagnosisAbility.canDelete ? actions.setRemovingDiagnosis : undefined}
+          >
+            {editor.expanded && (
+              <PatientDiagnosisForm
+                dentists={data.dentists}
+                defaultDoctor={data.appointmentDoctor}
+                diagnoses={data.diagnosisOptions}
+                submitting={actions.creating || actions.updating}
+                editing={editor.editing}
+                blankCount={editor.blankCount}
+                onSubmit={(submission) => void editor.submit(submission)}
+                onClose={editor.close}
+              />
+            )}
+          </PatientDiagnosisCard>
+        )}
       </div>
 
-      <PatientAdviseCard
-        quotes={quotes}
-        rows={shownRows}
-        totalCount={quotes.active ? shownRows.length : (data.advises.data?.totalCount ?? 0)}
-        loading={quotes.active ? false : data.advises.isFetching}
-        pagination={data.advisePaging}
-        plan={plan}
-        dentists={data.dentistList}
-        diagnosisNotes={diagnosisNotes}
-        selected={shownSelected}
-        onSelect={quotes.active ? quotes.select : setSelectedAdvises}
-        onEdit={consultationAbility.canUpdate ? setEditingAdvise : undefined}
-        onDelete={consultationAbility.canUpdate ? actions.setRemovingAdvise : undefined}
-        onReorder={actions.moveAdvise}
-        onAddToPlan={consultationAbility.canCreate ? (dentistId) => {
-          void actions
-            .addToPlan(
-              dentistId,
-              shownRows.filter((row) => shownSelected.includes(row.id)),
-              plan.selected.map((voucher) => voucher.id),
-            )
-            .then((opened) => {
-              if (opened) {
-                navigate(withBranch("?tab=treatment-plan", branchId));
-              }
-            });
-        } : undefined}
-        onPrint={consultationAbility.canRead ? () => setQuoteOpen(true) : undefined}
-      />
+      {consultationAbility.canRead && (
+        <PatientAdviseCard
+          quotes={quotes}
+          rows={shownRows}
+          totalCount={quotes.active ? shownRows.length : (data.advises.data?.totalCount ?? 0)}
+          loading={quotes.active ? false : data.advises.isFetching}
+          pagination={data.advisePaging}
+          plan={plan}
+          dentists={data.dentistList}
+          diagnosisNotes={diagnosisNotes}
+          selected={shownSelected}
+          onSelect={quotes.active ? quotes.select : setSelectedAdvises}
+          onEdit={consultationAbility.canUpdate ? setEditingAdvise : undefined}
+          onDelete={consultationAbility.canDelete ? actions.setRemovingAdvise : undefined}
+          onReorder={actions.moveAdvise}
+          onAddToPlan={
+            consultationAbility.canCreate
+              ? (dentistId) => {
+                  void actions
+                    .addToPlan(
+                      dentistId,
+                      shownRows.filter((row) => shownSelected.includes(row.id)),
+                      plan.selected.map((voucher) => voucher.id),
+                    )
+                    .then((opened) => {
+                      if (opened) {
+                        navigate(withBranch("?tab=treatment-plan", branchId));
+                      }
+                    });
+                }
+              : undefined
+          }
+          onPrint={consultationAbility.canRead ? () => setQuoteOpen(true) : undefined}
+        />
+      )}
 
       <QuoteDetailModal
         open={quoteOpen}

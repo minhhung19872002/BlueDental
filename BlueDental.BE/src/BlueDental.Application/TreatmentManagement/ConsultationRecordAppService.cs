@@ -10,12 +10,12 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.TreatmentManagement;
 
-[Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Default)]
+[Authorize]
 public class ConsultationRecordAppService(
     IRepository<ConsultationRecord, Guid> repository,
     ICurrentClinicBranchResolver branchResolver) : ApplicationService, IConsultationRecordAppService
 {
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PagedResultDto<ConsultationRecordDto>> GetListAsync(GetConsultationRecordListInput input)
     {
         var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
@@ -53,7 +53,7 @@ public class ConsultationRecordAppService(
         return new PagedResultDto<ConsultationRecordDto>(totalCount, dtos);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
     public async Task<ConsultationRecordDto> CreateAsync(CreateConsultationRecordDto input)
     {
         var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
@@ -84,7 +84,7 @@ public class ConsultationRecordAppService(
         };
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await repository.DeleteAsync(id);

@@ -20,19 +20,21 @@ export const consultingKeys = {
     [...consultingKeys.all, "advise-groups", params] as const,
 };
 
-export function usePatientDiagnoses(params: ListByPatientInput) {
+/** `enabled` false without treatmentDiagnosis.read — the server refuses the list. */
+export function usePatientDiagnoses(params: ListByPatientInput, enabled = true) {
   return useQuery({
     queryKey: consultingKeys.diagnoses(params),
     queryFn: () => consultingApi.diagnoses(params),
-    enabled: Boolean(params.patientId),
+    enabled: enabled && Boolean(params.patientId),
   });
 }
 
-export function usePatientAdvises(params: ListByPatientInput) {
+/** `enabled` false without treatmentConsultation.read — the server refuses the list. */
+export function usePatientAdvises(params: ListByPatientInput, enabled = true) {
   return useQuery({
     queryKey: consultingKeys.advises(params),
     queryFn: () => consultingApi.advises(params),
-    enabled: Boolean(params.patientId),
+    enabled: enabled && Boolean(params.patientId),
   });
 }
 

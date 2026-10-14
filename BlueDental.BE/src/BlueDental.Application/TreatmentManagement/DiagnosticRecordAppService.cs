@@ -11,13 +11,13 @@ using Volo.Abp.Identity;
 
 namespace BlueDental.TreatmentManagement;
 
-[Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Default)]
+[Authorize]
 public class DiagnosticRecordAppService(
     IRepository<DiagnosticRecord, Guid> repository,
     IIdentityUserRepository userRepository,
     ICurrentClinicBranchResolver branchResolver) : ApplicationService, IDiagnosticRecordAppService
 {
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
     public async Task<PagedResultDto<DiagnosticRecordDto>> GetListAsync(GetDiagnosticRecordListInput input)
     {
         var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
@@ -65,7 +65,7 @@ public class DiagnosticRecordAppService(
         return new PagedResultDto<DiagnosticRecordDto>(totalCount, dtos);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Create)]
     public async Task<DiagnosticRecordDto> CreateAsync(CreateDiagnosticRecordDto input)
     {
         var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
@@ -98,7 +98,7 @@ public class DiagnosticRecordAppService(
         };
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await repository.DeleteAsync(id);

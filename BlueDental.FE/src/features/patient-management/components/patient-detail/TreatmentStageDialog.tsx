@@ -39,7 +39,11 @@ interface Props {
 
 /** i18n keys per tab: its caption, what an empty tab says, its save button. */
 const TAB_COPY: Record<StageTab, { label: string; empty: string; save: string }> = {
-  add: { label: "Patient:Stage:AddLabel", empty: "Patient:Stage:EmptyAdd", save: "Patient:Stage:SaveStage" },
+  add: {
+    label: "Patient:Stage:AddLabel",
+    empty: "Patient:Stage:EmptyAdd",
+    save: "Patient:Stage:SaveStage",
+  },
   continue: {
     label: "Patient:Stage:ContinueLabel",
     empty: "Patient:Stage:EmptyContinue",
@@ -81,7 +85,21 @@ export function TreatmentStageDialog({
   const branch = useBranchInfo(branchId);
   // "Thanh toán" leads to collecting money on the slip — payment.create.
   const canPay = useAbility("payment").canCreate;
-  const composer = useStageComposer({ open, patientId, branchId, plan, focusServiceId, focusStageId });
+  const stageAbility = useAbility("treatmentStage");
+  const canCreateLabo = useAbility("treatmentLabo").canCreate;
+  // THÊM CÔNG ĐOẠN is treatmentStage.create; both "Tiếp tục" tabs are .continue.
+  const allowedTabs = STAGE_TABS.filter((key) =>
+    key === "add" ? stageAbility.canCreate : stageAbility.can("continue"),
+  );
+  const composer = useStageComposer({
+    open,
+    patientId,
+    branchId,
+    plan,
+    focusServiceId,
+    focusStageId,
+    allowedTabs,
+  });
 
   const [printing, setPrinting] = useState(false);
   const [laboStage, setLaboStage] = useState<TreatmentStageDto | null>(null);
@@ -121,8 +139,12 @@ export function TreatmentStageDialog({
 
       <div className="pd-stage-card">
         <div className="pd-stage-toolbar">
-          <div className="pd-stage-tabs" role="tablist" aria-label={t("Patient:Stage:SelectAction")}>
-            {STAGE_TABS.map((key) => (
+          <div
+            className="pd-stage-tabs"
+            role="tablist"
+            aria-label={t("Patient:Stage:SelectAction")}
+          >
+            {allowedTabs.map((key) => (
               <button
                 type="button"
                 key={key}
@@ -142,60 +164,64 @@ export function TreatmentStageDialog({
                 {t("Patient:Misc:Payment")}
               </Button>
             )}
-            <Button icon={<PrinterOutlined />} onClick={() => setPrinting(true)}>
-              {t("Patient:MedRecord:PrintHistory")}
-            </Button>
-          </div>
-        </div>
-
-        <div className="pd-stage-grid">
-          <div>
-            <ColumnHead>{t("Patient:Stage:Detail")}</ColumnHead>
-            <StagePicks
-              items={composer.offered}
-              selectedIds={composer.selectedIds}
-              emptyText={t(TAB_COPY[composer.tab].empty)}
-              onToggle={composer.toggleItem}
-            />
-          </div>
-
-          <div>
-            <div className="pd-stage-colheads">
-              <ColumnHead>{t("Patient:Debt:DateStaff")}</ColumnHead>
-              <ColumnHead>{t("Patient:Plan:SelectedService")}</ColumnHead>
-              <ColumnHead>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
-            </div>
-
-            {composer.chosen.length === 0 ? (
-              <p className="pd-stage-hint">{t("Patient:Stage:SelectHint")}</p>
-            ) : (
-              composer.chosen.map((item) => (
-                <StageForm
-                  key={item.id}
-                  item={item}
-                  draft={composer.draftOf(item)}
-                  errors={composer.errorsOf(item)}
-                  minDate={slipOpenedOn(plan)}
-                  handlers={{
-                    onChange: (patch) => composer.patchDraft(item, patch),
-                    onToggleStep: (stepId, next) => composer.toggleStep(item, stepId, next),
-                    onPickImages: () => composer.pickForForm(item),
-                  }}
-                  actions={
-                    item === last
-                      ? {
-                          primaryLabel: t(TAB_COPY[composer.tab].save),
-                          saving: composer.saving,
-                          onSave: () => void composer.save(),
-                          onCancel: requestClose,
-                        }
-                      : undefined
-                  }
-                />
-              ))
+            {stageAbility.can("print") && (
+              <Button icon={<PrinterOutlined />} onClick={() => setPrinting(true)}>
+                {t("Patient:MedRecord:PrintHistory")}
+              </Button>
             )}
           </div>
         </div>
+
+        {allowedTabs.length > 0 && (
+          <div className="pd-stage-grid">
+            <div>
+              <ColumnHead>{t("Patient:Stage:Detail")}</ColumnHead>
+              <StagePicks
+                items={composer.offered}
+                selectedIds={composer.selectedIds}
+                emptyText={t(TAB_COPY[composer.tab].empty)}
+                onToggle={composer.toggleItem}
+              />
+            </div>
+
+            <div>
+              <div className="pd-stage-colheads">
+                <ColumnHead>{t("Patient:Debt:DateStaff")}</ColumnHead>
+                <ColumnHead>{t("Patient:Plan:SelectedService")}</ColumnHead>
+                <ColumnHead>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
+              </div>
+
+              {composer.chosen.length === 0 ? (
+                <p className="pd-stage-hint">{t("Patient:Stage:SelectHint")}</p>
+              ) : (
+                composer.chosen.map((item) => (
+                  <StageForm
+                    key={item.id}
+                    item={item}
+                    draft={composer.draftOf(item)}
+                    errors={composer.errorsOf(item)}
+                    minDate={slipOpenedOn(plan)}
+                    handlers={{
+                      onChange: (patch) => composer.patchDraft(item, patch),
+                      onToggleStep: (stepId, next) => composer.toggleStep(item, stepId, next),
+                      onPickImages: () => composer.pickForForm(item),
+                    }}
+                    actions={
+                      item === last
+                        ? {
+                            primaryLabel: t(TAB_COPY[composer.tab].save),
+                            saving: composer.saving,
+                            onSave: () => void composer.save(),
+                            onCancel: requestClose,
+                          }
+                        : undefined
+                    }
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <StageHistory
@@ -206,6 +232,12 @@ export function TreatmentStageDialog({
         savingNoteFor={composer.savingNoteFor}
         uploadingFor={composer.uploadingFor}
         completingId={composer.completingId}
+        can={{
+          update: stageAbility.canUpdate,
+          complete: stageAbility.can("complete"),
+          warranty: stageAbility.canCreate,
+          labo: canCreateLabo,
+        }}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onComplete={(stage) => void composer.finish(stage)}
         onUpload={composer.pickForStage}

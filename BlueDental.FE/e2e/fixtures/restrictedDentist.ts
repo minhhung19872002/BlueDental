@@ -26,7 +26,9 @@ export async function openDentistLeaf(page: Page, leaf: string) {
   await expect(page.locator(".perm-editor-title")).toHaveText(DENTIST_ROLE);
 
   await page.getByPlaceholder("Tìm quyền...").fill(leaf);
-  const boxes = page.locator('.perm-leaf input[type="checkbox"]');
+  // By id, not by what the search shows: the search matches substrings, so
+  // "treatmentConsultation.delete" also lists "treatmentConsultation.deletePlan".
+  const boxes = page.locator(`.perm-leaf[data-permission="${leaf}"] input[type="checkbox"]`);
   await expect(boxes.first()).toBeVisible();
   return boxes;
 }

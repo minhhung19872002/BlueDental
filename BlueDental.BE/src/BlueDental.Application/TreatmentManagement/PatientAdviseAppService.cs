@@ -18,7 +18,7 @@ namespace BlueDental.TreatmentManagement;
 /// Tư vấn dịch vụ cho bệnh nhân — the priced bridge between a diagnosis and a
 /// treatment plan.
 /// </summary>
-[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
+[Authorize]
 public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppService
 {
     private readonly IRepository<PatientAdvise, Guid> _repository;
@@ -41,7 +41,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PagedResultDto<PatientAdviseDto>> GetListAsync(GetPatientAdviseListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -140,7 +140,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         }
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PatientAdviseSummaryDto> GetSummaryAsync(GetPatientAdviseListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -157,13 +157,13 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         };
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PatientAdviseDto> GetAsync(Guid id)
     {
         return MapToDto(await GetInBranchAsync(id));
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
     public async Task<PatientAdviseDto> CreateAsync(CreatePatientAdviseDto input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
@@ -213,7 +213,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> UpdateAsync(Guid id, UpdatePatientAdviseDto input)
     {
         var advise = await GetInBranchAsync(id);
@@ -229,7 +229,9 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    // Accepting only ever happens on the way into a new slip ("Tạo kế hoạch
+    // mới", "Thêm vào kế hoạch"), both of which are Thêm — not Sửa.
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
     public async Task<PatientAdviseDto> AcceptAsync(Guid id)
     {
         var advise = await GetInBranchAsync(id);
@@ -238,7 +240,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> RejectAsync(Guid id)
     {
         var advise = await GetInBranchAsync(id);
@@ -247,7 +249,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> CancelAsync(Guid id)
     {
         var advise = await GetInBranchAsync(id);
@@ -256,7 +258,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, decimal voucherDiscountAmount)
     {
         var advise = await GetInBranchAsync(id);
@@ -297,7 +299,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     /// Scoped to the caller's branch the same way the list is, so a row of
     /// another branch cannot be reordered through a guessed id.
     /// </summary>
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task ReorderAsync(ReorderPatientAdviseDto input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
@@ -334,7 +336,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             await _repository.UpdateManyAsync(changed, autoSave: true);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         var advise = await GetInBranchAsync(id);

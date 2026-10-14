@@ -18,7 +18,7 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// Chẩn đoán của bệnh nhân (Diagnosis recorded per patient and tooth).
 /// </summary>
-[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
+[Authorize]
 public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisAppService
 {
     private readonly IRepository<PatientDiagnosis, Guid> _repository;
@@ -38,7 +38,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
     public async Task<PagedResultDto<PatientDiagnosisDto>> GetListAsync(GetPatientDiagnosisListInput input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
@@ -113,13 +113,13 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         }
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
     public async Task<PatientDiagnosisDto> GetAsync(Guid id)
     {
         return MapToDto(await GetInBranchAsync(id));
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Create)]
     public async Task<PatientDiagnosisDto> CreateAsync(CreatePatientDiagnosisDto input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
@@ -140,7 +140,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
     public async Task<PatientDiagnosisDto> UpdateAsync(Guid id, UpdatePatientDiagnosisDto input)
     {
         var diagnosis = await GetInBranchAsync(id);
@@ -162,7 +162,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     /// "BE:Common:Update" on the "BE:Treatment:PrintDiagnosis" sheet. Names are refilled before the row
     /// goes back so the caller can re-render the sheet from the response alone.
     /// </summary>
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
     public async Task<PatientDiagnosisDto> UpdatePrintContentAsync(
         Guid id, UpdateDiagnosisPrintContentDto input)
     {
@@ -176,7 +176,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return dto;
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
     public async Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id)
     {
         var diagnosis = await GetInBranchAsync(id);
@@ -185,7 +185,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
     public async Task<PatientDiagnosisDto> CancelAsync(Guid id)
     {
         var diagnosis = await GetInBranchAsync(id);
@@ -194,7 +194,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         var diagnosis = await GetInBranchAsync(id);

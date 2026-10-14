@@ -14,7 +14,7 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// Nhóm tư vấn — groups consulting lines into alternative packages.
 /// </summary>
-[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
+[Authorize]
 public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
 {
     private readonly IRepository<AdviseGroup, Guid> _repository;
@@ -31,7 +31,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PagedResultDto<AdviseGroupDto>> GetListAsync(GetAdviseGroupListInput input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
@@ -58,7 +58,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return new PagedResultDto<AdviseGroupDto>(totalCount, dtos);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<AdviseGroupDto> GetAsync(Guid id)
     {
         var group = await _repository.GetAsync(id);
@@ -67,7 +67,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return MapToDto(group, advises);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
     public async Task<AdviseGroupDto> CreateAsync(CreateAdviseGroupDto input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
@@ -83,7 +83,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return MapToDto(group, new List<PatientAdvise>());
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<AdviseGroupDto> UpdateAsync(Guid id, UpdateAdviseGroupDto input)
     {
         var group = await _repository.GetAsync(id);
@@ -98,7 +98,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return MapToDto(group, advises);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         // Detach the advises first so they are not orphaned by a dangling group id.

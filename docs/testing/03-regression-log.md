@@ -8387,3 +8387,25 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - `report-service-paid` 1/1, `report-customer` 7/7.
   - `report` 4/5. Ca đỏ "tab Doanh số và lượt khách…" nằm ở file Excel của tab con **Thanh toán**: tiêu đề cột 13 là "Hình thức", spec chờ "Phương thức thanh toán". Key `Report:Column:PaymentMethod` = "Hình thức" có từ commit `2eec1e9e` (2026-09-23), không liên quan bản sửa này, nên để mở.
 - Chưa commit.
+
+## R-936 (2026-10-14, mức 3: phân quyền Điều trị) Phiếu chẩn đoán / Phiếu tư vấn / Công đoạn không khớp cây Phân quyền
+
+**Báo lỗi (chủ dự án):** dentist không tick "Xoá" ở Phiếu chẩn đoán vẫn xoá được.
+
+**Nguyên nhân:** `PatientDiagnosisAppService`, `DiagnosticRecordAppService` còn khoá bằng quyền cũ `TreatmentRecords.*`; `PatientAdviseAppService`, `AdviseGroupAppService`, `ConsultationRecordAppService` bằng `TreatmentPlans.*`. Cầu nối coi quyền cũ là có khi người dùng có **bất kỳ** ô tương ứng ở 6 mục Điều trị (công đoạn, chẩn đoán, tư vấn, bệnh án, hình ảnh, CSKH), và **Xoá** được map vào `Edit` (= Sửa). Giao diện cũng hiện nút xoá theo `canUpdate`.
+
+**Sửa:**
+- Server: chẩn đoán → `treatmentDiagnosis.read/create/update/delete`; tư vấn + nhóm tư vấn → `treatmentConsultation.read/create/update/delete`. Chốt dịch vụ tư vấn (`accept`) đi theo **Thêm**, vì chỉ xảy ra trong luồng tạo phiếu.
+- Giao diện: nút xoá chẩn đoán / dịch vụ tư vấn theo **Xoá**; "In chẩn đoán" theo `treatmentConsultation.print` (ô "In chẩn đoán" nằm trong nhóm Phiếu tư vấn). Thẻ chẩn đoán / tư vấn và chip "Các chẩn đoán" ở Hồ sơ chỉ tải khi có **Xem** của mục đó.
+- "Chi tiết phiếu" (Công đoạn): tab Thêm công đoạn theo **Thêm**, hai tab Tiếp tục theo **Tiếp tục**, tick Hoàn thành theo **Hoàn thành**, ghi chú + tải ảnh theo **Sửa**, Bảo hành theo **Thêm**, "In lịch sử điều trị" theo **In**, Tạo Labo theo `treatmentLabo.create`. Server Công đoạn vốn đã đúng từng ô.
+- Kéo-thả thứ tự dịch vụ tư vấn vẫn hiện ở giao diện (dùng chung cho báo giá), server từ chối nếu thiếu Sửa.
+- Cột Thao tác bảng Phiếu chẩn đoán căn giữa (tiêu đề đang căn phải), rộng 110px khi không có nút "Tạo Dịch Vụ".
+
+**Test:** `e2e/treatment-leaf-permissions.spec.ts` (mới): dentist có Xem/Thêm/Sửa, không có Xoá → không có nút xoá, API DELETE 403 cho cả chẩn đoán lẫn dịch vụ tư vấn; bật Xoá → có nút, xoá được, tải lại vẫn mất. Fixture `setDentistLeaf` chọn ô theo `data-permission` (id) thay vì theo kết quả tìm kiếm, vì tìm theo chuỗi con làm `treatmentConsultation.delete` khớp cả `…deletePlan`. Domain 853/853, Application 715/715.
+
+**Hồi quy mức 3 (15 spec, build production):** 63 xanh. Đỏ không do thay đổi này:
+- `consulting-delete-and-picker` (Chọn Dịch Vụ), `consulting-plan` (voucher, ảnh shimmer), `payment-permission-buttons` (Escape không đóng "Chi tiết phiếu"): chạy lại trên code gốc (chỉ thêm `data-permission` cho fixture) vẫn đỏ y hệt.
+- `role-permissions-abilities`, `labo-orders-permissions`, `taxonomy-service-sync`, `payment-permission-buttons`: các spec này giả định role `dentist` không có quyền nào, nhưng DB local đang có 353 quyền do chủ dự án tự tick để thử.
+- `patient-permission-gates`: không chọn được chi nhánh trong form nhân viên (dữ liệu chi nhánh test tích luỹ, cùng lỗi đã ghi ở R-906).
+
+**Lưu ý dữ liệu:** các spec bật/tắt ô trên chính role `dentist`, nên đã ghi đè một phần cấu hình chủ dự án tự tick trên DB local. Đã trả lại Phiếu chẩn đoán Thêm + Sửa (theo ảnh chụp). Không có lịch sử để khôi phục phần còn lại.

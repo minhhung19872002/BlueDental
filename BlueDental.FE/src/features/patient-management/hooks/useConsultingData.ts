@@ -15,7 +15,11 @@ import { useAppointmentDoctor } from "./useAppointmentDoctor";
  * diagnosis catalogues and the patient's photographs. The tab only renders
  * what comes back; the Danh mục library reads its own topics when opened.
  */
-export function useConsultingData(patientId: string, branchId: string | null) {
+export function useConsultingData(
+  patientId: string,
+  branchId: string | null,
+  canRead: { diagnoses: boolean; advises: boolean },
+) {
   const diagnosisPaging = useTablePagination(20);
   const advisePaging = useTablePagination(20);
   const scope = { patientId, clinicBranchId: branchId ?? undefined };
@@ -24,12 +28,12 @@ export function useConsultingData(patientId: string, branchId: string | null) {
     ...scope,
     skipCount: diagnosisPaging.skipCount,
     maxResultCount: diagnosisPaging.maxResultCount,
-  });
+  }, canRead.diagnoses);
   const advises = usePatientAdvises({
     ...scope,
     skipCount: advisePaging.skipCount,
     maxResultCount: advisePaging.maxResultCount,
-  });
+  }, canRead.advises);
   const dentists = useDentistList().data ?? [];
   // A diagnosis is made today: doctors registered OFF today are not offered.
   const dentistsToday = useDentistList(todayIsoDate()).data ?? [];

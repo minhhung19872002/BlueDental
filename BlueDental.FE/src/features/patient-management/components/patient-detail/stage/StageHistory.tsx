@@ -27,6 +27,8 @@ interface Props {
   savingNoteFor: string | null;
   uploadingFor: string | null;
   completingId: string | null;
+  /** Which leaves of Công đoạn (and Labo) the user holds; a missing one hides its control. */
+  can: StageHistoryLeaves;
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
   onComplete: (stage: TreatmentStageDto) => void;
   onUpload: (stage: TreatmentStageDto) => void;
@@ -39,6 +41,17 @@ interface Props {
   historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
 }
 
+export interface StageHistoryLeaves {
+  /** treatmentStage.update — the note pencil and "Tải ảnh". */
+  update: boolean;
+  /** treatmentStage.complete — the "Hoàn thành" tick. */
+  complete: boolean;
+  /** treatmentStage.create — "Bảo hành" writes a new công đoạn. */
+  warranty: boolean;
+  /** treatmentLabo.create — "Tạo Labo". */
+  labo: boolean;
+}
+
 const TOOTH_CLASS: Record<HistoryToothState, string | undefined> = {
   idle: undefined,
   worked: "pd-stage-histtooth--worked",
@@ -49,10 +62,12 @@ const TOOTH_CLASS: Record<HistoryToothState, string | undefined> = {
 function NoteCell({
   stage,
   saving,
+  editable,
   onSave,
 }: {
   stage: TreatmentStageDto;
   saving: boolean;
+  editable: boolean;
   onSave: (note: string) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -63,7 +78,7 @@ function NoteCell({
       <div className="pd-stage-noteblock">
         <div className="pd-stage-notebar">
           {/* The reference drops the pencil on a continued công đoạn. */}
-          {!editing && !stage.isSuperseded && (
+          {editable && !editing && !stage.isSuperseded && (
             <button
               type="button"
               aria-label={t("Patient:Misc:EditNote")}
@@ -118,14 +133,17 @@ function NoteCell({
       <div className="pd-stage-notemeta">
         <div>
           <p>
-            {t("Patient:Staff:Doctor")}: <span>{stage.staffName ?? t("Patient:QuoteSheet:Empty")}</span>
+            {t("Patient:Staff:Doctor")}:{" "}
+            <span>{stage.staffName ?? t("Patient:QuoteSheet:Empty")}</span>
           </p>
           <p>
-            {t("Patient:Staff:AssistingDoctor")}: <span>{stage.secondStaffName ?? t("Patient:QuoteSheet:Empty")}</span>
+            {t("Patient:Staff:AssistingDoctor")}:{" "}
+            <span>{stage.secondStaffName ?? t("Patient:QuoteSheet:Empty")}</span>
           </p>
         </div>
         <p>
-          {t("Patient:Staff:Assistant")}: <span>{stage.subStaffName ?? t("Patient:QuoteSheet:Empty")}</span>
+          {t("Patient:Staff:Assistant")}:{" "}
+          <span>{stage.subStaffName ?? t("Patient:QuoteSheet:Empty")}</span>
         </p>
       </div>
     </div>
@@ -144,6 +162,7 @@ export function StageHistory({
   savingNoteFor,
   uploadingFor,
   completingId,
+  can,
   onSaveNote,
   onComplete,
   onUpload,
@@ -238,6 +257,7 @@ export function StageHistory({
                         <NoteCell
                           stage={stage}
                           saving={savingNoteFor === stage.id}
+                          editable={can.update}
                           onSave={(note) => onSaveNote(stage, note)}
                         />
 
@@ -259,34 +279,37 @@ export function StageHistory({
                               of the line, or one mid-request, is locked. */}
                           <Checkbox
                             checked={done}
-                            disabled={!live || completingId === stage.id}
+                            disabled={!can.complete || !live || completingId === stage.id}
                             onChange={() => onComplete(stage)}
                           >
                             {t("Patient:Misc:Done")}
                           </Checkbox>
-                          <Button
-                            block
-                            icon={<PictureOutlined />}
-                            disabled={!live}
-                            loading={uploadingFor === stage.id}
-                            onClick={() => onUpload(stage)}
-                          >
-                            {t("Patient:Photo:Upload")}
-                          </Button>
+                          {can.update && (
+                            <Button
+                              block
+                              icon={<PictureOutlined />}
+                              disabled={!live}
+                              loading={uploadingFor === stage.id}
+                              onClick={() => onUpload(stage)}
+                            >
+                              {t("Patient:Photo:Upload")}
+                            </Button>
+                          )}
                           {/* A finished công đoạn swaps Tạo Labo for Bảo hành;
                               a continued one offers neither. */}
-                          {done ? (
-                            <StageWarrantyButton
-                              state={warrantyOf(stage)}
-                              onClick={() => onWarranty(stage)}
-                            />
-                          ) : (
-                            live && (
-                              <Button block type="primary" onClick={() => onCreateLabo(stage)}>
-                                {t("Patient:Labo:Create")}
-                              </Button>
-                            )
-                          )}
+                          {done
+                            ? can.warranty && (
+                                <StageWarrantyButton
+                                  state={warrantyOf(stage)}
+                                  onClick={() => onWarranty(stage)}
+                                />
+                              )
+                            : live &&
+                              can.labo && (
+                                <Button block type="primary" onClick={() => onCreateLabo(stage)}>
+                                  {t("Patient:Labo:Create")}
+                                </Button>
+                              )}
                         </div>
                       </div>
                     );

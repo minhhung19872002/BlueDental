@@ -75,7 +75,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
 
   if (node.type === "leaf") {
     return (
-      <label className="perm-leaf">
+      <label className="perm-leaf" data-permission={node.id}>
         <Checkbox
           checked={granted.has(node.id)}
           disabled={isReadonly}

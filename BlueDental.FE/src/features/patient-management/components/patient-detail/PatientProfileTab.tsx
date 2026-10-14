@@ -158,6 +158,8 @@ export function PatientProfileTab({ patient }: Props) {
   const patientAbility = useAbility("patient");
   const appointmentAbility = useAbility("appointment");
   const stageAbility = useAbility("treatmentStage");
+  // The "Các chẩn đoán" chip reads the phiếu chẩn đoán — treatmentDiagnosis.read.
+  const diagnosisAbility = useAbility("treatmentDiagnosis");
   const paymentAbility = useAbility("payment");
   const [editing, setEditing] = useState(false);
   const [creatingAppointment, setCreatingAppointment] = useState(false);
@@ -209,11 +211,10 @@ export function PatientProfileTab({ patient }: Props) {
    * The phiếu chẩn đoán, for the "Các chẩn đoán" chip alone (BA item 25,
    * 2026-09-28): staging lists them in this table as rows of their own.
    */
-  const diagnoses = usePatientDiagnoses({
-    patientId: patient.id,
-    clinicBranchId: branchId ?? undefined,
-    maxResultCount: 1000,
-  });
+  const diagnoses = usePatientDiagnoses(
+    { patientId: patient.id, clinicBranchId: branchId ?? undefined, maxResultCount: 1000 },
+    diagnosisAbility.canRead,
+  );
   /** What "Tạo tái khám" can follow: a công đoạn that is actually finished. */
   const finishedStages = (patientStages.data?.items ?? []).filter(
     (stage) => stage.completedAt !== null,
