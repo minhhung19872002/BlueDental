@@ -88,6 +88,17 @@ export function toothValueToSelections(value: ToothPickerValue): ToothSelection[
 }
 
 /**
+ * The jaw a set of teeth is, when it is exactly one — every tooth of the upper
+ * jaw, of the lower, or of both, each taken whole — else null. A diagnosis or
+ * service picked as "Hàm trên" is stored as its sixteen teeth, and is shown by
+ * that name rather than as the sixteen numbers.
+ */
+export function wholeJawOf(selections: readonly ToothSelection[]): JawPreset | null {
+  const value = toothSelectionsToValue(selections);
+  return value.kind === "jaw" ? value.jaw : null;
+}
+
+/**
  * The inverse of toothValueToSelections: rows the API handed back, folded
  * into the picker's value. A complete jaw of whole teeth collapses to that
  * jaw's preset (both jaws to the full one), so a diagnosis saved as "Nguyên

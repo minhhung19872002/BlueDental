@@ -1,4 +1,4 @@
-import { TOOTH_SURFACES, surfaceLabel, type ToothSurface } from "@/components/ToothChart";
+import { TOOTH_SURFACES, jawLabel, surfaceLabel, wholeJawOf, type ToothSurface } from "@/components/ToothChart";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -272,9 +272,20 @@ function formatTooth(tooth: ToothSelectionDto): string {
   return `${tooth.toothCode} - ${labels.join(", ")}`;
 }
 
+/**
+ * "Hàm trên", "Hàm dưới" or "Nguyên hàm" when the teeth are exactly a whole
+ * jaw, as they were picked — the clinic reads a jaw by its name, not as sixteen
+ * or thirty-two numbers. Teeth picked one by one stay listed.
+ */
+function jawNameOf(teeth: ToothSelectionDto[]): string | null {
+  const jaw = wholeJawOf(teeth);
+  return jaw ? jawLabel(jaw) : null;
+}
+
 /** "18, 16 - Mặt ngoài, Mặt nhai" — how the reference renders a tooth set in list rows. */
 export function formatTeeth(teeth: ToothSelectionDto[]): string {
-  return teeth.length === 0 ? "—" : teeth.map(formatTooth).join(", ");
+  if (teeth.length === 0) return "—";
+  return jawNameOf(teeth) ?? teeth.map(formatTooth).join(", ");
 }
 
 /**
@@ -286,7 +297,7 @@ export function formatTeeth(teeth: ToothSelectionDto[]): string {
  * numbers. Empty when nothing was picked, so the caller can leave the cell out.
  */
 export function formatToothCodes(teeth: ToothSelectionDto[]): string {
-  return teeth.map((tooth) => String(tooth.toothCode)).join(", ");
+  return jawNameOf(teeth) ?? teeth.map((tooth) => String(tooth.toothCode)).join(", ");
 }
 
 /**
@@ -294,5 +305,6 @@ export function formatToothCodes(teeth: ToothSelectionDto[]): string {
  * joined string — the reference prints each as its own chip.
  */
 export function toothLabels(teeth: ToothSelectionDto[]): string[] {
-  return teeth.map(formatTooth);
+  const jaw = jawNameOf(teeth);
+  return jaw ? [jaw] : teeth.map(formatTooth);
 }

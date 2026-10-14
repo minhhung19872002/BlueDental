@@ -23,6 +23,7 @@ export {
   jawLabel,
   toothPickToSelection,
   toothSelectionsToValue,
+  wholeJawOf,
   toothValueToSelections,
   type JawPreset,
   type ToothPickerTab,

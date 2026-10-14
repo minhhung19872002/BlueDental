@@ -224,8 +224,21 @@ public class OperationsReportAppService(
         return plans.SelectMany(p => p.Services).ToList();
     }
 
-    private static string Join(IEnumerable<TreatmentManagement.Values.ToothSelection> teeth)
-        => string.Join(", ", teeth.Select(t => t.ToothCode.ToString()).Distinct());
+    /// <summary>
+    /// "16, 26", or the jaw's name when the teeth are exactly a whole jaw — as
+    /// the patient screens print them.
+    /// </summary>
+    private string Join(IEnumerable<TreatmentManagement.Values.ToothSelection> teeth)
+    {
+        var list = teeth.ToList();
+        return TreatmentManagement.Values.ToothArch.WholeJawOf(list) switch
+        {
+            TreatmentManagement.Values.WholeJaw.Upper => L["Common:Tooth:UpperArchSummary"],
+            TreatmentManagement.Values.WholeJaw.Lower => L["Common:Tooth:LowerArchSummary"],
+            TreatmentManagement.Values.WholeJaw.Full => L["Common:Tooth:FullArchSummary"],
+            _ => string.Join(", ", list.Select(t => t.ToothCode.ToString()).Distinct()),
+        };
+    }
 
     private static PagedResultDto<T> Page<T>(List<T> rows, OperationsReportInput input)
     {
@@ -389,7 +402,7 @@ public class OperationsReportAppService(
     }
 
     /// <summary>A diagnosis reads "tooth - name" where it names a tooth.</summary>
-    private static string DiagnosisSubject(
+    private string DiagnosisSubject(
         PatientDiagnosis diagnosis,
         IReadOnlyDictionary<Guid, string> catalog)
     {

@@ -179,7 +179,12 @@ export interface SheetDiagnosis {
 export function diagnosisFieldValues(diagnoses: readonly SheetDiagnosis[]): FieldValues {
   const lines = diagnoses
     .filter((item) => item.name.trim())
-    .map((item) => (item.teeth ? `${item.name.trim()} (răng ${item.teeth})` : item.name.trim()));
+    .map((item) => {
+      if (!item.teeth) return item.name.trim();
+      // Tooth numbers read "răng 16, 26"; a whole jaw is already named ("Hàm trên").
+      const teeth = /^\d/.test(item.teeth) ? `răng ${item.teeth}` : item.teeth.toLowerCase();
+      return `${item.name.trim()} (${teeth})`;
+    });
   const text = [...new Set(lines)].join("; ");
 
   const values: FieldValues = {};

@@ -8548,3 +8548,24 @@ Chạy trên build production, cổng 18431, API riêng cổng 5010:
 **Chưa sửa (ghi nhận):**
 - Picker dịch vụ của Voucher vẫn hiện cả dịch vụ / combo đã ngưng hoặc đã xoá.
 - Picker thuốc trải qua nhiều nhóm loại thuốc có thể bị xen kẽ y như vậy (chỉ sửa cho `care_service`).
+
+**Rà soát R-944 (2026-10-14, sau khi kéo về):** mọi chỗ liệt kê dịch vụ để chọn đều đọc `GET /catalog-entries` (group `care_service`) và không sắp lại ở FE, nên đã theo thứ tự mới:
+- picker "Thêm dịch vụ mới" (Tạo phiếu, thanh công cụ phiếu, chuyển dịch vụ);
+- bảng "Chọn Dịch Vụ" và tab Combo của Tư vấn (theo chip nhóm → thứ tự trong nhóm);
+- picker dịch vụ Voucher;
+- lưới thành phần Combo (Danh mục);
+- cây đồng bộ dịch vụ đối tác (BE dựng theo cùng quy tắc).
+Danh sách nhóm (chip, bộ lọc) đọc `/taxonomies`, vốn đúng thứ tự. Không đổi: bảng tư vấn / báo giá của bệnh nhân (theo thứ tự dòng đã lưu), modal dịch vụ của một voucher (theo thứ tự đã lưu). `service-priority-order`, `consulting-delete-and-picker` xanh trên API đã sửa.
+
+## R-945 (2026-10-14, mức 3: hiển thị răng dùng chung) Chọn cả hàm thì hiện tên hàm, không liệt kê 16/32 răng
+
+**Yêu cầu (chủ dự án):** chẩn đoán / dịch vụ chọn "Hàm trên", "Hàm dưới", "Nguyên hàm" thì hiện đúng tên đó; chọn răng lẻ thì vẫn liệt kê như cũ. Trước đây cột "Răng" của Tạo chẩn đoán và cột "Chẩn đoán" của bảng dịch vụ tư vấn in cả 32 số răng.
+
+**Nguyên nhân:** BE lưu cả hàm thành từng răng; FE in lại từng răng. Bộ chọn răng đã biết gộp ngược (`toothSelectionsToValue`) nhưng các hàm hiển thị không dùng.
+
+**Sửa:**
+- FE: `wholeJawOf` (ToothChart) — đúng bộ răng của một hàm, mỗi răng chọn cả răng, không thừa không thiếu. `formatTeeth`, `formatToothCodes`, `toothLabels` (consultingApi) trả tên hàm khi khớp → mọi bảng, thẻ, phiếu in dùng chúng đổi theo (chẩn đoán, tư vấn, kế hoạch điều trị, chi tiết phiếu, báo giá, labo, tái khám, in lịch sử điều trị, Chẩn đoán trên phiếu bệnh án: "Viêm tủy (hàm trên)").
+- BE: `ToothArch.WholeJawOf` (Domain) cho báo cáo Vận hành (`OperationsReportAppService.Join`).
+- Giữ dạng từng răng: lịch sử công đoạn và bộ chọn răng công đoạn (mỗi răng mang trạng thái riêng).
+
+**Test:** `e2e/diagnosis-jaw-label.spec.ts` (mới, thật): tạo 5 chẩn đoán qua API — hàm trên, hàm dưới, nguyên hàm, 15/16 răng hàm trên, 16+26 — tab Chẩn đoán & Tư vấn hiện "Hàm trên", "Hàm dưới", "Nguyên hàm", còn 15 răng và "16, 26" vẫn liệt kê. Pass. Domain `ToothArchTests` 5/5. Vitest liên quan 3/3.
