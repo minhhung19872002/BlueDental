@@ -152,6 +152,32 @@ public class PatientAdviseTests
     }
 
     [Fact]
+    public void Should_Go_Back_To_Accepted_When_Its_Plan_Is_Deleted()
+    {
+        var advise = CreateAdvise();
+        advise.Accept();
+        advise.ConvertTo(Guid.NewGuid());
+
+        advise.ReleaseFromPlan();
+
+        Assert.Equal(PatientAdviseStatus.Accepted, advise.Status);
+        Assert.Null(advise.TreatmentPlanId);
+        // Free for the next slip.
+        var nextPlanId = Guid.NewGuid();
+        advise.ConvertTo(nextPlanId);
+        Assert.Equal(nextPlanId, advise.TreatmentPlanId);
+    }
+
+    [Fact]
+    public void Should_Only_Release_A_Converted_Advise()
+    {
+        var advise = CreateAdvise();
+        advise.Accept();
+
+        Assert.Throws<BusinessException>(() => advise.ReleaseFromPlan());
+    }
+
+    [Fact]
     public void Should_Not_Attach_The_Same_Image_Twice()
     {
         var advise = CreateAdvise();

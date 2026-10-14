@@ -10,6 +10,8 @@ import { assertRealApiTraffic, login } from "./auth";
 
 export const DENTIST_ROLE = "dentist";
 export const MAIN_BRANCH = "Nha Khoa Đức Hạnh Premium";
+/** Seeded id of MAIN_BRANCH. */
+const MAIN_BRANCH_ID = "11111111-1111-1111-1111-111111111111";
 
 /**
  * The checkboxes of one leaf on the dentist's grant tree, found by its id. A
@@ -66,7 +68,11 @@ export async function createDentist(page: Page, fullName: string, userName: stri
   await dialog.getByLabel(/Nhập lại mật khẩu/).fill(password);
   await dialog.getByLabel(/Nhóm quyền/).click();
   await page.locator(`.ant-select-item-option[title="${DENTIST_ROLE}"]`).click();
+  // Search first: test runs pile up branches, pushing this one out of the
+  // virtual list's rendered window. The select searches its option values,
+  // which are branch ids, so it is found by the seeded id.
   await dialog.getByLabel(/Chi nhánh/).click();
+  await dialog.getByLabel(/Chi nhánh/).fill(MAIN_BRANCH_ID);
   await page.locator(`.ant-select-item-option[title="${MAIN_BRANCH}"]`).click();
   await dialog.getByLabel(/Họ và tên/).click();
   await dialog.getByRole("button", { name: /Lưu/ }).click();

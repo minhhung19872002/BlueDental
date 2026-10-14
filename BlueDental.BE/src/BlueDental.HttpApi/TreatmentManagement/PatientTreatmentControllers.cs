@@ -61,6 +61,9 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
         Guid id, [FromBody] ReorderTreatmentServiceDto input) =>
         service.ReorderServiceAsync(id, input);
 
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> ExportPdfAsync(Guid id) =>
         Pdf(await service.ExportPdfAsync(id), $"phieu-dieu-tri-{id}");

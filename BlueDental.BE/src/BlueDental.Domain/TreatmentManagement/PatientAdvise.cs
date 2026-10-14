@@ -266,6 +266,24 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// The slip this advise was pulled into has been deleted: the line goes back
+    /// to accepted, free to be opened into a new slip.
+    /// </summary>
+    public PatientAdvise ReleaseFromPlan()
+    {
+        if (Status != PatientAdviseStatus.Converted)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidAdviseTransition,
+                $"Only a converted advise can be released from its plan (current: {Status}).");
+        }
+
+        TreatmentPlanId = null;
+        Status = PatientAdviseStatus.Accepted;
+        return this;
+    }
+
     public PatientAdvise Cancel()
     {
         if (Status == PatientAdviseStatus.Converted)

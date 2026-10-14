@@ -1,5 +1,5 @@
 import { Pagination } from "antd";
-import { ClipboardList, Eye, Plus, Receipt } from "lucide-react";
+import { ClipboardList, Eye, Plus, Receipt, Trash2 } from "lucide-react";
 import { RecordCard } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
@@ -22,7 +22,7 @@ interface ActionsProps {
   actions: PlanRowActions;
 }
 
-/** The two fixed table edges folded onto the card head: + stage, eye, print, receipt. */
+/** The two fixed table edges folded onto the card head: + stage, eye, print, receipt, bin. */
 function PlanCardActions({ plan, actions }: ActionsProps) {
   return (
     <>
@@ -64,6 +64,18 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
             onClick={() => actions.onReceipt?.(plan)}
           >
             <Receipt size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
+      {actions.onDelete && (
+        <ActionTooltip title={t("Treatment:Plan:Delete")}>
+          <button
+            type="button"
+            className="bd-rc-action tp-card-delete"
+            aria-label={t("Treatment:Plan:DeleteFor", plan.code)}
+            onClick={() => actions.onDelete?.(plan)}
+          >
+            <Trash2 size={16} aria-hidden="true" />
           </button>
         </ActionTooltip>
       )}

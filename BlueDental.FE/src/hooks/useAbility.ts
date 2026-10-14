@@ -5,6 +5,7 @@ import { PERMISSION_GROUP } from "@/lib/permissionConstants";
 export type AbilityAction =
   | "read"
   | "readAll"
+  | "deletePlan"
   | "create"
   | "update"
   | "delete"

@@ -125,6 +125,22 @@ public class VoucherTests
     }
 
     [Fact]
+    public void Release_Should_Give_The_Use_Back_And_Reopen_An_Exhausted_Voucher()
+    {
+        var voucher = Issue(DiscountType.Money, 100_000m, usageLimit: 1);
+        voucher.Publish();
+        voucher.Redeem(_inWindow, 1_000_000m);
+
+        voucher.Release();
+
+        Assert.Equal(0, voucher.UsedCount);
+        Assert.Equal(VoucherStatus.Active, voucher.Status);
+        // Never below zero.
+        voucher.Release();
+        Assert.Equal(0, voucher.UsedCount);
+    }
+
+    [Fact]
     public void Should_Not_Redeem_An_Unpublished_Voucher()
     {
         var voucher = Issue();

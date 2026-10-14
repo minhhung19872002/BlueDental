@@ -280,6 +280,22 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
         return CalculateDiscount(orderAmount);
     }
 
+    /// <summary>
+    /// Gives back the use a slip burnt, when that slip is deleted ("Xoá phiếu
+    /// điều trị"): the slip is treated as never opened. Cancelling lines does
+    /// not come here — that use stays burnt (BA item 24).
+    /// </summary>
+    public Voucher Release()
+    {
+        if (UsedCount > 0)
+            UsedCount--;
+
+        if (Status == VoucherStatus.OutOfUses && !IsExhausted)
+            Status = VoucherStatus.Active;
+
+        return this;
+    }
+
     private static readonly HashSet<string> ValidCustomerTargetValues = ["new", "returning"];
 
     private static void ValidateCustomerTargets(List<string>? targets)

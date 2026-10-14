@@ -40,6 +40,8 @@ public static class BlueDentalAbilities
         public const string Manage = "manage";
         /// <summary>BlueDental-local: see every ticket of the branch, not only one's own.</summary>
         public const string ReadAll = "readAll";
+        /// <summary>BlueDental-local: "Xoá phiếu điều trị" on the Kế hoạch điều trị tab.</summary>
+        public const string DeletePlan = "deletePlan";
     }
 
     /// <summary>Every subject the reference exposes.</summary>
@@ -244,7 +246,9 @@ public static class BlueDentalAbilities
         ["patientGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
-        ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],
+        // BlueDental-local: DeletePlan — the reference cannot delete a phiếu điều trị;
+        // the slip sits under this subject, so its delete leaf does too.
+        ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print, Actions.DeletePlan],
         ["treatmentCskh"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentDiagnosis"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["treatmentImage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

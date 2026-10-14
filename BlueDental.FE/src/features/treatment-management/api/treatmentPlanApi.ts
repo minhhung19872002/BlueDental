@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { QueryEntity } from "@/lib/queryEntities";
 import type { PagedResult } from "@/types";
@@ -519,6 +519,9 @@ const treatmentApi = {
   openPlan: (input: OpenPlanInput): Promise<TreatmentPlanSlipDto> =>
     api.post<TreatmentPlanSlipDto>(PLANS, input).then((r) => r.data),
 
+  deletePlan: (planId: string): Promise<void> =>
+    api.delete(`${PLANS}/${planId}`).then(() => undefined),
+
   addService: (planId: string, input: AddTreatmentServiceInput): Promise<TreatmentPlanSlipDto> =>
     api.post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services`, input).then((r) => r.data),
 
@@ -672,6 +675,23 @@ function useTreatmentMutation<TVariables, TData>(
 export function useOpenTreatmentPlan() {
   // Opening burns a use on each voucher it carries, so the voucher list re-reads.
   return useTreatmentMutation(treatmentApi.openPlan, ["voucher"]);
+}
+
+/**
+ * "Xoá phiếu điều trị". The server takes the slip's receipts, công đoạn, labo,
+ * e-invoices, images, care tasks and prescriptions with it and gives its
+ * voucher uses back, so every screen showing one of those re-reads.
+ */
+export function useDeleteTreatmentPlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: treatmentApi.deletePlan,
+    meta: {
+      invalidates: ["treatment", "treatmentStage", "payment", "eInvoice", "laboOrder", "voucher"],
+    },
+    // Prescriptions invalidate by hand rather than through an entity.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["prescriptions"] }),
+  });
 }
 
 export function useAddServiceLine() {

@@ -555,6 +555,13 @@ public interface IPatientTreatmentAppService : IApplicationService
     /// </summary>
     Task<TreatmentPlanSlipDto> CancelServiceLaboOrdersAsync(Guid id, Guid serviceLineId);
 
+    /// <summary>
+    /// "Xoá phiếu điều trị": soft-deletes the slip with its receipts, công đoạn,
+    /// labo, re-exams, prescriptions, images, care tasks and e-invoices, so none
+    /// of it is shown or counted again.
+    /// </summary>
+    Task DeleteAsync(Guid id);
+
     /// <summary>In phiếu điều trị.</summary>
     Task<byte[]> ExportPdfAsync(Guid id);
 }

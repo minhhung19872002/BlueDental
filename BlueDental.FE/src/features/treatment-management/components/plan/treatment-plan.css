@@ -478,6 +478,18 @@
 .tp-action:hover {
   filter: brightness(0.96);
 }
+/* "Xoá phiếu điều trị" — the one row action that cannot be taken back. */
+.tp-action--danger {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+/* The same bin on the phone card, whose head is the primary blue. */
+.tp-card-delete {
+  background: var(--bd-red);
+}
+.tp-card-delete:hover {
+  background: var(--bd-red-dark);
+}
 .tp-table .ant-table-cell--center {
   text-align: center;
 }

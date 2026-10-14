@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -42,6 +43,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly PatientMoneyCalculator _money;
     private readonly StageTeethPolicy _teethPolicy;
     private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
+    private readonly TreatmentPlanDeletion _deletion;
 
     public PatientTreatmentAppService(
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -56,9 +58,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money,
         StageTeethPolicy teethPolicy,
-        AfterTreatmentCareRecorder afterTreatmentCare)
+        AfterTreatmentCareRecorder afterTreatmentCare,
+        TreatmentPlanDeletion deletion)
     {
         _afterTreatmentCare = afterTreatmentCare;
+        _deletion = deletion;
         _laboRepository = laboRepository;
         _voucherRepository = voucherRepository;
         _teethPolicy = teethPolicy;
@@ -679,6 +683,18 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         return (await MapManyAsync([plan])).Single();
     }
 
+    /// <summary>
+    /// "Xoá phiếu điều trị" (BlueDental-local, owner 2026-10-14): soft-deletes
+    /// the slip and everything written against it, so it neither shows nor
+    /// counts anywhere — see <see cref="TreatmentPlanDeletion"/>.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.DeletePlan)]
+    public async Task DeleteAsync(Guid id)
+    {
+        var plan = await LoadAsync(id);
+        await _deletion.DeleteAsync(plan);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Print)]
     public async Task<byte[]> ExportPdfAsync(Guid id)
     {
@@ -750,12 +766,18 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             : candidates.Where(x => input.AdviseIds.Contains(x.Id)).ToList();
     }
 
-    /// <summary>Slip numbers run per patient: DT01, DT02, ...</summary>
+    /// <summary>
+    /// Slip numbers run per patient: DT01, DT02, ... Deleted slips still hold
+    /// their number, so deleting DT01 never hands DT02 out a second time.
+    /// </summary>
     private async Task<string> GenerateCodeAsync(Guid patientId)
     {
-        var query = await _planRepository.GetQueryableAsync();
-        var used = query.Count(x => x.PatientId == patientId) + 1;
-        return $"DT{used:D2}";
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var query = await _planRepository.GetQueryableAsync();
+            var used = query.Count(x => x.PatientId == patientId) + 1;
+            return $"DT{used:D2}";
+        }
     }
 
     private async Task<List<TreatmentPlanSlipDto>> MapManyAsync(IReadOnlyCollection<TreatmentPlan> plans)

@@ -1,5 +1,5 @@
 import type { TableColumnsType } from "antd";
-import { ClipboardList, Eye, Plus, Receipt } from "lucide-react";
+import { ClipboardList, Eye, Plus, Receipt, Trash2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { formatDate } from "@/utils/format";
@@ -23,6 +23,8 @@ export interface PlanRowActions {
   onReceipt?: (plan: TreatmentPlanSlipDto) => void;
   /** The code link — the slip's own screen. */
   onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
+  /** The red bin; left out without treatmentConsultation.deletePlan. */
+  onDelete?: (plan: TreatmentPlanSlipDto) => void;
 }
 
 type Column = TableColumnsType<TreatmentPlanSlipDto>[number];
@@ -140,7 +142,8 @@ export function buildPlanColumns(
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 100,
+      // 32px per icon plus the 4px gaps and the cell's padding.
+      width: actions.onDelete ? 136 : 100,
       align: "center",
       fixed: "right",
       render: (_, plan) => (
@@ -164,6 +167,18 @@ export function buildPlanColumns(
                 onClick={() => actions.onReceipt?.(plan)}
               >
                 <Receipt size={16} aria-hidden="true" />
+              </button>
+            </ActionTooltip>
+          )}
+          {actions.onDelete && (
+            <ActionTooltip title={t("Treatment:Plan:Delete")}>
+              <button
+                type="button"
+                className="tp-action tp-action--danger"
+                aria-label={t("Treatment:Plan:DeleteFor", plan.code)}
+                onClick={() => actions.onDelete?.(plan)}
+              >
+                <Trash2 size={16} aria-hidden="true" />
               </button>
             </ActionTooltip>
           )}

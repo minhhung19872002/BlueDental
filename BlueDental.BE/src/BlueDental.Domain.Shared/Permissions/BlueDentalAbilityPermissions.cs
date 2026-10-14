@@ -859,6 +859,9 @@ public static class BlueDentalAbilityPermissions
         public const string Update = "BlueDental.treatmentConsultation.update";
         public const string Delete = "BlueDental.treatmentConsultation.delete";
         public const string Print = "BlueDental.treatmentConsultation.print";
+
+        /// <summary>BlueDental-local: "Xoá phiếu điều trị".</summary>
+        public const string DeletePlan = "BlueDental.treatmentConsultation.deletePlan";
     }
 
     /// <summary>Subject <c>treatmentCskh</c>.</summary>
