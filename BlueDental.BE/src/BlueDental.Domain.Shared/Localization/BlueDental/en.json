@@ -6078,6 +6078,8 @@
     "Treatment:Advise:ServiceSelection": "Service selection",
     "Treatment:Advise:SearchService": "Search services",
     "Treatment:Advise:SlideLeft": "Slide {0} left",
+    "Treatment:Advise:QuickCreateService": "Quick add service",
+    "Treatment:Advise:QuickCreateCombo": "Quick add combo",
     "Treatment:Advise:SlideRight": "Slide {0} right",
     "Treatment:Advise:Col:UnitPrice": "Unit price",
     "Treatment:Advise:Col:Quantity": "Quantity",

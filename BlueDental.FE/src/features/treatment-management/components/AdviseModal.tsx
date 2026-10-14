@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Form, Modal } from "antd";
 import { X } from "lucide-react";
 import { EMPTY_TOOTH_VALUE, toothSelectionsToValue, type ToothPickerValue } from "@/components/ToothChart";
+import type { CatalogComboOption } from "@/hooks/useCatalogCombos";
+import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -12,6 +14,7 @@ import { AdviseComboNotice } from "./advise/AdviseComboNotice";
 import { AdviseGroupPicker } from "./advise/AdviseGroupPicker";
 import { AdviseHeaderFields } from "./advise/AdviseHeaderFields";
 import { AdvisePickerHead } from "./advise/AdvisePickerHead";
+import { AdviseQuickCreate } from "./advise/AdviseQuickCreate";
 import { AdviseServiceTable } from "./advise/AdviseServiceTable";
 import { AdviseSummaryFooter, type AdviseSummaryItem } from "./advise/AdviseSummaryFooter";
 import type { AdviseHeaderValues } from "./advise/adviseTypes";
@@ -126,6 +129,17 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     if (row) selection.toggle(row.service, false);
   };
 
+  // A quick-added entry comes back ticked, with the list cleared to show it.
+  const handleServiceCreated = (service: CatalogOption) => {
+    catalog.setGroupId(service.taxonomyId);
+    catalog.setSearch("");
+    selection.toggle(service, true);
+  };
+  const handleComboCreated = (combo: CatalogComboOption) => {
+    combos.setSearch("");
+    selection.toggleCombo(combo, true);
+  };
+
   const pickerHead = (
     <AdvisePickerHead
       kind={combos.kind}
@@ -134,6 +148,14 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
       search={combos.kind === "combo" ? combos.search : catalog.search}
       onKindChange={combos.setKind}
       onSearchChange={combos.kind === "combo" ? combos.setSearch : catalog.setSearch}
+      action={
+        <AdviseQuickCreate
+          kind={combos.kind}
+          groupId={catalog.groupId}
+          onServiceCreated={handleServiceCreated}
+          onComboCreated={handleComboCreated}
+        />
+      }
     />
   );
   const notice = combos.suggestion ? (

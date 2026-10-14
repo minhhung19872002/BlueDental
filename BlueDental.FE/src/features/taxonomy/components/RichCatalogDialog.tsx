@@ -13,6 +13,8 @@ import { RichTextField } from "@/components/RichTextField";
 import { useUploadRichTextImage } from "@/hooks/useUploadRichTextImage";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+// Reused outside Danh mục ("Thêm nhanh"), so the dialog brings its own styles.
+import "./taxonomy.css";
 
 interface FormValues {
   name: string;

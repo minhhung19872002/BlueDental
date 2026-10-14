@@ -24,6 +24,8 @@ import { useServiceDialogSync } from "../hooks/useServiceDialogSync";
 import { useServicePricePreview } from "../hooks/useServicePricePreview";
 import { ComboHoldersNotice } from "./ComboHoldersNotice";
 import { ServiceSettingsTabs } from "./ServiceSettingsTabs";
+// Reused outside Danh mục ("Thêm nhanh"), so the dialog brings its own styles.
+import "./taxonomy.css";
 
 interface Props {
   open: boolean;
@@ -32,6 +34,8 @@ interface Props {
   defaultTaxonomyId?: string;
   /** "Loại: Dịch vụ lẻ | Combo", drawn above the form on a new entry. */
   kindSwitch?: ReactNode;
+  /** Called with a newly created service only — "Thêm nhanh dịch vụ" ticks it (BA #34). */
+  onCreated?: (entry: CatalogEntryDto) => void;
   onClose: () => void;
 }
 
@@ -110,7 +114,15 @@ const DISCOUNT_DEPENDENCIES = ["price", "discountIsPercent"];
  * "Giá sau giảm" and "Thực thu từ khách" follow the price inputs live, as the
  * reference's do; the formula is the domain's, mirrored in `servicePricing.ts`.
  */
-export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwitch, onClose }: Props) {
+export function ServiceDialog({
+  open,
+  entry,
+  groups,
+  defaultTaxonomyId,
+  kindSwitch,
+  onCreated,
+  onClose,
+}: Props) {
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
@@ -212,6 +224,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, kindSwit
       } else {
         saved = await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
         toast.success(t("Taxonomy:Service:CreatedSuccess"));
+        onCreated?.(saved);
       }
 
       // With partner sync on, the reference keeps the dialog open so the

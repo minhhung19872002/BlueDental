@@ -6078,6 +6078,8 @@
     "Treatment:Advise:ServiceSelection": "Lựa chọn dịch vụ",
     "Treatment:Advise:SearchService": "Tìm dịch vụ",
     "Treatment:Advise:SlideLeft": "Trượt {0} sang trái",
+    "Treatment:Advise:QuickCreateService": "Thêm nhanh dịch vụ",
+    "Treatment:Advise:QuickCreateCombo": "Thêm nhanh combo",
     "Treatment:Advise:SlideRight": "Trượt {0} sang phải",
     "Treatment:Advise:Col:UnitPrice": "Đơn giá",
     "Treatment:Advise:Col:Quantity": "Số lượng",

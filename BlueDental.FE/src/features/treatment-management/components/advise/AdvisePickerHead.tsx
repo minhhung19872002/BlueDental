@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Input } from "antd";
 import { Search } from "lucide-react";
 import { t } from "@/lib/i18n";
@@ -11,6 +12,8 @@ interface Props {
   search: string;
   onKindChange: (kind: AdviseKind) => void;
   onSearchChange: (search: string) => void;
+  /** "Thêm nhanh" beside the search (BA #34); absent without the right. */
+  action?: ReactNode;
 }
 
 /**
@@ -18,7 +21,15 @@ interface Props {
  * search box, which looks for services or for combos by the tab open
  * (review P0510).
  */
-export function AdvisePickerHead({ kind, singleCount, comboCount, search, onKindChange, onSearchChange }: Props) {
+export function AdvisePickerHead({
+  kind,
+  singleCount,
+  comboCount,
+  search,
+  onKindChange,
+  onSearchChange,
+  action,
+}: Props) {
   const placeholder = kind === "combo" ? t("Treatment:Combo:SearchCombo") : t("Treatment:Advise:SearchService");
   const tabs: { kind: AdviseKind; label: string }[] = [
     { kind: "single", label: t("Treatment:Combo:TabSingle", singleCount) },
@@ -51,6 +62,7 @@ export function AdvisePickerHead({ kind, singleCount, comboCount, search, onKind
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
       />
+      {action}
     </div>
   );
 }

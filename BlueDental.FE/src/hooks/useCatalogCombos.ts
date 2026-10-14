@@ -31,7 +31,8 @@ export interface CatalogComboOption {
   parts: CatalogComboPart[];
 }
 
-interface ComboEntryResponse {
+/** A combo entry as the catalog API returns it — from the list or from a create. */
+export interface ComboEntryResponse {
   id: string;
   name: string;
   description: string | null;
@@ -40,8 +41,8 @@ interface ComboEntryResponse {
   serviceConfig?: { priceAfterDiscount: number } | null;
   comboItems: {
     componentEntryId: string;
-    componentName: string | null;
-    componentPrice: number | null;
+    componentName?: string | null;
+    componentPrice?: number | null;
     quantity: number;
   }[];
 }
@@ -49,7 +50,7 @@ interface ComboEntryResponse {
 /** A branch holds a handful of combos; one request carries them all. */
 const COMBO_LIMIT = 100;
 
-function toComboOption(entry: ComboEntryResponse): CatalogComboOption {
+export function toComboOption(entry: ComboEntryResponse): CatalogComboOption {
   const price = entry.price ?? 0;
   const retailPrice = entry.retailPrice ?? 0;
   const savings = Math.max(retailPrice - price, 0);

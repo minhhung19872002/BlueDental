@@ -21,6 +21,8 @@ import { ComboComponentPicker } from "./ComboComponentPicker";
 import { ComboItemsTable } from "./ComboItemsTable";
 import { ComboPriceSection } from "./ComboPriceSection";
 import { ServiceSettingsTabs } from "./ServiceSettingsTabs";
+// Reused outside Danh mục ("Thêm nhanh"), so the dialog brings its own styles.
+import "./taxonomy.css";
 
 interface Props {
   open: boolean;
@@ -31,6 +33,8 @@ interface Props {
   groups: TaxonomyDto[];
   defaultTaxonomyId?: string;
   kindSwitch?: ReactNode;
+  /** Called with a newly created combo only — "Thêm nhanh combo" picks it (BA #34). */
+  onCreated?: (entry: CatalogEntryDto) => void;
   onClose: () => void;
 }
 
@@ -61,7 +65,16 @@ interface FormValues {
  * their quantities and combo prices; the price block follows the table; the
  * four setting tabs are the service dialog's own.
  */
-export function ComboDialog({ open, entry, copyOf, groups, defaultTaxonomyId, kindSwitch, onClose }: Props) {
+export function ComboDialog({
+  open,
+  entry,
+  copyOf,
+  groups,
+  defaultTaxonomyId,
+  kindSwitch,
+  onCreated,
+  onClose,
+}: Props) {
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
@@ -154,8 +167,9 @@ export function ComboDialog({ open, entry, copyOf, groups, defaultTaxonomyId, ki
         });
         toast.success(values.isDeleted ? t("Common:Deleted") : t("Taxonomy:Combo:UpdatedSuccess"));
       } else {
-        await createEntry.mutateAsync({ clinicBranchId: branchId, isCombo: true, ...shared });
+        const created = await createEntry.mutateAsync({ clinicBranchId: branchId, isCombo: true, ...shared });
         toast.success(t("Taxonomy:Combo:CreatedSuccess"));
+        onCreated?.(created);
       }
       onClose();
     } catch {
