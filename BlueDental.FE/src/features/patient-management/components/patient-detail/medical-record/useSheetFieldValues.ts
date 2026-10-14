@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { formatDate } from "@/utils/format";
+import { useAddressParts } from "../../../hooks/useGuardianSubject";
 import { GENDER, type PatientDto } from "../../../types/patient";
 import { branchFieldValues, patientFieldValues, type FieldValues } from "./fieldValues";
 
@@ -29,12 +30,14 @@ function ageOf(dateOfBirth: string | null): string | undefined {
  * them: the patient's own facts and the branch letterhead.
  *
  * Occupation and disease history are names out of Danh mục, so they arrive with
- * their catalogs rather than with the patient.
+ * their catalogs rather than with the patient; the ward and province are names
+ * out of the address table, looked up from their codes.
  */
 export function useSheetFieldValues(patient: PatientDto | undefined, branchId: string): FieldValues {
   const branch = useBranchInfo(branchId).data;
   const occupations = useCatalogOptions(CATALOG_GROUP.Occupation).data;
   const diseases = useCatalogOptions(CATALOG_GROUP.DiseaseHistory).data;
+  const address = useAddressParts(patient?.address, patient?.provinceCode, patient?.wardCode);
 
   return useMemo(() => {
     if (!patient) return branchFieldValues(branch);
@@ -63,6 +66,10 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
         phone: patient.phoneNumber ?? undefined,
         cccd: patient.nationalId ?? undefined,
         email: patient.email ?? undefined,
+        address: address.full,
+        addressStreet: address.street,
+        ward: address.ward,
+        province: address.province,
         job,
         reason: reason || undefined,
         history: history || undefined,
@@ -72,5 +79,5 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
       }),
       ...branchFieldValues(branch),
     };
-  }, [patient, branch, occupations, diseases]);
+  }, [patient, branch, occupations, diseases, address]);
 }

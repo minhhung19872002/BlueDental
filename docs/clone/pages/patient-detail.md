@@ -3638,7 +3638,16 @@ trang — nên tab này chuyển sang đúng kiến trúc của bản gốc: **t
   genderMale · genderFemale · phone · cccd · email · job · reason · history ·
   insuranceNumber · address · country`.
 - **`address` và `country` khai ô nhưng bản gốc cố tình không điền** — để phòng
-  khám viết tay. BlueDental làm y hệt.
+  khám viết tay. BlueDental **có điền địa chỉ** theo yêu cầu chủ dự án
+  (2026-10-14, R-942): "Số nhà, Phường, Tỉnh" ở Bìa, Chỉnh nha, TVTQ, TV+đồng ý;
+  tờ Ngoại trú tách ba ô Số nhà / Xã, phường / Tỉnh (Thôn và Huyện để trống —
+  hồ sơ không lưu). `country` vẫn không điền.
+- **Chẩn đoán** (R-942, thiết kế của BlueDental): ô "Chẩn đoán" đầu tiên của bảy
+  mẫu nhận các chẩn đoán chưa huỷ ở tab Chẩn đoán & Tư vấn, dạng
+  `Tên (răng 16, 26); …`. Mẫu có ngày lấy chẩn đoán từ ngày đó trở đi (như bản
+  gốc gọi `patientDiagnoses?fromDate=`), không có thì lấy tất cả. Ô nhận dạng
+  còn sót cũng được nối: TVTQ (họ tên, năm sinh, số hồ sơ), TV+đồng ý (mã hồ sơ),
+  Chỉnh nha (CCCD).
 - Ô nào **không** khác với dữ liệu hồ sơ thì **không lưu**. Bản gốc chỉ lưu ô đã
   ghi đè; nhờ vậy sửa hồ sơ bệnh nhân sau này vẫn hiện lên phiếu.
 

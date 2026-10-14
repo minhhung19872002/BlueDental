@@ -8466,3 +8466,22 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Đỏ có sẵn (chạy lại trên code gốc, cả BE lẫn FE, vẫn đỏ y hệt 11/11):** `report.spec` 294 / 377 / 574 (header Excel, thẻ thu chi, sổ quỹ V2), `operations-reports` 8 test.
 
+## R-942 (2026-10-14, mức 2: Bệnh nhân → Bệnh án) Các phiếu bệnh án không điền địa chỉ và chẩn đoán
+
+**Báo lỗi (chủ dự án):** Bệnh án số 2 (Ngoại trú RHM) và số 5 (Tư vấn và xác nhận đồng ý điều trị) để trống Địa chỉ và Chẩn đoán; rà các mẫu khác.
+
+**Nguyên nhân:**
+- Địa chỉ cố tình không điền để giống bản gốc (bản gốc để phòng khám viết tay); ô Bìa và TVTQ còn không có nguồn.
+- Chẩn đoán chưa từng được nối vào phiếu (phần "ngày sinh dòng chẩn đoán" của bản gốc ghi UNKNOWN, chưa dựng).
+- Rà thêm: "Phiếu Tư Vấn Tổng Quát" không điền họ tên, năm sinh, số hồ sơ; "MÃ HỒ SƠ" tờ 5 và "CCCD số" tờ Chỉnh nha trống.
+- Phụ: tờ chỉ dựng lại khi tên chi nhánh đổi, nên dữ liệu đến muộn (nghề nghiệp, tiền sử bệnh, địa chỉ, chẩn đoán) không hiện nếu tới sau tờ.
+
+**Sửa (FE):**
+- `useAddressParts` (tách từ `useAddressLabel`) → `patient.address` / `addressStreet` / `ward` / `province`; tờ Ngoại trú tách ba ô.
+- `useSheetDiagnoses` + `diagnosisFieldValues`: ô Chẩn đoán đầu tiên của 7 mẫu (Ngoại trú mục 5, Chỉnh nha VIII, TVTQ, TV+đồng ý II, Đồng ý PT, Phiếu PT "trước PT", Chăm sóc); mẫu có ngày lấy từ ngày đó trở đi, rỗng thì lấy tất cả; bỏ chẩn đoán đã huỷ; không có quyền `treatmentDiagnosis.read` thì để trống.
+- `documentKey` của tờ theo toàn bộ giá trị tự điền, không chỉ tên chi nhánh.
+- Vẫn chỉ lưu ô đã ghi đè: sửa hồ sơ sau này vẫn hiện lên phiếu.
+
+**Test:** `e2e/patient-medical-record.spec.ts` — test mới (thật, không chặn API): tạo bệnh nhân có địa chỉ + một chẩn đoán răng 16 qua API, mở 8 mẫu, kiểm từng ô; lưu, tải lại, đọc lại từ PostgreSQL. Pass. Test Bìa bỏ khẳng định "địa chỉ để trống". 20/24 xanh trên bản build (`vite preview`).
+
+**Đỏ có sẵn, không do thay đổi này** (chạy lại với phần chẩn đoán tắt, và trên worktree sạch của `660e86bc` — commit trước — vẫn đỏ y hệt): "nine forms" (`.pd-medical-doctor` / `.pd-profile-card` không thấy), "picking the day prints it" (ô ngày rỗng sau khi chọn). Lúc chạy có phiên khác đang sửa Bệnh án (vẽ lược đồ) và khởi động lại BE.

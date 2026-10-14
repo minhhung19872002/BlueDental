@@ -27,7 +27,8 @@ import { MedicalRecordSheetView } from "./MedicalRecordSheetView";
 import { MedicalRecordCanvasHead } from "./medical-record/MedicalRecordCanvasHead";
 import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
 import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
-import type { FieldValues } from "./medical-record/fieldValues";
+import { useSheetDiagnoses } from "./medical-record/useSheetDiagnoses";
+import { diagnosisFieldValues, type FieldValues } from "./medical-record/fieldValues";
 import { MEDICAL_RECORD_FORMS, formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
 import { parseFieldValues, serialiseFieldValues } from "./medicalRecordDraft";
 import "./medical-record/medical-record.css";
@@ -90,6 +91,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     );
   }, [query.data]);
   const auto = useSheetFieldValues(patient, branchId);
+  const diagnosesFrom = useSheetDiagnoses(patientId, branchId);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<ViewMode>("single");
@@ -165,6 +167,15 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     }
     return dayjs();
   };
+
+  /**
+   * What a sheet's blanks fall back to: the record and the letterhead, plus the
+   * patient's diagnoses — on a dated form, those from the sheet's own day on.
+   */
+  const autoOf = (sheet: PatientMedicalRecordDto): FieldValues => ({
+    ...auto,
+    ...diagnosisFieldValues(diagnosesFrom(formSpecOf(sheet.form).dateLabel ? dateOf(sheet) : undefined)),
+  });
 
   /** Picking the day writes it into whichever blanks the form prints it in. */
   const handleDateChange = (sheet: PatientMedicalRecordDto, next: Dayjs | null) => {
@@ -336,7 +347,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                   <MedicalRecordSheetView
                     key={sheet.id}
                     sheet={sheet}
-                    auto={auto}
+                    auto={autoOf(sheet)}
                     zoom={zoom}
                     editable={mode === "single" && sheet.id === active?.id}
                     values={valuesOf(sheet)}

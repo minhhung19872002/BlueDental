@@ -1,5 +1,6 @@
 import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { call } from "./fixtures/timekeepingStaff";
 
 /**
  * Feature: Bệnh án — the record's second view, behind the header's
@@ -56,7 +57,8 @@ async function openSheet(page: Page, form: string) {
   const cards = cardsUnder(page, form);
   if ((await cards.count()) === 0) {
     await page.locator(".pd-medical-form", { hasText: form }).getByRole("button", { name: "Thêm" }).click();
-    await expect(page.getByText("Đã thêm phiếu bệnh án")).toBeVisible();
+    // Adding several forms in a row stacks their toasts; the newest is the one meant.
+    await expect(page.getByText("Đã thêm phiếu bệnh án").first()).toBeVisible();
   }
   await cards.first().locator(".pd-sheet-open").click();
   await sheetReady(page);
@@ -257,9 +259,6 @@ test.describe("Bệnh án", () => {
     await expect(blank(page, "cover.patient.code")).not.toBeEmpty();
     await expect(blank(page, "cover.patient.name")).not.toBeEmpty();
     await expect(blank(page, "cover.patient.name")).toHaveText(/^[^a-z]+$/);
-
-    // And the one it deliberately leaves for the clinic's pen.
-    await expect(blank(page, "cover.patient.address")).toBeEmpty();
 
     // The letterhead comes from the branch, not from the form.
     await expect(sheet(page).locator(".nfc-tpl")).toContainText("SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH");
@@ -944,6 +943,116 @@ test.describe("Bệnh án", () => {
         await expect(picker.locator("input")).not.toHaveValue("");
       }
     }
+  });
+
+  /**
+   * The address and the diagnoses, which the reference leaves for the clinic's
+   * pen and the clinic asked to have printed (2026-10-14). A patient of its own,
+   * so the address and the one diagnosis on the sheets are known.
+   */
+  test("the record's address and diagnoses reach every form that prints them", async ({ page }) => {
+    test.setTimeout(120_000);
+    const branch = "11111111-1111-1111-1111-111111111111";
+    const suffix = runId();
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const patient = await call<{ id: string; patientCode: string }>(page, "/api/v1/app/patients", {
+      method: "POST",
+      branchId: branch,
+      json: {
+        firstName: "Địa Chỉ",
+        lastName: `Ràng Buộc ${suffix}`,
+        gender: 2,
+        phoneNumber: `07${suffix.padStart(8, "0").slice(-8)}`,
+        dateOfBirth: "1990-05-05",
+        address: "12 Lý Thường Kiệt",
+        provinceCode: "01",
+        wardCode: "00004",
+      },
+    });
+    expect(patient.status, JSON.stringify(patient.body)).toBe(200);
+
+    const catalog = await call<{ items: Array<{ id: string; name: string }> }>(
+      page,
+      `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=1`,
+      { branchId: branch },
+    );
+    const staff = await call<{ items: Array<{ id: string }> }>(page, "/api/v1/app/staff?MaxResultCount=1", {
+      branchId: branch,
+    });
+    const diagnosis = catalog.body.items[0];
+    const slip = await call(page, "/api/v1/app/patient-diagnoses", {
+      method: "POST",
+      branchId: branch,
+      json: {
+        patientId: patient.body.id,
+        clinicBranchId: branch,
+        diagnosisId: diagnosis.id,
+        staffId: staff.body.items[0].id,
+        teeth: [{ toothCode: 16, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+      },
+    });
+    expect(slip.status, JSON.stringify(slip.body)).toBe(200);
+
+    const address = "12 Lý Thường Kiệt, Phường Ba Đình, Thành phố Hà Nội";
+    const diagnosed = `${diagnosis.name} (răng 16)`;
+
+    await page.goto(`/patient/${patient.body.id}?branchId=${branch}&view=medical-record`);
+    await expect(page.locator(".pd-medical-form").first()).toBeVisible();
+
+    // Every form with an address or a Chẩn đoán blank, by the blank it prints them in.
+    const expected: Array<[string, Record<string, string>]> = [
+      ["Bìa hồ sơ bệnh án", { "cover.patient.address": address }],
+      [
+        "Bệnh án ngoại trú Răng Hàm Mặt",
+        {
+          // Số nhà / Xã, phường / Tỉnh are three blanks on this form.
+          "outpatient.patient.address": "12 Lý Thường Kiệt",
+          "outpatient-dental.text.5": "Phường Ba Đình",
+          "outpatient-dental.text.7": "Thành phố Hà Nội",
+          "outpatient-dental.text.43": diagnosed,
+        },
+      ],
+      ["Bệnh án chỉnh nha", { "orthodontic.patient.address": address, "orthodontic.text.86": diagnosed }],
+      [
+        "Phiếu Tư Vấn Tổng Quát",
+        {
+          "general-consultation.text.10": `RÀNG BUỘC ${suffix} ĐỊA CHỈ`,
+          "general-consultation.text.11": "1990",
+          "general-consultation.text.12": address,
+          "general-consultation.text.13": patient.body.patientCode,
+          "custom.text.9959ffa6f36f45b89e42d5a486996216": diagnosed,
+        },
+      ],
+      [
+        "Phiếu tư vấn và xác nhận đồng ý điều trị",
+        {
+          "consultation.text.1": patient.body.patientCode,
+          "consultation.patient.address": address,
+          "consultation.text.5": diagnosed,
+        },
+      ],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", { "surgery-consent.text.4": diagnosed }],
+      ["Phiếu phẫu thuật/thủ thuật", { "procedure-record.text.1": diagnosed }],
+      ["Phiếu chăm sóc", { "care.diagnosis": diagnosed }],
+    ];
+
+    for (const [form, blanks] of expected) {
+      await openSheet(page, form);
+      for (const [field, text] of Object.entries(blanks)) {
+        await expect(blank(page, field), `${form} · ${field}`).toHaveText(text);
+      }
+    }
+
+    // Saved as the record answered it, nothing is frozen into the sheet, and the
+    // answer comes back from PostgreSQL after a reload.
+    await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    await save(page);
+    await page.reload();
+    await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    await expect(blank(page, "consultation.patient.address")).toHaveText(address);
+    await expect(blank(page, "consultation.text.5")).toHaveText(diagnosed);
   });
 
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {
