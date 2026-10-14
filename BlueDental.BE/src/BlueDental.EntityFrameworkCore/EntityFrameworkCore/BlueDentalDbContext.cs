@@ -193,6 +193,8 @@ public class BlueDentalDbContext :
     // E-invoicing
     public DbSet<ElectronicInvoice> ElectronicInvoices { get; set; }
     public DbSet<EInvoiceProviderConfig> EInvoiceProviderConfigs { get; set; }
+    public DbSet<InvoiceRequest> InvoiceRequests { get; set; }
+    public DbSet<InvoiceRequestLink> InvoiceRequestLinks { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

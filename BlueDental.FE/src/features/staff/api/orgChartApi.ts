@@ -10,7 +10,7 @@ export type OrgUnitKind = (typeof ORG_UNIT_KIND)[keyof typeof ORG_UNIT_KIND];
 export type CreatableOrgUnitKind = Exclude<OrgUnitKind, typeof ORG_UNIT_KIND.Root>;
 
 /** Mirrors BlueDental.Staff.OrgChartAction. */
-export const ORG_CHART_ACTIONS = [1, 2, 3, 4, 5] as const;
+export const ORG_CHART_ACTIONS = [1, 2, 3, 4, 5, 6] as const;
 export type OrgChartAction = (typeof ORG_CHART_ACTIONS)[number];
 
 export interface OrgStaffDto {
@@ -159,5 +159,11 @@ export function useOrgChartCommands() {
     onSuccess: invalidate,
   });
 
-  return { create, update, remove, changeRootHead, assign };
+  const removeMember = useMutation({
+    mutationFn: ({ unitId, staffId }: { unitId: string; staffId: string }) =>
+      api.delete(`${BASE}/units/${unitId}/members/${staffId}`).then(() => undefined),
+    onSuccess: invalidate,
+  });
+
+  return { create, update, remove, changeRootHead, assign, removeMember };
 }

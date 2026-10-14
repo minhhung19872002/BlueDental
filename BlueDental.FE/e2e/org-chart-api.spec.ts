@@ -18,7 +18,7 @@ const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
 const ROOT_ID = "0f9a0000-0000-4000-8000-000000000001";
 
 const KIND = { Root: 1, Department: 2, DoctorTeam: 3 } as const;
-const ACTION = { Created: 1, Updated: 2, Deleted: 3, HeadChanged: 4, MembersAssigned: 5 } as const;
+const ACTION = { Created: 1, Updated: 2, Deleted: 3, HeadChanged: 4, MembersAssigned: 5, MemberRemoved: 6 } as const;
 
 interface OrgStaff {
   id: string;
@@ -272,5 +272,42 @@ test.describe.serial("Sơ đồ tổ chức — API rules", () => {
     const loner = await signInAs(browser, `tk-e2e-${run}b`);
     expect(await scheduleRows(loner, run)).toEqual([staff.b.id]);
     await loner.context().close();
+  });
+
+  test("the Tổng giám đốc's own team: a member dentist sees only themselves and is removed one by one", async ({ browser }) => {
+    // "BS tới vẫn phải quản lý team" (BA 2026-10-13): people go straight under the root.
+    const assigned = await call(admin, `${ORG}/assign`, { method: "POST", branchId: BRANCH_ONE, json: { orgUnitId: ROOT_ID, staffIds: [staff.b.id, staff.y.id] } });
+    expect(assigned.status, JSON.stringify(assigned.body.error)).toBeLessThan(300);
+    const root = (await chart(admin)).units.find((u) => u.id === ROOT_ID)!;
+    expect(root.members.map((m) => m.id)).toEqual(expect.arrayContaining([staff.b.id, staff.y.id]));
+
+    // "Các member trong team sẽ không đc thấy lịch của các bác sĩ khác cũng như các nhánh cây bên dưới".
+    const member = await signInAs(browser, `tk-e2e-${run}b`);
+    expect(await scheduleRows(member, run)).toEqual([staff.b.id]);
+    await member.context().close();
+    // The limit is for dentists only: a lễ tân in the same team still sees everyone (BA answer A).
+    expect(await scheduleRows(admin, run)).toEqual(Object.values(staff).map((s) => s.id).sort());
+
+    const removed = await call(admin, `${ORG}/units/${ROOT_ID}/members/${staff.b.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+    expect(removed.status, JSON.stringify(removed.body.error)).toBeLessThan(300);
+    const after = await chart(admin);
+    expect(after.units.find((u) => u.id === ROOT_ID)?.members.map((m) => m.id)).not.toContain(staff.b.id);
+    expect(after.unassigned.map((s) => s.id)).toContain(staff.b.id);
+    const log = (await history(admin, ROOT_ID)).find((l) => l.action === ACTION.MemberRemoved);
+    const members = log?.changes.find((c) => c.field === "members");
+    expect(members?.before).toContain("BS B");
+    expect(members?.after ?? "").not.toContain("BS B");
+
+    // Removing someone who is not there changes nothing.
+    const again = await call(admin, `${ORG}/units/${ROOT_ID}/members/${staff.b.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+    expect(again.status).toBeLessThan(300);
+
+    // A head leaves only after the unit has another head.
+    const team = after.units.find((u) => u.name === `E2E Team PB ${run}`)!;
+    const pullHead = await call(admin, `${ORG}/units/${team.id}/members/${staff.a.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+    expect(errorCode(pullHead.body)).toBe("BlueDental:OrgChart:0014");
+
+    const cleared = await call(admin, `${ORG}/units/${ROOT_ID}/members/${staff.y.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+    expect(cleared.status).toBeLessThan(300);
   });
 });

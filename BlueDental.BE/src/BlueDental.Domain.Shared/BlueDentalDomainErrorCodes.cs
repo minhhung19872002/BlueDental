@@ -486,6 +486,8 @@ public static class BlueDentalDomainErrorCodes
         public const string OutsideScheduleScope = "BlueDental:OrgChart:0012";
         /// <summary>A staff member who heads a Phòng ban / Team cannot be deleted until someone else heads it.</summary>
         public const string StaffHeadsUnit = "BlueDental:OrgChart:0013";
+        /// <summary>The head cannot be removed from their own unit; change the head first.</summary>
+        public const string HeadCannotLeave = "BlueDental:OrgChart:0014";
     }
 
     /// <summary>Marketing → Ticket (F-55). BlueDental-local.</summary>
@@ -573,6 +575,7 @@ public static class BlueDentalDomainErrorCodes
         public const string NotADentist = "BlueDental:Queue:0012";
         public const string DentistRequired = "BlueDental:Queue:0013";
         public const string DuplicateName = "BlueDental:Queue:0014";
+        public const string CounterHasQueue = "BlueDental:Queue:0015";
     }
 
     public static class Tools
@@ -620,6 +623,31 @@ public static class BlueDentalDomainErrorCodes
         public const string CurrencyNotSupported = "BlueDental:EInvoicing:0015";
         /// <summary>"Xuất hóa đơn đỏ" needs Tên khách hàng, Mã số thuế, Số ĐT and Email.</summary>
         public const string BuyerDetailsRequired = "BlueDental:EInvoicing:0017";
+    }
+
+    /// <summary>"Yêu cầu xuất HĐ" and the QR form behind it (F-71).</summary>
+    public static class InvoiceRequest
+    {
+        public const string FullNameRequired = "BlueDental:InvoiceRequest:0001";
+        public const string InvalidPhone = "BlueDental:InvoiceRequest:0002";
+        public const string InvalidEmail = "BlueDental:InvoiceRequest:0003";
+        public const string CompanyTaxCodeRequired = "BlueDental:InvoiceRequest:0004";
+        public const string InvalidTaxCode = "BlueDental:InvoiceRequest:0005";
+        public const string InvalidNationalId = "BlueDental:InvoiceRequest:0006";
+        public const string InvalidBirthYear = "BlueDental:InvoiceRequest:0007";
+        /// <summary>The receipt already has a request that is not cancelled.</summary>
+        public const string AlreadyRequested = "BlueDental:InvoiceRequest:0008";
+        public const string InvalidTransition = "BlueDental:InvoiceRequest:0009";
+        public const string ReasonRequired = "BlueDental:InvoiceRequest:0010";
+        public const string InvoiceNoRequired = "BlueDental:InvoiceRequest:0011";
+        public const string LinkExpired = "BlueDental:InvoiceRequest:0012";
+        public const string LinkUsed = "BlueDental:InvoiceRequest:0013";
+        /// <summary>Only a payment receipt can be invoiced, not a refund or a cancelled one.</summary>
+        public const string ReceiptNotEligible = "BlueDental:InvoiceRequest:0014";
+        /// <summary>The receipt was "Hủy phiếu": its QR and its link are void.</summary>
+        public const string ReceiptCancelled = "BlueDental:InvoiceRequest:0015";
+        /// <summary>A personal invoice (Cá nhân) needs the CCCD.</summary>
+        public const string NationalIdRequired = "BlueDental:InvoiceRequest:0016";
     }
 
     /// <summary>PHIẾU THU printed by Phát Hành in the Hóa đơn dialog.</summary>

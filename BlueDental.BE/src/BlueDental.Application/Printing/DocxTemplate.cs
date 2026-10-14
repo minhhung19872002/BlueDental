@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,9 +9,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace BlueDental.Printing;
 
 /// <summary>
-/// Fills <c>{{Key}}</c> placeholders in a .docx. Each placeholder must sit in
-/// one run (one <c>w:t</c>) — the template is authored that way — so the run
-/// keeps its font and the value inherits it. Header, footer and body are all
+/// Fills <c>{{Key}}</c> placeholders in a .docx. The value goes into the run
+/// that opens the placeholder and inherits its font. Word splits a placeholder
+/// over several runs when it re-saves the file (spell-check marks give "{{",
+/// "Key" and "}}" a run each), so those are joined back first. Header, footer and body are all
 /// filled; a key without a value becomes empty rather than leaking braces.
 /// <para>
 /// The blanks after a placeholder ("Họ tên: {{Name}} ......") are tabs with a
@@ -31,17 +33,42 @@ public static class DocxTemplate
             var main = document.MainDocumentPart
                 ?? throw new InvalidDataException("The template has no document body.");
 
-            var roots = new List<OpenXmlPartRootElement?> { main.Document };
-            roots.AddRange(main.HeaderParts.Select(p => p.Header));
-            roots.AddRange(main.FooterParts.Select(p => p.Footer));
-
-            foreach (var paragraph in roots.Where(r => r != null).SelectMany(r => r!.Descendants<Paragraph>()).ToList())
+            foreach (var paragraph in Roots(main).SelectMany(r => r.Descendants<Paragraph>()).ToList())
             {
                 FillParagraph(paragraph, values);
             }
         }
 
         return stream.ToArray();
+    }
+
+    /// <summary>Removes every paragraph (body, header, footer) whose text contains <paramref name="text"/>.</summary>
+    public static byte[] DropParagraphs(byte[] docx, string text)
+    {
+        using var stream = new MemoryStream();
+        stream.Write(docx);
+
+        using (var document = WordprocessingDocument.Open(stream, isEditable: true))
+        {
+            var main = document.MainDocumentPart
+                ?? throw new InvalidDataException("The template has no document body.");
+
+            foreach (var paragraph in Roots(main).SelectMany(r => r.Descendants<Paragraph>())
+                         .Where(p => p.InnerText.Contains(text)).ToList())
+            {
+                paragraph.Remove();
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private static IEnumerable<OpenXmlPartRootElement> Roots(MainDocumentPart main)
+    {
+        var roots = new List<OpenXmlPartRootElement?> { main.Document };
+        roots.AddRange(main.HeaderParts.Select(p => p.Header));
+        roots.AddRange(main.FooterParts.Select(p => p.Footer));
+        return roots.Where(r => r != null)!;
     }
 
     private static void FillParagraph(Paragraph paragraph, IReadOnlyDictionary<string, string> values)
@@ -54,6 +81,7 @@ public static class DocxTemplate
         var content = paragraph.Descendants()
             .Where(e => e is Text or TabChar)
             .Where(e => e.Ancestors<Paragraph>().First() == paragraph);
+        JoinSplitPlaceholders(content.OfType<Text>().ToList());
 
         foreach (var element in content.ToList())
         {
@@ -81,6 +109,26 @@ public static class DocxTemplate
         }
 
         DropLeaders(paragraph, filledTabs);
+    }
+
+    /// <summary>A text that opens a placeholder takes in the texts after it until the placeholder closes.</summary>
+    private static void JoinSplitPlaceholders(List<Text> texts)
+    {
+        for (var i = 0; i < texts.Count; i++)
+        {
+            while (i + 1 < texts.Count && OpensWithoutClosing(texts[i].Text))
+            {
+                texts[i].Text += texts[i + 1].Text;
+                texts[i + 1].Remove();
+                texts.RemoveAt(i + 1);
+            }
+        }
+    }
+
+    private static bool OpensWithoutClosing(string text)
+    {
+        var open = text.LastIndexOf("{{", StringComparison.Ordinal);
+        return (open >= 0 && text.IndexOf("}}", open, StringComparison.Ordinal) < 0) || text.EndsWith('{');
     }
 
     /// <summary>Replaces every placeholder in the run; true when one of them got a non-blank value.</summary>

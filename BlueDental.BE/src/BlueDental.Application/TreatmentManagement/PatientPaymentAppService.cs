@@ -23,7 +23,7 @@ namespace BlueDental.TreatmentManagement;
 /// on every read — nothing is cached on the patient or the slip.
 /// </summary>
 [Authorize]
-public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppService
+public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentAppService
 {
     private readonly IRepository<PatientPayment, Guid> _repository;
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
@@ -32,6 +32,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     private readonly PatientMoneyCalculator _money;
     private readonly IPatientTreatmentAppService _treatments;
     private readonly IRepository<ElectronicInvoice, Guid> _electronicInvoices;
+    private readonly IRepository<InvoiceRequest, Guid> _invoiceRequests;
 
     public PatientPaymentAppService(
         IRepository<PatientPayment, Guid> repository,
@@ -40,7 +41,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         BranchAccessChecker branchAccess,
         PatientMoneyCalculator money,
         IPatientTreatmentAppService treatments,
-        IRepository<ElectronicInvoice, Guid> electronicInvoices)
+        IRepository<ElectronicInvoice, Guid> electronicInvoices,
+        IRepository<InvoiceRequest, Guid> invoiceRequests)
     {
         _repository = repository;
         _planRepository = planRepository;
@@ -49,6 +51,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         _money = money;
         _treatments = treatments;
         _electronicInvoices = electronicInvoices;
+        _invoiceRequests = invoiceRequests;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -293,6 +296,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             // saves, so a new receipt is "Hoàn tất" and counts at once. Receipts
             // written "Chưa thanh toán" before then still settle through ConfirmAsync.
             PatientPaymentStatus.Completed);
+        payment.RequestRedInvoice(input.RedInvoiceRequested);
 
         await _repository.InsertAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
@@ -498,6 +502,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim(),
             lines,
             GuidGenerator.Create);
+        payment.RequestRedInvoice(input.RedInvoiceRequested);
     }
 
     /// <summary>A bare GetAsync leaves the lines unloaded, and a revise would then orphan them.</summary>
@@ -531,10 +536,31 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             await _electronicInvoices.DeleteAsync(invoice);
         }
 
+        await CancelOpenInvoiceRequestsAsync(id, input.Reason);
+
         // Saved before the delete: ABP reloads a soft-deleted entity, which
         // would drop the reason otherwise.
         await _repository.UpdateAsync(payment, autoSave: true);
         await _repository.DeleteAsync(payment, autoSave: true);
+    }
+
+    /// <summary>
+    /// A "Yêu cầu xuất HĐ" still waiting on the accountant dies with its receipt
+    /// (R-915); an issued one stays as history.
+    /// </summary>
+    private async Task CancelOpenInvoiceRequestsAsync(Guid paymentId, string paymentReason)
+    {
+        var open = await _invoiceRequests.GetListAsync(x => x.PatientPaymentId == paymentId
+            && (x.Status == InvoiceRequestStatus.Pending
+                || x.Status == InvoiceRequestStatus.Processing
+                || x.Status == InvoiceRequestStatus.NeedsInfo));
+        var reason = L["Patient:InvoiceRequest:ReceiptCancelledReason", paymentReason].Value;
+        foreach (var request in open)
+        {
+            request.Cancel(reason);
+        }
+
+        await _invoiceRequests.UpdateManyAsync(open, autoSave: true);
     }
 
     private async Task<List<PatientPayment>> QueryAsync(GetPatientPaymentListInput input)
@@ -684,6 +710,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             DeletionTime = x.DeletionTime,
             CancelReason = x.CancelReason,
             Status = x.Status,
+            RedInvoiceRequested = x.RedInvoiceRequested,
             CancelledByName = x.DeleterId.HasValue && staffNames.TryGetValue(x.DeleterId.Value, out var deleter)
                 ? deleter
                 : null

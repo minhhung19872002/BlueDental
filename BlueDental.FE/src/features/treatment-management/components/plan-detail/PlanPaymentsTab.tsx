@@ -42,6 +42,8 @@ import { aggregateReceiptOf, receiptOf, type ReceiptView } from "./receiptView";
 
 const NARROW_SCREEN = "(max-width: 640px)";
 const PAGE_CAP = 200;
+// TEMP (owner 2026-10-12): "In hóa đơn tổng" hidden for now — flip back to true to restore it.
+const SHOW_TOTAL_INVOICE = false;
 
 interface Props {
   patient: PatientDto;
@@ -157,10 +159,12 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
             {t("Treatment:Payment:CreatePayment")}
           </button>
         )}
-        <button type="button" className="tp-btn tp-btn--outline" onClick={handleAggregate}>
-          <Printer size={16} aria-hidden="true" />
-          {t("Treatment:Payment:PrintTotalInvoice")}
-        </button>
+        {SHOW_TOTAL_INVOICE && (
+          <button type="button" className="tp-btn tp-btn--outline" onClick={handleAggregate}>
+            <Printer size={16} aria-hidden="true" />
+            {t("Treatment:Payment:PrintTotalInvoice")}
+          </button>
+        )}
       </div>
 
       {narrow ? (

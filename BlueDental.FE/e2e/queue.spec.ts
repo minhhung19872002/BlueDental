@@ -1,7 +1,14 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { BRANCH_ONE } from "./fixtures/catalogApi";
-import { deleteCounters, freeDentists, freePrefixes, listCounters, type Counter } from "./fixtures/queueApi";
+import {
+  deleteCounters,
+  drainCounter,
+  freeDentists,
+  freePrefixes,
+  listCounters,
+  type Counter,
+} from "./fixtures/queueApi";
 
 /**
  * Feature: Màn hình đợi (F-45, BA redesign 2026-10-09) through the real UI:
@@ -180,7 +187,7 @@ test.describe("Màn hình đợi — per-counter queues in the browser", () => {
 
   test("the counter's page lists its queue, survives a reload, skips and calls", async () => {
     await cardOf(page, name).locator(".queue-card__name").click();
-    await expect(page).toHaveURL(new RegExp(`/queue/counters/${counter?.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/queue/counters/${counter?.id}(\\?|$)`));
     await expect(page.getByRole("heading", { name: `Hàng chờ · ${name}` })).toBeVisible();
 
     const table = page.locator(".queue-detail__list");
@@ -231,5 +238,51 @@ test.describe("Màn hình đợi — per-counter queues in the browser", () => {
     await expect(page.locator(".ant-select-item-option").filter({ hasText: name })).toHaveClass(
       /ant-select-item-option-disabled/,
     );
+  });
+
+  test("Xoá quầy is refused with a toast while a number is still there, then deletes once it is empty", async () => {
+    if (!counter) throw new Error("the counter was not created");
+    const counterId = counter.id;
+    await page.goto("/queue");
+    await page.getByRole("button", { name: "Quản lý quầy" }).click();
+    const manager = dialogNamed(page, "Quản lý quầy");
+    const deletes: string[] = [];
+    const onRequest = (r: { url(): string; method(): string }) => {
+      if (r.method() === "DELETE" && r.url().includes("/queue/counters/")) deletes.push(r.url());
+    };
+    page.on("request", onRequest);
+    try {
+      // 001 is still being called at this counter.
+      await manager.getByRole("button", { name: `Xoá ${name}` }).click();
+      await expect(page.getByText(`Không thể xoá ${name} vì còn 1 bệnh nhân trong hàng đợi.`)).toBeVisible();
+      await expect(dialogNamed(page, "Xác nhận xoá quầy"), "no confirm for a busy counter").toBeHidden();
+      expect(deletes, "nothing is sent").toEqual([]);
+    } finally {
+      page.off("request", onRequest);
+    }
+    await manager.locator(".ant-modal-close").click();
+
+    // The desk finishes the queue; the (still paused) counter may now go.
+    await drainCounter(page, counterId);
+    await page.reload();
+    await page.getByRole("button", { name: "Quản lý quầy" }).click();
+    await manager.getByRole("button", { name: `Xoá ${name}` }).click();
+    const confirm = dialogNamed(page, "Xác nhận xoá quầy");
+    await expect(confirm).toContainText(`Bạn có chắc muốn xoá quầy ${name} không?`);
+    const deleted = page.waitForResponse(
+      (r) => r.url().endsWith(`/queue/counters/${counterId}`) && r.request().method() === "DELETE",
+    );
+    await confirm.getByRole("button", { name: /Xoá$/ }).click();
+    expect((await deleted).status()).toBeLessThan(300);
+    await expect(page.getByText("Đã xoá", { exact: true })).toBeVisible();
+    await expect(confirm).toBeHidden();
+    await expect(manager.locator("tr", { hasText: name })).toHaveCount(0);
+
+    await page.reload();
+    await expect(cardOf(page, name), "gone from the board").toHaveCount(0);
+    await page.getByRole("button", { name: "Quản lý quầy" }).click();
+    await expect(manager.locator("tr.ant-table-row").first()).toBeVisible();
+    await expect(manager.locator("tr", { hasText: name }), "persisted").toHaveCount(0);
+    counter = undefined;
   });
 });

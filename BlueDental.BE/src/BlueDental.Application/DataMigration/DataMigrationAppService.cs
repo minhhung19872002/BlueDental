@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Appointments;
+using BlueDental.Appointments.Values;
+using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.Catalogs.Import;
 using BlueDental.Data;
@@ -18,6 +21,7 @@ using Volo.Abp;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
+using Volo.Abp.Users;
 using static BlueDental.DataMigration.DataMigrationLayout;
 
 namespace BlueDental.DataMigration;
@@ -35,11 +39,19 @@ namespace BlueDental.DataMigration;
 /// <list type="bullet">
 /// <item>Patients with every field of the hồ sơ dialog, a guardian when given,
 /// and the old system's registration date.</item>
-/// <item>One treatment slip per (patient, Mã phiếu) — or per (patient, day) when
-/// the old system had no slip numbers — with one line per service and one
-/// công đoạn per row, dated on the day it was done.</item>
-/// <item>No payments, and the lines are priced 0, so the import opens no công
-/// nợ (BA: later visits are paid for separately).</item>
+/// <item>One treatment slip per (patient, Kế hoạch) — else per (patient, Mã
+/// phiếu), else per (patient, day) — with one công đoạn per row, dated on the
+/// day it was done. A row with a unit price opens a priced service line; a
+/// row without one is a visit on the slip's latest line of that service, or
+/// opens a line priced 0. A file that leaves the money columns blank comes
+/// out as before them: every line priced 0, no công nợ.</item>
+/// <item>The optional Thanh toán sheet: completed payment receipts on the old
+/// dates, spread over the lines of the slip they name. They are flagged as
+/// imported, so the e-invoice request leaves them out.</item>
+/// <item>The optional Lịch hẹn sheet: the old calendar, past bookings in the
+/// state they ended in and future ones still to come. Flagged as imported, so
+/// no change log is backfilled and no CSKH task is raised for them; no shift
+/// or double-booking check, the old calendar is what it was.</item>
 /// <item>No duplicate-phone, duplicate-CCCD or under-16 guardian checks: the old
 /// data is what it is (BA 2026-10-08).</item>
 /// </list>
@@ -57,6 +69,16 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
     /// <summary>A Ngày tạo hồ sơ is stamped 08:00 clinic time, before that day's visits.</summary>
     private static readonly TimeSpan RecordOpened = TimeSpan.FromHours(8);
 
+    /// <summary>An imported payment is stamped 17:00 clinic time, after that day's visits.</summary>
+    private static readonly TimeSpan PaymentTaken = TimeSpan.FromHours(17);
+
+    /// <summary>PatientPayment.Note's column length.</summary>
+    private const int PaymentNoteMax = 1000;
+
+    /// <summary>Columns written as numbers in the template; every other column is text.</summary>
+    private static readonly HashSet<string> NumberColumns =
+        [Col.Quantity, Col.OriginalPrice, Col.Price, Col.Amount, Col.PaidAmount];
+
     private static readonly string[] CatalogGroups =
         [TaxonomyGroups.CareService, TaxonomyGroups.Source, TaxonomyGroups.Occupation, TaxonomyGroups.DiseaseHistory];
 
@@ -66,6 +88,8 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
     private readonly IRepository<PatientTag, Guid> _tagRepository;
     private readonly IRepository<StaffBranchAssignment, Guid> _assignmentRepository;
+    private readonly IRepository<PaymentAccount, Guid> _accountRepository;
+    private readonly IRepository<PatientPayment, Guid> _paymentRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
@@ -78,6 +102,8 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         IRepository<Taxonomy, Guid> taxonomyRepository,
         IRepository<PatientTag, Guid> tagRepository,
         IRepository<StaffBranchAssignment, Guid> assignmentRepository,
+        IRepository<PaymentAccount, Guid> accountRepository,
+        IRepository<PatientPayment, Guid> paymentRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver,
@@ -89,6 +115,8 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         _taxonomyRepository = taxonomyRepository;
         _tagRepository = tagRepository;
         _assignmentRepository = assignmentRepository;
+        _accountRepository = accountRepository;
+        _paymentRepository = paymentRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
@@ -103,8 +131,10 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         using var workbook = new XLWorkbook();
         var patients = WriteTemplateSheet(workbook, Patients);
         var treatments = WriteTemplateSheet(workbook, Treatments);
+        var payments = WriteTemplateSheet(workbook, Payments);
+        var appointments = WriteTemplateSheet(workbook, Bookings);
         WriteGuideSheet(workbook);
-        DataMigrationPickLists.Apply(patients, treatments, new PickListMessages(
+        DataMigrationPickLists.Apply(patients, treatments, payments, appointments, new PickListMessages(
             L["DataMigration:PickList:Title"].Value,
             L["DataMigration:PickList:NotInList"].Value));
         return Save(workbook);
@@ -120,7 +150,7 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             return plan.Result;
         }
 
-        await _historyWriter.WriteAsync(plan.Patients, plan.Plans, plan.Stages);
+        await _historyWriter.WriteAsync(plan.Patients, plan.Plans, plan.Stages, plan.Payments, plan.Appointments);
 
         plan.Result.Committed = true;
         return plan.Result;
@@ -184,8 +214,38 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         public Dictionary<Patient, DateTimeOffset> FirstVisits { get; } = [];
         public List<TreatmentPlan> Plans { get; } = [];
         public List<TreatmentStage> Stages { get; } = [];
+        public List<PatientPayment> Payments { get; } = [];
+        public List<Appointment> Appointments { get; } = [];
+
+        /// <summary>Each new patient's service lines, in the order they were built, for the payments to land on.</summary>
+        public Dictionary<Patient, List<LineRef>> Lines { get; } = [];
+
+        /// <summary>Patients with a refused Điều trị row: their payments are not spread over a history that is not all there.</summary>
+        public HashSet<Patient> BrokenHistories { get; } = [];
 
         public void Dispose() => Workbook.Dispose();
+    }
+
+    /// <summary>A built service line and what the Thanh toán sheet can name it by.</summary>
+    private sealed class LineRef
+    {
+        public required TreatmentPlan Plan { get; init; }
+        public required TreatmentService Line { get; init; }
+        public required int Order { get; init; }
+
+        /// <summary>The Mã phiếu (key) of the row that opened the line.</summary>
+        public required string? FirstSlip { get; init; }
+
+        /// <summary>Every Mã phiếu (key) with a row on the line.</summary>
+        public required HashSet<string> Slips { get; init; }
+
+        /// <summary>The Kế hoạch (key) the slip was grouped by, if any.</summary>
+        public required string? PlanKey { get; init; }
+
+        /// <summary>What the payments planned so far put on the line.</summary>
+        public decimal Allocated { get; set; }
+
+        public decimal Open => Plan.PayableAmountOf(Line) - Allocated;
     }
 
     /// <summary>A patient code already in the database, under any branch, deleted or not.</summary>
@@ -193,6 +253,13 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
 
     /// <summary>A Điều trị row that read cleanly, with where it sits in the result.</summary>
     private sealed record TreatmentRow(int RowNumber, TreatmentDraft Draft, DataMigrationRowDto Status);
+
+    /// <summary>A Thanh toán row that read cleanly.</summary>
+    private sealed record PaymentRow(int RowNumber, PaymentDraft Draft, DataMigrationRowDto Status);
+
+    /// <summary>A sheet found in the file, its entry in the result, and its column key → Excel column number.</summary>
+    private sealed record MappedSheet(
+        IXLWorksheet Sheet, DataMigrationSheetDto Result, Dictionary<string, int> Columns, List<IXLRow> Rows);
 
     private async Task<MigrationPlan> PlanAsync(ImportDataMigrationDto input)
     {
@@ -204,15 +271,19 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         {
             var patientSheet = MapSheet(plan, 1, Patients);
             var treatmentSheet = MapSheet(plan, 2, Treatments);
+            // Optional, and only by name: a file made before it (F-61) has the guide third.
+            var paymentSheet = MapSheet(plan, 3, Payments, optional: true);
+            var appointmentSheet = MapSheet(plan, 4, Bookings, optional: true);
             if (result.FileErrors.Count > 0)
             {
                 result.ErrorCount = result.FileErrors.Count;
                 return plan;
             }
 
-            var patientRows = DataRows(patientSheet!.Value.Sheet, patientSheet.Value.Columns).ToList();
-            var treatmentRows = DataRows(treatmentSheet!.Value.Sheet, treatmentSheet.Value.Columns).ToList();
-            if (patientRows.Count == 0 && treatmentRows.Count == 0)
+            var sheets = new[] { patientSheet, treatmentSheet, paymentSheet, appointmentSheet }
+                .OfType<MappedSheet>()
+                .ToArray();
+            if (sheets.All(s => s.Rows.Count == 0))
             {
                 result.FileErrors.Add(L["DataMigration:Err:NoRows"]);
                 result.ErrorCount = result.FileErrors.Count;
@@ -220,16 +291,25 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             }
 
             var lookups = await LoadLookupsAsync(branchId);
-            var fileCodes = patientRows.Concat(treatmentRows)
-                .Select(row => MigrationRowReader.CodeOf(
-                    row.Worksheet == patientSheet.Value.Sheet ? patientSheet.Value.Columns : treatmentSheet.Value.Columns, row))
+            var fileCodes = sheets
+                .SelectMany(s => s.Rows.Select(row => MigrationRowReader.CodeOf(s.Columns, row)))
                 .OfType<string>()
                 .Distinct()
                 .ToList();
             var stored = await LoadStoredCodesAsync(fileCodes);
 
-            var drafts = PlanPatients(plan, patientSheet.Value.Columns, patientRows, lookups, stored);
-            PlanTreatments(plan, treatmentSheet.Value.Columns, treatmentRows, lookups, stored, drafts);
+            var drafts = PlanPatients(plan, patientSheet!.Columns, patientSheet.Rows, lookups, stored);
+            PlanTreatments(plan, treatmentSheet!.Columns, treatmentSheet.Rows, lookups, stored, drafts);
+            if (paymentSheet != null)
+            {
+                await PlanPaymentsAsync(plan, paymentSheet, lookups, stored, drafts);
+            }
+
+            if (appointmentSheet != null)
+            {
+                PlanAppointments(plan, appointmentSheet, lookups, stored, drafts);
+            }
+
             foreach (var patient in plan.Patients)
             {
                 DateRecord(patient, plan.Drafts[patient], plan.FirstVisits.GetValueOrDefault(patient));
@@ -240,6 +320,8 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             result.PatientsCreated = plan.Patients.Count;
             result.TreatmentPlansCreated = plan.Plans.Count;
             result.TreatmentStagesCreated = plan.Stages.Count;
+            result.PaymentsCreated = plan.Payments.Count;
+            result.AppointmentsCreated = plan.Appointments.Count;
             return plan;
         }
         catch
@@ -354,6 +436,11 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             if (errors.Count > 0)
             {
                 Refuse(sheet, status, errors.ToArray());
+                if (code != null && patients.GetValueOrDefault(code) is { } broken)
+                {
+                    plan.BrokenHistories.Add(broken);
+                }
+
                 continue;
             }
 
@@ -366,6 +453,177 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         foreach (var group in clean.GroupBy(x => x.Patient))
         {
             BuildHistory(plan, group.Key, group.Select(x => x.Row).ToList());
+        }
+    }
+
+    /// <summary>
+    /// Reads the Thanh toán sheet and plans one completed receipt per row (per
+    /// slip, when a Kế hoạch row spans two). Rows go oldest first, so earlier
+    /// money settles a line before later money and the receipt numbers follow
+    /// the dates.
+    /// </summary>
+    private async Task PlanPaymentsAsync(
+        MigrationPlan plan,
+        MappedSheet mapped,
+        DataMigrationLookups lookups,
+        IReadOnlyDictionary<string, StoredCode> stored,
+        Dictionary<string, Patient?> patients)
+    {
+        var sheet = mapped.Result;
+        sheet.TotalRows = mapped.Rows.Count;
+        var clean = new List<(Patient Patient, PaymentRow Row)>();
+
+        foreach (var row in mapped.Rows)
+        {
+            var number = row.RowNumber();
+            var code = MigrationRowReader.CodeOf(mapped.Columns, row);
+            var status = new DataMigrationRowDto { Row = number, PatientCode = code };
+
+            if (code != null && !patients.ContainsKey(code) && stored.TryGetValue(code, out var existing)
+                && existing.BranchId == plan.BranchId && !existing.IsDeleted)
+            {
+                // Its payments came in with the patient last time.
+                status.Action = DataMigrationRowAction.Skip;
+                sheet.Rows.Add(status);
+                continue;
+            }
+
+            var (draft, errors) = MigrationRowReader.ReadPayment(L, mapped.Columns, row, lookups, ClinicToday);
+            if (code != null && !patients.ContainsKey(code))
+            {
+                errors.Add(L["DataMigration:Err:UnknownPatient", code, Patients.Name]);
+            }
+
+            if (errors.Count > 0)
+            {
+                Refuse(sheet, status, errors.ToArray());
+                continue;
+            }
+
+            if (draft!.Amount == 0m)
+            {
+                // The old system logged zero receipts; there is nothing to record.
+                status.Action = DataMigrationRowAction.Skip;
+                sheet.Rows.Add(status);
+                continue;
+            }
+
+            if (patients[code!] is { } patient && !plan.BrokenHistories.Contains(patient))
+            {
+                clean.Add((patient, new PaymentRow(number, draft, status)));
+            }
+        }
+
+        var ordered = clean.OrderBy(x => x.Row.Draft.PaidOn).ThenBy(x => x.Row.RowNumber).ToList();
+        var sequences = await LoadPaymentSequencesAsync(plan.BranchId, ordered.Select(x => x.Row.Draft.PaidOn.Year));
+        foreach (var (patient, row) in ordered)
+        {
+            var errors = new List<string>();
+            var payments = BuildPayments(plan, patient, row.Draft, sequences, errors);
+            if (errors.Count > 0)
+            {
+                Refuse(sheet, row.Status, errors.ToArray());
+                continue;
+            }
+
+            plan.Payments.AddRange(payments);
+        }
+
+        sheet.Rows.Sort((a, b) => a.Row.CompareTo(b.Row));
+    }
+
+    /// <summary>
+    /// Reads the Lịch hẹn sheet. A blank Trạng thái is Đã đến for a booking
+    /// already past and Đã hẹn for one still to come; a past booking cannot be
+    /// left Đã hẹn (the missed-appointment worker would turn it into Trễ hẹn
+    /// at once) and a future one cannot have been kept or missed yet.
+    /// </summary>
+    private void PlanAppointments(
+        MigrationPlan plan,
+        MappedSheet mapped,
+        DataMigrationLookups lookups,
+        IReadOnlyDictionary<string, StoredCode> stored,
+        Dictionary<string, Patient?> patients)
+    {
+        var sheet = mapped.Result;
+        sheet.TotalRows = mapped.Rows.Count;
+        var now = new DateTimeOffset(DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc));
+        var cancelledText = L["DataMigration:CancelledInOldSystem"].Value;
+        var statusHeader = Bookings[Col.BookedStatus].Header;
+
+        foreach (var row in mapped.Rows)
+        {
+            var number = row.RowNumber();
+            var code = MigrationRowReader.CodeOf(mapped.Columns, row);
+            var status = new DataMigrationRowDto { Row = number, PatientCode = code };
+
+            if (code != null && !patients.ContainsKey(code) && stored.TryGetValue(code, out var existing)
+                && existing.BranchId == plan.BranchId && !existing.IsDeleted)
+            {
+                // Its bookings came in with the patient last time.
+                status.Action = DataMigrationRowAction.Skip;
+                sheet.Rows.Add(status);
+                continue;
+            }
+
+            var (draft, errors) = MigrationRowReader.ReadAppointment(L, mapped.Columns, row, lookups, ClinicToday);
+            if (code != null && !patients.ContainsKey(code))
+            {
+                errors.Add(L["DataMigration:Err:UnknownPatient", code, Patients.Name]);
+            }
+
+            var start = default(DateTimeOffset);
+            var state = AppointmentStatus.Requested;
+            if (draft != null)
+            {
+                start = ClinicCalendar.AtLocal(DateOnly.FromDateTime(draft.At), TimeOnly.FromDateTime(draft.At));
+                var past = start < now;
+                state = draft.Status ?? (past ? AppointmentStatus.Completed : AppointmentStatus.Requested);
+                if (past && state == AppointmentStatus.Requested)
+                {
+                    errors.Add(L["DataMigration:Err:BookedInPast", statusHeader]);
+                }
+                else if (!past && state is AppointmentStatus.Completed or AppointmentStatus.NoShow)
+                {
+                    errors.Add(L["DataMigration:Err:ArrivedInFuture", statusHeader]);
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                Refuse(sheet, status, errors.ToArray());
+                continue;
+            }
+
+            if (patients[code!] is not { } patient)
+            {
+                continue;
+            }
+
+            var appointment = Build(() => Appointment.Import(
+                GuidGenerator.Create(), patient.Id, draft!.DentistId, plan.BranchId,
+                AppointmentSlot.Imported(start, start.AddMinutes(draft.Minutes)), state,
+                draft.Note, draft.CancelNote ?? cancelledText), errors);
+            if (appointment == null)
+            {
+                Refuse(sheet, status, errors.ToArray());
+                continue;
+            }
+
+            // Booked on the day it was for, as far as the old system tells; a
+            // future booking was made today.
+            if (start < now)
+            {
+                SetCreationTime(appointment, start);
+            }
+
+            if (state == AppointmentStatus.Completed
+                && (!plan.FirstVisits.TryGetValue(patient, out var first) || start < first))
+            {
+                plan.FirstVisits[patient] = start;
+            }
+
+            plan.Appointments.Add(appointment);
         }
     }
 
@@ -410,10 +668,11 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
     }
 
     /// <summary>
-    /// One patient's history: slips by Mã phiếu (or by day), oldest first and
-    /// numbered DT01, DT02... as the app numbers them; inside a slip one line per
-    /// service, and one công đoạn per row on the day it was done. The patient's
-    /// registration moves back to the first visit unless the file dates it.
+    /// One patient's history: slips by Kế hoạch, else Mã phiếu, else day,
+    /// oldest first and numbered DT01, DT02... as the app numbers them; inside
+    /// a slip the lines of <see cref="LinesOf"/>, and one công đoạn per row on
+    /// the day it was done. The patient's registration moves back to the first
+    /// visit unless the file dates it.
     /// </summary>
     private void BuildHistory(MigrationPlan plan, Patient patient, List<TreatmentRow> rows)
     {
@@ -429,18 +688,15 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             }
         }
 
-        var slips = ordered
-            .GroupBy(r => r.Draft.SlipCode != null
-                ? "slip:" + ExcelCells.Key(r.Draft.SlipCode)
-                : "day:" + r.Draft.TreatedOn.DayNumber)
-            .ToList();
+        var slips = ordered.GroupBy(r => SlipKeyOf(r.Draft)).ToList();
+        var lines = new List<LineRef>();
 
         for (var index = 0; index < slips.Count; index++)
         {
             var slipRows = slips[index].ToList();
             var first = slipRows[0];
-            var title = L["DataMigration:PlanTitle"].Value;
-            if (first.Draft.SlipCode != null)
+            var title = first.Draft.PlanKey ?? L["DataMigration:PlanTitle"].Value;
+            if (first.Draft.PlanKey == null && first.Draft.SlipCode != null)
             {
                 title += $" ({first.Draft.SlipCode})";
             }
@@ -454,36 +710,91 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
                 title);
             SetCreationTime(treatmentPlan, stamps[first]);
 
-            foreach (var lineRows in slipRows.GroupBy(r => r.Draft.Service.Id))
+            foreach (var lineRows in LinesOf(slipRows))
             {
-                BuildLine(plan, patient, treatmentPlan, lineRows.ToList(), stamps);
+                var line = BuildLine(plan, patient, treatmentPlan, lineRows, stamps);
+                lines.Add(new LineRef
+                {
+                    Plan = treatmentPlan,
+                    Line = line,
+                    Order = lines.Count,
+                    FirstSlip = SlipOf(lineRows[0].Draft),
+                    Slips = lineRows.Select(r => SlipOf(r.Draft)).OfType<string>().ToHashSet(),
+                    PlanKey = first.Draft.PlanKey == null ? null : ExcelCells.Key(first.Draft.PlanKey)
+                });
             }
 
             treatmentPlan.CloseIfAllServicesDone();
             plan.Plans.Add(treatmentPlan);
         }
 
+        plan.Lines[patient] = lines;
         plan.FirstVisits[patient] = stamps.Values.Min();
     }
 
-    private void BuildLine(
+    private static string SlipKeyOf(TreatmentDraft draft) =>
+        draft.PlanKey != null ? "plan:" + ExcelCells.Key(draft.PlanKey)
+        : draft.SlipCode != null ? "slip:" + ExcelCells.Key(draft.SlipCode)
+        : "day:" + draft.TreatedOn.DayNumber;
+
+    private static string? SlipOf(TreatmentDraft draft) =>
+        draft.SlipCode == null ? null : ExcelCells.Key(draft.SlipCode);
+
+    /// <summary>
+    /// A slip's rows, oldest first, cut into service lines: a priced row opens
+    /// a line of its own; a row without a price is one more visit on the
+    /// slip's latest line of that service, or opens a line priced 0 when there
+    /// is none yet. Without prices this is one line per service, as before.
+    /// </summary>
+    private static List<List<TreatmentRow>> LinesOf(List<TreatmentRow> rows)
+    {
+        var lines = new List<List<TreatmentRow>>();
+        var latest = new Dictionary<Guid, List<TreatmentRow>>();
+        foreach (var row in rows)
+        {
+            if (row.Draft.IsPriced || !latest.TryGetValue(row.Draft.Service.Id, out var line))
+            {
+                line = [];
+                lines.Add(line);
+                latest[row.Draft.Service.Id] = line;
+            }
+
+            line.Add(row);
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// A line priced as its first row says: Đơn giá × Số lượng, less what
+    /// Thành tiền leaves out as a money discount. Đơn giá gốc is raised to the
+    /// price when lower — the old system sold above list, the app refuses to.
+    /// </summary>
+    private TreatmentService BuildLine(
         MigrationPlan plan,
         Patient patient,
         TreatmentPlan treatmentPlan,
         List<TreatmentRow> rows,
         Dictionary<TreatmentRow, DateTimeOffset> stamps)
     {
+        var head = rows[0].Draft;
         var teeth = rows.SelectMany(r => r.Draft.Teeth).Distinct().ToList();
+        var price = head.IsPriced ? head.Price!.Value : 0m;
+        var quantity = head.Quantity ?? Math.Max(1, (head.IsPriced ? head.Teeth : teeth).Count);
+        var originalPrice = Math.Max(head.OriginalPrice ?? 0m, price);
+        var gross = price * quantity;
+        var discount = head.IsPriced && head.Amount is { } amount && amount < gross ? gross - amount : 0m;
+
         var line = treatmentPlan.AddService(
             GuidGenerator.Create(),
-            rows[0].Draft.Service.Id,
+            head.Service.Id,
             sourceAdviseId: null,
-            price: 0m,
-            quantity: Math.Max(1, teeth.Count),
-            DiscountType.None,
-            discountValue: 0m,
+            price,
+            quantity,
+            discount > 0m ? DiscountType.Money : DiscountType.None,
+            discount,
             teeth.Select(tooth => new ToothSelection(tooth, selected: true)),
-            originalPrice: 0m);
+            originalPrice: head.IsPriced ? originalPrice : 0m);
         SetCreationTime(line, stamps[rows[0]]);
         line.Start();
 
@@ -526,6 +837,115 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         {
             line.Complete();
         }
+
+        return line;
+    }
+
+    /// <summary>
+    /// The receipts for one Thanh toán row. The money goes first to the line
+    /// its Mã phiếu opened, then to lines that slip visited, then to the rest
+    /// of the slip, each line up to what it still owes. Money left over is
+    /// refused: the old system would have shown it as a debt paid twice.
+    /// </summary>
+    private List<PatientPayment> BuildPayments(
+        MigrationPlan plan,
+        Patient patient,
+        PaymentDraft draft,
+        Dictionary<int, int> sequences,
+        List<string> errors)
+    {
+        var slip = draft.SlipCode == null ? null : ExcelCells.Key(draft.SlipCode);
+        var planKey = draft.PlanKey == null ? null : ExcelCells.Key(draft.PlanKey);
+        var lines = plan.Lines.GetValueOrDefault(patient) ?? [];
+        var plans = lines
+            .Where(l => slip == null || l.Slips.Contains(slip))
+            .Where(l => planKey == null || l.PlanKey == planKey)
+            .Select(l => l.Plan)
+            .ToHashSet();
+        var target = string.Join(" / ", new[] { draft.SlipCode, draft.PlanKey }.OfType<string>());
+        if (plans.Count == 0)
+        {
+            errors.Add(L["DataMigration:Err:PaymentNoPlan", target, Treatments.Name]);
+            return [];
+        }
+
+        var shares = new List<(LineRef Line, decimal Amount)>();
+        var left = draft.Amount;
+        foreach (var line in lines
+                     .Where(l => plans.Contains(l.Plan))
+                     .OrderBy(l => l.FirstSlip == slip && slip != null ? 0 : slip != null && l.Slips.Contains(slip) ? 1 : 2)
+                     .ThenBy(l => l.Order))
+        {
+            var share = Math.Min(left, line.Open);
+            if (share > 0m)
+            {
+                shares.Add((line, share));
+                left -= share;
+            }
+
+            if (left == 0m)
+            {
+                break;
+            }
+        }
+
+        if (left > 0m)
+        {
+            errors.Add(L["DataMigration:Err:PaymentExceeds", MigrationRowReader.FormatMoney(draft.Amount), target,
+                MigrationRowReader.FormatMoney(draft.Amount - left)]);
+            return [];
+        }
+
+        var paidAt = ClinicCalendar.StartOfDay(draft.PaidOn) + PaymentTaken;
+        var note = L["DataMigration:PaymentNote", target].Value;
+        if (draft.Note != null)
+        {
+            note += " — " + draft.Note;
+        }
+
+        if (note.Length > PaymentNoteMax)
+        {
+            note = note[..PaymentNoteMax];
+        }
+
+        var year = draft.PaidOn.Year;
+        var payments = new List<PatientPayment>();
+        foreach (var group in shares.GroupBy(s => s.Line.Plan))
+        {
+            var sequence = sequences.GetValueOrDefault(year) + 1;
+            var payment = Build(() => PatientPayment.Record(
+                GuidGenerator.Create(),
+                patient.Id,
+                plan.BranchId,
+                PatientPaymentKind.Payment,
+                draft.Method,
+                group.Sum(s => s.Amount),
+                PatientPayment.FormatCode(PatientPaymentKind.Payment, sequence, year, group.Key.Code),
+                draft.CashierId ?? CurrentUser.GetId(),
+                paidAt,
+                group.Key.Id,
+                note,
+                draft.AccountId,
+                PaymentSplitMode.Manual,
+                group.Select(s => (s.Line.Line.Id, s.Amount)),
+                GuidGenerator.Create), errors);
+            if (payment == null)
+            {
+                return [];
+            }
+
+            sequences[year] = sequence;
+            payment.MarkImported();
+            SetCreationTime(payment, paidAt);
+            payments.Add(payment);
+        }
+
+        foreach (var (line, amount) in shares)
+        {
+            line.Allocated += amount;
+        }
+
+        return payments;
     }
 
     /// <summary>
@@ -586,8 +1006,38 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
                 t => DataMigrationLookups.Entries(entries.Where(e => e.TaxonomyId == t.Id), TaxonomyGroups.Source)),
             Occupations = DataMigrationLookups.Entries(entries, TaxonomyGroups.Occupation),
             DiseaseHistory = DataMigrationLookups.Entries(entries, TaxonomyGroups.DiseaseHistory),
-            Tags = tags.OrderBy(t => t.Name).Select(t => new LookupItem(t.Id, t.Name)).ToList()
+            Tags = tags.OrderBy(t => t.Name).Select(t => new LookupItem(t.Id, t.Name)).ToList(),
+            // Inactive accounts stay in: old payments went into accounts since closed.
+            Accounts = (await _accountRepository.GetListAsync(a => a.ClinicBranchId == branchId))
+                .Select(a => new AccountItem(a.Id, a.Kind, a.HolderName,
+                    a.Kind == PaymentAccountKind.MoMo ? a.PhoneNumber : a.AccountNumber))
+                .ToList()
         };
+    }
+
+    /// <summary>
+    /// Payment receipts the branch already numbered, per year — the app's own
+    /// counter (PatientPaymentAppService.GenerateCodeAsync), cancelled and
+    /// unpaid receipts included, so the imported ones carry on after them.
+    /// </summary>
+    private async Task<Dictionary<int, int>> LoadPaymentSequencesAsync(Guid branchId, IEnumerable<int> years)
+    {
+        var wanted = years.Distinct().ToList();
+        if (wanted.Count == 0)
+        {
+            return [];
+        }
+
+        using var cancelled = DataFilter.Disable<ISoftDelete>();
+        using var pending = DataFilter.Disable<ISettleable>();
+        var query = await _paymentRepository.GetQueryableAsync();
+        var counts = await AsyncExecuter.ToListAsync(query
+            .Where(x => x.ClinicBranchId == branchId
+                && x.Kind == PatientPaymentKind.Payment
+                && wanted.Contains(x.CreationTime.Year))
+            .GroupBy(x => x.CreationTime.Year)
+            .Select(g => new { Year = g.Key, Count = g.Count() }));
+        return counts.ToDictionary(c => c.Year, c => c.Count);
     }
 
     /// <summary>
@@ -642,13 +1092,21 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         }
     }
 
-    /// <summary>Column key → Excel column number, from the header row; null with a file error when a required column is missing.</summary>
-    private (IXLWorksheet Sheet, Dictionary<string, int> Columns)? MapSheet(
-        MigrationPlan plan, int position, ImportSheetLayout layout)
+    /// <summary>
+    /// The layout's sheet with its column key → Excel column number, from the
+    /// header row, and its data rows. A required column that is missing is a
+    /// file error; a missing optional sheet is simply null.
+    /// </summary>
+    private MappedSheet? MapSheet(MigrationPlan plan, int position, ImportSheetLayout layout, bool optional = false)
     {
         var result = plan.Result;
         var sheet = plan.Workbook.Worksheets
             .FirstOrDefault(s => ExcelCells.Key(s.Name) == ExcelCells.Key(layout.Name));
+        if (sheet == null && optional)
+        {
+            return null;
+        }
+
         if (sheet == null && plan.Workbook.Worksheets.Count < position)
         {
             result.FileErrors.Add(L["Taxonomy:Import:Err:MissingSheet", position, layout.Name]);
@@ -681,9 +1139,10 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             }
         }
 
-        result.Sheets.Add(new DataMigrationSheetDto { Name = sheet.Name });
+        var entry = new DataMigrationSheetDto { Name = sheet.Name };
+        result.Sheets.Add(entry);
         plan.SheetSources.Add(sheet);
-        return (sheet, columns);
+        return new MappedSheet(sheet, entry, columns, DataRows(sheet, columns).ToList());
     }
 
     /// <summary>Rows below the header that have something in at least one template column.</summary>
@@ -751,8 +1210,9 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
             sheet.Column(i + 1).Width = column.Width;
 
             // Codes, phones, CCCD and dates are text: a number cell would drop
-            // their leading zeros and Excel would reformat the dates.
-            sheet.Column(i + 1).Style.NumberFormat.Format = "@";
+            // their leading zeros and Excel would reformat the dates. Money and
+            // quantities are numbers, grouped the Vietnamese way on screen.
+            sheet.Column(i + 1).Style.NumberFormat.Format = NumberColumns.Contains(column.Key) ? "#,##0" : "@";
         }
 
         sheet.SheetView.FreezeRows(HeaderRow);
@@ -784,11 +1244,16 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         sheet.Cell(++row, 1).Value = L["DataMigration:GuideIntro"].Value;
         sheet.Range(row, 1, row, headers.Length).Merge();
         sheet.Cell(row, 1).Style.Alignment.WrapText = true;
-        sheet.Row(row).Height = 120;
+        sheet.Row(row).Height = 150;
+
+        sheet.Cell(++row, 1).Value = L["DataMigration:GuideGrouping"].Value;
+        sheet.Range(row, 1, row, headers.Length).Merge();
+        sheet.Cell(row, 1).Style.Alignment.WrapText = true;
+        sheet.Row(row).Height = 165;
 
         var yes = L["Common:Yes"].Value;
         var no = L["Common:No"].Value;
-        foreach (var layout in new[] { Patients, Treatments })
+        foreach (var layout in new[] { Patients, Treatments, Payments, Bookings })
         {
             foreach (var column in layout.Columns)
             {

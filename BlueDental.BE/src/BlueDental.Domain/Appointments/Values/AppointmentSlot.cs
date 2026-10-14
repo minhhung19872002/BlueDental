@@ -16,6 +16,11 @@ public class AppointmentSlot : ValueObject
     protected AppointmentSlot() { }
 
     public AppointmentSlot(DateTimeOffset start, DateTimeOffset end)
+        : this(start, end, allowPast: false)
+    {
+    }
+
+    private AppointmentSlot(DateTimeOffset start, DateTimeOffset end, bool allowPast)
     {
         if (start >= end)
         {
@@ -27,7 +32,7 @@ public class AppointmentSlot : ValueObject
         var nowMinute = new DateTimeOffset(
             DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, DateTimeOffset.UtcNow.Day,
             DateTimeOffset.UtcNow.Hour, DateTimeOffset.UtcNow.Minute, 0, TimeSpan.Zero);
-        if (start < nowMinute)
+        if (!allowPast && start < nowMinute)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.SlotInThePast);
         }
@@ -42,6 +47,13 @@ public class AppointmentSlot : ValueObject
         Start = start;
         End = end;
     }
+
+    /// <summary>
+    /// A slot moved in from the clinic's old system (F-61): it may lie in the
+    /// past, which a new booking may not; the other rules still hold.
+    /// </summary>
+    public static AppointmentSlot Imported(DateTimeOffset start, DateTimeOffset end) =>
+        new(start, end, allowPast: true);
 
     public bool OverlapsWith(AppointmentSlot other)
     {

@@ -356,7 +356,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await tab(page, "Thanh toán").click();
     await expect(page).toHaveURL(/planTab=payment-v2/);
     await expect(tab(page, "Thanh toán")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("button", { name: "In hóa đơn tổng" })).toBeVisible();
+    // "In hóa đơn tổng" is hidden for now (owner 2026-10-12, SHOW_TOTAL_INVOICE in PlanPaymentsTab).
+    await expect(page.getByRole("button", { name: "In hóa đơn tổng" })).toHaveCount(0);
     await expect(
       page.locator(".pdt-table thead th").filter({ hasText: /^Mã thanh toán$/ }),
     ).toBeVisible();
@@ -395,17 +396,9 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(receipt.locator(".pdt-receipt-facts").first()).toContainText(paymentCode);
     await expect(receipt.getByText("Tổng thanh toán dịch vụ")).toBeVisible();
     await expect(receipt.locator(".pdt-receipt-table tbody tr.ant-table-row")).toHaveCount(1);
-    await expect(receipt.getByRole("button", { name: "In Hoá Đơn" })).toBeVisible();
-    await receipt.getByRole("button", { name: "Đóng", exact: true }).last().click();
-    await expect(receipt).toBeHidden();
-
-    // "In hóa đơn tổng" is the same layout for the whole slip.
-    await page.getByRole("button", { name: "In hóa đơn tổng" }).click();
-    await expect(receipt).toBeVisible();
-    await expect(receipt.locator(".pdt-receipt-facts").first()).toContainText("Tổng hợp");
-    await expect(receipt.locator(".pdt-receipt-totals")).toContainText("Doanh thu dự kiến");
-    // What "In Hoá Đơn" sends to the printer is the off-screen receipt sheet,
-    // not the dialog: letterhead, title, the sum in words, two signatures.
+    // A receipt prints its PHIẾU THU PDF (F-71); the off-screen sheet stays for
+    // "In hóa đơn tổng" and refunds: letterhead, title, sum in words, signatures.
+    await expect(receipt.getByRole("button", { name: "In phiếu thu" })).toBeVisible();
     const sheet = receipt.locator(".pdt-sheet");
     await expect(sheet).toHaveCount(1);
     await expect(sheet).toBeHidden();
@@ -1154,7 +1147,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     const box = dialog.locator("input.pd-newpay-amount");
     await expect.poll(async () => Number((await box.inputValue()).replace(/\D/g, ""))).toBe(owed);
 
-    // The plan block reads gross / every discount / net, and Còn lại 0 with the prefill.
+    // The plan block reads gross / every discount / net, and what is owed —
+    // R-907 dropped "Còn lại" for "Còn nợ cần thanh toán" (owed, not left after typing).
     const fact = (label: string) =>
       dialog.locator(".pd-newpay-fact", {
         has: page.locator("span", { hasText: new RegExp(`^${label}$`) }),
@@ -1164,7 +1158,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       figures.discount + 50_000,
     );
     expect(money(await fact("Tổng tiền sau giảm").locator("span").last().innerText())).toBe(owed);
-    expect((await fact("Còn lại").locator("span").last().innerText()).trim()).toBe("0 đ");
+    expect(money(await fact("Còn nợ cần thanh toán").locator("span").last().innerText())).toBe(owed);
 
     // Typing the gross figure is refused on the screen: the box stops at what
     // is owed after discount, no error line (bug list item 24, 5d238e37)…

@@ -1,0 +1,94 @@
+/* ── Public THÔNG TIN XUẤT HÓA ĐƠN page (QR on a PHIẾU THU) — phone first ── */
+
+.pir-page {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px 40px;
+  background: var(--bd-bg);
+}
+.pir-card {
+  width: 100%;
+  max-width: 820px;
+  align-self: flex-start;
+  padding: 28px 36px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+}
+.pir-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.pir-head {
+  margin-bottom: 16px;
+  text-align: center;
+}
+.pir-head__clinic {
+  margin: 0;
+  color: var(--bd-primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pir-head__intro {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.pir-head__receipt {
+  margin: 0 0 4px;
+  color: var(--bd-sub);
+  font-size: 14px;
+}
+
+.pir-error {
+  margin-bottom: 16px;
+}
+/* The card is the BA's paper sheet; the submit button sits under it. */
+.pir-card .inv-paper {
+  padding: 0;
+  border: 0;
+}
+.pir-submit {
+  margin-top: 24px;
+}
+
+.pir-notice {
+  padding: 24px 0;
+  text-align: center;
+}
+.pir-notice__icon {
+  color: var(--bd-primary);
+  font-size: 44px;
+}
+.pir-notice__title {
+  margin: 12px 0 8px;
+  color: var(--bd-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+.pir-notice__text {
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .pir-page {
+    padding: 0;
+  }
+  .pir-card {
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .pir-card {
+    padding: 20px 16px;
+  }
+}

@@ -29,6 +29,13 @@ and the BA's chat answers relayed by the owner:
   time (UTC+7, `ClinicCalendar`); "Đặt lại số thứ tự ngay" restarts at Số bắt
   đầu, numbers still waiting keep theirs and are passed over when numbering
   reaches them. Tickets from earlier days are expired by the worker.
+- Xoá quầy (R-917, owner 2026-10-13): a red trash button beside the pencil in
+  "Quản lý quầy". A counter with anyone waiting, called or being seen today is
+  refused at once with the toast "Không thể xoá {quầy} vì còn {n} bệnh nhân
+  trong hàng đợi." (FE checks `inQueueCount`; the server refuses too with `0015`
+  in case the list is stale). An empty counter — paused or not — asks "Xác nhận
+  xoá quầy" first, then soft-deletes and toasts "Đã xoá". Its prefix and dentist
+  are free again; old tickets keep showing the deleted counter's name.
 - "Lấy số mới": the receptionist picks the counter (paused counters disabled),
   Độ ưu tiên, Loại dịch vụ, Ghi chú — no patient field (BA dropped it).
 - Board `/queue` (restyled to the owner's mockup, R-861): 4 summary tiles with no
@@ -74,7 +81,8 @@ counter · `0007` prefix used in the branch · `0008` dentist locked (queue busy
 invalid settings · `0012` not a dentist · `0013` dentist required · `0014`
 name used in the branch (bug #34, R-898: ignoring case, ends trimmed and inner
 spaces folded; the name is stored normalized; the dialog flags a taken name and
-a taken prefix under the field as it is typed).
+a taken prefix under the field as it is typed) · `0015` delete a counter that
+still has numbers waiting / called / being seen today (R-917).
 
 Migration `20261009050840_PerCounterQueue`: counter columns `DentistId`,
 `NumberPrefix`, `StartNumber`, `MinutesPerPatient`, `WaitWarningMinutes`,
@@ -89,7 +97,7 @@ skipping / counter management `BlueDental.queue.update`.
 
 ## Rules under test
 
-`e2e/queue-api.spec.ts` (13, real HTTP from the logged-in page; the name rule
+`e2e/queue-api.spec.ts` (14, real HTTP from the logged-in page; the name rule
 of bug #34 sits between 2 and 3: other case/spacing, an edit onto X's name and
 "QUẦY ĐẶC BIỆT" vs "Quầy Đặc biệt" → `0014`, own name in another case → 200,
 and in 12 branch 2 reuses X's name → 200):
@@ -108,9 +116,14 @@ and in 12 branch 2 reuses X's name → 200):
    002 keeps its number.
 10. Paused Y → take `0006`, call `0005`, board `isActive=false`.
 11. Anonymous TV board answers with no session and no `patientId/patientName`.
-12. Branch 2 does not see X and gets 404 calling or taking a number through it.
+12. Branch 2 does not see X and gets 404 calling or taking a number through it,
+    or deleting it (X stays listed).
+13. Delete (R-917): paused Y with numbers waiting → `0015` naming Y, Y kept; X
+    with its number called → `0015`; Y drained → deleted, gone from the list
+    and the board; Y's old ticket still reads Y's name; a new counter takes Y's
+    prefix and dentist.
 
-`e2e/queue.spec.ts` (6, real UI): Lưu disabled until a dentist is picked, card
+`e2e/queue.spec.ts` (7, real UI): Lưu disabled until a dentist is picked, card
 shows "BS. <dentist>" (the dentist is typed into the picker — it is a virtual
 list and taken dentists fill its window once the branch has many counters);
 bug #34: a second counter with the name in upper case and extra spaces shows
@@ -121,7 +134,11 @@ the urgent one first ("Gọi X002" then "Gọi X001"), ↻ "Làm mới" reloads 
 five columns, one waiting row, survives a reload, "Bỏ qua X002", "Gọi số tiếp
 theo · X001", then "Hết số chờ" + "Không có bệnh nhân chờ"; the TV shows the
 dentist and the number; pausing marks the card paused, locks "Quầy tạm nghỉ" and
-disables the counter in "Lấy số mới".
+disables the counter in "Lấy số mới"; "Xoá <quầy>" while X001 is still called
+shows the refusal toast, opens no dialog and sends no DELETE, then once the
+queue is drained asks "Bạn có chắc muốn xoá quầy <quầy> không?", deletes,
+toasts "Đã xoá" and the counter stays gone from the board and the manager after
+a reload.
 
 ## Acceptance evidence
 
@@ -131,6 +148,12 @@ intercepted: **17/17** (`queue-api` 12/12, `queue` 5/5, 30 s). `tsc -b` and
 eslint clean. Screenshots checked at 1920 px (board 5 × 2, counter page),
 TV 1920 × 1080 with 10 counters, and 390 px mobile. Specs create their own
 counters with free dentists / prefixes and soft-delete them afterwards.
+
+2026-10-13 (R-917, Xoá quầy), production build (`vite preview` on
+127.0.0.1:8098) → host :5000 → real PostgreSQL: **21/21** (`queue-api` 14/14,
+`queue` 7/7). Cleanup now drains a counter (skip / complete) before deleting
+it, since a counter with a queue cannot be deleted. The counter-page URL
+assertion now accepts F-68's `?branch=` query (it was red since F-68).
 
 ## Not covered yet
 

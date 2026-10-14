@@ -58,7 +58,7 @@ test.describe("Chấm công", () => {
 
     // Scoped to the KPI row: "Đang làm việc" is also the tag on every staff
     // card, so an unscoped lookup is ambiguous as soon as the roster is real.
-    const kpis = page.getByTestId("timekeeping-kpis");
+    const kpis = page.locator(".tk-stat-chips");
 
     for (const label of [
       "Tổng CBNV",

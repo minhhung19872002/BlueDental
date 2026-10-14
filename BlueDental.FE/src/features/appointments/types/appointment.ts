@@ -90,11 +90,18 @@ export interface AppointmentListQuery {
   patientId?: string;
   doctorId?: string;
   status?: AppointmentStatus;
+  /** Any of these statuses — a counter used as a filter. */
+  statuses?: readonly AppointmentStatus[];
+  /** Latest visit first, for a patient's record; otherwise oldest first. */
+  newestFirst?: boolean;
   /** Free text over patient, dentist, reason and notes — matched server-side. */
   filter?: string;
   skipCount?: number;
   maxResultCount?: number;
 }
+
+/** How many appointments are in each status, counted by the server. */
+export type AppointmentStatusCounts = Record<AppointmentStatus, number>;
 
 export interface PagedResult<T> {
   items: T[];

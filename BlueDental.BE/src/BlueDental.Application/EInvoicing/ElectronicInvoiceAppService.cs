@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
@@ -255,13 +256,20 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     }
 
     /// <summary>
-    /// PHIẾU THU for Phát Hành, whether or not an e-invoice goes out with it.
-    /// Same permission as Phát Hành: the receipt says money was collected.
+    /// PHIẾU THU for Phát Hành, whether or not an e-invoice goes out with it,
+    /// and for Lưu on "Tạo phiếu thanh toán", which prints the receipt it just
+    /// wrote while it is still "Chưa thanh toán" (owner 2026-10-12). So whoever
+    /// may write a receipt (payment.create) or finalize one may print it.
     /// </summary>
-    [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
     public async Task<byte[]> RenderReceiptAsync(RenderPaymentReceiptDto input)
     {
-        var source = await LoadSourceAsync(input.PatientPaymentId, input.TreatmentPlanId);
+        if (!await AuthorizationService.IsGrantedAsync(BlueDentalAbilityPermissions.Payment.Create)
+            && !await AuthorizationService.IsGrantedAsync(BlueDentalAbilityPermissions.Payment.Finalize))
+        {
+            throw new AbpAuthorizationException();
+        }
+
+        var source = await LoadSourceAsync(input.PatientPaymentId, input.TreatmentPlanId, allowPending: true);
         if (source.Payment is { Kind: not PatientPaymentKind.Payment })
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.ReceiptNotInvoiceable);
@@ -290,8 +298,24 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             CashierName: await CashierNameAsync());
 
         var docx = DocxTemplate.Fill(await ReceiptTemplateAsync(), content.ToPlaceholders());
+        docx = source.Payment is { RedInvoiceRequested: true } payment
+            ? await WithInvoiceRequestQrAsync(docx, payment)
+            : PaymentReceiptQr.Leave(docx);
+
         return await LazyServiceProvider.LazyGetRequiredService<IDocxPdfConverter>()
             .ConvertAsync(docx, "phieu-thu.docx");
+    }
+
+    /// <summary>
+    /// "Xuất hóa đơn đỏ" ticked: the receipt carries a QR to the THÔNG TIN XUẤT
+    /// HÓA ĐƠN form for this receipt (BA 2026-10-12), in the box the template
+    /// draws for it.
+    /// </summary>
+    private async Task<byte[]> WithInvoiceRequestQrAsync(byte[] docx, PatientPayment payment)
+    {
+        var sources = LazyServiceProvider.LazyGetRequiredService<InvoiceRequestSources>();
+        var link = await sources.EnsureLinkAsync(payment, GuidGenerator.Create());
+        return PaymentReceiptQr.Place(docx, sources.PublicUrlOf(link));
     }
 
     /// <summary>The lines ticked in the dialog, priced VAT included as the invoice would be.</summary>
@@ -490,7 +514,10 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     }
 
     /// <summary>The receipt or slip, branch-checked, with what bounds its invoice.</summary>
-    private async Task<InvoiceSource> LoadSourceAsync(Guid? patientPaymentId, Guid? treatmentPlanId)
+    private async Task<InvoiceSource> LoadSourceAsync(
+        Guid? patientPaymentId,
+        Guid? treatmentPlanId,
+        bool allowPending = false)
     {
         if (patientPaymentId.HasValue == treatmentPlanId.HasValue)
         {
@@ -510,8 +537,9 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
             // A receipt still "Chưa thanh toán" has no money behind it: no
-            // PHIẾU THU and no e-invoice until it is confirmed (BA 2026-10-08).
-            if (payment.IsPending)
+            // e-invoice until it is confirmed (BA 2026-10-08). Its PHIẾU THU may
+            // be printed, right after Lưu (owner 2026-10-12).
+            if (payment.IsPending && !allowPending)
             {
                 throw new BusinessException(BlueDentalDomainErrorCodes.Billing.PaymentNotCompleted);
             }

@@ -15,5 +15,6 @@ public interface IOrgChartAppService : IApplicationService
     Task DeleteAsync(Guid id);
     Task<OrgUnitDto> ChangeRootHeadAsync(ChangeOrgRootHeadDto input);
     Task AssignAsync(AssignOrgUnitMembersDto input);
+    Task RemoveMemberAsync(Guid unitId, Guid staffId);
     Task<PagedResultDto<OrgUnitChangeLogDto>> GetHistoryAsync(GetOrgChartHistoryInput input);
 }

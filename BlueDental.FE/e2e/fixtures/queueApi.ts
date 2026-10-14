@@ -11,6 +11,7 @@ export const QUEUE = "/api/v1/app/queue";
 
 export const WAITING = 1;
 export const CALLED = 2;
+export const SERVING = 3;
 export const COMPLETED = 4;
 export const SKIPPED = 5;
 export const NORMAL = 0;
@@ -24,6 +25,7 @@ export interface Ticket {
   priority: number;
   patientId: string | null;
   counterId: string | null;
+  counterName: string | null;
   dentistId: string | null;
   clinicBranchId: string;
 }
@@ -142,9 +144,31 @@ export async function createCounter(page: Page, input: CounterInput): Promise<Co
   return res.body;
 }
 
+/** Today's numbers still at the counter: waiting, called or being seen. */
+export async function liveTickets(page: Page, counterId: string): Promise<Ticket[]> {
+  const res = await call<{ items: Ticket[] }>(
+    page,
+    "GET",
+    `${QUEUE}/tickets?CounterId=${counterId}&MaxResultCount=1000`,
+  );
+  expect(res.status, "list counter tickets").toBe(200);
+  return res.body.items.filter((t) => t.status === WAITING || t.status === CALLED || t.status === SERVING);
+}
+
+/** Empties the counter's queue the way the desk would: skip the waiting / called, complete the one being seen. */
+export async function drainCounter(page: Page, counterId: string): Promise<void> {
+  for (const ticket of await liveTickets(page, counterId)) {
+    const action = ticket.status === SERVING ? "complete" : "skip";
+    await call(page, "POST", `${QUEUE}/tickets/${ticket.id}/${action}`);
+  }
+}
+
+/** Spec cleanup: a counter with anyone in its queue cannot be deleted (Queue:0015), so drain it first. */
 export async function deleteCounters(page: Page, counters: (Counter | undefined)[]): Promise<void> {
   for (const counter of counters) {
-    if (counter) await call(page, "DELETE", `${QUEUE}/counters/${counter.id}`);
+    if (!counter) continue;
+    await drainCounter(page, counter.id);
+    await call(page, "DELETE", `${QUEUE}/counters/${counter.id}`);
   }
 }
 

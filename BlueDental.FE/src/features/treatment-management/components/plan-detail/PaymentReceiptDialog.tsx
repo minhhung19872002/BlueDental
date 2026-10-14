@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Modal, type TableColumnsType } from "antd";
-import { Printer, X } from "lucide-react";
+import { X } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { BranchInfo } from "@/hooks/useBranchInfo";
@@ -11,7 +11,7 @@ import { formatDate } from "@/utils/format";
 import type { PatientAdviseDto } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { dash } from "./planDetailTypes";
-import { printSheet } from "./printSheet";
+import { PrintReceiptButton } from "./PrintReceiptButton";
 import { ReceiptFacts, ReceiptTotals } from "./ReceiptParts";
 import { ReceiptSheet } from "./ReceiptSheet";
 import type { ReceiptLine, ReceiptView } from "./receiptView";
@@ -42,8 +42,8 @@ function buildColumns(dentistName: string | null, diagnosisOf: (line: ReceiptLin
 /**
  * "Chi tiết phiếu" — the eye on a receipt row and "In hóa đơn tổng" open the
  * same read-out: the receipt, the customer, the services and the money
- * summary, as production lays them out. "In Hoá Đơn" prints not this but the
- * `ReceiptSheet` beside it.
+ * summary, as production lays them out. A receipt's "In phiếu thu" opens its
+ * PHIẾU THU PDF; "In hóa đơn tổng" and a refund print the `ReceiptSheet` beside it.
  */
 export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, advises, onClose }: Props) {
   const pagination = useTablePagination(20);
@@ -67,10 +67,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
       afterClose={pagination.resetToFirstPage}
       footer={
         <div className="pdt-confirm-foot">
-          <button type="button" className="tp-btn tp-btn--primary" onClick={printSheet}>
-            <Printer size={16} aria-hidden="true" />
-            {t("Treatment:Payment:PrintInvoice")}
-          </button>
+          <PrintReceiptButton paymentId={receipt?.paymentId ?? null} />
         </div>
       }
     >
@@ -90,7 +87,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
               <ReceiptFacts
                 facts={[
                   { label: t("Treatment:Payment:PaymentCode"), value: receipt.code },
-                  { label: t("Treatment:Payment:DateCreated"), value: receipt.createdLabel },
+                  { label: receipt.dateTitle, value: receipt.dateText },
                   { label: t("Treatment:Payment:PaymentMethod"), value: receipt.methodLabel },
                   { label: t("Treatment:Common:Note"), value: dash(receipt.note) },
                 ]}

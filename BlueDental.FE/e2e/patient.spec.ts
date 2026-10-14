@@ -892,6 +892,9 @@ test.describe("Bệnh nhân", () => {
 
     await page.getByRole("link", { name: "Hóa đơn" }).click();
     await expect(page).toHaveURL(/tab=invoice/);
+    // F-71: Yêu cầu xuất HĐ comes first, the payment table behind "Phiếu thu".
+    await expect(page.getByRole("heading", { name: "Yêu cầu xuất hóa đơn" })).toBeVisible();
+    await page.getByRole("button", { name: "Phiếu thu", exact: true }).click();
     await expect(page.getByRole("columnheader", { name: "MÃ HÓA ĐƠN" })).toBeVisible();
 
     await recordTab(page, "Hồ sơ").click();

@@ -13,7 +13,7 @@ namespace BlueDental.Application.Tests.Printing;
 
 /// <summary>
 /// The shipped PHIẾU THU template against the values the server fills in:
-/// every placeholder must sit in one run, or Fill leaves braces on the paper.
+/// no braces may be left on the paper, however Word split the placeholders.
 /// </summary>
 public class PaymentReceiptTemplateTests
 {
@@ -46,8 +46,9 @@ public class PaymentReceiptTemplateTests
     [Fact]
     public void The_Template_Holds_Exactly_The_Keys_The_Server_Fills()
     {
-        var xml = DocumentXml(File.ReadAllBytes(TemplatePath()));
-        var keys = Regex.Matches(xml, @"\{\{(\w+)\}\}").Select(m => m.Groups[1].Value).OrderBy(k => k);
+        // Read through the run boundaries: Word saves "{{", "Key" and "}}" as runs of their own.
+        var text = Regex.Replace(DocumentXml(File.ReadAllBytes(TemplatePath())), "<[^>]+>", "");
+        var keys = Regex.Matches(text, @"\{\{(\w+)\}\}").Select(m => m.Groups[1].Value).OrderBy(k => k);
 
         keys.ShouldBe(Sample.ToPlaceholders().Keys.OrderBy(k => k));
     }
@@ -69,6 +70,39 @@ public class PaymentReceiptTemplateTests
         var values = Sample.ToPlaceholders().ToDictionary(p => p.Key, p => p.Value);
         values["RemainingAmountInWords"] = "";
         DotLeaders(DocumentXml(DocxTemplate.Fill(template, values))).ShouldBe(dotted - 5);
+    }
+
+    /// <summary>The QR takes the template's box: same centre, 2 mm larger on every side, the box itself gone.</summary>
+    [Fact]
+    public void The_Qr_Replaces_The_Box_Around_Its_Centre()
+    {
+        var template = File.ReadAllBytes(TemplatePath());
+        var box = Placement(DocumentXml(template), ShapeUri);
+
+        var xml = DocumentXml(PaymentReceiptQr.Place(template, "https://example.test/invoice-request/abc"));
+
+        xml.ShouldNotContain(ShapeUri);
+        xml.ShouldNotContain("<v:rect");
+        var qr = Placement(xml, PictureUri, "invoice-request-qr");
+        const long grow = 2 * 36_000;
+        qr.Size.ShouldBe(box.Size + 2 * grow);
+        qr.Left.ShouldBe(box.Left - grow);
+        qr.Top.ShouldBe(box.Top - grow);
+        FooterXml(PaymentReceiptQr.Place(template, "https://example.test/x")).ShouldContain("QR");
+    }
+
+    [Fact]
+    public void Without_A_Qr_The_Box_And_The_Scan_Hint_Go()
+    {
+        var docx = PaymentReceiptQr.Leave(File.ReadAllBytes(TemplatePath()));
+
+        var xml = DocumentXml(docx);
+        xml.ShouldNotContain(ShapeUri);
+        xml.ShouldNotContain("<v:rect");
+        xml.ShouldNotContain("invoice-request-qr");
+        var footer = FooterXml(docx);
+        footer.ShouldNotContain("QR");
+        footer.ShouldContain("Lưu ý");
     }
 
     [Fact]
@@ -96,10 +130,37 @@ public class PaymentReceiptTemplateTests
     private static string[] TabStopPositions(string xml) =>
         Regex.Matches(xml, "<w:tab w:val=\"\\w+\"[^>]*w:pos=\"(\\d+)\"").Select(m => m.Groups[1].Value).ToArray();
 
-    private static string DocumentXml(byte[] docx)
+    private const string ShapeUri = "uri=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\"";
+    private const string PictureUri = "uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"";
+
+    private sealed record Box(long Left, long Top, long Size);
+
+    /// <summary>Offsets and width of the one floating drawing whose graphic is <paramref name="uri"/>.</summary>
+    private static Box Placement(string xml, string uri, string? name = null)
+    {
+        var anchor = Regex.Matches(xml, "<wp:anchor[\\s\\S]*?</wp:anchor>")
+            .Select(m => m.Value)
+            .Single(a => a.Contains(uri) && (name == null || a.Contains($"name=\"{name}\"")));
+        long Number(string pattern) => long.Parse(Regex.Match(anchor, pattern).Groups[1].Value);
+        return new Box(
+            Number("<wp:positionH[^>]*><wp:posOffset>(-?\\d+)"),
+            Number("<wp:positionV[^>]*><wp:posOffset>(-?\\d+)"),
+            Number("<wp:extent cx=\"(\\d+)\""));
+    }
+
+    private static string DocumentXml(byte[] docx) => PartXml(docx, "word/document.xml");
+
+    private static string FooterXml(byte[] docx)
     {
         using var zip = new ZipArchive(new MemoryStream(docx));
-        using var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open());
+        return string.Concat(zip.Entries.Where(e => e.FullName.StartsWith("word/footer"))
+            .Select(e => new StreamReader(e.Open()).ReadToEnd()));
+    }
+
+    private static string PartXml(byte[] docx, string part)
+    {
+        using var zip = new ZipArchive(new MemoryStream(docx));
+        using var reader = new StreamReader(zip.GetEntry(part)!.Open());
         return reader.ReadToEnd();
     }
 

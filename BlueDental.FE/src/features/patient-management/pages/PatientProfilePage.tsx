@@ -8,6 +8,7 @@ import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useAbility } from "@/hooks/useAbility";
 import { readPatientOrigin } from "@/hooks/usePatientOrigin";
 import { t } from "@/lib/i18n";
+import { useInvoiceRequestStats } from "../api/invoiceRequestApi";
 import { usePatientDto } from "../api/patientQueries";
 import { PatientDetailContent } from "../components/patient-detail/PatientDetailContent";
 import { PatientMedicalRecordTab } from "../components/patient-detail/PatientMedicalRecordTab";
@@ -76,6 +77,8 @@ export function PatientProfilePage() {
   const appointmentAbility = useAbility("appointment");
   const prescriptionAbility = useAbility("prescription");
   const paymentAbility = useAbility("payment");
+  // Open "Yêu cầu xuất HĐ" ride on the Hóa đơn tab as a badge.
+  const invoiceRequestStats = useInvoiceRequestStats(id, paymentAbility.canRead);
   const imageAbility = useAbility("treatmentImage");
   const medicalRecordAbility = useAbility("patientMedicalRecord");
   const consultationAbility = useAbility("treatmentConsultation");
@@ -142,7 +145,8 @@ export function PatientProfilePage() {
     if (key === defaultTab) next.delete("tab");
     else next.set("tab", key);
     const query = next.toString();
-    return { key, label: t(TAB_I18N[key]), to: `${location.pathname}${query ? `?${query}` : ""}` };
+    const badge = key === "invoice" ? invoiceRequestStats.data?.open : undefined;
+    return { key, label: t(TAB_I18N[key]), to: `${location.pathname}${query ? `?${query}` : ""}`, badge };
   });
 
   if (patientQuery.isLoading) {

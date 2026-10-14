@@ -52,7 +52,7 @@ public class NoServiceCareWorker : AsyncPeriodicBackgroundWorkerBase
 
         var appointmentQuery = await appointmentRepo.GetQueryableAsync();
         var completedYesterday = appointmentQuery
-            .Where(a => a.Status == AppointmentStatus.Completed)
+            .Where(a => a.Status == AppointmentStatus.Completed && !a.IsImported)
             .Where(a => a.CompletedAt >= new DateTimeOffset(windowStart)
                      && a.CompletedAt < new DateTimeOffset(windowEnd))
             .Select(a => new { a.Id, a.PatientId, a.DentistId, a.BranchId, a.CompletedAt })

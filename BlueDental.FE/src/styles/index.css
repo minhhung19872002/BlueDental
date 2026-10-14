@@ -5188,6 +5188,21 @@ html:has(.ant-modal-wrap) {
   color: #ffffff;
 }
 
+/* Count of what waits on a pane (PageTab.badge). */
+.pill-tab__badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-red);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
 /* ── Stat tiles ─────────────────────────────────────────────────────────────
    The design's counter card, used by Tiếp nhận, CSKH, Voucher and Labo: a
    white tile topped by a 3px band in the status colour, its number large in

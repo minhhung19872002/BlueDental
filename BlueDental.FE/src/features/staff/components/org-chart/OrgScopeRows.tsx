@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import { ORG_UNIT_KIND, type OrgUnitKind } from "../../api/orgChartApi";
+import type { OrgUnitKind } from "../../api/orgChartApi";
 import { ORG_KIND_CONFIG, ORG_SCOPE_KEY } from "./orgChartModel";
 
 interface Props {
@@ -36,7 +36,8 @@ export function OrgScopeRows({ kind }: Props) {
           <dd>{t("OrgChart:Scope:ByPermission")}</dd>
         </div>
       </dl>
-      {kind !== ORG_UNIT_KIND.Root && <p className="org-scope__sub">{t("OrgChart:Scope:MemberDentist")}</p>}
+      {/* The Tổng giám đốc may run a team of their own (BA 2026-10-13), so the root says it too. */}
+      <p className="org-scope__sub">{t("OrgChart:Scope:MemberDentist")}</p>
       <p className="org-scope__sub">{t("OrgChart:Scope:NonDentist")}</p>
     </section>
   );

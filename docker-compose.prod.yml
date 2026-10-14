@@ -22,6 +22,8 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       App__SelfUrl: https://${SITE_DOMAIN:?SITE_DOMAIN is required in .env}
       AuthServer__Authority: https://${SITE_DOMAIN}
+      # The QR on a PHIẾU THU opens the invoice-request form on this site.
+      PaymentReceipt__PublicFormBaseUrl: https://${SITE_DOMAIN}
       # Persist DataProtection keys; otherwise every api recreate rotates
       # them and invalidates all auth cookies (everyone gets logged out).
       DataProtection__KeysPath: /data/keys

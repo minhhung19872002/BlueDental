@@ -1,21 +1,11 @@
 import { useState } from "react";
-import { Button, type TableColumnsType } from "antd";
-import { DataTable } from "@/components/DataTable";
-import {
-  invoiceStatusConfig,
-  usePatientInvoices,
-  type InvoiceDto,
-  type InvoiceStatus,
-} from "@/features/billing/api";
-import { PaymentModal } from "@/features/billing/components/PaymentModal";
+import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { PrescriptionPanel } from "@/features/treatment-management/components/PrescriptionPanel";
 import type { PrescriptionPatientSummary } from "@/features/treatment-management/types/prescription";
-import { useAbility } from "@/hooks/useAbility";
-import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
-import { countedTotal } from "@/utils/countedTotal";
-import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { GENDER, type GenderCode, type PatientDto } from "../../types/patient";
+import { InvoiceRequestPanel } from "./invoice-request/InvoiceRequestPanel";
+import { PatientReceiptTable } from "./PatientReceiptTable";
 
 const GENDER_LABELS: Record<GenderCode, string> = {
   [GENDER.Male]: "Common:Gender:Male",
@@ -41,69 +31,26 @@ export function PatientPrescriptionTab({ patient }: { patient: PatientDto }) {
   );
 }
 
+type InvoiceSubTab = "requests" | "receipts";
+
+/**
+ * Tab Hóa đơn: the customers' "Yêu cầu xuất HĐ" first (the BA mockup), the
+ * payment table it used to be behind the second segment.
+ */
 export function PatientInvoiceTab({ patientId }: { patientId: string }) {
-  const ability = useAbility("payment");
-  const query = usePatientInvoices(patientId);
-  const [selected, setSelected] = useState<InvoiceDto | null>(null);
-  const pagination = useTablePagination(20);
-  const rows = query.data ?? [];
-  const columns: TableColumnsType<InvoiceDto> = [
-    { title: t("Patient:Payment:InvoiceCode"), dataIndex: "invoiceNumber", width: 140 },
-    { title: t("Patient:Col:CreatedAt"), dataIndex: "issuedAt", width: 125, render: formatDate },
-    {
-      title: t("Patient:Payment:TotalAmount"),
-      dataIndex: "totalAmount",
-      width: 135,
-      align: "right",
-      render: (value: number) => formatMoneyUnit(value),
-    },
-    {
-      title: t("Patient:Payment:Paid"),
-      dataIndex: "paidAmount",
-      width: 145,
-      align: "right",
-      render: (value: number) => formatMoneyUnit(value),
-    },
-    {
-      title: t("Patient:Payment:Remaining"),
-      dataIndex: "balanceDue",
-      width: 135,
-      align: "right",
-      render: (value: number) => formatMoneyUnit(value),
-    },
-    {
-      title: t("Patient:Misc:StatusLabel"),
-      dataIndex: "status",
-      width: 140,
-      render: (value: InvoiceStatus) => {
-        const config = invoiceStatusConfig()[value];
-        return <span style={{ color: config.color, fontWeight: 600 }}>{config.label}</span>;
-      },
-    },
-    ...(ability.canCreate ? [{
-      title: t("Common:Actions"),
-      width: 110,
-      fixed: "right" as const,
-      render: (_: unknown, row: InvoiceDto) => (
-        <Button type="link" disabled={row.balanceDue <= 0} onClick={() => setSelected(row)}>
-          {t("Patient:Payment:Collect")}
-        </Button>
-      ),
-    }] : []),
-  ];
+  const [tab, setTab] = useState<InvoiceSubTab>("requests");
   return (
     <section className="pd-pane pd-pane--fill">
-      <div className="bd-cat-card">
-        <DataTable<InvoiceDto>
-          rowKey="id"
-          loading={query.isLoading}
-          columns={columns}
-          dataSource={rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize)}
-          locale={{ emptyText: t("Patient:Payment:NoInvoice") }}
-          pagination={pagination.buildConfig(rows.length, countedTotal(t("Patient:Misc:Invoice")))}
-        />
-      </div>
-      <PaymentModal open={Boolean(selected)} invoice={selected} onClose={() => setSelected(null)} />
+      <SegmentedTabs<InvoiceSubTab>
+        items={[
+          { key: "requests", label: t("Patient:InvoiceRequest:Tab:Requests") },
+          { key: "receipts", label: t("Patient:InvoiceRequest:Tab:Receipts") },
+        ]}
+        activeKey={tab}
+        onChange={setTab}
+        className="pd-invoice-tabs"
+      />
+      {tab === "requests" ? <InvoiceRequestPanel patientId={patientId} /> : <PatientReceiptTable patientId={patientId} />}
     </section>
   );
 }

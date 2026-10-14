@@ -158,8 +158,8 @@ async function expectStageDialogFromProfile(page: Page, slip: Slip, canCreate: b
   await expectStageDialogPay(page, canCreate);
 }
 
-/** Kế hoạch điều trị: the row's "Hóa đơn" icon. */
-async function expectPlanList(page: Page, slip: Slip, canFinalize: boolean) {
+/** Kế hoạch điều trị: the row's "Hóa đơn" icon — it opens Tạo phiếu thanh toán, so payment.create (R-907). */
+async function expectPlanList(page: Page, slip: Slip, canPay: boolean) {
   await page.goto(planListPath(slip));
   await expect(page.getByRole("button", { name: "Xem tất cả dịch vụ" })).toBeVisible({
     timeout: 20_000,
@@ -167,12 +167,12 @@ async function expectPlanList(page: Page, slip: Slip, canFinalize: boolean) {
   const code = page.getByText(slip.planCode, { exact: true }).first();
   await expect(code).toBeVisible();
   await expect(page.getByRole("button", { name: `Phiếu thu ${slip.planCode}` })).toHaveCount(
-    canFinalize ? 1 : 0,
+    canPay ? 1 : 0,
   );
 }
 
-/** The slip detail: its tabs, the ?planTab= fallback, and "In Hóa Đơn". */
-async function expectPlanDetail(page: Page, slip: Slip, canRead: boolean, canFinalize: boolean) {
+/** The slip detail: its tabs, the ?planTab= fallback, and "In Hóa Đơn" (payment.create, R-907). */
+async function expectPlanDetail(page: Page, slip: Slip, canRead: boolean, canPay: boolean) {
   await page.goto(planDetailPath(slip, "payment-v2"));
   const tabs = page.getByRole("tablist", { name: "Kế hoạch điều trị" }).getByRole("tab");
   await expect(tabs.first()).toBeVisible({ timeout: 20_000 });
@@ -192,11 +192,11 @@ async function expectPlanDetail(page: Page, slip: Slip, canRead: boolean, canFin
   await expect(page.getByRole("tab", { name: "Chi tiết" })).toHaveAttribute("aria-selected", "true");
   // The print icon needs no leaf, so the toolbar has rendered.
   await expect(page.getByRole("button", { name: "In phiếu điều trị" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "In Hóa Đơn" })).toHaveCount(canFinalize ? 1 : 0);
+  await expect(page.getByRole("button", { name: "In Hóa Đơn" })).toHaveCount(canPay ? 1 : 0);
 }
 
 test.describe("Thanh toán — the payment commands follow the leaves", () => {
-  test("read opens the money tabs, create the pay buttons, finalize the invoice", async ({
+  test("read opens the money tabs, create every pay and Hóa đơn button", async ({
     page,
     browser,
   }) => {
@@ -236,26 +236,26 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await expectStageDialogFromPlanList(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
 
-      // ── Thêm: collecting money, still no e-invoice ───────────────────────
+      // ── Thêm: collecting money — Hóa đơn / In Hóa Đơn open the pay dialog ─
       await setDentistLeaf(page, "payment.create", true);
       await expectProfile(dentist, slip, true);
       await expectStageDialogFromProfile(dentist, slip, true);
       await expectStageDialogFromPlanList(dentist, slip, true);
-      await expectPlanList(dentist, slip, false);
-      await expectPlanDetail(dentist, slip, true, false);
+      await expectPlanList(dentist, slip, true);
+      await expectPlanDetail(dentist, slip, true, true);
 
-      // ── Chốt phiếu: the invoice commands ────────────────────────────────
+      // ── Chốt phiếu on top changes none of these buttons ─────────────────
       await setDentistLeaf(page, "payment.finalize", true);
       await expectPlanList(dentist, slip, true);
       await expectPlanDetail(dentist, slip, true, true);
 
-      // ── finalize without create: invoice yes, pay buttons no ─────────────
+      // ── finalize without create: every pay button goes ──────────────────
       await setDentistLeaf(page, "payment.create", false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
       await expectStageDialogFromPlanList(dentist, slip, false);
-      await expectPlanList(dentist, slip, true);
-      await expectPlanDetail(dentist, slip, true, true);
+      await expectPlanList(dentist, slip, false);
+      await expectPlanDetail(dentist, slip, true, false);
     } finally {
       await context.close();
       await resetDentistLeaves(page, LEAVES);

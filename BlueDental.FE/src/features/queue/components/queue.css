@@ -501,10 +501,28 @@
 }
 
 .queue-manager__name {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-weight: 600;
+}
+
+.queue-manager__name > .queue-card__avatar {
+  flex-shrink: 0;
+}
+
+.queue-manager__name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-manager__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .queue-counter-toggle {

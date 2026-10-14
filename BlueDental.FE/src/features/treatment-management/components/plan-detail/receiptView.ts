@@ -1,6 +1,7 @@
 import { t } from "@/lib/i18n";
-import { formatDateTime } from "@/utils/format";
+import { formatDate, formatDateTime } from "@/utils/format";
 import {
+  PAYMENT_KIND,
   paymentMethodLabels,
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
@@ -27,7 +28,9 @@ export interface ReceiptTotal {
  */
 export interface ReceiptView {
   code: string;
-  createdLabel: string;
+  /** "Ngày thanh toán" on a receipt, "Ngày tạo" on a refund and on "In hóa đơn tổng". */
+  dateTitle: string;
+  dateText: string;
   methodLabel: string;
   note: string;
   lines: ReceiptLine[];
@@ -36,6 +39,8 @@ export interface ReceiptView {
   sheetDateLabel: string;
   staffName: string | null;
   amount: number;
+  /** The receipt whose PHIẾU THU "In phiếu thu" renders; null for "In hóa đơn tổng" and refunds, which print this sheet. */
+  paymentId: string | null;
 }
 
 /** "Ngày 7 tháng 9 năm 2026" — how every printed sheet dates itself. */
@@ -57,15 +62,20 @@ export function receiptOf(
     .filter((other) => other.id !== payment.id && other.paidAt < payment.paidAt)
     .reduce((sum, other) => sum + other.amount, 0);
   const covered = new Set(payment.lines.map((line) => line.treatmentServiceId));
+  const isPayment = payment.kind === PAYMENT_KIND.Payment;
   return {
     code: payment.code,
-    createdLabel: formatDateTime(payment.paidAt),
+    // A receipt shows the day the money was taken, as the Thanh toán column
+    // does: day only, since a backdated one's clock time is just entry time.
+    dateTitle: t(isPayment ? "Treatment:Payment:PaidDate" : "Treatment:Payment:DateCreated"),
+    dateText: isPayment ? formatDate(payment.paidAt) : formatDateTime(payment.paidAt),
     methodLabel: paymentMethodLabels()[payment.method],
     note: payment.note ?? "",
     lines: linesOf(plan, (service) => covered.has(service.id)),
     sheetDateLabel: longDate(new Date(payment.paidAt)),
     staffName: payment.staffName,
     amount: payment.amount,
+    paymentId: isPayment ? payment.id : null,
     totals: [
       // Gross, so the sheet's "Tổng phí" − "Giảm giá" lands on what is owed.
       { label: t("Treatment:Receipt:TotalFee"), value: planMoney(plan).total },
@@ -82,13 +92,15 @@ export function aggregateReceiptOf(plan: TreatmentPlanSlipDto, today: Date): Rec
   const combined = t("Treatment:Receipt:Summary");
   return {
     code: combined,
-    createdLabel: longDate(today),
+    dateTitle: t("Treatment:Payment:DateCreated"),
+    dateText: longDate(today),
     methodLabel: combined,
     note: "",
     lines: linesOf(plan, () => true),
     sheetDateLabel: longDate(today),
     staffName: null,
     amount: plan.payment.totalPaid,
+    paymentId: null,
     totals: [
       { label: t("Treatment:Receipt:ExpectedRevenue"), value: plan.payment.totalPrice },
       { label: t("Treatment:Receipt:TotalPaid"), value: plan.payment.totalPaid },

@@ -44,6 +44,9 @@ public static class CareAppointmentRules
         var start = from?.ToUniversalTime();
         var end = to?.ToUniversalTime();
 
+        // Bookings moved in from a clinic's old system were followed up there.
+        query = query.Where(a => !a.IsImported);
+
         if (type == CareType.CancelledAppointment)
         {
             query = query.Where(a => a.Status == AppointmentStatus.Cancelled && a.CancelledAt.HasValue);

@@ -98,14 +98,18 @@ export async function openNewSlip(page: Page): Promise<void> {
  * "Tạo Phiếu Thanh Toán" for half of the first line, "Lưu", then "Có" in the
  * "Xác nhận thanh toán" question: the receipt is written "Hoàn tất" and moves
  * money at once (owner 2026-10-13). Returns the saved receipt.
+ *
+ * `redInvoice` ticks "Xuất hóa đơn đỏ" first: a Hoàn tất receipt refuses every
+ * later write, so the flag can only go on as the receipt is made.
  */
-export async function collectOnFirstLine(page: Page): Promise<Receipt> {
+export async function collectOnFirstLine(page: Page, { redInvoice = false } = {}): Promise<Receipt> {
   await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
   const line = dialog.locator(".pd-newpay-lines > li").first();
   await line.locator("input[type=checkbox]").check();
   const due = money(await line.locator(".pd-newpay-due").innerText());
   await dialog.locator(".pd-newpay-amount").fill(String(Math.max(2, Math.floor(due / 2))));
+  if (redInvoice) await dialog.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
   await dialog.getByRole("button", { name: "Lưu" }).click();
   return answerYes(page, dialog);
 }

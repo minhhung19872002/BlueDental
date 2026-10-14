@@ -71,7 +71,7 @@ Taken during the build (not asked), to revisit if the owner disagrees:
 
 - `D` is refused for a patient who has a booking, treatment slip, payment,
   invoice, prescription or labo order (`PatientRoster:Err:HasRecords`).
-- Số điện thoại, CCCD and ID hệ thống are one live record per branch, the same as the hồ sơ dialog (`Patient:0021`, `Patient:0012`). A value another record holds, or one repeated in the file within a branch, is an error. It is free when the same file deletes the holder or moves it to another value (owner 2026-10-12, R-905).
+- Số điện thoại, CCCD and ID hệ thống are one live record per branch, the same as the hồ sơ dialog (`Patient:0021`, `Patient:0012`). A value another record holds, or one repeated in the file within a branch, is an error. It is free when the same file deletes the holder or moves it to another value (owner 2026-10-12, R-906).
 - A code that belongs to a deleted record cannot be reused (`CodeDeleted`).
 - A code that belongs to another branch cannot be moved by file (`CodeOtherBranch`).
 - Tỉnh/TP and Phường/Xã must match the official list exactly. A ward without a province is an error.
@@ -93,13 +93,13 @@ Regression level 3 (`DataMigrationPickLists.Restrict` went public; patient list)
 
 | Spec | Result |
 |------|--------|
-| `e2e/patient-roster-api.spec.ts` | **9/9**: export headers + Action blank; the unchanged export imports nothing; `E` create (DH code, dry run writes nothing); `E` edit clears a blank cell; `X` + unknown branch refuse the file + error file; a phone/CCCD held by another record or repeated in the file is refused, and moving the holder off it in the same file frees it (R-905); `D` refused for a booked patient; `D` deletes, the deleted code cannot be edited, and the code estimate no longer offers it (R-904); a throw-away dentist gets 403 on export and import |
+| `e2e/patient-roster-api.spec.ts` | **9/9**: export headers + Action blank; the unchanged export imports nothing; `E` create (DH code, dry run writes nothing); `E` edit clears a blank cell; `X` + unknown branch refuse the file + error file; a phone/CCCD held by another record or repeated in the file is refused, and moving the holder off it in the same file frees it (R-906); `D` refused for a booked patient; `D` deletes, the deleted code cannot be edited, and the code estimate no longer offers it (R-905); a throw-away dentist gets 403 on export and import |
 | `e2e/patient-roster.spec.ts` | **4/4**: export download; a wrong row blocks import and offers the error file; `E` add → preview → import → reload finds it; `D` deletes it |
 
 Regression level 3 (patient list, hồ sơ create, permissions):
 
 - Ran `patient.spec`, `patient-permission-gates` and `patient-scan-id`: 61/70 the first time.
-- The hồ sơ create red was R-904, a pre-existing bug the roster spec's deleted patient exposed. After the fix, 7 of the 9 reds passed on rerun.
+- The hồ sơ create red was R-905, a pre-existing bug the roster spec's deleted patient exposed. After the fix, 7 of the 9 reds passed on rerun.
 - 2 reds remain, neither from this change:
   - "Tiếp nhận steps": intentional, TEMP-BUG25-OFF.
   - "payment dialog … momo": the paid amount is clamped to what the chosen lines still owe (bug 24). With the current local data, typing 100000 and then 50000 changes the remaining amount by 10000, not 50000. The test depends on the data and does not touch the patient list.

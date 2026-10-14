@@ -3,7 +3,7 @@ import type { TableColumnsType } from "antd";
 import { CircleCheck, Eye, FileText, Pencil, Trash2 } from "lucide-react";
 import type { RecordCardRow } from "@/components/RecordCard";
 import { t } from "@/lib/i18n";
-import { formatDateTime } from "@/utils/format";
+import { formatDate, formatDateTime } from "@/utils/format";
 import {
   PAYMENT_STATUS,
   paymentMethodLabels,
@@ -176,8 +176,10 @@ export function buildPaymentColumns(
   const methods = paymentMethodLabels();
   return [
     { key: "code", title: t("Treatment:Payment:PaymentCode"), width: 160, render: (_, p) => p.code },
-    // "Ngày tạo" is when the receipt was written; `paidAt` moves to the confirm time.
-    { key: "creationTime", title: t("Treatment:Payment:DateCreated"), width: 150, render: (_, p) => formatDateTime(p.creationTime) },
+    // "Ngày thanh toán" — the day the money was taken, which the cashier may
+    // date back (owner 2026-10-14); it replaced "Ngày tạo" (creationTime). The
+    // day only: a backdated receipt's clock time is just when it was entered.
+    { key: "paidAt", title: t("Treatment:Payment:PaidDate"), width: 150, render: (_, p) => formatDate(p.paidAt) },
     { key: "services", title: t("Treatment:Payment:TreatmentServices"), width: 220, render: (_, p) => paymentServiceNames(p, plan) },
     { key: "planTotal", title: t("Treatment:Payment:PlanTotal"), width: 170, align: "right", render: () => moneyText(plan.totalAmount) },
     { key: "amount", title: t("Treatment:Payment:Payment"), width: 160, align: "right", render: (_, p) => moneyText(p.amount) },
@@ -204,7 +206,7 @@ export function paymentCardRows(
   const methods = paymentMethodLabels();
   const rows: RecordCardRow[] = [
     { key: "code", label: t("Treatment:Payment:PaymentCode"), value: payment.code },
-    { key: "creationTime", label: t("Treatment:Payment:DateCreated"), value: formatDateTime(payment.creationTime) },
+    { key: "paidAt", label: t("Treatment:Payment:PaidDate"), value: formatDate(payment.paidAt) },
     { key: "services", label: t("Treatment:Payment:TreatmentServices"), value: paymentServiceNames(payment, plan) },
     { key: "planTotal", label: t("Treatment:Payment:PlanTotal"), value: moneyText(plan.totalAmount) },
   ];

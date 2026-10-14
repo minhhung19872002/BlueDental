@@ -104,6 +104,7 @@ public class OrgChartTests
     private sealed class Chart
     {
         public readonly Guid Director = Guid.NewGuid();
+        public readonly Guid RootDentist = Guid.NewGuid();
         public readonly Guid DepartmentHead = Guid.NewGuid();
         public readonly Guid TeamHead = Guid.NewGuid();
         public readonly Guid TeamDentist = Guid.NewGuid();
@@ -126,6 +127,7 @@ public class OrgChartTests
         public List<(Guid, Guid)> Members =>
         [
             (OrgUnit.RootId, Director),
+            (OrgUnit.RootId, RootDentist),
             (DepartmentId, DepartmentHead),
             (TeamId, TeamHead),
             (TeamId, TeamDentist),
@@ -181,5 +183,16 @@ public class OrgChartTests
 
         Assert.Equal(new HashSet<Guid> { chart.TeamDentist }, chart.For(chart.TeamDentist));
         Assert.Equal(new HashSet<Guid> { chart.Unassigned }, chart.For(chart.Unassigned));
+    }
+
+    [Fact]
+    public void A_Dentist_In_The_Directors_Own_Team_Sees_Only_Themselves()
+    {
+        // BA 2026-10-13: the Tổng giám đốc may run a team of their own; its member
+        // dentists see neither the other dentists nor the branches below.
+        var chart = new Chart();
+
+        Assert.Equal(new HashSet<Guid> { chart.RootDentist }, chart.For(chart.RootDentist));
+        Assert.Null(chart.For(chart.RootDentist, isDentist: false));
     }
 }

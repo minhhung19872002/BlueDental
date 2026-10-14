@@ -7740,42 +7740,7 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 
 **Ghi nhận thêm (chưa sửa):** khi OS bật giảm chuyển động (`prefers-reduced-motion: reduce`, ví dụ Windows tắt "Animation effects"), antd 6.6.1 tắt animation bằng CSS. Vòng đời motion của popup khi đó không bao giờ kết thúc (`inMotion` kẹt), nên dropdown không được định vị (nằm ở −16000px, không thấy). Đặt `theme.token.motion = false` không cứu được, nên đã bỏ cách đó.
 
-## R-904 (2026-10-13, mức 2: Tiếp nhận + API danh sách lịch hẹn) QA #27: lọc bác sĩ chọn được nhiều, sắp xếp thứ tự ưu tiên
-
-**Yêu cầu:** ô "Bác sĩ" trên bảng Tiếp nhận chỉ chọn được một người. Cần chọn nhiều và cho người dùng sắp thứ tự ưu tiên.
-
-**Cách hiểu đã chọn (tính năng tự thiết kế, không quan sát từ bản gốc):** thứ tự ưu tiên là thứ tự các thẻ trên bảng: thẻ của bác sĩ ưu tiên 1 lên trước, rồi đến bác sĩ 2…, và trong cùng một bác sĩ vẫn xếp theo giờ hẹn.
-
-**Thay đổi:**
-- BE: `GetAppointmentListInput.DentistIds` (danh sách, có thứ tự) lọc lịch hẹn của bất kỳ bác sĩ nào trong đó. Khi chọn từ 2 bác sĩ trở lên, `GetListAsync` sắp theo vị trí của bác sĩ trong danh sách (`DentistPriorityOrder`: chuỗi CASE chạy trong DB, nên phân trang vẫn đúng), rồi đến `Slot.Start`. `/stats` dùng chung bộ lọc. `DentistId` (một bác sĩ) giữ nguyên cho các màn khác.
-- FE: component dùng chung `SortableMultiSearchSelect` (cùng giao diện `ss-*` với SearchSelect). Bấm dòng để tick hoặc bỏ tick, dropdown vẫn mở. Các bác sĩ đã chọn nằm trên cùng thành danh sách đánh số; đổi thứ tự bằng cách kéo tay nắm (`useDragReorder`) hoặc bấm ↑/↓ khi tay nắm đang được focus; bấm ✕ để bỏ. Ô chọn hiện tên bác sĩ ưu tiên 1, kèm "+N" cho những người còn lại. Bảng Tiếp nhận và bộ lọc mobile gửi `dentistIds` theo đúng thứ tự. Bác sĩ đăng nhập vẫn được chọn sẵn chính mình (`useOwnDoctorDefault`).
-- i18n: `Common:PriorityOrder`, `Common:DragOrArrowSort` (vi/en).
-
-**Kiểm chứng (backend thật + build production `vite preview` 8080, không chặn API):**
-- `reception-doctor-priority.spec` (mới, 2/2): API trả về theo nhóm bác sĩ đúng thứ tự gửi lên, đảo thứ tự gửi thì kết quả đảo theo, trong từng bác sĩ vẫn theo giờ, tổng `/stats` bằng `totalCount`. Trên trình duyệt: chọn A rồi B thì request mang `dentistIds=[A,B]` và thẻ đầu là của A, thẻ cuối là của B; bấm ↑ trên tay nắm của B thì request thành `[B,A]` và thẻ đảo theo; bấm xoá thì quay về toàn bộ.
-- Sửa test cũ sang `dentistIds`: `reception-own-doctor` (6/6), `reception-doctor-list` (2/2) đều xanh.
-- `reception-doctor-roles` (0/1): phần bộ lọc bác sĩ trên bảng qua, nhưng test dừng ở dòng 72, chỗ dialog "Tạo tiếp nhận" không có "BS. Lê Thu Hà". Dialog đó chỉ hiện bác sĩ không nghỉ trong ngày và không bị thay đổi này đụng tới, nên khả năng cao là do dữ liệu chấm công local. Chưa kiểm chứng.
-
-## R-905 (2026-10-13, mức 2: Tiếp nhận + API lịch hẹn) Lọc theo nhóm bác sĩ (Team bác sĩ của Sơ đồ tổ chức)
-
-**Yêu cầu (chủ sở hữu):** thêm ô lọc theo nhóm, ví dụ "T1" hoặc "21520417" trên Sơ đồ tổ chức. Danh sách chỉ gồm các Team bác sĩ có trưởng nhóm là Bác sĩ. Chọn một nhóm thì xoá các bác sĩ đã chọn ở ô "Bác sĩ" (R-904).
-
-**Thay đổi:**
-- BE: `GET /api/v1/app/appointments/doctor-teams` (quyền `appointment.read`, không cần `orgChart.read` vì lễ tân cũng lọc được) trả về các đơn vị `Kind = DoctorTeam` có trưởng đơn vị được tick "Bác sĩ", sắp theo tên (`DoctorTeamLookup`). `GetAppointmentListInput.DoctorTeamId` lọc lịch hẹn theo các thành viên hiện tại của nhóm, `/stats` dùng chung bộ lọc này.
-- FE: ô "Nhóm bác sĩ" (SearchSelect) nằm bên trái ô "Bác sĩ", có cả trong bộ lọc mobile. `useDoctorFilter` cho hai ô loại trừ nhau: chọn nhóm thì xoá bác sĩ, chọn bác sĩ thì xoá nhóm, để bảng không bao giờ hiển thị phần giao của hai bộ lọc. `ReceptionStatusTabs` nhận các ô lọc qua `children`.
-- Bố cục: ở màn 1440px, hàng lọc chỉ vừa đúng các tab, hai ô lọc và các ô đếm. Vì vậy hai ô lọc co lại trước (nhóm từ 200 xuống tối thiểu 156px, bác sĩ từ 260 xuống tối thiểu 196px), các ô đếm vẫn nằm bên phải. Tên bị cắt có `title` để rê chuột xem đủ. Đã kiểm tra bằng ảnh chụp ở 1920, 1440, 1280 và 1100px (ở 1100px hai ô lọc xuống dòng dưới tab).
-- i18n: `Reception:DoctorTeam`, `Reception:NoDoctorTeams`.
-
-**Kiểm chứng (backend thật + build production 8080, không chặn API):**
-- `reception-doctor-team.spec` (mới, 3/3). Mỗi lần chạy tạo bằng API thật một bác sĩ, một nhóm do bác sĩ đó làm trưởng, một nhóm do nhân viên không tick Bác sĩ làm trưởng, và một lịch hẹn; chạy xong thì dọn hết.
-  - Danh sách nhóm có nhóm thứ nhất, không có nhóm thứ hai, và mọi nhóm trả về đều là Team bác sĩ có trưởng là Bác sĩ (đối chiếu với `/org-chart`).
-  - `doctorTeamId` trả về lịch hẹn của thành viên nhóm, tổng `/stats` khớp `totalCount`.
-  - Trên bảng: chọn bác sĩ rồi chọn nhóm thì request chỉ còn `doctorTeamId` và ô bác sĩ trống; chọn lại bác sĩ thì ô nhóm trống.
-  - Tài khoản lễ tân `lt.huong` lấy được danh sách nhóm và thấy ô lọc nhóm.
-- Chạy lại cùng `reception-doctor-priority`, `reception-own-doctor`, `reception-doctor-list`, `reception.spec`: tất cả xanh.
-- DB local chưa có Team bác sĩ nào hợp lệ, nên ô nhóm hiện "Chưa có team bác sĩ nào". Các nhóm T1 và 21520417 trong ảnh là dữ liệu staging.
-
-## R-903 (2026-10-12, mức 3: danh sách bệnh nhân + quyền) F-69 xuất / nhập danh sách bệnh nhân
+## R-904 (2026-10-12, mức 3: danh sách bệnh nhân + quyền) F-69 xuất / nhập danh sách bệnh nhân
 
 **Yêu cầu.** BA cần xuất toàn bộ bệnh nhân ra Excel, sửa, rồi nhập lại. Chi tiết quy tắc và quyết định của chủ sở hữu: `docs/testing/features/patient-roster.md`.
 
@@ -7785,12 +7750,12 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 
 **Kiểm chứng (build production `vite preview` + BE thật, không chặn API).**
 - `patient-roster-api.spec` 8/8 và `patient-roster.spec` 4/4.
-- Hồi quy `patient.spec` + `patient-permission-gates` + `patient-scan-id`: lần đầu 61/70, lỗi chính là R-904. Sau khi sửa, 7/9 test đỏ chạy lại đều xanh.
+- Hồi quy `patient.spec` + `patient-permission-gates` + `patient-scan-id`: lần đầu 61/70, lỗi chính là R-905. Sau khi sửa, 7/9 test đỏ chạy lại đều xanh.
 - Còn 2 đỏ:
   - "Tiếp nhận steps": đỏ có chủ đích (TEMP-BUG25-OFF).
   - "payment dialog … momo": số tiền bị kẹp về mức các dòng còn nợ (bug 24). Với dữ liệu local hiện tại, gõ 100000 rồi 50000 thì "còn lại" chỉ đổi 10000. Test phụ thuộc dữ liệu, không liên quan danh sách bệnh nhân. Chưa chứng minh trên HEAD vì checkout dùng chung.
 
-## R-904 (2026-10-12, mức 2: tạo hồ sơ bệnh nhân) Mã gợi ý trùng mã của bệnh nhân đã xoá → lưu hồ sơ báo 500
+## R-905 (2026-10-12, mức 2: tạo hồ sơ bệnh nhân) Mã gợi ý trùng mã của bệnh nhân đã xoá → lưu hồ sơ báo 500
 
 **Lỗi.** Tạo hồ sơ mới thì toast "Hệ thống đang gặp sự cố". Log host: `23505 duplicate key value violates unique constraint "IX_bd_patients_PatientCode"` với mã gợi ý DH260468, mã của một bệnh nhân test đã bị xoá mềm.
 
@@ -7802,7 +7767,7 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 - `patient-roster-api.spec` "D deletes the patient" thêm bước: sau khi xoá, `GET patients/code-estimate` không trả lại mã vừa xoá. Xanh.
 - Test tạo hồ sơ trong `patient.spec` xanh trở lại.
 
-## R-905 (2026-10-12, mức 2: F-69 nhập danh sách bệnh nhân) Nhập file bỏ qua quy tắc SĐT / CCCD không trùng của hồ sơ
+## R-906 (2026-10-12, mức 2: F-69 nhập danh sách bệnh nhân) Nhập file bỏ qua quy tắc SĐT / CCCD không trùng của hồ sơ
 
 **Lỗi (chủ sở hữu bắt được khi đọc báo cáo).** Tôi ghi "cho phép trùng số điện thoại", nhưng dialog hồ sơ chặn cả SĐT trùng (`Patient:0021`, bug list 29, 2026-10-07) lẫn CCCD trùng (`Patient:0012`) trong cùng chi nhánh. Import roster gọi thẳng domain, không qua `PatientAppService`, nên cả hai quy tắc bị bỏ qua: một file có thể tạo hai hồ sơ cùng số.
 
@@ -7820,6 +7785,149 @@ Ghi nhận thêm (chưa sửa): `useCatalogOptions` chỉ tải 200 mục đang 
 Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên build production + BE thật.
 
 **Lưu ý.** Nếu dữ liệu đã có sẵn hai hồ sơ cùng SĐT (ví dụ nhập từ hệ thống cũ), sửa một trong hai bằng `E` sẽ bị từ chối, giống hệt khi lưu bằng dialog.
+
+## R-907 (2026-10-12, mức 3: thanh toán theo phiếu + quyền in phiếu thu) "In Hóa Đơn" / icon "Hóa đơn" mở "Tạo phiếu thanh toán"
+
+**Yêu cầu (chủ sở hữu, kèm mock).** Nút "In Hóa Đơn" ở chi tiết phiếu điều trị và icon "Hóa đơn" (`Phiếu thu DTxx`) ở danh sách phiếu mở dialog **Tạo phiếu thanh toán**, không còn mở dialog hóa đơn điện tử.
+
+**Làm.**
+- Dialog đi theo 3 bước: ① Chọn số phiếu → ② Chọn dịch vụ → ③ Thông tin thanh toán. Thanh bước nằm trên nền xám nhạt trải hết bề ngang dialog. Bước xong là vòng tròn tím có ✓, bước đang làm là vòng viền tím có số. Giữa các bước có đường nối ngắn.
+- Ô "Số phiếu cần thanh toán *":
+  - Popup có ô tìm theo số phiếu hoặc ngày tạo, hai cột SỐ PHIẾU / CÒN NỢ, nhãn "Chưa thanh toán" / "Thanh toán một phần" và dòng "Ngày tạo … · N dịch vụ".
+  - Phiếu đã trả đủ bị ẩn.
+  - Khi đã chọn, ô hiện kính lúp, mã đậm và dòng phụ màu xám.
+- Chỉ liệt kê dịch vụ còn nợ, có nút "Chọn tất cả" và nhãn "Còn nợ". Bảng "Tổng tiền dịch vụ đã chọn" có 7 dòng. Số tiền tự bằng tổng còn nợ của các dịch vụ đã chọn.
+- "Xuất hóa đơn đỏ" chỉ lưu cờ `PatientPayment.RedInvoiceRequested` (migration `PaymentRedInvoiceRequested`) và **không** gọi EasyInvoice; màn khác sẽ đẩy sau.
+- Lưu xong, PHIẾU THU mở ở tab mới. Phiếu đang "Chưa thanh toán" vẫn in được.
+- `receipt-pdf` nhận quyền `payment.create` **hoặc** `payment.finalize`. Các nút mở dialog gắn với `payment.create`.
+
+**Kiểm chứng (build production + BE thật + PostgreSQL).**
+- Test mới `payment-from-slip.spec`: mở từ phiếu, chọn phiếu, chọn dịch vụ, kiểm tra tổng tiền, tích cờ hóa đơn đỏ, Lưu → PDF 200 ở tab mới. Reload rồi gọi một GET riêng để đọc lại cờ. Xác nhận thanh toán xong thì phiếu biến khỏi picker của phiếu khác.
+- Chỉnh lại: `payment-permission-buttons.spec` (nút theo `create`), `payment-status.spec` (phiếu chờ in được, 200) và `treatment-plan.spec` (icon Hóa đơn mở dialog mới).
+- Kết quả: 3 spec trên cùng `payment-receipt-pdf.spec` xanh (12/12 + 9/9).
+
+**Gotcha e2e.** Ô tìm nằm trong `popupRender` của AntD Select: `fill()` không kích hoạt lọc, phải `click()` + `pressSequentially()`. Headless Chromium không có trình xem PDF nên tab blob biến thành download; test chấp nhận cả hai.
+
+## R-908 (2026-10-12, mức 2: F-71 mới + mức 3 vì PHIẾU THU và PageTabBar) Yêu cầu xuất HĐ từ QR trên phiếu thu
+
+**Yêu cầu (BA, mockup + drawio `P1210_01`).** Khi khách nhập vào form THÔNG TIN XUẤT HÓA ĐƠN thì dữ liệu đổ về tab Hóa đơn của hồ sơ bệnh nhân. Thông tin đã có thì điền sẵn, phần còn lại để khách nhập.
+
+**Chủ dự án chốt:**
+- QR theo phiếu thu.
+- Trang công khai điền sẵn một phần, che SĐT/CCCD.
+- Link có hạn và chỉ gửi được một lần.
+- Cân nặng / Chiều cao để trống trên bản in.
+- Nút "Chi tiết phiếu" đổi thành "In phiếu thu".
+
+**Làm.**
+- BE: aggregate `InvoiceRequest` (5 trạng thái, guard ở domain, `0001`..`0014`) và `InvoiceRequestLink` (token 43 ký tự, 30 ngày, một lần gửi). Controller staff + public anonymous. QR vẽ vào `PHIẾU THU.docx` khi phiếu có cờ hóa đơn đỏ. Migration `InvoiceRequests`.
+- FE: trang `/invoice-request/:token` ưu tiên điện thoại. Tab Hóa đơn tách 2 segment; danh sách Yêu cầu xuất HĐ theo mockup (badge, banner, chip, SLA, Phụ trách), dialog tạo/sửa/chi tiết/in, và các thao tác Xử lý / Cần bổ sung / Hoàn tất / Hủy.
+
+**Kiểm chứng.** Build production :8081 → host :5000 → PostgreSQL, không chặn API.
+- `invoice-request-api` 1/1.
+- `invoice-request-ui` 1/1: điện thoại 390×844 không đăng nhập gửi form QR, rồi staff thấy dòng trên tab, tạo yêu cầu, reload, Xử lý → Hoàn tất, lọc Cần xử lý, reload.
+- `billing-ledger` 5/5.
+
+**Gotcha e2e.**
+- Nút Hoàn tất bị khóa khi chưa nhập Số hóa đơn: kiểm `toBeDisabled()`, đừng click (click nút khóa sẽ treo tới hết timeout).
+- Radio-button AntD nằm ngoài viewport: click `label`.
+- Hai file khác nhau chỉ ở hoa/thường (`PublicInvoiceRequestForm.tsx` / `publicInvoiceRequestForm.ts`) làm tsc lỗi TS1261 trên Windows.
+
+## R-909 (2026-10-12, mức 3: hồi quy của R-908) Badge đổi tên tab, spec cũ còn "In Hoá Đơn" / "Còn lại"
+
+**Lỗi.** `patient-permission-gates` đỏ vì số trong badge nằm trong link, nên tên truy cập thành "Hóa đơn 2" và `exact` không khớp. **Sửa:** badge `aria-hidden`; banner trong pane vẫn nói số lượng.
+
+**Spec cập nhật:**
+- `treatment-plan-detail` và `billing-ledger`: nút "In Hoá Đơn" → "In phiếu thu".
+- `patient.spec` (ten tabs): tab Hóa đơn giờ kiểm heading rồi bấm segment "Phiếu thu" để thấy cột MÃ HÓA ĐƠN.
+
+**Đỏ có sẵn (không do F-71).** `treatment-plan-detail` "a discounted slip…" tìm dòng "Còn lại" mà dialog Tạo phiếu thanh toán đã bỏ ở R-907 (8c58c99e). Đổi sang "Còn nợ cần thanh toán" = số còn nợ. Spec xanh 13/13.
+
+**Còn đỏ, không liên quan.** `patient.spec` "ten tabs" đỏ ở dòng 878: dialog Tạo tái khám của bệnh nhân đầu danh sách không còn "Chưa có dịch vụ hoàn tất". Đây là dữ liệu local, xảy ra trước đoạn tab Hóa đơn, nên đoạn đã sửa chưa chạy tới.
+
+## R-910 (2026-10-12, mức 2: F-71) Form "Thông tin xuất hóa đơn" theo đúng tờ giấy của BA, in đầy trang
+
+**Yêu cầu.** Chủ dự án gửi ảnh tờ giấy BA: "làm cho giống hình đi". Bản in cũ bị cắt sau dòng Email, chữ nhỏ, còn khung modal. Chrome in thêm ngày giờ và URL localhost ở lề trên/dưới.
+
+**Sửa.**
+- Component chung `src/components/InvoicePaper` (`InvoicePaper`, `PaperRow`, `PaperText`, `PaperLinedText`, `PaperBox`, `PaperInput`, `PaperLinedInput`, `PaperChoiceInput`). Dùng cho trang QR, dialog Tạo/Sửa yêu cầu và tờ Chi tiết, theo đúng thứ tự dòng của tờ giấy. Bỏ công tắc Cá nhân / Công ty.
+- CSS AntD (CSS-in-JS) thắng rule cùng độ ưu tiên, nên mọi rule input đều có tiền tố `.inv-paper`. Font và cỡ chữ ghim bằng `--inv-paper-font` / `--inv-paper-size`: wrapper của Form.Item reset về sans 14px, `font: inherit` không đủ. Bỏ chiều cao 42px của input trong dialog (`index.css`) bên trong tờ giấy.
+- In: chép tờ ra `.ir-print-root` ngoài modal. `@page { size: A5 landscape; margin: 0 }` cho ra 1 trang, đầy khổ, không còn header/footer của trình duyệt.
+
+**Kiểm chứng.** Build production :8081 → host :5000 → PostgreSQL. Ảnh chụp điện thoại 390 và desktop 1280 của trang QR, dialog staff, tờ in (PDF 1 trang). `invoice-request-ui` 1/1, `invoice-request-api` 1/1, `patient-permission-gates` 1/1.
+
+**Spec cập nhật.** Heading form QR giờ là h2 của tờ giấy (level 2). `.pir-static` → `.inv-paper__field`, `.ir-paper` → `.inv-paper`. Label Email có dấu ":" nên dùng `getByLabel(/^Email/)`.
+
+## R-914 (2026-10-13, mức 1: F-71 trang QR) BA: bỏ dòng gợi ý "Để trống để giữ …"
+
+**Yêu cầu.** BA khoanh 3 dòng xám dưới SĐT, Căn cước công dân và Địa chỉ cá nhân trên trang QR: "Bỏ cái place holder này giúp anh".
+
+**Sửa.**
+- Bỏ `extra` gợi ý che trên SĐT, CCCD, địa chỉ và email. Bỏ hàm `keepHint`, prop `extra` của `PaperInput` / `PaperLinedInput`, và khóa i18n `PublicInvoiceRequest:KeepHint`.
+- Hành vi giữ nguyên: để trống thì giữ thông tin phòng khám đã có. SĐT và Email chỉ bắt buộc khi phòng khám chưa có.
+
+**Kiểm chứng.** Build production → host → PostgreSQL. `invoice-request-ui` và `invoice-request-api`.
+
+## R-915 (2026-10-13, mức 2: F-71 + Thanh toán) Hủy phiếu thu bỏ quên yêu cầu xuất HĐ đang mở
+
+**Triệu chứng.** Chi tiết YC-HD-0025 → "Sao chép link QR" báo "Không có thực thể nào PatientPayment với id = …". Phiếu thu của yêu cầu đã bị "Hủy phiếu" (xoá mềm), còn yêu cầu vẫn ở Chờ xử lý. QR in trên PHIẾU THU cũng chỉ ra trang "không tìm thấy".
+
+**Nguyên nhân.** `PatientPaymentAppService.CancelAsync` dọn hóa đơn điện tử nháp nhưng không đụng tới `InvoiceRequest`. `InvoiceRequestSources.EligiblePaymentAsync` không phân biệt phiếu đã hủy với id không tồn tại.
+
+**Sửa.**
+- Hủy phiếu thu thì hủy luôn mọi yêu cầu đang mở của phiếu đó (Chờ xử lý / Đang xử lý / Cần bổ sung). Lý do ghi "Phiếu thu đã bị hủy: {lý do hủy phiếu}". Yêu cầu Đã xuất HĐ giữ nguyên làm lịch sử. Service chuyển sang kế thừa `BlueDentalAppService` để `L[]` dịch được.
+- Phiếu đã hủy trả mã lỗi mới `BlueDental:InvoiceRequest:0015` ("Phiếu thu này đã bị hủy …"). Mã này dùng cho link QR công khai, Sao chép link, Tạo yêu cầu và bản nháp. Id không tồn tại vẫn trả 404.
+- Trang QR: gặp mã 0015 thì hiện thông báo "Phiếu thu đã bị hủy", không hiện form.
+- Sau khi bị hủy, nút Sao chép link QR tự biến mất vì yêu cầu đã đóng.
+- Migration dữ liệu `20261013090000_CancelOrphanInvoiceRequests` hủy các yêu cầu mồ côi có sẵn. Local đã hủy 5 yêu cầu: YC-HD-0020, 0025, 0027, 0028, 0029.
+
+**Kiểm chứng.** Build production (vite preview 8098) → host 5000 → PostgreSQL.
+- `invoice-request-api` có test mới "R-915". Test giữ một yêu cầu ở Đang xử lý và một ở Đã xuất HĐ, rồi hủy cả hai phiếu. Kết quả: yêu cầu đang xử lý thành Đã hủy kèm lý do, yêu cầu đã xuất giữ trạng thái 4 và số HĐ. Link và QR công khai trả 403/0015, và trang QR hiện tiêu đề "Phiếu thu đã bị hủy". Spec này cùng `invoice-request-ui` đạt 3/3.
+- Hồi quy thanh toán (`billing-ledger`, `debt-history`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-receipt-pdf`, `payment-status`) đạt 21/21.
+
+## R-916 (2026-10-13, mức 2: F-71) Loại hóa đơn Cá nhân / Công ty trên form xuất HĐ
+
+**Yêu cầu.** BA mockup: form THÔNG TIN XUẤT HÓA ĐƠN thêm lựa chọn "Loại hóa đơn" ☐ Cá nhân ☐ Công ty. Cá nhân bắt buộc Tên khách hàng, SĐT, CCCD và ẩn phần công ty + Email. Công ty ẩn phần thông tin cá nhân, bắt buộc Tên công ty, MST, Email. Chủ dự án chọn: áp dụng cả trang QR lẫn dialog "Tạo yêu cầu xuất HĐ", chọn sẵn Cá nhân.
+
+**Sửa.**
+- BE: `InvoiceRequestFormDto.IsCompany`, `FullName` hết `[Required]`. `InvoiceRequestDetails` nhận loại, bỏ các dòng của loại kia rồi mới kiểm. Mã lỗi mới `BlueDental:InvoiceRequest:0016` (thiếu CCCD). Công ty giữ tên bệnh nhân làm `FullName`, `Phone = ""`; Cá nhân `Email = ""` (cột NOT NULL, không cần migration).
+- FE: `PaperChoices` dùng chung cho Có/Không và Cá nhân/Công ty. Trang QR, dialog nhân viên và tờ Chi tiết hiện đúng phần theo loại; body gửi đi chỉ chứa dòng của loại đã chọn. Cột Người yêu cầu hiện Email cho Công ty, SĐT cho Cá nhân.
+
+**Kiểm chứng.** Build production (vite preview 8098, `dist-r916`) → host 5000 → PostgreSQL.
+- `invoice-request-api` + `invoice-request-ui` đạt 3/3 (có thêm các assert R-916: 0016, 0003, bỏ dòng loại kia, Cá nhân chọn sẵn, đổi sang Công ty thì các dòng đổi theo).
+- Hồi quy thanh toán (`billing-ledger`, `debt-history`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-receipt-pdf`, `payment-status`) đạt 21/21.
+
+## R-917 (2026-10-13, mức 2: F-45) Nút Xoá quầy trong "Quản lý quầy"
+
+**Yêu cầu.** Chủ dự án: thêm nút xoá quầy ở cột Thao tác của "Quản lý quầy". Hai quyết định: quầy còn bệnh nhân trong hàng đợi thì chặn và báo toast; quầy tạm nghỉ nhưng hàng đợi trống thì được xoá.
+
+**Sửa.**
+- BE: `DeleteCounterAsync` từ chối khi quầy còn số đang chờ / đã gọi / đang khám trong ngày, mã lỗi mới `BlueDental:Queue:0015` ("Không thể xoá {counter} vì còn {count} bệnh nhân trong hàng đợi."). Vẫn xoá mềm. Tên quầy trên vé cũ đọc cả quầy đã xoá (`GetCounterNamesAsync` tắt `ISoftDelete`), nên lịch sử vẫn ghi đúng tên.
+- FE: cột Thao tác tách ra `useCounterColumns.tsx`, thêm nút thùng rác đỏ cạnh bút chì (aria-label "Xoá {quầy}"). Quầy có `inQueueCount > 0` thì hiện toast lỗi ngay, không mở hộp thoại. Quầy trống thì mở `ConfirmDeleteDialog` dùng chung ("Xác nhận xoá quầy"), xoá xong toast "Đã xoá". Mọi chữ đều qua i18n vi/en.
+- E2E fixture: `deleteCounters` rút hết hàng đợi (skip / complete) trước khi xoá, vì quy tắc mới chặn xoá quầy còn hàng đợi.
+- `queue.spec.ts`: assert URL của trang quầy chấp nhận `?branch=` mà F-68 thêm vào (đỏ từ F-68, sửa trong spec).
+
+**Kiểm chứng.** Build production (vite preview 8098) → host 5000 → PostgreSQL, đăng nhập thật, không chặn request.
+- `queue-api` 14/14: test mới cho 0015 (quầy tạm nghỉ còn số chờ, quầy đang gọi số), xoá khi đã trống, quầy biến mất khỏi danh sách và bảng, vé cũ giữ tên quầy, quầy mới dùng lại ký hiệu và bác sĩ. Chi nhánh 2 xoá quầy chi nhánh 1 → 404.
+- `queue` 7/7: toast từ chối, không có hộp thoại và không gửi DELETE. Sau khi rút hết hàng đợi thì hỏi xác nhận, xoá, toast "Đã xoá", reload vẫn mất.
+- Tổng 21/21. `tsc -b` và eslint sạch, `dotnet build` 0 lỗi.
+- Bổ sung (mức 1, theo ảnh chụp của chủ dự án): nhiều quầy với tên dài làm bảng "Quản lý quầy" tràn ngang và cắt mất cột Thao tác. Modal rộng 860 → 1000. Bảng dùng `tableLayout="fixed"` và bỏ `scroll x: max-content`. Các cột Đã cấp đến 110, Ngưỡng cảnh báo 170, Trạng thái 150, Thao tác 96 rộng cố định; Tên quầy và Bác sĩ chia phần còn lại, tên dài cắt "…" và rê chuột thì hiện đủ. Đã kiểm bằng ảnh chụp ở viewport 1896 và 1280 với một quầy tạm tên 48 ký tự (tạo rồi xoá): bảng 958 = khung 958, không có thanh cuộn ngang. Chưa sửa: gọi API trực tiếp với tên quá 50 ký tự trả 500 thay vì 400 (form đã chặn bằng `maxLength`).
+
+## R-918 (2026-10-13, mức 2: F-67) "Thêm thành viên" cho nhánh Tổng giám đốc + gỡ thành viên có xác nhận
+
+**Yêu cầu.** BA: thêm nút "Thêm thành viên" ở nhánh Tổng giám đốc, vì BS tới vẫn có thể trực tiếp quản lý một team. Các thành viên trong team đó không được thấy lịch của bác sĩ khác và các nhánh bên dưới. BA trả lời câu hỏi phạm vi: (A) chỉ giới hạn bác sĩ, tiếp tân vẫn thấy tất cả theo phân quyền. Chủ dự án chọn cách B: mỗi thành viên của gốc có nút × để gỡ, phải hỏi xác nhận.
+
+**Sửa.**
+- BE: `DELETE /api/v1/app/org-chart/units/{id}/members/{staffId}` (`RemoveMemberAsync`, quyền `OrgChart.Update`). Gỡ người đứng đầu đơn vị → `BlueDental:OrgChart:0014`. Gỡ người không có trong đơn vị → không làm gì. Mỗi lần gỡ ghi lịch sử với action mới `MemberRemoved = 6` ("Gỡ khỏi đơn vị", danh sách thành viên trước/sau).
+- Phạm vi dữ liệu không đổi: bác sĩ là thành viên (kể cả của gốc) chỉ thấy mình; người không phải bác sĩ không bị thu hẹp. Có test domain mới khoá lại.
+- FE: panel gốc có "Đổi người đứng đầu" · "Thêm thành viên" (chia 50/50). Danh sách thành viên của gốc có nút × cho mọi người trừ người đứng đầu. Bấm × mở `ConfirmDialog` "Gỡ thành viên", xác nhận rồi mới gọi API, toast "Đã gỡ nhân sự khỏi đơn vị". Hộp phạm vi ở gốc cũng hiện dòng "bác sĩ thành viên chỉ thấy lịch của mình". Lịch sử có pill cam "Gỡ khỏi đơn vị". Mọi chữ qua i18n vi/en.
+
+**Kiểm chứng.** Build production (vite preview 8113) → host 5000 → PostgreSQL, đăng nhập thật, không chặn request.
+- Domain `OrgChartTests` 20/20, Application `OrgChart` 12/12.
+- `org-chart-api` 5/5. Test mới: phân B (bác sĩ) và Y (không phải bác sĩ) vào gốc. B đăng nhập chỉ thấy mình; admin không phải bác sĩ thấy tất cả. Gỡ B → B về "chưa thuộc đơn vị", lịch sử action 6 có trước/sau đúng. Gỡ lại là no-op. Gỡ trưởng team → 0014.
+- `org-chart` 2/2. Test UI mới: panel gốc → Thêm thành viên → chọn bác sĩ → Lưu → toast, số "chưa thuộc" giảm 1, reload vẫn còn. Bấm × → hộp xác nhận → Hủy thì người vẫn còn → bấm × lại → Gỡ → DELETE thành công, toast, số "chưa thuộc" trở lại, reload vẫn mất. Lịch sử: dòng mới nhất "Gỡ khỏi đơn vị", ngay dưới là "Phân vào đơn vị".
+- `tsc -b` và eslint sạch, `dotnet build` 0 lỗi.
+- Bổ sung (chủ dự án, cùng ngày): nút × hover không có tooltip, và nên gỡ được ngay trên panel ở mọi đơn vị chứ không riêng gốc; nút nên màu đỏ. Sửa: × hiện ở danh sách thành viên của mọi Phòng ban / Team / gốc (trừ người đứng đầu), `danger` đỏ, bọc `Tooltip` "Gỡ khỏi đơn vị". Hộp xác nhận ghi tên đơn vị thật ("Gỡ … khỏi {team}?"). Thêm test UI "a team member is removed straight from the panel, the head is not": dòng trưởng team không có ×, hover hiện tooltip, xác nhận → DELETE, reload chỉ còn trưởng. Test gốc cũng kiểm tooltip. `org-chart` 3/3 + `org-chart-api` 5/5 = 8/8 trên vite preview 8113. Ảnh chụp: × đỏ, tooltip nằm ngay trên nút.
 
 ## R-919 (2026-10-13, mức 2: F-69) Cột Action của file nhập danh sách bệnh nhân: A thêm mới, E chỉ sửa, D xoá
 
@@ -7841,63 +7949,102 @@ Test "any other Action" đổi dòng B sang số khác. Roster 13/13 xanh trên 
   - "payment dialog momo": phụ thuộc dữ liệu, đã biết.
   - "Đặt mới … blocks": chập chờn, chạy lại xanh.
   - data-migration "every Khách hàng column": `catalogPicks` chọn mục nghề nghiệp rác "Thợ 791507" trong DB local nên lưu thành nghề tự do. Lỗi do dữ liệu; phần DataMigration chỉ đổi visibility.
+- Hồi quy cấp 3 cho R-918 (cùng ngày, vite preview 8113 → host 5000 → PostgreSQL, 12 spec: org-chart*, staff, staff-day-off-api, staff-penalty(-api), staff-employment, timekeeping(-api, -leave), work-schedule-own-dayoff, doctor-day-off-pickers): **30 pass, 5 đỏ** — đúng 5 đỏ có sẵn đã chứng minh ở HEAD ngày 2026-10-10 (timekeeping KPI testid đã mất; doctor-day-off-pickers ×3: picker drift + "the branch needs a patient"; staff-employment UI do dữ liệu tăng, sort theo tên 20/trang). Không đỏ nào do F-67/R-918. Đã xoá 1 user "Nhân viên hồ sơ …" bị sót do `finally` không chạy.
 
-## R-906 (2026-10-13, mức 2: Nhân viên + Tiếp nhận + API lịch hẹn) Lọc nhiều bác sĩ theo "Mức độ ưu tiên" lấy từ hồ sơ nhân viên, thay cho kéo-thả (sửa R-904)
+## R-920 — 5 e2e đỏ có sẵn (timekeeping KPI, doctor-day-off-pickers ×3, staff-employment) — 2026-10-13
 
-**Yêu cầu (chủ sở hữu):** khi lọc nhiều bác sĩ, thứ tự hiển thị phải theo độ ưu tiên giống danh mục: mỗi nhân viên có ô "Mức độ ưu tiên" (đúng tên này, không phải "Thứ tự ưu tiên"), mặc định là 0, giống ô cùng tên ở dialog "Thêm dịch vụ". Người dùng không kéo-thả để sắp xếp trong ô lọc nữa.
+- Yêu cầu chủ dự án: "sửa các test lỗi đó đi" (5 đỏ thấy ở hồi quy R-918, có từ trước F-67). Chỉ sửa phía spec/fixture, không đổi code sản phẩm.
+- `doctor-day-off-pickers` ×3 — **nguyên nhân chung**: `firstBranchId()` (`e2e/fixtures/timekeepingStaff.ts`) lấy phần tử đầu của `/clinic-branches/accessible`, danh sách sắp theo tên; từ 2026-10-06 có chi nhánh tạo tay "DANHTEST01" (và 2 chi nhánh "E2E chi nhánh …" sót lại) đứng trước BD-001. Bác sĩ chạy test và ngày nghỉ của họ được ghi ở DANHTEST, trong khi trang mở `?branch=BD-001` → Tạo tiếp nhận không thấy bác sĩ, Tạo lịch hẹn không thấy ngày nghỉ (ô bác sĩ không bị xoá), Tạo chẩn đoán "the branch needs a patient". Không phải lỗi giao diện như ghi chú cũ ("picker drift" / "seed gap") đoán. Sửa: `firstBranchId` ưu tiên chi nhánh chính `11111111-…` (BD-001) nếu tài khoản được vào, nếu không mới lấy phần tử đầu.
+- `timekeeping` KPI: `data-testid="timekeeping-kpis"` đã bị bỏ khỏi `TimekeepingStatChips`; spec scope theo `.tk-stat-chips`.
+- `staff-employment` UI: `/staff` sắp theo tên 20 dòng/trang, nhân viên của lượt chạy rơi sang trang sau → spec gõ tên vào ô "Tìm theo tên, email, số điện thoại..." (trước và sau reload) rồi mới tìm dòng.
+- Kết quả (vite preview 8113 → host 5000 → PostgreSQL): 3 spec đã sửa + mọi spec dùng `firstBranchId` (current-user-ticks-api, einvoice-api, reception-doctor-list, staff-day-off-api, timekeeping-api, timekeeping-leave, work-schedule-own-dayoff) **32/32**; org-chart-api, org-chart, staff, staff-penalty-api, staff-penalty **14/14**. Bộ hồi quy R-918 giờ xanh hết (trước: 30 pass / 5 đỏ).
+
+## R-921 (2026-10-13, mức 2: F-71/F-56) PHIẾU THU mẫu mới: QR vào ô vuông của mẫu, ẩn dòng "quét mã QR" khi không có QR
+
+**Yêu cầu.** Chủ dự án đổi `PHIẾU THU.docx`. Mẫu mới có một ô vuông (shape) đánh dấu chỗ đặt QR, đặt dưới cột "Người lập phiếu", và footer thêm dòng "Nếu có nhu cầu xuất hóa đơn đỏ, vui lòng quét mã QR…". Chủ dự án chốt:
+- QR thay vào ô vuông, to hơn một chút, phóng theo tâm ô.
+- Phiếu không có QR thì ẩn dòng hướng dẫn quét.
+
+**Sửa.**
+- `DocxPicture.ReplaceBox` / `RemoveBox` thay `Place` (toạ độ trang cố định 182/120 mm).
+  - Shape nổi duy nhất trong body là ô đánh dấu (cả `mc:AlternateContent` lẫn VML fallback).
+  - QR giữ neo của ô (column/paragraph), to hơn ô 2 mm mỗi cạnh, cùng tâm.
+  - QR không còn quiet zone riêng: giấy trắng quanh ô đóng vai trò đó.
+- Đổi vị trí QR về sau = kéo ô trong Word, không cần sửa code. Mẫu phải có đúng 1 ô; nếu không có thì báo lỗi rõ.
+- `PaymentReceiptQr.Leave`: phiếu không "Xuất hóa đơn đỏ" thì bỏ ô và mọi đoạn chứa "mã QR" (`DocxTemplate.DropParagraphs`).
+- **Lỗi kèm theo:** khi Word lưu lại mẫu, mỗi placeholder bị tách thành 3 run (`{{` / `Key` / `}}`, do dấu kiểm tra chính tả) → phiếu sẽ in nguyên dấu ngoặc. `DocxTemplate` giờ tự ghép placeholder bị tách về run đầu trước khi điền, nên lưu mẫu bằng Word không còn làm hỏng phiếu.
+
+**Kiểm chứng.**
+- `PaymentReceiptTemplateTests` 11/11. Test mới: QR thay ô, cùng tâm, +2 mm/cạnh, không còn shape/VML; phiếu không QR mất ô và dòng hướng dẫn, còn "Lưu ý". Test khoá đọc placeholder xuyên run.
+- Đã render qua Gotenberg cả hai bản (có QR / không QR) và xem PDF.
+- Lưu ý: ô trong mẫu nằm sát mép dưới. QR to thêm 2 mm thì đáy QR cách mép giấy khoảng 1–2 mm, máy in có lề cứng có thể cắt. Muốn an toàn thì kéo ô lên trong Word, code tự theo.
+- **Chưa** chạy e2e trên stack thật (`payment-receipt-pdf`, `invoice-request-api`): host 5000 đang chạy bản cũ, cần khởi động lại host rồi chạy.
+
+## R-922 (ex R-904) (2026-10-13, mức 2: Tiếp nhận + API danh sách lịch hẹn) QA #27: lọc bác sĩ chọn được nhiều, sắp xếp thứ tự ưu tiên
+
+**Yêu cầu:** ô "Bác sĩ" trên bảng Tiếp nhận chỉ chọn được một người. Cần chọn nhiều và cho người dùng sắp thứ tự ưu tiên.
+
+**Cách hiểu đã chọn (tính năng tự thiết kế, không quan sát từ bản gốc):** thứ tự ưu tiên là thứ tự các thẻ trên bảng: thẻ của bác sĩ ưu tiên 1 lên trước, rồi đến bác sĩ 2…, và trong cùng một bác sĩ vẫn xếp theo giờ hẹn.
 
 **Thay đổi:**
-- BE: thêm thuộc tính mở rộng `Priority` của IdentityUser, xử lý trong `StaffPriority` ở Domain (đọc, ghi, sắp xếp). Mặc định là 0; nhân viên lưu trước khi có trường này cũng được tính là 0. Giá trị âm bị từ chối với lỗi `BlueDental:Staff:0012`. Thêm `int Priority` vào `StaffDto`, `CreateStaffDto` và `UpdateStaffDto`. `AppointmentAppService.GetListAsync` sắp xếp theo mức ưu tiên tăng dần, cùng mức thì theo tên, áp dụng cho cả `DentistIds` (từ 2 bác sĩ trở lên) lẫn `DoctorTeamId`. Thứ tự gửi lên trong request không còn ảnh hưởng.
-- FE: thêm ô "Mức độ ưu tiên" (`StaffPriorityField`) vào form nhân viên, nhãn `Common:Priority`, InputNumber mặc định 0, tối thiểu 0, giống `ServiceDialog`. `SortableMultiSearchSelect` đổi tên thành `RankedMultiSearchSelect`: các bác sĩ đã chọn xếp theo thứ tự của danh sách option, tức là theo mức ưu tiên. Bỏ tay nắm kéo-thả và phím ↑/↓; `PriorityList` chỉ còn đánh số và nút ✕. Danh sách bác sĩ ở Tiếp nhận sắp theo mức ưu tiên bằng sort ổn định, nên những người cùng mức giữ thứ tự tên.
-- Làm mới khi đổi mức ưu tiên: lúc đầu, nếu sửa mức ưu tiên ở tab Nhân viên khác thì bảng Tiếp nhận đang mở vẫn giữ thứ tự cũ. Nguyên nhân là danh sách bác sĩ được cache 5 phút, còn `refetchOnWindowFocus` tắt cho toàn app. Cách sửa gồm hai phần. Thứ nhất, `useReceptionDoctors` dùng `refetchOnWindowFocus: "always"`, nên quay lại tab là danh sách bác sĩ được đọc lại. Thứ hai, ReceptionPage gửi `doctorIds` đã xếp lại theo danh sách bác sĩ mới nhất (`rankDoctorIds`). Khi thứ tự đổi thì key của query thay đổi, nên bảng tự tải lại theo thứ tự mới.
-- i18n: `Staff:PriorityHint`, `Staff:PriorityInvalid`, `Common:PriorityFromStaff`, `BlueDental:Staff:0012`.
+- BE: `GetAppointmentListInput.DentistIds` (danh sách, có thứ tự) lọc lịch hẹn của bất kỳ bác sĩ nào trong đó. Khi chọn từ 2 bác sĩ trở lên, `GetListAsync` sắp theo vị trí của bác sĩ trong danh sách (`DentistPriorityOrder`: chuỗi CASE chạy trong DB, nên phân trang vẫn đúng), rồi đến `Slot.Start`. `/stats` dùng chung bộ lọc. `DentistId` (một bác sĩ) giữ nguyên cho các màn khác.
+- FE: component dùng chung `SortableMultiSearchSelect` (cùng giao diện `ss-*` với SearchSelect). Bấm dòng để tick hoặc bỏ tick, dropdown vẫn mở. Các bác sĩ đã chọn nằm trên cùng thành danh sách đánh số; đổi thứ tự bằng cách kéo tay nắm (`useDragReorder`) hoặc bấm ↑/↓ khi tay nắm đang được focus; bấm ✕ để bỏ. Ô chọn hiện tên bác sĩ ưu tiên 1, kèm "+N" cho những người còn lại. Bảng Tiếp nhận và bộ lọc mobile gửi `dentistIds` theo đúng thứ tự. Bác sĩ đăng nhập vẫn được chọn sẵn chính mình (`useOwnDoctorDefault`).
+- i18n: `Common:PriorityOrder`, `Common:DragOrArrowSort` (vi/en).
 
 **Kiểm chứng (backend thật + build production `vite preview` 8080, không chặn API):**
-- `reception-doctor-priority.spec` (viết lại, 4/4):
-  - API nhóm lịch hẹn theo mức ưu tiên, request gửi theo thứ tự nào cũng vậy. Đổi mức (kể cả về 0) thì thứ tự đảo theo.
-  - Trên trình duyệt: bấm A trước B, nhưng B có mức nhỏ hơn thì request là `[B,A]`, danh sách đánh số B trước A, không có tay nắm kéo, thẻ đầu tiên là của B. Bấm ✕ bỏ được một người.
-  - Form nhân viên: nhân viên mới có mức 0; lưu 3 thì tải lại trang vẫn còn 3; xoá trống thì về 0. API từ chối -1 (403, `Staff:0012`).
-  - Sửa mức ưu tiên ở tab khác rồi quay lại: bảng đang lọc A, B gửi lại request với `[B,A]`, thẻ và danh sách đánh số đổi theo. Kiểm chứng ngược: tắt refetch thì test này đỏ.
-- Hồi quy:
-  - Xanh: `reception-doctor-team` 3/3, `reception-own-doctor` 6/6, `reception-doctor-list` 2/2, `staff-employment` 2/2.
-  - `staff.spec` đỏ ở bước chọn chi nhánh "Nha Khoa Đức Hạnh Premium". DB local đã tích luỹ hàng chục chi nhánh test ("CN HOA HONG …"), danh sách cuộn ảo tháo option khỏi DOM đúng lúc đang click. Đã chạy lại khi bỏ thay đổi form nhân viên và test vẫn đỏ y hệt, nên lỗi có từ trước.
+- `reception-doctor-priority.spec` (mới, 2/2): API trả về theo nhóm bác sĩ đúng thứ tự gửi lên, đảo thứ tự gửi thì kết quả đảo theo, trong từng bác sĩ vẫn theo giờ, tổng `/stats` bằng `totalCount`. Trên trình duyệt: chọn A rồi B thì request mang `dentistIds=[A,B]` và thẻ đầu là của A, thẻ cuối là của B; bấm ↑ trên tay nắm của B thì request thành `[B,A]` và thẻ đảo theo; bấm xoá thì quay về toàn bộ.
+- Sửa test cũ sang `dentistIds`: `reception-own-doctor` (6/6), `reception-doctor-list` (2/2) đều xanh.
+- `reception-doctor-roles` (0/1): phần bộ lọc bác sĩ trên bảng qua, nhưng test dừng ở dòng 72, chỗ dialog "Tạo tiếp nhận" không có "BS. Lê Thu Hà". Dialog đó chỉ hiện bác sĩ không nghỉ trong ngày và không bị thay đổi này đụng tới, nên khả năng cao là do dữ liệu chấm công local. Chưa kiểm chứng.
 
-## R-907 (2026-10-13, mức 2: Thanh toán bệnh nhân) Tạo phiếu thanh toán là "Hoàn tất" ngay, có hộp xác nhận trước khi lưu (bỏ bước "Chưa thanh toán" của BA 2026-10-08)
+## R-923 (ex R-905) (2026-10-13, mức 2: Tiếp nhận + API lịch hẹn) Lọc theo nhóm bác sĩ (Team bác sĩ của Sơ đồ tổ chức)
 
-**Yêu cầu (chủ sở hữu):** bấm lưu phiếu thanh toán thì phiếu phải ở trạng thái đã thanh toán luôn, không để "Chưa thanh toán" với công nợ còn nguyên. Trước khi lưu phải có hộp xác nhận. Chủ sở hữu chốt: phiếu "Hoàn tất" là cuối cùng, không sửa và không huỷ được; thu nhầm thì xử lý bằng phiếu hoàn tiền.
+**Yêu cầu (chủ sở hữu):** thêm ô lọc theo nhóm, ví dụ "T1" hoặc "21520417" trên Sơ đồ tổ chức. Danh sách chỉ gồm các Team bác sĩ có trưởng nhóm là Bác sĩ. Chọn một nhóm thì xoá các bác sĩ đã chọn ở ô "Bác sĩ" (R-922).
 
 **Thay đổi:**
-- BE: `PatientPaymentAppService.RecordAsync` luôn ghi phiếu với `PatientPaymentStatus.Completed`. `ConfirmAsync`, `UpdateAsync` và `Cancel` giữ nguyên, chỉ còn dùng cho các phiếu "Chưa thanh toán" đã lưu từ trước.
-- FE: `CreatePaymentDialog` tách bước kiểm tra (`readyToSave`) ra khỏi bước lưu. Ở chế độ tạo mới, bấm "Lưu" sẽ mở `ConfirmDialog` ("Xác nhận đã thu {số tiền}?"); chọn "Có" mới gửi POST, chọn "Không" thì không gửi gì và giữ nguyên dialog. Chân dialog đổi thành "Phiếu được ghi nhận đã thanh toán ngay khi lưu và không thể sửa hay huỷ." Khi mở lại một phiếu cũ còn "Chưa thanh toán", dialog vẫn hiện ghi chú 7 ngày như trước.
-- i18n: `Patient:Payment:ConfirmCreate`, `Patient:Payment:FinalWarning`.
+- BE: `GET /api/v1/app/appointments/doctor-teams` (quyền `appointment.read`, không cần `orgChart.read` vì lễ tân cũng lọc được) trả về các đơn vị `Kind = DoctorTeam` có trưởng đơn vị được tick "Bác sĩ", sắp theo tên (`DoctorTeamLookup`). `GetAppointmentListInput.DoctorTeamId` lọc lịch hẹn theo các thành viên hiện tại của nhóm, `/stats` dùng chung bộ lọc này.
+- FE: ô "Nhóm bác sĩ" (SearchSelect) nằm bên trái ô "Bác sĩ", có cả trong bộ lọc mobile. `useDoctorFilter` cho hai ô loại trừ nhau: chọn nhóm thì xoá bác sĩ, chọn bác sĩ thì xoá nhóm, để bảng không bao giờ hiển thị phần giao của hai bộ lọc. `ReceptionStatusTabs` nhận các ô lọc qua `children`.
+- Bố cục: ở màn 1440px, hàng lọc chỉ vừa đúng các tab, hai ô lọc và các ô đếm. Vì vậy hai ô lọc co lại trước (nhóm từ 200 xuống tối thiểu 156px, bác sĩ từ 260 xuống tối thiểu 196px), các ô đếm vẫn nằm bên phải. Tên bị cắt có `title` để rê chuột xem đủ. Đã kiểm tra bằng ảnh chụp ở 1920, 1440, 1280 và 1100px (ở 1100px hai ô lọc xuống dòng dưới tab).
+- i18n: `Reception:DoctorTeam`, `Reception:NoDoctorTeams`.
 
 **Kiểm chứng (backend thật + build production 8080, không chặn API):**
-- `payment-status.spec` (viết lại, 4/4): "Không" không gửi POST; "Có" gửi đúng một POST và phiếu ở trạng thái Hoàn tất. Đã thanh toán và Công nợ đổi ngay, tải lại trang vẫn đúng. Dòng phiếu chỉ còn nút Xem. API từ chối sửa, xác nhận và huỷ với 403 `Billing:0096`; chi nhánh khác cũng bị từ chối.
-- Đã chuyển sang hành vi mới và đều xanh: `treatment-plan-detail` 13/13, `billing-ledger` 5/5, `debt-history` 4/4, `payment-amount-cap` 1/1, `payment-receipt-pdf` 4/4, và 3/4 test thanh toán của `patient.spec`.
-- `qa-bugs-25-30` (#26, #28): luồng huỷ có lý do và dòng "Đã hủy" không còn tới được với phiếu mới, nên đã thay bằng các kiểm tra từ chối (sửa ngày, huỷ, phiếu ghi ngày mai). Từ nay luồng huỷ phiếu "Chưa thanh toán" không còn test e2e nào bao phủ.
-- Còn đỏ, không do thay đổi này:
-  - `qa-bugs` #25: quy tắc check-in trong ngày đang bị tắt trong `Appointment.cs` (commit e1cbbba6).
-  - `vat-payment-einvoice-api` dòng 102: phiếu dịch vụ dùng chung đang có giảm giá cấp phiếu. Bản sao tạm bỏ qua phiếu đó thì xanh.
-  - `patient.spec` "the payment dialog carries the reference's fields": dialog có thêm dòng VAT do dữ liệu demo bị các test VAT thêm vào.
-  - `payment-permission-buttons` và `staff.spec`: không chọn được chi nhánh trong form nhân viên. Đã chạy thử khi bỏ thay đổi form nhân viên (R-906) và vẫn đỏ y hệt, nên lỗi có sẵn từ dữ liệu chi nhánh test tích luỹ.
+- `reception-doctor-team.spec` (mới, 3/3). Mỗi lần chạy tạo bằng API thật một bác sĩ, một nhóm do bác sĩ đó làm trưởng, một nhóm do nhân viên không tick Bác sĩ làm trưởng, và một lịch hẹn; chạy xong thì dọn hết.
+  - Danh sách nhóm có nhóm thứ nhất, không có nhóm thứ hai, và mọi nhóm trả về đều là Team bác sĩ có trưởng là Bác sĩ (đối chiếu với `/org-chart`).
+  - `doctorTeamId` trả về lịch hẹn của thành viên nhóm, tổng `/stats` khớp `totalCount`.
+  - Trên bảng: chọn bác sĩ rồi chọn nhóm thì request chỉ còn `doctorTeamId` và ô bác sĩ trống; chọn lại bác sĩ thì ô nhóm trống.
+  - Tài khoản lễ tân `lt.huong` lấy được danh sách nhóm và thấy ô lọc nhóm.
+- Chạy lại cùng `reception-doctor-priority`, `reception-own-doctor`, `reception-doctor-list`, `reception.spec`: tất cả xanh.
+- DB local chưa có Team bác sĩ nào hợp lệ, nên ô nhóm hiện "Chưa có team bác sĩ nào". Các nhóm T1 và 21520417 trong ảnh là dữ liệu staging.
 
-**Ghi nhận thêm (chưa sửa):** xác nhận lại một phiếu đã Hoàn tất trên dòng đã trả đủ thì trả về 403 `Billing:0092` ("vượt số còn nợ") thay vì `0096`. Nguyên nhân là `ConfirmAsync` và `UpdateAsync` kiểm tra hạn mức trước `EnsurePending()`. Yêu cầu vẫn bị từ chối, chỉ có mã lỗi gây hiểu nhầm.
-## 2026-10-13 — Lịch làm việc bác sĩ tới 19:00 nhưng đặt lịch sau 17h bị chặn (R-911, F-10)
+## R-924 (2026-10-13, mức 3: F-61 + PatientPayment + Yêu cầu xuất HĐ) Mẫu chuyển dữ liệu chứa đủ file khách Đức Hạnh: tiền, gom kế hoạch, thanh toán
 
-| ID | Việc | Xử lý |
-|---|---|---|
-| R-911 | BA (ảnh): Bs Tới, "Cập nhật thông tin" ngày 13/10 hiện buổi chiều 13:00–19:00, nhưng Tạo tiếp nhận 17:15 bị từ chối "giờ hẹn nằm ngoài ca làm của bác sĩ (08:00-12:00, 13:00-17:00)". | Ba nguồn giờ làm lệch nhau: bảng Chấm công (FE `TimekeepingBoard`) và Đăng ký nghỉ dựng ngày chưa có bản ghi từ **giờ làm trên hồ sơ nhân viên** (ExtraProperties `Morning/AfternoonStart/EndTime`), còn `DentistShiftChecker` / `AppointmentSeriesPlanner` khi chưa có `TimeKeepingRecord` lại dùng mặc định cứng 08–12 / 13–17. Thêm nữa `OpenWorkDayAsync` (Vào ca / mở ngày từ bảng, FE không gửi giờ) và `BulkRegisterAsync` cũng tạo bản ghi với mặc định → sau khi bác sĩ vào ca, ngày đó khoá về 17:00 dù hồ sơ ghi 19:00 (và `UpdateInfoAsync` bỏ qua đổi giờ khi đã có chấm công). Nay `StaffWorkingHours` (Domain/Timekeeping) là chỗ đọc giờ hồ sơ duy nhất; checker + planner: bản ghi ngày → giờ hồ sơ → mặc định phòng khám; `OpenWorkDayAsync` / `BulkRegisterAsync` lấy giờ hồ sơ cho ca không truyền giờ. |
+**Yêu cầu (chủ dự án):** BA tự chép file xuất của hệ thống cũ Đức Hạnh vào `BlueDental_Migration.xlsx` rồi import qua API. Mẫu F-61 chỉ chứa được khách hàng và dòng dịch vụ giá 0, nên phải mở rộng để chứa tiền dịch vụ, các lần thu tiền, và gom phiếu chỉnh nha thành một kế hoạch. Nếu không gom, mỗi khách chỉnh nha có 50–165 kế hoạch, mà hồ sơ chỉ tải 100. Giữ luật bắt buộc SĐT hoặc Email; vẫn chỉ có API.
 
-Kiểm chứng (host :5000 build mới → PostgreSQL thật; FE preview :8091): Domain `DentistShiftChecker*` + `AppointmentSeries*` **15/15** (thêm 2: không có bản ghi → giờ hồ sơ 13:00–19:00, 17:15 lọt; có bản ghi → bản ghi thắng). `appointment-working-hours` **4/4** (thêm: bác sĩ hồ sơ chiều tới 19:00, không mở ca → 17:15 đặt được, 19:15 bị từ chối với "08:00-12:00, 13:00-19:00"). Chưa xác nhận được dữ liệu thật của Bs Tới trên production (không có quyền đọc DB prod). Bản ghi chấm công **đã tạo trước** bản sửa (vd. đã Vào ca hôm nay với 13:00–17:00) vẫn giữ giờ cũ — không migrate. Chưa commit.
+**Thay đổi:**
+- Sheet Điều trị thêm 5 cột không bắt buộc: Kế hoạch, Số lượng, Đơn giá gốc, Đơn giá, Thành tiền.
+  - Khoá gom là Kế hoạch, trống thì Mã phiếu, trống nữa thì ngày.
+  - Dòng có giá mở một dòng dịch vụ mới: giá gốc = max(gốc, giá); Thành tiền nhỏ hơn SL×ĐG thì phần chênh là giảm giá; lớn hơn là lỗi.
+  - Dòng không giá thành công đoạn của dòng dịch vụ gần nhất cùng tên.
+- Sheet mới Thanh toán, 9 cột, không bắt buộc. Tiền chia theo phiếu rồi theo kế hoạch; dư là lỗi.
+  Mỗi kế hoạch được chia tiền sinh một `PatientPayment.Record` Completed lúc 17:00 ngày thu cũ, mã `THANHTOAN-{seq}/{DTxx}/{năm}`.
+- `PatientPayment.IsImported` (migration `20261013100000_ImportedPayments`). `InvoiceRequestSources.OpenPaymentsAsync` bỏ qua các phiếu này.
+- Template, guide và file lỗi chuyển từ 2 sheet cố định sang danh sách sheet. Mã KH ở sheet lịch sử có gợi ý riêng (`Hint:patientRef`).
+- nginx: location `/api/v1/app/data-migration/` cho body 60 MB và timeout 600 s; controller đặt `[RequestSizeLimit]` 60 MB.
+- Tạo lại `docs/migration/BlueDental_Migration.xlsx`. Viết hướng dẫn BA `docs/migration/huong-dan-chuyen-du-lieu-duc-hanh.md`: ánh xạ cột, danh mục 47 dịch vụ / 23 nhãn bác sĩ, các lỗi dữ liệu phải sửa, cách chia file.
 
-| ID | Việc | Xử lý |
-|---|---|---|
-| R-912 | Theo R-911: "Cập nhật thông tin" ở Chấm công **im lặng bỏ qua** giờ ca mới khi ngày đó đã có Vào ca (`UpdateInfoAsync` bọc `if (!record.HasAnyAttendance)`) mà vẫn trả 200 + toast thành công → bác sĩ đã Vào ca với 13:00–17:00 thì sửa thành 19:00 không lưu, đặt lịch sau 17h vẫn bị chặn. | Chủ dự án chọn (a) 2026-10-13: cho đổi giờ ca cả sau khi đã chấm công. `TimeKeepingRecord.RescheduleShifts` không còn ném `RegistrationLocked`; chỉ dời giờ kế hoạch qua `WorkShift.Reschedule`, giờ vào/ra đã chấm giữ nguyên trên từng ca. Bỏ guard trong `UpdateInfoAsync`. Đăng ký nghỉ / đặt lại đăng ký sau chấm công vẫn bị khoá như cũ. |
+**Kiểm chứng (host thật :5000 + build production :8187 + PostgreSQL, không chặn API):**
+- `data-migration-api.spec` **17/17**, cộng 1 test hiệu năng bị skip mặc định.
+  Các test mới: gom Kế hoạch + tiền + 4 kiểu thanh toán; lỗi tiền và thanh toán + file lỗi; file layout F-61 cũ vẫn nhập giá 0.
+  Sửa spec: `catalogPicks` bỏ các mục `isDeleted`, vì API danh mục trả cả mục đã xoá mềm.
+- Hiệu năng (`MIGRATION_PERF=1`): 5.000 KH / 70.000 dòng / 3.000 thu, file SheetJS 21,8 MB, lưu thật 25,6 s.
+- Hồi quy mức 3: `patient-roster` (31 qua + 1 skip khi chạy cùng), `invoice-request` + payment + vat 14/14.
+- Thử thật trên DB local với 200 khách lấy từ file khách (script ở scratchpad, không commit dữ liệu).
+  - Dry run báo 3 lỗi, đều là lỗi của dữ liệu cũ: 2 họ tên có ngoặc, 1 phiếu thu 200k trên phiếu giá 0.
+  - Sửa 3 dòng đó rồi nhập: 200 KH, 698 kế hoạch, 4.387 công đoạn, 272 phiếu thu, 1,4 s. Tổng phiếu thu khớp file (473.544.000 đ).
+  - Hồ sơ hiển thị đúng Tổng phiếu / Đã trả.
 
-Kiểm chứng (host :5000 build mới → PostgreSQL thật): Domain `TimeKeepingRecord*` + `DentistShiftChecker*` + `AppointmentSeries*` **34/34** (thay assert "reschedule sau check-in phải ném" bằng test dời kế hoạch giữ check-in/check-out + Status Working). E2E `appointment-working-hours` + `timekeeping-api` **8/8**; case mới: hôm nay open-day → Vào ca sáng → PUT `/info` chiều tới 23:59 → đọc lại thấy plannedEnd 23:59 và checkedInAt còn → đặt lịch hôm nay sau 17:00 (slot sau giờ hiện tại) được 200. Chưa commit.
-| R-913 | Chủ dự án (ảnh, localhost): Tạo tiếp nhận 13/10 18:30 + 30 phút bị từ chối dù thông báo ghi ca "13:00-19:00". | `ReceptionNewDrawer` ghép ngày từ `dayjs()` (giữ mili-giây lúc mở trang) và chỉ `.second(0)` → gửi 18:30:00.xxx–19:00:00.xxx, `Fits` so `TimeOnly` có phần lẻ nên 19:00:00.xxx > 19:00. Mọi lịch kết thúc **đúng** giờ hết ca từ màn này đều dính (vd. 16:30–17:00), không riêng R-911. Sửa: FE thêm `.millisecond(0)` (các dialog khác đã có); BE `DentistShiftChecker.Fits` cắt về phút trước khi so ca, nên client nào gửi lẻ giây cũng không bị chặn oan. |
-
-Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 19:00, 18:45–19:01 vẫn bị chặn); e2e `appointment-working-hours` + `timekeeping-api` 8/8 (thêm POST slot 19:30.437–20:00.437 vào ca tới 20:00 → 200); `tsc` sạch. Chưa commit.
+**Còn mở:**
+- Giới hạn body của Caddy dùng chung trên VM (`~/proxy`) chưa kiểm.
+- Công nợ khoảng 36,8 tỷ nếu nhập đủ tiền như file cũ: chủ dự án chốt trước khi nhập (hướng dẫn BA mục 7).
 
 ## R-925 (2026-10-13, mức 2: Chẩn đoán & Tư vấn + 1 prop mới ở /taxonomy) QA #28 — Thêm nhanh chẩn đoán ngay cạnh ô "Chẩn đoán"
 
@@ -7920,6 +8067,52 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 - Ô Chẩn đoán (`useCatalogOptions`) chỉ gửi `isActive: true`, không gửi `isDeleted: false` → chẩn đoán đã xoá mềm vẫn được chọn trên phiếu (như R-587 ở picker khác). → **Đã sửa ở R-927.**
 - BE: quyền cũ `Catalogs.Create` được cấp khi có quyền tạo của BẤT KỲ danh mục nào (`BlueDentalPermissionBridge`), nên người chỉ có quyền tạo danh mục khác vẫn gọi được API tạo chẩn đoán; FE đã ẩn nút theo đúng `catalogDiagnosis.create`.
 
+## R-926 (2026-10-13, mức 3: Lịch hẹn + báo cáo + CSKH) F-61 — Sheet "Lịch hẹn" trong file chuyển dữ liệu
+
+**Yêu cầu (chủ dự án):** chuyển toàn bộ lịch hẹn của hệ thống cũ Đức Hạnh, khoảng 478 nghìn dòng, cả lịch đã qua lẫn lịch sắp tới.
+
+**Thay đổi:**
+- Mẫu có thêm sheet "Lịch hẹn" (7 cột): Mã KH, Ngày giờ hẹn, Thời lượng, Bác sĩ, Trạng thái (drop-down), Nội dung, Lý do hủy.
+- Luật nhập:
+  - Chỉ có ngày, hoặc giờ 00:00 → 09:00.
+  - Thời lượng để trống → 30 phút.
+  - Trạng thái để trống: lịch đã qua → Đã đến, lịch sắp tới → Đã hẹn.
+  - Trạng thái mâu thuẫn với ngày → lỗi dòng.
+- `Appointment.Import` + `IsImported` (migration `20261013101316_ImportedAppointments`):
+  - Lịch nhập vào không sinh việc CSKH (`CareAppointmentRules`, `NoServiceCareWorker`).
+  - Seeder nhật ký đổi lịch bỏ qua lịch nhập vào.
+- Ngày tạo hồ sơ lùi về lần hẹn sớm nhất.
+- Vì có nhiều lịch, các chỗ tải nguyên bảng lịch hẹn được thu hẹp:
+  - `GET /appointments` nhận `sorting=Start desc`.
+  - `/appointments/stats` đếm bằng `GroupBy` trong DB.
+  - Báo cáo vận hành lọc lịch theo cửa sổ ±1 ngày trong DB.
+  - Báo cáo phòng khám (cả năm) chỉ lấy trạng thái + giờ.
+  - Tab Lịch hẹn của hồ sơ phân trang ở server, mới nhất trước, số đếm lấy từ server.
+- Hướng dẫn BA (`docs/migration/huong-dan-chuyen-du-lieu-duc-hanh.md`) có thêm ánh xạ sheet Lịch hẹn và mục 3.5.
+
+**Kiểm chứng (host :5100 build từ working tree + build production :8187 + PostgreSQL, không chặn API):**
+- `data-migration-api.spec`: **19/19** + 1 skip.
+  - Test mới 1: nhập 6 lịch → đọc lại trạng thái / giờ / thời lượng / mốc → stats → phân trang → lọc trạng thái → không có CSKH → chạy lại bỏ qua.
+  - Test mới 2: 9 dòng lỗi + file lỗi.
+- Hiệu năng: 5.000 KH / 70.000 dòng / 3.000 thu / 65.000 lịch hẹn, file 32,1 MB, lưu thật 35,3 s. Toàn bộ 478 nghìn lịch ≈ 7–8 file như vậy.
+- Hồi quy (appointment*, patient-appointment, cskh, patient-care, reception*, operations-reports, report, report-customer): **104 qua, 21 đỏ, 1 skip**. Không đỏ nào do thay đổi này:
+  - `report.spec` xuất Excel: mong tiêu đề "Phương thức thanh toán", nhưng chuỗi đã là "Hình thức" từ commit 2eec1e9e.
+  - `patient-appointment.spec:156`: `getByText("Chọn bệnh nhân")` khớp cả label lẫn placeholder (strict mode). Dialog không sửa.
+  - `reception-live-late.spec:137`: chạy lại thì qua (9/10 cùng spec patient-appointment).
+  - 18 đỏ `operations-reports`: request work-log mất 7–15 s hoặc bị huỷ (499).
+    - Nguyên nhân: tải nguyên bảng kế hoạch + dịch vụ, công đoạn, thanh toán, chẩn đoán, tư vấn (`OperationsReportAppService` :167/:204/:209/:222/:330/:339/:607).
+    - DB local đang có dữ liệu hiệu năng: khoảng 5,9 nghìn BN, 75 nghìn công đoạn.
+    - Ở HEAD đã có 8 đỏ cùng spec (`e2e-preexisting-reds`). Thay đổi này chỉ thu hẹp truy vấn lịch.
+
+**Còn mở:**
+- Rủi ro sau khi nhập thật Đức Hạnh (232 nghìn dòng dịch vụ): báo cáo Vận hành dùng không được, cho tới khi các truy vấn trên được lọc theo cửa sổ trong DB.
+- Các chỗ tải nguyên bảng khác cũng nên lọc theo cửa sổ trong DB:
+  - `ClinicReportAppService.GetSalesSummaryAsync` (mọi phiếu thu)
+  - `PatientPaymentAppService.QueryAsync` (phân trang trong bộ nhớ)
+  - `CashManagementAppService.GetPatientMoneyAsync`
+  - `PatientRosterAppService.ExportAsync`
+- Chưa sửa: chờ chủ dự án.
+
 ## R-927 (2026-10-13, mức 2: Chẩn đoán & Tư vấn) Ô "Chẩn đoán" không còn đưa chẩn đoán đã xoá mềm; phiếu cũ giữ tên chẩn đoán đã xoá
 
 - **Lỗi (có từ trước, thấy khi làm R-925):** `useCatalogOptions` chỉ gửi `isActive: true`. Danh mục xoá mềm vẫn để `isActive = true`, nên ô "Chẩn đoán" của "Tạo chẩn đoán" vẫn đưa ra mục đã xoá (cùng lỗi R-587 bên picker dịch vụ). Ngược lại, xoá một chẩn đoán trong Danh mục thì các phiếu đã lập với nó **mất tên**: `PatientDiagnosisAppService` / `PatientAdviseAppService` tra tên qua repository có bộ lọc `ISoftDelete` của ABP → `diagnosisName = null`, bảng hiện trống, mở lại phiếu thì ô chẩn đoán trống.
@@ -7934,7 +8127,72 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 - **Không đụng:** `/taxonomy` (chỉ prop `onCreated` từ R-925).
 - **Đổi chữ (owner, cùng ngày):** tooltip nút + đổi từ "Thêm nhanh chẩn đoán" thành **"Thêm chẩn đoán"** (`Patient:Diagnosis:QuickCreate`). Nhãn đọc màn hình (aria-label) dùng khoá riêng `Patient:Diagnosis:QuickCreateLabel` = "Thêm mới chẩn đoán vào danh mục": form đã có nút lệnh "Thêm chẩn đoán" (lưu phiếu, tiếp phiếu mới), trùng tên sẽ làm `getByRole("button", { name: "Thêm chẩn đoán" })` khớp 2 nút. Spec kiểm thêm tooltip hiện đúng chữ. Kiểm chứng: `diagnosis-quick-create.spec.ts` 2/2 + `patient.spec.ts:1142` (nút lệnh Thêm chẩn đoán) 1/1, build production :8145.
 
-## R-928 (2026-10-14, mức 3: component chung PhoneInput + BE bệnh nhân / lịch hẹn) Mã vùng quốc gia + cờ cho số điện thoại (F-72)
+## R-928 (ex R-906) (2026-10-13, mức 2: Nhân viên + Tiếp nhận + API lịch hẹn) Lọc nhiều bác sĩ theo "Mức độ ưu tiên" lấy từ hồ sơ nhân viên, thay cho kéo-thả (sửa R-922)
+
+**Yêu cầu (chủ sở hữu):** khi lọc nhiều bác sĩ, thứ tự hiển thị phải theo độ ưu tiên giống danh mục: mỗi nhân viên có ô "Mức độ ưu tiên" (đúng tên này, không phải "Thứ tự ưu tiên"), mặc định là 0, giống ô cùng tên ở dialog "Thêm dịch vụ". Người dùng không kéo-thả để sắp xếp trong ô lọc nữa.
+
+**Thay đổi:**
+- BE: thêm thuộc tính mở rộng `Priority` của IdentityUser, xử lý trong `StaffPriority` ở Domain (đọc, ghi, sắp xếp). Mặc định là 0; nhân viên lưu trước khi có trường này cũng được tính là 0. Giá trị âm bị từ chối với lỗi `BlueDental:Staff:0012`. Thêm `int Priority` vào `StaffDto`, `CreateStaffDto` và `UpdateStaffDto`. `AppointmentAppService.GetListAsync` sắp xếp theo mức ưu tiên tăng dần, cùng mức thì theo tên, áp dụng cho cả `DentistIds` (từ 2 bác sĩ trở lên) lẫn `DoctorTeamId`. Thứ tự gửi lên trong request không còn ảnh hưởng.
+- FE: thêm ô "Mức độ ưu tiên" (`StaffPriorityField`) vào form nhân viên, nhãn `Common:Priority`, InputNumber mặc định 0, tối thiểu 0, giống `ServiceDialog`. `SortableMultiSearchSelect` đổi tên thành `RankedMultiSearchSelect`: các bác sĩ đã chọn xếp theo thứ tự của danh sách option, tức là theo mức ưu tiên. Bỏ tay nắm kéo-thả và phím ↑/↓; `PriorityList` chỉ còn đánh số và nút ✕. Danh sách bác sĩ ở Tiếp nhận sắp theo mức ưu tiên bằng sort ổn định, nên những người cùng mức giữ thứ tự tên.
+- Làm mới khi đổi mức ưu tiên: lúc đầu, nếu sửa mức ưu tiên ở tab Nhân viên khác thì bảng Tiếp nhận đang mở vẫn giữ thứ tự cũ. Nguyên nhân là danh sách bác sĩ được cache 5 phút, còn `refetchOnWindowFocus` tắt cho toàn app. Cách sửa gồm hai phần. Thứ nhất, `useReceptionDoctors` dùng `refetchOnWindowFocus: "always"`, nên quay lại tab là danh sách bác sĩ được đọc lại. Thứ hai, ReceptionPage gửi `doctorIds` đã xếp lại theo danh sách bác sĩ mới nhất (`rankDoctorIds`). Khi thứ tự đổi thì key của query thay đổi, nên bảng tự tải lại theo thứ tự mới.
+- i18n: `Staff:PriorityHint`, `Staff:PriorityInvalid`, `Common:PriorityFromStaff`, `BlueDental:Staff:0012`.
+
+**Kiểm chứng (backend thật + build production `vite preview` 8080, không chặn API):**
+- `reception-doctor-priority.spec` (viết lại, 4/4):
+  - API nhóm lịch hẹn theo mức ưu tiên, request gửi theo thứ tự nào cũng vậy. Đổi mức (kể cả về 0) thì thứ tự đảo theo.
+  - Trên trình duyệt: bấm A trước B, nhưng B có mức nhỏ hơn thì request là `[B,A]`, danh sách đánh số B trước A, không có tay nắm kéo, thẻ đầu tiên là của B. Bấm ✕ bỏ được một người.
+  - Form nhân viên: nhân viên mới có mức 0; lưu 3 thì tải lại trang vẫn còn 3; xoá trống thì về 0. API từ chối -1 (403, `Staff:0012`).
+  - Sửa mức ưu tiên ở tab khác rồi quay lại: bảng đang lọc A, B gửi lại request với `[B,A]`, thẻ và danh sách đánh số đổi theo. Kiểm chứng ngược: tắt refetch thì test này đỏ.
+- Hồi quy:
+  - Xanh: `reception-doctor-team` 3/3, `reception-own-doctor` 6/6, `reception-doctor-list` 2/2, `staff-employment` 2/2.
+  - `staff.spec` đỏ ở bước chọn chi nhánh "Nha Khoa Đức Hạnh Premium". DB local đã tích luỹ hàng chục chi nhánh test ("CN HOA HONG …"), danh sách cuộn ảo tháo option khỏi DOM đúng lúc đang click. Đã chạy lại khi bỏ thay đổi form nhân viên và test vẫn đỏ y hệt, nên lỗi có từ trước.
+
+## R-929 (ex R-907) (2026-10-13, mức 2: Thanh toán bệnh nhân) Tạo phiếu thanh toán là "Hoàn tất" ngay, có hộp xác nhận trước khi lưu (bỏ bước "Chưa thanh toán" của BA 2026-10-08)
+
+**Yêu cầu (chủ sở hữu):** bấm lưu phiếu thanh toán thì phiếu phải ở trạng thái đã thanh toán luôn, không để "Chưa thanh toán" với công nợ còn nguyên. Trước khi lưu phải có hộp xác nhận. Chủ sở hữu chốt: phiếu "Hoàn tất" là cuối cùng, không sửa và không huỷ được; thu nhầm thì xử lý bằng phiếu hoàn tiền.
+
+**Thay đổi:**
+- BE: `PatientPaymentAppService.RecordAsync` luôn ghi phiếu với `PatientPaymentStatus.Completed`. `ConfirmAsync`, `UpdateAsync` và `Cancel` giữ nguyên, chỉ còn dùng cho các phiếu "Chưa thanh toán" đã lưu từ trước.
+- FE: `CreatePaymentDialog` tách bước kiểm tra (`readyToSave`) ra khỏi bước lưu. Ở chế độ tạo mới, bấm "Lưu" sẽ mở `ConfirmDialog` ("Xác nhận đã thu {số tiền}?"); chọn "Có" mới gửi POST, chọn "Không" thì không gửi gì và giữ nguyên dialog. Chân dialog đổi thành "Phiếu được ghi nhận đã thanh toán ngay khi lưu và không thể sửa hay huỷ." Khi mở lại một phiếu cũ còn "Chưa thanh toán", dialog vẫn hiện ghi chú 7 ngày như trước.
+- i18n: `Patient:Payment:ConfirmCreate`, `Patient:Payment:FinalWarning`.
+
+**Kiểm chứng (backend thật + build production 8080, không chặn API):**
+- `payment-status.spec` (viết lại, 4/4): "Không" không gửi POST; "Có" gửi đúng một POST và phiếu ở trạng thái Hoàn tất. Đã thanh toán và Công nợ đổi ngay, tải lại trang vẫn đúng. Dòng phiếu chỉ còn nút Xem. API từ chối sửa, xác nhận và huỷ với 403 `Billing:0096`; chi nhánh khác cũng bị từ chối.
+- Đã chuyển sang hành vi mới và đều xanh: `treatment-plan-detail` 13/13, `billing-ledger` 5/5, `debt-history` 4/4, `payment-amount-cap` 1/1, `payment-receipt-pdf` 4/4, và 3/4 test thanh toán của `patient.spec`.
+- `qa-bugs-25-30` (#26, #28): luồng huỷ có lý do và dòng "Đã hủy" không còn tới được với phiếu mới, nên đã thay bằng các kiểm tra từ chối (sửa ngày, huỷ, phiếu ghi ngày mai). Từ nay luồng huỷ phiếu "Chưa thanh toán" không còn test e2e nào bao phủ.
+- Còn đỏ, không do thay đổi này:
+  - `qa-bugs` #25: quy tắc check-in trong ngày đang bị tắt trong `Appointment.cs` (commit e1cbbba6).
+  - `vat-payment-einvoice-api` dòng 102: phiếu dịch vụ dùng chung đang có giảm giá cấp phiếu. Bản sao tạm bỏ qua phiếu đó thì xanh.
+  - `patient.spec` "the payment dialog carries the reference's fields": dialog có thêm dòng VAT do dữ liệu demo bị các test VAT thêm vào.
+  - `payment-permission-buttons` và `staff.spec`: không chọn được chi nhánh trong form nhân viên. Đã chạy thử khi bỏ thay đổi form nhân viên (R-928) và vẫn đỏ y hệt, nên lỗi có sẵn từ dữ liệu chi nhánh test tích luỹ.
+
+**Ghi nhận thêm (chưa sửa):** xác nhận lại một phiếu đã Hoàn tất trên dòng đã trả đủ thì trả về 403 `Billing:0092` ("vượt số còn nợ") thay vì `0096`. Nguyên nhân là `ConfirmAsync` và `UpdateAsync` kiểm tra hạn mức trước `EnsurePending()`. Yêu cầu vẫn bị từ chối, chỉ có mã lỗi gây hiểu nhầm.
+
+**Merge vào develop (2026-10-13):** develop đã tách `CreatePaymentDialog` thành `create-payment/` (F-70, R-907 của develop). Bước xác nhận nằm trong `useSavePayment`: `request` kiểm tra rồi mở `ConfirmDialog` (phiếu mới) hoặc lưu luôn (sửa / xác nhận phiếu cũ), `commit` là nút "Có". Tab PHIẾU THU vẫn mở ngay trong cú bấm "Có". `RecordAsync` ghi `Completed` và vẫn giữ cờ `RequestRedInvoice` của develop.
+- Spec của develop dựa vào phiếu "Chưa thanh toán" được chuyển sang hành vi mới:
+  - `payment-from-slip`: Lưu → "Có" → Hoàn tất, bỏ bước `confirmOnRow`.
+  - `invoice-request-api` / `-ui`: cờ HĐ đỏ tick ngay lúc tạo (`collectOnFirstLine(page, { redInvoice: true })`), vì phiếu Hoàn tất từ chối `PUT`. Bỏ bước dọn dẹp huỷ phiếu.
+  - Test R-915 (Hủy phiếu huỷ yêu cầu xuất HĐ) chuyển sang `test.fixme`: phiếu mới không huỷ được nữa, nên R-915 chỉ còn áp dụng cho phiếu "Chưa thanh toán" cũ. **Chủ dự án cần chốt.**
+  - Chưa chạy lại các spec này sau merge.
+
+## 2026-10-13 — Lịch làm việc bác sĩ tới 19:00 nhưng đặt lịch sau 17h bị chặn (R-911, F-10)
+
+| ID | Việc | Xử lý |
+|---|---|---|
+| R-911 | BA (ảnh): Bs Tới, "Cập nhật thông tin" ngày 13/10 hiện buổi chiều 13:00–19:00, nhưng Tạo tiếp nhận 17:15 bị từ chối "giờ hẹn nằm ngoài ca làm của bác sĩ (08:00-12:00, 13:00-17:00)". | Ba nguồn giờ làm lệch nhau: bảng Chấm công (FE `TimekeepingBoard`) và Đăng ký nghỉ dựng ngày chưa có bản ghi từ **giờ làm trên hồ sơ nhân viên** (ExtraProperties `Morning/AfternoonStart/EndTime`), còn `DentistShiftChecker` / `AppointmentSeriesPlanner` khi chưa có `TimeKeepingRecord` lại dùng mặc định cứng 08–12 / 13–17. Thêm nữa `OpenWorkDayAsync` (Vào ca / mở ngày từ bảng, FE không gửi giờ) và `BulkRegisterAsync` cũng tạo bản ghi với mặc định → sau khi bác sĩ vào ca, ngày đó khoá về 17:00 dù hồ sơ ghi 19:00 (và `UpdateInfoAsync` bỏ qua đổi giờ khi đã có chấm công). Nay `StaffWorkingHours` (Domain/Timekeeping) là chỗ đọc giờ hồ sơ duy nhất; checker + planner: bản ghi ngày → giờ hồ sơ → mặc định phòng khám; `OpenWorkDayAsync` / `BulkRegisterAsync` lấy giờ hồ sơ cho ca không truyền giờ. |
+
+Kiểm chứng (host :5000 build mới → PostgreSQL thật; FE preview :8091): Domain `DentistShiftChecker*` + `AppointmentSeries*` **15/15** (thêm 2: không có bản ghi → giờ hồ sơ 13:00–19:00, 17:15 lọt; có bản ghi → bản ghi thắng). `appointment-working-hours` **4/4** (thêm: bác sĩ hồ sơ chiều tới 19:00, không mở ca → 17:15 đặt được, 19:15 bị từ chối với "08:00-12:00, 13:00-19:00"). Chưa xác nhận được dữ liệu thật của Bs Tới trên production (không có quyền đọc DB prod). Bản ghi chấm công **đã tạo trước** bản sửa (vd. đã Vào ca hôm nay với 13:00–17:00) vẫn giữ giờ cũ — không migrate. Chưa commit.
+
+| ID | Việc | Xử lý |
+|---|---|---|
+| R-912 | Theo R-911: "Cập nhật thông tin" ở Chấm công **im lặng bỏ qua** giờ ca mới khi ngày đó đã có Vào ca (`UpdateInfoAsync` bọc `if (!record.HasAnyAttendance)`) mà vẫn trả 200 + toast thành công → bác sĩ đã Vào ca với 13:00–17:00 thì sửa thành 19:00 không lưu, đặt lịch sau 17h vẫn bị chặn. | Chủ dự án chọn (a) 2026-10-13: cho đổi giờ ca cả sau khi đã chấm công. `TimeKeepingRecord.RescheduleShifts` không còn ném `RegistrationLocked`; chỉ dời giờ kế hoạch qua `WorkShift.Reschedule`, giờ vào/ra đã chấm giữ nguyên trên từng ca. Bỏ guard trong `UpdateInfoAsync`. Đăng ký nghỉ / đặt lại đăng ký sau chấm công vẫn bị khoá như cũ. |
+
+Kiểm chứng (host :5000 build mới → PostgreSQL thật): Domain `TimeKeepingRecord*` + `DentistShiftChecker*` + `AppointmentSeries*` **34/34** (thay assert "reschedule sau check-in phải ném" bằng test dời kế hoạch giữ check-in/check-out + Status Working). E2E `appointment-working-hours` + `timekeeping-api` **8/8**; case mới: hôm nay open-day → Vào ca sáng → PUT `/info` chiều tới 23:59 → đọc lại thấy plannedEnd 23:59 và checkedInAt còn → đặt lịch hôm nay sau 17:00 (slot sau giờ hiện tại) được 200. Chưa commit.
+| R-913 | Chủ dự án (ảnh, localhost): Tạo tiếp nhận 13/10 18:30 + 30 phút bị từ chối dù thông báo ghi ca "13:00-19:00". | `ReceptionNewDrawer` ghép ngày từ `dayjs()` (giữ mili-giây lúc mở trang) và chỉ `.second(0)` → gửi 18:30:00.xxx–19:00:00.xxx, `Fits` so `TimeOnly` có phần lẻ nên 19:00:00.xxx > 19:00. Mọi lịch kết thúc **đúng** giờ hết ca từ màn này đều dính (vd. 16:30–17:00), không riêng R-911. Sửa: FE thêm `.millisecond(0)` (các dialog khác đã có); BE `DentistShiftChecker.Fits` cắt về phút trước khi so ca, nên client nào gửi lẻ giây cũng không bị chặn oan. |
+
+Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 19:00, 18:45–19:01 vẫn bị chặn); e2e `appointment-working-hours` + `timekeeping-api` 8/8 (thêm POST slot 19:30.437–20:00.437 vào ca tới 20:00 → 200); `tsc` sạch. Chưa commit.
+
+## R-932 (ex R-928 trên main) (2026-10-14, mức 3: component chung PhoneInput + BE bệnh nhân / lịch hẹn) Mã vùng quốc gia + cờ cho số điện thoại (F-72)
 
 - **Yêu cầu (owner, 2026-10-13):** "Cập nhật số điện thoại cho chọn số vùng". Áp dụng cho Tạo/Sửa hồ sơ bệnh nhân, Người giám hộ và Lịch hẹn tạm. Có cờ cho đẹp. Bản gốc không có mã vùng nên không cần quan sát app.nfcdental.com. BlueDental riêng.
 - **Lưu trữ (không thêm cột):** số Việt Nam vẫn lưu dạng trong nước có số 0 (`0901234567`), nên dữ liệu cũ, tìm kiếm, Zalo và kiểm trùng không đổi. Số nước ngoài lưu E.164 (`+14155550123`).
@@ -7978,9 +8236,9 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 - **Ghi chú môi trường:** engine Docker Desktop đã dừng giữa chừng (Postgres 15432 chết). Đã `docker desktop restart`.
 - Chưa commit.
 
-## R-929 (2026-10-14, mức 2: PhoneInput) Kiểm đủ 243 nước: số 0 của Ý / Bờ Biển Ngà, cờ vùng lãnh thổ dùng chung mã (F-72)
+## R-933 (ex R-929 trên main) (2026-10-14, mức 2: PhoneInput) Kiểm đủ 243 nước: số 0 của Ý / Bờ Biển Ngà, cờ vùng lãnh thổ dùng chung mã (F-72)
 
-- **Owner hỏi:** "b có test các nước chưa". E2E của R-928 chỉ chạy qua VN, US, GB, AU, KR.
+- **Owner hỏi:** "b có test các nước chưa". E2E của R-932 chỉ chạy qua VN, US, GB, AU, KR.
 - **Kiểm hết danh sách 243 nước** (script tạm, đã xoá). Với mỗi nước:
   - có cờ SVG;
   - có tên vi và en;
@@ -8064,4 +8322,42 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - `work-schedule-own-dayoff` xanh.
   - Kết quả: 12/13. Một test đỏ có sẵn, không liên quan: `timekeeping` › "the work schedule board loads its KPIs" chờ `data-testid="timekeeping-kpis"` nhưng testid này đã mất khỏi `TimekeepingStatChips` từ một commit trước. File đó không nằm trong thay đổi này.
   - `tsc` + eslint sạch.
+- Chưa commit.
+
+## R-934 (2026-10-14, mức 2: dialog "Tạo phiếu thanh toán" của F-70 + bảng Thanh toán) Chọn "Ngày thanh toán", cho phép ngày quá khứ; cột "Ngày tạo" thành "Ngày thanh toán"
+
+- **Owner (ảnh dialog "Tạo phiếu thanh toán"):** "Chỗ này cho chọn ngày thanh toán giúp anh nhé ---> Cho phép chọn ngày trong quá khứ luôn". Không chặn ngày sớm nhất. Ngày tương lai vẫn bị chặn. Sau đó thêm: "thay thế cột Ngày tạo thành Ngày thanh toán luôn nha".
+- **BE không đổi logic:**
+  - `RecordPatientPaymentDto.PaidAt` vốn đã có (null = bây giờ).
+  - `PatientPayment.EnsureNotAfterToday` từ chối ngày sau hôm nay (`BlueDental:Billing:0094`, HTTP 403).
+  - Chỉ thêm key `Treatment:Payment:PaidDate` (vi "Ngày thanh toán" / en "Payment date"). Key được nhúng trong assembly, nên phải build lại và khởi động lại API mới thấy.
+- **FE:**
+  - `create-payment/PaymentDateField.tsx` (mới): `DatePicker` theo `DATE_INPUT_FORMAT`, dùng `disabledDate` cho ngày sau hôm nay, không cho xoá trống.
+  - `usePaymentForm`: thêm `paidOn` ("YYYY-MM-DD"), mặc định là hôm nay.
+  - `useSavePayment`:
+    - gửi `paidAt` = ngày đã chọn + giờ hiện tại;
+    - PHIẾU THU in với `arisingDate` = ngày đã chọn;
+    - "Nội dung" ("Thanh toán ngày …") đi theo ngày đã chọn.
+  - Phiếu "Chưa thanh toán" mở lại để sửa hoặc xác nhận vẫn hiện ngày chỉ đọc: API cập nhật không nhận `PaidAt`, còn `Confirm` đặt `PaidAt = Clock.Now`.
+  - `paymentColumns`: cột thứ 2 ở tab Thanh toán (cả bảng lẫn thẻ mobile) đổi từ `creationTime` "Ngày tạo" sang `paidAt` "Ngày thanh toán".
+  - Chưa đổi: tab Hoàn tiền (đã hiện `paidAt` nhưng nhãn vẫn "Ngày tạo") và dialog "Xem phiếu" (`PaymentReceiptDialog`).
+- **Hệ quả nghiệp vụ:** phiếu lùi ngày được tính vào doanh thu và báo cáo của ngày đã chọn, không phải ngày nhập.
+- **Test:** `payment-from-slip` thêm test "Ngày thanh toán: a past day is picked, saved, printed and listed; a later day is refused". Test kiểm:
+  - mặc định là hôm nay, ô ngày mai bị khoá;
+  - chọn lùi 3 ngày: POST có `paidAt` = ngày đó và `creationTime` = hôm nay;
+  - receipt-pdf có `arisingDate` = ngày đó;
+  - reload rồi GET lại vẫn đúng;
+  - cột "Ngày thanh toán" hiện ngày đó, không còn cột "Ngày tạo";
+  - POST thẳng API với ngày mai trả 403 `Billing:0094`.
+- **Owner xem bảng:** "hiện lên ngày thôi". Cột "Ngày thanh toán" chỉ hiện ngày (`formatDate`), không hiện giờ, vì giờ của phiếu lùi ngày chỉ là giờ lúc nhập. Test kiểm ô thứ 2 của dòng đúng bằng `DD/MM/YYYY`.
+- **Kiểm chứng: VERIFIED.** Chạy trên API thật :5000 (owner cho dừng host cũ, đã build lại có key mới), build production `vite preview` :18934 và PostgreSQL thật.
+  - `payment-from-slip` 2/2, `payment-status` 4/4, `payment-permission-buttons` 2/2: tổng 8/8.
+  - Sau khi đổi sang chỉ hiện ngày, chạy lại `payment-from-slip` 2/2.
+  - `tsc` + eslint sạch.
+- **Dialog "Xem phiếu" (Chi tiết phiếu), theo yêu cầu owner "sửa dialog Xem phiếu trước":** phiếu thu đổi dòng "Ngày tạo" thành **"Ngày thanh toán"**, chỉ hiện ngày `paidAt`, giống cột trong bảng.
+  - `ReceiptView.createdLabel` tách thành `dateTitle` + `dateText`.
+  - Phiếu hoàn tiền vẫn ghi "Ngày tạo" + giờ, chờ owner quyết khi sửa tab Hoàn tiền.
+  - "In hóa đơn tổng" vẫn là "Ngày tạo" = hôm nay.
+  - Test `payment-from-slip` mở 👁 và kiểm `dd` của "Ngày thanh toán" đúng ngày đã lùi, không còn `dt` "Ngày tạo".
+  - Chạy lại trên API :5000 + build production :18934: `payment-from-slip` 2/2, `payment-status` 4/4, `treatment-plan-detail` 13/13, `billing-ledger` 5/5.
 - Chưa commit.

@@ -8,6 +8,7 @@ using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
@@ -455,10 +456,23 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
         return (await ToCounterDtosAsync([counter]))[0];
     }
 
+    /// <summary>
+    /// A counter goes only once nobody is waiting, called or being seen there
+    /// today — their numbers would vanish from the board. A paused counter
+    /// with an empty queue may go. Soft delete: old numbers keep its name.
+    /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Queue.Update)]
     public async Task DeleteCounterAsync(Guid id)
     {
         var counter = await GetCounterInBranchAsync(id);
+        var inQueue = await GetNumbersInQueueAsync(counter.Id, Today);
+        if (inQueue.Count > 0)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Queue.CounterHasQueue)
+                .WithData("counter", counter.Name)
+                .WithData("count", inQueue.Count);
+        }
+
         await _counterRepository.DeleteAsync(counter, autoSave: true);
         await _notifier.NotifyQueueUpdatedAsync(counter.ClinicBranchId);
     }
@@ -634,6 +648,24 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
         return dto;
     }
 
+    /// <summary>Counter names, deleted counters included — their old numbers still name them.</summary>
+    private async Task<Dictionary<Guid, string>> GetCounterNamesAsync(IReadOnlyCollection<Guid> counterIds)
+    {
+        if (counterIds.Count == 0)
+        {
+            return [];
+        }
+
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            return (await AsyncExecuter.ToListAsync(
+                    (await _counterRepository.GetQueryableAsync())
+                        .Where(c => counterIds.Contains(c.Id))
+                        .Select(c => new { c.Id, c.Name })))
+                .ToDictionary(c => c.Id, c => c.Name);
+        }
+    }
+
     private async Task FillNamesAsync(IReadOnlyList<QueueTicket> tickets, IReadOnlyList<QueueTicketDto> dtos)
     {
         var patientIds = tickets.Where(t => t.PatientId.HasValue).Select(t => t.PatientId!.Value).Distinct().ToList();
@@ -646,16 +678,9 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
                     .Select(p => new { p.Id, p.FullName }))
             : [];
 
-        var counters = counterIds.Count > 0
-            ? await AsyncExecuter.ToListAsync(
-                (await _counterRepository.GetQueryableAsync())
-                    .Where(c => counterIds.Contains(c.Id))
-                    .Select(c => new { c.Id, c.Name }))
-            : [];
-
         var patientMap = patients.ToDictionary(p => p.Id, p => p.FullName);
         var dentistMap = await GetUserNamesAsync(tickets.Select(t => t.DentistId));
-        var counterMap = counters.ToDictionary(c => c.Id, c => c.Name);
+        var counterMap = await GetCounterNamesAsync(counterIds);
 
         for (var i = 0; i < dtos.Count; i++)
         {
@@ -674,12 +699,7 @@ public class QueueTicketAppService : BlueDentalAppService, IQueueTicketAppServic
         var counterIds = tickets.Where(t => t.CounterId.HasValue).Select(t => t.CounterId!.Value).Distinct().ToList();
         if (counterIds.Count == 0) return;
 
-        var counters = await AsyncExecuter.ToListAsync(
-            (await _counterRepository.GetQueryableAsync())
-                .Where(c => counterIds.Contains(c.Id))
-                .Select(c => new { c.Id, c.Name }));
-
-        var counterMap = counters.ToDictionary(c => c.Id, c => c.Name);
+        var counterMap = await GetCounterNamesAsync(counterIds);
         for (var i = 0; i < dtos.Count; i++)
         {
             if (tickets[i].CounterId is { } counterId)

@@ -7,7 +7,7 @@ import { DataTable } from "@/components/DataTable";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { AppointmentHistoryModal } from "@/features/appointments/components/history/AppointmentHistoryModal";
 import { useDeleteAppointment } from "@/features/appointments/api/appointmentMutations";
-import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
+import { useAppointmentList, useAppointmentStats } from "@/features/appointments/api/appointmentQueries";
 import type { Appointment } from "@/features/appointments/types/appointment";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -16,7 +16,6 @@ import { countedTotal } from "@/utils/countedTotal";
 import {
   appointmentGroups,
   buildAppointmentColumns,
-  inAppointmentGroup,
   type AppointmentGroupKey,
 } from "./patientAppointmentColumns";
 
@@ -45,23 +44,28 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
   const pagination = useTablePagination(20);
   const remove = useDeleteAppointment();
 
-  // Every appointment of this patient, for the four counters. They count the
-  // whole record, not the page on screen.
-  const all = useAppointmentList({ patientId, maxResultCount: 500 });
-  const everything = all.data?.items ?? [];
+  // The four counters count the whole record, not the page on screen, and the
+  // server counts them: a patient moved in from an old system can bring
+  // hundreds of visits.
+  const counts = useAppointmentStats({ patientId });
+  const groups = appointmentGroups();
+  const countOf = (key: AppointmentGroupKey) =>
+    groups
+      .find((item) => item.key === key)
+      ?.of.reduce((sum, status) => sum + (counts.data?.[status] ?? 0), 0) ?? 0;
 
+  // Latest visit first; a picked counter filters on the server, so paging
+  // stays right.
   const page = useAppointmentList({
     patientId,
+    statuses: groups.find((item) => item.key === group)?.of,
+    newestFirst: true,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
 
-  const rows = (page.data?.items ?? []).filter(
-    (row) => !group || inAppointmentGroup(group, row.status),
-  );
-  const totalCount = group
-    ? everything.filter((row) => inAppointmentGroup(group, row.status)).length
-    : page.data?.totalCount ?? 0;
+  const rows = page.data?.items ?? [];
+  const totalCount = page.data?.totalCount ?? 0;
 
   const columns = buildAppointmentColumns({
     onHistory: (appointment) => setHistory({ open: true, appointment }),
@@ -71,7 +75,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
 
   const refresh = () => {
     void page.refetch();
-    void all.refetch();
+    void counts.refetch();
   };
 
   const handleConfirmDelete = async () => {
@@ -90,7 +94,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
     <section className="pd-pane pd-pane--fill pd-appointment-tab">
       <div className="pd-appointment-toolbar">
         <div className="pd-stat-row">
-          {appointmentGroups().map((item) => (
+          {groups.map((item) => (
             <button
               type="button"
               key={item.key}
@@ -103,9 +107,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
                 })
               }
             >
-              <strong>
-                {everything.filter((row) => inAppointmentGroup(item.key, row.status)).length}
-              </strong>
+              <strong>{countOf(item.key)}</strong>
               <span>{item.label}</span>
             </button>
           ))}

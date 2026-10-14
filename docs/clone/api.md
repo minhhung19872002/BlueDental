@@ -1959,11 +1959,15 @@ Chi tiết hợp đồng API: `docs/clone/pages/payroll.md`.
 
 Quyền `BlueDental.SystemAdmin.DataMigration`; chi nhánh qua `BranchAccessChecker` (ngoài phạm vi → 403). Không có màn hình — gọi bằng Swagger/curl.
 
-- `GET /api/v1/app/data-migration/template?clinicBranchId=<guid>` → file `BlueDental_Migration.xlsx` (Khách hàng, Điều trị, Hướng dẫn), không chứa dữ liệu chi nhánh. Dropdown cố định: Giới tính, Quan hệ GH, Trạng thái. Tên dịch vụ / bác sĩ / nguồn đến / kênh / nghề nghiệp / thẻ / tiền sử bệnh ghi đúng như trên BlueDental, sai thì `dryRun` chỉ ra dòng.
+- `GET /api/v1/app/data-migration/template?clinicBranchId=<guid>` → file `BlueDental_Migration.xlsx` (Khách hàng, Điều trị 16 cột, Thanh toán 9 cột, Lịch hẹn 7 cột, Hướng dẫn — Thanh toán từ 2026-10-13 R-924, Lịch hẹn R-926), không chứa dữ liệu chi nhánh. Dropdown cố định: Giới tính, Quan hệ GH, Trạng thái, Hình thức, Trạng thái lịch hẹn (Đã hẹn / Đã đến / Trễ hẹn / Hủy hẹn). Tên dịch vụ / bác sĩ / nguồn đến / kênh / nghề nghiệp / thẻ / tiền sử bệnh ghi đúng như trên BlueDental, sai thì `dryRun` chỉ ra dòng.
 - `POST /api/v1/app/data-migration/import` multipart `file`, `clinicBranchId`, `dryRun` →
-  `{ dryRun, committed, errorCount, patientsCreated, patientsSkipped, treatmentPlansCreated, treatmentStagesCreated, fileErrors: [<string>], sheets: [{ name, totalRows, rows: [{ row, patientCode, action: 0|1|2, errors: [<string>] }] }] }`
+  `{ dryRun, committed, errorCount, patientsCreated, patientsSkipped, treatmentPlansCreated, treatmentStagesCreated, paymentsCreated, appointmentsCreated, fileErrors: [<string>], sheets: [{ name, totalRows, rows: [{ row, patientCode, action: 0|1|2, errors: [<string>] }] }] }`
   (`rows` chỉ gồm dòng Skip=1 / Error=2). Có lỗi bất kỳ → `committed: false`, không ghi gì.
-- `POST /api/v1/app/data-migration/import-errors` cùng multipart → file gốc thêm cột "Lỗi" ở hai sheet dữ liệu.
+- `POST /api/v1/app/data-migration/import-errors` cùng multipart → file gốc thêm cột "Lỗi" ở bốn sheet dữ liệu (Khách hàng, Điều trị, Thanh toán, Lịch hẹn).
+- File tối đa 60 MB (`[RequestSizeLimit]` + nginx location riêng, timeout 600 s). Sheet Thanh toán không bắt buộc; phiếu thu tạo ra có `IsImported = true`, không hiện trong nguồn Yêu cầu xuất HĐ. Sheet Lịch hẹn không bắt buộc; lịch tạo ra có `IsImported = true` (`Appointment.Import`), không sinh việc CSKH, không ghi nhật ký thay đổi. Luật gom / chia tiền: `docs/testing/features/data-migration.md`.
+
+- Lịch hẹn (R-926, phục vụ hồ sơ có hàng trăm lịch cũ): `GET /api/v1/app/appointments` nhận `sorting=Start desc` (mới nhất trước; giá trị khác giữ thứ tự cũ) và `statuses=<int>` lặp lại; `GET /api/v1/app/appointments/stats?patientId=` đếm trong DB, không giới hạn số dòng.
+
 ## Mối quan hệ · Hồ sơ nhóm — BlueDental riêng (2026-10-09, 4.8 / 4.10)
 
 `/api/v1/app/patient-relations` (`?patientId=`, `/family?patientId=`, POST / PUT / DELETE) và

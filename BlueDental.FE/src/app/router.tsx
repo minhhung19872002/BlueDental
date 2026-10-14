@@ -183,6 +183,12 @@ const QueueDisplayPage = lazy(() =>
   })),
 );
 
+const PublicInvoiceRequestPage = lazy(() =>
+  import("@/features/public-invoice-request/pages/PublicInvoiceRequestPage").then((m) => ({
+    default: m.PublicInvoiceRequestPage,
+  })),
+);
+
 const ClinicSettingsPage = lazy(() =>
   import("@/features/organizations/pages/ClinicSettingsPage").then((m) => ({
     default: m.ClinicSettingsPage,
@@ -260,6 +266,14 @@ const appRoutes: RouteObject[] = [
     element: (
       <S>
         <QueueDisplayPage />
+      </S>
+    ),
+  },
+  {
+    path: "/invoice-request/:token",
+    element: (
+      <S>
+        <PublicInvoiceRequestPage />
       </S>
     ),
   },

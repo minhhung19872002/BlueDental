@@ -13,12 +13,14 @@ import {
   callNext,
   createCounter,
   deleteCounters,
+  drainCounter,
   errorCode,
   freeDentists,
   freePrefixes,
   getBoard,
   getTicket,
   listCounters,
+  liveTickets,
   saveCounter,
   takeNumber,
   type BoardCounter,
@@ -59,6 +61,7 @@ test.describe("Queue API — per-counter queues", () => {
   let normal1: Ticket;
   let normal2: Ticket;
   let urgent: Ticket;
+  let y2: Ticket;
 
   test.beforeAll(async ({ browser }) => {
     page = await loginAs(browser);
@@ -276,7 +279,7 @@ test.describe("Queue API — per-counter queues", () => {
 
   test("Đặt lại số thứ tự restarts numbering; numbers still waiting keep theirs", async () => {
     const y1 = (await takeNumber(page, counterY.id)).body;
-    const y2 = (await takeNumber(page, counterY.id, NORMAL)).body;
+    y2 = (await takeNumber(page, counterY.id, NORMAL)).body;
     expect([y1.displayNumber, y2.displayNumber]).toEqual([`${prefixes[1]}001`, `${prefixes[1]}002`]);
     await callNext(page, counterY.id);
     await call(page, "POST", `${QUEUE}/tickets/${y1.id}/skip`);
@@ -323,6 +326,9 @@ test.describe("Queue API — per-counter queues", () => {
 
       expect((await callNext(other, counterX.id, BRANCH_TWO)).status).toBe(404);
       expect((await takeNumber(other, counterX.id, NORMAL, BRANCH_TWO)).status).toBe(404);
+      const foreignDelete = await call(other, "DELETE", `${QUEUE}/counters/${counterX.id}`, undefined, BRANCH_TWO);
+      expect(foreignDelete.status, "branch 2 cannot delete branch 1's counter").toBe(404);
+      expect((await listCounters(page)).some((c) => c.id === counterX.id), "still there").toBe(true);
 
       // Names are unique per branch only: branch 2 may reuse counter X's name.
       const own = await listCounters(other, BRANCH_TWO);
@@ -350,5 +356,36 @@ test.describe("Queue API — per-counter queues", () => {
     } finally {
       await other.context().close();
     }
+  });
+
+  test("a counter with anyone in its queue cannot be deleted; an empty one, paused too, can", async () => {
+    // Y is paused and still has numbers waiting.
+    const waiting = await liveTickets(page, counterY.id);
+    expect(waiting.length).toBeGreaterThan(0);
+    const refused = await call(page, "DELETE", `${QUEUE}/counters/${counterY.id}`);
+    expect(refused.status).toBe(403);
+    expect(errorCode(refused)).toBe("BlueDental:Queue:0015");
+    expect((refused.body as { error: { message: string } }).error.message).toContain(counterY.name);
+    expect((await listCounters(page)).some((c) => c.id === counterY.id), "kept").toBe(true);
+
+    // A number being called counts as in the queue too: X's current number blocks it.
+    expect(errorCode(await call(page, "DELETE", `${QUEUE}/counters/${counterX.id}`))).toBe("BlueDental:Queue:0015");
+
+    await drainCounter(page, counterY.id);
+    const deleted = await call(page, "DELETE", `${QUEUE}/counters/${counterY.id}`);
+    expect(deleted.status, `delete the emptied, paused counter: ${errorCode(deleted)}`).toBeLessThan(300);
+    expect((await listCounters(page)).some((c) => c.id === counterY.id), "gone from the list").toBe(false);
+    expect((await getBoard(page)).body.some((c) => c.id === counterY.id), "gone from the board").toBe(false);
+
+    // Its old numbers still name it.
+    expect((await getTicket(page, y2.id)).counterName).toBe(counterY.name);
+
+    // Its prefix and dentist are free again.
+    const reuse = await createCounter(page, {
+      name: `E2E-Y2 ${run}`,
+      numberPrefix: prefixes[1],
+      dentistId: dentists[1].id,
+    });
+    expect((await call(page, "DELETE", `${QUEUE}/counters/${reuse.id}`)).status).toBeLessThan(300);
   });
 });

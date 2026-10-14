@@ -425,6 +425,8 @@ export interface PatientPaymentDto {
   deletionTime: string | null;
   cancelReason: string | null;
   cancelledByName: string | null;
+  /** "Xuất hóa đơn đỏ" was ticked when the receipt was written; nothing is issued yet. */
+  redInvoiceRequested: boolean;
 }
 
 export interface PatientAccountDto {
@@ -469,9 +471,13 @@ export interface RecordPaymentInput {
   method: PaymentMethodKind;
   amount: number;
   staffId: string;
+  /** When the money was taken; left out = now. Any day up to today (`PaymentDateInFuture`). */
+  paidAt?: string;
   note?: string;
   /** Required when `method` is Banking or EWallet — the account collected into. */
   paymentAccountId?: string;
+  /** "Xuất hóa đơn đỏ" — only stored; the e-invoice is issued from another screen (owner 2026-10-12). */
+  redInvoiceRequested?: boolean;
 }
 
 /** Filters of `GET patient-payments`; the server pages and sorts by `paidAt` desc. */
@@ -598,6 +604,7 @@ export interface UpdatePaymentInput {
   amount: number;
   note?: string | null;
   paymentAccountId?: string | null;
+  redInvoiceRequested?: boolean;
 }
 
 export const treatmentKeys = {

@@ -70,7 +70,11 @@ public class ControllerConventionTests
     /// Note: ZaloWebhookController inherits ControllerBase (not BlueDentalController)
     /// and is excluded from these convention tests.
     /// </summary>
-    private static readonly HashSet<Type> AnonymousControllers = [];
+    private static readonly HashSet<Type> AnonymousControllers =
+    [
+        // QR on a PHIẾU THU; the one-time token is the key (F-71).
+        typeof(BlueDental.EInvoicing.PublicInvoiceRequestController),
+    ];
 
     /// <summary>
     /// Every controller must state its access rule: [Authorize] by default,
@@ -111,10 +115,13 @@ public class ControllerConventionTests
         // What matters is the URL a caller reaches, which is the class template
         // joined to the action's own. A controller whose actions sit on
         // unrelated nouns carries the bare prefix and names the noun per action;
-        // that still lands under api/v1/app/.
+        // that still lands under api/v1/app/. Only the reviewed anonymous
+        // controllers above may sit under api/v1/public/ instead.
+        var anonymousNames = AnonymousControllers.Select(t => t.Name).ToHashSet();
         var nonCompliant = AllControllers()
             .SelectMany(EffectiveRoutes)
-            .Where(x => !x.Route.StartsWith("api/v1/app/"))
+            .Where(x => !x.Route.StartsWith("api/v1/app/")
+                        && !(anonymousNames.Contains(x.Name) && x.Route.StartsWith("api/v1/public/")))
             .Select(x => $"{x.Name}: {x.Route}")
             .ToList();
 

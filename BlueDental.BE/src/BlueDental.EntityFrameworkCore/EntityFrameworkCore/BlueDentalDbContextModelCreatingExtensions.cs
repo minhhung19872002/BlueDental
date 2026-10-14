@@ -396,6 +396,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             {
                 slot.Property(s => s.Start).HasColumnName("slot_start").IsRequired();
                 slot.Property(s => s.End).HasColumnName("slot_end").IsRequired();
+
+                // Reports and the calendar read a date window; an imported clinic holds years of bookings.
+                slot.HasIndex(s => s.Start);
             });
 
             entity.HasIndex(x => new { x.DentistId, x.Status });
@@ -1802,6 +1805,44 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.ClinicBranchId);
             entity.HasIndex(x => x.PatientId);
             entity.HasIndex(x => x.TreatmentPlanId);
+        });
+
+        builder.Entity<InvoiceRequest>(entity =>
+        {
+            entity.ToTable("bd_invoice_requests");
+            entity.ConfigureByConvention();
+
+            entity.Property(x => x.Code).HasMaxLength(InvoiceRequest.MaxCodeLength).IsRequired();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.FullName).HasMaxLength(InvoiceRequest.MaxNameLength).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(InvoiceRequest.MaxPhoneLength).IsRequired();
+            entity.Property(x => x.NationalId).HasMaxLength(InvoiceRequest.MaxNationalIdLength);
+            entity.Property(x => x.PersonalAddress).HasMaxLength(InvoiceRequest.MaxAddressLength);
+            entity.Property(x => x.CompanyName).HasMaxLength(InvoiceRequest.MaxNameLength);
+            entity.Property(x => x.TaxCode).HasMaxLength(InvoiceRequest.MaxTaxCodeLength);
+            entity.Property(x => x.CompanyAddress).HasMaxLength(InvoiceRequest.MaxAddressLength);
+            entity.Property(x => x.Email).HasMaxLength(InvoiceRequest.MaxEmailLength).IsRequired();
+            entity.Property(x => x.ServiceName).HasMaxLength(InvoiceRequest.MaxServiceNameLength).IsRequired();
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.InvoiceNo).HasMaxLength(InvoiceRequest.MaxInvoiceNoLength);
+            entity.Property(x => x.Reason).HasMaxLength(InvoiceRequest.MaxReasonLength);
+
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Code }).IsUnique();
+            // One live request per receipt; a cancelled one must not block a new one.
+            entity.HasIndex(x => x.PatientPaymentId).IsUnique()
+                .HasFilter("\"IsDeleted\" = false AND \"Status\" <> " + (short)InvoiceRequestStatus.Cancelled);
+            entity.HasIndex(x => x.PatientId);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+        });
+
+        builder.Entity<InvoiceRequestLink>(entity =>
+        {
+            entity.ToTable("bd_invoice_request_links");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Token).HasMaxLength(InvoiceRequestLink.TokenLength).IsRequired();
+            entity.HasIndex(x => x.Token).IsUnique();
+            entity.HasIndex(x => x.PatientPaymentId).IsUnique();
         });
 
         builder.Entity<EInvoiceProviderConfig>(entity =>

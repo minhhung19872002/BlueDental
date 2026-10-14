@@ -4,10 +4,14 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using BlueDental.Appointments;
+using BlueDental.Billing;
+using BlueDental.Catalogs;
 using BlueDental.Catalogs.Import;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Roster;
 using BlueDental.TreatmentManagement.Values;
+using BlueDental.Values;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Localization;
 using static BlueDental.DataMigration.DataMigrationLayout;
@@ -67,10 +71,45 @@ internal sealed record TreatmentDraft(
     Guid DentistId,
     Guid? AssistingDoctorId,
     Guid? AssistantId,
-    bool Completed);
+    bool Completed,
+    string? PlanKey = null,
+    int? Quantity = null,
+    decimal? OriginalPrice = null,
+    decimal? Price = null,
+    decimal? Amount = null)
+{
+    /// <summary>A row with a unit price opens a service line of its own; one without is a visit on an earlier line.</summary>
+    public bool IsPriced => Price > 0m;
+}
+
+/// <summary>One Thanh toán row: money the old system took against a slip or a Kế hoạch of the patient.</summary>
+internal sealed record PaymentDraft(
+    string Code,
+    DateOnly PaidOn,
+    string? SlipCode,
+    string? PlanKey,
+    decimal Amount,
+    PaymentMethodKind Method,
+    Guid? AccountId,
+    Guid? CashierId,
+    string? Note);
 
 /// <summary>
-/// Reads one row of either data sheet into a draft, collecting every problem
+/// One Lịch hẹn row. <see cref="At"/> is the clinic's wall-clock time; the
+/// status is left null when the cell is blank, for the plan to pick by whether
+/// the booking is past or still to come.
+/// </summary>
+internal sealed record AppointmentDraft(
+    string Code,
+    DateTime At,
+    int Minutes,
+    Guid DentistId,
+    AppointmentStatus? Status,
+    string? Note,
+    string? CancelNote);
+
+/// <summary>
+/// Reads one row of a data sheet into a draft, collecting every problem
 /// with it rather than stopping at the first. Limits are the column lengths of
 /// the tables the row lands in; the domain's own guards (name characters,
 /// CCCD, teeth...) run again when the entities are built.
@@ -89,6 +128,56 @@ internal sealed class MigrationRowReader
     private const int SlipCodeMax = 50;
     private const int StageNameMax = 300;
     private const int StageNoteMax = 2000;
+    private const int PlanKeyMax = 200;
+    private const int QuantityMax = 1_000;
+    private const int BookingNoteMax = 2000;
+    private const int CancelNoteMax = 500;
+    private const int DefaultMinutes = 30;
+    private const int MaxMinutes = 480;
+
+    /// <summary>A booking with no time of day (or midnight, how a bare date reads) starts when the clinic opens.</summary>
+    private static readonly TimeOnly OpeningTime = new(9, 0);
+
+    private static readonly string[] DateTimeFormats =
+        ["dd/MM/yyyy HH:mm", "d/M/yyyy H:mm", "dd/MM/yyyy H:mm", "dd/MM/yyyy HH:mm:ss", "d/M/yyyy H:mm:ss",
+         "dd-MM-yyyy HH:mm", "d-M-yyyy H:mm", "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-ddTHH:mm:ss"];
+
+    /// <summary>Trạng thái of a booking, as the drop-down offers it and as old systems write it.</summary>
+    private static readonly Dictionary<string, AppointmentStatus> BookingStatuses = new()
+    {
+        ["đã hẹn"] = AppointmentStatus.Requested, ["da hen"] = AppointmentStatus.Requested,
+        ["đặt lịch"] = AppointmentStatus.Requested, ["đã đặt lịch"] = AppointmentStatus.Requested,
+        ["đã đến"] = AppointmentStatus.Completed, ["da den"] = AppointmentStatus.Completed,
+        ["đã khám"] = AppointmentStatus.Completed, ["da kham"] = AppointmentStatus.Completed,
+        ["hoàn thành"] = AppointmentStatus.Completed, ["hoan thanh"] = AppointmentStatus.Completed,
+        ["có"] = AppointmentStatus.Completed,
+        ["trễ hẹn"] = AppointmentStatus.NoShow, ["tre hen"] = AppointmentStatus.NoShow,
+        ["không đến"] = AppointmentStatus.NoShow, ["khong den"] = AppointmentStatus.NoShow,
+        ["vắng mặt"] = AppointmentStatus.NoShow, ["vang mat"] = AppointmentStatus.NoShow,
+        ["hủy hẹn"] = AppointmentStatus.Cancelled, ["huỷ hẹn"] = AppointmentStatus.Cancelled,
+        ["huy hen"] = AppointmentStatus.Cancelled, ["đã hủy"] = AppointmentStatus.Cancelled,
+        ["đã huỷ"] = AppointmentStatus.Cancelled, ["hủy"] = AppointmentStatus.Cancelled,
+        ["huỷ"] = AppointmentStatus.Cancelled
+    };
+
+    /// <summary>A trillion đồng: anything above is a typo (a date or a phone pasted into a money cell).</summary>
+    private const decimal MoneyMax = 1_000_000_000_000m;
+
+    private static readonly CultureInfo Vietnamese = CultureInfo.GetCultureInfo("vi-VN");
+
+    /// <summary>Hình thức, as the drop-down offers it and as people type it; blank is cash.</summary>
+    private static readonly Dictionary<string, PaymentMethodKind> Methods = new()
+    {
+        ["tiền mặt"] = PaymentMethodKind.Cash, ["tien mat"] = PaymentMethodKind.Cash, ["cash"] = PaymentMethodKind.Cash,
+        ["chuyển khoản"] = PaymentMethodKind.Banking, ["chuyen khoan"] = PaymentMethodKind.Banking,
+        ["ngân hàng"] = PaymentMethodKind.Banking, ["ngan hang"] = PaymentMethodKind.Banking,
+        ["banking"] = PaymentMethodKind.Banking, ["ck"] = PaymentMethodKind.Banking,
+        ["thẻ"] = PaymentMethodKind.Card, ["the"] = PaymentMethodKind.Card, ["quẹt thẻ"] = PaymentMethodKind.Card,
+        ["card"] = PaymentMethodKind.Card, ["pos"] = PaymentMethodKind.Card,
+        ["ví điện tử"] = PaymentMethodKind.EWallet, ["vi dien tu"] = PaymentMethodKind.EWallet,
+        ["ví momo"] = PaymentMethodKind.EWallet, ["momo"] = PaymentMethodKind.EWallet,
+        ["e-wallet"] = PaymentMethodKind.EWallet
+    };
 
     /// <summary>
     /// Excel date serials for 01/01/1910 and 31/12/2100: a whole number in this
@@ -203,6 +292,27 @@ internal sealed class MigrationRowReader
         var draft = reader.ReadTreatment();
         return (reader._errors.Count == 0 ? draft : null, reader._errors);
     }
+
+    public static (PaymentDraft? Draft, List<string> Errors) ReadPayment(
+        IStringLocalizer l, IReadOnlyDictionary<string, int> columns, IXLRow row, DataMigrationLookups lookups,
+        DateOnly today)
+    {
+        var reader = new MigrationRowReader(l, Payments, columns, row, lookups, today);
+        var draft = reader.ReadPayment();
+        return (reader._errors.Count == 0 ? draft : null, reader._errors);
+    }
+
+    public static (AppointmentDraft? Draft, List<string> Errors) ReadAppointment(
+        IStringLocalizer l, IReadOnlyDictionary<string, int> columns, IXLRow row, DataMigrationLookups lookups,
+        DateOnly today)
+    {
+        var reader = new MigrationRowReader(l, Bookings, columns, row, lookups, today);
+        var draft = reader.ReadAppointment();
+        return (reader._errors.Count == 0 ? draft : null, reader._errors);
+    }
+
+    /// <summary>"1.500.000": how the error messages write an amount.</summary>
+    public static string FormatMoney(decimal amount) => amount.ToString("#,0", Vietnamese);
 
     // ---------------------------------------------------------------- patients
 
@@ -465,6 +575,12 @@ internal sealed class MigrationRowReader
         var assistingDoctor = Staff(Col.AssistingDoctor, required: false);
         var assistant = Staff(Col.Assistant, required: false);
         var completed = ReadStatus();
+        var planKey = Optional(Col.PlanKey, PlanKeyMax);
+        var quantity = Quantity();
+        var originalPrice = Money(Col.OriginalPrice);
+        var price = Money(Col.Price);
+        var amount = Money(Col.Amount);
+        CheckAmount(price, quantity ?? Math.Max(1, teeth.Count), amount);
 
         if (code == null || treatedOn == null || service == null || dentist == null)
         {
@@ -478,7 +594,218 @@ internal sealed class MigrationRowReader
         }
 
         return new TreatmentDraft(code, treatedOn.Value, slipCode, service, name, teeth, content,
-            dentist.Value, assistingDoctor, assistant, completed);
+            dentist.Value, assistingDoctor, assistant, completed,
+            planKey, quantity, originalPrice, price, amount);
+    }
+
+    /// <summary>
+    /// Thành tiền is what the line charged after its discount: it needs a unit
+    /// price to be a charge of, and cannot come to more than quantity × price.
+    /// </summary>
+    private void CheckAmount(decimal? price, int quantity, decimal? amount)
+    {
+        if (amount > 0m && !(price > 0m))
+        {
+            Error("DataMigration:Err:AmountWithoutPrice", Header(Col.Amount), Header(Col.Price));
+        }
+        else if (price > 0m && amount > price * quantity)
+        {
+            Error("DataMigration:Err:AmountAboveTotal", Header(Col.Amount), FormatMoney(amount.Value),
+                FormatMoney(price.Value * quantity));
+        }
+    }
+
+    /// <summary>Số lượng: a whole number of at least 1; blank lets the teeth count it.</summary>
+    private int? Quantity()
+    {
+        var text = Cell(Col.Quantity);
+        if (text == null)
+        {
+            return null;
+        }
+
+        if (!ExcelCells.TryInteger(text, out var quantity) || quantity < 1 || quantity > QuantityMax)
+        {
+            Error("DataMigration:Err:BadQuantity", Header(Col.Quantity), QuantityMax);
+            return null;
+        }
+
+        return quantity;
+    }
+
+    // ---------------------------------------------------------------- payments
+
+    private PaymentDraft? ReadPayment()
+    {
+        var code = Required(Col.Code, CodeMax);
+        var slipCode = Optional(Col.PaidSlip, SlipCodeMax);
+        var planKey = Optional(Col.PaidPlan, PlanKeyMax);
+        if (slipCode == null && planKey == null)
+        {
+            Error("DataMigration:Err:PaymentTarget", Header(Col.PaidSlip), Header(Col.PaidPlan));
+        }
+
+        var paidOn = RequiredDate(Col.PaidOn);
+        var amount = RequiredMoney(Col.PaidAmount);
+        var method = ReadMethod();
+        var accountId = ReadAccount(method);
+        var cashierId = Staff(Col.Cashier, required: false);
+        var note = Optional(Col.PaymentNote, NoteMax);
+
+        if (code == null || paidOn == null || amount == null)
+        {
+            return null;
+        }
+
+        return new PaymentDraft(code, paidOn.Value, slipCode, planKey, amount.Value, method, accountId, cashierId, note);
+    }
+
+    // ------------------------------------------------------------ appointments
+
+    private AppointmentDraft? ReadAppointment()
+    {
+        var code = Required(Col.Code, CodeMax);
+        var at = RequiredDateTime(Col.BookedAt);
+        var minutes = Minutes();
+        var dentistId = Staff(Col.BookedDentist, required: true);
+        var status = BookingStatus();
+        var note = Optional(Col.BookedNote, BookingNoteMax);
+        var cancelNote = Optional(Col.CancelNote, CancelNoteMax);
+
+        if (code == null || at == null || dentistId == null)
+        {
+            return null;
+        }
+
+        return new AppointmentDraft(code, at.Value, minutes, dentistId.Value, status, note, cancelNote);
+    }
+
+    /// <summary>Thời lượng (phút): blank is half an hour, the calendar's default slot.</summary>
+    private int Minutes()
+    {
+        var text = Cell(Col.BookedMinutes);
+        if (text == null)
+        {
+            return DefaultMinutes;
+        }
+
+        if (!ExcelCells.TryInteger(text, out var minutes) || minutes < 1 || minutes > MaxMinutes)
+        {
+            Error("DataMigration:Err:BadMinutes", Header(Col.BookedMinutes), MaxMinutes);
+            return DefaultMinutes;
+        }
+
+        return minutes;
+    }
+
+    private AppointmentStatus? BookingStatus()
+    {
+        var text = Optional(Col.BookedStatus, int.MaxValue);
+        if (text == null)
+        {
+            return null;
+        }
+
+        if (BookingStatuses.TryGetValue(ExcelCells.Key(text), out var status))
+        {
+            return status;
+        }
+
+        Error("DataMigration:Err:BadBookingStatus", Header(Col.BookedStatus), text);
+        return null;
+    }
+
+    /// <summary>
+    /// Ngày giờ hẹn: a real Excel date-time, a serial with its time as the
+    /// fraction, or text written day first. Unlike the history dates it may lie
+    /// in the future — those are the bookings still to come.
+    /// </summary>
+    private DateTime? RequiredDateTime(string key)
+    {
+        if (Cell(key) == null)
+        {
+            Error("Taxonomy:Import:Err:Required", Header(key));
+            return null;
+        }
+
+        var cell = _row.Cell(_columns[key]);
+        DateTime? value = null;
+        if (cell.DataType == XLDataType.DateTime)
+        {
+            value = cell.GetDateTime();
+        }
+        else if (cell.DataType == XLDataType.Number
+                 && cell.GetDouble() is var serial and >= MinDateSerial and <= MaxDateSerial + 1)
+        {
+            value = DateTime.FromOADate(serial);
+        }
+        else if (Cell(key) is { } text
+                 && (DateTime.TryParseExact(text, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+                     || DateTime.TryParseExact(text, DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed)))
+        {
+            value = parsed;
+        }
+
+        if (value is not { } at || at.Year < 1910)
+        {
+            Error("DataMigration:Err:BadDateTime", Header(key), Cell(key) ?? string.Empty);
+            return null;
+        }
+
+        // Whole minutes: Excel keeps a fraction that can land a second off.
+        at = new DateTime(at.Year, at.Month, at.Day, at.Hour, at.Minute, 0, DateTimeKind.Unspecified)
+            .AddMinutes(at.Second >= 30 ? 1 : 0);
+        return at.TimeOfDay == TimeSpan.Zero ? at.Date + OpeningTime.ToTimeSpan() : at;
+    }
+
+    private PaymentMethodKind ReadMethod()
+    {
+        var text = Optional(Col.Method, int.MaxValue);
+        if (text == null)
+        {
+            return PaymentMethodKind.Cash;
+        }
+
+        if (Methods.TryGetValue(ExcelCells.Key(text), out var method))
+        {
+            return method;
+        }
+
+        Error("DataMigration:Err:BadMethod", Header(Col.Method), text);
+        return PaymentMethodKind.Cash;
+    }
+
+    /// <summary>
+    /// Chuyển khoản lands in a bank account and Ví điện tử in a MoMo wallet of
+    /// /taxonomy/payment-method; cash and card take none, so a filled cell is
+    /// let be there.
+    /// </summary>
+    private Guid? ReadAccount(PaymentMethodKind method)
+    {
+        if (!PatientPayment.RequiresAccount(method))
+        {
+            return null;
+        }
+
+        var text = Optional(Col.Account, int.MaxValue);
+        if (text == null)
+        {
+            Error("DataMigration:Err:AccountRequired", Header(Col.Account), Header(Col.Method));
+            return null;
+        }
+
+        var kind = method == PaymentMethodKind.EWallet ? PaymentAccountKind.MoMo : PaymentAccountKind.Bank;
+        var account = _lookups.FindAccount(text, kind, out var ambiguous);
+        if (ambiguous)
+        {
+            Error("DataMigration:Err:AmbiguousAccount", Header(Col.Account), text);
+        }
+        else if (account == null)
+        {
+            Error("DataMigration:Err:AccountNotFound", Header(Col.Account), text);
+        }
+
+        return account?.Id;
     }
 
     private LookupItem? Service()
@@ -672,6 +999,72 @@ internal sealed class MigrationRowReader
 
     private bool IsNumberCell(string key) =>
         _columns.TryGetValue(key, out var index) && _row.Cell(index).DataType == XLDataType.Number;
+
+    private decimal? RequiredMoney(string key)
+    {
+        if (Cell(key) == null)
+        {
+            Error("Taxonomy:Import:Err:Required", Header(key));
+            return null;
+        }
+
+        return Money(key);
+    }
+
+    /// <summary>
+    /// A money cell: a real number, or text in any of the shapes
+    /// <see cref="ExcelCells.TryMoney"/> reads. Rounded to whole đồng; blank
+    /// is null.
+    /// </summary>
+    private decimal? Money(string key)
+    {
+        if (!_columns.TryGetValue(key, out var index))
+        {
+            return null;
+        }
+
+        var cell = _row.Cell(index);
+        decimal value;
+        if (cell.DataType == XLDataType.Number)
+        {
+            var number = cell.GetDouble();
+            if (!double.IsFinite(number) || Math.Abs(number) > (double)MoneyMax)
+            {
+                Error("DataMigration:Err:MoneyTooLarge", Header(key), FormatMoney(MoneyMax));
+                return null;
+            }
+
+            value = (decimal)number;
+        }
+        else
+        {
+            var text = Cell(key);
+            if (text == null)
+            {
+                return null;
+            }
+
+            if (!ExcelCells.TryMoney(text, out value))
+            {
+                Error("Taxonomy:Import:Err:NotANumber", Header(key));
+                return null;
+            }
+        }
+
+        if (value < 0m)
+        {
+            Error("Taxonomy:Import:Err:Negative", Header(key));
+            return null;
+        }
+
+        if (value > MoneyMax)
+        {
+            Error("DataMigration:Err:MoneyTooLarge", Header(key), FormatMoney(MoneyMax));
+            return null;
+        }
+
+        return Vnd.Round(value);
+    }
 
     private DateOnly? RequiredDate(string key)
     {

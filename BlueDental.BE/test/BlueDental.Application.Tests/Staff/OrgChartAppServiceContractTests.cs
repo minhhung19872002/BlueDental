@@ -34,6 +34,7 @@ public class OrgChartAppServiceContractTests
     [InlineData("DeleteAsync", BlueDentalAbilityPermissions.OrgChart.Delete)]
     [InlineData("ChangeRootHeadAsync", BlueDentalAbilityPermissions.OrgChart.Update)]
     [InlineData("AssignAsync", BlueDentalAbilityPermissions.OrgChart.Update)]
+    [InlineData("RemoveMemberAsync", BlueDentalAbilityPermissions.OrgChart.Update)]
     public void Each_Write_Names_Its_Leaf(string method, string permission)
     {
         typeof(OrgChartAppService).GetMethod(method)!.GetCustomAttribute<AuthorizeAttribute>()!.Policy

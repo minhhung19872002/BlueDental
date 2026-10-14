@@ -299,29 +299,17 @@ test.describe("Kế hoạch điều trị", () => {
     await print.locator(".pmr-foot").getByRole("button", { name: "Đóng" }).click();
     await expect(print).toBeHidden();
 
-    // The receipt action opens the invoice for this slip. It bills the slip as
-    // one line — "Kế hoạch điều trị DT…", a single unit of "Răng" — not the
-    // services inside it, which is how the reference hands the dialog its items.
+    // The receipt action opens "Tạo phiếu thanh toán" on this slip (owner
+    // 2026-10-12, R-907): the slip is already chosen, so step ① is done.
     await row.getByRole("button", { name: `Phiếu thu ${createdCode}` }).click();
-    const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
-    await expect(invoice).toBeVisible();
-    const invoiceLine = invoice.locator("tbody tr.ant-table-row");
-    await expect(invoiceLine).toHaveCount(1);
-    await expect(invoiceLine).toContainText(`Kế hoạch điều trị ${createdCode}`);
-    await expect(invoiceLine).toContainText("Răng");
-    await expect(invoice).not.toContainText(pickedService);
-    // Every field carries the app's floating label rather than a caption above
-    // it: a filled one lifts the label onto the border, an empty one keeps it
-    // resting inside as the placeholder.
-    await expect(invoice.locator(".inv-field.floating-field")).toHaveCount(13);
-    const customerName = invoice.locator(".inv-field").first();
-    await expect(customerName).toHaveClass(/floating-field--floated/);
-    await expect(customerName).toContainText("Tên khách hàng");
-    await expect(invoice.locator(".inv-field", { hasText: "CCCD/CC" })).not.toHaveClass(
-      /floating-field--floated/,
-    );
+    const pay = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
+    await expect(pay).toBeVisible();
+    await expect(pay.locator(".pd-newpay-slipselect")).toContainText(createdCode);
+    await expect(pay.locator(".pd-newpay-step--done")).toContainText("Chọn số phiếu");
+    await expect(pay.locator(".pd-newpay-slipchip")).toHaveText(createdCode);
+    await expect(pay.locator(".pd-newpay-noslip")).toHaveCount(0);
     await page.keyboard.press("Escape");
-    await expect(invoice).toBeHidden();
+    await expect(pay).toBeHidden();
 
     // Xem tất cả dịch vụ: every line on every slip, paged like the slip table.
     await page.getByRole("button", { name: "Xem tất cả dịch vụ" }).click();

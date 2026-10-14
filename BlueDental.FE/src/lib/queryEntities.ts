@@ -14,6 +14,7 @@ import type { careKeys } from "@/features/cskh/api/careApi";
 import type { laboMaterialKeys, laboSupplierKeys } from "@/features/labo/api/laboCatalogApi";
 import type { laboCatalogKeys } from "@/features/labo/api/laboCatalogListApi";
 import type { branchManagerKeys } from "@/features/organizations/api/branchManagerQueries";
+import type { invoiceRequestKeys } from "@/features/patient-management/api/invoiceRequestApi";
 import type { patientImageKeys } from "@/features/patient-management/api/patientImageApi";
 import type { patientKeys } from "@/features/patient-management/api/patientQueries";
 import type { clinicReportKeys } from "@/features/report/api/clinicReportApi";
@@ -52,6 +53,7 @@ const CLINIC_REPORTS = ["clinic-reports"] satisfies RootOf<typeof clinicReportKe
 const LABO_CATALOG = ["labo-catalog"] satisfies RootOf<typeof laboCatalogKeys>;
 const LABO_MATERIALS = ["labo-materials"] satisfies RootOf<typeof laboMaterialKeys>;
 const CURRENT_USER = ["auth", "current-user"];
+const INVOICE_REQUESTS = ["invoice-requests"] satisfies RootOf<typeof invoiceRequestKeys>;
 
 export const ENTITY_QUERY_ROOTS = {
   catalog: [
@@ -111,10 +113,13 @@ export const ENTITY_QUERY_ROOTS = {
     ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
     // Tài chính → Thanh toán lists every receipt of the branch.
     ["payment-ledger"] satisfies RootOf<typeof paymentLedgerKeys>,
+    // "Tạo yêu cầu xuất HĐ" picks from the patient's receipts.
+    INVOICE_REQUESTS,
   ],
   eInvoice: [
     ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
   ],
+  invoiceRequest: [INVOICE_REQUESTS],
   laboOrder: [
     ["labo-orders"],
     // The slip counts a line's open orders, which gates Chuyển đổi dịch vụ.

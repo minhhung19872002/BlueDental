@@ -5,13 +5,14 @@ import type { OrgChartAction, OrgUnitChangeLogDto } from "../../api/orgChartApi"
 import { OrgAvatar } from "./OrgAvatar";
 import { ORG_KIND_CONFIG } from "./orgChartModel";
 
-/** Badge colour and label per action — the same five the server logs. */
+/** Badge colour and label per action — the same six the server logs. */
 export const ORG_ACTION_CONFIG: Record<OrgChartAction, { modifier: string; labelKey: string }> = {
   1: { modifier: "green", labelKey: "OrgChart:Action:Created" },
   2: { modifier: "blue", labelKey: "OrgChart:Action:Updated" },
   3: { modifier: "red", labelKey: "OrgChart:Action:Deleted" },
   4: { modifier: "amber", labelKey: "OrgChart:Action:HeadChanged" },
   5: { modifier: "purple", labelKey: "OrgChart:Action:MembersAssigned" },
+  6: { modifier: "orange", labelKey: "OrgChart:Action:MemberRemoved" },
 };
 
 export function orgHistoryColumns(): ColumnsType<OrgUnitChangeLogDto> {

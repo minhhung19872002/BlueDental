@@ -414,6 +414,9 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     /// it is confirmed <see cref="PaidAt"/> is just when it was written.
     /// </summary>
     public PatientPaymentStatus Status { get; set; }
+
+    /// <summary>"Xuất hóa đơn đỏ" was ticked when the receipt was written; nothing is issued yet.</summary>
+    public bool RedInvoiceRequested { get; set; }
 }
 
 /// <summary>"Hủy phiếu" — a receipt is cancelled with a reason (bug list item 28).</summary>
@@ -448,6 +451,9 @@ public class UpdatePatientPaymentDto
 
     /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
     public Guid? PaymentAccountId { get; set; }
+
+    /// <summary>"Xuất hóa đơn đỏ" — only stored; the e-invoice is issued from another screen.</summary>
+    public bool RedInvoiceRequested { get; set; }
 }
 
 public class RecordPatientPaymentDto
@@ -481,6 +487,9 @@ public class RecordPatientPaymentDto
 
     /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
     public Guid? PaymentAccountId { get; set; }
+
+    /// <summary>"Xuất hóa đơn đỏ" — only stored; the e-invoice is issued from another screen.</summary>
+    public bool RedInvoiceRequested { get; set; }
 }
 
 public class GetPatientPaymentListInput : PagedAndSortedResultRequestDto

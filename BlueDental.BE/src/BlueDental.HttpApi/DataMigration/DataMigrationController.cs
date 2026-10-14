@@ -10,7 +10,7 @@ using Volo.Abp.Content;
 namespace BlueDental.DataMigration;
 
 /// <summary>
-/// One-time move of a clinic's old system (patients + treatment history).
+/// One-time move of a clinic's old system (patients, treatment history, payments, bookings).
 /// No screen: run from Swagger or curl, preview with <c>dryRun=true</c> first.
 /// </summary>
 [RemoteService]
@@ -18,22 +18,33 @@ namespace BlueDental.DataMigration;
 [Route("api/v1/app/data-migration")]
 public sealed class DataMigrationController(IDataMigrationAppService service) : BlueDentalController
 {
-    /// <summary>BlueDental_Migration.xlsx: the two data sheets, a guide and the branch's catalogs.</summary>
+    /// <summary>
+    /// 60 MB, over Kestrel's 30 MB default: a file of ~5 000 patients with
+    /// their history is 5–10 MB, and the BA may paste more into one. Kept in
+    /// step with the nginx location for this route.
+    /// </summary>
+    private const long MaxFileBytes = 60L * 1024 * 1024;
+
+    /// <summary>BlueDental_Migration.xlsx: the four data sheets (Thanh toán and Lịch hẹn optional on import) and a guide.</summary>
     [HttpGet("template")]
     public async Task<IActionResult> GetTemplateAsync([FromQuery] Guid? clinicBranchId) =>
         Excel(await service.GetTemplateAsync(clinicBranchId), "BlueDental_Migration");
 
     [HttpPost("import")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxFileBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxFileBytes)]
     public Task<DataMigrationResultDto> ImportAsync(
         [FromForm] IFormFile file,
         [FromForm] Guid? clinicBranchId,
         [FromForm] bool dryRun) =>
         service.ImportAsync(ToImportDto(file, clinicBranchId, dryRun));
 
-    /// <summary>The same file back, with a "Lỗi" column on both data sheets.</summary>
+    /// <summary>The same file back, with a "Lỗi" column on every data sheet.</summary>
     [HttpPost("import-errors")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxFileBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxFileBytes)]
     public async Task<IActionResult> GetImportErrorFileAsync(
         [FromForm] IFormFile file,
         [FromForm] Guid? clinicBranchId) =>

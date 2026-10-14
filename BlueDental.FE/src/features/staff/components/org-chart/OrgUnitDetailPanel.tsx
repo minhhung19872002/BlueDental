@@ -1,7 +1,8 @@
 import type { Ref } from "react";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { ORG_UNIT_KIND, type OrgUnitDto } from "../../api/orgChartApi";
+import { ORG_UNIT_KIND, type OrgStaffDto, type OrgUnitDto } from "../../api/orgChartApi";
 import { OrgAvatar } from "./OrgAvatar";
 import { OrgPersonRow } from "./OrgPersonRow";
 import { OrgScopeRows } from "./OrgScopeRows";
@@ -16,6 +17,8 @@ interface Props {
     onEdit: (unit: OrgUnitDto) => void;
     onAddMembers: (unitId: string) => void;
     onChangeRootHead: () => void;
+    /** × on a member row: removes them straight from the panel, after a confirm. */
+    onRemoveMember: (unit: OrgUnitDto, person: OrgStaffDto) => void;
   };
   onSelect: (unitId: string) => void;
 }
@@ -110,9 +113,32 @@ export function OrgUnitDetailPanel({ ref, index, unit, actions, onSelect }: Prop
         {showMembers && (
           <section className="org-detail__section org-detail__members">
             <h3>{t("OrgChart:Detail:Members", unit.members.length)}</h3>
-            {unit.members.map((m) => (
-              <OrgPersonRow key={m.id} person={m} isHead={m.id === unit.headStaffId} />
-            ))}
+            {unit.members.map((m) => {
+              const isHead = m.id === unit.headStaffId;
+              // The head leaves only through a head change, so they get no ×.
+              const onRemove = isHead ? undefined : actions?.onRemoveMember;
+              return (
+                <OrgPersonRow
+                  key={m.id}
+                  person={m}
+                  isHead={isHead}
+                  action={
+                    onRemove && (
+                      <Tooltip title={t("OrgChart:Action:MemberRemoved")}>
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<CloseOutlined />}
+                          aria-label={t("OrgChart:Members:Remove", m.name)}
+                          onClick={() => onRemove(unit, m)}
+                        />
+                      </Tooltip>
+                    )
+                  }
+                />
+              );
+            })}
           </section>
         )}
       </div>
@@ -124,13 +150,12 @@ export function OrgUnitDetailPanel({ ref, index, unit, actions, onSelect }: Prop
               {t("OrgChart:Action:ChangeRootHead")}
             </Button>
           ) : (
-            <>
-              <Button onClick={() => actions.onEdit(unit)}>{t("OrgChart:Action:Edit")}</Button>
-              <Button onClick={() => actions.onAddMembers(unit.id)}>
-                {t("OrgChart:Action:AddMembers")}
-              </Button>
-            </>
+            <Button onClick={() => actions.onEdit(unit)}>{t("OrgChart:Action:Edit")}</Button>
           )}
+          {/* The root too: the Tổng giám đốc may run a team of their own (BA 2026-10-13). */}
+          <Button onClick={() => actions.onAddMembers(unit.id)}>
+            {t("OrgChart:Action:AddMembers")}
+          </Button>
         </footer>
       )}
     </aside>
