@@ -1,5 +1,5 @@
 import type { CSSProperties, MouseEvent } from "react";
-import { Checkbox, Select } from "antd";
+import { Select } from "antd";
 import {
   AlignCenter,
   AlignLeft,
@@ -45,7 +45,7 @@ interface Props {
 
 /**
  * Paint's text bar, floating over the page while words are typed: font, size,
- * bold / italic / underline / strike-through, alignment and "Tô nền". It sits
+ * bold / italic / underline / strike-through and alignment. It sits
  * above the box, or below it when the box is near the top of the page.
  */
 export function SketchTextToolbar({ style, at, onChange, onRefocus }: Props) {
@@ -100,18 +100,6 @@ export function SketchTextToolbar({ style, at, onChange, onRefocus }: Props) {
       {TOGGLES.map(({ key, icon, label }) => toggle(key, style[key], icon, label, () => set({ [key]: !style[key] })))}
       <span className="sketch-text-sep" />
       {ALIGNS.map(({ key, icon, label }) => toggle(key, style.align === key, icon, label, () => set({ align: key })))}
-      <span className="sketch-text-sep" />
-      <span className="sketch-text-fill" onMouseDown={keepCaret}>
-        <Checkbox
-          checked={style.filled}
-          onChange={(event) => {
-            set({ filled: event.target.checked });
-            onRefocus();
-          }}
-        >
-          {t("Patient:MedRecord:TextFill")}
-        </Checkbox>
-      </span>
     </div>
   );
 }

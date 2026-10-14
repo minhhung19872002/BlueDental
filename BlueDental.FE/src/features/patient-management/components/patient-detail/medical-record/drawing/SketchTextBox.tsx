@@ -19,7 +19,7 @@ function decorationOf({ underline, strike }: SketchSettings["text"]): string {
 
 /**
  * The box words are typed into, laid where the page was clicked and drawn in
- * the style they will land in — font, size, bold, alignment, fill — so what is
+ * the style they will land in — font, size, bold, alignment — so what is
  * typed is what is drawn.
  *
  * As in Paint, Enter starts a new line and a click elsewhere on the page puts
@@ -48,14 +48,12 @@ export function SketchTextBox({ draft, settings, inputRef, onText, onCommit, onC
       value={draft.text}
       className="sketch-text-box"
       aria-label={t("Patient:MedRecord:TextInput")}
-      data-filled={style.filled || undefined}
       style={
         {
           "--text-x": draft.at.x / SKETCH_WIDTH,
           "--text-y": draft.at.y / SKETCH_HEIGHT,
           "--text-size": style.points * PAGE_PX_PER_POINT,
           "--text-color": settings.color,
-          "--text-fill": settings.fill,
           "--text-font": `"${style.font}"`,
           "--text-weight": style.bold ? 700 : 400,
           "--text-slant": style.italic ? "italic" : "normal",

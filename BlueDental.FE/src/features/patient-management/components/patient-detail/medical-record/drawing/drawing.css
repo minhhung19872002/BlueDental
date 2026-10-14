@@ -90,57 +90,54 @@
   color: var(--bd-red);
 }
 
-/* The shared colour box: colour 1 and 2, then three rows of ten. */
+/* The shared colour box: the colour in use, then three rows of ten. */
 .sketch-colors {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-left: 12px;
-  border-left: 1px solid var(--bd-line);
-}
-
-.sketch-colors-pair {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
 }
 
 .sketch-colors-current {
-  width: 26px;
-  height: 26px;
-  padding: 0;
+  flex: none;
+  width: 36px;
+  height: 36px;
   border: 1px solid rgba(15, 23, 42, 0.25);
   border-radius: 50%;
   background: var(--swatch);
-  cursor: pointer;
-}
-
-.sketch-colors-current--active {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-primary);
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--bd-primary);
 }
 
 .sketch-colors-grid {
   display: grid;
-  grid-template-columns: repeat(10, 18px);
-  gap: 4px;
+  grid-template-columns: repeat(10, 22px);
+  gap: 7px 8px;
 }
 
 .sketch-swatch {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 1px solid rgba(15, 23, 42, 0.2);
   border-radius: 50%;
   background: var(--swatch);
   color: var(--bd-muted);
   cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.sketch-swatch:hover {
+  transform: scale(1.12);
 }
 
 .sketch-swatch--active {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--bd-ink);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink);
 }
 
 .sketch-swatch--empty {
@@ -166,7 +163,7 @@
  */
 .sketch-page {
   position: relative;
-  width: min(100%, calc((100vh - 360px) * 1002 / 657));
+  width: min(100%, max(600px, calc((100vh - 400px) * 1002 / 657)));
   aspect-ratio: 1002 / 657;
   margin: 0 auto;
   border: 1px solid var(--bd-border);
@@ -182,6 +179,15 @@
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+/* A highlighter is laid solid on the ink layer, and seen through here. */
+.sketch-canvas--ink {
+  pointer-events: none;
+}
+
+.sketch-canvas--ink[data-highlighter="true"] {
+  opacity: 0.4;
 }
 
 .sketch-canvas--input {
@@ -232,14 +238,10 @@
   field-sizing: content;
 }
 
-.sketch-text-box[data-filled] {
-  background: var(--text-fill);
-}
-
 /* Paint's text bar, over the page above (or below) the box being typed into. */
 .sketch-text-bar {
   position: absolute;
-  left: clamp(6px, calc(var(--bar-x) * 100%), calc(100% - 560px));
+  left: clamp(6px, calc(var(--bar-x) * 100%), calc(100% - 480px));
   z-index: 2;
   display: flex;
   align-items: center;

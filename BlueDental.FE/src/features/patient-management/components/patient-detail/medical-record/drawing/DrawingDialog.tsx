@@ -3,7 +3,7 @@ import { Alert, Spin } from "antd";
 import { CheckOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
 import { t } from "@/lib/i18n";
-import { SketchColors, type ColorSlot } from "./SketchColors";
+import { SketchColors } from "./SketchColors";
 import { SketchSelectionBar } from "./SketchSelectionBar";
 import { SketchTextBox } from "./SketchTextBox";
 import { SketchTextToolbar } from "./SketchTextToolbar";
@@ -50,10 +50,11 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
   }, [applying, onApply, toPng]);
 
   const { selected, updateSelected } = pad;
+  // A colour is the colour of what is drawn next — and of what is selected, if anything is.
   const handlePick = useCallback(
-    (slot: ColorSlot, color: string) => {
-      adopt({ [slot]: color });
-      if (selected) updateSelected(slot === "color" ? { color } : { fill: color });
+    (color: string) => {
+      adopt({ color });
+      if (selected) updateSelected({ color });
     },
     [adopt, selected, updateSelected],
   );
@@ -85,7 +86,6 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
       >
         <SketchColors
           color={settings.color}
-          fill={settings.fill}
           custom={custom}
           onPick={handlePick}
           onAddCustom={handleAddCustom}
@@ -99,6 +99,13 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
       <Spin spinning={pad.loading}>
         <div className="sketch-page">
           <canvas ref={pad.pageRef} className="sketch-canvas" width={SKETCH_WIDTH} height={SKETCH_HEIGHT} />
+          <canvas
+            ref={pad.inkRef}
+            className="sketch-canvas sketch-canvas--ink"
+            width={SKETCH_WIDTH}
+            height={SKETCH_HEIGHT}
+            aria-hidden="true"
+          />
           <canvas
             ref={pad.overlayRef}
             className={`sketch-canvas sketch-canvas--input sketch-canvas--${settings.tool}`}

@@ -11,9 +11,9 @@ export interface TextDraft {
   editingId?: string;
 }
 
-/** What the pointer is doing between press and release. */
+/** What the pointer is doing between press and release; `inked` counts the samples already on the ink layer. */
 type Gesture =
-  | { kind: "draw"; item: Item }
+  | { kind: "draw"; item: Item; inked: number }
   | { kind: "erase"; removed: Set<string> }
   | { kind: "move"; id: string; from: Point; dx: number; dy: number };
 
@@ -25,13 +25,22 @@ interface History {
 const BLANK: History = { versions: [{ items: [], backdrop: false }], at: 0 };
 
 /**
- * The drawing pad: its two canvases, what each tool does with the pointer, and
- * the versions undo steps through.
+ * A canvas the browser may show without waiting for the next composited frame
+ * — the last frame of lag between the hand and the ink. Safe only on a canvas
+ * that is added to and never cleared mid-stroke: one cleared and redrawn is
+ * shown half-redrawn, which is how an earlier try made the pen tip twitch.
+ */
+const LOW_LATENCY: CanvasRenderingContext2DSettings = { desynchronized: true };
+
+/**
+ * The drawing pad: its canvases, what each tool does with the pointer, and the
+ * versions undo steps through.
  *
- * The *page* shows the drawing; the *overlay* above it shows what the pointer
- * is doing — the stroke being drawn, the selection frame, the eraser's ring.
- * Nothing goes through React while the pointer is down: each move is painted
- * in the event that brings it, as the annotator on Hình ảnh does, and a
+ * Three layers. The *page* shows the drawing. The *ink* layer takes a pen or
+ * highlighter stroke as it is drawn, one new stretch at a time and never
+ * redrawn, so it can be shown at once. The *overlay* on top takes the pointer
+ * and shows the rest — a shape being dragged out, the selection frame, the
+ * eraser's ring. Nothing goes through React while the pointer is down, and a
  * finished stroke lands on the page in the event that ends it.
  */
 export function useSketchCanvas(
@@ -41,7 +50,9 @@ export function useSketchCanvas(
 ) {
   const [page, setPage] = useState<HTMLCanvasElement | null>(null);
   const [overlay, setOverlay] = useState<HTMLCanvasElement | null>(null);
+  const [ink, setInk] = useState<HTMLCanvasElement | null>(null);
   const pageCtx = useMemo(() => page?.getContext("2d") ?? null, [page]);
+  const inkCtx = useMemo(() => ink?.getContext("2d", LOW_LATENCY) ?? null, [ink]);
   const overlayCtx = useMemo(() => overlay?.getContext("2d") ?? null, [overlay]);
 
   const [history, setHistory] = useState<History>(BLANK);
@@ -109,7 +120,8 @@ export function useSketchCanvas(
     if (!overlayCtx) return;
     overlayCtx.clearRect(0, 0, overlayCtx.canvas.width, overlayCtx.canvas.height);
     const now = gesture.current;
-    if (now?.kind === "draw") paintItem(overlayCtx, now.item);
+    // Strokes are on the ink layer; only a shape is dragged out here.
+    if (now?.kind === "draw" && now.item.kind === "shape") paintItem(overlayCtx, now.item);
 
     const { scene: shown, selectedId: picked, settings: set } = live.current;
     const item = picked ? shown.items.find((entry) => entry.id === picked) : undefined;
@@ -150,11 +162,7 @@ export function useSketchCanvas(
     (item: Item) => {
       if (item.kind !== "text") return;
       setSelectedId(null);
-      adopt({
-        color: item.color,
-        text: { ...item.style, filled: Boolean(item.fill) },
-        ...(item.fill ? { fill: item.fill } : {}),
-      });
+      adopt({ color: item.color, text: item.style });
       setTyping({ at: item.at, text: item.text, editingId: item.id });
     },
     [adopt],
@@ -206,6 +214,39 @@ export function useSketchCanvas(
     [paintPage],
   );
 
+  /**
+   * Lays the samples of the stroke not yet on the ink layer, joined on from the
+   * last one that is. A highlighter is laid solid and the whole layer shown
+   * see-through, so where its pieces meet does not darken.
+   */
+  const layInk = useCallback(() => {
+    const now = gesture.current;
+    if (!inkCtx || now?.kind !== "draw" || now.item.kind !== "stroke") return;
+    const { points, color, size, tool } = now.item;
+
+    if (now.inked === 0 && ink) ink.dataset.highlighter = tool === "highlighter" ? "true" : "";
+    inkCtx.lineCap = "round";
+    inkCtx.lineJoin = "round";
+    inkCtx.lineWidth = size;
+    inkCtx.strokeStyle = color;
+    inkCtx.fillStyle = color;
+
+    if (now.inked === 0) {
+      inkCtx.beginPath();
+      inkCtx.arc(points[0].x, points[0].y, size / 2, 0, Math.PI * 2);
+      inkCtx.fill();
+      now.inked = 1;
+    }
+    if (points.length <= now.inked) return;
+
+    inkCtx.beginPath();
+    const from = points[now.inked - 1];
+    inkCtx.moveTo(from.x, from.y);
+    for (const point of points.slice(now.inked)) inkCtx.lineTo(point.x, point.y);
+    inkCtx.stroke();
+    now.inked = points.length;
+  }, [inkCtx, ink]);
+
   const handlePointerDown = useCallback(
     (event: PointerEvent<HTMLCanvasElement>) => {
       if (loading || (event.pointerType === "mouse" && event.button !== 0)) return;
@@ -238,12 +279,13 @@ export function useSketchCanvas(
         eraseAt([at], removed);
       } else {
         const item = startItem(set, at);
-        gesture.current = item ? { kind: "draw", item } : null;
+        gesture.current = item ? { kind: "draw", item, inked: 0 } : null;
+        layInk();
       }
       ringAt.current = at;
       paintOverlay();
     },
-    [loading, pointOf, typing, commitText, startEditing, eraseAt, paintOverlay],
+    [loading, pointOf, typing, commitText, startEditing, eraseAt, paintOverlay, layInk],
   );
 
   const handlePointerMove = useCallback(
@@ -269,8 +311,12 @@ export function useSketchCanvas(
       ringAt.current = at;
 
       if (now.kind === "draw") {
-        if (now.item.kind === "stroke") now.item.points.push(...points);
-        else if (now.item.kind === "shape") now.item.to = at;
+        if (now.item.kind === "stroke") {
+          now.item.points.push(...points);
+          layInk();
+          return;
+        }
+        if (now.item.kind === "shape") now.item.to = at;
       } else if (now.kind === "erase") {
         eraseAt(points, now.removed);
       } else {
@@ -282,7 +328,7 @@ export function useSketchCanvas(
       }
       paintOverlay();
     },
-    [pointOf, eraseAt, paintPage, paintOverlay],
+    [pointOf, eraseAt, paintPage, paintOverlay, layInk],
   );
 
   const handlePointerUp = useCallback(() => {
@@ -291,8 +337,10 @@ export function useSketchCanvas(
     const { scene: current } = live.current;
 
     if (now?.kind === "draw") {
-      // On the page now — not after React has rendered.
+      // On the page now — not after React has rendered — and off the ink layer.
       if (pageCtx) paintItem(pageCtx, now.item);
+      inkCtx?.clearRect(0, 0, inkCtx.canvas.width, inkCtx.canvas.height);
+      if (ink) ink.dataset.highlighter = "";
       commit({ ...current, items: [...current.items, now.item] });
     } else if (now?.kind === "erase" && now.removed.size > 0) {
       commit({ ...current, items: current.items.filter((item) => !now.removed.has(item.id)) });
@@ -301,7 +349,7 @@ export function useSketchCanvas(
       if (item) commit({ ...current, items: replaceItem(current.items, moveItem(item, now.dx, now.dy)) });
     }
     paintOverlay();
-  }, [pageCtx, commit, paintOverlay]);
+  }, [pageCtx, inkCtx, ink, commit, paintOverlay]);
 
   const handlePointerLeave = useCallback(() => {
     if (gesture.current) return;
@@ -320,14 +368,13 @@ export function useSketchCanvas(
   );
 
   const updateSelected = useCallback(
-    (patch: { color?: string; size?: number; fill?: string }) => {
+    (patch: { color?: string; size?: number }) => {
       const { scene: current, selectedId: picked } = live.current;
       const item = current.items.find((entry) => entry.id === picked);
       if (!item) return;
       let next: Item = item;
       if (patch.color) next = { ...next, color: patch.color };
       if (patch.size !== undefined && next.kind !== "text") next = { ...next, size: patch.size };
-      if (patch.fill && next.kind === "text" && next.fill) next = { ...next, fill: patch.fill };
       if (next !== item) commit({ ...current, items: replaceItem(current.items, next) });
     },
     [commit],
@@ -364,6 +411,7 @@ export function useSketchCanvas(
   return {
     pageRef: setPage,
     overlayRef: setOverlay,
+    inkRef: setInk,
     loading,
     loadFailed,
     typing,

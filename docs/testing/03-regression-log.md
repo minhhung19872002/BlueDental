@@ -8511,3 +8511,10 @@ chung cho mọi công cụ; con trỏ Chọn để chỉ định lại nét/ch�
 - Test: `e2e/medical-record-drawing.spec.ts` 5 test (thêm: chữ — Esc, Enter xuống dòng, In đậm giữ con trỏ,
   Tô nền, bấm ngoài để chốt, nhấp đúp sửa lại, lưu → mở lại vẫn sửa được chữ; Chọn — chọn, Esc bỏ chọn,
   đổi màu (đo màu điểm ảnh), kéo di chuyển, Delete, hoàn tác, tẩy cả nét). 10/10 xanh (chạy lặp 2 lần).
+
+**Vòng 3 (cùng ngày):** bỏ "Tô nền" của chữ (và Màu 2); bảng màu rộng, thoáng hơn; nét vẽ còn trễ nhẹ.
+- Trễ còn lại là một khung hình chờ trình duyệt ghép lớp. Bút/dạ quang chuyển sang lớp "mực" `desynchronized`
+  (Chrome xác nhận `desynchronized: true`), vẽ nối thêm từng đoạn, không bao giờ xoá giữa chừng — chính việc
+  xoá-vẽ lại trên canvas này ở vòng trước gây giật. Đã đọc điểm ảnh: trang đủ nét, lớp mực sạch sau khi nhả;
+  chụp có cửa sổ (`--headed`) hiển thị đúng.
+- Test: bỏ bước "Tô nền"; điểm bấm theo tỉ lệ vùng vẽ. `e2e/medical-record-drawing.spec.ts` 10/10 (lặp 2 lần).

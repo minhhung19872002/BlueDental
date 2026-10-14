@@ -267,10 +267,10 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await bar.getByRole("button", { name: "In đậm" }).click();
     await expect(bar.getByRole("button", { name: "In đậm" })).toHaveAttribute("aria-pressed", "true");
     await expect(box).toBeFocused();
-    await bar.getByText("Tô nền").click();
 
     // A click elsewhere on the page puts the words down.
-    await area.click({ position: { x: 500, y: 330 } });
+    const bounds = (await area.boundingBox())!;
+    await area.click({ position: { x: bounds.width * 0.6, y: bounds.height * 0.6 } });
     await expect(box).toBeHidden();
     await expect(dialog.getByRole("button", { name: "Hoàn tác" })).toBeEnabled();
     expect(await inkOn(page)).toBeGreaterThan(200);

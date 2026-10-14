@@ -4040,10 +4040,10 @@ theo Snipping Tool của Windows (ảnh mẫu kèm yêu cầu).
 - Dialog "Vẽ lược đồ phẫu thuật/thủ thuật" (vòng 2, theo phản hồi chủ dự án cùng ngày):
   - Công cụ: **Chọn**, Bút, Bút dạ quang, Tẩy, Hình (đường thẳng, mũi tên, chữ nhật, elip), **Chữ**.
     Mũi tên cạnh công cụ có cỡ nét chỉ mở cỡ nét (và loại hình).
-  - **Bảng màu chung kiểu Paint** cho mọi công cụ: Màu 1 (nét/chữ), Màu 2 (tô nền chữ), 20 màu của Paint,
-    10 ô màu tuỳ chỉnh (bảng chọn màu hệ thống, giữ trong phiên).
+  - **Bảng màu chung kiểu Paint** cho mọi công cụ: ô màu đang dùng, 20 màu của Paint, 10 ô màu tuỳ chỉnh
+    (bảng chọn màu hệ thống, giữ trong phiên). Vòng 3: bỏ Màu 2 cùng "Tô nền", nới rộng ô màu.
   - **Chữ kiểu Paint**: bấm lên trang → ô nhập tại chỗ + thanh định dạng nổi (phông, cỡ chữ pt, đậm, nghiêng,
-    gạch chân, gạch ngang, căn trái/giữa/phải, Tô nền). Enter xuống dòng; bấm ra ngoài / Ctrl+Enter / đổi
+    gạch chân, gạch ngang, căn trái/giữa/phải). Enter xuống dòng; bấm ra ngoài / Ctrl+Enter / đổi
     công cụ / Áp dụng thì chốt; Esc huỷ, không đóng dialog. Cỡ 1pt = 4 px trang (trang gấp 3 ô in).
   - **Chọn**: trỏ lên nét/hình/chữ → con trỏ di chuyển; bấm → khung nét đứt + thanh (độ dày nét, Xoá;
     chữ thì "Sửa chữ"). Kéo để di chuyển, Delete xoá, bấm màu để đổi màu, nhấp đúp vào chữ để sửa, Esc bỏ chọn.
@@ -4052,8 +4052,10 @@ theo Snipping Tool của Windows (ảnh mẫu kèm yêu cầu).
   - **Mở lại vẫn sửa được từng nét**: danh sách nét/hình/chữ được nhúng vào chính file PNG (chunk `tEXt`
     `bluedental-sketch`); BE vẫn chỉ thấy một PNG. Bản vẽ lưu trước vòng 2 (không có chunk) mở ra như ảnh nền.
   - Vẽ mượt: không qua React khi đang vẽ, vẽ ngay trong sự kiện chuột (như tab Hình ảnh), nét lên trang
-    ngay khi nhả chuột (trước đây chớp một khung). Không dùng canvas `desynchronized` và điểm dự đoán —
-    cả hai làm đầu bút giật.
+    ngay khi nhả chuột. Vòng 3: bút/dạ quang vẽ trên lớp "mực" riêng dùng canvas `desynchronized`
+    (bỏ chờ khung hình), chỉ vẽ nối thêm đoạn mới, không xoá-vẽ lại; dạ quang vẽ đặc, lớp hiện mờ 40%.
+    Nét lưu là polyline qua mọi điểm mẫu, trùng với nét đang vẽ. Không dùng điểm dự đoán (làm giật đầu bút).
+    Lưu ý: ảnh chụp headless của Playwright có thể hiện khung cũ của lớp mực — đọc điểm ảnh thay vì chụp.
 - "Áp dụng" chỉ đưa ảnh lên phiếu (PNG trong bộ nhớ). Ảnh được tải lên khi bấm **Lưu** phiếu
   (`POST …/{id}/drawings`, multipart), rồi phiếu lưu đường dẫn. Xoá cũng chỉ có hiệu lực khi Lưu.
 - BE: chỉ nhận PNG (kiểm theo chữ ký file, ≤ 2 MB, lỗi `BlueDental:Patient:0024`); ảnh nằm trong MinIO dưới

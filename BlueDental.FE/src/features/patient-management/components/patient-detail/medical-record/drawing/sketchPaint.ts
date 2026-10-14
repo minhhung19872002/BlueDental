@@ -43,12 +43,7 @@ export function layoutText(item: TextItem) {
 }
 
 function paintText(ctx: CanvasRenderingContext2D, item: TextItem) {
-  const { px, lineHeight, width, height, lines } = layoutText(item);
-  if (item.fill) {
-    ctx.fillStyle = item.fill;
-    ctx.fillRect(item.at.x, item.at.y, width, height);
-  }
-
+  const { px, lineHeight, lines } = layoutText(item);
   ctx.font = fontOf(item.style);
   ctx.fillStyle = item.color;
   ctx.textBaseline = "top";
@@ -75,16 +70,12 @@ function strokePath(ctx: CanvasRenderingContext2D, points: Point[], size: number
     return;
   }
 
-  // Through the midpoints, so a quick stroke reads as a curve, not a polygon.
+  // Straight through every sample, as the ink was laid while drawing — the
+  // samples are dense enough to read as a curve, and a smoothed path would
+  // shift the stroke at the moment it is let go.
   ctx.beginPath();
   ctx.moveTo(first.x, first.y);
-  for (let at = 1; at < points.length - 1; at += 1) {
-    const here = points[at];
-    const next = points[at + 1];
-    ctx.quadraticCurveTo(here.x, here.y, (here.x + next.x) / 2, (here.y + next.y) / 2);
-  }
-  const last = points[points.length - 1];
-  ctx.lineTo(last.x, last.y);
+  for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
   ctx.stroke();
 }
 

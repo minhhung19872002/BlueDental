@@ -9,7 +9,7 @@
  * backdrop they are drawn over; it cannot be picked apart.
  *
  * Tools follow what the clinic pointed at: Windows' Snipping Tool for the
- * pens, eraser and shapes, Paint for the text box and the shared colours.
+ * pens, eraser and shapes, Paint for the text box and the shared colour.
  */
 
 export interface Point {
@@ -33,15 +33,13 @@ export interface TextStyle {
   underline: boolean;
   strike: boolean;
   align: TextAlign;
-  /** Paint's "Background fill": the words sit on colour 2. */
-  filled: boolean;
 }
 
 export type Item =
   | { id: string; kind: "stroke"; tool: "pen" | "highlighter"; color: string; size: number; points: Point[] }
   | { id: string; kind: "shape"; shape: ShapeKind; color: string; size: number; from: Point; to: Point }
-  /** `at` is the top left of the first line; `fill` is set when the words sit on a colour. */
-  | { id: string; kind: "text"; text: string; at: Point; color: string; fill: string | null; style: TextStyle };
+  /** `at` is the top left of the first line. */
+  | { id: string; kind: "text"; text: string; at: Point; color: string; style: TextStyle };
 
 export type TextItem = Extract<Item, { kind: "text" }>;
 
@@ -79,10 +77,8 @@ export const SIZE_RANGE: Record<SizedTool, { min: number; max: number }> = {
 export interface SketchSettings {
   tool: SketchTool;
   shape: ShapeKind;
-  /** Paint's colour 1: what is drawn and written in. Shared by every tool. */
+  /** What is drawn and written in — one colour, shared by every tool. */
   color: string;
-  /** Paint's colour 2: what text is filled with. */
-  fill: string;
   sizes: Record<SizedTool, number>;
   text: TextStyle;
 }
@@ -91,7 +87,6 @@ export const DEFAULT_SKETCH_SETTINGS: SketchSettings = {
   tool: "pen",
   shape: "arrow",
   color: "#ed1c24",
-  fill: "#ffffff",
   sizes: { pen: 4, highlighter: 20, eraser: 24, shape: 4 },
   text: {
     font: "Arial",
@@ -101,7 +96,6 @@ export const DEFAULT_SKETCH_SETTINGS: SketchSettings = {
     underline: false,
     strike: false,
     align: "left",
-    filled: false,
   },
 };
 
@@ -131,7 +125,6 @@ export function textItem(settings: SketchSettings, text: string, at: Point, id =
     text,
     at,
     color: settings.color,
-    fill: settings.text.filled ? settings.fill : null,
     style: { ...settings.text },
   };
 }
