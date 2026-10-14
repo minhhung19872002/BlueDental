@@ -1,6 +1,36 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { createRunStaff, deleteStaff, firstBranchId } from "./fixtures/timekeepingStaff";
+
+/** Profile hours whose morning shift is due from the clinic's midnight on. */
+const SHIFT_DUE_SINCE_MIDNIGHT = {
+  morningStartTime: "00:00",
+  morningEndTime: "23:50",
+  afternoonStartTime: "23:51",
+  afternoonEndTime: "23:59",
+};
+
+/** Profile hours whose first shift is not due until 23:56. */
+const SHIFT_DUE_AT_MIDNIGHT_EVE = {
+  morningStartTime: "23:56",
+  morningEndTime: "23:57",
+  afternoonStartTime: "23:58",
+  afternoonEndTime: "23:59",
+};
+
+/** Narrows today's board to the run staff member's card. */
+async function findRunCard(page: Page, run: string) {
+  await page.locator(".floating-field", { hasText: "Tìm kiếm" }).getByRole("textbox").fill(run);
+  const card = page.locator(".tk-card", { hasText: run });
+  await expect(card).toHaveCount(1);
+  return card;
+}
+
+/** Minutes since the browser's midnight — the clock the board compares shift times on. */
+function localMinuteOfDay(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
 
 /** A future date that no earlier run has used, so the board starts empty. */
 /**
@@ -77,24 +107,16 @@ test.describe("Chấm công", () => {
   test("today: checking in on the progress bar turns the card ON, and it survives a reload", async ({ page }) => {
     const branchId = await firstBranchId(page);
     const run = `${runId()}${test.info().workerIndex}`;
-    const staff = await createRunStaff(page, branchId, run);
+    // The morning shift opened at midnight, so it is already due whenever this runs.
+    const staff = await createRunStaff(page, branchId, run, { ...SHIFT_DUE_SINCE_MIDNIGHT });
     try {
       await page.goto(`/calendar?tab=timekeeping&branchId=${branchId}`);
       await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
 
-      const findCard = async () => {
-        await page
-          .locator(".floating-field", { hasText: "Tìm kiếm" })
-          .getByRole("textbox")
-          .fill(run);
-        const card = page.locator(".tk-card", { hasText: run });
-        await expect(card).toHaveCount(1);
-        return card;
-      };
+      const findCard = () => findRunCard(page, run);
 
       let card = await findCard();
-      // Today without a check-in reads OFF ("Vắng"); only a day still to come
-      // stays neutral ("Không điểm danh").
+      // Today, the shift due and no check-in: OFF ("Vắng") (BA 2026-10-14).
       await expect(card.getByRole("img", { name: "Vắng", exact: true })).toBeVisible();
 
       // No record yet (a virtual card): the first check-in opens the day, then
@@ -122,6 +144,24 @@ test.describe("Chấm công", () => {
       await expect(card.getByRole("button", { name: "Ca sáng", exact: true })).toBeDisabled();
       await expect(card.getByRole("button", { name: "Vào ca chiều", exact: true })).toBeEnabled();
       await expect(card.locator(".tk-timeline-time--visible")).toHaveCount(2);
+    } finally {
+      await deleteStaff(page, staff.id);
+    }
+  });
+
+  test("today: a shift not yet due stays neutral, not OFF", async ({ page }) => {
+    test.skip(localMinuteOfDay() >= 23 * 60 + 55, "the shift below starts at 23:56");
+    const branchId = await firstBranchId(page);
+    const run = `${runId()}${test.info().workerIndex}n`;
+    const staff = await createRunStaff(page, branchId, run, { ...SHIFT_DUE_AT_MIDNIGHT_EVE });
+    try {
+      await page.goto(`/calendar?tab=timekeeping&branchId=${branchId}`);
+      await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
+
+      // BA 2026-10-14: no OFF before the shift is due (no grace period after).
+      const card = await findRunCard(page, run);
+      await expect(card.getByRole("img", { name: "Không điểm danh", exact: true })).toBeVisible();
+      await expect(card.getByRole("img", { name: "Vắng", exact: true })).toHaveCount(0);
     } finally {
       await deleteStaff(page, staff.id);
     }

@@ -30,7 +30,7 @@ export interface TimeKeepingRecord {
   workDate: string;
   registration: number;
   status: number;
-  morningShift: { checkedInAt: string | null; checkedOutAt: string | null };
+  morningShift: { checkedInAt: string | null; checkedOutAt: string | null; lateMinutes: number | null };
 }
 
 export async function call<T = Record<string, unknown>>(
@@ -98,6 +98,8 @@ export async function createRunStaff(
     roleNames?: string[];
     branchIds?: string[];
     /** Profile working hours ("HH:mm"), as the Nhân viên editor saves them. */
+    morningStartTime?: string;
+    morningEndTime?: string;
     afternoonStartTime?: string;
     afternoonEndTime?: string;
   } = {},

@@ -124,6 +124,62 @@ public class TimeKeepingRecordTests
     }
 
     [Fact]
+    public void Check_In_Freezes_The_Minutes_Late_Against_The_Planned_Start()
+    {
+        var record = OpenDay();
+        record.CheckIn(WorkShiftKind.Morning, At(8, 25).AddSeconds(59));
+        record.CheckIn(WorkShiftKind.Afternoon, At(12, 50));
+
+        Assert.Equal(25, record.MorningShift.LateMinutes);
+        Assert.Equal(0, record.AfternoonShift.LateMinutes);
+    }
+
+    [Fact]
+    public void A_Shift_Not_Checked_In_Has_No_Late_Minutes()
+    {
+        var record = OpenDay();
+        record.CheckIn(WorkShiftKind.Afternoon, At(13));
+
+        Assert.Null(record.MorningShift.LateMinutes);
+    }
+
+    [Fact]
+    public void Late_Minutes_Survive_Check_Out_And_A_Later_Reschedule()
+    {
+        var record = OpenDay();
+        record.CheckIn(WorkShiftKind.Morning, At(8, 30));
+        record.CheckOut(WorkShiftKind.Morning, At(12));
+
+        record.RescheduleShifts(
+            new WorkShift(WorkShiftKind.Morning, new TimeOnly(8, 30), new TimeOnly(12, 0)),
+            WorkShift.DefaultAfternoon());
+
+        Assert.Equal(30, record.MorningShift.LateMinutes);
+    }
+
+    [Fact]
+    public void A_Leave_Opening_The_Shift_Moves_The_Due_Time_To_Its_End()
+    {
+        var record = OpenDay();
+        record.RegisterLeave(new LeaveWindow(LeaveShift.Morning, new TimeOnly(8, 0), new TimeOnly(10, 0)));
+
+        Assert.Equal(new TimeOnly(10, 0), record.DueStartOf(WorkShiftKind.Morning));
+        Assert.Equal(new TimeOnly(13, 0), record.DueStartOf(WorkShiftKind.Afternoon));
+
+        record.CheckIn(WorkShiftKind.Morning, At(10, 5));
+        Assert.Equal(5, record.MorningShift.LateMinutes);
+    }
+
+    [Fact]
+    public void A_Leave_Later_In_The_Shift_Keeps_The_Planned_Start()
+    {
+        var record = OpenDay();
+        record.RegisterLeave(new LeaveWindow(LeaveShift.Morning, new TimeOnly(10, 0), new TimeOnly(12, 0)));
+
+        Assert.Equal(new TimeOnly(8, 0), record.DueStartOf(WorkShiftKind.Morning));
+    }
+
+    [Fact]
     public void Should_Mark_Open_Shift_As_Abandoned()
     {
         var record = OpenDay();

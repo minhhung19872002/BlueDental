@@ -1577,6 +1577,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 shift.Property(s => s.PlannedEnd).HasColumnName("MorningPlannedEnd");
                 shift.Property(s => s.CheckedInAt).HasColumnName("MorningCheckedInAt");
                 shift.Property(s => s.CheckedOutAt).HasColumnName("MorningCheckedOutAt");
+                shift.Property(s => s.LateMinutes).HasColumnName("MorningLateMinutes");
             });
             entity.Navigation(x => x.MorningShift).IsRequired();
 
@@ -1587,6 +1588,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 shift.Property(s => s.PlannedEnd).HasColumnName("AfternoonPlannedEnd");
                 shift.Property(s => s.CheckedInAt).HasColumnName("AfternoonCheckedInAt");
                 shift.Property(s => s.CheckedOutAt).HasColumnName("AfternoonCheckedOutAt");
+                shift.Property(s => s.LateMinutes).HasColumnName("AfternoonLateMinutes");
             });
             entity.Navigation(x => x.AfternoonShift).IsRequired();
 

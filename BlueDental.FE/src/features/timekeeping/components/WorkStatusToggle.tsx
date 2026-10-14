@@ -22,9 +22,10 @@ function thumbLeft(position: number): string {
 /**
  * The OFF/ON pill on a timekeeping card. Read-only (BA 2026-10-02): nobody
  * flips it by hand any more — it reads ON once a shift has been checked in on
- * the progress bar, OFF on today or a past day without one, and stays neutral
- * on a day that has not come yet. A day registered off (X on the Lịch làm việc
- * grid, whole day) reads OFF whatever the date.
+ * the progress bar, stays neutral until the first shift is due, and turns OFF
+ * from then on without a check-in (BA 2026-10-14; see utils/workStatus). A day
+ * registered off (X on the Lịch làm việc grid, whole day) reads OFF whatever
+ * the date.
  */
 export function WorkStatusToggle({ status }: Props) {
   const { slot, modClass, labelKey } = STATUS_CONFIG[status];

@@ -33,6 +33,11 @@ function shiftDays(day: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** Minutes since the clinic's midnight (UTC+7), the clock lateness is measured on. */
+function clinicMinuteOfDay(): number {
+  return Math.floor(((Date.now() + 7 * 3_600_000) % 86_400_000) / 60_000);
+}
+
 test.describe("Chấm công — API", () => {
   let branchId: string;
   let staff: RunStaff;
@@ -89,5 +94,65 @@ test.describe("Chấm công — API", () => {
     expect(after.body.registration).toBe(WORKING);
     expect(after.body.morningShift.checkedInAt).not.toBeNull();
     expect(after.body.morningShift.checkedOutAt).not.toBeNull();
+  });
+
+  // R-931: the minutes late are frozen at check-in for the đi trễ statistics.
+  test("today: check-in freezes the minutes late, and a later reschedule keeps them", async ({ page }) => {
+    // The shift opened at midnight, so the minutes late = clinic minutes so far.
+    const lateStaff = await createRunStaff(page, branchId, `${runId()}${test.info().workerIndex}l`, {
+      morningStartTime: "00:00",
+      morningEndTime: "23:50",
+      afternoonStartTime: "23:51",
+      afternoonEndTime: "23:59",
+    });
+    try {
+      const record = await openDay(page, branchId, lateStaff.id, clinicToday());
+      const before = clinicMinuteOfDay();
+      const res = await call<TimeKeepingRecord>(page, `${BASE}/${record.id}/check-in`, {
+        method: "POST",
+        branchId,
+        json: { shift: MORNING },
+      });
+      const after = clinicMinuteOfDay();
+      expect(res.status, `check-in (${JSON.stringify(res.body.error)})`).toBe(200);
+      const late = res.body.morningShift.lateMinutes;
+      expect(late).toBeGreaterThanOrEqual(before);
+      expect(late).toBeLessThanOrEqual(after);
+
+      // Moving the plan after the check-in (R-912) must not rewrite it.
+      const moved = await call(page, `${BASE}/${record.id}/info`, {
+        method: "PUT",
+        branchId,
+        json: { morningStart: "00:30:00" },
+      });
+      expect(moved.status, `reschedule (${JSON.stringify(moved.body.error)})`).toBe(200);
+      const reread = await call<TimeKeepingRecord>(page, `${BASE}/${record.id}`, { branchId });
+      expect(reread.body.morningShift.lateMinutes).toBe(late);
+    } finally {
+      await deleteStaff(page, lateStaff.id);
+    }
+  });
+
+  test("today: checking in before the shift starts counts as on time", async ({ page }) => {
+    test.skip(clinicMinuteOfDay() >= 23 * 60 + 55, "the shift below starts at 23:56");
+    const earlyStaff = await createRunStaff(page, branchId, `${runId()}${test.info().workerIndex}e`, {
+      morningStartTime: "23:56",
+      morningEndTime: "23:57",
+      afternoonStartTime: "23:58",
+      afternoonEndTime: "23:59",
+    });
+    try {
+      const record = await openDay(page, branchId, earlyStaff.id, clinicToday());
+      const res = await call<TimeKeepingRecord>(page, `${BASE}/${record.id}/check-in`, {
+        method: "POST",
+        branchId,
+        json: { shift: MORNING },
+      });
+      expect(res.status, `check-in (${JSON.stringify(res.body.error)})`).toBe(200);
+      const reread = await call<TimeKeepingRecord>(page, `${BASE}/${record.id}`, { branchId });
+      expect(reread.body.morningShift.lateMinutes).toBe(0);
+    } finally {
+      await deleteStaff(page, earlyStaff.id);
+    }
   });
 });

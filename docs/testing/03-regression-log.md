@@ -8031,3 +8031,37 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - `treatment-plan` › "the slip survives a reload…" đỏ ở dòng 316: form hóa đơn có 7 ô `.inv-field`, test đang chờ 13. Lỗi nằm ở form hóa đơn (Loại hóa đơn mặc định Cá nhân, R-916), không phải ở dialog này.
   - Luồng Tạo với giá / số lượng tự gõ chưa có test e2e riêng. Nó đi qua cùng ô nhập và cùng `values.price` / `values.quantity` như trước.
 - Chưa commit.
+
+## R-931 (2026-10-14, mức 2: Lịch làm việc / chấm công + migration) OFF/ON theo giờ vào ca, lưu số phút đi trễ
+
+- **BA góp ý trên ảnh `/calendar?tab=timekeeping`:** mới đầu ngày, chưa tới giờ vào ca mà thẻ đã báo OFF đỏ. `resolveWorkStatus` coi hôm nay giống ngày đã qua: chưa check-in là OFF.
+- **Quy tắc owner chốt:**
+  - Check-in bất kỳ ca nào là ON, kể cả check-in trễ. Sáng có check-in, chiều chưa thì vẫn ON.
+  - Chưa tới giờ vào ca đầu tiên thì ở giữa ("Không điểm danh").
+  - Tới giờ mà chưa check-in thì OFF đỏ ("Vắng"). Đúng giờ là OFF, không có thời gian ân hạn.
+  - Ngày đã qua không check-in là OFF. Ngày chưa tới ở giữa. Ngày đăng ký nghỉ (X) vẫn OFF "Nghỉ" (R-654).
+  - **Giờ vào ca** = giờ bắt đầu theo kế hoạch. Nếu có đơn nghỉ trong ca đó bắt đầu từ đầu ca thì lấy giờ kết thúc đơn nghỉ (nghỉ 08:00–10:00 thì 10:00 mới tới giờ). Nghỉ trọn ca sáng thì xét ca chiều.
+- **FE:**
+  - `features/timekeeping/utils/workStatus.ts` (mới) chứa một quy tắc chung cho mọi ngày: so `now` với giờ vào ca đầu tiên.
+  - `TimekeepingStaffCard` dùng `useNow(isToday, 30_000)`, nên thẻ tự chuyển OFF trong vòng 30 giây sau giờ vào ca mà không cần tải lại.
+  - Chú thích của `WorkStatusToggle` đã cập nhật theo quy tắc mới.
+- **Lưu số phút đi trễ để sau này thống kê** (owner: "lưu lại data trước … ít bữa cần có thể làm thống kê"):
+  - `WorkShift.LateMinutes` (cột `MorningLateMinutes` / `AfternoonLateMinutes`, kiểu int, nullable) được chốt ngay lúc check-in: `max(0, floor(phút từ giờ vào ca tới lúc check-in))`.
+  - Check-out và việc đổi giờ ca sau check-in (R-912) không làm thay đổi giá trị này. Null = chưa check-in. 0 = đúng giờ hoặc sớm.
+  - `TimeKeepingRecord.DueStartOf` tính giờ vào ca. `WorkShiftDto.lateMinutes` được trả ra API. Chưa có màn thống kê.
+  - Migration `AddShiftLateMinutes` điền lại dữ liệu cho các ca đã check-in (giờ Asia/Ho_Chi_Minh).
+  - Giới hạn của dữ liệu điền lại: ca đã bị dời giờ sau check-in thì được đo theo giờ mới.
+  - DB local: 110/110 ca sáng và 49/49 ca chiều có giá trị. Đã soát tay: 08:24:28 so với 08:00 ra 24 phút.
+- **Rủi ro còn để ngỏ:** owner chốt vẫn nhận `AttendanceInput.At` từ client ("vẫn nhận At đi"). Ai gọi API trực tiếp có thể gửi giờ check-in tuỳ ý, và số phút trễ sẽ tính theo giờ đó.
+- **Kiểm chứng** (API thật build riêng ở :5055 vì :5000 là host của phiên khác; build production `vite preview` ở :8098; DB thật):
+  - Domain.Tests (Timekeeping + Payroll) 40/40, trong đó có 5 test mới: chốt số phút, ca chưa check-in, giữ nguyên qua check-out và đổi giờ, đơn nghỉ đầu ca dời giờ vào ca, đơn nghỉ giữa ca giữ giờ cũ.
+  - `timekeeping-api`: thêm 2 test mới.
+    - Ca bắt đầu 00:00 → `lateMinutes` = số phút từ nửa đêm theo giờ phòng khám. PUT `/info` đổi giờ xong, GET riêng thấy giá trị không đổi.
+    - Ca bắt đầu 23:56 → 0.
+  - `timekeeping`:
+    - Test "today" đã cố định giờ ca bằng giờ hồ sơ 00:00, nên OFF "Vắng" trước khi check-in là chắc chắn, rồi chuyển ON và vẫn ON sau khi reload.
+    - Test mới: ca 23:56 hôm nay thì thẻ ở "Không điểm danh", không có "Vắng".
+  - `work-schedule-own-dayoff` xanh.
+  - Kết quả: 12/13. Một test đỏ có sẵn, không liên quan: `timekeeping` › "the work schedule board loads its KPIs" chờ `data-testid="timekeeping-kpis"` nhưng testid này đã mất khỏi `TimekeepingStatChips` từ một commit trước. File đó không nằm trong thay đổi này.
+  - `tsc` + eslint sạch.
+- Chưa commit.

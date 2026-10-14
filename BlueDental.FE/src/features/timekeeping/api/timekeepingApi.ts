@@ -41,6 +41,8 @@ export interface WorkShiftDto {
   plannedEnd: string;
   checkedInAt: string | null;
   checkedOutAt: string | null;
+  /** Minutes late at check-in, frozen then; null until checked in. */
+  lateMinutes: number | null;
   plannedMinutes: number;
   workedMinutes: number;
   isOpen: boolean;

@@ -110,6 +110,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
         plannedEnd: end,
         checkedInAt: null,
         checkedOutAt: null,
+        lateMinutes: null,
         plannedMinutes: 240,
         workedMinutes: 0,
         isOpen: false,

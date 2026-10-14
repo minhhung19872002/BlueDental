@@ -26,6 +26,13 @@ public class WorkShift : ComparableValueObject
     /// <summary>Actual clock-out.</summary>
     public DateTimeOffset? CheckedOutAt { get; private set; }
 
+    /// <summary>
+    /// Minutes between the time the shift was due to start and the clock-in,
+    /// frozen at check-in so a later reschedule cannot rewrite it (đi trễ
+    /// statistics). 0 = on time or early; null = not checked in.
+    /// </summary>
+    public int? LateMinutes { get; private set; }
+
     protected WorkShift() { }
 
     public WorkShift(
@@ -81,7 +88,10 @@ public class WorkShift : ComparableValueObject
     public int WorkedMinutes =>
         IsClosed ? (int)(CheckedOutAt!.Value - CheckedInAt!.Value).TotalMinutes : 0;
 
-    public WorkShift CheckIn(DateTimeOffset at)
+    /// <param name="at">The clock-in.</param>
+    /// <param name="dueAt">When the staff member was due to start — see
+    /// <see cref="TimeKeepingRecord.DueStartOf"/>.</param>
+    public WorkShift CheckIn(DateTimeOffset at, DateTimeOffset dueAt)
     {
         if (IsStarted)
         {
@@ -90,7 +100,10 @@ public class WorkShift : ComparableValueObject
                 $"The {Kind} shift has already been checked in.");
         }
 
-        return new WorkShift(Kind, PlannedStart, PlannedEnd, at);
+        return new WorkShift(Kind, PlannedStart, PlannedEnd, at)
+        {
+            LateMinutes = Math.Max(0, (int)Math.Floor((at - dueAt).TotalMinutes))
+        };
     }
 
     public WorkShift CheckOut(DateTimeOffset at)
@@ -109,11 +122,11 @@ public class WorkShift : ComparableValueObject
                 $"The {Kind} shift has already been checked out.");
         }
 
-        return new WorkShift(Kind, PlannedStart, PlannedEnd, CheckedInAt, at);
+        return new WorkShift(Kind, PlannedStart, PlannedEnd, CheckedInAt, at) { LateMinutes = LateMinutes };
     }
 
     public WorkShift Reschedule(TimeOnly plannedStart, TimeOnly plannedEnd)
-        => new(Kind, plannedStart, plannedEnd, CheckedInAt, CheckedOutAt);
+        => new(Kind, plannedStart, plannedEnd, CheckedInAt, CheckedOutAt) { LateMinutes = LateMinutes };
 
     protected override IEnumerable<object> GetAtomicValues()
     {
@@ -122,5 +135,6 @@ public class WorkShift : ComparableValueObject
         yield return PlannedEnd;
         yield return (object?)CheckedInAt ?? string.Empty;
         yield return (object?)CheckedOutAt ?? string.Empty;
+        yield return (object?)LateMinutes ?? string.Empty;
     }
 }

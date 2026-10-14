@@ -10118,6 +10118,10 @@ namespace BlueDental.Migrations
                                 .HasColumnType("smallint")
                                 .HasColumnName("AfternoonKind");
 
+                            b1.Property<int?>("LateMinutes")
+                                .HasColumnType("integer")
+                                .HasColumnName("AfternoonLateMinutes");
+
                             b1.Property<TimeOnly>("PlannedEnd")
                                 .HasColumnType("time without time zone")
                                 .HasColumnName("AfternoonPlannedEnd");
@@ -10150,6 +10154,10 @@ namespace BlueDental.Migrations
                             b1.Property<short>("Kind")
                                 .HasColumnType("smallint")
                                 .HasColumnName("MorningKind");
+
+                            b1.Property<int?>("LateMinutes")
+                                .HasColumnType("integer")
+                                .HasColumnName("MorningLateMinutes");
 
                             b1.Property<TimeOnly>("PlannedEnd")
                                 .HasColumnType("time without time zone")
