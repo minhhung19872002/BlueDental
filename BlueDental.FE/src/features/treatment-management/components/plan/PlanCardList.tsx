@@ -27,14 +27,16 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
   return (
     <>
       {/* No tooltip on "+": the reference leaves this one untipped. */}
-      <button
-        type="button"
-        className="bd-rc-action"
-        aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
-        onClick={() => actions.onAddStage(plan)}
-      >
-        <Plus size={16} aria-hidden="true" />
-      </button>
+      {actions.onAddStage && (
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
+          onClick={() => actions.onAddStage?.(plan)}
+        >
+          <Plus size={16} aria-hidden="true" />
+        </button>
+      )}
       <ActionTooltip title={t("Treatment:Plan:ServiceList")}>
         <button
           type="button"

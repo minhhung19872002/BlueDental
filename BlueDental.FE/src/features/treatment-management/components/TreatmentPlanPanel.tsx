@@ -51,6 +51,8 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const paymentAbility = useAbility("payment");
   // "Xoá phiếu điều trị" has a leaf of its own, apart from the consulting delete.
   const canDeletePlan = ability.can("deletePlan");
+  // "Chi tiết phiếu" shows the công đoạn — nothing of it without treatmentStage.read.
+  const canSeeStages = useAbility("treatmentStage").canRead;
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [createOpen, setCreateOpen] = useState(false);
@@ -83,7 +85,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
 
   const rowActions = useMemo<PlanRowActions>(
     () => ({
-      onAddStage: setStagePlan,
+      onAddStage: canSeeStages ? setStagePlan : undefined,
       onViewServices: (plan) => setServiceList({ kind: "plan", plan }),
       // The reference's print dialog is about the patient, not the slip: it
       // reads the record files and the patient, and nothing off the row.
@@ -92,7 +94,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
       onDelete: canDeletePlan ? setDeletingPlan : undefined,
     }),
-    [navigate, patientId, branchId, paymentAbility.canCreate, canDeletePlan],
+    [navigate, patientId, branchId, paymentAbility.canCreate, canDeletePlan, canSeeStages],
   );
 
   const serviceRows =

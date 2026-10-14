@@ -61,7 +61,8 @@ export function PlanServicesToolbar({
             <PlanServicePicker onPickService={onPickService} />
           </Form>
         )}
-        {stageAbility.canCreate && (
+        {/* The dialog it opens shows the công đoạn, so Xem comes first. */}
+        {stageAbility.canRead && stageAbility.canCreate && (
           <button type="button" className="tp-btn tp-btn--primary" onClick={onAddStage}>
             <Plus size={16} aria-hidden="true" />
             {t("Treatment:Stage:AddStage")}

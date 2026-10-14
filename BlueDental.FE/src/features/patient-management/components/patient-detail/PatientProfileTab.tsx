@@ -196,17 +196,16 @@ export function PatientProfileTab({ patient }: Props) {
    * real fix is the reference's own server-paged timeline endpoint, recorded in
    * docs/clone/unknowns.md.
    */
-  const patientStages = useTreatmentStages({
-    patientId: patient.id,
-    clinicBranchId: branchId,
-    maxResultCount: 1000,
-  });
+  const patientStages = useTreatmentStages(
+    { patientId: patient.id, clinicBranchId: branchId, maxResultCount: 1000 },
+    stageAbility.canRead,
+  );
   /** Tái khám rows sit in the same table, beside the công đoạn. */
-  const reExaminations = useReExaminations({
-    patientId: patient.id,
-    clinicBranchId: branchId,
-    maxResultCount: 1000,
-  });
+  // Both lists are công đoạn data — the server refuses them without treatmentStage.read.
+  const reExaminations = useReExaminations(
+    { patientId: patient.id, clinicBranchId: branchId, maxResultCount: 1000 },
+    stageAbility.canRead,
+  );
   /**
    * The phiếu chẩn đoán, for the "Các chẩn đoán" chip alone (BA item 25,
    * 2026-09-28): staging lists them in this table as rows of their own.
@@ -321,14 +320,14 @@ export function PatientProfileTab({ patient }: Props) {
     () =>
       treatmentColumns({
         onOpenPlan: openTreatmentPlan,
-        onAddStage: setStageRow,
+        onAddStage: stageAbility.canRead ? setStageRow : undefined,
         onWarranty: setWarrantyRow,
         onPay: paymentAbility.canCreate ? setPayingRow : undefined,
       }),
     // openTreatmentPlan closes over the patient, the branch and the router's
     // navigate only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [patient.id, branchId, paymentAbility.canCreate],
+    [patient.id, branchId, paymentAbility.canCreate, stageAbility.canRead],
   );
   const planOf = (row: TreatmentRow | null) =>
     (plans ?? []).find((plan) => plan.id === row?.treatmentPlanId) ?? null;

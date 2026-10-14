@@ -21,8 +21,8 @@ interface Handlers {
    * lands on the slip its line belongs to.
    */
   onOpenPlan: (row: TreatmentRow) => void;
-  /** Công đoạn — opens "Chi tiết phiếu", where a công đoạn is added. */
-  onAddStage: (row: TreatmentRow) => void;
+  /** Công đoạn — opens "Chi tiết phiếu"; left out without treatmentStage.read. */
+  onAddStage?: (row: TreatmentRow) => void;
   /** Bảo hành — offered once the row's công đoạn is finished. */
   onWarranty: (row: TreatmentRow) => void;
   /** Thao tác — "Tạo phiếu thanh toán" for this row; left out without payment.create. */
@@ -165,6 +165,7 @@ export function treatmentColumns({
         // worked keeps the green + — adding a new one never closes the old, so
         // every unfinished row stays clickable.
         if (!row.stageDone) {
+          if (!onAddStage) return null;
           // The reference counts its stage *checklist* here
           // (stageServiceItems), which BlueDental does not model, and the công
           // đoạn themselves are already a row each.

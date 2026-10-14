@@ -16,7 +16,8 @@ import {
 } from "./planTypes";
 
 export interface PlanRowActions {
-  onAddStage: (plan: TreatmentPlanSlipDto) => void;
+  /** "Thêm công đoạn"; left out without treatmentStage.read — the column goes with it. */
+  onAddStage?: (plan: TreatmentPlanSlipDto) => void;
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
   onPrintRecord: (plan: TreatmentPlanSlipDto) => void;
   /** The invoice icon; left out when the user may not issue one (payment.finalize). */
@@ -46,9 +47,7 @@ function money(field: keyof PlanMoney, width: number): Column {
 
 function statusPill(plan: TreatmentPlanSlipDto) {
   const pill = planPill(plan);
-  return (
-    <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{pill.label}</span>
-  );
+  return <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{pill.label}</span>;
 }
 
 /** The twelve configurable columns, by key; widths measured on the reference. */
@@ -121,23 +120,29 @@ export function buildPlanColumns(
   actions: PlanRowActions,
 ): TableColumnsType<TreatmentPlanSlipDto> {
   const byKey = configurableColumns(actions);
+  const { onAddStage } = actions;
+  const addStage: TableColumnsType<TreatmentPlanSlipDto> = onAddStage
+    ? [
+        {
+          key: "addStage",
+          title: t("Treatment:Stage:AddStage"),
+          width: 140,
+          align: "center",
+          render: (_, plan) => (
+            <button
+              type="button"
+              className="tp-add-stage"
+              aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
+              onClick={() => onAddStage(plan)}
+            >
+              <Plus size={16} aria-hidden="true" />
+            </button>
+          ),
+        },
+      ]
+    : [];
   return [
-    {
-      key: "addStage",
-      title: t("Treatment:Stage:AddStage"),
-      width: 140,
-      align: "center",
-      render: (_, plan) => (
-        <button
-          type="button"
-          className="tp-add-stage"
-          aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
-          onClick={() => actions.onAddStage(plan)}
-        >
-          <Plus size={16} aria-hidden="true" />
-        </button>
-      ),
-    },
+    ...addStage,
     ...settings.filter((item) => item.visible).map((item) => byKey[item.key]),
     {
       key: "actions",

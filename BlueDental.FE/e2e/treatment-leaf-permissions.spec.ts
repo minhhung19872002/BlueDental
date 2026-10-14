@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { BRANCH_IN_URL } from "./fixtures/branch";
+import { call, openNewSlip } from "./fixtures/ledgerReceipt";
 import {
   createDentist,
   deleteDentist,
@@ -175,6 +176,60 @@ test.describe("Chẩn đoán & Tư vấn — Xoá follows its own leaf", () => {
     } finally {
       await context.close();
       await resetDentistLeaves(page, LEAVES);
+      await deleteDentist(page, fullName);
+    }
+  });
+
+  test("Công đoạn without Xem: no way into Chi tiết phiếu; with Xem: the + is back", async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(420_000);
+    await page.setViewportSize({ width: 1600, height: 900 });
+
+    const id = runId();
+    const userName = `bs${id}`;
+    const password = "Bacsi@123456";
+    const fullName = `BAC SI ${id}`;
+    // Everything of Công đoạn but Xem — the combination on the owner's screen.
+    const base = ["patient.read", "treatmentConsultation.read", "treatmentStage.create", "treatmentStage.continue"];
+    const leaves = [...base, "treatmentStage.read"];
+
+    await login(page);
+    await openNewSlip(page);
+    const [, patientId, planId] =
+      /\/patient\/([0-9a-f-]{36})\/treatment-plan\/([0-9a-f-]{36})/.exec(page.url()) ?? [];
+    const code = String((await call(page, `/api/v1/app/patient-treatments/${planId}`)).body.code);
+    await resetDentistLeaves(page, leaves);
+    await createDentist(page, fullName, userName, password);
+    for (const leaf of base) await setDentistLeaf(page, leaf, true);
+
+    const { context, page: dentist } = await openDentistSession(browser, userName, password);
+    try {
+      await dentist.setViewportSize({ width: 1600, height: 900 });
+      const planList = `/patient/${patientId}?branchId=${BRANCH}&tab=treatment-plan`;
+      const slipDetail = `/patient/${patientId}/treatment-plan/${planId}?branchId=${BRANCH}&planTab=detail`;
+      const addOnRow = dentist.getByRole("button", { name: `Thêm công đoạn ${code}` });
+      const addOnSlip = dentist.locator(".pdt-toolbar").getByRole("button", { name: "Thêm công đoạn" });
+
+      // ── Thêm but no Xem: neither door into the dialog is offered ─────────
+      await dentist.goto(planList);
+      await expect(dentist.locator(".tp-table .tp-code", { hasText: code })).toBeVisible({ timeout: 20_000 });
+      await expect(addOnRow).toHaveCount(0);
+      await dentist.goto(slipDetail);
+      await expect(dentist.getByRole("tab", { name: "Chi tiết" })).toBeVisible({ timeout: 20_000 });
+      await expect(addOnSlip).toHaveCount(0);
+
+      // ── Xem granted: both come back and open Chi tiết phiếu ──────────────
+      await setDentistLeaf(page, "treatmentStage.read", true);
+      await dentist.goto(planList);
+      await addOnRow.click();
+      await expect(dentist.getByRole("dialog", { name: "Chi tiết phiếu" })).toBeVisible();
+      await dentist.goto(slipDetail);
+      await expect(addOnSlip).toBeVisible({ timeout: 20_000 });
+    } finally {
+      await context.close();
+      await resetDentistLeaves(page, leaves);
       await deleteDentist(page, fullName);
     }
   });

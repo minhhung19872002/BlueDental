@@ -8428,3 +8428,11 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Kết quả trên build production:** `staff-priority-order` 1/1, `reception-doctor-priority` 4/4, `staff` 1/1 (trước đỏ, R-906), `staff-employment`, `discount-limit`, `patient-permission-gates`, `treatment-plan-delete` xanh. Còn đỏ do DB local: `role-permissions` ("dentist không quyền → /dashboard") và `taxonomy-import-api` ("không quyền → 403"), vì role `dentist` trên máy đang có hơn 350 quyền chủ dự án tự tick (R-920).
 
+## R-923 (2026-10-14, mức 2: phân quyền Công đoạn) Không có "Xem" Công đoạn vẫn mở được "Chi tiết phiếu"
+
+**Báo lỗi (chủ dự án):** dentist có Thêm / Sửa / Tiếp tục / Hoàn thành / In của Công đoạn nhưng không có Xem, vẫn mở "Chi tiết phiếu" (lịch sử trống vì server đã trả 403, nhưng dialog vẫn hiện).
+
+**Sửa:** mọi lối vào "Chi tiết phiếu" yêu cầu `treatmentStage.read`: nút "+" ở Kế hoạch điều trị (cột và thẻ mobile ẩn hẳn), "Thêm công đoạn" ở Chi tiết phiếu (Xem **và** Thêm), nút "+" ở bảng điều trị tab Hồ sơ. Tab Hồ sơ cũng không tải công đoạn / tái khám khi thiếu Xem.
+
+**Test:** `treatment-leaf-permissions.spec` thêm 1 test: chỉ Thêm + Tiếp tục thì không có nút "Thêm công đoạn {mã}" lẫn nút trên thanh Chi tiết phiếu; bật Xem thì cả hai hiện và mở được dialog. Spec 3/3 + `treatment-plan-delete` 3/3 trên build production.
+
