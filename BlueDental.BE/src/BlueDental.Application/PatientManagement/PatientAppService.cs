@@ -107,7 +107,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             return new PhoneAvailabilityDto { Exists = false };
         }
 
-        var trimmed = phone.Trim();
+        var trimmed = PatientPhoneFormat.Normalize(phone);
         var query = await _repository.GetQueryableAsync();
 
         // Every holder, not the first one found (bug list item 29: a number
@@ -170,7 +170,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         // "Tạo hồ sơ" on a Lịch tạm card pre-fills the walk-in's phone, masked
         // for an account with "Ẩn số điện thoại" (Cụm 11 mục 9): the card the
         // dialog came from knows the real number.
-        var phone = PatientPhoneMask.Resolve(input.PhoneNumber, await SourceAppointmentPhoneAsync(input.SourceAppointmentId, branchId));
+        var sourcePhone = await SourceAppointmentPhoneAsync(input.SourceAppointmentId, branchId);
+        var phone = PatientPhoneFormat.Prepare(PatientPhoneMask.Resolve(input.PhoneNumber, sourcePhone), sourcePhone);
         var contact = new ContactInfo(phone, input.Email, input.Address);
 
         var patient = Patient.Register(
@@ -217,7 +218,9 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
 
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         // A masked phone sent back unchanged (Cụm 11 mục 9) keeps the real one.
-        var phone = PatientPhoneMask.Resolve(input.PhoneNumber, patient.Contact.PhoneNumber);
+        var phone = PatientPhoneFormat.Prepare(
+            PatientPhoneMask.Resolve(input.PhoneNumber, patient.Contact.PhoneNumber),
+            patient.Contact.PhoneNumber);
         patient.UpdateContact(new ContactInfo(phone, input.Email, input.Address));
         patient.SetNationalId(input.NationalId);
         await EnsureNationalIdIsFreeAsync(patient.BranchId, patient.NationalId, patient.Id);
@@ -633,10 +636,15 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 ? new Dictionary<Guid, string?>()
                 : (await _repository.GetListAsync(p => linkable.Contains(p.Id)))
                     .ToDictionary(p => p.Id, p => p.Contact.PhoneNumber);
-            string? GuardianPhone(PatientGuardianInput input) => PatientPhoneMask.Resolve(
-                input.Phone,
-                patient.Guardians.FirstOrDefault(g => input.Id.HasValue && g.Id == input.Id.Value)?.Phone,
-                input.LinkedPatientId is { } linked ? linkedPhones.GetValueOrDefault(linked) : null);
+            string? GuardianPhone(PatientGuardianInput input)
+            {
+                var known = new[]
+                {
+                    patient.Guardians.FirstOrDefault(g => input.Id.HasValue && g.Id == input.Id.Value)?.Phone,
+                    input.LinkedPatientId is { } linked ? linkedPhones.GetValueOrDefault(linked) : null
+                };
+                return PatientPhoneFormat.Prepare(PatientPhoneMask.Resolve(input.Phone, known), known);
+            }
 
             var guardians = inputs
                 .Select(input => new PatientGuardianData(

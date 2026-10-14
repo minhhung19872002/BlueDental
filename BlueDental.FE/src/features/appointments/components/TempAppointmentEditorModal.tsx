@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
+import { PHONE_PATTERN } from "@/components/PhoneInput";
 import { useCreateTempAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import { useAppointment } from "../api/appointmentQueries";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
@@ -17,7 +18,7 @@ import { TempAppointmentForm, type TempAppointmentFormValues } from "./TempAppoi
 const buildSchema = () =>
   z.object({
     patientName: z.string().min(1, t("Appointment:Form:EnterPatientNameRequired")),
-    patientPhone: z.string(),
+    patientPhone: z.string().refine((phone) => !phone || PHONE_PATTERN.test(phone), t("Appointment:Form:InvalidPhone")),
     branchId: z.string().min(1, t("Appointment:Form:SelectBranchRequired")),
     doctorId: z.string(),
     date: z.string().min(1, t("Appointment:Form:SelectDateRequired")),

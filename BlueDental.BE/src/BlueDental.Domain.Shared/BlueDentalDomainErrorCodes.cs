@@ -105,6 +105,12 @@ public static class BlueDentalDomainErrorCodes
         /// matches no number the record knows, so it cannot stand for one.
         /// </summary>
         public const string MaskedPhoneUnresolved = "BlueDental:Patient:0022";
+
+        /// <summary>
+        /// The phone is neither a national number (8–15 digits) nor an
+        /// international one ("+" country code, at most 15 digits in all).
+        /// </summary>
+        public const string InvalidPhone = "BlueDental:Patient:0023";
     }
 
     public static class Appointments

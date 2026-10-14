@@ -406,7 +406,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             GuidGenerator.Create(),
             input.PatientName,
             // Typed fresh: a masked value (Cụm 11 mục 9) has nothing to stand for.
-            BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.PatientPhone),
+            BlueDental.PatientManagement.PatientPhoneFormat.Prepare(
+                BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.PatientPhone)),
             branchId,
             slot,
             input.DentistId,
@@ -473,7 +474,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 // account with "Ẩn số điện thoại" (Cụm 11 mục 9).
                 appointment.UpdateTempPatientInfo(
                     input.PatientName,
-                    BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.PatientPhone, appointment.PatientPhone));
+                    BlueDental.PatientManagement.PatientPhoneFormat.Prepare(
+                        BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.PatientPhone, appointment.PatientPhone),
+                        appointment.PatientPhone));
             }
 
             appointment.UpdateSourceInfo(input.SourceTaxonomyId, input.SourceEntryId);

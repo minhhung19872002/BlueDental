@@ -7933,3 +7933,73 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
   - `consulting-delete-and-picker` + `consulting-review` 9/9.
 - **Không đụng:** `/taxonomy` (chỉ prop `onCreated` từ R-925).
 - **Đổi chữ (owner, cùng ngày):** tooltip nút + đổi từ "Thêm nhanh chẩn đoán" thành **"Thêm chẩn đoán"** (`Patient:Diagnosis:QuickCreate`). Nhãn đọc màn hình (aria-label) dùng khoá riêng `Patient:Diagnosis:QuickCreateLabel` = "Thêm mới chẩn đoán vào danh mục": form đã có nút lệnh "Thêm chẩn đoán" (lưu phiếu, tiếp phiếu mới), trùng tên sẽ làm `getByRole("button", { name: "Thêm chẩn đoán" })` khớp 2 nút. Spec kiểm thêm tooltip hiện đúng chữ. Kiểm chứng: `diagnosis-quick-create.spec.ts` 2/2 + `patient.spec.ts:1142` (nút lệnh Thêm chẩn đoán) 1/1, build production :8145.
+
+## R-928 (2026-10-14, mức 3: component chung PhoneInput + BE bệnh nhân / lịch hẹn) Mã vùng quốc gia + cờ cho số điện thoại (F-72)
+
+- **Yêu cầu (owner, 2026-10-13):** "Cập nhật số điện thoại cho chọn số vùng". Áp dụng cho Tạo/Sửa hồ sơ bệnh nhân, Người giám hộ và Lịch hẹn tạm. Có cờ cho đẹp. Bản gốc không có mã vùng nên không cần quan sát app.nfcdental.com. BlueDental riêng.
+- **Lưu trữ (không thêm cột):** số Việt Nam vẫn lưu dạng trong nước có số 0 (`0901234567`), nên dữ liệu cũ, tìm kiếm, Zalo và kiểm trùng không đổi. Số nước ngoài lưu E.164 (`+14155550123`).
+- **BE:**
+  - `Domain.Shared/PatientManagement/PatientPhoneFormat.cs` (mới):
+    - `Normalize`: bỏ khoảng trắng, `.`, `-` và `()`; `00…` thành `+…`; `+84…` thành `0…`.
+    - `IsValid`: `^(\+[1-9]\d{6,14}|\d{8,15})$`.
+    - `Prepare(phone, known…)`: số đã có trên hồ sơ thì bỏ qua kiểm tra, để số cũ không chuẩn vẫn sửa được hồ sơ.
+  - Lỗi mới `BlueDental:Patient:0023` (vi/en).
+  - Đi qua `Prepare` sau `PatientPhoneMask.Resolve`: `PatientAppService` (CheckPhone, Register, Update, SĐT người giám hộ) và `AppointmentAppService` (tạo/sửa lịch tạm).
+  - `MigrationRowReader.FormPhone` dùng chung Normalize + IsValid; câu báo `DataMigration:Err:BadPhone` cập nhật theo.
+- **FE:**
+  - `src/components/PhoneInput/` (mới): `Space.Compact`, gồm Select cờ (`flag-icons`) + `+mã` và ô số `type="tel"`.
+    - Tìm được theo tên nước tiếng Việt/Anh (`Intl.DisplayNames` + `foldForSearch`) hoặc theo mã.
+    - Chọn nước ngoài thì số 0 đầu bị bỏ ngay khi gõ.
+    - Dán `+…` / `00…` thì tự đổi nước.
+    - Giá trị không bị đụng (kể cả số bị che `*`) gửi lại y nguyên.
+  - Dùng ở `PatientSourceColumn`, `guardian/GuardianForm`, `TempFormLeft`. `PATIENT_PHONE_PATTERN` = `PHONE_PATTERN` chung. Refine zod của `TempAppointmentEditorModal` cũng theo pattern chung.
+  - `calendar.css`: hai ô của PhoneInput trong form lịch tạm cao 40px như các ô khác. Rule 42px của dialog nặng (0,4,1) nên selector lặp class.
+- **Kiểm chứng (API thật :5000 sau rebuild, build production :8093, PostgreSQL thật):**
+  - `BlueDental.Domain.Tests` `PatientPhoneFormatTests` 43/43.
+  - `e2e/patient-phone-country.spec.ts` 4/4:
+    - Tạo hồ sơ với Hoa Kỳ: lưu `+1…`, GET riêng đọc lại đúng; mở Sửa hồ sơ thấy cờ `fi-us` + số; dán `+44 …` thì đổi sang +44, PUT lưu đúng.
+    - API: chuẩn hoá `+84 93…` → `093…` và `0082 10-…` → `+8210…`; từ chối `09ab…`, `+0…`, `12345` với 0023.
+    - Người giám hộ `+61 412…`: popup hiện cờ Úc.
+    - Lịch hẹn tạm: chọn Hàn Quốc, ô cao [40, 40]; API lưu `+8210…`; `+82` bị từ chối 0023.
+  - `tsc` + oxlint sạch.
+  - Hồi quy xanh: `patient-guardian`, `patient-guardian-api`, `patient-guardian-detail`, `patient-hide-phone`, `reception-temporary`, `patient-roster-api`.
+  - Hồi quy xanh phần lớn: `patient.spec`, `patient-editor-inputs`, `data-migration-api`.
+- **Đỏ không do thay đổi này** (không liên quan SĐT; chưa chạy lại trên HEAD để chứng minh):
+  - `data-migration-api` 665: `occupationOther` ra "Thợ …" thay vì null.
+  - `data-migration-api` 750 history: "Dịch vụ … không có trong danh mục". Phần sau của spec serial bị bỏ qua.
+  - `patient-editor-inputs:125`: class option thứ n của picker địa chỉ khi dùng bàn phím.
+  - `patient.spec`:
+    - momo trong dialog thanh toán;
+    - màu nhãn Labo "Đặt mới";
+    - "Chi tiết phiếu" không đóng (2898, 3153, 3330, 3365);
+    - bước Tiếp nhận 3447 (TEMP-BUG25-OFF đã biết);
+    - đổi bác sĩ trên thẻ lịch hẹn 3702.
+- **Không đổi:** bộ chuẩn hoá chỉ-VN của `ZaloPhoneNumber`. Số nước ngoài không gửi Zalo.
+- **Ghi chú môi trường:** engine Docker Desktop đã dừng giữa chừng (Postgres 15432 chết). Đã `docker desktop restart`.
+- Chưa commit.
+
+## R-929 (2026-10-14, mức 2: PhoneInput) Kiểm đủ 243 nước: số 0 của Ý / Bờ Biển Ngà, cờ vùng lãnh thổ dùng chung mã (F-72)
+
+- **Owner hỏi:** "b có test các nước chưa". E2E của R-928 chỉ chạy qua VN, US, GB, AU, KR.
+- **Kiểm hết danh sách 243 nước** (script tạm, đã xoá). Với mỗi nước:
+  - có cờ SVG;
+  - có tên vi và en;
+  - gõ `0` + số thì ghép đúng;
+  - qua pattern FE và BE;
+  - mở lại hoặc dán thì ra đúng nước và ghép lại y nguyên.
+- **Lỗi thật tìm ra:** `composePhone` bỏ số 0 đầu với mọi nước ngoài. Ở Ý, Vatican, San Marino, Bờ Biển Ngà, Congo và Gabon, số 0 là một phần của số, vẫn bấm sau mã nước (`+39 06…`, `+225 07…`). Hệ quả là số Rome bị lưu thành `+39 6…`, gọi không được.
+  - **Sửa:** `countries.ts` thêm `keepsLeadingZero` (IT, VA, SM, CI, CG, GA); `composePhone` giữ số 0 cho các nước này.
+- **Cải thiện:** 15 vùng lãnh thổ dùng chung mã với nước khác trước đây mở lại hoặc dán đều hiện cờ nước chính (Canada → Mỹ, Kazakhstan → Nga…). Số vẫn đúng, chỉ sai cờ.
+  - `REGION_PREFIXES` nhận theo đầu số: mã vùng Canada dưới `+1`; `+76` / `+77` Kazakhstan; Guernsey `441481`, Jersey `441534`, Isle of Man `441624`; Vatican `3906698`; Åland `35818`; Cocos `6189162`, Christmas `6189164`; Mayotte `262269` / `262639`.
+  - Saint-Martin / Saint-Barthélemy / Guadeloupe, Bonaire / Curaçao, Tây Sahara / Maroc và Svalbard / Na Uy có dải số chồng nhau, không tách được, nên vẫn hiện cờ nước chính (số vẫn đúng).
+  - Khi người dùng đã tự chọn nước thì vẫn giữ lựa chọn đó.
+- **Kiểm chứng (API thật :5000, build production :8093):**
+  - Script logic 243/243 nước + 24 số mẫu theo vùng.
+  - Trên trình duyệt (Chromium, spec tạm, đã xoá):
+    - đủ 243 cờ tải được (HTTP 200, là SVG, kích thước 20×15);
+    - gõ tên tiếng Việt của từng nước trong 243 nước đều ra đúng nước, có cờ;
+    - chọn tay Canada (bỏ 0), Ý và Bờ Biển Ngà (giữ 0) hiện đúng số.
+  - `patient-phone-country` + `patient-guardian` + `patient-hide-phone` 9/9.
+  - `tsc` + oxlint sạch.
+- **Ghi nhận:** tên nước lấy từ `Intl.DisplayNames` của trình duyệt. Chrome gọi CI là "Côte d’Ivoire", nên gõ "Bờ Biển Ngà" không ra; gõ "Ivoire" hoặc `+225` thì ra.
+- Chưa commit. Phần sửa trong `countries.ts` / `phoneValue.ts` **chưa được stage** (các file khác của F-72 đã được stage từ trước).
