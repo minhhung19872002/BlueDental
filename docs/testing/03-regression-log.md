@@ -8410,7 +8410,7 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Lưu ý dữ liệu:** các spec bật/tắt ô trên chính role `dentist`, nên đã ghi đè một phần cấu hình chủ dự án tự tick trên DB local. Đã trả lại Phiếu chẩn đoán Thêm + Sửa (theo ảnh chụp). Không có lịch sử để khôi phục phần còn lại.
 
-## R-921 (2026-10-14, mức 2: Đơn thuốc) "Ngày lên đơn thuốc" chọn được, in lên đơn
+## R-937 (2026-10-14, mức 2: Đơn thuốc) "Ngày lên đơn thuốc" chọn được, in lên đơn
 
 **Yêu cầu (chủ dự án):** dialog Thêm / Cập nhật đơn thuốc có ô chọn ngày lên đơn, cho phép ngày trong quá khứ; ngày đó in vào dòng "Ngày … tháng … năm …" của đơn.
 
@@ -8418,7 +8418,7 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** Domain `PrescriptionTests` 28/28 (3 mới: lùi ngày giữ giờ phòng khám, chặn ngày mai, giữ nguyên khi cùng ngày). e2e thật trên build production: `prescription.spec` **8/8** (mới: mở Sửa thấy ngày của đơn + ngày mai bị khoá, lùi 6 ngày → lưu → tải lại vẫn đúng → bản in "Ngày … tháng … năm …" đúng ngày đó; PUT với ngày mai → 403 `0048`), `prescription-allergy` 3/3.
 
-## R-922 (2026-10-14, mức 3: danh sách nhân sự) Nhân sự sắp theo "Mức độ ưu tiên" (0 trước)
+## R-938 (2026-10-14, mức 3: danh sách nhân sự) Nhân sự sắp theo "Mức độ ưu tiên" (0 trước)
 
 **Yêu cầu (chủ dự án):** `/staff` sắp xếp theo mức độ ưu tiên từ cao đến thấp (0 → …), như bảng Tiếp nhận.
 
@@ -8426,9 +8426,9 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** `e2e/staff-priority-order.spec.ts` (mới, thật): tạo nhân sự "Aaa ưu tiên …" mức 0 thì đứng đầu cả API lẫn màn Nhân sự; đổi mức 9999 thì xuống cuối, danh sách không giảm theo mức. Các spec tìm dòng nhân sự trên trang 1 được sửa sang gõ tên vào ô tìm kiếm (nhân sự mới có thể rơi sang trang khác): `staff`, `reception-doctor-priority`, `staff-employment`, `discount-limit`, `role-permissions`, `patient-permission-gates`, `taxonomy-import-api`, fixture `restrictedDentist`. Ô Chi nhánh của dialog nhân viên được chọn bằng id seed (ô này tìm theo value), sửa luôn lỗi chọn chi nhánh có từ R-906 ở `staff.spec`.
 
-**Kết quả trên build production:** `staff-priority-order` 1/1, `reception-doctor-priority` 4/4, `staff` 1/1 (trước đỏ, R-906), `staff-employment`, `discount-limit`, `patient-permission-gates`, `treatment-plan-delete` xanh. Còn đỏ do DB local: `role-permissions` ("dentist không quyền → /dashboard") và `taxonomy-import-api` ("không quyền → 403"), vì role `dentist` trên máy đang có hơn 350 quyền chủ dự án tự tick (R-920).
+**Kết quả trên build production:** `staff-priority-order` 1/1, `reception-doctor-priority` 4/4, `staff` 1/1 (trước đỏ, R-906), `staff-employment`, `discount-limit`, `patient-permission-gates`, `treatment-plan-delete` xanh. Còn đỏ do DB local: `role-permissions` ("dentist không quyền → /dashboard") và `taxonomy-import-api` ("không quyền → 403"), vì role `dentist` trên máy đang có hơn 350 quyền chủ dự án tự tick (R-936).
 
-## R-923 (2026-10-14, mức 2: phân quyền Công đoạn) Không có "Xem" Công đoạn vẫn mở được "Chi tiết phiếu"
+## R-939 (2026-10-14, mức 2: phân quyền Công đoạn) Không có "Xem" Công đoạn vẫn mở được "Chi tiết phiếu"
 
 **Báo lỗi (chủ dự án):** dentist có Thêm / Sửa / Tiếp tục / Hoàn thành / In của Công đoạn nhưng không có Xem, vẫn mở "Chi tiết phiếu" (lịch sử trống vì server đã trả 403, nhưng dialog vẫn hiện).
 
@@ -8436,7 +8436,7 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** `treatment-leaf-permissions.spec` thêm 1 test: chỉ Thêm + Tiếp tục thì không có nút "Thêm công đoạn {mã}" lẫn nút trên thanh Chi tiết phiếu; bật Xem thì cả hai hiện và mở được dialog. Spec 3/3 + `treatment-plan-delete` 3/3 trên build production.
 
-## R-924 (2026-10-14, mức 2: Tổng quan) "Công nợ tồn" hôm nay âm 99 triệu
+## R-940 (2026-10-14, mức 2: Tổng quan) "Công nợ tồn" hôm nay âm 99 triệu
 
 **Báo lỗi (chủ dự án):** `/dashboard` ghi Công nợ tồn -99.750.000 đ.
 
@@ -8446,7 +8446,7 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Test:** Domain `TreatmentPlanSlipTests` thêm 1 test (phiếu xong 1 triệu chưa thu + phiếu trả trước 90 triệu chưa làm → 1 triệu, không phải −89 triệu); 41/41. Application 715/715. Chạy thật: thẻ Công nợ tồn hôm nay 0 ₫.
 
-## R-925 (2026-10-14, mức 3: Báo cáo + Tài chính → Thanh toán) Số liệu các tab không thống nhất; dữ liệu cũ khi quay lại tab
+## R-941 (2026-10-14, mức 3: Báo cáo + Tài chính → Thanh toán) Số liệu các tab không thống nhất; dữ liệu cũ khi quay lại tab
 
 **Báo lỗi (chủ dự án):** Quản lý thu chi ghi thu nhập 0 đ trong khi Kết quả kinh doanh / Doanh số ghi doanh thu khác; muốn mỗi lần quay lại tab là đọc dữ liệu mới.
 
