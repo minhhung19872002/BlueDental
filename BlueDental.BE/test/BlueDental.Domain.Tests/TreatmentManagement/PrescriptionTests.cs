@@ -53,6 +53,45 @@ public class PrescriptionTests
             followUpDate: new DateOnly(2026, 9, 20));
     }
 
+    /// <summary>10:30 in the clinic on 2026-10-14 (UTC+7).</summary>
+    private static readonly DateTimeOffset Now = new(2026, 10, 14, 3, 30, 0, TimeSpan.Zero);
+
+    private Prescription IssueAt(DateTimeOffset issuedAt) =>
+        Prescription.Issue(
+            Guid.NewGuid(), _patientId, _branchId, "DT26-0002", _staffId, [Line()], issuedAt: issuedAt);
+
+    [Fact]
+    public void PrescribeOn_Should_Date_Back_To_A_Past_Day_At_The_Same_Clinic_Time()
+    {
+        var prescription = IssueAt(Now);
+
+        prescription.PrescribeOn(new DateOnly(2026, 10, 8), Now);
+
+        Assert.Equal(new DateOnly(2026, 10, 8), ClinicCalendar.DateOf(prescription.IssuedAt));
+        Assert.Equal(new TimeOnly(10, 30), TimeOnly.FromDateTime(ClinicCalendar.ToLocal(prescription.IssuedAt).DateTime));
+    }
+
+    [Fact]
+    public void PrescribeOn_Should_Refuse_A_Day_After_Today()
+    {
+        var prescription = IssueAt(Now);
+
+        var error = Assert.Throws<BusinessException>(
+            () => prescription.PrescribeOn(new DateOnly(2026, 10, 15), Now));
+        Assert.Equal(BlueDentalDomainErrorCodes.TreatmentManagement.PrescriptionDateInFuture, error.Code);
+    }
+
+    [Fact]
+    public void PrescribeOn_Should_Keep_The_Moment_On_File_When_The_Day_Is_Unchanged()
+    {
+        var written = new DateTimeOffset(2026, 10, 8, 1, 15, 0, TimeSpan.Zero);
+        var prescription = IssueAt(written);
+
+        prescription.PrescribeOn(new DateOnly(2026, 10, 8), Now);
+
+        Assert.Equal(written, prescription.IssuedAt);
+    }
+
     [Fact]
     public void Issue_Should_Default_To_Outpatient_And_Trim_Text()
     {

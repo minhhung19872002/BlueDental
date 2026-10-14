@@ -8409,3 +8409,12 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 - `patient-permission-gates`: không chọn được chi nhánh trong form nhân viên (dữ liệu chi nhánh test tích luỹ, cùng lỗi đã ghi ở R-906).
 
 **Lưu ý dữ liệu:** các spec bật/tắt ô trên chính role `dentist`, nên đã ghi đè một phần cấu hình chủ dự án tự tick trên DB local. Đã trả lại Phiếu chẩn đoán Thêm + Sửa (theo ảnh chụp). Không có lịch sử để khôi phục phần còn lại.
+
+## R-921 (2026-10-14, mức 2: Đơn thuốc) "Ngày lên đơn thuốc" chọn được, in lên đơn
+
+**Yêu cầu (chủ dự án):** dialog Thêm / Cập nhật đơn thuốc có ô chọn ngày lên đơn, cho phép ngày trong quá khứ; ngày đó in vào dòng "Ngày … tháng … năm …" của đơn.
+
+**Làm:** ô **Ngày lên đơn thuốc** (bắt buộc) dưới "Điều trị": đơn mới mặc định hôm nay, khi sửa lấy ngày của đơn; ngày sau hôm nay bị khoá trên lịch và server từ chối (`BlueDental:Treatment:0048`). Không thêm cột: ngày được ghi vào `IssuedAt` sẵn có (cột "Ngày kê" và bản in đã đọc nó), giữ giờ trong ngày lúc nhập để các đơn cùng ngày vẫn theo thứ tự viết; sửa đơn mà giữ nguyên ngày thì không đổi giờ đã lưu. Thời điểm tạo thật vẫn ở `CreationTime`.
+
+**Test:** Domain `PrescriptionTests` 28/28 (3 mới: lùi ngày giữ giờ phòng khám, chặn ngày mai, giữ nguyên khi cùng ngày). e2e thật trên build production: `prescription.spec` **8/8** (mới: mở Sửa thấy ngày của đơn + ngày mai bị khoá, lùi 6 ngày → lưu → tải lại vẫn đúng → bản in "Ngày … tháng … năm …" đúng ngày đó; PUT với ngày mai → 403 `0048`), `prescription-allergy` 3/3.
+

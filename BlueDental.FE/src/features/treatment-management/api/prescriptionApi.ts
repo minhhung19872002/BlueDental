@@ -93,6 +93,8 @@ export interface CreatePrescriptionRequest {
   treatmentType: PrescriptionTreatmentType;
   /** "YYYY-MM-DD" or null. */
   followUpDate: string | null;
+  /** "Ngày lên đơn thuốc", "YYYY-MM-DD", today or earlier — printed as "Ngày … tháng … năm …". */
+  prescribedOn: string | null;
   /** Also files the lines as a Đơn thuốc mẫu named `templateName`. */
   saveAsTemplate: boolean;
   templateName: string | null;

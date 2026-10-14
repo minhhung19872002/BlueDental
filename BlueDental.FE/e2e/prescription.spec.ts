@@ -511,6 +511,84 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(page.locator("body")).not.toHaveClass(/pd-printing/);
   });
 
+  test("Ngày lên đơn thuốc dates the slip back, never ahead, and the printed slip carries it", async ({
+    page,
+  }) => {
+    await login(page);
+    await openPrescriptionTab(page, patientUrl);
+
+    const shift = (days: number) => {
+      const day = new Date();
+      day.setDate(day.getDate() + days);
+      return day;
+    };
+    const iso = (day: Date) =>
+      `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+    const shown = (day: Date) => iso(day).split("-").reverse().join("/");
+    const past = shift(-6);
+
+    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
+    await row.getByRole("button", { name: "Sửa" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Cập nhật đơn thuốc")).toBeVisible();
+
+    // Under Điều trị, required, on the slip's own day; tomorrow is shut.
+    const field = dialog.locator(".floating-field", { hasText: "Ngày lên đơn thuốc" });
+    await expect(field.locator(".floating-field-required")).toBeVisible();
+    const date = dialog.getByLabel("Ngày lên đơn thuốc");
+    await expect(date).toHaveValue(shown(shift(0)));
+    await date.click({ position: { x: 6, y: 8 } });
+    const panel = page.locator(".ant-picker-dropdown:visible");
+    await expect(panel.locator(`td[title="${iso(past)}"]`)).not.toHaveClass(/ant-picker-cell-disabled/);
+    await expect(panel.locator(`td[title="${iso(shift(1))}"]`)).toHaveClass(/ant-picker-cell-disabled/);
+
+    await date.pressSequentially(shown(past).replaceAll("/", ""));
+    await date.press("Enter");
+    await expect(date).toHaveValue(shown(past));
+
+    const updated = saved(page, "PUT");
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    const response = await updated;
+    expect(response.ok(), await response.text()).toBeTruthy();
+    const body = (await response.json()) as { id: string; issuedAt: string };
+    await expect(dialog).toBeHidden();
+
+    // Persisted: the edit reopens on that day, and the printed slip is dated it.
+    await page.reload();
+    await assertRealApiTraffic(page, PRESCRIPTIONS_API);
+    await row.getByRole("button", { name: "Sửa" }).click();
+    await expect(page.getByRole("dialog").getByLabel("Ngày lên đơn thuốc")).toHaveValue(shown(past));
+    await page.getByRole("dialog").getByRole("button", { name: /Hủy$/ }).click();
+    await row.getByRole("button", { name: "In đơn thuốc" }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet).toContainText(
+      `Ngày ${past.getDate()} tháng ${past.getMonth() + 1} năm ${past.getFullYear()}`,
+    );
+    await sheet.locator("button").filter({ hasText: "Đóng" }).click();
+
+    // The server refuses a day after today on its own.
+    const slip = await page.request.get(`${PRESCRIPTIONS_API}/${body.id}`);
+    const current = (await slip.json()) as Record<string, unknown> & { items: Record<string, unknown>[] };
+    const xsrf = (await page.context().cookies()).find((c) => c.name === "XSRF-TOKEN")?.value ?? "";
+    const refused = await page.request.put(`${PRESCRIPTIONS_API}/${body.id}`, {
+      headers: { RequestVerificationToken: decodeURIComponent(xsrf) },
+      data: {
+        staffId: current.staffId,
+        diagnosisText: current.diagnosisText,
+        diagnosisNote: current.diagnosisNote,
+        diagnoses: [],
+        note: current.note,
+        treatmentType: current.treatmentType,
+        followUpDate: current.followUpDate,
+        prescribedOn: iso(shift(1)),
+        saveAsTemplate: false,
+        items: current.items.map((item) => ({ ...item, id: undefined })),
+      },
+    });
+    expect(refused.status()).toBe(403);
+    expect(await refused.text()).toContain("BlueDental:Treatment:0048");
+  });
+
   test("the server refuses another patient's treatment slip and a diagnosis picked twice", async ({
     page,
   }) => {

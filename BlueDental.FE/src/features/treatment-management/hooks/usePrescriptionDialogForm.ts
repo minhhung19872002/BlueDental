@@ -22,6 +22,8 @@ export interface RxFormValues {
   templateName: string;
   treatmentType: PrescriptionTreatmentType;
   followUpDate: Dayjs | null;
+  /** "Ngày lên đơn thuốc" — today for a new slip, the slip's own day when editing. */
+  prescribedOn: Dayjs | null;
 }
 
 const EMPTY_FORM: RxFormValues = {
@@ -33,14 +35,17 @@ const EMPTY_FORM: RxFormValues = {
   templateName: "",
   treatmentType: PRESCRIPTION_TREATMENT_TYPE.Outpatient,
   followUpDate: null,
+  prescribedOn: null,
 };
 
 const NO_ROWS: RxDiagnosisRow[] = [];
 
 function formOf(prescription: PrescriptionDto | null): RxFormValues {
-  if (!prescription) return EMPTY_FORM;
+  // Today is read when the dialog opens, not when the module loads.
+  if (!prescription) return { ...EMPTY_FORM, prescribedOn: dayjs() };
   return {
     ...EMPTY_FORM,
+    prescribedOn: dayjs(prescription.issuedAt),
     staffId: prescription.staffId,
     diagnosisNote: prescription.diagnosisNote ?? "",
     note: prescription.note ?? "",

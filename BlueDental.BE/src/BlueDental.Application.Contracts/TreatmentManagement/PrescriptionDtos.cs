@@ -111,6 +111,9 @@ public class CreatePrescriptionDto
 
     public DateOnly? FollowUpDate { get; set; }
 
+    /// <summary>"Ngày lên đơn thuốc"; today or earlier. Left out: today on create, unchanged on update.</summary>
+    public DateOnly? PrescribedOn { get; set; }
+
     public bool SaveAsTemplate { get; set; }
 
     [StringLength(200)]
@@ -140,6 +143,9 @@ public class UpdatePrescriptionDto
     public PrescriptionTreatmentType TreatmentType { get; set; } = PrescriptionTreatmentType.Outpatient;
 
     public DateOnly? FollowUpDate { get; set; }
+
+    /// <summary>"Ngày lên đơn thuốc"; today or earlier. Left out: today on create, unchanged on update.</summary>
+    public DateOnly? PrescribedOn { get; set; }
 
     public bool SaveAsTemplate { get; set; }
 

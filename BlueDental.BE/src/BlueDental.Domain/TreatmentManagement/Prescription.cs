@@ -92,6 +92,35 @@ public class Prescription : FullAuditedAggregateRoot<Guid>
         return prescription;
     }
 
+    /// <summary>
+    /// "Ngày lên đơn thuốc" (owner 2026-10-14): the doctor may date a
+    /// prescription back to the day it was really written, never ahead of
+    /// today. The day keeps the time of day it is entered at, so prescriptions
+    /// of one day still sort in the order they were written; the real moment
+    /// stays in <c>CreationTime</c>.
+    /// </summary>
+    public Prescription PrescribeOn(DateOnly day, DateTimeOffset now)
+    {
+        var today = ClinicCalendar.DateOf(now);
+        if (day > today)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.PrescriptionDateInFuture,
+                "A prescription cannot be dated after today.");
+        }
+
+        // Saving an edit with the same day keeps the moment already on file.
+        if (day == ClinicCalendar.DateOf(IssuedAt))
+        {
+            return this;
+        }
+
+        IssuedAt = day == today
+            ? now
+            : ClinicCalendar.AtLocal(day, TimeOnly.FromTimeSpan(ClinicCalendar.ToLocal(now).TimeOfDay));
+        return this;
+    }
+
     public Prescription UpdateDetails(
         Guid staffId,
         string? diagnosisText,

@@ -123,6 +123,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             Clock.Now,
             diagnoses,
             input.DiagnosisNote);
+        if (input.PrescribedOn.HasValue)
+            prescription.PrescribeOn(input.PrescribedOn.Value, Clock.Now);
 
         await _repository.InsertAsync(prescription, autoSave: true);
 
@@ -151,6 +153,8 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             items,
             diagnoses,
             input.DiagnosisNote);
+        if (input.PrescribedOn.HasValue)
+            prescription.PrescribeOn(input.PrescribedOn.Value, Clock.Now);
 
         await _repository.UpdateAsync(prescription, autoSave: true);
 

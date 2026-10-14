@@ -271,6 +271,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>"Ngày điều trị" before the phiếu điều trị it belongs to was opened.</summary>
         public const string StageTreatmentDateBeforeSlip = "BlueDental:Treatment:0047";
+
+        /// <summary>"Ngày lên đơn thuốc" after today — a prescription is dated on or before the day it is written.</summary>
+        public const string PrescriptionDateInFuture = "BlueDental:Treatment:0048";
     }
 
     public static class Billing

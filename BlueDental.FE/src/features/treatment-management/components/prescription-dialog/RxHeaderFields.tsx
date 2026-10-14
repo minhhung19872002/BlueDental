@@ -11,10 +11,13 @@ import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { PrescriptionPatientBlock } from "../PrescriptionPatientBlock";
 
 const isPastDay = (date: Dayjs) => date.isBefore(dayjs(), "day");
+/** A prescription may be dated back, never ahead (owner 2026-10-14). */
+const isFutureDay = (date: Dayjs) => date.isAfter(dayjs(), "day");
 
 /**
  * The top of the dialog: the patient on the left; on the right the
- * prescribing doctor over Điều trị and Tái khám side by side (F-58 mock).
+ * prescribing doctor over Điều trị and Tái khám side by side (F-58 mock),
+ * and "Ngày lên đơn thuốc" under Điều trị — the day the printed slip carries.
  */
 export function RxHeaderFields({ patient }: { patient: PrescriptionPatientSummary }) {
   return (
@@ -47,6 +50,20 @@ export function RxHeaderFields({ patient }: { patient: PrescriptionPatientSummar
               disabledDate={isPastDay}
             />
           </Form.Item>
+          <FloatingField
+            name="prescribedOn"
+            label={t("Treatment:Prescription:PrescribedOn")}
+            required
+            rules={[{ required: true, message: t("Treatment:Prescription:PrescribedOnRequired") }]}
+          >
+            <DatePicker
+              format={DATE_INPUT_FORMAT}
+              aria-label={t("Treatment:Prescription:PrescribedOn")}
+              className="rx-full"
+              allowClear={false}
+              disabledDate={isFutureDay}
+            />
+          </FloatingField>
         </div>
       </div>
     </div>

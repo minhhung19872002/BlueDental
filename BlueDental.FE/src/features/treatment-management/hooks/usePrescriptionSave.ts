@@ -51,6 +51,7 @@ export function usePrescriptionSave(options: Options) {
       note: trimmedOrNull(values.note),
       treatmentType: values.treatmentType,
       followUpDate: values.followUpDate ? values.followUpDate.format("YYYY-MM-DD") : null,
+      prescribedOn: values.prescribedOn ? values.prescribedOn.format("YYYY-MM-DD") : null,
       saveAsTemplate: values.saveAsTemplate,
       templateName: values.saveAsTemplate ? values.templateName.trim() : null,
       items: lines.map((line) => ({
