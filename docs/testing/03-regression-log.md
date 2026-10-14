@@ -8466,3 +8466,33 @@ Kiểm chứng: Domain 35/35 (thêm 18:30:00.437–19:00:00.437 lọt ca tới 1
 
 **Đỏ có sẵn (chạy lại trên code gốc, cả BE lẫn FE, vẫn đỏ y hệt 11/11):** `report.spec` 294 / 377 / 574 (header Excel, thẻ thu chi, sổ quỹ V2), `operations-reports` 8 test.
 
+
+## R-942 (2026-10-14, mức 3: danh sách dịch vụ dùng chung) Dịch vụ sắp theo "Mức độ ưu tiên", từng nhóm một
+
+**Báo lỗi (chủ dự án):** picker "Thêm dịch vụ mới" (Tạo phiếu dịch vụ) và bảng "Chọn Dịch Vụ" (Tư vấn) trộn dịch vụ của các nhóm: Cạo vôi 1, Trám răng 300, Tháo mắc cài, Kontact, Cạo vôi 2… Muốn sắp theo mức độ ưu tiên như danh sách nhân sự (R-938). Chủ dự án chọn: cùng mức ưu tiên thì mới nhất lên trước, như màn Danh mục.
+
+**Nguyên nhân:** "Mức độ ưu tiên" (`SortOrder`) của dịch vụ chỉ có nghĩa trong nhóm của nó (Danh mục kéo-thả đánh số lại 0, 1, 2… từng nhóm một). `CatalogEntryAppService.GetListAsync` sắp `SortOrder`, rồi `CreationTime` giảm dần, trên cả danh mục, nên khi danh sách gồm nhiều nhóm, số thứ tự của các nhóm khác nhau bị đem ra so với nhau và các nhóm bị chia xen kẽ như chia bài.
+
+**Sửa:** `OrderByPriorityAsync`: danh sách dịch vụ (`care_service`) không lọc nhóm sắp theo mức ưu tiên của nhóm (cùng mức thì nhóm mới trước), rồi đến mức ưu tiên của dịch vụ, cùng mức thì mới nhất trước. Danh sách lọc theo một nhóm (màn Danh mục) và các tab phẳng (Đơn thuốc mẫu…) giữ nguyên thứ tự cũ. FE không sắp lại ở đâu, nên mọi chỗ đọc API đều được sửa cùng lúc:
+- picker "Thêm dịch vụ mới" (Tạo phiếu, thanh công cụ phiếu, chuyển dịch vụ tư vấn);
+- bảng dịch vụ của Tư vấn khi chưa chọn nhóm;
+- lưới thành phần Combo;
+- picker dịch vụ của Voucher.
+
+Danh sách nhóm (chip Tư vấn, bộ lọc Phân loại dịch vụ, CSKH, báo cáo hoàn thành dịch vụ) vốn đã đúng thứ tự.
+
+**Test:** `e2e/service-priority-order.spec.ts` (mới, thật):
+- Dữ liệu: hai nhóm A, B tạo qua API. Dịch vụ của B mang số ưu tiên nhỏ hơn, và có hai dịch vụ cùng mức 5.
+- Kết quả: API và picker "Thêm dịch vụ mới" đều cho A5 mới, A5 cũ, A6, B0, B1. Lọc từng nhóm thì giữ thứ tự riêng của nhóm.
+- Đưa B lên trước A: cả khối dịch vụ của B lên trước, kể cả sau khi reload.
+- Đỏ trên code cũ (thứ tự xen kẽ), xanh trên code mới.
+
+Chạy trên build production, cổng 18431, API riêng cổng 5010:
+- `catalog-combo`, `consulting-delete-and-picker`, `treatment-plan`, `treatment-plan-detail`, `voucher`: 35/36. Test đỏ duy nhất là combo badge "+2 trong combo", lỗi chập chờn do `placeholderData` khi đổi từ khoá; chạy lặp 9/9 xanh.
+- `taxonomy*`, `payment-qr`, `branch-*`: 85/88. 3 test đỏ do DB local, không đi qua API đã sửa:
+  - 2 test `taxonomy-dialogs`: `currentBranchId` lấy chi nhánh đầu tiên theo tên, ra DANHTEST01 (tạo 06/10, không có nhóm dịch vụ nào).
+  - `taxonomy-groups` "Đang lưu": BD-001 có 155 nhóm dịch vụ do các lần chạy test để lại, nên nhóm mới tạo không hiện trong khung.
+
+**Chưa sửa (ghi nhận):**
+- Picker dịch vụ của Voucher vẫn hiện cả dịch vụ / combo đã ngưng hoặc đã xoá.
+- Picker thuốc trải qua nhiều nhóm loại thuốc có thể bị xen kẽ y như vậy (chỉ sửa cho `care_service`).

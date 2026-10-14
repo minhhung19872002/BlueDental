@@ -60,12 +60,10 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             query = query.Where(x => x.IsCombo == input.IsCombo.Value);
 
         var totalCount = query.Count();
-        var items = query
-            .OrderBy(x => x.SortOrder)
-            // Newest first among equal priorities: a record just added carries
-            // the default priority, so this is what puts it at the top of the
-            // list the moment it is saved.
-            .ThenByDescending(x => x.CreationTime)
+        // Only the service catalog is shown across its groups (the pickers on
+        // the patient screens); the flat Danh mục tabs keep their own order.
+        var spansGroups = !input.TaxonomyId.HasValue && input.Group == TaxonomyGroups.CareService;
+        var items = (await OrderByPriorityAsync(query, spansGroups))
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();
@@ -127,6 +125,32 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         CatalogNames.EnsureFree(name, taken, group == TaxonomyGroups.CareService
             ? BlueDentalDomainErrorCodes.Catalogs.DuplicateServiceName
             : BlueDentalDomainErrorCodes.Catalogs.DuplicateEntryName);
+    }
+
+    /// <summary>
+    /// "Mức độ ưu tiên" order. An entry's priority only ranks it inside its own
+    /// group (the screen reorders one group at a time, numbering 0, 1, 2...), so
+    /// a list spanning groups walks the groups in their own priority order
+    /// first; comparing the entries' numbers across groups would deal the
+    /// groups out like cards. Newest first among equal priorities: a record
+    /// just added carries the default priority, so this is what puts it at the
+    /// top of its group the moment it is saved.
+    /// </summary>
+    private async Task<IOrderedQueryable<CatalogEntry>> OrderByPriorityAsync(
+        IQueryable<CatalogEntry> query, bool spansGroups)
+    {
+        if (!spansGroups)
+        {
+            return query.OrderBy(x => x.SortOrder).ThenByDescending(x => x.CreationTime);
+        }
+
+        var groups = await _taxonomyRepository.GetQueryableAsync();
+        return query
+            .OrderBy(x => groups.Where(g => g.Id == x.TaxonomyId).Select(g => (int?)g.SortOrder).FirstOrDefault())
+            .ThenByDescending(x => groups.Where(g => g.Id == x.TaxonomyId).Select(g => (DateTime?)g.CreationTime).FirstOrDefault())
+            .ThenBy(x => x.TaxonomyId)
+            .ThenBy(x => x.SortOrder)
+            .ThenByDescending(x => x.CreationTime);
     }
 
     /// <summary>Every filter of the list except the kind, which each caller applies its own way.</summary>
