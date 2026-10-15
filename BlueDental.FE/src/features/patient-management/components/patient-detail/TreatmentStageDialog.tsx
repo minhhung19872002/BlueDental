@@ -14,7 +14,7 @@ import { StageHistory } from "./stage/StageHistory";
 import { StagePicks } from "./stage/StagePicks";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
 import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
-import { STAGE_TABS, slipOpenedOn, type StageTab } from "./stage/stageModel";
+import { STAGE_TABS, type StageTab } from "./stage/stageModel";
 import { useStageComposer } from "./stage/useStageComposer";
 
 interface Props {
@@ -200,7 +200,6 @@ export function TreatmentStageDialog({
                     item={item}
                     draft={composer.draftOf(item)}
                     errors={composer.errorsOf(item)}
-                    minDate={slipOpenedOn(plan)}
                     handlers={{
                       onChange: (patch) => composer.patchDraft(item, patch),
                       onToggleStep: (stepId, next) => composer.toggleStep(item, stepId, next),

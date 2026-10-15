@@ -105,17 +105,17 @@ public class PatientReExaminationTests
     }
 
     [Fact]
-    public void Ngay_dieu_tri_cannot_be_before_the_slip_was_opened()
+    public void Ngay_dieu_tri_may_be_any_past_day()
     {
-        var opened = ClinicCalendar.DateOf(DateTimeOffset.UtcNow).AddDays(-10);
+        var longAgo = new DateOnly(2000, 1, 1);
 
-        Should.Throw<BusinessException>(() => PatientReExamination.Raise(
-                Guid.NewGuid(), _patientId, _branchId, "REX001", _stageId,
-                _treatmentServiceId, _serviceId, _staffId,
-                teeth: new[] { new ToothSelection(38, selected: true) },
-                treatmentDate: opened.AddDays(-1),
-                slipOpenedOn: opened))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateBeforeSlip);
+        var visit = PatientReExamination.Raise(
+            Guid.NewGuid(), _patientId, _branchId, "REX001", _stageId,
+            _treatmentServiceId, _serviceId, _staffId,
+            teeth: new[] { new ToothSelection(38, selected: true) },
+            treatmentDate: longAgo);
+
+        visit.TreatmentDate.ShouldBe(longAgo);
     }
 
     [Fact]

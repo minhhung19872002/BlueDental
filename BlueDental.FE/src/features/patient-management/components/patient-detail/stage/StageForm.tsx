@@ -43,8 +43,6 @@ interface Props {
   errors: StageFieldErrors;
   handlers: StageFormHandlers;
   actions?: StageFormActions;
-  /** "YYYY-MM-DD" the slip was opened — the earliest Ngày điều trị. */
-  minDate?: string;
 }
 
 /**
@@ -65,7 +63,7 @@ function usePreviews(files: File[]): string[] {
  * trị" side by side inside one blue-bordered card, as the reference draws it.
  * Several of them stack when several cards are picked.
  */
-export function StageForm({ item, draft, errors, handlers, actions, minDate }: Props) {
+export function StageForm({ item, draft, errors, handlers, actions }: Props) {
   const previews = usePreviews(draft.pending);
 
   return (
@@ -73,7 +71,6 @@ export function StageForm({ item, draft, errors, handlers, actions, minDate }: P
       <div>
         <StageDateField
           value={draft.treatmentDate}
-          minDate={minDate}
           error={errors.treatmentDate}
           onChange={(treatmentDate) => handlers.onChange({ treatmentDate })}
         />

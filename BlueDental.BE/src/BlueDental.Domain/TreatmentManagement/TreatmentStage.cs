@@ -189,8 +189,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<Guid>? serviceItemIds = null,
         Guid? continuedFromId = null,
         Guid? warrantyRootStageId = null,
-        DateOnly? treatmentDate = null,
-        DateOnly? slipOpenedOn = null)
+        DateOnly? treatmentDate = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -201,7 +200,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
                 "A stage sequence number starts at 1.");
         }
 
-        var day = TreatmentDateRule.Resolve(treatmentDate, slipOpenedOn);
+        var day = TreatmentDateRule.Resolve(treatmentDate);
 
         var toothList = teeth?.ToList() ?? new List<ToothSelection>();
         GuardNoDuplicateTeeth(toothList);
@@ -254,8 +253,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<Guid>? serviceItemIds,
         IEnumerable<int>? toothCodes = null,
         IEnumerable<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>? alsoFrom = null,
-        DateOnly? treatmentDate = null,
-        DateOnly? slipOpenedOn = null)
+        DateOnly? treatmentDate = null)
     {
         var carried = HandOnTeeth(toothCodes);
 
@@ -296,8 +294,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             serviceItemIds,
             continuedFromId: Id,
             warrantyRootStageId: WarrantyRootStageId,
-            treatmentDate: treatmentDate,
-            slipOpenedOn: slipOpenedOn);
+            treatmentDate: treatmentDate);
     }
 
     /// <summary>

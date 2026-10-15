@@ -23,7 +23,7 @@ interface Line {
   serviceId: string;
   serviceName: string;
   warrantyDays: number;
-  /** "YYYY-MM-DD" the slip was opened — the earliest Ngày điều trị (QA #32). */
+  /** "YYYY-MM-DD" the slip was opened. */
   openedOn: string;
 }
 
@@ -87,14 +87,17 @@ async function call(
 }
 
 /**
- * A fresh line on the oldest open slip of branch 1, so the test owns its teeth
- * and has the most days to date a công đoạn on — none may be dated before the
- * slip was opened. With `serviceId` the line is that catalog service; otherwise
- * any service without a warranty already used in branch 1.
+ * A fresh line on the oldest open slip of branch 1, so the test owns its teeth.
+ * With `serviceId` the line is that catalog service; otherwise a service
+ * without a warranty made once per run — lines already in the local DB may
+ * point at services deleted since (Catalogs:0013).
  */
+let plainServiceId: string | undefined;
+
 async function freshLine(page: Page, tooth: number, serviceId?: string): Promise<Line> {
   await page.goto("/patient");
   await assertRealApiTraffic(page, "/api/v1/app/patients");
+  serviceId ??= plainServiceId ??= await warrantyService(page, 0);
 
   const made = await page.evaluate(
     async ({ tooth, serviceId, branch }) => {
@@ -110,15 +113,11 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
         services: { id: string; serviceId: string; serviceName: string | null; warrantyDays: number; originalPrice: number }[];
       }[];
 
-      const lines = slips.filter((slip) => slip.branchId === branch).flatMap((slip) => slip.services);
-      const source = serviceId
-        ? { serviceId, originalPrice: 100000 }
-        : lines.find((line) => line.warrantyDays <= 0);
       // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
       const slip = slips
         .filter((item) => item.branchId === branch && item.status !== 5 && item.status !== 6)
         .sort((a, b) => a.creationTime.localeCompare(b.creationTime))[0];
-      if (!slip || !source) return { error: "no open slip or source service in branch 1" };
+      if (!slip) return { error: "no open slip in branch 1" };
 
       const known = new Set(slip.services.map((line) => line.id));
       const res = await fetch(`/api/v1/app/patient-treatments/${slip.id}/services`, {
@@ -126,8 +125,8 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
         credentials: "include",
         headers,
         body: JSON.stringify({
-          serviceId: source.serviceId,
-          price: Math.min(100000, source.originalPrice),
+          serviceId,
+          price: 100000,
           quantity: 1,
           discountType: 0,
           discountValue: 0,
@@ -261,9 +260,8 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     await page.setViewportSize({ width: 1700, height: 950 });
     const line = await freshLine(page, 48);
 
-    // A past day no earlier than the slip, so it is not today's group.
-    const room = daysAgo(line.openedOn);
-    const picked = isoDay(-(room > 0 ? 1 + (Date.now() % room) : 0));
+    // A past day before the slip was opened — allowed since R-951.
+    const picked = isoDay(-(daysAgo(line.openedOn) + 1 + (Date.now() % 30)));
 
     const dialog = await openStageDialog(page, line);
     await dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
@@ -339,11 +337,9 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect(continuedLate.text).toContain("BlueDental:Treatment:0046");
 
     // Worked longer ago than the service's warranty: written today, yet its
-    // warranty has run out — the count starts from Ngày điều trị. The day must
-    // still be on or after the slip's own, so the period is kept short.
+    // warranty has run out — the count starts from Ngày điều trị.
     const oldLine = await freshLine(page, 37, await warrantyService(page, 2));
     expect(oldLine.warrantyDays).toBe(2);
-    test.skip(daysAgo(oldLine.openedOn) < 3, "needs an open slip at least 3 days old");
     const aged = await call(
       page,
       "POST",
@@ -388,14 +384,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     await page.setViewportSize({ width: 1700, height: 950 });
     const staff = await staffId(page);
     const line = await freshLine(page, 35, await warrantyService(page, 30));
-    const room = daysAgo(line.openedOn);
-    test.skip(room < 1, "needs an open slip opened before today");
-    const source = await call(
-      page,
-      "POST",
-      "/api/v1/app/treatment-stages",
-      stageBody(line, 35, staff, isoDay(-Math.min(3, room))),
-    );
+    const source = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 35, staff, isoDay(-3)));
     expect(source.status, source.text).toBe(200);
     const sourceId = (source.json as { id: string }).id;
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${sourceId}/complete`)).status).toBe(200);
@@ -435,8 +424,8 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
 
     const recall = page.locator(".pd-recall-form-dialog");
     await expect(recall).toBeVisible();
-    // A past day no earlier than the slip, so the tái khám row is easy to tell apart.
-    const recallDay = isoDay(-(1 + (Date.now() % room)));
+    // A past day other than the warranty's, so the tái khám row is easy to tell apart.
+    const recallDay = isoDay(-(2 + (Date.now() % 20)));
     await pickTreatmentDate(page, recall, recallDay);
     await recall.locator(".pd-stage-teeth > div > button").first().click();
     await recall.locator("textarea").fill(`e2e tái khám ngày điều trị ${runId()}`);
@@ -475,7 +464,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect((omitted.json as { treatmentDate: string }).treatmentDate).toBe(isoDay(0));
   });
 
-  test("QA #31/#32: a day before the slip cannot be picked or saved, and typing one does not crash the form", async ({
+  test("R-951: any past day, even before the slip, is picked and saved; a later day typed in is refused without a crash", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -483,45 +472,42 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     page.on("pageerror", (error) => crashes.push(String(error)));
 
     const line = await freshLine(page, 34);
-    const room = daysAgo(line.openedOn);
-    test.skip(room < 1, "needs an open slip opened before today");
     const staff = await staffId(page);
 
-    // The server refuses a day before the slip, for a new công đoạn, a continue
-    // and a tái khám — and still takes the slip's own day.
-    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, isoDay(-(room + 1))));
-    expect(early.status).not.toBe(200);
-    expect(early.text).toContain("BlueDental:Treatment:0047");
-    const onOpening = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, line.openedOn));
-    expect(onOpening.status, onOpening.text).toBe(200);
-    const opened = onOpening.json as { id: string; treatmentDate: string };
-    expect(opened.treatmentDate).toBe(line.openedOn);
+    // The server takes a day before the slip for a new công đoạn, a continue
+    // and a tái khám (QA #32's lower bound is gone).
+    const beforeSlip = isoDay(-(daysAgo(line.openedOn) + 1));
+    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, beforeSlip));
+    expect(early.status, early.text).toBe(200);
+    const first = early.json as { id: string; treatmentDate: string };
+    expect(first.treatmentDate).toBe(beforeSlip);
 
-    const continuedEarly = await call(page, "POST", `/api/v1/app/treatment-stages/${opened.id}/continue`, {
+    const continued = await call(page, "POST", `/api/v1/app/treatment-stages/${first.id}/continue`, {
       staffId: staff,
       note: "e2e",
       treatmentDate: "2000-01-01",
       toothCodes: [],
       alsoFrom: [],
     });
-    expect(continuedEarly.status).not.toBe(200);
-    expect(continuedEarly.text).toContain("BlueDental:Treatment:0047");
+    expect(continued.status, continued.text).toBe(200);
+    const next = continued.json as { id: string; treatmentDate: string };
+    expect(next.treatmentDate).toBe("2000-01-01");
 
-    expect((await call(page, "POST", `/api/v1/app/treatment-stages/${opened.id}/complete`)).status).toBe(200);
-    const recallEarly = await call(page, "POST", "/api/v1/app/patient-re-examinations", {
+    expect((await call(page, "POST", `/api/v1/app/treatment-stages/${next.id}/complete`)).status).toBe(200);
+    const recall = await call(page, "POST", "/api/v1/app/patient-re-examinations", {
       patientId: line.patientId,
       clinicBranchId: line.branchId,
-      patientStageId: opened.id,
+      patientStageId: next.id,
       staffId: staff,
       note: "e2e",
       treatmentDate: "2000-01-01",
       teeth: [{ toothCode: 34, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
     });
-    expect(recallEarly.status).not.toBe(200);
-    expect(recallEarly.text).toContain("BlueDental:Treatment:0047");
+    expect(recall.status, recall.text).toBe(200);
+    expect((recall.json as { treatmentDate: string }).treatmentDate).toBe("2000-01-01");
 
-    // The form: the QA steps — Ctrl+A, type 01/01/2000, Enter, click Nội dung
-    // điều trị. The page stays up, the field says why, and the day is unchanged.
+    // The form: the QA #31 steps — Ctrl+A, type a day, Enter, click Nội dung
+    // điều trị. A later day is refused with a message and the page stays up.
     const other = await freshLine(page, 33);
     const dialog = await openStageDialog(page, other);
     await dialog.locator(`.pd-stage-picks button[data-line-id="${other.lineId}"]`).click();
@@ -531,26 +517,40 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
 
     await date.click({ position: { x: 6, y: 8 } });
     const panel = page.locator(".ant-picker-dropdown:visible");
+    await expect(panel.locator(`td[title="${isoDay(1)}"]`)).toHaveClass(/ant-picker-cell-disabled/);
     await date.press("Control+a");
-    await date.pressSequentially("01/01/2000");
+    await date.pressSequentially(typed(isoDay(1)).replaceAll("/", ""));
     await date.press("Enter");
     await form.locator("textarea").click();
-
-    await expect(form.getByText(`Chỉ được chọn từ ngày tạo phiếu (${typed(other.openedOn)}) đến hôm nay`)).toBeVisible();
+    await expect(form.getByText("Không được chọn ngày sau hôm nay")).toBeVisible();
     await expect(date).toHaveValue(typed(isoDay(0)));
     await expect(dialog).toBeVisible();
     expect(crashes).toEqual([]);
 
-    // The calendar shuts the day before the slip and leaves the slip's own open.
+    // The calendar leaves the day before the slip open, and the form saves it.
+    const otherBeforeSlip = isoDay(-(daysAgo(other.openedOn) + 1));
     await date.click({ position: { x: 6, y: 8 } });
     await date.press("Control+a");
-    await date.pressSequentially(typed(other.openedOn).replaceAll("/", ""));
-    await expect(panel.locator(`td[title="${other.openedOn}"]`)).not.toHaveClass(/ant-picker-cell-disabled/);
-    await expect(panel.locator(`td[title="${isoDay(-(daysAgo(other.openedOn) + 1))}"]`)).toHaveClass(
-      /ant-picker-cell-disabled/,
-    );
+    await date.pressSequentially(typed(otherBeforeSlip).replaceAll("/", ""));
+    await expect(panel.locator(`td[title="${otherBeforeSlip}"]`)).not.toHaveClass(/ant-picker-cell-disabled/);
     await date.press("Enter");
-    await expect(date).toHaveValue(typed(other.openedOn));
+    await expect(date).toHaveValue(typed(otherBeforeSlip));
     await expect(form.locator(".pd-stage-error")).toHaveCount(0);
+
+    const doctor = form.locator(".ant-select").first();
+    if ((await doctor.locator(".ant-select-content-has-value").count()) === 0) {
+      await doctor.click();
+      await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
+    }
+    await form.locator("textarea").fill(`e2e trước ngày tạo phiếu ${runId()}`);
+    const posted = page.waitForResponse(
+      (res) => res.request().method() === "POST" && res.url().endsWith("/api/v1/app/treatment-stages"),
+    );
+    await dialog.getByRole("button", { name: "Lưu công đoạn" }).click();
+    const saved = await posted;
+    expect(saved.status(), await saved.text()).toBe(200);
+    expect(((await saved.json()) as { treatmentDate: string }).treatmentDate).toBe(otherBeforeSlip);
+    await expect(page.getByText("Đã thêm công đoạn")).toBeVisible();
+    expect(crashes).toEqual([]);
   });
 });

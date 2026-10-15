@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import { STAGE_STATUS, type TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import {
   SERVICE_LINE_STATUS,
@@ -14,13 +13,6 @@ import type { ToothSelectionDto } from "@/features/treatment-management/api/cons
  * worked. Read off the reference's stage chunk 2026-09-24.
  */
 export type StageTab = "add" | "continue" | "continueWarranty";
-
-/**
- * The local day the phiếu điều trị was opened, "YYYY-MM-DD" — the earliest
- * Ngày điều trị any of its công đoạn or tái khám may carry (QA #32).
- */
-export const slipOpenedOn = (plan: { creationTime: string } | null): string | undefined =>
-  plan ? dayjs(plan.creationTime).format("YYYY-MM-DD") : undefined;
 
 export const STAGE_TABS: readonly StageTab[] = ["add", "continue", "continueWarranty"];
 

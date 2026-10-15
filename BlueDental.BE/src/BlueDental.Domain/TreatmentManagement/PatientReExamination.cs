@@ -85,12 +85,11 @@ public class PatientReExamination : FullAuditedAggregateRoot<Guid>
         IEnumerable<ToothSelection>? teeth = null,
         Guid? subStaffId = null,
         Guid? secondStaffId = null,
-        DateOnly? treatmentDate = null,
-        DateOnly? slipOpenedOn = null)
+        DateOnly? treatmentDate = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
 
-        var day = TreatmentDateRule.Resolve(treatmentDate, slipOpenedOn);
+        var day = TreatmentDateRule.Resolve(treatmentDate);
 
         var chosen = teeth?.ToList() ?? new List<ToothSelection>();
         if (chosen.Count == 0)

@@ -8641,6 +8641,21 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
 
 **Chưa commit.**
 
+## R-951 (2026-10-15, mức 2: công đoạn / tái khám) "Ngày điều trị" mở mọi ngày quá khứ, kể cả trước ngày tạo phiếu — đảo ngược QA #32 (R-899); ngày tương lai vẫn chặn
+
+- Yêu cầu (owner): ở Chi tiết phiếu → Thêm/Tiếp tục công đoạn (và Tạo bảo hành / Tạo tái khám), lịch "Ngày điều trị" cho chọn mọi ngày quá khứ, kể cả trước ngày tạo phiếu điều trị. Owner có lúc yêu cầu mở cả ngày tương lai rồi rút lại ("à t nhầm disable ngày tương lai") → tương lai vẫn disable như F-62.
+- BE: `TreatmentDateRule.Resolve(DateOnly?)` chỉ còn chặn ngày sau hôm nay (`Treatment:0046`, giữ nguyên); bỏ tham số `slipOpenedOn` ở `TreatmentStage.Add/ContinueAs`, `PatientReExamination.Raise`; xoá `TreatmentPlanOpenedOn.cs`; mã `Treatment:0047` ngừng dùng (giữ comment), bỏ chuỗi vi/en `0047`, `Patient:Stage:TreatmentDateRange`.
+- FE: `StageDateField` bỏ `minDate`, giữ `disabledDate` cho ngày tương lai và thông báo khi gõ tay ngày tương lai (QA #31); bỏ `slipOpenedOn` ở `stageModel`, `StageForm`, `StageFollowUpDialog`, `TreatmentStageDialog`.
+- Test:
+  - Domain 922/922 (thêm ca 2000-01-01 cho công đoạn và tái khám; giữ 2 test "never after today").
+  - E2E `stage-treatment-date.spec.ts` trên bản build production + host thật: **4/4 pass** — API nhận ngày trước phiếu và 2000-01-01, từ chối ngày mai (0046) cho công đoạn / tiếp tục / tái khám; UI ô ngày mai disable, gõ tay ngày mai báo "Không được chọn ngày sau hôm nay" và giữ hôm nay, không crash, lưu được ngày trước phiếu. Fixture tự tạo dịch vụ không bảo hành (dịch vụ danh mục local đã xoá mềm → 403 `Catalogs:0013`); mở dialog qua `e2e/fixtures/stageDialog.ts` (nút "+" trên dòng Kế hoạch điều trị).
+- Hồi quy: `treatment-stage` 2/2 pass. Các ca đỏ không do thay đổi này:
+  - `treatment-stage-chain` 6 ca, `cskh-after-treatment` 3 ca: fixture dùng dịch vụ danh mục đã xoá mềm → 403 `Catalogs:0013` (dữ liệu local).
+  - `stage-staff-pickers`: fixture `e2e/fixtures/stageDialog.ts` (chưa track, session khác đang làm sau khi bỏ nút "Thêm công đoạn" ở toolbar phiếu) — nút "+" trên dòng kế hoạch không bấm được / lỗi concurrency khi thêm dòng.
+  - `labo-warranty` ô ngày Labo "DD/MM/YYYY": không dùng `StageDateField`.
+
+**Chưa commit.**
+
 ## R-952 (2026-10-15, mức 2: kế hoạch điều trị / chi tiết phiếu) Bỏ "Tạo kế hoạch mới" và "Thêm công đoạn"; "Thêm dịch vụ phát sinh" mở dialog "Tạo phiếu dịch vụ" thêm dòng vào phiếu đang xem
 
 - Yêu cầu (owner, kèm ảnh chụp):

@@ -325,24 +325,18 @@ public class StageChainAndWarrantyTests
     }
 
     [Fact]
-    public void Treatment_date_is_never_before_the_slip_was_opened()
+    public void Treatment_date_may_be_any_past_day()
     {
-        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
-        var opened = today.AddDays(-3);
+        var longAgo = new DateOnly(2000, 1, 1);
 
-        var onOpening = TreatmentStage.Add(
+        var first = TreatmentStage.Add(
             Guid.NewGuid(), _patientId, _branchId, _planId, _lineId, _serviceId, 1,
-            "Trồng răng", _staffId, teeth: Teeth(11), treatmentDate: opened, slipOpenedOn: opened);
-        onOpening.TreatmentDate.ShouldBe(opened);
+            "Trồng răng", _staffId, teeth: Teeth(11), treatmentDate: longAgo);
+        first.TreatmentDate.ShouldBe(longAgo);
 
-        Should.Throw<BusinessException>(() => TreatmentStage.Add(
-                Guid.NewGuid(), _patientId, _branchId, _planId, _lineId, _serviceId, 1,
-                "Trồng răng", _staffId, treatmentDate: opened.AddDays(-1), slipOpenedOn: opened))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateBeforeSlip);
-
-        Should.Throw<BusinessException>(() => onOpening.ContinueAs(
-                Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null,
-                treatmentDate: new DateOnly(2000, 1, 1), slipOpenedOn: opened))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageTreatmentDateBeforeSlip);
+        var next = first.ContinueAs(
+            Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null,
+            treatmentDate: longAgo.AddDays(1));
+        next.TreatmentDate.ShouldBe(longAgo.AddDays(1));
     }
 }
