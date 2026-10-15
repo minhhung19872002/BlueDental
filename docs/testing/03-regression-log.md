@@ -8856,3 +8856,15 @@ Bổ sung cùng ngày (owner):
   - `patient.spec -g "công đoạn|Chi tiết phiếu"` 14/14.
 
 Code đã commit ở 7e4ba6bf / 0585ca4c. Các sửa spec ở trên (`treatment-stage-chain`, `patient.spec`) **chưa commit**.
+
+## R-958 (2026-10-15, mức 1: chữ in trên mẫu bệnh án) Tiêu đề góc trái theo tờ bệnh án giấy của phòng khám
+
+- Chủ phòng khám gửi ảnh tờ "Bệnh án ngoại trú" in sẵn: góc trái là 4 dòng "Sở Y tế Thành Phố Hồ Chí Minh" (đậm) / "Phòng khám Chuyên khoa Răng Hàm Mặt -" / "thuộc Công ty Cổ phần Dịch vụ" / "Nha Khoa Đức Hạnh". Mẫu cũ in "SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH" + `{{branch.name}}` (ra "Nha Khoa Đức Hạnh Premium").
+- Đổi ở 6 mẫu có tiêu đề góc trái: `outpatientDental`, `orthodontic`, `treatmentConsent`, `surgeryConsent`, `surgeryRecord`, `treatmentFollowUp`. Bìa (`cover`) giữ kiểu chữ hoa canh giữa, dòng cuối đổi thành "THUỘC CÔNG TY CỔ PHẦN DỊCH VỤ NHA KHOA ĐỨC HẠNH".
+- Tên pháp nhân viết cứng, không lấy từ tên chi nhánh: mọi chi nhánh in cùng một pháp nhân. `generalConsultation` ("tại {{branch.name}}") và `careSheet` không đổi.
+- Kiểm tra: mở "Phiếu tư vấn và xác nhận đồng ý điều trị" trên app local (vite + host :5000), tiêu đề khớp ảnh tờ giấy. `patient-medical-record` "the cover prints…" vẫn tìm thấy "SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH" + "THUỘC" trên bìa. Chưa commit.
+
+## R-959 (2026-10-15, mức 1: chữ in trên mẫu 5) Câu xác nhận sau điều trị thiếu vị ngữ
+
+- Mục VII của "Phiếu tư vấn và xác nhận đồng ý điều trị" in "Tôi [tên khách] với dịch vụ do phòng khám cung cấp." (ô `consultation.text.54` tự điền tên khách từ R-947), câu không có nghĩa. Theo chủ phòng khám, thêm "rất hài lòng" sau ô tên: "Tôi [tên khách] rất hài lòng với dịch vụ do phòng khám cung cấp."
+- Chỉ đổi chữ trong `treatmentConsent.ts`, ô nhập giữ nguyên id. Phiếu đã lưu cũng in câu mới vì mẫu dựng lại từ code. Chưa commit.
