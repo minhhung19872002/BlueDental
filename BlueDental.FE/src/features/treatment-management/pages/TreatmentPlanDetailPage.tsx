@@ -29,7 +29,9 @@ const TAB_PARAM = "planTab";
  * The reference keeps the open tab in `?planTab=` (detail, payment-v2,
  * refund, debt) and the branch in `?branchId=` (here `?branch=<code>`); both
  * survive a reload.
- * Tabs, toolbar and table sit together in one white card under the breadcrumb.
+ * The tabs (with the money summary) are their own white strip under the
+ * breadcrumb, as on the patient record (BA 2026-10-15); toolbar and table
+ * sit on the page ground below it, the table in its own card.
  */
 export function TreatmentPlanDetailPage() {
   const { id = "", planId = "" } = useParams();
@@ -76,8 +78,8 @@ export function TreatmentPlanDetailPage() {
   return (
     <div className="page-container pdt-page">
       <PlanDetailHeader patient={patient.data} plan={plan.data} branchId={branchId} />
+      <PlanDetailHead tab={tab} tabs={tabs} payment={plan.data.payment} onTabChange={handleTabChange} />
       <section className="pdt-body">
-        <PlanDetailHead tab={tab} tabs={tabs} payment={plan.data.payment} onTabChange={handleTabChange} />
         {tab === PLAN_TAB.detail && <PlanServicesTab {...tabProps} />}
         {tab === PLAN_TAB.payment && <PlanPaymentsTab {...tabProps} />}
         {tab === PLAN_TAB.refund && <PlanRefundsTab {...tabProps} />}

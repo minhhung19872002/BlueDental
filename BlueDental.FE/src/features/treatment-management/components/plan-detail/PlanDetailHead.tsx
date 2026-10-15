@@ -37,27 +37,31 @@ interface Props {
 }
 
 /**
- * The pill tabs on the left and the slip's money summary on the right. The
- * summary belongs to the money tabs only (Thanh toán, Hoàn tiền, Dư nợ) —
- * "Chi tiết" leaves it out (owner 2026-10-15).
+ * The slip's tab strip: the same white strip and pills as the patient record's
+ * tab row (BA 2026-10-15), with the money summary on its right. The summary
+ * belongs to the money tabs only (Thanh toán, Hoàn tiền, Dư nợ) — "Chi tiết
+ * điều trị" leaves it out (owner 2026-10-15). The actions stay in the card
+ * below, beside the table they act on.
  */
 export function PlanDetailHead({ tab, tabs, payment, onTabChange }: Props) {
   const showStats = tab !== PLAN_TAB.detail;
   return (
-    <div className="pdt-head">
-      <div className="pdt-tabs" role="tablist" aria-label={t("Treatment:Plan:TreatmentPlan")}>
-        {tabs.map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={key === tab}
-            className={["pdt-tab", key === tab && "pdt-tab--active"].filter(Boolean).join(" ")}
-            onClick={() => onTabChange(key)}
-          >
-            {t(PLAN_TAB_LABELS[key])}
-          </button>
-        ))}
+    <div className="pdt-tabrow">
+      <div className="bd-tabbar">
+        <div className="pill-tabs" role="tablist" aria-label={t("Treatment:Plan:TreatmentPlan")}>
+          {tabs.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={key === tab}
+              className={["pill-tab", key === tab && "pill-tab--active"].filter(Boolean).join(" ")}
+              onClick={() => onTabChange(key)}
+            >
+              {t(PLAN_TAB_LABELS[key])}
+            </button>
+          ))}
+        </div>
       </div>
       {showStats && (
         <dl className="pdt-stats">

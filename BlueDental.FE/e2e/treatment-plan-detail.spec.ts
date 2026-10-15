@@ -201,12 +201,18 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(crumbs.nth(1)).toHaveText("Kế hoạch điều trị");
     await expect(crumbs.last()).toHaveText(planCode);
 
-    // Tabs, stats, toolbar and the table share one white card under the breadcrumb.
+    // The tabs (and stats) are their own white strip, the patient record's
+    // .bd-tabbar pills (BA 2026-10-15); toolbar and table sit on the page
+    // ground below it, the table in its own card, no wrapping card.
+    const tabrow = page.locator(".pdt-tabrow");
+    await expect(tabrow.locator(".bd-tabbar").getByRole("tablist")).toBeVisible();
+    await expect(tabrow.locator(".pdt-toolbar")).toHaveCount(0);
     const body = page.locator(".pdt-body");
-    await expect(body.getByRole("tablist")).toBeVisible();
+    await expect(body.getByRole("tablist")).toHaveCount(0);
     await expect(body.locator(".pdt-toolbar")).toBeVisible();
     await expect(body.locator(".tp-table")).toBeVisible();
-    expect(await body.evaluate((el) => getComputedStyle(el).borderRadius)).toBe("12px");
+    expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+    expect(await body.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
 
     // Four pill tabs, "Chi tiết" selected, and the six money figures.
     await expect(page.getByRole("tab")).toHaveText([

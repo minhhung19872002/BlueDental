@@ -65,59 +65,48 @@ a.pdt-crumb:hover {
   color: var(--tp-label);
 }
 
-/* ── The white card that holds the tabs, the toolbar and the table ── */
+/* ── Toolbar + table, straight on the page ground ──
+   No wrapping card: the actions sit on the ground and the table is its own
+   card, as on the patient record's Kế hoạch điều trị tab (BA 2026-10-15). */
 .pdt-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-  border: 1px solid var(--tp-line);
-  border-radius: 12px;
-  background: #fff;
-  padding: 16px;
+}
+.pdt-body .pdt-table.bd-cat-card {
+  border-color: var(--tp-line);
+  box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
 }
 
-/* ── Pill tabs + money summary ── */
-.pdt-head {
+/* ── Tab strip + money summary ──
+   The same white strip and pills as the patient record's tab row
+   (.pd-tabrow, BA 2026-10-15): shared .bd-tabbar / .pill-tab, the summary
+   where the record keeps "Chi tiết hồ sơ / Bệnh án". The pills set the strip's
+   height, so it does not jump when "Chi tiết điều trị" drops the figures. */
+.pdt-tabrow {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 24px;
-  /* The money figures show on the money tabs only; holding their height keeps
-     the table from jumping when "Chi tiết" drops them. */
-  min-height: 43px;
+  gap: 0 24px;
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding-right: 20px;
+  box-shadow: var(--bd-shadow-card);
 }
-.pdt-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.pdt-tab {
+.pdt-tabrow > .bd-tabbar {
+  min-width: 0;
   border: 0;
-  border-radius: 999px;
-  background: var(--tp-pill);
-  padding: 8px 16px;
-  color: var(--tp-label);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  background: transparent;
+  box-shadow: none;
 }
-.pdt-tab:hover {
-  background: var(--tp-ground);
-  color: var(--tp-ink);
+.pdt-tabrow .pill-tabs {
+  flex-wrap: nowrap;
 }
-.pdt-tab--active {
-  background: var(--tp-blue);
-  color: #fff;
-}
-.pdt-tab--active:hover {
-  background: var(--tp-blue);
-  color: #fff;
+.pdt-tabrow .pill-tab {
+  flex: 0 0 auto;
 }
 .pdt-stats {
   display: flex;
@@ -964,13 +953,13 @@ a.pdt-crumb:hover {
   }
 }
 @media (max-width: 640px) {
-  .pdt-head {
+  .pdt-tabrow {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    min-height: 0;
+    padding-right: 0;
   }
   .pdt-stats {
+    padding: 0 20px 12px;
     justify-content: space-between;
     gap: 8px 12px;
   }

@@ -8801,3 +8801,16 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
   - `stage-treatment-date` thêm một lần: **4/4**, vẫn chỉ có 3 dịch vụ E2E.
 
 **Chưa commit.**
+
+## R-955 (2026-10-15, mức 1: giao diện trang Chi tiết kế hoạch điều trị) Thanh tab giống trang hồ sơ bệnh nhân, bỏ card bao ngoài
+
+- BA (mockup 2026-10-15): 4 tab "Chi tiết điều trị / Thanh toán / Hoàn tiền / Dư nợ" dùng chung kiểu thanh tab của trang bệnh nhân (`.bd-tabbar` + `.pill-tab`, dải trắng riêng `.pdt-tabrow`), không còn pill bo tròn trong card.
+- Chốt với owner:
+  - 6 con số tiền nằm bên phải thanh tab, chỉ hiện ở 3 tab tiền như trước.
+  - Breadcrumb giữ nguyên ("Kế hoạch điều trị > DTxx").
+  - Các nút (Thêm dịch vụ phát sinh, Tạo Đơn Thuốc, In Hóa Đơn, In) và bảng nằm thẳng trên nền trang, bảng là card riêng, giống tab Kế hoạch điều trị. `.pdt-body` không còn viền/nền/padding.
+  - Tab đang chọn tô tím đặc như trang bệnh nhân.
+- Spec `treatment-plan-detail` cập nhật assert bố cục (tablist trong `.pdt-tabrow`, `.pdt-body` không viền/nền).
+- Kết quả (dev server :5173 + host thật :5000, PostgreSQL thật, không chặn API): `treatment-plan-detail`, `stage-staff-pickers`, `plan-service-delete` **19/19**.
+
+**Chưa commit.**
