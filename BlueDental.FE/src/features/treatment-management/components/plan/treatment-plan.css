@@ -353,9 +353,14 @@
 .tp-table .ant-table-cell-fix-end {
   background: #fff;
 }
-.tp-table .ant-table-cell-fix-right-first::after,
-.tp-table .ant-table-cell-fix-end-shadow::after {
-  box-shadow: -4px 0 6px -2px rgba(27, 42, 65, 0.06);
+/* The `::after` is a 30px strip standing just left of the pinned cell, so the
+   shadow must be inset on the strip's right edge — an outer shadow lands on
+   its far side and leaves 30px of scrolled content showing between the shadow
+   and the white cell. Only `…-shadow-show` means the table is actually
+   scrolled; the bare `…-shadow` class is on the cell even when nothing hides. */
+.tp-table .ant-table-ping-right .ant-table-cell-fix-right-first::after,
+.tp-table .ant-table-cell-fix-end-shadow-show::after {
+  box-shadow: inset -10px 0 8px -8px rgba(27, 42, 65, 0.12);
 }
 .tp-card-pager .ant-pagination-item {
   border-radius: 6px;
