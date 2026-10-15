@@ -61,6 +61,16 @@ public class TreatmentPlanVoucherTests
         return voucher;
     }
 
+    private static Voucher IssueServiceVoucher(string code, List<Guid> targetIds)
+    {
+        var voucher = Voucher.Issue(
+            Guid.NewGuid(), code, $"Voucher {code}", DiscountType.Money, 100_000m,
+            Today.AddDays(-1), Today.AddDays(30), VoucherScopeTarget.Service,
+            clinicBranchId: BranchId, targetIds: targetIds);
+        voucher.Publish();
+        return voucher;
+    }
+
     private static BusinessException Refuses(TreatmentPlan plan, params Voucher[] vouchers) =>
         Refuses(plan, NoPriorUses, vouchers);
 
@@ -173,13 +183,17 @@ public class TreatmentPlanVoucherTests
     }
 
     [Fact]
-    public void A_per_service_voucher_does_not_belong_on_the_slip()
+    public void A_service_voucher_with_no_line_it_targets_is_refused()
     {
-        var perService = IssueVoucher("DICH-VU", scope: VoucherScopeTarget.Service);
+        var perService = IssueServiceVoucher("DICH-VU", [Guid.NewGuid()]);
 
         Refuses(OpenPlan(1_000_000m), perService).Code
             .ShouldBe(BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable);
         perService.UsedCount.ShouldBe(0);
+
+        var untargeted = IssueVoucher("RONG", scope: VoucherScopeTarget.Service);
+        Refuses(OpenPlan(1_000_000m), untargeted).Code
+            .ShouldBe(BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable);
     }
 
     [Fact]

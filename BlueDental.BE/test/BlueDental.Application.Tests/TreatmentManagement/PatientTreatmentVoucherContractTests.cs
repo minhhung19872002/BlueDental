@@ -30,11 +30,22 @@ public class PatientTreatmentVoucherContractTests
         foreach (var name in new[]
                  {
                      "VoucherId", "Code", "Name", "DiscountType", "DiscountValue",
-                     "MaxDiscountAmount", "DiscountAmount"
+                     "MaxDiscountAmount", "DiscountAmount", "ScopeTarget"
                  })
         {
             applied.GetProperty(name).ShouldNotBeNull(name);
         }
+    }
+
+    [Fact]
+    public void Service_Voucher_Money_Should_Read_Back_On_The_Slip_And_Each_Line()
+    {
+        typeof(TreatmentPlanSlipDto).GetProperty("ServiceVoucherAmount")!.PropertyType
+            .ShouldBe(typeof(decimal));
+        typeof(TreatmentServiceDto).GetProperty("ServiceVoucherAmount")!.PropertyType
+            .ShouldBe(typeof(decimal));
+        typeof(PatientAdviseDto).GetProperty("ServiceGroupId")!.PropertyType
+            .ShouldBe(typeof(Guid?));
     }
 
     [Fact]

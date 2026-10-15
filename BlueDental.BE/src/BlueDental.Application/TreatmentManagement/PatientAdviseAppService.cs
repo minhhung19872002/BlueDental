@@ -108,13 +108,13 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             .ToList();
 
         // A service or diagnosis deleted in Danh mục since still names the advice.
-        Dictionary<Guid, string> catalogs;
+        Dictionary<Guid, CatalogEntry> catalogs;
         using (DataFilter.Disable<ISoftDelete>())
         {
             var catalogQuery = await _catalogRepository.GetQueryableAsync();
             catalogs = (await AsyncExecuter.ToListAsync(
                     catalogQuery.Where(c => catalogIds.Contains(c.Id))))
-                .ToDictionary(c => c.Id, c => c.Name);
+                .ToDictionary(c => c.Id);
         }
 
         foreach (var dto in dtos)
@@ -123,9 +123,11 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             dto.SecondStaffName = dto.SecondStaffId.HasValue
                 ? staff.GetValueOrDefault(dto.SecondStaffId.Value)
                 : null;
-            dto.ServiceName = catalogs.GetValueOrDefault(dto.ServiceId);
+            var service = catalogs.GetValueOrDefault(dto.ServiceId);
+            dto.ServiceName = service?.Name;
+            dto.ServiceGroupId = service?.TaxonomyId;
             dto.DiagnosisName = dto.DiagnosisId.HasValue
-                ? catalogs.GetValueOrDefault(dto.DiagnosisId.Value)
+                ? catalogs.GetValueOrDefault(dto.DiagnosisId.Value)?.Name
                 : null;
 
             var diagnosis = dto.PatientDiagnosisId.HasValue

@@ -1566,6 +1566,13 @@
 .pd-voucher-row__saving {
   color: var(--bd-muted);
 }
+/* R-949: the ticked services a "Theo dịch vụ" voucher reaches. */
+.pd-voucher-targets {
+  overflow: hidden;
+  color: var(--bd-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* The net total is the one figure the reference draws in blue. */
 /* "Thành tiền" is the figure the patient pays: bold and a size above the rest. */
 .pd-plan-total .pd-plan-net {

@@ -131,6 +131,26 @@ public class TreatmentService : FullAuditedEntity<Guid>
     public decimal CountedAmount =>
         Status == TreatmentServiceStatus.Cancelled ? 0m : EffectiveAmount;
 
+    /// <summary>
+    /// "Voucher dịch vụ" — this line's part of the service-scoped vouchers
+    /// redeemed when the slip opened (R-949), fixed at that moment. The slip
+    /// caps it at <see cref="CountedAmount"/> when it reads it, so a price
+    /// lowered later never charges the line below zero.
+    /// </summary>
+    public decimal ServiceVoucherAmount { get; private set; }
+
+    internal void AddServiceVoucher(decimal amount)
+    {
+        if (amount < 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount,
+                "Voucher discount must not be negative.");
+        }
+
+        ServiceVoucherAmount += amount;
+    }
+
     /// <summary>Only a finished line counts as value delivered to the patient.</summary>
     public bool IsCompleted => Status == TreatmentServiceStatus.Done;
 

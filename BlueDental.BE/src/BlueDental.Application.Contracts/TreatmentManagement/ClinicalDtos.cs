@@ -92,6 +92,9 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
     public Guid ClinicBranchId { get; set; }
     public Guid ServiceId { get; set; }
 
+    /// <summary>The service's Danh mục group — a service voucher may target it (R-949).</summary>
+    public Guid? ServiceGroupId { get; set; }
+
     /// <summary>Null on a line raised straight off a service — see PatientAdvise.</summary>
     public Guid? DiagnosisId { get; set; }
     public Guid? PatientDiagnosisId { get; set; }

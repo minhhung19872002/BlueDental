@@ -70,6 +70,8 @@ export interface PatientAdviseDto {
   patientId: string;
   clinicBranchId: string;
   serviceId: string;
+  /** The service's Danh mục group — a "Theo dịch vụ" voucher may name it (R-949). */
+  serviceGroupId: string | null;
   /** Null on a line raised straight off a service, with no chẩn đoán filed. */
   diagnosisId: string | null;
   patientDiagnosisId: string | null;

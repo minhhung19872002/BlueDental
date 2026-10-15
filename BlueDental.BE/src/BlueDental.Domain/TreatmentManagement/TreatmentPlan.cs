@@ -96,14 +96,34 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public decimal ServicesDiscountAmount => CountedServices.Sum(s => s.ServiceDiscountAmount);
 
-    /// <summary>Slip-level discount, capped at the slip total.</summary>
-    public decimal PlanDiscountAmount => Math.Min(OwnDiscountUncapped + (VoucherDiscountAmount ?? 0m), ServicesTotal);
+    /// <summary>
+    /// "Voucher dịch vụ" of one line: its part of the service-scoped vouchers,
+    /// never more than the line is now worth, and nothing once the line stops
+    /// counting — the use itself is not given back (BA item 24).
+    /// </summary>
+    public decimal ServiceVoucherOf(TreatmentService line) =>
+        UnchargedStatuses.Contains(line.Status) ? 0m : Math.Min(line.ServiceVoucherAmount, line.CountedAmount);
+
+    /// <summary>Σ "Voucher dịch vụ" over the counted lines.</summary>
+    public decimal ServiceVoucherTotal => CountedServices.Sum(ServiceVoucherOf);
+
+    /// <summary>
+    /// What the slip-level discount is taken off: the lines once their service
+    /// vouchers are off. Service vouchers go first (owner, R-949), so a slip %
+    /// never discounts money a service voucher already took away.
+    /// </summary>
+    public decimal PlanBase => ServicesTotal - ServiceVoucherTotal;
+
+    private decimal PlanBaseOf(TreatmentService line) => line.CountedAmount - ServiceVoucherOf(line);
+
+    /// <summary>Slip-level discount, capped at what is left after the service vouchers.</summary>
+    public decimal PlanDiscountAmount => Math.Min(OwnDiscountUncapped + (VoucherDiscountAmount ?? 0m), PlanBase);
 
     /// <summary>The slip's own %/money discount, before the cap.</summary>
     public decimal OwnDiscountUncapped => DiscountType switch
     {
         DiscountType.Money => DiscountValue,
-        DiscountType.Percentage => Vnd.Round(ServicesTotal * DiscountValue / 100m),
+        DiscountType.Percentage => Vnd.Round(PlanBase * DiscountValue / 100m),
         _ => 0m
     };
 
@@ -115,24 +135,24 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public decimal PlanVoucherAmount => Math.Min(VoucherDiscountAmount ?? 0m, PlanDiscountAmount);
 
-    /// <summary>Every discount on the slip: the lines' own plus the slip level and voucher.</summary>
-    public decimal TotalDiscountAmount => ServicesDiscountAmount + PlanDiscountAmount;
+    /// <summary>Every discount on the slip: the lines' own, their service vouchers, the slip level and voucher.</summary>
+    public decimal TotalDiscountAmount => ServicesDiscountAmount + ServiceVoucherTotal + PlanDiscountAmount;
 
     /// <summary>What the patient actually owes for this slip.</summary>
-    public decimal TotalAmount => ServicesTotal - PlanDiscountAmount;
+    public decimal TotalAmount => PlanBase - PlanDiscountAmount;
 
     /// <summary>
     /// The slip-level discount (voucher included) spread over the counted lines
-    /// in proportion to what each is worth, in whole đồng, and adding up to
-    /// <see cref="PlanDiscountAmount"/> exactly: the rounding leftover lands on
-    /// the largest line, which can always absorb it.
+    /// in proportion to what each is worth after its service vouchers, in whole
+    /// đồng, and adding up to <see cref="PlanDiscountAmount"/> exactly: the
+    /// rounding leftover lands on the largest line, which can always absorb it.
     ///
     /// Lines that are not counted (cancelled, replaced, transferred) get no share.
     /// </summary>
     public IReadOnlyDictionary<Guid, decimal> DiscountShares()
     {
         var shares = new Dictionary<Guid, decimal>();
-        var total = ServicesTotal;
+        var total = PlanBase;
         if (total == 0m)
         {
             return shares;
@@ -142,13 +162,13 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         var counted = CountedServices.ToList();
         foreach (var line in counted)
         {
-            shares[line.Id] = Vnd.Round(discount * line.CountedAmount / total);
+            shares[line.Id] = Vnd.Round(discount * PlanBaseOf(line) / total);
         }
 
         var leftover = discount - shares.Values.Sum();
         if (leftover != 0m)
         {
-            var largest = counted.OrderByDescending(s => s.CountedAmount).First();
+            var largest = counted.OrderByDescending(PlanBaseOf).First();
             shares[largest.Id] += leftover;
         }
 
@@ -169,7 +189,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             return 0m;
         }
 
-        return line.CountedAmount - DiscountShares().GetValueOrDefault(line.Id);
+        return PlanBaseOf(line) - DiscountShares().GetValueOrDefault(line.Id);
     }
 
     /// <summary>
@@ -242,7 +262,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             var shares = DiscountShares();
             return CountedServices
                 .Where(s => s.IsCompleted)
-                .Sum(s => s.CountedAmount - shares.GetValueOrDefault(s.Id));
+                .Sum(s => PlanBaseOf(s) - shares.GetValueOrDefault(s.Id));
         }
     }
 
@@ -517,15 +537,21 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// moment and never moves back.
     ///
     /// Only a slip that has its lines can redeem — the discount is measured
-    /// against <see cref="ServicesTotal"/>, so call this after the lines are
-    /// on. A slip redeems once; there is no second round.
+    /// against the lines, so call this after they are on. A slip redeems once;
+    /// there is no second round.
+    ///
+    /// Service vouchers (R-949) go first: each is measured against just the
+    /// lines whose service — or the service's group, <paramref name="serviceGroups"/>
+    /// — it targets, burns one use however many lines match, and is spread
+    /// over those lines in proportion to what they are worth. Whole-slip
+    /// vouchers are then measured against what is left (<see cref="PlanBase"/>).
     ///
     /// Plan-side rules, checked before any use is burnt so a refused pick
     /// leaves every voucher untouched:
     /// <list type="bullet">
-    /// <item>every voucher must be scoped to the whole plan and to this
-    /// branch (or to every branch);</item>
-    /// <item>an exclusive voucher stands alone;</item>
+    /// <item>every voucher must belong to this branch (or to every branch);</item>
+    /// <item>a service voucher needs at least one line it targets;</item>
+    /// <item>an exclusive voucher stands alone, whichever its scope;</item>
     /// <item>a voucher with a per-customer cap refuses once this patient has
     /// already carried it that many times — <paramref name="priorUsesByPatient"/>
     /// is the count of this patient's earlier slips per voucher.</item>
@@ -537,7 +563,8 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         IReadOnlyList<Voucher> vouchers,
         IReadOnlyDictionary<Guid, int> priorUsesByPatient,
         DateOnly onDate,
-        Func<Guid> newId)
+        Func<Guid> newId,
+        IReadOnlyDictionary<Guid, Guid>? serviceGroups = null)
     {
         Check.NotNull(vouchers, nameof(vouchers));
         Check.NotNull(priorUsesByPatient, nameof(priorUsesByPatient));
@@ -576,28 +603,13 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
                 "An exclusive voucher cannot be combined with another voucher.");
         }
 
-        var orderAmount = ServicesTotal;
         foreach (var voucher in vouchers)
         {
-            if (voucher.ScopeTarget != VoucherScopeTarget.Treatment)
-            {
-                throw new BusinessException(
-                    BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
-                    $"Voucher {voucher.Code} is not scoped to the whole plan.");
-            }
-
             if (voucher.ClinicBranchId.HasValue && voucher.ClinicBranchId.Value != BranchId)
             {
                 throw new BusinessException(
                     BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
                     $"Voucher {voucher.Code} belongs to another branch.");
-            }
-
-            if (!voucher.IsAvailableFor(onDate, orderAmount))
-            {
-                throw new BusinessException(
-                    BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
-                    $"Voucher {voucher.Code} cannot be applied to this slip.");
             }
 
             if (voucher.PerCustomerLimit.HasValue
@@ -609,16 +621,113 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             }
         }
 
-        var total = 0m;
-        foreach (var voucher in vouchers)
+        // Work every amount out before a single use is burnt.
+        var remaining = CountedServices.ToDictionary(s => s.Id, s => s.CountedAmount - ServiceVoucherOf(s));
+        var orderAmounts = new Dictionary<Guid, decimal>();
+        var lineParts = new Dictionary<Guid, IReadOnlyDictionary<Guid, decimal>>();
+
+        foreach (var voucher in vouchers.Where(v => v.ScopeTarget == VoucherScopeTarget.Service))
         {
-            var amount = Vnd.Round(voucher.Redeem(onDate, orderAmount));
-            _appliedVouchers.Add(TreatmentPlanVoucher.FromVoucher(newId(), Id, voucher, amount));
-            total += amount;
+            var matching = CountedServices.Where(s => Targets(voucher, s, serviceGroups)).ToList();
+            if (matching.Count == 0)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                    $"Voucher {voucher.Code} targets none of the services on this slip.");
+            }
+
+            var weights = matching.ToDictionary(s => s.Id, s => remaining[s.Id]);
+            var orderAmount = weights.Values.Sum();
+            EnsureAvailable(voucher, onDate, orderAmount);
+
+            var parts = SplitByWeight(Vnd.Round(voucher.CalculateDiscount(orderAmount)), weights);
+            foreach (var (lineId, part) in parts)
+            {
+                remaining[lineId] -= part;
+            }
+
+            orderAmounts[voucher.Id] = orderAmount;
+            lineParts[voucher.Id] = parts;
         }
 
-        VoucherDiscountAmount = total > orderAmount ? orderAmount : total;
+        var planBase = remaining.Values.Sum();
+        foreach (var voucher in vouchers.Where(v => v.ScopeTarget != VoucherScopeTarget.Service))
+        {
+            EnsureAvailable(voucher, onDate, planBase);
+            orderAmounts[voucher.Id] = planBase;
+        }
+
+        var planVoucherTotal = 0m;
+        foreach (var voucher in vouchers)
+        {
+            var amount = Vnd.Round(voucher.Redeem(onDate, orderAmounts[voucher.Id]));
+            _appliedVouchers.Add(
+                TreatmentPlanVoucher.FromVoucher(newId(), Id, voucher, amount, _appliedVouchers.Count));
+
+            if (lineParts.TryGetValue(voucher.Id, out var parts))
+            {
+                foreach (var (lineId, part) in parts)
+                {
+                    _services.Single(s => s.Id == lineId).AddServiceVoucher(part);
+                }
+            }
+            else
+            {
+                planVoucherTotal += amount;
+            }
+        }
+
+        if (vouchers.Any(v => v.ScopeTarget != VoucherScopeTarget.Service))
+        {
+            VoucherDiscountAmount = planVoucherTotal > planBase ? planBase : planVoucherTotal;
+        }
+
         return this;
+    }
+
+    /// <summary>
+    /// Whether a service voucher reaches a line: its target list names the
+    /// line's service, or the group the service sits in (the voucher form lets
+    /// the clinic tick either).
+    /// </summary>
+    private static bool Targets(Voucher voucher, TreatmentService line, IReadOnlyDictionary<Guid, Guid>? serviceGroups) =>
+        voucher.TargetIds.Contains(line.ServiceId)
+        || (serviceGroups != null
+            && serviceGroups.TryGetValue(line.ServiceId, out var groupId)
+            && voucher.TargetIds.Contains(groupId));
+
+    private static void EnsureAvailable(Voucher voucher, DateOnly onDate, decimal orderAmount)
+    {
+        if (!voucher.IsAvailableFor(onDate, orderAmount))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
+                $"Voucher {voucher.Code} cannot be applied to this slip.");
+        }
+    }
+
+    /// <summary>
+    /// Splits <paramref name="amount"/> over the lines in proportion to their
+    /// weight, in whole đồng, adding up exactly: the rounding leftover lands on
+    /// the heaviest line, the same rule as <see cref="DiscountShares"/>.
+    /// </summary>
+    private static IReadOnlyDictionary<Guid, decimal> SplitByWeight(decimal amount, IReadOnlyDictionary<Guid, decimal> weights)
+    {
+        var total = weights.Values.Sum();
+        if (total == 0m)
+        {
+            return weights.ToDictionary(pair => pair.Key, _ => 0m);
+        }
+
+        var parts = weights.ToDictionary(pair => pair.Key, pair => Vnd.Round(amount * pair.Value / total));
+        var leftover = amount - parts.Values.Sum();
+        if (leftover != 0m)
+        {
+            var heaviest = weights.OrderByDescending(pair => pair.Value).First().Key;
+            parts[heaviest] += leftover;
+        }
+
+        return parts;
     }
 
     /// <summary>Closes the slip once every counted line is finished.</summary>

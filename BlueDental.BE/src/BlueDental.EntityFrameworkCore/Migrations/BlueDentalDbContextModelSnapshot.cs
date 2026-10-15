@@ -7747,6 +7747,12 @@ namespace BlueDental.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("ScopeTarget")
+                        .HasColumnType("smallint");
+
                     b.Property<Guid>("TreatmentPlanId")
                         .HasColumnType("uuid");
 
@@ -7936,6 +7942,9 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("ServiceVoucherAmount")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");

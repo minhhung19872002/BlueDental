@@ -67,6 +67,9 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// <summary>"Giảm dịch vụ": (giá gốc − đơn giá) × số lượng plus any carried-over line discount.</summary>
     public decimal ServiceDiscountAmount { get; set; }
 
+    /// <summary>"Voucher dịch vụ": the line's part of the service-scoped vouchers (R-949).</summary>
+    public decimal ServiceVoucherAmount { get; set; }
+
     /// <summary>"Giảm KHDT": the line's share of the slip's own %/money discount.</summary>
     public decimal PlanDiscountShare { get; set; }
 
@@ -299,7 +302,9 @@ public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
     public decimal ServicesDiscountAmount { get; set; }
     /// <summary>Slip-level discount plus voucher.</summary>
     public decimal PlanDiscountAmount { get; set; }
-    /// <summary>ServicesDiscountAmount + PlanDiscountAmount = ServicesGrossTotal − TotalAmount.</summary>
+    /// <summary>Σ "Voucher dịch vụ" of the counted lines (R-949).</summary>
+    public decimal ServiceVoucherAmount { get; set; }
+    /// <summary>ServicesDiscountAmount + ServiceVoucherAmount + PlanDiscountAmount = ServicesGrossTotal − TotalAmount.</summary>
     public decimal TotalDiscountAmount { get; set; }
     public decimal TotalAmount { get; set; }
 
@@ -328,6 +333,9 @@ public class AppliedVoucherDto
     public DiscountType DiscountType { get; set; }
     public decimal DiscountValue { get; set; }
     public decimal? MaxDiscountAmount { get; set; }
+
+    /// <summary>"service" (only the lines it targets) or "treatment" (the whole slip).</summary>
+    public string ScopeTarget { get; set; } = "treatment";
 
     /// <summary>What this voucher took off the slip.</summary>
     public decimal DiscountAmount { get; set; }

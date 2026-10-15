@@ -123,6 +123,19 @@ public class ClinicalMappingTests
         entity.GetTableName().ShouldBe("bd_treatment_plan_vouchers");
         entity.FindProperty(nameof(TreatmentPlanVoucher.VoucherId)).ShouldNotBeNull();
         entity.FindProperty(nameof(TreatmentPlanVoucher.DiscountAmount)).ShouldNotBeNull();
+        entity.FindProperty(nameof(TreatmentPlanVoucher.ScopeTarget))!.GetProviderClrType()
+            .ShouldBe(typeof(short));
+        entity.FindProperty(nameof(TreatmentPlanVoucher.Position))!.IsNullable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TreatmentService_Should_Store_Its_Service_Voucher_Share()
+    {
+        using var ctx = CreateContext();
+        var property = ctx.Model.FindEntityType(typeof(TreatmentService))!
+            .FindProperty(nameof(TreatmentService.ServiceVoucherAmount))!;
+
+        property.GetColumnType().ShouldBe("numeric(18,2)");
     }
 
     [Fact]

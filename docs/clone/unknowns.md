@@ -2982,3 +2982,17 @@ Action taken: NONE trên production. Đã làm theo mặc định sau, chờ BA 
 - "Cần bổ sung": khách **không** gửi lại được qua QR cũ (mỗi link gửi một lần). Nhân viên liên hệ khách rồi Sửa yêu cầu, yêu cầu quay về Chờ xử lý.
 - Chưa có thông báo (Zalo/email/chuông) khi khách gửi, và chưa có màn tổng hợp mọi bệnh nhân.
 - Form công khai không ghi ngược thông tin vào hồ sơ bệnh nhân; dữ liệu chỉ nằm trong yêu cầu.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: tab Chẩn đoán & Tư vấn (`/patient/:id?tab=consulting`), chân "TỔNG KẾ HOẠCH" → "Voucher áp dụng"
+Control: voucher "Theo dịch vụ" (`scopeTarget = service`) khi chọn cho kế hoạch điều trị (R-949, 2026-10-15)
+Reason: BA chỉ nói "voucher chỉ giảm cho dịch vụ/nhóm dịch vụ được chọn". Cách tính khi kết hợp chưa quan sát được trên bản gốc (phải lưu phiếu mới thấy).
+Action taken: NONE trên production. Chủ dự án đã chốt 3 điểm (2026-10-15):
+- Voucher dịch vụ trừ trước, trên đúng các dòng có dịch vụ hoặc nhóm dịch vụ nằm trong `targetIds`; giảm giá của phiếu và voucher kế hoạch tính trên phần còn lại.
+- Một voucher trúng nhiều dòng chỉ tốn 1 lượt; số tiền chia cho các dòng theo giá trị dòng, phần lẻ do làm tròn dồn vào dòng lớn nhất.
+- Voucher dịch vụ và voucher kế hoạch dùng chung được; voucher độc quyền thì đứng một mình, tính cả hai loại.
+Mặc định BlueDental tự chọn, chưa có xác nhận:
+- `minOrderValue` và `maxDiscountAmount` của voucher dịch vụ tính trên tổng các dòng nó nhắm, không tính trên cả phiếu.
+- Hai voucher dịch vụ cùng nhắm một dòng thì voucher chọn sau tính trên phần dòng còn lại; thứ tự chọn được lưu (`Position`).
+- Huỷ dòng thì mất phần giảm của dòng đó, nhưng lượt dùng voucher không được trả lại (giống voucher kế hoạch, BA mục 24).

@@ -8596,3 +8596,47 @@ Danh sách nhóm (chip, bộ lọc) đọc `/taxonomies`, vốn đúng thứ t�
 - `prescription` (phiếu điều trị thứ hai không hiện) và `queue` (Quản lý quầy rỗng): đỏ y hệt khi đã cất toàn bộ thay đổi combobox.
 
 **Danh mục (mục 17):** `taxonomy*`, `payment-qr`, `branch-*` trên bản build production: 82/87. 5 đỏ: 4 cũng đỏ trên bản build HEAD không có thay đổi này (worktree riêng, cổng 8090) — `branch-list` tạo chi nhánh, `taxonomy-dialogs` cấu hình giá dịch vụ, `taxonomy-import-api` 403, `taxonomy-service-sync` quyền chỉ đọc; `taxonomy-groups` "Đang lưu" (nhóm vừa tạo không hiện — BD-001 có hơn 155 nhóm, R-944) đỏ 2/2 cả khi có lẫn khi đã cất thay đổi này. Chạy lại sau khi nới panel 320px: vẫn 82/87, cùng 5 test.
+
+## R-949 (2026-10-15, mức 3: tiền phiếu điều trị + voucher) Voucher "Theo dịch vụ" chỉ giảm đúng dòng nó nhắm
+
+**Yêu cầu (BA, chủ dự án duyệt plan):** voucher `scopeTarget = service` chỉ giảm các dòng có dịch vụ hoặc nhóm dịch vụ nằm trong `targetIds`. Trước đây voucher loại này không bao giờ hiện trong "Voucher áp dụng" của Chẩn đoán & Tư vấn.
+
+**Chủ dự án chốt:**
+1. Voucher dịch vụ trừ trước. Giảm giá của phiếu và voucher kế hoạch tính trên phần còn lại (`PlanBase = ServicesTotal − ServiceVoucherTotal`).
+2. Một voucher trúng nhiều dòng chỉ tốn 1 lượt. Số tiền chia theo giá trị dòng; phần lẻ do làm tròn dồn vào dòng lớn nhất.
+3. Voucher dịch vụ và voucher kế hoạch dùng chung được. Voucher độc quyền đứng một mình, tính cả hai loại.
+
+Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
+- Ngưỡng tối thiểu và trần giảm của voucher dịch vụ tính trên các dòng nó nhắm.
+- Voucher dịch vụ thứ hai trên cùng dòng tính trên phần còn lại.
+- Huỷ dòng không trả lại lượt dùng.
+
+**Sửa:**
+- BE:
+  - `TreatmentService.ServiceVoucherAmount`.
+  - `TreatmentPlanVoucher.ScopeTarget` + `Position` (thứ tự chọn).
+  - `TreatmentPlan.RedeemVouchers` (validate hết → voucher dịch vụ theo thứ tự chọn trên phần còn lại của dòng → voucher kế hoạch trên `planBase` → `Redeem`).
+  - `PatientMoneyCalculator` (phần kế hoạch của mỗi dòng chia theo `PlanBaseOf(line)`).
+  - DTO: `serviceVoucherAmount`, `planVoucherShare`, `appliedVouchers[].scopeTarget`.
+- Migration `20261015032732_ServiceScopedVouchers`. `ScopeTarget` mặc định là `Treatment` (2) cho các dòng cũ — bản sinh tự động đặt 0, không phải giá trị enum hợp lệ.
+- FE:
+  - Picker hiện voucher dịch vụ có thẻ "Dịch vụ", dòng "Áp cho: …"; voucher không trúng dòng nào đã tick thì ẩn.
+  - Bỏ tick dòng thì voucher dịch vụ của nó tự bỏ chọn.
+  - Chân phiếu "Giảm … cho <dịch vụ>".
+- **Lỗi bắt được khi test:** `appliedVouchers` đọc lại từ DB ra thứ tự ngẫu nhiên vì bảng không có cột thứ tự → thêm `Position` + `OrderBy`.
+
+**Test:**
+- Domain 922/922, EF 66/66, Application 728/728.
+- E2E thật (build production `vite preview` 127.0.0.1:8177, host :5000, PostgreSQL thật, không chặn API): ca mới `consulting-plan.spec.ts` "a Theo dịch vụ voucher takes off only the lines it names, before the plan voucher (R-949)" — **pass**. Ca này:
+  - tạo 2 dòng (1.000.000 / 600.000) và 4 voucher (10% theo dịch vụ, 100k theo nhóm, 200k kế hoạch, 50k nhắm dịch vụ khác);
+  - kiểm ẩn/hiện theo tick, bỏ tick tự bỏ chọn;
+  - kiểm số ở chân phiếu 1.200.000; response và GET đọc lại: giảm voucher dịch vụ 200k, voucher kế hoạch 200k chia 128.571 / 71.429;
+  - kiểm thứ tự `appliedVouchers`, lượt dùng 1/1/1/0 và số trên trang chi tiết kế hoạch.
+- Hồi quy mức 3 (14 spec consulting/treatment-plan/voucher/payment/report): 42 pass. Các ca đỏ không do thay đổi này:
+  - `consulting-plan` 11 ca cũ: chờ response của bệnh nhân fixture chi nhánh 2 không còn trong DB local (seed gap đã ghi).
+  - `consulting-delete-and-picker` "Chọn Dịch Vụ lists a group's services": picker `components/advise/*` không có thay đổi chưa commit, lỗi từ HEAD (R-946/R-948).
+  - `report` xuất Excel đúng cột: đỏ sẵn.
+  - `treatment-plan` (nút "Tạo kế hoạch mới", form tạo kế hoạch) và `treatment-plan-detail` (nút "Thêm dịch vụ phát sinh"): session khác đang sửa dở hai toolbar này. Chuỗi `serial` làm 20 ca sau không chạy, nên chạy riêng ba ca tiền tự tạo dữ liệu — thu theo giá sau giảm, chuyển đổi mang tiền, giá gốc / Giảm dịch vụ: **3/3 pass**.
+  - `operations-reports`: spec chờ tab "Ngày" nhưng màn hình đã đổi sang nút `.bd-ops-period-option`; không đụng `features/operations`.
+
+**Chưa commit.**

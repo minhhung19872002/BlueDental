@@ -1,10 +1,6 @@
 import { Button, Input, Popover } from "antd";
 import { CheckCircleFilled, CloseOutlined, SearchOutlined, TagOutlined } from "@ant-design/icons";
-import {
-  calculateVoucherDiscount,
-  formatVoucherValue,
-  type VoucherDto,
-} from "@/features/voucher/api/voucherApi";
+import { formatVoucherValue, type VoucherDto } from "@/features/voucher/api/voucherApi";
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
@@ -18,17 +14,30 @@ import { SelectLoading } from "@/components/SelectLoading";
  * Each pick then gets a boxed line of its own under the button — code, what it
  * takes off, the amount, and a × to drop it (project owner's layout, 2026-09-30).
  */
+/** "Áp cho: Tẩy trắng, Trám răng" under a "Theo dịch vụ" voucher; nothing for a plan one. */
+function VoucherTargets({ names }: { names: string[] }) {
+  if (names.length === 0) return null;
+  return (
+    <small className="pd-voucher-targets" title={names.join(", ")}>
+      {t("Patient:VoucherAppliesTo", names.join(", "))}
+    </small>
+  );
+}
+
 function VoucherRow({
   voucher,
   saving,
+  targets,
   active,
   onToggle,
 }: {
   voucher: VoucherDto;
   saving: number;
+  targets: string[];
   active: boolean;
   onToggle: (voucher: VoucherDto) => void;
 }) {
+  const scope = voucher.scopeTarget === "service" ? "Patient:VoucherService" : "Patient:VoucherPlan";
   return (
     <li>
       <button
@@ -44,9 +53,10 @@ function VoucherRow({
           <span className="pd-voucher-row__head">
             <b className="pd-voucher-row__code">{voucher.code}</b>
             <span className="pd-voucher-row__value">{formatVoucherValue(voucher)}</span>
-            <span className="pd-voucher-row__scope">{t("Patient:VoucherPlan")}</span>
+            <span className="pd-voucher-row__scope">{t(scope)}</span>
           </span>
           <span className="pd-voucher-row__name">{voucher.name}</span>
+          <VoucherTargets names={targets} />
           <small className="pd-voucher-row__saving">
             {t("Patient:VoucherSaving", formatMoneyUnit(saving))}
           </small>
@@ -72,7 +82,8 @@ function VoucherList({ plan }: { plan: PlanVoucherState }) {
         <VoucherRow
           key={voucher.id}
           voucher={voucher}
-          saving={calculateVoucherDiscount(voucher, plan.gross)}
+          saving={plan.savingOf(voucher)}
+          targets={plan.targetNamesOf(voucher)}
           active={plan.selected.some((item) => item.id === voucher.id)}
           onToggle={plan.toggle}
         />
@@ -88,18 +99,23 @@ function VoucherList({ plan }: { plan: PlanVoucherState }) {
 function AppliedVoucher({
   voucher,
   saving,
+  targets,
   onRemove,
 }: {
   voucher: VoucherDto;
   saving: number;
+  /** The ticked services a "Theo dịch vụ" voucher takes off; empty for a plan voucher. */
+  targets: string[];
   onRemove: (voucher: VoucherDto) => void;
 }) {
+  const what =
+    targets.length > 0
+      ? t("Patient:PlanTotals:ServiceVoucherLine", formatVoucherValue(voucher), targets.join(", "))
+      : t("Patient:PlanTotals:VoucherLine", formatVoucherValue(voucher));
   return (
-    <li className="pd-plan-applied" title={voucher.name}>
+    <li className="pd-plan-applied" title={`${voucher.name} — ${what}`}>
       <b className="pd-plan-applied__code">[{voucher.code}]</b>
-      <span className="pd-plan-applied__what">
-        {t("Patient:PlanTotals:VoucherLine", formatVoucherValue(voucher))}
-      </span>
+      <span className="pd-plan-applied__what">{what}</span>
       <b className="pd-plan-applied__saving">-{formatMoneyUnit(saving)}</b>
       <button
         type="button"
@@ -165,7 +181,8 @@ export function AdviseVoucherPicker({
             <AppliedVoucher
               key={voucher.id}
               voucher={voucher}
-              saving={calculateVoucherDiscount(voucher, plan.gross)}
+              saving={plan.savingOf(voucher)}
+              targets={plan.targetNamesOf(voucher)}
               onRemove={plan.toggle}
             />
           ))}

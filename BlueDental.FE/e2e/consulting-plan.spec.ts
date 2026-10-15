@@ -430,6 +430,287 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     );
   });
 
+  test("a Theo dịch vụ voucher takes off only the lines it names, before the plan voucher (R-949)", async ({
+    page,
+  }) => {
+    // Two lines on two services of two different groups, all provisioned here:
+    //   A 1.000.000 đ — VS: 10 % for service A          → 100.000 off A
+    //   B   600.000 đ — VG: 100.000 đ for B's group      → 100.000 off B
+    //   VP: 200.000 đ off the plan, worked out on what is left (1.400.000),
+    //       split by that remainder: A 128.571, B 71.429
+    //   VX: a service voucher for a third service nobody ticked — never offered.
+    const A_PRICE = 1_000_000;
+    const B_PRICE = 600_000;
+    const id = runId();
+
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    const made = await page.evaluate(
+      async ({ branch, aPrice, bPrice, suffix }) => {
+        const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch };
+        const get = async (url: string) =>
+          (await fetch(url, { credentials: "include", headers })).json();
+        const post = async (url: string, body?: unknown) => {
+          const res = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers,
+            body: body === undefined ? undefined : JSON.stringify(body),
+          });
+          if (!res.ok) throw new Error(`${url} ${res.status} ${await res.text()}`);
+          return res.json();
+        };
+
+        type Entry = { id: string; name: string; taxonomyId: string };
+        const patient = (await get("/api/v1/app/patients?maxResultCount=1")).items[0];
+        const diagnosis = (
+          await get(
+            `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=1`,
+          )
+        ).items[0];
+        const services = (
+          await get(
+            `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=care_service&isActive=true&maxResultCount=200`,
+          )
+        ).items as Entry[];
+        const a = services[0];
+        const b = services.find((s) => s.taxonomyId !== a.taxonomyId);
+        const c = services.find((s) => s.taxonomyId !== a.taxonomyId && s.taxonomyId !== b?.taxonomyId);
+        if (!b || !c) throw new Error("needs care services in three groups");
+        const staff = (await get("/api/v1/app/staff?MaxResultCount=1")).items[0];
+        const tooth = (toothCode: number) => ({
+          toothCode,
+          selected: true,
+          top: false,
+          right: false,
+          bottom: false,
+          left: false,
+          center: false,
+        });
+
+        const slip = await post("/api/v1/app/patient-diagnoses", {
+          patientId: patient.id,
+          clinicBranchId: branch,
+          diagnosisId: diagnosis.id,
+          staffId: staff.id,
+          note: `e2e service voucher ${suffix}`,
+          teeth: [tooth(26)],
+        });
+        const advise = (serviceId: string, price: number, toothCode: number) =>
+          post("/api/v1/app/patient-advises", {
+            patientId: patient.id,
+            clinicBranchId: branch,
+            patientDiagnosisId: slip.id,
+            diagnosisId: diagnosis.id,
+            serviceId,
+            staffId: staff.id,
+            originalPrice: price,
+            price,
+            quantity: 1,
+            discountType: 0,
+            discountValue: 0,
+            teeth: [tooth(toothCode)],
+          });
+        const lineA = await advise(a.id, aPrice, 26);
+        const lineB = await advise(b.id, bPrice, 36);
+
+        const day = (offset: number) => {
+          const d = new Date();
+          d.setDate(d.getDate() + offset);
+          return d.toISOString().slice(0, 10);
+        };
+        const voucher = async (
+          code: string,
+          discountType: "percentage" | "fixed_amount",
+          discountValue: number,
+          scopeTarget: "service" | "treatment",
+          targetIds: string[],
+        ) => {
+          const made = await post("/api/v1/app/vouchers", {
+            code: `${code}${suffix}`,
+            name: `e2e ${code} ${suffix}`,
+            discountType,
+            discountValue,
+            scopeTarget,
+            targetIds,
+            startDate: day(-1),
+            endDate: day(30),
+            usageLimit: 100,
+            isExclusive: false,
+            customerTargets: ["new", "returning"],
+            isDaysOfWeekLimited: false,
+            daysOfWeek: [],
+            displayOnNfcDental: true,
+            branchId: branch,
+          });
+          await post(`/api/v1/app/vouchers/${made.id}/publish`);
+          return { id: made.id as string, code: made.code as string };
+        };
+
+        return {
+          patientId: patient.id as string,
+          lineA: lineA.id as string,
+          lineB: lineB.id as string,
+          nameA: a.name,
+          nameB: b.name,
+          vs: await voucher("VS", "percentage", 10, "service", [a.id]),
+          vg: await voucher("VG", "fixed_amount", 100_000, "service", [b.taxonomyId]),
+          vp: await voucher("VP", "fixed_amount", 200_000, "treatment", []),
+          vx: await voucher("VX", "fixed_amount", 50_000, "service", [c.id]),
+        };
+      },
+      { branch: BRANCH1, aPrice: A_PRICE, bPrice: B_PRICE, suffix: id },
+    );
+
+    await page.goto(`/patient/${made.patientId}?tab=consulting&branchId=${BRANCH1}`);
+    await assertRealApiTraffic(page, "/api/v1/app/patient-advises");
+    const rowA = page.locator(`.pd-advise-table tr[data-row-key="${made.lineA}"]`);
+    const rowB = page.locator(`.pd-advise-table tr[data-row-key="${made.lineB}"]`);
+    await expect(rowA).toBeVisible({ timeout: 20000 });
+    const digits = async (text: Promise<string>) => Number((await text).replace(/\D/g, ""));
+    const net = () => digits(page.locator(".pd-plan-net b").innerText());
+    const card = (code: string) => page.locator(".pd-voucher-row").filter({ hasText: code });
+    const openPicker = async () => {
+      await page.getByRole("button", { name: /Chọn voucher|Voucher \(/ }).click();
+      await expect(page.locator(".pd-voucher-list")).toBeVisible();
+    };
+
+    // Only B ticked: A's voucher has nothing to take off, B's group voucher has.
+    const onB = page.waitForResponse(
+      (res) => res.url().includes("/vouchers/available") && res.url().includes(`orderAmount=${B_PRICE}`),
+    );
+    await rowB.locator(".ant-checkbox-input").check();
+    expect((await onB).ok()).toBeTruthy();
+    await openPicker();
+    await expect(card(made.vg.code)).toContainText("Dịch vụ");
+    await expect(card(made.vg.code)).toContainText(`Áp cho: ${made.nameB}`);
+    await expect(card(made.vp.code)).toContainText("Kế hoạch");
+    await expect(card(made.vs.code)).toHaveCount(0);
+    await expect(card(made.vx.code)).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    // A ticked too: now A's voucher is offered, naming A alone, and worth 10 % of A.
+    const onBoth = page.waitForResponse(
+      (res) =>
+        res.url().includes("/vouchers/available") &&
+        res.url().includes(`orderAmount=${A_PRICE + B_PRICE}`),
+    );
+    await rowA.locator(".ant-checkbox-input").check();
+    expect((await onBoth).ok()).toBeTruthy();
+    await openPicker();
+    await expect(card(made.vs.code)).toContainText(`Áp cho: ${made.nameA}`);
+    await expect(card(made.vs.code)).not.toContainText(made.nameB);
+    await expect(card(made.vs.code)).toContainText("100.000");
+    await expect(card(made.vx.code)).toHaveCount(0);
+
+    // Plan voucher first, then the two service ones: the server still works the
+    // service ones out first, and the footer shows what it will charge.
+    await card(made.vp.code).click();
+    await card(made.vs.code).click();
+    await card(made.vg.code).click();
+    await expect(page.locator(".pd-voucher-row--on")).toHaveCount(3);
+    await page.keyboard.press("Escape");
+    await expect.poll(net).toBe(1_200_000);
+    const applied = page.locator(".pd-plan-applied");
+    await expect(applied).toHaveCount(3);
+    await expect(applied.filter({ hasText: made.vs.code })).toContainText(`cho ${made.nameA}`);
+    await expect(applied.filter({ hasText: made.vs.code })).toContainText("-100.000");
+    await expect(applied.filter({ hasText: made.vp.code })).toContainText("-200.000");
+
+    // Unticking A drops the voucher that only reached A; ticking it back does not re-pick it.
+    await rowA.locator(".ant-checkbox-input").uncheck();
+    await expect(applied).toHaveCount(2);
+    await expect(applied.filter({ hasText: made.vs.code })).toHaveCount(0);
+    await expect.poll(net).toBe(B_PRICE - 100_000 - 200_000);
+    await rowA.locator(".ant-checkbox-input").check();
+    await expect(applied).toHaveCount(2);
+    await openPicker();
+    await card(made.vs.code).click();
+    await page.keyboard.press("Escape");
+    await expect(applied).toHaveCount(3);
+    await expect.poll(net).toBe(1_200_000);
+
+    await page.getByLabel("Chọn bác sĩ điều trị").click();
+    await page.locator(".ant-select-item-option").first().click();
+
+    const opened = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/patient-treatments") && res.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "Thêm kế hoạch điều trị" }).click();
+    const response = await opened;
+    expect(response.ok(), await response.text()).toBeTruthy();
+
+    // The ids go in pick order (VP, VG, then VS after its re-pick) and nothing else.
+    const body = JSON.parse(response.request().postData() ?? "{}") as { voucherIds?: string[] };
+    expect(body.voucherIds).toEqual([made.vp.id, made.vg.id, made.vs.id]);
+
+    type Slip = {
+      id: string;
+      code: string;
+      totalAmount: number;
+      totalDiscountAmount: number;
+      serviceVoucherAmount: number;
+      voucherDiscountAmount: number | null;
+      services: {
+        sourceAdviseId: string | null;
+        serviceVoucherAmount: number;
+        planVoucherShare: number;
+      }[];
+      appliedVouchers: { voucherId: string; scopeTarget: string; discountAmount: number }[];
+    };
+    const expectSlip = (slip: Slip) => {
+      expect(slip.totalAmount).toBe(1_200_000);
+      expect(slip.serviceVoucherAmount).toBe(200_000);
+      expect(slip.voucherDiscountAmount).toBe(200_000);
+      expect(slip.totalDiscountAmount).toBe(400_000);
+      const line = (advise: string) => slip.services.find((s) => s.sourceAdviseId === advise)!;
+      expect(line(made.lineA).serviceVoucherAmount).toBe(100_000);
+      expect(line(made.lineB).serviceVoucherAmount).toBe(100_000);
+      expect(line(made.lineA).planVoucherShare).toBe(128_571);
+      expect(line(made.lineB).planVoucherShare).toBe(71_429);
+      expect(slip.appliedVouchers).toEqual([
+        expect.objectContaining({ voucherId: made.vp.id, scopeTarget: "treatment", discountAmount: 200_000 }),
+        expect.objectContaining({ voucherId: made.vg.id, scopeTarget: "service", discountAmount: 100_000 }),
+        expect.objectContaining({ voucherId: made.vs.id, scopeTarget: "service", discountAmount: 100_000 }),
+      ]);
+    };
+    const slip = (await response.json()) as Slip;
+    expectSlip(slip);
+    await expect(page).toHaveURL(/tab=treatment-plan/);
+
+    // Read back on its own request: the figures were stored, not just returned.
+    const reread = await page.evaluate(
+      async ({ id, branch }) => {
+        const res = await fetch(`/api/v1/app/patient-treatments/${id}`, {
+          credentials: "include",
+          headers: { "X-Clinic-Branch-Id": branch },
+        });
+        return res.json();
+      },
+      { id: slip.id, branch: BRANCH1 },
+    );
+    expectSlip(reread as Slip);
+
+    // One use each — the service vouchers included, each once however many lines it reached.
+    for (const voucher of [made.vs, made.vg, made.vp]) {
+      expect((await voucherUses(page, voucher.code, A_PRICE + B_PRICE, BRANCH1)).usedCount).toBe(1);
+    }
+    expect((await voucherUses(page, made.vx.code, A_PRICE + B_PRICE, BRANCH1)).usedCount).toBe(0);
+
+    // Chi tiết kế hoạch: each line's Thành tiền nets out its own voucher and its share.
+    await page.reload();
+    await page.locator(".tp-table .tp-code", { hasText: slip.code }).click();
+    await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}/);
+    const lines = page.locator(".pdt-table tbody tr.ant-table-row");
+    await expect(lines).toHaveCount(2, { timeout: 20000 });
+    // Rows read by their Đơn giá: the name sits in a cell the row text leaves out.
+    await expect(lines.filter({ hasText: "1.000.000" })).toContainText("228.571");
+    await expect(lines.filter({ hasText: "1.000.000" })).toContainText("771.429");
+    await expect(lines.filter({ hasText: "600.000" })).toContainText("171.429");
+    await expect(lines.filter({ hasText: "600.000" })).toContainText("428.571");
+  });
+
   test("the voucher picker offers the branch's own plan vouchers, and one comes off the total", async ({
     page,
   }) => {

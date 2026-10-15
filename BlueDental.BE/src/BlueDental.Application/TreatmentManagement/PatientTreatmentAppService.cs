@@ -208,8 +208,20 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .ToList()
             .ToDictionary(x => x.VoucherId, x => x.Count);
 
+        // A service voucher may name the group instead of the service (R-949).
+        var serviceIds = plan.Services.Select(s => s.ServiceId).Distinct().ToList();
+        Dictionary<Guid, Guid> serviceGroups;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var catalogQuery = await _catalogRepository.GetQueryableAsync();
+            serviceGroups = (await AsyncExecuter.ToListAsync(catalogQuery
+                    .Where(c => serviceIds.Contains(c.Id))
+                    .Select(c => new { c.Id, c.TaxonomyId })))
+                .ToDictionary(c => c.Id, c => c.TaxonomyId);
+        }
+
         var clinicToday = DateOnly.FromDateTime(Clock.Now.ToUniversalTime().Add(ClinicUtcOffset));
-        plan.RedeemVouchers(vouchers, priorUses, clinicToday, GuidGenerator.Create);
+        plan.RedeemVouchers(vouchers, priorUses, clinicToday, GuidGenerator.Create, serviceGroups);
         return vouchers;
     }
 
@@ -539,7 +551,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     /// slip's services. Vouchers are left out (a promotion, not the user's).
     /// </summary>
     private static DiscountLimit.Measure PlanDiscountOf(TreatmentPlan plan) =>
-        new(plan.ServicesTotal, plan.OwnDiscountUncapped);
+        new(plan.PlanBase, plan.OwnDiscountUncapped);
 
     /// <summary>
     /// The slip's own discount must still fit after anything that changes the
@@ -713,7 +725,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .ToList();
 
         rows.Add(new ClinicDocumentRow(
-            [L["BE:Field:GrandTotal"].Value, string.Empty, string.Empty, $"{dto.PlanDiscountAmount:N0}", $"{dto.TotalAmount:N0}"],
+            [L["BE:Field:GrandTotal"].Value, string.Empty, string.Empty, $"{dto.ServiceVoucherAmount + dto.PlanDiscountAmount:N0}", $"{dto.TotalAmount:N0}"],
             IsTotal: true));
 
         var document = new ClinicDocument
@@ -931,12 +943,15 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             ServicesTotal = plan.ServicesTotal,
             ServicesDiscountAmount = plan.ServicesDiscountAmount,
             PlanDiscountAmount = plan.PlanDiscountAmount,
+            ServiceVoucherAmount = plan.ServiceVoucherTotal,
             TotalDiscountAmount = plan.TotalDiscountAmount,
             TotalAmount = plan.TotalAmount,
             TaxAmount = plan.TaxAmount,
             PayableAmount = plan.PayableAmount,
             Payment = MapPayment(_money.ForPlan(plan, payments)),
             AppliedVouchers = plan.AppliedVouchers
+                // As ticked — the order they were worked out in (R-949).
+                .OrderBy(v => v.Position)
                 .Select(v => new AppliedVoucherDto
                 {
                     VoucherId = v.VoucherId,
@@ -945,6 +960,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     DiscountType = v.DiscountType,
                     DiscountValue = v.DiscountValue,
                     MaxDiscountAmount = v.MaxDiscountAmount,
+                    ScopeTarget = v.ScopeTarget == VoucherScopeTarget.Service ? "service" : "treatment",
                     DiscountAmount = v.DiscountAmount
                 })
                 .ToList(),
@@ -969,6 +985,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     DiscountAmount = line.DiscountAmount,
                     EffectiveAmount = line.EffectiveAmount,
                     ServiceDiscountAmount = line.ServiceDiscountAmount,
+                    ServiceVoucherAmount = plan.ServiceVoucherOf(line),
                     PlanDiscountShare = shareParts[plan.Id].GetValueOrDefault(line.Id).Own,
                     PlanVoucherShare = shareParts[plan.Id].GetValueOrDefault(line.Id).Voucher,
                     ChargedAmount = plan.ChargedAmountOf(line),

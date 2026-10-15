@@ -1077,6 +1077,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.OriginalPrice).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.ServiceVoucherAmount).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -1105,6 +1106,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
             entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
             entity.Property(x => x.DiscountAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.ScopeTarget).HasConversion<short>();
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => x.VoucherId);
         });

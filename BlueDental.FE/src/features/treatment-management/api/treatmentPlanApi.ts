@@ -221,6 +221,8 @@ export interface TreatmentServiceDto {
   effectiveAmount: number;
   /** "Giảm dịch vụ": (giá gốc − đơn giá) × số lượng plus any carried-over line discount. */
   serviceDiscountAmount: number;
+  /** "Voucher dịch vụ": the "Theo dịch vụ" vouchers taken off this line alone (R-949). */
+  serviceVoucherAmount: number;
   /** "Giảm KHDT": the line's share of the slip's own discount. */
   planDiscountShare: number;
   /** "Voucher KHDT": the line's share of the slip's vouchers. */
@@ -357,9 +359,14 @@ export interface TreatmentPlanSlipDto {
   servicesTotal: number;
   /** The lines' own discounts, summed. */
   servicesDiscountAmount: number;
-  /** Slip-level discount plus voucher. */
+  /** The "Theo dịch vụ" vouchers, taken off their own lines before the slip discount (R-949). */
+  serviceVoucherAmount: number;
+  /** Slip-level discount plus voucher, worked out on what the service vouchers leave. */
   planDiscountAmount: number;
-  /** servicesDiscountAmount + planDiscountAmount = servicesGrossTotal − totalAmount. */
+  /**
+   * servicesDiscountAmount + serviceVoucherAmount + planDiscountAmount
+   * = servicesGrossTotal − totalAmount.
+   */
   totalDiscountAmount: number;
   totalAmount: number;
   /** Σ VAT of the counted lines. */
@@ -385,6 +392,8 @@ export interface AppliedVoucherDto {
   maxDiscountAmount: number | null;
   /** What this voucher took off the slip. */
   discountAmount: number;
+  /** "service": taken off the lines it named; "treatment": off the whole slip (R-949). */
+  scopeTarget: "service" | "treatment";
 }
 
 /** Matches BlueDental.Billing.PaymentSplitMode. */

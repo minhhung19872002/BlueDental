@@ -26,7 +26,7 @@ public class PatientMoneyCalculator : IDomainService
             totalPaid: ofPlan.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plan.CompletedValue,
             totalRefund: ofPlan.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
-            discount: plan.PlanDiscountAmount + plan.ServicesDiscountAmount);
+            discount: plan.PlanDiscountAmount + plan.ServiceVoucherTotal + plan.ServicesDiscountAmount);
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ public class PatientMoneyCalculator : IDomainService
             totalPaid: againstSlips.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plans.Sum(p => p.CompletedValue),
             totalRefund: againstSlips.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
-            discount: plans.Sum(p => p.PlanDiscountAmount + p.ServicesDiscountAmount),
+            discount: plans.Sum(p => p.PlanDiscountAmount + p.ServiceVoucherTotal + p.ServicesDiscountAmount),
             prepaid: HeldForPatient(payments));
     }
 

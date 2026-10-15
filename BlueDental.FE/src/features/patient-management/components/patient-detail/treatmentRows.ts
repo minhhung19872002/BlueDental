@@ -245,6 +245,7 @@ function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
     discountAmount: 0,
     effectiveAmount: 0,
     serviceDiscountAmount: 0,
+    serviceVoucherAmount: 0,
     planDiscountShare: 0,
     planVoucherShare: 0,
     chargedAmount: 0,
