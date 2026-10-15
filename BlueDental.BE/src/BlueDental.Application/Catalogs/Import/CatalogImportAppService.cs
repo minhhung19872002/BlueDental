@@ -33,19 +33,22 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
+    private readonly UsedStageGuard _usedStageGuard;
 
     public CatalogImportAppService(
         IRepository<CatalogEntry, Guid> repository,
         IRepository<Taxonomy, Guid> taxonomyRepository,
         BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver,
-        IDataFilter<ISoftDelete> softDeleteFilter)
+        IDataFilter<ISoftDelete> softDeleteFilter,
+        UsedStageGuard usedStageGuard)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
         _softDeleteFilter = softDeleteFilter;
+        _usedStageGuard = usedStageGuard;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
@@ -544,6 +547,14 @@ public class CatalogImportAppService : BlueDentalAppService, ICatalogImportAppSe
     {
         var group = plan.Layout.Group;
         var groupIds = new Dictionary<string, Guid>();
+
+        // The sheet's "Công đoạn" cell carries no ids, so it replaces a
+        // service's stages wholesale; refuse it before anything is written when
+        // a patient's công đoạn still holds one of them.
+        foreach (var (entry, merged) in plan.Updates.Concat(plan.Restores))
+        {
+            await _usedStageGuard.EnsureRemovedStagesUnusedAsync(entry, merged.Stages);
+        }
 
         var newGroups = new List<Taxonomy>();
         var names = plan.NewGroupNames.ToList();

@@ -19,6 +19,19 @@
   margin-top: 12px;
 }
 
+/* "+ Công đoạn", then Xuất / Nhập (R-961): one row beside the box; under it on a phone. */
+.bd-stage-add-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .bd-stage-add > .bd-stage-add-actions {
+    flex-wrap: wrap;
+    flex: 1 1 100%;
+  }
+}
+
 /* Header 40px on the soft head colour, rows 56px, as the reference draws them. */
 .bd-stage-table .ant-table {
   font-size: 13px;

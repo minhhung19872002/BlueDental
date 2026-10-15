@@ -70,6 +70,8 @@ public static class BlueDentalDomainErrorCodes
         public const string ServiceInUse = "BlueDental:Catalogs:0033";
         /// <summary>The service is the only component of a live combo, so deleting it would empty the combo.</summary>
         public const string ServiceIsLastComboComponent = "BlueDental:Catalogs:0034";
+        /// <summary>A save would drop a service's công đoạn that a patient's công đoạn has already ticked.</summary>
+        public const string StageInUse = "BlueDental:Catalogs:0035";
     }
 
     public static class PatientManagement

@@ -9,6 +9,7 @@ import { FloatingField } from "@/components/FloatingField";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { t } from "@/lib/i18n";
 import { ServiceLaboTab } from "./ServiceLaboTab";
+import { ServiceStageExcelButtons } from "./ServiceStageExcelButtons";
 import { ServiceStageTable } from "./ServiceStageTable";
 
 /** The form fields these tabs edit; both the service and the combo dialog hold them. */
@@ -59,6 +60,7 @@ function CheckRow({ name, label, hints = [] }: { name: SettingField; label: stri
 export function ServiceSettingsTabs({ stages, onStagesChange, suppliers, suppliersLoading }: Props) {
   const form = Form.useFormInstance();
   const warrantyDays = Form.useWatch("warrantyDays", form) ?? 0;
+  const serviceName = Form.useWatch<string | undefined>("name", form);
 
   const addStage = () => {
     const trimmed = (form.getFieldValue("stageDraft") as string | undefined)?.trim() ?? "";
@@ -118,10 +120,15 @@ export function ServiceSettingsTabs({ stages, onStagesChange, suppliers, supplie
                     />
                   </FloatingField>
                 </Col>
-                <Col flex="none">
+                <Col flex="none" className="bd-stage-add-actions">
                   <Button type="primary" icon={<PlusOutlined />} onClick={addStage}>
                     {t("Taxonomy:Service:AddStageBtn")}
                   </Button>
+                  <ServiceStageExcelButtons
+                    stages={stages}
+                    onStagesChange={onStagesChange}
+                    serviceName={serviceName}
+                  />
                 </Col>
               </Row>
 

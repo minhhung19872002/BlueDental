@@ -10,17 +10,15 @@ import {
   type ServiceStageDto,
   type ServiceStageValueType,
 } from "../api/taxonomyApi";
+import { STAGE_NAME_MAX, STAGE_PERCENT_MAX } from "../stageExcel";
 
 interface Props {
   stages: ServiceStageDto[];
   onChange: (next: ServiceStageDto[]) => void;
 }
 
-/** The reference caps a stage name at 100 characters. */
-const STAGE_NAME_MAX = 100;
 /** Its footer offers this size menu, 20 by default. */
 const STAGE_PAGE_SIZES = [5, 10, 20, 25, 50, 100];
-const MAX_PERCENT = 100;
 
 const VALUE_TYPE_OPTIONS: { value: ServiceStageValueType; label: string }[] = [
   { value: SERVICE_STAGE_VALUE_TYPE.Percentage, label: "%" },
@@ -57,7 +55,7 @@ export function ServiceStageTable({ stages, onChange }: Props) {
       // A share cannot exceed the whole, whatever the amount was before.
       value:
         next === SERVICE_STAGE_VALUE_TYPE.Percentage
-          ? Math.min(stage.value, MAX_PERCENT)
+          ? Math.min(stage.value, STAGE_PERCENT_MAX)
           : stage.value,
     });
 
@@ -109,7 +107,7 @@ export function ServiceStageTable({ stages, onChange }: Props) {
               // A share stops at 100; an amount keeps the shared ten-digit cap.
               isAllowed={(values) =>
                 values.floatValue === undefined ||
-                values.floatValue <= (isPercent ? MAX_PERCENT : MAX_VND)
+                values.floatValue <= (isPercent ? STAGE_PERCENT_MAX : MAX_VND)
               }
               onChange={(next) => patch(index, { value: next ?? 0 })}
             />

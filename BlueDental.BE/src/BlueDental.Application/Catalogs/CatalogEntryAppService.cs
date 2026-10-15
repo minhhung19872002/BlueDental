@@ -29,6 +29,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     private readonly IRepository<LaboSupplier, Guid> _laboSupplierRepository;
     private readonly IRepository<TreatmentPlan, Guid> _planRepository;
     private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
+    private readonly UsedStageGuard _usedStageGuard;
 
     public CatalogEntryAppService(
         IRepository<CatalogEntry, Guid> repository,
@@ -37,7 +38,8 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         IDataFilter<ISoftDelete> softDeleteFilter,
         IRepository<LaboSupplier, Guid> laboSupplierRepository,
         IRepository<TreatmentPlan, Guid> planRepository,
-        IRepository<PatientAdvise, Guid> adviseRepository)
+        IRepository<PatientAdvise, Guid> adviseRepository,
+        UsedStageGuard usedStageGuard)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
@@ -46,6 +48,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         _laboSupplierRepository = laboSupplierRepository;
         _planRepository = planRepository;
         _adviseRepository = adviseRepository;
+        _usedStageGuard = usedStageGuard;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
@@ -294,6 +297,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         entry.Reorder(input.SortOrder);
 
         await CheckLaboSuppliersAsync(entry.ClinicBranchId, input.ServiceConfig);
+        await _usedStageGuard.EnsureRemovedStagesUnusedAsync(entry, input.Stages);
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
             input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
         await ApplyComboItemsAsync(entry, input.ComboItems);
