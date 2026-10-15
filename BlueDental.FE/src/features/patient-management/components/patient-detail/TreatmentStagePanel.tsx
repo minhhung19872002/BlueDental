@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import { Button } from "antd";
 import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
 import { useAbility } from "@/hooks/useAbility";
@@ -56,8 +56,10 @@ interface Props {
   allowedTabs: readonly StageTab[];
   /** The form's "Hủy". */
   onCancel: () => void;
-  /** "Thanh toán". */
-  onOpenPlan: () => void;
+  /** "Thanh toán"; left out, the button is not shown (the slip page). */
+  onOpenPlan?: () => void;
+  /** Handed to "Lịch sử điều trị" — the slip page's back-to-top anchor. */
+  historyRef?: Ref<HTMLDivElement>;
 }
 
 /**
@@ -75,6 +77,7 @@ export function TreatmentStagePanel({
   allowedTabs,
   onCancel,
   onOpenPlan,
+  historyRef,
 }: Props) {
   const branch = useBranchInfo(branchId);
   // "Thanh toán" leads to collecting money on the slip — payment.create.
@@ -121,7 +124,7 @@ export function TreatmentStagePanel({
             ))}
           </div>
           <div className="pd-stage-actions">
-            {canPay && (
+            {canPay && onOpenPlan && (
               <Button className="pd-stage-pay" icon={<DollarOutlined />} onClick={onOpenPlan}>
                 {t("Patient:Misc:Payment")}
               </Button>
@@ -186,6 +189,7 @@ export function TreatmentStagePanel({
       </div>
 
       <StageHistory
+        ref={historyRef}
         days={composer.days}
         total={composer.shownCount}
         imagesOf={composer.imagesOf}

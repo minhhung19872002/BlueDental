@@ -69,8 +69,6 @@ interface Props {
   patient: PatientDto;
   plan: TreatmentPlanSlipDto;
   branchId: string;
-  /** "Thanh toán" in the công đoạn panel — the slip's own Thanh toán tab. */
-  onOpenPayment: () => void;
 }
 
 /**
@@ -85,7 +83,7 @@ interface Props {
 /** Placeholder for "Chỉnh sửa" until its modal lands. */
 function openEditModal(): void {}
 
-export function PlanServicesTab({ patient, plan, branchId, onOpenPayment }: Props) {
+export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const narrow = useMediaQuery(NARROW_SCREEN);
   // Adding, completing, converting and cancelling a line are all
   // one endpoint family on the server, guarded by treatmentConsultation.update.
@@ -217,7 +215,6 @@ export function PlanServicesTab({ patient, plan, branchId, onOpenPayment }: Prop
           plan={plan}
           branchId={branchId}
           serviceId={selectedId}
-          onOpenPayment={onOpenPayment}
         />
       )}
 

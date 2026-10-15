@@ -149,10 +149,13 @@ async function expectStageDialogPay(page: Page, canCreate: boolean) {
   await expect(dialog).toBeHidden();
 }
 
-/** Chi tiết phiếu laid inline under the slip page's service table (R-957). */
-async function expectStagePanelOnSlip(page: Page, slip: Slip, canCreate: boolean) {
+/**
+ * Chi tiết phiếu laid inline under the slip page's service table (R-957). It
+ * has no "Thanh toán" whatever the leaves: the page has its own payment tabs.
+ */
+async function expectStagePanelOnSlip(page: Page, slip: Slip) {
   await page.goto(planDetailPath(slip));
-  await expectStagePay(page.getByRole("region", { name: "Chi tiết phiếu" }), canCreate);
+  await expectStagePay(page.getByRole("region", { name: "Chi tiết phiếu" }), false);
 }
 
 /** Chi tiết phiếu opened from the Công đoạn cell of the row on Hồ sơ. */
@@ -234,7 +237,6 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       // ── no Thanh toán leaf: the history stays, every payment command goes ─
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
       await expectPlanDetail(dentist, slip, false, false);
 
@@ -243,14 +245,14 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await expectPlanDetail(dentist, slip, true, false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
 
       // ── Thêm: collecting money — Hóa đơn / In Hóa Đơn open the pay dialog ─
       await setDentistLeaf(page, "payment.create", true);
       await expectProfile(dentist, slip, true);
       await expectStageDialogFromProfile(dentist, slip, true);
-      await expectStagePanelOnSlip(dentist, slip, true);
+      // Even with payment.create the slip page's inline panel has none.
+      await expectStagePanelOnSlip(dentist, slip);
       await expectPlanList(dentist, slip, true);
       await expectPlanDetail(dentist, slip, true, true);
 
@@ -263,7 +265,6 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await setDentistLeaf(page, "payment.create", false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
       await expectPlanDetail(dentist, slip, true, false);
     } finally {

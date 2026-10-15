@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import { Button, Checkbox, Image, Input } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
@@ -39,6 +39,8 @@ interface Props {
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
   /** Every tooth of the row's service, each marked worked, done or neither. */
   historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
+  /** The slip page watches the block to show its "back to top" button. */
+  ref?: Ref<HTMLDivElement>;
 }
 
 export interface StageHistoryLeaves {
@@ -170,9 +172,10 @@ export function StageHistory({
   onWarranty,
   warrantyOf,
   historyTeethOf,
+  ref,
 }: Props) {
   return (
-    <div className="pd-stage-history">
+    <div className="pd-stage-history" ref={ref}>
       <header>
         <h4>{t("Patient:Tab:TreatmentHistory")}</h4>
         <span>{t("Patient:Stage:StageCount", total)}</span>
