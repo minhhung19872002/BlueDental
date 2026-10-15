@@ -1,10 +1,11 @@
 import { Pagination } from "antd";
-import { ClipboardList, Eye, Plus, Receipt, Trash2 } from "lucide-react";
+import { ClipboardList, Eye, Receipt, Trash2 } from "lucide-react";
 import { RecordCard } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
+import { PlanCodeLink } from "./PlanCodeLink";
 import { planCardRows } from "./planCardRows";
 import type { PlanRowActions } from "./planColumns";
 import type { PlanColumnSetting } from "./planTypes";
@@ -22,21 +23,10 @@ interface ActionsProps {
   actions: PlanRowActions;
 }
 
-/** The two fixed table edges folded onto the card head: + stage, eye, print, receipt, bin. */
+/** The row actions folded onto the card head: eye, print, receipt, bin. */
 function PlanCardActions({ plan, actions }: ActionsProps) {
   return (
     <>
-      {/* No tooltip on "+": the reference leaves this one untipped. */}
-      {actions.onAddStage && (
-        <button
-          type="button"
-          className="bd-rc-action"
-          aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
-          onClick={() => actions.onAddStage?.(plan)}
-        >
-          <Plus size={16} aria-hidden="true" />
-        </button>
-      )}
       <ActionTooltip title={t("Treatment:Plan:ServiceList")}>
         <button
           type="button"
@@ -100,11 +90,7 @@ export function PlanCardList({ plans, total, settings, pagination, actions }: Pr
           return (
             <RecordCard
               key={plan.id}
-              title={
-                <button type="button" className="tp-code" onClick={() => actions.onOpenPlan(plan)}>
-                  {plan.code}
-                </button>
-              }
+              title={<PlanCodeLink plan={plan} onOpen={actions.onOpenPlan} />}
               extra={<PlanCardActions plan={plan} actions={actions} />}
               rows={rows}
               moreRows={moreRows}

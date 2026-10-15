@@ -8814,3 +8814,15 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
 - Kết quả (dev server :5173 + host thật :5000, PostgreSQL thật, không chặn API): `treatment-plan-detail`, `stage-staff-pickers`, `plan-service-delete` **19/19**.
 
 **Chưa commit.**
+
+## R-956 (2026-10-15, mức 2: tab Kế hoạch điều trị) Gộp "Thêm công đoạn" + "Số phiếu" thành cột "Số phiếu điều trị"
+
+- BA (mockup 2026-10-15): bỏ cột "Thêm công đoạn" riêng; cột mã phiếu đổi tên **"Số phiếu điều trị"** (`Treatment:Plan:ColCode`, vi/en), trong ô là icon + xanh **và** mã DTxx, chung một nút. Bấm (icon hay mã) → trang Chi tiết phiếu.
+- Code: `PlanCodeLink` dùng chung cho bảng (`planColumns`, cột rộng 150) và card mobile (`PlanCardList`, nút + trong nhóm thao tác bỏ). `PlanRowActions.onAddStage` và `TreatmentStageDialog` rời `TreatmentPlanPanel`. CSS `.tp-add-stage` → `.tp-code-icon`.
+- Chốt với owner: dialog "Chi tiết phiếu" (thêm công đoạn cho cả phiếu) **chuyển sang trang Chi tiết phiếu ở task sau**. Tới lúc đó, ở tab này không còn chỗ mở dialog; tab Hồ sơ vẫn mở được theo từng dòng.
+- Spec `treatment-plan`: assert cột mới (không còn th "Thêm công đoạn", có "Số phiếu điều trị", icon nằm trong nút mã); bấm icon → URL trang chi tiết + breadcrumb có mã; cột mắt lùi từ `th` thứ 3 về thứ 2.
+- **Đang đỏ, chờ task sau** (đều mở dialog qua nút + cũ trên dòng): `treatment-plan` "leaving Công đoạn…" (`test.fixme`), fixture `e2e/fixtures/stageDialog.ts` (dùng trong `patient`, `treatment-stage-chain`, `stage-treatment-date`, `stage-staff-pickers`, `cskh-after-treatment`), `treatment-leaf-permissions` (addOnRow), `payment-permission-buttons` (expectStageDialogFromPlanList).
+- Chuỗi dịch nằm ở BE → phải build lại + restart host :5000 thì tiêu đề mới hiện.
+- Kết quả (`vite build` + `vite preview` :8156, host thật :5000 đã restart, PostgreSQL thật, không chặn API): `treatment-plan` + `treatment-plan-detail` **21 pass, 1 skip** (fixme ở trên).
+
+**Chưa commit.**

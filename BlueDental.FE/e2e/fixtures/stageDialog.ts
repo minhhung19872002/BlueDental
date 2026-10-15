@@ -7,6 +7,10 @@ export interface SlipRef {
 }
 
 /**
+ * BROKEN since R-956 (2026-10-15): the row "+" is now part of the "Số phiếu
+ * điều trị" link and opens the slip page, not this dialog. The dialog moves
+ * onto the slip page in a follow-up task — repoint both helpers there.
+ *
  * "Chi tiết phiếu" for one slip, from the "+" on its row in Kế hoạch điều trị.
  * The slip page's toolbar no longer carries "Thêm công đoạn" (owner
  * 2026-10-15), so this row button is where the whole-slip dialog opens now.

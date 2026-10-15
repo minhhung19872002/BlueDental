@@ -1,9 +1,10 @@
 import type { TableColumnsType } from "antd";
-import { ClipboardList, Eye, Plus, Receipt, Trash2 } from "lucide-react";
+import { ClipboardList, Eye, Receipt, Trash2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
+import { PlanCodeLink } from "./PlanCodeLink";
 import {
   planColumnLabels,
   moneyCellClass,
@@ -16,13 +17,11 @@ import {
 } from "./planTypes";
 
 export interface PlanRowActions {
-  /** "Thêm công đoạn"; left out without treatmentStage.read — the column goes with it. */
-  onAddStage?: (plan: TreatmentPlanSlipDto) => void;
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
   onPrintRecord: (plan: TreatmentPlanSlipDto) => void;
   /** The invoice icon; left out when the user may not issue one (payment.finalize). */
   onReceipt?: (plan: TreatmentPlanSlipDto) => void;
-  /** The code link — the slip's own screen. */
+  /** "Số phiếu điều trị" — the slip's own screen. */
   onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
   /** The red bin; left out without treatmentConsultation.deletePlan. */
   onDelete?: (plan: TreatmentPlanSlipDto) => void;
@@ -57,12 +56,8 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
     code: {
       key: "code",
       title: labels.code,
-      width: 110,
-      render: (_, plan) => (
-        <button type="button" className="tp-code" onClick={() => actions.onOpenPlan(plan)}>
-          {plan.code}
-        </button>
-      ),
+      width: 150,
+      render: (_, plan) => <PlanCodeLink plan={plan} onOpen={actions.onOpenPlan} />,
     },
     services: {
       key: "services",
@@ -114,35 +109,13 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
   };
 }
 
-/** Fixed edges plus the visible configurable columns in the saved order. */
+/** The visible configurable columns in the saved order, then the fixed "Thao tác". */
 export function buildPlanColumns(
   settings: PlanColumnSetting[],
   actions: PlanRowActions,
 ): TableColumnsType<TreatmentPlanSlipDto> {
   const byKey = configurableColumns(actions);
-  const { onAddStage } = actions;
-  const addStage: TableColumnsType<TreatmentPlanSlipDto> = onAddStage
-    ? [
-        {
-          key: "addStage",
-          title: t("Treatment:Stage:AddStage"),
-          width: 140,
-          align: "center",
-          render: (_, plan) => (
-            <button
-              type="button"
-              className="tp-add-stage"
-              aria-label={t("Treatment:Stage:AddStageFor", plan.code)}
-              onClick={() => onAddStage(plan)}
-            >
-              <Plus size={16} aria-hidden="true" />
-            </button>
-          ),
-        },
-      ]
-    : [];
   return [
-    ...addStage,
     ...settings.filter((item) => item.visible).map((item) => byKey[item.key]),
     {
       key: "actions",

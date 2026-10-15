@@ -5897,7 +5897,7 @@
     "Patient:Tab:DebtHistory": "Debt History",
     "Patient:View:Details": "Record Details",
     "Patient:View:MedicalRecord": "Medical Record",
-    "Treatment:Plan:ColCode": "Slip No.",
+    "Treatment:Plan:ColCode": "Treatment Slip No.",
     "Treatment:Plan:ColServices": "Service List",
     "Treatment:Plan:ColDentist": "Receiving Dentist",
     "Treatment:Plan:ColStatus": "Status - Progress",

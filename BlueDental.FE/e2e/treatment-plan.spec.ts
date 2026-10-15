@@ -206,13 +206,14 @@ test.describe("Kế hoạch điều trị", () => {
     await page.keyboard.press("Escape");
     await expect(services).toBeHidden();
 
-    // "+" opens the stage dialog for this slip.
-    await row.getByRole("button", { name: `Thêm công đoạn ${createdCode}` }).click();
-    const stage = page.getByRole("dialog", { name: "Chi tiết phiếu" });
-    await expect(stage).toBeVisible();
-    await expect(stage).toContainText(pickedService);
-    await page.keyboard.press("Escape");
-    await expect(stage).toBeHidden();
+    // "Thêm công đoạn" and "Số phiếu" are one column now, "Số phiếu điều
+    // trị": the green + in front of the code, one button (owner 2026-10-15).
+    const table = page.locator(".tp-table");
+    await expect(table.locator("th", { hasText: "Thêm công đoạn" })).toHaveCount(0);
+    await expect(table.locator("th", { hasText: "Số phiếu điều trị" })).toHaveCount(1);
+    await expect(row.getByRole("button", { name: /^Thêm công đoạn/ })).toHaveCount(0);
+    const codeLink = row.getByRole("button", { name: createdCode, exact: true });
+    await expect(codeLink.locator(".tp-code-icon svg")).toBeVisible();
 
     // The clipboard action opens "In bệnh án": the record files, the patient's
     // identity filled from their record, and the reference's zoom control.
@@ -301,6 +302,12 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(all).toContainText(pickedService);
     await expect(all.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
     await page.keyboard.press("Escape");
+    await expect(all).toBeHidden();
+
+    // The merged button — icon or code alike — opens the slip's own screen.
+    await codeLink.locator(".tp-code-icon").click();
+    await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}\/treatment-plan\/[0-9a-f-]{36}/);
+    await expect(page.locator(".pdt-crumbs .pdt-crumb").last()).toContainText(createdCode);
   });
 
   /**
@@ -399,8 +406,13 @@ test.describe("Kế hoạch điều trị", () => {
    * Measured on the reference 2026-09-22 out of its published stage chunk: one
    * guarded close sits behind both the ✕ and the form's "Hủy", and only the
    * treatment content and the pictures make it dirty — not the doctor pickers.
+   *
+   * FIXME(R-956): the row "+" that opened "Chi tiết phiếu" became the slip
+   * link (owner 2026-10-15); the dialog moves onto the slip page in a follow-up
+   * task. Repoint `openForm` (and e2e/fixtures/stageDialog.ts) there, then
+   * drop the fixme.
    */
-  test("leaving Công đoạn with something written asks before it throws it away", async ({
+  test.fixme("leaving Công đoạn with something written asks before it throws it away", async ({
     page,
   }) => {
     await login(page);
@@ -493,10 +505,11 @@ test.describe("Kế hoạch điều trị", () => {
       });
       expect(overlap).toBeLessThanOrEqual(0);
 
-      // The eye column keeps the narrow width it declares.
+      // The eye column keeps the narrow width it declares — second now that
+      // "Thêm công đoạn" merged into "Số phiếu điều trị" (R-956).
       const eye = await page
         .locator(".tp-table thead th")
-        .nth(2)
+        .nth(1)
         .evaluate((el) => Math.round(el.getBoundingClientRect().width));
       expect(eye).toBeLessThan(60);
     }

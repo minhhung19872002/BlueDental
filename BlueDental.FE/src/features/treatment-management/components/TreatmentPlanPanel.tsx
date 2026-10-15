@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
-import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -18,7 +17,6 @@ import { PlanSummaryCards } from "./plan/PlanSummaryCards";
 import { PlanTable } from "./plan/PlanTable";
 import { PlanToolbar } from "./plan/PlanToolbar";
 import type { PlanRowActions } from "./plan/planColumns";
-import { PLAN_TAB } from "./plan-detail/planDetailTypes";
 import {
   defaultPlanColumns,
   flattenServices,
@@ -39,7 +37,9 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
  * Tab "Kế hoạch điều trị": toolbar, the two summary cards and one row per slip.
  * Laid out from staging (reference-private/treatment-plan-tab); every dialog it
  * opens is an existing one except the service list. New services go onto a
- * slip from its detail page ("Thêm dịch vụ phát sinh"), not from here.
+ * slip from its detail page ("Thêm dịch vụ phát sinh"), not from here; the
+ * "Số phiếu điều trị" button (the old + merged with the code) only opens that
+ * page — "Chi tiết phiếu" left this tab with it (owner, 2026-10-15).
  */
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const navigate = useNavigate();
@@ -50,12 +50,9 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const paymentAbility = useAbility("payment");
   // "Xoá phiếu điều trị" has a leaf of its own, apart from the consulting delete.
   const canDeletePlan = ability.can("deletePlan");
-  // "Chi tiết phiếu" shows the công đoạn — nothing of it without treatmentStage.read.
-  const canSeeStages = useAbility("treatmentStage").canRead;
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [serviceList, setServiceList] = useState<ServiceListTarget | null>(null);
-  const [stagePlan, setStagePlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [payPlan, setPayPlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [deletingPlan, setDeletingPlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
@@ -83,7 +80,6 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
 
   const rowActions = useMemo<PlanRowActions>(
     () => ({
-      onAddStage: canSeeStages ? setStagePlan : undefined,
       onViewServices: (plan) => setServiceList({ kind: "plan", plan }),
       // The reference's print dialog is about the patient, not the slip: it
       // reads the record files and the patient, and nothing off the row.
@@ -92,7 +88,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
       onDelete: canDeletePlan ? setDeletingPlan : undefined,
     }),
-    [navigate, patientId, branchId, paymentAbility.canCreate, canDeletePlan, canSeeStages],
+    [navigate, patientId, branchId, paymentAbility.canCreate, canDeletePlan],
   );
 
   const serviceRows =
@@ -138,25 +134,6 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         onOpenPlan={(planId) => {
           setServiceList(null);
           navigate(planDetailPath(patientId, planId, branchId));
-        }}
-      />
-      <TreatmentStageDialog
-        open={stagePlan !== null}
-        patientId={patientId}
-        patientCode={patient.patientCode}
-        patientName={patient.fullName}
-        branchId={branchId}
-        plan={stagePlan}
-        focusServiceId={null}
-        onClose={() => setStagePlan(null)}
-        onOpenPlan={() => {
-          // Same jump as from the Hồ sơ tab: the slip's own Thanh toán tab
-          // (owner, 2026-10-05).
-          const target = stagePlan;
-          setStagePlan(null);
-          if (target) {
-            navigate(planDetailPath(patientId, target.id, branchId, PLAN_TAB.payment));
-          }
         }}
       />
       {printOpen && (
