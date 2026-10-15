@@ -6092,7 +6092,7 @@
     "Treatment:PlanDetail:Stat:Refunded": "Refunded",
     "Treatment:PlanDetail:Stat:Prepaid": "Prepaid",
     "Treatment:PlanDetail:Stat:OutstandingDebt": "Outstanding debt",
-    "Treatment:PlanDetail:Tab:Detail": "Details",
+    "Treatment:PlanDetail:Tab:Detail": "Treatment details",
     "Treatment:PlanDetail:Tab:Payment": "Payment",
     "Treatment:PlanDetail:Tab:Refund": "Refund",
     "Treatment:PlanDetail:Tab:Debt": "Outstanding debt",

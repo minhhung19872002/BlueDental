@@ -6092,7 +6092,7 @@
     "Treatment:PlanDetail:Stat:Refunded": "Đã hoàn",
     "Treatment:PlanDetail:Stat:Prepaid": "Tạm ứng",
     "Treatment:PlanDetail:Stat:OutstandingDebt": "Dư nợ",
-    "Treatment:PlanDetail:Tab:Detail": "Chi tiết",
+    "Treatment:PlanDetail:Tab:Detail": "Chi tiết điều trị",
     "Treatment:PlanDetail:Tab:Payment": "Thanh toán",
     "Treatment:PlanDetail:Tab:Refund": "Hoàn tiền",
     "Treatment:PlanDetail:Tab:Debt": "Dư nợ",
