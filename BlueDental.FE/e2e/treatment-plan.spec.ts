@@ -401,70 +401,63 @@ test.describe("Kế hoạch điều trị", () => {
   });
 
   /**
-   * Leaving the stàge dialog with something written asks first.
+   * Leaving a công đoạn form with something written asks first.
    *
-   * Measured on the reference 2026-09-22 out of its published stage chunk: one
-   * guarded close sits behind both the ✕ and the form's "Hủy", and only the
-   * treatment content and the pictures make it dirty — not the doctor pickers.
-   *
-   * FIXME(R-956): the row "+" that opened "Chi tiết phiếu" became the slip
-   * link (owner 2026-10-15); the dialog moves onto the slip page in a follow-up
-   * task. Repoint `openForm` (and e2e/fixtures/stageDialog.ts) there, then
-   * drop the fixme.
+   * Measured on the reference 2026-09-22 out of its published stage chunk: the
+   * form's "Hủy" is guarded, and only the treatment content and the pictures
+   * make it dirty — not the doctor pickers. On the slip page "Chi tiết phiếu"
+   * is laid inline (R-957), so "Hủy" closes the open card, not a dialog.
    */
-  test.fixme("leaving Công đoạn with something written asks before it throws it away", async ({
-    page,
-  }) => {
+  test("leaving a công đoạn with something written asks before it throws it away", async ({ page }) => {
     await login(page);
     await page.goto(`${patientUrl}?tab=treatment-plan`);
     await assertRealApiTraffic(page, PLANS_API);
+    await openSlipDetail(page, createdCode);
 
-    const row = page.locator(".tp-table tr.ant-table-row", { hasText: createdCode });
-    const stage = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const stage = page.getByRole("region", { name: "Chi tiết phiếu" });
     const ask = page.getByRole("dialog", { name: "Hủy thay đổi" });
+    const form = stage.locator(".pd-stage-form");
 
     const openForm = async () => {
-      await row.getByRole("button", { name: `Thêm công đoạn ${createdCode}` }).click();
-      await expect(stage).toBeVisible();
       await stage.locator(".pd-stage-picks button").first().click();
-      await expect(stage.locator(".pd-stage-form")).toBeVisible();
+      await expect(form).toBeVisible();
     };
 
-    // Nothing written: "Hủy" leaves straight away, and it leaves the whole
-    // dialog rather than only dropping the picked line.
+    // Nothing written: "Hủy" closes the card straight away.
+    await expect(stage).toBeVisible();
     await openForm();
     await expect(stage.getByRole("button", { name: /Lưu công đoạn/ })).toBeVisible();
     await stage.getByRole("button", { name: "Hủy", exact: true }).click();
     await expect(ask).toBeHidden();
-    await expect(stage).toBeHidden();
+    await expect(form).toHaveCount(0);
+    await expect(stage).toBeVisible();
 
     // Something written: the same button asks, and answering "Tiếp tục chỉnh
     // sửa" hands the text back untouched.
     await openForm();
-    const note = stage.locator(".pd-stage-form textarea");
+    const note = form.locator("textarea");
     await note.fill("Đã lấy cao răng hàm trên");
     await stage.getByRole("button", { name: "Hủy", exact: true }).click();
     await expect(ask).toBeVisible();
     await expect(ask).toContainText("Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu.");
     await ask.getByRole("button", { name: "Tiếp tục chỉnh sửa" }).click();
     await expect(ask).toBeHidden();
-    await expect(stage).toBeVisible();
     await expect(note).toHaveValue("Đã lấy cao răng hàm trên");
 
-    // The ✕ is guarded by the very same close.
-    await stage.locator(".ant-modal-close").click();
-    await expect(ask).toBeVisible();
+    // Confirming throws the draft away and closes the card.
+    await stage.getByRole("button", { name: "Hủy", exact: true }).click();
     // The confirm's name carries its icon: "delete Xác nhận hủy".
     await ask.getByRole("button", { name: /Xác nhận hủy/ }).click();
     await expect(ask).toBeHidden();
-    await expect(stage).toBeHidden();
+    await expect(form).toHaveCount(0);
+
+    // The draft is gone, not parked: the card opens empty again.
+    await openForm();
+    await expect(note).toHaveValue("");
 
     // And nothing was written to the slip — no công đoạn was created.
-    await row.getByRole("button", { name: `Thêm công đoạn ${createdCode}` }).click();
-    await expect(stage).toBeVisible();
+    await page.reload();
     await expect(stage).toContainText("Chưa có dữ liệu công đoạn");
-    await page.keyboard.press("Escape");
-    await expect(stage).toBeHidden();
   });
 
   /**

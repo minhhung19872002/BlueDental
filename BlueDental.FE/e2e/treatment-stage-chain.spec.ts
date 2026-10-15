@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { openStageDialog, reopenStageDialog } from "./fixtures/stageDialog";
+import { openStageDialog, reopenStageDialog, stagePanel } from "./fixtures/stageDialog";
 
 /**
  * Feature: "Chi tiết phiếu" — per-tooth công đoạn, the continue chain and the
@@ -285,7 +285,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // And it all reached the database.
     await page.reload();
-    const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const again = stagePanel(page);
     await reopenStageDialog(page, first);
     const reopened = again.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"]`);
     await expect(reopened.locator("i")).toHaveText(["11", "21", "22"]);
@@ -343,7 +343,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     // 32 (still on the first) — on the server's word.
     await page.reload();
     await reopenStageDialog(page, line);
-    const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const again = stagePanel(page);
     await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
     const form2 = again.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
@@ -379,7 +379,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await page.reload();
     await reopenStageDialog(page, line);
     await expect(
-      page.getByRole("dialog", { name: "Chi tiết phiếu" }).locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`),
+      stagePanel(page).locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`),
     ).toHaveAttribute("aria-disabled", "true");
   });
 
@@ -433,7 +433,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     // 21's chain is still open, so the card stays — on the server's word too.
     await page.reload();
     await reopenStageDialog(page, line);
-    const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const again = stagePanel(page);
     await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await expect(again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`)).toHaveCount(1);
     await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain11}"]`)).toHaveAttribute("aria-disabled", "true");
@@ -627,7 +627,9 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(row.locator(".pd-tr-pay")).toHaveCount(0);
   });
 
-  test("Chỉnh sửa rewrites a saved line, and a line in treatment keeps its price, diagnosis and staged teeth", async ({
+  // The row's inline "Chỉnh sửa" is gone (R-957); its edit dialog comes in a
+  // task of its own. Until then the server's guards are checked directly.
+  test("a line in treatment keeps its price and its staged teeth", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1800, height: 950 });
@@ -636,36 +638,12 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${line.branchId}`);
     const row = page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`);
     await expect(row).toBeVisible({ timeout: 20_000 });
-    // Tooth numbers only, surfaces and all left off.
-    await expect(row.locator("td").nth(4)).toHaveText("11, 12");
-
-    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
-    await expect(row.getByRole("button", { name: "Lưu" })).toBeVisible();
-    const note = `e2e sửa ${runId()}`;
-    await row.getByRole("textbox", { name: "Ghi chú" }).fill(note);
-    const saved = page.waitForResponse(
-      (res) => res.url().includes(`/services/${line.lineId}`) && res.request().method() === "PUT",
-    );
-    await row.getByRole("button", { name: "Lưu" }).click();
-    expect((await saved).ok()).toBe(true);
-    await page.reload();
-    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toContainText(note);
+    // Răng is the fourth column: tooth numbers only, surfaces left off.
+    await expect(row.locator("td").nth(3)).toHaveText("11, 12");
+    await expect(row.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
 
     // Put 11 to work: the line is now in treatment.
     await stageOn(page, line, [11], false);
-    await page.reload();
-    const treated = page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`);
-    await treated.getByRole("button", { name: "Chỉnh sửa" }).click();
-    await expect(treated).toContainText("Không thể đổi chẩn đoán khi đang điều trị");
-    await expect(treated).toContainText("Không thể đổi giá khi đang điều trị");
-
-    await treated.getByRole("button", { name: "Chọn răng" }).click();
-    const picker = page.locator(".tp-teeth-dialog");
-    await expect(picker).toContainText("Răng 11 đang điều trị — không thể bỏ chọn.");
-    await picker.getByRole("button", { name: "Răng 11", exact: true }).click();
-    await expect(picker.getByRole("button", { name: "Răng 11", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await picker.locator(".tp-teeth-foot button").click();
-    await treated.getByRole("button", { name: "Hủy" }).click();
 
     // The server holds the same line.
     const dropped = await call(page, "PUT", `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}`, {

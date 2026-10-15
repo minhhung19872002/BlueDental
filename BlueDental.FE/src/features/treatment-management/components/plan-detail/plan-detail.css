@@ -196,30 +196,6 @@ a.pdt-crumb:hover {
 }
 
 /* ── Service table cells ── */
-.pdt-grip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--tp-label);
-  cursor: grab;
-}
-.pdt-grip:focus-visible {
-  outline: 2px solid var(--bd-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-.pdt-grip--off {
-  cursor: default;
-  opacity: 0.4;
-}
-/* The lifted row has to read as one piece while it travels over the others. */
-.pdt-row--dragging > td {
-  background: var(--bd-card);
-  box-shadow: 0 8px 20px rgb(15 23 42 / 12%);
-}
 .pdt-service {
   display: flex;
   flex-direction: column;
@@ -229,15 +205,45 @@ a.pdt-crumb:hover {
 .pdt-service-name {
   color: var(--tp-ink);
 }
-.pdt-service-meta {
-  display: flex;
+.pdt-service-date {
+  color: var(--tp-label);
+  font-size: 12px;
+}
+/* Trạng thái: the pill, then "N lần" — how many công đoạn the line has had. */
+.pdt-line-status {
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
-.pdt-service-date {
+.pdt-stage-count {
   color: var(--tp-label);
   font-size: 12px;
+  white-space: nowrap;
+}
+/* A row is how the công đoạn panel below is narrowed to one line (BA
+   2026-10-15): the picked one keeps a tint and a purple bar on its left. */
+.pdt-table .pdt-row--pickable,
+.pdt-table .pdt-row--picked {
+  cursor: pointer;
+}
+.pdt-table .pdt-row--picked > td {
+  background: var(--bd-hover-tint);
+}
+.pdt-table .pdt-row--picked > td:first-child {
+  box-shadow: inset 3px 0 0 var(--bd-primary);
+}
+.pdt-table .pdt-row--pickable:focus-visible,
+.pdt-table .pdt-row--picked:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: -2px;
+}
+/* "Chi tiết phiếu" laid open under the table. */
+.pdt-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
 }
 /* Staging: `cursor-help underline decoration-dotted underline-offset-2`. */
 .pdt-discount {
@@ -308,7 +314,7 @@ a.pdt-crumb:hover {
 .pdt-row-actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 .pdt-row-action {
   display: inline-flex;
@@ -351,96 +357,6 @@ a.pdt-crumb:hover {
 .tp-pill--pending {
   background: var(--tp-orange-pale);
   color: var(--tp-orange);
-}
-
-/* ── The inline new row the picker appends (Lưu / Hủy) ── */
-.pdt-draft-select,
-.pdt-draft-qty,
-.pdt-draft-price {
-  width: 100%;
-}
-/* A refused unit price: the input and its message stack, right-aligned like the column. */
-.pdt-draft-pricecell {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-}
-.pdt-draft-pricecell .pdt-draft-error {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 4px;
-  text-align: right;
-}
-/* The wrapper stretching is not enough: AntD's Select sizes to its own content,
-   and an empty one is just the search icon and the caret — about 66px inside a
-   200px column, with a dropdown cropped to match. Same rule as `.cvt-staff-row`. */
-.pdt-draft-select .ant-select {
-  width: 100%;
-}
-.pdt-draft-teeth {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.pdt-draft-teethcell {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 4px;
-}
-/* "Vui lòng chọn ít nhất 1 răng" under the tooth button, the app's field-error red. */
-.pdt-draft-error {
-  margin: 0;
-  color: var(--tp-red);
-  font-size: 12px;
-  line-height: 1.3;
-}
-.pdt-draft-teeth-btn--error.tp-tooth-btn {
-  box-shadow: 0 0 0 2px var(--tp-red);
-}
-.pdt-draft-teeth-text {
-  min-width: 0;
-  color: var(--tp-ink);
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-.pdt-row-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.pdt-row-save,
-.pdt-row-cancel {
-  display: inline-flex;
-  width: 28px;
-  height: 28px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-.pdt-row-save {
-  color: var(--tp-green);
-}
-.pdt-row-save:hover {
-  background: var(--tp-green-pale);
-}
-.pdt-row-cancel {
-  color: var(--tp-red);
-}
-.pdt-row-cancel:hover {
-  background: var(--tp-red-pale);
-}
-.pdt-row-save:disabled,
-.pdt-row-cancel:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 /* ── Dialog chrome shared by the confirm, detail and receipt dialogs ── */
@@ -958,6 +874,11 @@ a.pdt-crumb:hover {
     align-items: stretch;
     padding-right: 0;
   }
+  /* One line per column: wrapping let the pills (~450px) set the line, and
+     the strip ran off the card instead of scrolling sideways. */
+  .pdt-tabrow {
+    flex-wrap: nowrap;
+  }
   .pdt-stats {
     padding: 0 20px 12px;
     justify-content: space-between;
@@ -1206,8 +1127,7 @@ a.pdt-crumb:hover {
   margin-top: 8px;
 }
 
-/* Thao tác on a saved line: the eye and, where staging offers it, the pencil
-   ("Chỉnh sửa") — gap-4 on the reference. */
+/* Thao tác on a line: the eye and, on a line still "Đã tạo", "Xóa" — gap-4 on the reference. */
 .pdt-line-actions {
   display: inline-flex;
   align-items: center;
@@ -1221,20 +1141,6 @@ a.pdt-crumb:hover {
 .tp-eye.pdt-line-delete:hover {
   color: var(--bd-red-dark);
 }
-/* A value an edited line in treatment keeps, with staging's reason under it. */
-.pdt-draft-locked {
-  display: grid;
-  gap: 4px;
-  min-width: 150px;
-}
-.pdt-draft-locked > span {
-  font-weight: 500;
-}
-.pdt-draft-locked > small {
-  color: var(--tp-label);
-  font-size: 12px;
-}
-
 /* ── E-invoice under a receipt's status: pill, number, refresh, PDF ── */
 .pdt-status-cell {
   display: inline-flex;

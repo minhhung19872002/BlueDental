@@ -1629,6 +1629,7 @@
     "Treatment:Service:NoService": "Không tìm thấy dịch vụ",
     "Treatment:Service:SortHint": "Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp",
     "Treatment:Service:SortLabel": "Sắp xếp {0}",
+    "Treatment:Service:StageCount": "{0} lần",
     "Treatment:Service:ServiceStatus": "Trạng thái dịch vụ {0}",
     "Treatment:Service:NewServiceStatus": "Trạng thái dịch vụ mới",
     "Treatment:Service:ViewDetail": "Xem chi tiết",

@@ -54,6 +54,12 @@ interface Args {
   focusStageId?: string | null;
   /** The tabs the user's leaves allow (treatmentStage.create / .continue). */
   allowedTabs?: readonly StageTab[];
+  /**
+   * Narrows the cards and the history to one line — the row picked in the slip
+   * page's service table (BA 2026-10-15). That line's card opens by itself, on
+   * the tab its work is in.
+   */
+  filterServiceId?: string | null;
 }
 
 /**
@@ -97,6 +103,7 @@ export function useStageComposer({
   focusServiceId,
   focusStageId = null,
   allowedTabs = STAGE_TABS,
+  filterServiceId = null,
 }: Args) {
   const currentUser = useAuthStore((state) => state.user);
   const createStage = useCreateStage();
@@ -112,8 +119,11 @@ export function useStageComposer({
    * one once the stage list arrives — it opens before that query settles.
    */
   const [chosenTab, setChosenTab] = useState<StageTab | null>(null);
-  /** The open cards. Nothing starts open — the reference opens none either. */
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  /**
+   * The open cards; null until the user clicks one. Nothing starts open — the
+   * reference opens none either — except the one line a filter narrows to.
+   */
+  const [pickedIds, setSelectedIds] = useState<string[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, StageDraft>>({});
   const [errors, setErrors] = useState<Record<string, StageFieldErrors>>({});
   const [saving, setSaving] = useState(false);
@@ -132,7 +142,19 @@ export function useStageComposer({
     [stagesQuery.data],
   );
 
-  const items = useMemo(() => buildStageItems(services, stages), [services, stages]);
+  const items = useMemo(
+    () =>
+      buildStageItems(
+        filterServiceId ? services.filter((line) => line.id === filterServiceId) : services,
+        stages,
+      ),
+    [services, stages, filterServiceId],
+  );
+  /** The công đoạn the history lists — the filtered line's only, when there is one. */
+  const shownStages = useMemo(
+    () => (filterServiceId ? stages.filter((stage) => stage.treatmentServiceId === filterServiceId) : stages),
+    [stages, filterServiceId],
+  );
 
   /** The newest công đoạn of each line — whose doctor a new form starts with. */
   const newestByLine = useMemo(() => {
@@ -148,22 +170,38 @@ export function useStageComposer({
   // tab the dialog lands on. The reference always lands on THÊM CÔNG ĐOẠN;
   // landing where the clicked row's work is saves a click.
   const everyItem = STAGE_TABS.flatMap((tab) => items[tab]);
+  // A filtered line lands where its work already is: a chain under way before
+  // teeth still to start.
   const focused =
     everyItem.find((item) => item.stages.some((stage) => stage.id === focusStageId)) ??
-    items.add.find((item) => item.id === focusServiceId);
+    items.add.find((item) => item.id === focusServiceId) ??
+    (filterServiceId
+      ? [...items.continue, ...items.continueWarranty, ...items.add].find((item) =>
+          allowedTabs.includes(item.tab),
+        )
+      : undefined);
   const landing = focused && allowedTabs.includes(focused.tab) ? focused.tab : allowedTabs[0];
   const tab: StageTab = chosenTab ?? landing ?? "add";
   const offered = items[tab];
+  const selectedIds = pickedIds ?? (filterServiceId ? offered.slice(0, 1).map((item) => item.id) : []);
   /** The open forms, in the order their cards are listed. */
   const chosen = offered.filter((item) => selectedIds.includes(item.id));
 
   useEffect(() => {
     if (!open) return;
     setChosenTab(null);
-    setSelectedIds([]);
+    setSelectedIds(null);
     setDrafts({});
     setErrors({});
   }, [open, focusServiceId, focusStageId, plan?.id]);
+
+  // Another row picked: back to its landing tab and card. Drafts are keyed by
+  // card, so what was typed for the previous line is still there on return.
+  useEffect(() => {
+    setChosenTab(null);
+    setSelectedIds(null);
+    setErrors({});
+  }, [filterServiceId]);
 
   /** Bác sĩ when neither the line nor its công đoạn names one: the slip's, then you. */
   const fallbackDoctor: StaffFallback | null = plan?.dentistId
@@ -212,7 +250,7 @@ export function useStageComposer({
   /** A tab switch starts with nothing open, as the reference's does. */
   const pickTab = (next: StageTab) => {
     setChosenTab(next);
-    setSelectedIds([]);
+    setSelectedIds(null);
     setErrors({});
   };
 
@@ -222,8 +260,15 @@ export function useStageComposer({
    * service. Another card replaces the open one — its draft is kept — and the
    * open card closes on a second click.
    */
-  const toggleItem = (id: string) =>
-    setSelectedIds((current) => (current.includes(id) ? [] : [id]));
+  const toggleItem = (id: string) => setSelectedIds(selectedIds.includes(id) ? [] : [id]);
+
+  /** "Hủy" on the page: the open card closes and what was typed in it goes. */
+  const discard = () => {
+    const openIds = new Set(chosen.map((item) => item.id));
+    setDrafts((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !openIds.has(id))));
+    setSelectedIds([]);
+    setErrors({});
+  };
 
   /**
    * A ticked step puts its name into Nội dung điều trị and unticking takes it out
@@ -329,7 +374,7 @@ export function useStageComposer({
         setDrafts((current) =>
           Object.fromEntries(Object.entries(current).filter(([id]) => !done.has(id))),
         );
-        setSelectedIds((current) => current.filter((id) => !done.has(id)));
+        setSelectedIds(selectedIds.filter((id) => !done.has(id)));
       }
     }
   };
@@ -382,6 +427,7 @@ export function useStageComposer({
     offered,
     selectedIds,
     toggleItem,
+    discard,
     chosen,
     draftOf,
     errorsOf: (item: StageItem): StageFieldErrors => errors[item.id] ?? {},
@@ -392,10 +438,14 @@ export function useStageComposer({
      * **treatment content** and the **pictures** make leaving ask first.
      */
     dirty: Object.values(drafts).some(isDraftDirty),
+    /** Whether the open card holds anything "Hủy" would throw away. */
+    chosenDirty: chosen.some((item) => isDraftDirty(draftOf(item))),
     saving: saving || createStage.isPending || continueStage.isPending || uploadImage.isPending,
     save,
 
-    days: byDay(stages),
+    days: byDay(shownStages),
+    /** How many công đoạn the history lists. */
+    shownCount: shownStages.length,
     stages,
     /** The teeth a history row prints: all of its line's, each with its state. */
     historyTeethOf: (stage: TreatmentStageDto): HistoryTooth[] =>
@@ -427,3 +477,5 @@ export function useStageComposer({
     handleFiles,
   };
 }
+
+export type StageComposer = ReturnType<typeof useStageComposer>;

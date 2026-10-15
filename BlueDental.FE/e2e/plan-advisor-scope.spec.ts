@@ -85,11 +85,10 @@ test.describe.serial("Thêm dịch vụ — Bác sĩ tư vấn theo Sơ đồ t�
     const { name } = await addExtraService(page, { except: slip.serviceName });
     await page.goto(slipUrl);
     const row = page.locator(".pdt-table tbody tr.ant-table-row", { has: page.locator(".pdt-service-name", { hasText: name }) });
-    await expect(row).toContainText(`BS D ${run}`);
+    await expect(row).toBeVisible();
 
-    // The column, the eye's "Chi tiết dịch vụ" and the pencil all say "Bác sĩ tư vấn".
-    await expect(page.getByRole("columnheader", { name: "Bác sĩ tư vấn", exact: true })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Bác sĩ tư vấn 2", exact: true })).toBeVisible();
+    // The eye's "Chi tiết dịch vụ" says "Bác sĩ tư vấn". The table no longer
+    // carries the advisor columns (BA's nine, R-957).
     await expect(page.getByRole("columnheader", { name: /Nhân sự tư vấn/ })).toHaveCount(0);
 
     await row.getByRole("button", { name: "Xem chi tiết" }).click();
@@ -100,19 +99,9 @@ test.describe.serial("Thêm dịch vụ — Bác sĩ tư vấn theo Sơ đồ t�
     await detail.getByRole("button", { name: "Đóng", exact: true }).last().click();
     await expect(detail).toBeHidden();
 
-    // Editing the line offers the same scoped dentists as the dialog, D first.
-    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
-    const advisor = row.getByRole("combobox", { name: "Bác sĩ tư vấn", exact: true });
-    await expect(row.getByRole("combobox", { name: /Nhân sự tư vấn|Tư vấn 1/ })).toHaveCount(0);
-    await advisor.click();
-    const editOptions = openDropdown(page).locator(".ant-select-item-option");
-    await expect(editOptions).toHaveCount(2);
-    await expect(editOptions.nth(0)).toContainText(`BS D ${run}`);
-    await expect(editOptions.nth(1)).toContainText(`BS H ${run}`);
-    await page.keyboard.press("Escape");
-    await row.getByRole("combobox", { name: "Bác sĩ tư vấn 2", exact: true }).click();
-    await expect(openDropdown(page).locator(".ant-select-item-option")).toHaveCount(2);
-    await page.keyboard.press("Escape");
+    // The row's inline edit is gone (R-957); the edit dialog that replaces it
+    // comes in its own task and should offer the same scoped dentists, D first.
+    await expect(row.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
     await context.close();
   });
 });

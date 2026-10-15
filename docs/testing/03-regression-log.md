@@ -8826,3 +8826,16 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
 - Kết quả (`vite build` + `vite preview` :8156, host thật :5000 đã restart, PostgreSQL thật, không chặn API): `treatment-plan` + `treatment-plan-detail` **21 pass, 1 skip** (fixme ở trên).
 
 **Chưa commit.**
+
+## R-957 (2026-10-15, mức 2: tab "Chi tiết điều trị" của trang Chi tiết phiếu) Bảng dịch vụ 9 cột của BA + "Chi tiết phiếu" nằm ngay dưới bảng, lọc theo dòng được chọn
+
+- BA (mockup + chat 2026-10-15): bảng dịch vụ còn 9 cột **Dịch vụ** (tên + ngày) · **Bác sĩ điều trị** · **Chẩn đoán** (cột mới, ngay sau Bác sĩ điều trị) · **Răng** · **Trạng thái** (pill + "N lần", `Treatment:Service:StageCount`) · **Đơn giá** · **Giảm giá** · **Thành tiền** · **Thao tác** (mắt + Xóa như cũ). Bỏ cột kéo-thả sắp xếp, bỏ các cột Ghi chú / Tạm ứng / Bác sĩ tư vấn 1-2.
+- Popup "Chi tiết phiếu" được đặt luôn vào trang, nằm dưới bảng (`PlanStageSection` → `TreatmentStagePanel`), Lịch sử điều trị ở dưới nó. Bấm một dòng (chuột, hoặc Enter/Space) thì chỉ hiện công đoạn của dòng đó (`useStageComposer` `filterServiceId`); bấm lại thì bỏ lọc. Mắt / pill trạng thái không làm đổi dòng đang chọn. Panel chỉ hiện khi có quyền `treatmentStage.read`.
+- Owner chốt: **bỏ sửa inline** (bút chì, ô giá) — modal sửa làm ở task sau (`useEditServiceRow`, `draftServiceCells`, `draftServiceTypes` đã xoá); giữ phân trang chung `useTablePagination`; tab Hồ sơ **giữ dialog** "Chi tiết phiếu", dùng chung `TreatmentStagePanel` (`useStageTabs` tách riêng).
+- Mắt "Chi tiết dịch vụ": Ghi chú đọc `service.note ?? advise.note` như cột Ghi chú cũ, nếu không thì ghi chú của dòng chuyển đổi không còn hiện ở đâu.
+- Gỡ các test đỏ do R-956 để lại: fixture `stageDialog.ts` mở panel trong trang (`getByRole("region", { name: "Chi tiết phiếu" })`); `treatment-plan` (bỏ `test.fixme`, test Hủy chạy trên panel); `treatment-stage-chain`, `treatment-leaf-permissions`, `payment-permission-buttons` (`expectStagePanelOnSlip`), `plan-advisor-scope`, `treatment-plan-detail` (9 cột, chọn dòng lọc panel, Tạm ứng/Đơn giá đọc + ghi qua API thật vì không còn sửa inline).
+- `payment-permission-buttons` đỏ từ trước (không do R-957): từ dbeb1313 (2026-10-14) nút "In lịch sử điều trị" cần lá `treatmentStage.print`; spec thêm lá này vào `BASE_LEAVES`, nâng `setTimeout` 420 s → 600 s.
+- Bẫy: Vite dev cache một bản transform **rỗng** của `ServiceCardList.tsx` (đọc đúng lúc file đang ghi) → "does not provide an export named 'ServiceCardList'" → trang crash vào ErrorBoundary. Ghi lại file (mtime mới) là hết.
+- Kết quả (dev server :5173 + host thật :5000, PostgreSQL thật, không chặn API): `treatment-plan-detail` **13/13**; `treatment-plan`, `treatment-stage-chain`, `plan-advisor-scope`, `treatment-leaf-permissions` xanh; `stage-staff-pickers`, `stage-treatment-date`, `cskh-after-treatment` xanh; `payment-permission-buttons` — xem kết quả chạy lại bên dưới.
+
+**Chưa commit.**

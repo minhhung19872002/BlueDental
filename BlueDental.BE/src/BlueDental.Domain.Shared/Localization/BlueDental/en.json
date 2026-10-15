@@ -1730,6 +1730,7 @@
     "Treatment:Service:NoService": "No services found",
     "Treatment:Service:SortHint": "Drag, or use up/down arrow keys, to sort",
     "Treatment:Service:SortLabel": "Sort {0}",
+    "Treatment:Service:StageCount": "{0} times",
     "Treatment:Service:ServiceStatus": "Service Status {0}",
     "Treatment:Service:NewServiceStatus": "New Service Status",
     "Treatment:Service:ViewDetail": "View Detail",

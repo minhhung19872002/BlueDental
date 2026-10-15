@@ -80,7 +80,11 @@ export function TreatmentPlanDetailPage() {
       <PlanDetailHeader patient={patient.data} plan={plan.data} branchId={branchId} />
       <PlanDetailHead tab={tab} tabs={tabs} payment={plan.data.payment} onTabChange={handleTabChange} />
       <section className="pdt-body">
-        {tab === PLAN_TAB.detail && <PlanServicesTab {...tabProps} />}
+        {tab === PLAN_TAB.detail && (
+          // "Thanh toán" in the công đoạn panel lands on this slip's Thanh
+          // toán, as it does from the patient record's dialog (owner 2026-10-05).
+          <PlanServicesTab {...tabProps} onOpenPayment={() => handleTabChange(PLAN_TAB.payment)} />
+        )}
         {tab === PLAN_TAB.payment && <PlanPaymentsTab {...tabProps} />}
         {tab === PLAN_TAB.refund && <PlanRefundsTab {...tabProps} />}
         {tab === PLAN_TAB.debt && <PlanDebtTab {...tabProps} />}

@@ -3831,7 +3831,19 @@
   display: inline-flex;
   gap: 8px;
 }
-.pd-stage-dialog .pd-stage-pay.ant-btn {
+/* Phone: side by side the three tabs need ~580px; the strip scrolls
+   sideways rather than run off the card (owner: no wrapped captions). */
+@media (max-width: 640px) {
+  .pd-stage-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .pd-stage-tabs button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+:is(.pd-stage-dialog, .pd-stage-panel) .pd-stage-pay.ant-btn {
   border-color: var(--bd-green);
   color: var(--bd-green);
 }
@@ -4534,11 +4546,11 @@
 .pd-warranty-dialog .pd-stage-form {
   margin-top: 0;
 }
-.pd-stage-dialog .pd-stage-warranty.ant-btn {
+:is(.pd-stage-dialog, .pd-stage-panel) .pd-stage-warranty.ant-btn {
   border-color: var(--bd-green);
   background: var(--bd-green);
 }
-.pd-stage-dialog .pd-stage-warranty.ant-btn:hover {
+:is(.pd-stage-dialog, .pd-stage-panel) .pd-stage-warranty.ant-btn:hover {
   border-color: var(--bd-green) !important;
   background: color-mix(in srgb, var(--bd-green) 88%, #000) !important;
 }
@@ -4556,13 +4568,13 @@
 }
 /* Blocked (an open warranty, or the period ran out): the reference keeps its
    green and halves it, rather than going grey. */
-.pd-stage-dialog .pd-stage-warranty.ant-btn:disabled {
+:is(.pd-stage-dialog, .pd-stage-panel) .pd-stage-warranty.ant-btn:disabled {
   border-color: var(--bd-green);
   background: var(--bd-green);
   color: #fff;
   opacity: 0.5;
 }
-.pd-stage-dialog .pd-stage-nowarranty.ant-btn:disabled {
+:is(.pd-stage-dialog, .pd-stage-panel) .pd-stage-nowarranty.ant-btn:disabled {
   border-color: var(--bd-bg-head);
   background: var(--bd-bg-head);
   color: #98a2b3;
@@ -4652,7 +4664,7 @@
  * --bd-link on focus. `--bd-muted` is close but reads bluer, so the label keeps
  * its own channel triple here rather than bending an app-wide token.
  */
-.pd-stage-dialog,
+:is(.pd-stage-dialog, .pd-stage-panel),
 .pd-svcdetail-dialog {
   /* #5a6b82 — the same slate the Hình ảnh tab measured as --pi-muted. */
   --pd-field-label: 90 107 130;
@@ -4660,11 +4672,11 @@
   --pd-dash-soft: #dce3ee;
   --pd-upload-hover: #e7f0fb;
 }
-.pd-stage-dialog .floating-field:not(.floating-field--floated) .floating-field-label {
+:is(.pd-stage-dialog, .pd-stage-panel) .floating-field:not(.floating-field--floated) .floating-field-label {
   color: rgb(var(--pd-field-label) / 80%);
   font-weight: 500;
 }
-.pd-stage-dialog .floating-field--floated .floating-field-label {
+:is(.pd-stage-dialog, .pd-stage-panel) .floating-field--floated .floating-field-label {
   color: rgb(var(--pd-field-label));
 }
 /*
@@ -4673,15 +4685,15 @@
  * 2026-09-07: the clone's brand is indigo, and a modal mixing #2671D8 chips with
  * an indigo Lưu button read as two different accents.
  */
-.pd-stage-dialog .floating-field--floated:focus-within .floating-field-label {
+:is(.pd-stage-dialog, .pd-stage-panel) .floating-field--floated:focus-within .floating-field-label {
   color: var(--bd-primary);
 }
 /* A failed rule outranks the resting and floated greys, as in the rest of the app. */
-.pd-stage-dialog .floating-field:has(.ant-form-item-has-error) .floating-field-label {
+:is(.pd-stage-dialog, .pd-stage-panel) .floating-field:has(.ant-form-item-has-error) .floating-field-label {
   color: var(--bd-red);
 }
-.pd-stage-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
-.pd-stage-dialog .floating-field:has(.ant-select-disabled) .floating-field-label {
+:is(.pd-stage-dialog, .pd-stage-panel) .floating-field:has(.ant-input-disabled) .floating-field-label,
+:is(.pd-stage-dialog, .pd-stage-panel) .floating-field:has(.ant-select-disabled) .floating-field-label {
   opacity: 0.5;
 }
 

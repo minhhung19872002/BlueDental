@@ -1,12 +1,21 @@
 import { Pagination } from "antd";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatToothCodes } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
-import { DiscountCell, isLineDeletable, ServiceNameCell, type ServiceRowActions } from "./serviceColumns";
-import { advanceOn, dash, lineNetAmount, listUnitPrice, type PlanDetailRow } from "./planDetailTypes";
+import {
+  DiscountCell,
+  dentistOf,
+  diagnosisOf,
+  isLineDeletable,
+  isLineEditable,
+  ServiceNameCell,
+  StatusCell,
+  type ServiceRowActions,
+} from "./serviceColumns";
+import { dash, lineNetAmount, listUnitPrice, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
   rows: PlanDetailRow[];
@@ -16,30 +25,24 @@ interface Props {
   showTotal: (total: number, range: [number, number]) => string;
 }
 
-/** The first four columns stay visible; the rest fold behind "Xem thêm". */
+/** The table's columns, in its order; the money folds behind "Xem thêm". */
 function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
   const rows: RecordCardRow[] = [
-    { key: "service", label: t("Treatment:Service:Service"), value: <ServiceNameCell row={row} actions={actions} /> },
-    { key: "diagnosis", label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
-    { key: "dentist", label: t("Treatment:Common:DentistDoctor"), value: dash(row.plan.dentistName) },
-    { key: "teeth", label: t("Treatment:Tooth:Tooth"), value: formatToothCodes(row.service.teeth) || "—" },
+    { key: "service", label: t("Treatment:Service:Service"), value: <ServiceNameCell row={row} /> },
+    { key: "dentist", label: t("Treatment:PlanDetail:Col:Dentist"), value: dentistOf(row) },
+    { key: "diagnosis", label: t("Treatment:PlanDetail:Col:Diagnosis"), value: diagnosisOf(row) },
+    { key: "teeth", label: t("Treatment:PlanDetail:Col:Teeth"), value: dash(formatToothCodes(row.service.teeth)) },
+    { key: "status", label: t("Common:Status"), value: <StatusCell row={row} actions={actions} /> },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "quantity", label: t("Treatment:Pricing:Quantity"), value: row.service.quantity },
     { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: moneyText(listUnitPrice(row.service)) },
-    { key: "discount", label: t("Treatment:Pricing:TotalDiscount"), value: <DiscountCell row={row} /> },
+    { key: "discount", label: t("Treatment:Pricing:Discount"), value: <DiscountCell row={row} /> },
     { key: "amount", label: t("Treatment:Pricing:NetAmount"), value: <strong>{moneyText(lineNetAmount(row.service))}</strong> },
-    { key: "advance", label: t("Treatment:Payment:Prepaid"), value: moneyText(advanceOn(row.service)) },
-    { key: "note", label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },
-    { key: "diagnoser1", label: t("Treatment:Diagnosis:DoctorOne"), value: dash(row.advise?.staffName) },
-    { key: "diagnoser2", label: t("Treatment:Diagnosis:DiagnosisTwo"), value: dash(row.advise?.secondStaffName) },
-    { key: "consultant1", label: t("Treatment:PlanDetail:Col:Consultant1"), value: dash(row.service.consultantName ?? row.plan.consultantName) },
-    { key: "consultant2", label: t("Treatment:PlanDetail:Col:Consultant2"), value: dash(row.service.secondConsultantName) },
   ];
   return { rows, moreRows };
 }
 
-/** The card head: the eye, and "Xóa" on a line still "Đã tạo" (R-953). */
+/** The card head: the eye, the pencil on a line still open, and "Xóa" on a line still "Đã tạo" (R-953). */
 function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
   return (
     <span className="tp-actions">
@@ -51,6 +54,16 @@ function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
       >
         <Eye size={16} aria-hidden="true" />
       </button>
+      {actions.onEdit && isLineEditable(row) && (
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("Common:Edit")}
+          onClick={() => actions.onEdit?.(row)}
+        >
+          <Pencil size={16} aria-hidden="true" />
+        </button>
+      )}
       {actions.onDelete && isLineDeletable(row) && (
         <button
           type="button"

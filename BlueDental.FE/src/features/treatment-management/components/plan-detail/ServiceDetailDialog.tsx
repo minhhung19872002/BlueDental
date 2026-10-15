@@ -66,7 +66,7 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
               { label: t("Common:Status"), value: pill.label },
               { label: t("Treatment:Diagnosis:Diagnosis"), value: dash(row.advise?.diagnosisName) },
               { label: t("Treatment:Tooth:Tooth"), value: formatTeeth(service.teeth) },
-              { label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },
+              { label: t("Treatment:Service:Note"), value: dash(service.note ?? row.advise?.note) },
             ]}
           />
           <Section

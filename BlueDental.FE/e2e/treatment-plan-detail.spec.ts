@@ -208,14 +208,15 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(tabrow.locator(".bd-tabbar").getByRole("tablist")).toBeVisible();
     await expect(tabrow.locator(".pdt-toolbar")).toHaveCount(0);
     const body = page.locator(".pdt-body");
-    await expect(body.getByRole("tablist")).toHaveCount(0);
+    // The only tablist in the body is Chi tiết phiếu's own (R-957).
+    await expect(body.locator(".bd-tabbar")).toHaveCount(0);
     await expect(body.locator(".pdt-toolbar")).toBeVisible();
     await expect(body.locator(".tp-table")).toBeVisible();
     expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
     expect(await body.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
 
     // Four pill tabs, "Chi tiết" selected, and the six money figures.
-    await expect(page.getByRole("tab")).toHaveText([
+    await expect(tabrow.getByRole("tab")).toHaveText([
       "Chi tiết điều trị",
       "Thanh toán",
       "Hoàn tiền",
@@ -241,7 +242,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await tab(page, "Chi tiết điều trị").click();
     await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
-    // The toolbar and the 16-column table with one line, in the reference's order.
+    // The toolbar and the BA's nine-column table with one line (2026-10-15):
+    // no grip, Chẩn đoán after Bác sĩ điều trị, the status in its own column.
     // "Thêm dịch vụ phát sinh" took the inline picker's place, in the primary
     // colour, and the toolbar's "Thêm công đoạn" is gone (owner 2026-10-15).
     const toolbar = page.locator(".pdt-toolbar");
@@ -254,21 +256,14 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page.getByRole("button", { name: "In Hóa Đơn" })).toBeVisible();
     const headers = await page.locator(".pdt-table thead th").allInnerTexts();
     expect(headers.map((h) => h.trim())).toEqual([
-      "",
       "Dịch vụ",
-      "Chẩn đoán",
       "Bác sĩ điều trị",
+      "Chẩn đoán",
       "Răng",
-      "Số lượng",
+      "Trạng thái",
       "Đơn giá",
-      "Tổng giảm giá",
+      "Giảm giá",
       "Thành tiền",
-      "Tạm ứng",
-      "Ghi chú",
-      "Bác sĩ chẩn đoán 1",
-      "Chẩn đoán 2",
-      "Bác sĩ tư vấn",
-      "Bác sĩ tư vấn 2",
       "Thao tác",
     ]);
     const rows = page.locator(".pdt-table tbody tr.ant-table-row");
@@ -552,7 +547,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await page.close();
   });
 
-  test("Thêm dịch vụ phát sinh adds a line to this slip, and a row can be dragged into another slot", async ({ page }) => {
+  test("Thêm dịch vụ phát sinh adds a line to this slip, and picking a row narrows Chi tiết phiếu to it", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
     planCode = await createSlip(page);
@@ -578,50 +573,47 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(addedRow.locator(".pdt-status")).toHaveText("Đã tạo");
     await expect(addedRow).toContainText("15");
 
-    const names = () =>
-      page.locator(".pdt-table tbody tr.ant-table-row .pdt-service-name").allInnerTexts();
-    // Captured by the poll itself: reading the list again afterwards can catch
-    // the table mid-refetch and come back one row short.
-    let before: string[] = [];
-    await expect
-      .poll(async () => {
-        before = await names();
-        return before.length;
-      })
-      .toBe(2);
+    const rows = page.locator(".pdt-table tbody tr.ant-table-row");
+    await expect(rows).toHaveCount(2);
+    // No drag grip any more (BA 2026-10-15): the order is the slip's.
+    await expect(page.locator(".pdt-table .pdt-grip")).toHaveCount(0);
 
-    // A real pointer drag, walked in steps: the row follows the pointer and the
-    // rows it passes move out of its way, so one jump would land nowhere. The
-    // boxes are read once the table has settled — measuring while the slip is
-    // still refetching grabs coordinates the rows have already left.
-    const grips = page.locator(".pdt-table tbody tr.ant-table-row button.pdt-grip");
-    await expect(grips).toHaveCount(2);
-    const from = (await grips.first().boundingBox())!;
-    const to = (await grips.last().boundingBox())!;
-    const x = from.x + from.width / 2;
-    const start = from.y + from.height / 2;
-    // Past the far row's bottom edge, so the pointer certainly crosses it.
-    const finish = to.y + to.height;
+    // Chi tiết phiếu sits under the table, always open, every line's card on
+    // show and no form until one is picked (R-957).
+    const panel = page.getByRole("region", { name: "Chi tiết phiếu" });
+    const cards = panel.locator(".pd-stage-picks button");
+    await expect(panel).toBeVisible();
+    await expect(cards).toHaveCount(2);
+    await expect(panel.locator(".pd-stage-form")).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Chi tiết phiếu" })).toHaveCount(0);
 
-    const saved = page.waitForResponse(
-      (res) => res.url().includes("/services/reorder") && res.request().method() === "POST",
-    );
-    await page.mouse.move(x, start);
-    await page.mouse.down();
-    const swapped = async () => (await names())[0] === before[1];
-    for (let pass = 0; pass < 3 && !(await swapped()); pass++) {
-      for (let step = 1; step <= 10; step++) {
-        await page.mouse.move(x, start + ((finish - start) * step) / 10);
-        await page.waitForTimeout(20);
-      }
-    }
-    expect(await swapped()).toBe(true);
-    await page.mouse.up();
-    expect((await saved).ok()).toBeTruthy();
+    // Picking a row narrows the cards to that line and opens its form.
+    const addedId = await addedRow.getAttribute("data-row-key");
+    await addedRow.locator(".pdt-service-name").click();
+    await expect(addedRow).toHaveAttribute("aria-selected", "true");
+    await expect(addedRow).toHaveClass(/pdt-row--picked/);
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first()).toHaveAttribute("data-line-id", addedId!);
+    await expect(cards.first()).toContainText(secondName);
+    await expect(cards.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(panel.locator(`.pd-stage-form[data-item-id="${addedId}"]`)).toBeVisible();
 
-    await expect.poll(names).toEqual([before[1], before[0]]);
-    await page.goto(slipUrl);
-    await expect.poll(names).toEqual([before[1], before[0]]);
+    // The status pill and the eye act on the row without picking it.
+    const other = rows.filter({ hasNot: page.locator(".pdt-service-name", { hasText: secondName }) });
+    await other.getByRole("button", { name: "Xem chi tiết" }).click();
+    const view = page.getByRole("dialog", { name: "Chi tiết dịch vụ" });
+    await expect(view).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(view).toBeHidden();
+    await expect(addedRow).toHaveAttribute("aria-selected", "true");
+    await expect(other).toHaveAttribute("aria-selected", "false");
+
+    // Picking it again shows every line once more — from the keyboard too.
+    await addedRow.focus();
+    await page.keyboard.press("Enter");
+    await expect(addedRow).toHaveAttribute("aria-selected", "false");
+    await expect(cards).toHaveCount(2);
+    await expect(panel.locator(".pd-stage-form")).toHaveCount(0);
   });
 
   test("Chuyển đổi closes a line and writes the service that replaces it", async ({ page }) => {
@@ -693,7 +685,13 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // A closed line offers no menu any more.
     await expect(closed.locator(".pdt-status--menu")).toHaveCount(0);
     await expect(rows.locator(".pdt-status")).toHaveText(["Đã tạo", "Chuyển đổi"]);
-    await expect(rows.first()).toContainText("Chuyển đổi trong kiểm thử");
+    // The table carries no Ghi chú column (BA's nine, R-957): the note is
+    // read on the new line's eye.
+    await rows.first().getByRole("button", { name: "Xem chi tiết" }).click();
+    const view = page.getByRole("dialog", { name: "Chi tiết dịch vụ" });
+    await expect(view).toContainText("Chuyển đổi trong kiểm thử");
+    await page.keyboard.press("Escape");
+    await expect(view).toBeHidden();
 
     await page.goto(slipUrl);
     await expect(page.locator(".pdt-table tbody tr.ant-table-row")).toHaveCount(2);
@@ -905,10 +903,23 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await answerYes(page, payDialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(due);
 
+    // What each line has collected, read from the slip itself — the table
+    // carries no Tạm ứng column any more (BA's nine, R-957).
+    const planId = slipUrl.split("/").pop() ?? "";
+    const paidOnLines = () =>
+      page.evaluate(
+        async ({ planId, plans }) => {
+          const res = await fetch(`${plans}/${planId}`, { credentials: "include" });
+          const plan = (await res.json()) as { services: { paidAmount: number }[] };
+          return plan.services.map((line) => line.paidAmount);
+        },
+        { planId, plans: PLANS_API },
+      );
+
     // Convert it, charging 1 đ, so almost everything collected is left over.
     await tab(page, "Chi tiết điều trị").click();
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
-    await expect.poll(async () => money(await row.locator("td").nth(9).innerText())).toBe(due);
+    await expect.poll(paidOnLines).toEqual([due]);
     await row.locator(".pdt-status--menu").click();
     await page.getByRole("menuitem", { name: "Chuyển đổi" }).click();
     const dialog = page.getByRole("dialog", { name: "Chuyển đổi dịch vụ" });
@@ -949,10 +960,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // 1 đ followed the patient onto the new line; the rest came back as a refund.
     const rows = page.locator(".pdt-table tbody tr.ant-table-row");
     await expect.poll(async () => rows.count()).toBe(2);
-    // Newest first: the new line is the one on top.
-    await expect
-      .poll(async () => money(await rows.first().locator("td").nth(9).innerText()))
-      .toBe(1);
+    await expect.poll(paidOnLines).toContain(1);
     await tab(page, "Hoàn tiền").click();
     await expect.poll(() => statValue(page, "Đã hoàn")).toBe(due - 1);
     await expect(page.locator(".pdt-table tbody tr.ant-table-row")).toHaveCount(1);
@@ -1184,8 +1192,10 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     page,
   }) => {
     // Staging 2026-09-28 (R-605): a 1.000.000 line edited to 910.000 still
-    // prints Đơn giá 1.000.000, "Tổng giảm giá" breaks down into four lines,
-    // and a price above the giá gốc is refused on ✓.
+    // prints Đơn giá 1.000.000, "Giảm giá" breaks down into four lines, and a
+    // price above the giá gốc is refused. The row has no inline edit any more
+    // (R-957 — an edit dialog comes in its own task), so the price is set
+    // through the real API and the table read back.
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
     planCode = await createSlip(page);
@@ -1240,88 +1250,65 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     const amountOf = async (header: string) => money(await cell(header).innerText());
 
     await expect.poll(() => amountOf("Đơn giá")).toBe(list);
-    await expect.poll(() => amountOf("Tổng giảm giá")).toBe(20_000);
+    await expect.poll(() => amountOf("Giảm giá")).toBe(20_000);
     await expect.poll(() => amountOf("Thành tiền")).toBe(list - 20_000);
+    // The pencil stays on an open, unpaid line, but no longer edits inline —
+    // its modal is a later task (owner 2026-10-15).
+    const pencil = row.getByRole("button", { name: "Chỉnh sửa" });
+    await expect(pencil).toBeVisible();
+    await pencil.click();
+    await expect(row.locator("input")).toHaveCount(0);
 
-    // The pencil puts the price actually charged in the box, and Thành tiền
-    // opens on the saved figure.
-    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
-    const box = row.getByRole("textbox", { name: "Đơn giá" });
-    await expect.poll(async () => money(await box.inputValue())).toBe(list);
-    await expect.poll(() => amountOf("Thành tiền")).toBe(list - 20_000);
+    const putPrice = (price: number) =>
+      page.evaluate(
+        async ({ planId, plans, price }) => {
+          const xsrf = document.cookie
+            .split("; ")
+            .find((c) => c.startsWith("XSRF-TOKEN="))
+            ?.substring("XSRF-TOKEN=".length);
+          const plan = (await (
+            await fetch(`${plans}/${planId}`, { credentials: "include" })
+          ).json()) as {
+            branchId: string;
+            services: { id: string; quantity: number; teeth: unknown[] }[];
+          };
+          const line = plan.services[0];
+          const res = await fetch(`${plans}/${planId}/services/${line.id}`, {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+              "content-type": "application/json",
+              // The app asks in Vietnamese; the message must exist there (vi.json).
+              "Accept-Language": "vi",
+              "X-Clinic-Branch-Id": plan.branchId,
+              ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+            },
+            body: JSON.stringify({ price, quantity: line.quantity, teeth: line.teeth }),
+          });
+          const body = (await res.json()) as { error?: { code?: string; message?: string } };
+          return { status: res.status, code: body.error?.code ?? "", message: body.error?.message ?? "" };
+        },
+        { planId, plans: PLANS_API, price },
+      );
 
-    // Typing reprices Thành tiền at once — đơn giá × số lượng, staging's
-    // onDraftChange — while Tổng giảm giá keeps the saved figure until Lưu.
-    // Above the giá gốc: refused on ✓, nothing sent.
-    let written = 0;
-    const countPut = (req: { url: () => string; method: () => string }) => {
-      if (req.url().includes("/services/") && req.method() === "PUT") written += 1;
-    };
-    page.on("request", countPut);
-    await box.fill(String(list + 100_000));
-    await row.getByRole("button", { name: "Lưu" }).click();
-    await expect(row.locator(".pdt-draft-error")).toHaveText(
-      "Đơn giá không được lớn hơn giá gốc của dịch vụ.",
-    );
-    expect(written, "a price above the giá gốc is never sent").toBe(0);
-    page.off("request", countPut);
-    await expect.poll(() => amountOf("Tổng giảm giá")).toBe(20_000);
-    await expect.poll(() => amountOf("Thành tiền")).toBe(list + 100_000);
-
-    // …and by the server, which is the side that has to hold the line.
-    const refused = await page.evaluate(
-      async ({ planId, plans, price }) => {
-        const xsrf = document.cookie
-          .split("; ")
-          .find((c) => c.startsWith("XSRF-TOKEN="))
-          ?.substring("XSRF-TOKEN=".length);
-        const plan = (await (
-          await fetch(`${plans}/${planId}`, { credentials: "include" })
-        ).json()) as {
-          branchId: string;
-          services: { id: string; quantity: number; teeth: unknown[] }[];
-        };
-        const line = plan.services[0];
-        const res = await fetch(`${plans}/${planId}/services/${line.id}`, {
-          method: "PUT",
-          credentials: "include",
-          headers: {
-            "content-type": "application/json",
-            // The app asks in Vietnamese; the message must exist there (vi.json).
-            "Accept-Language": "vi",
-            "X-Clinic-Branch-Id": plan.branchId,
-            ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
-          },
-          body: JSON.stringify({ price, quantity: line.quantity, teeth: line.teeth }),
-        });
-        const body = (await res.json()) as { error?: { code?: string; message?: string } };
-        return { status: res.status, code: body.error?.code ?? "", message: body.error?.message ?? "" };
-      },
-      { planId, plans: PLANS_API, price: list + 100_000 },
-    );
+    // Above the giá gốc: the server holds the line.
+    const refused = await putPrice(list + 100_000);
     expect(refused.status).toBe(403);
     expect(refused.code).toBe("BlueDental:Treatment:0040");
     expect(refused.message).toBe("Đơn giá không được lớn hơn giá gốc của dịch vụ.");
 
-    // Back under the ceiling the message goes, Thành tiền follows, and ✓
-    // writes the lower price.
-    await box.fill(String(lowered));
-    await expect(row.locator(".pdt-draft-error")).toHaveCount(0);
-    await expect.poll(() => amountOf("Thành tiền")).toBe(lowered);
-    const saved = page.waitForResponse(
-      (res) => res.url().includes("/services/") && res.request().method() === "PUT",
-    );
-    await row.getByRole("button", { name: "Lưu" }).click();
-    expect((await saved).ok()).toBeTruthy();
-    await expect(page.getByText("Đã cập nhật dịch vụ")).toBeVisible();
+    // Under it: written, and the cut reads as Giảm dịch vụ.
+    expect((await putPrice(lowered)).status).toBe(200);
+    await page.reload();
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
 
     const readBack = async () => {
       await expect.poll(() => amountOf("Đơn giá")).toBe(list);
-      await expect.poll(() => amountOf("Tổng giảm giá")).toBe(cut + 20_000);
+      await expect.poll(() => amountOf("Giảm giá")).toBe(cut + 20_000);
       await expect.poll(() => amountOf("Thành tiền")).toBe(list - cut - 20_000);
       await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
-      await cell("Tổng giảm giá").locator(".pdt-discount").hover();
+      await cell("Giảm giá").locator(".pdt-discount").hover();
       const tip = page.locator(".ant-tooltip:visible .pdt-discount-tip p");
       await expect(tip).toHaveText([
         `Giảm dịch vụ: ${vnd(cut)} đ`,
@@ -1333,14 +1320,10 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     };
     await readBack();
 
-    // Persisted: a reload reads the same, and the pencil opens on the lower price.
+    // Persisted: another reload reads the same.
     await page.reload();
     await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
     await readBack();
-    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
-    await expect.poll(async () => money(await box.inputValue())).toBe(lowered);
-    await row.getByRole("button", { name: "Hủy" }).click();
-    await expect(box).toHaveCount(0);
 
     // The slip's revenue follows the lower price — read on a money tab, where
     // the figures live.

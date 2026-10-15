@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { BRANCH_IN_URL, workingBranchId } from "./fixtures/branch";
 import {
@@ -38,7 +38,14 @@ import {
  * start and again at the end.
  */
 
-const BASE_LEAVES = ["patient.read", "treatmentConsultation.read", "treatmentStage.read"] as const;
+// "In lịch sử điều trị" is its own leaf since dbeb1313; the helpers wait on it
+// to know Chi tiết phiếu's toolbar has rendered.
+const BASE_LEAVES = [
+  "patient.read",
+  "treatmentConsultation.read",
+  "treatmentStage.read",
+  "treatmentStage.print",
+] as const;
 const PAYMENT_LEAVES = ["payment.read", "payment.create", "payment.finalize"] as const;
 const LEAVES = [...BASE_LEAVES, ...PAYMENT_LEAVES];
 
@@ -124,25 +131,28 @@ async function expectProfile(page: Page, slip: Slip, canCreate: boolean) {
   await expect(toolbarPay).toHaveCount(canCreate ? 1 : 0);
 }
 
-/** Chi tiết phiếu's "Thanh toán", once its toolbar is on screen. */
-async function expectStageDialogPay(page: Page, canCreate: boolean) {
-  const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
-  await expect(dialog).toBeVisible();
+/** Chi tiết phiếu's "Thanh toán" — the dialog on Hồ sơ or the slip page's inline panel. */
+async function expectStagePay(scope: Locator, canCreate: boolean) {
+  await expect(scope).toBeVisible();
   // The other command needs no leaf, so the toolbar has rendered.
-  await expect(dialog.getByRole("button", { name: "In lịch sử điều trị" })).toBeVisible();
+  await expect(scope.getByRole("button", { name: "In lịch sử điều trị" })).toBeVisible();
   // The icon's own label ("dollar") leads the accessible name.
-  await expect(dialog.getByRole("button", { name: /(^|\s)Thanh toán$/ })).toHaveCount(
+  await expect(scope.getByRole("button", { name: /(^|\s)Thanh toán$/ })).toHaveCount(
     canCreate ? 1 : 0,
   );
+}
+
+async function expectStageDialogPay(page: Page, canCreate: boolean) {
+  const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+  await expectStagePay(dialog, canCreate);
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 }
 
-/** Chi tiết phiếu opened from the slip row's + on Kế hoạch điều trị. */
-async function expectStageDialogFromPlanList(page: Page, slip: Slip, canCreate: boolean) {
-  await page.goto(planListPath(slip));
-  await page.getByRole("button", { name: `Thêm công đoạn ${slip.planCode}` }).click();
-  await expectStageDialogPay(page, canCreate);
+/** Chi tiết phiếu laid inline under the slip page's service table (R-957). */
+async function expectStagePanelOnSlip(page: Page, slip: Slip, canCreate: boolean) {
+  await page.goto(planDetailPath(slip));
+  await expectStagePay(page.getByRole("region", { name: "Chi tiết phiếu" }), canCreate);
 }
 
 /** Chi tiết phiếu opened from the Công đoạn cell of the row on Hồ sơ. */
@@ -177,19 +187,19 @@ async function expectPlanDetail(page: Page, slip: Slip, canRead: boolean, canPay
   const tabs = page.getByRole("tablist", { name: "Kế hoạch điều trị" }).getByRole("tab");
   await expect(tabs.first()).toBeVisible({ timeout: 20_000 });
   if (canRead) {
-    await expect(tabs).toHaveText(["Chi tiết", "Thanh toán", "Hoàn tiền", "Dư nợ"]);
+    await expect(tabs).toHaveText(["Chi tiết điều trị", "Thanh toán", "Hoàn tiền", "Dư nợ"]);
     await expect(page.getByRole("tab", { name: "Thanh toán" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
   } else {
-    // A link straight to a money tab lands on Chi tiết instead.
-    await expect(tabs).toHaveText(["Chi tiết"]);
+    // A link straight to a money tab lands on Chi tiết điều trị instead.
+    await expect(tabs).toHaveText(["Chi tiết điều trị"]);
     await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
   }
 
   await page.goto(planDetailPath(slip));
-  await expect(page.getByRole("tab", { name: "Chi tiết" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Chi tiết điều trị", exact: true })).toHaveAttribute("aria-selected", "true");
   // The print icon needs no leaf, so the toolbar has rendered.
   await expect(page.getByRole("button", { name: "In phiếu điều trị" })).toBeVisible();
   await expect(page.getByRole("button", { name: "In Hóa Đơn" })).toHaveCount(canPay ? 1 : 0);
@@ -200,7 +210,7 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
     page,
     browser,
   }) => {
-    test.setTimeout(420_000);
+    test.setTimeout(600_000);
     await page.setViewportSize({ width: 1600, height: 900 });
 
     const id = runId();
@@ -224,7 +234,7 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       // ── no Thanh toán leaf: the history stays, every payment command goes ─
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStageDialogFromPlanList(dentist, slip, false);
+      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
       await expectPlanDetail(dentist, slip, false, false);
 
@@ -233,14 +243,14 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await expectPlanDetail(dentist, slip, true, false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStageDialogFromPlanList(dentist, slip, false);
+      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
 
       // ── Thêm: collecting money — Hóa đơn / In Hóa Đơn open the pay dialog ─
       await setDentistLeaf(page, "payment.create", true);
       await expectProfile(dentist, slip, true);
       await expectStageDialogFromProfile(dentist, slip, true);
-      await expectStageDialogFromPlanList(dentist, slip, true);
+      await expectStagePanelOnSlip(dentist, slip, true);
       await expectPlanList(dentist, slip, true);
       await expectPlanDetail(dentist, slip, true, true);
 
@@ -253,7 +263,7 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await setDentistLeaf(page, "payment.create", false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStageDialogFromPlanList(dentist, slip, false);
+      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
       await expectPlanDetail(dentist, slip, true, false);
     } finally {

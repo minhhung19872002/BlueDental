@@ -7,7 +7,6 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "../../api/treatmentPlanApi";
-import type { DraftServiceController } from "./draftServiceTypes";
 
 /** The four sub-screens, keyed as the reference writes them in `planTab=`. */
 export const PLAN_TAB = {
@@ -44,8 +43,6 @@ export interface PlanDetailRow {
   plan: TreatmentPlanSlipDto;
   service: TreatmentServiceDto;
   advise: PatientAdviseDto | null;
-  /** Set while "Chỉnh sửa" has turned this line into the inline row. */
-  edit?: DraftServiceController;
 }
 
 export function planDetailRows(
