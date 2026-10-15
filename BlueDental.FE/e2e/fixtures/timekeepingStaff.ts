@@ -105,6 +105,8 @@ export async function createRunStaff(
     isHygienist?: boolean;
     roleNames?: string[];
     branchIds?: string[];
+    /** "Mức độ ưu tiên": a lower number comes first in staff pickers. */
+    priority?: number;
     /** Profile working hours ("HH:mm"), as the Nhân viên editor saves them. */
     morningStartTime?: string;
     morningEndTime?: string;

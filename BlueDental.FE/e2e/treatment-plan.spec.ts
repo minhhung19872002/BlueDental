@@ -131,13 +131,13 @@ test.describe("Kế hoạch điều trị", () => {
   }) => {
     await login(page);
     await page.goto(`${patientUrl}?tab=treatment-plan`);
-    // "Tạo phiếu dịch vụ" opens from the slip's "Thêm dịch vụ phát sinh" now.
+    // "Thêm dịch vụ" opens from the slip's "Thêm dịch vụ phát sinh" now.
     await openSlipDetail(page, createdCode);
     const dialog = await openExtraServiceDialog(page);
 
-    // "Nhân sự tư vấn 1" is the one field the dialog opens with, and it is
+    // "Bác sĩ tư vấn" is the one field the dialog opens with, and it is
     // required before anything else can be saved.
-    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }));
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Bác sĩ tư vấn(?! 2)/ }));
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
     const service = openDropdown(page, ".tp-service-dropdown")
       .locator(".ant-select-item-option:has(.tp-opt-service)")

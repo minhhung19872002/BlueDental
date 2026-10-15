@@ -65,6 +65,17 @@ Taken during the build (not asked), to revisit if the owner disagrees:
 | 2 | Every refusal: `0001` name differing only in case or spaces, `0002` code, `0003` wrong parent kind, `0005`, `0006` root delete, `0007`, and `0013` staff delete. A Team headed by a non-dentist is accepted (then deleted). None of the refused units is stored |
 | 3 | Assign members (MembersAssigned). A head assigned elsewhere gets `0010`. A root head change is logged, then restored |
 | 4 | Scope through `GET /staff?ScheduleScope=true`, each user signed in as themselves: admin (non-dentist) sees all 5, the team head sees head + member, the member sees only themself, a dentist in no unit sees only themself |
+| 5 | R-954 "Bác sĩ tư vấn" through `GET /staff?AdvisorScope=true&Role=1`, in the returned order: admin gets A, C, B by Mức độ ưu tiên (1, 3, 5); head A gets [A, C]; member C gets [C, A] (self ahead of A's higher priority); B in no unit gets [B]. Test 6 adds: B as a member of the root gets only [B] (Y is no dentist, the units below are not offered) |
+
+`e2e/plan-advisor-scope.spec.ts` (R-954, 1 test): dentist D (member, priority 9)
+signs in through the login screen, opens "+ Thêm dịch vụ phát sinh" on a fresh slip:
+title "Thêm dịch vụ", no "Nhân sự tư vấn", the "Bác sĩ tư vấn" list is exactly
+[D, H] — D first though head H has priority 1; lễ tân N in the team and dentist O
+outside it are not offered. Saves with D, reloads, the new line names D.
+Then on the plan-detail table: the column headers read "Bác sĩ tư vấn" /
+"Bác sĩ tư vấn 2" (no "Nhân sự tư vấn"); the eye's "Chi tiết dịch vụ" lists
+"Bác sĩ tư vấn: BS D" and "Bác sĩ tư vấn 2:"; the pencil's "Bác sĩ tư vấn"
+picker offers exactly [D, H] again, and "Bác sĩ tư vấn 2" the same two.
 
 `e2e/org-chart.spec.ts` covers the UI flow in one test:
 

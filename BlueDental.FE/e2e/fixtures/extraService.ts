@@ -3,7 +3,7 @@ import { money, openDropdown } from "./ledgerReceipt";
 
 /**
  * "+ Thêm dịch vụ phát sinh" on a slip's Chi tiết tab: the button opens the
- * "Tạo phiếu dịch vụ" modal, and its "Lưu" adds the service as a new line on
+ * "Thêm dịch vụ" modal, and its "Lưu" adds the service as a new line on
  * this slip — one `POST …/services` (owner 2026-10-15; it replaced the inline
  * "Thêm dịch vụ mới" row).
  */
@@ -23,7 +23,7 @@ const escapeRegExp = (text: string) => text.trim().replace(/[.*+?^${}()|[\]\\]/g
 /** The open modal, after "Thêm dịch vụ phát sinh". */
 export async function openExtraServiceDialog(page: Page) {
   await page.locator(".pdt-toolbar").getByRole("button", { name: "Thêm dịch vụ phát sinh" }).click();
-  const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
+  const dialog = page.getByRole("dialog", { name: "Thêm dịch vụ" });
   await expect(dialog).toBeVisible();
   return dialog;
 }
@@ -35,7 +35,7 @@ export async function addExtraService(
 ): Promise<{ response: Response; name: string; price: number }> {
   const dialog = await openExtraServiceDialog(page);
 
-  await dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }).click();
+  await dialog.getByRole("combobox", { name: /Bác sĩ tư vấn(?! 2)/ }).click();
   const advisor = openDropdown(page).locator(".ant-select-item-option").first();
   await expect(advisor).toBeVisible();
   await advisor.click();

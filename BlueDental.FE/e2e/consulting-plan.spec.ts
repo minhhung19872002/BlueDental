@@ -10,15 +10,155 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  * and every assertion below is served by the real API and PostgreSQL.
  */
 
-/** The seeded second branch, and a patient of it that carries advise rows. */
+/** The second branch, where the shared patient below is provisioned. */
 const BRANCH = "22222222-2222-2222-2222-222222222222";
 /** The first branch, which the slip-opening test provisions its own rows on. */
 const BRANCH1 = "11111111-1111-1111-1111-111111111111";
-const PATIENT = "3a238cc0-d36b-309e-9ac6-9413686a82c3";
-const CONSULTING = `/patient/${PATIENT}?tab=consulting&branchId=${BRANCH}`;
+
+/**
+ * The patient most tests read: provisioned once per run through the real API
+ * rather than taken from the demo seed, which a re-import of the local DB wipes
+ * (the seeded patient and its CN2WELCOME voucher were gone on 2026-10-15). It
+ * carries a diagnosis slip with teeth and a note, two priced advise lines on
+ * different services, one photograph, and a published plan voucher of its own.
+ */
+interface Seeded {
+  patientId: string;
+  voucherId: string;
+  voucherCode: string;
+}
+
+let seeded: Seeded;
+
+/** A 1×1 PNG, enough for the image panel to hold one tile. */
+const PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+async function seedPatient(page: Page): Promise<Seeded> {
+  await page.goto("/patient");
+  await assertRealApiTraffic(page, "/api/v1/app/patients");
+  return page.evaluate(
+    async ({ branch, suffix, png }) => {
+      const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch };
+      const get = async (url: string) =>
+        (await fetch(url, { credentials: "include", headers })).json();
+      const send = async (url: string, init: RequestInit) => {
+        const res = await fetch(url, { credentials: "include", ...init });
+        if (!res.ok) throw new Error(`${url} ${res.status} ${await res.text()}`);
+        return res.json();
+      };
+      const post = (url: string, body?: unknown) =>
+        send(url, {
+          method: "POST",
+          headers,
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+
+      const patient = await post("/api/v1/app/patients", {
+        firstName: `Tư vấn ${suffix}`,
+        lastName: "E2E",
+        dateOfBirth: null,
+        gender: "male",
+        phoneNumber: `07${suffix.padStart(8, "0").slice(-8)}`,
+      });
+      const diagnosis = (
+        await get(
+          `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=1`,
+        )
+      ).items[0];
+      const services = (
+        await get(
+          `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=care_service&isActive=true&maxResultCount=2`,
+        )
+      ).items;
+      const staff = (await get("/api/v1/app/staff?MaxResultCount=1")).items[0];
+      const tooth = (toothCode: number) => ({
+        toothCode,
+        selected: true,
+        top: false,
+        right: false,
+        bottom: false,
+        left: false,
+        center: false,
+      });
+
+      const slip = await post("/api/v1/app/patient-diagnoses", {
+        patientId: patient.id,
+        clinicBranchId: branch,
+        diagnosisId: diagnosis.id,
+        staffId: staff.id,
+        note: `e2e tư vấn ${suffix}`,
+        teeth: [tooth(12), tooth(11)],
+      });
+      // Priced by hand: a voucher is only offered against a total worth something.
+      for (const [index, price] of [800_000, 500_000].entries()) {
+        await post("/api/v1/app/patient-advises", {
+          patientId: patient.id,
+          clinicBranchId: branch,
+          patientDiagnosisId: slip.id,
+          diagnosisId: diagnosis.id,
+          serviceId: services[index].id,
+          staffId: staff.id,
+          originalPrice: price,
+          price,
+          quantity: 1,
+          discountType: 0,
+          discountValue: 0,
+          teeth: [tooth(12 - index)],
+        });
+      }
+
+      const bytes = Uint8Array.from(atob(png), (c) => c.charCodeAt(0));
+      const form = new FormData();
+      form.append("file", new Blob([bytes], { type: "image/png" }), "e2e-consulting.png");
+      form.append("patientId", patient.id);
+      form.append("clinicBranchId", branch);
+      await send("/api/v1/app/patient-images", {
+        method: "POST",
+        headers: { "X-Clinic-Branch-Id": branch },
+        body: form,
+      });
+
+      const day = (offset: number) => {
+        const d = new Date();
+        d.setDate(d.getDate() + offset);
+        return d.toISOString().slice(0, 10);
+      };
+      const voucher = await post("/api/v1/app/vouchers", {
+        code: `CN2${suffix}`,
+        name: `e2e kế hoạch ${suffix}`,
+        discountType: "fixed_amount",
+        discountValue: 100_000,
+        scopeTarget: "treatment",
+        targetIds: [],
+        startDate: day(-1),
+        endDate: day(30),
+        usageLimit: 100,
+        isExclusive: false,
+        customerTargets: ["new", "returning"],
+        isDaysOfWeekLimited: false,
+        daysOfWeek: [],
+        displayOnNfcDental: true,
+        branchId: branch,
+      });
+      await post(`/api/v1/app/vouchers/${voucher.id}/publish`);
+
+      return {
+        patientId: patient.id as string,
+        voucherId: voucher.id as string,
+        voucherCode: voucher.code as string,
+      };
+    },
+    { branch: BRANCH, suffix: runId(), png: PNG_BASE64 },
+  );
+}
+
+function consultingUrl(): string {
+  return `/patient/${seeded.patientId}?tab=consulting&branchId=${BRANCH}`;
+}
 
 async function openConsulting(page: Page) {
-  await page.goto(CONSULTING);
+  await page.goto(consultingUrl());
   await assertRealApiTraffic(page, "/api/v1/app/patient-advises");
   await expect(page.locator(".pd-advise-card")).toBeVisible({ timeout: 20000 });
   await expect(page.locator(".pd-advise-table tbody tr.ant-table-row").first()).toBeVisible({
@@ -59,6 +199,32 @@ function serviceOrder(page: Page) {
 }
 
 test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page);
+    seeded = await seedPatient(page);
+    await page.close();
+  });
+
+  test.afterAll(async ({ browser }) => {
+    if (!seeded) return;
+    const page = await browser.newPage();
+    await login(page);
+    await page.goto("/patient");
+    const statuses = await page.evaluate(
+      async ({ branch, voucherId, patientId }) => {
+        const headers = { "X-Clinic-Branch-Id": branch };
+        const drop = async (url: string) =>
+          (await fetch(url, { method: "DELETE", credentials: "include", headers })).status;
+        // The patient stays: patients have no delete endpoint (405).
+        return [await drop(`/api/v1/app/vouchers/${voucherId}`)];
+      },
+      { branch: BRANCH, voucherId: seeded.voucherId },
+    );
+    await page.close();
+    expect(statuses.every((status) => status < 300), `cleanup ${statuses.join(", ")}`).toBe(true);
+  });
+
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
@@ -66,7 +232,7 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
   test("the image panel spins until the photographs arrive, never offering the empty zone first", async ({
     page,
   }) => {
-    await page.goto(CONSULTING);
+    await page.goto(consultingUrl());
 
     // The panel is the slowest read on the tab. While it is in flight the box
     // must hold a spinner, not "Kéo ảnh vào" — that text means "no photographs",
@@ -762,10 +928,10 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     );
     await expect(page.getByText("Đã chọn: 0")).toBeVisible();
 
-    // Seeded for this branch, treatment-scoped, published and inside their dates.
+    // Provisioned for this branch: treatment-scoped, published, inside its dates.
     const list = page.locator(".pd-voucher-list");
     await expect(list).toBeVisible();
-    await expect(list).toContainText("CN2WELCOME");
+    await expect(list).toContainText(seeded.voucherCode);
 
     // A code no voucher carries leaves the bordered box on its empty sentence.
     await page.getByRole("textbox", { name: "Tìm voucher" }).fill("KHONG-CO-MA-NAY");
@@ -773,10 +939,10 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
       page.getByText("Không có voucher nào khả dụng cho kế hoạch điều trị."),
     ).toBeVisible();
     await page.getByRole("textbox", { name: "Tìm voucher" }).fill("");
-    await expect(list).toContainText("CN2WELCOME");
+    await expect(list).toContainText(seeded.voucherCode);
 
     const before = await page.locator(".pd-plan-net b").innerText();
-    await page.locator(".pd-voucher-row").filter({ hasText: "CN2WELCOME" }).click();
+    await page.locator(".pd-voucher-row").filter({ hasText: seeded.voucherCode }).click();
     await expect(page.locator(".pd-voucher-row--on")).toHaveCount(1);
     await expect.poll(async () => page.locator(".pd-plan-net b").innerText()).not.toBe(before);
   });
@@ -835,7 +1001,7 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
   });
 
   test("a photograph's tile shimmers until its own file paints", async ({ page }) => {
-    await page.goto(CONSULTING);
+    await page.goto(consultingUrl());
 
     // The rows come back long before the files do. A tile that only reserves
     // its 240px reads as an empty panel, so it carries the loading class until
@@ -878,7 +1044,12 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     expect(before).toContain(DICH_VU);
 
     const open = async () => {
-      await page.getByRole("button", { name: "Cột hiển thị" }).click();
+      // Scrolled to the top first: the panel drops below the button, and with
+      // the card low on the screen its lower rows fall past the fold, where a
+      // drag cannot reach them.
+      const button = page.getByRole("button", { name: "Cột hiển thị" });
+      await button.evaluate((el) => el.scrollIntoView({ block: "start" }));
+      await button.click();
       // `:visible` because antd keeps a closed popover's content mounted — a
       // bare class query can resolve to the hidden copy of an earlier open.
       const panel = page.locator(".pd-column-popover:visible");
@@ -961,7 +1132,7 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
           });
         }
       },
-      { patient: PATIENT, branch: BRANCH },
+      { patient: seeded.patientId, branch: BRANCH },
     );
     await page.reload();
     await expect(page.locator(".pd-advise-table tbody tr.ant-table-row").first()).toBeVisible({

@@ -243,7 +243,7 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
     try {
       await firstName.click();
       await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-      // The "Tạo phiếu dịch vụ" picker lives on a slip's Chi tiết tab now, behind
+      // The "Thêm dịch vụ" picker lives on a slip's Chi tiết tab now, behind
       // "Thêm dịch vụ phát sinh" (owner 2026-10-15): a fresh slip to open it on.
       const patientId = /\/patient\/([0-9a-f-]{36})/.exec(page.url())![1];
       const slip = await createSlipViaApi(page, patientId);
@@ -257,7 +257,7 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
 
       // Fill the picker's cache with the price as it stands.
       await addExtra.click();
-      let dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
+      let dialog = page.getByRole("dialog", { name: "Thêm dịch vụ" });
       const primed = await searchService(page, dialog, serviceName);
       await expect.poll(() => priceOf(primed)).toBe(PRICE_BEFORE);
       await closeDialog(dialog);
@@ -290,14 +290,14 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
       await backTo(page, slipUrl);
       await expectSameDocument(page);
       await addExtra.click();
-      dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
+      dialog = page.getByRole("dialog", { name: "Thêm dịch vụ" });
       const option = await searchService(page, dialog, serviceName);
       await expect.poll(() => priceOf(option), { timeout: 15_000 }).toBe(PRICE_AFTER);
       await expectSameDocument(page);
 
       // Save the line onto the slip, so scenario B has money to collect.
       await option.click();
-      await dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }).click();
+      await dialog.getByRole("combobox", { name: /Bác sĩ tư vấn(?! 2)/ }).click();
       await openDropdown(page).locator(".ant-select-item-option").first().click();
       await dialog.locator(".tp-tooth-btn").click();
       const teeth = page.getByRole("dialog", { name: "Chọn răng" });

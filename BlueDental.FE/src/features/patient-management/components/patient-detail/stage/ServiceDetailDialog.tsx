@@ -107,8 +107,8 @@ export function ServiceDetailDialog({ open, patient, plan, line, onClose }: Prop
             // on the slip.
             [t("Patient:Diagnosis:Doctor1"), ""],
             [t("Patient:Diagnosis:Second"), ""],
-            [t("Patient:Staff:Consultant1"), plan?.consultantName ?? ""],
-            [t("Patient:Staff:Consultant2"), ""],
+            [t("Treatment:Plan:DentistAdvisor1"), line?.consultantName ?? plan?.consultantName ?? ""],
+            [t("Treatment:Plan:DentistAdvisor2"), line?.secondConsultantName ?? ""],
           ]}
         />
         <Section

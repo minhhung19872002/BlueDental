@@ -33,8 +33,8 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
     { key: "note", label: t("Treatment:Service:Note"), value: dash(row.advise?.note) },
     { key: "diagnoser1", label: t("Treatment:Diagnosis:DoctorOne"), value: dash(row.advise?.staffName) },
     { key: "diagnoser2", label: t("Treatment:Diagnosis:DiagnosisTwo"), value: dash(row.advise?.secondStaffName) },
-    { key: "consultant1", label: t("Treatment:Consulting:ConsultantOne"), value: dash(row.plan.consultantName) },
-    { key: "consultant2", label: t("Treatment:Consulting:ConsultantTwo"), value: "—" },
+    { key: "consultant1", label: t("Treatment:PlanDetail:Col:Consultant1"), value: dash(row.service.consultantName ?? row.plan.consultantName) },
+    { key: "consultant2", label: t("Treatment:PlanDetail:Col:Consultant2"), value: dash(row.service.secondConsultantName) },
   ];
   return { rows, moreRows };
 }

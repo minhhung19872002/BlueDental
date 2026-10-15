@@ -66,6 +66,12 @@ public class StaffAppService(
             ? await scopeResolver.VisibleScheduleStaffAsync()
             : null;
 
+        // "Bác sĩ tư vấn" on "Thêm dịch vụ" follows it too, by its own rule (R-954).
+        var advisorScope = input.AdvisorScope == true;
+        var advisorStaffIds = advisorScope
+            ? await scopeResolver.VisibleAdvisorStaffAsync()
+            : null;
+
         var term = input.Filter?.Trim();
         // With no sort asked for, the list runs by "Mức độ ưu tiên" (0 first,
         // a tie by name) like the reception board. The priority is an extra
@@ -73,7 +79,7 @@ public class StaffAppService(
         var byPriority = input.Sorting.IsNullOrWhiteSpace();
         var needsInMemoryFilter = byPriority || branchStaffIds != null || offStaffIds != null
             || input.IsActive.HasValue || !term.IsNullOrEmpty() || input.Role.HasValue
-            || scheduleStaffIds != null;
+            || scheduleStaffIds != null || advisorScope;
 
         var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
@@ -110,9 +116,20 @@ public class StaffAppService(
             users = users.Where(u => scheduleStaffIds.Contains(u.Id)).ToList();
         }
 
+        if (advisorStaffIds != null)
+        {
+            users = users.Where(u => advisorStaffIds.Contains(u.Id)).ToList();
+        }
+
         if (byPriority)
         {
             users = StaffPriority.Order(users).ToList();
+        }
+
+        // The caller heads the advisor list; everyone else keeps the order above.
+        if (advisorScope && CurrentUser.Id is { } callerId)
+        {
+            users = users.OrderBy(u => u.Id == callerId ? 0 : 1).ToList();
         }
 
         var totalCount = users.Count;

@@ -195,4 +195,48 @@ public class OrgChartTests
         Assert.Equal(new HashSet<Guid> { chart.RootDentist }, chart.For(chart.RootDentist));
         Assert.Null(chart.For(chart.RootDentist, isDentist: false));
     }
+
+    // ---- "Bác sĩ tư vấn" on "Thêm dịch vụ" (R-954) ---------------------------
+
+    private static IReadOnlySet<Guid>? AdvisorsFor(Chart chart, Guid viewer, bool isDentist = true) =>
+        OrgChartScope.VisibleAdvisors(viewer, isDentist, chart.Units, chart.Members);
+
+    [Fact]
+    public void Advisors_Non_Dentists_And_The_Director_See_Every_Dentist()
+    {
+        var chart = new Chart();
+
+        Assert.Null(AdvisorsFor(chart, chart.TeamDentist, isDentist: false));
+        Assert.Null(AdvisorsFor(chart, chart.TeamHead, isDentist: false));
+        Assert.Null(AdvisorsFor(chart, chart.Director));
+    }
+
+    [Fact]
+    public void Advisors_A_Head_Sees_Their_Whole_Subtree()
+    {
+        var chart = new Chart();
+
+        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, AdvisorsFor(chart, chart.TeamHead));
+        Assert.Equal(
+            new HashSet<Guid> { chart.DepartmentHead, chart.TeamHead, chart.TeamDentist },
+            AdvisorsFor(chart, chart.DepartmentHead));
+    }
+
+    [Fact]
+    public void Advisors_A_Member_Sees_Their_Own_Unit_But_Not_The_Units_Below()
+    {
+        var chart = new Chart();
+
+        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, AdvisorsFor(chart, chart.TeamDentist));
+        // The root's direct members are one team; the units under the root stay hidden.
+        Assert.Equal(new HashSet<Guid> { chart.Director, chart.RootDentist }, AdvisorsFor(chart, chart.RootDentist));
+    }
+
+    [Fact]
+    public void Advisors_An_Unassigned_Dentist_Sees_Only_Themselves()
+    {
+        var chart = new Chart();
+
+        Assert.Equal(new HashSet<Guid> { chart.Unassigned }, AdvisorsFor(chart, chart.Unassigned));
+    }
 }

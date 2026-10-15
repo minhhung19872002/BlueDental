@@ -104,6 +104,30 @@ Applied by `GET /api/v1/app/staff?ScheduleScope=true` (the staff lists of
 work day and single-record reads (`OrgChart:0012` when out of scope). Every other
 screen is unchanged.
 
+## Second scope: "Bác sĩ tư vấn" on "Thêm dịch vụ" (R-954, BA 2026-10-15)
+
+BA mock + chat: "không chọn team, chỉ chọn 1 bác sĩ, lọc theo user đang login";
+for a dentist who is not a head "Trước mắt hiển thị tất cả team member"; "Cho tên
+của current lên đầu danh sách". `OrgChartScope.VisibleAdvisors` /
+`OrgChartScopeResolver.VisibleAdvisorStaffAsync()`:
+
+1. not a dentist → every dentist;
+2. head of the root → every dentist;
+3. head of a unit → self + the unit's whole subtree (same as the schedule rule);
+4. member of a unit (the root's own members too) → everyone in that unit, its
+   head included, never the units under it;
+5. a dentist in no unit → self only.
+
+Applied by `GET /api/v1/app/staff?AdvisorScope=true&Role=1` — the two
+"Bác sĩ tư vấn" pickers of `CreatePlanDialog` (title "Thêm dịch vụ" / "Cập nhật
+phiếu dịch vụ") and the same two pickers when a plan-detail line is edited with
+the pencil (`draftServiceCells`). The plan-detail columns, the eye's "Chi tiết
+dịch vụ" and the patient Công đoạn "Chi tiết dịch vụ" now say "Bác sĩ tư vấn" /
+"Bác sĩ tư vấn 2" too. Order: the signed-in user first, the rest by "Mức độ ưu tiên"
+(`StaffPriority.Order`). Owner: **list only** — saving is not refused on the
+server, because the same save endpoints serve the Chẩn đoán & Tư vấn modal and
+Chuyển đổi, which keep the unscoped staff list (the pencil edit row was scoped too on 2026-10-15, owner asked).
+
 ## Deleting a staff member
 
 `StaffAppService.DeleteAsync` now leaves the chart first: a staff member who heads

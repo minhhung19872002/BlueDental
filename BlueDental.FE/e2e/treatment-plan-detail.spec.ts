@@ -261,8 +261,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       "Ghi chú",
       "Bác sĩ chẩn đoán 1",
       "Chẩn đoán 2",
-      "Nhân sự tư vấn 1",
-      "Nhân sự tư vấn 2",
+      "Bác sĩ tư vấn",
+      "Bác sĩ tư vấn 2",
       "Thao tác",
     ]);
     const rows = page.locator(".pdt-table tbody tr.ant-table-row");

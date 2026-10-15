@@ -8735,3 +8735,69 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
   - Hoàn thành dòng duy nhất sẽ tự đóng phiếu, khi đó xoá báo 0002 chứ không phải 0049. Vì vậy spec thêm một dòng thứ hai.
 
 **Chưa commit.**
+
+## R-954 (2026-10-15, mức 2: kế hoạch điều trị + Sơ đồ tổ chức) "Thêm dịch vụ": ô "Bác sĩ tư vấn" lọc theo Sơ đồ tổ chức, người đăng nhập lên đầu
+
+- Yêu cầu (BA, kèm mock + chat):
+  - Dialog `CreatePlanDialog` đổi tiêu đề khi tạo mới / thêm dịch vụ phát sinh từ "Tạo phiếu dịch vụ" thành **"Thêm dịch vụ"**. Tiêu đề "Cập nhật phiếu dịch vụ" giữ nguyên.
+  - "Nhân sự tư vấn 1/2" đổi thành **"Bác sĩ tư vấn" / "Bác sĩ tư vấn 2"**. Ô chỉ liệt kê bác sĩ, không chọn team, mỗi ô một người.
+  - Lọc theo người đăng nhập ("trước mắt"):
+
+    | Người đăng nhập | Thấy |
+    |---|---|
+    | Không phải bác sĩ, hoặc trưởng gốc | tất cả bác sĩ |
+    | Trưởng Phòng ban/Team | mình + toàn bộ cây con |
+    | Member (kể cả member trực tiếp của gốc) | mọi người cùng đơn vị, gồm cả trưởng, không gồm team con |
+    | Chưa thuộc đơn vị nào | chỉ mình |
+
+  - Sắp xếp: người đăng nhập đứng đầu, những người còn lại theo "Mức độ ưu tiên".
+- Owner chốt:
+  - Chỉ áp dụng cho dialog này. Modal Chẩn đoán & Tư vấn, hộp Chuyển đổi và dòng nháp giữ nguyên.
+  - Chỉ lọc danh sách. Server **không** từ chối khi lưu, vì endpoint lưu dùng chung với các dialog trên.
+- BE:
+  - `OrgChartScope.VisibleAdvisors`: quy tắc riêng; `VisibleStaff` của Lịch làm việc không đổi.
+  - `OrgChartScopeResolver.VisibleAdvisorStaffAsync` (tách phần đọc dùng chung thành `ApplyAsync`).
+  - `GetStaffListInput.AdvisorScope`.
+  - `StaffAppService.GetListAsync`: lọc theo phạm vi; sau `StaffPriority.Order` thì đưa `CurrentUser.Id` lên đầu, trước bước phân trang.
+- FE:
+  - `useAdvisorDentistSearch` (`AdvisorScope: true`, `Role=1`) và `useAdvisorDentistOptions`.
+  - `PlanAdvisorFields` dùng hai hook trên, với các key `Treatment:Plan:DentistAdvisor1/2`, `AddDentistAdvisor`, `RemoveDentistAdvisor2`, `DentistAdvisorRequired`, `NoDentistAdvisor`.
+  - Key `Treatment:Plan:CreatePlanDialog` đổi thành "Thêm dịch vụ" / "Add Service".
+- Test (host thật :5000, build production `vite preview` 127.0.0.1:8191, PostgreSQL thật, không chặn API):
+  - Domain `OrgChartTests`: **24/24**, trong đó 4 ca mới cho `VisibleAdvisors`.
+  - `org-chart-api`: **6/6**.
+    - Test mới kiểm tra `AdvisorScope` theo đúng thứ tự trả về: admin → A, C, B (ưu tiên 1, 3, 5); trưởng A → [A, C]; member C → [C, A], tức người đăng nhập đứng trước dù A ưu tiên cao hơn; B → [B].
+    - Member của gốc → chỉ [B].
+  - Spec mới `plan-advisor-scope`: **1/1**.
+    - Bác sĩ member D đăng nhập qua màn login, mở "Thêm dịch vụ phát sinh" và thấy danh sách đúng [D, H]: D đứng đầu dù trưởng H có ưu tiên 1; lễ tân trong team và bác sĩ ngoài team không xuất hiện.
+    - Lưu, reload, dòng mới ghi D.
+  - `createRunStaff` nhận thêm `priority`.
+  - Các spec đổi nhãn: `extraService` fixture, `treatment-plan`, `cross-screen-freshness`.
+  - Regression: `org-chart`, `timekeeping*`, `treatment-plan-detail`, `treatment-plan-delete`, `cross-screen-freshness`, `service-priority-order`, `taxonomy-active-state` xanh. `treatment-plan` **8/8** (không tính ca nêu dưới).
+- Ca đỏ lúc đầu, không do thay đổi này (đã sửa ở phần bổ sung bên dưới):
+  - `consulting-plan` 12 ca: bệnh nhân fixture `3a238cc0` không còn trong DB local (đã đỏ ở HEAD từ 2026-10-14).
+  - `treatment-plan` "a discounted slip prints…": lỗi ở bước chọn dịch vụ, sau khi "Bác sĩ tư vấn" đã chọn xong. Dropdown dịch vụ chỉ hiện các dịch vụ "DV BH NGAY DT 2xxxxx" (giá ≤ 100.000) do `stage-treatment-date` để sót, nên không còn dịch vụ nào trên 100.000 để chọn.
+
+### Bổ sung cùng ngày (owner: "chưa thay đổi title column ở ngoài list", "kiểm tra modal chi tiết nữa và chế độ edit")
+
+- Đổi nhãn "Nhân sự tư vấn 1/2" thành "Bác sĩ tư vấn" / "Bác sĩ tư vấn 2" ở mọi chỗ của kế hoạch điều trị:
+  - cột bảng chi tiết phiếu (`Treatment:PlanDetail:Col:Consultant1/2`);
+  - thẻ dịch vụ (`ServiceCardList`);
+  - modal "Chi tiết dịch vụ" mở từ nút mắt (`plan-detail/ServiceDetailDialog`);
+  - modal "Chi tiết dịch vụ" ở Công đoạn của bệnh nhân (`patient-detail/stage/ServiceDetailDialog`).
+- Chế độ sửa dòng (nút bút chì, `draftServiceCells`): hai ô người tư vấn dùng `useAdvisorDentistOptions`, chỉ bác sĩ và cùng phạm vi Sơ đồ tổ chức như dialog "Thêm dịch vụ", người đăng nhập đứng đầu. Tên đang lưu vẫn hiện dù ngoài danh sách.
+- Giữ nguyên theo quyết định owner: hộp Chuyển đổi, thẻ/modal Chẩn đoán & Tư vấn, các báo cáo Vận hành/Báo cáo.
+- `plan-advisor-scope` kiểm tra thêm: tiêu đề hai cột, hai dòng trong "Chi tiết dịch vụ", và ô "Bác sĩ tư vấn" / "Bác sĩ tư vấn 2" khi sửa dòng chỉ có đúng [D, H].
+- Sửa spec để hết đỏ:
+  - `consulting-plan` tự tạo dữ liệu trong `beforeAll`: bệnh nhân, phiếu chẩn đoán (răng 12, 11 + ghi chú), 2 dòng tư vấn, 1 ảnh, voucher `CN2…`. `afterAll` xoá voucher; bệnh nhân ở lại vì API không có DELETE bệnh nhân (405). Bước "Cột hiển thị" cuộn nút lên đầu trước khi kéo.
+  - `stage-treatment-date`:
+    - Dùng lại một dịch vụ cố định cho mỗi số ngày bảo hành (`DV BH NGAY DT E2E 0/2/30`), tạo lần đầu rồi dùng lại. Không thể xoá sau khi chạy vì dịch vụ đã nằm trên dòng phiếu (`Catalogs:0033`, cả DELETE lẫn PUT `isDeleted`).
+    - `freshLine` lấy phiếu mở **mới nhất**: phiếu cũ nhất đã trôi xuống trang 5 của bệnh nhân fixture có 91 phiếu, nên không tìm thấy dòng.
+    - Gõ "Ngày điều trị" lặp lại nếu dialog render lại giữa chừng (đã gặp 1 lần "14/10/0020" trên "Tạo bảo hành").
+  - DB local: soft-delete 29 + 14 dịch vụ "DV BH NGAY DT <số>" bị sót.
+- Kết quả (host thật :5000, `vite preview` 127.0.0.1:8143, PostgreSQL thật, không chặn API):
+  - Lần chạy chung `consulting-plan`, `plan-advisor-scope`, `stage-treatment-date`, `treatment-plan`, `treatment-plan-detail`, `org-chart-api`: 44/47. Ba ca đỏ đều thuộc `stage-treatment-date`, đã sửa như trên.
+  - Chạy lại `stage-treatment-date` + `treatment-plan`: **13/13**.
+  - `stage-treatment-date` thêm một lần: **4/4**, vẫn chỉ có 3 dịch vụ E2E.
+
+**Chưa commit.**

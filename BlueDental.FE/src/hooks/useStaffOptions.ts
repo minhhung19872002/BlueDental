@@ -178,6 +178,28 @@ export function useDentistSearch(search: string, enabled = true, availableOn?: s
 }
 
 /**
+ * "Bác sĩ tư vấn" on "Thêm dịch vụ" (R-954): dentists narrowed on the server to
+ * the signed-in user's part of the Sơ đồ tổ chức, the user first and the rest
+ * by "Mức độ ưu tiên".
+ */
+export function useAdvisorDentistSearch(search: string, enabled = true) {
+  const term = search.trim();
+
+  return useQuery({
+    queryKey: [...staffOptionKeys.all, "advisor-dentists", "search", term] as const,
+    queryFn: async (): Promise<StaffOption[]> => {
+      const response = await api.get("/v1/app/staff", {
+        params: { ...searchParams(term, undefined, STAFF_ROLE.Dentist), AdvisorScope: true },
+      });
+      const items: StaffSearchRow[] = response.data?.items ?? [];
+      return items.map((row) => ({ value: row.id, label: displayName(row) }));
+    },
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+/**
  * Server-searched staff, narrowed to the "Phụ tá" picker's people: staff ticked
  * "Phụ tá" or "Y sĩ" (owner, 2026-10-05). No one ticked means no one offered.
  */

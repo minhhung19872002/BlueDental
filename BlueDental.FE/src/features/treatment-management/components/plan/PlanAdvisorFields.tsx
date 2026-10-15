@@ -4,7 +4,7 @@ import { Plus, X } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
-import { useStaffOptionsSearch } from "@/hooks/usePickerOptions";
+import { useAdvisorDentistOptions } from "@/hooks/usePickerOptions";
 
 interface Props {
   /** Whether the slip already names a second advisor when the dialog opens. */
@@ -20,9 +20,12 @@ interface Props {
 }
 
 /**
- * Top of "Cập nhật phiếu dịch vụ": the advising staff, one or two of them.
- * The round "+" beside the first opens a second field; the red "×" beside
- * the second folds it away again, the way the reference does.
+ * Top of "Thêm dịch vụ" / "Cập nhật phiếu dịch vụ": the advising dentists, one
+ * or two of them. The round "+" beside the first opens a second field; the red
+ * "×" beside the second folds it away again, the way the reference does.
+ *
+ * Both offer only dentists, narrowed on the server to the signed-in user's
+ * part of the Sơ đồ tổ chức with the user first (BA 2026-10-15, R-954).
  */
 export function PlanAdvisorFields({
   hasSecond,
@@ -44,22 +47,22 @@ export function PlanAdvisorFields({
         <div className="tp-advisor-field">
           <FloatingField
             name="advisorId"
-            label={t("Treatment:Consulting:Advisor1")}
+            label={t("Treatment:Plan:DentistAdvisor1")}
             required
-            rules={[{ required: true, message: t("Treatment:Consulting:AdvisorRequired") }]}
+            rules={[{ required: true, message: t("Treatment:Plan:DentistAdvisorRequired") }]}
           >
             <ServerSearchSelect
-              useOptions={useStaffOptionsSearch}
+              useOptions={useAdvisorDentistOptions}
               valueLabel={advisorName}
-              notFoundText={t("Treatment:Consulting:NoAdvisor")}
+              notFoundText={t("Treatment:Plan:NoDentistAdvisor")}
             />
           </FloatingField>
           {!secondShown && (
-            <Tooltip title={t("Treatment:Consulting:AddAdvisor")}>
+            <Tooltip title={t("Treatment:Plan:AddDentistAdvisor")}>
               <button
                 type="button"
                 className="tp-round-btn"
-                aria-label={t("Treatment:Consulting:AddAdvisor")}
+                aria-label={t("Treatment:Plan:AddDentistAdvisor")}
                 onClick={() => setSecondShown(true)}
               >
                 <Plus size={16} aria-hidden="true" />
@@ -69,18 +72,18 @@ export function PlanAdvisorFields({
         </div>
         {secondShown ? (
           <div className="tp-advisor-field">
-            <FloatingField name="secondAdvisorId" label={t("Treatment:Consulting:Advisor2")}>
+            <FloatingField name="secondAdvisorId" label={t("Treatment:Plan:DentistAdvisor2")}>
               <ServerSearchSelect
-                useOptions={useStaffOptionsSearch}
+                useOptions={useAdvisorDentistOptions}
                 valueLabel={secondAdvisorName}
-                notFoundText={t("Treatment:Consulting:NoAdvisor")}
+                notFoundText={t("Treatment:Plan:NoDentistAdvisor")}
               />
             </FloatingField>
-            <Tooltip title={t("Treatment:Consulting:RemoveAdvisor2")}>
+            <Tooltip title={t("Treatment:Plan:RemoveDentistAdvisor2")}>
               <button
                 type="button"
                 className="tp-round-btn tp-round-btn--danger"
-                aria-label={t("Treatment:Consulting:RemoveAdvisor2")}
+                aria-label={t("Treatment:Plan:RemoveDentistAdvisor2")}
                 onClick={hideSecond}
               >
                 <X size={16} aria-hidden="true" />

@@ -109,6 +109,12 @@ public class GetStaffListInput : PagedAndSortedResultRequestDto
     /// the Sơ đồ tổ chức (F-67). Other screens leave it off.
     /// </summary>
     public bool? ScheduleScope { get; set; }
+
+    /// <summary>
+    /// "Bác sĩ tư vấn" on "Thêm dịch vụ" (R-954): keep only the people the
+    /// caller may pick there on the Sơ đồ tổ chức, the caller first.
+    /// </summary>
+    public bool? AdvisorScope { get; set; }
 }
 
 /// <summary>Which people a staff picker offers (owner, 2026-10-05).</summary>

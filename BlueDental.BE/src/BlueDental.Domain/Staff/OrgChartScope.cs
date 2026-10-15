@@ -58,6 +58,34 @@ public static class OrgChartScope
         return visible;
     }
 
+    /// <summary>
+    /// Whom a user may name as "Bác sĩ tư vấn" on "Thêm dịch vụ" (BA 2026-10-15,
+    /// "trước mắt"). Heads see what <see cref="VisibleStaff"/> gives them, but a
+    /// dentist who heads nothing sees their whole unit — the root's direct
+    /// members included — rather than only themselves.
+    /// </summary>
+    /// <returns><c>null</c> when nothing is hidden; otherwise the staff ids the viewer may pick.</returns>
+    public static IReadOnlySet<Guid>? VisibleAdvisors(
+        Guid viewerId,
+        bool viewerIsDentist,
+        IReadOnlyCollection<OrgScopeUnit> units,
+        IReadOnlyCollection<(Guid OrgUnitId, Guid StaffId)> members)
+    {
+        if (!viewerIsDentist || units.Any(u => u.HeadStaffId == viewerId))
+        {
+            return VisibleStaff(viewerId, viewerIsDentist, units, members);
+        }
+
+        var visible = new HashSet<Guid> { viewerId };
+        var ownUnits = members.Where(m => m.StaffId == viewerId).Select(m => m.OrgUnitId).ToHashSet();
+        foreach (var member in members.Where(m => ownUnits.Contains(m.OrgUnitId)))
+        {
+            visible.Add(member.StaffId);
+        }
+
+        return visible;
+    }
+
     /// <summary>The unit and every unit below it.</summary>
     public static IReadOnlySet<Guid> Subtree(Guid unitId, IReadOnlyCollection<OrgScopeUnit> units)
     {

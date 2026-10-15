@@ -113,10 +113,12 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
         services: { id: string; serviceId: string; serviceName: string | null; warrantyDays: number; originalPrice: number }[];
       }[];
 
-      // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
+      // 5 = Completed, 6 = Cancelled: a closed slip takes no new line. The
+      // newest open one, so its row sits on page 1 of the patient's Kế hoạch
+      // điều trị — the oldest had sunk to page 5 of a fixture patient's 91 slips.
       const slip = slips
         .filter((item) => item.branchId === branch && item.status !== 5 && item.status !== 6)
-        .sort((a, b) => a.creationTime.localeCompare(b.creationTime))[0];
+        .sort((a, b) => b.creationTime.localeCompare(a.creationTime))[0];
       if (!slip) return { error: "no open slip in branch 1" };
 
       const known = new Set(slip.services.map((line) => line.id));
@@ -159,8 +161,25 @@ async function freshLine(page: Page, tooth: number, serviceId?: string): Promise
   return (made as { line: Line }).line;
 }
 
-/** A catalog service of branch 1 carrying a warranty period of its own. */
+/**
+ * A catalog service of branch 1 carrying a warranty period of its own — one per
+ * period, made on the first run and reused after. A fresh one per run cannot be
+ * cleaned up (a service on a slip line refuses delete, `Catalogs:0033`), and
+ * left behind they piled up as "DV BH NGAY DT …" at 100.000 đ, filling the top
+ * of every branch-1 service picker — treatment-plan's discount test then found
+ * no service worth more than its discount (R-954).
+ */
 async function warrantyService(page: Page, warrantyDays: number): Promise<string> {
+  const name = `DV BH NGAY DT E2E ${warrantyDays}`;
+  const found = await call(
+    page,
+    "GET",
+    `/api/v1/app/catalog-entries?ClinicBranchId=${BRANCH}&Group=care_service&IsDeleted=false&IsActive=true&Filter=${encodeURIComponent(name)}&MaxResultCount=20`,
+  );
+  expect(found.status, found.text).toBe(200);
+  const existing = (found.json as { items: { id: string; name: string }[] }).items.find((item) => item.name === name);
+  if (existing) return existing.id;
+
   const groups = await call(
     page,
     "GET",
@@ -170,7 +189,7 @@ async function warrantyService(page: Page, warrantyDays: number): Promise<string
   const made = await call(page, "POST", "/api/v1/app/catalog-entries", {
     clinicBranchId: BRANCH,
     taxonomyId,
-    name: `DV BH NGAY DT ${runId()}`,
+    name,
     price: 100000,
     stages: [],
     serviceConfig: {
@@ -227,9 +246,14 @@ async function pickTreatmentDate(page: Page, form: Locator, day: string): Promis
   await expect(panel.locator(`td[title="${isoDay(0)}"]`)).not.toHaveClass(/ant-picker-cell-disabled/);
   await expect(panel.locator(`td[title="${isoDay(1)}"]`)).toHaveClass(/ant-picker-cell-disabled/);
 
-  await date.pressSequentially(typed(day).replaceAll("/", ""));
-  await date.press("Enter");
-  await expect(date).toHaveValue(typed(day));
+  // Typed again when a late re-render of the dialog resets the box mid-typing
+  // (seen once on "Tạo bảo hành": 14/10/0020).
+  await expect(async () => {
+    await date.click({ position: { x: 6, y: 8 } });
+    await date.pressSequentially(typed(day).replaceAll("/", ""));
+    await date.press("Enter");
+    await expect(date).toHaveValue(typed(day), { timeout: 1_000 });
+  }).toPass({ timeout: 15_000 });
 }
 
 /**

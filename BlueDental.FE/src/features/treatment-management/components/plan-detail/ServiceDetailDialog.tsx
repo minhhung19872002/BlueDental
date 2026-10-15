@@ -83,8 +83,8 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
               { label: t("Treatment:Common:Doctor"), value: dash(row.plan.dentistName) },
               { label: t("Treatment:Diagnosis:DoctorOne"), value: dash(row.advise?.staffName) },
               { label: t("Treatment:Diagnosis:DiagnosisTwo"), value: dash(row.advise?.secondStaffName) },
-              { label: t("Treatment:Consulting:ConsultantOne"), value: dash(row.plan.consultantName) },
-              { label: t("Treatment:Consulting:ConsultantTwo"), value: "—" },
+              { label: t("Treatment:PlanDetail:Col:Consultant1"), value: dash(row.service.consultantName ?? row.plan.consultantName) },
+              { label: t("Treatment:PlanDetail:Col:Consultant2"), value: dash(row.service.secondConsultantName) },
             ]}
           />
           <Section

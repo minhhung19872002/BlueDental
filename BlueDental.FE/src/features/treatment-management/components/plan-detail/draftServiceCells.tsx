@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import {
   useDentistOptions,
   useDiagnosisOptions,
-  useStaffOptionsSearch,
+  useAdvisorDentistOptions,
 } from "@/hooks/usePickerOptions";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { jawLabel } from "@/components/ToothChart";
@@ -213,14 +213,14 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
     />
   ),
   consultant1: (draft) => (
-    <IdSelect draft={draft} field="consultantStaffId" useOptions={useStaffOptionsSearch} placeholder={t("Treatment:Common:Advisor1Short")} />
+    <IdSelect draft={draft} field="consultantStaffId" useOptions={useAdvisorDentistOptions} placeholder={t("Treatment:Plan:DentistAdvisor1")} />
   ),
   consultant2: (draft) => (
     <IdSelect
       draft={draft}
       field="secondConsultantStaffId"
-      useOptions={useStaffOptionsSearch}
-      placeholder={t("Treatment:Common:Advisor2Short")}
+      useOptions={useAdvisorDentistOptions}
+      placeholder={t("Treatment:Plan:DentistAdvisor2")}
     />
   ),
   actions: (draft) => <DraftActionsCell draft={draft} />,

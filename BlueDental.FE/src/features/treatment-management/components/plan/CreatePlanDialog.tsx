@@ -34,9 +34,9 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
 };
 
 /**
- * "Tạo phiếu dịch vụ": one service, its diagnosis, teeth and price → a new
+ * "Thêm dịch vụ" (R-954): one service, its diagnosis, teeth and price → a new
  * slip. Given an `advise` it is the reference's "Cập nhật phiếu dịch vụ": the
- * advising staff on top, service/doctor/diagnosis locked, price, quantity,
+ * advising dentists on top, service/doctor/diagnosis locked, price, quantity,
  * discount, note and teeth open. Given a `planId` the same form adds the
  * service to that slip instead of opening a new one.
  */

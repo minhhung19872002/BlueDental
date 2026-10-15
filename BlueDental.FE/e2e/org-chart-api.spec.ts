@@ -92,6 +92,20 @@ async function scheduleRows(page: Page, run: string): Promise<string[]> {
   return res.body.items.map((s) => s.id).sort();
 }
 
+/**
+ * The dentists "Bác sĩ tư vấn" on Thêm dịch vụ offers the signed-in account,
+ * among this run's staff, in the order the picker shows them (R-954).
+ */
+async function advisorRows(page: Page, run: string): Promise<string[]> {
+  const res = await call<{ items: { id: string }[] }>(
+    page,
+    `${STAFF}?AdvisorScope=true&Role=1&IsActive=true&Filter=${encodeURIComponent(run)}&MaxResultCount=100`,
+    { branchId: BRANCH_ONE },
+  );
+  expect(res.status, `advisor staff list (${JSON.stringify(res.body.error)})`).toBe(200);
+  return res.body.items.map((s) => s.id);
+}
+
 async function signInAs(browser: Browser, userName: string): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -105,6 +119,8 @@ test.describe.serial("Sơ đồ tổ chức — API rules", () => {
   /** Dentists A, B, C and non-dentists X, Y; A/B/C sign in with the admin role so only the chart narrows them. */
   const staff: Record<"a" | "b" | "c" | "x" | "y", RunStaff> = {} as Record<"a" | "b" | "c" | "x" | "y", RunStaff>;
   const units: string[] = [];
+  /** "Mức độ ưu tiên" of the dentists: A first, then C, then B. */
+  const PRIORITY = { a: 1, b: 5, c: 3 } as const;
   let rootHeadBefore: string | null = null;
 
   test.beforeAll(async ({ browser }) => {
@@ -112,7 +128,7 @@ test.describe.serial("Sơ đồ tổ chức — API rules", () => {
     await login(admin);
     rootHeadBefore = (await chart(admin)).units.find((u) => u.id === ROOT_ID)?.headStaffId ?? null;
     for (const key of ["a", "b", "c"] as const) {
-      staff[key] = await createRunStaff(admin, BRANCH_ONE, `${run}${key}`, { name: `BS ${key.toUpperCase()}`, isDentist: true, roleNames: ["admin"] });
+      staff[key] = await createRunStaff(admin, BRANCH_ONE, `${run}${key}`, { name: `BS ${key.toUpperCase()}`, isDentist: true, roleNames: ["admin"], priority: PRIORITY[key] });
     }
     for (const key of ["x", "y"] as const) {
       staff[key] = await createRunStaff(admin, BRANCH_ONE, `${run}${key}`, { name: `NV ${key.toUpperCase()}` });
@@ -274,6 +290,24 @@ test.describe.serial("Sơ đồ tổ chức — API rules", () => {
     await loner.context().close();
   });
 
+  test("Bác sĩ tư vấn: a head is offered their subtree, a member their whole unit, the signed-in dentist first", async ({ browser }) => {
+    // Same chart: Phòng (head X) > Team PB (head A, member C); B sits nowhere. No non-dentist is offered.
+    expect(await advisorRows(admin, run), "a non-dentist gets every dentist, by Mức độ ưu tiên").toEqual([staff.a.id, staff.c.id, staff.b.id]);
+
+    const head = await signInAs(browser, `tk-e2e-${run}a`);
+    expect(await advisorRows(head, run)).toEqual([staff.a.id, staff.c.id]);
+    await head.context().close();
+
+    // Unlike Lịch làm việc, a member is offered everyone in their unit — themselves first, ahead of A's higher priority.
+    const member = await signInAs(browser, `tk-e2e-${run}c`);
+    expect(await advisorRows(member, run)).toEqual([staff.c.id, staff.a.id]);
+    await member.context().close();
+
+    const loner = await signInAs(browser, `tk-e2e-${run}b`);
+    expect(await advisorRows(loner, run)).toEqual([staff.b.id]);
+    await loner.context().close();
+  });
+
   test("the Tổng giám đốc's own team: a member dentist sees only themselves and is removed one by one", async ({ browser }) => {
     // "BS tới vẫn phải quản lý team" (BA 2026-10-13): people go straight under the root.
     const assigned = await call(admin, `${ORG}/assign`, { method: "POST", branchId: BRANCH_ONE, json: { orgUnitId: ROOT_ID, staffIds: [staff.b.id, staff.y.id] } });
@@ -284,6 +318,8 @@ test.describe.serial("Sơ đồ tổ chức — API rules", () => {
     // "Các member trong team sẽ không đc thấy lịch của các bác sĩ khác cũng như các nhánh cây bên dưới".
     const member = await signInAs(browser, `tk-e2e-${run}b`);
     expect(await scheduleRows(member, run)).toEqual([staff.b.id]);
+    // As Bác sĩ tư vấn the root's member gets the root's own members (Y is no dentist), never the units under it.
+    expect(await advisorRows(member, run)).toEqual([staff.b.id]);
     await member.context().close();
     // The limit is for dentists only: a lễ tân in the same team still sees everyone (BA answer A).
     expect(await scheduleRows(admin, run)).toEqual(Object.values(staff).map((s) => s.id).sort());

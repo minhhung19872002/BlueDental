@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { todayIsoDate } from "@/utils/todayIsoDate";
-import { useAssistantSearch, useDentistSearch, useStaffSearch } from "./useStaffOptions";
+import { useAdvisorDentistSearch, useAssistantSearch, useDentistSearch, useStaffSearch } from "./useStaffOptions";
 import { CATALOG_GROUP, useCatalogOptionSearch } from "./useCatalogOptions";
 import type { ServerSearchOption } from "@/components/ServerSearchSelect";
 
@@ -40,6 +40,12 @@ export function useAssistantOptionsToday(search: string, enabled: boolean): Opti
 /** Any member of staff, for the consulting and diagnosing columns. */
 export function useStaffOptionsSearch(search: string, enabled: boolean): OptionSource {
   const query = useStaffSearch(search, enabled);
+  return { options: query.data ?? [], loading: query.isFetching };
+}
+
+/** Dentists the signed-in user may name as "Bác sĩ tư vấn" (Sơ đồ tổ chức, R-954). */
+export function useAdvisorDentistOptions(search: string, enabled: boolean): OptionSource {
+  const query = useAdvisorDentistSearch(search, enabled);
   return { options: query.data ?? [], loading: query.isFetching };
 }
 
