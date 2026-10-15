@@ -8890,3 +8890,41 @@ Code đã commit ở 7e4ba6bf / 0585ca4c. Các sửa spec ở trên (`treatment-
   - Ba test cũ dùng `.pd-stage-steps .ant-checkbox-wrapper` sẽ bắt nhầm ô Chọn tất cả, nên đã thu về `.pd-stage-steplist .ant-checkbox-wrapper`.
 - Kết quả (cùng môi trường): `patient.spec -g "Danh sách công đoạn"` 3/3; `cskh-after-treatment` + `stage-treatment-date` + `stage-staff-pickers` + `treatment-stage-chain` 17/17.
 - Chưa commit.
+
+## R-961 (2026-10-15, level 2 + the locked /taxonomy regression) Xuất / Nhập công đoạn on Cập nhật dịch vụ → tab Công đoạn
+
+**What changed**
+
+- `Xuất` and `Nhập` sit beside `+ Công đoạn`, on the same row; on a phone they wrap under it. The tab is shared by the service and combo dialogs.
+- `Nhập` opens the catalog import's dialog ("Nhập công đoạn từ Excel"): Chọn file → Kiểm tra → Hoàn tất.
+  - The check runs in the browser, against the same rules as the table.
+  - The preview table shows Dòng / 4 columns / Lỗi / Kết quả, with the tags Thêm mới, Cập nhật, Giữ nguyên, Xóa and Lỗi.
+  - "Chỉ hiện dòng lỗi", "Tải file lỗi" and "Tải file mẫu" are there. A missing column or an empty sheet shows in the "Lỗi file" box.
+- Owner decisions:
+  - The file replaces the list. Each row keeps the id of the current stage with the same name (folded name; the k-th duplicate matches the k-th).
+  - One bad row blocks the whole file.
+  - Stages missing from the file show as "Xóa" rows, with a warning.
+  - Nothing is stored until the service dialog's `Lưu`.
+- The template has no STT column; required headers end in " *".
+- New BE guard `BlueDental:Catalogs:0035` (UsedStageGuard): a save that drops a stage referenced by a patient's TreatmentStage is refused. It covers the bin icon, this import and the bulk catalog import.
+  - Watch out: a bulk catalog import that changes the stage list of a service already in use now gets 0035.
+- First version (a bare file input with toast / confirm errors) was replaced at the owner's request ("giống ở các trang khác").
+  - Gotcha found on the way: `.ant-form input[type="file"]{display:block}` beats a single-class `display:none`.
+- The preview table's widths add up to 900px, the 960px dialog's body. At 1014px the "Lỗi" text slid under the fixed "Kết quả" column (screenshot).
+
+**Spec** `e2e/taxonomy-stage-excel.spec.ts`, 3 tests:
+
+1. Export, then the preview tags and the removal warning, "Chọn file khác", "Nhập 3 dòng" then "Đóng". The DB is unchanged before Lưu; after Lưu the ids are kept by name (read back with a separate request).
+2. Template header only; 7 bad rows, each with its reason; "Nhập 0 dòng" disabled; the error filter; the error file; a missing column; an empty file.
+3. Guard 0035 through the API and through the bin icon.
+
+**Results** (vite preview :8080 production build + real host :5000 + PostgreSQL; no interception)
+
+- The new spec passes 3/3.
+- The locked set (`taxonomy*`, `payment-qr`, `branch-*`) passes 86/91.
+- The 5 reds are also red on the pre-R-961 build (fe181df7, git archive, :8131), same 5 tests, so they are pre-existing and local-data related:
+  - `branch-switcher` :41 (the branch-2 header)
+  - `taxonomy-active-state` :167 (`.tp-code` on the slip page)
+  - `taxonomy-dialogs` :104 (the labo option)
+  - `taxonomy-dialogs` :256 ("the branch should have a service group")
+  - `taxonomy-groups` :169 (the new group not in the visible list)
