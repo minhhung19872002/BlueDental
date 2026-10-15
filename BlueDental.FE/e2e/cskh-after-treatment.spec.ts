@@ -300,7 +300,7 @@ test.describe("CSKH › Sau điều trị từ Tiếp tục công đoạn", () =
     await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${BRANCH}`);
     const planRow = page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`);
     await expect(planRow).toBeVisible({ timeout: 20_000 });
-    await planRow.locator(".pdt-status--menu").click();
+    await planRow.locator(".pdt-status-trigger").click();
     const completed = page.waitForResponse(
       (res) => res.url().endsWith(`/services/${line.lineId}/complete`) && res.request().method() === "POST",
     );

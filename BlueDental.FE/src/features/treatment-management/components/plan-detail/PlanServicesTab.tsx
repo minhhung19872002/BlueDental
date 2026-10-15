@@ -30,7 +30,7 @@ import { PlanSlipDialog } from "./PlanSlipDialog";
 import { PlanStageSection } from "./PlanStageSection";
 import { ServiceCardList } from "./ServiceCardList";
 import { ServiceDetailDialog } from "./ServiceDetailDialog";
-import type { ServiceAction } from "./ServiceStatusPill";
+import type { ServiceAction } from "./ServiceStatusMenu";
 import { buildServiceColumns, type ServiceRowActions } from "./serviceColumns";
 import { planDetailRows, type PlanDetailRow } from "./planDetailTypes";
 

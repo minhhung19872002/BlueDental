@@ -8,8 +8,16 @@ import { formatToothCodes } from "../../api/consultingApi";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import { moneyText } from "../plan/planTypes";
 import { DiscountBreakdown } from "./DiscountBreakdown";
-import { ServiceStatusPill, type ServiceAction } from "./ServiceStatusPill";
-import { dash, lineDiscountParts, lineNetAmount, listUnitPrice, type PlanDetailRow } from "./planDetailTypes";
+import { ServiceStatusMenu, type ServiceAction } from "./ServiceStatusMenu";
+import { ServiceStatusPill } from "./ServiceStatusPill";
+import {
+  dash,
+  isLineOpen,
+  lineDiscountParts,
+  lineNetAmount,
+  listUnitPrice,
+  type PlanDetailRow,
+} from "./planDetailTypes";
 
 export interface ServiceRowActions {
   onView: (row: PlanDetailRow) => void;
@@ -19,6 +27,29 @@ export interface ServiceRowActions {
   onEdit?: (row: PlanDetailRow) => void;
   /** "Xóa". Left out without treatmentConsultation.delete; shown only on lines still "Đã tạo". */
   onDelete?: (row: PlanDetailRow) => void;
+}
+
+/**
+ * "Đổi trạng thái" on a row, its menu wired to {@link ServiceRowActions.onStatus};
+ * only when the user may move lines and this one is still open.
+ */
+export function LineStatusMenu({
+  row,
+  actions,
+  buttonClassName,
+}: {
+  row: PlanDetailRow;
+  actions: ServiceRowActions;
+  buttonClassName: string;
+}) {
+  if (!actions.onStatus || !isLineOpen(row.service)) return null;
+  return (
+    <ServiceStatusMenu
+      service={row.service}
+      buttonClassName={buttonClassName}
+      onAction={(action) => actions.onStatus?.(row, action)}
+    />
+  );
 }
 
 /** Owner 2026-10-15 (R-953): only a line nobody has started on can be taken off the slip. */
@@ -52,15 +83,12 @@ export function ServiceNameCell({ row }: { row: PlanDetailRow }) {
   );
 }
 
-/** The status pill (a menu on an open line) and how many công đoạn the line has had. */
-export function StatusCell({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
+/** The status pill (read only — moving it is in Thao tác) and how many công đoạn the line has had. */
+export function StatusCell({ row }: { row: PlanDetailRow }) {
   const stages = row.service.stageCount;
   return (
     <span className="pdt-line-status">
-      <ServiceStatusPill
-        service={row.service}
-        onAction={actions.onStatus && ((action) => actions.onStatus?.(row, action))}
-      />
+      <ServiceStatusPill service={row.service} />
       {stages > 0 && <span className="pdt-stage-count">{t("Treatment:Service:StageCount", stages)}</span>}
     </span>
   );
@@ -90,7 +118,10 @@ function column(
   return { key, title, width, ...extra, render: (_, row) => render(row) };
 }
 
-/** Thao tác: the eye, the pencil on a line still open, and "Xóa" on a line still "Đã tạo". */
+/**
+ * Thao tác: the eye, "Đổi trạng thái" on a line still open, the pencil on a
+ * line still editable, and "Xóa" on a line still "Đã tạo".
+ */
 function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
   const editable = actions.onEdit && isLineEditable(row);
   const deletable = actions.onDelete && isLineDeletable(row);
@@ -101,6 +132,7 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
           <Eye size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
+      <LineStatusMenu row={row} actions={actions} buttonClassName="tp-eye" />
       {editable && (
         <ActionTooltip title={t("Common:Edit")}>
           <button type="button" className="tp-eye" aria-label={t("Common:Edit")} onClick={() => actions.onEdit?.(row)}>
@@ -136,14 +168,14 @@ export function buildServiceColumns(actions: ServiceRowActions): TableColumnsTyp
     column("diagnosis", t("Treatment:PlanDetail:Col:Diagnosis"), 200, diagnosisOf),
     // Tooth numbers only — staging prints no surfaces in this column.
     column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 120, (row) => dash(formatToothCodes(row.service.teeth))),
-    column("status", t("Common:Status"), 170, (row) => <StatusCell row={row} actions={actions} />),
+    column("status", t("Common:Status"), 170, (row) => <StatusCell row={row} />),
     // Đơn giá prints the giá gốc (staging 2026-09-28).
     column("price", t("Treatment:Pricing:UnitPrice"), 150, (row) => moneyText(listUnitPrice(row.service)), { align: "right" }),
     column("discount", t("Treatment:Pricing:Discount"), 140, (row) => <DiscountCell row={row} />, { align: "right" }),
     column("amount", t("Treatment:Pricing:NetAmount"), 150, (row) => <strong>{moneyText(lineNetAmount(row.service))}</strong>, {
       align: "right",
     }),
-    column("actions", t("Common:Actions"), 100, (row) => <LineActions row={row} actions={actions} />, {
+    column("actions", t("Common:Actions"), 150, (row) => <LineActions row={row} actions={actions} />, {
       align: "center",
       fixed: "right",
     }),
