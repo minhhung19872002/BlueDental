@@ -627,8 +627,9 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(row.locator(".pd-tr-pay")).toHaveCount(0);
   });
 
-  // The row's inline "Chỉnh sửa" is gone (R-957); its edit dialog comes in a
-  // task of its own. Until then the server's guards are checked directly.
+  // The row's pencil stays but no longer edits inline (R-957); its edit
+  // dialog comes in a task of its own. Until then the server's guards are
+  // checked directly.
   test("a line in treatment keeps its price and its staged teeth", async ({
     page,
   }) => {
@@ -640,7 +641,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(row).toBeVisible({ timeout: 20_000 });
     // Răng is the fourth column: tooth numbers only, surfaces left off.
     await expect(row.locator("td").nth(3)).toHaveText("11, 12");
-    await expect(row.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: "Chỉnh sửa" })).toBeVisible();
 
     // Put 11 to work: the line is now in treatment.
     await stageOn(page, line, [11], false);
