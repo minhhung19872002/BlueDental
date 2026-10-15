@@ -1,13 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { purgeRunGroups } from "./fixtures/cleanup";
+import { openExtraServiceDialog } from "./fixtures/extraService";
+import { openNewSlip } from "./fixtures/ledgerReceipt";
 
 /**
  * Bug list item 36: the Dịch vụ, Chẩn đoán/Tư vấn and Nguồn đến/Lịch sử/Nghề
  * nghiệp dialogs sent no "isActive" once "Đang hoạt động / Đã xoá" became a
  * soft delete, so every Lưu switched the entry off while the dialog still
  * showed "Đang hoạt động ✓" — and the pickers, which list live entries only,
- * lost it ("Không tìm thấy dịch vụ" on Tạo kế hoạch mới).
+ * lost it ("Không tìm thấy dịch vụ" in Tạo phiếu dịch vụ).
  *
  * Rule now: an entry saved as "Đang hoạt động" is live; a request that leaves
  * "isActive" out keeps what is stored.
@@ -162,7 +164,7 @@ test.describe("Danh mục — trạng thái hoạt động (bug 36)", () => {
     expect(await pickerNames(page, "care_service", name)).toContain(name);
   });
 
-  test("UI: a service created and saved again is still offered on Tạo kế hoạch mới", async ({ page }) => {
+  test("UI: a service created and saved again is still offered in Tạo phiếu dịch vụ", async ({ page }) => {
     const id = runId();
     const name = `DV ACTIVE ${id}`;
 
@@ -182,16 +184,10 @@ test.describe("Danh mục — trạng thái hoạt động (bug 36)", () => {
     await page.reload();
     expect((await readEntry(page, saved.taxonomyId, saved.id)).isActive).toBe(true);
 
-    // QA step 2: the slip's service picker finds it by name.
-    await page.goto("/patient");
-    const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
-    await expect(firstName).toBeVisible();
-    await firstName.click();
-    await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-    await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
-    await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
-    const slip = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
-    await expect(slip).toBeVisible();
+    // QA step 2: the slip's service picker finds it by name — the dialog opens
+    // from "Thêm dịch vụ phát sinh" on a slip now (owner 2026-10-15).
+    await openNewSlip(page);
+    const slip = await openExtraServiceDialog(page);
 
     await slip.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
     await page.keyboard.type(name);

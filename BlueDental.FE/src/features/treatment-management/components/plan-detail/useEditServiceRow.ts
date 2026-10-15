@@ -11,7 +11,7 @@ import {
 } from "../../api/treatmentPlanApi";
 import { toothValueToDtos, type ToothPickerValue } from "../plan/toothPicker";
 import { lineNetAmount, unitPriceError, type PlanDetailRow } from "./planDetailTypes";
-import type { DraftServiceController, DraftServiceValues } from "./useDraftServiceRow";
+import type { DraftServiceController, DraftServiceValues } from "./draftServiceTypes";
 
 /**
  * Whether the plan table offers "Chỉnh sửa" on a line — staging's own rule,

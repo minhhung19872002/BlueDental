@@ -178,13 +178,6 @@ a.pdt-crumb:hover {
   flex: 1 1 420px;
   min-width: 0;
 }
-.pdt-picker {
-  flex: 0 1 250px;
-  min-width: 0;
-}
-.pdt-picker .ant-form-item {
-  margin: 0;
-}
 .pdt-print {
   display: inline-flex;
   width: 40px;
@@ -988,9 +981,7 @@ a.pdt-crumb:hover {
   .pdt-toolbar-start {
     flex-wrap: nowrap;
   }
-  .pdt-picker {
-    flex: 1 1 0;
-  }
+  .pdt-toolbar-start .tp-btn,
   .pdt-toolbar-end .tp-btn {
     flex: 1 1 auto;
     justify-content: center;

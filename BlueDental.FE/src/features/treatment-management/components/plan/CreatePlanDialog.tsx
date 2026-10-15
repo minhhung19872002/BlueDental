@@ -22,6 +22,8 @@ interface Props {
   advise?: PatientAdviseDto | null;
   /** Opened on a báo giá's tab: the price and discount saved are that quote's. */
   quote?: QuoteEditTarget | null;
+  /** Opened from a slip's "Thêm dịch vụ phát sinh": the line is added to that slip. */
+  planId?: string | null;
   onClose: () => void;
 }
 
@@ -35,9 +37,10 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
  * "Tạo phiếu dịch vụ": one service, its diagnosis, teeth and price → a new
  * slip. Given an `advise` it is the reference's "Cập nhật phiếu dịch vụ": the
  * advising staff on top, service/doctor/diagnosis locked, price, quantity,
- * discount, note and teeth open.
+ * discount, note and teeth open. Given a `planId` the same form adds the
+ * service to that slip instead of opening a new one.
  */
-export function CreatePlanDialog({ open, patientId, branchId, advise, quote, onClose }: Props) {
+export function CreatePlanDialog({ open, patientId, branchId, advise, quote, planId, onClose }: Props) {
   const editing = Boolean(advise);
 
   // The service a slip already carries may have left the catalog; it travels
@@ -50,6 +53,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, onC
     services: pickerServices,
     advise,
     quote,
+    planId,
     onCreated: onClose,
   });
   const { form, teeth, totals } = state;

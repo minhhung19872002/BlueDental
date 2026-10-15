@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { openStageDialog } from "./fixtures/stageDialog";
 
 /**
  * Feature: "Ngày điều trị" on the công đoạn form of "Chi tiết phiếu" (BA,
@@ -264,10 +265,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     const room = daysAgo(line.openedOn);
     const picked = isoDay(-(room > 0 ? 1 + (Date.now() % room) : 0));
 
-    await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${line.branchId}`);
-    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
-    const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const dialog = await openStageDialog(page, line);
     await dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
     const form = dialog.locator(`.pd-stage-form[data-item-id="${line.lineId}"]`);
 
@@ -403,10 +401,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${sourceId}/complete`)).status).toBe(200);
 
     // Tạo bảo hành, from the finished công đoạn in Lịch sử điều trị.
-    await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${line.branchId}`);
-    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
-    const slip = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const slip = await openStageDialog(page, line);
     await slip.locator(`.pd-stage-histrow[data-stage-id="${sourceId}"]`).getByRole("button", { name: "Bảo hành" }).click();
 
     const warranty = page.getByRole("dialog", { name: "Tạo bảo hành" });
@@ -528,10 +523,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     // The form: the QA steps — Ctrl+A, type 01/01/2000, Enter, click Nội dung
     // điều trị. The page stays up, the field says why, and the day is unchanged.
     const other = await freshLine(page, 33);
-    await page.goto(`/patient/${other.patientId}/treatment-plan/${other.planId}?branchId=${other.branchId}`);
-    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${other.lineId}"]`)).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
-    const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const dialog = await openStageDialog(page, other);
     await dialog.locator(`.pd-stage-picks button[data-line-id="${other.lineId}"]`).click();
     const form = dialog.locator(`.pd-stage-form[data-item-id="${other.lineId}"]`);
     const date = form.locator(".pd-stage-date input");

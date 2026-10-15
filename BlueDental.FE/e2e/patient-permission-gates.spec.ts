@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { createSlipViaApi } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: the Bệnh nhân record follows the ability leaves.
@@ -14,9 +15,10 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  *    tab used to stay behind while its sibling went;
  *  - Kế hoạch điều trị and Chẩn đoán & Tư vấn need `treatmentConsultation
  *    .read`, which the slip list is checked against server-side;
- *  - "Tạo kế hoạch mới" needs `treatmentConsultation.create`, the leaf the
- *    server reads at `POST patient-treatments` (R-467 gated it on a subject
- *    that does not exist, so the button was hidden from everyone).
+ *  - the patient tab offers no "Tạo kế hoạch mới" to anyone (owner
+ *    2026-10-15); its dialog opens from "Thêm dịch vụ phát sinh" on a slip,
+ *    which needs `treatmentConsultation.update`, the leaf the server reads at
+ *    `POST patient-treatments/{id}/services`.
  *
  * The seeded `dentist` role carries no grants; every leaf is reset at the
  * start and again at the end.
@@ -28,7 +30,7 @@ const LEAVES = [
   "patient.read",
   "payment.read",
   "treatmentConsultation.read",
-  "treatmentConsultation.create",
+  "treatmentConsultation.update",
 ] as const;
 type Leaf = (typeof LEAVES)[number];
 
@@ -114,7 +116,7 @@ const withTab = (path: string, name: string) =>
   `${path}${path.includes("?") ? "&" : "?"}tab=${name}`;
 
 test.describe("Hồ sơ bệnh nhân — the tabs and their buttons follow the leaves", () => {
-  test("Hóa đơn, Lịch sử dư nợ, Kế hoạch điều trị and Tạo kế hoạch mới", async ({
+  test("Hóa đơn, Lịch sử dư nợ, Kế hoạch điều trị and Thêm dịch vụ phát sinh", async ({
     page,
     browser,
   }) => {
@@ -164,10 +166,21 @@ test.describe("Hồ sơ bệnh nhân — the tabs and their buttons follow the l
       await expect(dentist.getByRole("button", { name: "Xem tất cả dịch vụ" })).toBeVisible();
       await expect(dentist.getByRole("button", { name: "Tạo kế hoạch mới" })).toHaveCount(0);
 
-      // ── Tư vấn > Thêm is the leaf the server reads at POST ───────────────
-      await setDentistLeaf(page, "treatmentConsultation.create", true);
-      await dentist.goto(withTab(path, "treatment-plan"));
-      await expect(dentist.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
+      // A slip of this patient, written by admin, to open as the dentist.
+      const patientId = /\/patient\/([0-9a-f-]{36})/.exec(path)![1];
+      const slip = await createSlipViaApi(page, patientId);
+      const slipPath = `/patient/${patientId}/treatment-plan/${slip.id}`;
+      const addExtra = dentist.locator(".pdt-toolbar").getByRole("button", { name: "Thêm dịch vụ phát sinh" });
+      await dentist.goto(slipPath);
+      await expect(dentist.locator(".pdt-crumb--current")).toHaveText(slip.code, { timeout: 20_000 });
+      await expect(dentist.locator(".pdt-toolbar")).toBeVisible();
+      await expect(addExtra).toHaveCount(0);
+
+      // ── Tư vấn > Sửa is the leaf the server reads at POST …/services ─────
+      await setDentistLeaf(page, "treatmentConsultation.update", true);
+      await dentist.goto(slipPath);
+      await expect(addExtra).toBeVisible({ timeout: 20_000 });
+      await expect(dentist.getByRole("button", { name: "Tạo kế hoạch mới" })).toHaveCount(0);
     } finally {
       await context.close();
       await resetDentistLeaves(page);

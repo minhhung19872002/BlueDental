@@ -13,7 +13,11 @@ import {
   useUpdateAdvise,
 } from "../../api/consultingQueries";
 import { useRepricePatientQuoteLine } from "../../api/patientQuoteApi";
-import { useOpenTreatmentPlan } from "../../api/treatmentPlanApi";
+import {
+  SERVICE_LINE_STATUS,
+  useAddServiceLine,
+  useOpenTreatmentPlan,
+} from "../../api/treatmentPlanApi";
 import { adviseToFormValues, adviseToUpdateDto } from "./adviseEditing";
 import {
   EMPTY_TOOTH_VALUE,
@@ -68,6 +72,11 @@ interface Options {
   advise?: PatientAdviseDto | null;
   /** Editing on a báo giá's tab: the price and discount are that quote's own. */
   quote?: QuoteEditTarget | null;
+  /**
+   * "Thêm dịch vụ phát sinh" on a slip's detail page: the service goes onto
+   * this slip as a new line instead of opening a slip of its own.
+   */
+  planId?: string | null;
   onCreated: () => void;
 }
 
@@ -83,7 +92,15 @@ export interface QuoteEditTarget {
  * accepted advise. The reference's own save request was not observed
  * (docs/clone/unknowns.md), so the form mirrors its fields, not its wire shape.
  */
-export function useCreatePlanForm({ patientId, branchId, services, advise, quote, onCreated }: Options) {
+export function useCreatePlanForm({
+  patientId,
+  branchId,
+  services,
+  advise,
+  quote,
+  planId,
+  onCreated,
+}: Options) {
   const [form] = Form.useForm<CreatePlanValues>();
   const [teeth, setTeethValue] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
   const [fieldErrors, setFieldErrors] = useState<PlanFieldErrors>({});
@@ -99,6 +116,7 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, quote
   const createAdvise = useCreateAdvise();
   const acceptAdvise = useAcceptAdvise();
   const openPlan = useOpenTreatmentPlan();
+  const addServiceLine = useAddServiceLine();
   const updateAdvise = useUpdateAdvise();
   const repriceQuoteLine = useRepricePatientQuoteLine();
 
@@ -190,6 +208,44 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, quote
     }
   };
 
+  /**
+   * The add-to-slip path: one `POST services` on the slip, which takes the
+   * discount, teeth and advising staff the form holds. The catalog price is
+   * the ceiling there too (Treatment:0040).
+   */
+  const submitToPlan = async (targetPlanId: string, values: CreatePlanValues) => {
+    if (!values.serviceId) return;
+    setSubmitting(true);
+    try {
+      await addServiceLine.mutateAsync({
+        planId: targetPlanId,
+        line: {
+          serviceId: values.serviceId,
+          price: values.price ?? 0,
+          quantity: values.quantity ?? 1,
+          discountType: values.discountValue ? values.discountType : DISCOUNT_TYPE.None,
+          discountValue: values.discountValue ?? 0,
+          teeth: toothValueToDtos(teeth),
+          status: SERVICE_LINE_STATUS.Created,
+          diagnosisId: null,
+          dentistId: null,
+          note: values.note || null,
+          diagnoserStaffId: null,
+          secondDiagnoserStaffId: null,
+          consultantStaffId: values.advisorId ?? null,
+          secondConsultantStaffId: values.secondAdvisorId ?? null,
+        },
+      });
+      toast.success(t("Treatment:Service:AddServiceSuccess"));
+      reset();
+      onCreated();
+    } catch (error) {
+      notifyError(extractApiError(error) || t("Treatment:Plan:CreateError"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const submit = async () => {
     const values = await form.validateFields();
 
@@ -202,6 +258,10 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, quote
 
     if (advise) {
       await submitUpdate(values);
+      return;
+    }
+    if (planId) {
+      await submitToPlan(planId, values);
       return;
     }
     // The doctor who advised stands in when no diagnosing doctor was named —

@@ -12,12 +12,10 @@ import { renderDraftCell } from "./draftServiceCells";
 import {
   advanceOn,
   dash,
-  isDraftRow,
   lineDiscountParts,
   lineNetAmount,
   listUnitPrice,
   type PlanDetailRow,
-  type ServiceTableRow,
 } from "./planDetailTypes";
 
 export interface ServiceRowActions {
@@ -89,7 +87,7 @@ function ServiceGrip({ row, drag }: { row: PlanDetailRow; drag: ServiceDragHandl
   );
 }
 
-type Column = TableColumnsType<ServiceTableRow>[number];
+type Column = TableColumnsType<PlanDetailRow>[number];
 
 /** Service name over the slip date and the status pill — the first cell. */
 export function ServiceNameCell({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
@@ -113,8 +111,8 @@ export function DiscountCell({ row }: { row: PlanDetailRow }) {
 }
 
 /**
- * One column: a saved line renders through `line`, the inline new row through
- * the draft cell registered under the same key.
+ * One column: a saved line renders through `line`, a line under "Chỉnh sửa"
+ * through the inline cell registered under the same key.
  */
 function column(
   key: string,
@@ -129,7 +127,6 @@ function column(
     width,
     ...extra,
     render: (_, row) => {
-      if (isDraftRow(row)) return renderDraftCell(key, row.draft);
       if (row.edit && EDITABLE_COLUMNS.has(key)) return renderDraftCell(key, row.edit);
       return line(row);
     },
@@ -168,7 +165,7 @@ function text(key: string, titleKey: string, width: number, value: (row: PlanDet
 export function buildServiceColumns(
   actions: ServiceRowActions,
   drag: ServiceDragHandle,
-): TableColumnsType<ServiceTableRow> {
+): TableColumnsType<PlanDetailRow> {
   return [
     column("grip", "", 36, (row) => <ServiceGrip row={row} drag={drag} />, {
       align: "center",

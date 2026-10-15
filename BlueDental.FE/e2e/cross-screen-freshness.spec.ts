@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { workingBranchId } from "./fixtures/branch";
+import { createSlipViaApi } from "./fixtures/ledgerReceipt";
 
 /**
  * Cross-screen freshness: a change saved on one screen reaches another screen
@@ -242,14 +243,20 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
     try {
       await firstName.click();
       await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+      // The "Tạo phiếu dịch vụ" picker lives on a slip's Chi tiết tab now, behind
+      // "Thêm dịch vụ phát sinh" (owner 2026-10-15): a fresh slip to open it on.
+      const patientId = /\/patient\/([0-9a-f-]{36})/.exec(page.url())![1];
+      const slip = await createSlipViaApi(page, patientId);
       await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
-      const createButton = page.getByRole("button", { name: "Tạo kế hoạch mới" });
-      await expect(createButton).toBeVisible();
-      const planTabUrl = page.url();
+      await page.locator(".tp-table .tp-code", { hasText: new RegExp(`^${slip.code}$`) }).click({ timeout: 15_000 });
+      await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}/);
+      const addExtra = page.locator(".pdt-toolbar").getByRole("button", { name: "Thêm dịch vụ phát sinh" });
+      await expect(addExtra).toBeVisible({ timeout: 20_000 });
+      const slipUrl = page.url();
       await markDocument(page);
 
       // Fill the picker's cache with the price as it stands.
-      await createButton.click();
+      await addExtra.click();
       let dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
       const primed = await searchService(page, dialog, serviceName);
       await expect.poll(() => priceOf(primed)).toBe(PRICE_BEFORE);
@@ -280,16 +287,15 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
       await reactivateService(page, service, serviceName);
 
       // Back on the record, the picker offers the new price.
-      await backTo(page, planTabUrl);
+      await backTo(page, slipUrl);
       await expectSameDocument(page);
-      const before = await page.locator(".tp-table .tp-code").allTextContents();
-      await createButton.click();
+      await addExtra.click();
       dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
       const option = await searchService(page, dialog, serviceName);
       await expect.poll(() => priceOf(option), { timeout: 15_000 }).toBe(PRICE_AFTER);
       await expectSameDocument(page);
 
-      // Save the slip, so scenario B has money to collect.
+      // Save the line onto the slip, so scenario B has money to collect.
       await option.click();
       await dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }).click();
       await openDropdown(page).locator(".ant-select-item-option").first().click();
@@ -301,13 +307,9 @@ test.describe("Dữ liệu dùng chung giữa các màn hình", () => {
       await dialog.getByRole("button", { name: "Lưu" }).click();
       await expect(dialog).toBeHidden();
 
-      const unseen = async () =>
-        (await page.locator(".tp-table .tp-code").allTextContents()).find(
-          (code) => !before.includes(code),
-        ) ?? "";
-      await expect.poll(unseen, { timeout: 15_000 }).toMatch(/^DT\d+$/);
-      await page.locator(".tp-table .tp-code", { hasText: await unseen() }).click();
-      await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}/);
+      await expect(
+        page.locator(".pdt-table tbody tr.ant-table-row .pdt-service-name", { hasText: serviceName }),
+      ).toBeVisible({ timeout: 15_000 });
       planUrl = page.url().split("?")[0];
     } finally {
       await callApi(page, { method: "DELETE", url: `/api/v1/app/catalog-entries/${serviceId}` });

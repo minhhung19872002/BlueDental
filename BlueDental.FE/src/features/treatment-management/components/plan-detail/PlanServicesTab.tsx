@@ -1,10 +1,7 @@
 import { createContext, useContext, useMemo, useState, type HTMLAttributes } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
-import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import { GENDER, type GenderCode, type PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
@@ -28,9 +25,8 @@ import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
+import { CreatePlanDialog } from "../plan/CreatePlanDialog";
 import { EMPTY_TOOTH_VALUE } from "../plan/toothPicker";
-import { planDetailPath } from "../plan/planTypes";
-import { PLAN_TAB } from "./planDetailTypes";
 import { ToothPickerDialog } from "../plan/ToothPickerDialog";
 import { PlanServicesToolbar } from "./PlanServicesToolbar";
 import { PlanSlipDialog } from "./PlanSlipDialog";
@@ -38,14 +34,7 @@ import { ServiceCardList } from "./ServiceCardList";
 import { ServiceDetailDialog } from "./ServiceDetailDialog";
 import type { ServiceAction } from "./ServiceStatusPill";
 import { buildServiceColumns, type ServiceDragHandle, type ServiceRowActions } from "./serviceColumns";
-import {
-  DRAFT_ROW_KEY,
-  isDraftRow,
-  planDetailRows,
-  type PlanDetailRow,
-  type ServiceTableRow,
-} from "./planDetailTypes";
-import { useDraftServiceRow } from "./useDraftServiceRow";
+import { planDetailRows, type PlanDetailRow } from "./planDetailTypes";
 import { isLineEditable, useEditServiceRow } from "./useEditServiceRow";
 
 const NARROW_SCREEN = "(max-width: 640px)";
@@ -59,13 +48,12 @@ const DragContext = createContext<DragReorder<PlanDetailRow> | null>(null);
 /**
  * One table row, wired for dragging. antd hands the row its key through
  * `data-row-key`, which is how a row it constructed finds its own drag state.
- * The inline draft row is not in the drag list, so it stays an ordinary row.
  */
 function DraggableRow({ children, ...rest }: HTMLAttributes<HTMLTableRowElement>) {
   const drag = useContext(DragContext);
   const key = (rest as { "data-row-key"?: string })["data-row-key"];
 
-  if (!drag || !key || key === DRAFT_ROW_KEY) {
+  if (!drag || !key) {
     return <tr {...rest}>{children}</tr>;
   }
 
@@ -111,10 +99,10 @@ interface Props {
  * Tab "Chi tiết": the toolbar, the fifteen-column service table (cards on
  * phones) and the dialogs the rows open. Line rows come from the slip; the
  * diagnosis columns are filled from the advise each line was written from.
- * Picking a service in the toolbar puts the inline new row on top of them.
+ * "Thêm dịch vụ phát sinh" opens "Tạo phiếu dịch vụ", which adds its line to
+ * this slip (owner 2026-10-15; it replaced the inline new row).
  */
 export function PlanServicesTab({ patient, plan, branchId }: Props) {
-  const navigate = useNavigate();
   const narrow = useMediaQuery(NARROW_SCREEN);
   // Adding, completing, converting, cancelling and reordering a line are all
   // one endpoint family on the server, guarded by treatmentConsultation.update.
@@ -126,13 +114,12 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const complete = useCompleteServiceLine();
   const cancel = useCancelServiceLine();
   const reorder = useReorderServiceLine();
-  const draft = useDraftServiceRow(plan.id);
   const edit = useEditServiceRow(plan.id);
 
   const [viewing, setViewing] = useState<PlanDetailRow | null>(null);
   const [cancelling, setCancelling] = useState<PlanDetailRow | null>(null);
   const [converting, setConverting] = useState<PlanDetailRow | null>(null);
-  const [stageOpen, setStageOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   // Dư nợ for the payment dialog; the server keeps it behind payment.read.
@@ -167,10 +154,6 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         row.service.id === edit.editingId ? { ...row, edit: edit.controller ?? undefined } : row,
       )
     : drag.items;
-  // The new row sits on top of the table on the reference.
-  const tableRows: ServiceTableRow[] = draft.controller
-    ? [{ kind: "draft", draft: draft.controller }, ...lineRows]
-    : lineRows;
   const showTotal = countedTotal(t("Treatment:Service:ServiceNoun"));
 
   const handleStatus = async (row: PlanDetailRow, action: ServiceAction) => {
@@ -201,9 +184,8 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     }
   };
 
-  // One inline row at a time: the pencil goes while a new row or another edit
-  // is open, and picking a new service closes an edit in progress.
-  const rowBusy = draft.controller !== null || edit.controller !== null;
+  // One inline edit at a time: the pencil goes while another line is open.
+  const rowBusy = edit.controller !== null;
   const actions = useMemo<ServiceRowActions>(
     () => ({
       onView: setViewing,
@@ -230,17 +212,15 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   return (
     <div className="pdt-pane">
       <PlanServicesToolbar
-        draftServiceId={draft.controller?.service.id ?? null}
         canAddService={
           canEditLines &&
           plan.status !== PLAN_STATUS.Completed &&
           plan.status !== PLAN_STATUS.Cancelled
         }
-        onPickService={(service) => {
+        onAddService={() => {
           edit.stop();
-          draft.start(service);
+          setAddOpen(true);
         }}
-        onAddStage={() => setStageOpen(true)}
         onPrescription={() => setPrescriptionOpen(true)}
         onInvoice={() => setPayOpen(true)}
         onPrint={() => setSlipOpen(true)}
@@ -257,12 +237,11 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       ) : (
         <DragContext.Provider value={drag}>
           <div className="bd-cat-card tp-table pdt-table">
-            <DataTable<ServiceTableRow>
-              rowKey={(row) => (isDraftRow(row) ? DRAFT_ROW_KEY : row.service.id)}
-              rowClassName={(row) => (isDraftRow(row) ? "pdt-row--draft" : "")}
+            <DataTable<PlanDetailRow>
+              rowKey={(row) => row.service.id}
               components={{ body: { row: DraggableRow } }}
               columns={columns}
-              dataSource={tableRows}
+              dataSource={lineRows}
               pagination={pagination.buildConfig(rows.length, showTotal)}
               locale={{ emptyText: t("Treatment:Common:NoData") }}
             />
@@ -271,25 +250,11 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       )}
 
       <ToothPickerDialog
-        open={draft.teethOpen}
-        value={draft.controller?.values.teeth ?? EMPTY_TOOTH_VALUE}
-        onConfirm={draft.confirmTeeth}
-        onClose={draft.closeTeeth}
-      />
-      <ToothPickerDialog
         open={edit.teethOpen}
         value={edit.controller?.values.teeth ?? EMPTY_TOOTH_VALUE}
         lockedTeeth={edit.stagedTeeth}
         onConfirm={edit.confirmTeeth}
         onClose={edit.closeTeeth}
-      />
-      <ConfirmDeleteDialog
-        open={draft.discardOpen}
-        noun={t("Treatment:Service:ServiceNoun")}
-        title={t("Treatment:Service:DiscardTitle")}
-        question={t("Treatment:Service:DiscardQuestion")}
-        onConfirm={draft.confirmDiscard}
-        onClose={draft.closeDiscard}
       />
       <ServiceDetailDialog row={viewing} patient={patient} onClose={() => setViewing(null)} />
       <ConvertServiceDialog row={converting} onClose={() => setConverting(null)} />
@@ -299,21 +264,12 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         onConfirm={handleCancelConfirm}
         onClose={() => setCancelling(null)}
       />
-      <TreatmentStageDialog
-        open={stageOpen}
+      <CreatePlanDialog
+        open={addOpen}
         patientId={patient.id}
-        patientCode={patient.patientCode}
-        patientName={patient.fullName}
         branchId={branchId}
-        plan={plan}
-        focusServiceId={null}
-        onClose={() => setStageOpen(false)}
-        onOpenPlan={() => {
-          // Already on this slip: Thanh toán moves it to its payment tab
-          // (owner, 2026-10-05), as the jump from the Hồ sơ tab does.
-          setStageOpen(false);
-          navigate(planDetailPath(patient.id, plan.id, branchId, PLAN_TAB.payment), { replace: true });
-        }}
+        planId={plan.id}
+        onClose={() => setAddOpen(false)}
       />
       <PrescriptionDialog
         open={prescriptionOpen}

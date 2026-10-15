@@ -6,7 +6,6 @@ import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import type {
   TreatmentPlanSlipDto,
   TreatmentServiceDto,
-  TreatmentServiceStatus,
 } from "../../api/treatmentPlanApi";
 // Type-only: plan-detail/ imports this module, so a value import would close a cycle.
 import type { PlanTabKey } from "../plan-detail/planDetailTypes";
@@ -211,18 +210,6 @@ export function servicePills(): Record<number, { label: string; modifier: string
     [SERVICE_LINE_STATUS.Warranty]: { label: t("Treatment:Service:StatusWarranty"), modifier: "tp-pill--progress" },
     [SERVICE_LINE_STATUS.Transferred]: { label: t("Treatment:Service:StatusTransferred"), modifier: "tp-pill--transferred" },
   };
-}
-
-export function newLineStatuses(): readonly { value: TreatmentServiceStatus; label: string }[] {
-  return [
-    { value: SERVICE_LINE_STATUS.Created, label: t("Treatment:Service:PillCreated") },
-    { value: SERVICE_LINE_STATUS.InProgress, label: t("Treatment:Service:StatusInProgress") },
-    { value: SERVICE_LINE_STATUS.Done, label: t("Treatment:Service:StatusDone") },
-    { value: SERVICE_LINE_STATUS.Replaced, label: t("Treatment:Service:PillReplaced") },
-    { value: SERVICE_LINE_STATUS.Transferred, label: t("Treatment:Service:StatusTransferred") },
-    { value: SERVICE_LINE_STATUS.Warranty, label: t("Treatment:Service:StatusWarranty") },
-    { value: SERVICE_LINE_STATUS.Cancelled, label: t("Treatment:Service:PillCancelled") },
-  ];
 }
 
 /** A service line together with the slip it belongs to, for the flat lists. */

@@ -1,71 +1,46 @@
-import { useEffect } from "react";
-import { Form } from "antd";
 import { Pill, Plus, Printer, Receipt } from "lucide-react";
-import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
-import { PlanServicePicker } from "../plan/PlanServicePicker";
 
 interface Props {
-  /** The service on the inline new row, or null once it was saved or discarded. */
-  draftServiceId: string | null;
   /**
-   * A finished slip takes no new service line — the server refuses it, and the
-   * reference drops the picker from this toolbar altogether on such a slip.
+   * A finished slip takes no new service line — the server refuses it, so the
+   * button is not offered on such a slip.
    */
   canAddService: boolean;
-  onPickService: (service: CatalogOption) => void;
-  onAddStage: () => void;
+  onAddService: () => void;
   onPrescription: () => void;
   onInvoice: () => void;
   onPrint: () => void;
 }
 
-interface PickerValues {
-  serviceId?: string;
-}
-
 /**
- * The strip above the service table: the service picker and "Thêm công đoạn"
- * on the left, the prescription, invoice and print buttons on the right. The
- * printer icon opens the slip's "Chi tiết phiếu".
+ * The strip above the service table: "Thêm dịch vụ phát sinh" on the left,
+ * the prescription, invoice and print buttons on the right. The printer icon
+ * opens the slip's "Chi tiết phiếu".
  *
- * Picking a service hands it to the tab, which puts the inline new row on top
- * of the table. The field keeps showing that service until the row is saved
- * or discarded, as on the reference; only then does it read empty again.
+ * "Thêm dịch vụ phát sinh" opens "Tạo phiếu dịch vụ" on this slip. It took
+ * the place of the inline service picker, and "Thêm công đoạn" left the strip
+ * (owner 2026-10-15) — công đoạn are still added from the slip list.
  */
 export function PlanServicesToolbar({
-  draftServiceId,
   canAddService,
-  onPickService,
-  onAddStage,
+  onAddService,
   onPrescription,
   onInvoice,
   onPrint,
 }: Props) {
-  const [form] = Form.useForm<PickerValues>();
-  const stageAbility = useAbility("treatmentStage");
   const rxAbility = useAbility("prescription");
   // "In Hóa Đơn" opens "Tạo phiếu thanh toán" on this slip (owner 2026-10-12) — payment.create.
   const canCreatePayment = useAbility("payment").canCreate;
-
-  useEffect(() => {
-    form.setFieldValue("serviceId", draftServiceId ?? undefined);
-  }, [form, draftServiceId]);
 
   return (
     <div className="pdt-toolbar">
       <div className="pdt-toolbar-start">
         {canAddService && (
-          <Form form={form} className="pdt-picker">
-            <PlanServicePicker onPickService={onPickService} />
-          </Form>
-        )}
-        {/* The dialog it opens shows the công đoạn, so Xem comes first. */}
-        {stageAbility.canRead && stageAbility.canCreate && (
-          <button type="button" className="tp-btn tp-btn--primary" onClick={onAddStage}>
+          <button type="button" className="tp-btn tp-btn--primary" onClick={onAddService}>
             <Plus size={16} aria-hidden="true" />
-            {t("Treatment:Stage:AddStage")}
+            {t("Treatment:Plan:AddExtraService")}
           </button>
         )}
       </div>

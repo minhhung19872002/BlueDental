@@ -1,6 +1,6 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
-import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
-import { answerYes } from "./fixtures/ledgerReceipt";
+import { expect, test, type Page } from "@playwright/test";
+import { BRANCH2_USER, login } from "./fixtures/auth";
+import { answerYes, openNewSlip } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: tab "Lịch sử dư nợ" của hồ sơ bệnh nhân (F-40), `?tab=debt-history`.
@@ -21,68 +21,9 @@ function money(text: string): number {
   return Number(text.replace(/[^\d]/g, ""));
 }
 
-function openDropdown(page: Page, panel = ".ant-select-dropdown:not(.tp-service-dropdown)") {
-  return page.locator(`${panel}:not(.ant-select-dropdown-hidden)`).last();
-}
-
-async function pickFirstOption(page: Page, name: RegExp) {
-  await page.getByRole("combobox", { name }).click();
-  const option = openDropdown(page).locator(".ant-select-item-option").first();
-  await expect(option).toBeVisible();
-  await option.click();
-}
-
-/**
- * The first option that is actually worth something. The catalog collects
- * zero-priced junk from earlier runs, and a slip built on one of those reports
- * no revenue at all, which reads exactly like a broken rollup.
- */
-async function pickPricedService(page: Page, dropdown: Locator): Promise<void> {
-  const options = dropdown.locator(".ant-select-item-option:has(.tp-opt-service)");
-  await expect(options.first()).toBeVisible();
-  const count = await options.count();
-  for (let index = 0; index < count; index++) {
-    const option = options.nth(index);
-    const price = Number((await option.locator(".tp-opt-price").innerText()).replace(/[^\d]/g, ""));
-    if (price > 0) {
-      await option.click();
-      return;
-    }
-  }
-  throw new Error("Danh mục dịch vụ không có mục nào còn giá");
-}
-
 /** A fresh slip on the first patient, with one line, paid and partly refunded. */
 async function refundOnANewSlip(page: Page): Promise<{ patientUrl: string; refunded: number }> {
-  await page.goto("/patient");
-  await assertRealApiTraffic(page, "/api/v1/app/patients");
-  const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
-  await expect(firstName).toBeVisible();
-  await firstName.click();
-  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-  const patientUrl = page.url().split("?")[0];
-
-  await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
-  const before = await page.locator(".tp-table .tp-code").allTextContents();
-  await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
-  const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
-  await expect(dialog).toBeVisible();
-
-  await pickFirstOption(page, /Nhân sự tư vấn 1/);
-  await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-  await pickPricedService(page, openDropdown(page, ".tp-service-dropdown"));
-  await dialog.locator(".tp-tooth-btn").click();
-  const picker = page.getByRole("dialog", { name: "Chọn răng" });
-  await picker.getByRole("button", { name: "Răng 14", exact: true }).click();
-  await picker.locator(".tp-teeth-foot button").click();
-  await dialog.getByRole("button", { name: "Lưu" }).click();
-  await expect(dialog).toBeHidden();
-
-  const unseen = async () =>
-    (await page.locator(".tp-table .tp-code").allTextContents()).find((c) => !before.includes(c)) ?? "";
-  await expect.poll(unseen, { timeout: 15_000 }).toMatch(/^DT\d+$/);
-  await page.locator(".tp-table .tp-code", { hasText: await unseen() }).click();
-  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}\/treatment-plan\/[0-9a-f-]{36}/);
+  const { patientUrl } = await openNewSlip(page);
 
   // Collect the line in full, then hand part of it back.
   await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();

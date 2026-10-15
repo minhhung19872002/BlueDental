@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { openStageDialog } from "./fixtures/stageDialog";
 
 /**
  * Feature: CSKH › Sau điều trị fed by "Tiếp tục công đoạn" (owner, 2026-10-05).
@@ -173,12 +174,7 @@ test.describe("CSKH › Sau điều trị từ Tiếp tục công đoạn", () =
     const second = await openStage(page, line, 21);
 
     // 1) Tiếp tục công đoạn through the real dialog.
-    await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${BRANCH}`);
-    await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toBeVisible({
-      timeout: 20_000,
-    });
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
-    const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const dialog = await openStageDialog(page, { ...line, branchId: BRANCH });
     await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
     const form = dialog.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);

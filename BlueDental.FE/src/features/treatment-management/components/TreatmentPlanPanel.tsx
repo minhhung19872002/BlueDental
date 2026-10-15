@@ -10,7 +10,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { usePatientAdvises } from "../api/consultingQueries";
 import { usePatientAccount, useTreatmentPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
-import { CreatePlanDialog } from "./plan/CreatePlanDialog";
 import { DeletePlanDialog } from "./plan/DeletePlanDialog";
 import { PlanColumnConfigPopover } from "./plan/PlanColumnConfigPopover";
 import { PrintMedicalRecordDialog } from "./plan/PrintMedicalRecordDialog";
@@ -39,13 +38,13 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
 /**
  * Tab "Kế hoạch điều trị": toolbar, the two summary cards and one row per slip.
  * Laid out from staging (reference-private/treatment-plan-tab); every dialog it
- * opens is an existing one except the create form and the service list.
+ * opens is an existing one except the service list. New services go onto a
+ * slip from its detail page ("Thêm dịch vụ phát sinh"), not from here.
  */
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const navigate = useNavigate();
   const branchId = useCurrentBranchId();
-  // The slip is opened through the consulting line, so the server gates it on
-  // treatmentConsultation.create — there is no treatmentPlan subject.
+  // There is no treatmentPlan subject: slips hang off the consulting leaves.
   const ability = useAbility("treatmentConsultation");
   // Hóa đơn opens "Tạo phiếu thanh toán" on the slip (owner 2026-10-12) — payment.create.
   const paymentAbility = useAbility("payment");
@@ -55,7 +54,6 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const canSeeStages = useAbility("treatmentStage").canRead;
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
-  const [createOpen, setCreateOpen] = useState(false);
   const [serviceList, setServiceList] = useState<ServiceListTarget | null>(null);
   const [stagePlan, setStagePlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [payPlan, setPayPlan] = useState<TreatmentPlanSlipDto | null>(null);
@@ -117,10 +115,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
 
   return (
     <div className="tp-root">
-      <PlanToolbar
-        onCreate={ability.canCreate ? () => setCreateOpen(true) : undefined}
-        onViewAll={() => setServiceList({ kind: "all" })}
-      />
+      <PlanToolbar onViewAll={() => setServiceList({ kind: "all" })} />
       <PlanSummaryCards
         active={summary.active}
         activeCount={summary.activeCount}
@@ -133,12 +128,6 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         <PlanTable plans={plans} settings={columns} pagination={pagination} actions={rowActions} />
       </div>
 
-      <CreatePlanDialog
-        open={createOpen}
-        patientId={patientId}
-        branchId={branchId}
-        onClose={() => setCreateOpen(false)}
-      />
       <PlanServiceListModal
         open={serviceList !== null}
         title={serviceTitle}

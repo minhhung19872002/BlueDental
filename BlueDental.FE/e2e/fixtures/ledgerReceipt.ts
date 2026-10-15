@@ -62,36 +62,141 @@ export async function pickPricedService(dropdown: Locator): Promise<void> {
   throw new Error("Danh mục dịch vụ không có mục nào còn giá");
 }
 
+/**
+ * A slip of one priced service on `teeth` (14 by default) for `patientId`, written through
+ * the chain the app runs — advise → accept → open slip — on the real API with
+ * the browser's own session. The patient tab has no "Tạo kế hoạch mới" any
+ * more (owner 2026-10-15): a slip is opened from Chẩn đoán & Tư vấn, and these
+ * specs are about what happens on it, not how it was opened.
+ */
+export interface NewSlipRecord {
+  id: string;
+  code: string;
+  /** The one line's service and the price it was written at. */
+  serviceName: string;
+  price: number;
+}
+
+export async function createSlipViaApi(
+  page: Page,
+  patientId: string,
+  teeth: number[] = [14],
+): Promise<NewSlipRecord> {
+  return page.evaluate(async ({ patientId, teeth }) => {
+    const xsrf = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("XSRF-TOKEN="))
+      ?.substring("XSRF-TOKEN=".length);
+    const get = async (url: string, branch?: string) =>
+      (
+        await fetch(url, {
+          credentials: "include",
+          headers: { Accept: "application/json", ...(branch ? { "X-Clinic-Branch-Id": branch } : {}) },
+        })
+      ).json();
+    const patient = (await get(`/api/v1/app/patients/${patientId}`)) as { branchId: string };
+    const branch = patient.branchId;
+    const post = async (url: string, body?: unknown) => {
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Clinic-Branch-Id": branch,
+          ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`${url} ${res.status} ${await res.text()}`);
+      return res.json();
+    };
+
+    // A zero-priced service leaves nothing to collect, so the first one worth something.
+    const services = (
+      await get(
+        `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=care_service&isActive=true&maxResultCount=1000`,
+        branch,
+      )
+    ).items as {
+      id: string;
+      name: string;
+      isDeleted: boolean;
+      isCombo: boolean;
+      price: number | null;
+      serviceConfig?: { priceAfterDiscount: number; taxRate: number } | null;
+    }[];
+    // The picker's price — "Giá sau giảm" where the service has one — is the ceiling (Treatment:0040).
+    const salePrice = (entry: (typeof services)[number]) => entry.serviceConfig?.priceAfterDiscount ?? entry.price ?? 0;
+    // The list keeps soft-deleted entries (Danh mục shows them greyed), and a line
+    // on one prints no service name. Nor one another spec made for its run (a
+    // six-digit runId in the name): those lead the priority order and are deleted
+    // by their spec mid-run. And a plain one — no combo, no VAT (rates 0–2 add
+    // nothing) — so what the slip owes is the price the specs read off it.
+    const service = services.find(
+      (entry) =>
+        !entry.isDeleted &&
+        !entry.isCombo &&
+        (entry.serviceConfig?.taxRate ?? 0) <= 2 &&
+        salePrice(entry) > 0 &&
+        !/\d{6}/.test(entry.name),
+    );
+    if (!service) throw new Error("Danh mục dịch vụ không có mục nào còn giá");
+    const staff = (await get("/api/v1/app/staff?MaxResultCount=1", branch)).items[0] as { id: string };
+    const price = salePrice(service);
+
+    const advise = await post("/api/v1/app/patient-advises", {
+      patientId,
+      clinicBranchId: branch,
+      patientDiagnosisId: null,
+      diagnosisId: null,
+      serviceId: service.id,
+      staffId: staff.id,
+      originalPrice: price,
+      price,
+      quantity: 1,
+      discountType: 0,
+      discountValue: 0,
+      teeth: teeth.map((toothCode) => ({ toothCode, selected: true, top: false, right: false, bottom: false, left: false, center: false })),
+    });
+    await post(`/api/v1/app/patient-advises/${advise.id}/accept`);
+    const plan = await post("/api/v1/app/patient-treatments", {
+      patientId,
+      clinicBranchId: branch,
+      dentistId: staff.id,
+      discountType: 0,
+      discountValue: 0,
+      voucherIds: [],
+      adviseIds: [advise.id],
+    });
+    return { id: plan.id as string, code: plan.code as string, serviceName: service.name, price };
+  }, { patientId, teeth });
+}
+
+export interface NewSlip {
+  patientId: string;
+  /** The patient record, without the query — what the specs come back to. */
+  patientUrl: string;
+  slip: NewSlipRecord;
+}
+
 /** A fresh one-line slip on the first patient; ends on its plan detail. */
-export async function openNewSlip(page: Page): Promise<void> {
+export async function openNewSlip(page: Page): Promise<NewSlip> {
   await page.goto("/patient");
   await assertRealApiTraffic(page, "/api/v1/app/patients");
   const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
   await expect(firstName).toBeVisible();
   await firstName.click();
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+  const patientUrl = page.url().split("?")[0];
+  const patientId = /\/patient\/([0-9a-f-]{36})/.exec(patientUrl)![1];
 
+  const slip = await createSlipViaApi(page, patientId);
   await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
-  const before = await page.locator(".tp-table .tp-code").allTextContents();
-  await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
-  const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
-  await expect(dialog).toBeVisible();
-  await page.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }).click();
-  await openDropdown(page).locator(".ant-select-item-option").first().click();
-  await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-  await pickPricedService(openDropdown(page, ".tp-service-dropdown"));
-  await dialog.locator(".tp-tooth-btn").click();
-  const teeth = page.getByRole("dialog", { name: "Chọn răng" });
-  await teeth.getByRole("button", { name: "Răng 14", exact: true }).click();
-  await teeth.locator(".tp-teeth-foot button").click();
-  await dialog.getByRole("button", { name: "Lưu" }).click();
-  await expect(dialog).toBeHidden();
-
-  const unseen = async () =>
-    (await page.locator(".tp-table .tp-code").allTextContents()).find((c) => !before.includes(c)) ?? "";
-  await expect.poll(unseen, { timeout: 15_000 }).toMatch(/^DT\d+$/);
-  await page.locator(".tp-table .tp-code", { hasText: await unseen() }).click();
-  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}\/treatment-plan\/[0-9a-f-]{36}/);
+  // The slip list is read through the UI, so the new code shows up as the app lists it.
+  await page.locator(".tp-table .tp-code", { hasText: new RegExp(`^${slip.code}$`) }).click({ timeout: 15_000 });
+  await expect(page).toHaveURL(new RegExp(`/patient/${patientId}/treatment-plan/${slip.id}`));
+  return { patientId, patientUrl, slip };
 }
 
 /**

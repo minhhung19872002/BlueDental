@@ -210,9 +210,11 @@ test.describe("Chẩn đoán & Tư vấn — Xoá follows its own leaf", () => {
       const planList = `/patient/${patientId}?branchId=${BRANCH}&tab=treatment-plan`;
       const slipDetail = `/patient/${patientId}/treatment-plan/${planId}?branchId=${BRANCH}&planTab=detail`;
       const addOnRow = dentist.getByRole("button", { name: `Thêm công đoạn ${code}` });
+      // The slip page's toolbar has no "Thêm công đoạn" at all any more (owner
+      // 2026-10-15): the row's + on Kế hoạch điều trị is the one door left.
       const addOnSlip = dentist.locator(".pdt-toolbar").getByRole("button", { name: "Thêm công đoạn" });
 
-      // ── Thêm but no Xem: neither door into the dialog is offered ─────────
+      // ── Thêm but no Xem: the door into the dialog is not offered ─────────
       await dentist.goto(planList);
       await expect(dentist.locator(".tp-table .tp-code", { hasText: code })).toBeVisible({ timeout: 20_000 });
       await expect(addOnRow).toHaveCount(0);
@@ -220,13 +222,14 @@ test.describe("Chẩn đoán & Tư vấn — Xoá follows its own leaf", () => {
       await expect(dentist.getByRole("tab", { name: "Chi tiết" })).toBeVisible({ timeout: 20_000 });
       await expect(addOnSlip).toHaveCount(0);
 
-      // ── Xem granted: both come back and open Chi tiết phiếu ──────────────
+      // ── Xem granted: the row's + comes back and opens Chi tiết phiếu ─────
       await setDentistLeaf(page, "treatmentStage.read", true);
       await dentist.goto(planList);
       await addOnRow.click();
       await expect(dentist.getByRole("dialog", { name: "Chi tiết phiếu" })).toBeVisible();
       await dentist.goto(slipDetail);
-      await expect(addOnSlip).toBeVisible({ timeout: 20_000 });
+      await expect(dentist.getByRole("tab", { name: "Chi tiết" })).toBeVisible({ timeout: 20_000 });
+      await expect(addOnSlip).toHaveCount(0);
     } finally {
       await context.close();
       await resetDentistLeaves(page, leaves);

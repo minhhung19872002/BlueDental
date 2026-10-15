@@ -7,7 +7,7 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "../../api/treatmentPlanApi";
-import type { DraftServiceController } from "./useDraftServiceRow";
+import type { DraftServiceController } from "./draftServiceTypes";
 
 /** The four sub-screens, keyed as the reference writes them in `planTab=`. */
 export const PLAN_TAB = {
@@ -46,20 +46,6 @@ export interface PlanDetailRow {
   advise: PatientAdviseDto | null;
   /** Set while "Chỉnh sửa" has turned this line into the inline row. */
   edit?: DraftServiceController;
-}
-
-/** The inline "new row" the picker puts above the lines, until Lưu or Hủy. */
-export interface DraftServiceRow {
-  kind: "draft";
-  draft: DraftServiceController;
-}
-
-export type ServiceTableRow = PlanDetailRow | DraftServiceRow;
-
-export const DRAFT_ROW_KEY = "draft";
-
-export function isDraftRow(row: ServiceTableRow): row is DraftServiceRow {
-  return "kind" in row && row.kind === "draft";
 }
 
 export function planDetailRows(
@@ -119,19 +105,6 @@ export function lineDiscountParts(service: TreatmentServiceDto): DiscountParts {
     serviceVoucher: 0,
     plan: service.planDiscountShare,
     planVoucher: service.planVoucherShare,
-  };
-}
-
-/**
- * The new row, which staging recomputes on every keystroke: what lowering the
- * catalog price takes off. A row has no slip share until it is saved.
- */
-export function draftDiscountParts(originalPrice: number, price: number, quantity: number): DiscountParts {
-  return {
-    service: Math.max(originalPrice - price, 0) * Math.max(quantity, 0),
-    serviceVoucher: 0,
-    plan: 0,
-    planVoucher: 0,
   };
 }
 

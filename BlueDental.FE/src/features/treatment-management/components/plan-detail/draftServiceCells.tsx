@@ -3,7 +3,6 @@ import { Input, InputNumber } from "antd";
 import { Check, CircleAlert, Loader2, X } from "lucide-react";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
 import {
   useDentistOptions,
   useDiagnosisOptions,
@@ -13,10 +12,7 @@ import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { jawLabel } from "@/components/ToothChart";
 import { moneyText } from "../plan/planTypes";
 import type { ToothPickerValue } from "../plan/toothPicker";
-import { DiscountBreakdown } from "./DiscountBreakdown";
-import { DraftStatusPill } from "./DraftStatusPill";
-import { draftDiscountParts } from "./planDetailTypes";
-import type { DraftIdField, DraftServiceController } from "./useDraftServiceRow";
+import type { DraftIdField, DraftServiceController } from "./draftServiceTypes";
 
 type IdField = DraftIdField;
 
@@ -33,19 +29,6 @@ function toothCodesText(value: ToothPickerValue): string | null {
 
 interface DraftProps {
   draft: DraftServiceController;
-}
-
-/** Service name, today's date and the status pill — the first cell of the new row. */
-function DraftNameCell({ draft }: DraftProps) {
-  return (
-    <div className="pdt-service">
-      <span className="pdt-service-name">{draft.service.name}</span>
-      <span className="pdt-service-meta">
-        <span className="pdt-service-date">{formatDate(new Date())}</span>
-        <DraftStatusPill value={draft.values.status} onChange={(status) => draft.update("status", status)} />
-      </span>
-    </div>
-  );
 }
 
 /**
@@ -174,10 +157,11 @@ function DraftActionsCell({ draft }: DraftProps) {
 
 type DraftCell = (draft: DraftServiceController) => ReactNode;
 
-/** What the new row shows in each column, keyed by the column key. */
+/**
+ * What a line under "Chỉnh sửa" shows in each column it opens, keyed by the
+ * column key. The other columns keep their saved cell.
+ */
 const DRAFT_CELLS: Record<string, DraftCell> = {
-  grip: () => null,
-  service: (draft) => <DraftNameCell draft={draft} />,
   diagnosis: (draft) =>
     draft.locks ? (
       <LockedCell value={draft.locks.diagnosisName ?? "—"} reason={t("Treatment:Service:DiagnosisLocked")} />
@@ -204,13 +188,6 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
     ) : (
       <DraftPriceCell draft={draft} />
     ),
-  // Only the new row reaches this cell — an edited line keeps its saved
-  // Tổng giảm giá until it is saved, as on staging.
-  discount: (draft) => (
-    <DiscountBreakdown
-      parts={draftDiscountParts(draft.originalPrice, draft.values.price, draft.values.quantity)}
-    />
-  ),
   // Staging's onDraftChange: the saved figure until price, quantity or teeth
   // change, then đơn giá × số lượng as it is typed (2026-09-28).
   amount: (draft) => (

@@ -14,7 +14,7 @@ import {
  * Feature: "Xoá phiếu điều trị" — the red bin in the Thao tác column of
  * Kế hoạch điều trị (BlueDental-local, owner 2026-10-14).
  *
- * Runs against the real stack only: slips opened through "Tạo kế hoạch mới",
+ * Runs against the real stack only: slips opened through the real API (advise → accept → slip),
  * money taken through "Tạo Phiếu Thanh Toán", the leaf toggled on Phân quyền,
  * a restricted dentist signed in through the login screen. Nothing is stubbed.
  *

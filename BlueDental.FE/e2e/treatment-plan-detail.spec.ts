@@ -1,13 +1,14 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
-import { answerYes } from "./fixtures/ledgerReceipt";
+import { addExtraService } from "./fixtures/extraService";
+import { answerYes, createSlipViaApi } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: Chi tiết kế hoạch điều trị (F-38), /patient/:id/treatment-plan/:planId.
  *
  * The slip code in the plan tab opens the page. It carries the reference's
  * three-step breadcrumb, the four pill tabs (Chi tiết, Thanh toán, Hoàn tiền,
- * Dư nợ — kept in `?planTab=`), the five money figures, the 15-column service
+ * Dư nợ — kept in `?planTab=`), the six money figures (money tabs only), the 15-column service
  * table with its status menu and eye dialog, the receipts filed against the
  * slip with "Tạo Phiếu Thanh Toán" / "In hóa đơn tổng", the refunds with
  * "Hoàn Tiền", and the lines the held balance covered. Under 640px every table
@@ -59,26 +60,6 @@ async function pickFirstOption(page: Page, combobox: Locator) {
 }
 
 /**
- * The first option that is actually worth something. The catalog collects
- * zero-priced junk from earlier runs, and a slip built on one of those reports
- * no revenue at all, which reads exactly like a broken rollup.
- */
-async function pickPricedService(page: Page, dropdown: Locator): Promise<void> {
-  const options = dropdown.locator(".ant-select-item-option:has(.tp-opt-service)");
-  await expect(options.first()).toBeVisible();
-  const count = await options.count();
-  for (let index = 0; index < count; index++) {
-    const option = options.nth(index);
-    const price = Number((await option.locator(".tp-opt-price").innerText()).replace(/[^\d]/g, ""));
-    if (price > 0) {
-      await option.click();
-      return;
-    }
-  }
-  throw new Error("Danh mục dịch vụ không có mục nào còn giá");
-}
-
-/**
  * The service options other than one already on the slip. Matched on the name
  * span alone: the option prints its price beside it, so the whole option never
  * reads as the bare name and an exclusion on it excludes nothing.
@@ -100,38 +81,22 @@ async function createSlip(page: Page, teeth: number[] = [14]): Promise<string> {
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
   patientUrl = page.url().split("?")[0];
 
+  // The patient tab has no "Tạo kế hoạch mới" any more (owner 2026-10-15):
+  // the slip is opened through the real API, then read back through the UI.
+  const patientId = /\/patient\/([0-9a-f-]{36})/.exec(patientUrl)![1];
+  const slip = await createSlipViaApi(page, patientId, teeth);
+  expect(slip.code).toMatch(CODE);
+
   const listed = page.waitForResponse(
     (res) => res.url().includes(PLANS_API) && res.request().method() === "GET",
   );
   await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
   expect((await listed).ok()).toBeTruthy();
-
-  const before = await page.locator(".tp-table .tp-code").allTextContents();
-  await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
-  const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
-  await expect(dialog).toBeVisible();
-
-  await pickFirstOption(page, dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }));
-  await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-  await pickPricedService(page, openDropdown(page, ".tp-service-dropdown"));
-  await dialog.locator(".tp-tooth-btn").click();
-  const picker = page.getByRole("dialog", { name: "Chọn răng" });
-  await expect(picker).toBeVisible();
-  for (const tooth of teeth) {
-    await picker.getByRole("button", { name: `Răng ${tooth}`, exact: true }).click();
-  }
-  await picker.locator(".tp-teeth-foot button").click();
-  await expect(picker).toBeHidden();
-  await dialog.getByRole("button", { name: "Lưu" }).click();
-  await expect(page.getByText("Đã tạo kế hoạch điều trị")).toBeVisible();
-  await expect(dialog).toBeHidden();
-
   // Newest first, so the new code lands on page one whatever the page count is.
-  const unseen = async () =>
-    (await page.locator(".tp-table .tp-code").allTextContents()).find((c) => !before.includes(c)) ??
-    "";
-  await expect.poll(unseen, { timeout: 15_000 }).toMatch(CODE);
-  return unseen();
+  await expect(page.locator(".tp-table .tp-code", { hasText: new RegExp(`^${slip.code}$`) })).toBeVisible({
+    timeout: 15_000,
+  });
+  return slip.code;
 }
 
 async function openDetail(page: Page, tab?: string) {
@@ -245,12 +210,15 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
 
     // Four pill tabs, "Chi tiết" selected, and the six money figures.
     await expect(page.getByRole("tab")).toHaveText([
-      "Chi tiết",
+      "Chi tiết điều trị",
       "Thanh toán",
       "Hoàn tiền",
       "Dư nợ",
     ]);
-    await expect(tab(page, "Chi tiết")).toHaveAttribute("aria-selected", "true");
+    await expect(tab(page, "Chi tiết điều trị")).toHaveAttribute("aria-selected", "true");
+    // The money figures belong to the money tabs only (owner 2026-10-15).
+    await expect(page.locator(".pdt-stat")).toHaveCount(0);
+    await tab(page, "Thanh toán").click();
     const labels = page.locator(".pdt-stat dt");
     await expect(labels).toHaveText([
       "Doanh thu dự kiến",
@@ -264,10 +232,18 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       expect(value.trim()).toMatch(MONEY);
     expect(await statValue(page, "Doanh thu dự kiến")).toBeGreaterThan(0);
     expect(await statValue(page, "Đã thanh toán")).toBe(0);
+    await tab(page, "Chi tiết điều trị").click();
+    await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
     // The toolbar and the 16-column table with one line, in the reference's order.
-    await expect(page.getByRole("combobox", { name: /Thêm dịch vụ mới/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Thêm công đoạn" })).toBeVisible();
+    // "Thêm dịch vụ phát sinh" took the inline picker's place, in the primary
+    // colour, and the toolbar's "Thêm công đoạn" is gone (owner 2026-10-15).
+    const toolbar = page.locator(".pdt-toolbar");
+    const addExtra = toolbar.getByRole("button", { name: "Thêm dịch vụ phát sinh" });
+    await expect(addExtra).toBeVisible();
+    await expect(addExtra).toHaveClass(/tp-btn--primary/);
+    await expect(toolbar.getByRole("combobox", { name: /Thêm dịch vụ mới/ })).toHaveCount(0);
+    await expect(toolbar.getByRole("button", { name: "Thêm công đoạn" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Tạo Đơn Thuốc" })).toBeVisible();
     await expect(page.getByRole("button", { name: "In Hóa Đơn" })).toBeVisible();
     const headers = await page.locator(".pdt-table thead th").allInnerTexts();
@@ -489,7 +465,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page.locator(".pdt-table thead th").filter({ hasText: /^Dư nợ$/ })).toBeVisible();
     await expect(page.locator(".pdt-table")).toContainText("Không có dữ liệu");
 
-    await tab(page, "Chi tiết").click();
+    await tab(page, "Chi tiết điều trị").click();
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await row.locator(".pdt-status--menu").click();
     const done = page.waitForResponse(
@@ -520,9 +496,10 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(cards).toHaveCount(1);
     await expect(cards.first().locator(".bd-rc-title")).toHaveText("1");
     await expect(page.locator(".tp-card-pager .ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
-    await expect(page.locator(".pdt-stat")).toHaveCount(6);
+    await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
     await tab(page, "Thanh toán").click();
+    await expect(page.locator(".pdt-stat")).toHaveCount(6);
     await expect(page.locator(".bd-rc-card", { hasText: paymentCode })).toBeVisible();
     await tab(page, "Hoàn tiền").click();
     await expect(page.locator(".bd-rc-card", { hasText: refundCode })).toBeVisible();
@@ -569,7 +546,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await page.close();
   });
 
-  test("a service row can be dragged into another slot and the order sticks", async ({ page }) => {
+  test("Thêm dịch vụ phát sinh adds a line to this slip, and a row can be dragged into another slot", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
     planCode = await createSlip(page);
@@ -577,63 +554,23 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page).toHaveURL(DETAIL_URL);
     const slipUrl = page.url().split("?")[0];
 
-    // A second line, written through the toolbar's inline row — on another
-    // service, or the two rows read the same and the drag below cannot tell
-    // whether they swapped.
+    // A second line through "Thêm dịch vụ phát sinh" — on another service, or
+    // the two rows read the same and the drag below cannot tell whether they
+    // swapped. The modal writes it onto this slip: the URL and the code stay.
     const firstName = await page
       .locator(".pdt-table tbody tr.ant-table-row .pdt-service-name")
       .first()
       .innerText();
-    await page.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-    const option = otherServiceOptions(page, firstName).first();
-    await expect(option).toBeVisible();
-    await option.click();
-
-    /*
-     * Every picker on the new row fills its column.
-     *
-     * AntD's Select sizes to its own content, so an empty one collapses to the
-     * search icon and the caret — 71px inside a 200px cell, with the dropdown
-     * cropped to match and the option names cut to "Sai …". The wrapper being
-     * 100% wide is not enough; the control itself has to stretch.
-     */
-    const draft = page.locator(".pdt-row--draft");
-    const pickers = draft.locator(".pdt-draft-select");
-    await expect(pickers).toHaveCount(6);
-    for (let index = 0; index < 6; index += 1) {
-      const picker = pickers.nth(index);
-      const cell = (await picker.locator("xpath=ancestor::td[1]").boundingBox())!;
-      const select = (await picker.locator(".ant-select").boundingBox())!;
-      // Its cell less the table's 16px side padding, give or take a subpixel.
-      expect(Math.abs(select.width - (cell.width - 32))).toBeLessThanOrEqual(2);
-    }
-
-    // A new line has to name its teeth: Lưu with none says so under the tooth
-    // button and sends nothing.
-    let posted = 0;
-    const countPost = (req: { url: () => string; method: () => string }) => {
-      if (req.url().includes("/services") && req.method() === "POST") posted += 1;
-    };
-    page.on("request", countPost);
-    await draft.getByRole("button", { name: "Lưu" }).click();
-    const teethError = draft.locator(".pdt-draft-error");
-    await expect(teethError).toHaveText("Vui lòng chọn ít nhất 1 răng");
-    expect(posted, "no line is written without teeth").toBe(0);
-    page.off("request", countPost);
-
-    // Picking a tooth clears it.
-    await draft.locator(".tp-tooth-btn").click();
-    const picker = page.getByRole("dialog", { name: "Chọn răng" });
-    await picker.getByRole("button", { name: "Răng 15", exact: true }).click();
-    await picker.locator(".tp-teeth-foot button").click();
-    await expect(picker).toBeHidden();
-    await expect(teethError).toHaveCount(0);
-
-    const added = page.waitForResponse(
-      (res) => res.url().includes("/services") && res.request().method() === "POST",
-    );
-    await draft.getByRole("button", { name: "Lưu" }).click();
-    expect((await added).ok()).toBeTruthy();
+    const { response, name: secondName } = await addExtraService(page, { except: firstName, teeth: [15] });
+    expect(new URL(response.url()).pathname).toBe(`${PLANS_API}/${slipUrl.split("/").pop()}/services`);
+    await expect(page.getByText("Đã thêm dịch vụ")).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`^${slipUrl}`));
+    await expect(page.locator(".pdt-crumb--current")).toHaveText(planCode);
+    const addedRow = page.locator(".pdt-table tbody tr.ant-table-row", {
+      has: page.locator(".pdt-service-name", { hasText: secondName }),
+    });
+    await expect(addedRow.locator(".pdt-status")).toHaveText("Đã tạo");
+    await expect(addedRow).toContainText("15");
 
     const names = () =>
       page.locator(".pdt-table tbody tr.ant-table-row .pdt-service-name").allInnerTexts();
@@ -963,7 +900,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(due);
 
     // Convert it, charging 1 đ, so almost everything collected is left over.
-    await tab(page, "Chi tiết").click();
+    await tab(page, "Chi tiết điều trị").click();
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect.poll(async () => money(await row.locator("td").nth(9).innerText())).toBe(due);
     await row.locator(".pdt-status--menu").click();
@@ -1010,9 +947,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect
       .poll(async () => money(await rows.first().locator("td").nth(9).innerText()))
       .toBe(1);
-    await expect.poll(() => statValue(page, "Đã hoàn")).toBe(due - 1);
-
     await tab(page, "Hoàn tiền").click();
+    await expect.poll(() => statValue(page, "Đã hoàn")).toBe(due - 1);
     await expect(page.locator(".pdt-table tbody tr.ant-table-row")).toHaveCount(1);
     await expect(page.locator(".pdt-table")).toContainText(
       "Hoàn trả chênh lệch chuyển đổi dịch vụ",
@@ -1377,7 +1313,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       await expect.poll(() => amountOf("Đơn giá")).toBe(list);
       await expect.poll(() => amountOf("Tổng giảm giá")).toBe(cut + 20_000);
       await expect.poll(() => amountOf("Thành tiền")).toBe(list - cut - 20_000);
-      await expect.poll(() => statValue(page, "Doanh thu dự kiến")).toBe(list - cut - 20_000);
+      await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
       await cell("Tổng giảm giá").locator(".pdt-discount").hover();
       const tip = page.locator(".ant-tooltip:visible .pdt-discount-tip p");
@@ -1399,5 +1335,10 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect.poll(async () => money(await box.inputValue())).toBe(lowered);
     await row.getByRole("button", { name: "Hủy" }).click();
     await expect(box).toHaveCount(0);
+
+    // The slip's revenue follows the lower price — read on a money tab, where
+    // the figures live.
+    await tab(page, "Thanh toán").click();
+    await expect.poll(() => statValue(page, "Doanh thu dự kiến")).toBe(list - cut - 20_000);
   });
 });

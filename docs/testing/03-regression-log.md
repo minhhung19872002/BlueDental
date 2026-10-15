@@ -8640,3 +8640,36 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
   - `operations-reports`: spec chờ tab "Ngày" nhưng màn hình đã đổi sang nút `.bd-ops-period-option`; không đụng `features/operations`.
 
 **Chưa commit.**
+
+## R-952 (2026-10-15, mức 2: kế hoạch điều trị / chi tiết phiếu) Bỏ "Tạo kế hoạch mới" và "Thêm công đoạn"; "Thêm dịch vụ phát sinh" mở dialog "Tạo phiếu dịch vụ" thêm dòng vào phiếu đang xem
+
+- Yêu cầu (owner, kèm ảnh chụp):
+  - Tab Kế hoạch điều trị của bệnh nhân bỏ nút "+ Tạo kế hoạch mới"; giữ dialog "Tạo phiếu dịch vụ" (`CreatePlanDialog`).
+  - Trang chi tiết phiếu (tab Chi tiết): dòng chọn dịch vụ tại chỗ "Thêm dịch vụ mới" đổi thành nút màu primary "+ Thêm dịch vụ phát sinh". Nút mở "Tạo phiếu dịch vụ"; lưu là thêm dòng mới vào **phiếu đang xem** (`POST patient-treatments/{id}/services`, quyền `TreatmentConsultation.Update`).
+  - Bỏ nút toolbar "Thêm công đoạn" trên trang chi tiết phiếu. Dialog "Chi tiết phiếu" vẫn mở từ nút "+" trên dòng ở Kế hoạch điều trị và từ ô Công đoạn ở Hồ sơ.
+- FE:
+  - `useCreatePlanForm` nhận `planId` → `submitToPlan`; `CreatePlanDialog` nhận `planId`.
+  - `PlanToolbar` chỉ còn "Xem tất cả dịch vụ".
+  - `PlanServicesToolbar` / `PlanServicesTab` dùng nút mới.
+  - Bỏ `useDraftServiceRow.ts`, `DraftStatusPill.tsx`; tách kiểu vào `draftServiceTypes.ts`.
+  - Key i18n `Treatment:Plan:AddExtraService`.
+- E2E:
+  - Fixture mới:
+    - `e2e/fixtures/stageDialog.ts`: mở Chi tiết phiếu bằng "+" trên dòng; ép cao ≥ 900 vì lý do ở mục Ghi chú.
+    - `e2e/fixtures/extraService.ts`.
+    - `createSlipViaApi` / `openNewSlip` trong `ledgerReceipt.ts`: tạo phiếu thật qua tư vấn → chấp nhận → mở phiếu.
+  - `createSlipViaApi` bỏ qua dịch vụ đã xoá mềm (dòng in "—"), dịch vụ có runId 6 số của spec khác, combo và dịch vụ có VAT (để số phải thu = giá đọc ra).
+  - `treatment-plan.spec`: viewport 1280×900; kiểm tra in đổi sang `expect.poll` vì `handlePrint` là async.
+  - Các spec cập nhật theo luồng mới: `treatment-plan-detail`, `debt-history`, `treatment-stage-chain`, `stage-treatment-date` (chỉ phần mở dialog), `stage-staff-pickers`, `cskh-after-treatment`, `treatment-leaf-permissions`, `cross-screen-freshness`, `service-priority-order`, `taxonomy-active-state`, `patient-permission-gates`, `treatment-plan-delete`.
+- Test (build production `vite preview` 127.0.0.1:8213, host thật :5000, PostgreSQL thật, không chặn API):
+  - `treatment-plan` **9/9 pass**.
+  - `treatment-plan-detail`, `debt-history`, `treatment-stage-chain`, `stage-staff-pickers`, `cskh-after-treatment`: **30 pass**.
+  - `treatment-leaf-permissions`, `cross-screen-freshness`, `service-priority-order`, `taxonomy-active-state`, `patient-permission-gates`: **10 pass**.
+- Ca đỏ không do thay đổi này:
+  - `stage-treatment-date` 4 ca: spec đã theo R-951 nhưng host đang chạy chưa có thay đổi BE của R-951.
+  - `payment-permission-buttons` "read opens the money tabs…": spec chờ "In lịch sử điều trị" trong Chi tiết phiếu khi không có quyền in. Commit `dbeb1313` (14/10) đã khoá nút này sau quyền in công đoạn; spec chưa cập nhật (sửa lần cuối 12/10).
+- Ghi chú:
+  - Màn cao 720: bệnh nhân có thẻ "Dịch vụ đang điều trị" làm thân bảng phiếu ở tab Kế hoạch điều trị co về ~0px, header dính che nút "+". Lỗi có sẵn, chưa sửa.
+  - Chuyển đổi "Dịch vụ cũ" trên dòng có VAT hiện giá chưa VAT (750.000), còn số phải thu đã gồm VAT (810.000). Lỗi có sẵn, chưa sửa.
+
+**Chưa commit.**

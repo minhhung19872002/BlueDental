@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { login, runId } from "./fixtures/auth";
+import { openExtraServiceDialog } from "./fixtures/extraService";
+import { openNewSlip } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: a service list that spans groups runs by "Mức độ ưu tiên" group by
@@ -85,18 +87,14 @@ async function listed(page: Page, count: number, taxonomyId?: string): Promise<s
   return res.items.map((item) => item.name);
 }
 
-/** The first option names of the "Thêm dịch vụ mới" picker on a fresh Tạo phiếu dịch vụ. */
+/**
+ * The first option names of the "Thêm dịch vụ mới" picker in Tạo phiếu dịch vụ,
+ * opened from "Thêm dịch vụ phát sinh" on a fresh slip (the patient tab's "Tạo
+ * kế hoạch mới" is gone, owner 2026-10-15).
+ */
 async function pickerNames(page: Page, count: number): Promise<string[]> {
-  await page.goto("/patient?branch=BD-001");
-  await assertRealApiTraffic(page, "/api/v1/app/patients");
-  const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
-  await expect(firstName).toBeVisible();
-  await firstName.click();
-  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-  await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
-  await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
-  const slip = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
-  await expect(slip).toBeVisible();
+  await openNewSlip(page);
+  const slip = await openExtraServiceDialog(page);
 
   await slip.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
   const names = page

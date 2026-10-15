@@ -1527,6 +1527,7 @@
     "CSKH:SendZalo:HintAutoFill": "Nội dung tin nhắn được điền tự động từ dữ liệu khách hàng — chỉ cần chọn mẫu.",
     "Treatment:Plan:TreatmentPlan": "Kế hoạch điều trị",
     "Treatment:Plan:TreatmentPlanCode": "Kế hoạch điều trị {0}",
+    "Treatment:Plan:AddExtraService": "Thêm dịch vụ phát sinh",
     "Treatment:Plan:CreatePlan": "Tạo kế hoạch mới",
     "Treatment:Plan:CreatePlanDialog": "Tạo phiếu dịch vụ",
     "Treatment:Plan:UpdatePlanDialog": "Cập nhật phiếu dịch vụ",

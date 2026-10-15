@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { openStageDialog, reopenStageDialog } from "./fixtures/stageDialog";
 
 /**
  * Feature: "Chi tiết phiếu" — per-tooth công đoạn, the continue chain and the
@@ -176,18 +177,6 @@ async function stageOn(page: Page, line: Line, teeth: number[], done: boolean): 
   return id;
 }
 
-/** The plan detail page of the slip, and "Chi tiết phiếu" opened from its toolbar. */
-async function openSlipDialog(page: Page, line: Line): Promise<Locator> {
-  await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${line.branchId}`);
-  await expect(page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`)).toBeVisible({
-    timeout: 20_000,
-  });
-  await page.getByRole("button", { name: "Thêm công đoạn" }).click();
-  const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
-  await expect(dialog).toBeVisible();
-  return dialog;
-}
-
 /** Picks the first doctor the Bác sĩ picker offers, when the form starts without one. */
 async function pickDoctor(page: Page, form: Locator): Promise<void> {
   const doctor = form.locator(".ant-select").first();
@@ -222,7 +211,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
       { teeth: [{ code: 14 }] },
     ]);
 
-    const dialog = await openSlipDialog(page, first);
+    const dialog = await openStageDialog(page, first);
     await expect(dialog.getByRole("tab", { name: /THÊM CÔNG ĐOẠN/ })).toHaveAttribute("aria-selected", "true");
     await expect(dialog.getByRole("tab", { name: /TIẾP TỤC BẢO HÀNH/ })).toBeVisible();
 
@@ -297,7 +286,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     // And it all reached the database.
     await page.reload();
     const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    await reopenStageDialog(page, first);
     const reopened = again.locator(`.pd-stage-picks button[data-line-id="${first.lineId}"]`);
     await expect(reopened.locator("i")).toHaveText(["11", "21", "22"]);
     await expect(faded(reopened)).toHaveText(["11", "21"]);
@@ -323,7 +312,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const [line] = await freshLines(page, [{ teeth: [{ code: 31 }, { code: 32 }] }]);
     const firstStage = await stageOn(page, line, [31, 32], false);
 
-    const dialog = await openSlipDialog(page, line);
+    const dialog = await openStageDialog(page, line);
     await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await dialog.locator(`.pd-stage-picks button[data-stage-id="${firstStage}"]`).click();
 
@@ -353,7 +342,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     // Next visit, from a fresh load: the card offers 31 (on the new visit) and
     // 32 (still on the first) — on the server's word.
     await page.reload();
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    await reopenStageDialog(page, line);
     const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
     await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
@@ -388,7 +377,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(reclosed.text).toContain("BlueDental:Treatment:0018");
 
     await page.reload();
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    await reopenStageDialog(page, line);
     await expect(
       page.getByRole("dialog", { name: "Chi tiết phiếu" }).locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`),
     ).toHaveAttribute("aria-disabled", "true");
@@ -402,7 +391,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const chain11 = await stageOn(page, line, [11], false);
     const chain21 = await stageOn(page, line, [21], false);
 
-    const dialog = await openSlipDialog(page, line);
+    const dialog = await openStageDialog(page, line);
 
     // History: every tooth of the service on each row, that visit's in blue.
     const worked = (stageId: string) =>
@@ -443,7 +432,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // 21's chain is still open, so the card stays — on the server's word too.
     await page.reload();
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    await reopenStageDialog(page, line);
     const again = page.getByRole("dialog", { name: "Chi tiết phiếu" });
     await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await expect(again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`)).toHaveCount(1);
@@ -489,7 +478,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const second = (carried.json as { id: string }).id;
     const later = await stageOn(page, line, [13], false);
 
-    const dialog = await openSlipDialog(page, line);
+    const dialog = await openStageDialog(page, line);
     const row = (id: string) => dialog.locator(`.pd-stage-histrow[data-stage-id="${id}"]`);
     const teethIn = (id: string, state: "worked" | "done") =>
       row(id).locator(`.pd-stage-histteeth > span.pd-stage-histtooth--${state}`);
@@ -530,7 +519,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // From the database, on a fresh load.
     await page.reload();
-    await page.getByRole("button", { name: "Thêm công đoạn" }).click();
+    await reopenStageDialog(page, line);
     await expectFinished();
 
     // Un-ticking Hoàn thành makes 11 an ordinary blue tooth again, everywhere.
@@ -548,7 +537,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     ]);
     const root = await stageOn(page, line, [11, 21, 22], true);
 
-    const dialog = await openSlipDialog(page, line);
+    const dialog = await openStageDialog(page, line);
     const rootRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${root}"]`);
     await rootRow.getByRole("button", { name: "Bảo hành" }).click();
 
