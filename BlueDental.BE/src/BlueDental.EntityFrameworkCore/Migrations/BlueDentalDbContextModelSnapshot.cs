@@ -7704,6 +7704,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("RemovedServiceCount")
+                        .HasColumnType("integer");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
 

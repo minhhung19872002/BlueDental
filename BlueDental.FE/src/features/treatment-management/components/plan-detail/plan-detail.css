@@ -1225,6 +1225,13 @@ a.pdt-crumb:hover {
   justify-content: center;
   gap: 16px;
 }
+/* "Xóa" (R-953) — red, the one action on the row that cannot be taken back. */
+.tp-eye.pdt-line-delete {
+  color: var(--bd-red);
+}
+.tp-eye.pdt-line-delete:hover {
+  color: var(--bd-red-dark);
+}
 /* A value an edited line in treatment keeps, with staging's reason under it. */
 .pdt-draft-locked {
   display: grid;

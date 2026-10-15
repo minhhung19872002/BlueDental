@@ -553,6 +553,12 @@ const treatmentApi = {
       .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/cancel`)
       .then((r) => r.data),
 
+  /** "Xóa" — takes a line still "Đã tạo" off the slip (R-953). */
+  deleteService: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
+    api
+      .delete<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}`)
+      .then((r) => r.data),
+
   /** "Hủy phiếu Labo": closes every unfinished labo order of the line. */
   cancelServiceLaboOrders: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
     api
@@ -725,6 +731,13 @@ export function useCompleteServiceLine() {
 export function useCancelServiceLine() {
   return useTreatmentMutation((input: { planId: string; lineId: string }) =>
     treatmentApi.cancelService(input.planId, input.lineId),
+  );
+}
+
+/** "Xóa" on a service line still "Đã tạo" (R-953). */
+export function useDeleteServiceLine() {
+  return useTreatmentMutation((input: { planId: string; lineId: string }) =>
+    treatmentApi.deleteService(input.planId, input.lineId),
   );
 }
 

@@ -54,4 +54,13 @@ public class PatientTreatmentVoucherContractTests
         typeof(PatientTreatmentAppService).GetMethod("OpenAsync")!
             .GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
     }
+
+    /// <summary>R-953: "Xóa" on a service line is the consulting chain's delete right, not update.</summary>
+    [Fact]
+    public void DeleteServiceAsync_Should_Require_The_Consultation_Delete_Permission()
+    {
+        typeof(PatientTreatmentAppService).GetMethod("DeleteServiceAsync")!
+            .GetCustomAttribute<AuthorizeAttribute>()!
+            .Policy.ShouldBe(BlueDental.Permissions.BlueDentalAbilityPermissions.TreatmentConsultation.Delete);
+    }
 }

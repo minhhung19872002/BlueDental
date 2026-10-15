@@ -8696,3 +8696,42 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
   - Chuyển đổi "Dịch vụ cũ" trên dòng có VAT hiện giá chưa VAT (750.000), còn số phải thu đã gồm VAT (810.000). Lỗi có sẵn, chưa sửa.
 
 **Chưa commit.**
+
+## R-953 (2026-10-15, mức 2: chi tiết phiếu điều trị) Nút "Xóa" trên dòng dịch vụ — chỉ dòng "Đã tạo"
+
+- Yêu cầu chủ dự án (kèm ảnh):
+  - Thêm "Xóa" vào cột Thao tác của tab "Chi tiết điều trị".
+  - Chỉ dòng "Đã tạo" mới có nút. Dòng "Đang điều trị" hay "Hoàn thành" thì ẩn nút.
+- Ba quyết định chủ dự án đã chốt:
+  - Dòng đã có thanh toán: chặn ở server (`Treatment:0050`), nút vẫn hiện.
+  - Quyền dùng là `treatmentConsultation.delete`.
+  - Dòng tạo từ tư vấn: xoá xong thì tư vấn trả về "Đã chấp nhận".
+- BE:
+  - Thêm `TreatmentPlan.RemoveService`. Phiếu Completed/Cancelled thì báo 0002, dòng không còn "Đã tạo" thì báo 0049.
+  - Dòng bị xoá là xoá mềm. `RemovedServiceCount` (migration `20261015043734_TreatmentPlanRemovedServiceCount`) giữ cho mã dòng tiếp theo không trùng mã đã xoá.
+  - Thêm endpoint `DELETE patient-treatments/{id}/services/{lineId}`.
+  - Chặn xoá khi dòng đã có:
+    - phiếu thu hoặc hoàn tiền: báo 0050, **kể cả khi đã hoàn tiền về 0**, vì sổ cái, báo cáo và HĐĐT vẫn tham chiếu dòng đó;
+    - công đoạn, tái khám hoặc labo: báo 0051.
+  - Sau khi xoá: trả tư vấn về Accepted, chạy `CloseIfAllServicesDone`, tính lại giảm giá của phiếu.
+  - Voucher theo dịch vụ trên dòng đã xoá: xử lý như huỷ dòng, không hoàn lượt dùng.
+  - 0049/0050/0051 không nằm trong bảng map 422 nên server trả **403**, giống 0040/0042.
+- FE:
+  - Nút thùng rác đỏ trong `serviceColumns.tsx`. Cột Thao tác rộng 90 → 120.
+  - Card ≤640px: nút nằm trên header card (`ServiceCardList.tsx`).
+  - Hộp xác nhận dùng `DeleteServiceDialog.tsx` (chung `ConfirmDeleteDialog`). Server từ chối thì toast lỗi, dialog vẫn mở.
+  - Thêm hook `useDeleteServiceLine`.
+  - Key i18n `Treatment:Service:DeleteSuccess` và lời báo cho 0049–0051.
+- Test:
+  - BE: `Domain.Tests` TreatmentManagement **45/45**. `PatientTreatmentVoucherContractTests` **5/5**.
+  - E2E `e2e/plan-service-delete.spec.ts` **4/4 pass**: build production `vite preview` 127.0.0.1:18453, host riêng :5010, PostgreSQL thật, không chặn API. Bốn ca:
+    - xoá dòng "Đã tạo", reload vẫn mất, tư vấn về 2;
+    - dòng Hoàn thành không có nút và server báo 0049, dòng "Đã tạo" bên cạnh vẫn có nút;
+    - dòng có phiếu thu báo 0050 và dialog vẫn mở;
+    - không có quyền delete thì không có nút và server trả 403.
+  - `treatment-plan-detail` **6/7**. Ca đỏ "Thêm dịch vụ phát sinh…" không do thay đổi này: session khác đổi tiêu đề modal thành "Thêm dịch vụ" (vi.json + fixture, 11:52) sau khi host :5010 được build (11:43).
+- Ghi chú:
+  - Spec không kiểm riêng cách ly chi nhánh. Endpoint nạp phiếu qua `LoadAsync`, giống các endpoint dòng khác.
+  - Hoàn thành dòng duy nhất sẽ tự đóng phiếu, khi đó xoá báo 0002 chứ không phải 0049. Vì vậy spec thêm một dòng thứ hai.
+
+**Chưa commit.**

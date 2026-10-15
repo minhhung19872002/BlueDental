@@ -53,6 +53,13 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public decimal? VoucherDiscountAmount { get; private set; }
 
+    /// <summary>
+    /// Lines taken off the slip by "Xóa" (R-953). They are soft-deleted, so the
+    /// slip no longer loads them, yet they still hold their number: the next
+    /// line is numbered past them and DT05-02 is never handed out twice.
+    /// </summary>
+    public int RemovedServiceCount { get; private set; }
+
     public IReadOnlyCollection<TreatmentService> Services => _services.AsReadOnly();
 
     /// <summary>The reference's <c>appliedCoupons[]</c>: what each voucher took off.</summary>
@@ -368,7 +375,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             BranchId,
             serviceId,
             sourceAdviseId,
-            $"{Code}-{_services.Count + 1:D2}",
+            NextLineCode(),
             price,
             quantity,
             discountType,
@@ -459,7 +466,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             BranchId,
             newServiceId,
             sourceAdviseId: null,
-            $"{Code}-{_services.Count + 1:D2}",
+            NextLineCode(),
             unitPrice,
             quantity,
             DiscountType.Money,
@@ -485,6 +492,41 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
 
         return line;
     }
+
+    /// <summary>
+    /// "Xóa" on a line of the plan table (owner 2026-10-15, R-953): only a line
+    /// still "BE:Status:Created" may go — one being treated, finished, cancelled
+    /// or converted is part of the patient's history. The line is soft-deleted
+    /// with the slip's save; whatever else hangs off it (money, công đoạn, labo,
+    /// tái khám) is the application service's to check first.
+    /// </summary>
+    public TreatmentService RemoveService(Guid serviceLineId)
+    {
+        if (Status is TreatmentPlanStatus.Completed or TreatmentPlanStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition,
+                $"No service line can be removed from a plan in status {Status}.");
+        }
+
+        var line = GetService(serviceLineId);
+        if (line.Status != TreatmentServiceStatus.Created)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceNotRemovable,
+                $"A service line in status {line.Status} cannot be removed.");
+        }
+
+        _services.Remove(line);
+        RemovedServiceCount++;
+        return line;
+    }
+
+    /// <summary>
+    /// "DT05-03": the slip code and the line's place among every line the slip
+    /// has ever held, removed ones included — see <see cref="RemovedServiceCount"/>.
+    /// </summary>
+    private string NextLineCode() => $"{Code}-{_services.Count + RemovedServiceCount + 1:D2}";
 
     /// <summary>Applies a discount to the whole slip.</summary>
     public TreatmentPlan ApplyDiscount(DiscountType discountType, decimal discountValue)

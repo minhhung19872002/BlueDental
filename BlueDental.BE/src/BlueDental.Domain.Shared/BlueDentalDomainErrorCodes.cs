@@ -276,6 +276,15 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>"Ngày lên đơn thuốc" after today — a prescription is dated on or before the day it is written.</summary>
         public const string PrescriptionDateInFuture = "BlueDental:Treatment:0048";
+
+        /// <summary>"Xóa" on a service line that is no longer "Đã tạo" (R-953).</summary>
+        public const string ServiceNotRemovable = "BlueDental:Treatment:0049";
+
+        /// <summary>"Xóa" on a service line that already has a receipt or refund against it (R-953).</summary>
+        public const string ServiceHasPayments = "BlueDental:Treatment:0050";
+
+        /// <summary>"Xóa" on a service line that already has công đoạn, tái khám or labo orders (R-953).</summary>
+        public const string ServiceHasRecords = "BlueDental:Treatment:0051";
     }
 
     public static class Billing

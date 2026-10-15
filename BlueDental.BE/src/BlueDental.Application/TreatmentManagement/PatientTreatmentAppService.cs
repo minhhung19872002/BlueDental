@@ -37,6 +37,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly IRepository<CareRecord, Guid> _careRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
     private readonly IRepository<LaboOrder, Guid> _laboRepository;
+    private readonly IRepository<PatientReExamination, Guid> _reExaminationRepository;
     private readonly IRepository<Voucher, Guid> _voucherRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
@@ -53,6 +54,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         IRepository<CareRecord, Guid> careRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IRepository<LaboOrder, Guid> laboRepository,
+        IRepository<PatientReExamination, Guid> reExaminationRepository,
         IRepository<Voucher, Guid> voucherRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
@@ -64,6 +66,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         _afterTreatmentCare = afterTreatmentCare;
         _deletion = deletion;
         _laboRepository = laboRepository;
+        _reExaminationRepository = reExaminationRepository;
         _voucherRepository = voucherRepository;
         _teethPolicy = teethPolicy;
         _planRepository = planRepository;
@@ -374,6 +377,71 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// "Xóa" — the bin in the plan table's Thao tác column (owner 2026-10-15,
+    /// R-953). Only a line still "Đã tạo" goes, and only while nothing has been
+    /// written against it: a receipt or refund (even one refunded back to zero
+    /// still names the line in the ledger, reports and e-invoices), a công đoạn,
+    /// a tái khám or a labo order. The consulting line it came from goes back to
+    /// accepted, free for a slip again — as when the whole slip is deleted.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
+    public async Task<TreatmentPlanSlipDto> DeleteServiceAsync(Guid id, Guid serviceLineId)
+    {
+        var plan = await LoadAsync(id);
+        var slipBefore = PlanDiscountOf(plan);
+        var line = plan.RemoveService(serviceLineId);
+
+        await GuardNothingWrittenAgainstAsync(plan.Id, line.Id);
+        await ReleaseAdviseAsync(line.SourceAdviseId);
+
+        plan.CloseIfAllServicesDone();
+        await EnsurePlanDiscountAsync(plan, slipBefore);
+
+        await _planRepository.UpdateAsync(plan, autoSave: true);
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    private async Task GuardNothingWrittenAgainstAsync(Guid planId, Guid serviceLineId)
+    {
+        var payments = await _paymentRepository.WithDetailsAsync(x => x.Lines);
+        var paid = await AsyncExecuter.AnyAsync(payments.Where(p =>
+            p.TreatmentPlanId == planId && p.Lines.Any(l => l.TreatmentServiceId == serviceLineId)));
+        if (paid)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasPayments,
+                "The service line has payments against it.");
+        }
+
+        var recorded = await _stageRepository.AnyAsync(s => s.TreatmentServiceId == serviceLineId)
+            || await _reExaminationRepository.AnyAsync(r => r.TreatmentServiceId == serviceLineId)
+            || await _laboRepository.AnyAsync(o => o.TreatmentServiceId == serviceLineId);
+        if (recorded)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasRecords,
+                "The service line has treatment records against it.");
+        }
+    }
+
+    private async Task ReleaseAdviseAsync(Guid? adviseId)
+    {
+        if (!adviseId.HasValue)
+        {
+            return;
+        }
+
+        var advise = await _adviseRepository.FindAsync(adviseId.Value);
+        if (advise is not { Status: PatientAdviseStatus.Converted })
+        {
+            return;
+        }
+
+        advise.ReleaseFromPlan();
+        await _adviseRepository.UpdateAsync(advise, autoSave: true);
     }
 
     /// <summary>

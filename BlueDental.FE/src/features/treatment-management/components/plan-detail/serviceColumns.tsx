@@ -1,10 +1,11 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type { TableColumnsType } from "antd";
-import { Eye, GripVertical, Pencil } from "lucide-react";
+import { Eye, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { formatToothCodes } from "../../api/consultingApi";
+import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import { moneyText } from "../plan/planTypes";
 import { DiscountBreakdown } from "./DiscountBreakdown";
 import { ServiceStatusPill, type ServiceAction } from "./ServiceStatusPill";
@@ -29,6 +30,13 @@ export interface ServiceRowActions {
   onEdit?: (row: PlanDetailRow) => void;
   /** Staging's rule for which lines carry the pencil at all. */
   canEditLine: (row: PlanDetailRow) => boolean;
+  /** "Xóa". Left out without treatmentConsultation.delete; shown only on lines still "Đã tạo". */
+  onDelete?: (row: PlanDetailRow) => void;
+}
+
+/** Owner 2026-10-15 (R-953): only a line nobody has started on can be taken off the slip. */
+export function isLineDeletable(row: PlanDetailRow): boolean {
+  return row.service.status === SERVICE_LINE_STATUS.Created;
 }
 
 /**
@@ -133,9 +141,10 @@ function column(
   };
 }
 
-/** Thao tác on a saved line: the eye, and the pencil where staging offers it. */
+/** Thao tác on a saved line: the eye, the pencil where staging offers it, and "Xóa". */
 function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
   const editable = actions.onEdit && actions.canEditLine(row);
+  const deletable = actions.onDelete && isLineDeletable(row);
   return (
     <span className="pdt-line-actions">
       <button type="button" className="tp-eye" aria-label={t("Treatment:Service:ViewDetail")} onClick={() => actions.onView(row)}>
@@ -150,6 +159,18 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
             onClick={() => actions.onEdit?.(row)}
           >
             <Pencil size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
+      {deletable && (
+        <ActionTooltip title={t("Common:Delete")}>
+          <button
+            type="button"
+            className="tp-eye pdt-line-delete"
+            aria-label={t("Common:Delete")}
+            onClick={() => actions.onDelete?.(row)}
+          >
+            <Trash2 size={16} aria-hidden="true" />
           </button>
         </ActionTooltip>
       )}
@@ -191,7 +212,7 @@ export function buildServiceColumns(
     text("diagnoser2", "Treatment:PlanDetail:Col:Diagnoser2", 180, (row) => row.service.secondDiagnoserName ?? row.advise?.secondStaffName ?? ""),
     text("consultant1", "Treatment:PlanDetail:Col:Consultant1", 180, (row) => row.service.consultantName ?? row.plan.consultantName ?? ""),
     text("consultant2", "Treatment:PlanDetail:Col:Consultant2", 180, (row) => row.service.secondConsultantName ?? ""),
-    column("actions", t("Common:Actions"), 90, (row) => <LineActions row={row} actions={actions} />, {
+    column("actions", t("Common:Actions"), 120, (row) => <LineActions row={row} actions={actions} />, {
       align: "center",
       fixed: "right",
     }),

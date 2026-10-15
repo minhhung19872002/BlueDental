@@ -47,6 +47,10 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
     public Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId) =>
         service.CancelServiceAsync(id, serviceLineId);
 
+    [HttpDelete("{id:guid}/services/{serviceLineId:guid}")]
+    public Task<TreatmentPlanSlipDto> DeleteServiceAsync(Guid id, Guid serviceLineId) =>
+        service.DeleteServiceAsync(id, serviceLineId);
+
     [HttpPost("{id:guid}/services/{serviceLineId:guid}/convert")]
     public Task<TreatmentPlanSlipDto> ConvertServiceAsync(
         Guid id, Guid serviceLineId, [FromBody] ConvertTreatmentServiceDto input) =>

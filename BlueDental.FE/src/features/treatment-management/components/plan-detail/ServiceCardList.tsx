@@ -1,11 +1,11 @@
 import { Pagination } from "antd";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatToothCodes } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
-import { DiscountCell, ServiceNameCell, type ServiceRowActions } from "./serviceColumns";
+import { DiscountCell, isLineDeletable, ServiceNameCell, type ServiceRowActions } from "./serviceColumns";
 import { advanceOn, dash, lineNetAmount, listUnitPrice, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
@@ -39,6 +39,32 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
   return { rows, moreRows };
 }
 
+/** The card head: the eye, and "Xóa" on a line still "Đã tạo" (R-953). */
+function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
+  return (
+    <span className="tp-actions">
+      <button
+        type="button"
+        className="bd-rc-action"
+        aria-label={t("Treatment:Service:ViewDetail")}
+        onClick={() => actions.onView(row)}
+      >
+        <Eye size={16} aria-hidden="true" />
+      </button>
+      {actions.onDelete && isLineDeletable(row) && (
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("Common:Delete")}
+          onClick={() => actions.onDelete?.(row)}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+        </button>
+      )}
+    </span>
+  );
+}
+
 /** The service table at 640px and below: one card per line, its position on the head. */
 export function ServiceCardList({ rows, total, pagination, actions, showTotal }: Props) {
   return (
@@ -51,16 +77,7 @@ export function ServiceCardList({ rows, total, pagination, actions, showTotal }:
             <RecordCard
               key={row.service.id}
               title={String(row.index)}
-              extra={
-                <button
-                  type="button"
-                  className="bd-rc-action"
-                  aria-label={t("Treatment:Service:ViewDetail")}
-                  onClick={() => actions.onView(row)}
-                >
-                  <Eye size={16} aria-hidden="true" />
-                </button>
-              }
+              extra={<CardActions row={row} actions={actions} />}
               rows={card.rows}
               moreRows={card.moreRows}
             />

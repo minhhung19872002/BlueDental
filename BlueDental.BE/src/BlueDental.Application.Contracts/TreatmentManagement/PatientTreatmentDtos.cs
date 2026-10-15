@@ -552,6 +552,9 @@ public interface IPatientTreatmentAppService : IApplicationService
         Guid id, Guid serviceLineId, UpdateTreatmentServiceDto input);
     Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId);
+
+    /// <summary>"Xóa" — takes a line still "Đã tạo" off the slip (R-953).</summary>
+    Task<TreatmentPlanSlipDto> DeleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> ReorderServiceAsync(Guid id, ReorderTreatmentServiceDto input);
 
     Task<TreatmentPlanSlipDto> ConvertServiceAsync(

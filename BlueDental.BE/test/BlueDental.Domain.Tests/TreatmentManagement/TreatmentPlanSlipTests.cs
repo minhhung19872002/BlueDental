@@ -91,6 +91,59 @@ public class TreatmentPlanSlipTests
     }
 
     [Fact]
+    public void A_created_line_can_be_removed_and_stops_counting()
+    {
+        var plan = OpenPlan();
+        var kept = AddLine(plan, 1_000_000m);
+        var removed = AddLine(plan, 2_000_000m);
+
+        plan.RemoveService(removed.Id).ShouldBeSameAs(removed);
+
+        plan.Services.ShouldBe([kept]);
+        plan.TotalAmount.ShouldBe(1_000_000m);
+    }
+
+    [Fact]
+    public void A_removed_line_keeps_its_number()
+    {
+        var plan = OpenPlan();
+        AddLine(plan, 1_000_000m);
+        var last = AddLine(plan, 2_000_000m);
+
+        plan.RemoveService(last.Id);
+
+        AddLine(plan, 3_000_000m).Code.ShouldBe("DT01-03");
+    }
+
+    [Fact]
+    public void Only_a_created_line_can_be_removed()
+    {
+        var plan = OpenPlan();
+        var started = AddLine(plan, 1_000_000m).Start();
+        var done = AddLine(plan, 1_000_000m).Complete();
+        var cancelled = AddLine(plan, 1_000_000m).Cancel();
+
+        foreach (var line in new[] { started, done, cancelled })
+        {
+            Should.Throw<BusinessException>(() => plan.RemoveService(line.Id))
+                .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceNotRemovable);
+        }
+
+        plan.Services.Count.ShouldBe(3);
+    }
+
+    [Fact]
+    public void No_line_can_be_removed_from_a_cancelled_slip()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+        plan.Cancel();
+
+        Should.Throw<BusinessException>(() => plan.RemoveService(line.Id))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition);
+    }
+
+    [Fact]
     public void The_same_consulting_line_cannot_be_pulled_in_twice()
     {
         var plan = OpenPlan();

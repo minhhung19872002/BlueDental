@@ -24,6 +24,7 @@ import {
 import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
+import { DeleteServiceDialog } from "./DeleteServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
 import { CreatePlanDialog } from "../plan/CreatePlanDialog";
 import { EMPTY_TOOTH_VALUE } from "../plan/toothPicker";
@@ -106,7 +107,8 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const narrow = useMediaQuery(NARROW_SCREEN);
   // Adding, completing, converting, cancelling and reordering a line are all
   // one endpoint family on the server, guarded by treatmentConsultation.update.
-  const canEditLines = useAbility("treatmentConsultation").canUpdate;
+  const consultation = useAbility("treatmentConsultation");
+  const canEditLines = consultation.canUpdate;
   const paymentAbility = useAbility("payment");
   const pagination = useTablePagination(10);
   const advises = usePatientAdvises({ patientId: patient.id, clinicBranchId: branchId, maxResultCount: 200 });
@@ -118,6 +120,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
 
   const [viewing, setViewing] = useState<PlanDetailRow | null>(null);
   const [cancelling, setCancelling] = useState<PlanDetailRow | null>(null);
+  const [deleting, setDeleting] = useState<PlanDetailRow | null>(null);
   const [converting, setConverting] = useState<PlanDetailRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
@@ -192,9 +195,11 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       onStatus: canEditLines ? handleStatus : undefined,
       onEdit: canEditLines && !rowBusy ? edit.start : undefined,
       canEditLine: (row) => isLineEditable(row.service),
+      // "Xóa" is the consulting chain's delete right, as on the server (R-953).
+      onDelete: consultation.canDelete && !rowBusy ? setDeleting : undefined,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
-    [plan.id, canEditLines, rowBusy],
+    [plan.id, canEditLines, consultation.canDelete, rowBusy],
   );
   const dragHandle = useMemo<ServiceDragHandle>(
     () => ({
@@ -264,6 +269,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         onConfirm={handleCancelConfirm}
         onClose={() => setCancelling(null)}
       />
+      <DeleteServiceDialog planId={plan.id} service={deleting?.service ?? null} onClose={() => setDeleting(null)} />
       <CreatePlanDialog
         open={addOpen}
         patientId={patient.id}
