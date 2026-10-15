@@ -26,10 +26,11 @@ const ACTION_TAG: Record<StageImportAction, { color: string; key: string }> = {
   Error: { color: "red", key: "Taxonomy:Import:Action:Error" },
 };
 
-const ROW_WIDTH = 64;
-const VALUE_WIDTHS = [220, 80, 120, 150];
-const ERROR_WIDTH = 260;
-const RESULT_WIDTH = 120;
+// Sums to 900: the 960px dialog's body, so nothing slides under the fixed "Kết quả".
+const ROW_WIDTH = 60;
+const VALUE_WIDTHS = [180, 70, 100, 150];
+const ERROR_WIDTH = 230;
+const RESULT_WIDTH = 110;
 const TABLE_HEIGHT = 320;
 
 export function stageImportSummary(plan: StageImportPlan): string {
@@ -61,7 +62,8 @@ export function ServiceStageImportPreview({ sheet, plan }: Props) {
         title: stageHeader(column, words.headers),
         key: column,
         width: VALUE_WIDTHS[index],
-        ellipsis: true,
+        // Only a name can run long; the other headers wrap rather than clip.
+        ellipsis: column === "name",
         render: (_: unknown, line: StageImportLine) => line.values[index],
       })),
       {

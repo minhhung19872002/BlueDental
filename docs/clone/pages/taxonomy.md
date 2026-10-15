@@ -367,6 +367,18 @@ Four tabs — the fourth is new:
 - Footer: `Hiển thị a trên b` · page-size menu 5 / 10 / 20 / 25 / 50 / 100 (20 by default) · prev / page / next.
 - Empty table shows "Chưa có công đoạn nào".
 
+**Xuất / Nhập công đoạn (R-961, BlueDental-only — BA request, not on the reference)**
+
+- `Xuất` (download icon) and `Nhập` (upload icon) sit on the same row as the `Công đoạn` box and `+ Công đoạn`, worded like the catalog toolbar's. On a phone (≤ 640px) they wrap under the box.
+- File: one sheet "Công đoạn", columns `Tên công đoạn *` · `Loại *` (`%` / `VNĐ`) · `Giá trị *` · `Tính lương cho phòng MKT` (`Có` / `Không` / empty). There is no STT column. Headers are matched in the current UI language. `Xuất` writes the table as it stands; the file is named `cong-doan-<service name without accents>.xlsx`.
+- `Nhập` opens the catalog import's dialog, "Nhập công đoạn từ Excel", with the steps Chọn file → Kiểm tra → Hoàn tất. It offers a drag-and-drop zone, "Tải file mẫu" (header only), and "Kiểm tra file".
+- The check runs in the browser against the table's own rules: name ≤ 100; type required; value a whole number ≥ 0, with `%` ≤ 100 and `VNĐ` ≤ 9.999.999.999; MKT flag `Có`/`Không`/empty. All problems of a row are listed. A cell formatted as a percentage (0.3) is refused.
+- A missing required column or an empty sheet shows in a "Lỗi file" box.
+- The preview shows a summary such as "n dòng: a thêm mới, b cập nhật, c giữ nguyên, d lỗi", a "Chỉ hiện dòng lỗi" filter and a table with the columns Dòng / 4 columns / Lỗi / Kết quả. Each row's result is a tag: `Thêm mới`, `Cập nhật`, `Giữ nguyên`, `Lỗi`, or `Xóa` for a current stage missing from the file (listed only when the file is clean, with a warning alert counting them). "Tải file lỗi" gives the file back with a `Lỗi` column.
+- **Any bad row blocks the whole file** (`Nhập 0 dòng` disabled).
+- `Nhập N dòng` replaces the table: rows are matched to current stages by name, ignoring case, accents and extra spaces, and the k-th duplicate matches the k-th, so ids — and patients' ticked công đoạn — are kept. Nothing is stored until the service dialog's `Lưu`.
+- Server guard `BlueDental:Catalogs:0035` ("Công đoạn đã được dùng trên phiếu điều trị của bệnh nhân, không thể xóa: …"): any save that drops a stage referenced by a patient's TreatmentStage is refused. This covers the bin icon, this import and the bulk catalog import. The guard surfaces on `Lưu`, not in the preview. Renaming a used stage through a file is a drop plus a create, so it is refused too.
+
 Wire shape (structure only) on `care-service` items:
 
 ```json
