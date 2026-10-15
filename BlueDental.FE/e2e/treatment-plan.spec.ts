@@ -139,8 +139,11 @@ test.describe("Kế hoạch điều trị", () => {
     // required before anything else can be saved.
     await pickFirstOption(page, dialog.getByRole("combobox", { name: /Bác sĩ tư vấn(?! 2)/ }));
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
+    // A priced service: a free one has no giá gốc to go above, and shared
+    // test data adds those too.
     const service = openDropdown(page, ".tp-service-dropdown")
       .locator(".ant-select-item-option:has(.tp-opt-service)")
+      .filter({ hasNot: page.locator(".tp-opt-price", { hasText: /^0 đ$/ }) })
       .first();
     await expect(service).toBeVisible();
     const listed = (await service.locator(".tp-opt-price").innerText()).trim();

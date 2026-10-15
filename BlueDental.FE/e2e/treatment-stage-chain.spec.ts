@@ -22,6 +22,8 @@ interface Line {
   lineId: string;
   serviceId: string;
   serviceName: string;
+  /** Đơn giá the line was written at — min(100 000, giá gốc). */
+  price: number;
 }
 
 interface Tooth {
@@ -63,7 +65,12 @@ async function freshLines(
       // Only this branch's services: another branch's catalog entry is refused (Catalogs:0013).
       const lines = slips.filter((slip) => slip.branchId === branch).flatMap((slip) => slip.services);
       const warrantyLine = lines.find((line) => line.warrantyDays > 0);
-      const plainLine = lines.find((line) => line.warrantyDays <= 0) ?? warrantyLine;
+      // A service priced at least 100 000 đ when there is one, so a test can
+      // still lower the price; shared test data adds free services too.
+      const plainLine =
+        lines.find((line) => line.warrantyDays <= 0 && line.originalPrice >= 100000) ??
+        lines.find((line) => line.warrantyDays <= 0) ??
+        warrantyLine;
       const warrantyService = warrantyLine?.serviceId;
       const plainService = plainLine?.serviceId;
       // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
@@ -108,6 +115,7 @@ async function freshLines(
           lineId: line.id,
           serviceId: line.serviceId,
           serviceName: line.serviceName ?? "",
+          price: Math.min(100000, source.originalPrice),
         });
       }
       return { lines: out };
@@ -648,7 +656,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // The server holds the same line.
     const dropped = await call(page, "PUT", `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}`, {
-      price: 100000,
+      price: line.price,
       quantity: 1,
       teeth: [{ toothCode: 12, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
       diagnosisId: null,
@@ -711,7 +719,7 @@ test.describe("Danh mục dịch vụ — bước công đoạn giữ nguyên kh
             headers,
             body: body === undefined ? undefined : JSON.stringify(body),
           });
-          return { status: res.status, json: res.ok ? await res.json() : await res.text() };
+          return { status: res.status, json: res.status === 200 ? await res.json() : await res.text() };
         };
         const group = (
           await call("GET", `/api/v1/app/taxonomies?clinicBranchId=${branch}&group=care_service&maxResultCount=1`)
@@ -764,6 +772,10 @@ test.describe("Danh mục dịch vụ — bước công đoạn giữ nguyên kh
         const dropped = (await call("GET", `/api/v1/app/catalog-entries/${made.json.id}`)).json.stages as {
           id: string;
         }[];
+        // Off the catalog again: left behind, every run stacked one more free
+        // service on top of the newest-first picker, ahead of the priced ones
+        // other specs look for.
+        await call("DELETE", `/api/v1/app/catalog-entries/${made.json.id}`);
         return { before, after, dropped };
       },
       { branch: BRANCH, stamp: runId() },

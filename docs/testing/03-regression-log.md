@@ -8838,4 +8838,21 @@ Mặc định tự chọn, chưa có xác nhận, đã ghi ở `unknowns.md`:
 - Bẫy: Vite dev cache một bản transform **rỗng** của `ServiceCardList.tsx` (đọc đúng lúc file đang ghi) → "does not provide an export named 'ServiceCardList'" → trang crash vào ErrorBoundary. Ghi lại file (mtime mới) là hết.
 - Kết quả (dev server :5173 + host thật :5000, PostgreSQL thật, không chặn API): `treatment-plan-detail` **13/13**; `treatment-plan`, `treatment-stage-chain`, `plan-advisor-scope`, `treatment-leaf-permissions` xanh; `stage-staff-pickers`, `stage-treatment-date`, `cskh-after-treatment` xanh; `payment-permission-buttons` — xem kết quả chạy lại bên dưới.
 
-**Chưa commit.**
+Bổ sung cùng ngày (owner):
+
+- Bút chì "Chỉnh sửa" hiện lại, vẫn theo quy tắc cũ: có `consultation.update`, dòng chưa xong / huỷ / chuyển đổi và chưa thu tiền (`isLineEditable` trong `serviceColumns.tsx`). Bấm vào thì **chưa làm gì** (`openEditModal` để trống), chờ modal sửa ở task sau. Mắt "Xem chi tiết" có tooltip (`ActionTooltip`). Thẻ mobile (`ServiceCardList`) cũng có bút chì giữa mắt và Xóa.
+- Mobile ≤640px: dải tab "Thêm công đoạn / Tiếp tục công đoạn / Tiếp tục bảo hành" (`.pd-stage-tabs`) và dải tab của phiếu "Chi tiết điều trị / Thanh toán / Hoàn tiền / Dư nợ" (`.pdt-tabrow`) bị tràn khỏi thẻ. Owner không muốn chữ xuống hàng, nên chọn **cuộn ngang**. Bẫy: `.pdt-tabrow` là flex cột có `flex-wrap: wrap`, nên chiều ngang của dòng bị đẩy theo phần tử rộng nhất và `overflow-x: auto` của `.bd-tabbar` không bao giờ kích hoạt. Sửa bằng `flex-wrap: nowrap`.
+- Dữ liệu test: test "re-saving a service keeps its steps' ids" (`treatment-stage-chain`) tạo dịch vụ "e2e bước" 0 đ mà không xoá. Ô chọn dịch vụ xếp mới nhất lên đầu (R-942) và là danh sách ảo (chỉ ~10 mục được render), nên các mục 0 đ này lấp đầy danh sách và `addExtraService` không tìm được dịch vụ có giá. Đã sửa:
+  - test này xoá dịch vụ của nó ở cuối (`call` chỉ đọc JSON khi trả về 200, vì DELETE trả 204);
+  - đã tắt 5 mục còn sót trong DB local;
+  - `treatment-plan:129` bỏ qua dịch vụ 0 đ, vì dịch vụ không có giá gốc thì không có trần để vượt;
+  - `stage-chain` chọn dòng có giá ≥ 100 000 và PUT bằng chính đơn giá của dòng.
+- `patient.spec` "the công đoạn form reports its empty fields under them": dòng "freshLine" là dòng mới nhất chưa có công đoạn. Nếu nó nằm trên phiếu không ghi bác sĩ (các spec phiếu tạo loại này) thì Bác sĩ mặc định là tài khoản đang đăng nhập; admin không phải Bác sĩ nên ô này để trống và không lưu được. Spec giờ tự chọn bác sĩ khi ô trống. Đây là lỗi của spec và phụ thuộc thứ tự chạy suite, không phải lỗi sản phẩm.
+- Kết quả chạy lại (dev :5173 + host :5000, PostgreSQL thật, không chặn API):
+  - `treatment-plan` 9/9;
+  - `treatment-plan-detail` + `treatment-stage-chain` xanh (stage-chain 8/8 sau khi sửa DELETE);
+  - `treatment-leaf-permissions` + `treatment-plan-detail` 15/15;
+  - `payment-permission-buttons` 2/2;
+  - `patient.spec -g "công đoạn|Chi tiết phiếu"` 14/14.
+
+Code đã commit ở 7e4ba6bf / 0585ca4c. Các sửa spec ở trên (`treatment-stage-chain`, `patient.spec`) **chưa commit**.

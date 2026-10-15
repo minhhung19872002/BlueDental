@@ -3074,6 +3074,16 @@ test.describe("Bệnh nhân", () => {
     await form.locator("textarea").fill(note);
     await expect(message).toHaveCount(0);
 
+    // A slip nobody signed (the slip specs make those) leaves Bác sĩ to the
+    // signed-in account, which admin is not, so the form starts blank. Which
+    // slip "freshLine" lands on depends on the suites run before this one.
+    const doctorError = form.locator(".pd-stage-error", { hasText: "bác sĩ" });
+    if (await doctorError.count()) {
+      await form.locator(".ant-select").first().click();
+      await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
+      await expect(doctorError).toHaveCount(0);
+    }
+
     // And the form still saves once it is filled.
     const created = page.waitForResponse(
       (res) =>
