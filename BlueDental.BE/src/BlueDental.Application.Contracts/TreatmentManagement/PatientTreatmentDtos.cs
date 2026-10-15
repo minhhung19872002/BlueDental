@@ -218,6 +218,13 @@ public class UpdateTreatmentServiceDto
     public Guid? SecondDiagnoserStaffId { get; set; }
     public Guid? ConsultantStaffId { get; set; }
     public Guid? SecondConsultantStaffId { get; set; }
+
+    /// <summary>
+    /// The line's own discount, from the "Chỉnh sửa" modal. Left out (both null)
+    /// the line keeps the discount it has.
+    /// </summary>
+    public DiscountType? DiscountType { get; set; }
+    public decimal? DiscountValue { get; set; }
 }
 
 /// <summary>What the reference's "Loại chuyển đổi" offers.</summary>
@@ -368,6 +375,14 @@ public class GetTreatmentPlanSlipListInput : PagedAndSortedResultRequestDto
     public Guid? PatientId { get; set; }
     public Guid? ClinicBranchId { get; set; }
     public TreatmentPlanStatus? Status { get; set; }
+
+    /// <summary>
+    /// The patient record's "Kế hoạch điều trị" tab: only the slips whose Bác sĩ
+    /// điều trị — the slip's, or one a line names — lies in the caller's part of
+    /// the Sơ đồ tổ chức (owner 2026-10-15), a head's own slips first. Payment,
+    /// labo and Hồ sơ leave it off.
+    /// </summary>
+    public bool? TreatingScope { get; set; }
 }
 
 public class ApplyPlanDiscountDto
@@ -543,6 +558,12 @@ public interface IPatientTreatmentAppService : IApplicationService
 {
     Task<PagedResultDto<TreatmentPlanSlipDto>> GetListAsync(GetTreatmentPlanSlipListInput input);
     Task<TreatmentPlanSlipDto> GetAsync(Guid id);
+
+    /// <summary>
+    /// The slip's own page: refuses (Treatment:0052) a slip the caller's
+    /// "Kế hoạch điều trị" tab hides from them (R-961).
+    /// </summary>
+    Task<TreatmentPlanSlipDto> GetInTreatingScopeAsync(Guid id);
     Task<TreatmentPlanSlipDto> OpenAsync(OpenTreatmentPlanDto input);
     Task<TreatmentPlanSlipDto> ApplyDiscountAsync(Guid id, ApplyPlanDiscountDto input);
     Task<TreatmentPlanSlipDto> AddServiceAsync(Guid id, AddTreatmentServiceDto input);

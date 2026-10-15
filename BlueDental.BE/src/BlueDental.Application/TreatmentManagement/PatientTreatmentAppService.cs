@@ -10,6 +10,7 @@ using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using BlueDental.Promotions;
+using BlueDental.Staff;
 using BlueDental.TreatmentManagement.Values;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -45,6 +46,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly StageTeethPolicy _teethPolicy;
     private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
     private readonly TreatmentPlanDeletion _deletion;
+    private readonly OrgChartScopeResolver _orgChartScope;
 
     public PatientTreatmentAppService(
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -61,10 +63,12 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         PatientMoneyCalculator money,
         StageTeethPolicy teethPolicy,
         AfterTreatmentCareRecorder afterTreatmentCare,
-        TreatmentPlanDeletion deletion)
+        TreatmentPlanDeletion deletion,
+        OrgChartScopeResolver orgChartScope)
     {
         _afterTreatmentCare = afterTreatmentCare;
         _deletion = deletion;
+        _orgChartScope = orgChartScope;
         _laboRepository = laboRepository;
         _reExaminationRepository = reExaminationRepository;
         _voucherRepository = voucherRepository;
@@ -93,10 +97,25 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             query = query.Where(x => x.PatientId == input.PatientId.Value);
         if (input.Status.HasValue)
             query = query.Where(x => x.Status == input.Status.Value);
+        if (input.TreatingScope == true
+            && await _orgChartScope.VisibleTreatingDentistsAsync() is { } scope)
+        {
+            var dentists = scope.ToList();
+            query = query.Where(x => dentists.Contains(x.DentistId)
+                || x.Services.Any(s => s.DentistId != null && dentists.Contains(s.DentistId.Value)));
+        }
+
+        // A head's own slips ("Bác sĩ tiếp nhận" = them) lead the tab, newest
+        // first, ahead of their team's (owner 2026-10-15).
+        var leadId = input.TreatingScope == true && await _orgChartScope.HeadsAUnitAsync()
+            ? CurrentUser.Id
+            : null;
+        var ordered = leadId is { } lead
+            ? query.OrderByDescending(x => x.DentistId == lead).ThenByDescending(x => x.CreationTime)
+            : query.OrderByDescending(x => x.CreationTime);
 
         var totalCount = query.Count();
-        var plans = query
-            .OrderByDescending(x => x.CreationTime)
+        var plans = ordered
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();
@@ -108,6 +127,27 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     public async Task<TreatmentPlanSlipDto> GetAsync(Guid id)
     {
         var plan = await LoadAsync(id);
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// "Chi tiết kế hoạch điều trị" and its tabs (Chi tiết điều trị, Thanh
+    /// toán, Hoàn tiền, Dư nợ): the same rule as the tab's list, so a slip
+    /// hidden there cannot be opened by its link either (owner 2026-10-15).
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
+    public async Task<TreatmentPlanSlipDto> GetInTreatingScopeAsync(Guid id)
+    {
+        var plan = await LoadAsync(id);
+        if (await _orgChartScope.VisibleTreatingDentistsAsync() is { } dentists
+            && !dentists.Contains(plan.DentistId)
+            && !plan.Services.Any(s => s.DentistId is { } dentist && dentists.Contains(dentist)))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.PlanOutsideTreatingScope,
+                "This treatment plan belongs to no dentist the caller looks after.");
+        }
+
         return (await MapManyAsync([plan])).Single();
     }
 
@@ -322,7 +362,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             PatientDiagnosisAppService.ToToothSelections(input.Teeth),
             input.DiagnosisId,
             paidOnLine,
-            staged);
+            staged,
+            input.DiscountType is { } discountType
+                ? (discountType, input.DiscountValue ?? 0m)
+                : null);
         await EnsureLineDiscountAsync(line, before);
         await EnsurePlanDiscountAsync(plan, slipBefore);
 

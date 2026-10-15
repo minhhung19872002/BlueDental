@@ -25,6 +25,7 @@ import { CancelServiceDialog } from "./CancelServiceDialog";
 import { DeleteServiceDialog } from "./DeleteServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
 import { CreatePlanDialog } from "../plan/CreatePlanDialog";
+import type { LineEditTarget } from "../plan/lineEditing";
 import { PlanServicesToolbar } from "./PlanServicesToolbar";
 import { PlanSlipDialog } from "./PlanSlipDialog";
 import { PlanStageSection } from "./PlanStageSection";
@@ -78,11 +79,9 @@ interface Props {
  * to the line; picking it again shows every line. Line rows come from the
  * slip; Chẩn đoán falls back to the advise each line was written from.
  * "Thêm dịch vụ phát sinh" opens "Tạo phiếu dịch vụ", which adds its line to
- * this slip (owner 2026-10-15; it replaced the inline new row).
+ * this slip (owner 2026-10-15; it replaced the inline new row), and the pencil
+ * opens the same dialog on the line.
  */
-/** Placeholder for "Chỉnh sửa" until its modal lands. */
-function openEditModal(): void {}
-
 export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const narrow = useMediaQuery(NARROW_SCREEN);
   // Adding, completing, converting and cancelling a line are all
@@ -101,6 +100,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const [viewing, setViewing] = useState<PlanDetailRow | null>(null);
   const [cancelling, setCancelling] = useState<PlanDetailRow | null>(null);
   const [deleting, setDeleting] = useState<PlanDetailRow | null>(null);
+  const [editing, setEditing] = useState<PlanDetailRow | null>(null);
   const [converting, setConverting] = useState<PlanDetailRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
@@ -148,8 +148,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     () => ({
       onView: setViewing,
       onStatus: canEditLines ? handleStatus : undefined,
-      // The pencil stays where it was; its edit modal is a later task (owner 2026-10-15).
-      onEdit: canEditLines ? openEditModal : undefined,
+      onEdit: canEditLines ? setEditing : undefined,
       // "Xóa" is the consulting chain's delete right, as on the server (R-953).
       onDelete: consultation.canDelete ? setDeleting : undefined,
     }),
@@ -157,6 +156,19 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     [plan.id, canEditLines, consultation.canDelete],
   );
   const columns = useMemo(() => buildServiceColumns(actions), [actions]);
+
+  // Held steady between renders: the form refills itself whenever this changes.
+  const editTarget = useMemo<LineEditTarget | null>(
+    () =>
+      editing && {
+        planId: plan.id,
+        service: editing.service,
+        advise: editing.advise,
+        planAdvisorId: plan.consultantStaffId,
+        planAdvisorName: plan.consultantName,
+      },
+    [editing, plan.id, plan.consultantStaffId, plan.consultantName],
+  );
 
   const pickRow = (row: PlanDetailRow) =>
     setPickedId((current) => (current === row.service.id ? null : row.service.id));
@@ -233,6 +245,13 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         branchId={branchId}
         planId={plan.id}
         onClose={() => setAddOpen(false)}
+      />
+      <CreatePlanDialog
+        open={editTarget !== null}
+        patientId={patient.id}
+        branchId={branchId}
+        line={editTarget}
+        onClose={() => setEditing(null)}
       />
       <PrescriptionDialog
         open={prescriptionOpen}

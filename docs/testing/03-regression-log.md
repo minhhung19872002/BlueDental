@@ -8890,3 +8890,57 @@ Code đã commit ở 7e4ba6bf / 0585ca4c. Các sửa spec ở trên (`treatment-
   - Ba test cũ dùng `.pd-stage-steps .ant-checkbox-wrapper` sẽ bắt nhầm ô Chọn tất cả, nên đã thu về `.pd-stage-steplist .ant-checkbox-wrapper`.
 - Kết quả (cùng môi trường): `patient.spec -g "Danh sách công đoạn"` 3/3; `cskh-after-treatment` + `stage-treatment-date` + `stage-staff-pickers` + `treatment-stage-chain` 17/17.
 - Chưa commit.
+
+## R-961 (2026-10-15, mức 3: Kế hoạch điều trị theo Sơ đồ tổ chức + modal "Chỉnh sửa" dòng dịch vụ) Tab Kế hoạch điều trị lọc phiếu theo Bác sĩ tiếp nhận; bút chì mở lại dialog "Thêm dịch vụ"
+
+- Yêu cầu chủ dự án (ảnh + chat):
+  - Tab "Kế hoạch điều trị" của hồ sơ bệnh nhân chỉ hiện phiếu của bác sĩ được phân công. Ban đầu làm nhầm ở bảng dịch vụ trang Chi tiết phiếu; owner chỉnh lại là phải lọc ở tab này.
+  - Trưởng nhóm thấy phiếu của mọi bác sĩ bên dưới, theo cây Sơ đồ tổ chức. Phiếu của chính trưởng nhóm (cột "Bác sĩ tiếp nhận" là họ) xếp lên đầu.
+  - Bút chì "Chỉnh sửa" trên dòng dịch vụ mở lại modal tạo dịch vụ.
+- Owner chốt:
+
+  | Người đăng nhập | Thấy |
+  |---|---|
+  | role `admin` | mọi phiếu |
+  | không phải bác sĩ (lễ tân, kế toán…), kể cả khi làm trưởng đơn vị | không phiếu nào |
+  | bác sĩ trưởng gốc | mọi phiếu |
+  | bác sĩ trưởng Phòng ban/Team | phiếu của mình (lên đầu) + cả cây con |
+  | bác sĩ khác | phiếu của mình |
+
+  - "Của bác sĩ X" nghĩa là Bác sĩ tiếp nhận của phiếu là X, hoặc một dòng của phiếu ghi X làm bác sĩ điều trị.
+  - Chỉ lọc tab này. Thanh toán, Labo, tab Hồ sơ và trang Chi tiết phiếu vẫn đọc đủ phiếu.
+  - Modal sửa: cho sửa cả giảm giá, nên mở rộng BE.
+- BE:
+  - `OrgChartScope.VisibleTreatingDentists` (Domain): admin → null; không phải bác sĩ → rỗng; bác sĩ → `VisibleStaff`.
+  - `OrgChartScopeResolver.VisibleTreatingDentistsAsync` và `HeadsAUnitAsync`.
+  - `GetTreatmentPlanSlipListInput.TreatingScope`: `PatientTreatmentAppService.GetListAsync` lọc trong truy vấn trước khi phân trang. Trưởng đơn vị: `OrderByDescending(DentistId == mình)`, rồi mới nhất trước.
+  - `TreatmentService.Revise` nhận thêm giảm giá (tuỳ chọn). Giảm giá được kiểm bằng `AdvisePricing.EnsureDiscountValid`. Dòng "Đang điều trị" giữ nguyên giảm giá như giữ đơn giá (0038, chuỗi vi/en cập nhật). `UpdateTreatmentServiceDto.DiscountType/DiscountValue` là nullable: bỏ trống thì giữ giảm giá cũ.
+- FE:
+  - `useTreatingPlans` (`treatingScope: true`, key riêng dưới `plans(patientId)`) dùng trong `TreatmentPlanPanel`. Bảng giữ đúng thứ tự server trả về. Hai thẻ tóm tắt vẫn xếp theo phiếu mới nhất.
+  - `CreatePlanDialog` có thêm `line` (`LineEditTarget`, `lineEditing.ts`), tiêu đề "Chỉnh sửa dịch vụ" (`Treatment:Service:EditServiceDialog`).
+    - Dịch vụ khoá. Đổ sẵn: răng, ghi chú, đơn giá, số lượng, giảm giá.
+    - Bác sĩ tư vấn lấy của dòng; không có thì của phiếu tư vấn gốc; không có nữa thì của phiếu.
+    - Dòng đang điều trị: khoá đơn giá + giảm giá (`PlanPricingFields locked`). Răng đã có công đoạn bị khoá (`lockedTeeth`).
+    - Lưu bằng `PUT services/{lineId}`: chẩn đoán, bác sĩ, người chẩn đoán gửi lại đúng như dòng đang giữ.
+  - `catalogOptionOf` tách từ `withAdviseService`.
+- Test (dev :5173 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Domain `OrgChartTests` + TreatmentManagement **292/292**: 3 ca mới cho phạm vi, 5 ca mới cho giảm giá khi sửa dòng.
+  - Spec mới `plan-treating-scope` **6/6**:
+    - Tạo run role (patient.read, treatmentConsultation.read/update), trưởng nhóm H, thành viên M, bác sĩ ngoài nhóm O, lễ tân C (cùng team) và 3 phiếu có Bác sĩ tiếp nhận là H/M/O.
+    - Đăng nhập qua màn login: M → [M]; H → [H, M], phiếu H lên đầu dù M mới hơn; O → [O]; C → không phiếu nào; admin → cả ba. Kiểm cả qua API `treatingScope=true`, list không cờ vẫn đủ, reload giữ nguyên.
+    - M bấm bút chì: modal đổ đúng dòng. Lưu số lượng 2 + giảm 10%; đọc lại qua API và sau reload đều đúng.
+  - `plan-advisor-scope` 1/1: câu kiểm cũ "không có nút Chỉnh sửa" đã đỏ từ khi bút chì hiện lại (R-957), nay đổi thành kiểm modal sửa có đúng [D, H].
+  - `treatment-plan-delete` 3/3: tài khoản `dentist` hạn chế được tạo là Bác sĩ (`createDentist(..., { isDentist: true })`, mặc định không đổi) và được gán làm bác sĩ điều trị của dòng (`treatLineBy`), vì quy tắc mới ẩn phiếu của người khác.
+  - Batch hồi quy trước khi sửa spec: 21 pass / 5 đỏ / 15 không chạy:
+    - `treatment-plan-delete`, `payment-permission-buttons`: do quy tắc mới (dentist hạn chế không thấy phiếu người khác). `treatment-plan-delete` đã sửa như trên. `payment-permission-buttons` **chưa sửa**: file đang được một phiên khác sửa cùng lúc; cần cùng cách sửa (tick Bác sĩ + gán bác sĩ điều trị cho dòng).
+    - `treatment-plan-detail` (`.pdt-status--menu`): do phiên khác đang gỡ menu trạng thái ở `ServiceStatusPill`, không do R-961.
+    - `treatment-plan` "slip survives a reload…" (mẫu in "BỆNH ÁN") và `patient-permission-gates` (tab "Chẩn đoán & Tư vấn"): không chạm phần lọc phiếu; chưa điều tra.
+
+### Bổ sung cùng ngày (owner: "ngoài danh sách thì không thấy, nhưng các tab Chi tiết điều trị, Thanh toán, Dư nợ… vẫn vào được, cần validate")
+
+- BE: `GET patient-treatments/{id}/treating` (`GetInTreatingScopeAsync`) dùng đúng quy tắc của danh sách; phiếu ngoài phạm vi → `Treatment:0052` (vi/en), HTTP **403** (mã không nằm trong bảng 422). `GET {id}` giữ nguyên cho `PlanReceiptViewer` và các màn khác.
+- FE: trang Chi tiết phiếu đọc qua `useTreatingPlanSlip` (key riêng, `retry: false`). Bị 0052 thì hiện thông báo của server và không render tab nào; lỗi khác (chi nhánh khác, phiếu đã xoá) vẫn "Không tìm thấy kế hoạch điều trị" — `treatment-plan-detail` "another branch is refused the slip" giữ xanh.
+- Fixture mới `e2e/fixtures/treatingSlip.ts` (`openSlipFor`, `firstPatientOf`, `deleteSlip`, `currentUserId`), dùng chung cho `plan-treating-scope` và `payment-permission-buttons`.
+- `payment-permission-buttons` ca 1: tài khoản `dentist` hạn chế được tạo là Bác sĩ, có phiếu riêng (Bác sĩ tiếp nhận = mình) thay cho phiếu bất kỳ trong chi nhánh; xoá phiếu ở `finally`. **2/2**.
+  - Gặp lỗi UI có sẵn khi chạy: mở lại "Chi tiết phiếu" trên tab Hồ sơ (tài khoản bác sĩ) thì **lần Escape đầu bị nuốt**, lần thứ hai mới đóng; tái hiện được bằng spec tạm, admin thì không bị. Nghi tooltip của nút "Thêm công đoạn" (chuột còn nằm trên nút) bắt phím. Spec đóng bằng nút ✕; lỗi Escape **chưa sửa**.
+- `plan-treating-scope` thêm ca: bác sĩ ngoài nhóm và lễ tân mở thẳng link phiếu của thành viên ở `planTab=detail/payment-v2/debt` → 403 + thông báo, không có tab; API trả `Treatment:0052`; trưởng nhóm mở được. **7/7**; cùng lần chạy `treatment-plan-detail` **13/13**.

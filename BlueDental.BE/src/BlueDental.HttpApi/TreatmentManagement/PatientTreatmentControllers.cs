@@ -22,6 +22,10 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
     [HttpGet("{id:guid}")]
     public Task<TreatmentPlanSlipDto> GetAsync(Guid id) => service.GetAsync(id);
 
+    [HttpGet("{id:guid}/treating")]
+    public Task<TreatmentPlanSlipDto> GetInTreatingScopeAsync(Guid id) =>
+        service.GetInTreatingScopeAsync(id);
+
     [HttpPost]
     public Task<TreatmentPlanSlipDto> OpenAsync([FromBody] OpenTreatmentPlanDto input) =>
         service.OpenAsync(input);

@@ -309,12 +309,9 @@ export interface AddTreatmentServiceInput {
 
 /**
  * PUT patient-treatments/{id}/services/{lineId} — "Chỉnh sửa" on a saved line.
- * The service and its status stay as they are.
+ * The service and its status stay as they are; the discount is the line's own.
  */
-export type UpdateTreatmentServiceInput = Omit<
-  AddTreatmentServiceInput,
-  "serviceId" | "status" | "discountType" | "discountValue"
->;
+export type UpdateTreatmentServiceInput = Omit<AddTreatmentServiceInput, "serviceId" | "status">;
 
 /** "Loại chuyển đổi" — the reference's two conversion kinds. */
 export const CONVERSION_TYPE = { Replace: 1, OldService: 2 } as const;
@@ -516,11 +513,15 @@ const treatmentApi = {
     patientId?: string;
     clinicBranchId?: string;
     maxResultCount?: number;
+    treatingScope?: boolean;
   }): Promise<PagedResult<TreatmentPlanSlipDto>> =>
     api.get<PagedResult<TreatmentPlanSlipDto>>(PLANS, { params }).then((r) => r.data),
 
   plan: (planId: string): Promise<TreatmentPlanSlipDto> =>
     api.get<TreatmentPlanSlipDto>(`${PLANS}/${planId}`).then((r) => r.data),
+
+  treatingPlan: (planId: string): Promise<TreatmentPlanSlipDto> =>
+    api.get<TreatmentPlanSlipDto>(`${PLANS}/${planId}/treating`).then((r) => r.data),
 
   payments: (params: PatientPaymentListInput): Promise<PagedResult<PatientPaymentDto>> =>
     api.get<PagedResult<PatientPaymentDto>>(PAYMENTS, { params }).then((r) => r.data),
@@ -630,6 +631,9 @@ export const treatmentKeys = {
   plans: (patientId: string) => [...treatmentKeys.all, "plans", patientId] as const,
   account: (patientId: string) => [...treatmentKeys.all, "account", patientId] as const,
   plan: (planId: string) => [...treatmentKeys.all, "plan", planId] as const,
+  /** The "Kế hoạch điều trị" tab's own list, narrowed by Bác sĩ điều trị. */
+  treatingPlans: (patientId: string) => [...treatmentKeys.plans(patientId), "treating"] as const,
+  treatingPlan: (planId: string) => [...treatmentKeys.plan(planId), "treating"] as const,
   payments: (params: PatientPaymentListInput) =>
     [...treatmentKeys.all, "payments", params] as const,
 };
@@ -640,6 +644,19 @@ export function usePlanSlip(planId: string) {
     queryKey: treatmentKeys.plan(planId),
     queryFn: () => treatmentApi.plan(planId),
     enabled: Boolean(planId),
+  });
+}
+
+/**
+ * The slip for its own page. The server refuses one the "Kế hoạch điều trị"
+ * tab hides from the user (403, Treatment:0052); that answer stands, so no retry.
+ */
+export function useTreatingPlanSlip(planId: string) {
+  return useQuery({
+    queryKey: treatmentKeys.treatingPlan(planId),
+    queryFn: () => treatmentApi.treatingPlan(planId),
+    enabled: Boolean(planId),
+    retry: false,
   });
 }
 
@@ -658,6 +675,21 @@ export function useTreatmentPlans(patientId: string, clinicBranchId: string) {
     // Hồ sơ builds its treatment table from this list too, so it asks for as
     // many slips as patient-account does.
     queryFn: () => treatmentApi.plans({ patientId, clinicBranchId, maxResultCount: 100 }),
+    enabled: Boolean(patientId),
+  });
+}
+
+/**
+ * The slips the patient record's "Kế hoạch điều trị" tab lists: only those
+ * whose Bác sĩ điều trị lies in the signed-in user's part of the Sơ đồ tổ chức
+ * (owner 2026-10-15) — every slip for an admin, none for another non-dentist.
+ * Payment, labo and Hồ sơ keep reading {@link useTreatmentPlans}.
+ */
+export function useTreatingPlans(patientId: string, clinicBranchId: string) {
+  return useQuery({
+    queryKey: treatmentKeys.treatingPlans(patientId),
+    queryFn: () =>
+      treatmentApi.plans({ patientId, clinicBranchId, maxResultCount: 100, treatingScope: true }),
     enabled: Boolean(patientId),
   });
 }

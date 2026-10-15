@@ -18,6 +18,8 @@ interface Props {
   totals: PlanTotals;
   /** The service's giá gốc: the ceiling "Đơn giá" may not rise above (0 = none). */
   originalPrice: number;
+  /** "Chỉnh sửa" on a line in treatment: price and discount stay as they are (Treatment:0038). */
+  locked?: boolean;
 }
 
 /**
@@ -29,7 +31,7 @@ interface Props {
  * slip's plan line refuses that (Treatment:0040), the same rule plan detail's
  * rows check on ✓.
  */
-export function PlanPricingFields({ form, totals, originalPrice }: Props) {
+export function PlanPricingFields({ form, totals, originalPrice, locked = false }: Props) {
   const discountType = Form.useWatch("discountType", form) ?? DISCOUNT_TYPE.Percentage;
 
   return (
@@ -49,7 +51,7 @@ export function PlanPricingFields({ form, totals, originalPrice }: Props) {
             },
           ]}
         >
-          <CurrencyInput />
+          <CurrencyInput disabled={locked} />
         </FloatingField>
         <FloatingField
           name="quantity"
@@ -71,6 +73,7 @@ export function PlanPricingFields({ form, totals, originalPrice }: Props) {
               key={unit.type}
               type="button"
               aria-pressed={discountType === unit.type}
+              disabled={locked}
               className={discountType === unit.type ? "active" : undefined}
               onClick={() => form.setFieldValue("discountType", unit.type)}
             >
@@ -82,7 +85,7 @@ export function PlanPricingFields({ form, totals, originalPrice }: Props) {
           <InputNumber />
         </Form.Item>
         <Form.Item name="discountValue">
-          <CurrencyInput />
+          <CurrencyInput disabled={locked} aria-label={t("Treatment:Pricing:Discount")} />
         </Form.Item>
       </div>
       <div className="tp-create-summary">

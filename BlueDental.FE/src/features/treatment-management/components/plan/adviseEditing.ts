@@ -6,28 +6,30 @@ import {
 } from "../../api/consultingApi";
 import type { CreatePlanValues } from "./useCreatePlanForm";
 
+/** A saved service as the picker lists it, priced at its giá gốc. */
+export function catalogOptionOf(id: string, name: string | null, originalPrice: number): CatalogOption {
+  return {
+    id,
+    name: name ?? "",
+    code: null,
+    price: originalPrice,
+    salePrice: originalPrice,
+    taxonomyId: "",
+    taxonomyName: null,
+    isImageRequired: false,
+    content: null,
+    description: null,
+    prescriptionLines: [],
+  };
+}
+
 /** The slip's service may have left the catalog since: keep its name showing in the picker. */
 export function withAdviseService(
   services: CatalogOption[],
   advise: PatientAdviseDto | null | undefined,
 ): CatalogOption[] {
   if (!advise || services.some((item) => item.id === advise.serviceId)) return services;
-  return [
-    ...services,
-    {
-      id: advise.serviceId,
-      name: advise.serviceName ?? "",
-      code: null,
-      price: advise.originalPrice,
-      salePrice: advise.originalPrice,
-      taxonomyId: "",
-      taxonomyName: null,
-      isImageRequired: false,
-      content: null,
-      description: null,
-      prescriptionLines: [],
-    },
-  ];
+  return [...services, catalogOptionOf(advise.serviceId, advise.serviceName, advise.originalPrice)];
 }
 
 /** What "Cập nhật phiếu dịch vụ" shows when it opens on an existing slip. */

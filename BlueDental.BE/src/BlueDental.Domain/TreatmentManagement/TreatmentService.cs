@@ -263,17 +263,23 @@ public class TreatmentService : FullAuditedEntity<Guid>
     ///   <item>teeth that already have a công đoạn stay picked — "Răng … đang
     ///         điều trị — không thể bỏ chọn".</item>
     /// </list>
+    /// The "Chỉnh sửa" modal (owner 2026-10-15) also rewrites the line's own
+    /// discount; a line in treatment keeps it, as it keeps its price.
     /// </summary>
     /// <param name="paidOnLine">Đã thu on this line, net of refunds.</param>
     /// <param name="stagedTeeth">Tooth codes the line's công đoạn hold.</param>
+    /// <param name="discount">The new discount; null leaves the line's as it is.</param>
     public TreatmentService Revise(
         decimal price,
         int quantity,
         IEnumerable<ToothSelection> teeth,
         Guid? diagnosisId,
         decimal paidOnLine,
-        IReadOnlySet<int> stagedTeeth)
+        IReadOnlySet<int> stagedTeeth,
+        (DiscountType Type, decimal Value)? discount = null)
     {
+        var (discountType, discountValue) = discount ?? (DiscountType, DiscountValue);
+
         if (Status is TreatmentServiceStatus.Done or TreatmentServiceStatus.Cancelled
                 or TreatmentServiceStatus.Replaced
             || paidOnLine > 0m)
@@ -284,11 +290,14 @@ public class TreatmentService : FullAuditedEntity<Guid>
         }
 
         if (Status == TreatmentServiceStatus.InProgress
-            && (price != Price || diagnosisId != DiagnosisId))
+            && (price != Price
+                || diagnosisId != DiagnosisId
+                || discountType != DiscountType
+                || discountValue != DiscountValue))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineLockedInTreatment,
-                "A line in treatment keeps its diagnosis and its price.");
+                "A line in treatment keeps its diagnosis, its price and its discount.");
         }
 
         if (price < 0m)
@@ -306,6 +315,10 @@ public class TreatmentService : FullAuditedEntity<Guid>
         }
 
         EnsureWithinOriginal(price, OriginalPrice);
+        if (discount is not null)
+        {
+            AdvisePricing.EnsureDiscountValid(AdvisePricing.Gross(price, quantity), discountType, discountValue);
+        }
 
         var toothList = teeth.ToList();
         var kept = toothList.Select(t => t.ToothCode).ToHashSet();
@@ -318,6 +331,8 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
         Price = price;
         Quantity = quantity;
+        DiscountType = discountType;
+        DiscountValue = discountValue;
         DiagnosisId = diagnosisId;
         _teeth.Clear();
         _teeth.AddRange(toothList);
