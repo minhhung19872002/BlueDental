@@ -84,6 +84,9 @@ a.pdt-crumb:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px 24px;
+  /* The money figures show on the money tabs only; holding their height keeps
+     the table from jumping when "Chi tiết" drops them. */
+  min-height: 43px;
 }
 .pdt-tabs {
   display: flex;
@@ -965,6 +968,7 @@ a.pdt-crumb:hover {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+    min-height: 0;
   }
   .pdt-stats {
     justify-content: space-between;

@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 import type { PaymentSummaryDto } from "../../api/treatmentPlanApi";
 import { moneyText } from "../plan/planTypes";
-import { PLAN_TAB_LABELS, type PlanTabKey } from "./planDetailTypes";
+import { PLAN_TAB, PLAN_TAB_LABELS, type PlanTabKey } from "./planDetailTypes";
 
 interface Stat {
   key: keyof PaymentSummaryDto;
@@ -36,8 +36,13 @@ interface Props {
   onTabChange: (tab: PlanTabKey) => void;
 }
 
-/** The pill tabs on the left and the slip's money summary on the right. */
+/**
+ * The pill tabs on the left and the slip's money summary on the right. The
+ * summary belongs to the money tabs only (Thanh toán, Hoàn tiền, Dư nợ) —
+ * "Chi tiết" leaves it out (owner 2026-10-15).
+ */
 export function PlanDetailHead({ tab, tabs, payment, onTabChange }: Props) {
+  const showStats = tab !== PLAN_TAB.detail;
   return (
     <div className="pdt-head">
       <div className="pdt-tabs" role="tablist" aria-label={t("Treatment:Plan:TreatmentPlan")}>
@@ -54,14 +59,16 @@ export function PlanDetailHead({ tab, tabs, payment, onTabChange }: Props) {
           </button>
         ))}
       </div>
-      <dl className="pdt-stats">
-        {STATS.map((stat) => (
-          <div key={stat.key} className={`pdt-stat pdt-stat--${stat.tone}`}>
-            <dd>{moneyText(payment[stat.key])}</dd>
-            <dt>{t(stat.label)}</dt>
-          </div>
-        ))}
-      </dl>
+      {showStats && (
+        <dl className="pdt-stats">
+          {STATS.map((stat) => (
+            <div key={stat.key} className={`pdt-stat pdt-stat--${stat.tone}`}>
+              <dd>{moneyText(payment[stat.key])}</dd>
+              <dt>{t(stat.label)}</dt>
+            </div>
+          ))}
+        </dl>
+      )}
     </div>
   );
 }

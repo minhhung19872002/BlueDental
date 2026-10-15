@@ -91,7 +91,7 @@ export function isLineOpen(service: TreatmentServiceDto): boolean {
 export interface DiscountParts {
   /** `serviceDiscount` — a unit price lowered below the giá gốc, plus any carried-over line discount. */
   service: number;
-  /** `serviceVoucher` — vouchers on this line alone. BlueDental redeems vouchers on the slip only, so 0. */
+  /** `serviceVoucher` — the "Theo dịch vụ" vouchers taken off this line alone (R-949). */
   serviceVoucher: number;
   /** `khdtDiscount` — the line's share of the slip's own discount. */
   plan: number;
@@ -102,7 +102,7 @@ export interface DiscountParts {
 export function lineDiscountParts(service: TreatmentServiceDto): DiscountParts {
   return {
     service: service.serviceDiscountAmount,
-    serviceVoucher: 0,
+    serviceVoucher: service.serviceVoucherAmount,
     plan: service.planDiscountShare,
     planVoucher: service.planVoucherShare,
   };
@@ -132,7 +132,12 @@ export function listUnitPrice(service: TreatmentServiceDto): number {
  * the slip. A line the slip no longer charges has no slip share.
  */
 export function lineNetAmount(service: TreatmentServiceDto): number {
-  return service.effectiveAmount - service.planDiscountShare - service.planVoucherShare;
+  return (
+    service.effectiveAmount -
+    service.serviceVoucherAmount -
+    service.planDiscountShare -
+    service.planVoucherShare
+  );
 }
 
 /**

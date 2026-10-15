@@ -8597,6 +8597,14 @@ Danh sách nhóm (chip, bộ lọc) đọc `/taxonomies`, vốn đúng thứ t�
 
 **Danh mục (mục 17):** `taxonomy*`, `payment-qr`, `branch-*` trên bản build production: 82/87. 5 đỏ: 4 cũng đỏ trên bản build HEAD không có thay đổi này (worktree riêng, cổng 8090) — `branch-list` tạo chi nhánh, `taxonomy-dialogs` cấu hình giá dịch vụ, `taxonomy-import-api` 403, `taxonomy-service-sync` quyền chỉ đọc; `taxonomy-groups` "Đang lưu" (nhóm vừa tạo không hiện — BD-001 có hơn 155 nhóm, R-944) đỏ 2/2 cả khi có lẫn khi đã cất thay đổi này. Chạy lại sau khi nới panel 320px: vẫn 82/87, cùng 5 test.
 
+## R-950 (2026-10-15, mức 2: Chi tiết kế hoạch điều trị) Khối số tiền chỉ hiện ở tab Thanh toán / Hoàn tiền / Dư nợ
+
+**Yêu cầu (chủ dự án):** trang chi tiết phiếu điều trị — ẩn 6 số tiền bên phải dải tab (Doanh thu dự kiến, Đã thanh toán, Công nợ, Đã hoàn, Tạm ứng, Dư nợ) ở tab "Chi tiết điều trị"; chỉ hiện ở các tab liên quan thanh toán: Thanh toán, Hoàn tiền, Dư nợ.
+
+**Sửa:** `PlanDetailHead` không dựng `.pdt-stats` khi tab là `detail`. `.pdt-head` giữ `min-height: 43px` (chiều cao khối số tiền) để bảng không nhảy lên/xuống khi đổi tab; dưới 640px bỏ min-height.
+
+**E2E (thật, bản build production + API thật):** `treatment-plan-detail`, `payment-status`, `debt-history`: 21/21. Spec cập nhật: tab "Chi tiết điều trị" không có `.pdt-stat`, các số đọc ở tab tiền (Đã hoàn sau chuyển đổi đọc ở Hoàn tiền; Doanh thu dự kiến sau hạ giá đọc ở Thanh toán). Kèm sửa nhãn tab trong spec `Chi tiết` → `Chi tiết điều trị` (đổi ở commit 744bab54, spec chưa theo — đỏ có sẵn).
+
 ## R-949 (2026-10-15, mức 3: tiền phiếu điều trị + voucher) Voucher "Theo dịch vụ" chỉ giảm đúng dòng nó nhắm
 
 **Yêu cầu (BA, chủ dự án duyệt plan):** voucher `scopeTarget = service` chỉ giảm các dòng có dịch vụ hoặc nhóm dịch vụ nằm trong `targetIds`. Trước đây voucher loại này không bao giờ hiện trong "Voucher áp dụng" của Chẩn đoán & Tư vấn.
