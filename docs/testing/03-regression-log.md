@@ -8868,3 +8868,25 @@ Code đã commit ở 7e4ba6bf / 0585ca4c. Các sửa spec ở trên (`treatment-
 
 - Mục VII của "Phiếu tư vấn và xác nhận đồng ý điều trị" in "Tôi [tên khách] với dịch vụ do phòng khám cung cấp." (ô `consultation.text.54` tự điền tên khách từ R-947), câu không có nghĩa. Theo chủ phòng khám, thêm "rất hài lòng" sau ô tên: "Tôi [tên khách] rất hài lòng với dịch vụ do phòng khám cung cấp."
 - Chỉ đổi chữ trong `treatmentConsent.ts`, ô nhập giữ nguyên id. Phiếu đã lưu cũng in câu mới vì mẫu dựng lại từ code. Chưa commit.
+
+## R-960 (2026-10-15, mức 2: form công đoạn + Tạo tái khám / bảo hành) "Danh sách công đoạn": giới hạn 6 dòng, ô tìm kiếm, Chọn / Bỏ chọn tất cả
+
+- BA (ảnh + chat 2026-10-15): khi dịch vụ có nhiều công đoạn, danh sách kéo dài form và đẩy nút Lưu xuống dưới. BA yêu cầu "Giới hạn chiều dài, bổ sung tìm kiếm" và "Thêm chọn tất cả, bỏ chọn tất cả".
+- Owner chốt: tối đa khoảng **6 dòng** rồi cuộn trong khung. "Chọn tất cả" / "Bỏ chọn tất cả" là hai nút chữ, chỉ tác động lên các dòng **đang hiện theo kết quả tìm**; nút nào không còn việc để làm thì mờ. Tìm kiếm không phân biệt hoa thường và dấu (`foldForSearch`). Không có kết quả thì in "(Trống)".
+- `StageStepList`: `onToggle(id, next)` đổi thành `onChange(ids[])` để một lần bấm cập nhật cả nhóm. Hai nơi gọi (`useStageComposer.pickSteps`, `useFollowUpForm.pickSteps`) vẫn chạy `syncStageContent`, nên Chọn tất cả ghi tên mọi công đoạn vào "Nội dung điều trị", Bỏ chọn tất cả xóa các dòng đó và giữ phần tự gõ. Danh sách chỉ đọc (`RecallDialog`) không có `onChange` nên không hiện ô tìm kiếm và hai nút. Bỏ prop `busy` không còn nơi nào dùng.
+- CSS `.pd-stage-steplist` `max-height: 202px` = 6 × 23px + 5 × 12px + 2 × 2px padding (giữ viền focus). Đã đo: dòng thật cao 23px chứ không phải 22px, nên 196px cắt mất dòng thứ 6. Thêm `.pd-stage-listhead` (tiêu đề trái, ô tìm phải) và `.pd-stage-listbulk`.
+- i18n: `Patient:Stage:ListSearch` / `ListSelectAll` / `ListUnselectAll` (vi + en). Chuỗi được nhúng vào DLL nên phải build lại host thì mới có.
+- Test mới: `patient.spec` "Danh sách công đoạn searches, selects all and unselects all, capped at six rows". Test kiểm tra max-height, Chọn tất cả ghi đủ vào Nội dung điều trị, Bỏ chọn tất cả làm rỗng, tìm không dấu rồi Chọn tất cả chỉ tích đúng các dòng khớp, tìm không ra thì hiện "(Trống)" và khóa hai nút, lưu thật (POST `serviceItems` đúng số lượng) rồi reload và đọc lại từ dòng lịch sử. DB local không có dòng mở nào có > 6 công đoạn, nên phần cuộn được kiểm tra thêm bằng ảnh chụp sau khi nhân bản tạm các dòng checkbox trong DOM (client 202px / scroll 269px, 8 dòng).
+- Kết quả (vite preview :8123 bản build production + host thật :5000, PostgreSQL thật, không chặn API): test mới xanh. Hồi quy: `cskh-after-treatment`, `stage-treatment-date`, `stage-staff-pickers`, `treatment-stage-chain`, `patient.spec -g "công đoạn|tái khám|bảo hành"` → 25/29 khi chạy chung. 4 test đỏ đều đã đối chiếu với bản build HEAD sạch (git archive, :8124), chạy riêng cùng 4 test:
+  - "the Công đoạn cell opens…" và "Tạo Labo opens Đặt mới…": xanh cả HEAD lẫn bản này khi chạy riêng, chỉ đỏ khi chạy chung suite (phụ thuộc thứ tự / dữ liệu, không tìm thấy `.pd-tr-addstage`).
+  - "the công đoạn form reports its empty fields under them" và "a tái khám picks its teeth…" (`.pd-stage-error` = 0): **đỏ sẵn trên HEAD**, không do R-960.
+- **Chỉnh lại cùng ngày (owner xem ảnh):**
+  - Giảm còn **5 dòng**: `max-height: 167px` = 5 × 23 + 4 × 12 + 4.
+  - Bỏ hai nút chữ. Thay bằng một **checkbox "Chọn tất cả" ba trạng thái** (tích / bỏ / nửa tích khi chỉ một phần các dòng đang hiện được chọn), cùng kiểu với "Chọn tất cả" ở hàng răng của chính form này. Bên phải là bộ đếm mờ "Đã chọn x/y" (tính trên toàn bộ công đoạn). Hàng này có viền dưới ngăn với danh sách.
+  - Bấm checkbox khi tất cả dòng đang hiện đã tích thì bỏ chọn chúng, còn lại thì tích nốt. Khi tìm không có kết quả thì checkbox bị khóa.
+  - i18n: bỏ `ListUnselectAll`, thêm `Patient:Stage:ListPicked` ("Đã chọn {0}/{1}" / "{0}/{1} selected").
+- Spec:
+  - Test mới đổi tên thành "...capped at five rows" và kiểm tra thêm trạng thái nửa tích và bộ đếm.
+  - Ba test cũ dùng `.pd-stage-steps .ant-checkbox-wrapper` sẽ bắt nhầm ô Chọn tất cả, nên đã thu về `.pd-stage-steplist .ant-checkbox-wrapper`.
+- Kết quả (cùng môi trường): `patient.spec -g "Danh sách công đoạn"` 3/3; `cskh-after-treatment` + `stage-treatment-date` + `stage-staff-pickers` + `treatment-stage-chain` 17/17.
+- Chưa commit.

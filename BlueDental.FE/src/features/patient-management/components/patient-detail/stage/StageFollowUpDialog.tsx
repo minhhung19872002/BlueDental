@@ -199,7 +199,7 @@ export function StageFollowUpDialog({
           <StageStepList
             steps={form.checklist}
             checked={form.pickedSteps}
-            onToggle={form.toggleStep}
+            onChange={form.pickSteps}
           />
         </div>
       </div>

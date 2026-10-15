@@ -274,9 +274,8 @@ export function useStageComposer({
    * A ticked step puts its name into Nội dung điều trị and unticking takes it out
    * again — see {@link syncStageContent}, cloned from the reference's own helper.
    */
-  const toggleStep = (item: StageItem, stepId: string, next: boolean) => {
+  const pickSteps = (item: StageItem, steps: string[]) => {
     const draft = draftOf(item);
-    const steps = next ? [...draft.steps, stepId] : draft.steps.filter((id) => id !== stepId);
     const checklist = (item.line.serviceSteps ?? []).map((step) => ({ id: step.id, name: step.name }));
     patchDraft(item, { steps, note: syncStageContent(draft.note, checklist, steps) });
   };
@@ -432,7 +431,7 @@ export function useStageComposer({
     draftOf,
     errorsOf: (item: StageItem): StageFieldErrors => errors[item.id] ?? {},
     patchDraft,
-    toggleStep,
+    pickSteps,
     /**
      * Measured on the reference 2026-09-22 (its published stage chunk): only the
      * **treatment content** and the **pictures** make leaving ask first.

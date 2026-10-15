@@ -164,7 +164,7 @@ export function TreatmentStagePanel({
                     errors={composer.errorsOf(item)}
                     handlers={{
                       onChange: (patch) => composer.patchDraft(item, patch),
-                      onToggleStep: (stepId, next) => composer.toggleStep(item, stepId, next),
+                      onPickSteps: (stepIds) => composer.pickSteps(item, stepIds),
                       onPickImages: () => composer.pickForForm(item),
                     }}
                     actions={

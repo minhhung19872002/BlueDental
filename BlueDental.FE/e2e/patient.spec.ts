@@ -2768,10 +2768,10 @@ test.describe("Bệnh nhân", () => {
     // The form offers the service's own steps, and none starts ticked: the
     // form chooses which steps the công đoạn covers, the row ticks them off.
     const form = dialog.locator(".pd-stage-form");
-    const boxes = form.locator(".pd-stage-steps .ant-checkbox-wrapper");
+    const boxes = form.locator(".pd-stage-steplist .ant-checkbox-wrapper");
     await expect(boxes).toHaveCount(target!.steps.length);
     await expect(boxes.first()).toContainText(target!.steps[0]);
-    await expect(form.locator(".pd-stage-steps .ant-checkbox-checked")).toHaveCount(0);
+    await expect(form.locator(".pd-stage-steplist .ant-checkbox-checked")).toHaveCount(0);
 
     await boxes.first().click();
     await form.locator("textarea").fill(`e2e bước ${runId()}`);
@@ -2808,6 +2808,155 @@ test.describe("Bệnh nhân", () => {
         .locator(`.pd-stage-histrow[data-stage-id="${madeStage.id}"]`)
         .locator(".pd-stage-histstage li"),
     ).toHaveText([target!.steps[0]]);
+  });
+
+  // R-960 (BA): a service can declare many steps, so the list scrolls at five
+  // rows, has a search box, and a three-state "Chọn tất cả" box with a
+  // "Đã chọn x/y" count acting on the rows the search left showing — and every
+  // bulk tick still feeds Nội dung điều trị.
+  test("Danh sách công đoạn searches, selects all and unselects all, capped at five rows", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1800, height: 950 });
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const target = await page.evaluate(async () => {
+      const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=300", {
+        credentials: "include",
+      });
+      const slips = (await res.json()).items as {
+        id: string;
+        patientId: string;
+        branchId: string;
+        services: {
+          id: string;
+          status: number;
+          teeth: { toothCode: number }[];
+          stagedTeeth: number[];
+          serviceSteps: { id: string; name: string }[];
+        }[];
+      }[];
+      for (const slip of slips) {
+        for (const line of slip.services ?? []) {
+          const room =
+            line.teeth.length === 0 ||
+            line.teeth.some((tooth) => !line.stagedTeeth.includes(tooth.toothCode));
+          // Two steps at least, so a search can leave some out.
+          if ((line.serviceSteps ?? []).length > 1 && (line.status === 1 || line.status === 2) && room) {
+            return {
+              patientId: slip.patientId,
+              branchId: slip.branchId,
+              planId: slip.id,
+              serviceId: line.id,
+              steps: line.serviceSteps.map((step) => step.name.trim()),
+            };
+          }
+        }
+      }
+      return null;
+    });
+    expect(target, "the demo clinic should have an open line with two or more steps").toBeTruthy();
+
+    const openStage = await addStage(
+      page,
+      {
+        patientId: target!.patientId,
+        planId: target!.planId,
+        serviceId: target!.serviceId,
+        branchId: target!.branchId,
+      },
+      `e2e bước ${runId()}`,
+    );
+    await page.goto(`/patient/${target!.patientId}?branchId=${target!.branchId}&tab=profile`);
+    await widenTreatmentTable(page);
+    const dialog = await openStageDialog(page, target!.serviceId);
+    await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
+    await dialog.locator(`.pd-stage-picks button[data-stage-id="${openStage}"]`).click();
+
+    const form = dialog.locator(".pd-stage-form");
+    const list = form.locator(".pd-stage-steplist");
+    const boxes = list.locator(".ant-checkbox-wrapper");
+    const ticked = list.locator(".ant-checkbox-checked");
+    const note = form.locator("textarea");
+    // The teeth row of the same form has a "Chọn tất cả" of its own.
+    const bulk = form.locator(".pd-stage-listbulk");
+    const selectAll = bulk.getByRole("checkbox", { name: "Chọn tất cả" });
+    const count = bulk.locator(".pd-stage-listcount");
+    const total = target!.steps.length;
+    const search = form.getByRole("textbox", { name: "Tìm công đoạn" });
+
+    // Five rows tall at most, then it scrolls rather than pushing Lưu down.
+    expect(
+      await list.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { maxHeight: style.maxHeight, overflowY: style.overflowY };
+      }),
+    ).toEqual({ maxHeight: "167px", overflowY: "auto" });
+
+    await expect(boxes).toHaveCount(total);
+    await expect(selectAll).not.toBeChecked();
+    await expect(count).toHaveText(`Đã chọn 0/${total}`);
+
+    await selectAll.check();
+    await expect(ticked).toHaveCount(total);
+    await expect(count).toHaveText(`Đã chọn ${total}/${total}`);
+    await expect(note).toHaveValue(target!.steps.join("\n"));
+
+    await selectAll.uncheck();
+    await expect(ticked).toHaveCount(0);
+    await expect(note).toHaveValue("");
+
+    // One row ticked by hand half-ticks the box; a click then fills the rest.
+    await boxes.first().click();
+    await expect(bulk.locator(".ant-checkbox-indeterminate")).toHaveCount(1);
+    await selectAll.click();
+    await expect(ticked).toHaveCount(total);
+    await selectAll.uncheck();
+    await expect(ticked).toHaveCount(0);
+
+    // The search ignores case and tone marks: the first step's name typed
+    // plain, lower-case, finds it.
+    const fold = (value: string) =>
+      value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
+    const term = fold(target!.steps[0]);
+    const matching = target!.steps.filter((name) => fold(name).includes(term));
+    await search.fill(term);
+    await expect(boxes).toHaveCount(matching.length);
+
+    // Chọn tất cả ticks only what the search shows.
+    await selectAll.check();
+    await search.clear();
+    await expect(boxes).toHaveCount(total);
+    await expect(ticked).toHaveCount(matching.length);
+    await expect(count).toHaveText(`Đã chọn ${matching.length}/${total}`);
+    await expect(note).toHaveValue(matching.join("\n"));
+
+    // A search with no hit says so and leaves the box idle.
+    await search.fill("zzzz-không-có-công-đoạn-này");
+    await expect(form.locator(".pd-stage-listempty")).toHaveText("(Trống)");
+    await expect(selectAll).toBeDisabled();
+    await search.clear();
+
+    const created = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
+    );
+    await dialog
+      .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
+      .click();
+    const madeStage = await (await created).json();
+    expect(madeStage.serviceItems).toHaveLength(matching.length);
+
+    // Reloaded, the row reads back exactly the steps the search picked.
+    await page.reload();
+    await widenTreatmentTable(page);
+    const reopened = await openStageDialog(page, target!.serviceId);
+    await expect(
+      reopened
+        .locator(`.pd-stage-histrow[data-stage-id="${madeStage.id}"]`)
+        .locator(".pd-stage-histstage li"),
+    ).toHaveText(matching);
   });
 
   test("the công đoạn form lists the pictures it is holding, not just a count", async ({
@@ -3122,7 +3271,7 @@ test.describe("Bệnh nhân", () => {
      * `${e.id}-re-examination-stage`, label: a, checked: !1 }] : []` in its
      * bundle, read 2026-09-07 — so the label is the note, never a step name.
      */
-    const listed = row.locator(".pd-stage-steps .ant-checkbox-wrapper");
+    const listed = row.locator(".pd-stage-steplist .ant-checkbox-wrapper");
     await expect(listed).toHaveCount(1);
     await expect(listed).toHaveText(note);
     // Unticked and read-only on the listing, and the label keeps its own blue
@@ -3136,7 +3285,7 @@ test.describe("Bệnh nhân", () => {
     // user's to tick.
     await row.getByRole("button", { name: "Tái Khám" }).click();
     const form = page.locator(".pd-recall-form-dialog");
-    const step = form.locator(".pd-stage-steps .ant-checkbox-wrapper");
+    const step = form.locator(".pd-stage-steplist .ant-checkbox-wrapper");
     await expect(step).toHaveText(note);
     await expect(step.locator("input")).not.toBeChecked();
     await expect(step.locator("input")).toBeEnabled();
@@ -3180,7 +3329,7 @@ typed by hand`);
     const warranty = page.locator(".pd-warranty-dialog");
     // The reference's warranty mapper sets `stageChecklist: []` outright — a
     // bảo hành never inherits the công đoạn's content the way a tái khám does.
-    await expect(warranty.locator(".pd-stage-steps .ant-checkbox-wrapper")).toHaveCount(0);
+    await expect(warranty.locator(".pd-stage-steplist .ant-checkbox-wrapper")).toHaveCount(0);
     await expect(warranty.locator(".pd-stage-listempty")).toHaveText("(Trống)");
   });
 

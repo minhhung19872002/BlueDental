@@ -22,7 +22,8 @@ export const NOTE_LIMIT = 1000;
 /** How the form talks back to the dialog; one draft per form. */
 export interface StageFormHandlers {
   onChange: (patch: Partial<StageDraft>) => void;
-  onToggleStep: (stepId: string, next: boolean) => void;
+  /** Every step id ticked after a change — one box, or the "Chọn tất cả" box. */
+  onPickSteps: (stepIds: string[]) => void;
   onPickImages: () => void;
 }
 
@@ -152,7 +153,7 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
         <StageStepList
           steps={item.line.serviceSteps ?? []}
           checked={draft.steps}
-          onToggle={handlers.onToggleStep}
+          onChange={handlers.onPickSteps}
         />
         {actions && (
           <div className="pd-stage-formactions">

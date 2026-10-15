@@ -4120,11 +4120,42 @@
   font-size: 11px;
   cursor: pointer;
 }
-.pd-stage-list {
+/* Heading on the left, the step search on the right of it (BA, R-960). */
+.pd-stage-listhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 14px 0 4px;
+}
+.pd-stage-list {
+  margin: 0;
   color: var(--bd-ink);
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+}
+.pd-stage-listsearch {
+  flex: 0 1 260px;
+  min-width: 0;
+}
+/* "Chọn tất cả" box + "Đã chọn x/y", a header row ruled off from the steps. */
+.pd-stage-listbulk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid var(--bd-border);
+}
+.pd-stage-listbulk .ant-checkbox-wrapper span:not(.ant-checkbox) {
+  font-weight: 600;
+}
+.pd-stage-listcount {
+  color: var(--bd-muted);
+  font-size: 13px;
+  white-space: nowrap;
 }
 .pd-stage-listempty {
   margin: 0;
@@ -4138,10 +4169,15 @@
  * box itself 20px with a 4px radius. The tick colour is the app's primary, like
  * every other accent on this screen.
  */
-.pd-stage-steps > div {
+.pd-stage-steplist {
   display: grid;
   gap: 12px;
   justify-items: start;
+  /* Five rows (23px each, 12px apart), then it scrolls — owner, R-960. The
+     2px pad keeps the focus ring of the edge boxes from being clipped. */
+  max-height: 167px;
+  overflow-y: auto;
+  padding: 2px;
 }
 .pd-stage-steps .ant-checkbox-wrapper {
   align-items: center;

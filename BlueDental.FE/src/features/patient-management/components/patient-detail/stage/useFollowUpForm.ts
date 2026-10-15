@@ -178,10 +178,7 @@ export function useFollowUpForm({
    * it back out — the reference runs both off one helper, see
    * {@link syncStageContent}.
    */
-  const toggleStep = (stepId: string, next: boolean) => {
-    const picked = next
-      ? [...pickedSteps, stepId]
-      : pickedSteps.filter((id) => id !== stepId);
+  const pickSteps = (picked: string[]) => {
     setPickedSteps(picked);
     setNote((current) => syncStageContent(current, checklist, picked));
     if (picked.length > 0) setErrors((current) => ({ ...current, note: undefined }));
@@ -269,7 +266,7 @@ export function useFollowUpForm({
     candidates,
     checklist,
     pickedSteps,
-    toggleStep,
+    pickSteps,
     previews,
     errors,
     staffId,
