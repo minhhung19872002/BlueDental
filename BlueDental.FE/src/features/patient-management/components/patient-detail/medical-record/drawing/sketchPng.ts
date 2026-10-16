@@ -1,4 +1,5 @@
-import type { Item, Point } from "./sketch";
+import type { Cut, Item, Point, TextStyle } from "./sketch";
+import { boxFromLegacy } from "./sketchText";
 
 /**
  * The items of a drawing, carried inside its own PNG.
@@ -41,10 +42,11 @@ function fromBase64(text: string): Uint8Array {
 
 const round = ({ x, y }: Point): Point => ({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
 
-function compact(item: Item): Item {
+function compact(whole: Item): Item {
+  const item = whole.cuts?.length ? { ...whole, cuts: whole.cuts.map((cut) => ({ ...cut, points: cut.points.map(round) })) } : whole;
   if (item.kind === "stroke") return { ...item, points: item.points.map(round) };
   if (item.kind === "shape") return { ...item, from: round(item.from), to: round(item.to) };
-  return { ...item, at: round(item.at) };
+  return { ...item, at: round(item.at), width: Math.round(item.width), height: Math.round(item.height) };
 }
 
 /** The PNG with the items written into it, just before its end. */
@@ -75,14 +77,49 @@ function isPoint(value: unknown): value is Point {
   return typeof point?.x === "number" && typeof point?.y === "number";
 }
 
+/** Words as they were saved before a text box had a size, and a style per stretch. */
+interface LegacyText {
+  id: string;
+  kind: "text";
+  at: Point;
+  text: string;
+  color: string;
+  style: TextStyle;
+}
+
+function isLegacyText(value: unknown): value is LegacyText {
+  const item = value as LegacyText;
+  return (
+    item?.kind === "text" && typeof item.id === "string" && typeof item.text === "string" &&
+    typeof item.color === "string" && isPoint(item.at) && typeof item.style === "object"
+  );
+}
+
+function isCut(value: unknown): value is Cut {
+  const cut = value as Cut;
+  return typeof cut?.size === "number" && Array.isArray(cut.points) && cut.points.length > 0 && cut.points.every(isPoint);
+}
+
 /** Only items this pad could have drawn; the file came back from storage. */
 function isItem(value: unknown): value is Item {
   const item = value as Item;
-  if (typeof item?.id !== "string" || typeof item.color !== "string") return false;
-  if (item.kind === "stroke") return Array.isArray(item.points) && item.points.every(isPoint);
-  if (item.kind === "shape") return isPoint(item.from) && isPoint(item.to);
-  if (item.kind === "text") return typeof item.text === "string" && isPoint(item.at) && typeof item.style === "object";
+  if (typeof item?.id !== "string") return false;
+  if (item.cuts !== undefined && !(Array.isArray(item.cuts) && item.cuts.every(isCut))) return false;
+  if (item.kind === "stroke") return typeof item.color === "string" && Array.isArray(item.points) && item.points.every(isPoint);
+  if (item.kind === "shape") return typeof item.color === "string" && isPoint(item.from) && isPoint(item.to);
+  if (item.kind === "text") {
+    return (
+      isPoint(item.at) && typeof item.width === "number" && typeof item.height === "number" &&
+      Array.isArray(item.runs) &&
+      item.runs.every((run) => typeof run?.text === "string" && typeof run.color === "string" && typeof run.style === "object")
+    );
+  }
   return false;
+}
+
+function itemOf(value: unknown): Item | null {
+  if (isItem(value)) return value;
+  return isLegacyText(value) ? boxFromLegacy(value) : null;
 }
 
 /** The items written into a PNG, or null when it carries none. */
@@ -100,7 +137,7 @@ export function itemsIn(png: Uint8Array): Item[] | null {
         try {
           const parsed: unknown = JSON.parse(decodeURIComponent(text.slice(KEYWORD.length + 1)));
           const items = (parsed as { items?: unknown }).items;
-          return Array.isArray(items) ? items.filter(isItem) : null;
+          return Array.isArray(items) ? items.map(itemOf).filter((item) => item !== null) : null;
         } catch {
           // A chunk that cannot be read leaves the drawing as a flat picture.
           return null;

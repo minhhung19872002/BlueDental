@@ -1,21 +1,56 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { moveItem, replaceItem, startItem, textItem, type Item, type Point, type Scene, type SketchSettings } from "./sketch";
-import { itemAt, touches } from "./sketchHit";
-import { boundsOf, hasInk, paintItem, paintScene, paintSelection } from "./sketchPaint";
+import {
+  PAGE_PX_PER_POINT,
+  SKETCH_LINE_HEIGHT,
+  SKETCH_WIDTH,
+  TEXT_BOX_MIN,
+  TEXT_BOX_WIDTH,
+  moveItem,
+  newItemId,
+  replaceItem,
+  startItem,
+  type Cut,
+  type Item,
+  type Point,
+  type Scene,
+  type SketchSettings,
+  type TextAlign,
+  type TextRun,
+} from "./sketch";
+import { finishRuns, textOf } from "./richText";
+import { eraseScene } from "./sketchErase";
+import { itemAt } from "./sketchHit";
+import { boundsOf, hasInk, paintCut, paintItem, paintScene, paintSelection } from "./sketchPaint";
 import { readItems, withItems } from "./sketchPng";
+import type { RichTextHandle } from "./useRichText";
 
-/** Words being typed: where, what so far, and the item they replace when it is an edit. */
+/** A text box open for typing: where it is, how big, and the words it opened with. */
 export interface TextDraft {
+  /** The item it becomes — a new one, or the one being typed over. */
+  id: string;
+  editing: boolean;
   at: Point;
-  text: string;
-  editingId?: string;
+  width: number;
+  height: number;
+  align: TextAlign;
+  /** What is typed lives in the box itself until it is put down. */
+  runs: TextRun[];
 }
 
-/** What the pointer is doing between press and release; `inked` counts the samples already on the ink layer. */
+export type TextBoxPatch = Partial<Pick<TextDraft, "at" | "width" | "height" | "align">>;
+
+/** A press with the text tool that moves further than this drags a box out; less opens one. */
+const BOX_DRAG = 6;
+
+/**
+ * What the pointer is doing between press and release; `inked` counts the
+ * samples already on the ink layer, `rubbed` those already rubbed off the page.
+ */
 type Gesture =
   | { kind: "draw"; item: Item; inked: number }
-  | { kind: "erase"; removed: Set<string> }
-  | { kind: "move"; id: string; from: Point; dx: number; dy: number };
+  | { kind: "erase"; cut: Cut; rubbed: number }
+  | { kind: "move"; id: string; from: Point; dx: number; dy: number }
+  | { kind: "box"; from: Point; to: Point };
 
 interface History {
   versions: Scene[];
@@ -69,6 +104,7 @@ export function useSketchCanvas(
   const gesture = useRef<Gesture | null>(null);
   const box = useRef<DOMRect | null>(null);
   const ringAt = useRef<Point | null>(null);
+  const textEditor = useRef<RichTextHandle | null>(null);
 
   const commit = useCallback((next: Scene) => {
     setHistory((current) => ({ versions: [...current.versions.slice(0, current.at + 1), next], at: current.at + 1 }));
@@ -107,7 +143,7 @@ export function useSketchCanvas(
     };
   }, [source]);
 
-  const editingId = typing?.editingId;
+  const editingId = typing?.editing ? typing.id : undefined;
 
   const paintPage = useCallback(
     (shown: Scene) => {
@@ -122,6 +158,13 @@ export function useSketchCanvas(
     const now = gesture.current;
     // Strokes are on the ink layer; only a shape is dragged out here.
     if (now?.kind === "draw" && now.item.kind === "shape") paintItem(overlayCtx, now.item);
+    if (now?.kind === "box" && Math.hypot(now.to.x - now.from.x, now.to.y - now.from.y) > BOX_DRAG) {
+      overlayCtx.setLineDash([6, 4]);
+      overlayCtx.lineWidth = 1.5;
+      overlayCtx.strokeStyle = "rgba(15, 23, 42, .7)";
+      overlayCtx.strokeRect(now.from.x, now.from.y, now.to.x - now.from.x, now.to.y - now.from.y);
+      overlayCtx.setLineDash([]);
+    }
 
     const { scene: shown, selectedId: picked, settings: set } = live.current;
     const item = picked ? shown.items.find((entry) => entry.id === picked) : undefined;
@@ -162,8 +205,10 @@ export function useSketchCanvas(
     (item: Item) => {
       if (item.kind !== "text") return;
       setSelectedId(null);
-      adopt({ color: item.color, text: item.style });
-      setTyping({ at: item.at, text: item.text, editingId: item.id });
+      const [first] = item.runs;
+      if (first) adopt({ color: first.color, text: { ...first.style, align: item.align } });
+      const { id, at, width, height, align, runs } = item;
+      setTyping({ id, editing: true, at, width, height, align, runs });
     },
     [adopt],
   );
@@ -171,23 +216,45 @@ export function useSketchCanvas(
   const commitText = useCallback(() => {
     if (!typing) return;
     setTyping(null);
-    const { scene: current, settings: set } = live.current;
-    const words = typing.text.replace(/\s+$/, "");
-    const editing = typing.editingId;
+    const { scene: current } = live.current;
+    const runs = finishRuns(textEditor.current?.read() ?? typing.runs);
+    const { id, editing, at, width, height, align } = typing;
 
-    if (!words.trim()) {
-      if (editing) commit({ ...current, items: current.items.filter((item) => item.id !== editing) });
+    if (!textOf(runs).trim()) {
+      if (editing) commit({ ...current, items: current.items.filter((item) => item.id !== id) });
       return;
     }
-    const item = textItem(set, words, typing.at, editing);
+    const item: Item = { id, kind: "text", at, width, height, align, runs };
+    // Untouched, it keeps what the eraser took; typed over, it comes back whole.
+    const before = current.items.find((entry) => entry.id === id);
+    if (before && JSON.stringify({ ...before, cuts: undefined }) === JSON.stringify(item)) return;
     commit({ ...current, items: editing ? replaceItem(current.items, item) : [...current.items, item] });
   }, [typing, commit]);
 
   const cancelText = useCallback(() => setTyping(null), []);
-  const setTypingText = useCallback(
-    (text: string) => setTyping((draft) => (draft ? { ...draft, text } : draft)),
+  const setTypingBox = useCallback(
+    (patch: TextBoxPatch) => setTyping((draft) => (draft ? { ...draft, ...patch } : draft)),
     [],
   );
+
+  /** As in Paint: a click opens a box one line tall, a drag opens it the size dragged. */
+  const openBox = useCallback((from: Point, to: Point) => {
+    const { text } = live.current.settings;
+    const dragged = Math.hypot(to.x - from.x, to.y - from.y) > BOX_DRAG;
+    const x = Math.min(dragged ? Math.min(from.x, to.x) : from.x, SKETCH_WIDTH - TEXT_BOX_MIN);
+    const y = dragged ? Math.min(from.y, to.y) : from.y;
+    const width = dragged ? Math.abs(to.x - from.x) : Math.min(TEXT_BOX_WIDTH, SKETCH_WIDTH - x);
+    const height = dragged ? Math.abs(to.y - from.y) : text.points * PAGE_PX_PER_POINT * SKETCH_LINE_HEIGHT;
+    setTyping({
+      id: newItemId(),
+      editing: false,
+      at: { x, y },
+      width: Math.max(TEXT_BOX_MIN, Math.min(width, SKETCH_WIDTH - x)),
+      height: Math.max(TEXT_BOX_MIN, height),
+      align: text.align,
+      runs: [],
+    });
+  }, []);
 
   // Leaving a tool finishes what it was doing. Keyed on the tool alone:
   // committing whenever the words changed would end the typing.
@@ -198,21 +265,13 @@ export function useSketchCanvas(
     if (settings.tool !== "select") setSelectedId(null);
   }, [settings.tool]);
 
-  const eraseAt = useCallback(
-    (points: Point[], removed: Set<string>) => {
-      const { scene: current, settings: set } = live.current;
-      let changed = false;
-      for (const item of current.items) {
-        if (removed.has(item.id)) continue;
-        if (points.some((point) => touches(item, point, set.sizes.eraser / 2))) {
-          removed.add(item.id);
-          changed = true;
-        }
-      }
-      if (changed) paintPage({ ...current, items: current.items.filter((item) => !removed.has(item.id)) });
-    },
-    [paintPage],
-  );
+  /** Rubs what the eraser has gone over since last time straight off the page, as Paint does. */
+  const rubOut = useCallback(() => {
+    const now = gesture.current;
+    if (!pageCtx || now?.kind !== "erase") return;
+    paintCut(pageCtx, now.cut, now.rubbed);
+    now.rubbed = now.cut.points.length;
+  }, [pageCtx]);
 
   /**
    * Lays the samples of the stroke not yet on the ink layer, joined on from the
@@ -262,8 +321,12 @@ export function useSketchCanvas(
           return;
         }
         const hit = itemAt(current.items.filter((item) => item.kind === "text"), at);
-        if (hit) startEditing(hit);
-        else setTyping({ at, text: "" });
+        if (hit) {
+          startEditing(hit);
+          return;
+        }
+        event.currentTarget.setPointerCapture(event.pointerId);
+        gesture.current = { kind: "box", from: at, to: at };
         return;
       }
 
@@ -274,9 +337,8 @@ export function useSketchCanvas(
         live.current.selectedId = hit?.id ?? null;
         gesture.current = hit ? { kind: "move", id: hit.id, from: at, dx: 0, dy: 0 } : null;
       } else if (set.tool === "eraser") {
-        const removed = new Set<string>();
-        gesture.current = { kind: "erase", removed };
-        eraseAt([at], removed);
+        gesture.current = { kind: "erase", cut: { size: set.sizes.eraser, points: [at] }, rubbed: 0 };
+        rubOut();
       } else {
         const item = startItem(set, at);
         gesture.current = item ? { kind: "draw", item, inked: 0 } : null;
@@ -285,7 +347,7 @@ export function useSketchCanvas(
       ringAt.current = at;
       paintOverlay();
     },
-    [loading, pointOf, typing, commitText, startEditing, eraseAt, paintOverlay, layInk],
+    [loading, pointOf, typing, commitText, startEditing, rubOut, paintOverlay, layInk],
   );
 
   const handlePointerMove = useCallback(
@@ -317,8 +379,11 @@ export function useSketchCanvas(
           return;
         }
         if (now.item.kind === "shape") now.item.to = at;
+      } else if (now.kind === "box") {
+        now.to = at;
       } else if (now.kind === "erase") {
-        eraseAt(points, now.removed);
+        now.cut.points.push(...points);
+        rubOut();
       } else {
         now.dx = at.x - now.from.x;
         now.dy = at.y - now.from.y;
@@ -328,7 +393,7 @@ export function useSketchCanvas(
       }
       paintOverlay();
     },
-    [pointOf, eraseAt, paintPage, paintOverlay, layInk],
+    [pointOf, rubOut, paintPage, paintOverlay, layInk],
   );
 
   const handlePointerUp = useCallback(() => {
@@ -342,14 +407,18 @@ export function useSketchCanvas(
       inkCtx?.clearRect(0, 0, inkCtx.canvas.width, inkCtx.canvas.height);
       if (ink) ink.dataset.highlighter = "";
       commit({ ...current, items: [...current.items, now.item] });
-    } else if (now?.kind === "erase" && now.removed.size > 0) {
-      commit({ ...current, items: current.items.filter((item) => !now.removed.has(item.id)) });
+    } else if (now?.kind === "box") {
+      openBox(now.from, now.to);
+    } else if (now?.kind === "erase") {
+      const erased = eraseScene(current, now.cut);
+      if (erased) commit(erased);
+      else paintPage(current);
     } else if (now?.kind === "move" && Math.hypot(now.dx, now.dy) > 1) {
       const item = current.items.find((entry) => entry.id === now.id);
       if (item) commit({ ...current, items: replaceItem(current.items, moveItem(item, now.dx, now.dy)) });
     }
     paintOverlay();
-  }, [pageCtx, inkCtx, ink, commit, paintOverlay]);
+  }, [pageCtx, inkCtx, ink, commit, paintPage, paintOverlay, openBox]);
 
   const handlePointerLeave = useCallback(() => {
     if (gesture.current) return;
@@ -372,9 +441,14 @@ export function useSketchCanvas(
       const { scene: current, selectedId: picked } = live.current;
       const item = current.items.find((entry) => entry.id === picked);
       if (!item) return;
+      const { color, size } = patch;
       let next: Item = item;
-      if (patch.color) next = { ...next, color: patch.color };
-      if (patch.size !== undefined && next.kind !== "text") next = { ...next, size: patch.size };
+      if (next.kind === "text") {
+        if (color) next = { ...next, runs: next.runs.map((run) => ({ ...run, color })) };
+      } else {
+        if (color) next = { ...next, color };
+        if (size !== undefined) next = { ...next, size };
+      }
       if (next !== item) commit({ ...current, items: replaceItem(current.items, next) });
     },
     [commit],
@@ -415,7 +489,8 @@ export function useSketchCanvas(
     loading,
     loadFailed,
     typing,
-    setTypingText,
+    textEditor,
+    setTypingBox,
     commitText,
     cancelText,
     selected: scene.items.find((item) => item.id === selectedId) ?? null,

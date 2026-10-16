@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import { Select } from "antd";
 import {
   AlignCenter,
@@ -35,23 +35,17 @@ const SIZE_OPTIONS = SKETCH_POINT_SIZES.map((size) => ({ value: size, label: Str
 const keepCaret = (event: MouseEvent) => event.preventDefault();
 
 interface Props {
+  /** The look at the caret while words are typed, else what the next box types in. */
   style: TextStyle;
-  /** Where the box being typed into is, as fractions of the page. */
-  at: { x: number; y: number };
-  onChange: (next: TextStyle) => void;
-  /** Puts the caret back in the words after a list has taken it. */
-  onRefocus: () => void;
+  /** Only what was changed: it lands on the highlighted words, not on all of them. */
+  onChange: (patch: Partial<TextStyle>) => void;
 }
 
 /**
- * Paint's text bar, floating over the page while words are typed: font, size,
- * bold / italic / underline / strike-through and alignment. It sits
- * above the box, or below it when the box is near the top of the page.
+ * Paint's text bar, docked above the page while the text tool is in use:
+ * font, size, bold / italic / underline / strike-through and alignment.
  */
-export function SketchTextToolbar({ style, at, onChange, onRefocus }: Props) {
-  const set = (patch: Partial<TextStyle>) => onChange({ ...style, ...patch });
-  const placement = at.y < 0.15 ? "below" : "above";
-
+export function SketchTextToolbar({ style, onChange }: Props) {
   const toggle = (key: string, active: boolean, Icon: LucideIcon, label: string, onToggle: () => void) => (
     <button
       key={key}
@@ -68,22 +62,14 @@ export function SketchTextToolbar({ style, at, onChange, onRefocus }: Props) {
   );
 
   return (
-    <div
-      className={`sketch-text-bar sketch-text-bar--${placement}`}
-      role="toolbar"
-      aria-label={t("Patient:MedRecord:TextFormat")}
-      style={{ "--bar-x": at.x, "--bar-y": at.y } as CSSProperties}
-    >
+    <div className="sketch-text-bar" role="toolbar" aria-label={t("Patient:MedRecord:TextFormat")}>
       <Select
         size="small"
         className="sketch-text-font"
         value={style.font}
         options={FONT_OPTIONS}
         aria-label={t("Patient:MedRecord:Font")}
-        onChange={(font) => {
-          set({ font });
-          onRefocus();
-        }}
+        onChange={(font) => onChange({ font })}
       />
       <Select
         size="small"
@@ -91,15 +77,12 @@ export function SketchTextToolbar({ style, at, onChange, onRefocus }: Props) {
         value={style.points}
         options={SIZE_OPTIONS}
         aria-label={t("Patient:MedRecord:FontSize")}
-        onChange={(points) => {
-          set({ points });
-          onRefocus();
-        }}
+        onChange={(points) => onChange({ points })}
       />
       <span className="sketch-text-sep" />
-      {TOGGLES.map(({ key, icon, label }) => toggle(key, style[key], icon, label, () => set({ [key]: !style[key] })))}
+      {TOGGLES.map(({ key, icon, label }) => toggle(key, style[key], icon, label, () => onChange({ [key]: !style[key] })))}
       <span className="sketch-text-sep" />
-      {ALIGNS.map(({ key, icon, label }) => toggle(key, style.align === key, icon, label, () => set({ align: key })))}
+      {ALIGNS.map(({ key, icon, label }) => toggle(key, style.align === key, icon, label, () => onChange({ align: key })))}
     </div>
   );
 }

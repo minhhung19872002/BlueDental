@@ -8,8 +8,12 @@
  * versions of that list. A picture saved before the items were kept is the
  * backdrop they are drawn over; it cannot be picked apart.
  *
+ * The eraser rubs out as Paint's does, only where it passes: what it takes
+ * from an item is kept on the item as *cuts*, so the gap moves with it, and an
+ * item rubbed out entirely is gone.
+ *
  * Tools follow what the clinic pointed at: Windows' Snipping Tool for the
- * pens, eraser and shapes, Paint for the text box and the shared colour.
+ * pens and shapes, Paint for the eraser, the text box and the shared colour.
  */
 
 export interface Point {
@@ -24,7 +28,8 @@ export type TextAlign = "left" | "center" | "right";
 /** The tools that draw with a size. */
 export type SizedTool = "pen" | "highlighter" | "eraser" | "shape";
 
-export interface TextStyle {
+/** How a stretch of words is set; each stretch of a text box has its own, as in Paint. */
+export interface RunStyle {
   font: string;
   /** In points as printed: the cell is a third of the page, so 1pt is 4 page pixels. */
   points: number;
@@ -32,14 +37,38 @@ export interface TextStyle {
   italic: boolean;
   underline: boolean;
   strike: boolean;
+}
+
+/** What the text bar shows: the style at the caret, and the box's alignment. */
+export interface TextStyle extends RunStyle {
   align: TextAlign;
 }
 
-export type Item =
+/** A stretch of words in one style and colour; "\n" inside it ends a line. */
+export interface TextRun {
+  text: string;
+  color: string;
+  style: RunStyle;
+}
+
+export type Item = (
   | { id: string; kind: "stroke"; tool: "pen" | "highlighter"; color: string; size: number; points: Point[] }
   | { id: string; kind: "shape"; shape: ShapeKind; color: string; size: number; from: Point; to: Point }
-  /** `at` is the top left of the first line. */
-  | { id: string; kind: "text"; text: string; at: Point; color: string; style: TextStyle };
+  /**
+   * A text box as in Paint: `at` is its top left, the words wrap at its width,
+   * and it grows taller than `height` when they need the room.
+   */
+  | { id: string; kind: "text"; at: Point; width: number; height: number; align: TextAlign; runs: TextRun[] }
+) & {
+  /** What the eraser has rubbed out of it, in page pixels. */
+  cuts?: Cut[];
+};
+
+/** One pass of the eraser: a round tip `size` across, dragged through `points`. */
+export interface Cut {
+  size: number;
+  points: Point[];
+}
 
 export type TextItem = Extract<Item, { kind: "text" }>;
 
@@ -47,6 +76,8 @@ export interface Scene {
   items: Item[];
   /** Whether the picture the drawing was opened with still shows under the items. */
   backdrop: boolean;
+  /** What the eraser has rubbed out of that picture. */
+  backdropCuts?: Cut[];
 }
 
 /**
@@ -66,6 +97,21 @@ export const SKETCH_COLORS = [
 export const SKETCH_FONTS = ["Arial", "Calibri", "Segoe UI", "Tahoma", "Times New Roman", "Courier New"] as const;
 export const SKETCH_POINT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72] as const;
 export const SKETCH_LINE_HEIGHT = 1.25;
+/** The box a click with the text tool opens, in page pixels; a drag sizes it instead. */
+export const TEXT_BOX_WIDTH = 320;
+/** No text box is made narrower or shorter than this, in page pixels. */
+export const TEXT_BOX_MIN = 24;
+
+export function runStyleOf({ font, points, bold, italic, underline, strike }: RunStyle): RunStyle {
+  return { font, points, bold, italic, underline, strike };
+}
+
+export function sameRunStyle(a: RunStyle, b: RunStyle): boolean {
+  return (
+    a.font === b.font && a.points === b.points && a.bold === b.bold &&
+    a.italic === b.italic && a.underline === b.underline && a.strike === b.strike
+  );
+}
 
 export const SIZE_RANGE: Record<SizedTool, { min: number; max: number }> = {
   pen: { min: 1, max: 24 },
@@ -117,23 +163,13 @@ export function startItem(settings: SketchSettings, at: Point): Item | null {
   return null;
 }
 
-/** Typed words as a text item, in the style the text box shows them in. */
-export function textItem(settings: SketchSettings, text: string, at: Point, id = newItemId()): TextItem {
-  return {
-    id,
-    kind: "text",
-    text,
-    at,
-    color: settings.color,
-    style: { ...settings.text },
-  };
-}
-
 export function moveItem(item: Item, dx: number, dy: number): Item {
   const shift = (point: Point) => ({ x: point.x + dx, y: point.y + dy });
-  if (item.kind === "stroke") return { ...item, points: item.points.map(shift) };
-  if (item.kind === "shape") return { ...item, from: shift(item.from), to: shift(item.to) };
-  return { ...item, at: shift(item.at) };
+  // The rubbed-out gaps go along with it.
+  const cuts = item.cuts?.map((cut) => ({ ...cut, points: cut.points.map(shift) }));
+  if (item.kind === "stroke") return { ...item, cuts, points: item.points.map(shift) };
+  if (item.kind === "shape") return { ...item, cuts, from: shift(item.from), to: shift(item.to) };
+  return { ...item, cuts, at: shift(item.at) };
 }
 
 export function replaceItem(items: readonly Item[], next: Item): Item[] {
