@@ -157,6 +157,21 @@ public class MedicineDto
     public string? UsageNote { get; set; }
 }
 
+/// <summary>The fields only "Vật liệu nha khoa" carries (clinic, 2026-10-16).</summary>
+public class RestorationDto
+{
+    public RestorationKind Kind { get; set; } = RestorationKind.Crown;
+
+    [StringLength(128)]
+    public string? Brand { get; set; }
+
+    [StringLength(128)]
+    public string? Origin { get; set; }
+
+    [StringLength(64)]
+    public string? Warranty { get; set; }
+}
+
 /// <summary>One medicine line of a "BE:Common:RxTemplate".</summary>
 public class PrescriptionTemplateLineDto
 {
@@ -249,6 +264,9 @@ public class CatalogEntryDto : FullAuditedEntityDto<Guid>
 
     public ServiceConfigDto? ServiceConfig { get; set; }
     public MedicineDto? Medicine { get; set; }
+
+    /// <summary>Vật liệu nha khoa only.</summary>
+    public RestorationDto? Restoration { get; set; }
     public List<ServiceStageDto> Stages { get; set; } = [];
     public List<PrescriptionTemplateLineDto> PrescriptionLines { get; set; } = [];
 
@@ -294,6 +312,9 @@ public class CreateCatalogEntryDto
 
     /// <summary>Sent by the medicine dialog only.</summary>
     public MedicineDto? Medicine { get; set; }
+
+    /// <summary>Vật liệu nha khoa only.</summary>
+    public RestorationDto? Restoration { get; set; }
 
     /// <summary>The whole "BE:Common:Stage" table, as the dialog edits it.</summary>
     public List<ServiceStageDto>? Stages { get; set; }
@@ -350,6 +371,9 @@ public class UpdateCatalogEntryDto
 
     /// <summary>Sent by the medicine dialog only.</summary>
     public MedicineDto? Medicine { get; set; }
+
+    /// <summary>Vật liệu nha khoa only.</summary>
+    public RestorationDto? Restoration { get; set; }
 
     /// <summary>The whole "BE:Common:Stage" table, as the dialog edits it.</summary>
     public List<ServiceStageDto>? Stages { get; set; }

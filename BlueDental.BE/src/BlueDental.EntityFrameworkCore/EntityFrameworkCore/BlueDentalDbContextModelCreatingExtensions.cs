@@ -1282,6 +1282,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Medicine).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+            entity.HasOne(x => x.Restoration)
+                .WithOne()
+                .HasForeignKey<CatalogRestoration>(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Restoration).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             entity.HasMany(x => x.Stages)
                 .WithOne()
                 .HasForeignKey(x => x.CatalogEntryId)
@@ -1334,6 +1340,16 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.UsageNote).HasMaxLength(1000);
             entity.Property(x => x.PrescriptionCode).HasMaxLength(100);
             entity.Property(x => x.PurchasePrice).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.CatalogEntryId).IsUnique();
+        });
+
+        builder.Entity<CatalogRestoration>(entity =>
+        {
+            entity.ToTable("bd_catalog_restorations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Brand).HasMaxLength(CatalogRestoration.MaxBrandLength);
+            entity.Property(x => x.Origin).HasMaxLength(CatalogRestoration.MaxOriginLength);
+            entity.Property(x => x.Warranty).HasMaxLength(CatalogRestoration.MaxWarrantyLength);
             entity.HasIndex(x => x.CatalogEntryId).IsUnique();
         });
 

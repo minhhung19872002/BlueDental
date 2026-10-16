@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
+import { RESTORATION_MATERIAL_KIND, useRestorationMaterials } from "@/hooks/useRestorationMaterials";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { useAddressParts } from "../../../hooks/useGuardianSubject";
 import { GENDER, GUARDIAN_RELATION, type PatientDto, type PatientGuardianDto } from "../../../types/patient";
 import { RELATION_LABEL } from "../../../utils/guardian";
 import { branchFieldValues, patientFieldValues, sheetPhone, type FieldValues } from "./fieldValues";
+import { materialCatalogKey, type SheetMaterial } from "./materials/materialField";
 
 /** The three the forms know about; anything else prints nothing. */
 const GENDER_NAME: Record<number, string> = {
@@ -59,9 +61,19 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
   const occupations = useCatalogOptions(CATALOG_GROUP.Occupation).data;
   const diseases = useCatalogOptions(CATALOG_GROUP.DiseaseHistory).data;
   const address = useAddressParts(patient?.address, patient?.provinceCode, patient?.wardCode);
+  const materials = useRestorationMaterials().data;
 
   return useMemo(() => {
-    if (!patient) return branchFieldValues(branch);
+    // "Loại" on mẫu 5: the crown and implant types of Danh mục, per kind.
+    const catalogs: FieldValues = {};
+    for (const kind of Object.values(RESTORATION_MATERIAL_KIND)) {
+      const list: SheetMaterial[] = (materials ?? [])
+        .filter((item) => item.kind === kind)
+        .map(({ id, name, brand, origin, warranty }) => ({ id, name, brand, origin, warranty }));
+      catalogs[materialCatalogKey(kind)] = JSON.stringify(list);
+    }
+
+    if (!patient) return { ...branchFieldValues(branch), ...catalogs };
 
     const job =
       occupations?.find((item) => item.id === patient.occupationEntryId)?.name ??
@@ -100,6 +112,7 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
         gender: GENDER_NAME[patient.gender],
       }),
       ...branchFieldValues(branch),
+      ...catalogs,
     };
-  }, [patient, branch, occupations, diseases, address]);
+  }, [patient, branch, occupations, diseases, address, materials]);
 }

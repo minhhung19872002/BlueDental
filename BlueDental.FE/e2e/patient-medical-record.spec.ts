@@ -70,6 +70,19 @@ async function sheetReady(page: Page) {
   await expect(sheet(page).locator("[data-medical-record-field]").first()).toBeAttached();
 }
 
+/** The fixed group of Danh mục → Vật liệu nha khoa a kind is filed under; the server makes them on first read. */
+async function materialGroup(page: Page, branch: string, kind: number): Promise<string> {
+  const groups = await call<{ items: Array<{ id: string; subGroup: string | null }> }>(
+    page,
+    `/api/v1/app/taxonomies?clinicBranchId=${branch}&group=dental_material&maxResultCount=20`,
+    { branchId: branch },
+  );
+  const wanted = kind === 2 ? "implant" : "crown";
+  const group = groups.body.items.find((item) => item.subGroup === wanted);
+  expect(group, `the ${wanted} group`).toBeTruthy();
+  return group!.id;
+}
+
 async function save(page: Page) {
   await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
   // Saving twice in one test stacks two toasts; the newest is the one meant.
@@ -230,7 +243,9 @@ test.describe("Bệnh án", () => {
       { form: "Bệnh án chỉnh nha", blanks: 182, boxes: 64, pages: 3 },
       { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
       // The reference's 82, less the cost table's eighth line: seven and Tổng, as on paper (2026-10-16).
-      { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 79, boxes: 21, pages: 2 },
+      // Since 2026-10-16: "Loại" comes from Danh mục (Zirconia…Khác and the implant's typed type
+      // became one blank each) and "Niềng răng" joined Phương pháp điều trị.
+      { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 75, boxes: 17, pages: 2 },
       { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 49, boxes: 26, pages: 2 },
       // 38 of the reference's, plus our drawing blank for "Lược đồ".
       { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
@@ -246,7 +261,8 @@ test.describe("Bệnh án", () => {
 
       const document = sheet(page);
       await expect(document.locator("[data-medical-record-field]")).toHaveCount(item.blanks);
-      await expect(document.locator(".nfc-medical-record-checkbox")).toHaveCount(item.boxes);
+      // The form's own boxes: "Loại" on mẫu 5 draws one per type in Danh mục, which varies.
+      await expect(document.locator(".nfc-medical-record-checkbox:not(.nfc-material-box)")).toHaveCount(item.boxes);
       // Pages are separated by a rule; one rule is two pages.
       await expect(document.locator(".nfc-tpl > hr")).toHaveCount(item.pages - 1);
     }
@@ -1415,6 +1431,161 @@ test.describe("Bệnh án", () => {
       const printed = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
       expect(printed, `${form} · printed pages`).toBe(pages);
     }
+  });
+
+  /**
+   * Mẫu 5, clinic 2026-10-16: "Chi tiết răng sứ" / "Chi tiết Implant" show only
+   * for their ticked method and number themselves after "Bác sĩ điều trị";
+   * "Loại" lists Danh mục → Vật liệu nha khoa, fills Hãng / Xuất xứ / Bảo hành
+   * from the ticked types, adds a type with ⊕ and corrects one on a double click.
+   */
+  test("mẫu 5: crown and implant parts follow their method, and Loại comes from Danh mục", async ({ page }) => {
+    test.slow();
+    const id = runId();
+    const branch = "11111111-1111-1111-1111-111111111111";
+    await page.goto("/patient");
+    const material = async (name: string, kind: number, brand: string, origin: string, warranty: string) => {
+      const taxonomyId = await materialGroup(page, branch, kind);
+      const created = await call(page, "/api/v1/app/catalog-entries", {
+        method: "POST",
+        branchId: branch,
+        json: { clinicBranchId: branch, taxonomyId, name, sortOrder: 0, restoration: { kind, brand, origin, warranty } },
+      });
+      expect(created.status, JSON.stringify(created.body)).toBe(200);
+    };
+    const crownA = `Sứ A ${id}`;
+    const crownB = `Sứ B ${id}`;
+    await material(crownA, 1, `Hãng A ${id}`, "Mỹ", "15 năm");
+    await material(crownB, 1, `Hãng B ${id}`, "Đức", "10 năm");
+
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    const document = sheet(page);
+    const crownPart = document.locator('[data-show-when="consultation.checkbox.6"]');
+    const implantPart = document.locator('[data-show-when="consultation.checkbox.7"]');
+    const numberOf = (part: typeof crownPart) => part.first().locator("[data-item-number]");
+
+    // Hidden until their method is ticked; "Niềng răng" is a method of its own.
+    await expect(crownPart.first()).toBeHidden();
+    await expect(implantPart.first()).toBeHidden();
+    await expect(document.getByText("Niềng răng")).toBeVisible();
+
+    await blank(page, "consultation.checkbox.7").check();
+    await expect(implantPart.first()).toBeVisible();
+    await expect(numberOf(implantPart)).toHaveText("2");
+    await blank(page, "consultation.checkbox.6").check();
+    await expect(numberOf(crownPart)).toHaveText("2");
+    await expect(numberOf(implantPart)).toHaveText("3");
+
+    // One type: its values. Two: "value (type)" joined by "; ".
+    const option = (name: string) => document.locator(".nfc-material-option", { hasText: name });
+    await option(crownA).locator("input").check();
+    await expect(blank(page, "consultation.text.12")).toHaveText(`Hãng A ${id}`);
+    await expect(blank(page, "consultation.text.13")).toHaveText("Mỹ");
+    await expect(blank(page, "consultation.text.14")).toHaveText("15 năm");
+    await option(crownB).locator("input").check();
+    for (const part of [`Hãng A ${id} (${crownA})`, `Hãng B ${id} (${crownB})`]) {
+      await expect(blank(page, "consultation.text.12")).toContainText(part);
+    }
+    await expect(blank(page, "consultation.text.12")).toContainText("; ");
+    await expect(blank(page, "consultation.text.14")).toContainText(`10 năm (${crownB})`);
+
+    // ⊕ adds an implant type to Danh mục and ticks it.
+    const implant = `Implant ${id}`;
+    await document.locator('[data-medical-record-field="consultation.implant.types"] [data-material-action="add"]').click();
+    let dialog = page.getByRole("dialog", { name: "Thêm loại implant" });
+    await dialog.getByLabel(/Loại/).fill(implant);
+    await dialog.getByLabel(/Hãng/).fill("Nobel");
+    await dialog.getByLabel(/Xuất xứ/).fill("Thụy Điển");
+    await dialog.getByLabel(/Bảo hành/).fill("Trọn đời");
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(option(implant).locator("input")).toBeChecked();
+    await expect(blank(page, "consultation.text.18")).toHaveText("Nobel");
+    await expect(blank(page, "consultation.text.19")).toHaveText("Thụy Điển");
+    await expect(blank(page, "consultation.text.20")).toHaveText("Trọn đời");
+
+    // A double click corrects it, in Danh mục too.
+    await option(implant).dblclick();
+    dialog = page.getByRole("dialog", { name: "Sửa loại implant" });
+    await expect(dialog.getByLabel(/Hãng/)).toHaveValue("Nobel");
+    await dialog.getByLabel(/Hãng/).fill("Nobel Biocare");
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(blank(page, "consultation.text.18")).toHaveText("Nobel Biocare");
+    const listed = await call<{ items: Array<{ name: string; restoration: { kind: number; brand: string } | null }> }>(
+      page,
+      `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=dental_material&filter=${encodeURIComponent(implant)}`,
+      { branchId: branch },
+    );
+    expect(listed.body.items.find((item) => item.name === implant)?.restoration).toMatchObject({ kind: 2, brand: "Nobel Biocare" });
+
+    await save(page);
+    await page.reload();
+    await openLastSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    await expect(crownPart.first()).toBeVisible();
+    await expect(implantPart.first()).toBeVisible();
+    await expect(option(crownA).locator("input")).toBeChecked();
+    await expect(option(crownB).locator("input")).toBeChecked();
+    await expect(option(implant).locator("input")).toBeChecked();
+    await expect(blank(page, "consultation.text.12")).toContainText(`Hãng A ${id} (${crownA})`);
+    await expect(blank(page, "consultation.text.18")).toHaveText("Nobel Biocare");
+  });
+
+  test("mẫu 5: a sheet from before opens with the ticks of its old fixed boxes", async ({ page }) => {
+    const id = runId();
+    const branch = "11111111-1111-1111-1111-111111111111";
+    await page.goto("/patient");
+    const taxonomyId = await materialGroup(page, branch, 1);
+    const lava = await call<{ items: Array<{ name: string }> }>(
+      page,
+      `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=dental_material&isDeleted=false&filter=Lava`,
+      { branchId: branch },
+    );
+    if (!lava.body.items.some((item) => item.name === "Lava")) {
+      await call(page, "/api/v1/app/catalog-entries", {
+        method: "POST",
+        branchId: branch,
+        json: { clinicBranchId: branch, taxonomyId, name: "Lava", sortOrder: 0, restoration: { kind: 1, brand: "Lava", origin: "Mỹ", warranty: "15 năm" } },
+      });
+    }
+
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    // What a sheet saved before 2026-10-16 holds: the fixed "Lava" and "Khác: …" boxes.
+    const written = await page.evaluate(async (other) => {
+      const patientId = window.location.pathname.split("/")[2];
+      const list = await fetch(`/api/v1/app/patient-medical-records?patientId=${patientId}&maxResultCount=200`, {
+        credentials: "include",
+      }).then((r) => r.json());
+      const target = (list.items as Array<{ id: string; form: number; creationTime: string }>)
+        .filter((item) => item.form === 5)
+        .sort((a, b) => a.creationTime.localeCompare(b.creationTime))[0];
+      const res = await fetch(`/api/v1/app/patient-medical-records/${target.id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: JSON.stringify({
+            fieldValues: {
+              "consultation.checkbox.6": true,
+              "consultation.checkbox.12": true,
+              "consultation.checkbox.14": true,
+              "consultation.text.11": other,
+            },
+          }),
+        }),
+      });
+      return res.status;
+    }, `Sứ cũ ${id}`);
+    expect(written).toBe(200);
+
+    await page.reload();
+    await openLastSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    const document = sheet(page);
+    await expect(document.locator('[data-show-when="consultation.checkbox.6"]').first()).toBeVisible();
+    await expect(document.locator(".nfc-material-option[data-material-name='Lava'] input")).toBeChecked();
+    await expect(document.locator(".nfc-material-option", { hasText: `Sứ cũ ${id}` }).locator("input")).toBeChecked();
   });
 
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {

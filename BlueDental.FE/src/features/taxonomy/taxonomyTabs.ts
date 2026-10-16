@@ -30,7 +30,12 @@ export interface TaxonomyTab {
    * own form rather than one shared one — "simple" is the name/group/state/
    * priority form that Nguồn đến, Lịch sử bệnh and Nghề nghiệp share.
    */
-  dialog?: "simple" | "rich" | "service" | "medicine" | "prescription" | "medical-record";
+  dialog?: "simple" | "rich" | "service" | "medicine" | "prescription" | "medical-record" | "dental-material";
+  /**
+   * The groups are fixed (Vật liệu nha khoa: one per kind, made by the server):
+   * the panel lists and selects them but offers no add, rename or delete.
+   */
+  fixedGroups?: boolean;
   /**
    * True on the catalogs whose dialog carries the "Đang hoạt động" / "Đã xoá"
    * pair (R-87): a delete only strikes the row through and it can be brought
@@ -155,6 +160,25 @@ export function taxonomyTabs(): TaxonomyTab[] {
       softDelete: true,
       exportable: false,
       importable: true,
+    },
+    /*
+     * BlueDental's own (clinic, 2026-10-16): the crown and implant types mẫu 5
+     * offers under "Loại", each with its brand, origin and warranty. Laid out
+     * like Dịch vụ, with the groups on the left — fixed for now, "Răng sứ" and
+     * "Răng Implant", which say whether a material is a crown or an implant.
+     * Named for what it may hold later, not for its first two groups. Gated with
+     * Dịch vụ, the catalog these materials are sold through.
+     */
+    {
+      key: "dental-material",
+      label: t("Taxonomy:Tab:DentalMaterial"),
+      subject: "catalogService",
+      group: TAXONOMY_GROUP.DentalMaterial,
+      noun: t("Taxonomy:Noun:DentalMaterial"),
+      dialog: "dental-material",
+      fixedGroups: true,
+      softDelete: true,
+      exportable: false,
     },
   ];
 }

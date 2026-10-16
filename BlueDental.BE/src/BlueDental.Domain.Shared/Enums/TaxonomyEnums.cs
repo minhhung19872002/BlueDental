@@ -55,6 +55,14 @@ public static class TaxonomyGroups
     /// <summary>Vật liệu Labo.</summary>
     public const string LaboMaterial = "labo_material";
 
+    /// <summary>
+    /// Vật liệu nha khoa — /taxonomy/dental-material. BlueDental's own (clinic,
+    /// 2026-10-16): the crown and implant types mẫu 5 offers under "Loại", each
+    /// with its brand, origin and warranty, grouped by kind under fixed groups
+    /// (<see cref="DentalMaterialGroups"/>). Not on the reference.
+    /// </summary>
+    public const string DentalMaterial = "dental_material";
+
     public static readonly string[] All =
     [
         CareService,
@@ -71,7 +79,8 @@ public static class TaxonomyGroups
         LaboBite,
         LaboFinishLine,
         LaboRhythm,
-        LaboMaterial
+        LaboMaterial,
+        DentalMaterial
     ];
 
     /// <summary>Groups whose entries are priced.</summary>
@@ -99,7 +108,7 @@ public static class TaxonomyGroups
     /// the flag again — see docs/clone/unknowns.md.
     /// </summary>
     public static readonly string[] SoftDeletable =
-        [CareService, Diagnosis, ConsultingData, Source, DiseaseHistory, Occupation];
+        [CareService, Diagnosis, ConsultingData, Source, DiseaseHistory, Occupation, DentalMaterial];
 
     public static bool IsSoftDeletable(string group) => SoftDeletable.Contains(group);
 

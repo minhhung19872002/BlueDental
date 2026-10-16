@@ -72,6 +72,12 @@ public static class BlueDentalDomainErrorCodes
         public const string ServiceIsLastComboComponent = "BlueDental:Catalogs:0034";
         /// <summary>A save would drop a service's công đoạn that a patient's công đoạn has already ticked.</summary>
         public const string StageInUse = "BlueDental:Catalogs:0035";
+        /// <summary>A "Vật liệu nha khoa" entry must be a crown or an implant.</summary>
+        public const string InvalidRestorationKind = "BlueDental:Catalogs:0036";
+        /// <summary>Kind / brand / origin / warranty belong to the "Vật liệu nha khoa" catalog only.</summary>
+        public const string RestorationOutsideCatalog = "BlueDental:Catalogs:0037";
+        /// <summary>The groups of "Vật liệu nha khoa" are fixed: none is added, renamed or deleted.</summary>
+        public const string FixedTaxonomyGroups = "BlueDental:Catalogs:0038";
     }
 
     public static class PatientManagement

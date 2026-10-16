@@ -3,6 +3,16 @@ import type { FieldValues } from "./fieldValues";
 import { applyStoredRows } from "./rowEditing";
 import { applyStoredLines } from "./lineEditing";
 import { isDrawingField, showDrawing } from "./drawing/drawingField";
+import {
+  isMaterialField,
+  legacyPicks,
+  materialCatalogKey,
+  materialKindOf,
+  parseMaterials,
+  parsePicked,
+  showMaterials,
+} from "./materials/materialField";
+import { applySections } from "./sheetSections";
 
 /**
  * Turning a blank form into the sheet on screen.
@@ -53,6 +63,15 @@ function fillFields(root: ParentNode, options: RenderOptions) {
 
     if (isDrawingField(node)) {
       showDrawing(node, value, options.editable);
+      return;
+    }
+
+    // "Loại" on mẫu 5: the types of its kind from Danh mục, ticked as stored —
+    // or, on a sheet from before, as the old fixed boxes were.
+    if (isMaterialField(node)) {
+      const picks = has(options.stored, id) ? parsePicked(options.stored[id]) : legacyPicks(id, options.stored);
+      const catalog = parseMaterials(options.auto[materialCatalogKey(materialKindOf(node))]);
+      showMaterials(node, catalog, picks, options.editable);
       return;
     }
 
@@ -165,6 +184,8 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
   markGridCells(root);
   closeUpGaps(root);
   fillFields(root, options);
+  // After the boxes are ticked: the parts that show only for a ticked box.
+  applySections(root);
   fillTokens(root, { ...options.auto, ...options.stored });
   return root.innerHTML;
 }

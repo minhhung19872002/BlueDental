@@ -21,7 +21,8 @@ internal static class CatalogEntryParts
         ServiceConfigDto? serviceConfig,
         MedicineDto? medicine,
         List<ServiceStageDto>? stages,
-        List<PrescriptionTemplateLineDto>? prescriptionLines)
+        List<PrescriptionTemplateLineDto>? prescriptionLines,
+        RestorationDto? restoration = null)
     {
         entry.UpdateDetails(detailName, note, unit);
 
@@ -51,6 +52,15 @@ internal static class CatalogEntryParts
                 medicine.PurchasePrice,
                 medicine.PrescriptionCode,
                 medicine.UsageNote);
+        }
+
+        if (restoration != null)
+        {
+            entry.EnsureRestoration(guids.Create()).Update(
+                restoration.Kind,
+                restoration.Brand,
+                restoration.Origin,
+                restoration.Warranty);
         }
 
         if (stages != null)

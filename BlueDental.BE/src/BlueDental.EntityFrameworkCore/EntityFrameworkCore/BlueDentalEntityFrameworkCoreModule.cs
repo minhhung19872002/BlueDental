@@ -49,6 +49,7 @@ public class BlueDentalEntityFrameworkCoreModule : AbpModule
                 entity.DefaultWithDetailsFunc = query => query
                     .Include(x => x.ServiceConfig)
                     .Include(x => x.Medicine)
+                    .Include(x => x.Restoration)
                     .Include(x => x.Stages)
                     .Include(x => x.PrescriptionLines)
                     .Include(x => x.ComboItems));

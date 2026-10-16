@@ -4099,3 +4099,24 @@ UNKNOWN_REFERENCE_BEHAVIOR (xem unknowns.md):
 - Enter ngay trên một bảng.
 - Enter trong ô "Vị trí" của bảng răng sứ: lần thử không đặt được con trỏ vào ô.
 - Xoá dòng đã thêm (Backspace trên dòng trống).
+
+## Bệnh án — mẫu 5: Răng sứ / Implant và "Loại" từ Danh mục (2026-10-16)
+
+Owner yêu cầu (ảnh chú thích trên tờ phiếu), không có trên bản gốc.
+
+- **III. Phương pháp điều trị:** lưới thành 5 cột, thêm "Niềng răng" (`consultation.checkbox.22`) cạnh "Nhổ răng".
+- **"Chi tiết răng sứ" / "Chi tiết Implant"** (tiêu đề + bảng):
+  - Gắn `data-show-when="consultation.checkbox.6"` / `…7`. Ẩn tới khi tick "Răng sứ" / "Implant" (`sheetSections.ts`, chạy cả lúc dựng phiếu lẫn khi tick).
+  - Số thứ tự là `data-item-number="consultation-items"`, đánh lại theo các mục đang hiện. "1. Bác sĩ điều trị" luôn là 1; chỉ Implant thì "2. Chi tiết Implant"; cả hai thì 2 / 3.
+- **Bảng chi tiết:** nhãn cột trái căn trái.
+- **"Loại"** (`consultation.crown.types` / `consultation.implant.types`, `data-field-type="materials"`, `materials/materialField.ts`):
+  - Liệt kê các loại đang hoạt động của Danh mục → Vật liệu nha khoa theo phân loại (nhóm Răng sứ / Răng Implant). Danh sách đi qua dữ liệu tự điền `materials.1` / `materials.2`.
+  - Ô lưu các loại đã tick dạng JSON `[{ id, name }]`. Loại đã bị xoá khỏi Danh mục mà phiếu từng tick vẫn hiện, đã tick, theo tên.
+  - Tick / bỏ tick điền lại Hãng / Xuất xứ / Bảo hành:
+    - Một loại: in giá trị của loại đó.
+    - Nhiều loại: `giá trị (tên loại)` nối bằng `; `, ví dụ `Lava (Lava); Cercon (Cercon HT)`.
+    - Loại không có giá trị thì bỏ qua.
+  - ⊕ (tooltip "Thêm loại") mở `MaterialTypeDialog` (Loại, Hãng, Xuất xứ, Bảo hành). Lưu sẽ ghi vào Danh mục, vào nhóm của phân loại, loại mới được tick ngay trên phiếu.
+  - Double click lên một loại: mở cùng dialog để sửa, ghi vào Danh mục, rồi điền lại chi tiết.
+  - Phiếu vẫn chỉ được lưu bằng "Lưu" của phiếu. Khi in, ⊕ bị ẩn.
+- **Phiếu cũ:** các ô cố định Zirconia / Cercon HT / Lava / E.max (`consultation.checkbox.10–13`), "Khác: …" (`checkbox.14` + `text.11`) và loại implant gõ tay (`text.17`) được đọc thành lựa chọn theo tên khi phiếu chưa có giá trị ô "Loại" mới. Tên nào khớp loại trong Danh mục (không phân biệt hoa thường) thì tick loại đó; không khớp thì hiện thành một lựa chọn đã tick.

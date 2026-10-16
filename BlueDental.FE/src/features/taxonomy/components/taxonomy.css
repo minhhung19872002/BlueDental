@@ -853,3 +853,17 @@
   flex-basis: 100%;
   margin-top: 0;
 }
+
+/* Twelve catalogs since Răng sứ & Implant (2026-10-16): the strip stays one
+   row and scrolls sideways rather than wrapping onto a second, which pushed
+   the entry card below a short window. Same pattern as the patient screen. */
+.taxonomy-tabs {
+  min-width: 0;
+  overflow-x: auto;
+}
+.taxonomy-tabs .pill-tabs {
+  flex-wrap: nowrap;
+}
+.taxonomy-tabs .pill-tab {
+  flex: 0 0 auto;
+}

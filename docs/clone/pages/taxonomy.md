@@ -828,3 +828,30 @@ bộ lọc "Tất cả / Dịch vụ lẻ / Combo", dòng combo mở ra thành p
 `ServiceDialog` chỉ đổi chỗ: bốn tab Cài đặt / Công đoạn / Bảo hành / Labo tách sang
 `ServiceSettingsTabs` (dùng chung với combo), hành vi giữ nguyên. Xem `docs/clone/pages/combo.md`.
 
+
+## Vật liệu nha khoa — BlueDental riêng (2026-10-16)
+
+Không có trên bản gốc. Owner yêu cầu: master data cho "Loại" ở mẫu 5 (Phiếu tư vấn và xác nhận đồng ý điều trị). Đây là tab thứ 12, mở rộng màn đã chốt chứ không dựng lại; 11 tab cũ giữ nguyên.
+
+- **Tên:** đặt theo phạm vi sau này, không theo hai nhóm đầu: "Vật liệu nha khoa", danh từ "vật liệu". Bản đầu tên "Răng sứ & Implant", owner yêu cầu đổi.
+- **Route:** `/taxonomy/dental-material`. **Slug:** `dental_material` (`TaxonomyGroups.DentalMaterial`).
+- **Bố cục như Dịch vụ:** panel nhóm bên trái, bảng bên phải.
+- **Nhóm cố định** (`DentalMaterialGroups`):
+  - "Răng sứ" (`SubGroup = crown`) và "Răng Implant" (`SubGroup = implant`), `IsSystem`.
+  - Server tự tạo cho chi nhánh lần đầu đọc danh sách nhóm của danh mục này (`GET taxonomies?group=dental_material`).
+  - Chưa cho thêm, đổi tên hay xoá: panel không có các nút đó, và API trả `BlueDental:Catalogs:0038` cho tạo / sửa (xoá đã bị chặn vì là nhóm hệ thống). Kéo đổi thứ tự vẫn được.
+- **Phân loại của vật liệu = nhóm của nó:** server tự đặt Răng sứ / Implant theo `SubGroup` của nhóm, kể cả khi client gửi khác. Chuyển nhóm là đổi phân loại.
+- **Cột:** `[grip] · Tên vật liệu · Nhóm phân loại · Hãng · Xuất xứ · Bảo hành · Cập nhật gần nhất · Thao tác`.
+- **Dialog riêng:** `RestorationDialog`, mỗi danh mục một dialog.
+  - Tên loại (bắt buộc), Nhóm vật liệu (bắt buộc, mặc định là nhóm đang chọn).
+  - Hãng, Xuất xứ, Bảo hành (chữ tự do, ví dụ "15 năm", "Trọn đời").
+  - Mức độ ưu tiên, cặp Đang hoạt động / Đã xoá.
+- **Xoá mềm** như Dịch vụ: dòng đã xoá vẫn nằm trong bảng, mất nút xoá, khôi phục được. Phiếu đã in giữ tên loại vì phiếu lưu cả tên.
+- **Quyền:** dùng chung subject `catalogService`.
+- **Không có Xuất / Nhập Excel.**
+- **Thanh tab:** đủ 12 tab thì thanh tab Danh mục giữ một dòng và cuộn ngang (`.taxonomy-tabs`). Để hai dòng thì thẻ bảng bị đẩy khỏi màn hình thấp (`taxonomy.spec` "scrolls inside its table").
+- **BE:**
+  - Bảng con 1:1 `bd_catalog_restorations` (`CatalogRestoration`: `Kind`, `Brand` 128, `Origin` 128, `Warranty` 64), migration `CatalogRestorations`.
+  - DTO `restoration` trên `CatalogEntryDto` / Create / Update.
+  - Gửi `restoration` cho danh mục khác → `BlueDental:Catalogs:0037`.
+- **Đọc / ghi từ ngoài Danh mục:** `src/hooks/useRestorationMaterials.ts`. Mẫu 5 dùng hook này để liệt kê, thêm (⊕, vào nhóm của phân loại) và sửa (double click) loại ngay trên tờ phiếu.

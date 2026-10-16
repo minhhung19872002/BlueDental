@@ -31,6 +31,7 @@ import { CatalogPanelHeader } from "../components/CatalogPanelHeader";
 import { ComboHoldersNotice } from "../components/ComboHoldersNotice";
 import { PatientTagPanel } from "../components/PatientTagPanel";
 import { SimpleCatalogDialog } from "../components/SimpleCatalogDialog";
+import { RestorationDialog } from "../components/RestorationDialog";
 import { PaymentAccountPanel } from "../components/PaymentAccountPanel";
 import { TaxonomyGroupModal } from "../components/TaxonomyGroupModal";
 import { GroupPanel } from "@/components/GroupPanel";
@@ -381,6 +382,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     prescription: <PrescriptionTemplateDialog {...entryDialogProps} />,
     "medical-record": <MedicalRecordTemplateDialog {...entryDialogProps} />,
     simple: <SimpleCatalogDialog {...entryDialogProps} noun={tab.noun} />,
+    "dental-material": <RestorationDialog {...entryDialogProps} />,
   }[tab.dialog ?? "simple"];
 
   const groupPanel = (
@@ -396,9 +398,9 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
       onKeywordChange={setGroupKeyword}
       selectedId={selectedGroupId}
       onSelect={selectGroup}
-      onCreate={ability.canCreate ? openGroupModalForCreate : undefined}
-      onRename={ability.canUpdate ? openGroupModal : undefined}
-      onDelete={ability.canDelete ? requestGroupDelete : undefined}
+      onCreate={ability.canCreate && !tab.fixedGroups ? openGroupModalForCreate : undefined}
+      onRename={ability.canUpdate && !tab.fixedGroups ? openGroupModal : undefined}
+      onDelete={ability.canDelete && !tab.fixedGroups ? requestGroupDelete : undefined}
       onReorder={reorderGroups}
     />
   );
@@ -461,6 +463,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
               entityLabel={t("Taxonomy:Table:NameCol", tab.noun)}
               priced={Boolean(tab.priced)}
               showGroupColumn={grouped}
+              restoration={tab.dialog === "dental-material"}
               isLoading={entriesQuery.isFetching && !reorderEntriesMutation.isPending}
               emptyText={
                 grouped && groups.length === 0
@@ -570,6 +573,7 @@ export function TaxonomyPage() {
 
       <div className="bd-taxonomy-page">
         <PageTabBar
+          className="taxonomy-tabs"
           label={t("Taxonomy:Page:Title")}
           activeKey={tab.key}
           tabs={visibleTabs.map((item) => ({

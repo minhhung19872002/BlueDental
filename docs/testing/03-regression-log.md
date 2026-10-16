@@ -9255,3 +9255,55 @@ BA: "Cho phép tạo trùng khung giờ, nhưng hiển thị cảnh báo nếu c
 **Follow-up (same day, owner):** a "Lịch tạm" with no doctor yet (server sends DentistId = Guid.Empty) drew a last column with a blank name. It is now "Chưa chọn bác sĩ" (grey italic, tooltip "Lịch tạm chưa gán bác sĩ"), last after every doctor, only on days that have one, hidden once a doctor is picked; its empty slots open nothing (no doctor to book), its blocks still open the booking to assign one. Walk-ins also have PatientId = Guid.Empty, so the badge collapsed them into one person: a booking with no record now counts by patient name (case and spacing aside, owner's choice). Keys `Appointment:Timeline:Unassigned` / `UnassignedHint` (host rebuilt). Spec gained the unassigned-column test → **5/5** on the production build.
 
 **Follow-up 2 (same day, owner): the now line ticks with the wall clock.** It used to refresh on a 30 s interval counted from page load, so its HH:mm badge could lag the clock by up to ~30 s. New `useMinuteNow` (`src/hooks/useNow.ts`): one timeout aimed at the next :00 (+20 ms), re-aimed each tick, re-read at once when the tab becomes visible again (hidden tabs throttle timers); the value is floored to the minute so it is the same number all minute long. Render cost per tick: the empty-slot grid moved to a memoised `TimelineSlots` and the axis ticks to a `useMemo`, so a tick redraws only the now line/badge and blocks whose state changed (`TimelineBlock` is memoised on its state). Block states now read the floored minute: "Quá giờ" turns on the minute after the planned end, in step with the badge. Other `useNow` callers (queue, reception wait, timekeeping) unchanged. Spec +1 (Playwright clock at :50 → nothing moves at +8 s, badge and line move at +11 s) → **6/6** on the production build.
+
+## R-973 (2026-10-16, mức 3: Danh mục thêm tab + mẫu 5) Vật liệu nha khoa ở Danh mục; "Loại" ở mẫu 5 lấy từ đó
+
+Owner (ảnh chú thích trên mẫu 5):
+- Thêm "Niềng răng".
+- "Chi tiết răng sứ" / "Chi tiết Implant" chỉ hiện khi tick, và tự đánh số.
+- Nhãn bảng sang trái.
+- "Loại" lấy từ master data: ⊕ để thêm, double click để sửa, tick thì tự điền Hãng / Xuất xứ / Bảo hành.
+- Một tab Danh mục cho loại răng sứ và implant. Tên và thiết kế để BlueDental chọn.
+
+Vòng 2 cùng ngày, owner sửa:
+- Bố cục như tab Dịch vụ, nhóm ở bên trái: Răng sứ / Răng Implant, chưa cho thêm nhóm.
+- Tên tab tổng quát hơn, vì sau này không chỉ có hai loại.
+
+- **Danh mục → "Vật liệu nha khoa"** (`/taxonomy/dental-material`, tab thứ 12, 11 tab cũ giữ nguyên):
+  - Bố cục như Dịch vụ: hai nhóm cố định `IsSystem` ("Răng sứ" `crown`, "Răng Implant" `implant`), server tạo khi đọc lần đầu. Không thêm / sửa / xoá nhóm; API trả `Catalogs:0038`.
+  - Phân loại của vật liệu = nhóm (server tự đặt). Dialog riêng `RestorationDialog`. Cột Nhóm phân loại / Hãng / Xuất xứ / Bảo hành. Xoá mềm. Quyền `catalogService`.
+  - BE: slug `dental_material`, bảng con `bd_catalog_restorations` (migration `CatalogRestorations`), `Catalogs:0037` khi gửi `restoration` cho danh mục khác.
+  - Thanh tab Danh mục giữ một dòng, cuộn ngang. Để hai dòng thì `taxonomy.spec :238` đỏ (thẻ bảng bị đẩy khỏi viewport 1400×520). Trên bản gốc ca này xanh, nên đây là lỗi do tab thứ 12 và đã sửa.
+  - Vòng 1 đặt tên "Răng sứ & Implant" (phẳng, chọn phân loại bằng nút). Không có gì được deploy; dữ liệu thử local của slug cũ `restoration_material` đã xoá.
+  - Xem `docs/clone/pages/taxonomy.md`.
+- **Mẫu 5** (xem `docs/clone/pages/patient-detail.md`):
+  - Thêm "Niềng răng" (`checkbox.22`).
+  - Hiện/ẩn mục và đánh số: `sheetSections.ts`.
+  - Ô "Loại": `materials/materialField.ts` + `useSheetMaterials` + `MaterialTypeDialog`; danh sách đi qua `useSheetFieldValues` (`materials.1/2`) từ `src/hooks/useRestorationMaterials.ts`. ⊕ thêm vào nhóm của phân loại.
+  - Phiếu cũ (ô cố định Zirconia…Khác, implant gõ tay) được đọc thành lựa chọn theo tên.
+  - Đếm blank / checkbox mẫu 5: 79 / 21 → 75 / 17. Test đếm checkbox bỏ các ô của "Loại" (`.nfc-material-box`).
+- **Test** (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Spec mới `taxonomy-dental-material` **2/2**:
+    - Hai nhóm cố định, không có nút thêm nhóm.
+    - Thêm từ nhóm Răng Implant (phân loại 2), sửa, chuyển sang Răng sứ (phân loại thành 1), xoá mềm, khôi phục, còn sau reload.
+    - API: nhóm hệ thống đủ hai; tạo / đổi tên nhóm → 0038; gửi phân loại 1 vào nhóm implant thì lưu thành 2; gửi `restoration` cho chẩn đoán → 0037.
+  - `patient-medical-record` thêm 2 ca:
+    - Mục ẩn tới khi tick; số 2 / 3; tick một rồi hai loại điền đúng định dạng; ⊕ tạo implant và tự tick; double click sửa, Danh mục cũng đổi; lưu + reload còn nguyên.
+    - Phiếu kiểu cũ mở ra với Lava và "Sứ cũ …" đã tick.
+  - BE: Domain Catalogs **62/62**, Application Catalogs **62/62**.
+  - Bộ Danh mục khoá (`taxonomy*`, `payment-qr`, `branch-*`) chạy với thiết kế vòng 1: **87 pass / 5 đỏ**.
+    - `dialogs :104` và `groups :169` có trong danh sách đỏ có sẵn (R-962).
+    - `import-api :708` và `service-sync :321` cũng đỏ trên bản build không có thay đổi này (dist-base), nên là lỗi có sẵn.
+    - `dialogs :456` xanh khi chạy lại (flaky).
+    - `taxonomy :238` là lỗi do thay đổi này, đã sửa bằng thanh tab một dòng; chạy lại `taxonomy` + `taxonomy-flat` + spec mới: **16/16**.
+  - Lượt hồi quy đầy đủ sau vòng 2 (bộ khoá + `patient-medical-record` + `medical-record-drawing`) **bị dừng giữa chừng theo yêu cầu owner**, không có kết quả cuối. Phần đã chạy xong là bệnh án; đỏ quan sát được là ca có sẵn `picking the day…` (R-963).
+
+
+## R-974 (2026-10-16, mức 1: nhãn hiệu các mẫu bệnh án) Cụm nhãn hiệu in hoa
+
+- Owner: cụm "Sở Y tế … Nha Khoa Đức Hạnh" của các mẫu viết in hoa hết. Áp cho 8 mẫu dùng chung cụm đó (2–9). Bìa vốn đã in hoa, không đổi.
+- Đo lại số dòng của khối nhãn hiệu từng mẫu (dev :5173): đều 4 dòng. Riêng mẫu 6 gãy thành 5 dòng trong cột 290px, đã sửa:
+  - Cột nhãn hiệu 290 → 335px.
+  - Cột MS 185 → 150px; ô MS 120 → 80px, để nằm cùng dòng với nhãn "MS:".
+  - "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM / Độc lập - Tự do - Hạnh phúc" giữ 2 + 1 dòng.
+- Chiều cao khối nhãn hiệu không đổi (4 dòng). Theo yêu cầu owner, không chạy lại e2e trước khi push; FE build và BE biên dịch qua.

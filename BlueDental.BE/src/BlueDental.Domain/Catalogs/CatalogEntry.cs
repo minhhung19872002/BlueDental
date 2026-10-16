@@ -62,6 +62,9 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     /// <summary>Set on medicines only.</summary>
     public CatalogMedicine? Medicine { get; private set; }
 
+    /// <summary>Vật liệu nha khoa only: kind, brand, origin, warranty.</summary>
+    public CatalogRestoration? Restoration { get; private set; }
+
     /// <summary>The "BE:Common:Stage" table of a service.</summary>
     public IReadOnlyList<CatalogServiceStage> Stages => _stages;
 
@@ -197,6 +200,18 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     {
         Medicine ??= new CatalogMedicine(id, Id);
         return Medicine;
+    }
+
+    /// <summary>The "Vật liệu nha khoa" half of the entry, for that catalog only.</summary>
+    public CatalogRestoration EnsureRestoration(Guid id)
+    {
+        if (Group != TaxonomyGroups.DentalMaterial)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Catalogs.RestorationOutsideCatalog);
+        }
+
+        Restoration ??= new CatalogRestoration(id, Id);
+        return Restoration;
     }
 
     /// <summary>

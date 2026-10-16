@@ -8,6 +8,18 @@ import { attachLineEditing } from "./lineEditing";
 import { drawingOf, isDrawingField, showDrawing } from "./drawing/drawingField";
 import { SheetDrawingDialogs } from "./drawing/SheetDrawingDialogs";
 import { useSheetDrawing } from "./drawing/useSheetDrawing";
+import {
+  isMaterialField,
+  materialCatalogKey,
+  materialKindOf,
+  materialsOf,
+  parseMaterials,
+  parsePicked,
+  showMaterials,
+} from "./materials/materialField";
+import { MaterialTypeDialog } from "./materials/MaterialTypeDialog";
+import { useSheetMaterials } from "./materials/useSheetMaterials";
+import { attachSections } from "./sheetSections";
 
 /** A4 at 96dpi, plus the 20px margin the sheet's own page leaves around it. */
 const PAGE_WIDTH = 834;
@@ -122,6 +134,14 @@ export function MedicalRecordDocument({
         return;
       }
 
+      // The ticked types are kept whenever there are any — or when clearing
+      // them is what was done to a sheet that had some.
+      if (isMaterialField(node)) {
+        const picked = materialsOf(node);
+        if (picked || id in startingValues.current.stored) next[id] = picked;
+        return;
+      }
+
       if (node.tagName === "INPUT") {
         const ticked = (node as HTMLInputElement).checked;
         if (generated || ticked !== (answer === true)) next[id] = ticked;
@@ -137,6 +157,8 @@ export function MedicalRecordDocument({
 
   const drawing = useSheetDrawing(frame, () => report.current?.(collect()));
   const attachDrawing = drawing.attach;
+  const materials = useSheetMaterials(frame, () => report.current?.(collect()));
+  const attachMaterials = materials.attach;
 
   const handleLoad = useCallback(() => {
     const doc = frame.current?.contentDocument;
@@ -174,6 +196,9 @@ export function MedicalRecordDocument({
         : () => undefined;
 
     const detachDrawing = editable ? attachDrawing(doc) : () => undefined;
+    // Ticking a type fills the details; ticking a method shows its part.
+    const detachMaterials = editable ? attachMaterials(doc) : () => undefined;
+    const detachSections = editable ? attachSections(doc) : () => undefined;
 
     // Enter moves to the blank below, or adds one; see lineEditing.
     const detachLines = editable
@@ -192,10 +217,12 @@ export function MedicalRecordDocument({
         detachHandles();
         detachDrawing();
         detachLines();
+        detachMaterials();
+        detachSections();
       },
       { once: true },
     );
-  }, [collect, editable, canAddRows, canDeleteRows, attachDrawing]);
+  }, [collect, editable, canAddRows, canDeleteRows, attachDrawing, attachMaterials]);
 
   // A page swapped out while its observers are live would keep measuring a
   // document nobody can see.
@@ -217,6 +244,14 @@ export function MedicalRecordDocument({
 
       if (isDrawingField(node)) {
         if (drawingOf(node) !== value) showDrawing(node, value, editable);
+        continue;
+      }
+
+      if (isMaterialField(node)) {
+        if (materialsOf(node) !== value) {
+          const catalog = parseMaterials(startingValues.current.auto[materialCatalogKey(materialKindOf(node))]);
+          showMaterials(node, catalog, parsePicked(value), editable);
+        }
         continue;
       }
 
@@ -244,6 +279,7 @@ export function MedicalRecordDocument({
         style={{ width: PAGE_WIDTH, height }}
       />
       {editable && <SheetDrawingDialogs drawing={drawing} />}
+      {editable && <MaterialTypeDialog materials={materials} />}
     </div>
   );
 }

@@ -235,7 +235,8 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
 
         await CheckLaboSuppliersAsync(taxonomy.ClinicBranchId, input.ServiceConfig);
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
-            input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
+            input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines,
+            RestorationFor(taxonomy, input.Restoration));
         // A new combo must arrive with its table, so a missing one is an empty one.
         await ApplyComboItemsAsync(entry, entry.IsCombo ? input.ComboItems ?? [] : input.ComboItems);
 
@@ -298,8 +299,11 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
 
         await CheckLaboSuppliersAsync(entry.ClinicBranchId, input.ServiceConfig);
         await _usedStageGuard.EnsureRemovedStagesUnusedAsync(entry, input.Stages);
+        var restoration = entry.Group == TaxonomyGroups.DentalMaterial
+            ? RestorationFor(await _taxonomyRepository.GetAsync(entry.TaxonomyId), input.Restoration)
+            : input.Restoration;
         CatalogEntryParts.Apply(entry, GuidGenerator, input.DetailName, input.Note, input.Unit,
-            input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines);
+            input.ServiceConfig, input.Medicine, input.Stages, input.PrescriptionLines, restoration);
         await ApplyComboItemsAsync(entry, input.ComboItems);
 
         // The dialog shows "Đang hoạt động" for every entry that is not deleted,
@@ -515,6 +519,24 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
             .ToDictionary(x => x.Id, x => x.Name);
     }
 
+    /// <summary>
+    /// A "Vật liệu nha khoa" entry is a crown or an implant by the group it is
+    /// filed under, whatever the client sent — and always carries the part, so
+    /// mẫu 5 can sort it. Other catalogs pass the client's block through, which
+    /// the entry refuses if it is there.
+    /// </summary>
+    private static RestorationDto? RestorationFor(Taxonomy taxonomy, RestorationDto? input)
+    {
+        if (taxonomy.Group != TaxonomyGroups.DentalMaterial) return input;
+        return new RestorationDto
+        {
+            Kind = DentalMaterialGroups.KindOf(taxonomy.SubGroup),
+            Brand = input?.Brand,
+            Origin = input?.Origin,
+            Warranty = input?.Warranty,
+        };
+    }
+
     /// <summary>Medicine names for the lines of a prescription template.</summary>
     private async Task<Dictionary<Guid, string>> GetMedicineNamesAsync(
         IReadOnlyCollection<CatalogEntry> entries)
@@ -695,6 +717,15 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                 PurchasePrice = entity.Medicine.PurchasePrice,
                 PrescriptionCode = entity.Medicine.PrescriptionCode,
                 UsageNote = entity.Medicine.UsageNote
+            },
+        Restoration = entity.Restoration == null
+            ? null
+            : new RestorationDto
+            {
+                Kind = entity.Restoration.Kind,
+                Brand = entity.Restoration.Brand,
+                Origin = entity.Restoration.Origin,
+                Warranty = entity.Restoration.Warranty
             },
         Stages = entity.Stages
             .OrderBy(x => x.SortOrder)

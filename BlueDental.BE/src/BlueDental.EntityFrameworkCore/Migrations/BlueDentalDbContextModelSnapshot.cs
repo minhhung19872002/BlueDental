@@ -810,6 +810,37 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_catalog_medicines", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.Catalogs.CatalogRestoration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Brand")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("CatalogEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Origin")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Warranty")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CatalogEntryId")
+                        .IsUnique();
+
+                    b.ToTable("bd_catalog_restorations", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.Catalogs.CatalogServiceConfig", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10161,6 +10192,15 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.Catalogs.CatalogRestoration", b =>
+                {
+                    b.HasOne("BlueDental.Catalogs.CatalogEntry", null)
+                        .WithOne("Restoration")
+                        .HasForeignKey("BlueDental.Catalogs.CatalogRestoration", "CatalogEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlueDental.Catalogs.CatalogServiceConfig", b =>
                 {
                     b.HasOne("BlueDental.Catalogs.CatalogEntry", null)
@@ -10901,6 +10941,8 @@ namespace BlueDental.Migrations
                     b.Navigation("Medicine");
 
                     b.Navigation("PrescriptionLines");
+
+                    b.Navigation("Restoration");
 
                     b.Navigation("ServiceConfig");
 

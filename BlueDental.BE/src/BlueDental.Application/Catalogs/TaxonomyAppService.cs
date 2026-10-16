@@ -48,6 +48,11 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
             query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         }
 
+        if (input.Group == TaxonomyGroups.DentalMaterial)
+        {
+            await EnsureDentalMaterialGroupsAsync(branchFilter);
+        }
+
         if (!string.IsNullOrWhiteSpace(input.Group))
             query = query.Where(x => x.Group == input.Group);
         // Every word has to appear somewhere in the row, in any field and in
@@ -92,6 +97,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<TaxonomyDto> CreateAsync(CreateTaxonomyDto input)
     {
+        EnsureGroupsOpen(input.Group);
         var clinicBranchId = await _branchAccess.ResolveWriteTargetAsync(
             input.ClinicBranchId,
             _branchResolver.GetRequiredClinicBranchId());
@@ -117,6 +123,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     {
         var taxonomy = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
+        EnsureGroupsOpen(taxonomy.Group);
 
         // Only a rename is checked: a group that already shared its name before
         // the rule existed can still have its colour or priority changed.
@@ -134,6 +141,55 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 
         var counts = await CountEntriesAsync([id]);
         return MapToDto(taxonomy, counts);
+    }
+
+    /// <summary>
+    /// "Vật liệu nha khoa" keeps one fixed group per kind (clinic, 2026-10-16:
+    /// no new kinds yet). Delete is already refused for them as system groups.
+    /// </summary>
+    private static void EnsureGroupsOpen(string group)
+    {
+        if (group == TaxonomyGroups.DentalMaterial)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Catalogs.FixedTaxonomyGroups);
+        }
+    }
+
+    /// <summary>
+    /// The fixed groups of "Vật liệu nha khoa", made for each branch the list is
+    /// read for the first time it is — so the tab, and mẫu 5 adding a type, always
+    /// find the group of each kind.
+    /// </summary>
+    private async Task EnsureDentalMaterialGroupsAsync(IReadOnlyCollection<Guid> branchIds)
+    {
+        if (branchIds.Count == 0) return;
+
+        var query = await _repository.GetQueryableAsync();
+        var existing = query
+            .Where(x => x.Group == TaxonomyGroups.DentalMaterial && branchIds.Contains(x.ClinicBranchId))
+            .Select(x => new { x.ClinicBranchId, x.SubGroup })
+            .ToList();
+
+        foreach (var branchId in branchIds)
+        {
+            var order = 0;
+            foreach (var (subGroup, name) in DentalMaterialGroups.All)
+            {
+                if (!existing.Any(x => x.ClinicBranchId == branchId && x.SubGroup == subGroup))
+                {
+                    await _repository.InsertAsync(Taxonomy.Create(
+                        GuidGenerator.Create(),
+                        branchId,
+                        TaxonomyGroups.DentalMaterial,
+                        name,
+                        subGroup: subGroup,
+                        isSystem: true,
+                        sortOrder: order),
+                        autoSave: true);
+                }
+                order += 1;
+            }
+        }
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Delete)]

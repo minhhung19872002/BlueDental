@@ -20,6 +20,8 @@ export const TAXONOMY_GROUP = {
   MedicalRecordTemplate: "medical_record_template",
   Occupation: "occupation",
   Supplies: "supplies",
+  /** Vật liệu nha khoa — BlueDental's own (2026-10-16), feeds "Loại" on mẫu 5. */
+  DentalMaterial: "dental_material",
 } as const;
 
 export type TaxonomyGroup = (typeof TAXONOMY_GROUP)[keyof typeof TAXONOMY_GROUP];
@@ -114,6 +116,18 @@ export interface MedicineDto {
   usageNote: string | null;
 }
 
+/** Mirrors BlueDental.Catalogs.RestorationKind. */
+export const RESTORATION_KIND = { Crown: 1, Implant: 2 } as const;
+export type RestorationKindCode = (typeof RESTORATION_KIND)[keyof typeof RESTORATION_KIND];
+
+/** The fields only "Vật liệu nha khoa" carries; the kind follows the group. */
+export interface RestorationDto {
+  kind: RestorationKindCode;
+  brand: string | null;
+  origin: string | null;
+  warranty: string | null;
+}
+
 export interface PrescriptionTemplateLineDto {
   id?: string;
   medicineEntryId: string;
@@ -179,6 +193,7 @@ export interface CatalogEntryDto {
   unit: string | null;
   serviceConfig: ServiceConfigDto | null;
   medicine: MedicineDto | null;
+  restoration?: RestorationDto | null;
   stages: ServiceStageDto[];
   prescriptionLines: PrescriptionTemplateLineDto[];
   /** A combo of the dịch vụ catalog — its price is the sum of `comboItems`. */
@@ -236,6 +251,7 @@ export interface CreateCatalogEntryInput {
   /** Sent by the service dialog only; omitted means "leave as it is". */
   serviceConfig?: Omit<ServiceConfigDto, "priceAfterDiscount" | "amountCollected">;
   medicine?: MedicineDto;
+  restoration?: RestorationDto;
   stages?: ServiceStageDto[];
   prescriptionLines?: Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">[];
   /** Creates a combo instead of a single service; its price comes from `comboItems`. */
@@ -260,6 +276,7 @@ export interface UpdateCatalogEntryInput {
   /** Sent by the service dialog only; omitted means "leave as it is". */
   serviceConfig?: Omit<ServiceConfigDto, "priceAfterDiscount" | "amountCollected">;
   medicine?: MedicineDto;
+  restoration?: RestorationDto;
   stages?: ServiceStageDto[];
   prescriptionLines?: Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">[];
   /** A combo's whole table; omitted leaves it as it is. */

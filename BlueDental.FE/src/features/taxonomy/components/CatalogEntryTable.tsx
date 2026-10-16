@@ -18,6 +18,8 @@ interface Props {
   priced: boolean;
   /** Flat catalogs have no groups, so the group badge column is dropped. */
   showGroupColumn: boolean;
+  /** Vật liệu nha khoa: the brand, origin and warranty columns (the group column gives the kind). */
+  restoration?: boolean;
   isLoading: boolean;
   emptyText?: string;
   canReorder: boolean;
@@ -74,6 +76,7 @@ export function CatalogEntryTable({
   entityLabel,
   priced,
   showGroupColumn,
+  restoration = false,
   isLoading,
   emptyText,
   canReorder,
@@ -153,6 +156,16 @@ export function CatalogEntryTable({
       });
     }
 
+    if (restoration) {
+      const text = (value: string | null | undefined) =>
+        value ? <span>{value}</span> : <span className="bd-muted-text">—</span>;
+      list.push(
+        { key: "brand", title: t("Taxonomy:Restoration:Brand"), width: 180, render: (_, entry) => text(entry.restoration?.brand) },
+        { key: "origin", title: t("Taxonomy:Restoration:Origin"), width: 160, render: (_, entry) => text(entry.restoration?.origin) },
+        { key: "warranty", title: t("Taxonomy:Restoration:Warranty"), width: 140, render: (_, entry) => text(entry.restoration?.warranty) },
+      );
+    }
+
     if (priced) {
       list.push({
         key: "price",
@@ -226,7 +239,7 @@ export function CatalogEntryTable({
     );
 
     return list;
-  }, [canReorder, drag, entityLabel, onCopy, onDelete, onEdit, onReorder, priced, rows.length, showGroupColumn]);
+  }, [canReorder, drag, entityLabel, onCopy, onDelete, onEdit, onReorder, priced, restoration, rows.length, showGroupColumn]);
 
   // Only combos open; a single service has nothing under it.
   const hasCombos = rows.some((entry) => entry.isCombo);
