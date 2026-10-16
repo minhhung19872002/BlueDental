@@ -223,8 +223,10 @@ test.describe("Bệnh án", () => {
     await openMedicalRecord(page);
 
     const expected = [
-      { form: "Bìa hồ sơ bệnh án", blanks: 56, boxes: 20, pages: 3 },
-      { form: "Bệnh án ngoại trú Răng Hàm Mặt", blanks: 142, boxes: 18, pages: 3 },
+      // The reference's 56, plus Phường/Xã and Tỉnh/Thành phố under Địa chỉ (clinic, 2026-10-16).
+      { form: "Bìa hồ sơ bệnh án", blanks: 58, boxes: 20, pages: 3 },
+      // The reference's 142, less Thôn, phố and Huyện (clinic, 2026-10-16).
+      { form: "Bệnh án ngoại trú Răng Hàm Mặt", blanks: 140, boxes: 18, pages: 3 },
       { form: "Bệnh án chỉnh nha", blanks: 182, boxes: 64, pages: 3 },
       { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
       { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 82, boxes: 21, pages: 2 },
@@ -955,6 +957,8 @@ test.describe("Bệnh án", () => {
     test.setTimeout(120_000);
     const branch = "11111111-1111-1111-1111-111111111111";
     const suffix = runId();
+    // Kept without its leading 0, as imported records carry it; the sheet prints the 0.
+    const guardianPhone = `9${suffix.padStart(8, "0").slice(-8)}`;
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
@@ -970,6 +974,31 @@ test.describe("Bệnh án", () => {
         address: "12 Lý Thường Kiệt",
         provinceCode: "01",
         wardCode: "00004",
+        examinationReason: `Đau răng hàm dưới ${suffix}`,
+        guardians: [
+          {
+            id: null,
+            linkedPatientId: null,
+            relation: 2,
+            relationNote: null,
+            proofType: null,
+            proofBlobName: null,
+            proofFileName: null,
+            fullName: `Mẹ Ràng Buộc ${suffix}`,
+            phone: guardianPhone,
+            nationalId: `0791${suffix.padStart(8, "0").slice(-8)}`,
+            dateOfBirth: null,
+            idIssuedOn: null,
+            idIssuedPlace: null,
+            gender: 2,
+            email: null,
+            occupationEntryId: null,
+            sameAddressAsPatient: true,
+            address: null,
+            isPrimaryContact: true,
+          },
+        ],
+        guardiansConsented: true,
       },
     });
     expect(patient.status, JSON.stringify(patient.body)).toBe(200);
@@ -1004,7 +1033,15 @@ test.describe("Bệnh án", () => {
 
     // Every form with an address or a Chẩn đoán blank, by the blank it prints them in.
     const expected: Array<[string, Record<string, string>]> = [
-      ["Bìa hồ sơ bệnh án", { "cover.patient.address": address }],
+      [
+        "Bìa hồ sơ bệnh án",
+        {
+          // The ward and province have a line of their own under Địa chỉ (clinic, 2026-10-16).
+          "cover.patient.address": "12 Lý Thường Kiệt",
+          "cover.patient.ward": "Phường Ba Đình",
+          "cover.patient.province": "Thành phố Hà Nội",
+        },
+      ],
       [
         "Bệnh án ngoại trú Răng Hàm Mặt",
         {
@@ -1013,6 +1050,9 @@ test.describe("Bệnh án", () => {
           "outpatient-dental.text.5": "Phường Ba Đình",
           "outpatient-dental.text.7": "Thành phố Hà Nội",
           "outpatient-dental.text.43": diagnosed,
+          // II. Lý do vào viện, and + Gia đình as the primary guardian (clinic, 2026-10-16).
+          "custom.text.66d78a3bbe7442658cecbf611b7b286d": `Đau răng hàm dưới ${suffix}`,
+          "outpatient-dental.text.23": `Mẹ - Mẹ Ràng Buộc ${suffix} - 0${guardianPhone}`,
         },
       ],
       ["Bệnh án chỉnh nha", { "orthodontic.patient.address": address, "orthodontic.text.86": diagnosed }],
@@ -1035,7 +1075,11 @@ test.describe("Bệnh án", () => {
           "consultation.text.5": "",
         },
       ],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", { "surgery-consent.text.4": diagnosed }],
+      [
+        "Giấy đồng ý thực hiện phẫu thuật/thủ thuật",
+        // Chẩn đoán is the doctor's to write: the sheet cannot tell which slip the operation is for.
+        { "surgery-consent.text.3": `Ràng Buộc ${suffix} Địa Chỉ`, "surgery-consent.text.4": "" },
+      ],
       ["Phiếu phẫu thuật/thủ thuật", { "procedure-record.text.1": diagnosed }],
       ["Phiếu chăm sóc", { "care.diagnosis": diagnosed }],
     ];
@@ -1047,6 +1091,12 @@ test.describe("Bệnh án", () => {
       }
     }
 
+    // The 2025 two-level units have no hamlet or district: those blanks are gone.
+    await openSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    await expect(blank(page, "outpatient-dental.text.4")).toHaveCount(0);
+    await expect(blank(page, "outpatient-dental.text.6")).toHaveCount(0);
+    await expect(sheet(page).getByText("Thôn, phố")).toHaveCount(0);
+
     // Saved as the record answered it, nothing is frozen into the sheet, and the
     // answer comes back from PostgreSQL after a reload.
     await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
@@ -1055,6 +1105,77 @@ test.describe("Bệnh án", () => {
     await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
     await expect(blank(page, "consultation.patient.address")).toHaveText(address);
     await expect(blank(page, "consultation.text.5")).toBeEmpty();
+  });
+
+  /**
+   * Clinic, 2026-10-16: the doctor picked above Giấy đồng ý is printed as
+   * "Tôi tên là", with the Chức danh kept on their staff record.
+   */
+  test("picking the doctor prints their name and Chức danh on the consent form", async ({ page }) => {
+    const id = runId();
+    const name = `Bác sĩ Chức Danh ${id}`;
+    const jobTitle = `Bác sĩ chuyên khoa I ${id}`;
+    const userName = `cd${id}`;
+    await page.goto("/patient");
+    const staff = await call<{ id: string }>(page, "/api/v1/app/staff", {
+      method: "POST",
+      json: {
+        userName,
+        password: "ChucDanh@123456",
+        name,
+        email: `${userName}@bluedental.local`,
+        roleNames: ["dentist"],
+        branchIds: ["11111111-1111-1111-1111-111111111111"],
+        isActive: true,
+        isDentist: true,
+        jobTitle,
+        morningStartTime: "08:00",
+        morningEndTime: "12:00",
+        afternoonStartTime: "13:00",
+        afternoonEndTime: "17:00",
+      },
+    });
+    expect(staff.status, JSON.stringify(staff.body)).toBe(200);
+
+    try {
+      await openMedicalRecord(page);
+      await openFreshSheet(page, "Giấy đồng ý thực hiện phẫu thuật/thủ thuật");
+      await expect(blank(page, "surgery-consent.text.1")).toBeEmpty();
+
+      await page.locator(".pd-medical-doctor .ant-select").click();
+      await page.keyboard.type(name);
+      await page.locator(".ant-select-item-option", { hasText: name }).click();
+      await expect(blank(page, "surgery-consent.text.1")).toHaveText(name);
+      await expect(blank(page, "surgery-consent.text.2")).toHaveText(jobTitle);
+      await save(page);
+
+      await page.reload();
+      await openLastSheet(page, "Giấy đồng ý thực hiện phẫu thuật/thủ thuật");
+      await expect(blank(page, "surgery-consent.text.1")).toHaveText(name);
+      await expect(blank(page, "surgery-consent.text.2")).toHaveText(jobTitle);
+    } finally {
+      await call(page, `/api/v1/app/staff/${staff.body.id}`, { method: "DELETE" });
+    }
+  });
+
+  test("Toàn màn hình spreads the sheet over the window and gives it back", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openSheet(page, "Bìa hồ sơ bệnh án");
+    const canvas = page.locator(".pd-medical-canvas");
+    const bar = page.locator(".pd-medical-bar");
+
+    await bar.getByRole("button", { name: "Toàn màn hình" }).hover();
+    await expect(page.getByRole("tooltip", { name: "Toàn màn hình" })).toBeVisible();
+    await bar.getByRole("button", { name: "Toàn màn hình" }).click();
+    await expect(canvas).toHaveClass(/pd-medical-canvas--fullscreen/);
+    const viewport = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+    const box = await canvas.boundingBox();
+    expect(box).toMatchObject({ x: 0, y: 0, width: viewport.width, height: viewport.height });
+    // The sheet is still there to be written on while it covers the window.
+    await expect(blank(page, "cover.text.1")).toBeVisible();
+
+    await bar.getByRole("button", { name: "Thoát toàn màn hình" }).click();
+    await expect(canvas).not.toHaveClass(/pd-medical-canvas--fullscreen/);
   });
 
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {

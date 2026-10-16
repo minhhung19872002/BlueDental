@@ -8982,3 +8982,30 @@ Code đã commit ở 7e4ba6bf / 0585ca4c. Các sửa spec ở trên (`treatment-
   - `taxonomy-dialogs` :104 (the labo option)
   - `taxonomy-dialogs` :256 ("the branch should have a service group")
   - `taxonomy-groups` :169 (the new group not in the visible list)
+
+## R-963 (2026-10-16, mức 2: Bệnh án — map dữ liệu, nút toàn màn hình; Nhân viên — Chức danh) Góp ý P1610_01 của phòng khám
+
+Nguồn: `save/P1610_01.drawio`. Mục 7 (Phiếu phẫu thuật, nút vẽ lược đồ) đã làm từ trước; lần này chỉ đổi kiểu nút.
+
+- Thanh dưới phiếu: thêm nút icon "Toàn màn hình" / "Thoát toàn màn hình" (Tooltip). Khung phiếu phủ kín cửa sổ (`.pd-medical-canvas--fullscreen`, z-index 999, nằm dưới các lớp AntD), đồng thời bật full screen của trình duyệt cho cả document (`useSheetFullscreen`). Không full screen riêng khung phiếu: picker, popover, dialog render vào body sẽ bị che. Esc thoát full screen thì khung cũng thoát theo.
+- 1. Bìa hồ sơ: thêm dòng "Phường/Xã" (`cover.patient.ward`) + "Tỉnh/Thành phố" (`cover.patient.province`) dưới Địa chỉ. Địa chỉ giờ chỉ in Số nhà/Đường.
+- 2. Bệnh án ngoại trú:
+  - Bỏ hẳn hai ô "Thôn, phố" (`outpatient-dental.text.4`) và "Huyện (Q, Tx)" (`text.6`) khỏi mẫu. Số nhà kéo dài cả dòng; Xã, phường + Tỉnh, thành phố xuống dòng dưới.
+  - "II. Lý do vào viện" (dòng 1) ← Lý do đến khám.
+  - "+ Gia đình" ← người giám hộ chính: `{Quan hệ} - {Họ tên} - {SĐT}` (người tick liên hệ chính, không có thì người đầu tiên; quan hệ "Khác" in phần ghi chú nếu có).
+  - Số điện thoại in lên bệnh án (của bệnh nhân và người giám hộ) luôn có số 0 đầu (`sheetPhone`): "+84…" in thành "0…", số lưu thiếu 0 (dữ liệu import, ví dụ "857875472") được thêm 0, số nước ngoài giữ mã quốc gia.
+  - Nghề nghiệp, Số nhà / Xã / Tỉnh, Tiền sử bản thân đã map từ trước (c5e6281a). Tiền sử bản thân là các bệnh được tick, nối bằng dấu phẩy; ô `pre-wrap` nên dài thì tự xuống dòng.
+- 5. Phiếu tư vấn và xác nhận đồng ý điều trị: Địa chỉ đã in đủ "Số nhà, Phường, Tỉnh" từ trước, không đổi.
+- 6. Giấy đồng ý phẫu thuật/thủ thuật:
+  - "… cho người bệnh:" ← họ tên bệnh nhân.
+  - "Chẩn đoán" thôi không điền tự động (bỏ `surgery-consent.text.4` khỏi `DIAGNOSIS_FIELDS`): bệnh nhân có thể có nhiều phiếu chẩn đoán, phiếu không biết ca phẫu thuật ứng với phiếu nào, nên để bác sĩ ghi tay. Phiếu đã lưu mà chưa sửa ô này sẽ hiện trống, vì giá trị tự điền không được lưu vào phiếu.
+  - Chọn "Bác sĩ" ở đầu phiếu thì in tên vào "Tôi tên là" và Chức danh của nhân viên đó vào "Chức danh" (`doctorFieldKeys` trong `medicalRecordForms.ts`, ghi vào giá trị của phiếu, lưu bằng Lưu). Bỏ chọn thì không xoá chữ đã in.
+  - Nhân viên có thêm trường **Chức danh** (`JobTitle`, ExtraProperty, tối đa 100 ký tự) trong "Hồ sơ công việc", cạnh Chức vụ. Danh sách bác sĩ (`useDentistStaffOptions`) mang theo `jobTitle`.
+- 7. Phiếu phẫu thuật: nút "Vẽ lược đồ"/"Sửa bản vẽ" thành nút icon bút chì 32×32, nút "Xoá" thành icon thùng rác. Tooltip bằng CSS của chính tờ phiếu (`data-tooltip`, iframe nên không dùng được AntD Tooltip). Tên truy cập (`aria-label`) giữ nguyên.
+- Test (bản build `vite preview` :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - `patient-medical-record`: ca địa chỉ/chẩn đoán mở rộng (bìa 3 ô, lý do vào viện, gia đình, tên người bệnh trên giấy đồng ý, không còn Thôn/Huyện). Thêm ca "chọn bác sĩ in tên + Chức danh, còn sau reload" và ca "Toàn màn hình". Đếm blank: bìa 56→58, ngoại trú 142→140.
+  - `staff-employment`: Chức danh lưu/đọc lại qua API (đã trim) và qua dialog sau reload.
+  - Kết quả `staff-employment` + `medical-record-drawing` + `patient-medical-record`: **31 pass / 2 đỏ**. Hai ca đỏ có sẵn, đỏ y hệt trên bản build trước thay đổi:
+    - "the index lists the reference's nine forms…": không thấy `.pd-profile-card` sau khi về Chi tiết hồ sơ.
+    - "picking the day prints it on the sheet…": `consultation.text.4` không nhận ngày.
+    - **Chưa điều tra.**

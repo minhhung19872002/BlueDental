@@ -53,6 +53,11 @@ export interface MedicalRecordFormSpec {
    * date only says which day's clinical notes the sheet is about.
    */
   dateFieldKeys?: string[];
+  /**
+   * The blanks the doctor picked above the sheet is printed into: the name,
+   * and the Chức danh kept on their staff record (clinic, 2026-10-16).
+   */
+  doctorFieldKeys?: { name: string[]; jobTitle: string[] };
 }
 
 export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
@@ -110,6 +115,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     form: MEDICAL_RECORD_FORM.SurgeryConsent,
     fillable: true,
     dateLabel: "Patient:MedRecord:PerformedDate",
+    doctorFieldKeys: { name: ["surgery-consent.text.1"], jobTitle: ["surgery-consent.text.2"] },
     index: 6,
     label: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật",
     tint: "#f2fcf5",

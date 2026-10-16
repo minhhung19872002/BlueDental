@@ -122,10 +122,12 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl:not([data-readonly]) .nfc-medical-record-drawing{background:#fffde7;outline:1px dashed #f4b942}
 .nfc-tpl .nfc-medical-record-drawing-img{display:block;width:100%;height:100%;max-width:none;object-fit:contain}
 .nfc-tpl .nfc-medical-record-drawing-tools{position:absolute;top:6px;right:6px;display:flex;gap:6px}
-.nfc-tpl .nfc-medical-record-drawing-btn{font:500 12px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;padding:5px 10px;border:1px solid #2671d8;border-radius:6px;background:#fff;color:#2671d8;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.nfc-tpl .nfc-medical-record-drawing-btn:hover{background:#2671d8;color:#fff}
-.nfc-tpl .nfc-medical-record-drawing-btn--delete{border-color:#dc2626;color:#dc2626}
-.nfc-tpl .nfc-medical-record-drawing-btn--delete:hover{background:#dc2626;color:#fff}
+.nfc-tpl .nfc-medical-record-drawing-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:1px solid #d0d7e2;border-radius:8px;background:#fff;color:#334155;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.nfc-tpl .nfc-medical-record-drawing-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nfc-tpl .nfc-medical-record-drawing-btn:hover,.nfc-tpl .nfc-medical-record-drawing-btn:focus-visible{border-color:#2671d8;color:#2671d8}
+.nfc-tpl .nfc-medical-record-drawing-btn--delete:hover,.nfc-tpl .nfc-medical-record-drawing-btn--delete:focus-visible{border-color:#dc2626;color:#dc2626}
+.nfc-tpl .nfc-medical-record-drawing-btn[data-tooltip]::after{content:attr(data-tooltip);position:absolute;top:calc(100% + 6px);right:0;z-index:2;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.85);color:#fff;font:400 12px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s}
+.nfc-tpl .nfc-medical-record-drawing-btn[data-tooltip]:hover::after,.nfc-tpl .nfc-medical-record-drawing-btn[data-tooltip]:focus-visible::after{opacity:1}
 @media print{
   .nfc-tpl .nfc-medical-record-drawing-tools{display:none}
   .nfc-tpl:not([data-readonly]) .nfc-medical-record-drawing{background:transparent;outline:none}

@@ -229,3 +229,18 @@
     background: #fff !important;
   }
 }
+
+/* ── Toàn màn hình ── */
+/* The canvas covers the window — the browser's own full screen comes with it
+   when allowed (useSheetFullscreen). Under the AntD layers (1000+), so the
+   pickers and dialogs the sheet opens still show above it. */
+.pd-medical-canvas.pd-medical-canvas--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  border: 0;
+  border-radius: 0;
+}
+.pd-medical-canvas--fullscreen .pd-medical-canvas-head {
+  border-radius: 0;
+}

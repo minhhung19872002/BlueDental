@@ -48,12 +48,48 @@ export function drawingOf(node: Element): string {
   return node.getAttribute(SOURCE_ATTR) ?? "";
 }
 
+/** Lucide's pencil and trash-2, drawn in the sheet's own document. */
+const ACTION_ICON: Record<DrawingAction, readonly string[]> = {
+  edit: [
+    "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+    "m15 5 4 4",
+  ],
+  delete: [
+    "M3 6h18",
+    "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6",
+    "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2",
+    "M10 11v6",
+    "M14 11v6",
+  ],
+};
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function actionIcon(doc: Document, action: DrawingAction): SVGSVGElement {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ACTION_ICON[action]) {
+    const path = doc.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+
+/**
+ * An icon button; what it does is its accessible name and the tooltip shown
+ * on hover (clinic, 2026-10-16). The tooltip is the sheet's own CSS — the
+ * sheet is a separate document, out of reach of the app's Tooltip.
+ */
 function actionButton(doc: Document, action: DrawingAction, label: string): HTMLButtonElement {
   const button = doc.createElement("button");
   button.type = "button";
   button.className = `nfc-medical-record-drawing-btn nfc-medical-record-drawing-btn--${action}`;
   button.setAttribute(ACTION_ATTR, action);
-  button.textContent = label;
+  button.setAttribute("aria-label", label);
+  button.setAttribute("data-tooltip", label);
+  button.append(actionIcon(doc, action));
   return button;
 }
 

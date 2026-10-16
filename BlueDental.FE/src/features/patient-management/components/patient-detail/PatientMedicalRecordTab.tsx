@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Input } from "antd";
+import { Button, Input, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { Minus, Plus, Printer, RefreshCw, Save } from "lucide-react";
+import { Maximize2, Minimize2, Minus, Plus, Printer, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { AppDialog } from "@/components/AppDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAbility } from "@/hooks/useAbility";
+import type { StaffOption } from "@/hooks/useStaffOptions";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -28,6 +29,7 @@ import { MedicalRecordCanvasHead } from "./medical-record/MedicalRecordCanvasHea
 import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
 import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
 import { useSheetDiagnoses } from "./medical-record/useSheetDiagnoses";
+import { useSheetFullscreen } from "./medical-record/useSheetFullscreen";
 import { diagnosisFieldValues, type FieldValues } from "./medical-record/fieldValues";
 import { MEDICAL_RECORD_FORMS, formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
 import { parseFieldValues, serialiseFieldValues } from "./medicalRecordDraft";
@@ -96,6 +98,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<ViewMode>("single");
   const [zoom, setZoom] = useState(1);
+  const fullscreen = useSheetFullscreen();
   /*
    * The index is open beside the sheet while there are two columns, and closed
    * to its header once they fold — there is no room for both, which is what the
@@ -144,6 +147,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const [newTitle, setNewTitle] = useState("");
   /** The day each dated sheet is filled in for, until it is saved onto the sheet. */
   const [dates, setDates] = useState<Record<string, Dayjs>>({});
+  /** The doctor picked above each sheet, by sheet id. */
+  const [doctors, setDoctors] = useState<Record<string, string>>({});
 
   const active = sheets.find((sheet) => sheet.id === activeId) ?? sheets[0] ?? null;
 
@@ -177,20 +182,39 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     ...diagnosisFieldValues(diagnosesFrom(formSpecOf(sheet.form).dateLabel ? dateOf(sheet) : undefined)),
   });
 
-  /** Picking the day writes it into whichever blanks the form prints it in. */
-  const handleDateChange = (sheet: PatientMedicalRecordDto, next: Dayjs | null) => {
-    if (!next) return;
-    setDates((current) => ({ ...current, [sheet.id]: next }));
-
-    const keys = formSpecOf(sheet.form).dateFieldKeys ?? [];
+  /** Writes a value picked outside the sheet into the blanks that print it. */
+  const writeOnSheet = (sheet: PatientMedicalRecordDto, keys: readonly string[], printed: string) => {
     if (keys.length === 0) return;
-
-    const printed = next.format("DD/MM/YYYY");
     setEdits((current) => {
       const values = { ...(current[sheet.id] ?? parseFieldValues(sheet.content)) };
       for (const key of keys) values[key] = printed;
       return { ...current, [sheet.id]: values };
     });
+  };
+
+  /** Picking the day writes it into whichever blanks the form prints it in. */
+  const handleDateChange = (sheet: PatientMedicalRecordDto, next: Dayjs | null) => {
+    if (!next) return;
+    setDates((current) => ({ ...current, [sheet.id]: next }));
+    writeOnSheet(sheet, formSpecOf(sheet.form).dateFieldKeys ?? [], next.format("DD/MM/YYYY"));
+  };
+
+  /**
+   * Picking the doctor prints their name and Chức danh where the form names
+   * one. Clearing the picker leaves what is already on the sheet alone.
+   */
+  const handleDoctorChange = (sheet: PatientMedicalRecordDto, doctor: StaffOption | undefined) => {
+    setDoctors((current) => {
+      const next = { ...current };
+      if (doctor) next[sheet.id] = doctor.value;
+      else delete next[sheet.id];
+      return next;
+    });
+
+    const keys = formSpecOf(sheet.form).doctorFieldKeys;
+    if (!doctor || !keys) return;
+    writeOnSheet(sheet, keys.name, doctor.label);
+    writeOnSheet(sheet, keys.jobTitle, doctor.jobTitle ?? "");
   };
 
   /** `Bản NN` for a sheet: its position among the sheets of its own form. */
@@ -326,7 +350,12 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           onDelete={ability.canDelete ? (sheet) => setRemoving(sheet) : undefined}
         />
 
-        <div className="pd-medical-canvas" ref={canvas}>
+        <div
+          className={["pd-medical-canvas", fullscreen.fullscreen && "pd-medical-canvas--fullscreen"]
+            .filter(Boolean)
+            .join(" ")}
+          ref={canvas}
+        >
           <div className="pd-medical-canvas-scroll">
             {active && (
               <MedicalRecordCanvasHead
@@ -335,6 +364,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                 dateLabel={formSpecOf(active.form).dateLabel}
                 date={dateOf(active)}
                 onDateChange={(next) => handleDateChange(active, next)}
+                doctorId={doctors[active.id]}
+                onDoctorChange={(doctor) => handleDoctorChange(active, doctor)}
               />
             )}
 
@@ -392,6 +423,19 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                   }
                 />
               </div>
+
+              <Tooltip
+                title={t(fullscreen.fullscreen ? "Patient:MedRecord:ExitFullscreen" : "Patient:MedRecord:Fullscreen")}
+              >
+                <Button
+                  aria-label={t(
+                    fullscreen.fullscreen ? "Patient:MedRecord:ExitFullscreen" : "Patient:MedRecord:Fullscreen",
+                  )}
+                  aria-pressed={fullscreen.fullscreen}
+                  icon={fullscreen.fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  onClick={fullscreen.toggle}
+                />
+              </Tooltip>
 
               {mode === "all" ? (
                 <PrintSheetPicker

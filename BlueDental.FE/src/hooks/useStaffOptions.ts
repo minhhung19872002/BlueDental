@@ -11,6 +11,8 @@ import { api } from "@/lib/axios";
 export interface StaffOption {
   value: string;
   label: string;
+  /** "Chức danh" — only the dentist picker carries it, for the printed records. */
+  jobTitle?: string;
 }
 
 interface StaffRow {
@@ -20,6 +22,7 @@ interface StaffRow {
   userName: string;
   isDentist?: boolean;
   isAssistant?: boolean;
+  jobTitle?: string | null;
 }
 
 function buildLabel(row: StaffRow): string {
@@ -74,6 +77,7 @@ export function useDentistStaffOptions(availableOn?: string) {
       return items.map((row) => ({
         value: row.id,
         label: buildLabel(row),
+        jobTitle: row.jobTitle ?? undefined,
       }));
     },
   });

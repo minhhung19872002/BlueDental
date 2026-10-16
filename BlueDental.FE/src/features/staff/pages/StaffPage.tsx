@@ -123,6 +123,7 @@ export function StaffPage() {
       maxDiscountPercent: values.maxDiscountPercent ?? null,
       maxDiscountAmount: values.maxDiscountAmount ?? null,
       position: values.position,
+      jobTitle: values.jobTitle,
       practiceCertificateNumber: values.practiceCertificateNumber,
       practiceCertificateIssuedOn: values.practiceCertificateIssuedOn,
       practiceCertificateIssuedPlace: values.practiceCertificateIssuedPlace,
