@@ -1343,6 +1343,64 @@ test.describe("Bệnh án", () => {
     ]);
   });
 
+  /**
+   * The other eight forms take mẫu 5's style (clinic, 2026-10-16): each at
+   * the largest type that keeps its printed page count, the paper's 12px
+   * boxes, a bold letterhead, and blanks in a grid cell printed without the
+   * dotted line while those outside keep it. Enter is checked on mẫu 5; it is
+   * the same code on every form.
+   */
+  test("every form shares mẫu 5's type, boxes, letterhead and print rules", async ({ page }) => {
+    test.slow();
+    await openMedicalRecord(page);
+
+    const expected: Array<[string, string, string]> = [
+      ["Bìa hồ sơ bệnh án", "16px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT"],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "13px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
+      ["Bệnh án chỉnh nha", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
+      ["Phiếu Tư Vấn Tổng Quát", "14px", "ĐT:"],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
+      ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
+      ["Phiếu theo dõi điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
+      ["Phiếu chăm sóc", "15px", "ĐT:"],
+    ];
+
+    for (const [form, size, letterhead] of expected) {
+      await openSheet(page, form);
+      const document = sheet(page);
+      const tpl = document.locator(".nfc-tpl");
+      expect(await tpl.evaluate((node) => getComputedStyle(node).fontSize), `${form} · type`).toBe(size);
+
+      const box = document.locator(".nfc-medical-record-checkbox").first();
+      if ((await box.count()) > 0) {
+        expect((await box.boundingBox())?.width, `${form} · box`).toBeCloseTo(12, 0);
+      }
+
+      const weight = await document
+        .getByText(letterhead, { exact: false })
+        .first()
+        .evaluate((node) => Number(getComputedStyle(node).fontWeight));
+      expect(weight, `${form} · letterhead`).toBeGreaterThanOrEqual(700);
+
+      await page.emulateMedia({ media: "print" });
+      const lines = await tpl.evaluate((root) => {
+        const style = (node: Element | null) => (node ? getComputedStyle(node).borderBottomStyle : null);
+        return {
+          inGrid: style(root.querySelector("[data-grid-cell] .nfc-medical-record-text-field")),
+          outside: style(
+            Array.from(root.querySelectorAll(".nfc-medical-record-text-field")).find(
+              (node) => !node.closest("[data-grid-cell]") && !node.closest("[data-cover]"),
+            ) ?? null,
+          ),
+        };
+      });
+      await page.emulateMedia({ media: "screen" });
+      if (lines.inGrid !== null) expect(lines.inGrid, `${form} · grid blank on paper`).toBe("none");
+      if (lines.outside !== null) expect(lines.outside, `${form} · other blank on paper`).toBe("dotted");
+    }
+  });
+
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");

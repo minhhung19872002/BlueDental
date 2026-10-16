@@ -9137,3 +9137,32 @@ Nguồn: ảnh chụp tờ mẫu giấy của phòng khám đặt cạnh bản i
   - Ca Enter thêm Backspace/Delete: xoá `.6.3` trống, con trỏ về `.6.2`; dòng có chữ chỉ mất một ký tự; ô in sẵn còn nguyên; sau reload `.6.3` không quay lại. `patient-medical-record` + `medical-record-drawing`: **31 pass / 2 đỏ có sẵn**.
   - Ca Enter thêm: Enter ở "Mã hồ sơ" → ô mới cùng x và cùng rộng với ô gốc, nằm ngay dưới. Nhóm Enter / mẫu 5 / đếm blank / bìa / cost row / địa chỉ chạy lại: **6/6**.
   - `patient-medical-record` + `medical-record-drawing`: **31 pass / 2 đỏ có sẵn** (xem R-963).
+
+## R-969 (2026-10-16, mức 2: cả 9 mẫu bệnh án) Đồng bộ style mẫu 5 cho mọi mẫu: cỡ chữ, checkbox, nhãn hiệu, bản in
+
+Owner: nhãn hiệu to hơn một chút và in đậm; rồi rà soát mọi mẫu cho giống mẫu 5 (font chữ, checkbox, Enter, nhãn hiệu, bản in không có "...." trong bảng).
+
+- **Nhãn hiệu:**
+  - 6 mẫu dùng chung khối "Sở Y tế … Nha Khoa Đức Hạnh": 9pt → 10pt, đậm cả khối.
+  - Bìa (in hoa, vốn đã đậm): 10pt → 11pt.
+  - Mẫu 4 và 9 (tên / địa chỉ / SĐT chi nhánh): in đậm.
+  - Nới cột nhãn hiệu cho khỏi gãy chữ: mẫu 6 259 → 290px; mẫu 9 200 → 220px (cột tiêu đề 248 → 233px, để cột MS / Mã người bệnh không bị hẹp).
+- **Cỡ chữ từng mẫu** (`.nfc-tpl[data-form]`; `sheetDocument` nhận số mẫu):
+  - Chọn cỡ lớn nhất mà số trang in **không đổi**. Đo qua luồng in thật của app ("In biểu mẫu" → PDF), CSS thử chèn vào trang, không lưu gì.
+  - 1: 16px (3 trang) · 2: **13px**, giữ nguyên (14px thành 5 trang) · 3: 16px (5) · 4: 14px (1) · 5: 16px (2) · 6: 15px (2) · 7: 14px (1) · 8: 16px (2) · 9: 15px (1).
+  - Mẫu 2, 3, 8 vốn đã tràn trang ở 13px (trang 1 của 2 / 3 cao hơn 280mm; mẫu 8 là danh sách dài). Số trang của chúng vẫn giữ như trước.
+- **Chung cho mọi mẫu:**
+  - Checkbox 12px.
+  - Tiêu đề mục (`h2`) bằng cỡ chữ thân bài: span có cỡ chữ inline trong `h2` được ép `inherit`. Mẫu 3 có `h2 > strong > span`, nên `h2>span` cũ không bắt được.
+  - Khoảng cách giữa tiêu đề và đoạn thu lại; tiêu đề nằm ngay trên bảng thì sát bảng.
+  - Dòng trong bảng kẻ ô: `line-height` 1.2.
+- **Bản in không có "...." trong bảng:**
+  - `renderSheet` gắn `data-grid-cell` cho ô của bảng kẻ ô thật.
+  - Không gắn cho bảng dàn trang: `data-borderless`, bìa, `data-record-page`, các section layout / general-exam / signature / outpatient-summary-title. Ô trong các bảng đó vẫn giữ đường chấm.
+  - Khi in, ô có `data-grid-cell` bỏ `border-bottom`.
+- **Enter / Backspace / Delete:** đã là hành vi chung (R-968), không phải làm thêm.
+- Mẫu 5: bảng phương pháp / răng sứ / chi phí đặt `line-height` 1.2 riêng, để quy tắc chung không làm trang 1 cao lên. Đo: 269mm / 280mm.
+- Test (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới "every form shares mẫu 5's type, boxes, letterhead and print rules": 9 mẫu, mỗi mẫu kiểm cỡ chữ, checkbox 12px, nhãn hiệu `font-weight` ≥ 700, khi in ô trong bảng kẻ ô `border-bottom: none` và ô ngoài bảng `dotted`.
+  - `patient-medical-record` + `medical-record-drawing` + `treatment-plan`: **41 pass / 2 đỏ có sẵn** (xem R-963).
+  - Ca `treatment-plan` "slip survives a reload…" từng đỏ ở R-961, nay xanh.

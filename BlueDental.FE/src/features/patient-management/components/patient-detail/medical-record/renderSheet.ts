@@ -101,6 +101,27 @@ function fillTokens(root: Node, values: FieldValues) {
   }
 }
 
+/**
+ * Tables that only lay the page out: no cell borders, so a blank in one still
+ * needs its dotted line on paper. Every other table is a grid, whose cells
+ * already say where to write.
+ */
+const LAYOUT_SECTIONS = new Set(["layout", "general-exam", "signature", "outpatient-summary-title"]);
+
+function isGrid(table: Element): boolean {
+  if (table.hasAttribute("data-borderless") || table.hasAttribute("data-cover")) return false;
+  if (table.hasAttribute("data-record-page")) return false;
+  return !LAYOUT_SECTIONS.has(table.getAttribute("data-record-section") ?? "");
+}
+
+/** Marks the cells of real grids, so the stylesheet can print their blanks without the dotted line. */
+function markGridCells(root: Element) {
+  root.querySelectorAll("td, th").forEach((cell) => {
+    const table = cell.closest("table");
+    if (table && isGrid(table)) cell.setAttribute("data-grid-cell", "true");
+  });
+}
+
 /** The filled body of one record, ready to be dropped into the sheet frame. */
 export function renderSheetHtml(template: string, options: RenderOptions): string {
   const parsed = new DOMParser().parseFromString(`<div>${template}</div>`, "text/html");
@@ -111,6 +132,7 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
   // filled, so the blanks on a re-added row are filled like any other.
   applyStoredRows(root, options.stored);
   applyStoredLines(root, options.stored);
+  markGridCells(root);
   fillFields(root, options);
   fillTokens(root, { ...options.auto, ...options.stored });
   return root.innerHTML;
@@ -123,10 +145,12 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
  * fixed 13px on a 210mm page, and BlueDental's stylesheet reaching it would
  * move the layout off the printed original.
  */
-export function sheetDocument(body: string, editable = true): string {
+export function sheetDocument(body: string, editable = true, form?: number): string {
   // A read-only sheet is marked, not disabled: `disabled` greys a tick box and
   // the reference's blue with it. The stylesheet holds the sheet still.
   const readOnly = editable ? "" : ' data-readonly="true"';
+  // Which of the nine forms: each prints at its own type size (sheetCss).
+  const formAttr = form ? ` data-form="${form}"` : "";
   return [
     "<!DOCTYPE html>",
     '<html lang="vi"><head><meta charset="UTF-8" />',
@@ -134,6 +158,6 @@ export function sheetDocument(body: string, editable = true): string {
     SHEET_CSS,
     SHEET_PAGE_CSS,
     "</style></head>",
-    `<body><main class="nfc-tpl"${readOnly}>${body}</main></body></html>`,
+    `<body><main class="nfc-tpl"${formAttr}${readOnly}>${body}</main></body></html>`,
   ].join("");
 }

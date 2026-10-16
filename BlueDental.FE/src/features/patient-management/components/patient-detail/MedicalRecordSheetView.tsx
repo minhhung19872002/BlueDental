@@ -45,6 +45,7 @@ export function MedicalRecordSheetView({
     <MedicalRecordDocument
       sheetId={sheet.id}
       template={templateOf(sheet.form)}
+      form={sheet.form}
       auto={auto}
       stored={values}
       /*

@@ -62,29 +62,34 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl h1[data-record-section="consultation-title"]{margin:12px 0 8px;line-height:1.2}
 .nfc-tpl table[data-record-section="consultation-methods"]{margin:0}
 .nfc-tpl table[data-record-section="consultation-methods"] td{padding:0 6px}
-.nfc-tpl table[data-record-section="consultation-methods"] p{margin:0;line-height:1.4}
+.nfc-tpl table[data-record-section="consultation-methods"] p{margin:0;line-height:1.2}
 .nfc-tpl table[data-record-section="consultation-detail"],.nfc-tpl table[data-record-section="consultation-cost"]{margin:2px 0 4px}
 .nfc-tpl table[data-record-section="consultation-detail"] td,.nfc-tpl table[data-record-section="consultation-detail"] th,.nfc-tpl table[data-record-section="consultation-cost"] td,.nfc-tpl table[data-record-section="consultation-cost"] th{padding:1px 8px;vertical-align:middle}
 .nfc-tpl table[data-record-section="consultation-detail"] th{font-weight:normal;text-align:center}
-.nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:1.3}
-/* The whole of mẫu 5, told by its title. Clinic, 2026-10-16:
-   - type as large as the first page allows (I–IV must print on one page),
-     the section headings at the same size;
-   - the paper's small boxes; "Khác" lined up with the grid above;
-   - a heading right above a table sits close to it;
-   - a blank inside a table prints with no dotted line — the cell's borders
-     already say where to write. */
-.nfc-tpl:has(>h1[data-record-section="consultation-title"]){font-size:16px}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"]) :is(td,th) p,.nfc-tpl:has(>h1[data-record-section="consultation-title"]) :is(td,th) .nfc-medical-record-text-field{line-height:1.2;min-height:1.2em}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"]) h2>span{font-size:1em!important}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"]) .nfc-medical-record-checkbox{width:12px;height:12px;vertical-align:-1px}
+.nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:1.2}
+/* All nine forms, after mẫu 5 (clinic, 2026-10-16):
+   - each prints at the largest type that keeps its page count, measured
+     through the app's own print path (docs/testing/03-regression-log.md
+     R-969); the section headings at the body's size;
+   - a heading right above a table sits close to it, and a grid's rows hold
+     one text line;
+   - a blank in a grid cell prints with no dotted line — the cell's borders
+     already say where to write. renderSheet marks those cells; a table that
+     only lays the page out is not one, and its blanks keep the line. */
+.nfc-tpl[data-form="1"],.nfc-tpl[data-form="3"],.nfc-tpl[data-form="5"],.nfc-tpl[data-form="8"]{font-size:16px}
+.nfc-tpl[data-form="6"],.nfc-tpl[data-form="9"]{font-size:15px}
+.nfc-tpl[data-form="4"],.nfc-tpl[data-form="7"]{font-size:14px}
+/* Bệnh án ngoại trú stays at 13px: 14px already adds a fifth page. */
+.nfc-tpl h2{font-size:1em}
+.nfc-tpl h2 span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl>h2{margin:6px 0 2px}
+.nfc-tpl>p{margin-bottom:2px}
+.nfc-tpl>:is(p,h2):has(+table){margin-bottom:0}
+.nfc-tpl>:is(p,h2)+table{margin-top:1px}
+.nfc-tpl [data-grid-cell] p,.nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{line-height:1.2;min-height:1.2em}
 .nfc-tpl p[data-record-section="consultation-other"]{padding-left:6px}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"])>h2{margin:6px 0 2px}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"])>p{margin-bottom:2px}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"])>:is(p,h2):has(+table){margin-bottom:0}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"])>:is(p,h2)+table{margin-top:1px}
 @media print{
-  .nfc-tpl:has(>h1[data-record-section="consultation-title"]) :is(td,th) .nfc-medical-record-text-field{border-bottom:0!important}
+  .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
 }
 /* Compact table: columns size to content and the block is pulled out of the
    normal flow to the right corner, so anything written after it (ví dụ khối lịch
@@ -128,7 +133,8 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl .nfc-medical-record-text-field:empty::before{content:attr(data-placeholder);color:#9ca3af;font-style:italic}
 .nfc-tpl .nfc-medical-record-text-field[data-placeholder="Nhập nội dung"]:empty::before{content:''}
 .nfc-tpl .nfc-medical-record-text-field:focus{background:#fff9c4;outline:2px solid #f59e0b}
-.nfc-tpl .nfc-medical-record-checkbox{width:15px;height:15px;margin:0 3px;vertical-align:-2px;accent-color:#2671d8;cursor:pointer}
+/* The paper's small boxes (clinic, 2026-10-16, after mẫu 5). */
+.nfc-tpl .nfc-medical-record-checkbox{width:12px;height:12px;margin:0 3px;vertical-align:-1px;accent-color:#2671d8;cursor:pointer}
 @media print{
   .nfc-tpl{break-after:auto;page-break-after:auto}
   .nfc-tpl h1,.nfc-tpl h2,.nfc-tpl h3,.nfc-tpl h4,.nfc-tpl h5,.nfc-tpl h6,.nfc-tpl p,.nfc-tpl li{break-inside:avoid-page;page-break-inside:avoid}
