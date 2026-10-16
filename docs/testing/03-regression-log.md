@@ -9307,3 +9307,26 @@ Vòng 2 cùng ngày, owner sửa:
   - Cột MS 185 → 150px; ô MS 120 → 80px, để nằm cùng dòng với nhãn "MS:".
   - "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM / Độc lập - Tự do - Hạnh phúc" giữ 2 + 1 dòng.
 - Chiều cao khối nhãn hiệu không đổi (4 dòng). Theo yêu cầu owner, không chạy lại e2e trước khi push; FE build và BE biên dịch qua.
+
+
+## R-975 (2026-10-16, mức 2: bệnh án) Rời phiếu chưa lưu thì hỏi trước
+
+- Owner: "Quên lưu bấm qua tab khác trở lại mất tiu" — ở các mẫu bệnh án, bấm qua chỗ khác khi chưa lưu phải hiện dialog hỏi có lưu không.
+- Dialog "Phiếu chưa được lưu" có ba nút: Lưu (lưu rồi đi tiếp), Không lưu (bỏ thay đổi rồi đi tiếp), Ở lại.
+- Hỏi khi:
+  - Mở phiếu khác trong cùng màn bệnh án.
+  - Rời view Bệnh án hoặc rời bệnh nhân. Mọi điều hướng trong app đi qua `useUnsavedChangesGuard`.
+  - Reload hoặc đóng tab: trình duyệt hỏi bằng hộp thoại riêng của nó.
+- "Chưa lưu" nghĩa là nội dung đang viết khác bản đã lưu. Bấm vào ô rồi bấm ra mà không đổi gì thì không hỏi.
+- Code: `medical-record/useUnsavedSheets.ts`, `medical-record/UnsavedSheetDialog.tsx`, `PatientMedicalRecordTab.tsx` (`openSheet` → `unsaved.ask`). Thêm 5 khoá i18n `Patient:MedRecord:Unsaved*`.
+- **Test** (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới "leaving a sheet with unsaved writing asks to save it first" **pass**:
+    - Bấm mà không đổi gì thì không hỏi.
+    - "Ở lại" giữ chữ.
+    - "Không lưu" chuyển phiếu và bỏ chữ.
+    - "Lưu" khi rời view rồi reload thì chữ vẫn còn.
+  - Cả bộ `patient-medical-record`: **28 pass / 4 đỏ**.
+    - "index lists nine forms" và "picking the day…" là đỏ có sẵn (R-962, R-963).
+    - "draws the whole of its printed original" chạy lại thì xanh (flaky).
+    - Ca mới đỏ vì locator "Lưu" khớp cả nút "Không lưu". Đã sửa bằng `exact: true`, chạy lại xanh.
+  - Lưu ý môi trường: lúc đầu container PostgreSQL bị tắt nên login lỗi 500. Host chạy `--no-build` nên chưa nạp khoá i18n mới; đã build lại host.

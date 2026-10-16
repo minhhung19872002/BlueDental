@@ -1588,6 +1588,57 @@ test.describe("Bệnh án", () => {
     await expect(document.locator(".nfc-material-option", { hasText: `Sứ cũ ${id}` }).locator("input")).toBeChecked();
   });
 
+  /**
+   * Clinic, 2026-10-16: unsaved writing is not lost by wandering off. Opening
+   * another sheet, or leaving the Bệnh án view, asks first — Lưu, Không lưu,
+   * Ở lại — and a click into a blank that changes nothing asks nothing.
+   */
+  test("leaving a sheet with unsaved writing asks to save it first", async ({ page }) => {
+    const id = runId();
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bìa hồ sơ bệnh án");
+    const dialog = page.getByRole("dialog", { name: "Phiếu chưa được lưu" });
+    const otherSheet = page.locator(".pd-medical-form", { hasText: "Phiếu chăm sóc" });
+    if ((await otherSheet.locator(".pd-sheet-card").count()) === 0) {
+      await otherSheet.getByRole("button", { name: "Thêm" }).click();
+      await expect(dialog).toBeHidden();
+      await expect(otherSheet.locator(".pd-sheet-card")).toHaveCount(1);
+      await openSheet(page, "Bìa hồ sơ bệnh án");
+    }
+
+    // A click that changes nothing is not a change.
+    await blank(page, "cover.text.1").click();
+    await otherSheet.locator(".pd-sheet-card").first().locator(".pd-sheet-open").click();
+    await expect(dialog).toBeHidden();
+    await openSheet(page, "Bìa hồ sơ bệnh án");
+
+    // Another sheet: "Ở lại" keeps the writing; "Không lưu" goes on without it.
+    await blank(page, "cover.text.1").fill(`LT ${id}`);
+    await otherSheet.locator(".pd-sheet-card").first().locator(".pd-sheet-open").click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("Bìa hồ sơ bệnh án");
+    await dialog.getByRole("button", { name: "Ở lại" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(blank(page, "cover.text.1")).toHaveText(`LT ${id}`);
+    await otherSheet.locator(".pd-sheet-card").first().locator(".pd-sheet-open").click();
+    await dialog.getByRole("button", { name: "Không lưu" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(blank(page, "care.diagnosis")).toBeAttached();
+    await openSheet(page, "Bìa hồ sơ bệnh án");
+    await expect(blank(page, "cover.text.1")).toBeEmpty();
+
+    // Leaving the Bệnh án view: "Lưu" saves, then goes on — and it is there after a reload.
+    await blank(page, "cover.text.1").fill(`LT ${id}`);
+    await page.getByRole("button", { name: "Chi tiết hồ sơ" }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page).not.toHaveURL(/view=medical-record/);
+    await page.goto(page.url().replace(/(\?|$)/, "?view=medical-record&").replace(/&$/, ""));
+    await openLastSheet(page, "Bìa hồ sơ bệnh án");
+    await expect(blank(page, "cover.text.1")).toHaveText(`LT ${id}`);
+  });
+
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");

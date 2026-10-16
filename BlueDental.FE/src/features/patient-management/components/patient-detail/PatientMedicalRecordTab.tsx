@@ -30,6 +30,8 @@ import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
 import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
 import { useSheetDiagnoses } from "./medical-record/useSheetDiagnoses";
 import { useSheetFullscreen } from "./medical-record/useSheetFullscreen";
+import { useUnsavedSheets } from "./medical-record/useUnsavedSheets";
+import { UnsavedSheetDialog } from "./medical-record/UnsavedSheetDialog";
 import { diagnosisFieldValues, type FieldValues } from "./medical-record/fieldValues";
 import { MEDICAL_RECORD_FORMS, formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
 import { parseFieldValues, serialiseFieldValues } from "./medicalRecordDraft";
@@ -230,11 +232,17 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
    * window crosses the breakpoint, and the sheet is brought up. With two
    * columns both are already in view and the list stays as the user left it.
    */
-  const openSheet = (id: string) => {
+  const showSheet = (id: string) => {
     setActiveId(id);
     if (window.matchMedia(TWO_COLUMN_QUERY).matches) return;
     setCollapsed(true);
     setRevealing(true);
+  };
+
+  /** Another sheet is opened only once the open one's unsaved writing is answered for. */
+  const openSheet = (id: string) => {
+    if (id === active?.id) return showSheet(id);
+    unsaved.ask(() => showSheet(id), active ? [active.id] : []);
   };
 
   const handleAdd = async (spec: MedicalRecordFormSpec) => {
@@ -247,23 +255,41 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     }
   };
 
-  const handleSave = async () => {
-    if (!active) return;
+  /** Saves what is written on one sheet; answers whether it went through. */
+  const saveSheetEdits = async (sheet: PatientMedicalRecordDto): Promise<boolean> => {
     try {
       await saveSheet.mutateAsync({
-        id: active.id,
-        content: serialiseFieldValues(valuesOf(active)),
+        id: sheet.id,
+        content: serialiseFieldValues(valuesOf(sheet)),
       });
       setEdits((current) => {
         const rest = { ...current };
-        delete rest[active.id];
+        delete rest[sheet.id];
         return rest;
       });
       toast.success(t("Patient:MedRecord:Saved"));
+      return true;
     } catch (error) {
       notifyError(extractApiError(error));
+      return false;
     }
   };
+
+  const handleSave = async () => {
+    if (active) await saveSheetEdits(active);
+  };
+
+  const unsaved = useUnsavedSheets({
+    sheets,
+    edits,
+    save: saveSheetEdits,
+    discard: (ids) =>
+      setEdits((current) => {
+        const rest = { ...current };
+        for (const id of ids) delete rest[id];
+        return rest;
+      }),
+  });
 
   const handleRename = async () => {
     if (!renaming) return;
@@ -489,6 +515,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           onPressEnter={() => void handleRename()}
         />
       </AppDialog>
+
+      <UnsavedSheetDialog {...unsaved.dialog} />
 
       <ConfirmDeleteDialog
         open={Boolean(removing)}
