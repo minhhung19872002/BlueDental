@@ -2996,3 +2996,17 @@ Mặc định BlueDental tự chọn, chưa có xác nhận:
 - `minOrderValue` và `maxDiscountAmount` của voucher dịch vụ tính trên tổng các dòng nó nhắm, không tính trên cả phiếu.
 - Hai voucher dịch vụ cùng nhắm một dòng thì voucher chọn sau tính trên phần dòng còn lại; thứ tự chọn được lưu (`Position`).
 - Huỷ dòng thì mất phần giảm của dòng đó, nhưng lượt dùng voucher không được trả lại (giống voucher kế hoạch, BA mục 24).
+
+## Bệnh án — Enter trong một ô (2026-10-16)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chi tiết bệnh nhân → Bệnh án → mẫu 5 (staging)
+Control: phím Enter / Shift+Enter / Backspace trong các ô của tờ phiếu
+Reason: đã đo được Enter khi khối bên dưới là đoạn văn có ô / không có ô và khi ở trong ô bảng (xem pages/patient-detail.md "Bệnh án — Enter trong một ô"). Còn chưa biết:
+- Shift+Enter;
+- Enter khi khối ngay dưới là một bảng có ô;
+- Enter trong ô "Vị trí" của bảng răng sứ (lần thử không đặt được con trỏ vào ô);
+- cách xoá một dòng đã thêm.
+BlueDental: Shift+Enter để trình duyệt xuống dòng trong ô; bảng ngay dưới không được tính là "khối có ô" (Enter thêm dòng mới); Backspace / Delete trong một dòng đã thêm đang trống thì xoá dòng đó (quyết định của owner, 2026-10-16).
+Action taken: NONE (chỉ thao tác DOM, không lưu, mọi request ghi bị chặn)

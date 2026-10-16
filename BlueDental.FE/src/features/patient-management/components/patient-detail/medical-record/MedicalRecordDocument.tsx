@@ -4,6 +4,7 @@ import type { FieldValues } from "./fieldValues";
 import { renderSheetHtml, sheetDocument } from "./renderSheet";
 import { GENERATED_ROW_ATTR } from "./rowEditing";
 import { attachRowHandles } from "./rowHandles";
+import { attachLineEditing } from "./lineEditing";
 import { drawingOf, isDrawingField, showDrawing } from "./drawing/drawingField";
 import { SheetDrawingDialogs } from "./drawing/SheetDrawingDialogs";
 import { useSheetDrawing } from "./drawing/useSheetDrawing";
@@ -171,6 +172,14 @@ export function MedicalRecordDocument({
 
     const detachDrawing = editable ? attachDrawing(doc) : () => undefined;
 
+    // Enter moves to the blank below, or adds one; see lineEditing.
+    const detachLines = editable
+      ? attachLineEditing(doc, () => {
+          push();
+          window.requestAnimationFrame(measure);
+        })
+      : () => undefined;
+
     frame.current?.addEventListener(
       "beforeunload",
       () => {
@@ -179,6 +188,7 @@ export function MedicalRecordDocument({
         doc.removeEventListener("change", push);
         detachHandles();
         detachDrawing();
+        detachLines();
       },
       { once: true },
     );

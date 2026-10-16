@@ -147,6 +147,8 @@ export function addRowAfter(root: ParentNode, row: HTMLTableRowElement): HTMLTab
   if (!kind) return null;
 
   const copy = row.cloneNode(true) as HTMLTableRowElement;
+  // Lines added inside a cell with Enter belong to that row, not to its copy.
+  copy.querySelectorAll(`p[${GENERATED_ROW_ATTR}]`).forEach((line) => line.remove());
   const next = highestRowNumber(root, kind) + 1;
   const blanks = Array.from(copy.querySelectorAll(FIELD_SELECTOR));
   if (blanks.length === 0) return null;

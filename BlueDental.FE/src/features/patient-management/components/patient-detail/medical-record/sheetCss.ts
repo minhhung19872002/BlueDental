@@ -67,15 +67,25 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl table[data-record-section="consultation-detail"] td,.nfc-tpl table[data-record-section="consultation-detail"] th,.nfc-tpl table[data-record-section="consultation-cost"] td,.nfc-tpl table[data-record-section="consultation-cost"] th{padding:1px 8px;vertical-align:middle}
 .nfc-tpl table[data-record-section="consultation-detail"] th{font-weight:normal;text-align:center}
 .nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:1.3}
-/* The whole of mẫu 5, told by its title: a size up from the other forms so it
-   reads on paper, with the section headings at the same size; the boxes are
-   the paper's, smaller than elsewhere; "Khác" lines up with the grid above. */
-.nfc-tpl:has(>h1[data-record-section="consultation-title"]){font-size:14px}
-.nfc-tpl:has(>h1[data-record-section="consultation-title"]) h2>span{font-size:14px!important}
+/* The whole of mẫu 5, told by its title. Clinic, 2026-10-16:
+   - type as large as the first page allows (I–IV must print on one page),
+     the section headings at the same size;
+   - the paper's small boxes; "Khác" lined up with the grid above;
+   - a heading right above a table sits close to it;
+   - a blank inside a table prints with no dotted line — the cell's borders
+     already say where to write. */
+.nfc-tpl:has(>h1[data-record-section="consultation-title"]){font-size:16px}
+.nfc-tpl:has(>h1[data-record-section="consultation-title"]) :is(td,th) p,.nfc-tpl:has(>h1[data-record-section="consultation-title"]) :is(td,th) .nfc-medical-record-text-field{line-height:1.2;min-height:1.2em}
+.nfc-tpl:has(>h1[data-record-section="consultation-title"]) h2>span{font-size:1em!important}
 .nfc-tpl:has(>h1[data-record-section="consultation-title"]) .nfc-medical-record-checkbox{width:12px;height:12px;vertical-align:-1px}
 .nfc-tpl p[data-record-section="consultation-other"]{padding-left:6px}
 .nfc-tpl:has(>h1[data-record-section="consultation-title"])>h2{margin:6px 0 2px}
 .nfc-tpl:has(>h1[data-record-section="consultation-title"])>p{margin-bottom:2px}
+.nfc-tpl:has(>h1[data-record-section="consultation-title"])>:is(p,h2):has(+table){margin-bottom:0}
+.nfc-tpl:has(>h1[data-record-section="consultation-title"])>:is(p,h2)+table{margin-top:1px}
+@media print{
+  .nfc-tpl:has(>h1[data-record-section="consultation-title"]) :is(td,th) .nfc-medical-record-text-field{border-bottom:0!important}
+}
 /* Compact table: columns size to content and the block is pulled out of the
    normal flow to the right corner, so anything written after it (ví dụ khối lịch
    hẹn) flows in the free space on its LEFT instead of being pushed below.

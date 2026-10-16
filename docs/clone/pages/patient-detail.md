@@ -4072,3 +4072,30 @@ theo Snipping Tool của Windows (ảnh mẫu kèm yêu cầu).
 - Không có lịch hẹn hôm nay thì ô để trống.
 - "Thêm chẩn đoán" giữ nguyên bác sĩ 1 và bác sĩ 2, chỉ làm mới chẩn đoán, ghi chú và răng.
 - Mở phiếu cũ để sửa thì giữ bác sĩ đã lưu trên phiếu.
+
+## Bệnh án — Enter trong một ô (staging 2026-10-16, mẫu 5)
+
+Quan sát trên `staging.nfcdental.com`, tài khoản owner đưa, phiếu mẫu 5 có sẵn. Cách làm:
+- Chỉ thao tác trên DOM; không bấm Lưu, không bấm Thêm.
+- Sau khi đăng nhập, mọi request không phải GET đều bị chặn, trừ `/api/auth/*`. Không có request ghi nào do thao tác gây ra; chỉ có `POST /api/v1/earnings/completed-by-treatment-services` lúc tải trang (là request đọc, cũng bị chặn).
+- Mỗi ca tải lại trang. Ảnh chụp nằm trong `reference-private/2026-10-16-m5-enter/`.
+
+Quy tắc đo được:
+
+- Xét **khối ngay dưới** khối đang chứa ô (`nextElementSibling` của `<p>`):
+  - Khối đó có ô nhập → con trỏ nhảy vào ô đầu tiên của nó, không thêm gì.
+    - Ví dụ: Chẩn đoán dòng 1 → dòng 2; Trong điều trị → Sau điều trị.
+    - "Họ tên" → "Địa chỉ", không sang "Ngày sinh" cùng dòng.
+    - "Khác" → ô của "1. Bác sĩ điều trị:", bỏ qua nhãn.
+  - Không có (tiêu đề mục, hết ô) → chèn ngay dưới một `<p data-medical-record-generated-row="true">` chứa đúng một ô `custom.text.<uuid>`. Ô mới chép `data-field-width` / `data-field-full-width` của ô gốc, không có nhãn. Con trỏ vào ô mới.
+    - Ví dụ: Chẩn đoán dòng 2, Bác sĩ tư vấn, Sau điều trị.
+- Trong ô bảng (bảng chi phí), dòng mới nằm **trong chính ô đó**; bảng không thêm hàng. Thêm hàng là việc của nút `+`.
+- Enter lần nữa trong ô vừa thêm → lại thêm một dòng nữa.
+
+BlueDental (`lineEditing.ts`) làm theo quy tắc trên. Khác ở chỗ đặt tên ô: `custom.line.<id ô gốc>.<n>`, để dựng lại đúng chỗ sau khi tải lại. Phiếu chỉ lưu giá trị các ô, không lưu HTML.
+
+UNKNOWN_REFERENCE_BEHAVIOR (xem unknowns.md):
+- Shift+Enter.
+- Enter ngay trên một bảng.
+- Enter trong ô "Vị trí" của bảng răng sứ: lần thử không đặt được con trỏ vào ô.
+- Xoá dòng đã thêm (Backspace trên dòng trống).

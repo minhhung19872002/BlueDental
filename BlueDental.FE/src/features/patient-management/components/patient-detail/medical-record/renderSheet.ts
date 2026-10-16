@@ -1,6 +1,7 @@
 import { SHEET_CSS, SHEET_PAGE_CSS } from "./sheetCss";
 import type { FieldValues } from "./fieldValues";
 import { applyStoredRows } from "./rowEditing";
+import { applyStoredLines } from "./lineEditing";
 import { isDrawingField, showDrawing } from "./drawing/drawingField";
 
 /**
@@ -109,6 +110,7 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
   // The rows the clinic added or removed come back before the blanks are
   // filled, so the blanks on a re-added row are filled like any other.
   applyStoredRows(root, options.stored);
+  applyStoredLines(root, options.stored);
   fillFields(root, options);
   fillTokens(root, { ...options.auto, ...options.stored });
   return root.innerHTML;

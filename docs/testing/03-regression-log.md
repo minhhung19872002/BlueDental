@@ -9103,3 +9103,37 @@ Nguồn: ảnh chụp tờ mẫu giấy của phòng khám đặt cạnh bản i
   - "a cost row can be added": dòng 8 thêm vào mang `consultation.text.43`, dòng 9 mang `row-9.service`, cả hai còn sau reload.
   - "the + on a row…" chuyển sang hàng `text.39`. Đếm blank mẫu 5: 82 → 79.
   - Nhóm cost-row / pointer / đếm blank / mẫu 5 / in: **10 pass / 1 đỏ có sẵn** ("picking the day…", xem R-963).
+
+## R-968 (2026-10-16, mức 2: Bệnh án — Enter trong ô + bản in mẫu 5) Enter nhảy xuống ô dưới hoặc thêm dòng; mẫu 5 chữ 16px, đường chấm ngang chân nhãn
+
+**Enter** (`lineEditing.ts`, đo trên staging của bản gốc; xem docs/clone/pages/patient-detail.md "Bệnh án — Enter trong một ô"):
+- Khối ngay dưới có ô → con trỏ nhảy vào ô đầu tiên của khối đó.
+- Không có ô → chèn dòng `custom.line.<id ô gốc>.<n>` ngay dưới, con trỏ vào dòng đó. Trong ô bảng thì dòng nằm trong ô, bảng không thêm hàng.
+- Dòng đã thêm được lưu như mọi ô và dựng lại khi tải phiếu (`applyStoredLines`, chạy sau `applyStoredRows`).
+- Nút `+` nhân bản hàng mà không kéo theo các dòng Enter trong hàng đó (`addRowAfter` bỏ `p[generated-row]` khỏi bản sao).
+- Backspace / Delete trong một dòng **đã thêm** mà đang trống thì xoá dòng đó (owner, cùng ngày; chưa biết bản gốc làm gì).
+  - Backspace đưa con trỏ về cuối ô phía trên. Delete đưa về đầu ô phía dưới, không có thì ô phía trên.
+  - Dòng còn chữ thì xoá từng ký tự như thường. Ô in sẵn của mẫu không bao giờ bị xoá.
+- Áp cho mọi mẫu: đây là hành vi chung của ô nhập, không riêng mẫu 5. Shift+Enter để trình duyệt xuống dòng trong ô (chưa biết bản gốc làm gì).
+- Dòng thêm chép `style` / `data-block-align` của đoạn gốc (sửa cùng ngày, theo ảnh đích của owner).
+  - Dưới "MÃ LƯU TRỮ:" (mẫu 1) và "Mã hồ sơ:" (mẫu 5), là đoạn căn phải, các ô xếp thành một cột ngay dưới ô gốc. Đo: mép trái/phải trùng nhau.
+  - Đoạn căn trái vẫn bắt đầu ở lề như bản gốc (ca "Bác sĩ tư vấn").
+  - Ô "Mã hồ sơ" mẫu 5 nới từ 60px lên 100px để vừa mã bệnh nhân. Không thì ô gốc giãn theo chữ, rộng hơn ô mới, mép trái lệch 11px.
+
+**Bản in mẫu 5:**
+- Chữ 16px. Đây là cỡ lớn nhất mà I–IV vẫn in trong một trang: đo theo luồng in thật của app ("In biểu mẫu", PDF A4), PDF ra 2 trang; 17px ước tính 282mm, vượt 280mm.
+- Dòng trong bảng `line-height` 1.2.
+- Tiêu đề nằm ngay trên bảng: không chừa khoảng dưới, bảng cách 1px.
+- Khi in, ô trong bảng không có đường chấm (`border-bottom:0`).
+- Từng thử vẽ đường chấm bằng `::after` ngang chân chữ của nhãn; owner không cần, **đã revert** cùng ngày, đường chấm về lại `border-bottom` như các mẫu khác.
+- Test (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới "Enter moves to the blank below, or adds a line that survives a reload":
+    - Chẩn đoán 1 → 2, Họ tên → Địa chỉ, không thêm ô.
+    - Chẩn đoán 2 → thêm `.6.1`, rồi `.6.2`.
+    - Ô bảng chi phí → thêm dòng trong ô, số hàng không đổi.
+    - Lưu, tải lại: đủ chữ, đúng thứ tự.
+  - Ca mẫu 5: chữ 16px; khi in, ô trong bảng không có chấm, ô ngoài bảng vẫn có.
+  - Chiều cao trang 1 giờ đo theo CSS in. Bố cục màn hình có vùng chữ hẹp hơn nên ra 285mm, chặt hơn bản in thật. Phiếu trống in ra 267,6mm / 280mm, PDF 2 trang.
+  - Ca Enter thêm Backspace/Delete: xoá `.6.3` trống, con trỏ về `.6.2`; dòng có chữ chỉ mất một ký tự; ô in sẵn còn nguyên; sau reload `.6.3` không quay lại. `patient-medical-record` + `medical-record-drawing`: **31 pass / 2 đỏ có sẵn**.
+  - Ca Enter thêm: Enter ở "Mã hồ sơ" → ô mới cùng x và cùng rộng với ô gốc, nằm ngay dưới. Nhóm Enter / mẫu 5 / đếm blank / bìa / cost row / địa chỉ chạy lại: **6/6**.
+  - `patient-medical-record` + `medical-record-drawing`: **31 pass / 2 đỏ có sẵn** (xem R-963).
