@@ -4,6 +4,7 @@ import type { FieldValues } from "./fieldValues";
 import { renderSheetHtml, sheetDocument } from "./renderSheet";
 import { GENERATED_ROW_ATTR } from "./rowEditing";
 import { attachRowHandles } from "./rowHandles";
+import { attachLineEditing } from "./lineEditing";
 import { drawingOf, isDrawingField, showDrawing } from "./drawing/drawingField";
 import { SheetDrawingDialogs } from "./drawing/SheetDrawingDialogs";
 import { useSheetDrawing } from "./drawing/useSheetDrawing";
@@ -17,6 +18,8 @@ interface Props {
   sheetId: string;
   /** The blank form this sheet is printed from. */
   template: string;
+  /** Which of the nine forms it is: each prints at its own type size. */
+  form?: number;
   /** Facts from the record and the letterhead. */
   auto: FieldValues;
   /** What has been written on this sheet. */
@@ -49,6 +52,7 @@ interface Props {
 export function MedicalRecordDocument({
   sheetId,
   template,
+  form,
   auto,
   stored,
   documentKey,
@@ -75,10 +79,10 @@ export function MedicalRecordDocument({
       stored: startingValues.current.stored,
       editable,
     });
-    return sheetDocument(body, editable);
+    return sheetDocument(body, editable, form);
     // Keyed on documentKey, not on the values: rebuilding the page as someone
     // types would take the caret with it. See the prop's note.
-  }, [template, documentKey, editable]);
+  }, [template, form, documentKey, editable]);
 
   /**
    * What has been written on the sheet, read back off its own document.
@@ -171,6 +175,14 @@ export function MedicalRecordDocument({
 
     const detachDrawing = editable ? attachDrawing(doc) : () => undefined;
 
+    // Enter moves to the blank below, or adds one; see lineEditing.
+    const detachLines = editable
+      ? attachLineEditing(doc, () => {
+          push();
+          window.requestAnimationFrame(measure);
+        })
+      : () => undefined;
+
     frame.current?.addEventListener(
       "beforeunload",
       () => {
@@ -179,6 +191,7 @@ export function MedicalRecordDocument({
         doc.removeEventListener("change", push);
         detachHandles();
         detachDrawing();
+        detachLines();
       },
       { once: true },
     );

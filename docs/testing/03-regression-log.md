@@ -9071,7 +9071,143 @@ Owner: "vẽ 1 line thì khi xóa qua thì nó xóa nguyên line đó luôn khô
 - The drawing spec passes 5/5.
 - Screenshots taken during the run show the partial gap, and the same gap after the reopen.
 
-## R-966 (2026-10-16, level 2 + dependent appointment/reception specs) A dentist double-booking warns instead of refusing
+## R-966 (2026-10-16, mức 1: bố cục mẫu 5 — Phiếu tư vấn và xác nhận đồng ý điều trị) Dàn trang theo tờ giấy của phòng khám
+
+Nguồn: ảnh chụp tờ mẫu giấy của phòng khám đặt cạnh bản in hiện tại. Nội dung hai tờ trùng nhau (I → VII), chỉ khác bố cục: tờ giấy dồn được mục I → IV vào trang 1, bản in cũ để bảng chi phí tràn sang trang 2.
+
+- Tiêu đề gộp thành một dòng "PHIẾU TƯ VẤN VÀ XÁC NHẬN ĐỒNG Ý ĐIỀU TRỊ NHA KHOA", cỡ 14pt, bỏ các dòng trống quanh tiêu đề.
+- "Mã hồ sơ" và tiêu đề mục I–IV viết thường như tờ giấy ("I. Thông tin khách hàng:", "II. Chẩn đoán:", "III. Phương pháp điều trị:", "IV. Chi phí điều trị"). Mục V–VII không đổi, vì ảnh không chụp trang 2.
+- Bảng răng sứ / implant (`data-record-section="consultation-detail"`): cột nhãn 110px, chữ thường, căn giữa, mỗi dòng một dòng chữ. Hàng "Loại" giờ nằm gọn trên một dòng.
+- Bảng chi phí (`consultation-cost`): STT 56px, Chi phí 230px, Nội dung lấy phần còn lại. Ô "tổng tiền viết bằng chữ" rộng 530px để nhãn nằm cuối dòng.
+- Lưới phương pháp điều trị (`consultation-methods`) bỏ khoảng trống giữa hai hàng.
+- Mọi ô nhập giữ nguyên id: phiếu đã lưu vẫn khớp; số blank / checkbox / trang không đổi (82 / 21 / 2); thêm dòng ở bảng chi phí vẫn chạy vì nhận bảng theo tên ô.
+- Đo: phần trước dấu ngắt trang từ khoảng 1450px còn 1020px, tức 269,8mm. Trang in đầu chứa được 280mm (A4 − lề in 5mm − padding 7mm).
+- Test (bản build `vite preview` :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới trong `patient-medical-record`: tiêu đề đúng chữ và nằm trên một dòng; có đủ bốn tiêu đề mục; phần trước dấu ngắt trang ≤ 280mm.
+  - `patient-medical-record` + `medical-record-drawing`: **30 pass / 2 đỏ có sẵn** ("the index lists the reference's nine forms…", "picking the day prints it on the sheet…"; xem R-963).
+
+## R-967 (2026-10-16, mức 2: mẫu 5 — lượt 2) Ô "Khác" thẳng hàng, checkbox nhỏ, bảng chi phí 7 dòng + Tổng, chữ lớn hơn
+
+- "Khác" (`p[data-record-section="consultation-other"]`) thụt vào 6px, đúng bằng padding của ô bảng phía trên: checkbox thẳng cột với "Cạo vôi" / "Tiểu phẫu".
+- Toàn mẫu 5 (nhận qua `.nfc-tpl:has(>h1[data-record-section="consultation-title"])`):
+  - Chữ 14px (các mẫu khác vẫn 13px); tiêu đề mục cùng cỡ.
+  - Checkbox 12px như tờ giấy (các mẫu khác vẫn 15px).
+  - Khoảng cách giữa các đoạn và tiêu đề mục thu lại. Chỉ áp cho con trực tiếp: rule `p` chung từng áp cả vào ô bảng, cùng độ ưu tiên nên đè `margin:0` của bảng, làm trang cao thêm.
+- Bảng chi phí in sẵn 7 dòng + Tổng (bỏ dòng `consultation.text.42–44`). Đo: phần trước dấu ngắt trang 269,3mm / 280mm.
+- Phiếu cũ không mất dòng 8: `renumber` đặt tên dòng chi phí thứ ≤ 8 theo tên cũ `consultation.text.N`.
+  - Phiếu đã ghi vào dòng 8 thì `applyStoredRows` dựng lại dòng đó, đủ dữ liệu.
+  - Ghi chú "đã xoá dòng 8" cũ vẫn khớp.
+  - Dòng thứ 9 trở đi vẫn là `treatment-cost.row-N.*`.
+- Test (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mẫu 5: thêm kiểm tra 9 hàng (tiêu đề + 7 + Tổng), chữ 14px, checkbox 12px, "Khác" cùng x với "Cạo vôi".
+  - "a cost row can be added": dòng 8 thêm vào mang `consultation.text.43`, dòng 9 mang `row-9.service`, cả hai còn sau reload.
+  - "the + on a row…" chuyển sang hàng `text.39`. Đếm blank mẫu 5: 82 → 79.
+  - Nhóm cost-row / pointer / đếm blank / mẫu 5 / in: **10 pass / 1 đỏ có sẵn** ("picking the day…", xem R-963).
+
+## R-968 (2026-10-16, mức 2: Bệnh án — Enter trong ô + bản in mẫu 5) Enter nhảy xuống ô dưới hoặc thêm dòng; mẫu 5 chữ 16px, đường chấm ngang chân nhãn
+
+**Enter** (`lineEditing.ts`, đo trên staging của bản gốc; xem docs/clone/pages/patient-detail.md "Bệnh án — Enter trong một ô"):
+- Khối ngay dưới có ô → con trỏ nhảy vào ô đầu tiên của khối đó.
+- Không có ô → chèn dòng `custom.line.<id ô gốc>.<n>` ngay dưới, con trỏ vào dòng đó. Trong ô bảng thì dòng nằm trong ô, bảng không thêm hàng.
+- Dòng đã thêm được lưu như mọi ô và dựng lại khi tải phiếu (`applyStoredLines`, chạy sau `applyStoredRows`).
+- Nút `+` nhân bản hàng mà không kéo theo các dòng Enter trong hàng đó (`addRowAfter` bỏ `p[generated-row]` khỏi bản sao).
+- Backspace / Delete trong một dòng **đã thêm** mà đang trống thì xoá dòng đó (owner, cùng ngày; chưa biết bản gốc làm gì).
+  - Backspace đưa con trỏ về cuối ô phía trên. Delete đưa về đầu ô phía dưới, không có thì ô phía trên.
+  - Dòng còn chữ thì xoá từng ký tự như thường. Ô in sẵn của mẫu không bao giờ bị xoá.
+- Áp cho mọi mẫu: đây là hành vi chung của ô nhập, không riêng mẫu 5. Shift+Enter để trình duyệt xuống dòng trong ô (chưa biết bản gốc làm gì).
+- Dòng thêm chép `style` / `data-block-align` của đoạn gốc (sửa cùng ngày, theo ảnh đích của owner).
+  - Dưới "MÃ LƯU TRỮ:" (mẫu 1) và "Mã hồ sơ:" (mẫu 5), là đoạn căn phải, các ô xếp thành một cột ngay dưới ô gốc. Đo: mép trái/phải trùng nhau.
+  - Đoạn căn trái vẫn bắt đầu ở lề như bản gốc (ca "Bác sĩ tư vấn").
+  - Ô "Mã hồ sơ" mẫu 5 nới từ 60px lên 100px để vừa mã bệnh nhân. Không thì ô gốc giãn theo chữ, rộng hơn ô mới, mép trái lệch 11px.
+
+**Bản in mẫu 5:**
+- Chữ 16px. Đây là cỡ lớn nhất mà I–IV vẫn in trong một trang: đo theo luồng in thật của app ("In biểu mẫu", PDF A4), PDF ra 2 trang; 17px ước tính 282mm, vượt 280mm.
+- Dòng trong bảng `line-height` 1.2.
+- Tiêu đề nằm ngay trên bảng: không chừa khoảng dưới, bảng cách 1px.
+- Khi in, ô trong bảng không có đường chấm (`border-bottom:0`).
+- Từng thử vẽ đường chấm bằng `::after` ngang chân chữ của nhãn; owner không cần, **đã revert** cùng ngày, đường chấm về lại `border-bottom` như các mẫu khác.
+- Test (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới "Enter moves to the blank below, or adds a line that survives a reload":
+    - Chẩn đoán 1 → 2, Họ tên → Địa chỉ, không thêm ô.
+    - Chẩn đoán 2 → thêm `.6.1`, rồi `.6.2`.
+    - Ô bảng chi phí → thêm dòng trong ô, số hàng không đổi.
+    - Lưu, tải lại: đủ chữ, đúng thứ tự.
+  - Ca mẫu 5: chữ 16px; khi in, ô trong bảng không có chấm, ô ngoài bảng vẫn có.
+  - Chiều cao trang 1 giờ đo theo CSS in. Bố cục màn hình có vùng chữ hẹp hơn nên ra 285mm, chặt hơn bản in thật. Phiếu trống in ra 267,6mm / 280mm, PDF 2 trang.
+  - Ca Enter thêm Backspace/Delete: xoá `.6.3` trống, con trỏ về `.6.2`; dòng có chữ chỉ mất một ký tự; ô in sẵn còn nguyên; sau reload `.6.3` không quay lại. `patient-medical-record` + `medical-record-drawing`: **31 pass / 2 đỏ có sẵn**.
+  - Ca Enter thêm: Enter ở "Mã hồ sơ" → ô mới cùng x và cùng rộng với ô gốc, nằm ngay dưới. Nhóm Enter / mẫu 5 / đếm blank / bìa / cost row / địa chỉ chạy lại: **6/6**.
+  - `patient-medical-record` + `medical-record-drawing`: **31 pass / 2 đỏ có sẵn** (xem R-963).
+
+## R-969 (2026-10-16, mức 2: cả 9 mẫu bệnh án) Đồng bộ style mẫu 5 cho mọi mẫu: cỡ chữ, checkbox, nhãn hiệu, bản in
+
+Owner: nhãn hiệu to hơn một chút và in đậm; rồi rà soát mọi mẫu cho giống mẫu 5 (font chữ, checkbox, Enter, nhãn hiệu, bản in không có "...." trong bảng).
+
+- **Nhãn hiệu:**
+  - 6 mẫu dùng chung khối "Sở Y tế … Nha Khoa Đức Hạnh": 9pt → 10pt, đậm cả khối.
+  - Bìa (in hoa, vốn đã đậm): 10pt → 11pt.
+  - Mẫu 4 và 9 (tên / địa chỉ / SĐT chi nhánh): in đậm.
+  - Nới cột nhãn hiệu cho khỏi gãy chữ: mẫu 6 259 → 290px; mẫu 9 200 → 220px (cột tiêu đề 248 → 233px, để cột MS / Mã người bệnh không bị hẹp).
+- **Cỡ chữ từng mẫu** (`.nfc-tpl[data-form]`; `sheetDocument` nhận số mẫu):
+  - Chọn cỡ lớn nhất mà số trang in **không đổi**. Đo qua luồng in thật của app ("In biểu mẫu" → PDF), CSS thử chèn vào trang, không lưu gì.
+  - 1: 16px (3 trang) · 2: **13px**, giữ nguyên (14px thành 5 trang) · 3: 16px (5) · 4: 14px (1) · 5: 16px (2) · 6: 15px (2) · 7: 14px (1) · 8: 16px (2) · 9: 15px (1).
+  - Mẫu 2, 3, 8 vốn đã tràn trang ở 13px (trang 1 của 2 / 3 cao hơn 280mm; mẫu 8 là danh sách dài). Số trang của chúng vẫn giữ như trước.
+- **Chung cho mọi mẫu:**
+  - Checkbox 12px.
+  - Tiêu đề mục (`h2`) bằng cỡ chữ thân bài: span có cỡ chữ inline trong `h2` được ép `inherit`. Mẫu 3 có `h2 > strong > span`, nên `h2>span` cũ không bắt được.
+  - Khoảng cách giữa tiêu đề và đoạn thu lại; tiêu đề nằm ngay trên bảng thì sát bảng.
+  - Dòng trong bảng kẻ ô: `line-height` 1.2.
+- **Bản in không có "...." trong bảng:**
+  - `renderSheet` gắn `data-grid-cell` cho ô của bảng kẻ ô thật.
+  - Không gắn cho bảng dàn trang: `data-borderless`, bìa, `data-record-page`, các section layout / general-exam / signature / outpatient-summary-title. Ô trong các bảng đó vẫn giữ đường chấm.
+  - Khi in, ô có `data-grid-cell` bỏ `border-bottom`.
+- **Enter / Backspace / Delete:** đã là hành vi chung (R-968), không phải làm thêm.
+- Mẫu 5: bảng phương pháp / răng sứ / chi phí đặt `line-height` 1.2 riêng, để quy tắc chung không làm trang 1 cao lên. Đo: 269mm / 280mm.
+- Test (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới "every form shares mẫu 5's type, boxes, letterhead and print rules": 9 mẫu, mỗi mẫu kiểm cỡ chữ, checkbox 12px, nhãn hiệu `font-weight` ≥ 700, khi in ô trong bảng kẻ ô `border-bottom: none` và ô ngoài bảng `dotted`.
+  - `patient-medical-record` + `medical-record-drawing` + `treatment-plan`: **41 pass / 2 đỏ có sẵn** (xem R-963).
+  - Ca `treatment-plan` "slip survives a reload…" từng đỏ ở R-961, nay xanh.
+
+## R-970 (2026-10-16, mức 2: cả 9 mẫu bệnh án) Gọn như mẫu 5: mỗi trang in vừa một tờ A4, chữ lớn nhất có thể
+
+Owner: "gọn như mẫu 5 hết càng tốt". Mục tiêu: mỗi trang thiết kế (các khối ngăn bởi `<hr>`) in vừa một tờ A4, không tràn sang tờ sau, cỡ chữ lớn nhất có thể.
+
+- **Thu khoảng trống** (`renderSheet.closeUpGaps`, trang bìa giữ nguyên vì là khung cố định):
+  - Đoạn không có chữ, ô, checkbox hay hình được gắn `data-spacer` và chỉ còn cao 3px.
+  - Tiêu đề `h1` bỏ các `<br>` ở đầu và cuối, margin 10px / 6px. Tiêu đề mẫu 3 từng cao 48,7mm.
+- **Chiều cao dòng:** đoạn văn 1.3 (đè cả `line-height` inline 1.5 của template), ô nhập 1.2. Ô bảng kẻ ô giữ 1.2 riêng; bìa không đổi.
+- **Dòng kẻ để viết tay giữ nguyên số lượng.** Trên máy vẫn thêm được dòng bằng Enter.
+- **Cỡ chữ:** tối đa 17px, chừa 3–5mm so với ngưỡng đo được (khoảng 273mm cho mẫu một trang, 280mm cho trang đầu/cuối).
+
+  | Mẫu | Cỡ chữ | Số trang |
+  |---|---|---|
+  | 1 Bìa | 17px | 3 |
+  | 2 Ngoại trú | 13.5px | **3** (trước 4) |
+  | 3 Chỉnh nha | 15px | **4** (trước 5) |
+  | 4 Tư vấn tổng quát | 16px | 1 |
+  | 5 | 16px | 2 |
+  | 6 Giấy đồng ý | 16px | 2 |
+  | 7 Phiếu phẫu thuật | 16.5px | 1 |
+  | 8 Theo dõi điều trị | 14px | **1** (trước 2) |
+  | 9 Chăm sóc | 15.5px | 1 |
+
+- **Chỉnh nhỏ cho khỏi gãy dòng:**
+  - Mẫu 2: ô "Số thẻ BHYT" 250 → 200px.
+  - Mẫu 6: cột MS cố định 185px để "Độc lập - Tự do - Hạnh phúc" nằm một dòng. Mẫu 6 thử 17px thì cột giữa gãy 4 dòng, nên giữ 16px.
+  - Mẫu 9: ô họ tên 320 → 280px, để "Nữ" không rớt dòng.
+- **Nhãn hiệu mẫu 4 và 9 giống các mẫu còn lại** (owner, cùng ngày):
+  - Khối tên / địa chỉ / SĐT chi nhánh (`{{branch.*}}`, lấy theo bản gốc) đổi thành khối chung "Sở Y tế … Nha Khoa Đức Hạnh", 10pt, đậm, cùng markup.
+  - Mẫu 4 vẫn giữ "…, tại {{branch.name}}" trong thân phiếu.
+  - Phần đầu mẫu 9 dựng lại như mẫu 7: hàng trên có nhãn hiệu (357px) | MS / Mã người bệnh căn phải; hàng dưới có tiêu đề 18pt căn giữa và "Điều dưỡng ghi phiếu số". Ô giữ nguyên id. Ba cột trên một hàng như cũ thì quá chật cho khối nhãn hiệu 4 dòng.
+  - Mẫu 9 hạ 16 → 15.5px (267mm). Ở 16px là 272mm, sát ngưỡng 273mm.
+  - `closeUpGaps` cắt `<br>` đầu / cuối cả ở `h2`, không chỉ `h1`.
+- **Đo:** luồng in thật của app ("In biểu mẫu" → PDF), có công cụ đo từng khối, CSS thử chèn tạm, không lưu gì. Ảnh từng trang đã soát; hình ở mẫu 2 chỉ vỡ trong ảnh dựng từ HTML không có base URL, không vỡ trong app.
+- **Test** (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca "every form shares mẫu 5's…" — nhãn hiệu mẫu 4 / 9 giờ kiểm "Phòng khám Chuyên khoa Răng Hàm Mặt" đậm như các mẫu khác. Chạy lại `patient-medical-record` + `medical-record-drawing` sau khi đổi nhãn hiệu: **32 pass / 2 đỏ có sẵn**.
+  - Ca "every form shares mẫu 5's…" thêm: mỗi mẫu được làm trống rồi in qua "In biểu mẫu" → PDF có đúng số trang thiết kế (3, 3, 4, 1, 2, 2, 1, 1, 1); cỡ chữ theo bảng trên.
+  - `window.print` được chặn lại trước mỗi lần in, vì `openFreshSheet` tải lại trang. Lần chạy đầu không chặn lại thì `afterprint` thật gỡ bản chép trước khi PDF kịp xuất.
+  - `patient-medical-record` + `medical-record-drawing` + `treatment-plan`: **40 pass / 2 đỏ có sẵn** (R-963), cộng ca đồng bộ chạy lại sau khi sửa: **1/1**.
+
+## R-971 (ex R-966; origin owns R-966..R-970) (2026-10-16, level 2 + dependent appointment/reception specs) A dentist double-booking warns instead of refusing
 
 BA: "Cho phép tạo trùng khung giờ, nhưng hiển thị cảnh báo nếu chọn trùng khung giờ, xác nhận để tiếp tục thực hiện, hủy để kết thúc." Owner chose: every booking point, the patient clash stays hard, Hủy keeps the form.
 
