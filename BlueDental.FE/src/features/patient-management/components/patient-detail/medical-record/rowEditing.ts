@@ -36,6 +36,10 @@ export function fieldIdsIn(row: Element): string[] {
  * The form was drawn before the rows were named, so its first eight rows are
  * still plain `consultation.text.21` … `.44` — three blanks to a row. Rows
  * added since carry the newer `…treatment-cost.row-N.…` names.
+ *
+ * The form now prints seven of those rows (clinic, 2026-10-16). The eighth
+ * keeps its old names when it is added back — see `renumber` — so a sheet
+ * written on before the change still finds its eighth line.
  */
 function costRowNumber(id: string): number | null {
   const named = id.match(/^consultation\.treatment-cost\.row-(\d+)\./);
@@ -114,8 +118,15 @@ export function isDeletedRowKey(key: string): boolean {
 /** What the blanks of a cost row are called, in the order they are drawn. */
 const COST_ROW_FIELDS = ["serial", "service", "amount"];
 
+/** The cost rows that were printed with plain `consultation.text.N` blanks. */
+const LEGACY_COST_ROWS = 8;
+const LEGACY_COST_FIRST_FIELD = 21;
+
 function renumber(kind: RowKind, id: string, row: number, at: number): string {
   if (kind === "treatment-cost") {
+    if (row <= LEGACY_COST_ROWS) {
+      return `consultation.text.${LEGACY_COST_FIRST_FIELD + (row - 1) * COST_ROW_FIELDS.length + at}`;
+    }
     const part = COST_ROW_FIELDS[at] ?? `field-${at + 1}`;
     return `consultation.treatment-cost.row-${row}.${part}`;
   }

@@ -229,7 +229,8 @@ test.describe("Bệnh án", () => {
       { form: "Bệnh án ngoại trú Răng Hàm Mặt", blanks: 140, boxes: 18, pages: 3 },
       { form: "Bệnh án chỉnh nha", blanks: 182, boxes: 64, pages: 3 },
       { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
-      { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 82, boxes: 21, pages: 2 },
+      // The reference's 82, less the cost table's eighth line: seven and Tổng, as on paper (2026-10-16).
+      { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 79, boxes: 21, pages: 2 },
       { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 49, boxes: 26, pages: 2 },
       // 38 of the reference's, plus our drawing blank for "Lược đồ".
       { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
@@ -405,22 +406,27 @@ test.describe("Bệnh án", () => {
 
     const rows = document.locator("tbody > tr");
     const before = await rows.count();
-    // The eighth cost line: the form prints eight, so the next is row 9.
-    await hoverRow(page, "consultation.text.42");
+    // The form prints seven cost lines (clinic, 2026-10-16). The eighth comes back
+    // under its old names, so a sheet written on before the change keeps its line;
+    // the ninth is the first with the newer ones.
+    await hoverRow(page, "consultation.text.39");
     await document.getByRole("button", { name: "Thêm dòng" }).click();
     await expect(rows).toHaveCount(before + 1);
+    const eighth = blank(page, "consultation.text.43");
+    await expect(eighth).toBeAttached();
+    await eighth.fill("Cạo vôi răng");
 
-    const added = blank(page, "consultation.treatment-cost.row-9.service");
-    await expect(added).toBeAttached();
-    await added.fill("Cạo vôi răng");
+    await hoverRow(page, "consultation.text.43");
+    await document.getByRole("button", { name: "Thêm dòng" }).click();
+    await expect(rows).toHaveCount(before + 2);
+    await blank(page, "consultation.treatment-cost.row-9.service").fill("Trám răng");
     await save(page);
 
     await page.reload();
     // The sheet this test made, not the record's first copy of the form.
     await openLastSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
-    await expect(blank(page, "consultation.treatment-cost.row-9.service")).toHaveText(
-      "Cạo vôi răng",
-    );
+    await expect(blank(page, "consultation.text.43")).toHaveText("Cạo vôi răng");
+    await expect(blank(page, "consultation.treatment-cost.row-9.service")).toHaveText("Trám răng");
   });
 
   /**
@@ -702,7 +708,7 @@ test.describe("Bệnh án", () => {
     const rows = document.locator("tbody > tr");
     const before = await rows.count();
 
-    await hoverRow(page, "consultation.text.42");
+    await hoverRow(page, "consultation.text.39");
     const plus = document.getByRole("button", { name: "Thêm dòng" });
     await expect(plus).toBeVisible();
 
@@ -716,7 +722,7 @@ test.describe("Bệnh án", () => {
       )!;
       const box = button.getBoundingClientRect();
       const row = inner
-        .querySelector('[data-medical-record-field="consultation.text.42"]')!
+        .querySelector('[data-medical-record-field="consultation.text.39"]')!
         .closest("tr")!
         .getBoundingClientRect();
       return {
@@ -1185,6 +1191,7 @@ test.describe("Bệnh án", () => {
    * print margins and the sheet's 7mm top padding).
    */
   test("mẫu 5 fits sections I–IV on its first page, under a one-line title", async ({ page }) => {
+    // Seven cost lines and Tổng, type a size up, the paper's small boxes, "Khác" under the grid's column.
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
 
@@ -1209,6 +1216,16 @@ test.describe("Bệnh án", () => {
         return ((rule.offsetTop - padding) * 25.4) / 96;
       });
     expect(firstPageMm).toBeLessThanOrEqual(280);
+
+    const document = sheet(page);
+    await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr')).toHaveCount(9);
+    await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr').last()).toContainText("Tổng");
+    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("14px");
+
+    const box = (field: string) => document.locator(`[data-medical-record-field="${field}"]`).boundingBox();
+    const [scaling, other] = await Promise.all([box("consultation.checkbox.1"), box("consultation.checkbox.9")]);
+    expect(other?.x).toBeCloseTo(scaling?.x ?? -1, 0);
+    expect(scaling?.width).toBeCloseTo(12, 0);
   });
 
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {

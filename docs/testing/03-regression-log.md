@@ -9085,3 +9085,21 @@ Nguồn: ảnh chụp tờ mẫu giấy của phòng khám đặt cạnh bản i
 - Test (bản build `vite preview` :8080 + host thật :5000, PostgreSQL thật, không chặn API):
   - Ca mới trong `patient-medical-record`: tiêu đề đúng chữ và nằm trên một dòng; có đủ bốn tiêu đề mục; phần trước dấu ngắt trang ≤ 280mm.
   - `patient-medical-record` + `medical-record-drawing`: **30 pass / 2 đỏ có sẵn** ("the index lists the reference's nine forms…", "picking the day prints it on the sheet…"; xem R-963).
+
+## R-967 (2026-10-16, mức 2: mẫu 5 — lượt 2) Ô "Khác" thẳng hàng, checkbox nhỏ, bảng chi phí 7 dòng + Tổng, chữ lớn hơn
+
+- "Khác" (`p[data-record-section="consultation-other"]`) thụt vào 6px, đúng bằng padding của ô bảng phía trên: checkbox thẳng cột với "Cạo vôi" / "Tiểu phẫu".
+- Toàn mẫu 5 (nhận qua `.nfc-tpl:has(>h1[data-record-section="consultation-title"])`):
+  - Chữ 14px (các mẫu khác vẫn 13px); tiêu đề mục cùng cỡ.
+  - Checkbox 12px như tờ giấy (các mẫu khác vẫn 15px).
+  - Khoảng cách giữa các đoạn và tiêu đề mục thu lại. Chỉ áp cho con trực tiếp: rule `p` chung từng áp cả vào ô bảng, cùng độ ưu tiên nên đè `margin:0` của bảng, làm trang cao thêm.
+- Bảng chi phí in sẵn 7 dòng + Tổng (bỏ dòng `consultation.text.42–44`). Đo: phần trước dấu ngắt trang 269,3mm / 280mm.
+- Phiếu cũ không mất dòng 8: `renumber` đặt tên dòng chi phí thứ ≤ 8 theo tên cũ `consultation.text.N`.
+  - Phiếu đã ghi vào dòng 8 thì `applyStoredRows` dựng lại dòng đó, đủ dữ liệu.
+  - Ghi chú "đã xoá dòng 8" cũ vẫn khớp.
+  - Dòng thứ 9 trở đi vẫn là `treatment-cost.row-N.*`.
+- Test (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mẫu 5: thêm kiểm tra 9 hàng (tiêu đề + 7 + Tổng), chữ 14px, checkbox 12px, "Khác" cùng x với "Cạo vôi".
+  - "a cost row can be added": dòng 8 thêm vào mang `consultation.text.43`, dòng 9 mang `row-9.service`, cả hai còn sau reload.
+  - "the + on a row…" chuyển sang hàng `text.39`. Đếm blank mẫu 5: 82 → 79.
+  - Nhóm cost-row / pointer / đếm blank / mẫu 5 / in: **10 pass / 1 đỏ có sẵn** ("picking the day…", xem R-963).
