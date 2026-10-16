@@ -17,8 +17,10 @@ import {
   SERVICE_LINE_STATUS,
   useAddServiceLine,
   useOpenTreatmentPlan,
+  useUpdateServiceLine,
 } from "../../api/treatmentPlanApi";
 import { adviseToFormValues, adviseToUpdateDto } from "./adviseEditing";
+import { lineToFormValues, lineToUpdateInput, type LineEditTarget } from "./lineEditing";
 import {
   EMPTY_TOOTH_VALUE,
   isToothValueEmpty,
@@ -77,6 +79,8 @@ interface Options {
    * this slip as a new line instead of opening a slip of its own.
    */
   planId?: string | null;
+  /** "Chỉnh sửa" on a slip's line: the form opens on it and saves it in place. */
+  line?: LineEditTarget | null;
   onCreated: () => void;
 }
 
@@ -99,6 +103,7 @@ export function useCreatePlanForm({
   advise,
   quote,
   planId,
+  line,
   onCreated,
 }: Options) {
   const [form] = Form.useForm<CreatePlanValues>();
@@ -117,6 +122,7 @@ export function useCreatePlanForm({
   const acceptAdvise = useAcceptAdvise();
   const openPlan = useOpenTreatmentPlan();
   const addServiceLine = useAddServiceLine();
+  const updateServiceLine = useUpdateServiceLine();
   const updateAdvise = useUpdateAdvise();
   const repriceQuoteLine = useRepricePatientQuoteLine();
 
@@ -156,6 +162,12 @@ export function useCreatePlanForm({
     form.setFieldsValue(adviseToFormValues(advise));
     setTeethValue(toothSelectionsToValue(advise.teeth));
   }, [advise, form]);
+
+  useEffect(() => {
+    if (!line) return;
+    form.setFieldsValue(lineToFormValues(line));
+    setTeethValue(toothSelectionsToValue(line.service.teeth));
+  }, [line, form]);
 
   const serviceId = Form.useWatch("serviceId", form);
   /**
@@ -246,6 +258,25 @@ export function useCreatePlanForm({
     }
   };
 
+  /** "Chỉnh sửa": one `PUT services/{lineId}`; the service and the status stay. */
+  const submitLine = async (target: LineEditTarget, values: CreatePlanValues) => {
+    setSubmitting(true);
+    try {
+      await updateServiceLine.mutateAsync({
+        planId: target.planId,
+        lineId: target.service.id,
+        line: lineToUpdateInput(target.service, values, teeth),
+      });
+      toast.success(t("Treatment:Service:UpdateServiceSuccess"));
+      reset();
+      onCreated();
+    } catch (error) {
+      notifyError(extractApiError(error) || t("Treatment:Plan:UpdateError"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const submit = async () => {
     const values = await form.validateFields();
 
@@ -256,6 +287,10 @@ export function useCreatePlanForm({
     setFieldErrors(errors);
     if (errors.teeth) return;
 
+    if (line) {
+      await submitLine(line, values);
+      return;
+    }
     if (advise) {
       await submitUpdate(values);
       return;

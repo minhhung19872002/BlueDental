@@ -84,6 +84,61 @@ public class TreatmentServiceReviseTests
         line.Quantity.ShouldBe(3);
     }
 
+    // The "Chỉnh sửa" modal (owner 2026-10-15) also rewrites the line's discount.
+
+    [Fact]
+    public void A_fresh_line_takes_a_new_discount()
+    {
+        var line = Line();
+
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.Percentage, 10m));
+
+        line.DiscountType.ShouldBe(DiscountType.Percentage);
+        line.DiscountValue.ShouldBe(10m);
+        line.EffectiveAmount.ShouldBe(1_800_000m);
+
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.None, 0m));
+        line.EffectiveAmount.ShouldBe(2_000_000m);
+    }
+
+    [Fact]
+    public void Without_a_discount_the_line_keeps_its_own()
+    {
+        var line = Line();
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.Money, 300_000m));
+
+        line.Revise(1_000_000m, 3, Teeth(11, 21), null, 0m, NothingStaged);
+
+        line.DiscountType.ShouldBe(DiscountType.Money);
+        line.DiscountValue.ShouldBe(300_000m);
+    }
+
+    [Theory]
+    [InlineData(DiscountType.Percentage, 101)]
+    [InlineData(DiscountType.Money, 2_000_001)]
+    [InlineData(DiscountType.Money, -1)]
+    [InlineData(DiscountType.None, 5)]
+    public void An_invalid_discount_is_refused(DiscountType type, int value)
+    {
+        Should.Throw<BusinessException>(() =>
+                Line().Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (type, value)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount);
+    }
+
+    [Fact]
+    public void A_line_in_treatment_keeps_its_discount()
+    {
+        var line = Line(TreatmentServiceStatus.InProgress);
+
+        Should.Throw<BusinessException>(() =>
+                line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.Percentage, 5m)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineLockedInTreatment);
+
+        // Sending the discount it already has is not a change.
+        line.Revise(1_000_000m, 3, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.None, 0m));
+        line.Quantity.ShouldBe(3);
+    }
+
     [Fact]
     public void A_tooth_with_a_stage_stays_on_the_line()
     {

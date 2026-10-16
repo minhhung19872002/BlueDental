@@ -86,6 +86,31 @@ public static class OrgChartScope
         return visible;
     }
 
+    /// <summary>
+    /// Whose slips a user sees on the patient record's "Kế hoạch điều trị" tab,
+    /// matched on the slip's "Bác sĩ điều trị" (owner 2026-10-15). Only an admin
+    /// sees every slip; anyone else must be a dentist first, and a dentist then
+    /// sees what <see cref="VisibleStaff"/> gives them — their own slips, plus
+    /// the whole subtree of a unit they head, plus everyone as head of the root.
+    /// </summary>
+    /// <returns><c>null</c> when nothing is hidden; otherwise the dentists whose slips show (empty for a non-dentist).</returns>
+    public static IReadOnlySet<Guid>? VisibleTreatingDentists(
+        Guid viewerId,
+        bool viewerIsAdmin,
+        bool viewerIsDentist,
+        IReadOnlyCollection<OrgScopeUnit> units,
+        IReadOnlyCollection<(Guid OrgUnitId, Guid StaffId)> members)
+    {
+        if (viewerIsAdmin)
+        {
+            return null;
+        }
+
+        return viewerIsDentist
+            ? VisibleStaff(viewerId, viewerIsDentist, units, members)
+            : new HashSet<Guid>();
+    }
+
     /// <summary>The unit and every unit below it.</summary>
     public static IReadOnlySet<Guid> Subtree(Guid unitId, IReadOnlyCollection<OrgScopeUnit> units)
     {

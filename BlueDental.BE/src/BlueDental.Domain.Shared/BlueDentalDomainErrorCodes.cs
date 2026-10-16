@@ -287,6 +287,13 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>"Xóa" on a service line that already has công đoạn, tái khám or labo orders (R-953).</summary>
         public const string ServiceHasRecords = "BlueDental:Treatment:0051";
+
+        /// <summary>
+        /// The slip's page opened by a user whose part of the Sơ đồ tổ chức holds
+        /// none of its Bác sĩ điều trị (R-961) — the slip the "Kế hoạch điều trị"
+        /// tab already hides from them.
+        /// </summary>
+        public const string PlanOutsideTreatingScope = "BlueDental:Treatment:0052";
     }
 
     public static class Billing

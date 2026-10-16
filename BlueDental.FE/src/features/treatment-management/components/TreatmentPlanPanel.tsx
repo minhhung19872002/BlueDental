@@ -8,7 +8,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { usePatientAdvises } from "../api/consultingQueries";
-import { usePatientAccount, useTreatmentPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
+import { usePatientAccount, useTreatingPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
 import { DeletePlanDialog } from "./plan/DeletePlanDialog";
 import { PlanColumnConfigPopover } from "./plan/PlanColumnConfigPopover";
 import { PrintMedicalRecordDialog } from "./plan/PrintMedicalRecordDialog";
@@ -39,7 +39,10 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
  * opens is an existing one except the service list. New services go onto a
  * slip from its detail page ("Thêm dịch vụ phát sinh"), not from here; the
  * "Số phiếu điều trị" button (the old + merged with the code) only opens that
- * page — "Chi tiết phiếu" left this tab with it (owner, 2026-10-15).
+ * page — "Chi tiết phiếu" left this tab with it (owner, 2026-10-15). It lists
+ * only the slips whose Bác sĩ điều trị the user may see by the Sơ đồ tổ chức —
+ * a dentist their own, a head their whole subtree, an admin every slip — and
+ * the summary cards and "Xem tất cả dịch vụ" follow that list.
  */
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const navigate = useNavigate();
@@ -57,19 +60,19 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const [deletingPlan, setDeletingPlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
 
-  const plansQuery = useTreatmentPlans(patientId, branchId);
+  const plansQuery = useTreatingPlans(patientId, branchId);
   // Dư nợ for the payment dialog; the server keeps it behind payment.read.
   const account = usePatientAccount(patientId, branchId, payPlan !== null && paymentAbility.canRead);
   const advises = usePatientAdvises({ patientId, clinicBranchId: branchId, maxResultCount: 200 });
 
-  const plans = useMemo(
-    () =>
-      [...(plansQuery.data?.items ?? [])].sort((a, b) =>
-        b.creationTime.localeCompare(a.creationTime),
-      ),
-    [plansQuery.data],
+  // The server's order: newest first, and a team head's own slips ahead of
+  // their team's (owner 2026-10-15).
+  const plans = useMemo(() => plansQuery.data?.items ?? [], [plansQuery.data]);
+  // The cards keep reading newest slip first, whoever's slips lead the table.
+  const summary = useMemo(
+    () => summariseServices([...plans].sort((a, b) => b.creationTime.localeCompare(a.creationTime))),
+    [plans],
   );
-  const summary = useMemo(() => summariseServices(plans), [plans]);
   const diagnosisByAdviseId = useMemo(
     () =>
       new Map(

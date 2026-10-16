@@ -99,9 +99,16 @@ test.describe.serial("Thêm dịch vụ — Bác sĩ tư vấn theo Sơ đồ t�
     await detail.getByRole("button", { name: "Đóng", exact: true }).last().click();
     await expect(detail).toBeHidden();
 
-    // The row's inline edit is gone (R-957); the edit dialog that replaces it
-    // comes in its own task and should offer the same scoped dentists, D first.
-    await expect(row.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
+    // The pencil reopens the same dialog on the line ("Chỉnh sửa dịch vụ"),
+    // with the same scoped dentists, D first.
+    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
+    const edit = page.getByRole("dialog", { name: "Chỉnh sửa dịch vụ" });
+    await expect(edit.locator(".tp-advisor-field").first()).toContainText(`BS D ${run}`);
+    await edit.getByRole("combobox", { name: /Bác sĩ tư vấn(?! 2)/ }).click();
+    const editOptions = openDropdown(page).locator(".ant-select-item-option");
+    await expect(editOptions).toHaveCount(2);
+    await expect(editOptions.nth(0)).toContainText(`BS D ${run}`);
+    await expect(editOptions.nth(1)).toContainText(`BS H ${run}`);
     await context.close();
   });
 });

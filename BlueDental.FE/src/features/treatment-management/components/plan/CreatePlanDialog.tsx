@@ -5,6 +5,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { DISCOUNT_TYPE, type PatientAdviseDto } from "../../api/consultingApi";
 import { withAdviseService } from "./adviseEditing";
+import { isPricingLocked, lineAdvisors, lineServiceOption, type LineEditTarget } from "./lineEditing";
 import { PlanAdvisorFields } from "./PlanAdvisorFields";
 import { PlanPricingFields } from "./PlanPricingFields";
 import { PlanServicePicker } from "./PlanServicePicker";
@@ -24,7 +25,17 @@ interface Props {
   quote?: QuoteEditTarget | null;
   /** Opened from a slip's "Thêm dịch vụ phát sinh": the line is added to that slip. */
   planId?: string | null;
+  /** "Chỉnh sửa" on a slip's line: the same form, opened on that line. */
+  line?: LineEditTarget | null;
   onClose: () => void;
+}
+
+function dialogTitleKey(
+  advise: PatientAdviseDto | null | undefined,
+  line: LineEditTarget | null | undefined,
+): string {
+  if (line) return "Treatment:Service:EditServiceDialog";
+  return advise ? "Treatment:Plan:UpdatePlanDialog" : "Treatment:Plan:CreatePlanDialog";
 }
 
 const INITIAL_VALUES: Partial<CreatePlanValues> = {
@@ -38,14 +49,21 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
  * slip. Given an `advise` it is the reference's "Cập nhật phiếu dịch vụ": the
  * advising dentists on top, service/doctor/diagnosis locked, price, quantity,
  * discount, note and teeth open. Given a `planId` the same form adds the
- * service to that slip instead of opening a new one.
+ * service to that slip instead of opening a new one. Given a `line` it is
+ * "Chỉnh sửa dịch vụ" (owner 2026-10-15): the service stays locked and the rest
+ * is saved onto that line; a line in treatment keeps its price and discount.
  */
-export function CreatePlanDialog({ open, patientId, branchId, advise, quote, planId, onClose }: Props) {
-  const editing = Boolean(advise);
+export function CreatePlanDialog({ open, patientId, branchId, advise, quote, planId, line, onClose }: Props) {
+  const editing = Boolean(advise || line);
+  const lineService = line?.service;
+  const advisors = line ? lineAdvisors(line) : null;
 
   // The service a slip already carries may have left the catalog; it travels
   // with the picker so its name still renders beside the fresh search results.
-  const pickerServices = useMemo(() => withAdviseService([], advise), [advise]);
+  const pickerServices = useMemo(
+    () => (lineService ? [lineServiceOption(lineService)] : withAdviseService([], advise)),
+    [advise, lineService],
+  );
 
   const state = useCreatePlanForm({
     patientId,
@@ -54,6 +72,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
     advise,
     quote,
     planId,
+    line,
     onCreated: onClose,
   });
   const { form, teeth, totals } = state;
@@ -95,7 +114,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
       }
       width="min(772px, calc(100vw - 32px))"
       className="tp-dialog"
-      title={editing ? t("Treatment:Plan:UpdatePlanDialog") : t("Treatment:Plan:CreatePlanDialog")}
+      title={t(dialogTitleKey(advise, line))}
       closeIcon={<X size={20} aria-hidden="true" />}
       destroyOnHidden
     >
@@ -110,9 +129,9 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
             them; the reference dropped the read-only "Người tạo" chip the
             create form used to carry (re-measured 2026-09-21). */}
         <PlanAdvisorFields
-          hasSecond={Boolean(advise?.secondStaffId)}
-          advisorName={advise?.staffName}
-          secondAdvisorName={advise?.secondStaffName}
+          hasSecond={Boolean(advise?.secondStaffId ?? advisors?.secondId)}
+          advisorName={advise?.staffName ?? advisors?.firstName}
+          secondAdvisorName={advise?.secondStaffName ?? advisors?.secondName}
           picker={picker}
         />
 
@@ -125,7 +144,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
             <ServerSearchSelect
               disabled
               useOptions={useDentistOptions}
-              valueLabel={advise?.diagnosisStaffName}
+              valueLabel={advise?.diagnosisStaffName ?? lineService?.diagnoserName}
               notFoundText={t("Treatment:Prescription:DataNotFound")}
             />
           </FloatingField>
@@ -134,7 +153,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
               <ServerSearchSelect
                 disabled
                 useOptions={useDentistOptions}
-                valueLabel={advise?.diagnosisSecondStaffName}
+                valueLabel={advise?.diagnosisSecondStaffName ?? lineService?.secondDiagnoserName}
                 notFoundText={t("Treatment:Prescription:DataNotFound")}
               />
             </FloatingField>
@@ -176,6 +195,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
             form={form}
             totals={totals}
             originalPrice={state.selectedService?.price ?? 0}
+            locked={Boolean(lineService && isPricingLocked(lineService))}
           />
         </div>
       </Form>
@@ -183,6 +203,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
       <ToothPickerDialog
         open={state.toothPickerOpen}
         value={teeth}
+        lockedTeeth={lineService?.stagedTeeth}
         onConfirm={(next) => {
           state.setTeeth(next);
           state.setToothPickerOpen(false);

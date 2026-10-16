@@ -15,6 +15,7 @@ import {
   openNewSlip,
   type Receipt,
 } from "./fixtures/ledgerReceipt";
+import { currentUserId, deleteSlip, firstPatientOf, openSlipFor } from "./fixtures/treatingSlip";
 
 /**
  * Feature: the payment commands on a patient's slips follow Khách hàng ›
@@ -58,12 +59,12 @@ interface Slip {
 }
 
 /**
- * An open line of the dentist's own branch that still takes a công đoạn, so its
- * row on Hồ sơ carries the green + into Chi tiết phiếu. Read with the admin's
- * clinic-wide session.
+ * The open line of `planId` (the dentist's own slip, R-961) that still takes a
+ * công đoạn, so its row on Hồ sơ carries the green + into Chi tiết phiếu. Read
+ * with the admin's clinic-wide session.
  */
-async function findStageableSlip(admin: Page, branchId: string): Promise<Slip> {
-  const found = await admin.evaluate(async (branchId) => {
+async function findStageableSlip(admin: Page, branchId: string, planId: string): Promise<Slip> {
+  const found = await admin.evaluate(async ({ branchId, planId }) => {
     const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=300", {
       credentials: "include",
     });
@@ -80,7 +81,7 @@ async function findStageableSlip(admin: Page, branchId: string): Promise<Slip> {
         stagedTeeth: number[];
       }[];
     }[];
-    for (const slip of items.filter((one) => one.branchId === branchId)) {
+    for (const slip of items.filter((one) => one.branchId === branchId && one.id === planId)) {
       // 1 = Created, 2 = InProgress, with a tooth no công đoạn holds yet (or a
       // whole-mouth line): the rows that still offer "Thêm công đoạn".
       const line = slip.services.find(
@@ -100,7 +101,7 @@ async function findStageableSlip(admin: Page, branchId: string): Promise<Slip> {
       }
     }
     return null;
-  }, branchId);
+  }, { branchId, planId });
   expect(found, "the dentist's branch should have a slip with an open line").toBeTruthy();
   return found!;
 }
@@ -145,14 +146,19 @@ async function expectStagePay(scope: Locator, canCreate: boolean) {
 async function expectStageDialogPay(page: Page, canCreate: boolean) {
   const dialog = page.getByRole("dialog", { name: "Chi tiết phiếu" });
   await expectStagePay(dialog, canCreate);
-  await page.keyboard.press("Escape");
+  // Its own ✕: reopened, the dialog loses the first Escape to the trigger's
+  // tooltip (seen as a dentist account, R-961 run).
+  await dialog.getByRole("button", { name: "Đóng" }).first().click();
   await expect(dialog).toBeHidden();
 }
 
-/** Chi tiết phiếu laid inline under the slip page's service table (R-957). */
-async function expectStagePanelOnSlip(page: Page, slip: Slip, canCreate: boolean) {
+/**
+ * Chi tiết phiếu laid inline under the slip page's service table (R-957). It
+ * has no "Thanh toán" whatever the leaves: the page has its own payment tabs.
+ */
+async function expectStagePanelOnSlip(page: Page, slip: Slip) {
   await page.goto(planDetailPath(slip));
-  await expectStagePay(page.getByRole("region", { name: "Chi tiết phiếu" }), canCreate);
+  await expectStagePay(page.getByRole("region", { name: "Chi tiết phiếu" }), false);
 }
 
 /** Chi tiết phiếu opened from the Công đoạn cell of the row on Hồ sơ. */
@@ -220,21 +226,25 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
 
     await login(page);
     await resetDentistLeaves(page, LEAVES);
-    await createDentist(page, fullName, userName, password);
+    // A dentist, with a slip of their own: a non-admin sees only their own
+    // dentists' slips on Kế hoạch điều trị and the slip page (R-961).
+    await createDentist(page, fullName, userName, password, { isDentist: true });
     for (const leaf of BASE_LEAVES) await setDentistLeaf(page, leaf, true);
 
     const { context, page: dentist } = await openDentistSession(browser, userName, password);
+    let ownSlip: { id: string } | undefined;
+    let branchId = "";
     try {
       await dentist.setViewportSize({ width: 1600, height: 900 });
       await dentist.goto("/patient");
       await expect(dentist).toHaveURL(BRANCH_IN_URL);
-      const branchId = (await workingBranchId(dentist))!;
-      const slip = await findStageableSlip(page, branchId);
+      branchId = (await workingBranchId(dentist))!;
+      ownSlip = await openSlipFor(page, branchId, await firstPatientOf(page, branchId), await currentUserId(dentist));
+      const slip = await findStageableSlip(page, branchId, ownSlip.id);
 
       // ── no Thanh toán leaf: the history stays, every payment command goes ─
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
       await expectPlanDetail(dentist, slip, false, false);
 
@@ -243,14 +253,14 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await expectPlanDetail(dentist, slip, true, false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
 
       // ── Thêm: collecting money — Hóa đơn / In Hóa Đơn open the pay dialog ─
       await setDentistLeaf(page, "payment.create", true);
       await expectProfile(dentist, slip, true);
       await expectStageDialogFromProfile(dentist, slip, true);
-      await expectStagePanelOnSlip(dentist, slip, true);
+      // Even with payment.create the slip page's inline panel has none.
+      await expectStagePanelOnSlip(dentist, slip);
       await expectPlanList(dentist, slip, true);
       await expectPlanDetail(dentist, slip, true, true);
 
@@ -263,11 +273,11 @@ test.describe("Thanh toán — the payment commands follow the leaves", () => {
       await setDentistLeaf(page, "payment.create", false);
       await expectProfile(dentist, slip, false);
       await expectStageDialogFromProfile(dentist, slip, false);
-      await expectStagePanelOnSlip(dentist, slip, false);
       await expectPlanList(dentist, slip, false);
       await expectPlanDetail(dentist, slip, true, false);
     } finally {
       await context.close();
+      if (ownSlip) await deleteSlip(page, branchId, ownSlip.id);
       await resetDentistLeaves(page, LEAVES);
       await deleteDentist(page, fullName);
     }

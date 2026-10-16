@@ -468,7 +468,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
 
     await tab(page, "Chi tiết điều trị").click();
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
-    await row.locator(".pdt-status--menu").click();
+    await row.locator(".pdt-status-trigger").click();
     const done = page.waitForResponse(
       (res) => res.url().includes("/complete") && res.request().method() === "POST",
     );
@@ -626,7 +626,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
 
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     const oldName = await row.locator(".pdt-service-name").innerText();
-    await row.locator(".pdt-status--menu").click();
+    await row.locator(".pdt-status-trigger").click();
     await page.getByRole("menuitem", { name: "Chuyển đổi" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Chuyển đổi dịch vụ" });
@@ -682,8 +682,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // Newest first, so the line that replaces it reads above the closed one.
     const closed = rows.filter({ hasText: oldName }).first();
     await expect(closed.locator(".pdt-status")).toHaveText("Chuyển đổi");
-    // A closed line offers no menu any more.
-    await expect(closed.locator(".pdt-status--menu")).toHaveCount(0);
+    // A closed line offers no "Đổi trạng thái" any more.
+    await expect(closed.locator(".pdt-status-trigger")).toHaveCount(0);
     await expect(rows.locator(".pdt-status")).toHaveText(["Đã tạo", "Chuyển đổi"]);
     // The table carries no Ghi chú column (BA's nine, R-957): the note is
     // read on the new line's eye.
@@ -716,7 +716,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // The row read before the order was raised: reload so the slip carries it.
     await page.goto(slipUrl);
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
-    await row.locator(".pdt-status--menu").click();
+    await row.locator(".pdt-status-trigger").click();
     await page.getByRole("menuitem", { name: "Chuyển đổi" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Chuyển đổi dịch vụ" });
@@ -761,7 +761,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await page
       .locator(".pdt-table tbody tr.ant-table-row")
       .first()
-      .locator(".pdt-status--menu")
+      .locator(".pdt-status-trigger")
       .click();
     await page.getByRole("menuitem", { name: "Chuyển đổi" }).click();
     await expect(page.getByRole("dialog", { name: "Chuyển đổi dịch vụ" })).toBeVisible();
@@ -847,9 +847,9 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await page.reload();
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect(row).toBeVisible();
-    // Still open, so the menu is there and the dialog can be reached.
+    // Still open, so "Đổi trạng thái" is in Thao tác and the dialog can be reached.
     await expect(row.locator(".pdt-status")).toHaveText("Đang điều trị");
-    const menu = row.locator(".pdt-status--menu");
+    const menu = row.locator(".pdt-status-trigger");
     await expect(menu).toHaveCount(1);
 
     await menu.click();
@@ -920,7 +920,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await tab(page, "Chi tiết điều trị").click();
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect.poll(paidOnLines).toEqual([due]);
-    await row.locator(".pdt-status--menu").click();
+    await row.locator(".pdt-status-trigger").click();
     await page.getByRole("menuitem", { name: "Chuyển đổi" }).click();
     const dialog = page.getByRole("dialog", { name: "Chuyển đổi dịch vụ" });
     await expect(dialog).toBeVisible();

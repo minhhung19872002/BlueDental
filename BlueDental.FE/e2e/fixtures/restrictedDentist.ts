@@ -57,7 +57,18 @@ export async function resetDentistLeaves(page: Page, leaves: readonly string[]) 
   for (const leaf of leaves) await setDentistLeaf(page, leaf, false);
 }
 
-export async function createDentist(page: Page, fullName: string, userName: string, password: string) {
+/**
+ * `isDentist` ticks "Bác sĩ" on the dialog: the patient record's "Kế hoạch điều
+ * trị" lists a non-admin only the slips of the dentists they may see, and a
+ * non-dentist none (R-961).
+ */
+export async function createDentist(
+  page: Page,
+  fullName: string,
+  userName: string,
+  password: string,
+  { isDentist = false }: { isDentist?: boolean } = {},
+) {
   await page.goto("/staff");
   await assertRealApiTraffic(page, "/api/v1/app/staff");
   await page.getByRole("button", { name: /Tạo/ }).first().click();
@@ -77,6 +88,7 @@ export async function createDentist(page: Page, fullName: string, userName: stri
   await dialog.getByLabel(/Chi nhánh/).fill(MAIN_BRANCH_ID);
   await page.locator(`.ant-select-item-option[title="${MAIN_BRANCH}"]`).click();
   await dialog.getByLabel(/Họ và tên/).click();
+  if (isDentist) await dialog.getByRole("checkbox", { name: "Bác sĩ", exact: true }).check();
   await dialog.getByRole("button", { name: /Lưu/ }).click();
   await expect(dialog).toBeHidden();
   // The list runs by Mức độ ưu tiên, so the new row can land on any page.

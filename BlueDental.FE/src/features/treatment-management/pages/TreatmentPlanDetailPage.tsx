@@ -5,7 +5,8 @@ import { usePatientDto } from "@/features/patient-management/api/patientQueries"
 import { useAbility } from "@/hooks/useAbility";
 import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { usePlanSlip } from "../api/treatmentPlanApi";
+import { describeApiError } from "@/lib/apiError";
+import { useTreatingPlanSlip } from "../api/treatmentPlanApi";
 import { PlanDebtTab } from "../components/plan-detail/PlanDebtTab";
 import { PlanDetailHead } from "../components/plan-detail/PlanDetailHead";
 import { PlanDetailHeader } from "../components/plan-detail/PlanDetailHeader";
@@ -22,6 +23,8 @@ import "../components/plan/treatment-plan.css";
 import "../components/plan-detail/plan-detail.css";
 
 const TAB_PARAM = "planTab";
+/** The slip lies outside the user's part of the Sơ đồ tổ chức (R-961). */
+const OUTSIDE_TREATING_SCOPE = "BlueDental:Treatment:0052";
 
 /**
  * /patient/:id/treatment-plan/:planId — "Chi tiết kế hoạch điều trị".
@@ -39,7 +42,9 @@ export function TreatmentPlanDetailPage() {
   const navigate = useNavigate();
   const branchId = useCurrentBranchId();
   const patient = usePatientDto(id);
-  const plan = usePlanSlip(planId);
+  // Read through the Sơ đồ tổ chức check: a slip hidden from the user's
+  // "Kế hoạch điều trị" tab cannot be opened by its link either (R-961).
+  const plan = useTreatingPlanSlip(planId);
 
   // Thanh toán, Hoàn tiền and Dư nợ are payment views: without payment.read
   // only Chi tiết is offered, and a ?planTab= pointing at one falls back to it.
@@ -54,6 +59,11 @@ export function TreatmentPlanDetailPage() {
     setSearchParams(params, { replace: true });
   };
 
+  // Refused for the Sơ đồ tổ chức: say so. Anything else — another branch, a
+  // deleted slip — still reads "not found".
+  const refusal = plan.isError ? describeApiError(plan.error) : null;
+  const denial = refusal?.code === OUTSIDE_TREATING_SCOPE ? refusal.message : null;
+
   if (patient.isLoading || plan.isLoading) {
     return (
       <div className="page-container pdt-page pdt-page--center">
@@ -65,7 +75,7 @@ export function TreatmentPlanDetailPage() {
     return (
       <div className="page-container pdt-page">
         <EmptyState
-          title={t("Treatment:Plan:PlanNotFound")}
+          title={denial ?? t("Treatment:Plan:PlanNotFound")}
           actionLabel={t("Treatment:Plan:BackToRecord")}
           onAction={() => navigate(withBranch(`/patient/${id}?tab=treatment-plan`, branchId))}
         />
@@ -80,11 +90,7 @@ export function TreatmentPlanDetailPage() {
       <PlanDetailHeader patient={patient.data} plan={plan.data} branchId={branchId} />
       <PlanDetailHead tab={tab} tabs={tabs} payment={plan.data.payment} onTabChange={handleTabChange} />
       <section className="pdt-body">
-        {tab === PLAN_TAB.detail && (
-          // "Thanh toán" in the công đoạn panel lands on this slip's Thanh
-          // toán, as it does from the patient record's dialog (owner 2026-10-05).
-          <PlanServicesTab {...tabProps} onOpenPayment={() => handleTabChange(PLAN_TAB.payment)} />
-        )}
+        {tab === PLAN_TAB.detail && <PlanServicesTab {...tabProps} />}
         {tab === PLAN_TAB.payment && <PlanPaymentsTab {...tabProps} />}
         {tab === PLAN_TAB.refund && <PlanRefundsTab {...tabProps} />}
         {tab === PLAN_TAB.debt && <PlanDebtTab {...tabProps} />}

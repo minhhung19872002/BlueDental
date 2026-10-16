@@ -1,12 +1,5 @@
-import { Dropdown, type MenuProps } from "antd";
-import { ChevronDown } from "lucide-react";
-import { t } from "@/lib/i18n";
 import { SERVICE_LINE_STATUS, type TreatmentServiceDto } from "../../api/treatmentPlanApi";
 import { servicePills } from "../plan/planTypes";
-import { isLineOpen } from "./planDetailTypes";
-
-/** What the status menu offers on an open line. */
-export type ServiceAction = "complete" | "convert" | "cancel";
 
 const STATUS_MODIFIER: Record<number, string> = {
   [SERVICE_LINE_STATUS.Created]: "",
@@ -16,51 +9,13 @@ const STATUS_MODIFIER: Record<number, string> = {
   [SERVICE_LINE_STATUS.Replaced]: "pdt-status--converted",
 };
 
-/** Menu entries in the reference's order; keys are the actions. */
-function menuItems(): MenuProps["items"] {
-  return [
-    { key: "complete", label: t("Treatment:Service:StatusDone") },
-    { key: "convert", label: t("Treatment:Convert:Convert") },
-    { key: "cancel", label: t("Treatment:Service:CancelService"), danger: true },
-  ];
-}
-
-interface Props {
-  service: TreatmentServiceDto;
-  /** Left out when the user may not move the line (treatmentConsultation.update). */
-  onAction?: (action: ServiceAction) => void;
-}
-
 /**
- * The status pill under the service name. On a line that can still move it
- * is a menu button (chevron, aria-haspopup); a finished line is plain text.
+ * The line's status pill — read only. Moving the line lives on
+ * {@link ServiceStatusMenu} in Thao tác (owner 2026-10-15).
  */
-export function ServiceStatusPill({ service, onAction }: Props) {
+export function ServiceStatusPill({ service }: { service: TreatmentServiceDto }) {
   const pills = servicePills();
   const pill = pills[service.status] ?? pills[SERVICE_LINE_STATUS.Created];
   const className = ["pdt-status", STATUS_MODIFIER[service.status]].filter(Boolean).join(" ");
-
-  if (!onAction || !isLineOpen(service)) {
-    return <span className={className}>{pill.label}</span>;
-  }
-
-  return (
-    <Dropdown
-      trigger={["click"]}
-      menu={{
-        items: menuItems(),
-        onClick: ({ key }) => onAction(key as ServiceAction),
-      }}
-    >
-      <button
-        type="button"
-        className={`${className} pdt-status--menu`}
-        aria-haspopup="menu"
-        aria-label={t("Treatment:Service:StatusLabel", service.serviceName ?? service.code)}
-      >
-        {pill.label}
-        <ChevronDown size={14} aria-hidden="true" />
-      </button>
-    </Dropdown>
-  );
+  return <span className={className}>{pill.label}</span>;
 }

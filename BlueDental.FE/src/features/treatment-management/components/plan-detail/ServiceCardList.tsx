@@ -11,6 +11,7 @@ import {
   diagnosisOf,
   isLineDeletable,
   isLineEditable,
+  LineStatusMenu,
   ServiceNameCell,
   StatusCell,
   type ServiceRowActions,
@@ -26,13 +27,13 @@ interface Props {
 }
 
 /** The table's columns, in its order; the money folds behind "Xem thêm". */
-function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
+function cardRows(row: PlanDetailRow) {
   const rows: RecordCardRow[] = [
     { key: "service", label: t("Treatment:Service:Service"), value: <ServiceNameCell row={row} /> },
     { key: "dentist", label: t("Treatment:PlanDetail:Col:Dentist"), value: dentistOf(row) },
     { key: "diagnosis", label: t("Treatment:PlanDetail:Col:Diagnosis"), value: diagnosisOf(row) },
     { key: "teeth", label: t("Treatment:PlanDetail:Col:Teeth"), value: dash(formatToothCodes(row.service.teeth)) },
-    { key: "status", label: t("Common:Status"), value: <StatusCell row={row} actions={actions} /> },
+    { key: "status", label: t("Common:Status"), value: <StatusCell row={row} /> },
   ];
   const moreRows: RecordCardRow[] = [
     { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: moneyText(listUnitPrice(row.service)) },
@@ -42,7 +43,10 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
   return { rows, moreRows };
 }
 
-/** The card head: the eye, the pencil on a line still open, and "Xóa" on a line still "Đã tạo" (R-953). */
+/**
+ * The card head: the eye, "Đổi trạng thái" on a line still open, the pencil on
+ * a line still editable, and "Xóa" on a line still "Đã tạo" (R-953).
+ */
 function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
   return (
     <span className="tp-actions">
@@ -54,6 +58,7 @@ function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
       >
         <Eye size={16} aria-hidden="true" />
       </button>
+      <LineStatusMenu row={row} actions={actions} buttonClassName="bd-rc-action" />
       {actions.onEdit && isLineEditable(row) && (
         <button
           type="button"
@@ -85,7 +90,7 @@ export function ServiceCardList({ rows, total, pagination, actions, showTotal }:
       {rows.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
       <div className="bd-rc-list">
         {rows.map((row) => {
-          const card = cardRows(row, actions);
+          const card = cardRows(row);
           return (
             <RecordCard
               key={row.service.id}

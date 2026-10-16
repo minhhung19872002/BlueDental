@@ -239,4 +239,42 @@ public class OrgChartTests
 
         Assert.Equal(new HashSet<Guid> { chart.Unassigned }, AdvisorsFor(chart, chart.Unassigned));
     }
+
+    // ---- "Kế hoạch điều trị" slips by Bác sĩ điều trị ---------------------
+
+    private static IReadOnlySet<Guid>? TreatingFor(Chart chart, Guid viewer, bool isAdmin = false, bool isDentist = true) =>
+        OrgChartScope.VisibleTreatingDentists(viewer, isAdmin, isDentist, chart.Units, chart.Members);
+
+    [Fact]
+    public void Treating_Only_An_Admin_Sees_Every_Slip()
+    {
+        var chart = new Chart();
+
+        Assert.Null(TreatingFor(chart, chart.Unassigned, isAdmin: true, isDentist: false));
+        Assert.Null(TreatingFor(chart, chart.TeamDentist, isAdmin: true));
+    }
+
+    [Fact]
+    public void Treating_A_Non_Dentist_Sees_No_Slip_Even_As_A_Head()
+    {
+        var chart = new Chart();
+
+        Assert.Empty(TreatingFor(chart, chart.Unassigned, isDentist: false)!);
+        Assert.Empty(TreatingFor(chart, chart.TeamHead, isDentist: false)!);
+        Assert.Empty(TreatingFor(chart, chart.Director, isDentist: false)!);
+    }
+
+    [Fact]
+    public void Treating_A_Dentist_Follows_The_Chart()
+    {
+        var chart = new Chart();
+
+        Assert.Null(TreatingFor(chart, chart.Director));
+        Assert.Equal(
+            new HashSet<Guid> { chart.DepartmentHead, chart.TeamHead, chart.TeamDentist },
+            TreatingFor(chart, chart.DepartmentHead));
+        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, TreatingFor(chart, chart.TeamHead));
+        Assert.Equal(new HashSet<Guid> { chart.TeamDentist }, TreatingFor(chart, chart.TeamDentist));
+        Assert.Equal(new HashSet<Guid> { chart.Unassigned }, TreatingFor(chart, chart.Unassigned));
+    }
 }

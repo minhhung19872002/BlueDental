@@ -367,7 +367,7 @@ Four tabs — the fourth is new:
 - Footer: `Hiển thị a trên b` · page-size menu 5 / 10 / 20 / 25 / 50 / 100 (20 by default) · prev / page / next.
 - Empty table shows "Chưa có công đoạn nào".
 
-**Xuất / Nhập công đoạn (R-961, BlueDental-only — BA request, not on the reference)**
+**Xuất / Nhập công đoạn (R-962, BlueDental-only — BA request, not on the reference)**
 
 - `Xuất` (download icon) and `Nhập` (upload icon) sit on the same row as the `Công đoạn` box and `+ Công đoạn`, worded like the catalog toolbar's. On a phone (≤ 640px) they wrap under the box.
 - File: one sheet "Công đoạn", columns `Tên công đoạn *` · `Loại *` (`%` / `VNĐ`) · `Giá trị *` · `Tính lương cho phòng MKT` (`Có` / `Không` / empty). There is no STT column. Headers are matched in the current UI language. `Xuất` writes the table as it stands; the file is named `cong-doan-<service name without accents>.xlsx`.

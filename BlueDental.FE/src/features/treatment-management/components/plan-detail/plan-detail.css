@@ -288,9 +288,6 @@ a.pdt-crumb:hover {
   line-height: 16px;
   white-space: nowrap;
 }
-.pdt-status--menu {
-  cursor: pointer;
-}
 .pdt-status--converted {
   background: var(--tp-cyan-pale);
   color: var(--tp-cyan-ink);
@@ -1127,7 +1124,7 @@ a.pdt-crumb:hover {
   margin-top: 8px;
 }
 
-/* Thao tác on a line: the eye and, on a line still "Đã tạo", "Xóa" — gap-4 on the reference. */
+/* Thao tác on a line: the eye, "Đổi trạng thái", the pencil and "Xóa" — gap-4 on the reference. */
 .pdt-line-actions {
   display: inline-flex;
   align-items: center;

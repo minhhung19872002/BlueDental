@@ -5,7 +5,7 @@ import { login, runId } from "./fixtures/auth";
 import { purgeRunGroups } from "./fixtures/cleanup";
 
 /**
- * BA R-961 (Danh mục > Dịch vụ > Cập nhật dịch vụ > tab Công đoạn): "Xuất" and
+ * BA R-962 (Danh mục > Dịch vụ > Cập nhật dịch vụ > tab Công đoạn): "Xuất" and
  * "Nhập" beside "+ Công đoạn", worded like the catalog toolbar's. "Nhập" opens
  * the catalog import's dialog: Chọn file → Kiểm tra (row-by-row preview) →
  * Hoàn tất.
