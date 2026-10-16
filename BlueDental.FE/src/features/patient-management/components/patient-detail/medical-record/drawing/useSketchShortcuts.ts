@@ -17,6 +17,7 @@ export function useSketchShortcuts(pad: SketchPad) {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) return;
+      if (target instanceof HTMLElement && target.isContentEditable) return;
       const now = current.current;
       const key = event.key.toLowerCase();
 

@@ -1,68 +1,76 @@
-import type { CSSProperties, KeyboardEvent, RefObject } from "react";
+import { useRef, type CSSProperties, type Ref } from "react";
 import { t } from "@/lib/i18n";
-import { PAGE_PX_PER_POINT, SKETCH_HEIGHT, SKETCH_WIDTH, type SketchSettings } from "./sketch";
+import { SKETCH_HEIGHT, SKETCH_WIDTH } from "./sketch";
+import type { RunLook } from "./richText";
+import { useRichText, type RichTextHandle } from "./useRichText";
+import { useTextBoxDrag, type BoxGrip, type TextBoxFrame } from "./useTextBoxDrag";
 import type { TextDraft } from "./useSketchCanvas";
+
+const EDGES = ["n", "s", "e", "w"] as const;
+const HANDLES: readonly BoxGrip[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 interface Props {
   draft: TextDraft;
-  settings: SketchSettings;
-  inputRef: RefObject<HTMLTextAreaElement | null>;
-  onText: (text: string) => void;
+  /** What an empty box types in: the text bar's style and the colour in use. */
+  look: RunLook;
+  editorRef: Ref<RichTextHandle>;
+  onFrame: (frame: TextBoxFrame) => void;
+  onLook: (look: RunLook) => void;
   onCommit: () => void;
   onCancel: () => void;
 }
 
-/** "underline line-through", "none" … for CSS's text-decoration-line. */
-function decorationOf({ underline, strike }: SketchSettings["text"]): string {
-  return [underline && "underline", strike && "line-through"].filter(Boolean).join(" ") || "none";
-}
-
 /**
- * The box words are typed into, laid where the page was clicked and drawn in
- * the style they will land in — font, size, bold, alignment — so what is
- * typed is what is drawn.
+ * Paint's text box, laid on the page where it was opened: a dashed frame with
+ * eight handles that size it, an edge that moves it, and the words inside
+ * wrapping at its width — each stretch in its own style, drawn as it will land.
  *
- * As in Paint, Enter starts a new line and a click elsewhere on the page puts
- * the words down; Ctrl+Enter does too. Esc drops them and leaves the dialog open.
+ * A click elsewhere on the page puts the words down, as does Ctrl+Enter; Esc
+ * drops them and leaves the dialog open.
  */
-export function SketchTextBox({ draft, settings, inputRef, onText, onCommit, onCancel }: Props) {
-  const { text: style } = settings;
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      onCommit();
-    } else if (event.key === "Escape") {
-      // The dialog closes on Esc too; here it only means "not these words".
-      event.preventDefault();
-      event.stopPropagation();
-      onCancel();
-    }
-  };
+export function SketchTextBox({ draft, look, editorRef, onFrame, onLook, onCommit, onCancel }: Props) {
+  const frame = useRef<HTMLDivElement>(null);
+  const editor = useRef<HTMLDivElement>(null);
+  const { handleKeyDown } = useRichText(editor, { runs: draft.runs, look, handle: editorRef, onLook, onCommit, onCancel });
+  const grip = useTextBoxDrag(frame, draft, onFrame);
 
   return (
-    <textarea
-      ref={inputRef}
-      autoFocus
-      rows={1}
-      value={draft.text}
-      className="sketch-text-box"
-      aria-label={t("Patient:MedRecord:TextInput")}
+    <div
+      ref={frame}
+      className="sketch-text-frame"
       style={
         {
           "--text-x": draft.at.x / SKETCH_WIDTH,
           "--text-y": draft.at.y / SKETCH_HEIGHT,
-          "--text-size": style.points * PAGE_PX_PER_POINT,
-          "--text-color": settings.color,
-          "--text-font": `"${style.font}"`,
-          "--text-weight": style.bold ? 700 : 400,
-          "--text-slant": style.italic ? "italic" : "normal",
-          "--text-deco": decorationOf(style),
-          "--text-align": style.align,
+          "--text-w": draft.width,
+          "--text-h": draft.height,
+          "--text-align": draft.align,
         } as CSSProperties
       }
-      onChange={(event) => onText(event.target.value)}
-      onKeyDown={handleKeyDown}
-    />
+    >
+      {EDGES.map((edge) => (
+        <span key={edge} className={`sketch-text-edge sketch-text-edge--${edge}`} aria-hidden="true" {...grip("move")} />
+      ))}
+      <div
+        ref={editor}
+        className="sketch-text-editor"
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck={false}
+        role="textbox"
+        aria-multiline="true"
+        aria-label={t("Patient:MedRecord:TextInput")}
+        onKeyDown={handleKeyDown}
+      />
+      {HANDLES.map((handle) => (
+        <span
+          key={handle}
+          className={`sketch-text-handle sketch-text-handle--${handle}`}
+          data-grip={handle}
+          aria-hidden="true"
+          {...grip(handle)}
+        />
+      ))}
+    </div>
   );
 }

@@ -9009,3 +9009,64 @@ Nguồn: `save/P1610_01.drawio`. Mục 7 (Phiếu phẫu thuật, nút vẽ lư�
     - "the index lists the reference's nine forms…": không thấy `.pd-profile-card` sau khi về Chi tiết hồ sơ.
     - "picking the day prints it on the sheet…": `consultation.text.4` không nhận ngày.
     - **Chưa điều tra.**
+
+## R-964 (ex R-963; origin owns R-963) (2026-10-16, level 2) Drawing dialog: Paint-style text box, highlight-only formatting, docked text bar
+
+Owner: "làm cho giống Paint" + "toolbar config ở mode text thì fixed như ở Paint".
+
+- **Text box**
+  - A text box is now a sized box: `{at, width, height, align, runs[]}`. The old `{text, color, style}` items are still read back from saved PNGs (`boxFromLegacy`).
+  - A click opens a one-line box 320px wide. A drag past 6px opens a box of the dragged size, with a dashed preview while dragging.
+  - Words wrap at the box width. The box grows taller when the words need it.
+  - 8 handles size the box; the dashed edge moves it. The caret stays in the box while it is moved or sized.
+- **Typing and formatting**
+  - Typing happens in a contentEditable box (`richText.ts`, `useRichText.ts`), not a textarea.
+  - Font, size, B/I/U/S and colour apply only to the highlighted words. With a collapsed caret they apply to what is typed next, held by a ZWSP marker.
+  - The bar and the colour box show the look at the caret.
+  - The box has its own undo; pad shortcuts ignore contentEditable.
+- **Text bar**: docked in a fixed strip under the tool row, centred, as in Paint. The strip keeps its height with every tool, so the page does not jump.
+- **Page sizing**
+  - Found: at the default e2e viewport (1280×720) the modal body was about 120px short. The 600px floor on `.sketch-page` pushed the bottom of the page under the dialog foot, behind the body scroll, so nothing could be drawn there.
+  - This was already partly true on HEAD (the bottom 10% was hidden; proved on a `git archive` build of 898ce870). The new strip made it worse: the arrow drag at y=0.8 landed on `.ant-modal-footer`.
+  - Fix: the floor is now 360px (`max(360px, (100vh − 454px) × 1002/657)`), so the whole page fits a 720px-high window.
+
+**Spec** `e2e/medical-record-drawing.spec.ts`, text test extended:
+
+- the bar is visible as soon as "Chữ" is picked;
+- Shift+Home then "In đậm" bolds only "Cắt chóp";
+- dragging the east handle to 30% makes the words wrap and the box taller, with focus and text kept;
+- after a reopen the words stay bold and new words typed after them are bold too.
+
+**Results** (vite preview production build :8133 + real host :5000 + PostgreSQL; no interception)
+
+- The drawing spec passes 5/5.
+- Screenshot at 1920×1080: the box, 8 handles, the wrap, bold on the highlighted word only, and the docked bar match Paint's behaviour.
+
+## R-965 (ex R-964; origin owns R-963) (2026-10-16, level 2) Drawing dialog: the eraser rubs out like Paint's, only where it passes
+
+Owner: "vẽ 1 line thì khi xóa qua thì nó xóa nguyên line đó luôn không giống như Paint".
+
+- **Before**: the eraser removed every item it touched, whole.
+- **Now**
+  - One pass of the eraser is a *cut* `{size, points}`, kept on every item it reaches (`Item.cuts`).
+  - Items are painted on a scratch sheet with their cuts rubbed out (`destination-out`), so the gap belongs to the item and moves with it (`moveItem` shifts cuts).
+  - An item with nothing visible left (alpha < 32 within its bounds) is dropped.
+  - While dragging, the eraser rubs straight off the page canvas, stretch by stretch, so it feels instant.
+  - On a picture opened from an old flat PNG, the pass is kept as `Scene.backdropCuts`, and the saved PNG is flat as before.
+  - The select tool picks nothing where the eraser has been.
+  - Typing over a text box brings it back whole; opening it and leaving it unchanged keeps the cuts.
+  - New file `sketchErase.ts` (`eraseScene`); the eraser path is sampled every quarter of its width, so a fast drag misses nothing.
+- **Storage**: no DB or API change. Cuts travel with the items inside the PNG's `bluedental-sketch` tEXt chunk (still in MinIO), and `isItem` validates them on read.
+
+**Spec** `e2e/medical-record-drawing.spec.ts`, select/eraser test rewritten:
+
+- a vertical pass cuts the horizontal stroke only at x 0.3;
+- the gap is not selectable and moves with the stroke;
+- erasing end to end leaves no ink, and the stroke can no longer be selected;
+- undo restores it with the gap;
+- Áp dụng + Lưu + reload + Sửa bản vẽ: the gap is still there and the rest is still a selectable stroke.
+
+**Results** (vite preview production build :8133 + real host :5000 + PostgreSQL; no interception)
+
+- The drawing spec passes 5/5.
+- Screenshots taken during the run show the partial gap, and the same gap after the reopen.

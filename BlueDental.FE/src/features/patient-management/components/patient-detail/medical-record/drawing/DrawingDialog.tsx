@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Spin } from "antd";
 import { CheckOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
@@ -8,8 +8,9 @@ import { SketchSelectionBar } from "./SketchSelectionBar";
 import { SketchTextBox } from "./SketchTextBox";
 import { SketchTextToolbar } from "./SketchTextToolbar";
 import { SketchToolbar } from "./SketchToolbar";
-import { DEFAULT_SKETCH_SETTINGS, SKETCH_HEIGHT, SKETCH_WIDTH, type SketchSettings } from "./sketch";
+import { DEFAULT_SKETCH_SETTINGS, SKETCH_HEIGHT, SKETCH_WIDTH, runStyleOf, type SketchSettings } from "./sketch";
 import { useSketchCanvas } from "./useSketchCanvas";
+import { useSketchFormatting } from "./useSketchFormatting";
 import { useSketchShortcuts } from "./useSketchShortcuts";
 import "./drawing.css";
 
@@ -23,9 +24,10 @@ interface Props {
 
 /**
  * Drawing "Lược đồ phẫu thuật/thủ thuật": the tools and the shared colour box
- * along the top, the page below in the cell's own proportions, and "Áp dụng"
- * to put the picture on the sheet. It is kept with the sheet when the sheet is
- * saved — this dialog stores nothing on its own.
+ * along the top, Paint's text bar docked under them while the text tool is in
+ * use, the page below in the cell's own proportions, and "Áp dụng" to put the
+ * picture on the sheet. It is kept with the sheet when the sheet is saved —
+ * this dialog stores nothing on its own.
  *
  * Mounted only while open, so every opening starts from the cell's picture.
  */
@@ -34,7 +36,7 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
   const [custom, setCustom] = useState<string[]>([]);
   const adopt = useCallback((patch: Partial<SketchSettings>) => setSettings((now) => ({ ...now, ...patch })), []);
   const pad = useSketchCanvas(settings, source, adopt);
-  const textInput = useRef<HTMLTextAreaElement>(null);
+  const format = useSketchFormatting(pad, settings, adopt);
   useSketchShortcuts(pad);
 
   // Words still being typed are put down first; the picture is taken once they are on the page.
@@ -44,20 +46,11 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
     pad.commitText();
     setApplying(true);
   };
-  const { toPng } = pad;
+  const { toPng, updateSelected } = pad;
   useEffect(() => {
     if (applying) onApply(toPng());
   }, [applying, onApply, toPng]);
 
-  const { selected, updateSelected } = pad;
-  // A colour is the colour of what is drawn next — and of what is selected, if anything is.
-  const handlePick = useCallback(
-    (color: string) => {
-      adopt({ color });
-      if (selected) updateSelected({ color });
-    },
-    [adopt, selected, updateSelected],
-  );
   const handleAddCustom = useCallback(
     (color: string) => setCustom((now) => (now.includes(color) ? now : [...now, color].slice(-10))),
     [],
@@ -84,13 +77,15 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
         onChange={setSettings}
         history={{ canUndo: pad.canUndo, canRedo: pad.canRedo, onUndo: pad.undo, onRedo: pad.redo, onClear: pad.clear }}
       >
-        <SketchColors
-          color={settings.color}
-          custom={custom}
-          onPick={handlePick}
-          onAddCustom={handleAddCustom}
-        />
+        <SketchColors color={format.color} custom={custom} onPick={format.pickColor} onAddCustom={handleAddCustom} />
       </SketchToolbar>
+
+      {/* Kept in place with any tool, so the page does not jump when the text tool is picked. */}
+      <div className="sketch-text-strip">
+        {(settings.tool === "text" || pad.typing) && (
+          <SketchTextToolbar style={format.textStyle} onChange={format.changeTextStyle} />
+        )}
+      </div>
 
       {pad.loadFailed && (
         <Alert className="sketch-alert" type="warning" showIcon message={t("Patient:MedRecord:DrawingLoadFailed")} />
@@ -116,22 +111,16 @@ export function DrawingDialog({ source, onApply, onClose }: Props) {
             {...pad.handlers}
           />
           {pad.typing && (
-            <>
-              <SketchTextToolbar
-                style={settings.text}
-                at={{ x: pad.typing.at.x / SKETCH_WIDTH, y: pad.typing.at.y / SKETCH_HEIGHT }}
-                onChange={(text) => adopt({ text })}
-                onRefocus={() => textInput.current?.focus()}
-              />
-              <SketchTextBox
-                draft={pad.typing}
-                settings={settings}
-                inputRef={textInput}
-                onText={pad.setTypingText}
-                onCommit={pad.commitText}
-                onCancel={pad.cancelText}
-              />
-            </>
+            <SketchTextBox
+              key={pad.typing.id}
+              draft={pad.typing}
+              look={{ color: settings.color, style: runStyleOf(settings.text) }}
+              editorRef={pad.textEditor}
+              onFrame={pad.setTypingBox}
+              onLook={format.onLook}
+              onCommit={pad.commitText}
+              onCancel={pad.cancelText}
+            />
           )}
           {pad.selected && (
             <SketchSelectionBar

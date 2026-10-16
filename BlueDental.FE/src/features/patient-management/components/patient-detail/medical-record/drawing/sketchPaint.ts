@@ -1,63 +1,16 @@
-import {
-  PAGE_PX_PER_POINT,
-  SKETCH_LINE_HEIGHT,
-  type Item,
-  type Point,
-  type Scene,
-  type TextItem,
-  type TextStyle,
-} from "./sketch";
+import { SKETCH_HEIGHT, SKETCH_WIDTH, type Cut, type Item, type Point, type Scene } from "./sketch";
+import { paintText, textBoxOf } from "./sketchText";
 
 /** How much of the page shows through a highlighter. */
 const HIGHLIGHTER_ALPHA = 0.4;
+/** Below this, what the eraser left of an item cannot be seen, and the item is gone. */
+const FAINTEST_INK = 32;
 
 export interface Bounds {
   x: number;
   y: number;
   width: number;
   height: number;
-}
-
-export function fontOf(style: TextStyle): string {
-  const px = style.points * PAGE_PX_PER_POINT;
-  return `${style.italic ? "italic " : ""}${style.bold ? "bold " : ""}${px}px "${style.font}", sans-serif`;
-}
-
-let measurer: CanvasRenderingContext2D | null = null;
-
-/** Where each line of a text item sits, measured in the font it is drawn in. */
-export function layoutText(item: TextItem) {
-  measurer ??= document.createElement("canvas").getContext("2d");
-  const px = item.style.points * PAGE_PX_PER_POINT;
-  const lineHeight = px * SKETCH_LINE_HEIGHT;
-  if (measurer) measurer.font = fontOf(item.style);
-
-  const widths = item.text.split("\n").map((line) => ({ line, width: measurer?.measureText(line).width ?? 0 }));
-  const width = Math.max(...widths.map((entry) => entry.width), px / 2);
-  const lines = widths.map(({ line, width: own }) => {
-    const free = width - own;
-    const indent = item.style.align === "center" ? free / 2 : item.style.align === "right" ? free : 0;
-    return { line, x: item.at.x + indent, width: own };
-  });
-  return { px, lineHeight, width, height: lines.length * lineHeight, lines };
-}
-
-function paintText(ctx: CanvasRenderingContext2D, item: TextItem) {
-  const { px, lineHeight, lines } = layoutText(item);
-  ctx.font = fontOf(item.style);
-  ctx.fillStyle = item.color;
-  ctx.textBaseline = "top";
-  // A line box is taller than its letters; they sit in its middle, as they do
-  // in the box they were typed into.
-  const lead = (lineHeight - px) / 2;
-  const rule = Math.max(1, px / 14);
-
-  lines.forEach(({ line, x, width: own }, at) => {
-    const top = item.at.y + at * lineHeight + lead;
-    ctx.fillText(line, x, top);
-    if (item.style.underline) ctx.fillRect(x, top + px * 0.95, own, rule);
-    if (item.style.strike) ctx.fillRect(x, top + px * 0.55, own, rule);
-  });
 }
 
 function strokePath(ctx: CanvasRenderingContext2D, points: Point[], size: number) {
@@ -105,7 +58,7 @@ function shapePath(ctx: CanvasRenderingContext2D, item: Extract<Item, { kind: "s
   ctx.stroke();
 }
 
-export function paintItem(ctx: CanvasRenderingContext2D, item: Item) {
+function paintInk(ctx: CanvasRenderingContext2D, item: Item) {
   ctx.save();
   if (item.kind === "text") {
     paintText(ctx, item);
@@ -125,6 +78,63 @@ export function paintItem(ctx: CanvasRenderingContext2D, item: Item) {
   ctx.restore();
 }
 
+/**
+ * Rubs a pass of the eraser out of what is already on `ctx`, as Paint's does.
+ * From the sample `from` on, joined on from the one before: while the eraser
+ * is moving, only the stretch it has just gone over.
+ */
+export function paintCut(ctx: CanvasRenderingContext2D, cut: Cut, from = 0) {
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = cut.size;
+  ctx.strokeStyle = "#000000";
+  ctx.fillStyle = "#000000";
+  strokePath(ctx, cut.points.slice(Math.max(0, from - 1)), cut.size);
+  ctx.restore();
+}
+
+/** A sheet the size of the page, where a thing is painted and the eraser's cuts rubbed out of it alone. */
+let scratch: CanvasRenderingContext2D | null = null;
+
+function cutOut(width: number, height: number, paint: (ctx: CanvasRenderingContext2D) => void, cuts: readonly Cut[]) {
+  if (!scratch) scratch = document.createElement("canvas").getContext("2d");
+  if (!scratch) return null;
+  if (scratch.canvas.width !== width || scratch.canvas.height !== height) {
+    scratch.canvas.width = width;
+    scratch.canvas.height = height;
+  }
+  scratch.clearRect(0, 0, width, height);
+  paint(scratch);
+  for (const cut of cuts) paintCut(scratch, cut);
+  return scratch;
+}
+
+/** An item as the eraser has left it. */
+export function paintItem(ctx: CanvasRenderingContext2D, item: Item) {
+  const cuts = item.cuts ?? [];
+  const sheet = cuts.length ? cutOut(ctx.canvas.width, ctx.canvas.height, (on) => paintInk(on, item), cuts) : null;
+  if (sheet) ctx.drawImage(sheet.canvas, 0, 0);
+  else paintInk(ctx, item);
+}
+
+/** Whether anything of the item can still be seen once the eraser's cuts are taken out of it. */
+export function leavesInk(item: Item): boolean {
+  const sheet = cutOut(SKETCH_WIDTH, SKETCH_HEIGHT, (on) => paintInk(on, item), item.cuts ?? []);
+  if (!sheet) return true;
+  const pad = 4;
+  const bounds = boundsOf(item);
+  const x = Math.max(0, Math.floor(bounds.x - pad));
+  const y = Math.max(0, Math.floor(bounds.y - pad));
+  const width = Math.min(SKETCH_WIDTH, Math.ceil(bounds.x + bounds.width + pad)) - x;
+  const height = Math.min(SKETCH_HEIGHT, Math.ceil(bounds.y + bounds.height + pad)) - y;
+  if (width <= 0 || height <= 0) return false;
+  const { data } = sheet.getImageData(x, y, width, height);
+  for (let at = 3; at < data.length; at += 4) if (data[at] >= FAINTEST_INK) return true;
+  return false;
+}
+
 /** The whole drawing afresh; `hidden` is left out — the item being typed over. */
 export function paintScene(
   ctx: CanvasRenderingContext2D,
@@ -132,16 +142,20 @@ export function paintScene(
   scene: Scene,
   hidden?: string,
 ) {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  if (scene.backdrop && backdrop) ctx.drawImage(backdrop, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  const { width, height } = ctx.canvas;
+  ctx.clearRect(0, 0, width, height);
+  if (scene.backdrop && backdrop) {
+    const cuts = scene.backdropCuts ?? [];
+    const lay = (on: CanvasRenderingContext2D) => on.drawImage(backdrop, 0, 0, width, height);
+    const sheet = cuts.length ? cutOut(width, height, lay, cuts) : null;
+    if (sheet) ctx.drawImage(sheet.canvas, 0, 0);
+    else lay(ctx);
+  }
   for (const item of scene.items) if (item.id !== hidden) paintItem(ctx, item);
 }
 
 export function boundsOf(item: Item): Bounds {
-  if (item.kind === "text") {
-    const { width, height } = layoutText(item);
-    return { x: item.at.x, y: item.at.y, width, height };
-  }
+  if (item.kind === "text") return textBoxOf(item);
   const points = item.kind === "stroke" ? item.points : [item.from, item.to];
   const reach = item.kind === "shape" && item.shape === "arrow" ? Math.max(12, item.size * 3.5) : item.size / 2;
   const xs = points.map((point) => point.x);

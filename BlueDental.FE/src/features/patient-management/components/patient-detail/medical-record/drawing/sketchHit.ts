@@ -12,7 +12,7 @@ function distanceToSegment(point: Point, a: Point, b: Point): number {
   return Math.hypot(point.x - (a.x + along * dx), point.y - (a.y + along * dy));
 }
 
-function distanceToPolyline(point: Point, points: readonly Point[]): number {
+export function distanceToPolyline(point: Point, points: readonly Point[]): number {
   if (points.length === 1) return Math.hypot(point.x - points[0].x, point.y - points[0].y);
   let nearest = Infinity;
   for (let at = 1; at < points.length; at += 1) {
@@ -55,10 +55,18 @@ export function touches(item: Item, point: Point, slop = HIT_SLOP): boolean {
   return Math.abs(Math.hypot(nx, ny) - 1) * Math.min(rx, ry) <= reach;
 }
 
-/** The topmost item under the pointer — the last one drawn wins, as it is on top. */
+/** Whether the eraser has rubbed out the item at `point`. */
+function rubbedOutAt(item: Item, point: Point): boolean {
+  return item.cuts?.some((cut) => distanceToPolyline(point, cut.points) <= cut.size / 2) ?? false;
+}
+
+/**
+ * The topmost item under the pointer — the last one drawn wins, as it is on
+ * top. Where the eraser has been there is nothing of an item left to pick.
+ */
 export function itemAt(items: readonly Item[], point: Point, slop = HIT_SLOP): Item | null {
   for (let at = items.length - 1; at >= 0; at -= 1) {
-    if (touches(items[at], point, slop)) return items[at];
+    if (touches(items[at], point, slop) && !rubbedOutAt(items[at], point)) return items[at];
   }
   return null;
 }

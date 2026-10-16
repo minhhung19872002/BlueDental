@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, assertRealApiTraffic, login } from "./fixtures/auth";
 
 /**
@@ -125,6 +125,22 @@ async function colourAt(page: Page, x: number, y: number): Promise<string> {
 
 async function inkAt(page: Page, x: number, y: number): Promise<boolean> {
   return (await colourAt(page, x, y)) !== "";
+}
+
+/** The words in the text box, line breaks as "\n"; the caret's place-holder left out. */
+async function typed(box: Locator): Promise<string> {
+  return box.evaluate((el: HTMLElement) => el.innerText.replace(/\u200b/g, "").replace(/\n$/, ""));
+}
+
+/** The words in the text box that are bold, in order. */
+async function boldIn(box: Locator): Promise<string> {
+  return box.evaluate((el: HTMLElement) =>
+    Array.from(el.querySelectorAll("span"))
+      .filter((span) => Number(getComputedStyle(span).fontWeight) >= 600)
+      .map((span) => span.textContent ?? "")
+      .join("")
+      .replace(/\u200b/g, ""),
+  );
 }
 
 /** Removes the copy a test added, through the real API. */
@@ -257,16 +273,36 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Hoàn tác" })).toBeDisabled();
 
-    // As in Paint: Enter is a new line; the text bar formats without taking the caret.
+    // As in Paint: Enter is a new line; the text bar, docked above the page, formats without taking the caret.
+    const bar = dialog.getByRole("toolbar", { name: "Định dạng chữ" });
+    await expect(bar).toBeVisible();
     await area.click({ position: { x: 60, y: 60 } });
     await box.pressSequentially("Răng 36");
     await box.press("Enter");
     await box.pressSequentially("Cắt chóp");
-    await expect(box).toHaveValue("Răng 36\nCắt chóp");
-    const bar = dialog.getByRole("toolbar", { name: "Định dạng chữ" });
+    await expect.poll(() => typed(box)).toBe("Răng 36\nCắt chóp");
+
+    // Only the highlighted words take the style.
+    await box.press("Shift+Home");
     await bar.getByRole("button", { name: "In đậm" }).click();
     await expect(bar.getByRole("button", { name: "In đậm" })).toHaveAttribute("aria-pressed", "true");
     await expect(box).toBeFocused();
+    await expect.poll(() => boldIn(box)).toBe("Cắt chóp");
+    await box.press("End");
+
+    // Sized narrower by its handle, the words wrap and the box grows to fit them.
+    const frame = dialog.locator(".sketch-text-frame");
+    const before = (await frame.boundingBox())!;
+    const grip = (await dialog.locator('[data-grip="e"]').boundingBox())!;
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(before.x + before.width * 0.3, grip.y + grip.height / 2, { steps: 6 });
+    await page.mouse.up();
+    const after = (await frame.boundingBox())!;
+    expect(after.width).toBeLessThan(before.width * 0.5);
+    expect(after.height).toBeGreaterThan(before.height * 1.4);
+    await expect(box).toBeFocused();
+    await expect.poll(() => typed(box)).toBe("Răng 36\nCắt chóp");
 
     // A click elsewhere on the page puts the words down.
     const bounds = (await area.boundingBox())!;
@@ -278,7 +314,7 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     // Picked out again with the select tool, they open for typing.
     await dialog.getByRole("button", { name: "Chọn", exact: true }).click();
     await area.dblclick({ position: { x: 70, y: 70 } });
-    await expect(box).toHaveValue("Răng 36\nCắt chóp");
+    await expect.poll(() => typed(box)).toBe("Răng 36\nCắt chóp");
     await box.press("Control+End");
     await box.pressSequentially(" 2 chân");
     await box.press("Control+Enter");
@@ -300,14 +336,17 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await expect(dialog.locator(".ant-spin-spinning")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Chọn", exact: true }).click();
     await area.dblclick({ position: { x: 70, y: 70 } });
-    await expect(box).toHaveValue("Răng 36\nCắt chóp 2 chân");
+    await expect.poll(() => typed(box)).toBe("Răng 36\nCắt chóp 2 chân");
+    // Each stretch keeps its own style: typed on after the bold words, the new ones are bold too.
+    expect(await boldIn(box)).toBe("Cắt chóp 2 chân");
     await box.press("Escape");
     await dialog.getByRole("button", { name: "Huỷ" }).click();
 
     expect(await deleteSheet(page, sheetId)).toBe(204);
   });
 
-  test("a stroke is picked out with the select tool: moved, recoloured, deleted, erased whole", async ({ page }) => {
+  test("a stroke is picked out with the select tool: moved, recoloured, deleted; the eraser rubs out only where it passes", async ({ page }) => {
+    test.slow();
     const sheetId = await openNewSheet(page);
     await sheet(page).getByRole("button", { name: "Vẽ lược đồ" }).click();
     const dialog = page.getByRole("dialog", { name: "Vẽ lược đồ phẫu thuật/thủ thuật" });
@@ -344,10 +383,52 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await page.keyboard.press("Control+z");
     expect(await inkAt(page, 0.4, 0.8)).toBe(true);
 
-    // The eraser takes a stroke it touches away whole.
-    await dialog.getByRole("button", { name: "Tẩy", exact: true }).click();
+    // As in Paint, the eraser takes away only what it passes over.
+    const tool = (name: string) => dialog.getByRole("button", { name, exact: true }).click();
+    const clickAt = (x: number, y: number) => page.mouse.click(box.x + box.width * x, box.y + box.height * y);
+    await tool("Tẩy");
     await drag(page, [0.3, 0.7], [0.3, 0.9]);
+    expect(await inkAt(page, 0.3, 0.8)).toBe(false);
+    expect(await inkAt(page, 0.22, 0.8)).toBe(true);
+    expect(await inkAt(page, 0.5, 0.8)).toBe(true);
+
+    // The gap is part of the stroke: nothing is picked there, and it moves along with the rest.
+    await tool("Chọn");
+    await clickAt(0.3, 0.8);
+    await expect(selection).toBeHidden();
+    await clickAt(0.5, 0.8);
+    await expect(selection).toBeVisible();
+    await drag(page, [0.5, 0.8], [0.5, 0.6]);
+    expect(await inkAt(page, 0.3, 0.6)).toBe(false);
+    expect(await inkAt(page, 0.45, 0.6)).toBe(true);
+    expect(await inkAt(page, 0.45, 0.8)).toBe(false);
+
+    // Rubbed out end to end, the stroke is gone: nothing is left to pick.
+    await tool("Tẩy");
+    await drag(page, [0.15, 0.6], [0.65, 0.6]);
     expect(await inkOn(page)).toBe(0);
+    await tool("Chọn");
+    await clickAt(0.45, 0.6);
+    await expect(selection).toBeHidden();
+
+    // Undo brings it back as the eraser had left it.
+    await page.keyboard.press("Control+z");
+    expect(await inkAt(page, 0.45, 0.6)).toBe(true);
+    expect(await inkAt(page, 0.3, 0.6)).toBe(false);
+
+    // Saved and reopened, the gap is still there and the rest still a stroke.
+    await dialog.getByRole("button", { name: "Áp dụng" }).click();
+    await save(page);
+    await reopen(page);
+    expect(await drawingSource(page)).toMatch(SAVED_LINK);
+    expect(await pictureLoaded(page)).toBe(true);
+    await sheet(page).getByRole("button", { name: "Sửa bản vẽ" }).click();
+    await expect(dialog.locator(".ant-spin-spinning")).toHaveCount(0);
+    expect(await inkAt(page, 0.45, 0.6)).toBe(true);
+    expect(await inkAt(page, 0.3, 0.6)).toBe(false);
+    await tool("Chọn");
+    await clickAt(0.45, 0.6);
+    await expect(selection).toBeVisible();
 
     await dialog.getByRole("button", { name: "Huỷ" }).click();
     expect(await deleteSheet(page, sheetId)).toBe(204);

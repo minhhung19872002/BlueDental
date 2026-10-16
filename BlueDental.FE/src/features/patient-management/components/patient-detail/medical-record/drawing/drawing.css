@@ -159,11 +159,12 @@
 
 /*
  * The page keeps the proportions of the cell it is printed into, and is
- * never taller than the window leaves room for.
+ * never taller than the window leaves room for — on a 720px-high screen too,
+ * where a part hidden under the dialog's foot could not be drawn on.
  */
 .sketch-page {
   position: relative;
-  width: min(100%, max(600px, calc((100vh - 400px) * 1002 / 657)));
+  width: min(100%, max(360px, calc((100vh - 454px) * 1002 / 657)));
   aspect-ratio: 1002 / 657;
   margin: 0 auto;
   border: 1px solid var(--bd-border);
@@ -211,39 +212,152 @@
   cursor: text;
 }
 
-/* The box words are typed into, drawn as they will land. */
-.sketch-text-box {
+/*
+ * Paint's text box: a dashed frame laid on the page in page pixels, words
+ * wrapping at its width, taller only when the words need it.
+ */
+.sketch-text-frame {
   position: absolute;
   left: calc(var(--text-x) * 100%);
   top: calc(var(--text-y) * 100%);
   z-index: 1;
-  min-width: 2ch;
-  max-width: calc(100% - var(--text-x) * 100%);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  outline: 1px dashed var(--bd-primary);
-  background: transparent;
-  color: var(--text-color);
-  font-family: var(--text-font), sans-serif;
-  font-size: calc(var(--text-size) * 100cqw / 1002);
-  font-weight: var(--text-weight);
-  font-style: var(--text-slant);
-  text-decoration-line: var(--text-deco);
-  text-align: var(--text-align);
-  line-height: 1.25;
-  white-space: pre;
-  overflow: hidden;
-  resize: none;
-  field-sizing: content;
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--text-w) * 100cqw / 1002);
+  min-height: calc(var(--text-h) * 100cqw / 1002);
+  outline: 1px dashed var(--bd-ink);
 }
 
-/* Paint's text bar, over the page above (or below) the box being typed into. */
-.sketch-text-bar {
+.sketch-text-editor {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  color: var(--bd-ink);
+  /* Small on purpose: the line box of the box itself must never make a line taller than its words. */
+  font-family: Arial, sans-serif;
+  font-size: calc(32 * 100cqw / 1002);
+  line-height: 1.25;
+  text-align: var(--text-align);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  cursor: text;
+}
+
+/* The dashed edge, just outside the words: dragging it moves the box. */
+.sketch-text-edge {
   position: absolute;
-  left: clamp(6px, calc(var(--bar-x) * 100%), calc(100% - 480px));
-  z-index: 2;
+  cursor: move;
+  touch-action: none;
+}
+
+.sketch-text-edge--n,
+.sketch-text-edge--s {
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.sketch-text-edge--n {
+  top: -8px;
+}
+
+.sketch-text-edge--s {
+  bottom: -8px;
+}
+
+.sketch-text-edge--e,
+.sketch-text-edge--w {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+}
+
+.sketch-text-edge--e {
+  right: -8px;
+}
+
+.sketch-text-edge--w {
+  left: -8px;
+}
+
+/* The eight squares that size it. */
+.sketch-text-handle {
+  position: absolute;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--bd-ink);
+  background: #fff;
+  touch-action: none;
+}
+
+.sketch-text-handle--nw,
+.sketch-text-handle--n,
+.sketch-text-handle--ne {
+  top: -4px;
+}
+
+.sketch-text-handle--sw,
+.sketch-text-handle--s,
+.sketch-text-handle--se {
+  bottom: -4px;
+}
+
+.sketch-text-handle--e,
+.sketch-text-handle--w {
+  top: calc(50% - 4px);
+}
+
+.sketch-text-handle--nw,
+.sketch-text-handle--w,
+.sketch-text-handle--sw {
+  left: -4px;
+}
+
+.sketch-text-handle--ne,
+.sketch-text-handle--e,
+.sketch-text-handle--se {
+  right: -4px;
+}
+
+.sketch-text-handle--n,
+.sketch-text-handle--s {
+  left: calc(50% - 4px);
+}
+
+.sketch-text-handle--nw,
+.sketch-text-handle--se {
+  cursor: nwse-resize;
+}
+
+.sketch-text-handle--ne,
+.sketch-text-handle--sw {
+  cursor: nesw-resize;
+}
+
+.sketch-text-handle--n,
+.sketch-text-handle--s {
+  cursor: ns-resize;
+}
+
+.sketch-text-handle--e,
+.sketch-text-handle--w {
+  cursor: ew-resize;
+}
+
+/* Paint's text bar, docked between the tools and the page; the strip keeps its height with any tool. */
+.sketch-text-strip {
   display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 46px;
+  margin-bottom: 8px;
+}
+
+.sketch-text-bar {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
@@ -251,14 +365,6 @@
   border-radius: 10px;
   background: #fff;
   box-shadow: var(--bd-shadow-pop);
-}
-
-.sketch-text-bar--above {
-  top: calc(var(--bar-y) * 100% - 52px);
-}
-
-.sketch-text-bar--below {
-  top: calc(var(--bar-y) * 100% + 56px);
 }
 
 .sketch-text-font {
