@@ -1178,6 +1178,39 @@ test.describe("Bệnh án", () => {
     await expect(canvas).not.toHaveClass(/pd-medical-canvas--fullscreen/);
   });
 
+  /**
+   * Mẫu 5 laid out as the clinic's paper copy (2026-10-16): the title on one
+   * line and sections I–IV — the cost table and "tổng tiền viết bằng chữ"
+   * included — on the first printed page, which holds 280mm (A4 less the 5mm
+   * print margins and the sheet's 7mm top padding).
+   */
+  test("mẫu 5 fits sections I–IV on its first page, under a one-line title", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+
+    const title = sheet(page).locator('h1[data-record-section="consultation-title"]');
+    await expect(title).toHaveText("PHIẾU TƯ VẤN VÀ XÁC NHẬN ĐỒNG Ý ĐIỀU TRỊ NHA KHOA");
+    const titleBox = await title.locator("strong").evaluate((node) => {
+      const range = node.ownerDocument.createRange();
+      range.selectNodeContents(node);
+      return range.getClientRects().length;
+    });
+    expect(titleBox, "the title wraps").toBe(1);
+
+    for (const heading of ["I. Thông tin khách hàng:", "II. Chẩn đoán:", "III. Phương pháp điều trị:", "IV. Chi phí điều trị"]) {
+      await expect(sheet(page).getByText(heading, { exact: true })).toBeVisible();
+    }
+
+    const firstPageMm = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((tpl) => {
+        const rule = tpl.querySelector(":scope > hr") as HTMLElement;
+        const padding = parseFloat(getComputedStyle(tpl).paddingTop);
+        return ((rule.offsetTop - padding) * 25.4) / 96;
+      });
+    expect(firstPageMm).toBeLessThanOrEqual(280);
+  });
+
   test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");

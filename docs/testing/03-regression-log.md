@@ -9070,3 +9070,18 @@ Owner: "vẽ 1 line thì khi xóa qua thì nó xóa nguyên line đó luôn khô
 
 - The drawing spec passes 5/5.
 - Screenshots taken during the run show the partial gap, and the same gap after the reopen.
+
+## R-966 (2026-10-16, mức 1: bố cục mẫu 5 — Phiếu tư vấn và xác nhận đồng ý điều trị) Dàn trang theo tờ giấy của phòng khám
+
+Nguồn: ảnh chụp tờ mẫu giấy của phòng khám đặt cạnh bản in hiện tại. Nội dung hai tờ trùng nhau (I → VII), chỉ khác bố cục: tờ giấy dồn được mục I → IV vào trang 1, bản in cũ để bảng chi phí tràn sang trang 2.
+
+- Tiêu đề gộp thành một dòng "PHIẾU TƯ VẤN VÀ XÁC NHẬN ĐỒNG Ý ĐIỀU TRỊ NHA KHOA", cỡ 14pt, bỏ các dòng trống quanh tiêu đề.
+- "Mã hồ sơ" và tiêu đề mục I–IV viết thường như tờ giấy ("I. Thông tin khách hàng:", "II. Chẩn đoán:", "III. Phương pháp điều trị:", "IV. Chi phí điều trị"). Mục V–VII không đổi, vì ảnh không chụp trang 2.
+- Bảng răng sứ / implant (`data-record-section="consultation-detail"`): cột nhãn 110px, chữ thường, căn giữa, mỗi dòng một dòng chữ. Hàng "Loại" giờ nằm gọn trên một dòng.
+- Bảng chi phí (`consultation-cost`): STT 56px, Chi phí 230px, Nội dung lấy phần còn lại. Ô "tổng tiền viết bằng chữ" rộng 530px để nhãn nằm cuối dòng.
+- Lưới phương pháp điều trị (`consultation-methods`) bỏ khoảng trống giữa hai hàng.
+- Mọi ô nhập giữ nguyên id: phiếu đã lưu vẫn khớp; số blank / checkbox / trang không đổi (82 / 21 / 2); thêm dòng ở bảng chi phí vẫn chạy vì nhận bảng theo tên ô.
+- Đo: phần trước dấu ngắt trang từ khoảng 1450px còn 1020px, tức 269,8mm. Trang in đầu chứa được 280mm (A4 − lề in 5mm − padding 7mm).
+- Test (bản build `vite preview` :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca mới trong `patient-medical-record`: tiêu đề đúng chữ và nằm trên một dòng; có đủ bốn tiêu đề mục; phần trước dấu ngắt trang ≤ 280mm.
+  - `patient-medical-record` + `medical-record-drawing`: **30 pass / 2 đỏ có sẵn** ("the index lists the reference's nine forms…", "picking the day prints it on the sheet…"; xem R-963).

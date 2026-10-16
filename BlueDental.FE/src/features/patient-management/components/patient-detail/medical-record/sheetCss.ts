@@ -56,6 +56,17 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl table[data-record-section="diagnosis-code"] td{height:16px;padding:0}
 .nfc-tpl table[data-record-section="summary-files"]{border:0;margin:0}
 .nfc-tpl table[data-record-section="summary-files"] td,.nfc-tpl table[data-record-section="summary-files"] th{padding:2px 8px;line-height:1.2}
+/* Mẫu 5 — Phiếu tư vấn và xác nhận đồng ý điều trị, laid out as the clinic's
+   paper copy (2026-10-16): the title on one line, one text line to a table
+   row, a narrow label column, so I–IV fit on the first page. */
+.nfc-tpl h1[data-record-section="consultation-title"]{margin:12px 0 8px;line-height:1.2}
+.nfc-tpl table[data-record-section="consultation-methods"]{margin:0}
+.nfc-tpl table[data-record-section="consultation-methods"] td{padding:0 6px}
+.nfc-tpl table[data-record-section="consultation-methods"] p{margin:0;line-height:1.4}
+.nfc-tpl table[data-record-section="consultation-detail"],.nfc-tpl table[data-record-section="consultation-cost"]{margin:2px 0 4px}
+.nfc-tpl table[data-record-section="consultation-detail"] td,.nfc-tpl table[data-record-section="consultation-detail"] th,.nfc-tpl table[data-record-section="consultation-cost"] td,.nfc-tpl table[data-record-section="consultation-cost"] th{padding:1px 8px;vertical-align:middle}
+.nfc-tpl table[data-record-section="consultation-detail"] th{font-weight:normal;text-align:center}
+.nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:1.3}
 /* Compact table: columns size to content and the block is pulled out of the
    normal flow to the right corner, so anything written after it (ví dụ khối lịch
    hẹn) flows in the free space on its LEFT instead of being pushed below.
