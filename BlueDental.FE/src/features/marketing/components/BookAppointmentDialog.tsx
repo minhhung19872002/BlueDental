@@ -26,7 +26,7 @@ interface Props {
 /** The slot from the date and the start time, as instants — what Lịch hẹn sends too. */
 function toSlot(values: FormValues): { slotStart: string; slotEnd: string } {
   const start = values.date!.hour(values.time!.hour()).minute(values.time!.minute()).second(0).millisecond(0);
-  return { slotStart: start.toISOString(), slotEnd: start.add(values.durationMinutes ?? 30, "minute").toISOString() };
+  return { slotStart: start.toISOString(), slotEnd: start.add(values.durationMinutes ?? 15, "minute").toISOString() };
 }
 
 /**
@@ -63,7 +63,7 @@ export function BookAppointmentDialog({ ticket, pending, onSubmit, onClose }: Pr
         layout="vertical"
         requiredMark={false}
         preserve={false}
-        initialValues={{ date: dayjs(), durationMinutes: 30 }}
+        initialValues={{ date: dayjs(), durationMinutes: 15 }}
         onFinish={handleFinish}
       >
         <Row gutter={[16, 12]}>

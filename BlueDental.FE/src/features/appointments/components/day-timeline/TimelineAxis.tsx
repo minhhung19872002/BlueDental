@@ -11,15 +11,14 @@ interface Props {
 
 /**
  * The sticky left column: "Bác sĩ" in the corner over the doctors' names,
- * half-hour ticks running down beside the columns.
+ * a tick per slot running down beside the columns (BA 2026-10-16: on the
+ * 15-minute grid every quarter hour is labelled — 10:00, 10:15, 10:30…).
  */
 export function TimelineAxis({ scale, slots, nowMinute }: Props) {
   // Only the now badge moves with the clock; the ticks stay put between minutes.
   const ticks = useMemo(
     () =>
-      slots
-        .filter((minute) => minute % 30 === 0)
-        .map((minute) => (
+      slots.map((minute) => (
           <span
             key={minute}
             className="dtl-tick"

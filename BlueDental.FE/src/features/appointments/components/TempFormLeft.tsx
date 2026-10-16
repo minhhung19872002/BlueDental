@@ -102,7 +102,7 @@ export function TempFormLeft({ control, errors }: Props) {
             render={({ field }) => (
               <InputNumber
                 value={field.value}
-                onChange={(v) => field.onChange(v ?? 30)}
+                onChange={(v) => field.onChange(v ?? 15)}
                 min={15}
                 step={15}
                 style={{ width: "100%", height: 40 }}

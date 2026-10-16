@@ -167,7 +167,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         initialValues={{
           appointmentDate: scheduledDate,
           appointmentTime: dayjs(),
-          durationMinutes: 30,
+          durationMinutes: 15,
         }}
       >
         <div className="rn-form">

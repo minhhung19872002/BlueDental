@@ -119,7 +119,7 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     // doctor's full name (Tên + Họ, as the staff list returns it) and the
     // patient count — the cancelled booking is not counted.
     await expect(page.locator(".dtl-tick").first()).toHaveText("07:00");
-    await expect(page.locator(".dtl-tick").last()).toHaveText("19:30");
+    await expect(page.locator(".dtl-tick").last()).toHaveText("23:45");
     await expect(column.locator(".dtl-name")).toHaveText(working.fullName);
     await expect(column.locator(".dtl-count")).toHaveText("1");
 

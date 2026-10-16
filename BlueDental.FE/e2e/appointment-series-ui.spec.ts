@@ -188,7 +188,7 @@ test.describe("Lặp lại lịch hẹn — hộp thoại Tạo lịch hẹn", (
     const save = dialog.getByRole("button", { name: "Lưu 6 lịch hẹn" });
     await save.click();
     const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
-    await expect(warning).toContainText(`Bác sĩ đã có lịch hẹn trong khung giờ ${vnDate(plusDays(day, 7)).slice(0, 5)} 09:00–09:30.`);
+    await expect(warning).toContainText(`Bác sĩ đã có lịch hẹn trong khung giờ ${vnDate(plusDays(day, 7)).slice(0, 5)} 09:00–09:15.`);
     await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
 
     // Hủy: back to the form, nothing booked.

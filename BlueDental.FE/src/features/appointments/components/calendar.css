@@ -1786,6 +1786,26 @@ body.cal-fullscreen .cal-grid-wrap {
   background: #f7f8fd;
 }
 
+/* A slot the form takes as Giờ hẹn when clicked (BA 2026-10-16). */
+.mcal-day-slot--pick {
+  padding: 0;
+  border: 0;
+  border-right: 1px solid #f7f8fd;
+  background: transparent;
+  cursor: pointer;
+  transform: none;
+}
+
+.mcal-day-slot--pick:hover,
+.mcal-day-slot--pick:focus-visible {
+  background: color-mix(in srgb, var(--bd-blue) 10%, transparent);
+  outline: none;
+}
+
+.mcal-day-slot--pick:active {
+  transform: none;
+}
+
 .mcal-day-evt {
   position: absolute;
   top: 3px;

@@ -11,6 +11,7 @@ import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 import { useCreateTempAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import { useAppointment } from "../api/appointmentQueries";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
+import { slotOf } from "../hooks/useSaveAppointment";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -70,7 +71,7 @@ export function TempAppointmentEditorModal({
       doctorId: "",
       date: initialDate ?? dayjs().format("YYYY-MM-DD"),
       startTime: "",
-      durationMinutes: 30,
+      durationMinutes: 15,
       sourceTaxonomyId: "",
       sourceEntryId: "",
       color: APPT_COLORS[0].value,
@@ -134,7 +135,7 @@ export function TempAppointmentEditorModal({
         doctorId: "",
         date: initialDate ?? dayjs().format("YYYY-MM-DD"),
         startTime: "",
-        durationMinutes: 30,
+        durationMinutes: 15,
         sourceTaxonomyId: "",
         sourceEntryId: "",
         color: APPT_COLORS[0].value,
@@ -163,8 +164,7 @@ export function TempAppointmentEditorModal({
     const handleError = (error: unknown) => {
       overlap.intercept(error, () => submit(data, true));
     };
-    const startDateTime = `${data.date}T${data.startTime}:00`;
-    const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
+    const { startTime: startDateTime, endTime: endDateTime } = slotOf(data);
 
     if (isEdit) {
       updateMutation.mutate(
@@ -233,6 +233,7 @@ export function TempAppointmentEditorModal({
         <TempAppointmentForm
           control={control}
           errors={errors}
+          setValue={setValue}
           branchOptions={branchOptions}
           doctorOptions={doctorOptions}
           watchedDoctorId={watchedDoctorId}

@@ -120,7 +120,7 @@ test.describe("Lịch hẹn", () => {
     await book(page, day, second, 1);
     const editor = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
     const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
-    await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 09:00–09:30.");
+    await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 09:00–09:15.");
     // The warning is the screen's own; no error toast beside it.
     await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
 

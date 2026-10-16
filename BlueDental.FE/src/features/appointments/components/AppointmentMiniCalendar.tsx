@@ -17,9 +17,11 @@ interface Props {
   doctorId?: string;
   /** A session picked in "Danh sách buổi hẹn": shown on its day, at its time. */
   focus?: CalendarFocus | null;
+  /** A slot clicked in the day view: the day shown and the slot's "HH:mm". */
+  onSlotPick?: (date: string, time: string) => void;
 }
 
-export function AppointmentMiniCalendar({ date, doctorId, focus = null }: Props) {
+export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPick }: Props) {
   const [mode, setMode] = useState<DateNavigatorMode>("day");
   const [daySubMode, setDaySubMode] = useState<DaySubMode>("time");
   const [viewDate, setViewDate] = useState<Dayjs>(() => (date ? dayjs(date) : dayjs()));
@@ -102,6 +104,7 @@ export function AppointmentMiniCalendar({ date, doctorId, focus = null }: Props)
             date={viewDate.format("YYYY-MM-DD")}
             subMode={daySubMode}
             focus={focus}
+            onSlotPick={onSlotPick && ((time) => onSlotPick(viewDate.format("YYYY-MM-DD"), time))}
           />
         )}
         {mode === "week" && (

@@ -1,14 +1,14 @@
 import type { TimePickerProps } from "antd";
 
 const OPEN_HOUR = 7;
-const CLOSE_HOUR = 19;
+const CLOSE_HOUR = 23;
 
 const HOURS_OUTSIDE_CLINIC = Array.from({ length: 24 }, (_, hour) => hour).filter(
   (hour) => hour < OPEN_HOUR || hour > CLOSE_HOUR,
 );
 
 /**
- * Booking time pickers list only the clinic's hours (07–19) instead of 00–23.
+ * Booking time pickers list only the clinic's hours (07–23, last slot ends at midnight) instead of 00–23.
  * The popup class drops AntD's bottom spacer, which is sized for a full column
  * and leaves a mostly empty scroll area once the hours are cut down.
  */

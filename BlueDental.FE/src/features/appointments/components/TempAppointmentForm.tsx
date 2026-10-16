@@ -1,4 +1,4 @@
-import type { Control, FieldErrors } from "react-hook-form";
+import type { Control, FieldErrors, UseFormSetValue } from "react-hook-form";
 import { TempFormLeft } from "./TempFormLeft";
 import { TempFormCenter } from "./TempFormCenter";
 import { TempFormRight } from "./TempFormRight";
@@ -21,6 +21,7 @@ export interface TempAppointmentFormValues {
 interface Props {
   control: Control<TempAppointmentFormValues>;
   errors: FieldErrors<TempAppointmentFormValues>;
+  setValue: UseFormSetValue<TempAppointmentFormValues>;
   branchOptions: { value: string; label: string }[];
   doctorOptions: { value: string; label: string }[];
   watchedDoctorId: string;
@@ -31,12 +32,17 @@ interface Props {
 export function TempAppointmentForm({
   control,
   errors,
+  setValue,
   branchOptions,
   doctorOptions,
   watchedDoctorId,
   watchedDate,
   watchedSourceTaxonomyId,
 }: Props) {
+  const handleSlotPick = (date: string, time: string) => {
+    setValue("date", date, { shouldValidate: true, shouldDirty: true });
+    setValue("startTime", time, { shouldValidate: true, shouldDirty: true });
+  };
   return (
     <div className="appt-editor-body">
       <div className="appt-editor-cols">
@@ -52,7 +58,11 @@ export function TempAppointmentForm({
           watchedDate={watchedDate}
         />
       </div>
-      <AppointmentMiniCalendar date={watchedDate} doctorId={watchedDoctorId || undefined} />
+      <AppointmentMiniCalendar
+        date={watchedDate}
+        doctorId={watchedDoctorId || undefined}
+        onSlotPick={handleSlotPick}
+      />
     </div>
   );
 }

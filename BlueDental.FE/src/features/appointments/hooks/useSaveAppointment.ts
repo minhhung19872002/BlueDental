@@ -2,12 +2,15 @@ import dayjs from "dayjs";
 import { useCreateAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 
-/** The booked window as the API takes it: local wall-clock, no offset. */
+/**
+ * The booked window as the API takes it: local wall-clock, no offset. The
+ * day runs to midnight, so a 23:45 + 15' booking ends at 00:00 the next day.
+ */
 export function slotOf(data: Pick<AppointmentEditorValues, "date" | "startTime" | "durationMinutes">) {
   const startTime = `${data.date}T${data.startTime}:00`;
   const endTime = dayjs(startTime)
     .add(data.durationMinutes, "minute")
-    .format(`${data.date}THH:mm:00`);
+    .format("YYYY-MM-DDTHH:mm:00");
   return { startTime, endTime };
 }
 

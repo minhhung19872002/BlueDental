@@ -9330,3 +9330,27 @@ Vòng 2 cùng ngày, owner sửa:
     - "draws the whole of its printed original" chạy lại thì xanh (flaky).
     - Ca mới đỏ vì locator "Lưu" khớp cả nút "Không lưu". Đã sửa bằng `exact: true`, chạy lại xanh.
   - Lưu ý môi trường: lúc đầu container PostgreSQL bị tắt nên login lỗi 500. Host chạy `--no-build` nên chưa nạp khoá i18n mới; đã build lại host.
+
+
+## R-976 (2026-10-16, mức 2: lịch hẹn + hộp thoại đặt lịch ở Tiếp nhận / Marketing) Lưới 15 phút tới hết ngày, bấm ô Lịch đã hẹn để điền Giờ hẹn
+
+- BA:
+  - Mọi lịch chạy lưới 15 phút mặc định. Nút ☰ ở lịch chính vẫn giữ để chuyển về 30'.
+  - Khung giờ tới hết ngày, không dừng ở 22h. Ô cuối 23:45 phủ tới 24:00.
+- Lịch chính, view Ngày: mặc định 15' (`useCalendarFilters`). Trục ghi nhãn **mọi** mốc 15' (10:00, 10:15, 10:30…), trước đây chỉ ghi mốc 30' (`TimelineAxis`). `WORKING_HOURS` 07:00–24:00.
+- View Tuần: chạy tới 24h (`DAY_END_H = 24`). `CLOSE_HOUR = 23` cho ClockPicker.
+- Phút mặc định 15 ở cả bốn hộp thoại: Tạo lịch hẹn, Lịch tạm, Tiếp nhận (`ReceptionNewDrawer`), Marketing (`BookAppointmentDialog`).
+- "Lịch đã hẹn" (mini calendar, view Ngày):
+  - Ô 15' từ 07:00 tới 23:45 (68 ô). Lịch nằm ngoài khung thì ẩn.
+  - Bấm một ô thì điền Giờ hẹn, và Ngày hẹn = ngày đang xem. Không chọn bác sĩ.
+  - Ô là `<button>` (aria-label "Chọn giờ hẹn HH:mm"), nên grab-scroll (`useDragScroll`) bỏ qua, không cần sửa helper.
+- `slotOf`: giờ kết thúc format theo ngày của chính nó. Trước đây lịch 23:45 + 15' bị kết thúc trước giờ bắt đầu (00:00 cùng ngày).
+- Lịch tạm "không hover/bấm được ô": code đúng. Dev server :5173 phục vụ bản biên dịch cũ của `TempAppointmentForm.tsx`: đã có `setValue` nhưng chưa có `onSlotPick`, nên ô còn là `<div>`. Watcher Vite trên Windows bỏ lỡ lần ghi sau. `touch` file thì HMR nạp lại, sau đó 68 ô bấm được và điền 10:15.
+- Khoá i18n mới: `Appointment:MiniCal:PickSlot` (BE phải build lại).
+- **Test** (bản build :18431 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Spec mới `appointment-slot-pick.spec.ts` **2/2 pass**:
+    - Tạo lịch hẹn: Phút 15, 68 ô, bấm 10:15 / 23:45 / 10:15, lưu. Reload thì API trả 10:15–10:30, và view Ngày có tick 10:15 / 23:45 cùng block của lịch.
+    - Lịch tạm: Phút 15, bấm 10:15 / 23:45 điền đúng.
+  - `appointment-day-timeline` sửa tick cuối thành "23:45".
+  - Hồi quy appointment/reception/marketing: 40 pass, 2 đỏ do mặc định 15'. Cảnh báo trùng giờ giờ hiện "09:00–09:15" thay vì "09:00–09:30" (`appointment.spec.ts:123`, `appointment-series-ui.spec.ts:191`). Đã sửa kỳ vọng, chạy lại xanh (3/3).
+  - Lưu ý: modal Lịch tạm gọi `catalog-entries?group=source` bị 500 trên host local, hiện toast "Lỗi hệ thống". Không thuộc R-976, chưa điều tra.

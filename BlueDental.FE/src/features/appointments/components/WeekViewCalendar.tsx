@@ -10,7 +10,7 @@ import { STATUS_GROUPS } from "../hooks/useStatusCounts";
 import { t } from "@/lib/i18n";
 
 const DAY_START_H = 6;
-const DAY_END_H = 22;
+const DAY_END_H = 24;
 const SLOT_H_30 = 25;
 const SLOT_H_15 = 38;
 

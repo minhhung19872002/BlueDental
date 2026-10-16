@@ -4,7 +4,7 @@ export function useCalendarFilters() {
   const [keyword, setKeyword] = useState("");
   const [doctorIds, setDoctorIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [slotMinutes, setSlotMinutes] = useState<15 | 30>(30);
+  const [slotMinutes, setSlotMinutes] = useState<15 | 30>(15);
 
   const toggleStatus = (key: string) => {
     setStatusFilter((current) => (current === key ? undefined : key));

@@ -58,6 +58,10 @@ export function AppointmentEditorForm({
     />
   );
   const sessionList = series?.list ?? null;
+  const handleSlotPick = (date: string, time: string) => {
+    setValue("date", date, { shouldValidate: true, shouldDirty: true });
+    setValue("startTime", time, { shouldValidate: true, shouldDirty: true });
+  };
 
   return (
     <div className="appt-editor-body">
@@ -84,7 +88,12 @@ export function AppointmentEditorForm({
         )}
         {sessionList}
       </div>
-      <AppointmentMiniCalendar date={watchedDate} doctorId={watchedDoctorId} focus={series?.focus ?? null} />
+      <AppointmentMiniCalendar
+        date={watchedDate}
+        doctorId={watchedDoctorId}
+        focus={series?.focus ?? null}
+        onSlotPick={handleSlotPick}
+      />
     </div>
   );
 }

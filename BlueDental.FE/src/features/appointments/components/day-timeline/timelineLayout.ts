@@ -2,12 +2,13 @@ import dayjs from "dayjs";
 import type { AppointmentDto } from "../../types/appointment";
 
 /**
- * The clinic's working hours (BA 2026-10-03: "7h - 20h").
+ * The clinic's working hours (BA 2026-10-03: "7h - 20h"; BA 2026-10-16: open
+ * until the end of the day — clinics there work late).
  *
  * There is no shift master data yet; when one lands, this constant is the
  * single place to read it from.
  */
-export const WORKING_HOURS = { startMinute: 7 * 60, endMinute: 20 * 60 } as const;
+export const WORKING_HOURS = { startMinute: 7 * 60, endMinute: 24 * 60 } as const;
 
 const LAST_MINUTE = 24 * 60;
 

@@ -2993,6 +2993,7 @@
     "Appointment:MiniCal:ViewByTime": "View by time",
     "Appointment:MiniCal:NoAppointmentsDay": "No appointments on",
     "Appointment:MiniCal:PlannedSession": "Planned session {0} — not saved yet; it is booked when you press Save",
+    "Appointment:MiniCal:PickSlot": "Pick {0} as the appointment time",
     "Appointment:MiniCal:Customer": "Customer",
     "Appointment:Series:Repeat": "Repeat appointment",
     "Appointment:Series:RuleLabel": "Repeat rule",
