@@ -114,6 +114,8 @@ export interface BookFollowUpInput {
   /** Left out, the follow-up goes to the card's own doctor. */
   dentistId?: string;
   chiefComplaint?: string;
+  /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
+  allowDentistOverlap?: boolean;
 }
 
 /**
@@ -145,6 +147,8 @@ export interface CreateReceptionInput {
   scheduledAt?: string;
   estimatedDurationMinutes?: number;
   overrideBranchId?: string;
+  /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
+  allowDentistOverlap?: boolean;
 }
 
 /** A Team bác sĩ of the org chart whose head is ticked "Bác sĩ". */

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { dayState, weekDays, type DayState } from "../utils/followUpSlots";
+import { dayState, isPickable, weekDays, type DayState } from "../utils/followUpSlots";
 import type { FollowUpPicker } from "../hooks/useFollowUpPicker";
 
 interface FollowUpWeekStripProps {
@@ -55,7 +55,7 @@ export function FollowUpWeekStrip({ picker }: FollowUpWeekStripProps) {
               key={day.valueOf()}
               type="button"
               className={className}
-              disabled={state !== "free"}
+              disabled={!isPickable(state)}
               aria-pressed={selected}
               aria-label={t("Reception:FollowUpPickDay", day.format("DD/MM/YYYY"))}
               onClick={() => picker.handleDaySelect(day)}

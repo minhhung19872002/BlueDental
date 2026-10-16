@@ -4,8 +4,10 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
 
 /**
  * Feature F-65: "Lặp lại lịch hẹn" on Tạo lịch hẹn. The server lays the rule
- * out from the booking's own date, marks every session that cannot be booked
- * ("Trùng lịch") and refuses the whole series while one does. Afterwards each
+ * out from the booking's own date and marks every session that clashes. A
+ * patient clash, a closed shift or a day off refuses the whole series; the
+ * dentist already busy then is only a warning (0002, BA 2026-10-16) that the
+ * user confirms with `allowDentistOverlap`. Afterwards each
  * session reads Đã hẹn / Đổi giờ / Đã đổi lịch / Đã huỷ hẹn / Kết thúc, and a
  * finished one is locked. Real API, a throw-away dentist, a day years out.
  */
@@ -13,6 +15,7 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
 const APPOINTMENTS = "/api/v1/app/appointments";
 const SERIES = "/api/v1/app/appointment-series";
 const SERIES_CONFLICT = "BlueDental:Appointment:0012";
+const DENTIST_OVERLAP = "BlueDental:Appointment:0002";
 const SERIES_TOO_LONG = "BlueDental:Appointment:0013";
 const SESSION_FINISHED = "BlueDental:Appointment:0015";
 
@@ -145,7 +148,47 @@ test.describe("Lặp lại lịch hẹn — API", () => {
     expect(await dentistBookings(page, day, plusDays(day, 7 * 61))).toHaveLength(0);
   });
 
-  test("one clash refuses the whole series: Trùng lịch on that session, nothing stored", async ({ page }) => {
+  test("the dentist busy on one session only warns: 0002 names it, the confirmed resend books all six", async ({ page }) => {
+    const day = farDay();
+    const third = plusDays(day, 14);
+    // A walk-in hold with no patient record, so only the dentist clashes.
+    const taken = await call<{ id: string }>(page, `${APPOINTMENTS}/temp`, {
+      method: "POST",
+      branchId,
+      json: {
+        patientName: `E2E LAP LAI ${runId()}`, patientPhone: `09${runId().padStart(8, "0").slice(-8)}`,
+        dentistId: dentist.id, branchId, slotStart: at(third, "09:15"), slotEnd: at(third, "09:45"),
+      },
+    });
+    expect(taken.status, JSON.stringify(taken.body.error)).toBe(200);
+    bookings.push(taken.body.id);
+
+    const input = weekly(day, "09:00", "09:30");
+    const preview = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: input });
+    expect(preview.body.sessions.map((s) => s.state))
+      .toEqual([State.Free, State.Free, State.Conflict, State.Free, State.Free, State.Free]);
+    expect(preview.body.sessions[2].conflictReason).toBe(Reason.DentistBusy);
+
+    const warned = await call<Series>(page, SERIES, { method: "POST", branchId, json: input });
+    expect(warned.status).not.toBe(200);
+    expect(warned.body.error?.code).toBe(DENTIST_OVERLAP);
+    const [, mm, dd] = third.split("-");
+    expect(warned.body.error?.message).toContain(`${dd}/${mm} 09:00–09:30`);
+    const before = await dentistBookings(page, day, plusDays(day, 36));
+    expect(before.filter((a) => a.seriesId)).toHaveLength(0);
+
+    const created = await call<Series>(page, SERIES, {
+      method: "POST", branchId, json: { ...input, allowDentistOverlap: true },
+    });
+    expect(created.status, JSON.stringify(created.body.error)).toBe(200);
+    bookings.push(...created.body.sessions.map((s) => s.appointmentId!));
+    expect(created.body.sessions).toHaveLength(6);
+
+    const stored = await dentistBookings(page, day, plusDays(day, 36));
+    expect(stored.filter((a) => a.seriesId === created.body.id)).toHaveLength(6);
+  });
+
+  test("a patient clash still refuses the whole series, even confirmed: nothing stored", async ({ page }) => {
     const day = farDay();
     const third = plusDays(day, 14);
     const single = await call<{ id: string }>(page, APPOINTMENTS, {
@@ -158,25 +201,31 @@ test.describe("Lặp lại lịch hẹn — API", () => {
 
     const input = weekly(day, "09:00", "09:30");
     const preview = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: input });
-    expect(preview.body.sessions.map((s) => s.state))
-      .toEqual([State.Free, State.Free, State.Conflict, State.Free, State.Free, State.Free]);
-    expect(preview.body.sessions[2].conflictReason).toBe(Reason.DentistBusy);
+    expect(preview.body.sessions[2].state).toBe(State.Conflict);
+    expect(preview.body.sessions[2].conflictReason).toBe(Reason.PatientBusy);
 
-    const refused = await call<Series>(page, SERIES, { method: "POST", branchId, json: input });
-    expect(refused.status).not.toBe(200);
-    expect(refused.body.error?.code).toBe(SERIES_CONFLICT);
-    // The Vietnamese wording ("Bác sĩ đã có lịch bị trùng…") is checked on the toast in the UI spec.
+    for (const json of [input, { ...input, allowDentistOverlap: true }]) {
+      const refused = await call<Series>(page, SERIES, { method: "POST", branchId, json });
+      expect(refused.status).not.toBe(200);
+      expect(refused.body.error?.code).toBe(SERIES_CONFLICT);
+    }
 
     const stored = await dentistBookings(page, day, plusDays(day, 36));
     expect(stored.map((a) => a.id)).toEqual([single.body.id]);
   });
 
-  test("lunch time clashes with the shift on every session", async ({ page }) => {
-    const preview = await call<Series>(page, `${SERIES}/preview`, {
-      method: "POST", branchId, json: weekly(farDay(), "12:15", "12:45", 3),
-    });
+  test("lunch time clashes with the shift on every session, and confirming does not get past it", async ({ page }) => {
+    const day = farDay();
+    const input = weekly(day, "12:15", "12:45", 3);
+    const preview = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: input });
     expect(preview.status).toBe(200);
     expect(preview.body.sessions.map((s) => s.conflictReason)).toEqual(Array(3).fill(Reason.OutsideShift));
+
+    const refused = await call<Series>(page, SERIES, {
+      method: "POST", branchId, json: { ...input, allowDentistOverlap: true },
+    });
+    expect(refused.body.error?.code).toBe(SERIES_CONFLICT);
+    expect(await dentistBookings(page, day, plusDays(day, 15))).toHaveLength(0);
   });
 
   test("sessions read Đổi giờ / Đã đổi lịch / Đã huỷ hẹn / Kết thúc, and a finished one is locked", async ({ page }) => {

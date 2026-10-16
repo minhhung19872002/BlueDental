@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, freeSlot, login, runId } from "./fixtures/auth";
+import { call, clinicToday, createRunStaff, deleteStaff } from "./fixtures/timekeepingStaff";
 
 /**
  * Feature: "Tạo lịch hẹn" — the booking dialog on a patient's Lịch hẹn tab.
@@ -447,5 +448,83 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await page.reload();
     row = await findRow(page, reason);
     await expect(row).toContainText("Đã hẹn");
+  });
+  test("Bác sĩ on the card: a doctor already busy then warns, Hủy keeps the old one, Xác nhận moves it", async ({ page }) => {
+    test.setTimeout(120_000);
+    const BRANCH = "11111111-1111-1111-1111-111111111111";
+    const APPOINTMENTS = "/api/v1/app/appointments";
+    const run = `${runId()}${test.info().workerIndex}`;
+    // The picker shows "surname name", so the run-unique given name is what it is matched on.
+    const firstName = `BSDau${run}`;
+    const secondName = `BSSau${run}`;
+    const first = await createRunStaff(page, BRANCH, `pa${run}`, { name: firstName, isDentist: true });
+    const second = await createRunStaff(page, BRANCH, `pb${run}`, { name: secondName, isDentist: true });
+    const booked: string[] = [];
+
+    try {
+      // A patient of the run's own, so the card shows this booking and no other.
+      const patient = await call<{ id: string }>(page, "/api/v1/app/patients", {
+        method: "POST",
+        branchId: BRANCH,
+        json: {
+          firstName: "Trùng", lastName: `Giờ E2E ${run}`, gender: 1,
+          phoneNumber: `09${String(Date.now()).slice(-8)}`, dateOfBirth: "1990-05-05",
+        },
+      });
+      expect(patient.status, JSON.stringify(patient.body)).toBe(200);
+
+      const date = new Date(`${clinicToday()}T00:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + 400 + Math.floor(Math.random() * 4000));
+      const day = date.toISOString().slice(0, 10);
+      const slot = { slotStart: new Date(`${day}T09:00:00+07:00`).toISOString(), slotEnd: new Date(`${day}T09:30:00+07:00`).toISOString() };
+
+      const visit = await call<{ id: string }>(page, APPOINTMENTS, {
+        method: "POST", branchId: BRANCH,
+        json: { patientId: patient.body.id, dentistId: first.id, branchId: BRANCH, type: 2, ...slot },
+      });
+      expect(visit.status, JSON.stringify(visit.body)).toBe(200);
+      booked.push(visit.body.id);
+      // The second doctor already holds a walk-in then.
+      const hold = await call<{ id: string }>(page, `${APPOINTMENTS}/temp`, {
+        method: "POST", branchId: BRANCH,
+        json: { patientName: `E2E GIU CHO ${run}`, patientPhone: `09${String(Date.now() + 7).slice(-8)}`, dentistId: second.id, branchId: BRANCH, ...slot },
+      });
+      expect(hold.status, JSON.stringify(hold.body)).toBe(200);
+      booked.push(hold.body.id);
+
+      const dentistOf = async () =>
+        (await call<{ dentistId: string }>(page, `${APPOINTMENTS}/${visit.body.id}`, { branchId: BRANCH })).body.dentistId;
+
+      await page.goto(`/patient/${patient.body.id}?branchId=${BRANCH}&tab=profile`);
+      const picker = page.locator(".pd-appt-doctor-picker");
+      await expect(picker.locator(".ss-value")).toContainText(firstName);
+      const pickSecond = async () => {
+        await picker.locator(".ss-wrapper").click();
+        await page.locator("#ss-portal-dropdown .ss-option").filter({ hasText: secondName }).first().click();
+      };
+
+      await pickSecond();
+      const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
+      await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 09:00–09:30.");
+      await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+
+      // Hủy: the old doctor is back on the card and on the server.
+      await warning.getByRole("button", { name: "Hủy", exact: true }).click();
+      await expect(warning).toBeHidden();
+      await expect(picker.locator(".ss-value")).toContainText(firstName);
+      expect(await dentistOf()).toBe(first.id);
+
+      // Xác nhận: moved, and still so after a reload.
+      await pickSecond();
+      await warning.getByRole("button", { name: /Xác nhận$/ }).click();
+      await expect(warning).toBeHidden();
+      await expect.poll(dentistOf).toBe(second.id);
+      await page.reload();
+      await expect(picker.locator(".ss-value")).toContainText(secondName);
+    } finally {
+      for (const id of booked) await call(page, `${APPOINTMENTS}/${id}`, { method: "DELETE", branchId: BRANCH });
+      await deleteStaff(page, first.id);
+      await deleteStaff(page, second.id);
+    }
   });
 });

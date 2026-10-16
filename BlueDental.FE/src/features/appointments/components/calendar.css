@@ -2301,6 +2301,10 @@ body.cal-fullscreen .cal-grid-wrap {
 .appt-series-row--conflict { background: var(--bd-red-pale); color: var(--bd-red-dark); }
 .appt-series-row--conflict:hover { background: var(--bd-red-pale); border-color: var(--bd-red); }
 
+/* The dentist already has a visit then: a warning, the series can still be saved. */
+.appt-series-row--overlap { background: var(--bd-orange-pale); color: var(--bd-orange); }
+.appt-series-row--overlap:hover { background: var(--bd-orange-pale); border-color: var(--bd-orange-line); }
+
 .appt-series-row--finished { color: var(--bd-faint); }
 
 .appt-series-index { font-size: 12px; color: var(--bd-faint); text-align: right; }
@@ -2317,6 +2321,7 @@ body.cal-fullscreen .cal-grid-wrap {
 
 .appt-series-state--free { background: var(--bd-green-pale); color: var(--bd-green); }
 .appt-series-state--conflict { background: var(--bd-red); color: var(--bd-white, #fff); }
+.appt-series-state--overlap { background: var(--bd-orange); color: var(--bd-white, #fff); }
 .appt-series-state--booked { background: var(--bd-blue-pale); color: var(--bd-blue); }
 .appt-series-state--timeChanged { background: var(--bd-amber-pale); color: var(--bd-amber); }
 .appt-series-state--rescheduled { background: var(--bd-info-pale); color: var(--bd-info); }

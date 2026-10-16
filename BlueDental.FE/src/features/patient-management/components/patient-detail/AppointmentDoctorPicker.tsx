@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { toast } from "sonner";
+import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
+import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
@@ -34,10 +36,13 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
   }, [dentists.data, appointment.doctorId, appointment.doctorName]);
   const update = useUpdateAppointment(appointment.id);
   const [pending, setPending] = useState<string>();
+  const overlap = useDentistOverlapConfirm();
 
   const value = pending ?? appointment.doctorId;
 
-  const change = async (doctorId?: string) => {
+  // The new doctor already holding a visit then is only a warning: the picker
+  // shows them while the user decides, Hủy puts the old one back.
+  const change = async (doctorId?: string, allowDentistOverlap = false) => {
     if (!doctorId || doctorId === appointment.doctorId) return;
     setPending(doctorId);
 
@@ -49,23 +54,29 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
         reason: appointment.reason ?? undefined,
         notes: appointment.notes ?? undefined,
         color: appointment.color ?? undefined,
+        allowDentistOverlap,
       });
       toast.success(t("Patient:DoctorChangedSuccess"));
       onChanged();
     } catch (error) {
-      setPending(undefined);
+      const reset = () => setPending(undefined);
+      if (overlap.intercept(error, () => void change(doctorId, true), reset)) return;
+      reset();
       notifyError(extractApiError(error));
     }
   };
 
   return (
-    <FloatingLabel label={t("Patient:DoctorLabel")} floated={Boolean(value)} className="pd-appt-doctor-picker">
-      <SearchSelect
-        value={value}
-        options={options}
-        emptyText={t("Patient:DoctorNotFound")}
-        onChange={(doctorId) => void change(doctorId)}
-      />
-    </FloatingLabel>
+    <>
+      <FloatingLabel label={t("Patient:DoctorLabel")} floated={Boolean(value)} className="pd-appt-doctor-picker">
+        <SearchSelect
+          value={value}
+          options={options}
+          emptyText={t("Patient:DoctorNotFound")}
+          onChange={(doctorId) => void change(doctorId)}
+        />
+      </FloatingLabel>
+      <DentistOverlapDialog {...overlap.dialog} />
+    </>
   );
 }

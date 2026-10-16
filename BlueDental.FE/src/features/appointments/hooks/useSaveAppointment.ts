@@ -12,8 +12,11 @@ export function slotOf(data: Pick<AppointmentEditorValues, "date" | "startTime" 
 }
 
 interface SaveAppointment {
-  /** Resolves once the server has it; rejects if the server refused. */
-  save: (data: AppointmentEditorValues) => Promise<void>;
+  /**
+   * Resolves once the server has it; rejects if the server refused.
+   * `allowDentistOverlap` once the user confirmed the overlap warning.
+   */
+  save: (data: AppointmentEditorValues, allowDentistOverlap?: boolean) => Promise<void>;
   saving: boolean;
 }
 
@@ -26,7 +29,7 @@ export function useSaveAppointment(appointmentId?: string | null): SaveAppointme
   const create = useCreateAppointment();
   const update = useUpdateAppointment(appointmentId ?? "");
 
-  const save = async (data: AppointmentEditorValues) => {
+  const save = async (data: AppointmentEditorValues, allowDentistOverlap = false) => {
     const { startTime, endTime } = slotOf(data);
 
     if (!appointmentId) {
@@ -39,6 +42,7 @@ export function useSaveAppointment(appointmentId?: string | null): SaveAppointme
         reason: data.content || undefined,
         color: data.color || undefined,
         notes: data.notes || undefined,
+        allowDentistOverlap,
       });
       return;
     }
@@ -52,6 +56,7 @@ export function useSaveAppointment(appointmentId?: string | null): SaveAppointme
       notes: data.notes,
       status: data.status,
       cancelNote: data.status === "cancelled" ? data.cancelNote.trim() : undefined,
+      allowDentistOverlap,
     });
   };
 

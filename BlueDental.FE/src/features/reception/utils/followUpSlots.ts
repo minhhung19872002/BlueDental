@@ -59,6 +59,14 @@ export function slotAt(day: Dayjs, time: string): Dayjs {
 
 export type SlotState = "free" | "busy" | "past";
 
+/**
+ * Only the past is out of reach. A slot the doctor already has a visit in may
+ * still be booked; the server asks the user to confirm the overlap (BA 2026-10-16).
+ */
+export function isPickable(state: SlotState | DayState): boolean {
+  return state !== "past";
+}
+
 export function slotState(day: Dayjs, time: string, busy: BusySpan[], now: number): SlotState {
   const start = slotAt(day, time).valueOf();
   if (start < now) return "past";

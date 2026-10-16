@@ -5,8 +5,9 @@ import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from ".
 /**
  * Feature F-65: "Lặp lại lịch hẹn" in Tạo lịch hẹn, through the real dialog.
  * Ticking the box lays out "Danh sách buổi hẹn" from Ngày hẹn, a row click
- * shows that session in Lịch đã hẹn, and "Lưu N lịch hẹn" books them all — or,
- * while one row reads Trùng lịch, nothing at all. Real stack: a throw-away
+ * shows that session in Lịch đã hẹn, and "Lưu N lịch hẹn" books them all. A
+ * row where the dentist is already busy only warns (Xác nhận / Hủy, BA
+ * 2026-10-16); a Trùng lịch row books nothing. Real stack: a throw-away
  * dentist, a day years out, no interception.
  */
 
@@ -158,19 +159,17 @@ test.describe("Lặp lại lịch hẹn — hộp thoại Tạo lịch hẹn", (
     await expect(page.getByRole("row", { name: new RegExp(reason) })).toHaveCount(6, { timeout: 15_000 });
   });
 
-  test("one Trùng lịch row: red with its reason, and Lưu books nothing", async ({ page }) => {
+  test("the dentist already busy on one row: orange Trùng giờ bác sĩ, Lưu warns, Hủy books nothing, Xác nhận books all six", async ({ page }) => {
     const day = farDay();
-    const patients = await call<{ items: { id: string }[] }>(
-      page, `/api/v1/app/patients?MaxResultCount=1&ClinicBranchId=${branchId}`, { branchId },
-    );
-    // The dentist is already booked at 09:00 on the second week.
-    const taken = await call<{ id: string }>(page, APPOINTMENTS, {
+    // The dentist already holds 09:00 on the second week — a walk-in hold with
+    // no patient record, so only the dentist clashes, never the picked patient.
+    const taken = await call<{ id: string }>(page, `${APPOINTMENTS}/temp`, {
       method: "POST",
       branchId,
       json: {
-        patientId: patients.body.items[0].id, dentistId: dentist.id, branchId, type: 2,
+        patientName: `E2E LAP LAI UI ${runId()}`, patientPhone: `09${runId().padStart(8, "0").slice(-8)}`,
+        dentistId: dentist.id, branchId,
         slotStart: at(plusDays(day, 7), "09:00"), slotEnd: at(plusDays(day, 7), "09:30"),
-        chiefComplaint: `e2e-laplai-chan-${runId()}`,
       },
     });
     expect(taken.status, JSON.stringify(taken.body)).toBe(200);
@@ -178,18 +177,36 @@ test.describe("Lặp lại lịch hẹn — hộp thoại Tạo lịch hẹn", (
     const dialog = await openRepeating(page, day, `Lặp lại trùng E2E ${runId()}`);
     const rows = dialog.locator(".appt-series-row");
     await expect(rows).toHaveCount(6, { timeout: 15_000 });
-    await expect(rows.nth(1)).toHaveClass(/appt-series-row--conflict/);
-    await expect(rows.nth(1)).toContainText("Trùng lịch");
-    await expect(dialog.locator(".appt-series-row--conflict")).toHaveCount(1);
+    await expect(rows.nth(1)).toHaveClass(/appt-series-row--overlap/);
+    await expect(rows.nth(1)).toContainText("Trùng giờ bác sĩ");
+    await expect(dialog.locator(".appt-series-row--overlap")).toHaveCount(1);
+    await expect(dialog.locator(".appt-series-row--conflict")).toHaveCount(0);
 
     await rows.nth(1).locator(".appt-series-state").hover();
     await expect(page.getByRole("tooltip")).toContainText("Bác sĩ đã có lịch hẹn khác trong khung giờ này");
 
-    await dialog.getByRole("button", { name: "Lưu 6 lịch hẹn" }).click();
-    await expect(page.getByText("Bác sĩ đã có lịch bị trùng, không thể tạo lịch hẹn").first()).toBeVisible();
+    const save = dialog.getByRole("button", { name: "Lưu 6 lịch hẹn" });
+    await save.click();
+    const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
+    await expect(warning).toContainText(`Bác sĩ đã có lịch hẹn trong khung giờ ${vnDate(plusDays(day, 7)).slice(0, 5)} 09:00–09:30.`);
+    await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+
+    // Hủy: back to the form, nothing booked.
+    await warning.getByRole("button", { name: "Hủy" }).click();
+    await expect(warning).toBeHidden();
     await expect(dialog).toBeVisible();
+    expect((await dentistBookings(page)).map((b) => b.id), "only the hold that was already there").toEqual([taken.body.id]);
+
+    // Xác nhận: all six, the clashing one included.
+    await save.click();
+    await warning.getByRole("button", { name: "Xác nhận" }).click();
+    await expect(page.getByText("Đã tạo 6 lịch hẹn")).toBeVisible();
+    await expect(dialog).toBeHidden();
 
     const stored = await dentistBookings(page);
-    expect(stored.map((b) => b.id), "only the booking that was already there").toEqual([taken.body.id]);
+    const series = stored.filter((b) => b.seriesId);
+    expect(series).toHaveLength(6);
+    expect(series.map((b) => new Date(b.slotStart).toISOString()).sort())
+      .toEqual([0, 7, 14, 21, 28, 35].map((d) => at(plusDays(day, d), "09:00")));
   });
 });

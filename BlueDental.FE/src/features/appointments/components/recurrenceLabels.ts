@@ -14,6 +14,7 @@ export const ISO_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 export const STATE_LABEL_KEY: Record<SeriesSessionState, string> = {
   free: "Appointment:Series:State:Free",
   conflict: "Appointment:Series:State:Conflict",
+  overlap: "Appointment:Series:State:Overlap",
   booked: "Appointment:Series:State:Booked",
   timeChanged: "Appointment:Series:State:TimeChanged",
   rescheduled: "Appointment:Series:State:Rescheduled",

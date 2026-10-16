@@ -8,6 +8,7 @@ import {
   dayOf,
   getAppointment,
   openBoard,
+  type ApiResult,
   type Appointment,
 } from "./fixtures/receptionBoard";
 
@@ -273,17 +274,18 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     expect(taken.status, JSON.stringify(taken.body.error)).toBe(200);
     expect(taken.body.dentistId).toBe(visit.dentistId);
 
-    // Moving off Hẹn tái khám would take the slot back — refused now it is taken.
+    // Moving off Hẹn tái khám takes the slot back even though it is taken now:
+    // the visit already happened, and a doubled dentist is only a warning
+    // when booking (BA 2026-10-16), never a reason to refuse an outcome.
     const back = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/set-outcome`, {
       method: "POST",
       json: { outcome: OUTCOME.EndTreatment },
     });
-    expect(back.status).toBeGreaterThanOrEqual(400);
-    expect(back.body.error?.code).toBe("BlueDental:Appointment:0002");
-    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.Revisit);
+    expect(back.status, JSON.stringify(back.body.error)).toBe(200);
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.EndTreatment);
   });
 
-  test("the doctor's booked slots cannot be picked", async ({ page }) => {
+  test("the doctor's booked slots are marked, and booking one asks first", async ({ page }) => {
     const branchId = await openBoard(page);
     const visit = await bookVisitToday(page, branchId, 120);
 
@@ -312,17 +314,39 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
     await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
 
-    await expect(panel.getByRole("button", { name: "08:00", exact: true })).toBeDisabled();
+    // Marked busy but still pickable; the quick pick itself skips it.
+    const busySlot = panel.getByRole("button", { name: "08:00", exact: true });
+    await expect(busySlot).toBeEnabled();
+    await expect(busySlot).toHaveClass(/fu-slot--busy/);
     await expect(panel.locator(".fu-slot[aria-pressed='true']")).not.toHaveText("08:00");
 
-    // The server refuses the same slot even if the page were to send it.
-    const refused = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/follow-up`, {
+    // Without the user's say-so the server only warns, and books nothing.
+    const warned = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/follow-up`, {
       method: "POST",
       json: { slotStart: blockStart.toISOString(), slotEnd: new Date(blockStart.getTime() + 30 * 60_000).toISOString() },
     });
-    expect(refused.status).toBeGreaterThanOrEqual(400);
-    expect(refused.body.error?.code).toBe("BlueDental:Appointment:0002");
+    expect(warned.status).toBeGreaterThanOrEqual(400);
+    expect(warned.body.error?.code).toBe("BlueDental:Appointment:0002");
     expect((await getAppointment(page, branchId, visit.id)).outcome).toBeNull();
+
+    await busySlot.click();
+    await expect(busySlot).toHaveAttribute("aria-pressed", "true");
+    const confirm = panel.getByRole("button", { name: "Xác nhận hẹn tiếp" });
+    await confirm.click();
+    const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
+    await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 08:00–");
+
+    // Hủy keeps the pick open to choose another time.
+    await warning.getByRole("button", { name: "Hủy", exact: true }).click();
+    await expect(warning).toBeHidden();
+    await expect(busySlot).toHaveAttribute("aria-pressed", "true");
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBeNull();
+
+    // Xác nhận books it anyway.
+    await confirm.click();
+    await warning.getByRole("button", { name: /Xác nhận$/ }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.FollowUp);
   });
 
   test("a visit gets one live follow-up, and only inside its branch", async ({ page, browser }) => {

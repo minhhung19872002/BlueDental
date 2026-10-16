@@ -201,6 +201,7 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     chiefComplaint: request.reason,
     color: request.color,
     notes: request.notes,
+    allowDentistOverlap: request.allowDentistOverlap,
   };
 }
 
@@ -216,6 +217,7 @@ export function toCreateTempRequest(request: CreateTempAppointmentRequest): Reco
     sourceEntryId: request.sourceEntryId || undefined,
     color: request.color || undefined,
     notes: request.notes || undefined,
+    allowDentistOverlap: request.allowDentistOverlap,
   };
 }
 
@@ -234,5 +236,6 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     patientPhone: request.patientPhone,
     sourceTaxonomyId: request.sourceTaxonomyId || undefined,
     sourceEntryId: request.sourceEntryId || undefined,
+    allowDentistOverlap: request.allowDentistOverlap,
   };
 }

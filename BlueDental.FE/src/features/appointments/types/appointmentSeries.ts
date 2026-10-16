@@ -51,6 +51,8 @@ export const DEFAULT_RECURRENCE: RecurrenceValues = {
 export type SeriesSessionState =
   | "free"
   | "conflict"
+  /** The dentist already has a visit then: warned about, not refused (BA 2026-10-16). */
+  | "overlap"
   | "booked"
   | "timeChanged"
   | "rescheduled"
