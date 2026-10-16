@@ -122,6 +122,36 @@ function markGridCells(root: Element) {
   });
 }
 
+/**
+ * The space the forms were drawn with, taken in (clinic, 2026-10-16: "gọn như
+ * mẫu 5"): a paragraph holding nothing — no words, blanks, boxes or pictures —
+ * is only a gap, and is marked so the stylesheet can close it up; a title's
+ * (or a section heading's) leading and trailing line breaks go. The cover is left as drawn: its frame
+ * is a fixed page and the title sits in it by those gaps.
+ */
+function closeUpGaps(root: Element) {
+  root.querySelectorAll("p").forEach((paragraph) => {
+    if (paragraph.closest("[data-cover]")) return;
+    if ((paragraph.textContent ?? "").trim()) return;
+    if (paragraph.querySelector(`${FIELD_SELECTOR}, input, img, svg`)) return;
+    paragraph.setAttribute("data-spacer", "true");
+  });
+
+  root.querySelectorAll("h1, h2").forEach((title) => {
+    if (title.closest("[data-cover]")) return;
+    const walker = title.ownerDocument.createTreeWalker(title, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    const sequence: Node[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.nodeName === "BR" || (node.nodeType === Node.TEXT_NODE && node.nodeValue?.trim())) sequence.push(node);
+    }
+    const firstText = sequence.findIndex((node) => node.nodeName !== "BR");
+    const lastText = sequence.length - 1 - [...sequence].reverse().findIndex((node) => node.nodeName !== "BR");
+    sequence.forEach((node, at) => {
+      if (node.nodeName === "BR" && (firstText === -1 || at < firstText || at > lastText)) node.parentNode?.removeChild(node);
+    });
+  });
+}
+
 /** The filled body of one record, ready to be dropped into the sheet frame. */
 export function renderSheetHtml(template: string, options: RenderOptions): string {
   const parsed = new DOMParser().parseFromString(`<div>${template}</div>`, "text/html");
@@ -133,6 +163,7 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
   applyStoredRows(root, options.stored);
   applyStoredLines(root, options.stored);
   markGridCells(root);
+  closeUpGaps(root);
   fillFields(root, options);
   fillTokens(root, { ...options.auto, ...options.stored });
   return root.innerHTML;

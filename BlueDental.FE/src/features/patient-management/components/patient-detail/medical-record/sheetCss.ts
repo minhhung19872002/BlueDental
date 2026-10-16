@@ -68,18 +68,22 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl table[data-record-section="consultation-detail"] th{font-weight:normal;text-align:center}
 .nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:1.2}
 /* All nine forms, after mẫu 5 (clinic, 2026-10-16):
-   - each prints at the largest type that keeps its page count, measured
-     through the app's own print path (docs/testing/03-regression-log.md
-     R-969); the section headings at the body's size;
+   - each prints at the largest type (17px at most) whose every page fits
+     its sheet of A4 with a few mm to spare, measured through the app's own
+     print path (docs/testing/03-regression-log.md R-970); the section
+     headings at the body's size;
    - a heading right above a table sits close to it, and a grid's rows hold
      one text line;
    - a blank in a grid cell prints with no dotted line — the cell's borders
      already say where to write. renderSheet marks those cells; a table that
      only lays the page out is not one, and its blanks keep the line. */
-.nfc-tpl[data-form="1"],.nfc-tpl[data-form="3"],.nfc-tpl[data-form="5"],.nfc-tpl[data-form="8"]{font-size:16px}
-.nfc-tpl[data-form="6"],.nfc-tpl[data-form="9"]{font-size:15px}
-.nfc-tpl[data-form="4"],.nfc-tpl[data-form="7"]{font-size:14px}
-/* Bệnh án ngoại trú stays at 13px: 14px already adds a fifth page. */
+.nfc-tpl[data-form="1"]{font-size:17px}
+.nfc-tpl[data-form="7"]{font-size:16.5px}
+.nfc-tpl[data-form="4"],.nfc-tpl[data-form="5"],.nfc-tpl[data-form="6"]{font-size:16px}
+.nfc-tpl[data-form="9"]{font-size:15.5px}
+.nfc-tpl[data-form="3"]{font-size:15px}
+.nfc-tpl[data-form="8"]{font-size:14px}
+.nfc-tpl[data-form="2"]{font-size:13.5px}
 .nfc-tpl h2{font-size:1em}
 .nfc-tpl h2 span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl>h2{margin:6px 0 2px}
@@ -88,6 +92,14 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl>:is(p,h2)+table{margin-top:1px}
 .nfc-tpl [data-grid-cell] p,.nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{line-height:1.2;min-height:1.2em}
 .nfc-tpl p[data-record-section="consultation-other"]{padding-left:6px}
+/* Taken in like mẫu 5 (renderSheet marks the gaps): an empty paragraph is a
+   3px gap, a title loses its padding lines, and a paragraph runs at 1.3 —
+   the templates' inline 1.5 included. Grid cells keep their own 1.2 and the
+   cover, a fixed frame, is left as drawn. */
+.nfc-tpl p[data-spacer]{min-height:0;height:3px;margin:0;line-height:0;overflow:hidden}
+.nfc-tpl p[data-spacer]::before{content:none}
+.nfc-tpl h1:not([data-cover] *){margin:10px 0 6px;line-height:1.2!important}
+.nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.3!important}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
 }
@@ -120,7 +132,7 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl table[data-cover] h3{margin:4px 0 0;font-size:18pt;line-height:1.35}
 .nfc-tpl table[data-cover] h4{margin:0;font-size:11pt;line-height:1.45}
 .nfc-tpl table[data-cover] p{margin-bottom:6px;line-height:1.5}
-.nfc-tpl .nfc-medical-record-text-field{display:inline-block;min-width:72px;min-height:1.3em;line-height:1.3;padding:0 3px;white-space:pre-wrap;overflow-wrap:anywhere;border-bottom:1px dotted #000;background:#fffde7;outline:1px dashed #f4b942;vertical-align:baseline}
+.nfc-tpl .nfc-medical-record-text-field{display:inline-block;min-width:72px;min-height:1.2em;line-height:1.2;padding:0 3px;white-space:pre-wrap;overflow-wrap:anywhere;border-bottom:1px dotted #000;background:#fffde7;outline:1px dashed #f4b942;vertical-align:baseline}
 .nfc-tpl .nfc-medical-record-text-field[data-field-full-width="true"]{display:inline-block;width:100%;max-width:none;box-sizing:border-box}
 /* Saved medical-record templates may still carry a large inline min-width.
    Inside table cells, the cell must remain the width boundary. */

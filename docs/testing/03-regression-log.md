@@ -9166,3 +9166,43 @@ Owner: nhãn hiệu to hơn một chút và in đậm; rồi rà soát mọi m�
   - Ca mới "every form shares mẫu 5's type, boxes, letterhead and print rules": 9 mẫu, mỗi mẫu kiểm cỡ chữ, checkbox 12px, nhãn hiệu `font-weight` ≥ 700, khi in ô trong bảng kẻ ô `border-bottom: none` và ô ngoài bảng `dotted`.
   - `patient-medical-record` + `medical-record-drawing` + `treatment-plan`: **41 pass / 2 đỏ có sẵn** (xem R-963).
   - Ca `treatment-plan` "slip survives a reload…" từng đỏ ở R-961, nay xanh.
+
+## R-970 (2026-10-16, mức 2: cả 9 mẫu bệnh án) Gọn như mẫu 5: mỗi trang in vừa một tờ A4, chữ lớn nhất có thể
+
+Owner: "gọn như mẫu 5 hết càng tốt". Mục tiêu: mỗi trang thiết kế (các khối ngăn bởi `<hr>`) in vừa một tờ A4, không tràn sang tờ sau, cỡ chữ lớn nhất có thể.
+
+- **Thu khoảng trống** (`renderSheet.closeUpGaps`, trang bìa giữ nguyên vì là khung cố định):
+  - Đoạn không có chữ, ô, checkbox hay hình được gắn `data-spacer` và chỉ còn cao 3px.
+  - Tiêu đề `h1` bỏ các `<br>` ở đầu và cuối, margin 10px / 6px. Tiêu đề mẫu 3 từng cao 48,7mm.
+- **Chiều cao dòng:** đoạn văn 1.3 (đè cả `line-height` inline 1.5 của template), ô nhập 1.2. Ô bảng kẻ ô giữ 1.2 riêng; bìa không đổi.
+- **Dòng kẻ để viết tay giữ nguyên số lượng.** Trên máy vẫn thêm được dòng bằng Enter.
+- **Cỡ chữ:** tối đa 17px, chừa 3–5mm so với ngưỡng đo được (khoảng 273mm cho mẫu một trang, 280mm cho trang đầu/cuối).
+
+  | Mẫu | Cỡ chữ | Số trang |
+  |---|---|---|
+  | 1 Bìa | 17px | 3 |
+  | 2 Ngoại trú | 13.5px | **3** (trước 4) |
+  | 3 Chỉnh nha | 15px | **4** (trước 5) |
+  | 4 Tư vấn tổng quát | 16px | 1 |
+  | 5 | 16px | 2 |
+  | 6 Giấy đồng ý | 16px | 2 |
+  | 7 Phiếu phẫu thuật | 16.5px | 1 |
+  | 8 Theo dõi điều trị | 14px | **1** (trước 2) |
+  | 9 Chăm sóc | 15.5px | 1 |
+
+- **Chỉnh nhỏ cho khỏi gãy dòng:**
+  - Mẫu 2: ô "Số thẻ BHYT" 250 → 200px.
+  - Mẫu 6: cột MS cố định 185px để "Độc lập - Tự do - Hạnh phúc" nằm một dòng. Mẫu 6 thử 17px thì cột giữa gãy 4 dòng, nên giữ 16px.
+  - Mẫu 9: ô họ tên 320 → 280px, để "Nữ" không rớt dòng.
+- **Nhãn hiệu mẫu 4 và 9 giống các mẫu còn lại** (owner, cùng ngày):
+  - Khối tên / địa chỉ / SĐT chi nhánh (`{{branch.*}}`, lấy theo bản gốc) đổi thành khối chung "Sở Y tế … Nha Khoa Đức Hạnh", 10pt, đậm, cùng markup.
+  - Mẫu 4 vẫn giữ "…, tại {{branch.name}}" trong thân phiếu.
+  - Phần đầu mẫu 9 dựng lại như mẫu 7: hàng trên có nhãn hiệu (357px) | MS / Mã người bệnh căn phải; hàng dưới có tiêu đề 18pt căn giữa và "Điều dưỡng ghi phiếu số". Ô giữ nguyên id. Ba cột trên một hàng như cũ thì quá chật cho khối nhãn hiệu 4 dòng.
+  - Mẫu 9 hạ 16 → 15.5px (267mm). Ở 16px là 272mm, sát ngưỡng 273mm.
+  - `closeUpGaps` cắt `<br>` đầu / cuối cả ở `h2`, không chỉ `h1`.
+- **Đo:** luồng in thật của app ("In biểu mẫu" → PDF), có công cụ đo từng khối, CSS thử chèn tạm, không lưu gì. Ảnh từng trang đã soát; hình ở mẫu 2 chỉ vỡ trong ảnh dựng từ HTML không có base URL, không vỡ trong app.
+- **Test** (bản build :8080 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Ca "every form shares mẫu 5's…" — nhãn hiệu mẫu 4 / 9 giờ kiểm "Phòng khám Chuyên khoa Răng Hàm Mặt" đậm như các mẫu khác. Chạy lại `patient-medical-record` + `medical-record-drawing` sau khi đổi nhãn hiệu: **32 pass / 2 đỏ có sẵn**.
+  - Ca "every form shares mẫu 5's…" thêm: mỗi mẫu được làm trống rồi in qua "In biểu mẫu" → PDF có đúng số trang thiết kế (3, 3, 4, 1, 2, 2, 1, 1, 1); cỡ chữ theo bảng trên.
+  - `window.print` được chặn lại trước mỗi lần in, vì `openFreshSheet` tải lại trang. Lần chạy đầu không chặn lại thì `afterprint` thật gỡ bản chép trước khi PDF kịp xuất.
+  - `patient-medical-record` + `medical-record-drawing` + `treatment-plan`: **40 pass / 2 đỏ có sẵn** (R-963), cộng ca đồng bộ chạy lại sau khi sửa: **1/1**.

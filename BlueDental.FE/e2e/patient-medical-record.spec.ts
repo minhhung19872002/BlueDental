@@ -1344,30 +1344,31 @@ test.describe("Bệnh án", () => {
   });
 
   /**
-   * The other eight forms take mẫu 5's style (clinic, 2026-10-16): each at
-   * the largest type that keeps its printed page count, the paper's 12px
-   * boxes, a bold letterhead, and blanks in a grid cell printed without the
-   * dotted line while those outside keep it. Enter is checked on mẫu 5; it is
-   * the same code on every form.
+   * The other eight forms take mẫu 5's style (clinic, 2026-10-16): taken in
+   * like it, each at the largest type whose every page fits its sheet of A4 —
+   * so each prints exactly the pages it is drawn with, through the app's own
+   * print path — the paper's 12px boxes, a bold letterhead, and blanks in a
+   * grid cell printed without the dotted line while those outside keep it.
+   * Enter is checked on mẫu 5; it is the same code on every form.
    */
   test("every form shares mẫu 5's type, boxes, letterhead and print rules", async ({ page }) => {
     test.slow();
     await openMedicalRecord(page);
 
-    const expected: Array<[string, string, string]> = [
-      ["Bìa hồ sơ bệnh án", "16px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT"],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "13px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
-      ["Bệnh án chỉnh nha", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
-      ["Phiếu Tư Vấn Tổng Quát", "14px", "ĐT:"],
-      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
-      ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
-      ["Phiếu theo dõi điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt"],
-      ["Phiếu chăm sóc", "15px", "ĐT:"],
+    const expected: Array<[string, string, string, number]> = [
+      ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "13.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
+      ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Phiếu phẫu thuật/thủ thuật", "16.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
     ];
-
-    for (const [form, size, letterhead] of expected) {
-      await openSheet(page, form);
+    for (const [form, size, letterhead, pages] of expected) {
+      // Blank, so what other tests wrote on the sheet does not add lines.
+      await openFreshSheet(page, form);
       const document = sheet(page);
       const tpl = document.locator(".nfc-tpl");
       expect(await tpl.evaluate((node) => getComputedStyle(node).fontSize), `${form} · type`).toBe(size);
@@ -1398,6 +1399,21 @@ test.describe("Bệnh án", () => {
       await page.emulateMedia({ media: "screen" });
       if (lines.inGrid !== null) expect(lines.inGrid, `${form} · grid blank on paper`).toBe("none");
       if (lines.outside !== null) expect(lines.outside, `${form} · other blank on paper`).toBe("dotted");
+
+      // Every page fits its sheet of A4: the print job has exactly the pages the form is drawn with.
+      // "In biểu mẫu" copies the sheet into the page and opens the print dialog; the dialog is
+      // skipped (again for each form — opening a fresh sheet reloads the page).
+      await page.evaluate(() => {
+        window.print = () => undefined;
+      });
+      await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+      await page.waitForTimeout(800);
+      await page.emulateMedia({ media: "print" });
+      const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+      await page.emulateMedia({ media: "screen" });
+      await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+      const printed = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+      expect(printed, `${form} · printed pages`).toBe(pages);
     }
   });
 
