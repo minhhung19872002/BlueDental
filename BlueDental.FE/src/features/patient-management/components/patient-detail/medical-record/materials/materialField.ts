@@ -135,7 +135,6 @@ export function showMaterials(
   add.setAttribute(ACTION_ATTR, "add");
   add.setAttribute("aria-label", t("Patient:MedRecord:Material:Add"));
   add.setAttribute("data-tooltip", t("Patient:MedRecord:Material:Add"));
-  add.textContent = "+";
   node.append(add);
 }
 

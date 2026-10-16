@@ -96,9 +96,11 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl [hidden]{display:none!important}
 /* "Loại" on mẫu 5 (materials/materialField): the types of Danh mục as boxes in
    a row, a round ⊕ after them; a double click on a type corrects it. */
-.nfc-tpl .nfc-material-field{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 14px}
+.nfc-tpl .nfc-material-field{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 14px;vertical-align:middle}
 .nfc-tpl .nfc-material-option{display:inline-flex;align-items:center;gap:2px;cursor:pointer;user-select:none;white-space:nowrap}
-.nfc-tpl .nfc-material-add{position:relative;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;padding:0;border:1.5px solid #334155;border-radius:50%;background:#fff;color:#334155;font:600 15px/1 system-ui,-apple-system,'Segoe UI',sans-serif;cursor:pointer}
+/* The + inside is drawn, not typed: a "+" glyph sits on the font's math axis,
+   below the circle's middle, and shifts with the font. */
+.nfc-tpl .nfc-material-add{position:relative;display:inline-block;box-sizing:border-box;width:20px;height:20px;padding:0;border:1.5px solid #334155;border-radius:50%;background:linear-gradient(currentColor,currentColor) center/9px 1.5px no-repeat,linear-gradient(currentColor,currentColor) center/1.5px 9px no-repeat,#fff;color:#334155;cursor:pointer}
 .nfc-tpl .nfc-material-add:hover,.nfc-tpl .nfc-material-add:focus-visible{border-color:#2671d8;color:#2671d8}
 .nfc-tpl .nfc-material-add[data-tooltip]::after{content:attr(data-tooltip);position:absolute;top:calc(100% + 6px);left:0;z-index:2;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.85);color:#fff;font:400 12px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s}
 .nfc-tpl .nfc-material-add[data-tooltip]:hover::after,.nfc-tpl .nfc-material-add[data-tooltip]:focus-visible::after{opacity:1}
