@@ -19,6 +19,7 @@ const INDEFINITE = 3;
 interface Staff {
   id: string;
   position: string | null;
+  jobTitle: string | null;
   practiceCertificateNumber: string | null;
   practiceCertificateIssuedOn: string | null;
   practiceCertificateIssuedPlace: string | null;
@@ -56,6 +57,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
     const position = `Bác sĩ chính ${id}`;
     const created = await createStaff(page, id, {
       position: `  ${position}  `,
+      jobTitle: `  Bác sĩ chuyên khoa I ${id}  `,
       practiceCertificateNumber: `CCHN-${id}`,
       practiceCertificateIssuedOn: "2020-05-12",
       practiceCertificateIssuedPlace: "Sở Y tế TP.HCM",
@@ -68,6 +70,8 @@ test.describe("Hồ sơ công việc nhân viên", () => {
     try {
       const read = (await call<Staff>(page, `${STAFF}/${staffId}`)).body;
       expect(read.position).toBe(position);
+      // Chức danh — printed on the medical records (clinic, 2026-10-16).
+      expect(read.jobTitle).toBe(`Bác sĩ chuyên khoa I ${id}`);
       expect(read.practiceCertificateNumber).toBe(`CCHN-${id}`);
       expect(read.practiceCertificateIssuedOn).toBe("2020-05-12");
       expect(read.practiceCertificateIssuedPlace).toBe("Sở Y tế TP.HCM");
@@ -110,6 +114,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
       expect(after.contractEndDate).toBeNull();
       expect(after.practiceCertificateNumber).toBeNull();
       expect(after.position).toBe(position);
+      expect(after.jobTitle).toBe(`Bác sĩ chuyên khoa I ${id}`);
     } finally {
       await call(page, `${STAFF}/${staffId}`, { method: "DELETE" });
     }
@@ -132,6 +137,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
       await expect(dialog.getByText("Hồ sơ công việc")).toBeVisible();
 
       await dialog.getByLabel("Chức vụ").fill(`Phụ tá trưởng ${id}`);
+      await dialog.getByLabel("Chức danh").fill(`Thạc sĩ ${id}`);
       await dialog.getByLabel("Loại hợp đồng").click();
       await page.locator('.ant-select-item-option[title="Có thời hạn"]').click();
       await dialog.getByLabel("Ngày bắt đầu hợp đồng").fill("01/10/2026");
@@ -149,6 +155,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
 
       const saved = (await call<Staff>(page, `${STAFF}/${staffId}`)).body;
       expect(saved.position).toBe(`Phụ tá trưởng ${id}`);
+      expect(saved.jobTitle).toBe(`Thạc sĩ ${id}`);
       expect(saved.contractType).toBe(2);
       expect([saved.contractStartDate, saved.contractEndDate]).toEqual(["2026-10-01", "2027-09-30"]);
       expect(saved.practiceCertificateNumber).toBe(`CCHN-${id}`);
@@ -158,6 +165,7 @@ test.describe("Hồ sơ công việc nhân viên", () => {
       await row.getByRole("button").first().click();
       const reopened = page.getByRole("dialog");
       await expect(reopened.getByLabel("Chức vụ")).toHaveValue(`Phụ tá trưởng ${id}`);
+      await expect(reopened.getByLabel("Chức danh")).toHaveValue(`Thạc sĩ ${id}`);
       await expect(reopened.getByLabel("Ngày kết thúc hợp đồng")).toHaveValue("30/09/2027");
       await expect(reopened.getByText("Có thời hạn")).toBeVisible();
     } finally {

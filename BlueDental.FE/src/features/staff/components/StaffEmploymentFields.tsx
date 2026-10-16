@@ -9,7 +9,9 @@ const DATE_FORMAT = "DD/MM/YYYY";
 /**
  * Cụm 11 mục 1 — "Hồ sơ công việc" on the staff dialog: chức vụ, chứng chỉ
  * hành nghề and hợp đồng. Chức vụ is typed freely and suggests the ones the
- * clinic already uses; the server checks the dates hold together.
+ * clinic already uses; the server checks the dates hold together. Chức danh
+ * is the professional title the medical records print beside the doctor's
+ * name (clinic, 2026-10-16).
  */
 export function StaffEmploymentFields() {
   const { data: positions = [] } = useStaffPositions();
@@ -29,6 +31,11 @@ export function StaffEmploymentFields() {
           </FloatingField>
         </Col>
         <Col xs={24} sm={12}>
+          <FloatingField name="jobTitle" label={t("Staff:JobTitle")}>
+            <Input maxLength={100} />
+          </FloatingField>
+        </Col>
+        <Col xs={24} sm={8}>
           <FloatingField name="contractType" label={t("Staff:ContractType")}>
             <Select
               allowClear
@@ -36,12 +43,12 @@ export function StaffEmploymentFields() {
             />
           </FloatingField>
         </Col>
-        <Col xs={24} sm={12}>
+        <Col xs={24} sm={8}>
           <FloatingField name="contractStartDate" label={t("Staff:ContractStartDate")}>
             <DatePicker format={DATE_FORMAT} className="staff-employment__date" />
           </FloatingField>
         </Col>
-        <Col xs={24} sm={12}>
+        <Col xs={24} sm={8}>
           <FloatingField
             name="contractEndDate"
             label={t("Staff:ContractEndDate")}

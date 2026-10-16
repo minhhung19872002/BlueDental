@@ -37,6 +37,8 @@ export interface StaffDto {
   maxDiscountAmount: number | null;
   /** Hồ sơ công việc (Cụm 11 mục 1). Dates are "YYYY-MM-DD". */
   position: string | null;
+  /** "Chức danh" — printed on the medical records. */
+  jobTitle: string | null;
   practiceCertificateNumber: string | null;
   practiceCertificateIssuedOn: string | null;
   practiceCertificateIssuedPlace: string | null;
@@ -91,6 +93,7 @@ export interface CreateStaffInput {
   maxDiscountPercent?: number | null;
   maxDiscountAmount?: number | null;
   position?: string | null;
+  jobTitle?: string | null;
   practiceCertificateNumber?: string | null;
   practiceCertificateIssuedOn?: string | null;
   practiceCertificateIssuedPlace?: string | null;
@@ -127,6 +130,7 @@ export interface UpdateStaffInput {
   maxDiscountPercent?: number | null;
   maxDiscountAmount?: number | null;
   position?: string | null;
+  jobTitle?: string | null;
   practiceCertificateNumber?: string | null;
   practiceCertificateIssuedOn?: string | null;
   practiceCertificateIssuedPlace?: string | null;

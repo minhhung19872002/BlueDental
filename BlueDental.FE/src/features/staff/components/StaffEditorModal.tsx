@@ -48,6 +48,7 @@ export interface StaffFormValues {
   maxDiscountPercent?: number | null;
   maxDiscountAmount?: number | null;
   position: string | null;
+  jobTitle: string | null;
   practiceCertificateNumber: string | null;
   practiceCertificateIssuedOn: string | null;
   practiceCertificateIssuedPlace: string | null;
@@ -131,6 +132,7 @@ export function StaffEditorModal({
           maxDiscountPercent: staff.maxDiscountPercent ?? undefined,
           maxDiscountAmount: staff.maxDiscountAmount ?? undefined,
           position: staff.position ?? undefined,
+          jobTitle: staff.jobTitle ?? undefined,
           practiceCertificateNumber: staff.practiceCertificateNumber ?? undefined,
           practiceCertificateIssuedOn: toDay(staff.practiceCertificateIssuedOn),
           practiceCertificateIssuedPlace: staff.practiceCertificateIssuedPlace ?? undefined,
@@ -179,6 +181,7 @@ export function StaffEditorModal({
         maxDiscountPercent: values.maxDiscountPercent ?? null,
         maxDiscountAmount: values.maxDiscountAmount ?? null,
         position: values.position?.trim() || null,
+        jobTitle: values.jobTitle?.trim() || null,
         practiceCertificateNumber: values.practiceCertificateNumber?.trim() || null,
         practiceCertificateIssuedOn: fromDay(values.practiceCertificateIssuedOn),
         practiceCertificateIssuedPlace: values.practiceCertificateIssuedPlace?.trim() || null,

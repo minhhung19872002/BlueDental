@@ -12,6 +12,8 @@
  * docs/clone/pages/patient-detail.md §Bệnh án.
  */
 
+import { parsePhone } from "@/components/PhoneInput/phoneValue";
+
 export type FieldValue = string | boolean;
 export type FieldValues = Record<string, FieldValue>;
 
@@ -36,6 +38,8 @@ export interface SheetPatientFacts {
   history?: string;
   note?: string;
   insuranceNumber?: string;
+  /** The primary guardian as "Quan hệ - Họ tên - Số điện thoại". */
+  guardian?: string;
   country?: string;
   /** "male" / "female" / "other", or their Vietnamese names. */
   gender?: string;
@@ -45,6 +49,19 @@ export interface SheetBranch {
   name?: string | null;
   address?: string | null;
   phone?: string | null;
+}
+
+/**
+ * A phone as the sheets print it: a Vietnamese number with its leading 0
+ * (clinic, 2026-10-16). "+84 912…" reads "0912…", and a number kept without
+ * its 0 — "912345678", as imported records carry them — gets it back. A
+ * foreign number keeps its country code.
+ */
+export function sheetPhone(value: string | null | undefined): string | undefined {
+  const phone = value?.trim();
+  if (!phone) return undefined;
+  if (phone.startsWith("+")) return parsePhone(phone).national;
+  return /^[1-9]/.test(phone) ? `0${phone}` : phone;
 }
 
 function put(values: FieldValues, key: string, value: string | null | undefined) {
@@ -88,6 +105,7 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   put(values, "patient.history", facts.history);
   put(values, "patient.note", facts.note);
   put(values, "patient.insuranceNumber", facts.insuranceNumber);
+  put(values, "patient.guardian", facts.guardian);
 
   const parts = facts.dateOfBirth?.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (parts) {
@@ -120,7 +138,10 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   alias("cover.patient.birth-month", "patient.birthMonth");
   alias("cover.patient.birth-year", "patient.birthYear");
   alias("cover.patient.age", "patient.age");
-  alias("cover.patient.address", "patient.address");
+  // The cover prints the ward and province on a line of their own (clinic, 2026-10-16).
+  alias("cover.patient.address", "patient.addressStreet");
+  alias("cover.patient.ward", "patient.ward");
+  alias("cover.patient.province", "patient.province");
   alias("consultation.text.1", "patient.code");
   alias("consultation.text.2", "patient.cccd");
   alias("consultation.text.51", "patient.name");
@@ -133,11 +154,11 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   alias("general-consultation.text.13", "patient.code");
 
   /*
-   * Bệnh án ngoại trú splits the address over Số nhà / Thôn, phố / Xã, phường /
-   * Huyện / Tỉnh. Its Số nhà blank asks for the whole address by source, so it
-   * is answered by id with the street alone — the ward and province have
-   * blanks of their own. The hồ sơ keeps no hamlet or district (the 2025
-   * two-level units), so those two stay for the pen.
+   * Bệnh án ngoại trú splits the address over Số nhà / Xã, phường / Tỉnh. Its
+   * Số nhà blank asks for the whole address by source, so it is answered by id
+   * with the street alone — the ward and province have blanks of their own.
+   * The printed Thôn, phố and Huyện blanks were dropped: the 2025 two-level
+   * units have neither (clinic, 2026-10-16).
    */
   if (values["patient.address"] !== undefined) {
     // Even empty: left unanswered it would fall back to the whole address.
@@ -145,6 +166,17 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   }
   alias("outpatient-dental.text.5", "patient.ward");
   alias("outpatient-dental.text.7", "patient.province");
+
+  /*
+   * Clinic, 2026-10-16: "II. Lý do vào viện" is the hồ sơ's Lý do đến khám —
+   * its first line, the second stays for the pen — and "+ Gia đình" under
+   * Tiền sử bệnh names the primary guardian.
+   */
+  alias("custom.text.66d78a3bbe7442658cecbf611b7b286d", "patient.reason");
+  alias("outpatient-dental.text.23", "patient.guardian");
+
+  // Giấy đồng ý phẫu thuật/thủ thuật: "… cho người bệnh:".
+  alias("surgery-consent.text.3", "patient.name");
 
   return values;
 }
@@ -157,13 +189,14 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
  * the referring one's (mục 13) nor the discharge one, which the clinic writes
  * when the record is closed. "Phiếu tư vấn và xác nhận đồng ý điều trị" is left
  * out: its "II. CHẨN ĐOÁN" is written by hand at the consultation (clinic,
- * 2026-10-14).
+ * 2026-10-14). So is "Giấy đồng ý thực hiện phẫu thuật/thủ thuật": a patient
+ * may carry many diagnosis slips and the sheet cannot tell which one the
+ * operation is for, so the doctor writes it (clinic, 2026-10-16).
  */
 const DIAGNOSIS_FIELDS = [
   "outpatient-dental.text.43",
   "orthodontic.text.86",
   "custom.text.9959ffa6f36f45b89e42d5a486996216",
-  "surgery-consent.text.4",
   "procedure-record.text.1",
   "care.diagnosis",
 ] as const;

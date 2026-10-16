@@ -1,7 +1,7 @@
 import { DatePicker, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
-import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
+import { useDentistStaffOptions, type StaffOption } from "@/hooks/useStaffOptions";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
@@ -19,15 +19,19 @@ interface Props {
   date?: Dayjs | null;
   onDateChange?: (date: Dayjs | null) => void;
   doctorId?: string;
-  onDoctorChange?: (id: string | undefined) => void;
+  /** The whole option, so the sheet can print the doctor's name and Chức danh. */
+  onDoctorChange?: (doctor: StaffOption | undefined) => void;
 }
 
 /**
  * The line above the sheet: which copy is open, the day it is filled in for,
  * and the doctor picker the reference puts at the far end of it.
  *
- * UNKNOWN_REFERENCE_BEHAVIOR — what picking a doctor does, and the other half
- * of what the date does. On the reference the date also fetches that day's
+ * Picking a doctor prints them on the forms that name one (see
+ * `doctorFieldKeys`) — the clinic's ask (2026-10-16), not the reference's.
+ *
+ * UNKNOWN_REFERENCE_BEHAVIOR — what picking a doctor does on the reference,
+ * and the other half of what the date does. On the reference the date also fetches that day's
  * diagnoses and treatment stages and writes them onto the sheet; confirming
  * that means picking on a live record, which would write. See
  * docs/clone/unknowns.md.
@@ -62,7 +66,9 @@ export function MedicalRecordCanvasHead({
         <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(doctorId)} className="pd-medical-doctor">
           <Select
             value={doctorId}
-            onChange={onDoctorChange}
+            onChange={(id: string | undefined) =>
+              onDoctorChange?.(dentists.find((option) => option.value === id))
+            }
             options={dentists}
             showSearch
             allowClear

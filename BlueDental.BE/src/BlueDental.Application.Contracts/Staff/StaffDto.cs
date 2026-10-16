@@ -58,6 +58,13 @@ public class StaffDto : EntityDto<Guid>, IStaffEmploymentFields
     [StringLength(100)]
     public string? Position { get; set; }
 
+    /// <summary>
+    /// "Chức danh" — the professional title printed on the medical records
+    /// (Giấy đồng ý phẫu thuật/thủ thuật), e.g. "Bác sĩ chuyên khoa I".
+    /// </summary>
+    [StringLength(100)]
+    public string? JobTitle { get; set; }
+
     [StringLength(50)]
     public string? PracticeCertificateNumber { get; set; }
 
@@ -179,6 +186,13 @@ public class CreateStaffDto : IStaffEmploymentFields
     [StringLength(100)]
     public string? Position { get; set; }
 
+    /// <summary>
+    /// "Chức danh" — the professional title printed on the medical records
+    /// (Giấy đồng ý phẫu thuật/thủ thuật), e.g. "Bác sĩ chuyên khoa I".
+    /// </summary>
+    [StringLength(100)]
+    public string? JobTitle { get; set; }
+
     [StringLength(50)]
     public string? PracticeCertificateNumber { get; set; }
 
@@ -251,6 +265,13 @@ public class UpdateStaffDto : IStaffEmploymentFields
     [StringLength(100)]
     public string? Position { get; set; }
 
+    /// <summary>
+    /// "Chức danh" — the professional title printed on the medical records
+    /// (Giấy đồng ý phẫu thuật/thủ thuật), e.g. "Bác sĩ chuyên khoa I".
+    /// </summary>
+    [StringLength(100)]
+    public string? JobTitle { get; set; }
+
     [StringLength(50)]
     public string? PracticeCertificateNumber { get; set; }
 
@@ -270,12 +291,13 @@ public class UpdateStaffDto : IStaffEmploymentFields
 }
 
 /// <summary>
-/// Chức vụ, chứng chỉ hành nghề and hợp đồng of a staff member (Cụm 11 mục 1),
+/// Chức vụ, chức danh, chứng chỉ hành nghề and hợp đồng of a staff member (Cụm 11 mục 1),
 /// shared by the read and write DTOs so the service maps them in one place.
 /// </summary>
 public interface IStaffEmploymentFields
 {
     string? Position { get; }
+    string? JobTitle { get; }
     string? PracticeCertificateNumber { get; }
     DateOnly? PracticeCertificateIssuedOn { get; }
     string? PracticeCertificateIssuedPlace { get; }
