@@ -1,6 +1,12 @@
 import type { AppointmentDto } from "../../types/appointment";
 import { STATUS_GROUPS } from "../../hooks/useStatusCounts";
 
+/**
+ * What the server sends as DentistId / PatientId on a "Lịch tạm" nobody has
+ * been put on yet, and on a walk-in with no patient record (Guid.Empty).
+ */
+export const NO_ID = "00000000-0000-0000-0000-000000000000";
+
 export interface TimelineDoctor {
   id: string;
   name: string;
@@ -40,9 +46,11 @@ export function filterBookings(bookings: AppointmentDto[], filter: BookingFilter
 }
 
 /**
- * One row per doctor working that day (`available` is already the list without
- * those registered OFF). A doctor who went OFF after being booked still gets a
- * row, so none of that day's bookings vanishes from the board.
+ * One column per doctor working that day (`available` is already the list
+ * without those registered OFF). A doctor who went OFF after being booked still
+ * gets a column, so none of that day's bookings vanishes from the board. A
+ * "Lịch tạm" with no doctor yet goes in a last column of its own (`NO_ID`),
+ * shown only on days that have one and hidden once a doctor is picked.
  */
 export function buildDoctorRows(
   available: TimelineDoctor[],
@@ -51,13 +59,19 @@ export function buildDoctorRows(
 ): TimelineDoctor[] {
   const rows = [...available];
   const listed = new Set(available.map((d) => d.id));
+  let unassigned = false;
   for (const booking of dayBookings) {
-    if (!booking.doctorId || listed.has(booking.doctorId)) continue;
+    if (!booking.doctorId || booking.doctorId === NO_ID) {
+      unassigned = true;
+      continue;
+    }
+    if (listed.has(booking.doctorId)) continue;
     listed.add(booking.doctorId);
     rows.push({ id: booking.doctorId, name: booking.doctorName });
   }
 
-  if (!doctorIds || doctorIds.length === 0) return rows;
+  if (!doctorIds || doctorIds.length === 0) return unassigned ? [...rows, { id: NO_ID, name: "" }] : rows;
+  // The doctor picker never offers NO_ID, so picking anyone hides the unassigned column.
   const picked = new Set(doctorIds);
   return rows.filter((d) => picked.has(d.id));
 }
@@ -65,9 +79,29 @@ export function buildDoctorRows(
 export function groupByDoctor(bookings: AppointmentDto[]): Map<string, AppointmentDto[]> {
   const map = new Map<string, AppointmentDto[]>();
   for (const appt of bookings) {
-    const bucket = map.get(appt.doctorId);
+    const key = appt.doctorId || NO_ID;
+    const bucket = map.get(key);
     if (bucket) bucket.push(appt);
-    else map.set(appt.doctorId, [appt]);
+    else map.set(key, [appt]);
   }
   return map;
+}
+
+/**
+ * A "Lịch tạm" has no record yet: the name it was booked under stands for the
+ * person (owner 2026-10-16), letter case and extra spaces aside.
+ */
+function personKey(booking: AppointmentDto): string {
+  if (booking.patientId && booking.patientId !== NO_ID) return booking.patientId;
+  const name = booking.patientName?.trim().replace(/\s+/g, " ").toLowerCase();
+  return name ? `name:${name}` : `booking:${booking.id}`;
+}
+
+/**
+ * The badge beside a doctor's name (BA 2026-10-16): how many different
+ * patients the column shows — the bookings left after the toolbar filters,
+ * cancelled ones never among them, a patient booked twice counted once.
+ */
+export function patientCount(bookings: AppointmentDto[]): number {
+  return new Set(bookings.map(personKey)).size;
 }

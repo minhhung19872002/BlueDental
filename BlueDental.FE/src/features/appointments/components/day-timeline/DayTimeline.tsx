@@ -1,17 +1,16 @@
 import React, { useLayoutEffect, useMemo, useRef } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { Spin } from "antd";
-import { useNow } from "@/hooks/useNow";
+import { useMinuteNow } from "@/hooks/useNow";
 import { t } from "@/lib/i18n";
 import { useAppointmentList } from "../../api/appointmentQueries";
 import type { AppointmentDto } from "../../types/appointment";
 import { TimelineAxis } from "./TimelineAxis";
+import { TimelineColumn } from "./TimelineColumn";
 import { TimelineLegend } from "./TimelineLegend";
-import { TimelineRow } from "./TimelineRow";
-import { buildTimeScale, minuteToX, NAME_COL_WIDTH_PX, slotStarts, trackWidth, type TimeScale } from "./timelineLayout";
+import { buildTimeScale, HEAD_HEIGHT_PX, minuteToY, slotStarts, trackHeight, type TimeScale } from "./timelineLayout";
 import { buildDoctorRows, filterBookings, groupByDoctor, timelineBookings, type TimelineDoctor } from "./timelineRows";
 
-const NOW_REFRESH_MS = 30_000;
 const NO_BOOKINGS: AppointmentDto[] = [];
 
 interface Props {
@@ -28,8 +27,8 @@ interface Props {
 }
 
 /**
- * Opens a day at "now" (a third in from the left) when it is today, otherwise
- * at the start of the working hours.
+ * Opens a day at "now" (a third down from the header) when it is today,
+ * otherwise at the start of the working hours.
  */
 function useInitialScroll(ref: React.RefObject<HTMLDivElement | null>, dayKey: string, scale: TimeScale, nowMinute: number | null) {
   const nowRef = useRef(nowMinute);
@@ -38,9 +37,9 @@ function useInitialScroll(ref: React.RefObject<HTMLDivElement | null>, dayKey: s
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const trackViewport = el.clientWidth - NAME_COL_WIDTH_PX;
+    const trackViewport = el.clientHeight - HEAD_HEIGHT_PX;
     const now = nowRef.current;
-    el.scrollLeft = now === null ? 0 : Math.max(0, minuteToX(scale, now) - trackViewport / 3);
+    el.scrollTop = now === null ? 0 : Math.max(0, minuteToY(scale, now) - trackViewport / 3);
   }, [ref, dayKey, scale]);
 }
 
@@ -59,7 +58,8 @@ export function DayTimeline({
 
   const dayKey = currentDate.format("YYYY-MM-DD");
   const isToday = currentDate.isSame(dayjs(), "day");
-  const now = useNow(isToday, NOW_REFRESH_MS);
+  // The now line and its HH:mm badge move as the clock turns a minute, not on a poll.
+  const now = useMinuteNow(isToday);
 
   const { data, isFetching } = useAppointmentList({ date: dayKey, maxResultCount: 500 });
   const dayBookings = useMemo(() => (data ? timelineBookings(data.items) : NO_BOOKINGS), [data]);
@@ -72,13 +72,15 @@ export function DayTimeline({
   const scale = useMemo(() => buildTimeScale(dayBookings, slotMinutes), [dayBookings, slotMinutes]);
   const slots = useMemo(() => slotStarts(scale), [scale]);
 
-  const nowOfDay = dayjs(now).hour() * 60 + dayjs(now).minute();
+  const clock = dayjs(now);
+  const nowOfDay = clock.hour() * 60 + clock.minute();
   const nowMinute = isToday && nowOfDay >= scale.startMinute && nowOfDay <= scale.endMinute ? nowOfDay : null;
   useInitialScroll(scrollRef, dayKey, scale, nowMinute);
 
   const canvasStyle = {
-    "--dtl-track-w": `${trackWidth(scale)}px`,
-    "--dtl-slot-w": `${scale.slotMinutes * scale.pxPerMinute}px`,
+    "--dtl-head-h": `${HEAD_HEIGHT_PX}px`,
+    "--dtl-track-h": `${trackHeight(scale)}px`,
+    "--dtl-slot-h": `${scale.slotMinutes * scale.pxPerMinute}px`,
   } as React.CSSProperties;
 
   return (
@@ -88,29 +90,27 @@ export function DayTimeline({
         <div className="dtl-scroll" ref={scrollRef}>
           <div className="dtl-canvas" style={canvasStyle}>
             <TimelineAxis scale={scale} slots={slots} nowMinute={nowMinute} />
-            <div className="dtl-body">
-              {rows.length === 0 && <div className="dtl-empty">{t("Appointment:DayView:NoDoctor")}</div>}
-              {rows.map((doctor) => (
-                <TimelineRow
-                  key={doctor.id}
-                  doctorId={doctor.id}
-                  doctorName={doctor.name}
-                  appointments={bookingsByDoctor.get(doctor.id) ?? NO_BOOKINGS}
-                  scale={scale}
-                  slots={slots}
-                  now={now}
-                  selectedIds={selectedIds}
-                  onCellClick={onCellClick}
-                  onCardAction={onCardAction}
-                />
-              ))}
-              {nowMinute !== null && rows.length > 0 && (
-                <div
-                  className="dtl-now-line"
-                  style={{ "--dtl-x": `${minuteToX(scale, nowMinute)}px` } as React.CSSProperties}
-                />
-              )}
-            </div>
+            {rows.length === 0 && <div className="dtl-empty">{t("Appointment:DayView:NoDoctor")}</div>}
+            {rows.map((doctor) => (
+              <TimelineColumn
+                key={doctor.id}
+                doctorId={doctor.id}
+                doctorName={doctor.name}
+                appointments={bookingsByDoctor.get(doctor.id) ?? NO_BOOKINGS}
+                scale={scale}
+                slots={slots}
+                now={now}
+                selectedIds={selectedIds}
+                onCellClick={onCellClick}
+                onCardAction={onCardAction}
+              />
+            ))}
+            {nowMinute !== null && rows.length > 0 && (
+              <div
+                className="dtl-now-line"
+                style={{ "--dtl-y": `${minuteToY(scale, nowMinute)}px` } as React.CSSProperties}
+              />
+            )}
           </div>
         </div>
       </div>

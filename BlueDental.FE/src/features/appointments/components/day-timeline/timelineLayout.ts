@@ -11,10 +11,14 @@ export const WORKING_HOURS = { startMinute: 7 * 60, endMinute: 20 * 60 } as cons
 
 const LAST_MINUTE = 24 * 60;
 
-/** Width of one slot on the time axis, by slot length. */
-const SLOT_WIDTH_PX: Record<15 | 30, number> = { 15: 80, 30: 120 };
+/**
+ * Height of one slot on the time axis, by slot length. Tall enough that a
+ * 15-minute booking still shows the patient's name on one line.
+ */
+const SLOT_HEIGHT_PX: Record<15 | 30, number> = { 15: 40, 30: 48 };
 
-export const NAME_COL_WIDTH_PX = 220;
+/** Height of the sticky header row carrying the doctors' names. */
+export const HEAD_HEIGHT_PX = 40;
 
 export interface TimeScale {
   startMinute: number;
@@ -46,14 +50,14 @@ export function buildTimeScale(appointments: AppointmentDto[], slotMinutes: 15 |
     startMinute = Math.min(startMinute, Math.floor(minuteOfDay(appt.startTime) / 60) * 60);
     endMinute = Math.max(endMinute, Math.min(LAST_MINUTE, Math.ceil(endMinuteOf(appt) / 60) * 60));
   }
-  return { startMinute, endMinute, slotMinutes, pxPerMinute: SLOT_WIDTH_PX[slotMinutes] / slotMinutes };
+  return { startMinute, endMinute, slotMinutes, pxPerMinute: SLOT_HEIGHT_PX[slotMinutes] / slotMinutes };
 }
 
-export function trackWidth(scale: TimeScale): number {
+export function trackHeight(scale: TimeScale): number {
   return (scale.endMinute - scale.startMinute) * scale.pxPerMinute;
 }
 
-export function minuteToX(scale: TimeScale, minute: number): number {
+export function minuteToY(scale: TimeScale, minute: number): number {
   return (minute - scale.startMinute) * scale.pxPerMinute;
 }
 
@@ -72,21 +76,21 @@ export function slotStarts(scale: TimeScale): number[] {
 
 export interface PlacedBlock {
   appointment: AppointmentDto;
-  left: number;
-  width: number;
+  top: number;
+  height: number;
   lane: number;
 }
 
-export interface PlacedRow {
+export interface PlacedColumn {
   blocks: PlacedBlock[];
   laneCount: number;
 }
 
 /**
- * Lays one doctor's bookings on the axis. Overlapping bookings go to separate
- * lanes (first lane that is free again), so none hides another.
+ * Lays one doctor's bookings down the axis. Overlapping bookings go to
+ * side-by-side lanes (first lane that is free again), so none hides another.
  */
-export function placeBlocks(appointments: AppointmentDto[], scale: TimeScale): PlacedRow {
+export function placeBlocks(appointments: AppointmentDto[], scale: TimeScale): PlacedColumn {
   const sorted = [...appointments].sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
   const laneEnds: number[] = [];
   const blocks: PlacedBlock[] = [];
@@ -104,8 +108,8 @@ export function placeBlocks(appointments: AppointmentDto[], scale: TimeScale): P
     blocks.push({
       appointment,
       lane,
-      left: minuteToX(scale, start),
-      width: (end - start) * scale.pxPerMinute,
+      top: minuteToY(scale, start),
+      height: (end - start) * scale.pxPerMinute,
     });
   }
 

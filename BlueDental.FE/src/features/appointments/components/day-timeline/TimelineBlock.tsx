@@ -64,14 +64,14 @@ export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, 
         tabIndex={0}
         aria-label={blockTitle(placed)}
         style={{
-          "--dtl-block-left": `${placed.left}px`,
-          "--dtl-block-width": `${placed.width}px`,
+          "--dtl-block-top": `${placed.top}px`,
+          "--dtl-block-height": `${placed.height}px`,
           "--dtl-block-lane": placed.lane,
         } as React.CSSProperties}
         onClick={handleOpen}
         onKeyDown={handleKeyDown}
       >
-        {/* A 15-minute block is ~76px wide: the name alone fits, the code rides in the tooltip. */}
+        {/* A 15-minute block is one line tall: the name alone fits, the code rides in the tooltip. */}
         <span className="dtl-block-label">{blockName(placed)}</span>
         <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} trigger={["click"]} placement="bottomRight">
           <button

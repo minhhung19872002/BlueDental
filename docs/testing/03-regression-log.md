@@ -9233,3 +9233,25 @@ BA: "Cho phép tạo trùng khung giờ, nhưng hiển thị cảnh báo nếu c
 - Targeted: series API 7/7, series UI 2/2, appointment 3/3, reception-follow-up 11/11, patient-appointment 8/8.
 - Dependent run 48/48: appointment-day-timeline, -history, -missed-api, -patient-link, -working-hours, patient-appointment, reception-doctor-list, -priority, -roles, -team, reception-own-doctor, reception-rebook-undated, reception-temporary, reception.spec.
 - `patient.spec` "reassigns its doctor" is red before any UI step on its data precondition ("a patient holding exactly one live booking with a free doctor"), which the local demo data no longer meets; not caused by this change.
+
+## R-972 (2026-10-16, level 2: appointments view Ngày) Day timeline turned round — doctors are columns, a patient count beside each name
+
+**Request** (BA chat 2026-10-16, confirmed by Danh Pham): "Thêm bag số bệnh nhân" + "quay nó lại" — doctors on top, time running down the left. Owner decisions: the badge counts distinct patients booked with that doctor that day (cancelled left out, no-show and done counted); it follows the toolbar filters (keyword, doctor, status chip); the old horizontal layout is dropped, no toggle.
+
+**Change** (FE only, plus one localization key)
+
+- `day-timeline/TimelineColumn.tsx` replaces `TimelineRow.tsx`: header `.dtl-doc` = name + `.dtl-count` pill (title "N bệnh nhân"), body = slot cells + blocks; overlapping bookings sit side by side in lanes.
+- `TimelineAxis.tsx` is now the sticky left time column (corner "Bác sĩ", half-hour ticks, now badge); the now line runs across.
+- `timelineLayout.ts`: `minuteToY`/`trackHeight`; slot height 40px (15') / 48px (30') — taller than the week view so a 15-minute booking still shows the patient name.
+- `timelineRows.ts`: `patientCount()` over the already-filtered bookings.
+- Opening today scrolls vertically to now; grab-scroll stays horizontal (`useDragScroll` untouched).
+- `Appointment:Timeline:PatientCount` vi/en (embedded resource → host rebuilt + restarted).
+
+**Results** (vite preview production build :8743 + real host :5000 + PostgreSQL; no interception)
+
+- `e2e/appointment-day-timeline.spec.ts` 4/4: columns (OFF doctor has none, 08:00 below 07:00 in the same column), badge 1 with a cancelled booking beside it, badge 0 under a no-match search and back to 1, reload, click opens the booking; empty-slot click → Tạo lịch hẹn with doctor + time; drag scrolls sideways and moves nothing; today waiting/in-progress + now line.
+- `tsc -b` and eslint clean. Phone width 390px: no page overflow, time column sticks, columns scroll sideways.
+
+**Follow-up (same day, owner):** a "Lịch tạm" with no doctor yet (server sends DentistId = Guid.Empty) drew a last column with a blank name. It is now "Chưa chọn bác sĩ" (grey italic, tooltip "Lịch tạm chưa gán bác sĩ"), last after every doctor, only on days that have one, hidden once a doctor is picked; its empty slots open nothing (no doctor to book), its blocks still open the booking to assign one. Walk-ins also have PatientId = Guid.Empty, so the badge collapsed them into one person: a booking with no record now counts by patient name (case and spacing aside, owner's choice). Keys `Appointment:Timeline:Unassigned` / `UnassignedHint` (host rebuilt). Spec gained the unassigned-column test → **5/5** on the production build.
+
+**Follow-up 2 (same day, owner): the now line ticks with the wall clock.** It used to refresh on a 30 s interval counted from page load, so its HH:mm badge could lag the clock by up to ~30 s. New `useMinuteNow` (`src/hooks/useNow.ts`): one timeout aimed at the next :00 (+20 ms), re-aimed each tick, re-read at once when the tab becomes visible again (hidden tabs throttle timers); the value is floored to the minute so it is the same number all minute long. Render cost per tick: the empty-slot grid moved to a memoised `TimelineSlots` and the axis ticks to a `useMemo`, so a tick redraws only the now line/badge and blocks whose state changed (`TimelineBlock` is memoised on its state). Block states now read the floored minute: "Quá giờ" turns on the minute after the planned end, in step with the badge. Other `useNow` callers (queue, reception wait, timekeeping) unchanged. Spec +1 (Playwright clock at :50 → nothing moves at +8 s, badge and line move at +11 s) → **6/6** on the production build.

@@ -277,10 +277,11 @@
   box-shadow: rgba(0, 0, 0, 0.15) 0px 4px 16px 0px;
 }
 
-/* ── Day view: horizontal doctor timeline ─────────────────────────── */
-/* Doctors are rows, time runs left → right. Mouse drag scrolls the board
-   sideways only (the app-wide grab-scroll in hooks/useDragScroll.ts) —
-   bookings are never moved by dragging (BA 2026-10-03). */
+/* ── Day view: doctor timeline ────────────────────────────────────── */
+/* Doctors are columns, time runs top → bottom (BA 2026-10-16 turned the
+   2026-10-03 rows round). Mouse drag scrolls the board sideways only (the
+   app-wide grab-scroll in hooks/useDragScroll.ts) — bookings are never moved
+   by dragging (BA 2026-10-03). */
 
 .dtl {
   display: flex;
@@ -321,39 +322,43 @@
   overflow: auto;
 }
 
+/* Columns grow to fill the board; past the viewport the board scrolls sideways */
 .dtl-canvas {
-  --dtl-name-w: 220px;
-  --dtl-row-pad: 6px;
-  --dtl-lane-h: 44px;
+  --dtl-time-w: 72px;
+  --dtl-col-min: 200px;
+  --dtl-lane-min: 110px;
   position: relative;
-  width: calc(var(--dtl-name-w) + var(--dtl-track-w));
+  display: flex;
+  width: max-content;
+  min-width: 100%;
 }
 
-/* Header: corner + time axis, sticky on top */
-.dtl-head {
+/* Time column: corner + half-hour ticks, sticky on the left and above the
+   doctors' headers so the corner stays put both ways */
+.dtl-timecol {
   position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  height: 40px;
-  background: var(--bd-bg-head);
-  border-bottom: 1px solid var(--bd-line);
+  left: 0;
+  z-index: 25;
+  flex: none;
+  width: var(--dtl-time-w);
+  background: var(--bd-card);
+  border-right: 1px solid var(--bd-line);
 }
 
 .dtl-corner {
   position: sticky;
-  left: 0;
+  top: 0;
   z-index: 21;
-  flex: none;
-  width: var(--dtl-name-w);
+  height: var(--dtl-head-h);
   box-sizing: border-box;
-  padding: 0 16px;
-  line-height: 40px;
+  padding: 0 8px;
+  line-height: var(--dtl-head-h);
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   background: var(--bd-bg-head);
-  border-right: 1px solid var(--bd-line);
+  border-bottom: 1px solid var(--bd-line);
   font-size: 12px;
   font-weight: 600;
   color: var(--bd-faint);
@@ -363,19 +368,17 @@
 
 .dtl-axis {
   position: relative;
-  flex: none;
-  width: var(--dtl-track-w);
+  height: var(--dtl-track-h);
 }
 
 .dtl-tick {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--dtl-x);
-  display: flex;
-  align-items: center;
-  padding-left: 6px;
-  border-left: 1px solid var(--bd-line);
+  top: var(--dtl-y);
+  left: 0;
+  right: 0;
+  padding-top: 4px;
+  text-align: center;
+  border-top: 1px solid var(--bd-line);
   font-size: 12px;
   font-weight: 500;
   color: var(--bd-ink);
@@ -385,8 +388,8 @@
 
 .dtl-now-badge {
   position: absolute;
-  top: 50%;
-  left: var(--dtl-x);
+  top: var(--dtl-y);
+  left: 50%;
   z-index: 2;
   transform: translate(-50%, -50%);
   padding: 2px 8px;
@@ -398,84 +401,120 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Rows */
-.dtl-body {
+/* Doctor columns — wide enough for every lane of overlapping bookings */
+.dtl-col {
   position: relative;
+  flex: 1 0 auto;
+  width: max(var(--dtl-col-min), calc(var(--dtl-lanes, 1) * var(--dtl-lane-min)));
+  border-right: 1px solid var(--bd-line);
 }
 
-.dtl-row {
+.dtl-doc {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--dtl-head-h);
+  box-sizing: border-box;
+  padding: 0 10px;
+  background: var(--bd-bg-head);
   border-bottom: 1px solid var(--bd-line);
 }
 
 .dtl-name {
-  position: sticky;
-  left: 0;
-  z-index: 15;
-  flex: none;
-  width: var(--dtl-name-w);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  background: var(--bd-card);
-  border-right: 1px solid var(--bd-line);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--bd-ink);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+/* BA 2026-10-16: số bệnh nhân beside the doctor's name */
+.dtl-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1px solid var(--bd-blue-light);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-purple-pale);
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .dtl-track {
   position: relative;
-  flex: none;
-  display: flex;
-  width: var(--dtl-track-w);
-  height: calc(var(--dtl-lanes, 1) * var(--dtl-lane-h) + var(--dtl-row-pad) * 2);
+  height: var(--dtl-track-h);
 }
 
 .dtl-cell {
-  flex: none;
-  width: var(--dtl-slot-w);
-  height: 100%;
+  height: var(--dtl-slot-h);
   box-sizing: border-box;
-  border-left: 1px dashed var(--bd-line-soft);
+  border-top: 1px dashed var(--bd-line-soft);
   cursor: pointer;
   transition: background 0.1s;
 }
 
 .dtl-cell--hour {
-  border-left: 1px solid var(--bd-line);
+  border-top: 1px solid var(--bd-line);
 }
 
 .dtl-cell:hover {
   background: var(--bd-blue-pale);
 }
 
+/* "Chưa chọn bác sĩ": Lịch tạm nobody is on yet — no doctor to book a slot for */
+.dtl-col--unassigned .dtl-name {
+  color: var(--bd-muted);
+  font-style: italic;
+  font-weight: 500;
+  /* An italic last glyph leans past its box; .dtl-name clips overflow. */
+  padding-right: 3px;
+}
+
+.dtl-col--unassigned .dtl-cell {
+  cursor: default;
+}
+
+.dtl-col--unassigned .dtl-cell:hover {
+  background: transparent;
+}
+
 .dtl-empty {
+  flex: 1;
   padding: 32px 16px;
   text-align: center;
   color: var(--bd-faint);
 }
 
-/* Booking blocks */
+/* Booking blocks — overlapping ones share the column side by side */
 .dtl-block {
   position: absolute;
   z-index: 2;
-  top: calc(var(--dtl-row-pad) + var(--dtl-block-lane) * var(--dtl-lane-h));
-  left: calc(var(--dtl-block-left) + 2px);
-  width: max(calc(var(--dtl-block-width) - 4px), 24px);
-  height: calc(var(--dtl-lane-h) - 6px);
+  top: calc(var(--dtl-block-top) + 1px);
+  left: calc(var(--dtl-block-lane) * 100% / var(--dtl-lanes, 1) + 3px);
+  width: calc(100% / var(--dtl-lanes, 1) - 6px);
+  height: max(calc(var(--dtl-block-height) - 2px), 22px);
   box-sizing: border-box;
   display: flex;
-  align-items: center;
-  padding: 0 6px 0 8px;
+  align-items: flex-start;
+  padding: 2px 6px 2px 8px;
   border: 1px solid transparent;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
+  line-height: 16px;
   cursor: pointer;
   overflow: hidden;
   transition: box-shadow 0.15s;
@@ -503,14 +542,13 @@
 /* Overlays the label's tail on hover so it never takes width from the name */
 .dtl-block-menu {
   position: absolute;
-  top: 50%;
+  top: 1px;
   right: 2px;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 20px;
-  height: 24px;
+  height: 18px;
   padding: 0;
   border: none;
   border-radius: 6px;
@@ -578,15 +616,15 @@
   text-decoration: line-through;
 }
 
-/* The "now" line runs across every row; the sticky names cover it on scroll */
+/* The "now" line runs across every column; the sticky time column covers it on scroll */
 .dtl-now-line {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(var(--dtl-name-w) + var(--dtl-x));
+  top: calc(var(--dtl-head-h) + var(--dtl-y));
+  left: var(--dtl-time-w);
+  right: 0;
   z-index: 12;
-  width: 2px;
-  margin-left: -1px;
+  height: 2px;
+  margin-top: -1px;
   background: var(--bd-red);
   pointer-events: none;
 }
@@ -1042,9 +1080,10 @@ body.cal-fullscreen .cal-grid-wrap {
   .cal-page { height: auto; min-height: 100%; }
   .cal-grid-wrap { flex: none; overflow-x: auto; overflow-y: visible; border-radius: 0; -webkit-overflow-scrolling: touch; }
   .dtl-scroll { max-height: 70vh; }
-  .dtl-canvas { --dtl-name-w: 132px; }
+  .dtl-canvas { --dtl-time-w: 56px; --dtl-col-min: 160px; }
   .dtl-legend { gap: 6px 12px; padding: 8px 12px; font-size: 11px; }
-  .dtl-name, .dtl-corner { padding: 0 10px; }
+  .dtl-doc { padding: 0 8px; }
+  .dtl-corner { padding: 0 4px; }
   .cal-week-scroll { max-height: none; overflow: visible; }
   .cal-week-grid { grid-template-columns: 60px repeat(7, minmax(176px, 1fr)); }
 

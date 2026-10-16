@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { t } from "@/lib/i18n";
-import { formatMinute, minuteToX, type TimeScale } from "./timelineLayout";
+import { formatMinute, minuteToY, type TimeScale } from "./timelineLayout";
 
 interface Props {
   scale: TimeScale;
@@ -9,27 +9,37 @@ interface Props {
   nowMinute: number | null;
 }
 
-/** The sticky header: "Bác sĩ" over the names, half-hour ticks over the track. */
+/**
+ * The sticky left column: "Bác sĩ" in the corner over the doctors' names,
+ * half-hour ticks running down beside the columns.
+ */
 export function TimelineAxis({ scale, slots, nowMinute }: Props) {
+  // Only the now badge moves with the clock; the ticks stay put between minutes.
+  const ticks = useMemo(
+    () =>
+      slots
+        .filter((minute) => minute % 30 === 0)
+        .map((minute) => (
+          <span
+            key={minute}
+            className="dtl-tick"
+            style={{ "--dtl-y": `${minuteToY(scale, minute)}px` } as React.CSSProperties}
+          >
+            {formatMinute(minute)}
+          </span>
+        )),
+    [scale, slots],
+  );
+
   return (
-    <div className="dtl-head">
+    <div className="dtl-timecol">
       <div className="dtl-corner">{t("Appointment:Timeline:Doctor")}</div>
       <div className="dtl-axis">
-        {slots
-          .filter((minute) => minute % 30 === 0)
-          .map((minute) => (
-            <span
-              key={minute}
-              className="dtl-tick"
-              style={{ "--dtl-x": `${minuteToX(scale, minute)}px` } as React.CSSProperties}
-            >
-              {formatMinute(minute)}
-            </span>
-          ))}
+        {ticks}
         {nowMinute !== null && (
           <span
             className="dtl-now-badge"
-            style={{ "--dtl-x": `${minuteToX(scale, nowMinute)}px` } as React.CSSProperties}
+            style={{ "--dtl-y": `${minuteToY(scale, nowMinute)}px` } as React.CSSProperties}
           >
             {formatMinute(nowMinute)}
           </span>
