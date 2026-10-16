@@ -58,6 +58,13 @@ public class CreateTempAppointmentDto
     public Guid? SourceEntryId { get; set; }
     public string? Color { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Set once the user confirmed the "bác sĩ đã có lịch trùng khung giờ" warning:
+    /// the dentist may be double-booked (BA 2026-10-16). Left false, an overlap
+    /// is refused with Appointment:0002 listing the clashing times.
+    /// </summary>
+    public bool AllowDentistOverlap { get; set; }
 }
 
 public class CreateAppointmentDto
@@ -72,6 +79,13 @@ public class CreateAppointmentDto
     public string? ChiefComplaint { get; set; }
     public string? Color { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Set once the user confirmed the "bác sĩ đã có lịch trùng khung giờ" warning:
+    /// the dentist may be double-booked (BA 2026-10-16). Left false, an overlap
+    /// is refused with Appointment:0002 listing the clashing times.
+    /// </summary>
+    public bool AllowDentistOverlap { get; set; }
 }
 
 public class UpdateAppointmentDto
@@ -104,6 +118,13 @@ public class UpdateAppointmentDto
     public string? PatientPhone { get; set; }
     public Guid? SourceTaxonomyId { get; set; }
     public Guid? SourceEntryId { get; set; }
+
+    /// <summary>
+    /// Set once the user confirmed the "bác sĩ đã có lịch trùng khung giờ" warning:
+    /// the dentist may be double-booked (BA 2026-10-16). Left false, an overlap
+    /// is refused with Appointment:0002 listing the clashing times.
+    /// </summary>
+    public bool AllowDentistOverlap { get; set; }
 }
 
 public class CancelAppointmentDto
@@ -159,6 +180,13 @@ public class BookFollowUpDto
 
     [StringLength(500)]
     public string? ChiefComplaint { get; set; }
+
+    /// <summary>
+    /// Set once the user confirmed the "bác sĩ đã có lịch trùng khung giờ" warning:
+    /// the dentist may be double-booked (BA 2026-10-16). Left false, an overlap
+    /// is refused with Appointment:0002 listing the clashing times.
+    /// </summary>
+    public bool AllowDentistOverlap { get; set; }
 }
 
 /// <summary>

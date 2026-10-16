@@ -182,6 +182,11 @@ export type AppMutationMeta = {
   invalidates?: readonly QueryEntity[];
   /** The mutation reports its own failure, so the global error toast stays quiet. */
   skipGlobalErrorToast?: boolean;
+  /**
+   * Error codes the screen turns into its own prompt (the dentist-overlap
+   * warning), so the global toast stays quiet for those and only those.
+   */
+  quietErrorCodes?: readonly string[];
 };
 
 declare module "@tanstack/react-query" {

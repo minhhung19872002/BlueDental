@@ -92,8 +92,10 @@ public class AppointmentSeriesPlanner : ITransientDependency
         }
 
         var overlapping = busy.Where(a => a.Slot.Start < end && a.Slot.End > start).ToList();
-        if (overlapping.Any(a => a.DentistId == dentistId)) return SeriesConflictReason.DentistBusy;
+        // Patient first: a dentist overlap is only a warning the user may confirm
+        // (BA 2026-10-16), a patient one is always refused.
         if (overlapping.Any(a => a.PatientId == patientId)) return SeriesConflictReason.PatientBusy;
+        if (overlapping.Any(a => a.DentistId == dentistId)) return SeriesConflictReason.DentistBusy;
         return null;
     }
 

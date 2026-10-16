@@ -36,22 +36,25 @@ test.describe("Lịch hẹn", () => {
    * role=combobox and the list is rendered into a portal, so the option is
    * addressed from the page rather than from inside the dialog.
    */
-  async function pickFirst(page: Page, label: string | RegExp): Promise<void> {
+  async function pickFirst(page: Page, label: string | RegExp, index = 0): Promise<void> {
     const field = page.locator(".appt-field").filter({ hasText: label }).first();
     await field.getByRole("combobox").click();
 
-    const option = page.locator("#ss-portal-dropdown [role=option]").first();
+    const option = page.locator("#ss-portal-dropdown [role=option]").nth(index);
     await expect(option).toBeVisible();
     await option.click();
   }
 
-  /** Fills the editor and saves; the caller asserts what happened. */
-  async function book(page: Page, day: string, reason: string): Promise<void> {
+  /**
+   * Fills the editor and saves; the caller asserts what happened.
+   * `patientIndex` picks another patient, for a second booking in one slot.
+   */
+  async function book(page: Page, day: string, reason: string, patientIndex = 0): Promise<void> {
     await page.getByRole("button", { name: /Tạo lịch hẹn/ }).first().click();
     const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
 
     // Both pickers read the real patient and staff lists.
-    await pickFirst(page, /Chọn bệnh nhân/);
+    await pickFirst(page, /Chọn bệnh nhân/, patientIndex);
     await pickFirst(page, /Chọn bác sĩ/);
 
     // The day picker is in mask mode (DATE_INPUT_FORMAT): fill() is ignored and
@@ -102,7 +105,7 @@ test.describe("Lịch hẹn", () => {
     await findInList(page, reason);
   });
 
-  test("the same dentist cannot be booked twice into one slot", async ({ page }) => {
+  test("booking the dentist twice into one slot warns first, and books only on Xác nhận", async ({ page }) => {
     const day = uniqueDay();
 
     await page.goto("/calendar/list");
@@ -111,10 +114,28 @@ test.describe("Lịch hẹn", () => {
     await book(page, day, `Khám lần đầu ${runId()}`);
     await expect(page.getByRole("dialog")).toBeHidden();
 
-    // Same dentist, same day, same time — the server refuses it.
-    await book(page, day, `Khám trùng giờ ${runId()}`);
-    await expect(page.getByText("Khung giờ này đã có lịch.").first()).toBeVisible();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    // Same dentist, same day, same time, another patient (BA 2026-10-16: a
+    // warning, not a refusal). The server names the time already taken.
+    const second = `Khám trùng giờ ${runId()}`;
+    await book(page, day, second, 1);
+    const editor = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
+    await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 09:00–09:30.");
+    // The warning is the screen's own; no error toast beside it.
+    await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+
+    // Hủy: back to the form with everything still filled in, nothing stored.
+    await warning.getByRole("button", { name: "Hủy" }).click();
+    await expect(warning).toBeHidden();
+    await expect(editor.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(second);
+
+    // Xác nhận books it anyway.
+    await editor.getByRole("button", { name: "Lưu" }).click();
+    await warning.getByRole("button", { name: "Xác nhận" }).click();
+    await expect(editor).toBeHidden();
+    await findInList(page, second);
+    await page.reload();
+    await findInList(page, second);
   });
 
   test("the calendar grids read their own date range from the server", async ({ page }) => {

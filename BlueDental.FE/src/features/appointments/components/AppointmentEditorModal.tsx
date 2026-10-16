@@ -6,6 +6,8 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppDialog } from "@/components/AppDialog";
+import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
+import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 // The dialog carries its own styling: it opens from the calendar *and* from a
 // patient's record, and the record's page does not import the calendar's CSS.
 // Without this the modal renders full-width with its two columns collapsed.
@@ -85,6 +87,7 @@ export function AppointmentEditorModal({
   const [newPatientOpen, setNewPatientOpen] = useState(false);
   const isEdit = Boolean(appointmentId);
   const { save, saving } = useSaveAppointment(appointmentId);
+  const overlap = useDentistOverlapConfirm();
   const currentBranchId = useCurrentBranchId();
 
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
@@ -249,34 +252,44 @@ export function AppointmentEditorModal({
       await saveSeries(data);
       return;
     }
-    try {
-      await save(data);
-    } catch {
-      return; // queryClient has already reported it; the dialog stays open.
-    }
-    toast.success(isEdit ? t("Appointment:Toast:UpdateSuccess") : t("Appointment:Toast:CreateSuccess"));
+    await saveOne(data);
+  };
+
+  const finish = (message: string) => {
+    toast.success(message);
     reset();
     onSuccess?.();
     onClose();
   };
 
-  const saveSeries = async (data: AppointmentEditorValues) => {
-    // Any clash refuses the whole series; the rows already show which.
+  // The dentist already holding a visit then is only a warning: Xác nhận
+  // resends with `allowDentistOverlap`, Hủy leaves the form as it is.
+  const saveOne = async (data: AppointmentEditorValues, allowDentistOverlap = false) => {
+    try {
+      await save(data, allowDentistOverlap);
+    } catch (error) {
+      // Anything else queryClient has already reported; the dialog stays open.
+      overlap.intercept(error, () => void saveOne(data, true));
+      return;
+    }
+    finish(isEdit ? t("Appointment:Toast:UpdateSuccess") : t("Appointment:Toast:CreateSuccess"));
+  };
+
+  const saveSeries = async (data: AppointmentEditorValues, allowDentistOverlap = false) => {
+    // A clash other than the dentist's refuses the whole series; the rows already show which.
     if (series.hasConflict) {
       toast.error(t("BlueDental:Appointment:0012"));
       return;
     }
     let created: number;
     try {
-      created = await series.saveSeries(data);
-    } catch {
+      created = await series.saveSeries(data, allowDentistOverlap);
+    } catch (error) {
+      if (overlap.intercept(error, () => void saveSeries(data, true))) return;
       void series.refreshPreview(); // someone booked under us: show the new clash
       return;
     }
-    toast.success(t("Appointment:Series:Created", created));
-    reset();
-    onSuccess?.();
-    onClose();
+    finish(t("Appointment:Series:Created", created));
   };
 
   const seriesBlocksSave = creatingSeries
@@ -315,6 +328,8 @@ export function AppointmentEditorModal({
           series={seriesSlots}
         />
       </AppDialog>
+
+      <DentistOverlapDialog {...overlap.dialog} />
 
       {newPatientOpen && (
         <PatientEditorDialog

@@ -88,12 +88,23 @@ public class AppointmentSeriesAppService : BlueDentalAppService, IAppointmentSer
 
         var sessions = await _planner.PlanAsync(
             branchId, input.PatientId, input.DentistId, input.SlotStart, input.SlotEnd, rule);
-        var clashes = sessions.Where(s => s.Conflict is not null).ToList();
+        var clashes = sessions
+            .Where(s => s.Conflict is not null and not SeriesConflictReason.DentistBusy)
+            .ToList();
         if (clashes.Count > 0)
         {
             // BA: one clash and nothing is booked — no case-by-case resolution.
             throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.SeriesConflict)
                 .WithData("Dates", string.Join(", ", clashes.Select(s => $"{ClinicCalendar.DateOf(s.Start):dd/MM/yyyy}")));
+        }
+
+        // The dentist already busy then is only a warning (BA 2026-10-16): the
+        // user confirms it once for the whole series.
+        var overlaps = sessions.Where(s => s.Conflict is SeriesConflictReason.DentistBusy).ToList();
+        if (overlaps.Count > 0 && !input.AllowDentistOverlap)
+        {
+            throw AppointmentConflictChecker.ConflictingSlot(overlaps.Select(s =>
+                $"{ClinicCalendar.DateOf(s.Start):dd/MM} {AppointmentConflictChecker.FormatTime(s.Start, s.End)}"));
         }
 
         var series = new AppointmentSeries(GuidGenerator.Create(), branchId, input.PatientId, input.DentistId, rule);

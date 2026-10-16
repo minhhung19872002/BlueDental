@@ -5,7 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
+import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
 import { PHONE_PATTERN } from "@/components/PhoneInput";
+import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 import { useCreateTempAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import { useAppointment } from "../api/appointmentQueries";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
@@ -48,6 +50,7 @@ export function TempAppointmentEditorModal({
   const isEdit = Boolean(appointmentId);
   const createMutation = useCreateTempAppointment();
   const updateMutation = useUpdateAppointment(appointmentId ?? "");
+  const overlap = useDentistOverlapConfirm();
   const currentBranchId = useCurrentBranchId();
 
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
@@ -150,6 +153,16 @@ export function TempAppointmentEditorModal({
         return;
       }
     }
+    submit(data);
+  };
+
+  // The dentist already holding a visit then is only a warning: Xác nhận
+  // resends with `allowDentistOverlap`, Hủy leaves the form as it is.
+  const submit = (data: TempAppointmentFormValues, allowDentistOverlap = false) => {
+    // Any other error the global handler has already reported.
+    const handleError = (error: unknown) => {
+      overlap.intercept(error, () => submit(data, true));
+    };
     const startDateTime = `${data.date}T${data.startTime}:00`;
     const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
 
@@ -165,8 +178,10 @@ export function TempAppointmentEditorModal({
           notes: data.notes ?? "",
           sourceTaxonomyId: data.sourceTaxonomyId || undefined,
           sourceEntryId: data.sourceEntryId || undefined,
+          allowDentistOverlap,
         },
         {
+          onError: handleError,
           onSuccess: () => {
             toast.success(t("Appointment:Toast:UpdateTempSuccess"));
             reset();
@@ -188,8 +203,10 @@ export function TempAppointmentEditorModal({
           sourceEntryId: data.sourceEntryId || undefined,
           color: data.color || undefined,
           notes: data.notes || undefined,
+          allowDentistOverlap,
         },
         {
+          onError: handleError,
           onSuccess: () => {
             toast.success(t("Appointment:Toast:CreateTempSuccess"));
             reset();
@@ -202,25 +219,28 @@ export function TempAppointmentEditorModal({
   };
 
   return (
-    <AppDialog
-      open={open}
-      title={isEdit ? t("Appointment:Modal:EditTempTitle") : t("Appointment:Modal:CreateTempTitle")}
-      width="calc(100vw - 80px)"
-      className="appt-editor-dialog"
-      canSave={isValid && !activeMutation.isPending}
-      saving={activeMutation.isPending}
-      onSave={handleSubmit(onSubmit)}
-      onClose={onClose}
-    >
-      <TempAppointmentForm
-        control={control}
-        errors={errors}
-        branchOptions={branchOptions}
-        doctorOptions={doctorOptions}
-        watchedDoctorId={watchedDoctorId}
-        watchedDate={watchedDate}
-        watchedSourceTaxonomyId={watchedSourceTaxonomyId}
-      />
-    </AppDialog>
+    <>
+      <AppDialog
+        open={open}
+        title={isEdit ? t("Appointment:Modal:EditTempTitle") : t("Appointment:Modal:CreateTempTitle")}
+        width="calc(100vw - 80px)"
+        className="appt-editor-dialog"
+        canSave={isValid && !activeMutation.isPending}
+        saving={activeMutation.isPending}
+        onSave={handleSubmit(onSubmit)}
+        onClose={onClose}
+      >
+        <TempAppointmentForm
+          control={control}
+          errors={errors}
+          branchOptions={branchOptions}
+          doctorOptions={doctorOptions}
+          watchedDoctorId={watchedDoctorId}
+          watchedDate={watchedDate}
+          watchedSourceTaxonomyId={watchedSourceTaxonomyId}
+        />
+      </AppDialog>
+      <DentistOverlapDialog {...overlap.dialog} />
+    </>
   );
 }

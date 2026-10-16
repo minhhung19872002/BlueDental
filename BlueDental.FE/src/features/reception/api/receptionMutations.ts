@@ -8,6 +8,7 @@ import type {
   RebookUndatedInput,
 } from "../types/reception";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { QUIET_DENTIST_OVERLAP } from "@/hooks/useDentistOverlapConfirm";
 
 /**
  * A reception is an appointment, so each write refreshes whatever reads
@@ -16,13 +17,16 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
  */
 const INVALIDATES_APPOINTMENTS = { invalidates: ["appointment"] } as const;
 
+/** A booking write: its screen asks about a dentist overlap instead of toasting it. */
+const BOOKING_WRITE = { ...INVALIDATES_APPOINTMENTS, ...QUIET_DENTIST_OVERLAP } as const;
+
 export function useCreateReception() {
   const branchId = useCurrentBranchId();
 
   return useMutation({
     mutationFn: (input: CreateReceptionInput) =>
       receptionApi.create({ ...input, branchId: input.overrideBranchId ?? branchId }),
-    meta: INVALIDATES_APPOINTMENTS,
+    meta: BOOKING_WRITE,
   });
 }
 
@@ -65,7 +69,7 @@ export function useBookFollowUp() {
   return useMutation({
     mutationFn: ({ id, input, outcome }: { id: string; input: BookFollowUpInput; outcome: BookedOutcome }) =>
       receptionApi.bookFollowUp(id, input, outcome),
-    meta: INVALIDATES_APPOINTMENTS,
+    meta: BOOKING_WRITE,
   });
 }
 

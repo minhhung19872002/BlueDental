@@ -9206,3 +9206,30 @@ Owner: "gọn như mẫu 5 hết càng tốt". Mục tiêu: mỗi trang thiết 
   - Ca "every form shares mẫu 5's…" thêm: mỗi mẫu được làm trống rồi in qua "In biểu mẫu" → PDF có đúng số trang thiết kế (3, 3, 4, 1, 2, 2, 1, 1, 1); cỡ chữ theo bảng trên.
   - `window.print` được chặn lại trước mỗi lần in, vì `openFreshSheet` tải lại trang. Lần chạy đầu không chặn lại thì `afterprint` thật gỡ bản chép trước khi PDF kịp xuất.
   - `patient-medical-record` + `medical-record-drawing` + `treatment-plan`: **40 pass / 2 đỏ có sẵn** (R-963), cộng ca đồng bộ chạy lại sau khi sửa: **1/1**.
+
+## R-971 (ex R-966; origin owns R-966..R-970) (2026-10-16, level 2 + dependent appointment/reception specs) A dentist double-booking warns instead of refusing
+
+BA: "Cho phép tạo trùng khung giờ, nhưng hiển thị cảnh báo nếu chọn trùng khung giờ, xác nhận để tiếp tục thực hiện, hủy để kết thúc." Owner chose: every booking point, the patient clash stays hard, Hủy keeps the form.
+
+- **Before**: a slot the dentist already held was refused with "Khung giờ này đã có lịch." (`Appointment:0002`, 409) everywhere, and the follow-up picker greyed such slots out.
+- **Now**
+  - The server still answers 0002 the first time, now as "Bác sĩ đã có lịch hẹn trong khung giờ {Slots}." (times only, no patient data). The FE shows `DentistOverlapDialog` ("Cảnh báo trùng khung giờ"); Xác nhận resends with `allowDentistOverlap: true`, Hủy closes the dialog and leaves the form as it was. The global toast skips 0002 (`meta.quietErrorCodes`).
+  - Wired at all six points: Tạo/Cập nhật lịch hẹn, Lịch tạm, Đổi bác sĩ on the patient's upcoming card, Tạo tiếp nhận, Đặt hẹn tiếp at Tiếp nhận, Lặp lại lịch hẹn.
+  - Still hard, checked before the dentist so a confirmed resend never ends in a refusal: the patient's own clash (0006), outside the shift / day off (0008/0009).
+  - Lặp lại lịch hẹn: a row where only the dentist is busy is orange "Trùng giờ bác sĩ" and Lưu warns with the dates ("dd/MM HH:mm–HH:mm"); any other clash still refuses the whole series with 0012, whose text now reads "Có buổi hẹn không đặt được (trùng lịch khách hàng, ngoài ca hoặc bác sĩ nghỉ), không thể tạo lịch hẹn".
+  - Đặt hẹn tiếp: the doctor's busy slots and full days are orange and pickable; only the past is disabled. Auto-pick still takes the first free slot.
+  - Dropped: moving a visit off Hẹn tái khám no longer re-checks the freed slot, and a notes-only edit never warns.
+
+**Spec**
+
+- `e2e/appointment-series-api.spec.ts`: dentist busy on one session → 0002 naming it, nothing stored; confirmed resend books all six. New: a patient clash refuses the series with 0012 even with the flag. Lunch break refused with the flag too.
+- `e2e/appointment-series-ui.spec.ts`: orange row, Lưu warns with no toast, Hủy books nothing and keeps the editor, Xác nhận books six.
+- `e2e/appointment.spec.ts`: the editor overlap test (warn → Hủy keeps the form → Xác nhận saves, persists).
+- `e2e/reception-follow-up.spec.ts`: the busy 08:00 slot is enabled and marked, the API without the flag answers 0002, Hủy keeps the pick, Xác nhận books it; Hẹn tái khám → Kết thúc điều trị now 200.
+- `e2e/patient-appointment.spec.ts`, new: Bác sĩ on the upcoming card — picking a doctor already busy then warns, Hủy keeps the old doctor (UI + server), Xác nhận moves it and it survives a reload.
+
+**Results** (vite preview production build :8131 + real host :5000 + PostgreSQL; no interception)
+
+- Targeted: series API 7/7, series UI 2/2, appointment 3/3, reception-follow-up 11/11, patient-appointment 8/8.
+- Dependent run 48/48: appointment-day-timeline, -history, -missed-api, -patient-link, -working-hours, patient-appointment, reception-doctor-list, -priority, -roles, -team, reception-own-doctor, reception-rebook-undated, reception-temporary, reception.spec.
+- `patient.spec` "reassigns its doctor" is red before any UI step on its data precondition ("a patient holding exactly one live booking with a free doctor"), which the local demo data no longer meets; not caused by this change.

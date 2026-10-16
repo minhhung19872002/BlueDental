@@ -73,12 +73,15 @@ export function toRecurrenceRequest(values: RecurrenceValues): RecurrenceRequest
 }
 
 function adaptSession(dto: ServerSeriesSessionDto): SeriesSession {
+  const state = STATE_BY_CODE[dto.state] ?? "free";
+  const conflictReason = dto.conflictReason ? REASON_BY_CODE[dto.conflictReason] ?? null : null;
   return {
     index: dto.index,
     start: dto.start,
     end: dto.end,
-    state: STATE_BY_CODE[dto.state] ?? "free",
-    conflictReason: dto.conflictReason ? REASON_BY_CODE[dto.conflictReason] ?? null : null,
+    // A dentist double-booking is only a warning; any other clash still refuses the series.
+    state: state === "conflict" && conflictReason === "dentistBusy" ? "overlap" : state,
+    conflictReason,
     appointmentId: dto.appointmentId,
     movedTo: dto.movedTo ?? null,
   };

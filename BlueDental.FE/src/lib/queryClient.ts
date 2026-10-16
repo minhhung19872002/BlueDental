@@ -14,6 +14,8 @@ export const queryClient = new QueryClient({
     onError: (error, _variables, _onMutateResult, mutation) => {
       logApiError(error, mutation.options.mutationKey?.join("/"));
       if (isOptedOut(mutation.meta)) return;
+      const code = describeApiError(error).code;
+      if (code !== undefined && mutation.meta?.quietErrorCodes?.includes(code)) return;
       if (typeof mutation.options.onError === "function") return;
       notifyApiError(error);
     },

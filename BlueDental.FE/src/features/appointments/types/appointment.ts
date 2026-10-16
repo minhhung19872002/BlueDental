@@ -62,6 +62,8 @@ export interface CreateAppointmentRequest {
   reason?: string;
   notes?: string;
   color?: string;
+  /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
+  allowDentistOverlap?: boolean;
 }
 
 export interface UpdateAppointmentRequest {
@@ -80,6 +82,8 @@ export interface UpdateAppointmentRequest {
   patientPhone?: string;
   sourceTaxonomyId?: string;
   sourceEntryId?: string;
+  /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
+  allowDentistOverlap?: boolean;
 }
 
 export interface AppointmentListQuery {
@@ -119,6 +123,8 @@ export interface CreateTempAppointmentRequest {
   sourceEntryId?: string;
   color?: string;
   notes?: string;
+  /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
+  allowDentistOverlap?: boolean;
 }
 
 /** Client-enriched appointment */

@@ -1,9 +1,10 @@
 import { toast } from "sonner";
 import dayjs from "dayjs";
+import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 import { t } from "@/lib/i18n";
 import { useBookFollowUp, useRebookUndated } from "../api/receptionMutations";
 import type { FollowUpPicker } from "./useFollowUpPicker";
-import type { BookedOutcome } from "../types/reception";
+import type { BookFollowUpInput, BookedOutcome } from "../types/reception";
 
 const SUCCESS_TEXT: Record<BookedOutcome, string> = {
   FollowUp: "Reception:FollowUpSuccess",
@@ -23,19 +24,29 @@ export function useFollowUpActions(
 ) {
   const bookMutation = useBookFollowUp();
   const rebookMutation = useRebookUndated();
+  const overlap = useDentistOverlapConfirm();
 
-  const handleConfirm = () => {
-    const input = picker.buildInput();
-    if (!input) return;
+  // The doctor already holding a visit then is only a warning: Xác nhận
+  // resends with `allowDentistOverlap`, Hủy leaves the pick as it is. Any
+  // other error the global handler has already reported.
+  const book = (input: BookFollowUpInput) => {
     bookMutation.mutate(
       { id: appointmentId, input, outcome },
       {
+        onError: (error) => {
+          overlap.intercept(error, () => book({ ...input, allowDentistOverlap: true }));
+        },
         onSuccess: () => {
           // No onClose: the page hides the picker once the card shows the booking.
           toast.success(t(SUCCESS_TEXT[outcome], dayjs(input.slotStart).format("HH:mm DD/MM/YYYY")));
         },
       },
     );
+  };
+
+  const handleConfirm = () => {
+    const input = picker.buildInput();
+    if (input) book(input);
   };
 
   const handleRebookUndated = () => {
@@ -57,5 +68,7 @@ export function useFollowUpActions(
     confirming: bookMutation.isPending,
     rebooking: rebookMutation.isPending,
     pending: bookMutation.isPending || rebookMutation.isPending,
+    /** Props for the `DentistOverlapDialog` the scheduler renders. */
+    overlapDialog: overlap.dialog,
   };
 }

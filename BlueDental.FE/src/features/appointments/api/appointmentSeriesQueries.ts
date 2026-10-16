@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { QUIET_DENTIST_OVERLAP } from "@/hooks/useDentistOverlapConfirm";
 import type { SeriesPreviewRequest } from "../types/appointmentSeries";
 import { appointmentKeys } from "./appointmentQueries";
 import { appointmentSeriesApi, type CreateSeriesRequest } from "./appointmentSeriesApi";
@@ -49,6 +50,6 @@ export function useCreateAppointmentSeries() {
   return useMutation({
     mutationKey: ["appointments", "createSeries"],
     mutationFn: (data: CreateSeriesRequest) => appointmentSeriesApi.create(data),
-    meta: { invalidates: ["appointment"] } as const,
+    meta: { invalidates: ["appointment"], ...QUIET_DENTIST_OVERLAP } as const,
   });
 }

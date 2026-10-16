@@ -1,5 +1,6 @@
 import { Button, Input, Tooltip } from "antd";
 import { CalendarDays, Loader2 } from "lucide-react";
+import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { useFollowUpActions } from "../hooks/useFollowUpActions";
@@ -116,6 +117,7 @@ export function FollowUpScheduler({ appointmentId, outcome, defaultDoctorId, bra
           {t(text.confirm)}
         </Button>
       </footer>
+      <DentistOverlapDialog {...actions.overlapDialog} />
     </section>
   );
 }

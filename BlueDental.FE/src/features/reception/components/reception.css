@@ -954,6 +954,10 @@
   cursor: not-allowed;
 }
 
+.fu-day--full:not(.fu-day--selected) {
+  color: var(--bd-orange);
+}
+
 .fu-day--selected {
   border-color: var(--bd-blue);
   background: var(--bd-blue);
@@ -1005,6 +1009,13 @@
   border-color: var(--bd-blue-light);
 }
 
+/* The doctor already has a visit then: pickable, the overlap is confirmed on save. */
+.fu-slot--busy {
+  border-color: var(--bd-orange-line);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+
 .fu-slot--off {
   background: var(--bd-line);
   color: var(--bd-faint);
@@ -1045,8 +1056,9 @@
   background: var(--bd-blue);
 }
 
-.fu-swatch--off {
-  background: var(--bd-line);
+.fu-swatch--busy {
+  border-color: var(--bd-orange-line);
+  background: var(--bd-orange-pale);
 }
 
 .fu-notes {

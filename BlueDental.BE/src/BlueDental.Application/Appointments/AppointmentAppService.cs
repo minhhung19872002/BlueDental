@@ -366,13 +366,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
 
-        if (await _conflictChecker.HasDentistConflictAsync(input.DentistId, slot))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
-                "The dentist already has an appointment in this time slot.");
-        }
-
+        // The refusals come first: the dentist overlap is only a warning the
+        // user confirms, and confirming it must not then end in a refusal.
         if (await _conflictChecker.HasPatientConflictAsync(input.PatientId, slot))
         {
             throw new BusinessException(
@@ -381,6 +376,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         }
 
         await _shiftChecker.EnsureWithinShiftAsync(input.DentistId, branchId, slot);
+        await _conflictChecker.EnsureDentistFreeAsync(input.DentistId, slot, input.AllowDentistOverlap);
 
         var appointment = new Appointment(
             GuidGenerator.Create(),
@@ -406,17 +402,10 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
 
-        if (input.DentistId.HasValue
-            && await _conflictChecker.HasDentistConflictAsync(input.DentistId.Value, slot))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
-                "The dentist already has an appointment in this time slot.");
-        }
-
         if (input.DentistId is { } dentistId)
         {
             await _shiftChecker.EnsureWithinShiftAsync(dentistId, branchId, slot);
+            await _conflictChecker.EnsureDentistFreeAsync(dentistId, slot, input.AllowDentistOverlap);
         }
 
         var appointment = Appointment.CreateTemporary(
@@ -449,13 +438,6 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         var dentistId = input.DentistId ?? appointment.DentistId;
 
-        if (await _conflictChecker.HasDentistConflictAsync(dentistId, slot, excludeAppointmentId: id))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
-                "The dentist already has an appointment in this time slot.");
-        }
-
         if (appointment.PatientId != Guid.Empty
             && await _conflictChecker.HasPatientConflictAsync(appointment.PatientId, slot, excludeAppointmentId: id))
         {
@@ -472,6 +454,16 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         if (movedOrReassigned && dentistId != Guid.Empty)
         {
             await _shiftChecker.EnsureWithinShiftAsync(dentistId, appointment.BranchId, slot);
+        }
+
+        // A booking confirmed into an overlap is not warned about again on every
+        // edit — only when it moves, changes dentist or is put back on the book.
+        var retakesSlot = input.Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed
+            && appointment.Status is AppointmentStatus.Cancelled or AppointmentStatus.NoShow;
+        if (dentistId != Guid.Empty && (movedOrReassigned || retakesSlot))
+        {
+            await _conflictChecker.EnsureDentistFreeAsync(
+                dentistId, slot, input.AllowDentistOverlap, excludeAppointmentId: id);
         }
 
         var statusBefore = appointment.Status;
@@ -567,7 +559,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         appointment.EnsureCanArriveOn(ClinicToday());
         appointment.Start();
         if (input?.Outcome is { } outcome)
-            await SetOutcomeHoldingSlotAsync(appointment, outcome);
+            appointment.SetOutcome(outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
@@ -583,7 +575,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         appointment.EnsureCanArriveOn(ClinicToday());
         appointment.Complete(input.Notes);
         if (input.Outcome is { } outcome)
-            await SetOutcomeHoldingSlotAsync(appointment, outcome);
+            appointment.SetOutcome(outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
@@ -652,31 +644,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var before = await SnapshotAsync(appointment);
-        await SetOutcomeHoldingSlotAsync(appointment, input.Outcome);
+        // "Hẹn tái khám" frees the slot; moving off it takes the slot back even
+        // when another patient has the dentist then — a dentist double-booking
+        // is no longer refused (BA 2026-10-16) and this visit is under way.
+        appointment.SetOutcome(input.Outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
-    }
-
-    /// <summary>
-    /// "Hẹn tái khám" frees the visit's slot like a cancellation, so another
-    /// patient may have taken the dentist since. Moving off it takes the slot
-    /// back, which is refused when it is no longer free.
-    /// </summary>
-    private async Task SetOutcomeHoldingSlotAsync(Appointment appointment, AppointmentOutcome outcome)
-    {
-        if (appointment.Outcome == AppointmentOutcome.Revisit
-            && outcome != AppointmentOutcome.Revisit
-            && await _conflictChecker.HasDentistConflictAsync(
-                appointment.DentistId, appointment.Slot, excludeAppointmentId: appointment.Id))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
-                "The dentist already has an appointment in this time slot.");
-        }
-
-        appointment.SetOutcome(outcome);
     }
 
     /// <summary>
@@ -701,13 +676,6 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var followUp = appointment.BookFollowUp(
             GuidGenerator.Create(), slot, currentFollowUp, input.DentistId, input.ChiefComplaint, input.Outcome);
 
-        if (await _conflictChecker.HasDentistConflictAsync(followUp.DentistId, slot))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
-                "The dentist already has an appointment in this time slot.");
-        }
-
         if (await _conflictChecker.HasPatientConflictAsync(followUp.PatientId, slot))
         {
             throw new BusinessException(
@@ -716,6 +684,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         }
 
         await _shiftChecker.EnsureWithinShiftAsync(followUp.DentistId, followUp.BranchId, slot);
+        await _conflictChecker.EnsureDentistFreeAsync(followUp.DentistId, slot, input.AllowDentistOverlap);
 
         await _repository.InsertAsync(followUp, autoSave: true);
         await _repository.UpdateAsync(appointment, autoSave: true);

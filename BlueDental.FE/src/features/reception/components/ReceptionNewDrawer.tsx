@@ -2,15 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Modal, Button, Input, InputNumber, Form, Select, TimePicker, DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { useCreateReception } from "../api/receptionMutations";
 import { useAvailableReceptionDoctors } from "../api/receptionQueries";
 import { pagedSelectProps } from "@/components/pagedSelectProps";
+import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 import { usePatientPicker } from "@/hooks/usePatientOptions";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
-import type { RefType } from "../types/reception";
+import type { CreateReceptionInput, RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
@@ -39,6 +41,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
 }) => {
   const [form] = Form.useForm<FormValues>();
   const createMutation = useCreateReception();
+  const overlap = useDentistOverlapConfirm();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
   const [newPatientOpen, setNewPatientOpen] = useState(false);
 
@@ -104,20 +107,30 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       .millisecond(0)
       .toISOString();
 
+    create({
+      overrideBranchId: resolveBranchId(data.doctorId),
+      patientId: data.patientId,
+      patientName: patient?.name ?? "",
+      phoneNumber: patient?.phone ?? "",
+      doctorId: data.doctorId ?? "",
+      refType: "Self" as RefType,
+      notes: data.notes,
+      services: [t("Reception:DefaultService")],
+      scheduledAt,
+      estimatedDurationMinutes: data.durationMinutes,
+    });
+  };
+
+  // The dentist already holding a visit then is only a warning: Xác nhận
+  // resends with `allowDentistOverlap`, Hủy leaves the form as it is. Any
+  // other error the global handler has already reported.
+  const create = (input: CreateReceptionInput) => {
     createMutation.mutate(
+      input,
       {
-        overrideBranchId: resolveBranchId(data.doctorId),
-        patientId: data.patientId,
-        patientName: patient?.name ?? "",
-        phoneNumber: patient?.phone ?? "",
-        doctorId: data.doctorId ?? "",
-        refType: "Self" as RefType,
-        notes: data.notes,
-        services: [t("Reception:DefaultService")],
-        scheduledAt,
-        estimatedDurationMinutes: data.durationMinutes,
-      },
-      {
+        onError: (error) => {
+          overlap.intercept(error, () => create({ ...input, allowDentistOverlap: true }));
+        },
         onSuccess: () => {
           toast.success(t("Reception:CreateSuccess"));
           form.resetFields();
@@ -254,6 +267,8 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           </div>
         </div>
       </Form>
+
+      <DentistOverlapDialog {...overlap.dialog} />
 
       {newPatientOpen && (
         <PatientEditorDialog

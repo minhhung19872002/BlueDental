@@ -1,5 +1,6 @@
 import { CANCELLATION_REASON, type CancellationReason } from "../types/appointment";
 import { useMutation } from "@tanstack/react-query";
+import { QUIET_DENTIST_OVERLAP } from "@/hooks/useDentistOverlapConfirm";
 import { appointmentApi } from "./appointmentApi";
 import type {
   CreateAppointmentRequest,
@@ -14,12 +15,15 @@ import type {
  */
 const INVALIDATES_APPOINTMENTS = { invalidates: ["appointment"] } as const;
 
+/** A booking write: its screen asks about a dentist overlap instead of toasting it. */
+const BOOKING_WRITE = { ...INVALIDATES_APPOINTMENTS, ...QUIET_DENTIST_OVERLAP } as const;
+
 export function useCreateAppointment() {
   return useMutation({
     mutationKey: ["appointments", "create"],
     mutationFn: (data: CreateAppointmentRequest) =>
       appointmentApi.create(data),
-    meta: INVALIDATES_APPOINTMENTS,
+    meta: BOOKING_WRITE,
   });
 }
 
@@ -28,7 +32,7 @@ export function useCreateTempAppointment() {
     mutationKey: ["appointments", "createTemp"],
     mutationFn: (data: CreateTempAppointmentRequest) =>
       appointmentApi.createTemp(data),
-    meta: INVALIDATES_APPOINTMENTS,
+    meta: BOOKING_WRITE,
   });
 }
 
@@ -37,7 +41,7 @@ export function useUpdateAppointment(id: string) {
     mutationKey: ["appointments", "update", id],
     mutationFn: (data: UpdateAppointmentRequest) =>
       appointmentApi.update(id, data),
-    meta: INVALIDATES_APPOINTMENTS,
+    meta: BOOKING_WRITE,
   });
 }
 

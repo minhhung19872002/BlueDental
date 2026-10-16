@@ -50,7 +50,7 @@ export function useAppointmentSeriesDialog({ open, editing, booking }: Options) 
 
   const create = useCreateAppointmentSeries();
   const saveSeries = useCallback(
-    async (data: AppointmentEditorValues) => {
+    async (data: AppointmentEditorValues, allowDentistOverlap = false) => {
       const created = await create.mutateAsync({
         patientId: data.patientId,
         doctorId: data.doctorId,
@@ -60,6 +60,7 @@ export function useAppointmentSeriesDialog({ open, editing, booking }: Options) 
         color: data.color || undefined,
         notes: data.notes || undefined,
         recurrence: toRecurrenceRequest(recurrence.values),
+        allowDentistOverlap,
       });
       return created.sessions.length;
     },
@@ -81,6 +82,7 @@ export function useAppointmentSeriesDialog({ open, editing, booking }: Options) 
     /** Creating, before patient, dentist, date and time are all picked. */
     waitingForBooking,
     errorMessage: active && source.error ? extractApiError(source.error) : null,
+    /** A session that cannot be booked at all; a dentist overlap only warns. */
     hasConflict: sessions.some((s) => s.state === "conflict"),
     currentFinished: current?.state === "finished",
     range: first && last ? { from: dayjs(first.start), to: dayjs(last.start) } : null,

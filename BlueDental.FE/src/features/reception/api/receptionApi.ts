@@ -274,6 +274,7 @@ export const receptionApi = {
       slotEnd,
       type: 2,
       chiefComplaint: input.notes,
+      allowDentistOverlap: input.allowDentistOverlap,
     });
     return mapAppointmentDto(res.data as ServerAppointmentDto);
   },
