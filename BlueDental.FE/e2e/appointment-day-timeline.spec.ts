@@ -115,22 +115,22 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await expect(column).toHaveCount(1);
     await expect(page.locator(".dtl-col").filter({ hasText: offName })).toHaveCount(0);
 
-    // The time column keeps the working hours; the column is headed by the
+    // The time column shows the viewer's hours (R-977 default 08:00–18:45); the column is headed by the
     // doctor's full name (Tên + Họ, as the staff list returns it) and the
     // patient count — the cancelled booking is not counted.
-    await expect(page.locator(".dtl-tick").first()).toHaveText("07:00");
-    await expect(page.locator(".dtl-tick").last()).toHaveText("23:45");
+    await expect(page.locator(".dtl-tick").first()).toHaveText("08:00");
+    await expect(page.locator(".dtl-tick").last()).toHaveText("18:45");
     await expect(column.locator(".dtl-name")).toHaveText(working.fullName);
     await expect(column.locator(".dtl-count")).toHaveText("1");
 
-    // Time runs down the column: 08:00 sits straight below 07:00, both under the name.
+    // Time runs down the column: 09:00 sits straight below 08:00, both under the name.
     const name = await column.locator(".dtl-doc").boundingBox();
-    const seven = await column.locator('.dtl-cell[data-time="07:00"]').boundingBox();
     const eight = await column.locator('.dtl-cell[data-time="08:00"]').boundingBox();
-    if (!name || !seven || !eight) throw new Error("the doctor's column is not laid out");
-    expect(eight.x).toBe(seven.x);
-    expect(eight.y).toBeGreaterThan(seven.y);
-    expect(seven.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+    const nine = await column.locator('.dtl-cell[data-time="09:00"]').boundingBox();
+    if (!name || !eight || !nine) throw new Error("the doctor's column is not laid out");
+    expect(nine.x).toBe(eight.x);
+    expect(nine.y).toBeGreaterThan(eight.y);
+    expect(eight.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
 
     const block = column.locator(".dtl-block");
     await expect(block).toHaveCount(1);

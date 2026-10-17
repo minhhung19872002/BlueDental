@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 import { MiniCalDayView } from "./MiniCalDayView";
 import { MiniCalWeekView } from "./MiniCalWeekView";
 import { MiniCalMonthView } from "./MiniCalMonthView";
+import { ShownHoursButton } from "./ShownHoursButton";
 
 export type DaySubMode = "time" | "doctor";
 
@@ -80,6 +81,7 @@ export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPi
               </button>
             </Tooltip>
           )}
+          {mode === "day" && <ShownHoursButton className="appt-mini-cal-hours-btn" size="small" />}
         </div>
 
         <div className="appt-mini-cal-right">

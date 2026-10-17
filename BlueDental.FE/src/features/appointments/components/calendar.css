@@ -2410,3 +2410,59 @@ body.cal-fullscreen .cal-grid-wrap {
   /* Above the bookings, below the sticky time header (z-index 2). */
   z-index: 1;
 }
+
+/* ── Khung giờ hiển thị (R-977) ──────────────────────────────────── */
+
+.appt-mini-cal-hours-btn.ant-btn {
+  width: 28px;
+  height: 28px;
+}
+
+/* The global popover rule is sized for menu lists (4px); a form needs room. */
+.cal-hours-popover .ant-popover-container {
+  padding: 14px 16px;
+}
+
+.cal-hours-popover .ant-popover-title {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.cal-hours-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 240px;
+}
+
+.cal-hours-field {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  gap: 8px;
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+
+.cal-hours-field .ant-picker {
+  width: 100%;
+  height: 32px;
+}
+
+.cal-hours-hint {
+  color: var(--bd-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cal-hours-hint--error {
+  color: var(--bd-red);
+}
+
+.cal-hours-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

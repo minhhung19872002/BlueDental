@@ -4,6 +4,7 @@ import { Spin } from "antd";
 import { useMinuteNow } from "@/hooks/useNow";
 import { t } from "@/lib/i18n";
 import { useAppointmentList } from "../../api/appointmentQueries";
+import { useCalendarWindowStore } from "../../store/calendarWindowStore";
 import type { AppointmentDto } from "../../types/appointment";
 import { TimelineAxis } from "./TimelineAxis";
 import { TimelineColumn } from "./TimelineColumn";
@@ -28,7 +29,7 @@ interface Props {
 
 /**
  * Opens a day at "now" (a third down from the header) when it is today,
- * otherwise at the start of the working hours.
+ * otherwise at the first hour shown.
  */
 function useInitialScroll(ref: React.RefObject<HTMLDivElement | null>, dayKey: string, scale: TimeScale, nowMinute: number | null) {
   const nowRef = useRef(nowMinute);
@@ -69,7 +70,8 @@ export function DayTimeline({
     [dayBookings, keyword, doctorIds, statusFilter],
   );
   const rows = useMemo(() => buildDoctorRows(doctors, dayBookings, doctorIds), [doctors, dayBookings, doctorIds]);
-  const scale = useMemo(() => buildTimeScale(dayBookings, slotMinutes), [dayBookings, slotMinutes]);
+  const shownHours = useCalendarWindowStore((s) => s.range);
+  const scale = useMemo(() => buildTimeScale(shownHours, slotMinutes), [shownHours, slotMinutes]);
   const slots = useMemo(() => slotStarts(scale), [scale]);
 
   const clock = dayjs(now);

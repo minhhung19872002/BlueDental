@@ -4,15 +4,17 @@ import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import type { Appointment } from "../types/appointment";
 import type { CalendarFocus } from "../types/appointmentSeries";
+import { clipToGrid, gridEdges, useCalendarWindowStore } from "../store/calendarWindowStore";
 import type { DaySubMode } from "./AppointmentMiniCalendar";
 
-/** BA 2026-10-16: 15-minute slots from 07:00 to the end of the day (last one 23:45). */
-const HOUR_START = 7;
-const HOUR_END = 24;
+/** BA 2026-10-16: 15-minute slots; R-977: over the viewer's shown hours. */
 const SLOT_MIN = 15;
 const COL_W = 60;
-const DAY_START_MIN = HOUR_START * 60;
-const DAY_END_MIN = HOUR_END * 60;
+
+interface Grid {
+  startMinute: number;
+  endMinute: number;
+}
 
 interface Props {
   appointments: Appointment[];
@@ -24,30 +26,30 @@ interface Props {
   onSlotPick?: (time: string) => void;
 }
 
-function buildSlots(): string[] {
+function buildSlots(grid: Grid): string[] {
   const result: string[] = [];
-  for (let h = HOUR_START; h < HOUR_END; h++) {
-    for (let m = 0; m < 60; m += SLOT_MIN) {
-      result.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
-    }
+  for (let minute = grid.startMinute; minute < grid.endMinute; minute += SLOT_MIN) {
+    const h = Math.floor(minute / 60).toString().padStart(2, "0");
+    const m = (minute % 60).toString().padStart(2, "0");
+    result.push(`${h}:${m}`);
   }
   return result;
 }
 
 /**
- * Where a booking sits on the axis, or null when it starts outside
- * 07:00–24:00 (BA: those are not shown here). One running past midnight is cut
- * at the edge.
+ * Where a booking sits on the axis, cut to the hours shown, or null when it
+ * falls wholly outside them (R-977: the viewer widens the hours to see it).
  */
-function calcPosition(appt: Pick<Appointment, "startTime" | "endTime">) {
+function calcPosition(appt: Pick<Appointment, "startTime" | "endTime">, grid: Grid) {
   const start = dayjs(appt.startTime);
   const end = dayjs(appt.endTime);
   const startMin = start.hour() * 60 + start.minute();
-  if (startMin < DAY_START_MIN || startMin >= DAY_END_MIN) return null;
-  const endMin = end.isSame(start, "day") ? end.hour() * 60 + end.minute() : DAY_END_MIN;
-  const left = ((startMin - DAY_START_MIN) / SLOT_MIN) * COL_W;
-  const width = ((Math.min(endMin, DAY_END_MIN) - startMin) / SLOT_MIN) * COL_W;
-  const room = ((DAY_END_MIN - startMin) / SLOT_MIN) * COL_W;
+  const endMin = end.isSame(start, "day") ? end.hour() * 60 + end.minute() : 24 * 60;
+  const shown = clipToGrid(startMin, Math.max(endMin, startMin + 1), grid);
+  if (!shown) return null;
+  const left = ((shown.startMinute - grid.startMinute) / SLOT_MIN) * COL_W;
+  const width = ((shown.endMinute - shown.startMinute) / SLOT_MIN) * COL_W;
+  const room = ((grid.endMinute - shown.startMinute) / SLOT_MIN) * COL_W;
   return { left, width: Math.min(Math.max(width, COL_W), room) };
 }
 
@@ -66,8 +68,8 @@ function EvtTooltipContent({ appt }: { appt: Appointment }) {
   );
 }
 
-function EvtBlock({ appt, label }: { appt: Appointment; label: string }) {
-  const position = calcPosition(appt);
+function EvtBlock({ appt, label, grid }: { appt: Appointment; label: string; grid: Grid }) {
+  const position = calcPosition(appt, grid);
   if (!position) return null;
   const evtStyle: React.CSSProperties = { left: position.left, width: position.width };
   if (appt.color) {
@@ -88,9 +90,9 @@ function EvtBlock({ appt, label }: { appt: Appointment; label: string }) {
  * the slot row, so it sits beside any booking already there instead of
  * hiding it.
  */
-function FocusMarker({ focus }: { focus: CalendarFocus }) {
+function FocusMarker({ focus, grid }: { focus: CalendarFocus; grid: Grid }) {
   const ref = useRef<HTMLDivElement>(null);
-  const position = calcPosition({ startTime: focus.start, endTime: focus.end });
+  const position = calcPosition({ startTime: focus.start, endTime: focus.end }, grid);
 
   useEffect(() => {
     const marker = ref.current;
@@ -108,6 +110,7 @@ function FocusMarker({ focus }: { focus: CalendarFocus }) {
 interface ViewProps {
   appointments: Appointment[];
   slots: string[];
+  grid: Grid;
   focus: CalendarFocus | null;
   onSlotPick?: (time: string) => void;
 }
@@ -132,7 +135,7 @@ function SlotCells({ slots, onSlotPick }: Pick<ViewProps, "slots" | "onSlotPick"
   );
 }
 
-function TimeView({ appointments, slots, focus, onSlotPick }: ViewProps) {
+function TimeView({ appointments, slots, grid, focus, onSlotPick }: ViewProps) {
   return (
     <>
       <div className="mcal-day-header">
@@ -143,11 +146,11 @@ function TimeView({ appointments, slots, focus, onSlotPick }: ViewProps) {
       <div className="mcal-day-row mcal-day-row--time">
         <div className="mcal-day-slots">
           <SlotCells slots={slots} onSlotPick={onSlotPick} />
-          {focus && <FocusMarker focus={focus} />}
+          {focus && <FocusMarker focus={focus} grid={grid} />}
           {appointments.map((appt) => {
             const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
             const label = `${appt.doctorName} — ${patientLabel}`;
-            return <EvtBlock key={appt.id} appt={appt} label={label} />;
+            return <EvtBlock key={appt.id} appt={appt} label={label} grid={grid} />;
           })}
         </div>
       </div>
@@ -155,7 +158,7 @@ function TimeView({ appointments, slots, focus, onSlotPick }: ViewProps) {
   );
 }
 
-function DoctorView({ appointments, slots, focus, onSlotPick }: ViewProps) {
+function DoctorView({ appointments, slots, grid, focus, onSlotPick }: ViewProps) {
   const doctors = useMemo(() => {
     const map = new Map<string, { id: string; name: string; appts: Appointment[] }>();
     for (const a of appointments) {
@@ -182,11 +185,11 @@ function DoctorView({ appointments, slots, focus, onSlotPick }: ViewProps) {
           <div className="mcal-day-doctor">{doc.name}</div>
           <div className="mcal-day-slots">
             <SlotCells slots={slots} onSlotPick={onSlotPick} />
-            {focus && row === 0 && <FocusMarker focus={focus} />}
+            {focus && row === 0 && <FocusMarker focus={focus} grid={grid} />}
             {doc.appts.map((appt) => {
               const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
               const label = `${patientLabel} ${appt.reason || ""}`;
-              return <EvtBlock key={appt.id} appt={appt} label={label} />;
+              return <EvtBlock key={appt.id} appt={appt} label={label} grid={grid} />;
             })}
           </div>
         </div>
@@ -214,14 +217,15 @@ function DayNote({ date, isEmpty, focus }: { date: string; isEmpty: boolean; foc
 }
 
 export function MiniCalDayView({ appointments, date, subMode, focus = null, onSlotPick }: Props) {
-  const slots = useMemo(buildSlots, []);
+  const shownHours = useCalendarWindowStore((s) => s.range);
+  const grid = useMemo(() => gridEdges(shownHours, SLOT_MIN), [shownHours]);
+  const slots = useMemo(() => buildSlots(grid), [grid]);
   const dayFocus = focus && dayjs(focus.start).format("YYYY-MM-DD") === date ? focus : null;
+  const view = { appointments, slots, grid, focus: dayFocus, onSlotPick };
 
   return (
     <div className="mcal-day">
-      {subMode === "time"
-        ? <TimeView appointments={appointments} slots={slots} focus={dayFocus} onSlotPick={onSlotPick} />
-        : <DoctorView appointments={appointments} slots={slots} focus={dayFocus} onSlotPick={onSlotPick} />}
+      {subMode === "time" ? <TimeView {...view} /> : <DoctorView {...view} />}
       <DayNote date={date} isEmpty={appointments.length === 0} focus={dayFocus} />
     </div>
   );

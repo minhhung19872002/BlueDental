@@ -9,6 +9,7 @@ import {
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
+import { ShownHoursButton } from "./ShownHoursButton";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -85,6 +86,7 @@ export function CalendarToolbarRow2({
           disabled={isMonthView}
           onClick={onToggleSlot}
         />
+        <ShownHoursButton className="cal-btn-slot--mobile" disabled={isMonthView} />
       </div>
       <div className="cal-toolbar-row2-right">
         {ability.canExport && (
@@ -112,6 +114,7 @@ export function CalendarToolbarRow2({
           disabled={isMonthView}
           onClick={onToggleSlot}
         />
+        <ShownHoursButton className="cal-btn-slot--desktop" disabled={isMonthView} />
         <Button
           className="cal-btn-fullscreen"
           icon={<ExpandOutlined />}

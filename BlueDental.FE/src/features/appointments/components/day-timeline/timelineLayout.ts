@@ -1,14 +1,6 @@
 import dayjs from "dayjs";
 import type { AppointmentDto } from "../../types/appointment";
-
-/**
- * The clinic's working hours (BA 2026-10-03: "7h - 20h"; BA 2026-10-16: open
- * until the end of the day — clinics there work late).
- *
- * There is no shift master data yet; when one lands, this constant is the
- * single place to read it from.
- */
-export const WORKING_HOURS = { startMinute: 7 * 60, endMinute: 24 * 60 } as const;
+import { clipToGrid, gridEdges, type CalendarWindow } from "../../store/calendarWindowStore";
 
 const LAST_MINUTE = 24 * 60;
 
@@ -41,16 +33,11 @@ function endMinuteOf(appointment: AppointmentDto): number {
 }
 
 /**
- * The working hours, widened to whole hours around any booking that falls
- * outside them, so no appointment is ever cut off the axis.
+ * The viewer's display window (R-977). A booking outside it no longer widens
+ * the axis: it is cut at the edges, or left out (`placeBlocks`).
  */
-export function buildTimeScale(appointments: AppointmentDto[], slotMinutes: 15 | 30): TimeScale {
-  let startMinute: number = WORKING_HOURS.startMinute;
-  let endMinute: number = WORKING_HOURS.endMinute;
-  for (const appt of appointments) {
-    startMinute = Math.min(startMinute, Math.floor(minuteOfDay(appt.startTime) / 60) * 60);
-    endMinute = Math.max(endMinute, Math.min(LAST_MINUTE, Math.ceil(endMinuteOf(appt) / 60) * 60));
-  }
+export function buildTimeScale(range: CalendarWindow, slotMinutes: 15 | 30): TimeScale {
+  const { startMinute, endMinute } = gridEdges(range, slotMinutes);
   return { startMinute, endMinute, slotMinutes, pxPerMinute: SLOT_HEIGHT_PX[slotMinutes] / slotMinutes };
 }
 
@@ -88,7 +75,7 @@ export interface PlacedColumn {
 }
 
 /**
- * Lays one doctor's bookings down the axis. Overlapping bookings go to
+ * Lays one doctor's bookings down the axis, cut to the hours shown. Overlapping bookings go to
  * side-by-side lanes (first lane that is free again), so none hides another.
  */
 export function placeBlocks(appointments: AppointmentDto[], scale: TimeScale): PlacedColumn {
@@ -97,8 +84,10 @@ export function placeBlocks(appointments: AppointmentDto[], scale: TimeScale): P
   const blocks: PlacedBlock[] = [];
 
   for (const appointment of sorted) {
-    const start = minuteOfDay(appointment.startTime);
-    const end = Math.max(endMinuteOf(appointment), start + 1);
+    const own = minuteOfDay(appointment.startTime);
+    const shown = clipToGrid(own, Math.max(endMinuteOf(appointment), own + 1), scale);
+    if (!shown) continue;
+    const { startMinute: start, endMinute: end } = shown;
     let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start);
     if (lane === -1) {
       lane = laneEnds.length;

@@ -293,14 +293,11 @@ export function AppointmentCalendarPage() {
                 doctorIds={filters.doctorIds}
                 statusFilter={filters.statusFilter}
                 selectedIds={selectedIds}
-                onCellClick={(dayIdx, slotIdx) => {
-                  const totalMinutes = 6 * 60 + slotIdx * filters.slotMinutes;
-                  const h = Math.floor(totalMinutes / 60).toString().padStart(2, "0");
-                  const m = (totalMinutes % 60).toString().padStart(2, "0");
+                onCellClick={(dayIdx, time) => {
                   setInitialDate(
                     state.currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"),
                   );
-                  setInitialTime(`${h}:${m}`);
+                  setInitialTime(time);
                   setInitialDoctorId(undefined);
                   setEditId(null);
                   setAddOpen(true);

@@ -96,20 +96,20 @@ test.describe("Lưới 15 phút — Tạo lịch hẹn bấm ô Lịch đã hẹ
     await dayRead;
     await dialog.getByPlaceholder("Nội dung đặt lịch").fill(`Ô 15 phút ${runId()}`);
 
-    // Lịch đã hẹn: 07:00 … 23:45, one column per 15 minutes (68 slots).
+    // Lịch đã hẹn: the default shown hours 08:00 … 18:45 (R-977), one column per 15 minutes (44 slots).
     const ticks = dialog.locator(".mcal-day-time-cell");
-    await expect(ticks).toHaveCount(68);
-    await expect(ticks.first()).toHaveText("07:00");
-    await expect(ticks.nth(1)).toHaveText("07:15");
-    await expect(ticks.last()).toHaveText("23:45");
+    await expect(ticks).toHaveCount(44);
+    await expect(ticks.first()).toHaveText("08:00");
+    await expect(ticks.nth(1)).toHaveText("08:15");
+    await expect(ticks.last()).toHaveText("18:45");
 
     const time = dialog.getByPlaceholder("HH:mm");
     await expect(time).toHaveValue("");
     await dialog.getByRole("button", { name: "Chọn giờ hẹn 10:15" }).click();
     await expect(time).toHaveValue("10:15");
     // Picking again replaces it.
-    await dialog.getByRole("button", { name: "Chọn giờ hẹn 23:45" }).click();
-    await expect(time).toHaveValue("23:45");
+    await dialog.getByRole("button", { name: "Chọn giờ hẹn 18:45" }).click();
+    await expect(time).toHaveValue("18:45");
     await dialog.getByRole("button", { name: "Chọn giờ hẹn 10:15" }).click();
     await expect(time).toHaveValue("10:15");
 
@@ -125,15 +125,15 @@ test.describe("Lưới 15 phút — Tạo lịch hẹn bấm ô Lịch đã hẹ
     expect(new Date(booking.slotStart).toISOString()).toBe(at(day, "10:15"));
     expect(new Date(booking.slotEnd).toISOString()).toBe(at(day, "10:30"));
 
-    // The main day view now runs on 15-minute rows to midnight by default,
-    // every quarter hour labelled (BA: 10:00, 10:15, 10:30…).
+    // The main day view runs on 15-minute rows over the default shown hours
+    // (R-977: 08:00–18:45), every quarter hour labelled (BA: 10:00, 10:15, 10:30…).
     const loaded = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.url().includes(`date=${day}`) && r.ok());
     await page.goto(`/calendar?date=${day}`);
     await loaded;
     const column = page.locator(".dtl-col").filter({ hasText: dentist.fullName });
     await expect(column).toHaveCount(1);
-    await expect(page.locator(".dtl-tick").nth(13)).toHaveText("10:15");
-    await expect(page.locator(".dtl-tick").last()).toHaveText("23:45");
+    await expect(page.locator(".dtl-tick").nth(9)).toHaveText("10:15");
+    await expect(page.locator(".dtl-tick").last()).toHaveText("18:45");
     await expect(column.locator('.dtl-cell[data-time="10:15"]')).toHaveCount(1);
     await expect(column.locator(".dtl-block")).toHaveCount(1);
   });
@@ -146,13 +146,13 @@ test.describe("Lưới 15 phút — Tạo lịch hẹn bấm ô Lịch đã hẹ
 
     const minutes = dialog.locator(".appt-field").filter({ hasText: /^Phút/ }).getByRole("spinbutton");
     await expect(minutes).toHaveValue("15");
-    await expect(dialog.locator(".mcal-day-time-cell")).toHaveCount(68);
+    await expect(dialog.locator(".mcal-day-time-cell")).toHaveCount(44);
 
     const time = dialog.getByPlaceholder("HH:mm");
     await expect(time).toHaveValue("");
     await dialog.getByRole("button", { name: "Chọn giờ hẹn 10:15" }).click();
     await expect(time).toHaveValue("10:15");
-    await dialog.getByRole("button", { name: "Chọn giờ hẹn 23:45" }).click();
-    await expect(time).toHaveValue("23:45");
+    await dialog.getByRole("button", { name: "Chọn giờ hẹn 18:45" }).click();
+    await expect(time).toHaveValue("18:45");
   });
 });

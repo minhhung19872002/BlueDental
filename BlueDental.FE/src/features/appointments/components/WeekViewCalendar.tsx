@@ -7,10 +7,9 @@ import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
 import { EventCard } from "./EventCard";
 import { STATUS_GROUPS } from "../hooks/useStatusCounts";
+import { clipToGrid, gridEdges, useCalendarWindowStore } from "../store/calendarWindowStore";
 import { t } from "@/lib/i18n";
 
-const DAY_START_H = 6;
-const DAY_END_H = 24;
 const SLOT_H_30 = 25;
 const SLOT_H_15 = 38;
 
@@ -20,8 +19,7 @@ function getSlotH(slotMinutes: 15 | 30): number {
   return slotMinutes === 15 ? SLOT_H_15 : SLOT_H_30;
 }
 
-function slotTime(slotIndex: number, slotMinutes: number): string {
-  const totalMinutes = DAY_START_H * 60 + slotIndex * slotMinutes;
+function slotTime(totalMinutes: number): string {
   const h = Math.floor(totalMinutes / 60)
     .toString()
     .padStart(2, "0");
@@ -40,7 +38,8 @@ interface Props {
   doctorIds?: string[];
   statusFilter?: string;
   selectedIds?: Set<string>;
-  onCellClick?: (dayOffset: number, slotIndex: number) => void;
+  /** A slot clicked: its day in the week and its start ("HH:mm"). */
+  onCellClick?: (dayOffset: number, time: string) => void;
   onCardAction?: (action: string, id: string) => void;
 }
 
@@ -57,15 +56,22 @@ export function WeekViewCalendar({
   const weekStart = currentDate.startOf("week");
   const today = dayjs();
   const slotH = getSlotH(slotMinutes);
-  const totalSlots = ((DAY_END_H - DAY_START_H) * 60) / slotMinutes;
-  const totalHeight = totalSlots * slotH;
+  // R-977: the viewer's shown hours; bookings outside them are cut or left out.
+  const shownHours = useCalendarWindowStore((s) => s.range);
+  const grid = useMemo(() => gridEdges(shownHours, slotMinutes), [shownHours, slotMinutes]);
+  const totalHeight = minutesToPx(grid.endMinute - grid.startMinute, slotMinutes, slotH);
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day")),
     [weekStart],
   );
 
-  const slots = useMemo(() => Array.from({ length: totalSlots }, (_, i) => i), [totalSlots]);
+  /** Slot start minutes of the day. */
+  const slots = useMemo(() => {
+    const starts: number[] = [];
+    for (let m = grid.startMinute; m < grid.endMinute; m += slotMinutes) starts.push(m);
+    return starts;
+  }, [grid, slotMinutes]);
 
   const { data: appointments, isFetching } = useAppointmentList({
     fromDate: weekStart.format("YYYY-MM-DD"),
@@ -113,8 +119,7 @@ export function WeekViewCalendar({
     return map;
   }, [visibleBookings, weekStart]);
 
-  const slotsPerHour = 60 / slotMinutes;
-  const isHourStart = (idx: number) => idx % slotsPerHour === 0;
+  const isHourStart = (minute: number) => minute % 60 === 0;
 
   return (
     <Spin spinning={isFetching} wrapperClassName="cal-spin-wrap">
@@ -143,20 +148,20 @@ export function WeekViewCalendar({
 
         {/* Time labels column */}
         <div className="cal-week-time-col">
-          {slots.map((slotIdx) => {
-            const showLabel = slotMinutes === 15 || isHourStart(slotIdx);
+          {slots.map((minute) => {
+            const showLabel = slotMinutes === 15 || isHourStart(minute);
             return (
               <div
-                key={slotIdx}
+                key={minute}
                 className={["cal-week-time-cell-abs", !showLabel && "cal-week-time-cell-abs--half"]
                   .filter(Boolean)
                   .join(" ")}
                 style={{
                   height: slotH,
-                  borderBottom: isHourStart(slotIdx) ? "1px solid #e7eaf6" : "1px dashed #f7f8fd",
+                  borderBottom: isHourStart(minute) ? "1px solid #e7eaf6" : "1px dashed #f7f8fd",
                 }}
               >
-                {showLabel ? slotTime(slotIdx, slotMinutes) : ""}
+                {showLabel ? slotTime(minute) : ""}
               </div>
             );
           })}
@@ -175,30 +180,28 @@ export function WeekViewCalendar({
               style={{ height: totalHeight }}
             >
               {/* Background slot lines */}
-              {slots.map((slotIdx) => (
+              {slots.map((minute) => (
                 <div
-                  key={slotIdx}
+                  key={minute}
                   className={[
                     "cal-day-slot-bg",
-                    isHourStart(slotIdx) ? "cal-day-cell--hour" : "cal-day-cell--half",
+                    isHourStart(minute) ? "cal-day-cell--hour" : "cal-day-cell--half",
                   ].join(" ")}
+                  data-time={slotTime(minute)}
                   style={{ height: slotH }}
-                  onClick={() => onCellClick?.(dayIdx, slotIdx)}
+                  onClick={() => onCellClick?.(dayIdx, slotTime(minute))}
                 />
               ))}
               {/* Appointment cards overlay */}
               {dayBookings.map((appt) => {
                 const s = dayjs(appt.startTime);
                 const e = dayjs(appt.endTime);
-                const startMin = s.hour() * 60 + s.minute() - DAY_START_H * 60;
-                const endMin = e.hour() * 60 + e.minute() - DAY_START_H * 60;
-                const top = minutesToPx(Math.max(startMin, 0), slotMinutes, slotH);
-                const height = minutesToPx(
-                  Math.min(endMin, (DAY_END_H - DAY_START_H) * 60) - Math.max(startMin, 0),
-                  slotMinutes,
-                  slotH,
-                );
-                if (height <= 0) return null;
+                const startMin = s.hour() * 60 + s.minute();
+                const endMin = e.isSame(s, "day") ? e.hour() * 60 + e.minute() : 24 * 60;
+                const shown = clipToGrid(startMin, endMin, grid);
+                if (!shown) return null;
+                const top = minutesToPx(shown.startMinute - grid.startMinute, slotMinutes, slotH);
+                const height = minutesToPx(shown.endMinute - shown.startMinute, slotMinutes, slotH);
                 return (
                   <div key={appt.id} className="cal-day-card-positioner" style={{ top, height }}>
                     <EventCard

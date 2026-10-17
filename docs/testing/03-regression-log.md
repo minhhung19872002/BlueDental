@@ -9353,4 +9353,34 @@ Vòng 2 cùng ngày, owner sửa:
     - Lịch tạm: Phút 15, bấm 10:15 / 23:45 điền đúng.
   - `appointment-day-timeline` sửa tick cuối thành "23:45".
   - Hồi quy appointment/reception/marketing: 40 pass, 2 đỏ do mặc định 15'. Cảnh báo trùng giờ giờ hiện "09:00–09:15" thay vì "09:00–09:30" (`appointment.spec.ts:123`, `appointment-series-ui.spec.ts:191`). Đã sửa kỳ vọng, chạy lại xanh (3/3).
-  - Lưu ý: modal Lịch tạm gọi `catalog-entries?group=source` bị 500 trên host local, hiện toast "Lỗi hệ thống". Không thuộc R-976, chưa điều tra.
+  - Lưu ý: modal Lịch tạm gọi `catalog-entries?group=source` bị 500 trên host local, hiện toast "Lỗi hệ thống". Không thuộc R-976. Đã tìm ra (2026-10-16): DB local thiếu migration, chạy DbMigrator là hết.
+
+## R-977 (2026-10-17, mức 2: lịch hẹn) Khung giờ hiển thị do từng người xem tự chọn
+
+- Lý do: giờ kết thúc phù hợp thay đổi theo ngày (9h, 12h59, 20h…), nên owner muốn mỗi người tự đặt khung giờ cho mình, không phải giờ chung của phòng khám.
+- Quyết định của owner:
+  - Chỉ lưu trong localStorage (`bd_calendar_window`), không lưu BE/DB.
+  - Mỗi view có nút ⏱ riêng: view Ngày, view Tuần, "Lịch đã hẹn" trong Tạo lịch hẹn / Lịch tạm. Tất cả dùng **chung một** khung giờ.
+  - Mặc định 08:00–18:45. "Đến 18:45" nghĩa là ô 18:45 vẫn hiện, lưới kết thúc lúc 19:00.
+  - Lịch hẹn nằm ngoài khung thì bị ẩn (lịch nằm một phần trong khung thì bị cắt). View không tự nới khung; người xem tự nới trong popover.
+  - Giới hạn chọn Giờ hẹn (`clinicHours.ts`, 07–23) giữ nguyên. Thay đổi này chỉ ảnh hưởng phần hiển thị.
+- Code:
+  - Store `features/appointments/store/calendarWindowStore.ts` (zustand), gồm `gridEdges` (làm tròn lên đủ ô của lưới 15'/30') và `clipToGrid`.
+  - `timelineLayout.buildTimeScale(range, slot)` đã bỏ `WORKING_HOURS`.
+  - `WeekViewCalendar` bỏ `DAY_START_H`/`DAY_END_H`. Bấm ô truyền "HH:mm" thật thay vì 6*60 cố định.
+  - `MiniCalDayView` dùng `grid` thay cho hằng giờ.
+  - Số bệnh nhân cạnh tên bác sĩ vẫn đếm cả ngày.
+- Popover (`ShownHoursButton`):
+  - Hai ô Từ giờ / Đến giờ dùng `ClockPicker`, cùng loại với Giờ hẹn (owner yêu cầu). Bước 15', đủ 00–23 giờ, ẩn "Bây giờ".
+  - Giờ kết thúc ≤ giờ bắt đầu thì báo lỗi và khoá "Áp dụng".
+  - Nút "Mặc định" đưa về 08:00–18:45.
+  - Cần class `cal-hours-popover` vì rule global `.ant-popover-container { padding: 4px }` (dành cho popover dạng list) làm popover bị sát (owner báo).
+- Khoá i18n mới: `Appointment:ShownHours:*` (7 khoá; BE phải build lại).
+- **Test** (bản build :18432 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Spec mới `appointment-shown-hours.spec.ts` **1/1 pass**:
+    - Mặc định 08:00–18:45, lịch 07:00 bị ẩn nhưng số đếm là 1. Đặt 07:00 → 06:00 thì báo lỗi và khoá Áp dụng.
+    - Đặt 07:00–20:00 thì block hiện ra. Reload vẫn giữ khung.
+    - View Tuần bắt đầu 07:00. Lịch đã hẹn 07:00–20:00.
+    - Bấm "Mặc định" ở Lịch đã hẹn thì cả ba view về 08:00–18:45.
+  - `appointment-day-timeline`, `appointment-slot-pick`: đổi kỳ vọng sang 08:00–18:45 (Lịch đã hẹn 44 ô; ô bấm 23:45 → 18:45).
+  - Hồi quy: day-timeline 6, slot-pick 2, shown-hours 1, series-ui + appointment.spec 5: **14/14 pass**.
