@@ -7,6 +7,7 @@ import { AppointmentFormLeft } from "./AppointmentFormLeft";
 import { AppointmentFormCenter } from "./AppointmentFormCenter";
 import { AppointmentFormRight } from "./AppointmentFormRight";
 import { AppointmentMiniCalendar } from "./AppointmentMiniCalendar";
+import type { MiniCalSlotPick } from "../types/slotPick";
 
 interface Props {
   control: Control<AppointmentEditorValues>;
@@ -29,6 +30,8 @@ interface Props {
    * dung), and the slot a clicked session shows in Lịch đã hẹn.
    */
   series?: { field: ReactNode; list: ReactNode | null; focus: CalendarFocus | null };
+  /** A slot clicked in Lịch đã hẹn (fills Giờ hẹn and, on a doctor row, Chọn bác sĩ). */
+  onSlotPick: (pick: MiniCalSlotPick) => void;
 }
 
 export function AppointmentEditorForm({
@@ -45,8 +48,9 @@ export function AppointmentEditorForm({
   lockPatient,
   onOpenNewPatient,
   series,
+  onSlotPick,
 }: Props) {
-  const center = <AppointmentFormCenter control={control} errors={errors} doctorOptions={doctorOptions} />;
+  const center = <AppointmentFormCenter control={control} errors={errors} doctorOptions={doctorOptions} setValue={setValue} />;
   const right = (
     <AppointmentFormRight
       control={control}
@@ -58,10 +62,6 @@ export function AppointmentEditorForm({
     />
   );
   const sessionList = series?.list ?? null;
-  const handleSlotPick = (date: string, time: string) => {
-    setValue("date", date, { shouldValidate: true, shouldDirty: true });
-    setValue("startTime", time, { shouldValidate: true, shouldDirty: true });
-  };
 
   return (
     <div className="appt-editor-body">
@@ -92,7 +92,7 @@ export function AppointmentEditorForm({
         date={watchedDate}
         doctorId={watchedDoctorId}
         focus={series?.focus ?? null}
-        onSlotPick={handleSlotPick}
+        onSlotPick={onSlotPick}
       />
     </div>
   );

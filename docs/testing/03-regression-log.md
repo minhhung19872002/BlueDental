@@ -9444,3 +9444,36 @@ Vòng 2 cùng ngày, owner sửa:
   - Chưa chạy test API mới với BE cũ. Theo cách dựng dữ liệu, nhóm theo bác sĩ không thể trùng với thứ tự giờ hẹn.
 - Chưa commit.
 
+## R-981 (2026-10-17, mức 2: lịch hẹn) Bấm ô trống ở hàng bác sĩ trong "Lịch đã hẹn" điền cả Giờ hẹn và Chọn bác sĩ
+
+- Yêu cầu BA (ảnh chụp dialog Tạo lịch hẹn): ở chế độ xem theo bác sĩ, bấm ô trống trên hàng của một bác sĩ thì điền Giờ hẹn, đồng thời điền Chọn bác sĩ bằng bác sĩ của hàng đó.
+- Owner chốt:
+  1. Lịch đã hẹn vẫn lọc theo bác sĩ đang chọn, như cũ.
+  2. Bác sĩ không chọn được thì chỉ điền giờ, kèm toast cảnh báo. Toast phải nêu **lý do cụ thể**, không được là câu chung chung.
+  3. Chế độ xem theo giờ (không có hàng bác sĩ) chỉ điền giờ.
+  4. Bấm hàng của bác sĩ khác thì thay bác sĩ.
+- Áp dụng cho dialog Tạo/Sửa lịch hẹn và Lịch tạm.
+- Code (FE):
+  - `types/slotPick.ts` (mới).
+  - `hooks/useSlotPickHandler.ts` (mới), thay cho hai `handleSlotPick` riêng.
+  - `MiniCalDayView`: nút ô ở hàng bác sĩ mang theo bác sĩ, aria-label "Chọn giờ hẹn HH:mm với <tên>".
+  - `AppointmentMiniCalendar`, `AppointmentEditorForm`, `TempAppointmentForm`, `AppointmentEditorModal`, `TempAppointmentEditorModal`.
+- Phân loại lý do: ô chọn bác sĩ đặt lịch (`useBookableDoctorOptions`) chỉ bỏ hai loại bác sĩ.
+  - Bác sĩ **đăng ký OFF trên Chấm công** ngày đó. Toast: "Bác sĩ X nghỉ ngày DD/MM/YYYY (đã đăng ký OFF trên Chấm công)…".
+  - Bác sĩ **không còn hoạt động / không còn là bác sĩ**, nhận ra vì không có trong danh sách bác sĩ đang hoạt động. Toast: "Bác sĩ X đã ngừng hoạt động hoặc không còn là bác sĩ…".
+  - Giờ làm trên hồ sơ không lọc ô chọn bác sĩ; BE từ chối lúc lưu (DentistShiftChecker), như trước.
+  - Bấm ô thuộc ngày khác ngày của form: bác sĩ được điền, rồi `useBookableDoctorOptions` tự kiểm OFF ngày mới như khi đổi ngày.
+- i18n: `Appointment:MiniCal:PickDoctorSlot`, `DoctorDayOff`, `DoctorInactive` (vi/en). Phải build lại Domain.Shared và khởi động lại host.
+- **Test** (bản build :18432 + host thật :5000, PostgreSQL thật, không chặn API):
+  - `e2e/appointment-slot-pick-doctor.spec.ts` mới, **2/2 pass**.
+    - Dựng dữ liệu: 3 bác sĩ tạm, mỗi người một lịch hẹn thật để có hàng. Một người tự đăng ký OFF ngày đó, một người bị bỏ tick "Bác sĩ" bằng PUT `/staff`.
+    - Tạo lịch hẹn: bấm hàng người OFF và người bị bỏ tick → giờ được điền, bác sĩ để trống, toast đúng từng lý do. Bấm hàng bác sĩ đang làm → điền cả hai, lịch chỉ còn hàng người đó. Lưu, reload, API trả lịch 11:30 của bác sĩ đó.
+    - Lịch tạm: bấm hàng OFF thì có toast; bấm hàng đang làm thì điền giờ và bác sĩ.
+  - Hồi quy `appointment-slot-pick`, `appointment-shown-hours`, `appointment-day-timeline`, `doctor-day-off-pickers`, `appointment.spec`, `appointment-series-ui`: **17/17 pass**.
+  - Chưa có e2e cho trường hợp bác sĩ đã bị xoá: hàng của họ không hiện trong Lịch đã hẹn nên không bấm được.
+- Bổ sung cùng ngày (owner: "field Chọn bác sĩ cho clear đi, nhưng vẫn check validate phải required"):
+  - Ô Chọn bác sĩ có nút ✕ (`allowClear`) ở cả Tạo/Sửa lịch hẹn lẫn Lịch tạm.
+  - Tạo/Sửa lịch hẹn: bấm ✕ thì `setValue(..., { shouldValidate: true })` (`AppointmentFormCenter`) chạy lại schema. Lỗi "Vui lòng chọn bác sĩ" hiện ngay và Lưu bị khoá; chọn lại bác sĩ thì hết lỗi.
+  - Lịch tạm vẫn không bắt buộc bác sĩ như trước: bấm ✕ không có lỗi.
+  - Test: spec thêm hai bước ✕. `appointment-slot-pick-doctor` + `appointment-slot-pick` + `doctor-day-off-pickers` + `appointment.spec` **10/10 pass** trên bản build.
+- Chưa commit.

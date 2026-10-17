@@ -12,6 +12,7 @@ import { useCreateTempAppointment, useUpdateAppointment } from "../api/appointme
 import { useAppointment } from "../api/appointmentQueries";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { slotOf } from "../hooks/useSaveAppointment";
+import { useSlotPickHandler } from "../hooks/useSlotPickHandler";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -105,6 +106,13 @@ export function TempAppointmentEditorModal({
     kept: isEdit ? keptDoctor : null,
     onUnavailable: handleDoctorOff,
   });
+
+  const setPicked = useCallback(
+    (field: "date" | "startTime" | "doctorId", value: string) =>
+      setValue(field, value, { shouldValidate: true, shouldDirty: true }),
+    [setValue],
+  );
+  const handleSlotPick = useSlotPickHandler({ formDate: watchedDate, doctorOptions, set: setPicked });
 
   useEffect(() => {
     if (!open) {
@@ -233,12 +241,12 @@ export function TempAppointmentEditorModal({
         <TempAppointmentForm
           control={control}
           errors={errors}
-          setValue={setValue}
           branchOptions={branchOptions}
           doctorOptions={doctorOptions}
           watchedDoctorId={watchedDoctorId}
           watchedDate={watchedDate}
           watchedSourceTaxonomyId={watchedSourceTaxonomyId}
+          onSlotPick={handleSlotPick}
         />
       </AppDialog>
       <DentistOverlapDialog {...overlap.dialog} />

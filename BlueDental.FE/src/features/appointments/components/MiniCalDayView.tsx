@@ -6,6 +6,7 @@ import type { Appointment } from "../types/appointment";
 import type { CalendarFocus } from "../types/appointmentSeries";
 import { clipToGrid, gridEdges, useCalendarWindowStore } from "../store/calendarWindowStore";
 import type { DaySubMode } from "./AppointmentMiniCalendar";
+import type { PickedDoctor } from "../types/slotPick";
 
 /** BA 2026-10-16: 15-minute slots; R-977: over the viewer's shown hours. */
 const SLOT_MIN = 15;
@@ -22,8 +23,8 @@ interface Props {
   subMode: DaySubMode;
   /** A session picked in "Danh sách buổi hẹn"; marked when it falls on this day. */
   focus?: CalendarFocus | null;
-  /** Clicking a slot hands its start ("HH:mm") to the form's Giờ hẹn. */
-  onSlotPick?: (time: string) => void;
+  /** Clicking a slot hands its start ("HH:mm") and, on a doctor's row, that doctor to the form. */
+  onSlotPick?: (time: string, doctor?: PickedDoctor) => void;
 }
 
 function buildSlots(grid: Grid): string[] {
@@ -112,11 +113,16 @@ interface ViewProps {
   slots: string[];
   grid: Grid;
   focus: CalendarFocus | null;
-  onSlotPick?: (time: string) => void;
+  onSlotPick?: (time: string, doctor?: PickedDoctor) => void;
+}
+
+interface SlotCellsProps extends Pick<ViewProps, "slots" | "onSlotPick"> {
+  /** The doctor whose row these slots are on; picked along with the time. */
+  doctor?: PickedDoctor;
 }
 
 /** The empty slots of one row; buttons when the form takes the picked time. */
-function SlotCells({ slots, onSlotPick }: Pick<ViewProps, "slots" | "onSlotPick">) {
+function SlotCells({ slots, onSlotPick, doctor }: SlotCellsProps) {
   if (!onSlotPick) {
     return <>{slots.map((s) => <div key={s} className="mcal-day-slot" />)}</>;
   }
@@ -127,8 +133,10 @@ function SlotCells({ slots, onSlotPick }: Pick<ViewProps, "slots" | "onSlotPick"
           key={s}
           type="button"
           className="mcal-day-slot mcal-day-slot--pick"
-          aria-label={t("Appointment:MiniCal:PickSlot", s)}
-          onClick={() => onSlotPick(s)}
+          aria-label={
+            doctor ? t("Appointment:MiniCal:PickDoctorSlot", s, doctor.name) : t("Appointment:MiniCal:PickSlot", s)
+          }
+          onClick={() => onSlotPick(s, doctor)}
         />
       ))}
     </>
@@ -184,7 +192,7 @@ function DoctorView({ appointments, slots, grid, focus, onSlotPick }: ViewProps)
         <div key={doc.id} className="mcal-day-row">
           <div className="mcal-day-doctor">{doc.name}</div>
           <div className="mcal-day-slots">
-            <SlotCells slots={slots} onSlotPick={onSlotPick} />
+            <SlotCells slots={slots} onSlotPick={onSlotPick} doctor={doc} />
             {focus && row === 0 && <FocusMarker focus={focus} grid={grid} />}
             {doc.appts.map((appt) => {
               const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;

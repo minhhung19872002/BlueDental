@@ -42,6 +42,7 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
                 value={field.value || undefined}
                 placeholder={t("Appointment:Form:SelectDoctor")}
                 options={doctorOptions}
+                allowClear
                 onChange={(v) => field.onChange(v ?? "")}
                 status={fieldState.error ? "error" : ""}
               />

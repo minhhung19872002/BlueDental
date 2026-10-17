@@ -16,6 +16,7 @@ import { useAppointment } from "../api/appointmentQueries";
 import { useAppointmentSeriesDialog } from "../hooks/useAppointmentSeriesDialog";
 import { useBookableDoctorOptions } from "../hooks/useBookableDoctorOptions";
 import { useSaveAppointment } from "../hooks/useSaveAppointment";
+import { useSlotPickHandler } from "../hooks/useSlotPickHandler";
 import { APPOINTMENT_STATUSES, type AppointmentStatus } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 import { useClinicBranches } from "@/features/organizations/api";
@@ -163,6 +164,13 @@ export function AppointmentEditorModal({
     kept: isEdit ? keptDoctor : null,
     onUnavailable: handleDoctorOff,
   });
+
+  const setPicked = useCallback(
+    (field: "date" | "startTime" | "doctorId", value: string) =>
+      setValue(field, value, { shouldValidate: true, shouldDirty: true }),
+    [setValue],
+  );
+  const handleSlotPick = useSlotPickHandler({ formDate: watchedDate, doctorOptions, set: setPicked });
 
   // The create seed runs once per opening. Anything that settles late — the
   // branch store, an option list — must not reset the form under a user who
@@ -326,6 +334,7 @@ export function AppointmentEditorModal({
           lockPatient={lockPatient}
           onOpenNewPatient={handleOpenNewPatient}
           series={seriesSlots}
+          onSlotPick={handleSlotPick}
         />
       </AppDialog>
 

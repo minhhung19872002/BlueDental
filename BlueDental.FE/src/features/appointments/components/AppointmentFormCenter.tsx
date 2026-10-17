@@ -1,5 +1,5 @@
 import { Input } from "antd";
-import { Controller, type Control, type FieldErrors } from "react-hook-form";
+import { Controller, type Control, type FieldErrors, type UseFormSetValue } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { AppointmentColorPicker } from "./AppointmentColorPicker";
@@ -9,9 +9,14 @@ interface Props {
   control: Control<AppointmentEditorValues>;
   errors: FieldErrors<AppointmentEditorValues>;
   doctorOptions: { value: string; label: string }[];
+  setValue: UseFormSetValue<AppointmentEditorValues>;
 }
 
-export function AppointmentFormCenter({ control, errors, doctorOptions }: Props) {
+export function AppointmentFormCenter({ control, errors, doctorOptions, setValue }: Props) {
+  // ✕ on Chọn bác sĩ empties it and says at once that it is required (Lưu stays off).
+  const handleDoctorChange = (value: string | undefined) =>
+    setValue("doctorId", value ?? "", { shouldValidate: true, shouldDirty: true });
+
   return (
     <div>
       {/* Doctor */}
@@ -27,7 +32,8 @@ export function AppointmentFormCenter({ control, errors, doctorOptions }: Props)
               value={field.value || undefined}
               placeholder={t("Appointment:Form:SelectDoctor")}
               options={doctorOptions}
-              onChange={(v) => field.onChange(v ?? "")}
+              allowClear
+              onChange={handleDoctorChange}
               status={errors.doctorId ? "error" : ""}
             />
           )}

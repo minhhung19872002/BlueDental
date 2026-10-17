@@ -10,6 +10,7 @@ import { MiniCalDayView } from "./MiniCalDayView";
 import { MiniCalWeekView } from "./MiniCalWeekView";
 import { MiniCalMonthView } from "./MiniCalMonthView";
 import { ShownHoursButton } from "./ShownHoursButton";
+import type { MiniCalSlotPick } from "../types/slotPick";
 
 export type DaySubMode = "time" | "doctor";
 
@@ -18,8 +19,8 @@ interface Props {
   doctorId?: string;
   /** A session picked in "Danh sách buổi hẹn": shown on its day, at its time. */
   focus?: CalendarFocus | null;
-  /** A slot clicked in the day view: the day shown and the slot's "HH:mm". */
-  onSlotPick?: (date: string, time: string) => void;
+  /** A slot clicked in the day view: the day shown, the slot's "HH:mm" and its row's doctor. */
+  onSlotPick?: (pick: MiniCalSlotPick) => void;
 }
 
 export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPick }: Props) {
@@ -106,7 +107,7 @@ export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPi
             date={viewDate.format("YYYY-MM-DD")}
             subMode={daySubMode}
             focus={focus}
-            onSlotPick={onSlotPick && ((time) => onSlotPick(viewDate.format("YYYY-MM-DD"), time))}
+            onSlotPick={onSlotPick && ((time, doctor) => onSlotPick({ date: viewDate.format("YYYY-MM-DD"), time, doctor }))}
           />
         )}
         {mode === "week" && (
