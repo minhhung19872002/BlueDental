@@ -9406,3 +9406,41 @@ Vòng 2 cùng ngày, owner sửa:
     - `twoDentistsWithVisits` chỉ lấy bác sĩ còn trong danh sách nhân viên, vì các lượt chạy khác đặt lịch cho bác sĩ tạm rồi xoá bác sĩ đó, dẫn đến 404 khi đọc nhân viên.
   - Hồi quy `e2e/reception*`: **39/40 pass**. `reception-doctor-roles` đỏ một lần trong lượt chạy chung, chạy riêng thì pass 1/1. Spec này kiểm danh sách bác sĩ của bộ lọc, không kiểm thứ tự thẻ; khả năng cao là do phiên khác tạo/xoá bác sĩ tạm cùng lúc.
 - Commit: `b0bdf158`.
+## R-979 (2026-10-17, mức 2: tiếp nhận) Trong nhóm "Đang khám", ai vào khám sau nằm trên
+
+- Yêu cầu BA (Huỳnh Văn Định), bổ sung cho R-978: "Trạng thái đang khám ưu tiên đẩy thời gian sau lên trước luôn nha".
+- Quyết định của owner:
+  - "Thời gian" là **giờ bắt đầu khám**: `startedAt`, ghi lúc bấm bước "Đang khám". Không dùng giờ hẹn.
+  - Khi lọc nhiều bác sĩ, **chỉ xét thời gian**: mọi thẻ Đang khám xếp theo `startedAt` giảm dần, không xét bác sĩ.
+  - Các nhóm còn lại giữ như R-978.
+- Code (chỉ FE): `features/reception/utils/boardOrder.ts` thêm `latestStartFirst`. Hai thẻ cùng InProgress thì so `startedAt` giảm dần; các nhóm khác vẫn sort ổn định theo thứ tự server.
+- **Test** (bản build :18440 + host thật :5000, PostgreSQL thật, không chặn API):
+  - `reception-board-order.spec.ts` viết lại, **1/1 pass**:
+    - Đặt 6 lịch hôm nay; ba lịch được đưa vào khám theo thứ tự khác cả thứ tự giờ hẹn lẫn thứ tự ngược lại. Lịch cuối cùng được bấm "Đang khám" ngay trên thẻ.
+    - Bảng xếp lịch mới vào khám lên trên cùng, sau reload vẫn giữ.
+    - Bấm "Hoàn tất" trên thẻ đó thì thẻ xuống cuối.
+  - Chạy spec mới trên bản build `b0bdf158` thì **đỏ**, đúng như mong đợi: thẻ 1 là lịch vào khám trước. Spec phân biệt được thay đổi.
+  - `reception-doctor-priority`: hàm `boardOrder` trong spec cũng sắp InProgress theo `startedAt`.
+  - Hồi quy `e2e/reception*`: 38/40. Hai spec đỏ là `reception-live-late` và `reception-temporary`; chạy riêng thì **6/6 pass**. Cả hai không kiểm thứ tự thẻ, nên đỏ là do chạy đông cùng lúc.
+
+## R-980 (2026-10-17, mức 3: tiếp nhận + API lịch hẹn) Tắt "Thứ tự ưu tiên" bác sĩ trên bộ lọc Tiếp nhận
+
+- Yêu cầu owner: "chức năng thứ tự ưu tiên này ẩn đi và comment logic đó ở BE luôn đi", kèm "ưu tiên 2 thay đổi mới này của BA" (R-978, R-979).
+- Mọi chỗ sửa gắn tag **`TEMP-PRIORITY-OFF`**: code được comment, không xoá, để bật lại thì chỉ cần bỏ comment.
+  - BE `AppointmentAppService.GetListAsync`: comment nhánh `DentistPriorityAsync` / `DentistPriorityOrder.RankOf`. Lọc nhiều bác sĩ hoặc Nhóm bác sĩ giờ trả theo `Slot.Start`, rồi `Id`, như lọc một bác sĩ. Hàm `DentistPriorityAsync` được comment cả khối; `DentistPriorityOrder` để nguyên, có ghi chú là đang không dùng.
+  - FE `components/SearchSelect/RankedMultiSearchSelect.tsx`: ẩn khối `PriorityList` ("Thứ tự ưu tiên — Theo mức độ ưu tiên của nhân viên", có đánh số và nút ✕). Bỏ chọn bác sĩ bằng cách bỏ tick ngay trong danh sách.
+  - Thứ tự thẻ trên bảng do R-978/R-979 quyết định: Đang khám (vào sau ở trên) → các lịch còn lại theo giờ hẹn → Hoàn tất.
+- **Giữ nguyên** (tự quyết, owner chỉ nhắc khung lọc và logic BE):
+  - Ô "Mức độ ưu tiên" trên form Nhân viên, cùng lưu/kiểm tra 0012.
+  - Danh sách nhân viên vẫn xếp theo mức ưu tiên (`StaffAppService` `byPriority`).
+  - `rankDoctorIds`, vốn chỉ đổi thứ tự tham số gửi đi.
+- **Test** (bản build :18440 + host thật :5000 đã build lại, PostgreSQL thật, không chặn API):
+  - `reception-doctor-priority.spec.ts`:
+    - 3 test về nhóm theo ưu tiên, danh sách đánh số và đổi số ở tab khác chuyển sang `test.skip`, kèm tag.
+    - Test mới thứ nhất: chọn 2 bác sĩ, đặt bác sĩ có lịch đầu tiên muộn hơn lên ưu tiên 0. API trả theo giờ hẹn với cả hai thứ tự tham số, và bộ đếm khớp danh sách.
+    - Test mới thứ hai: khung lọc không còn "Thứ tự ưu tiên" / `.ms-priority`; 2 dòng được tick; thẻ khớp R-978/R-979; bỏ tick một bác sĩ thì chỉ còn lịch của bác sĩ kia.
+    - Test lưu "Mức độ ưu tiên" ở form Nhân viên vẫn pass.
+  - Hồi quy `e2e/reception*` + `org-chart-api`: **45 pass, 3 skip, 0 fail**.
+  - Chưa chạy test API mới với BE cũ. Theo cách dựng dữ liệu, nhóm theo bác sĩ không thể trùng với thứ tự giờ hẹn.
+- Chưa commit.
+
