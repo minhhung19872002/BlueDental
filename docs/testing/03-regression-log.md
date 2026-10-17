@@ -9384,3 +9384,25 @@ Vòng 2 cùng ngày, owner sửa:
     - Bấm "Mặc định" ở Lịch đã hẹn thì cả ba view về 08:00–18:45.
   - `appointment-day-timeline`, `appointment-slot-pick`: đổi kỳ vọng sang 08:00–18:45 (Lịch đã hẹn 44 ô; ô bấm 23:45 → 18:45).
   - Hồi quy: day-timeline 6, slot-pick 2, shown-hours 1, series-ui + appointment.spec 5: **14/14 pass**.
+
+## R-978 (2026-10-17, mức 2: tiếp nhận) Thẻ "Đang khám" lên đầu, "Hoàn tất" xuống cuối
+
+- Lý do: BA Huỳnh Văn Định yêu cầu (2026-10-17): "trạng thái đang khám sẽ được đẩy lên đầu, Hoàn tất đẩy xuống cuối". Đây là yêu cầu của BA, không quan sát được trên bản gốc.
+- Quyết định của owner:
+  - Thẻ "Hủy hẹn" **ở giữa**, cùng nhóm với Đã hẹn / Đã đến / Trễ hẹn, xếp theo giờ. Không đẩy xuống cuối cùng nhóm Hoàn tất.
+  - Khi lọc nhiều bác sĩ, quy tắc áp dụng **cho cả bảng**: mọi thẻ Đang khám của mọi bác sĩ lên đầu, mọi thẻ Hoàn tất xuống cuối. Trong mỗi nhóm vẫn giữ thứ tự server trả về: "Mức độ ưu tiên" của bác sĩ, rồi đến giờ bắt đầu.
+  - Áp dụng cho cả Ngày / Tuần / Tháng.
+- Code (chỉ FE, API giữ nguyên):
+  - `features/reception/utils/boardOrder.ts`: `orderForBoard` dùng sort ổn định theo hạng: InProgress = -1, Completed = 1, các trạng thái khác = 0.
+  - `ReceptionPage` sắp xếp lại danh sách thẻ sau khi gộp các trang của infinite query.
+  - Việc sắp ở FE vẫn đúng vì bảng luôn gửi khung ngày, và khi có `fromDate`/`toDate` thì `GetListAsync` trả **toàn bộ** kết quả, không phân trang. Endpoint dùng chung với nơi khác nên không đổi thứ tự ở BE.
+- **Test** (bản build :18440 + host thật :5000, PostgreSQL thật, không chặn API):
+  - Spec mới `reception-board-order.spec.ts` **1/1 pass**:
+    - Đặt 4 lịch hôm nay qua API thật: lịch sớm nhất Hoàn tất, lịch thứ hai Hủy hẹn, lịch thứ ba chờ, lịch muộn nhất Đang khám.
+    - API vẫn trả theo giờ. Bảng (sau reload) xếp: Đang khám → Hủy hẹn → chờ → Hoàn tất.
+    - Bấm "Hoàn tất" trên thẻ Đang khám thì thẻ đó xuống cuối, nằm dưới thẻ Hoàn tất cũ. Reload vẫn giữ thứ tự này.
+  - `reception-doctor-priority.spec.ts`:
+    - Hai test UI trước đây kỳ vọng "thẻ đầu là của bác sĩ ưu tiên". Giờ chúng tính thứ tự mong đợi từ chính response list (theo nhóm bước khám) và so tên bác sĩ trên từng thẻ.
+    - `twoDentistsWithVisits` chỉ lấy bác sĩ còn trong danh sách nhân viên, vì các lượt chạy khác đặt lịch cho bác sĩ tạm rồi xoá bác sĩ đó, dẫn đến 404 khi đọc nhân viên.
+  - Hồi quy `e2e/reception*`: **39/40 pass**. `reception-doctor-roles` đỏ một lần trong lượt chạy chung, chạy riêng thì pass 1/1. Spec này kiểm danh sách bác sĩ của bộ lọc, không kiểm thứ tự thẻ; khả năng cao là do phiên khác tạo/xoá bác sĩ tạm cùng lúc.
+- Commit: `b0bdf158`.
