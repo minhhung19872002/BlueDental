@@ -122,6 +122,36 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A sheet's drawing is not a PNG, or is larger than MedicalRecordDrawing allows.</summary>
         public const string InvalidMedicalRecordDrawing = "BlueDental:Patient:0024";
+
+        /// <summary>The bộ hồ sơ bệnh án is cancelled: nothing in it may change any more.</summary>
+        public const string MedicalRecordSetCancelled = "BlueDental:Patient:0025";
+
+        /// <summary>
+        /// The treatment slip has started (it is no longer "Đã tạo") and is already
+        /// in a bộ hồ sơ, so it can no longer leave it.
+        /// </summary>
+        public const string MedicalRecordSetPlanLocked = "BlueDental:Patient:0026";
+
+        /// <summary>A bộ hồ sơ is made from at least one treatment slip.</summary>
+        public const string MedicalRecordSetNeedsPlan = "BlueDental:Patient:0027";
+
+        /// <summary>The sheet was cancelled ("Đã hủy") and may no longer be changed.</summary>
+        public const string MedicalRecordSheetCancelled = "BlueDental:Patient:0028";
+
+        /// <summary>The treatment slip is cancelled, or is not this patient's.</summary>
+        public const string MedicalRecordSetPlanUnavailable = "BlueDental:Patient:0029";
+
+        /// <summary>Cancelling a sheet needs a reason.</summary>
+        public const string MedicalRecordCancelReasonRequired = "BlueDental:Patient:0030";
+
+        /// <summary>
+        /// Another live set holds the slip. A set — new or edited — takes free
+        /// slips only; the slip is taken out of its set first.
+        /// </summary>
+        public const string MedicalRecordSetPlanTaken = "BlueDental:Patient:0032";
+
+        /// <summary>A bộ hồ sơ shows at least one of the nine forms in its index.</summary>
+        public const string MedicalRecordSetNeedsForm = "BlueDental:Patient:0031";
     }
 
     public static class Appointments

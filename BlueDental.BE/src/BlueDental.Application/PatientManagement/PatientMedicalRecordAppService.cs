@@ -13,6 +13,7 @@ using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.PatientManagement;
 
@@ -30,17 +31,23 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
 {
     private readonly IRepository<PatientMedicalRecord, Guid> _repository;
     private readonly IRepository<Patient, Guid> _patientRepository;
+    private readonly IRepository<MedicalRecordSet, Guid> _setRepository;
+    private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IBlobContainer _blobContainer;
 
     public PatientMedicalRecordAppService(
         IRepository<PatientMedicalRecord, Guid> repository,
         IRepository<Patient, Guid> patientRepository,
+        IRepository<MedicalRecordSet, Guid> setRepository,
+        IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         IBlobContainer blobContainer)
     {
         _repository = repository;
         _patientRepository = patientRepository;
+        _setRepository = setRepository;
+        _userRepository = userRepository;
         _branchAccess = branchAccess;
         _blobContainer = blobContainer;
     }
@@ -62,6 +69,11 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
             query = query.Where(x => x.PatientId == input.PatientId.Value);
         }
 
+        if (input.RecordSetId.HasValue)
+        {
+            query = query.Where(x => x.RecordSetId == input.RecordSetId.Value);
+        }
+
         if (input.Form.HasValue)
         {
             query = query.Where(x => x.Form == input.Form.Value);
@@ -78,7 +90,9 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
                 .Skip(input.SkipCount)
                 .Take(input.MaxResultCount));
 
-        return new PagedResultDto<PatientMedicalRecordDto>(totalCount, items.Select(MapToDto).ToList());
+        var dtos = items.Select(MapToDto).ToList();
+        await FillCancellerNamesAsync(dtos);
+        return new PagedResultDto<PatientMedicalRecordDto>(totalCount, dtos);
     }
 
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
@@ -86,7 +100,7 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
     {
         var entity = await _repository.GetAsync(id);
         await GuardBranchAccessAsync(entity);
-        return MapToDto(entity);
+        return await MapWithCancellerAsync(entity);
     }
 
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
@@ -97,6 +111,16 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         var patient = await _patientRepository.GetAsync(input.PatientId);
         await _branchAccess.CheckAsync(patient.BranchId);
 
+        // A sheet goes into one of the patient's own live sets — never another
+        // patient's, never a cancelled one.
+        var set = await _setRepository.FindAsync(input.RecordSetId, includeDetails: false);
+        if (set is null || set.PatientId != patient.Id)
+        {
+            throw new EntityNotFoundException(typeof(MedicalRecordSet), input.RecordSetId);
+        }
+
+        set.EnsureActive();
+
         var query = await _repository.GetQueryableAsync();
         var nextOrder = await AsyncExecuter.CountAsync(
             query.Where(x => x.PatientId == input.PatientId));
@@ -105,6 +129,7 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
             GuidGenerator.Create(),
             input.PatientId,
             patient.BranchId,
+            set.Id,
             input.Form,
             input.Title,
             nextOrder);
@@ -118,6 +143,7 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
     {
         var record = await _repository.GetAsync(id);
         await GuardBranchAccessAsync(record);
+        await EnsureWritableAsync(record);
 
         if (!string.IsNullOrWhiteSpace(input.Title))
         {
@@ -138,12 +164,21 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         return MapToDto(record);
     }
 
+    /// <summary>
+    /// "Hủy phiếu" stands where removing a sheet used to: a sheet is part of the
+    /// medical record, so it is kept, marked Đã hủy, with who, when and why.
+    /// </summary>
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]
-    public async Task DeleteAsync(Guid id)
+    public async Task<PatientMedicalRecordDto> CancelAsync(Guid id, CancelPatientMedicalRecordDto input)
     {
         var record = await _repository.GetAsync(id);
         await GuardBranchAccessAsync(record);
-        await _repository.DeleteAsync(record, autoSave: true);
+        await EnsureWritableAsync(record);
+
+        record.Cancel(input.Reason, Clock.Now, CurrentUser.Id);
+
+        await _repository.UpdateAsync(record, autoSave: true);
+        return await MapWithCancellerAsync(record);
     }
 
     /// <summary>
@@ -157,6 +192,7 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
     {
         var record = await _repository.GetAsync(id);
         await GuardBranchAccessAsync(record);
+        await EnsureWritableAsync(record);
 
         var bytes = input.File is null ? [] : await ReadAtMostAsync(input.File.GetStream(), MedicalRecordDrawing.MaxSizeInBytes + 1);
         MedicalRecordDrawing.EnsureValid(bytes);
@@ -235,15 +271,47 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         }
     }
 
+    /// <summary>A cancelled sheet, or any sheet of a cancelled set, no longer changes.</summary>
+    private async Task EnsureWritableAsync(PatientMedicalRecord record)
+    {
+        record.EnsureNotCancelled();
+        var set = await _setRepository.GetAsync(record.RecordSetId, includeDetails: false);
+        set.EnsureActive();
+    }
+
+    private async Task<PatientMedicalRecordDto> MapWithCancellerAsync(PatientMedicalRecord entity)
+    {
+        var dto = MapToDto(entity);
+        await FillCancellerNamesAsync([dto]);
+        return dto;
+    }
+
+    /// <summary>"Người hủy" — logged on the sheet by id, shown by name.</summary>
+    private async Task FillCancellerNamesAsync(IReadOnlyCollection<PatientMedicalRecordDto> dtos)
+    {
+        var ids = dtos.Where(d => d.CancelledById.HasValue).Select(d => d.CancelledById!.Value).Distinct().ToList();
+        if (ids.Count == 0) return;
+
+        var names = (await _userRepository.GetListByIdsAsync(ids)).ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        foreach (var dto in dtos.Where(d => d.CancelledById.HasValue))
+        {
+            dto.CancellerName = names.GetValueOrDefault(dto.CancelledById!.Value);
+        }
+    }
+
     private static PatientMedicalRecordDto MapToDto(PatientMedicalRecord entity) => new()
     {
         Id = entity.Id,
         PatientId = entity.PatientId,
         ClinicBranchId = entity.ClinicBranchId,
+        RecordSetId = entity.RecordSetId,
         Form = entity.Form,
         Title = entity.Title,
         SortOrder = entity.SortOrder,
         Content = entity.Content,
+        CancelledAt = entity.CancelledAt,
+        CancelledById = entity.CancelledById,
+        CancelReason = entity.CancelReason,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

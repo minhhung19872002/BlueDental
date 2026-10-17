@@ -30,11 +30,17 @@ export interface PatientMedicalRecordDto {
   id: string;
   patientId: string;
   clinicBranchId: string;
+  /** The bộ hồ sơ bệnh án the sheet belongs to — see medicalRecordSetApi.ts. */
+  recordSetId: string;
   form: MedicalRecordForm;
   title: string;
   sortOrder: number;
   /** The filled cells, as JSON. Null until the clinic writes on the sheet. */
   content: string | null;
+  /** Set once the sheet is cancelled ("Đã hủy"); it then never changes again. */
+  cancelledAt: string | null;
+  cancellerName: string | null;
+  cancelReason: string | null;
   creationTime: string;
   lastModificationTime: string | null;
 }
@@ -45,12 +51,13 @@ const medicalRecordApi = {
   list: (patientId: string): Promise<PagedResult<PatientMedicalRecordDto>> =>
     api
       .get<PagedResult<PatientMedicalRecordDto>>(BASE, {
-        params: { patientId, maxResultCount: 100 },
+        params: { patientId, maxResultCount: 1000 },
       })
       .then((r) => r.data),
 
   create: (input: {
     patientId: string;
+    recordSetId: string;
     form: MedicalRecordForm;
     title: string;
   }): Promise<PatientMedicalRecordDto> =>
@@ -62,7 +69,9 @@ const medicalRecordApi = {
   ): Promise<PatientMedicalRecordDto> =>
     api.put<PatientMedicalRecordDto>(`${BASE}/${id}`, input).then((r) => r.data),
 
-  remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
+  /** "Hủy phiếu" — a sheet is never deleted, only marked Đã hủy with a reason. */
+  cancel: (id: string, reason: string): Promise<PatientMedicalRecordDto> =>
+    api.post<PatientMedicalRecordDto>(`${BASE}/${id}/cancel`, { reason }).then((r) => r.data),
 
   uploadDrawing: (id: string, png: Blob): Promise<MedicalRecordDrawingDto> => {
     const form = new FormData();
@@ -137,7 +146,7 @@ function useRecordMutation<TVariables, TData>(
 }
 
 export function useAddMedicalRecord(patientId: string) {
-  return useRecordMutation(patientId, (input: { form: MedicalRecordForm; title: string }) =>
+  return useRecordMutation(patientId, (input: { recordSetId: string; form: MedicalRecordForm; title: string }) =>
     medicalRecordApi.create({ patientId, ...input }),
   );
 }
@@ -157,6 +166,8 @@ export function useRenameMedicalRecord(patientId: string) {
   );
 }
 
-export function useDeleteMedicalRecord(patientId: string) {
-  return useRecordMutation(patientId, (id: string) => medicalRecordApi.remove(id));
+export function useCancelMedicalRecord(patientId: string) {
+  return useRecordMutation(patientId, (input: { id: string; reason: string }) =>
+    medicalRecordApi.cancel(input.id, input.reason),
+  );
 }

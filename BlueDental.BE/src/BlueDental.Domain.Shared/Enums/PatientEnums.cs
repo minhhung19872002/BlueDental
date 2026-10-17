@@ -123,3 +123,15 @@ public enum PatientImageType
     /// <summary>Sau điều trị.</summary>
     After = 2
 }
+
+/// <summary>
+/// A bộ hồ sơ bệnh án. Cancelling is the only way one ends: the sheets it holds
+/// are part of the patient's record, so a set is never removed outright.
+/// </summary>
+public enum MedicalRecordSetStatus
+{
+    Active = 1,
+
+    /// <summary>Đã hủy — kept, read-only, and its treatment slips are free again.</summary>
+    Cancelled = 2,
+}

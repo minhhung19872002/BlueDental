@@ -1061,8 +1061,50 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Form).HasConversion<short>();
             entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
             entity.Property(x => x.Content).HasMaxLength(PatientMedicalRecord.MaxContentLength);
+            entity.Property(x => x.CancelReason).HasMaxLength(PatientMedicalRecord.MaxCancelReasonLength);
             entity.HasIndex(x => new { x.PatientId, x.SortOrder });
             entity.HasIndex(x => x.ClinicBranchId);
+            entity.HasIndex(x => x.RecordSetId);
+            entity.HasOne<MedicalRecordSet>()
+                .WithMany()
+                .HasForeignKey(x => x.RecordSetId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Bo ho so benh an
+        builder.Entity<MedicalRecordSet>(entity =>
+        {
+            entity.ToTable("bd_medical_record_sets");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(MedicalRecordSet.MaxCodeLength).IsRequired();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.PatientId);
+            entity.HasIndex(x => x.ClinicBranchId);
+            entity.HasMany(x => x.Plans)
+                .WithOne()
+                .HasForeignKey(x => x.MedicalRecordSetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Plans).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.IsCancelled);
+            entity.Ignore(x => x.HeldPlans);
+            entity.Ignore(x => x.VisibleForms);
+        });
+
+        builder.Entity<MedicalRecordSetPlan>(entity =>
+        {
+            entity.ToTable("bd_medical_record_set_plans");
+            entity.ConfigureByConvention();
+            entity.HasKey(x => new { x.MedicalRecordSetId, x.TreatmentPlanId });
+            // A slip sits in one live set at a time; a cancelled set's links are
+            // released and stay as history. Holds even when two saves race.
+            entity.HasIndex(x => x.TreatmentPlanId)
+                .IsUnique()
+                .HasFilter("\"Released\" = false");
+            entity.HasOne<TreatmentPlan>()
+                .WithMany()
+                .HasForeignKey(x => x.TreatmentPlanId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Dong dich vu cua phieu dieu tri

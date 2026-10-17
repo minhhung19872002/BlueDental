@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Input, Tooltip } from "antd";
+import { Button, Input, Spin, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { Maximize2, Minimize2, Minus, Plus, Printer, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { AppDialog } from "@/components/AppDialog";
-import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAbility } from "@/hooks/useAbility";
-import type { StaffOption } from "@/hooks/useStaffOptions";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -16,15 +14,24 @@ import { t } from "@/lib/i18n";
 import { copiedPicturesReady, copySheetsForPrint, framesForSheets } from "./medical-record/printing";
 import {
   useAddMedicalRecord,
-  useDeleteMedicalRecord,
+  useCancelMedicalRecord,
   usePatientMedicalRecords,
   useRenameMedicalRecord,
   useSaveMedicalRecord,
   type PatientMedicalRecordDto,
 } from "../../api/medicalRecordApi";
+import type { RecordSetDto } from "../../api/medicalRecordSetApi";
 import type { PatientDto } from "../../types/patient";
 import { MedicalRecordIndex } from "./MedicalRecordIndex";
+import { copyLabel, sheetTime } from "./MedicalRecordSheetCard";
 import { MedicalRecordSheetView } from "./MedicalRecordSheetView";
+import { CancelSheetDialog } from "./medical-record-set/CancelSheetDialog";
+import { RecordSetDialogs } from "./medical-record-set/RecordSetDialogs";
+import { RecordSetEmptyState } from "./medical-record-set/RecordSetEmptyState";
+import { RecordSetPicker } from "./medical-record-set/RecordSetPicker";
+import { isCancelledSet } from "./medical-record-set/recordSetView";
+import { useRecordSetWorkflow } from "./medical-record-set/useRecordSetWorkflow";
+import "./medical-record-set/record-set.css";
 import { MedicalRecordCanvasHead } from "./medical-record/MedicalRecordCanvasHead";
 import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
 import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
@@ -70,7 +77,11 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const addSheet = useAddMedicalRecord(patientId);
   const saveSheet = useSaveMedicalRecord(patientId);
   const renameSheet = useRenameMedicalRecord(patientId);
-  const deleteSheet = useDeleteMedicalRecord(patientId);
+  const cancelSheet = useCancelMedicalRecord(patientId);
+  const recordSets = useRecordSetWorkflow(patientId);
+  const activeSet = recordSets.active;
+  /** A cancelled set is shown, read-only: nothing in it changes any more. */
+  const setLocked = activeSet ? isCancelledSet(activeSet) : false;
 
   /*
    * In the index's own order: by form, then by when each copy was made. The
@@ -86,14 +97,24 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     (state.user?.roles ?? []).some((role) => /admin/i.test(role)),
   );
 
+  /** The forms the open set shows in its index ("Mục hiển thị"). */
+  const forms = useMemo(
+    () => MEDICAL_RECORD_FORMS.filter((spec) => activeSet?.visibleForms.includes(spec.form)),
+    [activeSet],
+  );
+
+  /** The open set's sheets, of the forms it shows. */
   const sheets = useMemo(() => {
-    const order = new Map(MEDICAL_RECORD_FORMS.map((spec, at) => [spec.form, at]));
-    return [...(query.data?.items ?? [])].sort(
+    const order = new Map(forms.map((spec, at) => [spec.form, at]));
+    const own = (query.data?.items ?? []).filter(
+      (sheet) => sheet.recordSetId === activeSet?.id && order.has(sheet.form),
+    );
+    return own.sort(
       (a, b) =>
         (order.get(a.form) ?? 0) - (order.get(b.form) ?? 0) ||
         a.creationTime.localeCompare(b.creationTime),
     );
-  }, [query.data]);
+  }, [query.data, forms, activeSet?.id]);
   const auto = useSheetFieldValues(patient, branchId);
   const diagnosesFrom = useSheetDiagnoses(patientId, branchId);
 
@@ -134,7 +155,6 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     canvas.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, [revealing]);
 
-  const [stampedIds, setStampedIds] = useState<ReadonlySet<string>>(new Set());
   /**
    * What has been written on a sheet but not saved yet, per sheet.
    *
@@ -144,15 +164,19 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
    * rebuilt, because rebuilding it as someone types would take the caret.
    */
   const [edits, setEdits] = useState<Record<string, FieldValues>>({});
-  const [removing, setRemoving] = useState<PatientMedicalRecordDto | null>(null);
+  const [cancelling, setCancelling] = useState<PatientMedicalRecordDto | null>(null);
   const [renaming, setRenaming] = useState<PatientMedicalRecordDto | null>(null);
   const [newTitle, setNewTitle] = useState("");
   /** The day each dated sheet is filled in for, until it is saved onto the sheet. */
   const [dates, setDates] = useState<Record<string, Dayjs>>({});
-  /** The doctor picked above each sheet, by sheet id. */
-  const [doctors, setDoctors] = useState<Record<string, string>>({});
 
   const active = sheets.find((sheet) => sheet.id === activeId) ?? sheets[0] ?? null;
+  /** A cancelled sheet, or any sheet of a cancelled set, is only read and printed. */
+  const readOnly = (sheet: PatientMedicalRecordDto) => setLocked || Boolean(sheet.cancelledAt);
+  const readOnlyNotice = (sheet: PatientMedicalRecordDto) => {
+    if (setLocked) return t("Patient:RecordSet:CancelledReadOnly");
+    return sheet.cancelledAt ? t("Patient:MedRecord:CancelledReadOnly") : undefined;
+  };
 
   /** A sheet reads as what is being written on it, or as the saved copy. */
   const valuesOf = (sheet: PatientMedicalRecordDto): FieldValues =>
@@ -201,24 +225,6 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     writeOnSheet(sheet, formSpecOf(sheet.form).dateFieldKeys ?? [], next.format("DD/MM/YYYY"));
   };
 
-  /**
-   * Picking the doctor prints their name and Chức danh where the form names
-   * one. Clearing the picker leaves what is already on the sheet alone.
-   */
-  const handleDoctorChange = (sheet: PatientMedicalRecordDto, doctor: StaffOption | undefined) => {
-    setDoctors((current) => {
-      const next = { ...current };
-      if (doctor) next[sheet.id] = doctor.value;
-      else delete next[sheet.id];
-      return next;
-    });
-
-    const keys = formSpecOf(sheet.form).doctorFieldKeys;
-    if (!doctor || !keys) return;
-    writeOnSheet(sheet, keys.name, doctor.label);
-    writeOnSheet(sheet, keys.jobTitle, doctor.jobTitle ?? "");
-  };
-
   /** `Bản NN` for a sheet: its position among the sheets of its own form. */
   const ordinalOf = (sheet: PatientMedicalRecordDto) =>
     sheets.filter((item) => item.form === sheet.form).findIndex((item) => item.id === sheet.id) + 1;
@@ -245,9 +251,19 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     unsaved.ask(() => showSheet(id), active ? [active.id] : []);
   };
 
+  /** Switching set leaves the open sheet, so its unsaved writing is answered for first. */
+  const handleSelectSet = (set: RecordSetDto) => {
+    if (set.id === activeSet?.id) return;
+    unsaved.ask(() => {
+      recordSets.select(set);
+      setActiveId(null);
+    }, active ? [active.id] : []);
+  };
+
   const handleAdd = async (spec: MedicalRecordFormSpec) => {
+    if (!activeSet) return;
     try {
-      const created = await addSheet.mutateAsync({ form: spec.form, title: spec.label });
+      const created = await addSheet.mutateAsync({ recordSetId: activeSet.id, form: spec.form, title: spec.label });
       openSheet(created.id);
       toast.success(t("Patient:MedRecord:Added"));
     } catch (error) {
@@ -302,26 +318,21 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!removing) return;
+  /** "Hủy phiếu": kept, marked Đã hủy; what was being written on it is dropped. */
+  const handleCancelSheet = async (reason: string) => {
+    if (!cancelling) return;
     try {
-      await deleteSheet.mutateAsync(removing.id);
-      if (activeId === removing.id) setActiveId(null);
-      setRemoving(null);
-      toast.success(t("Patient:MedRecord:Deleted"));
+      await cancelSheet.mutateAsync({ id: cancelling.id, reason });
+      setEdits((current) => {
+        const rest = { ...current };
+        delete rest[cancelling.id];
+        return rest;
+      });
+      setCancelling(null);
+      toast.success(t("Patient:MedRecord:CancelledToast"));
     } catch (error) {
       notifyError(extractApiError(error));
     }
-  };
-
-  /** The tick on a card marks the sheet as one that carries the clinic's stamp. */
-  const handleStamp = (sheet: PatientMedicalRecordDto, stamped: boolean) => {
-    setStampedIds((current) => {
-      const next = new Set(current);
-      if (stamped) next.add(sheet.id);
-      else next.delete(sheet.id);
-      return next;
-    });
   };
 
   const shown = mode === "all" ? sheets : active ? [active] : [];
@@ -351,29 +362,73 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     };
   }, []);
 
+  const patientLabel = patient ? `[${patient.patientCode}] ${patient.fullName}` : "";
+  const setDialogs = <RecordSetDialogs workflow={recordSets} patientLabel={patientLabel} />;
+
+  if (recordSets.loading) {
+    return (
+      <section className="pd-pane pd-pane--fill rs-loading">
+        <Spin />
+      </section>
+    );
+  }
+
+  // No set at all yet: the slips to open the first one from.
+  if (!activeSet) {
+    return (
+      <>
+        <RecordSetEmptyState
+          freeSlips={recordSets.freeSlips}
+          loading={recordSets.plansLoading}
+          onCreate={ability.canCreate ? recordSets.openCreate : undefined}
+        />
+        {setDialogs}
+      </>
+    );
+  }
+
+  const indexHead = (
+    <div className="rs-index-head">
+      <RecordSetPicker
+        sets={recordSets.sets}
+        active={activeSet}
+        freeSlipCount={recordSets.freeSlips.length}
+        onSelect={handleSelectSet}
+        onCreate={ability.canCreate ? () => recordSets.openCreate() : undefined}
+        onEdit={ability.canUpdate ? recordSets.openEdit : undefined}
+        onCancel={ability.canDelete ? recordSets.askCancel : undefined}
+      />
+    </div>
+  );
+
   return (
     <section className="pd-pane pd-pane--fill pd-medical">
       <div className={["pd-medical-grid", collapsed && "pd-medical-grid--collapsed"].filter(Boolean).join(" ")}>
         <MedicalRecordIndex
+          head={indexHead}
+          forms={forms}
           sheets={sheets}
           activeId={active?.id ?? null}
-          stampedIds={stampedIds}
           collapsed={collapsed}
           adding={addSheet.isPending}
           onToggleCollapse={() => setCollapsed((value) => !value)}
-          onAdd={ability.canCreate ? (spec) => void handleAdd(spec) : undefined}
-          onSelect={(sheet) => openSheet(sheet.id)}
-          onStamp={handleStamp}
-          onPrint={(sheet) => {
-            setActiveId(sheet.id);
-            setMode("single");
-            void printSheets([sheet.id]);
+          onAdd={ability.canCreate && !setLocked ? (spec) => void handleAdd(spec) : undefined}
+          actions={{
+            onSelect: (sheet) => openSheet(sheet.id),
+            onPrint: (sheet) => {
+              setActiveId(sheet.id);
+              setMode("single");
+              void printSheets([sheet.id]);
+            },
+            onRename:
+              ability.canUpdate && !setLocked
+                ? (sheet) => {
+                    setRenaming(sheet);
+                    setNewTitle(sheet.title);
+                  }
+                : undefined,
+            onCancel: ability.canDelete && !setLocked ? setCancelling : undefined,
           }}
-          onRename={ability.canUpdate ? (sheet) => {
-            setRenaming(sheet);
-            setNewTitle(sheet.title);
-          } : undefined}
-          onDelete={ability.canDelete ? (sheet) => setRemoving(sheet) : undefined}
         />
 
         <div
@@ -389,9 +444,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                 title={active.title}
                 dateLabel={formSpecOf(active.form).dateLabel}
                 date={dateOf(active)}
-                onDateChange={(next) => handleDateChange(active, next)}
-                doctorId={doctors[active.id]}
-                onDoctorChange={(doctor) => handleDoctorChange(active, doctor)}
+                onDateChange={readOnly(active) ? undefined : (next) => handleDateChange(active, next)}
+                notice={readOnlyNotice(active)}
               />
             )}
 
@@ -407,7 +461,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                     sheet={sheet}
                     auto={autoOf(sheet)}
                     zoom={zoom}
-                    editable={mode === "single" && sheet.id === active?.id}
+                    editable={mode === "single" && sheet.id === active?.id && !readOnly(sheet)}
                     values={valuesOf(sheet)}
                     mayEditRows={mayEditRows}
                     onChange={(next) => setEdits((current) => ({ ...current, [sheet.id]: next }))}
@@ -487,7 +541,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                 type="primary"
                 icon={<Save size={14} />}
                 loading={saveSheet.isPending}
-                disabled={!active || !formSpecOf(active.form).fillable}
+                disabled={!active || !formSpecOf(active.form).fillable || readOnly(active)}
                 onClick={() => void handleSave()}
               >
                 {saveSheet.isPending ? t("Patient:MedicalRecord:Saving") : t("Patient:Misc:Save")}
@@ -518,14 +572,21 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
       <UnsavedSheetDialog {...unsaved.dialog} />
 
-      <ConfirmDeleteDialog
-        open={Boolean(removing)}
-        noun={t("Patient:Misc:PatientRecord")}
-        name={removing?.title ?? ""}
-        pending={deleteSheet.isPending}
-        onConfirm={() => void handleDelete()}
-        onClose={() => setRemoving(null)}
-      />
+      {cancelling && (
+        <CancelSheetDialog
+          subtitle={t(
+            "Patient:MedRecord:CancelSubtitle",
+            cancelling.title,
+            copyLabel(ordinalOf(cancelling)),
+            sheetTime(cancelling.creationTime),
+          )}
+          pending={cancelSheet.isPending}
+          onConfirm={(reason) => void handleCancelSheet(reason)}
+          onClose={() => setCancelling(null)}
+        />
+      )}
+
+      {setDialogs}
     </section>
   );
 }

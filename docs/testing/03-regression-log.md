@@ -9477,3 +9477,63 @@ Vòng 2 cùng ngày, owner sửa:
   - Lịch tạm vẫn không bắt buộc bác sĩ như trước: bấm ✕ không có lỗi.
   - Test: spec thêm hai bước ✕. `appointment-slot-pick-doctor` + `appointment-slot-pick` + `doctor-day-off-pickers` + `appointment.spec` **10/10 pass** trên bản build.
 - Chưa commit.
+
+## R-982 (2026-10-17, mức 3: bệnh án + dữ liệu cũ) Bộ hồ sơ bệnh án theo `save/P1710.drawio`
+
+- Đây là thiết kế của phòng khám, không có trên bản gốc.
+- Owner chốt 3 điểm:
+  - Phiếu cũ của mỗi bệnh nhân gom vào một bộ.
+  - Bỏ ô tick đóng dấu, giữ In và Đổi tên; nút xoá thành Hủy phiếu.
+  - Chỉ ẩn ô chọn Bác sĩ, không tự điền gì thay.
+- BE:
+  - Aggregate `MedicalRecordSet` + `MedicalRecordSetPlan`: liên kết với phiếu điều trị, lưu bác sĩ của từng phiếu.
+  - `MedicalRecordSetPlanRules` giữ quy tắc chưa điều trị / đã khoá / phiếu điều trị đã hủy.
+  - Phiếu bệnh án có thêm `RecordSetId` và `CancelledAt` / `CancelledById` / `CancelReason`.
+  - API mới `api/v1/app/medical-record-sets`: list, plans, create, update, cancel.
+  - Phiếu bệnh án đổi `DELETE` thành `POST {id}/cancel`.
+  - Lỗi `BlueDental:Patient:0025…0031`.
+  - Unique index `TreatmentPlanId` lọc `Released = false`: một phiếu điều trị chỉ ở một bộ còn hiệu lực, kể cả khi hai lần lưu chạy đua.
+- Migration `MedicalRecordSets` gom phiếu cũ: local tạo **34 bộ cho 34 bệnh nhân**, không còn phiếu nào chưa có bộ.
+- FE (`medical-record-set/`):
+  - Màn hình trống, popup tạo/sửa bộ, dropdown chọn bộ ở đầu mục lục, nút "Mục hiển thị" n/9.
+  - Popup Hủy phiếu (bắt nhập lý do) và Hủy bộ hồ sơ.
+  - Thẻ phiếu đã hủy: gạch số Bản, nhãn Đã hủy, chỉ In.
+  - Ẩn ô chọn Bác sĩ.
+- **Test**:
+  - Chạy trên bản build :8080, host thật :5000 và PostgreSQL thật; không chặn API.
+  - BE Domain **950/950** (mới: `MedicalRecordSetTests` 10 ca), Application **736/736**, EF **66/66**, Host **24/24**.
+  - Spec mới `medical-record-set.spec.ts` **3/3**:
+    - Tạo bộ từ màn hình trống; mã `HS{KH}-{ngày}-01`; ẩn mục 9; reload vẫn đúng.
+    - Hủy phiếu: bắt lý do, ghi người hủy, giữ Bản 01; PUT bị chặn `0028`.
+    - Chuyển phiếu điều trị chưa điều trị sang bộ khác; phiếu đã bắt đầu bị khoá `0026`; chi nhánh 2 nhận 404.
+    - Hủy bộ: trả phiếu điều trị, bộ nằm cuối danh sách, không nhận phiếu mới `0025`.
+  - `patient-medical-record` + `medical-record-drawing` chuyển sang fixture `openRecordWithSet`:
+    - Chọn bệnh nhân cùng chi nhánh, có ít phiếu nhất mà vẫn ≥ 3 phiếu.
+    - Bỏ ca "tick đóng dấu" và ca "chọn bác sĩ" vì hai tính năng này đã gỡ.
+  - Kết quả cả 3 spec: **36 pass / 2 đỏ có sẵn**.
+    - "nine forms…": không thấy `.pd-profile-card` (đã ghi từ R-963).
+    - "picking the day…": `consultation.text.4` rỗng (đã ghi từ R-963).
+- Còn mở:
+  - "Lưu lại hết bác sĩ để hiển thị trên lịch sử điều trị cho dịch vụ tương ứng": đã lưu theo từng phiếu điều trị trong bộ, nhưng chưa có màn nào hiển thị. Sơ đồ chưa nói hiển thị ở đâu.
+  - Modal "In bệnh án" ở Kế hoạch điều trị vẫn lấy phiếu theo bệnh nhân, chưa lấy theo bộ chứa phiếu điều trị đó.
+- **Vòng 2 (owner, cùng ngày)**:
+  - Ô chọn bộ làm theo ảnh đích: icon tím, dòng "MỤC LỤC BỆNH ÁN · N BỘ", mã bộ trên một dòng, rồi "{CĐ} - {DT} · n/9 mục hiển thị".
+  - Nút "8/9" riêng bị bỏ: cột 320px không đủ chỗ cho mã bộ trên một dòng. Muốn sửa mục hiển thị thì dùng bút chì trong dropdown.
+  - Popup tạo/sửa rộng hơn, tối đa 1080px; chữ và hàng lớn hơn; danh sách phiếu cuộn riêng.
+  - Bỏ tick hết phiếu thì hiện dòng nhắc "Bộ hồ sơ cần ít nhất một phiếu điều trị".
+  - Thêm phiếu và bỏ tick phiếu "chưa điều trị" ngay trên popup sửa vốn đã làm được. Spec có thêm bước bỏ tick, kiểm tra phiếu được trả lại, rồi tick lại.
+  - Chạy lại 3 spec bệnh án: **36 pass / 2 đỏ có sẵn** (như trên).
+- **Vòng 3 (owner)**: popup "Tạo bộ hồ sơ mới" từng cho tick phiếu đã thuộc bộ khác. Sửa lại:
+  - Bộ mới chỉ tạo từ phiếu chưa thuộc bộ nào.
+  - Phiếu đã thuộc bộ khác bị khoá, tooltip giải thích. Server cũng từ chối với lỗi mới `BlueDental:Patient:0032`.
+  - Chuyển phiếu "chưa điều trị" từ bộ khác sang chỉ làm được trong popup sửa của bộ đích, đúng như sơ đồ ghi ở "View chỉnh sửa".
+  - Domain có thêm ca `A_new_set_takes_no_slip_another_set_holds`: **951/951**.
+  - Spec `medical-record-set` đổi theo: popup tạo khoá phiếu đã thuộc bộ; POST bị chặn `0032`; chuyển phiếu qua popup sửa.
+  - Helper của `patient-medical-record` bỏ qua phiếu đã hủy, vì phiếu hủy giờ ở lại trong mục lục và không sửa được.
+  - Chạy lại 3 spec bệnh án: **36 pass / 2 đỏ có sẵn** (R-963).
+- **Vòng 4 (owner)**:
+  - (a) Đổi trạng thái phiếu điều trị thì popup tạo/sửa phải thấy ngay. Danh sách bộ và phiếu được thêm vào entity `treatment` và `treatmentStage` trong `lib/queryEntities.ts`, nên mọi thao tác ghi lên phiếu điều trị hoặc công đoạn đều làm nó refetch. Ngoài ra, mỗi lần mở popup (và mỗi lần vào Bệnh án) đều đọc lại cả hai danh sách; trong lúc đọc, popup hiện spinner. Popup chỉ điền ô tick khi dữ liệu mới đã về: test phát hiện lỗi mở popup sửa ngay sau khi lưu thì lấy danh sách phiếu của bản cũ.
+  - (b) Popup sửa cũng khoá phiếu đã thuộc bộ khác. Không bộ nào (tạo hay sửa) nhận phiếu đang thuộc bộ khác; server trả `0032`. Muốn chuyển phiếu phải làm hai bước: bỏ tick ở bộ cũ (chỉ khi phiếu còn chưa điều trị), rồi tick vào bộ mới. Bỏ hẳn đường "kéo phiếu từ bộ khác sang".
+  - Domain **951/951**.
+  - Spec `medical-record-set` **3/3**: dùng 3 phiếu điều trị; khoá ở cả hai popup; chuyển phiếu qua hai bước; popup thấy "Hoàn thành" mà không cần reload.
+  - `patient-medical-record` + `medical-record-drawing`: **33 pass / 2 đỏ có sẵn** (R-963).

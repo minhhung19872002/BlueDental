@@ -1,66 +1,73 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Button } from "antd";
 import { FileTextOutlined, PlusOutlined } from "@ant-design/icons";
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { PatientMedicalRecordDto } from "../../api/medicalRecordApi";
-import { MEDICAL_RECORD_FORMS, type MedicalRecordFormSpec } from "./medicalRecordForms";
+import type { MedicalRecordFormSpec } from "./medicalRecordForms";
 import { MedicalRecordSheetCard } from "./MedicalRecordSheetCard";
 
 /**
  * "Mục lục bệnh án" — the left panel of the Bệnh án view.
  *
- * Each of the nine forms is a tinted row carrying its own `+ Thêm`, and every
- * sheet made from that form is nested underneath it as a card. The count in
- * the header counts *sheets*, not forms, which is what the reference shows.
+ * Its head is the bộ hồ sơ being shown (`head`); below it, each form the set
+ * shows is a tinted row carrying its own `+ Thêm`, and every sheet made from
+ * that form in this set is nested underneath it as a card.
  */
 
+/** What a sheet card can be asked to do; an absent action is not offered. */
+export interface SheetCardActions {
+  onSelect: (sheet: PatientMedicalRecordDto) => void;
+  onPrint: (sheet: PatientMedicalRecordDto) => void;
+  onRename?: (sheet: PatientMedicalRecordDto) => void;
+  onCancel?: (sheet: PatientMedicalRecordDto) => void;
+}
+
 interface Props {
+  /** The set picker and its tools, laid out by the caller. */
+  head: ReactNode;
+  /** The forms the set shows ("Mục hiển thị"), in index order. */
+  forms: MedicalRecordFormSpec[];
+  /** The set's sheets. */
   sheets: PatientMedicalRecordDto[];
   activeId: string | null;
-  /** Sheets ticked as carrying the clinic's stamp. */
-  stampedIds: ReadonlySet<string>;
   collapsed: boolean;
   adding: boolean;
   onToggleCollapse: () => void;
   onAdd?: (spec: MedicalRecordFormSpec) => void;
-  onSelect: (sheet: PatientMedicalRecordDto) => void;
-  onStamp: (sheet: PatientMedicalRecordDto, stamped: boolean) => void;
-  onPrint: (sheet: PatientMedicalRecordDto) => void;
-  onRename?: (sheet: PatientMedicalRecordDto) => void;
-  onDelete?: (sheet: PatientMedicalRecordDto) => void;
+  actions: SheetCardActions;
+}
+
+/** "2 bản · 1 đã hủy" under a form's name; "Chưa có phiếu" when there is none. */
+function copiesLine(own: PatientMedicalRecordDto[]): string {
+  if (own.length === 0) return t("Patient:MedRecord:NoCopy");
+  const cancelled = own.filter((sheet) => sheet.cancelledAt).length;
+  return cancelled
+    ? t("Patient:MedRecord:CopyCountCancelled", own.length, cancelled)
+    : t("Patient:MedRecord:CopyCount", own.length);
 }
 
 export function MedicalRecordIndex({
+  head,
+  forms,
   sheets,
   activeId,
-  stampedIds,
   collapsed,
   adding,
   onToggleCollapse,
   onAdd,
-  onSelect,
-  onStamp,
-  onPrint,
-  onRename,
-  onDelete,
+  actions,
 }: Props) {
   return (
     <aside className={["pd-medical-index", collapsed && "pd-medical-index--collapsed"].filter(Boolean).join(" ")}>
       {/*
         * Folded on a wide window the panel is the reference's 64px rail: the
         * header keeps only the button that opens it again (PanelLeftOpen). The
-        * title stays in the DOM for the narrow layout, where folding leaves the
-        * header row and only the list goes — see patient-detail.css.
+        * set picker stays in the DOM for the narrow layout, where folding leaves
+        * the header row and only the list goes — see patient-detail.css.
         */}
       <header className="pd-medical-index-head">
-        <span className="pd-medical-index-icon">
-          <FileTextOutlined />
-        </span>
-        <div className="pd-medical-index-title">
-          <strong>{t("Patient:MedRecord:Index")}</strong>
-          <small>{t("Patient:MedicalRecord:FormCount", sheets.length)}</small>
-        </div>
+        <div className="pd-medical-index-title">{head}</div>
         <Button
           type="text"
           className="pd-medical-collapse"
@@ -76,9 +83,10 @@ export function MedicalRecordIndex({
       </header>
 
       <ul id="pd-medical-forms" className="pd-medical-forms">
-        {MEDICAL_RECORD_FORMS.map((spec) => {
+        {forms.map((spec) => {
           // Sheets keep the order the server lists them in, so the ordinal a
-          // card shows is stable: the first one made is always Bản 01.
+          // card shows is stable: the first one made is always Bản 01, and a
+          // cancelled copy keeps its number.
           const own = sheets.filter((sheet) => sheet.form === spec.form);
 
           return (
@@ -98,7 +106,10 @@ export function MedicalRecordIndex({
                   <FileTextOutlined />
                 </span>
                 <p>
-                  {spec.index}. {spec.label}
+                  <span>
+                    {spec.index}. {spec.label}
+                  </span>
+                  <small className="pd-medical-form-count">{copiesLine(own)}</small>
                 </p>
                 {onAdd && (
                   <Button
@@ -119,12 +130,7 @@ export function MedicalRecordIndex({
                   spec={spec}
                   ordinal={position + 1}
                   active={sheet.id === activeId}
-                  stamped={stampedIds.has(sheet.id)}
-                  onSelect={() => onSelect(sheet)}
-                  onStamp={(stamped) => onStamp(sheet, stamped)}
-                  onPrint={() => onPrint(sheet)}
-                  onRename={onRename ? () => onRename(sheet) : undefined}
-                  onDelete={onDelete ? () => onDelete(sheet) : undefined}
+                  actions={actions}
                 />
               ))}
             </li>

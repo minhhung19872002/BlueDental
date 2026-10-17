@@ -39,8 +39,11 @@ public sealed class PatientMedicalRecordController(IPatientMedicalRecordAppServi
         Guid id,
         [FromBody] UpdatePatientMedicalRecordDto input) => service.UpdateAsync(id, input);
 
-    [HttpDelete("{id:guid}")]
-    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+    /// <summary>"Hủy phiếu" — a sheet is never deleted; see the service.</summary>
+    [HttpPost("{id:guid}/cancel")]
+    public Task<PatientMedicalRecordDto> CancelAsync(
+        Guid id,
+        [FromBody] CancelPatientMedicalRecordDto input) => service.CancelAsync(id, input);
 
     /// <summary>Multipart, so the file is bound by hand rather than from a JSON body.</summary>
     [HttpPost("{id:guid}/drawings")]

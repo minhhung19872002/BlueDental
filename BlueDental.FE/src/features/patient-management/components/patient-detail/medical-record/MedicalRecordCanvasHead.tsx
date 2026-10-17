@@ -1,7 +1,5 @@
-import { DatePicker, Select } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { DatePicker } from "antd";
 import type { Dayjs } from "dayjs";
-import { useDentistStaffOptions, type StaffOption } from "@/hooks/useStaffOptions";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
@@ -17,41 +15,30 @@ interface Props {
    */
   dateLabel?: string;
   date?: Dayjs | null;
+  /** Absent on a sheet that can no longer change. */
   onDateChange?: (date: Dayjs | null) => void;
-  doctorId?: string;
-  /** The whole option, so the sheet can print the doctor's name and Chức danh. */
-  onDoctorChange?: (doctor: StaffOption | undefined) => void;
+  /** Says why the sheet is read-only — a cancelled sheet or set. */
+  notice?: string;
 }
 
 /**
- * The line above the sheet: which copy is open, the day it is filled in for,
- * and the doctor picker the reference puts at the far end of it.
+ * The line above the sheet: which copy is open and the day it is filled in for.
  *
- * Picking a doctor prints them on the forms that name one (see
- * `doctorFieldKeys`) — the clinic's ask (2026-10-16), not the reference's.
+ * The reference also puts a doctor picker at the far end of it; the clinic
+ * asked for it to be hidden (save/P1710.drawio, 2026-10-17), so it is gone.
  *
- * UNKNOWN_REFERENCE_BEHAVIOR — what picking a doctor does on the reference,
- * and the other half of what the date does. On the reference the date also fetches that day's
- * diagnoses and treatment stages and writes them onto the sheet; confirming
- * that means picking on a live record, which would write. See
- * docs/clone/unknowns.md.
+ * UNKNOWN_REFERENCE_BEHAVIOR — the other half of what the date does. On the
+ * reference the date also fetches that day's diagnoses and treatment stages and
+ * writes them onto the sheet; confirming that means picking on a live record,
+ * which would write. See docs/clone/unknowns.md.
  */
-export function MedicalRecordCanvasHead({
-  ordinal,
-  title,
-  dateLabel,
-  date,
-  onDateChange,
-  doctorId,
-  onDoctorChange,
-}: Props) {
-  const dentists = useDentistStaffOptions().data ?? [];
-
+export function MedicalRecordCanvasHead({ ordinal, title, dateLabel, date, onDateChange, notice }: Props) {
   return (
     <header className="pd-medical-canvas-head">
       <div className="pd-medical-canvas-title">
         <small>
           {t("Patient:Misc:SlipCopy")} {String(ordinal).padStart(2, "0")}
+          {notice && <span className="pd-medical-readonly">{notice}</span>}
         </small>
         <strong>{title}</strong>
       </div>
@@ -59,23 +46,15 @@ export function MedicalRecordCanvasHead({
       <div className="pd-medical-canvas-tools">
         {dateLabel && (
           <FloatingLabel label={t(dateLabel)} floated className="pd-medical-date">
-            <DatePicker value={date} onChange={onDateChange} format={DATE_INPUT_FORMAT} allowClear={false} />
+            <DatePicker
+              value={date}
+              onChange={onDateChange}
+              disabled={!onDateChange}
+              format={DATE_INPUT_FORMAT}
+              allowClear={false}
+            />
           </FloatingLabel>
         )}
-
-        <FloatingLabel label={t("Patient:Staff:Doctor")} floated={Boolean(doctorId)} className="pd-medical-doctor">
-          <Select
-            value={doctorId}
-            onChange={(id: string | undefined) =>
-              onDoctorChange?.(dentists.find((option) => option.value === id))
-            }
-            options={dentists}
-            showSearch
-            allowClear
-            optionFilterProp="label"
-            prefix={<SearchOutlined aria-hidden="true" />}
-          />
-        </FloatingLabel>
       </div>
     </header>
   );

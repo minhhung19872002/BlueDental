@@ -10,15 +10,26 @@ public class PatientMedicalRecordDto : FullAuditedEntityDto<Guid>
 {
     public Guid PatientId { get; set; }
     public Guid ClinicBranchId { get; set; }
+    public Guid RecordSetId { get; set; }
     public MedicalRecordForm Form { get; set; }
     public string Title { get; set; } = string.Empty;
     public int SortOrder { get; set; }
     public string? Content { get; set; }
+
+    /// <summary>Set once the sheet is cancelled ("Đã hủy").</summary>
+    public DateTime? CancelledAt { get; set; }
+    public Guid? CancelledById { get; set; }
+    public string? CancellerName { get; set; }
+    public string? CancelReason { get; set; }
 }
 
 public class CreatePatientMedicalRecordDto
 {
     public Guid PatientId { get; set; }
+
+    /// <summary>The bộ hồ sơ the sheet is added to; it must be the patient's and not cancelled.</summary>
+    public Guid RecordSetId { get; set; }
+
     public MedicalRecordForm Form { get; set; }
     public string Title { get; set; } = string.Empty;
 }
@@ -32,7 +43,14 @@ public class UpdatePatientMedicalRecordDto
 public class GetPatientMedicalRecordListInput : PagedAndSortedResultRequestDto
 {
     public Guid? PatientId { get; set; }
+    public Guid? RecordSetId { get; set; }
     public MedicalRecordForm? Form { get; set; }
+}
+
+/// <summary>"Hủy phiếu": the reason is required.</summary>
+public class CancelPatientMedicalRecordDto
+{
+    public string? Reason { get; set; }
 }
 
 /// <summary>A drawing stored for a sheet; the sheet's content links to it by <see cref="Url"/>.</summary>
@@ -60,7 +78,11 @@ public interface IPatientMedicalRecordAppService : IApplicationService
 
     Task<PatientMedicalRecordDto> UpdateAsync(Guid id, UpdatePatientMedicalRecordDto input);
 
-    Task DeleteAsync(Guid id);
+    /// <summary>
+    /// "Hủy phiếu". A sheet is never erased: it stays in its set marked Đã hủy,
+    /// with who cancelled it, when and why, and can no longer change.
+    /// </summary>
+    Task<PatientMedicalRecordDto> CancelAsync(Guid id, CancelPatientMedicalRecordDto input);
 
     /// <summary>
     /// Stores a drawing for the sheet. The sheet only links to it once its

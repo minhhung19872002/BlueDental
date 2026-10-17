@@ -38,7 +38,7 @@ public class PatientMedicalRecordAppServiceContractTests
     [InlineData("GetAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     [InlineData("CreateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
     [InlineData("UpdateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
-    [InlineData("DeleteAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]
+    [InlineData("CancelAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]
     [InlineData("UploadDrawingAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("GetDrawingAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     public void Each_Method_Names_Its_Leaf(string method, string permission)

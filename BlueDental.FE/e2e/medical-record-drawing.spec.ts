@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { BRANCH2_USER, assertRealApiTraffic, login } from "./fixtures/auth";
+import { BRANCH2_USER, login } from "./fixtures/auth";
+import { cancelSheet, openRecordWithSet } from "./fixtures/medicalRecordSet";
 
 /**
  * Feature: "Lược đồ phẫu thuật/thủ thuật" on Phiếu phẫu thuật/thủ thuật — the
@@ -30,15 +31,7 @@ async function drawingSource(page: Page): Promise<string> {
 
 /** Opens a patient's Bệnh án and adds a fresh copy of the form; returns its id. */
 async function openNewSheet(page: Page): Promise<string> {
-  await page.goto("/patient");
-  await assertRealApiTraffic(page, "/api/v1/app/patients");
-  await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
-  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-  // The record settles its `?branch=` first; a click before that is lost.
-  await expect(async () => {
-    await page.getByRole("button", { name: /(^|\s)Bệnh án$/ }).click();
-    await expect(page).toHaveURL(/view=medical-record/, { timeout: 2_000 });
-  }).toPass();
+  await openRecordWithSet(page);
 
   const added = page.waitForResponse(
     (res) => res.url().endsWith("/api/v1/app/patient-medical-records") && res.request().method() === "POST",
@@ -143,22 +136,6 @@ async function boldIn(box: Locator): Promise<string> {
   );
 }
 
-/** Removes the copy a test added, through the real API. */
-async function deleteSheet(page: Page, id: string): Promise<number> {
-  return page.evaluate(async (sheet: string) => {
-    const xsrf = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("XSRF-TOKEN="))
-      ?.substring("XSRF-TOKEN=".length);
-    const res = await fetch(`/api/v1/app/patient-medical-records/${sheet}`, {
-      method: "DELETE",
-      credentials: "include",
-      headers: xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {},
-    });
-    return res.status;
-  }, id);
-}
-
 async function statusOf(page: Page, url: string): Promise<number> {
   return (await page.request.get(url)).status();
 }
@@ -251,7 +228,7 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await expect.poll(() => statusOf(page, second)).toBe(404);
 
     // Tidy up the copy this test added.
-    expect(await deleteSheet(page, sheetId)).toBe(204);
+    expect(await cancelSheet(page, sheetId)).toBe(200);
   });
 
   test("words are typed, formatted and typed over again, and stay editable once saved", async ({ page }) => {
@@ -342,7 +319,7 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await box.press("Escape");
     await dialog.getByRole("button", { name: "Huỷ" }).click();
 
-    expect(await deleteSheet(page, sheetId)).toBe(204);
+    expect(await cancelSheet(page, sheetId)).toBe(200);
   });
 
   test("a stroke is picked out with the select tool: moved, recoloured, deleted; the eraser rubs out only where it passes", async ({ page }) => {
@@ -431,7 +408,7 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
     await expect(selection).toBeVisible();
 
     await dialog.getByRole("button", { name: "Huỷ" }).click();
-    expect(await deleteSheet(page, sheetId)).toBe(204);
+    expect(await cancelSheet(page, sheetId)).toBe(200);
   });
 
   test("only a PNG is accepted as a drawing", async ({ page }) => {
@@ -452,10 +429,14 @@ test.describe("Bệnh án — lược đồ phẫu thuật/thủ thuật", () =>
         body: form,
       });
       const body: { error?: { code?: string } } = await res.json();
-      await fetch(`/api/v1/app/patient-medical-records/${id}`, {
-        method: "DELETE",
+      await fetch(`/api/v1/app/patient-medical-records/${id}/cancel`, {
+        method: "POST",
         credentials: "include",
-        headers: xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {},
+        headers: {
+          "Content-Type": "application/json",
+          ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+        },
+        body: JSON.stringify({ reason: "E2E dọn dẹp" }),
       });
       return { status: res.status, code: body.error?.code };
     }, sheetId);

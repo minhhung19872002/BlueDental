@@ -4923,6 +4923,114 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_staff_branch_assignments", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.PatientManagement.MedicalRecordSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<int>("HiddenFormMask")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("bd_medical_record_sets", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.MedicalRecordSetPlan", b =>
+                {
+                    b.Property<Guid>("MedicalRecordSetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TreatmentPlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AttachedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DentistId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Released")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("MedicalRecordSetId", "TreatmentPlanId");
+
+                    b.HasIndex("TreatmentPlanId")
+                        .IsUnique()
+                        .HasFilter("\"Released\" = false");
+
+                    b.ToTable("bd_medical_record_set_plans", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.PatientManagement.Patient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5401,6 +5509,16 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledById")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
 
@@ -5456,6 +5574,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("RecordSetId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
@@ -5467,6 +5588,8 @@ namespace BlueDental.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClinicBranchId");
+
+                    b.HasIndex("RecordSetId");
 
                     b.HasIndex("PatientId", "SortOrder");
 
@@ -10246,6 +10369,21 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.PatientManagement.MedicalRecordSetPlan", b =>
+                {
+                    b.HasOne("BlueDental.PatientManagement.MedicalRecordSet", null)
+                        .WithMany("Plans")
+                        .HasForeignKey("MedicalRecordSetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BlueDental.TreatmentManagement.TreatmentPlan", null)
+                        .WithMany()
+                        .HasForeignKey("TreatmentPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlueDental.PatientManagement.Patient", b =>
                 {
                     b.OwnsOne("BlueDental.PatientManagement.Values.ContactInfo", "Contact", b1 =>
@@ -10325,6 +10463,15 @@ namespace BlueDental.Migrations
                         .WithMany("Guardians")
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.PatientMedicalRecord", b =>
+                {
+                    b.HasOne("BlueDental.PatientManagement.MedicalRecordSet", null)
+                        .WithMany()
+                        .HasForeignKey("RecordSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -10952,6 +11099,11 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.Inventory.MaterialAllocation", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.MedicalRecordSet", b =>
+                {
+                    b.Navigation("Plans");
                 });
 
             modelBuilder.Entity("BlueDental.PatientManagement.Patient", b =>

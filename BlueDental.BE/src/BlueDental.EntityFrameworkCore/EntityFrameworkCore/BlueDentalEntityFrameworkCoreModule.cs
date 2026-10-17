@@ -62,6 +62,11 @@ public class BlueDentalEntityFrameworkCoreModule : AbpModule
                 entity.DefaultWithDetailsFunc = query => query
                     .Include(x => x.ExaminationReasons)
                     .Include(x => x.Guardians));
+
+            // A bộ hồ sơ is the slips it holds: saving one read without them
+            // would let a slip into two live sets.
+            options.Entity<MedicalRecordSet>(entity =>
+                entity.DefaultWithDetailsFunc = query => query.Include(x => x.Plans));
         });
 
         Configure<AbpDbContextOptions>(options =>

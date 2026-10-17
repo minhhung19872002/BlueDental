@@ -4120,3 +4120,34 @@ Owner yêu cầu (ảnh chú thích trên tờ phiếu), không có trên bản 
   - Double click lên một loại: mở cùng dialog để sửa, ghi vào Danh mục, rồi điền lại chi tiết.
   - Phiếu vẫn chỉ được lưu bằng "Lưu" của phiếu. Khi in, ⊕ bị ẩn.
 - **Phiếu cũ:** các ô cố định Zirconia / Cercon HT / Lava / E.max (`consultation.checkbox.10–13`), "Khác: …" (`checkbox.14` + `text.11`) và loại implant gõ tay (`text.17`) được đọc thành lựa chọn theo tên khi phiếu chưa có giá trị ô "Loại" mới. Tên nào khớp loại trong Danh mục (không phân biệt hoa thường) thì tick loại đó; không khớp thì hiện thành một lựa chọn đã tick.
+
+## Bệnh án — Bộ hồ sơ bệnh án (thiết kế của phòng khám, 2026-10-17)
+
+Thiết kế riêng của phòng khám (`save/P1710.drawio`), **không phải hành vi của bản
+gốc**, nên không có mục UNKNOWN_REFERENCE_BEHAVIOR. Regression log: R-982.
+
+- Phiếu bệnh án nằm trong **bộ hồ sơ**. Mỗi bộ gắn với một hoặc nhiều phiếu điều trị (DT).
+  Mã bộ: `HS{Mã KH}-{DDMMYYYY}-xx`, xx đếm số bộ của bệnh nhân trong ngày (theo giờ phòng khám).
+- Chưa có bộ nào: màn hình trống liệt kê phiếu điều trị chưa thuộc bộ nào
+  (Phiếu · Chẩn đoán · Điều trị · Bác sĩ). Tick rồi "Tạo hồ sơ" mở popup tạo bộ.
+- Popup tạo / sửa bộ có hai phần:
+  - 1. Phiếu điều trị: Phiếu · Chẩn đoán · Điều trị · Trạng thái phiếu · Trạng thái hồ sơ.
+  - 2. Mục hiển thị: 9 mục, bỏ tick chỉ ẩn khỏi mục lục.
+- Quy tắc chọn phiếu điều trị:
+  - Phiếu "chưa điều trị" (nhãn Đã tạo) được thêm, bỏ ra, hoặc chuyển từ bộ khác sang.
+  - Phiếu đã bắt đầu điều trị mà đã thuộc một bộ thì bị khoá, không bỏ ra, không chuyển bộ.
+  - Phiếu điều trị đã hủy không vào bộ nào.
+  - Mỗi phiếu điều trị chỉ ở một bộ còn hiệu lực; DB có unique index lọc theo `Released = false`.
+- Bộ lưu lại bác sĩ của từng phiếu điều trị lúc gắn vào.
+- Đầu mục lục là dropdown chọn bộ:
+  - Ô chọn: mã bộ, dòng dưới là "{Mã phiếu chẩn đoán} - {Mã phiếu điều trị}" của phiếu điều trị mới nhất trong bộ.
+  - Danh sách: mỗi bộ chỉ hiện tên chẩn đoán của phiếu mới nhất. Bộ mới nhất trên cùng, bộ đã hủy xuống cuối.
+- Hủy bộ hồ sơ: bộ được giữ lại, gắn nhãn Đã hủy, chỉ xem, không sửa được.
+  Các phiếu điều trị trong bộ trở lại "Chưa thêm vào bệnh án".
+- Hủy phiếu (nút thùng rác trên thẻ "Bản NN"):
+  - Bắt buộc nhập lý do. Ghi lại người hủy và thời điểm.
+  - Phiếu được giữ, giữ số Bản NN (gạch ngang), gắn nhãn Đã hủy, chỉ xem và in.
+  - API `DELETE` của phiếu đã bỏ, thay bằng `POST …/{id}/cancel`.
+- Bỏ ô tick đóng dấu trên thẻ phiếu. Ẩn ô chọn Bác sĩ phía trên tờ phiếu.
+- Phiếu có trước khi có bộ: migration `MedicalRecordSets` gom phiếu của mỗi bệnh nhân vào một bộ
+  (chưa gắn phiếu điều trị), đặt mã theo ngày của phiếu đầu tiên.

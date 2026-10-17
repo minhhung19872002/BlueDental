@@ -16,6 +16,7 @@ import type { laboCatalogKeys } from "@/features/labo/api/laboCatalogListApi";
 import type { branchManagerKeys } from "@/features/organizations/api/branchManagerQueries";
 import type { invoiceRequestKeys } from "@/features/patient-management/api/invoiceRequestApi";
 import type { patientImageKeys } from "@/features/patient-management/api/patientImageApi";
+import type { recordSetKeys } from "@/features/patient-management/api/medicalRecordSetApi";
 import type { patientKeys } from "@/features/patient-management/api/patientQueries";
 import type { clinicReportKeys } from "@/features/report/api/clinicReportApi";
 import type { financeKeys } from "@/features/report/api/financeApi";
@@ -54,6 +55,11 @@ const LABO_CATALOG = ["labo-catalog"] satisfies RootOf<typeof laboCatalogKeys>;
 const LABO_MATERIALS = ["labo-materials"] satisfies RootOf<typeof laboMaterialKeys>;
 const CURRENT_USER = ["auth", "current-user"];
 const INVOICE_REQUESTS = ["invoice-requests"] satisfies RootOf<typeof invoiceRequestKeys>;
+/**
+ * Bộ hồ sơ bệnh án lists the patient's slips with their status: whether a slip
+ * is still "chưa điều trị" decides if it may leave or change set.
+ */
+const RECORD_SETS = ["medical-record-sets"] satisfies RootOf<typeof recordSetKeys>;
 
 export const ENTITY_QUERY_ROOTS = {
   catalog: [
@@ -90,6 +96,7 @@ export const ENTITY_QUERY_ROOTS = {
     PATIENT_LISTS,
     // Báo cáo lists the service lines themselves.
     CLINIC_REPORTS,
+    RECORD_SETS,
   ],
   // Opening a slip burns a use on each voucher it carries (BA item 24), so the
   // voucher list's "Lượt dùng" and the consulting sheet's picker both re-read.
@@ -101,6 +108,8 @@ export const ENTITY_QUERY_ROOTS = {
     PATIENT_LISTS,
     // "Tiếp tục công đoạn" opens the day's Sau điều trị CSKH task.
     ["care-records"] satisfies RootOf<typeof careKeys>,
+    // Starting a stage starts the slip: it reads "Đang điều trị" from then on.
+    RECORD_SETS,
   ],
   payment: [
     PATIENT_TREATMENTS,

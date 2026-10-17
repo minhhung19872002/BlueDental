@@ -55,16 +55,6 @@
   width: 100%;
 }
 
-.pd-medical-doctor {
-  width: 240px;
-  flex-shrink: 0;
-  --ff-input-height: 40px;
-}
-
-.pd-medical-doctor .ant-select {
-  width: 100%;
-}
-
 /* ── Bottom bar ── */
 
 /* The reference tints this one teal, apart from the rest of the bar. */

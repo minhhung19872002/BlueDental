@@ -50,10 +50,15 @@ export function previewSheet(
     id: `preview-${form}`,
     patientId,
     clinicBranchId,
+    // A preview stands outside any bộ hồ sơ and is never saved.
+    recordSetId: "",
     form,
     title: spec?.label ?? "",
     sortOrder: spec?.index ?? 0,
     content: null,
+    cancelledAt: null,
+    cancellerName: null,
+    cancelReason: null,
     creationTime: "",
     lastModificationTime: null,
   };
