@@ -42,12 +42,37 @@ const ranks = (items: Appointment[], ids: string[]) => items.map((a) => ids.inde
 
 const nameOf = (s: Staff) => s.name ?? s.userName;
 
-/** Two dentists with visits today, booking more until two different ones have some. */
+/** The board's own order (R-978): "Đang khám" first, "Hoàn tất" last, the API's order within each. */
+const STEP_RANK: Partial<Record<number, number>> = { 4: -1, 5: 1 };
+const boardOrder = (items: Appointment[]) =>
+  [...items].sort((x, y) => (STEP_RANK[x.status] ?? 0) - (STEP_RANK[y.status] ?? 0));
+
+/** Every card wears the doctor of the visit the board puts there. */
+async function expectCardsFollow(page: Page, response: Response, staff: Staff[]) {
+  const { items } = (await response.json()) as { items: Appointment[] };
+  const expected = boardOrder(items);
+  const cards = page.locator(".rc-wrapper");
+  await expect(cards).toHaveCount(expected.length);
+  for (const [index, visit] of expected.entries()) {
+    const doctor = staff.find((s) => s.id === visit.dentistId);
+    expect(doctor, `card ${index + 1}: one of the picked doctors`).toBeTruthy();
+    await expect(cards.nth(index).locator(".rc-doctor-select")).toContainText(nameOf(doctor!));
+  }
+}
+
+/**
+ * Two dentists with visits today, booking more until two different ones have some.
+ * Only doctors still on staff: other runs book visits for a doctor they then delete.
+ */
 async function twoDentistsWithVisits(page: Page, branchId: string): Promise<[string, string]> {
   const today = dayOf(new Date());
+  const onStaff = await call<{ items: { id: string }[] }>(
+    page, branchId, `${STAFF}?MaxResultCount=200&IsActive=true&BranchId=${branchId}&Role=1`,
+  );
+  const doctors = new Set(onStaff.body.items.map((s) => s.id));
   for (let attempt = 0; attempt < 6; attempt++) {
     const todays = await call<{ items: Appointment[] }>(page, branchId, query([], today));
-    const dentists = [...new Set(todays.body.items.map((a) => a.dentistId).filter(Boolean))];
+    const dentists = [...new Set(todays.body.items.map((a) => a.dentistId).filter((id) => doctors.has(id)))];
     if (dentists.length >= 2) return [dentists[0], dentists[1]];
     await bookVisitToday(page, branchId, 50 + attempt * 7, "e2e-uutien");
   }
@@ -170,16 +195,14 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
       await expect(filter.locator(".ss-value--selected")).toHaveText(nameOf(staffB));
       await expect(filter.locator(".ms-more")).toHaveText("+1");
 
-      // The cards follow: the top doctor's first, the other's last.
+      // The cards follow: the top doctor's first within each step (R-978).
       const body = (await both.json()) as { items: Appointment[] };
       const rank = ranks(body.items, [b, a]);
       expect(rank).toEqual([...rank].sort((x, y) => x - y));
       await page.locator(".reception-page").click({ position: { x: 5, y: 5 } });
       await expect(dropdown).toBeHidden();
       const cards = page.locator(".rc-wrapper");
-      await expect(cards).toHaveCount(body.items.length);
-      await expect(cards.first().locator(".rc-doctor-select")).toContainText(nameOf(staffB));
-      await expect(cards.last().locator(".rc-doctor-select")).toContainText(nameOf(staffA));
+      await expectCardsFollow(page, both, [staffA, staffB]);
 
       // ✕ on a pick drops it (a's own list was asked for above, so it may come from the cache).
       await filter.locator(".ss-trigger").click();
@@ -213,12 +236,12 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
       await filter.locator(".ss-trigger").click();
       const dropdown = page.locator(".ms-dropdown");
       await dropdown.getByRole("option", { name: nameOf(staffA), exact: true }).click();
+      const both = page.waitForResponse((r) => isBoardList(r) && dentistIdsOf(r).length === 2);
       await dropdown.getByRole("option", { name: nameOf(staffB), exact: true }).click();
       const rows = dropdown.locator(".ms-priority-row");
       await expect(rows.nth(0)).toContainText(nameOf(staffA));
       await page.locator(".reception-page").click({ position: { x: 5, y: 5 } });
-      const cards = page.locator(".rc-wrapper");
-      await expect(cards.first().locator(".rc-doctor-select")).toContainText(nameOf(staffA));
+      await expectCardsFollow(page, await both, [staffA, staffB]);
 
       // Another tab, the staff form's own endpoint: A drops behind B.
       const staffTab = await context.newPage();
@@ -232,9 +255,9 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
       await page.bringToFront();
       // What the browser fires on coming back to the tab (it bubbles up to window).
       await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange", { bubbles: true })));
-      expect(dentistIdsOf(await reordered)).toEqual([b, a]);
-      await expect(cards.first().locator(".rc-doctor-select")).toContainText(nameOf(staffB));
-      await expect(cards.last().locator(".rc-doctor-select")).toContainText(nameOf(staffA));
+      const turned = await reordered;
+      expect(dentistIdsOf(turned)).toEqual([b, a]);
+      await expectCardsFollow(page, turned, [staffA, staffB]);
       await filter.locator(".ss-trigger").click();
       await expect(rows.nth(0)).toContainText(nameOf(staffB));
       await expect(rows.nth(1)).toContainText(nameOf(staffA));

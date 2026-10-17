@@ -24,6 +24,7 @@ import {
   type ReceptionCommand,
   type StepAction,
 } from "../utils/receptionFlow";
+import { orderForBoard } from "../utils/boardOrder";
 import {
   useReceptionList,
   useReceptionMetrics,
@@ -115,7 +116,7 @@ export const ReceptionPage: React.FC = () => {
   const setOutcomeMutation = useSetReceptionOutcome();
 
   const items = useMemo(
-    () => listData?.pages.flatMap((p) => p.items) ?? [],
+    () => orderForBoard(listData?.pages.flatMap((p) => p.items) ?? []),
     [listData],
   );
   useRefetchWhenDue(items);
