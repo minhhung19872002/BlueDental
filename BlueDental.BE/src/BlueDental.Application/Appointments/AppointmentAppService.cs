@@ -65,16 +65,23 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
 
-        // Several doctors picked on the board: their visits come in that order.
         // A patient's record asks for its latest visits first ("Start desc"),
         // since a clinic's moved-in history reaches back years.
-        var priority = await DentistPriorityAsync(input);
         var newestFirst = string.Equals(input.Sorting?.Trim(), NewestFirst, StringComparison.OrdinalIgnoreCase);
-        var ordered = priority.Count > 1
-            ? query.OrderBy(DentistPriorityOrder.RankOf(priority)).ThenBy(a => a.Slot.Start).ThenBy(a => a.Id)
-            : newestFirst
-                ? query.OrderByDescending(a => a.Slot.Start).ThenByDescending(a => a.Id)
-                : query.OrderBy(a => a.Slot.Start).ThenBy(a => a.Id);
+        // TEMP-PRIORITY-OFF (owner, 2026-10-17): several doctors picked on the
+        // board no longer come grouped by their "Mức độ ưu tiên" — start time,
+        // like one doctor; the board then lifts "Đang khám" and drops "Hoàn tất"
+        // itself (BA, R-978/R-979). To bring the grouping back, put these lines
+        // back in place of `ordered` below and uncomment DentistPriorityAsync.
+        // var priority = await DentistPriorityAsync(input);
+        // var ordered = priority.Count > 1
+        //     ? query.OrderBy(DentistPriorityOrder.RankOf(priority)).ThenBy(a => a.Slot.Start).ThenBy(a => a.Id)
+        //     : newestFirst
+        //         ? query.OrderByDescending(a => a.Slot.Start).ThenByDescending(a => a.Id)
+        //         : query.OrderBy(a => a.Slot.Start).ThenBy(a => a.Id);
+        var ordered = newestFirst
+            ? query.OrderByDescending(a => a.Slot.Start).ThenByDescending(a => a.Id)
+            : query.OrderBy(a => a.Slot.Start).ThenBy(a => a.Id);
 
         var items = hasDateFilter
             ? await AsyncExecuter.ToListAsync(ordered)
@@ -87,26 +94,28 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return new PagedResultDto<AppointmentDto>(totalCount, dtos);
     }
 
-    /// <summary>
-    /// Several doctors on the board — picked one by one or as a Nhóm bác sĩ:
-    /// their visits come by each doctor's "Mức độ ưu tiên" on the staff form,
-    /// whatever order the request named them in.
-    /// </summary>
-    private async Task<List<Guid>> DentistPriorityAsync(GetAppointmentListInput input)
-    {
-        var dentistIds = input.DentistIds is { Count: > 1 }
-            ? input.DentistIds.Distinct().ToList()
-            : input.DoctorTeamId.HasValue
-                ? await _doctorTeams.GetMemberIdsAsync(input.DoctorTeamId.Value)
-                : [];
-        if (dentistIds.Count < 2) return dentistIds;
-
-        var ranked = StaffPriority.Order(await _userRepository.GetListByIdsAsync(dentistIds))
-            .Select(u => u.Id)
-            .ToList();
-        // An id with no account behind it any more goes last.
-        return [.. ranked, .. dentistIds.Except(ranked)];
-    }
+    // TEMP-PRIORITY-OFF (owner, 2026-10-17): unused while the board ignores
+    // the doctors' "Mức độ ưu tiên" — see GetListAsync.
+    // /// <summary>
+    // /// Several doctors on the board — picked one by one or as a Nhóm bác sĩ:
+    // /// their visits come by each doctor's "Mức độ ưu tiên" on the staff form,
+    // /// whatever order the request named them in.
+    // /// </summary>
+    // private async Task<List<Guid>> DentistPriorityAsync(GetAppointmentListInput input)
+    // {
+    //     var dentistIds = input.DentistIds is { Count: > 1 }
+    //         ? input.DentistIds.Distinct().ToList()
+    //         : input.DoctorTeamId.HasValue
+    //             ? await _doctorTeams.GetMemberIdsAsync(input.DoctorTeamId.Value)
+    //             : [];
+    //     if (dentistIds.Count < 2) return dentistIds;
+    //
+    //     var ranked = StaffPriority.Order(await _userRepository.GetListByIdsAsync(dentistIds))
+    //         .Select(u => u.Id)
+    //         .ToList();
+    //     // An id with no account behind it any more goes last.
+    //     return [.. ranked, .. dentistIds.Except(ranked)];
+    // }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input)

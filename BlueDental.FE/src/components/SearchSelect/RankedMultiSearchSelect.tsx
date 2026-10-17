@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
-import { PriorityList } from "./PriorityList";
+// TEMP-PRIORITY-OFF (owner, 2026-10-17): the numbered "Thứ tự ưu tiên" list is hidden.
+// import { PriorityList } from "./PriorityList";
 import { usePortalDropdown } from "./usePortalDropdown";
 import type { SearchSelectOption } from "./SearchSelect";
 
@@ -32,7 +33,7 @@ export const RankedMultiSearchSelect: React.FC<RankedMultiSearchSelectProps> = (
   value,
   options,
   placeholder,
-  rankHint,
+  // rankHint, // TEMP-PRIORITY-OFF: only the hidden PriorityList shows it.
   onChange,
 }) => {
   const [keyword, setKeyword] = useState("");
@@ -81,9 +82,10 @@ export const RankedMultiSearchSelect: React.FC<RankedMultiSearchSelectProps> = (
           onKeyDown={(e) => e.key === "Escape" && dropdown.hide()}
         />
       </div>
+      {/* TEMP-PRIORITY-OFF (owner, 2026-10-17): picks are unticked in the list below instead.
       {picked.length > 0 && (
         <PriorityList items={picked} hint={rankHint} onRemove={toggle} />
-      )}
+      )} */}
       <div className="ss-options" role="listbox" aria-multiselectable="true">
         {filtered.length === 0 && <div className="ss-empty">{t("Common:NoResults")}</div>}
         {filtered.map((opt) => {

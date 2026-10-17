@@ -9,6 +9,7 @@ namespace BlueDental.Appointments;
 /// stands in the ranked list. Built as a chain of CASE branches so the database
 /// sorts it and paging stays correct.
 /// </summary>
+/// <remarks>TEMP-PRIORITY-OFF (owner, 2026-10-17): unused while the board ignores the priority.</remarks>
 internal static class DentistPriorityOrder
 {
     public static Expression<Func<Appointment, int>> RankOf(IReadOnlyList<Guid> dentistIds)

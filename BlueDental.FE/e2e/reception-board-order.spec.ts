@@ -10,15 +10,18 @@ import {
 } from "./fixtures/receptionBoard";
 
 /**
- * Feature: Tiếp nhận — cards ordered by the visit's step (BA, 2026-10-17, R-978).
+ * Feature: Tiếp nhận — cards ordered by the visit's step (BA, 2026-10-17, R-978, R-979).
  *
  * - "Đang khám" cards come first, "Hoàn tất" cards last, across the whole board.
+ * - Among "Đang khám", the one who sat down last is on top — by when the step
+ *   was clicked, not by booking time, whoever the doctor (R-979).
  * - Everything else — booked, arrived, late, cancelled — stays between them in
  *   start-time order; "Hủy hẹn" is not sent down with "Hoàn tất" (owner).
  * - It is the board's order: the list endpoint still answers by start time.
  *
- * Four visits are booked for today through the real API and moved so that the
- * earliest is finished and the latest in the chair — the opposite of time order.
+ * Six visits are booked for today through the real API. The earliest is
+ * finished; three go into the chair in an order that is neither booking order
+ * nor its reverse, the last of them from the card itself.
  */
 
 type Step = "check-in" | "start" | "complete";
@@ -39,15 +42,15 @@ async function search(page: Page, key: string) {
 }
 
 test.describe("Tiếp nhận — thứ tự thẻ theo bước khám", () => {
-  test("Đang khám goes first and Hoàn tất last, after a reload and after a click", async ({ page }) => {
-    test.setTimeout(180_000);
+  test("Đang khám goes first, last seated on top, and Hoàn tất last, after a reload and after a click", async ({ page }) => {
+    test.setTimeout(240_000);
     await login(page);
     const branchId = await openBoard(page);
     const key = `e2e-thutu-${runId()}`;
     const today = dayOf(new Date());
 
     const booked: Appointment[] = [];
-    for (const minutesAhead of [20, 70, 120, 170]) {
+    for (const minutesAhead of [20, 50, 80, 110, 140, 170]) {
       booked.push(await bookVisitToday(page, branchId, minutesAhead, key));
     }
 
@@ -56,8 +59,8 @@ test.describe("Tiếp nhận — thứ tự thẻ theo bước khám", () => {
       page, branchId, `${APPOINTMENTS}?filter=${key}&fromDate=${today}&toDate=${today}`,
     );
     expect(listed.status).toBe(200);
-    const [finished, cancelled, waiting, inChair] = listed.body.items.map((a) => a.id);
-    expect(listed.body.items).toHaveLength(4);
+    expect(listed.body.items).toHaveLength(6);
+    const [finished, seatedFirst, cancelled, seatedLast, waiting, seatedSecond] = listed.body.items.map((a) => a.id);
 
     await advance(page, branchId, finished, ["check-in", "start", "complete"]);
     const cancel = await call(page, branchId, `${APPOINTMENTS}/${cancelled}/cancel`, {
@@ -65,13 +68,15 @@ test.describe("Tiếp nhận — thứ tự thẻ theo bước khám", () => {
       json: { reason: 1, note: key },
     });
     expect(cancel.status, JSON.stringify(cancel.body.error)).toBe(200);
-    await advance(page, branchId, inChair, ["check-in", "start"]);
+    await advance(page, branchId, seatedFirst, ["check-in", "start"]);
+    await advance(page, branchId, seatedSecond, ["check-in", "start"]);
+    await advance(page, branchId, seatedLast, ["check-in"]);
 
     // The endpoint is untouched: still start time, whatever the step.
     const after = await call<{ items: Appointment[] }>(
       page, branchId, `${APPOINTMENTS}?filter=${key}&fromDate=${today}&toDate=${today}`,
     );
-    expect(after.body.items.map((a) => a.id)).toEqual([finished, cancelled, waiting, inChair]);
+    expect(after.body.items.map((a) => a.id)).toEqual(listed.body.items.map((a) => a.id));
 
     const codeOf = (id: string) => booked.find((b) => b.id === id)?.patientCode ?? "";
     const cards = page.locator(".rc-wrapper");
@@ -82,17 +87,26 @@ test.describe("Tiếp nhận — thứ tự thẻ theo bước khám", () => {
       }
     };
 
+    // Booked later but seated later too: on top. The arrived one waits mid-board.
     await page.reload();
     await search(page, key);
-    await expectOrder([inChair, cancelled, waiting, finished]);
+    await expectOrder([seatedSecond, seatedFirst, cancelled, seatedLast, waiting, finished]);
+
+    // Seated from its card: booked between the other two, it still goes on top.
+    await cards.filter({ hasText: codeOf(seatedLast) }).getByRole("button", { name: /Đang khám/ }).click();
+    const inChair = [seatedLast, seatedSecond, seatedFirst];
+    await expectOrder([...inChair, cancelled, waiting, finished]);
+
+    await page.reload();
+    await search(page, key);
+    await expectOrder([...inChair, cancelled, waiting, finished]);
 
     // Finished from the card: it drops below the visit finished earlier.
-    const card = cards.filter({ hasText: codeOf(inChair) });
-    await card.getByRole("button", { name: /Hoàn tất/ }).click();
-    await expectOrder([cancelled, waiting, finished, inChair]);
+    await cards.filter({ hasText: codeOf(seatedLast) }).getByRole("button", { name: /Hoàn tất/ }).click();
+    await expectOrder([seatedSecond, seatedFirst, cancelled, waiting, finished, seatedLast]);
 
     await page.reload();
     await search(page, key);
-    await expectOrder([cancelled, waiting, finished, inChair]);
+    await expectOrder([seatedSecond, seatedFirst, cancelled, waiting, finished, seatedLast]);
   });
 });

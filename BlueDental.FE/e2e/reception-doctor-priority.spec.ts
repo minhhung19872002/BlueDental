@@ -14,6 +14,12 @@ import { call as staffCall } from "./fixtures/timekeepingStaff";
  * - The filter lists the picks in that order, numbered, with nothing to drag.
  * - The staff dialog saves Mức độ ưu tiên (0 by default) and refuses a negative one.
  *
+ * TEMP-PRIORITY-OFF (owner, 2026-10-17): the first two points are switched off
+ * — the picked doctors' visits come by start time, the filter shows no
+ * "Thứ tự ưu tiên", and the board's own step order (BA, R-978/R-979) rules.
+ * Their three tests are skipped, not deleted; the two "TEMP-PRIORITY-OFF"
+ * tests stand in for them until the grouping comes back.
+ *
  * Priorities are set on two real dentists and put back afterwards.
  */
 
@@ -42,10 +48,18 @@ const ranks = (items: Appointment[], ids: string[]) => items.map((a) => ids.inde
 
 const nameOf = (s: Staff) => s.name ?? s.userName;
 
-/** The board's own order (R-978): "Đang khám" first, "Hoàn tất" last, the API's order within each. */
+/**
+ * The board's own order: "Đang khám" first, last seated on top (R-978, R-979),
+ * "Hoàn tất" last, the API's order elsewhere.
+ */
 const STEP_RANK: Partial<Record<number, number>> = { 4: -1, 5: 1 };
+const startedOf = (a: Appointment) => (a.startedAt ? Date.parse(a.startedAt) : 0);
 const boardOrder = (items: Appointment[]) =>
-  [...items].sort((x, y) => (STEP_RANK[x.status] ?? 0) - (STEP_RANK[y.status] ?? 0));
+  [...items].sort(
+    (x, y) =>
+      (STEP_RANK[x.status] ?? 0) - (STEP_RANK[y.status] ?? 0) ||
+      (x.status === 4 ? startedOf(y) - startedOf(x) : 0),
+  );
 
 /** Every card wears the doctor of the visit the board puts there. */
 async function expectCardsFollow(page: Page, response: Response, staff: Staff[]) {
@@ -113,8 +127,93 @@ async function withPriorities(
   }
 }
 
+const startOf = (a: Appointment) => Date.parse(a.slotStart);
+
+/** Row by row, never earlier than the row above. */
+const expectByStartTime = (items: Appointment[]) => {
+  const starts = items.map(startOf);
+  expect(starts, "by start time, not grouped by doctor").toEqual([...starts].sort((x, y) => x - y));
+};
+
+/** The counters count the same visits as the list. */
+async function expectStatsMatch(page: Page, branchId: string, path: string, totalCount: number) {
+  const stats = await call<Record<string, number>>(page, branchId, path.replace(APPOINTMENTS, `${APPOINTMENTS}/stats`));
+  expect(stats.status).toBe(200);
+  const counted = ["requested", "confirmed", "checkedIn", "inProgress", "completed", "cancelled", "noShow"]
+    .reduce((n, k) => n + (stats.body[k] ?? 0), 0);
+  expect(counted).toBe(totalCount);
+}
+
 test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiên", () => {
-  test("the API groups the picked dentists' visits by their Mức độ ưu tiên", async ({ page }) => {
+  test("TEMP-PRIORITY-OFF: the picked dentists' visits come by start time, whatever their Mức độ ưu tiên", async ({ page }) => {
+    await login(page);
+    const branchId = await openBoard(page);
+    const [a, b] = await twoDentistsWithVisits(page, branchId);
+    const today = dayOf(new Date());
+
+    // Ranked first: the dentist whose day starts later, so grouping by doctor
+    // could not pass for start time.
+    const todays = await call<{ items: Appointment[] }>(page, branchId, query([a, b], today));
+    const firstStart = (id: string) => Math.min(...todays.body.items.filter((x) => x.dentistId === id).map(startOf));
+    const [later, earlier] = firstStart(a) > firstStart(b) ? [a, b] : [b, a];
+
+    await withPriorities(page, [{ id: later, order: 0 }, { id: earlier, order: 5 }], async () => {
+      for (const asked of [[a, b], [b, a]]) {
+        const path = query(asked, today);
+        const res = await call<{ items: Appointment[]; totalCount: number }>(page, branchId, path);
+        expect(res.status).toBe(200);
+        const { items } = res.body;
+        expect(items.every((x) => asked.includes(x.dentistId)), "only the picked dentists").toBe(true);
+        expect(new Set(items.map((x) => x.dentistId)).size).toBe(2);
+        expectByStartTime(items);
+        await expectStatsMatch(page, branchId, path, res.body.totalCount);
+      }
+    });
+  });
+
+  test("TEMP-PRIORITY-OFF: the filter shows no Thứ tự ưu tiên, and the cards go by step, then start time", async ({ page }) => {
+    test.setTimeout(90_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    const [a, b] = await twoDentistsWithVisits(page, branchId);
+    const [staffA, staffB] = [await readStaff(page, a), await readStaff(page, b)];
+
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    const filter = page.locator(".reception-doctor-filter");
+    await filter.locator(".ss-trigger").click();
+    const dropdown = page.locator(".ms-dropdown");
+    await expect(dropdown).toBeVisible();
+
+    await dropdown.getByRole("option", { name: nameOf(staffA), exact: true }).click();
+    const listed = page.waitForResponse((r) => isBoardList(r) && dentistIdsOf(r).length === 2);
+    await dropdown.getByRole("option", { name: nameOf(staffB), exact: true }).click();
+    const both = await listed;
+
+    // Both ticked in the list itself; no numbered list on top of it.
+    const ticked = dropdown.getByRole("option", { selected: true });
+    await expect(ticked).toHaveCount(2);
+    await expect(dropdown.locator(".ms-priority")).toHaveCount(0);
+    await expect(dropdown).not.toContainText("Thứ tự ưu tiên");
+    await expect(filter.locator(".ms-more")).toHaveText("+1");
+
+    // The answer runs by start time; the board lifts Đang khám and drops Hoàn tất (R-978, R-979).
+    expectByStartTime(((await both.json()) as { items: Appointment[] }).items);
+    await page.locator(".reception-page").click({ position: { x: 5, y: 5 } });
+    await expect(dropdown).toBeHidden();
+    await expectCardsFollow(page, both, [staffA, staffB]);
+
+    // Unticked in the list: that doctor's cards go.
+    await filter.locator(".ss-trigger").click();
+    await dropdown.getByRole("option", { name: nameOf(staffB), exact: true }).click();
+    await expect(ticked).toHaveCount(1);
+    await expect(filter.locator(".ms-more")).toHaveCount(0);
+    const onlyA = await call<{ totalCount: number }>(page, branchId, query([a], dayOf(new Date())));
+    await expect(page.locator(".rc-wrapper")).toHaveCount(onlyA.body.totalCount);
+  });
+
+  // TEMP-PRIORITY-OFF (owner, 2026-10-17): back to `test(` when the grouping comes back.
+  test.skip("the API groups the picked dentists' visits by their Mức độ ưu tiên", async ({ page }) => {
     await login(page);
     const branchId = await openBoard(page);
     const [a, b] = await twoDentistsWithVisits(page, branchId);
@@ -159,7 +258,8 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
     expect(single.body.items.every((x) => x.dentistId === a)).toBe(true);
   });
 
-  test("the filter ranks the picks by Mức độ ưu tiên, not by the order clicked", async ({ page }) => {
+  // TEMP-PRIORITY-OFF (owner, 2026-10-17): back to `test(` when the list comes back.
+  test.skip("the filter ranks the picks by Mức độ ưu tiên, not by the order clicked", async ({ page }) => {
     test.setTimeout(90_000);
     await login(page);
     const branchId = await openBoard(page);
@@ -195,7 +295,7 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
       await expect(filter.locator(".ss-value--selected")).toHaveText(nameOf(staffB));
       await expect(filter.locator(".ms-more")).toHaveText("+1");
 
-      // The cards follow: the top doctor's first within each step (R-978).
+      // The cards follow: the top doctor's first within each step, but in the chair last seated first (R-978, R-979).
       const body = (await both.json()) as { items: Appointment[] };
       const rank = ranks(body.items, [b, a]);
       expect(rank).toEqual([...rank].sort((x, y) => x - y));
@@ -222,7 +322,8 @@ test.describe("Tiếp nhận — lọc nhiều bác sĩ theo thứ tự ưu tiê
     });
   });
 
-  test("renumbered on Nhân viên in another tab, the open board reorders on coming back", async ({ page, context }) => {
+  // TEMP-PRIORITY-OFF (owner, 2026-10-17): back to `test(` when the grouping comes back.
+  test.skip("renumbered on Nhân viên in another tab, the open board reorders on coming back", async ({ page, context }) => {
     test.setTimeout(90_000);
     await login(page);
     const branchId = await openBoard(page);
