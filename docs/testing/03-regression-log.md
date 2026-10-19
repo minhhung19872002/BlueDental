@@ -9537,3 +9537,32 @@ Vòng 2 cùng ngày, owner sửa:
   - Domain **951/951**.
   - Spec `medical-record-set` **3/3**: dùng 3 phiếu điều trị; khoá ở cả hai popup; chuyển phiếu qua hai bước; popup thấy "Hoàn thành" mà không cần reload.
   - `patient-medical-record` + `medical-record-drawing`: **33 pass / 2 đỏ có sẵn** (R-963).
+
+## R-983 (2026-10-19, mức 2: công đoạn điều trị) Gạch đầu dòng cho "Nội dung điều trị"
+
+- BA yêu cầu qua 2 ảnh chú thích:
+  - Bảng điều trị ở hồ sơ bệnh nhân: mỗi dòng nội dung là một gạch đầu dòng.
+  - Ô "Nội dung điều trị" trong form công đoạn: thêm gạch đầu dòng.
+- FE (`patient-detail/stage/`):
+  - `stageNoteLines.ts` mới: `noteLines` tách dòng, bỏ dòng trống và bỏ dấu đầu dòng có sẵn (`-`, `–`, `—`, `•`); `bulletLines` / `bulletNote` ghép lại với `"- "`.
+  - `syncStageContent`: công đoạn đã tick đứng trước, rồi tới dòng tự gõ, tất cả đều có `"- "`. Hai bên so khớp sau khi bỏ dấu, nên dòng cũ không dấu vẫn được nhận ra. Tên công đoạn nhiều dòng được so từng dòng.
+  - `StageNoteInput.tsx` mới, dùng cho form công đoạn, popup tái khám và ô sửa trong lịch sử:
+    - Gõ vào ô trống thì tự mở dòng `"- "`.
+    - Enter mở dòng `"- "` mới ngay tại con trỏ, kể cả khi con trỏ ở giữa đoạn.
+    - Shift+Enter vẫn xuống dòng thường, không thêm dấu.
+    - Không động vào giá trị khi bộ gõ (IME) đang ghép chữ.
+    - Nếu thêm dấu làm vượt `NOTE_LIMIT` thì giữ nguyên hành vi mặc định.
+  - `treatmentColumns.tsx`: cột "Nội dung điều trị" vẽ `<ul class="pd-tr-note">`, mỗi dòng một `<li>`, dấu `-` vẽ bằng CSS và có thụt lề treo 12px. Ghi chú cũ lưu không dấu (kể cả ghi chú tạo qua API) cũng hiện thành gạch đầu dòng.
+- Gotcha: con trỏ sau Enter phải đặt trong `useLayoutEffect`, khoá theo giá trị mới. Dùng `requestAnimationFrame` thì quá muộn: thêm 1–2 phím đã rơi vào cuối ô ("dòng hai" thành "ng haidò").
+- Cố ý giữ nguyên: phần hiển thị trong lịch sử công đoạn (`.pd-stage-note`), bản in lịch sử điều trị, popup nhắc lịch và thẻ tổng hợp phiếu vẫn hiện ghi chú đúng như đã lưu. Ctrl+Z không lùi qua được dấu do Enter chèn, vì ô là controlled.
+- Spec:
+  - `patient.spec` "…a stage is added there": Enter mở dòng thứ hai, bảng có 2 `li` với padding-left 12px. Tự chọn bác sĩ khi ô trống; trước đây test đỏ "Vui lòng chọn bác sĩ", HEAD cũng đỏ y vậy.
+  - "selects all and unselects all" và test tái khám: kỳ vọng nội dung có `"- "`, thêm các bước Enter giữa đoạn, Shift+Enter, bỏ tick rồi tick lại.
+  - `treatment-plan.spec:448` và `treatment-stage-chain.spec:272`: kỳ vọng `"- "`.
+- Kết quả trên bản build production (`vite preview`):
+  - `treatment-plan` + `treatment-stage-chain` + `stage-treatment-date`: **21/21**.
+  - `patient.spec` (phần công đoạn) + `cskh-after-treatment`: 18 pass. Các test đỏ:
+    - "a tái khám picks its teeth, lists its images…": đỏ có sẵn trên HEAD (R-960).
+    - 3 test timeout khi chạy chung lô vì bệnh nhân fixture dồn nhiều dòng; chạy riêng từng test thì pass.
+    - "…a stage is added there" pass một lần với đủ kiểm tra R-983. Về sau đỏ ở dòng 2191 vì bệnh nhân fixture dồn quá nhiều dòng, dòng cần bấm bị đẩy khỏi trang 1. Spec ở HEAD đỏ đúng dòng đó, nên đây là lỗi fixture có sẵn.
+- Code commit ở `b8b2f995`.
