@@ -2,12 +2,15 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { t } from "@/lib/i18n";
-import { useDeletePatientImage } from "../../../api/patientImageApi";
+import { PATIENT_IMAGE_TYPE, useDeletePatientImage } from "../../../api/patientImageApi";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
+import { useCameraAvailability } from "../../../hooks/useCameraAvailability";
 import { usePatientImageGallery } from "../../../hooks/usePatientImageGallery";
 import { usePatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
 import { usePatientImageReorder } from "../../../hooks/usePatientImageReorder";
 import { usePatientImageUpload } from "../../../hooks/usePatientImageUpload";
+import { CameraCaptureDialog } from "./CameraCaptureDialog";
+import { PatientImageCaptureButton } from "./PatientImageCaptureButton";
 import { PatientImageTimeline } from "./PatientImageTimeline";
 import { PatientImageToolbar } from "./PatientImageToolbar";
 import { PatientImageViewer } from "./PatientImageViewer";
@@ -27,9 +30,16 @@ export function PatientImageTab({ patientId }: Props) {
   const upload = usePatientImageUpload(patientId, gallery.branchId, gallery.filter);
   const { reordering, reorder } = usePatientImageReorder(patientId, gallery.filter);
   const deleteImage = useDeletePatientImage();
+  const cameraAvailability = useCameraAvailability();
 
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [removing, setRemoving] = useState<PatientImageViewModel | null>(null);
+  const [capturing, setCapturing] = useState(false);
+
+  // Shots go where uploads go: the filtered stage, else "Trước điều trị".
+  const captureStage = t(
+    gallery.filter === PATIENT_IMAGE_TYPE.after ? "Patient:Image:After" : "Patient:Image:Before",
+  );
 
   /** The viewer pages through every image on screen, in the order it is drawn. */
   const shown = useMemo(() => gallery.days.flatMap((day) => day.images), [gallery.days]);
@@ -64,7 +74,13 @@ export function PatientImageTab({ patientId }: Props) {
         onFilterChange={gallery.setFilter}
         onClearFilter={gallery.clearFilter}
         onUpload={upload.upload}
-      />
+      >
+        <PatientImageCaptureButton
+          availability={cameraAvailability}
+          busy={upload.uploading}
+          onClick={() => setCapturing(true)}
+        />
+      </PatientImageToolbar>
 
       <PatientImageTimeline
         days={gallery.days}
@@ -81,6 +97,15 @@ export function PatientImageTab({ patientId }: Props) {
 
       {viewingIndex >= 0 && (
         <PatientImageViewer key={viewingId} images={shown} initialIndex={viewingIndex} onClose={closeViewer} />
+      )}
+
+      {capturing && (
+        <CameraCaptureDialog
+          stageLabel={captureStage}
+          uploading={upload.uploading}
+          onUpload={upload.upload}
+          onClose={() => setCapturing(false)}
+        />
       )}
 
       <ConfirmDeleteDialog

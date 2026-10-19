@@ -3,6 +3,7 @@ import { Button, Select, Spin } from "antd";
 import { CameraOutlined, PauseCircleOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { useQrCamera, type CameraStatus, type ScanAdvice } from "../../hooks/useQrCamera";
+import { rememberCamera, savedCamera } from "../../utils/camera/cameraStream";
 import { QrBox } from "./QrBox";
 
 interface Props {
@@ -18,22 +19,6 @@ interface Props {
 }
 
 const CAMERA_KEY = "bd.scanId.camera";
-
-function savedCamera(): string | undefined {
-  try {
-    return localStorage.getItem(CAMERA_KEY) ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function rememberCamera(deviceId: string): void {
-  try {
-    localStorage.setItem(CAMERA_KEY, deviceId);
-  } catch {
-    // Private mode: the choice just lasts for this dialog.
-  }
-}
 
 /** The line under a live picture: advice when the scan is stuck, else what to do. */
 function liveHint(found: boolean, advice: ScanAdvice): { text: string; advice: boolean } {
@@ -58,7 +43,7 @@ const STATUS_TEXT: Partial<Record<CameraStatus, string>> = {
  * asks again when it could not be opened.
  */
 export function CameraPanel({ running, finished, onToggle, onDecode, children }: Props) {
-  const [deviceId, setDeviceId] = useState(savedCamera);
+  const [deviceId, setDeviceId] = useState(() => savedCamera(CAMERA_KEY));
   const [attempt, setAttempt] = useState(0);
   const camera = useQrCamera({ active: running, deviceId, attempt, onDecode });
   const live = camera.status === "live";
@@ -70,7 +55,7 @@ export function CameraPanel({ running, finished, onToggle, onDecode, children }:
 
   const handleCamera = (next: string) => {
     setDeviceId(next);
-    rememberCamera(next);
+    rememberCamera(CAMERA_KEY, next);
   };
 
   const hint = liveHint(Boolean(camera.sighting), camera.advice);
