@@ -9706,6 +9706,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Bộ hồi quy `medical-record-sheet-facts`, `consulting-plan`, `consulting-review`, `treatment-plan-detail`, `prescription`, `labo-detail`, `patient-medical-record`: **67 pass**, 2 đỏ có sẵn (R-963: "nine forms", "picking the day").
   - `prescription` đỏ ở ca "a slip picks its diagnoses…" kéo theo 6 ca không chạy — lỗi dữ liệu test có sẵn, không do thay đổi này: seed lấy 2 chẩn đoán đầu của Danh mục, mà danh sách Danh mục trả cả dòng đã xoá; "CD ACTIVE 972309" bị một spec khác xoá mềm từ 2026-10-16 nên `diagnosis-sources` (đúng) không trả nó. Seed nay bỏ dòng `isDeleted`. `prescription` **8/8** (gồm "In đơn thuốc").
   - BE Application **737/737**.
+- **Vòng 2 (owner, 2026-10-19)**: Mẫu 5 (Phiếu tư vấn và xác nhận đồng ý điều trị) còn trống tên dưới hai chữ ký. `consultation.text.52` (dưới "BÁC SĨ TƯ VẤN", mục VI) điền như ô Bác sĩ tư vấn `text.3`; `consultation.text.57` (dưới "BÁC SĨ ĐIỀU TRỊ", mục VII) điền như `text.8`/`text.53` — đều ở dạng in (Chức danh, không có thì tên). `printed-doctor-title` **1/1** (thêm so 2 ô với Chức danh), `medical-record-sheet-facts` **2/2** (thêm so 2 ô), `patient-medical-record` + `medical-record-set` + `medical-record-drawing` **37 pass / 2 đỏ có sẵn** (R-963).
 
 ## R-989 (2026-10-19, mức 3: hình ảnh bệnh nhân + camera dùng chung) Nút "Chụp ảnh" cạnh "Tải ảnh" ở tab Hình ảnh
 

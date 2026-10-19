@@ -246,6 +246,9 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "consultation.text.8")).toHaveText(dentist);
     await expect(blank(page, "consultation.text.53")).toHaveText(dentist);
     await expect(blank(page, "consultation.text.53")).toHaveCSS("font-weight", "700");
+    // The names under the two signatures: BÁC SĨ TƯ VẤN (VI) and BÁC SĨ ĐIỀU TRỊ (VII).
+    await expect(blank(page, "consultation.text.52")).toHaveText(dentist);
+    await expect(blank(page, "consultation.text.57")).toHaveText(dentist);
     await expect(blank(page, "consultation.text.21")).toHaveText("1");
     await expect(blank(page, "consultation.text.22")).toContainText("Răng 12 - ");
     await expect(blank(page, "consultation.text.24")).toHaveText("2");

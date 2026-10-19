@@ -138,6 +138,8 @@ function treatmentConsentValues(facts: SheetFactsDto, values: FieldValues, forma
     .sort((a, b) => (a.consultedAt ?? "").localeCompare(b.consultedAt ?? ""))[0];
   if (consulted) {
     put(values, "consultation.text.3", consulted.consultantName);
+    // …and the name under VI's "BÁC SĨ TƯ VẤN (ký, ghi rõ họ tên)".
+    put(values, "consultation.text.52", consulted.consultantName);
     put(values, "consultation.text.4", dayjs(consulted.consultedAt).format("DD/MM/YYYY"));
   }
 
@@ -155,11 +157,12 @@ function treatmentConsentValues(facts: SheetFactsDto, values: FieldValues, forma
     else values[CONSENT_DIAGNOSIS_EXTRA_LINE(at - CONSENT_DIAGNOSIS_LINES.length + 1)] = line;
   });
 
-  // "1. Bác sĩ điều trị" and VII's "Tôi đã được Bác sĩ …" (printed bold): the
-  // oldest slip's doctor only (owner, 2026-10-19).
+  // "1. Bác sĩ điều trị", VII's "Tôi đã được Bác sĩ …" (printed bold) and the
+  // name under VII's "BÁC SĨ ĐIỀU TRỊ": the oldest slip's doctor only (owner, 2026-10-19).
   const dentist = facts.plans[0]?.dentistName;
   put(values, "consultation.text.8", dentist);
   put(values, "consultation.text.53", dentist);
+  put(values, "consultation.text.57", dentist);
 
   // IV. Chi phí điều trị: one service a row, then Tổng and the sum in words.
   facts.services.forEach((service, at) => {

@@ -127,6 +127,16 @@ test.describe("Printed sheets name the doctor by Chức danh", () => {
         .locator('[data-medical-record-field="general-consultation.text.6"]');
       await expect(blank).toHaveText(title);
 
+      // Phiếu tư vấn và xác nhận: the names under BÁC SĨ TƯ VẤN and BÁC SĨ ĐIỀU TRỊ.
+      const consent = page.locator(".pd-medical-form", { hasText: "Phiếu tư vấn và xác nhận đồng ý điều trị" });
+      await consent.getByRole("button", { name: "Thêm" }).click();
+      await expect(page.getByText("Đã thêm phiếu bệnh án").first()).toBeVisible();
+      await consent.locator(".pd-sheet-card:not(.pd-sheet-card--cancelled) .pd-sheet-open").first().click();
+      const field = (id: string) =>
+        page.frameLocator(".mr-doc-frame").locator(`[data-medical-record-field="${id}"]`);
+      await expect(field("consultation.text.52")).toHaveText(title);
+      await expect(field("consultation.text.57")).toHaveText(title);
+
       // No Chức danh: back to the name.
       await setJobTitle(page, doctor.id, null);
       dialog = await openSlipPrint(page, patient.id, first.id);
