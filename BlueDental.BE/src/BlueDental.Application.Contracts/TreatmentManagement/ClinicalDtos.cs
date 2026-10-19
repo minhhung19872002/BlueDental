@@ -40,6 +40,9 @@ public class PatientDiagnosisDto : FullAuditedEntityDto<Guid>
     public string? DiagnosisName { get; set; }
     public string? StaffName { get; set; }
     public string? SecondStaffName { get; set; }
+    /// <summary>Chức danh of the doctors above — printed sheets name a doctor by it, else by the name.</summary>
+    public string? StaffJobTitle { get; set; }
+    public string? SecondStaffJobTitle { get; set; }
 }
 
 public class CreatePatientDiagnosisDto
@@ -123,6 +126,9 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
     public string? ServiceName { get; set; }
     public string? StaffName { get; set; }
     public string? SecondStaffName { get; set; }
+    /// <summary>Chức danh of the doctors above — printed sheets name a doctor by it, else by the name.</summary>
+    public string? StaffJobTitle { get; set; }
+    public string? SecondStaffJobTitle { get; set; }
     public string? DiagnosisName { get; set; }
 
     /// <summary>

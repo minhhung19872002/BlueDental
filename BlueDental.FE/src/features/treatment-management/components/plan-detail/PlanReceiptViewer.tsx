@@ -66,6 +66,7 @@ export function PlanReceiptViewer({ paymentId, patientId, treatmentPlanId, branc
       patient={patient.data}
       clinic={clinic.data}
       dentistName={plan.data.dentistName}
+      dentistJobTitle={plan.data.dentistJobTitle}
       advises={advises.data?.items ?? []}
       onClose={onClose}
     />

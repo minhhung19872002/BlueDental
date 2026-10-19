@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
 using BlueDental.Organizations;
+using BlueDental.Staff;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
@@ -542,12 +543,14 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return new StageLookups(
             serviceNames,
             users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName),
+            StaffJobTitles.Of(users),
             stageNames);
     }
 
     private sealed record StageLookups(
         IReadOnlyDictionary<Guid, string> ServiceNames,
         IReadOnlyDictionary<Guid, string> StaffNames,
+        IReadOnlyDictionary<Guid, string> JobTitles,
         IReadOnlyDictionary<Guid, string> ServiceStageNames);
 
     private static string? NameOf(Guid? staffId, StageLookups lookups) =>
@@ -597,6 +600,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         ServiceName = lookups.ServiceNames.TryGetValue(entity.ServiceId, out var service) ? service : null,
         StaffName = lookups.StaffNames.TryGetValue(entity.StaffId, out var staff) ? staff : null,
         SecondStaffName = NameOf(entity.SecondStaffId, lookups),
+        StaffJobTitle = lookups.JobTitles.GetValueOrDefault(entity.StaffId),
+        SecondStaffJobTitle = StaffJobTitles.Lookup(lookups.JobTitles, entity.SecondStaffId),
         SubStaffName = NameOf(entity.SubStaffId, lookups),
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,

@@ -848,7 +848,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             SignatureLabel = L["BE:Col:ReceivingDoctor"].Value,
             Fields =
             [
-                new ClinicDocumentField(L["BE:Col:ReceivingDoctor"].Value, dto.DentistName ?? "—"),
+                new ClinicDocumentField(L["BE:Col:ReceivingDoctor"].Value, dto.DentistJobTitle ?? dto.DentistName ?? "—"),
                 new ClinicDocumentField(L["BE:Field:CreatedDate"].Value, dto.CreationTime.ToString("dd/MM/yyyy")),
                 new ClinicDocumentField(L["BE:Field:Progress"].Value, $"{dto.ProgressPercent}%"),
                 new ClinicDocumentField(L["BE:Status:Paid"].Value, $"{dto.Payment.TotalPaid:N0} đ"),
@@ -1012,6 +1012,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
 
         var users = staffIds.Count == 0 ? [] : await _userRepository.GetListByIdsAsync(staffIds);
         var staffNames = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var jobTitles = StaffJobTitles.Of(users);
 
         var lineIds = lines.Select(l => l.Id).ToList();
         var laboOrders = lineIds.Count == 0
@@ -1149,6 +1150,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                 })
                 .ToList(),
             DentistName = staffNames.TryGetValue(plan.DentistId, out var dentist) ? dentist : null,
+            DentistJobTitle = jobTitles.GetValueOrDefault(plan.DentistId),
             ConsultantName = plan.ConsultantStaffId.HasValue
                 && staffNames.TryGetValue(plan.ConsultantStaffId.Value, out var consultant)
                     ? consultant

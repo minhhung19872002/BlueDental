@@ -62,6 +62,9 @@ export interface PatientDiagnosisDto {
   diagnosisName: string | null;
   staffName: string | null;
   secondStaffName: string | null;
+  /** Chức danh of the doctors above — what printed sheets name them by. */
+  staffJobTitle: string | null;
+  secondStaffJobTitle: string | null;
   creationTime: string;
 }
 
@@ -97,6 +100,9 @@ export interface PatientAdviseDto {
   serviceName: string | null;
   staffName: string | null;
   secondStaffName: string | null;
+  /** Chức danh of the doctors above — what printed sheets name them by. */
+  staffJobTitle: string | null;
+  secondStaffJobTitle: string | null;
   diagnosisName: string | null;
   /** The doctors on the chẩn đoán this line was raised from, not the advisor. */
   diagnosisStaffId: string | null;

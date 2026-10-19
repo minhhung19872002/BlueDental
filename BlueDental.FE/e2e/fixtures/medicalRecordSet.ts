@@ -148,11 +148,13 @@ export interface SeededPatient {
  * opened from a consulting line on it — the chain the clinic runs (diagnose →
  * advise → accept → open slip). No set yet. With `warranty`, the services are
  * ones Danh mục gives a warranty period, so a warranty công đoạn may be raised.
+ * With `staffId`, that member of staff diagnoses, advises and treats; otherwise
+ * the branch's first.
  */
 export async function seedPatientWithSlips(
   page: Page,
   count = 3,
-  { warranty = false }: { warranty?: boolean } = {},
+  { warranty = false, staffId }: { warranty?: boolean; staffId?: string } = {},
 ): Promise<SeededPatient> {
   const suffix = runId();
   await page.goto("/patient");
@@ -203,9 +205,10 @@ export async function seedPatientWithSlips(
     .filter((entry) => !warranty || (entry.serviceConfig?.warrantyDays ?? 0) > 0);
   const priceOf = (entry: (typeof services)[number]) =>
     entry.serviceConfig?.priceAfterDiscount ?? entry.price ?? 0;
-  const staff = (
-    await call<{ items: { id: string }[] }>(page, "/api/v1/app/staff?MaxResultCount=1", asBranch)
-  ).body.items[0];
+  const staff = staffId
+    ? { id: staffId }
+    : (await call<{ items: { id: string }[] }>(page, "/api/v1/app/staff?MaxResultCount=1", asBranch)).body
+        .items[0];
   expect(diagnosis, "a diagnosis in Danh mục").toBeTruthy();
   expect(services.length, `${count} services in Danh mục`).toBeGreaterThanOrEqual(count);
   expect(staff, "a dentist").toBeTruthy();

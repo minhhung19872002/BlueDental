@@ -72,6 +72,9 @@ export interface TreatmentStageDto {
   serviceItems: StageServiceItemDto[];
   staffName: string | null;
   secondStaffName: string | null;
+  /** Chức danh of the doctors above — what printed sheets name them by. */
+  staffJobTitle: string | null;
+  secondStaffJobTitle: string | null;
   subStaffName: string | null;
   serviceName: string | null;
   /**

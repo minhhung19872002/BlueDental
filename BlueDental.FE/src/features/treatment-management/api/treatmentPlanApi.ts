@@ -375,6 +375,8 @@ export interface TreatmentPlanSlipDto {
   /** The reference's `appliedCoupons[]`: vouchers redeemed when the slip opened. */
   appliedVouchers: AppliedVoucherDto[];
   dentistName: string | null;
+  /** Chức danh of the doctor above — what printed sheets name them by. */
+  dentistJobTitle: string | null;
   consultantName: string | null;
   creationTime: string;
 }

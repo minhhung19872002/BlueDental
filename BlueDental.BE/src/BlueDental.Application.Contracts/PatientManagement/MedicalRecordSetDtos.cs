@@ -124,7 +124,10 @@ public class MedicalRecordSheetPlanDto
     /// <summary>When the slip joined the set — the set's history of what was added.</summary>
     public DateTime AttachedAt { get; set; }
 
-    /// <summary>Bác sĩ điều trị — the slip's doctor (Bác sĩ tiếp nhận).</summary>
+    /// <summary>
+    /// Bác sĩ điều trị — the slip's doctor (Bác sĩ tiếp nhận), as the sheets print a
+    /// doctor: their Chức danh, else their name. Every name in these facts reads so.
+    /// </summary>
     public string? DentistName { get; set; }
 
     /// <summary>Their Chức vụ from the staff record (not the Chức danh).</summary>

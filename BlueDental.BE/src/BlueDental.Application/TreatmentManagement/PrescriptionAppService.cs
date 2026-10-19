@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
+using BlueDental.Staff;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -444,10 +445,9 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     private async Task<List<PrescriptionDto>> MapManyAsync(IReadOnlyList<Prescription> prescriptions)
     {
         var staffIds = prescriptions.Select(p => p.StaffId).Distinct().ToList();
-        var staffNames = staffIds.Count == 0
-            ? new Dictionary<Guid, string>()
-            : (await _userRepository.GetListByIdsAsync(staffIds))
-                .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var staff = staffIds.Count == 0 ? [] : await _userRepository.GetListByIdsAsync(staffIds);
+        var staffNames = staff.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var jobTitles = StaffJobTitles.Of(staff);
 
         return prescriptions.Select(p => new PrescriptionDto
         {
@@ -457,6 +457,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
             Code = p.Code,
             StaffId = p.StaffId,
             StaffName = staffNames.GetValueOrDefault(p.StaffId),
+            StaffJobTitle = jobTitles.GetValueOrDefault(p.StaffId),
             DiagnosisText = p.DiagnosisText,
             DiagnosisNote = p.DiagnosisNote,
             Note = p.Note,

@@ -8,6 +8,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { formatDate } from "@/utils/format";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 import type { PatientAdviseDto } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { dash } from "./planDetailTypes";
@@ -22,6 +23,8 @@ interface Props {
   /** The letterhead on the printed sheet; undefined while it loads. */
   clinic: BranchInfo | undefined;
   dentistName: string | null;
+  /** Their Chức danh — the printed sheet names the doctor by it. */
+  dentistJobTitle: string | null;
   /** The advises the slip's lines were written from — the "Chẩn đoán" column. */
   advises: PatientAdviseDto[];
   onClose: () => void;
@@ -45,7 +48,15 @@ function buildColumns(dentistName: string | null, diagnosisOf: (line: ReceiptLin
  * summary, as production lays them out. A receipt's "In phiếu thu" opens its
  * PHIẾU THU PDF; "In hóa đơn tổng" and a refund print the `ReceiptSheet` beside it.
  */
-export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, advises, onClose }: Props) {
+export function PaymentReceiptDialog({
+  receipt,
+  patient,
+  clinic,
+  dentistName,
+  dentistJobTitle,
+  advises,
+  onClose,
+}: Props) {
   const pagination = useTablePagination(20);
   const lines = receipt?.lines ?? [];
   const pageLines = lines.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
@@ -76,7 +87,7 @@ export function PaymentReceiptDialog({ receipt, patient, clinic, dentistName, ad
           receipt={receipt}
           patient={patient}
           clinic={clinic}
-          preparerName={receipt.staffName ?? dentistName}
+          preparerName={receipt.staffName ?? printedDoctorName(dentistName, dentistJobTitle)}
         />
       )}
       {receipt && (

@@ -8,6 +8,7 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 import {
   formatTeeth,
   type PatientDiagnosisDto,
@@ -59,7 +60,7 @@ function fieldsOf(
     teeth: formatTeeth(diagnosis.teeth),
     note: diagnosis.note === "---" ? "" : (diagnosis.note ?? ""),
     adviceHtml: diagnosis.contentDiagnosis?.trim() || defaultExplanationHtml(),
-    doctorName: diagnosis.staffName ?? "",
+    doctorName: printedDoctorName(diagnosis.staffName, diagnosis.staffJobTitle) ?? "",
   };
 }
 

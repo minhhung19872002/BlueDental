@@ -34,6 +34,7 @@ interface Slip {
   id: string;
   dentistId: string;
   dentistName: string | null;
+  dentistJobTitle: string | null;
   services: { id: string; serviceId: string; teeth: unknown[] }[];
 }
 
@@ -186,7 +187,8 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     expect(facts.treatmentStartDate).toBe(today.iso);
     expect(facts.plans.find((plan) => plan.planCode === first.code)?.endDate).toBe(today.iso);
     expect(facts.treatmentEndDate, "a slip still being treated holds the end back").toBeNull();
-    const dentist = slip.dentistName ?? "";
+    // A doctor is printed by their Chức danh, by name only when none is set.
+    const dentist = slip.dentistJobTitle ?? slip.dentistName ?? "";
     expect(dentist).not.toBe("");
 
     await openBenhAn(page, patient.id);

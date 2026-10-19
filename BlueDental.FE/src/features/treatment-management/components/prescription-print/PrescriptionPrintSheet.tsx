@@ -2,6 +2,7 @@ import { usageLabel } from "@/components/prescription-lines";
 import type { BranchInfo } from "@/hooks/useBranchInfo";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 import {
   PRESCRIPTION_TREATMENT_TYPE,
   type PrescriptionDto,
@@ -125,7 +126,7 @@ export function PrescriptionPrintSheet({ clinic, patient, prescription }: Props)
           <em>{longDate(prescription.issuedAt)}</em>
           <strong>{t("Treatment:RxPrint:Doctor")}</strong>
           <em>{t("Treatment:RxPrint:SignHint")}</em>
-          <strong className="rx-sheet-signer">{prescription.staffName ?? ""}</strong>
+          <strong className="rx-sheet-signer">{printedDoctorName(prescription.staffName, prescription.staffJobTitle) ?? ""}</strong>
         </div>
       </footer>
     </article>

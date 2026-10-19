@@ -104,6 +104,7 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
         patient={patient}
         clinic={clinic.data}
         dentistName={plan.dentistName}
+        dentistJobTitle={plan.dentistJobTitle}
         advises={advises.data?.items ?? []}
         onClose={() => setReceipt(null)}
       />

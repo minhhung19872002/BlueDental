@@ -585,7 +585,7 @@ public class StaffAppService(
 
             // Hồ sơ công việc (Cụm 11 mục 1)
             Position                       = user.ExtraProperties.GetOrDefault(PositionProperty) as string,
-            JobTitle                       = user.ExtraProperties.GetOrDefault(JobTitleProperty) as string,
+            JobTitle                       = user.ExtraProperties.GetOrDefault(StaffJobTitles.Property) as string,
             PracticeCertificateNumber      = user.ExtraProperties.GetOrDefault(CertificateNumberProperty) as string,
             PracticeCertificateIssuedOn    = ReadDate(user, CertificateIssuedOnProperty),
             PracticeCertificateIssuedPlace = user.ExtraProperties.GetOrDefault(CertificateIssuedPlaceProperty) as string,
@@ -598,7 +598,6 @@ public class StaffAppService(
     // --- Hồ sơ công việc (Cụm 11 mục 1): extra properties of the IdentityUser ---
 
     private const string PositionProperty = "Position";
-    private const string JobTitleProperty = "JobTitle";
     private const string CertificateNumberProperty = "PracticeCertificateNumber";
     private const string CertificateIssuedOnProperty = "PracticeCertificateIssuedOn";
     private const string CertificateIssuedPlaceProperty = "PracticeCertificateIssuedPlace";
@@ -621,7 +620,7 @@ public class StaffAppService(
         }
 
         user.ExtraProperties[PositionProperty] = StaffEmployment.Clean(input.Position);
-        user.ExtraProperties[JobTitleProperty] = StaffEmployment.Clean(input.JobTitle);
+        user.ExtraProperties[StaffJobTitles.Property] = StaffEmployment.Clean(input.JobTitle);
         user.ExtraProperties[CertificateNumberProperty] = StaffEmployment.Clean(input.PracticeCertificateNumber);
         user.ExtraProperties[CertificateIssuedOnProperty] = input.PracticeCertificateIssuedOn?.ToString(DateFormat);
         user.ExtraProperties[CertificateIssuedPlaceProperty] = StaffEmployment.Clean(input.PracticeCertificateIssuedPlace);

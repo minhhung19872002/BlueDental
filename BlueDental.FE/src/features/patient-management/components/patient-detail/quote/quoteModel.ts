@@ -5,6 +5,7 @@ import {
 } from "@/features/treatment-management/api/consultingApi";
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 
 /**
  * The shapes the quote modal and its two printed sheets work with — built
@@ -22,6 +23,7 @@ export interface QuoteRow {
   voucherDiscount: number;
   /** The diagnosis slip's note, the seed for "Nội dung chẩn đoán". */
   diagnosisContent: string;
+  /** As the diagnosis sheet prints them — see `printedDoctorName`. */
   doctors: string[];
 }
 
@@ -100,7 +102,12 @@ export function toQuoteRow(
     clinicDiscount: row.discountAmount - (row.voucherDiscountAmount ?? 0),
     voucherDiscount: row.voucherDiscountAmount ?? 0,
     diagnosisContent: (row.patientDiagnosisId ? slips.get(row.patientDiagnosisId) : undefined)?.note?.trim() ?? "",
-    doctors: [row.staffName, row.secondStaffName].map((name) => name?.trim() ?? "").filter(Boolean),
+    doctors: [
+      printedDoctorName(row.staffName, row.staffJobTitle),
+      printedDoctorName(row.secondStaffName, row.secondStaffJobTitle),
+    ]
+      .map((name) => name?.trim() ?? "")
+      .filter(Boolean),
   };
 }
 

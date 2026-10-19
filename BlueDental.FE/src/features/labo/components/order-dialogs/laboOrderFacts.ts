@@ -1,5 +1,6 @@
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
 import { formatDate, formatDateTime } from "@/utils/format";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 
 export interface LaboDetailPatient {
   code: string;
@@ -15,6 +16,8 @@ export interface LaboDetailPatient {
 export function laboOrderFacts(order: LaboOrderDto, patient: LaboDetailPatient) {
   return {
     dentist: order.dentistName ?? "",
+    /** The printed sheet names the doctor by their Chức danh. */
+    printedDentist: printedDoctorName(order.dentistName, order.dentistJobTitle) ?? "",
     // The code stays on the printed sheet's own "Mã KH" line.
     customer: patient.name,
     birthDate: formatDate(patient.dateOfBirth),

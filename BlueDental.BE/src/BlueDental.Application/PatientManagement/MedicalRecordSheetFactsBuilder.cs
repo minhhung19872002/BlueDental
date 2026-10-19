@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
+using BlueDental.Staff;
 using BlueDental.TreatmentManagement;
 using Volo.Abp;
 using Volo.Abp.Data;
@@ -122,7 +123,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
                     PlanCode = plan.Code,
                     CreationTime = plan.CreationTime,
                     AttachedAt = linkOf[plan.Id].AttachedAt,
-                    DentistName = dentist?.Name,
+                    DentistName = dentist?.PrintedName,
                     DentistPosition = dentist?.Position,
                     EndDate = planEnds[plan.Id],
                 };
@@ -140,7 +141,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
                     DiagnosisName = diagnosis?.Name,
                     Amount = line.EffectiveAmount,
                     ConsultedAt = advise?.CreationTime,
-                    ConsultantName = advise is null ? null : people.GetValueOrDefault(advise.StaffId)?.Name,
+                    ConsultantName = advise is null ? null : people.GetValueOrDefault(advise.StaffId)?.PrintedName,
                 };
             }).ToList(),
             Visits = stages
@@ -162,7 +163,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
                         DiagnosisCode = diagnosis?.Code,
                         DiagnosisName = diagnosis?.Name,
                         Content = stage.Note,
-                        DoctorName = people.GetValueOrDefault(stage.StaffId)?.Name,
+                        DoctorName = people.GetValueOrDefault(stage.StaffId)?.PrintedName,
                     };
                 })
                 .ToList(),
@@ -195,9 +196,10 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
         return (await _userRepository.GetListByIdsAsync(wanted)).ToDictionary(
             user => user.Id,
             user => new Person(
-                user.Name ?? user.UserName,
+                StaffJobTitles.PrintedName(user),
                 (user.ExtraProperties.GetOrDefault(PositionProperty) as string)?.Trim() is { Length: > 0 } position ? position : null));
     }
 
-    private sealed record Person(string Name, string? Position);
+    /// <summary>Named as the sheets print a doctor: the Chức danh, else the name (owner, 2026-10-19).</summary>
+    private sealed record Person(string PrintedName, string? Position);
 }

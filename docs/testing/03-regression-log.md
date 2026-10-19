@@ -9689,3 +9689,20 @@ Vòng 2 cùng ngày, owner sửa:
     - `:3289` và `:3396`: 2 test tái khám đã đỏ trước thay đổi này (R-960 / R-983).
     - `:3669`: Tiếp nhận, đỏ do TEMP-BUG25-OFF.
     - `:3924`: dữ liệu demo không còn bệnh nhân nào có đúng 1 lịch hẹn còn hiệu lực.
+
+## R-987 (2026-10-19, mức 3: nhân viên + mọi bản in có bác sĩ) Bản in gọi bác sĩ bằng Chức danh
+
+Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, hồ sơ, phiếu thu, hóa đơn…), chỗ nào nhắc đến Bác sĩ thì in **Chức danh** của nhân viên đó (`JobTitle`, R-963); chưa khai Chức danh thì mới in tên. Màn hình giữ tên.
+
+- BE: `StaffJobTitles` (Application/Staff) là nơi duy nhất đọc Chức danh từ ExtraProperties; `StaffAppService` dùng hằng số của nó. Chức danh đi kèm ngay cạnh tên trong DTO mà bản in đọc — không cho FE tự tra `/staff`, vì danh sách đó cần `Staff.View`, bác sĩ có thể không có, và bản in sẽ âm thầm in tên. Không thêm truy vấn: mỗi service vốn đã đọc `IdentityUser` để lấy tên.
+  - `PrescriptionDto.StaffJobTitle`; `PatientDiagnosisDto` và `PatientAdviseDto`: `StaffJobTitle`, `SecondStaffJobTitle`; `TreatmentStageDto`: `StaffJobTitle`, `SecondStaffJobTitle`; `PatientTreatmentDto.DentistJobTitle`; `LaboOrderDto.DentistJobTitle`.
+  - `sheet-facts` (chỉ phục vụ bản in) trả sẵn dạng in: `DentistName`, `ConsultantName`, `DoctorName` = Chức danh, không có thì tên.
+  - PDF "Hồ sơ điều trị" (ClinicDocument): "Bác sĩ tiếp nhận" in Chức danh.
+- FE: `utils/printedDoctorName.ts` (Chức danh → tên). Áp dụng cho: Phiếu điều trị (cột Bác sĩ + "Người lập phiếu"), Hóa đơn tổng / hoàn tiền ("Người lập phiếu" khi phiếu không có nhân viên thu và lấy bác sĩ thay), Đơn thuốc (chữ ký), Phiếu chẩn đoán (Bác sĩ ký), Phiếu chẩn đoán & hóa đơn (bác sĩ từng mục + "Bác sĩ chẩn đoán"), In lịch sử điều trị (Bác sĩ, Bác sĩ hỗ trợ, người lập), Phiếu đặt hàng Labo (Bác sĩ chỉ định + chữ ký). Bệnh án (Phiếu Tư Vấn Tổng Quát, Phiếu tư vấn và xác nhận) nhận qua `sheet-facts`.
+- Không đổi, có chủ ý: Giấy đồng ý phẫu thuật đã có riêng "Tôi tên là" (tên) và "Chức danh"; ô "Chức vụ" của Phiếu Tư Vấn Tổng Quát vẫn là Chức vụ (R-985 vòng 5); PHIẾU THU PDF không có ô bác sĩ (khách hàng, người nộp, thu ngân); Phụ tá, phiếu báo giá ("Thu Ngân / Bác Sĩ" cố định), phiếu thu chi báo cáo không phải vai trò bác sĩ.
+- Test (bản build `vite preview` :8080 qua `E2E_BASE_URL=http://localhost:8080` — preview chỉ nghe IPv6; host thật :5000; PostgreSQL docker thật; không chặn API):
+  - Spec mới `printed-doctor-title.spec.ts` **1/1**: bác sĩ riêng của lượt chạy có Chức danh chẩn đoán, tư vấn, mở phiếu, ghi công đoạn; API chẩn đoán/tư vấn/phiếu điều trị/công đoạn mang Chức danh; Phiếu điều trị in Chức danh ở cột Bác sĩ và chữ ký, bảng trên màn hình vẫn là tên; Phiếu Tư Vấn Tổng Quát in Chức danh sau reload; xoá Chức danh → phiếu in lại tên. Fixture: `createRunStaff({ jobTitle })`, `seedPatientWithSlips(…, { staffId })`.
+  - `medical-record-sheet-facts` so bác sĩ theo dạng in (`dentistJobTitle ?? dentistName`).
+  - Bộ hồi quy `medical-record-sheet-facts`, `consulting-plan`, `consulting-review`, `treatment-plan-detail`, `prescription`, `labo-detail`, `patient-medical-record`: **67 pass**, 2 đỏ có sẵn (R-963: "nine forms", "picking the day").
+  - `prescription` đỏ ở ca "a slip picks its diagnoses…" kéo theo 6 ca không chạy — lỗi dữ liệu test có sẵn, không do thay đổi này: seed lấy 2 chẩn đoán đầu của Danh mục, mà danh sách Danh mục trả cả dòng đã xoá; "CD ACTIVE 972309" bị một spec khác xoá mềm từ 2026-10-16 nên `diagnosis-sources` (đúng) không trả nó. Seed nay bỏ dòng `isDeleted`. `prescription` **8/8** (gồm "In đơn thuốc").
+  - BE Application **737/737**.

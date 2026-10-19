@@ -64,7 +64,7 @@ export function LaboPrintSheet({ clinic, patient, orderCode, facts }: Props) {
             <Fact label={t("Patient:Col:PatientCode")} value={patient.code} />
             <Fact label={t("Patient:Col:Customer")} value={patient.name} />
             <Fact label={t("Patient:Col:DateOfBirth")} value={facts.birthDate} />
-            <Fact label={t("Patient:QuoteSheet:PrescribingDoctor")} value={facts.dentist} />
+            <Fact label={t("Patient:QuoteSheet:PrescribingDoctor")} value={facts.printedDentist} />
           </section>
         </div>
 
@@ -104,7 +104,7 @@ export function LaboPrintSheet({ clinic, patient, orderCode, facts }: Props) {
             <div>
               <p>{t("Patient:Labo:Orderer")}</p>
               <p>{t("Patient:QuoteSheet:SignConfirm")}</p>
-              <p>{facts.dentist}</p>
+              <p>{facts.printedDentist}</p>
             </div>
           </div>
         </div>

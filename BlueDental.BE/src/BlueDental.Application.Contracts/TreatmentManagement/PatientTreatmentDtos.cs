@@ -328,6 +328,8 @@ public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
     public List<AppliedVoucherDto> AppliedVouchers { get; set; } = new();
 
     public string? DentistName { get; set; }
+    /// <summary>Chức danh of the doctor above — printed sheets name a doctor by it, else by the name.</summary>
+    public string? DentistJobTitle { get; set; }
     public string? ConsultantName { get; set; }
 }
 

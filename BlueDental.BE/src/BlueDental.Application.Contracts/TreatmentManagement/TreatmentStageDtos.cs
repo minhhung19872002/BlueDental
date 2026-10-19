@@ -69,6 +69,9 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
 
     public string? StaffName { get; set; }
     public string? SecondStaffName { get; set; }
+    /// <summary>Chức danh of the doctors above — printed sheets name a doctor by it, else by the name.</summary>
+    public string? StaffJobTitle { get; set; }
+    public string? SecondStaffJobTitle { get; set; }
     public string? SubStaffName { get; set; }
     public string? ServiceName { get; set; }
 }
