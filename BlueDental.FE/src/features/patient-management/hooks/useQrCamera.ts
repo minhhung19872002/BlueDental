@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  cameraStatusOf,
+  cameraSupported,
+  keepFocusing,
+  listCameras,
+  openStream,
+  type CameraStatus,
+} from "../utils/camera/cameraStream";
+import {
   decodeVideoFrame,
   drawScaled,
   warmUpQrDecoder,
@@ -8,7 +16,7 @@ import {
 } from "../utils/qr/qrDecoder";
 import { SightingFilter } from "../utils/qr/sightingFilter";
 
-export type CameraStatus = "idle" | "starting" | "live" | "denied" | "unavailable" | "insecure";
+export type { CameraStatus };
 
 /** A QR in the picture: its corners (fractions of the frame) and the frame's size. */
 export interface QrSighting {
@@ -35,65 +43,11 @@ interface Options {
   onDecode: (text: string) => boolean;
 }
 
-/** Enough pixels for a dense QR held at arm's length, like Zalo reads it. */
-const RESOLUTION = { width: { ideal: 1920 }, height: { ideal: 1080 } };
 /** A box that vanished for a frame or two stays put, instead of flickering. */
 const SIGHTING_HOLD_MS = 300;
 const SNAPSHOT_SIDE = 1280;
 const NOT_FOUND_ADVICE_MS = 4000;
 const SOFT_ADVICE_MS = 2500;
-
-/** The standard lists no focus controls; cameras that have them report them anyway. */
-interface FocusCapabilities extends MediaTrackCapabilities {
-  focusMode?: string[];
-}
-
-interface FocusConstraints extends MediaTrackConstraintSet {
-  focusMode?: ConstrainDOMString;
-}
-
-/**
- * Asks a camera that can refocus on its own to keep doing so. Webcams with a
- * fixed lens simply do not offer it, and nothing changes for them.
- */
-async function keepFocusing(track: MediaStreamTrack | undefined): Promise<void> {
-  if (!track?.getCapabilities) return;
-  const capabilities: FocusCapabilities = track.getCapabilities();
-  if (!capabilities.focusMode?.includes("continuous")) return;
-  const focus: FocusConstraints = { focusMode: "continuous" };
-  try {
-    await track.applyConstraints({ advanced: [focus] });
-  } catch {
-    // Offered but refused — the camera keeps whatever focus it had.
-  }
-}
-
-function constraintsFor(deviceId?: string): MediaStreamConstraints {
-  return {
-    audio: false,
-    video: deviceId
-      ? { deviceId: { exact: deviceId }, ...RESOLUTION }
-      : { facingMode: { ideal: "environment" }, ...RESOLUTION },
-  };
-}
-
-async function openStream(deviceId?: string): Promise<MediaStream> {
-  try {
-    return await navigator.mediaDevices.getUserMedia(constraintsFor(deviceId));
-  } catch (error) {
-    // A remembered camera that is gone now: fall back to whichever is there.
-    const missing =
-      error instanceof DOMException &&
-      (error.name === "OverconstrainedError" || error.name === "NotFoundError");
-    if (deviceId && missing) return navigator.mediaDevices.getUserMedia(constraintsFor());
-    throw error;
-  }
-}
-
-function statusOf(error: unknown): CameraStatus {
-  if (error instanceof DOMException && error.name === "NotAllowedError") return "denied";
-  return "unavailable";
-}
 
 /**
  * The live camera behind "Quét CCCD": opens it at full resolution, never
@@ -129,8 +83,7 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
     }
     // A new scan: the last card's frame gives way to the live picture.
     setCapture(null);
-    // Browsers only offer the camera to HTTPS pages and localhost.
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!cameraSupported()) {
       setStatus("insecure");
       return undefined;
     }
@@ -219,12 +172,12 @@ export function useQrCamera({ active, deviceId, attempt = 0, onDecode }: Options
         void keepFocusing(stream.getVideoTracks()[0]);
 
         // Labels are only readable once permission has been given.
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        if (!stopped) setCameras(devices.filter((device) => device.kind === "videoinput"));
+        const devices = await listCameras();
+        if (!stopped) setCameras(devices);
 
         next();
       } catch (error) {
-        if (!stopped) setStatus(statusOf(error));
+        if (!stopped) setStatus(cameraStatusOf(error));
       }
     })();
 

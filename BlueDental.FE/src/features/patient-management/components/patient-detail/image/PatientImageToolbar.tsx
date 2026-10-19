@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ChangeEvent } from "react";
+import { useMemo, useRef, type ChangeEvent, type ReactNode } from "react";
 import { Select, Tooltip } from "antd";
 import { ImagePlus, X } from "lucide-react";
 import { FloatingLabel } from "@/components/FloatingLabel";
@@ -13,6 +13,8 @@ interface Props {
   onFilterChange: (filter: PatientImageType) => void;
   onClearFilter: () => void;
   onUpload: (files: File[]) => void;
+  /** Sits beside "Tải ảnh" and shows with it — "Chụp ảnh". */
+  children?: ReactNode;
 }
 
 /** The two "Giai đoạn điều trị" values, hard-coded in the reference as well. */
@@ -28,8 +30,8 @@ function useTypeOptions() {
 
 /**
  * The white bar over the timeline: the stage filter, an "Xóa lọc" cross that
- * only appears once a stage is picked, and "Tải ảnh", which goes straight to
- * the OS file chooser — no dialog in between.
+ * only appears once a stage is picked, "Tải ảnh", which goes straight to the
+ * OS file chooser — no dialog in between — and whatever the tab puts beside it.
  */
 export function PatientImageToolbar({
   filter,
@@ -38,6 +40,7 @@ export function PatientImageToolbar({
   onFilterChange,
   onClearFilter,
   onUpload,
+  children,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const options = useTypeOptions();
@@ -88,6 +91,7 @@ export function PatientImageToolbar({
             data-testid="patient-image-input"
             onChange={handleFiles}
           />
+          {children}
         </>
       )}
     </section>

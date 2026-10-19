@@ -1533,6 +1533,50 @@ giữa: "Không có ảnh trong bộ lọc đã chọn" (15px/600 `#1B2A41`) và
 lọc hoặc tải thêm ảnh để tiếp tục." (13px `#5A6B82`, cách 4px). Không có icon.
 Khung **không** kéo dài hết màn hình — chiều cao theo nội dung.
 
+### Chụp ảnh (mở rộng BA, không có trên bản gốc)
+
+BA yêu cầu 2026-10-19 (R-989). Bản gốc **không** có nút này. Mọi chi tiết dưới
+đây là quyết định của BlueDental đã được owner duyệt, không phải quan sát từ
+bản gốc.
+
+- **Nút "Chụp ảnh"**: nằm ngay cạnh "Tải ảnh", cùng kiểu ô (icon camera 28px).
+  Hiện cùng điều kiện với "Tải ảnh": tài khoản không có quyền thêm ảnh thì
+  không thấy cả hai nút. Server vẫn trả **403** khi tài khoản đó tải ảnh lên,
+  nên việc ẩn nút không phải là lớp chặn.
+- **Không có camera**: trang hỏi `enumerateDevices` ngay khi mở tab (không bật
+  hộp xin quyền).
+  - Không thấy camera → nút vẫn hiện nhưng **mờ**. Rê chuột hoặc Tab tới sẽ
+    hiện tooltip "Không tìm thấy camera trên thiết bị này".
+  - Trang mở qua HTTP thường → tooltip "Camera chỉ dùng được khi truy cập qua
+    HTTPS".
+  - Cắm hoặc rút webcam / camera nội soi khi đang mở trang → nút đổi trạng
+    thái ngay (`devicechange`).
+- **Dialog "Chụp ảnh"**: một dialog dùng chung cho máy bàn, máy tính bảng và
+  điện thoại (`getUserMedia`), rộng tối đa 960px. Không dùng `capture` của
+  input file.
+  - Phụ đề "Ảnh được lưu vào giai đoạn: {giai đoạn}". Giai đoạn theo bộ lọc
+    đang chọn, chưa lọc thì là "Trước điều trị" (cùng quy tắc với "Tải ảnh").
+  - Camera bật khi dialog mở và tắt khi dialog đóng.
+  - Có từ 2 camera trở lên thì hiện ô chọn camera; lựa chọn được nhớ trên máy
+    (localStorage).
+  - Lỗi quyền hoặc camera đang bận hiện thông báo kèm nút "Thử lại".
+- **Chụp nhiều ảnh**: mỗi lần bấm "Chụp" lóe sáng khung hình và thêm một ảnh
+  vào dải bên phải, cách khung camera 20px.
+  - Mỗi ảnh có nút × để bỏ.
+  - Tối đa **10 ảnh** cho một lần tải lên (bằng giới hạn của "Tải ảnh"). Đủ
+    10 ảnh thì "Chụp" tạm khoá và hiện "Đã đủ 10 ảnh cho một lần tải lên".
+  - Chân dialog ghi "Đã chụp n/10 ảnh".
+- **Ảnh chụp**: JPEG chất lượng 0.92, cạnh dài tối đa **1600px** (cùng trần
+  với "Tải ảnh"). Tên file là `chup-anh-YYYYMMDD-HHmmss-n.jpg`. Ảnh đi qua
+  đúng đường tải của "Tải ảnh": kiểm tra 5 MB, thu nhỏ, rồi
+  `POST /api/v1/app/patient-images` từng file.
+- **"Tải lên (n)"**: gửi cả lô. Ảnh nào lên được thì rời khỏi dải và có toast
+  "Đã tải lên n ảnh".
+  - Lên hết → dialog đóng.
+  - Lỗi một phần → dialog ở lại với những ảnh chưa lên để thử lại.
+  - Đang tải thì không đóng được dialog.
+- **"Hủy"**: bỏ hết ảnh chưa tải và tắt camera.
+
 ---
 
 ## Tab 6: Labo

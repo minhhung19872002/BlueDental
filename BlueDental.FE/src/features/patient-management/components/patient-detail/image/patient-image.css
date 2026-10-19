@@ -88,6 +88,155 @@
   opacity: 0.6;
   cursor: default;
 }
+/* "Chụp ảnh" — the span carries the tooltip, a disabled button gets no hover. */
+.pi-capture-slot {
+  display: inline-flex;
+}
+.pi-capture-slot .pi-upload:disabled {
+  pointer-events: none;
+}
+
+/* ---- "Chụp ảnh" dialog (portalled outside .pi-tab: --bd-* tokens only) ---- */
+/* Camera block, then the shot strip — "Chụp" must not sit on the strip. */
+.pi-cam-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.pi-cam {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* As tall as the screen allows with the shot strip still in view. */
+.pi-cam-view {
+  position: relative;
+  height: clamp(240px, calc(100vh - 430px), 560px);
+  overflow: hidden;
+  border-radius: var(--bd-radius);
+  background: var(--bd-ink);
+}
+.pi-cam-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Never mirrored: left of the picture is left of the patient's mouth. */
+  transform: none;
+  visibility: hidden;
+}
+.pi-cam-view--live .pi-cam-video {
+  visibility: visible;
+}
+.pi-cam-flash {
+  position: absolute;
+  inset: 0;
+  background: var(--bd-card);
+  pointer-events: none;
+  animation: pi-cam-flash 0.35s ease-out forwards;
+}
+@keyframes pi-cam-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.pi-cam-idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  color: rgb(255 255 255 / 85%);
+  text-align: center;
+}
+.pi-cam-idle p {
+  margin: 0;
+  max-width: 340px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pi-cam-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.pi-cam-select {
+  flex: 0 1 280px;
+  min-width: 0;
+  margin-right: auto;
+}
+.pi-cam-full {
+  color: var(--bd-amber);
+  font-size: 13px;
+}
+.pi-cam-snap {
+  min-width: 140px;
+}
+.pi-cam-count {
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pi-shots-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--bd-line);
+  border-radius: var(--bd-radius);
+  color: var(--bd-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.pi-shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pi-shot {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+}
+.pi-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pi-shot-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--bd-radius-pill);
+  background: rgb(0 0 0 / 55%);
+  color: var(--bd-card);
+  cursor: pointer;
+}
+.pi-shot-remove:hover:not(:disabled) {
+  background: var(--bd-red);
+}
+.pi-shot-remove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* ---- Timeline ---- */
 .pi-timeline {
@@ -659,5 +808,27 @@
   }
   .pi-loading-more {
     padding-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .pi-toolbar {
+    flex-wrap: wrap;
+  }
+  .pi-cam-view {
+    height: clamp(220px, 55vh, 420px);
+  }
+  .pi-cam-controls {
+    flex-wrap: wrap;
+  }
+  .pi-cam-select {
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+  .pi-cam-snap {
+    flex: 1;
+  }
+  .pi-shots {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   }
 }

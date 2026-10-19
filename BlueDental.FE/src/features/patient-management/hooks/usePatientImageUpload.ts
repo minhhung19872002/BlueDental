@@ -14,14 +14,15 @@ export const UPLOAD_BATCH_LIMIT = 10;
 
 export interface PatientImageUpload {
   uploading: boolean;
-  upload: (files: File[]) => Promise<void>;
+  /** Resolves to the files that reached the server — none of the refused or unsent ones. */
+  upload: (files: File[]) => Promise<File[]>;
 }
 
 /**
- * "Tải ảnh": each file is scaled down on the client, then sent one at a time,
- * tagged with whichever "Giai đoạn điều trị" the tab is filtered to (or
- * "Trước điều trị" when it is not). One failure stops the batch and says so;
- * the files already sent stay sent.
+ * "Tải ảnh" and "Chụp ảnh": each file is scaled down on the client, then sent
+ * one at a time, tagged with whichever "Giai đoạn điều trị" the tab is
+ * filtered to (or "Trước điều trị" when it is not). One failure stops the
+ * batch and says so; the files already sent stay sent.
  */
 export function usePatientImageUpload(
   patientId: string,
@@ -33,7 +34,7 @@ export function usePatientImageUpload(
 
   const upload = useCallback(
     async (files: File[]) => {
-      if (files.length === 0) return;
+      if (files.length === 0) return [];
       if (files.length > UPLOAD_BATCH_LIMIT) {
         toast.error(t("Patient:Photo:MaxUploadError", UPLOAD_BATCH_LIMIT));
       }
@@ -45,19 +46,22 @@ export function usePatientImageUpload(
         if (error) toast.error(`${file.name}: ${error}`);
         return !error;
       });
-      if (valid.length === 0) return;
+      if (valid.length === 0) return [];
 
+      const sent: File[] = [];
       setUploading(true);
       try {
         for (const file of valid) {
           const prepared = await shrinkImageFile(file);
           await mutation.mutateAsync({ patientId, clinicBranchId, type, file: prepared });
+          sent.push(file);
         }
       } catch {
         toast.error(t("Patient:Photo:LoadError"));
       } finally {
         setUploading(false);
       }
+      return sent;
     },
     [patientId, clinicBranchId, filter, mutation],
   );

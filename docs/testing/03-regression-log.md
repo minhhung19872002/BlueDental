@@ -9537,3 +9537,39 @@ Vòng 2 cùng ngày, owner sửa:
   - Domain **951/951**.
   - Spec `medical-record-set` **3/3**: dùng 3 phiếu điều trị; khoá ở cả hai popup; chuyển phiếu qua hai bước; popup thấy "Hoàn thành" mà không cần reload.
   - `patient-medical-record` + `medical-record-drawing`: **33 pass / 2 đỏ có sẵn** (R-963).
+
+## R-989 (2026-10-19, mức 3: hình ảnh bệnh nhân + camera dùng chung) Nút "Chụp ảnh" cạnh "Tải ảnh" ở tab Hình ảnh
+
+- **Yêu cầu BA** (không có trên bản gốc): thêm nút "Chụp ảnh" cạnh "Tải ảnh". Kiểm tra máy có camera không, có thì mở camera ngay trên trang, chụp và tải lên.
+- **Owner chốt**:
+  - Không có camera → nút mờ kèm tooltip, không ẩn.
+  - Chụp nhiều ảnh, tối đa 10 ảnh cho một lần tải (bằng giới hạn "Tải ảnh").
+  - Giai đoạn theo bộ lọc đang chọn, chưa lọc thì "Trước điều trị".
+  - Một dialog `getUserMedia` dùng chung cho mọi thiết bị.
+  - Chi tiết hành vi: `docs/clone/pages/patient-detail.md`, Tab 5, mục "Chụp ảnh".
+- **Code FE** (`features/patient-management/`):
+  - Mới:
+    - `utils/camera/cameraStream.ts`: liệt kê, mở, tắt camera; nhớ camera đã chọn.
+    - `hooks/useCameraAvailability.ts`: `checking` / `available` / `none` / `insecure`, theo dõi `devicechange`.
+    - `hooks/usePhotoCamera.ts`: chụp JPEG 0.92, cạnh dài tối đa 1600px.
+    - `hooks/useCapturedShots.ts`: các ảnh chờ tải, giải phóng object URL.
+    - `PatientImageCaptureButton`, `CameraCaptureDialog`, `CameraCaptureStage`, `CapturedShotStrip`.
+  - Sửa:
+    - `useQrCamera` + `scan-id/CameraPanel` dùng chung `cameraStream.ts` với nút mới. Đây là lý do mức 3: quét CCCD đi qua cùng helper.
+    - `usePatientImageUpload.upload` trả về danh sách file đã lên server. Dialog chỉ bỏ những ảnh đã lên; lỗi một phần thì giữ lại ảnh chưa lên để thử lại.
+    - `PatientImageToolbar` nhận `children` đặt cạnh "Tải ảnh" và ẩn cùng nó khi thiếu quyền.
+    - `PatientImageTab` gắn nút và dialog.
+  - CSS (`patient-image.css`): `.pi-capture-slot`, khối `.pi-cam*` / `.pi-shot*`, `@media (max-width: 640px)`. Dải ảnh cách khung camera 20px (owner thấy nút "Chụp" dính sát dải ảnh).
+- **i18n**: thêm 18 khoá `Patient:Image:*` vào vi/en. Cần build lại Domain.Shared và khởi động lại host.
+- **Review trước khi add**:
+  - Ảnh chụp từ camera 4K từng ra file lớn, bị chặn 5 MB trước khi kịp thu nhỏ. Nay ảnh được thu ngay khi chụp, cạnh dài tối đa 1600px.
+  - `upload` trước đây không cho biết file nào lỗi, nên dialog xoá cả lô. Nay nó trả về danh sách file đã lên.
+  - Trả lại khoảng trắng cũ của `ViewLabel` trong en.json, vì diff từng đổi nó ngoài ý muốn.
+- **Test** (build production `vite preview` cổng riêng + host :5000, PostgreSQL + MinIO thật, không chặn request; camera giả của Chromium):
+  - `e2e/patient-image-capture.spec.ts` (mới, 5 ca): 2 ảnh bỏ 1, tải 1 vào "Trước điều trị", reload vẫn còn; lọc "Sau điều trị" thì ảnh vào đó; 10 ảnh đủ lô, "Hủy" tắt camera; không camera thì nút mờ + tooltip; tài khoản không quyền không thấy cả hai nút và server trả **403**.
+  - Cộng 4 spec `patient-scan-id*` (camera dùng chung): **12/12**.
+  - `e2e/patient-image.spec.ts`: upload, kéo sắp xếp, xoá **3/3**. Hai ca đỏ có sẵn, đỏ y hệt trên bản build HEAD (đối chứng bằng bản sao chỉ hoàn lại file của R-989):
+    - "eye opens the viewer": spec chưa theo các nút cỡ nét `aria-pressed` thêm từ 5839cd0b.
+    - Ca branch-scoped: gọi `login()` khi đã đăng nhập, `/login` chuyển hướng nên ô nhập chờ quá giờ.
+  - Bẫy: khi ca viewer đỏ, worker khởi động lại với `runId` mới. Các ca kéo/xoá sau đó tìm tên không tồn tại, nên ảnh `truoc-a/b-*.png` dồn lại trên bệnh nhân đầu tiên. Có 8 ảnh như vậy thì thẻ mới nằm ngoài màn hình, ảnh lazy không tải, và cả upload lẫn kéo/xoá đỏ theo (trên cả HEAD). Đã xoá 8 ảnh sót đó qua giao diện trên DB local trước khi chạy lại.
+- Chưa commit.
