@@ -2220,7 +2220,20 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await form.locator("textarea").fill(note);
+    // Two lines, typed as a user would: the box starts the first "- " and
+    // Enter opens the second (R-983).
+    const textarea = form.locator("textarea");
+    await textarea.fill(note);
+    await textarea.press("Enter");
+    await page.keyboard.type("dòng hai");
+    await expect(textarea).toHaveValue(`- ${note}\n- dòng hai`);
+    // A slip nobody signed leaves Bác sĩ blank for admin, which no longer
+    // saves (Vui lòng chọn bác sĩ) — pick one, as the empty-fields spec does.
+    const doctor = form.locator(".ant-select").first();
+    if ((await doctor.locator(".ant-select-content-has-value").count()) === 0) {
+      await doctor.click();
+      await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
+    }
     await dialog
       .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
       .click();
@@ -2247,7 +2260,11 @@ test.describe("Bệnh nhân", () => {
     await expect(dialog).toBeHidden();
     // Its own row — a line owns one row per công đoạn, so the clicked one need
     // not be the one that was written.
-    await expect(await findStageRow(page, serviceId, madeId)).toContainText(note);
+    const madeRow = await findStageRow(page, serviceId, madeId);
+    await expect(madeRow).toContainText(note);
+    // One bullet per line, the dash drawn by the list rather than doubled.
+    await expect(madeRow.locator(".pd-tr-note li")).toHaveText([note, "dòng hai"]);
+    await expect(madeRow.locator(".pd-tr-note li").first()).toHaveCSS("padding-left", "12px");
   });
 
   test("the stage form fills its columns, as the reference's does", async ({ page }) => {
@@ -2901,7 +2918,9 @@ test.describe("Bệnh nhân", () => {
     await selectAll.check();
     await expect(ticked).toHaveCount(total);
     await expect(count).toHaveText(`Đã chọn ${total}/${total}`);
-    await expect(note).toHaveValue(target!.steps.join("\n"));
+    // Each ticked step lands as its own "- " line (R-983).
+    const bulleted = (names: string[]) => names.map((name) => `- ${name}`).join("\n");
+    await expect(note).toHaveValue(bulleted(target!.steps));
 
     await selectAll.uncheck();
     await expect(ticked).toHaveCount(0);
@@ -2930,7 +2949,7 @@ test.describe("Bệnh nhân", () => {
     await expect(boxes).toHaveCount(total);
     await expect(ticked).toHaveCount(matching.length);
     await expect(count).toHaveText(`Đã chọn ${matching.length}/${total}`);
-    await expect(note).toHaveValue(matching.join("\n"));
+    await expect(note).toHaveValue(bulleted(matching));
 
     // A search with no hit says so and leaves the box idle.
     await search.fill("zzzz-không-có-công-đoạn-này");
@@ -3298,18 +3317,37 @@ test.describe("Bệnh nhân", () => {
      * ticked names above whatever was typed and taking them out again on untick.
      */
     const content = form.locator("textarea").first();
-    await expect(content).toHaveValue(note);
+    // Every line carries its dash (R-983).
+    await expect(content).toHaveValue(`- ${note}`);
+
+    // Enter opens the next "- " line; Shift+Enter breaks one without it.
+    await content.press("Control+End");
+    await content.press("Enter");
+    await expect(content).toHaveValue(`- ${note}\n- `);
+    await page.keyboard.type("typed by hand");
+    await expect(content).toHaveValue(`- ${note}\n- typed by hand`);
+    await content.press("Shift+Enter");
+    await expect(content).toHaveValue(`- ${note}\n- typed by hand\n`);
 
     // Typed text survives under it, and is not duplicated when the box goes
     // off and on again.
-    await content.fill(`${note}
-typed by hand`);
     await step.click();
     await expect(step.locator("input")).not.toBeChecked();
-    await expect(content).toHaveValue("typed by hand");
+    await expect(content).toHaveValue("- typed by hand");
     await step.click();
-    await expect(content).toHaveValue(`${note}
-typed by hand`);
+    await expect(content).toHaveValue(`- ${note}\n- typed by hand`);
+
+    // Enter mid-text opens the line right there and leaves the caret on it.
+    await content.press("Control+Home");
+    await content.press("End");
+    await content.press("Enter");
+    await page.keyboard.type("giữa");
+    await expect(content).toHaveValue(`- ${note}\n- giữa\n- typed by hand`);
+
+    // A line typed without its dash (older notes) is given one on the next tick.
+    await content.fill(`${note}\ntyped by hand`);
+    await step.click();
+    await expect(content).toHaveValue("- typed by hand");
   });
 
   test("Tạo bảo hành builds no checklist, so the heading stays (Trống)", async ({ page }) => {

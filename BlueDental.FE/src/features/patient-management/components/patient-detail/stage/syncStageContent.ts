@@ -1,3 +1,5 @@
+import { bulletLines, noteLines } from "./stageNoteLines";
+
 /** One "Danh sách công đoạn" line: an id and the text it stands for. */
 export interface StageChecklistItem {
   id: string;
@@ -28,23 +30,23 @@ export interface StageChecklistItem {
  *   ticking twice never doubles it.
  * - Every line is trimmed and blank lines are dropped, so the field cannot
  *   collect empty rows as boxes go on and off.
+ *
+ * BlueDental adds the bullet (BA, 2026-10-19, R-983): every line comes back as
+ * "- …", and lines are compared without it. A name is matched line by line —
+ * a tái khám's one entry is the whole note of the công đoạn before, which can
+ * run to several lines, and unticking it has to take all of them out.
  */
 export function syncStageContent(
   content: string,
   checklist: StageChecklistItem[],
   tickedIds: string[],
 ): string {
-  const named = checklist.map((item) => item.name.trim()).filter(Boolean);
-  const known = new Set(named);
+  const known = new Set(checklist.flatMap((item) => noteLines(item.name)));
   const ticked = checklist
     .filter((item) => tickedIds.includes(item.id))
-    .map((item) => item.name.trim())
-    .filter(Boolean);
+    .flatMap((item) => noteLines(item.name));
 
-  const typed = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !known.has(line));
+  const typed = noteLines(content).filter((line) => !known.has(line));
 
-  return [...ticked, ...typed].join("\n");
+  return bulletLines([...ticked, ...typed]);
 }

@@ -9,6 +9,7 @@ import {
 } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
 import { StageDateField } from "./StageDateField";
+import { StageNoteInput } from "./StageNoteInput";
 import { StageShots } from "./StageShots";
 import { StageStepList } from "./StageStepList";
 import { StageTeethPicker } from "./StageTeethPicker";
@@ -139,11 +140,11 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
 
       <div>
         <FloatingLabel label={t("Patient:Stage:TreatmentContent")} required floated={draft.note.length > 0}>
-          <Input.TextArea
+          <StageNoteInput
             rows={5}
             value={draft.note}
             maxLength={NOTE_LIMIT}
-            onChange={(event) => handlers.onChange({ note: event.target.value })}
+            onChange={(note) => handlers.onChange({ note })}
             status={errors.note ? "error" : undefined}
           />
         </FloatingLabel>

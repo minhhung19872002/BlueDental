@@ -3203,6 +3203,21 @@
   font-weight: 700;
   white-space: nowrap;
 }
+/* Nội dung điều trị, one dash per line with a hanging indent (R-983). */
+.pd-tr-note {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-tr-note li {
+  position: relative;
+  padding-left: 12px;
+}
+.pd-tr-note li::before {
+  content: "-";
+  position: absolute;
+  left: 0;
+}
 .pd-tr-doctor > div + div {
   margin-top: 4px;
 }

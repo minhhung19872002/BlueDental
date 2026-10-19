@@ -9,6 +9,7 @@ import {
   type CareStatusCode,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { BriefcaseMedicalIcon, warrantyTitle } from "./stage/StageWarrantyButton";
+import { noteLines } from "./stage/stageNoteLines";
 import { stageRowStatus, stageRowStatusLabel } from "./stageRowStatus";
 import type { TreatmentRow } from "./treatmentRows";
 
@@ -115,7 +116,19 @@ export function treatmentColumns({
     {
       title: t("Patient:Stage:TreatmentContent"),
       width: 210,
-      render: (_, row) => row.stageNote ?? "—",
+      // One dash per line (BA, 2026-10-19, R-983). Older notes were saved
+      // without dashes, so the markers are stripped and drawn by the list.
+      render: (_, row) => {
+        const lines = noteLines(row.stageNote);
+        if (lines.length === 0) return "—";
+        return (
+          <ul className="pd-tr-note">
+            {lines.map((line, index) => (
+              <li key={index}>{line}</li>
+            ))}
+          </ul>
+        );
+      },
     },
     {
       title: t("Patient:DentalChart:Tooth"),

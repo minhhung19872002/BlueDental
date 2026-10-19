@@ -1,10 +1,12 @@
 import { useState, type Ref } from "react";
-import { Button, Checkbox, Image, Input } from "antd";
+import { Button, Checkbox, Image } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
+import { NOTE_LIMIT } from "./StageForm";
+import { StageNoteInput } from "./StageNoteInput";
 import { StageWarrantyButton } from "./StageWarrantyButton";
 import {
   namedSteps,
@@ -107,12 +109,7 @@ function NoteCell({
 
         {editing ? (
           <div className="pd-stage-noteedit">
-            <Input.TextArea
-              rows={4}
-              value={draft}
-              maxLength={1000}
-              onChange={(event) => setDraft(event.target.value)}
-            />
+            <StageNoteInput rows={4} value={draft} maxLength={NOTE_LIMIT} onChange={setDraft} />
             <div>
               <Button onClick={() => setDraft(null)}>{t("Patient:Misc:Cancel")}</Button>
               <Button
