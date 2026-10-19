@@ -9573,3 +9573,60 @@ Vòng 2 cùng ngày, owner sửa:
     - Ca branch-scoped: gọi `login()` khi đã đăng nhập, `/login` chuyển hướng nên ô nhập chờ quá giờ.
   - Bẫy: khi ca viewer đỏ, worker khởi động lại với `runId` mới. Các ca kéo/xoá sau đó tìm tên không tồn tại, nên ảnh `truoc-a/b-*.png` dồn lại trên bệnh nhân đầu tiên. Có 8 ảnh như vậy thì thẻ mới nằm ngoài màn hình, ảnh lazy không tải, và cả upload lẫn kéo/xoá đỏ theo (trên cả HEAD). Đã xoá 8 ảnh sót đó qua giao diện trên DB local trước khi chạy lại.
 - Chưa commit.
+
+## R-990 (2026-10-19, mức 3: header dùng chung) F-74 — Ghi chú nhanh ở header ("Thêm ghi chú", Alt+N)
+
+- **Yêu cầu BA** (2 ảnh mock, không có trên bản gốc):
+  - Icon ghi chú ngay trước ô chọn chi nhánh.
+  - Mở dialog "Thêm ghi chú" gồm: tìm kiếm; Chung / Cá nhân; khối "Thêm mới" thu gọn; bảng STT / Nội dung / Thao tác với Sửa, Xóa, Copy; footer chỉ có "Hủy".
+- **Owner chốt** (duyệt kế hoạch, giữ mọi đề xuất):
+  - Chung theo chi nhánh. Khi chọn Tất cả chi nhánh thì xem mọi chi nhánh được phép và khoá thêm mới.
+  - Cá nhân riêng tác giả, không gắn chi nhánh.
+  - Chỉ tác giả được Sửa/Xóa. Xóa là xoá mềm, có hỏi xác nhận. Copy hiện toast "Đã sao chép".
+  - Dialog không backdrop, kéo được, chỉ đóng bằng X / "Hủy" (Esc và bấm ra ngoài không đóng). Màn sau vẫn thao tác được.
+  - Phím tắt Alt+N; dialog đang mở thì Alt+N đưa con trỏ vào ô tìm.
+  - Mọi tài khoản đăng nhập đều dùng được. Tối đa 2000 ký tự. Bảng kẹp 2 dòng, rê chuột xem đủ.
+- **Tự chọn khi dựng** (chưa hỏi):
+  - Dòng Chung có "tác giả · giờ" dưới nội dung.
+  - Không gửi header chi nhánh thì note Chung rơi về chi nhánh của chính tài khoản; không có chi nhánh nào thì báo `StaffNote:0003`.
+- **Code BE**:
+  - Aggregate `StaffNotes/StaffNote` (xoá mềm).
+  - Enum `StaffNoteScope`.
+  - Mã lỗi `StaffNote:0001..0005`.
+  - `StaffNoteAppService` (`[Authorize]`, phạm vi chi nhánh qua `BranchAccessChecker`; Cá nhân của người khác trả **404**).
+  - `StaffNoteController` `api/v1/app/staff-notes`.
+  - Bảng `bd_staff_notes` với 2 index, migration `20261019120529_StaffNotes`.
+  - 31 khoá `StaffNote:*` vi/en, nên phải build lại Domain.Shared và khởi động lại host.
+- **Code FE**:
+  - Thư mục mới `features/staff-notes/`: `types`, `api/staffNoteApi`, `hooks/useStaffNoteEditor`, `StaffNotesLauncher`, `StaffNotesDialog`, `StaffNotesPanel`, `StaffNoteComposer`, `StaffNoteTable`, `staff-notes.css`.
+  - Hook dùng chung mới `hooks/useDraggableModal.ts`: kéo theo tiêu đề, giữ trong cửa sổ, offset đi qua `--drag-x/--drag-y`.
+  - `app/AppLayout.tsx` gắn `<StaffNotesLauncher />` giữa ô tìm kiếm và ô chi nhánh. Đây là lý do mức 3.
+- **Bẫy**:
+  - Bảng có sàn `min-width: 100px` toàn cục ở `th`, nên cột STT phải gắn `bd-col-icon` mới hẹp được. Trên mobile thì 40px, đệm 4px.
+  - Tên truy cập của nút AntD gồm cả nhãn icon ("plus Thêm"). Nút X của dialog tên là "Đóng".
+  - Alt+N sau reload phải chờ header gắn xong mới bấm.
+- **Review (`/simplify`)**:
+  - Cột STT dùng lại `bd-col-icon` sẵn có thay vì tự viết `min-width: 0`.
+  - Hàm `FullName(IdentityUser)` vẫn lặp như ở ~10 service khác. Chưa có helper chung, gom lại là việc riêng.
+- **Test** (build production `vite preview` cổng riêng + host riêng :5100, PostgreSQL thật, không chặn request):
+  - Domain `StaffNoteTests` **11/11**. Application `StaffNoteAppServiceContractTests` **3/3**.
+  - `e2e/staff-notes-api.spec.ts` **8/8**:
+    - Cá nhân chỉ tác giả thấy, dưới mọi header chi nhánh.
+    - Chung chỉ trong chi nhánh của nó; ghi sang chi nhánh khác bị 403 (`branch2`).
+    - Không header thì rơi về chi nhánh của tài khoản.
+    - Người không phải tác giả đọc được nhưng không sửa/xoá được.
+    - Luật nội dung và scope sai bị từ chối.
+    - Tìm trên server, đủ mọi từ, không phân biệt hoa thường.
+    - Trang mới nhất trước, đủ tổng số.
+    - Đã xoá thì mất khỏi danh sách và không sửa được nữa.
+  - `e2e/staff-notes.spec.ts` **5/5**:
+    - Mở bằng icon và Alt+N, không backdrop, Esc / bấm ngoài không đóng.
+    - Kéo tiêu đề thì dời; mở lại về giữa.
+    - Thêm → copy → sửa → xoá, reload vẫn đúng.
+    - Cá nhân chỉ tác giả thấy.
+    - Tất cả chi nhánh thì Chung chờ chọn chi nhánh, Cá nhân thì không.
+  - DB: các dòng test có `IsDeleted = true` kèm `DeletionTime` và `DeleterId`, tức xoá mềm thật.
+  - Đo bố cục (STT / Nội dung / Thao tác): 64 / 454 / 120 ở 1440px; 40 / 188 / 120 ở 390px.
+  - `StaffNote:0003` không gọi tới được qua HTTP với các tài khoản seed (ai cũng có chi nhánh riêng), nên chỉ domain test phủ.
+  - Hồi quy mức 3: `auth`, `branch-code-url`, `branch-switcher`, `header-navigation`, `patient-back-origin`, `popup-placement`, `routes` **45/48**. 3 ca đỏ ở `header-navigation` đỏ y hệt trên bản build HEAD (`/reception$` so với `?branch=BD-001`, drawer đếm 17 thay vì 14, nhãn "Tiếng Việt"), nên không do F-74.
+- Đã commit trên `develop`.

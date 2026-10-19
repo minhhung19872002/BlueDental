@@ -725,4 +725,14 @@ public static class BlueDentalDomainErrorCodes
         public const string AvatarTooLarge = "BlueDental:BranchManager:0005";
         public const string AvatarNotFound = "BlueDental:BranchManager:0006";
     }
+
+    /// <summary>The header's "Thêm ghi chú" dialog (F-74).</summary>
+    public static class StaffNotes
+    {
+        public const string ContentRequired = "BlueDental:StaffNote:0001";
+        public const string ContentTooLong = "BlueDental:StaffNote:0002";
+        public const string BranchRequired = "BlueDental:StaffNote:0003";
+        public const string NotOwner = "BlueDental:StaffNote:0004";
+        public const string InvalidScope = "BlueDental:StaffNote:0005";
+    }
 }

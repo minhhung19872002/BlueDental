@@ -183,6 +183,7 @@ public class BlueDentalDbContext :
     public DbSet<CallLog> CallLogs { get; set; }
     public DbSet<MessageTemplate> MessageTemplates { get; set; }
     public DbSet<MessageLog> MessageLogs { get; set; }
+    public DbSet<StaffNotes.StaffNote> StaffNotes { get; set; }
 
     // Clinic integration
     public DbSet<ClinicConnection> ClinicConnections { get; set; }
