@@ -12,8 +12,8 @@ export const OPTIONAL_COLUMNS = [
   "secondStaff",
   "diagnosisStaff",
   "secondDiagnosis",
-  "quantity",
   "price",
+  "quantity",
   "discount",
   "amount",
   "note",
@@ -42,8 +42,21 @@ export interface ColumnSetting {
   on: boolean;
 }
 
-/** Everything on, in the reference's own order. */
+/**
+ * Off until the user turns them on — owner's mock, 2026-10-19: the people on
+ * the line and the advice note crowd the money columns out of view, so the
+ * sheet opens without them.
+ */
+const HIDDEN_BY_DEFAULT: ReadonlySet<OptionalColumn> = new Set([
+  "staff",
+  "secondStaff",
+  "diagnosisStaff",
+  "secondDiagnosis",
+  "note",
+]);
+
+/** Everything in the order above, those columns switched off. */
 export const DEFAULT_COLUMN_SETTINGS: ColumnSetting[] = OPTIONAL_COLUMNS.map((key) => ({
   key,
-  on: true,
+  on: !HIDDEN_BY_DEFAULT.has(key),
 }));

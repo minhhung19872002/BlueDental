@@ -265,6 +265,12 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     await expect(cells.first()).toHaveCSS("color", "rgb(38, 113, 216)");
 
     // Empty cells of this table read "-", the reference's hyphen, never "—".
+    // Chẩn đoán 2 opens switched off (owner, 2026-10-19), so it is put on first.
+    await page.getByRole("button", { name: "Cột hiển thị" }).click();
+    const panel = page.locator(".pd-column-popover:visible");
+    await panel.locator(".pd-column-row").filter({ hasText: "Chẩn đoán 2" }).getByRole("switch").click();
+    await panel.getByRole("button", { name: "Lưu" }).click();
+    await expect(panel).toBeHidden();
     const headers = await page.locator(".pd-advise-table thead th").allInnerTexts();
     const secondDiagnosisAt = headers.findIndex((h) => h.trim().toLowerCase() === "chẩn đoán 2");
     expect(secondDiagnosisAt).toBeGreaterThan(-1);

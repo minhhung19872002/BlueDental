@@ -9579,3 +9579,25 @@ Vòng 2 cùng ngày, owner sửa:
     - Pass: "…a stage is added there", "In lịch sử điều trị", "selects all…", và 2 trong 3 test tái khám.
     - Test bút chì: phần R-983 pass. Test đỏ ở bước bấm lại dòng sau khi reload; spec ở HEAD đỏ đúng chỗ đó (fixture dồn dòng).
     - "a tái khám picks its teeth": đỏ có sẵn.
+
+## R-984 — Phiếu tư vấn: checkbox rõ và gọn, cột hiển thị mặc định (owner, 2026-10-19)
+
+- Phạm vi: thẻ "Phiếu tư vấn" ở tab Chẩn đoán & Tư vấn (`/patient/:id?tab=consulting`). Retest Level 2.
+- **Checkbox** (ảnh owner: "mờ, không rõ, diện tích rộng quá"):
+  - Cột tick rộng 100px vì rule chung `.ant-table-thead > tr > th { min-width: 100px }` trong `index.css`.
+  - `PatientAdviseCard` đặt `rowSelection.columnWidth: 36`. `patient-detail.css` đặt th/td `.ant-table-selection-column` rộng và `min-width` 36px, padding 8px (ô tick 20px).
+  - Viền ô tick: đổi `--ant-color-border` sang `--bd-dim` và viền 1.5px. Theme `colorBorder` = `--bd-line` gần như không thấy trên nền trắng.
+  - Hover và trạng thái đã tick vẫn dùng màu primary của AntD.
+  - Đo trên dev: cột 100 → 36px, viền `#7d85a5`. Ô "chọn tất cả" ở header cũng được sửa giống vậy.
+- **Cột hiển thị mặc định** (ảnh "Cấu hình cột" của owner):
+  - Bật: Ngày, Dịch vụ, Chẩn đoán, Đơn giá, Số lượng, Giảm giá, Thành tiền.
+  - Tắt: Nhân sự tư vấn 1/2, Bác sĩ chẩn đoán 1, Chẩn đoán 2, Ghi chú tư vấn.
+  - Đơn giá đặt trước Số lượng.
+  - Sửa trong `adviseColumns.ts` (`HIDDEN_BY_DEFAULT`). Cấu hình vẫn là state riêng của thẻ, không lưu lại.
+- Spec:
+  - `consulting-plan.spec` "the diagnosis cell…": bật Chẩn đoán 2 qua panel rồi mới đọc ô "-".
+  - `patient.spec` "Chẩn đoán & Tư vấn carries…": Ghi chú tư vấn ban đầu ẩn; bật lên rồi Lưu thì cột hiện ra.
+- Kết quả trên bản build production (`vite preview`), chạy consulting-plan + consulting-review + consulting-delete-and-picker + phần tư vấn của patient.spec: **30/31**.
+  - Đỏ: `consulting-delete-and-picker:200`. Test lấy dịch vụ cuối danh mục (hiện là dữ liệu thử sót "DUNG-TEST Thành phần C …") nhưng hộp Chọn Dịch Vụ không hiện dịch vụ đó.
+  - Test này đã đỏ trước phần cột mặc định. Nó thuộc hộp thoại riêng, không đụng tới `.pd-advise-table`. Chưa đối chứng trên HEAD.
+  - `consulting-plan:599` (bảng tab Kế hoạch điều trị bị bẹp) và `:1034` (kéo hàng panel) đỏ một lần, chạy lại thì xanh.

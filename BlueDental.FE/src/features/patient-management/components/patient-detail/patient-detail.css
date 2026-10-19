@@ -1265,6 +1265,22 @@
   padding-right: 2px;
   padding-left: 14px;
 }
+/* The tick column, likewise, is only as wide as the box (owner, 2026-10-19):
+   the global 100px header floor held it open to a blank strip. And the box
+   gets a border that reads on white — the theme's `colorBorder` (--bd-line)
+   all but vanishes. Only the variable is swapped, so hover and ticked keep
+   AntD's own primary. */
+.pd-advise-table .ant-table-thead > tr > th.ant-table-selection-column,
+.pd-advise-table .ant-table-tbody > tr > td.ant-table-selection-column {
+  width: 36px;
+  min-width: 36px;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+.pd-advise-table .ant-table-selection-column .ant-checkbox {
+  --ant-color-border: var(--bd-dim);
+  border-width: 1.5px;
+}
 /* ── "Cột hiển thị" panel ──────────────────────────────────────────────────
    The reference's own: a titled head with a ✕, one draggable row per column,
    and a full-width "Lưu" pinned under the list. Nothing applies until Lưu, so

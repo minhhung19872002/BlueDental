@@ -1283,12 +1283,13 @@ test.describe("Bệnh nhân", () => {
     const chooser = page.getByText("Cấu hình cột");
     await expect(chooser).toBeVisible();
 
-    // Turning a column off and saving takes it out of the table. As on Kế
-    // hoạch điều trị, the panel applies nothing until "Lưu".
-    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeVisible();
+    // Ghi chú tư vấn opens switched off (owner, 2026-10-19); turning it on and
+    // saving puts it in the table. As on Kế hoạch điều trị, the panel applies
+    // nothing until "Lưu".
+    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
     await page.locator(".pd-column-row").last().getByRole("switch").click();
     await page.locator(".pd-column-popover").getByRole("button", { name: "Lưu" }).click();
-    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
+    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeVisible();
 
     // The block reads in the order its figure is worked out (R-620): Tổng cộng,
     // Giảm giá, the voucher line, then Thành tiền.
