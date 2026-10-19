@@ -36,6 +36,7 @@ import { MedicalRecordCanvasHead } from "./medical-record/MedicalRecordCanvasHea
 import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
 import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
 import { useSheetDiagnoses } from "./medical-record/useSheetDiagnoses";
+import { useSheetFactValues } from "./medical-record/useSheetFactValues";
 import { useSheetFullscreen } from "./medical-record/useSheetFullscreen";
 import { useUnsavedSheets } from "./medical-record/useUnsavedSheets";
 import { UnsavedSheetDialog } from "./medical-record/UnsavedSheetDialog";
@@ -117,6 +118,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   }, [query.data, forms, activeSet?.id]);
   const auto = useSheetFieldValues(patient, branchId);
   const diagnosesFrom = useSheetDiagnoses(patientId, branchId);
+  /** What the open set's treatment slips answer (save/P1810.drawio). */
+  const factValues = useSheetFactValues(activeSet?.id);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<ViewMode>("single");
@@ -191,7 +194,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     if (picked) return picked;
 
     const [key] = formSpecOf(sheet.form).dateFieldKeys ?? [];
-    const printed = key ? valuesOf(sheet)[key] : undefined;
+    // What the sheet holds, else what the set's slips say — Ngày tư vấn.
+    const printed = key ? (valuesOf(sheet)[key] ?? factValues[key]) : undefined;
     if (typeof printed === "string" && printed) {
       const parsed = dayjs(printed, "DD/MM/YYYY", true);
       if (parsed.isValid()) return parsed;
@@ -200,13 +204,20 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   };
 
   /**
-   * What a sheet's blanks fall back to: the record and the letterhead, plus the
-   * patient's diagnoses — on a dated form, those from the sheet's own day on.
+   * What a sheet's blanks fall back to: the record and the letterhead, the
+   * patient's diagnoses — on a dated form, those from the sheet's own day on —
+   * what the set's slips answer, and the day picked above the sheet in the
+   * blanks that print it (Ngày thực hiện, P1810).
    */
-  const autoOf = (sheet: PatientMedicalRecordDto): FieldValues => ({
-    ...auto,
-    ...diagnosisFieldValues(diagnosesFrom(formSpecOf(sheet.form).dateLabel ? dateOf(sheet) : undefined)),
-  });
+  const autoOf = (sheet: PatientMedicalRecordDto): FieldValues => {
+    const spec = formSpecOf(sheet.form);
+    const day = spec.dateLabel ? dateOf(sheet) : undefined;
+    const printedDay = day?.format("DD/MM/YYYY");
+    const dated = printedDay
+      ? Object.fromEntries((spec.dateFieldKeys ?? []).map((key) => [key, printedDay]))
+      : {};
+    return { ...auto, ...diagnosisFieldValues(diagnosesFrom(day)), ...factValues, ...dated };
+  };
 
   /** Writes a value picked outside the sheet into the blanks that print it. */
   const writeOnSheet = (sheet: PatientMedicalRecordDto, keys: readonly string[], printed: string) => {

@@ -36,6 +36,7 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly MedicalRecordSheetFactsBuilder _sheetFacts;
 
     public MedicalRecordSetAppService(
         IRepository<MedicalRecordSet, Guid> repository,
@@ -45,7 +46,8 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
         IRepository<PatientDiagnosis, Guid> diagnosisRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        MedicalRecordSheetFactsBuilder sheetFacts)
     {
         _repository = repository;
         _patientRepository = patientRepository;
@@ -55,6 +57,7 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
         _catalogRepository = catalogRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
+        _sheetFacts = sheetFacts;
     }
 
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
@@ -104,7 +107,8 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
             patient.Id,
             patient.BranchId,
             await NextCodeAsync(patient),
-            VisibleFormsOf(input.VisibleForms));
+            VisibleFormsOf(input.VisibleForms),
+            await NextOutpatientSequenceAsync(patient));
 
         await HoldExactlyAsync(set, input.TreatmentPlanIds);
         await _repository.InsertAsync(set, autoSave: true);
@@ -132,6 +136,14 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
 
         await _repository.UpdateAsync(set, autoSave: true);
         return (await MapAsync([set])).Single();
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
+    public async Task<MedicalRecordSheetFactsDto> GetSheetFactsAsync(Guid id)
+    {
+        var set = await GetInBranchAsync(id);
+        var patient = await _patientRepository.GetAsync(set.PatientId);
+        return await _sheetFacts.BuildAsync(set, patient);
     }
 
     /// <summary>
@@ -194,6 +206,25 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
             var query = await _repository.GetQueryableAsync();
             var taken = await AsyncExecuter.CountAsync(query.Where(x => x.Code.StartsWith(prefix)));
             return MedicalRecordSet.CodeFor(patient.PatientCode, day, taken + 1);
+        }
+    }
+
+    /// <summary>
+    /// The xxxx of Số ngoại trú: the sets the branch opened this clinic day,
+    /// deleted ones too, so a number is never given twice.
+    /// </summary>
+    private async Task<int> NextOutpatientSequenceAsync(Patient patient)
+    {
+        var day = ClinicCalendar.DateOf(new DateTimeOffset(DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc)));
+        var from = ClinicCalendar.StartOfDay(day).UtcDateTime;
+        var to = ClinicCalendar.StartOfDay(day.AddDays(1)).UtcDateTime;
+
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var query = await _repository.GetQueryableAsync();
+            var opened = await AsyncExecuter.CountAsync(query.Where(x =>
+                x.ClinicBranchId == patient.BranchId && x.CreationTime >= from && x.CreationTime < to));
+            return opened + 1;
         }
     }
 
