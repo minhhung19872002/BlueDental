@@ -24,6 +24,7 @@ import { useCurrentBranchId, useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "@/features/appointments/hooks/useCalendarState";
+import { brand } from "@/theme/index";
 import "./timekeeping.css";
 
 function AttendanceGuideContent() {
@@ -183,7 +184,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
         <div className="cal-toolbar-row2-left">
           <FloatingLabel label={t("Timekeeping:SearchLabel")} floated={Boolean(keyword)}>
             <Input
-              prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+              prefix={<SearchOutlined style={{ color: brand.faint }} />}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               allowClear
@@ -195,7 +196,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
             trigger="hover"
             placement="bottomLeft"
             overlayClassName="tk-guide-popover"
-            overlayInnerStyle={{ background: "#171c33", padding: 16, borderRadius: 10 }}
+            overlayInnerStyle={{ background: brand.ink, padding: 16, borderRadius: 10 }}
             overlayStyle={{ maxWidth: 380 }}
           >
             <button

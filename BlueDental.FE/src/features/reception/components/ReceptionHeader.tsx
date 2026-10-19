@@ -9,6 +9,7 @@ import {
 import { DateViewSelector } from "./DateViewSelector";
 import type { ReceptionMetrics } from "../types/reception";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 const { Title, Text } = Typography;
 
@@ -68,7 +69,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #e7eaf6",
+              border: `1px solid ${brand.line}`,
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -79,7 +80,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   width: 46,
                   height: 46,
                   borderRadius: 14,
-                  background: "rgba(99, 102, 241, 0.1)",
+                  background: "rgba(123, 46, 240, 0.1)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -109,7 +110,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #e7eaf6",
+              border: `1px solid ${brand.line}`,
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -150,7 +151,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #e7eaf6",
+              border: `1px solid ${brand.line}`,
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -191,7 +192,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #e7eaf6",
+              border: `1px solid ${brand.line}`,
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -202,11 +203,11 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   width: 46,
                   height: 46,
                   borderRadius: 14,
-                  background: "rgba(99, 102, 241, 0.1)",
+                  background: "rgba(123, 46, 240, 0.1)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#6366F1",
+                  color: brand.primary,
                   fontSize: 22,
                 }}
               >

@@ -8,8 +8,8 @@ import {
  * order and wording, each with the tint and accent it draws the row in.
  *
  * The colours cycle through seven: rows 8 and 9 repeat rows 1 and 2, which is
- * what the reference does. Measured off its own computed styles — see
- * docs/clone/pages/patient-detail.md §Bệnh án.
+ * what the reference does (docs/clone/pages/patient-detail.md §Bệnh án). The
+ * seven hues are the reference's; the steps are the app's v3 families (R-991).
  */
 export interface MedicalRecordFormSpec {
   form: MedicalRecordForm;
@@ -60,33 +60,48 @@ export interface MedicalRecordFormSpec {
   doctorFieldKeys?: { name: string[]; jobTitle: string[] };
 }
 
+/** Each family's *-subtle step and its solid step, as --bd-* tokens. */
+const FORM_FAMILY = {
+  info: ["--bd-info-pale", "--bd-info"],
+  aqua: ["--bd-aqua-pale", "--bd-aqua"],
+  orange: ["--bd-orange-pale", "--bd-orange"],
+  orchid: ["--bd-purple-pale", "--bd-purple"],
+  gold: ["--bd-gold-100", "--bd-gold-700"],
+  success: ["--bd-green-pale", "--bd-green"],
+  danger: ["--bd-red-pale", "--bd-red"],
+} as const;
+
+/** The row is half the family's tint on white; the icon chip the full tint. */
+function formTone(family: keyof typeof FORM_FAMILY) {
+  const [pale, solid] = FORM_FAMILY[family];
+  return {
+    tint: `color-mix(in srgb, var(${pale}) 50%, var(--bd-card))`,
+    accent: `var(${solid})`,
+    iconBg: `var(${pale})`,
+  };
+}
+
 export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   {
     form: MEDICAL_RECORD_FORM.Cover,
     fillable: true,
     index: 1,
     label: "Bìa hồ sơ bệnh án",
-    tint: "#f4f8ff",
-    accent: "#3075cc",
-    iconBg: "#e5f0ff",
+    ...formTone("info"),
   },
   {
     form: MEDICAL_RECORD_FORM.OutpatientDental,
     fillable: true,
     index: 2,
     label: "Bệnh án ngoại trú Răng Hàm Mặt",
-    tint: "#f0fbf9",
-    accent: "#22b5a6",
-    iconBg: "#d8f6f2",
+    ...formTone("aqua"),
   },
   {
     form: MEDICAL_RECORD_FORM.Orthodontic,
     fillable: true,
     index: 3,
     label: "Bệnh án chỉnh nha",
-    tint: "#fff7f1",
-    accent: "#d97a40",
-    iconBg: "#ffe6d5",
+    ...formTone("orange"),
   },
   {
     form: MEDICAL_RECORD_FORM.GeneralConsultation,
@@ -95,9 +110,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     dateFieldKeys: ["general-consultation.text.14", "consultation.text.4"],
     index: 4,
     label: "Phiếu Tư Vấn Tổng Quát",
-    tint: "#faf6ff",
-    accent: "#a174e0",
-    iconBg: "#eee1ff",
+    ...formTone("orchid"),
   },
   {
     form: MEDICAL_RECORD_FORM.TreatmentConsent,
@@ -107,9 +120,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     dateFieldKeys: ["consultation.text.4"],
     index: 5,
     label: "Phiếu tư vấn và xác nhận đồng ý điều trị",
-    tint: "#fff9ef",
-    accent: "#e2a32a",
-    iconBg: "#fff0d5",
+    ...formTone("gold"),
   },
   {
     form: MEDICAL_RECORD_FORM.SurgeryConsent,
@@ -118,18 +129,14 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     doctorFieldKeys: { name: ["surgery-consent.text.1"], jobTitle: ["surgery-consent.text.2"] },
     index: 6,
     label: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật",
-    tint: "#f2fcf5",
-    accent: "#18aa65",
-    iconBg: "#ddf8e5",
+    ...formTone("success"),
   },
   {
     form: MEDICAL_RECORD_FORM.SurgeryRecord,
     fillable: true,
     index: 7,
     label: "Phiếu phẫu thuật/thủ thuật",
-    tint: "#fff5f7",
-    accent: "#f05d79",
-    iconBg: "#ffe1e7",
+    ...formTone("danger"),
   },
   {
     form: MEDICAL_RECORD_FORM.TreatmentFollowUp,
@@ -139,9 +146,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     dateLabel: "Patient:MedRecord:PerformedDate",
     index: 8,
     label: "Phiếu theo dõi điều trị",
-    tint: "#f4f8ff",
-    accent: "#3075cc",
-    iconBg: "#e5f0ff",
+    ...formTone("info"),
   },
   {
     form: MEDICAL_RECORD_FORM.CareSheet,
@@ -151,9 +156,7 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     dateLabel: "Patient:MedRecord:PerformedDate",
     index: 9,
     label: "Phiếu chăm sóc",
-    tint: "#f0fbf9",
-    accent: "#22b5a6",
-    iconBg: "#d8f6f2",
+    ...formTone("aqua"),
   },
 ];
 

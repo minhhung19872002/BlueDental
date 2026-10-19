@@ -11,6 +11,7 @@ import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
 import { ShownHoursButton } from "./ShownHoursButton";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 interface Props {
   keyword: string;
@@ -55,7 +56,7 @@ export function CalendarToolbarRow2({
         <div className="cal-search-field">
           <FloatingLabel label={t("Common:Search")} floated={Boolean(keyword)}>
             <Input
-              prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+              prefix={<SearchOutlined style={{ color: brand.faint }} />}
               value={keyword}
               onChange={(e) => onKeywordChange(e.target.value)}
               allowClear

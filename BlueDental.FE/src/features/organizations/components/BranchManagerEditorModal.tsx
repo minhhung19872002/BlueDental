@@ -7,6 +7,7 @@ import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
 import type { BranchManagerDto } from "../api/branchManagerApi";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 export interface BranchManagerFormValues {
   password: string;
@@ -147,7 +148,7 @@ export function BranchManagerEditorModal({
             height: 96,
             borderRadius: "50%",
             overflow: "hidden",
-            background: "#f0f2fa",
+            background: brand.bgSoft,
             cursor: "pointer",
           }}
           onClick={() => fileInputRef.current?.click()}
@@ -159,7 +160,7 @@ export function BranchManagerEditorModal({
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="#99a0bd">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill={brand.faint}>
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           )}

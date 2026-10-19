@@ -340,7 +340,7 @@ test.describe("Patient Labo tab", () => {
     await expect(dialog.locator(".pd-labo-strip--error")).toHaveCount(2);
     await expect(field(dialog, "Nhà cung cấp").locator(".floating-field-label")).toHaveCSS(
       "color",
-      "rgb(229, 72, 77)",
+      "rgb(201, 69, 90)",
     );
     await expect(dialog).toBeVisible();
 

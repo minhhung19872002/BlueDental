@@ -72,7 +72,7 @@
 .inv-table .ant-table-wrapper .ant-table-thead > tr > th {
   height: 40px;
   padding: 8px 16px;
-  color: #5a6b82;
+  color: var(--bd-muted);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;
@@ -182,7 +182,7 @@
 }
 
 .inv-card {
-  border: 2px solid var(--bd-primary, #4361ee);
+  border: 2px solid var(--bd-primary);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -192,7 +192,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: var(--bd-primary, #4361ee);
+  background: var(--bd-primary);
   color: #fff;
   font-weight: 700;
   font-size: 14px;

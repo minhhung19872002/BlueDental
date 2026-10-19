@@ -9538,6 +9538,79 @@ Vòng 2 cùng ngày, owner sửa:
   - Spec `medical-record-set` **3/3**: dùng 3 phiếu điều trị; khoá ở cả hai popup; chuyển phiếu qua hai bước; popup thấy "Hoàn thành" mà không cần reload.
   - `patient-medical-record` + `medical-record-drawing`: **33 pass / 2 đỏ có sẵn** (R-963).
 
+## R-988 (2026-10-19, mức 3: màu toàn FE + bảng màu trạng thái dùng chung) Đổi màu sang design system "Đức Hạnh Premium" v3 (grape)
+
+- **Yêu cầu owner**: lấy màu theo artifact design system v3 do đồng nghiệp gửi ("lấy màu thui nha").
+  - Chỉ đổi màu. Font, bo góc, kích thước, layout và logo giữ nguyên.
+  - Số liệu lấy từ `tokens.json` của artifact. Preview của artifact không dựng lại được ngoài host, vì host mới là nơi chèn token.
+- **Owner chốt**:
+  - **Làm phẳng đúng v3**:
+    - Bỏ gradient và nền loang (`body::before`, `meshDrift`).
+    - Nút chính tô đặc grape-600 `#7B2EF0`.
+    - Mục đang chọn: nền grape-100 `#EEE5FF`, chữ grape-800 `#4F17A0` (token mới `--bd-primary-ink`). Không có ô tô đặc thứ hai.
+    - Segmented: rãnh neutral-100, ô được chọn nền trắng.
+  - **Link** dùng grape-700 `#6620CC`. Giao diện bỏ màu xanh tham chiếu `#2671d8`.
+  - **Lịch tạm / Không đến / Hoàn tiền** dùng orchid: `#9C5CAF` cho chấm/viền, `#834596` cho chữ, `#F6EBFC` cho nền, `#DDB6F2` cho đường kẻ.
+- **Token**: `:root` trong `src/styles/index.css` khớp với `brand` trong `src/theme/index.ts`. Tên token giữ nguyên.
+  - Màu chính `#6366f1` → `#7B2EF0`. Hover `#6620CC`. Bản nhạt `#EEE5FF` / `#DCC8FF`.
+  - `--bd-accent` đổi từ cyan sang grape-400 `#A875FF`, chỉ dùng cho hình khối.
+  - Chữ, nền, viền chuyển sang dải neutral ánh tím:
+    - ink `#1C1A23`, body `#2E2B38`, muted `#5E5A6E`
+    - line `#E6E4EE`, bg-soft `#F3F2F7`, bg `#FAF9FC`
+  - Trạng thái 4 bậc theo v3: success `#2E8A5E`, warning `#B4691A`, danger `#C9455A`, info `#2F78B5`, orchid `#9C5CAF`. Bậc 100 cho nền, 300 cho viền, 600 cho chấm, 700 cho chữ.
+  - Bóng đổ dùng `rgba(28, 26, 35, …)`, giữ độ mờ cũ. Focus ring `0 0 0 2px #C4A3FF`. `--bd-shadow-glow: none`.
+  - AntD theme:
+    - `Button.primaryShadow` = none.
+    - Segmented, Pagination và Menu hiển thị mục được chọn bằng nền grape-100.
+- **Code**:
+  - `theme/statusPalette.ts` (`SOLID`, `TONE`, `STATUS_COLOR`, `STATUS_TONE`) là nguồn duy nhất cho màu trạng thái lịch hẹn. Đây là lý do mức 3.
+    - Các bản sao trước đây giờ import từ đó: CalendarControlPanel, CalendarStatusCounters, ReceptionCard, ReceptionStatusTabs, PatientAppointmentPanel, EventCard.
+    - EventCard bỏ `CARD_LOOK`.
+  - Các chỗ sau lấy màu từ `brand.*`, không còn mã hex:
+    - màu vẽ canvas/SVG: sơ đồ răng, bản vẽ, cấu hình gọi số, lịch mini
+    - trạng thái hóa đơn (`billing/api`)
+    - tông gray của `LABO_PILL_TONE`
+  - Quét mã hex v2 trong `src/**/*.{css,ts,tsx}` bằng script map cũ → mới. Trong CSS, mã nào có token khớp thì đổi sang `var(--bd-*)`.
+  - Các ô "đang chọn" trước đây tô đặc hoặc gradient nay dùng nền nhạt, chữ grape-800. Gồm: pill-tab, Segmented, tab chi tiết bệnh nhân, bộ lọc phiếu điều trị, tab báo cáo, tab labo, header tuần chấm công.
+  - Cột biểu đồ ở dashboard dùng grape-300.
+  - Sửa luôn vài fallback chết trong `var(--x, #hex)`: giá trị dự phòng v2 không bao giờ được dùng tới.
+  - Tổng cộng 64 file trong `src/` và 5 spec e2e.
+- **Giữ nguyên có chủ ý** (đừng "sửa" khi chưa hỏi owner):
+  - **Bảng màu là dữ liệu đã lưu DB**: AppointmentColorPicker, PatientTagModal, CategoryColorFields, `marketing/ticketConfig.ts`, LetterAvatar, `PEN_COLORS`. Ô cầu vồng chọn màu bút ở tab Hình ảnh (`patient-image.css`) cũng giữ nguyên.
+  - **Tờ in**: `medical-record/sheetCss.ts` và `public/medical-record-templates`. Giữ xanh `#2671d8` theo mẫu giấy.
+  - **`features/taxonomy/**`**: không sửa code (mục 17). Màu đổi theo token gốc và theo class dùng chung `.pill-tab--active`.
+  - **Ô chọn kiểu checkbox vẫn tô đặc**: ngày trên DateNavigator, ô giờ tái khám, chọn răng, ô tick, ngày lặp lịch.
+  - **Pill đã đo theo bản gốc**: `LABO_PILL_TONE` (chỉ tông gray đổi qua token), chip trạng thái điều trị bệnh nhân, `.rc-temp-tab`.
+  - `--bd-orange*` (thông báo combo, P0510) và `--bd-pink`.
+- **Test**:
+  - Môi trường: build production chạy `vite preview` ở 127.0.0.1, cổng riêng, với host :5000 và PostgreSQL thật, không chặn API.
+  - Đối chứng: bản `git archive HEAD` build riêng, chạy ở cổng khác.
+  - `tsc -b` và `vite build` sạch. Grep `src/` không còn `#6366f1`, `#22d3ee`, `#4f46e5` hay `rgba(99,102,241…)` ngoài các file loại trừ.
+  - Đổi hằng số màu trong các spec kiểm màu sang v3:
+    - `patient.spec`: APP_PRIMARY, REFERENCE_BLUE, "Đang điều trị", red
+    - `reception-wait-time`: INDIGO, AMBER, RED
+    - `reception-follow-up`, `labo-warranty`: red
+    - `consulting-plan:265`: link
+    - `patient-medical-record:816` (dấu tick trên tờ in) giữ nguyên.
+  - Các spec kiểm màu: **28/29**. Ca còn đỏ, `labo-warranty:315`, là đỏ có sẵn:
+    - Bản R-988 qua được bước kiểm màu đỏ mới ở dòng 343, rồi mới đỏ ở `fillDueDate` (dòng 412).
+    - Ô "Ngày nhận dự kiến" là DatePicker có mask. `fill()` không ghi được chữ vào nên ô vẫn hiện `DD/MM/YYYY`.
+    - Chạy spec của HEAD trên bản build HEAD: đỏ y hệt, 2/2 lần.
+  - Bộ test bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`): **89/93**.
+    - 3 ca `taxonomy-dialogs:104`, `taxonomy-dialogs:256`, `taxonomy-groups:169` đỏ y hệt trên bản HEAD. Nguyên nhân là dữ liệu local (DANHTEST01 + 155 nhóm BD-001).
+    - `taxonomy-import-api:431` chập chờn: chạy lại thì xanh trên cả hai bản.
+  - Nhóm `patient.spec`, `patient-appointment`, `patient-image`, `reception-*`, `appointment*` trên bản R-988: **137 pass / 16 đỏ / 4 skip**.
+    - 12 ca đỏ y hệt khi chạy spec của HEAD trên bản build HEAD, nên là đỏ có sẵn:
+      - `appointment-day-timeline:271`
+      - `appointment-patient-link:20` (×2)
+      - `appointment-working-hours:178` (409 `Appointment:0006`)
+      - 4 ca `patient-image` (đã ghi ở R-989)
+      - `patient.spec` 1816, 3336, 3609 (TEMP-BUG25-OFF), 3864 (thiếu dữ liệu demo)
+    - 4 ca còn lại xanh trên HEAD, và xanh 2/2 lần khi chạy riêng trên bản R-988: `patient.spec` 2182, 2506, 3090 và `reception-own-doctor:33`. Chúng chỉ chập chờn khi chạy chung một lượt dài (dữ liệu, thứ tự chạy), không do R-988.
+    - Ca 2506 kiểm màu nhãn khi focus: nhãn ra đúng grape `rgb(123, 46, 240)`.
+  - Khi review sau đó: script quét từng đổi cả mã hex nằm trong **comment** ghi số đo của bản gốc, ví dụ "bg #f0f2fa text #5c6484" thành `var(--bd-*)`. Đã trả lại 16 dòng comment như vậy (cskh, labo, medical-record, patient-detail, advise-modal, index.css). Code đã quét giữ nguyên. Hai comment "brand is indigo" sửa thành grape.
+- Đã commit trên `develop` (cùng R-991).
+
 ## R-989 (2026-10-19, mức 3: hình ảnh bệnh nhân + camera dùng chung) Nút "Chụp ảnh" cạnh "Tải ảnh" ở tab Hình ảnh
 
 - **Yêu cầu BA** (không có trên bản gốc): thêm nút "Chụp ảnh" cạnh "Tải ảnh". Kiểm tra máy có camera không, có thì mở camera ngay trên trang, chụp và tải lên.
@@ -9630,3 +9703,42 @@ Vòng 2 cùng ngày, owner sửa:
   - `StaffNote:0003` không gọi tới được qua HTTP với các tài khoản seed (ai cũng có chi nhánh riêng), nên chỉ domain test phủ.
   - Hồi quy mức 3: `auth`, `branch-code-url`, `branch-switcher`, `header-navigation`, `patient-back-origin`, `popup-placement`, `routes` **45/48**. 3 ca đỏ ở `header-navigation` đỏ y hệt trên bản build HEAD (`/reception$` so với `?branch=BD-001`, drawer đếm 17 thay vì 14, nhãn "Tiếng Việt"), nên không do F-74.
 - Đã commit trên `develop`.
+
+## R-991 (2026-10-19, mức 1 + các màn TSX có đổi màu) Quét nốt màu lệch bảng v3 sau R-988
+
+- **Yêu cầu owner**: "màu nào đặc thù quá và phù hợp thì giữ nguyên, không thì sửa luôn". Đây là lượt quét những mã hex R-988 chưa đổi: màu Tailwind/Material còn sót, xanh tham chiếu, xám riêng của từng màn.
+  - Lượt này ban đầu đặt tên R-990, nhưng R-990 đã thuộc staff-notes (F-74, commit 35ac3082) nên đổi thành R-991.
+- **Token mới**: họ màu phân loại, không bao giờ là trạng thái. Có trong `:root` của `src/styles/index.css` và `brand` trong `src/theme/index.ts`.
+  - aqua `#0f7c74` / pale `#e3f7f5` / line `#a6e3dc`
+  - lavender `#5b6fc9` / ink `#4657af` / pale `#eef0ff` / line `#bfc6f7`
+  - gold-100…700 `#fff0d1` `#ffe2a6` `#fed07a` `#f0a72a` `#9a620a`
+  - `brand` thêm greenLine, redLine, purpleLine, aqua, aquaPale, lavender, lavenderPale, lavenderLine, gold200, gold500
+  - Lý do: v3 không có bậc aqua, lavender, gold. Mấy màu phân loại đo từ bản gốc (thẻ mẫu bệnh án, chip thư viện tư vấn, phương thức thanh toán) mà dồn vào grape hay màu trạng thái thì trông như một trạng thái.
+- **Đổi sang token**:
+  - CSS: patient-detail, reception (`.rc-temp-tab` → orchid), appointment-history (+ `historyLabels.ts`), consulting-library, treatment-plan, patient-care, patient-image, medical-record, quote (chỉ nút bật/tắt trên màn hình), queue, labo-order-dialog, plan-detail, advise-modal, timekeeping, ToothChart, DateNavigator, prescription, report.
+    - Chip thanh toán ở báo cáo: tiền mặt = green, ngân hàng = amber, thẻ = lavender. Viền chuyển khoản dùng `--bd-border-strong`.
+  - TSX/TS:
+    - `medicalRecordForms.ts`: 9 thẻ mẫu dùng `formTone(family)`. Nền thẻ là bậc pale trộn 50% với nền card, accent là bậc đậm, nền icon là bậc pale. Bảy sắc giữ theo bản gốc, chỉ các bậc lấy từ v3.
+    - `DentalChartView.tsx`: màu răng lấy từ `brand.*`; răng đang chọn tô grape.
+    - `rowHandles.ts`, `sketchPaint.ts`, `SketchToolOptions.tsx`: lấy từ `brand.*` / token.
+    - `patientAppointmentColumns.tsx`: bỏ bảng màu Material riêng, dùng `STATUS_TONE`.
+- **Owner chốt / quyết định trong lượt này**:
+  - **Hủy hẹn = warning, Trễ hẹn = danger** ở mọi nơi. Tab tóm tắt lịch hẹn của bệnh nhân trước đây đảo ngược hai màu này, nay đã thống nhất theo `STATUS_TONE`.
+  - Pill trạng thái điều trị trên tờ in chi tiết bệnh nhân dùng chung tông v3 với chip trong bảng, chỉ khác hình dạng. Spec `patient.spec` dùng hằng `STATUS_CHIP` thay cho `REFERENCE_STATUS`, và bỏ ca "khác màu với bảng".
+- **Giữ nguyên có chủ ý**:
+  - Tờ in: `sheetCss`, hai tờ báo giá, print-medical-record, prescription-print, diagnosis-print, tờ A4 trống trong patient-detail (dòng 2601–2618), nét gạch ở plan-detail:671.
+  - Bảng màu là dữ liệu đã lưu: CategoryColorFields, ticketConfig, LetterAvatar, AppointmentColorPicker, `PEN_COLORS` / useViewerAnnotation, PatientTagModal.
+  - Bảng màu kiểu Paint ở `sketch.ts`, các tông xám của trình xem ảnh nền tối, ô cầu vồng ở patient-image.
+  - Code `features/taxonomy/**`, `--bd-orange*`, `--bd-pink`.
+- **Test** (build production `vite preview` 127.0.0.1:8173 `--strictPort`, host :5000 và PostgreSQL thật, không chặn request):
+  - `tsc -b && vite build` sạch. Quét lại `src/`: mã hex lệch bảng chỉ còn ở định nghĩa token v3 và các mục giữ nguyên.
+  - Đo bằng trình duyệt:
+    - Tab Bệnh án: 9 thẻ hiện đúng họ màu v3.
+    - Chip báo cáo: tiền mặt rgb(227,246,236)/rgb(46,138,94), ngân hàng rgb(255,241,222)/rgb(180,105,26), thẻ rgb(238,240,255)/rgb(91,111,201).
+  - Spec sửa hằng số màu: `patient.spec` (`STATUS_CHIP`, vùng thả ảnh `rgb(230, 228, 238)`), `debt-history` (green `rgb(46, 138, 94)`), `reception-temporary` (orchid `rgb(246, 235, 252)`).
+  - E2E toàn bộ trên bản R-991 (207 test, 1 worker): **187 xanh, 20 đỏ**. Không đỏ nào do R-991 — các spec labo / bệnh án / bệnh nhân bị đỏ không kiểm màu.
+    - 10 đỏ trùng baseline R-988: labo-warranty:315 (DatePicker có mask), patient-image 125/222/254/282, `patient.spec` 1811 / 2177 (fixture tràn) / 3329 / 3602 (TEMP-BUG25-OFF) / 3857 (thiếu dữ liệu demo).
+    - 7 đỏ y hệt trên bản build HEAD (cổng 8174, spec của HEAD) nên có từ trước: labo-orders-actions:88, labo:156, patient-medical-record:190 và :1568, `patient.spec` 2282 và 2389 (HEAD 2287 / 2394), report:294 (cột xuất Excel).
+    - 3 xanh trên HEAD (patient-appointment:322, patient-medical-record:857, `patient.spec`:1900): chạy riêng trên bản R-991 `--repeat-each=2` được 6/6 xanh → chập chờn do thứ tự / dữ liệu khi chạy chung.
+  - Kết quả R-988 vẫn giữ: 28/29 spec có kiểm màu, taxonomy 89/93 (đỏ có từ trước).
+- Đã commit trên `develop` (cùng R-988).

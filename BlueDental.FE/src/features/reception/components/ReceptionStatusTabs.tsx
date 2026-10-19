@@ -6,6 +6,7 @@ import type {
   ReceptionMetrics,
   ReceptionCounters,
 } from "../types/reception";
+import { STATUS_TONE } from "@/theme/statusPalette";
 
 type CounterKey = keyof ReceptionCounters;
 
@@ -39,12 +40,12 @@ interface StatChipConfig {
 }
 
 const STAT_CHIP_CONFIGS: StatChipConfig[] = [
-  { key: "scheduledCount", bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
-  { key: "arrivedCount",   bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
-  { key: "cancelledCount", bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
-  { key: "lateCount",      bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
-  { key: "temporaryCount", bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
-  { key: "convertedCount", bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "scheduledCount", ...STATUS_TONE.scheduled },
+  { key: "arrivedCount", ...STATUS_TONE.arrived },
+  { key: "cancelledCount", ...STATUS_TONE.cancelled },
+  { key: "lateCount", ...STATUS_TONE.late },
+  { key: "temporaryCount", ...STATUS_TONE.temporary },
+  { key: "convertedCount", ...STATUS_TONE.converted },
 ];
 
 const TAB_LABELS: Record<ReceptionStatus, string> = {

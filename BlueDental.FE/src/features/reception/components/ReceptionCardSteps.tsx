@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import type { ReceptionItem } from "../types/reception";
 import type { WaitLevel, WaitState } from "../utils/waitTime";
 import { WaitTimerChip } from "./WaitTimerChip";
+import { brand } from "@/theme/index";
 
 type StepAction = "check-in" | "start" | "complete";
 
@@ -34,9 +35,9 @@ interface StepView {
   action?: StepAction;
 }
 
-const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
-const CANCEL_COLOR = "#e5484d";
-const IDLE_COLOR = "#e7eaf6";
+const STEP_COLORS = [brand.primary, brand.amber, brand.green] as const;
+const CANCEL_COLOR = brand.red;
+const IDLE_COLOR = brand.line;
 const WAIT_COLORS: Record<WaitLevel, string> = {
   normal: "var(--bd-green)",
   warning: "var(--bd-amber)",

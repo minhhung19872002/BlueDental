@@ -3,17 +3,17 @@
 
 .pi-tab {
   /* Reference colours that no --bd-* token stands for. */
-  --pi-line: #dce3ee;
-  --pi-line-soft: #d6e6f7;
-  --pi-ink: #1b2a41;
-  --pi-muted: #5a6b82;
-  --pi-panel: #f8fbff;
-  --pi-pill: #bfc3cb;
-  --pi-dot: #3e8ad8;
-  --pi-hover: #f6f8fb;
-  --pi-upload-hover: #e7f0fb;
-  --pi-delete-bg: #fff1f1;
-  --pi-delete-bg-hover: #ffe2e2;
+  --pi-line: var(--bd-line);
+  --pi-line-soft: var(--bd-line);
+  --pi-ink: var(--bd-ink);
+  --pi-muted: var(--bd-muted);
+  --pi-panel: var(--bd-bg);
+  --pi-pill: var(--bd-border-strong);
+  --pi-dot: var(--bd-primary);
+  --pi-hover: var(--bd-bg);
+  --pi-upload-hover: var(--bd-hover-tint);
+  --pi-delete-bg: var(--bd-red-pale);
+  --pi-delete-bg-hover: color-mix(in srgb, var(--bd-red-line) 35%, var(--bd-red-pale));
   --pi-shadow-card: 0 10px 24px rgba(15, 23, 42, 0.05);
   --pi-shadow-drag: 0 18px 36px color-mix(in srgb, var(--bd-primary) 16%, transparent);
 
@@ -72,7 +72,7 @@
   gap: 8px;
   height: 44px;
   padding: 0 16px;
-  border: 1px dashed #b9c4d4;
+  border: 1px dashed var(--bd-border-strong);
   border-radius: 12px;
   background: transparent;
   color: var(--bd-link);
@@ -443,7 +443,7 @@
   color: var(--bd-link);
 }
 .pi-round--view:hover {
-  color: #1e5bb0;
+  color: var(--bd-link);
 }
 .pi-round--delete {
   border: 0;
@@ -684,7 +684,7 @@
   padding: 12px;
   border: 1px solid var(--bd-line);
   border-radius: 16px;
-  box-shadow: 0 6px 16px rgb(27 42 65 / 8%);
+  box-shadow: 0 6px 16px rgb(28 26 35 / 8%);
 }
 .pi-pen-palette {
   display: flex;

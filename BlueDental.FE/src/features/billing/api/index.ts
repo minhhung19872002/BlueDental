@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 /** Matches BlueDental.Billing.InvoiceStatus. */
 export const INVOICE_STATUS = {
@@ -18,13 +19,13 @@ export const invoiceStatusConfig = (): Record<
   InvoiceStatus,
   { label: string; color: string }
 > => ({
-  [INVOICE_STATUS.Draft]: { label: t("Billing:Status:Draft"), color: "#78819c" },
-  [INVOICE_STATUS.Issued]: { label: t("Billing:Status:Issued"), color: "#6366f1" },
-  [INVOICE_STATUS.PartiallyPaid]: { label: t("Billing:Status:PartiallyPaid"), color: "#d98b0f" },
-  [INVOICE_STATUS.Paid]: { label: t("Billing:Status:Paid"), color: "#0e9f6e" },
-  [INVOICE_STATUS.Overdue]: { label: t("Billing:Status:Overdue"), color: "#e5484d" },
-  [INVOICE_STATUS.Voided]: { label: t("Billing:Status:Voided"), color: "#7d85a5" },
-  [INVOICE_STATUS.Refunded]: { label: t("Billing:Status:Refunded"), color: "#7c5ce0" },
+  [INVOICE_STATUS.Draft]: { label: t("Billing:Status:Draft"), color: brand.dim },
+  [INVOICE_STATUS.Issued]: { label: t("Billing:Status:Issued"), color: brand.primary },
+  [INVOICE_STATUS.PartiallyPaid]: { label: t("Billing:Status:PartiallyPaid"), color: brand.amber },
+  [INVOICE_STATUS.Paid]: { label: t("Billing:Status:Paid"), color: brand.green },
+  [INVOICE_STATUS.Overdue]: { label: t("Billing:Status:Overdue"), color: brand.red },
+  [INVOICE_STATUS.Voided]: { label: t("Billing:Status:Voided"), color: brand.dim },
+  [INVOICE_STATUS.Refunded]: { label: t("Billing:Status:Refunded"), color: brand.purple },
 });
 
 /** Matches BlueDental.Billing.PaymentMethod. */

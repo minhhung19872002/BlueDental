@@ -76,7 +76,7 @@ a.pdt-crumb:hover {
 }
 .pdt-body .pdt-table.bd-cat-card {
   border-color: var(--tp-line);
-  box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
+  box-shadow: 0 2px 6px rgba(28, 26, 35, 0.06);
 }
 
 /* ── Tab strip + money summary ──
@@ -137,13 +137,13 @@ a.pdt-crumb:hover {
   white-space: nowrap;
 }
 .pdt-stat--green dd {
-  color: #2bb673;
+  color: var(--bd-green);
 }
 .pdt-stat--red dd {
-  color: #e5484d;
+  color: var(--bd-red);
 }
 .pdt-stat--amber dd {
-  color: #d97706;
+  color: var(--bd-amber);
 }
 
 /* ── One tab's content ── */
@@ -334,11 +334,11 @@ a.pdt-crumb:hover {
   color: var(--tp-ink);
 }
 .pdt-row-action--danger {
-  color: #e5484d;
+  color: var(--bd-red);
 }
 .pdt-row-action--danger:hover {
-  background: rgba(229, 72, 77, 0.1);
-  color: #e5484d;
+  background: rgba(201, 69, 90, 0.1);
+  color: var(--bd-red);
 }
 
 /* "Xác nhận thanh toán" on a "Chưa thanh toán" row, in the primary colour. */
@@ -1031,9 +1031,9 @@ a.pdt-crumb:hover {
   flex-direction: column;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #e7edf6;
+  border: 1px solid var(--bd-line);
   border-radius: 12px;
-  background: #f8fafd;
+  background: var(--bd-bg);
 }
 .cvt-staff-row {
   display: flex;

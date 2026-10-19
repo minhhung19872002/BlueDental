@@ -75,7 +75,7 @@ export function ConfirmCancelDialog({ open, name, pending, onConfirm, onClose }:
         status={error ? "error" : undefined}
       />
       {error && (
-        <p style={{ margin: "4px 0 0", color: "var(--bd-danger, #e5484d)", fontSize: 13 }}>
+        <p style={{ margin: "4px 0 0", color: "var(--bd-red)", fontSize: 13 }}>
           {t("Common:CancelReasonRequired")}
         </p>
       )}

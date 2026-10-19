@@ -448,7 +448,7 @@ test.describe("Tiếp nhận — thanh tiến trình khi huỷ hẹn", () => {
     await page.reload();
     const card = await cardOf(page, visit);
     expect(await barOf(card)).toEqual({ labels: ["Huỷ hẹn"], times: [hhmm(cancelled.cancelledAt!)] });
-    await expect(card.locator(".rc-step-label").last()).toHaveCSS("color", "rgb(229, 72, 77)");
+    await expect(card.locator(".rc-step-label").last()).toHaveCSS("color", "rgb(201, 69, 90)");
     await expect(card.locator(".rc-step")).toHaveCount(1);
   });
 
@@ -471,9 +471,9 @@ test.describe("Tiếp nhận — thanh tiến trình khi huỷ hẹn", () => {
     expect(bar.times[1]).toBe(`${hhmm(cancelled.startedAt!)} · chờ ${waited}p`);
     expect(bar.times[2]).toBe(hhmm(cancelled.cancelledAt!));
     const labels = reloaded.locator(".rc-step-label");
-    await expect(labels.nth(0)).not.toHaveCSS("color", "rgb(229, 72, 77)");
-    await expect(labels.nth(1)).not.toHaveCSS("color", "rgb(229, 72, 77)");
-    await expect(labels.nth(2)).toHaveCSS("color", "rgb(229, 72, 77)");
+    await expect(labels.nth(0)).not.toHaveCSS("color", "rgb(201, 69, 90)");
+    await expect(labels.nth(1)).not.toHaveCSS("color", "rgb(201, 69, 90)");
+    await expect(labels.nth(2)).toHaveCSS("color", "rgb(201, 69, 90)");
     // Nothing on a cancelled bar moves it on.
     for (const step of await reloaded.locator(".rc-step").all()) await expect(step).toBeDisabled();
   });

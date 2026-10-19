@@ -11,14 +11,16 @@ import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
 import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
+import { STATUS_TONE } from "@/theme/statusPalette";
+import { brand } from "@/theme/index";
 
 const STATUS_CHIPS = [
-  { key: "scheduled", label: () => t("Appointment:Status:Scheduled2"), bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
-  { key: "arrived", label: () => t("Appointment:Status:Arrived"), bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
-  { key: "cancelled", label: () => t("Appointment:Status:CancelledShort"), bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
-  { key: "late", label: () => t("Appointment:Status:Late"), bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
-  { key: "temporary", label: () => t("Appointment:Status:Temporary"), bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
-  { key: "converted", label: () => t("Appointment:Status:Converted"), bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "scheduled", label: () => t("Appointment:Status:Scheduled2"), ...STATUS_TONE.scheduled },
+  { key: "arrived", label: () => t("Appointment:Status:Arrived"), ...STATUS_TONE.arrived },
+  { key: "cancelled", label: () => t("Appointment:Status:CancelledShort"), ...STATUS_TONE.cancelled },
+  { key: "late", label: () => t("Appointment:Status:Late"), ...STATUS_TONE.late },
+  { key: "temporary", label: () => t("Appointment:Status:Temporary"), ...STATUS_TONE.temporary },
+  { key: "converted", label: () => t("Appointment:Status:Converted"), ...STATUS_TONE.converted },
 ] as const;
 
 interface Props {
@@ -85,7 +87,7 @@ export function CalendarControlPanel({
       <div className="cal-panel" ref={panelRef}>
         <div className="cal-panel-header">
           <div className="cal-panel-header-left">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={brand.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
             </svg>
             <span className="cal-panel-title">{t("Appointment:Panel:Title")}</span>
@@ -168,7 +170,7 @@ export function CalendarControlPanel({
                 <div className="cal-panel-filter-field">
                   <span className="cal-panel-filter-label">{t("Common:Search")}</span>
                   <Input
-                    prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+                    prefix={<SearchOutlined style={{ color: brand.faint }} />}
                     value={keyword}
                     onChange={(e) => onKeywordChange(e.target.value)}
                     allowClear

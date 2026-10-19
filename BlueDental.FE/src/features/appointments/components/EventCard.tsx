@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
+import { SOLID, TONE } from "@/theme/statusPalette";
+import type { ToneName } from "@/theme/statusPalette";
 import { buildAppointmentCardMenu, isFinishedSeriesSession } from "./appointmentCardMenu";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 
@@ -28,59 +30,26 @@ function hexToOpaqueTint(hex: string, alpha = 0.122): string {
 }
 
 /*
- * The design's own statusColor map. Each fill is that colour at 0x1f over
- * white and stays fully opaque: a translucent card lets the calendar's grid
- * lines read straight through it.
+ * The v3 status steps: the solid colour on the edge, the subtle fill under the
+ * card and the content colour for its text. The fill stays fully opaque: a
+ * translucent card lets the calendar's grid lines read straight through it.
  */
+const lookOf = (tone: ToneName): StatusLook => ({
+  border: SOLID[tone],
+  bg: TONE[tone].bg,
+  text: TONE[tone].color,
+  badgeBg: TONE[tone].bg,
+  badgeBorder: TONE[tone].border,
+  badgeText: TONE[tone].color,
+});
+
 const STATUS_LOOK: Record<AppointmentStatus, StatusLook> = {
-  scheduled: {
-    border: "#6366f1",
-    bg: "#eceefe",
-    text: "#6366f1",
-    badgeBg: "#eceefe",
-    badgeBorder: "rgba(99,102,241,0.3)",
-    badgeText: "#6366f1",
-  },
-  confirmed: {
-    border: "#6366f1",
-    bg: "#eceefe",
-    text: "#6366f1",
-    badgeBg: "#eceefe",
-    badgeBorder: "rgba(99,102,241,0.3)",
-    badgeText: "#6366f1",
-  },
-  inProgress: {
-    border: "#6366f1",
-    bg: "#eceefe",
-    text: "#6366f1",
-    badgeBg: "#eceefe",
-    badgeBorder: "rgba(99,102,241,0.3)",
-    badgeText: "#6366f1",
-  },
-  completed: {
-    border: "#0e9f6e",
-    bg: "#e7f6f1",
-    text: "#0e9f6e",
-    badgeBg: "#e7f6f1",
-    badgeBorder: "rgba(14,159,110,0.3)",
-    badgeText: "#0e9f6e",
-  },
-  cancelled: {
-    border: "#d98b0f",
-    bg: "#fbf3e4",
-    text: "#d98b0f",
-    badgeBg: "#fbf3e4",
-    badgeBorder: "rgba(217,139,15,0.3)",
-    badgeText: "#d98b0f",
-  },
-  noShow: {
-    border: "#e5484d",
-    bg: "#fdeef0",
-    text: "#e5484d",
-    badgeBg: "#fdeef0",
-    badgeBorder: "rgba(229,72,77,0.3)",
-    badgeText: "#e5484d",
-  },
+  scheduled: lookOf("grape"),
+  confirmed: lookOf("grape"),
+  inProgress: lookOf("grape"),
+  completed: lookOf("success"),
+  cancelled: lookOf("warning"),
+  noShow: lookOf("danger"),
 };
 
 const BADGE_LABEL_KEYS: Record<AppointmentStatus, string> = {
@@ -241,12 +210,3 @@ export const EventCard = React.memo(function EventCard({
     </div>
   );
 });
-
-export const CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
-  scheduled:  { bg: "#eef0ff", border: "#6366f1", text: "#6366f1" },
-  confirmed:  { bg: "#eef0ff", border: "#6366f1", text: "#6366f1" },
-  inProgress: { bg: "#e3f6ef", border: "#0e9f6e", text: "#0e9f6e" },
-  completed:  { bg: "#e3f6ef", border: "#0e9f6e", text: "#0e9f6e" },
-  cancelled:  { bg: "#fdeced", border: "#e5484d", text: "#e5484d" },
-  noShow:     { bg: "#faf1e2", border: "#d98b0f", text: "#d98b0f" },
-};

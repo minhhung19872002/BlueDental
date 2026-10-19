@@ -7,6 +7,7 @@ import {
 } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { Appointment, AppointmentStatus } from "../types/appointment";
+import { brand } from "@/theme/index";
 
 const WEEKDAY_KEYS = [
   "Appointment:MiniCal:Monday",
@@ -29,21 +30,21 @@ const STATUS_GROUPS: {
     key: "arrived",
     labelKey: "Appointment:Status:Arrived",
     icon: <CheckCircleOutlined />,
-    color: "#0e9f6e",
+    color: brand.green,
     match: (s) => s === "inProgress" || s === "completed",
   },
   {
     key: "cancelled",
     labelKey: "Appointment:Status:CancelledAlt",
     icon: <CloseCircleOutlined />,
-    color: "#e5484d",
+    color: brand.red,
     match: (s) => s === "cancelled" || s === "noShow",
   },
   {
     key: "scheduled",
     labelKey: "Appointment:Status:Scheduled2",
     icon: <ClockCircleOutlined />,
-    color: "#6366f1",
+    color: brand.primary,
     match: (s) => s === "scheduled" || s === "confirmed",
   },
 ];

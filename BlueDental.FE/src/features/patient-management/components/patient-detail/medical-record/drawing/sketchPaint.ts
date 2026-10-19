@@ -1,5 +1,6 @@
 import { SKETCH_HEIGHT, SKETCH_WIDTH, type Cut, type Item, type Point, type Scene } from "./sketch";
 import { paintText, textBoxOf } from "./sketchText";
+import { brand } from "@/theme/index";
 
 /** How much of the page shows through a highlighter. */
 const HIGHLIGHTER_ALPHA = 0.4;
@@ -170,7 +171,7 @@ export function paintSelection(ctx: CanvasRenderingContext2D, bounds: Bounds) {
   const pad = 8;
   const { x, y, width, height } = { x: bounds.x - pad, y: bounds.y - pad, width: bounds.width + pad * 2, height: bounds.height + pad * 2 };
   ctx.save();
-  ctx.strokeStyle = "#6366f1";
+  ctx.strokeStyle = brand.primary;
   ctx.lineWidth = 2;
   ctx.setLineDash([8, 6]);
   ctx.strokeRect(x, y, width, height);

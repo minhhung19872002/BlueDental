@@ -123,7 +123,7 @@
 }
 
 .bd-usage-trigger--empty .bd-usage-trigger-text {
-  color: rgba(23, 28, 51, 0.25);
+  color: rgba(28, 26, 35, 0.25);
 }
 
 .bd-usage-trigger-text {
@@ -136,7 +136,7 @@
 .bd-usage-trigger-arrow {
   flex: none;
   font-size: 12px;
-  color: rgba(23, 28, 51, 0.25);
+  color: rgba(28, 26, 35, 0.25);
   transition: transform 0.2s;
 }
 
@@ -150,7 +150,7 @@
 .bd-usage-popover .ant-popover-container {
   padding: 0;
   border-radius: var(--bd-radius-control);
-  box-shadow: 0 12px 32px -8px rgba(35, 42, 86, 0.25);
+  box-shadow: 0 12px 32px -8px rgba(28, 26, 35, 0.25);
 }
 
 .bd-usage-picker {
@@ -175,7 +175,7 @@
   gap: 4px;
   margin: 4px 0 0;
   font-size: 12px;
-  color: #e5484d;
+  color: var(--bd-red);
 }
 
 .bd-usage-footer {

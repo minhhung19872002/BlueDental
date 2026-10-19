@@ -39,7 +39,7 @@
 .date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:focus,
 .date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:active {
   color: var(--bd-ink) !important;
-  background: #f7f8fd !important;
+  background: var(--bd-bg-soft) !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
@@ -61,7 +61,7 @@
 }
 
 .date-navigator-display-wrapper:hover {
-  background: #f7f8fd;
+  background: var(--bd-bg-soft);
 }
 
 .date-navigator-icon {
@@ -172,7 +172,7 @@
 }
 
 .date-nav-day.outside {
-  color: #ccc;
+  color: var(--bd-faint);
 }
 
 .date-nav-day.today {
@@ -316,5 +316,5 @@
 }
 
 .date-nav-year-cell.outside {
-  color: #ccc;
+  color: var(--bd-faint);
 }

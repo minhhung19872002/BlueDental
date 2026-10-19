@@ -4,32 +4,32 @@
    structural comes from the --bd-* tokens. */
 
 .ah-modal {
-  --ah-ink: #1b2a41;
-  --ah-muted: #5a6b82;
-  --ah-line: #dce3ee;
-  --ah-line-soft: #e5eaf1;
-  --ah-panel: #f6f8fb;
+  --ah-ink: var(--bd-ink);
+  --ah-muted: var(--bd-muted);
+  --ah-line: var(--bd-line);
+  --ah-line-soft: var(--bd-line);
+  --ah-panel: var(--bd-bg);
 
-  --ah-green: #047857;
-  --ah-green-dot: #10b981;
-  --ah-green-bg: #ecfdf5;
-  --ah-green-line: #99f6e4;
-  --ah-orange: #c2410c;
-  --ah-orange-dot: #f97316;
-  --ah-orange-bg: #fff7ed;
-  --ah-orange-line: #fed7aa;
-  --ah-blue: #1d4ed8;
-  --ah-blue-dot: #3b82f6;
-  --ah-blue-bg: #eef2ff;
-  --ah-blue-line: #bfdbfe;
-  --ah-red: #b91c1c;
-  --ah-red-dot: #ef4444;
-  --ah-red-bg: #fef2f2;
-  --ah-red-line: #fecaca;
-  --ah-gray: #374151;
-  --ah-gray-dot: #6b7280;
-  --ah-gray-bg: #f3f4f6;
-  --ah-gray-line: #e5e7eb;
+  --ah-green: var(--bd-green-ink);
+  --ah-green-dot: var(--bd-green);
+  --ah-green-bg: var(--bd-green-pale);
+  --ah-green-line: var(--bd-green-line);
+  --ah-orange: var(--bd-amber-ink);
+  --ah-orange-dot: var(--bd-amber);
+  --ah-orange-bg: var(--bd-amber-pale);
+  --ah-orange-line: var(--bd-amber-line);
+  --ah-blue: var(--bd-link);
+  --ah-blue-dot: var(--bd-primary);
+  --ah-blue-bg: var(--bd-blue-pale);
+  --ah-blue-line: var(--bd-blue-line);
+  --ah-red: var(--bd-red-ink);
+  --ah-red-dot: var(--bd-red);
+  --ah-red-bg: var(--bd-red-pale);
+  --ah-red-line: var(--bd-red-line);
+  --ah-gray: var(--bd-sub);
+  --ah-gray-dot: var(--bd-dim);
+  --ah-gray-bg: var(--bd-bg-soft);
+  --ah-gray-line: var(--bd-line);
 
   top: 0;
   width: calc(100vw - 32px) !important;
@@ -201,7 +201,7 @@
 }
 
 .ah-modal .ah-select .ant-select-selection-placeholder {
-  color: rgba(90, 107, 130, 0.8);
+  color: rgba(94, 90, 110, 0.8);
 }
 
 /* Multi-select: picked values are small tags on one 36px line, "+n" when they overflow. */
@@ -511,7 +511,7 @@
    (radius 12, 16px padding, 16px apart); the badge strip is a card of its own. */
 
 .ah-detail {
-  --ah-value: #1e40af;
+  --ah-value: var(--bd-primary-ink);
   padding: 16px;
   background: var(--ah-panel);
 }
@@ -951,12 +951,12 @@
 }
 
 .ah-modal .ah-pager .ant-pagination-item-active {
-  border-color: var(--bd-blue);
-  background: var(--bd-blue);
+  border-color: var(--bd-blue-light);
+  background: var(--bd-blue-pale);
 }
 
 .ah-modal .ah-pager .ant-pagination-item-active a {
-  color: #fff;
+  color: var(--bd-primary-ink);
 }
 
 /* ── Narrow screens ─────────────────────────────────────────────────────── */

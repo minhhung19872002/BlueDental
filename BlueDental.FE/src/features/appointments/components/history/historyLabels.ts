@@ -49,8 +49,8 @@ export const STATUS_GROUP_ORDER: readonly HistoryStatusGroup[] = [
 export const STATUS_GROUP_META: Record<HistoryStatusGroup, { label: string; tone: HistoryTone }> = {
   scheduled: { label: "Appointment:Status:Scheduled2", tone: "blue" },
   arrived: { label: "Appointment:Status:Arrived", tone: "green" },
-  cancelled: { label: "Appointment:Status:CancelledAlt", tone: "red" },
-  noShow: { label: "Appointment:Status:Late", tone: "orange" },
+  cancelled: { label: "Appointment:Status:CancelledAlt", tone: "orange" },
+  noShow: { label: "Appointment:Status:Late", tone: "red" },
 };
 
 /** Snapshot field keys, as the server names them, in words. */

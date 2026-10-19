@@ -7,6 +7,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 const { Text } = Typography;
 
@@ -62,7 +63,7 @@ export const DateViewSelector: React.FC = () => {
         background: "#FFFFFF",
         padding: "8px 16px",
         borderRadius: 12,
-        border: "1px solid #e7eaf6",
+        border: `1px solid ${brand.line}`,
         boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
       }}
     >

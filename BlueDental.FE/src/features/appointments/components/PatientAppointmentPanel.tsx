@@ -5,6 +5,7 @@ import { StatusBadge } from "./StatusBadge";
 import type { Appointment, AppointmentStatus } from "../types/appointment";
 import { formatDateTime } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { TONE } from "@/theme/statusPalette";
 
 const { Text } = Typography;
 
@@ -14,10 +15,10 @@ interface PatientAppointmentPanelProps {
 
 /** The counters the reference shows above a patient's appointment list. */
 const counters = (): { status: AppointmentStatus; label: string; color: string; bg: string }[] => [
-  { status: "scheduled", label: t("Appointment:Status:Scheduled2"), color: "#6366f1", bg: "#eef0ff" },
-  { status: "confirmed", label: t("Appointment:Status:Confirmed"), color: "#0e9f6e", bg: "#e3f6ef" },
-  { status: "cancelled", label: t("Appointment:Status:CancelledAlt"), color: "#e5484d", bg: "var(--bd-red-pale)" },
-  { status: "noShow", label: t("Appointment:Status:Late"), color: "#d98b0f", bg: "var(--bd-amber-pale)" },
+  { status: "scheduled", label: t("Appointment:Status:Scheduled2"), color: TONE.grape.color, bg: TONE.grape.bg },
+  { status: "confirmed", label: t("Appointment:Status:Confirmed"), color: TONE.success.color, bg: TONE.success.bg },
+  { status: "cancelled", label: t("Appointment:Status:CancelledAlt"), color: TONE.danger.color, bg: TONE.danger.bg },
+  { status: "noShow", label: t("Appointment:Status:Late"), color: TONE.warning.color, bg: TONE.warning.bg },
 ];
 
 /** Lịch hẹn tab of a patient record. */

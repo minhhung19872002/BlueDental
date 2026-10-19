@@ -98,11 +98,11 @@ test.describe("Lịch sử dư nợ", () => {
     await expect(row.locator("td").nth(0)).toHaveText(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
     await expect(row.locator("td").nth(1)).toHaveText("Hoàn trả dư nợ");
 
-    // Money onto the account: a "+" in the reference's green.
+    // Money onto the account: a "+" in the app's success green (R-991).
     const amount = row.locator(".pd-debt-amount");
     await expect(amount).toHaveText(`+${refunded.toLocaleString("vi-VN")} đ`);
     await expect(amount).toHaveClass(/pd-debt-amount--in/);
-    expect(await amount.evaluate((el) => getComputedStyle(el).color)).toBe("rgb(31, 146, 84)");
+    expect(await amount.evaluate((el) => getComputedStyle(el).color)).toBe("rgb(46, 138, 94)");
 
     await expect(page.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
   });

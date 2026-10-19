@@ -131,7 +131,7 @@
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-card);
   background: var(--bd-card);
-  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
+  box-shadow: 0 6px 20px -14px rgba(28, 26, 35, 0.22);
 }
 
 .queue-board-panel__head {
@@ -174,7 +174,7 @@
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-card);
   background: var(--bd-card);
-  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
+  box-shadow: 0 6px 20px -14px rgba(28, 26, 35, 0.22);
   cursor: pointer;
   transition:
     transform 0.18s ease,
@@ -200,8 +200,8 @@
 
 .queue-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.45);
-  box-shadow: 0 14px 30px -18px rgba(99, 102, 241, 0.45);
+  border-color: rgba(123, 46, 240, 0.45);
+  box-shadow: 0 14px 30px -18px rgba(123, 46, 240, 0.45);
 }
 
 .queue-card__head {
@@ -657,7 +657,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: var(--bd-ink);
   color: #fff;
   font-family: var(--bd-font);
 }
@@ -723,7 +723,7 @@
   font-size: 17px;
   font-weight: 800;
   background: rgba(96, 165, 250, 0.18);
-  color: #93c5fd;
+  color: var(--bd-blue-light);
 }
 
 .queue-tv__who {
@@ -762,12 +762,12 @@
   font-weight: 800;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
-  color: #60a5fa;
+  color: var(--bd-accent);
 }
 
 .queue-tv__card--paused .queue-tv__number {
   font-size: 22px;
-  color: #cbd5e1;
+  color: var(--bd-border-strong);
 }
 
 .queue-tv__next {

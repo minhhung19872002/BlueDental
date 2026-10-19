@@ -1,6 +1,6 @@
 import { Tag } from "antd";
 import type { AppointmentStatus } from "../types/appointment";
-import { statusPaletteOf } from "@/theme/index";
+import { statusPaletteOf, brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
 const statusLabels = (): Record<AppointmentStatus, string> => ({
@@ -21,8 +21,8 @@ export function StatusBadge({ status }: Props) {
   return (
     <Tag
       style={{
-        background: palette?.bg ?? "#f7f8fd",
-        color: palette?.color ?? "#78819c",
+        background: palette?.bg ?? brand.bgSoft,
+        color: palette?.color ?? brand.dim,
         border: "none",
       }}
     >

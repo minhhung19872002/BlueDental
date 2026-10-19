@@ -80,7 +80,7 @@ export function ConfirmDeleteDialog({
       <p style={{ margin: 0 }}>
         {question ?? tRich("Common:ConfirmDeleteQuestion", noun, <strong>{name}</strong>)}
       </p>
-      <p style={{ margin: "4px 0 0", color: "var(--bd-text-muted, #7d85a5)", fontSize: 13 }}>
+      <p style={{ margin: "4px 0 0", color: "var(--bd-dim)", fontSize: 13 }}>
         {note ?? t("Common:CannotUndone")}
       </p>
     </Modal>

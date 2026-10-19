@@ -106,15 +106,15 @@
 
 .report-sub-tabs .pill-tab--active,
 .report-sub-tabs .pill-tab--active:hover {
-  background: var(--bd-blue);
-  color: #fff;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-ink);
 }
 
 /* ---------- Segmented (Ngày/Tuần/Tháng/Năm, Tất cả/Dự chi/Đã duyệt) ---------- */
 
 .report-segmented.ant-segmented {
   padding: 4px;
-  background: var(--bd-card);
+  background: var(--bd-bg-soft);
   border: 1px solid var(--bd-line);
   border-radius: 10px;
 }
@@ -126,13 +126,13 @@
 }
 
 .report-segmented.ant-segmented .ant-segmented-item-selected {
-  background: var(--bd-blue);
-  color: #fff;
-  box-shadow: none;
+  background: var(--bd-card);
+  color: var(--bd-primary-ink);
+  box-shadow: 0 1px 2px rgba(28, 26, 35, 0.08);
 }
 
 .report-segmented.ant-segmented .ant-segmented-thumb {
-  background: var(--bd-blue);
+  background: var(--bd-card);
   border-radius: 8px;
 }
 
@@ -1158,25 +1158,25 @@
 }
 
 .report-method-badge--cash {
-  background: #e7f8ef;
-  color: #12a960;
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
 }
 
 .report-method-badge--bank {
-  background: #fff4d8;
-  color: #f5a400;
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
 }
 
 .report-method-badge--card {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: var(--bd-lavender-pale);
+  color: var(--bd-lavender);
 }
 
 /* Transfer arrow "→": white chip, ink text, grey border. */
 .report-method-badge--transfer {
   background: #ffffff;
-  color: #1b2a41;
-  border-color: #c0c8d5;
+  color: var(--bd-ink);
+  border-color: var(--bd-border-strong);
 }
 
 .report-category-pill {

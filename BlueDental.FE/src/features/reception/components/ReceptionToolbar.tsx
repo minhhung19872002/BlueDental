@@ -4,6 +4,7 @@ import { SearchOutlined, FormOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 /**
  * The three periods this toolbar offers. `DateNavigator` also knows how to step
@@ -68,7 +69,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
           <Input
             className="reception-toolbar-search--inline"
             placeholder={t("Reception:SearchPlaceholder")}
-            prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+            prefix={<SearchOutlined style={{ color: brand.faint }} />}
             value={keyword}
             onChange={(e) => onSearchChange(e.target.value)}
             allowClear
@@ -92,7 +93,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
       <Input
         className="reception-toolbar-search--block"
         placeholder={t("Reception:SearchPlaceholder")}
-        prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+        prefix={<SearchOutlined style={{ color: brand.faint }} />}
         value={keyword}
         onChange={(e) => onSearchChange(e.target.value)}
         allowClear

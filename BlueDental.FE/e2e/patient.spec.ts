@@ -4,27 +4,22 @@ import { answerQuestionYes, answerYes, type Receipt } from "./fixtures/ledgerRec
 import { openShiftCovering } from "./fixtures/workShift";
 
 /** --bd-primary, the clone's own brand — see src/styles/index.css. */
-const APP_PRIMARY = "rgb(99, 102, 241)";
-/** The reference's own primary, #2671D8 — what it prints step names in. */
-const REFERENCE_BLUE = "rgb(38, 113, 216)";
+const APP_PRIMARY = "rgb(123, 46, 240)";
+/** --bd-link, grape-700 #6620CC (R-988) — the reference prints step names in its own link blue; the clone keeps the role, not the hue. */
+const APP_LINK = "rgb(102, 32, 204)";
 /** --bd-bg-head, the quiet grey the reference gives a label rather than a status. */
-const CHIP_GREY = "rgb(247, 248, 253)";
+const CHIP_GREY = "rgb(243, 242, 247)";
 
 /**
- * Status colours measured on the reference 2026-09-07 (patient HN8516). They
- * are the reference's own, not the app's palette, and the table's chips and the
- * printed sheet's pills are deliberately **different** pairs.
+ * Treatment-status colours. The roles were measured on the reference
+ * 2026-09-07 (patient HN8516); the hues are the app's v3 families (R-991):
+ * grape-100/700, success-100/700, info-100/700. The table's chips and the
+ * printed sheet's pills share them and differ by shape only.
  */
-const REFERENCE_STATUS = {
-  table: {
-    "Đang điều trị": { bg: "rgb(239, 246, 255)", fg: "rgb(29, 78, 216)" },
-    "Hoàn thành": { bg: "rgb(231, 248, 239)", fg: "rgb(18, 169, 96)" },
-    "Chuyển đổi": { bg: "rgb(230, 248, 251)", fg: "rgb(26, 96, 107)" },
-  },
-  print: {
-    "Đang điều trị": { bg: "rgb(217, 238, 255)", fg: "rgb(38, 113, 216)" },
-    "Hoàn thành": { bg: "rgb(221, 246, 232)", fg: "rgb(16, 168, 97)" },
-  },
+const STATUS_CHIP = {
+  "Đang điều trị": { bg: "rgb(238, 229, 255)", fg: "rgb(102, 32, 204)" },
+  "Hoàn thành": { bg: "rgb(227, 246, 236)", fg: "rgb(35, 112, 75)" },
+  "Chuyển đổi": { bg: "rgb(226, 240, 252)", fg: "rgb(37, 95, 144)" },
 } as const;
 
 /**
@@ -1225,18 +1220,18 @@ test.describe("Bệnh nhân", () => {
     await expect(page.locator(".pd-card-title h3")).toHaveCSS("font-weight", "700");
 
     // The image card, measured off the reference: 350px wide. Its body is the
-    // photographs themselves, and the 240px #E6EAF0 "kéo ảnh vào" box only
+    // photographs themselves, and the 240px --bd-line "kéo ảnh vào" box only
     // stands in for them while the record has none.
     expect(Math.round((await page.locator(".pd-image-panel").boundingBox())!.width)).toBe(350);
     // Once the patient has photographs the zone gives way to them, so the
-    // 240px #E6EAF0 zone is only there while the panel is empty.
+    // 240px --bd-line zone is only there while the panel is empty.
     await page.waitForLoadState("networkidle");
     if ((await page.locator(".pd-image-tile").count()) === 0) {
       const drop = (await page.locator(".pd-image-drop").boundingBox())!;
       expect(Math.round(drop.height)).toBe(240);
       await expect(page.locator(".pd-image-drop")).toHaveCSS(
         "background-color",
-        "rgb(230, 234, 240)",
+        "rgb(230, 228, 238)",
       );
     } else {
       await expect(page.locator(".pd-image-drop")).toHaveCount(0);
@@ -2526,7 +2521,7 @@ test.describe("Bệnh nhân", () => {
     await expect(labo.locator(".floating-field-label .floating-field-required")).toHaveCount(11);
     await expect(labo.locator(".floating-field-required").first()).toHaveCSS(
       "color",
-      "rgb(229, 72, 77)",
+      "rgb(201, 69, 90)",
     );
 
     // The pickers are the app's SearchSelect, the same widget the reference uses.
@@ -2553,7 +2548,7 @@ test.describe("Bệnh nhân", () => {
     // floats. The accent itself is the **app's** primary, not the reference's
     // #2671D8: the project owner asked on 2026-09-07 that every accent inside
     // these dialogs follow the clone's own brand, so a blue label beside an
-    // indigo Lưu button is the bug here.
+    // grape Lưu button is the bug here.
     const noteField = labo.locator(".pd-labo-notes .floating-field");
     const noteLabel = noteField.locator(".floating-field-label");
     await labo.locator(".pd-labo-notes textarea").fill("x");
@@ -2604,8 +2599,8 @@ test.describe("Bệnh nhân", () => {
 
     // On the table: 32px, 8px radius, 12px/600, and a colour pair per status.
     const chip = page.locator(".pd-tr-chip").filter({ hasText: "Đang điều trị" }).first();
-    await expect(chip).toHaveCSS("background-color", REFERENCE_STATUS.table["Đang điều trị"].bg);
-    await expect(chip).toHaveCSS("color", REFERENCE_STATUS.table["Đang điều trị"].fg);
+    await expect(chip).toHaveCSS("background-color", STATUS_CHIP["Đang điều trị"].bg);
+    await expect(chip).toHaveCSS("color", STATUS_CHIP["Đang điều trị"].fg);
     await expect(chip).toHaveCSS("border-radius", "8px");
     await expect(chip).toHaveCSS("font-weight", "600");
     expect(await chip.evaluate((el) => Math.round(el.getBoundingClientRect().height))).toBe(32);
@@ -2621,14 +2616,12 @@ test.describe("Bệnh nhân", () => {
     const print = page.locator(".pd-print-dialog");
     await expect(print).toBeVisible();
 
-    // On the sheet: a **fully rounded** pill at 12px/500, and its own tints.
+    // On the sheet: a **fully rounded** pill at 12px/500, in the same tints.
     const pill = print.locator(".pd-print-chip").filter({ hasText: "Hoàn thành" }).first();
-    await expect(pill).toHaveCSS("background-color", REFERENCE_STATUS.print["Hoàn thành"].bg);
-    await expect(pill).toHaveCSS("color", REFERENCE_STATUS.print["Hoàn thành"].fg);
+    await expect(pill).toHaveCSS("background-color", STATUS_CHIP["Hoàn thành"].bg);
+    await expect(pill).toHaveCSS("color", STATUS_CHIP["Hoàn thành"].fg);
     await expect(pill).toHaveCSS("border-radius", "999px");
     await expect(pill).toHaveCSS("font-weight", "500");
-    // Not the table's pair — the two sets are different on the reference.
-    await expect(pill).not.toHaveCSS("background-color", REFERENCE_STATUS.table["Hoàn thành"].bg);
   });
 
   test("In Phiếu prints the A4 sheet, not the dialog", async ({ page }) => {
@@ -3278,7 +3271,7 @@ test.describe("Bệnh nhân", () => {
     // rather than fading with the disabled box.
     await expect(listed.locator("input")).not.toBeChecked();
     await expect(listed.locator("input")).toBeDisabled();
-    await expect(listed.locator(".ant-checkbox + span")).toHaveCSS("color", REFERENCE_BLUE);
+    await expect(listed.locator(".ant-checkbox + span")).toHaveCSS("color", APP_LINK);
     await expect(row.locator(".pd-stage-listempty")).toHaveCount(0);
 
     // The form behind Tái Khám carries the same entry, but there it is the

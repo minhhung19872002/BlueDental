@@ -1,5 +1,6 @@
 /* ── SegmentedTabs ────────────────────────────────────────────────────────────
-   One bordered 40px container, the active item filled with the app primary.
+   One 40px sunken track, the active item a raised white chip in grape-800
+   (v3, R-988 — the solid grape is kept for the primary button).
    Overflowing items scroll horizontally instead of wrapping. */
 .seg-tabs {
   position: relative;
@@ -11,7 +12,7 @@
   box-sizing: border-box;
   border: 1px solid var(--bd-border);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--bd-bg-soft);
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
@@ -22,7 +23,7 @@
   display: none;
 }
 
-/* The navy fill that slides from the old active item to the new one. */
+/* The white chip that slides from the old active item to the new one. */
 .seg-tabs-thumb {
   position: absolute;
   top: 3px;
@@ -30,8 +31,9 @@
   left: 0;
   width: var(--seg-thumb-w, 0px);
   transform: translateX(var(--seg-thumb-x, 0px));
-  border-radius: 10px;
-  background: var(--bd-blue);
+  border-radius: 8px;
+  background: var(--bd-card);
+  box-shadow: 0 1px 2px rgba(28, 26, 35, 0.08);
   transition: transform 0.25s ease, width 0.25s ease;
   pointer-events: none;
 }
@@ -65,8 +67,8 @@
 .seg-tabs-item--active,
 .seg-tabs-item--active:hover {
   background: transparent;
-  color: #ffffff;
-  font-weight: 500;
+  color: var(--bd-primary-ink);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {

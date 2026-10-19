@@ -172,7 +172,7 @@
   min-height: 36px;
   align-items: center;
   margin-inline: auto;
-  border: 1px dashed #dce3ee;
+  border: 1px dashed var(--bd-line);
   border-radius: 999px;
   padding: 0 16px;
   color: var(--tp-label);
@@ -191,16 +191,16 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dce3ee;
+  border: 1px solid var(--bd-line);
   border-radius: 999px;
   padding: 0;
   background: #fff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-  color: #5a6b82;
+  color: var(--bd-muted);
   cursor: pointer;
 }
 .am-picker-arrow:hover:not(:disabled) {
-  border-color: #b8d4f6;
+  border-color: var(--bd-blue-pale-hover);
   color: var(--tp-accent);
 }
 .am-picker-arrow:disabled {
@@ -234,10 +234,10 @@
   scroll-snap-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border: 1px solid #dce3ee;
+  border: 1px solid var(--bd-line);
   border-radius: 999px;
   padding: 6px 16px;
-  background: #f8fafd;
+  background: var(--bd-bg);
   color: var(--tp-ink);
   font: inherit;
   font-size: 13px;
@@ -245,8 +245,8 @@
   cursor: pointer;
 }
 .am-picker-row > button:hover:not(.active) {
-  border-color: #b8d4f6;
-  background: #f3f8ff;
+  border-color: var(--bd-blue-pale-hover);
+  background: var(--bd-hover-tint);
   color: var(--tp-accent);
 }
 .am-picker-row > button.active {
@@ -258,10 +258,10 @@
 .am-picker-more {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #dce3ee;
+  border: 1px solid var(--bd-line);
   border-radius: 999px;
   padding: 6px 16px;
-  background: #f8fafd;
+  background: var(--bd-bg);
 }
 
 /* ── Service table ── */
