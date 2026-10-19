@@ -1,0 +1,169 @@
+/* "Thêm ghi chú" (F-74) — a dialog that floats beside the work instead of over it. */
+
+/* No backdrop, and the screen behind keeps its clicks: the full-screen wrap and
+   the dialog's own (fixed) box let the pointer through, and only the part that
+   is drawn — and dragged — takes it back. */
+.staff-notes-wrap,
+.staff-notes-wrap .staff-notes-dialog {
+  pointer-events: none;
+}
+
+.staff-notes-drag {
+  pointer-events: auto;
+  transform: translate(var(--drag-x, 0px), var(--drag-y, 0px));
+}
+
+/* Nothing dims the page, so the edge has to separate it from what is behind. */
+.staff-notes-dialog .ant-modal-container {
+  box-shadow:
+    0 12px 32px rgba(28, 26, 35, 0.18),
+    0 0 0 1px var(--bd-line);
+}
+
+/* The whole header row is the handle, not only the words in it. */
+.staff-notes-handle {
+  margin: -18px -20px;
+  padding: 18px 56px 18px 20px;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+
+.staff-notes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-notes-toolbar > .ant-input-affix-wrapper {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+}
+
+.staff-notes-toolbar > .seg-tabs {
+  flex: none;
+}
+
+/* ── "Thêm mới" ───────────────────────────────────────────────────────────── */
+.staff-notes-composer {
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+}
+
+.staff-notes-composer-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--bd-title);
+  font: inherit;
+  cursor: pointer;
+}
+
+.staff-notes-composer-title {
+  font-weight: 600;
+}
+
+.staff-notes-composer-chevron {
+  display: inline-flex;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.staff-notes-composer-head:hover .staff-notes-composer-chevron {
+  color: var(--bd-primary);
+}
+
+.staff-notes-composer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 14px 14px;
+}
+
+.staff-notes-label {
+  color: var(--bd-sub);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.staff-notes-hint {
+  margin: 14px 0 0;
+  color: var(--bd-amber);
+  font-size: 12.5px;
+}
+
+.staff-notes-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ── List ─────────────────────────────────────────────────────────────────── */
+/* The row number is narrow (bd-col-icon lifts the global 100px floor). */
+.staff-notes-dialog .staff-notes-table .ant-table-thead > tr > th.staff-notes-index,
+.staff-notes-dialog .staff-notes-table .ant-table-tbody > tr > td.staff-notes-index {
+  width: 64px;
+}
+
+.staff-notes-cell {
+  min-width: 0;
+}
+
+/* Two lines, the rest on hover — the full note is in the cell's title. */
+.staff-notes-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  color: var(--bd-body);
+}
+
+.staff-notes-byline {
+  margin-top: 2px;
+  color: var(--bd-dim);
+  font-size: 12px;
+}
+
+.staff-notes-tip {
+  display: inline-flex;
+}
+
+.staff-notes-table .empty-state {
+  padding: 24px 0;
+}
+
+@media (max-width: 640px) {
+  .staff-notes-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Chung / Cá nhân split the row instead of huddling on the left. */
+  .staff-notes-toolbar > .seg-tabs .seg-tabs-item {
+    flex: 1;
+  }
+
+  /* The note needs the width more than the row number does. */
+  .staff-notes-dialog .staff-notes-table .ant-table-thead > tr > th.staff-notes-index,
+  .staff-notes-dialog .staff-notes-table .ant-table-tbody > tr > td.staff-notes-index {
+    width: 40px;
+    padding-inline: 4px;
+  }
+}

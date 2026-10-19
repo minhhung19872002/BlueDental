@@ -16,6 +16,7 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useClinicBranches } from "@/features/organizations/api";
+import { StaffNotesLauncher } from "@/features/staff-notes/components/StaffNotesLauncher";
 import { useAppointmentLiveUpdates } from "@/hooks/useAppointmentLiveUpdates";
 import { useTrackPatientOrigin } from "@/hooks/usePatientOrigin";
 import {
@@ -369,6 +370,8 @@ export function AppLayout() {
             </span>
             <kbd className="app-header-search-kbd">Ctrl K</kbd>
           </button>
+
+          <StaffNotesLauncher />
 
           <Popover
             content={branchContent}

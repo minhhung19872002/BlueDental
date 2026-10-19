@@ -1620,6 +1620,16 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.Channel, x.CreationTime });
             entity.HasIndex(x => x.ExternalMessageId);
         });
+
+        builder.Entity<StaffNotes.StaffNote>(entity =>
+        {
+            entity.ToTable("bd_staff_notes");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Content).HasMaxLength(StaffNotes.StaffNote.MaxContentLength).IsRequired();
+            entity.Property(x => x.Scope).HasConversion<short>();
+            entity.HasIndex(x => new { x.Scope, x.ClinicBranchId, x.CreationTime });
+            entity.HasIndex(x => new { x.Scope, x.CreatorId, x.CreationTime });
+        });
     }
 
     private static void ConfigureTimekeeping(ModelBuilder builder)
