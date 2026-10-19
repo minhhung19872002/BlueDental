@@ -8,6 +8,7 @@ import { formatToothCodes } from "@/features/treatment-management/api/consulting
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentServiceStatus } from "@/features/treatment-management/api/treatmentPlanApi";
 import { stageRowStatus, stageRowStatusLabel } from "../stageRowStatus";
+import { StageNoteBullets } from "./StageNoteBullets";
 
 export interface PrintClinic {
   name: string;
@@ -61,7 +62,9 @@ function Rows({ stages, statusOf }: Pick<Props, "stages" | "statusOf">) {
                 {stageRowStatusLabel(status)}
               </div>
             </td>
-            <td className="pd-print-note">{stage.note ?? ""}</td>
+            <td>
+              <StageNoteBullets note={stage.note} />
+            </td>
             <td>{stage.staffName ?? t("Patient:QuoteSheet:Empty")}</td>
             <td>{stage.subStaffName ?? t("Patient:QuoteSheet:Empty")}</td>
             <td>{stage.secondStaffName ?? t("Patient:QuoteSheet:Empty")}</td>

@@ -3203,17 +3203,18 @@
   font-weight: 700;
   white-space: nowrap;
 }
-/* Nội dung điều trị, one dash per line with a hanging indent (R-983). */
-.pd-tr-note {
+/* Nội dung điều trị, one dash per line with a hanging indent (R-983) — the
+   table, the stage history, its print and the recall listing (StageNoteBullets). */
+.pd-note-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.pd-tr-note li {
+.pd-note-list li {
   position: relative;
   padding-left: 12px;
 }
-.pd-tr-note li::before {
+.pd-note-list li::before {
   content: "-";
   position: absolute;
   left: 0;
@@ -4416,10 +4417,8 @@
   color: var(--bd-primary);
 }
 .pd-stage-note {
-  margin: 0;
   min-height: 84px;
   color: var(--bd-ink);
-  white-space: pre-wrap;
 }
 .pd-stage-noteedit {
   display: grid;
@@ -4682,15 +4681,13 @@
   padding: 4px;
   font-size: 12px;
 }
-.pd-recall-note > p:first-child {
+.pd-recall-notetext {
   min-height: 84px;
-  margin: 0;
   border: 1px solid var(--bd-border);
   border-radius: 8px;
   padding: 12px;
   color: var(--bd-ink);
   font-size: 14px;
-  white-space: pre-wrap;
 }
 .pd-recall-actions {
   display: grid;

@@ -2244,7 +2244,10 @@ test.describe("Bệnh nhân", () => {
     // The history grows and the row behind it picks the note up as its
     // "Nội dung điều trị" — the reference's column 3 is the stage's note.
     await expect(dialog.locator(".pd-stage-histrow")).toHaveCount(historyBefore + 1);
-    await expect(dialog.locator(".pd-stage-note").filter({ hasText: note })).toHaveCount(1);
+    const historyNote = dialog.locator(".pd-stage-note").filter({ hasText: note });
+    await expect(historyNote).toHaveCount(1);
+    // The history reads the note one dash per line too, like the table below.
+    await expect(historyNote.locator(".pd-note-list li")).toHaveText([note, "dòng hai"]);
 
     // Column heads read here, once there is history: the grid replaces itself
     // with "Chưa có dữ liệu công đoạn" while the slip is empty, so asserting
@@ -2263,8 +2266,8 @@ test.describe("Bệnh nhân", () => {
     const madeRow = await findStageRow(page, serviceId, madeId);
     await expect(madeRow).toContainText(note);
     // One bullet per line, the dash drawn by the list rather than doubled.
-    await expect(madeRow.locator(".pd-tr-note li")).toHaveText([note, "dòng hai"]);
-    await expect(madeRow.locator(".pd-tr-note li").first()).toHaveCSS("padding-left", "12px");
+    await expect(madeRow.locator(".pd-note-list li")).toHaveText([note, "dòng hai"]);
+    await expect(madeRow.locator(".pd-note-list li").first()).toHaveCSS("padding-left", "12px");
   });
 
   test("the stage form fills its columns, as the reference's does", async ({ page }) => {
@@ -2330,11 +2333,15 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "PUT",
     );
-    await first.locator(".pd-stage-noteedit textarea").fill(edited);
+    // Two lines without dashes, the way notes were saved before R-983: the
+    // history still reads them one dash per line, the dash drawn by the list.
+    await first.locator(".pd-stage-noteedit textarea").fill(`${edited}\ndòng hai`);
     await first.getByRole("button", { name: "Lưu" }).click();
     expect((await saved).ok()).toBeTruthy();
 
-    await expect(first.locator(".pd-stage-note")).toHaveText(edited);
+    const shown = [edited, "dòng hai"];
+    await expect(first.locator(".pd-stage-note li")).toHaveText(shown);
+    await expect(first.locator(".pd-stage-note li").first()).toHaveCSS("padding-left", "12px");
 
     // Written through the real API: still there after a reload.
     await page.reload();
@@ -2345,8 +2352,12 @@ test.describe("Bệnh nhân", () => {
       .getByRole("button", { name: /Thêm công đoạn|Chi tiết phiếu/ })
       .click();
     await expect(
-      page.getByRole("dialog", { name: "Chi tiết phiếu" }).locator(".pd-stage-note").first(),
-    ).toHaveText(edited);
+      page
+        .getByRole("dialog", { name: "Chi tiết phiếu" })
+        .locator(".pd-stage-note")
+        .first()
+        .locator("li"),
+    ).toHaveText(shown);
   });
 
   test("In lịch sử điều trị opens the reference's printable sheet", async ({ page }) => {
@@ -2374,6 +2385,11 @@ test.describe("Bệnh nhân", () => {
       "Bác sĩ hỗ trợ",
     ]);
     await expect(sheet.getByRole("button", { name: "In Phiếu" })).toBeVisible();
+    // Nội dung điều trị prints one dash per line, as the history reads (R-983):
+    // no cell left as raw text. The fixture slip may have no công đoạn yet, so
+    // this does not insist on a row.
+    const notes = sheet.locator(".pd-print-table").first().locator("tbody td:nth-child(3)");
+    await expect(notes.filter({ hasText: /\S/ }).filter({ hasNot: page.locator("li") })).toHaveCount(0);
 
     // The A4 copy carries the centred title and both signature blocks. It is
     // addressed from the body, not from the dialog: the sheet is portaled to

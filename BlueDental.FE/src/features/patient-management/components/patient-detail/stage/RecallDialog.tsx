@@ -5,6 +5,7 @@ import { formatShortDate } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import { reExaminationChecklist } from "./reExaminationChecklist";
+import { StageNoteBullets } from "./StageNoteBullets";
 import { StageStepList } from "./StageStepList";
 
 interface Props {
@@ -76,7 +77,9 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
               </div>
 
               <div className="pd-recall-note">
-                <p>{stage.note ?? ""}</p>
+                <div className="pd-recall-notetext">
+                  <StageNoteBullets note={stage.note} />
+                </div>
                 {/* Read-only here: the reference draws these ticked-off boxes
                     disabled on the listing, and only lets you touch them once
                     Tái Khám has opened the form. */}

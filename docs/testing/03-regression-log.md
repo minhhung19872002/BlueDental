@@ -9566,3 +9566,16 @@ Vòng 2 cùng ngày, owner sửa:
     - 3 test timeout khi chạy chung lô vì bệnh nhân fixture dồn nhiều dòng; chạy riêng từng test thì pass.
     - "…a stage is added there" pass một lần với đủ kiểm tra R-983. Về sau đỏ ở dòng 2191 vì bệnh nhân fixture dồn quá nhiều dòng, dòng cần bấm bị đẩy khỏi trang 1. Spec ở HEAD đỏ đúng dòng đó, nên đây là lỗi fixture có sẵn.
 - Code commit ở `b8b2f995`.
+- **Vòng 2 (owner, cùng ngày)**: cột "Nội dung điều trị" ở Lịch sử điều trị trong "Chi tiết phiếu" vẫn in nguyên văn, không có gạch đầu dòng.
+  - Component chung mới `stage/StageNoteBullets.tsx` (class `.pd-note-list`, thay cho `.pd-tr-note`), dùng ở bảng điều trị, lịch sử công đoạn, bản in "In lịch sử điều trị" (cả bản xem và tờ A4) và popup tái khám.
+  - `.pd-stage-note` và ô ghi chú trong popup tái khám (`.pd-recall-notetext`) đổi từ `<p>` sang `<div>`; bỏ `white-space: pre-wrap` và rule `.pd-print-note` không còn dùng.
+  - Vẫn giữ nguyên `PlanSummaryCards` (feature `treatment-management`, chỉ hiện ghi chú cuối).
+  - Spec:
+    - "…a stage is added there": lịch sử có 2 `li`.
+    - Test bút chì: ghi chú 2 dòng không có dấu hiện thành 2 `li`.
+    - "In lịch sử điều trị": không ô nội dung nào còn hiện chữ thô.
+  - Chạy trên bản build production:
+    - `treatment-plan` + `treatment-stage-chain` + `stage-treatment-date`: **21/21**.
+    - Pass: "…a stage is added there", "In lịch sử điều trị", "selects all…", và 2 trong 3 test tái khám.
+    - Test bút chì: phần R-983 pass. Test đỏ ở bước bấm lại dòng sau khi reload; spec ở HEAD đỏ đúng chỗ đó (fixture dồn dòng).
+    - "a tái khám picks its teeth": đỏ có sẵn.

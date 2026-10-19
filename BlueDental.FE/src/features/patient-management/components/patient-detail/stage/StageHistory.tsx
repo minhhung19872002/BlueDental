@@ -6,6 +6,7 @@ import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { NOTE_LIMIT } from "./StageForm";
+import { StageNoteBullets } from "./StageNoteBullets";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageWarrantyButton } from "./StageWarrantyButton";
 import {
@@ -125,7 +126,9 @@ function NoteCell({
             </div>
           </div>
         ) : (
-          <p className="pd-stage-note">{stage.note ?? ""}</p>
+          <div className="pd-stage-note">
+            <StageNoteBullets note={stage.note} />
+          </div>
         )}
       </div>
 
