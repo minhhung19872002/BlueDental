@@ -125,6 +125,12 @@ async function openFreshSheet(page: Page, form: string) {
   const wiped = await page.evaluate(async (number: number) => {
     const patientId = window.location.pathname.split("/")[2];
     const read = async () => {
+      // Only the live set's sheets: one in a cancelled set is read-only, and the
+      // server refuses to write on it.
+      const sets: Array<{ id: string; status: number }> = (
+        await (await fetch(`/api/v1/app/medical-record-sets?patientId=${patientId}`, { credentials: "include" })).json()
+      ).items;
+      const live = new Set(sets.filter((set) => set.status === 1).map((set) => set.id));
       const res = await fetch(
         `/api/v1/app/patient-medical-records?patientId=${patientId}&maxResultCount=200`,
         { credentials: "include" },
@@ -132,12 +138,13 @@ async function openFreshSheet(page: Page, form: string) {
       const items: Array<{
         id: string;
         form: number;
+        recordSetId: string;
         creationTime: string;
         content: string | null;
         cancelledAt: string | null;
       }> = (await res.json()).items;
       return items
-        .filter((item) => item.form === number && !item.cancelledAt)
+        .filter((item) => item.form === number && !item.cancelledAt && live.has(item.recordSetId))
         .sort((a, b) => a.creationTime.localeCompare(b.creationTime))[0];
     };
 
@@ -258,7 +265,11 @@ test.describe("Bệnh án", () => {
       await openFreshSheet(page, item.form);
 
       const document = sheet(page);
-      await expect(document.locator("[data-medical-record-field]")).toHaveCount(item.blanks);
+      // The form's own blanks: lines or rows the record's treatment slips grow
+      // it by (P1810 — a long plan on mẫu 3, a long log) are not the original's.
+      await expect(
+        document.locator("[data-medical-record-field]:not([data-medical-record-generated-row] *)"),
+      ).toHaveCount(item.blanks);
       // The form's own boxes: "Loại" on mẫu 5 draws one per type in Danh mục, which varies.
       await expect(document.locator(".nfc-medical-record-checkbox:not(.nfc-material-box)")).toHaveCount(item.boxes);
       // Pages are separated by a rule; one rule is two pages.
@@ -402,9 +413,64 @@ test.describe("Bệnh án", () => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu theo dõi điều trị");
 
+    // The set's Số ngoại trú, NGT-{MMyy}{mã KH}-{xxxx} (save/P1810.drawio) — never the bare patient code.
     const number = blank(page, "treatment-tracking.page-1.patient.code");
-    await expect(number).toBeEmpty();
+    await expect(number).toHaveText(/^NGT-\d{4}\S+-\d{4}$/);
     await expect(number).not.toHaveAttribute("data-field-source", /.+/);
+  });
+
+  /**
+   * Owner, 2026-10-19: a row added under row 1 came back at the bottom of the
+   * table once the sheet was saved and drawn again, and `−` overlapped `+`.
+   */
+  test("a row added mid-table stays where it was added, and − and + stand apart", async ({ page }) => {
+    const id = runId();
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu theo dõi điều trị");
+
+    const document = sheet(page);
+    const firstBlanks = () =>
+      document
+        .locator("tbody > tr")
+        .evaluateAll((rows) =>
+          rows
+            .map((row) => row.querySelector("[data-medical-record-field]")?.getAttribute("data-medical-record-field") ?? "")
+            .filter((field) => field.includes(".row-")),
+        );
+
+    const rowOne = document.locator("tr", {
+      has: document.locator('[data-medical-record-field="treatment-tracking.page-1.row-1.date-time"]'),
+    });
+    await rowOne.hover();
+    const plus = document.getByRole("button", { name: "Thêm dòng" });
+    const minus = document.getByRole("button", { name: "Xóa dòng" });
+    const [plusBox, minusBox] = [await plus.boundingBox(), await minus.boundingBox()];
+    expect(plusBox!.x - (minusBox!.x + minusBox!.width), "a clear gap between − and +").toBeGreaterThanOrEqual(4);
+
+    await plus.click();
+    const added = (await firstBlanks())[1];
+    expect(added).not.toBe("treatment-tracking.page-1.row-2.date-time");
+    await document.locator(`[data-medical-record-field="${added}"]`).fill(`GIỮA ${id}`);
+
+    // Row 3 is removed too: after more writing and a second save it stays gone.
+    const rowThree = document.locator("tr", {
+      has: document.locator('[data-medical-record-field="treatment-tracking.page-1.row-3.date-time"]'),
+    });
+    await rowThree.hover();
+    await minus.click();
+    await save(page);
+    await document.locator('[data-medical-record-field="treatment-tracking.page-1.row-2.date-time"]').fill(`SAU ${id}`);
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, "Phiếu theo dõi điều trị");
+    const order = await firstBlanks();
+    expect(order[1], "the added row is still under row 1").toBe(added);
+    expect(order).not.toContain("treatment-tracking.page-1.row-3.date-time");
+    await expect(document.locator(`[data-medical-record-field="${added}"]`)).toHaveText(`GIỮA ${id}`);
+    await expect(document.locator('[data-medical-record-field="treatment-tracking.page-1.row-2.date-time"]')).toHaveText(
+      `SAU ${id}`,
+    );
   });
 
   /**
@@ -1355,7 +1421,10 @@ test.describe("Bệnh án", () => {
       await page.emulateMedia({ media: "screen" });
       await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
       const printed = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
-      expect(printed, `${form} · printed pages`).toBe(pages);
+      // Phiếu theo dõi điều trị carries the set's treatment log (P1810), so a
+      // patient with a long history runs onto more pages than the blank form.
+      if (form === "Phiếu theo dõi điều trị") expect(printed, `${form} · printed pages`).toBeGreaterThanOrEqual(pages);
+      else expect(printed, `${form} · printed pages`).toBe(pages);
     }
   });
 
@@ -1523,6 +1592,8 @@ test.describe("Bệnh án", () => {
     const id = runId();
     await openMedicalRecord(page);
     await openFreshSheet(page, "Bìa hồ sơ bệnh án");
+    // Mã lưu trữ is answered by the set (P1810); discarding the writing brings it back.
+    const storageCode = (await blank(page, "cover.text.1").textContent()) ?? "";
     const dialog = page.getByRole("dialog", { name: "Phiếu chưa được lưu" });
     const otherSheet = page.locator(".pd-medical-form", { hasText: "Phiếu chăm sóc" });
     if ((await otherSheet.locator(LIVE_CARD).count()) === 0) {
@@ -1551,7 +1622,7 @@ test.describe("Bệnh án", () => {
     await expect(dialog).toBeHidden();
     await expect(blank(page, "care.diagnosis")).toBeAttached();
     await openSheet(page, "Bìa hồ sơ bệnh án");
-    await expect(blank(page, "cover.text.1")).toBeEmpty();
+    await expect(blank(page, "cover.text.1")).toHaveText(storageCode);
 
     // Leaving the Bệnh án view: "Lưu" saves, then goes on — and it is there after a reload.
     await blank(page, "cover.text.1").fill(`LT ${id}`);
@@ -1569,8 +1640,9 @@ test.describe("Bệnh án", () => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
 
+    // Before a day is picked it shows the consulting day, or today (P1810).
     const printed = blank(page, "consultation.text.4");
-    await expect(printed).toBeEmpty();
+    await expect(printed).not.toHaveText("15/08/2026");
 
     await page.locator(".pd-medical-date input").fill("15/08/2026");
     await page.locator(".pd-medical-date input").press("Enter");

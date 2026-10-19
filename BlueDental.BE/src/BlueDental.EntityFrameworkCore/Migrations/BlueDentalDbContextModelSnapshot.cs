@@ -4987,6 +4987,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("LastModifierId");
 
+                    b.Property<int>("OutpatientSequence")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 

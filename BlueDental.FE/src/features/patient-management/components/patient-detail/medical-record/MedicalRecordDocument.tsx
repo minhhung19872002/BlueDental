@@ -20,6 +20,7 @@ import {
 import { MaterialTypeDialog } from "./materials/MaterialTypeDialog";
 import { useSheetMaterials } from "./materials/useSheetMaterials";
 import { attachSections } from "./sheetSections";
+import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
 
 /** A4 at 96dpi, plus the 20px margin the sheet's own page leaves around it. */
 const PAGE_WIDTH = 834;
@@ -85,6 +86,14 @@ export function MedicalRecordDocument({
   const report = useRef(onChange);
   report.current = onChange;
 
+  /*
+   * What the record answers, by content: the parent hands a fresh object every
+   * render. When it really changes — the set's slips arrive, or one is added
+   * and the end date goes — the page is drawn again so the blanks follow
+   * without a reload. What has been written survives: it is in `stored`.
+   */
+  const autoKey = JSON.stringify(auto);
+
   const srcDoc = useMemo(() => {
     const body = renderSheetHtml(template, {
       auto: startingValues.current.auto,
@@ -94,7 +103,7 @@ export function MedicalRecordDocument({
     return sheetDocument(body, editable, form);
     // Keyed on documentKey, not on the values: rebuilding the page as someone
     // types would take the caret with it. See the prop's note.
-  }, [template, form, documentKey, editable]);
+  }, [template, form, documentKey, autoKey, editable]);
 
   /**
    * What has been written on the sheet, read back off its own document.
@@ -148,7 +157,8 @@ export function MedicalRecordDocument({
         return;
       }
 
-      const written = node.textContent ?? "";
+      // A long blank is drawn over several lines; it is still one value.
+      const written = flowedText(node);
       if (generated || written !== (typeof answer === "string" ? answer : "")) next[id] = written;
     });
 
@@ -166,6 +176,9 @@ export function MedicalRecordDocument({
 
     // Height only: the width of a sheet of A4 does not depend on what is on it,
     // and measuring it would read a scrollbar's width off a long record.
+    // Laid out now: a blank whose text runs past its line goes on to lines of its own.
+    flowLongBlanks(doc);
+
     const measure = () => {
       const next = Math.ceil(doc.documentElement.scrollHeight);
       if (next > 0) setHeight((current) => (current === next ? current : next));
@@ -240,7 +253,7 @@ export function MedicalRecordDocument({
 
     for (const [id, value] of Object.entries(stored)) {
       const node = doc.querySelector(`[data-medical-record-field="${id}"]`);
-      if (!node || node === doc.activeElement) continue;
+      if (!node || isPartOf(node, doc.activeElement)) continue;
 
       if (isDrawingField(node)) {
         if (drawingOf(node) !== value) showDrawing(node, value, editable);
@@ -260,7 +273,10 @@ export function MedicalRecordDocument({
         if (typeof value === "boolean" && box.checked !== value) box.checked = value;
         continue;
       }
-      if (typeof value === "string" && node.textContent !== value) node.textContent = value;
+      if (typeof value === "string" && flowedText(node) !== value) {
+        writeFlowed(node, value);
+        window.requestAnimationFrame(() => setHeight(Math.ceil(doc.documentElement.scrollHeight)));
+      }
     }
   }, [stored, editable]);
 

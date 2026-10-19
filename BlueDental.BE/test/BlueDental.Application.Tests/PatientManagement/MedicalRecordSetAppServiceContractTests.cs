@@ -39,6 +39,7 @@ public class MedicalRecordSetAppServiceContractTests
     [InlineData("CreateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
     [InlineData("UpdateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("CancelAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]
+    [InlineData("GetSheetFactsAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     public void Each_Method_Names_Its_Leaf(string method, string permission)
     {
         typeof(MedicalRecordSetAppService).GetMethods().Single(m => m.Name == method)

@@ -60,6 +60,68 @@ export interface RecordSetInput {
   visibleForms: MedicalRecordForm[];
 }
 
+/** A slip of the set, as its sheets print it. */
+export interface SheetFactsPlanDto {
+  treatmentPlanId: string;
+  planCode: string;
+  creationTime: string;
+  attachedAt: string;
+  /** Bác sĩ điều trị — the slip's doctor. */
+  dentistName: string | null;
+  /** Chức vụ on the staff record. */
+  dentistPosition: string | null;
+  /** `YYYY-MM-DD`; null while the slip is still being treated. */
+  endDate: string | null;
+}
+
+export interface SheetFactsServiceDto {
+  treatmentPlanId: string;
+  serviceName: string;
+  toothCodes: number[];
+  diagnosisCode: string | null;
+  diagnosisName: string | null;
+  /** Thành tiền. */
+  amount: number;
+  consultedAt: string | null;
+  /** Nhân sự tư vấn 1. */
+  consultantName: string | null;
+}
+
+/** One công đoạn. */
+export interface SheetFactsVisitDto {
+  /** `YYYY-MM-DD` — the clinic day it was worked. */
+  treatmentDate: string;
+  recordedAt: string;
+  serviceName: string;
+  toothCodes: number[];
+  diagnosisCode: string | null;
+  diagnosisName: string | null;
+  /** Nội dung điều trị. */
+  content: string | null;
+  doctorName: string | null;
+}
+
+/**
+ * What a set's sheets print about its treatment slips (save/P1810.drawio).
+ * Mirrors BlueDental.PatientManagement.MedicalRecordSheetFactsDto.
+ */
+export interface SheetFactsDto {
+  /** Mã lưu trữ — NK-{MMyy}{patient code}{oldest slip}. */
+  storageCode: string | null;
+  /** Số ngoại trú — NGT-{MMyy of the treatment start}{patient code}-{xxxx}. */
+  outpatientNumber: string | null;
+  /** The year the oldest slip was opened. */
+  year: number | null;
+  treatmentStartDate: string | null;
+  /** Null until every service of every slip is finished. */
+  treatmentEndDate: string | null;
+  /** Oldest first. */
+  plans: SheetFactsPlanDto[];
+  services: SheetFactsServiceDto[];
+  /** Oldest first. */
+  visits: SheetFactsVisitDto[];
+}
+
 interface ListResult<T> {
   items: T[];
 }
@@ -78,13 +140,30 @@ const recordSetApi = {
   update: (id: string, input: RecordSetInput) =>
     api.put<RecordSetDto>(`${BASE}/${id}`, input).then((r) => r.data),
   cancel: (id: string) => api.post<RecordSetDto>(`${BASE}/${id}/cancel`).then((r) => r.data),
+  sheetFacts: (id: string) =>
+    api.get<SheetFactsDto>(`${BASE}/${id}/sheet-facts`).then((r) => r.data),
 };
 
 export const recordSetKeys = {
   all: ["medical-record-sets"] as const,
   list: (patientId: string) => [...recordSetKeys.all, patientId] as const,
   plans: (patientId: string) => [...recordSetKeys.all, patientId, "plans"] as const,
+  allSheetFacts: () => [...recordSetKeys.all, "sheet-facts"] as const,
+  sheetFacts: (setId: string) => [...recordSetKeys.allSheetFacts(), setId] as const,
 };
+
+/**
+ * What the open set's sheets print about its slips. Under the sets' own root,
+ * so a slip or a công đoạn changing anywhere reads it again.
+ */
+export function useRecordSetSheetFacts(setId: string | undefined) {
+  return useQuery({
+    queryKey: recordSetKeys.sheetFacts(setId ?? ""),
+    queryFn: () => recordSetApi.sheetFacts(setId ?? ""),
+    enabled: Boolean(setId),
+    refetchOnMount: "always",
+  });
+}
 
 export function useRecordSets(patientId: string) {
   return useQuery({
@@ -108,7 +187,11 @@ export function useRecordSetPlans(patientId: string) {
   });
 }
 
-/** A set changing moves slips between sets, so both lists — and the sheets — are read again. */
+/**
+ * A set changing moves slips between sets, so both lists — and the sheets — are
+ * read again, and so is what the sheets print: a slip added that is still being
+ * treated takes the end date off the cover, and taking it out puts it back.
+ */
 function useRecordSetMutation<TVariables>(
   patientId: string,
   fn: (variables: TVariables) => Promise<RecordSetDto>,
@@ -121,6 +204,7 @@ function useRecordSetMutation<TVariables>(
       Promise.all([
         queryClient.invalidateQueries({ queryKey: recordSetKeys.list(patientId) }),
         queryClient.invalidateQueries({ queryKey: medicalRecordKeys.list(patientId) }),
+        queryClient.invalidateQueries({ queryKey: recordSetKeys.allSheetFacts() }),
       ]),
   });
 }

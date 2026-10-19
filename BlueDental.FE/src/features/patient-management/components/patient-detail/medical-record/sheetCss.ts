@@ -155,6 +155,8 @@ export const SHEET_CSS = String.raw`
    their explicit data-field-full-width marker is persisted. */
 .nfc-tpl p:has(>.nfc-medical-record-text-field:first-child):has(>br.ProseMirror-trailingBreak:last-child)>.nfc-medical-record-text-field:not([data-field-full-width="false"]),
 .nfc-tpl h2:has(>.nfc-medical-record-text-field:first-child):has(>br.ProseMirror-trailingBreak:last-child)>.nfc-medical-record-text-field:not([data-field-full-width="false"]){display:inline-block;width:100%;max-width:none;box-sizing:border-box}
+/* "Tôi đã được Bác sĩ …" on the consent form: the treating doctor in bold (clinic, P1810). */
+.nfc-tpl [data-medical-record-field="consultation.text.53"]{font-weight:700}
 .nfc-tpl .nfc-medical-record-text-field:empty::before{content:attr(data-placeholder);color:#9ca3af;font-style:italic}
 .nfc-tpl .nfc-medical-record-text-field[data-placeholder="Nhập nội dung"]:empty::before{content:''}
 .nfc-tpl .nfc-medical-record-text-field:focus{background:#fff9c4;outline:2px solid #f59e0b}

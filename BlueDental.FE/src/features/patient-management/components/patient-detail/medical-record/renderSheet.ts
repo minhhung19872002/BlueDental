@@ -178,9 +178,11 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
   if (!root) return "";
 
   // The rows the clinic added or removed come back before the blanks are
-  // filled, so the blanks on a re-added row are filled like any other.
-  applyStoredRows(root, options.stored);
-  applyStoredLines(root, options.stored);
+  // filled, so the blanks on a re-added row are filled like any other. The
+  // record may ask for more rows or lines than are printed too — a long
+  // treatment log, or chỉnh nha's plan listing every slip's services.
+  applyStoredRows(root, { ...options.auto, ...options.stored });
+  applyStoredLines(root, { ...options.auto, ...options.stored });
   markGridCells(root);
   closeUpGaps(root);
   fillFields(root, options);

@@ -42,11 +42,13 @@ function makeHandle(doc: Document, glyph: string, label: string, background: str
  * How far past a row's right edge the pointer may travel and still be counted
  * as being on that row.
  *
- * `+` sits at `right + 4` — off the row entirely, as the reference places it —
- * so reaching it means crossing a few pixels of nothing. This is what makes
- * that crossing safe; it has to clear the gap and the 20px button.
+ * Both handles sit off the row — `−` at `right + 6`, `+` at `right + 32`, a
+ * clear 6px apart (owner, 2026-10-19: they used to overlap, and a click meant
+ * for `+` could remove the row) — so reaching them means crossing a few pixels
+ * of nothing. This is what makes that crossing safe; it has to clear the gaps
+ * and `+`'s 20px.
  */
-const REACH = 44;
+const REACH = 56;
 
 /**
  * One hover handle: it follows whichever row the pointer is over, as long as
@@ -138,8 +140,8 @@ export function attachRowHandles(doc: Document, options: RowHandleOptions): () =
       attachHandle(
         doc,
         button,
-        // Just inside the row's right edge, so it never collides with `+`.
-        (rect) => ({ left: rect.right - 10, top: rect.top + 4 }),
+        // Just past the row's right edge, with `+` a clear gap after it.
+        (rect) => ({ left: rect.right + 6, top: rect.top + 4 }),
         // A row with no blanks is a printed header, and has nothing to remove.
         (row) => row.parentElement?.tagName === "TBODY" && Boolean(deletedRowKey(row)),
         (row) => {
@@ -155,7 +157,7 @@ export function attachRowHandles(doc: Document, options: RowHandleOptions): () =
       attachHandle(
         doc,
         button,
-        (rect) => ({ left: rect.right + 4, top: rect.top + 4 }),
+        (rect) => ({ left: rect.right + 32, top: rect.top + 4 }),
         // Only the three tables that are lists can grow.
         (row) => rowKindOf(row) !== null,
         (row) => {
