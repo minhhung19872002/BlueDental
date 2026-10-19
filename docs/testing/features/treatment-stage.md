@@ -118,3 +118,4 @@ names `warrantySourceStageId`. Migration `20260924032742_AddStageContinuationCha
 | A line closes only when every tooth has had a công đoạn and every live one is finished | `TreatmentStageAppService.MoveServiceLineAsync` | e2e (existing Hoàn thành specs) |
 | Another branch cannot continue a branch-1 công đoạn | `BranchAccessChecker` in `LoadAsync` | e2e "another branch may not continue…" (403) |
 | Plan table "Chỉnh sửa": closed/paid lines refused, in-treatment price/diagnosis/staged teeth kept | `TreatmentService.Revise` (0037/0038/0039) | Domain `TreatmentServiceReviseTests`; e2e "Chỉnh sửa rewrites a saved line…" |
+| Ghi chú (R-986): stays editable after Hoàn thành, refused on a continued công đoạn, blank clears it | `TreatmentStage.SetRemark` (GuardLive only) on `PUT …/{id}/remark`, `treatmentStage.update` | Domain `TreatmentStageRemarkTests`; App `TreatmentStageRemarkContractTests`; e2e `stage-remark` (2) |

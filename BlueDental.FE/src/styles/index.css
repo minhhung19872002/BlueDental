@@ -1860,6 +1860,28 @@ body::-webkit-scrollbar-track {
   min-width: unset;
 }
 
+/* The row-tick column likewise (owner, 2026-10-19, R-984): sized to its 20px
+   box plus 8px either side — the table's `rowSelection.columnWidth` says how
+   much, and the card's 20px edge still applies when it leads the row. The box
+   gets a border that reads on white: the theme's `colorBorder` (--bd-line) all
+   but vanishes. Only the variable is swapped, so hover and ticked keep AntD's
+   own primary. */
+.ant-table-wrapper .ant-table-thead > tr > th.ant-table-selection-column,
+.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-selection-column {
+  min-width: unset;
+  padding-right: 8px;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th.ant-table-selection-column:not(:first-child),
+.ant-table-wrapper .ant-table-tbody > tr > td.ant-table-selection-column:not(:first-child) {
+  padding-left: 8px;
+}
+
+.ant-table-wrapper .ant-table-selection-column .ant-checkbox {
+  --ant-color-border: var(--bd-dim);
+  border-width: 1.5px;
+}
+
 .ant-table-wrapper .ant-table-thead > tr > th::before {
   display: none !important;
 }

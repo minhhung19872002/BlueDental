@@ -17,6 +17,10 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public int SequenceNumber { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Note { get; set; }
+
+    /// <summary>Ghi chú — a remark kept apart from the treatment content.</summary>
+    public string? Remark { get; set; }
+
     public Guid StaffId { get; set; }
     /// <summary>Bác sĩ hỗ trợ — the reference's <c>assistantStaffId</c>.</summary>
     public Guid? SecondStaffId { get; set; }
@@ -172,6 +176,13 @@ public class ContinueStageSourceDto
     public List<int> ToothCodes { get; set; } = new();
 }
 
+/// <summary>Ghi chú, edited in place on Lịch sử điều trị; blank clears it.</summary>
+public class UpdateTreatmentStageRemarkDto
+{
+    [StringLength(1000)]
+    public string? Remark { get; set; }
+}
+
 public class AttachStageImageDto
 {
     public string ImageUrl { get; set; } = string.Empty;
@@ -275,5 +286,11 @@ public interface ITreatmentStageAppService : IApplicationService
     /// <c>PUT /v1/patient-stages/{id}/stage-service-items</c>.
     /// </summary>
     Task<TreatmentStageDto> UpdateServiceItemsAsync(Guid id, UpdateStageServiceItemsDto input);
+
+    /// <summary>
+    /// Ghi chú on its own, so no other edit of the công đoạn can wipe it — and
+    /// still allowed once the công đoạn is finished.
+    /// </summary>
+    Task<TreatmentStageDto> UpdateRemarkAsync(Guid id, UpdateTreatmentStageRemarkDto input);
     Task DeleteAsync(Guid id);
 }

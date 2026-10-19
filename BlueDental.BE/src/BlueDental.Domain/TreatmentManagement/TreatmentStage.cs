@@ -61,6 +61,15 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// <summary>Free-text step description — the reference's <c>stageNote</c>.</summary>
     public string? Note { get; private set; }
 
+    public const int RemarkMaxLength = 1000;
+
+    /// <summary>
+    /// Ghi chú — a free remark kept apart from the treatment content above,
+    /// shown in its own column of Lịch sử điều trị and the treatment tab
+    /// (owner, 2026-10-19). Not a reference field.
+    /// </summary>
+    public string? Remark { get; private set; }
+
     /// <summary>Dentist performing the step.</summary>
     public Guid StaffId { get; private set; }
 
@@ -409,6 +418,26 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 
         _teeth.Clear();
         _teeth.AddRange(toothList);
+        return this;
+    }
+
+    /// <summary>
+    /// Ghi chú. Unlike the treatment content it stays open once the công đoạn is
+    /// finished, since a remark is often added after the visit (owner,
+    /// 2026-10-19); only a continued công đoạn, which is history, refuses it.
+    /// Blank clears it.
+    /// </summary>
+    public TreatmentStage SetRemark(string? remark)
+    {
+        GuardLive();
+
+        var text = remark?.Trim();
+        if (!string.IsNullOrEmpty(text))
+        {
+            Check.Length(text, nameof(remark), RemarkMaxLength);
+        }
+
+        Remark = string.IsNullOrEmpty(text) ? null : text;
         return this;
     }
 

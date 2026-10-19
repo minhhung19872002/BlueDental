@@ -324,6 +324,21 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
+    /// <summary>
+    /// Ghi chú. Gated by <c>update</c> like the treatment content, but goes
+    /// through even on a finished công đoạn (owner, 2026-10-19).
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
+    public async Task<TreatmentStageDto> UpdateRemarkAsync(
+        Guid id,
+        UpdateTreatmentStageRemarkDto input)
+    {
+        var stage = await LoadAsync(id);
+        stage.SetRemark(input.Remark);
+        await _repository.UpdateAsync(stage, autoSave: true);
+        return MapToDto(stage, await BuildLookupsAsync([stage]));
+    }
+
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input)
     {
@@ -549,6 +564,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         SequenceNumber = entity.SequenceNumber,
         Name = entity.Name,
         Note = entity.Note,
+        Remark = entity.Remark,
         StaffId = entity.StaffId,
         SecondStaffId = entity.SecondStaffId,
         SubStaffId = entity.SubStaffId,

@@ -195,6 +195,7 @@ export function TreatmentStagePanel({
         imagesOf={composer.imagesOf}
         historyTeethOf={composer.historyTeethOf}
         savingNoteFor={composer.savingNoteFor}
+        savingRemarkFor={composer.savingRemarkFor}
         uploadingFor={composer.uploadingFor}
         completingId={composer.completingId}
         can={{
@@ -204,6 +205,7 @@ export function TreatmentStagePanel({
           labo: canCreateLabo,
         }}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
+        onSaveRemark={composer.saveRemark}
         onComplete={(stage) => void composer.finish(stage)}
         onUpload={composer.pickForStage}
         onCreateLabo={setLaboStage}

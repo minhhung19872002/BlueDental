@@ -1265,21 +1265,15 @@
   padding-right: 2px;
   padding-left: 14px;
 }
-/* The tick column, likewise, is only as wide as the box (owner, 2026-10-19):
-   the global 100px header floor held it open to a blank strip. And the box
-   gets a border that reads on white — the theme's `colorBorder` (--bd-line)
-   all but vanishes. Only the variable is swapped, so hover and ticked keep
-   AntD's own primary. */
-.pd-advise-table .ant-table-thead > tr > th.ant-table-selection-column,
-.pd-advise-table .ant-table-tbody > tr > td.ant-table-selection-column {
-  width: 36px;
-  min-width: 36px;
-  padding-right: 8px;
-  padding-left: 8px;
-}
-.pd-advise-table .ant-table-selection-column .ant-checkbox {
-  --ant-color-border: var(--bd-dim);
-  border-width: 1.5px;
+/* The tick column stays at its box plus padding (index.css, R-984). With the
+   default columns the table is narrower than the card, and the auto layout
+   shares the slack out over every pixel-wide column, so 36px became 45. A
+   percentage column takes slack only when no pixel column is left, so 1% holds
+   it to its content, stretched or scrolling. The `<col>` carries
+   `columnWidth` inline, hence !important. Only here: in a fixed-layout table
+   (Vật tư) 1% is 1% of the table. */
+.pd-advise-table col.ant-table-selection-col {
+  width: 1% !important;
 }
 /* ── "Cột hiển thị" panel ──────────────────────────────────────────────────
    The reference's own: a titled head with a ✕, one draggable row per column,
@@ -3130,6 +3124,11 @@
   color: var(--bd-muted);
   font-weight: 500;
 }
+/* Ghi chú — read only here, line breaks kept. */
+.pd-tr-remark {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
 .pd-tr-service > p {
   margin: 0;
   color: var(--bd-ink);
@@ -4274,11 +4273,11 @@
   overflow-x: auto;
 }
 .pd-stage-histgrid {
-  min-width: 1180px;
+  min-width: 1400px;
 }
 .pd-stage-histhead {
   display: grid;
-  grid-template-columns: 190px 1fr 1.15fr 0.7fr 0.7fr;
+  grid-template-columns: 190px 1fr 1.15fr 0.85fr 0.7fr 0.7fr;
   border-bottom: 1px solid var(--bd-border);
   background: var(--bd-bg-head);
   color: var(--bd-muted);
@@ -4318,7 +4317,7 @@
 }
 .pd-stage-histrow {
   display: grid;
-  grid-template-columns: 1fr 1.15fr 0.7fr 0.7fr;
+  grid-template-columns: 1fr 1.15fr 0.85fr 0.7fr 0.7fr;
 }
 .pd-stage-histrow + .pd-stage-histrow {
   border-top: 1px solid var(--bd-border);
@@ -4444,6 +4443,13 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+/* Ghi chú — plain text, the line breaks it was typed with kept. */
+.pd-stage-remarktext {
+  margin: 0;
+  color: var(--bd-ink);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 .pd-stage-notemeta {
   display: flex;

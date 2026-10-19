@@ -41,6 +41,8 @@ export interface TreatmentStageDto {
   sequenceNumber: number;
   name: string;
   note: string | null;
+  /** Ghi chú — kept apart from the treatment content, saved on its own. */
+  remark: string | null;
   staffId: string;
   /** Bác sĩ hỗ trợ — the reference's `assistantStaffId`. */
   secondStaffId: string | null;
@@ -213,6 +215,10 @@ const stageApi = {
 
   attachImage: (id: string, imageUrl: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/images`, { imageUrl }).then((r) => r.data),
+
+  /** Ghi chú on its own endpoint, so no other edit can wipe it; null clears it. */
+  updateRemark: (id: string, remark: string | null): Promise<TreatmentStageDto> =>
+    api.put<TreatmentStageDto>(`${STAGES}/${id}/remark`, { remark }).then((r) => r.data),
 };
 
 /**
@@ -402,6 +408,12 @@ export function useUpdateStageServiceItems() {
   return useStageMutation(
     (input: { id: string; items: { catalogServiceStageId: string; isCompleted: boolean }[] }) =>
       stageApi.updateServiceItems(input.id, input.items),
+  );
+}
+
+export function useUpdateStageRemark() {
+  return useStageMutation((input: { id: string; remark: string | null }) =>
+    stageApi.updateRemark(input.id, input.remark),
   );
 }
 

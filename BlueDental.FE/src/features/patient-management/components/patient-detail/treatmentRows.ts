@@ -61,6 +61,8 @@ export interface TreatmentRow extends TreatmentServiceDto {
   writtenAt: string;
   /** Nội dung điều trị — the công đoạn's own note. */
   stageNote: string | null;
+  /** Ghi chú — the công đoạn's remark; tái khám and diagnosis rows carry none. */
+  stageRemark: string | null;
   /** The công đoạn's teeth, falling back to the line's. */
   rowTeeth: ToothSelectionDto[];
   dentist: string | null;
@@ -118,6 +120,7 @@ export function buildTreatmentRows(
           createdAt: plan.creationTime,
           writtenAt: plan.creationTime,
           stageNote: null,
+          stageRemark: null,
           rowTeeth: service.teeth,
           assistant: null,
           secondDentist: null,
@@ -138,6 +141,7 @@ export function buildTreatmentRows(
           createdAt: stage.treatmentDate,
           writtenAt: stage.creationTime,
           stageNote: stage.note,
+          stageRemark: stage.remark,
           rowTeeth: stage.teeth.length > 0 ? stage.teeth : service.teeth,
           dentist: stage.staffName ?? plan.dentistName,
           assistant: stage.subStaffName,
@@ -175,6 +179,7 @@ export function buildTreatmentRows(
       createdAt: visit.treatmentDate,
       writtenAt: visit.creationTime,
       stageNote: visit.note,
+      stageRemark: null,
       rowTeeth: visit.teeth,
       quantity: visit.quantity,
       serviceName: visit.serviceName ?? held.service.serviceName,
@@ -291,6 +296,7 @@ function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
     createdAt: slip.creationTime,
     writtenAt: slip.creationTime,
     stageNote: slip.note,
+    stageRemark: null,
     rowTeeth: slip.teeth,
     dentist: slip.staffName,
     assistant: null,

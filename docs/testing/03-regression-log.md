@@ -9601,3 +9601,41 @@ Vòng 2 cùng ngày, owner sửa:
   - Đỏ: `consulting-delete-and-picker:200`. Test lấy dịch vụ cuối danh mục (hiện là dữ liệu thử sót "DUNG-TEST Thành phần C …") nhưng hộp Chọn Dịch Vụ không hiện dịch vụ đó.
   - Test này đã đỏ trước phần cột mặc định. Nó thuộc hộp thoại riêng, không đụng tới `.pd-advise-table`. Chưa đối chứng trên HEAD.
   - `consulting-plan:599` (bảng tab Kế hoạch điều trị bị bẹp) và `:1034` (kéo hàng panel) đỏ một lần, chạy lại thì xanh.
+
+## R-986 (2026-10-19, mức 2: công đoạn điều trị) Cột "Ghi chú" ở LỊCH SỬ ĐIỀU TRỊ và bảng điều trị hồ sơ
+
+- Owner yêu cầu qua 2 ảnh, đã chốt plan:
+  - LỊCH SỬ ĐIỀU TRỊ có cột "Ghi chú" giữa "Nội dung điều trị" và "Công đoạn", có bút chì sửa tại chỗ. Áp dụng cho "Chi tiết phiếu" ở trang phiếu và panel công đoạn ở hồ sơ.
+  - Bảng điều trị hồ sơ bệnh nhân (tab Tất cả) có cột "Ghi chú" chỉ đọc, giữa "Nội dung điều trị" và "Răng".
+  - Ghi chú vẫn sửa được sau Hoàn thành. Công đoạn đã "tiếp tục" (superseded) thì không sửa được.
+  - Ghi chú là chữ thường, giữ xuống dòng, không có gạch đầu dòng "- ". Nội dung điều trị giữ khoá như cũ.
+  - Không đưa vào form tạo/tiếp tục công đoạn, bản in, Excel.
+  - Đây là trường riêng của BlueDental, không có ở bản gốc.
+- BE:
+  - `TreatmentStage.Remark` (tối đa 1000). `SetRemark` chỉ gọi `GuardLive` (0018), trim, chuỗi trống thì lưu null.
+  - Endpoint riêng `PUT api/v1/app/treatment-stages/{id}/remark` với quyền `treatmentStage.update`, để các lần sửa công đoạn khác không xoá mất ghi chú.
+  - Migration `20261019044121_TreatmentStageRemark` (cột nullable, không backfill). Cần chạy DbMigrator.
+  - 3 key i18n `Patient:Stage:Remark` / `EditRemark` / `RemarkPlaceholder` (vi + en).
+- FE:
+  - `stageApi.ts`: `remark` và `useUpdateStageRemark`.
+  - `StageRemarkCell.tsx` mới: textarea 4 dòng, showCount 1000. Nếu lưu bị từ chối thì giữ nguyên ô sửa và bản nháp.
+  - `StageEditPencil.tsx` mới: bút chì dùng chung cho Nội dung và Ghi chú.
+  - Lưới lịch sử có 6 cột: `190px 1fr 1.15fr 0.85fr 0.7fr 0.7fr`, min-width 1400px.
+  - `treatmentRows.ts` thêm `stageRemark` (dòng tái khám và chẩn đoán là null). `treatmentColumns.tsx` thêm cột rộng 180, `.pd-tr-remark` có `white-space: pre-line`, ô trống hiện "—".
+- Gotcha e2e:
+  - Bác sĩ chỉ có quyền đọc thì không có tab nào trên phiếu, nên `openStageDialog` treo. Phải vào thẳng trang phiếu và chờ dòng lịch sử.
+  - Phạm vi điều trị R-961: tài khoản thử phải `isDentist: true` và phiếu phải là của bác sĩ đó. `createSlipViaApi` có thêm tham số `dentistId` (mặc định giữ hành vi cũ).
+- Spec:
+  - `stage-remark.spec` mới (2 test):
+    - Admin: header, ghi chú nhiều dòng, reload, bảng hồ sơ, superseded bị chặn cả UI lẫn PUT thô, sửa sau Hoàn thành, chuỗi trống thì null.
+    - Quyền: chỉ có đọc thì không có bút chì và PUT bị 403; cấp `treatmentStage.update` thì lưu được.
+  - `patient.spec`: thêm "Ghi chú" vào danh sách header của 2 bảng và dời chỉ số cột ở dòng chẩn đoán.
+- Kết quả trên bản build production (`vite preview` 127.0.0.1:8157):
+  - BE: Domain 46/46, Application 150/150.
+  - `stage-remark` 2/2, `stage-treatment-date` 4/4, `treatment-stage-chain` 8/8.
+  - `treatment-leaf-permissions` 1/2. Test đỏ ở :183 là lỗi có sẵn từ R-961: dentist của test không có IsDentist nên trang phiếu trả 0052. Không liên quan thay đổi này.
+  - `patient.spec` cả file: **60/66**. Header 2 bảng (có "Ghi chú") và dòng chẩn đoán pass. 6 test đỏ không liên quan cột Ghi chú:
+    - `:1821` và `:2128`: chế độ "owing" lấy phiếu nợ mới nhất. Phiếu đó do test bảo hành chạy trước trong cùng lượt tạo ra, nên dòng đầu của line là dòng bảo hành, mà `row.isWarranty` thì không có nút "Tạo phiếu thanh toán". Đây là lỗi thứ tự dữ liệu của spec.
+    - `:3289` và `:3396`: 2 test tái khám đã đỏ trước thay đổi này (R-960 / R-983).
+    - `:3669`: Tiếp nhận, đỏ do TEMP-BUG25-OFF.
+    - `:3924`: dữ liệu demo không còn bệnh nhân nào có đúng 1 lịch hẹn còn hiệu lực.

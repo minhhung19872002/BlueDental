@@ -7,18 +7,20 @@ import {
   useCompleteStage,
   useRevertStage,
   useUpdateStage,
+  useUpdateStageRemark,
   type TreatmentStageDto,
 } from "@/features/treatment-management/api/stageApi";
 
 /**
  * What a LỊCH SỬ ĐIỀU TRỊ row can do to its own công đoạn: tick or untick
- * Hoàn thành, rewrite its note. One công đoạn at a time is
+ * Hoàn thành, rewrite its note or its Ghi chú. One công đoạn at a time is
  * busy, which is what the row reads to disable itself mid-request.
  */
 export function useStageHistoryActions() {
   const completeStage = useCompleteStage();
   const revertStage = useRevertStage();
   const updateStage = useUpdateStage();
+  const updateRemark = useUpdateStageRemark();
   const [busyStage, setBusyStage] = useState<string | null>(null);
 
   const run = async (stageId: string, action: () => Promise<void>, fallback?: string) => {
@@ -64,10 +66,23 @@ export function useStageHistoryActions() {
       toast.success(t("Patient:Misc:NoteSaved"));
     });
 
+  /** Ghi chú, on its own endpoint; tells the cell whether to close its editor. */
+  const saveRemark = async (stage: TreatmentStageDto, next: string) => {
+    let saved = false;
+    await run(stage.id, async () => {
+      await updateRemark.mutateAsync({ id: stage.id, remark: next.trim() || null });
+      toast.success(t("Patient:Misc:NoteSaved"));
+      saved = true;
+    });
+    return saved;
+  };
+
   return {
     finish,
     saveNote,
+    saveRemark,
     completingId: completeStage.isPending || revertStage.isPending ? busyStage : null,
     savingNoteFor: updateStage.isPending ? busyStage : null,
+    savingRemarkFor: updateRemark.isPending ? busyStage : null,
   };
 }

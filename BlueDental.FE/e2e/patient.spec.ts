@@ -1104,11 +1104,13 @@ test.describe("Bệnh nhân", () => {
       await expect(chip).toHaveText("Chẩn đoán");
       await expect(chip).toHaveCSS("background-color", CHIP_GREY);
       await expect(row.locator(".pd-tr-teeth")).toHaveText("18");
-      await expect(row.locator("td").nth(4)).toHaveText("1");
+      // A diagnosis carries no Ghi chú of a công đoạn's.
+      await expect(row.locator("td").nth(3)).toHaveText("—");
+      await expect(row.locator("td").nth(5)).toHaveText("1");
       const doctorCell = row.locator(".pd-tr-doctor");
       await expect(doctorCell).toHaveText(doctor);
       await expect(doctorCell.locator(".pd-tr-sub")).toHaveCount(0);
-      await expect(row.locator("td").nth(6)).toHaveText("Không có");
+      await expect(row.locator("td").nth(7)).toHaveText("Không có");
       await expect(row.locator(".pd-tr-addstage")).toHaveCount(0);
       await expect(row.locator(".pd-tr-warranty")).toHaveCount(0);
       await expect(row.locator(".pd-tr-care")).toHaveCount(0);
@@ -1742,13 +1744,15 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await openPatientWithTreatment(page);
 
-    // Ten columns, in the reference's order and its own sentence case — the
-    // app's other tables wear uppercase 11.5px headers; this one opts out.
+    // The reference's ten columns, in its order and its own sentence case —
+    // the app's other tables wear uppercase 11.5px headers; this one opts out.
+    // Ghi chú is BlueDental's own (owner, 2026-10-19, R-984).
     const headers = page.locator(".pd-treatment-table .ant-table-thead th");
     await expect(headers).toHaveText([
       "Ngày",
       "Dịch vụ",
       "Nội dung điều trị",
+      "Ghi chú",
       "Răng",
       "SL",
       "Bác sĩ điều trị",
@@ -2257,6 +2261,7 @@ test.describe("Bệnh nhân", () => {
       "Ngày",
       "Dịch vụ & răng",
       "Nội dung điều trị",
+      "Ghi chú",
       "Công đoạn",
       "Hành động",
     ]);
