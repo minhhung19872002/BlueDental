@@ -202,6 +202,27 @@ test.describe.serial("Ghi chú — API rules", () => {
     expect((await listOk(admin, SCOPE.Personal, `${tag} không có`)).totalCount).toBe(0);
   });
 
+  test("search ignores Vietnamese marks, on what is typed and on what was written", async () => {
+    const tag = `${run}kd`;
+    for (const content of [`${tag} Gọi lại BS Đức chiều nay`, `${tag} dat vat tu nha khoa`, `${tag} Đặt máy hút`]) {
+      written.push({ page: () => admin, id: (await createOk(admin, SCOPE.Personal, content)).id });
+    }
+
+    // Typed bare, it finds the marked note — đ counts as d.
+    expect(contents(await listOk(admin, SCOPE.Personal, `${tag} goi lai duc`)))
+      .toEqual([`${tag} Gọi lại BS Đức chiều nay`]);
+    // Typed with marks, it finds the note written without them.
+    expect(contents(await listOk(admin, SCOPE.Personal, `${tag} đặt vật tư`)))
+      .toEqual([`${tag} dat vat tu nha khoa`]);
+    // Upper case and marks fold together, and both spellings come back.
+    expect(contents(await listOk(admin, SCOPE.Personal, `${tag} DAT`)))
+      .toEqual([`${tag} dat vat tu nha khoa`, `${tag} Đặt máy hút`]);
+    // A decomposed mark (u + combining acute, as some keyboards send it) folds the same.
+    expect(contents(await listOk(admin, SCOPE.Personal, `${tag} Đúc`)))
+      .toEqual([`${tag} Gọi lại BS Đức chiều nay`]);
+    expect((await listOk(admin, SCOPE.Personal, `${tag} duk`)).totalCount, "folding is not fuzzy").toBe(0);
+  });
+
   test("pages come newest first with the full count", async () => {
     const tag = `${run}pg`;
     for (const n of [1, 2, 3]) {

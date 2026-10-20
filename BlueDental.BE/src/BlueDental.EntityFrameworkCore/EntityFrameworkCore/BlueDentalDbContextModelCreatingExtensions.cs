@@ -58,6 +58,16 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureZalo(builder);
         ConfigureEInvoicing(builder);
         ConfigureMarketing(builder);
+        ConfigureTextSearch(builder);
+    }
+
+    /// <summary>Searching without Vietnamese marks: see <see cref="DbText.Unaccent"/>.</summary>
+    private static void ConfigureTextSearch(ModelBuilder builder)
+    {
+        builder.HasPostgresExtension("unaccent");
+        builder.HasDbFunction(typeof(DbText).GetMethod(nameof(DbText.Unaccent), [typeof(string)])!)
+            .HasName("unaccent")
+            .IsBuiltIn();
     }
 
     private static void ConfigureZalo(ModelBuilder builder)

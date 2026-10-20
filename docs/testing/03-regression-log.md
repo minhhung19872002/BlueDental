@@ -9800,3 +9800,17 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `StaffNote:0003` không gọi tới được qua HTTP với các tài khoản seed (ai cũng có chi nhánh riêng), nên chỉ domain test phủ.
   - Hồi quy mức 3: `auth`, `branch-code-url`, `branch-switcher`, `header-navigation`, `patient-back-origin`, `popup-placement`, `routes` **45/48**. 3 ca đỏ ở `header-navigation` đỏ y hệt trên bản build HEAD (`/reception$` so với `?branch=BD-001`, drawer đếm 17 thay vì 14, nhãn "Tiếng Việt"), nên không do F-74.
 - Đã commit trên `develop`.
+
+## R-992 (2026-10-20, mức 2: tìm kiếm ghi chú + migration) F-74 — Tìm ghi chú không dấu
+
+- **Lỗi** (chủ dự án báo): ô tìm ở "Thêm ghi chú" chỉ so khớp đúng dấu. Gõ "goi lai duc" không ra "Gọi lại BS Đức"; gõ có dấu cũng không ra ghi chú viết không dấu.
+- **Sửa BE**:
+  - Hàm mới `DbText.Unaccent` (Domain), map vào `unaccent()` của PostgreSQL bằng `HasDbFunction(...).IsBuiltIn()` trong `ConfigureTextSearch`. Application không cần tham chiếu Npgsql.
+  - `StaffNoteAppService.GetListAsync`: mỗi từ khoá so `unaccent(lower(Content))` với `unaccent(từ khoá)`. Hai phía cùng một luật bỏ dấu của DB, nên không lệch giữa C# và PostgreSQL. "đ" thành "d"; dấu tách rời (NFD, chữ + dấu kết hợp) cũng bỏ được.
+  - Migration `20261020020811_UnaccentSearch`: `CREATE EXTENSION IF NOT EXISTS unaccent;`. Không thêm cột, không backfill. Staging/prod chạy DbMigrator lúc compose khởi động nên tự áp; host mới mà chưa chạy migrator thì tìm kiếm báo lỗi 500.
+- **Phạm vi**: chỉ ghi chú nhanh. 44 chỗ khác dùng `SearchTerms` (bệnh nhân, danh mục, …) vẫn phân biệt dấu như cũ.
+- **Test** (build production `vite preview` cổng riêng + host riêng :5100, PostgreSQL thật, không chặn request):
+  - `e2e/staff-notes-api.spec.ts` **9/9**. Ca mới: gõ không dấu ra ghi chú có dấu (đ = d), gõ có dấu ra ghi chú không dấu, chữ hoa + dấu gộp chung ra cả hai cách viết, dấu tách rời (u + U+0301) ra như dấu liền, "duk" không ra "Đức" (không tìm mờ).
+  - `e2e/staff-notes.spec.ts` **5/5**. Trong dialog, gõ "goi lai khach" ra ghi chú "gọi lại khách lúc 16h".
+  - `BlueDental.EntityFrameworkCore.Tests` **66/66** (SQLite: chú thích extension của Npgsql không ảnh hưởng). `dotnet ef migrations has-pending-model-changes`: không còn thay đổi. FE `tsc -b` sạch.
+  - DB local: `pg_extension` có `unaccent 1.1`, `__EFMigrationsHistory` có `20261020020811_UnaccentSearch`.

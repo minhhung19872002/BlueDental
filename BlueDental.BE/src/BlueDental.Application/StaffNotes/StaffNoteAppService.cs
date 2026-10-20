@@ -50,9 +50,10 @@ public class StaffNoteAppService(
             }
         }
 
+        // Marks fold away on both sides: "goi lai duc" finds "Gọi lại BS Đức", and the other way round.
         foreach (var term in SearchTerms.From(input.Filter))
         {
-            query = query.Where(n => n.Content.ToLower().Contains(term));
+            query = query.Where(n => DbText.Unaccent(n.Content.ToLower()).Contains(DbText.Unaccent(term)));
         }
 
         var totalCount = await AsyncExecuter.CountAsync(query);

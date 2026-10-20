@@ -210,11 +210,14 @@ test.describe("Ghi chú — the dialog", () => {
       await expect(page.getByText("Đã xóa ghi chú").last()).toBeVisible();
       await expect(rows(dialog)).toHaveCount(1);
 
-      // Search runs on the server: every word, any case.
+      // Search runs on the server: every word, any case, with Vietnamese marks or without.
       await searchFor(dialog, `${run} 16H`);
       await expect(rows(dialog)).toHaveCount(1);
       await searchFor(dialog, `${run} không-có`);
       await expect(dialog.getByText("Chưa có ghi chú nào")).toBeVisible();
+      await searchFor(dialog, `${run} goi lai khach`);
+      await expect(rows(dialog)).toHaveCount(1);
+      await expect(rows(dialog).first()).toContainText(`${run} gọi lại khách lúc 16h`);
 
       // After a reload the saved note is still there, and only it.
       await page.reload();

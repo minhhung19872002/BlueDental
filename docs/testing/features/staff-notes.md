@@ -1,7 +1,7 @@
 # F-74 — Ghi chú nhanh ở header ("Thêm ghi chú", Alt+N)
 
 BA mock (2 screenshots), owner approved the plan 2026-10-19. BlueDental-local;
-the reference has no such dialog. Regression id R-990.
+the reference has no such dialog. Regression id R-990; accentless search R-992.
 
 Status: `VERIFIED` (2026-10-19).
 
@@ -24,6 +24,11 @@ Status: `VERIFIED` (2026-10-19).
     moves between screens.
 - **Search + Chung / Cá nhân**: the search runs on the server, debounced at
   300 ms. Every word must match, and case does not matter.
+  - Vietnamese marks do not matter either, on what is typed or on what was
+    written (R-992): "goi lai duc" finds "Gọi lại BS Đức", and "đặt vật tư"
+    finds "dat vat tu". "đ" counts as "d", and a decomposed mark (a letter
+    followed by a combining accent) folds the same as a precomposed one.
+  - Folding is exact, not fuzzy: "duk" does not find "Đức".
 - **Thêm mới**: a block that is folded by default.
   - It holds a "Ghi chú" textarea (up to 2000 characters, with a counter) and a
     "Thêm" button; ^ folds and unfolds it.
@@ -72,6 +77,14 @@ Refusals:
 Storage: table `bd_staff_notes` (`FullAuditedAggregateRoot`), migration
 `20261019120529_StaffNotes`.
 
+Accentless search (R-992): both the column and each typed word go through
+PostgreSQL's `unaccent()`, so the database's folding rules apply on both
+sides. LINQ reaches it through `DbText.Unaccent` (Domain), mapped as a built-in
+DB function in `ConfigureTextSearch`. Migration `20261020020811_UnaccentSearch`
+runs `CREATE EXTENSION IF NOT EXISTS unaccent;`. The extension is trusted since
+PG 13 and ships in `postgres:15-alpine`. DbMigrator must run before the new
+host serves a search. There is no new column and no backfill.
+
 Indexes:
 - `(Scope, ClinicBranchId, CreationTime)`
 - `(Scope, CreatorId, CreationTime)`
@@ -108,7 +121,7 @@ Taken during the build (not asked), to revisit if the owner disagrees:
 - **Application**: `StaffNoteAppServiceContractTests`, 3/3.
   - It checks that `[Authorize]` is present with no permission attached.
   - It checks that the branch scope goes through `BranchAccessChecker`.
-- **API, real host + PostgreSQL**: `e2e/staff-notes-api.spec.ts`, 8/8.
+- **API, real host + PostgreSQL**: `e2e/staff-notes-api.spec.ts`, 9/9.
   - Cá nhân is the author's alone (404 for anyone else) under every branch header.
   - Chung is visible in its branch only. A write to a foreign branch is refused
     with 403 (`branch2`).
@@ -116,6 +129,8 @@ Taken during the build (not asked), to revisit if the owner disagrees:
   - A non-author can read a Chung note but cannot edit or delete it.
   - Content rules and an invalid scope are refused.
   - Search is server-side; every word must match and case does not matter.
+  - Search ignores Vietnamese marks both ways. đ = d, decomposed marks fold
+    too, and the match is not fuzzy (R-992).
   - Pages come newest first with the full count.
   - A deleted note is gone from the list and can no longer be edited.
 - **UI, production build** (`vite preview`, real login, no interception):
@@ -124,6 +139,7 @@ Taken during the build (not asked), to revisit if the owner disagrees:
     clicks leave it open.
   - Dragging by the title moves it, and reopening centres it.
   - Add, copy (clipboard), edit, delete, then reload — the note persists.
+    Searching without marks finds the marked note (R-992).
   - A Cá nhân note is visible to its author only.
   - In Tất cả chi nhánh mode, Chung waits for a branch and Cá nhân does not.
 - **Persistence**: after the runs, the test rows in `bd_staff_notes` carry
