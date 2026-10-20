@@ -13,28 +13,18 @@
   background: var(--bd-bg);
 }
 
-/* ── Top tab strip ────────────────────────────────────────────────────── */
+/* ── Top tab strip (pills + the active tab's counters, BA R-999) ─────── */
 
 .cal-tabs-wrap {
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: #fff;
   border-bottom: 1px solid var(--bd-line);
   border-radius: var(--bd-radius-card) var(--bd-radius-card) 0 0;
 }
 
-/* ── Toolbar row 1 (Segmented + DateNavigator + status counters) ───── */
+/* ── View switch + date picker, leading the toolbar row ──────────── */
 
-.cal-toolbar-row1 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e7eaf6;
-  flex-wrap: wrap;
-}
-
-.cal-toolbar-left {
+.cal-view-controls {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -98,7 +88,7 @@
   white-space: nowrap;
 }
 
-/* ── Toolbar row 2 (search + doctor filter + action buttons) ──────── */
+/* ── Toolbar row 2 (view switch + date + search + doctor + buttons) ── */
 
 .cal-toolbar-row2 {
   display: flex;
@@ -123,6 +113,33 @@
   gap: 8px;
   margin-left: auto;
   flex-shrink: 0;
+}
+
+/* Search and doctor give up width before the buttons wrap (BA R-999): the
+   row breaks on their narrowest size (140 + 170, so 1366px still fits one
+   line) and they grow back to 220 / 280 while the line has room. */
+.cal-filter-fields {
+  flex: 1 1 318px;
+  max-width: 508px;
+  min-width: 0;
+}
+
+.cal-search-field {
+  flex: 8 1 140px;
+  max-width: 220px;
+  min-width: 0;
+}
+
+.cal-doctor-field {
+  flex: 11 1 170px;
+  max-width: 280px;
+  min-width: 0;
+}
+
+.cal-search-field > .floating-field,
+.cal-doctor-field > .floating-field,
+.cal-doctor-field .ant-select {
+  width: 100%;
 }
 
 /* Slot toggle: mobile copy hidden on desktop, desktop copy shown */
@@ -798,7 +815,6 @@ body.cal-fullscreen .cal-page {
 }
 
 body.cal-fullscreen .cal-tabs-wrap,
-body.cal-fullscreen .cal-toolbar-row1,
 body.cal-fullscreen .cal-toolbar-row2,
 body.cal-fullscreen .cal-selection-bar {
   display: none !important;
@@ -1057,20 +1073,12 @@ body.cal-fullscreen .cal-grid-wrap {
 /* ── Responsive ───────────────────────────────────────────────────── */
 
 @media (max-width: 1100px) {
-  .cal-toolbar-row1 { flex-wrap: wrap; }
-  .cal-toolbar-counters { margin-left: 0; flex-basis: 100%; }
-  .cal-toolbar-row2 { flex-direction: column; align-items: stretch; }
-  .cal-toolbar-row2-right { margin-left: 0; flex-wrap: wrap; }
+  .cal-toolbar-row2-right { flex-wrap: wrap; }
 }
 
 @media (max-width: 760px) {
-  /* ── Row 1: stack Segmented + DateNavigator full-width, counters scroll ── */
-  .cal-toolbar-row1 { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; }
-  .cal-toolbar-left { flex-direction: column; align-items: stretch; gap: 8px; flex-shrink: 1; width: 100%; }
-  .cal-toolbar-left .ant-segmented { width: 100%; }
-  .cal-toolbar-left .ant-segmented-item { flex: 1; text-align: center; }
-  .cal-toolbar-left .date-navigator { width: 100%; }
-  .cal-toolbar-left .date-navigator-display-wrapper { flex: 1; justify-content: center; }
+  /* ── Tab row: counters drop under the pills and scroll ── */
+  .cal-tabs-wrap { padding: 10px 12px; }
   .cal-toolbar-counters {
     flex-wrap: nowrap;
     flex-basis: auto;
@@ -1103,8 +1111,14 @@ body.cal-fullscreen .cal-grid-wrap {
   }
   .cal-mobile-actions .ant-btn { flex: 1; }
 
-  /* ── Row 2: hide action buttons, keep doctor field ── */
+  /* ── Row 2: Segmented + DateNavigator full-width, then the doctor field;
+       the action buttons live in .cal-mobile-actions ── */
   .cal-toolbar-row2 { padding: 10px 12px; }
+  .cal-view-controls { flex-direction: column; align-items: stretch; gap: 8px; flex-shrink: 1; width: 100%; }
+  .cal-view-controls .ant-segmented { width: 100%; }
+  .cal-view-controls .ant-segmented-item { flex: 1; text-align: center; }
+  .cal-view-controls .date-navigator { width: 100%; }
+  .cal-view-controls .date-navigator-display-wrapper { flex: 1; justify-content: center; }
   .cal-toolbar-row2-right { display: none; }
   .cal-toolbar-row2-left {
     flex-direction: row;
@@ -1112,9 +1126,9 @@ body.cal-fullscreen .cal-grid-wrap {
     gap: 8px;
     flex: 1;
   }
+  .cal-filter-fields { flex-basis: 100%; max-width: none; }
   .cal-toolbar-row2-left .cal-search-field { display: none; }
-  .cal-toolbar-row2-left .cal-doctor-field { flex: 1; min-width: 0; }
-  .cal-toolbar-row2-left .cal-doctor-field .ant-select { width: 100% !important; min-width: 0 !important; }
+  .cal-toolbar-row2-left .cal-doctor-field { flex: 1; max-width: none; }
   .cal-btn-slot--desktop { display: none !important; }
   .cal-btn-slot--mobile { display: inline-flex !important; flex-shrink: 0; }
 

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Input, Select } from "antd";
 import {
   SearchOutlined,
@@ -25,6 +26,8 @@ interface Props {
   onCreateAppointment: () => void;
   onCreateTemp: () => void;
   onFullscreen: () => void;
+  /** Leads the row: the view switch and date picker (BA R-999). */
+  children?: ReactNode;
 }
 
 export function CalendarToolbarRow2({
@@ -40,6 +43,7 @@ export function CalendarToolbarRow2({
   onCreateAppointment,
   onCreateTemp,
   onFullscreen,
+  children,
 }: Props) {
   const ability = useAbility("appointment");
   const isMonthView = viewMode === "month";
@@ -51,7 +55,8 @@ export function CalendarToolbarRow2({
 
   return (
     <div className="cal-toolbar-row2">
-      <div className="cal-toolbar-row2-left">
+      {children}
+      <div className="cal-toolbar-row2-left cal-filter-fields">
         <div className="cal-search-field">
           <FloatingLabel label={t("Common:Search")} floated={Boolean(keyword)}>
             <Input
@@ -59,7 +64,6 @@ export function CalendarToolbarRow2({
               value={keyword}
               onChange={(e) => onKeywordChange(e.target.value)}
               allowClear
-              style={{ width: 220 }}
             />
           </FloatingLabel>
         </div>
@@ -71,7 +75,6 @@ export function CalendarToolbarRow2({
               maxTagCount="responsive"
               value={doctorIds}
               onChange={onDoctorChange}
-              style={{ minWidth: 280 }}
               options={doctors.map((d) => ({ value: d.id, label: d.name }))}
             />
           </FloatingLabel>

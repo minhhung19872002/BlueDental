@@ -5,14 +5,10 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import { Segmented } from "antd";
 import { DateNavigator } from "@/components/DateNavigator/DateNavigator";
-import { TimekeepingStatChips } from "./TimekeepingStatChips";
 import { TimekeepingStaffCard } from "./TimekeepingStaffCard";
 import { TimekeepingWeekHeader } from "./TimekeepingWeekHeader";
 import { FloatingLabel } from "@/components/FloatingLabel";
-import {
-  useTimeKeepingList,
-  useTimeKeepingSummary,
-} from "../api/timekeepingQueries";
+import { useTimeKeepingList } from "../api/timekeepingQueries";
 import {
   WORK_REGISTRATION,
   ATTENDANCE_STATUS,
@@ -73,7 +69,6 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
   const workDate = currentDate.format("YYYY-MM-DD");
   const [keyword, setKeyword] = useState("");
 
-  const { data: summary } = useTimeKeepingSummary(branchFilter, workDate);
   const { data, isLoading } = useTimeKeepingList({
     clinicBranchId: branchFilter,
     fromDate: workDate,
@@ -159,27 +154,25 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
 
   return (
     <>
-      {/* Row 1 — reuses cal-toolbar-row1 so it's flush with the tab bar */}
-      <div className="cal-toolbar-row1 tk-toolbar-row1">
-        <Segmented
-          value={viewMode}
-          onChange={(v) => onViewModeChange(v as ViewMode)}
-          options={[
-            { label: t("Common:Day"), value: "day" },
-            { label: t("Common:Week"), value: "week" },
-            { label: t("Common:Month"), value: "month", disabled: true },
-          ]}
-        />
-        <DateNavigator
-          value={currentDate}
-          mode={viewMode}
-          onChange={onDateChange}
-        />
-        <TimekeepingStatChips summary={summary} />
-      </div>
-
-      {/* Row 2 — reuses cal-toolbar-row2 */}
+      {/* One row under the tab bar, as on Lịch hẹn khách hàng (BA R-999): the
+          view switch leads it and the KPI chips sit on the tab row. */}
       <div className="cal-toolbar-row2 tk-toolbar-row2">
+        <div className="cal-view-controls">
+          <Segmented
+            value={viewMode}
+            onChange={(v) => onViewModeChange(v as ViewMode)}
+            options={[
+              { label: t("Common:Day"), value: "day" },
+              { label: t("Common:Week"), value: "week" },
+              { label: t("Common:Month"), value: "month", disabled: true },
+            ]}
+          />
+          <DateNavigator
+            value={currentDate}
+            mode={viewMode}
+            onChange={onDateChange}
+          />
+        </div>
         <div className="cal-toolbar-row2-left">
           <FloatingLabel label={t("Timekeeping:SearchLabel")} floated={Boolean(keyword)}>
             <Input
