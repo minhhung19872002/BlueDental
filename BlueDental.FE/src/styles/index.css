@@ -44,6 +44,10 @@
   --bd-muted: #5c6484;
   --bd-faint: #99a0bd;
   --bd-dim: #7d85a5;
+  /* Hint text and icons inside a field (placeholder, resting floating label,
+     search magnifier): between sub and muted, still lighter than a typed
+     value. R-998. */
+  --bd-hint: #4a5273;
 
   /* Surfaces and rules. */
   --bd-line: #e7eaf6;
@@ -831,7 +835,7 @@ body::-webkit-scrollbar-track {
   height: 38px;
   border-radius: var(--bd-radius-control);
   border: 1px solid var(--bd-line);
-  color: var(--bd-dim);
+  color: var(--bd-hint);
   font-size: 12.5px;
   font-weight: 400;
   padding: 0 12px;
@@ -1951,9 +1955,15 @@ body::-webkit-scrollbar-track {
   display: none;
 }
 
+/* Hint text and the search magnifier inside a field: --bd-hint, readable at a
+   glance (R-998 — faint read as empty). The value typed stays --bd-ink. */
 .ant-input::placeholder,
 .ant-input-affix-wrapper input::placeholder {
-  color: var(--bd-dim);
+  color: var(--bd-hint);
+}
+
+.bd-input-icon {
+  color: var(--bd-hint);
 }
 
 /* ── Segmented — global 40px wrapper / 29px items / primary active ── */
@@ -2412,7 +2422,7 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-icon--search {
-  color: #99a0bd;
+  color: var(--bd-hint);
 }
 
 .ss-icon--sm {
@@ -2453,7 +2463,7 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-value--placeholder {
-  color: #99a0bd;
+  color: var(--bd-hint);
   font-weight: 400;
 }
 
@@ -2490,7 +2500,7 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-search-input::placeholder {
-  color: #99a0bd;
+  color: var(--bd-hint);
 }
 
 /* Options list */
@@ -5058,7 +5068,7 @@ html:has(.ant-modal-wrap) {
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: #99a0bd;
+  color: var(--bd-hint);
   pointer-events: none;
   transition: all 0.15s ease;
   background: transparent;
@@ -5341,7 +5351,7 @@ html:has(.ant-modal-wrap) {
 
 /* Search palette field: the design's 14.5px borderless input. */
 .app-search-icon {
-  color: var(--bd-dim);
+  color: var(--bd-hint);
   font-size: 17px;
   flex: 0 0 auto;
 }

@@ -112,7 +112,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
         <div className="tk-info-row">
           <FloatingLabel label={t("Common:Staff")} floated>
             <Input
-              prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+              prefix={<SearchOutlined className="bd-input-icon" />}
               value={staffName}
               readOnly
             />

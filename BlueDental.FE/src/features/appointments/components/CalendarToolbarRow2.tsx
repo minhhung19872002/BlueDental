@@ -55,7 +55,7 @@ export function CalendarToolbarRow2({
         <div className="cal-search-field">
           <FloatingLabel label={t("Common:Search")} floated={Boolean(keyword)}>
             <Input
-              prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+              prefix={<SearchOutlined className="bd-input-icon" />}
               value={keyword}
               onChange={(e) => onKeywordChange(e.target.value)}
               allowClear

@@ -168,7 +168,7 @@ export function CalendarControlPanel({
                 <div className="cal-panel-filter-field">
                   <span className="cal-panel-filter-label">{t("Common:Search")}</span>
                   <Input
-                    prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+                    prefix={<SearchOutlined className="bd-input-icon" />}
                     value={keyword}
                     onChange={(e) => onKeywordChange(e.target.value)}
                     allowClear

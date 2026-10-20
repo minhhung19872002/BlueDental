@@ -183,7 +183,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
         <div className="cal-toolbar-row2-left">
           <FloatingLabel label={t("Timekeeping:SearchLabel")} floated={Boolean(keyword)}>
             <Input
-              prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+              prefix={<SearchOutlined className="bd-input-icon" />}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               allowClear

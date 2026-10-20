@@ -9933,3 +9933,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `consulting-delete-and-picker.spec.ts:200`: đỏ y hệt trên bản build HEAD. Dịch vụ cuối danh mục là dữ liệu thừa "DUNG-TEST Dịch vụ xoá mềm …" của phiên khác. Dòng thiếu hẳn trong DOM, không phải lỗi hiển thị.
     - `report.spec.ts:294`: đã biết (tiêu đề cột khi xuất Excel thanh toán).
 - **Commit**: chưa commit.
+
+## R-998 (2026-10-20, mức 3: CSS + theme AntD dùng chung, không đổi nghiệp vụ) Tất cả màn — Chữ gợi ý trong ô nhập đậm hơn
+
+- **Yêu cầu** (BA, kèm ảnh `/calendar`, khoanh ô "Tìm kiếm..." và "Bác sĩ"): "mấy ô input, chữ này bị mờ nhạt quá nè, nhìn không rõ. Chỉnh lại cho đậm lên." Chủ dự án chốt: áp dụng cho mọi chữ gợi ý trong ô và làm đậm luôn icon kính lúp. Sau lần 1 (`--bd-muted`), chủ dự án yêu cầu "đậm hơn chút nữa".
+- **Nguyên nhân**: chữ gợi ý dùng hai màu. Placeholder của AntD dùng màu mặc định 25 % ink. Phần tự dựng dùng `#99a0bd` (`--bd-faint`), gồm nhãn nổi lúc nằm trong ô, SearchSelect, icon kính lúp viết inline. Tương phản trên nền trắng chỉ khoảng 2,6:1, nên ô trông như trống.
+- **Màu mới**: token `--bd-hint` `#4a5273` (`brand.hint`), tương phản khoảng 7,7:1. Màu này nằm giữa `--bd-sub` và `--bd-muted`, vẫn nhạt hơn chữ đã nhập (`--bd-ink` `#171c33`). Không đổi `--bd-muted`, vì khoảng 300 chỗ đang dùng nó: tiêu đề cột bảng, tab, Segmented, chữ phụ.
+- **Sửa FE**:
+  - `src/theme/index.ts`: thêm `colorTextPlaceholder: brand.hint` cho Input, InputNumber, DatePicker, Select. TimePicker và RangePicker dùng token của DatePicker; AutoComplete dùng token của Select.
+    - Không đặt ở token global, vì AntD còn dùng token này cho nền Avatar, Badge và thanh cuộn dính của Table.
+    - `voucherDialogTheme` lồng bên trong vẫn kế thừa, vì ConfigProvider merge theo từng component.
+  - `src/styles/index.css`:
+    - Khai báo `--bd-hint`.
+    - Đổi sang `--bd-hint`: placeholder `.ant-input`, nhãn nổi lúc nằm trong ô (`.floating-field-label`), SearchSelect (`.ss-value--placeholder`, `.ss-search-input::placeholder`, `.ss-icon--search`), ô tìm kiếm trên header (`.app-header-search`), icon trong modal tìm kiếm toàn cục (`.app-search-icon`).
+    - Thêm class `.bd-input-icon`.
+  - `reception.css` (`.rn-select-placeholder`), `billing.css` (`.billing-search-icon`): đổi sang `--bd-hint`.
+  - 7 icon kính lúp: thay `style={{ color: "#99a0bd" }}` bằng `className="bd-input-icon"` ở `CalendarControlPanel`, `CalendarToolbarRow2`, `ReceptionToolbar` (2 icon), `TimekeepingBoard`, `TimekeepingInfoModal`, `WorkScheduleBuilder`.
+  - Không đổi:
+    - Nhãn khi đã nổi lên trên viền, màu báo lỗi, trạng thái disabled, mũi tên ▾ và nút xoá của ô chọn.
+    - Rule riêng của các dialog đã chỉnh trước đó: labo, `pd-stage-dialog`, `tp-dialog`, `.ah-modal .ah-select`.
+    - Ô nhập trên tờ A4 (`.bd-a4-cellinput`, `.pd-a4-free-body`).
+    - Các chỗ `#99a0bd` không phải ô nhập: sơ đồ răng, avatar svg, `PatientAccountPanel`.
+- **Đo** (dev server 1600×900, đăng nhập thật, `getComputedStyle`): mọi chữ gợi ý ra `rgb(74, 82, 115)`, trước đó là `#99a0bd` hoặc 25 % ink. Phạm vi đo:
+  - `/calendar`: nhãn "Tìm kiếm...", "Bác sĩ", icon kính lúp.
+  - `/reception`: "Tìm bệnh nhân...", SearchSelect "Nhóm bác sĩ" / "Bác sĩ", icon.
+  - `/patient`: 3 nhãn lọc, "Tìm kiếm".
+  - `/labo`: Select "Chọn khách hàng" / "Chọn bác sĩ".
+  - `/taxonomy/service`: "Tìm nhóm...", "Tìm theo tên dịch vụ hoặc combo...".
+  - Dialog "Tạo lịch hẹn mới" (mở rồi đóng, không lưu): picker "Chọn thời điểm" / "HH:mm", "Nội dung đặt lịch", "Chọn bệnh nhân" / "Chọn bác sĩ".
+  - Icon kính lúp ở `/patient` và `/taxonomy` vốn đã dùng màu chữ chính, không đổi.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request):
+  - Bộ bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`), chạy trên build lần 1 (`--bd-muted`). Lần 2 chỉ đổi giá trị màu nên kết quả vẫn áp dụng. Kết quả **91/93**, không có ca đỏ do R-998: `taxonomy-dialogs.spec.ts:104` và `:256` đỏ sẵn do dữ liệu local, giống R-997.
+  - `appointment`, `reception`, `header-navigation`, `labo-warranty`, chạy trên build lần 2 (`--bd-hint`). Kết quả **14/18**, 4 ca đỏ đều có sẵn và không liên quan:
+    - `header-navigation.spec.ts:13`: URL nay có `?branch=BD-001`.
+    - `header-navigation.spec.ts:121`: drawer có 17 mục, spec chờ 14.
+    - `header-navigation.spec.ts:139`: không tìm thấy menuitem "Tiếng Việt".
+    - `labo-warranty.spec.ts:315`: `fillDueDate`, ô ngày có mask nhập.
+  - Không có spec nào kiểm tra màu placeholder hoặc màu nhãn cũ. `labo-warranty.spec.ts:341` chỉ kiểm tra màu đỏ báo lỗi của nhãn trong dialog labo, rule đó không bị đổi.
+- **Commit**: chưa commit.

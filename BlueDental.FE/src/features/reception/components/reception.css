@@ -719,7 +719,7 @@
 .rn-select-placeholder {
   display: flex;
   align-items: center;
-  color: #99a0bd;
+  color: var(--bd-hint);
   font-size: 14px;
 }
 

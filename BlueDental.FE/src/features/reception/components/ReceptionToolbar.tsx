@@ -68,7 +68,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
           <Input
             className="reception-toolbar-search--inline"
             placeholder={t("Reception:SearchPlaceholder")}
-            prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+            prefix={<SearchOutlined className="bd-input-icon" />}
             value={keyword}
             onChange={(e) => onSearchChange(e.target.value)}
             allowClear
@@ -92,7 +92,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
       <Input
         className="reception-toolbar-search--block"
         placeholder={t("Reception:SearchPlaceholder")}
-        prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+        prefix={<SearchOutlined className="bd-input-icon" />}
         value={keyword}
         onChange={(e) => onSearchChange(e.target.value)}
         allowClear

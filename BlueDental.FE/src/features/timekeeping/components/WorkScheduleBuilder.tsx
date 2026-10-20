@@ -140,7 +140,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
           <div className="wsb-toolbar-search">
             <FloatingLabel label={t("Timekeeping:SearchStaff")} floated={Boolean(keyword)}>
               <Input
-                prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+                prefix={<SearchOutlined className="bd-input-icon" />}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 allowClear
