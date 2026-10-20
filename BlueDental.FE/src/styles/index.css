@@ -11,136 +11,100 @@
   --bd-font: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
 
   /* ---------------------------------------------------------------------
-     Đức Hạnh Premium v3 — neon grape, flat (no gradients, no mesh ground).
+     Đức Hạnh Premium v2 — light glass + indigo neon.
      Semantic names kept from v1 so the whole sheet re-points at once.
-     Source: the clinic's design system tokens (grape-*, neutral-*, the
-     four-step status colours). Selection is a grape-100 tint with grape-800
-     text, never a second solid fill (owner, 2026-10-19, R-988).
      --------------------------------------------------------------------- */
 
-  /* Brand — grape. */
-  --bd-blue: #7b2ef0; /* grape-600 */
-  --bd-blue-dark: #6620cc; /* grape-700, hover */
-  --bd-blue-light: #c4a3ff; /* grape-300, shapes only */
-  --bd-blue-pale: #eee5ff; /* grape-100, selected / secondary */
-  --bd-blue-pale-hover: #dcc8ff; /* grape-200 */
-  --bd-navy: #3a1178; /* grape-900 */
-  /* Dark hint bubble. */
-  --bd-tooltip-bg: #1c1a23;
-  --bd-primary: #7b2ef0;
-  /* Text on a grape-100 tint: the selected nav item, page and chip. */
-  --bd-primary-ink: #4f17a0; /* grape-800 */
-  --bd-accent: #a875ff; /* grape-400, shapes only */
-  --bd-violet: #9147ff; /* grape-500 */
+  /* Brand — indigo primary, cyan accent. */
+  --bd-blue: #6366f1;
+  --bd-blue-dark: #4f46e5;
+  --bd-blue-light: #a5b4fc;
+  --bd-blue-pale: #eef0ff;
+  --bd-blue-pale-hover: #e0e4ff;
+  --bd-navy: #232a56;
+  /* The reference's dark hint bubble (measured on its Tổng giảm giá tooltip, 2026-09-28). */
+  --bd-tooltip-bg: #1b2a41;
+  --bd-primary: #6366f1;
+  --bd-accent: #22d3ee;
+  --bd-violet: #8b5cf6;
 
-  /* The one CTA fill: every primary button. Flat in v3. */
-  --bd-cta: #7b2ef0;
+  /* The one CTA fill: every primary button and active nav pill uses it. */
+  --bd-cta: linear-gradient(120deg, #6366f1, #8b5cf6 55%, #22d3ee 130%);
 
-  /* Link — grape-700 in v3 (owner, R-988), on a grape-50 hover tint. */
-  --bd-link: #6620cc;
-  --bd-link-pale: #f7f3ff;
+  /* Link blue — what the reference draws record links on. Kept as its own token
+     rather than folded into --bd-blue, which v2 moved to indigo. */
+  --bd-link: #2671d8;
+  --bd-link-pale: #f3f8ff;
 
-  /* Text ramp, darkest to faintest (grape-tinted neutrals). */
-  --bd-ink: #1c1a23;
-  --bd-body: #2e2b38;
-  --bd-title: #1c1a23;
-  --bd-sub: #454152;
-  --bd-muted: #5e5a6e;
-  --bd-faint: #a9a5b8;
-  --bd-dim: #7e7a8f;
+  /* Text ramp, darkest to faintest. */
+  --bd-ink: #171c33;
+  --bd-body: #171c33;
+  --bd-title: #22285c;
+  --bd-sub: #414a6b;
+  --bd-muted: #5c6484;
+  --bd-faint: #99a0bd;
+  --bd-dim: #7d85a5;
   /* Hint text and icons inside a field (placeholder, resting floating label,
      search magnifier): between sub and muted, still lighter than a typed
      value. R-998. */
   --bd-hint: #4a5273;
 
   /* Surfaces and rules. */
-  --bd-line: #e6e4ee;
-  --bd-line-soft: #f3f2f7;
-  --bd-border: #e6e4ee;
-  --bd-bg: #faf9fc;
-  --bd-bg-soft: #f3f2f7;
-  --bd-bg-head: #f3f2f7;
+  --bd-line: #e7eaf6;
+  --bd-line-soft: #f0f2fa;
+  --bd-border: #e7eaf6;
+  --bd-bg: #f7f9ff;
+  --bd-bg-soft: #f7f8fd;
+  --bd-bg-head: #f7f8fd;
   --bd-card: #ffffff;
 
   /* The planes below a card: input fill, row hover, table head. */
-  --bd-surface-2: #faf9fc;
-  --bd-surface-3: #f3f2f7;
-  --bd-row-alt: #faf9fc;
-  --bd-divider: #f3f2f7;
-  --bd-border-2: #e6e4ee;
-  /* border-strong: neutral buttons and inputs that need a firmer edge. */
-  --bd-border-strong: #d2cfdd;
+  --bd-surface-2: #f6f8fe;
+  --bd-surface-3: #f4f6fd;
+  --bd-row-alt: #fafbff;
+  --bd-divider: #eef0f9;
+  --bd-border-2: #e3e7f5;
 
   /* Nav ink, and the tint a nav item takes under the pointer. */
-  --bd-nav-ink: #454152;
-  --bd-ink-3: #5e5a6e;
-  --bd-ink-4: #a9a5b8;
-  --bd-hover-tint: #f7f3ff; /* grape-50 */
-  --bd-primary-strong: #6620cc;
+  --bd-nav-ink: #4c5675;
+  --bd-ink-3: #6a7390;
+  --bd-ink-4: #98a0b6;
+  --bd-hover-tint: #eef0fb;
+  --bd-primary-strong: #4f52e0;
 
-  /* Formerly gradients; v3 is flat, so each is the solid grape. */
-  --bd-grad-nav: #7b2ef0;
-  --bd-grad-bar: #7b2ef0;
-  --bd-grad-progress: #7b2ef0;
+  /* The gradients that are not the CTA: nav pill, chart column, progress. */
+  --bd-grad-nav: linear-gradient(100deg, #6366f1, #7c5ce0 60%, #22d3ee 140%);
+  --bd-grad-bar: linear-gradient(180deg, #6366f1, #22d3ee);
+  --bd-grad-progress: linear-gradient(90deg, #6366f1, #22d3ee);
 
   /* Scrollbar — the trough matches the ground so no dark rail shows. */
-  --bd-scroll-thumb: #d2cfdd;
-  --bd-scroll-thumb-hover: #a9a5b8;
+  --bd-scroll-thumb: #c5cbe4;
+  --bd-scroll-thumb-hover: #a9b1d4;
 
   /* Header glass — the only blurred surface; cards stay opaque. */
   --bd-glass: rgba(255, 255, 255, 0.82);
   --bd-glass-blur: 20px;
 
-  /* Status accents — the *-solid step (dot, icon, strong bar). */
-  --bd-green: #2e8a5e;
-  --bd-green-bright: #2e8a5e;
-  --bd-success: #2e8a5e;
-  --bd-gold: #b4691a;
-  --bd-gold-deep: #b4691a;
-  --bd-amber: #b4691a;
-  --bd-red: #c9455a;
-  --bd-red-dark: #a33447;
-  --bd-info: #2f78b5;
-  --bd-teal: #2f78b5;
-  /* Orchid — Lịch tạm / Không đến / Hoàn tiền (owner, R-988). */
-  --bd-purple: #9c5caf;
+  /* Status accents. */
+  --bd-green: #0e9f6e;
+  --bd-green-bright: #0e9f6e;
+  --bd-success: #0e9f6e;
+  --bd-gold: #d98b0f;
+  --bd-gold-deep: #d98b0f;
+  --bd-amber: #d98b0f;
+  --bd-red: #e5484d;
+  --bd-red-dark: #cf3c41;
+  --bd-info: #0e94d0;
+  --bd-teal: #0e94d0;
+  --bd-purple: #7c5ce0;
   --bd-pink: #bf5a8c;
 
-  /* Status tints — the *-subtle step behind a status accent. */
-  --bd-green-pale: #e3f6ec;
-  --bd-amber-pale: #fff1de;
-  --bd-red-pale: #fde7ea;
-  --bd-purple-pale: #f6ebfc;
-  --bd-info-pale: #e2f0fc;
-
-  /* The *-border and *-content steps of each status colour. */
-  --bd-green-line: #9fddbc;
-  --bd-green-ink: #23704b;
-  --bd-amber-line: #f8c98a;
-  --bd-amber-ink: #8f5212;
-  --bd-red-line: #f4a9b4;
-  --bd-red-ink: #a33447;
-  --bd-info-line: #9cc9ee;
-  --bd-info-ink: #255f90;
-  --bd-purple-line: #ddb6f2;
-  --bd-purple-ink: #834596;
-  --bd-blue-line: #c4a3ff;
-
-  /* v3 categorical families — topic chips, form cards, chart fills; never a
-     state (R-991). */
-  --bd-aqua: #0f7c74;
-  --bd-aqua-pale: #e3f7f5;
-  --bd-aqua-line: #a6e3dc;
-  --bd-lavender: #5b6fc9;
-  --bd-lavender-ink: #4657af;
-  --bd-lavender-pale: #eef0ff;
-  --bd-lavender-line: #bfc6f7;
-  /* Logo gold — brand marks and rating stars only, never a button or a state. */
-  --bd-gold-100: #fff0d1;
-  --bd-gold-200: #ffe2a6;
-  --bd-gold-300: #fed07a;
-  --bd-gold-500: #f0a72a;
-  --bd-gold-700: #9a620a;
+  /* Status tints — the fill behind a status accent. */
+  --bd-green-pale: #e3f6ef;
+  --bd-amber-pale: #fbf1de;
+  --bd-red-pale: #fdeced;
+  --bd-purple-pale: #f0ebfc;
+  --bd-info-pale: #e2f2fb;
 
   /* Combo suggestion in "Chọn Dịch Vụ" (review P0510): an orange notice whose
      button is the deep orange the review drew. */
@@ -159,14 +123,12 @@
   --bd-radius-header: 18px;
   --bd-radius-modal: 18px;
 
-  --bd-shadow-card: 0 2px 10px rgba(28, 26, 35, 0.05);
-  --bd-shadow-lift: 0 6px 18px rgba(28, 26, 35, 0.08);
-  --bd-shadow-pop: 0 12px 28px rgba(28, 26, 35, 0.1);
-  --bd-shadow-modal: 0 24px 60px rgba(28, 26, 35, 0.18);
-  /* v3 focus ring: 2px grape-300 outside the control. */
-  --bd-shadow-focus: 0 0 0 2px #c4a3ff;
-  /* v3 is flat: the primary button carries no coloured glow. */
-  --bd-shadow-glow: none;
+  --bd-shadow-card: 0 2px 10px rgba(35, 42, 86, 0.05);
+  --bd-shadow-lift: 0 6px 18px rgba(35, 42, 86, 0.08);
+  --bd-shadow-pop: 0 12px 28px rgba(35, 42, 86, 0.1);
+  --bd-shadow-modal: 0 24px 60px rgba(35, 42, 86, 0.18);
+  --bd-shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.22);
+  --bd-shadow-glow: 0 10px 30px rgba(99, 102, 241, 0.28);
 
   --bd-header-height: 62px;
   /* The ribbon under the header is always on (BA, 2026-10-05), so a screen
@@ -178,9 +140,9 @@
   --fc-button-text-color: #fff;
   --fc-button-bg-color: var(--bd-blue-light);
   --fc-button-border-color: var(--bd-blue-light);
-  --fc-button-hover-bg-color: var(--bd-ink);
-  --fc-button-hover-border-color: var(--bd-ink);
-  --fc-button-active-bg-color: var(--bd-ink);
+  --fc-button-hover-bg-color: #171c33;
+  --fc-button-hover-border-color: #171c33;
+  --fc-button-active-bg-color: #171c33;
   --fc-button-active-border-color: var(--bd-blue-dark);
   --fc-event-bg-color: var(--bd-blue-light);
   --fc-event-border-color: var(--bd-blue-light);
@@ -206,6 +168,39 @@ body {
   font-family: var(--bd-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The app ground: three coloured pools drifting behind everything. Fixed, so
+   it never scrolls with content, and inert so it never eats a click. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(640px at 12% 8%, rgba(99, 102, 241, 0.09), transparent 62%),
+    radial-gradient(760px at 88% 14%, rgba(34, 211, 238, 0.08), transparent 62%),
+    radial-gradient(900px at 50% 105%, rgba(167, 139, 250, 0.07), transparent 62%);
+  animation: meshDrift 16s ease-in-out infinite alternate;
+  /*
+   * The ground is three large gradients that never stop moving, so it is
+   * pinned to its own compositor layer: without this it repaints whenever
+   * anything above it changes, and opening a dialog cost a visibly uneven
+   * frame (63/69/70ms) instead of a steady one (63/63/63).
+   */
+  will-change: transform;
+  contain: strict;
+  backface-visibility: hidden;
+}
+
+@keyframes meshDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(0, -30px, 0) scale(1.06);
+  }
 }
 
 /* ---- v2 motion vocabulary -------------------------------------------- */
@@ -255,13 +250,13 @@ body {
 /* The unread badge breathes a ring outward; it does not rock. */
 @keyframes ringPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(123, 46, 240, 0.45);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.45);
   }
   70% {
-    box-shadow: 0 0 0 9px rgba(123, 46, 240, 0);
+    box-shadow: 0 0 0 9px rgba(99, 102, 241, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(123, 46, 240, 0);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
   }
 }
 
@@ -314,6 +309,10 @@ select {
 
 /* Everyone who asked for less motion gets none of the ambient kind. */
 @media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
+
   *,
   *::before,
   *::after {
@@ -491,15 +490,15 @@ body::-webkit-scrollbar-track {
 }
 
 .app-nav-group--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-grad-nav);
+  color: #fff;
   font-weight: 600;
 }
 
-/* Hovering the chosen group keeps its tint rather than the hover one. */
+/* Hovering the chosen group must not wash its label out to white on white. */
 .app-nav-group--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-grad-nav);
+  color: #fff;
 }
 
 .app-nav-group--open {
@@ -522,7 +521,7 @@ body::-webkit-scrollbar-track {
   border: 0;
   border-bottom: 1px solid var(--bd-border);
   border-radius: 0;
-  box-shadow: 0 14px 34px -26px rgba(28, 26, 35, 0.6);
+  box-shadow: 0 14px 34px -26px rgba(44, 58, 122, 0.6);
   box-sizing: border-box;
   min-height: var(--bd-ribbon-height);
   padding: 7px 8px;
@@ -557,14 +556,14 @@ body::-webkit-scrollbar-track {
 }
 
 .app-ribbon-item--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-grad-nav);
+  color: #fff;
   font-weight: 600;
 }
 
 .app-ribbon-item--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-grad-nav);
+  color: #fff;
 }
 
 /*
@@ -621,14 +620,14 @@ body::-webkit-scrollbar-track {
 }
 
 .app-drawer-item--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-grad-nav);
+  color: #fff;
   font-weight: 600;
 }
 
 .app-drawer-item--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-grad-nav);
+  color: #fff;
 }
 
 /* ── Header ── */
@@ -654,7 +653,7 @@ body::-webkit-scrollbar-track {
   backdrop-filter: blur(var(--bd-glass-blur));
   border: 0;
   border-bottom: 1px solid var(--bd-border);
-  box-shadow: 0 20px 44px -30px rgba(79, 23, 160, 0.45);
+  box-shadow: 0 20px 44px -30px rgba(76, 81, 191, 0.45);
   position: relative;
   z-index: 40;
 }
@@ -695,7 +694,7 @@ body::-webkit-scrollbar-track {
   border-radius: 50%;
   object-fit: cover;
   flex: 0 0 auto;
-  border: 1.5px solid var(--bd-border-strong);
+  border: 1.5px solid #dde2f2;
   background: #fff;
 }
 
@@ -866,9 +865,9 @@ body::-webkit-scrollbar-track {
   font-family: monospace;
   font-size: 11px;
   font-weight: 400;
-  color: var(--bd-dim);
-  background: var(--bd-bg-soft);
-  border: 1px solid var(--bd-line);
+  color: #78819c;
+  background: #f7f8fd;
+  border: 1px solid #e7eaf6;
   border-radius: 4px;
   padding: 2px 6px;
   line-height: 1.4;
@@ -984,7 +983,7 @@ body::-webkit-scrollbar-track {
 }
 
 .app-header-avatar.ant-avatar {
-  background: var(--bd-primary);
+  background: linear-gradient(140deg, #6366f1, #22d3ee);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -994,7 +993,7 @@ body::-webkit-scrollbar-track {
   margin-left: 8px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--bd-body);
+  color: #242b47;
   white-space: nowrap;
 }
 
@@ -1010,7 +1009,7 @@ body::-webkit-scrollbar-track {
   background: #fff;
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-card);
-  box-shadow: 0 24px 50px -18px rgba(28, 26, 35, 0.4);
+  box-shadow: 0 24px 50px -18px rgba(35, 42, 86, 0.4);
   overflow: hidden;
   animation: popIn 0.16s ease;
 }
@@ -1143,7 +1142,7 @@ body::-webkit-scrollbar-track {
 }
 
 .app-notif-close:hover {
-  background: var(--bd-blue-pale);
+  background: #eceefe;
 }
 
 /* ── Global search overlay ── */
@@ -1153,7 +1152,7 @@ body::-webkit-scrollbar-track {
 .app-search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(28, 26, 35, 0.4);
+  background: rgba(35, 42, 86, 0.4);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   z-index: 1000;
@@ -1432,7 +1431,7 @@ body::-webkit-scrollbar-track {
   background: #fff;
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-card);
-  box-shadow: 0 6px 20px -14px rgba(28, 26, 35, 0.22);
+  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
   padding: 17px 18px;
   height: 100%;
   transition:
@@ -1443,8 +1442,8 @@ body::-webkit-scrollbar-track {
 
 .stat-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(123, 46, 240, 0.5);
-  box-shadow: 0 24px 44px -22px rgba(123, 46, 240, 0.4);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 24px 44px -22px rgba(99, 102, 241, 0.4);
 }
 
 .stat-card .stat-card-value,
@@ -1538,9 +1537,12 @@ body::-webkit-scrollbar-track {
   grid-template-columns: 1.05fr 0.95fr;
 }
 
-/* A flat grape-900 panel: the ground the gold mark is drawn for. */
+/* Indigo panel, lit by a violet well top-right and a cyan one bottom-left. */
 .login-aside {
-  background: var(--bd-navy);
+  background:
+    radial-gradient(760px at 82% -12%, rgba(129, 140, 248, 0.55), transparent 62%),
+    radial-gradient(720px at 0% 112%, rgba(34, 211, 238, 0.42), transparent 62%),
+    linear-gradient(160deg, #3a44a0 0%, #4c53c9 55%, #5a5fd4 100%);
   color: #fff;
   padding: 44px 60px;
   gap: 36px;
@@ -1549,6 +1551,30 @@ body::-webkit-scrollbar-track {
   justify-content: space-between;
   position: relative;
   overflow: hidden;
+}
+
+.login-aside::before,
+.login-aside::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.login-aside::before {
+  width: 520px;
+  height: 520px;
+  top: -160px;
+  right: -160px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.5), transparent 70%);
+}
+
+.login-aside::after {
+  width: 420px;
+  height: 420px;
+  bottom: -140px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.45), transparent 70%);
 }
 
 .login-brand {
@@ -1563,7 +1589,7 @@ body::-webkit-scrollbar-track {
   height: 46px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid rgba(196, 163, 255, 0.55);
+  border: 1.5px solid rgba(34, 211, 238, 0.55);
   flex: 0 0 auto;
   animation: floatY 5s ease-in-out infinite;
 }
@@ -1577,7 +1603,7 @@ body::-webkit-scrollbar-track {
 
 .login-brand-sub {
   font-size: 11px;
-  color: var(--bd-blue-pale);
+  color: #e2e6fc;
   line-height: 1.4;
   margin-top: 2px;
 }
@@ -1600,7 +1626,7 @@ body::-webkit-scrollbar-track {
   margin: 18px 0 0;
   font-size: 15px;
   line-height: 1.6;
-  color: var(--bd-blue-pale);
+  color: #e6e9fd;
 }
 
 .login-stats {
@@ -1616,14 +1642,14 @@ body::-webkit-scrollbar-track {
 
 .login-stat-label {
   font-size: 11.5px;
-  color: var(--bd-blue-pale-hover);
+  color: #dfe4fb;
   letter-spacing: 0.3px;
 }
 
 .login-aside-foot {
   position: relative;
   font-size: 11.5px;
-  color: var(--bd-blue-pale-hover);
+  color: #d3d9f7;
 }
 
 .login-panel {
@@ -1653,20 +1679,21 @@ body::-webkit-scrollbar-track {
   margin: 8px 0 28px;
 }
 
-/* The sign-in button: the one solid grape on the screen. */
+/* The design's sign-in button sweeps navy into gold. */
 .login-submit.ant-btn-primary {
   height: 48px;
   border: 0;
   border-radius: 11px;
-  background: var(--bd-primary);
+  background: linear-gradient(120deg, #6366f1, #22d3ee);
   font-size: 14.5px;
   font-weight: 600;
-  box-shadow: none;
+  box-shadow: 0 10px 24px -12px rgba(99, 102, 241, 0.95);
   margin-top: 4px;
 }
 
 .login-submit.ant-btn-primary:not(:disabled):hover {
-  background: var(--bd-blue-dark);
+  background: linear-gradient(120deg, #6366f1, #22d3ee);
+  filter: brightness(1.06);
 }
 
 /* Login fields: label above, plain 46px box on a faint fill until focused. */
@@ -1690,9 +1717,9 @@ body::-webkit-scrollbar-track {
 .login-form .ant-input {
   height: 46px;
   padding: 0 14px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e3e7f5;
   border-radius: 11px;
-  background: var(--bd-bg);
+  background: #f6f8fe;
   font-size: 14px;
 }
 
@@ -1939,13 +1966,11 @@ body::-webkit-scrollbar-track {
   color: var(--bd-hint);
 }
 
-/* ── Segmented — global 40px wrapper / 29px items / white chip active ── */
-/* v3 (R-988): a sunken neutral track, the picked option a raised white chip in
-   grape-800 — the solid grape stays for the one primary button. */
+/* ── Segmented — global 40px wrapper / 29px items / primary active ── */
 .ant-segmented {
   height: 40px;
   padding: 4px;
-  background: var(--bd-bg-soft);
+  background: var(--bd-bg);
   border: 1px solid var(--bd-line);
   border-radius: 10px;
   display: inline-flex;
@@ -1973,10 +1998,10 @@ body::-webkit-scrollbar-track {
 }
 
 .ant-segmented .ant-segmented-item-selected {
-  background: var(--bd-card);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue);
+  color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(28, 26, 35, 0.08);
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
 }
 
 .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
@@ -1984,7 +2009,7 @@ body::-webkit-scrollbar-track {
 }
 
 .ant-segmented .ant-segmented-thumb {
-  background: var(--bd-card);
+  background: var(--bd-blue);
   border-radius: 7px;
   height: 29px;
 }
@@ -2026,15 +2051,13 @@ body::-webkit-scrollbar-track {
   line-height: 32px;
 }
 
-/* v3 (R-988): the current page reads as a selection — grape-100 with grape-800
-   text — not a second solid fill beside the primary button. */
 .ant-table-wrapper .ant-table-pagination .ant-pagination-item-active {
-  background: var(--bd-blue-pale);
-  border-color: var(--bd-blue-light);
+  background: var(--bd-blue, var(--bd-blue));
+  border-color: var(--bd-blue, var(--bd-blue));
 }
 
 .ant-table-wrapper .ant-table-pagination .ant-pagination-item-active a {
-  color: var(--bd-primary-ink);
+  color: #fff;
 }
 
 .ant-table-wrapper .ant-table-pagination .ant-pagination-item,
@@ -2192,7 +2215,7 @@ body::-webkit-scrollbar-track {
   background: #ffffff;
   padding: 4px;
   border-radius: 10px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e7eaf6;
   height: 40px;
 }
 
@@ -2203,7 +2226,7 @@ body::-webkit-scrollbar-track {
   padding: 0 14px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--bd-muted);
+  color: #5c6484;
   cursor: pointer;
   border-radius: 10px;
   transition: all 0.15s ease;
@@ -2212,20 +2235,20 @@ body::-webkit-scrollbar-track {
 }
 
 .reception-status-pill:hover {
-  background: var(--bd-line);
-  color: var(--bd-ink);
+  background: #e7eaf6;
+  color: #171c33;
 }
 
 .reception-status-pill--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue);
+  color: #ffffff;
   font-weight: 600;
   box-shadow: none;
 }
 
 .reception-status-pill--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue);
+  color: #ffffff;
 }
 
 .reception-counter-cards {
@@ -2316,26 +2339,26 @@ body::-webkit-scrollbar-track {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--bd-info-pale);
+  background: #e2f2f9;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
   font-size: 24px;
-  color: var(--bd-info);
+  color: #0e94d0;
 }
 
 .reception-empty-title {
   font-size: 18px;
   font-weight: 700;
-  color: var(--bd-ink);
+  color: #171c33;
   margin: 0 0 8px;
 }
 
 .reception-empty-desc {
   font-size: 14px;
   font-weight: 400;
-  color: var(--bd-dim);
+  color: #78819c;
   margin: 0;
 }
 
@@ -2356,7 +2379,7 @@ body::-webkit-scrollbar-track {
   gap: 8px;
   height: 40px;
   padding: 0 12px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e7eaf6;
   border-radius: 10px;
   background: #fff;
   cursor: pointer;
@@ -2376,16 +2399,16 @@ body::-webkit-scrollbar-track {
 /* Focused (Tab or after a pick) reads the same as open, like the AntD inputs beside it. */
 .ss-trigger:focus,
 .ss-wrapper--open .ss-trigger {
-  box-shadow: 0 0 0 2px rgba(123, 46, 240, 0.15);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .ss-wrapper--error .ss-trigger,
 .ant-form-item-has-error .ss-wrapper .ss-trigger {
-  border-color: var(--bd-red);
+  border-color: #e5484d;
 }
 
 .ss-wrapper--disabled .ss-trigger {
-  background: var(--bd-bg-soft);
+  background: #f7f8fd;
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -2395,7 +2418,7 @@ body::-webkit-scrollbar-track {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--bd-faint);
+  color: #99a0bd;
 }
 
 .ss-icon--search {
@@ -2414,12 +2437,12 @@ body::-webkit-scrollbar-track {
 
 .ss-icon--clear {
   cursor: pointer;
-  color: var(--bd-faint);
+  color: #99a0bd;
   transition: color 0.1s;
 }
 
 .ss-icon--clear:hover {
-  color: var(--bd-dim);
+  color: #78819c;
 }
 
 .ss-icon--chevron-up {
@@ -2435,7 +2458,7 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-value--selected {
-  color: var(--bd-ink);
+  color: #171c33;
   font-weight: 500;
 }
 
@@ -2448,7 +2471,7 @@ body::-webkit-scrollbar-track {
 .ss-dropdown {
   z-index: 9999;
   background: #fff;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e7eaf6;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(13, 27, 42, 0.12);
   overflow: hidden;
@@ -2461,7 +2484,7 @@ body::-webkit-scrollbar-track {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--bd-bg-soft);
+  border-bottom: 1px solid #f0f2fa;
   overflow: hidden;
 }
 
@@ -2471,7 +2494,7 @@ body::-webkit-scrollbar-track {
   border: none;
   outline: none;
   font-size: 14px;
-  color: var(--bd-ink);
+  color: #171c33;
   background: transparent;
   font-family: var(--bd-font);
 }
@@ -2492,7 +2515,7 @@ body::-webkit-scrollbar-track {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-top: 1px solid var(--bd-line, #e6e4ee);
+  border-top: 1px solid var(--bd-line, #e7eaf6);
   padding: 10px 12px;
 }
 
@@ -2505,14 +2528,14 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-options::-webkit-scrollbar-thumb {
-  background: var(--bd-line);
+  background: #e7eaf6;
   border-radius: 2px;
 }
 
 .ss-option {
   padding: 9px 14px;
   font-size: 14px;
-  color: var(--bd-ink);
+  color: #171c33;
   cursor: pointer;
   transition: background 0.1s;
   white-space: nowrap;
@@ -2527,7 +2550,7 @@ body::-webkit-scrollbar-track {
 }
 
 .ss-option--selected {
-  background: var(--bd-blue-pale);
+  background: #eef0ff;
   color: var(--bd-blue);
   font-weight: 500;
 }
@@ -2536,7 +2559,7 @@ body::-webkit-scrollbar-track {
 .ss-empty {
   padding: 12px 14px;
   font-size: 13px;
-  color: var(--bd-faint);
+  color: #99a0bd;
   text-align: center;
 }
 
@@ -2961,13 +2984,12 @@ body::-webkit-scrollbar-track {
   justify-content: flex-end;
 }
 
-/* Every day but today is the pale v3 brand-decor (grape-300); today is lit
-   grape-600 (R-988). */
+/* Every day but today is a quiet rule; today is lit. */
 .dash-bar {
   width: 100%;
   max-width: 46px;
   border-radius: 8px 8px 4px 4px;
-  background: var(--bd-blue-light);
+  background: #e3e7f5;
   transform-origin: bottom;
   animation: barGrow 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
   transition:
@@ -2976,17 +2998,17 @@ body::-webkit-scrollbar-track {
 }
 
 .dash-bar--today {
-  background: var(--bd-primary);
+  background: linear-gradient(180deg, var(--bd-primary), var(--bd-accent));
 }
 
 .dash-bar:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.12) drop-shadow(0 6px 14px rgba(99, 102, 241, 0.45));
 }
 
 .dash-row-sub {
   display: block;
   font-size: 11px;
-  color: var(--bd-dim);
+  color: #78819c;
 }
 
 .dash-bar-value {
@@ -3564,14 +3586,14 @@ body {
 }
 
 .profile-sidebar-item--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-primary);
+  color: #fff;
   font-weight: 600;
 }
 
 .profile-sidebar-item--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-primary);
+  color: #fff;
 }
 
 .profile-sidebar-item .anticon {
@@ -3605,7 +3627,7 @@ body {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: var(--bd-bg-soft);
+  background: #f0f2fa;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -3715,7 +3737,7 @@ body {
 
 .settings-branch-card:hover {
   border-color: color-mix(in srgb, var(--bd-primary) 30%, transparent);
-  box-shadow: 0 2px 8px rgba(123, 46, 240, 0.06);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
 }
 
 .settings-branch-card-header {
@@ -3782,7 +3804,7 @@ body {
 
 .settings-role-card:hover {
   border-color: color-mix(in srgb, var(--bd-primary) 30%, transparent);
-  box-shadow: 0 2px 8px rgba(123, 46, 240, 0.06);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
 }
 
 .settings-role-card-left {
@@ -3931,17 +3953,17 @@ body {
 }
 
 .perm-role-item--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue);
+  color: #fff;
 }
 
 .perm-role-item--active .perm-role-name {
-  color: var(--bd-primary-ink);
+  color: #fff;
   font-weight: 600;
 }
 
 .perm-role-item--active:hover {
-  background: var(--bd-blue-pale);
+  background: var(--bd-blue);
 }
 
 .perm-role-shield {
@@ -3962,8 +3984,8 @@ body {
 }
 
 .perm-role-item--active .perm-role-shield {
-  background: var(--bd-card);
-  color: var(--bd-blue);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 .perm-role-name {
@@ -3976,7 +3998,7 @@ body {
 }
 
 .perm-role-perm-badge {
-  background: var(--bd-blue);
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
   font-size: 11px;
   font-weight: 600;
@@ -3995,7 +4017,7 @@ body {
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--bd-danger, #c9455a);
+  color: var(--bd-danger, #e5484d);
   cursor: pointer;
   border-radius: 4px;
   padding: 0;
@@ -4005,7 +4027,7 @@ body {
 }
 
 .perm-role-delete-btn:hover {
-  color: var(--bd-red-dark);
+  color: #cf3c41;
   background: rgba(239, 68, 68, 0.1);
 }
 
@@ -4336,15 +4358,15 @@ body {
   }
 
   .profile-sidebar-item--active {
-    border-color: var(--bd-blue-light);
-    background: var(--bd-blue-pale);
-    color: var(--bd-primary-ink);
+    border-color: var(--bd-blue);
+    background: var(--bd-blue);
+    color: #fff;
     font-weight: 500;
   }
 
   .profile-sidebar-item--active:hover {
-    background: var(--bd-blue-pale);
-    color: var(--bd-primary-ink);
+    background: var(--bd-blue-dark);
+    color: #fff;
   }
 
   .profile-content {
@@ -4449,7 +4471,7 @@ body {
    using a neutral scrim. */
 .ant-modal-mask,
 .ant-drawer-mask {
-  background: rgba(28, 26, 35, 0.4) !important;
+  background: rgba(35, 42, 86, 0.4) !important;
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
@@ -4516,7 +4538,7 @@ html:has(.ant-modal-wrap) {
   -webkit-backdrop-filter: blur(22px);
   backdrop-filter: blur(22px);
   border: 1px solid #fff;
-  box-shadow: 0 30px 70px -20px rgba(28, 26, 35, 0.4);
+  box-shadow: 0 30px 70px -20px rgba(35, 42, 86, 0.4);
   animation: dialogFadeIn 0.18s ease;
   max-height: calc(100vh - 64px);
   display: flex;
@@ -4597,7 +4619,7 @@ html:has(.ant-modal-wrap) {
 .ant-drawer .ant-input-number,
 .ant-drawer .ant-picker,
 .ant-drawer .ant-select .ant-select-selector {
-  border-color: var(--bd-border-strong);
+  border-color: #c5cbe4;
   background: #fff;
 }
 
@@ -4760,7 +4782,7 @@ html:has(.ant-modal-wrap) {
 
 .app-search-hit:hover,
 .app-search-hit:focus-visible {
-  background: var(--bd-bg-soft);
+  background: #f7f8fd;
   outline: none;
 }
 
@@ -4769,7 +4791,7 @@ html:has(.ant-modal-wrap) {
   height: 34px;
   flex: none;
   border-radius: 11px;
-  background: rgba(123, 46, 240, 0.08);
+  background: rgba(99, 102, 241, 0.08);
   color: var(--bd-blue);
   display: grid;
   place-items: center;
@@ -4802,7 +4824,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .app-search-hit-arrow {
-  color: var(--bd-faint);
+  color: #b9c2dd;
   flex: none;
 }
 
@@ -4932,7 +4954,7 @@ html:has(.ant-modal-wrap) {
 
 .dg-action:hover {
   border-color: var(--bd-blue);
-  background: var(--bd-bg-soft);
+  background: #f7f8fd;
 }
 
 .dg-empty {
@@ -5027,7 +5049,7 @@ html:has(.ant-modal-wrap) {
 .rec-cancel:hover {
   border-color: var(--bd-red);
   color: var(--bd-red);
-  background: var(--bd-red-pale);
+  background: #fce9ea;
 }
 
 /* Tools' own styles moved to features/tools/components/tools.css. */
@@ -5060,14 +5082,14 @@ html:has(.ant-modal-wrap) {
 }
 
 .floating-field-required {
-  color: var(--bd-red);
+  color: #e5484d;
   margin-left: 2px;
 }
 
 /* The asterisk a RequiredPlaceholder draws inside a control's placeholder
    ("Chọn bác sĩ*"); same red as the floating label's mark. */
 .bd-required-mark {
-  color: var(--bd-red);
+  color: #e5484d;
   margin-left: 1px;
 }
 
@@ -5081,7 +5103,7 @@ html:has(.ant-modal-wrap) {
   height: auto;
   transform: translateY(-50%);
   font-size: 12px;
-  color: var(--bd-blue, #7b2ef0);
+  color: var(--bd-blue, #6366f1);
   right: auto;
   overflow: visible;
   background: #fff;
@@ -5109,7 +5131,7 @@ html:has(.ant-modal-wrap) {
 /* Error state */
 .floating-field .ant-form-item-has-error ~ .floating-field-label,
 .floating-field:has(.ant-form-item-has-error) .floating-field-label {
-  color: var(--bd-red);
+  color: #e5484d;
 }
 
 /* ── Patient header (the design's Chi tiết bệnh nhân banner) ────────────── */
@@ -5131,7 +5153,7 @@ html:has(.ant-modal-wrap) {
   height: 58px;
   flex: 0 0 auto;
   border-radius: 18px;
-  background: var(--bd-primary);
+  background: linear-gradient(140deg, var(--bd-primary), var(--bd-accent));
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -5268,17 +5290,15 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-blue);
 }
 
-/* v3 (R-988): the open tab is a grape-100 tint, not a second solid fill. */
 .pill-tab--active {
-  border-color: var(--bd-blue-light);
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #ffffff;
 }
 
 .pill-tab--active:hover {
-  border-color: var(--bd-blue-light);
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue-dark);
+  color: #ffffff;
 }
 
 /* Count of what waits on a pane (PageTab.badge). */
@@ -5391,12 +5411,12 @@ html:has(.ant-modal-wrap) {
 
 .pay-modal .ant-modal-footer .ant-btn-default {
   flex: 1;
-  color: var(--bd-sub);
+  color: #3c445f;
 }
 
 .pay-modal .ant-modal-footer .ant-btn-default:not(:disabled):hover {
-  border-color: var(--bd-dim);
-  color: var(--bd-sub);
+  border-color: #78819c;
+  color: #3c445f;
 }
 
 .pay-modal .ant-modal-footer .btn-confirm-money {
@@ -5473,12 +5493,13 @@ html:has(.ant-modal-wrap) {
   overflow: hidden;
 }
 
-/* The bar fills with the solid brand. */
+/* The design fills the bar with the indigo-to-cyan sweep, glowing cyan. */
 .tp-bar-fill {
   display: block;
   height: 100%;
   border-radius: 6px;
-  background: var(--bd-primary);
+  background: linear-gradient(90deg, var(--bd-primary), var(--bd-accent));
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
 }
 
 /* ── Month grid (the design's Lịch hẹn month view) ───────────────────────── */
@@ -5592,7 +5613,7 @@ html:has(.ant-modal-wrap) {
   padding: 16px;
   border: 1px solid var(--bd-line);
   border-radius: 10px;
-  background: var(--bd-line);
+  background: #e7eaf6;
 }
 
 .bd-a4-page {
@@ -5847,7 +5868,7 @@ html:has(.ant-modal-wrap) {
   border-bottom: 1px dotted #000;
   border-radius: 0;
   padding: 2px 4px;
-  background: var(--bd-amber-pale);
+  background: #faf1e2;
   color: #000;
   font: inherit;
   font-size: 14px;
@@ -5861,7 +5882,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-a4-cellinput:focus {
-  background: var(--bd-amber-pale);
+  background: #faf1e2;
 }
 
 /* Tailwind's preflight used to zero the browser's own margins on headings and
@@ -5978,7 +5999,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-danger-text {
-  color: var(--bd-red-dark);
+  color: #cf3c41;
   cursor: pointer;
 }
 
@@ -5990,7 +6011,7 @@ html:has(.ant-modal-wrap) {
 .bd-error-text {
   margin: 0;
   font-size: 12px;
-  color: var(--bd-red);
+  color: #e5484d;
 }
 
 .bd-row-end {
@@ -6028,7 +6049,7 @@ html:has(.ant-modal-wrap) {
 /* Lifted by a drag: the row leaves the flow visually but keeps its size. */
 .bd-lifted {
   opacity: 0.95;
-  box-shadow: 0 8px 20px rgb(28 26 35 / 18%);
+  box-shadow: 0 8px 20px rgb(27 42 65 / 18%);
 }
 
 /* ── Screen shell ────────────────────────────────────────────────────────── */
@@ -6228,7 +6249,7 @@ html:has(.ant-modal-wrap) {
   border: 1px solid var(--bd-line);
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 2px 6px rgb(28 26 35 / 6%);
+  box-shadow: 0 2px 6px rgb(27 42 65 / 6%);
 }
 
 /* The row under the pointer during a drag. */
@@ -6621,9 +6642,9 @@ html:has(.ant-modal-wrap) {
 /* Matches the shading the sheet gives every fillable cell, so the legend and
    the form cannot drift apart. */
 .bd-a4-swatch {
-  border: 1px dotted var(--bd-amber);
+  border: 1px dotted #d98b0f;
   border-radius: 2px;
-  background: var(--bd-amber-pale);
+  background: #faf1e2;
   padding-inline: 4px;
 }
 
@@ -7461,16 +7482,16 @@ html:has(.ant-modal-wrap) {
     color 150ms;
 }
 
-/* Only the resting options darken on hover: the selected one already wears
-   the grape-100 tint, and repainting it would blur which one is picked. */
+/* Only the resting options darken on hover: the selected one is already
+   white on blue, and repainting it made the label almost unreadable. */
 .bd-ops-period-option:not(.bd-ops-period-option--active):hover {
   color: var(--bd-ink);
 }
 
 .bd-ops-period-option--active,
 .bd-ops-period-option--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue);
+  color: #fff;
 }
 
 .bd-ops-period-step {
@@ -7582,7 +7603,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-ops-stat-icon--teal {
-  background: var(--bd-green-pale);
+  background: #e3f6ef;
   color: var(--bd-green);
 }
 .bd-ops-stat-icon--blue {
@@ -8120,7 +8141,7 @@ html:has(.ant-modal-wrap) {
   border: 1px solid rgb(255 255 255 / 60%);
   border-radius: 16px;
   background: rgb(255 255 255 / 96%);
-  box-shadow: 0 6px 20px rgb(28 26 35 / 12%);
+  box-shadow: 0 6px 20px rgb(27 42 65 / 12%);
   backdrop-filter: blur(16px) saturate(180%);
   pointer-events: auto;
 }
@@ -8152,7 +8173,7 @@ html:has(.ant-modal-wrap) {
 .bd-alloc-bar-divider {
   width: 1px;
   height: 32px;
-  background: rgb(28 26 35 / 10%);
+  background: rgb(27 42 65 / 10%);
 }
 
 .bd-alloc-bar-dept {
@@ -8181,7 +8202,7 @@ html:has(.ant-modal-wrap) {
   padding: 8px 12px;
   border: 1px solid var(--bd-line);
   border-radius: 12px;
-  background: var(--bd-bg-soft, #f3f2f7);
+  background: var(--bd-bg-soft, #f7f8fd);
 }
 
 .bd-alloc-line-name {
@@ -8201,11 +8222,11 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-alloc-empty {
-  color: var(--bd-red, #a33447);
+  color: var(--bd-red, #cf3c41);
   font-weight: 500;
 }
 .bd-alloc-error {
-  color: var(--bd-red, #a33447);
+  color: var(--bd-red, #cf3c41);
   font-weight: 500;
 }
 
@@ -8275,11 +8296,11 @@ html:has(.ant-modal-wrap) {
 /* The reference picks these two figures out in colour: what went out in teal,
    what is confirmed still there in amber. */
 .bd-mat-issued {
-  color: var(--bd-green);
+  color: #0e9f6e;
   font-weight: 600;
 }
 .bd-mat-remaining {
-  color: var(--bd-amber);
+  color: #d98b0f;
   font-weight: 600;
 }
 .bd-mat-code {
@@ -8311,7 +8332,7 @@ html:has(.ant-modal-wrap) {
 .bd-page-sub {
   margin-top: 3px;
   font-size: 13px;
-  color: var(--bd-muted);
+  color: #6a7390;
 }
 
 /* ---- Buttons --------------------------------------------------------- */
@@ -8322,10 +8343,10 @@ html:has(.ant-modal-wrap) {
   gap: 8px;
   height: 38px;
   padding: 0 14px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e3e7f5;
   border-radius: 10px;
   background: #fff;
-  color: var(--bd-body);
+  color: #242b47;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -8344,14 +8365,14 @@ html:has(.ant-modal-wrap) {
   background: var(--bd-cta);
   color: #fff;
   font-weight: 600;
-  box-shadow: none;
+  box-shadow: 0 8px 18px -10px rgba(99, 102, 241, 0.95);
 }
 
 .bd-btn--cta:hover {
   color: #fff;
   filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 12px 26px -10px rgba(123, 46, 240, 0.65);
+  box-shadow: 0 12px 26px -10px rgba(99, 102, 241, 0.65);
 }
 
 /* ---- Card ------------------------------------------------------------ */
@@ -8370,7 +8391,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-card__divider {
-  border-bottom: 1px solid var(--bd-bg-soft);
+  border-bottom: 1px solid #eef0f9;
 }
 
 /* ---- KPI tile -------------------------------------------------------- */
@@ -8380,7 +8401,7 @@ html:has(.ant-modal-wrap) {
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-card);
   padding: 17px 18px;
-  box-shadow: 0 6px 20px -14px rgba(28, 26, 35, 0.22);
+  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
   transition:
     transform 0.18s ease,
     border-color 0.18s ease,
@@ -8389,8 +8410,8 @@ html:has(.ant-modal-wrap) {
 
 .bd-kpi:hover {
   transform: translateY(-4px);
-  border-color: rgba(123, 46, 240, 0.5);
-  box-shadow: 0 24px 44px -22px rgba(123, 46, 240, 0.4);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 24px 44px -22px rgba(99, 102, 241, 0.4);
 }
 
 .bd-kpi__value {
@@ -8404,13 +8425,13 @@ html:has(.ant-modal-wrap) {
 .bd-kpi__label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--bd-muted);
+  color: #6a7390;
 }
 
 .bd-kpi__sub {
   margin-top: 3px;
   font-size: 11.5px;
-  color: var(--bd-dim);
+  color: #78819c;
 }
 
 /* ---- Badge / chip ---------------------------------------------------- */
@@ -8437,7 +8458,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-bar:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.12) drop-shadow(0 6px 14px rgba(99, 102, 241, 0.45));
 }
 
 /* ---- Appointment card ------------------------------------------------ */
@@ -8451,11 +8472,11 @@ html:has(.ant-modal-wrap) {
   /* 0x1f/0xff of the status colour, the design's own `+ '1f'` alpha suffix. */
   background:
     linear-gradient(
-      color-mix(in srgb, var(--appt-color, #7b2ef0) 12%, transparent),
-      color-mix(in srgb, var(--appt-color, #7b2ef0) 12%, transparent)
+      color-mix(in srgb, var(--appt-color, #6366f1) 12%, transparent),
+      color-mix(in srgb, var(--appt-color, #6366f1) 12%, transparent)
     ),
     #ffffff;
-  border-left: 3px solid var(--appt-color, #7b2ef0);
+  border-left: 3px solid var(--appt-color, #6366f1);
   border-radius: 9px;
   padding: 8px 10px;
   cursor: pointer;
@@ -8473,7 +8494,7 @@ html:has(.ant-modal-wrap) {
   backdrop-filter: blur(22px);
   border: 1px solid #fff;
   border-radius: var(--bd-radius-modal);
-  box-shadow: 0 30px 70px -20px rgba(28, 26, 35, 0.4);
+  box-shadow: 0 30px 70px -20px rgba(35, 42, 86, 0.4);
   animation: popIn 0.18s ease;
 }
 
@@ -8487,9 +8508,9 @@ html:has(.ant-modal-wrap) {
   width: 100%;
   height: 42px;
   padding: 0 13px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e3e7f5;
   border-radius: 10px;
-  background: var(--bd-bg);
+  background: #f6f8fe;
   font-size: 13px;
   color: var(--bd-ink);
   outline: none;
@@ -8506,7 +8527,7 @@ html:has(.ant-modal-wrap) {
   margin-bottom: 5px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--bd-sub);
+  color: #3c445f;
 }
 
 /*
@@ -8520,7 +8541,7 @@ html:has(.ant-modal-wrap) {
 .ant-modal .ant-select:not(.ant-select-multiple) .ant-select-selector,
 .ant-modal .ant-picker {
   height: 42px;
-  border-color: var(--bd-border-strong);
+  border-color: #c5cbe4;
   border-radius: 10px;
   background: #fff;
   font-size: 13px;
@@ -8605,10 +8626,10 @@ html:has(.ant-modal-wrap) {
   gap: 7px;
   height: 34px;
   padding: 0 13px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e3e7f5;
   border-radius: 10px;
   background: #ffffff;
-  color: var(--bd-sub);
+  color: #3c445f;
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -8620,14 +8641,14 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-pill--on {
-  border-color: var(--bd-blue-light);
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: #fff;
   font-weight: 600;
 }
 
 .bd-pill--on:hover {
-  color: var(--bd-primary-ink);
+  color: #fff;
 }
 
 /* ---- Status palette ---------------------------------------------------- */
@@ -8638,38 +8659,38 @@ html:has(.ant-modal-wrap) {
  */
 .bd-status--scheduled,
 .bd-status--in-progress {
-  --status-color: var(--bd-primary);
+  --status-color: #6366f1;
 }
 
 .bd-status--arrived,
 .bd-status--done {
-  --status-color: var(--bd-green);
+  --status-color: #0e9f6e;
 }
 
 .bd-status--cancelled,
 .bd-status--waiting {
-  --status-color: var(--bd-amber);
+  --status-color: #d98b0f;
 }
 
 .bd-status--late {
-  --status-color: var(--bd-red);
+  --status-color: #e5484d;
 }
 
 .bd-status--temp {
-  --status-color: var(--bd-purple);
+  --status-color: #7c5ce0;
 }
 
 .bd-status--converted {
-  --status-color: var(--bd-info);
+  --status-color: #0e94d0;
 }
 
 .bd-status--none {
-  --status-color: var(--bd-dim);
+  --status-color: #78819c;
 }
 
 .bd-status {
-  color: var(--status-color, #7b2ef0);
-  background: color-mix(in srgb, var(--status-color, #7b2ef0) 12%, #ffffff);
+  color: var(--status-color, #6366f1);
+  background: color-mix(in srgb, var(--status-color, #6366f1) 12%, #ffffff);
 }
 
 /* ---- Dental chart ------------------------------------------------------ */
@@ -8693,7 +8714,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .dental-tooth--on {
-  filter: drop-shadow(0 4px 8px rgba(123, 46, 240, 0.5));
+  filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.5));
 }
 
 /* ---- Remaining v2 motion ---------------------------------------------- */
@@ -8703,9 +8724,10 @@ html:has(.ant-modal-wrap) {
   animation: popIn 0.18s ease;
 }
 
-/* Progress bars fill with the solid brand (v3 is flat). */
+/* Progress bars carry a cyan glow along the filled part. */
 .ant-progress-bg {
-  background: var(--bd-primary) !important;
+  background: linear-gradient(90deg, var(--bd-primary), var(--bd-accent)) !important;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
 }
 
 /* Recharts columns grow out of the axis, not the middle. */
@@ -8811,15 +8833,15 @@ html:has(.ant-modal-wrap) {
   margin: 0;
 }
 .pd-print-teeth {
-  color: var(--bd-link);
+  color: #165dff;
   font-weight: 600;
 }
 /*
  * Status chips on the printed sheet. Measured on the reference 2026-09-07: a
- * 26px **fully rounded** pill at 12px/500 — a different shape from the table's
- * chips. The reference also tinted the two sets apart; the app gives both the
- * same v3 tones (R-991), so they differ by shape only. Only `done` and
- * `active` were observable in the print dialog (docs/clone/unknowns.md).
+ * 26px **fully rounded** pill at 12px/500 — a different shape *and* different
+ * tints from the table's chips above, so the two sets are kept apart on
+ * purpose. Only `done` and `active` were observable in the print dialog; the
+ * replaced pair below is carried over from the table (docs/clone/unknowns.md).
  */
 .pd-print-chip {
   display: inline-flex;
@@ -8832,16 +8854,16 @@ html:has(.ant-modal-wrap) {
   font-weight: 500;
 }
 .pd-print-chip--active {
-  background: var(--bd-blue-pale);
-  color: var(--bd-link);
+  background: #d9eeff;
+  color: #2671d8;
 }
 .pd-print-chip--done {
-  background: var(--bd-green-pale);
-  color: var(--bd-green-ink);
+  background: #ddf6e8;
+  color: #10a861;
 }
 .pd-print-chip--replaced {
-  background: var(--bd-info-pale);
-  color: var(--bd-info-ink);
+  background: #e6f8fb;
+  color: #1a606b;
 }
 .pd-print-chip--cancelled {
   background: var(--bd-red-pale);

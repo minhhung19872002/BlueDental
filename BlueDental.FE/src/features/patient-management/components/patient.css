@@ -533,12 +533,12 @@
 
 .bd-patient-subtab--active,
 .bd-patient-subtab--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-blue);
+  color: #fff;
 }
 
 /* Ticked-entry total on the "Tiểu sử bệnh" pill: solid primary so it stands
-   out on both the grey resting pill and the grape-100 active one. */
+   out on the grey resting pill, inverted to white on the filled active one. */
 .bd-patient-subtab-count {
   display: inline-flex;
   box-sizing: border-box;
@@ -555,6 +555,11 @@
   font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+.bd-patient-subtab--active .bd-patient-subtab-count {
+  background: #fff;
+  color: var(--bd-blue);
 }
 
 /* ── Tiểu sử bệnh ────────────────────────────────────────────────────── */
@@ -697,7 +702,7 @@
 }
 
 .bd-idscan-box-fill {
-  fill: rgb(180 105 26 / 12%);
+  fill: rgb(217 139 15 / 12%);
 }
 
 /* Nothing found yet: a line sweeps the picture to say it is looking. */
@@ -742,7 +747,7 @@
 
 /* The scan is stuck — usually a card too close for a webcam to focus on. */
 .bd-idscan-live-hint--advice {
-  background: rgb(180 105 26 / 88%);
+  background: rgb(217 139 15 / 88%);
   font-weight: 600;
 }
 
@@ -940,6 +945,10 @@
   margin-inline-start: 6px;
   color: var(--bd-green);
   font-size: 12px;
+}
+
+.bd-patient-subtab--active .bd-patient-subtab-check {
+  color: #fff;
 }
 
 /* "9 tuổi" inside the Ngày sinh box, beside the calendar icon. */

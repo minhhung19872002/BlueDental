@@ -16,8 +16,6 @@ import {
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
-import { STATUS_TONE } from "@/theme/statusPalette";
-import type { StatusTone } from "@/theme/statusPalette";
 import type {
   ReceptionItem,
   AppointmentOutcome,
@@ -49,16 +47,22 @@ interface ReceptionCardProps {
   children?: React.ReactNode;
 }
 
-const COUNTER_STATUS_STYLE: Record<AppointmentCounterType, StatusTone> = {
-  Scheduled: STATUS_TONE.scheduled,
-  Arrived: STATUS_TONE.arrived,
-  Cancelled: STATUS_TONE.cancelled,
-  Late: STATUS_TONE.late,
-  Temporary: STATUS_TONE.temporary,
-  Converted: STATUS_TONE.converted,
+interface CounterBadgeStyle {
+  bg: string;
+  border: string;
+  color: string;
+}
+
+const COUNTER_STATUS_STYLE: Record<AppointmentCounterType, CounterBadgeStyle> = {
+  Scheduled: { bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
+  Arrived:   { bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
+  Cancelled: { bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
+  Late:      { bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
+  Temporary: { bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
+  Converted: { bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 };
 
-/** A long wait recolours the card's edge; a short one keeps the arrived grape. */
+/** A long wait recolours the card's edge; a short one keeps the arrived indigo. */
 const WAIT_BORDER: Partial<Record<WaitLevel, string>> = {
   warning: "var(--bd-amber)",
   overdue: "var(--bd-red)",
@@ -157,11 +161,11 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const awaitsItsDay = false;
 
   const getCardStyle = (): React.CSSProperties => {
-    if (isCancelled) return { background: "var(--bd-red-pale)", borderColor: "var(--bd-red-line)" };
-    if (step3Done) return { background: "var(--bd-green-pale)", borderColor: "var(--bd-green)" };
+    if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
+    if (step3Done) return { background: "#e2f4ee", borderColor: "#0e9f6e" };
     if (step1Done) {
       const waitBorder = wait.kind === "waiting" ? WAIT_BORDER[wait.level] : undefined;
-      return { background: "var(--bd-blue-pale)", borderColor: waitBorder ?? "var(--bd-primary)" };
+      return { background: "#eef0ff", borderColor: waitBorder ?? "#6366f1" };
     }
     return {};
   };

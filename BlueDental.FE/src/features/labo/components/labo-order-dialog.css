@@ -288,7 +288,7 @@
   border: 0;
   border-radius: 6px;
   background: #fff;
-  box-shadow: 0 1px 3px rgb(28 26 35 / 20%);
+  box-shadow: 0 1px 3px rgb(27 42 65 / 20%);
   color: var(--bd-ink);
   cursor: pointer;
 }
@@ -307,9 +307,9 @@
 .pd-labo-dialog {
   /* #5a6b82 — the same slate the Hình ảnh tab measured as --pi-muted. */
   --pd-field-label: 90 107 130;
-  --pd-dash: var(--bd-border-strong);
-  --pd-dash-soft: var(--bd-line);
-  --pd-upload-hover: var(--bd-hover-tint);
+  --pd-dash: #b9c4d4;
+  --pd-dash-soft: #dce3ee;
+  --pd-upload-hover: #e7f0fb;
 }
 .pd-labo-dialog .floating-field:not(.floating-field--floated) .floating-field-label {
   color: rgb(var(--pd-field-label) / 80%);
@@ -321,8 +321,8 @@
 /*
  * Focus, and every other accent inside these dialogs, follows the **app's**
  * primary rather than the reference's blue. The project owner asked for that on
- * 2026-09-07: the clone has its own brand (grape since R-988), and a modal mixing #2671D8 chips with
- * a brand Lưu button read as two different accents.
+ * 2026-09-07: the clone's brand is indigo, and a modal mixing #2671D8 chips with
+ * an indigo Lưu button read as two different accents.
  */
 .pd-labo-dialog .floating-field--floated:focus-within .floating-field-label {
   color: var(--bd-primary);
@@ -343,8 +343,8 @@
 .pd-labo-dialog .ant-input-disabled:hover,
 .pd-labo-dialog .ss-wrapper--disabled .ss-trigger {
   color: rgb(var(--pd-field-label));
-  background: var(--bd-bg-soft);
-  border-color: var(--bd-border-strong);
+  background: #f3f6fa;
+  border-color: #cbd5e1;
   opacity: 1;
 }
 
@@ -378,8 +378,8 @@
 }
 .pd-labo-tabs .pill-tab--active,
 .pd-labo-tabs .pill-tab--active:hover {
-  background: var(--bd-blue-pale);
-  color: var(--bd-primary-ink);
+  background: var(--bd-primary);
+  color: #fff;
 }
 .pd-labo-tabs .pill-tabs-row + * {
   margin-top: 24px;
@@ -686,7 +686,7 @@
 }
 .pd-labo-well:disabled {
   border-color: var(--pd-dash-soft);
-  background: var(--bd-bg);
+  background: #f6f8fb;
   color: var(--bd-muted);
   cursor: not-allowed;
 }
@@ -731,7 +731,7 @@
   border: 0;
   border-radius: 6px;
   background: rgb(255 255 255 / 95%);
-  box-shadow: 0 1px 3px rgb(28 26 35 / 20%);
+  box-shadow: 0 1px 3px rgb(27 42 65 / 20%);
   color: var(--bd-ink);
   cursor: pointer;
 }
@@ -773,7 +773,7 @@
 .pd-labo-sheet-body h3 {
   margin: 0 0 10px;
   padding-bottom: 4px;
-  border-bottom: 1px solid var(--bd-line);
+  border-bottom: 1px solid #e2e8f0;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;

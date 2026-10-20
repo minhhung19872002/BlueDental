@@ -4,29 +4,29 @@ import dayjs from "dayjs";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { Appointment, AppointmentStatus } from "@/features/appointments/types/appointment";
 import { t } from "@/lib/i18n";
-import { STATUS_TONE, type StatusKey } from "@/theme/statusPalette";
 
 /** The reference's four groups, and which server statuses land in each. */
 export function appointmentGroups() {
   return [
     { key: "scheduled" as const, label: t("Patient:Appt:Scheduled"), tone: "blue" as const, of: ["scheduled", "confirmed"] as const },
     { key: "arrived" as const, label: t("Patient:Appt:Arrived"), tone: "green" as const, of: ["inProgress", "completed"] as const },
-    { key: "cancelled" as const, label: t("Patient:Appt:Cancelled"), tone: "amber" as const, of: ["cancelled"] as const },
-    { key: "late" as const, label: t("Patient:Appt:Late"), tone: "red" as const, of: ["noShow"] as const },
+    { key: "cancelled" as const, label: t("Patient:Appt:Cancelled"), tone: "red" as const, of: ["cancelled"] as const },
+    { key: "late" as const, label: t("Patient:Appt:Late"), tone: "amber" as const, of: ["noShow"] as const },
   ];
 }
 
 export type AppointmentGroupKey = "scheduled" | "arrived" | "cancelled" | "late";
 
-/** Each server status, the label of its group and the app-wide status tone. */
-const STATUS_GROUP: Record<AppointmentStatus, { labelKey: string; key: StatusKey }> = {
-  scheduled: { labelKey: "Patient:Appt:Scheduled", key: "scheduled" },
-  confirmed: { labelKey: "Patient:Appt:Scheduled", key: "scheduled" },
-  inProgress: { labelKey: "Patient:Appt:Arrived", key: "arrived" },
-  completed: { labelKey: "Patient:Appt:Arrived", key: "arrived" },
-  cancelled: { labelKey: "Patient:Appt:Cancelled", key: "cancelled" },
-  noShow: { labelKey: "Patient:Appt:Late", key: "late" },
-};
+function statusTones(): Record<AppointmentStatus, { label: string; bg: string; color: string }> {
+  return {
+    scheduled: { label: t("Patient:Appt:Scheduled"), bg: "#e3f2fd", color: "#1565c0" },
+    confirmed: { label: t("Patient:Appt:Scheduled"), bg: "#e3f2fd", color: "#1565c0" },
+    inProgress: { label: t("Patient:Appt:Arrived"), bg: "#e8f5e9", color: "#2e7d32" },
+    completed: { label: t("Patient:Appt:Arrived"), bg: "#e8f5e9", color: "#2e7d32" },
+    cancelled: { label: t("Patient:Appt:Cancelled"), bg: "#ffebee", color: "#c62828" },
+    noShow: { label: t("Patient:Appt:Late"), bg: "#fff3e0", color: "#ef6c00" },
+  };
+}
 
 interface RowHandlers {
   onHistory: (row: Appointment) => void;
@@ -76,9 +76,8 @@ export function buildAppointmentColumns({
       dataIndex: "status",
       width: 150,
       render: (value: AppointmentStatus) => {
-        const group = STATUS_GROUP[value];
-        const tone = STATUS_TONE[group.key];
-        return <StatusBadge label={t(group.labelKey)} bg={tone.bg} color={tone.color} />;
+        const tone = statusTones()[value];
+        return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
       },
     },
     {

@@ -4,7 +4,6 @@
 
 import type { CSSProperties } from "react";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 export type ToothStatus =
   | "healthy"
@@ -23,7 +22,7 @@ export interface ToothRecord {
 
 interface Props {
   teeth?: ToothRecord[];
-  /** FDI numbers currently picked out. Selected teeth fill grape and glow. */
+  /** FDI numbers currently picked out. Selected teeth fill indigo and glow. */
   selectedTeeth?: readonly number[];
   onToothClick?: (fdi: number) => void;
   readOnly?: boolean;
@@ -32,22 +31,22 @@ interface Props {
 
 const STATUS_COLORS: Record<ToothStatus, string> = {
   healthy: "#ffffff",
-  treated: brand.blueLight,
-  decayed: brand.redLine,
-  missing: brand.bgSoft,
-  implant: brand.greenLine,
-  crown: brand.gold200,
-  bridge: brand.purpleLine,
+  treated: "#a5b4fc",
+  decayed: "#f2b6b8",
+  missing: "#f0f2fa",
+  implant: "#a7e0c9",
+  crown: "#fbe6a8",
+  bridge: "#c9b6f2",
 };
 
 const STATUS_STROKE: Record<ToothStatus, string> = {
-  healthy: brand.blueLight,
-  treated: brand.primary,
-  decayed: brand.redDark,
-  missing: brand.borderStrong,
-  implant: brand.green,
-  crown: brand.amber,
-  bridge: brand.purple,
+  healthy: "#a5b4fc",
+  treated: "#6366f1",
+  decayed: "#cf3c41",
+  missing: "#c3c9d8",
+  implant: "#0e9f6e",
+  crown: "#d98b0f",
+  bridge: "#7c5ce0",
 };
 
 // Upper jaw: 18→11 (right to left for display), then 21→28 (left to right)
@@ -93,7 +92,7 @@ function shapeOf(fdi: number): string {
  *
  * The upper jaw is the same silhouette flipped, so its roots point up and away
  * from the bite line, and its FDI number sits below rather than above. A
- * selected tooth fills grape and lifts on a soft glow.
+ * selected tooth fills indigo and lifts on a soft glow.
  */
 function ToothCell({
   fdi,
@@ -113,9 +112,9 @@ function ToothCell({
   ariaLabel: string;
 }) {
   const isMissing = status === "missing";
-  const fill = selected ? brand.primary : STATUS_COLORS[status];
-  const stroke = selected ? brand.blueDark : STATUS_STROKE[status];
-  const numberFill = selected ? brand.blueDark : isMissing ? brand.faint : brand.dim;
+  const fill = selected ? "#6366f1" : STATUS_COLORS[status];
+  const stroke = selected ? "#4f52e0" : STATUS_STROKE[status];
+  const numberFill = selected ? "#4f52e0" : isMissing ? "#99a0bd" : "#78819c";
   const isUpper = jaw === "upper";
 
   const numberY = isUpper ? TOOTH_H + LABEL_H - 3 : LABEL_H - 4;
@@ -242,7 +241,7 @@ export function DentalChartView({
           y1={upperY - 4}
           x2={TOTAL_W / 2}
           y2={lowerY + TOOTH_H + 4}
-          stroke={brand.borderStrong}
+          stroke="#c3c9d8"
           strokeWidth={1.5}
           strokeDasharray="4,3"
         />
@@ -263,7 +262,7 @@ export function DentalChartView({
           fontSize={10.5}
           fontWeight={700}
           letterSpacing={1.2}
-          fill={brand.dim}
+          fill="#7d85a5"
           fontFamily="inherit"
           style={{ textTransform: "uppercase" }}
         >
@@ -276,7 +275,7 @@ export function DentalChartView({
           fontSize={10.5}
           fontWeight={700}
           letterSpacing={1.2}
-          fill={brand.dim}
+          fill="#7d85a5"
           fontFamily="inherit"
           style={{ textTransform: "uppercase" }}
         >

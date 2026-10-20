@@ -1,7 +1,6 @@
 import { Tooltip } from "antd";
 import type { TimeKeepingSummaryDto } from "../api/timekeepingApi";
 import { t } from "@/lib/i18n";
-import { TONE } from "@/theme/statusPalette";
 
 interface ChipConfig {
   key: keyof Omit<TimeKeepingSummaryDto, "workDate">;
@@ -21,12 +20,12 @@ function formatDuration(totalMinutes: number): string {
 }
 
 const CHIPS: ChipConfig[] = [
-  { key: "totalStaff", label: () => t("Timekeeping:StatTotalStaff"), ...TONE.grape },
-  { key: "registeredWorking", label: () => t("Timekeeping:StatRegisteredWork"), ...TONE.success },
-  { key: "registeredDayOff", label: () => t("Timekeeping:StatRegisteredOff"), ...TONE.warning },
-  { key: "currentlyWorking", label: () => t("Timekeeping:StatCurrentlyWorking"), ...TONE.success },
-  { key: "abandoned", label: () => t("Timekeeping:StatAbandoned"), ...TONE.warning, showAlert: true, tooltip: () => t("Timekeeping:StatAbandonedTooltip") },
-  { key: "totalOvertimeMinutes", label: () => t("Timekeeping:StatOvertime"), ...TONE.danger, format: formatDuration },
+  { key: "totalStaff", label: () => t("Timekeeping:StatTotalStaff"), border: "#c8cafa", bg: "#eceefd", color: "#6366f1" },
+  { key: "registeredWorking", label: () => t("Timekeeping:StatRegisteredWork"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
+  { key: "registeredDayOff", label: () => t("Timekeeping:StatRegisteredOff"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f" },
+  { key: "currentlyWorking", label: () => t("Timekeeping:StatCurrentlyWorking"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
+  { key: "abandoned", label: () => t("Timekeeping:StatAbandoned"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f", showAlert: true, tooltip: () => t("Timekeeping:StatAbandonedTooltip") },
+  { key: "totalOvertimeMinutes", label: () => t("Timekeeping:StatOvertime"), border: "#f6bfc1", bg: "#fce9ea", color: "#e5484d", format: formatDuration },
 ];
 
 const AlertIcon = () => (

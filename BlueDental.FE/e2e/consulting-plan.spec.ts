@@ -262,7 +262,7 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     for (const text of await cells.allInnerTexts()) {
       expect(text.trim()).toMatch(/^\d+(, \d+)*( - .+)?$/);
     }
-    await expect(cells.first()).toHaveCSS("color", "rgb(102, 32, 204)");
+    await expect(cells.first()).toHaveCSS("color", "rgb(38, 113, 216)");
 
     // Empty cells of this table read "-", the reference's hyphen, never "—".
     // Chẩn đoán 2 opens switched off (owner, 2026-10-19), so it is put on first.

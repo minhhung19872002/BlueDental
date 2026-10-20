@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
-import { brand } from "@/theme/index";
-import { TONE } from "@/theme/statusPalette";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -40,16 +38,14 @@ export type LaboOrderKind = (typeof LABO_ORDER_KIND)[keyof typeof LABO_ORDER_KIN
  * 2026-09-24 (docs/clone/pages/labo.md §2.5): info blue for a new order or
  * sample, green once delivered, red once cancelled, purple for a guarantee or
  * a replaced order, amber for a late one, and grey for anything in flight.
- * The roles are the reference's; the colours are the app's v3 status tones
- * (R-991), purple being orchid.
  */
 export const LABO_PILL_TONE = {
-  info: { bg: TONE.info.bg, color: TONE.info.color },
-  success: { bg: TONE.success.bg, color: TONE.success.color },
-  danger: { bg: TONE.danger.bg, color: TONE.danger.color },
-  purple: { bg: TONE.orchid.bg, color: TONE.orchid.color },
-  warning: { bg: TONE.warning.bg, color: TONE.warning.color },
-  gray: { bg: brand.bgSoft, color: brand.ink },
+  info: { bg: "#e0f2fe", color: "#008af5" },
+  success: { bg: "#ecfdf5", color: "#57bc6c" },
+  danger: { bg: "#fff1f2", color: "#d57463" },
+  purple: { bg: "#f5f3ff", color: "#6c3cf0" },
+  warning: { bg: "#fffbeb", color: "#d97706" },
+  gray: { bg: "#f7f8fd", color: "#171c33" },
 } as const;
 
 /**

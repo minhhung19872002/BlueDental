@@ -16,9 +16,9 @@ import { bookVisitToday, cardOf, getAppointment, openBoard } from "./fixtures/re
  * thresholds can be crossed without waiting ten real minutes.
  */
 
-const GRAPE = "rgb(123, 46, 240)";
-const AMBER = "rgb(180, 105, 26)";
-const RED = "rgb(201, 69, 90)";
+const INDIGO = "rgb(99, 102, 241)";
+const AMBER = "rgb(217, 139, 15)";
+const RED = "rgb(229, 72, 77)";
 
 test.describe("Tiếp nhận — thời gian chờ", () => {
   test("the clock colours the wait, survives a reload and freezes in the chair", async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe("Tiếp nhận — thời gian chờ", () => {
     await card.getByRole("button", { name: /Đã đến/ }).click();
     await expect(timer).toHaveText(/^Đang chờ 00:\d\d$/);
     await expect(timer).toHaveClass(/rc-wait-chip--normal/);
-    await expect(edge).toHaveCSS("border-top-color", GRAPE);
+    await expect(edge).toHaveCSS("border-top-color", INDIGO);
 
     const shown = (await timer.textContent()) ?? "";
     await page.clock.fastForward(3_000);
@@ -66,7 +66,7 @@ test.describe("Tiếp nhận — thời gian chờ", () => {
     const waited = Math.floor((Date.parse(stored.startedAt!) - Date.parse(stored.checkedInAt!)) / 60_000);
     const inChair = reloaded.getByRole("button", { name: /Đang khám/ });
     await expect(inChair).toContainText(`chờ ${waited}p`);
-    await expect(reloaded.locator(".rc-card")).toHaveCSS("border-top-color", GRAPE);
+    await expect(reloaded.locator(".rc-card")).toHaveCSS("border-top-color", INDIGO);
 
     await page.reload();
     const afterStart = await cardOf(page, visit);

@@ -57,20 +57,20 @@
 
 /* Counter / action palette captured from the reference. */
 .cskh-counter--total { --tile-color: var(--bd-blue); }
-.cskh-counter--success { --tile-color: var(--bd-green); }
-.cskh-counter--fail { --tile-color: var(--bd-red); }
-.cskh-counter--new { --tile-color: var(--bd-amber); }
-.cskh-counter--zalo { --tile-color: var(--bd-primary); }
+.cskh-counter--success { --tile-color: #0e9f6e; }
+.cskh-counter--fail { --tile-color: #e5484d; }
+.cskh-counter--new { --tile-color: #d98b0f; }
+.cskh-counter--zalo { --tile-color: #6366f1; }
 
-.cskh-action--phone { --action-color: var(--bd-green); }
-.cskh-action--message { --action-color: var(--bd-amber); }
-.cskh-action--send { --action-color: var(--bd-primary); }
+.cskh-action--phone { --action-color: #0e9f6e; }
+.cskh-action--message { --action-color: #d98b0f; }
+.cskh-action--send { --action-color: #6366f1; }
 .cskh-action--care { --action-color: var(--bd-blue); }
 
-.cskh-color-radio--good { --label-color: var(--bd-green); }
+.cskh-color-radio--good { --label-color: #0e9f6e; }
 .cskh-color-radio--fair { --label-color: var(--bd-blue); }
-.cskh-color-radio--normal { --label-color: var(--bd-amber); }
-.cskh-color-radio--complaint { --label-color: var(--bd-red); }
+.cskh-color-radio--normal { --label-color: #d98b0f; }
+.cskh-color-radio--complaint { --label-color: #e5484d; }
 
 /* Date-mode pills sit left of the arrows, same look as the board pill tabs. */
 .cskh-datebar {
@@ -153,8 +153,8 @@
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
-  background: var(--bd-bg-soft);
-  color: var(--bd-muted);
+  background: #f0f2fa;
+  color: #5c6484;
   white-space: nowrap;
 }
 
@@ -164,17 +164,17 @@
 }
 
 .cskh-badge--green {
-  background: color-mix(in srgb, var(--bd-green) 12%, #ffffff);
-  color: var(--bd-green);
+  background: color-mix(in srgb, #0e9f6e 12%, #ffffff);
+  color: #0e9f6e;
 }
 
 /* Sau điều trị status — Đã liên hệ / Chưa liên hệ dropdown, tinted like its counter tile. */
 .cskh-contact-select {
   min-width: 124px;
-  --contact-color: var(--bd-amber);
+  --contact-color: #d98b0f;
 }
 
-.cskh-contact-select--done { --contact-color: var(--bd-green); }
+.cskh-contact-select--done { --contact-color: #0e9f6e; }
 
 /* antd 6: the root carries the outline, .ant-select-content the value. */
 .cskh-contact-select.ant-select {

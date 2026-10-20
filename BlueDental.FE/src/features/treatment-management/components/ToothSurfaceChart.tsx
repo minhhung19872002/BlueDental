@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ToothSelectionDto } from "../api/consultingApi";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 /**
  * Odontogram that records the reference's tooth primitive:
@@ -30,10 +29,10 @@ const LOWER_LEFT = [31, 32, 33, 34, 35, 36, 37, 38];
 
 const SIZE = 30;
 const MID = SIZE / 3;
-const SELECTED_FILL = brand.primary;
-const SURFACE_FILL = brand.blueLight;
+const SELECTED_FILL = "#6366f1";
+const SURFACE_FILL = "#a5b4fc";
 const EMPTY_FILL = "#FFFFFF";
-const STROKE = brand.faint;
+const STROKE = "#99a0bd";
 
 /** Polygon points for each surface of a SIZE×SIZE tooth tile. */
 const SURFACE_SHAPES: Record<ToothSurface, string> = {
@@ -120,7 +119,7 @@ function ToothTile({
           fontSize: 11,
           lineHeight: 1.2,
           cursor: readOnly ? "default" : "pointer",
-          color: wholeToothSelected ? SELECTED_FILL : brand.dim,
+          color: wholeToothSelected ? SELECTED_FILL : "#78819c",
           fontWeight: wholeToothSelected ? 700 : 400,
         }}
       >
@@ -208,7 +207,7 @@ export function ToothSurfaceChart({
           onToggleSurface={toggleSurface}
           onToggleTooth={toggleTooth}
         />
-        <div style={{ width: "100%", borderTop: `1px dashed ${brand.line}` }} />
+        <div style={{ width: "100%", borderTop: "1px dashed #e7eaf6" }} />
         <ToothRow
           left={LOWER_RIGHT}
           right={LOWER_LEFT}
@@ -219,7 +218,7 @@ export function ToothSurfaceChart({
         />
       </div>
 
-      <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: brand.dim }}>
+      <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#78819c" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SELECTED_FILL, display: "inline-block", borderRadius: 2 }} />
           {t("Treatment:Tooth:WholeTooth")}

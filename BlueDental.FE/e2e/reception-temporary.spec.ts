@@ -122,7 +122,7 @@ test.describe("Tiếp nhận — Lịch tạm", () => {
     const cardBox = (await card.locator(".rc-card").boundingBox())!;
     expect(Math.abs(tabBox.y + tabBox.height / 2 - cardBox.y)).toBeLessThanOrEqual(2);
     expect(tabBox.x - cardBox.x).toBeGreaterThan(8);
-    await expect(tab).toHaveCSS("background-color", "rgb(246, 235, 252)");
+    await expect(tab).toHaveCSS("background-color", "rgb(221, 208, 255)");
     await page.screenshot({
       path: "test-results/reception-temporary-card.png",
       clip: { x: cardBox.x - 12, y: cardBox.y - 24, width: cardBox.width + 24, height: cardBox.height + 36 },

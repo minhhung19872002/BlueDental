@@ -51,7 +51,7 @@ interface StepConfig {
 const STEPS: StepConfig[] = [
   { id: "checkin", icon: LogInIcon, label: "Vào ca", circleClass: "tk-timeline-circle--checkin", lineColor: "rgb(217, 149, 36)" },
   { id: "morning", icon: SunIcon, label: "Ca sáng", circleClass: "tk-timeline-circle--morning", lineColor: "rgb(53, 168, 115)" },
-  { id: "afternoon", icon: LogOutIcon, label: "Vào ca chiều", circleClass: "tk-timeline-circle--afternoon", lineColor: "rgb(156, 92, 175)" },
+  { id: "afternoon", icon: LogOutIcon, label: "Vào ca chiều", circleClass: "tk-timeline-circle--afternoon", lineColor: "rgb(118, 87, 223)" },
   { id: "end", icon: MoonIcon, label: "Kết ca", circleClass: "tk-timeline-circle--end", lineColor: "" },
 ];
 
@@ -65,7 +65,7 @@ export function ShiftTimeline({ morningShift, afternoonShift, disabled, onCheckI
     { active: morningCheckedIn, time: formatStamp(morningShift.checkedInAt), timeColor: "rgb(63, 123, 232)" },
     { active: morningCheckedOut, time: formatStamp(morningShift.checkedOutAt), timeColor: "rgb(217, 149, 36)" },
     { active: afternoonCheckedIn, time: formatStamp(afternoonShift.checkedInAt), timeColor: "rgb(53, 168, 115)" },
-    { active: afternoonCheckedOut, time: formatStamp(afternoonShift.checkedOutAt), timeColor: "rgb(156, 92, 175)" },
+    { active: afternoonCheckedOut, time: formatStamp(afternoonShift.checkedOutAt), timeColor: "rgb(118, 87, 223)" },
   ];
 
   const stepDisabled = [

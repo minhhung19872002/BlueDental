@@ -32,7 +32,6 @@ import { notifyError } from "@/lib/notify";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 const { Text } = Typography;
 
@@ -68,17 +67,17 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
   const slips = account?.plans ?? [];
 
   const tiles = [
-    { label: t("Treatment:Payment:TotalSlip"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: brand.ink },
-    { label: t("Treatment:Receipt:TotalPaid"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: brand.green },
-    { label: t("Treatment:Refund:Refund"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: brand.amber },
-    { label: t("Treatment:Debt:Remaining"), value: account?.payment.debt ?? 0, testId: "acc-due", color: brand.red },
+    { label: t("Treatment:Payment:TotalSlip"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#171c33" },
+    { label: t("Treatment:Receipt:TotalPaid"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#0e9f6e" },
+    { label: t("Treatment:Refund:Refund"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#d98b0f" },
+    { label: t("Treatment:Debt:Remaining"), value: account?.payment.debt ?? 0, testId: "acc-due", color: "#e5484d" },
     {
       label: t("Treatment:Payment:MustCollect"),
       value: Math.max(0, account?.payment.receivable ?? 0),
       testId: "acc-debt",
-      color: brand.red,
+      color: "#e5484d",
     },
-    { label: t("Treatment:Payment:Holding"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: brand.primary },
+    { label: t("Treatment:Payment:Holding"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#6366f1" },
   ];
 
   const handleSubmit = async () => {
@@ -143,7 +142,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       width: 140,
       align: "right",
       render: (value: number, row) => (
-        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? brand.red : brand.green }}>
+        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#e5484d" : "#0e9f6e" }}>
           {row.kind === PAYMENT_KIND.Refund ? "-" : ""}
           {formatVND(value)} {t("Treatment:Pricing:CurrencyUnit")}
         </Text>
@@ -170,7 +169,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
         {tiles.map((tile) => (
           <Col key={tile.testId} xs={12} md={8} lg={4}>
             <Card size="small" data-testid={tile.testId}>
-              <div style={{ fontSize: 12, color: brand.faint }}>{tile.label}</div>
+              <div style={{ fontSize: 12, color: "#99a0bd" }}>{tile.label}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: tile.color }}>
                 {formatVND(tile.value)} {t("Treatment:Pricing:CurrencyUnit")}
               </div>
@@ -187,7 +186,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
           columns={columns}
           dataSource={account?.payments ?? []}
           pagination={false}
-          locale={{ emptyText: <span style={{ color: brand.faint }}>{t("Treatment:Debt:NoTransactions")}</span> }}
+          locale={{ emptyText: <span style={{ color: "#99a0bd" }}>{t("Treatment:Debt:NoTransactions")}</span> }}
         />
       </Card>
 

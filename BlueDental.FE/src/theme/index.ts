@@ -2,71 +2,52 @@ import type { ThemeConfig } from "antd";
 
 import { t } from "@/lib/i18n";
 export const brand = {
-  /* Đức Hạnh Premium v3 — neon grape, flat; grape-tinted neutrals and the
-     four-step status colours. Kept in sync with the --bd-* tokens in
-     src/styles/index.css (R-988). */
-  blue: "#7b2ef0",
-  blueDark: "#6620cc",
-  blueMid: "#7b2ef0",
-  blueLight: "#c4a3ff",
-  bluePale: "#eee5ff",
-  bluePaleHover: "#dcc8ff",
-  /* grape-50: the tint under the pointer. */
-  hoverTint: "#f7f3ff",
-  greenPale: "#e3f6ec",
-  amberPale: "#fff1de",
-  redPale: "#fde7ea",
-  purplePale: "#f6ebfc",
-  navy: "#3a1178",
-  ink: "#1c1a23",
-  body: "#2e2b38",
-  title: "#1c1a23",
-  primary: "#7b2ef0",
-  /* grape-800: text on a grape-100 tint (selected item, active page). */
-  primaryInk: "#4f17a0",
-  accent: "#a875ff",
-  violet: "#9147ff",
-  sub: "#454152",
-  muted: "#5e5a6e",
-  faint: "#a9a5b8",
-  dim: "#7e7a8f",
+  /* Đức Hạnh Premium v2 — indigo primary, cyan accent.
+     Kept in sync with the --bd-* tokens in src/styles/index.css. */
+  blue: "#6366f1",
+  blueDark: "#4f46e5",
+  blueMid: "#6366f1",
+  blueLight: "#a5b4fc",
+  bluePale: "#eef0ff",
+  greenPale: "#e3f6ef",
+  amberPale: "#fbf1de",
+  redPale: "#fdeced",
+  purplePale: "#f0ebfc",
+  navy: "#232a56",
+  ink: "#171c33",
+  body: "#171c33",
+  title: "#22285c",
+  primary: "#6366f1",
+  accent: "#22d3ee",
+  violet: "#8b5cf6",
+  sub: "#414a6b",
+  muted: "#5c6484",
+  faint: "#99a0bd",
+  dim: "#7d85a5",
   hint: "#4a5273",
-  line: "#e6e4ee",
-  lineSoft: "#f3f2f7",
-  border: "#e6e4ee",
-  borderStrong: "#d2cfdd",
-  bg: "#faf9fc",
-  bgSoft: "#f3f2f7",
-  bgHead: "#f3f2f7",
-  gold: "#b4691a",
-  goldDeep: "#b4691a",
-  red: "#c9455a",
-  redDark: "#a33447",
-  amber: "#b4691a",
-  green: "#2e8a5e",
-  greenBright: "#2e8a5e",
-  teal: "#2f78b5",
-  info: "#2f78b5",
-  purple: "#9c5caf",
+  line: "#e7eaf6",
+  lineSoft: "#f0f2fa",
+  border: "#e7eaf6",
+  bg: "#f7f9ff",
+  bgSoft: "#f7f8fd",
+  bgHead: "#f7f8fd",
+  gold: "#d98b0f",
+  goldDeep: "#d98b0f",
+  red: "#e5484d",
+  redDark: "#cf3c41",
+  amber: "#d98b0f",
+  green: "#0e9f6e",
+  greenBright: "#0e9f6e",
+  teal: "#0e94d0",
+  info: "#0e94d0",
+  purple: "#7c5ce0",
   pink: "#bf5a8c",
-  success: "#2e8a5e",
-  /* The *-border step of each status colour (dots, chart fills). */
-  greenLine: "#9fddbc",
-  redLine: "#f4a9b4",
-  purpleLine: "#ddb6f2",
-  /* v3 categorical families, never a state (R-991). */
-  aqua: "#0f7c74",
-  aquaPale: "#e3f7f5",
-  lavender: "#5b6fc9",
-  lavenderPale: "#eef0ff",
-  lavenderLine: "#bfc6f7",
-  gold200: "#ffe2a6",
-  gold500: "#f0a72a",
+  success: "#0e9f6e",
 } as const;
 
-/* The single CTA fill: primary buttons. v3 is flat, so it is the solid grape;
-   the name stays for its callers. */
-export const CTA_GRADIENT = brand.primary;
+/* The single CTA fill: primary buttons and the active nav pill. */
+export const CTA_GRADIENT =
+  "linear-gradient(120deg, #6366f1, #8b5cf6 55%, #22d3ee 130%)";
 
 export const statusPaletteOf = () => ({
   scheduled: { label: t("Common:Status:Scheduled"), bg: brand.bluePale, color: brand.blue },
@@ -95,7 +76,7 @@ export const themeConfig: ThemeConfig = {
     colorWarning: brand.goldDeep,
     colorError: brand.red,
     colorTextBase: brand.ink,
-    colorBorder: brand.borderStrong,
+    colorBorder: brand.line,
     colorBorderSecondary: brand.border,
     controlHeight: 40,
     borderRadius: 10,
@@ -122,11 +103,11 @@ export const themeConfig: ThemeConfig = {
     Menu: {
       itemBg: "transparent",
       subMenuItemBg: "transparent",
-      itemColor: brand.sub,
-      itemHoverBg: brand.hoverTint,
-      itemHoverColor: brand.primary,
-      itemSelectedBg: brand.bluePale,
-      itemSelectedColor: brand.primaryInk,
+      itemColor: "#b9c2dd",
+      itemHoverBg: "rgba(255,255,255,.08)",
+      itemHoverColor: "#ffffff",
+      itemSelectedBg: brand.blue,
+      itemSelectedColor: "#ffffff",
       itemHeight: 40,
       itemBorderRadius: 14,
       iconSize: 19,
@@ -146,7 +127,7 @@ export const themeConfig: ThemeConfig = {
       paddingLG: 20,
       colorBorderSecondary: brand.border,
       borderRadiusLG: 20,
-      boxShadowTertiary: "0 2px 10px rgba(28,26,35,.05)",
+      boxShadowTertiary: "0 2px 10px rgba(35,42,86,.05)",
     },
     Breadcrumb: {
       fontSize: 12.5,
@@ -156,17 +137,16 @@ export const themeConfig: ThemeConfig = {
     },
     Button: {
       fontWeight: 600,
-      primaryShadow: "none",
+      primaryShadow: "0 10px 30px rgba(99,102,241,.28)",
       defaultShadow: "none",
       borderRadius: 10,
       controlHeight: 40,
       controlHeightLG: 46,
-      defaultBorderColor: brand.borderStrong,
+      defaultBorderColor: brand.line,
       defaultColor: brand.body,
     },
     Input: {
-      /* v3 focus ring: 2px grape-300 outside the control. */
-      activeShadow: `0 0 0 2px ${brand.blueLight}`,
+      activeShadow: "0 0 0 3px rgba(99,102,241,.22)",
       activeBorderColor: brand.blue,
       hoverBorderColor: brand.blue,
       borderRadius: 10,
@@ -187,7 +167,7 @@ export const themeConfig: ThemeConfig = {
       borderRadiusLG: 18,
       headerBg: "#ffffff",
       contentBg: "#ffffff",
-      boxShadow: "0 24px 60px rgba(28,26,35,.18)",
+      boxShadow: "0 24px 60px rgba(35,42,86,.18)",
     },
     Drawer: {
       colorBgElevated: "#ffffff",
@@ -204,29 +184,28 @@ export const themeConfig: ThemeConfig = {
       inkBarColor: brand.blue,
       titleFontSize: 13,
     },
-    /* v3: a neutral-100 track with a white chip and grape-800 text. */
     Segmented: {
-      itemSelectedBg: "#ffffff",
-      itemSelectedColor: brand.primaryInk,
+      itemSelectedBg: brand.blue,
+      itemSelectedColor: "#ffffff",
       itemColor: brand.muted,
-      trackBg: brand.bgSoft,
+      trackBg: brand.bg,
       trackPadding: 4,
       borderRadius: 12,
     },
-    /* The current page is a tint, never a second solid fill (v3). */
     Pagination: {
-      itemActiveBg: brand.bluePale,
-      itemActiveColor: brand.primaryInk,
+      itemActiveBg: brand.blue,
+      // antd defaults the active number to colorPrimary, which vanishes on the blue tile.
+      itemActiveColor: "#fff",
       borderRadius: 10,
     },
   },
 };
 
 /* The reference app gave the voucher dialog a brighter blue than the rest of
-   the screens; v2 and v3 do not, so this is the ordinary primary. Kept as its
+   the screens; v2 does not, so this is now the ordinary primary. Kept as its
    own name because the dialog still themes itself, in sync with --vc-accent in
    features/voucher/components/voucher.css. */
-const voucherAccent = brand.primary;
+const voucherAccent = "#6366f1";
 
 export const voucherDialogTheme: ThemeConfig = {
   token: {
@@ -242,8 +221,8 @@ export const voucherDialogTheme: ThemeConfig = {
       titleFontSize: 14,
     },
     Segmented: {
-      itemSelectedBg: "#ffffff",
-      itemSelectedColor: brand.primaryInk,
+      itemSelectedBg: voucherAccent,
+      itemSelectedColor: "#ffffff",
       itemColor: brand.muted,
       trackBg: brand.lineSoft,
       trackPadding: 4,
@@ -275,10 +254,10 @@ export const voucherDialogTheme: ThemeConfig = {
 export const HEADER_HEIGHT = 62;
 
 export const statusPalette = {
-  scheduled: { label: "Đã đặt lịch", bg: brand.bluePale, color: brand.blue },
-  confirmed: { label: "Đã xác nhận", bg: brand.greenPale, color: brand.green },
-  inProgress: { label: "Đang khám", bg: brand.amberPale, color: brand.amber },
-  completed: { label: "Hoàn thành", bg: brand.greenPale, color: brand.green },
-  cancelled: { label: "Đã hủy", bg: brand.redPale, color: brand.redDark },
-  noShow: { label: "Không đến", bg: brand.purplePale, color: brand.purple },
+  scheduled: { label: "Đã đặt lịch", bg: "#eef0ff", color: "#6366f1" },
+  confirmed: { label: "Đã xác nhận", bg: "#e3f6ef", color: "#0e9f6e" },
+  inProgress: { label: "Đang khám", bg: "#faf1e2", color: "#d98b0f" },
+  completed: { label: "Hoàn thành", bg: "#e3f6ef", color: "#0e9f6e" },
+  cancelled: { label: "Đã hủy", bg: "#fce9ea", color: "#cf3c41" },
+  noShow: { label: "Không đến", bg: "#efebfb", color: "#7c5ce0" },
 } as const;

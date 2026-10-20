@@ -70,7 +70,7 @@ interface SizeSliderProps {
 }
 
 export function SizeSlider({ size, min, max, color, translucent, onChange, onChangeComplete }: SizeSliderProps) {
-  const sample = { "--sample-color": color ?? "var(--bd-faint)", "--sample-size": Math.min(size, 40) } as CSSProperties;
+  const sample = { "--sample-color": color ?? "#94a3b8", "--sample-size": Math.min(size, 40) } as CSSProperties;
 
   return (
     <>

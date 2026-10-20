@@ -1,6 +1,6 @@
 /* "Thư viện ảnh lâm sàng" — the dialog behind Danh mục on Chẩn đoán & Tư vấn.
    Chrome follows the reference (256px topic column, 56px header, 16px radius,
-   var(--bd-bg) stage); accents are the app's own primary rather than its blue. */
+   #F6F8FB stage); accents are the app's own primary rather than its blue. */
 
 .pd-lib-backdrop {
   position: fixed;
@@ -14,10 +14,10 @@
 }
 .pd-lib {
   position: relative;
-  --pd-lib-line: var(--bd-line);
-  --pd-lib-ink: var(--bd-ink);
-  --pd-lib-label: var(--bd-muted);
-  --pd-lib-stage: var(--bd-bg);
+  --pd-lib-line: #dfe5ee;
+  --pd-lib-ink: #1b2a41;
+  --pd-lib-label: #5a6b82;
+  --pd-lib-stage: #f6f8fb;
   --pd-lib-tint: color-mix(in srgb, var(--bd-primary) 10%, #fff);
   display: grid;
   grid-template-columns: 256px minmax(0, 1fr);
@@ -132,7 +132,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--bd-sub);
+  color: #44546a;
   font-size: 14px;
   line-height: 20px;
   text-align: left;
@@ -140,7 +140,7 @@
   transition: background 0.15s ease;
 }
 .pd-lib-topic:hover {
-  background: var(--bd-bg-soft);
+  background: #f1f5f9;
 }
 .pd-lib-topic--active {
   background: var(--pd-lib-tint);
@@ -161,13 +161,13 @@
   --pd-lib-topic-tone: var(--bd-amber);
 }
 .pd-lib-topic[data-tone="3"] {
-  --pd-lib-topic-tone: var(--bd-purple);
+  --pd-lib-topic-tone: var(--bd-violet);
 }
 .pd-lib-topic[data-tone="4"] {
-  --pd-lib-topic-tone: var(--bd-red);
+  --pd-lib-topic-tone: #e11d48;
 }
 .pd-lib-topic[data-tone="5"] {
-  --pd-lib-topic-tone: var(--bd-aqua);
+  --pd-lib-topic-tone: #0f766e;
 }
 .pd-lib-topic__name {
   min-width: 0;
@@ -208,7 +208,7 @@
   --pd-lib-dot-tone: var(--bd-primary);
 }
 .pd-lib-dot[data-tone="2"] {
-  --pd-lib-dot-tone: var(--bd-purple);
+  --pd-lib-dot-tone: var(--bd-violet);
 }
 .pd-lib-dot[data-tone="3"] {
   --pd-lib-dot-tone: var(--bd-green);
@@ -217,16 +217,16 @@
   --pd-lib-dot-tone: var(--bd-amber);
 }
 .pd-lib-dot[data-tone="5"] {
-  --pd-lib-dot-tone: var(--bd-info);
+  --pd-lib-dot-tone: #eab308;
 }
 .pd-lib-dot[data-tone="6"] {
-  --pd-lib-dot-tone: var(--bd-aqua);
+  --pd-lib-dot-tone: #14b8a6;
 }
 .pd-lib-dot[data-tone="7"] {
-  --pd-lib-dot-tone: var(--bd-lavender);
+  --pd-lib-dot-tone: #5b84e8;
 }
 .pd-lib-dot[data-tone="8"] {
-  --pd-lib-dot-tone: var(--bd-pink);
+  --pd-lib-dot-tone: #f35b8a;
 }
 .pd-lib-head__topic {
   font-size: 14px;
@@ -280,7 +280,7 @@
   cursor: pointer;
 }
 .pd-lib-icon-btn:hover {
-  background: var(--bd-bg-soft);
+  background: #f1f5f9;
   color: var(--pd-lib-ink);
 }
 .pd-lib-icon-btn--close {
@@ -398,7 +398,7 @@
   border-radius: 50%;
   background: rgb(255 255 255 / 90%);
   color: var(--pd-lib-ink);
-  box-shadow: 0 4px 12px rgb(28 26 35 / 12%);
+  box-shadow: 0 4px 12px rgb(27 42 65 / 12%);
   cursor: pointer;
   transform: translateY(-50%);
   transition: none;
@@ -432,7 +432,7 @@
   border: 1px solid rgb(255 255 255 / 90%);
   border-radius: 999px;
   background: rgb(255 255 255 / 75%);
-  box-shadow: 0 8px 24px rgb(28 26 35 / 16%);
+  box-shadow: 0 8px 24px rgb(27 42 65 / 16%);
   backdrop-filter: blur(8px);
   transform: translateX(-50%);
 }
@@ -593,31 +593,31 @@
   --pd-lib-chip-tone: var(--bd-primary);
 }
 .pd-lib-chip[data-tone="1"] {
-  --pd-lib-chip-tone: var(--bd-green);
+  --pd-lib-chip-tone: #0f9d72;
 }
 .pd-lib-chip[data-tone="2"] {
-  --pd-lib-chip-tone: var(--bd-amber);
+  --pd-lib-chip-tone: #e47b17;
 }
 .pd-lib-chip[data-tone="3"] {
-  --pd-lib-chip-tone: var(--bd-purple);
+  --pd-lib-chip-tone: #7c3aed;
 }
 .pd-lib-chip[data-tone="4"] {
-  --pd-lib-chip-tone: var(--bd-pink);
+  --pd-lib-chip-tone: #d94672;
 }
 .pd-lib-chip[data-tone="5"] {
-  --pd-lib-chip-tone: var(--bd-aqua);
+  --pd-lib-chip-tone: #0f8c99;
 }
 .pd-lib-chip[data-tone="6"] {
-  --pd-lib-chip-tone: var(--bd-sub);
+  --pd-lib-chip-tone: #475569;
 }
 .pd-lib-chip[data-tone="7"] {
-  --pd-lib-chip-tone: var(--bd-lavender);
+  --pd-lib-chip-tone: #b45309;
 }
 .pd-lib-chip[data-tone="8"] {
-  --pd-lib-chip-tone: var(--bd-info);
+  --pd-lib-chip-tone: #2563a7;
 }
 .pd-lib-chip[data-tone="9"] {
-  --pd-lib-chip-tone: var(--bd-red);
+  --pd-lib-chip-tone: #be3e59;
 }
 .pd-lib-chip__avatar {
   display: inline-flex;
@@ -701,7 +701,7 @@
   height: 100%;
   border: 1px solid var(--pd-lib-line);
   border-radius: 16px;
-  box-shadow: 0 16px 40px rgb(28 26 35 / 20%);
+  box-shadow: 0 16px 40px rgb(27 42 65 / 20%);
   transition:
     opacity 0.3s ease,
     transform 0.3s ease;
@@ -723,7 +723,7 @@
   border-radius: 50%;
   background: #fff;
   color: var(--pd-lib-label);
-  box-shadow: 0 8px 24px rgb(28 26 35 / 16%);
+  box-shadow: 0 8px 24px rgb(27 42 65 / 16%);
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
@@ -762,7 +762,7 @@
   color: #fff;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 8px 24px rgb(28 26 35 / 20%);
+  box-shadow: 0 8px 24px rgb(27 42 65 / 20%);
   cursor: pointer;
 }
 .pd-lib-exit:hover {

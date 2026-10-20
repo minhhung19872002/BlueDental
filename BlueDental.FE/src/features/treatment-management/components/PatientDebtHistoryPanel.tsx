@@ -12,7 +12,6 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 const { Text } = Typography;
 
@@ -83,7 +82,7 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
       width: 140,
       align: "right",
       render: (value: number, row) => (
-        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? brand.red : brand.green }}>
+        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#e5484d" : "#0e9f6e" }}>
           {row.kind === PAYMENT_KIND.Refund ? "-" : "+"}
           {formatVND(value)} {t("Treatment:Pricing:CurrencyUnit")}
         </Text>
@@ -128,7 +127,7 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
         columns={columns}
         dataSource={rows}
         pagination={{ pageSize: 20, showTotal: (total) => t("Treatment:Debt:ShowTotal", rows.length, total) }}
-        locale={{ emptyText: <span style={{ color: brand.faint }}>{t("Treatment:Debt:NoHistory")}</span> }}
+        locale={{ emptyText: <span style={{ color: "#99a0bd" }}>{t("Treatment:Debt:NoHistory")}</span> }}
       />
     </Card>
   );

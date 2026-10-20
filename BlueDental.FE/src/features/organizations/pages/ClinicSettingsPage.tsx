@@ -55,7 +55,6 @@ import { useStaff } from "@/features/staff/api/staffQueries";
 import { invalidateEntities } from "@/lib/queryEntities";
 import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
 import { getLocale, t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 import "../components/organizations.css";
 
 type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage";
@@ -219,7 +218,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
           {avatarPreview ? (
             <img src={avatarPreview} alt="" className="profile-avatar-img" />
           ) : (
-            <svg width="40" height="40" viewBox="0 0 24 24" fill={brand.faint}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="#99a0bd">
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           )}

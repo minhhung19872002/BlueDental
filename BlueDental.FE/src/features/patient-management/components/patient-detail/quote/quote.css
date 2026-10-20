@@ -294,7 +294,7 @@
   gap: 16px;
   grid-template-columns: 1fr 1fr;
   margin-bottom: 20px;
-  border-bottom: 1px solid var(--bd-line);
+  border-bottom: 1px solid #dce3ee;
   padding-bottom: 16px;
 }
 .pq-sheet__branch {
@@ -307,7 +307,7 @@
   object-fit: contain;
 }
 .pq-sheet__customer {
-  border-left: 1px solid var(--bd-line);
+  border-left: 1px solid #dce3ee;
   padding-left: 16px;
 }
 .pq-sheet__title {
@@ -540,7 +540,7 @@
   cursor: pointer;
 }
 .pq-dx__edit--on {
-  background: var(--bd-amber);
+  background: #f59e0b;
 }
 .pq-dx__doctor-dx {
   margin: 0 0 6px;
@@ -684,9 +684,9 @@
   width: 60%;
   min-width: 120px;
   margin-top: 46px;
-  border: 1px solid var(--bd-amber-line);
+  border: 1px solid #e8d9a8;
   border-radius: 6px;
-  background: var(--bd-amber-pale);
+  background: #fdf6e0;
   padding: 2px 8px;
   color: inherit;
   font: inherit;

@@ -289,7 +289,7 @@ export function AppLayout() {
       >
         <span
           className="app-popover-dot"
-          style={{ background: currentBranchId === null ? brand.green : brand.faint }}
+          style={{ background: currentBranchId === null ? "#0e9f6e" : brand.faint }}
         />
         <span>{t("App:AllBranches")}</span>
       </button>
@@ -305,7 +305,7 @@ export function AppLayout() {
           >
             <span
               className="app-popover-dot"
-              style={{ background: isActive ? brand.green : brand.faint }}
+              style={{ background: isActive ? "#0e9f6e" : brand.faint }}
             />
             <span>{branch.name}</span>
           </button>
@@ -384,7 +384,7 @@ export function AppLayout() {
             <button type="button" className="app-header-branch app-header-hide-sm">
               <span className="app-header-branch-dot" />
               <span className="app-header-branch-name">{selectedBranchName}</span>
-              <DownOutlined style={{ fontSize: 13, color: brand.dim }} />
+              <DownOutlined style={{ fontSize: 13, color: "#78819c" }} />
             </button>
           </Popover>
 

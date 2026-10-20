@@ -9,7 +9,6 @@ import { EventCard } from "./EventCard";
 import { STATUS_GROUPS } from "../hooks/useStatusCounts";
 import { clipToGrid, gridEdges, useCalendarWindowStore } from "../store/calendarWindowStore";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 const SLOT_H_30 = 25;
 const SLOT_H_15 = 38;
@@ -159,7 +158,7 @@ export function WeekViewCalendar({
                   .join(" ")}
                 style={{
                   height: slotH,
-                  borderBottom: isHourStart(minute) ? `1px solid ${brand.line}` : `1px dashed ${brand.bgSoft}`,
+                  borderBottom: isHourStart(minute) ? "1px solid #e7eaf6" : "1px dashed #f7f8fd",
                 }}
               >
                 {showLabel ? slotTime(minute) : ""}

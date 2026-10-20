@@ -9779,7 +9779,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - 4 ca còn lại xanh trên HEAD, và xanh 2/2 lần khi chạy riêng trên bản R-988: `patient.spec` 2182, 2506, 3090 và `reception-own-doctor:33`. Chúng chỉ chập chờn khi chạy chung một lượt dài (dữ liệu, thứ tự chạy), không do R-988.
     - Ca 2506 kiểm màu nhãn khi focus: nhãn ra đúng grape `rgb(123, 46, 240)`.
   - Khi review sau đó: script quét từng đổi cả mã hex nằm trong **comment** ghi số đo của bản gốc, ví dụ "bg #f0f2fa text #5c6484" thành `var(--bd-*)`. Đã trả lại 16 dòng comment như vậy (cskh, labo, medical-record, patient-detail, advise-modal, index.css). Code đã quét giữ nguyên. Hai comment "brand is indigo" sửa thành grape.
-- Đã commit trên `develop` (cùng R-991).
+- Đã commit trên `develop` (cùng R-991). **Đã gỡ ở R-1002** theo yêu cầu owner — FE quay về bảng màu v2 như `main`.
 
 ## R-989 (2026-10-19, mức 3: hình ảnh bệnh nhân + camera dùng chung) Nút "Chụp ảnh" cạnh "Tải ảnh" ở tab Hình ảnh
 
@@ -9911,7 +9911,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - 7 đỏ y hệt trên bản build HEAD (cổng 8174, spec của HEAD) nên có từ trước: labo-orders-actions:88, labo:156, patient-medical-record:190 và :1568, `patient.spec` 2282 và 2389 (HEAD 2287 / 2394), report:294 (cột xuất Excel).
     - 3 xanh trên HEAD (patient-appointment:322, patient-medical-record:857, `patient.spec`:1900): chạy riêng trên bản R-991 `--repeat-each=2` được 6/6 xanh → chập chờn do thứ tự / dữ liệu khi chạy chung.
   - Kết quả R-988 vẫn giữ: 28/29 spec có kiểm màu, taxonomy 89/93 (đỏ có từ trước).
-- Đã commit trên `develop` (cùng R-988).
+- Đã commit trên `develop` (cùng R-988). **Đã gỡ ở R-1002** cùng R-988.
 
 ## R-992 (2026-10-20, mức 2: tìm kiếm ghi chú + migration) F-74 — Tìm ghi chú không dấu
 
@@ -10127,3 +10127,24 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Spec có mở `/calendar` (`patient-back-origin`, `patient-phone-country`, `routes`, `patient.spec.ts:881`): **28/28**.
   - `appointment-shown-hours.spec.ts:149`: đổi locator `.cal-toolbar-row1` → `.cal-view-controls` (nút Tuần đã chuyển hàng).
 - **Commit**: chưa commit.
+
+## R-1002 (2026-10-20, mức 1: chỉ màu) Gỡ màu v3 grape (R-988, R-991) — FE quay về bảng màu v2 như `main`
+
+- **Yêu cầu owner**: "revert code thay đổi color … nói chung giờ làm giống main đi". Hỏi thêm: có commit nào sau commit màu lấy màu của `develop` không (thấy modal Chụp ảnh như màu mới), kiểm tra rồi commit ở `main`.
+- **`develop`**: gỡ commit `3e83bbf5` (R-988 + R-991).
+  - Revert thẳng bị xung đột ở 11 file, vì các commit từ `main` merge vào sửa sát dòng màu. Nên 74 file code được lấy nguyên từ `main` (`71557763`).
+  - Trước khi lấy đã so: mọi dòng khác nhau giữa `develop` và `main` trong các file đó đều đến từ `3e83bbf5` (0 dòng lạ), nên không mất thay đổi của ai.
+  - Code FE của `develop` trùng `main`. Mục log R-988 / R-991 giữ lại làm lịch sử, ghi đã gỡ ở R-1002.
+- **`main`**: quét toàn bộ `BlueDental.FE/src` và `e2e` tìm mã màu v3 (hex và `rgb()` của grape / neutral / success / warning / danger / info / orchid / aqua / lavender / gold, bóng `rgba(28, 26, 35, …)`) và token `--bd-*` chỉ v3 mới có (`--bd-primary-ink`, `--bd-aqua*`, `--bd-lavender*`, `--bd-gold-*`):
+  - Chỉ lọt một chỗ: bóng hộp thoại Ghi chú `staff-notes.css:19` `rgba(28, 26, 35, 0.18)` (R-990, viết lúc v3 còn nằm chưa commit trong thư mục làm việc chung) → `rgba(35, 42, 86, 0.18)` của v2, cùng độ mờ.
+  - Modal Chụp ảnh (R-989) chỉ dùng token (`--bd-ink`, `--bd-card`, `--bd-red`, `--bd-line`, `--bd-amber`, `--bd-muted`, `--bd-bg-soft`), không có mã v3. Trên `main` token vẫn là v2 (`--bd-primary` `#6366f1`) nên modal hiện màu v2; màu tím là của bản `develop` / staging đang chạy v3.
+  - Các biến `--bd-*` dùng mà chưa định nghĩa trên `main` (`--bd-danger`, `--bd-surface`, `--bd-text`…) có từ trước, đều có giá trị dự phòng, không liên quan v3.
+- **Test** (build production `vite preview` 127.0.0.1 `--strictPort`, host :5000 và PostgreSQL thật, không chặn request):
+  - `tsc -b && vite build` sạch trên cả hai cây: `main` + fix bóng, và `develop` sau khi gỡ.
+  - `develop` sau khi gỡ (cổng 8175), chạy các spec có kiểm màu: **35/36 xanh**. Đỏ duy nhất là labo-warranty:315 (DatePicker có mask), có từ trước, không kiểm màu.
+  - Đo modal Chụp ảnh trong trình duyệt (camera giả, chụp 1 ảnh):
+    - `main` + fix (8176): `:root` `--bd-primary=#6366f1 --bd-ink=#171c33 --bd-red=#e5484d --bd-line=#e7eaf6`; nút chính rgb(99, 102, 241), khung camera rgba(23, 28, 51, 0.88) → v2.
+    - Bản v3 cũ (8177) để đối chiếu: nút rgb(123, 46, 240), `.pi-cam-view` rgb(28, 26, 35) → đây là màu tím owner thấy.
+  - Bóng hộp thoại Ghi chú, đọc từ CSS đã build: `main` + fix `0 12px 32px #232a562e` (= rgba(35, 42, 86, 0.18)), bản v3 `#1c1a232e`.
+    - Không đo được trong trình duyệt: host :5000 (session khác) chưa có key dịch `StaffNote:*` nên nút mở hiện nhãn thô `StaffNote:Open`. Không liên quan màu.
+- **Commit**: `main` — fix bóng + mục này, chưa push (push `main` = deploy production, chờ owner). `develop` — gỡ `3e83bbf5` + cùng fix bóng.

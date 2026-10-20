@@ -23,7 +23,6 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
-import { brand } from "@/theme/index";
 
 const ChevronLeftIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -198,15 +197,15 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       <div className="wsb-legend-bar">
         <div className="wsb-legend-items">
           <span className="wsb-legend-item">
-            <span className="wsb-legend-dot" style={{ background: brand.green }} />
+            <span className="wsb-legend-dot" style={{ background: "#0e9f6e" }} />
             {t("Timekeeping:Work")}
           </span>
           <span className="wsb-legend-item">
-            <span className="wsb-legend-dot" style={{ background: brand.redDark }} />
+            <span className="wsb-legend-dot" style={{ background: "#cf3c41" }} />
             {t("Timekeeping:DayOff")}
           </span>
           <span className="wsb-legend-item">
-            <span className="wsb-legend-dot" style={{ background: brand.amber }} />
+            <span className="wsb-legend-dot" style={{ background: "#d98b0f" }} />
             {t("Timekeeping:UnannounceAbsentLong")}
           </span>
           <span className="wsb-legend-item">
@@ -220,9 +219,9 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       </div>
 
       <div className="wsb-help">
-        <strong style={{ color: brand.green }}>{t("Timekeeping:Work")}</strong>
+        <strong style={{ color: "#0e9f6e" }}>{t("Timekeeping:Work")}</strong>
         {" / "}
-        <strong style={{ color: brand.purple }}>{t("Timekeeping:HalfDay")}</strong>
+        <strong style={{ color: "#7c5ce0" }}>{t("Timekeeping:HalfDay")}</strong>
         {" "}
         {t("Timekeeping:WorkLegendHint")}
       </div>

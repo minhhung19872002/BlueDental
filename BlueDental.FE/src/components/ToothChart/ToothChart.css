@@ -6,9 +6,9 @@
   --tc-blue: var(--bd-primary);
   --tc-blue-soft: var(--bd-blue-light);
   --tc-hover: var(--bd-blue-pale);
-  --tc-line: var(--bd-line);
-  --tc-ring: var(--bd-dim);
-  --tc-ink: var(--bd-ink);
+  --tc-line: #dce3ee;
+  --tc-ring: #8a94a6;
+  --tc-ink: #1b2a41;
   position: relative;
   min-width: 920px;
   overflow: hidden;
@@ -160,7 +160,7 @@
 }
 
 /* Tab strip and dentition radios, measured on the reference's "Chọn răng"
-   dialog and its consulting form: a 36px white strip (border var(--bd-line), radius
+   dialog and its consulting form: a 36px white strip (border #DCE3EE, radius
    8, 4px padding) whose pill slides under the active tab; 16px ring radios
    with a 12px dot. Blues follow the app primary. */
 .tc-tabs-scroll {
@@ -175,7 +175,7 @@
   display: inline-flex;
   width: fit-content;
   height: 36px;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #dce3ee;
   border-radius: 8px;
   background: #fff;
   padding: 4px;
@@ -202,7 +202,7 @@
   border-radius: 6px;
   background: transparent;
   padding: 0 16px;
-  color: var(--bd-muted);
+  color: #5a6b82;
   font: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -223,7 +223,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--bd-ink);
+  color: #1b2a41;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -242,7 +242,7 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--bd-faint);
+  border: 1px solid #8fa1b8;
   border-radius: 50%;
   transition: border-color 0.15s;
 }

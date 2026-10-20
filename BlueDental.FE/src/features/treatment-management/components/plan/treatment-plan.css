@@ -1,8 +1,8 @@
 /* ── Kế hoạch điều trị tab ─────────────────────────────────────────────────
    Measured on staging 2026-09-07 at 1440×900 (reference-private/treatment-plan-tab).
-   The reference draws this tab in its own palette (label grey var(--bd-muted), ink
-   var(--bd-ink), hairline var(--bd-line)), so those live here as --tp-* tokens instead of
-   stretching the global --bd-* set. Its blue (var(--bd-blue-dark)) is NOT copied: by the
+   The reference draws this tab in its own palette (label grey #5A6B82, ink
+   #1B2A41, hairline #DCE3EE), so those live here as --tp-* tokens instead of
+   stretching the global --bd-* set. Its blue (#2671D8) is NOT copied: by the
    owner's rule the tab uses the app's own primary, so every blue token below
    resolves to --bd-primary and its derivatives. */
 :root {
@@ -11,27 +11,27 @@
   --tp-blue-pale: var(--bd-blue-pale);
   --tp-blue-line: var(--bd-blue-light);
   --tp-blue-ring: color-mix(in srgb, var(--bd-primary) 20%, transparent);
-  --tp-orange: var(--bd-amber);
-  --tp-orange-pale: var(--bd-amber-pale);
-  --tp-green: var(--bd-green);
-  --tp-green-pale: var(--bd-green-pale);
-  --tp-red: var(--bd-red);
-  --tp-red-pale: var(--bd-red-pale);
-  --tp-ink: var(--bd-ink);
-  --tp-label: var(--bd-muted);
-  --tp-line: var(--bd-line);
-  --tp-ground: var(--bd-bg);
-  --tp-pill: var(--bd-bg-soft);
-  --tp-cyan-pale: var(--bd-info-pale);
-  --tp-cyan-ink: var(--bd-info-ink);
+  --tp-orange: #f96b3c;
+  --tp-orange-pale: #fff1d8;
+  --tp-green: #12a960;
+  --tp-green-pale: #e7f8ef;
+  --tp-red: #f04444;
+  --tp-red-pale: #fef2f2;
+  --tp-ink: #1b2a41;
+  --tp-label: #5a6b82;
+  --tp-line: #dce3ee;
+  --tp-ground: #f6f8fb;
+  --tp-pill: #f0f3f8;
+  --tp-cyan-pale: #b8e8f4;
+  --tp-cyan-ink: #16626d;
   /* "Đang điều trị" / "Bảo hành" and "Đã chuyển" — the reference's own pill
      palette, read from its bundle 2026-09-21. */
-  --tp-progress-pale: var(--bd-blue-pale);
-  --tp-progress-ink: var(--bd-link);
-  --tp-violet-pale: var(--bd-lavender-pale);
-  --tp-violet-ink: var(--bd-lavender-ink);
+  --tp-progress-pale: #eff6ff;
+  --tp-progress-ink: #1d4ed8;
+  --tp-violet-pale: #f5f3ff;
+  --tp-violet-ink: #6d28d9;
   /* A finished slip tints its whole row. */
-  --tp-row-done: color-mix(in srgb, var(--bd-green-pale) 60%, transparent);
+  --tp-row-done: rgba(231, 248, 239, 0.6);
   --tp-accent: var(--bd-primary);
 }
 
@@ -219,7 +219,7 @@
 .tp-table-block .bd-cat-card {
   flex: 0 1 auto;
   border-color: var(--tp-line);
-  box-shadow: 0 2px 6px rgba(28, 26, 35, 0.06);
+  box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
 }
 /* 640px and below: the slip and service tables become RecordCards (owner's rule). */
 .tp-card-list {
@@ -360,7 +360,7 @@
    scrolled; the bare `…-shadow` class is on the cell even when nothing hides. */
 .tp-table .ant-table-ping-right .ant-table-cell-fix-right-first::after,
 .tp-table .ant-table-cell-fix-end-shadow-show::after {
-  box-shadow: inset -10px 0 8px -8px rgba(28, 26, 35, 0.12);
+  box-shadow: inset -10px 0 8px -8px rgba(27, 42, 65, 0.12);
 }
 .tp-card-pager .ant-pagination-item {
   border-radius: 6px;
@@ -509,7 +509,7 @@
   padding: 0;
   border: 1px solid var(--tp-line);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(28, 26, 35, 0.12);
+  box-shadow: 0 8px 24px rgba(27, 42, 65, 0.12);
   overflow: hidden;
 }
 .tp-columns-head {
@@ -553,7 +553,7 @@
   position: relative;
   z-index: 1;
   background: #fff;
-  box-shadow: 0 4px 12px rgba(28, 26, 35, 0.12);
+  box-shadow: 0 4px 12px rgba(27, 42, 65, 0.12);
 }
 .tp-columns-grip {
   display: flex;
@@ -643,7 +643,7 @@
   padding: 12px 24px 24px;
 }
 /* The reference draws its dialog controls at 40px with 14px/500 resting
-   labels (var(--bd-muted) at 80%), floated ones at 13px on a 4px white pad. */
+   labels (#5A6B82 at 80%), floated ones at 13px on a 4px white pad. */
 .ant-modal.tp-dialog {
   --ff-input-height: 40px;
 }
@@ -674,17 +674,17 @@
 .ant-modal.tp-dialog .ant-input-disabled,
 .ant-modal.tp-dialog .ant-input-number-disabled,
 .ant-modal.tp-dialog .ant-select-disabled {
-  border-color: var(--bd-border-strong);
-  background: var(--bd-bg-soft);
+  border-color: #cbd5e1;
+  background: #f3f6fa;
   color: var(--tp-label);
 }
 .ant-modal.tp-dialog .ant-select-suffix {
   margin-inline-end: 5px;
-  color: rgba(94, 90, 110, 0.8);
+  color: rgba(90, 107, 130, 0.8);
 }
 .ant-modal.tp-dialog .ant-select-disabled .ant-select-suffix,
 .ant-modal.tp-dialog .ant-select-disabled .ant-select-prefix {
-  color: rgba(94, 90, 110, 0.4);
+  color: rgba(90, 107, 130, 0.4);
 }
 /* Focus: a primary border with a 3px 20% ring on every control, as staging does */
 .ant-modal.tp-dialog .ant-input:focus,
@@ -703,7 +703,7 @@
   box-shadow: none;
 }
 .tp-dialog .floating-field-label {
-  color: rgba(94, 90, 110, 0.8);
+  color: rgba(90, 107, 130, 0.8);
   font-weight: 500;
 }
 .tp-dialog .floating-field--floated .floating-field-label {
@@ -715,7 +715,7 @@
 .tp-dialog
   .floating-field:has(.ant-input-disabled, .ant-input-number-disabled, .ant-select-disabled)
   .floating-field-label {
-  color: rgba(94, 90, 110, 0.5);
+  color: rgba(90, 107, 130, 0.5);
 }
 .tp-dialog .floating-field--floated .floating-field-label {
   left: 16px;
@@ -731,7 +731,7 @@
     .ant-select-disabled
   )
   .floating-field-label {
-  background: var(--bd-bg);
+  background: #f6f8fb;
 }
 .tp-services-table .ant-table-tbody > tr > td {
   height: 69px;
@@ -889,7 +889,7 @@
 .tp-toggle {
   display: inline-flex;
   border-radius: 8px;
-  background: var(--bd-bg-soft);
+  background: #eef2f7;
   padding: 4px;
 }
 .tp-toggle > button {
@@ -1028,7 +1028,7 @@
 .tp-service-dropdown {
   border: 1px solid var(--tp-line);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(28, 26, 35, 0.12);
+  box-shadow: 0 8px 24px rgba(27, 42, 65, 0.12);
 }
 .tp-service-dropdown .ant-select-item-option {
   padding: 10px 12px;

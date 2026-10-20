@@ -8,7 +8,6 @@ import { DataTable } from "@/components/DataTable";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { pagerTotal } from "@/utils/pagerTotal";
-import { brand } from "@/theme/index";
 
 // UNKNOWN_REFERENCE_BEHAVIOR: The reference's message config table was empty
 // ("Hiển thị 0 trên 0 cấu hình"). The dialog layout mirrors the screenshot:
@@ -71,7 +70,7 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
                       y="50%"
                       dominantBaseline="central"
                       textAnchor="middle"
-                      fill={brand.amber}
+                      fill="#d98b0f"
                       fontFamily="Arial, sans-serif"
                       fontWeight="700"
                       fontSize="26"

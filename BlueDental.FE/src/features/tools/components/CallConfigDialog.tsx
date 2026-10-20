@@ -12,7 +12,6 @@ import { FloatingField } from "@/components/FloatingField";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 interface Props {
   open: boolean;
@@ -140,7 +139,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
                       y="50%"
                       dominantBaseline="central"
                       textAnchor="middle"
-                      fill={brand.primary}
+                      fill="#6366f1"
                       fontFamily="Arial, sans-serif"
                       fontWeight="700"
                       fontSize="18"

@@ -1,7 +1,6 @@
 import { Button, Drawer } from "antd";
 import { SaveOutlined, SlidersOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 interface MobileFilterDrawerProps {
   open: boolean;
@@ -47,8 +46,8 @@ export function MobileFilterDrawer({
           wrapper: { borderRadius: "16px 16px 0 0", overflow: "hidden", height: "50vh" },
           section: { borderRadius: "16px 16px 0 0" },
           body: { padding: "20px 16px 0", display: "flex", flexDirection: "column", gap: 24 },
-          header: { padding: "12px 16px", borderBottom: `1px solid ${brand.line}` },
-          footer: { padding: "12px 16px", borderTop: `1px solid ${brand.line}` },
+          header: { padding: "12px 16px", borderBottom: "1px solid #e7eaf6" },
+          footer: { padding: "12px 16px", borderTop: "1px solid #e7eaf6" },
         }}
         footer={
           <div className="mobile-filter-footer">

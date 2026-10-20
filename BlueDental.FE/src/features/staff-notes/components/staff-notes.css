@@ -16,7 +16,7 @@
 /* Nothing dims the page, so the edge has to separate it from what is behind. */
 .staff-notes-dialog .ant-modal-container {
   box-shadow:
-    0 12px 32px rgba(28, 26, 35, 0.18),
+    0 12px 32px rgba(35, 42, 86, 0.18),
     0 0 0 1px var(--bd-line);
 }
 

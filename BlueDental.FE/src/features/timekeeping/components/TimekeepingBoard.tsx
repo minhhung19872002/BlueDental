@@ -20,7 +20,6 @@ import { useCurrentBranchId, useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "@/features/appointments/hooks/useCalendarState";
-import { brand } from "@/theme/index";
 import "./timekeeping.css";
 
 function AttendanceGuideContent() {
@@ -189,7 +188,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
             trigger="hover"
             placement="bottomLeft"
             overlayClassName="tk-guide-popover"
-            overlayInnerStyle={{ background: brand.ink, padding: 16, borderRadius: 10 }}
+            overlayInnerStyle={{ background: "#171c33", padding: 16, borderRadius: 10 }}
             overlayStyle={{ maxWidth: 380 }}
           >
             <button
