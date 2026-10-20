@@ -10244,4 +10244,4 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Bản v3 cũ (8177) để đối chiếu: nút rgb(123, 46, 240), `.pi-cam-view` rgb(28, 26, 35) → đây là màu tím owner thấy.
   - Bóng hộp thoại Ghi chú, đọc từ CSS đã build: `main` + fix `0 12px 32px #232a562e` (= rgba(35, 42, 86, 0.18)), bản v3 `#1c1a232e`.
     - Không đo được trong trình duyệt: host :5000 (session khác) chưa có key dịch `StaffNote:*` nên nút mở hiện nhãn thô `StaffNote:Open`. Không liên quan màu.
-- **Commit**: `main` — fix bóng + mục này, chưa push (push `main` = deploy production, chờ owner). `develop` — gỡ `3e83bbf5` + cùng fix bóng.
+- **Commit**: `main` 459ffe7a — fix bóng + mục này, owner bảo push (2026-10-20; push `main` = deploy production, chưa chạy `/security-review`). `develop` 26dba5bc — gỡ `3e83bbf5` + cùng fix bóng; merge `main` vào `develop` ở 43ff101b (conflict log: giữ cả R-999 toolbar của develop lẫn R-999 bảng / R-1000 / R-1001 của main).
