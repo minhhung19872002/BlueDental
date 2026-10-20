@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Data;
+using BlueDental.TreatmentManagement;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
@@ -20,7 +21,8 @@ public class OrgChartScopeResolver(
     IRepository<OrgUnit, Guid> unitRepository,
     IRepository<OrgUnitMember, Guid> memberRepository,
     IIdentityUserRepository userRepository,
-    ICurrentUser currentUser) : ITransientDependency
+    ICurrentUser currentUser,
+    TreatmentCostAccess costAccess) : ITransientDependency
 {
     /// <returns><c>null</c> when nothing is hidden from the caller.</returns>
     public virtual Task<IReadOnlySet<Guid>?> VisibleScheduleStaffAsync() =>
@@ -32,15 +34,15 @@ public class OrgChartScopeResolver(
         ApplyAsync(OrgChartScope.VisibleAdvisors);
 
     /// <summary>
-    /// Whose slips the caller sees on the patient record's "Kế hoạch điều trị",
-    /// by Bác sĩ điều trị: everyone for an admin, nobody for any other non-dentist.
+    /// Which slips the caller sees on the patient record's "Kế hoạch điều trị"
+    /// and its slip pages — <see cref="OrgChartScope.VisibleSlips"/>.
     /// </summary>
     /// <returns><c>null</c> when nothing is hidden from the caller.</returns>
-    public virtual async Task<IReadOnlySet<Guid>?> VisibleTreatingDentistsAsync()
+    public virtual async Task<SlipScope?> VisibleSlipsAsync()
     {
         if (currentUser.Id is not { } viewerId)
         {
-            return new HashSet<Guid>();
+            return new SlipScope(new HashSet<Guid>(), ReceivedOnly: true);
         }
 
         if (currentUser.IsInRole(BlueDentalAbilitySeedContributor.AdminRoleName))
@@ -48,13 +50,14 @@ public class OrgChartScopeResolver(
             return null;
         }
 
-        if (!await IsDentistAsync(viewerId))
+        var seesCosts = await costAccess.SeesCostsAsync();
+        if (!seesCosts || !await IsDentistAsync(viewerId))
         {
-            return OrgChartScope.VisibleTreatingDentists(viewerId, viewerIsAdmin: false, viewerIsDentist: false, [], []);
+            return OrgChartScope.VisibleSlips(viewerId, viewerIsAdmin: false, seesCosts, viewerIsDentist: false, [], []);
         }
 
         var (units, members) = await LoadChartAsync();
-        return OrgChartScope.VisibleTreatingDentists(viewerId, viewerIsAdmin: false, viewerIsDentist: true, units, members);
+        return OrgChartScope.VisibleSlips(viewerId, viewerIsAdmin: false, seesCosts, viewerIsDentist: true, units, members);
     }
 
     /// <summary>Whether the caller is a dentist heading a unit — the root, a Phòng ban or a Team.</summary>

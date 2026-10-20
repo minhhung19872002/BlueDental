@@ -6,6 +6,7 @@ using BlueDental.Billing;
 using BlueDental.EInvoicing;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.Staff;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -33,6 +34,7 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     private readonly IPatientTreatmentAppService _treatments;
     private readonly IRepository<ElectronicInvoice, Guid> _electronicInvoices;
     private readonly IRepository<InvoiceRequest, Guid> _invoiceRequests;
+    private readonly OrgChartScopeResolver _slipScope;
 
     public PatientPaymentAppService(
         IRepository<PatientPayment, Guid> repository,
@@ -42,7 +44,8 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         PatientMoneyCalculator money,
         IPatientTreatmentAppService treatments,
         IRepository<ElectronicInvoice, Guid> electronicInvoices,
-        IRepository<InvoiceRequest, Guid> invoiceRequests)
+        IRepository<InvoiceRequest, Guid> invoiceRequests,
+        OrgChartScopeResolver slipScope)
     {
         _repository = repository;
         _planRepository = planRepository;
@@ -52,6 +55,7 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         _treatments = treatments;
         _electronicInvoices = electronicInvoices;
         _invoiceRequests = invoiceRequests;
+        _slipScope = slipScope;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -88,11 +92,29 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         var planQuery = await _planRepository.WithDetailsAsync(x => x.Services);
         var planEntities = planQuery.Where(x => x.PatientId == patientId).ToList();
 
+        // BA P2010: the money adds up the slips the caller sees on the Kế hoạch
+        // điều trị tab — without "Chi phí › Xem" the ones they received, with it
+        // their part of the org chart — and those slips' payments and refunds.
+        // A top-up belongs to no slip, so a narrowed Tạm ứng reads 0. The lists
+        // stay whole: they answer to the Thanh toán permission.
+        var summedPlans = planEntities;
+        var summedPayments = payments;
+        if (await _slipScope.VisibleSlipsAsync() is { } scope)
+        {
+            summedPlans = planEntities
+                .Where(x => scope.Covers(x.DentistId, x.Services.Select(s => s.DentistId)))
+                .ToList();
+            var summed = summedPlans.Select(x => x.Id).ToHashSet();
+            summedPayments = payments
+                .Where(x => x.TreatmentPlanId is { } planId && summed.Contains(planId))
+                .ToList();
+        }
+
         return new PatientAccountDto
         {
             PatientId = patientId,
             Payment = PatientTreatmentAppService.MapPayment(
-                _money.ForPatient(planEntities, payments)),
+                _money.ForPatient(summedPlans, summedPayments)),
             HeldForPatient = _money.HeldForPatient(payments),
             Plans = plans.Items.ToList(),
             Payments = await MapManyAsync(payments.OrderByDescending(x => x.PaidAt).ToList())

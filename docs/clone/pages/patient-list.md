@@ -289,3 +289,17 @@ form quét có xem trước. Bản gốc **không có** tính năng này — hà
 
 Giả định (chưa có xác nhận của chủ dự án): khi không xác định được dạng địa chỉ, toàn
 bộ chuỗi vào ô Số nhà/Đường và không ghi địa chỉ cũ.
+
+## Che cột tiền theo quyền "Chi phí" (2026-10-20, BA P2010, R-1003) — BlueDental riêng
+
+Bản gốc không có quyền này. Không có "Tài chính / Kế toán › Chi phí › Xem"
+(role `admin` luôn có):
+
+- 3 cột **Số tiền / Thực thu / Công nợ** hiện `*********` trên mọi dòng
+  (`.bd-patient-money--hidden`, màu `--bd-muted`).
+- Server gán 0 và trả `moneyHidden: true`, nên số thật không ra khỏi API.
+- File Excel (`GET /api/v1/app/patients/excel`) ghi `*********` ở 3 cột đó.
+
+Có quyền thì 3 cột giữ nguyên tổng toàn bộ của bệnh nhân, không thu hẹp theo
+sơ đồ tổ chức. Phạm vi phiếu / thẻ tiền trong hồ sơ: xem
+`docs/testing/features/treatment-cost.md`.

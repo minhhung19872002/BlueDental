@@ -205,6 +205,11 @@ export interface PatientListItem {
   totalAmount: number;
   totalRevenue: number;
   totalDebt: number;
+  /**
+   * The caller lacks "Tài chính / Kế toán › Chi phí › Xem" (BA P2010): the
+   * server sent the three money figures as 0 and the cells show a mask.
+   */
+  moneyHidden: boolean;
   nextAppointmentAt: string | null;
   lastVisitAt: string | null;
   creationTime: string;

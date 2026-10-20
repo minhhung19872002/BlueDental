@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { createSlipViaApi } from "./fixtures/ledgerReceipt";
+import { currentUserId } from "./fixtures/treatingSlip";
 
 /**
  * Feature: the Bệnh nhân record follows the ability leaves.
@@ -166,9 +167,11 @@ test.describe("Hồ sơ bệnh nhân — the tabs and their buttons follow the l
       await expect(dentist.getByRole("button", { name: "Xem tất cả dịch vụ" })).toBeVisible();
       await expect(dentist.getByRole("button", { name: "Tạo kế hoạch mới" })).toHaveCount(0);
 
-      // A slip of this patient, written by admin, to open as the dentist.
+      // A slip of this patient, written by admin, to open as the dentist. Its
+      // "Bác sĩ tiếp nhận" is the dentist: without "Chi phí › Xem" a user
+      // opens only the slips they received (BA P2010).
       const patientId = /\/patient\/([0-9a-f-]{36})/.exec(path)![1];
-      const slip = await createSlipViaApi(page, patientId);
+      const slip = await createSlipViaApi(page, patientId, [14], await currentUserId(dentist));
       const slipPath = `/patient/${patientId}/treatment-plan/${slip.id}`;
       const addExtra = dentist.locator(".pdt-toolbar").getByRole("button", { name: "Thêm dịch vụ phát sinh" });
       await dentist.goto(slipPath);

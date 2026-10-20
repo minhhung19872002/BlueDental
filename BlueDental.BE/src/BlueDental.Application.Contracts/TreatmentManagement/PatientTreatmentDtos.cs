@@ -379,10 +379,11 @@ public class GetTreatmentPlanSlipListInput : PagedAndSortedResultRequestDto
     public TreatmentPlanStatus? Status { get; set; }
 
     /// <summary>
-    /// The patient record's "Kế hoạch điều trị" tab: only the slips whose Bác sĩ
-    /// điều trị — the slip's, or one a line names — lies in the caller's part of
-    /// the Sơ đồ tổ chức (owner 2026-10-15), a head's own slips first. Payment,
-    /// labo and Hồ sơ leave it off.
+    /// The patient record's "Kế hoạch điều trị" tab: only the slips the caller
+    /// may see (BA P2010) — without "Chi phí › Xem" the ones they received;
+    /// with it, those whose dentist — the slip's, or one a line names — lies in
+    /// their part of the Sơ đồ tổ chức (R-961), a head's own slips first. Payment
+    /// and labo leave it off; Hồ sơ narrows its money cards on the account instead.
     /// </summary>
     public bool? TreatingScope { get; set; }
 }

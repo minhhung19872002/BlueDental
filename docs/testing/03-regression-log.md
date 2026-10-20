@@ -10245,3 +10245,42 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Bóng hộp thoại Ghi chú, đọc từ CSS đã build: `main` + fix `0 12px 32px #232a562e` (= rgba(35, 42, 86, 0.18)), bản v3 `#1c1a232e`.
     - Không đo được trong trình duyệt: host :5000 (session khác) chưa có key dịch `StaffNote:*` nên nút mở hiện nhãn thô `StaffNote:Open`. Không liên quan màu.
 - **Commit**: `main` 459ffe7a — fix bóng + mục này, owner bảo push (2026-10-20; push `main` = deploy production, chưa chạy `/security-review`). `develop` 26dba5bc — gỡ `3e83bbf5` + cùng fix bóng; merge `main` vào `develop` ở 43ff101b (conflict log: giữ cả R-999 toolbar của develop lẫn R-999 bảng / R-1000 / R-1001 của main).
+
+## R-1003 (2026-10-20, mức 3: quyền mới + phạm vi phiếu dùng chung + cột tiền /patient) F-75 "Tài chính / Kế toán › Chi phí › Xem" (BA P2010)
+
+- **Yêu cầu BA** (`P2010.drawio`):
+  - Phân quyền: thêm nhóm "Tài chính / Kế toán" ở cuối, sau "Hướng dẫn và hỗ trợ". Chuyển "Thanh toán" (6 quyền) từ "Khách hàng" vào đó, thêm "Chi phí › Xem".
+  - Có quyền: xem chi phí của các bác sĩ trong nhóm / phòng ban bên dưới. Không có quyền: chỉ xem chi phí của khách hàng mà mình là bác sĩ tiếp nhận (trưởng nhóm 15.000 = 10.000 + 5.000, thành viên 5.000).
+  - Áp cho 7 thẻ tiền ở tab Hồ sơ, cho tab Kế hoạch điều trị, và cho 3 cột Số tiền / Thực thu / Công nợ ở /patient (không có quyền thì che hết).
+- **BE**:
+  - Quyền `BlueDental.TreatmentCost.Read` (`BlueDentalAbilities` subject `TreatmentCost`). Seeder cấp cho role tĩnh. Cây quyền: group `finance-accounting` chứa `payment` (id lá giữ nguyên nên quyền đã cấp không mất) và `treatmentCost`.
+  - `TreatmentCostAccess.SeesCostsAsync` = role `admin` hoặc có lá.
+  - `OrgChartScope.VisibleSlips` + `SlipScope(Dentists, ReceivedOnly)` thay `VisibleTreatingDentists` (R-961):
+
+    | Người đăng nhập | Thấy |
+    |---|---|
+    | admin | mọi phiếu |
+    | không có quyền | chỉ phiếu có Bác sĩ tiếp nhận là mình, kể cả khi làm trưởng nhóm |
+    | có quyền, không phải bác sĩ | mọi phiếu (R-961: không phiếu nào) |
+    | có quyền, bác sĩ | `VisibleStaff`, khớp theo bác sĩ của phiếu hoặc của dòng |
+
+    Áp cho `GetListAsync` (`TreatingScope`) và `GetInTreatingScopeAsync` (link phiếu ngoài phạm vi → 403 `Treatment:0052`).
+  - `PatientPaymentAppService.GetAccountAsync`: `Payment` (7 thẻ) chỉ cộng phiếu trong phạm vi, cùng phiếu thu / hoàn của các phiếu đó. Tạm ứng = 0 khi bị thu hẹp. Danh sách `Plans` / `Payments` vẫn đầy đủ. Thẻ ở tab Thanh toán / Lịch sử dư nợ đọc cùng endpoint nên cũng bị thu hẹp theo.
+  - `PatientAppService.HideMoneyIfRequiredAsync`: list và Excel, không có quyền thì tiền = 0 + `MoneyHidden`, file ghi `*********`.
+  - Chuỗi vi/en: `BE:Perm:FinanceAccounting`, `BE:Perm:TreatmentCost`.
+- **FE**: `PatientListItem.moneyHidden`, `PatientTable` `Money` hiện `*********` (`.bd-patient-money--hidden`). Tab KHĐT và các thẻ không đổi code, server đã trả số đúng phạm vi.
+- **Test**:
+  - Domain: `BlueDentalAbilitiesTests`, `OrgChartTests` (bảng `VisibleSlips`), **55/55** (lọc).
+  - E2E thật (build production `vite preview` 127.0.0.1:8163 `--strictPort` → host 127.0.0.1:5057 build từ thư mục làm việc → PostgreSQL thật, không chặn request): `plan-treating-scope` viết lại, **11/11** (6 ca phạm vi kèm thẻ tiền + tải lại, admin, link bị chặn trên 3 planTab, /patient che tiền trên API + màn hình + Excel, Phân quyền qua API + UI, bút chì R-961).
+  - Hồi quy mức 3: `role-permissions-tree` 2/2, `payment-permission-buttons` 2/2, `patient-roster-api` 10/10.
+  - `patient-permission-gates`: đỏ, do đổi hành vi. Role `dentist` không có Chi phí nên không mở được phiếu admin tạo (bác sĩ tiếp nhận là nhân sự đầu tiên). Sửa phía spec: phiếu tạo với `dentistId` = chính bác sĩ đó (`currentUserId`) → **1/1**.
+  - Các spec mở phiếu bằng tài khoản bị hạn chế, chạy lần đầu 13/17 (4 đỏ):
+    - `treatment-plan-delete` (quyền deletePlan): trước chỉ gắn bác sĩ vào dòng (`treatLineBy`), nay không còn đủ. Sửa phía spec: phiếu tạo bằng `openSlipFor` với bác sĩ tiếp nhận = chính bác sĩ đó, bỏ `treatLineBy`.
+    - `treatment-leaf-permissions` (Công đoạn không có Xem): sửa tương tự, tạo phiếu sau khi bác sĩ đăng nhập bằng `createSlipViaApi(…, currentUserId(dentist))`.
+    - `plan-service-delete` (không có Xoá): nhân sự không phải bác sĩ, nên role test được cấp thêm `treatmentCost.read` (có quyền thì thấy mọi phiếu).
+    - `discount-limit` "the staff dialog sets and clears the limits": không do P2010. Sau `page.reload()` ô tìm kiếm Nhân sự bị xoá, nhân sự mới nằm ngoài trang 1 (DB local nhiều nhân sự test). Sửa phía spec: gõ lại tên sau khi tải lại.
+  - Chạy lại: `treatment-plan-delete` 3/3, `treatment-leaf-permissions` 2/2, `plan-service-delete` 4/4, `discount-limit` 3/3, `stage-remark` 2/2, `service-quick-create` 3/3, `patient-hide-phone` 4/4 (che số điện thoại + Excel /patients), `plan-treating-scope` 11/11.
+- **Còn treo**:
+  - Cột tiền ở CSKH, Hồ sơ nhóm và báo cáo chưa che (BA chỉ nêu /patient).
+  - Có hai mục "Chi phí" (Báo cáo › Quản lý thu chi và Tài chính / Kế toán).
+  - Staging / prod cần DbMigrator + xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Chi phí › Xem".

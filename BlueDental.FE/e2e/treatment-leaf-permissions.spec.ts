@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { BRANCH_IN_URL } from "./fixtures/branch";
-import { call, openNewSlip } from "./fixtures/ledgerReceipt";
+import { createSlipViaApi } from "./fixtures/ledgerReceipt";
 import {
   createDentist,
   deleteDentist,
@@ -9,6 +9,7 @@ import {
   resetDentistLeaves,
   setDentistLeaf,
 } from "./fixtures/restrictedDentist";
+import { currentUserId, firstPatientOf } from "./fixtures/treatingSlip";
 
 /**
  * Feature: Chẩn đoán & Tư vấn follows the Phân quyền tree leaf by leaf.
@@ -196,10 +197,6 @@ test.describe("Chẩn đoán & Tư vấn — Xoá follows its own leaf", () => {
     const leaves = [...base, "treatmentStage.read"];
 
     await login(page);
-    await openNewSlip(page);
-    const [, patientId, planId] =
-      /\/patient\/([0-9a-f-]{36})\/treatment-plan\/([0-9a-f-]{36})/.exec(page.url()) ?? [];
-    const code = String((await call(page, `/api/v1/app/patient-treatments/${planId}`)).body.code);
     await resetDentistLeaves(page, leaves);
     await createDentist(page, fullName, userName, password);
     for (const leaf of base) await setDentistLeaf(page, leaf, true);
@@ -207,6 +204,10 @@ test.describe("Chẩn đoán & Tư vấn — Xoá follows its own leaf", () => {
     const { context, page: dentist } = await openDentistSession(browser, userName, password);
     try {
       await dentist.setViewportSize({ width: 1600, height: 900 });
+      // Written by admin with the dentist as its Bác sĩ tiếp nhận: without
+      // "Chi phí › Xem" a user opens only the slips they received (BA P2010).
+      const patientId = await firstPatientOf(page, BRANCH);
+      const { id: planId, code } = await createSlipViaApi(page, patientId, [14], await currentUserId(dentist));
       const slipDetail = `/patient/${patientId}/treatment-plan/${planId}?branchId=${BRANCH}&planTab=detail`;
       // "Chi tiết phiếu" is laid under the slip's service table (R-957); the
       // plan list's "+" is gone into the slip link (R-956).

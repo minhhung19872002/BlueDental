@@ -682,9 +682,10 @@ export function useTreatmentPlans(patientId: string, clinicBranchId: string) {
 }
 
 /**
- * The slips the patient record's "Kế hoạch điều trị" tab lists: only those
- * whose Bác sĩ điều trị lies in the signed-in user's part of the Sơ đồ tổ chức
- * (owner 2026-10-15) — every slip for an admin, none for another non-dentist.
+ * The slips the patient record's "Kế hoạch điều trị" tab lists (R-961, BA
+ * P2010): without "Tài chính / Kế toán › Chi phí › Xem" only those the
+ * signed-in user received (Bác sĩ tiếp nhận); with it every slip, narrowed for
+ * a dentist to their part of the Sơ đồ tổ chức; every slip for an admin.
  * Payment, labo and Hồ sơ keep reading {@link useTreatmentPlans}.
  */
 export function useTreatingPlans(patientId: string, clinicBranchId: string) {

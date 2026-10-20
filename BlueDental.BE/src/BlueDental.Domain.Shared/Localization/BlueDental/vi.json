@@ -5498,6 +5498,8 @@
     "BE:Perm:Configuration": "Cấu Hình",
     "BE:Perm:VoiceCall": "Gọi thoại",
     "BE:Perm:HelpSupport": "Hướng dẫn và hỗ trợ",
+    "BE:Perm:FinanceAccounting": "Tài chính / Kế toán",
+    "BE:Perm:TreatmentCost": "Chi phí",
     "BE:Perm:WorkSchedule": "Lịch làm việc",
     "BE:Common:ExportExcel": "Xuất Excel",
     "BE:Common:ExportFile": "Xuất file",

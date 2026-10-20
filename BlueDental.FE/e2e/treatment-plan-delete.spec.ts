@@ -9,6 +9,7 @@ import {
   resetDentistLeaves,
   setDentistLeaf,
 } from "./fixtures/restrictedDentist";
+import { currentUserId, firstPatientOf, openSlipFor } from "./fixtures/treatingSlip";
 
 /**
  * Feature: "Xoá phiếu điều trị" — the red bin in the Thao tác column of
@@ -45,21 +46,6 @@ interface OpenedSlip {
   patientId: string;
   planId: string;
   code: string;
-}
-
-/**
- * Makes `dentistId` the Bác sĩ điều trị of the slip's one line, so a non-admin
- * dentist finds the slip on "Kế hoạch điều trị" (R-961). The rest of the line
- * goes back as it is.
- */
-async function treatLineBy(page: Page, slip: OpenedSlip, dentistId: string) {
-  const { body } = await call(page, `${PLANS_API}/${slip.planId}`);
-  const line = (body.services as Record<string, unknown>[])[0];
-  const res = await call(page, `${PLANS_API}/${slip.planId}/services/${String(line.id)}`, {
-    method: "PUT",
-    json: { ...line, dentistId },
-  });
-  expect(res.status, JSON.stringify(res.body.error)).toBe(200);
 }
 
 /** A fresh one-line slip on the first patient, read back off the URL and the API. */
@@ -192,9 +178,11 @@ test.describe("Kế hoạch điều trị — Xoá phiếu điều trị", () =>
       await dentist.goto("/patient");
       await expect(dentist).toHaveURL(BRANCH_IN_URL);
       const branchId = (await workingBranchId(dentist))!;
-      const slip = await openSlip(page);
-      const me = await call(dentist, "/api/abp/application-configuration");
-      await treatLineBy(page, slip, String((me.body.currentUser as { id: string }).id));
+      // The dentist is the slip's Bác sĩ tiếp nhận: without "Chi phí › Xem" a
+      // user finds only the slips they received (BA P2010).
+      const patientId = await firstPatientOf(page, branchId);
+      const opened = await openSlipFor(page, branchId, patientId, await currentUserId(dentist));
+      const slip: OpenedSlip = { patientId, planId: opened.id, code: opened.code };
       // The headers the app's axios client sends: the branch, and the
       // antiforgery token so the refusal is the permission, not the XSRF check.
       const xsrf = (await context.cookies()).find((c) => c.name === "XSRF-TOKEN")?.value ?? "";

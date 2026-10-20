@@ -71,6 +71,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var page = await ReadPageAsync(input, branchId, input.SkipCount, input.MaxResultCount);
+        await HideMoneyIfRequiredAsync(page.Items);
         return new PagedResultDto<PatientListItemDto>(page.TotalCount, page.Items);
     }
 
@@ -307,6 +308,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         var page = await ReadPageAsync(input, branchId, skipCount: 0, maxResultCount: ExportRowCap);
         // A file leaves the API without the response filter: mask it here (Cụm 11 mục 9).
         await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().MaskIfRequiredAsync(page);
+        await HideMoneyIfRequiredAsync(page.Items);
 
         // Same twelve columns, in the same order, as the reference's export.
         return ExcelSheet.Build(
@@ -322,12 +324,36 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 new(L["BE:Col:TreatmentStatus"], row => TreatmentStatusLabel(row.TreatmentStatus), 18),
                 new(L["BE:Common:Service"], row => string.Join(", ", row.ServiceNames), 28),
                 new(L["BE:Role:Dentist"], row => string.Join(", ", row.StaffNames), 28),
-                new(L["BE:Field:Amount"], row => row.TotalAmount, 20),
-                new(L["BE:Field:ActualReceived"], row => row.TotalRevenue, 18),
-                new(L["BE:Field:OutstandingBalance"], row => row.TotalDebt, 18),
+                new(L["BE:Field:Amount"], row => row.MoneyHidden ? MoneyMask : row.TotalAmount, 20),
+                new(L["BE:Field:ActualReceived"], row => row.MoneyHidden ? MoneyMask : row.TotalRevenue, 18),
+                new(L["BE:Field:OutstandingBalance"], row => row.MoneyHidden ? MoneyMask : row.TotalDebt, 18),
                 new(L["BE:CareType:LastVisit"], row => row.LastVisitAt?.DateTime, 20)
             },
             page.Items);
+    }
+
+    /// <summary>What a hidden money cell reads, on screen and in the file.</summary>
+    private const string MoneyMask = "*********";
+
+    /// <summary>
+    /// BA P2010: without "Chi phí › Xem" the list's Số tiền / Thực thu / Công nợ
+    /// are masked on every row. The figures are zeroed here, so they never
+    /// leave the API — neither in the response nor in the export.
+    /// </summary>
+    private async Task HideMoneyIfRequiredAsync(IEnumerable<PatientListItemDto> rows)
+    {
+        if (await LazyServiceProvider.LazyGetRequiredService<TreatmentCostAccess>().SeesCostsAsync())
+        {
+            return;
+        }
+
+        foreach (var row in rows)
+        {
+            row.TotalAmount = 0m;
+            row.TotalRevenue = 0m;
+            row.TotalDebt = 0m;
+            row.MoneyHidden = true;
+        }
     }
 
     // ── Reading one page ─────────────────────────────────────────────────────

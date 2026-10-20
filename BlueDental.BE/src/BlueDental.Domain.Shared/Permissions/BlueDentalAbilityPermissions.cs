@@ -982,6 +982,16 @@ public static class BlueDentalAbilityPermissions
         public const string Delete = "BlueDental.patientGroup.delete";
     }
 
+    /// <summary>
+    /// Subject <c>treatmentCost</c> — "Chi phí" under "Tài chính / Kế toán"
+    /// (BlueDental-local, BA P2010).
+    /// </summary>
+    public static class TreatmentCost
+    {
+        public const string Subject = "treatmentCost";
+        public const string Read = "BlueDental.treatmentCost.read";
+    }
+
     /// <summary>Subject <c>voucher</c>.</summary>
     public static class Voucher
     {
