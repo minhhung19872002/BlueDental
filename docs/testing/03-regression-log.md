@@ -10068,3 +10068,24 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `appointment-day-timeline.spec.ts:331` (hôm nay, bệnh nhân đã đến đang chờ): ca này phụ thuộc giờ chạy. Spec đặt lịch lúc bây giờ + 5', chạy lúc ~19:30 thì khối nằm ngoài khung giờ hiển thị mặc định 08:00–18:45 (R-977) nên không được vẽ. Ca này qua lúc chạy R-1000 (ban ngày). R-1001 không đụng view Ngày của `/calendar`.
   - `tsc -b` sạch.
 - **Commit**: chủ dự án đã xem, commit trên `main` và push (2026-10-20).
+
+## R-1002 (2026-10-20, mức 1: chỉ màu) Gỡ màu v3 grape (R-988, R-991) — FE quay về bảng màu v2 như `main`
+
+- **Yêu cầu owner**: "revert code thay đổi color … nói chung giờ làm giống main đi". Hỏi thêm: có commit nào sau commit màu lấy màu của `develop` không (thấy modal Chụp ảnh như màu mới), kiểm tra rồi commit ở `main`.
+- **`develop`**: gỡ commit `3e83bbf5` (R-988 + R-991).
+  - Revert thẳng bị xung đột ở 11 file, vì các commit từ `main` merge vào sửa sát dòng màu. Nên 74 file code được lấy nguyên từ `main` (`71557763`).
+  - Trước khi lấy đã so: mọi dòng khác nhau giữa `develop` và `main` trong các file đó đều đến từ `3e83bbf5` (0 dòng lạ), nên không mất thay đổi của ai.
+  - Code FE của `develop` trùng `main`. Mục log R-988 / R-991 giữ lại làm lịch sử, ghi đã gỡ ở R-1002.
+- **`main`**: quét toàn bộ `BlueDental.FE/src` và `e2e` tìm mã màu v3 (hex và `rgb()` của grape / neutral / success / warning / danger / info / orchid / aqua / lavender / gold, bóng `rgba(28, 26, 35, …)`) và token `--bd-*` chỉ v3 mới có (`--bd-primary-ink`, `--bd-aqua*`, `--bd-lavender*`, `--bd-gold-*`):
+  - Chỉ lọt một chỗ: bóng hộp thoại Ghi chú `staff-notes.css:19` `rgba(28, 26, 35, 0.18)` (R-990, viết lúc v3 còn nằm chưa commit trong thư mục làm việc chung) → `rgba(35, 42, 86, 0.18)` của v2, cùng độ mờ.
+  - Modal Chụp ảnh (R-989) chỉ dùng token (`--bd-ink`, `--bd-card`, `--bd-red`, `--bd-line`, `--bd-amber`, `--bd-muted`, `--bd-bg-soft`), không có mã v3. Trên `main` token vẫn là v2 (`--bd-primary` `#6366f1`) nên modal hiện màu v2; màu tím là của bản `develop` / staging đang chạy v3.
+  - Các biến `--bd-*` dùng mà chưa định nghĩa trên `main` (`--bd-danger`, `--bd-surface`, `--bd-text`…) có từ trước, đều có giá trị dự phòng, không liên quan v3.
+- **Test** (build production `vite preview` 127.0.0.1 `--strictPort`, host :5000 và PostgreSQL thật, không chặn request):
+  - `tsc -b && vite build` sạch trên cả hai cây: `main` + fix bóng, và `develop` sau khi gỡ.
+  - `develop` sau khi gỡ (cổng 8175), chạy các spec có kiểm màu: **35/36 xanh**. Đỏ duy nhất là labo-warranty:315 (DatePicker có mask), có từ trước, không kiểm màu.
+  - Đo modal Chụp ảnh trong trình duyệt (camera giả, chụp 1 ảnh):
+    - `main` + fix (8176): `:root` `--bd-primary=#6366f1 --bd-ink=#171c33 --bd-red=#e5484d --bd-line=#e7eaf6`; nút chính rgb(99, 102, 241), khung camera rgba(23, 28, 51, 0.88) → v2.
+    - Bản v3 cũ (8177) để đối chiếu: nút rgb(123, 46, 240), `.pi-cam-view` rgb(28, 26, 35) → đây là màu tím owner thấy.
+  - Bóng hộp thoại Ghi chú, đọc từ CSS đã build: `main` + fix `0 12px 32px #232a562e` (= rgba(35, 42, 86, 0.18)), bản v3 `#1c1a232e`.
+    - Không đo được trong trình duyệt: host :5000 (session khác) chưa có key dịch `StaffNote:*` nên nút mở hiện nhãn thô `StaffNote:Open`. Không liên quan màu.
+- **Commit**: `main` — fix bóng + mục này, chưa push (push `main` = deploy production, chờ owner). `develop` — gỡ `3e83bbf5` + cùng fix bóng.
