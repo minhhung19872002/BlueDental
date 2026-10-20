@@ -672,6 +672,14 @@
   color: var(--bd-body);
 }
 
+/* Ruled columns, like every other table in the app (R-997). */
+.bd-combo-table th:not(:last-child),
+.bd-combo-table td:not(:last-child),
+.bd-combo-detail-table th:not(:last-child),
+.bd-combo-detail-table td:not(:last-child) {
+  border-right: 1px solid var(--bd-line);
+}
+
 .bd-combo-table .bd-combo-col-money,
 .bd-combo-detail-table .bd-combo-col-money {
   text-align: right;

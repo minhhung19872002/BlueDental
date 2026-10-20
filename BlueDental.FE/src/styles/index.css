@@ -1909,6 +1909,16 @@ body::-webkit-scrollbar-track {
   border-bottom: none;
 }
 
+/* BA (R-997): every table rules its columns, the way the reports already did.
+   The line sits on a cell's end edge rather than the next cell's start, so it
+   survives a rowSpan cell taking the cells beneath it out of the DOM. In a
+   sticky-header table the header row ends in a scrollbar gutter, not a column;
+   the cell before it goes unruled like the body's last cell. */
+.ant-table-wrapper .ant-table-thead > tr > th:not(:last-child):not(:has(+ th.ant-table-cell-scrollbar)),
+.ant-table-wrapper .ant-table-tbody > tr > td:not(:last-child) {
+  border-inline-end: 1px solid var(--bd-line);
+}
+
 .ant-table-wrapper .ant-table-tbody > tr.row-deleted > td {
   opacity: 0.45;
 }

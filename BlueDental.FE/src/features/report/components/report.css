@@ -888,6 +888,12 @@
   border-bottom: 0;
 }
 
+/* Ruled columns, like every other table in the app (R-997). */
+.report-daily-table th:not(:last-child),
+.report-daily-table td:not(:last-child) {
+  border-right: 1px solid var(--bd-line);
+}
+
 .report-daily-table-amount {
   text-align: right !important;
   font-weight: 600;

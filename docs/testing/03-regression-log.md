@@ -9877,3 +9877,59 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Chạy lại đúng 33 ca đỏ trên bản build trước thay đổi (cổng riêng, cùng host): **32 ca đỏ y hệt** → có từ trước, không do R-994. Gồm `operations-reports` ×18 (lệch dữ liệu đã biết), `header-navigation:13/121/139`, `labo-warranty:315` (DatePicker có mask), `report:294` (tiêu đề cột xuất thanh toán), `labo-orders-actions:88` (spec còn chờ `?branchId=` trong khi URL đã là `?branch=BD-001` từ F-68), `export:62`, `labo:156`, `materials:303`, `operations:146/328`, `patient-permission-gates:119`, `role-permissions:53`, `role-permissions-abilities:38`.
     - Ca duy nhất đỏ riêng trên bản mới: `popup-placement.spec.ts:43` (chờ nút "Tạo đơn thuốc" trên bệnh nhân đầu danh sách, mà các spec chạy trước vừa tạo bệnh nhân mới). Chạy riêng cả spec `--repeat-each=2` trên bản mới **6/6** → phụ thuộc thứ tự dữ liệu, không do R-994.
 - **Commit**: chủ dự án commit `0ef82031` trên `main` và đã push (CD production chạy). Mục nhật ký này viết sau, chưa commit.
+
+## R-996 (2026-10-20, mức 1: bố cục, không đổi nghiệp vụ) Lịch hẹn — Thu khoảng trống quanh lịch
+
+- **Yêu cầu** (BA, ảnh `/calendar` có mũi tên đỏ ở khoảng trống phía trên khung lịch và mép trái): bớt khoảng trống. BA nói rõ thêm: "sát ra xíu chứ k sát border v luôn" → không dán sát mép.
+- **Nguyên nhân**: `.cal-page` có `padding: 12px` riêng, cộng thêm phần đệm của khung app (`main.app-content`: 18px trên, 22px hai bên, 40px dưới). Lịch nằm sâu hơn các màn khác 12px mỗi phía, đáy còn hụt 40px.
+- **Sửa FE** (`calendar.css`), chỉ áp từ 761px trở lên:
+  - `.cal-page { padding: 0 }`, nên lịch đứng đúng lề 18/22 như Tiếp nhận và các màn khác.
+  - `.app-content:has(> .cal-page) { padding-bottom: 18px }`, đáy cách mép bằng phía trên.
+  - Giữ nguyên bo góc 20px của dải tab và lưới lịch.
+  - Điện thoại (≤760px) và chế độ toàn màn hình không đổi.
+- **Đo** (1536×738, đăng nhập thật):
+
+  | Mốc | Trước | Sau |
+  |---|---|---|
+  | dải tab (x, y) | 34, 141 | 22, 129 (trùng Tiếp nhận) |
+  | lưới lịch (top → bottom) | 342 → 686 | 330 → 720 (cao +46, rộng +24) |
+  | 390px: dải tab y / padding khung | 77 / 14·12·32 | 77 / 14·12·32 (không đổi) |
+  | toàn màn hình | 0 → 738 | 0 → 738 |
+
+  Không có cuộn ngang. Tab Lịch làm việc hiển thị đúng.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request): `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours`: **20/21**.
+  - Ca đỏ duy nhất `appointment-slot-pick.spec.ts:141` là ca đã biết từ R-993: lịch hẹn DH260531 có sẵn trong DB local đè lên ô 10:15. Không do R-996.
+- **Commit**: chủ dự án commit `7e45a4ed` trên `main`, đã có trên `origin/main`. Mục nhật ký này viết sau, chưa commit.
+
+## R-997 (2026-10-20, mức 3: CSS bảng dùng chung, không đổi nghiệp vụ) Tất cả màn — Bảng có đường kẻ dọc
+
+- **Yêu cầu** (BA Huỳnh Văn Định, trên bảng `/patient`): "table cho đường kẻ dọc luôn nha". Hỏi lại "toàn bộ luôn hay chỉ ở màn này", BA trả lời "toàn bộ table".
+- **Cách làm**:
+  - Đường kẻ nằm ở mép cuối mỗi ô (`:not(:last-child)` + `border-inline-end` / `border-right`), không dùng `td + td`. Ô có rowSpan lấy các ô bên dưới ra khỏi DOM (bảng báo cáo), kẻ ở mép đầu sẽ mất đường.
+  - Bảng có header dính (`scroll.y`) kết thúc hàng tiêu đề bằng ô gutter `th.ant-table-cell-scrollbar`. Ô đứng trước gutter không kẻ (`:not(:has(+ th.ant-table-cell-scrollbar))`) để mép header trùng mép thân bảng.
+  - Ô cuối, hàng trống "Không có dữ liệu" và hàng mở rộng (một ô colSpan) không có đường.
+- **Sửa FE**:
+  - `src/styles/index.css`: quy tắc chung cho mọi bảng AntD, màu `--bd-line`.
+  - `patient-detail.css`: bỏ đường kẻ riêng của `.pd-treatment-table` vì quy tắc chung đã phủ.
+  - Bảng tự dựng hiển thị trên màn hình, mỗi bảng thêm cùng quy tắc trong CSS của feature:
+    - `.rs-slips` (Bộ hồ sơ bệnh án), `--bd-line`
+    - `.bd-combo-table`, `.bd-combo-detail-table` (Danh mục > Combo, chỉ thêm CSS), `--bd-line`
+    - `.am-table` (Chọn Dịch Vụ), `.tp-group-table` (Kế hoạch điều trị), `.pdt-refund-table` (phiếu điều trị), `--tp-line`
+    - `.report-daily-table` (Báo cáo), `--bd-line`
+  - `.wsb-table` (Lịch làm việc) và `.report-table-card` đã có sẵn đường kẻ, giữ nguyên.
+  - Không đổi các tờ in theo mẫu giấy: báo giá, phiếu chẩn đoán, phiếu điều trị, đơn thuốc, `pd-print-table`, `report-voucher-table` / `report-print-table`, bệnh án `bd-a4-table`.
+- **Đo** (dev server 1536×738, đăng nhập thật):
+  - `/patient`: 13 cột → 12 đường dọc 1px `#e7eaf6`, ô cuối không kẻ.
+  - Dialog nhóm có header dính (cuộn x + y): mép phải cột ở header và thân bảng trùng nhau, gồm 398 / 544 / 669 / 940 / 1066 / 1201 / 1337. Ô gutter không kẻ.
+  - `/taxonomy/service` và `/report` (bảng có rowSpan + bảng theo ngày): đường kẻ liền, không đứt ở ô gộp.
+  - Đường kẻ ở header nhạt (`#e7eaf6` trên nền `#f7f8fd`). Đây là chủ ý: `--bd-line` là token đường kẻ đậm nhất của hệ thống.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request):
+  - Bộ bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`): **89/93**, không có ca đỏ do R-997:
+    - `payment-qr.spec.ts:25`: chập chờn, chạy lại xanh.
+    - `taxonomy-dialogs.spec.ts:104`, `:256`: đỏ sẵn do dữ liệu local (không có nhà cung cấp labo, chi nhánh đầu theo tên không có nhóm dịch vụ).
+    - `taxonomy-groups.spec.ts:169`: chập chờn đã biết.
+  - Liên quan (`catalog-combo`, `consulting-delete-and-picker`, `consulting-review`, `medical-record-set`, `patient-groups`, `report`): **20/23**:
+    - `catalog-combo.spec.ts:109`: chập chờn, chạy lại xanh.
+    - `consulting-delete-and-picker.spec.ts:200`: đỏ y hệt trên bản build HEAD. Dịch vụ cuối danh mục là dữ liệu thừa "DUNG-TEST Dịch vụ xoá mềm …" của phiên khác. Dòng thiếu hẳn trong DOM, không phải lỗi hiển thị.
+    - `report.spec.ts:294`: đã biết (tiêu đề cột khi xuất Excel thanh toán).
+- **Commit**: chưa commit.

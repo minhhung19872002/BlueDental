@@ -344,6 +344,11 @@
 .am-table tbody tr:last-child td {
   border-bottom: 0;
 }
+/* Ruled columns, like every other table in the app (R-997). */
+.am-table th:not(:last-child),
+.am-table td:not(:last-child) {
+  border-right: 1px solid var(--tp-line);
+}
 .am-cell-check {
   text-align: center;
 }

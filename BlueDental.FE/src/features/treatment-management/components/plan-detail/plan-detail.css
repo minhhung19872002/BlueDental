@@ -528,6 +528,11 @@ a.pdt-crumb:hover {
   border-top: 1px solid var(--tp-line);
   vertical-align: middle;
 }
+/* Ruled columns, like every other table in the app (R-997). */
+.pdt-refund-table th:not(:last-child),
+.pdt-refund-table td:not(:last-child) {
+  border-right: 1px solid var(--tp-line);
+}
 .pdt-num,
 .pdt-refund-table th.pdt-num {
   text-align: right;
