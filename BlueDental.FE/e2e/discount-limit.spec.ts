@@ -293,7 +293,9 @@ test.describe("Quy định giảm giá", () => {
       const saved = (await call<Staff>(page, `/api/v1/app/staff/${fixture.staffId}`)).body;
       expect([saved.maxDiscountPercent, saved.maxDiscountAmount]).toEqual([15, 300000]);
 
+      // The search does not survive a reload, and the new staff may sit past page 1.
       await page.reload();
+      await page.getByPlaceholder("Tìm theo tên, email, số điện thoại...").fill(fixture.staffName);
       await row.getByRole("button").first().click();
       await expect(page.getByRole("dialog").getByLabel("Giảm tối đa (%)")).toHaveValue("15.00");
       await page.getByRole("dialog").getByLabel("Giảm tối đa (%)").fill("");

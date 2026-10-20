@@ -253,6 +253,11 @@
   font-weight: 600;
 }
 
+.bd-patient-money--hidden {
+  color: var(--bd-muted);
+  letter-spacing: 1px;
+}
+
 .bd-patient-status {
   display: inline-block;
   border-radius: var(--bd-radius-pill);

@@ -34,6 +34,16 @@ function statusLabel(status: TreatmentStatusCode): string {
   return t("Patient:Debt:NoTransactions");
 }
 
+/** What a money cell shows when the row's money is hidden (BA P2010). */
+const MONEY_MASK = "*********";
+
+/** A money cell; `tone` colours a non-zero amount (Thực thu green, Công nợ red). */
+function Money({ row, amount, tone }: { row: PatientListItem; amount: number; tone?: "in" | "due" }) {
+  if (row.moneyHidden) return <span className="bd-patient-money bd-patient-money--hidden">{MONEY_MASK}</span>;
+  const className = ["bd-patient-money", tone && amount > 0 && `bd-patient-money--${tone}`].filter(Boolean).join(" ");
+  return <span className={className}>{formatVND(amount)}</span>;
+}
+
 /** Every blank cell in the reference is an em dash in the muted text colour. */
 function Dash() {
   return <span className="bd-patient-dim">—</span>;
@@ -127,29 +137,21 @@ export function PatientTable({
       title: t("Patient:Payment:AmountField"),
       width: 112,
       align: "right",
-      render: (_, row) => <span className="bd-patient-money">{formatVND(row.totalAmount)}</span>,
+      render: (_, row) => <Money row={row} amount={row.totalAmount} />,
     },
     {
       key: "totalRevenue",
       title: t("Patient:Payment:ActualCollected"),
       width: 112,
       align: "right",
-      render: (_, row) => (
-        <span className={`bd-patient-money${row.totalRevenue > 0 ? " bd-patient-money--in" : ""}`}>
-          {formatVND(row.totalRevenue)}
-        </span>
-      ),
+      render: (_, row) => <Money row={row} amount={row.totalRevenue} tone="in" />,
     },
     {
       key: "totalDebt",
       title: t("Patient:Tab:Debt"),
       width: 112,
       align: "right",
-      render: (_, row) => (
-        <span className={`bd-patient-money${row.totalDebt > 0 ? " bd-patient-money--due" : ""}`}>
-          {formatVND(row.totalDebt)}
-        </span>
-      ),
+      render: (_, row) => <Money row={row} amount={row.totalDebt} tone="due" />,
     },
     {
       key: "nextAppointmentAt",

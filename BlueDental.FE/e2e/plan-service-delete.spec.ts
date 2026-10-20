@@ -228,10 +228,13 @@ async function setUpUpdateOnlyStaff(page: Page) {
     json: { name: roleName, isDefault: false, isPublic: true },
   });
   expect(role.status).toBe(200);
+  // Chi phí › Xem lets this non-dentist open a slip they did not receive
+  // (BA P2010); without it only their own slips open.
   const leaves = [
     "BlueDental.patient.read",
     "BlueDental.treatmentConsultation.read",
     "BlueDental.treatmentConsultation.update",
+    "BlueDental.treatmentCost.read",
   ];
   const grant = await call(page, `/api/permission-management/permissions?providerName=R&providerKey=${encodeURIComponent(roleName)}`, {
     method: "PUT",

@@ -8,6 +8,18 @@ namespace BlueDental.Staff;
 public sealed record OrgScopeUnit(Guid Id, Guid? ParentId, OrgUnitKind Kind, Guid? HeadStaffId);
 
 /// <summary>
+/// The slips <see cref="OrgChartScope.VisibleSlips"/> leaves visible: those whose
+/// dentist is in <paramref name="Dentists"/> and, unless <paramref name="ReceivedOnly"/>,
+/// those where one of the lines' dentists is.
+/// </summary>
+public sealed record SlipScope(IReadOnlySet<Guid> Dentists, bool ReceivedOnly)
+{
+    public bool Covers(Guid slipDentistId, IEnumerable<Guid?> lineDentistIds) =>
+        Dentists.Contains(slipDentistId)
+        || (!ReceivedOnly && lineDentistIds.Any(id => id is { } dentist && Dentists.Contains(dentist)));
+}
+
+/// <summary>
 /// Whose Lịch làm việc / Chấm công a user may see, from the org chart (BA
 /// 2026-10-10):
 /// <list type="bullet">
@@ -87,16 +99,24 @@ public static class OrgChartScope
     }
 
     /// <summary>
-    /// Whose slips a user sees on the patient record's "Kế hoạch điều trị" tab,
-    /// matched on the slip's "Bác sĩ điều trị" (owner 2026-10-15). Only an admin
-    /// sees every slip; anyone else must be a dentist first, and a dentist then
-    /// sees what <see cref="VisibleStaff"/> gives them — their own slips, plus
-    /// the whole subtree of a unit they head, plus everyone as head of the root.
+    /// Which slips a user sees on the patient record's "Kế hoạch điều trị" tab
+    /// and its slip pages (R-961, reshaped by BA P2010 "Tài chính / Kế toán ›
+    /// Chi phí › Xem"):
+    /// <list type="bullet">
+    /// <item>an admin → every slip;</item>
+    /// <item>without the permission → only the slips they received ("Bác sĩ
+    /// tiếp nhận" = them), whatever their place on the chart;</item>
+    /// <item>with it, not a dentist → every slip;</item>
+    /// <item>with it, a dentist → what <see cref="VisibleStaff"/> gives them —
+    /// their own, the whole subtree of a unit they head, everyone as head of the
+    /// root — matched on the slip's dentist or on any line's.</item>
+    /// </list>
     /// </summary>
-    /// <returns><c>null</c> when nothing is hidden; otherwise the dentists whose slips show (empty for a non-dentist).</returns>
-    public static IReadOnlySet<Guid>? VisibleTreatingDentists(
+    /// <returns><c>null</c> when nothing is hidden; otherwise the dentists whose slips show.</returns>
+    public static SlipScope? VisibleSlips(
         Guid viewerId,
         bool viewerIsAdmin,
+        bool viewerSeesCosts,
         bool viewerIsDentist,
         IReadOnlyCollection<OrgScopeUnit> units,
         IReadOnlyCollection<(Guid OrgUnitId, Guid StaffId)> members)
@@ -106,9 +126,14 @@ public static class OrgChartScope
             return null;
         }
 
-        return viewerIsDentist
-            ? VisibleStaff(viewerId, viewerIsDentist, units, members)
-            : new HashSet<Guid>();
+        if (!viewerSeesCosts)
+        {
+            return new SlipScope(new HashSet<Guid> { viewerId }, ReceivedOnly: true);
+        }
+
+        return VisibleStaff(viewerId, viewerIsDentist, units, members) is { } staff
+            ? new SlipScope(staff, ReceivedOnly: false)
+            : null;
     }
 
     /// <summary>The unit and every unit below it.</summary>

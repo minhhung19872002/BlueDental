@@ -98,11 +98,13 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         if (input.Status.HasValue)
             query = query.Where(x => x.Status == input.Status.Value);
         if (input.TreatingScope == true
-            && await _orgChartScope.VisibleTreatingDentistsAsync() is { } scope)
+            && await _orgChartScope.VisibleSlipsAsync() is { } scope)
         {
-            var dentists = scope.ToList();
-            query = query.Where(x => dentists.Contains(x.DentistId)
-                || x.Services.Any(s => s.DentistId != null && dentists.Contains(s.DentistId.Value)));
+            var dentists = scope.Dentists.ToList();
+            query = scope.ReceivedOnly
+                ? query.Where(x => dentists.Contains(x.DentistId))
+                : query.Where(x => dentists.Contains(x.DentistId)
+                    || x.Services.Any(s => s.DentistId != null && dentists.Contains(s.DentistId.Value)));
         }
 
         // A head's own slips ("Bác sĩ tiếp nhận" = them) lead the tab, newest
@@ -139,9 +141,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     public async Task<TreatmentPlanSlipDto> GetInTreatingScopeAsync(Guid id)
     {
         var plan = await LoadAsync(id);
-        if (await _orgChartScope.VisibleTreatingDentistsAsync() is { } dentists
-            && !dentists.Contains(plan.DentistId)
-            && !plan.Services.Any(s => s.DentistId is { } dentist && dentists.Contains(dentist)))
+        if (await _orgChartScope.VisibleSlipsAsync() is { } scope
+            && !scope.Covers(plan.DentistId, plan.Services.Select(s => s.DentistId)))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.PlanOutsideTreatingScope,

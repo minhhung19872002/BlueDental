@@ -123,6 +123,12 @@ public class PatientListItemDto
     /// <summary>Công nợ — what is still owed.</summary>
     public decimal TotalDebt { get; set; }
 
+    /// <summary>
+    /// Set when the caller lacks "Tài chính / Kế toán › Chi phí › Xem" (BA P2010):
+    /// the three money fields above then arrive as 0 and are shown masked.
+    /// </summary>
+    public bool MoneyHidden { get; set; }
+
     /// <summary>Lịch hẹn gần nhất — the next appointment still ahead.</summary>
     public DateTimeOffset? NextAppointmentAt { get; set; }
 

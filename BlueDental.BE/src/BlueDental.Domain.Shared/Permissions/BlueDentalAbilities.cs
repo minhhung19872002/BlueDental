@@ -131,6 +131,7 @@ public static class BlueDentalAbilities
         public const string Payroll = "payroll";
         public const string OrgChart = "orgChart";
         public const string PatientGroup = "patientGroup";
+        public const string TreatmentCost = "treatmentCost";
         public const string ToolCall = "toolCall";
         public const string ToolMessage = "toolMessage";
         public const string TreatmentConsultation = "treatmentConsultation";
@@ -244,6 +245,9 @@ public static class BlueDentalAbilities
         ["orgChart"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         // BlueDental-local: Hồ sơ nhóm (4.10) has no counterpart on the reference.
         ["patientGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
+        // BlueDental-local: "Chi phí" under "Tài chính / Kế toán" (BA P2010) — who
+        // sees the money of slips they did not receive.
+        ["treatmentCost"] = [Actions.Read],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         // BlueDental-local: DeletePlan — the reference cannot delete a phiếu điều trị;

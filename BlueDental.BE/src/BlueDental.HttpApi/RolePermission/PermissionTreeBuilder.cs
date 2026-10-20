@@ -11,14 +11,7 @@ internal static class PermissionTreeBuilder
             Leaf("patient.create", "BE:Common:Add"),
             Leaf("patient.update", "BE:Common:EditVerb"),
             Leaf("patient.hidePhone", "BE:Common:HidePhone"),
-            Leaf("patient.export", "BE:Perm:Export"),
-            Group("payment", "BE:Common:Payment",
-                Leaf("payment.read", "Xem"),
-                Leaf("payment.create", "BE:Common:Add"),
-                Leaf("payment.update", "BE:Common:EditVerb"),
-                Leaf("payment.delete", "BE:Common:Delete"),
-                Leaf("payment.export", "BE:Perm:Export"),
-                Leaf("payment.finalize", "BE:Perm:Finalize"))),
+            Leaf("patient.export", "BE:Perm:Export")),
 
         Group("treatment-group", "BE:Common:Treatment",
             Group("treatmentDiagnosis", "BE:Perm:DiagnosisRecord",
@@ -550,6 +543,19 @@ internal static class PermissionTreeBuilder
 
         Group("helpSupport", "BE:Perm:HelpSupport",
             Leaf("helpSupport.read", "Xem")),
+
+        // BA P2010: Thanh toán moved here from Khách hàng, beside the new Chi phí.
+        // Its leaves keep their names, so the grants already given still hold.
+        Group("finance-accounting", "BE:Perm:FinanceAccounting",
+            Group("payment", "BE:Common:Payment",
+                Leaf("payment.read", "Xem"),
+                Leaf("payment.create", "BE:Common:Add"),
+                Leaf("payment.update", "BE:Common:EditVerb"),
+                Leaf("payment.delete", "BE:Common:Delete"),
+                Leaf("payment.export", "BE:Perm:Export"),
+                Leaf("payment.finalize", "BE:Perm:Finalize")),
+            Group("treatmentCost", "BE:Perm:TreatmentCost",
+                Leaf("treatmentCost.read", "Xem"))),
     ];
 
     private static PermissionTreeNode Group(string id, string label, params PermissionTreeNode[] children) =>

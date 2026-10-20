@@ -240,41 +240,67 @@ public class OrgChartTests
         Assert.Equal(new HashSet<Guid> { chart.Unassigned }, AdvisorsFor(chart, chart.Unassigned));
     }
 
-    // ---- "Kế hoạch điều trị" slips by Bác sĩ điều trị ---------------------
+    // ---- "Kế hoạch điều trị" slips: R-961 + BA P2010 "Chi phí › Xem" -----
 
-    private static IReadOnlySet<Guid>? TreatingFor(Chart chart, Guid viewer, bool isAdmin = false, bool isDentist = true) =>
-        OrgChartScope.VisibleTreatingDentists(viewer, isAdmin, isDentist, chart.Units, chart.Members);
+    private static SlipScope? SlipsFor(
+        Chart chart, Guid viewer, bool isAdmin = false, bool seesCosts = true, bool isDentist = true) =>
+        OrgChartScope.VisibleSlips(viewer, isAdmin, seesCosts, isDentist, chart.Units, chart.Members);
 
     [Fact]
-    public void Treating_Only_An_Admin_Sees_Every_Slip()
+    public void Slips_An_Admin_Sees_Every_Slip_Without_The_Permission()
     {
         var chart = new Chart();
 
-        Assert.Null(TreatingFor(chart, chart.Unassigned, isAdmin: true, isDentist: false));
-        Assert.Null(TreatingFor(chart, chart.TeamDentist, isAdmin: true));
+        Assert.Null(SlipsFor(chart, chart.Unassigned, isAdmin: true, seesCosts: false, isDentist: false));
+        Assert.Null(SlipsFor(chart, chart.TeamDentist, isAdmin: true, seesCosts: false));
     }
 
     [Fact]
-    public void Treating_A_Non_Dentist_Sees_No_Slip_Even_As_A_Head()
+    public void Slips_Without_The_Permission_Only_The_Ones_Received_Even_As_A_Head()
     {
         var chart = new Chart();
 
-        Assert.Empty(TreatingFor(chart, chart.Unassigned, isDentist: false)!);
-        Assert.Empty(TreatingFor(chart, chart.TeamHead, isDentist: false)!);
-        Assert.Empty(TreatingFor(chart, chart.Director, isDentist: false)!);
+        foreach (var viewer in new[] { chart.Director, chart.DepartmentHead, chart.TeamHead, chart.TeamDentist })
+        {
+            var scope = SlipsFor(chart, viewer, seesCosts: false)!;
+            Assert.Equal(new HashSet<Guid> { viewer }, scope.Dentists);
+            Assert.True(scope.ReceivedOnly);
+        }
+
+        Assert.True(SlipsFor(chart, chart.Unassigned, seesCosts: false, isDentist: false)!.ReceivedOnly);
     }
 
     [Fact]
-    public void Treating_A_Dentist_Follows_The_Chart()
+    public void Slips_With_The_Permission_A_Non_Dentist_Sees_Every_Slip()
     {
         var chart = new Chart();
 
-        Assert.Null(TreatingFor(chart, chart.Director));
+        Assert.Null(SlipsFor(chart, chart.Unassigned, isDentist: false));
+        Assert.Null(SlipsFor(chart, chart.TeamHead, isDentist: false));
+    }
+
+    [Fact]
+    public void Slips_With_The_Permission_A_Dentist_Follows_The_Chart()
+    {
+        var chart = new Chart();
+
+        Assert.Null(SlipsFor(chart, chart.Director));
         Assert.Equal(
             new HashSet<Guid> { chart.DepartmentHead, chart.TeamHead, chart.TeamDentist },
-            TreatingFor(chart, chart.DepartmentHead));
-        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, TreatingFor(chart, chart.TeamHead));
-        Assert.Equal(new HashSet<Guid> { chart.TeamDentist }, TreatingFor(chart, chart.TeamDentist));
-        Assert.Equal(new HashSet<Guid> { chart.Unassigned }, TreatingFor(chart, chart.Unassigned));
+            SlipsFor(chart, chart.DepartmentHead)!.Dentists);
+        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, SlipsFor(chart, chart.TeamHead)!.Dentists);
+        Assert.Equal(new HashSet<Guid> { chart.TeamDentist }, SlipsFor(chart, chart.TeamDentist)!.Dentists);
+        Assert.False(SlipsFor(chart, chart.TeamHead)!.ReceivedOnly);
+    }
+
+    [Fact]
+    public void Slips_A_Line_Counts_Only_With_The_Permission()
+    {
+        var chart = new Chart();
+        var other = Guid.NewGuid();
+
+        Assert.True(SlipsFor(chart, chart.TeamDentist)!.Covers(other, [null, chart.TeamDentist]));
+        Assert.False(SlipsFor(chart, chart.TeamDentist, seesCosts: false)!.Covers(other, [chart.TeamDentist]));
+        Assert.True(SlipsFor(chart, chart.TeamDentist, seesCosts: false)!.Covers(chart.TeamDentist, []));
     }
 }

@@ -5498,6 +5498,8 @@
     "BE:Perm:Configuration": "Configuration",
     "BE:Perm:VoiceCall": "Voice call",
     "BE:Perm:HelpSupport": "Help & Support",
+    "BE:Perm:FinanceAccounting": "Finance / Accounting",
+    "BE:Perm:TreatmentCost": "Costs",
     "BE:Perm:WorkSchedule": "Work schedule",
     "BE:Common:ExportExcel": "Export to Excel",
     "BE:Common:ExportFile": "Export",
