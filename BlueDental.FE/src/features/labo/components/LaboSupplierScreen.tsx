@@ -121,25 +121,25 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
     {
       key: "phone",
       title: t("Common:PhoneNumber"),
-      width: 170,
+      width: 108,
       render: (_, row) => row.phone || <span className="bd-cat-num">—</span>,
     },
     {
       key: "email",
       title: t("Common:Email"),
-      width: 240,
+      width: 200,
       render: (_, row) => row.email || <span className="bd-cat-num">—</span>,
     },
     {
       key: "address",
       title: t("Common:Address"),
-      width: 320,
+      width: 240,
       render: (_, row) => addressOf(row) || <span className="bd-cat-num">—</span>,
     },
     {
       key: "updatedAt",
       title: t("Labo:Supplier:LastUpdated"),
-      width: 180,
+      width: 136,
       render: (_, row) => (
         <span className="bd-cat-num">
           {formatDate(row.lastModificationTime ?? row.creationTime)}
@@ -151,7 +151,7 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
           {
             key: "actions",
             title: t("Common:Actions"),
-            width: 100,
+            width: 84,
             align: "center" as const,
             fixed: "right" as const,
             render: (_: unknown, row: LaboSupplierDto) => (

@@ -37,13 +37,13 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
     {
       key: "orderCode",
       title: t("Patient:Labo:Code"),
-      width: 150,
+      width: 132,
       render: (_, row) => <span className="pd-labo-code">{row.orderCode}</span>,
     },
     {
       key: "supplier",
       title: t("Labo:Orders:SupplierCreatedAt"),
-      width: 200,
+      width: 180,
       render: (_, row) => (
         <div className="bd-labo-stack">
           <p className="bd-cat-name">{row.supplierName ?? row.labProviderName}</p>
@@ -67,7 +67,7 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
     {
       key: "treatmentPlan",
       title: t("Labo:Orders:TreatmentSlip"),
-      width: 130,
+      width: 104,
       render: (_, row) =>
         row.treatmentPlanId && row.treatmentPlanCode ? (
           <Link className="bd-labo-link" to={planHref(row)}>
@@ -80,37 +80,37 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
     {
       key: "sentAt",
       title: t("Patient:Labo:SentDateStatus"),
-      width: 175,
+      width: 192,
       render: (_, row) => <LaboDatePill date={row.sentAt} pill={LABO_KIND_CONFIG[row.kind]} />,
     },
     {
       key: "dueAt",
       title: t("Patient:Labo:DeliveryStatus"),
-      width: 175,
+      width: 204,
       render: (_, row) => <LaboDatePill date={row.dueAt} pill={LABO_STATUS_CONFIG[row.status]} />,
     },
     {
       key: "dentistName",
       title: t("Labo:Orders:DentistAssigned"),
-      width: 160,
+      width: 150,
       render: (_, row) => dash(row.dentistName),
     },
     {
       key: "materialName",
       title: t("Labo:Orders:Material"),
-      width: 160,
+      width: 150,
       render: (_, row) => dash(row.materialName),
     },
     {
       key: "toothNumbers",
       title: t("Labo:Orders:Teeth"),
-      width: 110,
+      width: 100,
       render: (_, row) => dash(row.toothNumbers),
     },
     {
       key: "attachment",
       title: t("Labo:Orders:ClinicFile"),
-      width: 150,
+      width: 168,
       align: "center",
       render: (_, row) => (
         <LaboImagesButton images={row.images} label={t("Labo:Orders:ViewClinicFile")} />
@@ -119,7 +119,7 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 140,
+      width: 112,
       align: "center",
       fixed: "right",
       render: (_, row) => (

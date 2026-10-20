@@ -30,7 +30,7 @@ export function RxDiagnosisTable({ rows, printedText, onRemove }: Props) {
     {
       key: "slip",
       title: t("Treatment:Rx:ColSlip"),
-      width: 110,
+      width: 100,
       render: (_, row) => <span className="rx-code-tag">{row.planCode}</span>,
     },
     {
@@ -41,7 +41,7 @@ export function RxDiagnosisTable({ rows, printedText, onRemove }: Props) {
     {
       key: "teeth",
       title: t("Treatment:Rx:ColTeeth"),
-      width: 160,
+      width: 140,
       render: (_, row) => (
         <span className="rx-teeth">
           {row.toothCodes.map((code) => (
@@ -55,13 +55,14 @@ export function RxDiagnosisTable({ rows, printedText, onRemove }: Props) {
     {
       key: "suggested",
       title: t("Treatment:Rx:ColSuggested"),
-      width: 220,
+      width: 200,
       render: () => <span className="rx-muted">{t("Treatment:Rx:NoProtocol")}</span>,
     },
     {
       key: "actions",
       title: "",
-      width: 170,
+      // "Thêm vào đơn" and the 24px ✕, the 6px inner padding and the 16px edge.
+      width: 164,
       align: "right",
       render: (_, row) => (
         <span className="rx-dx-actions">
@@ -86,7 +87,8 @@ export function RxDiagnosisTable({ rows, printedText, onRemove }: Props) {
         rowKey="key"
         pagination={false}
         size="small"
-        scroll={{ x: 720 }}
+        // The four sized columns (604) plus 140 for the diagnosis.
+        scroll={{ x: 744 }}
         locale={{ emptyText: t("Treatment:Rx:NoDiagnosisPicked") }}
       />
       <div className="rx-dx-foot">

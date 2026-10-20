@@ -25,7 +25,7 @@ export function memberColumns(kind: GroupKind): ColumnsType<PatientGroupMemberDt
       title: t("PatientGroup:Col:Member"),
       key: "member",
       fixed: "left",
-      width: 200,
+      width: 170,
       render: (_, m) => (
         <span className="pg-member">
           <Link to={`/patient/${m.patientId}`}>{m.fullName}</Link>
@@ -36,7 +36,7 @@ export function memberColumns(kind: GroupKind): ColumnsType<PatientGroupMemberDt
     {
       title: t("PatientGroup:Col:Role"),
       key: "role",
-      width: 140,
+      width: 128,
       render: (_, m) =>
         m.role === GROUP_ROLE.Head ? (
           <Tag color="gold">{t(kind === GROUP_KIND.Family ? "PatientGroup:Role:HeadFamily" : "PatientGroup:Role:HeadOther")}</Tag>
@@ -49,7 +49,7 @@ export function memberColumns(kind: GroupKind): ColumnsType<PatientGroupMemberDt
     {
       title: t("PatientGroup:Col:AgeGender"),
       key: "age",
-      width: 120,
+      width: 104,
       render: (_, m) => {
         const age = ageOf(m.dateOfBirth);
         return `${age !== null ? t("PatientRelation:Age", age) : "—"} · ${genderLabel(m.gender)}`;
@@ -58,7 +58,7 @@ export function memberColumns(kind: GroupKind): ColumnsType<PatientGroupMemberDt
     {
       title: t("PatientGroup:Col:History"),
       key: "history",
-      width: 260,
+      width: 240,
       render: (_, m) =>
         m.diseaseHistory.length === 0 ? (
           <span className="pg-muted">{t("PatientGroup:NoHistory")}</span>
@@ -81,13 +81,13 @@ export function memberColumns(kind: GroupKind): ColumnsType<PatientGroupMemberDt
     {
       title: t("PatientGroup:Col:NextAppointment"),
       dataIndex: "nextAppointmentAt",
-      width: 130,
+      width: 96,
       render: (v: string | null) => (v ? formatDate(v) : "—"),
     },
     {
       title: t("PatientGroup:Col:Debt"),
       dataIndex: "totalDebt",
-      width: 130,
+      width: 124,
       align: "right",
       render: (v: number) => (v > 0 ? <span className="pg-debt">{formatMoneyUnit(v)}</span> : formatMoneyUnit(0)),
     },

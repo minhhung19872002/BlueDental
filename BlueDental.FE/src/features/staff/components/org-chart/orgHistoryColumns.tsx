@@ -20,12 +20,13 @@ export function orgHistoryColumns(): ColumnsType<OrgUnitChangeLogDto> {
     {
       title: t("OrgChart:History:Time"),
       dataIndex: "occurredAt",
-      width: 150,
+      width: 128,
       render: (value: string) => <span className="org-nowrap">{dayjs(value).format("DD/MM/YYYY HH:mm")}</span>,
     },
     {
       title: t("OrgChart:History:Unit"),
       dataIndex: "orgUnitName",
+      width: 180,
       render: (_, row) => (
         <span className="org-history-unit">
           <span className={`org-dot org-dot--${ORG_KIND_CONFIG[row.orgUnitKind].modifier}`} />
@@ -36,7 +37,7 @@ export function orgHistoryColumns(): ColumnsType<OrgUnitChangeLogDto> {
     {
       title: t("OrgChart:History:Action"),
       dataIndex: "action",
-      width: 170,
+      width: 144,
       render: (action: OrgChartAction) => (
         <span className={`org-pill org-pill--${ORG_ACTION_CONFIG[action].modifier}`}>
           {t(ORG_ACTION_CONFIG[action].labelKey)}
@@ -46,12 +47,13 @@ export function orgHistoryColumns(): ColumnsType<OrgUnitChangeLogDto> {
     {
       title: t("OrgChart:History:Fields"),
       dataIndex: "changes",
+      width: 220,
       render: (_, row) => row.changes.map((c) => t(`OrgChart:Field:${c.field}`)).join(", ") || "—",
     },
     {
       title: t("OrgChart:History:Actor"),
       dataIndex: "actorName",
-      width: 200,
+      width: 184,
       render: (name: string | null) =>
         name ? (
           <span className="org-history-actor">

@@ -56,6 +56,9 @@ export function StaffPenaltyPage() {
           loading={isLoading}
           locale={{ emptyText: t("StaffPenalty:Empty") }}
           pagination={filters.pagination.buildConfig(data?.totalCount)}
+          // A number, not max-content, so Nội dung ellipsises instead of
+          // stretching the table to its longest description.
+          scroll={{ x: 1256 }}
         />
       </div>
 

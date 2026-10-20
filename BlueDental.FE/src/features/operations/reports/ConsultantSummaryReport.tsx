@@ -38,28 +38,28 @@ export function ConsultantSummaryReport() {
       {
         key: "newCount",
         title: t("Operations:NewCustomerConsult"),
-        width: 150,
+        width: 136,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.newPatientConsultations}</span>,
       },
       {
         key: "oldCount",
         title: t("Operations:ReturnCustomerConsult"),
-        width: 150,
+        width: 128,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.returningPatientConsultations}</span>,
       },
       {
         key: "newRevenue",
         title: t("Operations:NewCustomerRevenue"),
-        width: 190,
+        width: 164,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{formatMoney(row.newPatientRevenue)}</span>,
       },
       {
         key: "oldRevenue",
         title: t("Operations:ReturnCustomerRevenue"),
-        width: 190,
+        width: 152,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num">{formatMoney(row.returningPatientRevenue)}</span>
@@ -68,14 +68,14 @@ export function ConsultantSummaryReport() {
       {
         key: "totalCount",
         title: t("Operations:TotalConsults"),
-        width: 160,
+        width: 136,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.totalConsultations}</span>,
       },
       {
         key: "totalRevenue",
         title: t("Operations:ConsultRevenue"),
-        width: 190,
+        width: 168,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num bd-semibold">{formatMoney(row.totalRevenue)}</span>

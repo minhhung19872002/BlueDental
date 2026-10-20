@@ -19,25 +19,25 @@ export interface TicketColumnContext {
 const timeColumn = (title: string, dataIndex: keyof TicketDto) => ({
   title,
   dataIndex,
-  width: 170,
+  width: 128,
   render: (value?: string | null) => formatTicketTime(value) ?? <EmptyCell />,
 });
 
 export function ticketColumns(context: TicketColumnContext): ColumnsType<TicketDto> {
   return [
     { title: t("Ticket:Col:Code"), dataIndex: "code", width: 110, fixed: "left" },
-    { title: t("Ticket:Col:Customer"), key: "customer", width: 200, render: (_: unknown, row) => <CustomerCell ticket={row} /> },
+    { title: t("Ticket:Col:Customer"), key: "customer", width: 170, render: (_: unknown, row) => <CustomerCell ticket={row} /> },
     {
       title: t("Ticket:Col:Source"),
       key: "source",
-      width: 160,
+      width: 150,
       ellipsis: true,
       render: (_: unknown, row) => context.sourceName(row) ?? <EmptyCell />,
     },
     {
       title: t("Ticket:Col:Tags"),
       dataIndex: "tagIds",
-      width: 180,
+      width: 150,
       render: (tagIds: string[]) => <TicketTagChips tagIds={tagIds} tags={context.tags} />,
     },
     {
@@ -46,16 +46,16 @@ export function ticketColumns(context: TicketColumnContext): ColumnsType<TicketD
       width: 150,
       render: (name?: string | null) => name ?? <span className="bd-cat-num">{t("Ticket:Pool")}</span>,
     },
-    { title: t("Common:Status"), dataIndex: "status", width: 140, render: (_: unknown, row) => <TicketStatusBadge ticket={row} /> },
-    { title: t("Ticket:Col:Due"), dataIndex: "dueAt", width: 150, render: (_: unknown, row) => <DueCell ticket={row} /> },
-    { title: t("Ticket:Col:LastContact"), key: "lastContact", width: 230, render: (_: unknown, row) => <LastContactCell ticket={row} /> },
+    { title: t("Common:Status"), dataIndex: "status", width: 128, render: (_: unknown, row) => <TicketStatusBadge ticket={row} /> },
+    { title: t("Ticket:Col:Due"), dataIndex: "dueAt", width: 128, render: (_: unknown, row) => <DueCell ticket={row} /> },
+    { title: t("Ticket:Col:LastContact"), key: "lastContact", width: 224, render: (_: unknown, row) => <LastContactCell ticket={row} /> },
     timeColumn(t("Ticket:Col:NextCall"), "nextCallAt"),
     timeColumn(t("Ticket:Col:Appointment"), "appointmentStart"),
     timeColumn(t("Ticket:Col:Received"), "receivedAt"),
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 140,
+      width: 124,
       align: "center",
       fixed: "right",
       render: (_: unknown, row) => <TicketRowActions ticket={row} rights={context.rights} onAction={context.onAction} />,

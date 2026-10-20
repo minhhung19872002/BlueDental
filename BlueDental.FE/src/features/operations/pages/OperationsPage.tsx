@@ -254,7 +254,7 @@ export function OperationsPage() {
       {
         key: "creationTime",
         title: t("Operations:ColumnCreatedAt"),
-        width: 220,
+        width: 96,
         render: (_, article) => (
           <span className="bd-cat-num">{formatDate(article.creationTime)}</span>
         ),
@@ -262,7 +262,7 @@ export function OperationsPage() {
       {
         key: "lastModificationTime",
         title: t("Operations:ColumnUpdatedAt"),
-        width: 260,
+        width: 148,
         render: (_, article) => (
           <span className="bd-cat-num">
             {formatDateTime(article.lastModificationTime ?? article.creationTime)}
@@ -272,7 +272,7 @@ export function OperationsPage() {
       ...((ability.canUpdate || ability.canDelete) ? [{
         key: "actions" as const,
         title: t("Common:Actions"),
-        width: 110,
+        width: 84,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, article: OperationArticleDto) => (

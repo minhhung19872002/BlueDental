@@ -27,7 +27,7 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
     {
       title: t("Appointment:History:Table:Type"),
       dataIndex: "action",
-      width: 150,
+      width: 144,
       render: (_, entry) => <ActionBadge action={entry.action} />,
     },
     {
@@ -43,7 +43,7 @@ function buildColumns(expandedId: string | null, onToggle: (id: string) => void)
     {
       title: t("Common:Status"),
       key: "status",
-      width: 160,
+      width: 140,
       render: (_, entry) => <StatusText entry={entry} />,
     },
     {

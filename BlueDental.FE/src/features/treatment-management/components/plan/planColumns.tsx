@@ -49,23 +49,26 @@ function statusPill(plan: TreatmentPlanSlipDto) {
   return <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{pill.label}</span>;
 }
 
-/** The twelve configurable columns, by key; widths measured on the reference. */
+/**
+ * The twelve configurable columns, by key. Each is sized to what it holds —
+ * a DT code, a date, a pill, a money figure — not to its header, which may
+ * wrap (owner, 2026-10-20).
+ */
 function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Column> {
   const labels = planColumnLabels();
   return {
     code: {
       key: "code",
       title: labels.code,
-      width: 150,
+      width: 120,
       render: (_, plan) => <PlanCodeLink plan={plan} onOpen={actions.onOpenPlan} />,
     },
     services: {
       key: "services",
       title: "",
-      width: 48,
+      // One 16px eye.
+      width: 40,
       align: "center",
-      // Icon only: opt out of the 100px floor every other header carries.
-      className: "bd-col-icon",
       render: (_, plan) => (
         <ActionTooltip title={t("Treatment:Plan:ServiceList")}>
           <button
@@ -88,24 +91,24 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
     status: {
       key: "status",
       title: labels.status,
-      width: 160,
+      width: 120,
       render: (_, plan) => statusPill(plan),
     },
     createdAt: {
       key: "createdAt",
       title: labels.createdAt,
-      width: 120,
+      width: 96,
       render: (_, plan) => (
         <span className="tp-cell-small tp-cell-small--muted">{formatDate(plan.creationTime)}</span>
       ),
     },
-    total: money("total", 130),
-    discount: money("discount", 110),
-    amount: money("amount", 130),
-    paid: money("paid", 130),
-    refund: money("refund", 130),
-    remaining: money("remaining", 130),
-    receivable: money("receivable", 130),
+    total: money("total", 112),
+    discount: money("discount", 104),
+    amount: money("amount", 112),
+    paid: money("paid", 112),
+    refund: money("refund", 112),
+    remaining: money("remaining", 112),
+    receivable: money("receivable", 112),
   };
 }
 
@@ -120,8 +123,8 @@ export function buildPlanColumns(
     {
       key: "actions",
       title: t("Common:Actions"),
-      // 32px per icon plus the 4px gaps and the cell's padding.
-      width: actions.onDelete ? 136 : 100,
+      // 28px per icon plus the 4px gaps, the 6px inner padding and the 16px edge.
+      width: actions.onDelete ? 116 : 84,
       align: "center",
       fixed: "right",
       render: (_, plan) => (

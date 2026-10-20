@@ -50,14 +50,14 @@ export function AuditLogPage() {
       title: t("AuditLog:User"),
       dataIndex: "userName",
       key: "userName",
-      width: 140,
+      width: 130,
       render: (v: string) => v ?? "—",
     },
     {
       title: t("AuditLog:Method"),
       dataIndex: "httpMethod",
       key: "httpMethod",
-      width: 100,
+      width: 104,
       render: (v: string) => v ? <Tag color={HTTP_METHOD_COLORS[v] ?? "default"}>{v}</Tag> : "—",
     },
     {
@@ -73,28 +73,28 @@ export function AuditLogPage() {
       title: t("HTTP Status"),
       dataIndex: "httpStatusCode",
       key: "httpStatusCode",
-      width: 110,
+      width: 92,
       render: (v: number) => v ? <Tag color={statusColor(v)}>{v}</Tag> : "—",
     },
     {
       title: t("AuditLog:Duration"),
       dataIndex: "executionDuration",
       key: "executionDuration",
-      width: 130,
+      width: 116,
       render: (v: number) => `${v} ms`,
     },
     {
       title: "IP",
       dataIndex: "clientIpAddress",
       key: "clientIpAddress",
-      width: 130,
+      width: 120,
       render: (v: string) => v ?? "—",
     },
     {
       title: t("AuditLog:Error"),
       dataIndex: "exceptions",
       key: "exceptions",
-      width: 80,
+      width: 88,
       render: (v: string) => v ? <Tag color="red">{t("AuditLog:HasError")}</Tag> : <Tag color="green">OK</Tag>,
     },
   ];
@@ -144,7 +144,7 @@ export function AuditLogPage() {
           pagination={{ pageSize: 50, showTotal: (total) => t("AuditLog:RecordCount", total) }}
           locale={{ emptyText: t("AuditLog:NoData") }}
           size="small"
-          scroll={{ x: 1100 }}
+          scroll={{ x: 1070 }}
         />
       </div>
     </div>

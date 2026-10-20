@@ -61,10 +61,11 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
         title: t("Tools:NameLabel"),
         render: (_, config) => <span className="bd-cat-medium">{config.name}</span>,
       },
-      { key: "branch", title: t("Tools:BranchLabel"), dataIndex: "branchName" },
+      { key: "branch", title: t("Tools:BranchLabel"), dataIndex: "branchName", width: 200 },
       {
         key: "settingKind",
         title: t("Tools:SettingTypeLabel"),
+        width: 96,
         // UNKNOWN_REFERENCE_BEHAVIOR: the reference's table was empty, so what
         // this column holds could not be read.
         render: () => "—",
@@ -72,12 +73,13 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
       {
         key: "provider",
         title: t("Tools:ProviderLabel"),
+        width: 108,
         render: (_, config) => providerLabel(config.provider),
       },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 130,
+        width: 96,
         render: (_, config) => {
           const { label, color } = activeTag(config.isActive);
           return <Tag color={color}>{label}</Tag>;
@@ -86,7 +88,7 @@ export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigVi
       {
         key: "actions",
         title: t("Tools:ActionsLabel"),
-        width: 110,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, config) => (

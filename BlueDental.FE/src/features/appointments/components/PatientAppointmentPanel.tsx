@@ -31,14 +31,14 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
       title: t("Appointment:Panel:Time"),
       dataIndex: "startTime",
       key: "startTime",
-      width: 170,
+      width: 138,
       render: (value: string) => formatDateTime(value),
     },
     {
       title: t("Appointment:Form:Doctor"),
       dataIndex: "doctorName",
       key: "doctorName",
-      width: 160,
+      width: 150,
       render: (value: string) => value || "—",
     },
     {
@@ -51,7 +51,7 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
       title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
-      width: 140,
+      width: 104,
       render: (value: AppointmentStatus) => <StatusBadge status={value} />,
     },
     {

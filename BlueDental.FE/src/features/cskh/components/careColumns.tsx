@@ -42,15 +42,15 @@ interface SharedColumns {
   actions: CareColumn;
 }
 
-/** 28px round buttons with a 2px gap, inside the cell's 16px paddings. */
+/** 28px round buttons with a 2px gap, inside the last cell's 6px + 16px paddings. */
 export function actionsColumnWidth(buttonCount: number): number {
-  return 32 + buttonCount * 28 + (buttonCount - 1) * 2;
+  return 22 + buttonCount * 28 + (buttonCount - 1) * 2;
 }
 
 const careDateColumn = (): CareColumn => ({
   title: t("CSKH:Col:CareDate"),
   key: "careDate",
-  width: 130,
+  width: 116,
   render: (_, record) => (record.dueAt ? formatDate(record.dueAt) : "—"),
 });
 
@@ -58,7 +58,7 @@ const careDateColumn = (): CareColumn => ({
 const treatmentDateColumn = (): CareColumn => ({
   title: t("CSKH:Col:TreatmentDate"),
   key: "treatmentDate",
-  width: 130,
+  width: 104,
   render: (_, record) =>
     record.treatmentDate ? formatDate(dayjs(record.treatmentDate).toDate()) : "—",
 });
@@ -66,7 +66,7 @@ const treatmentDateColumn = (): CareColumn => ({
 const appointmentColumn = (): CareColumn => ({
   title: t("CSKH:Col:Appointment"),
   key: "appointment",
-  width: 150,
+  width: 128,
   render: (_, record) => (record.dueAt ? formatDateTime(record.dueAt) : "—"),
 });
 
@@ -74,14 +74,14 @@ const appointmentContentColumn = (): CareColumn => ({
   title: t("CSKH:Col:AppointmentContent"),
   dataIndex: "appointmentContent",
   key: "appointmentContent",
-  width: 200,
+  width: 180,
   render: formatDash,
 });
 
 const appointmentStatusColumn = (): CareColumn => ({
   title: t("CSKH:Col:AppointmentStatus"),
   key: "appointmentStatus",
-  width: 150,
+  width: 148,
   render: (_, record) =>
     record.appointmentStatus
       ? careAppointmentStatusLabels()[record.appointmentStatus]
@@ -91,7 +91,7 @@ const appointmentStatusColumn = (): CareColumn => ({
 const cancelledAtColumn = (): CareColumn => ({
   title: t("CSKH:Col:CancelledAt"),
   key: "cancelledAt",
-  width: 150,
+  width: 128,
   render: (_, record) =>
     record.appointmentCancelledAt ? formatDateTime(record.appointmentCancelledAt) : "—",
 });
@@ -100,7 +100,7 @@ const cancelReasonColumn = (): CareColumn => ({
   title: t("CSKH:Col:CancelReason"),
   dataIndex: "appointmentCancelNote",
   key: "cancelReason",
-  width: 200,
+  width: 180,
   render: formatDash,
 });
 
@@ -109,14 +109,14 @@ const rebookContentColumn = (): CareColumn => ({
   title: t("CSKH:Col:RebookContent"),
   dataIndex: "subject",
   key: "rebookContent",
-  width: 200,
+  width: 180,
   render: formatDash,
 });
 
 const careScheduleColumn = (): CareColumn => ({
   title: t("CSKH:Col:CareAppointment"),
   key: "careSchedule",
-  width: 150,
+  width: 136,
   render: (_, record) =>
     record.scheduledStart ? formatDateTime(record.scheduledStart) : "—",
 });
@@ -204,21 +204,21 @@ export function buildCareColumns(
       title: t("CSKH:Col:PhoneNumber"),
       dataIndex: "patientPhone",
       key: "phone",
-      width: 130,
+      width: 108,
       render: formatDash,
     },
     doctor: {
       title: t("CSKH:Col:DoctorTreat"),
       dataIndex: "assignedStaffName",
       key: "doctor",
-      width: 160,
+      width: 150,
       render: formatDash,
     },
     careStaff: {
       title: t("CSKH:Col:CareStaff"),
       dataIndex: "careStaffName",
       key: "careStaff",
-      width: 160,
+      width: 150,
       // Who set the task to Đã liên hệ, and when (bug list item 13).
       render: (name: string | null, record) => (
         <>
@@ -230,7 +230,7 @@ export function buildCareColumns(
     upcoming: {
       title: t("CSKH:Col:NextAppointment"),
       key: "upcoming",
-      width: 150,
+      width: 128,
       render: (_, record) =>
         record.nextAppointmentAt
           ? formatDateTime(record.nextAppointmentAt)
@@ -239,7 +239,7 @@ export function buildCareColumns(
     status: {
       title: t("CSKH:Col:Status"),
       key: "status",
-      width: 130,
+      width: 136,
       render: (_, record) =>
         tab.statusModel === "contact" ? (
           <CareContactStatusSelect

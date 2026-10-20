@@ -61,7 +61,7 @@ export function InvoiceRequestPanel({ patientId }: { patientId: string }) {
           loading={page.isLoading}
           columns={columns}
           dataSource={page.data?.items ?? []}
-          scroll={{ x: 1280 }}
+          scroll={{ x: 1314 }}
           locale={{ emptyText: t("Patient:InvoiceRequest:Empty") }}
           pagination={pagination.buildConfig(
             page.data?.totalCount ?? 0,

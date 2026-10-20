@@ -95,24 +95,27 @@ function BranchTable() {
   };
 
   const columns: ColumnsType<ClinicBranchDto> = [
-    { title: t("Organization:CodeCol"), dataIndex: "code", key: "code", width: 120 },
-    { title: t("Organization:BranchNameCol"), dataIndex: "name", key: "name" },
+    { title: t("Organization:CodeCol"), dataIndex: "code", key: "code", width: 100 },
+    { title: t("Organization:BranchNameCol"), dataIndex: "name", key: "name", width: 200 },
     {
       title: t("Organization:AddressCol"),
       dataIndex: "address",
       key: "address",
+      width: 260,
       render: (v?: string) => v ?? "—",
     },
     {
       title: t("Organization:PhoneCol"),
       dataIndex: "phoneNumber",
       key: "phoneNumber",
+      width: 108,
       render: (v?: string) => v ?? "—",
     },
     {
       title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
+      width: 128,
       render: (v: string) => (
         <Tag color={BRANCH_STATUS_COLOR[v] ?? "default"}>
           {BRANCH_STATUS_KEY[v] ? t(BRANCH_STATUS_KEY[v]) : v}
@@ -122,7 +125,7 @@ function BranchTable() {
     ...((canUpdate || canDelete) ? [{
       title: t("Common:Actions"),
       key: "actions" as const,
-      width: 120,
+      width: 84,
       fixed: "right" as const,
       render: (_: unknown, record: ClinicBranchDto) => (
         <Space>
@@ -255,17 +258,19 @@ function DepartmentTable() {
   };
 
   const columns: ColumnsType<DepartmentDto> = [
-    { title: t("Organization:DeptNameCol"), dataIndex: "name", key: "name" },
+    { title: t("Organization:DeptNameCol"), dataIndex: "name", key: "name", width: 200 },
     {
       title: t("Common:Description"),
       dataIndex: "description",
       key: "description",
+      width: 260,
       render: (v?: string) => v ?? "—",
     },
     {
       title: t("Common:Status"),
       dataIndex: "isActive",
       key: "isActive",
+      width: 128,
       render: (v: boolean) => (
         <Tag color={v ? "green" : "default"}>{v ? t("Organization:StatusActive") : t("Organization:StatusInactive")}</Tag>
       ),
@@ -273,7 +278,7 @@ function DepartmentTable() {
     ...((canUpdate || canDelete) ? [{
       title: t("Common:Actions"),
       key: "actions" as const,
-      width: 120,
+      width: 84,
       fixed: "right" as const,
       render: (_: unknown, record: DepartmentDto) => (
         <Space>

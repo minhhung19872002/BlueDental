@@ -50,7 +50,7 @@ export function buildAppointmentColumns({
     {
       title: t("Patient:Debt:DateTime"),
       dataIndex: "startTime",
-      width: 200,
+      width: 104,
       render: (value: string, row) => (
         <div className="pd-cell-stack">
           <b>{dayjs(value).format(t("Patient:Misc:DateFormat"))}</b>
@@ -60,21 +60,23 @@ export function buildAppointmentColumns({
         </div>
       ),
     },
-    { title: t("Patient:QuoteSheet:InChargeDoctor"), dataIndex: "doctorName", width: 220 },
+    { title: t("Patient:QuoteSheet:InChargeDoctor"), dataIndex: "doctorName", width: 160 },
     {
       title: t("Patient:Library:Content"),
       dataIndex: "reason",
+      width: 220,
       render: (value: string | null) => value ?? "—",
     },
     {
       title: t("Patient:Misc:Note"),
       dataIndex: "notes",
+      width: 200,
       render: (value: string | null) => value ?? "—",
     },
     {
       title: t("Patient:Misc:StatusLabel"),
       dataIndex: "status",
-      width: 150,
+      width: 96,
       render: (value: AppointmentStatus) => {
         const tone = statusTones()[value];
         return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
@@ -83,7 +85,7 @@ export function buildAppointmentColumns({
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 140,
+      width: 124,
       align: "center",
       fixed: "right",
       render: (_: unknown, row: Appointment) => (

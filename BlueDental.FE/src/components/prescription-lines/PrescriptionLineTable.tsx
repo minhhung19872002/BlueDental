@@ -131,7 +131,7 @@ export function PrescriptionLineTable({ lines, medicines, onPatch, onRemove }: P
       // Fixed: the columns keep their widths, so a long medicine name or usage
       // ellipsises instead of pushing the table past the dialog.
       tableLayout="fixed"
-      scroll={{ x: 960 }}
+      scroll={{ x: 948 }}
       className="bd-rx-table"
     />
   );

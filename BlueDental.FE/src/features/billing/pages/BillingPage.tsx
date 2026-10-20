@@ -130,7 +130,7 @@ export function BillingPage({ dialogs }: { dialogs: LedgerRowDialogs }) {
             rowKey="id"
             columns={columns}
             dataSource={data?.items ?? []}
-            scroll={{ x: 1560 }}
+            scroll={{ x: 1582 }}
             pagination={pagination.buildConfig(data?.totalCount)}
             locale={{
               emptyText: (

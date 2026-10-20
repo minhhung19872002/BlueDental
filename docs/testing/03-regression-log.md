@@ -254,6 +254,10 @@ màn hình Nhân sự vẫn làm.
 giá 207 (canh phải), cập nhật 277, thao tác 90. Cột của mình chỉnh theo đúng tỉ lệ
 đó — trước đó giá 160 và cập nhật 200 nên hai cột dính vào nhau.
 
+> **Đã thay bằng R-991 (owner, 2026-10-20).** Chủ dự án yêu cầu mọi bảng vừa
+> khít dữ liệu: tay kéo 40, nhóm phân loại 150, giá 128, cập nhật 128, thao tác
+> 76/100; cột tên vẫn là cột co giãn. Tỉ lệ của bản gốc không còn là chuẩn ở đây.
+
 ### Còn khác bản gốc, và vì sao giữ nguyên
 
 Tiêu đề cột của app **in hoa** (`.ant-table-thead th`), bản gốc thì không. Đây là
@@ -9971,3 +9975,36 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `labo-warranty.spec.ts:315`: `fillDueDate`, ô ngày có mask nhập.
   - Không có spec nào kiểm tra màu placeholder hoặc màu nhãn cũ. `labo-warranty.spec.ts:341` chỉ kiểm tra màu đỏ báo lỗi của nhãn trong dialog labo, rule đó không bị đổi.
 - **Commit**: chưa commit.
+
+## R-999 (2026-10-20, mức 3: CSS bảng dùng chung + cột của mọi bảng, không đổi nghiệp vụ) Mọi bảng vừa khít dữ liệu, dòng thấp hơn, tiêu đề cột một dòng
+
+- **Yêu cầu** (chủ dự án, kèm ảnh `/patient` và `/taxonomy/service`): "Cho độ rộng vừa dữ liệu thôi, vừa khung hình hạn chế scroll. Chỉnh height cho sát lại luôn. Áp dụng toàn bộ table." Cột tay kéo cũng phải hẹp. Sau đó thêm: "phải đảm bảo header của table không bị nhảy title xuống dòng."
+- **Nguyên nhân bảng rộng**:
+  - Rule chung `th { min-width: 100px }` đẩy mọi cột ngắn lên 100px. Ví dụ tay kéo Danh mục khai báo 48 nhưng hiện 100.
+  - Nhiều cột khai báo rộng hơn dữ liệu nhiều: ngày 130–150, SĐT 140, nhóm phân loại 300, cập nhật 280.
+  - `scroll.x` cứng (2800, 3600, 1900…) giữ bảng rộng dù cột đã hẹp.
+- **Sửa chung** (`styles/index.css`, `theme/index.ts`):
+  - Bỏ sàn 100px. Bỏ luôn các miễn trừ chỉ để chống sàn đó (`fix-end`, `bd-col-icon`).
+  - Đệm ô 13px → 8px, header 9px, mép ngoài 20px → 16px. Token `cellPaddingBlock` 8, `cellPaddingInline` 6.
+  - Tiêu đề cột `white-space: nowrap`. DataGrid (`.dg-head`, `.dg-row`) cùng nhịp, header không xuống dòng.
+- **Sửa từng bảng**: mọi bảng AntD ở mọi feature được ước lượng lại theo nội dung thật. Ví dụ ngày 96, ngày giờ 128 (148 ở bảng chữ 14px), SĐT 108, tiền 112, tag theo nhãn dài nhất, tay kéo 40. Mỗi bảng giữ một cột chữ co giãn. Mọi `scroll.x` số được tính lại bằng tổng cột mới.
+  - Feature CSS bỏ đệm/chiều cao dòng cũ: `patient.css`, `patient-care.css`, `patient-detail.css`, `record-set.css`, `report.css`, `treatment-plan.css`, `invoice-modal.css`, `plan-detail.css`, `appointment-history.css`, `timekeeping.css`.
+  - Danh mục chỉ đổi độ rộng: tay kéo 48→40, nhóm phân loại 300→150, giá 200→128, cập nhật 280→144, thao tác 100→84 (128→100 khi có nút sao chép combo). Thay cho mục "Tỉ lệ cột lấy theo bản gốc".
+- **Tiêu đề không xuống dòng**: script đọc 594 cột có `title` + `width` số, lấy chữ tiếng Việt từ `vi.json`, đo bằng font thật trong trình duyệt theo cả 4 kiểu header của app (11.5px in hoa, 14px, 13.5px, 12.5px), cộng đệm. 138 cột hẹp hơn tiêu đề được nới (chủ yếu "Thao tác" 76→84). Chạy lại: 0 cột hẹp hơn tiêu đề. Bảng tự dựng (`.rs-slips`, `.wsb-table th`, `.tp-group-table`, `.pdt-refund-table`) cũng nowrap. Cột thao tác Tiếp nhận 48→64.
+  - Hệ quả có chủ ý: cột có tiêu đề dài mà dữ liệu ngắn rộng theo tiêu đề, ví dụ "Phương thức thanh toán" 188.
+  - Tiếng Anh dài hơn ở vài nhãn; cột đó sẽ nở ra (bảng auto layout) chứ không xuống dòng.
+- **Đo** (build production, 1440×900, đăng nhập thật):
+
+  | Màn | Bảng rộng trước → sau | Dòng 1 hàng trước → sau |
+  |---|---|---|
+  | `/patient` | 2125 → ~1830 | 57 → 47 |
+  | `/taxonomy/service` | 1243 → 1034 | 67 → 57 (tên + mã 2 dòng) |
+  | `/materials` | 1928 → ~1520 | 57 → 47 |
+  | `/labo` | 1770 → ~1560 | 76 → 64 |
+  | `/marketing/tickets` | 1970 → ~1720 | — |
+
+  Dòng một hàng nay là 47px vì nút thao tác 30px làm sàn. Quét 25 màn: không còn tiêu đề nào xuống dòng hay tràn ô. Chữ thân bảng chỉ còn xuống dòng ở tên dài, đúng chủ ý.
+- **Bẫy**:
+  - Bảng có `scroll.x` số hoặc cột ghim dùng `table-layout: fixed`: cột hẹp hơn tiêu đề thì chữ tràn sang cột bên, không tự nở. Phải khai báo đủ rộng.
+  - Màn Vận hành và danh sách bệnh nhân dùng chữ 14px, ngày giờ cần 148.
+- **Test**: `tsc -b` sạch, Vitest xanh, `oxlint` không có cảnh báo mới. Không có spec nào cần đổi số kỳ vọng. E2E trên build production (bộ bảo vệ Danh mục + `treatment-plan`, `consulting-plan`, `operations-reports`, `materials`, `staff-notes`, `patient`) chạy sau khi rebase lên `origin/main`; kết quả ghi ở bản cập nhật kế tiếp.

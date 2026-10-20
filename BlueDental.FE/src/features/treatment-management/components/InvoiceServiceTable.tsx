@@ -34,7 +34,7 @@ export function InvoiceServiceTable({
     {
       title: <Checkbox checked={allSelected} onChange={(e) => onToggleAll(e.target.checked)} />,
       key: "select",
-      width: 48,
+      width: 44,
       align: "center",
       render: (_, row) => (
         <Checkbox
@@ -43,7 +43,7 @@ export function InvoiceServiceTable({
         />
       ),
     },
-    { title: t("STT"), dataIndex: "stt", key: "stt", width: 60, align: "center" },
+    { title: t("STT"), dataIndex: "stt", key: "stt", width: 48, align: "center" },
     {
       title: t("Treatment:Invoice:ItemName"),
       key: "serviceName",
@@ -61,12 +61,12 @@ export function InvoiceServiceTable({
         </div>
       ),
     },
-    { title: t("Treatment:Pricing:Unit"), dataIndex: "unit", key: "unit", width: 80 },
-    { title: t("Treatment:Pricing:Quantity"), dataIndex: "quantity", key: "quantity", width: 80, align: "center" },
+    { title: t("Treatment:Pricing:Unit"), dataIndex: "unit", key: "unit", width: 64 },
+    { title: t("Treatment:Pricing:Quantity"), dataIndex: "quantity", key: "quantity", width: 76, align: "center" },
     {
       title: t("Treatment:Pricing:UnitPrice"),
       key: "unitPrice",
-      width: 140,
+      width: 124,
       render: (_, row) => (
         <CurrencyInput
           className="inv-price-input"
@@ -79,7 +79,7 @@ export function InvoiceServiceTable({
       title: t("Treatment:Invoice:PriceBeforeTax"),
       dataIndex: "taxBasePrice",
       key: "taxBasePrice",
-      width: 120,
+      width: 104,
       align: "right",
       render: (value: number) => formatVND(value),
     },
@@ -87,7 +87,7 @@ export function InvoiceServiceTable({
       title: t("Treatment:Invoice:TaxRate"),
       dataIndex: "taxPercent",
       key: "taxPercent",
-      width: 80,
+      width: 64,
       align: "center",
     },
     {
@@ -102,7 +102,7 @@ export function InvoiceServiceTable({
       title: t("Treatment:Invoice:PriceAfterTax"),
       dataIndex: "totalAfterTax",
       key: "totalAfterTax",
-      width: 150,
+      width: 160,
       align: "right",
       render: (value: number) => formatVND(value),
     },

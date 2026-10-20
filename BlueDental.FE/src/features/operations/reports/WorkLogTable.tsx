@@ -45,7 +45,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       {
         key: "visit",
         title: t("Operations:DateCustomerCol"),
-        width: 260,
+        width: 232,
         onCell: (row) => ({ rowSpan: appointmentSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => (
           <div className="bd-ops-visit">
@@ -78,13 +78,13 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       {
         key: "staff",
         title: t("Operations:StaffWorkCol"),
-        width: 170,
+        width: 150,
         render: (_, row) => row.staffName || "",
       },
       {
         key: "action",
         title: t("Operations:ActionCol"),
-        width: 200,
+        width: 160,
         onCell: (row) => ({ rowSpan: actionSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => {
           const count = actionSpans[indexOf.get(row) ?? 0];
@@ -98,6 +98,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       {
         key: "subject",
         title: t("Operations:TreatmentServiceAppt"),
+        width: 220,
         render: (_, row) => (
           <span className="bd-ops-subject">
             <span>{row.subject || t("Operations:Empty")}</span>
@@ -119,7 +120,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
       {
         key: "amount",
         title: t("Operations:SalesCol"),
-        width: 150,
+        width: 128,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num">

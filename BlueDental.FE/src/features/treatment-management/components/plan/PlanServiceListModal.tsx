@@ -45,7 +45,7 @@ function buildColumns({
     {
       key: "service",
       title: t("Treatment:Service:Service"),
-      width: 190,
+      width: 220,
       render: (_, { plan, service }) => (
         <>
           <p className="tp-service-teeth">{formatTeeth(service.teeth) || "—"}</p>
@@ -67,7 +67,7 @@ function buildColumns({
     {
       key: "diagnosis",
       title: t("Treatment:Diagnosis:Diagnosis"),
-      width: 274,
+      width: 200,
       render: (_, { service }) =>
         service.diagnosisName ||
         (service.sourceAdviseId && diagnosisByAdviseId.get(service.sourceAdviseId)) ||
@@ -78,13 +78,13 @@ function buildColumns({
       // The line's own treating dentist, not the slip's — they differ once a
       // line is reassigned, and the reference prints the line's.
       title: t("Treatment:Common:Doctor"),
-      width: 190,
+      width: 160,
       render: (_, { plan, service }) => service.dentistName || plan.dentistName || "—",
     },
     {
       key: "status",
       title: t("Common:Status"),
-      width: 190,
+      width: 120,
       render: (_, { service }) => {
         const pills = servicePills();
         const pill = pills[service.status] ?? pills[1];
@@ -98,7 +98,7 @@ function buildColumns({
     {
       key: "price",
       title: t("Treatment:Pricing:UnitPrice"),
-      width: 168,
+      width: 112,
       align: "right",
       render: (_, { service }) => (
         <span className="tp-cell-money">
@@ -109,7 +109,7 @@ function buildColumns({
     {
       key: "amount",
       title: t("Treatment:Pricing:NetAmount"),
-      width: 179,
+      width: 120,
       align: "right",
       render: (_, { service }) => (
         <span className="tp-cell-money">{moneyText(service.effectiveAmount)}</span>

@@ -62,23 +62,23 @@ export function InvoiceConfigView({ canCreate, canUpdate, canDelete }: InvoiceCo
   const columns = useMemo<ColumnsType<EInvoiceConfigDto>>(
     () => [
       { key: "name", title: t("Tools:NameLabel"), dataIndex: "name" },
-      { key: "branch", title: t("Tools:BranchNameCol"), render: (_, config) => branchName(config.clinicBranchId) },
+      { key: "branch", title: t("Tools:BranchNameCol"), width: 200, render: (_, config) => branchName(config.clinicBranchId) },
       {
         key: "module",
         title: t("Tools:ModuleCol"),
-        width: 120,
+        width: 88,
         render: () => <Tag color="blue">{t("Tools:InvoiceTab")}</Tag>,
       },
       {
         key: "provider",
         title: t("Tools:ProviderLabel"),
-        width: 140,
+        width: 112,
         render: (_, config) => <Tag>{config.provider}</Tag>,
       },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 130,
+        width: 96,
         render: (_, config) => {
           const { label, color } = activeTag(config.isActive);
           return <Tag color={color}>{label}</Tag>;
@@ -87,7 +87,7 @@ export function InvoiceConfigView({ canCreate, canUpdate, canDelete }: InvoiceCo
       {
         key: "actions",
         title: t("Tools:ActionsLabel"),
-        width: 110,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, config) => (

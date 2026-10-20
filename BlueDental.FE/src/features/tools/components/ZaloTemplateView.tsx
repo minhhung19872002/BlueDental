@@ -68,20 +68,20 @@ export function ZaloTemplateView() {
 
   const columns = useMemo<ColumnsType<ZaloTemplateDto>>(
     () => [
-      // Widths follow the staging list: five columns, the name a little wider.
-      { key: "name", title: t("Tools:ZaloTemplateName"), dataIndex: "name", width: "27%" },
-      { key: "templateId", title: t("Tools:ZaloTemplateId"), dataIndex: "templateId", width: "20%" },
+      // Each column fits its value; the name takes whatever room is left.
+      { key: "name", title: t("Tools:ZaloTemplateName"), dataIndex: "name" },
+      { key: "templateId", title: t("Tools:ZaloTemplateId"), dataIndex: "templateId", width: 128 },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: "18%",
+        width: 136,
         render: (_, tpl) => {
           const { color, label } = templateStatusTag(tpl.status);
           return <Tag color={color}>{label}</Tag>;
         },
       },
-      { key: "quality", title: t("Tools:ZaloTemplateQuality"), width: "17%", render: (_, tpl) => templateQualityLabel(tpl.quality) },
-      { key: "created", title: t("Tools:CreatedAtLabel"), width: "18%", render: (_, tpl) => formatDate(tpl.createdAt) },
+      { key: "quality", title: t("Tools:ZaloTemplateQuality"), width: 96, render: (_, tpl) => templateQualityLabel(tpl.quality) },
+      { key: "created", title: t("Tools:CreatedAtLabel"), width: 106, render: (_, tpl) => formatDate(tpl.createdAt) },
     ],
     [],
   );

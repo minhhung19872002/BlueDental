@@ -37,12 +37,12 @@ export function MessageLogView({ channel }: { channel: number }) {
 
   const columns = useMemo<ColumnsType<MessageLogDto>>(
     () => [
-      { key: "phone", title: t("Tools:PhoneLabel"), dataIndex: "recipientPhone", width: 140 },
+      { key: "phone", title: t("Tools:PhoneLabel"), dataIndex: "recipientPhone", width: 116 },
       { key: "content", title: t("Tools:ContentLabel"), dataIndex: "content", ellipsis: true },
       {
         key: "target",
         title: t("Tools:TargetLabel"),
-        width: 140,
+        width: 160,
         // UNKNOWN_REFERENCE_BEHAVIOR: what "Mục tiêu" maps to could not be
         // determined — the list was empty. Renders the recipient name as the
         // closest guess.
@@ -51,7 +51,7 @@ export function MessageLogView({ channel }: { channel: number }) {
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 120,
+        width: 96,
         render: (_, log) => {
           const { label, color } = msgStatusTag(log.status);
           return <Tag color={color}>{label}</Tag>;
@@ -60,7 +60,7 @@ export function MessageLogView({ channel }: { channel: number }) {
       {
         key: "actions",
         title: t("Tools:ActionsLabel"),
-        width: 100,
+        width: 84,
         align: "center",
         fixed: "right",
         // UNKNOWN_REFERENCE_BEHAVIOR: row actions could not be observed.
@@ -108,6 +108,9 @@ export function MessageLogView({ channel }: { channel: number }) {
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
         locale={{ emptyText: t("Tools:NoMessages") }}
+        // A number, not max-content, so Nội dung ellipsises instead of
+        // stretching the table to its longest message.
+        scroll={{ x: 716 }}
       />
     </div>
   );

@@ -182,16 +182,13 @@
   background: transparent;
 }
 
-/* Geometry from the reference — a 40px strip, 16px gutters — but the app's own
-   header typography (11.5px small caps), which every other BlueDental table
-   wears. Matching the reference's 14px here would make this the one table that
-   looks different from the rest of the product. */
+/* The app's own header typography (11.5px small caps) and cell padding, which
+   every other BlueDental table wears: compact rows with 16px gutters at the
+   card's edges. A title may wrap rather than hold its column wider than the
+   data under it (owner, 2026-10-20). */
 .bd-patient-tablecard .ant-table-thead > tr > th {
-  height: 40px;
   border-bottom: 1px solid var(--bd-border);
   background: var(--bd-bg);
-  padding: 8px 16px;
-  white-space: nowrap;
 }
 
 .bd-patient-tablecard .ant-table-thead > tr > th::before {
@@ -199,9 +196,7 @@
 }
 
 .bd-patient-tablecard .ant-table-tbody > tr > td {
-  height: 56px;
   border-bottom: 1px solid var(--bd-border);
-  padding: 12px 16px;
   font-size: 14px;
   color: var(--bd-ink);
 }

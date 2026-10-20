@@ -9,7 +9,7 @@ export function countColumn<T extends object>(key: keyof T & string, title: stri
     dataIndex: key,
     title,
     align: "right",
-    width: 110,
+    width: 96,
     render: (value: number) => (
       <span className={value === 0 ? "report-count report-count--zero" : `report-count report-money--${tone ?? "ink"}`}>
         {formatStatValue(value, "count")}
@@ -23,7 +23,7 @@ export function rateColumn<T extends object>(title: string, rate: (row: T) => nu
   return {
     key: "rate",
     title,
-    width: 170,
+    width: 140,
     render: (_: unknown, row: T) => {
       const value = rate(row);
       return (

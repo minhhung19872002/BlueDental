@@ -55,20 +55,21 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
       {
         key: "sip",
         title: t("Tools:SipLabel"),
-        width: 120,
+        width: 80,
         render: (_, assignment) => <span className="bd-cat-medium">{assignment.sip}</span>,
       },
       { key: "configuration", title: t("Tools:ConfigLabel"), dataIndex: "configurationName" },
-      { key: "staff", title: t("Tools:StaffLabel"), dataIndex: "staffName" },
+      { key: "staff", title: t("Tools:StaffLabel"), dataIndex: "staffName", width: 160 },
       {
         key: "provider",
         title: t("Tools:ProviderLabel"),
+        width: 108,
         render: (_, assignment) => providerLabel(assignment.provider),
       },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 130,
+        width: 96,
         render: (_, assignment) => {
           const { label, color } = activeTag(assignment.isActive);
           return <Tag color={color}>{label}</Tag>;
@@ -77,7 +78,7 @@ export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignVi
       {
         key: "actions",
         title: t("Tools:ActionsLabel"),
-        width: 110,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, assignment) => (

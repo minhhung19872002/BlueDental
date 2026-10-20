@@ -18,13 +18,13 @@ import "../components/marketing.css";
 function deletedColumns(onRestore: (ticket: TicketDto) => void, restoring: boolean): ColumnsType<TicketDto> {
   return [
     { title: t("Ticket:Col:Code"), dataIndex: "code", key: "code", width: 110 },
-    { title: t("Ticket:Col:Customer"), key: "customer", width: 220, render: (_, ticket) => <CustomerCell ticket={ticket} /> },
-    { title: t("Common:Status"), key: "status", width: 150, render: (_, ticket) => <TicketStatusBadge ticket={ticket} /> },
-    { title: t("Ticket:Field:DeleteReason"), dataIndex: "deleteReason", key: "reason", width: 280 },
+    { title: t("Ticket:Col:Customer"), key: "customer", width: 170, render: (_, ticket) => <CustomerCell ticket={ticket} /> },
+    { title: t("Common:Status"), key: "status", width: 128, render: (_, ticket) => <TicketStatusBadge ticket={ticket} /> },
+    { title: t("Ticket:Field:DeleteReason"), dataIndex: "deleteReason", key: "reason", width: 240 },
     {
       title: t("Ticket:Col:DeletedAt"),
       key: "deletedAt",
-      width: 200,
+      width: 150,
       render: (_, ticket) => (
         <div className="mkt-cell">
           <p className="bd-cat-name">{formatTicketTime(ticket.deletionTime) ?? <EmptyCell />}</p>
@@ -35,7 +35,7 @@ function deletedColumns(onRestore: (ticket: TicketDto) => void, restoring: boole
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 100,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_, ticket) => (

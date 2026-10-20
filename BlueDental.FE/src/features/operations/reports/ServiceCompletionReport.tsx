@@ -248,7 +248,7 @@ export function ServiceCompletionReport() {
           dataSource={rows}
           rowKey="id"
           loading={query.isFetching}
-          scroll={{ x: 2800 }}
+          scroll={{ x: "max-content" }}
           pagination={pagination.buildConfig(
             query.data?.totalCount ?? 0,
             (total, rangeOf) =>

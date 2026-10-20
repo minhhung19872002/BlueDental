@@ -22,33 +22,33 @@ export function PatientReceiptTable({ patientId }: { patientId: string }) {
   const pagination = useTablePagination(20);
   const rows = query.data ?? [];
   const columns: TableColumnsType<InvoiceDto> = [
-    { title: t("Patient:Payment:InvoiceCode"), dataIndex: "invoiceNumber", width: 140 },
-    { title: t("Patient:Col:CreatedAt"), dataIndex: "issuedAt", width: 125, render: formatDate },
+    { title: t("Patient:Payment:InvoiceCode"), dataIndex: "invoiceNumber", width: 136 },
+    { title: t("Patient:Col:CreatedAt"), dataIndex: "issuedAt", width: 96, render: formatDate },
     {
       title: t("Patient:Payment:TotalAmount"),
       dataIndex: "totalAmount",
-      width: 135,
+      width: 112,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Patient:Payment:Paid"),
       dataIndex: "paidAmount",
-      width: 145,
+      width: 116,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Patient:Payment:Remaining"),
       dataIndex: "balanceDue",
-      width: 135,
+      width: 112,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Patient:Misc:StatusLabel"),
       dataIndex: "status",
-      width: 140,
+      width: 112,
       render: (value: InvoiceStatus) => {
         const config = invoiceStatusConfig()[value];
         return <span style={{ color: config.color, fontWeight: 600 }}>{config.label}</span>;

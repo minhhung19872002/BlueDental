@@ -38,14 +38,14 @@ export function CompensationPanel({ canEdit }: Props) {
 
   const columns: ColumnsType<StaffCompensation> = [
     { title: t("Payroll:Col:Staff"), dataIndex: "staffName" },
-    { title: t("Payroll:Col:BaseSalary"), dataIndex: "baseSalary", align: "right", render: (v: number) => formatVND(v) },
-    { title: t("Payroll:Col:Allowance"), dataIndex: "allowance", align: "right", render: (v: number) => formatVND(v) },
+    { title: t("Payroll:Col:BaseSalary"), dataIndex: "baseSalary", align: "right", width: 112, render: (v: number) => formatVND(v) },
+    { title: t("Payroll:Col:Allowance"), dataIndex: "allowance", align: "right", width: 112, render: (v: number) => formatVND(v) },
   ];
   if (canEdit) {
     columns.push({
       title: t("Payroll:Col:Actions"),
       key: "actions",
-      width: 90,
+      width: 76,
       render: (_, row) => (
         <Tooltip title={t("Payroll:EditCompensation")}>
           <Button type="text" icon={<EditOutlined />} aria-label={t("Payroll:EditCompensation")} onClick={() => setEditing(row)} />

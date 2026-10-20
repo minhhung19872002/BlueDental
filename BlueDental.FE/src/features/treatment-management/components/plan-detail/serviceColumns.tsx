@@ -163,19 +163,21 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
  */
 export function buildServiceColumns(actions: ServiceRowActions): TableColumnsType<PlanDetailRow> {
   return [
-    column("service", t("Treatment:Service:Service"), 260, (row) => <ServiceNameCell row={row} />),
-    column("dentist", t("Treatment:PlanDetail:Col:Dentist"), 180, dentistOf),
-    column("diagnosis", t("Treatment:PlanDetail:Col:Diagnosis"), 200, diagnosisOf),
+    column("service", t("Treatment:Service:Service"), 240, (row) => <ServiceNameCell row={row} />),
+    column("dentist", t("Treatment:PlanDetail:Col:Dentist"), 160, dentistOf),
+    column("diagnosis", t("Treatment:PlanDetail:Col:Diagnosis"), 180, diagnosisOf),
     // Tooth numbers only — staging prints no surfaces in this column.
-    column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 120, (row) => dash(formatToothCodes(row.service.teeth))),
-    column("status", t("Common:Status"), 170, (row) => <StatusCell row={row} />),
+    column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 100, (row) => dash(formatToothCodes(row.service.teeth))),
+    // The widest pill ("Đang điều trị") and "N lần" beside it.
+    column("status", t("Common:Status"), 156, (row) => <StatusCell row={row} />),
     // Đơn giá prints the giá gốc (staging 2026-09-28).
-    column("price", t("Treatment:Pricing:UnitPrice"), 150, (row) => moneyText(listUnitPrice(row.service)), { align: "right" }),
-    column("discount", t("Treatment:Pricing:Discount"), 140, (row) => <DiscountCell row={row} />, { align: "right" }),
-    column("amount", t("Treatment:Pricing:NetAmount"), 150, (row) => <strong>{moneyText(lineNetAmount(row.service))}</strong>, {
+    column("price", t("Treatment:Pricing:UnitPrice"), 112, (row) => moneyText(listUnitPrice(row.service)), { align: "right" }),
+    column("discount", t("Treatment:Pricing:Discount"), 104, (row) => <DiscountCell row={row} />, { align: "right" }),
+    column("amount", t("Treatment:Pricing:NetAmount"), 116, (row) => <strong>{moneyText(lineNetAmount(row.service))}</strong>, {
       align: "right",
     }),
-    column("actions", t("Common:Actions"), 150, (row) => <LineActions row={row} actions={actions} />, {
+    // Up to four 16px icons 16px apart, the 6px inner padding and the 16px edge.
+    column("actions", t("Common:Actions"), 136, (row) => <LineActions row={row} actions={actions} />, {
       align: "center",
       fixed: "right",
     }),

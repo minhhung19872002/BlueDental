@@ -122,7 +122,7 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
               <tr>
                 {query.isFetching ? (
                   <td colSpan={4} className="tp-group-empty tp-group-empty--loading">
-                    <SelectLoading rows={5} rowHeight={48} trailing />
+                    <SelectLoading rows={5} rowHeight={37} trailing />
                   </td>
                 ) : (
                   <td colSpan={4} className="tp-group-empty">

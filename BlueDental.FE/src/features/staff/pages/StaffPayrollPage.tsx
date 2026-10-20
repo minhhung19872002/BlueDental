@@ -80,7 +80,7 @@ export function StaffPayrollPage() {
                   rowKey="staffId"
                   loading={loading}
                   pagination={false}
-                  scroll={{ x: 1700 }}
+                  scroll={{ x: 1630 }}
                 />
               </>
             )}

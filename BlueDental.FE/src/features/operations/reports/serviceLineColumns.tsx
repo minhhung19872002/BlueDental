@@ -71,88 +71,88 @@ export function serviceCompletionColumns(spans?: ServiceLineSpans): ColumnsType<
     {
       key: "date",
       title: t("Operations:ExcelDateOp"),
-      width: 140,
+      width: 120,
       onCell: span("date"),
       render: (_, row) => <span className="bd-cat-num">{formatDate(row.occurredAt)}</span>,
     },
     {
       key: "patient",
       title: t("Operations:PatientCol"),
-      width: 240,
+      width: 220,
       onCell: span("patient"),
       render: (_, row) => patientCell(row),
     },
-    { key: "branch", title: t("Operations:BranchCol"), dataIndex: "branchName", width: 220 },
-    { key: "service", title: t("Operations:ServiceCol"), dataIndex: "serviceName", width: 190 },
-    { key: "group", title: t("Operations:ServiceGroupCol"), dataIndex: "serviceGroupName", width: 180 },
+    { key: "branch", title: t("Operations:BranchCol"), dataIndex: "branchName", width: 160 },
+    { key: "service", title: t("Operations:ServiceCol"), dataIndex: "serviceName", width: 200 },
+    { key: "group", title: t("Operations:ServiceGroupCol"), dataIndex: "serviceGroupName", width: 140 },
     {
       key: "classification",
       title: t("Operations:CategoryCol"),
-      width: 230,
+      width: 200,
       render: (_, row) => classificationCell(row),
     },
     {
       key: "dentist1",
       title: t("Operations:Diagnosis1"),
-      width: 180,
+      width: 150,
       render: (_, row) => dash(row.diagnosingDentistName),
     },
     {
       key: "diagnosis2",
       title: t("Operations:Diagnosis2"),
-      width: 160,
+      width: 150,
       render: (_, row) => dash(row.secondDiagnosisName),
     },
     {
       key: "consultant1",
       title: t("Operations:Consultant1"),
-      width: 180,
+      width: 150,
       render: (_, row) => dash(row.consultantName),
     },
     {
       key: "consultant2",
       title: t("Operations:Consultant2"),
-      width: 180,
+      width: 150,
       render: (_, row) => dash(row.secondConsultantName),
     },
     {
       key: "treating",
       title: t("Operations:DentistCol"),
-      width: 180,
+      width: 150,
       render: (_, row) => dash(row.treatingDentistName),
     },
-    { key: "teeth", title: t("Operations:TeethCol"), width: 110, render: (_, row) => dash(row.teeth) },
+    { key: "teeth", title: t("Operations:TeethCol"), width: 96, render: (_, row) => dash(row.teeth) },
     {
       key: "stage",
       title: t("Operations:SlipDetail"),
-      width: 170,
+      width: 140,
       render: (_, row) => dash(row.stageName),
     },
     {
       key: "price",
       title: t("Operations:PriceCol"),
-      width: 150,
+      width: 120,
       align: "right",
       render: (_, row) => <span className="bd-cat-num">{formatMoney(row.price)}</span>,
     },
     {
       key: "quantity",
       title: t("Operations:QtyCol"),
-      width: 110,
+      width: 76,
       align: "right",
       render: (_, row) => <span className="bd-cat-num">{row.quantity}</span>,
     },
     {
       key: "discount",
       title: t("Operations:DiscountCol"),
-      width: 150,
+      width: 120,
       align: "right",
       render: (_, row) => <span className="bd-cat-num">{formatMoney(row.discountAmount)}</span>,
     },
     {
       key: "doctorAmount",
       title: t("Operations:DoctorAmountCol"),
-      width: 180,
+      width: 132,
       align: "right",
       render: (_, row) => (
         <span className="bd-cat-num bd-semibold">{formatMoney(row.doctorAmount)}</span>
@@ -161,14 +161,14 @@ export function serviceCompletionColumns(spans?: ServiceLineSpans): ColumnsType<
     {
       key: "note",
       title: t("Operations:NoteCol"),
-      width: 220,
+      width: 180,
       render: (_, row) => dash(row.serviceNote),
     },
-    { key: "taxKind", title: t("Operations:TaxKind"), width: 140, render: (_, row) => dash(row.taxKind) },
+    { key: "taxKind", title: t("Operations:TaxKind"), width: 88, render: (_, row) => dash(row.taxKind) },
     {
       key: "taxPercent",
       title: t("Operations:TaxPercent"),
-      width: 110,
+      width: 80,
       align: "right",
       render: (_, row) => dash(row.taxPercent),
     },
@@ -186,7 +186,7 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
   columns.splice(at("branch"), 0, {
     key: "occupation",
     title: t("Operations:Occupation"),
-    width: 160,
+    width: 130,
     render: (_, row: ServiceLineRow) => dash(row.occupation),
   });
 
@@ -194,7 +194,7 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
   columns.splice(columns.findIndex((c) => c.key === "group"), 0, {
     key: "detail",
     title: t("Operations:DetailName"),
-    width: 160,
+    width: 150,
     render: (_, row: ServiceLineRow) => dash(row.detailName),
   });
 
@@ -206,13 +206,13 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
     {
       key: "sync",
       title: t("Operations:SyncStatus"),
-      width: 180,
+      width: 148,
       render: (_, row: ServiceLineRow) => dash(row.syncStatus),
     },
     {
       key: "invoice",
       title: t("Operations:InvoiceExportStatus"),
-      width: 210,
+      width: 184,
       render: (_, row: ServiceLineRow) => dash(row.invoiceStatus),
     },
   );
@@ -225,7 +225,7 @@ export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<Servic
     {
       key: "supporting",
       title: t("Operations:SupportDentist"),
-      width: 170,
+      width: 150,
       render: (_, row: ServiceLineRow) => dash(row.supportingDentistName),
     },
     {

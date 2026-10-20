@@ -23,10 +23,10 @@ const ACTION_TAG: Record<ImportRowAction, { color: string; key: string }> = {
   [IMPORT_ROW_ACTION.Update]: { color: "orange", key: "Taxonomy:Import:Action:Update" },
 };
 
-const ROW_WIDTH = 64;
+const ROW_WIDTH = 56;
 const VALUE_WIDTH = 160;
-const RESULT_WIDTH = 130;
-const ERROR_WIDTH = 280;
+const RESULT_WIDTH = 184;
+const ERROR_WIDTH = 240;
 const TABLE_HEIGHT = 320;
 
 export function importSummary(result: CatalogImportResultDto): string {

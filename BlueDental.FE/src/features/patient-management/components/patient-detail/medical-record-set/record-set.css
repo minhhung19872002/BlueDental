@@ -295,6 +295,7 @@
   font-weight: 600;
   text-align: left;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .rs-slips td {
   border-top: 1px solid var(--bd-line-soft);
@@ -393,11 +394,11 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 10px 14px;
+  padding: 9px 12px;
   font-size: 12px;
 }
 .rs-dialog .rs-slips td {
-  padding: 12px 14px;
+  padding: 8px 12px;
 }
 .rs-dialog .rs-slip-code {
   font-size: 13px;

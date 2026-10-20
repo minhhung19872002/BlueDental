@@ -149,12 +149,12 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
 
   const columns = useMemo<ColumnsType<MessageTemplateDto>>(
     () => [
-      { key: "name", title: t("Tools:NameLabel"), dataIndex: "name" },
+      { key: "name", title: t("Tools:NameLabel"), dataIndex: "name", width: 200 },
       { key: "content", title: t("Tools:ContentLabel"), dataIndex: "content", ellipsis: true },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 130,
+        width: 96,
         render: (_, tpl) => {
           const { label, color } = activeTag(tpl.isActive);
           return <Tag color={color}>{label}</Tag>;
@@ -163,7 +163,7 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
       {
         key: "actions",
         title: t("Tools:ActionsLabel"),
-        width: 110,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, tpl) => (
@@ -232,6 +232,9 @@ export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
         locale={{ emptyText: t("Tools:NoTemplates") }}
+        // A number, not max-content, so Nội dung ellipsises instead of
+        // stretching the table to its longest template.
+        scroll={{ x: 640 }}
       />
 
       <MessageTemplateDialog

@@ -84,7 +84,7 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
     {
       key: "updatedAt",
       title: t("Common:LastUpdated"),
-      width: 280,
+      width: 144,
       render: (_, row) => (
         <span className="bd-cat-num">
           {formatDateTime(row.lastModificationTime ?? row.creationTime)}
@@ -96,7 +96,7 @@ export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: Labo
           {
             key: "actions",
             title: t("Common:Actions"),
-            width: 100,
+            width: 84,
             align: "center" as const,
             fixed: "right" as const,
             render: (_: unknown, row: LaboCatalogItem) => (

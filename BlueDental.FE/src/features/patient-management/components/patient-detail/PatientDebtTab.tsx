@@ -23,20 +23,20 @@ function buildColumns(): TableColumnsType<DebtHistoryEntryDto> {
     {
       key: "date",
       title: t("Patient:Payment:TransactionDate"),
-      width: 160,
+      width: 136,
       render: (_, entry) => formatDateTime(entry.date),
     },
-    { key: "type", title: t("Patient:Plan:Type"), width: 160, render: (_, entry) => labels[entry.type] },
+    { key: "type", title: t("Patient:Plan:Type"), width: 136, render: (_, entry) => labels[entry.type] },
     {
       key: "amount",
       title: t("Patient:Payment:AmountField"),
-      width: 140,
+      width: 120,
       render: (_, entry) => <DebtAmount entry={entry} />,
     },
     {
       key: "staff",
       title: t("Patient:Col:Staff"),
-      width: 140,
+      width: 150,
       render: (_, entry) => dashOrValue(entry.staffName),
     },
     {

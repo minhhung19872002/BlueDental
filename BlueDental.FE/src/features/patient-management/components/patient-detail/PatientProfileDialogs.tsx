@@ -210,41 +210,41 @@ export function PatientPaymentDialog({
   onClose: () => void;
 }) {
   const columns: TableColumnsType<PatientPaymentDto> = [
-    { title: t("Patient:Payment:Code"), dataIndex: "code", width: 150 },
-    { title: t("Patient:Col:CreatedAt"), dataIndex: "paidAt", width: 145, render: formatDateTime },
+    { title: t("Patient:Payment:Code"), dataIndex: "code", width: 192 },
+    { title: t("Patient:Col:CreatedAt"), dataIndex: "paidAt", width: 128, render: formatDateTime },
     {
       title: t("Patient:Plan:Service"),
       dataIndex: "treatmentPlanCode",
-      width: 200,
+      width: 140,
       render: (value: string | null) => value ?? "—",
     },
     {
       title: t("Patient:Payment:SlipTotal"),
       dataIndex: "amount",
-      width: 150,
+      width: 132,
       align: "right",
       render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Patient:Payment:PaymentLabel"),
       dataIndex: "kind",
-      width: 130,
+      width: 96,
       render: (value: PatientPaymentDto["kind"]) => paymentKindConfig()[value].label,
     },
     {
       title: t("Patient:Payment:Method"),
       dataIndex: "method",
-      width: 215,
+      width: 188,
       render: (value: PatientPaymentDto["method"]) => paymentMethodLabels()[value],
     },
-    { title: t("Patient:Debt:Note"), dataIndex: "note", width: 180, render: (v: string | null) => v ?? "—" },
-    { title: t("Common:Actions"), width: 90, fixed: "right", render: () => "—" },
+    { title: t("Patient:Debt:Note"), dataIndex: "note", width: 200, render: (v: string | null) => v ?? "—" },
+    { title: t("Common:Actions"), width: 88, fixed: "right", render: () => "—" },
   ];
   return (
     <Modal
       open={open}
       title={t("Patient:Payment:PaymentLabel")}
-      // The eight columns need 1260px between them. At 1024 the pinned Thao tác
+      // The eight columns need about 1170px between them. At 1024 the pinned Thao tác
       // column sat on top of "Phương thức thanh toán" and clipped its title.
       width="min(1320px, calc(100vw - 48px))"
       onCancel={onClose}

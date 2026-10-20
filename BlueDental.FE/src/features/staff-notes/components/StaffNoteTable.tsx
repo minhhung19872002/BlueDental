@@ -33,8 +33,8 @@ export function StaffNoteTable({ notes, loading, showAuthor, pagination, onEdit,
     {
       title: t("StaffNote:Column:Index"),
       key: "index",
-      // bd-col-icon lifts the global 100px header floor; the width is in the CSS, per breakpoint.
-      className: "staff-notes-index bd-col-icon",
+      // The width is in the CSS, per breakpoint.
+      className: "staff-notes-index",
       align: "center",
       render: (_value, _note, index) => firstIndex + index + 1,
     },
@@ -57,7 +57,7 @@ export function StaffNoteTable({ notes, loading, showAuthor, pagination, onEdit,
     {
       title: t("StaffNote:Column:Actions"),
       key: "actions",
-      width: 120,
+      width: 100,
       align: "center",
       render: (_value, note) => (
         <div className="bd-cat-rowactions">

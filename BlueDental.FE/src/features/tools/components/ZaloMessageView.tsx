@@ -81,20 +81,20 @@ export function ZaloMessageView() {
 
   const columns = useMemo<ColumnsType<ZaloMessageDto>>(
     () => [
-      { key: "phone", title: t("Tools:PhoneLabel"), dataIndex: "recipientPhone", width: 140 },
+      { key: "phone", title: t("Tools:PhoneLabel"), dataIndex: "recipientPhone", width: 116 },
       { key: "content", title: t("Tools:ContentLabel"), dataIndex: "content", ellipsis: true },
       {
         key: "template",
         title: t("Tools:ZaloMessageTemplate"),
         dataIndex: "templateName",
-        width: 160,
+        width: 150,
         ellipsis: true,
         render: (val: string | null) => val ?? "—",
       },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 140,
+        width: 96,
         render: (_, msg) => {
           const { label, color } = statusTag(msg.status);
           const tag = <Tag color={color}>{label}</Tag>;
@@ -104,14 +104,14 @@ export function ZaloMessageView() {
       {
         key: "cost",
         title: t("Tools:ZaloCost"),
-        width: 110,
+        width: 96,
         align: "right",
         render: (_, msg) => (msg.cost == null ? "—" : formatVND(msg.cost)),
       },
       {
         key: "sentAt",
         title: t("Tools:ZaloSentAt"),
-        width: 160,
+        width: 136,
         render: (_, msg) => formatDateTime(msg.sentAt ?? msg.creationTime),
       },
     ],
@@ -167,6 +167,8 @@ export function ZaloMessageView() {
         loading={isFetching}
         pagination={pagination.buildConfig(data?.totalCount, messageTotal)}
         locale={{ emptyText }}
+        // The columns' sum with Nội dung at 260; it takes any room left over.
+        scroll={{ x: 854 }}
       />
     </div>
   );

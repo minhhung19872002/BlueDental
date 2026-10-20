@@ -36,12 +36,13 @@ export function UntreatedDiagnosisReport() {
       {
         key: "date",
         title: t("Operations:DateCol"),
-        width: 140,
+        width: 104,
         render: (_, row) => <span className="bd-cat-num">{formatDate(row.diagnosedAt)}</span>,
       },
       {
         key: "patient",
         title: t("Operations:PatientCol"),
+        width: 220,
         render: (_, row) => (
           <span className="bd-ops-patient">
             <span className="bd-ops-patient-name">
@@ -50,9 +51,9 @@ export function UntreatedDiagnosisReport() {
           </span>
         ),
       },
-      { key: "staff", title: t("Operations:StaffCol"), dataIndex: "staffName", width: 180 },
-      { key: "teeth", title: t("Operations:TeethCol"), dataIndex: "teeth", width: 110 },
-      { key: "diagnosis", title: t("Operations:DiagnosisCol"), dataIndex: "diagnosisName", width: 220 },
+      { key: "staff", title: t("Operations:StaffCol"), dataIndex: "staffName", width: 150 },
+      { key: "teeth", title: t("Operations:TeethCol"), dataIndex: "teeth", width: 96 },
+      { key: "diagnosis", title: t("Operations:DiagnosisCol"), dataIndex: "diagnosisName", width: 180 },
       {
         key: "note",
         title: t("Operations:ContentNoteCol"),

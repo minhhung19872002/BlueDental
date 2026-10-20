@@ -36,17 +36,17 @@ interface Props {
 
 function buildColumns(onView: (row: DebtRow) => void): TableColumnsType<DebtRow> {
   return [
-    { key: "service", title: t("Treatment:Service:Service"), width: 230, render: (_, r) => r.service.serviceName ?? r.service.code },
+    { key: "service", title: t("Treatment:Service:Service"), width: 220, render: (_, r) => r.service.serviceName ?? r.service.code },
     { key: "diagnosis", title: t("Treatment:Diagnosis:Diagnosis"), width: 160, render: (_, r) => dash(r.advise?.diagnosisName) },
-    { key: "dentist", title: t("Treatment:Common:DentistDoctor"), width: 160, render: (_, r) => dash(r.plan.dentistName) },
-    { key: "teeth", title: t("Treatment:Tooth:Tooth"), width: 110, render: (_, r) => formatTeeth(r.service.teeth) },
-    { key: "quantity", title: t("Treatment:Pricing:Quantity"), width: 90, align: "center", render: (_, r) => r.service.quantity },
-    { key: "debt", title: t("Treatment:Debt:OutstandingDebt"), width: 130, align: "right", render: (_, r) => moneyText(r.debt) },
-    { key: "total", title: t("Treatment:Pricing:TotalAmount"), width: 140, align: "right", render: (_, r) => moneyText(r.service.effectiveAmount) },
+    { key: "dentist", title: t("Treatment:Common:DentistDoctor"), width: 150, render: (_, r) => dash(r.plan.dentistName) },
+    { key: "teeth", title: t("Treatment:Tooth:Tooth"), width: 96, render: (_, r) => formatTeeth(r.service.teeth) },
+    { key: "quantity", title: t("Treatment:Pricing:Quantity"), width: 76, align: "center", render: (_, r) => r.service.quantity },
+    { key: "debt", title: t("Treatment:Debt:OutstandingDebt"), width: 112, align: "right", render: (_, r) => moneyText(r.debt) },
+    { key: "total", title: t("Treatment:Pricing:TotalAmount"), width: 112, align: "right", render: (_, r) => moneyText(r.service.effectiveAmount) },
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 70,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_, r) => (

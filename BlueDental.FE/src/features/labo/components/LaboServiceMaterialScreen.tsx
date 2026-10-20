@@ -130,7 +130,7 @@ export function LaboServiceMaterialScreen({
     {
       key: "taxonomyName",
       title: t("Labo:Material:GroupTitle"),
-      width: 300,
+      width: 150,
       render: (_, row) =>
         row.taxonomyName ? (
           <span className="bd-cat-chip">{row.taxonomyName}</span>
@@ -141,7 +141,7 @@ export function LaboServiceMaterialScreen({
     {
       key: "updatedAt",
       title: t("Common:LastUpdated"),
-      width: 240,
+      width: 144,
       render: (_, row) => (
         <span className="bd-cat-num">
           {formatDateTime(row.lastModificationTime ?? row.creationTime)}
@@ -153,7 +153,7 @@ export function LaboServiceMaterialScreen({
           {
             key: "actions",
             title: t("Common:Actions"),
-            width: 100,
+            width: 84,
             align: "center" as const,
             fixed: "right" as const,
             render: (_: unknown, row: LaboMaterialDto) => (

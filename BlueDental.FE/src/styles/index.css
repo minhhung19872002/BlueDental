@@ -1824,10 +1824,18 @@ body::-webkit-scrollbar-track {
   cursor: default;
 }
 
-/* The design's header strip: 11.5px small caps on #f7f8fd. Its rows carry
-   20px of padding at the card's edge and a 12px gap between columns, so a
-   table cell takes half that gap on each side and the outer cells make up the
-   edge. That keeps the design's rhythm without widening every column. */
+/* The design's header strip: 11.5px small caps on #f7f8fd. Rows are kept
+   compact (owner, 2026-10-20): 9px above and below a header, 8px in a body
+   cell, so a one-line row stands about 37px and a page shows more of the list
+   before it scrolls. A 12px gap between columns is split as 6px on each side,
+   and the outer cells make up a 16px edge.
+
+   There is no floor on a column's width. Each table sizes every column to
+   what it holds — a date, a phone number, a tag, a drag handle — so a short
+   field no longer inherits the width of a long one (owner, 2026-10-20).
+
+   A column title never wraps (owner, 2026-10-20): every column is declared at
+   least as wide as its own title, so the header strip stays one line. */
 .ant-table-wrapper .ant-table-thead > tr > th {
   background: var(--bd-bg-head);
   color: var(--bd-muted);
@@ -1835,50 +1843,30 @@ body::-webkit-scrollbar-track {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: 13px 6px;
+  padding: 9px 6px;
   height: auto;
   border-bottom: 1px solid var(--bd-line-soft);
-  min-width: 100px;
+  white-space: nowrap;
 }
 
 .ant-table-wrapper .ant-table-thead > tr > th:first-child,
 .ant-table-wrapper .ant-table-tbody > tr > td:first-child {
-  padding-left: 20px;
+  padding-left: 16px;
 }
 
 .ant-table-wrapper .ant-table-thead > tr > th:last-child,
 .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
-  padding-right: 20px;
+  padding-right: 16px;
 }
 
-/* The pinned column is exempt from the 100px floor — it is sized to its icons.
-   Ant Design 6 renamed this part from `…-fix-right` to `…-fix-end`; both are
-   listed so the rule survives either. Without the new name the pinned cell was
-   held at 100px, which pushed the table a few pixels past its container: just
-   enough overflow for the pinned cell to sit over "Phải thu", and far too
-   little to scroll out of the way (R-462). */
-.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right,
-.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-end {
-  min-width: unset;
-}
-
-/* An icon-only column declares its own narrow width and means it. The floor
-   above exists to keep text columns on the design's rhythm; a 48px cell holding
-   one 16px glyph is not one of those. */
-.ant-table-wrapper .ant-table-thead > tr > th.bd-col-icon,
-.ant-table-wrapper .ant-table-tbody > tr > td.bd-col-icon {
-  min-width: unset;
-}
-
-/* The row-tick column likewise (owner, 2026-10-19, R-984): sized to its 20px
+/* The row-tick column (owner, 2026-10-19, R-984): sized to its 20px
    box plus 8px either side — the table's `rowSelection.columnWidth` says how
-   much, and the card's 20px edge still applies when it leads the row. The box
+   much, and the card's 16px edge still applies when it leads the row. The box
    gets a border that reads on white: the theme's `colorBorder` (--bd-line) all
    but vanishes. Only the variable is swapped, so hover and ticked keep AntD's
    own primary. */
 .ant-table-wrapper .ant-table-thead > tr > th.ant-table-selection-column,
 .ant-table-wrapper .ant-table-tbody > tr > td.ant-table-selection-column {
-  min-width: unset;
   padding-right: 8px;
 }
 
@@ -1898,7 +1886,7 @@ body::-webkit-scrollbar-track {
 
 .ant-table-wrapper .ant-table-tbody > tr > td {
   font-size: 13px;
-  padding: 13px 6px;
+  padding: 8px 6px;
   height: auto;
   border-bottom: 1px solid var(--bd-bg);
   color: var(--bd-sub);
@@ -4858,15 +4846,19 @@ html:has(.ant-modal-wrap) {
   overflow-x: auto;
 }
 
+/* Same compact rhythm as the Ant Design tables (owner, 2026-10-20): 9px above
+   and below the header, 8px in a row, a 16px edge. */
 .dg-head,
 .dg-row {
   display: grid;
   gap: 12px;
   align-items: center;
-  padding: 13px 20px;
+  padding: 8px 16px;
 }
 
 .dg-head {
+  padding-block: 9px;
+  white-space: nowrap;
   background: var(--bd-bg-head);
   border-bottom: 1px solid var(--bd-line-soft);
   font-size: 11.5px;

@@ -44,24 +44,27 @@ export function CallListView() {
       {
         key: "staff",
         title: t("Tools:StaffLabel"),
+        width: 160,
         render: (_, log) => log.staffName ?? "—",
       },
       { key: "branch", title: t("Tools:BranchLabel"), dataIndex: "branchName" },
       {
         key: "callCode",
         title: t("Tools:CallCodeLabel"),
+        width: 120,
         render: (_, log) => <span className="bd-cat-num">{log.callCode}</span>,
       },
       {
         key: "extensionCode",
         title: t("Tools:ExtCodeLabel"),
+        width: 96,
         render: (_, log) => log.extensionCode ?? "—",
       },
-      { key: "phoneNumber", title: t("Tools:PhoneLabel"), dataIndex: "phoneNumber", width: 140 },
+      { key: "phoneNumber", title: t("Tools:PhoneLabel"), dataIndex: "phoneNumber", width: 108 },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 120,
+        width: 88,
         render: (_, log) => {
           const { label, color } = callLogStatusTag(log.status);
           return <Tag color={color}>{label}</Tag>;
@@ -70,7 +73,7 @@ export function CallListView() {
       {
         key: "provider",
         title: t("Tools:ProviderLabel"),
-        width: 130,
+        width: 116,
         render: (_, log) => providerLabel(log.provider),
       },
     ],

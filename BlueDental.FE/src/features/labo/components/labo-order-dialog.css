@@ -499,7 +499,7 @@
 /* Ngày gửi / Ngày giao carry a pill under the date on the tab's table. */
 .pd-labo-cell {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   justify-items: start;
 }
 .pd-labo-cell .ant-tag {
