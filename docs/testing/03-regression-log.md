@@ -9814,3 +9814,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `e2e/staff-notes.spec.ts` **5/5**. Trong dialog, gõ "goi lai khach" ra ghi chú "gọi lại khách lúc 16h".
   - `BlueDental.EntityFrameworkCore.Tests` **66/66** (SQLite: chú thích extension của Npgsql không ảnh hưởng). `dotnet ef migrations has-pending-model-changes`: không còn thay đổi. FE `tsc -b` sạch.
   - DB local: `pg_extension` có `unaccent 1.1`, `__EFMigrationsHistory` có `20261020020811_UnaccentSearch`.
+
+## R-993 (2026-10-20, mức 1: bố cục, không đổi nghiệp vụ) Tiếp nhận + Lịch hẹn — Bỏ tiêu đề trang
+
+- **Yêu cầu** (BA, ảnh khoanh 2 màn): "Bỏ phần này để nới rộng khung nhìn ra". Chủ dự án chọn phạm vi chỉ 2 màn BA khoanh; các màn khác, kể cả `/calendar/list`, giữ tiêu đề.
+- **Sửa FE**:
+  - `ReceptionPage.tsx`: bỏ `PageHeader` ("Tiếp nhận" + "Luồng khách trong ngày dd/mm/yyyy"). Ngày vẫn hiện ở bộ chọn ngày trên thanh công cụ.
+  - `AppointmentCalendarPage.tsx`: bỏ `PageHeader` "Lịch hẹn khách hàng", áp cho cả hai tab Lịch hẹn khách hàng và Lịch làm việc.
+  - Mỗi màn giữ một `<h1 class="bd-sr-only">` ẩn để trình đọc màn hình vẫn đọc được tên trang.
+  - `calendar.css`: bỏ `.cal-page > .page-header` và selector tương ứng trong chế độ toàn màn hình.
+  - Component dùng chung `PageHeader` và CSS `.page-header` trong `index.css` giữ nguyên (26 màn khác còn dùng).
+- **Sửa BE**: xoá key `Reception:PageSubtitle` khỏi `vi.json` / `en.json` (không còn chỗ nào dùng).
+- **Đo** (build production, `vite preview` + host riêng :5100, đăng nhập thật; top tính theo px từ đỉnh cửa sổ):
+
+  | Màn / khung | Mốc | Trước | Sau | Chênh |
+  |---|---|---|---|---|
+  | 1440 `/reception` | thanh công cụ | 211 | 129 | −82 |
+  | 1440 `/reception` | lưới thẻ | 385 | 303 | −82 |
+  | 1440 `/calendar` | dải tab | 182 | 141 | −41 |
+  | 1440 `/calendar` | lưới lịch (cao) | 383 (466) | 342 (506) | −41 (+40) |
+  | 390 `/reception` | thanh công cụ | 142 | 65 | −77 |
+  | 390 `/calendar` | dải tab | 113 | 77 | −36 |
+
+  Không có cuộn ngang ở cả 4 trường hợp. `h1` còn trong DOM, kích thước 1×1, class `bd-sr-only`.
+- **Test** (build production, PostgreSQL thật, không chặn request): `reception`, `reception-board-order`, `reception-doctor-list`, `reception-follow-up`, `reception-temporary`, `reception-wait-time`, `reception-own-doctor`, `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours` **46/47**. FE `tsc -b` sạch.
+  - Ca đỏ `appointment-slot-pick.spec.ts:141` ("Tạo lịch tạm … Giờ hẹn"): một lịch hẹn hôm nay có sẵn trong DB local (DH260531) đè lên ô 10:15 trong lịch mini của dialog, nên click bị chặn. Chạy lại đúng ca này trên bản build trước thay đổi cũng đỏ y hệt, nên không do R-993.

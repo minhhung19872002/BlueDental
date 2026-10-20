@@ -29,7 +29,6 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { useDeleteAppointment, useDeleteManyAppointments } from "../api/appointmentMutations";
 import { exportToExcel } from "@/utils/exportExcel";
-import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 import "../components/calendar.css";
 
@@ -195,7 +194,8 @@ export function AppointmentCalendarPage() {
   return (
     <>
       <div className="cal-page">
-        <PageHeader title={t("Appointment:Tab:CustomerCalendar")} />
+        {/* BA (R-993): no visible title — the tabs start at the top for more calendar room. */}
+        <h1 className="bd-sr-only">{t("Appointment:Tab:CustomerCalendar")}</h1>
 
         <CalendarUnderlineTabs
           activeTab={state.topTab}

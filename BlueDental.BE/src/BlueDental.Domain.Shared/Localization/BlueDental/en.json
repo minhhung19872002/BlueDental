@@ -2321,7 +2321,6 @@
     "Reception:StepStart": "Start examination",
     "Reception:CancelSuccess": "Appointment cancelled",
     "Reception:PageTitle": "Reception",
-    "Reception:PageSubtitle": "Patient flow for {0}",
     "Reception:SearchLabel": "Search",
     "Reception:TabAll": "All",
     "Reception:TabWaiting": "Waiting",

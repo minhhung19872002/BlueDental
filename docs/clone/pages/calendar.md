@@ -36,6 +36,13 @@ Screenshots: reference-private/survey/calendar-main.png
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
+**No page title (BlueDental BA requirement 2026-10-20, R-993):**
+
+- BlueDental used to show a "Lịch hẹn khách hàng" title above the tabs, on both tabs. The BA asked for it to go, to give the calendar more room.
+- The tabs now start right under the header, as in the layout above.
+- A visually hidden `<h1 class="bd-sr-only">` keeps the page name for screen readers.
+- `/calendar/list` (Lịch đã hẹn) keeps its title.
+
 ## Component Breakdown
 
 ### 1. Top-Level Tabs (2 tabs)
