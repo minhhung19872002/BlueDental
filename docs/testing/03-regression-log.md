@@ -9839,3 +9839,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   Không có cuộn ngang ở cả 4 trường hợp. `h1` còn trong DOM, kích thước 1×1, class `bd-sr-only`.
 - **Test** (build production, PostgreSQL thật, không chặn request): `reception`, `reception-board-order`, `reception-doctor-list`, `reception-follow-up`, `reception-temporary`, `reception-wait-time`, `reception-own-doctor`, `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours` **46/47**. FE `tsc -b` sạch.
   - Ca đỏ `appointment-slot-pick.spec.ts:141` ("Tạo lịch tạm … Giờ hẹn"): một lịch hẹn hôm nay có sẵn trong DB local (DH260531) đè lên ô 10:15 trong lịch mini của dialog, nên click bị chặn. Chạy lại đúng ca này trên bản build trước thay đổi cũng đỏ y hệt, nên không do R-993.
+
+## R-994 (2026-10-20, mức 3: component dùng chung PageHeader) Tất cả màn — Bỏ tiêu đề trang
+
+- **Yêu cầu** (BA, bổ sung sau R-993): "làm hết cho các site luôn", "bỏ toàn bộ phần page header như trên". Chủ dự án chốt:
+  - `/taxonomy` cũng bỏ, chạy lại bộ test bảo vệ của mục 17 trên bản build production.
+  - Màn có nút riêng thì giữ hàng nút, chỉ bỏ chữ.
+  - Phần đầu của trang chi tiết không phải tiêu đề trang nên giữ: hồ sơ bệnh nhân, phiếu điều trị, quầy `/queue/counters/:id`.
+- **Sửa FE**:
+  - `PageHeader.tsx`: chỉ còn `<h1 class="bd-sr-only">` (tên trang cho trình đọc màn hình) và hàng `.page-actions` khi màn có nút. Bỏ prop `subtitle`.
+  - 26 màn bỏ `subtitle`: Danh sách lịch hẹn, Bệnh nhân, CSKH, 4 màn Marketing (qua `MarketingShell`), Labo, Vận hành, Báo cáo, 4 màn Nhân sự, Vật tư, Danh mục, Cài đặt, Voucher, Hồ sơ nhóm, Công cụ, Người dùng & vai trò, Nhật ký hệ thống, Chi nhánh, Cài đặt phòng khám, Hồ sơ cá nhân, Đổi mật khẩu.
+  - Tổng quan: bỏ dòng ngày, giữ Xuất báo cáo / Tạo lịch hẹn trên hàng riêng canh phải.
+  - Màn hình đợi: giữ Lấy số mới / Quản lý quầy / Mở màn hình TV trên hàng riêng canh phải.
+  - Thanh toán: Xuất Excel chuyển vào cuối thanh tìm kiếm (`.filter-toolbar-actions`), không còn hàng riêng.
+  - `index.css`: thêm `.page-actions`; bỏ `.page-header-left` và `.bd-shell-page > .page-header`. Giữ `.page-header-title` / `.page-header-subtitle` vì `CounterQueueHeader` còn dùng.
+- **Sửa BE**: xoá 25 key subtitle không còn chỗ dùng khỏi `vi.json` / `en.json`.
+- **Đo** (build production, `vite preview` + host riêng :5100, đăng nhập thật; top tính theo px từ đỉnh cửa sổ, mốc = phần thân đầu tiên dưới header):
+
+  | Màn / khung | Mốc | Trước | Sau | Chênh |
+  |---|---|---|---|---|
+  | 1440, 23 màn danh sách (Lịch hẹn DS, CSKH, Marketing ×4, Labo, Vận hành, Báo cáo, Nhân sự ×4, Vật tư, Danh mục, Cài đặt, Voucher, Hồ sơ nhóm, Công cụ, Người dùng, Nhật ký, Tài khoản ×2) | thân trang | 211 | 129 | −82 |
+  | 1440 `/settings/preferences` | thân trang | 195 | 129 | −66 |
+  | 1440 `/patient` | thanh công cụ (đo bằng ảnh) | ~208 | 129 | ~−79 |
+  | 1440 `/billing` | thẻ KPI (hàng nút cũ ở 155) | 211 | 129 | −82 |
+  | 1440 `/queue`, `/dashboard` | hàng nút | 155 | 129 | −26 |
+  | 1440 `/queue`, `/dashboard` | thân trang | 211 | 185 | −26 |
+  | 1440 `/organizations` | "Thêm chi nhánh" + bảng trong thẻ Cài đặt phòng khám | | | ~−82 |
+  | 390, 26 màn | thân trang | | 65 | |
+  | 390 `/queue` / `/dashboard` / `/organizations` | thân trang | | 169 / 121 / 145 | |
+
+  Không có cuộn ngang ở cả 58 trường hợp. Không còn `.page-header-title` / `.page-header-subtitle` nào hiện. `h1.bd-sr-only` mang đúng tên trang ở mọi màn.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request). FE `tsc -b` sạch.
+  - Bộ bảo vệ `/taxonomy` (mục 17: `taxonomy*`, `payment-qr`, `branch-*`, nay là **93** ca, không còn 38): **90/93**.
+    - `taxonomy-groups.spec.ts:169` đỏ một lần trong lượt dài, chạy lại cả spec `--repeat-each=2` trên bản mới **22/22** → chập chờn.
+    - `taxonomy-dialogs.spec.ts:104` (không có nhà cung cấp labo trong DB local) và `:256` (chi nhánh đầu tiên theo tên chưa có nhóm dịch vụ) đỏ y hệt trên bản build trước thay đổi → dữ liệu local, không do R-994.
+  - Mức 3, 45 spec của các màn dùng `PageHeader` (lịch hẹn DS, CSKH, marketing, labo, thanh toán, vận hành, báo cáo, nhân sự, vật tư, voucher, hồ sơ nhóm, màn hình đợi, phân quyền, routes, header, export, …): **191/224**.
+    - Chạy lại đúng 33 ca đỏ trên bản build trước thay đổi (cổng riêng, cùng host): **32 ca đỏ y hệt** → có từ trước, không do R-994. Gồm `operations-reports` ×18 (lệch dữ liệu đã biết), `header-navigation:13/121/139`, `labo-warranty:315` (DatePicker có mask), `report:294` (tiêu đề cột xuất thanh toán), `labo-orders-actions:88` (spec còn chờ `?branchId=` trong khi URL đã là `?branch=BD-001` từ F-68), `export:62`, `labo:156`, `materials:303`, `operations:146/328`, `patient-permission-gates:119`, `role-permissions:53`, `role-permissions-abilities:38`.
+    - Ca duy nhất đỏ riêng trên bản mới: `popup-placement.spec.ts:43` (chờ nút "Tạo đơn thuốc" trên bệnh nhân đầu danh sách, mà các spec chạy trước vừa tạo bệnh nhân mới). Chạy riêng cả spec `--repeat-each=2` trên bản mới **6/6** → phụ thuộc thứ tự dữ liệu, không do R-994.
+- **Commit**: chủ dự án commit `0ef82031` trên `main` và đã push (CD production chạy). Mục nhật ký này viết sau, chưa commit.

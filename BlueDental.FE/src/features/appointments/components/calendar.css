@@ -191,6 +191,19 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* BA (R-996): from a tablet up the calendar sits in the same gutter as every
+   other screen, not 12px further in, and the bottom gutter matches the top
+   since the grid already fills the height. Phones keep their own padding. */
+@media (min-width: 761px) {
+  .app-content:has(> .cal-page) {
+    padding-bottom: 18px;
+  }
+
+  .cal-page {
+    padding: 0;
+  }
+}
+
 .cal-spin-wrap {
   height: 100%;
 }
