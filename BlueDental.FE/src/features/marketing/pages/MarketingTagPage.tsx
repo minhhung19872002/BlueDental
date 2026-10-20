@@ -84,7 +84,7 @@ export function MarketingTagPage() {
   };
 
   return (
-    <MarketingShell activeKey="tags" subtitle="Ticket:Tag:PageSubtitle">
+    <MarketingShell activeKey="tags">
       <div className="bd-cat-header mkt-header">
         <div className="bd-cat-headrow">
           <Input

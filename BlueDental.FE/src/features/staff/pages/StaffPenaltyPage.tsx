@@ -33,7 +33,7 @@ export function StaffPenaltyPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader title={t("Staff:PageTitle")} subtitle={t("Staff:PageSubtitle")} />
+      <PageHeader title={t("Staff:PageTitle")} />
       <StaffTabBar activeKey="penalties" />
 
       <PenaltyToolbar

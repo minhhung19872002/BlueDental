@@ -34,10 +34,7 @@ export function AccountProfilePage() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={t("Account:ProfileTitle")}
-        subtitle={t("Account:ProfileSubtitle")}
-      />
+      <PageHeader title={t("Account:ProfileTitle")} />
 
       <Row gutter={[20, 20]}>
         {/* Avatar card */}

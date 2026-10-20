@@ -1389,10 +1389,6 @@ body::-webkit-scrollbar-track {
   flex-wrap: wrap;
 }
 
-.page-header-left {
-  min-width: 0;
-}
-
 .page-header-title {
   font-size: 23px;
   font-weight: 700;
@@ -1413,6 +1409,16 @@ body::-webkit-scrollbar-track {
   gap: 8px;
   flex-shrink: 0;
   flex-wrap: wrap;
+}
+
+/* A page's own buttons, on a row of their own now that the page title is gone
+   (BA, R-994). `.page-header` above stays for the queue counter's detail head,
+   which carries the counter's name, dentist and call buttons. */
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* ── Stat card ── */
@@ -6031,20 +6037,15 @@ html:has(.ant-modal-wrap) {
    needs a real height: main's shell only sets a min-height, so `height: 100%`
    resolves to the content — and the group panel's rows would then decide how
    tall the table beside them is. */
-/* A page whose body is one full-height white shell, with the page title above
-   it on the page background — Vật tư, Vận hành, Labo. The height budget lives
-   on the wrapper so the shell keeps whatever the title block leaves it, rather
-   than the two adding up to more than the viewport. */
+/* A page whose body is one full-height white shell — Vật tư, Vận hành, Labo,
+   Marketing, Danh mục. The height budget lives on the wrapper, so the shell
+   fills the viewport under the app header (no page title since R-994). */
 .bd-shell-page {
   display: flex;
   flex-direction: column;
   gap: 16px;
   height: calc(100vh - var(--bd-topbar-height) - 32px);
   min-height: 420px;
-}
-
-.bd-shell-page > .page-header {
-  flex-shrink: 0;
 }
 
 .bd-shell-page > .bd-taxonomy-page,

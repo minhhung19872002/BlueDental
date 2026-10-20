@@ -143,10 +143,7 @@ export function PatientManagementPage() {
           out of the flow so it costs neither height nor a column gap. */}
       <div ref={sentinelRef} className="bd-patient-sentinel" aria-hidden="true" />
 
-      <PageHeader
-        title={t("Patient:List:Title")}
-        subtitle={t("Patient:List:RecordCount", query.data?.totalCount ?? 0)}
-      />
+      <PageHeader title={t("Patient:List:Title")} />
 
       <PatientListToolbar
         keyword={filters.filters.keyword}

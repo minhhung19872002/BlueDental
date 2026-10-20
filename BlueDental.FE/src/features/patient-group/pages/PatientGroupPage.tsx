@@ -28,7 +28,7 @@ export function PatientGroupPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader title={t("PatientGroup:PageTitle")} subtitle={t("PatientGroup:PageSubtitle")} />
+      <PageHeader title={t("PatientGroup:PageTitle")} />
       <div className="page-card pg-panel">
         <div className="pg-toolbar">
           <div className="pg-toolbar__filters">

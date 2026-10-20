@@ -94,7 +94,6 @@ export function QueuePage() {
     <div className="reception-page queue-page">
       <PageHeader
         title={t("Queue:PageTitle")}
-        subtitle={t("Queue:PageSubtitle")}
         actions={
           <>
             {ability.canCreate && (

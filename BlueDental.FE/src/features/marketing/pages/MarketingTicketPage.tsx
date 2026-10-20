@@ -46,7 +46,7 @@ export function MarketingTicketPage() {
   const handleRow = (ticket: TicketDto) => ({ onClick: () => setDetailId(ticket.id) });
 
   return (
-    <MarketingShell activeKey="tickets" subtitle="Ticket:PageSubtitle">
+    <MarketingShell activeKey="tickets">
       <div className="bd-cat-header mkt-header">
         <TicketToolbar
           state={filters.state}

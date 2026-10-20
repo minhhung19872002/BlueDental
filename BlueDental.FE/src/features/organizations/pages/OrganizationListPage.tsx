@@ -146,10 +146,7 @@ function BranchTable() {
 
   return (
     <>
-      <PageHeader
-        title={t("Organization:BranchTabLabel")}
-        subtitle={t("Organization:BranchPageSubtitle")}
-      />
+      <PageHeader title={t("Organization:BranchTabLabel")} />
 
       {canCreate && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>

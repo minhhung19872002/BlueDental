@@ -101,10 +101,7 @@ export function AuditLogPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("AuditLog:PageTitle")}
-        subtitle={t("AuditLog:PageSubtitle")}
-      />
+      <PageHeader title={t("AuditLog:PageTitle")} />
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)", marginBottom: 4 }}>

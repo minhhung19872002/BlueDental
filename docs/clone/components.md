@@ -51,6 +51,20 @@ Observed: 2026-08-21
 - Background: light gray (#f5f5f5 or similar)
 - Padding: consistent internal padding
 
+**BlueDental: no visible page title (BA requirement 2026-10-20, R-993 then R-994):**
+
+- Every list screen starts its body right under the app header. There is no
+  title or subtitle line above the toolbar.
+- The shared `PageHeader` (`src/components/PageHeader.tsx`) now renders only a
+  visually hidden `<h1 class="bd-sr-only">` with the page name, for screen
+  readers.
+- When a page has its own buttons (Tổng quan: Xuất báo cáo / Tạo lịch hẹn;
+  Màn hình đợi: Lấy số mới / Quản lý quầy / Mở màn hình TV), they keep a
+  right-aligned row of their own (`.page-actions`).
+- Thanh toán's Xuất Excel moved to the end of its search toolbar.
+- Detail heads are not page titles and stay: patient detail, plan detail and
+  the counter queue (`/queue/counters/:id`).
+
 ### Notification Region
 
 - Accessible name: "Notifications alt+T"

@@ -83,10 +83,7 @@ export function ReportPage() {
 
   return (
     <div className="report-page">
-      <PageHeader
-        title={t("Report:PageTitle")}
-        subtitle={t("Report:PageSubtitle")}
-      />
+      <PageHeader title={t("Report:PageTitle")} />
 
       <section className="report-shell" aria-label={t("Report:PageTitle")}>
         <ReportToolbar

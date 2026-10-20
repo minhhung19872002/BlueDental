@@ -72,10 +72,7 @@ export function ChangePasswordPage() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={t("Account:ChangePasswordTitle")}
-        subtitle={t("Account:ChangePasswordSubtitle")}
-      />
+      <PageHeader title={t("Account:ChangePasswordTitle")} />
 
       <Row>
         <Col xs={24} sm={18} md={14} lg={10}>

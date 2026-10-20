@@ -328,10 +328,7 @@ export function OperationsPage() {
 
   return (
     <div className="bd-shell-page">
-      <PageHeader
-        title={t("Operations:PageTitle")}
-        subtitle={t("Operations:PageSubtitle")}
-      />
+      <PageHeader title={t("Operations:PageTitle")} />
 
       <div className="bd-taxonomy-page">
         <PageTabBar

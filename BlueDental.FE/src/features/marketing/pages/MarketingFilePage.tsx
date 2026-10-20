@@ -45,7 +45,7 @@ export function MarketingFilePage() {
   };
 
   return (
-    <MarketingShell activeKey="files" subtitle="Ticket:File:PageSubtitle">
+    <MarketingShell activeKey="files">
       <div className="bd-cat-header mkt-header">
         <div className="bd-cat-headrow">
           <Input

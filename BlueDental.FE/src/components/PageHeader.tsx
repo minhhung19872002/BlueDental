@@ -2,18 +2,19 @@ import type { ReactNode } from "react";
 
 interface Props {
   title: string;
-  subtitle?: string;
   actions?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, actions }: Props) {
+/**
+ * BA (R-993, R-994): no visible page title or subtitle — the page body starts
+ * right under the app header. The name stays as a screen-reader heading, and a
+ * page's own buttons keep a row of their own, right-aligned.
+ */
+export function PageHeader({ title, actions }: Props) {
   return (
-    <div className="page-header">
-      <div className="page-header-left">
-        <h1 className="page-header-title">{title}</h1>
-        {subtitle && <p className="page-header-subtitle">{subtitle}</p>}
-      </div>
-      {actions && <div className="page-header-actions">{actions}</div>}
-    </div>
+    <>
+      <h1 className="bd-sr-only">{title}</h1>
+      {actions && <div className="page-actions">{actions}</div>}
+    </>
   );
 }
