@@ -10042,3 +10042,29 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `appointment`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-shown-hours`, `appointment-series-ui`, `appointment-working-hours`: **14/15**. Ca đỏ duy nhất là `appointment-slot-pick.spec.ts:141`, đã biết từ R-993/R-996: lịch hẹn có sẵn trong DB local đè lên ô 10:15 của mini-lịch "Lịch đã hẹn". Ca này nằm ở component khác, không do R-1000.
   - `tsc -b` sạch.
 - **Commit**: chủ dự án đã xem, commit trên `main` và push (2026-10-20).
+
+## R-1001 (2026-10-20, mức 2: một feature, chỉ FE) Dialog lịch hẹn — Đổi ngày ở "Lịch đã hẹn" thì "Ngày hẹn" đổi theo
+
+- **Yêu cầu** (BA, ảnh dialog "Tạo lịch hẹn", mũi tên chỉ vào thanh `< 24/10/2026 >` của "Lịch đã hẹn"): "Chuyển ngày dưới đây cho tự động nhảy ngày hẹn luôn nha".
+- **Dữ liệu**: không đổi BE, không migration. Lưu vẫn gửi `startTime`/`endTime` như trước.
+- **Quyết định** (chủ dự án đồng ý theo đề xuất):
+  - Áp cho cả 4 dialog: Tạo/Cập nhật lịch hẹn, Tạo/Cập nhật lịch tạm. Ở Cập nhật, đổi ngày rồi Lưu là dời lịch sang ngày mới, giữ giờ.
+  - Chỉ đồng bộ ở chế độ **Ngày**. Ở Tuần/Tháng là một khoảng, không phải một ngày, nên lướt xem không đổi Ngày hẹn. Bấm lại "Ngày" thì lịch quay về đúng Ngày hẹn.
+  - Ngày quá khứ vẫn đồng bộ. Lưu đã bị chặn bằng toast "không thể tạo lịch trong quá khứ" như cũ.
+  - Chỉ thao tác tay (‹ ›, chọn ngày trong lịch thả xuống, "Đặt lại") mới đổi Ngày hẹn. Khi bấm một buổi trong "Danh sách buổi hẹn" (Lặp lại lịch hẹn), lịch nhảy tới buổi đó để xem, Ngày hẹn giữ nguyên.
+- **Sửa FE**:
+  - `AppointmentMiniCalendar.tsx`: thêm prop `onDateChange`. `DateNavigator` đổi ngày ở chế độ Ngày thì gọi `onDateChange(YYYY-MM-DD)`. Đổi về chế độ Ngày thì `viewDate` về Ngày hẹn. Chiều ngược lại (Ngày hẹn → lịch) vẫn là effect cũ, cùng một ngày nên không lặp.
+  - `AppointmentEditorForm.tsx`, `TempAppointmentForm.tsx`: thêm prop `onCalendarDateChange`, chuyển xuống mini-lịch.
+  - `AppointmentEditorModal.tsx`, `TempAppointmentEditorModal.tsx`: `handleCalendarDate` = `setPicked("date", …)`, cùng đường với bấm ô giờ (validate + dirty). Vì vậy luật cũ vẫn chạy: bác sĩ OFF ngày mới thì bị bỏ chọn kèm báo lỗi, bác sĩ "giữ lại" của lịch đang sửa chỉ áp cho ngày gốc, Giờ hẹn giữ nguyên.
+  - `DateNavigator` dùng chung không đổi.
+- **Test** (build production `vite preview` cổng 8171, PostgreSQL thật, đăng nhập thật, không chặn request):
+  - `appointment-mini-cal-date.spec.ts` (mới), **4/4**:
+    - Tạo lịch hẹn: › thì Ngày hẹn +1, ‹‹ thì −1, chọn ngày trong lịch thả xuống thì Ngày hẹn là ngày đó. Tuần ›› không đổi Ngày hẹn, bấm Ngày thì về Ngày hẹn. Chọn bác sĩ, ô 10:15, Lưu (POST thật). Tải lại: API và `/calendar?date=` view Ngày đều có lịch đúng ngày đã chọn, 10:15.
+    - Cập nhật lịch hẹn: mở khối trên `/calendar`, › thì Ngày hẹn +1, giờ vẫn 09:00. Lưu (PUT thật), tải lại: cùng lịch đó nằm ở ngày mới 09:00.
+    - Tạo lịch tạm: › +1, ‹‹ −1 (cả ngày quá khứ).
+    - Lặp lại lịch hẹn: bấm buổi 3 thì lịch nhảy tới buổi đó, Ngày hẹn giữ nguyên. Bấm › thì Ngày hẹn theo lịch, buổi 1 của danh sách đổi theo.
+  - `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours`, `patient-appointment`: **31 qua, 2 đỏ, 1 bỏ qua**. Hai ca đỏ không do R-1001:
+    - `appointment-slot-pick.spec.ts:141` (Lịch tạm, ô 10:15): đã biết từ R-993/R-996, lịch có sẵn trong DB local đè lên ô.
+    - `appointment-day-timeline.spec.ts:331` (hôm nay, bệnh nhân đã đến đang chờ): ca này phụ thuộc giờ chạy. Spec đặt lịch lúc bây giờ + 5', chạy lúc ~19:30 thì khối nằm ngoài khung giờ hiển thị mặc định 08:00–18:45 (R-977) nên không được vẽ. Ca này qua lúc chạy R-1000 (ban ngày). R-1001 không đụng view Ngày của `/calendar`.
+  - `tsc -b` sạch.
+- **Commit**: chủ dự án đã xem, commit trên `main` và push (2026-10-20).

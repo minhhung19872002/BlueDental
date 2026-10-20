@@ -21,9 +21,11 @@ interface Props {
   focus?: CalendarFocus | null;
   /** A slot clicked in the day view: the day shown, the slot's "HH:mm" and its row's doctor. */
   onSlotPick?: (pick: MiniCalSlotPick) => void;
+  /** The day view moved to another day by hand ("YYYY-MM-DD"): Ngày hẹn follows it. */
+  onDateChange?: (date: string) => void;
 }
 
-export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPick }: Props) {
+export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPick, onDateChange }: Props) {
   const [mode, setMode] = useState<DateNavigatorMode>("day");
   const [daySubMode, setDaySubMode] = useState<DaySubMode>("time");
   const [viewDate, setViewDate] = useState<Dayjs>(() => (date ? dayjs(date) : dayjs()));
@@ -68,6 +70,20 @@ export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPi
   const toggleDaySubMode = () =>
     setDaySubMode((prev) => (prev === "time" ? "doctor" : "time"));
 
+  // R-1001 (BA 2026-10-20): moving the day view by hand moves Ngày hẹn with
+  // it. A week or a month is a range, not a day, so browsing those leaves the
+  // form alone; jumps the diary makes itself (a clicked session) never get here.
+  const handleNavigate = (next: Dayjs) => {
+    setViewDate(next);
+    if (mode === "day") onDateChange?.(next.format("YYYY-MM-DD"));
+  };
+
+  // Back on Ngày the diary shows Ngày hẹn again, whatever week or month was browsed.
+  const handleModeChange = (next: DateNavigatorMode) => {
+    setMode(next);
+    if (next === "day" && date && dayjs(date).isValid()) setViewDate(dayjs(date));
+  };
+
   return (
     <div className="appt-mini-cal">
       <div className="appt-mini-cal-toolbar">
@@ -88,7 +104,7 @@ export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPi
         <div className="appt-mini-cal-right">
           <Segmented
             value={mode}
-            onChange={(v) => setMode(v as DateNavigatorMode)}
+            onChange={(v) => handleModeChange(v as DateNavigatorMode)}
             options={[
               { label: t("Common:Day"), value: "day" },
               { label: t("Common:Week"), value: "week" },
@@ -96,7 +112,7 @@ export function AppointmentMiniCalendar({ date, doctorId, focus = null, onSlotPi
             ]}
             size="small"
           />
-          <DateNavigator value={viewDate} mode={mode} onChange={setViewDate} />
+          <DateNavigator value={viewDate} mode={mode} onChange={handleNavigate} />
         </div>
       </div>
 

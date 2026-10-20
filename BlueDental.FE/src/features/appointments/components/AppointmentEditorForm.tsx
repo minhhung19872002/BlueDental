@@ -32,6 +32,8 @@ interface Props {
   series?: { field: ReactNode; list: ReactNode | null; focus: CalendarFocus | null };
   /** A slot clicked in Lịch đã hẹn (fills Giờ hẹn and, on a doctor row, Chọn bác sĩ). */
   onSlotPick: (pick: MiniCalSlotPick) => void;
+  /** Lịch đã hẹn's day view moved to another day by hand: Ngày hẹn follows. */
+  onCalendarDateChange: (date: string) => void;
 }
 
 export function AppointmentEditorForm({
@@ -49,6 +51,7 @@ export function AppointmentEditorForm({
   onOpenNewPatient,
   series,
   onSlotPick,
+  onCalendarDateChange,
 }: Props) {
   const center = <AppointmentFormCenter control={control} errors={errors} doctorOptions={doctorOptions} setValue={setValue} />;
   const right = (
@@ -93,6 +96,7 @@ export function AppointmentEditorForm({
         doctorId={watchedDoctorId}
         focus={series?.focus ?? null}
         onSlotPick={onSlotPick}
+        onDateChange={onCalendarDateChange}
       />
     </div>
   );
