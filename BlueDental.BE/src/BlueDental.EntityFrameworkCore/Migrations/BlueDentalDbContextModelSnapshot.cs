@@ -4987,6 +4987,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("LastModifierId");
 
+                    b.Property<int>("OutpatientSequence")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -8287,6 +8290,10 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateOnly?>("ScheduledDate")
                         .HasColumnType("date");

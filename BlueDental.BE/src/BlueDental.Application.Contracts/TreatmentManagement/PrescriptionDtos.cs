@@ -43,6 +43,8 @@ public class PrescriptionDto : FullAuditedEntityDto<Guid>
     public Guid StaffId { get; set; }
     /// <summary>Resolved display name of the prescribing doctor.</summary>
     public string? StaffName { get; set; }
+    /// <summary>Chức danh of the doctor above — printed sheets name a doctor by it, else by the name.</summary>
+    public string? StaffJobTitle { get; set; }
     public string? DiagnosisText { get; set; }
     public string? DiagnosisNote { get; set; }
     public string? Note { get; set; }

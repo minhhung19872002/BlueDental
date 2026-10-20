@@ -59,6 +59,8 @@ export interface PrescriptionDto {
   code: string;
   staffId: string;
   staffName: string | null;
+  /** Chức danh of the doctor above — what printed sheets name them by. */
+  staffJobTitle: string | null;
   /** The diagnosis as printed — built from `diagnoses` since F-58. */
   diagnosisText: string | null;
   diagnosisNote: string | null;

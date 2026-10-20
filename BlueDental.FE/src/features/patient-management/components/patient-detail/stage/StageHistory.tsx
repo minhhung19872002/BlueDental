@@ -1,10 +1,15 @@
 import { useState, type Ref } from "react";
-import { Button, Checkbox, Image, Input } from "antd";
+import { Button, Checkbox, Image } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
+import { StageEditPencil } from "./StageEditPencil";
+import { NOTE_LIMIT } from "./StageForm";
+import { StageNoteBullets } from "./StageNoteBullets";
+import { StageNoteInput } from "./StageNoteInput";
+import { StageRemarkCell } from "./StageRemarkCell";
 import { StageWarrantyButton } from "./StageWarrantyButton";
 import {
   namedSteps,
@@ -25,11 +30,14 @@ interface Props {
   total: number;
   imagesOf: (stageId: string) => PatientImageDto[];
   savingNoteFor: string | null;
+  savingRemarkFor: string | null;
   uploadingFor: string | null;
   completingId: string | null;
   /** Which leaves of Công đoạn (and Labo) the user holds; a missing one hides its control. */
   can: StageHistoryLeaves;
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
+  /** Ghi chú; resolves true once the server took it. */
+  onSaveRemark: (stage: TreatmentStageDto, remark: string) => Promise<boolean>;
   onComplete: (stage: TreatmentStageDto) => void;
   onUpload: (stage: TreatmentStageDto) => void;
   onCreateLabo: (stage: TreatmentStageDto) => void;
@@ -81,38 +89,16 @@ function NoteCell({
         <div className="pd-stage-notebar">
           {/* The reference drops the pencil on a continued công đoạn. */}
           {editable && !editing && !stage.isSuperseded && (
-            <button
-              type="button"
-              aria-label={t("Patient:Misc:EditNote")}
+            <StageEditPencil
+              label={t("Patient:Misc:EditNote")}
               onClick={() => setDraft(stage.note ?? "")}
-            >
-              {/* lucide-pencil, the reference's own glyph */}
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-                <path d="m15 5 4 4" />
-              </svg>
-            </button>
+            />
           )}
         </div>
 
         {editing ? (
           <div className="pd-stage-noteedit">
-            <Input.TextArea
-              rows={4}
-              value={draft}
-              maxLength={1000}
-              onChange={(event) => setDraft(event.target.value)}
-            />
+            <StageNoteInput rows={4} value={draft} maxLength={NOTE_LIMIT} onChange={setDraft} />
             <div>
               <Button onClick={() => setDraft(null)}>{t("Patient:Misc:Cancel")}</Button>
               <Button
@@ -128,7 +114,9 @@ function NoteCell({
             </div>
           </div>
         ) : (
-          <p className="pd-stage-note">{stage.note ?? ""}</p>
+          <div className="pd-stage-note">
+            <StageNoteBullets note={stage.note} />
+          </div>
         )}
       </div>
 
@@ -162,10 +150,12 @@ export function StageHistory({
   total,
   imagesOf,
   savingNoteFor,
+  savingRemarkFor,
   uploadingFor,
   completingId,
   can,
   onSaveNote,
+  onSaveRemark,
   onComplete,
   onUpload,
   onCreateLabo,
@@ -189,6 +179,7 @@ export function StageHistory({
               <div>{t("Patient:Misc:Date")}</div>
               <div>{t("Patient:Plan:ServiceAndTooth")}</div>
               <div>{t("Patient:Stage:TreatmentContent")}</div>
+              <div>{t("Patient:Stage:Remark")}</div>
               <div>{t("Patient:Stage:Title")}</div>
               <div>{t("Patient:Misc:Actions")}</div>
             </div>
@@ -262,6 +253,13 @@ export function StageHistory({
                           saving={savingNoteFor === stage.id}
                           editable={can.update}
                           onSave={(note) => onSaveNote(stage, note)}
+                        />
+
+                        <StageRemarkCell
+                          stage={stage}
+                          saving={savingRemarkFor === stage.id}
+                          editable={can.update}
+                          onSave={(remark) => onSaveRemark(stage, remark)}
                         />
 
                         {/* Công đoạn — the service steps this công đoạn covers,

@@ -445,7 +445,8 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(ask).toContainText("Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu.");
     await ask.getByRole("button", { name: "Tiếp tục chỉnh sửa" }).click();
     await expect(ask).toBeHidden();
-    await expect(note).toHaveValue("Đã lấy cao răng hàm trên");
+    // Typed into an empty box, the first line opens with its dash (R-983).
+    await expect(note).toHaveValue("- Đã lấy cao răng hàm trên");
 
     // Confirming throws the draft away and closes the card.
     await stage.getByRole("button", { name: "Hủy", exact: true }).click();

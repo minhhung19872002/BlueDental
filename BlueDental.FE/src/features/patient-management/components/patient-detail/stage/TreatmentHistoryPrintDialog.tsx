@@ -4,10 +4,12 @@ import { Button, Modal } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 import { formatToothCodes } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentServiceStatus } from "@/features/treatment-management/api/treatmentPlanApi";
 import { stageRowStatus, stageRowStatusLabel } from "../stageRowStatus";
+import { StageNoteBullets } from "./StageNoteBullets";
 
 export interface PrintClinic {
   name: string;
@@ -61,10 +63,15 @@ function Rows({ stages, statusOf }: Pick<Props, "stages" | "statusOf">) {
                 {stageRowStatusLabel(status)}
               </div>
             </td>
-            <td className="pd-print-note">{stage.note ?? ""}</td>
-            <td>{stage.staffName ?? t("Patient:QuoteSheet:Empty")}</td>
+            <td>
+              <StageNoteBullets note={stage.note} />
+            </td>
+            <td>{printedDoctorName(stage.staffName, stage.staffJobTitle) ?? t("Patient:QuoteSheet:Empty")}</td>
             <td>{stage.subStaffName ?? t("Patient:QuoteSheet:Empty")}</td>
-            <td>{stage.secondStaffName ?? t("Patient:QuoteSheet:Empty")}</td>
+            <td>
+              {printedDoctorName(stage.secondStaffName, stage.secondStaffJobTitle) ??
+                t("Patient:QuoteSheet:Empty")}
+            </td>
           </tr>
         );
       })}
@@ -173,7 +180,7 @@ export function TreatmentHistoryPrintDialog({
           <div>
             <p>{t("Patient:QuoteSheet:Creator")}</p>
             <p>{t("Patient:QuoteSheet:SignName")}</p>
-            <p>{stages[0]?.staffName ?? ""}</p>
+            <p>{printedDoctorName(stages[0]?.staffName, stages[0]?.staffJobTitle) ?? ""}</p>
           </div>
           <div>
             <p>{t("Patient:Col:Customer")}</p>

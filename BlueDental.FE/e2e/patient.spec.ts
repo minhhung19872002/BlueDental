@@ -1099,11 +1099,13 @@ test.describe("Bệnh nhân", () => {
       await expect(chip).toHaveText("Chẩn đoán");
       await expect(chip).toHaveCSS("background-color", CHIP_GREY);
       await expect(row.locator(".pd-tr-teeth")).toHaveText("18");
-      await expect(row.locator("td").nth(4)).toHaveText("1");
+      // A diagnosis carries no Ghi chú of a công đoạn's.
+      await expect(row.locator("td").nth(3)).toHaveText("—");
+      await expect(row.locator("td").nth(5)).toHaveText("1");
       const doctorCell = row.locator(".pd-tr-doctor");
       await expect(doctorCell).toHaveText(doctor);
       await expect(doctorCell.locator(".pd-tr-sub")).toHaveCount(0);
-      await expect(row.locator("td").nth(6)).toHaveText("Không có");
+      await expect(row.locator("td").nth(7)).toHaveText("Không có");
       await expect(row.locator(".pd-tr-addstage")).toHaveCount(0);
       await expect(row.locator(".pd-tr-warranty")).toHaveCount(0);
       await expect(row.locator(".pd-tr-care")).toHaveCount(0);
@@ -1278,12 +1280,13 @@ test.describe("Bệnh nhân", () => {
     const chooser = page.getByText("Cấu hình cột");
     await expect(chooser).toBeVisible();
 
-    // Turning a column off and saving takes it out of the table. As on Kế
-    // hoạch điều trị, the panel applies nothing until "Lưu".
-    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeVisible();
+    // Ghi chú tư vấn opens switched off (owner, 2026-10-19); turning it on and
+    // saving puts it in the table. As on Kế hoạch điều trị, the panel applies
+    // nothing until "Lưu".
+    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
     await page.locator(".pd-column-row").last().getByRole("switch").click();
     await page.locator(".pd-column-popover").getByRole("button", { name: "Lưu" }).click();
-    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
+    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeVisible();
 
     // The block reads in the order its figure is worked out (R-620): Tổng cộng,
     // Giảm giá, the voucher line, then Thành tiền.
@@ -1736,13 +1739,15 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await openPatientWithTreatment(page);
 
-    // Ten columns, in the reference's order and its own sentence case — the
-    // app's other tables wear uppercase 11.5px headers; this one opts out.
+    // The reference's ten columns, in its order and its own sentence case —
+    // the app's other tables wear uppercase 11.5px headers; this one opts out.
+    // Ghi chú is BlueDental's own (owner, 2026-10-19, R-984).
     const headers = page.locator(".pd-treatment-table .ant-table-thead th");
     await expect(headers).toHaveText([
       "Ngày",
       "Dịch vụ",
       "Nội dung điều trị",
+      "Ghi chú",
       "Răng",
       "SL",
       "Bác sĩ điều trị",
@@ -2215,7 +2220,20 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await form.locator("textarea").fill(note);
+    // Two lines, typed as a user would: the box starts the first "- " and
+    // Enter opens the second (R-983).
+    const textarea = form.locator("textarea");
+    await textarea.fill(note);
+    await textarea.press("Enter");
+    await page.keyboard.type("dòng hai");
+    await expect(textarea).toHaveValue(`- ${note}\n- dòng hai`);
+    // A slip nobody signed leaves Bác sĩ blank for admin, which no longer
+    // saves (Vui lòng chọn bác sĩ) — pick one, as the empty-fields spec does.
+    const doctor = form.locator(".ant-select").first();
+    if ((await doctor.locator(".ant-select-content-has-value").count()) === 0) {
+      await doctor.click();
+      await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
+    }
     await dialog
       .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
       .click();
@@ -2226,7 +2244,10 @@ test.describe("Bệnh nhân", () => {
     // The history grows and the row behind it picks the note up as its
     // "Nội dung điều trị" — the reference's column 3 is the stage's note.
     await expect(dialog.locator(".pd-stage-histrow")).toHaveCount(historyBefore + 1);
-    await expect(dialog.locator(".pd-stage-note").filter({ hasText: note })).toHaveCount(1);
+    const historyNote = dialog.locator(".pd-stage-note").filter({ hasText: note });
+    await expect(historyNote).toHaveCount(1);
+    // The history reads the note one dash per line too, like the table below.
+    await expect(historyNote.locator(".pd-note-list li")).toHaveText([note, "dòng hai"]);
 
     // Column heads read here, once there is history: the grid replaces itself
     // with "Chưa có dữ liệu công đoạn" while the slip is empty, so asserting
@@ -2235,6 +2256,7 @@ test.describe("Bệnh nhân", () => {
       "Ngày",
       "Dịch vụ & răng",
       "Nội dung điều trị",
+      "Ghi chú",
       "Công đoạn",
       "Hành động",
     ]);
@@ -2242,7 +2264,11 @@ test.describe("Bệnh nhân", () => {
     await expect(dialog).toBeHidden();
     // Its own row — a line owns one row per công đoạn, so the clicked one need
     // not be the one that was written.
-    await expect(await findStageRow(page, serviceId, madeId)).toContainText(note);
+    const madeRow = await findStageRow(page, serviceId, madeId);
+    await expect(madeRow).toContainText(note);
+    // One bullet per line, the dash drawn by the list rather than doubled.
+    await expect(madeRow.locator(".pd-note-list li")).toHaveText([note, "dòng hai"]);
+    await expect(madeRow.locator(".pd-note-list li").first()).toHaveCSS("padding-left", "12px");
   });
 
   test("the stage form fills its columns, as the reference's does", async ({ page }) => {
@@ -2308,11 +2334,15 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "PUT",
     );
-    await first.locator(".pd-stage-noteedit textarea").fill(edited);
+    // Two lines without dashes, the way notes were saved before R-983: the
+    // history still reads them one dash per line, the dash drawn by the list.
+    await first.locator(".pd-stage-noteedit textarea").fill(`${edited}\ndòng hai`);
     await first.getByRole("button", { name: "Lưu" }).click();
     expect((await saved).ok()).toBeTruthy();
 
-    await expect(first.locator(".pd-stage-note")).toHaveText(edited);
+    const shown = [edited, "dòng hai"];
+    await expect(first.locator(".pd-stage-note li")).toHaveText(shown);
+    await expect(first.locator(".pd-stage-note li").first()).toHaveCSS("padding-left", "12px");
 
     // Written through the real API: still there after a reload.
     await page.reload();
@@ -2323,8 +2353,12 @@ test.describe("Bệnh nhân", () => {
       .getByRole("button", { name: /Thêm công đoạn|Chi tiết phiếu/ })
       .click();
     await expect(
-      page.getByRole("dialog", { name: "Chi tiết phiếu" }).locator(".pd-stage-note").first(),
-    ).toHaveText(edited);
+      page
+        .getByRole("dialog", { name: "Chi tiết phiếu" })
+        .locator(".pd-stage-note")
+        .first()
+        .locator("li"),
+    ).toHaveText(shown);
   });
 
   test("In lịch sử điều trị opens the reference's printable sheet", async ({ page }) => {
@@ -2352,6 +2386,11 @@ test.describe("Bệnh nhân", () => {
       "Bác sĩ hỗ trợ",
     ]);
     await expect(sheet.getByRole("button", { name: "In Phiếu" })).toBeVisible();
+    // Nội dung điều trị prints one dash per line, as the history reads (R-983):
+    // no cell left as raw text. The fixture slip may have no công đoạn yet, so
+    // this does not insist on a row.
+    const notes = sheet.locator(".pd-print-table").first().locator("tbody td:nth-child(3)");
+    await expect(notes.filter({ hasText: /\S/ }).filter({ hasNot: page.locator("li") })).toHaveCount(0);
 
     // The A4 copy carries the centred title and both signature blocks. It is
     // addressed from the body, not from the dialog: the sheet is portaled to
@@ -2894,7 +2933,9 @@ test.describe("Bệnh nhân", () => {
     await selectAll.check();
     await expect(ticked).toHaveCount(total);
     await expect(count).toHaveText(`Đã chọn ${total}/${total}`);
-    await expect(note).toHaveValue(target!.steps.join("\n"));
+    // Each ticked step lands as its own "- " line (R-983).
+    const bulleted = (names: string[]) => names.map((name) => `- ${name}`).join("\n");
+    await expect(note).toHaveValue(bulleted(target!.steps));
 
     await selectAll.uncheck();
     await expect(ticked).toHaveCount(0);
@@ -2923,7 +2964,7 @@ test.describe("Bệnh nhân", () => {
     await expect(boxes).toHaveCount(total);
     await expect(ticked).toHaveCount(matching.length);
     await expect(count).toHaveText(`Đã chọn ${matching.length}/${total}`);
-    await expect(note).toHaveValue(matching.join("\n"));
+    await expect(note).toHaveValue(bulleted(matching));
 
     // A search with no hit says so and leaves the box idle.
     await search.fill("zzzz-không-có-công-đoạn-này");
@@ -3291,18 +3332,37 @@ test.describe("Bệnh nhân", () => {
      * ticked names above whatever was typed and taking them out again on untick.
      */
     const content = form.locator("textarea").first();
-    await expect(content).toHaveValue(note);
+    // Every line carries its dash (R-983).
+    await expect(content).toHaveValue(`- ${note}`);
+
+    // Enter opens the next "- " line; Shift+Enter breaks one without it.
+    await content.press("Control+End");
+    await content.press("Enter");
+    await expect(content).toHaveValue(`- ${note}\n- `);
+    await page.keyboard.type("typed by hand");
+    await expect(content).toHaveValue(`- ${note}\n- typed by hand`);
+    await content.press("Shift+Enter");
+    await expect(content).toHaveValue(`- ${note}\n- typed by hand\n`);
 
     // Typed text survives under it, and is not duplicated when the box goes
     // off and on again.
-    await content.fill(`${note}
-typed by hand`);
     await step.click();
     await expect(step.locator("input")).not.toBeChecked();
-    await expect(content).toHaveValue("typed by hand");
+    await expect(content).toHaveValue("- typed by hand");
     await step.click();
-    await expect(content).toHaveValue(`${note}
-typed by hand`);
+    await expect(content).toHaveValue(`- ${note}\n- typed by hand`);
+
+    // Enter mid-text opens the line right there and leaves the caret on it.
+    await content.press("Control+Home");
+    await content.press("End");
+    await content.press("Enter");
+    await page.keyboard.type("giữa");
+    await expect(content).toHaveValue(`- ${note}\n- giữa\n- typed by hand`);
+
+    // A line typed without its dash (older notes) is given one on the next tick.
+    await content.fill(`${note}\ntyped by hand`);
+    await step.click();
+    await expect(content).toHaveValue("- typed by hand");
   });
 
   test("Tạo bảo hành builds no checklist, so the heading stays (Trống)", async ({ page }) => {

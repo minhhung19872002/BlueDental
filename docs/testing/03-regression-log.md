@@ -9538,6 +9538,176 @@ Vòng 2 cùng ngày, owner sửa:
   - Spec `medical-record-set` **3/3**: dùng 3 phiếu điều trị; khoá ở cả hai popup; chuyển phiếu qua hai bước; popup thấy "Hoàn thành" mà không cần reload.
   - `patient-medical-record` + `medical-record-drawing`: **33 pass / 2 đỏ có sẵn** (R-963).
 
+## R-983 (2026-10-19, mức 2: công đoạn điều trị) Gạch đầu dòng cho "Nội dung điều trị"
+
+- BA yêu cầu qua 2 ảnh chú thích:
+  - Bảng điều trị ở hồ sơ bệnh nhân: mỗi dòng nội dung là một gạch đầu dòng.
+  - Ô "Nội dung điều trị" trong form công đoạn: thêm gạch đầu dòng.
+- FE (`patient-detail/stage/`):
+  - `stageNoteLines.ts` mới: `noteLines` tách dòng, bỏ dòng trống và bỏ dấu đầu dòng có sẵn (`-`, `–`, `—`, `•`); `bulletLines` / `bulletNote` ghép lại với `"- "`.
+  - `syncStageContent`: công đoạn đã tick đứng trước, rồi tới dòng tự gõ, tất cả đều có `"- "`. Hai bên so khớp sau khi bỏ dấu, nên dòng cũ không dấu vẫn được nhận ra. Tên công đoạn nhiều dòng được so từng dòng.
+  - `StageNoteInput.tsx` mới, dùng cho form công đoạn, popup tái khám và ô sửa trong lịch sử:
+    - Gõ vào ô trống thì tự mở dòng `"- "`.
+    - Enter mở dòng `"- "` mới ngay tại con trỏ, kể cả khi con trỏ ở giữa đoạn.
+    - Shift+Enter vẫn xuống dòng thường, không thêm dấu.
+    - Không động vào giá trị khi bộ gõ (IME) đang ghép chữ.
+    - Nếu thêm dấu làm vượt `NOTE_LIMIT` thì giữ nguyên hành vi mặc định.
+  - `treatmentColumns.tsx`: cột "Nội dung điều trị" vẽ `<ul class="pd-tr-note">`, mỗi dòng một `<li>`, dấu `-` vẽ bằng CSS và có thụt lề treo 12px. Ghi chú cũ lưu không dấu (kể cả ghi chú tạo qua API) cũng hiện thành gạch đầu dòng.
+- Gotcha: con trỏ sau Enter phải đặt trong `useLayoutEffect`, khoá theo giá trị mới. Dùng `requestAnimationFrame` thì quá muộn: thêm 1–2 phím đã rơi vào cuối ô ("dòng hai" thành "ng haidò").
+- Cố ý giữ nguyên: phần hiển thị trong lịch sử công đoạn (`.pd-stage-note`), bản in lịch sử điều trị, popup nhắc lịch và thẻ tổng hợp phiếu vẫn hiện ghi chú đúng như đã lưu. Ctrl+Z không lùi qua được dấu do Enter chèn, vì ô là controlled.
+- Spec:
+  - `patient.spec` "…a stage is added there": Enter mở dòng thứ hai, bảng có 2 `li` với padding-left 12px. Tự chọn bác sĩ khi ô trống; trước đây test đỏ "Vui lòng chọn bác sĩ", HEAD cũng đỏ y vậy.
+  - "selects all and unselects all" và test tái khám: kỳ vọng nội dung có `"- "`, thêm các bước Enter giữa đoạn, Shift+Enter, bỏ tick rồi tick lại.
+  - `treatment-plan.spec:448` và `treatment-stage-chain.spec:272`: kỳ vọng `"- "`.
+- Kết quả trên bản build production (`vite preview`):
+  - `treatment-plan` + `treatment-stage-chain` + `stage-treatment-date`: **21/21**.
+  - `patient.spec` (phần công đoạn) + `cskh-after-treatment`: 18 pass. Các test đỏ:
+    - "a tái khám picks its teeth, lists its images…": đỏ có sẵn trên HEAD (R-960).
+    - 3 test timeout khi chạy chung lô vì bệnh nhân fixture dồn nhiều dòng; chạy riêng từng test thì pass.
+    - "…a stage is added there" pass một lần với đủ kiểm tra R-983. Về sau đỏ ở dòng 2191 vì bệnh nhân fixture dồn quá nhiều dòng, dòng cần bấm bị đẩy khỏi trang 1. Spec ở HEAD đỏ đúng dòng đó, nên đây là lỗi fixture có sẵn.
+- Code commit ở `b8b2f995`.
+- **Vòng 2 (owner, cùng ngày)**: cột "Nội dung điều trị" ở Lịch sử điều trị trong "Chi tiết phiếu" vẫn in nguyên văn, không có gạch đầu dòng.
+  - Component chung mới `stage/StageNoteBullets.tsx` (class `.pd-note-list`, thay cho `.pd-tr-note`), dùng ở bảng điều trị, lịch sử công đoạn, bản in "In lịch sử điều trị" (cả bản xem và tờ A4) và popup tái khám.
+  - `.pd-stage-note` và ô ghi chú trong popup tái khám (`.pd-recall-notetext`) đổi từ `<p>` sang `<div>`; bỏ `white-space: pre-wrap` và rule `.pd-print-note` không còn dùng.
+  - Vẫn giữ nguyên `PlanSummaryCards` (feature `treatment-management`, chỉ hiện ghi chú cuối).
+  - Spec:
+    - "…a stage is added there": lịch sử có 2 `li`.
+    - Test bút chì: ghi chú 2 dòng không có dấu hiện thành 2 `li`.
+    - "In lịch sử điều trị": không ô nội dung nào còn hiện chữ thô.
+  - Chạy trên bản build production:
+    - `treatment-plan` + `treatment-stage-chain` + `stage-treatment-date`: **21/21**.
+    - Pass: "…a stage is added there", "In lịch sử điều trị", "selects all…", và 2 trong 3 test tái khám.
+    - Test bút chì: phần R-983 pass. Test đỏ ở bước bấm lại dòng sau khi reload; spec ở HEAD đỏ đúng chỗ đó (fixture dồn dòng).
+    - "a tái khám picks its teeth": đỏ có sẵn.
+
+## R-984 — Phiếu tư vấn: checkbox rõ và gọn, cột hiển thị mặc định (owner, 2026-10-19)
+
+- Phạm vi: thẻ "Phiếu tư vấn" ở tab Chẩn đoán & Tư vấn (`/patient/:id?tab=consulting`). Retest Level 2.
+- **Checkbox** (ảnh owner: "mờ, không rõ, diện tích rộng quá"):
+  - Cột tick rộng 100px vì rule chung `.ant-table-thead > tr > th { min-width: 100px }` trong `index.css`.
+  - `PatientAdviseCard` đặt `rowSelection.columnWidth: 36`. `patient-detail.css` đặt th/td `.ant-table-selection-column` rộng và `min-width` 36px, padding 8px (ô tick 20px).
+  - Viền ô tick: đổi `--ant-color-border` sang `--bd-dim` và viền 1.5px. Theme `colorBorder` = `--bd-line` gần như không thấy trên nền trắng.
+  - Hover và trạng thái đã tick vẫn dùng màu primary của AntD.
+  - Đo trên dev: cột 100 → 36px, viền `#7d85a5`. Ô "chọn tất cả" ở header cũng được sửa giống vậy.
+- **Cột hiển thị mặc định** (ảnh "Cấu hình cột" của owner):
+  - Bật: Ngày, Dịch vụ, Chẩn đoán, Đơn giá, Số lượng, Giảm giá, Thành tiền.
+  - Tắt: Nhân sự tư vấn 1/2, Bác sĩ chẩn đoán 1, Chẩn đoán 2, Ghi chú tư vấn.
+  - Đơn giá đặt trước Số lượng.
+  - Sửa trong `adviseColumns.ts` (`HIDDEN_BY_DEFAULT`). Cấu hình vẫn là state riêng của thẻ, không lưu lại.
+- Spec:
+  - `consulting-plan.spec` "the diagnosis cell…": bật Chẩn đoán 2 qua panel rồi mới đọc ô "-".
+  - `patient.spec` "Chẩn đoán & Tư vấn carries…": Ghi chú tư vấn ban đầu ẩn; bật lên rồi Lưu thì cột hiện ra.
+- Kết quả trên bản build production (`vite preview`), chạy consulting-plan + consulting-review + consulting-delete-and-picker + phần tư vấn của patient.spec: **30/31**.
+  - Đỏ: `consulting-delete-and-picker:200`. Test lấy dịch vụ cuối danh mục (hiện là dữ liệu thử sót "DUNG-TEST Thành phần C …") nhưng hộp Chọn Dịch Vụ không hiện dịch vụ đó.
+  - Test này đã đỏ trước phần cột mặc định. Nó thuộc hộp thoại riêng, không đụng tới `.pd-advise-table`. Chưa đối chứng trên HEAD.
+  - `consulting-plan:599` (bảng tab Kế hoạch điều trị bị bẹp) và `:1034` (kéo hàng panel) đỏ một lần, chạy lại thì xanh.
+
+## R-985 (2026-10-19, mức 2: bệnh án) Điền phiếu bệnh án từ phiếu điều trị của bộ theo `save/P1810.drawio`
+
+- Đây là thiết kế của phòng khám, không có trên bản gốc. Ô "MS" để trống trên mọi mẫu, như phòng khám yêu cầu.
+- BE:
+  - `MedicalRecordSet.OutpatientNumber` — Số ngoại trú `NGT-{MMyy}{mã KH}-{xxxx}`, cấp một lần khi mở bộ; xxxx đếm số bộ chi nhánh mở trong ngày. Migration `MedicalRecordSetOutpatientNumber` cấp số cho bộ cũ theo ngày tạo (local: 27 bộ ngày 17/10 → 0001…0027).
+  - Mã lưu trữ `NK-{MMyy ngày mở bộ}{mã KH}{mã phiếu điều trị cũ nhất}` (VD `NK-1026DH264444DT01`) — tính khi đọc, không lưu.
+  - `MedicalRecordTreatmentDates`: ngày bắt đầu = công đoạn cũ nhất của mọi phiếu; ngày kết thúc chỉ có khi **mọi** dịch vụ của **mọi** phiếu đã hoàn thành, = ngày hoàn thành dịch vụ cuối. Công đoạn bảo hành không tính, và không làm mất ngày kết thúc. Mỗi phiếu giữ ngày kết thúc riêng (`plans[].endDate`), cùng `attachedAt` là lịch sử thêm phiếu vào bộ.
+  - API mới `GET api/v1/app/medical-record-sets/{id}/sheet-facts` (quyền `PatientMedicalRecord.Read`, chi nhánh khác → 404).
+- FE (`medical-record/sheetFacts.ts`, `useSheetFactValues.ts`):
+  - Bìa: Mã lưu trữ, "NĂM 20__", ngày bắt đầu / kết thúc.
+  - Bệnh án ngoại trú: Số ngoại trú, Số lưu trữ. Chỉnh nha: Mã ngoại trú; mục IX mỗi dịch vụ một dòng `Răng {răng} - {dịch vụ}`.
+  - Phiếu tư vấn tổng quát: Bác sĩ + Chức vụ của bác sĩ phiếu điều trị (tối đa 2 bác sĩ khác nhau); "Ngày thực hiện" lấy ngày chọn ở góc phải.
+  - Phiếu tư vấn và xác nhận: Bác sĩ tư vấn (Nhân sự tư vấn 1) + Ngày tư vấn của dòng tư vấn; Chẩn đoán một dòng dài; Bác sĩ điều trị; bảng chi phí mỗi dịch vụ một dòng + Tổng + bằng chữ; "Tôi đã được Bác sĩ …" in đậm.
+  - Phiếu theo dõi điều trị: Tờ điều trị số = mã lưu trữ, Số ngoại trú; bảng lịch sử điều trị tăng dần, gom theo ngày (giờ chỉ in ở dòng đầu ngày), mỗi chẩn đoán một dòng, chi tiết `Dịch vụ: …` rồi `Răng … - nội dung`. Dòng vượt số in sẵn được thêm tự động.
+- **Giả định cần owner xác nhận**: "mmyy lấy theo ngày kết thúc lịch hẹn" của Số ngoại trú — đang lấy ngày mở bộ (cùng ngày cấp số xxxx). Cột "Bác sĩ (ký)" của Phiếu theo dõi để trống cho bác sĩ ký.
+- **Test** (bản build :8080, host thật :5000, PostgreSQL thật; không chặn API):
+  - BE Domain **961/961** (mới: `MedicalRecordTreatmentDatesTests` 10 ca), Application **737/737**.
+  - Spec mới `medical-record-sheet-facts.spec.ts` **1/1**: bệnh nhân riêng, 2 phiếu điều trị trong 1 bộ; mã NK/NGT; điền Bìa, ngoại trú, chỉnh nha, tư vấn tổng quát, xác nhận đồng ý (bảng chi phí, Tổng, chữ đậm), theo dõi điều trị; ngày kết thúc chỉ hiện khi phiếu thứ hai cũng xong, còn sau reload; chi nhánh 2 nhận 404.
+  - `patient-medical-record` + `medical-record-drawing` + `medical-record-set`: 4 ca sửa theo hành vi mới (Số ngoại trú = NGT, Mã lưu trữ trên Bìa, Ngày tư vấn có sẵn, Phiếu theo dõi có lịch sử thật có thể dài hơn 1 trang). Còn **2 đỏ có sẵn** (R-963): "nine forms"; "picking the day" — ngày chọn vẫn không vào phiếu đang mở, nay ô hiện ngày mặc định thay vì rỗng.
+- **Vòng 2 (owner, 2026-10-19)**:
+  - (a) Thêm vào bộ một phiếu điều trị chưa điều trị thì ngày kết thúc trên Bìa phải mất ngay; bỏ phiếu đó ra thì hiện lại — trước đó phải F5. Hai nguyên nhân: lưu bộ không làm `sheet-facts` refetch (khoá nằm ngoài `recordSetKeys.list`), và phiếu đang mở không vẽ lại khi giá trị tự điền đổi. Sửa: `useRecordSetMutation` invalidate `recordSetKeys.allSheetFacts()`; `MedicalRecordDocument` vẽ lại khi nội dung `auto` đổi (phần đang viết dở nằm trong `stored` nên không mất).
+  - (b) Bảo hành: tạo công đoạn bảo hành đưa dịch vụ về "đang điều trị", hoàn thành nó lại đánh dấu dịch vụ xong — nên không dựa vào trạng thái dịch vụ. Dịch vụ chỉ bị bảo hành mở lại vẫn tính là xong khi mọi công đoạn điều trị (không bảo hành) đã hoàn thành **và đủ mọi răng**. Ngày kết thúc = ngày công đoạn điều trị cuối của dịch vụ cuối, của phiếu cuối; bảo hành sau đó không đổi ngày này.
+  - Domain **963/963** (+2 ca: bảo hành mở lại nhưng còn răng chưa làm; bảo hành muộn hơn ở phiếu 1 không đổi ngày kết thúc của bộ).
+  - `medical-record-sheet-facts` **2/2**: ca mới — bộ 1 phiếu kết thúc hôm qua; thêm phiếu chưa điều trị qua popup "Sửa bộ hồ sơ" → ngày kết thúc mất, không reload; bỏ ra → hiện lại; bảo hành hôm nay (đang mở rồi hoàn thành) → API và Bìa sau reload vẫn là hôm qua. Fixture `seedPatientWithSlips(…, { warranty: true })` chọn dịch vụ có thời hạn bảo hành.
+  - `patient-medical-record`: `openFreshSheet` chỉ lấy phiếu của bộ đang hiệu lực (bệnh nhân dùng chung có bộ cũ bị hủy lúc 09:26 → PUT 403). Bộ 3 spec bệnh án: **36 pass / 2 đỏ có sẵn** (R-963).
+- **Vòng 3 (owner, 2026-10-19)**: "bỏ phiếu mới ra thì ngày kết thúc không hiện lại".
+  - Bỏ tick trong "Sửa bộ hồ sơ" đã hiện lại đúng: chạy lại trên chính bệnh nhân DH260724 (bộ `-01`, thêm/bỏ DT06 và DT01) ở cả :8080 và :5173 → `19/10/26` hiện lại ngay, API trả `2026-10-19`.
+  - Lỗi thật nằm ở phiếu điều trị bị **hủy dịch vụ** (hoặc hủy phiếu) khi đang ở trong bộ: phiếu vẫn nằm trong bộ, không còn dịch vụ nào để hoàn thành, nhưng vẫn bị tính là "chưa xong" nên giữ mất ngày kết thúc mãi. Thêm `MedicalRecordTreatmentDates.Counts(TreatmentPlan)`: phiếu đã hủy, hoặc phiếu mà mọi dịch vụ đều đã hủy, không còn tính trên phiếu bệnh án (ngày, mã lưu trữ, chi phí, lịch sử). Phiếu bị xoá thì vốn đã bị bỏ qua qua bộ lọc xoá mềm.
+  - Domain **964/964** (+1 ca). `medical-record-sheet-facts` **2/2**, ca 2 thêm: phiếu vào bộ rồi bị hủy dịch vụ duy nhất → ngày kết thúc hiện lại; phiếu khác vào bộ rồi bị xoá (DELETE 204) → ngày kết thúc hiện lại.
+- **Vòng 4 (owner, 2026-10-19)**:
+  - Số ngoại trú: mmyy đổi từ "ngày kết thúc lịch hẹn" (trước đây tạm lấy ngày mở bộ) sang **ngày điều trị sớm nhất** trong lịch sử điều trị của mọi công đoạn của mọi phiếu trong bộ (cũng là ngày in ở "Ngày bắt đầu điều trị"). Ngày đó có thể đổi, nên bộ chỉ lưu số chạy `OutpatientSequence` (xxxx, cấp khi mở bộ, đếm theo chi nhánh trong ngày); số `NGT-…` ghép khi đọc. Chưa có công đoạn nào thì mmyy lấy ngày mở bộ. Migration `MedicalRecordSetOutpatientNumber` (chưa push) được thay bằng `MedicalRecordSetOutpatientSequence` (cột int + cấp số cho bộ cũ); `MedicalRecordSetDto.OutpatientNumber` bỏ, số chỉ còn ở `sheet-facts`.
+  - Mẫu 3 (Bệnh án chỉnh nha, IX): dịch vụ gom theo phiếu điều trị — dòng "Phiếu điều trị DTxx" rồi các dòng `Răng … - dịch vụ`, giữa hai phiếu cách một dòng trống. Quá 7 dòng in sẵn thì thêm dòng dưới dòng cuối như khi bấm Enter (`custom.line.orthodontic.text.111.n`); `applyStoredLines` nhận cả giá trị tự điền.
+  - Mẫu 5: Bác sĩ tư vấn + Ngày tư vấn lấy từ **phiếu điều trị đầu tiên**, và trong đó **dòng tư vấn đầu tiên** (Nhân sự tư vấn 1 và ngày), không còn ghép tên của mọi phiếu.
+  - Domain **964/964**, Application **737/737**; 3 spec bệnh án **36 pass / 2 đỏ có sẵn** (R-963). `medical-record-sheet-facts` **2/2**: ca 1 dùng 3 phiếu (3 nhóm ở mẫu 3, dòng thứ 8 tự thêm; bảng chi phí 3 dòng; Bác sĩ tư vấn đúng một tên); ca 2 kiểm `NGT-{tháng/năm của hôm qua}` khi công đoạn đầu là hôm qua.
+- **Vòng 5 (owner, 2026-10-19)**: Phiếu Tư Vấn Tổng Quát không hiện Chức vụ. Mình đã bind nhầm **Chức danh** (`JobTitle`, dùng cho Giấy đồng ý phẫu thuật) thay vì **Chức vụ** (`Position`) của hồ sơ nhân viên. `sheet-facts` đổi `plans[].dentistJobTitle` → `dentistPosition`. Bộ thật của DH260724 (DT05–DT08): BS. Lê Thu Hà → "12345"; BS. Vũ Nhật Minh chưa khai Chức vụ → để trống. `medical-record-sheet-facts` **2/2** (thêm so khớp ô Chức vụ với Chức vụ trên hồ sơ nhân viên; bác sĩ của bệnh nhân test chưa có Chức vụ nên ca này chỉ so được giá trị rỗng).
+- **Vòng 6 (owner, 2026-10-19)**:
+  - Mẫu 4: chỉ điền bác sĩ (và Chức vụ) của **phiếu điều trị đầu tiên**; dòng "2." để trống. Mẫu 5: "1. Bác sĩ điều trị" và "Tôi đã được Bác sĩ …" cũng chỉ lấy bác sĩ của phiếu đầu tiên.
+  - Xuống dòng: chữ dài quá một dòng không còn xuống dòng bên trong một ô cao, mà sang **dòng chấm mới** ngay dưới (trong ô bảng thì dòng mới nằm trong ô), áp dụng cho mọi ô ở mọi mẫu. `flowLines.ts`: sau khi phiếu dàn trang xong, ô nào bị gói dòng (hoặc có ký tự xuống dòng) được cắt theo đúng bề rộng và font của chính nó; phần dư sang các dòng chấm `data-flow-of=<id ô>`. Chỉ là cách vẽ — ô vẫn giữ một giá trị (`flowedText` ghép lại khi đọc), giá trị lưu và giá trị tự điền không đổi; nhân bản dòng bảng bỏ các dòng tràn. Mẫu 5 "II. Chẩn đoán" dùng luôn hai dòng in sẵn trước rồi mới thêm dòng (`lineFit.ts`).
+  - Kiểm tra trên bộ thật `HSDH260724-19102026-03`: mẫu 4 Chẩn đoán thành 2 dòng chấm; mẫu 5 ô chi phí dòng 6 thành 3 dòng; Phiếu theo dõi mỗi dịch vụ/răng một dòng; mẫu 5 Chẩn đoán dùng dòng in sẵn thứ hai.
+  - Phiếu theo dõi, cột Ngày, giờ: giờ của **công đoạn đầu tiên** trong mọi dịch vụ của ngày đó, in một lần ở dòng đầu ngày — viết thẳng thành quy tắc (lấy giá trị nhỏ nhất) thay vì dựa vào thứ tự server trả. Bộ thật DT06: hai công đoạn ghi lúc 10:41:30 và 10:41:36 → in `19/10/2026 10:41`, như trước.
+  - Liệt kê trong ô bảng: các dòng công đoạn của cột "Y lệnh/Chi tiết điều trị" mở đầu bằng "- "; dòng chỉ tràn do bề rộng thì không thêm "-".
+  - Test "every form draws the whole of its printed original" chỉ đếm ô của bản in gốc (bỏ dòng/hàng do dữ liệu tự thêm — mẫu 3 của bệnh nhân dùng chung có hơn 7 dòng). Bộ 4 spec bệnh án: **39 pass / 2 đỏ có sẵn** (R-963) sau khi chạy lại 3 ca bị ảnh hưởng trên bản build mới.
+  - Sửa lại theo owner: dòng `Dịch vụ: …` là tiêu đề, **không** có "-"; chỉ các dòng công đoạn dưới nó (`- Răng 12 - …`) có "-". `medical-record-sheet-facts` **2/2**.
+- **Vòng 7 (owner, 2026-10-19)**: nút `+`/`−` của dòng bảng.
+  - Chồng nhau: `−` ở `right - 10`, `+` ở `right + 4`, cùng rộng 20px → chồng 6px, bấm `+` có thể trúng `−`. Nay `−` ở `right + 6`, `+` ở `right + 32` (cách 6px).
+  - Lỗi: thêm dòng dưới dòng 1 rồi Lưu → dòng nhảy xuống cuối bảng (khi vẽ lại, dòng thêm luôn được dựng ở cuối). Nay mỗi dòng thêm để lại ghi chú `custom.row-after.<ô đầu dòng mới>` = ô đầu của dòng nó được thêm dưới; vẽ lại thì đặt đúng chỗ. Ghi chú dòng đã xoá (`custom.deleted-table-row.*`) trước đây không được vẽ lại nên một lần sửa + Lưu sau đó làm dòng đã xoá hiện lại — nay cả hai loại ghi chú được vẽ lại cạnh bảng.
+  - Test mới trong `patient-medical-record`: "a row added mid-table stays where it was added, and − and + stand apart" (thêm dưới dòng 1, xoá dòng 3, Lưu, sửa tiếp, Lưu, reload → dòng thêm vẫn dưới dòng 1, dòng 3 vẫn mất, chữ còn).
+  - 4 spec bệnh án: **39 pass / 2 đỏ có sẵn** (R-963).
+- **Rebase lên main (`f310f87c`, 2026-10-19)**: main đã dùng số R-983 cho "Gạch đầu dòng cho Nội dung điều trị", nên mục này đổi thành **R-985** (R-984 cũng đã được main dùng cho Phiếu tư vấn). Nội dung công đoạn giờ lưu dạng `- dòng 1\n- dòng 2`; Phiếu theo dõi dùng `noteLines` (của R-983) để bỏ dấu và nối các ý bằng dấu phẩy: `- Răng 16 - Mở tủy, Lấy tủy`, đúng mẫu drawio "Răng 16 - Chữa tủy, cạo vôi răng". Sau rebase: Domain **964/964**, Application **737/737**, `medical-record-sheet-facts` **2/2**.
+
+## R-986 (2026-10-19, mức 2: công đoạn điều trị) Cột "Ghi chú" ở LỊCH SỬ ĐIỀU TRỊ và bảng điều trị hồ sơ
+
+- Owner yêu cầu qua 2 ảnh, đã chốt plan:
+  - LỊCH SỬ ĐIỀU TRỊ có cột "Ghi chú" giữa "Nội dung điều trị" và "Công đoạn", có bút chì sửa tại chỗ. Áp dụng cho "Chi tiết phiếu" ở trang phiếu và panel công đoạn ở hồ sơ.
+  - Bảng điều trị hồ sơ bệnh nhân (tab Tất cả) có cột "Ghi chú" chỉ đọc, giữa "Nội dung điều trị" và "Răng".
+  - Ghi chú vẫn sửa được sau Hoàn thành. Công đoạn đã "tiếp tục" (superseded) thì không sửa được.
+  - Ghi chú là chữ thường, giữ xuống dòng, không có gạch đầu dòng "- ". Nội dung điều trị giữ khoá như cũ.
+  - Không đưa vào form tạo/tiếp tục công đoạn, bản in, Excel.
+  - Đây là trường riêng của BlueDental, không có ở bản gốc.
+- BE:
+  - `TreatmentStage.Remark` (tối đa 1000). `SetRemark` chỉ gọi `GuardLive` (0018), trim, chuỗi trống thì lưu null.
+  - Endpoint riêng `PUT api/v1/app/treatment-stages/{id}/remark` với quyền `treatmentStage.update`, để các lần sửa công đoạn khác không xoá mất ghi chú.
+  - Migration `20261019044121_TreatmentStageRemark` (cột nullable, không backfill). Cần chạy DbMigrator.
+  - 3 key i18n `Patient:Stage:Remark` / `EditRemark` / `RemarkPlaceholder` (vi + en).
+- FE:
+  - `stageApi.ts`: `remark` và `useUpdateStageRemark`.
+  - `StageRemarkCell.tsx` mới: textarea 4 dòng, showCount 1000. Nếu lưu bị từ chối thì giữ nguyên ô sửa và bản nháp.
+  - `StageEditPencil.tsx` mới: bút chì dùng chung cho Nội dung và Ghi chú.
+  - Lưới lịch sử có 6 cột: `190px 1fr 1.15fr 0.85fr 0.7fr 0.7fr`, min-width 1400px.
+  - `treatmentRows.ts` thêm `stageRemark` (dòng tái khám và chẩn đoán là null). `treatmentColumns.tsx` thêm cột rộng 180, `.pd-tr-remark` có `white-space: pre-line`, ô trống hiện "—".
+- Gotcha e2e:
+  - Bác sĩ chỉ có quyền đọc thì không có tab nào trên phiếu, nên `openStageDialog` treo. Phải vào thẳng trang phiếu và chờ dòng lịch sử.
+  - Phạm vi điều trị R-961: tài khoản thử phải `isDentist: true` và phiếu phải là của bác sĩ đó. `createSlipViaApi` có thêm tham số `dentistId` (mặc định giữ hành vi cũ).
+- Spec:
+  - `stage-remark.spec` mới (2 test):
+    - Admin: header, ghi chú nhiều dòng, reload, bảng hồ sơ, superseded bị chặn cả UI lẫn PUT thô, sửa sau Hoàn thành, chuỗi trống thì null.
+    - Quyền: chỉ có đọc thì không có bút chì và PUT bị 403; cấp `treatmentStage.update` thì lưu được.
+  - `patient.spec`: thêm "Ghi chú" vào danh sách header của 2 bảng và dời chỉ số cột ở dòng chẩn đoán.
+- Kết quả trên bản build production (`vite preview` 127.0.0.1:8157):
+  - BE: Domain 46/46, Application 150/150.
+  - `stage-remark` 2/2, `stage-treatment-date` 4/4, `treatment-stage-chain` 8/8.
+  - `treatment-leaf-permissions` 1/2. Test đỏ ở :183 là lỗi có sẵn từ R-961: dentist của test không có IsDentist nên trang phiếu trả 0052. Không liên quan thay đổi này.
+  - `patient.spec` cả file: **60/66**. Header 2 bảng (có "Ghi chú") và dòng chẩn đoán pass. 6 test đỏ không liên quan cột Ghi chú:
+    - `:1821` và `:2128`: chế độ "owing" lấy phiếu nợ mới nhất. Phiếu đó do test bảo hành chạy trước trong cùng lượt tạo ra, nên dòng đầu của line là dòng bảo hành, mà `row.isWarranty` thì không có nút "Tạo phiếu thanh toán". Đây là lỗi thứ tự dữ liệu của spec.
+    - `:3289` và `:3396`: 2 test tái khám đã đỏ trước thay đổi này (R-960 / R-983).
+    - `:3669`: Tiếp nhận, đỏ do TEMP-BUG25-OFF.
+    - `:3924`: dữ liệu demo không còn bệnh nhân nào có đúng 1 lịch hẹn còn hiệu lực.
+
+## R-987 (2026-10-19, mức 3: nhân viên + mọi bản in có bác sĩ) Bản in gọi bác sĩ bằng Chức danh
+
+Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, hồ sơ, phiếu thu, hóa đơn…), chỗ nào nhắc đến Bác sĩ thì in **Chức danh** của nhân viên đó (`JobTitle`, R-963); chưa khai Chức danh thì mới in tên. Màn hình giữ tên.
+
+- BE: `StaffJobTitles` (Application/Staff) là nơi duy nhất đọc Chức danh từ ExtraProperties; `StaffAppService` dùng hằng số của nó. Chức danh đi kèm ngay cạnh tên trong DTO mà bản in đọc — không cho FE tự tra `/staff`, vì danh sách đó cần `Staff.View`, bác sĩ có thể không có, và bản in sẽ âm thầm in tên. Không thêm truy vấn: mỗi service vốn đã đọc `IdentityUser` để lấy tên.
+  - `PrescriptionDto.StaffJobTitle`; `PatientDiagnosisDto` và `PatientAdviseDto`: `StaffJobTitle`, `SecondStaffJobTitle`; `TreatmentStageDto`: `StaffJobTitle`, `SecondStaffJobTitle`; `PatientTreatmentDto.DentistJobTitle`; `LaboOrderDto.DentistJobTitle`.
+  - `sheet-facts` (chỉ phục vụ bản in) trả sẵn dạng in: `DentistName`, `ConsultantName`, `DoctorName` = Chức danh, không có thì tên.
+  - PDF "Hồ sơ điều trị" (ClinicDocument): "Bác sĩ tiếp nhận" in Chức danh.
+- FE: `utils/printedDoctorName.ts` (Chức danh → tên). Áp dụng cho: Phiếu điều trị (cột Bác sĩ + "Người lập phiếu"), Hóa đơn tổng / hoàn tiền ("Người lập phiếu" khi phiếu không có nhân viên thu và lấy bác sĩ thay), Đơn thuốc (chữ ký), Phiếu chẩn đoán (Bác sĩ ký), Phiếu chẩn đoán & hóa đơn (bác sĩ từng mục + "Bác sĩ chẩn đoán"), In lịch sử điều trị (Bác sĩ, Bác sĩ hỗ trợ, người lập), Phiếu đặt hàng Labo (Bác sĩ chỉ định + chữ ký). Bệnh án (Phiếu Tư Vấn Tổng Quát, Phiếu tư vấn và xác nhận) nhận qua `sheet-facts`.
+- Không đổi, có chủ ý: Giấy đồng ý phẫu thuật đã có riêng "Tôi tên là" (tên) và "Chức danh"; ô "Chức vụ" của Phiếu Tư Vấn Tổng Quát vẫn là Chức vụ (R-985 vòng 5); PHIẾU THU PDF không có ô bác sĩ (khách hàng, người nộp, thu ngân); Phụ tá, phiếu báo giá ("Thu Ngân / Bác Sĩ" cố định), phiếu thu chi báo cáo không phải vai trò bác sĩ.
+- Test (bản build `vite preview` :8080 qua `E2E_BASE_URL=http://localhost:8080` — preview chỉ nghe IPv6; host thật :5000; PostgreSQL docker thật; không chặn API):
+  - Spec mới `printed-doctor-title.spec.ts` **1/1**: bác sĩ riêng của lượt chạy có Chức danh chẩn đoán, tư vấn, mở phiếu, ghi công đoạn; API chẩn đoán/tư vấn/phiếu điều trị/công đoạn mang Chức danh; Phiếu điều trị in Chức danh ở cột Bác sĩ và chữ ký, bảng trên màn hình vẫn là tên; Phiếu Tư Vấn Tổng Quát in Chức danh sau reload; xoá Chức danh → phiếu in lại tên. Fixture: `createRunStaff({ jobTitle })`, `seedPatientWithSlips(…, { staffId })`.
+  - `medical-record-sheet-facts` so bác sĩ theo dạng in (`dentistJobTitle ?? dentistName`).
+  - Bộ hồi quy `medical-record-sheet-facts`, `consulting-plan`, `consulting-review`, `treatment-plan-detail`, `prescription`, `labo-detail`, `patient-medical-record`: **67 pass**, 2 đỏ có sẵn (R-963: "nine forms", "picking the day").
+  - `prescription` đỏ ở ca "a slip picks its diagnoses…" kéo theo 6 ca không chạy — lỗi dữ liệu test có sẵn, không do thay đổi này: seed lấy 2 chẩn đoán đầu của Danh mục, mà danh sách Danh mục trả cả dòng đã xoá; "CD ACTIVE 972309" bị một spec khác xoá mềm từ 2026-10-16 nên `diagnosis-sources` (đúng) không trả nó. Seed nay bỏ dòng `isDeleted`. `prescription` **8/8** (gồm "In đơn thuốc").
+  - BE Application **737/737**.
+- **Vòng 2 (owner, 2026-10-19)**: Mẫu 5 (Phiếu tư vấn và xác nhận đồng ý điều trị) còn trống tên dưới hai chữ ký. `consultation.text.52` (dưới "BÁC SĨ TƯ VẤN", mục VI) điền như ô Bác sĩ tư vấn `text.3`; `consultation.text.57` (dưới "BÁC SĨ ĐIỀU TRỊ", mục VII) điền như `text.8`/`text.53` — đều ở dạng in (Chức danh, không có thì tên). `printed-doctor-title` **1/1** (thêm so 2 ô với Chức danh), `medical-record-sheet-facts` **2/2** (thêm so 2 ô), `patient-medical-record` + `medical-record-set` + `medical-record-drawing` **37 pass / 2 đỏ có sẵn** (R-963).
+
 ## R-988 (2026-10-19, mức 3: màu toàn FE + bảng màu trạng thái dùng chung) Đổi màu sang design system "Đức Hạnh Premium" v3 (grape)
 
 - **Yêu cầu owner**: lấy màu theo artifact design system v3 do đồng nghiệp gửi ("lấy màu thui nha").

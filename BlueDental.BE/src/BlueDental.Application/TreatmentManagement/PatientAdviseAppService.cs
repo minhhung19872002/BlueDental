@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
+using BlueDental.Staff;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -97,8 +98,9 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             .Distinct()
             .ToList();
 
-        var staff = (await _userRepository.GetListByIdsAsync(staffIds))
-            .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var users = await _userRepository.GetListByIdsAsync(staffIds);
+        var staff = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var jobTitles = StaffJobTitles.Of(users);
 
         var catalogIds = dtos
             .SelectMany(d => d.DiagnosisId.HasValue
@@ -123,6 +125,8 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             dto.SecondStaffName = dto.SecondStaffId.HasValue
                 ? staff.GetValueOrDefault(dto.SecondStaffId.Value)
                 : null;
+            dto.StaffJobTitle = jobTitles.GetValueOrDefault(dto.StaffId);
+            dto.SecondStaffJobTitle = StaffJobTitles.Lookup(jobTitles, dto.SecondStaffId);
             var service = catalogs.GetValueOrDefault(dto.ServiceId);
             dto.ServiceName = service?.Name;
             dto.ServiceGroupId = service?.TaxonomyId;

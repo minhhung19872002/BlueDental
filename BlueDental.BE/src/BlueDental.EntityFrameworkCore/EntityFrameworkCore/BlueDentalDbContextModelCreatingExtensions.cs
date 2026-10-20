@@ -1193,6 +1193,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
             entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Remark).HasMaxLength(TreatmentStage.RemarkMaxLength);
             entity.Property(x => x.Status).HasConversion<short>();
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);

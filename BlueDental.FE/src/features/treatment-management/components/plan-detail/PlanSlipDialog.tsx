@@ -7,6 +7,7 @@ import type { BranchInfo } from "@/hooks/useBranchInfo";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
+import { printedDoctorName } from "@/utils/printedDoctorName";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { moneyText } from "../plan/planTypes";
 import { dash } from "./planDetailTypes";
@@ -75,7 +76,12 @@ export function PlanSlipDialog({ open, patient, plan, clinic, onClose }: Props) 
         </div>
       }
     >
-      <PlanSlipSheet slip={slip} patient={patient} clinic={clinic} dentistName={plan.dentistName} />
+      <PlanSlipSheet
+        slip={slip}
+        patient={patient}
+        clinic={clinic}
+        dentistName={printedDoctorName(plan.dentistName, plan.dentistJobTitle)}
+      />
       <article className="pdt-receipt pdt-screen">
         <div className="pdt-receipt-head">
           <section className="pdt-receipt-section">

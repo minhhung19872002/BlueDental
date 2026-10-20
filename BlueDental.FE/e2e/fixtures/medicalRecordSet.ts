@@ -146,9 +146,16 @@ export interface SeededPatient {
 /**
  * A patient of the run's own: one diagnosis slip, and `count` treatment slips each
  * opened from a consulting line on it — the chain the clinic runs (diagnose →
- * advise → accept → open slip). No set yet.
+ * advise → accept → open slip). No set yet. With `warranty`, the services are
+ * ones Danh mục gives a warranty period, so a warranty công đoạn may be raised.
+ * With `staffId`, that member of staff diagnoses, advises and treats; otherwise
+ * the branch's first.
  */
-export async function seedPatientWithSlips(page: Page, count = 3): Promise<SeededPatient> {
+export async function seedPatientWithSlips(
+  page: Page,
+  count = 3,
+  { warranty = false, staffId }: { warranty?: boolean; staffId?: string } = {},
+): Promise<SeededPatient> {
   const suffix = runId();
   await page.goto("/patient");
   await assertRealApiTraffic(page, "/api/v1/app/patients");
@@ -186,19 +193,22 @@ export async function seedPatientWithSlips(page: Page, count = 3): Promise<Seede
         isDeleted: boolean;
         isCombo: boolean;
         price: number | null;
-        serviceConfig?: { priceAfterDiscount: number } | null;
+        serviceConfig?: { priceAfterDiscount: number; warrantyDays: number } | null;
       }[];
     }>(
       page,
       `/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=care_service&isActive=true&maxResultCount=1000`,
       asBranch,
     )
-  ).body.items.filter((entry) => !entry.isDeleted && !entry.isCombo && !/\d{6}/.test(entry.name));
+  ).body.items
+    .filter((entry) => !entry.isDeleted && !entry.isCombo && !/\d{6}/.test(entry.name))
+    .filter((entry) => !warranty || (entry.serviceConfig?.warrantyDays ?? 0) > 0);
   const priceOf = (entry: (typeof services)[number]) =>
     entry.serviceConfig?.priceAfterDiscount ?? entry.price ?? 0;
-  const staff = (
-    await call<{ items: { id: string }[] }>(page, "/api/v1/app/staff?MaxResultCount=1", asBranch)
-  ).body.items[0];
+  const staff = staffId
+    ? { id: staffId }
+    : (await call<{ items: { id: string }[] }>(page, "/api/v1/app/staff?MaxResultCount=1", asBranch)).body
+        .items[0];
   expect(diagnosis, "a diagnosis in Danh mục").toBeTruthy();
   expect(services.length, `${count} services in Danh mục`).toBeGreaterThanOrEqual(count);
   expect(staff, "a dentist").toBeTruthy();

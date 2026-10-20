@@ -376,6 +376,8 @@ export function PatientAdviseCard({
             dataSource={ordered}
             components={{ body: { row: DraggableRow } }}
             rowSelection={{
+              // Only as wide as the box: 20px plus 8px either side (index.css).
+              columnWidth: 36,
               selectedRowKeys: selected,
               onChange: (keys) => onSelect(keys as string[]),
             }}

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
+using BlueDental.Staff;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
 using Volo.Abp;
@@ -148,10 +149,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             .Select(o => o.DentistId!.Value)
             .Distinct()
             .ToList();
-        var dentists = dentistIds.Count == 0
-            ? new Dictionary<Guid, string>()
-            : (await _userRepository.GetListByIdsAsync(dentistIds))
-                .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var dentistUsers = dentistIds.Count == 0 ? [] : await _userRepository.GetListByIdsAsync(dentistIds);
+        var dentists = dentistUsers.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var dentistJobTitles = StaffJobTitles.Of(dentistUsers);
 
         var supplierIds = entities
             .Where(o => o.SupplierId.HasValue)
@@ -258,6 +258,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             dto.DentistName = entity.DentistId.HasValue
                 ? dentists.GetValueOrDefault(entity.DentistId.Value)
                 : null;
+            dto.DentistJobTitle = StaffJobTitles.Lookup(dentistJobTitles, entity.DentistId);
             // The lab is a record where one was picked, and free text on the
             // older orders that only ever carried a name.
             dto.SupplierName = entity.SupplierId.HasValue

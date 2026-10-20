@@ -47,6 +47,8 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     /// <summary>The labo service (Dịch vụ - vật liệu group) the material belongs to: "BE:LaboField:CurrentService" on the child form.</summary>
     public string? LaboServiceName { get; set; }
     public string? DentistName { get; set; }
+    /// <summary>Chức danh of the doctor above — printed sheets name a doctor by it, else by the name.</summary>
+    public string? DentistJobTitle { get; set; }
     public string? BiteName { get; set; }
     public string? FinishLineName { get; set; }
     public string? RhythmName { get; set; }

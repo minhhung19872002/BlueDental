@@ -356,6 +356,8 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
               // holds no materials — so this selects and nothing more.
               // See docs/clone/pages/materials.md.
               rowSelection={{
+                // The card's 20px edge, the 20px box, 8px before the name (index.css).
+                columnWidth: 48,
                 selectedRowKeys,
                 onChange: setSelectedRowKeys,
               }}

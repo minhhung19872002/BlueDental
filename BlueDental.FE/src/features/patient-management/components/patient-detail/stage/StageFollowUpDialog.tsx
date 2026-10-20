@@ -12,6 +12,8 @@ import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/t
 import { FollowUpShots } from "./FollowUpShots";
 import { FollowUpTeeth } from "./FollowUpTeeth";
 import { StageDateField } from "./StageDateField";
+import { NOTE_LIMIT } from "./StageForm";
+import { StageNoteInput } from "./StageNoteInput";
 import { StageStepList } from "./StageStepList";
 import { StageTeethPicker } from "./StageTeethPicker";
 import { useFollowUpForm } from "./useFollowUpForm";
@@ -184,11 +186,11 @@ export function StageFollowUpDialog({
 
         <div>
           <FloatingLabel label={t("Patient:Stage:TreatmentContent")} required floated={form.note.length > 0}>
-            <Input.TextArea
+            <StageNoteInput
               rows={5}
               value={form.note}
-              maxLength={1000}
-              onChange={(event) => form.setNote(event.target.value)}
+              maxLength={NOTE_LIMIT}
+              onChange={form.setNote}
               status={form.errors.note ? "error" : undefined}
             />
           </FloatingLabel>

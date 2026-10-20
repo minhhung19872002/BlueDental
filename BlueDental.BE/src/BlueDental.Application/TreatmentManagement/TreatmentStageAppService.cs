@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
 using BlueDental.Organizations;
+using BlueDental.Staff;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
@@ -324,6 +325,21 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
+    /// <summary>
+    /// Ghi chú. Gated by <c>update</c> like the treatment content, but goes
+    /// through even on a finished công đoạn (owner, 2026-10-19).
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
+    public async Task<TreatmentStageDto> UpdateRemarkAsync(
+        Guid id,
+        UpdateTreatmentStageRemarkDto input)
+    {
+        var stage = await LoadAsync(id);
+        stage.SetRemark(input.Remark);
+        await _repository.UpdateAsync(stage, autoSave: true);
+        return MapToDto(stage, await BuildLookupsAsync([stage]));
+    }
+
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input)
     {
@@ -527,12 +543,14 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return new StageLookups(
             serviceNames,
             users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName),
+            StaffJobTitles.Of(users),
             stageNames);
     }
 
     private sealed record StageLookups(
         IReadOnlyDictionary<Guid, string> ServiceNames,
         IReadOnlyDictionary<Guid, string> StaffNames,
+        IReadOnlyDictionary<Guid, string> JobTitles,
         IReadOnlyDictionary<Guid, string> ServiceStageNames);
 
     private static string? NameOf(Guid? staffId, StageLookups lookups) =>
@@ -549,6 +567,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         SequenceNumber = entity.SequenceNumber,
         Name = entity.Name,
         Note = entity.Note,
+        Remark = entity.Remark,
         StaffId = entity.StaffId,
         SecondStaffId = entity.SecondStaffId,
         SubStaffId = entity.SubStaffId,
@@ -581,6 +600,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         ServiceName = lookups.ServiceNames.TryGetValue(entity.ServiceId, out var service) ? service : null,
         StaffName = lookups.StaffNames.TryGetValue(entity.StaffId, out var staff) ? staff : null,
         SecondStaffName = NameOf(entity.SecondStaffId, lookups),
+        StaffJobTitle = lookups.JobTitles.GetValueOrDefault(entity.StaffId),
+        SecondStaffJobTitle = StaffJobTitles.Lookup(lookups.JobTitles, entity.SecondStaffId),
         SubStaffName = NameOf(entity.SubStaffId, lookups),
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,

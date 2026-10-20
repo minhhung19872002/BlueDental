@@ -35,4 +35,8 @@ public sealed class MedicalRecordSetController(IMedicalRecordSetAppService servi
     /// <summary>"Hủy bộ hồ sơ" — a set is never deleted.</summary>
     [HttpPost("{id:guid}/cancel")]
     public Task<MedicalRecordSetDto> CancelAsync(Guid id) => service.CancelAsync(id);
+
+    /// <summary>What the set's sheets print about its treatment slips (save/P1810.drawio).</summary>
+    [HttpGet("{id:guid}/sheet-facts")]
+    public Task<MedicalRecordSheetFactsDto> GetSheetFactsAsync(Guid id) => service.GetSheetFactsAsync(id);
 }

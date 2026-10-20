@@ -15,10 +15,19 @@
  * Measured on staging 2026-09-09; see docs/clone/pages/patient-detail.md.
  */
 
+import { FLOW_LINE_ATTR } from "./flowLines";
+
 export const FIELD_SELECTOR = "[data-medical-record-field]";
 export const GENERATED_ROW_ATTR = "data-medical-record-generated-row";
 
 const DELETED_ROW_PREFIX = "custom.deleted-table-row.";
+
+/**
+ * The note that says where an added row was put: keyed by the added row's first
+ * blank, holding the first blank of the row it was added under. Without it a
+ * row added mid-table came back at the bottom whenever the sheet was drawn again.
+ */
+const ROW_AFTER_PREFIX = "custom.row-after.";
 
 /** The three tables that can grow, told apart by what their blanks are called. */
 export type RowKind = "treatment-cost" | "treatment-tracking" | "care";
@@ -60,6 +69,11 @@ function trackingRowNumber(id: string): number | null {
 function careRowNumber(id: string): number | null {
   const match = id.match(/^care\.row-(\d+)\./);
   return match ? Number(match[1]) : null;
+}
+
+/** Which row of any of the three tables a blank belongs to. */
+function anyRowNumber(id: string): number {
+  return costRowNumber(id) ?? trackingRowNumber(id) ?? careRowNumber(id) ?? 0;
 }
 
 function rowNumberOf(kind: RowKind, id: string): number | null {
@@ -134,6 +148,11 @@ function renumber(kind: RowKind, id: string, row: number, at: number): string {
   return id.replace(/^care\.row-\d+\./, `care.row-${row}.`);
 }
 
+/** The serial, service and amount blanks of cost row `row` (from 1), as a sheet names them. */
+export function costRowFieldIds(row: number): string[] {
+  return COST_ROW_FIELDS.map((_, at) => renumber("treatment-cost", "", row, at));
+}
+
 /**
  * Puts a fresh, empty copy of `row` after it.
  *
@@ -142,13 +161,19 @@ function renumber(kind: RowKind, id: string, row: number, at: number): string {
  * they stop asking the record for anything: a second cost line is not a second
  * patient.
  */
-export function addRowAfter(root: ParentNode, row: HTMLTableRowElement): HTMLTableRowElement | null {
+export function addRowAfter(
+  root: ParentNode,
+  row: HTMLTableRowElement,
+  { remember = true }: { remember?: boolean } = {},
+): HTMLTableRowElement | null {
   const kind = rowKindOf(row);
   if (!kind) return null;
 
   const copy = row.cloneNode(true) as HTMLTableRowElement;
   // Lines added inside a cell with Enter belong to that row, not to its copy.
   copy.querySelectorAll(`p[${GENERATED_ROW_ATTR}]`).forEach((line) => line.remove());
+  // So are the lines a long blank of that row flowed onto.
+  copy.querySelectorAll(`p[${FLOW_LINE_ATTR}]`).forEach((line) => line.remove());
   const next = highestRowNumber(root, kind) + 1;
   const blanks = Array.from(copy.querySelectorAll(FIELD_SELECTOR));
   if (blanks.length === 0) return null;
@@ -169,7 +194,32 @@ export function addRowAfter(root: ParentNode, row: HTMLTableRowElement): HTMLTab
 
   copy.setAttribute(GENERATED_ROW_ATTR, "true");
   row.insertAdjacentElement("afterend", copy);
+
+  // Where it went, so it comes back there; not when the sheet is only redrawn.
+  const [first] = fieldIdsIn(copy);
+  const [anchor] = fieldIdsIn(row);
+  if (remember && first && anchor) keepNote(root, row, `${ROW_AFTER_PREFIX}${first}`, anchor);
   return copy;
+}
+
+/**
+ * A note is a hidden blank beside the table: read back with every other blank,
+ * it travels the same path as a typed word. Drawn again with the sheet, so the
+ * next save still carries it.
+ */
+function keepNote(root: ParentNode, near: Element, key: string, value: string) {
+  if (root.querySelector(`[data-medical-record-field="${key}"]`)) return;
+  const note = near.ownerDocument.createElement("span");
+  note.hidden = true;
+  note.setAttribute("data-medical-record-field", key);
+  note.textContent = value;
+  (near.closest("table") ?? near).insertAdjacentElement("afterend", note);
+}
+
+function rowStartingWith(root: ParentNode, id: string): HTMLTableRowElement | undefined {
+  return Array.from(root.querySelectorAll<HTMLTableRowElement>("tbody > tr")).find(
+    (row) => fieldIdsIn(row)[0] === id,
+  );
 }
 
 /**
@@ -183,14 +233,7 @@ export function deleteRow(doc: Document, row: HTMLTableRowElement): boolean {
   const key = deletedRowKey(row);
   if (!key) return false;
 
-  if (!doc.querySelector(`[data-medical-record-field="${key}"]`)) {
-    const note = doc.createElement("span");
-    note.hidden = true;
-    note.setAttribute("data-medical-record-field", key);
-    note.textContent = "true";
-    doc.body.append(note);
-  }
-
+  keepNote(doc, row, key, "true");
   row.remove();
   return true;
 }
@@ -217,8 +260,22 @@ export function applyStoredRows(root: ParentNode, stored: Record<string, unknown
     // Clone from the last row each time, so the copy keeps the table's shape.
     for (let count = rows.length; count < wanted; count += 1) {
       const last = rowsOfKind(root, kind).at(-1);
-      if (!last || !addRowAfter(root, last)) break;
+      if (!last || !addRowAfter(root, last, { remember: false })) break;
     }
+  }
+
+  // Each added row back under the row it was added under — oldest first, so a
+  // row added under an added row finds that one already in place.
+  const placed = Object.entries(stored)
+    .filter(([key, anchor]) => key.startsWith(ROW_AFTER_PREFIX) && typeof anchor === "string")
+    .map(([key, anchor]) => ({ key, id: key.slice(ROW_AFTER_PREFIX.length), anchor: String(anchor) }))
+    .sort((a, b) => anyRowNumber(a.id) - anyRowNumber(b.id));
+  for (const { key, id, anchor } of placed) {
+    const row = rowStartingWith(root, id);
+    const under = rowStartingWith(root, anchor);
+    if (row && under && row !== under) under.insertAdjacentElement("afterend", row);
+    const near = row ?? under;
+    if (near) keepNote(root, near, key, anchor);
   }
 
   for (const [key, value] of Object.entries(stored)) {
@@ -226,6 +283,7 @@ export function applyStoredRows(root: ParentNode, stored: Record<string, unknown
     if (value !== true && value !== "true") continue;
     for (const row of Array.from(root.querySelectorAll<HTMLTableRowElement>("tbody > tr"))) {
       if (deletedRowKey(row) === key) {
+        keepNote(root, row, key, "true");
         row.remove();
         break;
       }

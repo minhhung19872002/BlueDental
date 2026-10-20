@@ -77,12 +77,17 @@ export interface NewSlipRecord {
   price: number;
 }
 
+/**
+ * `dentistId` sets the slip's Bác sĩ điều trị; left out, the branch's first
+ * staff member. A dentist only opens slips in their treating scope (R-961).
+ */
 export async function createSlipViaApi(
   page: Page,
   patientId: string,
   teeth: number[] = [14],
+  dentistId: string | null = null,
 ): Promise<NewSlipRecord> {
-  return page.evaluate(async ({ patientId, teeth }) => {
+  return page.evaluate(async ({ patientId, teeth, dentistId }) => {
     const xsrf = document.cookie
       .split("; ")
       .find((c) => c.startsWith("XSRF-TOKEN="))
@@ -163,14 +168,14 @@ export async function createSlipViaApi(
     const plan = await post("/api/v1/app/patient-treatments", {
       patientId,
       clinicBranchId: branch,
-      dentistId: staff.id,
+      dentistId: dentistId ?? staff.id,
       discountType: 0,
       discountValue: 0,
       voucherIds: [],
       adviseIds: [advise.id],
     });
     return { id: plan.id as string, code: plan.code as string, serviceName: service.name, price };
-  }, { patientId, teeth });
+  }, { patientId, teeth, dentistId });
 }
 
 export interface NewSlip {

@@ -150,6 +150,8 @@ export interface LaboOrderDto {
   patientDateOfBirth?: string;
   dentistId?: string;
   dentistName?: string;
+  /** Chức danh of the doctor above — what printed sheets name them by. */
+  dentistJobTitle?: string | null;
   labProviderName: string;
   status: LaboStatus;
   toothNumbers?: string;

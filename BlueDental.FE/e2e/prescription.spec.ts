@@ -71,9 +71,11 @@ async function seedTreatmentSlip(page: Page, noteA: string, noteB: string): Prom
         const patients = (await get("/api/v1/app/patients?maxResultCount=2")).items;
         const diagnoses = (
           await get(`/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=20`)
-        ).items as { id: string; name: string }[];
-        const [first, second] = diagnoses.filter(
-          (entry, index) => diagnoses.findIndex((other) => other.name === entry.name) === index,
+        ).items as { id: string; name: string; isDeleted: boolean }[];
+        // Danh mục keeps deleted rows in its list, but a slip no longer names them.
+        const live = diagnoses.filter((entry) => !entry.isDeleted);
+        const [first, second] = live.filter(
+          (entry, index) => live.findIndex((other) => other.name === entry.name) === index,
         );
         const service = (
           await get(`/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=care_service&isActive=true&maxResultCount=1`)

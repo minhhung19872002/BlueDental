@@ -269,7 +269,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // B kept what was typed into it while A was open.
     await cardB.click();
-    await expect(formB.locator("textarea")).toHaveValue(noteB);
+    await expect(formB.locator("textarea")).toHaveValue(`- ${noteB}`);
     await pickDoctor(page, formB);
     await dialog.getByRole("button", { name: "Lưu công đoạn" }).click();
     await expect.poll(() => posted.length).toBe(2);

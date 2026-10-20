@@ -9,6 +9,7 @@ import {
   type CareStatusCode,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { BriefcaseMedicalIcon, warrantyTitle } from "./stage/StageWarrantyButton";
+import { StageNoteBullets } from "./stage/StageNoteBullets";
 import { stageRowStatus, stageRowStatusLabel } from "./stageRowStatus";
 import type { TreatmentRow } from "./treatmentRows";
 
@@ -51,7 +52,8 @@ function BanknoteIcon() {
 }
 
 /**
- * The ten columns the reference shows, in its order and widths.
+ * The ten columns the reference shows, in its order and widths, plus
+ * BlueDental's own Ghi chú after Nội dung điều trị (owner, 2026-10-19).
  *
  * A row is one **công đoạn** — see {@link buildTreatmentRows} — so Ngày spans
  * its whole day through `rowSpan`, exactly as the reference's table does.
@@ -115,7 +117,14 @@ export function treatmentColumns({
     {
       title: t("Patient:Stage:TreatmentContent"),
       width: 210,
-      render: (_, row) => row.stageNote ?? "—",
+      render: (_, row) => <StageNoteBullets note={row.stageNote} empty="—" />,
+    },
+    {
+      title: t("Patient:Stage:Remark"),
+      width: 180,
+      // Plain text with its line breaks — the remark has no dash bullets.
+      render: (_, row) =>
+        row.stageRemark ? <span className="pd-tr-remark">{row.stageRemark}</span> : "—",
     },
     {
       title: t("Patient:DentalChart:Tooth"),

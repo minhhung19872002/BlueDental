@@ -34,6 +34,14 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
     public MedicalRecordSetStatus Status { get; private set; }
 
     /// <summary>
+    /// The xxxx of Số ngoại trú <c>NGT-{MMyy}{patient code}-{xxxx}</c>: the sets
+    /// the branch had opened that clinic day, this one included. A running number
+    /// is kept, not worked out; the MMyy is read when printed, from the day
+    /// treatment started (save/P1810.drawio, owner 2026-10-19). 0 on none.
+    /// </summary>
+    public int OutpatientSequence { get; private set; }
+
+    /// <summary>
     /// The forms left out of the index, one bit per form (bit n-1 for form n).
     /// Stored as what is hidden so that a set made before a tenth form existed
     /// would show it.
@@ -60,9 +68,11 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
         Guid patientId,
         Guid clinicBranchId,
         string code,
-        IEnumerable<MedicalRecordForm> visibleForms)
+        IEnumerable<MedicalRecordForm> visibleForms,
+        int outpatientSequence = 0)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code), MaxCodeLength);
+        Check.Range(outpatientSequence, nameof(outpatientSequence), 0, 9999);
 
         var set = new MedicalRecordSet
         {
@@ -70,6 +80,7 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
             PatientId = patientId,
             ClinicBranchId = clinicBranchId,
             Code = code,
+            OutpatientSequence = outpatientSequence,
             Status = MedicalRecordSetStatus.Active,
         };
         set.ShowOnly(visibleForms);
@@ -152,6 +163,22 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
 
     public static string CodePrefixFor(string patientCode, DateOnly clinicDay) =>
         $"HS{patientCode}-{clinicDay:ddMMyyyy}-";
+
+    /// <summary>
+    /// Số ngoại trú: <c>NGT-{MMyy}{patient code}-{xxxx}</c> — MMyy of the day
+    /// treatment started (the oldest công đoạn of every slip in the set), and
+    /// xxxx the set's <see cref="OutpatientSequence"/>.
+    /// </summary>
+    public static string OutpatientNumberFor(string patientCode, DateOnly treatmentStart, int sequence) =>
+        $"NGT-{treatmentStart:MMyy}{patientCode}-{sequence:D4}";
+
+    /// <summary>
+    /// Mã lưu trữ (also "Số lưu trữ" and "Tờ điều trị số"):
+    /// <c>NK-{MMyy}{patient code}{slip code}</c> — the month the set was opened
+    /// and its oldest slip. NK-1026DH264444DT01.
+    /// </summary>
+    public static string StorageCodeFor(DateOnly openedOn, string patientCode, string firstPlanCode) =>
+        $"NK-{openedOn:MMyy}{patientCode}{firstPlanCode}";
 
     private static int BitOf(MedicalRecordForm form) => 1 << ((int)form - 1);
 }

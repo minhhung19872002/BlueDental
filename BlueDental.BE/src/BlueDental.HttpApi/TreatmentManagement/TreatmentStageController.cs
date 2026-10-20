@@ -69,6 +69,12 @@ public sealed class TreatmentStageController(ITreatmentStageAppService service)
         Guid id,
         [FromBody] UpdateStageServiceItemsDto input) => service.UpdateServiceItemsAsync(id, input);
 
+    /// <summary>Ghi chú — a BlueDental field, not the reference's.</summary>
+    [HttpPut("{id:guid}/remark")]
+    public Task<TreatmentStageDto> UpdateRemarkAsync(
+        Guid id,
+        [FromBody] UpdateTreatmentStageRemarkDto input) => service.UpdateRemarkAsync(id, input);
+
     [HttpPost("{id:guid}/images")]
     public Task<TreatmentStageDto> AttachImageAsync(
         Guid id, [FromBody] AttachStageImageDto input) => service.AttachImageAsync(id, input);

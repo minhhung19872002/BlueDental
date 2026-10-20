@@ -107,6 +107,8 @@ export async function createRunStaff(
     branchIds?: string[];
     /** "Mức độ ưu tiên": a lower number comes first in staff pickers. */
     priority?: number;
+    /** "Chức danh" — what printed sheets name a doctor by. */
+    jobTitle?: string;
     /** Profile working hours ("HH:mm"), as the Nhân viên editor saves them. */
     morningStartTime?: string;
     morningEndTime?: string;
