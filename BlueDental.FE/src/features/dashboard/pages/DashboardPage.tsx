@@ -50,13 +50,12 @@ export function DashboardPage() {
 
   return (
     <div className="page-container">
-      {/* The design pairs the title with an outline export and a solid
-          create action. Both go somewhere real: the report screen owns the
-          exports, and the appointment editor is the same one the calendar
-          opens. */}
+      {/* An outline export and a solid create action, on their own row since
+          the title went (BA, R-994). Both go somewhere real: the report screen
+          owns the exports, and the appointment editor is the same one the
+          calendar opens. */}
       <PageHeader
         title={t("Dashboard:PageTitle")}
-        subtitle={dayjs().format("dddd, DD/MM/YYYY")}
         actions={
           <>
             <Button onClick={() => navigate("/report")}>{t("Dashboard:ExportReport")}</Button>

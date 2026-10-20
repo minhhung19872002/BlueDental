@@ -9912,3 +9912,136 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - 3 xanh trên HEAD (patient-appointment:322, patient-medical-record:857, `patient.spec`:1900): chạy riêng trên bản R-991 `--repeat-each=2` được 6/6 xanh → chập chờn do thứ tự / dữ liệu khi chạy chung.
   - Kết quả R-988 vẫn giữ: 28/29 spec có kiểm màu, taxonomy 89/93 (đỏ có từ trước).
 - Đã commit trên `develop` (cùng R-988).
+
+## R-992 (2026-10-20, mức 2: tìm kiếm ghi chú + migration) F-74 — Tìm ghi chú không dấu
+
+- **Lỗi** (chủ dự án báo): ô tìm ở "Thêm ghi chú" chỉ so khớp đúng dấu. Gõ "goi lai duc" không ra "Gọi lại BS Đức"; gõ có dấu cũng không ra ghi chú viết không dấu.
+- **Sửa BE**:
+  - Hàm mới `DbText.Unaccent` (Domain), map vào `unaccent()` của PostgreSQL bằng `HasDbFunction(...).IsBuiltIn()` trong `ConfigureTextSearch`. Application không cần tham chiếu Npgsql.
+  - `StaffNoteAppService.GetListAsync`: mỗi từ khoá so `unaccent(lower(Content))` với `unaccent(từ khoá)`. Hai phía cùng một luật bỏ dấu của DB, nên không lệch giữa C# và PostgreSQL. "đ" thành "d"; dấu tách rời (NFD, chữ + dấu kết hợp) cũng bỏ được.
+  - Migration `20261020020811_UnaccentSearch`: `CREATE EXTENSION IF NOT EXISTS unaccent;`. Không thêm cột, không backfill. Staging/prod chạy DbMigrator lúc compose khởi động nên tự áp; host mới mà chưa chạy migrator thì tìm kiếm báo lỗi 500.
+- **Phạm vi**: chỉ ghi chú nhanh. 44 chỗ khác dùng `SearchTerms` (bệnh nhân, danh mục, …) vẫn phân biệt dấu như cũ.
+- **Test** (build production `vite preview` cổng riêng + host riêng :5100, PostgreSQL thật, không chặn request):
+  - `e2e/staff-notes-api.spec.ts` **9/9**. Ca mới: gõ không dấu ra ghi chú có dấu (đ = d), gõ có dấu ra ghi chú không dấu, chữ hoa + dấu gộp chung ra cả hai cách viết, dấu tách rời (u + U+0301) ra như dấu liền, "duk" không ra "Đức" (không tìm mờ).
+  - `e2e/staff-notes.spec.ts` **5/5**. Trong dialog, gõ "goi lai khach" ra ghi chú "gọi lại khách lúc 16h".
+  - `BlueDental.EntityFrameworkCore.Tests` **66/66** (SQLite: chú thích extension của Npgsql không ảnh hưởng). `dotnet ef migrations has-pending-model-changes`: không còn thay đổi. FE `tsc -b` sạch.
+  - DB local: `pg_extension` có `unaccent 1.1`, `__EFMigrationsHistory` có `20261020020811_UnaccentSearch`.
+
+## R-993 (2026-10-20, mức 1: bố cục, không đổi nghiệp vụ) Tiếp nhận + Lịch hẹn — Bỏ tiêu đề trang
+
+- **Yêu cầu** (BA, ảnh khoanh 2 màn): "Bỏ phần này để nới rộng khung nhìn ra". Chủ dự án chọn phạm vi chỉ 2 màn BA khoanh; các màn khác, kể cả `/calendar/list`, giữ tiêu đề.
+- **Sửa FE**:
+  - `ReceptionPage.tsx`: bỏ `PageHeader` ("Tiếp nhận" + "Luồng khách trong ngày dd/mm/yyyy"). Ngày vẫn hiện ở bộ chọn ngày trên thanh công cụ.
+  - `AppointmentCalendarPage.tsx`: bỏ `PageHeader` "Lịch hẹn khách hàng", áp cho cả hai tab Lịch hẹn khách hàng và Lịch làm việc.
+  - Mỗi màn giữ một `<h1 class="bd-sr-only">` ẩn để trình đọc màn hình vẫn đọc được tên trang.
+  - `calendar.css`: bỏ `.cal-page > .page-header` và selector tương ứng trong chế độ toàn màn hình.
+  - Component dùng chung `PageHeader` và CSS `.page-header` trong `index.css` giữ nguyên (26 màn khác còn dùng).
+- **Sửa BE**: xoá key `Reception:PageSubtitle` khỏi `vi.json` / `en.json` (không còn chỗ nào dùng).
+- **Đo** (build production, `vite preview` + host riêng :5100, đăng nhập thật; top tính theo px từ đỉnh cửa sổ):
+
+  | Màn / khung | Mốc | Trước | Sau | Chênh |
+  |---|---|---|---|---|
+  | 1440 `/reception` | thanh công cụ | 211 | 129 | −82 |
+  | 1440 `/reception` | lưới thẻ | 385 | 303 | −82 |
+  | 1440 `/calendar` | dải tab | 182 | 141 | −41 |
+  | 1440 `/calendar` | lưới lịch (cao) | 383 (466) | 342 (506) | −41 (+40) |
+  | 390 `/reception` | thanh công cụ | 142 | 65 | −77 |
+  | 390 `/calendar` | dải tab | 113 | 77 | −36 |
+
+  Không có cuộn ngang ở cả 4 trường hợp. `h1` còn trong DOM, kích thước 1×1, class `bd-sr-only`.
+- **Test** (build production, PostgreSQL thật, không chặn request): `reception`, `reception-board-order`, `reception-doctor-list`, `reception-follow-up`, `reception-temporary`, `reception-wait-time`, `reception-own-doctor`, `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours` **46/47**. FE `tsc -b` sạch.
+  - Ca đỏ `appointment-slot-pick.spec.ts:141` ("Tạo lịch tạm … Giờ hẹn"): một lịch hẹn hôm nay có sẵn trong DB local (DH260531) đè lên ô 10:15 trong lịch mini của dialog, nên click bị chặn. Chạy lại đúng ca này trên bản build trước thay đổi cũng đỏ y hệt, nên không do R-993.
+
+## R-994 (2026-10-20, mức 3: component dùng chung PageHeader) Tất cả màn — Bỏ tiêu đề trang
+
+- **Yêu cầu** (BA, bổ sung sau R-993): "làm hết cho các site luôn", "bỏ toàn bộ phần page header như trên". Chủ dự án chốt:
+  - `/taxonomy` cũng bỏ, chạy lại bộ test bảo vệ của mục 17 trên bản build production.
+  - Màn có nút riêng thì giữ hàng nút, chỉ bỏ chữ.
+  - Phần đầu của trang chi tiết không phải tiêu đề trang nên giữ: hồ sơ bệnh nhân, phiếu điều trị, quầy `/queue/counters/:id`.
+- **Sửa FE**:
+  - `PageHeader.tsx`: chỉ còn `<h1 class="bd-sr-only">` (tên trang cho trình đọc màn hình) và hàng `.page-actions` khi màn có nút. Bỏ prop `subtitle`.
+  - 26 màn bỏ `subtitle`: Danh sách lịch hẹn, Bệnh nhân, CSKH, 4 màn Marketing (qua `MarketingShell`), Labo, Vận hành, Báo cáo, 4 màn Nhân sự, Vật tư, Danh mục, Cài đặt, Voucher, Hồ sơ nhóm, Công cụ, Người dùng & vai trò, Nhật ký hệ thống, Chi nhánh, Cài đặt phòng khám, Hồ sơ cá nhân, Đổi mật khẩu.
+  - Tổng quan: bỏ dòng ngày, giữ Xuất báo cáo / Tạo lịch hẹn trên hàng riêng canh phải.
+  - Màn hình đợi: giữ Lấy số mới / Quản lý quầy / Mở màn hình TV trên hàng riêng canh phải.
+  - Thanh toán: Xuất Excel chuyển vào cuối thanh tìm kiếm (`.filter-toolbar-actions`), không còn hàng riêng.
+  - `index.css`: thêm `.page-actions`; bỏ `.page-header-left` và `.bd-shell-page > .page-header`. Giữ `.page-header-title` / `.page-header-subtitle` vì `CounterQueueHeader` còn dùng.
+- **Sửa BE**: xoá 25 key subtitle không còn chỗ dùng khỏi `vi.json` / `en.json`.
+- **Đo** (build production, `vite preview` + host riêng :5100, đăng nhập thật; top tính theo px từ đỉnh cửa sổ, mốc = phần thân đầu tiên dưới header):
+
+  | Màn / khung | Mốc | Trước | Sau | Chênh |
+  |---|---|---|---|---|
+  | 1440, 23 màn danh sách (Lịch hẹn DS, CSKH, Marketing ×4, Labo, Vận hành, Báo cáo, Nhân sự ×4, Vật tư, Danh mục, Cài đặt, Voucher, Hồ sơ nhóm, Công cụ, Người dùng, Nhật ký, Tài khoản ×2) | thân trang | 211 | 129 | −82 |
+  | 1440 `/settings/preferences` | thân trang | 195 | 129 | −66 |
+  | 1440 `/patient` | thanh công cụ (đo bằng ảnh) | ~208 | 129 | ~−79 |
+  | 1440 `/billing` | thẻ KPI (hàng nút cũ ở 155) | 211 | 129 | −82 |
+  | 1440 `/queue`, `/dashboard` | hàng nút | 155 | 129 | −26 |
+  | 1440 `/queue`, `/dashboard` | thân trang | 211 | 185 | −26 |
+  | 1440 `/organizations` | "Thêm chi nhánh" + bảng trong thẻ Cài đặt phòng khám | | | ~−82 |
+  | 390, 26 màn | thân trang | | 65 | |
+  | 390 `/queue` / `/dashboard` / `/organizations` | thân trang | | 169 / 121 / 145 | |
+
+  Không có cuộn ngang ở cả 58 trường hợp. Không còn `.page-header-title` / `.page-header-subtitle` nào hiện. `h1.bd-sr-only` mang đúng tên trang ở mọi màn.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request). FE `tsc -b` sạch.
+  - Bộ bảo vệ `/taxonomy` (mục 17: `taxonomy*`, `payment-qr`, `branch-*`, nay là **93** ca, không còn 38): **90/93**.
+    - `taxonomy-groups.spec.ts:169` đỏ một lần trong lượt dài, chạy lại cả spec `--repeat-each=2` trên bản mới **22/22** → chập chờn.
+    - `taxonomy-dialogs.spec.ts:104` (không có nhà cung cấp labo trong DB local) và `:256` (chi nhánh đầu tiên theo tên chưa có nhóm dịch vụ) đỏ y hệt trên bản build trước thay đổi → dữ liệu local, không do R-994.
+  - Mức 3, 45 spec của các màn dùng `PageHeader` (lịch hẹn DS, CSKH, marketing, labo, thanh toán, vận hành, báo cáo, nhân sự, vật tư, voucher, hồ sơ nhóm, màn hình đợi, phân quyền, routes, header, export, …): **191/224**.
+    - Chạy lại đúng 33 ca đỏ trên bản build trước thay đổi (cổng riêng, cùng host): **32 ca đỏ y hệt** → có từ trước, không do R-994. Gồm `operations-reports` ×18 (lệch dữ liệu đã biết), `header-navigation:13/121/139`, `labo-warranty:315` (DatePicker có mask), `report:294` (tiêu đề cột xuất thanh toán), `labo-orders-actions:88` (spec còn chờ `?branchId=` trong khi URL đã là `?branch=BD-001` từ F-68), `export:62`, `labo:156`, `materials:303`, `operations:146/328`, `patient-permission-gates:119`, `role-permissions:53`, `role-permissions-abilities:38`.
+    - Ca duy nhất đỏ riêng trên bản mới: `popup-placement.spec.ts:43` (chờ nút "Tạo đơn thuốc" trên bệnh nhân đầu danh sách, mà các spec chạy trước vừa tạo bệnh nhân mới). Chạy riêng cả spec `--repeat-each=2` trên bản mới **6/6** → phụ thuộc thứ tự dữ liệu, không do R-994.
+- **Commit**: chủ dự án commit `0ef82031` trên `main` và đã push (CD production chạy). Mục nhật ký này viết sau, chưa commit.
+
+## R-996 (2026-10-20, mức 1: bố cục, không đổi nghiệp vụ) Lịch hẹn — Thu khoảng trống quanh lịch
+
+- **Yêu cầu** (BA, ảnh `/calendar` có mũi tên đỏ ở khoảng trống phía trên khung lịch và mép trái): bớt khoảng trống. BA nói rõ thêm: "sát ra xíu chứ k sát border v luôn" → không dán sát mép.
+- **Nguyên nhân**: `.cal-page` có `padding: 12px` riêng, cộng thêm phần đệm của khung app (`main.app-content`: 18px trên, 22px hai bên, 40px dưới). Lịch nằm sâu hơn các màn khác 12px mỗi phía, đáy còn hụt 40px.
+- **Sửa FE** (`calendar.css`), chỉ áp từ 761px trở lên:
+  - `.cal-page { padding: 0 }`, nên lịch đứng đúng lề 18/22 như Tiếp nhận và các màn khác.
+  - `.app-content:has(> .cal-page) { padding-bottom: 18px }`, đáy cách mép bằng phía trên.
+  - Giữ nguyên bo góc 20px của dải tab và lưới lịch.
+  - Điện thoại (≤760px) và chế độ toàn màn hình không đổi.
+- **Đo** (1536×738, đăng nhập thật):
+
+  | Mốc | Trước | Sau |
+  |---|---|---|
+  | dải tab (x, y) | 34, 141 | 22, 129 (trùng Tiếp nhận) |
+  | lưới lịch (top → bottom) | 342 → 686 | 330 → 720 (cao +46, rộng +24) |
+  | 390px: dải tab y / padding khung | 77 / 14·12·32 | 77 / 14·12·32 (không đổi) |
+  | toàn màn hình | 0 → 738 | 0 → 738 |
+
+  Không có cuộn ngang. Tab Lịch làm việc hiển thị đúng.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request): `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours`: **20/21**.
+  - Ca đỏ duy nhất `appointment-slot-pick.spec.ts:141` là ca đã biết từ R-993: lịch hẹn DH260531 có sẵn trong DB local đè lên ô 10:15. Không do R-996.
+- **Commit**: chủ dự án commit `7e45a4ed` trên `main`, đã có trên `origin/main`. Mục nhật ký này viết sau, chưa commit.
+
+## R-997 (2026-10-20, mức 3: CSS bảng dùng chung, không đổi nghiệp vụ) Tất cả màn — Bảng có đường kẻ dọc
+
+- **Yêu cầu** (BA Huỳnh Văn Định, trên bảng `/patient`): "table cho đường kẻ dọc luôn nha". Hỏi lại "toàn bộ luôn hay chỉ ở màn này", BA trả lời "toàn bộ table".
+- **Cách làm**:
+  - Đường kẻ nằm ở mép cuối mỗi ô (`:not(:last-child)` + `border-inline-end` / `border-right`), không dùng `td + td`. Ô có rowSpan lấy các ô bên dưới ra khỏi DOM (bảng báo cáo), kẻ ở mép đầu sẽ mất đường.
+  - Bảng có header dính (`scroll.y`) kết thúc hàng tiêu đề bằng ô gutter `th.ant-table-cell-scrollbar`. Ô đứng trước gutter không kẻ (`:not(:has(+ th.ant-table-cell-scrollbar))`) để mép header trùng mép thân bảng.
+  - Ô cuối, hàng trống "Không có dữ liệu" và hàng mở rộng (một ô colSpan) không có đường.
+- **Sửa FE**:
+  - `src/styles/index.css`: quy tắc chung cho mọi bảng AntD, màu `--bd-line`.
+  - `patient-detail.css`: bỏ đường kẻ riêng của `.pd-treatment-table` vì quy tắc chung đã phủ.
+  - Bảng tự dựng hiển thị trên màn hình, mỗi bảng thêm cùng quy tắc trong CSS của feature:
+    - `.rs-slips` (Bộ hồ sơ bệnh án), `--bd-line`
+    - `.bd-combo-table`, `.bd-combo-detail-table` (Danh mục > Combo, chỉ thêm CSS), `--bd-line`
+    - `.am-table` (Chọn Dịch Vụ), `.tp-group-table` (Kế hoạch điều trị), `.pdt-refund-table` (phiếu điều trị), `--tp-line`
+    - `.report-daily-table` (Báo cáo), `--bd-line`
+  - `.wsb-table` (Lịch làm việc) và `.report-table-card` đã có sẵn đường kẻ, giữ nguyên.
+  - Không đổi các tờ in theo mẫu giấy: báo giá, phiếu chẩn đoán, phiếu điều trị, đơn thuốc, `pd-print-table`, `report-voucher-table` / `report-print-table`, bệnh án `bd-a4-table`.
+- **Đo** (dev server 1536×738, đăng nhập thật):
+  - `/patient`: 13 cột → 12 đường dọc 1px `#e7eaf6`, ô cuối không kẻ.
+  - Dialog nhóm có header dính (cuộn x + y): mép phải cột ở header và thân bảng trùng nhau, gồm 398 / 544 / 669 / 940 / 1066 / 1201 / 1337. Ô gutter không kẻ.
+  - `/taxonomy/service` và `/report` (bảng có rowSpan + bảng theo ngày): đường kẻ liền, không đứt ở ô gộp.
+  - Đường kẻ ở header nhạt (`#e7eaf6` trên nền `#f7f8fd`). Đây là chủ ý: `--bd-line` là token đường kẻ đậm nhất của hệ thống.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request):
+  - Bộ bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`): **89/93**, không có ca đỏ do R-997:
+    - `payment-qr.spec.ts:25`: chập chờn, chạy lại xanh.
+    - `taxonomy-dialogs.spec.ts:104`, `:256`: đỏ sẵn do dữ liệu local (không có nhà cung cấp labo, chi nhánh đầu theo tên không có nhóm dịch vụ).
+    - `taxonomy-groups.spec.ts:169`: chập chờn đã biết.
+  - Liên quan (`catalog-combo`, `consulting-delete-and-picker`, `consulting-review`, `medical-record-set`, `patient-groups`, `report`): **20/23**:
+    - `catalog-combo.spec.ts:109`: chập chờn, chạy lại xanh.
+    - `consulting-delete-and-picker.spec.ts:200`: đỏ y hệt trên bản build HEAD. Dịch vụ cuối danh mục là dữ liệu thừa "DUNG-TEST Dịch vụ xoá mềm …" của phiên khác. Dòng thiếu hẳn trong DOM, không phải lỗi hiển thị.
+    - `report.spec.ts:294`: đã biết (tiêu đề cột khi xuất Excel thanh toán).
+- **Commit**: chưa commit.

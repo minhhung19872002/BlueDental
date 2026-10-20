@@ -66,10 +66,7 @@ export function VoucherPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Voucher:PageTitle")}
-        subtitle={t("Voucher:PageSubtitle")}
-      />
+      <PageHeader title={t("Voucher:PageTitle")} />
 
       <div className="reception-card reception-card--toolbar">
         <VoucherToolbar

@@ -422,10 +422,7 @@ export function IdentityAdministrationPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Identity:PageTitle")}
-        subtitle={t("Identity:PageSubtitle")}
-      />
+      <PageHeader title={t("Identity:PageTitle")} />
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)", marginBottom: 4 }}>

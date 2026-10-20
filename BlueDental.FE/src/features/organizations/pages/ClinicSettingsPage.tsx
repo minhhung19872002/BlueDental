@@ -985,10 +985,7 @@ export function ClinicSettingsPage() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={t("Organization:SettingsTitle")}
-        subtitle={t("Organization:SettingsSubtitle")}
-      />
+      <PageHeader title={t("Organization:SettingsTitle")} />
 
       <div className="profile-layout">
         <div className="profile-sidebar">

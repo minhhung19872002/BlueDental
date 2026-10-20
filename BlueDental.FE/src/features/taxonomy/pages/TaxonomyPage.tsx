@@ -566,10 +566,7 @@ export function TaxonomyPage() {
 
   return (
     <div className="bd-shell-page">
-      <PageHeader
-        title={t("Taxonomy:Page:Title")}
-        subtitle={t("Taxonomy:Page:Subtitle")}
-      />
+      <PageHeader title={t("Taxonomy:Page:Title")} />
 
       <div className="bd-taxonomy-page">
         <PageTabBar

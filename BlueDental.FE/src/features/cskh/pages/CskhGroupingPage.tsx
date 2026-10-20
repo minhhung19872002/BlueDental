@@ -61,10 +61,7 @@ export function CskhGroupingPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("CSKH:PageTitle")}
-        subtitle={t("CSKH:PageSubtitle")}
-      />
+      <PageHeader title={t("CSKH:PageTitle")} />
 
       <div className="pill-tabs-row">
         <div className="pill-tabs">

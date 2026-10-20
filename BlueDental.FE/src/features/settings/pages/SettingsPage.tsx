@@ -254,10 +254,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t("Settings:PageTitle")}
-        subtitle={t("Settings:PageSubtitle")}
-      />
+      <PageHeader title={t("Settings:PageTitle")} />
 
       <div
         style={{

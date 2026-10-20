@@ -13,12 +13,6 @@
   background: var(--bd-bg);
 }
 
-/* The column sets gap:0 for the grid rows, so the page title carries its own. */
-.cal-page > .page-header {
-  flex-shrink: 0;
-  margin-bottom: 12px;
-}
-
 /* ── Top tab strip ────────────────────────────────────────────────────── */
 
 .cal-tabs-wrap {
@@ -195,6 +189,19 @@
   background: #fff;
   border-radius: 0 0 var(--bd-radius-card) var(--bd-radius-card);
   -webkit-overflow-scrolling: touch;
+}
+
+/* BA (R-996): from a tablet up the calendar sits in the same gutter as every
+   other screen, not 12px further in, and the bottom gutter matches the top
+   since the grid already fills the height. Phones keep their own padding. */
+@media (min-width: 761px) {
+  .app-content:has(> .cal-page) {
+    padding-bottom: 18px;
+  }
+
+  .cal-page {
+    padding: 0;
+  }
 }
 
 .cal-spin-wrap {
@@ -790,7 +797,6 @@ body.cal-fullscreen .cal-page {
   border-radius: 0;
 }
 
-body.cal-fullscreen .cal-page > .page-header,
 body.cal-fullscreen .cal-tabs-wrap,
 body.cal-fullscreen .cal-toolbar-row1,
 body.cal-fullscreen .cal-toolbar-row2,

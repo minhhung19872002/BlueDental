@@ -208,10 +208,7 @@ export function ToolsPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Tools:PageTitle")}
-        subtitle={t("Tools:PageSubtitle")}
-      />
+      <PageHeader title={t("Tools:PageTitle")} />
 
       <div className="bd-tools-shell">
         <PageTabBar

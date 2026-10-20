@@ -40,6 +40,13 @@ main
    └─ main        flex-1 overflow-hidden bg-[#F6F8FB]                (entry panel)
 ```
 
+**No page title (BlueDental BA requirement 2026-10-20, R-994):**
+
+- BlueDental used to show "Danh mục" and a subtitle above this shell. Both are gone.
+- The tab strip now starts right under the app header, as in the reference shell above.
+- A visually hidden `<h1 class="bd-sr-only">Danh mục</h1>` keeps the page name for screen readers.
+- The shell grows by about 82px at 1440×900. Nothing inside the shell changed.
+
 ### Design tokens (from the reference `:root`)
 
 | Role | Value | BlueDental token |

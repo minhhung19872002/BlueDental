@@ -46,10 +46,7 @@ export function AppointmentListPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Appointment:List:Title")}
-        subtitle={t("Appointment:List:Subtitle", data?.totalCount ?? 0)}
-      />
+      <PageHeader title={t("Appointment:List:Title")} />
 
       {/* Toolbar */}
       <div className="reception-card reception-card--toolbar">

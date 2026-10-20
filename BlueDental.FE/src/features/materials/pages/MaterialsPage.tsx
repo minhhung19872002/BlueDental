@@ -22,10 +22,7 @@ export function MaterialsPage() {
 
   return (
     <div className="bd-shell-page">
-      <PageHeader
-        title={t("Materials:PageTitle")}
-        subtitle={t("Materials:PageSubtitle")}
-      />
+      <PageHeader title={t("Materials:PageTitle")} />
 
       <div className="bd-taxonomy-page">
         <PageTabBar

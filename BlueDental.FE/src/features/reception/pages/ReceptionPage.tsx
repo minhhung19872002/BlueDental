@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { Input, Spin } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
-import { PageHeader } from "@/components/PageHeader";
 import { ConfirmCancelDialog } from "@/components/ConfirmCancelDialog";
 import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
@@ -237,10 +236,8 @@ export const ReceptionPage: React.FC = () => {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Reception:PageTitle")}
-        subtitle={t("Reception:PageSubtitle", currentDate.format("DD/MM/YYYY"))}
-      />
+      {/* BA (R-993): no visible title — the toolbar starts at the top for more board room. */}
+      <h1 className="bd-sr-only">{t("Reception:PageTitle")}</h1>
 
       <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar

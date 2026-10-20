@@ -289,6 +289,13 @@ When clicking on a reception record (appears as a card overlay or expanded row):
 - Card view only; ReceptionGrid unchanged. The "Đến trễ" badge in the BA mockup was deliberately not built (owner decision).
 - Code: `utils/waitTime.ts`, `hooks/useWaitState.ts`, `components/WaitTimerChip.tsx`, shared `src/hooks/useNow.ts`. Spec: `e2e/reception-wait-time.spec.ts`.
 
+**No page title (BlueDental BA requirement 2026-10-20, R-993):**
+
+- BlueDental used to show "Tiếp nhận" with the subtitle "Luồng khách trong ngày dd/mm/yyyy" above toolbar row 1. The BA asked for it to go, to give the board more room.
+- The toolbar now starts right under the header, as in the layout recorded above. The date is still shown in the toolbar's date navigator.
+- A visually hidden `<h1 class="bd-sr-only">Tiếp nhận</h1>` keeps the page name for screen readers.
+- The key `Reception:PageSubtitle` was removed, since nothing else used it.
+
 ## API Observations
 
 Reference uses Next.js RSC — no traditional REST endpoints observed.

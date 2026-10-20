@@ -68,7 +68,7 @@ export function MarketingDeletedPage() {
   const restoring = actions.pending.kind === "restore" ? actions.pending.ticket : null;
 
   return (
-    <MarketingShell activeKey="deleted" subtitle="Ticket:Deleted:PageSubtitle">
+    <MarketingShell activeKey="deleted">
       <div className="bd-cat-header mkt-header">
         <div className="bd-cat-headrow">
           <Input

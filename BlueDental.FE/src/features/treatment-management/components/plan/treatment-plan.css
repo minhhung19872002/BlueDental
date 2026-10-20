@@ -1196,6 +1196,11 @@
   color: var(--tp-ink);
   line-height: 20px;
 }
+/* Ruled columns, like every other table in the app (R-997). */
+.tp-group-table th:not(:last-child),
+.tp-group-table td:not(:last-child) {
+  border-right: 1px solid var(--tp-line);
+}
 .tp-group-table td:first-child {
   width: 40%;
 }

@@ -114,7 +114,7 @@ What to retest when a shared piece changes. Levels are defined in
 | `CareRecordWindow` (cửa sổ ngày của từng loại CSKH) | 3 | F-37/CSKH board `/cskh-grouping`, F-59 — board và báo cáo đọc cùng một cửa sổ; đổi nó thì chạy `e2e/cskh*` + `report-customer` |
 | `Ticket` (Marketing) status / `DueAt` / `IsReturningCustomer` | 2 | F-55, F-59 |
 | Localization resources (`en.json` / `vi.json`) | 3 | Every spec that asserts a refusal message |
-| `features/staff-notes/*` / `StaffNoteAppService` / `hooks/useDraggableModal.ts` | 2 | F-74 — `e2e/staff-notes-api.spec.ts` + `e2e/staff-notes.spec.ts`. The launcher sits in the header, so a change to `StaffNotesLauncher` is level 3 like `AppLayout` (F-30 + `header-navigation`) |
+| `features/staff-notes/*` / `StaffNoteAppService` / `hooks/useDraggableModal.ts` | 2 | F-74 — `e2e/staff-notes-api.spec.ts` + `e2e/staff-notes.spec.ts`. The launcher sits in the header, so a change to `StaffNotesLauncher` is level 3 like `AppLayout` (F-30 + `header-navigation`). Search folds Vietnamese marks via `DbText.Unaccent` → PostgreSQL `unaccent` (R-992); only staff notes use it so far |
 
 ## Cross-feature couplings worth remembering
 

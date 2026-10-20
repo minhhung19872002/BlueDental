@@ -93,10 +93,7 @@ export function LaboPage() {
 
   return (
     <div className="bd-shell-page">
-      <PageHeader
-        title={t("Labo:PageTitle")}
-        subtitle={t("Labo:PageSubtitle")}
-      />
+      <PageHeader title={t("Labo:PageTitle")} />
 
       <div className="bd-labo-page">
         <PageTabBar

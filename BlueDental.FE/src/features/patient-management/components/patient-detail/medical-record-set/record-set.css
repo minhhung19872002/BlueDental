@@ -302,6 +302,11 @@
   color: var(--bd-ink);
   vertical-align: middle;
 }
+/* Ruled columns, like every other table in the app (R-997). */
+.rs-slips th:not(:last-child),
+.rs-slips td:not(:last-child) {
+  border-right: 1px solid var(--bd-line);
+}
 .rs-slips .rs-slips-check {
   width: 36px;
 }

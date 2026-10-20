@@ -95,20 +95,11 @@ export function BillingPage({ dialogs }: { dialogs: LedgerRowDialogs }) {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={t("Billing:Ledger:Title")}
-        subtitle={t("Billing:Ledger:Subtitle")}
-        actions={
-          ability.canExport && (
-            <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
-              {t("Billing:ExportExcel")}
-            </Button>
-          )
-        }
-      />
+      <PageHeader title={t("Billing:Ledger:Title")} />
 
       <PaymentLedgerKpis totalAmount={data?.totalAmount ?? 0} totalCount={data?.totalCount ?? 0} />
 
+      {/* The export sits at the toolbar's end since the title row went (BA, R-994). */}
       <div className="page-card billing-toolbar">
         <Input
           allowClear
@@ -119,6 +110,13 @@ export function BillingPage({ dialogs }: { dialogs: LedgerRowDialogs }) {
           onChange={handleSearchChange}
         />
         <PeriodPicker value={period} onChange={handlePeriodChange} />
+        {ability.canExport && (
+          <div className="filter-toolbar-actions">
+            <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
+              {t("Billing:ExportExcel")}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="page-card billing-table-card">
