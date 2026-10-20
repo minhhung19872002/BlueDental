@@ -113,10 +113,10 @@
 }
 
 /* ── List ─────────────────────────────────────────────────────────────────── */
-/* The row number is narrow (bd-col-icon lifts the global 100px floor). */
+/* The row number is narrow. */
 .staff-notes-dialog .staff-notes-table .ant-table-thead > tr > th.staff-notes-index,
 .staff-notes-dialog .staff-notes-table .ant-table-tbody > tr > td.staff-notes-index {
-  width: 64px;
+  width: 56px;
 }
 
 .staff-notes-cell {

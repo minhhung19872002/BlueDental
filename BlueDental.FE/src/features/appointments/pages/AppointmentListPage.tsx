@@ -99,12 +99,13 @@ export function AppointmentListPage() {
           dataSource={appointments}
           loading={isLoading}
           pagination={pagination.buildConfig(data?.totalCount)}
-          scroll={{ x: 800 }}
+          scroll={{ x: 926 }}
           size="middle"
           columns={[
             {
               title: t("Common:Patient"),
               key: "patientName",
+              width: 260,
               render: (_: unknown, row: Appointment) =>
                 row.patientCode ? `[${row.patientCode}] - ${row.patientName}` : row.patientName,
             },
@@ -112,23 +113,25 @@ export function AppointmentListPage() {
               title: t("Appointment:Form:Doctor"),
               dataIndex: "doctorName",
               key: "doctorName",
+              width: 150,
             },
             {
               title: t("Appointment:List:ExamDate"),
               key: "startTime",
+              width: 96,
               render: (_: unknown, record: Appointment) => formatDate(record.startTime),
             },
             {
               title: t("Appointment:List:Time"),
               key: "time",
-              width: 140,
+              width: 116,
               render: (_: unknown, record: Appointment) =>
                 `${dayjs(record.startTime).format("HH:mm")} – ${dayjs(record.endTime).format("HH:mm")}`,
             },
             {
               title: t("Common:Status"),
               key: "status",
-              width: 140,
+              width: 104,
               render: (_: unknown, record: Appointment) => <StatusBadge status={record.status} />,
             },
             {

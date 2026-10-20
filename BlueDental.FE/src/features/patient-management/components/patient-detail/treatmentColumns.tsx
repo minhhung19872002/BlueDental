@@ -52,7 +52,7 @@ function BanknoteIcon() {
 }
 
 /**
- * The ten columns the reference shows, in its order and widths, plus
+ * The ten columns the reference shows, in its order, each sized to its data, plus
  * BlueDental's own Ghi chú after Nội dung điều trị (owner, 2026-10-19).
  *
  * A row is one **công đoạn** — see {@link buildTreatmentRows} — so Ngày spans
@@ -74,7 +74,7 @@ export function treatmentColumns({
     {
       title: t("Patient:Misc:Date"),
       dataIndex: "createdAt",
-      width: 140,
+      width: 100,
       // One cell per day, spanning that day's công đoạn.
       onCell: (row) => ({ rowSpan: row.daySpan }),
       render: (value: string) => <span className="pd-tr-day">{formatDate(value)}</span>,
@@ -116,12 +116,12 @@ export function treatmentColumns({
     },
     {
       title: t("Patient:Stage:TreatmentContent"),
-      width: 210,
+      width: 200,
       render: (_, row) => <StageNoteBullets note={row.stageNote} empty="—" />,
     },
     {
       title: t("Patient:Stage:Remark"),
-      width: 180,
+      width: 160,
       // Plain text with its line breaks — the remark has no dash bullets.
       render: (_, row) =>
         row.stageRemark ? <span className="pd-tr-remark">{row.stageRemark}</span> : "—",
@@ -129,7 +129,7 @@ export function treatmentColumns({
     {
       title: t("Patient:DentalChart:Tooth"),
       dataIndex: "rowTeeth",
-      width: 130,
+      width: 100,
       // Tooth numbers only: the reference's timeline prints no surfaces here.
       render: (_, row) =>
         row.rowTeeth.length === 0 ? (
@@ -138,11 +138,11 @@ export function treatmentColumns({
           <span className="pd-tr-teeth">{formatToothCodes(row.rowTeeth)}</span>
         ),
     },
-    { title: t("SL"), dataIndex: "quantity", width: 60, align: "center" },
+    { title: t("SL"), dataIndex: "quantity", width: 56, align: "center" },
     {
       title: t("Patient:Staff:TreatingDoctor"),
       dataIndex: "dentist",
-      width: 190,
+      width: 160,
       render: (value: string | null, row) => (
         <div className="pd-tr-doctor">
           <div>{value ?? "—"}</div>
@@ -158,12 +158,12 @@ export function treatmentColumns({
     },
     {
       title: t("Patient:Staff:AssistingDoctor"),
-      width: 170,
+      width: 150,
       render: (_, row) => row.secondDentist ?? t("Patient:Misc:None"),
     },
     {
       title: t("Patient:Stage:Title"),
-      width: 120,
+      width: 88,
       align: "center",
       render: (_, row) => {
         // A tái khám is not a công đoạn, and the reference leaves this cell of
@@ -223,7 +223,7 @@ export function treatmentColumns({
     {
       title: t("Patient:Care:AfterTreatment"),
       dataIndex: "afterCareStatus",
-      width: 180,
+      width: 160,
       render: (value: CareStatusCode | null, row) =>
         // Aftercare follows a công đoạn; the reference leaves it off a tái khám
         // and off a diagnosis.
@@ -236,7 +236,7 @@ export function treatmentColumns({
     },
     {
       title: t("Common:Actions"),
-      width: 90,
+      width: 84,
       align: "center",
       fixed: "right",
       // A warranty visit costs nothing, and staging offers no payment on it.

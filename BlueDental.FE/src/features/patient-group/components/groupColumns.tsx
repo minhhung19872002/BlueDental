@@ -14,22 +14,22 @@ export interface GroupRowActions {
 /** The Hồ sơ nhóm list; the sticky Thao tác column opens, edits or deletes a group. */
 export function groupColumns({ onView, onEdit, onDelete }: GroupRowActions): ColumnsType<PatientGroupDto> {
   return [
-    { title: t("PatientGroup:Field:Name"), dataIndex: "name", fixed: "left", width: 220, render: (v: string) => <b>{v}</b> },
+    { title: t("PatientGroup:Field:Name"), dataIndex: "name", fixed: "left", width: 180, render: (v: string) => <b>{v}</b> },
     {
       title: t("PatientGroup:Field:Kind"),
       dataIndex: "kind",
-      width: 120,
+      width: 96,
       render: (kind: number) => (
         <Tag color={kind === GROUP_KIND.Family ? "green" : "blue"}>
           {t(kind === GROUP_KIND.Family ? "PatientGroup:Kind:Family" : "PatientGroup:Kind:Other")}
         </Tag>
       ),
     },
-    { title: t("PatientGroup:Col:Head"), dataIndex: "headName", width: 180, render: (v: string | null) => v ?? "—" },
+    { title: t("PatientGroup:Col:Head"), dataIndex: "headName", width: 168, render: (v: string | null) => v ?? "—" },
     {
       title: t("PatientGroup:Field:Members"),
       key: "members",
-      width: 320,
+      width: 240,
       ellipsis: true,
       render: (_, g) => (
         <span title={g.memberNames.join(", ")}>
@@ -40,16 +40,16 @@ export function groupColumns({ onView, onEdit, onDelete }: GroupRowActions): Col
     {
       title: t("PatientGroup:Field:SharedMedicalNote"),
       dataIndex: "sharedMedicalNote",
-      width: 260,
+      width: 200,
       ellipsis: true,
       render: (v: string | null) => v ?? "—",
     },
-    { title: t("PatientGroup:Col:Created"), dataIndex: "creationTime", width: 120, render: (v: string) => formatDate(v) },
+    { title: t("PatientGroup:Col:Created"), dataIndex: "creationTime", width: 96, render: (v: string) => formatDate(v) },
     {
       title: t("Common:Actions"),
       key: "actions",
       fixed: "right",
-      width: 150,
+      width: 140,
       align: "center",
       render: (_, g) => (
         <span className="pg-row-actions">

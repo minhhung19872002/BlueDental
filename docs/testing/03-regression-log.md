@@ -254,6 +254,10 @@ màn hình Nhân sự vẫn làm.
 giá 207 (canh phải), cập nhật 277, thao tác 90. Cột của mình chỉnh theo đúng tỉ lệ
 đó — trước đó giá 160 và cập nhật 200 nên hai cột dính vào nhau.
 
+> **Đã thay bằng R-991 (owner, 2026-10-20).** Chủ dự án yêu cầu mọi bảng vừa
+> khít dữ liệu: tay kéo 40, nhóm phân loại 150, giá 128, cập nhật 128, thao tác
+> 76/100; cột tên vẫn là cột co giãn. Tỉ lệ của bản gốc không còn là chuẩn ở đây.
+
 ### Còn khác bản gốc, và vì sao giữ nguyên
 
 Tiêu đề cột của app **in hoa** (`.ant-table-thead th`), bản gốc thì không. Đây là
@@ -10127,6 +10131,99 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Spec có mở `/calendar` (`patient-back-origin`, `patient-phone-country`, `routes`, `patient.spec.ts:881`): **28/28**.
   - `appointment-shown-hours.spec.ts:149`: đổi locator `.cal-toolbar-row1` → `.cal-view-controls` (nút Tuần đã chuyển hàng).
 - **Commit**: chưa commit.
+
+## R-999 (2026-10-20, mức 3: CSS bảng dùng chung + cột của mọi bảng, không đổi nghiệp vụ) Mọi bảng vừa khít dữ liệu, dòng thấp hơn, tiêu đề cột một dòng
+
+- **Yêu cầu** (chủ dự án, kèm ảnh `/patient` và `/taxonomy/service`): "Cho độ rộng vừa dữ liệu thôi, vừa khung hình hạn chế scroll. Chỉnh height cho sát lại luôn. Áp dụng toàn bộ table." Cột tay kéo cũng phải hẹp. Sau đó thêm: "phải đảm bảo header của table không bị nhảy title xuống dòng."
+- **Nguyên nhân bảng rộng**:
+  - Rule chung `th { min-width: 100px }` đẩy mọi cột ngắn lên 100px. Ví dụ tay kéo Danh mục khai báo 48 nhưng hiện 100.
+  - Nhiều cột khai báo rộng hơn dữ liệu nhiều: ngày 130–150, SĐT 140, nhóm phân loại 300, cập nhật 280.
+  - `scroll.x` cứng (2800, 3600, 1900…) giữ bảng rộng dù cột đã hẹp.
+- **Sửa chung** (`styles/index.css`, `theme/index.ts`):
+  - Bỏ sàn 100px. Bỏ luôn các miễn trừ chỉ để chống sàn đó (`fix-end`, `bd-col-icon`).
+  - Đệm ô 13px → 8px, header 9px, mép ngoài 20px → 16px. Token `cellPaddingBlock` 8, `cellPaddingInline` 6.
+  - Tiêu đề cột `white-space: nowrap`. DataGrid (`.dg-head`, `.dg-row`) cùng nhịp, header không xuống dòng.
+- **Sửa từng bảng**: mọi bảng AntD ở mọi feature được ước lượng lại theo nội dung thật. Ví dụ ngày 96, ngày giờ 128 (148 ở bảng chữ 14px), SĐT 108, tiền 112, tag theo nhãn dài nhất, tay kéo 40. Mỗi bảng giữ một cột chữ co giãn. Mọi `scroll.x` số được tính lại bằng tổng cột mới.
+  - Feature CSS bỏ đệm/chiều cao dòng cũ: `patient.css`, `patient-care.css`, `patient-detail.css`, `record-set.css`, `report.css`, `treatment-plan.css`, `invoice-modal.css`, `plan-detail.css`, `appointment-history.css`, `timekeeping.css`.
+  - Danh mục chỉ đổi độ rộng: tay kéo 48→40, nhóm phân loại 300→150, giá 200→128, cập nhật 280→144, thao tác 100→84 (128→100 khi có nút sao chép combo). Thay cho mục "Tỉ lệ cột lấy theo bản gốc".
+- **Tiêu đề không xuống dòng**: script đọc 594 cột có `title` + `width` số, lấy chữ tiếng Việt từ `vi.json`, đo bằng font thật trong trình duyệt theo cả 4 kiểu header của app (11.5px in hoa, 14px, 13.5px, 12.5px), cộng đệm. 138 cột hẹp hơn tiêu đề được nới (chủ yếu "Thao tác" 76→84). Chạy lại: 0 cột hẹp hơn tiêu đề. Bảng tự dựng (`.rs-slips`, `.wsb-table th`, `.tp-group-table`, `.pdt-refund-table`) cũng nowrap. Cột thao tác Tiếp nhận 48→64.
+  - Hệ quả có chủ ý: cột có tiêu đề dài mà dữ liệu ngắn rộng theo tiêu đề, ví dụ "Phương thức thanh toán" 188.
+  - Tiếng Anh dài hơn ở vài nhãn; cột đó sẽ nở ra (bảng auto layout) chứ không xuống dòng.
+- **Đo** (build production, 1440×900, đăng nhập thật):
+
+  | Màn | Bảng rộng trước → sau | Dòng 1 hàng trước → sau |
+  |---|---|---|
+  | `/patient` | 2125 → ~1830 | 57 → 47 |
+  | `/taxonomy/service` | 1243 → 1034 | 67 → 57 (tên + mã 2 dòng) |
+  | `/materials` | 1928 → ~1520 | 57 → 47 |
+  | `/labo` | 1770 → ~1560 | 76 → 64 |
+  | `/marketing/tickets` | 1970 → ~1720 | — |
+
+  Dòng một hàng nay là 47px vì nút thao tác 30px làm sàn. Quét 25 màn: không còn tiêu đề nào xuống dòng hay tràn ô. Chữ thân bảng chỉ còn xuống dòng ở tên dài, đúng chủ ý.
+- **Bẫy**:
+  - Bảng có `scroll.x` số hoặc cột ghim dùng `table-layout: fixed`: cột hẹp hơn tiêu đề thì chữ tràn sang cột bên, không tự nở. Phải khai báo đủ rộng.
+  - Màn Vận hành và danh sách bệnh nhân dùng chữ 14px, ngày giờ cần 148.
+- **Test**: `tsc -b` sạch, Vitest xanh, `oxlint` không có cảnh báo mới. Không có spec nào cần đổi số kỳ vọng độ rộng.
+  - E2E trên build production sau khi rebase lên `origin/main` (`71557763`), PostgreSQL thật, không chặn request. Bộ bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`) + `treatment-plan`, `consulting-plan`, `operations-reports`, `materials`, `staff-notes`, `patient`: **200/221**.
+  - 20 ca đỏ được chạy lại trên build `origin/main` không có R-999 (cổng riêng, cùng DB): **15 ca đỏ y hệt**, nên có sẵn và không do R-999. Gồm 8 ca `operations-reports` (tab "Ngày", tiêu đề báo cáo không còn), `patient.spec.ts:1821` (tiêu đề phần trong dialog thanh toán đã đổi), `:3669`, `:3924`, `staff-notes.spec.ts:158`, `taxonomy-dialogs.spec.ts:104` (dữ liệu labo local, giống R-997), `taxonomy-import-api.spec.ts:708` và `taxonomy-service-sync.spec.ts:321` (quyền tài khoản thử trả 200).
+  - 3 ca chập chờn, chạy lại xanh: `branch-code-url.spec.ts:95` (trình duyệt crash), `materials.spec.ts:303`, `patient.spec.ts:2545`.
+  - 2 ca đỏ do R-999: `taxonomy.spec.ts` "the entry list scrolls inside its table" và "the table's scrollbar is the app's own". Hành vi vẫn đúng, giả định của test hỏng: test dùng nhóm thuốc đầu tiên, mà nhóm đó là nhóm thử bỏ lại chỉ có 1 dòng. Dòng cũ cao nên 1 dòng vẫn tràn ở cửa sổ 520px, dòng gọn thì không. Test nay tự tạo nhóm `NHOM CUON <run id>` có 15 dòng qua API thật, mở nhóm đó rồi mới thu cửa sổ, và dọn nhóm ở `afterAll`. `taxonomy.spec.ts` **10/10**.
+
+## R-1000 (2026-10-20, mức 2: một feature, chỉ FE) Lịch hẹn view Ngày — Khối lịch hiện "Nội dung đặt lịch"
+
+- **Yêu cầu** (BA, ảnh `/calendar` view Ngày, khối "Phạm Ngọc An Khương" 08:45–09:15 trống bên dưới tên, mũi tên chỉ sang ô "Nội dung đặt lịch" của dialog Cập nhật lịch hẹn): "Nếu có nội dung thì hiển thị nội dung".
+- **Dữ liệu**: ô "Nội dung đặt lịch" là trường `content` của form → `reason` ở FE → `chiefComplaint` ở BE. API danh sách đã trả về sẵn (trước đây chỉ hiện trong tooltip). Không đổi BE, không migration.
+- **Sửa FE**:
+  - `TimelineBlock.tsx`: dòng 1 vẫn là tên. Có nội dung (sau khi trim) thì thêm `.dtl-block-note` bên dưới. Số dòng vừa khối tính từ chiều cao khối (`--dtl-note-lines`, hằng số khớp `.dtl-block`: hụt 2px, tối thiểu 22px, viền + đệm 6px, dòng 16px). Không đủ chỗ thì không hiện.
+  - `calendar.css`: `.dtl-block` xếp dọc. Nội dung chữ 12px thường, nhạt 0.85, cùng màu trạng thái, giữ xuống dòng như đã gõ (`pre-line`), cắt "…" ở dòng cuối vừa khối (`-webkit-line-clamp`). Khối "đang chờ" viền 2px nên bớt 1px đệm để chữ đứng cùng chỗ với khối khác. Tooltip giữ xuống dòng (`.dtl-tip-note`).
+  - Khối không bao giờ giãn ra, vì chiều cao khối là thời lượng lịch. Muốn đọc đủ thì rê chuột xem tooltip.
+  - "Không đến": chỉ gạch tên như trước, nội dung không gạch.
+  - View Tuần (`EventCard`) đã có dòng nội dung từ trước, không đổi. View Tháng không đổi.
+- **Số dòng nội dung thấy được**:
+
+  | Cỡ ô | Lịch 15' | Lịch 30' | Lịch 60' |
+  |---|---|---|---|
+  | Phút 15 (40px/15') | tên + 1 | tên + 3 | tên + 8 |
+  | Phút 30 (48px/30') | chỉ tên | tên + 1 | tên + 4 |
+
+- **Đo** (build production, 1600×1000, đăng nhập thật, lịch tạo qua API thật rồi xoá): đúng như bảng trên ở cả hai cỡ ô. Nội dung dài bị cắt "…" trong khối, tooltip hiện đủ và giữ xuống dòng. Lịch không có nội dung chỉ có tên, trông như cũ.
+- **Test** (build production `vite preview` cổng 8171, PostgreSQL thật, không chặn request):
+  - `appointment-day-timeline.spec.ts` thêm ca "a booking's content shows under the name, line breaks kept, cut where the block ends, and follows an edit":
+    - lịch 30' có nội dung 2 dòng, dòng 2 rất dài: hiện dưới tên, dòng đầu đứng riêng, phần chữ nằm gọn trong khối, phần dư bị ẩn, tooltip có đủ;
+    - lịch không có nội dung: không có dòng nội dung;
+    - tải lại trang vẫn còn;
+    - sửa trong dialog Cập nhật lịch hẹn rồi Lưu (PUT thật): khối đổi theo.
+  - Helper `book()` nhận thêm tham số `content` (mặc định giữ chuỗi cũ).
+  - `appointment-day-timeline` **7/7**.
+  - `appointment`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-shown-hours`, `appointment-series-ui`, `appointment-working-hours`: **14/15**. Ca đỏ duy nhất là `appointment-slot-pick.spec.ts:141`, đã biết từ R-993/R-996: lịch hẹn có sẵn trong DB local đè lên ô 10:15 của mini-lịch "Lịch đã hẹn". Ca này nằm ở component khác, không do R-1000.
+  - `tsc -b` sạch.
+- **Commit**: chủ dự án đã xem, commit trên `main` và push (2026-10-20).
+
+## R-1001 (2026-10-20, mức 2: một feature, chỉ FE) Dialog lịch hẹn — Đổi ngày ở "Lịch đã hẹn" thì "Ngày hẹn" đổi theo
+
+- **Yêu cầu** (BA, ảnh dialog "Tạo lịch hẹn", mũi tên chỉ vào thanh `< 24/10/2026 >` của "Lịch đã hẹn"): "Chuyển ngày dưới đây cho tự động nhảy ngày hẹn luôn nha".
+- **Dữ liệu**: không đổi BE, không migration. Lưu vẫn gửi `startTime`/`endTime` như trước.
+- **Quyết định** (chủ dự án đồng ý theo đề xuất):
+  - Áp cho cả 4 dialog: Tạo/Cập nhật lịch hẹn, Tạo/Cập nhật lịch tạm. Ở Cập nhật, đổi ngày rồi Lưu là dời lịch sang ngày mới, giữ giờ.
+  - Chỉ đồng bộ ở chế độ **Ngày**. Ở Tuần/Tháng là một khoảng, không phải một ngày, nên lướt xem không đổi Ngày hẹn. Bấm lại "Ngày" thì lịch quay về đúng Ngày hẹn.
+  - Ngày quá khứ vẫn đồng bộ. Lưu đã bị chặn bằng toast "không thể tạo lịch trong quá khứ" như cũ.
+  - Chỉ thao tác tay (‹ ›, chọn ngày trong lịch thả xuống, "Đặt lại") mới đổi Ngày hẹn. Khi bấm một buổi trong "Danh sách buổi hẹn" (Lặp lại lịch hẹn), lịch nhảy tới buổi đó để xem, Ngày hẹn giữ nguyên.
+- **Sửa FE**:
+  - `AppointmentMiniCalendar.tsx`: thêm prop `onDateChange`. `DateNavigator` đổi ngày ở chế độ Ngày thì gọi `onDateChange(YYYY-MM-DD)`. Đổi về chế độ Ngày thì `viewDate` về Ngày hẹn. Chiều ngược lại (Ngày hẹn → lịch) vẫn là effect cũ, cùng một ngày nên không lặp.
+  - `AppointmentEditorForm.tsx`, `TempAppointmentForm.tsx`: thêm prop `onCalendarDateChange`, chuyển xuống mini-lịch.
+  - `AppointmentEditorModal.tsx`, `TempAppointmentEditorModal.tsx`: `handleCalendarDate` = `setPicked("date", …)`, cùng đường với bấm ô giờ (validate + dirty). Vì vậy luật cũ vẫn chạy: bác sĩ OFF ngày mới thì bị bỏ chọn kèm báo lỗi, bác sĩ "giữ lại" của lịch đang sửa chỉ áp cho ngày gốc, Giờ hẹn giữ nguyên.
+  - `DateNavigator` dùng chung không đổi.
+- **Test** (build production `vite preview` cổng 8171, PostgreSQL thật, đăng nhập thật, không chặn request):
+  - `appointment-mini-cal-date.spec.ts` (mới), **4/4**:
+    - Tạo lịch hẹn: › thì Ngày hẹn +1, ‹‹ thì −1, chọn ngày trong lịch thả xuống thì Ngày hẹn là ngày đó. Tuần ›› không đổi Ngày hẹn, bấm Ngày thì về Ngày hẹn. Chọn bác sĩ, ô 10:15, Lưu (POST thật). Tải lại: API và `/calendar?date=` view Ngày đều có lịch đúng ngày đã chọn, 10:15.
+    - Cập nhật lịch hẹn: mở khối trên `/calendar`, › thì Ngày hẹn +1, giờ vẫn 09:00. Lưu (PUT thật), tải lại: cùng lịch đó nằm ở ngày mới 09:00.
+    - Tạo lịch tạm: › +1, ‹‹ −1 (cả ngày quá khứ).
+    - Lặp lại lịch hẹn: bấm buổi 3 thì lịch nhảy tới buổi đó, Ngày hẹn giữ nguyên. Bấm › thì Ngày hẹn theo lịch, buổi 1 của danh sách đổi theo.
+  - `appointment`, `appointment-day-timeline`, `appointment-shown-hours`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-series-ui`, `appointment-working-hours`, `patient-appointment`: **31 qua, 2 đỏ, 1 bỏ qua**. Hai ca đỏ không do R-1001:
+    - `appointment-slot-pick.spec.ts:141` (Lịch tạm, ô 10:15): đã biết từ R-993/R-996, lịch có sẵn trong DB local đè lên ô.
+    - `appointment-day-timeline.spec.ts:331` (hôm nay, bệnh nhân đã đến đang chờ): ca này phụ thuộc giờ chạy. Spec đặt lịch lúc bây giờ + 5', chạy lúc ~19:30 thì khối nằm ngoài khung giờ hiển thị mặc định 08:00–18:45 (R-977) nên không được vẽ. Ca này qua lúc chạy R-1000 (ban ngày). R-1001 không đụng view Ngày của `/calendar`.
+  - `tsc -b` sạch.
+- **Commit**: chủ dự án đã xem, commit trên `main` và push (2026-10-20).
 
 ## R-1002 (2026-10-20, mức 1: chỉ màu) Gỡ màu v3 grape (R-988, R-991) — FE quay về bảng màu v2 như `main`
 

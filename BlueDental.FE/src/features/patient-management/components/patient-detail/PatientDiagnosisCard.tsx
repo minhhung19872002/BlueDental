@@ -68,13 +68,13 @@ export function PatientDiagnosisCard({
     {
       title: t("Patient:Payment:SlipNumber"),
       dataIndex: "code",
-      width: 130,
+      width: 100,
       render: (value: string) => <span className="pd-code">{value}</span>,
     },
     {
       title: t("Patient:Diagnosis:Doctor1"),
       key: "staff",
-      width: 210,
+      width: 160,
       render: (_, row) => (
         <div className="pd-cell-stack">
           <b>{row.staffName ?? "—"}</b>
@@ -85,7 +85,7 @@ export function PatientDiagnosisCard({
     {
       title: t("Patient:Diagnosis:Doctor2"),
       key: "secondStaff",
-      width: 200,
+      width: 160,
       render: (_, row) =>
         row.secondStaffName ? (
           <div className="pd-cell-stack">
@@ -99,7 +99,7 @@ export function PatientDiagnosisCard({
     {
       title: t("Patient:DentalChart:Tooth"),
       key: "teeth",
-      width: 250,
+      width: 200,
       render: (_, row) => (
         <div className="pd-cell-stack">
           <b className="pd-cell-link">{formatToothCodes(row.teeth) || "—"}</b>
@@ -110,13 +110,14 @@ export function PatientDiagnosisCard({
     {
       title: t("Common:Note"),
       dataIndex: "note",
+      width: 200,
       render: (value: string | null) => value ?? "—",
     },
     ...((onCreateService || onPrint || onDelete) ? [{
       title: t("Common:Actions"),
       key: "actions",
       // "Tạo dịch vụ" is the wide one; the icons alone need far less.
-      width: onCreateService ? 200 : 110,
+      width: onCreateService ? 188 : 92,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: unknown, row: PatientDiagnosisDto) => (

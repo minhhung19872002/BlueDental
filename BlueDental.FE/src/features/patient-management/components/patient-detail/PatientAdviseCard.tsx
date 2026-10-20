@@ -154,7 +154,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Misc:Date"),
           dataIndex: "creationTime",
-          width: 110,
+          width: 96,
           render: formatDate,
         },
       },
@@ -163,7 +163,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Common:Service"),
           key: "service",
-          width: 210,
+          width: 180,
           // The reference names the service and nothing else here: the teeth
           // belong with the diagnosis they were charted against, one column on.
           render: (_, row) => <b className="pd-cell-strong">{row.serviceName ?? "—"}</b>,
@@ -199,7 +199,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Staff:Consultant1"),
           dataIndex: "staffName",
-          width: 170,
+          width: 150,
           render: (value: string | null) => value ?? "—",
         },
       },
@@ -208,7 +208,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Staff:Consultant2"),
           dataIndex: "secondStaffName",
-          width: 170,
+          width: 150,
           render: (value: string | null) => value ?? "-",
         },
       },
@@ -220,7 +220,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Diagnosis:Doctor1"),
           dataIndex: "diagnosisStaffName",
-          width: 170,
+          width: 150,
           render: (value: string | null) => value ?? "-",
         },
       },
@@ -229,20 +229,20 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Diagnosis:Second"),
           dataIndex: "diagnosisSecondStaffName",
-          width: 170,
+          width: 150,
           render: (value: string | null) => value ?? "-",
         },
       },
       {
         key: "quantity",
-        column: { title: t("Patient:Payment:Quantity"), dataIndex: "quantity", width: 90, align: "center" },
+        column: { title: t("Patient:Payment:Quantity"), dataIndex: "quantity", width: 76, align: "center" },
       },
       {
         key: "price",
         column: {
           title: t("Patient:Payment:UnitPrice"),
           dataIndex: "price",
-          width: 140,
+          width: 112,
           align: "right",
           render: money,
         },
@@ -252,7 +252,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Payment:Discount"),
           dataIndex: "discountAmount",
-          width: 140,
+          width: 112,
           align: "right",
           render: money,
         },
@@ -262,7 +262,7 @@ export function PatientAdviseCard({
         column: {
           title: t("Patient:Payment:Amount"),
           dataIndex: "effectiveAmount",
-          width: 140,
+          width: 112,
           align: "right",
           render: money,
         },
@@ -320,7 +320,7 @@ export function PatientAdviseCard({
       ...(onDelete ? [{
         title: t("Common:Actions"),
         key: "actions",
-        width: 90,
+        width: 84,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, row: PatientAdviseDto) => (

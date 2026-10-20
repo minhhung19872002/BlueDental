@@ -10,7 +10,7 @@ const buildColumns = (): TableColumnsType<QuoteRow> => [
     title: t("Patient:Misc:ServiceLabel"),
     dataIndex: "service",
     className: "pq-cell-service",
-    width: 320,
+    width: 240,
   },
   {
     key: "diagnosis",
@@ -21,19 +21,19 @@ const buildColumns = (): TableColumnsType<QuoteRow> => [
   {
     key: "price",
     title: t("Patient:Payment:UnitPrice"),
-    width: 180,
+    width: 144,
     render: (_, row) => t("{0} (SL. {1})", money(row.unitPrice), row.quantity),
   },
   {
     key: "discount",
     title: t("Patient:Payment:Discount"),
-    width: 150,
+    width: 112,
     render: (_, row) => money(rowDiscount(row)),
   },
   {
     key: "amount",
     title: t("Patient:Payment:Amount"),
-    width: 150,
+    width: 112,
     render: (_, row) => money(lineTotal(row)),
   },
 ];

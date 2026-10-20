@@ -55,9 +55,9 @@ export function PatientRosterPreview({ result }: Props) {
 
   const columns = useMemo<ColumnsType<PatientRosterRowDto>>(
     () => [
-      { title: t("Taxonomy:Import:Col:Row"), dataIndex: "row", width: 64 },
-      { title: t("PatientRoster:Col:Code"), dataIndex: "patientCode", width: 130, ellipsis: true },
-      { title: t("PatientRoster:Col:Name"), dataIndex: "fullName", width: 200, ellipsis: true },
+      { title: t("Taxonomy:Import:Col:Row"), dataIndex: "row", width: 60 },
+      { title: t("PatientRoster:Col:Code"), dataIndex: "patientCode", width: 120, ellipsis: true },
+      { title: t("PatientRoster:Col:Name"), dataIndex: "fullName", width: 170, ellipsis: true },
       {
         title: t("Taxonomy:Import:Col:Errors"),
         dataIndex: "errors",
@@ -67,7 +67,7 @@ export function PatientRosterPreview({ result }: Props) {
       {
         title: t("Taxonomy:Import:Col:Result"),
         dataIndex: "action",
-        width: 120,
+        width: 96,
         render: (action: RosterRowAction) => (
           <Tag color={ACTION_TAG[action].color}>{t(ACTION_TAG[action].key)}</Tag>
         ),
@@ -111,7 +111,7 @@ export function PatientRosterPreview({ result }: Props) {
             columns={columns}
             dataSource={rows}
             pagination={false}
-            scroll={{ x: 800, y: TABLE_HEIGHT }}
+            scroll={{ x: 688, y: TABLE_HEIGHT }}
             rowClassName={(row) => (row.errors.length > 0 ? "bd-roster-row--error" : "")}
           />
         </>

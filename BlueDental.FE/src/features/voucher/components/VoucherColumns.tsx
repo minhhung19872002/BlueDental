@@ -162,7 +162,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
     {
       title: t("Voucher:ColCodeName"),
       key: "code",
-      width: 200,
+      width: 180,
       render: (_, row) => (
         <div>
           {/* New rows store the full "HN-XXXX" code; legacy rows stored it
@@ -180,7 +180,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
     {
       title: t("Voucher:ColDiscount"),
       key: "discount",
-      width: 140,
+      width: 112,
       render: (_, row) => <DiscountCell row={row} />,
     },
     {
@@ -194,21 +194,21 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
     {
       title: t("Voucher:ColValidity"),
       key: "validity",
-      width: 200,
+      width: 112,
       render: (_, row) =>
         `${formatDate(row.startDate)} — ${formatDate(row.endDate)}`,
     },
     {
       title: t("Voucher:ColUsage"),
       key: "usage",
-      width: 130,
+      width: 96,
       render: (_, row) => <UsageCell row={row} />,
     },
     {
       title: t("Common:Status"),
       dataIndex: "status",
       key: "status",
-      width: 130,
+      width: 120,
       align: "center",
       render: (status: VoucherStatus) => {
         const config = VOUCHER_STATUS_CONFIG[status];
@@ -219,7 +219,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
     {
       title: t("Voucher:ColDisplay"),
       key: "display",
-      width: 200,
+      width: 160,
       render: (_, row) => (
         <DisplayCell
           row={row}
@@ -232,7 +232,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
     ...((handlers.onEdit || handlers.onDelete) ? [{
       title: t("Common:Actions"),
       key: "actions",
-      width: 100,
+      width: 84,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: unknown, row: VoucherDto) => (

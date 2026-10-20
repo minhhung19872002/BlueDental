@@ -524,7 +524,7 @@ a.pdt-crumb:hover {
   white-space: nowrap;
 }
 .pdt-refund-table td {
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-top: 1px solid var(--tp-line);
   vertical-align: middle;
 }
@@ -538,8 +538,9 @@ a.pdt-crumb:hover {
   text-align: right;
   white-space: nowrap;
 }
+/* Sized to the 160px box below; any wider only pushes the money columns out. */
 .pdt-refund-table .pdt-refund-input {
-  width: 250px;
+  width: 160px;
 }
 
 /* ── Refund dialog ── */

@@ -75,7 +75,7 @@ export function ReceptionGrid({
     {
       key: "time",
       title: t("Reception:ColTime"),
-      width: "76px",
+      width: "48px",
       render: (r) => (
         <span className="dg-key">{formatClock(r.arrivalTime || r.appointmentTime)}</span>
       ),
@@ -114,7 +114,7 @@ export function ReceptionGrid({
     {
       key: "status",
       title: t("Common:Status"),
-      width: "126px",
+      width: "92px",
       clip: false,
       render: (r) =>
         r.counterStatus ? (
@@ -131,7 +131,7 @@ export function ReceptionGrid({
     {
       key: "progress",
       title: t("Reception:ColProgress"),
-      width: "168px",
+      width: "108px",
       clip: false,
       render: (r) => {
         const times = [r.step1Time, r.step2Time, r.step3Time];
@@ -152,7 +152,7 @@ export function ReceptionGrid({
     {
       key: "outcome",
       title: t("Reception:ColOutcome"),
-      width: "minmax(232px, 1.1fr)",
+      width: "minmax(204px, 1.1fr)",
       clip: false,
       render: (r) => (
         <div className="rec-outcomes">
@@ -172,7 +172,7 @@ export function ReceptionGrid({
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: "84px",
+      width: "64px",
       clip: false,
       render: (r) => (
         <button
@@ -193,7 +193,7 @@ export function ReceptionGrid({
       columns={columns}
       rows={items}
       rowKey={(r) => r.id}
-      minWidth={1180}
+      minWidth={1116}
       empty={t("Reception:EmptyTitle")}
     />
   );

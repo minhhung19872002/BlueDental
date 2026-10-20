@@ -47,8 +47,15 @@ async function openCalendarBranch(page: Page): Promise<string> {
   return (await request).headers()["x-clinic-branch-id"];
 }
 
-/** Books `dentistId` with the first patient the server accepts at that time. */
-async function book(page: Page, branchId: string, dentistId: string, slotStart: string, slotEnd: string): Promise<Booking> {
+/** Books `dentistId` with the first patient the server accepts at that time; `content` is its Nội dung đặt lịch. */
+async function book(
+  page: Page,
+  branchId: string,
+  dentistId: string,
+  slotStart: string,
+  slotEnd: string,
+  content = `e2e-timeline-${runId()}`,
+): Promise<Booking> {
   const patients = await call<{ items: { id: string; patientCode: string | null }[] }>(
     page, `/api/v1/app/patients?MaxResultCount=50&ClinicBranchId=${branchId}`, { branchId },
   );
@@ -57,7 +64,7 @@ async function book(page: Page, branchId: string, dentistId: string, slotStart: 
     const res = await call<Booking>(page, APPOINTMENTS, {
       method: "POST",
       branchId,
-      json: { patientId: patient.id, dentistId, branchId, slotStart, slotEnd, type: 2, chiefComplaint: `e2e-timeline-${runId()}` },
+      json: { patientId: patient.id, dentistId, branchId, slotStart, slotEnd, type: 2, ...(content ? { chiefComplaint: content } : {}) },
     });
     if (res.status === 200) return res.body;
     lastError = res.body.error;
@@ -151,6 +158,59 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     // A block opens its booking.
     await page.locator(".dtl-col").filter({ hasText: workingName }).locator(".dtl-block").click();
     await expect(page.getByRole("dialog", { name: "Cập nhật lịch hẹn" })).toBeVisible();
+  });
+
+  test("a booking's content shows under the name, line breaks kept, cut where the block ends, and follows an edit", async ({ page }) => {
+    const day = shiftDays(clinicToday(), 10);
+    const id = runId();
+    const firstLine = `Nội dung ${id}`;
+    const tail = `cuối-${id}`;
+    // Two lines as typed; the second runs well past the three lines a 30-minute block has room for.
+    const content = `${firstLine}\n${"Niềng răng tái khám chỉnh mắc cài ".repeat(8)}${tail}`;
+    const withContent = await book(page, branchId, working.id, at(day, "09:00"), at(day, "09:30"), content);
+    bookings.push(withContent.id);
+    const withoutContent = await book(page, branchId, working.id, at(day, "10:00"), at(day, "10:30"), "");
+    bookings.push(withoutContent.id);
+
+    await openDay(page, day);
+    const column = page.locator(".dtl-col").filter({ hasText: workingName });
+    const block = column.locator(".dtl-block").filter({ hasText: firstLine });
+    const note = block.locator(".dtl-block-note");
+    await expect(note).toBeVisible();
+    // The typed line break survives: the first line stands alone.
+    expect((await note.evaluate((el) => (el as HTMLElement).innerText)).split("\n")[0]).toBe(firstLine);
+
+    // Too long for the block: cut inside it, the rest still hidden in the text box...
+    const blockBox = await block.boundingBox();
+    const noteBox = await note.boundingBox();
+    if (!blockBox || !noteBox) throw new Error("the block is not laid out");
+    expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(blockBox.y + blockBox.height);
+    expect(await note.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    // ...and whole in the tooltip.
+    await block.hover();
+    await expect(page.locator(".dtl-tip-note")).toContainText(tail);
+
+    // No content, no second line: the block holds the name alone.
+    const plain = column.locator(".dtl-block").filter({ hasNot: page.locator(".dtl-block-note") });
+    await expect(plain).toHaveCount(1);
+
+    await page.reload();
+    await expect(column.locator(".dtl-block-note")).toHaveCount(1);
+    await expect(block.locator(".dtl-block-note")).toContainText(firstLine);
+
+    // An edit in Cập nhật lịch hẹn shows on the board once saved.
+    await block.click();
+    const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
+    // The form is reset once the booking arrives; type only after that.
+    await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(content);
+    const updated = `Đã sửa ${id}`;
+    await edit.getByPlaceholder("Nội dung đặt lịch").fill(updated);
+    const put = page.waitForResponse((res) => res.url().includes(APPOINTMENTS) && res.request().method() === "PUT");
+    await edit.getByRole("button", { name: "Lưu" }).click();
+    expect((await put).ok()).toBeTruthy();
+    await expect(edit).toBeHidden();
+    await expect(column.locator(".dtl-block-note")).toHaveText(updated);
+    await expect(column.locator(".dtl-block").filter({ hasNot: page.locator(".dtl-block-note") })).toHaveCount(1);
   });
 
   test("clicking an empty slot opens Tạo lịch hẹn for that doctor and time", async ({ page }) => {

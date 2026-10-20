@@ -113,6 +113,7 @@ export function TempAppointmentEditorModal({
     [setValue],
   );
   const handleSlotPick = useSlotPickHandler({ formDate: watchedDate, doctorOptions, set: setPicked });
+  const handleCalendarDate = useCallback((date: string) => setPicked("date", date), [setPicked]);
 
   useEffect(() => {
     if (!open) {
@@ -247,6 +248,7 @@ export function TempAppointmentEditorModal({
           watchedDate={watchedDate}
           watchedSourceTaxonomyId={watchedSourceTaxonomyId}
           onSlotPick={handleSlotPick}
+          onCalendarDateChange={handleCalendarDate}
         />
       </AppDialog>
       <DentistOverlapDialog {...overlap.dialog} />

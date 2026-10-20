@@ -99,7 +99,7 @@ export function PaymentAccountPanel() {
       {
         key: "lastModificationTime",
         title: t("Taxonomy:Payment:LastUpdate"),
-        width: 200,
+        width: 136,
         render: (_, account) => (
           <span className="bd-cat-num">
             {formatDate(account.lastModificationTime ?? account.creationTime)}
@@ -109,7 +109,7 @@ export function PaymentAccountPanel() {
       ...((canUpdate || canDelete) ? [{
         key: "actions" as const,
         title: t("Taxonomy:Table:Actions"),
-        width: 110,
+        width: 84,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, account: PaymentAccountDto) => (

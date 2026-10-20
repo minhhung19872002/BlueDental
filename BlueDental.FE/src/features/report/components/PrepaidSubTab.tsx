@@ -37,7 +37,7 @@ function buildColumns(rows: PrepaidLineDto[]): TableColumnsType<PrepaidLineDto> 
   const dateSpans = groupSpans(rows, (r) => r.date);
   const patientSpans = groupSpans(rows, (r) => `${r.date}|${r.patientLabel}`);
   return [
-    { title: t("Report:Column:Date"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v), onCell: spanCell(dateSpans) },
+    { title: t("Report:Column:Date"), dataIndex: "date", width: 96, render: (v: string) => formatDate(v), onCell: spanCell(dateSpans) },
     {
       title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
@@ -51,20 +51,20 @@ function buildColumns(rows: PrepaidLineDto[]): TableColumnsType<PrepaidLineDto> 
       width: 180,
       render: (v: string) => EVENT_LABELS[v]?.() ?? v,
     },
-    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceName" },
+    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceName", width: 220 },
     // Blue on every row: the deposit's voucher code, or "-" when the event has none.
     {
       title: t("Report:Prepaid:PaymentSlip"),
       dataIndex: "paymentCode",
-      width: 210,
+      width: 190,
       render: (v: string) => <span className="report-voucher-code">{v || "-"}</span>,
     },
-    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 170 },
-    { title: t("Report:Prepaid:Amount"), dataIndex: "amount", width: 140, align: "right", render: renderSignedAmount },
+    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 160 },
+    { title: t("Report:Prepaid:Amount"), dataIndex: "amount", width: 120, align: "right", render: renderSignedAmount },
     {
       title: t("Report:Prepaid:BalanceAfter"),
       dataIndex: "balanceAfter",
-      width: 140,
+      width: 120,
       align: "right",
       render: (v: number) => <span className="report-money report-money--blue">{formatMoneyUnit(v)}</span>,
       onCell: spanCell(patientSpans),

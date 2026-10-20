@@ -35,7 +35,7 @@ function ServiceList({ row }: { row: PaymentLineDto }) {
 function buildColumns(): TableColumnsType<PaymentLineDto> {
   const channels = paymentChannelLabels();
   return [
-    { title: t("Report:Column:CreatedDate"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
+    { title: t("Report:Column:CreatedDate"), dataIndex: "date", width: 96, render: (v: string) => formatDate(v) },
     {
       title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
@@ -43,14 +43,14 @@ function buildColumns(): TableColumnsType<PaymentLineDto> {
       render: (v: string) => <span className="report-patient-link">{v}</span>,
     },
     { title: t("Report:PaymentSummary:PaymentCode"), dataIndex: "paymentCode", width: 190 },
-    { title: t("Report:Column:TreatmentService"), key: "serviceNames", render: (_: unknown, row) => <ServiceList row={row} /> },
-    { title: t("Report:PaymentSummary:InvoiceAmount"), dataIndex: "invoiceAmount", width: 130, align: "right", render: money() },
-    { title: t("Report:PaymentSummary:Paid"), dataIndex: "paidAmount", width: 130, align: "right", render: money("report-money--bold") },
-    { title: t("Report:PaymentSummary:ActualReceived"), dataIndex: "actualReceived", width: 130, align: "right", render: money("report-money--green") },
-    { title: t("Report:PaymentSummary:RemainingPrepaid"), dataIndex: "remainingPrepaid", width: 150, align: "right", render: money("report-money--green") },
-    { title: t("Report:Column:PaymentMethod"), dataIndex: "channel", width: 160, render: (v: PaymentLineDto["channel"]) => channels[v] },
-    { title: t("Report:PaymentSummary:PaymentInfo"), dataIndex: "paymentInfo", width: 180, render: (v: string) => v || "—" },
-    { title: t("Common:Note"), dataIndex: "note", width: 180, render: (v: string) => v || "—" },
+    { title: t("Report:Column:TreatmentService"), key: "serviceNames", width: 220, render: (_: unknown, row) => <ServiceList row={row} /> },
+    { title: t("Report:PaymentSummary:InvoiceAmount"), dataIndex: "invoiceAmount", width: 128, align: "right", render: money() },
+    { title: t("Report:PaymentSummary:Paid"), dataIndex: "paidAmount", width: 120, align: "right", render: money("report-money--bold") },
+    { title: t("Report:PaymentSummary:ActualReceived"), dataIndex: "actualReceived", width: 124, align: "right", render: money("report-money--green") },
+    { title: t("Report:PaymentSummary:RemainingPrepaid"), dataIndex: "remainingPrepaid", width: 168, align: "right", render: money("report-money--green") },
+    { title: t("Report:Column:PaymentMethod"), dataIndex: "channel", width: 112, render: (v: PaymentLineDto["channel"]) => channels[v] },
+    { title: t("Report:PaymentSummary:PaymentInfo"), dataIndex: "paymentInfo", width: 176, render: (v: string) => v || "—" },
+    { title: t("Common:Note"), dataIndex: "note", width: 160, render: (v: string) => v || "—" },
   ];
 }
 

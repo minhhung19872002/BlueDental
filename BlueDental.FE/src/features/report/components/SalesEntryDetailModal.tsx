@@ -33,22 +33,25 @@ function PartySection({ title, rows }: { title: string } & PartyInfo) {
   );
 }
 
-/** The reference's per-type labels (`ev(type)`); its detail table shows both dates for either type. */
+/**
+ * The reference's per-type labels (`ev(type)`); its detail table shows both dates for either type.
+ * Widths add up to 978px so the one-row table fits the 1024px dialog body without scrolling.
+ */
 function buildColumns(labels: VoucherLabels): TableColumnsType<SalesEntryDto> {
   const channels = paymentChannelLabels();
   const dateCell = (v: string) => formatDate(v);
   return [
-    { title: t("Report:Column:CreatedDate"), dataIndex: "entryDate", width: 130, render: dateCell },
-    { title: labels.actualDate, dataIndex: "entryDate", width: 140, render: dateCell },
+    { title: t("Report:Column:CreatedDate"), dataIndex: "entryDate", width: 96, render: dateCell },
+    { title: labels.actualDate, dataIndex: "entryDate", width: 96, render: dateCell },
     { title: t("Report:Column:Customer"), key: "customer", width: 150, render: (_: unknown, r) => salesEntryCustomerLabel(r) },
-    { title: labels.content, dataIndex: "description", width: 220 },
-    { title: labels.staff, dataIndex: "staffName", width: 140 },
-    { title: labels.category, dataIndex: "categoryName", width: 140 },
-    { title: t("Report:SalesDetail:Method"), dataIndex: "channel", width: 130, render: (v: SalesEntryDto["channel"]) => channels[v] },
+    { title: labels.content, dataIndex: "description", width: 170 },
+    { title: labels.staff, dataIndex: "staffName", width: 130 },
+    { title: labels.category, dataIndex: "categoryName", width: 120 },
+    { title: t("Report:SalesDetail:Method"), dataIndex: "channel", width: 104, render: (v: SalesEntryDto["channel"]) => channels[v] },
     {
       title: labels.amount,
       dataIndex: "amount",
-      width: 140,
+      width: 112,
       align: "right",
       render: (v: number) => <strong>{formatMoneyUnit(v)}</strong>,
     },

@@ -67,11 +67,11 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
   };
 
   const columns: TableColumnsType<PrescriptionDto> = [
-    { title: t("Treatment:Prescription:PrescriptionCode"), dataIndex: "code", width: 130 },
+    { title: t("Treatment:Prescription:PrescriptionCode"), dataIndex: "code", width: 120 },
     {
       title: t("Treatment:Common:Doctor"),
       dataIndex: "staffName",
-      width: 180,
+      width: 160,
       ellipsis: true,
       render: (value: string | null) => value || "—",
     },
@@ -84,19 +84,20 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
     {
       title: t("Treatment:Prescription:TypeRecheck"),
       dataIndex: "followUpDate",
-      width: 130,
+      width: 96,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
       title: t("Treatment:Common:CreatedDate"),
       dataIndex: "issuedAt",
-      width: 130,
+      width: 96,
       render: (value: string) => formatDate(value),
     },
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 130,
+      // Up to three 32px buttons 2px apart, the 6px inner padding and the 16px edge.
+      width: 124,
       fixed: "right" as const,
       render: (_: unknown, row: PrescriptionDto) => (
         <span className="pd-icon-actions">

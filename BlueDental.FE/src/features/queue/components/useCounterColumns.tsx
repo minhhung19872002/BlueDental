@@ -42,19 +42,19 @@ export function useCounterColumns({ onEdit, onDelete }: CounterRowActions): Colu
     {
       title: t("Queue:Counter:IssuedUpTo"),
       key: "issued",
-      width: 110,
+      width: 88,
       render: (_: unknown, counter) => counter.lastIssuedNumber ?? "—",
     },
     {
       title: t("Queue:Counter:Threshold"),
       key: "threshold",
-      width: 170,
+      width: 136,
       render: (_: unknown, counter) => t("Queue:Minutes", counter.waitWarningMinutes),
     },
     {
       title: t("Queue:Counter:Status"),
       key: "status",
-      width: 150,
+      width: 128,
       render: (_: unknown, counter) => (
         <span className="queue-counter-toggle">
           <Switch
@@ -71,7 +71,7 @@ export function useCounterColumns({ onEdit, onDelete }: CounterRowActions): Colu
     {
       title: t("Queue:Counter:Actions"),
       key: "actions",
-      width: 96,
+      width: 84,
       align: "center",
       render: (_: unknown, counter) => (
         <span className="queue-manager__actions">

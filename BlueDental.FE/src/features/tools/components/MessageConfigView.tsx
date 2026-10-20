@@ -130,11 +130,11 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
   const columns = useMemo<ColumnsType<MessageConfigRow>>(
     () => [
       { key: "name", title: t("Tools:NameLabel"), dataIndex: "name" },
-      { key: "provider", title: t("Tools:ProviderLabel"), dataIndex: "provider" },
+      { key: "provider", title: t("Tools:ProviderLabel"), dataIndex: "provider", width: 120 },
       {
         key: "status",
         title: t("Tools:StatusLabel"),
-        width: 130,
+        width: 96,
         render: (_, row) => {
           const { label, color } = activeTag(row.isActive);
           return <Tag color={color}>{label}</Tag>;
@@ -143,7 +143,7 @@ export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageCo
       {
         key: "actions",
         title: t("Tools:ActionsLabel"),
-        width: 110,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, row) => (

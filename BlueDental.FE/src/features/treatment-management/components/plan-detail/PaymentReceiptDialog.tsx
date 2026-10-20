@@ -32,13 +32,13 @@ interface Props {
 
 function buildColumns(dentistName: string | null, diagnosisOf: (line: ReceiptLine) => string): TableColumnsType<ReceiptLine> {
   return [
-    { key: "service", title: t("Treatment:Service:Service"), width: 180, render: (_, line) => line.service.serviceName ?? line.service.code },
+    { key: "service", title: t("Treatment:Service:Service"), width: 200, render: (_, line) => line.service.serviceName ?? line.service.code },
     { key: "diagnosis", title: t("Treatment:Diagnosis:Diagnosis"), width: 160, render: (_, line) => diagnosisOf(line) },
-    { key: "dentist", title: t("Treatment:Common:DentistDoctor"), width: 160, render: () => dash(dentistName) },
-    { key: "quantity", title: t("Treatment:Pricing:Quantity"), width: 90, align: "center", render: (_, line) => line.service.quantity },
-    { key: "price", title: t("Treatment:Pricing:UnitPrice"), width: 140, align: "right", render: (_, line) => moneyText(line.service.price) },
-    { key: "discount", title: t("Treatment:Pricing:Discount"), width: 140, align: "right", render: (_, line) => moneyText(line.service.discountAmount) },
-    { key: "amount", title: t("Treatment:Pricing:NetAmount"), width: 150, align: "right", render: (_, line) => <strong>{moneyText(line.service.effectiveAmount)}</strong> },
+    { key: "dentist", title: t("Treatment:Common:DentistDoctor"), width: 150, render: () => dash(dentistName) },
+    { key: "quantity", title: t("Treatment:Pricing:Quantity"), width: 76, align: "center", render: (_, line) => line.service.quantity },
+    { key: "price", title: t("Treatment:Pricing:UnitPrice"), width: 112, align: "right", render: (_, line) => moneyText(line.service.price) },
+    { key: "discount", title: t("Treatment:Pricing:Discount"), width: 104, align: "right", render: (_, line) => moneyText(line.service.discountAmount) },
+    { key: "amount", title: t("Treatment:Pricing:NetAmount"), width: 120, align: "right", render: (_, line) => <strong>{moneyText(line.service.effectiveAmount)}</strong> },
   ];
 }
 

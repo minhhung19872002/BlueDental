@@ -171,6 +171,7 @@ export function AppointmentEditorModal({
     [setValue],
   );
   const handleSlotPick = useSlotPickHandler({ formDate: watchedDate, doctorOptions, set: setPicked });
+  const handleCalendarDate = useCallback((date: string) => setPicked("date", date), [setPicked]);
 
   // The create seed runs once per opening. Anything that settles late — the
   // branch store, an option list — must not reset the form under a user who
@@ -335,6 +336,7 @@ export function AppointmentEditorModal({
           onOpenNewPatient={handleOpenNewPatient}
           series={seriesSlots}
           onSlotPick={handleSlotPick}
+          onCalendarDateChange={handleCalendarDate}
         />
       </AppDialog>
 

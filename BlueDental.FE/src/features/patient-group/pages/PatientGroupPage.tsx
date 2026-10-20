@@ -82,7 +82,7 @@ export function PatientGroupPage() {
             page={state.page}
             pageSize={state.pageSize}
             onPageChange={state.setPage}
-            scroll={{ x: 1300 }}
+            scroll={{ x: 1120 }}
           />
         )}
       </div>

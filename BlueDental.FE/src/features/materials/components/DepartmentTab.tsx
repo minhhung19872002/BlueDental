@@ -195,32 +195,32 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       {
         key: "allocatedAt",
         title: t("Materials:DeptAllocTimeCol"),
-        width: 190,
+        width: 148,
         render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocatedAt)}</span>,
       },
       {
         key: "code",
         title: t("Materials:DeptAllocCodeCol"),
-        width: 180,
+        width: 120,
         render: (_, row) => <span className="bd-mat-code">{row.allocationCode || "—"}</span>,
       },
       {
         key: "name",
         title: t("Materials:DeptMaterialCol"),
-        width: 220,
+        width: 200,
         render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
       },
       {
         key: "issued",
         title: t("Materials:DeptIssuedQtyCol"),
-        width: 150,
+        width: 100,
         align: "right",
         render: (_, row) => <span className="bd-cat-num bd-mat-issued">{row.quantity}</span>,
       },
       {
         key: "remaining",
         title: t("Materials:DeptRemainingApprovedCol"),
-        width: 190,
+        width: 152,
         align: "right",
         render: (_, row) =>
           row.confirmedQuantity === null ? (
@@ -232,7 +232,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       {
         key: "stocktake",
         title: t("Materials:DeptStockCheckCol"),
-        width: 140,
+        width: 88,
         // The reference shows a status here. BlueDental keeps no stock-take
         // record of its own, so a line simply reads as not yet checked until a
         // remaining figure comes back for it.
@@ -246,7 +246,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       {
         key: "performer",
         title: t("Materials:DeptExecutorCol"),
-        width: 180,
+        width: 150,
         render: (_, row) => row.performerName ?? "—",
       },
       { key: "note", title: t("Common:Note"), render: (_, row) => row.note ?? "—" },
@@ -264,7 +264,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       {
         key: "totalQty",
         title: t("Materials:DeptTotalAllocQty"),
-        width: 180,
+        width: 124,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num bd-mat-issued">{row.totalQuantity}</span>
@@ -273,7 +273,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       {
         key: "totalConfirmed",
         title: t("Materials:DeptTotalRemaining"),
-        width: 220,
+        width: 172,
         align: "right",
         render: (_, row) =>
           row.totalConfirmed === null ? (
@@ -285,14 +285,14 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
       {
         key: "allocationCount",
         title: t("Materials:DeptAllocCount"),
-        width: 170,
+        width: 116,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{t("Materials:AllocCountBadge", row.allocationCount)}</span>,
       },
       {
         key: "latestAllocatedAt",
         title: t("Materials:LastAllocCol"),
-        width: 210,
+        width: 176,
         render: (_, row) => (
           <span className="bd-cat-num">
             {row.latestAllocatedAt ? formatDateTime(row.latestAllocatedAt) : "—"}
@@ -404,7 +404,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
                 dataSource={summaries}
                 rowKey="supplyId"
                 loading={allocationsQuery.isFetching}
-                scroll={{ x: 1100 }}
+                scroll={{ x: 808 }}
                 pagination={pagination.buildConfig(shown, (total, range) =>
                   total === 0
                     ? t("Materials:ShowZero")
@@ -418,7 +418,7 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
                 dataSource={rows}
                 rowKey="id"
                 loading={allocationsQuery.isFetching}
-                scroll={{ x: 1400 }}
+                scroll={{ x: 1158 }}
                 pagination={pagination.buildConfig(shown, (total, range) =>
                   total === 0
                     ? t("Materials:ShowZero")

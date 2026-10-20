@@ -29,6 +29,8 @@ interface Props {
   watchedSourceTaxonomyId: string;
   /** A slot clicked in Lịch đã hẹn (fills Giờ hẹn and, on a doctor row, Chọn bác sĩ). */
   onSlotPick: (pick: MiniCalSlotPick) => void;
+  /** Lịch đã hẹn's day view moved to another day by hand: Ngày hẹn follows. */
+  onCalendarDateChange: (date: string) => void;
 }
 
 export function TempAppointmentForm({
@@ -40,6 +42,7 @@ export function TempAppointmentForm({
   watchedDate,
   watchedSourceTaxonomyId,
   onSlotPick,
+  onCalendarDateChange,
 }: Props) {
   return (
     <div className="appt-editor-body">
@@ -60,6 +63,7 @@ export function TempAppointmentForm({
         date={watchedDate}
         doctorId={watchedDoctorId || undefined}
         onSlotPick={onSlotPick}
+        onDateChange={onCalendarDateChange}
       />
     </div>
   );

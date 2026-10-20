@@ -107,15 +107,15 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       title: t("Treatment:Receipt:DateLabel"),
       dataIndex: "paidAt",
       key: "paidAt",
-      width: 150,
+      width: 128,
       render: (value: string) => formatDateTime(value),
     },
-    { title: t("Treatment:Payment:SlipNumber"), dataIndex: "code", key: "code", width: 120 },
+    { title: t("Treatment:Payment:SlipNumber"), dataIndex: "code", key: "code", width: 188 },
     {
       title: t("Treatment:Payment:Kind"),
       dataIndex: "kind",
       key: "kind",
-      width: 110,
+      width: 96,
       render: (value: PatientPaymentKind) => {
         const config = paymentKindConfig()[value];
         return <Tag color={config.color}>{config.label}</Tag>;
@@ -125,21 +125,21 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       title: t("Treatment:Payment:Form"),
       dataIndex: "method",
       key: "method",
-      width: 130,
+      width: 96,
       render: (value: PaymentMethodKind) => paymentMethodLabels()[value],
     },
     {
       title: t("Treatment:Plan:Plan"),
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
-      width: 100,
+      width: 76,
       render: (value: string | null) => value ?? "—",
     },
     {
       title: t("Treatment:Pricing:Amount"),
       dataIndex: "amount",
       key: "amount",
-      width: 140,
+      width: 112,
       align: "right",
       render: (value: number, row) => (
         <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#e5484d" : "#0e9f6e" }}>

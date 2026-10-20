@@ -65,7 +65,7 @@ export function GroupDetailDialog({ open, group, loading, onEdit, onClose }: Pro
             rowKey="patientId"
             size="small"
             pagination={false}
-            scroll={{ x: 1120, y: 420 }}
+            scroll={{ x: 982, y: 420 }}
             dataSource={group.members}
             columns={memberColumns(group.kind)}
           />

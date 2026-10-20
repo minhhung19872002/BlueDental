@@ -24,15 +24,15 @@ function tagColumns(ability: Ability, onPick: (pending: Pending) => void): Colum
     {
       title: t("Ticket:Tag:ProcessingDays"),
       key: "days",
-      width: 180,
+      width: 120,
       render: (_, tag) =>
         tag.maxProcessingDays ? t("Ticket:DaysCount", tag.maxProcessingDays) : <span className="bd-cat-num">{t("Ticket:Tag:NoDeadline")}</span>,
     },
-    { title: t("Common:CreatedAt"), key: "created", width: 160, render: (_, tag) => dayjs(tag.creationTime).format("DD/MM/YYYY") },
+    { title: t("Common:CreatedAt"), key: "created", width: 96, render: (_, tag) => dayjs(tag.creationTime).format("DD/MM/YYYY") },
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 110,
+      width: 84,
       align: "center",
       render: (_, tag) => (
         <div className="bd-cat-rowactions">

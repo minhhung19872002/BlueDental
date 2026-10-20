@@ -119,8 +119,8 @@ export const themeConfig: ThemeConfig = {
       rowHoverBg: brand.bgSoft,
       borderColor: brand.lineSoft,
       cellFontSize: 12.5,
-      cellPaddingBlock: 12,
-      cellPaddingInline: 14,
+      cellPaddingBlock: 8,
+      cellPaddingInline: 6,
       headerBorderRadius: 0,
     },
     Card: {

@@ -86,26 +86,26 @@ function RowActions({ row, actions }: { row: CashflowEntryDto; actions: LedgerAc
   );
 }
 
-/** The tab-4 ledger: the reference's columns, widths and an eye / pencil / bin per row. */
+/** The tab-4 ledger: the reference's columns (sized to their content) and an eye / pencil / bin per row. */
 export function buildLedgerColumns(actions: LedgerActions): TableColumnsType<CashflowEntryDto> {
   const types = cashTransactionLabels();
   return [
-    { title: t("Report:Column:Date"), dataIndex: "entryDate", width: 130, render: (v: string) => formatDate(v) },
+    { title: t("Report:Column:Date"), dataIndex: "entryDate", width: 96, render: (v: string) => formatDate(v) },
     {
       title: t("Report:Column:TransactionType"),
       dataIndex: "transactionType",
-      width: 150,
+      width: 116,
       render: (v: CashflowEntryDto["transactionType"]) => <span className="report-type-label">{types[v]}</span>,
     },
-    { title: t("Report:Column:PaymentMethod"), key: "holding", width: 170, render: (_: unknown, row) => <MethodBadge row={row} /> },
-    { title: t("Report:Column:Category"), key: "category", width: 150, render: (_: unknown, row) => <CategoryPill row={row} /> },
-    { title: t("Report:Column:Amount"), key: "amount", width: 150, render: (_: unknown, row) => <SignedAmount row={row} /> },
-    { title: t("Report:Column:Creator"), dataIndex: "createdByStaffName", width: 150, render: (v: string | null) => v ?? t("Report:Unknown") },
-    { title: t("Common:Note"), dataIndex: "note", width: 200, render: (v: string | null) => v || "—" },
+    { title: t("Report:Column:PaymentMethod"), key: "holding", width: 150, render: (_: unknown, row) => <MethodBadge row={row} /> },
+    { title: t("Report:Column:Category"), key: "category", width: 140, render: (_: unknown, row) => <CategoryPill row={row} /> },
+    { title: t("Report:Column:Amount"), key: "amount", width: 128, render: (_: unknown, row) => <SignedAmount row={row} /> },
+    { title: t("Report:Column:Creator"), dataIndex: "createdByStaffName", width: 160, render: (v: string | null) => v ?? t("Report:Unknown") },
+    { title: t("Common:Note"), dataIndex: "note", width: 220, render: (v: string | null) => v || "—" },
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 110,
+      width: 100,
       align: "center",
       fixed: "right",
       render: (_: unknown, row) => <RowActions row={row} actions={actions} />,

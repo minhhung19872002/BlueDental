@@ -44,23 +44,23 @@ export function InvoiceReport() {
       {
         key: "createdAt",
         title: t("Operations:InvoiceCreatedAt"),
-        width: 130,
+        width: 104,
         render: (_, row) => <span className="bd-cat-num">{formatDate(row.createdAt)}</span>,
       },
-      { key: "number", title: t("Operations:InvoiceNumber"), dataIndex: "invoiceNumber", width: 170 },
-      { key: "patient", title: t("Operations:PatientName"), dataIndex: "patientName", width: 210 },
-      { key: "unit", title: t("Operations:UnitName"), dataIndex: "unitName", width: 230 },
+      { key: "number", title: t("Operations:InvoiceNumber"), dataIndex: "invoiceNumber", width: 132 },
+      { key: "patient", title: t("Operations:PatientName"), dataIndex: "patientName", width: 170 },
+      { key: "unit", title: t("Operations:UnitName"), dataIndex: "unitName", width: 180 },
       {
         key: "method",
         title: t("Operations:PaymentMethod"),
-        width: 180,
+        width: 168,
         render: (_, row) => row.paymentMethod || "—",
       },
-      { key: "issue", title: t("Operations:InvoiceStatus"), dataIndex: "issueStatus", width: 180 },
+      { key: "issue", title: t("Operations:InvoiceStatus"), dataIndex: "issueStatus", width: 148 },
       {
         key: "status",
         title: t("Common:Status"),
-        width: 180,
+        width: 156,
         render: (_, row) => (
           <span className="bd-ops-tag">{t(STATUS_LABELS[row.status] ?? row.status)}</span>
         ),
@@ -68,21 +68,21 @@ export function InvoiceReport() {
       {
         key: "subTotal",
         title: t("Operations:TotalBeforeVAT"),
-        width: 160,
+        width: 128,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{formatMoney(row.subTotal)}</span>,
       },
       {
         key: "tax",
         title: t("Operations:TotalVAT"),
-        width: 140,
+        width: 112,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{formatMoney(row.taxAmount)}</span>,
       },
       {
         key: "total",
         title: t("Operations:TotalAmount"),
-        width: 160,
+        width: 128,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num bd-semibold">{formatMoney(row.totalAmount)}</span>
@@ -91,7 +91,7 @@ export function InvoiceReport() {
       {
         key: "supplier",
         title: t("Operations:Provider"),
-        width: 170,
+        width: 150,
         render: (_, row) => row.supplier ?? "—",
       },
     ],
@@ -128,7 +128,7 @@ export function InvoiceReport() {
           dataSource={query.data?.items ?? []}
           rowKey="invoiceNumber"
           loading={query.isFetching}
-          scroll={{ x: 2000 }}
+          scroll={{ x: "max-content" }}
           pagination={pagination.buildConfig(query.data?.totalCount ?? 0, operationsTotal)}
           locale={{ emptyText: t("Common:NoData") }}
         />

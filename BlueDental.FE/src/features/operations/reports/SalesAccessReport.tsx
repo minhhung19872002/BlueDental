@@ -108,7 +108,7 @@ export function SalesAccessReport() {
           dataSource={rows}
           rowKey="id"
           loading={query.isFetching}
-          scroll={{ x: 3600 }}
+          scroll={{ x: "max-content" }}
           pagination={pagination.buildConfig(
             query.data?.totalCount ?? 0,
             (total, rangeOf) =>

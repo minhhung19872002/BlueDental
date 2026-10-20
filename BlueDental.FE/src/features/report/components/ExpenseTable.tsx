@@ -19,23 +19,23 @@ function buildColumns(rows: ServiceLineDto[]): TableColumnsType<ServiceLineDto> 
     {
       title: t("Report:Column:Date"),
       dataIndex: "date",
-      width: 130,
+      width: 96,
       render: (v: string) => formatDate(v),
       onCell: spanCell(dateSpans),
     },
     {
       title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
-      width: 190,
+      width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
       onCell: spanCell(patientSpans),
     },
-    { title: t("Report:Column:CounselorName"), dataIndex: "counselorName", width: 170 },
-    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 180 },
+    { title: t("Report:Column:CounselorName"), dataIndex: "counselorName", width: 160 },
+    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 160 },
     {
       title: t("Report:Column:TreatmentService"),
       dataIndex: "serviceName",
-      width: 190,
+      width: 220,
       render: (v: string, row) => (
         <>
           {v}
@@ -43,18 +43,18 @@ function buildColumns(rows: ServiceLineDto[]): TableColumnsType<ServiceLineDto> 
         </>
       ),
     },
-    { title: t("Report:Column:Quantity"), dataIndex: "quantity", width: 120, align: "center" },
+    { title: t("Report:Column:Quantity"), dataIndex: "quantity", width: 84, align: "center" },
     {
       title: t("Report:Column:TotalAmount"),
       dataIndex: "totalAmount",
-      width: 140,
+      width: 120,
       align: "right",
       render: (v: number) => <span className="report-money">{formatMoneyUnit(v)}</span>,
     },
     {
       title: t("Report:Column:PaidAmount"),
       dataIndex: "paidAmount",
-      width: 160,
+      width: 124,
       align: "right",
       render: (v: number) => <span className="report-money">{formatMoneyUnit(v)}</span>,
     },

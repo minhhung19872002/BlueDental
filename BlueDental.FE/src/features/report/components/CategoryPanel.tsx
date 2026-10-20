@@ -51,15 +51,15 @@ function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDe
   ];
   if (config.showColor) {
     columns.push(
-      { title: t("Common:Note"), dataIndex: "description", render: (v: string | null) => v || "—" },
-      { title: t("Report:CategoryPanel:ColorCode"), dataIndex: "colorCode", width: 160, render: (v: string | null) => <ColorCell code={v} /> },
+      { title: t("Common:Note"), dataIndex: "description", width: 260, render: (v: string | null) => v || "—" },
+      { title: t("Report:CategoryPanel:ColorCode"), dataIndex: "colorCode", width: 120, render: (v: string | null) => <ColorCell code={v} /> },
     );
   }
   if (onEdit || onDelete) {
     columns.push({
       title: t("Common:Actions"),
       key: "actions",
-      width: config.showColor ? 70 : 120,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_: unknown, row) => (

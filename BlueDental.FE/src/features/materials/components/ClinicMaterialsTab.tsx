@@ -133,19 +133,19 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       {
         key: "name",
         title: t("Materials:NameCol"),
-        width: 220,
+        width: 230,
         render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
       },
       {
         key: "group",
         title: t("Materials:GroupCol"),
-        width: 180,
+        width: 140,
         render: (_, row) => row.taxonomyName ?? "—",
       },
       {
         key: "stockedAt",
         title: t("Materials:StockedAtCol"),
-        width: 140,
+        width: 96,
         render: (_, row) => (
           <span className="bd-cat-num">{row.stockedAt ? formatDate(row.stockedAt) : "—"}</span>
         ),
@@ -153,7 +153,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       {
         key: "expiryDate",
         title: t("Materials:ExpiryCol"),
-        width: 140,
+        width: 100,
         render: (_, row) => (
           <span className="bd-cat-num">{row.expiryDate ? formatDate(row.expiryDate) : "—"}</span>
         ),
@@ -161,7 +161,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       {
         key: "expiryWarningDays",
         title: t("Materials:ExpiryWarning"),
-        width: 170,
+        width: 136,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num">{t("Materials:ExpiryDays", row.expiryWarningDays)}</span>
@@ -170,14 +170,14 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       {
         key: "quantityOnHand",
         title: t("Materials:StockCol"),
-        width: 120,
+        width: 80,
         align: "right",
         render: (_, row) => <span className="bd-cat-num">{row.quantityOnHand}</span>,
       },
       {
         key: "status",
         title: t("Common:Status"),
-        width: 170,
+        width: 104,
         render: (_, row) => <MaterialStatusTag status={row.status} />,
       },
       {
@@ -186,11 +186,11 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
         width: 180,
         render: (_, row) => row.supplier ?? "—",
       },
-      { key: "origin", title: t("Materials:OriginCol"), width: 150, render: (_, row) => row.origin ?? "—" },
+      { key: "origin", title: t("Materials:OriginCol"), width: 100, render: (_, row) => row.origin ?? "—" },
       {
         key: "unitCost",
         title: t("Materials:CostCol"),
-        width: 150,
+        width: 112,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num">{row.unitCost === null ? "—" : formatVND(row.unitCost)}</span>
@@ -199,7 +199,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       {
         key: "salePrice",
         title: t("Materials:SalePriceCol"),
-        width: 150,
+        width: 112,
         align: "right",
         render: (_, row) => (
           <span className="bd-cat-num">
@@ -210,7 +210,7 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
       {
         key: "actions",
         title: t("Common:Actions"),
-        width: 110,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, row) => (
@@ -356,12 +356,12 @@ export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDele
               // holds no materials — so this selects and nothing more.
               // See docs/clone/pages/materials.md.
               rowSelection={{
-                // The card's 20px edge, the 20px box, 8px before the name (index.css).
-                columnWidth: 48,
+                // The card's 16px edge, the 20px box, 8px before the name (index.css).
+                columnWidth: 44,
                 selectedRowKeys,
                 onChange: setSelectedRowKeys,
               }}
-              scroll={{ x: 1900 }}
+              scroll={{ x: 1518 }}
               pagination={pagination.buildConfig(
                 suppliesQuery.data?.totalCount ?? 0,
                 (total, shown) =>

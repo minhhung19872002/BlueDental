@@ -1,10 +1,78 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { purgeRunGroups } from "./fixtures/cleanup";
+
+const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
+const SCROLL_GROUP_PREFIX = "NHOM CUON";
+const SCROLL_ROWS = 15;
+
+/** Calls the real API from inside the logged-in page, anti-forgery token included. */
+async function postJson<T>(page: Page, url: string, body: unknown): Promise<T> {
+  const reply = await page.evaluate(
+    async ({ url, body, branch }) => {
+      const xsrf = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("XSRF-TOKEN="))
+        ?.substring("XSRF-TOKEN=".length);
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Clinic-Branch-Id": branch,
+          ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      return { status: res.status, text: await res.text() };
+    },
+    { url, body, branch: BRANCH_ONE },
+  );
+  expect(reply.status, `POST ${url}: ${reply.text}`).toBe(200);
+  return JSON.parse(reply.text) as T;
+}
+
+/**
+ * Opens a medicine group of its own holding enough rows to outgrow a short
+ * window. The scroll tests used to lean on whichever group came first, and
+ * whether that one overflowed depended on what other runs had left in the
+ * shared database and on the row height — compact rows (R-999) let a
+ * one-row leftover group fit where the taller ones had not.
+ */
+async function openTallMedicineGroup(page: Page): Promise<void> {
+  await page.goto("/taxonomy/medicine");
+  await expect(page.locator(".bd-cat-card")).toBeVisible();
+  const name = `${SCROLL_GROUP_PREFIX} ${runId()}`;
+  const group = await postJson<{ id: string }>(page, "/api/v1/app/taxonomies", {
+    clinicBranchId: BRANCH_ONE,
+    group: "medication_type",
+    name,
+  });
+  for (let i = 1; i <= SCROLL_ROWS; i += 1) {
+    await postJson(page, "/api/v1/app/catalog-entries", {
+      taxonomyId: group.id,
+      name: `THUOC CUON ${i}`,
+      price: 10000,
+      sortOrder: i,
+    });
+  }
+  await page.getByLabel("Tìm nhóm...").fill(name);
+  await page.getByRole("button", { name, exact: true }).click();
+  await expect(page.locator("tbody tr.ant-table-row")).toHaveCount(SCROLL_ROWS);
+}
+
+/** Shortens the window until the rows no longer all fit, so there is something to scroll. */
+async function squeezeUntilRowsOverflow(page: Page, scroller: Locator): Promise<void> {
+  await page.setViewportSize({ width: 1400, height: 520 });
+  await expect
+    .poll(async () => scroller.evaluate((el) => el.scrollHeight > el.clientHeight + 2))
+    .toBe(true);
+}
 
 // The groups this file creates carry a run id; leave none behind in the shared DB.
 test.afterAll(async ({ browser }) => {
   await purgeRunGroups(browser, "care_service", ["NHÓM SORT", "NHÓM E2E", "NHÓM KEO"]);
+  await purgeRunGroups(browser, "medication_type", [SCROLL_GROUP_PREFIX]);
 });
 
 /**
@@ -236,8 +304,7 @@ test.describe("Danh mục", () => {
   });
 
   test("the entry list scrolls inside its table, not off the card", async ({ page }) => {
-    await page.goto("/taxonomy/medicine");
-    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+    await openTallMedicineGroup(page);
 
     const body = page.locator(".bd-cat-card .ant-table-content");
     const header = page.locator(".bd-cat-card thead th").first();
@@ -248,10 +315,7 @@ test.describe("Danh mục", () => {
     expect(await header.evaluate((el) => getComputedStyle(el).position)).toBe("sticky");
 
     // Squeeze the window until the rows cannot all fit, then reach the last.
-    await page.setViewportSize({ width: 1400, height: 520 });
-    await expect
-      .poll(async () => body.evaluate((el) => el.scrollHeight > el.clientHeight + 2))
-      .toBe(true);
+    await squeezeUntilRowsOverflow(page, body);
 
     await body.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
@@ -261,9 +325,8 @@ test.describe("Danh mục", () => {
   });
 
   test("the table's scrollbar is the app's own, not Ant Design's", async ({ page }) => {
-    await page.goto("/taxonomy/medicine");
+    await openTallMedicineGroup(page);
     const body = page.locator(".bd-cat-card .ant-table-content");
-    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
 
     // Naming `scrollbar-color` is what makes a browser draw its own bar and
     // ignore the app's ::-webkit-scrollbar, which is how the table ended up
@@ -274,10 +337,7 @@ test.describe("Danh mục", () => {
     // overlay scrollbars that occupy no layout space, so the gutter reads 0
     // here whatever the styling says. Measured in a real browser it is 10px,
     // matching every other scroller; Ant Design's own was 15px.
-    await page.setViewportSize({ width: 1400, height: 520 });
-    await expect
-      .poll(async () => body.evaluate((el) => el.scrollHeight > el.clientHeight + 2))
-      .toBe(true);
+    await squeezeUntilRowsOverflow(page, body);
   });
 
   test("a phone-width window scrolls the page and keeps the table usable", async ({ page }) => {

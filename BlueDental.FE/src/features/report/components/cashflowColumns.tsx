@@ -37,9 +37,9 @@ export function salesEntryCustomerLabel(row: SalesEntryDto): string {
   return row.patientCode ? `[${row.patientCode}] - ${row.patientName}` : row.patientName;
 }
 
-/** Column widths of the reference tables (its `minWidth`s), income then expense. */
-const INCOME_WIDTHS = { date: 140, customer: 150, staff: 170, category: 140, amount: 150, channel: 150 };
-const EXPENSE_WIDTHS = { date: 130, actualDate: 140, customer: 150, staff: 150, category: 140, amount: 150, channel: 150, status: 120 };
+/** Column widths sized to what each cell holds (owner, 2026-10-20), income then expense. */
+const INCOME_WIDTHS = { date: 96, customer: 220, description: 220, staff: 160, category: 140, amount: 120, channel: 112, actions: 80 };
+const EXPENSE_WIDTHS = { date: 96, actualDate: 96, customer: 220, description: 220, staff: 160, category: 140, amount: 120, channel: 112, status: 112, actions: 144 };
 
 export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableColumnsType<SalesEntryDto> {
   const isExpense = kind === "expense";
@@ -72,7 +72,7 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
     columns.push(patientColumn);
   }
 
-  columns.push({ title: isExpense ? t("Report:Column:Description") : t("Report:Column:IncomeDescription"), dataIndex: "description" });
+  columns.push({ title: isExpense ? t("Report:Column:Description") : t("Report:Column:IncomeDescription"), dataIndex: "description", width: widths.description });
   if (isExpense) columns.push(patientColumn);
   columns.push(
     { title: isExpense ? t("Report:Column:Staff") : t("Report:Column:IncomeStaff"), dataIndex: "staffName", width: widths.staff },
@@ -105,11 +105,11 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
     });
   }
 
-  // The reference declares 70px and lets its sticky cell grow; four round buttons need the room.
+  // The reference declares 70px and lets its sticky cell grow; up to four 28px round buttons (two on income) need the room.
   columns.push({
     title: t("Common:Actions"),
     key: "actions",
-    width: isExpense ? 180 : 100,
+    width: widths.actions,
     align: "center",
     fixed: "right",
     render: (_: unknown, entry) => <CashflowRowActions entry={entry} onEdit={onEdit} />,

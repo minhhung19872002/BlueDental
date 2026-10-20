@@ -233,7 +233,8 @@
 
 /* ---------- Row actions (Thu nhập / Chi phí tables) ---------- */
 
-/* The reference: four 32px round outline buttons, 4px apart. */
+/* The reference: four 32px round outline buttons, 4px apart. Ours are 28px so
+   the row stays short (owner, 2026-10-20). */
 .report-row-actions {
   display: flex;
   align-items: center;
@@ -241,9 +242,9 @@
 }
 
 .report-row-actions .ant-btn.report-row-action {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   padding: 0;
   color: var(--bd-sub);
   border-color: var(--bd-line);
@@ -803,14 +804,12 @@
 }
 
 /* Merged (rowSpan) cells drop out of the DOM, so ":first-child" padding would
-   shift the next cell; the reference pads every cell the same instead. */
+   shift the next cell; the reference pads every cell the same instead. The
+   amount is the compact one (owner, 2026-10-20): 8px above and below, 10px from
+   each grid rule. Headers wrap, so a long header never widens a short column. */
 .report-table-card .ant-table-wrapper .ant-table-thead > tr > th,
 .report-table-card .ant-table-wrapper .ant-table-tbody > tr > td {
-  padding: 12px 16px;
-}
-
-.report-table-card .ant-table-wrapper .ant-table-thead > tr > th {
-  white-space: nowrap;
+  padding: 8px 10px;
 }
 
 .report-table-card .ant-table-wrapper .ant-table-tbody > tr > td[rowspan] {
@@ -872,7 +871,7 @@
 
 .report-daily-table th,
 .report-daily-table td {
-  padding: 9px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--bd-line);
   text-align: left;
   white-space: nowrap;

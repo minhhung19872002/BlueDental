@@ -59,19 +59,19 @@ export function AllocationTab({ canDelete = true }: Props) {
       {
         key: "allocationTime",
         title: t("Materials:AllocTimeCol"),
-        width: 190,
+        width: 148,
         render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocationTime)}</span>,
       },
       {
         key: "code",
         title: t("Materials:AllocCodeCol"),
-        width: 180,
+        width: 120,
         render: (_, row) => <span className="bd-mat-code">{row.allocationCode}</span>,
       },
       {
         key: "item",
         title: t("Materials:MaterialCol"),
-        width: 220,
+        width: 200,
         // A voucher carries several materials, so the reference lists their
         // names on one line and hangs the whole list off the title.
         render: (_, row) => {
@@ -86,7 +86,7 @@ export function AllocationTab({ canDelete = true }: Props) {
       {
         key: "allocated",
         title: t("Materials:AllocQtyCol"),
-        width: 170,
+        width: 124,
         align: "right",
         // Numbers only. The reference repeats each material's name here, but
         // the column beside it already lists them in this same order, so the
@@ -105,7 +105,7 @@ export function AllocationTab({ canDelete = true }: Props) {
       {
         key: "remaining",
         title: t("Materials:AllocRemainingCol"),
-        width: 190,
+        width: 140,
         align: "right",
         // Only the lines a stock-take has come back for, as "left/out" — the
         // ratio is the point, so it stays; the name does not.
@@ -129,20 +129,20 @@ export function AllocationTab({ canDelete = true }: Props) {
       {
         key: "department",
         title: t("Materials:DeptCol"),
-        width: 180,
+        width: 150,
         render: (_, row) => row.departmentName ?? "—",
       },
       {
         key: "performer",
         title: t("Materials:ExecutorCol"),
-        width: 180,
+        width: 150,
         render: (_, row) => row.performerName ?? "—",
       },
       { key: "note", title: t("Common:Note"), render: (_, row) => row.note ?? "—" },
       {
         key: "actions",
         title: t("Common:Actions"),
-        width: 100,
+        width: 84,
         align: "center",
         fixed: "right",
         render: (_, row) => (
@@ -203,7 +203,7 @@ export function AllocationTab({ canDelete = true }: Props) {
             dataSource={rows}
             rowKey="id"
             loading={query.isFetching}
-            scroll={{ x: 1550 }}
+            scroll={{ x: 1316 }}
             pagination={pagination.buildConfig(rows.length, (total, shown) =>
               total === 0
                 ? t("Materials:ShowZero")

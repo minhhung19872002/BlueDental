@@ -18,7 +18,7 @@ interface Handlers {
   onDelete?: (row: CareRecordDto) => void;
 }
 
-/** Column set of the care log, in the reference's order and widths. */
+/** Column set of the care log, in the reference's order, each sized to its data. */
 export function buildCareColumns({
   onDetail,
   onEdit,
@@ -30,13 +30,13 @@ export function buildCareColumns({
     {
       title: t("Patient:Care:Date"),
       dataIndex: "dueAt",
-      width: 140,
+      width: 124,
       render: (value: string | null, row) => formatDate(value ?? row.creationTime),
     },
     {
       title: t("Patient:Care:Status"),
       dataIndex: "status",
-      width: 140,
+      width: 144,
       render: (value: CareStatus) => (
         <span className="pc-status">
           <Clock size={14} aria-hidden />
@@ -47,7 +47,7 @@ export function buildCareColumns({
     {
       title: t("Common:Group"),
       dataIndex: "type",
-      width: 120,
+      width: 130,
       render: (value: CareType) => typeLabels[value],
     },
     {
@@ -78,13 +78,13 @@ export function buildCareColumns({
     {
       title: t("Patient:Care:Staff"),
       dataIndex: "careStaffName",
-      width: 160,
+      width: 150,
       render: (value: string | null) => value ?? t("Patient:Debt:None"),
     },
     {
       title: t("Patient:Care:Rating"),
       dataIndex: "outcome",
-      width: 130,
+      width: 120,
       render: (value: CareOutcome | null) => {
         const rating = ratingOf(value);
         return (
@@ -98,7 +98,7 @@ export function buildCareColumns({
     ...((onEdit || onDelete) ? [{
       title: t("Common:Actions"),
       key: "actions" as const,
-      width: 70,
+      width: 84,
       fixed: "right" as const,
       render: (_: unknown, row: CareRecordDto) => (
         <div className="pc-actions">

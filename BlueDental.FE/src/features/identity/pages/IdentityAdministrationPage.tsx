@@ -209,10 +209,10 @@ function UsersTab() {
   };
 
   const columns: ColumnsType<IdentityUserDto> = [
-    { title: t("Identity:ColUserName"), dataIndex: "userName", key: "userName", width: 160 },
+    { title: t("Identity:ColUserName"), dataIndex: "userName", key: "userName", width: 140 },
     { title: t("Identity:ColFullName"), dataIndex: "name", key: "name" },
     { title: t("Identity:ColEmail"), dataIndex: "email", key: "email" },
-    { title: t("Identity:ColPhone"), dataIndex: "phoneNumber", key: "phoneNumber", render: (v: string) => v ?? "—" },
+    { title: t("Identity:ColPhone"), dataIndex: "phoneNumber", key: "phoneNumber", width: 108, render: (v: string) => v ?? "—" },
     {
       title: t("Identity:ColRoles"),
       dataIndex: "roleNames",
@@ -225,18 +225,20 @@ function UsersTab() {
       title: t("Identity:ColStatus"),
       dataIndex: "isActive",
       key: "isActive",
+      width: 96,
       render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Identity:Active") : t("Identity:Inactive")}</Tag>,
     },
     {
       title: t("Identity:ColCreatedAt"),
       dataIndex: "creationTime",
       key: "creationTime",
+      width: 96,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
     ...((canEditUser || canDeleteUser) ? [{
       title: t("Common:Actions"),
       key: "actions" as const,
-      width: 120,
+      width: 84,
       fixed: "right" as const,
       render: (_: unknown, record: IdentityUserDto) => (
         <div style={{ display: "flex", gap: 6 }}>
@@ -330,24 +332,27 @@ function RolesTab() {
       title: t("Identity:ColIsDefault"),
       dataIndex: "isDefault",
       key: "isDefault",
+      width: 96,
       render: (v: boolean) => v ? <Tag color="blue">{t("Identity:IsDefault")}</Tag> : "—",
     },
     {
       title: t("Identity:ColIsSystem"),
       dataIndex: "isStatic",
       key: "isStatic",
+      width: 80,
       render: (v: boolean) => v ? <Tag color="orange">{t("Identity:Static")}</Tag> : "—",
     },
     {
       title: t("Identity:ColIsPublic"),
       dataIndex: "isPublic",
       key: "isPublic",
+      width: 96,
       render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Identity:Public") : t("Identity:Private")}</Tag>,
     },
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 100,
+      width: 136,
       fixed: "right",
       render: (_, record) =>
         record.isStatic ? (

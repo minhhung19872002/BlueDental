@@ -27,7 +27,7 @@ function statusColumns<T extends TelesaleBreakdownRowDto>(): ColumnsType<T> {
 
 export function breakdownColumns(nameTitle: string): ColumnsType<NamedTelesaleRow> {
   return [
-    { key: "label", dataIndex: "label", title: nameTitle, fixed: "left", width: 220, ellipsis: true },
+    { key: "label", dataIndex: "label", title: nameTitle, fixed: "left", width: 180, ellipsis: true },
     ...statusColumns<NamedTelesaleRow>(),
   ];
 }
@@ -35,12 +35,12 @@ export function breakdownColumns(nameTitle: string): ColumnsType<NamedTelesaleRo
 export function fileColumns(): ColumnsType<NamedTelesaleRow<TelesaleFileRowDto>> {
   type Row = NamedTelesaleRow<TelesaleFileRowDto>;
   return [
-    { key: "label", dataIndex: "label", title: t("Report:Telesale:File"), fixed: "left", width: 240, ellipsis: true },
+    { key: "label", dataIndex: "label", title: t("Report:Telesale:File"), fixed: "left", width: 220, ellipsis: true },
     {
       key: "importedAt",
       dataIndex: "importedAt",
       title: t("Report:Telesale:ImportedAt"),
-      width: 150,
+      width: 128,
       render: (value: string) => formatDateTime(value),
     },
     countColumn<Row>("rowCount", t("Report:Telesale:Rows")),

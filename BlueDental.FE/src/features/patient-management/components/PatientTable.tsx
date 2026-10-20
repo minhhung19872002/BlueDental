@@ -56,8 +56,8 @@ function NameList({ names }: { names: string[] | undefined }) {
 }
 
 /**
- * The thirteen columns of the patient list, in the reference's order and
- * widths. Presentational: it takes rows and reports clicks, and knows nothing
+ * The thirteen columns of the patient list, in the reference's order, each
+ * sized to its data. Presentational: it takes rows and reports clicks, and knows nothing
  * about how the rows were fetched.
  */
 export function PatientTable({
@@ -75,13 +75,13 @@ export function PatientTable({
     {
       key: "creationTime",
       title: t("Patient:Col:CreatedDate"),
-      width: 150,
+      width: 128,
       render: (_, row) => <Muted>{formatDate(row.creationTime)}</Muted>,
     },
     {
       key: "fullName",
       title: t("Patient:Col:FullName"),
-      width: 260,
+      width: 240,
       render: (_, row) => (
         <Link className="bd-patient-name" to={`/patient/${row.id}`} title={row.fullName}>
           [{row.patientCode}] – {row.fullName}
@@ -91,19 +91,19 @@ export function PatientTable({
     {
       key: "dateOfBirth",
       title: t("Patient:Col:DateOfBirth"),
-      width: 130,
+      width: 96,
       render: (_, row) => (row.dateOfBirth ? <Muted>{formatDate(row.dateOfBirth)}</Muted> : <Dash />),
     },
     {
       key: "phoneNumber",
       title: t("Patient:Col:Phone"),
-      width: 140,
+      width: 108,
       render: (_, row) => row.phoneNumber || <Dash />,
     },
     {
       key: "treatmentStatus",
       title: t("Patient:Misc:StatusLabel"),
-      width: 150,
+      width: 128,
       render: (_, row) => (
         <span className={`bd-patient-status ${STATUS_STYLE[row.treatmentStatus]}`}>
           {statusLabel(row.treatmentStatus)}
@@ -113,26 +113,26 @@ export function PatientTable({
     {
       key: "serviceNames",
       title: t("Patient:Misc:ServiceLabel"),
-      width: 180,
+      width: 220,
       render: (_, row) => <NameList names={row.serviceNames} />,
     },
     {
       key: "staffNames",
       title: t("Patient:Staff:Doctor"),
-      width: 180,
+      width: 160,
       render: (_, row) => <NameList names={row.staffNames} />,
     },
     {
       key: "totalAmount",
       title: t("Patient:Payment:AmountField"),
-      width: 170,
+      width: 112,
       align: "right",
       render: (_, row) => <span className="bd-patient-money">{formatVND(row.totalAmount)}</span>,
     },
     {
       key: "totalRevenue",
       title: t("Patient:Payment:ActualCollected"),
-      width: 140,
+      width: 112,
       align: "right",
       render: (_, row) => (
         <span className={`bd-patient-money${row.totalRevenue > 0 ? " bd-patient-money--in" : ""}`}>
@@ -143,7 +143,7 @@ export function PatientTable({
     {
       key: "totalDebt",
       title: t("Patient:Tab:Debt"),
-      width: 140,
+      width: 112,
       align: "right",
       render: (_, row) => (
         <span className={`bd-patient-money${row.totalDebt > 0 ? " bd-patient-money--due" : ""}`}>
@@ -154,20 +154,20 @@ export function PatientTable({
     {
       key: "nextAppointmentAt",
       title: t("Patient:Appt:Nearest"),
-      width: 170,
+      width: 148,
       render: (_, row) =>
         row.nextAppointmentAt ? formatDateTime(row.nextAppointmentAt) : <Dash />,
     },
     {
       key: "lastVisitAt",
       title: t("Patient:Col:LastVisit"),
-      width: 150,
+      width: 148,
       render: (_, row) => (row.lastVisitAt ? formatDateTime(row.lastVisitAt) : <Dash />),
     },
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 90,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_, row) => (

@@ -97,7 +97,7 @@ export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): Tabl
     {
       title: t("Patient:InvoiceRequest:Col:Code"),
       dataIndex: "code",
-      width: 130,
+      width: 104,
       render: (code: string, row) => (
         <div className="ir-cell">
           <strong className="ir-code">{code}</strong>
@@ -105,7 +105,7 @@ export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): Tabl
         </div>
       ),
     },
-    { title: t("Patient:InvoiceRequest:Col:RequestedAt"), width: 160, render: (_, row) => <RequestedCell row={row} /> },
+    { title: t("Patient:InvoiceRequest:Col:RequestedAt"), width: 132, render: (_, row) => <RequestedCell row={row} /> },
     {
       title: t("Patient:InvoiceRequest:Col:Payment"),
       width: 200,
@@ -116,17 +116,17 @@ export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): Tabl
         </div>
       ),
     },
-    { title: t("Patient:InvoiceRequest:Col:Buyer"), width: 230, render: (_, row) => <BuyerCell row={row} /> },
+    { title: t("Patient:InvoiceRequest:Col:Buyer"), width: 200, render: (_, row) => <BuyerCell row={row} /> },
     {
       title: t("Patient:InvoiceRequest:Col:Amount"),
       dataIndex: "amount",
-      width: 130,
+      width: 112,
       align: "right",
       render: (value: number) => <strong>{formatMoneyUnit(value)}</strong>,
     },
     {
       title: t("Patient:InvoiceRequest:Col:Due"),
-      width: 140,
+      width: 128,
       render: (_, row) => {
         const due = describeDue(row, now);
         return (
@@ -142,7 +142,7 @@ export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): Tabl
       width: 140,
       render: (_, row) => row.assigneeName ?? <span className="ir-muted">{t("Patient:InvoiceRequest:Unassigned")}</span>,
     },
-    { title: t("Patient:InvoiceRequest:Col:Status"), width: 170, render: (_, row) => <StatusCell row={row} /> },
+    { title: t("Patient:InvoiceRequest:Col:Status"), width: 128, render: (_, row) => <StatusCell row={row} /> },
     {
       title: t("Common:Actions"),
       width: 170,

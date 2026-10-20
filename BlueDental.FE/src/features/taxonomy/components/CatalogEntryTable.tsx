@@ -100,7 +100,7 @@ export function CatalogEntryTable({
       {
         key: "grip",
         title: <span className="bd-sr-only">{t("Taxonomy:Table:SortHandle")}</span>,
-        width: 48,
+        width: 40,
         align: "center",
         render: (_, entry, index) => (
           <button
@@ -146,7 +146,7 @@ export function CatalogEntryTable({
       list.push({
         key: "taxonomyName",
         title: t("Taxonomy:Table:ClassificationGroup"),
-        width: 300,
+        width: 150,
         render: (_, entry) =>
           entry.taxonomyName ? (
             <span className="bd-cat-chip">{entry.taxonomyName}</span>
@@ -160,9 +160,9 @@ export function CatalogEntryTable({
       const text = (value: string | null | undefined) =>
         value ? <span>{value}</span> : <span className="bd-muted-text">—</span>;
       list.push(
-        { key: "brand", title: t("Taxonomy:Restoration:Brand"), width: 180, render: (_, entry) => text(entry.restoration?.brand) },
-        { key: "origin", title: t("Taxonomy:Restoration:Origin"), width: 160, render: (_, entry) => text(entry.restoration?.origin) },
-        { key: "warranty", title: t("Taxonomy:Restoration:Warranty"), width: 140, render: (_, entry) => text(entry.restoration?.warranty) },
+        { key: "brand", title: t("Taxonomy:Restoration:Brand"), width: 130, render: (_, entry) => text(entry.restoration?.brand) },
+        { key: "origin", title: t("Taxonomy:Restoration:Origin"), width: 110, render: (_, entry) => text(entry.restoration?.origin) },
+        { key: "warranty", title: t("Taxonomy:Restoration:Warranty"), width: 100, render: (_, entry) => text(entry.restoration?.warranty) },
       );
     }
 
@@ -170,7 +170,7 @@ export function CatalogEntryTable({
       list.push({
         key: "price",
         title: t("Taxonomy:Table:Price"),
-        width: 200,
+        width: 128,
         align: "right",
         render: (_, entry) => entry.isCombo ? <ComboPriceCell entry={entry} /> : (
           <span className="bd-cat-price">
@@ -184,7 +184,7 @@ export function CatalogEntryTable({
       {
         key: "lastModificationTime",
         title: t("Taxonomy:Table:LastUpdated"),
-        width: 280,
+        width: 144,
         render: (_, entry) => (
           <span className="bd-cat-num">
             {formatDateTime(entry.lastModificationTime ?? entry.creationTime)}
@@ -194,7 +194,7 @@ export function CatalogEntryTable({
       ...((onEdit || onDelete) ? [{
         key: "actions" as const,
         title: t("Common:Actions"),
-        width: onCopy ? 128 : 100,
+        width: onCopy ? 100 : 84,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, entry: CatalogEntryDto) => (

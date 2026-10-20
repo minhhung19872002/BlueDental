@@ -56,7 +56,7 @@ export type NamedCareRow = CareReportRowDto & { rowKey: string; label: string };
 
 export function careColumns(nameTitle: string): ColumnsType<NamedCareRow> {
   return [
-    { key: "label", dataIndex: "label", title: nameTitle, fixed: "left", width: 220, ellipsis: true },
+    { key: "label", dataIndex: "label", title: nameTitle, fixed: "left", width: 180, ellipsis: true },
     countColumn<NamedCareRow>("total", t("Report:Care:Total"), "ink"),
     countColumn<NamedCareRow>("new", t("Report:Care:New"), "gold"),
     countColumn<NamedCareRow>("contacted", t("Report:Care:Contacted"), "blue"),

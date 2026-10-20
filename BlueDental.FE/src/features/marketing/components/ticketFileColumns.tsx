@@ -40,7 +40,7 @@ export function ticketFileColumns(onOpen: (file: TicketImportFileDto) => void): 
     {
       title: t("Ticket:File:Col:Name"),
       key: "name",
-      width: 260,
+      width: 220,
       fixed: "left",
       render: (_, file) => (
         <span className="mkt-file-name">
@@ -52,30 +52,30 @@ export function ticketFileColumns(onOpen: (file: TicketImportFileDto) => void): 
     {
       title: t("Ticket:File:Col:Imported"),
       key: "imported",
-      width: 150,
+      width: 128,
       render: (_, file) => dayjs(file.creationTime).format("DD/MM/YYYY HH:mm"),
     },
-    { title: t("Ticket:File:Col:Creator"), key: "creator", width: 160, render: (_, file) => file.creatorName ?? "—" },
-    { title: t("Ticket:File:Col:Rows"), key: "rows", width: 90, align: "right", render: (_, file) => count(file.rowCount) },
-    { title: t("Ticket:File:Col:Created"), key: "created", width: 110, align: "right", render: (_, file) => count(file.createdCount) },
+    { title: t("Ticket:File:Col:Creator"), key: "creator", width: 150, render: (_, file) => file.creatorName ?? "—" },
+    { title: t("Ticket:File:Col:Rows"), key: "rows", width: 72, align: "right", render: (_, file) => count(file.rowCount) },
+    { title: t("Ticket:File:Col:Created"), key: "created", width: 84, align: "right", render: (_, file) => count(file.createdCount) },
     {
       title: t("Ticket:File:Col:Reoccurred"),
       key: "reoccurred",
-      width: 140,
+      width: 128,
       align: "right",
       render: (_, file) => count(file.reoccurredCount),
     },
-    { title: t("Ticket:File:Col:Progress"), key: "progress", width: 320, render: (_, file) => <FileProgress progress={file.progress} /> },
+    { title: t("Ticket:File:Col:Progress"), key: "progress", width: 260, render: (_, file) => <FileProgress progress={file.progress} /> },
     {
       title: t("Ticket:File:Col:Assignees"),
       key: "assignees",
-      width: 220,
+      width: 200,
       render: (_, file) => (file.assigneeNames.length ? file.assigneeNames.join(", ") : t("Ticket:Pool")),
     },
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 90,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_, file) => (

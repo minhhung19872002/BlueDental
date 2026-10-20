@@ -566,39 +566,39 @@ function BranchListTab() {
     {
       key: "id",
       title: "ID",
-      width: 80,
+      width: 56,
       render: (_: unknown, record: ClinicBranchDto) => displayIds.get(record.id),
     },
     {
       key: "code",
       title: t("Organization:BranchCodeLabel"),
       dataIndex: "code",
-      width: 160,
+      width: 108,
     },
     {
       key: "name",
       title: t("Organization:BranchNameCol"),
       dataIndex: "name",
-      width: 280,
+      width: 220,
     },
     {
       key: "phoneNumber",
       title: t("Organization:PhoneCol"),
       dataIndex: "phoneNumber",
-      width: 160,
+      width: 108,
       render: (v: string) => v || "—",
     },
     {
       key: "email",
       title: t("Organization:EmailLabel"),
       dataIndex: "email",
-      width: 260,
+      width: 200,
       render: (v: string) => v || "—",
     },
     {
       key: "lastModificationTime",
       title: t("Organization:LastUpdatedCol"),
-      width: 200,
+      width: 136,
       // A branch that was never edited has no LastModificationTime — show
       // when it was created instead of "—".
       render: (_: unknown, record: ClinicBranchDto) =>
@@ -609,7 +609,7 @@ function BranchListTab() {
     ...((ability.canUpdate || ability.canDelete) ? [{
       key: "actions" as const,
       title: t("Common:Actions"),
-      width: 110,
+      width: 84,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: unknown, record: ClinicBranchDto) => {
@@ -817,40 +817,40 @@ function BranchManageTab() {
     {
       key: "fullName",
       title: t("Organization:ManagerNameCol"),
-      width: 240,
+      width: 170,
       render: (_, record) => record.fullName || record.userName,
     },
     {
       key: "phoneNumber",
       title: t("Organization:ManagerPhoneCol"),
       dataIndex: "phoneNumber",
-      width: 180,
+      width: 108,
       render: (v) => v || "—",
     },
     {
       key: "email",
       title: t("Organization:EmailLabel"),
       dataIndex: "email",
-      width: 280,
+      width: 200,
       render: (v) => v || "—",
     },
     {
       key: "roleNames",
       title: t("Organization:PermissionCol"),
       dataIndex: "roleNames",
-      width: 200,
+      width: 160,
       render: (v: string[]) => (v?.length > 0 ? v.join(", ") : "—"),
     },
     {
       key: "address",
       title: t("Organization:ManagerAddressCol"),
-      width: 350,
+      width: 260,
       render: (_, record) => fullAddressMap.get(record.id) || record.address || "—",
     },
     ...((ability.canUpdate || ability.canDelete) ? [{
       key: "actions" as const,
       title: t("Common:Actions"),
-      width: 110,
+      width: 84,
       align: "center" as const,
       fixed: "right" as const,
       render: (_: unknown, record: BranchManagerDto) => (

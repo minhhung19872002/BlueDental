@@ -68,13 +68,13 @@ export function ViolationTypeDialog({ open, types, ability, onClose }: Props) {
     {
       title: t("StaffViolationType:DefaultFine"),
       dataIndex: "defaultFineAmount",
-      width: 180,
+      width: 184,
       align: "right" as const,
       render: (value: number) => (value > 0 ? `${formatVND(value)} đ` : "—"),
     },
     {
       key: "actions",
-      width: 90,
+      width: 76,
       render: (_: unknown, type: StaffViolationTypeDto) => (
         <div className="staff-penalty-actions">
           {ability.canUpdate && (

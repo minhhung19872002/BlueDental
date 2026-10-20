@@ -70,7 +70,7 @@ export function PatientTagPanel() {
       {
         key: "color",
         title: t("Taxonomy:Tag:Color"),
-        width: 200,
+        width: 104,
         render: (_, tag) => (
           <span className="bd-cat-inline2">
             <span
@@ -85,7 +85,7 @@ export function PatientTagPanel() {
       ...((canUpdate || canDelete) ? [{
         key: "actions" as const,
         title: t("Taxonomy:Table:Actions"),
-        width: 110,
+        width: 84,
         align: "center" as const,
         fixed: "right" as const,
         render: (_: unknown, tag: PatientTagDto) => (

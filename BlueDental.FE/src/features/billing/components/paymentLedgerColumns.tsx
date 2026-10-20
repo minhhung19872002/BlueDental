@@ -81,13 +81,13 @@ export function buildPaymentLedgerColumns(
       title: t("Billing:Ledger:Date"),
       dataIndex: "paidAt",
       key: "paidAt",
-      width: 140,
+      width: 128,
       render: (value: string) => formatDateTime(value),
     },
     {
       title: t("Billing:Customer"),
       key: "patient",
-      width: 200,
+      width: 170,
       render: (_: unknown, row) => (
         <>
           <div>{dash(row.patientName)}</div>
@@ -98,7 +98,7 @@ export function buildPaymentLedgerColumns(
     {
       title: t("Billing:Ledger:Plan"),
       key: "plan",
-      width: 200,
+      width: 180,
       render: (_: unknown, row) => {
         if (!row.treatmentPlanId) return "—";
         return (
@@ -123,7 +123,7 @@ export function buildPaymentLedgerColumns(
       title: t("Billing:Amount"),
       dataIndex: "amount",
       key: "amount",
-      width: 130,
+      width: 112,
       align: "right",
       render: (value: number) => <strong className="billing-ledger-amount">{formatVND(value)}</strong>,
     },
@@ -131,7 +131,7 @@ export function buildPaymentLedgerColumns(
       title: t("Billing:PaymentMethodLabel"),
       dataIndex: "method",
       key: "method",
-      width: 150,
+      width: 188,
       render: (value: LedgerMethod) => methods[value] ?? "—",
     },
     {
@@ -145,14 +145,14 @@ export function buildPaymentLedgerColumns(
       title: t("Billing:Ledger:Note"),
       dataIndex: "note",
       key: "note",
-      width: 180,
+      width: 160,
       ellipsis: { showTitle: true },
       render: dash,
     },
     {
       title: t("Common:Actions"),
       key: "actions",
-      width: 100,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_: unknown, row) => rowActions(row, actions),

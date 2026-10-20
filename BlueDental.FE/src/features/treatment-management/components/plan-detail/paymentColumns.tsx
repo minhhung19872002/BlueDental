@@ -175,21 +175,24 @@ export function buildPaymentColumns(
 ): TableColumnsType<PatientPaymentDto> {
   const methods = paymentMethodLabels();
   return [
-    { key: "code", title: t("Treatment:Payment:PaymentCode"), width: 160, render: (_, p) => p.code },
+    // "THANHTOAN-01/DT01/2026" on one line.
+    { key: "code", title: t("Treatment:Payment:PaymentCode"), width: 208, render: (_, p) => p.code },
     // "Ngày thanh toán" — the day the money was taken, which the cashier may
     // date back (owner 2026-10-14); it replaced "Ngày tạo" (creationTime). The
     // day only: a backdated receipt's clock time is just when it was entered.
-    { key: "paidAt", title: t("Treatment:Payment:PaidDate"), width: 150, render: (_, p) => formatDate(p.paidAt) },
-    { key: "services", title: t("Treatment:Payment:TreatmentServices"), width: 220, render: (_, p) => paymentServiceNames(p, plan) },
-    { key: "planTotal", title: t("Treatment:Payment:PlanTotal"), width: 170, align: "right", render: () => moneyText(plan.totalAmount) },
-    { key: "amount", title: t("Treatment:Payment:Payment"), width: 160, align: "right", render: (_, p) => moneyText(p.amount) },
-    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 230, render: (_, p) => methods[p.method] },
-    { key: "note", title: t("Treatment:Common:Note"), width: 180, render: (_, p) => dash(p.note) },
-    { key: "status", title: t("Common:Status"), width: 200, render: (_, p) => statusCell(p, actions.renderEInvoice) },
+    { key: "paidAt", title: t("Treatment:Payment:PaidDate"), width: 132, render: (_, p) => formatDate(p.paidAt) },
+    { key: "services", title: t("Treatment:Payment:TreatmentServices"), width: 200, render: (_, p) => paymentServiceNames(p, plan) },
+    { key: "planTotal", title: t("Treatment:Payment:PlanTotal"), width: 120, align: "right", render: () => moneyText(plan.totalAmount) },
+    { key: "amount", title: t("Treatment:Payment:Payment"), width: 112, align: "right", render: (_, p) => moneyText(p.amount) },
+    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 188, render: (_, p) => methods[p.method] },
+    { key: "note", title: t("Treatment:Common:Note"), width: 160, render: (_, p) => dash(p.note) },
+    // The widest pill ("Chưa thanh toán"); a filed e-invoice widens it to fit.
+    { key: "status", title: t("Common:Status"), width: 140, render: (_, p) => statusCell(p, actions.renderEInvoice) },
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 170,
+      // Up to four 28px buttons 4px apart, the 6px inner padding and the 16px edge.
+      width: 148,
       align: "center",
       fixed: "right",
       render: (_, p) => rowActions(p, actions),
@@ -226,16 +229,16 @@ export function buildRefundColumns(
 ): TableColumnsType<PatientPaymentDto> {
   const methods = paymentMethodLabels();
   return [
-    { key: "code", title: t("Treatment:Refund:RefundCode"), width: 170, render: (_, p) => p.code },
-    { key: "paidAt", title: t("Treatment:Payment:DateCreated"), width: 150, render: (_, p) => formatDateTime(p.paidAt) },
-    { key: "services", title: t("Treatment:Service:Service"), width: 320, render: (_, p) => paymentServiceNames(p, plan) },
-    { key: "amount", title: t("Treatment:Refund:AmountRefunded"), width: 150, align: "right", render: (_, p) => moneyText(p.amount) },
-    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 220, render: (_, p) => methods[p.method] },
-    { key: "note", title: t("Treatment:Common:Note"), width: 220, render: (_, p) => dash(p.note) },
+    { key: "code", title: t("Treatment:Refund:RefundCode"), width: 156, render: (_, p) => p.code },
+    { key: "paidAt", title: t("Treatment:Payment:DateCreated"), width: 132, render: (_, p) => formatDateTime(p.paidAt) },
+    { key: "services", title: t("Treatment:Service:Service"), width: 240, render: (_, p) => paymentServiceNames(p, plan) },
+    { key: "amount", title: t("Treatment:Refund:AmountRefunded"), width: 112, align: "right", render: (_, p) => moneyText(p.amount) },
+    { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 188, render: (_, p) => methods[p.method] },
+    { key: "note", title: t("Treatment:Common:Note"), width: 180, render: (_, p) => dash(p.note) },
     {
       key: "actions",
       title: t("Common:Actions"),
-      width: 70,
+      width: 84,
       align: "center",
       fixed: "right",
       render: (_, p) => viewButton(p, onView),

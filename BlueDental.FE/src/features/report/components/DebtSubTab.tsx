@@ -36,24 +36,24 @@ function buildColumns(rows: DebtLineDto[]): TableColumnsType<DebtLineDto> {
     {
       title: t("Report:Column:Date"),
       dataIndex: "date",
-      width: 130,
+      width: 96,
       render: (v: string) => formatDate(v),
       onCell: spanCell(dateSpans),
     },
     {
       title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
-      width: 190,
+      width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
       onCell: spanCell(patientSpans),
     },
-    { title: t("Report:Column:CounselorName"), dataIndex: "counselorName", width: 170 },
-    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 180 },
-    { title: t("Report:Column:TreatmentService"), key: "serviceName", width: 190, render: (_: unknown, row) => <ServiceCell row={row} /> },
-    { title: t("Report:Column:Quantity"), dataIndex: "quantity", width: 120, align: "center" },
-    { title: t("Report:Column:DebtIncurred"), dataIndex: "debtIncurred", width: 140, align: "right", render: money("report-money--red") },
-    { title: t("Report:Column:DebtUsed"), dataIndex: "debtUsed", width: 140, align: "right", render: money("report-money--green") },
-    { title: t("Report:Column:DebtRefund"), dataIndex: "debtRefund", width: 130, align: "right", render: money("report-money--gold") },
+    { title: t("Report:Column:CounselorName"), dataIndex: "counselorName", width: 160 },
+    { title: t("Report:Column:DoctorName"), dataIndex: "doctorName", width: 160 },
+    { title: t("Report:Column:TreatmentService"), key: "serviceName", width: 220, render: (_: unknown, row) => <ServiceCell row={row} /> },
+    { title: t("Report:Column:Quantity"), dataIndex: "quantity", width: 84, align: "center" },
+    { title: t("Report:Column:DebtIncurred"), dataIndex: "debtIncurred", width: 132, align: "right", render: money("report-money--red") },
+    { title: t("Report:Column:DebtUsed"), dataIndex: "debtUsed", width: 124, align: "right", render: money("report-money--green") },
+    { title: t("Report:Column:DebtRefund"), dataIndex: "debtRefund", width: 120, align: "right", render: money("report-money--gold") },
   ];
 }
 

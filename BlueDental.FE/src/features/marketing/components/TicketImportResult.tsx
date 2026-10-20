@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n";
 import type { TicketImportResult as ImportOutcome, TicketImportRowError } from "../api/ticketFileApi";
 
 const errorColumns = (): ColumnsType<TicketImportRowError> => [
-  { title: t("Ticket:Import:Row"), dataIndex: "row", key: "row", width: 80, align: "right" },
+  { title: t("Ticket:Import:Row"), dataIndex: "row", key: "row", width: 64, align: "right" },
   {
     title: t("Ticket:Import:Errors"),
     key: "errors",

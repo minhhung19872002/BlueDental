@@ -73,7 +73,7 @@ export function WorkScheduleTable({
 
   const checkThRef = useRef<HTMLTableCellElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
-  const [checkW, setCheckW] = useState(49);
+  const [checkW, setCheckW] = useState(45);
 
   useEffect(() => {
     const el = checkThRef.current;

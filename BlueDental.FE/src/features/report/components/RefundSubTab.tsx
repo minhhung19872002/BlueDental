@@ -12,23 +12,23 @@ import { DailyTotalsTable } from "./DailyTotalsTable";
 
 function buildColumns(): TableColumnsType<RefundLineDto> {
   return [
-    { title: t("Report:Column:CreatedDate"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
+    { title: t("Report:Column:CreatedDate"), dataIndex: "date", width: 96, render: (v: string) => formatDate(v) },
     {
       title: t("Report:Column:CustomerName"),
       dataIndex: "patientLabel",
       width: 220,
       render: (v: string) => <span className="report-patient-link">{v}</span>,
     },
-    { title: t("Report:PaymentSummary:PaymentCode"), dataIndex: "refundCode", width: 190 },
-    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceNames" },
+    { title: t("Report:PaymentSummary:PaymentCode"), dataIndex: "refundCode", width: 160 },
+    { title: t("Report:Column:TreatmentService"), dataIndex: "serviceNames", width: 220 },
     {
       title: t("Report:SalesDetail:TotalRefund"),
       dataIndex: "refundAmount",
-      width: 130,
+      width: 120,
       align: "right",
       render: (v: number) => <span className="report-money report-money--red">{formatMoneyUnit(v)}</span>,
     },
-    { title: t("Common:Note"), dataIndex: "note", width: 200 },
+    { title: t("Common:Note"), dataIndex: "note", width: 180 },
   ];
 }
 
