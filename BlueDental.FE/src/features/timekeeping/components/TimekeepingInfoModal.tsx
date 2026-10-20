@@ -11,7 +11,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
-import { brand } from "@/theme/index";
 
 interface Props {
   open: boolean;
@@ -113,7 +112,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
         <div className="tk-info-row">
           <FloatingLabel label={t("Common:Staff")} floated>
             <Input
-              prefix={<SearchOutlined style={{ color: brand.faint }} />}
+              prefix={<SearchOutlined className="bd-input-icon" />}
               value={staffName}
               readOnly
             />

@@ -30,6 +30,7 @@ export const brand = {
   muted: "#5e5a6e",
   faint: "#a9a5b8",
   dim: "#7e7a8f",
+  hint: "#4a5273",
   line: "#e6e4ee",
   lineSoft: "#f3f2f7",
   border: "#e6e4ee",
@@ -78,6 +79,11 @@ export const statusPaletteOf = () => ({
 
 export const FONT_FAMILY =
   "'Be Vietnam Pro', system-ui, -apple-system, sans-serif";
+
+/* Hint text inside a field (placeholder) — --bd-hint, not faint: BA found the
+   default 25 % ink unreadable (R-998). Set per input component rather than as
+   the global token, which also paints Avatar, Badge and the table scrollbar. */
+const fieldPlaceholder = { colorTextPlaceholder: brand.hint } as const;
 
 export const themeConfig: ThemeConfig = {
   token: {
@@ -167,11 +173,15 @@ export const themeConfig: ThemeConfig = {
       controlHeight: 40,
       controlHeightLG: 48,
       colorBgContainer: "#ffffff",
+      ...fieldPlaceholder,
     },
+    InputNumber: fieldPlaceholder,
+    DatePicker: fieldPlaceholder,
     Select: {
       borderRadius: 10,
       controlHeight: 40,
       optionSelectedBg: brand.bluePale,
+      ...fieldPlaceholder,
     },
     Modal: {
       borderRadiusLG: 18,

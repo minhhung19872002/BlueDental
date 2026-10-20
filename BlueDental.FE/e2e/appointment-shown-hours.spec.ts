@@ -146,7 +146,7 @@ test.describe("Khung giờ hiển thị — lịch hẹn (R-977)", () => {
     await expect(ticks.last()).toHaveText("20:00");
 
     // View Tuần shares the window.
-    await page.locator(".cal-toolbar-row1").getByText("Tuần", { exact: true }).click();
+    await page.locator(".cal-view-controls").getByText("Tuần", { exact: true }).click();
     const weekSlots = page.locator(".cal-week-day-col").first().locator(".cal-day-slot-bg");
     await expect(weekSlots.first()).toHaveAttribute("data-time", "07:00");
     await expect(weekSlots.last()).toHaveAttribute("data-time", /^(19:30|19:45|20:00)$/);

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, type ReactNode } from "react";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { Input } from "antd";
@@ -9,7 +9,8 @@ import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
 import { Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { CalendarUnderlineTabs } from "../components/CalendarUnderlineTabs";
-import { CalendarToolbarRow1 } from "../components/CalendarToolbarRow1";
+import { CalendarViewControls } from "../components/CalendarViewControls";
+import { CalendarStatusCounters } from "../components/CalendarStatusCounters";
 import { CalendarToolbarRow2 } from "../components/CalendarToolbarRow2";
 import { DayTimeline } from "../components/day-timeline/DayTimeline";
 import type { TimelineDoctor } from "../components/day-timeline/timelineRows";
@@ -20,6 +21,7 @@ import { TempAppointmentEditorModal } from "../components/TempAppointmentEditorM
 import { CalendarFabs } from "../components/CalendarFabs";
 import { CalendarControlPanel } from "../components/CalendarControlPanel";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
+import { TimekeepingSummaryChips } from "@/features/timekeeping/components/TimekeepingSummaryChips";
 import { WorkScheduleBuilder } from "@/features/timekeeping/components/WorkScheduleBuilder";
 import { useAbility } from "@/hooks/useAbility";
 import { useCalendarState } from "../hooks/useCalendarState";
@@ -191,6 +193,20 @@ export function AppointmentCalendarPage() {
     setSelectedIds(new Set());
   }, []);
 
+  // BA (R-999): the counters ride on the tab row, so the toolbar is one row shorter.
+  let tabExtra: ReactNode = null;
+  if (state.topTab === "customer") {
+    tabExtra = (
+      <CalendarStatusCounters
+        counts={counts}
+        activeKey={filters.statusFilter}
+        onToggle={filters.toggleStatus}
+      />
+    );
+  } else if (state.workSchedule !== "builder") {
+    tabExtra = <TimekeepingSummaryChips workDate={state.currentDate.format("YYYY-MM-DD")} />;
+  }
+
   return (
     <>
       <div className="cal-page">
@@ -200,6 +216,7 @@ export function AppointmentCalendarPage() {
         <CalendarUnderlineTabs
           activeTab={state.topTab}
           onChange={state.setTopTab}
+          extra={tabExtra}
         />
 
         {state.topTab === "customer" && ability.canCreate && (
@@ -215,17 +232,6 @@ export function AppointmentCalendarPage() {
 
         {state.topTab === "customer" && (
           <>
-            <CalendarToolbarRow1
-              viewMode={state.viewMode}
-              onViewModeChange={state.setViewMode}
-              currentDate={state.currentDate}
-              onDateChange={(d) => state.setCurrentDate(() => d)}
-              onNavigate={state.navigateDate}
-              counts={counts}
-              statusFilter={filters.statusFilter}
-              onStatusToggle={filters.toggleStatus}
-            />
-
             <CalendarToolbarRow2
               keyword={filters.keyword}
               onKeywordChange={filters.setKeyword}
@@ -239,7 +245,14 @@ export function AppointmentCalendarPage() {
               onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
               onCreateTemp={() => setTempOpen(true)}
               onFullscreen={() => setFullscreen(true)}
-            />
+            >
+              <CalendarViewControls
+                viewMode={state.viewMode}
+                onViewModeChange={state.setViewMode}
+                currentDate={state.currentDate}
+                onDateChange={(d) => state.setCurrentDate(() => d)}
+              />
+            </CalendarToolbarRow2>
 
             {selectedIds.size > 0 && (
               <div className="cal-selection-bar">

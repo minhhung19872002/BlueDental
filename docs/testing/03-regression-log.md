@@ -10045,3 +10045,85 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `consulting-delete-and-picker.spec.ts:200`: đỏ y hệt trên bản build HEAD. Dịch vụ cuối danh mục là dữ liệu thừa "DUNG-TEST Dịch vụ xoá mềm …" của phiên khác. Dòng thiếu hẳn trong DOM, không phải lỗi hiển thị.
     - `report.spec.ts:294`: đã biết (tiêu đề cột khi xuất Excel thanh toán).
 - **Commit**: chưa commit.
+
+## R-998 (2026-10-20, mức 3: CSS + theme AntD dùng chung, không đổi nghiệp vụ) Tất cả màn — Chữ gợi ý trong ô nhập đậm hơn
+
+- **Yêu cầu** (BA, kèm ảnh `/calendar`, khoanh ô "Tìm kiếm..." và "Bác sĩ"): "mấy ô input, chữ này bị mờ nhạt quá nè, nhìn không rõ. Chỉnh lại cho đậm lên." Chủ dự án chốt: áp dụng cho mọi chữ gợi ý trong ô và làm đậm luôn icon kính lúp. Sau lần 1 (`--bd-muted`), chủ dự án yêu cầu "đậm hơn chút nữa".
+- **Nguyên nhân**: chữ gợi ý dùng hai màu. Placeholder của AntD dùng màu mặc định 25 % ink. Phần tự dựng dùng `#99a0bd` (`--bd-faint`), gồm nhãn nổi lúc nằm trong ô, SearchSelect, icon kính lúp viết inline. Tương phản trên nền trắng chỉ khoảng 2,6:1, nên ô trông như trống.
+- **Màu mới**: token `--bd-hint` `#4a5273` (`brand.hint`), tương phản khoảng 7,7:1. Màu này nằm giữa `--bd-sub` và `--bd-muted`, vẫn nhạt hơn chữ đã nhập (`--bd-ink` `#171c33`). Không đổi `--bd-muted`, vì khoảng 300 chỗ đang dùng nó: tiêu đề cột bảng, tab, Segmented, chữ phụ.
+- **Sửa FE**:
+  - `src/theme/index.ts`: thêm `colorTextPlaceholder: brand.hint` cho Input, InputNumber, DatePicker, Select. TimePicker và RangePicker dùng token của DatePicker; AutoComplete dùng token của Select.
+    - Không đặt ở token global, vì AntD còn dùng token này cho nền Avatar, Badge và thanh cuộn dính của Table.
+    - `voucherDialogTheme` lồng bên trong vẫn kế thừa, vì ConfigProvider merge theo từng component.
+  - `src/styles/index.css`:
+    - Khai báo `--bd-hint`.
+    - Đổi sang `--bd-hint`: placeholder `.ant-input`, nhãn nổi lúc nằm trong ô (`.floating-field-label`), SearchSelect (`.ss-value--placeholder`, `.ss-search-input::placeholder`, `.ss-icon--search`), ô tìm kiếm trên header (`.app-header-search`), icon trong modal tìm kiếm toàn cục (`.app-search-icon`).
+    - Thêm class `.bd-input-icon`.
+  - `reception.css` (`.rn-select-placeholder`), `billing.css` (`.billing-search-icon`): đổi sang `--bd-hint`.
+  - 7 icon kính lúp: thay `style={{ color: "#99a0bd" }}` bằng `className="bd-input-icon"` ở `CalendarControlPanel`, `CalendarToolbarRow2`, `ReceptionToolbar` (2 icon), `TimekeepingBoard`, `TimekeepingInfoModal`, `WorkScheduleBuilder`.
+  - Không đổi:
+    - Nhãn khi đã nổi lên trên viền, màu báo lỗi, trạng thái disabled, mũi tên ▾ và nút xoá của ô chọn.
+    - Rule riêng của các dialog đã chỉnh trước đó: labo, `pd-stage-dialog`, `tp-dialog`, `.ah-modal .ah-select`.
+    - Ô nhập trên tờ A4 (`.bd-a4-cellinput`, `.pd-a4-free-body`).
+    - Các chỗ `#99a0bd` không phải ô nhập: sơ đồ răng, avatar svg, `PatientAccountPanel`.
+- **Đo** (dev server 1600×900, đăng nhập thật, `getComputedStyle`): mọi chữ gợi ý ra `rgb(74, 82, 115)`, trước đó là `#99a0bd` hoặc 25 % ink. Phạm vi đo:
+  - `/calendar`: nhãn "Tìm kiếm...", "Bác sĩ", icon kính lúp.
+  - `/reception`: "Tìm bệnh nhân...", SearchSelect "Nhóm bác sĩ" / "Bác sĩ", icon.
+  - `/patient`: 3 nhãn lọc, "Tìm kiếm".
+  - `/labo`: Select "Chọn khách hàng" / "Chọn bác sĩ".
+  - `/taxonomy/service`: "Tìm nhóm...", "Tìm theo tên dịch vụ hoặc combo...".
+  - Dialog "Tạo lịch hẹn mới" (mở rồi đóng, không lưu): picker "Chọn thời điểm" / "HH:mm", "Nội dung đặt lịch", "Chọn bệnh nhân" / "Chọn bác sĩ".
+  - Icon kính lúp ở `/patient` và `/taxonomy` vốn đã dùng màu chữ chính, không đổi.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request):
+  - Bộ bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`), chạy trên build lần 1 (`--bd-muted`). Lần 2 chỉ đổi giá trị màu nên kết quả vẫn áp dụng. Kết quả **91/93**, không có ca đỏ do R-998: `taxonomy-dialogs.spec.ts:104` và `:256` đỏ sẵn do dữ liệu local, giống R-997.
+  - `appointment`, `reception`, `header-navigation`, `labo-warranty`, chạy trên build lần 2 (`--bd-hint`). Kết quả **14/18**, 4 ca đỏ đều có sẵn và không liên quan:
+    - `header-navigation.spec.ts:13`: URL nay có `?branch=BD-001`.
+    - `header-navigation.spec.ts:121`: drawer có 17 mục, spec chờ 14.
+    - `header-navigation.spec.ts:139`: không tìm thấy menuitem "Tiếng Việt".
+    - `labo-warranty.spec.ts:315`: `fillDueDate`, ô ngày có mask nhập.
+  - Không có spec nào kiểm tra màu placeholder hoặc màu nhãn cũ. `labo-warranty.spec.ts:341` chỉ kiểm tra màu đỏ báo lỗi của nhãn trong dialog labo, rule đó không bị đổi.
+- **Commit**: chưa commit.
+
+## R-999 (2026-10-20, mức 2: bố cục + tách component, không đổi nghiệp vụ) Lịch hẹn + Lịch làm việc — Toolbar còn hai dải
+
+- **Yêu cầu** (BA Huỳnh Văn Định, ảnh `/calendar` đã sửa bằng DevTools): "chỉnh lại như này nha", "bỏ phần trên".
+  - Ảnh của BA: hàng tab có 6 bộ đếm trạng thái ở bên phải. Hàng dưới gồm Ngày/Tuần/Tháng, ngày, Tìm kiếm, Bác sĩ ở bên trái và các nút ở bên phải.
+  - "Phần trên" là khối trắng trống, tức hàng tab cũ đã bị làm rỗng, cần bỏ.
+  - Chủ dự án chốt: làm luôn tab Lịch làm việc. Quy tắc khi thiếu chỗ theo đề xuất (mục Co giãn bên dưới).
+- **Sửa FE** (không đổi BE, không đổi API):
+  - `CalendarUnderlineTabs`: thêm prop `extra`, truyền vào `PillTabs`. Hàng tab hiển thị phần đếm của tab đang mở:
+    - Lịch hẹn khách hàng: `CalendarStatusCounters`.
+    - Lịch làm việc: `TimekeepingSummaryChips` (mới). Component này dùng cùng query key với bảng chấm công nên không phát sinh thêm request.
+    - Màn dựng lịch làm việc (WorkScheduleBuilder): không có phần đếm.
+  - `CalendarToolbarRow1.tsx` đổi tên (`git mv`) thành `CalendarViewControls.tsx`, chỉ còn Segmented + DateNavigator. Bỏ các prop thừa `onNavigate`, `counts`, `statusFilter`.
+  - `CalendarToolbarRow2`: thêm slot `children` ở đầu hàng để đặt `CalendarViewControls`. Bỏ 2 inline style (`width: 220`, `minWidth: 280`), chuyển sang class `.cal-search-field` / `.cal-doctor-field`.
+  - `TimekeepingBoard`: bỏ hàng 1 và query summary. Hàng toolbar có cùng cấu trúc: view switch + ngày, tìm kiếm, ⓘ, nút Lịch làm việc.
+  - `calendar.css`, `timekeeping.css`: bỏ rule `.cal-toolbar-row1`, `.cal-toolbar-left`, `.tk-toolbar-row1` và rule ép bộ đếm xuống dòng ở 1100px.
+- **Co giãn**:
+  - Từ 1366px trở lên: một dòng. Ô Tìm kiếm co từ 220 xuống 140px và ô Bác sĩ từ 280 xuống 170px trước khi xuống dòng.
+    - Flex xuống dòng theo `flex-basis` chứ không theo `min-width`. Vì vậy basis là cỡ nhỏ nhất, ô nới tới `max-width` khi còn chỗ, tỉ lệ grow 8 : 11 để hai ô chạm max cùng lúc.
+  - Hẹp hơn 1366px: nhóm nút xuống dòng riêng, canh phải, và hai ô trở lại đủ rộng.
+  - Tablet: bộ đếm tự rớt xuống dưới các pill.
+  - Điện thoại (≤760px): pill → bộ đếm (cuộn ngang) → 2 nút tạo → Ngày/Tuần/Tháng full ngang → ngày full ngang → Bác sĩ + nút ô giờ.
+  - Toàn màn hình: không đổi, vẫn ẩn cả hai dải.
+- **Đo** (build production `vite preview` cổng 8093, đăng nhập thật, `getBoundingClientRect`):
+
+  | Bề rộng | Hàng toolbar | Tìm kiếm / Bác sĩ | Ghi chú |
+  |---|---|---|---|
+  | 1536 | 1 dòng (cao 61) | 216 / 275 | khớp bố cục ảnh BA; hai ô hẹp hơn ảnh 4–5px vì hàng chỉ còn 499px cho cả hai ô |
+  | 1440 | 1 dòng | 176 / 219 | |
+  | 1366 | 1 dòng | 145 / 176 | lần đo đầu (150 + 180) thiếu 9px, phải xuống dòng; hạ cỡ nhỏ nhất xuống 140 + 170 |
+  | 1280, 1024 | 2 dòng (cao 109), nút canh phải | 220 / 280 | |
+  | 820 | 2 dòng; bộ đếm dưới pill | 153 / 188 | |
+  | 390 | xếp dọc đúng thứ tự trên | ô tìm kiếm ẩn như trước | |
+
+  - Tab Lịch làm việc: 1536 / 1280 / 1024 một dòng, chip nằm trên hàng tab. 390: chip cuộn ngang, sau đó Segmented, ngày, tìm kiếm, nút.
+  - Toàn màn hình ẩn cả hai dải; thoát ra thì bố cục trở lại như cũ.
+  - Không có cuộn ngang ở mọi bề rộng.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request):
+  - `appointment*`, `timekeeping*`, `work-schedule-own-dayoff`, `doctor-day-off-pickers`: **53/55**. Hai ca đỏ không do R-999:
+    - `appointment-slot-pick.spec.ts:141`: ca đã biết từ R-993 / R-996. Lịch DH260531 có sẵn trong DB local đè lên ô 10:15.
+    - `appointment-working-hours.spec.ts:178`: chạy riêng vẫn đỏ, với 409 `Appointment:0006` (bệnh nhân đã có lịch giờ đó). Ca này chỉ gọi API qua `page.request`, không chạm bundle FE. Bệnh nhân đầu tiên của chi nhánh đã có lịch ở khung "bây giờ + 10 phút" trong dữ liệu local.
+  - Spec có mở `/calendar` (`patient-back-origin`, `patient-phone-country`, `routes`, `patient.spec.ts:881`): **28/28**.
+  - `appointment-shown-hours.spec.ts:149`: đổi locator `.cal-toolbar-row1` → `.cal-view-controls` (nút Tuần đã chuyển hàng).
+- **Commit**: chưa commit.

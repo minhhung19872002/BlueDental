@@ -43,6 +43,24 @@ Screenshots: reference-private/survey/calendar-main.png
 - A visually hidden `<h1 class="bd-sr-only">` keeps the page name for screen readers.
 - `/calendar/list` (Lịch đã hẹn) keeps its title.
 
+**Toolbar in one row (BlueDental BA requirement 2026-10-20, R-999):**
+
+The reference has three bands: tabs, then Ngày/Tuần/Tháng + date + counters, then search + buttons. The BA asked for two bands, on both tabs:
+
+| Band | Lịch hẹn khách hàng | Lịch làm việc |
+|---|---|---|
+| Tab row | pills on the left, the 6 status counters on the right | pills on the left, the 6 KPI chips on the right |
+| Toolbar row | Ngày/Tuần/Tháng, date, Tìm kiếm, Bác sĩ, then Xuất File, Tạo lịch hẹn mới, Lịch tạm, ≡, ⏱, ⛶ on the right | Ngày/Tuần/Tháng, date, Tìm kiếm, ⓘ, then the Lịch làm việc button on the right |
+
+When the toolbar row does not fit:
+
+- 1366px and wider: one line. Search shrinks from 220 to 140px and Bác sĩ from 280 to 170px before anything wraps.
+- Narrower: the button group drops to its own line, right-aligned, and the fields go back to full width.
+- Tablet: the counters drop under the pills.
+- Phone (≤760px): pills, counters (horizontal scroll), the two create buttons, Ngày/Tuần/Tháng full width, date full width, then Bác sĩ + slot buttons.
+- Fullscreen hides both bands, as before.
+- The work-schedule builder (Lịch làm việc → button) has no counters on the tab row.
+
 ## Component Breakdown
 
 ### 1. Top-Level Tabs (2 tabs)
