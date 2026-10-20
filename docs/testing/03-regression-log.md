@@ -10012,3 +10012,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - 20 ca đỏ được chạy lại trên build `origin/main` không có R-999 (cổng riêng, cùng DB): **15 ca đỏ y hệt**, nên có sẵn và không do R-999. Gồm 8 ca `operations-reports` (tab "Ngày", tiêu đề báo cáo không còn), `patient.spec.ts:1821` (tiêu đề phần trong dialog thanh toán đã đổi), `:3669`, `:3924`, `staff-notes.spec.ts:158`, `taxonomy-dialogs.spec.ts:104` (dữ liệu labo local, giống R-997), `taxonomy-import-api.spec.ts:708` và `taxonomy-service-sync.spec.ts:321` (quyền tài khoản thử trả 200).
   - 3 ca chập chờn, chạy lại xanh: `branch-code-url.spec.ts:95` (trình duyệt crash), `materials.spec.ts:303`, `patient.spec.ts:2545`.
   - 2 ca đỏ do R-999: `taxonomy.spec.ts` "the entry list scrolls inside its table" và "the table's scrollbar is the app's own". Hành vi vẫn đúng, giả định của test hỏng: test dùng nhóm thuốc đầu tiên, mà nhóm đó là nhóm thử bỏ lại chỉ có 1 dòng. Dòng cũ cao nên 1 dòng vẫn tràn ở cửa sổ 520px, dòng gọn thì không. Test nay tự tạo nhóm `NHOM CUON <run id>` có 15 dòng qua API thật, mở nhóm đó rồi mới thu cửa sổ, và dọn nhóm ở `afterAll`. `taxonomy.spec.ts` **10/10**.
+
+## R-1000 (2026-10-20, mức 2: một feature, chỉ FE) Lịch hẹn view Ngày — Khối lịch hiện "Nội dung đặt lịch"
+
+- **Yêu cầu** (BA, ảnh `/calendar` view Ngày, khối "Phạm Ngọc An Khương" 08:45–09:15 trống bên dưới tên, mũi tên chỉ sang ô "Nội dung đặt lịch" của dialog Cập nhật lịch hẹn): "Nếu có nội dung thì hiển thị nội dung".
+- **Dữ liệu**: ô "Nội dung đặt lịch" là trường `content` của form → `reason` ở FE → `chiefComplaint` ở BE. API danh sách đã trả về sẵn (trước đây chỉ hiện trong tooltip). Không đổi BE, không migration.
+- **Sửa FE**:
+  - `TimelineBlock.tsx`: dòng 1 vẫn là tên. Có nội dung (sau khi trim) thì thêm `.dtl-block-note` bên dưới. Số dòng vừa khối tính từ chiều cao khối (`--dtl-note-lines`, hằng số khớp `.dtl-block`: hụt 2px, tối thiểu 22px, viền + đệm 6px, dòng 16px). Không đủ chỗ thì không hiện.
+  - `calendar.css`: `.dtl-block` xếp dọc. Nội dung chữ 12px thường, nhạt 0.85, cùng màu trạng thái, giữ xuống dòng như đã gõ (`pre-line`), cắt "…" ở dòng cuối vừa khối (`-webkit-line-clamp`). Khối "đang chờ" viền 2px nên bớt 1px đệm để chữ đứng cùng chỗ với khối khác. Tooltip giữ xuống dòng (`.dtl-tip-note`).
+  - Khối không bao giờ giãn ra, vì chiều cao khối là thời lượng lịch. Muốn đọc đủ thì rê chuột xem tooltip.
+  - "Không đến": chỉ gạch tên như trước, nội dung không gạch.
+  - View Tuần (`EventCard`) đã có dòng nội dung từ trước, không đổi. View Tháng không đổi.
+- **Số dòng nội dung thấy được**:
+
+  | Cỡ ô | Lịch 15' | Lịch 30' | Lịch 60' |
+  |---|---|---|---|
+  | Phút 15 (40px/15') | tên + 1 | tên + 3 | tên + 8 |
+  | Phút 30 (48px/30') | chỉ tên | tên + 1 | tên + 4 |
+
+- **Đo** (build production, 1600×1000, đăng nhập thật, lịch tạo qua API thật rồi xoá): đúng như bảng trên ở cả hai cỡ ô. Nội dung dài bị cắt "…" trong khối, tooltip hiện đủ và giữ xuống dòng. Lịch không có nội dung chỉ có tên, trông như cũ.
+- **Test** (build production `vite preview` cổng 8171, PostgreSQL thật, không chặn request):
+  - `appointment-day-timeline.spec.ts` thêm ca "a booking's content shows under the name, line breaks kept, cut where the block ends, and follows an edit":
+    - lịch 30' có nội dung 2 dòng, dòng 2 rất dài: hiện dưới tên, dòng đầu đứng riêng, phần chữ nằm gọn trong khối, phần dư bị ẩn, tooltip có đủ;
+    - lịch không có nội dung: không có dòng nội dung;
+    - tải lại trang vẫn còn;
+    - sửa trong dialog Cập nhật lịch hẹn rồi Lưu (PUT thật): khối đổi theo.
+  - Helper `book()` nhận thêm tham số `content` (mặc định giữ chuỗi cũ).
+  - `appointment-day-timeline` **7/7**.
+  - `appointment`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-shown-hours`, `appointment-series-ui`, `appointment-working-hours`: **14/15**. Ca đỏ duy nhất là `appointment-slot-pick.spec.ts:141`, đã biết từ R-993/R-996: lịch hẹn có sẵn trong DB local đè lên ô 10:15 của mini-lịch "Lịch đã hẹn". Ca này nằm ở component khác, không do R-1000.
+  - `tsc -b` sạch.
+- **Commit**: chủ dự án đã xem, commit trên `main` và push (2026-10-20).
