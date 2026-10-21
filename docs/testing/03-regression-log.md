@@ -10141,3 +10141,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - E2E thật (dev server 5173 → host 5000 → PostgreSQL, không chặn request): `patient-hide-phone` ca mới "the Bệnh án sheets print the whole numbers". Tài khoản bị che: `GET /patients/{id}` vẫn che, `phones` trả đủ, tờ Bệnh án ngoại trú hiện đủ SĐT bệnh nhân + người giám hộ, không còn chuỗi che. Bỏ quyền Bệnh án → `phones` 403. Cả spec **5/5**.
   - Hồi quy: `patient-hide-phone`, `patient-medical-record`, `medical-record-sheet-facts`, `medical-record-set`, `treatment-plan`: **47 qua, 3 đỏ**. Ba ca đỏ đều ở `patient-medical-record.spec.ts` (`:197` mục index, `:1013` địa chỉ trên Bìa, `:1639` ngày chọn). Đỏ y hệt khi stash thay đổi R-1004 rồi chạy lại trên code gốc, nên đây là lỗi có sẵn, không do R-1004.
 - **Còn treo**: 3 ca đỏ có sẵn ở `patient-medical-record.spec.ts` chưa điều tra. Build production (8080) chưa build lại.
+
+## R-1005 (2026-10-21, mức 2: một feature, chỉ FE + i18n) Khung giờ hiển thị — thêm "Giờ giải lao" để ẩn khỏi lịch
+
+- **Yêu cầu** (BA, ảnh popover ⏱ "Khung giờ hiển thị" của R-977): "Thêm khung giờ giải lao để ẩn hiện thị".
+- **Dữ liệu**: không đổi BE, không migration. Vẫn chỉ là `localStorage` `bd_calendar_window` của từng người xem (R-977), thêm mảng `breaks`. Giá trị cũ chưa có `breaks` thì nhận giờ giải lao mặc định nếu hợp lệ với khung đã lưu, không thì `[]`.
+- **Quyết định** (chủ dự án duyệt plan 2026-10-21):
+  - Được nhiều giờ giải lao, có nút "+ Thêm giờ giải lao", mỗi dòng có nút xoá.
+  - Mặc định 12:00–13:00 (ca mặc định 08:00–12:00 / 13:00–17:00). "Mặc định" trả về 08:00–18:45 + 12:00–13:00.
+  - Giờ giải lao gấp hẳn khỏi trục, không để dấu gì: 11:45 liền 13:00. "Đến giờ" là giờ làm lại, nên ô 13:00 vẫn hiện.
+  - Lịch nằm trọn trong giờ giải lao thì ẩn. Lịch vắt qua giờ giải lao thì vẽ một khối, ngắn lại đúng phần bị gấp. Số bệnh nhân ở đầu cột bác sĩ vẫn đếm cả ngày. Giờ hẹn trong form không bị chặn (chỉ là hiển thị).
+  - Áp cho view Ngày, view Tuần và "Lịch đã hẹn" (dialog Tạo/Cập nhật lịch hẹn, lịch tạm), dùng chung một khung như R-977.
+- **Sửa FE**:
+  - `store/calendarAxis.ts` (mới): `buildAxis` dựng trục đã gấp (bỏ ô nằm trọn trong giờ giải lao, gộp các khoảng ẩn), `shownOffset` / `shownLength` đổi giờ thật ra phút hiển thị, `placeOnAxis` trả `null` khi lịch bị ẩn hết, `isFolded` cho vạch giờ hiện tại.
+  - `store/calendarWindowStore.ts`: `CalendarWindow.breaks`, `DEFAULT_BREAK`, `windowProblem` trả 4 loại lỗi (`order`, `breakOrder`, `breakOutside`, `breakOverlap`; hai giờ giải lao chạm nhau thì được), `setWindow` sắp xếp + kiểm tra rồi mới lưu.
+  - `day-timeline/timelineLayout.ts`, `DayTimeline.tsx`, `WeekViewCalendar.tsx`, `MiniCalDayView.tsx`: vẽ theo trục đã gấp. Vạch "bây giờ" ẩn khi đang trong giờ giải lao. Cuộn ban đầu vẫn theo giờ thật.
+  - Popover tách thành `ShownHoursForm.tsx` + `ShownHoursFields.tsx` (`ClockField`, `BreakRow`), `ShownHoursButton.tsx` chỉ còn nút + popover. Tooltip nút ghi thêm "· Giờ giải lao: 12:00 – 13:00". Lỗi hiện dưới form (`role="alert"`), ô sai viền đỏ, "Áp dụng" khoá. `calendar.css`: form 240 → 260px, khối `.cal-hours-breaks`.
+  - i18n `Appointment:ShownHours:*`: `Breaks`, `AddBreak`, `RemoveBreak`, `BreakFrom`, `BreakTo`, `BreakInvalid`, `BreakOutside`, `BreakOverlap`. `Hint` đổi thành "Lịch hẹn ngoài khung giờ này hoặc trong giờ giải lao sẽ bị ẩn."
+- **Test** (build production `vite preview` cổng 8141, host 5000 build lại, PostgreSQL thật, đăng nhập thật, không chặn request):
+  - `appointment-shown-hours.spec.ts` **2/2**, có ca mới cho R-1005. Bác sĩ của lượt chạy có ca sáng 07:00–13:00 và chiều 13:00–21:00, hai ca chạm nhau nên BE cho đặt vắt qua trưa. Đặt 3 lịch: 12:15–12:45, 11:30–13:30 (`allowDentistOverlap`) và 14:00–14:30.
+    - View Ngày: 40 ô, ô thứ 16 là 11:45, ô thứ 17 là 13:00, không có ô 12:00. Có 2 khối; khối vắt qua trưa kéo từ ô 11:30 đến ô 13:30 (±4px). Huy hiệu đầu cột vẫn đếm đủ bệnh nhân.
+    - View Tuần: cột ngày đó có 11:45 và 13:00, không có 12:00, 2 khối.
+    - "Lịch đã hẹn": 40 ô, 11:45 liền 13:00.
+    - Thêm giờ giải lao: mặc định ra 14:00–15:00. Áp dụng: 36 ô, 13:45 liền 15:00, còn 1 khối. Tải lại trang vẫn giữ.
+    - Từ chối 3 trường hợp, mỗi lần "Áp dụng" đều khoá: chồng lên nhau (11:00), kết thúc trước bắt đầu (19:00), ra ngoài khung (đến 20:00).
+    - Xoá hết giờ giải lao: 44 ô, có 12:00, 3 khối.
+    - "Mặc định": quay lại 12:00–13:00, 40 ô, 2 khối, khối vắt qua trưa đúng vị trí.
+  - Spec cũ chỉnh theo mặc định mới:
+    - `appointment-slot-pick` 44 → 40 ô, thêm kiểm tra 11:45 → 13:00.
+    - `appointment-day-timeline`: test kéo dùng ô 13:00. Hai ca "bây giờ" bỏ qua khi chạy trong giờ 12:xx, vì không có vạch.
+    - Ca Lịch tạm của `appointment-slot-pick` giờ gõ một ngày xa trước khi bấm ô 10:15. Ca này đỏ từ R-993/R-996: lịch "E2E CSKH" có sẵn hôm nay đè lên ô 10:15. Lần này cũng đỏ vì đúng lịch đó (10:00–10:30, trước giờ giải lao nên không do gấp trục). Sau khi sửa spec thì xanh.
+  - Hồi quy: `appointment-slot-pick`, `appointment-day-timeline`, `appointment-slot-pick-doctor`, `appointment-mini-cal-date`, `appointment-working-hours`, `appointment`: **23/23** sau khi sửa ca Lịch tạm. Lượt đầu 22/23, đỏ đúng ca nói trên.
+  - `tsc -p tsconfig.app.json` sạch. `eslint` các file đã đổi sạch. Đã xem ảnh popover: một và hai dòng giờ giải lao, lỗi chồng lên nhau.
+- **Commit**: code + spec do chủ dự án commit trên `main` (`e6388004`, 2026-10-21) và đã có trên `origin/main`. Sửa spec Lịch tạm và mục log này chưa commit.
+- **Còn treo**: build production (8080) chưa build lại. Chưa chạy `/security-review` (chỉ FE + localStorage).

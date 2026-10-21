@@ -149,6 +149,16 @@ test.describe("Lưới 15 phút — Tạo lịch hẹn bấm ô Lịch đã hẹ
 
     const minutes = dialog.locator(".appt-field").filter({ hasText: /^Phút/ }).getByRole("spinbutton");
     await expect(minutes).toHaveValue("15");
+
+    // A far day, so no booking left on today's diary sits over the slots clicked below.
+    const day = farDay();
+    const dateInput = dialog.locator(".appt-field").filter({ hasText: /^Ngày hẹn/ }).getByPlaceholder("Chọn thời điểm");
+    const dayRead = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.url().includes(`date=${day}`) && r.ok());
+    await dateInput.click({ position: { x: 4, y: 8 } });
+    await dateInput.pressSequentially(vnDate(day).replace(/\D/g, ""));
+    await dateInput.press("Enter");
+    await expect(dateInput).toHaveValue(vnDate(day));
+    await dayRead;
     await expect(dialog.locator(".mcal-day-time-cell")).toHaveCount(40);
 
     const time = dialog.getByPlaceholder("HH:mm");
