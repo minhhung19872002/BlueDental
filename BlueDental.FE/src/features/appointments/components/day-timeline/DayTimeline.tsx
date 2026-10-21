@@ -4,12 +4,13 @@ import { Spin } from "antd";
 import { useMinuteNow } from "@/hooks/useNow";
 import { t } from "@/lib/i18n";
 import { useAppointmentList } from "../../api/appointmentQueries";
+import { isFolded } from "../../store/calendarAxis";
 import { useCalendarWindowStore } from "../../store/calendarWindowStore";
 import type { AppointmentDto } from "../../types/appointment";
 import { TimelineAxis } from "./TimelineAxis";
 import { TimelineColumn } from "./TimelineColumn";
 import { TimelineLegend } from "./TimelineLegend";
-import { buildTimeScale, HEAD_HEIGHT_PX, minuteToY, slotStarts, trackHeight, type TimeScale } from "./timelineLayout";
+import { buildTimeScale, HEAD_HEIGHT_PX, minuteToY, trackHeight, type TimeScale } from "./timelineLayout";
 import { buildDoctorRows, filterBookings, groupByDoctor, timelineBookings, type TimelineDoctor } from "./timelineRows";
 
 const NO_BOOKINGS: AppointmentDto[] = [];
@@ -29,7 +30,7 @@ interface Props {
 
 /**
  * Opens a day at "now" (a third down from the header) when it is today,
- * otherwise at the first hour shown.
+ * otherwise at the first hour shown. During a break "now" is the fold.
  */
 function useInitialScroll(ref: React.RefObject<HTMLDivElement | null>, dayKey: string, scale: TimeScale, nowMinute: number | null) {
   const nowRef = useRef(nowMinute);
@@ -72,12 +73,14 @@ export function DayTimeline({
   const rows = useMemo(() => buildDoctorRows(doctors, dayBookings, doctorIds), [doctors, dayBookings, doctorIds]);
   const shownHours = useCalendarWindowStore((s) => s.range);
   const scale = useMemo(() => buildTimeScale(shownHours, slotMinutes), [shownHours, slotMinutes]);
-  const slots = useMemo(() => slotStarts(scale), [scale]);
+  const slots = scale.slots;
 
   const clock = dayjs(now);
   const nowOfDay = clock.hour() * 60 + clock.minute();
-  const nowMinute = isToday && nowOfDay >= scale.startMinute && nowOfDay <= scale.endMinute ? nowOfDay : null;
-  useInitialScroll(scrollRef, dayKey, scale, nowMinute);
+  const onGrid = isToday && nowOfDay >= scale.startMinute && nowOfDay <= scale.endMinute ? nowOfDay : null;
+  // R-1005: a break is folded out, so the now line is not drawn while it lasts.
+  const nowMinute = onGrid !== null && !isFolded(scale, onGrid) ? onGrid : null;
+  useInitialScroll(scrollRef, dayKey, scale, onGrid);
 
   const canvasStyle = {
     "--dtl-head-h": `${HEAD_HEIGHT_PX}px`,

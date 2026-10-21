@@ -96,11 +96,14 @@ test.describe("Lưới 15 phút — Tạo lịch hẹn bấm ô Lịch đã hẹ
     await dayRead;
     await dialog.getByPlaceholder("Nội dung đặt lịch").fill(`Ô 15 phút ${runId()}`);
 
-    // Lịch đã hẹn: the default shown hours 08:00 … 18:45 (R-977), one column per 15 minutes (44 slots).
+    // Lịch đã hẹn: the default shown hours 08:00 … 18:45 (R-977), one column per
+    // 15 minutes, the 12:00–13:00 break folded out (R-1005): 40 slots, 11:45 then 13:00.
     const ticks = dialog.locator(".mcal-day-time-cell");
-    await expect(ticks).toHaveCount(44);
+    await expect(ticks).toHaveCount(40);
     await expect(ticks.first()).toHaveText("08:00");
     await expect(ticks.nth(1)).toHaveText("08:15");
+    await expect(ticks.nth(15)).toHaveText("11:45");
+    await expect(ticks.nth(16)).toHaveText("13:00");
     await expect(ticks.last()).toHaveText("18:45");
 
     const time = dialog.getByPlaceholder("HH:mm");
@@ -146,7 +149,7 @@ test.describe("Lưới 15 phút — Tạo lịch hẹn bấm ô Lịch đã hẹ
 
     const minutes = dialog.locator(".appt-field").filter({ hasText: /^Phút/ }).getByRole("spinbutton");
     await expect(minutes).toHaveValue("15");
-    await expect(dialog.locator(".mcal-day-time-cell")).toHaveCount(44);
+    await expect(dialog.locator(".mcal-day-time-cell")).toHaveCount(40);
 
     const time = dialog.getByPlaceholder("HH:mm");
     await expect(time).toHaveValue("");

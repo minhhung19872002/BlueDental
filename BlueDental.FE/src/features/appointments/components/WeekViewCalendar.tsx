@@ -7,7 +7,8 @@ import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
 import { EventCard } from "./EventCard";
 import { STATUS_GROUPS } from "../hooks/useStatusCounts";
-import { clipToGrid, gridEdges, useCalendarWindowStore } from "../store/calendarWindowStore";
+import { buildAxis, placeOnAxis, shownLength } from "../store/calendarAxis";
+import { useCalendarWindowStore } from "../store/calendarWindowStore";
 import { t } from "@/lib/i18n";
 
 const SLOT_H_30 = 25;
@@ -57,21 +58,16 @@ export function WeekViewCalendar({
   const today = dayjs();
   const slotH = getSlotH(slotMinutes);
   // R-977: the viewer's shown hours; bookings outside them are cut or left out.
+  // R-1005: breaks are folded out of the axis.
   const shownHours = useCalendarWindowStore((s) => s.range);
-  const grid = useMemo(() => gridEdges(shownHours, slotMinutes), [shownHours, slotMinutes]);
-  const totalHeight = minutesToPx(grid.endMinute - grid.startMinute, slotMinutes, slotH);
+  const axis = useMemo(() => buildAxis(shownHours, slotMinutes), [shownHours, slotMinutes]);
+  const totalHeight = minutesToPx(shownLength(axis), slotMinutes, slotH);
+  const slots = axis.slots;
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day")),
     [weekStart],
   );
-
-  /** Slot start minutes of the day. */
-  const slots = useMemo(() => {
-    const starts: number[] = [];
-    for (let m = grid.startMinute; m < grid.endMinute; m += slotMinutes) starts.push(m);
-    return starts;
-  }, [grid, slotMinutes]);
 
   const { data: appointments, isFetching } = useAppointmentList({
     fromDate: weekStart.format("YYYY-MM-DD"),
@@ -198,10 +194,10 @@ export function WeekViewCalendar({
                 const e = dayjs(appt.endTime);
                 const startMin = s.hour() * 60 + s.minute();
                 const endMin = e.isSame(s, "day") ? e.hour() * 60 + e.minute() : 24 * 60;
-                const shown = clipToGrid(startMin, endMin, grid);
+                const shown = placeOnAxis(axis, startMin, endMin);
                 if (!shown) return null;
-                const top = minutesToPx(shown.startMinute - grid.startMinute, slotMinutes, slotH);
-                const height = minutesToPx(shown.endMinute - shown.startMinute, slotMinutes, slotH);
+                const top = minutesToPx(shown.offset, slotMinutes, slotH);
+                const height = minutesToPx(shown.length, slotMinutes, slotH);
                 return (
                   <div key={appt.id} className="cal-day-card-positioner" style={{ top, height }}>
                     <EventCard

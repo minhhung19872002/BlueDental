@@ -278,14 +278,15 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     expect(await board.evaluate((el) => el.scrollLeft)).toBe(0);
 
     // The leftmost column has the whole board to its right to scroll into.
-    const cell = page.locator(".dtl-col").first().locator('.dtl-cell[data-time="12:00"]');
-    // Time runs down the board: bring 12:00 up before pressing on it.
+    // 12:00–13:00 is the default break (R-1005), folded out of the board.
+    const cell = page.locator(".dtl-col").first().locator('.dtl-cell[data-time="13:00"]');
+    // Time runs down the board: bring 13:00 up before pressing on it.
     await cell.scrollIntoViewIfNeeded();
     // Bringing it up may nudge the board a few pixels sideways; measure from there.
     const before = await board.evaluate((el) => el.scrollLeft);
     const room = await board.evaluate((el) => el.scrollWidth - el.clientWidth);
     const box = await cell.boundingBox();
-    if (!box) throw new Error("the 12:00 slot is not on screen");
+    if (!box) throw new Error("the 13:00 slot is not on screen");
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x - 500, box.y + box.height / 2, { steps: 12 });
@@ -306,6 +307,8 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     if (start.getSeconds() >= 45) start.setMinutes(start.getMinutes() + 1);
     start.setSeconds(50, 0);
     test.skip(start.getHours() < 7 || start.getHours() >= 19, "outside the board's working hours");
+    // R-1005: the default 12:00–13:00 break is folded out, the now line with it.
+    test.skip(start.getHours() === 12, "inside the default break, where no now line is drawn");
     await page.clock.install({ time: start });
     await openDay(page, clinicToday());
 
@@ -334,6 +337,8 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     const end = new Date(start.getTime() + 30 * 60_000);
     const clinicDayOfEnd = new Date(end.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
     test.skip(clinicDayOfEnd !== clinicToday(), "too close to midnight to book a visit for today");
+    // R-1005: the default 12:00–13:00 break is folded out, the now line with it.
+    test.skip(new Date().getHours() === 12, "inside the default break, where no now line is drawn");
     expect(await openShiftCovering(page, branchId, working.id, start, end), "the run's dentist should be on shift then").toBe(true);
     const booking = await book(page, branchId, working.id, start.toISOString(), end.toISOString());
     bookings.push(booking.id);
