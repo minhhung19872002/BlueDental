@@ -10128,3 +10128,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Cột tiền ở CSKH, Hồ sơ nhóm và báo cáo chưa che (BA chỉ nêu /patient).
   - Có hai mục "Chi phí" (Báo cáo › Quản lý thu chi và Tài chính / Kế toán).
   - Staging / prod cần DbMigrator + xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Chi phí › Xem".
+
+## R-1004 (2026-10-21, mức 2: một feature + endpoint đọc mới) F-53 "Ẩn số điện thoại" — Bệnh án không che SĐT
+
+- **Yêu cầu** (owner, 2026-10-21): tài khoản có tick "Ẩn số điện thoại" mở Phiếu tư vấn ở tab Bệnh án vẫn thấy `093****905`. Bệnh án không che, kiểm tra luôn các mẫu khác.
+- **Nguyên nhân**: các ô SĐT trên tờ (`patient.phone`, dòng người giám hộ `patient.guardian`) lấy từ `PatientDto`, mà DTO này đã bị `PatientPhoneMaskingFilter` che. Commit F-75 hôm qua (`c5cbf6a5`, Chi phí › Xem) không đụng Bệnh án: `sheet-facts`, `plans`, danh sách bộ hồ sơ không áp phạm vi phiếu nên bảng chi phí trên tờ vẫn đủ.
+- **Mẫu in SĐT**: Bệnh án ngoại trú RHM (SĐT + người giám hộ `outpatient-dental.text.23`), Bệnh án chỉnh nha, Phiếu tư vấn và xác nhận đồng ý điều trị. Cả ba đọc chung `useSheetFieldValues`, dùng ở tab Bệnh án và ở dialog "In bệnh án" của dòng Kế hoạch điều trị.
+- **BE**: `GET api/v1/app/patient-medical-records/phones?patientId=` → `MedicalRecordPhonesDto { PatientPhone, GuardianPhones (theo id người giám hộ) }`. Không gắn `[PatientPhone]`. Cần `patientMedicalRecord.read` + kiểm tra chi nhánh của bệnh nhân.
+- **FE**: `useMedicalRecordPhones` → `useSheetFieldValues` in số đầy đủ. Khi endpoint chưa trả về thì ô SĐT đang bị che để trống, không in số che.
+- **Test**:
+  - Application `PatientMedicalRecordAppServiceContractTests` **10/10** (thêm `GetPhonesAsync` → `PatientMedicalRecord.Read`).
+  - E2E thật (dev server 5173 → host 5000 → PostgreSQL, không chặn request): `patient-hide-phone` ca mới "the Bệnh án sheets print the whole numbers". Tài khoản bị che: `GET /patients/{id}` vẫn che, `phones` trả đủ, tờ Bệnh án ngoại trú hiện đủ SĐT bệnh nhân + người giám hộ, không còn chuỗi che. Bỏ quyền Bệnh án → `phones` 403. Cả spec **5/5**.
+  - Hồi quy: `patient-hide-phone`, `patient-medical-record`, `medical-record-sheet-facts`, `medical-record-set`, `treatment-plan`: **47 qua, 3 đỏ**. Ba ca đỏ đều ở `patient-medical-record.spec.ts` (`:197` mục index, `:1013` địa chỉ trên Bìa, `:1639` ngày chọn). Đỏ y hệt khi stash thay đổi R-1004 rồi chạy lại trên code gốc, nên đây là lỗi có sẵn, không do R-1004.
+- **Còn treo**: 3 ca đỏ có sẵn ở `patient-medical-record.spec.ts` chưa điều tra. Build production (8080) chưa build lại.

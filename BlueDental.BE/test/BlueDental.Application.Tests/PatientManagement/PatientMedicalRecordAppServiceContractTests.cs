@@ -36,6 +36,7 @@ public class PatientMedicalRecordAppServiceContractTests
     [Theory]
     [InlineData("GetListAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     [InlineData("GetAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
+    [InlineData("GetPhonesAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     [InlineData("CreateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
     [InlineData("UpdateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("CancelAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]

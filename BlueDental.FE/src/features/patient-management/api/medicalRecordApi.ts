@@ -45,6 +45,17 @@ export interface PatientMedicalRecordDto {
   lastModificationTime: string | null;
 }
 
+/**
+ * The phones a bệnh án prints, whole: the sheets are never masked by "Ẩn số
+ * điện thoại" (clinic, 2026-10-21). Mirrors
+ * BlueDental.PatientManagement.MedicalRecordPhonesDto.
+ */
+export interface MedicalRecordPhonesDto {
+  patientPhone: string | null;
+  /** By guardian id. */
+  guardianPhones: Record<string, string>;
+}
+
 const BASE = "/v1/app/patient-medical-records";
 
 const medicalRecordApi = {
@@ -68,6 +79,11 @@ const medicalRecordApi = {
     input: { title?: string; content?: string | null },
   ): Promise<PatientMedicalRecordDto> =>
     api.put<PatientMedicalRecordDto>(`${BASE}/${id}`, input).then((r) => r.data),
+
+  phones: (patientId: string): Promise<MedicalRecordPhonesDto> =>
+    api
+      .get<MedicalRecordPhonesDto>(`${BASE}/phones`, { params: { patientId } })
+      .then((r) => r.data),
 
   /** "Hủy phiếu" — a sheet is never deleted, only marked Đã hủy with a reason. */
   cancel: (id: string, reason: string): Promise<PatientMedicalRecordDto> =>
@@ -121,12 +137,21 @@ async function uploadUnsavedDrawings(id: string, content: string | null): Promis
 export const medicalRecordKeys = {
   all: ["patient-medical-records"] as const,
   list: (patientId: string) => [...medicalRecordKeys.all, patientId] as const,
+  phones: (patientId: string) => [...medicalRecordKeys.all, "phones", patientId] as const,
 };
 
 export function usePatientMedicalRecords(patientId: string) {
   return useQuery({
     queryKey: medicalRecordKeys.list(patientId),
     queryFn: () => medicalRecordApi.list(patientId),
+    enabled: Boolean(patientId),
+  });
+}
+
+export function useMedicalRecordPhones(patientId: string | undefined) {
+  return useQuery({
+    queryKey: medicalRecordKeys.phones(patientId ?? ""),
+    queryFn: () => medicalRecordApi.phones(patientId ?? ""),
     enabled: Boolean(patientId),
   });
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using System.Threading.Tasks;
@@ -47,6 +48,19 @@ public class GetPatientMedicalRecordListInput : PagedAndSortedResultRequestDto
     public MedicalRecordForm? Form { get; set; }
 }
 
+/// <summary>
+/// The phones a bệnh án prints, in full. The sheets are never masked by
+/// "Ẩn số điện thoại" (clinic, 2026-10-21), so — unlike PatientDto's — these
+/// are not marked <see cref="PatientPhoneAttribute"/>.
+/// </summary>
+public class MedicalRecordPhonesDto
+{
+    public string? PatientPhone { get; set; }
+
+    /// <summary>Each guardian's phone, by guardian id.</summary>
+    public Dictionary<Guid, string> GuardianPhones { get; set; } = new();
+}
+
 /// <summary>"Hủy phiếu": the reason is required.</summary>
 public class CancelPatientMedicalRecordDto
 {
@@ -73,6 +87,9 @@ public interface IPatientMedicalRecordAppService : IApplicationService
     Task<PagedResultDto<PatientMedicalRecordDto>> GetListAsync(GetPatientMedicalRecordListInput input);
 
     Task<PatientMedicalRecordDto> GetAsync(Guid id);
+
+    /// <summary>The patient's and guardians' phones as the sheets print them — whole.</summary>
+    Task<MedicalRecordPhonesDto> GetPhonesAsync(Guid patientId);
 
     Task<PatientMedicalRecordDto> CreateAsync(CreatePatientMedicalRecordDto input);
 

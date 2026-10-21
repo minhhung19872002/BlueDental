@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import * as XLSX from "xlsx";
 import { login, runId } from "./fixtures/auth";
+import { SETS_API, seedPatientWithSlips } from "./fixtures/medicalRecordSet";
 import { call } from "./fixtures/timekeepingStaff";
 
 /**
@@ -15,6 +16,7 @@ import { call } from "./fixtures/timekeepingStaff";
 
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
 const PATIENTS = "/api/v1/app/patients";
+const RECORDS = "/api/v1/app/patient-medical-records";
 const PASSWORD = "AnSdt@123456";
 const MASKED_UNRESOLVED = "BlueDental:Patient:0022";
 const GRANTS = ["BlueDental.patient.read", "BlueDental.patient.update", "BlueDental.patient.export", "BlueDental.patient.hidePhone"];
@@ -283,6 +285,82 @@ test.describe("Ẩn số điện thoại", () => {
       const stored = (await call<Patient>(page, `${PATIENTS}/${fixture.patient.id}`, asBranchOne)).body;
       expect(stored.phoneNumber).toBe(fixture.phone);
       expect(stored.guardians[0].phone).toBe(fixture.guardianPhone);
+    } finally {
+      await masked.context.close();
+      await tearDown(page, fixture);
+    }
+  });
+
+  test("the Bệnh án sheets print the whole numbers — the tick masks the record, never the bệnh án", async ({ page, browser }) => {
+    const fixture = await setUp(page);
+    await setGrants(page, fixture.roleName, ["BlueDental.patientMedicalRecord.read"], true);
+
+    // A set holds at least one slip, so the sheets go on a seeded patient of their own, given a guardian.
+    const seeded = await seedPatientWithSlips(page, 1);
+    const asSeeded = { branchId: seeded.branchId };
+    const record = (await call<Patient>(page, `${PATIENTS}/${seeded.id}`, asSeeded)).body;
+    const guardianPhone = `07${record.phoneNumber.slice(2)}`;
+    const withGuardian = await call(page, `${PATIENTS}/${seeded.id}`, {
+      method: "PUT",
+      ...asSeeded,
+      json: {
+        ...echo(record),
+        guardians: [
+          {
+            relation: 2,
+            fullName: `GH Bệnh án ${fixture.userName}`,
+            phone: guardianPhone,
+            nationalId: `0792${record.phoneNumber.slice(-6)}55`,
+            sameAddressAsPatient: true,
+            isPrimaryContact: true,
+          },
+        ],
+      },
+    });
+    expect(withGuardian.status, JSON.stringify(withGuardian.body)).toBe(200);
+    const set = await call<{ id: string }>(page, SETS_API, {
+      method: "POST",
+      ...asSeeded,
+      json: { patientId: seeded.id, treatmentPlanIds: [seeded.slips[0].id], visibleForms: [] },
+    });
+    expect(set.status, JSON.stringify(set.body)).toBe(200);
+    const added = await call(page, RECORDS, {
+      method: "POST",
+      ...asSeeded,
+      json: { patientId: seeded.id, recordSetId: set.body.id, form: 2, title: "Bệnh án ngoại trú Răng Hàm Mặt" },
+    });
+    expect(added.status, JSON.stringify(added.body)).toBe(200);
+
+    const masked = await openSession(browser, fixture.userName);
+    try {
+      // The record still reads masked; the bệnh án's own phones do not.
+      const detail = await call<Patient>(masked.page, `${PATIENTS}/${seeded.id}`, asSeeded);
+      expect(detail.body.phoneNumber).toBe(mask(record.phoneNumber));
+      const phones = await call<{ patientPhone: string; guardianPhones: Record<string, string> }>(
+        masked.page, `${RECORDS}/phones?patientId=${seeded.id}`, asSeeded);
+      expect(phones.status).toBe(200);
+      expect(phones.body.patientPhone).toBe(record.phoneNumber);
+      expect(Object.values(phones.body.guardianPhones)).toEqual([guardianPhone]);
+
+      await masked.page.goto(`/patient/${seeded.id}`);
+      await expect(async () => {
+        await masked.page.getByRole("button", { name: /(^|\s)Bệnh án$/ }).click();
+        await expect(masked.page).toHaveURL(/view=medical-record/, { timeout: 2_000 });
+      }).toPass();
+      await masked.page
+        .locator(".pd-medical-form", { hasText: "Bệnh án ngoại trú Răng Hàm Mặt" })
+        .locator(".pd-sheet-card .pd-sheet-open")
+        .first()
+        .click();
+      const sheet = masked.page.frameLocator(".mr-doc-frame");
+      await expect(sheet.locator('[data-medical-record-field="outpatient.patient.phone"]')).toHaveText(record.phoneNumber);
+      await expect(sheet.locator('[data-medical-record-field="outpatient-dental.text.23"]')).toContainText(guardianPhone);
+      await expect(sheet.getByText(mask(record.phoneNumber))).toHaveCount(0);
+
+      // Without Bệnh án the whole numbers are not there to read.
+      await setGrants(page, fixture.roleName, ["BlueDental.patientMedicalRecord.read"], false);
+      const refused = await call(masked.page, `${RECORDS}/phones?patientId=${seeded.id}`, asSeeded);
+      expect(refused.status).toBe(403);
     } finally {
       await masked.context.close();
       await tearDown(page, fixture);

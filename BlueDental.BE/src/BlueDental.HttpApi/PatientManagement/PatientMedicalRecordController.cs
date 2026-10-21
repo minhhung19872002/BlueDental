@@ -30,6 +30,10 @@ public sealed class PatientMedicalRecordController(IPatientMedicalRecordAppServi
     [HttpGet("{id:guid}")]
     public Task<PatientMedicalRecordDto> GetAsync(Guid id) => service.GetAsync(id);
 
+    [HttpGet("phones")]
+    public Task<MedicalRecordPhonesDto> GetPhonesAsync([FromQuery] Guid patientId) =>
+        service.GetPhonesAsync(patientId);
+
     [HttpPost]
     public Task<PatientMedicalRecordDto> CreateAsync(
         [FromBody] CreatePatientMedicalRecordDto input) => service.CreateAsync(input);

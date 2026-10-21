@@ -103,6 +103,19 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         return await MapWithCancellerAsync(entity);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
+    public async Task<MedicalRecordPhonesDto> GetPhonesAsync(Guid patientId)
+    {
+        var patient = await _patientRepository.GetAsync(patientId);
+        await _branchAccess.CheckAsync(patient.BranchId);
+
+        return new MedicalRecordPhonesDto
+        {
+            PatientPhone = patient.Contact?.PhoneNumber,
+            GuardianPhones = patient.Guardians.ToDictionary(guardian => guardian.Id, guardian => guardian.Phone),
+        };
+    }
+
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
     public async Task<PatientMedicalRecordDto> CreateAsync(CreatePatientMedicalRecordDto input)
     {
