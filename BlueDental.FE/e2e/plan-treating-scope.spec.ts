@@ -24,7 +24,9 @@ import { openSlipFor, type TreatingSlip as Slip } from "./fixtures/treatingSlip"
  *  - the seven money tiles on Hồ sơ add up the same slips, with their payments;
  *    Tạm ứng belongs to no slip and reads 0 once narrowed;
  *  - /patient's Số tiền / Thực thu / Công nợ read "*********" without it, on
- *    screen and in the Excel file;
+ *    screen and in the Excel file; with it they add up the same slips and
+ *    lines as the record's Hồ sơ tab — a member's, a head's team's, everyone's
+ *    for an admin or a non-dentist (BA bug 41);
  *  - Phân quyền lists Thanh toán and the new Chi phí under "Tài chính / Kế
  *    toán", the last group.
  *
@@ -48,6 +50,8 @@ const PERCENTAGE = 2;
 const KIND = { Payment: 1, Prepaid: 3 } as const;
 const CASH = 1;
 const PAID = 100_000;
+/** Less than any run slip asks (at least 100 000), so bug 41's finished slip stays owed on. */
+const PART_PAID = 30_000;
 const TOPPED_UP = 50_000;
 const MASK = "*********";
 const LEAVES = [
@@ -65,7 +69,7 @@ const ACTION_LEAVES = [
 ];
 
 type Owner = "head" | "member" | "outsider" | "chief";
-type Who = Owner | "clerk" | "accountant";
+type Who = Owner | "clerk" | "accountant" | "deputy";
 
 /**
  * Bug 40's slips, two lines each, on a patient of their own: X received by the
@@ -77,15 +81,20 @@ type LineNo = 0 | 1;
 const FAR_PAID: Record<Far, [number, number]> = { x: [30_000, 0], y: [0, 100_000], z: [0, 0] };
 
 /**
- * head heads team A (member, clerk) and holds Chi phí; chief heads team B
- * (outsider) without it; clerk and accountant are no dentists, the accountant
- * holding Chi phí.
+ * head heads team A (member, clerk, deputy) and holds Chi phí; chief heads team
+ * B (outsider) without it; clerk and accountant are no dentists, the accountant
+ * holding Chi phí; deputy is a dentist of team A holding Chi phí.
  */
-const LOGIN: Record<Who, string> = { head: "h", member: "m", outsider: "o", chief: "k", clerk: "c", accountant: "a" };
+const LOGIN: Record<Who, string> = { head: "h", member: "m", outsider: "o", chief: "k", clerk: "c", accountant: "a", deputy: "d" };
+
+/** Bug 41's patient: a finished, part-paid slip of team B's and one of team A's deputy. */
+type Aside = "outsider" | "deputy";
 
 interface Summary {
   totalPrice: number;
   totalPaid: number;
+  totalRefund: number;
+  totalDue: number;
   prepaid: number;
 }
 
@@ -141,6 +150,31 @@ async function listRowOf(page: Page, patientCode: string): Promise<ListRow> {
 /** "1.234.567 đ", as the tiles print it. */
 const tile = (value: number) => `${value.toLocaleString("vi")} đ`;
 
+const LIST_MONEY = ["Số tiền", "Thực thu", "Công nợ"];
+
+/** /patient's three money cells on the row of `patientCode`. */
+const moneyCells = (page: Page, patientCode: string) =>
+  page.locator("tr.ant-table-row", { hasText: patientCode }).locator(".bd-patient-money");
+
+/** /patient's Excel file for `filter`: Số tiền, Thực thu and Công nợ on the line of a patient code. */
+async function listFileOf(page: Page, filter: string) {
+  const file = await page.evaluate(async ({ url, branch }) => {
+    const res = await fetch(url, { credentials: "include", headers: { "X-Clinic-Branch-Id": branch, "accept-language": "vi" } });
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    let binary = "";
+    bytes.forEach((b) => (binary += String.fromCharCode(b)));
+    return { status: res.status, base64: btoa(binary) };
+  }, { url: `${PATIENTS}/excel?filter=${filter}`, branch: BRANCH_ONE });
+  expect(file.status).toBe(200);
+  const book = XLSX.read(file.base64, { type: "base64" });
+  const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(book.Sheets[book.SheetNames[0]], { header: 1, defval: null });
+  const header = rows.find((r) => r.includes("Số tiền"))!;
+  return (patientCode: string) => {
+    const line = rows.find((r) => r.some((cell) => String(cell).includes(patientCode)))!;
+    return LIST_MONEY.map((name) => line[header.indexOf(name)]);
+  };
+}
+
 test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo Bác sĩ tiếp nhận, quyền Chi phí và Sơ đồ tổ chức", () => {
   test.setTimeout(240_000);
   const run = `ts${runId()}`;
@@ -158,8 +192,12 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
   /** Each far slip's line ids: the one it opened with, then the added one. */
   const farLines = {} as Record<Far, [string, string]>;
   let farPatientId = "";
+  let farPatientCode = "";
   /** What one far line asks — every line is the same service again. */
   let perLine = 0;
+  const aside = {} as Record<Aside, Slip>;
+  let asidePatientId = "";
+  let asidePatientCode = "";
 
   async function createPatient(firstName: string, phoneNumber: string) {
     const patient = await call<{ id: string; patientCode: string }>(admin, PATIENTS, {
@@ -244,7 +282,8 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
     staff.chief = await make("chief", `BS Truong B ${run}`, true, [base, acts]);
     staff.clerk = await make("clerk", `NV Le tan ${run}`, false, [base]);
     staff.accountant = await make("accountant", `NV Ke toan ${run}`, false, [base, costs]);
-    await createTeam(`E2E Team DT ${run}`, staff.head.id, [staff.member.id, staff.clerk.id]);
+    staff.deputy = await make("deputy", `BS Pho ${run}`, true, [base, costs]);
+    await createTeam(`E2E Team DT ${run}`, staff.head.id, [staff.member.id, staff.clerk.id, staff.deputy.id]);
     await createTeam(`E2E Team DT B ${run}`, staff.chief.id, [staff.outsider.id]);
 
     // A patient of the run's own, so the money adds up to the run's slips only.
@@ -265,7 +304,7 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
     expect(perSlip).toBeGreaterThan(0);
 
     // BA bug 40, on a second patient: team B's slips with lines assigned into team A.
-    farPatientId = (await createPatient(`Phieu cheo ${run}`, `03${run.slice(-6)}48`)).id;
+    ({ id: farPatientId, patientCode: farPatientCode } = await createPatient(`Phieu cheo ${run}`, `03${run.slice(-6)}48`));
     far.x = await openSlipFor(admin, BRANCH_ONE, farPatientId, staff.chief.id);
     far.y = await openSlipFor(admin, BRANCH_ONE, farPatientId, staff.outsider.id);
     far.z = await openSlipFor(admin, BRANCH_ONE, farPatientId, staff.outsider.id, { consultantStaffId: staff.member.id });
@@ -287,11 +326,20 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
     expect(farWhole.totalPrice % 6).toBe(0);
     perLine = farWhole.totalPrice / 6;
     expect(perLine).toBe(perSlip);
+
+    // BA bug 41, on a third patient: team B's slip finished and part paid, so it is owed on; the deputy's untouched.
+    ({ id: asidePatientId, patientCode: asidePatientCode } = await createPatient(`Chia doi ${run}`, `03${run.slice(-6)}49`));
+    aside.outsider = await openSlipFor(admin, BRANCH_ONE, asidePatientId, staff.outsider.id);
+    aside.deputy = await openSlipFor(admin, BRANCH_ONE, asidePatientId, staff.deputy.id);
+    const owed = aside.outsider.services[0].id;
+    await record({ patientId: asidePatientId, treatmentPlanId: aside.outsider.id, treatmentServiceIds: [owed], kind: KIND.Payment, amount: PART_PAID });
+    const done = await call(admin, `${PLANS}/${aside.outsider.id}/services/${owed}/complete`, { method: "POST", branchId: BRANCH_ONE });
+    expect(done.status, JSON.stringify(done.body)).toBe(200);
   });
 
   test.afterAll(async () => {
     for (const id of receipts) await call(admin, `${PAYMENTS}/${id}/cancel`, { method: "POST", branchId: BRANCH_ONE, json: { reason: "e2e cleanup" } });
-    for (const slip of [...Object.values(slips), ...Object.values(far)]) {
+    for (const slip of [...Object.values(slips), ...Object.values(far), ...Object.values(aside)]) {
       await call(admin, `${PLANS}/${slip.id}`, { method: "DELETE", branchId: BRANCH_ONE });
     }
     for (const id of teams) await call(admin, `${ORG}/units/${id}`, { method: "DELETE", branchId: BRANCH_ONE });
@@ -329,7 +377,7 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
         expect(whole.body.items.map((slip) => slip.id).sort()).toEqual(Object.values(slips).map((slip) => slip.id).sort());
 
         // The money adds up the same slips: the head's receipt only where the head's slip shows.
-        const expected: Summary = {
+        const expected: Pick<Summary, "totalPrice" | "totalPaid" | "prepaid"> = {
           totalPrice: perSlip * sees.length,
           totalPaid: sees.includes("head") ? PAID : 0,
           prepaid: prepaid ? TOPPED_UP : 0,
@@ -612,31 +660,90 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
 
         await page.goto("/patient?branch=BD-001");
         await assertRealApiTraffic(page, PATIENTS);
-        const cells = page.locator("tr.ant-table-row", { hasText: patientCode }).locator(".bd-patient-money");
+        const cells = moneyCells(page, patientCode);
         await expect(cells).toHaveCount(3);
         await expect(cells).toHaveText(
-          hidden ? [MASK, MASK, MASK] : [truth.totalAmount, truth.totalRevenue, truth.totalDebt].map((v) => (v ? v.toLocaleString("vi") : "0")),
+          hidden ? [MASK, MASK, MASK] : [truth.totalAmount, truth.totalRevenue, truth.totalDebt].map((v) => v.toLocaleString("vi")),
         );
 
         // The Excel file reads the same.
-        const file = await page.evaluate(async ({ url, branch }) => {
-          const res = await fetch(url, { credentials: "include", headers: { "X-Clinic-Branch-Id": branch, "accept-language": "vi" } });
-          const bytes = new Uint8Array(await res.arrayBuffer());
-          let binary = "";
-          bytes.forEach((b) => (binary += String.fromCharCode(b)));
-          return { status: res.status, base64: btoa(binary) };
-        }, { url: `${PATIENTS}/excel?filter=${patientCode}`, branch: BRANCH_ONE });
-        expect(file.status).toBe(200);
-        const book = XLSX.read(file.base64, { type: "base64" });
-        const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(book.Sheets[book.SheetNames[0]], { header: 1, defval: null });
-        const header = rows.find((r) => r.includes("Số tiền"))!;
-        const line = rows.find((r) => r.some((cell) => String(cell).includes(patientCode)))!;
-        const at = (name: string) => line[header.indexOf(name)];
-        expect([at("Số tiền"), at("Thực thu"), at("Công nợ")]).toEqual(
-          hidden ? [MASK, MASK, MASK] : [truth.totalAmount, truth.totalRevenue, truth.totalDebt],
-        );
+        const file = await listFileOf(page, patientCode);
+        expect(file(patientCode)).toEqual(hidden ? [MASK, MASK, MASK] : [truth.totalAmount, truth.totalRevenue, truth.totalDebt]);
       } finally {
         await context.close();
+      }
+    }
+  });
+
+  /**
+   * Bug 41, per account: a /patient row adds up the money the record's Hồ sơ
+   * tab shows that account. Per patient, how many slips' (or lines') price it
+   * counts, what was paid on them, and whether anything is owed — only on team
+   * B's finished slip of the third patient.
+   */
+  test("bug 41: /patient counts only the money the account sees, as Hồ sơ does — on the API, on screen and in the file", async ({ browser }) => {
+    type Patient = "main" | "far" | "aside";
+    const patients: Record<Patient, { id: string; code: string }> = {
+      main: { id: patientId, code: patientCode },
+      far: { id: farPatientId, code: farPatientCode },
+      aside: { id: asidePatientId, code: asidePatientCode },
+    };
+    const farPaid = Object.values(FAR_PAID).flat().reduce((sum, paid) => sum + paid, 0);
+    const everything: Record<Patient, [number, number, boolean]> = {
+      main: [4, PAID, false],
+      far: [6, farPaid, false],
+      aside: [2, PART_PAID, true],
+    };
+    const views: { who: Who | "admin"; sees: Record<Patient, [number, number, boolean]> }[] = [
+      { who: "admin", sees: everything },
+      { who: "accountant", sees: everything },
+      // Team A's: their slip and the member's, the far lines of theirs and the member's, the deputy's slip — never team B's.
+      { who: "head", sees: { main: [2, PAID, false], far: [3, FAR_PAID.y[1], false], aside: [1, 0, false] } },
+      // A member with Chi phí: the slip they received, nothing of their head's or a teammate's.
+      { who: "deputy", sees: { main: [0, 0, false], far: [0, 0, false], aside: [1, 0, false] } },
+    ];
+
+    for (const { who, sees } of views) {
+      const session = who === "admin" ? null : await signIn(browser, who, run);
+      const page = session?.page ?? admin;
+      try {
+        const shown = {} as Record<Patient, number[]>;
+        for (const key of Object.keys(patients) as Patient[]) {
+          const [count, paid, owes] = sees[key];
+          const row = await listRowOf(page, patients[key].code);
+          expect(row.moneyHidden).toBe(false);
+          expect([row.totalAmount, row.totalRevenue], `${who} on ${key}`).toEqual([perSlip * count, paid]);
+          expect(row.totalDebt > 0, `${who} owed on ${key}`).toBe(owes);
+          // The Hồ sơ cards: Tổng dự kiến thu, Đã thu less Đã hoàn, Phải thu.
+          const cards = await summaryOf(page, patients[key].id);
+          expect([row.totalAmount, row.totalRevenue, row.totalDebt]).toEqual([
+            cards.totalPrice,
+            cards.totalPaid - cards.totalRefund,
+            Math.max(0, cards.totalDue),
+          ]);
+          shown[key] = [row.totalAmount, row.totalRevenue, row.totalDebt];
+        }
+
+        // On screen, the run's three patients found by the search box — which a reload empties.
+        const searchRun = async () => {
+          const searched = page.waitForResponse((res) => res.url().includes(`${PATIENTS}?`) && res.url().includes(`filter=${run}`));
+          await page.getByPlaceholder(/Tìm/).first().fill(run);
+          expect((await searched).ok()).toBeTruthy();
+          await expect(page.locator("tr.ant-table-row")).toHaveCount(3);
+        };
+        await page.goto("/patient?branch=BD-001");
+        await searchRun();
+        const file = await listFileOf(page, run);
+        for (const key of Object.keys(patients) as Patient[]) {
+          await expect(moneyCells(page, patients[key].code)).toHaveText(shown[key].map((v) => v.toLocaleString("vi")));
+          expect(file(patients[key].code), `${who}'s file on ${key}`).toEqual(shown[key]);
+        }
+
+        await page.reload();
+        await searchRun();
+        await expect(moneyCells(page, patients.aside.code)).toHaveText(shown.aside.map((v) => v.toLocaleString("vi")));
+      } finally {
+        await session?.context.close();
       }
     }
   });

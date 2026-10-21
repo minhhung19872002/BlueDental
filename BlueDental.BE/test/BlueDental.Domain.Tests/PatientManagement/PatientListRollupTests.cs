@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
+using BlueDental.Staff;
 using BlueDental.TreatmentManagement;
 using Shouldly;
 using Volo.Abp;
@@ -112,5 +114,96 @@ public class PatientListRollupTests
 
         rollup.ServiceCatalogIds.ShouldBeEmpty();
         rollup.DentistIds.ShouldBeEmpty();
+    }
+
+    // ── BA bug 41: Số tiền / Thực thu / Công nợ count what the viewer sees ──
+
+    private static readonly Guid Viewer = Guid.NewGuid();
+
+    private static TreatmentService AFinishedLine(TreatmentPlan plan, decimal price, Guid? dentist = null)
+    {
+        var line = plan.AddService(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), price, 1, DiscountType.None, 0m);
+        line.SetDetails(null, dentist, null, null, null, null, null);
+        return line.Complete();
+    }
+
+    private static PatientPayment APayment(TreatmentPlan plan, params (Guid LineId, decimal Amount)[] lines) =>
+        PatientPayment.Record(
+            Guid.NewGuid(), plan.PatientId, plan.BranchId, PatientPaymentKind.Payment, PaymentMethodKind.Cash,
+            lines.Sum(l => l.Amount), "PT26-0001", Guid.NewGuid(), DateTimeOffset.UtcNow,
+            treatmentPlanId: plan.Id, lines: lines.Select(l => (l.LineId, l.Amount)));
+
+    /// <summary>
+    /// One slip the viewer received (4 tr, 1 tr paid), one another team received
+    /// with a 2 tr line assigned to the viewer (0,5 tr paid on it, the 3 tr rest
+    /// paid off) and one with nothing of the viewer's (10 tr unpaid) — all work done.
+    /// </summary>
+    private (TreatmentPlan[] Plans, PatientPayment[] Payments) ThreeSlips()
+    {
+        var other = Guid.NewGuid();
+        var received = APlan(Viewer, "DT01");
+        var receivedLine = AFinishedLine(received, 4_000_000m);
+        var through = APlan(other, "DT02");
+        var mine = AFinishedLine(through, 2_000_000m, dentist: Viewer);
+        var theirs = AFinishedLine(through, 3_000_000m);
+        var hidden = APlan(other, "DT03");
+        AFinishedLine(hidden, 10_000_000m);
+
+        return (
+            [received, through, hidden],
+            [
+                APayment(received, (receivedLine.Id, 1_000_000m)),
+                APayment(through, (mine.Id, 500_000m), (theirs.Id, 3_000_000m))
+            ]);
+    }
+
+    private PatientRollup FoldFor(SlipScope? scope)
+    {
+        var (plans, payments) = ThreeSlips();
+        return _rollup.For(APatient(), plans, payments, Array.Empty<Appointment>(), DateTimeOffset.UtcNow, scope);
+    }
+
+    [Fact]
+    public void With_no_scope_the_money_counts_every_slip()
+    {
+        var rollup = FoldFor(null);
+
+        rollup.TotalAmount.ShouldBe(19_000_000m);
+        rollup.TotalRevenue.ShouldBe(4_500_000m);
+        rollup.TotalDebt.ShouldBe(14_500_000m);
+    }
+
+    [Fact]
+    public void A_scoped_row_counts_its_received_slips_and_its_assigned_lines()
+    {
+        var rollup = FoldFor(new SlipScope(new HashSet<Guid> { Viewer }));
+
+        rollup.TotalAmount.ShouldBe(6_000_000m);
+        rollup.TotalRevenue.ShouldBe(1_500_000m);
+        rollup.TotalDebt.ShouldBe(4_500_000m);
+    }
+
+    [Fact]
+    public void Without_the_cost_permission_an_assigned_line_adds_nothing()
+    {
+        var rollup = FoldFor(new SlipScope(new HashSet<Guid> { Viewer }, ShowsLineMoney: false));
+
+        rollup.TotalAmount.ShouldBe(4_000_000m);
+        rollup.TotalRevenue.ShouldBe(1_000_000m);
+        rollup.TotalDebt.ShouldBe(3_000_000m);
+    }
+
+    [Fact]
+    public void A_row_reads_the_same_figures_as_the_records_ho_so_cards()
+    {
+        var scope = new SlipScope(new HashSet<Guid> { Viewer });
+        var (plans, payments) = ThreeSlips();
+
+        var rollup = _rollup.For(APatient(), plans, payments, Array.Empty<Appointment>(), DateTimeOffset.UtcNow, scope);
+        var cards = new PatientMoneyCalculator().ForScope(plans, payments, scope);
+
+        rollup.TotalAmount.ShouldBe(cards.TotalPrice);
+        rollup.TotalRevenue.ShouldBe(cards.TotalPaid - cards.TotalRefund);
+        rollup.TotalDebt.ShouldBe(cards.TotalDue);
     }
 }

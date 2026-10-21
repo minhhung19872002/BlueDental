@@ -10212,3 +10212,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Server chưa chặn thao tác trên dòng ngoài `OwnLinesOf`, chưa chặn sửa / chuyển đổi dòng bị che; `GetAsync` và phản hồi thao tác dòng không thu hẹp.
   - Dialog "Chi tiết dịch vụ" ở tab Hồ sơ vẫn hiện đủ tiền (có từ trước P2010); `PatientAccountDto.Plans`, `PatientAdviseCard` chưa thu hẹp.
   - Chưa commit. Chưa chạy `/security-review`. Build production (8080) chưa build lại.
+
+## R-1007 (2026-10-21, mức 3: tiền /patient dùng chung phạm vi phiếu) F-75 bug 41 — cột tiền danh sách bệnh nhân theo phạm vi được xem
+
+- **Yêu cầu** (BA bug 41, "[Phân quyền > Chi phí > Danh sách bệnh nhân] Trưởng nhóm có quyền thấy Số tiền / Thực thu / Công nợ của toàn phòng khám"): "Danh sách chỉ tính tiền trong phạm vi được xem, khớp tab Hồ sơ / Kế hoạch điều trị: thành viên = phiếu mình tiếp nhận, trưởng nhóm = phiếu của nhóm; admin và tiếp nhận thấy hết".
+- **Nguyên nhân**:
+  - `PatientListRollupCalculator.For` cộng tiền mọi phiếu (`ForPatient`) và không nhận phạm vi. P2010 (R-1003) chỉ che tiền khi **không** có Chi phí; có quyền thì danh sách hiện tổng toàn phòng khám, trong khi thẻ Hồ sơ đã thu hẹp.
+  - Phát hiện thêm khi chạy e2e: `BuildRowsAsync` nạp phiếu thu không kèm `Lines`, nên phiếu thấy theo dòng (bug 40) có Thực thu = 0.
+- **BE**:
+  - `PatientMoneyCalculator.ForScope(plans, payments, scope)` (mới): một chỗ duy nhất cộng tiền theo phạm vi. `scope = null` → `ForPatient`; còn lại: phiếu thấy cả phiếu + thu / hoàn của nó, phiếu thấy theo dòng → `ForLines` của các dòng được hiện tiền.
+  - `PatientPaymentAppService.GetAccountAsync` (7 thẻ Hồ sơ) gọi `ForScope` thay cho đoạn tự cộng cũ. Kết quả không đổi.
+  - `PatientListRollupCalculator.For(..., scope)` dùng `ForScope`. Cột Dịch vụ / Bác sĩ / Trạng thái vẫn đọc mọi phiếu còn sống.
+  - `PatientAppService.BuildRowsAsync`: lấy `OrgChartScopeResolver.VisibleSlipsAsync()` một lần cho cả trang; phiếu thu nạp bằng `WithDetailsAsync(p => p.Lines)`. Cùng đường cho API danh sách và file Excel.
+  - Không có Chi phí: `HideMoneyIfRequiredAsync` vẫn che như cũ. Không migration, không quyền mới.
+- **Test**:
+  - Domain: `PatientListRollupTests` thêm 4 test (không phạm vi 19 tr / 4,5 tr / 14,5 tr; có phạm vi 6 tr / 1,5 tr / 4,5 tr; không Chi phí 4 tr / 1 tr / 3 tr; dòng danh sách = `ForScope` của thẻ Hồ sơ): **49/49**.
+  - E2E thật (build production `vite preview` 127.0.0.1:8147 → host :5000 → PostgreSQL thật, không chặn request): `plan-treating-scope` **19/19**.
+    - Tài khoản mới deputy (bác sĩ thành viên Team A, có Chi phí), bệnh nhân 3 (phiếu Team B đã hoàn thành, trả 30.000 nên còn nợ; phiếu của deputy chưa động đến).
+    - admin / accountant / head / deputy trên 3 bệnh nhân: API danh sách = thẻ Hồ sơ, màn /patient, file Excel, tải lại. Bảng số trong `features/treatment-cost.md`.
+    - Sửa spec: phiếu thu bệnh nhân 3 dùng `PART_PAID = 30_000`. Dịch vụ fixture ≈ 100.000, bằng `PAID`, nên trả đủ thì hết nợ.
+  - Hồi quy mức 3 (cùng build 8147), 15 spec (`debt-history`, `export`, `patient-groups`, `patient-permission-gates`, `patient-roster-api`, `patient-roster`, `patient`, `payment-from-slip`, `payment-permission-buttons`, `plan-advisor-scope`, `plan-service-delete`, `treatment-leaf-permissions`, `treatment-plan-delete`, `treatment-plan-detail`, `treatment-plan`): **116/126** (17,2 phút).
+    - `payment-from-slip:37` đỏ ở cú bấm option DT01 (bị che, popup đóng). Ô Công nợ của phiếu ngay trước đó đã khớp. Chạy lại riêng: **2/2**.
+    - 9 ca còn lại không đọc cột tiền /patient. Các spec này chạy bằng admin, `scope = null` → `ForPatient` như cũ, và `BlueDental.FE/src` không đổi, nên không do R-1007 (chứng minh theo cấu trúc, chưa chạy lại trên bản HEAD):
+      - `export:62`: tìm `tab "Đơn thuốc"`, thanh tab hồ sơ giờ là link.
+      - `patient:1591`: chiều cao option ô chọn thẻ.
+      - `patient:1821`: tiêu đề dialog "Tạo phiếu thanh toán" đã đổi (có "Số phiếu cần thanh toán").
+      - `patient:2313`, `patient:2433`, `patient:3229`: fixture phiếu công đoạn (không có dòng lịch sử / `.pd-stage-picks` cũ).
+      - `patient:2545`: màu nhãn ô "Nội dung" của dialog Đặt mới.
+      - `patient:3669`: Tiếp nhận, đỏ có chủ ý theo TEMP-BUG25-OFF.
+      - `patient:3924`: DB local không có bệnh nhân demo đúng một lịch hẹn + bác sĩ rảnh.
+- **Commit**: trên `main`, push `origin/main` theo lệnh chủ dự án (2026-10-21) sau khi tự soát bảo mật: phạm vi tính ở server, không log PHI, che tiền khi không có quyền giữ nguyên.
+- **Còn treo** (chi tiết ở `features/treatment-cost.md`):
+  - Hỏi chủ dự án / BA: bệnh nhân không có phiếu nào trong phạm vi hiện 0, không che `*********` (chọn theo "khớp tab Hồ sơ").
+  - Cột Dịch vụ / Bác sĩ / Trạng thái vẫn tính trên mọi phiếu. BA chỉ nêu ba cột tiền.
+  - Hồ sơ nhóm, CSKH, báo cáo vẫn cộng tiền toàn bộ.

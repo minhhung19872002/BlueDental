@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BlueDental.Appointments;
 using BlueDental.Billing;
+using BlueDental.Staff;
 using BlueDental.TreatmentManagement;
 using Volo.Abp.Domain.Services;
 
@@ -51,15 +52,19 @@ public class PatientListRollupCalculator : IDomainService
         _money = money;
     }
 
+    /// <param name="scope">Whose slips the viewer sees; <c>null</c> sees them all.</param>
     public PatientRollup For(
         Patient patient,
         IReadOnlyCollection<TreatmentPlan> plans,
         IReadOnlyCollection<PatientPayment> payments,
         IReadOnlyCollection<Appointment> appointments,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        SlipScope? scope = null)
     {
         var live = plans.Where(p => p.Status != TreatmentPlanStatus.Cancelled).ToList();
-        var summary = _money.ForPatient(live, payments);
+        // Số tiền / Thực thu / Công nợ count only what the viewer may see — the
+        // same figures as the record's Hồ sơ tab (BA bug 41).
+        var summary = _money.ForScope(live, payments, scope);
 
         /*
          * Dịch vụ and Bác sĩ name the **newest** work, one each — never a list.

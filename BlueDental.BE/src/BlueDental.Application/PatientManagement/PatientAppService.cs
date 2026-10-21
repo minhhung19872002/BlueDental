@@ -9,6 +9,7 @@ using BlueDental.Exporting;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement.Values;
 using BlueDental.Permissions;
+using BlueDental.Staff;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
@@ -490,7 +491,9 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             .GroupBy(p => p.PatientId)
             .ToDictionary(g => g.Key, g => (IReadOnlyCollection<TreatmentPlan>)g.ToList());
 
-        var paymentQuery = await _paymentRepository.GetQueryableAsync();
+        // With the receipts' lines too: a slip seen only through its assigned
+        // lines counts what was paid on those lines (BA bug 41), not the slip's.
+        var paymentQuery = await _paymentRepository.WithDetailsAsync(p => p.Lines);
         var paymentsByPatient = paymentQuery
             .Where(p => p.ClinicBranchId == branchId && patientIds.Contains(p.PatientId))
             .ToList()
@@ -508,6 +511,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         var noPayments = Array.Empty<PatientPayment>();
         var noAppointments = Array.Empty<Appointment>();
         var now = Clock.Now;
+        // BA bug 41: a row's money is what the record's Hồ sơ tab shows the viewer.
+        var slipScope = await LazyServiceProvider.LazyGetRequiredService<OrgChartScopeResolver>().VisibleSlipsAsync();
 
         var rollups = patients.ToDictionary(
             patient => patient.Id,
@@ -516,7 +521,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 plansByPatient.GetValueOrDefault(patient.Id, empty),
                 paymentsByPatient.GetValueOrDefault(patient.Id, noPayments),
                 appointmentsByPatient.GetValueOrDefault(patient.Id, noAppointments),
-                now));
+                now,
+                slipScope));
 
         var serviceNames = await NamesOfServicesAsync(
             rollups.Values.SelectMany(r => r.ServiceCatalogIds).ToHashSet());

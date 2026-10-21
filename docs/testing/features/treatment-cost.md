@@ -3,7 +3,8 @@
 Nguồn: `P2010.drawio` của BA (2026-10-20). BlueDental riêng, bản gốc không có
 quyền này. Regression id R-1003. Định hình lại phạm vi phiếu R-961. Bug 40 của
 BA (2026-10-21) mở rộng phạm vi theo dòng dịch vụ được giao: R-1006 (R-1005 là
-của session khác, Giờ giải lao).
+của session khác, Giờ giải lao). Bug 41 (2026-10-21) thu hẹp cột tiền /patient
+theo cùng phạm vi đó: R-1007.
 
 Status: xem `01-feature-verification-registry.md` dòng F-75.
 
@@ -34,6 +35,12 @@ Status: xem `01-feature-verification-registry.md` dòng F-75.
    - "Dc assign mà ko có quyền xem thì masking lại hết": được giao mà không có
      quyền Chi phí vẫn thấy phiếu, nhưng **mọi** số tiền bị che, kể cả dòng của
      chính mình.
+7. **Bug 41 (2026-10-21)**: "[Phân quyền > Chi phí > Danh sách bệnh nhân]
+   Trưởng nhóm có quyền thấy Số tiền / Thực thu / Công nợ của toàn phòng khám".
+   Mong đợi: "Danh sách chỉ tính tiền trong phạm vi được xem, khớp tab Hồ sơ /
+   Kế hoạch điều trị: thành viên = phiếu mình tiếp nhận, trưởng nhóm = phiếu của
+   nhóm; admin và tiếp nhận thấy hết". Ví dụ của BA: BS. Hà thấy DH260042
+   93.500.000 trên danh sách nhưng 60.500.000 ở Hồ sơ.
 
 ## Đã dựng
 
@@ -141,6 +148,9 @@ Dòng nào được hiện tiền:
   tiền của chính những phiếu đó. Phiếu thấy theo dòng chỉ cộng các dòng được
   hiện tiền (`PatientMoneyCalculator.ForLines` với `MoneyLinesOf`). Không có
   quyền thì phiếu thấy theo dòng không cộng gì.
+- Từ bug 41, phép cộng này nằm ở một chỗ: `PatientMoneyCalculator.ForScope`
+  (Domain). Thẻ Hồ sơ và dòng /patient cùng gọi nó, nên hai nơi khớp nhau theo
+  cách dựng.
 - Tạm ứng không thuộc phiếu nào, nên khi bị thu hẹp thì Tạm ứng = 0.
 - Các danh sách `Plans` / `Payments` trong account vẫn đầy đủ. Danh sách theo
   quyền Thanh toán, không theo quyền Chi phí.
@@ -155,8 +165,24 @@ Dòng nào được hiện tiền:
 - FE (`PatientTable` → `Money`): `moneyHidden` thì hiện `*********`
   (`.bd-patient-money--hidden`, màu `--bd-muted`).
 - Excel (`GET /api/v1/app/patients/excel`): ba cột ghi `*********`.
-- Khi có quyền, /patient hiện tổng **toàn bộ** của bệnh nhân. Danh sách không
-  thu hẹp theo sơ đồ tổ chức; BA chỉ yêu cầu che / không che.
+- Khi có quyền (bug 41, R-1007): Số tiền / Thực thu / Công nợ của mỗi dòng
+  chỉ cộng phần tài khoản đó được xem, đúng như 7 thẻ ở tab Hồ sơ:
+  - `BuildRowsAsync` lấy `OrgChartScopeResolver.VisibleSlipsAsync()` một lần
+    và truyền vào `PatientListRollupCalculator.For(..., scope)` →
+    `PatientMoneyCalculator.ForScope`;
+  - Số tiền = `TotalPrice`, Thực thu = `TotalPaid − TotalRefund`, Công nợ =
+    `max(TotalDue, 0)` của phạm vi đó;
+  - admin và người không phải bác sĩ (tiếp nhận, kế toán) có `scope = null` →
+    toàn bộ; bác sĩ trưởng nhóm → phiếu do nhóm tiếp nhận + dòng được giao cho
+    nhóm ở phiếu nhóm khác; bác sĩ thành viên → phiếu mình tiếp nhận + dòng
+    giao cho mình;
+  - phiếu thu được nạp kèm `Lines` (`WithDetailsAsync(p => p.Lines)`), vì phiếu
+    thấy theo dòng chỉ cộng phần đã thu trên các dòng đó. Thiếu `Lines` thì
+    Thực thu của phiếu theo dòng về 0 (e2e bắt được ở lần chạy đầu);
+  - cùng đường cho API danh sách và file Excel.
+- Bệnh nhân không có phiếu nào trong phạm vi hiện **0**, không che. BA: "khớp
+  tab Hồ sơ", và tab Hồ sơ hiện 0 trong trường hợp này.
+- Cột Dịch vụ, Bác sĩ, Trạng thái vẫn đọc mọi phiếu (không đổi). Xem "Còn treo".
 
 ## Test
 
@@ -171,11 +197,17 @@ Dòng nào được hiện tiền:
   - 2026-10-21: 125/125 xanh (lọc OrgChart / SlipSeenThroughLines /
     PatientMoneyCalculator / TreatmentPlan). Sau khi đổi sang che hết khi không
     có quyền: `OrgChartTests` + `SlipSeenThroughLinesTests` **41/41**.
-- E2E thật `e2e/plan-treating-scope.spec.ts` (18 test; 2026-10-21 18/18 xanh
+  - `PatientListRollupTests` (bug 41, 4 test mới): không phạm vi thì cộng mọi
+    phiếu; có phạm vi thì cộng phiếu mình tiếp nhận + dòng được giao; không có
+    Chi phí thì dòng được giao không cộng gì; dòng danh sách = `ForScope` của
+    thẻ Hồ sơ. Lọc PatientListRollup / SlipSeenThroughLines / OrgChart:
+    **49/49**.
+- E2E thật `e2e/plan-treating-scope.spec.ts` (19 test; 2026-10-21 19/19 xanh
   trên bản build production):
   - Dữ liệu:
-    - 6 tài khoản đăng nhập qua màn login: head / member / clerk (Team A), chief
-      / outsider (Team B), accountant. Head có Chi phí, chief thì không.
+    - 7 tài khoản đăng nhập qua màn login: head / member / clerk / deputy (Team
+      A), chief / outsider (Team B), accountant. Head và deputy (bác sĩ thành
+      viên, bug 41) có Chi phí, chief thì không.
     - Role tuỳ chỉnh: base, base + Chi phí, cùng quyền thao tác (phiếu thu, xoá
       dòng, xoá phiếu) để so member với chief.
     - Bệnh nhân 1: 4 phiếu, 1 phiếu thu 100.000 trên phiếu của head, 1 tạm ứng
@@ -186,6 +218,8 @@ Dòng nào được hiện tiền:
         2 đã trả 100.000.
       - Z: outsider tiếp nhận, Bác sĩ tư vấn của phiếu là member; dòng 1 không
         ghi tư vấn (lấy của phiếu), dòng 2 ghi outsider.
+    - Bệnh nhân 3 (bug 41): 2 phiếu. Phiếu của outsider (Team B) đã hoàn thành,
+      trả 30.000, nên còn nợ. Phiếu của deputy (Team A) chưa động đến.
   - 6 ca phạm vi trên bệnh nhân 1. Mỗi ca kiểm:
     - tab KHĐT (thứ tự: phiếu của head lên đầu);
     - API `treatingScope`, và danh sách không cờ vẫn đủ;
@@ -235,6 +269,22 @@ Dòng nào được hiện tiền:
     Có 2 ca bug 40: member mở Y (chỉ chẩn đoán), clerk mở X.
   - /patient che tiền: kiểm API, màn hình và file Excel (member thì che,
     accountant thì không).
+  - /patient bug 41: cùng 3 bệnh nhân, 4 tài khoản có Chi phí. Mỗi ô là (số
+    phiếu / dòng được tính giá, Thực thu, còn nợ):
+
+    | Tài khoản | Bệnh nhân 1 | Bệnh nhân 2 | Bệnh nhân 3 |
+    |---|---|---|---|
+    | admin | 4, 100.000, không | 6, 130.000, không | 2, 30.000, có |
+    | accountant | như admin | như admin | như admin |
+    | head (trưởng Team A) | 2, 100.000, không | 3 dòng, 100.000, không | 1, 0, không |
+    | deputy (thành viên Team A) | 0, 0, không | 0, 0, không | 1, 0, không |
+
+    Mỗi tài khoản kiểm:
+    - API danh sách: `moneyHidden = false`, ba số như bảng, và bằng đúng thẻ Hồ
+      sơ (`summary`: Tổng dự kiến thu, Đã thu − Đã hoàn, max(Phải thu, 0));
+    - màn /patient (tìm theo mã run, 3 dòng): ô tiền từng bệnh nhân;
+    - file Excel: ba cột như API;
+    - tải lại, tìm lại, ô tiền bệnh nhân 3 giữ nguyên.
   - Phân quyền:
     - qua API: cây quyền, `finance-accounting` cuối cùng, sau `helpSupport`;
       `patient` không còn `payment.*`;
@@ -242,6 +292,17 @@ Dòng nào được hiện tiền:
   - Bút chì "Chỉnh sửa dịch vụ" (từ R-961, giữ nguyên).
 
 ## Còn treo / cần BA xác nhận
+
+Bug 41, **cần chủ dự án / BA trả lời**:
+
+- **Bệnh nhân không có phiếu nào trong phạm vi**: dòng /patient hiện 0, không
+  che `*********`. Chọn theo "khớp tab Hồ sơ" (Hồ sơ cũng hiện 0).
+- **Cột Dịch vụ / Bác sĩ** vẫn ghi dịch vụ mới nhất và bác sĩ tiếp nhận của
+  phiếu chứa nó, kể cả phiếu nhóm khác. Bản gốc chỉ có một tên mỗi cột. BA chỉ
+  nêu ba cột tiền.
+- **Trạng thái** điều trị vẫn tính trên mọi phiếu.
+- **Hồ sơ nhóm** (`PatientGroupAppService`) vẫn cộng tiền toàn bộ, không thu
+  hẹp (cùng mục "Cột tiền ở CSKH, Hồ sơ nhóm và báo cáo" của P2010).
 
 Bug 40, **cần chủ dự án / BA trả lời**:
 

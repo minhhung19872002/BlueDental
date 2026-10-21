@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BlueDental.Billing;
+using BlueDental.Staff;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp.Domain.Services;
 
@@ -55,6 +56,39 @@ public class PatientMoneyCalculator : IDomainService
             completedValue: money.Completed,
             totalRefund: shares.Where(s => s.Kind == PatientPaymentKind.Refund).Sum(s => s.Amount),
             discount: money.TotalDiscount);
+    }
+
+    /// <summary>
+    /// What a viewer limited to <paramref name="scope"/> sees of a patient's
+    /// money — the Hồ sơ tab's cards and the patient list's row alike (BA P2010,
+    /// bugs 40 and 41): the slips received inside the scope whole, with their
+    /// payments and refunds; a slip seen only through lines assigned inside it
+    /// with those lines' money alone, and none without "Chi phí › Xem". A
+    /// top-up belongs to no slip, so a narrowed Tạm ứng reads 0.
+    /// </summary>
+    /// <param name="scope"><c>null</c> sees everything: <see cref="ForPatient"/>.</param>
+    public PaymentSummary ForScope(
+        IReadOnlyCollection<TreatmentPlan> plans,
+        IReadOnlyCollection<PatientPayment> payments,
+        SlipScope? scope)
+    {
+        if (scope is null)
+        {
+            return ForPatient(plans, payments);
+        }
+
+        var whole = plans.Where(x => scope.SeesWhole(x.DentistId)).ToList();
+        var wholeIds = whole.Select(x => x.Id).ToHashSet();
+        var wholePayments = payments
+            .Where(x => x.TreatmentPlanId is { } planId && wholeIds.Contains(planId))
+            .ToList();
+        var lineParts = plans
+            .Where(x => !wholeIds.Contains(x.Id))
+            .Select(x => (Plan: x, Lines: scope.MoneyLinesOf(x)!))
+            .Where(x => x.Lines.Count > 0)
+            .Select(x => ForLines(x.Plan, x.Lines, payments));
+
+        return Sum([ForPatient(whole, wholePayments), .. lineParts]);
     }
 
     /// <summary>Several rollups as one: the primary amounts added up, the rest derived again.</summary>
