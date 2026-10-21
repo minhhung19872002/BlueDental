@@ -7,7 +7,8 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
 import { PlanServiceCardList } from "./PlanServiceCardList";
-import { servicePills, moneyText, type PlanServiceRow } from "./planTypes";
+import { LineMoney } from "./LineMoney";
+import { servicePills, type PlanServiceRow } from "./planTypes";
 
 interface Props {
   open: boolean;
@@ -102,7 +103,7 @@ function buildColumns({
       align: "right",
       render: (_, { service }) => (
         <span className="tp-cell-money">
-          {moneyText(unitPrice(service.effectiveAmount, service.quantity))}
+          <LineMoney service={service} value={unitPrice(service.effectiveAmount, service.quantity)} />
         </span>
       ),
     },
@@ -112,7 +113,9 @@ function buildColumns({
       width: 120,
       align: "right",
       render: (_, { service }) => (
-        <span className="tp-cell-money">{moneyText(service.effectiveAmount)}</span>
+        <span className="tp-cell-money">
+          <LineMoney service={service} value={service.effectiveAmount} />
+        </span>
       ),
     },
   ];

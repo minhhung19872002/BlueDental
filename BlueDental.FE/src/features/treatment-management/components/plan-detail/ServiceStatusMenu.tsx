@@ -8,10 +8,10 @@ import type { TreatmentServiceDto } from "../../api/treatmentPlanApi";
 export type ServiceAction = "complete" | "convert" | "cancel";
 
 /** Menu entries in the reference's order; keys are the actions. */
-function menuItems(): MenuProps["items"] {
+function menuItems(converts: boolean): MenuProps["items"] {
   return [
     { key: "complete", label: t("Treatment:Service:StatusDone") },
-    { key: "convert", label: t("Treatment:Convert:Convert") },
+    ...(converts ? [{ key: "convert", label: t("Treatment:Convert:Convert") }] : []),
     { key: "cancel", label: t("Treatment:Service:CancelService"), danger: true },
   ];
 }
@@ -21,20 +21,22 @@ interface Props {
   onAction: (action: ServiceAction) => void;
   /** The trigger's class — the table's icon button or the card head's. */
   buttonClassName: string;
+  /** Whether "Chuyển đổi" is offered; it is not on a line whose money is masked. */
+  converts: boolean;
 }
 
 /**
  * "Đổi trạng thái" in Thao tác: Hoàn thành / Chuyển đổi / Hủy dịch vụ on a
  * line that can still move. The caller decides whether the line may.
  */
-export function ServiceStatusMenu({ service, onAction, buttonClassName }: Props) {
+export function ServiceStatusMenu({ service, onAction, buttonClassName, converts }: Props) {
   const label = t("Treatment:Service:ChangeStatus");
   return (
     <ActionTooltip title={label}>
       <Dropdown
         trigger={["click"]}
         menu={{
-          items: menuItems(),
+          items: menuItems(converts),
           onClick: ({ key }) => onAction(key as ServiceAction),
         }}
       >

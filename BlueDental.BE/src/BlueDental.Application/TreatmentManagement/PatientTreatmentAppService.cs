@@ -97,14 +97,20 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             query = query.Where(x => x.PatientId == input.PatientId.Value);
         if (input.Status.HasValue)
             query = query.Where(x => x.Status == input.Status.Value);
-        if (input.TreatingScope == true
-            && await _orgChartScope.VisibleSlipsAsync() is { } scope)
+        var scope = input.TreatingScope == true ? await _orgChartScope.VisibleSlipsAsync() : null;
+        if (scope is not null)
         {
-            var dentists = scope.Dentists.ToList();
-            query = scope.ReceivedOnly
-                ? query.Where(x => dentists.Contains(x.DentistId))
-                : query.Where(x => dentists.Contains(x.DentistId)
-                    || x.Services.Any(s => s.DentistId != null && dentists.Contains(s.DentistId.Value)));
+            // Same reading as SlipScope.Covers(plan): received by one of them,
+            // or a line whose Bác sĩ điều trị / tư vấn (the slip's when the line
+            // names none) / tư vấn 2 is one of them.
+            var staff = scope.Staff.ToList();
+            query = query.Where(x => staff.Contains(x.DentistId)
+                || x.Services.Any(s =>
+                    (s.DentistId != null && staff.Contains(s.DentistId.Value))
+                    || (s.ConsultantStaffId != null && staff.Contains(s.ConsultantStaffId.Value))
+                    || (s.ConsultantStaffId == null && x.ConsultantStaffId != null
+                        && staff.Contains(x.ConsultantStaffId.Value))
+                    || (s.SecondConsultantStaffId != null && staff.Contains(s.SecondConsultantStaffId.Value))));
         }
 
         // A head's own slips ("Bác sĩ tiếp nhận" = them) lead the tab, newest
@@ -122,7 +128,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .Take(input.MaxResultCount)
             .ToList();
 
-        return new PagedResultDto<TreatmentPlanSlipDto>(totalCount, await MapManyAsync(plans));
+        return new PagedResultDto<TreatmentPlanSlipDto>(totalCount, await MapManyAsync(plans, scope));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
@@ -135,21 +141,23 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     /// <summary>
     /// "Chi tiết kế hoạch điều trị" and its tabs (Chi tiết điều trị, Thanh
     /// toán, Hoàn tiền, Dư nợ): the same rule as the tab's list, so a slip
-    /// hidden there cannot be opened by its link either (owner 2026-10-15).
+    /// hidden there cannot be opened by its link either (owner 2026-10-15),
+    /// and one seen only through an assigned line shows only that line's money
+    /// (BA bug 40).
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<TreatmentPlanSlipDto> GetInTreatingScopeAsync(Guid id)
     {
         var plan = await LoadAsync(id);
-        if (await _orgChartScope.VisibleSlipsAsync() is { } scope
-            && !scope.Covers(plan.DentistId, plan.Services.Select(s => s.DentistId)))
+        var scope = await _orgChartScope.VisibleSlipsAsync();
+        if (scope is not null && !scope.Covers(plan))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.PlanOutsideTreatingScope,
                 "This treatment plan belongs to no dentist the caller looks after.");
         }
 
-        return (await MapManyAsync([plan])).Single();
+        return (await MapManyAsync([plan], scope)).Single();
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
@@ -904,7 +912,13 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         }
     }
 
-    private async Task<List<TreatmentPlanSlipDto>> MapManyAsync(IReadOnlyCollection<TreatmentPlan> plans)
+    /// <param name="scope">
+    /// The viewer's treating scope, on the reads that apply it: a slip it sees
+    /// only through assigned lines comes back with those lines' money alone.
+    /// </param>
+    private async Task<List<TreatmentPlanSlipDto>> MapManyAsync(
+        IReadOnlyCollection<TreatmentPlan> plans,
+        SlipScope? scope = null)
     {
         if (plans.Count == 0)
         {
@@ -1038,7 +1052,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         // "Giảm KHDT" / "Voucher KHDT" per line, worked out once per slip.
         var shareParts = plans.ToDictionary(p => p.Id, p => p.DiscountShareParts());
 
-        return plans.Select(plan => new TreatmentPlanSlipDto
+        var dtos = plans.Select(plan => new TreatmentPlanSlipDto
         {
             Id = plan.Id,
             PatientId = plan.PatientId,
@@ -1161,6 +1175,82 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             LastModificationTime = plan.LastModificationTime,
             LastModifierId = plan.LastModifierId
         }).ToList();
+
+        foreach (var (plan, dto) in plans.Zip(dtos))
+        {
+            if (scope.OwnLinesOf(plan) is { } ownLines)
+            {
+                NarrowToLines(dto, plan, ownLines, scope.MoneyLinesOf(plan)!, payments);
+            }
+        }
+
+        return dtos;
+    }
+
+    /// <summary>
+    /// A slip the viewer sees only through lines assigned to them (BA bug 40):
+    /// its money becomes <paramref name="moneyLines"/>' alone — those lines, or
+    /// none without "Chi phí › Xem" — and every other line's is withheld, so
+    /// the real figures never leave the server.
+    /// </summary>
+    private void NarrowToLines(
+        TreatmentPlanSlipDto dto,
+        TreatmentPlan plan,
+        IReadOnlySet<Guid> ownLines,
+        IReadOnlySet<Guid> moneyLines,
+        IReadOnlyCollection<PatientPayment> payments)
+    {
+        var money = plan.MoneyOfLines(moneyLines);
+
+        dto.SeenThroughLines = true;
+        dto.MoneyHidden = moneyLines.Count == 0;
+        if (dto.DiscountType == DiscountType.Money)
+        {
+            dto.DiscountValue = money.PlanOwnDiscount;
+        }
+
+        dto.VoucherDiscountAmount = dto.VoucherDiscountAmount is null ? null : money.PlanVoucher;
+        dto.ServicesGrossTotal = money.GrossTotal;
+        dto.ServicesTotal = money.ServicesTotal;
+        dto.ServicesDiscountAmount = money.ServicesDiscount;
+        dto.PlanDiscountAmount = money.PlanDiscount;
+        dto.ServiceVoucherAmount = money.ServiceVoucher;
+        dto.TotalDiscountAmount = money.TotalDiscount;
+        dto.TotalAmount = money.Total;
+        dto.TaxAmount = money.Tax;
+        dto.PayableAmount = money.Payable;
+        dto.Payment = MapPayment(_money.ForLines(plan, moneyLines, payments));
+        // A voucher's amount is the whole slip's.
+        dto.AppliedVouchers = [];
+
+        foreach (var line in dto.Services)
+        {
+            line.AssignedToViewer = ownLines.Contains(line.Id);
+            if (!moneyLines.Contains(line.Id))
+            {
+                HideMoney(line);
+            }
+        }
+    }
+
+    private static void HideMoney(TreatmentServiceDto line)
+    {
+        line.MoneyHidden = true;
+        line.OriginalPrice = 0m;
+        line.Price = 0m;
+        line.DiscountValue = 0m;
+        line.GrossAmount = 0m;
+        line.DiscountAmount = 0m;
+        line.EffectiveAmount = 0m;
+        line.ServiceDiscountAmount = 0m;
+        line.ServiceVoucherAmount = 0m;
+        line.PlanDiscountShare = 0m;
+        line.PlanVoucherShare = 0m;
+        line.ChargedAmount = 0m;
+        line.TaxAmount = 0m;
+        line.PayableAmount = 0m;
+        line.PaidAmount = 0m;
+        line.OutstandingAmount = 0m;
     }
 
     private static string? NameOf(IReadOnlyDictionary<Guid, string> names, Guid? id) =>

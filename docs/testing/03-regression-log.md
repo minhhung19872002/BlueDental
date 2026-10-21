@@ -10175,3 +10175,40 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -p tsconfig.app.json` sạch. `eslint` các file đã đổi sạch. Đã xem ảnh popover: một và hai dòng giờ giải lao, lỗi chồng lên nhau.
 - **Commit**: code + spec do chủ dự án commit trên `main` (`e6388004`, 2026-10-21) và đã có trên `origin/main`. Sửa spec Lịch tạm và mục log này chưa commit.
 - **Còn treo**: build production (8080) chưa build lại. Chưa chạy `/security-review` (chỉ FE + localStorage).
+
+## R-1006 (2026-10-21, mức 3: phạm vi phiếu + tiền dùng chung) F-75 bug 40 — phiếu thấy theo dòng dịch vụ được giao
+
+- **Yêu cầu** (BA bug 40, "[Phân quyền > Chi phí] Trưởng nhóm thấy cả phiếu của nhóm khác khi mình là bác sĩ điều trị 1 dịch vụ trong phiếu"), BA định hình lại qua chat 2026-10-21:
+  - tab KHĐT hiện cả phiếu có dịch vụ giao cho bác sĩ ("Nếu dc assign bác sĩ điều trị / bác sĩ tư vấn e cho họ coi lun nha");
+  - tiền chỉ tính các dịch vụ được giao ("Chỉ hiển thị tiền của dịch vụ mà dc assign á"), trang phiếu che tiền dịch vụ khác;
+  - "Dc assign mà ko có quyền xem thì masking lại hết": không có "Chi phí › Xem" thì che **mọi** số tiền của phiếu đó, kể cả dòng của mình.
+- **Vì sao bản đầu sai**: bản đầu dựng theo mặc định trước câu trả lời cuối của BA, nên không có quyền vẫn hiện tiền dòng của mình. Câu trả lời "masking lại hết" bị ghi thành câu hỏi treo thay vì sửa code. Một session khác kiểm và bắt được. Bản này sửa đúng theo câu BA.
+- **Quy tắc**:
+  - "Được giao" = `line.DentistId`, `line.ConsultantStaffId ?? plan.ConsultantStaffId`, `line.SecondConsultantStaffId`. Bác sĩ chẩn đoán không tính.
+  - Phiếu thấy **cả phiếu** khi Bác sĩ tiếp nhận nằm trong phạm vi P2010 (R-1003). Phiếu thấy **theo dòng** khi chỉ có dòng giao cho người trong phạm vi.
+  - Phiếu theo dòng: có Chi phí → hiện tiền các dòng được giao (của mình, hoặc cả nhóm nếu là trưởng nhóm), che dòng khác; không có Chi phí → che hết.
+- **BE**:
+  - `OrgChartScope`: `SlipScope(Staff, ShowsLineMoney)`; nhánh không có quyền → `ShowsLineMoney = false`.
+  - `SlipScopeReading` (mới): `Covers`, `OwnLinesOf` (dòng được giao, được thao tác), `MoneyLinesOf` (`null` = cả phiếu, dòng được giao, hoặc rỗng khi không có quyền).
+  - `TreatmentPlan.AssigneesOf` / `MoneyOfLines` → `SlipLinesMoney` (mới), `PatientMoneyCalculator.ForLines`.
+  - `PatientTreatmentAppService.NarrowToLines`: phiếu `SeenThroughLines` + `MoneyHidden`; dòng `AssignedToViewer`; dòng ngoài `MoneyLinesOf` → `MoneyHidden`, mọi số tiền = 0; `Payment` chỉ cộng dòng được hiện tiền.
+  - `PatientPaymentAppService.GetAccountAsync`: 7 thẻ chỉ cộng dòng được hiện tiền; phiếu theo dòng bị che hết không cộng gì.
+- **FE**:
+  - `plan/SlipMoney.tsx` (mới): cột tiền dòng KHĐT và thẻ phiếu trên điện thoại hiện `*********` khi phiếu `moneyHidden`.
+  - `LineMoney` che tiền dòng ở bảng / thẻ "Chi tiết điều trị", dialog "Chi tiết dịch vụ", dialog "Danh sách dịch vụ".
+  - Phiếu theo dòng: chỉ tab "Chi tiết điều trị", không dải số tiền; ẩn "Thêm dịch vụ phát sinh", "In Hóa Đơn", in phiếu, "Phiếu thu", "Xoá phiếu điều trị".
+  - Dòng của người khác chỉ còn nút mắt (`isOwnLine`).
+  - Dòng của mình bị che tiền: không bút chì (`isLineEditable` thêm `!moneyHidden`; tiền về 0 thì dialog sẽ lưu giá 0) và không "Chuyển đổi" (`ServiceStatusMenu` prop `converts`). Còn "Hoàn thành", "Hủy dịch vụ", "Xóa".
+- **Test**:
+  - Domain: `OrgChartTests` + `SlipSeenThroughLinesTests` (10 test) **41/41**.
+  - `tsc -p tsconfig.app.json` sạch.
+  - E2E thật (build production `vite preview` 127.0.0.1:8147 `--strictPort` → host :5000 chạy từ thư mục project → PostgreSQL thật, không chặn request): `plan-treating-scope` **18/18**.
+    - 6 ca bug 40 trên bệnh nhân 2 (3 phiếu X/Y/Z × 2 dòng): member (không Chi phí) thấy X, Z theo dòng, phiếu `moneyHidden`, mọi dòng 0, Đã thu 0; head (có Chi phí) thấy X, Y, Z theo dòng với tiền dòng được giao, Đã thu 100.000; chief / outsider / clerk / accountant như bảng trong `features/treatment-cost.md`.
+    - Ca giao diện: member / head / chief trên phiếu X: số ô che ở dòng KHĐT (7 / 0 / 0), nút mắt (4 / 2 / 0), từng dòng trang phiếu, dialog "Chi tiết dịch vụ"; nút thao tác; menu đổi trạng thái của dòng mình (member: Hoàn thành, Hủy dịch vụ); tải lại.
+  - Hồi quy mức 3 (cùng build 8147): `plan-service-delete`, `treatment-plan-delete`, `patient-permission-gates`, `treatment-leaf-permissions`, `treatment-plan-detail`, `treatment-plan`, `plan-advisor-scope`, `payment-permission-buttons`, `payment-from-slip`, `debt-history`: **41/41** (7,3 phút), không cần sửa spec.
+- **Còn treo** (chi tiết ở `features/treatment-cost.md`):
+  - Hỏi chủ dự án: phiếu mình tiếp nhận mà không có Chi phí vẫn hiện đủ tiền (P2010). BA chỉ nói "masking lại hết" cho phiếu được assign.
+  - Hỏi chủ dự án: dòng của mình bị che tiền thì bỏ bút chì + "Chuyển đổi".
+  - Server chưa chặn thao tác trên dòng ngoài `OwnLinesOf`, chưa chặn sửa / chuyển đổi dòng bị che; `GetAsync` và phản hồi thao tác dòng không thu hẹp.
+  - Dialog "Chi tiết dịch vụ" ở tab Hồ sơ vẫn hiện đủ tiền (có từ trước P2010); `PatientAccountDto.Plans`, `PatientAdviseCard` chưa thu hẹp.
+  - Chưa commit. Chưa chạy `/security-review`. Build production (8080) chưa build lại.

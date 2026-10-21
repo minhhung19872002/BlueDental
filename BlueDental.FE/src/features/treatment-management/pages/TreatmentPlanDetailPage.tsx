@@ -48,8 +48,11 @@ export function TreatmentPlanDetailPage() {
 
   // Thanh toán, Hoàn tiền and Dư nợ are payment views: without payment.read
   // only Chi tiết is offered, and a ?planTab= pointing at one falls back to it.
+  // A slip seen only through the viewer's lines offers none of them either —
+  // they read the whole slip's money (BA bug 40).
   const canReadPayments = useAbility("payment").canRead;
-  const tabs: readonly PlanTabKey[] = canReadPayments ? PLAN_TAB_KEYS : [PLAN_TAB.detail];
+  const tabs: readonly PlanTabKey[] =
+    canReadPayments && !plan.data?.seenThroughLines ? PLAN_TAB_KEYS : [PLAN_TAB.detail];
   const rawTab = searchParams.get(TAB_PARAM);
   const tab: PlanTabKey = isPlanTab(rawTab) && tabs.includes(rawTab) ? rawTab : PLAN_TAB.detail;
 

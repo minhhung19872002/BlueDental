@@ -95,26 +95,32 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         // BA P2010: the money adds up the slips the caller sees on the Kế hoạch
         // điều trị tab — without "Chi phí › Xem" the ones they received, with it
         // their part of the org chart — and those slips' payments and refunds.
-        // A top-up belongs to no slip, so a narrowed Tạm ứng reads 0. The lists
-        // stay whole: they answer to the Thanh toán permission.
-        var summedPlans = planEntities;
-        var summedPayments = payments;
+        // A slip seen only through lines assigned to them adds those lines'
+        // money alone, and nothing without "Chi phí › Xem" (BA bug 40). A
+        // top-up belongs to no slip, so a narrowed
+        // Tạm ứng reads 0. The lists stay whole: they answer to the Thanh toán
+        // permission.
+        var summary = _money.ForPatient(planEntities, payments);
         if (await _slipScope.VisibleSlipsAsync() is { } scope)
         {
-            summedPlans = planEntities
-                .Where(x => scope.Covers(x.DentistId, x.Services.Select(s => s.DentistId)))
+            var whole = planEntities.Where(x => scope.SeesWhole(x.DentistId)).ToList();
+            var wholeIds = whole.Select(x => x.Id).ToHashSet();
+            var wholePayments = payments
+                .Where(x => x.TreatmentPlanId is { } planId && wholeIds.Contains(planId))
                 .ToList();
-            var summed = summedPlans.Select(x => x.Id).ToHashSet();
-            summedPayments = payments
-                .Where(x => x.TreatmentPlanId is { } planId && summed.Contains(planId))
-                .ToList();
+            var lineParts = planEntities
+                .Where(x => !wholeIds.Contains(x.Id))
+                .Select(x => (Plan: x, Lines: scope.MoneyLinesOf(x)!))
+                .Where(x => x.Lines.Count > 0)
+                .Select(x => _money.ForLines(x.Plan, x.Lines, payments));
+
+            summary = _money.Sum([_money.ForPatient(whole, wholePayments), .. lineParts]);
         }
 
         return new PatientAccountDto
         {
             PatientId = patientId,
-            Payment = PatientTreatmentAppService.MapPayment(
-                _money.ForPatient(summedPlans, summedPayments)),
+            Payment = PatientTreatmentAppService.MapPayment(summary),
             HeldForPatient = _money.HeldForPatient(payments),
             Plans = plans.Items.ToList(),
             Payments = await MapManyAsync(payments.OrderByDescending(x => x.PaidAt).ToList())

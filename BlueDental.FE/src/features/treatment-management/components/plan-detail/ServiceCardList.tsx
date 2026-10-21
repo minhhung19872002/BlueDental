@@ -4,19 +4,21 @@ import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatToothCodes } from "../../api/consultingApi";
-import { moneyText } from "../plan/planTypes";
 import {
   DiscountCell,
   dentistOf,
   diagnosisOf,
   isLineDeletable,
   isLineEditable,
+  isOwnLine,
   LineStatusMenu,
+  NetAmountCell,
   ServiceNameCell,
   StatusCell,
+  UnitPriceCell,
   type ServiceRowActions,
 } from "./serviceColumns";
-import { dash, lineNetAmount, listUnitPrice, type PlanDetailRow } from "./planDetailTypes";
+import { dash, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
   rows: PlanDetailRow[];
@@ -36,18 +38,20 @@ function cardRows(row: PlanDetailRow) {
     { key: "status", label: t("Common:Status"), value: <StatusCell row={row} /> },
   ];
   const moreRows: RecordCardRow[] = [
-    { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: moneyText(listUnitPrice(row.service)) },
+    { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: <UnitPriceCell row={row} /> },
     { key: "discount", label: t("Treatment:Pricing:Discount"), value: <DiscountCell row={row} /> },
-    { key: "amount", label: t("Treatment:Pricing:NetAmount"), value: <strong>{moneyText(lineNetAmount(row.service))}</strong> },
+    { key: "amount", label: t("Treatment:Pricing:NetAmount"), value: <NetAmountCell row={row} /> },
   ];
   return { rows, moreRows };
 }
 
 /**
  * The card head: the eye, "Đổi trạng thái" on a line still open, the pencil on
- * a line still editable, and "Xóa" on a line still "Đã tạo" (R-953).
+ * a line still editable, and "Xóa" on a line still "Đã tạo" (R-953) — the
+ * last three on the viewer's own lines only (BA bug 40).
  */
 function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
+  const own = isOwnLine(row);
   return (
     <span className="tp-actions">
       <button
@@ -58,8 +62,8 @@ function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
       >
         <Eye size={16} aria-hidden="true" />
       </button>
-      <LineStatusMenu row={row} actions={actions} buttonClassName="bd-rc-action" />
-      {actions.onEdit && isLineEditable(row) && (
+      {own && <LineStatusMenu row={row} actions={actions} buttonClassName="bd-rc-action" />}
+      {own && actions.onEdit && isLineEditable(row) && (
         <button
           type="button"
           className="bd-rc-action"
@@ -69,7 +73,7 @@ function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
           <Pencil size={16} aria-hidden="true" />
         </button>
       )}
-      {actions.onDelete && isLineDeletable(row) && (
+      {own && actions.onDelete && isLineDeletable(row) && (
         <button
           type="button"
           className="bd-rc-action"

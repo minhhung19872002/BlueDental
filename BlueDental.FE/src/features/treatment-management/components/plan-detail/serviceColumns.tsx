@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { formatToothCodes } from "../../api/consultingApi";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
-import { moneyText } from "../plan/planTypes";
+import { LineMoney } from "../plan/LineMoney";
 import { DiscountBreakdown } from "./DiscountBreakdown";
 import { ServiceStatusMenu, type ServiceAction } from "./ServiceStatusMenu";
 import { ServiceStatusPill } from "./ServiceStatusPill";
@@ -31,7 +31,8 @@ export interface ServiceRowActions {
 
 /**
  * "Đổi trạng thái" on a row, its menu wired to {@link ServiceRowActions.onStatus};
- * only when the user may move lines and this one is still open.
+ * only when the user may move lines and this one is still open. No "Chuyển đổi"
+ * on a line whose money is masked: the dialog is all about what was paid on it.
  */
 export function LineStatusMenu({
   row,
@@ -47,9 +48,19 @@ export function LineStatusMenu({
     <ServiceStatusMenu
       service={row.service}
       buttonClassName={buttonClassName}
+      converts={!row.service.moneyHidden}
       onAction={(action) => actions.onStatus?.(row, action)}
     />
   );
+}
+
+/**
+ * Whether the viewer may act on the line: every line, except another doctor's
+ * on a slip they see only through their own lines (BA bug 40). Their own line
+ * stays theirs even when its money is masked too, without "Chi phí › Xem".
+ */
+export function isOwnLine(row: PlanDetailRow): boolean {
+  return !row.plan.seenThroughLines || row.service.assignedToViewer;
 }
 
 /** Owner 2026-10-15 (R-953): only a line nobody has started on can be taken off the slip. */
@@ -60,15 +71,17 @@ export function isLineDeletable(row: PlanDetailRow): boolean {
 /**
  * Whether the line carries the pencil — staging's own rule, read off its
  * column builder 2026-09-24: not done, cancelled or converted, and nothing
- * paid on it yet.
+ * paid on it yet. Never on a line whose money is masked (BA bug 40): its
+ * amounts arrive as 0, so "nothing paid" cannot be told and the dialog would
+ * save 0 as the price.
  */
 export function isLineEditable(row: PlanDetailRow): boolean {
-  const { status, paidAmount } = row.service;
+  const { status, paidAmount, moneyHidden } = row.service;
   const closed =
     status === SERVICE_LINE_STATUS.Done ||
     status === SERVICE_LINE_STATUS.Cancelled ||
     status === SERVICE_LINE_STATUS.Replaced;
-  return !closed && paidAmount <= 0;
+  return !closed && !moneyHidden && paidAmount <= 0;
 }
 
 type Column = TableColumnsType<PlanDetailRow>[number];
@@ -94,9 +107,24 @@ export function StatusCell({ row }: { row: PlanDetailRow }) {
   );
 }
 
-/** "Giảm giá" of a saved line — see {@link DiscountBreakdown}. */
+/** "Giảm giá" of a saved line — see {@link DiscountBreakdown}; masked lines get no breakdown. */
 export function DiscountCell({ row }: { row: PlanDetailRow }) {
+  if (row.service.moneyHidden) return <LineMoney service={row.service} value={0} />;
   return <DiscountBreakdown parts={lineDiscountParts(row.service)} />;
+}
+
+/** "Đơn giá": the giá gốc (staging 2026-09-28). */
+export function UnitPriceCell({ row }: { row: PlanDetailRow }) {
+  return <LineMoney service={row.service} value={listUnitPrice(row.service)} />;
+}
+
+/** "Thành tiền", after every discount. */
+export function NetAmountCell({ row }: { row: PlanDetailRow }) {
+  return (
+    <strong>
+      <LineMoney service={row.service} value={lineNetAmount(row.service)} />
+    </strong>
+  );
 }
 
 /** "Chẩn đoán": the line's own, else the advise it was written from. */
@@ -120,11 +148,13 @@ function column(
 
 /**
  * Thao tác: the eye, "Đổi trạng thái" on a line still open, the pencil on a
- * line still editable, and "Xóa" on a line still "Đã tạo".
+ * line still editable, and "Xóa" on a line still "Đã tạo" — the last three on
+ * the viewer's own lines only.
  */
 function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
-  const editable = actions.onEdit && isLineEditable(row);
-  const deletable = actions.onDelete && isLineDeletable(row);
+  const own = isOwnLine(row);
+  const editable = own && actions.onEdit && isLineEditable(row);
+  const deletable = own && actions.onDelete && isLineDeletable(row);
   return (
     <span className="pdt-line-actions">
       <ActionTooltip title={t("Treatment:Service:ViewDetail")}>
@@ -132,7 +162,7 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
           <Eye size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      <LineStatusMenu row={row} actions={actions} buttonClassName="tp-eye" />
+      {own && <LineStatusMenu row={row} actions={actions} buttonClassName="tp-eye" />}
       {editable && (
         <ActionTooltip title={t("Common:Edit")}>
           <button type="button" className="tp-eye" aria-label={t("Common:Edit")} onClick={() => actions.onEdit?.(row)}>
@@ -170,12 +200,9 @@ export function buildServiceColumns(actions: ServiceRowActions): TableColumnsTyp
     column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 100, (row) => dash(formatToothCodes(row.service.teeth))),
     // The widest pill ("Đang điều trị") and "N lần" beside it.
     column("status", t("Common:Status"), 156, (row) => <StatusCell row={row} />),
-    // Đơn giá prints the giá gốc (staging 2026-09-28).
-    column("price", t("Treatment:Pricing:UnitPrice"), 112, (row) => moneyText(listUnitPrice(row.service)), { align: "right" }),
+    column("price", t("Treatment:Pricing:UnitPrice"), 112, (row) => <UnitPriceCell row={row} />, { align: "right" }),
     column("discount", t("Treatment:Pricing:Discount"), 104, (row) => <DiscountCell row={row} />, { align: "right" }),
-    column("amount", t("Treatment:Pricing:NetAmount"), 116, (row) => <strong>{moneyText(lineNetAmount(row.service))}</strong>, {
-      align: "right",
-    }),
+    column("amount", t("Treatment:Pricing:NetAmount"), 116, (row) => <NetAmountCell row={row} />, { align: "right" }),
     // Up to four 16px icons 16px apart, the 6px inner padding and the 16px edge.
     column("actions", t("Common:Actions"), 136, (row) => <LineActions row={row} actions={actions} />, {
       align: "center",

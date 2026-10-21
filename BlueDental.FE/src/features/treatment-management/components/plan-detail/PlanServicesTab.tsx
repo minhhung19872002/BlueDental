@@ -80,7 +80,9 @@ interface Props {
  * slip; Chẩn đoán falls back to the advise each line was written from.
  * "Thêm dịch vụ phát sinh" opens "Tạo phiếu dịch vụ", which adds its line to
  * this slip (owner 2026-10-15; it replaced the inline new row), and the pencil
- * opens the same dialog on the line.
+ * opens the same dialog on the line. On a slip seen only through the viewer's
+ * lines the others' money is masked and only their own lines can be acted on
+ * (BA bug 40).
  */
 export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const narrow = useMediaQuery(NARROW_SCREEN);
@@ -178,9 +180,11 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       <PlanServicesToolbar
         canAddService={
           canEditLines &&
+          !plan.seenThroughLines &&
           plan.status !== PLAN_STATUS.Completed &&
           plan.status !== PLAN_STATUS.Cancelled
         }
+        seenThroughLines={plan.seenThroughLines}
         onAddService={() => setAddOpen(true)}
         onPrescription={() => setPrescriptionOpen(true)}
         onInvoice={() => setPayOpen(true)}

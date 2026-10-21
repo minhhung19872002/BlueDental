@@ -8,6 +8,11 @@ interface Props {
    * button is not offered on such a slip.
    */
   canAddService: boolean;
+  /**
+   * A slip seen only through the viewer's lines offers neither the invoice
+   * nor the print: both carry the whole slip's money (BA bug 40).
+   */
+  seenThroughLines: boolean;
   onAddService: () => void;
   onPrescription: () => void;
   onInvoice: () => void;
@@ -25,6 +30,7 @@ interface Props {
  */
 export function PlanServicesToolbar({
   canAddService,
+  seenThroughLines,
   onAddService,
   onPrescription,
   onInvoice,
@@ -51,15 +57,17 @@ export function PlanServicesToolbar({
             {t("Treatment:Prescription:CreatePrescriptionButton")}
           </button>
         )}
-        {canCreatePayment && (
+        {canCreatePayment && !seenThroughLines && (
           <button type="button" className="tp-btn tp-btn--outline" onClick={onInvoice}>
             <Receipt size={16} aria-hidden="true" />
             {t("Treatment:Payment:PrintInvoiceAlt")}
           </button>
         )}
-        <button type="button" className="pdt-print" aria-label={t("Treatment:Receipt:TreatmentSlipFor")} onClick={onPrint}>
-          <Printer size={16} aria-hidden="true" />
-        </button>
+        {!seenThroughLines && (
+          <button type="button" className="pdt-print" aria-label={t("Treatment:Receipt:TreatmentSlipFor")} onClick={onPrint}>
+            <Printer size={16} aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   );

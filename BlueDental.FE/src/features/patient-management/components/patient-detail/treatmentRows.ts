@@ -257,6 +257,8 @@ function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
     taxPercent: 0,
     taxAmount: 0,
     payableAmount: 0,
+    moneyHidden: false,
+    assignedToViewer: false,
     status: SERVICE_LINE_STATUS.Created,
     sortOrder: 0,
     replacedId: null,

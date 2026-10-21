@@ -5,12 +5,10 @@ import { ActionTooltip } from "@/components/ActionTooltip";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { PlanCodeLink } from "./PlanCodeLink";
+import { SlipMoney } from "./SlipMoney";
 import {
   planColumnLabels,
-  moneyCellClass,
-  moneyText,
   planPill,
-  planMoney,
   type PlanColumnKey,
   type PlanColumnSetting,
   type PlanMoney,
@@ -19,11 +17,14 @@ import {
 export interface PlanRowActions {
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
   onPrintRecord: (plan: TreatmentPlanSlipDto) => void;
-  /** The invoice icon; left out when the user may not issue one (payment.finalize). */
+  /**
+   * The invoice icon; left out when the user may not issue one (payment.finalize),
+   * and on a slip seen only through the viewer's lines (BA bug 40).
+   */
   onReceipt?: (plan: TreatmentPlanSlipDto) => void;
   /** "Số phiếu điều trị" — the slip's own screen. */
   onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
-  /** The red bin; left out without treatmentConsultation.deletePlan. */
+  /** The red bin; left out without treatmentConsultation.deletePlan, and on a slip seen through lines. */
   onDelete?: (plan: TreatmentPlanSlipDto) => void;
 }
 
@@ -37,10 +38,7 @@ function money(field: keyof PlanMoney, width: number): Column {
     title: labels[key],
     width,
     align: "right",
-    render: (_, plan) => {
-      const value = planMoney(plan)[field];
-      return <span className={moneyCellClass(field, value)}>{moneyText(value)}</span>;
-    },
+    render: (_, plan) => <SlipMoney plan={plan} field={field} />,
   };
 }
 
@@ -139,7 +137,7 @@ export function buildPlanColumns(
               <ClipboardList size={16} aria-hidden="true" />
             </button>
           </ActionTooltip>
-          {actions.onReceipt && (
+          {actions.onReceipt && !plan.seenThroughLines && (
             <ActionTooltip title={t("Treatment:Plan:Invoice")}>
               <button
                 type="button"
@@ -151,7 +149,7 @@ export function buildPlanColumns(
               </button>
             </ActionTooltip>
           )}
-          {actions.onDelete && (
+          {actions.onDelete && !plan.seenThroughLines && (
             <ActionTooltip title={t("Treatment:Plan:Delete")}>
               <button
                 type="button"

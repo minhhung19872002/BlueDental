@@ -287,6 +287,14 @@ export interface TreatmentServiceDto {
   consultantName: string | null;
   secondConsultantStaffId: string | null;
   secondConsultantName: string | null;
+  /**
+   * The slip is seen only through lines assigned to the viewer (BA bug 40) and
+   * this line's money is not theirs to see — another's line, or any line
+   * without "Chi phí › Xem": every amount reads 0 and is masked.
+   */
+  moneyHidden: boolean;
+  /** On a slip seen through lines, this line is one of them — the viewer may act on it. */
+  assignedToViewer: boolean;
 }
 
 /** POST patient-treatments/{id}/services — the inline "new row" saved with Lưu. */
@@ -379,6 +387,18 @@ export interface TreatmentPlanSlipDto {
   dentistJobTitle: string | null;
   consultantName: string | null;
   creationTime: string;
+  /**
+   * Seen only because some lines are assigned to the viewer (Bác sĩ điều trị /
+   * tư vấn) on a slip received outside their scope (BA bug 40): every amount
+   * is those lines' alone, the others carry `moneyHidden` and the assigned
+   * ones `assignedToViewer`.
+   */
+  seenThroughLines: boolean;
+  /**
+   * Seen through lines without "Chi phí › Xem" ("Dc assign mà ko có quyền xem
+   * thì masking lại hết"): every amount reads 0 and is masked.
+   */
+  moneyHidden: boolean;
 }
 
 /** One voucher redeemed on a slip, as it stood at the moment of redemption. */

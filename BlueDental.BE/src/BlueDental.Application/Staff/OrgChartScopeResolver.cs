@@ -42,7 +42,7 @@ public class OrgChartScopeResolver(
     {
         if (currentUser.Id is not { } viewerId)
         {
-            return new SlipScope(new HashSet<Guid>(), ReceivedOnly: true);
+            return new SlipScope(new HashSet<Guid>());
         }
 
         if (currentUser.IsInRole(BlueDentalAbilitySeedContributor.AdminRoleName))

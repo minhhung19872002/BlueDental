@@ -175,6 +175,20 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public string? ConsultantName { get; set; }
     public Guid? SecondConsultantStaffId { get; set; }
     public string? SecondConsultantName { get; set; }
+
+    /// <summary>
+    /// The viewer sees the slip only through lines assigned to them (BA bug 40)
+    /// and this line's money is not theirs to see — another's line, or any line
+    /// without "Chi phí › Xem": every amount reads 0 and the screen masks it.
+    /// </summary>
+    public bool MoneyHidden { get; set; }
+
+    /// <summary>
+    /// On a slip seen through lines (<see cref="TreatmentPlanSlipDto.SeenThroughLines"/>),
+    /// this line is one of them — the viewer may act on it. Always <c>false</c>
+    /// on a slip seen whole.
+    /// </summary>
+    public bool AssignedToViewer { get; set; }
 }
 
 /// <summary>
@@ -331,6 +345,22 @@ public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
     /// <summary>Chức danh of the doctor above — printed sheets name a doctor by it, else by the name.</summary>
     public string? DentistJobTitle { get; set; }
     public string? ConsultantName { get; set; }
+
+    /// <summary>
+    /// The viewer sees this slip only because some of its lines are assigned to
+    /// them (Bác sĩ điều trị / tư vấn) — it was received outside their scope
+    /// (BA bug 40). Every amount on the slip is those lines' alone, the other
+    /// lines carry <see cref="TreatmentServiceDto.MoneyHidden"/> and the
+    /// assigned ones <see cref="TreatmentServiceDto.AssignedToViewer"/>.
+    /// </summary>
+    public bool SeenThroughLines { get; set; }
+
+    /// <summary>
+    /// Seen through lines without "Chi phí › Xem" (BA bug 40, "Dc assign mà ko
+    /// có quyền xem thì masking lại hết"): no line's money shows, every amount
+    /// on the slip reads 0 and the screen masks it.
+    /// </summary>
+    public bool MoneyHidden { get; set; }
 }
 
 /// <summary>One voucher redeemed on a slip, as it stood at the moment of redemption.</summary>

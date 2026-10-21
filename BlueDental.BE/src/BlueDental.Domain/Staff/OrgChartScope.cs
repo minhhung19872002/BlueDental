@@ -8,15 +8,25 @@ namespace BlueDental.Staff;
 public sealed record OrgScopeUnit(Guid Id, Guid? ParentId, OrgUnitKind Kind, Guid? HeadStaffId);
 
 /// <summary>
-/// The slips <see cref="OrgChartScope.VisibleSlips"/> leaves visible: those whose
-/// dentist is in <paramref name="Dentists"/> and, unless <paramref name="ReceivedOnly"/>,
-/// those where one of the lines' dentists is.
+/// The slips <see cref="OrgChartScope.VisibleSlips"/> leaves visible: those
+/// received by one of <paramref name="Staff"/> ("Bác sĩ tiếp nhận"), shown
+/// whole, and those with a line assigned to one of them (Bác sĩ điều trị or
+/// Bác sĩ tư vấn), shown with only those lines' money — or, when
+/// <paramref name="ShowsLineMoney"/> is off, with no money at all (BA bug 40,
+/// 2026-10-21: "Dc assign mà ko có quyền xem thì masking lại hết").
 /// </summary>
-public sealed record SlipScope(IReadOnlySet<Guid> Dentists, bool ReceivedOnly)
+/// <param name="ShowsLineMoney">Whether the lines assigned in scope show their money; off without "Chi phí › Xem".</param>
+public sealed record SlipScope(IReadOnlySet<Guid> Staff, bool ShowsLineMoney = true)
 {
-    public bool Covers(Guid slipDentistId, IEnumerable<Guid?> lineDentistIds) =>
-        Dentists.Contains(slipDentistId)
-        || (!ReceivedOnly && lineDentistIds.Any(id => id is { } dentist && Dentists.Contains(dentist)));
+    /// <param name="lineAssignees">Everyone the slip's lines are assigned to.</param>
+    public bool Covers(Guid slipDentistId, IEnumerable<Guid?> lineAssignees) =>
+        SeesWhole(slipDentistId) || lineAssignees.Any(Includes);
+
+    /// <summary>The slip was received inside the scope, so every line and all its money show.</summary>
+    public bool SeesWhole(Guid slipDentistId) => Staff.Contains(slipDentistId);
+
+    /// <summary>Whether the person is inside the scope; nobody (an unassigned field) never is.</summary>
+    public bool Includes(Guid? staffId) => staffId is { } id && Staff.Contains(id);
 }
 
 /// <summary>
@@ -101,18 +111,21 @@ public static class OrgChartScope
     /// <summary>
     /// Which slips a user sees on the patient record's "Kế hoạch điều trị" tab
     /// and its slip pages (R-961, reshaped by BA P2010 "Tài chính / Kế toán ›
-    /// Chi phí › Xem"):
+    /// Chi phí › Xem", then by BA bug 40):
     /// <list type="bullet">
     /// <item>an admin → every slip;</item>
-    /// <item>without the permission → only the slips they received ("Bác sĩ
-    /// tiếp nhận" = them), whatever their place on the chart;</item>
+    /// <item>without the permission → themselves only, whatever their place on
+    /// the chart;</item>
     /// <item>with it, not a dentist → every slip;</item>
     /// <item>with it, a dentist → what <see cref="VisibleStaff"/> gives them —
     /// their own, the whole subtree of a unit they head, everyone as head of the
-    /// root — matched on the slip's dentist or on any line's.</item>
+    /// root.</item>
     /// </list>
+    /// A slip one of those people received shows whole; one where a line is only
+    /// assigned to them shows with that line's money alone, and without the
+    /// permission with every amount masked (<see cref="SlipScope"/>).
     /// </summary>
-    /// <returns><c>null</c> when nothing is hidden; otherwise the dentists whose slips show.</returns>
+    /// <returns><c>null</c> when nothing is hidden; otherwise the people whose slips and lines show.</returns>
     public static SlipScope? VisibleSlips(
         Guid viewerId,
         bool viewerIsAdmin,
@@ -128,11 +141,11 @@ public static class OrgChartScope
 
         if (!viewerSeesCosts)
         {
-            return new SlipScope(new HashSet<Guid> { viewerId }, ReceivedOnly: true);
+            return new SlipScope(new HashSet<Guid> { viewerId }, ShowsLineMoney: false);
         }
 
         return VisibleStaff(viewerId, viewerIsDentist, units, members) is { } staff
-            ? new SlipScope(staff, ReceivedOnly: false)
+            ? new SlipScope(staff)
             : null;
     }
 

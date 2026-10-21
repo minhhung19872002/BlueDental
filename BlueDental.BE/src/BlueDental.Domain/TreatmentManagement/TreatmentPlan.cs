@@ -273,6 +273,33 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         }
     }
 
+    /// <summary>
+    /// Who a line is assigned to (BA bug 40, 2026-10-21): its Bác sĩ điều trị
+    /// and its two Bác sĩ tư vấn — the first read off the slip when the line
+    /// names none, as the slip page prints it.
+    /// </summary>
+    public IEnumerable<Guid?> AssigneesOf(TreatmentService line) =>
+        [line.DentistId, line.ConsultantStaffId ?? ConsultantStaffId, line.SecondConsultantStaffId];
+
+    /// <summary>The slip's money over <paramref name="lineIds"/> alone — see <see cref="SlipLinesMoney"/>.</summary>
+    public SlipLinesMoney MoneyOfLines(IReadOnlySet<Guid> lineIds)
+    {
+        var lines = CountedServices.Where(s => lineIds.Contains(s.Id)).ToList();
+        var parts = DiscountShareParts();
+        var shareOf = (TreatmentService line) => parts.GetValueOrDefault(line.Id);
+
+        return new SlipLinesMoney(
+            GrossTotal: lines.Sum(s => s.ListAmount),
+            ServicesTotal: lines.Sum(s => s.CountedAmount),
+            ServicesDiscount: lines.Sum(s => s.ServiceDiscountAmount),
+            ServiceVoucher: lines.Sum(ServiceVoucherOf),
+            PlanDiscount: lines.Sum(s => shareOf(s).Own + shareOf(s).Voucher),
+            PlanVoucher: lines.Sum(s => shareOf(s).Voucher),
+            Total: lines.Sum(ChargedAmountOf),
+            Tax: lines.Sum(TaxAmountOf),
+            Completed: lines.Where(s => s.IsCompleted).Sum(ChargedAmountOf));
+    }
+
     /// <summary>Tiến độ: finished lines over counted lines, 0-100.</summary>
     public int ProgressPercent
     {

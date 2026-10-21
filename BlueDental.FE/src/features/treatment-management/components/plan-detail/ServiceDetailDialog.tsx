@@ -4,7 +4,8 @@ import type { PatientDto } from "@/features/patient-management/types/patient";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
-import { servicePills, moneyText } from "../plan/planTypes";
+import { LineMoney } from "../plan/LineMoney";
+import { servicePills } from "../plan/planTypes";
 import { dash, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
@@ -90,10 +91,10 @@ export function ServiceDetailDialog({ row, patient, onClose }: Props) {
           <Section
             title={t("Treatment:Invoice:PaymentInfo")}
             facts={[
-              { label: t("Treatment:Pricing:TotalAmount"), value: moneyText(service.effectiveAmount) },
+              { label: t("Treatment:Pricing:TotalAmount"), value: <LineMoney service={service} value={service.effectiveAmount} /> },
               { label: t("Treatment:Pricing:Quantity"), value: t("Treatment:Service:QuantityTeeth", service.quantity) },
-              { label: t("Treatment:Pricing:Discount"), value: moneyText(service.discountAmount) },
-              { label: t("Treatment:Payment:Payment"), value: moneyText(service.paidAmount) },
+              { label: t("Treatment:Pricing:Discount"), value: <LineMoney service={service} value={service.discountAmount} /> },
+              { label: t("Treatment:Payment:Payment"), value: <LineMoney service={service} value={service.paidAmount} /> },
             ]}
           />
         </div>

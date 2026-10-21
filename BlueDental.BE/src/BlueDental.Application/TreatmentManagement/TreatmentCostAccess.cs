@@ -10,7 +10,8 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// "Tài chính / Kế toán › Chi phí › Xem" (BA P2010). Without it a user sees only
 /// the slips they received ("Bác sĩ tiếp nhận" = them) on the patient record's
-/// Kế hoạch điều trị tab and in its money cards (see
+/// Kế hoạch điều trị tab and in its money cards, plus those with a line
+/// assigned to them, with that line's money alone (BA bug 40; see
 /// <c>OrgChartScope.VisibleSlips</c>), and the patient list's money columns are
 /// masked. The admin role always sees everything, like <c>PatientPhoneMasker</c>.
 /// </summary>

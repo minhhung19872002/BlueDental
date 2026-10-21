@@ -1,24 +1,16 @@
 import type { RecordCardRow } from "@/components/RecordCard";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
+import { SlipMoney } from "./SlipMoney";
 import {
   planColumnLabels,
-  moneyCellClass,
-  moneyText,
   planPill,
-  planMoney,
   type PlanColumnKey,
   type PlanColumnSetting,
-  type PlanMoney,
 } from "./planTypes";
 
 /** How many rows a plan card shows before "Xem thêm". */
 const CARD_FOLD_AT = 4;
-
-function moneyValue(plan: TreatmentPlanSlipDto, field: keyof PlanMoney) {
-  const value = planMoney(plan)[field];
-  return <span className={moneyCellClass(field, value)}>{moneyText(value)}</span>;
-}
 
 function statusPill(plan: TreatmentPlanSlipDto) {
   const pill = planPill(plan);
@@ -40,7 +32,7 @@ function cardRow(plan: TreatmentPlanSlipDto, key: PlanColumnKey): RecordCardRow 
     case "createdAt":
       return { key, label, value: formatDate(plan.creationTime) };
     default:
-      return { key, label, value: moneyValue(plan, key) };
+      return { key, label, value: <SlipMoney plan={plan} field={key} /> };
   }
 }
 

@@ -256,18 +256,18 @@ public class OrgChartTests
     }
 
     [Fact]
-    public void Slips_Without_The_Permission_Only_The_Ones_Received_Even_As_A_Head()
+    public void Slips_Without_The_Permission_Only_Their_Own_Even_As_A_Head()
     {
         var chart = new Chart();
 
         foreach (var viewer in new[] { chart.Director, chart.DepartmentHead, chart.TeamHead, chart.TeamDentist })
         {
-            var scope = SlipsFor(chart, viewer, seesCosts: false)!;
-            Assert.Equal(new HashSet<Guid> { viewer }, scope.Dentists);
-            Assert.True(scope.ReceivedOnly);
+            Assert.Equal(new HashSet<Guid> { viewer }, SlipsFor(chart, viewer, seesCosts: false)!.Staff);
         }
 
-        Assert.True(SlipsFor(chart, chart.Unassigned, seesCosts: false, isDentist: false)!.ReceivedOnly);
+        Assert.Equal(
+            new HashSet<Guid> { chart.Unassigned },
+            SlipsFor(chart, chart.Unassigned, seesCosts: false, isDentist: false)!.Staff);
     }
 
     [Fact]
@@ -287,20 +287,40 @@ public class OrgChartTests
         Assert.Null(SlipsFor(chart, chart.Director));
         Assert.Equal(
             new HashSet<Guid> { chart.DepartmentHead, chart.TeamHead, chart.TeamDentist },
-            SlipsFor(chart, chart.DepartmentHead)!.Dentists);
-        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, SlipsFor(chart, chart.TeamHead)!.Dentists);
-        Assert.Equal(new HashSet<Guid> { chart.TeamDentist }, SlipsFor(chart, chart.TeamDentist)!.Dentists);
-        Assert.False(SlipsFor(chart, chart.TeamHead)!.ReceivedOnly);
+            SlipsFor(chart, chart.DepartmentHead)!.Staff);
+        Assert.Equal(new HashSet<Guid> { chart.TeamHead, chart.TeamDentist }, SlipsFor(chart, chart.TeamHead)!.Staff);
+        Assert.Equal(new HashSet<Guid> { chart.TeamDentist }, SlipsFor(chart, chart.TeamDentist)!.Staff);
+    }
+
+    // BA bug 40 (2026-10-21): a line assigned inside the scope shows the slip,
+    // with or without the permission — but only a slip received inside it shows whole.
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Slips_A_Line_Assigned_Inside_The_Scope_Shows_The_Slip(bool seesCosts)
+    {
+        var chart = new Chart();
+        var receivedElsewhere = Guid.NewGuid();
+        var scope = SlipsFor(chart, chart.TeamDentist, seesCosts: seesCosts)!;
+
+        Assert.True(scope.Covers(receivedElsewhere, [null, chart.TeamDentist]));
+        Assert.False(scope.SeesWhole(receivedElsewhere));
+        Assert.False(scope.Covers(receivedElsewhere, [null, Guid.NewGuid()]));
+        Assert.True(scope.Covers(chart.TeamDentist, []));
+        Assert.True(scope.SeesWhole(chart.TeamDentist));
+        // "Dc assign mà ko có quyền xem thì masking lại hết."
+        Assert.Equal(seesCosts, scope.ShowsLineMoney);
     }
 
     [Fact]
-    public void Slips_A_Line_Counts_Only_With_The_Permission()
+    public void Slips_A_Head_Counts_The_Lines_Of_The_Team()
     {
         var chart = new Chart();
-        var other = Guid.NewGuid();
+        var scope = SlipsFor(chart, chart.TeamHead)!;
 
-        Assert.True(SlipsFor(chart, chart.TeamDentist)!.Covers(other, [null, chart.TeamDentist]));
-        Assert.False(SlipsFor(chart, chart.TeamDentist, seesCosts: false)!.Covers(other, [chart.TeamDentist]));
-        Assert.True(SlipsFor(chart, chart.TeamDentist, seesCosts: false)!.Covers(chart.TeamDentist, []));
+        Assert.True(scope.Covers(chart.DepartmentHead, [chart.TeamDentist]));
+        Assert.False(scope.SeesWhole(chart.DepartmentHead));
+        Assert.False(SlipsFor(chart, chart.TeamDentist)!.Covers(chart.DepartmentHead, [chart.TeamHead]));
     }
 }

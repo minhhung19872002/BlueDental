@@ -40,9 +40,12 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
  * slip from its detail page ("Thêm dịch vụ phát sinh"), not from here; the
  * "Số phiếu điều trị" button (the old + merged with the code) only opens that
  * page — "Chi tiết phiếu" left this tab with it (owner, 2026-10-15). It lists
- * only the slips whose Bác sĩ điều trị the user may see by the Sơ đồ tổ chức —
- * a dentist their own, a head their whole subtree, an admin every slip — and
- * the summary cards and "Xem tất cả dịch vụ" follow that list.
+ * the slips whose Bác sĩ tiếp nhận the user may see by the Sơ đồ tổ chức — a
+ * dentist their own, a head their whole subtree, an admin every slip — plus
+ * any slip with a line assigned inside that scope (Bác sĩ điều trị or tư vấn).
+ * Such a slip carries `seenThroughLines`: its figures are those lines' alone,
+ * the other lines' money is masked, and it offers no invoice or delete (BA
+ * bug 40). The summary cards and "Xem tất cả dịch vụ" follow that list.
  */
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const navigate = useNavigate();

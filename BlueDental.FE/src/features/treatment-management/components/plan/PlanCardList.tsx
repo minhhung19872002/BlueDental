@@ -47,7 +47,7 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
           <ClipboardList size={16} aria-hidden="true" />
         </button>
       </ActionTooltip>
-      {actions.onReceipt && (
+      {actions.onReceipt && !plan.seenThroughLines && (
         <ActionTooltip title={t("Treatment:Plan:Invoice")}>
           <button
             type="button"
@@ -59,7 +59,7 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
           </button>
         </ActionTooltip>
       )}
-      {actions.onDelete && (
+      {actions.onDelete && !plan.seenThroughLines && (
         <ActionTooltip title={t("Treatment:Plan:Delete")}>
           <button
             type="button"

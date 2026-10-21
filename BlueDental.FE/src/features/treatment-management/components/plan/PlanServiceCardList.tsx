@@ -3,7 +3,8 @@ import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
-import { servicePills, moneyText, type PlanServiceRow } from "./planTypes";
+import { LineMoney } from "./LineMoney";
+import { servicePills, type PlanServiceRow } from "./planTypes";
 
 interface Props {
   rows: PlanServiceRow[];
@@ -47,7 +48,11 @@ function serviceRows(
       {
         key: "amount",
         label: t("Treatment:Pricing:NetAmount"),
-        value: <span className="tp-cell-money">{moneyText(service.effectiveAmount)}</span>,
+        value: (
+          <span className="tp-cell-money">
+            <LineMoney service={service} value={service.effectiveAmount} />
+          </span>
+        ),
       },
     ],
     moreRows: [
@@ -69,7 +74,10 @@ function serviceRows(
         label: t("Treatment:Pricing:UnitPrice"),
         value: (
           <span className="tp-cell-money">
-            {moneyText(Math.round(service.effectiveAmount / Math.max(service.quantity, 1)))}
+            <LineMoney
+              service={service}
+              value={Math.round(service.effectiveAmount / Math.max(service.quantity, 1))}
+            />
           </span>
         ),
       },

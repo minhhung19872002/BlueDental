@@ -18,6 +18,7 @@ export interface TreatingSlip {
   dentistId: string;
   services: {
     id: string;
+    serviceId: string;
     price: number;
     quantity: number;
     discountType: number;
@@ -65,12 +66,16 @@ export async function firstPatientOf(page: Page, branchId: string): Promise<stri
   return patientId;
 }
 
-/** Opened by `admin`; one "Đã tạo" line on tooth 16. */
+/**
+ * Opened by `admin`; one "Đã tạo" line on tooth 16. `consultantStaffId` is the
+ * slip's Bác sĩ tư vấn, which a line naming none of its own takes.
+ */
 export async function openSlipFor(
   admin: Page,
   branchId: string,
   patientId: string,
   dentistId: string,
+  { consultantStaffId = null }: { consultantStaffId?: string | null } = {},
 ): Promise<TreatingSlip> {
   const service = await pricedService(admin, branchId);
   const advise = await call<{ id: string }>(admin, "/api/v1/app/patient-advises", {
@@ -97,7 +102,16 @@ export async function openSlipFor(
   const plan = await call<TreatingSlip>(admin, PLANS_API, {
     method: "POST",
     branchId,
-    json: { patientId, clinicBranchId: branchId, dentistId, discountType: 0, discountValue: 0, voucherIds: [], adviseIds: [advise.body.id] },
+    json: {
+      patientId,
+      clinicBranchId: branchId,
+      dentistId,
+      consultantStaffId,
+      discountType: 0,
+      discountValue: 0,
+      voucherIds: [],
+      adviseIds: [advise.body.id],
+    },
   });
   expect(plan.status, JSON.stringify(plan.body.error)).toBe(200);
   return plan.body;

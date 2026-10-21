@@ -13,6 +13,14 @@ import { openSlipFor, type TreatingSlip as Slip } from "./fixtures/treatingSlip"
  *    as a team head; with it a dentist sees their part of the Sơ đồ tổ chức (a
  *    head their own and their team's, their own first) and anyone else every
  *    slip; an admin every slip. Payment, labo and Hồ sơ's table keep every slip;
+ *  - a slip received outside that part still shows when one of its lines is
+ *    assigned inside it — Bác sĩ điều trị, Bác sĩ tư vấn (the slip's when the
+ *    line names none) or Bác sĩ tư vấn 2, never Bác sĩ chẩn đoán. With
+ *    "Chi phí › Xem" only those lines' money shows; without it none does, their
+ *    own lines' included ("Dc assign mà ko có quyền xem thì masking lại hết").
+ *    Masked figures read "*********" (the API sends 0); the slip offers no
+ *    money tab, invoice, print, Thêm dịch vụ phát sinh or action on the other
+ *    lines, and a masked own line no pencil or Chuyển đổi (BA bug 40);
  *  - the seven money tiles on Hồ sơ add up the same slips, with their payments;
  *    Tạm ứng belongs to no slip and reads 0 once narrowed;
  *  - /patient's Số tiền / Thực thu / Công nợ read "*********" without it, on
@@ -49,9 +57,24 @@ const LEAVES = [
   "BlueDental.payment.read",
 ];
 const COST_LEAF = "BlueDental.treatmentCost.read";
+/** What makes the invoice, the row bins and a line's Xoá show — the member's and the chief's. */
+const ACTION_LEAVES = [
+  "BlueDental.payment.create",
+  "BlueDental.treatmentConsultation.delete",
+  "BlueDental.treatmentConsultation.deletePlan",
+];
 
 type Owner = "head" | "member" | "outsider" | "chief";
 type Who = Owner | "clerk" | "accountant";
+
+/**
+ * Bug 40's slips, two lines each, on a patient of their own: X received by the
+ * chief, Y and Z by the outsider (team B).
+ */
+type Far = "x" | "y" | "z";
+type LineNo = 0 | 1;
+/** Paid per line: on X's first line, which no one of team A is assigned, and on Y's second, the head's. */
+const FAR_PAID: Record<Far, [number, number]> = { x: [30_000, 0], y: [0, 100_000], z: [0, 0] };
 
 /**
  * head heads team A (member, clerk) and holds Chi phí; chief heads team B
@@ -73,6 +96,14 @@ interface ListRow {
   totalRevenue: number;
   totalDebt: number;
   moneyHidden: boolean;
+}
+
+interface ScopedSlip {
+  id: string;
+  seenThroughLines: boolean;
+  moneyHidden: boolean;
+  payment: { totalPrice: number; totalPaid: number };
+  services: { id: string; moneyHidden: boolean; assignedToViewer: boolean; effectiveAmount: number; paidAmount: number }[];
 }
 
 async function signIn(browser: Browser, who: Who, run: string) {
@@ -123,6 +154,44 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
   let patientCode = "";
   /** What one slip asks — every run slip is the same one-line service. */
   let perSlip = 0;
+  const far = {} as Record<Far, Slip>;
+  /** Each far slip's line ids: the one it opened with, then the added one. */
+  const farLines = {} as Record<Far, [string, string]>;
+  let farPatientId = "";
+  /** What one far line asks — every line is the same service again. */
+  let perLine = 0;
+
+  async function createPatient(firstName: string, phoneNumber: string) {
+    const patient = await call<{ id: string; patientCode: string }>(admin, PATIENTS, {
+      method: "POST",
+      branchId: BRANCH_ONE,
+      json: { firstName, lastName: "E2E", dateOfBirth: null, gender: "male", phoneNumber },
+    });
+    expect(patient.status, JSON.stringify(patient.body.error)).toBe(200);
+    return patient.body;
+  }
+
+  /** A second line on tooth 26, through the inline new row's endpoint, assigned as given. */
+  async function addLine(key: Far, assignees: Record<string, string>) {
+    const first = far[key].services[0];
+    const added = await call<Slip>(admin, `${PLANS}/${far[key].id}/services`, {
+      method: "POST",
+      branchId: BRANCH_ONE,
+      json: {
+        serviceId: first.serviceId,
+        price: first.price,
+        quantity: 1,
+        discountType: 0,
+        discountValue: 0,
+        teeth: [{ toothCode: 26, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+        ...assignees,
+      },
+    });
+    expect(added.status, JSON.stringify(added.body.error)).toBe(200);
+    expect(added.body.services).toHaveLength(2);
+    far[key] = added.body;
+    farLines[key] = [first.id, added.body.services.find((line) => line.id !== first.id)!.id];
+  }
 
   async function createRole(name: string, leaves: string[]) {
     const role = await call<{ id: string }>(admin, "/api/identity/roles", {
@@ -166,26 +235,22 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
 
     const base = await createRole(`E2E phieu BS ${run}`, LEAVES);
     const costs = await createRole(`E2E chi phi ${run}`, [COST_LEAF]);
+    const acts = await createRole(`E2E thao tac ${run}`, ACTION_LEAVES);
     const make = (who: Who, name: string, isDentist: boolean, roleNames: string[]) =>
       createRunStaff(admin, BRANCH_ONE, `${run}${LOGIN[who]}`, { name, isDentist, roleNames });
     staff.head = await make("head", `BS Truong ${run}`, true, [base, costs]);
-    staff.member = await make("member", `BS Thanh vien ${run}`, true, [base]);
+    staff.member = await make("member", `BS Thanh vien ${run}`, true, [base, acts]);
     staff.outsider = await make("outsider", `BS Ngoai ${run}`, true, [base]);
-    staff.chief = await make("chief", `BS Truong B ${run}`, true, [base]);
+    staff.chief = await make("chief", `BS Truong B ${run}`, true, [base, acts]);
     staff.clerk = await make("clerk", `NV Le tan ${run}`, false, [base]);
     staff.accountant = await make("accountant", `NV Ke toan ${run}`, false, [base, costs]);
     await createTeam(`E2E Team DT ${run}`, staff.head.id, [staff.member.id, staff.clerk.id]);
     await createTeam(`E2E Team DT B ${run}`, staff.chief.id, [staff.outsider.id]);
 
     // A patient of the run's own, so the money adds up to the run's slips only.
-    const patient = await call<{ id: string; patientCode: string }>(admin, PATIENTS, {
-      method: "POST",
-      branchId: BRANCH_ONE,
-      json: { firstName: `Chi phi ${run}`, lastName: "E2E", dateOfBirth: null, gender: "male", phoneNumber: `03${run.slice(-6)}47` },
-    });
-    expect(patient.status, JSON.stringify(patient.body.error)).toBe(200);
-    patientId = patient.body.id;
-    patientCode = patient.body.patientCode;
+    const patient = await createPatient(`Chi phi ${run}`, `03${run.slice(-6)}47`);
+    patientId = patient.id;
+    patientCode = patient.patientCode;
 
     for (const owner of ["head", "member", "outsider", "chief"] as const) {
       slips[owner] = await openSlipFor(admin, BRANCH_ONE, patientId, staff[owner].id);
@@ -198,11 +263,37 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
     expect(whole.totalPrice % 4).toBe(0);
     perSlip = whole.totalPrice / 4;
     expect(perSlip).toBeGreaterThan(0);
+
+    // BA bug 40, on a second patient: team B's slips with lines assigned into team A.
+    farPatientId = (await createPatient(`Phieu cheo ${run}`, `03${run.slice(-6)}48`)).id;
+    far.x = await openSlipFor(admin, BRANCH_ONE, farPatientId, staff.chief.id);
+    far.y = await openSlipFor(admin, BRANCH_ONE, farPatientId, staff.outsider.id);
+    far.z = await openSlipFor(admin, BRANCH_ONE, farPatientId, staff.outsider.id, { consultantStaffId: staff.member.id });
+    // X: the member treats the second line.
+    await addLine("x", { dentistId: staff.member.id });
+    // Y: the head consults the second line; the member only diagnoses it, which does not count.
+    await addLine("y", { consultantStaffId: staff.head.id, diagnoserStaffId: staff.member.id });
+    // Z: the first line names no consultant and takes the slip's, the member; the second names the outsider.
+    await addLine("z", { consultantStaffId: staff.outsider.id });
+    for (const key of ["x", "y", "z"] as const) {
+      for (const no of [0, 1] as const) {
+        const amount = FAR_PAID[key][no];
+        if (!amount) continue;
+        await record({ patientId: farPatientId, treatmentPlanId: far[key].id, treatmentServiceIds: [farLines[key][no]], kind: KIND.Payment, amount });
+      }
+    }
+
+    const farWhole = await summaryOf(admin, farPatientId);
+    expect(farWhole.totalPrice % 6).toBe(0);
+    perLine = farWhole.totalPrice / 6;
+    expect(perLine).toBe(perSlip);
   });
 
   test.afterAll(async () => {
     for (const id of receipts) await call(admin, `${PAYMENTS}/${id}/cancel`, { method: "POST", branchId: BRANCH_ONE, json: { reason: "e2e cleanup" } });
-    for (const slip of Object.values(slips)) await call(admin, `${PLANS}/${slip.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+    for (const slip of [...Object.values(slips), ...Object.values(far)]) {
+      await call(admin, `${PLANS}/${slip.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+    }
     for (const id of teams) await call(admin, `${ORG}/units/${id}`, { method: "DELETE", branchId: BRANCH_ONE });
     for (const s of Object.values(staff)) await deleteStaff(admin, s.id);
     for (const role of roles) await call(admin, `/api/identity/roles/${role.id}`, { method: "DELETE" });
@@ -263,6 +354,196 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
     });
   }
 
+  /**
+   * Bug 40, per account: `whole` slips are received inside the account's part
+   * of the Sơ đồ tổ chức and show all their money; `through` lists, per slip
+   * received outside it, the lines assigned inside it — the slip shows, with
+   * those lines' money only, or with none at all when `masked` (no Chi phí).
+   */
+  const farCases: { who: Who; whole: Far[]; through: Partial<Record<Far, LineNo[]>>; masked: boolean }[] = [
+    // No Chi phí: their own lines — X's they treat, Z's they consult through the slip; not Y's they diagnose — every figure masked.
+    { who: "member", whole: [], through: { x: [1], z: [0] }, masked: true },
+    // With Chi phí the head counts the member's lines too, and their own consulting one on Y, with their money.
+    { who: "head", whole: [], through: { x: [1], y: [1], z: [0] }, masked: false },
+    { who: "chief", whole: ["x"], through: {}, masked: false },
+    { who: "outsider", whole: ["y", "z"], through: {}, masked: false },
+    { who: "clerk", whole: [], through: {}, masked: false },
+    { who: "accountant", whole: ["x", "y", "z"], through: {}, masked: false },
+  ];
+
+  for (const { who, whole, through, masked } of farCases) {
+    const lineOnly = Object.keys(through) as Far[];
+    // The lines whose money the account sees.
+    const seen: [Far, LineNo][] = [
+      ...whole.flatMap((key) => [[key, 0], [key, 1]] as [Far, LineNo][]),
+      ...(masked ? [] : lineOnly.flatMap((key) => through[key]!.map((no) => [key, no] as [Far, LineNo]))),
+    ];
+    const label = [...whole.map((key) => `${key} whole`), ...lineOnly.map((key) => `${key} through its lines`)];
+
+    test(`bug 40: ${who} sees ${label.length ? label.join(", ") : "no slip"}`, async ({ browser }) => {
+      const { context, page } = await signIn(browser, who, run);
+      try {
+        const listed = await call<{ items: ScopedSlip[] }>(page, `${PLANS}?patientId=${farPatientId}&clinicBranchId=${BRANCH_ONE}&treatingScope=true&maxResultCount=100`, { branchId: BRANCH_ONE });
+        expect(listed.status).toBe(200);
+        const byId = new Map(listed.body.items.map((slip) => [slip.id, slip]));
+        expect([...byId.keys()].sort()).toEqual([...whole, ...lineOnly].map((key) => far[key].id).sort());
+
+        const truth = (key: Far, no: LineNo) => far[key].services.find((line) => line.id === farLines[key][no])!;
+        const lineOf = (slip: ScopedSlip, key: Far, no: LineNo) => slip.services.find((l) => l.id === farLines[key][no])!;
+        const figures = (slip: ScopedSlip, key: Far) =>
+          ([0, 1] as const).map((no) => {
+            const line = lineOf(slip, key, no);
+            return [line.moneyHidden, line.effectiveAmount, line.paidAmount];
+          });
+        const assigned = (slip: ScopedSlip, key: Far) => ([0, 1] as const).filter((no) => lineOf(slip, key, no).assignedToViewer);
+        for (const key of whole) {
+          const slip = byId.get(far[key].id)!;
+          expect([slip.seenThroughLines, slip.moneyHidden]).toEqual([false, false]);
+          expect(figures(slip, key)).toEqual(([0, 1] as const).map((no) => [false, truth(key, no).effectiveAmount, FAR_PAID[key][no]]));
+          expect(slip.payment).toMatchObject({ totalPrice: perLine * 2, totalPaid: FAR_PAID[key][0] + FAR_PAID[key][1] });
+          // A slip seen whole marks no line: every one is the viewer's to act on.
+          expect(assigned(slip, key)).toEqual([]);
+        }
+        for (const key of lineOnly) {
+          const own = through[key]!;
+          const shown = masked ? [] : own;
+          const slip = byId.get(far[key].id)!;
+          expect([slip.seenThroughLines, slip.moneyHidden]).toEqual([true, masked]);
+          expect(assigned(slip, key)).toEqual(own);
+          // A masked line's figures never leave the API: 0 and the flag.
+          expect(figures(slip, key)).toEqual(
+            ([0, 1] as const).map((no) => (shown.includes(no) ? [false, truth(key, no).effectiveAmount, FAR_PAID[key][no]] : [true, 0, 0])),
+          );
+          expect(slip.payment).toMatchObject({
+            totalPrice: perLine * shown.length,
+            totalPaid: shown.reduce<number>((sum, no) => sum + FAR_PAID[key][no], 0),
+          });
+        }
+
+        // The patient's money adds up the same lines, on the API and the Hồ sơ tiles.
+        const expected = { totalPrice: perLine * seen.length, totalPaid: seen.reduce<number>((sum, [key, no]) => sum + FAR_PAID[key][no], 0) };
+        const summary = await summaryOf(page, farPatientId);
+        expect({ totalPrice: summary.totalPrice, totalPaid: summary.totalPaid }).toEqual(expected);
+        await page.goto(`/patient/${farPatientId}?tab=profile&branch=BD-001`);
+        const money = (name: string) =>
+          page.locator(".pd-money", { has: page.locator("small", { hasText: new RegExp(`^${name}$`) }) }).locator("strong");
+        await expect(money("Tổng dự kiến thu")).toHaveText(tile(expected.totalPrice));
+        await expect(money("Đã thu")).toHaveText(tile(expected.totalPaid));
+
+        // The tab lists the same slips, and still does after a reload.
+        const codes = (await listedCodes(page, farPatientId)).sort();
+        expect(codes).toEqual([...whole, ...lineOnly].map((key) => far[key].code).sort());
+        await page.reload();
+        await expect(page.locator(".tp-table tr.ant-table-row .tp-code")).toHaveCount(codes.length);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  test("bug 40: on a slip seen through a line the masked money and the slip's actions are gone", async ({ browser }) => {
+    // The member and the chief hold the same rights, the head Chi phí and no action leaf; only the chief received X.
+    const slip = far.x;
+    const views = [
+      // No Chi phí: every figure masked, their own line's too, which keeps its status menu and Xoá but no pencil or Chuyển đổi.
+      { who: "member", through: true, masked: true },
+      // With Chi phí the member's line, theirs to look after, shows its money and its pencil.
+      { who: "head", through: true, masked: false },
+      { who: "chief", through: false, masked: false },
+    ] as const;
+    // Đơn giá, Giảm giá and Thành tiền on the slip page; Tổng tiền, Giảm giá and Thanh toán in the detail dialog.
+    const LINE_MONEY = 3;
+    // Every one of the twelve default columns shows, seven of them money.
+    const SLIP_MONEY = 7;
+    for (const { who, through, masked } of views) {
+      // Whose money is masked: the other line on a slip seen through lines, the own one too without Chi phí.
+      const hidden = { others: through, own: masked };
+      const deletes = who !== "head";
+      const { context, page } = await signIn(browser, who, run);
+      try {
+        // Waits on the tab's real list request.
+        await listedCodes(page, farPatientId);
+        const row = page.locator(".tp-table tr.ant-table-row", { hasText: slip.code });
+        await expect(row).toHaveCount(1);
+        await expect(row.locator(".tp-money-hidden")).toHaveCount(masked ? SLIP_MONEY : 0);
+        if (masked) await expect(row.locator(".tp-money-hidden").first()).toHaveText(MASK);
+        await expect(row.getByRole("button", { name: `Phiếu thu ${slip.code}` })).toHaveCount(through ? 0 : 1);
+        await expect(row.getByRole("button", { name: `Xoá phiếu điều trị ${slip.code}` })).toHaveCount(through ? 0 : 1);
+
+        // The row's eye lists both lines, two money cells each.
+        await row.getByRole("button", { name: `Danh sách dịch vụ - ${slip.code}` }).click();
+        const list = page.locator(".tp-services-table");
+        await expect(list.locator("tr.ant-table-row")).toHaveCount(2);
+        await expect(list.locator(".tp-money-hidden")).toHaveCount(2 * (Number(hidden.others) + Number(hidden.own)));
+        if (through) await expect(list.locator(".tp-money-hidden").first()).toHaveText(MASK);
+        await page.keyboard.press("Escape");
+        await expect(list).toHaveCount(0);
+
+        // Asked for Thanh toán: a slip seen through lines has Chi tiết điều trị only, and no money summary.
+        const answered = page.waitForResponse((res) => res.url().includes(`${PLANS}/${slip.id}/treating`));
+        await page.goto(`/patient/${farPatientId}/treatment-plan/${slip.id}?branch=BD-001&planTab=payment-v2`);
+        expect((await answered).status()).toBe(200);
+        const tabs = page.locator(".pdt-tabrow").getByRole("tab");
+        if (through) {
+          await expect(tabs).toHaveText(["Chi tiết điều trị"]);
+          await expect(page.locator(".pdt-stats")).toHaveCount(0);
+        } else {
+          await expect(tabs).toHaveCount(4);
+          await expect(page.locator(".pdt-stats")).toBeVisible();
+          await tabs.filter({ hasText: "Chi tiết điều trị" }).click();
+        }
+
+        const rows = page.locator(".pdt-table tbody tr.ant-table-row");
+        await expect(rows).toHaveCount(2);
+        const toolbar = page.locator(".pdt-toolbar");
+        await expect(toolbar.getByRole("button", { name: "Thêm dịch vụ phát sinh" })).toHaveCount(through ? 0 : 1);
+        await expect(toolbar.getByRole("button", { name: "In Hóa Đơn" })).toHaveCount(through ? 0 : 1);
+        await expect(toolbar.getByRole("button", { name: "In phiếu điều trị" })).toHaveCount(through ? 0 : 1);
+
+        const lineOn = (tooth: string) => rows.filter({ has: page.getByRole("cell", { name: tooth, exact: true }) });
+        const lines = { others: lineOn("16"), own: lineOn("26") };
+        const { others, own } = lines;
+        for (const key of ["others", "own"] as const) {
+          await expect(lines[key].locator(".tp-money-hidden")).toHaveCount(hidden[key] ? LINE_MONEY : 0);
+          if (hidden[key]) await expect(lines[key].locator(".tp-money-hidden").first()).toHaveText(MASK);
+        }
+        await expect(others.getByRole("button", { name: /^Đổi trạng thái/ })).toHaveCount(through ? 0 : 1);
+        await expect(others.getByRole("button", { name: "Xoá" })).toHaveCount(through ? 0 : 1);
+        // Paid on for real, so no pencil for anyone — though the member is sent 0.
+        await expect(others.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
+        await expect(own.getByRole("button", { name: /^Đổi trạng thái/ })).toHaveCount(1);
+        await expect(own.getByRole("button", { name: "Xoá" })).toHaveCount(deletes ? 1 : 0);
+        // A masked line's 0 would be saved as its price, and Chuyển đổi is all about what was paid on it.
+        await expect(own.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(masked ? 0 : 1);
+        await own.getByRole("button", { name: /^Đổi trạng thái/ }).click();
+        const menu = page.locator(".ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item");
+        await expect(menu).toHaveText(masked ? ["Hoàn thành", "Hủy dịch vụ"] : ["Hoàn thành", "Chuyển đổi", "Hủy dịch vụ"]);
+        await page.keyboard.press("Escape");
+        await expect(menu).toHaveCount(0);
+
+        const detail = page.getByRole("dialog", { name: "Chi tiết dịch vụ" });
+        for (const key of ["others", "own"] as const) {
+          await lines[key].getByRole("button", { name: "Xem chi tiết" }).click();
+          await expect(detail).toBeVisible();
+          await expect(detail.locator(".tp-money-hidden")).toHaveCount(hidden[key] ? LINE_MONEY : 0);
+          if (key === "others" && !through) await expect(detail).toContainText(FAR_PAID.x[0].toLocaleString("vi"));
+          // The footer's — the corner X carries the same name.
+          await detail.locator(".pdt-confirm-foot").getByRole("button", { name: "Đóng" }).click();
+          await expect(detail).toBeHidden();
+        }
+
+        // Survives a reload.
+        await page.reload();
+        await expect(rows).toHaveCount(2);
+        for (const key of ["others", "own"] as const) {
+          await expect(lines[key].locator(".tp-money-hidden")).toHaveCount(hidden[key] ? LINE_MONEY : 0);
+        }
+      } finally {
+        await context.close();
+      }
+    }
+  });
+
   test("an admin sees every slip and all the money", async () => {
     const codes = await listedCodes(admin, patientId);
     expect([...codes].sort()).toEqual(Object.values(slips).map((slip) => slip.code).sort());
@@ -270,16 +551,18 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
   });
 
   test("a slip hidden from the tab cannot be opened by its link either", async ({ browser }) => {
-    const denied: { who: Who; slip: Owner }[] = [
-      { who: "outsider", slip: "member" },
-      { who: "clerk", slip: "member" },
+    const denied: { who: Who; slip: Slip }[] = [
+      { who: "outsider", slip: slips.member },
+      { who: "clerk", slip: slips.member },
       // A head without Chi phí does not open their own team member's slip.
-      { who: "chief", slip: "outsider" },
+      { who: "chief", slip: slips.outsider },
+      // Bug 40: diagnosing a line is no assignment, nor is heading the one who treats it.
+      { who: "member", slip: far.y },
+      { who: "clerk", slip: far.x },
     ];
 
-    for (const { who, slip: owner } of denied) {
-      const slip = slips[owner];
-      const detailUrl = `/patient/${patientId}/treatment-plan/${slip.id}?branch=BD-001`;
+    for (const { who, slip } of denied) {
+      const detailUrl = `/patient/${slip.patientId}/treatment-plan/${slip.id}?branch=BD-001`;
       const { context, page } = await signIn(browser, who, run);
       try {
         for (const planTab of ["detail", "payment-v2", "debt"]) {

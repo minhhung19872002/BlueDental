@@ -391,6 +391,12 @@
 .tp-cell-money--due {
   color: var(--tp-red);
 }
+/* Another doctor's line on a slip seen through one's own lines (BA bug 40). */
+.tp-money-hidden {
+  color: var(--bd-muted);
+  font-weight: 400;
+  letter-spacing: 1px;
+}
 .tp-code {
   display: inline-flex;
   align-items: center;
