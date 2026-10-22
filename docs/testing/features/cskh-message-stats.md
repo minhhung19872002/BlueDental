@@ -126,7 +126,7 @@ Drawer dưới 1100 px có 18 mục.
 | Application.Tests | **786/786** (gồm `MessageStatsAppServiceContractTests` 7, `MessageStatsWordingTests` 4) |
 | HttpApi.Host.Tests | **24/24** |
 | E2E `cskh-stats` | **4/4** |
-| Hồi quy mức 3 | xem R-1011 trong `03-regression-log.md` |
+| Hồi quy mức 3 | **60/64** + smoke Excel **19/20**; các ca đỏ đều có từ trước hoặc chập chờn (chạy lại xanh), chi tiết ở R-1011 trong `03-regression-log.md` |
 
 Đường chạy E2E: build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 →
 PostgreSQL `BlueDental_develop`, job gửi thật, không chặn request nào.
