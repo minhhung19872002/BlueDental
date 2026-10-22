@@ -103,6 +103,7 @@ test.describe("Ghi chú — the dialog", () => {
 
     // The page behind keeps working — and the dialog rides along to the next screen.
     await page.locator('.app-nav-group[title="Tổng quan"]').click();
+    await page.locator('.app-ribbon-item[title="Tổng quan"]').click();
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(dialog).toBeVisible();
 
@@ -145,6 +146,7 @@ test.describe("Ghi chú — the dialog", () => {
 
     // Where it used to be, the page takes the clicks again.
     await page.locator('.app-nav-group[title="Tổng quan"]').click();
+    await page.locator('.app-ribbon-item[title="Tổng quan"]').click();
     await expect(page).toHaveURL(/\/dashboard/);
 
     await dialog.getByRole("button", { name: "Hủy", exact: true }).click();

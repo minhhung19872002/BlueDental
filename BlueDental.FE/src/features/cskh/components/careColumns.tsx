@@ -15,8 +15,9 @@ import { CareContactStatusSelect } from "./CareContactStatusSelect";
 
 export interface CareRowHandlers {
   onCall: (record: CareRecordDto) => void;
-  onMessage: (record: CareRecordDto) => void;
-  onSend: (record: CareRecordDto) => void;
+  /** Absent without "Gửi tin nhắn › Xem": the row then offers no SMS / Zalo button. */
+  onSms?: (record: CareRecordDto) => void;
+  onZalo?: (record: CareRecordDto) => void;
   onCare: (record: CareRecordDto) => void;
   onNote: (record: CareRecordDto, note: string) => void;
   onContactStatus: (record: CareRecordDto, contacted: boolean) => void;
@@ -40,6 +41,16 @@ interface SharedColumns {
   status: CareColumn;
   note: CareColumn;
   actions: CareColumn;
+}
+
+/** A Lịch tạm guest's row carries the empty id: there is no patient file to send to yet. */
+const NO_PATIENT = "00000000-0000-0000-0000-000000000000";
+
+function toCustomer(
+  handler: ((record: CareRecordDto) => void) | undefined,
+  record: CareRecordDto,
+): (() => void) | undefined {
+  return handler && record.patientId !== NO_PATIENT ? () => handler(record) : undefined;
 }
 
 /** 28px round buttons with a 2px gap, inside the last cell's 6px + 16px paddings. */
@@ -266,13 +277,13 @@ export function buildCareColumns(
     actions: {
       title: t("CSKH:Col:Actions"),
       key: "actions",
-      width: actionsColumnWidth(3 + Number(Boolean(tab.fileHeart))),
+      width: actionsColumnWidth([true, handlers.onSms, handlers.onZalo, tab.fileHeart].filter(Boolean).length),
       fixed: "right",
       render: (_, record) => (
         <CareRowActions
           onCall={() => handlers.onCall(record)}
-          onMessage={() => handlers.onMessage(record)}
-          onSend={() => handlers.onSend(record)}
+          onSms={toCustomer(handlers.onSms, record)}
+          onZalo={toCustomer(handlers.onZalo, record)}
           onCare={tab.fileHeart ? () => handlers.onCare(record) : undefined}
         />
       ),

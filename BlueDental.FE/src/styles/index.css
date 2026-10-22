@@ -2880,6 +2880,12 @@ body::-webkit-scrollbar-track {
   display: grid;
   place-items: center;
   font-size: 15px;
+  /* Tint ≈ the accent at 8 %, as the old `${color}14` hex did. */
+  background: color-mix(in srgb, var(--kpi-accent, var(--bd-primary)) 8%, transparent);
+  color: var(--kpi-accent, var(--bd-primary));
+}
+.kpi-card-spin {
+  margin-top: 12px;
 }
 
 .kpi-card-value {

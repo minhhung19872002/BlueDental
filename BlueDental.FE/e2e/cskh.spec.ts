@@ -163,6 +163,18 @@ test.describe("CSKH", () => {
     await expect(toolbarField("Bác sĩ điều trị")).toBeVisible();
     await expect(toolbarField("Nhân viên CSKH")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Tạo mới" })).toHaveCount(0);
+
+    // Gửi tin nhắn chăm sóc sits on the top tab row (BA mock), on every care
+    // tab — not in the per-tab toolbar, and not on Phân nhóm CSKH.
+    const sendCare = { name: "Gửi tin nhắn chăm sóc" };
+    for (const careTab of ["Sau điều trị", "Nhắc lịch hẹn", "Khiếu nại"]) {
+      await page.getByRole("button", { name: careTab }).click();
+      await expect(page.locator(".pill-tabs-row").getByRole("button", sendCare)).toBeVisible();
+      await expect(page.locator(".cskh-toolbar").getByRole("button", sendCare)).toHaveCount(0);
+    }
+    await page.getByRole("button", { name: "Phân nhóm CSKH" }).click();
+    await expect(page).toHaveURL(/tab=group/);
+    await expect(page.getByRole("button", sendCare)).toHaveCount(0);
   });
 
   test("creates a special care task, edits its note inline, both persist", async ({ page }) => {

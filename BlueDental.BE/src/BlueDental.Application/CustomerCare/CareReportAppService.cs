@@ -29,21 +29,6 @@ public class CareReportAppService(
     CareRecordWindow window,
     BranchAccessChecker branchAccess) : BlueDentalAppService, ICareReportAppService
 {
-    /// <summary>The tabs of /cskh-grouping, in their order.</summary>
-    private static readonly CareType[] BoardTypes =
-    [
-        CareType.AfterTreatment,
-        CareType.Birthday,
-        CareType.AppointmentReminder,
-        CareType.UndatedRebook,
-        CareType.NoService,
-        CareType.MissedAppointment,
-        CareType.CancelledAppointment,
-        CareType.Periodic,
-        CareType.Special,
-        CareType.Complaint,
-    ];
-
     public async Task<CareReportDto> GetAsync(ClinicReportQueryDto input)
     {
         var branchFilter = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
@@ -51,7 +36,7 @@ public class CareReportAppService(
         DateTimeOffset? to = input.ToDate is { } t ? ClinicCalendar.StartOfDay(t.AddDays(1)).AddTicks(-1) : null;
 
         var records = new List<CareFacts>();
-        foreach (var type in BoardTypes)
+        foreach (var type in CareBoard.Types)
         {
             var query = (await repository.GetQueryableAsync()).Where(r => r.Type == type);
             if (branchFilter.Count > 0) query = query.Where(r => branchFilter.Contains(r.BranchId));
@@ -66,7 +51,7 @@ public class CareReportAppService(
         return new CareReportDto
         {
             Summary = Count(new CareReportRowDto(), records),
-            ByType = [.. BoardTypes.Select(type => Count(
+            ByType = [.. CareBoard.Types.Select(type => Count(
                 new CareTypeReportRowDto { Type = type }, records.Where(r => r.Type == type)))],
             ByOutcome = new CareOutcomeCountsDto
             {

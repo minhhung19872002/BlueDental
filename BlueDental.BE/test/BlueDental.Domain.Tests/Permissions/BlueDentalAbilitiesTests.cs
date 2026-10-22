@@ -27,9 +27,14 @@ public class BlueDentalAbilitiesTests
         // and so do marketingTicket / marketingTicketTag (Marketing → Ticket, F-55)
         // and payroll (Bảng lương, F-57), and reportTelesale / reportCare
         // (Báo cáo Telesale 16.8, Báo cáo CSKH 16.11), and patientGroup (Hồ sơ nhóm, 4.10),
-        // and orgChart (Sơ đồ tổ chức, F-67), and treatmentCost (Chi phí, BA P2010).
-        Assert.Equal(96, BlueDentalAbilities.Catalog.Count);
+        // and orgChart (Sơ đồ tổ chức, F-67), and treatmentCost (Chi phí, BA P2010),
+        // and cskhTemplate / cskhSend / cskhStats (Template tin nhắn, Gửi tin nhắn,
+        // Thống kê CSKH, BA P2110).
+        Assert.Equal(99, BlueDentalAbilities.Catalog.Count);
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.TreatmentCost));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.CskhTemplate));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.CskhSend));
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.CskhStats));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.PatientGroup));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.ReportTelesale));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.ReportCare));

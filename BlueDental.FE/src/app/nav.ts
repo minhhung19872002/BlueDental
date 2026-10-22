@@ -29,7 +29,8 @@ export interface NavGroup {
   icon: string;
   /**
    * A group either carries members, or is a link in its own right and opens no
-   * ribbon at all — "Tổng quan" is the second kind.
+   * ribbon at all. No group is a link today: "Tổng quan" became a ribbon of
+   * two with Thống kê CSKH (BA P2110, F-78).
    */
   path?: string;
   items?: NavEntry[];
@@ -55,6 +56,12 @@ export const NAV_ENTRIES = {
     label: "Menu:Dashboard",
     icon: "M4 13h6V4H4v9zm10 7h6v-9h-6v9zM4 20h6v-4H4v4zm10-11h6V4h-6v5z",
     permissions: ROUTE_PERMISSIONS.dashboard,
+  },
+  cskhStats: {
+    path: "/dashboard/cskh",
+    label: "Menu:CskhStats",
+    icon: "M4 19V5m0 14h16M8 15l3-4 3 2 5-6",
+    permissions: ROUTE_PERMISSIONS.cskhStats,
   },
   reception: {
     path: "/reception",
@@ -180,8 +187,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "dashboard",
     label: "Menu:Dashboard",
     icon: NAV_ENTRIES.dashboard.icon,
-    path: NAV_ENTRIES.dashboard.path,
-    permissions: NAV_ENTRIES.dashboard.permissions,
+    items: [NAV_ENTRIES.dashboard, NAV_ENTRIES.cskhStats],
   },
   {
     id: "finance",
@@ -209,10 +215,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
  *
  * Prefix matching, so a patient's record still lights "Bệnh nhân" — except for
  * reception, whose path is a prefix of nothing but would otherwise stay lit
- * while a sub-route of its own is open.
+ * while a sub-route of its own is open, and Tổng quan, whose path heads
+ * Thống kê CSKH's.
  */
+const EXACT_PATHS: readonly string[] = [NAV_ENTRIES.reception.path, NAV_ENTRIES.dashboard.path];
+
 export function isNavPathActive(path: string, pathname: string): boolean {
-  if (path === NAV_ENTRIES.reception.path) return pathname === path;
+  if (EXACT_PATHS.includes(path)) return pathname === path;
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 

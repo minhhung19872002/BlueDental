@@ -17,7 +17,34 @@ namespace BlueDental.Exporting;
 public sealed record ExcelColumn<T>(string Header, Func<T, object?> Value, double Width = 18);
 
 /// <summary>
-/// Turns rows into a one-sheet workbook.
+/// One titled sheet of a workbook with several, each over its own row type —
+/// see <see cref="ExcelSheet.BuildBook"/>.
+/// </summary>
+public abstract class ExcelSheetPart
+{
+    internal abstract void AddTo(XLWorkbook workbook);
+
+    public static ExcelSheetPart Of<T>(
+        string sheetName,
+        string title,
+        IReadOnlyCollection<ExcelColumn<T>> columns,
+        IEnumerable<T> rows,
+        string? subtitle = null) => new Part<T>(sheetName, title, columns, rows, subtitle);
+
+    private sealed class Part<T>(
+        string sheetName,
+        string title,
+        IReadOnlyCollection<ExcelColumn<T>> columns,
+        IEnumerable<T> rows,
+        string? subtitle) : ExcelSheetPart
+    {
+        internal override void AddTo(XLWorkbook workbook) =>
+            ExcelSheet.AddTitledSheet(workbook, sheetName, title, columns, rows, subtitle);
+    }
+}
+
+/// <summary>
+/// Turns rows into a workbook — one sheet, or several with <see cref="BuildBook"/>.
 ///
 /// The reference offers "BE:Common:ExportExcel" on the report, CSKH and labo screens; every
 /// one of them is the same shape — a title, a header row and typed cells — so the
@@ -33,7 +60,30 @@ public static class ExcelSheet
         string? subtitle = null)
     {
         using var workbook = new XLWorkbook();
+        AddTitledSheet(workbook, sheetName, title, columns, rows, subtitle);
+        return Save(workbook);
+    }
 
+    /// <summary>Several titled sheets in one file, in the order given.</summary>
+    public static byte[] BuildBook(IEnumerable<ExcelSheetPart> parts)
+    {
+        using var workbook = new XLWorkbook();
+        foreach (var part in parts)
+        {
+            part.AddTo(workbook);
+        }
+
+        return Save(workbook);
+    }
+
+    internal static void AddTitledSheet<T>(
+        XLWorkbook workbook,
+        string sheetName,
+        string title,
+        IReadOnlyCollection<ExcelColumn<T>> columns,
+        IEnumerable<T> rows,
+        string? subtitle)
+    {
         // Excel refuses a sheet name over 31 characters or with : \ / ? * [ ]
         var worksheet = workbook.Worksheets.Add(SafeSheetName(sheetName));
 
@@ -58,8 +108,6 @@ public static class ExcelSheet
         {
             worksheet.Range(headerRow, 1, lastRow, columns.Count).SetAutoFilter();
         }
-
-        return Save(workbook);
     }
 
     /// <summary>

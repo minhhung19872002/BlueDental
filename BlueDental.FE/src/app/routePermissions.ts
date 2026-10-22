@@ -69,7 +69,14 @@ export const ROUTE_PERMISSIONS = {
   calendar: readOf(["appointment", "workSchedule"]),
   patients: readOf(["patient"]),
   patientGroup: readOf(["patientGroup"]),
-  cskh: readOf(["cskhGroup", "cskhCare"]),
+  cskh: readOf(["cskhGroup", "cskhCare", "cskhTemplate"]),
+  /* The template editor only saves: Tạo mẫu mới is the create leaf, Chỉnh sửa the update leaf. */
+  cskhTemplateNew: [abilityPermission("cskhTemplate", "create")] as readonly string[],
+  cskhTemplateEdit: [abilityPermission("cskhTemplate", "update")] as readonly string[],
+  /* Gửi tin nhắn opens on read: the checks and preview show; sending is the create leaf. */
+  cskhSend: readOf(["cskhSend"]),
+  /* Tổng quan ▸ Thống kê CSKH (F-78); the Excel is the export leaf. */
+  cskhStats: readOf(["cskhStats"]),
   marketing: readOf(["marketingTicket", "marketingTicketTag"]),
   marketingTicket: readOf(["marketingTicket"]),
   marketingTicketTag: readOf(["marketingTicketTag"]),

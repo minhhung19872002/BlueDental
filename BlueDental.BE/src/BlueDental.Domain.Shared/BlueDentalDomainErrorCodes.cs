@@ -648,6 +648,28 @@ public static class BlueDentalDomainErrorCodes
         public const string ZaloNotConfigured = "BlueDental:Tools:0007";
         public const string ZaloTemplateDataMissing = "BlueDental:Tools:0008";
         public const string ZaloOaMismatch = "BlueDental:Tools:0009";
+        public const string TemplateNameRequired = "BlueDental:Tools:0010";
+        public const string TemplatePurposeRequired = "BlueDental:Tools:0011";
+        public const string TemplateContentRequired = "BlueDental:Tools:0012";
+        public const string TemplateSubjectRequired = "BlueDental:Tools:0013";
+        public const string TemplateUnknownVariables = "BlueDental:Tools:0014";
+        public const string TemplateZnsRequired = "BlueDental:Tools:0015";
+        public const string TemplateZnsParamUnmapped = "BlueDental:Tools:0016";
+        public const string TemplateTooLong = "BlueDental:Tools:0017";
+
+        // CSKH ▸ Gửi tin nhắn (BA P2110, F-77).
+        public const string SendChannelNotConnected = "BlueDental:Tools:0018";
+        public const string SendTemplateNotReady = "BlueDental:Tools:0019";
+        public const string SendNoRecipients = "BlueDental:Tools:0020";
+        public const string SendScheduleInPast = "BlueDental:Tools:0021";
+        public const string SendNoTestPhone = "BlueDental:Tools:0022";
+        public const string SendNotCancellable = "BlueDental:Tools:0023";
+        public const string SendListRequired = "BlueDental:Tools:0024";
+        public const string SendTooManyRecipients = "BlueDental:Tools:0025";
+
+        // Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
+        public const string StatsPeriodReversed = "BlueDental:Tools:0026";
+        public const string StatsPeriodTooLong = "BlueDental:Tools:0027";
     }
 
     public static class ClinicIntegration

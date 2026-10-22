@@ -15,7 +15,7 @@ import { openShiftCovering } from "./fixtures/workShift";
  *   reason the cancel now requires.
  * - Complain (bug list #16): filed by hand, content required, handled through
  *   the Thành công / Thất bại result dialog.
- * - Every tab: Lưu tin nhắn (SMS) and Gửi ZBS qua Zalo on each row.
+ * - Every tab: Gửi SMS and Gửi Zalo on each row, leading to Gửi tin nhắn.
  *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted.
  * Fixtures go through the real API with the session the login screen gave.
@@ -173,36 +173,31 @@ async function markContacted(page: Page, rowText: string, rowKey?: string): Prom
 }
 
 /**
- * Checklist 2.x "SMS, Zalo chăm sóc theo kịch bản riêng": the row offers
- * Lưu tin nhắn (SMS) and Gửi ZBS qua Zalo. Gửi lists the branch's own ZNS
- * templates from Zalo and refuses to send without one picked. No local branch
- * is linked to a Zalo OA, so the delivery itself is not exercised here.
+ * Checklist 2.x "SMS, Zalo chăm sóc theo kịch bản riêng" (BA P2110): the row's
+ * Gửi SMS / Gửi Zalo open Gửi tin nhắn on that channel, locked to Khách lẻ with
+ * this one customer. Nothing is sent from here (e2e/cskh-message-send covers
+ * that). Back on the board the search is typed again, as it is not in the URL.
  */
 async function expectMessaging(page: Page, patientName: string): Promise<void> {
   const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patientName });
-  await expect(row.getByRole("button", { name: "Lưu tin nhắn" })).toBeVisible();
-  const send = row.getByRole("button", { name: "Gửi ZBS qua Zalo" });
+  await expect(row.getByRole("button", { name: "Gửi SMS" })).toBeVisible();
+  const send = row.getByRole("button", { name: "Gửi Zalo" });
   await send.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
-
-  const templates = page.waitForRequest((req) => req.url().includes("/api/v1/app/zalo/templates"));
   await send.click();
-  await templates;
-  const dialog = page.getByRole("dialog").filter({ hasText: "Gửi ZBS qua Zalo" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(patientName);
 
-  let posted = false;
-  const onRequest = (req: { url(): string; method(): string }) => {
-    if (req.url().includes("/api/v1/app/zalo/messages") && req.method() === "POST") posted = true;
-  };
-  page.on("request", onRequest);
-  await dialog.getByRole("button", { name: /Gửi$/ }).click();
-  await expect(page.getByText("Vui lòng chọn mẫu ZBS")).toBeVisible();
-  page.off("request", onRequest);
-  expect(posted).toBe(false);
+  await expect(page).toHaveURL(/\/cskh-grouping\/send\?.*channel=zalo.*patientId=[0-9a-f-]{36}/);
+  const channels = page.getByRole("radiogroup", { name: "Kênh gửi" });
+  await expect(channels.getByRole("radio", { name: /^Zalo/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText("Gửi riêng cho khách đã chọn từ danh sách chăm sóc")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Danh sách CSKH", exact: true })).toHaveCount(0);
+  const customer = page.getByRole("row").filter({ hasText: patientName });
+  await expect(customer).toHaveCount(1, { timeout: 15_000 });
+  await expect(customer.getByRole("checkbox", { name: `Chọn ${patientName}` })).toBeChecked();
 
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
+  /* The filtered list comes back from the query cache, so no request is awaited. */
+  await page.goBack();
+  await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(patientName);
+  await expect(row).toHaveCount(1);
 }
 
 test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không đến", () => {
@@ -303,7 +298,7 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
   });
 });
 
-test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
+test.describe("CSKH › Lịch hẹn hủy, Khiếu nại (bug list #16)", () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
     await login(page);
@@ -362,7 +357,7 @@ test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
 
     await page.goto("/cskh-grouping?tab=care&page=complaint&care_dateMode=day");
     await assertRealApiTraffic(page, `${CARE}/stats`);
-    await expect(page.getByRole("button", { name: "Complain", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Khiếu nại", exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Tạo mới" }).click();
     const dialog = page.getByRole("dialog").filter({ hasText: "Tạo công việc mới" });
@@ -384,7 +379,7 @@ test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
     const staffOption = page.locator("#ss-portal-dropdown").getByRole("option").first();
     const staffName = ((await staffOption.textContent()) ?? "").trim();
     await staffOption.click();
-    await dialog.getByRole("textbox", { name: "Nội dung complain" }).fill(content);
+    await dialog.getByRole("textbox", { name: "Nội dung khiếu nại" }).fill(content);
 
     const created = page.waitForResponse((res) => res.url().endsWith(CARE) && res.request().method() === "POST");
     await save.click();

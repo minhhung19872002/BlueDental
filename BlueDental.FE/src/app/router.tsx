@@ -59,9 +59,27 @@ const DashboardPage = lazy(() =>
   })),
 );
 
+const CskhStatsPage = lazy(() =>
+  import("@/features/cskh/pages/CskhStatsPage").then((m) => ({
+    default: m.CskhStatsPage,
+  })),
+);
+
 const CskhGroupingPage = lazy(() =>
   import("@/features/cskh/pages/CskhGroupingPage").then((m) => ({
     default: m.CskhGroupingPage,
+  })),
+);
+
+const MessageTemplateEditorPage = lazy(() =>
+  import("@/features/cskh/pages/MessageTemplateEditorPage").then((m) => ({
+    default: m.MessageTemplateEditorPage,
+  })),
+);
+
+const MessageSendPage = lazy(() =>
+  import("@/features/cskh/pages/MessageSendPage").then((m) => ({
+    default: m.MessageSendPage,
   })),
 );
 
@@ -350,6 +368,30 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
+        path: "cskh-grouping/templates/new",
+        element: (
+          <G k="cskhTemplateNew">
+            <MessageTemplateEditorPage />
+          </G>
+        ),
+      },
+      {
+        path: "cskh-grouping/templates/:id",
+        element: (
+          <G k="cskhTemplateEdit">
+            <MessageTemplateEditorPage />
+          </G>
+        ),
+      },
+      {
+        path: "cskh-grouping/send",
+        element: (
+          <G k="cskhSend">
+            <MessageSendPage />
+          </G>
+        ),
+      },
+      {
         path: "marketing",
         element: (
           <G k="marketing">
@@ -581,6 +623,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="dashboard">
             <DashboardPage />
+          </G>
+        ),
+      },
+      // Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
+      {
+        path: "dashboard/cskh",
+        element: (
+          <G k="cskhStats">
+            <CskhStatsPage />
           </G>
         ),
       },

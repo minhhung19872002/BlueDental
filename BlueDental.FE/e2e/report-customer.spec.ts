@@ -14,7 +14,7 @@ import { createDentist, deleteDentist, openDentistSession } from "./fixtures/res
 
 const REPORTS = "/api/v1/app/clinic-reports";
 const CARE = "/api/v1/app/care-records";
-// The tabs of /cskh-grouping in order: Sau điều trị … Lịch hẹn hủy, CSKH định kì, CSKH đặc biệt, Complain.
+// The tabs of /cskh-grouping in order: Sau điều trị … Lịch hẹn hủy, CSKH định kì, CSKH đặc biệt, Khiếu nại.
 const BOARD_TYPES = [1, 2, 3, 11, 7, 8, 9, 4, 5, 10];
 const CHANNEL_MANUAL = 1;
 
@@ -243,7 +243,7 @@ test.describe("Báo cáo Telesale & CSKH (UI)", () => {
     await expect(page.locator(".report-chart-card").filter({ hasText: "Theo loại hình chăm sóc" }).first()).toBeVisible();
     await expect(page.locator(".report-chart-card").filter({ hasText: "Đánh giá sau chăm sóc" })).toBeVisible();
     const table = page.locator(".report-breakdown-tabs .ant-table").first();
-    for (const type of ["Sau điều trị", "Nhắc lịch hẹn", "Đặt lịch không đến", "Lịch hẹn hủy", "Complain"]) {
+    for (const type of ["Sau điều trị", "Nhắc lịch hẹn", "Đặt lịch không đến", "Lịch hẹn hủy", "Khiếu nại"]) {
       await expect(table.getByRole("cell", { name: type, exact: true })).toBeVisible();
     }
     await page.getByRole("tab", { name: "Theo nhân viên chăm sóc" }).click();

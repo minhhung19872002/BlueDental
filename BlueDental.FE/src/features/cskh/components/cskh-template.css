@@ -1,0 +1,269 @@
+/* ── CSKH ▸ Template tin nhắn (F-76, BA P2110) ───────────────────────────────
+   Filters on one card; under it the list and, at its right, the picked
+   template's preview. The list card keeps the CSKH fill recipe, so its body is
+   the scroller and the footer stays at its foot. */
+
+.tpl-tab {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tpl-filter-card.reception-card {
+  padding: 12px 16px;
+}
+
+.tpl-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tpl-filter-search.ant-input-affix-wrapper {
+  flex: 1 1 260px;
+  min-width: 220px;
+  height: 40px;
+}
+
+.tpl-filter-purpose.ant-select {
+  width: 260px;
+  height: 40px;
+}
+
+.tpl-filter-prefix {
+  margin-right: 4px;
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+
+.tpl-channel-pill-count {
+  margin-left: 2px;
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.tpl-body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 16px;
+}
+
+/* The fill recipe in a grid cell: never taller than the row the grid gives. */
+.tpl-table-card.cskh-table-card {
+  max-height: 100%;
+}
+
+.tpl-table-card .ant-table-tbody > tr.tpl-row {
+  cursor: pointer;
+}
+
+.tpl-table-card .ant-table-tbody > tr.tpl-row--selected > td,
+.tpl-table-card .ant-table-tbody > tr.tpl-row--selected:hover > td {
+  background: var(--bd-purple-pale);
+}
+
+.tpl-name-cell {
+  display: flex;
+  max-width: 260px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tpl-name {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.tpl-snippet {
+  overflow: hidden;
+  color: var(--bd-muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpl-table-footer {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--bd-line);
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+
+/* ── Preview card ── */
+
+.tpl-preview-card {
+  display: flex;
+  max-height: 100%;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+}
+
+.tpl-preview-card--empty {
+  padding: 40px 20px;
+  color: var(--bd-muted);
+  text-align: center;
+}
+
+.tpl-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tpl-eyebrow {
+  color: var(--bd-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tpl-preview-name {
+  margin-top: 4px;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tpl-preview-stage {
+  padding: 14px;
+  border-radius: var(--bd-radius);
+  background: var(--bd-surface-3);
+}
+
+.tpl-preview-bubble {
+  padding: 14px 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tpl-preview-ref {
+  margin-bottom: 6px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.tpl-preview-subject {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* A {bien} inside a message, the list's preview and the editor alike. */
+.tpl-var {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.tpl-preview-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tpl-fact {
+  display: inline-flex;
+  padding: 4px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.tpl-var-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -6px;
+}
+
+.tpl-var-list .tpl-var {
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--bd-purple) 25%, #ffffff);
+}
+
+.tpl-muted {
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+
+.tpl-preview-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.tpl-preview-actions .ant-btn-primary {
+  margin-left: auto;
+}
+
+.tpl-soft-btn.ant-btn,
+.tpl-soft-btn.ant-btn:not(:disabled):hover {
+  border-color: transparent;
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+
+.tpl-text-btn.ant-btn {
+  color: var(--bd-purple);
+}
+
+/* ── Responsive (house breakpoints 1280 / 1100 / 640) ── */
+
+@media (max-width: 1280px) {
+  .tpl-body {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+
+/* The preview drops under the list; the list stops being a scroller. */
+@media (max-width: 1100px) {
+  .tpl-body {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+
+  .tpl-table-card.cskh-table-card,
+  .tpl-preview-card {
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .tpl-filter-search.ant-input-affix-wrapper,
+  .tpl-filter-purpose.ant-select {
+    width: 100%;
+    flex-basis: 100%;
+  }
+}

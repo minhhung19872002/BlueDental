@@ -9,6 +9,7 @@ public class MessageLog : CreationAuditedEntity<Guid>
     public const int MaxExternalTemplateIdLength = 50;
     public const int MaxTemplateNameLength = 200;
     public const int MaxErrorLength = 500;
+    public const int MaxContentLength = 2000;
 
     public Guid ClinicBranchId { get; private set; }
     public Guid? PatientId { get; private set; }
@@ -33,6 +34,12 @@ public class MessageLog : CreationAuditedEntity<Guid>
     /// <summary>What the provider charged, in VND, when it says.</summary>
     public decimal? Cost { get; private set; }
 
+    /// <summary>The CSKH ▸ Gửi tin nhắn batch this message belongs to (F-77).</summary>
+    public Guid? SendBatchId { get; private set; }
+
+    /// <summary>The CSKH list row the customer was sent from, when the batch came off a list.</summary>
+    public Guid? CareRecordId { get; private set; }
+
     private MessageLog() { }
 
     public MessageLog(
@@ -48,7 +55,7 @@ public class MessageLog : CreationAuditedEntity<Guid>
         TemplateId = templateId;
         RecipientName = recipientName;
         RecipientPhone = recipientPhone;
-        Content = content;
+        Content = Clip(content, MaxContentLength) ?? string.Empty;
         Channel = channel;
         Status = status;
         SentAt = sentAt;
@@ -59,6 +66,27 @@ public class MessageLog : CreationAuditedEntity<Guid>
     {
         ExternalTemplateId = Clip(externalTemplateId, MaxExternalTemplateIdLength);
         TemplateName = Clip(templateName, MaxTemplateNameLength);
+        return this;
+    }
+
+    public MessageLog ForBatch(Guid sendBatchId, Guid? careRecordId)
+    {
+        SendBatchId = sendBatchId;
+        CareRecordId = careRecordId;
+        return this;
+    }
+
+    /// <summary>
+    /// The text actually sent, worked out again when the job sends it: a
+    /// scheduled message picks up the data as it is then, not when it was booked.
+    /// </summary>
+    public MessageLog Fill(string content)
+    {
+        if (Status == MessageSendStatus.Pending)
+        {
+            Content = Clip(content, MaxContentLength) ?? string.Empty;
+        }
+
         return this;
     }
 

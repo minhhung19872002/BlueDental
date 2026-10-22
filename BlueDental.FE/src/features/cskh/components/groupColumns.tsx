@@ -21,7 +21,8 @@ const TREATMENT_BADGE_CLASS: Record<CareTreatmentStatus, string | undefined> = {
 
 export interface GroupRowHandlers {
   onCall: ((patient: CareGroupingPatientDto) => void) | undefined;
-  onMessage: ((patient: CareGroupingPatientDto) => void) | undefined;
+  /** Gửi tin nhắn on SMS, locked to that customer. */
+  onSms: ((patient: CareGroupingPatientDto) => void) | undefined;
   onCare: ((patient: CareGroupingPatientDto) => void) | undefined;
 }
 
@@ -101,7 +102,7 @@ export function buildGroupColumns(
       render: (_, p) => (
         <CareRowActions
           onCall={handlers.onCall ? () => handlers.onCall!(p) : undefined}
-          onMessage={handlers.onMessage ? () => handlers.onMessage!(p) : undefined}
+          onSms={handlers.onSms ? () => handlers.onSms!(p) : undefined}
           onCare={handlers.onCare ? () => handlers.onCare!(p) : undefined}
         />
       ),
