@@ -59,6 +59,12 @@ const DashboardPage = lazy(() =>
   })),
 );
 
+const CskhStatsPage = lazy(() =>
+  import("@/features/cskh/pages/CskhStatsPage").then((m) => ({
+    default: m.CskhStatsPage,
+  })),
+);
+
 const CskhGroupingPage = lazy(() =>
   import("@/features/cskh/pages/CskhGroupingPage").then((m) => ({
     default: m.CskhGroupingPage,
@@ -617,6 +623,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="dashboard">
             <DashboardPage />
+          </G>
+        ),
+      },
+      // Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
+      {
+        path: "dashboard/cskh",
+        element: (
+          <G k="cskhStats">
+            <CskhStatsPage />
           </G>
         ),
       },

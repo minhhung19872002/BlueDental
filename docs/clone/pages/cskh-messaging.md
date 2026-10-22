@@ -5,16 +5,16 @@ tham chiếu để quan sát.
 
 Nguồn:
 
-- `P2110.drawio` của BA (ảnh img_01..img_08);
+- `P2110.drawio` của BA (ảnh img_01..img_08, img_31..img_33 cho đợt 3);
 - mock HTML `3 · Gửi tin nhắn` (`Send.dc.html`, dùng cho đợt 2).
 
-Mọi thứ BA chưa nói và chủ dự án chưa chốt nằm trong `../unknowns.md` (F-76).
+Mọi thứ BA chưa nói và chủ dự án chưa chốt nằm trong `../unknowns.md` (F-76, F-77, F-78).
 
 | Đợt | Màn | Feature |
 |---|---|---|
 | 1 | Tab "Template tin nhắn" + trang Tạo/Sửa mẫu | F-76 (`../../testing/features/cskh-message-template.md`) |
 | 2 | Gửi tin nhắn (`Send.dc.html`) | F-77 (`../../testing/features/cskh-message-send.md`) |
-| 3 | Thống kê CSKH | F-78 |
+| 3 | Thống kê CSKH (`/dashboard/cskh`) | F-78 (`../../testing/features/cskh-message-stats.md`) |
 
 Giữ thiết kế v2: token `--bd-*` và các component dùng chung (`PageHeader`,
 `PillTabs`, `CountPill`, bảng có đường kẻ dọc). Không dùng bảng màu riêng
@@ -165,3 +165,44 @@ không commit vì có tên khách của DB develop):
 | Nguồn "Tệp tải lên" | không có (quyết định 7) |
 | Link "Tạo lần gửi khác cho nhóm này bằng kênh khác" | không có |
 | Màu, font | theo v2 (quyết định 9) |
+
+## Thống kê CSKH (`/dashboard/cskh`) — img_31 / img_32 (F-78)
+
+Chủ dự án: "Thống kê mới nằm ở sub menu Thống kê CSKH, còn thống kê hiện tại
+nằm ở sub menu Tổng quan" (img_33). Nhóm header "Tổng quan" có 2 mục ribbon:
+Tổng quan (`/dashboard`, trang cũ) và Thống kê CSKH. Cần `cskhStats.read`.
+
+- **Đầu trang**: tiêu đề sr-only (R-993), nút "Xuất báo cáo Excel" bên phải (`cskhStats.export`).
+- **Bộ lọc** (một hàng, như img_31): Thời gian (`PeriodRangePicker`, mặc định đầu tháng → hôm nay,
+  ô ghi đơn vị "Theo ngày" trên khoảng ngày) · Tất cả / SMS / Zalo / Email · Mẫu.
+- **Thẻ số**: Tin đã gửi · Gửi thành công · Thất bại (`KpiCard`, như trang Tổng quan).
+- **Hàng 2**: Tin đã gửi theo ngày (trái) · Theo kênh (phải), tỉ lệ 1,85 : 1 (1,4 : 1 dưới 1280 px). Dưới 1100 px chồng thành một cột.
+- **Hiệu suất theo mẫu**, **Lịch sử gửi**, **Người nhận**: bảng có đường kẻ dọc và phân trang
+  dùng chung (`useTablePagination`).
+
+Chi tiết số liệu, quyền và API: `../../testing/features/cskh-message-stats.md`.
+
+### Visual parity với img_31 / img_32 (2026-10-22, 1440 px, build production)
+
+So `stats-1440-tall2.png` (và `stats-390*.png` cho điện thoại; `.playwright-mcp/`,
+không commit vì có tên khách của DB develop) với img_31 / img_32:
+
+| Điểm | Kết quả |
+|---|---|
+| Thứ tự khối: bộ lọc → thẻ số → theo ngày + Theo kênh → mẫu → Lịch sử gửi → Người nhận | khớp |
+| Bộ lọc một hàng: Thời gian, nút kênh dạng segmented, Mẫu | khớp; ô thời gian thêm dòng "Theo ngày" của `PeriodRangePicker` |
+| Nút "Xuất báo cáo Excel" góc phải trên | khớp; tiêu đề "Theo dõi & thống kê" và dòng mô tả là sr-only (R-993) |
+| Cột theo ngày: hôm nay đậm màu, các cột khác nhạt, số trên đầu cột | khớp một phần: chỉ cột cao nhất và cột hôm nay có số (BA ghi số mọi cột); có trục Y và đường lưới |
+| Dòng phụ biểu đồ | khác: ghi khoảng ngày đang lọc ("01/10/2026 – 22/10/2026 · hôm nay đậm màu"), BA ghi "14 ngày gần nhất" |
+| Theo kênh: tên, số tin, thanh, "Thành công N%" | khớp; không có "Đã xem / Đã mở / Không đo được lượt xem" bên phải (quyết định 8) |
+| Thẻ số | khác, cố ý: 3 thẻ thay cho 5, không có Đã xem / mở và Khách phản hồi (quyết định 8); icon góc phải và viền thường của `KpiCard` v2, không có viền xanh / đỏ |
+| Hiệu suất theo mẫu: Mẫu · Kênh · Lần dùng · Đã gửi · Thành công (thanh + %) · Lần cuối | khớp; không có cột Xem / mở, Phản hồi (quyết định 8); tên mẫu chữ đậm, không gạch chân / không phải link |
+| Lịch sử gửi: 7 cột, Kết quả có thanh + "N thành công · N lỗi" / "N / M đã gửi" / "Chưa gửi" | khớp; thêm trạng thái "Đã huỷ" (huỷ hẹn ở F-77) |
+| Tệp khách hàng | khác: "{tab CSKH} · {ngày}" hoặc "Khách lẻ"; không có tên file `.xlsx` (quyết định 7) |
+| Người gửi | khác: họ tên tài khoản, không có tiền tố vai trò ("Lễ tân · …") |
+| Người nhận: tìm + lọc trạng thái ở đầu thẻ | khớp; ô tìm "Tên hoặc SĐT" (BA "Tên, SĐT hoặc email"), thêm sắp xếp ở cột Khách hàng / Thời gian |
+| SĐT ở Người nhận | khác: che theo quyền "Ẩn số điện thoại" như mọi màn khác, không che cố định "0912 *** 678" |
+| Trạng thái người nhận | khác, cố ý: Đã nhận / Thất bại / Đang gửi / Đã hẹn giờ, không có Đã xem / Đã mở (quyết định 8); lý do thất bại cùng dòng như BA |
+| Phân trang | khác: mọi bảng có phân trang chung (`10 / trang`), BA chỉ có ở Người nhận |
+| Màu, font | theo v2 (quyết định 9): tím `--bd-primary`, không theo bảng màu ảnh BA |
+| 390 px | các khối chồng một cột, bảng cuộn ngang trong thẻ, không cuộn ngang cả trang |

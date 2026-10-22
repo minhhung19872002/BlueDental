@@ -5,11 +5,15 @@
 // Zalo__BusinessApiBaseUrl = http://127.0.0.1:<port>, and pass the OA id the
 // branch's connection holds, so the host's OA check matches. GET /__calls
 // lists every request it got (specs check nothing was sent).
+//
+// ZNS refuses every number starting 0399 (84399… as the host may send it), so a
+// spec can follow a failed send through to Thống kê CSKH.
 import http from "node:http";
 
 const port = Number(process.argv[2] ?? 5199);
 const oaId = process.argv[3] ?? "stub-oa";
 const calls = [];
+const UNDELIVERABLE = /"phone":"(84|0)399/;
 
 const PARAMS = {
   "301001": [
@@ -66,6 +70,7 @@ http
           });
         }
         case "/message/template":
+          if (UNDELIVERABLE.test(body)) return send(res, { error: -108, message: "Phone number is invalid" });
           return send(res, {
             error: 0,
             message: "Success",

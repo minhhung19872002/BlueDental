@@ -3060,3 +3060,28 @@ Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
 - Gửi thử tới số điện thoại của tài khoản đang đăng nhập; không ghi vào nhật ký gửi, không tính vào "Đã gửi".
 - Lần gửi hẹn giờ: nội dung điền lại bằng dữ liệu lúc gửi, không phải lúc hẹn.
 - Tham số ZNS chỉ được nêu tên khi không có biến nào giải thích chỗ thiếu.
+
+## CSKH — Thống kê CSKH (F-78, R-1011, 2026-10-22, BA P2110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/dashboard/cskh` (develop), mục "Thống kê CSKH" trong nhóm header Tổng quan
+Control: thanh chọn thời gian (`PeriodRangePicker`), lọc Kênh / Mẫu, 3 thẻ số, cột theo ngày, Theo kênh, Hiệu suất theo mẫu, Lịch sử gửi, Người nhận, Xuất báo cáo Excel
+Reason: tính năng riêng của BlueDental theo img_31 / img_32 / img_33 trong `P2110.drawio`; bản gốc không có, không có gì để quan sát. Ảnh BA không nói các điểm dưới đây. Xem `pages/cskh-messaging.md` và `docs/testing/features/cskh-message-stats.md`.
+Action taken: NONE trên production. Khác ảnh BA theo quyết định của chủ dự án (2026-10-22):
+- Không có thẻ Đã xem / mở và Khách phản hồi, không có cột Xem / mở, Phản hồi, không có trạng thái "Đã xem" / "Đã mở": 3 thẻ số thay cho 5 (quyết định 8).
+- SMS / Email vẫn có trong Theo kênh và nút lọc, số luôn 0 và "Thành công —" (quyết định 1).
+- `PeriodRangePicker` chỉ dùng ở trang này (quyết định 11). Màu theo thiết kế v2 (quyết định 9).
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- "So sánh kỳ trước" bật sẵn. Kỳ trước = cùng số ngày, kết thúc ngay trước ngày bắt đầu (không phải "tháng trước" theo lịch).
+- Thẻ Thất bại có dòng phụ "N% số tin đã gửi"; thẻ Tin đã gửi ghi "Kỳ trước chưa có tin" khi kỳ trước bằng 0.
+- Chỉ tính tin đã thử gửi; thời điểm một tin = lúc gửi, không có thì lúc lượt bắt đầu, rồi giờ hẹn, rồi lúc tạo.
+- Người nhận và Lịch sử gửi lấy cả lượt **tạo** trong kỳ (điều kiện HOẶC), nên lượt hẹn giờ hiện từ ngày tạo, ghi "Đã hẹn giờ".
+- Mẫu đã xoá chỉ còn trong ô lọc nếu từng được dùng, nhãn "{tên} (đã xoá)".
+- SĐT ở Người nhận và trong file Excel che theo quyền "Ẩn số điện thoại" như mọi màn khác; khi bị che, tìm theo SĐT chỉ khớp khi gõ đủ số.
+- Tìm Người nhận theo tên (không dấu) hoặc SĐT; không tìm theo email.
+- Cột theo ngày: chỉ cột cao nhất và cột hôm nay có số; nhãn trục X thưa dần theo bề ngang. Kỳ dài hơn 62 ngày thì cộng theo tháng.
+- Kỳ tối đa 1830 ngày (`Tools:0027`, nút Áp dụng khoá kèm "Chọn tối đa 1830 ngày").
+- File Excel tối đa 50.000 người nhận; 4 sheet Theo ngày, Theo mẫu, Lịch sử gửi, Người nhận.
+- Mọi bảng có phân trang, tối đa 100 dòng một trang.
+- Stub Zalo của e2e từ chối mọi số `0399…` (-108) để có tin Thất bại thật; Zalo thật không có quy tắc này.

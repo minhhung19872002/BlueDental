@@ -132,12 +132,12 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
 
         if (template is not { CanSend: true, Channel: MessageChannelType.Zalo })
         {
-            return Refuse("The template is no longer ready to send.");
+            return Refuse(MessageFailureReasons.TemplateNotReady);
         }
 
         if (connection is not { CanSend: true })
         {
-            return Refuse("Zalo OA is not connected.");
+            return Refuse(MessageFailureReasons.ZaloNotConnected);
         }
 
         ZaloTemplateDetail detail;
@@ -148,7 +148,7 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
         catch (BusinessException ex) when (ex.Code == BlueDentalDomainErrorCodes.Tools.ZaloRequestFailed)
         {
             await uow.CompleteAsync();
-            return Refuse($"Zalo template could not be read: {ex.Data["message"]}");
+            return Refuse(MessageFailureReasons.TemplateUnreadable(ex.Data["message"]));
         }
 
         var values = await _recipients.ResolveForLogsAsync(batch.ClinicBranchId, messages);
@@ -176,7 +176,7 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
         catch (Exception ex)
         {
             Logger.LogError(ex, "CSKH message {MessageId} could not be sent.", messageId);
-            await FailAsync(messageId, "Send error.");
+            await FailAsync(messageId, MessageFailureReasons.SendError);
             return;
         }
 
@@ -190,7 +190,7 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
     {
         if (!plan.Values!.TryGetValue(message.Id, out var values))
         {
-            message.MarkFailed("Customer not found.");
+            message.MarkFailed(MessageFailureReasons.CustomerNotFound);
             return;
         }
 
@@ -198,7 +198,7 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
         var check = MessageRecipientBuilder.Check(template, plan.Detail!.Params, values);
         if (check.Missing.Count > 0)
         {
-            message.MarkFailed($"Missing data: {string.Join(", ", check.Missing)}");
+            message.MarkFailed(MessageFailureReasons.MissingData(check.Missing));
             return;
         }
 

@@ -183,7 +183,7 @@ E2E_BASE_URL=http://127.0.0.1:8130 E2E_ZALO_STUB=1 \
 
 ## Còn treo
 
-- Đợt 3 (F-78): Thống kê CSKH + PeriodRangePicker.
+- ~~Đợt 3 (F-78): Thống kê CSKH + PeriodRangePicker~~: xong (R-1011), xem `cskh-message-stats.md`.
 - SMS / Email chưa có nhà cung cấp gửi; khi có thì thêm vào job gửi.
 - Các điểm khác so với `Send.dc.html`: xem `docs/clone/unknowns.md` (F-77).
 

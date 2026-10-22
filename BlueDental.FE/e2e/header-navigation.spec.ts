@@ -10,12 +10,13 @@ test.describe("Header navigation", () => {
     await login(page);
   });
 
+  // F-68: the address carries the branch code (?branch=BD-001) once it resolves.
   test("signing in opens Tiếp nhận", async ({ page }) => {
-    await expect(page).toHaveURL(/\/reception$/);
+    await expect(page).toHaveURL(/\/reception(\?|$)/);
 
     // The bare address resolves the same way, not only the sign-in form.
     await page.goto("/");
-    await expect(page).toHaveURL(/\/reception$/);
+    await expect(page).toHaveURL(/\/reception(\?|$)/);
   });
 
   test("the header carries the four menu groups, Phòng khám first", async ({ page }) => {
@@ -42,23 +43,33 @@ test.describe("Header navigation", () => {
     ]);
   });
 
-  /* BA (2026-10-05): the ribbon is always on — the page's own group by default,
-     empty for a group without members. */
+  /* BA (2026-10-05): the ribbon is always on — the page's own group by default.
+     BA P2110 (F-78): Tổng quan is a group of two now, the old dashboard first
+     and Thống kê CSKH beside it, so it opens a ribbon like the others. */
   test("the ribbon is always on, showing the page's own group", async ({ page }) => {
     const ribbon = page.locator(".app-ribbon");
     await expect(ribbon).toBeVisible();
     await expect(ribbon.locator(".app-ribbon-item--active")).toHaveText("Tiếp nhận");
     // offsetHeight, which no transform touches, rather than the drawn box.
-    const full = await ribbon.evaluate((el) => (el as HTMLElement).offsetHeight);
+    const reception = await ribbon.evaluate((el) => (el as HTMLElement).offsetHeight);
 
     await page.locator('.app-nav-group[title="Tổng quan"]').click();
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(ribbon).toBeVisible();
-    await expect(ribbon.locator(".app-ribbon-item")).toHaveCount(0);
+    await expect(page, "a group only opens; the page stays").toHaveURL(/\/reception(\?|$)/);
+    await expect(ribbon.locator(".app-ribbon-item")).toHaveText(["Tổng quan", "Thống kê CSKH"]);
 
-    // Empty, it keeps the height it had with items, so the page does not jump.
-    const empty = await ribbon.evaluate((el) => (el as HTMLElement).offsetHeight);
-    expect(empty).toBe(full);
+    await page.locator('.app-ribbon-item[title="Tổng quan"]').click();
+    await expect(page).toHaveURL(/\/dashboard(\?|$)/);
+    await expect(ribbon.locator(".app-ribbon-item--active")).toHaveText("Tổng quan");
+
+    await page.locator('.app-ribbon-item[title="Thống kê CSKH"]').click();
+    await expect(page).toHaveURL(/\/dashboard\/cskh/);
+    // Only the sub-page lights up, though the dashboard's path heads its own.
+    await expect(ribbon.locator(".app-ribbon-item--active")).toHaveText("Thống kê CSKH");
+    await expect(page.locator(".app-nav-group--active")).toHaveText("Tổng quan");
+
+    // Another group's members, the same height: the page does not jump.
+    const dashboard = await ribbon.evaluate((el) => (el as HTMLElement).offsetHeight);
+    expect(dashboard).toBe(reception);
   });
 
   test("choosing from the ribbon navigates and the ribbon stays", async ({ page }) => {
@@ -125,9 +136,11 @@ test.describe("Header navigation", () => {
     await expect(page.locator(".app-ribbon")).toBeHidden();
     await page.locator(".app-header-burger").click();
 
+    // Every page of every group, Thống kê CSKH (F-78) among them.
     const drawer = page.locator(".app-drawer-item");
     await expect(drawer.first()).toBeVisible();
-    await expect(drawer).toHaveCount(14);
+    await expect(drawer).toHaveCount(18);
+    await expect(page.locator('.app-drawer-item[title="Thống kê CSKH"]')).toBeVisible();
 
     await page.locator('.app-drawer-item[title="Vật tư"]').click();
     await expect(page).toHaveURL(/\/materials/);

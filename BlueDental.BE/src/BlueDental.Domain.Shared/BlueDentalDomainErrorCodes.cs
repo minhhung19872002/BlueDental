@@ -666,6 +666,10 @@ public static class BlueDentalDomainErrorCodes
         public const string SendNotCancellable = "BlueDental:Tools:0023";
         public const string SendListRequired = "BlueDental:Tools:0024";
         public const string SendTooManyRecipients = "BlueDental:Tools:0025";
+
+        // Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
+        public const string StatsPeriodReversed = "BlueDental:Tools:0026";
+        public const string StatsPeriodTooLong = "BlueDental:Tools:0027";
     }
 
     public static class ClinicIntegration

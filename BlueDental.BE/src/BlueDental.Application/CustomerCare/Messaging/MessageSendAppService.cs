@@ -47,6 +47,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
     private readonly MessageRecipientBuilder _recipients;
     private readonly MessageVariableResolver _variables;
     private readonly MessageTemplateUsageReader _usage;
+    private readonly MessageBatchCounter _counter;
     private readonly MessageValueMasker _masker;
     private readonly PatientPhoneMasker _phoneMasker;
     private readonly ZaloOaGateway _zalo;
@@ -67,6 +68,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         MessageRecipientBuilder recipients,
         MessageVariableResolver variables,
         MessageTemplateUsageReader usage,
+        MessageBatchCounter counter,
         MessageValueMasker masker,
         PatientPhoneMasker phoneMasker,
         ZaloOaGateway zalo,
@@ -86,6 +88,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         _recipients = recipients;
         _variables = variables;
         _usage = usage;
+        _counter = counter;
         _masker = masker;
         _phoneMasker = phoneMasker;
         _zalo = zalo;
@@ -242,14 +245,14 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
             new MessageSendJobArgs { BatchId = batchId },
             delay: delay > TimeSpan.Zero ? delay : null);
 
-        return ToBatchDto(batch, new BatchCounts(0, 0, going.Count));
+        return ToBatchDto(batch, new MessageBatchCounts(0, 0, going.Count));
     }
 
     public async Task<MessageSendBatchDto> GetAsync(Guid id)
     {
         var batch = await GetBatchAsync(id);
-        var counts = await CountAsync([batch.Id]);
-        return ToBatchDto(batch, counts.GetValueOrDefault(batch.Id) ?? BatchCounts.None);
+        var counts = await _counter.CountAsync([batch.Id]);
+        return ToBatchDto(batch, counts.GetValueOrDefault(batch.Id) ?? MessageBatchCounts.None);
     }
 
     public async Task<List<MessageSendBatchDto>> GetListAsync(GetMessageSendBatchListInput input)
@@ -261,8 +264,8 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         var batches = await AsyncExecuter.ToListAsync(query
             .OrderByDescending(b => b.CreationTime)
             .Take(MaxBatchesListed));
-        var counts = await CountAsync([.. batches.Select(b => b.Id)]);
-        return [.. batches.Select(b => ToBatchDto(b, counts.GetValueOrDefault(b.Id) ?? BatchCounts.None))];
+        var counts = await _counter.CountAsync([.. batches.Select(b => b.Id)]);
+        return [.. batches.Select(b => ToBatchDto(b, counts.GetValueOrDefault(b.Id) ?? MessageBatchCounts.None))];
     }
 
     /// <summary>The booked messages go with the batch: none of them was sent, so nothing of them is history.</summary>
@@ -273,7 +276,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         batch.Cancel(Clock.Now);
         await _batches.UpdateAsync(batch);
         await _messages.DeleteAsync(m => m.SendBatchId == id && m.Status == MessageSendStatus.Pending);
-        return ToBatchDto(batch, BatchCounts.None);
+        return ToBatchDto(batch, MessageBatchCounts.None);
     }
 
     /// <summary>
@@ -407,25 +410,6 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         return (await _masker.MaskAsync(values), false);
     }
 
-    private async Task<Dictionary<Guid, BatchCounts>> CountAsync(IReadOnlyCollection<Guid> batchIds)
-    {
-        if (batchIds.Count == 0)
-        {
-            return [];
-        }
-
-        var rows = await AsyncExecuter.ToListAsync((await _messages.GetQueryableAsync())
-            .Where(m => m.SendBatchId != null && batchIds.Contains(m.SendBatchId.Value))
-            .GroupBy(m => new { BatchId = m.SendBatchId!.Value, m.Status })
-            .Select(g => new { g.Key.BatchId, g.Key.Status, Count = g.Count() }));
-        return rows.GroupBy(r => r.BatchId).ToDictionary(
-            g => g.Key,
-            g => new BatchCounts(
-                g.Where(r => MessageTemplateUsageReader.Delivered.Contains(r.Status)).Sum(r => r.Count),
-                g.Where(r => r.Status == MessageSendStatus.Failed).Sum(r => r.Count),
-                g.Where(r => r.Status == MessageSendStatus.Pending).Sum(r => r.Count)));
-    }
-
     private static MessageRecipientDto ToRecipientDto(MessageRecipient r) => new()
     {
         Key = r.Key,
@@ -441,7 +425,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         Missing = [.. r.Missing],
     };
 
-    private static MessageSendBatchDto ToBatchDto(MessageSendBatch b, BatchCounts counts) => new()
+    private static MessageSendBatchDto ToBatchDto(MessageSendBatch b, MessageBatchCounts counts) => new()
     {
         Id = b.Id,
         Channel = b.Channel,
@@ -462,9 +446,4 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         CreationTime = b.CreationTime,
         CompletedAt = b.CompletedAt,
     };
-
-    private sealed record BatchCounts(int Sent, int Failed, int Pending)
-    {
-        public static readonly BatchCounts None = new(0, 0, 0);
-    }
 }

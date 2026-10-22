@@ -225,6 +225,18 @@ public static class BlueDentalAbilityPermissions
         public const string Create = "BlueDental.cskhSend.create";
     }
 
+    /// <summary>
+    /// Subject <c>cskhStats</c> — Tổng quan ▸ Thống kê CSKH: what the CSKH
+    /// sends delivered, per day, channel, template, send and recipient, and the
+    /// Excel of it (BlueDental-local, BA P2110).
+    /// </summary>
+    public static class CskhStats
+    {
+        public const string Subject = "cskhStats";
+        public const string Read = "BlueDental.cskhStats.read";
+        public const string Export = "BlueDental.cskhStats.export";
+    }
+
     /// <summary>Subject <c>helpSupport</c>.</summary>
     public static class HelpSupport
     {
