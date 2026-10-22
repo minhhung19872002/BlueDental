@@ -77,14 +77,16 @@ public class MessageLog : CreationAuditedEntity<Guid>
     }
 
     /// <summary>
-    /// The text actually sent, worked out again when the job sends it: a
-    /// scheduled message picks up the data as it is then, not when it was booked.
+    /// The text actually sent and the number it goes to, worked out again when
+    /// the job sends it: a scheduled message picks up the data as it is then,
+    /// not when it was booked — a phone changed since goes to the new number (R-1019).
     /// </summary>
-    public MessageLog Fill(string content)
+    public MessageLog Fill(string content, string recipientPhone)
     {
         if (Status == MessageSendStatus.Pending)
         {
             Content = Clip(content, MaxContentLength) ?? string.Empty;
+            RecipientPhone = recipientPhone;
         }
 
         return this;

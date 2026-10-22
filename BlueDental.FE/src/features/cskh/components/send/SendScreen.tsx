@@ -45,6 +45,7 @@ export function SendScreen() {
     channel: choice.channel,
     templateId: choice.template?.id ?? null,
     source: params.source,
+    careRecordId: params.careRecordId,
     careType: params.careTab.type,
     period: params.period,
     skipRecent,

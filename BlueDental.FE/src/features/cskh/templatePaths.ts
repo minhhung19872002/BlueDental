@@ -24,6 +24,8 @@ export interface SendPathParams {
   date?: string;
   /** A row's SMS / Zalo button: Khách lẻ, locked to that customer. */
   patientId?: string;
+  /** That row, so a Zalo sent from it marks it as sent. */
+  careRecordId?: string;
 }
 
 export function sendPath(params: SendPathParams = {}): string {
@@ -34,6 +36,7 @@ export function sendPath(params: SendPathParams = {}): string {
   if (params.dateMode) query.set("care_dateMode", params.dateMode);
   if (params.date) query.set("care_date", params.date);
   if (params.patientId) query.set("patientId", params.patientId);
+  if (params.careRecordId) query.set("careRecordId", params.careRecordId);
   const search = query.toString();
   return search ? `/cskh-grouping/send?${search}` : "/cskh-grouping/send";
 }

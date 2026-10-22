@@ -57,7 +57,7 @@ public class MessageRecipientBuilder(
     {
         var people = input.Source == MessageRecipientSource.CareList
             ? await ReadCareListAsync(branchId, input)
-            : await ReadPickedAsync(branchId, input.PatientIds);
+            : await ReadPickedAsync(branchId, input.PatientIds, input.CareRecordId);
         if (input.Keys != null)
         {
             var kept = input.Keys.ToHashSet(StringComparer.Ordinal);
@@ -75,7 +75,7 @@ public class MessageRecipientBuilder(
         var channel = template?.Channel ?? input.Channel;
         return [.. people
             .Select(p => Describe(p, values[p.Key], channel, template, znsParams, input.SkipRecentDuplicates,
-                p.Patient is { } patient && received.TryGetValue(patient.Id, out var at) ? at : null))
+                p.Patient is { } patient ? received.GetValueOrDefault(patient.Id) : null))
             .OrderBy(r => r.Name, ByName)];
     }
 
@@ -170,7 +170,7 @@ public class MessageRecipientBuilder(
         MessageTemplate? template,
         IReadOnlyList<ZaloTemplateParam>? znsParams,
         bool skipRecent,
-        DateTime? receivedAt)
+        MessageReceipt? received)
     {
         var phone = values.GetValueOrDefault(MessageVariables.Phone);
         var email = values.GetValueOrDefault(MessageVariables.Email);
@@ -180,7 +180,7 @@ public class MessageRecipientBuilder(
             : NormalizePhone(phone) != null;
 
         MessageSkipReason? skip = !reachable ? MessageSkipReason.NoContact
-            : skipRecent && receivedAt.HasValue ? MessageSkipReason.RecentlySent
+            : skipRecent && received != null ? MessageSkipReason.RecentlySent
             : check?.Missing.Count > 0 ? MessageSkipReason.MissingVariable
             : null;
 
@@ -193,7 +193,7 @@ public class MessageRecipientBuilder(
             phone,
             email,
             person.DentistName ?? MessageVariableResolver.DentistNameOf(values),
-            receivedAt,
+            received,
             skip,
             check?.Missing ?? [],
             check);
@@ -278,7 +278,12 @@ public class MessageRecipientBuilder(
         return Person.Guest(booking, record, dentist);
     }
 
-    private async Task<List<Person>> ReadPickedAsync(Guid branchId, IReadOnlyCollection<Guid> patientIds)
+    /// <summary>
+    /// The customers picked; the CSKH row a row button came from rides along
+    /// with its customer, booking included, as on the list. A row of another
+    /// branch or customer is dropped without a word.
+    /// </summary>
+    private async Task<List<Person>> ReadPickedAsync(Guid branchId, IReadOnlyCollection<Guid> patientIds, Guid? careRecordId)
     {
         var ids = patientIds.ToHashSet();
         if (ids.Count == 0)
@@ -287,7 +292,15 @@ public class MessageRecipientBuilder(
         }
 
         var picked = await patients.GetListAsync(p => ids.Contains(p.Id) && p.BranchId == branchId);
-        return [.. picked.Select(p => Person.Of(p, null, null))];
+        var record = careRecordId is { } recordId ? await careRecords.FindAsync(recordId) : null;
+        if (record != null && (record.BranchId != branchId || !ids.Contains(record.PatientId)))
+        {
+            record = null;
+        }
+
+        return [.. picked.Select(p => record?.PatientId == p.Id
+            ? Person.Of(p, record, record.AppointmentId)
+            : Person.Of(p, null, null))];
     }
 
     private async Task<Dictionary<string, IReadOnlyDictionary<string, string?>>> ResolveAsync(
@@ -342,7 +355,7 @@ public sealed record MessageRecipient(
     string? Phone,
     string? Email,
     string? DentistName,
-    DateTime? ReceivedAt,
+    MessageReceipt? Received,
     MessageSkipReason? SkipReason,
     IReadOnlyList<string> Missing,
     MessageCheck? Check);

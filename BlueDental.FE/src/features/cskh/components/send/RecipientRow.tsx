@@ -66,7 +66,12 @@ export function RecipientRow(props: RecipientRowProps) {
       </span>
       <span role="cell" className="snd-cell">
         {recipient.receivedAt ? (
-          <span className="snd-row-received">{t("CSKH:Send:ReceivedOn", formatDate(recipient.receivedAt))}</span>
+          <span className="snd-row-received">
+            {t(
+              recipient.receivedPending ? "CSKH:Send:PendingOn" : "CSKH:Send:ReceivedOn",
+              formatDate(recipient.receivedAt),
+            )}
+          </span>
         ) : (
           <span className="snd-row-fresh">{t("CSKH:Send:NotReceived")}</span>
         )}

@@ -2,6 +2,8 @@ using BlueDental.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Autofac;
+using Volo.Abp.BackgroundJobs;
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.BlobStoring.Minio;
 using Volo.Abp.Modularity;
@@ -29,6 +31,13 @@ public class BlueDentalDbMigratorModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
+
+        // The migrator runs on every compose start, next to a live host: it
+        // must not pick up queued jobs (a due "Hẹn giờ gửi" batch would start
+        // here, without the host's keys) nor run the host's workers (the Zalo
+        // token refresh would race the host's) (R-1012).
+        Configure<AbpBackgroundJobOptions>(options => options.IsJobExecutionEnabled = false);
+        Configure<AbpBackgroundWorkerOptions>(options => options.IsEnabled = false);
 
         Configure<AbpBlobStoringOptions>(options =>
         {

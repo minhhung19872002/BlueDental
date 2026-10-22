@@ -150,6 +150,13 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
             await uow.CompleteAsync();
             return Refuse(MessageFailureReasons.TemplateUnreadable(ex.Data["message"]));
         }
+        catch (BusinessException ex) when (ex.Code == BlueDentalDomainErrorCodes.Tools.ZaloNotConnected)
+        {
+            // The token refresh Zalo just refused lapsed the link (R-1016):
+            // a retry a minute later would only find it the same.
+            await uow.CompleteAsync();
+            return Refuse(MessageFailureReasons.ZaloNotConnected);
+        }
 
         var values = await _recipients.ResolveForLogsAsync(batch.ClinicBranchId, messages);
         await uow.CompleteAsync();
@@ -202,11 +209,18 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
             return;
         }
 
-        message.Fill(check.Message.Text).SetExternalTemplate(template.ExternalTemplateId, template.Name);
+        var phone = MessageRecipientBuilder.NormalizePhone(values.GetValueOrDefault(MessageVariables.Phone));
+        if (phone == null)
+        {
+            message.MarkFailed(MessageFailureReasons.NoPhone);
+            return;
+        }
+
+        message.Fill(check.Message.Text, phone).SetExternalTemplate(template.ExternalTemplateId, template.Name);
         var connection = (await _zalo.FindConnectionAsync(branchId))!;
         var outcome = await _zalo.CallWithTokenAsync(connection,
             token => _zaloApi.SendTemplateMessageAsync(
-                token, message.RecipientPhone, plan.Detail.TemplateId, check.ZnsValues!, message.Id.ToString("N")),
+                token, phone, plan.Detail.TemplateId, check.ZnsValues!, message.Id.ToString("N")),
             o => o.Call);
         if (outcome.Call.Succeeded)
         {

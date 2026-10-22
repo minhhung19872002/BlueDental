@@ -16,6 +16,7 @@ public static class MessageFailureReasons
     public const string SendError = "Send error.";
     public const string TemplateNotReady = "The template is no longer ready to send.";
     public const string ZaloNotConnected = "Zalo OA is not connected.";
+    public const string NoPhone = "No phone number Zalo accepts.";
 
     private const string MissingDataPrefix = "Missing data: ";
     private const string TemplateUnreadablePrefix = "Zalo template could not be read: ";
@@ -26,6 +27,7 @@ public static class MessageFailureReasons
         [SendError] = "CSKH:Stats:Error:SendError",
         [TemplateNotReady] = "CSKH:Stats:Error:TemplateNotReady",
         [ZaloNotConnected] = "CSKH:Stats:Error:ZaloNotConnected",
+        [NoPhone] = "CSKH:Stats:Error:NoPhone",
     };
 
     public static string MissingData(IEnumerable<string> missing) => MissingDataPrefix + string.Join(", ", missing);

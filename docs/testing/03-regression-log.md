@@ -10502,3 +10502,77 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Role tuỳ chỉnh phải cấp tay "Thống kê CSKH".
   - SMS / Email chưa có nhà cung cấp gửi, nên chưa có số liệu.
   - Đã xem / mở và Khách phản hồi: chưa kênh nào báo về (quyết định 8).
+
+## R-1012 (2026-10-22, mức 2) F-77 — DbMigrator không chạy background job / worker
+
+- **Lỗi** (review code F-76..F-78, mục 1): `docker compose up` chạy DbMigrator mỗi lần khởi động, cạnh host đang chạy. Migrator nạp module Application nên cũng chạy job và worker của ABP: một lô "Hẹn giờ gửi" đã tới giờ có thể bị migrator lấy đi gửi, và worker làm mới token Zalo chạy song song với của host.
+- **Sửa**: `BlueDentalDbMigratorModule` tắt `AbpBackgroundJobOptions.IsJobExecutionEnabled` và `AbpBackgroundWorkerOptions.IsEnabled`. Host không đổi.
+- **Test thật** (DB `BlueDental_develop`, host :5100, Zalo stub :5199). Chạy tay, không có spec, vì e2e không dừng được host:
+  1. Hẹn một lô +120 s qua API thật, rồi tắt hẳn tiến trình host. Lô ở trạng thái Chờ (0), job `cskh.message-send` có `TryCount` 0.
+  2. Quá giờ hẹn, chạy DbMigrator đã sửa (`DOTNET_ENVIRONMENT=Production`, cùng DB và Redis với host). Migrator chạy 9 s rồi thoát. Lô vẫn Chờ, chưa có `StartedAt`, job vẫn `TryCount` 0 và `LastTryTime` trống.
+  3. Bật lại host: host lấy lô sau vài giây (`StartedAt` có giá trị, lô Xong, job bị xoá).
+  4. Đối chứng với code cũ: bỏ bản sửa, build lại migrator, làm lại bước 1–2 với lô mới. Migrator cũ lấy lô ngay trong lúc chạy (`StartedAt` 2 s trước khi thoát, job bị xoá). Sau đó khôi phục bản sửa và build lại.
+
+  Vì bước 1 dùng spec tạm (afterEach gỡ liên kết stub), tin của lô ở bước 3 kết thúc "Zalo OA chưa kết nối". Điều cần kiểm ở đây chỉ là bên nào lấy lô.
+
+## R-1013 (2026-10-22, mức 2) F-77 — chống gửi trùng 30 ngày tính cả tin đang chờ gửi
+
+- **Lỗi** (mục 2): quy tắc 30 ngày chỉ đọc tin đã đi. Khách đã nằm trong một lô hẹn giờ (tin `Pending`) vẫn được gửi lại ngay, nên khách nhận hai lần.
+- **Sửa**:
+  - `MessageTemplateUsageReader.LoadRecipientsAsync` trả `MessageReceipt(At, Pending)`. Tin `Pending` tính bất kể ngày, lấy ngày theo giờ hẹn của lô (không có thì lúc tạo). "Huỷ hẹn" xoá tin chờ, nên tin chờ luôn thuộc một lô còn sống. Số đếm "Đã gửi" của F-76 không đổi (chỉ tính tin đã đi).
+  - DTO thêm `ReceivedPending`. Dòng khách ghi "Chờ gửi dd/mm/yyyy" (`CSKH:Send:PendingOn`) thay cho "Đã nhận …".
+- **Test thật**: `cskh-message-send` "R-1013": hẹn giờ ngày mai cho 1 khách → màn Gửi ghi "Chờ gửi …", "1 đã nhận mẫu này", nút "Không có khách để gửi" bị khoá; POST gửi ngay qua API → `recipientCount 0`, `skippedCount 1`; stub không nhận tin nào.
+
+## R-1014 (2026-10-22, mức 2) F-77 — nút Gửi Zalo trên dòng CSKH đánh dấu đúng dòng đó
+
+- **Lỗi** (mục 3): nút Gửi SMS / Gửi Zalo trên dòng mở màn Gửi chỉ với `patientId`. Tin gửi đi không gắn `CareRecordId`, nên dòng CSKH không được đánh dấu "Đã gửi Zalo" như khi gửi cả danh sách.
+- **Sửa**:
+  - `MessageRecipientsInput.CareRecordId`; `ReadPickedAsync` gắn dòng đó (kèm lịch hẹn của dòng) cho đúng khách. Dòng của chi nhánh khác hoặc của khách khác thì bỏ qua.
+  - FE: `sendPath` / `CareBoard.sendTo` / `useSendParams` / `useSendRecipients` mang `careRecordId`.
+- **Test thật**: "R-1014": bảng Nhắc lịch hẹn ngày mai → nút "Gửi Zalo" trên dòng → URL có `careRecordId`, `zaloSentAt` của dòng là null → gửi → lô Xong 1/0 → `zaloSentAt` có giá trị, ô đếm "Đã gửi Zalo" tăng 1 sau khi tải lại.
+
+## R-1015 (2026-10-22, mức 2) F-77 — "Lịch gửi đã hẹn" chỉ có lô hẹn giờ và tự làm mới
+
+- **Lỗi** (mục 4): danh sách đọc mọi lô `Queued`, nên một lần gửi ngay cũng hiện vài giây. Lô tới giờ đã chạy vẫn nằm đó tới khi tải lại trang.
+- **Sửa**:
+  - BE: `GetMessageSendBatchListInput.Scheduled` lọc `ScheduledAt != null`.
+  - FE: `sendApi.scheduled` gửi `status=Queued&scheduled=true`. `useScheduledSends` đọc lại mỗi 30 s khi danh sách còn lô. `ScheduledSends` dùng hook này.
+- **Test thật**: "R-1015": gửi ngay → lần đọc danh sách ngay sau đó mang `scheduled=true` và không có lô vừa gửi. Hẹn +25 s → lô hiện ra rồi tự biến mất trong ≤ 90 s, không tải lại trang; lô không bị huỷ.
+
+## R-1016 (2026-10-22, mức 2) F-77 — OA hết hạn: lô thất bại ngay, màn Gửi vẫn mở được
+
+- **Lỗi** (mục 5): khi Zalo từ chối làm mới token, kết nối bị đánh dấu ngắt. Lúc đó `TryReadZnsAsync` ném `ZaloNotConnected` làm hỏng màn Gửi, còn job gửi ném lỗi để ABP thử lại mỗi phút.
+- **Sửa**:
+  - `TryReadZnsAsync` trả null khi kết nối không còn `IsConnected` hoặc gặp `ZaloNotConnected`. Màn Gửi hiện chặn "Kênh Zalo chưa kết nối gửi".
+  - `MessageSendJob.PrepareAsync` bắt `ZaloNotConnected` → từ chối cả lô với lý do `ZaloNotConnected`.
+- **Test thật**: "R-1016" (chỉ khi BD-001 không có kết nối thật). Stub phát token sống 1 h, nên mỗi lần dùng đều phải làm mới. Hẹn +20 s rồi bật `refreshFails` (stub trả -14014) → lô Xong với 0 gửi / 1 thất bại trong ≤ 55 s; lý do "Zalo OA chưa kết nối"; `isConnected` false; màn Gửi mở được, nút đọc "Kênh Zalo chưa kết nối gửi". Stub thêm `POST /__config` (`tokenLife`, `refreshFails`, `reset`).
+
+## R-1017 (2026-10-22, mức 2) F-77 — đổi danh sách / ngày thì nút Gửi khoá tới khi đọc xong
+
+- **Lỗi** (mục 6): `useSendRecipients` giữ dữ liệu cũ (`placeholderData`) khi đổi tệp hoặc ngày, mà `loading` chỉ đọc `isLoading`. Nút "Gửi N tin" vẫn bấm được với danh sách cũ.
+- **Sửa**: `loading = enabled && (isLoading || isPlaceholderData)`.
+- **Test thật**: "R-1017": MutationObserver ghi mọi trạng thái của nút; đổi sang danh sách CSKH khác → có trạng thái "Gửi N tin Zalo" bị khoá, và không lúc nào nút ở trạng thái bấm được cho tới khi đọc xong danh sách mới.
+
+## R-1018 (2026-10-22, mức 2) F-77 — xem trước lỗi thì báo lỗi, không quay mãi
+
+- **Lỗi** (mục 7): `SendPreviewCard` chỉ phân biệt có dữ liệu / chưa có. Khi API xem trước lỗi, ô quay mãi.
+- **Sửa**: `PreviewStage`: lỗi thì hiện "Không xem trước được: {lý do}" (`CSKH:Send:PreviewFailed`, vi / en).
+- **Test thật**: "R-1018": nhân viên có Xem + Gửi, 2 khách; thu quyền `cskhSend.read` khi trang đang mở; bỏ chọn khách 1 → ô xem trước báo "Không xem trước được: …", không còn `.ant-spin`.
+
+## R-1019 (2026-10-22, mức 2) F-77 / F-78 — số điện thoại lấy lại lúc gửi
+
+- **Lỗi** (mục 8): `MessageLog.RecipientPhone` chốt lúc tạo lô. Khách đổi số sau khi hẹn giờ thì tin vẫn đi số cũ; khách đã xoá số thì vẫn gửi.
+- **Sửa**:
+  - `MessageSendJob.SendAsync` lấy lại SĐT từ dữ liệu lúc gửi (`MessageRecipientBuilder.NormalizePhone`). `MessageLog.Fill(content, recipientPhone)` ghi số thực gửi.
+  - Hết số hợp lệ thì `MarkFailed(NoPhone)`. `MessageFailureReasons.NoPhone` ↔ `CSKH:Stats:Error:NoPhone` ("Khách không còn số điện thoại hợp lệ").
+- **Test thật**: "R-1019": hẹn +20 s cho 2 khách; đổi số khách 1, xoá số khách 2 (hồ sơ giữ email) → lô Xong 1 / 1. Stub nhận đúng số mới, không nhận số cũ. Thống kê CSKH ghi lý do bằng tiếng Việt, và sheet "Người nhận" của file Excel (`/message-stats/excel`) cũng vậy, không phải chuỗi lưu tiếng Anh.
+
+### Chung cho R-1012..R-1019
+
+- **Không đụng** (theo danh sách review): `TemplateTable` không phân trang, job đánh Thất bại khi thiếu dữ liệu lúc gửi, `{hotline}` trống thì loại khách, thứ tự kênh, `{ten_phong_kham}`.
+- **Sửa phía spec**: `book` ở `cskh-message-send` và `cskh-stats` xác nhận cảnh báo trùng bác sĩ (`allowDentistOverlap`, R-971), vì nhiều lượt chạy trong ngày đã lấp kín giờ của các bác sĩ.
+- **Kết quả**:
+  - BE: Domain **1028/1028**, Application **786/786**, HttpApi.Host **24/24**, EntityFrameworkCore **66/66**. Chạy `dotnet test` với `--artifacts-path` ngoài repo thì 5 ca `PaymentReceiptTemplateTests` đỏ: test tìm `PHIẾU THU.docx` bằng cách đi ngược lên từ thư mục bin. Chạy với output mặc định thì xanh.
+  - E2E thật (build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, job gửi thật, Zalo stub :5199, không chặn request, `E2E_ZALO_STUB=1`): toàn bộ `e2e/cskh*` (9 spec) **43/43**, gồm `cskh-message-send` **13/13** (6 cũ + 7 mới R-1013..R-1019) và `cskh-stats` **4/4**.
+  - Mức hồi quy: 2 (chỉ trong F-77 / F-78, cộng DbMigrator). Không đổi quyền, chi nhánh hay component dùng chung.
+- **Staging**: không có migration mới. Sau khi deploy, chạy DbMigrator như thường; từ nay nó không gửi tin.

@@ -49,6 +49,8 @@ export interface RecipientsInput {
   fromDate: string | null;
   toDate: string | null;
   patientIds: string[];
+  /** A CSKH row button: the row the locked customer came from. */
+  careRecordId: string | null;
   /** The rows still on screen after "Xóa"; null keeps the whole list. */
   keys: string[] | null;
   skipRecentDuplicates: boolean;
@@ -70,6 +72,8 @@ export interface MessageRecipient {
   email: string | null;
   dentistName: string | null;
   receivedAt: string | null;
+  /** `receivedAt` is when a batch not sent yet will reach them. */
+  receivedPending: boolean;
   skipReason: SkipReason | null;
   missing: string[];
 }
@@ -123,8 +127,8 @@ const sendApi = {
   customers: (filter: string) =>
     api.get<SendCustomer[]>(`${BASE}/customers`, { params: { filter: filter || undefined } }).then((r) => r.data),
   create: (input: CreateSendInput) => api.post<SendBatch>(BASE, input).then((r) => r.data),
-  batches: (status: SendBatchStatus | null) =>
-    api.get<SendBatch[]>(BASE, { params: { status: status ?? undefined } }).then((r) => r.data),
+  scheduled: () =>
+    api.get<SendBatch[]>(BASE, { params: { status: SEND_BATCH_STATUS.Queued, scheduled: true } }).then((r) => r.data),
   cancel: (id: string) => api.post<SendBatch>(`${BASE}/${id}/cancel`).then((r) => r.data),
   test: (input: SendPreviewInput) => api.post<{ phone: string }>(`${BASE}/test`, input).then((r) => r.data),
 };
@@ -135,7 +139,7 @@ export const sendKeys = {
   recipients: (input: RecipientsInput) => [...sendKeys.all, "recipients", input] as const,
   preview: (input: SendPreviewInput) => [...sendKeys.all, "preview", input] as const,
   customers: (filter: string) => [...sendKeys.all, "customers", filter] as const,
-  batches: (status: SendBatchStatus | null) => [...sendKeys.all, "batches", status] as const,
+  scheduled: () => [...sendKeys.all, "scheduled"] as const,
 };
 
 export function useSendTemplates() {
@@ -184,8 +188,16 @@ export function useSendCustomers(filter: string, enabled: boolean) {
   });
 }
 
-export function useSendBatches(status: SendBatchStatus | null) {
-  return useQuery({ queryKey: sendKeys.batches(status), queryFn: () => sendApi.batches(status) });
+/** How often "Lịch gửi đã hẹn" looks again, so a send whose time came drops off. */
+const SCHEDULED_REFRESH_MS = 30_000;
+
+/** "Lịch gửi đã hẹn": the sends booked for a time and not started yet. */
+export function useScheduledSends() {
+  return useQuery({
+    queryKey: sendKeys.scheduled(),
+    queryFn: sendApi.scheduled,
+    refetchInterval: (query) => (query.state.data?.length ? SCHEDULED_REFRESH_MS : false),
+  });
 }
 
 /** A send changes "đã gửi", the "Đã nhận" column and the CSKH rows' Zalo mark. */
