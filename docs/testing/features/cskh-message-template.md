@@ -12,7 +12,7 @@ Status: xem `01-feature-verification-registry.md` dòng F-76.
 | Đợt | Feature | Nội dung | Trạng thái |
 |---|---|---|---|
 | 1 | F-76 | Tab Template tin nhắn, trang tạo/sửa mẫu, bỏ Công cụ › Tin nhắn › Mẫu tin nhắn | `VERIFIED` (develop `9e2d457b`) |
-| 2 | F-77 | Gửi tin nhắn (`Send.dc.html`), icon trên dòng mở Gửi đã khoá khách, nút "Gửi tin nhắn chăm sóc" trên 10 tab, thay dialog Lưu tin nhắn / Gửi ZBS, Hẹn giờ gửi + Gửi thử | `VERIFIED` (develop, chưa commit) |
+| 2 | F-77 | Gửi tin nhắn (`Send.dc.html`), icon trên dòng mở Gửi đã khoá khách, nút "Gửi tin nhắn chăm sóc" trên 10 tab, thay dialog Lưu tin nhắn / Gửi ZBS, Hẹn giờ gửi + Gửi thử | `VERIFIED` (develop `8925f078`) |
 | 3 | F-78 | Menu con header Tổng quan + Thống kê CSKH, PeriodRangePicker chỉ ở Thống kê | `NOT_STARTED` |
 
 ## Quyết định của chủ dự án (2026-10-22)
