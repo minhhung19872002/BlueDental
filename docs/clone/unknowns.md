@@ -3033,3 +3033,30 @@ Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
 - Mở tab thì đồng bộ trạng thái mẫu Zalo; Zalo lỗi thì giữ trạng thái cũ và báo trên tab.
 - Cột "Đã gửi" đếm các lần gửi đã tới khách.
 - Bảng sắp theo kênh, rồi trạng thái, rồi tên.
+
+## CSKH — Gửi tin nhắn (F-77, R-1009, 2026-10-22, BA P2110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/cskh-grouping/send` (develop)
+Control: màn Gửi tin nhắn (`Send.dc.html`), nút SMS / Zalo trên từng dòng CSKH, nút "Gửi tin nhắn chăm sóc" trên 10 tab
+Reason: tính năng riêng của BlueDental theo `P2110.drawio` và mock `3 · Gửi tin nhắn` của BA; bản gốc không có, không có gì để quan sát. Mock không nói các điểm dưới đây. Xem `pages/cskh-messaging.md`.
+Action taken: NONE trên production. Khác mock theo quyết định của chủ dự án (2026-10-22):
+- SMS / Email chọn được nhưng không gửi được: pill "Chưa kết nối gửi", nút gửi khoá, server trả `Tools:0018` (quyết định 1).
+- Không có nguồn "Tệp tải lên" (quyết định 7).
+- Không có thẻ Đã xem / phản hồi (quyết định 8).
+- Khách thiếu biến bắt buộc (hoặc tham số ZNS bắt buộc) bị bỏ qua: thêm chip "thiếu dữ liệu biến" và dòng "Dữ liệu biến" trong Kiểm tra trước khi gửi (quyết định 3).
+- Xóa chỉ bỏ khách khỏi lần gửi này, có hoàn tác (quyết định 4).
+- Màu và font theo thiết kế v2 (quyết định 9).
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- Thanh ngày Ngày / Tuần / Tháng + ngày, giống bảng CSKH; mock chỉ có Tháng.
+- Không có link "Tạo lần gửi khác cho nhóm này bằng kênh khác".
+- Chi phí dự kiến = giá ZNS của mẫu × số tin; Zalo không trả giá thì ghi "Chưa rõ".
+- Bấm gửi thì hỏi lại một lần (nút "Có").
+- Dòng Lịch tạm của khách chưa có hồ sơ không có nút SMS / Zalo. Dòng nhóm chỉ có nút SMS.
+- Nút "Gửi tin nhắn chăm sóc" hiện với quyền Xem; vào màn Gửi chỉ xem được, không có nút gửi.
+- Tối đa 5000 khách một lần gửi (`Tools:0025`).
+- Ô "Không gửi lại cho khách đã nhận mẫu này trong 30 ngày" mặc định bật.
+- Gửi thử tới số điện thoại của tài khoản đang đăng nhập; không ghi vào nhật ký gửi, không tính vào "Đã gửi".
+- Lần gửi hẹn giờ: nội dung điền lại bằng dữ liệu lúc gửi, không phải lúc hẹn.
+- Tham số ZNS chỉ được nêu tên khi không có biến nào giải thích chỗ thiếu.

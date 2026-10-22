@@ -83,6 +83,12 @@ async function listNames(page: Page, filter: string, branchId: string): Promise<
   return res.body.items.map((item) => item.name);
 }
 
+/** ZNS messages the stub has taken so far, from any spec. */
+async function znsSendCount(): Promise<number> {
+  const calls = (await (await fetch(`${STUB_URL}/__calls`)).json()) as { path: string }[];
+  return calls.filter((c) => c.path === "/message/template").length;
+}
+
 /** A throw-away role holding just `grants`, and a staff member of BD-001 in it. */
 async function makeStaff(page: Page, grants: string[]) {
   const id = runId();
@@ -379,6 +385,8 @@ test.describe("CSKH — Template tin nhắn", () => {
     test("chọn mẫu ZNS điền sẵn tham số; thiếu tham số bắt buộc thì không lưu; Zalo chưa duyệt thì Chờ duyệt", async ({ page }) => {
       const id = runId();
       const approved = `E2E Zalo ${id}`;
+      // The stub keeps every call for its lifetime, and the send spec does send.
+      const sendsBefore = await znsSendCount();
       await newZaloTemplate(page, approved, "Nhắc lịch hẹn", "301001");
 
       await expect(page.locator("#tpe-zns-customer_name")).toHaveValue("{ten_khach_hang}");
@@ -420,8 +428,7 @@ test.describe("CSKH — Template tin nhắn", () => {
       await expect(templateRow(page, pending)).toContainText("Chờ duyệt");
 
       // Saving a template only reads Zalo; nothing was sent to a customer.
-      const calls = (await (await fetch(`${STUB_URL}/__calls`)).json()) as { path: string }[];
-      expect(calls.filter((c) => c.path === "/message/template")).toEqual([]);
+      expect(await znsSendCount()).toBe(sendsBefore);
     });
   });
 });

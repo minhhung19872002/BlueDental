@@ -36,6 +36,9 @@ public class MessageVariableResolver : ITransientDependency
     private static readonly string[] Weekdays =
         ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 
+    /// <summary>The library's example reads "BS. Trần Minh": the title travels with the name.</summary>
+    private const string DentistTitle = "BS. ";
+
     /// <summary>Appointments still going ahead.</summary>
     internal static readonly AppointmentStatus[] Upcoming =
     [
@@ -126,6 +129,43 @@ public class MessageVariableResolver : ITransientDependency
         return result;
     }
 
+    /// <summary>
+    /// A "Lịch tạm" booked for someone with no patient record yet: the name
+    /// and phone it was booked under, the booking itself as the visit, and the
+    /// branch. Everything a record would hold stays empty. Keyed by appointment.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyDictionary<string, string?>>> ResolveGuestsAsync(
+        Guid branchId, IReadOnlyCollection<Appointment> bookings)
+    {
+        var result = new Dictionary<Guid, IReadOnlyDictionary<string, string?>>();
+        if (bookings.Count == 0)
+        {
+            return result;
+        }
+
+        var branch = await _branches.FindAsync(branchId);
+        var dentists = await NamesOfStaffAsync(bookings.Select(a => a.DentistId).ToHashSet());
+        foreach (var booking in bookings)
+        {
+            var values = MessageVariables.All.ToDictionary(v => v.Key, _ => (string?)null, StringComparer.Ordinal);
+            values[MessageVariables.CustomerName] = Blank(booking.PatientName);
+            values[MessageVariables.Phone] = Blank(booking.PatientPhone);
+            values[MessageVariables.ClinicName] = Blank(branch?.Name);
+            values[MessageVariables.Hotline] = Blank(branch?.PhoneNumber);
+            AddVisit(values, booking, dentists.GetValueOrDefault(booking.DentistId));
+            result[booking.Id] = values;
+        }
+
+        return result;
+    }
+
+    /// <summary>The doctor's bare name out of a resolved <c>{BacSi}</c>, for a column that is not a message.</summary>
+    public static string? DentistNameOf(IReadOnlyDictionary<string, string?> values) =>
+        values.GetValueOrDefault(MessageVariables.Dentist) is { } dentist
+        && dentist.StartsWith(DentistTitle, StringComparison.Ordinal)
+            ? dentist[DentistTitle.Length..]
+            : null;
+
     private static void AddVisit(Dictionary<string, string?> values, Appointment? visit, string? dentist)
     {
         if (visit == null)
@@ -143,8 +183,7 @@ public class MessageVariableResolver : ITransientDependency
         values[MessageVariables.AppointmentTime] = local.ToString("HH:mm", CultureInfo.InvariantCulture);
         values[MessageVariables.AppointmentWeekday] = Weekdays[(int)local.DayOfWeek];
         values[MessageVariables.AppointmentContent] = Blank(visit.ChiefComplaint);
-        // The library's example reads "BS. Trần Minh": the title travels with the name.
-        values[MessageVariables.Dentist] = dentist == null ? null : "BS. " + dentist;
+        values[MessageVariables.Dentist] = dentist == null ? null : DentistTitle + dentist;
     }
 
     /// <summary>

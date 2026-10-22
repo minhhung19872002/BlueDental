@@ -6907,6 +6907,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CareRecordId")
+                        .HasColumnType("uuid");
+
                     b.Property<short>("Channel")
                         .HasColumnType("smallint");
 
@@ -6955,6 +6958,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("SendBatchId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -6972,9 +6978,95 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("ExternalMessageId");
 
+                    b.HasIndex("SendBatchId");
+
                     b.HasIndex("Channel", "CreationTime");
 
+                    b.HasIndex("ClinicBranchId", "TemplateId", "PatientId", "SentAt");
+
                     b.ToTable("bd_message_logs", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Tools.MessageSendBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short?>("CareType")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("Channel")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<DateTime?>("FromDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecipientCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("SkipRecentDuplicates")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SkippedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("Source")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("ToDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId", "Status", "ScheduledAt");
+
+                    b.ToTable("bd_message_send_batches", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.Tools.MessageTemplate", b =>

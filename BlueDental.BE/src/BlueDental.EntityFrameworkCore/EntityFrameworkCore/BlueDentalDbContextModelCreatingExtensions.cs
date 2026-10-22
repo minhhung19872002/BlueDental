@@ -1625,7 +1625,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.RecipientName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.RecipientPhone).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(MessageLog.MaxContentLength).IsRequired();
             entity.Property(x => x.Channel).HasConversion<short>();
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.ErrorMessage).HasMaxLength(MessageLog.MaxErrorLength);
@@ -1635,6 +1635,20 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Cost).HasPrecision(18, 2);
             entity.HasIndex(x => new { x.Channel, x.CreationTime });
             entity.HasIndex(x => x.ExternalMessageId);
+            entity.HasIndex(x => x.SendBatchId);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.TemplateId, x.PatientId, x.SentAt });
+        });
+
+        builder.Entity<MessageSendBatch>(entity =>
+        {
+            entity.ToTable("bd_message_send_batches");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.TemplateName).HasMaxLength(MessageSendBatch.MaxTemplateNameLength).IsRequired();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.Property(x => x.CareType).HasConversion<short?>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status, x.ScheduledAt });
         });
 
         builder.Entity<StaffNotes.StaffNote>(entity =>

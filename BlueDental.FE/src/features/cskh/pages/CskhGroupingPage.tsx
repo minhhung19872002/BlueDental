@@ -10,7 +10,7 @@ import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { useAbility } from "@/hooks/useAbility";
 import { anchorForMode, careDateModeOf, careTabByKey, CARE_TABS } from "../careTabs";
-import { templateEditorPath } from "../templatePaths";
+import { sendPath, templateEditorPath } from "../templatePaths";
 import { CareBoard } from "../components/CareBoard";
 import { CareDateBar } from "../components/CareDateBar";
 import { GroupPatientsPanel } from "../components/GroupPatientsPanel";
@@ -38,6 +38,7 @@ export function CskhGroupingPage() {
   const careAbility = useAbility("cskhCare");
   const groupAbility = useAbility("cskhGroup");
   const templateAbility = useAbility("cskhTemplate");
+  const { canRead: canSend } = useAbility("cskhSend");
 
   const tabAccess: Record<TopTabKey, boolean> = {
     care: careAbility.canRead,
@@ -69,6 +70,9 @@ export function CskhGroupingPage() {
   /** "new" opens a blank editor; an id opens that template. */
   const openTemplate = (id: string) =>
     navigate(withBranch(templateEditorPath(id), branchId));
+  /* "Dùng mẫu này để gửi": the template names its own channel. */
+  const sendWithTemplate = (id: string) =>
+    navigate(withBranch(sendPath({ templateId: id }), branchId));
 
   return (
     <div className="reception-page">
@@ -102,6 +106,7 @@ export function CskhGroupingPage() {
             canCreate={templateAbility.canCreate}
             canUpdate={templateAbility.canUpdate}
             onEdit={openTemplate}
+            onUseToSend={canSend ? sendWithTemplate : undefined}
           />
         </RemainingHeight>
       )}
@@ -117,6 +122,7 @@ export function CskhGroupingPage() {
               canExport={careAbility.canExport}
               canCreate={careAbility.canCreate}
               canUpdate={careAbility.canUpdate}
+              canSend={canSend}
               dateSlot={
                 <CareDateBar
                   mode={mode}
@@ -154,6 +160,7 @@ export function CskhGroupingPage() {
               branchId={branchId}
               taxonomyId={taxonomyId}
               canUpdate={groupAbility.canUpdate}
+              canSend={canSend}
               onTaxonomyChange={(value) =>
                 setParam((params) => {
                   if (value) params.set("taxonomyId", value);

@@ -23,11 +23,8 @@ namespace BlueDental.CustomerCare.Messaging;
 [Authorize(BlueDentalAbilityPermissions.CskhTemplate.Read)]
 public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateAppService
 {
-    /// <summary>Same mask as the patient list's hidden money.</summary>
-    private const string MoneyMask = "*********";
-
     /// <summary>The list's order within a channel: what can be sent first.</summary>
-    private static readonly MessageTemplateStatus[] StatusOrder =
+    internal static readonly MessageTemplateStatus[] StatusOrder =
     [
         MessageTemplateStatus.Ready,
         MessageTemplateStatus.PendingApproval,
@@ -36,39 +33,34 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
         MessageTemplateStatus.Disabled,
     ];
 
-    private static readonly MessageSendStatus[] Delivered = [MessageSendStatus.Sent, MessageSendStatus.Delivered];
-
     private readonly IRepository<MessageTemplate, Guid> _templates;
-    private readonly IRepository<MessageLog, Guid> _logs;
+    private readonly MessageTemplateUsageReader _usage;
     private readonly IRepository<Patient, Guid> _patients;
     private readonly IRepository<Appointment, Guid> _appointments;
     private readonly MessageVariableResolver _variables;
     private readonly ZaloOaGateway _zalo;
-    private readonly PatientPhoneMasker _phoneMasker;
-    private readonly TreatmentCostAccess _costAccess;
+    private readonly MessageValueMasker _masker;
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public MessageTemplateAppService(
         IRepository<MessageTemplate, Guid> templates,
-        IRepository<MessageLog, Guid> logs,
+        MessageTemplateUsageReader usage,
         IRepository<Patient, Guid> patients,
         IRepository<Appointment, Guid> appointments,
         MessageVariableResolver variables,
         ZaloOaGateway zalo,
-        PatientPhoneMasker phoneMasker,
-        TreatmentCostAccess costAccess,
+        MessageValueMasker masker,
         BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver)
     {
         _templates = templates;
-        _logs = logs;
+        _usage = usage;
         _patients = patients;
         _appointments = appointments;
         _variables = variables;
         _zalo = zalo;
-        _phoneMasker = phoneMasker;
-        _costAccess = costAccess;
+        _masker = masker;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
     }
@@ -90,7 +82,7 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
             .ThenBy(t => t.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        var usage = await LoadUsageAsync(branchId, shown.Select(t => t.Id).ToList());
+        var usage = await _usage.LoadAsync(branchId, shown.Select(t => t.Id).ToList());
         return new MessageTemplateListDto
         {
             Items = [.. shown.Select(t => ToDto(t, usage.GetValueOrDefault(t.Id)))],
@@ -202,7 +194,7 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
             var patient = await _patients.FirstOrDefaultAsync(p => p.Id == patientId && p.BranchId == branchId)
                 ?? throw new EntityNotFoundException(typeof(Patient), patientId);
             var resolved = await _variables.ResolveAsync(branchId, [patient]);
-            values = await MaskAsync(resolved[patient.Id]);
+            values = await _masker.MaskAsync(resolved[patient.Id]);
             isSample = false;
         }
 
@@ -304,61 +296,23 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
             detail.Status);
     }
 
-    private async Task<IReadOnlyDictionary<string, string?>> MaskAsync(IReadOnlyDictionary<string, string?> values)
-    {
-        var masked = new Dictionary<string, string?>(values, StringComparer.Ordinal);
-        if (await _phoneMasker.ShouldMaskAsync())
-        {
-            masked[MessageVariables.Phone] = PatientPhoneMask.Mask(masked.GetValueOrDefault(MessageVariables.Phone));
-        }
-
-        if (!await _costAccess.SeesCostsAsync())
-        {
-            masked[MessageVariables.Debt] = MoneyMask;
-        }
-
-        return masked;
-    }
-
     private static MessagePreviewDto BuildPreview(
-        PreviewMessageTemplateInput input, IReadOnlyDictionary<string, string?> values, bool isSample)
+        PreviewMessageTemplateInput input, IReadOnlyDictionary<string, string?> values, bool isSample) =>
+        ToPreviewDto(
+            input.Channel,
+            MessageComposer.Compose(input.Channel, input.Content, input.Subject, input.ParamMap, input.RemoveDiacritics, values),
+            isSample);
+
+    internal static MessagePreviewDto ToPreviewDto(MessageChannelType channel, ComposedMessage message, bool isSample) => new()
     {
-        var preview = new MessagePreviewDto { IsSample = isSample };
-        var results = new List<MessageRenderResult>();
-
-        if (input.Channel == MessageChannelType.Zalo)
-        {
-            foreach (var (name, value) in input.ParamMap ?? [])
-            {
-                var result = MessageTemplateRenderer.Render(value, values);
-                results.Add(result);
-                preview.Params.Add(new MessagePreviewParamDto { Name = name, Value = result.Text });
-            }
-
-            preview.Text = string.Join("\n", preview.Params.Select(p => $"{p.Name}: {p.Value}"));
-        }
-        else
-        {
-            var removeDiacritics = input.Channel == MessageChannelType.Sms && input.RemoveDiacritics;
-            var body = MessageTemplateRenderer.Render(input.Content ?? string.Empty, values, removeDiacritics);
-            results.Add(body);
-            preview.Text = body.Text;
-            if (input.Channel == MessageChannelType.Email)
-            {
-                var subject = MessageTemplateRenderer.Render(input.Subject ?? string.Empty, values);
-                results.Add(subject);
-                preview.Subject = subject.Text;
-            }
-            else
-            {
-                preview.Measure = ToMeasure(SmsLength.Measure(body.Text));
-            }
-        }
-
-        preview.Missing = [.. results.SelectMany(r => r.Missing).Distinct(StringComparer.Ordinal)];
-        preview.Unknown = [.. results.SelectMany(r => r.Unknown).Distinct(StringComparer.Ordinal)];
-        return preview;
-    }
+        IsSample = isSample,
+        Text = message.Text,
+        Subject = message.Subject,
+        Params = [.. message.Params.Select(p => new MessagePreviewParamDto { Name = p.Name, Value = p.Value })],
+        Measure = channel == MessageChannelType.Sms ? ToMeasure(SmsLength.Measure(message.Text)) : null,
+        Missing = [.. message.Missing],
+        Unknown = [.. message.Unknown],
+    };
 
     private async Task<Patient?> PickRandomAsync(IQueryable<Patient> query)
     {
@@ -372,30 +326,13 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
             query.OrderBy(p => p.Id).Skip(Random.Shared.Next(count)));
     }
 
-    /// <summary>"ĐÃ GỬI" and "Dùng lần cuối" per template: messages that left, not failures.</summary>
-    private async Task<Dictionary<Guid, TemplateUsage>> LoadUsageAsync(Guid branchId, IReadOnlyCollection<Guid> templateIds)
-    {
-        if (templateIds.Count == 0)
-        {
-            return [];
-        }
-
-        var logs = await _logs.GetQueryableAsync();
-        var rows = await AsyncExecuter.ToListAsync(logs
-            .Where(l => l.ClinicBranchId == branchId && l.TemplateId != null && templateIds.Contains(l.TemplateId.Value))
-            .Where(l => Delivered.Contains(l.Status))
-            .GroupBy(l => l.TemplateId!.Value)
-            .Select(g => new { TemplateId = g.Key, Count = g.Count(), Last = g.Max(l => l.SentAt) }));
-        return rows.ToDictionary(r => r.TemplateId, r => new TemplateUsage(r.Count, r.Last));
-    }
-
     private async Task<MessageTemplateDto> ToDtoWithUsageAsync(MessageTemplate template)
     {
-        var usage = await LoadUsageAsync(template.ClinicBranchId, [template.Id]);
+        var usage = await _usage.LoadAsync(template.ClinicBranchId, [template.Id]);
         return ToDto(template, usage.GetValueOrDefault(template.Id));
     }
 
-    private static MessageTemplateDto ToDto(MessageTemplate t, TemplateUsage? usage) => new()
+    internal static MessageTemplateDto ToDto(MessageTemplate t, MessageTemplateUsage? usage) => new()
     {
         Id = t.Id,
         Name = t.Name,
@@ -435,6 +372,4 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
         MessageTemplateRenderer.StripDiacritics(text?.Trim() ?? string.Empty).ToLowerInvariant();
 
     private sealed record ZnsFacts(IReadOnlyCollection<string> Required, string? Status);
-
-    private sealed record TemplateUsage(int Count, DateTime? LastSentAt);
 }

@@ -71,6 +71,12 @@ const MessageTemplateEditorPage = lazy(() =>
   })),
 );
 
+const MessageSendPage = lazy(() =>
+  import("@/features/cskh/pages/MessageSendPage").then((m) => ({
+    default: m.MessageSendPage,
+  })),
+);
+
 const StaffPage = lazy(() =>
   import("@/features/staff/pages/StaffPage").then((m) => ({
     default: m.StaffPage,
@@ -368,6 +374,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="cskhTemplateEdit">
             <MessageTemplateEditorPage />
+          </G>
+        ),
+      },
+      {
+        path: "cskh-grouping/send",
+        element: (
+          <G k="cskhSend">
+            <MessageSendPage />
           </G>
         ),
       },

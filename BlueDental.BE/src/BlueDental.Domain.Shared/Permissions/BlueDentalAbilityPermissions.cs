@@ -213,6 +213,18 @@ public static class BlueDentalAbilityPermissions
         public const string Update = "BlueDental.cskhTemplate.update";
     }
 
+    /// <summary>
+    /// Subject <c>cskhSend</c> — CSKH ▸ Gửi tin nhắn: reading the recipients and
+    /// past sends, and sending / scheduling / test-sending (BlueDental-local,
+    /// BA P2110).
+    /// </summary>
+    public static class CskhSend
+    {
+        public const string Subject = "cskhSend";
+        public const string Read = "BlueDental.cskhSend.read";
+        public const string Create = "BlueDental.cskhSend.create";
+    }
+
     /// <summary>Subject <c>helpSupport</c>.</summary>
     public static class HelpSupport
     {

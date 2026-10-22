@@ -167,7 +167,9 @@ public class MessageTemplate : FullAuditedEntity<Guid>
 
     public void SetActive(bool active) => IsActive = active;
 
-    public bool CanSend => IsActive && Status == MessageTemplateStatus.Ready;
+    /// <summary>"Sẵn sàng" and switched on; a Zalo one of the older Công cụ screen is ready without a ZNS link, which Zalo needs.</summary>
+    public bool CanSend => IsActive && Status == MessageTemplateStatus.Ready
+        && (Channel != MessageChannelType.Zalo || !string.IsNullOrWhiteSpace(ExternalTemplateId));
 
     public IReadOnlyDictionary<string, string> GetParamMap() =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(ParamMapJson, JsonOptions)

@@ -3,8 +3,6 @@ import type { CareTabConfig } from "../careTabs";
 import type { CareDialogKind } from "../hooks/useCareBoard";
 import { CareCreateDialog } from "./CareCreateDialog";
 import { CareResultDialog } from "./CareResultDialog";
-import { SendZaloDialog } from "./SendZaloDialog";
-import { SaveMessageDialog } from "./SaveMessageDialog";
 
 interface CareBoardDialogsProps {
   tab: CareTabConfig;
@@ -13,7 +11,7 @@ interface CareBoardDialogsProps {
   onClose: () => void;
 }
 
-/** All four board dialogs behind one mount point. */
+/** Both board dialogs behind one mount point; SMS / Zalo lead to Gửi tin nhắn instead. */
 export function CareBoardDialogs({ tab, dialog, selected, onClose }: CareBoardDialogsProps) {
   return (
     <>
@@ -22,16 +20,6 @@ export function CareBoardDialogs({ tab, dialog, selected, onClose }: CareBoardDi
         open={dialog === "result"}
         tab={tab}
         record={selected}
-        onClose={onClose}
-      />
-      <SendZaloDialog open={dialog === "send"} record={selected} onClose={onClose} />
-      <SaveMessageDialog
-        open={dialog === "message"}
-        patient={
-          selected
-            ? { code: selected.patientCode ?? "", name: selected.patientName ?? "" }
-            : null
-        }
         onClose={onClose}
       />
     </>

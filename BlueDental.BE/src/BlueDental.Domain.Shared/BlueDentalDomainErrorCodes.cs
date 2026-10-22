@@ -656,6 +656,16 @@ public static class BlueDentalDomainErrorCodes
         public const string TemplateZnsRequired = "BlueDental:Tools:0015";
         public const string TemplateZnsParamUnmapped = "BlueDental:Tools:0016";
         public const string TemplateTooLong = "BlueDental:Tools:0017";
+
+        // CSKH ▸ Gửi tin nhắn (BA P2110, F-77).
+        public const string SendChannelNotConnected = "BlueDental:Tools:0018";
+        public const string SendTemplateNotReady = "BlueDental:Tools:0019";
+        public const string SendNoRecipients = "BlueDental:Tools:0020";
+        public const string SendScheduleInPast = "BlueDental:Tools:0021";
+        public const string SendNoTestPhone = "BlueDental:Tools:0022";
+        public const string SendNotCancellable = "BlueDental:Tools:0023";
+        public const string SendListRequired = "BlueDental:Tools:0024";
+        public const string SendTooManyRecipients = "BlueDental:Tools:0025";
     }
 
     public static class ClinicIntegration

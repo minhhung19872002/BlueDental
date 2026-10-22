@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DatePicker, Input, Table } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
@@ -10,30 +11,34 @@ import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { withBranch } from "@/lib/clinicBranch";
 import { useCareGroupingPatients, type CareGroupingPatientDto } from "../api/careApi";
+import { MESSAGE_CHANNEL } from "../api/templateApi";
+import { sendPath } from "../templatePaths";
 import { buildGroupColumns } from "./groupColumns";
 import { BaseCareDialog } from "./BaseCareDialog";
 import { MessageField } from "./MessageField";
-import { SaveMessageDialog } from "./SaveMessageDialog";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 interface GroupPatientsPanelProps {
   branchId: string;
   taxonomyId: string | undefined;
   onTaxonomyChange: (value: string | undefined) => void;
-  /** Hide row action buttons (call / message / care) when false/absent. */
+  /** Hide the call / care row buttons when false/absent. */
   canUpdate?: boolean;
+  /** "Gửi tin nhắn › Xem": the row SMS button leads to Gửi tin nhắn. */
+  canSend?: boolean;
 }
 
 /** Phân nhóm CSKH tab: filter row + 12-column patient table. */
-export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, canUpdate }: GroupPatientsPanelProps) {
+export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, canUpdate, canSend }: GroupPatientsPanelProps) {
+  const navigate = useNavigate();
   const [tagId, setTagId] = useState<string | undefined>();
   const [birthday, setBirthday] = useState<Dayjs | null>(null);
   const [search, setSearch] = useState("");
   const [staffId, setStaffId] = useState<string | undefined>();
   const pagination = useTablePagination(20);
   const [carePatient, setCarePatient] = useState<CareGroupingPatientDto | null>(null);
-  const [messagePatient, setMessagePatient] = useState<CareGroupingPatientDto | null>(null);
 
   const debouncedSearch = useDebounce(search);
   const serviceGroups = useServiceGroupOptions();
@@ -55,10 +60,12 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
     () =>
       buildGroupColumns(branchId, {
         onCall: canUpdate ? () => toast.error(t("CSKH:NoCallConfig")) : undefined,
-        onMessage: canUpdate ? setMessagePatient : undefined,
+        onSms: canSend
+          ? (patient) => navigate(withBranch(sendPath({ channel: MESSAGE_CHANNEL.Sms, patientId: patient.id }), branchId))
+          : undefined,
         onCare: canUpdate ? setCarePatient : undefined,
       }),
-    [branchId, canUpdate],
+    [branchId, canUpdate, canSend, navigate],
   );
 
   return (
@@ -148,11 +155,6 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, can
         open={Boolean(carePatient)}
         patient={carePatient ? { id: carePatient.id, code: carePatient.code, name: carePatient.name } : null}
         onClose={() => setCarePatient(null)}
-      />
-      <SaveMessageDialog
-        open={Boolean(messagePatient)}
-        patient={messagePatient ? { code: messagePatient.code, name: messagePatient.name } : null}
-        onClose={() => setMessagePatient(null)}
       />
     </>
   );

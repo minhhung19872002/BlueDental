@@ -10368,3 +10368,51 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đợt 2 (F-77): Gửi tin nhắn theo `Send.dc.html`, nút "Dùng mẫu này để gửi" (`onUseToSend` chưa nối), thay dialog Lưu tin nhắn / Gửi ZBS.
   - Đợt 3 (F-78): Thống kê CSKH.
   - Staging cần chạy DbMigrator (migration + quyền mới), rồi xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Template tin nhắn".
+
+## R-1009 (2026-10-22, mức 2 + mức 3 vì có quyền mới và sửa nút trên bảng CSKH dùng chung) F-77 CSKH › Gửi tin nhắn (BA P2110, đợt 2)
+
+- **Yêu cầu BA**:
+  - Nguồn: `P2110.drawio` (luồng gửi, nút trên dòng CSKH) và mock `3 · Gửi tin nhắn-html` (`Send.dc.html`).
+  - Chủ dự án: "ưu tiên làm theo layout này" — màn Gửi theo đúng bố cục mock, màu v2, không có Tệp tải lên.
+- **Quyết định của chủ dự án dùng ở đợt này** (12 điểm, 2026-10-22, xem R-1008):
+  - Chỉ Zalo gửi thật; SMS / Email báo "Chưa kết nối gửi", server từ chối (`Tools:0018`).
+  - Khách thiếu biến hoặc tham số ZNS bắt buộc bị bỏ qua và được kể tên ở "Kiểm tra trước khi gửi".
+  - Xóa chỉ bỏ khách khỏi lần gửi này.
+  - Màn Gửi thay dialog Lưu tin nhắn / Gửi ZBS.
+  - Không Tệp tải lên, không thẻ Đã xem / phản hồi.
+  - Hẹn giờ gửi + Gửi thử tới tôi (SĐT của tài khoản).
+- **BE**:
+  - `MessageSendBatch` (bảng `bd_message_send_batches`): một lần bấm Gửi. Trạng thái Chờ 0 / Đang gửi 1 / Xong 2 / Đã huỷ 3; chỉ huỷ lượt còn Chờ (`Tools:0023`).
+  - `MessageLog` thêm `SendBatchId`, `CareRecordId`. Mỗi khách một log Pending, ghi lúc tạo lượt.
+  - `MessageRecipientBuilder`: server tự đọc lại khách (không tin bảng trên màn hình). Bỏ qua khi không có liên hệ, đã nhận mẫu trong 30 ngày (ô bật mặc định), hoặc thiếu biến / tham số ZNS. Tối đa 5000 khách (`Tools:0025`).
+  - `MessageSendJob` (`cskh.message-send`): hẹn giờ thì xếp job có `delay`, chạy sớm thì tự xếp lại; điền lại từng tin bằng dữ liệu lúc gửi, gửi qua `ZaloOaGateway`, lưu riêng từng tin; gửi được thì `CareRecord.MarkZaloSent`. Log ứng dụng chỉ có id.
+  - Gửi thử: không tạo `MessageLog`; chỉ nhật ký gọi tích hợp ghi lại.
+  - Xem trước che SĐT ("Ẩn số điện thoại") và `{so_tien_con_lai}` (không có "Chi phí › Xem") qua `MessageValueMasker`. Tin gửi đi không bị che.
+  - `MessageSendAppService` ở `api/v1/app/message-sends`: `templates`, `lists`, `recipients`, `preview`, `customers`, tạo lượt, get / list, `cancel`, `test`. Chi nhánh lấy từ `X-Clinic-Branch-Id`.
+  - Quyền `cskhSend` (Xem / Gửi) dưới CSKH, sau "Template tin nhắn". Seeder cấp role tĩnh.
+  - Mã lỗi `Tools:0018..0025`.
+  - Migration `20261022042924_MessageSendBatches`: bảng mới + 2 cột + 3 index (gồm `(ClinicBranchId, TemplateId, PatientId, SentAt)` cho kiểm tra 30 ngày).
+- **FE**:
+  - Trang `/cskh-grouping/send` (`MessageSendPage` → `send/SendScreen`, 19 component, CSS `cskh-send.css`):
+    - cột trái 3 bước: Kênh gửi, Mẫu, Gửi tới (Danh sách CSKH theo 10 tab + Ngày / Tuần / Tháng, hoặc Khách lẻ; thống kê, tìm, bảng, Xóa / Hoàn tác, ô 30 ngày);
+    - cột phải: Kiểm tra trước khi gửi, Xem trước, Tóm tắt lần gửi (chi phí = giá ZNS × số tin, hoặc "Chưa rõ"), Hẹn giờ gửi, nút gửi đọc điều còn thiếu, Gửi thử, Lịch gửi đã hẹn + Huỷ hẹn;
+    - bấm gửi hỏi lại "Xác nhận gửi tin" → "Có".
+  - Lối vào: nút "Gửi tin nhắn chăm sóc" trên 10 tab CSKH; nút Gửi SMS / Gửi Zalo trên từng dòng (mở Khách lẻ khoá vào khách đó); Gửi SMS trên dòng Phân nhóm CSKH; "Dùng mẫu này để gửi" ở tab Template tin nhắn (nối `onUseToSend` còn treo từ R-1008).
+  - Dòng Lịch tạm của khách chưa có hồ sơ không có nút gửi.
+  - Xoá `SaveMessageDialog`, `SendZaloDialog`, `api/messageApi.ts`. `CareRowActions` đổi `onMessage` / `onSend` thành `onSms` / `onZalo`; `CareToolbar` có vùng `actions`.
+- **Đối chiếu `Send.dc.html`** (1440 px, build production): bố cục, thứ tự thẻ, chip, bảng, tóm tắt khớp. Các điểm khác (cố ý hoặc chưa có xác nhận BA): xem `docs/clone/pages/cskh-messaging.md` và `unknowns.md` (F-77).
+- **Test**:
+  - Domain **1028/1028** (gồm `MessageSendBatchTests` 10), Application **772/772** (gồm `MessageSendAppServiceContractTests` 6), HttpApi.Host **24/24**.
+  - E2E thật (build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, job gửi thật, Zalo là stub :5199, không chặn request):
+    - `cskh-message-send` **6/6** (`E2E_ZALO_STUB=1`): khách lẻ + bỏ qua khách thiếu biến + tải lại thấy "Đã nhận" + tắt ô 30 ngày; Danh sách CSKH + Xóa / Hoàn tác + Hẹn giờ + Huỷ hẹn; Gửi thử (có / chưa có SĐT); SMS chưa kết nối + "Dùng mẫu này để gửi"; quyền (chỉ `cskhCare.read`, chỉ `cskhSend.read`, API 403); cách ly chi nhánh.
+  - Sửa phía spec:
+    - `cskh-generated-tabs` (`expectMessaging`): dòng CSKH nay có "Gửi SMS" / "Gửi Zalo" mở màn Gửi khoá vào khách, thay cho dialog Lưu tin nhắn / Gửi ZBS đã xoá.
+    - `cskh-message-template`: stub Zalo giữ mọi lần gọi suốt đời tiến trình, nên ca Zalo đếm **phần chênh** số lần gửi ZNS (`znsSendCount()`) thay vì đếm tuyệt đối.
+  - Hồi quy mức 3:
+    - Spec có sửa: `cskh-generated-tabs` 5/5, `cskh-message-template` 7/7.
+    - `cskh`, `cskh-after-treatment`, `cskh-contact-staff-api`, `cskh-live-missed`, `cskh-reminder-api`, `report-customer`, `zalo-oa`, `routes`, `role-permissions-tree`, `role-permissions-unsaved`, `role-permissions-abilities`, `role-permissions`: **59/61**.
+    - 2 ca đỏ có từ trước: `role-permissions:53` và `role-permissions-abilities:38` (đã ghi ở R-936, R-994). Hai spec này giả định vai trò `dentist` không có quyền nào, nhưng DB local có 150 quyền CSKH / Vận hành do chủ dự án tự tick (DB `BlueDental` của main cũng vậy). Các quyền này không phải `cskhTemplate` / `cskhSend`; spec F-76 / F-77 chỉ dùng vai trò tạm và xoá sau khi chạy. Không sửa quyền của chủ dự án.
+- **Còn treo**:
+  - Đợt 3 (F-78): Thống kê CSKH + PeriodRangePicker.
+  - SMS / Email chưa có nhà cung cấp gửi.
+  - Staging cần DbMigrator (migration + quyền mới), rồi xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Gửi tin nhắn".

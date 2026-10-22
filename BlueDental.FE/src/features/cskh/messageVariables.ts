@@ -21,6 +21,13 @@ export function variableLabel(key: string): string {
   return t(`CSKH:Var:${key}`);
 }
 
+/** A send's gap: a variable by its label, else a ZNS parameter Zalo requires, by its own name. */
+export function missingLabel(key: string): string {
+  const variableKey = `CSKH:Var:${key}`;
+  const label = t(variableKey);
+  return label === variableKey ? t("CSKH:Send:ZnsParam", key) : label;
+}
+
 export function quoteVariable(key: string): string {
   return `{${key}}`;
 }

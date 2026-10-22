@@ -4,6 +4,7 @@ import {
   LoadingOutlined,
   PlusOutlined,
   SearchOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
@@ -11,32 +12,38 @@ import { useDentistStaffOptions, useStaffOptions } from "@/hooks/useStaffOptions
 import { MessageField } from "./MessageField";
 import type { CareTabConfig } from "../careTabs";
 
+/** The row's buttons; each is hidden when its handler is absent. */
+interface CareToolbarActions {
+  exporting: boolean;
+  onExport?: () => void;
+  onCreate?: () => void;
+  /** Gửi tin nhắn chăm sóc — the list on screen, on every tab (BA P2110). */
+  onSendCare?: () => void;
+}
+
 interface CareToolbarProps {
   tab: CareTabConfig;
   search: string;
   doctorId: string | undefined;
   careStaffId: string | undefined;
-  exporting: boolean;
   onSearchChange: (value: string) => void;
   onDoctorChange: (value: string | undefined) => void;
   onCareStaffChange: (value: string | undefined) => void;
-  onExport?: () => void;
-  onCreate?: () => void;
+  actions: CareToolbarActions;
 }
 
-/** Per-tab toolbar row: Xuất Excel · Tìm kiếm · Bác sĩ · NV CSKH · Tạo mới. */
+/** Per-tab toolbar row: Xuất Excel · Tìm kiếm · Bác sĩ · NV CSKH · Gửi tin nhắn chăm sóc · Tạo mới. */
 export function CareToolbar({
   tab,
   search,
   doctorId,
   careStaffId,
-  exporting,
   onSearchChange,
   onDoctorChange,
   onCareStaffChange,
-  onExport,
-  onCreate,
+  actions,
 }: CareToolbarProps) {
+  const { exporting, onExport, onCreate, onSendCare } = actions;
   const doctors = useDentistStaffOptions();
   const staff = useStaffOptions();
 
@@ -89,6 +96,12 @@ export function CareToolbar({
             />
           </MessageField>
         </div>
+      )}
+
+      {onSendCare && (
+        <Button icon={<SendOutlined />} onClick={onSendCare}>
+          {t("CSKH:Action:SendCare")}
+        </Button>
       )}
 
       {tab.showCreate && onCreate && (

@@ -325,7 +325,10 @@ internal static class PermissionTreeBuilder
             Group("cskhTemplate", "BE:Perm:CareTemplate",
                 Leaf("cskhTemplate.read", "Xem"),
                 Leaf("cskhTemplate.create", "BE:Common:Add"),
-                Leaf("cskhTemplate.update", "BE:Common:EditVerb"))),
+                Leaf("cskhTemplate.update", "BE:Common:EditVerb")),
+            Group("cskhSend", "BE:Perm:CareSend",
+                Leaf("cskhSend.read", "Xem"),
+                Leaf("cskhSend.create", "BE:Perm:CareSendCreate"))),
 
         Group("catalog-group", "BE:Perm:Catalogs",
             Group("catalogPrescription", "BE:Common:RxTemplate",

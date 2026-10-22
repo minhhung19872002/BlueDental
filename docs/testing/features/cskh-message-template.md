@@ -12,7 +12,7 @@ Status: xem `01-feature-verification-registry.md` dòng F-76.
 | Đợt | Feature | Nội dung | Trạng thái |
 |---|---|---|---|
 | 1 | F-76 | Tab Template tin nhắn, trang tạo/sửa mẫu, bỏ Công cụ › Tin nhắn › Mẫu tin nhắn | `VERIFIED` (develop `9e2d457b`) |
-| 2 | F-77 | Gửi tin nhắn (`Send.dc.html`), icon trên dòng mở Gửi đã khoá khách, nút "Gửi tin nhắn chăm sóc" trên 10 tab, thay dialog Lưu tin nhắn / Gửi ZBS, Hẹn giờ gửi + Gửi thử | `NOT_STARTED` |
+| 2 | F-77 | Gửi tin nhắn (`Send.dc.html`), icon trên dòng mở Gửi đã khoá khách, nút "Gửi tin nhắn chăm sóc" trên 10 tab, thay dialog Lưu tin nhắn / Gửi ZBS, Hẹn giờ gửi + Gửi thử | `VERIFIED` (develop, chưa commit) |
 | 3 | F-78 | Menu con header Tổng quan + Thống kê CSKH, PeriodRangePicker chỉ ở Thống kê | `NOT_STARTED` |
 
 ## Quyết định của chủ dự án (2026-10-22)
@@ -185,9 +185,9 @@ E2E_BASE_URL=http://127.0.0.1:8130 E2E_ZALO_STUB=1 \
 
 ## Còn treo
 
-- Đợt 2 (F-77) và đợt 3 (F-78), xem bảng ở đầu trang.
-- Nút "Dùng mẫu này để gửi" ở thẻ xem trước chưa hiện, vì `onUseToSend` sẽ
-  nối ở đợt 2.
+- Đợt 3 (F-78), xem bảng ở đầu trang.
+- ~~Nút "Dùng mẫu này để gửi" ở thẻ xem trước chưa hiện~~: đã nối ở đợt 2
+  (F-77, R-1009), mở Gửi tin nhắn với đúng kênh và mẫu.
 - Các điểm khác img_08 còn lại: xem `docs/clone/unknowns.md` (F-76).
 
 ## Retest khi sửa

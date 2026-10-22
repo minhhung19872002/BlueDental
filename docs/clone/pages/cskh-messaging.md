@@ -13,7 +13,7 @@ Mọi thứ BA chưa nói và chủ dự án chưa chốt nằm trong `../unknow
 | Đợt | Màn | Feature |
 |---|---|---|
 | 1 | Tab "Template tin nhắn" + trang Tạo/Sửa mẫu | F-76 (`../../testing/features/cskh-message-template.md`) |
-| 2 | Gửi tin nhắn (`Send.dc.html`) | F-77 |
+| 2 | Gửi tin nhắn (`Send.dc.html`) | F-77 (`../../testing/features/cskh-message-send.md`) |
 | 3 | Thống kê CSKH | F-78 |
 
 Giữ thiết kế v2: token `--bd-*` và các component dùng chung (`PageHeader`,
@@ -107,3 +107,61 @@ của DB develop) với img_08:
 | Nhãn nhỏ "SMS" trên ô nội dung | khác, chưa làm |
 | Thứ tự gợi ý: Ngày sinh trước Ngày hẹn | khác: theo thứ tự thư viện (nhóm Khách hàng trước Lịch hẹn) |
 | Màu, font | theo v2 (quyết định 9), không theo ảnh BA |
+
+## Gửi tin nhắn (`/cskh-grouping/send`) — `Send.dc.html` (F-77)
+
+Chủ dự án yêu cầu ưu tiên đúng bố cục mock này (2026-10-22). Chỉ có Xem
+(`cskhSend.read`) thì vẫn mở được màn, nhưng không có nút gửi.
+
+- **Đầu trang**: breadcrumb "Chăm sóc khách hàng / Gửi tin nhắn"; bấm "Chăm sóc
+  khách hàng" thì về đúng tab và ngày đang xem. Tiêu đề sr-only (R-993).
+- **Bố cục**: hai cột như mock. Trái là 3 bước đánh số; phải là cột kiểm tra.
+- **Cột trái**:
+  1. **Kênh gửi**:
+     - 3 thẻ SMS / Zalo / Email, mỗi thẻ ghi "N mẫu sẵn sàng";
+     - nhãn "Chỉ chọn 1 kênh";
+     - SMS / Email có pill "Chưa kết nối gửi";
+     - dòng ghi chú "Mỗi lần gửi dùng 1 kênh và 1 mẫu…" nằm dưới thẻ kênh (mock đặt dưới tiêu đề trang).
+  2. **Mẫu {kênh}**:
+     - ô chọn mẫu có tên, mục đích, "đã gửi N", "dùng lần cuối";
+     - pill trạng thái;
+     - link "+ Tạo mẫu {kênh} mới".
+  3. **Gửi tới**:
+     - nguồn Danh sách CSKH / Khách lẻ;
+     - Ngày / Tuần / Tháng + chọn ngày (cùng kiểu thanh ngày của bảng CSKH);
+     - "Chọn 1 danh sách chăm sóc": 10 chip có số đếm;
+     - dải thống kê: N khách · chưa nhận · đã nhận · không có SĐT · thiếu dữ liệu biến;
+     - ô "Tìm tên, SĐT";
+     - bảng # · Khách hàng (tên + mã) · SĐT / Zalo / Email · Bác sĩ · Đã nhận mẫu này · Xóa;
+     - ô "Không gửi lại cho khách đã nhận mẫu này trong 30 ngày".
+- **Cột phải**:
+  1. **Kiểm tra trước khi gửi**: Kênh gửi · Mẫu thuộc kênh · N khách sẽ nhận · Dữ liệu biến · Chống gửi trùng. Dòng chưa ổn có dấu ! và nói lý do.
+  2. **Xem trước · {kênh}**: "Ví dụ với {khách}". Zalo hiện từng tham số ZNS = giá trị.
+  3. **Tóm tắt lần gửi**:
+     - Kênh · Mẫu, Người nhận, Số tin sẽ gửi, Chi phí dự kiến;
+     - hộp vàng "N khách sẽ không nhận tin lần này…";
+     - Hẹn giờ gửi;
+     - nút "Gửi N tin {kênh}" và "Gửi thử {kênh} tới tôi".
+  4. **Lịch gửi đã hẹn**: các lượt đang chờ, có nút Huỷ hẹn.
+- **Xóa** một khách: dialog "Bạn có chắc chắn muốn xóa khách hàng này ra khỏi
+  danh sách chăm sóc" (chữ của BA). Chỉ bỏ khỏi lần gửi này, có "Hoàn tác N khách đã xóa".
+
+### Visual parity với `Send.dc.html` (2026-10-22, 1440 px, build production)
+
+So `send-ba.png` với `send-local.png` / `send-tall-local.png` (scratchpad,
+không commit vì có tên khách của DB develop):
+
+| Điểm | Kết quả |
+|---|---|
+| Hai cột; thứ tự 3 bước bên trái, 3 thẻ bên phải | khớp |
+| Thẻ kênh có radio, "N mẫu sẵn sàng", "Chỉ chọn 1 kênh" | khớp; thêm icon kênh và pill "Chưa kết nối gửi" (quyết định 1) |
+| Ô chọn mẫu: tên, mục đích, đã gửi, lần cuối, pill Sẵn sàng | khớp |
+| Chip 10 danh sách có số đếm | khớp; "Complain" đã đổi thành "Khiếu nại" (BA P2110) |
+| Dải thống kê, ô tìm, bảng, nút Xóa, ô 30 ngày | khớp; thêm chip "thiếu dữ liệu biến" (quyết định 3) |
+| Kiểm tra trước khi gửi | khớp; thêm dòng "Dữ liệu biến" |
+| Tóm tắt + Hẹn giờ + 2 nút | khớp; thêm tiêu đề "Tóm tắt lần gửi" |
+| Tiêu đề trang | khác: sr-only (R-993), có breadcrumb |
+| Thanh ngày | khác: Ngày / Tuần / Tháng + ngày, mock chỉ có Tháng |
+| Nguồn "Tệp tải lên" | không có (quyết định 7) |
+| Link "Tạo lần gửi khác cho nhóm này bằng kênh khác" | không có |
+| Màu, font | theo v2 (quyết định 9) |
