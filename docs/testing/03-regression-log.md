@@ -9712,6 +9712,79 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - BE Application **737/737**.
 - **Vòng 2 (owner, 2026-10-19)**: Mẫu 5 (Phiếu tư vấn và xác nhận đồng ý điều trị) còn trống tên dưới hai chữ ký. `consultation.text.52` (dưới "BÁC SĨ TƯ VẤN", mục VI) điền như ô Bác sĩ tư vấn `text.3`; `consultation.text.57` (dưới "BÁC SĨ ĐIỀU TRỊ", mục VII) điền như `text.8`/`text.53` — đều ở dạng in (Chức danh, không có thì tên). `printed-doctor-title` **1/1** (thêm so 2 ô với Chức danh), `medical-record-sheet-facts` **2/2** (thêm so 2 ô), `patient-medical-record` + `medical-record-set` + `medical-record-drawing` **37 pass / 2 đỏ có sẵn** (R-963).
 
+## R-988 (2026-10-19, mức 3: màu toàn FE + bảng màu trạng thái dùng chung) Đổi màu sang design system "Đức Hạnh Premium" v3 (grape)
+
+- **Yêu cầu owner**: lấy màu theo artifact design system v3 do đồng nghiệp gửi ("lấy màu thui nha").
+  - Chỉ đổi màu. Font, bo góc, kích thước, layout và logo giữ nguyên.
+  - Số liệu lấy từ `tokens.json` của artifact. Preview của artifact không dựng lại được ngoài host, vì host mới là nơi chèn token.
+- **Owner chốt**:
+  - **Làm phẳng đúng v3**:
+    - Bỏ gradient và nền loang (`body::before`, `meshDrift`).
+    - Nút chính tô đặc grape-600 `#7B2EF0`.
+    - Mục đang chọn: nền grape-100 `#EEE5FF`, chữ grape-800 `#4F17A0` (token mới `--bd-primary-ink`). Không có ô tô đặc thứ hai.
+    - Segmented: rãnh neutral-100, ô được chọn nền trắng.
+  - **Link** dùng grape-700 `#6620CC`. Giao diện bỏ màu xanh tham chiếu `#2671d8`.
+  - **Lịch tạm / Không đến / Hoàn tiền** dùng orchid: `#9C5CAF` cho chấm/viền, `#834596` cho chữ, `#F6EBFC` cho nền, `#DDB6F2` cho đường kẻ.
+- **Token**: `:root` trong `src/styles/index.css` khớp với `brand` trong `src/theme/index.ts`. Tên token giữ nguyên.
+  - Màu chính `#6366f1` → `#7B2EF0`. Hover `#6620CC`. Bản nhạt `#EEE5FF` / `#DCC8FF`.
+  - `--bd-accent` đổi từ cyan sang grape-400 `#A875FF`, chỉ dùng cho hình khối.
+  - Chữ, nền, viền chuyển sang dải neutral ánh tím:
+    - ink `#1C1A23`, body `#2E2B38`, muted `#5E5A6E`
+    - line `#E6E4EE`, bg-soft `#F3F2F7`, bg `#FAF9FC`
+  - Trạng thái 4 bậc theo v3: success `#2E8A5E`, warning `#B4691A`, danger `#C9455A`, info `#2F78B5`, orchid `#9C5CAF`. Bậc 100 cho nền, 300 cho viền, 600 cho chấm, 700 cho chữ.
+  - Bóng đổ dùng `rgba(28, 26, 35, …)`, giữ độ mờ cũ. Focus ring `0 0 0 2px #C4A3FF`. `--bd-shadow-glow: none`.
+  - AntD theme:
+    - `Button.primaryShadow` = none.
+    - Segmented, Pagination và Menu hiển thị mục được chọn bằng nền grape-100.
+- **Code**:
+  - `theme/statusPalette.ts` (`SOLID`, `TONE`, `STATUS_COLOR`, `STATUS_TONE`) là nguồn duy nhất cho màu trạng thái lịch hẹn. Đây là lý do mức 3.
+    - Các bản sao trước đây giờ import từ đó: CalendarControlPanel, CalendarStatusCounters, ReceptionCard, ReceptionStatusTabs, PatientAppointmentPanel, EventCard.
+    - EventCard bỏ `CARD_LOOK`.
+  - Các chỗ sau lấy màu từ `brand.*`, không còn mã hex:
+    - màu vẽ canvas/SVG: sơ đồ răng, bản vẽ, cấu hình gọi số, lịch mini
+    - trạng thái hóa đơn (`billing/api`)
+    - tông gray của `LABO_PILL_TONE`
+  - Quét mã hex v2 trong `src/**/*.{css,ts,tsx}` bằng script map cũ → mới. Trong CSS, mã nào có token khớp thì đổi sang `var(--bd-*)`.
+  - Các ô "đang chọn" trước đây tô đặc hoặc gradient nay dùng nền nhạt, chữ grape-800. Gồm: pill-tab, Segmented, tab chi tiết bệnh nhân, bộ lọc phiếu điều trị, tab báo cáo, tab labo, header tuần chấm công.
+  - Cột biểu đồ ở dashboard dùng grape-300.
+  - Sửa luôn vài fallback chết trong `var(--x, #hex)`: giá trị dự phòng v2 không bao giờ được dùng tới.
+  - Tổng cộng 64 file trong `src/` và 5 spec e2e.
+- **Giữ nguyên có chủ ý** (đừng "sửa" khi chưa hỏi owner):
+  - **Bảng màu là dữ liệu đã lưu DB**: AppointmentColorPicker, PatientTagModal, CategoryColorFields, `marketing/ticketConfig.ts`, LetterAvatar, `PEN_COLORS`. Ô cầu vồng chọn màu bút ở tab Hình ảnh (`patient-image.css`) cũng giữ nguyên.
+  - **Tờ in**: `medical-record/sheetCss.ts` và `public/medical-record-templates`. Giữ xanh `#2671d8` theo mẫu giấy.
+  - **`features/taxonomy/**`**: không sửa code (mục 17). Màu đổi theo token gốc và theo class dùng chung `.pill-tab--active`.
+  - **Ô chọn kiểu checkbox vẫn tô đặc**: ngày trên DateNavigator, ô giờ tái khám, chọn răng, ô tick, ngày lặp lịch.
+  - **Pill đã đo theo bản gốc**: `LABO_PILL_TONE` (chỉ tông gray đổi qua token), chip trạng thái điều trị bệnh nhân, `.rc-temp-tab`.
+  - `--bd-orange*` (thông báo combo, P0510) và `--bd-pink`.
+- **Test**:
+  - Môi trường: build production chạy `vite preview` ở 127.0.0.1, cổng riêng, với host :5000 và PostgreSQL thật, không chặn API.
+  - Đối chứng: bản `git archive HEAD` build riêng, chạy ở cổng khác.
+  - `tsc -b` và `vite build` sạch. Grep `src/` không còn `#6366f1`, `#22d3ee`, `#4f46e5` hay `rgba(99,102,241…)` ngoài các file loại trừ.
+  - Đổi hằng số màu trong các spec kiểm màu sang v3:
+    - `patient.spec`: APP_PRIMARY, REFERENCE_BLUE, "Đang điều trị", red
+    - `reception-wait-time`: INDIGO, AMBER, RED
+    - `reception-follow-up`, `labo-warranty`: red
+    - `consulting-plan:265`: link
+    - `patient-medical-record:816` (dấu tick trên tờ in) giữ nguyên.
+  - Các spec kiểm màu: **28/29**. Ca còn đỏ, `labo-warranty:315`, là đỏ có sẵn:
+    - Bản R-988 qua được bước kiểm màu đỏ mới ở dòng 343, rồi mới đỏ ở `fillDueDate` (dòng 412).
+    - Ô "Ngày nhận dự kiến" là DatePicker có mask. `fill()` không ghi được chữ vào nên ô vẫn hiện `DD/MM/YYYY`.
+    - Chạy spec của HEAD trên bản build HEAD: đỏ y hệt, 2/2 lần.
+  - Bộ test bảo vệ Danh mục (`taxonomy*`, `payment-qr`, `branch-*`): **89/93**.
+    - 3 ca `taxonomy-dialogs:104`, `taxonomy-dialogs:256`, `taxonomy-groups:169` đỏ y hệt trên bản HEAD. Nguyên nhân là dữ liệu local (DANHTEST01 + 155 nhóm BD-001).
+    - `taxonomy-import-api:431` chập chờn: chạy lại thì xanh trên cả hai bản.
+  - Nhóm `patient.spec`, `patient-appointment`, `patient-image`, `reception-*`, `appointment*` trên bản R-988: **137 pass / 16 đỏ / 4 skip**.
+    - 12 ca đỏ y hệt khi chạy spec của HEAD trên bản build HEAD, nên là đỏ có sẵn:
+      - `appointment-day-timeline:271`
+      - `appointment-patient-link:20` (×2)
+      - `appointment-working-hours:178` (409 `Appointment:0006`)
+      - 4 ca `patient-image` (đã ghi ở R-989)
+      - `patient.spec` 1816, 3336, 3609 (TEMP-BUG25-OFF), 3864 (thiếu dữ liệu demo)
+    - 4 ca còn lại xanh trên HEAD, và xanh 2/2 lần khi chạy riêng trên bản R-988: `patient.spec` 2182, 2506, 3090 và `reception-own-doctor:33`. Chúng chỉ chập chờn khi chạy chung một lượt dài (dữ liệu, thứ tự chạy), không do R-988.
+    - Ca 2506 kiểm màu nhãn khi focus: nhãn ra đúng grape `rgb(123, 46, 240)`.
+  - Khi review sau đó: script quét từng đổi cả mã hex nằm trong **comment** ghi số đo của bản gốc, ví dụ "bg #f0f2fa text #5c6484" thành `var(--bd-*)`. Đã trả lại 16 dòng comment như vậy (cskh, labo, medical-record, patient-detail, advise-modal, index.css). Code đã quét giữ nguyên. Hai comment "brand is indigo" sửa thành grape.
+- Đã commit trên `develop` (cùng R-991). **Đã gỡ ở R-1002** theo yêu cầu owner — FE quay về bảng màu v2 như `main`.
+
 ## R-989 (2026-10-19, mức 3: hình ảnh bệnh nhân + camera dùng chung) Nút "Chụp ảnh" cạnh "Tải ảnh" ở tab Hình ảnh
 
 - **Yêu cầu BA** (không có trên bản gốc): thêm nút "Chụp ảnh" cạnh "Tải ảnh". Kiểm tra máy có camera không, có thì mở camera ngay trên trang, chụp và tải lên.
@@ -9804,6 +9877,45 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `StaffNote:0003` không gọi tới được qua HTTP với các tài khoản seed (ai cũng có chi nhánh riêng), nên chỉ domain test phủ.
   - Hồi quy mức 3: `auth`, `branch-code-url`, `branch-switcher`, `header-navigation`, `patient-back-origin`, `popup-placement`, `routes` **45/48**. 3 ca đỏ ở `header-navigation` đỏ y hệt trên bản build HEAD (`/reception$` so với `?branch=BD-001`, drawer đếm 17 thay vì 14, nhãn "Tiếng Việt"), nên không do F-74.
 - Đã commit trên `develop`.
+
+## R-991 (2026-10-19, mức 1 + các màn TSX có đổi màu) Quét nốt màu lệch bảng v3 sau R-988
+
+- **Yêu cầu owner**: "màu nào đặc thù quá và phù hợp thì giữ nguyên, không thì sửa luôn". Đây là lượt quét những mã hex R-988 chưa đổi: màu Tailwind/Material còn sót, xanh tham chiếu, xám riêng của từng màn.
+  - Lượt này ban đầu đặt tên R-990, nhưng R-990 đã thuộc staff-notes (F-74, commit 35ac3082) nên đổi thành R-991.
+- **Token mới**: họ màu phân loại, không bao giờ là trạng thái. Có trong `:root` của `src/styles/index.css` và `brand` trong `src/theme/index.ts`.
+  - aqua `#0f7c74` / pale `#e3f7f5` / line `#a6e3dc`
+  - lavender `#5b6fc9` / ink `#4657af` / pale `#eef0ff` / line `#bfc6f7`
+  - gold-100…700 `#fff0d1` `#ffe2a6` `#fed07a` `#f0a72a` `#9a620a`
+  - `brand` thêm greenLine, redLine, purpleLine, aqua, aquaPale, lavender, lavenderPale, lavenderLine, gold200, gold500
+  - Lý do: v3 không có bậc aqua, lavender, gold. Mấy màu phân loại đo từ bản gốc (thẻ mẫu bệnh án, chip thư viện tư vấn, phương thức thanh toán) mà dồn vào grape hay màu trạng thái thì trông như một trạng thái.
+- **Đổi sang token**:
+  - CSS: patient-detail, reception (`.rc-temp-tab` → orchid), appointment-history (+ `historyLabels.ts`), consulting-library, treatment-plan, patient-care, patient-image, medical-record, quote (chỉ nút bật/tắt trên màn hình), queue, labo-order-dialog, plan-detail, advise-modal, timekeeping, ToothChart, DateNavigator, prescription, report.
+    - Chip thanh toán ở báo cáo: tiền mặt = green, ngân hàng = amber, thẻ = lavender. Viền chuyển khoản dùng `--bd-border-strong`.
+  - TSX/TS:
+    - `medicalRecordForms.ts`: 9 thẻ mẫu dùng `formTone(family)`. Nền thẻ là bậc pale trộn 50% với nền card, accent là bậc đậm, nền icon là bậc pale. Bảy sắc giữ theo bản gốc, chỉ các bậc lấy từ v3.
+    - `DentalChartView.tsx`: màu răng lấy từ `brand.*`; răng đang chọn tô grape.
+    - `rowHandles.ts`, `sketchPaint.ts`, `SketchToolOptions.tsx`: lấy từ `brand.*` / token.
+    - `patientAppointmentColumns.tsx`: bỏ bảng màu Material riêng, dùng `STATUS_TONE`.
+- **Owner chốt / quyết định trong lượt này**:
+  - **Hủy hẹn = warning, Trễ hẹn = danger** ở mọi nơi. Tab tóm tắt lịch hẹn của bệnh nhân trước đây đảo ngược hai màu này, nay đã thống nhất theo `STATUS_TONE`.
+  - Pill trạng thái điều trị trên tờ in chi tiết bệnh nhân dùng chung tông v3 với chip trong bảng, chỉ khác hình dạng. Spec `patient.spec` dùng hằng `STATUS_CHIP` thay cho `REFERENCE_STATUS`, và bỏ ca "khác màu với bảng".
+- **Giữ nguyên có chủ ý**:
+  - Tờ in: `sheetCss`, hai tờ báo giá, print-medical-record, prescription-print, diagnosis-print, tờ A4 trống trong patient-detail (dòng 2601–2618), nét gạch ở plan-detail:671.
+  - Bảng màu là dữ liệu đã lưu: CategoryColorFields, ticketConfig, LetterAvatar, AppointmentColorPicker, `PEN_COLORS` / useViewerAnnotation, PatientTagModal.
+  - Bảng màu kiểu Paint ở `sketch.ts`, các tông xám của trình xem ảnh nền tối, ô cầu vồng ở patient-image.
+  - Code `features/taxonomy/**`, `--bd-orange*`, `--bd-pink`.
+- **Test** (build production `vite preview` 127.0.0.1:8173 `--strictPort`, host :5000 và PostgreSQL thật, không chặn request):
+  - `tsc -b && vite build` sạch. Quét lại `src/`: mã hex lệch bảng chỉ còn ở định nghĩa token v3 và các mục giữ nguyên.
+  - Đo bằng trình duyệt:
+    - Tab Bệnh án: 9 thẻ hiện đúng họ màu v3.
+    - Chip báo cáo: tiền mặt rgb(227,246,236)/rgb(46,138,94), ngân hàng rgb(255,241,222)/rgb(180,105,26), thẻ rgb(238,240,255)/rgb(91,111,201).
+  - Spec sửa hằng số màu: `patient.spec` (`STATUS_CHIP`, vùng thả ảnh `rgb(230, 228, 238)`), `debt-history` (green `rgb(46, 138, 94)`), `reception-temporary` (orchid `rgb(246, 235, 252)`).
+  - E2E toàn bộ trên bản R-991 (207 test, 1 worker): **187 xanh, 20 đỏ**. Không đỏ nào do R-991 — các spec labo / bệnh án / bệnh nhân bị đỏ không kiểm màu.
+    - 10 đỏ trùng baseline R-988: labo-warranty:315 (DatePicker có mask), patient-image 125/222/254/282, `patient.spec` 1811 / 2177 (fixture tràn) / 3329 / 3602 (TEMP-BUG25-OFF) / 3857 (thiếu dữ liệu demo).
+    - 7 đỏ y hệt trên bản build HEAD (cổng 8174, spec của HEAD) nên có từ trước: labo-orders-actions:88, labo:156, patient-medical-record:190 và :1568, `patient.spec` 2282 và 2389 (HEAD 2287 / 2394), report:294 (cột xuất Excel).
+    - 3 xanh trên HEAD (patient-appointment:322, patient-medical-record:857, `patient.spec`:1900): chạy riêng trên bản R-991 `--repeat-each=2` được 6/6 xanh → chập chờn do thứ tự / dữ liệu khi chạy chung.
+  - Kết quả R-988 vẫn giữ: 28/29 spec có kiểm màu, taxonomy 89/93 (đỏ có từ trước).
+- Đã commit trên `develop` (cùng R-988). **Đã gỡ ở R-1002** cùng R-988.
 
 ## R-992 (2026-10-20, mức 2: tìm kiếm ghi chú + migration) F-74 — Tìm ghi chú không dấu
 
@@ -9974,6 +10086,50 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `header-navigation.spec.ts:139`: không tìm thấy menuitem "Tiếng Việt".
     - `labo-warranty.spec.ts:315`: `fillDueDate`, ô ngày có mask nhập.
   - Không có spec nào kiểm tra màu placeholder hoặc màu nhãn cũ. `labo-warranty.spec.ts:341` chỉ kiểm tra màu đỏ báo lỗi của nhãn trong dialog labo, rule đó không bị đổi.
+- **Commit**: chưa commit.
+
+## R-999 (2026-10-20, mức 2: bố cục + tách component, không đổi nghiệp vụ) Lịch hẹn + Lịch làm việc — Toolbar còn hai dải
+
+- **Yêu cầu** (BA Huỳnh Văn Định, ảnh `/calendar` đã sửa bằng DevTools): "chỉnh lại như này nha", "bỏ phần trên".
+  - Ảnh của BA: hàng tab có 6 bộ đếm trạng thái ở bên phải. Hàng dưới gồm Ngày/Tuần/Tháng, ngày, Tìm kiếm, Bác sĩ ở bên trái và các nút ở bên phải.
+  - "Phần trên" là khối trắng trống, tức hàng tab cũ đã bị làm rỗng, cần bỏ.
+  - Chủ dự án chốt: làm luôn tab Lịch làm việc. Quy tắc khi thiếu chỗ theo đề xuất (mục Co giãn bên dưới).
+- **Sửa FE** (không đổi BE, không đổi API):
+  - `CalendarUnderlineTabs`: thêm prop `extra`, truyền vào `PillTabs`. Hàng tab hiển thị phần đếm của tab đang mở:
+    - Lịch hẹn khách hàng: `CalendarStatusCounters`.
+    - Lịch làm việc: `TimekeepingSummaryChips` (mới). Component này dùng cùng query key với bảng chấm công nên không phát sinh thêm request.
+    - Màn dựng lịch làm việc (WorkScheduleBuilder): không có phần đếm.
+  - `CalendarToolbarRow1.tsx` đổi tên (`git mv`) thành `CalendarViewControls.tsx`, chỉ còn Segmented + DateNavigator. Bỏ các prop thừa `onNavigate`, `counts`, `statusFilter`.
+  - `CalendarToolbarRow2`: thêm slot `children` ở đầu hàng để đặt `CalendarViewControls`. Bỏ 2 inline style (`width: 220`, `minWidth: 280`), chuyển sang class `.cal-search-field` / `.cal-doctor-field`.
+  - `TimekeepingBoard`: bỏ hàng 1 và query summary. Hàng toolbar có cùng cấu trúc: view switch + ngày, tìm kiếm, ⓘ, nút Lịch làm việc.
+  - `calendar.css`, `timekeeping.css`: bỏ rule `.cal-toolbar-row1`, `.cal-toolbar-left`, `.tk-toolbar-row1` và rule ép bộ đếm xuống dòng ở 1100px.
+- **Co giãn**:
+  - Từ 1366px trở lên: một dòng. Ô Tìm kiếm co từ 220 xuống 140px và ô Bác sĩ từ 280 xuống 170px trước khi xuống dòng.
+    - Flex xuống dòng theo `flex-basis` chứ không theo `min-width`. Vì vậy basis là cỡ nhỏ nhất, ô nới tới `max-width` khi còn chỗ, tỉ lệ grow 8 : 11 để hai ô chạm max cùng lúc.
+  - Hẹp hơn 1366px: nhóm nút xuống dòng riêng, canh phải, và hai ô trở lại đủ rộng.
+  - Tablet: bộ đếm tự rớt xuống dưới các pill.
+  - Điện thoại (≤760px): pill → bộ đếm (cuộn ngang) → 2 nút tạo → Ngày/Tuần/Tháng full ngang → ngày full ngang → Bác sĩ + nút ô giờ.
+  - Toàn màn hình: không đổi, vẫn ẩn cả hai dải.
+- **Đo** (build production `vite preview` cổng 8093, đăng nhập thật, `getBoundingClientRect`):
+
+  | Bề rộng | Hàng toolbar | Tìm kiếm / Bác sĩ | Ghi chú |
+  |---|---|---|---|
+  | 1536 | 1 dòng (cao 61) | 216 / 275 | khớp bố cục ảnh BA; hai ô hẹp hơn ảnh 4–5px vì hàng chỉ còn 499px cho cả hai ô |
+  | 1440 | 1 dòng | 176 / 219 | |
+  | 1366 | 1 dòng | 145 / 176 | lần đo đầu (150 + 180) thiếu 9px, phải xuống dòng; hạ cỡ nhỏ nhất xuống 140 + 170 |
+  | 1280, 1024 | 2 dòng (cao 109), nút canh phải | 220 / 280 | |
+  | 820 | 2 dòng; bộ đếm dưới pill | 153 / 188 | |
+  | 390 | xếp dọc đúng thứ tự trên | ô tìm kiếm ẩn như trước | |
+
+  - Tab Lịch làm việc: 1536 / 1280 / 1024 một dòng, chip nằm trên hàng tab. 390: chip cuộn ngang, sau đó Segmented, ngày, tìm kiếm, nút.
+  - Toàn màn hình ẩn cả hai dải; thoát ra thì bố cục trở lại như cũ.
+  - Không có cuộn ngang ở mọi bề rộng.
+- **Test** (build production `vite preview` cổng riêng, PostgreSQL thật, không chặn request):
+  - `appointment*`, `timekeeping*`, `work-schedule-own-dayoff`, `doctor-day-off-pickers`: **53/55**. Hai ca đỏ không do R-999:
+    - `appointment-slot-pick.spec.ts:141`: ca đã biết từ R-993 / R-996. Lịch DH260531 có sẵn trong DB local đè lên ô 10:15.
+    - `appointment-working-hours.spec.ts:178`: chạy riêng vẫn đỏ, với 409 `Appointment:0006` (bệnh nhân đã có lịch giờ đó). Ca này chỉ gọi API qua `page.request`, không chạm bundle FE. Bệnh nhân đầu tiên của chi nhánh đã có lịch ở khung "bây giờ + 10 phút" trong dữ liệu local.
+  - Spec có mở `/calendar` (`patient-back-origin`, `patient-phone-country`, `routes`, `patient.spec.ts:881`): **28/28**.
+  - `appointment-shown-hours.spec.ts:149`: đổi locator `.cal-toolbar-row1` → `.cal-view-controls` (nút Tuần đã chuyển hàng).
 - **Commit**: chưa commit.
 
 ## R-999 (2026-10-20, mức 3: CSS bảng dùng chung + cột của mọi bảng, không đổi nghiệp vụ) Mọi bảng vừa khít dữ liệu, dòng thấp hơn, tiêu đề cột một dòng
@@ -10246,3 +10402,147 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hỏi chủ dự án / BA: bệnh nhân không có phiếu nào trong phạm vi hiện 0, không che `*********` (chọn theo "khớp tab Hồ sơ").
   - Cột Dịch vụ / Bác sĩ / Trạng thái vẫn tính trên mọi phiếu. BA chỉ nêu ba cột tiền.
   - Hồ sơ nhóm, CSKH, báo cáo vẫn cộng tiền toàn bộ.
+
+## R-1008 (2026-10-22, mức 2 + mức 3 vì có quyền mới) F-76 CSKH › "Template tin nhắn" + trang Tạo/Sửa mẫu (BA P2110, đợt 1)
+
+- **Yêu cầu BA**:
+  - Nguồn: `P2110.drawio` (img_08) và mock `3 · Gửi tin nhắn-html`. Trang Gửi tin nhắn để đợt 2 (F-77).
+  - Thêm tab thứ ba "Template tin nhắn" ở /cskh-grouping, gồm danh sách mẫu và trang tạo/sửa.
+  - Đổi tên loại "Complain" thành "Khiếu nại".
+  - Bỏ mục Mẫu tin nhắn trong Công cụ › Tin nhắn.
+- **Chủ dự án chốt 12 điểm (2026-10-22)**. Đợt này dùng các điểm sau:
+  - Chỉ Zalo gửi thật; SMS / Email hiện "Chưa kết nối gửi".
+  - Mẫu Zalo là mẫu ZNS đã duyệt, kèm tên + mục đích riêng; tham số tự gán biến.
+  - Bộ biến cố định; giá trị mặc định cố định.
+  - Giữ thiết kế v2.
+  - Làm trên develop.
+- **BE**:
+  - `MessageTemplate`:
+    - Trường mới: `Purpose` (CareType của 10 tab CSKH), `Status`, `Subject` (Email), `ExternalTemplateId` + `ParamMapJson` (Zalo), `RemoveDiacritics` (SMS).
+    - Trạng thái: Nháp 0 / Sẵn sàng 1 / Chờ duyệt 2 / Zalo từ chối 3 / Ngừng dùng 4.
+    - `SaveDraft` chỉ cần tên.
+    - `Publish` ("Lưu mẫu"):
+      - mọi kênh: bắt buộc mục đích (`Tools:0011`);
+      - SMS / Email: bắt buộc nội dung (`0012`); Email bắt buộc tiêu đề (`0013`); biến lạ bị từ chối (`0014`);
+      - Zalo: bắt buộc chọn mẫu ZNS (`0015`); tham số bắt buộc phải có giá trị (`0016`); trạng thái lấy theo Zalo (ENABLE → Sẵn sàng, PENDING_REVIEW → Chờ duyệt…).
+    - Giới hạn độ dài: SMS 1000, Zalo 2000 (`0017`).
+    - Mỗi kênh chỉ giữ trường của mình. Server trim nội dung.
+  - `MessageVariables`: 16 biến, chia nhóm Khách hàng / Lịch hẹn / Điều trị / Hệ thống. `MessageTemplateRenderer` + `MessageVariableResolver` dùng cho xem trước với khách thật.
+  - `MessageTemplateAppService`, mở ở `api/v1/app/message-templates`:
+    - danh sách lọc theo kênh / mục đích / chữ không dấu, có đếm theo kênh;
+    - get / create / update;
+    - `duplicate` tạo bản nháp "- bản sao";
+    - `variables`;
+    - `sample-customer`: ưu tiên khách có lịch hẹn sắp tới, nút "Đổi khách";
+    - `preview`;
+    - `zns-templates` (+ chi tiết);
+    - `sync-zalo-status`: Zalo lỗi thì giữ trạng thái cũ và báo trên tab.
+
+    Phạm vi chi nhánh lấy từ `X-Clinic-Branch-Id`. "Đã gửi" đếm từ nhật ký gửi đã tới máy khách.
+  - Phần gọi Zalo tách khỏi `ZaloOaAppService` thành `ZaloOaGateway`, dùng chung cho cả hai service.
+  - `CareBoard.Types`: thứ tự 10 tab, dùng chung cho `CareReportAppService` và kiểm tra mục đích.
+  - Quyền `cskhTemplate` (Xem / Thêm / Sửa), nằm dưới CSKH trong cây Phân quyền. Seeder cấp cho role tĩnh.
+  - Migration `20261022021207_MessageTemplateEditor`: thêm 6 cột + index (ClinicBranchId, Channel, Status). Mẫu cũ được đặt Sẵn sàng.
+- **FE**:
+  - Tab "Template tin nhắn" (`TemplateListTab`):
+    - chip kênh có số đếm;
+    - lọc mục đích;
+    - tìm kiếm;
+    - bảng 6 cột (Tên mẫu, Kênh, Mục đích, Số biến, Đã gửi, Trạng thái);
+    - thẻ xem trước bên phải;
+    - Sửa / Nhân bản theo quyền.
+  - Trang `/cskh-grouping/templates/new` và `/:id` (`TemplateEditor`, quyền create / update):
+    - chọn kênh;
+    - ô nội dung có gợi ý khi gõ `{`;
+    - chip biến hay dùng;
+    - Thư viện biến (tìm kiếm, PillTabs theo nhóm, bấm + để chèn tại con trỏ);
+    - "Biến trong mẫu";
+    - xem trước với khách mẫu;
+    - Zalo: chọn mẫu ZNS, bảng gán tham số điền sẵn;
+    - Lưu nháp / Lưu mẫu;
+    - rời trang khi chưa lưu thì hỏi lại.
+  - Công cụ › Tin nhắn: bỏ sub-tab Mẫu tin nhắn, xoá `MessageTemplateView` và các API cũ trong `toolsApi`.
+- **Đối chiếu img_08** (ảnh chụp local so với ảnh BA, 1440 px):
+  - Gõ `{ng` chỉ gợi ý các biến có một từ bắt đầu bằng "ng" (Ngày …), không gợi ý `{ten_khach_hang}`. `matchesVariable` so khớp đầu từ; dùng chung cho gợi ý, Thư viện biến và ô tham số ZNS.
+  - Nhóm biến xuống dòng (`PillTabs`) thay cho thanh cuộn ngang.
+  - Danh sách biến cao 480 px, thấy khoảng 8 biến.
+  - Các điểm còn khác: xem `unknowns.md` (F-76).
+- **Test**:
+  - Domain **1017/1017**, Application **758/758** (gồm `MessageTemplateAppServiceContractTests`), HttpApi.Host **24/24**.
+  - E2E thật:
+    - Đường chạy: build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`. Không chặn request nào; Zalo trỏ vào stub `e2e/fixtures/zalo-stub.mjs` ở :5199.
+    - `cskh-message-template` **7/7** (`E2E_ZALO_STUB=1`):
+      - soạn SMS: `{ng` không gợi ý Họ và tên;
+      - rời trang khi chưa lưu;
+      - Nhân bản + tải lại;
+      - cách ly chi nhánh;
+      - chi nhánh chưa nối Zalo;
+      - quyền chỉ xem / chỉ tạo;
+      - Zalo: mẫu ZNS + thiếu tham số + Chờ duyệt. Ca này tự nối OA qua connect-url + callback rồi tự gỡ.
+  - Hồi quy mức 3:
+    - `cskh-generated-tabs`, `report-customer`, `zalo-oa`, `routes`: **45/45**. Hai spec đầu sửa chữ "Complain" → "Khiếu nại".
+    - `cskh`, `cskh-after-treatment`, `cskh-contact-staff-api`, `cskh-live-missed`, `cskh-reminder-api`: **14/14**.
+- **Còn treo**:
+  - Đợt 2 (F-77): Gửi tin nhắn theo `Send.dc.html`, nút "Dùng mẫu này để gửi" (`onUseToSend` chưa nối), thay dialog Lưu tin nhắn / Gửi ZBS.
+  - Đợt 3 (F-78): Thống kê CSKH.
+  - Staging cần chạy DbMigrator (migration + quyền mới), rồi xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Template tin nhắn".
+
+## R-1009 (2026-10-22, mức 2 + mức 3 vì có quyền mới và sửa nút trên bảng CSKH dùng chung) F-77 CSKH › Gửi tin nhắn (BA P2110, đợt 2)
+
+- **Yêu cầu BA**:
+  - Nguồn: `P2110.drawio` (luồng gửi, nút trên dòng CSKH) và mock `3 · Gửi tin nhắn-html` (`Send.dc.html`).
+  - Chủ dự án: "ưu tiên làm theo layout này" — màn Gửi theo đúng bố cục mock, màu v2, không có Tệp tải lên.
+- **Quyết định của chủ dự án dùng ở đợt này** (12 điểm, 2026-10-22, xem R-1008):
+  - Chỉ Zalo gửi thật; SMS / Email báo "Chưa kết nối gửi", server từ chối (`Tools:0018`).
+  - Khách thiếu biến hoặc tham số ZNS bắt buộc bị bỏ qua và được kể tên ở "Kiểm tra trước khi gửi".
+  - Xóa chỉ bỏ khách khỏi lần gửi này.
+  - Màn Gửi thay dialog Lưu tin nhắn / Gửi ZBS.
+  - Không Tệp tải lên, không thẻ Đã xem / phản hồi.
+  - Hẹn giờ gửi + Gửi thử tới tôi (SĐT của tài khoản).
+- **BE**:
+  - `MessageSendBatch` (bảng `bd_message_send_batches`): một lần bấm Gửi. Trạng thái Chờ 0 / Đang gửi 1 / Xong 2 / Đã huỷ 3; chỉ huỷ lượt còn Chờ (`Tools:0023`).
+  - `MessageLog` thêm `SendBatchId`, `CareRecordId`. Mỗi khách một log Pending, ghi lúc tạo lượt.
+  - `MessageRecipientBuilder`: server tự đọc lại khách (không tin bảng trên màn hình). Bỏ qua khi không có liên hệ, đã nhận mẫu trong 30 ngày (ô bật mặc định), hoặc thiếu biến / tham số ZNS. Tối đa 5000 khách (`Tools:0025`).
+  - `MessageSendJob` (`cskh.message-send`): hẹn giờ thì xếp job có `delay`, chạy sớm thì tự xếp lại; điền lại từng tin bằng dữ liệu lúc gửi, gửi qua `ZaloOaGateway`, lưu riêng từng tin; gửi được thì `CareRecord.MarkZaloSent`. Log ứng dụng chỉ có id.
+  - Gửi thử: không tạo `MessageLog`; chỉ nhật ký gọi tích hợp ghi lại.
+  - Xem trước che SĐT ("Ẩn số điện thoại") và `{so_tien_con_lai}` (không có "Chi phí › Xem") qua `MessageValueMasker`. Tin gửi đi không bị che.
+  - `MessageSendAppService` ở `api/v1/app/message-sends`: `templates`, `lists`, `recipients`, `preview`, `customers`, tạo lượt, get / list, `cancel`, `test`. Chi nhánh lấy từ `X-Clinic-Branch-Id`.
+  - Quyền `cskhSend` (Xem / Gửi) dưới CSKH, sau "Template tin nhắn". Seeder cấp role tĩnh.
+  - Mã lỗi `Tools:0018..0025`.
+  - Migration `20261022042924_MessageSendBatches`: bảng mới + 2 cột + 3 index (gồm `(ClinicBranchId, TemplateId, PatientId, SentAt)` cho kiểm tra 30 ngày).
+- **FE**:
+  - Trang `/cskh-grouping/send` (`MessageSendPage` → `send/SendScreen`, 19 component, CSS `cskh-send.css`):
+    - cột trái 3 bước: Kênh gửi, Mẫu, Gửi tới (Danh sách CSKH theo 10 tab + Ngày / Tuần / Tháng, hoặc Khách lẻ; thống kê, tìm, bảng, Xóa / Hoàn tác, ô 30 ngày);
+    - cột phải: Kiểm tra trước khi gửi, Xem trước, Tóm tắt lần gửi (chi phí = giá ZNS × số tin, hoặc "Chưa rõ"), Hẹn giờ gửi, nút gửi đọc điều còn thiếu, Gửi thử, Lịch gửi đã hẹn + Huỷ hẹn;
+    - bấm gửi hỏi lại "Xác nhận gửi tin" → "Có".
+  - Lối vào: nút "Gửi tin nhắn chăm sóc" trên 10 tab CSKH; nút Gửi SMS / Gửi Zalo trên từng dòng (mở Khách lẻ khoá vào khách đó); Gửi SMS trên dòng Phân nhóm CSKH; "Dùng mẫu này để gửi" ở tab Template tin nhắn (nối `onUseToSend` còn treo từ R-1008).
+  - Dòng Lịch tạm của khách chưa có hồ sơ không có nút gửi.
+  - Xoá `SaveMessageDialog`, `SendZaloDialog`, `api/messageApi.ts`. `CareRowActions` đổi `onMessage` / `onSend` thành `onSms` / `onZalo`; `CareToolbar` có vùng `actions`.
+- **Đối chiếu `Send.dc.html`** (1440 px, build production): bố cục, thứ tự thẻ, chip, bảng, tóm tắt khớp. Các điểm khác (cố ý hoặc chưa có xác nhận BA): xem `docs/clone/pages/cskh-messaging.md` và `unknowns.md` (F-77).
+- **Test**:
+  - Domain **1028/1028** (gồm `MessageSendBatchTests` 10), Application **772/772** (gồm `MessageSendAppServiceContractTests` 6), HttpApi.Host **24/24**.
+  - E2E thật (build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, job gửi thật, Zalo là stub :5199, không chặn request):
+    - `cskh-message-send` **6/6** (`E2E_ZALO_STUB=1`): khách lẻ + bỏ qua khách thiếu biến + tải lại thấy "Đã nhận" + tắt ô 30 ngày; Danh sách CSKH + Xóa / Hoàn tác + Hẹn giờ + Huỷ hẹn; Gửi thử (có / chưa có SĐT); SMS chưa kết nối + "Dùng mẫu này để gửi"; quyền (chỉ `cskhCare.read`, chỉ `cskhSend.read`, API 403); cách ly chi nhánh.
+  - Sửa phía spec:
+    - `cskh-generated-tabs` (`expectMessaging`): dòng CSKH nay có "Gửi SMS" / "Gửi Zalo" mở màn Gửi khoá vào khách, thay cho dialog Lưu tin nhắn / Gửi ZBS đã xoá.
+    - `cskh-message-template`: stub Zalo giữ mọi lần gọi suốt đời tiến trình, nên ca Zalo đếm **phần chênh** số lần gửi ZNS (`znsSendCount()`) thay vì đếm tuyệt đối.
+  - Hồi quy mức 3:
+    - Spec có sửa: `cskh-generated-tabs` 5/5, `cskh-message-template` 7/7.
+    - `cskh`, `cskh-after-treatment`, `cskh-contact-staff-api`, `cskh-live-missed`, `cskh-reminder-api`, `report-customer`, `zalo-oa`, `routes`, `role-permissions-tree`, `role-permissions-unsaved`, `role-permissions-abilities`, `role-permissions`: **59/61**.
+    - 2 ca đỏ có từ trước: `role-permissions:53` và `role-permissions-abilities:38` (đã ghi ở R-936, R-994). Hai spec này giả định vai trò `dentist` không có quyền nào, nhưng DB local có 150 quyền CSKH / Vận hành do chủ dự án tự tick (DB `BlueDental` của main cũng vậy). Các quyền này không phải `cskhTemplate` / `cskhSend`; spec F-76 / F-77 chỉ dùng vai trò tạm và xoá sau khi chạy. Không sửa quyền của chủ dự án.
+- **Còn treo**:
+  - Đợt 3 (F-78): Thống kê CSKH + PeriodRangePicker.
+  - SMS / Email chưa có nhà cung cấp gửi.
+  - Staging cần DbMigrator (migration + quyền mới), rồi xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Gửi tin nhắn".
+
+## R-1010 (2026-10-22, mức 2: một feature, chỉ FE) F-77 — nút "Gửi tin nhắn chăm sóc" lên hàng tab trên cùng
+
+- **Yêu cầu**: mock BA (P2110) đặt nút "Gửi tin nhắn chăm sóc" ở cuối hàng tab "Chăm sóc khách hàng / Phân nhóm CSKH / Template tin nhắn", không nằm trong thanh công cụ của từng tab. Chủ dự án: "cho button lên nằm ở tab giống như mock UI hay giống tab Template tin nhắn".
+- **FE**:
+  - `CskhGroupingPage`: nút nằm cuối `.pill-tabs-row`, cùng chỗ với "Tạo mẫu mới" của tab Template tin nhắn. Chỉ hiện ở tab "Chăm sóc khách hàng" (cả 10 tab phân loại) khi có `cskhSend.read`.
+  - Hành vi giữ nguyên: mở `/cskh-grouping/send` với kênh Zalo, tab phân loại và kỳ Ngày / Tuần / Tháng đang xem.
+  - `CareToolbar` bỏ `onSendCare`; `CareBoard` bỏ `sendCare`. Nút Gửi SMS / Gửi Zalo trên từng dòng không đổi.
+- **Test** (build production `vite preview` 127.0.0.1:8137 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, Zalo stub :5199, không chặn request):
+  - `cskh.spec` "the toolbar matches the reference per tab" thêm: nút nằm trong hàng tab trên ở Sau điều trị / Nhắc lịch hẹn / Khiếu nại, không có trong `.cskh-toolbar`, không có ở Phân nhóm CSKH.
+  - `cskh-message-send` **6/6** (gồm ca bấm nút từ Nhắc lịch hẹn và ca thiếu `cskhSend` không thấy nút) + `cskh` **8/8**.
+  - tsc sạch. eslint còn 1 lỗi có từ trước ở `CskhGroupingPage.tsx:51` (`react-hooks/exhaustive-deps` chưa khai báo rule).

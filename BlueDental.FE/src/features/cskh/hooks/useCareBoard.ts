@@ -18,7 +18,7 @@ import {
 import { careDateRange, type CareDateMode, type CareTabConfig } from "../careTabs";
 import type { CareCounterFilter, CareCounterKey } from "../components/CareCounters";
 
-export type CareDialogKind = "create" | "result" | "send" | "message";
+export type CareDialogKind = "create" | "result";
 
 interface UseCareBoardArgs {
   branchId: string;

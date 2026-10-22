@@ -1,0 +1,697 @@
+/* ── CSKH ▸ Tạo / Sửa mẫu tin nhắn (F-76, BA P2110 img_08) ──────────────────
+   Breadcrumb and Lưu nháp · Lưu mẫu on top; the two steps on the left, the
+   variable library, preview and channel rules down the right. */
+
+.tpe-page--center {
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.tpe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tpe-head .page-header {
+  margin-left: auto;
+}
+
+.tpe-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.tpe-crumbs [aria-current="page"] {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.tpe-crumb {
+  color: var(--bd-purple);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tpe-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 16px;
+}
+
+.tpe-main,
+.tpe-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Cards ── */
+
+.tpe-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+}
+
+.tpe-card--accent {
+  border-color: color-mix(in srgb, var(--bd-purple) 22%, #ffffff);
+  background: var(--bd-purple-pale);
+}
+
+.tpe-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tpe-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tpe-step {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bd-purple);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.tpe-card-hint {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.tpe-card-hint--accent {
+  color: var(--bd-purple);
+  font-weight: 600;
+}
+
+.tpe-badge {
+  padding: 3px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Step 1: channel cards ── */
+
+.tpe-channels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tpe-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border: 1.5px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tpe-channel:not(:disabled):hover {
+  border-color: var(--bd-purple);
+}
+
+.tpe-channel:focus-visible {
+  outline: 2px solid var(--bd-purple);
+  outline-offset: 2px;
+}
+
+.tpe-channel:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tpe-channel--selected {
+  border-color: var(--bd-purple);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bd-purple) 16%, transparent);
+}
+
+.tpe-channel-top {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tpe-channel-glyph {
+  display: inline-flex;
+  min-width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-surface-3);
+  color: var(--bd-sub);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.tpe-channel--selected .tpe-channel-glyph {
+  background: var(--bd-purple);
+  color: #ffffff;
+}
+
+.tpe-channel-radio {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--bd-faint);
+  border-radius: 50%;
+  background: var(--bd-card);
+}
+
+.tpe-channel--selected .tpe-channel-radio {
+  border-color: var(--bd-purple);
+}
+
+.tpe-channel--selected .tpe-channel-radio::after {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--bd-purple);
+  content: "";
+}
+
+.tpe-channel-title {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.tpe-channel-desc {
+  color: var(--bd-sub);
+  font-size: 12.5px;
+}
+
+.tpe-channel-note {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.tpe-channel-tag {
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.tpe-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.tpe-note .anticon {
+  margin-top: 3px;
+  color: var(--bd-purple);
+}
+
+/* ── Tên mẫu · Mục đích ── */
+
+.tpe-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tpe-meta .ant-form-item {
+  margin-bottom: 0;
+}
+
+.tpe-meta .ant-input,
+.tpe-meta .ant-select {
+  height: 40px;
+}
+
+/* ── Step 2: fields ── */
+
+.tpe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tpe-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tpe-label {
+  color: var(--bd-sub);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tpe-label--required::after,
+.tpe-required {
+  margin-left: 2px;
+  color: var(--bd-red);
+}
+
+.tpe-label--required::after {
+  content: "*";
+}
+
+.tpe-hint {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.tpe-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tpe-chip {
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--bd-purple) 30%, #ffffff);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tpe-chip:not(:disabled):hover {
+  border-color: var(--bd-purple);
+}
+
+.tpe-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tpe-content-wrap {
+  position: relative;
+}
+
+.tpe-content-wrap .ant-input {
+  line-height: 1.7;
+}
+
+.tpe-key {
+  color: var(--bd-purple);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.tpe-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ── "{" suggestions under Nội dung ── */
+
+.tpe-suggest {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  width: min(340px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-pop);
+}
+
+.tpe-suggest-head {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bd-line);
+  color: var(--bd-muted);
+  font-size: 11.5px;
+}
+
+.tpe-suggest-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tpe-suggest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  color: var(--bd-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tpe-suggest-row:hover,
+.tpe-suggest-row--active {
+  background: var(--bd-purple-pale);
+}
+
+.tpe-suggest-empty {
+  padding: 10px 12px;
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+
+/* ── Biến đang dùng ── */
+
+.tpe-inuse {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius);
+  background: var(--bd-surface-3);
+}
+
+.tpe-inuse-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+  font-size: 12px;
+}
+
+.tpe-inuse-chip--unknown {
+  background: var(--bd-red-pale);
+  color: var(--bd-red-dark);
+}
+
+.tpe-inuse-name {
+  font-weight: 600;
+}
+
+.tpe-inuse-empty {
+  color: var(--bd-muted);
+}
+
+.tpe-inuse-remove {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.tpe-inuse-remove:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.tpe-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--bd-red-dark);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.tpe-warn .anticon {
+  margin-top: 3px;
+}
+
+.tpe-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Zalo: ZNS template and its parameters ── */
+
+.tpe-zns-params {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tpe-zns-param {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.tpe-zns-name {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--bd-sub);
+}
+
+.tpe-zns-name code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.tpe-zns-value {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpe-zns-value .ant-select {
+  width: 100%;
+}
+
+/* ── Thư viện biến ── */
+
+/* Five groups do not fit one row of the side card; the pills wrap (BA img_08). */
+.tpe-lib-groups {
+  margin-top: -4px;
+}
+
+.tpe-lib-groups .pill-tabs {
+  gap: 6px;
+}
+
+.tpe-lib-groups .pill-tab {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+/* About eight variables in view before it scrolls, as on BA img_08. */
+.tpe-lib-list {
+  display: flex;
+  max-height: 480px;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 -20px;
+  padding: 0 20px;
+  overflow-y: auto;
+}
+
+.tpe-lib-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tpe-lib-section .tpl-eyebrow {
+  margin: 0;
+}
+
+.tpe-lib-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tpe-lib-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bd-line-soft);
+}
+
+.tpe-lib-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.tpe-lib-name {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tpe-lib-example {
+  overflow: hidden;
+  color: var(--bd-muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpe-lib-add {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  background: var(--bd-card);
+  color: var(--bd-purple);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tpe-lib-add:not(:disabled):hover {
+  border-color: var(--bd-purple);
+}
+
+.tpe-lib-add:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tpe-lib-add--used {
+  border-color: var(--bd-purple);
+  background: var(--bd-purple);
+  color: #ffffff;
+}
+
+/* ── Xem trước · Quy định kênh ── */
+
+.tpe-preview-empty {
+  color: var(--bd-muted);
+  text-align: center;
+}
+
+.tpe-preview-param {
+  line-height: 1.6;
+}
+
+.tpe-preview-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tpe-rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--bd-sub);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tpe-rule-list li::marker {
+  color: var(--bd-purple);
+}
+
+/* ── Responsive (house breakpoints 1280 / 1100 / 640) ── */
+
+@media (max-width: 1280px) {
+  .tpe-layout {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+/* The right column drops under the steps. */
+@media (max-width: 1100px) {
+  .tpe-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .tpe-channels,
+  .tpe-meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tpe-card {
+    padding: 16px;
+  }
+
+  .tpe-lib-list {
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+
+  .tpe-zns-param {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .tpe-zns-name {
+    min-height: 0;
+  }
+}

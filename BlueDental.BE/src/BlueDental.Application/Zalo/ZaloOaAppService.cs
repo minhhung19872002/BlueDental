@@ -35,11 +35,9 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
     private const int MaxContentLength = 2000;
     private const int MaxRedirectMessage = 200;
-    private const int MaxTemplatePage = 100;
     private const string ClinicTimeZoneId = "SE Asia Standard Time";
 
     private readonly IRepository<ZaloOaConnection, Guid> _connections;
-    private readonly IRepository<IntegrationCallLog, Guid> _callLogs;
     private readonly IRepository<MessageLog, Guid> _messages;
     private readonly IRepository<Patient, Guid> _patients;
     private readonly IRepository<CareRecord, Guid> _careRecords;
@@ -50,12 +48,12 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     private readonly BranchAccessChecker _branchAccess;
     private readonly IZaloApiClient _zalo;
     private readonly ZaloOaTokenService _tokens;
+    private readonly ZaloOaGateway _gateway;
     private readonly IOptions<ZaloOptions> _options;
     private readonly IConfiguration _configuration;
 
     public ZaloOaAppService(
         IRepository<ZaloOaConnection, Guid> connections,
-        IRepository<IntegrationCallLog, Guid> callLogs,
         IRepository<MessageLog, Guid> messages,
         IRepository<Patient, Guid> patients,
         IRepository<CareRecord, Guid> careRecords,
@@ -66,11 +64,11 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         BranchAccessChecker branchAccess,
         IZaloApiClient zalo,
         ZaloOaTokenService tokens,
+        ZaloOaGateway gateway,
         IOptions<ZaloOptions> options,
         IConfiguration configuration)
     {
         _connections = connections;
-        _callLogs = callLogs;
         _messages = messages;
         _patients = patients;
         _careRecords = careRecords;
@@ -81,6 +79,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         _branchAccess = branchAccess;
         _zalo = zalo;
         _tokens = tokens;
+        _gateway = gateway;
         _options = options;
         _configuration = configuration;
     }
@@ -93,7 +92,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task<ZaloOaStatusDto> GetStatusAsync()
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        return ToStatus(branchId, await FindConnectionAsync(branchId));
+        return ToStatus(branchId, await _gateway.FindConnectionAsync(branchId));
     }
 
     [Authorize(BlueDentalPermissions.Tools.Manage)]
@@ -135,14 +134,14 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         }
 
         var exchange = await _zalo.ExchangeCodeAsync(code);
-        await LogAsync(branchId.Value, "oauth-exchange", exchange.Call);
+        await _gateway.LogAsync(branchId.Value, "oauth-exchange", exchange.Call);
         if (!exchange.Call.Succeeded || exchange.AccessToken == null || exchange.RefreshToken == null)
         {
             return Redirect("error", "exchange", exchange.Call.Error);
         }
 
         var info = await _zalo.GetOaInfoAsync(exchange.AccessToken);
-        await LogAsync(branchId.Value, "oa-info", info.Call);
+        await _gateway.LogAsync(branchId.Value, "oa-info", info.Call);
         if (!info.Call.Succeeded || info.Info == null)
         {
             return Redirect("error", "oa-info", info.Call.Error);
@@ -180,26 +179,26 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         var refreshToken = Options.BootstrapRefreshToken;
 
         var info = await _zalo.GetOaInfoAsync(accessToken);
-        await LogAsync(branchId, "oa-info", info.Call);
+        await _gateway.LogAsync(branchId, "oa-info", info.Call);
 
         if (!info.Call.Succeeded || info.Info == null)
         {
             var refreshResult = await _zalo.RefreshTokenAsync(refreshToken);
-            await LogAsync(branchId, "bootstrap-refresh", refreshResult.Call);
+            await _gateway.LogAsync(branchId, "bootstrap-refresh", refreshResult.Call);
 
             if (!refreshResult.Call.Succeeded || refreshResult.AccessToken == null || refreshResult.RefreshToken == null)
             {
-                throw Refused(refreshResult.Call);
+                throw ZaloOaGateway.Refused(refreshResult.Call);
             }
 
             accessToken = refreshResult.AccessToken;
             refreshToken = refreshResult.RefreshToken;
 
             info = await _zalo.GetOaInfoAsync(accessToken);
-            await LogAsync(branchId, "oa-info-retry", info.Call);
+            await _gateway.LogAsync(branchId, "oa-info-retry", info.Call);
             if (!info.Call.Succeeded || info.Info == null)
             {
-                throw Refused(info.Call);
+                throw ZaloOaGateway.Refused(info.Call);
             }
         }
 
@@ -220,7 +219,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task<ZaloOaStatusDto> SetEnabledAsync(SetZaloEnabledInput input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var connection = await GetConnectionAsync(branchId);
+        var connection = await _gateway.GetConnectionAsync(branchId);
 
         connection.SetEnabled(input.IsEnabled);
         await _connections.UpdateAsync(connection);
@@ -232,7 +231,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task DisconnectAsync()
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var connection = await FindConnectionAsync(branchId);
+        var connection = await _gateway.FindConnectionAsync(branchId);
         if (connection != null)
         {
             await _connections.DeleteAsync(connection);
@@ -243,7 +242,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task<ZaloOaStatusDto> RefreshTokenAsync()
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var connection = await GetConnectionAsync(branchId);
+        var connection = await _gateway.GetConnectionAsync(branchId);
 
         await _tokens.RefreshAsync(connection);
 
@@ -256,19 +255,10 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task<PagedResultDto<ZaloTemplateDto>> GetTemplatesAsync(GetZaloTemplatesInput input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var connection = await GetConnectionAsync(branchId);
+        var connection = await _gateway.GetConnectionAsync(branchId);
 
-        // Zalo serves at most 100 templates per request.
-        var limit = Math.Clamp(input.MaxResultCount, 1, MaxTemplatePage);
-        var outcome = await CallWithTokenAsync(connection,
-            token => _zalo.GetTemplatesAsync(token, input.SkipCount, limit, input.Status),
-            o => o.Call);
-        await LogAsync(branchId, "template-list", outcome.Call, outcome.Items.Count);
-        if (!outcome.Call.Succeeded)
-        {
-            throw Refused(outcome.Call);
-        }
-
+        var outcome = await _gateway.FetchTemplatePageAsync(
+            branchId, connection, input.SkipCount, input.MaxResultCount, input.Status);
         var items = outcome.Items.Select(ToTemplateDto).ToList();
         return new PagedResultDto<ZaloTemplateDto>(outcome.Total, items);
     }
@@ -277,9 +267,9 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task<ZaloTemplateDetailDto> GetTemplateDetailAsync(string templateId)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var connection = await GetConnectionAsync(branchId);
+        var connection = await _gateway.GetConnectionAsync(branchId);
 
-        var detail = await FetchTemplateDetailAsync(branchId, connection, templateId);
+        var detail = await _gateway.FetchTemplateDetailAsync(branchId, connection, templateId);
         return ToTemplateDetailDto(detail);
     }
 
@@ -289,7 +279,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     public async Task<ZaloMessageDto> SendAsync(SendZaloMessageInput input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var connection = await GetConnectionAsync(branchId);
+        var connection = await _gateway.GetConnectionAsync(branchId);
         connection.EnsureCanSend();
 
         var (patient, careRecord) = await ResolveRecipientAsync(input, branchId);
@@ -298,7 +288,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
                 ? patient?.Contact.PhoneNumber
                 : BlueDental.PatientManagement.PatientPhoneMask.Resolve(input.Phone, patient?.Contact.PhoneNumber));
 
-        var detail = await FetchTemplateDetailAsync(branchId, connection, input.TemplateId);
+        var detail = await _gateway.FetchTemplateDetailAsync(branchId, connection, input.TemplateId);
 
         var branch = await _branches.FindAsync(branchId);
         var visit = await ResolveVisitAsync(careRecord);
@@ -318,7 +308,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
             MessageSendStatus.Pending, null, null)
             .SetExternalTemplate(detail.TemplateId, detail.Name);
 
-        var outcome = await CallWithTokenAsync(connection,
+        var outcome = await _gateway.CallWithTokenAsync(connection,
             token => _zalo.SendTemplateMessageAsync(token, phone, detail.TemplateId, data.Values, messageId.ToString("N")),
             o => o.Call);
 
@@ -326,7 +316,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         {
             message.MarkFailed(outcome.Call.Error);
             await PersistSendAsync(branchId, message, outcome.Call, 0);
-            throw Refused(outcome.Call);
+            throw ZaloOaGateway.Refused(outcome.Call);
         }
 
         message.MarkSent(outcome.MessageId, Clock.Now, detail.Price);
@@ -449,7 +439,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     private async Task<ZaloOaConnection> UpsertConnectionAsync(
         Guid branchId, ZaloOaInfo info, ZaloTokenSet tokens, DateTime now)
     {
-        var connection = await FindConnectionAsync(branchId);
+        var connection = await _gateway.FindConnectionAsync(branchId);
         if (connection == null)
         {
             connection = new ZaloOaConnection(GuidGenerator.Create(), branchId, info.OaId, info.Name, tokens, now);
@@ -465,49 +455,6 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
         return connection;
     }
-
-    private Task<ZaloOaConnection?> FindConnectionAsync(Guid branchId) =>
-        _connections.FirstOrDefaultAsync(c => c.ClinicBranchId == branchId);
-
-    private async Task<ZaloOaConnection> GetConnectionAsync(Guid branchId) =>
-        await FindConnectionAsync(branchId)
-        ?? throw new BusinessException(BlueDentalDomainErrorCodes.Tools.ZaloNotConnected);
-
-    private async Task<ZaloTemplateDetail> FetchTemplateDetailAsync(Guid branchId, ZaloOaConnection connection, string templateId)
-    {
-        var outcome = await CallWithTokenAsync(connection,
-            token => _zalo.GetTemplateDetailAsync(token, templateId),
-            o => o.Call);
-        await LogAsync(branchId, "template-info", outcome.Call);
-        if (!outcome.Call.Succeeded || outcome.Detail == null)
-        {
-            throw Refused(outcome.Call);
-        }
-
-        return outcome.Detail;
-    }
-
-    /// <summary>
-    /// Calls Zalo with the branch's access token. A token Zalo no longer
-    /// honours before its stated expiry (a newer pair was issued elsewhere,
-    /// the OA revoked the app) is refreshed once and the call repeated; a
-    /// refused token means Zalo did nothing, so repeating a send is safe.
-    /// </summary>
-    private async Task<T> CallWithTokenAsync<T>(
-        ZaloOaConnection connection, Func<string, Task<T>> call, Func<T, ZaloCallOutcome> outcomeOf)
-    {
-        var result = await call(await _tokens.GetAccessTokenAsync(connection));
-        if (!IsInvalidToken(outcomeOf(result)) || !await _tokens.RefreshAsync(connection))
-        {
-            return result;
-        }
-
-        return await call(await _tokens.GetAccessTokenAsync(connection));
-    }
-
-    /// <summary>-124 on the Business (ZBS) API, -216 on the Open API: "access token invalid".</summary>
-    private static bool IsInvalidToken(ZaloCallOutcome call) =>
-        !call.Succeeded && call.ErrorCode is "-124" or "-216";
 
     /// <summary>
     /// The send goes out through the current branch's OA and is logged there,
@@ -626,18 +573,9 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     {
         using var uow = UnitOfWorkManager.Begin(requiresNew: true);
         await _messages.InsertAsync(message);
-        await LogAsync(branchId, "zns-send", call, itemCount);
+        await _gateway.LogAsync(branchId, "zns-send", call, itemCount);
         await uow.CompleteAsync();
     }
-
-    private Task LogAsync(Guid branchId, string operation, ZaloCallOutcome call, int itemCount = 0) =>
-        _callLogs.InsertAsync(new IntegrationCallLog(
-            GuidGenerator.Create(), branchId, operation, call.RequestPath,
-            call.StatusCode, call.Succeeded, call.DurationMs, itemCount, call.Error));
-
-    private static BusinessException Refused(ZaloCallOutcome call) =>
-        new BusinessException(BlueDentalDomainErrorCodes.Tools.ZaloRequestFailed)
-            .WithData("message", call.Error ?? "unknown");
 
     private ZaloOAuthCallbackResultDto Redirect(string result, string? reason, string? message = null)
     {
@@ -680,7 +618,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         CanConnect = Options.HasAppCredentials,
     };
 
-    private static ZaloTemplateDto ToTemplateDto(ZaloTemplateSummary t) => new()
+    internal static ZaloTemplateDto ToTemplateDto(ZaloTemplateSummary t) => new()
     {
         TemplateId = t.TemplateId,
         Name = t.Name,
@@ -689,7 +627,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         CreatedAt = FromUnixMs(t.CreatedTimeMs),
     };
 
-    private static ZaloTemplateDetailDto ToTemplateDetailDto(ZaloTemplateDetail d) => new()
+    internal static ZaloTemplateDetailDto ToTemplateDetailDto(ZaloTemplateDetail d) => new()
     {
         TemplateId = d.TemplateId,
         Name = d.Name,

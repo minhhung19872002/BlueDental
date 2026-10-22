@@ -57,6 +57,8 @@ Pagination text: "Hiển thị 0 trên 0" (no per-page dropdown visible)
 | 2 | Mẫu Tin Nhắn | Message templates |
 | 3 | Danh Sách Tin Nhắn | Message list |
 
+BlueDental (F-76, BA P2110): bỏ sub-tab "Mẫu Tin Nhắn". Mẫu tin nhắn quản lý ở CSKH › Template tin nhắn, xem `cskh-messaging.md`.
+
 ### "Cấu Hình" tab — Table Columns (4 columns)
 | # | Column (VI) | English |
 |---|------------|---------|

@@ -51,14 +51,14 @@ const FILE_HEART = (
 
 interface CareRowActionsProps {
   onCall?: () => void;
-  onMessage?: () => void;
-  /** Reference shows send on Nhắc lịch hẹn and Chúc mừng sinh nhật rows; we show it on every care tab. */
-  onSend?: () => void;
+  /** Gửi tin nhắn on SMS / Zalo, locked to this customer (BA P2110). */
+  onSms?: () => void;
+  onZalo?: () => void;
   /** Reference varies the file-heart dialog per tab; absent on periodic/special. */
   onCare?: () => void;
 }
 
-export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowActionsProps) {
+export function CareRowActions({ onCall, onSms, onZalo, onCare }: CareRowActionsProps) {
   return (
     <div className="cskh-actions">
       {onCall && (
@@ -71,22 +71,22 @@ export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowAct
           {PHONE}
         </button>
       )}
-      {onMessage && (
+      {onSms && (
         <button
           type="button"
           className="cskh-action cskh-action--message"
-          title={t("CSKH:Action:SaveMessage")}
-          onClick={onMessage}
+          title={t("CSKH:Action:SendSms")}
+          onClick={onSms}
         >
           {MESSAGE}
         </button>
       )}
-      {onSend && (
+      {onZalo && (
         <button
           type="button"
           className="cskh-action cskh-action--send"
           title={t("CSKH:Action:SendZalo")}
-          onClick={onSend}
+          onClick={onZalo}
         >
           {SEND}
         </button>

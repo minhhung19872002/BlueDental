@@ -1,0 +1,280 @@
+/* ── Thống kê CSKH (/dashboard/cskh, BA P2110 img_31 / img_32) ──────────────
+   Built on the shared frame: .page-card blocks, .kpi-grid tiles and the
+   dashboard's .dash-card-head, so it reads as the Tổng quan page's sibling. */
+
+.cskh-stats-page .dash-card-title {
+  margin: 0;
+}
+
+.cskh-stats-card > .dash-card-head {
+  margin-bottom: 14px;
+}
+
+/* Filter row: Thời gian · Tất cả / SMS / Zalo / Email · Mẫu. */
+.cskh-stats-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 12px 16px;
+}
+
+.cskh-stats-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cskh-stats-filter-label {
+  font-size: 13px;
+  color: var(--bd-muted);
+  white-space: nowrap;
+}
+
+.cskh-stats-template.ant-select {
+  width: 220px;
+}
+
+/* KPI tiles: three across, not the dashboard's auto-fit four. */
+.cskh-stats-kpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Chart on the left, Theo kênh on the right — the dashboard's proportions. */
+.cskh-stats-split {
+  display: grid;
+  grid-template-columns: 1.85fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.cskh-stats-empty {
+  margin: 0;
+  padding: 48px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--bd-dim);
+}
+
+/* ── Day chart ── */
+.cskh-stats-chart {
+  width: 100%;
+  font-size: 11px;
+}
+
+.cskh-stats-chart .recharts-cartesian-axis-tick-value {
+  fill: var(--bd-dim);
+}
+
+.cskh-stats-grid line {
+  stroke: var(--bd-line);
+}
+
+.cskh-stats-cursor {
+  fill: var(--bd-bg-soft);
+}
+
+/* Every bar a pale primary; today's (or this month's) the full primary. */
+.cskh-stats-bar {
+  fill: color-mix(in srgb, var(--bd-primary) 45%, #ffffff);
+}
+
+.cskh-stats-bar--current {
+  fill: var(--bd-primary);
+}
+
+.cskh-stats-bar-label {
+  fill: var(--bd-sub);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cskh-stats-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: #ffffff;
+  box-shadow: var(--bd-shadow-card);
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+.cskh-stats-tooltip strong,
+.cskh-stats-tooltip b {
+  color: var(--bd-ink);
+}
+
+/* ── Meter (channel, template and send-result bars) ── */
+.cskh-stats-meter {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-bg-soft);
+}
+
+.cskh-stats-meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  border-radius: inherit;
+  background: var(--meter-color, var(--bd-primary));
+}
+
+.cskh-stats-meter--green {
+  --meter-color: var(--bd-green);
+}
+
+.cskh-stats-meter--blue {
+  --meter-color: var(--bd-blue);
+}
+
+/* ── Theo kênh ── */
+.cskh-stats-channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cskh-stats-channel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cskh-stats-channel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.cskh-stats-channel-name {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.cskh-stats-channel-count {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.cskh-stats-channel-sub {
+  font-size: 12px;
+  color: var(--bd-dim);
+}
+
+/* ── Tables ── */
+.cskh-stats-table-card {
+  padding-bottom: 8px;
+}
+
+.cskh-stats-table .ant-table-pagination.ant-pagination {
+  margin: 12px 0 4px;
+}
+
+.cskh-stats-strong {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.cskh-stats-two-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cskh-stats-sub {
+  font-size: 12px;
+  color: var(--bd-dim);
+}
+
+.cskh-stats-rate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cskh-stats-rate .cskh-stats-meter {
+  max-width: 90px;
+}
+
+.cskh-stats-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+.cskh-stats-outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.cskh-stats-recipients-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cskh-stats-search.ant-input-affix-wrapper {
+  width: 240px;
+}
+
+.cskh-stats-outcome-select.ant-select {
+  width: 160px;
+}
+
+/* ── Responsive (house breakpoints 1280 / 1100 / 640) ── */
+@media (max-width: 1280px) {
+  .cskh-stats-split {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+@media (max-width: 1100px) {
+  .cskh-stats-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .cskh-stats-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .cskh-stats-filters,
+  .cskh-stats-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cskh-stats-template.ant-select,
+  .cskh-stats-search.ant-input-affix-wrapper,
+  .cskh-stats-outcome-select.ant-select,
+  .cskh-stats-recipients-tools {
+    width: 100%;
+  }
+
+  /* Title over its period line rather than squeezed beside it. */
+  .cskh-stats-card > .dash-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .cskh-stats-card > .cskh-stats-recipients-head {
+    align-items: stretch;
+  }
+}

@@ -1,0 +1,326 @@
+/* ── PeriodRangePicker ────────────────────────────────────────────────────
+   BA P2110 "Bộ chọn thời gian": Chọn theo on the left, presets over a grid,
+   Đang chọn + So sánh kỳ trước + Hủy / Áp dụng along the foot. Same 40px
+   height as every other control in a filter row. */
+
+.bd-prp-trigger {
+  display: inline-flex;
+  height: 40px;
+  min-width: 230px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bd-prp-trigger:hover,
+.bd-prp-trigger[aria-expanded="true"] {
+  border-color: var(--bd-primary);
+}
+
+.bd-prp-trigger:focus-visible,
+.bd-prp-trigger[aria-expanded="true"] {
+  outline: none;
+  box-shadow: var(--bd-shadow-focus);
+}
+
+.bd-prp-trigger-icon {
+  color: var(--bd-primary);
+  font-size: 16px;
+}
+
+.bd-prp-trigger-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.bd-prp-trigger-caption {
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.bd-prp-trigger-range {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-prp-trigger-chevron {
+  color: var(--bd-muted);
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+
+.bd-prp-trigger[aria-expanded="true"] .bd-prp-trigger-chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Popover ── */
+
+.bd-prp-popover .ant-popover-container {
+  overflow: hidden;
+  padding: 0;
+  border-radius: var(--bd-radius-modal);
+}
+
+.bd-prp-panel {
+  display: grid;
+  /* 640px keeps the five day presets on one row. */
+  width: min(640px, calc(100vw - 32px));
+  grid-template-columns: 136px minmax(0, 1fr);
+}
+
+.bd-prp-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 10px;
+  border-right: 1px solid var(--bd-line);
+  background: var(--bd-bg-soft);
+}
+
+.bd-prp-side-title {
+  padding: 0 10px 6px;
+  color: var(--bd-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bd-prp-grain {
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--bd-radius-sm);
+  background: transparent;
+  color: var(--bd-sub);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bd-prp-grain:hover {
+  background: var(--bd-hover-tint);
+}
+
+.bd-prp-grain--active,
+.bd-prp-grain--active:hover {
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+  font-weight: 600;
+}
+
+.bd-prp-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 10px;
+}
+
+.bd-prp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bd-prp-chip {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  color: var(--bd-sub);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bd-prp-chip:hover {
+  border-color: var(--bd-blue-light);
+}
+
+.bd-prp-chip--active,
+.bd-prp-chip--active:hover {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+}
+
+.bd-prp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bd-prp-head .ant-btn {
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+}
+
+.bd-prp-title {
+  color: var(--bd-title);
+  font-size: 15px;
+}
+
+/* The grids: 2px gaps keep neighbouring in-range cells apart. */
+.bd-prp-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.bd-prp-grid--days {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.bd-prp-grid--month,
+.bd-prp-grid--year {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bd-prp-grid--quarter,
+.bd-prp-grid--half {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bd-prp-weekday {
+  padding: 4px 0;
+  color: var(--bd-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.bd-prp-cell {
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bd-prp-grid:not(.bd-prp-grid--days) .bd-prp-cell {
+  height: 44px;
+}
+
+.bd-prp-cell:hover {
+  background: var(--bd-hover-tint);
+}
+
+.bd-prp-cell--outside {
+  color: var(--bd-faint);
+}
+
+.bd-prp-cell--current {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--bd-blue-light);
+}
+
+.bd-prp-cell--in,
+.bd-prp-cell--in:hover {
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+}
+
+.bd-prp-cell--start,
+.bd-prp-cell--end,
+.bd-prp-cell--start:hover,
+.bd-prp-cell--end:hover {
+  background: var(--bd-primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.bd-prp-hint {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-prp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--bd-line);
+  background: var(--bd-bg-soft);
+}
+
+.bd-prp-selecting {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.bd-prp-selecting > span:first-child {
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.bd-prp-selecting strong {
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+.bd-prp-error {
+  color: var(--bd-red);
+  font-size: 12px;
+}
+
+.bd-prp-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .bd-prp-trigger {
+    width: 100%;
+  }
+
+  .bd-prp-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Chọn theo folds into a row above the presets. */
+  .bd-prp-side {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--bd-line);
+  }
+
+  .bd-prp-side-title {
+    display: none;
+  }
+
+  .bd-prp-grain {
+    flex-shrink: 0;
+  }
+
+  /* Đang chọn takes its own row, else the dates run under So sánh kỳ trước. */
+  .bd-prp-selecting {
+    flex-basis: 100%;
+  }
+}

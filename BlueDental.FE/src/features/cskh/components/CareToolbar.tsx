@@ -11,17 +11,22 @@ import { useDentistStaffOptions, useStaffOptions } from "@/hooks/useStaffOptions
 import { MessageField } from "./MessageField";
 import type { CareTabConfig } from "../careTabs";
 
+/** The row's buttons; each is hidden when its handler is absent. */
+interface CareToolbarActions {
+  exporting: boolean;
+  onExport?: () => void;
+  onCreate?: () => void;
+}
+
 interface CareToolbarProps {
   tab: CareTabConfig;
   search: string;
   doctorId: string | undefined;
   careStaffId: string | undefined;
-  exporting: boolean;
   onSearchChange: (value: string) => void;
   onDoctorChange: (value: string | undefined) => void;
   onCareStaffChange: (value: string | undefined) => void;
-  onExport?: () => void;
-  onCreate?: () => void;
+  actions: CareToolbarActions;
 }
 
 /** Per-tab toolbar row: Xuất Excel · Tìm kiếm · Bác sĩ · NV CSKH · Tạo mới. */
@@ -30,13 +35,12 @@ export function CareToolbar({
   search,
   doctorId,
   careStaffId,
-  exporting,
   onSearchChange,
   onDoctorChange,
   onCareStaffChange,
-  onExport,
-  onCreate,
+  actions,
 }: CareToolbarProps) {
+  const { exporting, onExport, onCreate } = actions;
   const doctors = useDentistStaffOptions();
   const staff = useStaffOptions();
 

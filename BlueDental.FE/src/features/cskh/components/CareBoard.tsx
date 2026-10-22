@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { Table } from "antd";
 import type { Dayjs } from "dayjs";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { CARE_TYPE, type CareRecordDto } from "../api/careApi";
+import { MESSAGE_CHANNEL, type MessageChannel } from "../api/templateApi";
 import type { CareDateMode, CareTabConfig } from "../careTabs";
+import { sendPath } from "../templatePaths";
 import { useCareBoard } from "../hooks/useCareBoard";
 import { CareCounters } from "./CareCounters";
 import { CareToolbar } from "./CareToolbar";
@@ -27,21 +31,27 @@ interface CareBoardProps {
   canCreate?: boolean;
   /** Sau điều trị's Đã liên hệ / Chưa liên hệ dropdown is read-only without it. */
   canUpdate?: boolean;
+  /** "Gửi tin nhắn › Xem": the row SMS / Zalo buttons lead to that screen. */
+  canSend?: boolean;
 }
 
 /** Head row, care-type tabs + toolbar row, table and dialogs of one care tab. */
 export function CareBoard({
-  branchId, tab, mode, date, dateSlot, tabsSlot, canExport, canCreate, canUpdate,
+  branchId, tab, mode, date, dateSlot, tabsSlot, canExport, canCreate, canUpdate, canSend,
 }: CareBoardProps) {
   const board = useCareBoard({ branchId, tab, mode, date });
+  const navigate = useNavigate();
   /* A tab whose columns fit a desktop still does not fit a phone: without a
      horizontal scroller the headers squeeze into each other. */
   const narrow = useMediaQuery(NARROW_SCREEN);
 
+  const sendTo = (channel: MessageChannel) => (record: CareRecordDto) =>
+    navigate(withBranch(sendPath({ channel, patientId: record.patientId }), branchId));
+
   const columns = buildCareColumns(tab, branchId, {
     onCall: board.handleCall,
-    onMessage: (record: CareRecordDto) => board.openDialog("message", record),
-    onSend: (record: CareRecordDto) => board.openDialog("send", record),
+    onSms: canSend ? sendTo(MESSAGE_CHANNEL.Sms) : undefined,
+    onZalo: canSend ? sendTo(MESSAGE_CHANNEL.Zalo) : undefined,
     onCare: (record: CareRecordDto) => board.openDialog("result", record),
     onNote: board.handleNote,
     onContactStatus: board.handleContactStatus,
@@ -68,12 +78,14 @@ export function CareBoard({
           search={board.search}
           doctorId={board.doctorId}
           careStaffId={board.careStaffId}
-          exporting={board.exporting}
           onSearchChange={board.setSearch}
           onDoctorChange={board.setDoctorId}
           onCareStaffChange={board.setCareStaffId}
-          onExport={canExport ? board.handleExport : undefined}
-          onCreate={canCreate ? () => board.openDialog("create") : undefined}
+          actions={{
+            exporting: board.exporting,
+            onExport: canExport ? board.handleExport : undefined,
+            onCreate: canCreate ? () => board.openDialog("create") : undefined,
+          }}
         />
       </div>
 

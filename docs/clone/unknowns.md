@@ -3010,3 +3010,78 @@ Reason: đã đo được Enter khi khối bên dưới là đoạn văn có ô 
 - cách xoá một dòng đã thêm.
 BlueDental: Shift+Enter để trình duyệt xuống dòng trong ô; bảng ngay dưới không được tính là "khối có ô" (Enter thêm dòng mới); Backspace / Delete trong một dòng đã thêm đang trống thì xoá dòng đó (quyết định của owner, 2026-10-16).
 Action taken: NONE (chỉ thao tác DOM, không lưu, mọi request ghi bị chặn)
+
+## CSKH — Template tin nhắn và trang Tạo/Sửa mẫu (F-76, R-1008, 2026-10-22, BA P2110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/cskh-grouping?tab=template`, `/cskh-grouping/templates/new`, `/cskh-grouping/templates/:id` (develop)
+Control: tab "Template tin nhắn", trang soạn mẫu (img_08)
+Reason: tính năng riêng của BlueDental theo `P2110.drawio` của BA; bản gốc không có, không có gì để quan sát. Ảnh img_08 không nói các điểm dưới đây. Xem `pages/cskh-messaging.md`.
+Action taken: NONE trên production. Khác img_08 theo quyết định của chủ dự án (2026-10-22):
+- SMS / Email có pill "Chưa kết nối gửi", vì chỉ Zalo gửi thật (quyết định 1).
+- Mẫu Zalo = mẫu ZNS đã duyệt + tên và mục đích riêng; không soạn nội dung tự do (quyết định 2).
+- Màu và font theo thiết kế v2 (quyết định 9), không theo bảng màu trong ảnh.
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- Bộ biến có 16 biến (xem `../testing/features/cskh-message-template.md`), BA vẽ 29. Không có "Tên gọi ngắn"; cách xưng hô dùng `{xung_ho}`.
+- Gợi ý khi gõ `{` theo thứ tự thư viện (Khách hàng → Lịch hẹn → Điều trị → Hệ thống), nên Ngày sinh đứng trước Ngày hẹn; chỉ khớp đầu một từ (`ng` không ra `{ten_khach_hang}`).
+- Chưa có nhãn nhỏ "SMS" trên ô nội dung.
+- Lưu nháp chỉ cần tên; Lưu mẫu cần mục đích và nội dung (Zalo: mẫu ZNS và đủ tham số bắt buộc).
+- Độ dài tối đa: SMS 1000, Zalo 2000. Bộ đếm hiện độ dài sau khi thay biến bằng dữ liệu khách mẫu.
+- Khách mẫu cho phần Xem trước: khách thật của chi nhánh, ưu tiên khách có lịch hẹn sắp tới.
+- Sửa mẫu thì không đổi được kênh. Nhân bản tạo bản nháp "- bản sao" cùng kênh.
+- Mở tab thì đồng bộ trạng thái mẫu Zalo; Zalo lỗi thì giữ trạng thái cũ và báo trên tab.
+- Cột "Đã gửi" đếm các lần gửi đã tới khách.
+- Bảng sắp theo kênh, rồi trạng thái, rồi tên.
+
+## CSKH — Gửi tin nhắn (F-77, R-1009, 2026-10-22, BA P2110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/cskh-grouping/send` (develop)
+Control: màn Gửi tin nhắn (`Send.dc.html`), nút SMS / Zalo trên từng dòng CSKH, nút "Gửi tin nhắn chăm sóc" trên 10 tab
+Reason: tính năng riêng của BlueDental theo `P2110.drawio` và mock `3 · Gửi tin nhắn` của BA; bản gốc không có, không có gì để quan sát. Mock không nói các điểm dưới đây. Xem `pages/cskh-messaging.md`.
+Action taken: NONE trên production. Khác mock theo quyết định của chủ dự án (2026-10-22):
+- SMS / Email chọn được nhưng không gửi được: pill "Chưa kết nối gửi", nút gửi khoá, server trả `Tools:0018` (quyết định 1).
+- Không có nguồn "Tệp tải lên" (quyết định 7).
+- Không có thẻ Đã xem / phản hồi (quyết định 8).
+- Khách thiếu biến bắt buộc (hoặc tham số ZNS bắt buộc) bị bỏ qua: thêm chip "thiếu dữ liệu biến" và dòng "Dữ liệu biến" trong Kiểm tra trước khi gửi (quyết định 3).
+- Xóa chỉ bỏ khách khỏi lần gửi này, có hoàn tác (quyết định 4).
+- Màu và font theo thiết kế v2 (quyết định 9).
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- Thanh ngày Ngày / Tuần / Tháng + ngày, giống bảng CSKH; mock chỉ có Tháng.
+- Không có link "Tạo lần gửi khác cho nhóm này bằng kênh khác".
+- Chi phí dự kiến = giá ZNS của mẫu × số tin; Zalo không trả giá thì ghi "Chưa rõ".
+- Bấm gửi thì hỏi lại một lần (nút "Có").
+- Dòng Lịch tạm của khách chưa có hồ sơ không có nút SMS / Zalo. Dòng nhóm chỉ có nút SMS.
+- Nút "Gửi tin nhắn chăm sóc" hiện với quyền Xem; vào màn Gửi chỉ xem được, không có nút gửi.
+- Tối đa 5000 khách một lần gửi (`Tools:0025`).
+- Ô "Không gửi lại cho khách đã nhận mẫu này trong 30 ngày" mặc định bật.
+- Gửi thử tới số điện thoại của tài khoản đang đăng nhập; không ghi vào nhật ký gửi, không tính vào "Đã gửi".
+- Lần gửi hẹn giờ: nội dung điền lại bằng dữ liệu lúc gửi, không phải lúc hẹn.
+- Tham số ZNS chỉ được nêu tên khi không có biến nào giải thích chỗ thiếu.
+
+## CSKH — Thống kê CSKH (F-78, R-1011, 2026-10-22, BA P2110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/dashboard/cskh` (develop), mục "Thống kê CSKH" trong nhóm header Tổng quan
+Control: thanh chọn thời gian (`PeriodRangePicker`), lọc Kênh / Mẫu, 3 thẻ số, cột theo ngày, Theo kênh, Hiệu suất theo mẫu, Lịch sử gửi, Người nhận, Xuất báo cáo Excel
+Reason: tính năng riêng của BlueDental theo img_31 / img_32 / img_33 trong `P2110.drawio`; bản gốc không có, không có gì để quan sát. Ảnh BA không nói các điểm dưới đây. Xem `pages/cskh-messaging.md` và `docs/testing/features/cskh-message-stats.md`.
+Action taken: NONE trên production. Khác ảnh BA theo quyết định của chủ dự án (2026-10-22):
+- Không có thẻ Đã xem / mở và Khách phản hồi, không có cột Xem / mở, Phản hồi, không có trạng thái "Đã xem" / "Đã mở": 3 thẻ số thay cho 5 (quyết định 8).
+- SMS / Email vẫn có trong Theo kênh và nút lọc, số luôn 0 và "Thành công —" (quyết định 1).
+- `PeriodRangePicker` chỉ dùng ở trang này (quyết định 11). Màu theo thiết kế v2 (quyết định 9).
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- "So sánh kỳ trước" bật sẵn. Kỳ trước = cùng số ngày, kết thúc ngay trước ngày bắt đầu (không phải "tháng trước" theo lịch).
+- Thẻ Thất bại có dòng phụ "N% số tin đã gửi"; thẻ Tin đã gửi ghi "Kỳ trước chưa có tin" khi kỳ trước bằng 0.
+- Chỉ tính tin đã thử gửi; thời điểm một tin = lúc gửi, không có thì lúc lượt bắt đầu, rồi giờ hẹn, rồi lúc tạo.
+- Người nhận và Lịch sử gửi lấy cả lượt **tạo** trong kỳ (điều kiện HOẶC), nên lượt hẹn giờ hiện từ ngày tạo, ghi "Đã hẹn giờ".
+- Mẫu đã xoá chỉ còn trong ô lọc nếu từng được dùng, nhãn "{tên} (đã xoá)".
+- SĐT ở Người nhận và trong file Excel che theo quyền "Ẩn số điện thoại" như mọi màn khác; khi bị che, tìm theo SĐT chỉ khớp khi gõ đủ số.
+- Tìm Người nhận theo tên (không dấu) hoặc SĐT; không tìm theo email.
+- Cột theo ngày: chỉ cột cao nhất và cột hôm nay có số; nhãn trục X thưa dần theo bề ngang. Kỳ dài hơn 62 ngày thì cộng theo tháng.
+- Kỳ tối đa 1830 ngày (`Tools:0027`, nút Áp dụng khoá kèm "Chọn tối đa 1830 ngày").
+- File Excel tối đa 50.000 người nhận; 4 sheet Theo ngày, Theo mẫu, Lịch sử gửi, Người nhận.
+- Mọi bảng có phân trang, tối đa 100 dòng một trang.
+- Stub Zalo của e2e từ chối mọi số `0399…` (-108) để có tin Thất bại thật; Zalo thật không có quy tắc này.

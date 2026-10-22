@@ -15,7 +15,7 @@ import { formatVND } from "@/utils/format";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
 import { brand } from "@/theme/index";
-import { KpiCard } from "../components/KpiCard";
+import { KpiCard } from "@/components/KpiCard";
 import { RevenueBarChart } from "../components/RevenueBarChart";
 import { DoctorsOnDutyCard } from "../components/DoctorsOnDutyCard";
 import { LowStockCard } from "../components/LowStockCard";

@@ -1,23 +1,30 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "antd";
+import { PlusOutlined, SendOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import { RemainingHeight } from "@/components/RemainingHeight";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { useAbility } from "@/hooks/useAbility";
+import { MESSAGE_CHANNEL } from "../api/templateApi";
 import { anchorForMode, careDateModeOf, careTabByKey, CARE_TABS } from "../careTabs";
+import { sendPath, templateEditorPath } from "../templatePaths";
 import { CareBoard } from "../components/CareBoard";
 import { CareDateBar } from "../components/CareDateBar";
 import { GroupPatientsPanel } from "../components/GroupPatientsPanel";
+import { TemplateListTab } from "../components/templates/TemplateListTab";
 import "../components/cskh.css";
+import "../components/cskh-template.css";
 
-type TopTabKey = "care" | "group";
+type TopTabKey = "care" | "group" | "template";
 
 const TOP_TABS: Array<{ key: TopTabKey; label: () => string }> = [
   { key: "care", label: () => t("CSKH:Tab:Care") },
   { key: "group", label: () => t("CSKH:Tab:Group") },
+  { key: "template", label: () => t("CSKH:Tab:Template") },
 ];
 
 /**
@@ -26,25 +33,27 @@ const TOP_TABS: Array<{ key: TopTabKey; label: () => string }> = [
  */
 export function CskhGroupingPage() {
   const branchId = useCurrentBranchId();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const careAbility = useAbility("cskhCare");
   const groupAbility = useAbility("cskhGroup");
+  const templateAbility = useAbility("cskhTemplate");
+  const { canRead: canSend } = useAbility("cskhSend");
 
   const tabAccess: Record<TopTabKey, boolean> = {
     care: careAbility.canRead,
     group: groupAbility.canRead,
+    template: templateAbility.canRead,
   };
   const visibleTabs = useMemo(
     () => TOP_TABS.filter((item) => tabAccess[item.key]),
-    [tabAccess.care, tabAccess.group], // eslint-disable-line react-hooks/exhaustive-deps
+    [tabAccess.care, tabAccess.group, tabAccess.template], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const rawTab = searchParams.get("tab");
   const topTab: TopTabKey =
-    rawTab === "group" && tabAccess.group ? "group"
-    : rawTab === "care" && tabAccess.care ? "care"
-    : visibleTabs[0]?.key ?? "care";
+    visibleTabs.find((item) => item.key === rawTab)?.key ?? visibleTabs[0]?.key ?? "care";
   const careTab = careTabByKey(searchParams.get("page"));
   const mode = careDateModeOf(searchParams.get("care_dateMode"));
   const rawParam = searchParams.get("care_date");
@@ -58,6 +67,21 @@ export function CskhGroupingPage() {
       return params;
     });
   };
+
+  /** "new" opens a blank editor; an id opens that template. */
+  const openTemplate = (id: string) =>
+    navigate(withBranch(templateEditorPath(id), branchId));
+  /* "Dùng mẫu này để gửi": the template names its own channel. */
+  const sendWithTemplate = (id: string) =>
+    navigate(withBranch(sendPath({ templateId: id }), branchId));
+  /* Gửi tin nhắn chăm sóc: the care tab's list over the period on screen, on Zalo — BA P2110. */
+  const sendCare = () =>
+    navigate(withBranch(sendPath({
+      channel: MESSAGE_CHANNEL.Zalo,
+      page: careTab.key,
+      dateMode: mode,
+      date: date.format("YYYY-MM-DD"),
+    }), branchId));
 
   return (
     <div className="reception-page">
@@ -78,9 +102,30 @@ export function CskhGroupingPage() {
             </button>
           ))}
         </div>
+        {topTab === "template" && templateAbility.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openTemplate("new")}>
+            {t("CSKH:Template:Create")}
+          </Button>
+        )}
+        {topTab === "care" && canSend && (
+          <Button icon={<SendOutlined />} onClick={sendCare}>
+            {t("CSKH:Action:SendCare")}
+          </Button>
+        )}
       </div>
 
-      {topTab === "care" ? (
+      {topTab === "template" && (
+        <RemainingHeight>
+          <TemplateListTab
+            canCreate={templateAbility.canCreate}
+            canUpdate={templateAbility.canUpdate}
+            onEdit={openTemplate}
+            onUseToSend={canSend ? sendWithTemplate : undefined}
+          />
+        </RemainingHeight>
+      )}
+
+      {topTab === "care" && (
         <RemainingHeight>
           <div className="reception-card reception-card--content cskh-card--fill">
             <CareBoard
@@ -91,6 +136,7 @@ export function CskhGroupingPage() {
               canExport={careAbility.canExport}
               canCreate={careAbility.canCreate}
               canUpdate={careAbility.canUpdate}
+              canSend={canSend}
               dateSlot={
                 <CareDateBar
                   mode={mode}
@@ -119,13 +165,16 @@ export function CskhGroupingPage() {
             />
           </div>
         </RemainingHeight>
-      ) : (
+      )}
+
+      {topTab === "group" && (
         <RemainingHeight>
           <div className="reception-card reception-card--content cskh-card--fill">
             <GroupPatientsPanel
               branchId={branchId}
               taxonomyId={taxonomyId}
               canUpdate={groupAbility.canUpdate}
+              canSend={canSend}
               onTaxonomyChange={(value) =>
                 setParam((params) => {
                   if (value) params.set("taxonomyId", value);
