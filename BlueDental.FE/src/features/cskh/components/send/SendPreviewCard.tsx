@@ -1,4 +1,5 @@
 import { Spin } from "antd";
+import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { useSendPreview, type MessageRecipient } from "../../api/sendApi";
 import { MESSAGE_CHANNEL, type MessageChannel, type MessagePreview } from "../../api/templateApi";
@@ -28,6 +29,12 @@ function Bubble({ channel, preview }: { channel: MessageChannel; preview: Messag
   );
 }
 
+function PreviewStage({ channel, preview }: { channel: MessageChannel; preview: ReturnType<typeof useSendPreview> }) {
+  if (preview.data) return <Bubble channel={channel} preview={preview.data} />;
+  if (preview.isError) return <p className="tpe-warn">{t("CSKH:Send:PreviewFailed", extractApiError(preview.error))}</p>;
+  return <Spin size="small" />;
+}
+
 /** XEM TRƯỚC: the message the first customer of this send gets, variables filled in. */
 export function SendPreviewCard({ channel, channelName, templateId, target }: SendPreviewCardProps) {
   const input = templateId && target ? { templateId, ...previewTargetOf(target) } : null;
@@ -42,7 +49,7 @@ export function SendPreviewCard({ channel, channelName, templateId, target }: Se
             {t("CSKH:Send:PreviewFor")} <strong>{target.name}</strong>
           </span>
           <div className="tpl-preview-stage">
-            {preview.data ? <Bubble channel={channel} preview={preview.data} /> : <Spin size="small" />}
+            <PreviewStage channel={channel} preview={preview} />
           </div>
         </>
       ) : (

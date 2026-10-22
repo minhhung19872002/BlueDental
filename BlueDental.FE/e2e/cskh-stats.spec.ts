@@ -108,7 +108,11 @@ async function newPatient(page: Page, label: string, prefix: "09" | "0399"): Pro
   return { id: res.body.id, name: `E2E TK ${firstName}`, phone };
 }
 
-/** Books the patient at `start` with the first dentist free then, so {ngay_hen} / {gio_hen} fill. */
+/**
+ * Books the patient at `start` with the first dentist on shift then, so {ngay_hen} / {gio_hen}
+ * fill. Runs on the same day fill the dentists' slots, so the double-booking warning is
+ * confirmed the way the dialog's Xác nhận does (R-971).
+ */
 async function book(page: Page, patientId: string, start: Date): Promise<void> {
   const staff = await call<{ items: { id: string }[] }>(page, "/api/v1/app/staff?MaxResultCount=20", asBranchOne);
   const end = new Date(start.getTime() + 30 * 60_000);
@@ -125,6 +129,7 @@ async function book(page: Page, patientId: string, start: Date): Promise<void> {
         slotEnd: end.toISOString(),
         type: 2,
         chiefComplaint: `e2e thống kê ${runId()}`,
+        allowDentistOverlap: true,
       },
     });
     if (res.status === 200) return;

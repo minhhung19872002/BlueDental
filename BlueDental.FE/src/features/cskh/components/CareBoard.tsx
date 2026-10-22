@@ -46,7 +46,7 @@ export function CareBoard({
   const narrow = useMediaQuery(NARROW_SCREEN);
 
   const sendTo = (channel: MessageChannel) => (record: CareRecordDto) =>
-    navigate(withBranch(sendPath({ channel, patientId: record.patientId }), branchId));
+    navigate(withBranch(sendPath({ channel, patientId: record.patientId, careRecordId: record.id }), branchId));
 
   const columns = buildCareColumns(tab, branchId, {
     onCall: board.handleCall,

@@ -66,13 +66,13 @@ URL: `/cskh-grouping/send?channel=&templateId=&page=&care_dateMode=&care_date=&p
 - **`MessageLog`** thêm `SendBatchId` và `CareRecordId`. Mỗi khách là một log ở trạng thái Pending, ghi ngay khi tạo lượt.
 - **`MessageRecipientBuilder`**: đọc lại khách ở server, không lấy theo bảng trên màn hình. Lý do bỏ qua:
   - không có liên hệ (SĐT Zalo không đổi được sang 84…);
-  - đã nhận mẫu này trong 30 ngày (khi ô 30 ngày bật);
+  - đã nhận mẫu này trong 30 ngày, hoặc đang chờ trong một lô hẹn giờ (khi ô 30 ngày bật, R-1013);
   - thiếu biến hoặc tham số ZNS bắt buộc.
 
   Tối đa 5000 khách một lượt (`Tools:0025`).
-- **`MessageSendJob`** (ABP background job `cskh.message-send`):
+- **`MessageSendJob`** (ABP background job `cskh.message-send`). Chỉ host chạy job; DbMigrator tắt job và worker (R-1012):
   - Hẹn giờ thì job được xếp với `delay`. Job chạy sớm thì tự xếp lại.
-  - Mỗi tin được điền lại theo dữ liệu **lúc gửi**, gửi qua `ZaloOaGateway`, lưu riêng từng tin. Host dừng giữa chừng thì chạy lại sẽ chỉ gửi nốt phần chưa gửi.
+  - Mỗi tin được điền lại theo dữ liệu **lúc gửi**, kể cả SĐT (R-1019; hết số hợp lệ thì Thất bại `NoPhone`), gửi qua `ZaloOaGateway`, lưu riêng từng tin. Host dừng giữa chừng thì chạy lại sẽ chỉ gửi nốt phần chưa gửi.
   - Gửi được thì đánh dấu dòng CSKH đã gửi Zalo (`CareRecord.MarkZaloSent`).
   - Log ứng dụng chỉ có id, không có dữ liệu khách (PHI).
 - **Gửi thử**: điền theo khách đang xem trước, gửi tới SĐT của tài khoản (`Tools:0022` nếu chưa có). Không tạo `MessageLog`, nên "Đã gửi" của mẫu không đổi; chỉ nhật ký gọi tích hợp ghi lại lần gọi.
@@ -135,7 +135,7 @@ Staging cần DbMigrator (migration + quyền mới), sau đó xoá cache quyề
 | Domain.Tests | **1028/1028** (gồm `MessageSendBatchTests` 10) |
 | Application.Tests | **772/772** (gồm `MessageSendAppServiceContractTests` 6) |
 | HttpApi.Host.Tests | **24/24** |
-| E2E `cskh-message-send` | **6/6** |
+| E2E `cskh-message-send` | **6/6**; sau đợt sửa review R-1012..R-1019: **13/13** (toàn bộ `cskh*` 43/43) |
 | Hồi quy mức 3 | **59/61**, 2 ca đỏ `role-permissions` có từ trước (R-936, R-994); chi tiết R-1009 trong `03-regression-log.md` |
 
 Đường chạy E2E:
@@ -168,6 +168,18 @@ Các ca E2E:
    - chỉ `cskhSend.read`: không có nút gửi / gửi thử; POST `/` và `/test` trả 403.
 6. **Chi nhánh**: mẫu được liệt kê theo chi nhánh; gửi mẫu của BD-001 từ chi nhánh khác không thành công.
 
+Đợt sửa sau review (R-1013..R-1019, chi tiết trong `03-regression-log.md`):
+
+7. **R-1013**: khách đã nằm trong một lô hẹn giờ ghi "Chờ gửi dd/mm/yyyy", không gửi lại được (cả qua API).
+8. **R-1014**: nút "Gửi Zalo" trên dòng CSKH mang `careRecordId`; gửi xong dòng đó có `zaloSentAt`.
+9. **R-1015**: "Lịch gửi đã hẹn" chỉ có lô hẹn giờ, và tự bỏ lô đã tới giờ mà không cần tải lại.
+10. **R-1016**: Zalo từ chối làm mới token → lô hẹn giờ Xong với 1 thất bại "Zalo OA chưa kết nối", màn Gửi vẫn mở được.
+11. **R-1017**: đổi danh sách CSKH thì nút Gửi khoá tới khi đọc xong danh sách mới.
+12. **R-1018**: xem trước bị lỗi (thu quyền khi trang đang mở) thì báo "Không xem trước được: …".
+13. **R-1019**: khách đổi số sau khi hẹn giờ → tin đi số mới; khách mất số → Thất bại "Khách không còn số điện thoại hợp lệ" (cả Thống kê và Excel).
+
+R-1012 (DbMigrator không chạy job) được kiểm bằng tay vì e2e không dừng được host; xem log.
+
 Lệnh chạy:
 
 ```
@@ -177,6 +189,7 @@ E2E_BASE_URL=http://127.0.0.1:8130 E2E_ZALO_STUB=1 \
 
 ### Lưu ý khi viết spec
 
+- Stub có `POST /__config`: `{tokenLife}` đổi thời hạn token phát ra, `{refreshFails: true}` cho làm mới token trả -14014, `{reset: true}` trả về mặc định. Spec đổi cấu hình phải `reset` trong `finally`.
 - Stub giữ mọi lần gọi (`/__calls`) suốt đời tiến trình, không reset giữa các spec. Spec phải so **phần chênh** (đếm trước / sau) hoặc lọc theo SĐT. `cskh-message-template` đã đổi sang đếm chênh trong R-1009.
 - Nút AntD có icon mang tên icon ở đầu accessible name ("delete Xóa", "check-circle Có"): dùng regex `/Xóa$/`, `/Có$/`.
 - Ô `type="search"` có role `searchbox`.

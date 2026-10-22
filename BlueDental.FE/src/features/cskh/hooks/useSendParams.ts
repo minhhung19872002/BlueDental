@@ -47,6 +47,8 @@ export function useSendParams() {
     templateId: params.get("templateId"),
     source,
     lockedPatientId,
+    /** The CSKH row the locked customer came from. */
+    careRecordId: lockedPatientId ? params.get("careRecordId") : null,
     careTab,
     mode,
     date,

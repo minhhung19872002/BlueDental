@@ -11,6 +11,7 @@ interface SendRecipientsArgs {
   channel: MessageChannel;
   templateId: string | null;
   source: SendSource;
+  careRecordId: string | null;
   careType: CareType;
   period: SendPeriod;
   skipRecent: boolean;
@@ -24,7 +25,7 @@ interface SendRecipientsArgs {
  * "Xóa", or the ticked customers. The stats and the send count those only.
  */
 export function useSendRecipients(args: SendRecipientsArgs) {
-  const { channel, templateId, source, careType, period, skipRecent, picks, removal } = args;
+  const { channel, templateId, source, careRecordId, careType, period, skipRecent, picks, removal } = args;
   const isList = source === "list";
 
   const input = useMemo<RecipientsInput>(
@@ -36,10 +37,11 @@ export function useSendRecipients(args: SendRecipientsArgs) {
       fromDate: isList ? period.fromDate : null,
       toDate: isList ? period.toDate : null,
       patientIds: isList ? [] : [...picks.addedIds],
+      careRecordId: isList ? null : careRecordId,
       keys: null,
       skipRecentDuplicates: skipRecent,
     }),
-    [channel, templateId, isList, careType, period.fromDate, period.toDate, picks.addedIds, skipRecent],
+    [channel, templateId, isList, careRecordId, careType, period.fromDate, period.toDate, picks.addedIds, skipRecent],
   );
   const enabled = isList || picks.addedIds.length > 0;
   const query = useRecipients(input, enabled);
@@ -62,7 +64,8 @@ export function useSendRecipients(args: SendRecipientsArgs) {
     inPlay,
     stats,
     pricePerMessage: query.data?.pricePerMessage ?? null,
-    loading: enabled && query.isLoading,
+    /* A kept list is the previous tab's or period's: its count must not be sent. */
+    loading: enabled && (query.isLoading || query.isPlaceholderData),
     error: query.error,
   };
 }

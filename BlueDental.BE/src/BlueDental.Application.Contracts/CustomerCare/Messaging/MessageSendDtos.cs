@@ -58,6 +58,13 @@ public class MessageRecipientsInput
     [MaxLength(MessageSendLimits.MaxRecipients)]
     public List<Guid> PatientIds { get; set; } = [];
 
+    /// <summary>
+    /// A CSKH row's SMS / Zalo button: the row the one customer picked came
+    /// from, so a Zalo sent this way marks it like a send of the whole list.
+    /// Ignored unless it is that customer's row in the branch.
+    /// </summary>
+    public Guid? CareRecordId { get; set; }
+
     /// <summary>"Danh sách CSKH": the rows still on screen after "Xóa"; null keeps the whole list.</summary>
     [MaxLength(MessageSendLimits.MaxRecipients)]
     public List<string>? Keys { get; set; }
@@ -99,8 +106,14 @@ public class MessageRecipientDto
     /// <summary>"Bác sĩ": the doctor on the CSKH row, or for a picked customer the next visit's.</summary>
     public string? DentistName { get; set; }
 
-    /// <summary>"Đã nhận dd/MM": the last time this template reached them within 30 days.</summary>
+    /// <summary>
+    /// "Đã nhận dd/MM": the last time this template reached them within 30
+    /// days — or, with <see cref="ReceivedPending"/>, when a batch not sent
+    /// yet will reach them ("Chờ gửi dd/MM").
+    /// </summary>
     public DateTime? ReceivedAt { get; set; }
+
+    public bool ReceivedPending { get; set; }
 
     /// <summary>Null when the customer will get the message.</summary>
     public MessageSkipReason? SkipReason { get; set; }
@@ -158,6 +171,12 @@ public class MessageTestSendDto
 public class GetMessageSendBatchListInput
 {
     public MessageSendBatchStatus? Status { get; set; }
+
+    /// <summary>
+    /// "Lịch gửi đã hẹn": only the sends booked for a time. A send made for
+    /// now also waits as Queued until the job picks it up a few seconds later.
+    /// </summary>
+    public bool Scheduled { get; set; }
 }
 
 public class MessageSendBatchDto : EntityDto<Guid>

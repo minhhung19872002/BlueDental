@@ -8,12 +8,19 @@
 //
 // ZNS refuses every number starting 0399 (84399… as the host may send it), so a
 // spec can follow a failed send through to Thống kê CSKH.
+//
+// POST /__config {"tokenLife":"3600","refreshFails":true} makes the next tokens
+// short-lived (inside the host's 2 h refresh leeway, so every use refreshes)
+// and refuses a refresh the way Zalo refuses a revoked token; {"reset":true}
+// goes back to the defaults. A spec that changes it resets it when done.
 import http from "node:http";
 
 const port = Number(process.argv[2] ?? 5199);
 const oaId = process.argv[3] ?? "stub-oa";
 const calls = [];
 const UNDELIVERABLE = /"phone":"(84|0)399/;
+const DEFAULTS = { tokenLife: "90000", refreshFails: false };
+let config = { ...DEFAULTS };
 
 const PARAMS = {
   "301001": [
@@ -48,8 +55,15 @@ http
       switch (url.pathname) {
         case "/__calls":
           return send(res, calls);
+        case "/__config": {
+          const change = body ? JSON.parse(body) : {};
+          config = change.reset ? { ...DEFAULTS } : { ...config, ...change };
+          return send(res, config);
+        }
         case "/v4/oa/access_token":
-          return send(res, { access_token: "stub-access", refresh_token: "stub-refresh", expires_in: "90000" });
+          if (config.refreshFails && body.includes("grant_type=refresh_token"))
+            return send(res, { error: -14014, error_name: "Invalid refresh token", error_description: "revoked" });
+          return send(res, { access_token: "stub-access", refresh_token: "stub-refresh", expires_in: config.tokenLife });
         case "/v2.0/oa/getoa":
           return send(res, { error: 0, message: "Success", data: { oa_id: oaId, name: "Stub OA" } });
         case "/template/all":

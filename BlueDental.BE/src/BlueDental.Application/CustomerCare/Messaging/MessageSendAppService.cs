@@ -260,7 +260,8 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         var branchId = await GetBranchIdAsync();
         var query = (await _batches.GetQueryableAsync())
             .Where(b => b.ClinicBranchId == branchId)
-            .Where(b => input.Status == null || b.Status == input.Status);
+            .Where(b => input.Status == null || b.Status == input.Status)
+            .Where(b => !input.Scheduled || b.ScheduledAt != null);
         var batches = await AsyncExecuter.ToListAsync(query
             .OrderByDescending(b => b.CreationTime)
             .Take(MaxBatchesListed));
@@ -355,7 +356,8 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
 
     /// <summary>
     /// The linked ZNS template's parameters and price, for the table's checks.
-    /// Zalo out of reach leaves them unknown; "Gửi" asks again and stops there.
+    /// Zalo out of reach, or an OA link that lapsed (R-1016), leaves them
+    /// unknown; "Gửi" asks again and stops there.
     /// </summary>
     private async Task<ZaloTemplateDetail?> TryReadZnsAsync(Guid branchId, MessageTemplate? template)
     {
@@ -365,7 +367,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         }
 
         var connection = await _zalo.FindConnectionAsync(branchId);
-        if (connection == null)
+        if (connection is not { IsConnected: true })
         {
             return null;
         }
@@ -374,7 +376,8 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         {
             return await _zalo.FetchTemplateDetailAsync(branchId, connection, externalId);
         }
-        catch (BusinessException ex) when (ex.Code == BlueDentalDomainErrorCodes.Tools.ZaloRequestFailed)
+        catch (BusinessException ex) when (ex.Code is BlueDentalDomainErrorCodes.Tools.ZaloRequestFailed
+                                           or BlueDentalDomainErrorCodes.Tools.ZaloNotConnected)
         {
             return null;
         }
@@ -420,7 +423,8 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         Phone = r.Phone,
         Email = r.Email,
         DentistName = r.DentistName,
-        ReceivedAt = r.ReceivedAt,
+        ReceivedAt = r.Received?.At,
+        ReceivedPending = r.Received?.Pending == true,
         SkipReason = r.SkipReason,
         Missing = [.. r.Missing],
     };

@@ -4,13 +4,13 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDateTime } from "@/utils/format";
-import { SEND_BATCH_STATUS, useCancelSend, useSendBatches, type SendBatch } from "../../api/sendApi";
+import { useCancelSend, useScheduledSends, type SendBatch } from "../../api/sendApi";
 import { channelLabels } from "../../api/templateApi";
 import { EditorCard } from "../template-editor/EditorCard";
 
 /** "Lịch gửi đã hẹn": the sends still waiting for their time; each can be called off until then. */
 export function ScheduledSends({ canCancel }: { canCancel: boolean }) {
-  const batches = useSendBatches(SEND_BATCH_STATUS.Queued);
+  const batches = useScheduledSends();
   const cancel = useCancelSend();
   const [cancelling, setCancelling] = useState<SendBatch | null>(null);
 
