@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
 import type { CareType } from "./careApi";
@@ -181,6 +181,8 @@ const templateApi = {
 export const templateKeys = {
   all: ["message-templates"] as const,
   list: (f: TemplateListFilter) => [...templateKeys.all, "list", f] as const,
+  /** Step 2 of Gửi tin nhắn; kept here so a saved template reaches that picker too. */
+  sendable: () => [...templateKeys.all, "sendable"] as const,
   detail: (id: string) => [...templateKeys.all, "detail", id] as const,
   variables: () => [...templateKeys.all, "variables"] as const,
   sample: (exceptPatientId: string | null) => [...templateKeys.all, "sample", exceptPatientId] as const,
@@ -240,13 +242,19 @@ export function useZnsTemplate(id: string | null) {
   });
 }
 
+/** The Template tab's table and the send screen's picker both list saved templates. */
+function invalidateTemplateLists(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: [...templateKeys.all, "list"] });
+  void queryClient.invalidateQueries({ queryKey: templateKeys.sendable() });
+}
+
 function useTemplateMutation<TVariables>(fn: (variables: TVariables) => Promise<MessageTemplateDto>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
     onSuccess: (saved) => {
       queryClient.setQueryData(templateKeys.detail(saved.id), saved);
-      void queryClient.invalidateQueries({ queryKey: [...templateKeys.all, "list"] });
+      invalidateTemplateLists(queryClient);
     },
   });
 }
@@ -269,7 +277,7 @@ export function useSyncZaloStatus() {
   return useMutation({
     mutationFn: templateApi.syncZaloStatus,
     onSuccess: (result) => {
-      if (result.updated > 0) void queryClient.invalidateQueries({ queryKey: [...templateKeys.all, "list"] });
+      if (result.updated > 0) invalidateTemplateLists(queryClient);
     },
   });
 }

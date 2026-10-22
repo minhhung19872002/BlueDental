@@ -131,7 +131,6 @@ const sendApi = {
 
 export const sendKeys = {
   all: ["message-sends"] as const,
-  templates: () => [...sendKeys.all, "templates"] as const,
   lists: (period: SendPeriod) => [...sendKeys.all, "lists", period] as const,
   recipients: (input: RecipientsInput) => [...sendKeys.all, "recipients", input] as const,
   preview: (input: SendPreviewInput) => [...sendKeys.all, "preview", input] as const,
@@ -140,7 +139,7 @@ export const sendKeys = {
 };
 
 export function useSendTemplates() {
-  return useQuery({ queryKey: sendKeys.templates(), queryFn: sendApi.templates });
+  return useQuery({ queryKey: templateKeys.sendable(), queryFn: sendApi.templates });
 }
 
 /** The 10 list chips with their counts over the period on screen. */
