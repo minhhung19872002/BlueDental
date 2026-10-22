@@ -10428,3 +10428,77 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `cskh.spec` "the toolbar matches the reference per tab" thêm: nút nằm trong hàng tab trên ở Sau điều trị / Nhắc lịch hẹn / Khiếu nại, không có trong `.cskh-toolbar`, không có ở Phân nhóm CSKH.
   - `cskh-message-send` **6/6** (gồm ca bấm nút từ Nhắc lịch hẹn và ca thiếu `cskhSend` không thấy nút) + `cskh` **8/8**.
   - tsc sạch. eslint còn 1 lỗi có từ trước ở `CskhGroupingPage.tsx:51` (`react-hooks/exhaustive-deps` chưa khai báo rule).
+
+## R-1011 (2026-10-22, mức 2 + mức 3 vì có quyền mới, component dùng chung KpiCard / PeriodRangePicker / ExcelSheet và nhóm menu) F-78 Tổng quan › Thống kê CSKH (BA P2110, đợt 3)
+
+- **Yêu cầu BA**:
+  - Nguồn: `P2110.drawio`. img_31 có bộ lọc, thẻ số, biểu đồ theo ngày, Theo kênh và Hiệu suất theo mẫu. img_32 có Lịch sử gửi và Người nhận. img_33 là vị trí menu.
+  - Ghi chú BA: lọc theo thời gian bằng thanh chọn thời gian, mặc định tháng hiện tại.
+  - Chủ dự án: "Thống kê mới nằm ở sub menu Thống kê CSKH, còn thống kê hiện tại nằm ở sub menu Tổng quan".
+- **Quyết định của chủ dự án dùng ở đợt này** (12 điểm, xem R-1008):
+  - (1) Chỉ Zalo gửi thật. SMS / Email vẫn có cột trong Theo kênh và nút lọc, nhưng số là 0, cột Thành công hiện "—".
+  - (8) Không có Đã xem / mở và Khách phản hồi: 3 thẻ số thay cho 5. Bảng mẫu bỏ cột Xem / mở và Phản hồi. Người nhận không có trạng thái Đã xem / Đã mở.
+  - (9) Thiết kế v2: khung `.page-card`, `KpiCard`, `.dash-card-head` như trang Tổng quan.
+  - (11) PeriodRangePicker chỉ dùng ở trang Thống kê CSKH.
+- **BE**:
+  - `MessageStatsAppService` ở `api/v1/app/message-stats`, gồm 5 endpoint:
+    - `overview`: thẻ số, theo ngày, theo kênh, theo mẫu, và kỳ trước khi bật so sánh;
+    - `templates`;
+    - `batches`;
+    - `recipients`: tìm, lọc trạng thái, sắp xếp, phân trang tối đa 100;
+    - `excel`.
+  - Chi nhánh lấy từ `X-Clinic-Branch-Id` qua `BranchAccessChecker`. Không truyền ngày thì lấy từ đầu tháng tới hôm nay.
+  - Mã lỗi: `Tools:0026` khi ngày bắt đầu sau ngày kết thúc; `Tools:0027` khi kỳ dài quá 1830 ngày.
+  - Chỉ tính tin đã thử gửi. Thời điểm của tin lấy theo thứ tự: lúc gửi, lúc lượt bắt đầu, giờ hẹn, lúc tạo.
+  - SĐT trả về dạng `0…` và bị che khi người xem có "Ẩn số điện thoại".
+  - `MessageStatsExcel` xuất 4 sheet (Theo ngày, Theo mẫu, Lịch sử gửi, Người nhận), tối đa 50.000 người nhận. Dùng `ExcelSheet.BuildBook` mới; `Build` cũ đi qua cùng `ExcelSheetPart`.
+  - `MessageBatchCounter`: tách khỏi `MessageSendAppService`, đếm số tin của từng lượt; Gửi tin nhắn và Thống kê dùng chung.
+  - `MessageFailureReasons`: `MessageSendJob` lưu lý do thất bại bằng mã cố định, lúc hiển thị mới đổi thành chữ `CSKH:Stats:Error:*`. Lỗi do Zalo trả về giữ nguyên văn.
+  - Quyền `cskhStats` (Xem / Xuất Excel): nhóm "Thống kê CSKH" dưới CSKH, sau "Gửi tin nhắn". Seeder cấp cho các role tĩnh. Thêm chữ vi / en.
+- **FE**:
+  - Trang `/dashboard/cskh` (`CskhStatsPage`):
+    - 13 component trong `components/stats/`, CSS `cskh-stats.css`;
+    - hook `useStatsFilters` và `useStatsRecipientQuery`;
+    - `statsApi` / `statsAdapters`: kỳ dài hơn 62 ngày thì biểu đồ cộng theo tháng.
+  - Component dùng chung mới:
+    - `src/components/PeriodRangePicker/`: đơn vị Ngày / Tháng / Quý / Nửa năm / Năm, chọn nhanh, chỉ áp dụng khi bấm "Áp dụng", có "So sánh kỳ trước";
+    - `src/components/KpiCard.tsx`: dời từ `features/dashboard`; trang Tổng quan chỉ đổi đường import.
+  - Menu:
+    - nhóm "Tổng quan" có 2 mục: Tổng quan (`/dashboard`) và Thống kê CSKH (`/dashboard/cskh`);
+    - `/dashboard` thuộc `EXACT_PATHS`, nên ở trang mới chỉ mục Thống kê CSKH sáng;
+    - drawer có 18 mục;
+    - `routePermissions`: `cskhStats` cần quyền đọc.
+  - Biểu đồ:
+    - cột hôm nay đậm, các cột khác nhạt;
+    - chỉ cột cao nhất và cột hôm nay có số trên đầu;
+    - nhãn trục X thưa dần theo bề ngang, đếm ngược từ cột cuối nên ngày cuối luôn có nhãn.
+- **Lỗi e2e bắt được**: bảng mẫu và bảng Lịch sử gửi đặt `key` theo bộ lọc giống hệt nhau. Hai component anh em trùng key nên React giữ nhầm một bảng. Đã thêm tiền tố `templates:` / `history:` ở `CskhStatsPage.tsx`.
+- **Đối chiếu img_31 / img_32** (1440 px, build production):
+  - Khớp: thứ tự khối, hàng lọc, nút Excel, Theo kênh, bảng mẫu, cột Lịch sử gửi, tìm và lọc Người nhận.
+  - Ở 390 px mọi khối xếp dọc; nhãn ngày cuối không bị cắt (mép phải 342 px, khung biểu đồ 348 px).
+  - Các điểm khác (cố ý, hoặc chưa có xác nhận BA): xem `docs/clone/pages/cskh-messaging.md` và `unknowns.md` (F-78).
+- **Test**:
+  - BE: Domain **1028/1028** (gồm `BlueDentalAbilitiesTests` có `cskhStats`), Application **786/786** (gồm `MessageStatsAppServiceContractTests` 7 và `MessageStatsWordingTests` 4), HttpApi.Host **24/24**.
+  - E2E thật: build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, job gửi thật, Zalo là stub :5199, không chặn request.
+    - `cskh-stats` **4/4** (`E2E_ZALO_STUB=1`):
+      1. Một lần gửi Zalo, 1 tin thành công và 1 tin bị từ chối. Kiểm thẻ số, Theo kênh, bảng mẫu, Lịch sử gửi, Người nhận (gồm lý do lỗi), sắp xếp, tìm, lọc, file Excel 4 sheet, và chọn SMS thì mọi khối về 0.
+      2. Hẹn giờ rồi huỷ: Lịch sử gửi chuyển Đã hẹn giờ → Đã huỷ, không tính vào Tin đã gửi.
+      3. Quyền: không có `cskhStats` thì không có mục menu, link bị chặn, API 403; chỉ có Xem thì không có nút Excel và `/excel` trả 403.
+      4. Cách ly chi nhánh.
+    - Stub Zalo thêm luật: số `0399…` luôn bị từ chối (-108). Nhờ vậy có tin Thất bại thật.
+  - Sửa phía spec (do nhóm Tổng quan nay có 2 mục):
+    - `header-navigation`: ribbon của nhóm là ["Tổng quan", "Thống kê CSKH"], drawer 18 mục;
+    - `staff-notes`: bấm mục ribbon "Tổng quan" để mở trang Tổng quan.
+  - Hồi quy mức 3:
+    - Lượt 1 (`cskh-message-send`, `cskh-message-template`, `cskh-stats`, `cskh`, `header-navigation`, `role-permissions-abilities`, `role-permissions-tree`, `role-permissions`, `routes`, `staff-notes`): **60/64**.
+      - 3 ca đỏ có từ trước: `header-navigation:152` (chuyển ngôn ngữ), `role-permissions:53`, `role-permissions-abilities:38`. Hai ca `role-permissions` là quyền `dentist` do chủ dự án tự tick, đã ghi ở R-936, R-994 và R-1009; không sửa quyền đó.
+      - Ca thứ 4, `cskh-message-send:423`, đỏ ở bước đăng nhập (fixture quá 20 s). Chạy lại thì xanh, nên là chập chờn.
+    - Lượt 2 (smoke `ExcelSheet` + chạy lại ca chập chờn): `cskh-message-send` **6/6**, `cskh-generated-tabs` **5/5**, `patient-roster` **4/4**, `payment-permission-buttons` **2/2**, `export` **2/3**.
+      - Ca đỏ `export:62` có từ trước: trang hồ sơ bệnh nhân đổi tab thành link từ trước F-78 (file không đổi từ 2026-10-12), spec vẫn tìm `role=tab`. Ngoài phạm vi, không sửa.
+    - Smoke mức 1 `KpiCard`: `/dashboard` ở 1440 px vẫn đủ 4 thẻ, giao diện không đổi.
+- **Commit**: `c33f8333` trên develop (chủ dự án commit). Commit có cả `BlueDental.FE/vite.develop-e2e.config.ts`, là cấu hình preview e2e local (:8130 → :5100) và không chứa secret.
+- **Còn treo**:
+  - Staging cần chạy DbMigrator để seed quyền mới, rồi xoá cache quyền Redis.
+  - Role tuỳ chỉnh phải cấp tay "Thống kê CSKH".
+  - SMS / Email chưa có nhà cung cấp gửi, nên chưa có số liệu.
+  - Đã xem / mở và Khách phản hồi: chưa kênh nào báo về (quyết định 8).
