@@ -10416,3 +10416,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đợt 3 (F-78): Thống kê CSKH + PeriodRangePicker.
   - SMS / Email chưa có nhà cung cấp gửi.
   - Staging cần DbMigrator (migration + quyền mới), rồi xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Gửi tin nhắn".
+
+## R-1010 (2026-10-22, mức 2: một feature, chỉ FE) F-77 — nút "Gửi tin nhắn chăm sóc" lên hàng tab trên cùng
+
+- **Yêu cầu**: mock BA (P2110) đặt nút "Gửi tin nhắn chăm sóc" ở cuối hàng tab "Chăm sóc khách hàng / Phân nhóm CSKH / Template tin nhắn", không nằm trong thanh công cụ của từng tab. Chủ dự án: "cho button lên nằm ở tab giống như mock UI hay giống tab Template tin nhắn".
+- **FE**:
+  - `CskhGroupingPage`: nút nằm cuối `.pill-tabs-row`, cùng chỗ với "Tạo mẫu mới" của tab Template tin nhắn. Chỉ hiện ở tab "Chăm sóc khách hàng" (cả 10 tab phân loại) khi có `cskhSend.read`.
+  - Hành vi giữ nguyên: mở `/cskh-grouping/send` với kênh Zalo, tab phân loại và kỳ Ngày / Tuần / Tháng đang xem.
+  - `CareToolbar` bỏ `onSendCare`; `CareBoard` bỏ `sendCare`. Nút Gửi SMS / Gửi Zalo trên từng dòng không đổi.
+- **Test** (build production `vite preview` 127.0.0.1:8137 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, Zalo stub :5199, không chặn request):
+  - `cskh.spec` "the toolbar matches the reference per tab" thêm: nút nằm trong hàng tab trên ở Sau điều trị / Nhắc lịch hẹn / Khiếu nại, không có trong `.cskh-toolbar`, không có ở Phân nhóm CSKH.
+  - `cskh-message-send` **6/6** (gồm ca bấm nút từ Nhắc lịch hẹn và ca thiếu `cskhSend` không thấy nút) + `cskh` **8/8**.
+  - tsc sạch. eslint còn 1 lỗi có từ trước ở `CskhGroupingPage.tsx:51` (`react-hooks/exhaustive-deps` chưa khai báo rule).

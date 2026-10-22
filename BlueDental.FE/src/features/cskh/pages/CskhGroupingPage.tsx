@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, SendOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
@@ -9,6 +9,7 @@ import { RemainingHeight } from "@/components/RemainingHeight";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { useAbility } from "@/hooks/useAbility";
+import { MESSAGE_CHANNEL } from "../api/templateApi";
 import { anchorForMode, careDateModeOf, careTabByKey, CARE_TABS } from "../careTabs";
 import { sendPath, templateEditorPath } from "../templatePaths";
 import { CareBoard } from "../components/CareBoard";
@@ -73,6 +74,14 @@ export function CskhGroupingPage() {
   /* "Dùng mẫu này để gửi": the template names its own channel. */
   const sendWithTemplate = (id: string) =>
     navigate(withBranch(sendPath({ templateId: id }), branchId));
+  /* Gửi tin nhắn chăm sóc: the care tab's list over the period on screen, on Zalo — BA P2110. */
+  const sendCare = () =>
+    navigate(withBranch(sendPath({
+      channel: MESSAGE_CHANNEL.Zalo,
+      page: careTab.key,
+      dateMode: mode,
+      date: date.format("YYYY-MM-DD"),
+    }), branchId));
 
   return (
     <div className="reception-page">
@@ -96,6 +105,11 @@ export function CskhGroupingPage() {
         {topTab === "template" && templateAbility.canCreate && (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openTemplate("new")}>
             {t("CSKH:Template:Create")}
+          </Button>
+        )}
+        {topTab === "care" && canSend && (
+          <Button icon={<SendOutlined />} onClick={sendCare}>
+            {t("CSKH:Action:SendCare")}
           </Button>
         )}
       </div>

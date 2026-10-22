@@ -4,7 +4,6 @@ import {
   LoadingOutlined,
   PlusOutlined,
   SearchOutlined,
-  SendOutlined,
 } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
@@ -17,8 +16,6 @@ interface CareToolbarActions {
   exporting: boolean;
   onExport?: () => void;
   onCreate?: () => void;
-  /** Gửi tin nhắn chăm sóc — the list on screen, on every tab (BA P2110). */
-  onSendCare?: () => void;
 }
 
 interface CareToolbarProps {
@@ -32,7 +29,7 @@ interface CareToolbarProps {
   actions: CareToolbarActions;
 }
 
-/** Per-tab toolbar row: Xuất Excel · Tìm kiếm · Bác sĩ · NV CSKH · Gửi tin nhắn chăm sóc · Tạo mới. */
+/** Per-tab toolbar row: Xuất Excel · Tìm kiếm · Bác sĩ · NV CSKH · Tạo mới. */
 export function CareToolbar({
   tab,
   search,
@@ -43,7 +40,7 @@ export function CareToolbar({
   onCareStaffChange,
   actions,
 }: CareToolbarProps) {
-  const { exporting, onExport, onCreate, onSendCare } = actions;
+  const { exporting, onExport, onCreate } = actions;
   const doctors = useDentistStaffOptions();
   const staff = useStaffOptions();
 
@@ -96,12 +93,6 @@ export function CareToolbar({
             />
           </MessageField>
         </div>
-      )}
-
-      {onSendCare && (
-        <Button icon={<SendOutlined />} onClick={onSendCare}>
-          {t("CSKH:Action:SendCare")}
-        </Button>
       )}
 
       {tab.showCreate && onCreate && (

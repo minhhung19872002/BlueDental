@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 import { CARE_TYPE, type CareRecordDto } from "../api/careApi";
 import { MESSAGE_CHANNEL, type MessageChannel } from "../api/templateApi";
 import type { CareDateMode, CareTabConfig } from "../careTabs";
-import { sendPath, type SendPathParams } from "../templatePaths";
+import { sendPath } from "../templatePaths";
 import { useCareBoard } from "../hooks/useCareBoard";
 import { CareCounters } from "./CareCounters";
 import { CareToolbar } from "./CareToolbar";
@@ -31,7 +31,7 @@ interface CareBoardProps {
   canCreate?: boolean;
   /** Sau điều trị's Đã liên hệ / Chưa liên hệ dropdown is read-only without it. */
   canUpdate?: boolean;
-  /** "Gửi tin nhắn › Xem": the row SMS / Zalo buttons and Gửi tin nhắn chăm sóc lead to that screen. */
+  /** "Gửi tin nhắn › Xem": the row SMS / Zalo buttons lead to that screen. */
   canSend?: boolean;
 }
 
@@ -45,12 +45,8 @@ export function CareBoard({
      horizontal scroller the headers squeeze into each other. */
   const narrow = useMediaQuery(NARROW_SCREEN);
 
-  const openSend = (params: SendPathParams) => navigate(withBranch(sendPath(params), branchId));
   const sendTo = (channel: MessageChannel) => (record: CareRecordDto) =>
-    openSend({ channel, patientId: record.patientId });
-  /* The list the board shows, on Zalo — BA P2110. */
-  const sendCare = () =>
-    openSend({ channel: MESSAGE_CHANNEL.Zalo, page: tab.key, dateMode: mode, date: date.format("YYYY-MM-DD") });
+    navigate(withBranch(sendPath({ channel, patientId: record.patientId }), branchId));
 
   const columns = buildCareColumns(tab, branchId, {
     onCall: board.handleCall,
@@ -89,7 +85,6 @@ export function CareBoard({
             exporting: board.exporting,
             onExport: canExport ? board.handleExport : undefined,
             onCreate: canCreate ? () => board.openDialog("create") : undefined,
-            onSendCare: canSend ? sendCare : undefined,
           }}
         />
       </div>
