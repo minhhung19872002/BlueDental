@@ -66,6 +66,7 @@ public static class BlueDentalAbilities
         public const string ChatbotKnowledge = "chatbotKnowledge";
         public const string CskhCare = "cskhCare";
         public const string CskhGroup = "cskhGroup";
+        public const string CskhTemplate = "cskhTemplate";
         public const string HelpSupport = "helpSupport";
         public const string LaboBite = "laboBite";
         public const string LaboFinishLine = "laboFinishLine";
@@ -172,6 +173,8 @@ public static class BlueDentalAbilities
         ["chatbotKnowledge"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["cskhCare"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
         ["cskhGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
+        // BlueDental-local: CSKH ▸ Template tin nhắn (BA P2110, F-76).
+        ["cskhTemplate"] = [Actions.Read, Actions.Create, Actions.Update],
         ["helpSupport"] = [Actions.Read],
         ["laboBite"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboFinishLine"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

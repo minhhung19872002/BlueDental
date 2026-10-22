@@ -1606,11 +1606,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
         {
             entity.ToTable("bd_message_templates");
             entity.ConfigureByConvention();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(MessageTemplate.MaxNameLength).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(MessageTemplate.MaxContentLength).IsRequired();
             entity.Property(x => x.Channel).HasConversion<short>();
-            entity.Property(x => x.Category).HasMaxLength(100);
+            entity.Property(x => x.Category).HasMaxLength(MessageTemplate.MaxCategoryLength);
+            entity.Property(x => x.Purpose).HasConversion<short?>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Subject).HasMaxLength(MessageTemplate.MaxSubjectLength);
+            entity.Property(x => x.ExternalTemplateId).HasMaxLength(MessageTemplate.MaxExternalTemplateIdLength);
+            entity.Property(x => x.ParamMapJson).IsRequired();
             entity.HasIndex(x => x.Channel);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Channel, x.Status });
         });
 
         builder.Entity<MessageLog>(entity =>

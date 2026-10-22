@@ -3010,3 +3010,26 @@ Reason: đã đo được Enter khi khối bên dưới là đoạn văn có ô 
 - cách xoá một dòng đã thêm.
 BlueDental: Shift+Enter để trình duyệt xuống dòng trong ô; bảng ngay dưới không được tính là "khối có ô" (Enter thêm dòng mới); Backspace / Delete trong một dòng đã thêm đang trống thì xoá dòng đó (quyết định của owner, 2026-10-16).
 Action taken: NONE (chỉ thao tác DOM, không lưu, mọi request ghi bị chặn)
+
+## CSKH — Template tin nhắn và trang Tạo/Sửa mẫu (F-76, R-1008, 2026-10-22, BA P2110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/cskh-grouping?tab=template`, `/cskh-grouping/templates/new`, `/cskh-grouping/templates/:id` (develop)
+Control: tab "Template tin nhắn", trang soạn mẫu (img_08)
+Reason: tính năng riêng của BlueDental theo `P2110.drawio` của BA; bản gốc không có, không có gì để quan sát. Ảnh img_08 không nói các điểm dưới đây. Xem `pages/cskh-messaging.md`.
+Action taken: NONE trên production. Khác img_08 theo quyết định của chủ dự án (2026-10-22):
+- SMS / Email có pill "Chưa kết nối gửi", vì chỉ Zalo gửi thật (quyết định 1).
+- Mẫu Zalo = mẫu ZNS đã duyệt + tên và mục đích riêng; không soạn nội dung tự do (quyết định 2).
+- Màu và font theo thiết kế v2 (quyết định 9), không theo bảng màu trong ảnh.
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- Bộ biến có 16 biến (xem `../testing/features/cskh-message-template.md`), BA vẽ 29. Không có "Tên gọi ngắn"; cách xưng hô dùng `{xung_ho}`.
+- Gợi ý khi gõ `{` theo thứ tự thư viện (Khách hàng → Lịch hẹn → Điều trị → Hệ thống), nên Ngày sinh đứng trước Ngày hẹn; chỉ khớp đầu một từ (`ng` không ra `{ten_khach_hang}`).
+- Chưa có nhãn nhỏ "SMS" trên ô nội dung.
+- Lưu nháp chỉ cần tên; Lưu mẫu cần mục đích và nội dung (Zalo: mẫu ZNS và đủ tham số bắt buộc).
+- Độ dài tối đa: SMS 1000, Zalo 2000. Bộ đếm hiện độ dài sau khi thay biến bằng dữ liệu khách mẫu.
+- Khách mẫu cho phần Xem trước: khách thật của chi nhánh, ưu tiên khách có lịch hẹn sắp tới.
+- Sửa mẫu thì không đổi được kênh. Nhân bản tạo bản nháp "- bản sao" cùng kênh.
+- Mở tab thì đồng bộ trạng thái mẫu Zalo; Zalo lỗi thì giữ trạng thái cũ và báo trên tab.
+- Cột "Đã gửi" đếm các lần gửi đã tới khách.
+- Bảng sắp theo kênh, rồi trạng thái, rồi tên.

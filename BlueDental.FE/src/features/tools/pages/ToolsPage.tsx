@@ -11,7 +11,6 @@ import { CallListView } from "../components/CallListView";
 import { InvoiceConfigView } from "../components/InvoiceConfigView";
 import { MessageConfigView } from "../components/MessageConfigView";
 import { MessageLogView } from "../components/MessageLogView";
-import { MessageTemplateView } from "../components/MessageTemplateView";
 import { ZaloConfigView } from "../components/ZaloConfigView";
 import { ZaloMessageView } from "../components/ZaloMessageView";
 import { ZaloTemplateView } from "../components/ZaloTemplateView";
@@ -101,6 +100,7 @@ function CallView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   );
 }
 
+// Mẫu tin nhắn is managed in CSKH ▸ Template tin nhắn since F-76.
 function MessageView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   const [sub, setSub] = useState("config");
 
@@ -109,7 +109,6 @@ function MessageView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
       <SubTabBar
         tabs={[
           { key: "config", label: t("Tools:SubTabConfig") },
-          { key: "template", label: t("Tools:SubTabMsgTemplate") },
           { key: "list", label: t("Tools:SubTabMsgList") },
         ]}
         active={sub}
@@ -117,14 +116,6 @@ function MessageView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
       />
       {sub === "config" && (
         <MessageConfigView canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
-      )}
-      {sub === "template" && (
-        <MessageTemplateView
-          channel={0}
-          canCreate={canCreate}
-          canUpdate={canUpdate}
-          canDelete={canDelete}
-        />
       )}
       {sub === "list" && <MessageLogView channel={0} />}
     </div>

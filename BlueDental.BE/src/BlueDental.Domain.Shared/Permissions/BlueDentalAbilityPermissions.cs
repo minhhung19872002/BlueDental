@@ -201,6 +201,18 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.cskhGroup.export";
     }
 
+    /// <summary>
+    /// Subject <c>cskhTemplate</c> — CSKH ▸ Template tin nhắn: the message
+    /// templates and their editor (BlueDental-local, BA P2110).
+    /// </summary>
+    public static class CskhTemplate
+    {
+        public const string Subject = "cskhTemplate";
+        public const string Read = "BlueDental.cskhTemplate.read";
+        public const string Create = "BlueDental.cskhTemplate.create";
+        public const string Update = "BlueDental.cskhTemplate.update";
+    }
+
     /// <summary>Subject <c>helpSupport</c>.</summary>
     public static class HelpSupport
     {

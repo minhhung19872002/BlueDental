@@ -10284,3 +10284,87 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Cột tiền ở CSKH, Hồ sơ nhóm và báo cáo chưa che (BA chỉ nêu /patient).
   - Có hai mục "Chi phí" (Báo cáo › Quản lý thu chi và Tài chính / Kế toán).
   - Staging / prod cần DbMigrator + xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Chi phí › Xem".
+
+## R-1008 (2026-10-22, mức 2 + mức 3 vì có quyền mới) F-76 CSKH › "Template tin nhắn" + trang Tạo/Sửa mẫu (BA P2110, đợt 1)
+
+- **Yêu cầu BA**:
+  - Nguồn: `P2110.drawio` (img_08) và mock `3 · Gửi tin nhắn-html`. Trang Gửi tin nhắn để đợt 2 (F-77).
+  - Thêm tab thứ ba "Template tin nhắn" ở /cskh-grouping, gồm danh sách mẫu và trang tạo/sửa.
+  - Đổi tên loại "Complain" thành "Khiếu nại".
+  - Bỏ mục Mẫu tin nhắn trong Công cụ › Tin nhắn.
+- **Chủ dự án chốt 12 điểm (2026-10-22)**. Đợt này dùng các điểm sau:
+  - Chỉ Zalo gửi thật; SMS / Email hiện "Chưa kết nối gửi".
+  - Mẫu Zalo là mẫu ZNS đã duyệt, kèm tên + mục đích riêng; tham số tự gán biến.
+  - Bộ biến cố định; giá trị mặc định cố định.
+  - Giữ thiết kế v2.
+  - Làm trên develop.
+- **BE**:
+  - `MessageTemplate`:
+    - Trường mới: `Purpose` (CareType của 10 tab CSKH), `Status`, `Subject` (Email), `ExternalTemplateId` + `ParamMapJson` (Zalo), `RemoveDiacritics` (SMS).
+    - Trạng thái: Nháp 0 / Sẵn sàng 1 / Chờ duyệt 2 / Zalo từ chối 3 / Ngừng dùng 4.
+    - `SaveDraft` chỉ cần tên.
+    - `Publish` ("Lưu mẫu"):
+      - mọi kênh: bắt buộc mục đích (`Tools:0011`);
+      - SMS / Email: bắt buộc nội dung (`0012`); Email bắt buộc tiêu đề (`0013`); biến lạ bị từ chối (`0014`);
+      - Zalo: bắt buộc chọn mẫu ZNS (`0015`); tham số bắt buộc phải có giá trị (`0016`); trạng thái lấy theo Zalo (ENABLE → Sẵn sàng, PENDING_REVIEW → Chờ duyệt…).
+    - Giới hạn độ dài: SMS 1000, Zalo 2000 (`0017`).
+    - Mỗi kênh chỉ giữ trường của mình. Server trim nội dung.
+  - `MessageVariables`: 16 biến, chia nhóm Khách hàng / Lịch hẹn / Điều trị / Hệ thống. `MessageTemplateRenderer` + `MessageVariableResolver` dùng cho xem trước với khách thật.
+  - `MessageTemplateAppService`, mở ở `api/v1/app/message-templates`:
+    - danh sách lọc theo kênh / mục đích / chữ không dấu, có đếm theo kênh;
+    - get / create / update;
+    - `duplicate` tạo bản nháp "- bản sao";
+    - `variables`;
+    - `sample-customer`: ưu tiên khách có lịch hẹn sắp tới, nút "Đổi khách";
+    - `preview`;
+    - `zns-templates` (+ chi tiết);
+    - `sync-zalo-status`: Zalo lỗi thì giữ trạng thái cũ và báo trên tab.
+
+    Phạm vi chi nhánh lấy từ `X-Clinic-Branch-Id`. "Đã gửi" đếm từ nhật ký gửi đã tới máy khách.
+  - Phần gọi Zalo tách khỏi `ZaloOaAppService` thành `ZaloOaGateway`, dùng chung cho cả hai service.
+  - `CareBoard.Types`: thứ tự 10 tab, dùng chung cho `CareReportAppService` và kiểm tra mục đích.
+  - Quyền `cskhTemplate` (Xem / Thêm / Sửa), nằm dưới CSKH trong cây Phân quyền. Seeder cấp cho role tĩnh.
+  - Migration `20261022021207_MessageTemplateEditor`: thêm 6 cột + index (ClinicBranchId, Channel, Status). Mẫu cũ được đặt Sẵn sàng.
+- **FE**:
+  - Tab "Template tin nhắn" (`TemplateListTab`):
+    - chip kênh có số đếm;
+    - lọc mục đích;
+    - tìm kiếm;
+    - bảng 6 cột (Tên mẫu, Kênh, Mục đích, Số biến, Đã gửi, Trạng thái);
+    - thẻ xem trước bên phải;
+    - Sửa / Nhân bản theo quyền.
+  - Trang `/cskh-grouping/templates/new` và `/:id` (`TemplateEditor`, quyền create / update):
+    - chọn kênh;
+    - ô nội dung có gợi ý khi gõ `{`;
+    - chip biến hay dùng;
+    - Thư viện biến (tìm kiếm, PillTabs theo nhóm, bấm + để chèn tại con trỏ);
+    - "Biến trong mẫu";
+    - xem trước với khách mẫu;
+    - Zalo: chọn mẫu ZNS, bảng gán tham số điền sẵn;
+    - Lưu nháp / Lưu mẫu;
+    - rời trang khi chưa lưu thì hỏi lại.
+  - Công cụ › Tin nhắn: bỏ sub-tab Mẫu tin nhắn, xoá `MessageTemplateView` và các API cũ trong `toolsApi`.
+- **Đối chiếu img_08** (ảnh chụp local so với ảnh BA, 1440 px):
+  - Gõ `{ng` chỉ gợi ý các biến có một từ bắt đầu bằng "ng" (Ngày …), không gợi ý `{ten_khach_hang}`. `matchesVariable` so khớp đầu từ; dùng chung cho gợi ý, Thư viện biến và ô tham số ZNS.
+  - Nhóm biến xuống dòng (`PillTabs`) thay cho thanh cuộn ngang.
+  - Danh sách biến cao 480 px, thấy khoảng 8 biến.
+  - Các điểm còn khác: xem `unknowns.md` (F-76).
+- **Test**:
+  - Domain **1017/1017**, Application **758/758** (gồm `MessageTemplateAppServiceContractTests`), HttpApi.Host **24/24**.
+  - E2E thật:
+    - Đường chạy: build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`. Không chặn request nào; Zalo trỏ vào stub `e2e/fixtures/zalo-stub.mjs` ở :5199.
+    - `cskh-message-template` **7/7** (`E2E_ZALO_STUB=1`):
+      - soạn SMS: `{ng` không gợi ý Họ và tên;
+      - rời trang khi chưa lưu;
+      - Nhân bản + tải lại;
+      - cách ly chi nhánh;
+      - chi nhánh chưa nối Zalo;
+      - quyền chỉ xem / chỉ tạo;
+      - Zalo: mẫu ZNS + thiếu tham số + Chờ duyệt. Ca này tự nối OA qua connect-url + callback rồi tự gỡ.
+  - Hồi quy mức 3:
+    - `cskh-generated-tabs`, `report-customer`, `zalo-oa`, `routes`: **45/45**. Hai spec đầu sửa chữ "Complain" → "Khiếu nại".
+    - `cskh`, `cskh-after-treatment`, `cskh-contact-staff-api`, `cskh-live-missed`, `cskh-reminder-api`: **14/14**.
+- **Còn treo**:
+  - Đợt 2 (F-77): Gửi tin nhắn theo `Send.dc.html`, nút "Dùng mẫu này để gửi" (`onUseToSend` chưa nối), thay dialog Lưu tin nhắn / Gửi ZBS.
+  - Đợt 3 (F-78): Thống kê CSKH.
+  - Staging cần chạy DbMigrator (migration + quyền mới), rồi xoá cache quyền Redis. Role tuỳ chỉnh phải cấp tay "Template tin nhắn".

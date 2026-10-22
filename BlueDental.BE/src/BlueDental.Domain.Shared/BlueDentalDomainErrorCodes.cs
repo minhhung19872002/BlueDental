@@ -648,6 +648,14 @@ public static class BlueDentalDomainErrorCodes
         public const string ZaloNotConfigured = "BlueDental:Tools:0007";
         public const string ZaloTemplateDataMissing = "BlueDental:Tools:0008";
         public const string ZaloOaMismatch = "BlueDental:Tools:0009";
+        public const string TemplateNameRequired = "BlueDental:Tools:0010";
+        public const string TemplatePurposeRequired = "BlueDental:Tools:0011";
+        public const string TemplateContentRequired = "BlueDental:Tools:0012";
+        public const string TemplateSubjectRequired = "BlueDental:Tools:0013";
+        public const string TemplateUnknownVariables = "BlueDental:Tools:0014";
+        public const string TemplateZnsRequired = "BlueDental:Tools:0015";
+        public const string TemplateZnsParamUnmapped = "BlueDental:Tools:0016";
+        public const string TemplateTooLong = "BlueDental:Tools:0017";
     }
 
     public static class ClinicIntegration

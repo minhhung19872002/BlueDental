@@ -303,7 +303,7 @@ test.describe("CSKH › Sinh nhật, Nhắc lịch hẹn, Đặt lịch không �
   });
 });
 
-test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
+test.describe("CSKH › Lịch hẹn hủy, Khiếu nại (bug list #16)", () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
     await login(page);
@@ -362,7 +362,7 @@ test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
 
     await page.goto("/cskh-grouping?tab=care&page=complaint&care_dateMode=day");
     await assertRealApiTraffic(page, `${CARE}/stats`);
-    await expect(page.getByRole("button", { name: "Complain", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Khiếu nại", exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Tạo mới" }).click();
     const dialog = page.getByRole("dialog").filter({ hasText: "Tạo công việc mới" });
@@ -384,7 +384,7 @@ test.describe("CSKH › Lịch hẹn hủy, Complain (bug list #16)", () => {
     const staffOption = page.locator("#ss-portal-dropdown").getByRole("option").first();
     const staffName = ((await staffOption.textContent()) ?? "").trim();
     await staffOption.click();
-    await dialog.getByRole("textbox", { name: "Nội dung complain" }).fill(content);
+    await dialog.getByRole("textbox", { name: "Nội dung khiếu nại" }).fill(content);
 
     const created = page.waitForResponse((res) => res.url().endsWith(CARE) && res.request().method() === "POST");
     await save.click();

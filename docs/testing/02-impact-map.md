@@ -116,6 +116,9 @@ What to retest when a shared piece changes. Levels are defined in
 | `Ticket` (Marketing) status / `DueAt` / `IsReturningCustomer` | 2 | F-55, F-59 |
 | Localization resources (`en.json` / `vi.json`) | 3 | Every spec that asserts a refusal message |
 | `features/staff-notes/*` / `StaffNoteAppService` / `hooks/useDraggableModal.ts` | 2 | F-74 — `e2e/staff-notes-api.spec.ts` + `e2e/staff-notes.spec.ts`. The launcher sits in the header, so a change to `StaffNotesLauncher` is level 3 like `AppLayout` (F-30 + `header-navigation`). Search folds Vietnamese marks via `DbText.Unaccent` → PostgreSQL `unaccent` (R-992); only staff notes use it so far |
+| `MessageTemplate` / `MessageTemplateAppService` / `MessageVariables` / `MessageTemplateRenderer` / `MessageVariableResolver`, `features/cskh/components/template-editor/*` + `templates/*`, `features/cskh/messageVariables.ts` | 2 | F-76 `cskh-message-template`. The Zalo case runs only with `E2E_ZALO_STUB=1` against a host whose `Zalo:*BaseUrl` point at `e2e/fixtures/zalo-stub.mjs` (local database only, it links BD-001 to the stub OA and unlinks after). `matchesVariable` drives the `{` suggestions, the library search and the ZNS param box at once: a query must start a word (`{ng` → Ngày …, never `{ten_khach_hang}`, R-1008). Phase 2 sending (F-77) renders through the same renderer |
+| `ZaloOaGateway` (Zalo calls shared by `ZaloOaAppService` and `MessageTemplateAppService`) | 3 | F-16 `zalo-oa` + the F-76 Zalo case — `zalo-oa` expects BD-001 to have **no** live connection, so any spec that links one must undo it |
+| `CareBoard.Types` (order of the 10 CSKH tabs) | 3 | `cskh-generated-tabs`, `report-customer`, F-76 — a template's "Mục đích" must be one of these tabs (`Tools:0011`), and the report's per-type rows follow this order |
 
 ## Cross-feature couplings worth remembering
 

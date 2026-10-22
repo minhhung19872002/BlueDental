@@ -25,6 +25,8 @@ Các filter khác (status, staffId, careStaffId, q, birthdayDate) KHÔNG sync l�
 | Chăm sóc khách hàng | `tab=care` | 5 care-type tab + counters + date modes |
 | Phân nhóm CSKH | `tab=group` | Bảng bệnh nhân (12 cột) + filter nhóm dịch vụ/tag/sinh nhật |
 
+BlueDental (không phải bản gốc, F-76, BA P2110): thêm tab thứ ba "Template tin nhắn" (`tab=template`). Xem `cskh-messaging.md`.
+
 ---
 
 # TAB 1 — Chăm sóc khách hàng (`tab=care`)

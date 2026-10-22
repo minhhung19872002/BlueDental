@@ -6994,8 +6994,8 @@ namespace BlueDental.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone")
@@ -7012,6 +7012,10 @@ namespace BlueDental.Migrations
                     b.Property<DateTime?>("DeletionTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExternalTemplateId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -7035,9 +7039,28 @@ namespace BlueDental.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("ParamMapJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<short?>("Purpose")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("RemoveDiacritics")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Channel");
+
+                    b.HasIndex("ClinicBranchId", "Channel", "Status");
 
                     b.ToTable("bd_message_templates", (string)null);
                 });

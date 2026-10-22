@@ -65,6 +65,12 @@ const CskhGroupingPage = lazy(() =>
   })),
 );
 
+const MessageTemplateEditorPage = lazy(() =>
+  import("@/features/cskh/pages/MessageTemplateEditorPage").then((m) => ({
+    default: m.MessageTemplateEditorPage,
+  })),
+);
+
 const StaffPage = lazy(() =>
   import("@/features/staff/pages/StaffPage").then((m) => ({
     default: m.StaffPage,
@@ -346,6 +352,22 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="cskh">
             <CskhGroupingPage />
+          </G>
+        ),
+      },
+      {
+        path: "cskh-grouping/templates/new",
+        element: (
+          <G k="cskhTemplateNew">
+            <MessageTemplateEditorPage />
+          </G>
+        ),
+      },
+      {
+        path: "cskh-grouping/templates/:id",
+        element: (
+          <G k="cskhTemplateEdit">
+            <MessageTemplateEditorPage />
           </G>
         ),
       },
