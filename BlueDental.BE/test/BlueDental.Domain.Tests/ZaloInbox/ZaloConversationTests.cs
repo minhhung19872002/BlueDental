@@ -7,7 +7,7 @@ using Xunit;
 namespace BlueDental.Domain.Tests.ZaloInbox;
 
 /// <summary>
-/// CSKH ▸ Hộp thư Zalo (BA P2210, F-79): "Nhận xử lý" holds a conversation for
+/// CSKH ▸ Hộp thư Zalo (BA P2210, F-80): "Nhận xử lý" holds a conversation for
 /// one staff member for 15 minutes from taking it or their last answer, only
 /// the holder answers, hands it on or lets it go; Chưa trả lời until the OA
 /// answers after the customer's last message; free-text tags.

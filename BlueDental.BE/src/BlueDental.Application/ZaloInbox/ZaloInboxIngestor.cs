@@ -86,8 +86,9 @@ public class ZaloInboxIngestor(
     /// </summary>
     public async Task StoreReplyAsync(ZaloConversation conversation, ZaloChatMessage message, Guid senderUserId, DateTime now)
     {
+        // Only an echo of this conversation: a message of another one is never this reply.
         var echo = message.ZaloMessageId is { } id
-            ? await messages.FirstOrDefaultAsync(m => m.ClinicBranchId == conversation.ClinicBranchId && m.ZaloMessageId == id)
+            ? await messages.FirstOrDefaultAsync(m => m.ConversationId == conversation.Id && m.ZaloMessageId == id)
             : null;
         if (echo != null)
         {

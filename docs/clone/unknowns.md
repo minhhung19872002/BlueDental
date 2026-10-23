@@ -3108,7 +3108,7 @@ Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
 - Chi phí chỉ tính tin gửi được; tin thất bại hiện 0 đ, bị loại / chờ / dừng hiện "—".
 - R05: hồ sơ mang tin là hồ sơ đầu khi xếp theo tên (vi-VN, không phân biệt hoa thường).
 - Lần gửi cũ (trước F-79) không lưu người bị loại: chỉ có số đếm và một dòng ghi chú.
-## CSKH — Hộp thư Zalo + Lịch sử chăm sóc (F-79, R-1020, 2026-10-23, BA P2210)
+## CSKH — Hộp thư Zalo + Lịch sử chăm sóc (F-80, R-1021, 2026-10-23, BA P2210)
 
 UNKNOWN_REFERENCE_BEHAVIOR
 

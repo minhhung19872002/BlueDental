@@ -8,7 +8,7 @@ namespace BlueDental.ZaloInbox;
 
 /// <summary>
 /// One Zalo user talking to the branch's OA — a row of CSKH ▸ Hộp thư Zalo
-/// (BA P2210, F-79). Its messages are <see cref="ZaloChatMessage"/> rows; this
+/// (BA P2210, F-80). Its messages are <see cref="ZaloChatMessage"/> rows; this
 /// keeps what the list shows: the last message, Chưa trả lời / Đã chăm sóc,
 /// who holds it and the free-text tags.
 ///

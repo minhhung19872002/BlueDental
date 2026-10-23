@@ -5,7 +5,7 @@ using Volo.Abp.Application.Services;
 
 namespace BlueDental.ZaloInbox;
 
-/// <summary>CSKH ▸ Hộp thư Zalo (BA P2210, F-79): the conversations of the current branch's OA.</summary>
+/// <summary>CSKH ▸ Hộp thư Zalo (BA P2210, F-80): the conversations of the current branch's OA.</summary>
 public interface IZaloInboxAppService : IApplicationService
 {
     Task<ZaloInboxListDto> GetListAsync(GetZaloConversationsInput input);

@@ -758,7 +758,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidScope = "BlueDental:StaffNote:0005";
     }
 
-    /// <summary>CSKH ▸ Hộp thư Zalo (BA P2210, F-79). BlueDental-local.</summary>
+    /// <summary>CSKH ▸ Hộp thư Zalo (BA P2210, F-80). BlueDental-local.</summary>
     public static class ZaloInbox
     {
         /// <summary>Someone else holds the conversation ("Nhận xử lý" taken).</summary>

@@ -91,7 +91,7 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
   );
 
   return (
-    // Not pd-pane--fill: Lịch sử chăm sóc sits under the table, so the tab scrolls as a page (F-79).
+    // Not pd-pane--fill: Lịch sử chăm sóc sits under the table, so the tab scrolls as a page (F-80).
     <section className="pd-pane pc-tab">
       <div className="pc-toolbar">
         <CareStatChips stats={stats.data} active={chip} onToggle={handleToggle} />

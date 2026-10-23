@@ -14,7 +14,7 @@ import { InboxHeader } from "./InboxHeader";
 const CONVERSATION_PARAM = "conversation";
 
 /**
- * CSKH ▸ Hộp thư Zalo (BA P2210, F-79): the branch OA's conversations. Opening
+ * CSKH ▸ Hộp thư Zalo (BA P2210, F-80): the branch OA's conversations. Opening
  * the tab reads Zalo's recent chats once, for whatever the webhook missed.
  */
 export function InboxTab({ canHandle }: { canHandle: boolean }) {

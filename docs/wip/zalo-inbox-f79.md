@@ -1,8 +1,8 @@
 # Nhánh `wip/zalo-inbox-f79` — tóm tắt
 
 Hộp thư Zalo, mẫu ZNS trong khung chat và Lịch sử chăm sóc khách hàng, theo
-`save/P2210.drawio` của BA. Mã feature dự kiến **F-79**. Regression id còn trống:
-`main` đã dùng tới R-1019, nên bắt đầu từ R-1020.
+`save/P2210.drawio` của BA. Mã feature dự kiến **F-80**. Regression id còn trống:
+`main` đã dùng tới R-1019, nên bắt đầu từ R-1021.
 
 > **Trạng thái: đang làm dở, chưa xác minh.** Chưa chạy trên stack thật, chưa
 > có e2e, migration chưa apply vào DB nào. Đừng merge.
@@ -192,8 +192,8 @@ Một số giả định về Zalo **chưa kiểm được với OA thật**:
 3. Viết test BE chạy với PostgreSQL thật cho API mới (luật dự án yêu cầu).
 4. Tài liệu:
    - `docs/testing/features/zalo-inbox.md`;
-   - dòng F-79 trong registry;
-   - R-1020 trong regression log;
+   - dòng F-80 trong registry;
+   - R-1021 trong regression log;
    - impact map;
    - `docs/clone/unknowns.md` (các quyết định ở mục 4).
 5. Chạy `/simplify`, `/security-review` trước khi đưa lên staging.

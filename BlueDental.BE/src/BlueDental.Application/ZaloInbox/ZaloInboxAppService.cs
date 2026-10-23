@@ -16,7 +16,7 @@ using Volo.Abp.Users;
 namespace BlueDental.ZaloInbox;
 
 /// <summary>
-/// CSKH ▸ Hộp thư Zalo (BA P2210, F-79). Everything is the current branch's:
+/// CSKH ▸ Hộp thư Zalo (BA P2210, F-80). Everything is the current branch's:
 /// its OA, its conversations, its records. Reading needs cskhInbox.read; every
 /// step that changes a conversation needs cskhInbox.update, and answering,
 /// handing on and letting go need the caller to hold it ("Nhận xử lý").

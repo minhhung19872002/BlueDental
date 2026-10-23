@@ -8,7 +8,7 @@ using Volo.Abp;
 
 namespace BlueDental.ZaloInbox;
 
-/// <summary>CSKH ▸ Hộp thư Zalo (F-79).</summary>
+/// <summary>CSKH ▸ Hộp thư Zalo (F-80).</summary>
 [RemoteService]
 [Authorize]
 [Route("api/v1/app/zalo-inbox")]

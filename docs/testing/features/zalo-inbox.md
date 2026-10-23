@@ -1,4 +1,4 @@
-# F-79 — CSKH › Hộp thư Zalo + Lịch sử chăm sóc khách hàng (BA P2210)
+# F-80 — CSKH › Hộp thư Zalo + Lịch sử chăm sóc khách hàng (BA P2210)
 
 Nguồn: `save/P2210.drawio` của BA. File có 4 ảnh màn Hộp thư Zalo, 3 ảnh tab
 Chăm sóc KH của hồ sơ, và các ghi chú bên cạnh ảnh. Chủ dự án yêu cầu làm:
@@ -6,12 +6,13 @@ Chăm sóc KH của hồ sơ, và các ghi chú bên cạnh ảnh. Chủ dự á
 - từ đầu file tới hết đoạn "template ZNS";
 - từ đoạn "Thêm 2 nút này" tới cuối file.
 
-Phần Chiến dịch CSKH ở giữa hai đoạn đó **không** thuộc feature này.
+Phần Chiến dịch CSKH ở giữa hai đoạn đó **không** thuộc feature này. Phần đó là
+F-79 (Chiến dịch đã gửi), làm song song; tab của nó đứng ngay sau Hộp thư Zalo.
 
-BlueDental riêng, bản gốc không có màn này. Regression id R-1020. Nhánh
+BlueDental riêng, bản gốc không có màn này. Regression id R-1021. Nhánh
 `wip/zalo-inbox-f79`.
 
-Status: xem dòng F-79 trong `01-feature-verification-registry.md`.
+Status: xem dòng F-80 trong `01-feature-verification-registry.md`.
 
 ## Đã dựng
 
@@ -172,7 +173,7 @@ Status: xem dòng F-79 trong `01-feature-verification-registry.md`.
 | Application.Tests | **816/816** (gồm `ZaloInboxAppServiceContractTests`) |
 | HttpApi.Host.Tests | **24/24** |
 | E2E `zalo-inbox` | **5/5** |
-| Hồi quy mức 3 | xem R-1020 trong `03-regression-log.md` |
+| Hồi quy mức 3 | xem R-1021 trong `03-regression-log.md` |
 
 **Đường chạy E2E:**
 
@@ -237,7 +238,7 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
 
 ## Còn treo
 
-- Các điểm tự chọn hoặc khác mock: xem `docs/clone/unknowns.md` (F-79).
+- Các điểm tự chọn hoặc khác mock: xem `docs/clone/unknowns.md` (F-80).
 - Chưa kiểm được với OA thật:
   - `recipient.id` trong webhook ZNS đã nhận có phải user_id không;
   - echo `oa_send_text` có cùng `message_id` với kết quả gửi tin tư vấn không;

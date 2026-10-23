@@ -15,7 +15,7 @@ import { PatientMedicalRecordTab } from "../components/patient-detail/PatientMed
 import "../components/patient-detail/patient-detail.css";
 import "../components/patient-detail/image/patient-image.css";
 import "../components/patient-detail/care/patient-care.css";
-// Lịch sử chăm sóc and its notes, shared with CSKH ▸ Hộp thư Zalo (F-79).
+// Lịch sử chăm sóc and its notes, shared with CSKH ▸ Hộp thư Zalo (F-80).
 import "@/features/cskh/components/cskh-history.css";
 import "@/features/cskh/components/cskh-notes.css";
 

@@ -14,7 +14,7 @@
 // and refuses a refresh the way Zalo refuses a revoked token; {"reset":true}
 // goes back to the defaults. A spec that changes it resets it when done.
 //
-// Hộp thư Zalo (F-79): a spec seeds who a Zalo user is (POST /__users
+// Hộp thư Zalo (F-80): a spec seeds who a Zalo user is (POST /__users
 // { userId, displayName, phone }) and what their chat holds (POST /__history
 // { userId, items: [{ messageId, fromOa, text, time }] }); the conversation,
 // recent-chat and user-detail reads serve that, and a "tin tư vấn" sent to a
@@ -156,7 +156,8 @@ http
           if (userId.startsWith("999")) {
             return send(res, { error: -230, message: "User has not interacted with the OA in the last 48 hours" });
           }
-          const messageId = `cs-${nextChatId++}`;
+          // Unique across stub restarts too: the inbox keeps every id it was given.
+          const messageId = `cs-${Date.now()}-${nextChatId++}`;
           histories.set(userId, [
             ...(histories.get(userId) ?? []),
             { messageId, fromOa: true, text: message?.text ?? "", time: Date.now() },

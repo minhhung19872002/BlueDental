@@ -10,7 +10,7 @@ using Xunit;
 namespace BlueDental.Application.Tests.ZaloInbox;
 
 /// <summary>
-/// CSKH ▸ Hộp thư Zalo and the record's Lịch sử chăm sóc (F-79): opening the
+/// CSKH ▸ Hộp thư Zalo and the record's Lịch sử chăm sóc (F-80): opening the
 /// inbox, a conversation or a ZNS preview needs cskhInbox.read and every step
 /// that changes a conversation cskhInbox.update; the history reads with
 /// treatmentCskh.read; care notes take the leaf of the screen they are written

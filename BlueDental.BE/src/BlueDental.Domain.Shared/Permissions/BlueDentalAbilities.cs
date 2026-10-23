@@ -182,7 +182,7 @@ public static class BlueDentalAbilities
         ["cskhSend"] = [Actions.Read, Actions.Create],
         // BlueDental-local: Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
         ["cskhStats"] = [Actions.Read, Actions.Export],
-        // BlueDental-local: CSKH ▸ Hộp thư Zalo (BA P2210, F-79). Update = "Xử lý":
+        // BlueDental-local: CSKH ▸ Hộp thư Zalo (BA P2210, F-80). Update = "Xử lý":
         // take, answer, hand on or let go of a conversation, its tags and notes.
         ["cskhInbox"] = [Actions.Read, Actions.Update],
         ["helpSupport"] = [Actions.Read],

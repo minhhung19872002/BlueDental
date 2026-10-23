@@ -91,7 +91,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureZaloInbox(builder);
     }
 
-    /// <summary>CSKH ▸ Hộp thư Zalo (F-79).</summary>
+    /// <summary>CSKH ▸ Hộp thư Zalo (F-80).</summary>
     private static void ConfigureZaloInbox(ModelBuilder builder)
     {
         builder.Entity<ZaloInbox.ZaloConversation>(entity =>
