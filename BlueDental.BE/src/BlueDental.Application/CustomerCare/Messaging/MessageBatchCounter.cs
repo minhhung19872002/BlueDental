@@ -9,15 +9,16 @@ using Volo.Abp.Linq;
 
 namespace BlueDental.CustomerCare.Messaging;
 
-/// <summary>Where each send's messages stand: gone, refused, still waiting.</summary>
-public sealed record MessageBatchCounts(int Sent, int Failed, int Pending)
+/// <summary>Where each send's messages stand: gone, refused, still waiting, kept back by "Tạm dừng".</summary>
+public sealed record MessageBatchCounts(int Sent, int Failed, int Pending, int Stopped)
 {
-    public static readonly MessageBatchCounts None = new(0, 0, 0);
+    public static readonly MessageBatchCounts None = new(0, 0, 0, 0);
 }
 
 /// <summary>
-/// Counts a page of sends in one query — "Gần đây" of Gửi tin nhắn (F-77) and
-/// "Lịch sử gửi" of Thống kê CSKH (F-78) read them the same way.
+/// Counts a page of sends in one query — "Gần đây" of Gửi tin nhắn (F-77),
+/// "Lịch sử gửi" of Thống kê CSKH (F-78) and Chiến dịch đã gửi (F-79) read
+/// them the same way. Customers left out of a send are not messages of it.
 /// </summary>
 public class MessageBatchCounter(IRepository<MessageLog, Guid> messages, IAsyncQueryableExecuter executer)
     : ITransientDependency
@@ -38,6 +39,7 @@ public class MessageBatchCounter(IRepository<MessageLog, Guid> messages, IAsyncQ
             g => new MessageBatchCounts(
                 g.Where(r => MessageTemplateUsageReader.Delivered.Contains(r.Status)).Sum(r => r.Count),
                 g.Where(r => r.Status == MessageSendStatus.Failed).Sum(r => r.Count),
-                g.Where(r => r.Status == MessageSendStatus.Pending).Sum(r => r.Count)));
+                g.Where(r => r.Status == MessageSendStatus.Pending).Sum(r => r.Count),
+                g.Where(r => r.Status == MessageSendStatus.Stopped).Sum(r => r.Count)));
     }
 }

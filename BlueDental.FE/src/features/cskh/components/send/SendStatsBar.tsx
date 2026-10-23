@@ -18,6 +18,13 @@ export function SendStatsBar({ stats, contactName, query, onQueryChange }: SendS
     { tone: "none", count: stats.noContact, label: t("CSKH:Send:Stat:NoContact", contactName) },
     { tone: "missing", count: stats.missing, label: t("CSKH:Send:Stat:Missing") },
   ];
+  // Only a send that meets them names them: most lists have neither.
+  if (stats.invalidPhone > 0) {
+    chips.push({ tone: "invalid", count: stats.invalidPhone, label: t("CSKH:Send:Stat:InvalidPhone") });
+  }
+  if (stats.merged > 0) {
+    chips.push({ tone: "merged", count: stats.merged, label: t("CSKH:Send:Stat:Merged") });
+  }
   return (
     <div className="snd-stats">
       {chips.map((chip) => (

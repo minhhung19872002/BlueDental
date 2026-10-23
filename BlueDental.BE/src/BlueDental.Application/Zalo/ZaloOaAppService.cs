@@ -336,7 +336,8 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var q = (await _messages.GetQueryableAsync())
-            .Where(x => x.ClinicBranchId == branchId && x.Channel == MessageChannelType.Zalo);
+            .Where(x => x.ClinicBranchId == branchId && x.Channel == MessageChannelType.Zalo
+                && MessageSendStatuses.Messages.Contains(x.Status));
 
         if (input.Status.HasValue)
         {
@@ -386,7 +387,8 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var q = (await _messages.GetQueryableAsync())
-            .Where(x => x.ClinicBranchId == branchId && x.Channel == MessageChannelType.Zalo);
+            .Where(x => x.ClinicBranchId == branchId && x.Channel == MessageChannelType.Zalo
+                && MessageSendStatuses.Messages.Contains(x.Status));
 
         var counts = q.GroupBy(x => x.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })

@@ -73,10 +73,39 @@ public class MessageRecipientBuilder(
                 clock.Now - MessageTemplateUsageReader.RecentWindow);
 
         var channel = template?.Channel ?? input.Channel;
-        return [.. people
+        List<MessageRecipient> rows = [.. people
             .Select(p => Describe(p, values[p.Key], channel, template, znsParams, input.SkipRecentDuplicates,
                 p.Patient is { } patient ? received.GetValueOrDefault(patient.Id) : null))
             .OrderBy(r => r.Name, ByName)];
+        return channel == MessageChannelType.Email ? rows : MergeSharedPhones(rows);
+    }
+
+    /// <summary>
+    /// R05 "Gộp trùng số" (BA P2210, F-79): customers of one send who share a
+    /// phone — a parent and the children on their number — get one message.
+    /// The first of them in the table carries it, filled from their own
+    /// profile; the others are left out as merged into it. Only customers who
+    /// would get a message merge; one of this send only, not of earlier ones.
+    /// </summary>
+    private static List<MessageRecipient> MergeSharedPhones(List<MessageRecipient> rows)
+    {
+        var carriers = new Dictionary<string, MessageRecipient>(StringComparer.Ordinal);
+        return [.. rows.Select(row =>
+        {
+            if (row.SkipReason != null)
+            {
+                return row;
+            }
+
+            var phone = NormalizePhone(row.Phone)!;
+            if (carriers.TryGetValue(phone, out var carrier))
+            {
+                return row with { SkipReason = MessageSkipReason.MergedPhone, MergedInto = new MessageMergeTarget(carrier.Key, carrier.Name) };
+            }
+
+            carriers[phone] = row;
+            return row;
+        })];
     }
 
     /// <summary>
@@ -177,9 +206,10 @@ public class MessageRecipientBuilder(
         var check = template == null ? null : Check(template, znsParams, values);
         var reachable = channel == MessageChannelType.Email
             ? !string.IsNullOrWhiteSpace(email)
-            : NormalizePhone(phone) != null;
+            : !string.IsNullOrWhiteSpace(phone);
 
         MessageSkipReason? skip = !reachable ? MessageSkipReason.NoContact
+            : channel != MessageChannelType.Email && NormalizePhone(phone) == null ? MessageSkipReason.InvalidPhone
             : skipRecent && received != null ? MessageSkipReason.RecentlySent
             : check?.Missing.Count > 0 ? MessageSkipReason.MissingVariable
             : null;
@@ -345,7 +375,10 @@ public class MessageRecipientBuilder(
     }
 }
 
-/// <summary>One row of "Gửi tới". <see cref="SkipReason"/> null means the message goes.</summary>
+/// <summary>
+/// One row of "Gửi tới". <see cref="SkipReason"/> null means the message goes;
+/// <see cref="MergedInto"/> names whose message a <see cref="MessageSkipReason.MergedPhone"/> customer shares.
+/// </summary>
 public sealed record MessageRecipient(
     string Key,
     Guid? PatientId,
@@ -358,7 +391,12 @@ public sealed record MessageRecipient(
     MessageReceipt? Received,
     MessageSkipReason? SkipReason,
     IReadOnlyList<string> Missing,
-    MessageCheck? Check);
+    MessageCheck? Check)
+{
+    public MessageMergeTarget? MergedInto { get; init; }
+}
+
+public sealed record MessageMergeTarget(string Key, string Name);
 
 public sealed record MessageCheck(
     ComposedMessage Message,

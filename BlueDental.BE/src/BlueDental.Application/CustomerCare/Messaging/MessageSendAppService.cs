@@ -48,6 +48,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
     private readonly MessageVariableResolver _variables;
     private readonly MessageTemplateUsageReader _usage;
     private readonly MessageBatchCounter _counter;
+    private readonly IMessageSendStopper _stopper;
     private readonly MessageValueMasker _masker;
     private readonly PatientPhoneMasker _phoneMasker;
     private readonly ZaloOaGateway _zalo;
@@ -69,6 +70,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         MessageVariableResolver variables,
         MessageTemplateUsageReader usage,
         MessageBatchCounter counter,
+        IMessageSendStopper stopper,
         MessageValueMasker masker,
         PatientPhoneMasker phoneMasker,
         ZaloOaGateway zalo,
@@ -89,6 +91,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         _variables = variables;
         _usage = usage;
         _counter = counter;
+        _stopper = stopper;
         _masker = masker;
         _phoneMasker = phoneMasker;
         _zalo = zalo;
@@ -203,7 +206,9 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
 
     /// <summary>
     /// Customers are read again here, not taken from the table on screen, so
-    /// what goes is what the server sees now. Those left out are counted, not booked.
+    /// what goes is what the server sees now. Those left out are kept as
+    /// Skipped rows with their reason, for "Kết quả lần gửi" (BA P2210, F-79);
+    /// one merged into another's message names it.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.CskhSend.Create)]
     public async Task<MessageSendBatchDto> CreateAsync(CreateMessageSendInput input)
@@ -231,11 +236,17 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
                 going.Count, rows.Count - going.Count),
             input.SkipRecentDuplicates, scheduledAt, Clock.Now);
 
+        var idOf = going.ToDictionary(r => r.Key, _ => GuidGenerator.Create(), StringComparer.Ordinal);
         await _batches.InsertAsync(batch);
-        await _messages.InsertManyAsync(going.Select(r => new MessageLog(
-                GuidGenerator.Create(), branchId, r.PatientId, template.Id,
-                r.Name, MessageRecipientBuilder.NormalizePhone(r.Phone)!,
-                r.Check!.Message.Text, template.Channel, MessageSendStatus.Pending, null, null)
+        await _messages.InsertManyAsync(rows.Select(r => (r.SkipReason is { } reason
+                ? MessageLog.Skip(
+                    GuidGenerator.Create(), branchId, r.PatientId, template.Id, r.Name,
+                    MessageRecipientBuilder.NormalizePhone(r.Phone) ?? r.Phone, template.Channel,
+                    reason, r.MergedInto is { } carrier ? idOf[carrier.Key] : null)
+                : new MessageLog(
+                    idOf[r.Key], branchId, r.PatientId, template.Id,
+                    r.Name, MessageRecipientBuilder.NormalizePhone(r.Phone)!,
+                    r.Check!.Message.Text, template.Channel, MessageSendStatus.Pending, null, null))
             .SetExternalTemplate(template.ExternalTemplateId, template.Name)
             .ForBatch(batchId, r.CareRecordId)));
         await CurrentUnitOfWork!.SaveChangesAsync();
@@ -245,7 +256,7 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
             new MessageSendJobArgs { BatchId = batchId },
             delay: delay > TimeSpan.Zero ? delay : null);
 
-        return ToBatchDto(batch, new MessageBatchCounts(0, 0, going.Count));
+        return ToBatchDto(batch, new MessageBatchCounts(0, 0, going.Count, 0));
     }
 
     public async Task<MessageSendBatchDto> GetAsync(Guid id)
@@ -269,14 +280,17 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         return [.. batches.Select(b => ToBatchDto(b, counts.GetValueOrDefault(b.Id) ?? MessageBatchCounts.None))];
     }
 
-    /// <summary>The booked messages go with the batch: none of them was sent, so nothing of them is history.</summary>
+    /// <summary>
+    /// "Huỷ hẹn gửi". The booked messages stay as Stopped rows (F-79), so
+    /// "Kết quả lần gửi" still shows who the send was for.
+    /// </summary>
     [Authorize(BlueDentalAbilityPermissions.CskhSend.Create)]
     public async Task<MessageSendBatchDto> CancelAsync(Guid id)
     {
         var batch = await GetBatchAsync(id);
         batch.Cancel(Clock.Now);
-        await _batches.UpdateAsync(batch);
-        await _messages.DeleteAsync(m => m.SendBatchId == id && m.Status == MessageSendStatus.Pending);
+        await _batches.UpdateAsync(batch, autoSave: true);
+        await _stopper.StopWaitingAsync(id);
         return ToBatchDto(batch, MessageBatchCounts.None);
     }
 
@@ -426,6 +440,8 @@ public class MessageSendAppService : BlueDentalAppService, IMessageSendAppServic
         ReceivedAt = r.Received?.At,
         ReceivedPending = r.Received?.Pending == true,
         SkipReason = r.SkipReason,
+        MergedIntoKey = r.MergedInto?.Key,
+        MergedIntoName = r.MergedInto?.Name,
         Missing = [.. r.Missing],
     };
 

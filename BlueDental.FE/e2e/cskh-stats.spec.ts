@@ -305,8 +305,8 @@ test.describe("Tổng quan ▸ Thống kê CSKH (Zalo giả lập)", () => {
     await expect(rowsOf(recipients)).toHaveCount(2);
     await expect(rowOf(recipients, reached.name)).toContainText("Đã nhận");
     await expect(rowOf(recipients, refused.name)).toContainText("Thất bại");
-    // The provider's own refusal, as Zalo worded it.
-    await expect(rowOf(recipients, refused.name)).toContainText("Phone number is invalid (-108)");
+    // Zalo's -108 in plain words (BA P2210, F-79), not as the provider worded it.
+    await expect(rowOf(recipients, refused.name)).toContainText("Số điện thoại không hợp lệ");
 
     // Sorted on the server by name, both ways.
     const names = () => rowsOf(recipients).locator("td:first-child").allTextContents();

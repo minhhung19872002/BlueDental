@@ -44,7 +44,7 @@ public class MessageSendBatch : CreationAuditedAggregateRoot<Guid>
     /// <summary>Messages the batch holds — one log per customer.</summary>
     public int RecipientCount { get; private set; }
 
-    /// <summary>Customers of the list left out when the batch was made (no contact, sent recently, missing variable).</summary>
+    /// <summary>Customers of the list left out when the batch was made (no contact, sent recently, missing variable, …).</summary>
     public int SkippedCount { get; private set; }
 
     public DateTime? StartedAt { get; private set; }
@@ -153,6 +153,32 @@ public class MessageSendBatch : CreationAuditedAggregateRoot<Guid>
         Status = MessageSendBatchStatus.Cancelled;
         CancelledAt = now;
     }
+
+    /// <summary>
+    /// "Tạm dừng" of Chiến dịch đã gửi (BA P2210, F-79). A batch still waiting
+    /// is called off as "Huỷ hẹn gửi" is; one sending stops where it is — what
+    /// went stays sent (Zalo cannot recall a ZNS), the rest never goes, and
+    /// there is no going on with it afterwards.
+    /// </summary>
+    public void Stop(DateTime now)
+    {
+        if (Status == MessageSendBatchStatus.Queued)
+        {
+            Cancel(now);
+            return;
+        }
+
+        if (Status != MessageSendBatchStatus.Sending)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Tools.SendNotCancellable);
+        }
+
+        Status = MessageSendBatchStatus.Stopped;
+        CancelledAt = now;
+    }
+
+    /// <summary>Called off before or while sending — its waiting messages will never go.</summary>
+    public bool IsCalledOff => Status is MessageSendBatchStatus.Cancelled or MessageSendBatchStatus.Stopped;
 
     private static string Clip(string value, int max) => value.Length <= max ? value : value[..max];
 }

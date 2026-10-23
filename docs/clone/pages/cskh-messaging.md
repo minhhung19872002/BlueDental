@@ -206,3 +206,47 @@ không commit vì có tên khách của DB develop) với img_31 / img_32:
 | Phân trang | khác: mọi bảng có phân trang chung (`10 / trang`), BA chỉ có ở Người nhận |
 | Màu, font | theo v2 (quyết định 9): tím `--bd-primary`, không theo bảng màu ảnh BA |
 | 390 px | các khối chồng một cột, bảng cuộn ngang trong thẻ, không cuộn ngang cả trang |
+
+## Chiến dịch đã gửi (`/cskh-grouping?tab=campaign`) + Kết quả lần gửi (`/cskh-grouping/campaigns/:id`) — P2210 phần B (F-79)
+
+BA P2210 (`P2210.drawio`, phần B): "Thêm tab mới giúp anh" cạnh Phân nhóm CSKH. Thứ tự tab:
+Chăm sóc khách hàng · Phân nhóm CSKH · **Chiến dịch đã gửi** · Template tin nhắn. Cần `cskhSend.read`;
+"+ Tạo chiến dịch" và "Tạm dừng" cần `cskhSend.create`.
+
+- **Danh sách** (mỗi lần bấm Gửi là một dòng): Template · Khách hàng / Tệp khách hàng · Lần chạy gần nhất ·
+  Trạng thái · Thao tác. BA bỏ 2 cột "Chiến dịch" / "Tên chiến dịch" và đưa Template lên đầu (2026-10-23).
+- **Kết quả lần gửi**: đường dẫn + tiêu đề + chips · 7 thẻ số (+ Đã dừng khi > 0) · thanh chồng
+  "Từ N khách đến M tin thành công" + chú thích + Lý do · bảng từng khách có 4 tab lọc.
+
+Chi tiết số liệu, quyền và API: `../../testing/features/cskh-message-campaigns.md`.
+
+### Visual parity với ảnh P2210 phần B (2026-10-23, 1440 px, build production)
+
+So `local-list.png` / `local-result.png` (scratchpad của phiên, không commit vì có tên khách của DB develop)
+với 2 ảnh BA. Lượt so đầu tìm ra 9 điểm lệch (a)–(i), đã sửa hết rồi chụp lại:
+
+| # | Điểm | Trước | Sau sửa |
+|---|---|---|---|
+| a | Dòng phụ Lần chạy gần nhất khi không có lỗi | "1/1 thành công · 0 lỗi" | "1/1 thành công" như BA; còn lỗi thì "4/5 thành công · 1 lỗi" |
+| b | Ngày giờ ở danh sách | "23/10/2026 10:22" | "23/10 10:22" như BA; năm chỉ hiện khi khác năm nay |
+| c | Cột Thao tác | nút có icon, canh trái | nút thường không icon, canh phải |
+| d | Tên cột bảng từng khách | "Khách hàng", "SĐT" | "Khách", "Số điện thoại" |
+| e | Tab lọc | "Tất cả (4)" | "Tất cả · 4" |
+| f | Tiêu đề thanh kết quả | "Kết quả theo khách đã chọn" | "Từ 4 khách đến 1 tin thành công" |
+| g | Màu Bị loại | vàng cam | xám nhạt ở thanh, chú thích, nhãn trong bảng và icon thẻ số |
+| h | Màu Đã dừng | chữ xám nhạt, khó đọc | xám đậm (`--bd-muted`), tách được với Bị loại khi cùng có |
+| i | "Về danh sách CSKH" | nút thường | nút chính |
+
+Các điểm khác so với ảnh BA còn giữ (cố ý):
+
+| Điểm | Lý do |
+|---|---|
+| Thẻ số dùng `KpiCard` (icon góc phải, viền thường) | giao diện chung của hệ thống (Match system style), như Thống kê CSKH |
+| Thanh kết quả có chú thích dưới, không ghi chữ trong thanh | phần nhỏ không đủ chỗ cho chữ; chú thích luôn đọc được |
+| Lý do bị loại hiện dạng chip kèm số | cùng kiểu chip của CSKH |
+| Thẻ "Đã nhận", không có "/ Đã xem" | Zalo không báo về lượt xem (quyết định 7) |
+| Không có cột "Xử lý tiếp" / nút "Gọi điện" | BA bỏ (2026-10-23); R13 còn chờ chủ dự án |
+| "300 đ" có khoảng trắng | cách viết tiền chung của app (`formatMoneyUnit`) |
+| Đường dẫn không có mã lần gửi | lần gửi không có mã riêng; tiêu đề ghi tên mẫu |
+| "Xuất Excel danh sách lỗi" viền xanh | cùng kiểu `cskh-excel-btn` của các nút Excel khác trong CSKH |
+| Màu, font | theo v2 (`--bd-*`), không theo bảng màu ảnh BA |

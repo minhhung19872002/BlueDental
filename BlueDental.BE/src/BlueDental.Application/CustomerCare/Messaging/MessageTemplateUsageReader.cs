@@ -55,7 +55,8 @@ public class MessageTemplateUsageReader : ITransientDependency
     /// it since <paramref name="since"/> — or when they will: a message still
     /// waiting in a batch counts whatever its date, dated when it is due, so a
     /// list sent now is not sent again by a "Hẹn giờ gửi" of it (R-1013).
-    /// "Huỷ hẹn" deletes the waiting messages, so each belongs to a live batch.
+    /// "Huỷ hẹn" and "Tạm dừng" turn the waiting messages Stopped, so each
+    /// Pending one belongs to a live batch.
     /// </summary>
     public async Task<Dictionary<Guid, MessageReceipt>> LoadRecipientsAsync(
         Guid branchId, Guid templateId, IReadOnlyCollection<Guid> patientIds, DateTime since)

@@ -6945,6 +6945,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("MergedIntoMessageId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("PatientId")
                         .HasColumnType("uuid");
 
@@ -6963,6 +6966,9 @@ namespace BlueDental.Migrations
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<short?>("SkipReason")
+                        .HasColumnType("smallint");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
@@ -7063,6 +7069,8 @@ namespace BlueDental.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId", "CreationTime");
 
                     b.HasIndex("ClinicBranchId", "Status", "ScheduledAt");
 

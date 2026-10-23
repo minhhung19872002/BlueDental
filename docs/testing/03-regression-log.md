@@ -10694,3 +10694,42 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - E2E thật (build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, job gửi thật, Zalo stub :5199, không chặn request, `E2E_ZALO_STUB=1`): toàn bộ `e2e/cskh*` (9 spec) **43/43**, gồm `cskh-message-send` **13/13** (6 cũ + 7 mới R-1013..R-1019) và `cskh-stats` **4/4**.
   - Mức hồi quy: 2 (chỉ trong F-77 / F-78, cộng DbMigrator). Không đổi quyền, chi nhánh hay component dùng chung.
 - **Staging**: không có migration mới. Sau khi deploy, chạy DbMigrator như thường; từ nay nó không gửi tin.
+
+## R-1020 (2026-10-23, mức 2 + mức 3 vì đổi quyền route `cskh`, `MessageSendStatuses` dùng chung và `ExcelSheet`) F-79 CSKH › Chiến dịch đã gửi (BA P2210, phần B)
+
+- **Yêu cầu BA** (`P2210.drawio` phần B + 2 ảnh): thêm tab "Chiến dịch đã gửi" cạnh Phân nhóm CSKH, nút "+ Tạo chiến dịch" mở màn Gửi tin nhắn, 2 trạng thái Đang gửi / Đã gửi, nút "Tạm dừng" (Option 2: tin đã gửi thì thôi, khách chưa gửi thì dừng luôn) và "Lịch sử" mở trang thống kê của lần gửi đó.
+- **Quyết định** (chủ dự án + BA, 2026-10-23):
+  - Mỗi lần bấm Gửi là một dòng. Bỏ cột "Chiến dịch" và "Tên chiến dịch"; Template là cột đầu.
+  - Đã dừng là trạng thái thứ 3 (tạm dừng hoặc huỷ hẹn). Tạm dừng không có "gửi tiếp", có hộp xác nhận, cần `cskhSend.create`.
+  - Bỏ "Gọi điện" / "Xử lý tiếp"; không có "Đã xem".
+  - R12 "Sai định dạng số" là lý do bị loại riêng. R05 gộp trùng số: làm.
+  - **R13 chưa quyết**, chưa dựng gì.
+- **BE**:
+  - `MessageLog` thêm `SkipReason`, `MergedIntoMessageId`; trạng thái tin thêm `Skipped`, `Stopped`; lần gửi thêm `Stopped`. Migration `20261023015207_MessageCampaignResults`.
+  - `MessageSendAppService` lưu mọi khách bị loại thành tin `Skipped` kèm lý do. `MessageRecipientBuilder` thêm R12 và R05.
+  - `MessageSendBatch.Stop`: Queued → Cancelled, Sending → Stopped, còn lại `Tools:0023`. `IMessageSendStopper` (một câu `UPDATE`) đổi tin Pending thành Stopped; `MessageSendJob` đọc lại từng tin, tin không còn Pending thì bỏ qua. "Huỷ hẹn" của F-77 cũng để lại tin Stopped thay vì xoá.
+  - `MessageCampaignAppService` + `MessageCampaignController` (`api/v1/app/message-campaigns`: danh sách, `{id}`, `{id}/recipients`, `{id}/stop`, `{id}/failures-excel`); lần gửi của chi nhánh khác trả 404. `MessageCampaignExcel` một sheet "Danh sách lỗi". `MessageSenderNames` dùng chung với Thống kê CSKH.
+  - `MessageSendStatuses.Messages`: Thống kê CSKH, Công cụ › Tin nhắn (`ToolsAppService`) và danh sách tin Zalo OA chỉ tính tin thật, không tính `Skipped` / `Stopped`.
+  - `MessageFailureReasons` thêm mã Zalo -108, -118, -139 / -141, -114 / -119, -115 / -144 / -147.
+- **FE**:
+  - Tab `campaign` trong `CskhGroupingPage` (cần `cskhSend.read`), `CampaignListTab` / `CampaignTable`; trang `MessageCampaignResultPage` (`/cskh-grouping/campaigns/:id`) với `CampaignResultHead`, `CampaignKpis`, `CampaignOutcomeBar`, `CampaignRecipientsCard`, `CampaignExportButton`; `campaignApi.ts`, `campaignLook.ts`, `cskh-campaign.css`.
+  - Route `cskh` mở thêm cho `cskhSend`. Gửi xong màn Gửi tin nhắn về `/cskh-grouping?tab=campaign`.
+  - Màn Gửi tin nhắn hiện 2 lý do mới (ô thống kê, dòng khách, kiểm tra trước khi gửi).
+- **Lỗi e2e bắt được**:
+  - `cskh-stats:308` đỏ: -108 nay ghi "Số điện thoại không hợp lệ" thay cho chuỗi cũ. Sửa phía spec.
+  - `cskh-message-send` (R-1015) đỏ chập chờn: sau khi gửi màn chuyển sang tab Chiến dịch đã gửi, `waitForResponse` bắt nhầm response cũ. Thêm điều kiện `page.url()` còn ở `/cskh-grouping/send`.
+- **Đối chiếu ảnh** (1440 px, build production) với 2 ảnh BA: 9 điểm lệch (a)–(i) đã sửa và chụp lại:
+  - "1/1 thành công" khi không có lỗi; ngày giờ "23/10 10:22";
+  - Thao tác canh phải, nút thường; cột "Khách" / "Số điện thoại"; tab "Tất cả · 4";
+  - tiêu đề thanh "Từ 4 khách đến 1 tin thành công"; Bị loại xám nhạt, Đã dừng xám đậm; "Về danh sách CSKH" là nút chính.
+  - Các điểm khác cố ý: `docs/clone/pages/cskh-messaging.md` (mục Chiến dịch đã gửi) và `unknowns.md` (F-79).
+- **Kết quả**:
+  - BE: Domain **1035/1035** (gồm `MessageSendBatchTests` Stop, `MessageLogSkipTests`), Application **801/801** (gồm `MessageCampaignAppServiceContractTests` **11/11**, chạy lại sau khi đổi chữ cột).
+  - E2E thật (build production `vite preview` 127.0.0.1:8130 → host develop 127.0.0.1:5100 → PostgreSQL `BlueDental_develop`, job gửi thật, Zalo stub :5199, không chặn request, `E2E_ZALO_STUB=1`): `cskh-message-campaigns` **5/5** (tạo → gửi → kết quả; R05; Tạm dừng lần hẹn giờ; quyền; chi nhánh), chạy 2 lượt sau khi sửa giao diện.
+  - Hồi quy mức 3, lượt 1: `e2e/cskh*` + `zalo-oa` **59/61**; 2 ca đỏ là 2 lỗi ở trên. Sửa xong chạy lại `cskh-message-campaigns` + `cskh-stats:253` + `cskh-message-send:467`: **7/7**.
+  - Hồi quy mức 3, lượt 2 (route và quyền, cùng stack): `routes`, `role-permissions`, `role-permissions-abilities`, `role-permissions-tree`, `header-navigation`, `patient-care`, `report-customer` **40/43**. 3 ca đỏ có từ trước:
+    - `header-navigation:152` (chuyển ngôn ngữ);
+    - `role-permissions:53` (thấy 3 nhóm menu, chờ 1) và `role-permissions-abilities:38`. Hai ca này do chủ dự án tự tick 150 quyền cho vai trò `dentist` (đã ghi ở R-936, R-994, R-1009). Đã kiểm DB `BlueDental_develop`: `dentist` không có quyền `BlueDental.cskhSend.*` nào, nên việc mở route `cskh` cho `cskhSend` không đổi menu của vai trò này.
+- **Staging**: cần DbMigrator (migration `20261023015207_MessageCampaignResults`). Không có quyền mới nên không phải xoá cache quyền Redis.
+- **Commit**: chưa commit (worktree develop).
+- **Còn treo**: R13 chờ chủ dự án nói "làm" hoặc "bỏ".

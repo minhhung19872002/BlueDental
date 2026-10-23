@@ -11,19 +11,23 @@ import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { useAbility } from "@/hooks/useAbility";
 import { MESSAGE_CHANNEL } from "../api/templateApi";
 import { anchorForMode, careDateModeOf, careTabByKey, CARE_TABS } from "../careTabs";
-import { sendPath, templateEditorPath } from "../templatePaths";
+import { campaignResultPath, sendPath, templateEditorPath } from "../templatePaths";
 import { CareBoard } from "../components/CareBoard";
 import { CareDateBar } from "../components/CareDateBar";
 import { GroupPatientsPanel } from "../components/GroupPatientsPanel";
+import { CampaignListTab } from "../components/campaigns/CampaignListTab";
 import { TemplateListTab } from "../components/templates/TemplateListTab";
 import "../components/cskh.css";
 import "../components/cskh-template.css";
+import "../components/cskh-stats.css";
+import "../components/campaigns/cskh-campaign.css";
 
-type TopTabKey = "care" | "group" | "template";
+type TopTabKey = "care" | "group" | "campaign" | "template";
 
 const TOP_TABS: Array<{ key: TopTabKey; label: () => string }> = [
   { key: "care", label: () => t("CSKH:Tab:Care") },
   { key: "group", label: () => t("CSKH:Tab:Group") },
+  { key: "campaign", label: () => t("CSKH:Tab:Campaign") },
   { key: "template", label: () => t("CSKH:Tab:Template") },
 ];
 
@@ -39,16 +43,17 @@ export function CskhGroupingPage() {
   const careAbility = useAbility("cskhCare");
   const groupAbility = useAbility("cskhGroup");
   const templateAbility = useAbility("cskhTemplate");
-  const { canRead: canSend } = useAbility("cskhSend");
+  const { canRead: canSend, canCreate: canCreateSend } = useAbility("cskhSend");
 
   const tabAccess: Record<TopTabKey, boolean> = {
     care: careAbility.canRead,
     group: groupAbility.canRead,
+    campaign: canSend,
     template: templateAbility.canRead,
   };
   const visibleTabs = useMemo(
     () => TOP_TABS.filter((item) => tabAccess[item.key]),
-    [tabAccess.care, tabAccess.group, tabAccess.template], // eslint-disable-line react-hooks/exhaustive-deps
+    [tabAccess.care, tabAccess.group, tabAccess.campaign, tabAccess.template], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const rawTab = searchParams.get("tab");
@@ -112,7 +117,23 @@ export function CskhGroupingPage() {
             {t("CSKH:Action:SendCare")}
           </Button>
         )}
+        {topTab === "campaign" && canCreateSend && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(withBranch(sendPath(), branchId))}>
+            {t("CSKH:Campaign:Create")}
+          </Button>
+        )}
       </div>
+
+      {topTab === "campaign" && (
+        <RemainingHeight>
+          <div className="reception-card reception-card--content cskh-card--fill">
+            <CampaignListTab
+              canStop={canCreateSend}
+              onOpen={(id) => navigate(withBranch(campaignResultPath(id), branchId))}
+            />
+          </div>
+        </RemainingHeight>
+      )}
 
       {topTab === "template" && (
         <RemainingHeight>

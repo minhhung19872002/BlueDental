@@ -329,7 +329,7 @@ public class ToolsAppService(
         var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await messageLogRepo.GetQueryableAsync()).AsQueryable();
 
-        q = q.Where(x => x.ClinicBranchId == branchId);
+        q = q.Where(x => x.ClinicBranchId == branchId && MessageSendStatuses.Messages.Contains(x.Status));
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (input.Status.HasValue)

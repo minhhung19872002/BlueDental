@@ -83,6 +83,12 @@ const MessageSendPage = lazy(() =>
   })),
 );
 
+const MessageCampaignResultPage = lazy(() =>
+  import("@/features/cskh/pages/MessageCampaignResultPage").then((m) => ({
+    default: m.MessageCampaignResultPage,
+  })),
+);
+
 const StaffPage = lazy(() =>
   import("@/features/staff/pages/StaffPage").then((m) => ({
     default: m.StaffPage,
@@ -388,6 +394,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="cskhSend">
             <MessageSendPage />
+          </G>
+        ),
+      },
+      {
+        path: "cskh-grouping/campaigns/:id",
+        element: (
+          <G k="cskhSend">
+            <MessageCampaignResultPage />
           </G>
         ),
       },

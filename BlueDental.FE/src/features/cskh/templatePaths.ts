@@ -45,3 +45,12 @@ export function sendPath(params: SendPathParams = {}): string {
 export function careBoardPath(page: CareTabKey, dateMode: CareDateMode, date: string): string {
   return `/cskh-grouping?${new URLSearchParams({ page, care_dateMode: dateMode, care_date: date })}`;
 }
+
+/** "Chiến dịch đã gửi" is a tab of /cskh-grouping too: where a send lands once it goes (BA P2210). */
+export const CAMPAIGN_LIST_PATH = "/cskh-grouping?tab=campaign";
+
+/** "Kết quả lần gửi" of one send. */
+export const campaignResultPath = (id: string) => `/cskh-grouping/campaigns/${id}`;
+
+/** The CSKH board on its default tab: "Về danh sách CSKH". */
+export const CARE_LIST_PATH = "/cskh-grouping";
