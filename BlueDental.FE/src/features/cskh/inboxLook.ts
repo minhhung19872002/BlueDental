@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n";
 import { formatClock } from "@/utils/format";
-import { CONVERSATION_STATUS, type ConversationSummary } from "./api/inboxApi";
+import { CONVERSATION_STATUS, INBOX_LIMITS, type ConversationSummary } from "./api/inboxApi";
 
 /** BA mock legend: "Vàng: chờ ≥ 15 phút", "Đỏ: chờ ≥ 60 phút". */
 export const WAIT_AMBER_MINUTES = 15;
@@ -39,10 +39,15 @@ export function stamp(value: string): string {
   return `${formatClock(at)} ${String(at.getDate()).padStart(2, "0")}/${String(at.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/** Whole hours left to send a "tin tư vấn"; 0 once the 48-hour window has closed. */
+/**
+ * Whole hours left to send a "tin tư vấn"; 0 once the 48-hour window has
+ * closed. `now` is floored to the minute, so a message that just came in can
+ * read a hair over 48 hours: never more than the window itself.
+ */
 export function replyHoursLeft(endsAt: string | null, now: number): number {
   if (!endsAt) return 0;
-  return Math.max(0, Math.ceil((new Date(endsAt).getTime() - now) / 3_600_000));
+  const hours = Math.ceil((new Date(endsAt).getTime() - now) / 3_600_000);
+  return Math.min(INBOX_LIMITS.replyWindowHours, Math.max(0, hours));
 }
 
 /** "Trần Thái An" → "TA": the first and the last word, as the BA mock's avatars. */
