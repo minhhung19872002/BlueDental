@@ -185,6 +185,20 @@ public class ZaloConversationTests
     }
 
     [Fact]
+    public void A_Message_Stored_Without_Words_Takes_Them_Later_But_Keeps_Words_It_Has()
+    {
+        var conversation = Open();
+        var bare = new ZaloChatMessage(Guid.NewGuid(), conversation, "m-1", ZaloChatDirection.Outbound,
+            ZaloChatKind.Other, null, null, Now, null);
+        bare.Preview.ShouldBe("[Other]");
+
+        bare.FillMissingText("Mời anh chị đánh giá dịch vụ", null).ShouldBeTrue();
+        bare.Text.ShouldBe("Mời anh chị đánh giá dịch vụ");
+        bare.FillMissingText("Chữ khác", null).ShouldBeFalse();
+        bare.Text.ShouldBe("Mời anh chị đánh giá dịch vụ");
+    }
+
+    [Fact]
     public void A_Blank_Name_Falls_Back_To_The_End_Of_The_Zalo_Id()
     {
         var conversation = ZaloConversation.Open(Guid.NewGuid(), Branch, "4521000000009876", "  ", null, null);

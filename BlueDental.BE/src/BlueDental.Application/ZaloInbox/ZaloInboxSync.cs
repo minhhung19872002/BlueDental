@@ -81,17 +81,18 @@ public class ZaloInboxSync(ZaloOaGateway gateway, IZaloApiClient zalo, ZaloInbox
         return result;
     }
 
-    /// <summary>A photo's text is its caption; other media carry the link only.</summary>
-    private static ZaloIncomingChat ToChat(string userId, ZaloChatItem item)
-    {
-        var kind = ZaloChatKinds.OfHistoryType(item.Type);
-        return new ZaloIncomingChat(
+    /// <summary>
+    /// Whatever text Zalo gives is kept, whatever the type: an OA's list or
+    /// template message, a photo's caption. Dropping it left only "[Tin nhắn
+    /// khác]" on screen for messages that did carry words.
+    /// </summary>
+    private static ZaloIncomingChat ToChat(string userId, ZaloChatItem item) =>
+        new(
             userId,
             item.MessageId,
             item.FromOa ? ZaloChatDirection.Outbound : ZaloChatDirection.Inbound,
-            kind,
-            kind is ZaloChatKind.Text or ZaloChatKind.Image or ZaloChatKind.Link ? item.Text : null,
+            ZaloChatKinds.OfHistoryType(item.Type),
+            item.Text,
             item.Url,
             item.TimeMs > 0 ? DateTimeOffset.FromUnixTimeMilliseconds(item.TimeMs).UtcDateTime : DateTime.UtcNow);
-    }
 }

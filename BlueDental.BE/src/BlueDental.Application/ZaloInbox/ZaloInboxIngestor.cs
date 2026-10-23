@@ -60,13 +60,25 @@ public class ZaloInboxIngestor(
         return await conversations.InsertAsync(conversation, autoSave: true);
     }
 
-    /// <summary>False when Zalo's id is already stored: the second arrival of the same message.</summary>
+    /// <summary>
+    /// False when Zalo's id is already stored: the second arrival of the same
+    /// message. That arrival still fills in words the stored one lacks.
+    /// </summary>
     public async Task<bool> RecordAsync(ZaloConversation conversation, ZaloIncomingChat chat, Guid? senderUserId = null)
     {
-        if (chat.MessageId is { } id && await messages.AnyAsync(m =>
-                m.ClinicBranchId == conversation.ClinicBranchId && m.ZaloMessageId == id))
+        if (chat.MessageId is { } id)
         {
-            return false;
+            var known = await messages.FirstOrDefaultAsync(m =>
+                m.ClinicBranchId == conversation.ClinicBranchId && m.ZaloMessageId == id);
+            if (known != null)
+            {
+                if (known.ConversationId == conversation.Id && known.FillMissingText(chat.Text, chat.AttachmentUrl))
+                {
+                    await messages.UpdateAsync(known, autoSave: true);
+                }
+
+                return false;
+            }
         }
 
         var message = new ZaloChatMessage(

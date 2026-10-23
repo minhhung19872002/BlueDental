@@ -59,6 +59,24 @@ export function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
+/** What the server writes as the preview of a message without words: `[Image]`, `[Other]`… (ZaloChatMessage.Preview). */
+const KIND_PREVIEW: Record<string, string> = {
+  Image: "CSKH:Inbox:Kind:Image",
+  Sticker: "CSKH:Inbox:Kind:Sticker",
+  File: "CSKH:Inbox:Kind:File",
+  Link: "CSKH:Inbox:Kind:Link",
+  Audio: "CSKH:Inbox:Kind:Audio",
+  Video: "CSKH:Inbox:Kind:Video",
+  Location: "CSKH:Inbox:Kind:Location",
+  Other: "CSKH:Inbox:Kind:Other",
+};
+
+/** The row's preview, with the server's kind token read in the user's language. */
+export function previewText(preview: string | null): string | null {
+  const kind = preview?.match(/^\[(\w+)\]$/)?.[1];
+  return kind && KIND_PREVIEW[kind] ? t(KIND_PREVIEW[kind]) : preview;
+}
+
 /** The name the inbox shows: the linked record's, else what Zalo calls the user. */
 export function customerName(conversation: ConversationSummary): string {
   return conversation.patientName ?? conversation.displayName;
