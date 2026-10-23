@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using BlueDental.ClinicIntegration;
 using BlueDental.Tools;
+using BlueDental.ZaloInbox;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp.DependencyInjection;
@@ -14,7 +15,8 @@ using Volo.Abp.Uow;
 namespace BlueDental.Zalo;
 
 /// <summary>
-/// Verifies Zalo's signature when the OA secret is configured and turns a
+/// Verifies Zalo's signature when the OA secret is configured, hands chat
+/// events to Hộp thư Zalo (<see cref="ZaloChatWebhookProcessor"/>) and turns a
 /// delivery event for a message we sent into <see cref="MessageLog.MarkDelivered"/>.
 /// Only the event name is logged: the payload carries the recipient's data.
 /// </summary>
@@ -27,6 +29,7 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
 
     private readonly IRepository<MessageLog, Guid> _messages;
     private readonly IRepository<IntegrationCallLog, Guid> _callLogs;
+    private readonly ZaloChatWebhookProcessor _chat;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
     private readonly IOptions<ZaloOptions> _options;
     private readonly IGuidGenerator _guids;
@@ -36,6 +39,7 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
     public ZaloWebhookHandler(
         IRepository<MessageLog, Guid> messages,
         IRepository<IntegrationCallLog, Guid> callLogs,
+        ZaloChatWebhookProcessor chat,
         IUnitOfWorkManager unitOfWorkManager,
         IOptions<ZaloOptions> options,
         IGuidGenerator guids,
@@ -44,6 +48,7 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
     {
         _messages = messages;
         _callLogs = callLogs;
+        _chat = chat;
         _unitOfWorkManager = unitOfWorkManager;
         _options = options;
         _guids = guids;
@@ -79,6 +84,11 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
 
         _logger.LogInformation("Zalo webhook received: {EventName}", eventName ?? "<unknown>");
 
+        if (root is { } chat && await _chat.TryHandleAsync(eventName, chat))
+        {
+            return ZaloWebhookResult.Accepted;
+        }
+
         // Only the delivery event means "the phone got it"; feedback and chat
         // events can quote the same msg_id.
         if (eventName != DeliveryEvent || root is not { } m
@@ -108,6 +118,7 @@ public class ZaloWebhookHandler : IZaloWebhookHandler, ITransientDependency
             await _callLogs.InsertAsync(new IntegrationCallLog(
                 _guids.Create(), message.ClinicBranchId, Operation, eventName ?? "event",
                 200, true, 0, 1, null));
+            await _chat.LinkZnsRecipientAsync(message, m);
         }
 
         await uow.CompleteAsync();

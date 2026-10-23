@@ -9,6 +9,7 @@ import { RemainingHeight } from "@/components/RemainingHeight";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { useAbility } from "@/hooks/useAbility";
+import { useInboxCounts } from "../api/inboxApi";
 import { MESSAGE_CHANNEL } from "../api/templateApi";
 import { anchorForMode, careDateModeOf, careTabByKey, CARE_TABS } from "../careTabs";
 import { campaignResultPath, sendPath, templateEditorPath } from "../templatePaths";
@@ -16,17 +17,21 @@ import { CareBoard } from "../components/CareBoard";
 import { CareDateBar } from "../components/CareDateBar";
 import { GroupPatientsPanel } from "../components/GroupPatientsPanel";
 import { CampaignListTab } from "../components/campaigns/CampaignListTab";
+import { InboxTab } from "../components/inbox/InboxTab";
 import { TemplateListTab } from "../components/templates/TemplateListTab";
 import "../components/cskh.css";
 import "../components/cskh-template.css";
 import "../components/cskh-stats.css";
 import "../components/campaigns/cskh-campaign.css";
+import "../components/cskh-inbox.css";
 
-type TopTabKey = "care" | "group" | "campaign" | "template";
+type TopTabKey = "care" | "group" | "inbox" | "campaign" | "template";
 
+/* BA P2210 order: Chăm sóc khách hàng · Phân nhóm CSKH · Hộp thư Zalo · Chiến dịch · Template tin nhắn. */
 const TOP_TABS: Array<{ key: TopTabKey; label: () => string }> = [
   { key: "care", label: () => t("CSKH:Tab:Care") },
   { key: "group", label: () => t("CSKH:Tab:Group") },
+  { key: "inbox", label: () => t("CSKH:Tab:Inbox") },
   { key: "campaign", label: () => t("CSKH:Tab:Campaign") },
   { key: "template", label: () => t("CSKH:Tab:Template") },
 ];
@@ -43,18 +48,22 @@ export function CskhGroupingPage() {
   const careAbility = useAbility("cskhCare");
   const groupAbility = useAbility("cskhGroup");
   const templateAbility = useAbility("cskhTemplate");
+  const inboxAbility = useAbility("cskhInbox");
   const { canRead: canSend, canCreate: canCreateSend } = useAbility("cskhSend");
+  const inboxCounts = useInboxCounts(inboxAbility.canRead);
 
   const tabAccess: Record<TopTabKey, boolean> = {
     care: careAbility.canRead,
     group: groupAbility.canRead,
+    inbox: inboxAbility.canRead,
     campaign: canSend,
     template: templateAbility.canRead,
   };
   const visibleTabs = useMemo(
     () => TOP_TABS.filter((item) => tabAccess[item.key]),
-    [tabAccess.care, tabAccess.group, tabAccess.campaign, tabAccess.template], // eslint-disable-line react-hooks/exhaustive-deps
+    [tabAccess.care, tabAccess.group, tabAccess.inbox, tabAccess.campaign, tabAccess.template], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  const unreplied = inboxCounts.data?.unreplied ?? 0;
 
   const rawTab = searchParams.get("tab");
   const topTab: TopTabKey =
@@ -104,6 +113,11 @@ export function CskhGroupingPage() {
               onClick={() => setParam((params) => params.set("tab", item.key))}
             >
               {item.label()}
+              {item.key === "inbox" && unreplied > 0 && (
+                <span className="ibx-tab-badge" aria-label={t("CSKH:Inbox:Badge", unreplied)}>
+                  {unreplied}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -143,6 +157,14 @@ export function CskhGroupingPage() {
             onEdit={openTemplate}
             onUseToSend={canSend ? sendWithTemplate : undefined}
           />
+        </RemainingHeight>
+      )}
+
+      {topTab === "inbox" && (
+        <RemainingHeight>
+          <div className="reception-card reception-card--content cskh-card--fill ibx-card">
+            <InboxTab canHandle={inboxAbility.canUpdate} />
+          </div>
         </RemainingHeight>
       )}
 

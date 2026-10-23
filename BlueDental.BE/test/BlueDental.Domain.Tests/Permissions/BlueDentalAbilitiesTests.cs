@@ -29,8 +29,9 @@ public class BlueDentalAbilitiesTests
         // (Báo cáo Telesale 16.8, Báo cáo CSKH 16.11), and patientGroup (Hồ sơ nhóm, 4.10),
         // and orgChart (Sơ đồ tổ chức, F-67), and treatmentCost (Chi phí, BA P2010),
         // and cskhTemplate / cskhSend / cskhStats (Template tin nhắn, Gửi tin nhắn,
-        // Thống kê CSKH, BA P2110).
-        Assert.Equal(99, BlueDentalAbilities.Catalog.Count);
+        // Thống kê CSKH, BA P2110), and cskhInbox (Hộp thư Zalo, BA P2210).
+        Assert.Equal(100, BlueDentalAbilities.Catalog.Count);
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.CskhInbox));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.TreatmentCost));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.CskhTemplate));
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.CskhSend));

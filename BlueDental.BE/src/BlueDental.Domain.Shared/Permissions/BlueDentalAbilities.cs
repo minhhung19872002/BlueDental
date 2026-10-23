@@ -69,6 +69,7 @@ public static class BlueDentalAbilities
         public const string CskhTemplate = "cskhTemplate";
         public const string CskhSend = "cskhSend";
         public const string CskhStats = "cskhStats";
+        public const string CskhInbox = "cskhInbox";
         public const string HelpSupport = "helpSupport";
         public const string LaboBite = "laboBite";
         public const string LaboFinishLine = "laboFinishLine";
@@ -181,6 +182,9 @@ public static class BlueDentalAbilities
         ["cskhSend"] = [Actions.Read, Actions.Create],
         // BlueDental-local: Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
         ["cskhStats"] = [Actions.Read, Actions.Export],
+        // BlueDental-local: CSKH ▸ Hộp thư Zalo (BA P2210, F-79). Update = "Xử lý":
+        // take, answer, hand on or let go of a conversation, its tags and notes.
+        ["cskhInbox"] = [Actions.Read, Actions.Update],
         ["helpSupport"] = [Actions.Read],
         ["laboBite"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboFinishLine"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

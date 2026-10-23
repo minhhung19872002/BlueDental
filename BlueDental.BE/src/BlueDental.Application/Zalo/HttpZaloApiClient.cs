@@ -29,6 +29,13 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
     public const string TemplateListPath = "/template/all";
     public const string TemplateInfoPath = "/template/info/v2";
     public const string SendTemplatePath = "/message/template";
+    public const string SendCsPath = "/v3.0/oa/message/cs";
+    public const string ConversationPath = "/v2.0/oa/conversation";
+    public const string RecentChatPath = "/v2.0/oa/listrecentchat";
+    public const string UserDetailPath = "/v3.0/oa/user/detail";
+
+    /// <summary>The conversation and recent-chat APIs serve at most 10 messages per call.</summary>
+    public const int MaxChatPage = 10;
 
     private const int MaxErrorBody = 300;
 
@@ -258,6 +265,127 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
             }
 
             return new ZaloSendOutcome(call, Text(data, "msg_id"), Long(data, "sent_time"), remaining);
+        }
+    }
+
+    public async Task<ZaloChatSendOutcome> SendTextMessageAsync(
+        string accessToken, string userId, string text, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, Options.OpenApiBaseUrl.TrimEnd('/') + SendCsPath)
+        {
+            Content = JsonContent.Create(new
+            {
+                recipient = new { user_id = userId },
+                message = new { text },
+            }),
+        };
+        request.Headers.Add("access_token", accessToken);
+
+        var (call, root) = await SendAsync(request, SendCsPath, cancellationToken);
+        if (!call.Succeeded || root == null)
+        {
+            return new ZaloChatSendOutcome(call, null);
+        }
+
+        using (root)
+        {
+            var messageId = root.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
+                ? Text(data, "message_id")
+                : null;
+            return new ZaloChatSendOutcome(call, messageId);
+        }
+    }
+
+    public Task<ZaloChatListOutcome> GetConversationAsync(
+        string accessToken, string userId, int offset, int count, CancellationToken cancellationToken = default) =>
+        GetChatsAsync(ConversationPath, accessToken,
+            JsonSerializer.Serialize(new { user_id = userId, offset, count = Math.Clamp(count, 1, MaxChatPage) }),
+            cancellationToken);
+
+    public Task<ZaloChatListOutcome> GetRecentChatsAsync(
+        string accessToken, int offset, int count, CancellationToken cancellationToken = default) =>
+        GetChatsAsync(RecentChatPath, accessToken,
+            JsonSerializer.Serialize(new { offset, count = Math.Clamp(count, 1, MaxChatPage) }),
+            cancellationToken);
+
+    /// <summary>Both chat reads take their arguments as one JSON object in the <c>data</c> query parameter.</summary>
+    private async Task<ZaloChatListOutcome> GetChatsAsync(
+        string path, string accessToken, string data, CancellationToken cancellationToken)
+    {
+        var url = Options.OpenApiBaseUrl.TrimEnd('/') + path + "?data=" + Uri.EscapeDataString(data);
+        using var request = Get(url, accessToken);
+        var (call, root) = await SendAsync(request, path, cancellationToken);
+        if (!call.Succeeded || root == null)
+        {
+            return new ZaloChatListOutcome(call, []);
+        }
+
+        using (root)
+        {
+            var items = new List<ZaloChatItem>();
+            if (root.RootElement.TryGetProperty("data", out var rows) && rows.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var row in rows.EnumerateArray())
+                {
+                    var id = Text(row, "message_id");
+                    if (row.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    items.Add(new ZaloChatItem(
+                        id,
+                        Text(row, "src") == "0",
+                        Long(row, "time") ?? 0,
+                        Text(row, "type"),
+                        Text(row, "message"),
+                        Text(row, "url") ?? Text(row, "thumb"),
+                        Text(row, "from_id"),
+                        Text(row, "to_id"),
+                        Text(row, "from_display_name"),
+                        Text(row, "from_avatar"),
+                        Text(row, "to_display_name"),
+                        Text(row, "to_avatar")));
+                }
+            }
+
+            return new ZaloChatListOutcome(call, items);
+        }
+    }
+
+    public async Task<ZaloUserOutcome> GetUserDetailAsync(
+        string accessToken, string userId, CancellationToken cancellationToken = default)
+    {
+        var url = Options.OpenApiBaseUrl.TrimEnd('/') + UserDetailPath + "?data="
+            + Uri.EscapeDataString(JsonSerializer.Serialize(new { user_id = userId }));
+        using var request = Get(url, accessToken);
+        var (call, root) = await SendAsync(request, UserDetailPath, cancellationToken);
+        if (!call.Succeeded || root == null)
+        {
+            return new ZaloUserOutcome(call, null);
+        }
+
+        using (root)
+        {
+            if (!root.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
+            {
+                return new ZaloUserOutcome(call with { Succeeded = false, Error = "Zalo returned no user data." }, null);
+            }
+
+            string? phone = null;
+            if (data.TryGetProperty("shared_info", out var shared) && shared.ValueKind == JsonValueKind.Object)
+            {
+                phone = Text(shared, "phone");
+            }
+
+            var avatar = Text(data, "avatar");
+            if (avatar == null && data.TryGetProperty("avatars", out var avatars) && avatars.ValueKind == JsonValueKind.Object)
+            {
+                avatar = Text(avatars, "240") ?? Text(avatars, "120");
+            }
+
+            return new ZaloUserOutcome(call, new ZaloUserProfile(
+                Text(data, "user_id") ?? userId, Text(data, "display_name"), avatar, phone));
         }
     }
 

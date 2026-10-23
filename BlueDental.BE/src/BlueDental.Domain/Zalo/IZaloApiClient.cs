@@ -36,6 +36,28 @@ public interface IZaloApiClient
         IReadOnlyDictionary<string, string> templateData,
         string trackingId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <c>POST /v3.0/oa/message/cs</c> — a text "tin tư vấn" to a user who
+    /// wrote to the OA in the last 48 hours.
+    /// </summary>
+    Task<ZaloChatSendOutcome> SendTextMessageAsync(
+        string accessToken, string userId, string text, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <c>GET /v2.0/oa/conversation</c> — the messages between the OA and one
+    /// user, newest first (offset 0); Zalo serves at most 10 per call.
+    /// </summary>
+    Task<ZaloChatListOutcome> GetConversationAsync(
+        string accessToken, string userId, int offset, int count, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /v2.0/oa/listrecentchat</c> — the latest message of each recent conversation, at most 10 per call.</summary>
+    Task<ZaloChatListOutcome> GetRecentChatsAsync(
+        string accessToken, int offset, int count, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /v3.0/oa/user/detail</c> — name, avatar and what the user shared (<c>shared_info</c>).</summary>
+    Task<ZaloUserOutcome> GetUserDetailAsync(
+        string accessToken, string userId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>The shape of one call, for the integration call log.</summary>
@@ -102,3 +124,38 @@ public sealed record ZaloSendOutcome(
     string? MessageId,
     long? SentTimeMs,
     int? RemainingQuota);
+
+public sealed record ZaloChatSendOutcome(ZaloCallOutcome Call, string? MessageId);
+
+/// <summary>
+/// One message as the conversation and recent-chat APIs give it. <c>src</c> 0
+/// is OA → user, 1 user → OA; <c>type</c> is text, photo, GIF, sticker, link,
+/// links, voice, location…; the media sits in <c>url</c> / <c>thumb</c>.
+/// </summary>
+public sealed record ZaloChatItem(
+    string MessageId,
+    bool FromOa,
+    long TimeMs,
+    string? Type,
+    string? Text,
+    string? Url,
+    string? FromId,
+    string? ToId,
+    string? FromDisplayName,
+    string? FromAvatar,
+    string? ToDisplayName,
+    string? ToAvatar)
+{
+    /// <summary>The customer's side of the exchange, whichever way it went.</summary>
+    public string? UserId => FromOa ? ToId : FromId;
+
+    public string? UserDisplayName => FromOa ? ToDisplayName : FromDisplayName;
+
+    public string? UserAvatar => FromOa ? ToAvatar : FromAvatar;
+}
+
+public sealed record ZaloChatListOutcome(ZaloCallOutcome Call, IReadOnlyList<ZaloChatItem> Items);
+
+public sealed record ZaloUserProfile(string UserId, string? DisplayName, string? AvatarUrl, string? SharedPhone);
+
+public sealed record ZaloUserOutcome(ZaloCallOutcome Call, ZaloUserProfile? User);
