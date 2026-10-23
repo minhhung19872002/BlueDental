@@ -20,6 +20,16 @@ Giữ thiết kế v2: token `--bd-*` và các component dùng chung (`PageHeade
 `PillTabs`, `CountPill`, bảng có đường kẻ dọc). Không dùng bảng màu riêng
 trong ảnh BA.
 
+## Hộp thư Zalo + Lịch sử chăm sóc (BA P2210, F-80)
+
+Nguồn: `P2210.drawio`, các ảnh "Hộp thư Zalo" và "Lịch sử chăm sóc khách hàng".
+
+- Tab "Hộp thư Zalo" (`/cskh-grouping?tab=inbox`) là tab thứ ba, sau Phân nhóm CSKH, có badge số chưa trả lời. Cần `cskhInbox.read`.
+- 3 cột như mock: danh sách (tìm, 4 chip, màu chờ), chat (Nhận xử lý, mẫu ZNS, trả lời), khách (tag, lịch hẹn, dịch vụ, công nợ, ghi chú).
+- Tab Chăm sóc KH của hồ sơ: nút Mở chat Zalo / Gửi tin, khối Lịch sử chăm sóc khách hàng dưới bảng.
+- Chi tiết và kiểm thử: `../../testing/features/zalo-inbox.md`. Điểm tự chọn: `../unknowns.md` (F-80).
+- Không theo mock: không có Lịch sử chăm sóc ở cột phải hộp thư, không có nút Gọi điện; mẫu ZNS hiện thành thẻ xem trước thay vì chèn vào ô soạn tin. Màu, font theo v2.
+
 ## Tab "Template tin nhắn" (`/cskh-grouping?tab=template`)
 
 Là tab thứ ba của /cskh-grouping, sau "Chăm sóc khách hàng" và "Phân nhóm

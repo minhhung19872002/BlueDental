@@ -87,6 +87,69 @@ public static class BlueDentalDbContextModelCreatingExtensions
             // One live OA link per branch; a soft-deleted (disconnected) one must not block a new one.
             entity.HasIndex(x => x.ClinicBranchId).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
+
+        ConfigureZaloInbox(builder);
+    }
+
+    /// <summary>CSKH ▸ Hộp thư Zalo (F-80).</summary>
+    private static void ConfigureZaloInbox(ModelBuilder builder)
+    {
+        builder.Entity<ZaloInbox.ZaloConversation>(entity =>
+        {
+            entity.ToTable("bd_zalo_conversations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ZaloUserId).HasMaxLength(ZaloInbox.ZaloConversation.MaxZaloUserIdLength).IsRequired();
+            entity.Property(x => x.DisplayName).HasMaxLength(ZaloInbox.ZaloConversation.MaxNameLength).IsRequired();
+            entity.Property(x => x.AvatarUrl).HasMaxLength(ZaloInbox.ZaloConversation.MaxUrlLength);
+            entity.Property(x => x.SharedPhone).HasMaxLength(ZaloInbox.ZaloConversation.MaxPhoneLength);
+            entity.Property(x => x.LastMessagePreview).HasMaxLength(ZaloInbox.ZaloConversation.MaxPreviewLength);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.LastMessageDirection).HasConversion<short?>();
+            entity.PrimitiveCollection(x => x.Tags).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // One conversation per Zalo user and branch; a soft-deleted one must not block a new one.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ZaloUserId }).IsUnique().HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status, x.LastMessageAt });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.PatientId });
+        });
+
+        builder.Entity<ZaloInbox.ZaloChatMessage>(entity =>
+        {
+            entity.ToTable("bd_zalo_chat_messages");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ZaloMessageId).HasMaxLength(ZaloInbox.ZaloChatMessage.MaxZaloMessageIdLength);
+            entity.Property(x => x.Text).HasMaxLength(ZaloInbox.ZaloChatMessage.MaxTextLength).IsRequired();
+            entity.Property(x => x.AttachmentUrl).HasMaxLength(ZaloInbox.ZaloChatMessage.MaxUrlLength);
+            entity.Property(x => x.Direction).HasConversion<short>();
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.HasOne<ZaloInbox.ZaloConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
+            // Zalo's message id comes at most once per branch: webhook, sync and our own echo meet here.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ZaloMessageId }).IsUnique().HasFilter("\"ZaloMessageId\" IS NOT NULL");
+            entity.HasIndex(x => new { x.ConversationId, x.SentAt });
+        });
+
+        // Care notes: the chat's "Ghi chú nội bộ" and the record's "Ghi nhận chăm sóc" (BA P2210).
+        builder.Entity<CareNote>(entity =>
+        {
+            entity.ToTable("bd_care_notes");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Content).HasMaxLength(CareNote.MaxContentLength).IsRequired();
+            entity.Property(x => x.Outcome).HasConversion<short?>();
+            entity.HasOne<ZaloInbox.ZaloConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(x => x.Revisions).WithOne().HasForeignKey(x => x.NoteId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Revisions).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.ConversationId, x.CreatedAt });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.PatientId, x.CreatedAt });
+        });
+
+        builder.Entity<CareNoteRevision>(entity =>
+        {
+            entity.ToTable("bd_care_note_revisions");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Before).HasMaxLength(CareNote.MaxContentLength);
+            entity.Property(x => x.After).HasMaxLength(CareNote.MaxContentLength);
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.HasIndex(x => x.NoteId);
+        });
     }
 
     private static void ConfigureClinicIntegration(ModelBuilder builder)

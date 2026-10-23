@@ -757,4 +757,28 @@ public static class BlueDentalDomainErrorCodes
         public const string NotOwner = "BlueDental:StaffNote:0004";
         public const string InvalidScope = "BlueDental:StaffNote:0005";
     }
+
+    /// <summary>CSKH ▸ Hộp thư Zalo (BA P2210, F-80). BlueDental-local.</summary>
+    public static class ZaloInbox
+    {
+        /// <summary>Someone else holds the conversation ("Nhận xử lý" taken).</summary>
+        public const string HeldByOther = "BlueDental:ZaloInbox:0001";
+        /// <summary>Replying, handing on or letting go needs the conversation held by the caller.</summary>
+        public const string NotHolder = "BlueDental:ZaloInbox:0002";
+        /// <summary>Zalo takes a "tin tư vấn" only within 48 hours of the customer's last message.</summary>
+        public const string ReplyWindowClosed = "BlueDental:ZaloInbox:0003";
+        public const string MessageRequired = "BlueDental:ZaloInbox:0004";
+        public const string MessageTooLong = "BlueDental:ZaloInbox:0005";
+        /// <summary>The colleague is not staff of the branch, inactive, or lacks Hộp thư Zalo › Xử lý.</summary>
+        public const string InvalidAssignee = "BlueDental:ZaloInbox:0006";
+        public const string TagTooLong = "BlueDental:ZaloInbox:0007";
+        public const string TooManyTags = "BlueDental:ZaloInbox:0008";
+        public const string NoteRequired = "BlueDental:ZaloInbox:0009";
+        public const string NoteTooLong = "BlueDental:ZaloInbox:0010";
+        /// <summary>A struck-through note stays as it was.</summary>
+        public const string NoteRemoved = "BlueDental:ZaloInbox:0011";
+        /// <summary>ZNS goes to a phone: the conversation needs a linked record with one.</summary>
+        public const string NoPatientPhone = "BlueDental:ZaloInbox:0012";
+        public const string TransferToSelf = "BlueDental:ZaloInbox:0013";
+    }
 }

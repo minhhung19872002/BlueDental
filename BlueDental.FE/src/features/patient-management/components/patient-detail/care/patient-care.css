@@ -86,6 +86,15 @@
   height: 40px;
 }
 
+/* Mở chat Zalo · Gửi tin (F-80) then CSKH đặc biệt, at the toolbar's end. */
+.pc-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ── Log card ────────────────────────────────────────────────────────────── */
 
 .pc-tab > .pc-card {

@@ -237,6 +237,18 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.cskhStats.export";
     }
 
+    /// <summary>
+    /// Subject <c>cskhInbox</c> — CSKH ▸ Hộp thư Zalo: reading the branch's OA
+    /// conversations, and handling them — Nhận xử lý, reply, ZNS, hand on, let
+    /// go, tags and notes (BlueDental-local, BA P2210).
+    /// </summary>
+    public static class CskhInbox
+    {
+        public const string Subject = "cskhInbox";
+        public const string Read = "BlueDental.cskhInbox.read";
+        public const string Update = "BlueDental.cskhInbox.update";
+    }
+
     /// <summary>Subject <c>helpSupport</c>.</summary>
     public static class HelpSupport
     {

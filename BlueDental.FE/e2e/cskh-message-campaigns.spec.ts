@@ -120,9 +120,11 @@ test.describe("CSKH — Chiến dịch đã gửi (Zalo giả lập)", () => {
     await book(page, foreign.id, tomorrowAt(11));
 
     await openCampaignList(page);
+    // Hộp thư Zalo (F-80) sits before it, with its unanswered count as a badge.
     await expect(page.locator(".pill-tabs .pill-tab")).toHaveText([
       "Chăm sóc khách hàng",
       "Phân nhóm CSKH",
+      /^Hộp thư Zalo\d*$/,
       "Chiến dịch đã gửi",
       "Template tin nhắn",
     ]);

@@ -13,6 +13,13 @@
 // short-lived (inside the host's 2 h refresh leeway, so every use refreshes)
 // and refuses a refresh the way Zalo refuses a revoked token; {"reset":true}
 // goes back to the defaults. A spec that changes it resets it when done.
+//
+// Hộp thư Zalo (F-80): a spec seeds who a Zalo user is (POST /__users
+// { userId, displayName, phone }) and what their chat holds (POST /__history
+// { userId, items: [{ messageId, fromOa, text, time }] }); the conversation,
+// recent-chat and user-detail reads serve that, and a "tin tư vấn" sent to a
+// user is appended to their history. Users whose id starts 999 refuse the
+// "tin tư vấn" the way Zalo does once the 48 hours have run out.
 import http from "node:http";
 
 const port = Number(process.argv[2] ?? 5199);
@@ -21,6 +28,53 @@ const calls = [];
 const UNDELIVERABLE = /"phone":"(84|0)399/;
 const DEFAULTS = { tokenLife: "90000", refreshFails: false };
 let config = { ...DEFAULTS };
+const users = new Map();
+const histories = new Map();
+let nextChatId = 1;
+
+/** The `data` query parameter the chat reads take, as one JSON object. */
+function dataOf(url) {
+  try {
+    return JSON.parse(url.searchParams.get("data") ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function json(body) {
+  try {
+    return JSON.parse(body || "{}");
+  } catch {
+    return {};
+  }
+}
+
+/** A stored message as the conversation API returns it: src 0 = OA → user, 1 = user → OA. */
+function chatRow(userId, item) {
+  const user = users.get(userId) ?? {};
+  const oaSide = { id: oaId, name: "Stub OA", avatar: "" };
+  const userSide = { id: userId, name: user.displayName ?? `Zalo ${userId}`, avatar: "" };
+  const [from, to] = item.fromOa ? [oaSide, userSide] : [userSide, oaSide];
+  return {
+    src: item.fromOa ? 0 : 1,
+    time: item.time,
+    type: "text",
+    message: item.text,
+    message_id: item.messageId,
+    from_id: from.id,
+    from_display_name: from.name,
+    from_avatar: from.avatar,
+    to_id: to.id,
+    to_display_name: to.name,
+    to_avatar: to.avatar,
+  };
+}
+
+/** Newest first, `offset` then `count` (at most 10), as Zalo pages it. */
+function pageOf(items, offset, count) {
+  const from = offset ?? 0;
+  return [...items].sort((a, b) => b.time - a.time).slice(from, from + Math.min(count ?? 10, 10));
+}
 
 const PARAMS = {
   "301001": [
@@ -55,6 +109,61 @@ http
       switch (url.pathname) {
         case "/__calls":
           return send(res, calls);
+        case "/__users": {
+          const { userId, displayName, phone } = json(body);
+          users.set(userId, { displayName, phone });
+          return send(res, { ok: true });
+        }
+        case "/__history": {
+          const { userId, items } = json(body);
+          histories.set(userId, [...(histories.get(userId) ?? []), ...(items ?? [])]);
+          return send(res, { ok: true });
+        }
+        case "/v3.0/oa/user/detail": {
+          const userId = dataOf(url).user_id;
+          const user = users.get(userId);
+          if (!user) return send(res, { error: -213, message: "User has not followed OA" });
+          return send(res, {
+            error: 0,
+            message: "Success",
+            data: {
+              user_id: userId,
+              display_name: user.displayName,
+              avatar: "",
+              shared_info: user.phone ? { phone: user.phone } : undefined,
+            },
+          });
+        }
+        case "/v2.0/oa/conversation": {
+          const { user_id: userId, offset, count } = dataOf(url);
+          const rows = pageOf(histories.get(userId) ?? [], offset, count).map((item) => chatRow(userId, item));
+          return send(res, { error: 0, message: "Success", data: rows });
+        }
+        case "/v2.0/oa/listrecentchat": {
+          const { offset, count } = dataOf(url);
+          const latest = [...histories.entries()]
+            .filter(([, items]) => items.length > 0)
+            .map(([userId, items]) => ({ userId, item: pageOf(items, 0, 1)[0] }));
+          const rows = latest
+            .sort((a, b) => b.item.time - a.item.time)
+            .slice(offset ?? 0, (offset ?? 0) + Math.min(count ?? 10, 10))
+            .map(({ userId, item }) => chatRow(userId, item));
+          return send(res, { error: 0, message: "Success", data: rows });
+        }
+        case "/v3.0/oa/message/cs": {
+          const { recipient, message } = json(body);
+          const userId = recipient?.user_id ?? "";
+          if (userId.startsWith("999")) {
+            return send(res, { error: -230, message: "User has not interacted with the OA in the last 48 hours" });
+          }
+          // Unique across stub restarts too: the inbox keeps every id it was given.
+          const messageId = `cs-${Date.now()}-${nextChatId++}`;
+          histories.set(userId, [
+            ...(histories.get(userId) ?? []),
+            { messageId, fromOa: true, text: message?.text ?? "", time: Date.now() },
+          ]);
+          return send(res, { error: 0, message: "Success", data: { message_id: messageId, user_id: userId } });
+        }
         case "/__config": {
           const change = body ? JSON.parse(body) : {};
           config = change.reset ? { ...DEFAULTS } : { ...config, ...change };

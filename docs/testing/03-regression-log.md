@@ -10733,3 +10733,29 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Staging**: cần DbMigrator (migration `20261023015207_MessageCampaignResults`). Không có quyền mới nên không phải xoá cache quyền Redis.
 - **Commit**: chưa commit (worktree develop).
 - **Còn treo**: R13 chờ chủ dự án nói "làm" hoặc "bỏ".
+## R-1021 (2026-10-23, mức 2 + mức 3 vì có quyền mới, webhook Zalo dùng chung, hàng tab CSKH và tab Chăm sóc KH) F-80 Hộp thư Zalo + Lịch sử chăm sóc (BA P2210)
+
+- **Phạm vi**: tab Hộp thư Zalo trên `/cskh-grouping` (Nhận xử lý / Chuyển cho / Nhả, Chưa trả lời / Đã chăm sóc, tin tư vấn 48 giờ, đồng bộ lịch sử, tag tự do, ghi chú có log, mẫu ZNS), ghi chú dùng chung chat ↔ hồ sơ, tab Chăm sóc KH của hồ sơ (Mở chat Zalo, Gửi tin, Lịch sử chăm sóc khách hàng). Quyền mới `cskhInbox`, migration `20261023023050_ZaloInbox`. Chi tiết: `features/zalo-inbox.md`. Nhánh `wip/zalo-inbox-f79`.
+- **Lỗi tìm ra khi chạy thật và đã sửa**:
+  - Ô trả lời ghi "Còn 49 giờ … trong khung 48 giờ" ngay khi khách vừa nhắn: đồng hồ màn hình làm tròn xuống theo phút, số giờ làm tròn lên. `replyHoursLeft` giới hạn ở 48.
+  - Migration bản nháp còn tạo bảng ghi chú tên cũ (`bd_zalo_conversation_notes`); sinh lại sau khi đổi sang `CareNote`.
+  - `CareNoteController` thiếu `[Route]` ở cấp class (`ControllerConventionTests`).
+  - FE ghi chú còn gọi route cũ sau khi BE đổi sang `care-notes`.
+- **Sửa phía spec**: `toContainText` trên `.ibx-chat` khớp cả chữ đang nằm trong ô trả lời, nên spec đi tiếp (và điều hướng trang, POST bị huỷ 499) trước khi tin được lưu. Spec chờ bong bóng `.ibx-bubble-text`. Thẻ "Trạng thái chăm sóc" có dòng giải thích chứa chữ "Đã liên hệ", nên kiểm trên pill `.ch-pill`, không trên chữ của cả thẻ.
+- **Kết quả**:
+  - BE: Domain **1085/1085**, Application **816/816**, HttpApi.Host **24/24**.
+  - E2E thật (build production `vite preview` 127.0.0.1:8131 → host :5000 → PostgreSQL `BlueDental`, Zalo stub :5199, webhook ký bằng secret của host e2e, không chặn request, `E2E_ZALO_STUB=1`): `zalo-inbox` **5/5**.
+  - Hồi quy mức 3 (cùng đường chạy): `cskh`, `cskh-generated-tabs`, `cskh-message-send`, `cskh-message-template`, `cskh-stats`, `zalo-oa`, `patient-care`, `patient-permission-gates`, `role-permissions-tree`, `role-permissions-abilities`, `routes`, `header-navigation`: **81/86** lần đầu.
+    - `patient-care:105` và `cskh-message-send:648` (R-1014): xanh khi chạy lại riêng, chập chờn trong lượt dài.
+    - `header-navigation:152`, `role-permissions-abilities:38`: đỏ từ trước (đã ghi ở F-78 / R-1011).
+    - `patient-permission-gates:120`: đỏ do môi trường. Role `dentist` của DB local đang có `treatmentDiagnosis.read`, mà spec chỉ đặt lại 4 quyền (`patient.read`, `payment.read`, `treatmentConsultation.read` / `update`), nên tab "Chẩn đoán & Tư vấn" vẫn hiện. Không liên quan F-80: tab chỉ phụ thuộc `treatmentDiagnosis` / `treatmentConsultation` / `treatmentStage`.
+- **Security review** (`/security-review`, 2026-10-23): một lỗi thật, mức Medium. `ZaloChatEntryDto.Text` và `CareHistoryEntryDto.Text` trả nội dung tin đã điền biến (`{so_dien_thoai}`) và chữ khách tự gõ, nhưng thiếu `[PatientPhone(Embedded = true)]`, nên người bị "Ẩn số điện thoại" vẫn thấy đủ số trong bong bóng chat và trong Lịch sử chăm sóc. Đã thêm attribute cho hai field này và cho `LastMessagePreview`, giống `MessageLogDto.Content`. Ca e2e 5 kiểm: admin thấy số, nhân viên bị ẩn chỉ thấy số đã che, cả trong `/messages` lẫn `/care-history`. Số tiền nợ trong nội dung tin **không** che: các màn nhật ký tin có sẵn cũng không che, nên không phải lỗi mới của F-80. Các điểm khác đã soát và không phải lỗi: IDOR chéo chi nhánh, liên kết hồ sơ, Chuyển cho, sửa / xoá ghi chú, SSRF ở client Zalo, XSS (chỉ cho link `http(s)`), PHI trong log.
+- **Rebase lên `main` `1a9092bb`** (F-79 Chiến dịch đã gửi, R-1020, làm song song):
+  - Đổi mã của Hộp thư Zalo từ F-79 / R-1020 sang **F-80 / R-1021**.
+  - Hàng tab CSKH gộp cả hai bên, theo thứ tự mock BA: Chăm sóc khách hàng · Phân nhóm CSKH · Hộp thư Zalo · Chiến dịch đã gửi · Template tin nhắn.
+  - Route `cskh` mở với `cskhSend` **hoặc** `cskhInbox`.
+  - Migration sinh lại sau `MessageCampaignResults`: `20261023055402_ZaloInbox`, vẫn chỉ 4 bảng.
+  - Spec `cskh-message-campaigns` nhận thêm tab Hộp thư Zalo, có badge số.
+- **Lỗi tìm ra sau rebase và đã sửa**: `StoreReplyAsync` nhận "echo" theo `(chi nhánh, msg_id)`. Khi stub khởi động lại cấp lại id `cs-1`, câu trả lời mới bị coi là echo của một tin cũ ở **hội thoại khác** và không được lưu (POST 200 nhưng không có bong bóng). Giờ echo chỉ khớp trong cùng hội thoại. Stub cấp id `cs-<thời điểm>-<n>`.
+- **Kết quả sau rebase**: Domain **1092/1092**, Application **831/831**, HttpApi.Host **24/24**. E2E `zalo-inbox` + `cskh-message-campaigns` + `cskh` + `zalo-oa` **31/31**.
+- **Staging**: chạy DbMigrator (migration + quyền `cskhInbox`), xoá cache quyền Redis. Cấu hình webhook Zalo phải có cả `Zalo:AppId` và `Zalo:WebhookSecret` để chữ ký được kiểm.

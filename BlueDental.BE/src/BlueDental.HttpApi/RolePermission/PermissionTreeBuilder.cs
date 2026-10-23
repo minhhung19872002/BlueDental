@@ -331,7 +331,10 @@ internal static class PermissionTreeBuilder
                 Leaf("cskhSend.create", "BE:Perm:CareSendCreate")),
             Group("cskhStats", "BE:Perm:CareStats",
                 Leaf("cskhStats.read", "Xem"),
-                Leaf("cskhStats.export", "BE:Perm:Export"))),
+                Leaf("cskhStats.export", "BE:Perm:Export")),
+            Group("cskhInbox", "BE:Perm:CareInbox",
+                Leaf("cskhInbox.read", "Xem"),
+                Leaf("cskhInbox.update", "BE:Perm:CareInboxHandle"))),
 
         Group("catalog-group", "BE:Perm:Catalogs",
             Group("catalogPrescription", "BE:Common:RxTemplate",

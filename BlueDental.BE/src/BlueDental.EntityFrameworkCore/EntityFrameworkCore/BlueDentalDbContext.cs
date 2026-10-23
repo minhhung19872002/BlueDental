@@ -193,6 +193,9 @@ public class BlueDentalDbContext :
 
     // Zalo OA
     public DbSet<ZaloOaConnection> ZaloOaConnections { get; set; }
+    public DbSet<ZaloInbox.ZaloConversation> ZaloConversations { get; set; }
+    public DbSet<ZaloInbox.ZaloChatMessage> ZaloChatMessages { get; set; }
+    public DbSet<CareNote> CareNotes { get; set; }
 
     // E-invoicing
     public DbSet<ElectronicInvoice> ElectronicInvoices { get; set; }

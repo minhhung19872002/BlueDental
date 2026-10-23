@@ -1,0 +1,110 @@
+/* ── Care notes (F-80, BA P2210) ──────────────────────────────────────────────
+   The Hộp thư Zalo chat's "Ghi chú nội bộ" and the record's Lịch sử chăm sóc
+   show the same notes, so both screens load this file. A deleted note stays,
+   struck through. */
+
+.cn-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cn-note {
+  position: relative;
+  padding: 8px 10px;
+  border: 1px solid var(--bd-orange-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-orange-pale);
+}
+
+.cn-note--removed {
+  border-color: var(--bd-line);
+  background: var(--bd-surface-3);
+}
+
+.cn-note-text {
+  margin: 0 84px 4px 0;
+  color: var(--bd-ink);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cn-note--removed .cn-note-text {
+  color: var(--bd-faint);
+  text-decoration: line-through;
+}
+
+.cn-note-meta {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 11.5px;
+}
+
+.cn-note-meta--removed {
+  color: var(--bd-red-dark);
+}
+
+.cn-note-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+}
+
+.cn-outcome {
+  display: inline-flex;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.cn-outcome--contacted {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.cn-outcome--no-answer {
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+}
+
+.cn-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.cn-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.cn-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+}
+
+.cn-log-head {
+  display: block;
+  color: var(--bd-ink);
+}
+
+.cn-log-before {
+  display: block;
+  color: var(--bd-muted);
+  white-space: pre-wrap;
+}
