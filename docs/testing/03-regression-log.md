@@ -10759,3 +10759,23 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Lỗi tìm ra sau rebase và đã sửa**: `StoreReplyAsync` nhận "echo" theo `(chi nhánh, msg_id)`. Khi stub khởi động lại cấp lại id `cs-1`, câu trả lời mới bị coi là echo của một tin cũ ở **hội thoại khác** và không được lưu (POST 200 nhưng không có bong bóng). Giờ echo chỉ khớp trong cùng hội thoại. Stub cấp id `cs-<thời điểm>-<n>`.
 - **Kết quả sau rebase**: Domain **1092/1092**, Application **831/831**, HttpApi.Host **24/24**. E2E `zalo-inbox` + `cskh-message-campaigns` + `cskh` + `zalo-oa` **31/31**.
 - **Staging**: chạy DbMigrator (migration + quyền `cskhInbox`), xoá cache quyền Redis. Cấu hình webhook Zalo phải có cả `Zalo:AppId` và `Zalo:WebhookSecret` để chữ ký được kiểm.
+## R-1022 (2026-10-23, mức 2) F-80 Hộp thư Zalo: tin OA hiện "[Tin nhắn khác]" thay cho nội dung
+
+- **Báo lỗi**: trên production, một tin OA gửi lúc 16/10 14:40 hiện "[Tin nhắn khác]" cả trong bong bóng lẫn ở dòng hội thoại.
+- **Nguyên nhân**: lúc đồng bộ lịch sử (`/v2.0/oa/conversation`, `listrecentchat`), chỉ tin `text` / ảnh / link được giữ chữ. Các loại khác (template, list…) bị xếp vào `Other` và mất chữ. Tin đến qua webhook thì không bị.
+- **Đã sửa trước đó ở `ef4641c2`** (nhánh khác, chưa có mục log riêng):
+  - `ToChat` giữ chữ cho mọi loại tin.
+  - Tin đã lưu mà thiếu chữ sẽ được điền chữ ở lần đồng bộ sau (`ZaloChatMessage.FillMissingText`).
+  - FE đổi `[Other]` / `[Image]` sang chữ tiếng Việt.
+- **Lỗ hổng còn lại, sửa ở R-1022**: khi tin được điền chữ, dòng hội thoại vẫn hiện "[Tin nhắn khác]", vì `LastMessagePreview` không được cập nhật. Đây chính là dòng thấy trên production.
+  - Mới: `ZaloConversation.RefreshPreview(at, preview)` chỉ đổi preview khi tin vừa điền chữ là tin cuối của hội thoại.
+  - `ZaloInboxIngestor.RecordAsync` gọi hàm này sau `FillMissingText`.
+  - Stub `/__history`: item trùng `messageId` thì thay item cũ, như Zalo trả lại cùng một tin.
+- **Kết quả**:
+  - Domain ZaloInbox **36/36**, gồm ca mới `Words_Filled_In_Later_Reach_The_Preview_Only_For_The_Last_Message`.
+  - E2E thật: build production `vite preview` 127.0.0.1:8150 → host 127.0.0.1:5120 → PostgreSQL `BlueDental_zalofix` (DB mới, migrator chạy với môi trường `E2E` vì seed demo hỏng, xem dưới), Zalo stub :5219, không chặn request. `zalo-inbox` **6/6**, gồm ca mới "Tin OA đã lưu không có chữ: Đồng bộ lại điền chữ…" (dòng hội thoại, bong bóng, tải lại).
+  - Chứng minh ngược: tắt dòng `RefreshPreview` thì ca mới đỏ, dòng hội thoại vẫn hiện `[Tin nhắn khác]` như trên production.
+- **Lỗi có sẵn, không sửa**: DbMigrator chạy với `Development` trên DB trống đổ ở `BlueDentalDemoSeedContributor.SeedAppointmentsAsync`. Seed demo tạo lịch hẹn hôm nay vào giờ đã qua, nên `AppointmentSlot` ném `SlotInThePast`. Lỗi phụ thuộc giờ chạy.
+- **Sau khi deploy**: tin 16/10 chỉ có chữ khi bấm "Đồng bộ" (hoặc mở hội thoại) **và** Zalo trả chữ cho loại tin đó. Nếu Zalo không trả chữ thì vẫn là "[Tin nhắn khác]" (chưa kiểm với OA thật).
+- **Staging / production**: không có migration, không có quyền mới.
+- **Commit**: chưa commit.

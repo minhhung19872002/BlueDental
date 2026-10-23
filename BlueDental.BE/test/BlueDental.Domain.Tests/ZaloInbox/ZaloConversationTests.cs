@@ -199,6 +199,20 @@ public class ZaloConversationTests
     }
 
     [Fact]
+    public void Words_Filled_In_Later_Reach_The_Preview_Only_For_The_Last_Message()
+    {
+        var conversation = Open();
+        conversation.RecordMessage(ZaloChatDirection.Outbound, Now, "[Other]");
+
+        conversation.RefreshPreview(Now.AddMinutes(-5), "Tin cũ hơn");
+        conversation.LastMessagePreview.ShouldBe("[Other]");
+
+        conversation.RefreshPreview(Now, "Mời anh chị đánh giá dịch vụ");
+        conversation.LastMessagePreview.ShouldBe("Mời anh chị đánh giá dịch vụ");
+        conversation.Status.ShouldBe(ZaloConversationStatus.Cared);
+    }
+
+    [Fact]
     public void A_Blank_Name_Falls_Back_To_The_End_Of_The_Zalo_Id()
     {
         var conversation = ZaloConversation.Open(Guid.NewGuid(), Branch, "4521000000009876", "  ", null, null);

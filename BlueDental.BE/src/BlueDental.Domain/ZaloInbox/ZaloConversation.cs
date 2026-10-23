@@ -126,6 +126,19 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
             : ZaloConversationStatus.Cared;
     }
 
+    /// <summary>
+    /// The last message got its words after it was recorded (a sync had
+    /// dropped them): the list shows them instead of "[Other]". An older
+    /// message filled in leaves the preview alone.
+    /// </summary>
+    public void RefreshPreview(DateTime at, string preview)
+    {
+        if (LastMessageAt == at)
+        {
+            LastMessagePreview = Clip(preview, MaxPreviewLength);
+        }
+    }
+
     /// <summary>The holder's answer keeps the hold for another 15 minutes.</summary>
     public void RecordReply(Guid userId, DateTime at, string preview, DateTime now)
     {

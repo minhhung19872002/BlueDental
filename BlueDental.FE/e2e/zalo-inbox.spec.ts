@@ -383,6 +383,36 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(chat(page).locator(".ibx-bubble--zns", { hasText: `ZNS · ${first.name}` })).toBeVisible();
   });
 
+  test("Tin OA đã lưu không có chữ: Đồng bộ lại điền chữ vào cả dòng hội thoại lẫn bong bóng, tải lại vẫn còn", async ({ page }) => {
+    const userId = zaloUser();
+    const name = `Khách Zalo ${userId.slice(-6)}`;
+    const messageId = `tpl-${userId}`;
+    const time = Date.now() - 5 * 60_000;
+    const words = "Mời anh chị đánh giá dịch vụ";
+    await stub("/__users", { userId, displayName: name });
+    // Stored the way the old sync left it: a template message without its words.
+    await stub("/__history", { userId, items: [{ messageId, fromOa: true, type: "template", text: "", time }] });
+
+    await openInbox(page);
+    await page.getByRole("tab", { name: /^Tất cả/ }).click();
+    const row = conversationRow(page, name);
+    await expect(row).toContainText("[Tin nhắn khác]", { timeout: 15_000 });
+
+    // Zalo hands the same message over again, words included.
+    await stub("/__history", { userId, items: [{ messageId, fromOa: true, type: "template", text: words, time }] });
+    await page.getByRole("button", { name: /Đồng bộ$/ }).click();
+    await expect(row).toContainText(words);
+    await expect(row).not.toContainText("[Tin nhắn khác]");
+    await row.click();
+    await expect(bubble(page, words)).toBeVisible();
+    await expect(chat(page).getByText("[Tin nhắn khác]")).toHaveCount(0);
+
+    await page.reload();
+    await page.getByRole("tab", { name: /^Tất cả/ }).click();
+    await expect(conversationRow(page, name)).toContainText(words);
+    await expect(bubble(page, words)).toBeVisible();
+  });
+
   test("Giữ hội thoại: người khác thấy đang giữ và không nhận được; Chuyển cho → người kia trả lời; quá 48 giờ chỉ gửi ZNS", async ({ page, browser }) => {
     const colleague = await makeStaff(page, ["BlueDental.cskhInbox.read", "BlueDental.cskhInbox.update"]);
     try {

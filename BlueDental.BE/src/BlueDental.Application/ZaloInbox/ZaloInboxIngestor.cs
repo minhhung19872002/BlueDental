@@ -75,6 +75,8 @@ public class ZaloInboxIngestor(
                 if (known.ConversationId == conversation.Id && known.FillMissingText(chat.Text, chat.AttachmentUrl))
                 {
                     await messages.UpdateAsync(known, autoSave: true);
+                    conversation.RefreshPreview(known.SentAt, known.Preview);
+                    await conversations.UpdateAsync(conversation);
                 }
 
                 return false;

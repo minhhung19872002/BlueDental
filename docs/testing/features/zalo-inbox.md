@@ -242,7 +242,8 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
 - Chưa kiểm được với OA thật:
   - `recipient.id` trong webhook ZNS đã nhận có phải user_id không;
   - echo `oa_send_text` có cùng `message_id` với kết quả gửi tin tư vấn không;
-  - trong API hội thoại, `src` = 0 có phải tin do OA gửi không.
+  - trong API hội thoại, `src` = 0 có phải tin do OA gửi không;
+  - API hội thoại có trả chữ (`message`) cho tin OA loại template / list… không. Nếu không, tin đó vẫn hiện "[Tin nhắn khác]" (R-1022).
 - Chưa có SignalR cho hộp thư, đang tự lấy lại theo chu kỳ 5 / 10 giây.
 - Không làm phần Chiến dịch CSKH của P2210.
 

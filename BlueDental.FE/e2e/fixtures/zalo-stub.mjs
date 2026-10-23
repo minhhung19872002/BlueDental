@@ -116,8 +116,11 @@ http
           return send(res, { ok: true });
         }
         case "/__history": {
+          // An item whose messageId is already there replaces it (the same message, read again later).
           const { userId, items } = json(body);
-          histories.set(userId, [...(histories.get(userId) ?? []), ...(items ?? [])]);
+          const fresh = new Set((items ?? []).map((item) => item.messageId));
+          const kept = (histories.get(userId) ?? []).filter((item) => !fresh.has(item.messageId));
+          histories.set(userId, [...kept, ...(items ?? [])]);
           return send(res, { ok: true });
         }
         case "/v3.0/oa/user/detail": {
