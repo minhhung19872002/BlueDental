@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { t } from "@/lib/i18n";
 import { CONVERSATION_STATUS, type ConversationSummary } from "../../api/inboxApi";
-import { customerName, listTime, waitTone } from "../../inboxLook";
+import { customerName, listTime, previewText, waitTone } from "../../inboxLook";
 import { InboxAvatar } from "./InboxAvatar";
 import { StatusPill } from "./StatusPill";
 
@@ -44,7 +44,7 @@ export const ConversationRow = memo(function ConversationRow({ conversation, sel
             </span>
           </span>
           {conversation.lastMessagePreview && (
-            <span className="ibx-row-preview">{conversation.lastMessagePreview}</span>
+            <span className="ibx-row-preview">{previewText(conversation.lastMessagePreview)}</span>
           )}
           <span className="ibx-row-pills">
             <StatusPill status={conversation.status} />

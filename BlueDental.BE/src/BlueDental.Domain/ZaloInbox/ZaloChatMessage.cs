@@ -71,6 +71,28 @@ public class ZaloChatMessage : CreationAuditedEntity<Guid>
         }
     }
 
+    /// <summary>
+    /// A message stored without its words (an earlier sync dropped them) takes
+    /// them when Zalo hands the same message over again. Words already there stay.
+    /// </summary>
+    public bool FillMissingText(string? text, string? attachmentUrl)
+    {
+        var changed = false;
+        if (Text.Length == 0 && !string.IsNullOrWhiteSpace(text))
+        {
+            Text = Clip(text.Trim(), MaxTextLength)!;
+            changed = true;
+        }
+
+        if (AttachmentUrl == null && !string.IsNullOrWhiteSpace(attachmentUrl))
+        {
+            AttachmentUrl = Clip(attachmentUrl.Trim(), MaxUrlLength);
+            changed = true;
+        }
+
+        return changed;
+    }
+
     /// <summary>The list's one-line preview: the text, or what kind of thing was sent.</summary>
     public string Preview => Text.Length > 0 ? Text : $"[{Kind}]";
 

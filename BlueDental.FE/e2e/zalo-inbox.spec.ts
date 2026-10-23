@@ -318,12 +318,16 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await stub("/__users", { userId, displayName: `Zalo ${patient.name}`, phone: `84${patient.phone.slice(1)}` });
     await stub("/__history", {
       userId,
-      items: Array.from({ length: 12 }, (_, i) => ({
-        messageId: `h-${userId}-${i}`,
-        fromOa: i % 2 === 1,
-        text: `Tin lịch sử ${i}`,
-        time: start + i * 60_000,
-      })),
+      items: [
+        ...Array.from({ length: 12 }, (_, i) => ({
+          messageId: `h-${userId}-${i}`,
+          fromOa: i % 2 === 1,
+          text: `Tin lịch sử ${i}`,
+          time: start + i * 60_000,
+        })),
+        // An OA message of another type that still carries words: they show, not "[Tin nhắn khác]".
+        { messageId: `h-${userId}-tpl`, fromOa: true, type: "template", text: "Mời anh chị đánh giá dịch vụ", time: start + 12 * 60_000 },
+      ],
     });
     const first = await znsTemplate(page, `E2E Hộp thư A ${runId()}`);
     const second = await znsTemplate(page, `E2E Hộp thư B ${runId()}`);
@@ -337,13 +341,15 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
     await expect(side(page).getByRole("heading", { name: "Lịch hẹn" })).toBeVisible();
 
-    // The newest 10 on open (2…11), the rest on "Tải tin cũ hơn".
+    // The newest 10 on open (3…11 + the template message), the rest on "Tải tin cũ hơn".
+    await expect(bubble(page, "Mời anh chị đánh giá dịch vụ")).toBeVisible();
+    await expect(chat(page).getByText("[Tin nhắn khác]")).toHaveCount(0);
     await expect(bubble(page, "Tin lịch sử 11")).toBeVisible();
     await expect(chat(page).locator(".ibx-bubble-text")).toHaveCount(10);
     await expect(bubble(page, "Tin lịch sử 1")).toHaveCount(0);
     await chat(page).getByRole("button", { name: "Tải tin cũ hơn" }).click();
     await expect(bubble(page, "Tin lịch sử 0")).toBeVisible();
-    await expect(chat(page).locator(".ibx-bubble-text")).toHaveCount(12);
+    await expect(chat(page).locator(".ibx-bubble-text")).toHaveCount(13);
 
     await chat(page).getByRole("button", { name: "Nhận xử lý" }).click();
     await expect(chat(page).getByText("Bạn đang xử lý")).toBeVisible();

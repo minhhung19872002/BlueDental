@@ -58,7 +58,8 @@ function chatRow(userId, item) {
   return {
     src: item.fromOa ? 0 : 1,
     time: item.time,
-    type: "text",
+    // A seeded item may name Zalo's type (template, list…); plain text otherwise.
+    type: item.type ?? "text",
     message: item.text,
     message_id: item.messageId,
     from_id: from.id,

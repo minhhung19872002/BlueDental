@@ -36,7 +36,8 @@ function Attachment({ entry }: { entry: ChatEntry }) {
     );
   }
 
-  if (!label) return null;
+  // The words say what the message is; the kind's label is only for one without any.
+  if (!label || (entry.text && !url)) return null;
   return url ? (
     <a href={url} target="_blank" rel="noopener noreferrer" className="ibx-bubble-file">
       {t(label)}
