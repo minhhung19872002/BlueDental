@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { t } from "@/lib/i18n";
 import { CHAT_DIRECTION, CHAT_KIND, CHAT_SOURCE, ZNS_STATE, type ChatEntry, type ChatKind, type ZnsState } from "../../api/inboxApi";
-import { stamp } from "../../inboxLook";
+import { OA_AUTO_LABEL, stamp } from "../../inboxLook";
 
 const KIND_LABEL: Partial<Record<ChatKind, string>> = {
   [CHAT_KIND.Image]: "CSKH:Inbox:Kind:Image",
@@ -27,7 +27,9 @@ function safeUrl(url: string | null): string | null {
 
 function Attachment({ entry }: { entry: ChatEntry }) {
   const url = safeUrl(entry.attachmentUrl);
-  const label = KIND_LABEL[entry.kind];
+  const label = entry.kind === CHAT_KIND.Other && entry.direction === CHAT_DIRECTION.Outbound
+    ? OA_AUTO_LABEL
+    : KIND_LABEL[entry.kind];
   if (url && (entry.kind === CHAT_KIND.Image || entry.kind === CHAT_KIND.Sticker)) {
     return (
       <a href={url} target="_blank" rel="noopener noreferrer" className="ibx-bubble-media">

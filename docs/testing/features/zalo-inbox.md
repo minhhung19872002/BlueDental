@@ -243,7 +243,7 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
   - `recipient.id` trong webhook ZNS đã nhận có phải user_id không;
   - echo `oa_send_text` có cùng `message_id` với kết quả gửi tin tư vấn không;
   - trong API hội thoại, `src` = 0 có phải tin do OA gửi không;
-  - API hội thoại có trả chữ (`message`) cho tin OA loại template / list… không. Nếu không, tin đó vẫn hiện "[Tin nhắn khác]" (R-1022).
+  - API hội thoại có trả chữ (`message`) cho tin OA loại template / list… không. Thực tế (2026-10-23): thẻ chào mừng của OA về không có `message` / `url` / `thumb`, nên hiện "[Tin tự động của OA]" (R-1023). Host ghi log tên trường (không ghi giá trị) để lần sau dựng được thẻ.
 - Chưa có SignalR cho hộp thư, đang tự lấy lại theo chu kỳ 5 / 10 giây.
 - Không làm phần Chiến dịch CSKH của P2210.
 

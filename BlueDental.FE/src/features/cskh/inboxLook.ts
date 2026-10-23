@@ -1,6 +1,12 @@
 import { t } from "@/lib/i18n";
 import { formatClock } from "@/utils/format";
-import { CONVERSATION_STATUS, INBOX_LIMITS, type ConversationSummary } from "./api/inboxApi";
+import {
+  CHAT_DIRECTION,
+  CONVERSATION_STATUS,
+  INBOX_LIMITS,
+  type ChatDirection,
+  type ConversationSummary,
+} from "./api/inboxApi";
 
 /** BA mock legend: "Vàng: chờ ≥ 15 phút", "Đỏ: chờ ≥ 60 phút". */
 export const WAIT_AMBER_MINUTES = 15;
@@ -71,9 +77,16 @@ const KIND_PREVIEW: Record<string, string> = {
   Other: "CSKH:Inbox:Kind:Other",
 };
 
+/**
+ * A message the OA sent that Zalo hands over with nothing to read: the welcome
+ * card a follow triggers, a broadcast… (R-1023) — named for what it is, not "[Tin nhắn khác]".
+ */
+export const OA_AUTO_LABEL = "CSKH:Inbox:Kind:OaAuto";
+
 /** The row's preview, with the server's kind token read in the user's language. */
-export function previewText(preview: string | null): string | null {
+export function previewText(preview: string | null, direction: ChatDirection | null): string | null {
   const kind = preview?.match(/^\[(\w+)\]$/)?.[1];
+  if (kind === "Other" && direction === CHAT_DIRECTION.Outbound) return t(OA_AUTO_LABEL);
   return kind && KIND_PREVIEW[kind] ? t(KIND_PREVIEW[kind]) : preview;
 }
 

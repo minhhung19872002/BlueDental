@@ -7,6 +7,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp.DependencyInjection;
 
@@ -41,11 +42,14 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptions<ZaloOptions> _options;
+    private readonly ILogger<HttpZaloApiClient> _logger;
 
-    public HttpZaloApiClient(IHttpClientFactory httpClientFactory, IOptions<ZaloOptions> options)
+    public HttpZaloApiClient(
+        IHttpClientFactory httpClientFactory, IOptions<ZaloOptions> options, ILogger<HttpZaloApiClient> logger)
     {
         _httpClientFactory = httpClientFactory;
         _options = options;
+        _logger = logger;
     }
 
     private ZaloOptions Options => _options.Value;
@@ -333,13 +337,22 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
                         continue;
                     }
 
+                    var words = Text(row, "message");
+                    var link = Text(row, "url") ?? Text(row, "thumb");
+                    if (words == null && link == null)
+                    {
+                        // R-1023: which fields such a message has (the OA's welcome card…), never their values.
+                        _logger.LogInformation("Zalo history message of type {Type} came without words or a link; fields: {Fields}",
+                            Text(row, "type"), ZaloJsonShape.Describe(row));
+                    }
+
                     items.Add(new ZaloChatItem(
                         id,
                         Text(row, "src") == "0",
                         Long(row, "time") ?? 0,
                         Text(row, "type"),
-                        Text(row, "message"),
-                        Text(row, "url") ?? Text(row, "thumb"),
+                        words,
+                        link,
                         Text(row, "from_id"),
                         Text(row, "to_id"),
                         Text(row, "from_display_name"),

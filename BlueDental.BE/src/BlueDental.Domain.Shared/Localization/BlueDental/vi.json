@@ -7446,6 +7446,7 @@
     "CSKH:Inbox:Kind:Video": "[Video]",
     "CSKH:Inbox:Kind:Location": "[Vị trí]",
     "CSKH:Inbox:Kind:Other": "[Tin nhắn khác]",
+    "CSKH:Inbox:Kind:OaAuto": "[Tin tự động của OA]",
     "CSKH:Inbox:Zns:Tag": "ZNS · {0}",
     "CSKH:Inbox:Zns:Sent": "Đã gửi",
     "CSKH:Inbox:Zns:Delivered": "Đã nhận",

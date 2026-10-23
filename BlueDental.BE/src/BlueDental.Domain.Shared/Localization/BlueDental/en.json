@@ -7446,6 +7446,7 @@
     "CSKH:Inbox:Kind:Video": "[Video]",
     "CSKH:Inbox:Kind:Location": "[Location]",
     "CSKH:Inbox:Kind:Other": "[Other message]",
+    "CSKH:Inbox:Kind:OaAuto": "[OA automatic message]",
     "CSKH:Inbox:Zns:Tag": "ZNS · {0}",
     "CSKH:Inbox:Zns:Sent": "Sent",
     "CSKH:Inbox:Zns:Delivered": "Delivered",

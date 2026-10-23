@@ -396,21 +396,49 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await openInbox(page);
     await page.getByRole("tab", { name: /^Tất cả/ }).click();
     const row = conversationRow(page, name);
-    await expect(row).toContainText("[Tin nhắn khác]", { timeout: 15_000 });
+    await expect(row).toContainText("[Tin tự động của OA]", { timeout: 15_000 });
 
     // Zalo hands the same message over again, words included.
     await stub("/__history", { userId, items: [{ messageId, fromOa: true, type: "template", text: words, time }] });
     await page.getByRole("button", { name: /Đồng bộ$/ }).click();
     await expect(row).toContainText(words);
-    await expect(row).not.toContainText("[Tin nhắn khác]");
+    await expect(row).not.toContainText("[Tin tự động của OA]");
     await row.click();
     await expect(bubble(page, words)).toBeVisible();
-    await expect(chat(page).getByText("[Tin nhắn khác]")).toHaveCount(0);
+    await expect(chat(page).getByText("[Tin tự động của OA]")).toHaveCount(0);
 
     await page.reload();
     await page.getByRole("tab", { name: /^Tất cả/ }).click();
     await expect(conversationRow(page, name)).toContainText(words);
     await expect(bubble(page, words)).toBeVisible();
+  });
+
+  test("Tin OA tự gửi mà Zalo không kèm chữ (thẻ chào mừng) đọc là [Tin tự động của OA]; của khách vẫn là [Tin nhắn khác]", async ({ page }) => {
+    const oaUser = zaloUser();
+    const oaName = `Khách chào ${oaUser.slice(-6)}`;
+    const customerUser = zaloUser();
+    const customerName = `Khách lạ ${customerUser.slice(-6)}`;
+    const time = Date.now() - 5 * 60_000;
+    await stub("/__users", { userId: oaUser, displayName: oaName });
+    await stub("/__users", { userId: customerUser, displayName: customerName });
+    // The welcome card a follow triggers: Zalo's history hands it over with no message, url or thumb.
+    await stub("/__history", { userId: oaUser, items: [{ messageId: `welcome-${oaUser}`, fromOa: true, type: "template", text: "", time }] });
+    await stub("/__history", { userId: customerUser, items: [{ messageId: `odd-${customerUser}`, fromOa: false, type: "template", text: "", time }] });
+
+    await openInbox(page);
+    await page.getByRole("button", { name: /Đồng bộ$/ }).click();
+    await page.getByRole("tab", { name: /^Tất cả/ }).click();
+    const oaRow = conversationRow(page, oaName);
+    await expect(oaRow).toContainText("[Tin tự động của OA]", { timeout: 15_000 });
+    await expect(oaRow).not.toContainText("[Tin nhắn khác]");
+    await expect(conversationRow(page, customerName)).toContainText("[Tin nhắn khác]");
+
+    await oaRow.click();
+    await expect(chat(page).getByText("[Tin tự động của OA]")).toBeVisible();
+    await expect(chat(page).getByText("[Tin nhắn khác]")).toHaveCount(0);
+    await conversationRow(page, customerName).click();
+    await expect(chat(page).getByText("[Tin nhắn khác]")).toBeVisible();
+    await expect(chat(page).getByText("[Tin tự động của OA]")).toHaveCount(0);
   });
 
   test("Giữ hội thoại: người khác thấy đang giữ và không nhận được; Chuyển cho → người kia trả lời; quá 48 giờ chỉ gửi ZNS", async ({ page, browser }) => {

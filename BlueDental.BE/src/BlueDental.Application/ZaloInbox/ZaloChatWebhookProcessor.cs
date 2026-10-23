@@ -55,6 +55,13 @@ public class ZaloChatWebhookProcessor(
             }
 
             var (kind, attachment) = AttachmentOf(message, shape.Kind);
+            if (Text(message, "text") == null && attachment == null)
+            {
+                // R-1023: which fields such a message has (the OA's welcome card…), never their values.
+                logger.LogInformation("Zalo chat event {EventName} came without words or a link; message fields: {Fields}",
+                    eventName, ZaloJsonShape.Describe(message));
+            }
+
             var conversation = await ingestor.EnsureConversationAsync(connection, userId);
             await ingestor.RecordAsync(conversation, new ZaloIncomingChat(
                 userId, Text(message, "msg_id"), shape.Direction, kind, Text(message, "text"), attachment,

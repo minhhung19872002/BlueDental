@@ -44,7 +44,7 @@ export const ConversationRow = memo(function ConversationRow({ conversation, sel
             </span>
           </span>
           {conversation.lastMessagePreview && (
-            <span className="ibx-row-preview">{previewText(conversation.lastMessagePreview)}</span>
+            <span className="ibx-row-preview">{previewText(conversation.lastMessagePreview, conversation.lastMessageDirection)}</span>
           )}
           <span className="ibx-row-pills">
             <StatusPill status={conversation.status} />

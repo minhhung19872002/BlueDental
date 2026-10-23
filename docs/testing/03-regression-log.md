@@ -10778,4 +10778,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Lỗi có sẵn, không sửa**: DbMigrator chạy với `Development` trên DB trống đổ ở `BlueDentalDemoSeedContributor.SeedAppointmentsAsync`. Seed demo tạo lịch hẹn hôm nay vào giờ đã qua, nên `AppointmentSlot` ném `SlotInThePast`. Lỗi phụ thuộc giờ chạy.
 - **Sau khi deploy**: tin 16/10 chỉ có chữ khi bấm "Đồng bộ" (hoặc mở hội thoại) **và** Zalo trả chữ cho loại tin đó. Nếu Zalo không trả chữ thì vẫn là "[Tin nhắn khác]" (chưa kiểm với OA thật).
 - **Staging / production**: không có migration, không có quyền mới.
+- **Commit**: `75b1d1df` trên main, chủ dự án đã push (deploy production).
+
+## R-1023 (2026-10-23, mức 2) F-80 Hộp thư Zalo: thẻ chào mừng của OA đọc là "[Tin tự động của OA]"
+
+- **Báo lỗi**: sau R-1022, tin 16/10 14:40 vẫn hiện "[Tin nhắn khác]". API production trả `kind: 9`, `text: ""`, `attachmentUrl: null`.
+- **Nguyên nhân**: chủ dự án đối chiếu trên oa.zalo.me. Đó là thẻ chào mừng mà OA tự gửi khi khách quan tâm (ảnh, tiêu đề, lời chào, nút "Tôi cần tư vấn"); nhiều hội thoại khác cũng có thẻ này. API lịch sử của Zalo trả thẻ này **không kèm** `message` / `url` / `thumb`, nên không có gì để hiện, và tài liệu công khai không nêu trường nào chứa nội dung thẻ.
+- **Sửa**:
+  - FE: tin **OA gửi** loại `Other` mà không có chữ hiện "[Tin tự động của OA]" ở cả dòng hội thoại (`previewText` xét thêm `lastMessageDirection`) lẫn bong bóng. Tin **khách gửi** vẫn là "[Tin nhắn khác]". Khoá i18n mới `CSKH:Inbox:Kind:OaAuto` (vi/en).
+  - BE, để chẩn đoán: khi đồng bộ (`HttpZaloApiClient.GetChatsAsync`) hoặc nhận webhook (`ZaloChatWebhookProcessor`) gặp tin không có chữ lẫn link, host ghi một dòng Information gồm loại tin và **tên trường** (`ZaloJsonShape.Describe`, lồng tối đa 3 tầng). **Không ghi giá trị nào**, nên không lộ lời khách / PHI.
+- **Kết quả**:
+  - `dotnet build` host: sạch. FE `tsc -b` và eslint các file đã sửa: sạch.
+  - E2E thật trên cùng stack riêng như R-1022 (`vite preview` :8150 → host :5120 → `BlueDental_zalofix`, stub :5219, không chặn request): `zalo-inbox` **7/7**.
+    - Ca mới: "Tin OA tự gửi mà Zalo không kèm chữ (thẻ chào mừng)…". Đồng bộ một tin OA và một tin khách, cả hai không có chữ; kiểm dòng hội thoại và bong bóng của từng bên.
+    - Ca R-1022 đổi nhãn chờ ban đầu thành "[Tin tự động của OA]", vì tin trong ca đó là tin OA.
+  - Log host khi chạy e2e: `Zalo history message of type template came without words or a link; fields: src, time, type, message, message_id, from_id, …` (chỉ có tên trường).
+- **Sau khi deploy**: bấm "Đồng bộ" trong Hộp thư Zalo, rồi chạy `docker compose logs <backend> | grep "came without words"` để xem Zalo gửi những trường nào cho thẻ chào mừng. Nếu có trường mang tiêu đề hoặc ảnh thì làm tiếp để dựng thẻ.
+- **Staging / production**: không có migration, không có quyền mới.
 - **Commit**: chưa commit.
