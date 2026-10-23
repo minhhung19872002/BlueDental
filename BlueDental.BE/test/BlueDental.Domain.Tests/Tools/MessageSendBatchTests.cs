@@ -162,6 +162,56 @@ public class MessageSendBatchTests
     }
 
     [Fact]
+    public void Stopping_A_Batch_Still_Waiting_Calls_It_Off()
+    {
+        var waiting = Create(scheduledAt: Now.AddHours(1));
+
+        waiting.Stop(Now);
+
+        waiting.Status.ShouldBe(MessageSendBatchStatus.Cancelled);
+        waiting.CancelledAt.ShouldBe(Now);
+        waiting.IsCalledOff.ShouldBeTrue();
+        waiting.TryStart(Now.AddHours(1)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Stopping_A_Batch_That_Is_Sending_Ends_It_For_Good()
+    {
+        var batch = Create();
+        batch.TryStart(Now);
+
+        batch.Stop(Now.AddMinutes(2));
+
+        batch.Status.ShouldBe(MessageSendBatchStatus.Stopped);
+        batch.CancelledAt.ShouldBe(Now.AddMinutes(2));
+        batch.IsCalledOff.ShouldBeTrue();
+        batch.TryStart(Now.AddMinutes(3)).ShouldBeFalse();
+
+        batch.Complete(Now.AddMinutes(4));
+        batch.Status.ShouldBe(MessageSendBatchStatus.Stopped);
+        batch.CompletedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_Batch_That_Ended_Cannot_Be_Stopped()
+    {
+        var completed = Create();
+        completed.TryStart(Now);
+        completed.Complete(Now);
+        var cancelled = Create(scheduledAt: Now.AddHours(1));
+        cancelled.Cancel(Now);
+        var stopped = Create();
+        stopped.TryStart(Now);
+        stopped.Stop(Now);
+
+        ShouldRefuse(() => completed.Stop(Now), BlueDentalDomainErrorCodes.Tools.SendNotCancellable);
+        ShouldRefuse(() => cancelled.Stop(Now), BlueDentalDomainErrorCodes.Tools.SendNotCancellable);
+        ShouldRefuse(() => stopped.Stop(Now), BlueDentalDomainErrorCodes.Tools.SendNotCancellable);
+        ShouldRefuse(() => stopped.Cancel(Now), BlueDentalDomainErrorCodes.Tools.SendNotCancellable);
+        completed.IsCalledOff.ShouldBeFalse();
+    }
+
+    [Fact]
     public void Completing_A_Batch_Nobody_Took_Changes_Nothing()
     {
         var batch = Create();

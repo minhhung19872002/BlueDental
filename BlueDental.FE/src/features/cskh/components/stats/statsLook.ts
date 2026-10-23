@@ -30,6 +30,8 @@ export function batchLook(batch: StatsBatch): StatsLook {
       return { label: t("CSKH:Stats:Batch:Completed"), ...GREEN };
     case SEND_BATCH_STATUS.Cancelled:
       return { label: t("CSKH:Stats:Batch:Cancelled"), bg: NEUTRAL.bg, color: "var(--bd-faint)" };
+    case SEND_BATCH_STATUS.Stopped:
+      return { label: t("CSKH:Stats:Batch:Stopped"), bg: NEUTRAL.bg, color: "var(--bd-faint)" };
   }
 }
 
@@ -51,7 +53,7 @@ export function recipientLook(recipient: StatsRecipient): StatsLook {
 const shortDate = (instant: string) => dayjs(instant).format("DD/MM");
 
 /** Tệp khách hàng: "Hẹn ngày · 22/10" for a care list, "Khách lẻ" for picked customers. */
-export function audienceLabel(batch: StatsBatch): string {
+export function audienceLabel(batch: Pick<StatsBatch, "source" | "careType" | "fromDate" | "toDate">): string {
   if (batch.source === RECIPIENT_SOURCE.Individual || batch.careType === null) {
     return t("CSKH:Send:Source:Individual");
   }
@@ -72,8 +74,8 @@ export interface BatchResult {
 /** Kết quả: "398 / 642 đã gửi" while it runs, "302 thành công · 16 lỗi" once done. */
 export function batchResult(batch: StatsBatch): BatchResult {
   const handled = batch.sentCount + batch.failedCount;
-  // Hẹn giờ gửi, or called off before its time: nothing went out yet.
-  if (handled === 0 && (batch.status === SEND_BATCH_STATUS.Queued || batch.status === SEND_BATCH_STATUS.Cancelled)) {
+  // Hẹn giờ gửi, or called off / stopped before anything went: nothing went out yet.
+  if (handled === 0 && batch.status !== SEND_BATCH_STATUS.Sending && batch.status !== SEND_BATCH_STATUS.Completed) {
     return { text: t("CSKH:Stats:Result:NotSent"), value: 0, max: batch.recipientCount, tone: "blue" };
   }
   if (batch.status === SEND_BATCH_STATUS.Queued || batch.status === SEND_BATCH_STATUS.Sending) {

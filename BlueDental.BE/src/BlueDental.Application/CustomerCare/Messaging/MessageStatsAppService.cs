@@ -12,7 +12,6 @@ using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.CustomerCare.Messaging;
 
@@ -29,7 +28,7 @@ public class MessageStatsAppService(
     IRepository<MessageLog, Guid> messages,
     IRepository<MessageSendBatch, Guid> batches,
     IRepository<MessageTemplate, Guid> templates,
-    IIdentityUserRepository users,
+    MessageSenderNames senderNames,
     MessageBatchCounter counter,
     PatientPhoneMasker phoneMasker,
     BranchAccessChecker branchAccess,
@@ -69,7 +68,8 @@ public class MessageStatsAppService(
     {
         var branchId = await GetBranchIdAsync();
         var used = (await messages.GetQueryableAsync())
-            .Where(m => m.ClinicBranchId == branchId && m.TemplateId != null)
+            .Where(m => m.ClinicBranchId == branchId && m.TemplateId != null
+                && MessageSendStatuses.Messages.Contains(m.Status))
             .Select(m => m.TemplateId);
 
         List<MessageTemplate> found;
@@ -163,6 +163,8 @@ public class MessageStatsAppService(
     /// <summary>
     /// Every message of the branch with the time it belongs to: when it went,
     /// else when its send started or is set to start, else when it was booked.
+    /// Customers left out of a send, and messages a stop kept from going, were
+    /// never messages here (F-79).
     /// </summary>
     private async Task<IQueryable<MessageFact>> FactsAsync(Guid branchId, MessageStatsFilterInput filter)
     {
@@ -172,7 +174,7 @@ public class MessageStatsAppService(
             from m in logs
             join b in sends on m.SendBatchId equals (Guid?)b.Id into joined
             from b in joined.DefaultIfEmpty()
-            where m.ClinicBranchId == branchId
+            where m.ClinicBranchId == branchId && MessageSendStatuses.Messages.Contains(m.Status)
             select new MessageFact
             {
                 Id = m.Id,
@@ -282,7 +284,7 @@ public class MessageStatsAppService(
     private async Task<List<MessageStatsBatchDto>> ToBatchDtosAsync(List<MessageSendBatch> page)
     {
         var counts = await counter.CountAsync([.. page.Select(b => b.Id)]);
-        var senders = await StaffNamesAsync(page.Select(b => b.CreatorId));
+        var senders = await senderNames.LoadAsync(page.Select(b => b.CreatorId));
         return [.. page.Select(b =>
         {
             var of = counts.GetValueOrDefault(b.Id) ?? MessageBatchCounts.None;
@@ -394,28 +396,6 @@ public class MessageStatsAppService(
 
     private static string? NameOf(Guid? templateId, string? logged, IReadOnlyDictionary<Guid, string> names) =>
         templateId is { } id && names.TryGetValue(id, out var name) ? name : logged;
-
-    private async Task<Dictionary<Guid, string>> StaffNamesAsync(IEnumerable<Guid?> ids)
-    {
-        var userIds = ids.OfType<Guid>().Distinct().ToList();
-        if (userIds.Count == 0)
-        {
-            return [];
-        }
-
-        // Staff removed since still name the sends they made.
-        List<IdentityUser> found;
-        using (DataFilter.Disable<ISoftDelete>())
-        {
-            found = await users.GetListByIdsAsync(userIds);
-        }
-
-        return found.ToDictionary(u => u.Id, u =>
-        {
-            var fullName = string.Join(" ", new[] { u.Surname, u.Name }.Where(x => !string.IsNullOrWhiteSpace(x)));
-            return string.IsNullOrWhiteSpace(fullName) ? u.UserName : fullName;
-        });
-    }
 
     private static bool IsSucceeded(Tally t) => MessageTemplateUsageReader.Delivered.Contains(t.Status);
 

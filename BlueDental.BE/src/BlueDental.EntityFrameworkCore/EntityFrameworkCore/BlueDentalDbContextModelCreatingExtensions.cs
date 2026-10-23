@@ -1633,6 +1633,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.ExternalTemplateId).HasMaxLength(MessageLog.MaxExternalTemplateIdLength);
             entity.Property(x => x.TemplateName).HasMaxLength(MessageLog.MaxTemplateNameLength);
             entity.Property(x => x.Cost).HasPrecision(18, 2);
+            entity.Property(x => x.SkipReason).HasConversion<short?>();
             entity.HasIndex(x => new { x.Channel, x.CreationTime });
             entity.HasIndex(x => x.ExternalMessageId);
             entity.HasIndex(x => x.SendBatchId);
@@ -1649,6 +1650,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.CareType).HasConversion<short?>();
             entity.Property(x => x.Status).HasConversion<short>();
             entity.HasIndex(x => new { x.ClinicBranchId, x.Status, x.ScheduledAt });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.CreationTime });
         });
 
         builder.Entity<StaffNotes.StaffNote>(entity =>

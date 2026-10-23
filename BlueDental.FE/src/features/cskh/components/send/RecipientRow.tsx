@@ -3,7 +3,7 @@ import { formatDate } from "@/utils/format";
 import type { MessageRecipient } from "../../api/sendApi";
 import { MESSAGE_CHANNEL, type MessageChannel } from "../../api/templateApi";
 import { missingLabel } from "../../messageVariables";
-import { recipientKind } from "../../sendRecipients";
+import { isUnreachable, recipientKind } from "../../sendRecipients";
 
 /** Khách lẻ ticks rows in and out; a care list numbers them and "Xóa" drops one. */
 export type RowLead = { kind: "number"; index: number } | { kind: "tick"; checked: boolean };
@@ -23,7 +23,7 @@ function contactOf(recipient: MessageRecipient, channel: MessageChannel): string
 
 function Lead({ recipient, lead, onToggle }: Pick<RecipientRowProps, "recipient" | "lead" | "onToggle">) {
   if (lead.kind === "number") return <span className="snd-row-index">{lead.index + 1}</span>;
-  const unreachable = recipientKind(recipient) === "no" || recipient.patientId === null;
+  const unreachable = isUnreachable(recipientKind(recipient)) || recipient.patientId === null;
   return (
     <input
       type="checkbox"
@@ -41,7 +41,7 @@ export function RecipientRow(props: RecipientRowProps) {
   const { recipient, channel, contactName, lead, onToggle, onRemove } = props;
   const kind = recipientKind(recipient);
   const contact = contactOf(recipient, channel);
-  const picked = lead.kind === "tick" && lead.checked && kind !== "no";
+  const picked = lead.kind === "tick" && lead.checked && !isUnreachable(kind);
   const tone = picked ? "picked" : kind === "ok" ? "ok" : "skip";
 
   return (
@@ -56,6 +56,10 @@ export function RecipientRow(props: RecipientRowProps) {
           <span className="snd-row-missing">
             {t("CSKH:Send:MissingVars", recipient.missing.map(missingLabel).join(", "))}
           </span>
+        )}
+        {kind === "invalid" && <span className="snd-row-missing">{t("CSKH:Send:InvalidPhoneRow")}</span>}
+        {kind === "merged" && (
+          <span className="snd-row-merged">{t("CSKH:Send:MergedInto", recipient.mergedIntoName ?? "")}</span>
         )}
       </span>
       <span role="cell" className="snd-cell">

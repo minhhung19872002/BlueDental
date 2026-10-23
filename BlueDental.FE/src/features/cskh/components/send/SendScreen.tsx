@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
 import { t } from "@/lib/i18n";
 import { EmptyState } from "@/components/EmptyState";
@@ -14,7 +15,7 @@ import { useSendRecipients } from "../../hooks/useSendRecipients";
 import { useSendSchedule } from "../../hooks/useSendSchedule";
 import { useSendTemplateChoice } from "../../hooks/useSendTemplateChoice";
 import { contactNameOf, sendSummaryOf } from "../../sendSummary";
-import { careBoardPath, TEMPLATE_LIST_PATH, templateEditorPath } from "../../templatePaths";
+import { CAMPAIGN_LIST_PATH, careBoardPath, TEMPLATE_LIST_PATH, templateEditorPath } from "../../templatePaths";
 import { ScheduledSends } from "./ScheduledSends";
 import { SendActions } from "./SendActions";
 import { SendChannelStep } from "./SendChannelStep";
@@ -35,6 +36,7 @@ import { SendTemplateStep } from "./SendTemplateStep";
 export function SendScreen() {
   const params = useSendParams();
   const branchId = useCurrentBranchId();
+  const navigate = useNavigate();
   const { canCreate } = useAbility("cskhSend");
   const choice = useSendTemplateChoice(params.channelParam, params.templateId);
   const picks = useIndividualPicks(params.lockedPatientId);
@@ -61,10 +63,8 @@ export function SendScreen() {
     recipients,
     removedCount: removal.count,
     schedule,
-    onSent: () => {
-      removal.undo();
-      schedule.toggle(false);
-    },
+    /* The send lands on top of "Chiến dịch đã gửi" (BA P2210). */
+    onSent: () => navigate(withBranch(CAMPAIGN_LIST_PATH, branchId)),
   });
 
   const carePath = withBranch(careBoardPath(params.careTab.key, params.mode, params.date.format("YYYY-MM-DD")), branchId);

@@ -1,8 +1,45 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import * as XLSX from "xlsx";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import {
+  BATCH,
+  BRANCH_ONE,
+  BRANCH_TWO,
+  CHANNEL,
+  SENDS,
+  TEMPLATES,
+  ZALO,
+  addCustomer,
+  asBranchOne,
+  batchOf,
+  book,
+  changeContact,
+  confirmSend,
+  cta,
+  customerRow,
+  days,
+  expectCampaignList,
+  linkStub,
+  linkStubIfIdle,
+  makeStaff,
+  newPatient,
+  openSend,
+  openSession,
+  pickTemplate,
+  scheduleSend,
+  secondsFromNow,
+  setGrant,
+  stubConfig,
+  templateTrigger,
+  toast,
+  tomorrowAt,
+  unlink,
+  zaloTemplate,
+  znsSendsTo,
+  type Batch,
+  type Template,
+} from "./fixtures/messageSend";
 import { call } from "./fixtures/timekeepingStaff";
-import { openShiftCovering } from "./fixtures/workShift";
 
 /**
  * Feature: CSKH ▸ Gửi tin nhắn (F-77, BA P2110 + "3 · Gửi tin nhắn" layout).
@@ -11,7 +48,7 @@ import { openShiftCovering } from "./fixtures/workShift";
  * missing variable are skipped and named; the 30-day guard; Xóa / Hoàn tác;
  * Hẹn giờ gửi and Huỷ hẹn; Gửi thử tới tôi; SMS shown as not connected; the
  * entries from the board and from the template list; cskhSend read / create;
- * branch scope.
+ * branch scope. After Gửi the screen hands over to Chiến dịch đã gửi (F-79).
  *
  * Real login screen, real API, real PostgreSQL, the real send job; nothing is
  * intercepted. Zalo itself is the local stub (e2e/fixtures/zalo-stub.mjs) the
@@ -28,242 +65,11 @@ declare global {
   }
 }
 
-const SENDS = "/api/v1/app/message-sends";
-const TEMPLATES = "/api/v1/app/message-templates";
-const ZALO = "/api/v1/app/zalo";
-const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
-const BRANCH_TWO = "22222222-2222-2222-2222-222222222222";
-const STUB_URL = process.env.E2E_ZALO_STUB_URL ?? "http://127.0.0.1:5199";
-const PASSWORD = "GuiTin@123456";
-const CHANNEL = { Sms: 0, Zalo: 1 } as const;
-const BATCH = { Completed: 2, Cancelled: 3 } as const;
 const CARE_APPOINTMENT_REMINDER = 3;
-const asBranchOne = { branchId: BRANCH_ONE };
 
-interface Patient {
-  id: string;
-  firstName: string;
-  name: string;
-  phone: string;
-}
-
-interface Batch {
-  id: string;
-  status: number;
-  recipientCount: number;
-  skippedCount: number;
-  sentCount: number;
-  failedCount: number;
-}
-
-interface Template {
-  id: string;
-  name: string;
-  status: number;
-}
-
-const toast = (page: Page, text: string | RegExp) => page.locator("[data-sonner-toast]", { hasText: text });
-const customerRow = (page: Page, name: string) => page.getByRole("row").filter({ hasText: name });
 const stat = (page: Page, tone: string) => page.locator(`.snd-stat--${tone}`);
-const cta = (page: Page) => page.locator(".snd-cta");
-const templateTrigger = (page: Page) => page.getByRole("button", { name: /^Chọn mẫu từ danh sách mẫu/ });
 const skipRecentBox = (page: Page) =>
   page.getByRole("checkbox", { name: "Không gửi lại cho khách đã nhận mẫu này trong 30 ngày" });
-
-/** dd/mm/yyyy and yyyy-mm-dd of the same local day. */
-function days(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const [y, m, d] = [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())];
-  return { shown: `${d}/${m}/${y}`, iso: `${y}-${m}-${d}` };
-}
-
-function tomorrowAt(hour: number): Date {
-  const day = new Date();
-  day.setDate(day.getDate() + 1);
-  day.setHours(hour, 0, 0, 0);
-  return day;
-}
-
-/** An approved ZNS template (#301001 on the stub) for Nhắc lịch hẹn, every parameter mapped. */
-async function zaloTemplate(page: Page, name: string): Promise<Template> {
-  const res = await call<Template>(page, TEMPLATES, {
-    ...asBranchOne,
-    method: "POST",
-    json: {
-      publish: true,
-      channel: CHANNEL.Zalo,
-      name,
-      purpose: CARE_APPOINTMENT_REMINDER,
-      content: null,
-      subject: null,
-      externalTemplateId: "301001",
-      paramMap: {
-        customer_name: "{ten_khach_hang}",
-        booking_date: "{ngay_hen}",
-        booking_time: "{gio_hen}",
-        promo_note: "Nhớ mang theo sổ khám",
-      },
-      removeDiacritics: false,
-    },
-  });
-  expect(res.status, JSON.stringify(res.body)).toBe(200);
-  expect(res.body.status, "the stub approved #301001").toBe(1);
-  return res.body;
-}
-
-async function newPatient(page: Page): Promise<Patient> {
-  const suffix = runId() + String(Math.floor(Math.random() * 90 + 10));
-  const firstName = `Gửi ${suffix}`;
-  const phone = `09${suffix.padStart(8, "0").slice(-8)}`;
-  const res = await call<{ id: string }>(page, "/api/v1/app/patients", {
-    ...asBranchOne,
-    method: "POST",
-    json: { firstName, lastName: "E2E", dateOfBirth: null, gender: "female", phoneNumber: phone },
-  });
-  expect(res.status, JSON.stringify(res.body)).toBe(200);
-  return { id: res.body.id, firstName, name: `E2E ${firstName}`, phone };
-}
-
-/** The hồ sơ edit: a new number, or none at all (a hồ sơ then needs an email). */
-async function changeContact(page: Page, patient: Patient, phoneNumber: string | null, email: string | null = null): Promise<void> {
-  const res = await call(page, `/api/v1/app/patients/${patient.id}`, {
-    ...asBranchOne,
-    method: "PUT",
-    json: { firstName: patient.firstName, lastName: "E2E", dateOfBirth: null, gender: "female", phoneNumber, email },
-  });
-  expect(res.status, JSON.stringify(res.body)).toBe(200);
-}
-
-/**
- * Books the patient at `start` with the first dentist on shift then. Runs on
- * the same day fill the dentists' slots, so the double-booking warning is
- * confirmed the way the dialog's Xác nhận does (R-971).
- */
-async function book(page: Page, patientId: string, start: Date): Promise<void> {
-  const staff = await call<{ items: { id: string }[] }>(page, "/api/v1/app/staff?MaxResultCount=20", asBranchOne);
-  const end = new Date(start.getTime() + 30 * 60_000);
-  for (const dentist of staff.body.items) {
-    if (!(await openShiftCovering(page, BRANCH_ONE, dentist.id, start, end))) continue;
-    const res = await call(page, "/api/v1/app/appointments", {
-      ...asBranchOne,
-      method: "POST",
-      json: {
-        patientId,
-        dentistId: dentist.id,
-        branchId: BRANCH_ONE,
-        slotStart: start.toISOString(),
-        slotEnd: end.toISOString(),
-        type: 2,
-        chiefComplaint: `e2e gửi tin ${runId()}`,
-        allowDentistOverlap: true,
-      },
-    });
-    if (res.status === 200) return;
-  }
-  throw new Error("no dentist could take the e2e booking");
-}
-
-/** ZNS sends the stub took for this phone (Zalo gets it as 84…, so the tail is compared). */
-async function znsSendsTo(phone: string): Promise<{ body: string }[]> {
-  const calls = (await (await fetch(`${STUB_URL}/__calls`)).json()) as { path: string; body: string }[];
-  return calls.filter((c) => c.path === "/message/template" && c.body.includes(phone.slice(1)));
-}
-
-async function openSend(page: Page, query: string): Promise<void> {
-  const loaded = assertRealApiTraffic(page, `${SENDS}/templates`);
-  await page.goto(`/cskh-grouping/send?branch=BD-001&${query}`);
-  await loaded;
-}
-
-/** Khách lẻ: find the customer by name in the picker and add them. */
-async function addCustomer(page: Page, name: string): Promise<void> {
-  await page.locator(".snd-picker .ss-trigger").click();
-  const dropdown = page.locator("#ss-portal-dropdown");
-  await dropdown.locator(".ss-search-input").fill(name);
-  await dropdown.getByRole("option", { name: new RegExp(name) }).click();
-  await expect(customerRow(page, name)).toHaveCount(1, { timeout: 15_000 });
-}
-
-async function pickTemplate(page: Page, name: string): Promise<void> {
-  await templateTrigger(page).click();
-  await page.getByRole("searchbox", { name: /^Tìm mẫu/ }).fill(name);
-  await page.getByRole("option", { name: new RegExp(name) }).click();
-  await expect(templateTrigger(page)).toContainText(name);
-}
-
-/** Confirms the CTA's dialog; resolves with the batch the server queued. */
-async function confirmSend(page: Page): Promise<Batch> {
-  const dialog = page.getByRole("dialog").filter({ hasText: "Xác nhận gửi tin" });
-  await expect(dialog).toBeVisible();
-  const created = page.waitForResponse((res) => new URL(res.url()).pathname === SENDS && res.request().method() === "POST");
-  await dialog.getByRole("button", { name: /Có$/ }).click();
-  const res = await created;
-  expect(res.status()).toBe(200);
-  return (await res.json()) as Batch;
-}
-
-async function batchOf(page: Page, id: string): Promise<Batch> {
-  return (await call<Batch>(page, `${SENDS}/${id}`, asBranchOne)).body;
-}
-
-/** A throw-away role holding just `grants`, and a staff member of BD-001 in it. */
-async function makeStaff(page: Page, grants: string[], phoneNumber: string | null = null) {
-  const id = runId() + String(Math.floor(Math.random() * 90 + 10));
-  const roleName = `Gửi tin ${id}`;
-  const role = await call<{ id: string }>(page, "/api/identity/roles", {
-    method: "POST",
-    json: { name: roleName, isDefault: false, isPublic: true },
-  });
-  expect(role.status).toBe(200);
-  const granted = await call(page, `/api/permission-management/permissions?providerName=R&providerKey=${encodeURIComponent(roleName)}`, {
-    method: "PUT",
-    json: { permissions: grants.map((name) => ({ name, isGranted: true })) },
-  });
-  expect(granted.status).toBe(204);
-
-  const userName = `guitin${id}`;
-  const staff = await call<{ id: string }>(page, "/api/v1/app/staff", {
-    method: "POST",
-    json: {
-      userName,
-      password: PASSWORD,
-      name: `Nhân viên gửi tin ${id}`,
-      email: `${userName}@bluedental.local`,
-      phoneNumber,
-      roleNames: [roleName],
-      branchIds: [BRANCH_ONE],
-      isActive: true,
-    },
-  });
-  expect(staff.status, JSON.stringify(staff.body)).toBe(200);
-
-  const tearDown = async () => {
-    await call(page, `/api/v1/app/staff/${staff.body.id}`, { method: "DELETE" });
-    await call(page, `/api/identity/roles/${role.body.id}`, { method: "DELETE" });
-  };
-  return { credentials: { userName, password: PASSWORD }, roleName, tearDown };
-}
-
-async function setGrant(page: Page, roleName: string, name: string, isGranted: boolean): Promise<void> {
-  const res = await call(page, `/api/permission-management/permissions?providerName=R&providerKey=${encodeURIComponent(roleName)}`, {
-    method: "PUT",
-    json: { permissions: [{ name, isGranted }] },
-  });
-  expect(res.status).toBe(204);
-}
-
-/** "Hẹn giờ gửi" through the API, for a time a few seconds ahead the UI cannot pick. */
-async function scheduleSend(page: Page, templateId: string, patientIds: string[], at: Date): Promise<Batch> {
-  const res = await call<Batch>(page, SENDS, {
-    ...asBranchOne,
-    method: "POST",
-    json: { channel: CHANNEL.Zalo, templateId, source: 1, patientIds, skipRecentDuplicates: true, scheduledAt: at.toISOString() },
-  });
-  expect(res.status, JSON.stringify(res.body)).toBe(200);
-  return res.body;
-}
-
-const secondsFromNow = (seconds: number) => new Date(Date.now() + seconds * 1000);
 
 /** Why Thống kê CSKH says today's message to this customer failed, in the page's language. */
 async function failureShown(page: Page, name: string): Promise<string | null> {
@@ -289,42 +95,10 @@ async function recipientsInExcel(page: Page, name: string): Promise<string> {
   return XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets["Người nhận"], { header: 1 }).flat().map(String).join("\n");
 }
 
-async function stubConfig(change: Record<string, unknown>): Promise<void> {
-  const res = await fetch(`${STUB_URL}/__config`, { method: "POST", body: JSON.stringify(change) });
-  expect(res.ok).toBe(true);
-}
-
-/**
- * Linked the way a manager links the real OA: the signed state from
- * connect-url comes back on Zalo's redirect, and the stub takes any code.
- */
-async function linkStub(page: Page): Promise<void> {
-  const connect = await call<{ url: string }>(page, `${ZALO}/connect-url`, asBranchOne);
-  expect(connect.status, "connect-url needs the host's Zalo app credentials").toBe(200);
-  const state = new URL(connect.body.url).searchParams.get("state") ?? "";
-  const callback = await page.request.get(`${ZALO}/oauth/callback`, {
-    params: { code: "stub-code", state },
-    maxRedirects: 0,
-  });
-  expect(callback.headers().location).toContain("zalo=connected");
-}
-
-async function unlink(page: Page): Promise<void> {
-  const unlinked = await call(page, `${ZALO}/connection`, { ...asBranchOne, method: "DELETE" });
-  expect(unlinked.status, "unlink the stub OA").toBe(204);
-}
-
 /** The CSKH board's "Đã gửi Zalo" count. */
 async function zaloSentCount(page: Page): Promise<number> {
   const text = await page.getByRole("button", { name: /\d+\s*Đã gửi Zalo/ }).textContent();
   return Number(/\d+/.exec(text ?? "")?.[0]);
-}
-
-async function openSession(browser: Browser, credentials: { userName: string; password: string }) {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await login(page, credentials);
-  return { context, page };
 }
 
 test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
@@ -335,9 +109,7 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    const status = await call<{ isConnected: boolean }>(page, `${ZALO}/status`, asBranchOne);
-    linkedHere = !status.body.isConnected;
-    if (linkedHere) await linkStub(page);
+    linkedHere = await linkStubIfIdle(page);
   });
 
   test.afterEach(async ({ page }) => {
@@ -382,6 +154,8 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     const batch = await confirmSend(page);
     expect(batch).toMatchObject({ recipientCount: 1, skippedCount: 1 });
     await expect(toast(page, "Đã bắt đầu gửi 1 tin Zalo")).toBeVisible();
+    await expectCampaignList(page);
+    await expect(page.locator(".cskh-table tbody tr.ant-table-row").first()).toContainText(template.name);
 
     // The send job picks the batch up within seconds.
     await expect
@@ -397,9 +171,9 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     });
     expect(await znsSendsTo(unbooked.phone)).toEqual([]);
 
-    // Picks live in the page, not the URL: after a reload the customer is
-    // added again and now shows the receipt, so the 30-day guard holds them.
-    await page.reload();
+    // Picked again on a fresh send screen, the customer now shows the
+    // receipt, so the 30-day guard holds them.
+    await openSend(page, `channel=zalo&templateId=${template.id}&to=individual`);
     await addCustomer(page, booked.name);
     await expect(customerRow(page, booked.name)).toContainText(/Đã nhận \d{2}\/\d{2}\/\d{4}/);
     await expect(stat(page, "received")).toHaveText("1 đã nhận mẫu này");
@@ -462,7 +236,13 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     await expect(page.getByRole("dialog").filter({ hasText: "Xác nhận gửi tin" })).toContainText(`“${template.name}” lúc`);
     const batch = await confirmSend(page);
     await expect(toast(page, /Đã hẹn gửi \d+ tin Zalo lúc/)).toBeVisible();
+    await expectCampaignList(page);
+    const listed = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: template.name });
+    await expect(listed).toContainText("Đang gửi");
+    await expect(listed).toContainText(/Hẹn gửi \d{2}\/\d{2} \d{2}:\d{2}/);
 
+    // Huỷ hẹn on the send screen still calls the booked send off.
+    await openSend(page, "channel=zalo&to=individual");
     const queued = page.locator(".snd-queued-item").filter({ hasText: template.name });
     await expect(queued).toContainText("Gửi lúc");
     await queued.getByRole("button", { name: "Huỷ hẹn" }).click();
@@ -696,8 +476,17 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     // A send for now waits as Queued a few seconds too; the list read right after must not carry it.
     await addCustomer(page, patient.name);
     await cta(page).click();
-    const reread = page.waitForResponse((res) => new URL(res.url()).pathname === SENDS && res.request().method() === "GET");
     const now = await confirmSend(page);
+    await expectCampaignList(page);
+    // Gửi hands over to Chiến dịch đã gửi (F-79) while the send screen's own re-read may still be on its
+    // way; only the list the reopened send screen reads counts.
+    const reread = page.waitForResponse(
+      (res) =>
+        new URL(page.url()).pathname === "/cskh-grouping/send" &&
+        new URL(res.url()).pathname === SENDS &&
+        res.request().method() === "GET",
+    );
+    await openSend(page, `channel=zalo&templateId=${template.id}&to=individual`);
     const listed = await reread;
     expect(new URL(listed.url()).searchParams.get("scheduled")).toBe("true");
     expect(((await listed.json()) as Batch[]).map((b) => b.id)).not.toContain(now.id);

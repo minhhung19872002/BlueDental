@@ -1,0 +1,193 @@
+/* ── CSKH ▸ Chiến dịch đã gửi + Kết quả lần gửi (F-79, BA P2210) ───────────
+   The list is a tab of /cskh-grouping; one send's result has a page of its
+   own: crumbs and buttons, the send's chips, its figures, one stacked bar of
+   where every chosen customer ended up, then every customer. */
+
+/* List ─────────────────────────────────────────────────────────────────── */
+
+.cmp-template {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cmp-template .cskh-stats-strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Result page ─────────────────────────────────────────────────────────── */
+
+.cmp-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cmp-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.cmp-head-card {
+  gap: 10px;
+}
+
+.cmp-title,
+.cmp-section-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.cmp-title {
+  font-size: 18px;
+}
+
+.cmp-section-title {
+  font-size: 15px;
+}
+
+.cmp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmp-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+/* Outcome bar: one part per outcome over Khách đã chọn, a 2px gap between
+   parts, rounded ends; the legend and reasons name every part in words. */
+
+.cmp-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bd-bg-soft);
+}
+
+.cmp-bar-part {
+  flex: var(--part) 1 0;
+  min-width: 4px;
+}
+
+.cmp-tone--1 {
+  background: var(--bd-green);
+}
+
+.cmp-tone--2 {
+  background: var(--bd-red);
+}
+
+/* Bị loại light grey as the BA drew it; Đã dừng a darker slate so the two
+   greys still part when a stopped send also left customers out. */
+.cmp-tone--3 {
+  background: var(--bd-faint);
+}
+
+.cmp-tone--4 {
+  background: var(--bd-primary);
+}
+
+.cmp-tone--5 {
+  background: var(--bd-muted);
+}
+
+.cmp-legend,
+.cmp-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmp-legend {
+  gap: 8px 24px;
+}
+
+.cmp-legend-item,
+.cmp-reason {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.cmp-legend-item strong,
+.cmp-reason strong {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.cmp-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.cmp-reasons {
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.cmp-reason {
+  padding: 4px 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-bg-soft);
+}
+
+.cmp-reason-label {
+  color: var(--bd-ink);
+}
+
+.cmp-note {
+  margin: 0;
+  color: var(--bd-dim);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .cmp-head-actions {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .cmp-title {
+    font-size: 16px;
+  }
+
+  .cmp-legend {
+    gap: 8px 16px;
+  }
+
+  .cmp-head-actions,
+  .cmp-head-actions .ant-btn {
+    width: 100%;
+  }
+}

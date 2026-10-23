@@ -8,11 +8,11 @@ export const RECIPIENT_SOURCE = { CareList: 0, Individual: 1 } as const;
 export type RecipientSource = (typeof RECIPIENT_SOURCE)[keyof typeof RECIPIENT_SOURCE];
 
 /** Matches BlueDental.Tools.MessageSkipReason. */
-export const SKIP_REASON = { NoContact: 1, RecentlySent: 2, MissingVariable: 3 } as const;
+export const SKIP_REASON = { NoContact: 1, RecentlySent: 2, MissingVariable: 3, InvalidPhone: 4, MergedPhone: 5 } as const;
 export type SkipReason = (typeof SKIP_REASON)[keyof typeof SKIP_REASON];
 
 /** Matches BlueDental.Tools.MessageSendBatchStatus. */
-export const SEND_BATCH_STATUS = { Queued: 0, Sending: 1, Completed: 2, Cancelled: 3 } as const;
+export const SEND_BATCH_STATUS = { Queued: 0, Sending: 1, Completed: 2, Cancelled: 3, Stopped: 4 } as const;
 export type SendBatchStatus = (typeof SEND_BATCH_STATUS)[keyof typeof SEND_BATCH_STATUS];
 
 /** Mirrors BlueDental.CustomerCare.Messaging.MessageSendLimits. */
@@ -76,6 +76,9 @@ export interface MessageRecipient {
   receivedPending: boolean;
   skipReason: SkipReason | null;
   missing: string[];
+  /** "Gộp trùng số": the row whose message this customer shares, by key and name. */
+  mergedIntoKey: string | null;
+  mergedIntoName: string | null;
 }
 
 export interface RecipientList {
@@ -200,8 +203,8 @@ export function useScheduledSends() {
   });
 }
 
-/** A send changes "đã gửi", the "Đã nhận" column and the CSKH rows' Zalo mark. */
-function useInvalidateAfterSend() {
+/** A send changes "đã gửi", the "Đã nhận" column, the CSKH rows' Zalo mark and Chiến dịch đã gửi. */
+export function useInvalidateAfterSend() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: sendKeys.all });

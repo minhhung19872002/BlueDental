@@ -3085,3 +3085,26 @@ Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
 - File Excel tối đa 50.000 người nhận; 4 sheet Theo ngày, Theo mẫu, Lịch sử gửi, Người nhận.
 - Mọi bảng có phân trang, tối đa 100 dòng một trang.
 - Stub Zalo của e2e từ chối mọi số `0399…` (-108) để có tin Thất bại thật; Zalo thật không có quy tắc này.
+
+## CSKH — Chiến dịch đã gửi + Kết quả lần gửi (F-79, R-1020, 2026-10-23, BA P2210 phần B)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/cskh-grouping?tab=campaign` và `/cskh-grouping/campaigns/:id` (develop)
+Control: danh sách lần gửi, nút Tạm dừng / Lịch sử, "+ Tạo chiến dịch", trang Kết quả lần gửi (thẻ số, thanh, lý do, bảng từng khách, Xuất Excel danh sách lỗi)
+Reason: tính năng riêng của BlueDental theo phần B của `P2210.drawio`; bản gốc không có, không có gì để quan sát. Ảnh BA không nói các điểm dưới đây. Xem `pages/cskh-messaging.md` và `docs/testing/features/cskh-message-campaigns.md`.
+Action taken: NONE trên production. Theo quyết định của chủ dự án / BA (2026-10-23):
+- Bỏ cột "Chiến dịch" và "Tên chiến dịch"; Template là cột đầu.
+- Bỏ "Gọi điện" / "Xử lý tiếp". Không có "Đã xem".
+- Tạm dừng = Option 2 của BA: tin đã đi giữ nguyên, phần còn lại không bao giờ đi, không có "gửi tiếp".
+- R12 "Sai định dạng số" là lý do bị loại riêng; R05 gộp trùng số: làm.
+- **R13** (đã ghi nhớ không có Zalo): chưa quyết, chưa dựng gì.
+Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
+- Gửi xong (ngay hoặc hẹn giờ) màn Gửi tin nhắn quay về tab Chiến dịch đã gửi.
+- Tạm dừng một lần hẹn giờ chưa chạy = huỷ lần đó (Cancelled), hiện "Đã dừng" như lần đang chạy bị dừng.
+- Thời điểm của tin thất bại không có lúc gửi = lúc lần gửi bắt đầu.
+- Thời điểm trong bảng từng khách: giờ:phút:giây nếu cùng ngày với lần gửi, khác ngày thì có cả ngày.
+- Ngày giờ ở danh sách: "dd/MM HH:mm", năm chỉ hiện khi khác năm nay.
+- Chi phí chỉ tính tin gửi được; tin thất bại hiện 0 đ, bị loại / chờ / dừng hiện "—".
+- R05: hồ sơ mang tin là hồ sơ đầu khi xếp theo tên (vi-VN, không phân biệt hoa thường).
+- Lần gửi cũ (trước F-79) không lưu người bị loại: chỉ có số đếm và một dòng ghi chú.

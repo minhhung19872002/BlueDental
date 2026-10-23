@@ -40,6 +40,12 @@ public class MessageLog : CreationAuditedEntity<Guid>
     /// <summary>The CSKH list row the customer was sent from, when the batch came off a list.</summary>
     public Guid? CareRecordId { get; private set; }
 
+    /// <summary>Why a <see cref="MessageSendStatus.Skipped"/> customer got no message (F-79).</summary>
+    public MessageSkipReason? SkipReason { get; private set; }
+
+    /// <summary>The message of the same send that went to this customer's phone instead (R05 "Gộp trùng số").</summary>
+    public Guid? MergedIntoMessageId { get; private set; }
+
     private MessageLog() { }
 
     public MessageLog(
@@ -60,6 +66,28 @@ public class MessageLog : CreationAuditedEntity<Guid>
         Status = status;
         SentAt = sentAt;
         ErrorMessage = Clip(errorMessage, MaxErrorLength);
+    }
+
+    /// <summary>
+    /// A customer of a send left out before it went (BA P2210, F-79), kept so
+    /// "Kết quả lần gửi" can list them with the reason. Never sent, never retried.
+    /// </summary>
+    public static MessageLog Skip(
+        Guid id, Guid clinicBranchId, Guid? patientId, Guid? templateId,
+        string recipientName, string? recipientPhone, MessageChannelType channel,
+        MessageSkipReason reason, Guid? mergedIntoMessageId = null)
+    {
+        if ((reason == MessageSkipReason.MergedPhone) != mergedIntoMessageId.HasValue)
+        {
+            throw new ArgumentException("A merged customer, and only one, names the message it went into.", nameof(mergedIntoMessageId));
+        }
+
+        return new MessageLog(id, clinicBranchId, patientId, templateId, recipientName, recipientPhone ?? string.Empty,
+            string.Empty, channel, MessageSendStatus.Skipped, null, null)
+        {
+            SkipReason = reason,
+            MergedIntoMessageId = mergedIntoMessageId,
+        };
     }
 
     public MessageLog SetExternalTemplate(string? externalTemplateId, string? templateName = null)
@@ -131,4 +159,21 @@ public enum MessageSendStatus
     Sent = 1,
     Failed = 2,
     Delivered = 3,
+
+    /// <summary>Left out of the send before it went — see <see cref="MessageLog.SkipReason"/> (F-79).</summary>
+    Skipped = 4,
+
+    /// <summary>Was waiting when the send was stopped or called off; never goes (F-79).</summary>
+    Stopped = 5,
+}
+
+public static class MessageSendStatuses
+{
+    /// <summary>
+    /// The rows that are messages — waiting, or tried. Skipped and stopped
+    /// customers belong only to their send's "Kết quả lần gửi", so counts,
+    /// logs and stats read through this.
+    /// </summary>
+    public static readonly MessageSendStatus[] Messages =
+        [MessageSendStatus.Pending, MessageSendStatus.Sent, MessageSendStatus.Failed, MessageSendStatus.Delivered];
 }

@@ -118,6 +118,14 @@ public class MessageRecipientDto
     /// <summary>Null when the customer will get the message.</summary>
     public MessageSkipReason? SkipReason { get; set; }
 
+    /// <summary>
+    /// "Gộp trùng số" (BA P2210 R05): the row whose message also covers this
+    /// one, when they share a phone — its <see cref="Key"/> and name.
+    /// </summary>
+    public string? MergedIntoKey { get; set; }
+
+    public string? MergedIntoName { get; set; }
+
     /// <summary>The variables or ZNS parameters the customer has no value for.</summary>
     public List<string> Missing { get; set; } = [];
 }

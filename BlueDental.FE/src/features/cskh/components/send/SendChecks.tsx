@@ -24,7 +24,9 @@ function recipientsDetail(stats: RecipientStats, contactName: string): string {
   const parts = [
     stats.received > 0 && t("CSKH:Send:Check:Received", stats.received),
     stats.noContact > 0 && t("CSKH:Send:Check:NoContact", stats.noContact, contactName),
+    stats.invalidPhone > 0 && t("CSKH:Send:Check:InvalidPhone", stats.invalidPhone),
     stats.missing > 0 && t("CSKH:Send:Check:Missing", stats.missing),
+    stats.merged > 0 && t("CSKH:Send:Check:Merged", stats.merged),
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : t("CSKH:Send:Check:AllReach");
 }
