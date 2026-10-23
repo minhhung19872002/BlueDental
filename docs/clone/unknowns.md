@@ -3108,3 +3108,28 @@ Mặc định BlueDental tự chọn, chưa có xác nhận của BA:
 - Chi phí chỉ tính tin gửi được; tin thất bại hiện 0 đ, bị loại / chờ / dừng hiện "—".
 - R05: hồ sơ mang tin là hồ sơ đầu khi xếp theo tên (vi-VN, không phân biệt hoa thường).
 - Lần gửi cũ (trước F-79) không lưu người bị loại: chỉ có số đếm và một dòng ghi chú.
+## CSKH — Hộp thư Zalo + Lịch sử chăm sóc (F-79, R-1020, 2026-10-23, BA P2210)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/cskh-grouping?tab=inbox` và `/patient/:id?tab=care` (nhánh `wip/zalo-inbox-f79`)
+Control: Hộp thư Zalo (danh sách, chat, Nhận xử lý / Chuyển cho / Nhả, mẫu ZNS, tag, ghi chú) và tab Chăm sóc KH (Mở chat Zalo, Gửi tin, Lịch sử chăm sóc khách hàng)
+Reason: tính năng riêng của BlueDental theo `P2210.drawio`; bản gốc không có, không có gì để quan sát. Ghi chú BA không nói các điểm dưới đây. Xem `docs/testing/features/zalo-inbox.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- Giữ hội thoại 15 phút theo ghi chú BA ("sau 15p"); ảnh mock ghi "Tự nhả sau 10 phút". Tính lại 15 phút sau mỗi lần trả lời; hết hạn tự coi là trống, không có job dọn.
+- Chỉ người đang giữ trả lời, gửi ZNS, chuyển, nhả. "Chuyển cho" chỉ hiện khi chính mình giữ.
+- Tag lưu theo hội thoại, không dùng danh mục Thẻ hồ sơ (để không đụng `/taxonomy`). Tối đa 10 tag × 30 ký tự.
+- Ai có quyền xử lý cũng sửa / xoá được ghi chú của người khác; log ghi ai làm.
+- Ghi chú ở chat và ở hồ sơ là cùng một dữ liệu ("đồng bộ với cái ghi chú ở khung chát").
+- Mẫu ZNS: ZNS là mẫu Zalo đã duyệt, chỉ thay tham số, không có văn bản sửa được, nên **không** chèn vào ô soạn tin. Chọn mẫu hiện thẻ xem trước đổ dữ liệu khách dưới khung chat; chọn mẫu khác thì thay (nhánh "xoá cái cũ" của BA). Gửi tới SĐT của hồ sơ liên kết.
+- Gửi ZNS từ hộp thư chỉ cần `cskhInbox.update`, không cần `cskhSend.create`.
+- Tin tư vấn chỉ trong 48 giờ kể từ tin cuối của khách (quy định của Zalo, khớp mock); quá hạn chỉ gửi ZNS.
+- Liên kết user Zalo → hồ sơ: SĐT khách chia sẻ khớp đúng 1 hồ sơ, hoặc webhook ZNS đã nhận, hoặc chọn tay. Hai hồ sơ cùng SĐT thì không tự liên kết.
+- Một OA nối nhiều chi nhánh: tin vào chi nhánh nối sớm nhất.
+- "Đã liên hệ / Chưa liên hệ" theo 90 ngày chỉ tính tin CSKH gửi thành công (ZNS / SMS / email, trả lời chat), theo ghi chú BA. Dòng chữ trong mock có nhắc "gọi được": không tính cuộc gọi.
+- Tóm tắt chi phí theo năm dương lịch (giờ phòng khám). Bộ lọc ngày chỉ áp cho dòng thời gian, mặc định tất cả thời gian.
+- Cuộc gọi khớp theo SĐT hồ sơ (`CallLog` không có `PatientId`). "Hội thoại Zalo" trong tóm tắt đếm số tin nhắn chat, ghi là "Tin nhắn chat Zalo".
+- Không làm: nút "Gọi điện" (BA chỉ yêu cầu 2 nút; app chưa có click-to-call), khối "Lịch sử chăm sóc" ở cột phải Hộp thư, dòng "Không nhận tin (R08)", dòng hệ thống "Phát sinh đợt điều trị mới".
+- Màn hình tự lấy lại theo chu kỳ (danh sách 10 giây, chat 5 giây); chưa có SignalR.
+- Màu, font theo thiết kế v2, không theo bảng màu ảnh BA.
+Giả định về Zalo chưa kiểm được với OA thật: webhook ZNS đã nhận có `recipient.id` = user_id; echo `oa_send_text` mang đúng `message_id` mà `message/cs` trả về; `src` = 0 là tin OA gửi trong API hội thoại.
