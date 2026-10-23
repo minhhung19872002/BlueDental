@@ -24,6 +24,7 @@ import "../components/cskh-template.css";
 import "../components/cskh-stats.css";
 import "../components/campaigns/cskh-campaign.css";
 import "../components/cskh-inbox.css";
+import "../components/cskh-notes.css";
 
 type TopTabKey = "care" | "group" | "inbox" | "campaign" | "template";
 

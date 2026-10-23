@@ -2,26 +2,27 @@ import { useState } from "react";
 import { Button, Spin } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { useConversationNotes, useCreateNote } from "../../api/inboxApi";
+import { useCareNotes, useCreateNote, type NoteOwner } from "../../api/careNoteApi";
 import { NoteEditor } from "./NoteEditor";
 import { NoteItem } from "./NoteItem";
 
 interface Props {
-  conversationId: string;
+  owner: NoteOwner;
   canEdit: boolean;
 }
 
 /**
- * "Ghi chú nội bộ" (BA P2210): free text; newest first; a deleted note stays,
- * struck through, with who deleted it.
+ * "Ghi chú nội bộ" beside the chat (BA P2210): free text; newest first; a
+ * deleted note stays, struck through, with who deleted it. The record's
+ * Lịch sử chăm sóc shows the same notes.
  */
-export function NotesSection({ conversationId, canEdit }: Props) {
-  const notes = useConversationNotes(conversationId);
-  const create = useCreateNote(conversationId);
+export function NotesSection({ owner, canEdit }: Props) {
+  const notes = useCareNotes(owner);
+  const create = useCreateNote();
   const [writing, setWriting] = useState(false);
 
   const handleCreate = (content: string) =>
-    create.mutate({ id: conversationId, content }, { onSuccess: () => setWriting(false) });
+    create.mutate({ owner, input: { content } }, { onSuccess: () => setWriting(false) });
 
   return (
     <section className="ibx-side-block" aria-label={t("CSKH:Inbox:Notes")}>
@@ -37,9 +38,9 @@ export function NotesSection({ conversationId, canEdit }: Props) {
       )}
       <Spin spinning={notes.isLoading}>
         {notes.data?.length === 0 && !writing && <p className="ibx-side-text">{t("CSKH:Inbox:NoNotes")}</p>}
-        <ul className="ibx-notes">
+        <ul className="cn-notes">
           {(notes.data ?? []).map((note) => (
-            <NoteItem key={note.id} conversationId={conversationId} note={note} canEdit={canEdit} />
+            <NoteItem key={note.id} note={note} canEdit={canEdit} />
           ))}
         </ul>
       </Spin>

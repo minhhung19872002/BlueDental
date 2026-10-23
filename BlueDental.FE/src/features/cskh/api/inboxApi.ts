@@ -36,10 +36,6 @@ export type ChatSource = (typeof CHAT_SOURCE)[keyof typeof CHAT_SOURCE];
 export const ZNS_STATE = { Sent: 1, Delivered: 2, Failed: 3 } as const;
 export type ZnsState = (typeof ZNS_STATE)[keyof typeof ZNS_STATE];
 
-/** Matches BlueDental.ZaloInbox.ZaloNoteAction. */
-export const NOTE_ACTION = { Created: 0, Edited: 1, Removed: 2 } as const;
-export type NoteAction = (typeof NOTE_ACTION)[keyof typeof NOTE_ACTION];
-
 /** Matches BlueDental.ZaloInbox.ZaloZnsBlock. */
 export const ZNS_BLOCK = { NoPatient: 1, NoPhone: 2, MissingData: 3, NotConnected: 4 } as const;
 export type ZnsBlock = (typeof ZNS_BLOCK)[keyof typeof ZNS_BLOCK];
@@ -47,7 +43,6 @@ export type ZnsBlock = (typeof ZNS_BLOCK)[keyof typeof ZNS_BLOCK];
 /** Mirrors BlueDental.ZaloInbox.ZaloInboxConsts. */
 export const INBOX_LIMITS = {
   message: 2000,
-  note: 2000,
   tag: 30,
   tags: 10,
   holdMinutes: 15,
@@ -146,28 +141,6 @@ export interface InboxPatient {
   phone: string | null;
 }
 
-export interface NoteRevision {
-  action: NoteAction;
-  before: string | null;
-  after: string | null;
-  actorName: string | null;
-  at: string;
-}
-
-export interface ConversationNote {
-  id: string;
-  content: string;
-  authorId: string;
-  authorName: string | null;
-  createdAt: string;
-  lastEditorName: string | null;
-  lastEditedAt: string | null;
-  isRemoved: boolean;
-  removerName: string | null;
-  removedAt: string | null;
-  revisions: NoteRevision[];
-}
-
 export interface InboxTemplate {
   id: string;
   name: string;
@@ -215,12 +188,6 @@ const inboxApi = {
     api.put<ConversationDetail>(`${conversationPath(id)}/patient`, { patientId }).then((r) => r.data),
   patients: (filter: string) =>
     api.get<InboxPatient[]>(`${BASE}/patients`, { params: { filter: filter || undefined } }).then((r) => r.data),
-  notes: (id: string) => api.get<ConversationNote[]>(`${conversationPath(id)}/notes`).then((r) => r.data),
-  createNote: ({ id, content }: { id: string; content: string }) =>
-    api.post<ConversationNote>(`${conversationPath(id)}/notes`, { content }).then((r) => r.data),
-  updateNote: ({ noteId, content }: { noteId: string; content: string }) =>
-    api.put<ConversationNote>(`${BASE}/notes/${noteId}`, { content }).then((r) => r.data),
-  deleteNote: (noteId: string) => api.delete<ConversationNote>(`${BASE}/notes/${noteId}`).then((r) => r.data),
   templates: () => api.get<InboxTemplate[]>(`${BASE}/zns-templates`).then((r) => r.data),
   previewZns: ({ id, templateId }: { id: string; templateId: string }) =>
     api.post<ZnsPreview>(`${conversationPath(id)}/zns/preview`, { templateId }).then((r) => r.data),
@@ -235,7 +202,6 @@ export const inboxKeys = {
   counts: () => [...inboxKeys.lists(), "counts"] as const,
   detail: (id: string) => [...inboxKeys.all, "detail", id] as const,
   messages: (id: string) => [...inboxKeys.all, "messages", id] as const,
-  notes: (id: string) => [...inboxKeys.all, "notes", id] as const,
   assignees: () => [...inboxKeys.all, "assignees"] as const,
   tags: () => [...inboxKeys.all, "tags"] as const,
   patients: (filter: string) => [...inboxKeys.all, "patients", filter] as const,
@@ -355,22 +321,6 @@ export function useInboxPatients(filter: string, enabled: boolean) {
     placeholderData: keepPreviousData,
   });
 }
-
-export function useConversationNotes(id: string) {
-  return useQuery({ queryKey: inboxKeys.notes(id), queryFn: () => inboxApi.notes(id) });
-}
-
-function useNoteMutation<TInput>(conversationId: string, mutationFn: (input: TInput) => Promise<ConversationNote>) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: inboxKeys.notes(conversationId) }),
-  });
-}
-
-export const useCreateNote = (conversationId: string) => useNoteMutation(conversationId, inboxApi.createNote);
-export const useUpdateNote = (conversationId: string) => useNoteMutation(conversationId, inboxApi.updateNote);
-export const useDeleteNote = (conversationId: string) => useNoteMutation(conversationId, inboxApi.deleteNote);
 
 export function useInboxTemplates() {
   return useQuery({ queryKey: inboxKeys.templates(), queryFn: inboxApi.templates });

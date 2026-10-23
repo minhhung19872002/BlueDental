@@ -3,36 +3,38 @@ import { Button, Popover } from "antd";
 import { DeleteOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { t } from "@/lib/i18n";
-import { useDeleteNote, useUpdateNote, type ConversationNote } from "../../api/inboxApi";
+import { useDeleteNote, useUpdateNote, type CareNote } from "../../api/careNoteApi";
 import { stamp } from "../../inboxLook";
 import { NoteEditor } from "./NoteEditor";
 import { NoteHistory } from "./NoteHistory";
+import { OutcomePill } from "./OutcomePill";
 
 interface Props {
-  conversationId: string;
-  note: ConversationNote;
+  note: CareNote;
   canEdit: boolean;
+  /** "li" in a plain note list; "div" inside a history line that is already an item. */
+  as?: "li" | "div";
 }
 
 /**
- * One note: who wrote it and when, who last changed it, and once deleted the
- * text struck through with who deleted it (BA P2210). Sửa and Xoá are open to
- * anyone handling the inbox; the history keeps each step.
+ * One care note: who wrote it and when, who last changed it, and once deleted
+ * the text struck through with who deleted it (BA P2210). Sửa and Xoá are open
+ * to anyone caring for the customer; the history keeps each step.
  */
-export function NoteItem({ conversationId, note, canEdit }: Props) {
+export function NoteItem({ note, canEdit, as: Tag = "li" }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const update = useUpdateNote(conversationId);
-  const remove = useDeleteNote(conversationId);
+  const update = useUpdateNote();
+  const remove = useDeleteNote();
 
   const handleSave = (content: string) =>
-    update.mutate({ noteId: note.id, content }, { onSuccess: () => setEditing(false) });
+    update.mutate({ id: note.id, content }, { onSuccess: () => setEditing(false) });
 
   const handleDelete = () => remove.mutate(note.id, { onSuccess: () => setConfirming(false) });
 
   if (editing) {
     return (
-      <li className="ibx-note">
+      <Tag className="cn-note">
         <NoteEditor
           initial={note.content}
           saving={update.isPending}
@@ -40,23 +42,24 @@ export function NoteItem({ conversationId, note, canEdit }: Props) {
           onSave={handleSave}
           onCancel={() => setEditing(false)}
         />
-      </li>
+      </Tag>
     );
   }
 
   return (
-    <li className={note.isRemoved ? "ibx-note ibx-note--removed" : "ibx-note"}>
-      <p className="ibx-note-text">{note.content}</p>
-      <p className="ibx-note-meta">{t("CSKH:Inbox:NoteBy", note.authorName ?? "", stamp(note.createdAt))}</p>
+    <Tag className={note.isRemoved ? "cn-note cn-note--removed" : "cn-note"}>
+      {note.outcome && <OutcomePill outcome={note.outcome} />}
+      <p className="cn-note-text">{note.content}</p>
+      <p className="cn-note-meta">{t("CSKH:Inbox:NoteBy", note.authorName ?? "", stamp(note.createdAt))}</p>
       {note.lastEditedAt && (
-        <p className="ibx-note-meta">{t("CSKH:Inbox:NoteEditedBy", note.lastEditorName ?? "", stamp(note.lastEditedAt))}</p>
+        <p className="cn-note-meta">{t("CSKH:Inbox:NoteEditedBy", note.lastEditorName ?? "", stamp(note.lastEditedAt))}</p>
       )}
       {note.removedAt && (
-        <p className="ibx-note-meta ibx-note-meta--removed">
+        <p className="cn-note-meta cn-note-meta--removed">
           {t("CSKH:Inbox:NoteRemovedBy", note.removerName ?? "", stamp(note.removedAt))}
         </p>
       )}
-      <div className="ibx-note-actions">
+      <div className="cn-note-actions">
         <Popover trigger="click" placement="left" content={<NoteHistory revisions={note.revisions} />}>
           <Button size="small" type="text" icon={<HistoryOutlined />} aria-label={t("CSKH:Inbox:NoteHistory")} />
         </Popover>
@@ -83,6 +86,6 @@ export function NoteItem({ conversationId, note, canEdit }: Props) {
         onConfirm={handleDelete}
         onClose={() => setConfirming(false)}
       />
-    </li>
+    </Tag>
   );
 }

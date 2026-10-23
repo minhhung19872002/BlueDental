@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Input } from "antd";
 import { t } from "@/lib/i18n";
-import { INBOX_LIMITS } from "../../api/inboxApi";
+import { NOTE_LIMITS } from "../../api/careNoteApi";
 
 interface Props {
   initial: string;
@@ -17,18 +17,18 @@ export function NoteEditor({ initial, saving, saveLabel, onSave, onCancel }: Pro
   const ready = content.trim().length > 0 && content.trim() !== initial.trim() && !saving;
 
   return (
-    <div className="ibx-note-editor">
+    <div className="cn-editor">
       <Input.TextArea
         autoFocus
         aria-label={t("CSKH:Inbox:NoteText")}
         placeholder={t("CSKH:Inbox:NotePlaceholder")}
         autoSize={{ minRows: 2, maxRows: 6 }}
-        maxLength={INBOX_LIMITS.note}
+        maxLength={NOTE_LIMITS.content}
         value={content}
         disabled={saving}
         onChange={(event) => setContent(event.target.value)}
       />
-      <div className="ibx-note-editor-actions">
+      <div className="cn-editor-actions">
         <Button size="small" disabled={saving} onClick={onCancel}>
           {t("Common:CancelAlt")}
         </Button>

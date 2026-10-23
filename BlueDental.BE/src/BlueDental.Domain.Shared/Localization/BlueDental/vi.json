@@ -7515,6 +7515,8 @@
     "CSKH:Inbox:NoteLog:Created": "Tạo bởi {0} · {1}",
     "CSKH:Inbox:NoteLog:Edited": "Sửa bởi {0} · {1}",
     "CSKH:Inbox:NoteLog:Removed": "Xoá bởi {0} · {1}",
-    "CSKH:Inbox:NoteLog:Before": "Trước: {0}"
+    "CSKH:Inbox:NoteLog:Before": "Trước: {0}",
+    "CSKH:Note:Outcome:Contacted": "Đã liên hệ",
+    "CSKH:Note:Outcome:NoAnswer": "Không nghe máy"
   }
 }

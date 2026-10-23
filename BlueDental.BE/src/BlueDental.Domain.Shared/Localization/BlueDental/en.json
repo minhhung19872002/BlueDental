@@ -7515,6 +7515,8 @@
     "CSKH:Inbox:NoteLog:Created": "Created by {0} · {1}",
     "CSKH:Inbox:NoteLog:Edited": "Edited by {0} · {1}",
     "CSKH:Inbox:NoteLog:Removed": "Deleted by {0} · {1}",
-    "CSKH:Inbox:NoteLog:Before": "Before: {0}"
+    "CSKH:Inbox:NoteLog:Before": "Before: {0}",
+    "CSKH:Note:Outcome:Contacted": "Reached",
+    "CSKH:Note:Outcome:NoAnswer": "No answer"
   }
 }

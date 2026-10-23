@@ -5,8 +5,8 @@ import type { ConversationDetail } from "../../api/inboxApi";
 import { customerName } from "../../inboxLook";
 import { CustomerSections } from "./CustomerSections";
 import { InboxAvatar } from "./InboxAvatar";
+import { NotesSection } from "../notes/NotesSection";
 import { LinkPatientPicker } from "./LinkPatientPicker";
-import { NotesSection } from "./NotesSection";
 import { TagEditor } from "./TagEditor";
 
 interface Props {
@@ -47,7 +47,7 @@ export function CustomerPanel({ conversation, canHandle }: Props) {
         )}
       </section>
       {customer && <CustomerSections customer={customer} />}
-      <NotesSection conversationId={conversation.id} canEdit={canHandle} />
+      <NotesSection owner={{ kind: "conversation", id: conversation.id }} canEdit={canHandle} />
     </aside>
   );
 }
