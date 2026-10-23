@@ -1,0 +1,318 @@
+/* ── Lịch sử chăm sóc khách hàng (F-79, BA P2210) ─────────────────────────────
+   Under the record's Chăm sóc KH table: the note box and the history on the
+   left, the contact state and the year's cost on the right. Loaded by the
+   patient profile page with cskh-notes.css (the notes are the chat's too). */
+
+.ch-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ch-contact .ant-btn {
+  height: 40px;
+}
+
+.ch {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ch-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.ch-title {
+  margin: 0;
+  color: var(--bd-title);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ch-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.ch-main,
+.ch-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ch-side .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ch-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+}
+
+.ch-card > .ant-spin-nested-loading {
+  width: 100%;
+}
+
+.ch-card-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ch-card-title--caps {
+  color: var(--bd-sub);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Ghi nhận chăm sóc ── */
+
+.ch-composer .ant-input {
+  width: 100%;
+}
+
+.ch-composer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.ch-composer-label {
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.ch-outcome {
+  padding: 4px 12px;
+  border: 1px solid var(--bd-border-2);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ch-outcome--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+}
+
+.ch-composer-save {
+  margin-left: auto;
+}
+
+/* ── The history ── */
+
+.ch-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ch-filter {
+  padding: 5px 12px;
+  border: 1px solid var(--bd-border-2);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ch-filter--active {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: var(--bd-card);
+}
+
+.ch-empty {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--bd-faint);
+  font-size: 13px;
+}
+
+.ch-lines {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ch-line {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--bd-line-soft);
+}
+
+.ch-line:first-child {
+  border-top: 0;
+}
+
+.ch-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--bd-radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ch-badge--zalo {
+  background: var(--bd-info-pale);
+  color: var(--bd-info);
+}
+
+.ch-badge--zns {
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+
+.ch-badge--call {
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+}
+
+.ch-badge--note {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+
+.ch-badge--status {
+  background: var(--bd-surface-3);
+  color: var(--bd-sub);
+}
+
+.ch-line-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ch-line-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.ch-line-title {
+  color: var(--bd-ink);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.ch-line-text {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ch-line-meta {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.ch-pill {
+  display: inline-flex;
+  padding: 1px 8px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ch-pill--good {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.ch-pill--warn {
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+}
+
+.ch-pill--bad {
+  background: var(--bd-red-pale);
+  color: var(--bd-red-dark);
+}
+
+/* ── Right column ── */
+
+.ch-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+}
+
+.ch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.ch-row dt {
+  color: var(--bd-muted);
+}
+
+.ch-row dd {
+  margin: 0;
+  color: var(--bd-ink);
+  font-weight: 600;
+  text-align: right;
+}
+
+.ch-hint {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .ch-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

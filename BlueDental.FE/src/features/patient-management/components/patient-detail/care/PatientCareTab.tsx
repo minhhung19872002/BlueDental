@@ -11,6 +11,8 @@ import {
   useDeleteCareRecord,
   type CareRecordDto,
 } from "@/features/cskh/api/careApi";
+import { CareContactButtons } from "@/features/cskh/components/history/CareContactButtons";
+import { PatientCareHistory } from "@/features/cskh/components/history/PatientCareHistory";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
@@ -89,19 +91,23 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
   );
 
   return (
-    <section className="pd-pane pd-pane--fill pc-tab">
+    // Not pd-pane--fill: Lịch sử chăm sóc sits under the table, so the tab scrolls as a page (F-79).
+    <section className="pd-pane pc-tab">
       <div className="pc-toolbar">
         <CareStatChips stats={stats.data} active={chip} onToggle={handleToggle} />
-        {ability.canCreate && (
-          <Button
-            type="primary"
-            className="pc-add"
-            icon={<Plus size={16} />}
-            onClick={() => setDialog({ kind: "create" })}
-          >
-            {t("Patient:Care:SpecialLabel")}
-          </Button>
-        )}
+        <div className="pc-toolbar-actions">
+          <CareContactButtons patientId={patient.id} />
+          {ability.canCreate && (
+            <Button
+              type="primary"
+              className="pc-add"
+              icon={<Plus size={16} />}
+              onClick={() => setDialog({ kind: "create" })}
+            >
+              {t("Patient:Care:SpecialLabel")}
+            </Button>
+          )}
+        </div>
       </div>
       <div className="bd-cat-card pc-card">
         <DataTable<CareRecordDto>
@@ -118,6 +124,7 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
           }}
         />
       </div>
+      <PatientCareHistory patientId={patient.id} />
       <PatientCareDialog
         open={dialog.kind === "create" || dialog.kind === "edit"}
         patient={patient}
