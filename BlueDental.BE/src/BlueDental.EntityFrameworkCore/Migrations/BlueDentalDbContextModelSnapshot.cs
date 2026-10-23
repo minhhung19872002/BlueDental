@@ -2248,6 +2248,99 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_care_contact_logs", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.CustomerCare.CareNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<DateTime?>("LastEditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastEditorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short?>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RemoverId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId", "CreatedAt");
+
+                    b.HasIndex("ClinicBranchId", "PatientId", "CreatedAt");
+
+                    b.ToTable("bd_care_notes", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.CustomerCare.CareNoteRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Action")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("After")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Before")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("NoteId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NoteId");
+
+                    b.ToTable("bd_care_note_revisions", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.CustomerCare.CareRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8743,91 +8836,6 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_zalo_conversations", (string)null);
                 });
 
-            modelBuilder.Entity("BlueDental.ZaloInbox.ZaloConversationNote", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AuthorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ClinicBranchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ExtraProperties")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("ExtraProperties");
-
-                    b.Property<DateTime?>("LastEditedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastEditorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("RemovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RemoverId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConversationId", "CreatedAt");
-
-                    b.ToTable("bd_zalo_conversation_notes", (string)null);
-                });
-
-            modelBuilder.Entity("BlueDental.ZaloInbox.ZaloConversationNoteRevision", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<short>("Action")
-                        .HasColumnType("smallint");
-
-                    b.Property<Guid>("ActorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("After")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime>("At")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Before")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid>("NoteId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NoteId");
-
-                    b.ToTable("bd_zalo_conversation_note_revisions", (string)null);
-                });
-
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10802,6 +10810,23 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.CustomerCare.CareNote", b =>
+                {
+                    b.HasOne("BlueDental.ZaloInbox.ZaloConversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("BlueDental.CustomerCare.CareNoteRevision", b =>
+                {
+                    b.HasOne("BlueDental.CustomerCare.CareNote", null)
+                        .WithMany("Revisions")
+                        .HasForeignKey("NoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlueDental.Inventory.MaterialAllocationItem", b =>
                 {
                     b.HasOne("BlueDental.Inventory.MaterialAllocation", null)
@@ -11403,24 +11428,6 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("BlueDental.ZaloInbox.ZaloConversationNote", b =>
-                {
-                    b.HasOne("BlueDental.ZaloInbox.ZaloConversation", null)
-                        .WithMany()
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("BlueDental.ZaloInbox.ZaloConversationNoteRevision", b =>
-                {
-                    b.HasOne("BlueDental.ZaloInbox.ZaloConversationNote", null)
-                        .WithMany("Revisions")
-                        .HasForeignKey("NoteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLogAction", b =>
                 {
                     b.HasOne("Volo.Abp.AuditLogging.AuditLog", null)
@@ -11574,6 +11581,11 @@ namespace BlueDental.Migrations
                     b.Navigation("Stages");
                 });
 
+            modelBuilder.Entity("BlueDental.CustomerCare.CareNote", b =>
+                {
+                    b.Navigation("Revisions");
+                });
+
             modelBuilder.Entity("BlueDental.Inventory.MaterialAllocation", b =>
                 {
                     b.Navigation("Items");
@@ -11613,11 +11625,6 @@ namespace BlueDental.Migrations
                     b.Navigation("AppliedVouchers");
 
                     b.Navigation("Services");
-                });
-
-            modelBuilder.Entity("BlueDental.ZaloInbox.ZaloConversationNote", b =>
-                {
-                    b.Navigation("Revisions");
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>

@@ -47,6 +47,36 @@ namespace BlueDental.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "bd_care_notes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ClinicBranchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ConversationId = table.Column<Guid>(type: "uuid", nullable: true),
+                    PatientId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Outcome = table.Column<short>(type: "smallint", nullable: true),
+                    AuthorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastEditorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastEditedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RemoverId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RemovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ExtraProperties = table.Column<string>(type: "text", nullable: false),
+                    ConcurrencyStamp = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_bd_care_notes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_bd_care_notes_bd_zalo_conversations_ConversationId",
+                        column: x => x.ConversationId,
+                        principalTable: "bd_zalo_conversations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "bd_zalo_chat_messages",
                 columns: table => new
                 {
@@ -75,35 +105,7 @@ namespace BlueDental.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "bd_zalo_conversation_notes",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ClinicBranchId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ConversationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
-                    AuthorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastEditorId = table.Column<Guid>(type: "uuid", nullable: true),
-                    LastEditedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    RemoverId = table.Column<Guid>(type: "uuid", nullable: true),
-                    RemovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ExtraProperties = table.Column<string>(type: "text", nullable: false),
-                    ConcurrencyStamp = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_bd_zalo_conversation_notes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_bd_zalo_conversation_notes_bd_zalo_conversations_Conversati~",
-                        column: x => x.ConversationId,
-                        principalTable: "bd_zalo_conversations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "bd_zalo_conversation_note_revisions",
+                name: "bd_care_note_revisions",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -116,14 +118,29 @@ namespace BlueDental.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_bd_zalo_conversation_note_revisions", x => x.Id);
+                    table.PrimaryKey("PK_bd_care_note_revisions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_bd_zalo_conversation_note_revisions_bd_zalo_conversation_no~",
+                        name: "FK_bd_care_note_revisions_bd_care_notes_NoteId",
                         column: x => x.NoteId,
-                        principalTable: "bd_zalo_conversation_notes",
+                        principalTable: "bd_care_notes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_bd_care_note_revisions_NoteId",
+                table: "bd_care_note_revisions",
+                column: "NoteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_bd_care_notes_ClinicBranchId_PatientId_CreatedAt",
+                table: "bd_care_notes",
+                columns: new[] { "ClinicBranchId", "PatientId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_bd_care_notes_ConversationId_CreatedAt",
+                table: "bd_care_notes",
+                columns: new[] { "ConversationId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_bd_zalo_chat_messages_ClinicBranchId_ZaloMessageId",
@@ -136,16 +153,6 @@ namespace BlueDental.Migrations
                 name: "IX_bd_zalo_chat_messages_ConversationId_SentAt",
                 table: "bd_zalo_chat_messages",
                 columns: new[] { "ConversationId", "SentAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_bd_zalo_conversation_note_revisions_NoteId",
-                table: "bd_zalo_conversation_note_revisions",
-                column: "NoteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_bd_zalo_conversation_notes_ConversationId_CreatedAt",
-                table: "bd_zalo_conversation_notes",
-                columns: new[] { "ConversationId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_bd_zalo_conversations_ClinicBranchId_PatientId",
@@ -169,13 +176,13 @@ namespace BlueDental.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "bd_care_note_revisions");
+
+            migrationBuilder.DropTable(
                 name: "bd_zalo_chat_messages");
 
             migrationBuilder.DropTable(
-                name: "bd_zalo_conversation_note_revisions");
-
-            migrationBuilder.DropTable(
-                name: "bd_zalo_conversation_notes");
+                name: "bd_care_notes");
 
             migrationBuilder.DropTable(
                 name: "bd_zalo_conversations");

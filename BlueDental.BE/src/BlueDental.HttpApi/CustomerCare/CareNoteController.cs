@@ -14,27 +14,28 @@ namespace BlueDental.CustomerCare;
 /// </summary>
 [RemoteService]
 [Authorize]
+[Route("api/v1/app")]
 public sealed class CareNoteController(ICareNoteAppService notes) : BlueDentalController
 {
-    [HttpGet("api/v1/app/zalo-inbox/conversations/{conversationId:guid}/notes")]
+    [HttpGet("zalo-inbox/conversations/{conversationId:guid}/notes")]
     public Task<List<CareNoteDto>> GetForConversationAsync(Guid conversationId) =>
         notes.GetForConversationAsync(conversationId);
 
-    [HttpPost("api/v1/app/zalo-inbox/conversations/{conversationId:guid}/notes")]
+    [HttpPost("zalo-inbox/conversations/{conversationId:guid}/notes")]
     public Task<CareNoteDto> CreateForConversationAsync(Guid conversationId, [FromBody] SaveCareNoteInput input) =>
         notes.CreateForConversationAsync(conversationId, input);
 
-    [HttpGet("api/v1/app/patients/{patientId:guid}/care-notes")]
+    [HttpGet("patients/{patientId:guid}/care-notes")]
     public Task<List<CareNoteDto>> GetForPatientAsync(Guid patientId) => notes.GetForPatientAsync(patientId);
 
-    [HttpPost("api/v1/app/patients/{patientId:guid}/care-notes")]
+    [HttpPost("patients/{patientId:guid}/care-notes")]
     public Task<CareNoteDto> CreateForPatientAsync(Guid patientId, [FromBody] SaveCareNoteInput input) =>
         notes.CreateForPatientAsync(patientId, input);
 
-    [HttpPut("api/v1/app/care-notes/{id:guid}")]
+    [HttpPut("care-notes/{id:guid}")]
     public Task<CareNoteDto> UpdateAsync(Guid id, [FromBody] SaveCareNoteInput input) => notes.UpdateAsync(id, input);
 
-    [HttpDelete("api/v1/app/care-notes/{id:guid}")]
+    [HttpDelete("care-notes/{id:guid}")]
     public Task<CareNoteDto> DeleteAsync(Guid id) => notes.DeleteAsync(id);
 }
 
