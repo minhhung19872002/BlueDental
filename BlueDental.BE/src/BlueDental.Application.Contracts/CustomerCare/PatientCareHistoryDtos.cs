@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BlueDental.PatientManagement;
 using BlueDental.Tools;
 using BlueDental.ZaloInbox;
 
@@ -48,6 +49,9 @@ public class CareHistoryEntryDto
     public string Key { get; set; } = string.Empty;
     public CareHistoryKind Kind { get; set; }
     public DateTime At { get; set; }
+
+    /// <summary>A sent message's filled text or the customer's own words: phones inside are masked under "Ẩn số điện thoại".</summary>
+    [PatientPhone(Embedded = true)]
     public string? Text { get; set; }
 
     /// <summary>Who did it: the staff member, or null for the customer / the system.</summary>

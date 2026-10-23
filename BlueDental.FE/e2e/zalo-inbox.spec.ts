@@ -126,7 +126,7 @@ async function conversationOf(page: Page, name: string): Promise<Conversation> {
 }
 
 /** A ready Zalo template on ZNS #301001 with every parameter filled, the customer's name included. */
-async function znsTemplate(page: Page, name: string): Promise<{ id: string; name: string }> {
+async function znsTemplate(page: Page, name: string, promoNote = `Ghi chú ${name}`): Promise<{ id: string; name: string }> {
   const res = await call<{ id: string; status: number }>(page, "/api/v1/app/message-templates", {
     ...asBranchOne,
     method: "POST",
@@ -142,7 +142,7 @@ async function znsTemplate(page: Page, name: string): Promise<{ id: string; name
         customer_name: "{ten_khach_hang}",
         booking_date: "01/01/2031",
         booking_time: "09:00",
-        promo_note: `Ghi chú ${name}`,
+        promo_note: promoNote,
       },
       removeDiacritics: false,
     },
@@ -508,17 +508,46 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(page.getByRole("row").filter({ hasText: patient.name })).toHaveCount(1, { timeout: 15_000 });
   });
 
-  test("Quyền và chi nhánh: chỉ Xem không nhận xử lý được; chi nhánh khác không thấy hội thoại", async ({ page, browser }) => {
-    const reader = await makeStaff(page, ["BlueDental.cskhInbox.read"]);
+  test("Quyền và chi nhánh: chỉ Xem không nhận xử lý được; Ẩn số điện thoại che cả số trong tin; chi nhánh khác không thấy hội thoại", async ({ page, browser }) => {
+    const reader = await makeStaff(page, [
+      "BlueDental.cskhInbox.read",
+      "BlueDental.treatmentCskh.read",
+      "BlueDental.patient.read",
+      "BlueDental.patient.hidePhone",
+    ]);
     try {
+      // A linked customer who got a ZNS carrying their own phone ({so_dien_thoai}).
+      const patient = await newPatient(page);
       const userId = zaloUser();
-      const name = `Khách quyền ${userId.slice(-6)}`;
-      await stub("/__users", { userId, displayName: name });
+      const name = patient.name;
+      await stub("/__users", { userId, displayName: `Zalo ${name}`, phone: patient.phone });
       await customerWrites(page, userId, "Xin chào");
       const conversation = await conversationOf(page, name);
+      expect(conversation.patientId).toBe(patient.id);
+      const template = await znsTemplate(page, `E2E Hộp thư SĐT ${runId()}`, "SĐT {so_dien_thoai}");
+      const claimed = await call(page, `${INBOX}/conversations/${conversation.id}/claim`, { ...asBranchOne, method: "POST" });
+      expect(claimed.status).toBe(200);
+      const sentZns = await call<{ text: string }>(page, `${INBOX}/conversations/${conversation.id}/zns`, {
+        ...asBranchOne,
+        method: "POST",
+        json: { templateId: template.id },
+      });
+      expect(sentZns.status, JSON.stringify(sentZns.body)).toBe(200);
+      expect(sentZns.body.text, "the admin sees the number").toContain(patient.phone);
 
       const session = await openSession(browser, reader.credentials);
       try {
+        // "Ẩn số điện thoại": the number inside the sent message is masked too, in the chat and the record's history.
+        const messages = await call<{ text: string }[]>(session.page, `${INBOX}/conversations/${conversation.id}/messages`, asBranchOne);
+        expect(messages.status).toBe(200);
+        const zns = messages.body.find((m) => m.text.startsWith("customer_name"));
+        expect(zns, "the ZNS is in the chat").toBeTruthy();
+        expect(zns!.text).not.toContain(patient.phone);
+        expect(zns!.text).toContain(patient.phone.slice(-3));
+        const history = await call<{ text: string | null }[]>(session.page, `/api/v1/app/patients/${patient.id}/care-history`, asBranchOne);
+        expect(history.status).toBe(200);
+        expect(JSON.stringify(history.body)).not.toContain(patient.phone);
+
         await openInbox(session.page, conversation.id);
         await expect(chat(session.page)).toContainText("Xin chào");
         await expect(chat(session.page).getByRole("button", { name: "Nhận xử lý" })).toHaveCount(0);

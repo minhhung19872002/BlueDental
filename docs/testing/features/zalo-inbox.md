@@ -226,6 +226,7 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
    - Gửi tin → màn Gửi tin nhắn, SMS, khách bị khoá.
 5. **Quyền và chi nhánh:**
    - chỉ `cskhInbox.read`: không có Nhận xử lý / mẫu ZNS / Thêm ghi chú; API claim và ghi chú trả 403;
+   - "Ẩn số điện thoại": ZNS có `{so_dien_thoai}` hiện số đã che trong `/messages` và `/care-history` (admin vẫn thấy đủ số);
    - chi nhánh khác: `GET` trả 404, danh sách không có hội thoại.
 
 ### Lưu ý khi viết spec

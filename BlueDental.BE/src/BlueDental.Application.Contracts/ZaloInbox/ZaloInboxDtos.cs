@@ -62,6 +62,8 @@ public class ZaloConversationSummaryDto
 
     public ZaloConversationStatus Status { get; set; }
     public DateTime? LastMessageAt { get; set; }
+
+    [PatientPhone(Embedded = true)]
     public string? LastMessagePreview { get; set; }
     public ZaloChatDirection? LastMessageDirection { get; set; }
     public DateTime? LastCustomerMessageAt { get; set; }
@@ -127,7 +129,15 @@ public class ZaloChatEntryDto
     public ZaloChatEntrySource Source { get; set; }
     public ZaloChatDirection Direction { get; set; }
     public ZaloChatKind Kind { get; set; }
+
+    /// <summary>
+    /// A sent ZNS / SMS is stored filled in, {so_dien_thoai} included, and a
+    /// customer may type their number: phones inside are masked under "Ẩn số
+    /// điện thoại", as on the message log screens.
+    /// </summary>
+    [PatientPhone(Embedded = true)]
     public string Text { get; set; } = string.Empty;
+
     public string? AttachmentUrl { get; set; }
     public DateTime SentAt { get; set; }
 
