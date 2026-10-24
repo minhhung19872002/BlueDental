@@ -134,7 +134,8 @@ http
               user_id: userId,
               display_name: user.displayName,
               avatar: "",
-              shared_info: user.phone ? { phone: user.phone } : undefined,
+              // As the real OA answers (R-1027): nothing shared yet is phone 0.
+              shared_info: { phone: user.phone ?? 0 },
             },
           });
         }

@@ -388,7 +388,8 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
             string? phone = null;
             if (data.TryGetProperty("shared_info", out var shared) && shared.ValueKind == JsonValueKind.Object)
             {
-                phone = Text(shared, "phone");
+                // R-1027: a customer who shared nothing comes back as phone 0, not as no phone.
+                phone = Text(shared, "phone") is { } text && text.Trim('0').Length > 0 ? text : null;
             }
 
             var avatar = Text(data, "avatar");

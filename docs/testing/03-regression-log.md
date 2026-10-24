@@ -10882,3 +10882,23 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Không có migration, không có quyền mới.
   - Trong cấu hình Webhook của app Zalo phải bật sự kiện "Người dùng gửi thông tin" (`user_submit_info`) thì nhánh webhook mới chạy. Nhánh Đồng bộ không cần bật gì thêm.
 - **Commit**: `main` 163343b4 (chủ dự án commit + push). Mục log này chưa commit.
+
+## R-1027 (2026-10-24, mức 2) F-80 Hộp thư Zalo: khách chưa chia sẻ SĐT hiện "0" ở chỗ số điện thoại
+
+- **Hiện tượng (production, sau khi app Zalo được bật nhóm "Quản lý người dùng")**: hội thoại "Zalo …2939" hiện `0` dưới tên, cả ở đầu khung chat lẫn cột phải.
+- **Gốc lỗi**: khách chưa chia sẻ thông tin thì OA thật trả `shared_info.phone = 0` (số), chứ không bỏ trống. `HttpZaloApiClient.GetUserDetailAsync` đọc số đó thành chuỗi `"0"` và lưu làm `SharedPhone`. Hậu quả:
+  - hiện `0` như một SĐT;
+  - Đồng bộ (R-1026) **ngừng hỏi lại** SĐT, vì hội thoại đã "có số" → khách chia sẻ sau sẽ không được tự nối qua nhánh Đồng bộ;
+  - tìm "0" ra cả hội thoại này.
+  - Không nối nhầm hồ sơ: `TicketPhone.Normalize("0")` từ chối nên không tìm hồ sơ nào.
+- **Sửa** (chỉ BE, 1 dòng; không migration, không đổi FE): `phone` toàn chữ số 0 thì coi như khách chưa chia sẻ (`null`).
+- **Test**:
+  - Stub `zalo-stub.mjs` trả `shared_info: { phone: 0 }` cho khách chưa chia sẻ, đúng như OA thật (trước đây stub bỏ hẳn `shared_info` nên không lộ lỗi).
+  - Ca "Đồng bộ hỏi lại Zalo SĐT…" thêm kiểm tra: hội thoại vừa mở có `sharedPhone = null`.
+- **Kết quả**:
+  - E2E thật (cùng đường chạy R-1026: `vite preview` :8171 → host :5121 → DB `BlueDental_r1026`, Redis db 12, stub :5220, không chặn request): `zalo-inbox` **10/10**.
+  - Chứng minh với HEAD `1d94648a` (BE build từ `git archive`, cùng DB và stub): ca trên **đỏ**, `sharedPhone` nhận `"0"`.
+  - Phân quyền / chi nhánh: không đổi; ca "Quyền và chi nhánh" xanh.
+- **Production sau khi deploy**: các hội thoại đã lưu `"0"` vẫn giữ `"0"` (và vẫn bị bỏ qua khi Đồng bộ) cho đến khi xoá tay:
+  `update bd_zalo_conversations set "SharedPhone" = null where "SharedPhone" ~ '^0+$';`
+- **Commit**: chưa commit.

@@ -47,6 +47,7 @@ interface Conversation {
   status: number;
   holderId: string | null;
   patientId: string | null;
+  sharedPhone: string | null;
   tags: string[];
 }
 
@@ -571,7 +572,9 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await openInbox(page);
     await page.getByRole("tab", { name: /^Tất cả/ }).click();
     await expect(conversationRow(page, name)).toBeVisible({ timeout: 15_000 });
-    expect((await conversationOf(page, name)).patientId).toBeNull();
+    const opened = await conversationOf(page, name);
+    expect(opened.patientId).toBeNull();
+    expect(opened.sharedPhone, "Zalo's phone 0 is no phone (R-1027)").toBeNull();
 
     // The customer shares the phone with the OA; no webhook says so.
     await stub("/__users", { userId, displayName: name, phone: `84${patient.phone.slice(1)}` });
