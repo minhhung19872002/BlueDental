@@ -10823,3 +10823,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Lỗ hổng đã biết**: nếu lúc lô gửi xong không có màn chiến dịch nào đang mở, bảng CSKH đang mở vẫn hiện trạng thái cũ cho tới khi hết `staleTime` hoặc tải lại trang.
 - **Staging / production**: không có migration, không có quyền mới.
 - **Commit**: `1c6fd7a1` trên main, chủ dự án đã push (deploy production). Commit này lỡ mang theo file tạm `BlueDental.FE/vite.zalofix.tmp.config.ts`. File đó không ảnh hưởng bản build (`tsc -b` chỉ đọc `vite.config.ts`) và đã được xoá trong working tree, chờ commit. Mục log này cũng chưa commit.
+
+## R-1025 (2026-10-24, mức 2) F-80 Hộp thư Zalo: tải lại trang vẫn giữ chip đang chọn, dòng đang mở vẫn được chọn
+
+- **Báo lỗi của chủ dự án** (2 ảnh chụp prod): đang ở chip "Đã trả lời", mở một hội thoại; tải lại trang thì chat vẫn mở hội thoại đó, nhưng cột trái quay về chip "Chưa trả lời" (0 hội thoại), nên không thấy dòng nào được chọn.
+- **Nguyên nhân**: URL chỉ giữ `conversation`, còn chip nằm trong state của `InboxTab`, nên tải lại thì chip về mặc định "Chưa trả lời". Hội thoại đã trả lời không có trong chip đó.
+- **Sửa** (chỉ FE):
+  - Hook mới `useInboxRoute` (`features/cskh/hooks`) đọc / ghi `conversation` và `box` (`unreplied` / `mine` / `cared` / `all`) trên URL. Đổi chip thì ghi `box` (replace, không thêm lịch sử). Chọn hội thoại thì ghi cả `conversation` lẫn `box`.
+  - Link chỉ có `conversation` (nút "Mở chat Zalo" ở tab Chăm sóc KH) mở ở chip **Tất cả**, chip duy nhất chắc chắn có hội thoại đó. Không có cả hai thì vẫn mặc định Chưa trả lời như trước.
+  - `ConversationList` cuộn **hộp danh sách** (không cuộn trang) để dòng đang chọn nằm dưới ô tìm kiếm và hàng chip (phần này dính ở đầu), khi tải lại hoặc mở từ link mà dòng nằm dưới vùng nhìn thấy.
+- **Kết quả**:
+  - `tsc` + `eslint` sạch.
+  - E2E thật: build production `vite preview` 127.0.0.1:8150 → host 127.0.0.1:5120 (bản build R-1024, BE không đổi từ đó) → PostgreSQL `BlueDental_r1025` (DB mới, migrator chạy với môi trường `E2E`), Redis db 11, Zalo stub :5219, không chặn request. `zalo-inbox` **8/8**, gồm ca mới "Tải lại vẫn ở chip đang chọn…".
+  - Chứng minh với HEAD `94c5e029` (build chưa sửa, phục vụ trên :8151): ca mới **đỏ** đúng chỗ gốc lỗi, URL không có `box`.
+  - Phân quyền và cách ly chi nhánh: không đổi; ca "Quyền và chi nhánh" xanh.
+- **Staging / production**: không có migration, không có quyền mới.
+- **Commit**: chưa commit.

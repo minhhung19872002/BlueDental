@@ -441,6 +441,39 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(chat(page).getByText("[Tin tự động của OA]")).toHaveCount(0);
   });
 
+  test("Tải lại vẫn ở chip đang chọn, dòng đang mở vẫn được chọn; link chỉ có hội thoại thì mở ở Tất cả", async ({ page }) => {
+    const userId = zaloUser();
+    const name = `Khách tải lại ${userId.slice(-6)}`;
+    await stub("/__users", { userId, displayName: name });
+    await customerWrites(page, userId, "Cho em hỏi lịch tái khám");
+    const conversation = await conversationOf(page, name);
+    // Answered, so it is not under Chưa trả lời, the chip a fresh inbox opens on.
+    const claimed = await call(page, `${INBOX}/conversations/${conversation.id}/claim`, { ...asBranchOne, method: "POST" });
+    expect(claimed.status).toBe(200);
+    const replied = await call(page, `${INBOX}/conversations/${conversation.id}/messages`, {
+      ...asBranchOne,
+      method: "POST",
+      json: { text: "Dạ em xem lịch cho chị ạ" },
+    });
+    expect(replied.status, JSON.stringify(replied.body)).toBe(200);
+
+    await openInbox(page);
+    await page.getByRole("tab", { name: /^Đã trả lời/ }).click();
+    await conversationRow(page, name).click();
+    await expect(page).toHaveURL(new RegExp(`box=cared.*conversation=${conversation.id}`));
+
+    await page.reload();
+    await expect(page.getByRole("tab", { name: /^Đã trả lời/ })).toHaveAttribute("aria-selected", "true");
+    await expect(conversationRow(page, name)).toHaveAttribute("aria-current", "true");
+    await expect(bubble(page, "Dạ em xem lịch cho chị ạ")).toBeVisible();
+
+    // Mở chat Zalo names only the conversation.
+    await openInbox(page, conversation.id);
+    await expect(page.getByRole("tab", { name: /^Tất cả/ })).toHaveAttribute("aria-selected", "true");
+    await expect(conversationRow(page, name)).toHaveAttribute("aria-current", "true");
+    await expect(conversationRow(page, name)).toBeInViewport();
+  });
+
   test("Giữ hội thoại: người khác thấy đang giữ và không nhận được; Chuyển cho → người kia trả lời; quá 48 giờ chỉ gửi ZNS", async ({ page, browser }) => {
     const colleague = await makeStaff(page, ["BlueDental.cskhInbox.read", "BlueDental.cskhInbox.update"]);
     try {

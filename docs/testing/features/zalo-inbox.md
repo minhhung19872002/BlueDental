@@ -16,9 +16,11 @@ Status: xem dòng F-80 trong `01-feature-verification-registry.md`.
 
 ## Đã dựng
 
-### Hộp thư Zalo (`/cskh-grouping?tab=inbox&conversation=<id>`)
+### Hộp thư Zalo (`/cskh-grouping?tab=inbox&box=<chip>&conversation=<id>`)
 
 Đây là tab thứ ba của /cskh-grouping, nằm sau "Phân nhóm CSKH". Tab có badge đếm số hội thoại chưa trả lời.
+
+URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và hội thoại đang mở, nên tải lại trang vẫn ở đúng chip và dòng đó vẫn được chọn (R-1025). Link chỉ có `conversation` (ví dụ "Mở chat Zalo") mở ở chip Tất cả, vì đó là chip duy nhất chắc chắn có hội thoại. Nếu dòng đang mở nằm dưới vùng nhìn thấy, danh sách tự cuộn tới dòng đó.
 
 **Bố cục:** 3 cột trong một thẻ.
 
@@ -218,6 +220,10 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
    - đồng nghiệp thấy "đang giữ", không có nút Nhận xử lý, API trả 403 `ZaloInbox:0001`;
    - Chuyển cho → đồng nghiệp trả lời được ("Gửi bởi {tên}");
    - khách nhắn 3 ngày trước → ô trả lời khoá, API trả `0003`.
+3b. **Tải lại giữ chip và dòng đang mở (R-1025):**
+   - chọn chip Đã trả lời, mở hội thoại → URL có `box=cared`;
+   - tải lại → chip Đã trả lời vẫn được chọn, dòng có `aria-current`, chat vẫn mở;
+   - link chỉ có `conversation` → chip Tất cả, dòng được chọn và nằm trong vùng nhìn thấy.
 4. **Tab Chăm sóc KH:**
    - lịch sử có tin chat và ghi chú viết từ chat; Chưa liên hệ;
    - Ghi nhận chăm sóc chỉ chọn "Không nghe máy" → ghi chú có tag, và hiện trong chat;

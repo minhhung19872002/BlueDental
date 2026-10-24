@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Input, Spin } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
@@ -35,13 +36,33 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
+/** Scrolls the list box, not the page, until the open row sits below the sticky search and chips. */
+function revealSelected(box: HTMLElement, tools: HTMLElement) {
+  const row = box.querySelector('[aria-current="true"]');
+  if (!row) return;
+  const rect = row.getBoundingClientRect();
+  const top = tools.getBoundingClientRect().bottom;
+  const bottom = box.getBoundingClientRect().bottom;
+  if (rect.top < top) box.scrollTop -= top - rect.top;
+  else if (rect.bottom > bottom) box.scrollTop += rect.bottom - bottom;
+}
+
 /** The left column: "Tìm tên, số điện thoại", the four chips with their counts, the customers. */
 export function ConversationList({ view, query, selectedId, meId, now, onSelect }: Props) {
   const { items, counts, loading } = view;
   const { tab, filter, onTabChange, onFilterChange } = query;
+  const boxRef = useRef<HTMLElement>(null);
+  const toolsRef = useRef<HTMLDivElement>(null);
+  const hasItems = items.length > 0;
+
+  // A reload or a link may open a conversation far down the list.
+  useEffect(() => {
+    if (boxRef.current && toolsRef.current) revealSelected(boxRef.current, toolsRef.current);
+  }, [selectedId, hasItems]);
+
   return (
-    <section className="ibx-list" aria-label={t("CSKH:Inbox:ListLabel")}>
-      <div className="ibx-list-tools">
+    <section ref={boxRef} className="ibx-list" aria-label={t("CSKH:Inbox:ListLabel")}>
+      <div ref={toolsRef} className="ibx-list-tools">
         <Input
           type="search"
           allowClear
