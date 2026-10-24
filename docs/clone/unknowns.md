@@ -3125,6 +3125,8 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 - Gửi ZNS từ hộp thư chỉ cần `cskhInbox.update`, không cần `cskhSend.create`.
 - Tin tư vấn chỉ trong 48 giờ kể từ tin cuối của khách (quy định của Zalo, khớp mock); quá hạn chỉ gửi ZNS.
 - Liên kết user Zalo → hồ sơ: SĐT khách chia sẻ khớp đúng 1 hồ sơ, hoặc webhook ZNS đã nhận, hoặc chọn tay. Hai hồ sơ cùng SĐT thì không tự liên kết.
+  - R-1026 (2026-10-24), **chủ dự án đã chốt**: chỉ tự nối, không đè liên kết sẵn có. SĐT lấy thêm từ webhook `user_submit_info`; mỗi lượt Đồng bộ hỏi lại `user/detail` cho hội thoại chưa nối và chưa có SĐT, không giới hạn. Hội thoại chưa nối được thử khớp lại mỗi lần đi qua, nên hồ sơ tạo sau cũng được nối.
+  - Khớp ≥ 2 hồ sơ: không gợi ý, để task sau. Nút Tạo hồ sơ / Đặt lịch hẹn và SĐT người giám hộ: task khác.
 - Một OA nối nhiều chi nhánh: tin vào chi nhánh nối sớm nhất.
 - "Đã liên hệ / Chưa liên hệ" theo 90 ngày chỉ tính tin CSKH gửi thành công (ZNS / SMS / email, trả lời chat), theo ghi chú BA. Dòng chữ trong mock có nhắc "gọi được": không tính cuộc gọi.
 - Tóm tắt chi phí theo năm dương lịch (giờ phòng khám). Bộ lọc ngày chỉ áp cho dòng thời gian, mặc định tất cả thời gian.
@@ -3132,4 +3134,4 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 - Không làm: nút "Gọi điện" (BA chỉ yêu cầu 2 nút; app chưa có click-to-call), khối "Lịch sử chăm sóc" ở cột phải Hộp thư, dòng "Không nhận tin (R08)", dòng hệ thống "Phát sinh đợt điều trị mới".
 - Màn hình tự lấy lại theo chu kỳ (danh sách 10 giây, chat 5 giây); chưa có SignalR.
 - Màu, font theo thiết kế v2, không theo bảng màu ảnh BA.
-Giả định về Zalo chưa kiểm được với OA thật: webhook ZNS đã nhận có `recipient.id` = user_id; echo `oa_send_text` mang đúng `message_id` mà `message/cs` trả về; `src` = 0 là tin OA gửi trong API hội thoại.
+Giả định về Zalo chưa kiểm được với OA thật: webhook ZNS đã nhận có `recipient.id` = user_id; echo `oa_send_text` mang đúng `message_id` mà `message/cs` trả về; `src` = 0 là tin OA gửi trong API hội thoại; R-1026: webhook `user_submit_info` có `sender.id` = user_id, `recipient.id` = OA id, `info.phone` = SĐT khách gửi (đọc phòng thủ; sai dạng thì log tên field), sự kiện này đã được bật trong cấu hình Webhook của app, và OA Đức Hạnh đọc được `shared_info.phone` qua `user/detail`.

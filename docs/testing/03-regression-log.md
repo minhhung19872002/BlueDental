@@ -10839,3 +10839,46 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Phân quyền và cách ly chi nhánh: không đổi; ca "Quyền và chi nhánh" xanh.
 - **Staging / production**: không có migration, không có quyền mới.
 - **Commit**: `main` 524e1d0d (chủ dự án commit + push), chưa deploy production.
+
+## R-1026 (2026-10-24, mức 3) F-80 Hộp thư Zalo: tự nối hội thoại với hồ sơ theo SĐT khách chia sẻ, kể cả khi khách chia sẻ sau hoặc hồ sơ được tạo sau
+
+- **Yêu cầu của BA** (chủ dự án chuyển đoạn chat): hội thoại Zalo phải tự nối với hồ sơ theo số điện thoại. Chủ dự án chốt:
+  - Task này **chỉ** làm việc tự nối. Các nút Tạo hồ sơ / Đặt lịch hẹn, danh sách gợi ý hồ sơ và khớp theo SĐT người giám hộ để task khác.
+  - Khớp 0 hồ sơ thì không nối. Khớp ≥ 2 hồ sơ thì cũng không nối và **không** gợi ý ("để handle case này sau").
+  - Mỗi lần Đồng bộ, hội thoại chưa nối và chưa có SĐT thì hỏi lại Zalo `user/detail`, **không giới hạn** (phương án 3a). API này miễn phí, chỉ bị giới hạn tần suất.
+- **Trước đây**:
+  - SĐT chỉ được đọc một lần, lúc hội thoại mới mở (`user/detail` → `shared_info.phone`).
+  - Khách chia sẻ SĐT sau tin nhắn đầu, hoặc hồ sơ được tạo sau đó, thì hội thoại không bao giờ tự nối.
+  - Sự kiện webhook `user_submit_info` bị bỏ qua.
+- **Sửa** (chỉ BE; không migration, không quyền mới, không đổi FE):
+  - Domain `ZaloConversation`:
+    - `ShareContact(phone)`: lưu SĐT khách chia sẻ; chuỗi rỗng thì giữ số cũ.
+    - `LinkFoundPatient(id)`: chỉ nối khi hội thoại chưa có hồ sơ. Hồ sơ nhân viên chọn tay hoặc hồ sơ nối từ ZNS thì **giữ nguyên**.
+  - `ZaloInboxIngestor.LinkBySharedPhoneAsync`:
+    - Hội thoại chưa nối, có SĐT, mà SĐT đó khớp đúng 1 hồ sơ **trong chi nhánh của hội thoại** (dạng `0…` / `84…` / `+84…`) thì nối.
+    - Chạy cho hội thoại mới, và mỗi lần một hội thoại đã có đi qua `EnsureConversationAsync` (tin webhook, Đồng bộ). Nhờ vậy hồ sơ tạo sau cũng được nối khi khách nhắn lại.
+  - Webhook `user_submit_info` ("Người dùng gửi thông tin"), xử lý trong `ZaloChatWebhookProcessor`:
+    - `info.phone` trở thành SĐT của hội thoại (chưa có hội thoại thì mở mới), rồi thử nối.
+    - Payload thiếu user / OA / phone thì log chỉ ghi **tên field**, không ghi giá trị.
+  - `ZaloInboxSync.SyncRecentAsync`: hội thoại chưa nối và chưa có SĐT thì hỏi lại `user/detail`, mỗi user một lần trong một lượt Đồng bộ.
+- **Hệ quả đã biết**: gỡ liên kết bằng API (`PUT …/patient` với `null`; FE không có nút này) thì tin nhắn sau của khách sẽ nối lại, nếu SĐT khớp đúng 1 hồ sơ.
+- **Kết quả**:
+  - Domain.Tests **1107/1107**, gồm 2 ca mới trong `ZaloConversationTests`.
+  - E2E thật:
+    - Đường chạy: build production `vite preview` 127.0.0.1:8171 → host 127.0.0.1:5121 → PostgreSQL `BlueDental_r1026` (DB mới, migrator chạy với `E2E`), Redis db 12, Zalo stub :5220, không chặn request.
+    - `zalo-inbox` **10/10**, gồm 2 ca mới:
+      - "Khách gửi thông tin (user_submit_info)…": nối khi gửi SĐT `84…`; tải lại vẫn còn; hồ sơ tạo sau thì nối khi khách nhắn lại; 2 hồ sơ cùng số thì không nối; hồ sơ chọn tay thì giữ.
+      - "Đồng bộ hỏi lại Zalo SĐT…": đúng 1 lần gọi `user/detail` rồi nối; đã nối thì lần Đồng bộ sau không hỏi lại.
+  - Chứng minh với HEAD `2b067713` (BE build từ `git archive`, cùng DB và stub): cả 2 ca mới **đỏ** đúng chỗ gốc lỗi.
+    - Gửi SĐT xong thì hội thoại vẫn không mang tên hồ sơ.
+    - Đồng bộ gọi `user/detail` 0 lần.
+  - Mức 3 (impact map: sửa `ZaloChatWebhookProcessor`): `zalo-inbox` + `zalo-oa` + `cskh-message-send` + `cskh-stats` **37/41**. 4 ca đỏ, chạy lại trên host HEAD cùng DB vẫn đỏ y hệt (cùng dòng, cùng lỗi), nên không do R-1026:
+    - `cskh-message-send:304`: "Kênh SMS chưa kết nối gửi" ≠ "Chọn mẫu để gửi";
+    - `cskh-message-send:617`: R-1017, vốn chập chờn trên HEAD;
+    - `cskh-stats:409`: tách chi nhánh của Lịch sử gửi;
+    - `zalo-oa:151`: user chi nhánh 2 không đăng nhập được trên DB này.
+  - Phân quyền và cách ly chi nhánh: không đổi. Tìm hồ sơ chỉ trong chi nhánh của hội thoại. Ca "Quyền và chi nhánh" xanh.
+- **Staging / production**:
+  - Không có migration, không có quyền mới.
+  - Trong cấu hình Webhook của app Zalo phải bật sự kiện "Người dùng gửi thông tin" (`user_submit_info`) thì nhánh webhook mới chạy. Nhánh Đồng bộ không cần bật gì thêm.
+- **Commit**: `main` 163343b4 (chủ dự án commit + push). Mục log này chưa commit.

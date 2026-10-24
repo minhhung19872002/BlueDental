@@ -75,9 +75,15 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 
 **Liên kết hồ sơ:**
 
-- Hội thoại mới thì đọc `user/detail`. Nếu `shared_info.phone` khớp đúng 1 hồ sơ trong chi nhánh thì tự liên kết.
+- **Tự nối theo SĐT khách chia sẻ** (R-1026). Hội thoại chưa có hồ sơ, có SĐT khớp đúng 1 hồ sơ **trong chi nhánh của hội thoại** (dạng `0…` / `84…` / `+84…`), thì tự nối. SĐT có từ ba nguồn:
+  - hội thoại mới mở thì đọc `user/detail` → `shared_info.phone`;
+  - webhook `user_submit_info` ("Người dùng gửi thông tin"): `info.phone` thành SĐT của hội thoại (chưa có hội thoại thì mở mới);
+  - Đồng bộ: hội thoại chưa nối và chưa có SĐT thì hỏi lại `user/detail`, mỗi user một lần trong một lượt, không giới hạn (chủ dự án chọn).
+- Mỗi lần hội thoại chưa nối đi qua (tin webhook, Đồng bộ), hệ thống thử khớp lại, nên hồ sơ tạo **sau** khi khách chia sẻ SĐT được nối khi khách nhắn lại.
+- Khớp 0 hồ sơ hoặc ≥ 2 hồ sơ thì không nối và không gợi ý. Danh sách gợi ý, nút Tạo hồ sơ / Đặt lịch hẹn và khớp theo SĐT người giám hộ thuộc task khác.
 - Khi Zalo báo ZNS đã tới (`user_received_message`), user Zalo trong báo đó được liên kết với hồ sơ đã nhận ZNS.
 - Còn lại thì nhân viên chọn tay.
+- Liên kết đã có (chọn tay, từ ZNS, hoặc tự nối trước đó) **không bao giờ bị đè**. Gỡ liên kết bằng API (`PUT …/patient` với `null`; FE không có nút) thì tin nhắn sau của khách sẽ nối lại nếu SĐT vẫn khớp đúng 1 hồ sơ.
 
 **Tag:**
 
@@ -176,6 +182,7 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 | HttpApi.Host.Tests | **24/24** |
 | E2E `zalo-inbox` | **5/5** |
 | Hồi quy mức 3 | xem R-1021 trong `03-regression-log.md` |
+| R-1026 (2026-10-24) | Domain **1107/1107** (`ZaloConversationTests` 18); E2E `zalo-inbox` **10/10**; mức 3 37/41, 4 đỏ y hệt trên HEAD. Xem R-1026. |
 
 **Đường chạy E2E:**
 
@@ -235,12 +242,23 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
    - chỉ `cskhInbox.read`: không có Nhận xử lý / mẫu ZNS / Thêm ghi chú; API claim và ghi chú trả 403;
    - "Ẩn số điện thoại": ZNS có `{so_dien_thoai}` hiện số đã che trong `/messages` và `/care-history` (admin vẫn thấy đủ số);
    - chi nhánh khác: `GET` trả 404, danh sách không có hội thoại.
+6. **Khách gửi thông tin (`user_submit_info`, R-1026):**
+   - khách nhắn trước, chưa nối; gửi thông tin không có SĐT thì vẫn chưa nối;
+   - gửi SĐT dạng `84…` → nối đúng hồ sơ, cột phải có `[mã] tên`, tải lại vẫn còn;
+   - gửi SĐT chưa có hồ sơ → chưa nối; tạo hồ sơ với số đó, khách nhắn lại → nối;
+   - 2 hồ sơ cùng số (`09…` và `84…`) → không nối;
+   - hồ sơ chọn tay, khách gửi SĐT của hồ sơ khác rồi nhắn tiếp → vẫn hồ sơ chọn tay.
+7. **Đồng bộ hỏi lại SĐT (R-1026):**
+   - hội thoại chưa nối, Zalo chưa có SĐT; sau đó stub trả `shared_info.phone`;
+   - Đồng bộ → đúng 1 lần gọi `user/detail` cho user đó → dòng mang tên hồ sơ, cột phải có `[mã] tên`;
+   - Đồng bộ lần nữa → 0 lần gọi `user/detail` (đã nối thì không hỏi); tải lại vẫn nối.
 
 ### Lưu ý khi viết spec
 
 - `toContainText` trên `.ibx-chat` khớp cả chữ còn trong ô trả lời. Phải chờ **bong bóng** (`.ibx-bubble-text`), nếu không test sẽ đi tiếp khi tin chưa lưu.
 - Stub giữ `/__calls`, `/__users`, `/__history` suốt đời tiến trình. Spec phải dùng user id mới mỗi lần chạy và đếm phần chênh.
 - `zalo-oa` cần BD-001 **không** có kết nối. Spec này tự nối rồi tự gỡ nếu đầu test chưa có.
+- Hai hồ sơ cùng số (R-1026): khi tạo hồ sơ, kiểm tra trùng SĐT chỉ so đúng chuỗi, và `+84` được đổi về `0` còn `84…` thì giữ nguyên. Vì vậy hồ sơ thứ hai được lưu số dạng `84…`. Đếm `user/detail` theo user id, chỉ tính phần chênh từ mốc trước khi Đồng bộ.
 
 ## Còn treo
 
@@ -250,6 +268,11 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
   - echo `oa_send_text` có cùng `message_id` với kết quả gửi tin tư vấn không;
   - trong API hội thoại, `src` = 0 có phải tin do OA gửi không;
   - API hội thoại có trả chữ (`message`) cho tin OA loại template / list… không. Thực tế (2026-10-23): thẻ chào mừng của OA về không có `message` / `url` / `thumb`, nên hiện "[Tin tự động của OA]" (R-1023). Host ghi log tên trường (không ghi giá trị) để lần sau dựng được thẻ.
+- Tự nối theo SĐT (R-1026), chưa kiểm được với OA thật:
+  - payload `user_submit_info` đọc theo dạng `sender.id` / `recipient.id` / `info.phone`; sai dạng thì host log tên field (`Zalo user_submit_info came without a user, an OA or a phone; fields: …`);
+  - phải bật sự kiện "Người dùng gửi thông tin" trong cấu hình Webhook của app Zalo thì nhánh webhook mới chạy;
+  - OA Đức Hạnh có được đọc `shared_info.phone` qua `user/detail` không. Nếu không được thì chỉ còn nhánh webhook.
+- Khớp ≥ 2 hồ sơ: chưa gợi ý, chờ task sau (chủ dự án).
 - Chưa có SignalR cho hộp thư, đang tự lấy lại theo chu kỳ 5 / 10 giây.
 - Không làm phần Chiến dịch CSKH của P2210.
 
