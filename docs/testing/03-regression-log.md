@@ -10795,4 +10795,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Log host khi chạy e2e: `Zalo history message of type template came without words or a link; fields: src, time, type, message, message_id, from_id, …` (chỉ có tên trường).
 - **Sau khi deploy**: bấm "Đồng bộ" trong Hộp thư Zalo, rồi chạy `docker compose logs <backend> | grep "came without words"` để xem Zalo gửi những trường nào cho thẻ chào mừng. Nếu có trường mang tiêu đề hoặc ảnh thì làm tiếp để dựng thẻ.
 - **Staging / production**: không có migration, không có quyền mới.
-- **Commit**: chưa commit.
+- **Commit**: `8ab65e45` trên main, chủ dự án đã push (deploy production).
+
+## R-1024 (2026-10-24, mức 2) F-77 CSKH: gửi Zalo thành công thì dòng chăm sóc chuyển "Đã liên hệ"
+
+- **Yêu cầu BA**: ảnh chụp tab Nhắc lịch hẹn, ô "Trạng thái CSKH: Chưa liên hệ" khoanh đỏ, kèm lời "Này cho đổi trạng thái khi đã gửi luôn đi".
+- **Quyết định của chủ dự án** (2026-10-24):
+  - Áp dụng cho mọi tab có nút gửi, và chỉ đổi Chưa liên hệ → Đã liên hệ. Tab theo kết quả hiện Đã liên hệ và vẫn chờ Thành công / Thất bại. Dòng đã là Đã liên hệ / Thành công / Thất bại / Hủy thì giữ nguyên trạng thái, chỉ cập nhật dấu "Đã gửi Zalo".
+  - Không chạy lại cho bản ghi cũ.
+  - Gửi thất bại thì giữ Chưa liên hệ. Tin hẹn giờ chỉ đổi dòng khi tin thật sự đi. Với R05 "Gộp trùng số", chỉ dòng của khách mang tin đổi. Nhân viên vẫn đổi tay ngược lại được, và dấu "Đã gửi Zalo" vẫn giữ.
+- **Sửa**:
+  - Domain: `CareRecord.MarkZaloSent(at, byStaffId)` trả `bool`. Dòng đang Chưa liên hệ đi qua `SetContacted`, nên `ContactedAt` là giờ gửi và người chăm sóc là người gửi (ở tab Sau điều trị, `DueAt` cũng thành giờ gửi). `CareContactLog.OfSend` ghi nhật ký liên hệ với `CreatorId` là người tạo lô, vì job không có CurrentUser.
+  - Ba đường gửi đều dùng hàm trên, và chỉ ghi nhật ký khi trạng thái thật sự đổi:
+    - job `cskh.message-send` (`MessageSendJob`), chỉ khi tin đã gửi được;
+    - nút Gửi Zalo trên dòng (`CustomerCareAppService.MarkZaloSentAsync`);
+    - `ZaloOaAppService.SendAsync`.
+  - FE: `useRefreshWhenSendEnds` (`campaignApi.ts`) làm mới bảng CSKH và Thống kê khi một lần gửi kết thúc.
+- **Kết quả**:
+  - Domain **1105/1105**. Bộ test mới `CareZaloSentTests` phủ 6 loại chăm sóc, Sau điều trị, dòng đã liên hệ, Thành công / Thất bại, Hủy và việc đổi tay ngược lại.
+  - Application: các test CustomerCare / Zalo / Message **157/157**. Toàn bộ **826/831**; 5 ca đỏ `PaymentReceiptTemplateTests` là do môi trường (build với `--artifacts-path` ngoài repo nên không tìm thấy `PHIẾU THU.docx`), không liên quan.
+  - E2E thật: build production `vite preview` 127.0.0.1:8150 → host 127.0.0.1:5120 → PostgreSQL `BlueDental_r1024` (bản sao DB dev, migrator chạy với môi trường `E2E`), Redis db riêng, Zalo stub :5219, không chặn request. `cskh*` + `zalo*` **68/69**.
+    - Ca R-1014 / R-1024: sau khi gửi, dòng đổi trạng thái 1 → 2, người chăm sóc là người gửi, `contactedAt` bằng `zaloSentAt`, nhật ký liên hệ là `[[2, tên người gửi]]`, và bộ đếm đúng sau khi tải lại trang.
+    - Ca mới: tin hẹn giờ gửi thất bại (khách mất số) thì dòng vẫn Chưa liên hệ và không có nhật ký liên hệ.
+    - Ca đỏ: R-1017 ("…khi đọc xong danh sách mới"), dòng 642: trace có một bước nút "Gửi N tin Zalo" đang bật. Chạy riêng `--repeat-each=3` trên build HEAD trước R-1024 cũng đỏ **3/3**, nên lỗi có từ trước, không do R-1024; chưa sửa.
+    - Lần chạy đầu trên `BlueDental_zalofix` (DB mới, chỉ có BD-001) có 10 ca đỏ vì thiếu dữ liệu. Trên bản sao DB đầy đủ thì cả 10 ca đều xanh.
+  - Phân quyền và cách ly chi nhánh: không đổi; các ca chi nhánh trong `cskh*` đều xanh.
+- **Lỗ hổng đã biết**: nếu lúc lô gửi xong không có màn chiến dịch nào đang mở, bảng CSKH đang mở vẫn hiện trạng thái cũ cho tới khi hết `staleTime` hoặc tải lại trang.
+- **Staging / production**: không có migration, không có quyền mới.
+- **Commit**: `1c6fd7a1` trên main, chủ dự án đã push (deploy production). Commit này lỡ mang theo file tạm `BlueDental.FE/vite.zalofix.tmp.config.ts`. File đó không ảnh hưởng bản build (`tsc -b` chỉ đọc `vite.config.ts`) và đã được xoá trong working tree, chờ commit. Mục log này cũng chưa commit.
