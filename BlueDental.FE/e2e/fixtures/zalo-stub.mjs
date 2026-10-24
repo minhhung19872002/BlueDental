@@ -18,8 +18,9 @@
 // { userId, displayName, phone }) and what their chat holds (POST /__history
 // { userId, items: [{ messageId, fromOa, text, time }] }); the conversation,
 // recent-chat and user-detail reads serve that, and a "tin tư vấn" sent to a
-// user is appended to their history. Users whose id starts 999 refuse the
-// "tin tư vấn" the way Zalo does once the 48 hours have run out.
+// user is appended to their history — the card asking for the phone (R-1028)
+// as a "template" item. Users whose id starts 999 refuse the "tin tư vấn" the
+// way Zalo does once the 48 hours have run out.
 import http from "node:http";
 
 const port = Number(process.argv[2] ?? 5199);
@@ -161,12 +162,17 @@ http
           if (userId.startsWith("999")) {
             return send(res, { error: -230, message: "User has not interacted with the OA in the last 48 hours" });
           }
+          // R-1028: the request_user_info card, which Zalo takes only with a title and a picture.
+          const card = message?.attachment?.payload?.elements?.[0];
+          if (message?.attachment && !(card?.title && card?.image_url)) {
+            return send(res, { error: -201, message: "Parameters are invalid: title and image_url are required" });
+          }
           // Unique across stub restarts too: the inbox keeps every id it was given.
           const messageId = `cs-${Date.now()}-${nextChatId++}`;
-          histories.set(userId, [
-            ...(histories.get(userId) ?? []),
-            { messageId, fromOa: true, text: message?.text ?? "", time: Date.now() },
-          ]);
+          const item = card
+            ? { messageId, fromOa: true, type: "template", text: card.title, time: Date.now() }
+            : { messageId, fromOa: true, text: message?.text ?? "", time: Date.now() };
+          histories.set(userId, [...(histories.get(userId) ?? []), item]);
           return send(res, { error: 0, message: "Success", data: { message_id: messageId, user_id: userId } });
         }
         case "/__config": {

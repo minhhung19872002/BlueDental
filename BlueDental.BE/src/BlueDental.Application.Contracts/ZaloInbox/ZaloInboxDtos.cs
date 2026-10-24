@@ -73,6 +73,9 @@ public class ZaloConversationSummaryDto
     public string? HolderName { get; set; }
     public DateTime? HeldUntil { get; set; }
 
+    /// <summary>R-1028: when the card asking for the phone last went.</summary>
+    public DateTime? InfoRequestedAt { get; set; }
+
     public List<string> Tags { get; set; } = [];
 }
 

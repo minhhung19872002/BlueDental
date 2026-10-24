@@ -74,6 +74,7 @@ const KIND_PREVIEW: Record<string, string> = {
   Audio: "CSKH:Inbox:Kind:Audio",
   Video: "CSKH:Inbox:Kind:Video",
   Location: "CSKH:Inbox:Kind:Location",
+  InfoRequest: "CSKH:Inbox:Kind:InfoRequest",
   Other: "CSKH:Inbox:Kind:Other",
 };
 
@@ -93,4 +94,9 @@ export function previewText(preview: string | null, direction: ChatDirection | n
 /** The name the inbox shows: the linked record's, else what Zalo calls the user. */
 export function customerName(conversation: ConversationSummary): string {
   return conversation.patientName ?? conversation.displayName;
+}
+
+/** "Chưa có SĐT" (R-1028): no linked record and no phone shared through Zalo. */
+export function needsContact(conversation: ConversationSummary): boolean {
+  return conversation.patientId == null && conversation.sharedPhone == null;
 }

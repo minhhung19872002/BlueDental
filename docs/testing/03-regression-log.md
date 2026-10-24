@@ -10901,4 +10901,48 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Phân quyền / chi nhánh: không đổi; ca "Quyền và chi nhánh" xanh.
 - **Production sau khi deploy**: các hội thoại đã lưu `"0"` vẫn giữ `"0"` (và vẫn bị bỏ qua khi Đồng bộ) cho đến khi xoá tay:
   `update bd_zalo_conversations set "SharedPhone" = null where "SharedPhone" ~ '^0+$';`
-- **Commit**: chưa commit.
+- **Commit**: `main` 3667a12b (chủ dự án commit).
+
+## R-1028 (2026-10-24, mức 3) F-80 Hộp thư Zalo: tự gửi thẻ xin SĐT (`request_user_info`) khi khách lạ vừa đến, nút "Xin SĐT", Đồng bộ thay tên tạm
+
+- **Yêu cầu** (chủ dự án chốt "làm theo đề xuất", rồi bổ sung): khách vừa vào OA là gửi ngay **một lần** thẻ để khách bấm gửi SĐT; không chặn gì, khách vẫn nhắn bình thường.
+  - (a) Tự gửi thẻ `request_user_info` đúng 1 lần cho mỗi hội thoại chưa có hồ sơ và chưa có SĐT. Thời điểm: khách **quan tâm OA** (`follow`), bấm **Nhắn tin** trên trang OA (`user_click_chatnow`), hoặc tin nhắn đầu tiên của khách — cái nào đến trước.
+  - (b) Nhãn "Chưa có SĐT" ở dòng hội thoại và đầu khung chat; nút "Xin SĐT" để gửi lại thẻ.
+  - (c) Đồng bộ đọc lại thông tin user thì thay luôn tên tạm "Zalo …xxxx" và ảnh đại diện còn thiếu.
+- **Trước đây**: OA không có cách xin SĐT. Khách không tự chia sẻ thì hội thoại không bao giờ tự nối được (R-1026 chỉ chờ). Hội thoại mở khi Zalo chưa trả tên thì giữ tên tạm mãi.
+- **Sửa**:
+  - Domain `ZaloConversation`:
+    - cột mới `InfoRequestedAt` (migration `20261024112502_ZaloInfoRequest`, nullable);
+    - `NeedsContact` = chưa có hồ sơ và chưa có SĐT;
+    - `TryClaimInfoRequest` / `ReleaseInfoRequest`: giành lượt gửi tự động, Zalo từ chối thì trả lại;
+    - `RecordInfoRequest`: thẻ hiện là tin cuối nhưng **không tính là trả lời** (trạng thái, `LastReplyAt` giữ nguyên);
+    - `RefreshProfile`: chỉ thay tên khi đang là tên tạm, chỉ điền ảnh khi đang trống.
+  - Loại tin mới `ZaloChatKind.InfoRequest = 8`, bong bóng gắn nhãn "Thẻ xin số điện thoại".
+  - `ZaloInfoRequester` (mới):
+    - `RequestOnceAsync`: giành lượt trong unit of work riêng, có ConcurrencyStamp, nên 2 sự kiện đến cùng lúc chỉ gửi 1 thẻ. Gửi xong mà lưu lỗi thì giữ lượt (không gửi lần 2; Đồng bộ sẽ mang tin về). Không bao giờ ném lỗi ra webhook.
+    - `SendAsync`: `POST /v3.0/oa/message/cs` với `template_type = request_user_info`. Tiêu đề và mô tả lấy từ `vi.json`, luôn tiếng Việt. Ảnh: `Zalo:InfoRequestImageUrl` → ảnh đại diện OA → `{App:SelfUrl}/logo.png`. Ghi `bd_integration_call_logs` với tên `cs-request-info`.
+  - `ZaloChatWebhookProcessor`:
+    - `follow` và `user_click_chatnow`: mở hội thoại (hỏi Zalo tên) rồi gửi thẻ;
+    - tin khách mới được lưu: gửi thẻ nếu còn lượt;
+    - echo `oa_send_*` mang template `request_user_info` (trong `message.payload` hoặc `attachments[].payload`) được lưu là thẻ, không phải câu trả lời.
+  - `ZaloInboxIngestor.StoreInfoRequestAsync`: echo đến trước kết quả gửi thì đánh dấu lại tin đó và tính lại `LastReplyAt`.
+  - API `POST /api/v1/app/zalo-inbox/conversations/{id}/request-info` ("Xin SĐT"): cần `cskhInbox.update`, phải đang giữ hội thoại, trong 48 giờ (`0003` khi quá). Không đổi trạng thái hội thoại.
+  - Đồng bộ (`EnsureConversationAsync`): hội thoại còn thiếu SĐT **hoặc** còn tên tạm thì đọc lại `user/detail`.
+  - FE: nhãn "Chưa có SĐT" (dòng hội thoại, đầu khung chat, nằm ngoài `h3`), dòng phụ "Đã gửi thẻ xin SĐT lúc …", nút "Xin SĐT" (`RequestInfoButton`, chỉ người đang giữ, khoá khi quá 48 giờ, spinner khi đang gửi, toast sau khi API trả về).
+  - Stub `zalo-stub.mjs`: kiểm thẻ (thiếu `title` / `image_url` → lỗi `-201` như Zalo) và thêm thẻ vào lịch sử chat dạng `template`.
+- **Nội dung thẻ** (khách thấy):
+  - Tiêu đề: "Chia sẻ số điện thoại để được tư vấn nhanh hơn"
+  - Mô tả: "Bấm vào đây để gửi số điện thoại Zalo của bạn cho phòng khám. Nhân viên sẽ tra hồ sơ và hỗ trợ bạn ngay."
+- **Kết quả**:
+  - E2E thật (cùng đường chạy R-1026: `vite preview` :8171 → host :5121 → DB `BlueDental_r1026`, Redis db 12, stub :5220, không chặn request): `zalo-inbox` **12/12** (2 ca mới: khách lạ đến nhận thẻ đúng 1 lần qua cả 3 lối; nút Xin SĐT; cộng kiểm tra 403 cho người chỉ có quyền Xem trong ca "Quyền và chi nhánh").
+  - Chứng minh với HEAD `3667a12b` (BE build từ `git archive`, cùng DB, stub và bản FE): cả 3 ca trên **đỏ** (không có thẻ nào được gửi; API Xin SĐT không có; người chỉ Xem không nhận 403).
+  - Domain.Tests **1107/1107**; Application.Tests (lọc `Zalo`) **45/45**.
+  - Hồi quy mức 3 (`zalo-oa`, `cskh-message-send`, `cskh-stats`): **28/31**. 3 đỏ (`cskh-message-send:304`, `cskh-stats:409`, `zalo-oa:151`) đều nằm trong 4 đỏ có sẵn đã chứng minh trên HEAD ở R-1026; `cskh-message-send:617` lần này xanh.
+  - Phân quyền / chi nhánh: API mới cần `cskhInbox.update` và người giữ hội thoại; id chi nhánh khác vẫn 404.
+  - Lưu ý khi build FE trên Windows: build từ thư mục `c:\…` (chữ thường) làm bundle có 2 bản `src/lib/i18n.tsx`, chữ hiện thành key thô và đăng nhập treo. Build lại từ `C:\…` thì hết. Không liên quan code.
+- **Staging / production**:
+  - Migration `20261024112502_ZaloInfoRequest` (thêm 1 cột nullable), chạy khi deploy.
+  - Trong cấu hình Webhook của app Zalo phải tích `follow` ("Người dùng quan tâm OA"), `user_click_chatnow` ("Người dùng bấm Nhắn tin") và `user_submit_info` ("Người dùng gửi thông tin"). Không tích hai sự kiện đầu thì thẻ chỉ đi khi khách nhắn tin đầu tiên.
+  - Tuỳ chọn `Zalo:InfoRequestImageUrl` (ảnh trên thẻ).
+  - Phần (c) dựa vào `user/detail`. Production đã đọc được API này từ khi app Zalo bật nhóm "Quản lý người dùng" (R-1027 là bằng chứng: phản hồi có `phone = 0`). Nếu lại gặp `-212` thì chỉ phần (c) không chạy. Thẻ + `user_submit_info` **không** cần `user/detail`.
+- **Commit**: `main`, cùng commit với mục log này (chủ dự án yêu cầu commit + push; push kèm luôn 3667a12b của R-1027).

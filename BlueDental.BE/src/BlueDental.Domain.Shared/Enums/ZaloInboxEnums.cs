@@ -30,6 +30,10 @@ public enum ZaloChatKind
     Audio = 5,
     Video = 6,
     Location = 7,
+
+    /// <summary>R-1028: Zalo's <c>request_user_info</c> card asking the customer for their phone — not an answer.</summary>
+    InfoRequest = 8,
+
     Other = 9,
 }
 

@@ -35,6 +35,9 @@ public interface IZaloInboxAppService : IApplicationService
 
     Task<ZaloChatEntryDto> SendMessageAsync(Guid id, SendZaloChatMessageInput input);
 
+    /// <summary>R-1028 "Xin SĐT": Zalo's card the customer taps to send their phone.</summary>
+    Task<ZaloChatEntryDto> RequestInfoAsync(Guid id);
+
     Task<List<string>> SetTagsAsync(Guid id, SetZaloConversationTagsInput input);
 
     /// <summary>Tags already used in the branch's inbox, for the "+ Tag" box to suggest.</summary>

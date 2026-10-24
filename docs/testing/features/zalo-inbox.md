@@ -85,6 +85,21 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 - Còn lại thì nhân viên chọn tay.
 - Liên kết đã có (chọn tay, từ ZNS, hoặc tự nối trước đó) **không bao giờ bị đè**. Gỡ liên kết bằng API (`PUT …/patient` với `null`; FE không có nút) thì tin nhắn sau của khách sẽ nối lại nếu SĐT vẫn khớp đúng 1 hồ sơ.
 
+**Xin SĐT** (R-1028, thẻ Zalo `request_user_info`):
+
+- Khách chưa có hồ sơ và chưa có SĐT ("Chưa có SĐT") nhận **tự động đúng 1 thẻ**, ngay khi:
+  - quan tâm OA (`follow`);
+  - bấm "Nhắn tin" trên trang OA (`user_click_chatnow`);
+  - hoặc nhắn tin đầu tiên.
+- Khách bấm thẻ, gửi SĐT (`user_submit_info`) → hội thoại tự nối theo R-1026.
+- Thẻ là tin tư vấn nên Zalo chỉ nhận trong 48 giờ. Zalo từ chối thì lượt gửi được trả lại, sự kiện sau thử lại.
+- Thẻ hiện thành bong bóng có nhãn "Thẻ xin số điện thoại". Thẻ **không** tính là trả lời: hội thoại vẫn "Chưa trả lời".
+- Nhãn "Chưa có SĐT" ở dòng hội thoại và cạnh tên đầu khung chat. Dòng phụ ghi "Đã gửi thẻ xin SĐT lúc …".
+- Nút "Xin SĐT": chỉ người đang giữ thấy, gửi lại thẻ bao nhiêu lần cũng được, khoá khi quá 48 giờ (`0003`), cần `cskhInbox.update`.
+- Khách đã có SĐT hoặc hồ sơ thì nhãn và nút biến mất, không gửi thẻ.
+- Tiêu đề và mô tả thẻ lấy từ `vi.json` (`ZaloInbox:InfoRequest:*`), luôn tiếng Việt. Ảnh thẻ: `Zalo:InfoRequestImageUrl` → ảnh đại diện OA → `logo.png`.
+- Đồng bộ đọc lại `user/detail` cho hội thoại còn thiếu SĐT **hoặc** còn tên tạm "Zalo …xxxx", rồi thay tên tạm và điền ảnh đại diện còn thiếu. Tên thật đã có thì giữ.
+
 **Tag:**
 
 - Nhập tự do, có gợi ý các tag chi nhánh đã dùng.
@@ -161,7 +176,9 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
   - subject `cskhInbox` (Xem / Xử lý hội thoại), nằm trong cây Phân quyền dưới CSKH;
   - seeder cấp cho role tĩnh, role tuỳ chỉnh phải cấp tay.
 - **Mã lỗi:** `BlueDental:ZaloInbox:0001..0013`.
-- **Migration:** `20261023023050_ZaloInbox` chỉ tạo 4 bảng. Staging cần chạy DbMigrator, sau đó xoá cache quyền Redis.
+- **Migration:**
+  - `20261023023050_ZaloInbox` chỉ tạo 4 bảng. Staging cần chạy DbMigrator, sau đó xoá cache quyền Redis.
+  - `20261024112502_ZaloInfoRequest` (R-1028) thêm cột nullable `InfoRequestedAt` vào `bd_zalo_conversations`.
 
 ### FE
 
@@ -183,6 +200,7 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 | E2E `zalo-inbox` | **5/5** |
 | Hồi quy mức 3 | xem R-1021 trong `03-regression-log.md` |
 | R-1026 (2026-10-24) | Domain **1107/1107** (`ZaloConversationTests` 18); E2E `zalo-inbox` **10/10**; mức 3 37/41, 4 đỏ y hệt trên HEAD. Xem R-1026. |
+| R-1028 (2026-10-24) | Domain **1107/1107**; Application (`Zalo`) **45/45**; E2E `zalo-inbox` **12/12**, 3 ca R-1028 đỏ trên HEAD `3667a12b`; mức 3 28/31, 3 đỏ có sẵn. Xem R-1028. |
 
 **Đường chạy E2E:**
 
@@ -252,6 +270,20 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
    - hội thoại chưa nối, Zalo chưa có SĐT; sau đó stub trả `shared_info.phone`;
    - Đồng bộ → đúng 1 lần gọi `user/detail` cho user đó → dòng mang tên hồ sơ, cột phải có `[mã] tên`;
    - Đồng bộ lần nữa → 0 lần gọi `user/detail` (đã nối thì không hỏi); tải lại vẫn nối.
+8. **Khách lạ đến nhận thẻ xin SĐT (R-1028):**
+   - user stub không biết nhắn tin → đúng 1 thẻ (`request_user_info`, đúng tiêu đề / mô tả); nhắn tiếp → không thêm thẻ;
+   - echo `oa_send_template` của thẻ (msg_id lạ) → lưu là thẻ, hội thoại vẫn "Chưa trả lời", `infoRequestedAt` có giá trị;
+   - UI: dòng có "Chưa trả lời" + "Chưa có SĐT"; đầu khung chat có nhãn và "Đã gửi thẻ xin SĐT lúc"; bong bóng thẻ có nhãn "Thẻ xin số điện thoại";
+   - Đồng bộ sau khi stub biết tên → dòng mang tên thật, không còn dòng tên tạm;
+   - `follow` → 1 thẻ, nhắn sau đó → không thêm; `user_click_chatnow` → 1 thẻ;
+   - khách stub đã có SĐT → 0 thẻ, không có nhãn;
+   - user `999…` (Zalo từ chối) → 1 lần gọi, `infoRequestedAt` vẫn rỗng; tin sau → gọi lần 2.
+9. **Nút Xin SĐT (R-1028):**
+   - chưa Nhận xử lý thì không có nút;
+   - giữ rồi bấm → toast "Đã gửi thẻ xin số điện thoại", stub nhận đúng 1 thẻ, thêm bong bóng, trạng thái vẫn "Chưa trả lời", tải lại vẫn vậy;
+   - khách chia sẻ SĐT (`user_submit_info`) → tải lại: mất nhãn ở dòng và đầu khung chat, mất nút;
+   - khách nhắn cách đây 72 giờ → nút khoá, API trả `BlueDental:ZaloInbox:0003`;
+   - chỉ `cskhInbox.read` → API `request-info` trả 403 (ca "Quyền và chi nhánh").
 
 ### Lưu ý khi viết spec
 
@@ -272,6 +304,12 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
   - payload `user_submit_info` đọc theo dạng `sender.id` / `recipient.id` / `info.phone`; sai dạng thì host log tên field (`Zalo user_submit_info came without a user, an OA or a phone; fields: …`);
   - phải bật sự kiện "Người dùng gửi thông tin" trong cấu hình Webhook của app Zalo thì nhánh webhook mới chạy;
   - OA Đức Hạnh có được đọc `shared_info.phone` qua `user/detail` không. Nếu không được thì chỉ còn nhánh webhook.
+- Thẻ xin SĐT (R-1028), chưa kiểm được với OA thật:
+  - Zalo có nhận thẻ ngay sau `follow` / `user_click_chatnow` khi khách chưa nhắn chữ nào không (thẻ là tin tư vấn, cần khách "tương tác" trong 48 giờ). Nếu Zalo từ chối, lượt được trả lại và thẻ đi khi khách nhắn tin đầu;
+  - payload `follow` (`follower.id`, `oa_id`) và `user_click_chatnow` (`user_id`, `oa_id`) đọc theo tài liệu Zalo; sai dạng thì host log tên field;
+  - echo `oa_send_template` mang template ở `message.payload` hay `attachments[].payload` (đọc cả hai);
+  - API lịch sử chat trả thẻ với `message_id` / `type` nào. Nếu gửi xong mà lưu lỗi, Đồng bộ sẽ đọc thẻ thành một câu trả lời thường (hiếm);
+  - phải tích `follow` và `user_click_chatnow` trong cấu hình Webhook của app Zalo.
 - Khớp ≥ 2 hồ sơ: chưa gợi ý, chờ task sau (chủ dự án).
 - Chưa có SignalR cho hộp thư, đang tự lấy lại theo chu kỳ 5 / 10 giây.
 - Không làm phần Chiến dịch CSKH của P2210.

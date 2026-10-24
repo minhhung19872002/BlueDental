@@ -165,6 +165,7 @@ public class ZaloInboxReader(
         dto.HolderId = holder;
         dto.HolderName = holder is { } h ? names.GetValueOrDefault(h) : null;
         dto.HeldUntil = holder == null ? null : c.HeldUntil;
+        dto.InfoRequestedAt = c.InfoRequestedAt;
         dto.Tags = [.. c.Tags];
         return dto;
     }

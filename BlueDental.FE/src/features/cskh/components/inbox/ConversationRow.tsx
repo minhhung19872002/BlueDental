@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { t } from "@/lib/i18n";
 import { CONVERSATION_STATUS, type ConversationSummary } from "../../api/inboxApi";
-import { customerName, listTime, previewText, waitTone } from "../../inboxLook";
+import { customerName, listTime, needsContact, previewText, waitTone } from "../../inboxLook";
 import { InboxAvatar } from "./InboxAvatar";
 import { StatusPill } from "./StatusPill";
 
@@ -55,6 +55,7 @@ export const ConversationRow = memo(function ConversationRow({ conversation, sel
                   : t("CSKH:Inbox:HeldBy", conversation.holderName ?? "")}
               </span>
             )}
+            {needsContact(conversation) && <span className="ibx-pill ibx-pill--nophone">{t("CSKH:Inbox:NoPhoneYet")}</span>}
           </span>
         </span>
       </button>

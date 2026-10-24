@@ -3,7 +3,8 @@ import { Button } from "antd";
 import { t } from "@/lib/i18n";
 import type { ConversationDetail } from "../../api/inboxApi";
 import type { HoldActions } from "../../hooks/useHoldActions";
-import { customerName, stamp } from "../../inboxLook";
+import { customerName, needsContact, stamp } from "../../inboxLook";
+import { RequestInfoButton } from "./RequestInfoButton";
 import { StatusPill } from "./StatusPill";
 import { TransferDialog } from "./TransferDialog";
 
@@ -17,19 +18,28 @@ interface Props {
 /**
  * Name, phone, when the customer wrote, the status and the hold (BA P2210):
  * free → "Nhận xử lý"; held by you → "Bạn đang xử lý", "Chuyển cho…",
- * "Nhả hội thoại"; held by a colleague → who.
+ * "Nhả hội thoại"; held by a colleague → who. No phone yet → "Chưa có SĐT",
+ * when the card asking for it went, and "Xin SĐT" for the holder (R-1028).
  */
 export function ChatHeader({ conversation, meId, canHandle, hold }: Props) {
   const [transferOpen, setTransferOpen] = useState(false);
   const heldByMe = conversation.holderId != null && conversation.holderId === meId;
   const phone = conversation.patientPhone ?? conversation.sharedPhone;
+  const noPhone = needsContact(conversation);
 
   return (
     <header className="ibx-chat-head">
       <div className="ibx-chat-who">
-        <h3 className="ibx-chat-name">{customerName(conversation)}</h3>
+        <div className="ibx-chat-title">
+          <h3 className="ibx-chat-name">{customerName(conversation)}</h3>
+          {noPhone && <span className="ibx-pill ibx-pill--nophone">{t("CSKH:Inbox:NoPhoneYet")}</span>}
+        </div>
         <span className="ibx-chat-sub">
-          {[phone, conversation.lastCustomerMessageAt && t("CSKH:Inbox:CustomerWrote", stamp(conversation.lastCustomerMessageAt))]
+          {[
+            phone,
+            conversation.lastCustomerMessageAt && t("CSKH:Inbox:CustomerWrote", stamp(conversation.lastCustomerMessageAt)),
+            noPhone && conversation.infoRequestedAt && t("CSKH:Inbox:InfoRequestedAt", stamp(conversation.infoRequestedAt)),
+          ]
             .filter(Boolean)
             .join(" · ")}
         </span>
@@ -47,6 +57,7 @@ export function ChatHeader({ conversation, meId, canHandle, hold }: Props) {
         )}
         {canHandle && heldByMe && (
           <>
+            {noPhone && <RequestInfoButton conversationId={conversation.id} disabled={!conversation.canReplyFreely} />}
             <Button onClick={() => setTransferOpen(true)}>{t("CSKH:Inbox:Transfer")}</Button>
             <Button loading={hold.releasing} disabled={hold.releasing} onClick={hold.release}>
               {t("CSKH:Inbox:Release")}

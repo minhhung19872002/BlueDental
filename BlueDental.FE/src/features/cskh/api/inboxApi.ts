@@ -24,6 +24,8 @@ export const CHAT_KIND = {
   Audio: 5,
   Video: 6,
   Location: 7,
+  /** R-1028: Zalo's card asking the customer for their phone. */
+  InfoRequest: 8,
   Other: 9,
 } as const;
 export type ChatKind = (typeof CHAT_KIND)[keyof typeof CHAT_KIND];
@@ -79,6 +81,8 @@ export interface ConversationSummary {
   holderId: string | null;
   holderName: string | null;
   heldUntil: string | null;
+  /** When the card asking for the phone last went (R-1028). */
+  infoRequestedAt: string | null;
   tags: string[];
 }
 
@@ -181,6 +185,7 @@ const inboxApi = {
   assignees: () => api.get<InboxAssignee[]>(`${BASE}/assignees`).then((r) => r.data),
   send: ({ id, text }: { id: string; text: string }) =>
     api.post<ChatEntry>(`${conversationPath(id)}/messages`, { text }).then((r) => r.data),
+  requestInfo: (id: string) => api.post<ChatEntry>(`${conversationPath(id)}/request-info`).then((r) => r.data),
   setTags: ({ id, tags }: { id: string; tags: string[] }) =>
     api.put<string[]>(`${conversationPath(id)}/tags`, { tags }).then((r) => r.data),
   tagSuggestions: () => api.get<string[]>(`${BASE}/tags`).then((r) => r.data),
@@ -295,6 +300,12 @@ export function useInboxAssignees(enabled: boolean) {
 export function useSendChatMessage() {
   const invalidate = useInvalidateInbox();
   return useMutation({ mutationFn: inboxApi.send, onSuccess: (_, { id }) => invalidate(id) });
+}
+
+/** "Xin SĐT" (R-1028): the card again; it is not an answer, the status stays. */
+export function useRequestInfo() {
+  const invalidate = useInvalidateInbox();
+  return useMutation({ mutationFn: inboxApi.requestInfo, onSuccess: (_, id) => invalidate(id) });
 }
 
 export function useSetTags() {

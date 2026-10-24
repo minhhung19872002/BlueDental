@@ -52,6 +52,9 @@ public sealed class ZaloInboxController(
     public Task<ZaloChatEntryDto> SendMessageAsync(Guid id, [FromBody] SendZaloChatMessageInput input) =>
         inbox.SendMessageAsync(id, input);
 
+    [HttpPost("conversations/{id:guid}/request-info")]
+    public Task<ZaloChatEntryDto> RequestInfoAsync(Guid id) => inbox.RequestInfoAsync(id);
+
     [HttpPut("conversations/{id:guid}/tags")]
     public Task<List<string>> SetTagsAsync(Guid id, [FromBody] SetZaloConversationTagsInput input) =>
         inbox.SetTagsAsync(id, input);

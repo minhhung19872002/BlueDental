@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
@@ -19,11 +20,15 @@ namespace BlueDental.ZaloInbox;
 /// echo, dropped by message id) or from Zalo's own OA chat; <c>user_submit_info</c>
 /// the customer sending the OA their details. The OA id names the branch. Logs
 /// carry event names, ids and field names only, never what was written.
+///
+/// R-1028: an unknown customer arriving — following the OA, pressing its
+/// "Nhắn tin", writing — gets the card asking for their phone, once.
 /// </summary>
 public class ZaloChatWebhookProcessor(
     IRepository<ZaloOaConnection, Guid> connections,
     IRepository<ZaloConversation, Guid> conversations,
     ZaloInboxIngestor ingestor,
+    ZaloInfoRequester infoRequester,
     IUnitOfWorkManager unitOfWorkManager,
     IClock clock,
     ILogger<ZaloChatWebhookProcessor> logger) : ITransientDependency
@@ -31,12 +36,24 @@ public class ZaloChatWebhookProcessor(
     /// <summary>"Người dùng gửi thông tin": <c>sender.id</c> the user, <c>info.phone</c> their phone.</summary>
     public const string SharedInfoEvent = "user_submit_info";
 
-    /// <summary>True when the event was a chat message (stored or already known) or the customer's details.</summary>
+    /// <summary>"Người dùng quan tâm OA": <c>follower.id</c> the user, <c>oa_id</c> the OA.</summary>
+    public const string FollowEvent = "follow";
+
+    /// <summary>"Người dùng bấm Nhắn tin" on the OA's page: <c>user_id</c>, <c>oa_id</c>.</summary>
+    public const string ChatNowEvent = "user_click_chatnow";
+
+    /// <summary>True when the event was a chat message (stored or already known), the customer's details or their arrival.</summary>
     public async Task<bool> TryHandleAsync(string? eventName, JsonElement root)
     {
         if (eventName == SharedInfoEvent)
         {
             await StoreSharedInfoAsync(root);
+            return true;
+        }
+
+        if (eventName is FollowEvent or ChatNowEvent)
+        {
+            await GreetAsync(eventName, root);
             return true;
         }
 
@@ -65,7 +82,14 @@ public class ZaloChatWebhookProcessor(
             }
 
             var (kind, attachment) = AttachmentOf(message, shape.Kind);
-            if (Text(message, "text") == null && attachment == null)
+            var text = Text(message, "text");
+            if (shape.Direction == ZaloChatDirection.Outbound && IsInfoRequestCard(message, out var title))
+            {
+                // R-1028: the echo of the card asking for the phone answers nothing.
+                (kind, text) = (ZaloChatKind.InfoRequest, text ?? title);
+            }
+
+            if (text == null && attachment == null)
             {
                 // R-1023: which fields such a message has (the OA's welcome card…), never their values.
                 logger.LogInformation("Zalo chat event {EventName} came without words or a link; message fields: {Fields}",
@@ -73,10 +97,14 @@ public class ZaloChatWebhookProcessor(
             }
 
             var conversation = await ingestor.EnsureConversationAsync(connection, userId);
-            await ingestor.RecordAsync(conversation, new ZaloIncomingChat(
-                userId, Text(message, "msg_id"), shape.Direction, kind, Text(message, "text"), attachment,
-                TimeOf(root) ?? clock.Now));
+            var stored = await ingestor.RecordAsync(conversation, new ZaloIncomingChat(
+                userId, Text(message, "msg_id"), shape.Direction, kind, text, attachment, TimeOf(root) ?? clock.Now));
             await uow.CompleteAsync();
+
+            if (stored && shape.Direction == ZaloChatDirection.Inbound)
+            {
+                await infoRequester.RequestOnceAsync(connection, conversation.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -163,6 +191,92 @@ public class ZaloChatWebhookProcessor(
         {
             // The next sync asks Zalo for the phone again.
             logger.LogWarning(ex, "Zalo {EventName} could not be stored", SharedInfoEvent);
+        }
+    }
+
+    /// <summary>
+    /// R-1028: the customer just came. Their conversation opens (asking Zalo
+    /// who they are) and, still unknown, they get the card asking for their phone.
+    /// </summary>
+    private async Task GreetAsync(string eventName, JsonElement root)
+    {
+        var userId = IdOf(root, "follower") ?? Text(root, "user_id") ?? IdOf(root, "sender");
+        var oaId = Text(root, "oa_id") ?? IdOf(root, "recipient");
+        if (userId == null || oaId == null)
+        {
+            logger.LogInformation("Zalo {EventName} came without a user or an OA; fields: {Fields}",
+                eventName, ZaloJsonShape.Describe(root));
+            return;
+        }
+
+        try
+        {
+            ZaloOaConnection? connection;
+            ZaloConversation conversation;
+            using (var uow = unitOfWorkManager.Begin(requiresNew: true))
+            {
+                connection = await FindConnectionAsync(oaId);
+                if (connection == null)
+                {
+                    logger.LogInformation("Zalo {EventName} for an OA no branch links", eventName);
+                    return;
+                }
+
+                conversation = await ingestor.EnsureConversationAsync(connection, userId);
+                await uow.CompleteAsync();
+            }
+
+            await infoRequester.RequestOnceAsync(connection, conversation.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Zalo {EventName} could not be handled", eventName);
+        }
+    }
+
+    /// <summary>
+    /// R-1028: the card asking for the phone, as the <c>oa_send_*</c> echo
+    /// carries it — the template in the message's payload or an attachment's.
+    /// </summary>
+    private static bool IsInfoRequestCard(JsonElement message, out string? title)
+    {
+        foreach (var payload in PayloadsOf(message))
+        {
+            if (Text(payload, "template_type") != ZaloInfoRequester.TemplateType)
+            {
+                continue;
+            }
+
+            var first = payload.TryGetProperty("elements", out var elements) && elements.ValueKind == JsonValueKind.Array
+                ? elements.EnumerateArray().FirstOrDefault()
+                : default;
+            title = first.ValueKind == JsonValueKind.Object ? Text(first, "title") : null;
+            return true;
+        }
+
+        title = null;
+        return false;
+    }
+
+    private static IEnumerable<JsonElement> PayloadsOf(JsonElement message)
+    {
+        if (message.TryGetProperty("payload", out var own) && own.ValueKind == JsonValueKind.Object)
+        {
+            yield return own;
+        }
+
+        if (!message.TryGetProperty("attachments", out var attachments) || attachments.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (var attachment in attachments.EnumerateArray())
+        {
+            if (attachment.ValueKind == JsonValueKind.Object
+                && attachment.TryGetProperty("payload", out var payload) && payload.ValueKind == JsonValueKind.Object)
+            {
+                yield return payload;
+            }
         }
     }
 

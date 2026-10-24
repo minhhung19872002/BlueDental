@@ -29,6 +29,7 @@ public class ZaloInboxAppService(
     ZaloInboxSync sync,
     ZaloInboxAssignees assignees,
     ZaloInboxIngestor ingestor,
+    ZaloInfoRequester infoRequester,
     ZaloOaGateway zalo,
     IZaloApiClient zaloApi,
     PatientPhoneMasker phoneMasker,
@@ -174,6 +175,25 @@ public class ZaloInboxAppService(
             ZaloChatKind.Text, text, null, now, me);
         await ingestor.StoreReplyAsync(conversation, message, me, now);
         return ZaloInboxReader.ToEntry(message, await reader.UserNamesAsync([me]));
+    }
+
+    /// <summary>
+    /// R-1028 "Xin SĐT": the card asking for the phone, again — under the same
+    /// rules as an answer (the caller holds it, Zalo's 48 hours), yet not one:
+    /// the conversation's status stays as it was.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.CskhInbox.Update)]
+    public async Task<ZaloChatEntryDto> RequestInfoAsync(Guid id)
+    {
+        var conversation = await GetConversationAsync(id);
+        var me = CurrentUser.GetId();
+        conversation.EnsureHeldBy(me, Clock.Now);
+        conversation.EnsureCanReplyFreely(Clock.Now);
+        var connection = await GetSendingConnectionAsync(conversation.ClinicBranchId);
+
+        var card = await infoRequester.SendAsync(connection, conversation, me);
+        await ingestor.StoreInfoRequestAsync(conversation, card);
+        return ZaloInboxReader.ToEntry(card, await reader.UserNamesAsync([me]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.CskhInbox.Update)]

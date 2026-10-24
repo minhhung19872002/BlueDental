@@ -8774,6 +8774,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("HolderId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("InfoRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

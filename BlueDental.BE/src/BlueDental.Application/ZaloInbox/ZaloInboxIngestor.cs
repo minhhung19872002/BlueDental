@@ -39,8 +39,9 @@ public class ZaloInboxIngestor(
     IGuidGenerator guids) : ITransientDependency
 {
     /// <param name="askPhoneAgain">
-    /// A sync's: an unlinked conversation with no shared phone asks Zalo again,
-    /// the customer may have shared it since.
+    /// A sync's: an unlinked conversation with no shared phone, or still shown
+    /// by its id, asks Zalo again — the customer may have shared it since, the
+    /// app may have been granted the user API since (R-1028).
     /// </param>
     public async Task<ZaloConversation> EnsureConversationAsync(
         ZaloOaConnection connection, string zaloUserId, string? nameHint = null, string? avatarHint = null,
@@ -50,14 +51,12 @@ public class ZaloInboxIngestor(
         var existing = await conversations.FirstOrDefaultAsync(c => c.ClinicBranchId == branchId && c.ZaloUserId == zaloUserId);
         if (existing != null)
         {
-            if (existing.AvatarUrl == null && !string.IsNullOrWhiteSpace(avatarHint))
+            existing.RefreshProfile(null, avatarHint);
+            if (askPhoneAgain && (existing.NeedsContact || existing.HasPlaceholderName))
             {
-                existing.SetProfile(existing.DisplayName, avatarHint, null);
-            }
-
-            if (askPhoneAgain && existing.PatientId == null && existing.SharedPhone == null)
-            {
-                existing.ShareContact((await TryReadProfileAsync(connection, zaloUserId))?.SharedPhone);
+                var latest = await TryReadProfileAsync(connection, zaloUserId);
+                existing.RefreshProfile(latest?.DisplayName, latest?.AvatarUrl);
+                existing.ShareContact(latest?.SharedPhone);
             }
 
             // The record may have been made after the phone was shared.
@@ -101,9 +100,50 @@ public class ZaloInboxIngestor(
             chat.Text, chat.AttachmentUrl, chat.SentAt, senderUserId);
         // Saved at once: the next message's duplicate check reads the table.
         await messages.InsertAsync(message, autoSave: true);
-        conversation.RecordMessage(chat.Direction, chat.SentAt, message.Preview);
+        if (chat.Kind == ZaloChatKind.InfoRequest)
+        {
+            conversation.RecordInfoRequest(chat.SentAt, message.Preview);
+        }
+        else
+        {
+            conversation.RecordMessage(chat.Direction, chat.SentAt, message.Preview);
+        }
+
         await conversations.UpdateAsync(conversation);
         return true;
+    }
+
+    /// <summary>
+    /// R-1028: the card asking for the phone, Zalo having taken it. Its echo
+    /// can beat it here; an echo not recognised as the card was counted as an
+    /// answer, and the conversation's last answer is counted again without it.
+    /// </summary>
+    public async Task StoreInfoRequestAsync(ZaloConversation conversation, ZaloChatMessage card)
+    {
+        var echo = card.ZaloMessageId is { } id
+            ? await messages.FirstOrDefaultAsync(m => m.ConversationId == conversation.Id && m.ZaloMessageId == id)
+            : null;
+        if (echo == null)
+        {
+            await messages.InsertAsync(card);
+        }
+        else
+        {
+            if (card.SenderUserId is { } sender)
+            {
+                echo.AttributeTo(sender);
+            }
+
+            if (echo.MarkInfoRequest(card.Text))
+            {
+                conversation.RecountReplies(await LastReplyAtAsync(conversation.Id, echo.Id));
+            }
+
+            await messages.UpdateAsync(echo);
+        }
+
+        conversation.RecordInfoRequest(card.SentAt, card.Preview);
+        await conversations.UpdateAsync(conversation, autoSave: true);
     }
 
     /// <summary>
@@ -162,6 +202,12 @@ public class ZaloInboxIngestor(
             .Take(2));
         return ids.Count == 1 ? ids[0] : null;
     }
+
+    private async Task<DateTime?> LastReplyAtAsync(Guid conversationId, Guid exceptMessageId) =>
+        await asyncExecuter.MaxAsync((await messages.GetQueryableAsync())
+            .Where(m => m.ConversationId == conversationId && m.Id != exceptMessageId
+                && m.Direction == ZaloChatDirection.Outbound && m.Kind != ZaloChatKind.InfoRequest)
+            .Select(m => (DateTime?)m.SentAt));
 
     /// <summary>Zalo out of reach leaves the profile unknown; the conversation opens all the same.</summary>
     private async Task<ZaloUserProfile?> TryReadProfileAsync(ZaloOaConnection connection, string zaloUserId)

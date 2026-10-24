@@ -61,6 +61,12 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
 
     public DateTime? HeldUntil { get; private set; }
 
+    /// <summary>
+    /// R-1028: when the OA sent its card asking for the customer's phone (or a
+    /// send of it is under way). Set, the card is not sent by itself again.
+    /// </summary>
+    public DateTime? InfoRequestedAt { get; private set; }
+
     public IReadOnlyList<string> Tags => _tags.AsReadOnly();
 
     protected ZaloConversation() { }
@@ -86,12 +92,29 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
     /// <summary>What Zalo says of the user; a blank name falls back to the end of their id.</summary>
     public void SetProfile(string? displayName, string? avatarUrl, string? sharedPhone)
     {
-        DisplayName = Clip(
-            string.IsNullOrWhiteSpace(displayName) ? $"Zalo …{ZaloUserId[^Math.Min(4, ZaloUserId.Length)..]}" : displayName.Trim(),
-            MaxNameLength)!;
+        DisplayName = Clip(string.IsNullOrWhiteSpace(displayName) ? PlaceholderName : displayName.Trim(), MaxNameLength)!;
         AvatarUrl = Clip(Blank(avatarUrl), MaxUrlLength);
         SharedPhone = Clip(Blank(sharedPhone), MaxPhoneLength) ?? SharedPhone;
     }
+
+    /// <summary>The name shown while Zalo has not said who the user is.</summary>
+    public bool HasPlaceholderName => DisplayName == PlaceholderName;
+
+    /// <summary>
+    /// R-1028: a profile read again (a sync) names a conversation still shown
+    /// by its id and gives it the avatar it lacks. A real name already there stays.
+    /// </summary>
+    public void RefreshProfile(string? displayName, string? avatarUrl)
+    {
+        if (HasPlaceholderName && !string.IsNullOrWhiteSpace(displayName))
+        {
+            DisplayName = Clip(displayName.Trim(), MaxNameLength)!;
+        }
+
+        AvatarUrl ??= Clip(Blank(avatarUrl), MaxUrlLength);
+    }
+
+    private string PlaceholderName => $"Zalo …{ZaloUserId[^Math.Min(4, ZaloUserId.Length)..]}";
 
     /// <summary>A phone shared after the conversation opened (the customer's submitted info, a re-read profile).</summary>
     public void ShareContact(string? phone) =>
@@ -122,13 +145,7 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public void RecordMessage(ZaloChatDirection direction, DateTime at, string preview)
     {
-        if (LastMessageAt == null || at >= LastMessageAt)
-        {
-            LastMessageAt = at;
-            LastMessagePreview = Clip(preview, MaxPreviewLength);
-            LastMessageDirection = direction;
-        }
-
+        ShowIfLatest(direction, at, preview);
         if (direction == ZaloChatDirection.Inbound)
         {
             LastCustomerMessageAt = Latest(LastCustomerMessageAt, at);
@@ -138,11 +155,48 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
             LastReplyAt = Latest(LastReplyAt, at);
         }
 
-        // Answered means an OA message after the customer's last one; a
-        // conversation the OA opened (a ZNS, a broadcast) has nothing to answer.
-        Status = LastCustomerMessageAt is { } asked && (LastReplyAt is not { } answered || asked > answered)
-            ? ZaloConversationStatus.Unreplied
-            : ZaloConversationStatus.Cared;
+        UpdateStatus();
+    }
+
+    /// <summary>R-1028: no record and no shared phone — the customer is not known yet.</summary>
+    public bool NeedsContact => PatientId == null && SharedPhone == null;
+
+    /// <summary>
+    /// R-1028: takes the one automatic send of the card asking for the phone.
+    /// False when it went already (or is going) or the customer is known.
+    /// </summary>
+    public bool TryClaimInfoRequest(DateTime now)
+    {
+        if (InfoRequestedAt != null || !NeedsContact)
+        {
+            return false;
+        }
+
+        InfoRequestedAt = now;
+        return true;
+    }
+
+    /// <summary>The claimed send failed: the next trigger may try again.</summary>
+    public void ReleaseInfoRequest() => InfoRequestedAt = null;
+
+    /// <summary>
+    /// R-1028: the card went out. It shows as the last message but answers
+    /// nothing — the conversation stays "Chưa trả lời" if it was.
+    /// </summary>
+    public void RecordInfoRequest(DateTime at, string preview)
+    {
+        ShowIfLatest(ZaloChatDirection.Outbound, at, preview);
+        InfoRequestedAt = Latest(InfoRequestedAt, at);
+    }
+
+    /// <summary>
+    /// R-1028: the card's echo had been taken for an answer before the card was
+    /// known; the last real answer is the given one.
+    /// </summary>
+    public void RecountReplies(DateTime? lastReplyAt)
+    {
+        LastReplyAt = lastReplyAt;
+        UpdateStatus();
     }
 
     /// <summary>
@@ -257,6 +311,23 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
 
         _tags = tidy;
     }
+
+    private void ShowIfLatest(ZaloChatDirection direction, DateTime at, string preview)
+    {
+        if (LastMessageAt == null || at >= LastMessageAt)
+        {
+            LastMessageAt = at;
+            LastMessagePreview = Clip(preview, MaxPreviewLength);
+            LastMessageDirection = direction;
+        }
+    }
+
+    // Answered means an OA message after the customer's last one; a
+    // conversation the OA opened (a ZNS, a broadcast) has nothing to answer.
+    private void UpdateStatus() =>
+        Status = LastCustomerMessageAt is { } asked && (LastReplyAt is not { } answered || asked > answered)
+            ? ZaloConversationStatus.Unreplied
+            : ZaloConversationStatus.Cared;
 
     private static DateTime Latest(DateTime? current, DateTime at) =>
         current is { } known && known > at ? known : at;

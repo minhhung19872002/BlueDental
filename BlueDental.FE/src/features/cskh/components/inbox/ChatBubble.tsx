@@ -11,6 +11,7 @@ const KIND_LABEL: Partial<Record<ChatKind, string>> = {
   [CHAT_KIND.Audio]: "CSKH:Inbox:Kind:Audio",
   [CHAT_KIND.Video]: "CSKH:Inbox:Kind:Video",
   [CHAT_KIND.Location]: "CSKH:Inbox:Kind:Location",
+  [CHAT_KIND.InfoRequest]: "CSKH:Inbox:Kind:InfoRequest",
   [CHAT_KIND.Other]: "CSKH:Inbox:Kind:Other",
 };
 
@@ -67,6 +68,9 @@ export const ChatBubble = memo(function ChatBubble({ entry, customer }: { entry:
     <li className={outbound ? "ibx-msg ibx-msg--out" : "ibx-msg"}>
       <div className={className}>
         {zns && <span className="ibx-bubble-tag">{t("CSKH:Inbox:Zns:Tag", entry.templateName ?? "")}</span>}
+        {entry.kind === CHAT_KIND.InfoRequest && entry.text && (
+          <span className="ibx-bubble-tag ibx-bubble-tag--info">{t("CSKH:Inbox:Kind:InfoRequest")}</span>
+        )}
         <Attachment entry={entry} />
         {entry.text && <p className="ibx-bubble-text">{entry.text}</p>}
       </div>

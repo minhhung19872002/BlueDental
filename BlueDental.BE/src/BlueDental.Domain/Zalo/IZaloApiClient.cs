@@ -45,6 +45,15 @@ public interface IZaloApiClient
         string accessToken, string userId, string text, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// R-1028: <c>POST /v3.0/oa/message/cs</c> with the <c>request_user_info</c>
+    /// template — the card the customer taps to send the OA their phone, which
+    /// comes back as the <c>user_submit_info</c> webhook. A "tin tư vấn" too.
+    /// </summary>
+    Task<ZaloChatSendOutcome> SendRequestUserInfoAsync(
+        string accessToken, string userId, string title, string subtitle, string imageUrl,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// <c>GET /v2.0/oa/conversation</c> — the messages between the OA and one
     /// user, newest first (offset 0); Zalo serves at most 10 per call.
     /// </summary>

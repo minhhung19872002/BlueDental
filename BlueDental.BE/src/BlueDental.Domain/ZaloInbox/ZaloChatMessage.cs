@@ -93,6 +93,18 @@ public class ZaloChatMessage : CreationAuditedEntity<Guid>
         return changed;
     }
 
+    /// <summary>
+    /// R-1028: an OA message stored from Zalo's echo is the card asking for the
+    /// phone. True when it had been counted as an answer to the customer.
+    /// </summary>
+    public bool MarkInfoRequest(string text)
+    {
+        var countedAsReply = Direction == ZaloChatDirection.Outbound && Kind != ZaloChatKind.InfoRequest;
+        Kind = ZaloChatKind.InfoRequest;
+        FillMissingText(text, null);
+        return countedAsReply;
+    }
+
     /// <summary>The list's one-line preview: the text, or what kind of thing was sent.</summary>
     public string Preview => Text.Length > 0 ? Text : $"[{Kind}]";
 

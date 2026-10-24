@@ -272,15 +272,35 @@ public class HttpZaloApiClient : IZaloApiClient, ITransientDependency
         }
     }
 
-    public async Task<ZaloChatSendOutcome> SendTextMessageAsync(
-        string accessToken, string userId, string text, CancellationToken cancellationToken = default)
+    public Task<ZaloChatSendOutcome> SendTextMessageAsync(
+        string accessToken, string userId, string text, CancellationToken cancellationToken = default) =>
+        SendCsAsync(accessToken, userId, new { text }, cancellationToken);
+
+    public Task<ZaloChatSendOutcome> SendRequestUserInfoAsync(
+        string accessToken, string userId, string title, string subtitle, string imageUrl,
+        CancellationToken cancellationToken = default) =>
+        SendCsAsync(accessToken, userId, new
+        {
+            attachment = new
+            {
+                type = "template",
+                payload = new
+                {
+                    template_type = "request_user_info",
+                    elements = new[] { new { title, subtitle, image_url = imageUrl } },
+                },
+            },
+        }, cancellationToken);
+
+    private async Task<ZaloChatSendOutcome> SendCsAsync(
+        string accessToken, string userId, object message, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, Options.OpenApiBaseUrl.TrimEnd('/') + SendCsPath)
         {
             Content = JsonContent.Create(new
             {
                 recipient = new { user_id = userId },
-                message = new { text },
+                message,
             }),
         };
         request.Headers.Add("access_token", accessToken);

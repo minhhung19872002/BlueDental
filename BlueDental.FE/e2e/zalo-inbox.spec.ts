@@ -48,8 +48,13 @@ interface Conversation {
   holderId: string | null;
   patientId: string | null;
   sharedPhone: string | null;
+  infoRequestedAt: string | null;
   tags: string[];
 }
+
+const CARD_TITLE = "Chia sẻ số điện thoại để được tư vấn nhanh hơn";
+const CARD_SUBTITLE =
+  "Bấm vào đây để gửi số điện thoại Zalo của bạn cho phòng khám. Nhân viên sẽ tra hồ sơ và hỗ trợ bạn ngay.";
 
 const toast = (page: Page, text: string | RegExp) => page.locator("[data-sonner-toast]", { hasText: text });
 const conversationRow = (page: Page, name: string) =>
@@ -109,6 +114,14 @@ function freshPhone(): string {
 async function profileReads(userId: string, from = 0): Promise<number> {
   const calls = (await stubCalls("/v3.0/oa/user/detail")).slice(from);
   return calls.filter((c) => decodeURIComponent(c.query).includes(userId)).length;
+}
+
+/** The cards asking for the phone (R-1028) sent to this user, after the first `from` "tin tư vấn" calls. */
+async function cardsTo(userId: string, from = 0): Promise<Record<string, unknown>[]> {
+  return (await stubCalls("/v3.0/oa/message/cs"))
+    .slice(from)
+    .map((c) => JSON.parse(c.body) as { recipient?: { user_id?: string }; message?: { attachment?: unknown } })
+    .filter((b) => b.recipient?.user_id === userId && b.message?.attachment != null);
 }
 
 async function syncNow(page: Page): Promise<void> {
@@ -595,6 +608,132 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
   });
 
+  test("Khách lạ đến (nhắn tin, quan tâm OA, bấm Nhắn tin) nhận thẻ xin SĐT đúng 1 lần; thẻ không tính là trả lời; đã có SĐT thì không gửi; Zalo từ chối thì lần sau gửi lại; Đồng bộ thay tên tạm", async ({ page }) => {
+    // Zalo does not know the user yet: the conversation goes by a placeholder name.
+    const userId = zaloUser();
+    const placeholder = `Zalo …${userId.slice(-4)}`;
+    const name = `Khách lạ thẻ ${userId.slice(-6)}`;
+    await customerWrites(page, userId, "Cho em hỏi giá tẩy trắng");
+    const cards = await cardsTo(userId);
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      recipient: { user_id: userId },
+      message: {
+        attachment: {
+          type: "template",
+          payload: { template_type: "request_user_info", elements: [{ title: CARD_TITLE, subtitle: CARD_SUBTITLE }] },
+        },
+      },
+    });
+    await customerWrites(page, userId, "Em nhắn thêm ạ");
+    expect(await cardsTo(userId), "once per conversation").toHaveLength(1);
+
+    // Zalo's echo of the card (one it sent itself, an id we never got) answers nothing either.
+    await webhook(page, {
+      event_name: "oa_send_template",
+      sender: { id: OA_ID },
+      recipient: { id: userId },
+      message: {
+        msg_id: `echo-card-${userId}`,
+        attachments: [{ type: "template", payload: { template_type: "request_user_info", elements: [{ title: CARD_TITLE }] } }],
+      },
+    });
+    const conversation = await conversationOf(page, placeholder);
+    expect(conversation.status, "the card is no answer").toBe(0);
+    expect(conversation.infoRequestedAt).not.toBeNull();
+
+    await openInbox(page, conversation.id);
+    const row = conversationRow(page, placeholder);
+    await expect(row).toContainText("Chưa trả lời");
+    await expect(row).toContainText("Chưa có SĐT");
+    await expect(chat(page).locator(".ibx-chat-title")).toContainText("Chưa có SĐT");
+    await expect(chat(page).locator(".ibx-chat-sub")).toContainText("Đã gửi thẻ xin SĐT lúc");
+    await expect(bubble(page, CARD_TITLE)).toHaveCount(2);
+    await expect(chat(page).locator(".ibx-bubble-tag--info").first()).toHaveText("Thẻ xin số điện thoại");
+
+    // Zalo knows the name now: Đồng bộ puts it in place of the placeholder.
+    await stub("/__users", { userId, displayName: name });
+    await syncNow(page);
+    await expect(conversationRow(page, name)).toBeVisible();
+    await expect(conversationRow(page, placeholder)).toHaveCount(0);
+
+    // Following the OA or pressing its "Nhắn tin" is arriving too: the card goes before a word is written.
+    const follower = zaloUser();
+    await stub("/__users", { userId: follower, displayName: `Khách quan tâm ${follower.slice(-6)}` });
+    await webhook(page, { event_name: "follow", oa_id: OA_ID, follower: { id: follower } });
+    expect(await cardsTo(follower)).toHaveLength(1);
+    await customerWrites(page, follower, "Em mới quan tâm OA");
+    expect(await cardsTo(follower)).toHaveLength(1);
+    expect((await conversationOf(page, `Khách quan tâm ${follower.slice(-6)}`)).infoRequestedAt).not.toBeNull();
+    const clicker = zaloUser();
+    await webhook(page, { event_name: "user_click_chatnow", oa_id: OA_ID, user_id: clicker });
+    expect(await cardsTo(clicker)).toHaveLength(1);
+
+    // A customer whose Zalo phone is already shared is known: no card.
+    const known = zaloUser();
+    const knownName = `Khách có SĐT ${known.slice(-6)}`;
+    await stub("/__users", { userId: known, displayName: knownName, phone: `84${freshPhone().slice(1)}` });
+    await customerWrites(page, known, "Em hỏi lịch");
+    expect(await cardsTo(known)).toHaveLength(0);
+    await page.reload();
+    await expect(conversationRow(page, knownName)).toBeVisible();
+    await expect(conversationRow(page, knownName)).not.toContainText("Chưa có SĐT");
+
+    // Zalo refusing the card (999… is refused by the stub) leaves it to the next message.
+    const refused = `999${runId()}${String(Math.floor(Math.random() * 9000 + 1000))}`;
+    const refusedName = `Khách từ chối ${refused.slice(-6)}`;
+    await stub("/__users", { userId: refused, displayName: refusedName });
+    await customerWrites(page, refused, "Tin một");
+    expect(await cardsTo(refused)).toHaveLength(1);
+    expect((await conversationOf(page, refusedName)).infoRequestedAt, "the refused card is not counted as sent").toBeNull();
+    await customerWrites(page, refused, "Tin hai");
+    expect(await cardsTo(refused), "tried again").toHaveLength(2);
+  });
+
+  test("Xin SĐT: chỉ người giữ thấy nút, gửi lại thẻ mà trạng thái giữ nguyên; khách chia sẻ SĐT thì hết nhãn và nút; quá 48 giờ thì nút khoá", async ({ page }) => {
+    const userId = zaloUser();
+    const name = `Khách xin SĐT ${userId.slice(-6)}`;
+    await stub("/__users", { userId, displayName: name });
+    await customerWrites(page, userId, "Em muốn hỏi về niềng răng");
+    const conversation = await conversationOf(page, name);
+
+    await openInbox(page, conversation.id);
+    await expect(chat(page).getByRole("button", { name: /Xin SĐT$/ })).toHaveCount(0);
+    await chat(page).getByRole("button", { name: "Nhận xử lý" }).click();
+    await expect(chat(page).getByText("Bạn đang xử lý")).toBeVisible();
+
+    const sentBefore = (await stubCalls("/v3.0/oa/message/cs")).length;
+    await chat(page).getByRole("button", { name: /Xin SĐT$/ }).click();
+    await expect(toast(page, "Đã gửi thẻ xin số điện thoại")).toBeVisible();
+    expect(await cardsTo(userId, sentBefore)).toHaveLength(1);
+    await expect(bubble(page, CARD_TITLE)).toHaveCount(2);
+    await expect(chat(page).locator(".ibx-chat-actions")).toContainText("Chưa trả lời");
+    await page.reload();
+    await expect(conversationRow(page, name)).toContainText("Chưa trả lời");
+    await expect(bubble(page, CARD_TITLE)).toHaveCount(2);
+
+    // The customer taps the card: the phone is theirs, nothing more to ask.
+    await sharesInfo(page, userId, freshPhone());
+    await page.reload();
+    await expect(chat(page).getByRole("heading", { name })).toBeVisible();
+    await expect(chat(page).locator(".ibx-chat-title")).not.toContainText("Chưa có SĐT");
+    await expect(conversationRow(page, name)).toBeVisible();
+    await expect(conversationRow(page, name)).not.toContainText("Chưa có SĐT");
+    await expect(chat(page).getByRole("button", { name: /Xin SĐT$/ })).toHaveCount(0);
+
+    // Past Zalo's 48 hours the card would be refused: the button is locked, the API says why.
+    const lateUser = zaloUser();
+    const lateName = `Khách cũ xin SĐT ${lateUser.slice(-6)}`;
+    await stub("/__users", { userId: lateUser, displayName: lateName });
+    await customerWrites(page, lateUser, "Tin từ 3 ngày trước", Date.now() - 72 * 3_600_000);
+    const late = await conversationOf(page, lateName);
+    await openInbox(page, late.id);
+    await chat(page).getByRole("button", { name: "Nhận xử lý" }).click();
+    await expect(chat(page).getByRole("button", { name: /Xin SĐT$/ })).toBeDisabled();
+    const closed = await call(page, `${INBOX}/conversations/${late.id}/request-info`, { ...asBranchOne, method: "POST" });
+    expect(JSON.stringify(closed.body)).toContain("BlueDental:ZaloInbox:0003");
+  });
+
   test("Giữ hội thoại: người khác thấy đang giữ và không nhận được; Chuyển cho → người kia trả lời; quá 48 giờ chỉ gửi ZNS", async ({ page, browser }) => {
     const colleague = await makeStaff(page, ["BlueDental.cskhInbox.read", "BlueDental.cskhInbox.update"]);
     try {
@@ -782,6 +921,11 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
           json: { content: "không được" },
         });
         expect(note.status).toBe(403);
+        const card = await call(session.page, `${INBOX}/conversations/${conversation.id}/request-info`, {
+          ...asBranchOne,
+          method: "POST",
+        });
+        expect(card.status, "Xin SĐT needs cskhInbox.update").toBe(403);
       } finally {
         await session.context.close();
       }

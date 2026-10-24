@@ -35,6 +35,12 @@ public class ZaloOptions
     /// </summary>
     public string ReturnUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// R-1028: the picture of the card asking a customer for their phone (a
+    /// public PNG/JPG). Empty uses the OA's avatar, else <c>{App:SelfUrl}/logo.png</c>.
+    /// </summary>
+    public string InfoRequestImageUrl { get; set; } = string.Empty;
+
     public string OAuthBaseUrl { get; set; } = "https://oauth.zaloapp.com";
     public string OpenApiBaseUrl { get; set; } = "https://openapi.zalo.me";
     public string BusinessApiBaseUrl { get; set; } = "https://business.openapi.zalo.me";
