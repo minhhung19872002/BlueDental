@@ -9,6 +9,7 @@ using Volo.Abp;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Guids;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
@@ -34,35 +35,41 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
     private readonly IRepository<MessageLog, Guid> _messages;
     private readonly IRepository<MessageTemplate, Guid> _templates;
     private readonly IRepository<CareRecord, Guid> _careRecords;
+    private readonly IRepository<CareContactLog, Guid> _contactLogs;
     private readonly ZaloOaGateway _zalo;
     private readonly IZaloApiClient _zaloApi;
     private readonly MessageRecipientBuilder _recipients;
     private readonly IBackgroundJobManager _jobs;
     private readonly IUnitOfWorkManager _unitOfWork;
     private readonly IClock _clock;
+    private readonly IGuidGenerator _guids;
 
     public MessageSendJob(
         IRepository<MessageSendBatch, Guid> batches,
         IRepository<MessageLog, Guid> messages,
         IRepository<MessageTemplate, Guid> templates,
         IRepository<CareRecord, Guid> careRecords,
+        IRepository<CareContactLog, Guid> contactLogs,
         ZaloOaGateway zalo,
         IZaloApiClient zaloApi,
         MessageRecipientBuilder recipients,
         IBackgroundJobManager jobs,
         IUnitOfWorkManager unitOfWork,
-        IClock clock)
+        IClock clock,
+        IGuidGenerator guids)
     {
         _batches = batches;
         _messages = messages;
         _templates = templates;
         _careRecords = careRecords;
+        _contactLogs = contactLogs;
         _zalo = zalo;
         _zaloApi = zaloApi;
         _recipients = recipients;
         _jobs = jobs;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _guids = guids;
     }
 
     public override async Task ExecuteAsync(MessageSendJobArgs args)
@@ -82,7 +89,7 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
         {
             foreach (var messageId in plan.MessageIds)
             {
-                await SendOneAsync(batch.ClinicBranchId, messageId, plan);
+                await SendOneAsync(batch.ClinicBranchId, batch.CreatorId, messageId, plan);
             }
         }
 
@@ -163,9 +170,9 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
         return new SendPlan([.. messages.Select(m => m.Id)], template, detail, values, null);
     }
 
-    private async Task SendOneAsync(Guid branchId, Guid messageId, SendPlan plan)
+    private async Task SendOneAsync(Guid branchId, Guid? senderId, Guid messageId, SendPlan plan)
     {
-        Guid? careRecordId = null;
+        (Guid RecordId, DateTime At)? reached = null;
         try
         {
             using var uow = _unitOfWork.Begin(requiresNew: true);
@@ -178,7 +185,10 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
             await SendAsync(branchId, message, plan);
             await _messages.UpdateAsync(message);
             await uow.CompleteAsync();
-            careRecordId = message.Status == MessageSendStatus.Sent ? message.CareRecordId : null;
+            if (message is { Status: MessageSendStatus.Sent, CareRecordId: { } recordId, SentAt: { } sentAt })
+            {
+                reached = (recordId, sentAt);
+            }
         }
         catch (Exception ex)
         {
@@ -187,9 +197,9 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
             return;
         }
 
-        if (careRecordId is { } recordId)
+        if (reached is { } sent)
         {
-            await MarkCareRecordAsync(recordId);
+            await MarkCareRecordAsync(sent.RecordId, sent.At, senderId);
         }
     }
 
@@ -234,8 +244,12 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
         await _zalo.LogAsync(branchId, "zns-send", outcome.Call, outcome.Call.Succeeded ? 1 : 0);
     }
 
-    /// <summary>The CSKH row shows "đã gửi Zalo" as the row buttons do; a row being edited just then keeps its own save.</summary>
-    private async Task MarkCareRecordAsync(Guid recordId)
+    /// <summary>
+    /// The CSKH row shows "đã gửi Zalo", and a row still "Chưa liên hệ" turns
+    /// Đã liên hệ by whoever booked the send (R-1024); a row being edited just
+    /// then keeps its own save.
+    /// </summary>
+    private async Task MarkCareRecordAsync(Guid recordId, DateTime sentAt, Guid? senderId)
     {
         try
         {
@@ -243,7 +257,12 @@ public class MessageSendJob : AsyncBackgroundJob<MessageSendJobArgs>, ITransient
             var record = await _careRecords.FindAsync(recordId);
             if (record != null)
             {
-                await _careRecords.UpdateAsync(record.MarkZaloSent());
+                var reached = record.MarkZaloSent(sentAt, senderId);
+                await _careRecords.UpdateAsync(record);
+                if (reached)
+                {
+                    await _contactLogs.InsertAsync(CareContactLog.OfSend(_guids.Create(), record, senderId));
+                }
             }
 
             await uow.CompleteAsync();

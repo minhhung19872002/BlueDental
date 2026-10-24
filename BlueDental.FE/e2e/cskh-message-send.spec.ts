@@ -95,11 +95,25 @@ async function recipientsInExcel(page: Page, name: string): Promise<string> {
   return XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets["Người nhận"], { header: 1 }).flat().map(String).join("\n");
 }
 
-/** The CSKH board's "Đã gửi Zalo" count. */
-async function zaloSentCount(page: Page): Promise<number> {
-  const text = await page.getByRole("button", { name: /\d+\s*Đã gửi Zalo/ }).textContent();
+/** A CSKH board counter: "Đã gửi Zalo", "Đã liên hệ", "Chưa liên hệ". */
+async function counter(page: Page, label: string): Promise<number> {
+  const text = await page.getByRole("button", { name: new RegExp(`\\d+\\s*${label}`) }).textContent();
   return Number(/\d+/.exec(text ?? "")?.[0]);
 }
+
+const zaloSentCount = (page: Page) => counter(page, "Đã gửi Zalo");
+
+/** Matches BlueDental.CustomerCare.CareStatus. */
+const CARE_STATUS = { New: 1, Contacted: 2 } as const;
+
+interface CareRecordSeen {
+  status: number;
+  zaloSentAt: string | null;
+  contactedAt: string | null;
+  careStaffName: string | null;
+}
+
+const careRecord = (page: Page, id: string) => call<CareRecordSeen>(page, `/api/v1/app/care-records/${id}`, asBranchOne);
 
 test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
   test.skip(!process.env.E2E_ZALO_STUB, "cần host trỏ Zalo về e2e/fixtures/zalo-stub.mjs (E2E_ZALO_STUB=1)");
@@ -425,7 +439,7 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     expect(await znsSendsTo(patient.phone)).toEqual([]);
   });
 
-  test("R-1014: Gửi Zalo từ nút trên dòng CSKH đánh dấu dòng đó đã gửi Zalo", async ({ page }) => {
+  test("R-1014 / R-1024: Gửi Zalo từ nút trên dòng CSKH đánh dấu đã gửi Zalo và chuyển Chưa liên hệ → Đã liên hệ", async ({ page }) => {
     const template = await zaloTemplate(page, `E2E Gửi dòng ${runId()}`);
     const patient = await newPatient(page);
     const start = tomorrowAt(15);
@@ -436,16 +450,19 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     await page.goto(board);
     await counted;
     const before = await zaloSentCount(page);
+    const contactedBefore = await counter(page, "Đã liên hệ");
+    const notYetBefore = await counter(page, "Chưa liên hệ");
     await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(patient.name);
     const row = page.locator(".cskh-table tbody tr.ant-table-row").filter({ hasText: patient.name });
     await expect(row).toHaveCount(1, { timeout: 15_000 });
+    await expect(row.locator(".cskh-contact-select")).toContainText("Chưa liên hệ");
     await row.getByRole("button", { name: "Gửi Zalo" }).click();
 
     await expect(page).toHaveURL(/\/cskh-grouping\/send\?/);
     const recordId = new URL(page.url()).searchParams.get("careRecordId") ?? "";
     expect(recordId).not.toBe("");
-    const record = () => call<{ zaloSentAt: string | null }>(page, `/api/v1/app/care-records/${recordId}`, asBranchOne);
-    expect((await record()).body.zaloSentAt).toBeNull();
+    const record = () => careRecord(page, recordId);
+    expect((await record()).body).toMatchObject({ zaloSentAt: null, status: CARE_STATUS.New, contactedAt: null });
 
     await pickTemplate(page, template.name);
     await expect(customerRow(page, patient.name)).toHaveCount(1, { timeout: 15_000 });
@@ -456,12 +473,77 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
       .poll(async () => (await batchOf(page, batch.id)).status, { timeout: 60_000, intervals: [2_000] })
       .toBe(BATCH.Completed);
     expect(await batchOf(page, batch.id)).toMatchObject({ sentCount: 1, failedCount: 0 });
-    expect((await record()).body.zaloSentAt).not.toBeNull();
+    const sent = (await record()).body;
+    expect(sent.zaloSentAt).not.toBeNull();
+    // R-1024: the send is the contact, by whoever pressed Gửi, at the moment it went.
+    expect(sent.status).toBe(CARE_STATUS.Contacted);
+    expect(sent.careStaffName).toBeTruthy();
+    expect(sent.contactedAt).toBe(sent.zaloSentAt);
+    const logs = await call<{ status: number; creatorName: string | null }[]>(
+      page,
+      `/api/v1/app/care-records/${recordId}/contact-logs`,
+      asBranchOne,
+    );
+    expect(logs.body.map((l) => [l.status, l.creatorName])).toEqual([[CARE_STATUS.Contacted, sent.careStaffName]]);
 
+    // A fresh load reads it from the database: the row, its staff and both counters moved.
     const recounted = assertRealApiTraffic(page, "/api/v1/app/care-records/stats");
     await page.goto(board);
     await recounted;
     await expect.poll(() => zaloSentCount(page)).toBe(before + 1);
+    expect(await counter(page, "Đã liên hệ")).toBe(contactedBefore + 1);
+    expect(await counter(page, "Chưa liên hệ")).toBe(notYetBefore - 1);
+    await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(patient.name);
+    await expect(row.locator(".cskh-contact-select")).toContainText("Đã liên hệ", { timeout: 15_000 });
+    await expect(row).toContainText(sent.careStaffName ?? "");
+  });
+
+  test("R-1024: tin hẹn giờ gửi thất bại (khách mất số) thì dòng CSKH vẫn Chưa liên hệ", async ({ page }) => {
+    const template = await zaloTemplate(page, `E2E Gửi hỏng ${runId()}`);
+    const patient = await newPatient(page);
+    await book(page, patient.id, tomorrowAt(16));
+    // Nhắc lịch hẹn gets its task when a day window is read, as the board does.
+    const from = tomorrowAt(0);
+    const to = new Date(from.getTime() + 24 * 3_600_000 - 1);
+    const reminders = await call<{ items: { id: string }[] }>(
+      page,
+      `/api/v1/app/care-records?PatientId=${patient.id}&Type=${CARE_APPOINTMENT_REMINDER}` +
+        `&FromDate=${encodeURIComponent(from.toISOString())}&ToDate=${encodeURIComponent(to.toISOString())}`,
+      asBranchOne,
+    );
+    expect(reminders.body.items).toHaveLength(1);
+    const recordId = reminders.body.items[0].id;
+
+    // The row's own send, booked a few seconds ahead: nothing changes before it goes.
+    const queued = await call<Batch>(page, SENDS, {
+      ...asBranchOne,
+      method: "POST",
+      json: {
+        channel: CHANNEL.Zalo,
+        templateId: template.id,
+        source: 1,
+        patientIds: [patient.id],
+        careRecordId: recordId,
+        skipRecentDuplicates: true,
+        scheduledAt: secondsFromNow(20).toISOString(),
+      },
+    });
+    expect(queued.status, JSON.stringify(queued.body)).toBe(200);
+    expect((await careRecord(page, recordId)).body.status).toBe(CARE_STATUS.New);
+
+    await changeContact(page, patient, null, `e2e-gui-${patient.id.slice(0, 8)}@bluedental.local`);
+    await expect
+      .poll(async () => (await batchOf(page, queued.body.id)).status, { timeout: 75_000, intervals: [2_000] })
+      .toBe(BATCH.Completed);
+    expect(await batchOf(page, queued.body.id)).toMatchObject({ sentCount: 0, failedCount: 1 });
+
+    expect((await careRecord(page, recordId)).body).toMatchObject({
+      status: CARE_STATUS.New,
+      zaloSentAt: null,
+      contactedAt: null,
+    });
+    const logs = await call<unknown[]>(page, `/api/v1/app/care-records/${recordId}/contact-logs`, asBranchOne);
+    expect(logs.body).toEqual([]);
   });
 
   test("R-1015: Lịch gửi đã hẹn chỉ liệt kê lô hẹn giờ và tự rơi khỏi danh sách khi tới giờ", async ({ page }) => {

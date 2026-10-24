@@ -439,3 +439,27 @@ Không phải hành vi đo từ bản gốc — mock chủ dự án `save/P0910_
   Ngày ghi nhận · Họ và tên · SĐT · Bác sĩ điều trị · **Nội dung hẹn** · Lịch hẹn sắp tới ·
   Trạng thái (Đã liên hệ / Chưa liên hệ) · Ghi chú · Thao tác. Không có nút Tạo mới. Xuất
   Excel `cskh-hen-lai-chua-chot-ngay`. Báo cáo CSKH có thêm dòng loại này.
+
+## Gửi Zalo thành công → "Đã liên hệ" (BA 2026-10-24, R-1024)
+
+Đây không phải hành vi đo được từ bản gốc. BA ghi lên ảnh tab Nhắc lịch hẹn: "Này cho đổi trạng thái khi đã gửi luôn đi". Chủ dự án đã chốt phạm vi.
+
+- **Khi nào đổi**: tin Zalo tới khách được gửi **thành công**. Áp dụng ở mọi tab có nút gửi, không riêng Nhắc lịch hẹn.
+- **Chỉ đổi dòng đang "Chưa liên hệ"**: dòng chuyển thành **"Đã liên hệ"**, như thể người gửi tự chọn:
+  - Ngày chăm sóc (`ContactedAt`) = lúc gửi; tab Sau điều trị lấy luôn ngày đó làm `DueAt`.
+  - Nhân viên chăm sóc = người gửi. Với lô gửi theo danh sách hoặc hẹn giờ, đó là người bấm Gửi / Hẹn gửi.
+  - Ghi một dòng `bd_care_contact_logs` (trạng thái Đã liên hệ, người gửi).
+  - Các tab ghi kết quả (Thành công / Thất bại) cũng hiện "Đã liên hệ" và vẫn chờ nhân viên ghi kết quả.
+- **Giữ nguyên** dòng đã Đã liên hệ, Thành công, Thất bại hoặc Hủy. Dòng nào gửi được thì vẫn được đánh dấu "Đã gửi Zalo" (bộ đếm Đã gửi Zalo tăng).
+- **Không đổi khi**:
+  - gửi thất bại (ví dụ khách mất số, Zalo từ chối);
+  - lô hẹn giờ chưa tới giờ gửi, hoặc đã bị huỷ;
+  - khách bị "Gộp trùng số" (R05): nhiều khách dùng chung một SĐT thì chỉ dòng của khách mang tin được đổi; các khách còn lại vẫn "Chưa liên hệ".
+- **Ba đường gửi cùng áp dụng**:
+  - nút Gửi Zalo trên dòng → màn Gửi tin nhắn → job `cskh.message-send`;
+  - `POST care-records/{id}/zalo-sent`;
+  - gửi ZNS từ Zalo OA (`ZaloOaAppService.SendAsync` có `careRecordId`).
+- Nhân viên vẫn đổi lại "Chưa liên hệ" bằng tay được. Dấu "Đã gửi Zalo" vẫn giữ.
+- Bản ghi cũ đã gửi Zalo trước R-1024 **không** được cập nhật bù (chủ dự án: "chưa cần").
+- **Làm mới bảng**: khi một lô gửi kết thúc trong lúc đang mở danh sách hoặc kết quả chiến dịch, FE đọc lại bảng CSKH và Thống kê.
+  UNKNOWN_REFERENCE_BEHAVIOR / giới hạn: nếu không mở màn nào theo dõi lô, bảng CSKH đã mở sẵn chỉ cập nhật khi tải lại hoặc khi hết `staleTime`.

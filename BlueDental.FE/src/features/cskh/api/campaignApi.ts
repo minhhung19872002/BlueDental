@@ -1,8 +1,9 @@
+import { useEffect, useMemo, useRef } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { downloadFile } from "@/lib/download";
 import type { PagedResult } from "@/types";
-import type { CareType } from "./careApi";
+import { careKeys, type CareType } from "./careApi";
 import {
   SEND_BATCH_STATUS,
   sendKeys,
@@ -120,21 +121,45 @@ export const isCampaignLive = (campaign: Pick<Campaign, "status" | "scheduledAt"
   campaign.status === SEND_BATCH_STATUS.Sending ||
   (campaign.status === SEND_BATCH_STATUS.Queued && campaign.scheduledAt === null);
 
+/**
+ * A send that ends changes the CSKH rows — "Đã gửi Zalo" and, for a customer
+ * not reached yet, "Đã liên hệ" (R-1024) — and Thống kê CSKH. Gửi refreshed
+ * them before the job ran, so they are read again once it has.
+ */
+function useRefreshWhenSendEnds(campaigns: readonly Campaign[] | undefined) {
+  const queryClient = useQueryClient();
+  const live = useRef(new Set<string>());
+  useEffect(() => {
+    if (!campaigns) return;
+    const ended = campaigns.some((c) => live.current.has(c.id) && !isCampaignLive(c));
+    live.current = new Set(campaigns.filter(isCampaignLive).map((c) => c.id));
+    if (ended) {
+      void queryClient.invalidateQueries({ queryKey: careKeys.all });
+      void queryClient.invalidateQueries({ queryKey: statsKeys.all });
+    }
+  }, [campaigns, queryClient]);
+}
+
 export function useCampaigns(page: CampaignPage) {
-  return useQuery({
+  const result = useQuery({
     queryKey: campaignKeys.list(page),
     queryFn: () => campaignApi.list(page),
     placeholderData: keepPreviousData,
     refetchInterval: (query) => (query.state.data?.items.some(isCampaignLive) ? LIVE_REFRESH_MS : false),
   });
+  useRefreshWhenSendEnds(result.data?.items);
+  return result;
 }
 
 export function useCampaign(id: string) {
-  return useQuery({
+  const result = useQuery({
     queryKey: campaignKeys.detail(id),
     queryFn: () => campaignApi.get(id),
     refetchInterval: (query) => (query.state.data && isCampaignLive(query.state.data) ? LIVE_REFRESH_MS : false),
   });
+  const campaign = result.data;
+  useRefreshWhenSendEnds(useMemo(() => (campaign ? [campaign] : undefined), [campaign]));
+  return result;
 }
 
 export function useCampaignRecipients(id: string, outcome: CampaignOutcome | null, page: CampaignPage, live: boolean) {

@@ -335,9 +335,17 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     {
         var record = await _repository.GetAsync(id);
         await GuardBranchAccessAsync(record);
-        record.MarkZaloSent();
+        var reached = record.MarkZaloSent(Clock.Now, CurrentUser.Id);
         await _repository.UpdateAsync(record, autoSave: true);
-        return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
+        if (reached)
+        {
+            await _contactLogRepository.InsertAsync(
+                CareContactLog.Of(GuidGenerator.Create(), record), autoSave: true);
+        }
+
+        var dto = ObjectMapper.Map<CareRecord, CareRecordDto>(record);
+        await FillAsync([record], [dto]);
+        return dto;
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.Manage)]

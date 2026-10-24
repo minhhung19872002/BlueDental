@@ -41,6 +41,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
     private readonly IRepository<MessageLog, Guid> _messages;
     private readonly IRepository<Patient, Guid> _patients;
     private readonly IRepository<CareRecord, Guid> _careRecords;
+    private readonly IRepository<CareContactLog, Guid> _contactLogs;
     private readonly IRepository<ClinicBranch, Guid> _branches;
     private readonly IRepository<Appointment, Guid> _appointments;
     private readonly IIdentityUserRepository _users;
@@ -57,6 +58,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         IRepository<MessageLog, Guid> messages,
         IRepository<Patient, Guid> patients,
         IRepository<CareRecord, Guid> careRecords,
+        IRepository<CareContactLog, Guid> contactLogs,
         IRepository<ClinicBranch, Guid> branches,
         IRepository<Appointment, Guid> appointments,
         IIdentityUserRepository users,
@@ -72,6 +74,7 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         _messages = messages;
         _patients = patients;
         _careRecords = careRecords;
+        _contactLogs = contactLogs;
         _branches = branches;
         _appointments = appointments;
         _users = users;
@@ -324,8 +327,12 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
 
         if (careRecord != null)
         {
-            careRecord.MarkZaloSent();
+            var reached = careRecord.MarkZaloSent(Clock.Now, CurrentUser.Id);
             await _careRecords.UpdateAsync(careRecord);
+            if (reached)
+            {
+                await _contactLogs.InsertAsync(CareContactLog.Of(GuidGenerator.Create(), careRecord));
+            }
         }
 
         return ToMessageDto(message);

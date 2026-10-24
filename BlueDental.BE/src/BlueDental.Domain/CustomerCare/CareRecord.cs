@@ -371,11 +371,16 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    /// <summary>Ghi nhận đã gửi tin Zalo cho khách.</summary>
-    public CareRecord MarkZaloSent()
+    /// <summary>
+    /// Ghi nhận đã gửi tin Zalo cho khách. A task still "Chưa liên hệ" is then
+    /// Đã liên hệ, as if the sender had picked it (R-1024): any other state —
+    /// a result already recorded, a cancelled task — stays. Returns true when
+    /// the contact state changed, so callers log real changes only.
+    /// </summary>
+    public bool MarkZaloSent(DateTimeOffset at, Guid? byStaffId = null)
     {
-        ZaloSentAt = DateTimeOffset.UtcNow;
-        return this;
+        ZaloSentAt = at;
+        return Status == CareStatus.New && SetContacted(true, at, byStaffId);
     }
 
     public CareRecord UpdateContent(string subject, string? description)

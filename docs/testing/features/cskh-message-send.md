@@ -74,6 +74,12 @@ URL: `/cskh-grouping/send?channel=&templateId=&page=&care_dateMode=&care_date=&p
   - Hẹn giờ thì job được xếp với `delay`. Job chạy sớm thì tự xếp lại.
   - Mỗi tin được điền lại theo dữ liệu **lúc gửi**, kể cả SĐT (R-1019; hết số hợp lệ thì Thất bại `NoPhone`), gửi qua `ZaloOaGateway`, lưu riêng từng tin. Host dừng giữa chừng thì chạy lại sẽ chỉ gửi nốt phần chưa gửi.
   - Gửi được thì đánh dấu dòng CSKH đã gửi Zalo (`CareRecord.MarkZaloSent`).
+  - Từ R-1024, dòng còn "Chưa liên hệ" chuyển sang "Đã liên hệ":
+    - nhân viên chăm sóc = người tạo lô;
+    - ngày chăm sóc = lúc gửi;
+    - ghi thêm một dòng `bd_care_contact_logs` (`CareContactLog.OfSend`).
+
+    Dòng ở trạng thái khác giữ nguyên.
   - Log ứng dụng chỉ có id, không có dữ liệu khách (PHI).
 - **Gửi thử**: điền theo khách đang xem trước, gửi tới SĐT của tài khoản (`Tools:0022` nếu chưa có). Không tạo `MessageLog`, nên "Đã gửi" của mẫu không đổi; chỉ nhật ký gọi tích hợp ghi lại lần gọi.
 - **Xem trước**: che SĐT khi người xem bị "Ẩn số điện thoại" và che `{so_tien_con_lai}` khi không có "Chi phí › Xem" (`MessageValueMasker`). Tin gửi đi không bị che.
@@ -171,12 +177,20 @@ Các ca E2E:
 Đợt sửa sau review (R-1013..R-1019, chi tiết trong `03-regression-log.md`):
 
 7. **R-1013**: khách đã nằm trong một lô hẹn giờ ghi "Chờ gửi dd/mm/yyyy", không gửi lại được (cả qua API).
-8. **R-1014**: nút "Gửi Zalo" trên dòng CSKH mang `careRecordId`; gửi xong dòng đó có `zaloSentAt`.
+8. **R-1014 / R-1024**: nút "Gửi Zalo" trên dòng CSKH mang `careRecordId`. Sau khi gửi xong:
+   - dòng đó có `zaloSentAt`;
+   - trạng thái đổi từ "Chưa liên hệ" sang "Đã liên hệ", với nhân viên = người gửi và `contactedAt` = `zaloSentAt`;
+   - có 1 dòng lịch sử liên hệ;
+   - tải lại thì bộ đếm Đã gửi Zalo +1, Đã liên hệ +1, Chưa liên hệ −1.
 9. **R-1015**: "Lịch gửi đã hẹn" chỉ có lô hẹn giờ, và tự bỏ lô đã tới giờ mà không cần tải lại.
 10. **R-1016**: Zalo từ chối làm mới token → lô hẹn giờ Xong với 1 thất bại "Zalo OA chưa kết nối", màn Gửi vẫn mở được.
 11. **R-1017**: đổi danh sách CSKH thì nút Gửi khoá tới khi đọc xong danh sách mới.
 12. **R-1018**: xem trước bị lỗi (thu quyền khi trang đang mở) thì báo "Không xem trước được: …".
 13. **R-1019**: khách đổi số sau khi hẹn giờ → tin đi số mới; khách mất số → Thất bại "Khách không còn số điện thoại hợp lệ" (cả Thống kê và Excel).
+14. **R-1024**: một tin hẹn giờ cho dòng Nhắc lịch hẹn, khách mất số trước giờ gửi. Kết quả:
+    - lô Xong với 0 gửi, 1 thất bại;
+    - dòng CSKH vẫn "Chưa liên hệ", `zaloSentAt` / `contactedAt` rỗng;
+    - không có dòng lịch sử liên hệ nào.
 
 R-1012 (DbMigrator không chạy job) được kiểm bằng tay vì e2e không dừng được host; xem log.
 

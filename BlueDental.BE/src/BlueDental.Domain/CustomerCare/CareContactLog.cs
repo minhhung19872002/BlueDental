@@ -33,4 +33,12 @@ public class CareContactLog : CreationAuditedAggregateRoot<Guid>
     /// <summary>Records the state <paramref name="record"/> is in now.</summary>
     public static CareContactLog Of(Guid id, CareRecord record, string? note = null) =>
         new(id, record.Id, record.BranchId, record.Status, note);
+
+    /// <summary>
+    /// The Đã liên hệ a sent message left (R-1024). The send job has no
+    /// current user, so the sender is set here; auditing keeps a creator
+    /// already set.
+    /// </summary>
+    public static CareContactLog OfSend(Guid id, CareRecord record, Guid? senderId) =>
+        new(id, record.Id, record.BranchId, record.Status, null) { CreatorId = senderId };
 }
