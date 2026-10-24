@@ -10838,4 +10838,4 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chứng minh với HEAD `94c5e029` (build chưa sửa, phục vụ trên :8151): ca mới **đỏ** đúng chỗ gốc lỗi, URL không có `box`.
   - Phân quyền và cách ly chi nhánh: không đổi; ca "Quyền và chi nhánh" xanh.
 - **Staging / production**: không có migration, không có quyền mới.
-- **Commit**: chưa commit.
+- **Commit**: `main` 524e1d0d (chủ dự án commit + push), chưa deploy production.
