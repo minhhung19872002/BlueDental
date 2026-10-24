@@ -26,7 +26,8 @@ public sealed record ZaloIncomingChat(
 /// Where every message enters Hộp thư Zalo: the webhook, a sync and a reply
 /// all go through here, so a conversation is opened once per Zalo user and a
 /// message stored once per Zalo message id. A new conversation asks Zalo who
-/// the user is and links the branch's record holding the phone they shared.
+/// the user is and links the branch's record holding the phone they shared;
+/// an unlinked one tries that phone again each time it comes through (R-1026).
 /// </summary>
 public class ZaloInboxIngestor(
     IRepository<ZaloConversation, Guid> conversations,
@@ -37,8 +38,13 @@ public class ZaloInboxIngestor(
     IAsyncQueryableExecuter asyncExecuter,
     IGuidGenerator guids) : ITransientDependency
 {
+    /// <param name="askPhoneAgain">
+    /// A sync's: an unlinked conversation with no shared phone asks Zalo again,
+    /// the customer may have shared it since.
+    /// </param>
     public async Task<ZaloConversation> EnsureConversationAsync(
-        ZaloOaConnection connection, string zaloUserId, string? nameHint = null, string? avatarHint = null)
+        ZaloOaConnection connection, string zaloUserId, string? nameHint = null, string? avatarHint = null,
+        bool askPhoneAgain = false)
     {
         var branchId = connection.ClinicBranchId;
         var existing = await conversations.FirstOrDefaultAsync(c => c.ClinicBranchId == branchId && c.ZaloUserId == zaloUserId);
@@ -49,6 +55,13 @@ public class ZaloInboxIngestor(
                 existing.SetProfile(existing.DisplayName, avatarHint, null);
             }
 
+            if (askPhoneAgain && existing.PatientId == null && existing.SharedPhone == null)
+            {
+                existing.ShareContact((await TryReadProfileAsync(connection, zaloUserId))?.SharedPhone);
+            }
+
+            // The record may have been made after the phone was shared.
+            await LinkBySharedPhoneAsync(existing);
             return existing;
         }
 
@@ -56,7 +69,7 @@ public class ZaloInboxIngestor(
         var conversation = ZaloConversation.Open(
             guids.Create(), branchId, zaloUserId,
             profile?.DisplayName ?? nameHint, profile?.AvatarUrl ?? avatarHint, profile?.SharedPhone);
-        conversation.LinkPatient(await FindPatientByPhoneAsync(branchId, profile?.SharedPhone));
+        await LinkBySharedPhoneAsync(conversation);
         return await conversations.InsertAsync(conversation, autoSave: true);
     }
 
@@ -117,6 +130,14 @@ public class ZaloInboxIngestor(
         conversation.RecordReply(senderUserId, message.SentAt, message.Preview, now);
         await conversations.UpdateAsync(conversation, autoSave: true);
     }
+
+    /// <summary>
+    /// R-1026: an unlinked conversation whose customer shared a phone takes the
+    /// branch's one record holding it. A linked one keeps its record.
+    /// </summary>
+    public async Task<bool> LinkBySharedPhoneAsync(ZaloConversation conversation) =>
+        conversation.PatientId == null && conversation.SharedPhone != null
+        && conversation.LinkFoundPatient(await FindPatientByPhoneAsync(conversation.ClinicBranchId, conversation.SharedPhone));
 
     /// <summary>
     /// The one record of the branch holding the number, in any spelling it may

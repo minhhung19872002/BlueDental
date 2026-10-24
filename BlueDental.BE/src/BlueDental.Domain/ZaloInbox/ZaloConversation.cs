@@ -93,8 +93,27 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
         SharedPhone = Clip(Blank(sharedPhone), MaxPhoneLength) ?? SharedPhone;
     }
 
+    /// <summary>A phone shared after the conversation opened (the customer's submitted info, a re-read profile).</summary>
+    public void ShareContact(string? phone) =>
+        SharedPhone = Clip(Blank(phone), MaxPhoneLength) ?? SharedPhone;
+
     public void LinkPatient(Guid? patientId) =>
         PatientId = patientId == Guid.Empty ? null : patientId;
+
+    /// <summary>
+    /// R-1026: the record the shared phone found links only a conversation no
+    /// one linked yet — the record staff picked is never replaced.
+    /// </summary>
+    public bool LinkFoundPatient(Guid? patientId)
+    {
+        if (PatientId != null || patientId is not { } found || found == Guid.Empty)
+        {
+            return false;
+        }
+
+        PatientId = found;
+        return true;
+    }
 
     /// <summary>
     /// A message of the chat, in whatever order they arrive: the webhook brings

@@ -219,4 +219,40 @@ public class ZaloConversationTests
 
         conversation.DisplayName.ShouldBe("Zalo …9876");
     }
+
+    [Fact]
+    public void A_Phone_Shared_Later_Is_Kept_And_A_Blank_One_Keeps_It()
+    {
+        var conversation = Open();
+
+        conversation.ShareContact(" 84901234567 ");
+        conversation.SharedPhone.ShouldBe("84901234567");
+
+        conversation.ShareContact(null);
+        conversation.ShareContact("  ");
+        conversation.SharedPhone.ShouldBe("84901234567");
+
+        conversation.ShareContact("0912345678");
+        conversation.SharedPhone.ShouldBe("0912345678");
+    }
+
+    [Fact]
+    public void The_Record_The_Phone_Found_Links_Only_An_Unlinked_Conversation()
+    {
+        var found = Guid.NewGuid();
+        var unlinked = Open();
+
+        unlinked.LinkFoundPatient(null).ShouldBeFalse();
+        unlinked.LinkFoundPatient(Guid.Empty).ShouldBeFalse();
+        unlinked.PatientId.ShouldBeNull();
+        unlinked.LinkFoundPatient(found).ShouldBeTrue();
+        unlinked.PatientId.ShouldBe(found);
+
+        // R-1026: a record staff picked by hand stays.
+        var picked = Guid.NewGuid();
+        var linkedByHand = Open();
+        linkedByHand.LinkPatient(picked);
+        linkedByHand.LinkFoundPatient(found).ShouldBeFalse();
+        linkedByHand.PatientId.ShouldBe(picked);
+    }
 }

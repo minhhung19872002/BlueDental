@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Zalo;
 using Volo.Abp.DependencyInjection;
@@ -16,9 +17,14 @@ public class ZaloInboxSync(ZaloOaGateway gateway, IZaloApiClient zalo, ZaloInbox
     /// <summary>Five pages of Zalo's recent chats: the 50 latest conversations.</summary>
     public const int RecentPages = 5;
 
+    /// <summary>
+    /// R-1026: an unlinked conversation with no shared phone asks Zalo for it
+    /// again, once a sync, so a phone shared since links the record.
+    /// </summary>
     public async Task<ZaloChatSyncResultDto> SyncRecentAsync(ZaloOaConnection connection)
     {
         var result = new ZaloChatSyncResultDto();
+        var asked = new HashSet<string>();
         for (var page = 0; page < RecentPages; page++)
         {
             var offset = page * HttpZaloApiClient.MaxChatPage;
@@ -40,7 +46,7 @@ public class ZaloInboxSync(ZaloOaGateway gateway, IZaloApiClient zalo, ZaloInbox
                 }
 
                 var conversation = await ingestor.EnsureConversationAsync(
-                    connection, userId, item.UserDisplayName, item.UserAvatar);
+                    connection, userId, item.UserDisplayName, item.UserAvatar, askPhoneAgain: asked.Add(userId));
                 if (await ingestor.RecordAsync(conversation, ToChat(userId, item)))
                 {
                     result.Added++;

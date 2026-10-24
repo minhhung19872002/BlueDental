@@ -16,8 +16,9 @@ namespace BlueDental.ZaloInbox;
 /// <summary>
 /// The chat side of Zalo's webhook for Hộp thư Zalo: <c>user_send_*</c> is the
 /// customer writing, <c>oa_send_*</c> the OA answering — from BlueDental (an
-/// echo, dropped by message id) or from Zalo's own OA chat. The OA id names the
-/// branch. Logs carry event names and ids only, never what was written.
+/// echo, dropped by message id) or from Zalo's own OA chat; <c>user_submit_info</c>
+/// the customer sending the OA their details. The OA id names the branch. Logs
+/// carry event names, ids and field names only, never what was written.
 /// </summary>
 public class ZaloChatWebhookProcessor(
     IRepository<ZaloOaConnection, Guid> connections,
@@ -27,9 +28,18 @@ public class ZaloChatWebhookProcessor(
     IClock clock,
     ILogger<ZaloChatWebhookProcessor> logger) : ITransientDependency
 {
-    /// <summary>True when the event was a chat message (stored or already known).</summary>
+    /// <summary>"Người dùng gửi thông tin": <c>sender.id</c> the user, <c>info.phone</c> their phone.</summary>
+    public const string SharedInfoEvent = "user_submit_info";
+
+    /// <summary>True when the event was a chat message (stored or already known) or the customer's details.</summary>
     public async Task<bool> TryHandleAsync(string? eventName, JsonElement root)
     {
+        if (eventName == SharedInfoEvent)
+        {
+            await StoreSharedInfoAsync(root);
+            return true;
+        }
+
         if (ZaloChatKinds.OfEvent(eventName) is not { } shape)
         {
             return false;
@@ -112,6 +122,47 @@ public class ZaloChatWebhookProcessor(
         {
             // The delivery itself is recorded either way; the link can be made by hand.
             logger.LogWarning(ex, "Zalo ZNS recipient could not be linked to its conversation");
+        }
+    }
+
+    /// <summary>
+    /// R-1026: the phone the customer sent becomes the conversation's, and an
+    /// unlinked conversation takes the branch's one record holding it.
+    /// </summary>
+    private async Task StoreSharedInfoAsync(JsonElement root)
+    {
+        var userId = IdOf(root, "sender");
+        var oaId = IdOf(root, "recipient");
+        var info = root.TryGetProperty("info", out var shared) && shared.ValueKind == JsonValueKind.Object ? shared : default;
+        var phone = info.ValueKind == JsonValueKind.Object ? Text(info, "phone") : null;
+        if (userId == null || oaId == null || phone == null)
+        {
+            // Zalo's payload not as read here: which fields it has, never their values.
+            logger.LogInformation("Zalo {EventName} came without a user, an OA or a phone; fields: {Fields}",
+                SharedInfoEvent, ZaloJsonShape.Describe(root));
+            return;
+        }
+
+        try
+        {
+            using var uow = unitOfWorkManager.Begin(requiresNew: true);
+            var connection = await FindConnectionAsync(oaId);
+            if (connection == null)
+            {
+                logger.LogInformation("Zalo {EventName} for an OA no branch links", SharedInfoEvent);
+                return;
+            }
+
+            var conversation = await ingestor.EnsureConversationAsync(connection, userId, Text(info, "name"));
+            conversation.ShareContact(phone);
+            await ingestor.LinkBySharedPhoneAsync(conversation);
+            await conversations.UpdateAsync(conversation);
+            await uow.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            // The next sync asks Zalo for the phone again.
+            logger.LogWarning(ex, "Zalo {EventName} could not be stored", SharedInfoEvent);
         }
     }
 

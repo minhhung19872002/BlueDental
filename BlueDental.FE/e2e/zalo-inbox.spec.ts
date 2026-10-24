@@ -89,6 +89,33 @@ async function customerWrites(page: Page, userId: string, text: string, at = Dat
   });
 }
 
+/** "Người dùng gửi thông tin" (R-1026): the customer sends the OA their details, the phone among them. */
+async function sharesInfo(page: Page, userId: string, phone?: string): Promise<void> {
+  await webhook(page, {
+    event_name: "user_submit_info",
+    sender: { id: userId },
+    recipient: { id: OA_ID },
+    info: phone ? { name: "Khách gửi thông tin", phone, address: "", city: "", district: "", ward: "" } : {},
+  });
+}
+
+/** A 10-digit number no record of this run holds. */
+function freshPhone(): string {
+  return `09${(runId() + String(Math.floor(Math.random() * 90 + 10))).slice(-8)}`;
+}
+
+/** The Zalo user/detail calls the host made for this user since `from`. */
+async function profileReads(userId: string, from = 0): Promise<number> {
+  const calls = (await stubCalls("/v3.0/oa/user/detail")).slice(from);
+  return calls.filter((c) => decodeURIComponent(c.query).includes(userId)).length;
+}
+
+async function syncNow(page: Page): Promise<void> {
+  const synced = page.waitForResponse((r) => r.url().endsWith(`${INBOX}/sync`) && r.request().method() === "POST");
+  await page.getByRole("button", { name: /Đồng bộ$/ }).click();
+  expect((await synced).ok()).toBeTruthy();
+}
+
 async function stub(path: string, body: unknown): Promise<void> {
   const res = await fetch(`${STUB_URL}${path}`, { method: "POST", body: JSON.stringify(body) });
   expect(res.ok).toBeTruthy();
@@ -99,10 +126,9 @@ async function stubCalls(path: string): Promise<{ path: string; body: string; qu
   return calls.filter((c) => c.path === path);
 }
 
-async function newPatient(page: Page): Promise<Patient> {
+async function newPatient(page: Page, phone = freshPhone()): Promise<Patient> {
   const suffix = runId() + String(Math.floor(Math.random() * 90 + 10));
   const firstName = `Hộp thư ${suffix}`;
-  const phone = `09${suffix.padStart(8, "0").slice(-8)}`;
   const res = await call<{ id: string; patientCode: string }>(page, "/api/v1/app/patients", {
     ...asBranchOne,
     method: "POST",
@@ -472,6 +498,98 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(page.getByRole("tab", { name: /^Tất cả/ })).toHaveAttribute("aria-selected", "true");
     await expect(conversationRow(page, name)).toHaveAttribute("aria-current", "true");
     await expect(conversationRow(page, name)).toBeInViewport();
+  });
+
+  test("Khách gửi thông tin (user_submit_info): SĐT nối hồ sơ; chưa có hồ sơ thì nối khi khách nhắn lại; 2 hồ sơ cùng số hoặc hồ sơ đã chọn tay thì không đổi", async ({ page }) => {
+    // Shared after the chat began: the record links, and stays linked after a reload.
+    const patient = await newPatient(page);
+    const userId = zaloUser();
+    const name = `Khách gửi SĐT ${userId.slice(-6)}`;
+    await stub("/__users", { userId, displayName: name });
+    await customerWrites(page, userId, "Cho em xin lịch khám");
+    expect((await conversationOf(page, name)).patientId, "no phone shared yet").toBeNull();
+    await sharesInfo(page, userId);
+    expect((await conversationOf(page, name)).patientId, "details without a phone link nothing").toBeNull();
+
+    await sharesInfo(page, userId, `84${patient.phone.slice(1)}`);
+    const linked = await conversationOf(page, patient.name);
+    expect(linked.patientId).toBe(patient.id);
+    await openInbox(page, linked.id);
+    await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
+    await page.reload();
+    await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
+
+    // A number no record holds yet: the record made later links on the customer's next message.
+    const laterUser = zaloUser();
+    const laterName = `Khách chưa có hồ sơ ${laterUser.slice(-6)}`;
+    const laterPhone = freshPhone();
+    await stub("/__users", { userId: laterUser, displayName: laterName });
+    await customerWrites(page, laterUser, "Em là khách mới");
+    await sharesInfo(page, laterUser, laterPhone);
+    expect((await conversationOf(page, laterName)).patientId, "no record holds the number yet").toBeNull();
+    const later = await newPatient(page, laterPhone);
+    await customerWrites(page, laterUser, "Em đặt lịch rồi ạ");
+    expect((await conversationOf(page, later.name)).patientId).toBe(later.id);
+
+    // Two records hold the number (in two spellings): neither is linked, staff pick.
+    const twin = await newPatient(page);
+    await newPatient(page, `84${twin.phone.slice(1)}`);
+    const twinUser = zaloUser();
+    const twinName = `Khách hai hồ sơ ${twinUser.slice(-6)}`;
+    await stub("/__users", { userId: twinUser, displayName: twinName });
+    await customerWrites(page, twinUser, "Em hỏi giá");
+    await sharesInfo(page, twinUser, twin.phone);
+    expect((await conversationOf(page, twinName)).patientId, "two records hold it").toBeNull();
+
+    // The record staff picked stays, whatever phone comes after.
+    const picked = await newPatient(page);
+    const other = await newPatient(page);
+    const handUser = zaloUser();
+    const handName = `Khách chọn tay ${handUser.slice(-6)}`;
+    await stub("/__users", { userId: handUser, displayName: handName });
+    await customerWrites(page, handUser, "Em là người nhà");
+    const hand = await conversationOf(page, handName);
+    const put = await call(page, `${INBOX}/conversations/${hand.id}/patient`, {
+      ...asBranchOne,
+      method: "PUT",
+      json: { patientId: picked.id },
+    });
+    expect(put.status, JSON.stringify(put.body)).toBe(200);
+    await sharesInfo(page, handUser, other.phone);
+    await customerWrites(page, handUser, "Em nhắn thêm");
+    expect((await conversationOf(page, picked.name)).patientId).toBe(picked.id);
+  });
+
+  test("Đồng bộ hỏi lại Zalo SĐT của hội thoại chưa nối hồ sơ: khách chia sẻ sau thì nối; đã nối thì không hỏi lại", async ({ page }) => {
+    const patient = await newPatient(page);
+    const userId = zaloUser();
+    const name = `Khách đồng bộ ${userId.slice(-6)}`;
+    await stub("/__users", { userId, displayName: name });
+    await stub("/__history", { userId, items: [{ messageId: `s-${userId}`, fromOa: false, text: "Em hỏi chút ạ", time: Date.now() - 60_000 }] });
+
+    // Opening the tab reads the recent chats: the conversation opens with no phone, unlinked.
+    await openInbox(page);
+    await page.getByRole("tab", { name: /^Tất cả/ }).click();
+    await expect(conversationRow(page, name)).toBeVisible({ timeout: 15_000 });
+    expect((await conversationOf(page, name)).patientId).toBeNull();
+
+    // The customer shares the phone with the OA; no webhook says so.
+    await stub("/__users", { userId, displayName: name, phone: `84${patient.phone.slice(1)}` });
+    const before = (await stubCalls("/v3.0/oa/user/detail")).length;
+    await syncNow(page);
+    expect(await profileReads(userId, before), "the sync asked Zalo once").toBe(1);
+    const row = conversationRow(page, patient.name);
+    await expect(row).toBeVisible();
+    await row.click();
+    await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
+    expect((await conversationOf(page, patient.name)).patientId).toBe(patient.id);
+
+    // Linked: the next sync leaves this customer alone.
+    const linkedAt = (await stubCalls("/v3.0/oa/user/detail")).length;
+    await syncNow(page);
+    expect(await profileReads(userId, linkedAt)).toBe(0);
+    await page.reload();
+    await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
   });
 
   test("Giữ hội thoại: người khác thấy đang giữ và không nhận được; Chuyển cho → người kia trả lời; quá 48 giờ chỉ gửi ZNS", async ({ page, browser }) => {
