@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, freeSlot, login, runId } from "./fixtures/auth";
-import { call } from "./fixtures/timekeepingStaff";
+import { call, createRunStaff, deleteStaff } from "./fixtures/timekeepingStaff";
 
 /**
  * Feature: CSKH ▸ Hộp thư Zalo + the record's Lịch sử chăm sóc (F-80, BA P2210).
@@ -250,12 +250,10 @@ async function chooseSlot(dialog: Locator, { day, time }: { day: string; time: s
   await expect(clock).toHaveValue(time);
 }
 
-/** The first doctor of the dialog's SearchSelect, from its portal list. */
-async function pickFirstDoctor(page: Page): Promise<void> {
+/** The run's doctor in the dialog's SearchSelect, from its portal list. */
+async function pickDoctor(page: Page, fullName: string): Promise<void> {
   await page.locator(".appt-field").filter({ hasText: /Chọn bác sĩ/ }).first().getByRole("combobox").click();
-  const option = page.locator("#ss-portal-dropdown [role=option]").first();
-  await expect(option).toBeVisible();
-  await option.click();
+  await page.locator("#ss-portal-dropdown [role=option]").filter({ hasText: fullName }).first().click();
 }
 
 /** The panel's "Sắp tới" line. */
@@ -1009,48 +1007,59 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     const sooner = freeSlot(id, 2);
     const linkCall = (r: { url(): string; method(): string }) =>
       r.method() === "PUT" && r.url().endsWith(`${INBOX}/conversations/${conversation.id}/patient`);
+    // The E2E database has no demo doctors: the run brings its own, before the dialog loads the list.
+    const dentist = await createRunStaff(page, BRANCH_ONE, `zl${id}`, { name: `BSZalo${id}`, isDentist: true });
+    try {
+      await openInbox(page, conversation.id);
+      await side(page).getByRole("button", { name: /Tạo lịch hẹn$/ }).click();
+      const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator(".ss-wrapper--disabled")).toHaveCount(0);
+      await dialog.locator(".appt-field").filter({ hasText: /Chọn bệnh nhân/ }).first().getByRole("combobox").click();
+      await page.locator("#ss-portal-dropdown .ss-search-input").fill(patient.code);
+      await page.locator("#ss-portal-dropdown [role=option]", { hasText: patient.code }).first().click();
+      await chooseSlot(dialog, later);
+      await pickDoctor(page, dentist.fullName);
+      await dialog.getByPlaceholder("Nội dung đặt lịch").fill(`E2E Zalo hẹn ${id}`);
+      const booked = page.waitForResponse((r) => r.url().includes("/api/v1/app/appointments") && r.request().method() === "POST");
+      const linked = page.waitForResponse((r) => linkCall(r.request()));
+      await dialog.getByRole("button", { name: "Lưu" }).click();
+      expect((await booked).ok()).toBeTruthy();
+      expect((await linked).status()).toBe(200);
+      await expect(dialog).toBeHidden();
+      await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
+      await expect(nextVisit(page)).toContainText(`${later.day} ${later.time}`);
+      await expect(side(page).getByRole("button", { name: /Tạo hồ sơ$/ })).toHaveCount(0);
 
-    await openInbox(page, conversation.id);
-    await side(page).getByRole("button", { name: /Tạo lịch hẹn$/ }).click();
-    const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.locator(".ss-wrapper--disabled")).toHaveCount(0);
-    await dialog.locator(".appt-field").filter({ hasText: /Chọn bệnh nhân/ }).first().getByRole("combobox").click();
-    await page.locator("#ss-portal-dropdown .ss-search-input").fill(patient.code);
-    await page.locator("#ss-portal-dropdown [role=option]", { hasText: patient.code }).first().click();
-    await chooseSlot(dialog, later);
-    await pickFirstDoctor(page);
-    await dialog.getByPlaceholder("Nội dung đặt lịch").fill(`E2E Zalo hẹn ${id}`);
-    const booked = page.waitForResponse((r) => r.url().includes("/api/v1/app/appointments") && r.request().method() === "POST");
-    const linked = page.waitForResponse((r) => linkCall(r.request()));
-    await dialog.getByRole("button", { name: "Lưu" }).click();
-    expect((await booked).ok()).toBeTruthy();
-    expect((await linked).status()).toBe(200);
-    await expect(dialog).toBeHidden();
-    await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
-    await expect(nextVisit(page)).toContainText(`${later.day} ${later.time}`);
-    await expect(side(page).getByRole("button", { name: /Tạo hồ sơ$/ })).toHaveCount(0);
+      // Linked: the booking is for the linked record, and the link stays as it is.
+      let relinked = false;
+      page.on("request", (r) => {
+        if (linkCall(r)) relinked = true;
+      });
+      await side(page).getByRole("button", { name: /Tạo lịch hẹn$/ }).click();
+      const again = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+      await expect(again.locator(".ss-wrapper--disabled")).toHaveCount(1);
+      await expect(again.locator(".ss-wrapper--disabled")).toContainText(patient.code);
+      await chooseSlot(again, sooner);
+      await pickDoctor(page, dentist.fullName);
+      await again.getByPlaceholder("Nội dung đặt lịch").fill(`E2E Zalo hẹn sớm ${id}`);
+      await again.getByRole("button", { name: "Lưu" }).click();
+      await expect(again).toBeHidden();
+      await expect(nextVisit(page)).toContainText(`${sooner.day} ${sooner.time}`);
+      expect(relinked, "a booking for the linked record does not link again").toBe(false);
 
-    // Linked: the booking is for the linked record, and the link stays as it is.
-    let relinked = false;
-    page.on("request", (r) => {
-      if (linkCall(r)) relinked = true;
-    });
-    await side(page).getByRole("button", { name: /Tạo lịch hẹn$/ }).click();
-    const again = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
-    await expect(again.locator(".ss-wrapper--disabled")).toHaveCount(1);
-    await expect(again.locator(".ss-wrapper--disabled")).toContainText(patient.code);
-    await chooseSlot(again, sooner);
-    await pickFirstDoctor(page);
-    await again.getByPlaceholder("Nội dung đặt lịch").fill(`E2E Zalo hẹn sớm ${id}`);
-    await again.getByRole("button", { name: "Lưu" }).click();
-    await expect(again).toBeHidden();
-    await expect(nextVisit(page)).toContainText(`${sooner.day} ${sooner.time}`);
-    expect(relinked, "a booking for the linked record does not link again").toBe(false);
-
-    await page.reload();
-    await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
-    await expect(nextVisit(page)).toContainText(`${sooner.day} ${sooner.time}`);
+      await page.reload();
+      await expect(side(page)).toContainText(`[${patient.code}] ${patient.name}`);
+      await expect(nextVisit(page)).toContainText(`${sooner.day} ${sooner.time}`);
+    } finally {
+      const left = await call<{ items: { id: string }[] }>(
+        page, `/api/v1/app/appointments?DentistId=${dentist.id}&fromDate=2027-01-01&toDate=2045-12-31&MaxResultCount=50`, asBranchOne,
+      );
+      for (const booking of left.body.items ?? []) {
+        await call(page, `/api/v1/app/appointments/${booking.id}`, { method: "DELETE", ...asBranchOne });
+      }
+      await deleteStaff(page, dentist.id);
+    }
   });
 
   test("Quyền và chi nhánh: chỉ Xem không nhận xử lý được; Ẩn số điện thoại che cả số trong tin; chi nhánh khác không thấy hội thoại", async ({ page, browser }) => {

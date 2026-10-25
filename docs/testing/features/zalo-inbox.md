@@ -82,10 +82,24 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
   - webhook `user_submit_info` ("Người dùng gửi thông tin"): `info.phone` thành SĐT của hội thoại (chưa có hội thoại thì mở mới);
   - Đồng bộ: hội thoại chưa nối và chưa có SĐT thì hỏi lại `user/detail`, mỗi user một lần trong một lượt, không giới hạn (chủ dự án chọn).
 - Mỗi lần hội thoại chưa nối đi qua (tin webhook, Đồng bộ), hệ thống thử khớp lại, nên hồ sơ tạo **sau** khi khách chia sẻ SĐT được nối khi khách nhắn lại.
-- Khớp 0 hồ sơ hoặc ≥ 2 hồ sơ thì không nối và không gợi ý. Danh sách gợi ý, nút Tạo hồ sơ / Đặt lịch hẹn và khớp theo SĐT người giám hộ thuộc task khác.
+- Khớp 0 hồ sơ hoặc ≥ 2 hồ sơ thì không nối và không gợi ý. Danh sách gợi ý và khớp theo SĐT người giám hộ thuộc task khác. Nút Tạo hồ sơ / Tạo lịch hẹn: R-1030, ngay dưới.
 - Khi Zalo báo ZNS đã tới (`user_received_message`), user Zalo trong báo đó được liên kết với hồ sơ đã nhận ZNS.
 - Còn lại thì nhân viên chọn tay.
 - Liên kết đã có (chọn tay, từ ZNS, hoặc tự nối trước đó) **không bao giờ bị đè**. Gỡ liên kết bằng API (`PUT …/patient` với `null`; FE không có nút) thì tin nhắn sau của khách sẽ nối lại nếu SĐT vẫn khớp đúng 1 hồ sơ.
+
+**[Tạo hồ sơ] [Tạo lịch hẹn]** (R-1030, chủ dự án chốt 2026-10-25), hai nút cạnh nhau dưới ô "Liên kết hồ sơ":
+
+- **Tạo hồ sơ** mở đúng popup tạo hồ sơ của phòng khám (`PatientEditorDialog`):
+  - điền sẵn tên Zalo và SĐT khách đã chia sẻ (`84…` đổi về `0…`; SĐT bị che thì bỏ);
+  - tên tạm "Zalo …1234" thì để trống ô Họ và tên;
+  - lưu xong hội thoại tự nối hồ sơ mới (`PUT …/patient`): khung phải hiện `[mã] tên`, SĐT, Lịch hẹn / Dịch vụ / Công nợ, dòng bên trái đổi tên ngay.
+- **Tạo lịch hẹn** mở đúng popup tạo lịch hẹn (`AppointmentEditorModal`):
+  - hội thoại **chưa nối**: chọn bệnh nhân có sẵn, hoặc "+" tạo hồ sơ mới (cũng điền sẵn tên và SĐT Zalo). Lưu xong hội thoại nối với bệnh nhân của lịch hẹn;
+  - hội thoại **đã nối**: bệnh nhân khoá là hồ sơ đã nối, lưu xong mục "Sắp tới" đổi ngay, không nối lại.
+- Hiện nút:
+  - Tạo hồ sơ: chỉ khi chưa nối, hoặc đang "Đổi hồ sơ"; cần `cskhInbox.update` + `patient.create`.
+  - Tạo lịch hẹn: cần `appointment.create`; hội thoại chưa nối thì cần thêm `cskhInbox.update` (vì sẽ nối).
+- Không đổi BE: chỉ thêm 2 khoá i18n `CSKH:Inbox:Panel:CreatePatient` / `CreateAppointment`.
 
 **Xin SĐT** (R-1028, thẻ Zalo `request_user_info`):
 
@@ -293,6 +307,17 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
     - khách nhắn "Hi", 1 giây sau webhook `oa_send_template` (thẻ chào mừng), rồi thẻ xin SĐT → hội thoại vẫn "Chưa trả lời";
     - Đồng bộ mang về thẻ chào mừng không chữ và một tin template có chữ → vẫn "Chưa trả lời", nằm ở chip Chưa trả lời;
     - nhân viên Nhận xử lý rồi trả lời → tải lại: rời chip Chưa trả lời, sang Đã trả lời với "Đã chăm sóc".
+11. **Tạo hồ sơ (R-1030):**
+    - khách có SĐT `84…`, chưa có hồ sơ → bấm Tạo hồ sơ: ô Họ và tên = tên Zalo, Điện thoại = `0…`;
+    - đổi tên rồi Lưu → `PUT …/patient` 200, hồ sơ lưu đúng tên + SĐT; khung phải có `[mã] tên`, SĐT, mục Lịch hẹn; dòng bên trái mang tên hồ sơ;
+    - đã nối: mất nút Tạo hồ sơ, còn Tạo lịch hẹn; tải lại vẫn nối;
+    - Đổi hồ sơ → Tạo hồ sơ hiện lại; Huỷ → ẩn.
+12. **Tạo lịch hẹn (R-1030):**
+    - DB E2E không có bác sĩ demo: spec tự tạo một nha sĩ cho lượt chạy (`createRunStaff`) và xoá cả nha sĩ lẫn lịch hẹn của nó ở `finally`;
+    - chưa nối → chọn bệnh nhân có sẵn theo mã, chọn giờ, chọn nha sĩ → Lưu: `POST` lịch hẹn + `PUT …/patient` 200; khung phải có `[mã] tên` và "Sắp tới" đúng giờ đã đặt;
+    - đã nối → ô bệnh nhân khoá; đặt lịch sớm hơn → "Sắp tới" đổi ngay, không có `PUT …/patient`;
+    - tải lại vẫn còn.
+13. **Quyền** (thêm vào ca 5): user chỉ `cskhInbox.read`, không `patient.create` / `appointment.create` → không thấy nút nào.
 
 ### Lưu ý khi viết spec
 
