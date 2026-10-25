@@ -220,6 +220,7 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 | R-1026 (2026-10-24) | Domain **1107/1107** (`ZaloConversationTests` 18); E2E `zalo-inbox` **10/10**; mức 3 37/41, 4 đỏ y hệt trên HEAD. Xem R-1026. |
 | R-1028 (2026-10-24) | Domain **1107/1107**; Application (`Zalo`) **45/45**; E2E `zalo-inbox` **12/12**, 3 ca R-1028 đỏ trên HEAD `3667a12b`; mức 3 28/31, 3 đỏ có sẵn. Xem R-1028. |
 | R-1029 (2026-10-25) | Domain **1107/1107**; Application (`Zalo`) **45/45**; E2E `zalo-inbox` **13/13**, ca mới đỏ trên `3c0637b1`; 2 migration chạy thử trên DB thật (có rollback). Xem R-1029. |
+| R-1030 (2026-10-25) | E2E `zalo-inbox` **15/15** (ca 11, 12 mới + kiểm tra quyền trong ca 5); mức 3, 17 spec lịch hẹn: **61/62**, 1 đỏ có sẵn `labo-orders-actions:88`; `tsc -b`, `oxlint` sạch. Xem R-1030. |
 
 **Đường chạy E2E:**
 

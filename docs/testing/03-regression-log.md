@@ -10980,3 +10980,32 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `select "MigrationId" from "__EFMigrationsHistory" where "MigrationId" like '20261025%';` → 2 dòng;
     - `select "Status", count(*) from bd_zalo_conversations group by 1;`
 - **Commit**: `main` a1701335 + c5431485 (chủ dự án commit + push). Mục log này chưa commit.
+
+## R-1030 (2026-10-25, mức 3) F-80 Hộp thư Zalo: nút [Tạo hồ sơ] [Tạo lịch hẹn] ở khung khách hàng
+
+- **Yêu cầu (chủ dự án, ảnh chụp có ghi chú)**: dưới ô "Liên kết hồ sơ" thêm 2 nút cạnh nhau. Tạo hồ sơ mở popup tạo hồ sơ khách hàng; lưu xong hội thoại tự nối hồ sơ đó, hiện SĐT và các thông tin liên quan. Tạo lịch hẹn mở popup tạo lịch hẹn; lưu xong hiện tên bệnh nhân và lịch hẹn.
+- **Chủ dự án chốt** ("1. A 2. ok 3. ok 4. làm trên main"):
+  1. Hội thoại chưa nối → Tạo lịch hẹn cho chọn bệnh nhân có sẵn hoặc "+" tạo mới; lưu xong hội thoại nối với bệnh nhân của lịch hẹn.
+  2. Hội thoại đã nối → ẩn Tạo hồ sơ; Tạo lịch hẹn khoá bệnh nhân là hồ sơ đã nối. Đang "Đổi hồ sơ" thì Tạo hồ sơ hiện lại.
+  3. Điền sẵn tên Zalo và SĐT khách chia sẻ; tên tạm "Zalo …1234" thì để trống.
+  4. Làm trên `main`.
+- **Sửa (FE, BE chỉ thêm i18n)**:
+  - `CustomerActions.tsx` (mới) dưới `LinkPatientPicker` trong `CustomerPanel`. Dùng lại đúng `PatientEditorDialog` và `AppointmentEditorModal` của phòng khám, không dựng form riêng.
+  - `AppointmentEditorModal`: thêm `newPatientPrefill` (truyền xuống popup "+" tạo hồ sơ) và `onSuccess({ patientId })`. Các nơi khác dùng popup không truyền 2 prop này nên không đổi hành vi.
+  - `inboxLook.patientPrefillOf`: tên Zalo (bỏ tên tạm), SĐT `84…` → `0…`, bỏ SĐT bị che. Hội thoại tự lấy lại mỗi 10 giây nên prefill được `useMemo`, nếu không ô đang gõ sẽ bị xoá.
+  - `useInvalidateInbox` export ra để làm mới khung phải sau khi đặt lịch cho hồ sơ đã nối.
+  - Nối dùng API có sẵn `PUT …/conversations/{id}/patient`. Quyền: Tạo hồ sơ cần `cskhInbox.update` + `patient.create`; Tạo lịch hẹn cần `appointment.create`, và thêm `cskhInbox.update` khi hội thoại chưa nối.
+  - i18n: `CSKH:Inbox:Panel:CreatePatient` / `CreateAppointment` (vi + en). CSS `.ibx-side-actions` (2 nút chia đều).
+- **Test**:
+  - `zalo-inbox` thêm 2 ca (11 Tạo hồ sơ, 12 Tạo lịch hẹn) và 1 kiểm tra quyền trong ca 5 (chỉ `cskhInbox.read` → không thấy nút nào).
+  - Ca 12: DB E2E (migrator env `E2E`) không có bác sĩ demo nên ô Bác sĩ trống. Spec tự tạo nha sĩ cho lượt chạy (`createRunStaff`), rồi xoá lịch hẹn của nha sĩ đó và nha sĩ ở `finally`.
+- **Kết quả**:
+  - E2E thật (`vite preview` :8181 → host :5131 → DB `BlueDental_r1030`, Redis db 13, stub Zalo :5230, không chặn request): `zalo-inbox` **15/15**. Hai ca mới không chạy trên bản trước sửa: nút chưa tồn tại nên đỏ hiển nhiên.
+  - Hồi quy mức 3 (popup lịch hẹn dùng chung), cùng host trỏ DB `BlueDental_r1030dev` (bản sao DB dev dùng chung bằng `pg_dump` / `pg_restore` + migration; DbMigrator env Development lỗi `SlotInThePast` trên DB trống): 17 spec `appointment-day-timeline`, `appointment-history`, `appointment-mini-cal-date`, `appointment-missed-api`, `appointment-patient-link`, `appointment-series-api`, `appointment-series-ui`, `appointment-shown-hours`, `appointment-slot-pick-doctor`, `appointment-slot-pick`, `appointment-working-hours`, `appointment`, `doctor-day-off-pickers`, `labo-orders-actions`, `patient-appointment`, `popup-placement`, `reception-temporary` → **61/62**.
+  - 1 đỏ có từ trước: `labo-orders-actions:88`. Spec còn chờ link `?branchId=`, app dùng `?branch=BD-001` từ F-68. Đã ghi đỏ y hệt trên HEAD ở R-946 và R-991; spec không đổi từ đó, và R-1030 không chạm bảng Labo.
+  - `tsc -b` sạch, `oxlint` sạch trên `features/cskh` + `AppointmentEditorModal`.
+  - BE: không đổi logic, không chạy lại Domain / Application.Tests.
+  - Lưu dữ liệu: ca 11 đọc lại hội thoại và hồ sơ bằng request riêng (đúng tên, SĐT, `patientId`); ca 12 tải lại trang vẫn thấy `[mã] tên` và "Sắp tới" đúng giờ. Chi nhánh: không đổi (popup và API nối đã lọc theo chi nhánh từ trước).
+- **Ngoại lệ quy tắc**: `AppointmentEditorModal` giờ có 11 prop, quá 1 so với mức ≤ 10 của container (§16.4). Giữ vậy để không tách popup dùng chung trong task này.
+- **Mã**: lúc làm đặt R-1029, nhưng R-1029 đã được phiên khác dùng (tin OA tự gửi) nên đổi thành R-1030.
+- **Commit**: `main` c5409e3c (code + spec) + 08fb5a75 (spec tự tạo nha sĩ, impact map, tài liệu feature), chủ dự án commit + push (deploy production). Mục log này và dòng registry chưa commit.
