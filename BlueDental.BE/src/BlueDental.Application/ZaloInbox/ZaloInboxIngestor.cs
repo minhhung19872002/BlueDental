@@ -104,6 +104,10 @@ public class ZaloInboxIngestor(
         {
             conversation.RecordInfoRequest(chat.SentAt, message.Preview);
         }
+        else if (message.IsOaAutomatic)
+        {
+            conversation.RecordAutomaticMessage(chat.SentAt, message.Preview);
+        }
         else
         {
             conversation.RecordMessage(chat.Direction, chat.SentAt, message.Preview);
@@ -203,10 +207,12 @@ public class ZaloInboxIngestor(
         return ids.Count == 1 ? ids[0] : null;
     }
 
+    // ZaloChatMessage.AnswersCustomer, as SQL.
     private async Task<DateTime?> LastReplyAtAsync(Guid conversationId, Guid exceptMessageId) =>
         await asyncExecuter.MaxAsync((await messages.GetQueryableAsync())
             .Where(m => m.ConversationId == conversationId && m.Id != exceptMessageId
-                && m.Direction == ZaloChatDirection.Outbound && m.Kind != ZaloChatKind.InfoRequest)
+                && m.Direction == ZaloChatDirection.Outbound
+                && m.Kind != ZaloChatKind.InfoRequest && m.Kind != ZaloChatKind.Other)
             .Select(m => (DateTime?)m.SentAt));
 
     /// <summary>Zalo out of reach leaves the profile unknown; the conversation opens all the same.</summary>

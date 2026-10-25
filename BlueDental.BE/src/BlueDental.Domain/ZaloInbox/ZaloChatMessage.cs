@@ -99,11 +99,25 @@ public class ZaloChatMessage : CreationAuditedEntity<Guid>
     /// </summary>
     public bool MarkInfoRequest(string text)
     {
-        var countedAsReply = Direction == ZaloChatDirection.Outbound && Kind != ZaloChatKind.InfoRequest;
+        var countedAsReply = AnswersCustomer;
         Kind = ZaloChatKind.InfoRequest;
         FillMissingText(text, null);
         return countedAsReply;
     }
+
+    /// <summary>
+    /// R-1029: what the OA sent by itself — a kind Zalo names nothing we know,
+    /// like its welcome card ("[Tin tự động của OA]", R-1023). Hộp thư Zalo
+    /// itself only ever sends text and the card asking for the phone.
+    /// </summary>
+    public bool IsOaAutomatic => Direction == ZaloChatDirection.Outbound && Kind == ZaloChatKind.Other;
+
+    /// <summary>
+    /// An OA message that answers the customer. Neither the card asking for
+    /// the phone (R-1028) nor what the OA sent by itself (R-1029) does.
+    /// </summary>
+    public bool AnswersCustomer =>
+        Direction == ZaloChatDirection.Outbound && Kind != ZaloChatKind.InfoRequest && !IsOaAutomatic;
 
     /// <summary>The list's one-line preview: the text, or what kind of thing was sent.</summary>
     public string Preview => Text.Length > 0 ? Text : $"[{Kind}]";

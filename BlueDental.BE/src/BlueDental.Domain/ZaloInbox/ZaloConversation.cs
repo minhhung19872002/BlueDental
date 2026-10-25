@@ -190,6 +190,13 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
+    /// R-1029: what the OA sent by itself (its welcome card). Like the card
+    /// asking for the phone, it shows as the last message but answers nothing.
+    /// </summary>
+    public void RecordAutomaticMessage(DateTime at, string preview) =>
+        ShowIfLatest(ZaloChatDirection.Outbound, at, preview);
+
+    /// <summary>
     /// R-1028: the card's echo had been taken for an answer before the card was
     /// known; the last real answer is the given one.
     /// </summary>
@@ -322,8 +329,9 @@ public class ZaloConversation : FullAuditedAggregateRoot<Guid>
         }
     }
 
-    // Answered means an OA message after the customer's last one; a
-    // conversation the OA opened (a ZNS, a broadcast) has nothing to answer.
+    // Answered means an OA answer after the customer's last message — the
+    // OA's automatic messages are no answer (R-1029); a conversation the OA
+    // opened (a ZNS, a broadcast) has nothing to answer.
     private void UpdateStatus() =>
         Status = LastCustomerMessageAt is { } asked && (LastReplyAt is not { } answered || asked > answered)
             ? ZaloConversationStatus.Unreplied

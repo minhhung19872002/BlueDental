@@ -481,6 +481,55 @@ test.describe("CSKH — Hộp thư Zalo (Zalo giả lập)", () => {
     await expect(chat(page).getByText("[Tin tự động của OA]")).toHaveCount(0);
   });
 
+  test("Tin OA tự gửi (thẻ chào mừng) không tính là trả lời: khách nhắn rồi nhận thẻ chào mừng vẫn Chưa trả lời; nhân viên trả lời mới Đã chăm sóc", async ({ page }) => {
+    const userId = zaloUser();
+    const name = `Khách chào mừng ${userId.slice(-6)}`;
+    const at = Date.now() - 2 * 60_000;
+    await stub("/__users", { userId, displayName: name });
+    // As on production (R-1029): "Hi", the OA's own welcome card a second later, then our card asking for the phone.
+    await customerWrites(page, userId, "Hi", at);
+    await webhook(page, {
+      event_name: "oa_send_template",
+      timestamp: String(at + 1_000),
+      sender: { id: OA_ID },
+      recipient: { id: userId },
+      message: { msg_id: `welcome-${userId}` },
+    });
+    expect(await cardsTo(userId)).toHaveLength(1);
+    expect((await conversationOf(page, name)).status, "the OA's welcome is no answer").toBe(0);
+
+    // Zalo's history hands the welcome over without words, and another one with them: neither answers.
+    await stub("/__history", {
+      userId,
+      items: [
+        { messageId: `in-${userId}-${at}`, fromOa: false, text: "Hi", time: at },
+        { messageId: `welcome-${userId}`, fromOa: true, type: "template", text: "", time: at + 1_000 },
+        { messageId: `welcome2-${userId}`, fromOa: true, type: "template", text: "Cảm ơn bạn đã quan tâm", time: at + 2_000 },
+      ],
+    });
+    await openInbox(page);
+    await syncNow(page);
+    await expect(page.getByRole("tab", { name: /^Chưa trả lời/ })).toHaveAttribute("aria-selected", "true");
+    const row = conversationRow(page, name);
+    await expect(row).toContainText("Chưa trả lời");
+    expect((await conversationOf(page, name)).status, "nor what a sync brings").toBe(0);
+
+    // A real answer is.
+    const conversation = await conversationOf(page, name);
+    const claimed = await call(page, `${INBOX}/conversations/${conversation.id}/claim`, { ...asBranchOne, method: "POST" });
+    expect(claimed.status).toBe(200);
+    const replied = await call(page, `${INBOX}/conversations/${conversation.id}/messages`, {
+      ...asBranchOne,
+      method: "POST",
+      json: { text: "Dạ phòng khám chào chị ạ" },
+    });
+    expect(replied.status, JSON.stringify(replied.body)).toBe(200);
+    await page.reload();
+    await expect(conversationRow(page, name)).toHaveCount(0);
+    await page.getByRole("tab", { name: /^Đã trả lời/ }).click();
+    await expect(conversationRow(page, name)).toContainText("Đã chăm sóc");
+  });
+
   test("Tải lại vẫn ở chip đang chọn, dòng đang mở vẫn được chọn; link chỉ có hội thoại thì mở ở Tất cả", async ({ page }) => {
     const userId = zaloUser();
     const name = `Khách tải lại ${userId.slice(-6)}`;
