@@ -10946,3 +10946,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Tuỳ chọn `Zalo:InfoRequestImageUrl` (ảnh trên thẻ).
   - Phần (c) dựa vào `user/detail`. Production đã đọc được API này từ khi app Zalo bật nhóm "Quản lý người dùng" (R-1027 là bằng chứng: phản hồi có `phone = 0`). Nếu lại gặp `-212` thì chỉ phần (c) không chạy. Thẻ + `user_submit_info` **không** cần `user/detail`.
 - **Commit**: `main`, cùng commit với mục log này (chủ dự án yêu cầu commit + push; push kèm luôn 3667a12b của R-1027).
+
+## R-1029 (2026-10-25, mức 2) F-80 Hộp thư Zalo: tin OA tự gửi (thẻ chào mừng) làm hội thoại thành Đã chăm sóc
+
+- **Hiện tượng (production, chủ dự án báo)**: khách nhắn "Hi" → ngay sau đó là "[Tin tự động của OA]" → thẻ xin SĐT. Hội thoại hiện "Đã chăm sóc" dù chưa nhân viên nào trả lời.
+- **Gốc lỗi**:
+  - Thẻ chào mừng do Zalo tự gửi khi khách quan tâm OA về dạng `oa_send_template` / tin template không chữ. Hộp thư lưu nó là tin OA (Outbound, `ZaloChatKind.Other`) và `RecordMessage` tính mọi tin OA là câu trả lời.
+  - **Không** phải do thẻ xin SĐT: thẻ đã không tính là trả lời từ R-1028. Lỗi có từ R-1021/R-1023, chỉ lộ rõ khi khách vừa nhắn đã nhận thẻ chào mừng.
+- **Sửa**:
+  - Domain `ZaloChatMessage`: `IsOaAutomatic` (Outbound + Kind Other) và `AnswersCustomer` (Outbound, không phải thẻ, không phải tin tự động).
+  - `ZaloConversation.RecordAutomaticMessage`: tin tự động hiện là tin cuối, không đổi `LastReplyAt` / trạng thái.
+  - `ZaloInboxIngestor.RecordAsync` đưa tin tự động vào nhánh trên; `LastReplyAtAsync` (đếm lại khi echo thẻ đến trước) bỏ cả Kind 8 và 9.
+  - Migration chỉ dữ liệu `20261025090000_ZaloAutomaticMessageNoAnswer`: tính lại `LastReplyAt` = tin OA mới nhất không phải Kind 8/9, và trạng thái theo đó.
+  - Migration chỉ dữ liệu `20261025100000_ZaloInboxZnsStillAnswers`: bản trên chỉ đọc tin chat, mà ZNS gửi từ Hộp thư nằm ở `bd_message_logs` (có mẫu, không có `SendBatchId`; CSKH luôn có batch, màn Zalo OA không có mẫu). Hội thoại do ZNS trả lời bị đưa về "Chưa trả lời" sai. Bản này lấy lại `LastReplyAt` từ ZNS đó; nó chỉ dời `LastReplyAt` về sau nên không đưa hội thoại nào về "Chưa trả lời".
+- **Test**:
+  - E2E mới "Tin OA tự gửi (thẻ chào mừng) không tính là trả lời…": "Hi" → webhook `oa_send_template` → thẻ xin SĐT → vẫn Chưa trả lời; Đồng bộ mang về thẻ chào mừng không chữ + 1 tin template có chữ → vẫn Chưa trả lời; nhân viên trả lời → Đã chăm sóc sau khi tải lại.
+- **Kết quả**:
+  - E2E thật (cùng đường chạy R-1026: `vite preview` :8171 → host :5121 → DB `BlueDental_r1026`, Redis db 12, stub :5220, không chặn request): `zalo-inbox` **13/13**, cả trước và sau khi chạy migration thứ hai.
+  - Chứng minh với `3c0637b1` (BE build `--no-incremental` từ `git archive`, cùng DB và stub): ca mới **đỏ** ("the OA's welcome is no answer", nhận 1 thay vì 0).
+  - Domain.Tests **1107/1107**; Application.Tests (lọc `Zalo`) **45/45**.
+  - Migration trên DB test: bản 1 sửa 21 `LastReplyAt`, đưa 6 hội thoại về Chưa trả lời. Cả 6 đều do ZNS trả lời, tức là sai. Bản 2 trả 6 hội thoại đó về Đã chăm sóc, dời `LastReplyAt` của 5 hội thoại khác về sau, không hội thoại nào 1 → 0.
+  - Chạy thử cả 2 migration trong transaction rồi rollback, trên dữ liệu trộn: hội thoại dạng Hà My (khách nhắn, thẻ chào mừng, thẻ xin SĐT) 1 → 0; hội thoại chỉ có thẻ chào mừng giữ 1; cả 13 hội thoại ZNS bị bản 1 hạ đều về đúng giá trị cũ.
+  - Phân quyền / chi nhánh: không đổi.
+  - Lưu ý build: `git archive` đặt giờ file = giờ commit nên `dotnet build` tăng dần dùng lại DLL cũ (bản "trước sửa" vẫn chứa code mới). Phải `--no-incremental` và grep binary để chắc.
+- **Giới hạn**:
+  - Tin tự động là **chữ thường** (trả lời tự động cài trong OA Manager) thì không phân biệt được với nhân viên trả lời trên OA Manager, vẫn tính là trả lời.
+  - Một hồ sơ nối với 2 hội thoại thì ZNS gửi cho hồ sơ đó được tính là trả lời ở cả hai (Hộp thư cũng hiện ZNS ở cả hai).
+  - Hội thoại khách chỉ quan tâm OA / bấm Nhắn tin, chưa nhắn chữ nào: vẫn "Đã chăm sóc" như trước (chưa có tin khách để chờ). Chưa hỏi chủ dự án.
+- **Staging / production**:
+  - Không đổi schema, không quyền mới. 2 migration chạy khi deploy (service `migrator`).
+  - `a1701335` (code + migration 1) và `c5431485` (migration 2) được push cách nhau 8 phút. Nếu deploy của `a1701335` xong trước, các hội thoại do ZNS trả lời có thể đã hiện "Chưa trả lời" trong vài phút; deploy của `c5431485` sửa lại.
+  - Kiểm sau deploy (không có PHI):
+    - `select "MigrationId" from "__EFMigrationsHistory" where "MigrationId" like '20261025%';` → 2 dòng;
+    - `select "Status", count(*) from bd_zalo_conversations group by 1;`
+- **Commit**: `main` a1701335 + c5431485 (chủ dự án commit + push). Mục log này chưa commit.

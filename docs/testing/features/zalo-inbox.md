@@ -55,9 +55,11 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 
 **Trạng thái:**
 
-- Chưa trả lời: tin cuối của khách chưa có tin OA nào sau nó.
+- Chưa trả lời: tin cuối của khách chưa có câu trả lời nào sau nó.
 - Đã chăm sóc: OA đã trả lời sau tin cuối của khách.
 - Một hội thoại do OA mở trước (ví dụ ZNS) thì là Đã chăm sóc.
+- Tính là trả lời: tin nhân viên gửi (từ Hộp thư hoặc từ Zalo OA Manager, về qua echo / Đồng bộ) và ZNS gửi từ Hộp thư (lưu ở `bd_message_logs`, không phải tin chat).
+- **Không** tính là trả lời (R-1028, R-1029): thẻ xin SĐT, và tin OA tự gửi mà Zalo trả dạng template / list… (ví dụ thẻ chào mừng khi khách quan tâm OA, hiện "[Tin tự động của OA]"). Hai loại này vẫn hiện là tin cuối của hội thoại.
 
 **Trả lời** (tin tư vấn, `POST /v3.0/oa/message/cs`):
 
@@ -179,6 +181,8 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 - **Migration:**
   - `20261023023050_ZaloInbox` chỉ tạo 4 bảng. Staging cần chạy DbMigrator, sau đó xoá cache quyền Redis.
   - `20261024112502_ZaloInfoRequest` (R-1028) thêm cột nullable `InfoRequestedAt` vào `bd_zalo_conversations`.
+  - `20261025090000_ZaloAutomaticMessageNoAnswer` (R-1029, chỉ dữ liệu): tính lại `LastReplyAt` + trạng thái của mọi hội thoại từ tin chat, bỏ thẻ (Kind 8) và tin OA tự gửi (Kind 9).
+  - `20261025100000_ZaloInboxZnsStillAnswers` (R-1029, chỉ dữ liệu): bản trên quên ZNS gửi từ Hộp thư (nằm ở `bd_message_logs`). Bản này trả lại câu trả lời đó; nó chỉ dời `LastReplyAt` về sau, không đưa hội thoại nào về "Chưa trả lời".
 
 ### FE
 
@@ -201,6 +205,7 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 | Hồi quy mức 3 | xem R-1021 trong `03-regression-log.md` |
 | R-1026 (2026-10-24) | Domain **1107/1107** (`ZaloConversationTests` 18); E2E `zalo-inbox` **10/10**; mức 3 37/41, 4 đỏ y hệt trên HEAD. Xem R-1026. |
 | R-1028 (2026-10-24) | Domain **1107/1107**; Application (`Zalo`) **45/45**; E2E `zalo-inbox` **12/12**, 3 ca R-1028 đỏ trên HEAD `3667a12b`; mức 3 28/31, 3 đỏ có sẵn. Xem R-1028. |
+| R-1029 (2026-10-25) | Domain **1107/1107**; Application (`Zalo`) **45/45**; E2E `zalo-inbox` **13/13**, ca mới đỏ trên `3c0637b1`; 2 migration chạy thử trên DB thật (có rollback). Xem R-1029. |
 
 **Đường chạy E2E:**
 
@@ -284,6 +289,10 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
    - khách chia sẻ SĐT (`user_submit_info`) → tải lại: mất nhãn ở dòng và đầu khung chat, mất nút;
    - khách nhắn cách đây 72 giờ → nút khoá, API trả `BlueDental:ZaloInbox:0003`;
    - chỉ `cskhInbox.read` → API `request-info` trả 403 (ca "Quyền và chi nhánh").
+10. **Tin OA tự gửi không tính là trả lời (R-1029):**
+    - khách nhắn "Hi", 1 giây sau webhook `oa_send_template` (thẻ chào mừng), rồi thẻ xin SĐT → hội thoại vẫn "Chưa trả lời";
+    - Đồng bộ mang về thẻ chào mừng không chữ và một tin template có chữ → vẫn "Chưa trả lời", nằm ở chip Chưa trả lời;
+    - nhân viên Nhận xử lý rồi trả lời → tải lại: rời chip Chưa trả lời, sang Đã trả lời với "Đã chăm sóc".
 
 ### Lưu ý khi viết spec
 
@@ -295,6 +304,8 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
 ## Còn treo
 
 - Các điểm tự chọn hoặc khác mock: xem `docs/clone/unknowns.md` (F-80).
+- Tin OA tự gửi (R-1029): chỉ nhận ra được khi Zalo trả dạng template / list… Tin tự động là **chữ thường** (ví dụ tin trả lời tự động cài trong OA Manager) thì không phân biệt được với nhân viên trả lời trên OA Manager, nên vẫn tính là trả lời.
+- Hội thoại khách chỉ quan tâm OA / bấm Nhắn tin mà chưa nhắn chữ nào hiện "Đã chăm sóc" (chưa có tin khách nào để chờ trả lời). Chưa hỏi chủ dự án có muốn để "Chưa trả lời" không.
 - Chưa kiểm được với OA thật:
   - `recipient.id` trong webhook ZNS đã nhận có phải user_id không;
   - echo `oa_send_text` có cùng `message_id` với kết quả gửi tin tư vấn không;
