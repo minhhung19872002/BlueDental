@@ -727,6 +727,17 @@
   padding: 0;
 }
 
+/* R-1030: [Tạo hồ sơ] [Tạo lịch hẹn] side by side, sharing the column. */
+.ibx-side-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ibx-side-actions > .ant-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .ibx-lines {
   display: flex;
   flex-direction: column;

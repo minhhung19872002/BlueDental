@@ -1,3 +1,4 @@
+import type { PatientPrefill } from "@/features/patient-management/types/patient";
 import { t } from "@/lib/i18n";
 import { formatClock } from "@/utils/format";
 import {
@@ -99,4 +100,25 @@ export function customerName(conversation: ConversationSummary): string {
 /** "Chưa có SĐT" (R-1028): no linked record and no phone shared through Zalo. */
 export function needsContact(conversation: ConversationSummary): boolean {
   return conversation.patientId == null && conversation.sharedPhone == null;
+}
+
+/** The name the server gives a user Zalo has not named: "Zalo …" and the id's last four (ZaloConversation.PlaceholderName). */
+const PLACEHOLDER_NAME = /^Zalo …\S{1,4}$/;
+
+/** Zalo hands a shared phone over as "84901234567": the record keeps it as "0901234567". */
+function nationalPhone(phone: string | null): string | undefined {
+  if (!phone || !/^\+?\d+$/.test(phone)) return undefined;
+  return /^84\d{9}$/.test(phone) ? `0${phone.slice(2)}` : phone;
+}
+
+/**
+ * What "Tạo hồ sơ" fills in from the chat (R-1030): the Zalo name unless it is
+ * only the stand-in, and the phone the customer shared. A masked phone is left
+ * out — the server would refuse a number it cannot match.
+ */
+export function patientPrefillOf(displayName: string, sharedPhone: string | null): PatientPrefill {
+  return {
+    fullName: PLACEHOLDER_NAME.test(displayName) ? undefined : displayName,
+    phone: nationalPhone(sharedPhone),
+  };
 }

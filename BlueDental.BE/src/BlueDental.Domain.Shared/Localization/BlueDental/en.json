@@ -7495,6 +7495,8 @@
     "CSKH:Inbox:Panel:NoPhone": "No phone number",
     "CSKH:Inbox:Panel:NotLinked": "No customer record linked.",
     "CSKH:Inbox:Panel:Relink": "Change record",
+    "CSKH:Inbox:Panel:CreatePatient": "New record",
+    "CSKH:Inbox:Panel:CreateAppointment": "New appointment",
     "CSKH:Inbox:Panel:Appointments": "Appointments",
     "CSKH:Inbox:Panel:Next": "Next",
     "CSKH:Inbox:Panel:LastVisit": "Last visit",

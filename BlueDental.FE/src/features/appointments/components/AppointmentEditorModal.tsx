@@ -23,7 +23,7 @@ import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
-import type { PatientDto } from "@/features/patient-management/types/patient";
+import type { PatientDto, PatientPrefill } from "@/features/patient-management/types/patient";
 import { APPT_COLORS } from "./AppointmentColorPicker";
 import { AppointmentEditorForm } from "./AppointmentEditorForm";
 import { buildSeriesSlots } from "./appointmentSeriesSlots";
@@ -69,8 +69,11 @@ interface Props {
   initialPatientId?: string;
   initialReason?: string;
   lockPatient?: boolean;
+  /** What the "+" beside Bệnh nhân fills into a new record — the Zalo customer's name and phone (R-1030). */
+  newPatientPrefill?: PatientPrefill;
   onClose: () => void;
-  onSuccess?: () => void;
+  /** `patientId` is the patient the booking was saved for — the Zalo inbox links its conversation to it. */
+  onSuccess?: (saved: { patientId: string }) => void;
 }
 
 export function AppointmentEditorModal({
@@ -82,6 +85,7 @@ export function AppointmentEditorModal({
   initialPatientId,
   initialReason,
   lockPatient,
+  newPatientPrefill,
   onClose,
   onSuccess,
 }: Props) {
@@ -264,10 +268,10 @@ export function AppointmentEditorModal({
     await saveOne(data);
   };
 
-  const finish = (message: string) => {
+  const finish = (message: string, patientId: string) => {
     toast.success(message);
     reset();
-    onSuccess?.();
+    onSuccess?.({ patientId });
     onClose();
   };
 
@@ -281,7 +285,7 @@ export function AppointmentEditorModal({
       overlap.intercept(error, () => void saveOne(data, true));
       return;
     }
-    finish(isEdit ? t("Appointment:Toast:UpdateSuccess") : t("Appointment:Toast:CreateSuccess"));
+    finish(isEdit ? t("Appointment:Toast:UpdateSuccess") : t("Appointment:Toast:CreateSuccess"), data.patientId);
   };
 
   const saveSeries = async (data: AppointmentEditorValues, allowDentistOverlap = false) => {
@@ -298,7 +302,7 @@ export function AppointmentEditorModal({
       void series.refreshPreview(); // someone booked under us: show the new clash
       return;
     }
-    finish(t("Appointment:Series:Created", created));
+    finish(t("Appointment:Series:Created", created), data.patientId);
   };
 
   const seriesBlocksSave = creatingSeries
@@ -346,6 +350,7 @@ export function AppointmentEditorModal({
         <PatientEditorDialog
           open
           patient={null}
+          prefill={newPatientPrefill}
           onClose={() => setNewPatientOpen(false)}
           onCreated={handlePatientCreated}
         />

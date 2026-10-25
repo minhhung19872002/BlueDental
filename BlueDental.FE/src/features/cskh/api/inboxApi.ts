@@ -252,7 +252,7 @@ export function useConversationMessages(id: string | null) {
 }
 
 /** Whatever changed a conversation changes its row, its header and maybe its chat. */
-function useInvalidateInbox() {
+export function useInvalidateInbox() {
   const queryClient = useQueryClient();
   return (id?: string) => {
     void queryClient.invalidateQueries({ queryKey: inboxKeys.lists() });

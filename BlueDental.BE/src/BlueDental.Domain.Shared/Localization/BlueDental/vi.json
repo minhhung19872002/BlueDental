@@ -7495,6 +7495,8 @@
     "CSKH:Inbox:Panel:NoPhone": "Chưa có số điện thoại",
     "CSKH:Inbox:Panel:NotLinked": "Chưa liên kết hồ sơ khách hàng.",
     "CSKH:Inbox:Panel:Relink": "Đổi hồ sơ",
+    "CSKH:Inbox:Panel:CreatePatient": "Tạo hồ sơ",
+    "CSKH:Inbox:Panel:CreateAppointment": "Tạo lịch hẹn",
     "CSKH:Inbox:Panel:Appointments": "Lịch hẹn",
     "CSKH:Inbox:Panel:Next": "Sắp tới",
     "CSKH:Inbox:Panel:LastVisit": "Lần khám cuối",
