@@ -240,6 +240,13 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     /// </summary>
     public bool? IsLate { get; set; }
 
+    /// <summary>
+    /// Đã hẹn lại on the reception board (BA, R-1039): visits closed with
+    /// "Hẹn tái khám" and not cancelled since — the cards whose bar reads
+    /// "Đã hẹn lại". True keeps only those; false is ignored.
+    /// </summary>
+    public bool? IsRevisit { get; set; }
+
     public DateOnly? Date { get; set; }
 
     /// <summary>Inclusive range, for the week and month grids.</summary>
@@ -273,4 +280,7 @@ public class AppointmentStatsDto
     /// time has passed with no arrival — the board counts them Trễ hẹn, not Đã hẹn.
     /// </summary>
     public int Overdue { get; set; }
+
+    /// <summary>Visits counted by <see cref="GetAppointmentListInput.IsRevisit"/>.</summary>
+    public int Revisit { get; set; }
 }

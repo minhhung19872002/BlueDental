@@ -18,7 +18,7 @@ const STATUS_CHIPS = [
   { key: "cancelled", label: () => t("Appointment:Status:CancelledShort"), bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
   { key: "late", label: () => t("Appointment:Status:Late"), bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
   { key: "temporary", label: () => t("Appointment:Status:Temporary"), bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
-  { key: "converted", label: () => t("Appointment:Status:Converted"), bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "revisit", label: () => t("Appointment:Status:Revisit"), bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 ] as const;
 
 interface Props {

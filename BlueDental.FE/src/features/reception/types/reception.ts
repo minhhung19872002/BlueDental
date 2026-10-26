@@ -96,7 +96,8 @@ export interface ReceptionCounters {
   cancelledCount: number;
   lateCount: number;
   temporaryCount: number;
-  convertedCount: number;
+  /** Đã hẹn lại — visits closed with Hẹn tái khám (R-1039). */
+  revisitCount: number;
 }
 
 export interface ReceptionMetrics {

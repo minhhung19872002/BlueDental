@@ -3456,7 +3456,7 @@
     "Appointment:LateToast:SlotWithDoctor": "Booked for {0} with {1}, has not arrived",
     "Appointment:LateToast:More": "and {0} more",
     "Appointment:Status:Temporary": "Temporary",
-    "Appointment:Status:Converted": "Converted",
+    "Appointment:Status:Revisit": "Rebooked",
     "Appointment:Status:Done": "Done",
     "Appointment:Form:SelectPatientRequired": "Please select a patient",
     "Appointment:Form:SelectBranchRequired": "Please select a branch",

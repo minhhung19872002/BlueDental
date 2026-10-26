@@ -57,8 +57,12 @@ async function openBoard(page: Page): Promise<string> {
   return (await request).headers()["x-clinic-branch-id"];
 }
 
+// The whole label: "Đã hẹn" alone would also match "Đã hẹn lại" (R-1039).
 const chip = (page: Page, label: string) =>
-  page.locator(".reception-stat-chip-btn", { hasText: label }).locator(".reception-stat-chip-value");
+  page
+    .locator(".reception-stat-chip-btn")
+    .filter({ has: page.locator(".reception-stat-chip-label").getByText(label, { exact: true }) })
+    .locator(".reception-stat-chip-value");
 
 async function readChip(page: Page, label: string): Promise<number> {
   return Number(await chip(page, label).innerText());

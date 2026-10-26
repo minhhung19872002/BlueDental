@@ -329,7 +329,12 @@ Counter cards track appointment-level statuses (different from reception status)
 - Huỷ hẹn (Cancelled)
 - Trễ hẹn (Late/No-show)
 - Lịch tạm (Temporary schedule)
-- Chuyển đổi (Converted)
+- Chuyển đổi (Converted) — **BlueDental: "Đã hẹn lại"** (BA, R-1039). The chip
+  counts the board's visits closed with Hẹn tái khám (`Outcome = Revisit`),
+  dated or not, minus those cancelled since. It cuts across the other chips,
+  like Lịch tạm. A click lists those visits (`isRevisit=true`); stats field
+  `revisit`. This is a deliberate departure from the reference meaning, see
+  unknowns.md "Chuyển đổi chip on Tiếp nhận".
 
 ## Dimensions (Estimated from reference at ~1920x948 viewport)
 

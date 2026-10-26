@@ -3711,7 +3711,7 @@
     "Appointment:LateToast:SlotWithDoctor": "Hẹn lúc {0} với {1}, chưa đến",
     "Appointment:LateToast:More": "và {0} lịch khác",
     "Appointment:Status:Temporary": "Lịch tạm",
-    "Appointment:Status:Converted": "Chuyển đổi",
+    "Appointment:Status:Revisit": "Đã hẹn lại",
     "Appointment:Status:Done": "Hoàn tất",
     "Appointment:Form:SelectPatientRequired": "Vui lòng chọn bệnh nhân",
     "Appointment:Form:SelectBranchRequired": "Vui lòng chọn chi nhánh",

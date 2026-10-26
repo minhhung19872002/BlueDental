@@ -1,5 +1,5 @@
 import type { AppointmentDto } from "../../types/appointment";
-import { STATUS_GROUPS } from "../../hooks/useStatusCounts";
+import { STATUS_GROUPS, keptByChip } from "../../hooks/useStatusCounts";
 
 /**
  * What the server sends as DentistId / PatientId on a "Lịch tạm" nobody has
@@ -35,7 +35,7 @@ export function filterBookings(bookings: AppointmentDto[], filter: BookingFilter
 
   return bookings.filter((a) => {
     if (doctorIds.length > 0 && !doctorIds.includes(a.doctorId)) return false;
-    if (chipGroup && chipGroup.statuses.length > 0 && !chipGroup.statuses.includes(a.status)) return false;
+    if (!keptByChip(chipGroup, a)) return false;
     if (!needle) return true;
     return (
       a.patientName?.toLowerCase().includes(needle) ||

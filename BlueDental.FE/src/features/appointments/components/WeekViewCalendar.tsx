@@ -6,7 +6,7 @@ import { Spin } from "antd";
 import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
 import { EventCard } from "./EventCard";
-import { STATUS_GROUPS } from "../hooks/useStatusCounts";
+import { STATUS_GROUPS, keptByChip } from "../hooks/useStatusCounts";
 import { buildAxis, placeOnAxis, shownLength } from "../store/calendarAxis";
 import { useCalendarWindowStore } from "../store/calendarWindowStore";
 import { t } from "@/lib/i18n";
@@ -83,8 +83,7 @@ export function WeekViewCalendar({
 
     return allBookings.filter((a: AppointmentDto) => {
       if (doctorIds && doctorIds.length > 0 && !doctorIds.includes(a.doctorId)) return false;
-      if (chipGroup && chipGroup.statuses.length > 0 && !chipGroup.statuses.includes(a.status))
-        return false;
+      if (!keptByChip(chipGroup, a)) return false;
       if (!needle) return true;
       return (
         a.patientName?.toLowerCase().includes(needle) ||

@@ -144,6 +144,8 @@ What to retest when a shared piece changes. Levels are defined in
 | `PatientCareHistoryAppService`, `features/cskh/components/history/*`, `api/careHistoryApi.ts`, `PatientCareTab` (no longer `pd-pane--fill`) | 2 | F-80 `zalo-inbox` case 4 + `patient-care` (the CSKH table above the history) |
 | `features/appointments/components/AppointmentEditorModal.tsx` (also `newPatientPrefill`, `onSuccess`), `PatientEditorDialog` `prefill`, `features/cskh/components/inbox/CustomerActions.tsx`, `inboxLook.patientPrefillOf` | 3 | The appointment dialog is shared by Lịch hẹn (week / day / slot pick), Tiếp nhận (Lịch tạm), the patient Lịch hẹn tab, Labo and, since R-1030, the Hộp thư Zalo: `appointment*`, `patient-appointment`, `doctor-day-off-pickers`, `labo-orders-actions`, `popup-placement`, `reception-temporary`, then F-80 `zalo-inbox` cases 11–12 (`E2E_ZALO_STUB=1`). The inbox mounts the dialog only while open (`initialPatientId` seeds once); the conversation is polled every 10 s, so the prefill must stay memoized or typed values are wiped. The E2E database has no demo doctors — a spec that books must bring its own (`createRunStaff`) |
 | `Exporting/ExcelSheet.cs` (`Build`, `BuildBook`, `ExcelSheetPart`) | 3 | Every Excel export: `export`, `cskh`, `cskh-generated-tabs`, `patient-roster`, `payment-permission-buttons`, F-78 `cskh-stats` (4 sheets through `BuildBook`) |
+| `AppointmentAppService` counter filters (`IsLate`, `IsTemporary`, `IsRevisit` + `GetStatsAsync` fields), `features/reception/api/receptionApi.ts` `COUNTER_QUERIES` / `getMetrics` | 2 | F-11 Tiếp nhận chips: `reception-live-late` (the four status chips add up to Tất cả), `reception-revisit-counter` (Đã hẹn lại, R-1039), `reception-temporary`. A chip's count and its list filter must share one expression, or clicking it lists something other than what it counts |
+| `features/appointments/hooks/useStatusCounts.ts` (`STATUS_GROUPS`, `keptByChip`), `appointmentAdapters.ts` `isRevisit` | 2 | F-10 Lịch hẹn counter chips: count + filter on Ngày (`timelineRows.filterBookings`) and Tuần (`WeekViewCalendar`). Run `reception-revisit-counter` (calendar case) + `appointment-day-timeline`. `isRevisit` must mirror BE `IsRevisit` (Outcome 4, not cancelled) |
 
 ## Cross-feature couplings worth remembering
 
@@ -195,4 +197,3 @@ What to retest when a shared piece changes. Levels are defined in
     `BlueDental.Domain.Shared/Localization/BlueDental/en.json` and ships as an
     embedded resource. Adding a key means rebuilding and restarting the API, not
     just the frontend — a missing key silently falls back to Vietnamese.
-

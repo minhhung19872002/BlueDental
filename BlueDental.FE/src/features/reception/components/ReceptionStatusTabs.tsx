@@ -44,7 +44,7 @@ const STAT_CHIP_CONFIGS: StatChipConfig[] = [
   { key: "cancelledCount", bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
   { key: "lateCount",      bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
   { key: "temporaryCount", bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
-  { key: "convertedCount", bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "revisitCount",   bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 ];
 
 const TAB_LABELS: Record<ReceptionStatus, string> = {
@@ -89,7 +89,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
     cancelledCount: t("Reception:StatusCancelled"),
     lateCount:      t("Reception:StatusLate"),
     temporaryCount: t("Reception:StatusTemporary"),
-    convertedCount: t("Reception:StatusConverted"),
+    revisitCount:   t("Reception:StepRevisit"),
   };
 
   return (

@@ -11190,3 +11190,45 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy lại riêng thì 3 ca xanh: `patient-pickers:178` (Mẫu Labo), `reception-patient-tags:199`, `reception.spec:142` (lần chạy cả loạt kẹt ngay ở bước đăng nhập).
   - Ca còn đỏ: `reception-live-late` "the server's push alone refreshes an open board", đỏ cả khi chạy riêng. Nguyên nhân là môi trường: host :5000 của session khác chạy chung DB dev, và worker của host nào đánh Trễ hẹn trước thì đẩy SignalR qua hub của host đó, nên bảng nối vào :5150 không nhận được. R-1037/R-1038 không đụng tới SignalR, worker hay việc tải lại bảng. Spec này cũng đang được một session khác sửa.
 - **Commit**: chưa commit.
+
+## R-1039 (2026-10-26, mức 2: tiếp nhận + API lịch hẹn) Chip "Chuyển đổi" trên Tiếp nhận thành "Đã hẹn lại"
+
+- **Yêu cầu (BA AnTran, chat)**: đổi chữ "Chuyển đổi" thành "Đã hẹn lại", rồi "count các lịch hẹn có trạng thái = hẹn tái khám".
+  - Trước đó chip này chưa có logic: luôn hiện 0, bấm vào không lọc gì.
+- **BE**:
+  - `GetAppointmentListInput.IsRevisit` và `AppointmentStatsDto.Revisit`.
+  - Một biểu thức chung `IsRevisit` đếm `Outcome = Revisit && Status != Cancelled`. Cả `GetStatsAsync` lẫn bộ lọc danh sách đều dùng nó, nên số trên chip khớp với danh sách khi bấm.
+- **FE**:
+  - `revisitCount` thay `convertedCount`, `COUNTER_QUERIES.revisitCount = { isRevisit: true }`.
+  - Nhãn dùng key có sẵn `Reception:StepRevisit` ("Đã hẹn lại" / "Rebooked"), giống chữ trên thanh bước của thẻ.
+- **Diễn giải chưa được BA xác nhận** (đã ghi vào unknowns.md):
+  - Không đếm lịch đã huỷ sau khi hẹn tái khám.
+  - Đếm cả hẹn tái khám có ngày lẫn "Chưa chốt ngày".
+  - Không đếm "Đã hẹn tiếp".
+- **E2E mới** `reception-revisit-counter.spec.ts`. Stack thật, BE build riêng :5160 trên DB dev, bản build production `vite preview` :8160 (`vite.r1039.config.ts`). Ba lượt khám hôm nay:
+  - A: Hẹn tái khám qua thẻ.
+  - B: Đã hẹn tiếp.
+  - C: Hẹn tái khám rồi huỷ.
+  - Kiểm tra:
+    - `stats.revisit` tăng đúng 1.
+    - Reload thì chip vẫn bằng số của server.
+    - Bấm chip → request có `isRevisit=true`, `aria-pressed=true`, chỉ còn A với chữ "Đã hẹn lại". B và C không có.
+    - Nhả chip → B hiện lại.
+  - Kết quả: **xanh**.
+- **Sửa spec cũ**: `reception-live-late.spec` tìm chip theo đúng nhãn, vì "Đã hẹn" có thể khớp nhầm "Đã hẹn lại".
+- **Hồi quy**: `reception-live-late` + `reception-rebook-undated` → 6/7, rồi chạy lại các ca đỏ.
+  - `rebook-undated:56` đỏ ở lần đầu: bệnh nhân seed có lịch khác nên CSKH thấy `nextAppointmentAt`. Chạy lại → **xanh**.
+  - `live-late:141` ("the server's push alone…") vẫn đỏ. Ba host (:5000, :5150, :5160) cùng chạy trên một DB, mỗi host có `MissedAppointmentWorker` riêng. Host nào đánh dấu Trễ hẹn trước thì push qua hub SignalR của host đó, nên board :8160 thường không nhận được. Lỗi do môi trường chạy song song, không liên quan R-1039.
+- **Trang Lịch hẹn theo luôn**. Chủ dự án (2026-10-26): "3. đổi theo luôn / 4, không sao". Nghĩa là chip "Chuyển đổi" ở trang Lịch hẹn cũng đổi, và việc "Đã hẹn" nằm cạnh "Đã hẹn lại" không thành vấn đề.
+  - Chip trang Lịch hẹn được đếm trên trình duyệt, từ danh sách ngày/tuần/tháng đã tải. Vì vậy:
+    - Bản đồ server (`ServerAppointmentDto.outcome`) được map thành `AppointmentDto.isRevisit = outcome === 4 && status !== "cancelled"`. Đây đúng là quy tắc `IsRevisit` của BE.
+    - `useStatusCounts`: nhóm `revisit` có `matches`. Hàm `keptByChip` dùng chung cho `WeekViewCalendar` và `timelineRows.filterBookings`. Chip không có quy tắc riêng (Lịch tạm) vẫn không lọc gì, như trước.
+    - Nhãn: key BE `Appointment:Status:Revisit` ("Đã hẹn lại" / "Rebooked") thay `Appointment:Status:Converted`, dùng ở `CalendarControlPanel` + `CalendarStatusCounters`.
+  - **E2E** `reception-revisit-counter.spec.ts` có thêm ca 2. Ba lượt khám hôm nay: A hẹn tái khám, B đã hẹn tiếp, C hẹn tái khám rồi huỷ. Mở `/calendar?date=hôm nay` và kiểm tra:
+    - Không còn nhãn "Chuyển đổi".
+    - Chip bằng `stats.revisit` của server.
+    - Bấm chip → `aria-pressed=true`, tìm A thì thấy 1 khối, tìm B thì 0 khối.
+    - Nhả chip → B hiện lại.
+  - Kết quả: 2/2 **xanh**.
+  - Hồi quy `appointment-day-timeline.spec.ts`: 7/7 **xanh**.
+  - View Tuần dùng chung `keptByChip` nhưng không có spec riêng.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using BlueDental.Appointments.Values;
 using BlueDental.Catalogs;
@@ -117,6 +118,13 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     //     return [.. ranked, .. dentistIds.Except(ranked)];
     // }
 
+    /// <summary>
+    /// Đã hẹn lại: closed with Hẹn tái khám. A cancelled one is left out — its
+    /// card ends on Hủy hẹn, not Đã hẹn lại.
+    /// </summary>
+    private static readonly Expression<Func<Appointment, bool>> IsRevisit = a =>
+        a.Outcome == AppointmentOutcome.Revisit && a.Status != AppointmentStatus.Cancelled;
+
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input)
     {
@@ -130,6 +138,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 .Select(g => new { Status = g.Key, Count = g.Count() })))
             .ToDictionary(g => g.Status, g => g.Count);
         var temporary = await AsyncExecuter.CountAsync(query.Where(a => a.IsTemporary));
+        var revisit = await AsyncExecuter.CountAsync(query.Where(IsRevisit));
         var overdue = await AsyncExecuter.CountAsync(query.Where(a =>
             (a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
             && a.CheckedInAt == null && a.Slot.Start <= now));
@@ -145,6 +154,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             NoShow = byStatus.GetValueOrDefault(AppointmentStatus.NoShow),
             Temporary = temporary,
             Overdue = overdue,
+            Revisit = revisit,
         };
     }
 
@@ -180,6 +190,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         }
 
         if (input.IsTemporary.HasValue) query = query.Where(a => a.IsTemporary == input.IsTemporary.Value);
+        if (input.IsRevisit == true) query = query.Where(IsRevisit);
 
         if (input.IsLate.HasValue)
         {
