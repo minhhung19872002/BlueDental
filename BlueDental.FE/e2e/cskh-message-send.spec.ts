@@ -186,19 +186,21 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     expect(await znsSendsTo(unbooked.phone)).toEqual([]);
 
     // Picked again on a fresh send screen, the customer now shows the
-    // receipt, so the 30-day guard holds them.
+    // receipt. The 30-day guard starts off (owner, 2026-10-26), so they
+    // can be sent again until it is ticked.
     await openSend(page, `channel=zalo&templateId=${template.id}&to=individual`);
     await addCustomer(page, booked.name);
     await expect(customerRow(page, booked.name)).toContainText(/Đã nhận \d{2}\/\d{2}\/\d{4}/);
     await expect(stat(page, "received")).toHaveText("1 đã nhận mẫu này");
     await expect(page.getByLabel("Kiểm tra trước khi gửi").getByText("1 đã nhận mẫu này")).toBeVisible();
-    await expect(cta(page)).toHaveText("Không có khách để gửi");
-    await expect(cta(page)).toBeDisabled();
-
-    await skipRecentBox(page).uncheck();
+    await expect(skipRecentBox(page)).not.toBeChecked();
     await expect(page.getByText("Đang tắt: khách có thể nhận trùng")).toBeVisible();
     await expect(cta(page)).toHaveText("Gửi 1 tin Zalo");
     await expect(cta(page)).toBeEnabled();
+
+    await skipRecentBox(page).check();
+    await expect(cta(page)).toHaveText("Không có khách để gửi");
+    await expect(cta(page)).toBeDisabled();
   });
 
   test("Danh sách CSKH: mở từ Nhắc lịch hẹn, Xóa / Hoàn tác, Hẹn giờ gửi rồi Huỷ hẹn — không tin nào đi", async ({ page }) => {
@@ -422,6 +424,7 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
       await addCustomer(page, patient.name);
       await expect(customerRow(page, patient.name)).toContainText(`Chờ gửi ${days(at).shown}`);
       await expect(stat(page, "received")).toHaveText("1 đã nhận mẫu này");
+      await skipRecentBox(page).check();
       await expect(cta(page)).toHaveText("Không có khách để gửi");
       await expect(cta(page)).toBeDisabled();
 

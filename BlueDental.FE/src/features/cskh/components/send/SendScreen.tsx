@@ -41,7 +41,7 @@ export function SendScreen() {
   const choice = useSendTemplateChoice(params.channelParam, params.templateId);
   const picks = useIndividualPicks(params.lockedPatientId);
   const removal = useRecipientRemoval(`${params.source}|${params.careTab.key}|${params.period.fromDate}`);
-  const [skipRecent, setSkipRecent] = useState(true);
+  const [skipRecent, setSkipRecent] = useState(false);
   const schedule = useSendSchedule();
   const recipients = useSendRecipients({
     channel: choice.channel,
