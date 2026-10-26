@@ -11232,3 +11232,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Kết quả: 2/2 **xanh**.
   - Hồi quy `appointment-day-timeline.spec.ts`: 7/7 **xanh**.
   - View Tuần dùng chung `keptByChip` nhưng không có spec riêng.
+
+## R-1040 (2026-10-26, mức 2: Tạo phiếu thanh toán) Bôi đen số tiền khi bấm vào ô
+
+- **BA**: "bôi đen khi chọn giá tiền". Ô số tiền trong dialog Tạo phiếu thanh toán đã điền sẵn Còn nợ; bấm vào thì con trỏ rơi giữa số, gõ thêm thành số nối đuôi.
+- **Sửa**: `CurrencyInput` có prop tuỳ chọn `selectOnFocus`.
+  - Lần bấm đầu (ô chưa focus): chặn `mousedown` để trình duyệt không đặt con trỏ, tự `focus()`; `onFocus` bôi đen cả số. Tab vào ô cũng bôi đen.
+  - Bấm lần nữa khi ô đang focus: đặt con trỏ bình thường.
+  - Chỉ bật ở `PaymentInfoPanel` (ô Tự động + từng ô Thủ công). Các màn khác dùng `CurrencyInput` không đổi.
+- **E2E** `payment-amount-select.spec.ts`: bấm ô Tự động → vùng chọn = cả số; Thủ công → bấm ô → cả số được chọn, gõ nửa Còn nợ → ô thay hẳn bằng số mới; bấm lần hai → vùng chọn rỗng; Lưu → đọc lại bằng request riêng, `amount` = số đã gõ. **Xanh**.
+- **Hồi quy** (bản build production, `vite preview` :8080): `payment-amount-cap` + `payment-from-slip` (2 ca) → 4/4 **xanh** cùng spec mới.
