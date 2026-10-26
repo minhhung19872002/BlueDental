@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Modal, Button, Input, InputNumber, Form, Select, TimePicker, DatePicker } from "antd";
+import { Modal, Button, Input, InputNumber, Form, Select, DatePicker } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import dayjs, { type Dayjs } from "dayjs";
 import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
 import { FloatingField } from "@/components/FloatingField";

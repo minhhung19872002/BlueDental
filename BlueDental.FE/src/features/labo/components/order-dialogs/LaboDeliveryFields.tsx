@@ -1,4 +1,5 @@
-import { DatePicker, TimePicker } from "antd";
+import { DatePicker } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import type { Rule } from "antd/es/form";
 import type { Dayjs } from "dayjs";
 import { FloatingField } from "@/components/FloatingField";

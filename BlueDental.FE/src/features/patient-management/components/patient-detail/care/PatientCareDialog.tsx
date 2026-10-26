@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { DatePicker, Form, Input, TimePicker } from "antd";
+import { DatePicker, Form, Input } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import dayjs, { type Dayjs } from "dayjs";
 import { toast } from "sonner";
 import { AppDialog } from "@/components/AppDialog";

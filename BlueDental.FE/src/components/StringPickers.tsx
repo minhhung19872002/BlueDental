@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
-import { DatePicker, TimePicker, type DatePickerProps, type TimePickerProps } from "antd";
+import { DatePicker, type DatePickerProps, type TimePickerProps } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { TimePicker } from "./TimePicker";
 
 const DAY_FORMAT = "YYYY-MM-DD";
 const CLOCK_FORMAT = "HH:mm";

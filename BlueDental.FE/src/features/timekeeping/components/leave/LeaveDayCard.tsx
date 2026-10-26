@@ -1,5 +1,5 @@
 import dayjs, { type Dayjs } from "dayjs";
-import { TimePicker } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import { DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 
 import type { LeaveShift } from "../../api/timekeepingApi";
@@ -111,7 +111,6 @@ export function LeaveDayCard({ day, onShiftChange, onTimeChange, onRemove }: Pro
               value={toDayjs(day.start)}
               format={TIME_FORMAT}
               allowClear={false}
-              needConfirm={false}
               showNow={false}
               disabledTime={boundTo(bounds)}
               onChange={(v) => v && onTimeChange(day.date, "start", v.format("HH:mm"))}
@@ -123,7 +122,6 @@ export function LeaveDayCard({ day, onShiftChange, onTimeChange, onRemove }: Pro
               value={toDayjs(day.end)}
               format={TIME_FORMAT}
               allowClear={false}
-              needConfirm={false}
               showNow={false}
               disabledTime={boundTo(bounds)}
               onChange={(v) => v && onTimeChange(day.date, "end", v.format("HH:mm"))}

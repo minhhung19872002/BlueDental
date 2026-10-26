@@ -1,4 +1,5 @@
-import { Form, TimePicker } from "antd";
+import { Form } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 
