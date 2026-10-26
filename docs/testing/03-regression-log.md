@@ -11036,4 +11036,26 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy mức 3 (header dùng chung), các spec dùng menu tài khoản: `auth`, `branch-switcher`, `header-navigation`, `popup-placement` (gồm ca chạm của QA #39) → **19/21**.
   - 2 đỏ có từ trước, đỏ y hệt trên HEAD và không liên quan menu tài khoản: `header-navigation` "the ribbon is always on…" (`toHaveText`) và "below 1100px the groups give way to the drawer" (`toHaveCount`).
 - **BE**: không đổi. Không có dữ liệu, quyền hay chi nhánh liên quan.
-- **Commit**: chưa commit.
+- **Commit**: `main` fcb49eb4, chủ dự án commit + push (deploy production). Lỗi còn lại khi bật giảm chuyển động: xem R-1032.
+
+## R-1032 (2026-10-26, mức 3: CSS toàn cục) Menu tài khoản "nháy" rồi không hiện khi máy bật giảm chuyển động
+
+- **Báo lỗi (chủ dự án, sau khi R-1031 đã lên production)**: vẫn còn lỗi trên prod. Trên Chrome có bật DevTools → Rendering → `prefers-reduced-motion: reduce`, rê chuột vào tên người dùng thì không hiện popover; bấm vào thì "nháy chứ không mở". Trên Windows, chế độ này tự bật khi người dùng tắt Settings → Accessibility → Visual effects → Animation effects. Vì vậy chỉ một số máy bị.
+- **Nguyên nhân**:
+  - Khối `@media (prefers-reduced-motion: reduce)` trong `index.css` đặt `transition-duration: 0.01ms !important` cho `*`. Mặc định `transition-property` là `all`, nên **mọi** thay đổi style đều trở thành transition, kể cả `top/left` của khung popup.
+  - Khi canh vị trí, rc-trigger của AntD đặt `top/left` rồi đọc ngay `getBoundingClientRect()`. Do transition, nó đọc ra vị trí cũ (đang đỗ ở `-1000vh`, y = -9000), tính ra lệch +9051, và popup nằm ngoài màn hình.
+  - Trạng thái DOM vẫn là "đang mở", nên bấm thêm không đóng mà cũng không thấy gì.
+  - Đo từng khung hình: lúc `-appear-prepare` khung đã ở `scale(1)`, nhưng `inset` = 9051px, rect y = -9000.
+- **Vì sao R-1031 không bắt được**: script lúc đó chỉ kiểm tra class `ant-dropdown-hidden` và opacity, không đo vị trí. Từ R-1032 trở đi, script kiểm tra cả `getBoundingClientRect` và `elementFromPoint`.
+- **Thử và loại**:
+  - Bỏ `animation-*` trong khối reduce: vẫn lỗi.
+  - Bỏ `transition-duration`: hết lỗi (y = 51), nhưng đổi hành vi giảm chuyển động toàn trang.
+  - `theme.token.motion = false` của AntD khi reduce: vẫn lỗi 8/8.
+- **Sửa (chỉ FE, `src/styles/index.css`)**: trong khối reduce đầu tiên, thêm `transition: none !important` cho khung popup AntD: `.ant-dropdown`, `.ant-select-dropdown`, `.ant-picker-dropdown`, `.ant-cascader-dropdown`, `.ant-popover`, `.ant-tooltip`. Selector class thắng `*` (cùng `!important`), nên thắng cả khối reduce thứ hai (~dòng 2840). Các phần tử khác giữ nguyên transition 0,01 ms.
+- **Kiểm tra lặp lại** (script Playwright, bản build production `vite preview`, viewport 1430×900, mở menu xen kẽ "hover 400 ms + click" và "click nhanh", đo vị trí thật):
+  - Trước sửa, reduce: **0/8** trên màn hình (y = -9000 / 9051).
+  - Sau sửa, reduce: **8/8** (y = 51). no-preference: **4/4** (y = 51).
+  - Select trên `/report` khi reduce: trên màn hình (y = 315) ở cả hai bản.
+- **Kết quả e2e** (bản build production, BE local :5000, không chặn request): `header-navigation`, `popup-placement`, `auth` → **16/18**. 2 đỏ có từ trước, đỏ y hệt trên bản không có sửa (giống R-1031): "the ribbon is always on…" và "below 1100px the groups give way to the drawer" (cần 18 mục drawer, có 17).
+- **BE**: không đổi.
+- **Commit**: `main` a6986de2 (sửa CSS), chủ dự án commit. Mục log này chưa commit.
