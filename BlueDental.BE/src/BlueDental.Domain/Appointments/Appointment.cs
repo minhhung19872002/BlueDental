@@ -259,7 +259,10 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         EnsureStatus(AppointmentStatus.InProgress, nameof(Complete));
         Status = AppointmentStatus.Completed;
         CompletedAt = DateTimeOffset.UtcNow;
-        Notes = notes;
+        // Hoàn tất with no note of its own keeps the Ghi chú written at
+        // booking (R-1038); clearing it is the editor's job.
+        if (notes is not null)
+            Notes = notes;
         return this;
     }
 

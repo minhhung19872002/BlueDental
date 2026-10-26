@@ -95,6 +95,8 @@ export async function bookVisitToday(
   branchId: string,
   minutesAhead: number,
   keyPrefix = "e2e-hentiep",
+  /** Ghi chú stored with the visit. */
+  notes?: string,
 ): Promise<Appointment & { searchKey: string }> {
   const searchKey = `${keyPrefix}-${runId()}-${minutesAhead}`;
   const firstStart = new Date(Date.now() + minutesAhead * 60_000);
@@ -164,6 +166,7 @@ export async function bookVisitToday(
             slotEnd: end.toISOString(),
             type: 2,
             chiefComplaint: searchKey,
+            notes,
           },
         });
         if (res.status === 200) return { ...res.body, searchKey };

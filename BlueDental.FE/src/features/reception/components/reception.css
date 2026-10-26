@@ -693,6 +693,20 @@
 
 /* ── Reception New Modal ── */
 
+/* The fields on the left, the Ghi chú card on the right as on the booking
+   dialog (R-1037); the card stretches to the fields' height. */
+.rn-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .rn-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .rn-form {
   display: flex;
   flex-direction: column;
@@ -773,7 +787,7 @@
 .rn-footer {
   display: flex;
   justify-content: flex-end;
-  padding-top: 4px;
+  padding-top: 16px;
 }
 
 /* ── "Đã hẹn tiếp": outcome with a date line, and the picker under the card ── */

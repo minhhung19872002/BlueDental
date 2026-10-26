@@ -146,6 +146,9 @@ export interface CreateReceptionInput {
   dateOfBirth?: string;
   doctorId: string;
   refType: RefType;
+  /** Nội dung đặt lịch — the appointment's chief complaint. */
+  content?: string;
+  /** Ghi chú — the note the card shows beside the 📄 icon. */
   notes?: string;
   services?: string[];
   scheduledAt?: string;

@@ -276,7 +276,8 @@ export const receptionApi = {
       slotStart,
       slotEnd,
       type: 2,
-      chiefComplaint: input.notes,
+      chiefComplaint: input.content,
+      notes: input.notes,
       allowDentistOverlap: input.allowDentistOverlap,
     });
     return mapAppointmentDto(res.data as ServerAppointmentDto);
@@ -287,10 +288,10 @@ export const receptionApi = {
     action: "check-in" | "start" | "complete",
     outcome?: NonNullable<AppointmentOutcome>,
   ): Promise<void> {
-    const body: Record<string, unknown> = {};
-    if (action === "complete") body.notes = null;
-    if (outcome) body.outcome = OUTCOME_TO_SERVER[outcome];
-    await api.post(`${APPT_BASE}/${id}/${action}`, Object.keys(body).length ? body : undefined);
+    // `complete` binds a required body; it carries no `notes`, so the server
+    // keeps the Ghi chú written at booking (R-1038).
+    const body = outcome ? { outcome: OUTCOME_TO_SERVER[outcome] } : undefined;
+    await api.post(`${APPT_BASE}/${id}/${action}`, action === "complete" ? (body ?? {}) : body);
   },
 
   async cancel(id: string, _reason: string): Promise<void> {

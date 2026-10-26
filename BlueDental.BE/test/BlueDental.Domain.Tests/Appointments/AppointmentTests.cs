@@ -106,6 +106,32 @@ public class AppointmentTests
     }
 
     /// <summary>
+    /// Hoàn tất on the Tiếp nhận board sends no note: the Ghi chú written at
+    /// booking must survive it, while a note given on completion replaces it.
+    /// </summary>
+    [Theory]
+    [InlineData(null, "Ghi chu luc dat")]
+    [InlineData("Ghi chu khi xong", "Ghi chu khi xong")]
+    public void Complete_Should_Keep_The_Booking_Note_Unless_Given_One(string? given, string expected)
+    {
+        var appointment = new Appointment(
+            Guid.NewGuid(),
+            _patientId,
+            _dentistId,
+            _branchId,
+            _slot,
+            AppointmentType.Consultation,
+            null,
+            "Kham tong quat",
+            null,
+            "Ghi chu luc dat");
+
+        appointment.Complete(given);
+
+        Assert.Equal(expected, appointment.Notes);
+    }
+
+    /// <summary>
     /// The booking form edits the reason, the note and the colour in the same
     /// submit as it moves the slot, so rescheduling alone is not enough.
     /// </summary>

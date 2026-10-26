@@ -11162,3 +11162,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đã sửa: `.rc-tag-row` cho xuống dòng (`flex-wrap`, strip `display: contents`), mỗi chip dài tối đa bằng cả dòng.
   - Tag tên ngắn vẫn nằm trên một dòng. Tên dài thì mỗi chip một dòng, thẻ cao thêm khoảng 50px.
   - Chụp lại thấy đọc được. Chạy lại `reception-patient-tags` → **6/6**.
+
+## R-1037 (2026-10-26, mức 3: component dùng chung + tiếp nhận + lịch hẹn) Hộp thoại Tạo tiếp nhận có khung Ghi chú như Tạo lịch hẹn
+
+- **Yêu cầu (BA, kèm ảnh)**: "bổ sung thêm ghi chú ở tiếp nhận nha (bên tạo lịch hẹn có mà tiếp nhận k)".
+- **Owner chốt**: khung Ghi chú nằm ở cột phải, giống hộp thoại Tạo lịch hẹn. Hộp thoại rộng 1000px; dưới 640px khung xếp xuống dưới form.
+- **FE**:
+  - Component dùng chung `src/components/NotesPanel/`, tách ra từ phần ghi chú của `AppointmentFormRight`. Điều khiển bằng `value`/`onChange`, nên dùng được với cả AntD Form (`Form.Item noStyle`) và React Hook Form. CSS `.appt-notes-*` trong `calendar.css` chuyển sang `notes-panel.css` (`.notes-panel*`).
+  - Cột trái của Tạo tiếp nhận tách thành `ReceptionNewFields.tsx`.
+  - Tách hai trường: `content` = Nội dung đặt lịch → `chiefComplaint`; `notes` = Ghi chú → `notes`. Trước đây trường `notes` của tiếp nhận thực chất là nội dung đặt lịch.
+  - Fixture `bookVisitToday(..., notes)` nhận thêm Ghi chú.
+- **E2E mới** `reception-notes.spec.ts` (ca 1). Stack thật, không chặn request, BE build riêng :5150 trên DB dev, bản build production `vite preview` :8150:
+  - Mở Tạo tiếp nhận. Khung hiện "Chưa có ghi chú". ✕ bỏ bản nháp, ✓ giữ bản nháp.
+  - Lưu. API trả `chiefComplaint` = nội dung và `notes` = ghi chú, tách riêng hai cột.
+  - Thẻ hiện ghi chú, reload vẫn còn.
+  - Kết quả: **xanh**.
+- **Ảnh chụp** ở 1440px và 600px: hai cột trên desktop, một cột trên màn hẹp. Khung giống hộp thoại Lịch hẹn vì dùng chung một component.
+
+## R-1038 (2026-10-26, mức 2: lịch hẹn + tiếp nhận) Bấm Hoàn tất làm mất Ghi chú
+
+- **Lỗi có sẵn** (phát hiện khi làm R-1037, owner chọn "sửa luôn"): nút Hoàn tất trên thẻ Tiếp nhận gửi `notes: null`, và `Appointment.Complete` gán thẳng giá trị đó, nên Ghi chú ghi lúc đặt lịch bị xoá trắng.
+- **BE**: `Complete(notes)` chỉ ghi đè khi được truyền ghi chú. Test domain `Complete_Should_Keep_The_Booking_Note_Unless_Given_One` (2 ca). Domain.Tests Appointments **106/106**.
+- **FE**: `receptionApi.updateStatus` không gửi `notes` khi Hoàn tất nữa. Body vẫn phải có (`{}` hoặc `{outcome}`), vì `[FromBody] CompleteAppointmentDto` là bắt buộc, thiếu sẽ bị 400.
+- **E2E** `reception-notes.spec.ts` (ca 2): đặt lịch có Ghi chú → Đã đến → Đang khám → Hoàn tất. Kiểm tra API trả status 5 và ghi chú còn nguyên, reload thì thẻ vẫn hiện ghi chú. Kết quả: **xanh**.
+- **Hồi quy (R-1037 + R-1038, mức 3)**: chạy trên bản build production :8150 với BE riêng :5150, DB dev. Phạm vi: `e2e/reception*`, `e2e/appointment*`, `patient-appointment`, `doctor-day-off-pickers`, `patient-pickers`.
+  - Kết quả cả loạt: **108 pass / 3 skip / 4 đỏ**. 3 ca skip là `TEMP-PRIORITY-OFF`.
+  - Chạy lại riêng thì 3 ca xanh: `patient-pickers:178` (Mẫu Labo), `reception-patient-tags:199`, `reception.spec:142` (lần chạy cả loạt kẹt ngay ở bước đăng nhập).
+  - Ca còn đỏ: `reception-live-late` "the server's push alone refreshes an open board", đỏ cả khi chạy riêng. Nguyên nhân là môi trường: host :5000 của session khác chạy chung DB dev, và worker của host nào đánh Trễ hẹn trước thì đẩy SignalR qua hub của host đó, nên bảng nối vào :5150 không nhận được. R-1037/R-1038 không đụng tới SignalR, worker hay việc tải lại bảng. Spec này cũng đang được một session khác sửa.
+- **Commit**: chưa commit.
