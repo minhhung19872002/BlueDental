@@ -11107,3 +11107,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Hồi quy** (bản build production `vite preview` :8134, BE build riêng :5134 trên DB dev, không chặn request): `appointment-history`, `appointment-missed-api`, `cskh-live-missed`, `patient-appointment`, `reception-live-late`, `reception-temp-cancel`, `reception` → **21/22**. Ca đỏ là `reception.spec:52` "…moves the counters": số "Chờ khám" lệch 1 khi chạy cả loạt trên DB dev dùng chung. Chạy lại riêng với `--repeat-each=2` thì **4/4** xanh, nên coi là chập chờn, không phải hồi quy.
 - **Dữ liệu prod**: đã gửi owner câu SELECT tìm lịch `status IN (1,2,7)` có `"CheckedInAt"`. Chưa UPDATE gì.
 - **Commit**: chưa commit.
+
+## R-1035 (2026-10-26, mức 2: bệnh nhân) Tìm kiếm chung (Ctrl+K) không tìm được khi gõ không dấu
+
+- **Báo lỗi (anh Định, prod)**: gõ "Ha My" vào ô tìm kiếm trên header thì báo "Không tìm thấy kết quả", phải gõ "Hà My" mới ra "Nguyễn Thị Hà My". Yêu cầu: "cho phép kiếm k dấu luôn nha".
+- **Nguyên nhân**: `GlobalSearch` gọi `GET /patients?Filter=`. `PatientAppService.ReadPageAsync` so khớp tên bằng `ToLower().Contains(term)`, nên có phân biệt dấu.
+- **Sửa (owner chốt phạm vi A: chỉ tìm bệnh nhân)**:
+  - Ba điều kiện họ / tên / họ tên được thay bằng một điều kiện: `DbText.Unaccent((LastName + " " + FirstName).ToLower()).Contains(DbText.Unaccent(term))`. Đây là cùng mẫu R-992 và Zalo inbox đang dùng. Họ tên đầy đủ đã bao cả trường hợp chỉ gõ họ hoặc chỉ gõ tên.
+  - Đ = D, gõ có dấu vẫn ra như trước. Mã hồ sơ, SĐT, CCCD và quy tắc "Ẩn số điện thoại" giữ nguyên.
+  - Không có migration mới, vì extension `unaccent` đã có từ `20261020020811_UnaccentSearch`. FE không đổi.
+  - Cùng endpoint này phục vụ ô tìm kiếm của `/patient` và Xuất Excel danh sách bệnh nhân, nên hai chỗ đó cũng tìm được không dấu.
+  - Khoảng 40 ô tìm kiếm khác (danh mục, kho, labo…) vẫn phân biệt dấu, theo đúng phạm vi A.
+- **E2E mới** `patient-search-unaccent.spec.ts`, 2 ca, stack thật, không chặn request:
+  1. API: tạo "Nguyễn Đức E2E… Hà My". Các từ khoá "Ha My", "hà my", "NGUYEN DUC", "nguyễn ha" và SĐT đều ra. "Ha Mi" thì không ra.
+  2. Ctrl+K: gõ "ha my e2e…" → có đúng 1 hit "Hà My" → bấm vào thì mở `/patient/{id}`.
+  - Kết quả: **2/2** trên host mới. Trên host cũ (:5000, chưa sửa), ca 1 **đỏ** ở bước "accentless", chứng tỏ test bắt được lỗi.
+- **Hồi quy** (bản build production `vite preview` :8135, BE build riêng :5100 trên DB dev): `patient-search-unaccent`, `patient-hide-phone`, `patient-back-origin`, `patient-groups`, `patient` → **71/79**.
+  - 6 ca đỏ y hệt trên host cũ: payment momo, history pencil, Tạo Labo, Đặt mới, Tiếp nhận steps (TEMP-BUG25-OFF), appointment card reassign.
+  - 2 ca còn lại (Hoàn thành ticks, công đoạn form) chạy lại riêng với `--repeat-each=2` thì **4/4** xanh, nên coi là chập chờn.
+- **Commit**: chưa commit.

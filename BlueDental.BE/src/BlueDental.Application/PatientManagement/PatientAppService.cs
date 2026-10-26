@@ -382,12 +382,12 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         // by its whole number only, so typing digit after digit cannot spell
         // out the part it is not shown.
         var wholePhone = await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync();
+        // The name is matched without Vietnamese marks (R-1035): "ha my" finds
+        // "Hà My". The whole name covers a term typed from either part.
         foreach (var term in terms)
         {
             query = query.Where(p =>
-                p.FirstName.ToLower().Contains(term)
-                || p.LastName.ToLower().Contains(term)
-                || (p.LastName + " " + p.FirstName).ToLower().Contains(term)
+                DbText.Unaccent((p.LastName + " " + p.FirstName).ToLower()).Contains(DbText.Unaccent(term))
                 || p.PatientCode.ToLower().Contains(term)
                 || (p.Contact.PhoneNumber != null
                     && (wholePhone ? p.Contact.PhoneNumber == term : p.Contact.PhoneNumber.Contains(term)))
