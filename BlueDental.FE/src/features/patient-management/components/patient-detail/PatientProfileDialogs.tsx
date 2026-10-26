@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Button, Input, Modal, Popover, Select, type TableColumnsType } from "antd";
-import { CheckOutlined, SearchOutlined, TagsOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
+import { Button, Input, Modal, Select, type TableColumnsType } from "antd";
 import { toast } from "sonner";
 import { DataTable } from "@/components/DataTable";
-import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
@@ -13,126 +11,10 @@ import {
   paymentMethodLabels,
   type PatientPaymentDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
-import { useAddExaminationReason, useUpdatePatient } from "../../api/patientMutations";
-import { GENDER_BY_CODE } from "../../api/patientAdapters";
-import type { PatientDto, UpdatePatientRequest } from "../../types/patient";
+import { useAddExaminationReason } from "../../api/patientMutations";
+import type { PatientDto } from "../../types/patient";
 // These dialogs carry their own styling, so they look right wherever opened.
 import "./patient-detail.css";
-import { SelectLoading } from "@/components/SelectLoading";
-
-function patientPayload(patient: PatientDto): UpdatePatientRequest {
-  return {
-    firstName: patient.firstName,
-    lastName: patient.lastName,
-    dateOfBirth: patient.dateOfBirth,
-    gender: GENDER_BY_CODE[patient.gender] ?? "other",
-    phoneNumber: patient.phoneNumber ?? undefined,
-    email: patient.email ?? undefined,
-    nationalId: patient.nationalId ?? undefined,
-    patientCode: patient.patientCode,
-    sourceTaxonomyId: patient.sourceTaxonomyId,
-    sourceEntryId: patient.sourceEntryId,
-    occupationEntryId: patient.occupationEntryId,
-    occupationOther: patient.occupationOther,
-    insuranceNumber: patient.insuranceNumber,
-    address: patient.address,
-    provinceCode: patient.provinceCode,
-    wardCode: patient.wardCode,
-    examinationReason: patient.examinationReason,
-    note: patient.note,
-    tagIds: patient.tagIds,
-    diseaseHistoryEntryIds: patient.diseaseHistoryEntryIds,
-  };
-}
-
-/**
- * A Thẻ hồ sơ as the reference draws it: the tag's own colour, white bold text
- * and a tag glyph. The same chip appears in the picker and beside the name, so
- * it carries a class of its own — as a bare `<span>` it also matched the
- * picker row's chip rule, which painted the ✓ beside it white on white.
- */
-export function PatientTagChip({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="pd-tag-chip" style={{ "--pd-tag-color": color } as CSSProperties}>
-      <TagsOutlined /> {label}
-    </span>
-  );
-}
-
-export function PatientTagPicker({ patient }: { patient: PatientDto }) {
-  const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("");
-  const tags = usePatientTagOptions(patient.branchId);
-  const update = useUpdatePatient(patient.id);
-  const visible = useMemo(
-    () =>
-      (tags.data ?? []).filter((tag) =>
-        tag.label.toLocaleLowerCase("vi").includes(filter.trim().toLocaleLowerCase("vi")),
-      ),
-    [filter, tags.data],
-  );
-
-  const toggle = async (tagId: string) => {
-    const selected = patient.tagIds.includes(tagId);
-    const tagIds = selected
-      ? patient.tagIds.filter((id) => id !== tagId)
-      : [...patient.tagIds, tagId];
-    try {
-      await update.mutateAsync({ ...patientPayload(patient), tagIds });
-      toast.success(selected ? t("Patient:Tag:RemoveSuccess") : t("Patient:Tag:AddSuccess"));
-    } catch (error) {
-      notifyError(extractApiError(error));
-    }
-  };
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-      trigger="click"
-      placement="bottomLeft"
-      // No arrow on the reference, and AntD reserves room for one — which was
-      // the whole difference between its 9px gap and ours.
-      arrow={false}
-      classNames={{ root: "pd-tag-popover" }}
-      content={
-        <div className="pd-tag-picker">
-          <Input
-            allowClear
-            value={filter}
-            prefix={<SearchOutlined />}
-            placeholder={t("Patient:List:SearchTag")}
-            onChange={(event) => setFilter(event.target.value)}
-          />
-          <div className="pd-tag-options">
-            {tags.isLoading && visible.length === 0 ? <SelectLoading rows={4} /> : null}
-            {visible.map((tag) => {
-              const selected = patient.tagIds.includes(tag.value);
-              return (
-                <button
-                  type="button"
-                  key={tag.value}
-                  className={selected ? "selected" : ""}
-                  onClick={() => void toggle(tag.value)}
-                  disabled={update.isPending}
-                >
-                  <PatientTagChip color={tag.color} label={tag.label} />
-                  <em>{tag.label}</em>
-                  {selected ? <CheckOutlined className="pd-tag-tick" /> : null}
-                </button>
-              );
-            })}
-            {!tags.isLoading && visible.length === 0 ? (
-              <div className="pd-tag-empty">{t("Patient:Filter:TagNotFound")}</div>
-            ) : null}
-          </div>
-        </div>
-      }
-    >
-      <Button className="pd-tag-button" icon={<TagsOutlined />} aria-label={t("Patient:List:PatientTag")} />
-    </Popover>
-  );
-}
 
 /**
  * "Thêm lý do đến khám".

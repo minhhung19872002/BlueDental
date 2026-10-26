@@ -38,6 +38,10 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public DateTimeOffset? FollowUpAt { get; set; }
 
     public int? PatientYearOfBirth { get; set; }
+
+    /// <summary>The patient's Thẻ hồ sơ — the Tiếp nhận card prints them under the name.</summary>
+    public List<Guid> PatientTagIds { get; set; } = [];
+
     public bool IsTemporary { get; set; }
     public Guid? SourceTaxonomyId { get; set; }
     public Guid? SourceEntryId { get; set; }

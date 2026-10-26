@@ -133,6 +133,7 @@ interface ServerAppointmentDto {
   outcome: number | null;
   followUpAt: string | null;
   patientYearOfBirth: number | null;
+  patientTagIds: string[] | null;
 }
 
 /** The statuses that hold a doctor's time: everything but cancelled and no-show. */
@@ -168,9 +169,11 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     patientName: dto.patientName || t("Common:Patient"),
     patientPhone: dto.patientPhone ?? "",
     patientYearOfBirth: dto.patientYearOfBirth ?? undefined,
+    patientTagIds: dto.patientTagIds ?? [],
     patientType: "New",
     doctorId: dto.dentistId ?? "",
     doctorName: dto.dentistName || t("Reception:Doctor"),
+    branchId: dto.branchId,
     refType: "Medical",
     status: mapStatusFromBe(dto.status),
     counterStatus,

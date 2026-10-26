@@ -1803,70 +1803,6 @@
   margin-bottom: 8px;
 }
 
-.pd-tag-popover .ant-popover-inner {
-  padding: 0;
-  border: 1px solid #d9e3f1;
-  border-radius: 16px;
-  overflow: hidden;
-}
-/* 258px, measured off the reference's own panel. */
-.pd-tag-picker {
-  width: 258px;
-}
-.pd-tag-picker > .ant-input-affix-wrapper {
-  width: calc(100% - 24px);
-  margin: 12px;
-  height: 38px;
-}
-.pd-tag-options {
-  border-top: 1px solid #dce3ee;
-  padding: 6px 0;
-  max-height: 220px;
-  overflow-y: auto;
-}
-.pd-tag-options button {
-  display: flex;
-  width: 100%;
-  height: 40px;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  background: #fff;
-  padding: 8px 12px;
-  color: var(--bd-sub);
-  cursor: pointer;
-  text-align: left;
-}
-.pd-tag-options button:hover,
-.pd-tag-options button.selected {
-  background: #f5f8fc;
-}
-/* One chip, drawn the same way in the picker and beside the patient's name. */
-.pd-tag-chip {
-  max-width: 142px;
-  flex: 0 0 auto;
-  border-radius: 4px;
-  background: var(--pd-tag-color, var(--bd-blue));
-  color: #fff;
-  padding: 3px 7px;
-  font-size: 12px;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pd-tag-options button > em {
-  min-width: 0;
-  font-style: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pd-tag-empty {
-  padding: 18px;
-  color: var(--bd-faint);
-  text-align: center;
-}
 .pd-recall-head {
   display: grid;
   grid-template-columns: 280px 1fr 1.65fr;
@@ -3084,13 +3020,6 @@
    wrap inside it. The table already scrolls sideways when the sum overflows. */
 .pd-payment-dialog .ant-table-thead > tr > th {
   white-space: nowrap;
-}
-
-/* The reference ticks the tags a record already carries. */
-.pd-tag-tick {
-  margin-left: auto;
-  color: var(--bd-link);
-  font-size: 12px;
 }
 
 /* ── Bảng điều trị trên tab Hồ sơ ─────────────────────────────────────────

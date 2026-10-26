@@ -72,6 +72,7 @@ export const ReceptionPage: React.FC = () => {
   const [temporaryTarget, setTemporaryTarget] = useState<TemporaryPatientTarget | null>(null);
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
+  const patientAbility = useAbility("patient");
   const debouncedKeyword = useDebounce(keyword);
   const { data: doctors = [], isSuccess: doctorsLoaded } = useReceptionDoctors(branchId);
   const rankedDoctorIds = useMemo(
@@ -302,6 +303,7 @@ export const ReceptionPage: React.FC = () => {
                   doctors={doctorsByDay.get(visitDayOf(item)) ?? []}
                   busy={busyCards.has(item.id)}
                   patientTab={patientTab}
+                  canEditTags={patientAbility.canUpdate}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}

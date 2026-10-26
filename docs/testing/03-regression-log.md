@@ -11126,3 +11126,34 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - 6 ca đỏ y hệt trên host cũ: payment momo, history pencil, Tạo Labo, Đặt mới, Tiếp nhận steps (TEMP-BUG25-OFF), appointment card reassign.
   - 2 ca còn lại (Hoàn thành ticks, công đoạn form) chạy lại riêng với `--repeat-each=2` thì **4/4** xanh, nên coi là chập chờn.
 - **Commit**: chưa commit.
+
+## R-1036 (2026-10-26, mức 3: component dùng chung + tiếp nhận + hồ sơ) Thẻ hồ sơ hiện và gắn được ngay trên thẻ Tiếp nhận
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "Thêm tag này ra ngoài này nữa nha". Thẻ hồ sơ (tag) của bệnh nhân cần hiện trên thẻ Tiếp nhận, và gắn được ngay tại đó.
+- **Owner chốt**:
+  - Tag nằm trên một dòng riêng dưới tên. Tối đa 2 chip, nhiều hơn thì thêm chip "+N"; rê chuột vào "+N" hiện tooltip liệt kê đủ tên. Tên dài cắt bằng "…". Cuối dòng là nút 🏷.
+  - Lịch tạm (chưa có hồ sơ) không hiện dòng tag.
+  - Không có quyền sửa hồ sơ thì vẫn thấy chip nhưng không có nút.
+  - Thẻ đã huỷ vẫn gắn được.
+  - Mỗi lần tick lưu ngay và báo toast.
+- **BE**:
+  - Thêm `PUT api/v1/app/patients/{id}/tags` (`SetTagsAsync`): yêu cầu quyền `patient.update`, kiểm tra chi nhánh, bỏ các tag không thuộc danh mục của chi nhánh bệnh nhân. Cần endpoint riêng vì thẻ không có đủ dữ liệu hồ sơ để gửi lại một lần cập nhật toàn bộ.
+  - `AppointmentDto.PatientTagIds`.
+  - Contract test: `SetTagsAsync_Should_Require_Patient_Update`, 7/7.
+- **FE**:
+  - Component dùng chung `src/components/PatientTagPicker/` gồm Picker, Strip, Chip. CSS chuyển từ `patient-detail.css` sang `patient-tag-picker.css`.
+  - Hook `src/hooks/useSetPatientTags.ts`.
+  - `ReceptionCard` thêm `.rc-tag-row`. Cột trái của thẻ chỉ rộng 180px, nên chip trên thẻ ẩn icon riêng.
+  - Invalidate `patient` giờ làm mới cả `receptions`.
+  - Nút tag trên đầu trang hồ sơ giờ cũng lưu qua endpoint mới (trước đây PUT cả hồ sơ). Giao diện không đổi.
+- **Giới hạn có sẵn (chưa sửa, hỏi owner)**: `GET /patient-tags` đòi quyền `Catalogs.View`. Role không có quyền này sẽ không thấy tên tag ở đâu cả, kể cả đầu trang hồ sơ (đúng từ trước R-1036).
+- **E2E mới** `reception-patient-tags.spec.ts`, 6 ca. Stack thật, không chặn request, BE build riêng :5120 trên DB dev, bản build production `vite preview` :8150:
+  1. Tick trên thẻ → toast "Đã thêm tag" → chip hiện → reload vẫn còn → API trả tagId → tag hiện trên đầu trang hồ sơ.
+  2. Bỏ tick → chip mất.
+  3. 3 tag → 2 chip + "+1", tooltip có đủ 3 tên.
+  4. Lịch tạm không có dòng tag.
+  5. Tag của chi nhánh khác bị server bỏ.
+  6. Role không có `patient.update`: thấy chip nhưng không có nút, PUT bị 403.
+  - Kết quả: **6/6**.
+- **Hồi quy**: `patient.spec -g tag` → **7/7**. Bộ `e2e/reception*` đang chạy khi commit, kết quả bổ sung sau.
+- **Commit**: commit này.

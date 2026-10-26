@@ -292,6 +292,22 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         return MapToDto(patient);
     }
 
+    /// <summary>
+    /// Thẻ hồ sơ, ticked from the record's picker or a Tiếp nhận card. Its own
+    /// endpoint: the card holds none of the hồ sơ a full update would resend.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
+    public async Task<PatientDto> SetTagsAsync(Guid id, SetPatientTagsDto input)
+    {
+        var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
+
+        patient.SetTags(await OwnBranchTagsAsync(patient.BranchId, input.TagIds));
+
+        await _repository.UpdateAsync(patient, autoSave: true);
+        return MapToDto(patient);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task DeactivateAsync(Guid id)
     {

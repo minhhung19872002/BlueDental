@@ -344,6 +344,42 @@
   text-decoration: underline;
 }
 
+/* Thẻ hồ sơ under the name, indented to line up with it: two chips, "+N",
+   then the 🏷 button. Empty until the record carries a tag, bar the button. */
+.rc-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding-left: 30px;
+}
+/* The column is 180px: the chip's own tag icon would leave a name ~15px of
+   room, and the 🏷 button beside it already says what the chips are. */
+.rc-tag-row .pd-tag-chip {
+  max-width: 120px;
+  padding: 2px 5px;
+  font-size: 11px;
+}
+.rc-tag-row .pd-tag-chip .anticon {
+  display: none;
+}
+.rc-tag-row .rc-tag-button.ant-btn {
+  width: 26px;
+  height: 22px;
+  min-width: 26px;
+  flex: 0 0 26px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--bd-link-pale);
+  color: var(--bd-link);
+  padding: 0;
+  font-size: 13px;
+}
+.rc-tag-row .rc-tag-button.ant-btn:hover {
+  background: var(--bd-hover-tint) !important;
+  color: var(--bd-blue) !important;
+}
+
 .rc-details {
   display: flex;
   flex-direction: column;

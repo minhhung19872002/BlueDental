@@ -62,4 +62,16 @@ public class PatientAppServiceContractTests
         dto.GetProperty("Filter").ShouldNotBeNull();
         dto.GetProperty("BranchId").ShouldBeNull();
     }
+
+    [Fact]
+    public void SetTagsAsync_Should_Require_Patient_Update()
+    {
+        var method = _serviceType.GetMethod("SetTagsAsync");
+        method.ShouldNotBeNull();
+        method.GetCustomAttribute<AuthorizeAttribute>()!.Policy
+            .ShouldBe(BlueDental.Permissions.BlueDentalAbilityPermissions.Patient.Update);
+
+        // The patient's own branch decides which tags count, never the request.
+        typeof(SetPatientTagsDto).GetProperty("BranchId").ShouldBeNull();
+    }
 }

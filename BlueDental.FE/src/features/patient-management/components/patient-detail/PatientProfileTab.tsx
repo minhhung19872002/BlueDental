@@ -21,6 +21,7 @@ import {
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { DataTable } from "@/components/DataTable";
+import { PatientTagChip, PatientTagPicker } from "@/components/PatientTagPicker";
 import {
   SERVICE_LINE_STATUS,
   usePatientAccount,
@@ -48,12 +49,7 @@ import { ReceptionSteps } from "./ReceptionSteps";
 import { CreatePaymentDialog } from "./CreatePaymentDialog";
 import { TreatmentStageDialog } from "./TreatmentStageDialog";
 import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
-import {
-  ExaminationReasonDialog,
-  PatientPaymentDialog,
-  PatientTagChip,
-  PatientTagPicker,
-} from "./PatientProfileDialogs";
+import { ExaminationReasonDialog, PatientPaymentDialog } from "./PatientProfileDialogs";
 import { RecallDialog } from "./stage/RecallDialog";
 import { ServiceDetailDialog } from "./stage/ServiceDetailDialog";
 import { treatmentColumns } from "./treatmentColumns";
@@ -382,7 +378,7 @@ export function PatientProfileTab({ patient }: Props) {
                 <PatientTagChip key={tag.value} color={tag.color} label={tag.label} />
               ))}
             </div>
-            <PatientTagPicker patient={patient} />
+            <PatientTagPicker patientId={patient.id} branchId={patient.branchId} tagIds={patient.tagIds} />
           </div>
           <div className="pd-info-grid">
             <InfoItem

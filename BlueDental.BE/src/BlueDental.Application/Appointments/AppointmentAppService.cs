@@ -271,7 +271,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 patientQuery.Where(p => patientIds.Contains(p.Id))))
             .ToDictionary(
                 p => p.Id,
-                p => (Name: (p.LastName + " " + p.FirstName).Trim(), Phone: p.Contact.PhoneNumber, Code: p.PatientCode, YearOfBirth: p.DateOfBirth.HasValue ? p.DateOfBirth.Value.Year : (int?)null));
+                p => (Name: (p.LastName + " " + p.FirstName).Trim(), Phone: p.Contact.PhoneNumber, Code: p.PatientCode, YearOfBirth: p.DateOfBirth.HasValue ? p.DateOfBirth.Value.Year : (int?)null, TagIds: p.TagIds.ToList()));
 
         var users = await _userRepository.GetListByIdsAsync(dentistIds);
         var dentists = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
@@ -318,6 +318,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 dto.PatientName = patient.Name;
                 dto.PatientPhone = patient.Phone;
                 dto.PatientYearOfBirth = patient.YearOfBirth;
+                dto.PatientTagIds = patient.TagIds ?? [];
             }
 
             dto.DentistName = entity.DentistId != Guid.Empty

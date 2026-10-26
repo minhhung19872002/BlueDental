@@ -75,7 +75,12 @@ export const ENTITY_QUERY_ROOTS = {
     ["patient-tags"] satisfies RootOf<typeof patientTagKeys>,
     patientTagOptionKeys.all,
   ],
-  patient: [["patients"] satisfies RootOf<typeof patientKeys>, patientOptionKeys.all],
+  patient: [
+    ["patients"] satisfies RootOf<typeof patientKeys>,
+    patientOptionKeys.all,
+    // Tiếp nhận cards print the patient's name, birth year and tags.
+    ["receptions"],
+  ],
   appointment: [
     ["appointments"] satisfies RootOf<typeof appointmentKeys>,
     // Tiếp nhận reads the same appointments under keys of its own.

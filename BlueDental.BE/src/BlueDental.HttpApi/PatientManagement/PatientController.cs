@@ -62,6 +62,11 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
         [FromBody] UpdatePatientGuardiansDto input) =>
         service.UpdateGuardiansAsync(id, input);
 
+    /// <summary>Thẻ hồ sơ — replaces the record's tags alone.</summary>
+    [HttpPut("{id:guid}/tags")]
+    public Task<PatientDto> SetTagsAsync(Guid id, [FromBody] SetPatientTagsDto input) =>
+        service.SetTagsAsync(id, input);
+
     [HttpPost("{id:guid}/deactivate")]
     public Task DeactivateAsync(Guid id) => service.DeactivateAsync(id);
 }

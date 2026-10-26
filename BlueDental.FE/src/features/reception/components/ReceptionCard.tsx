@@ -13,6 +13,7 @@ import {
   CircleCheck,
   Loader2,
 } from "lucide-react";
+import { PatientTagPicker, PatientTagStrip } from "@/components/PatientTagPicker";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
@@ -34,6 +35,8 @@ interface ReceptionCardProps {
   busy?: boolean;
   /** The record tab the patient's name opens. */
   patientTab?: PatientLinkTab;
+  /** Whether the 🏷 button shows — ticking a tag edits the patient's record. */
+  canEditTags?: boolean;
   onOutcomeChange?: (id: string, outcome: AppointmentOutcome) => void;
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
@@ -107,6 +110,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   doctors = [],
   busy = false,
   patientTab = "profile",
+  canEditTags = false,
   onOutcomeChange,
   onDoctorChange,
   onStatusChange,
@@ -172,6 +176,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   };
 
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
+  const hasRecord = !item.isTemporary && !!item.patientId;
+  const showTagRow = hasRecord && (canEditTags || item.patientTagIds.length > 0);
 
   const handlePatientClick = () => {
     if (item.isTemporary) {
@@ -231,6 +237,21 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                   {item.patientYearOfBirth ? ` (${item.patientYearOfBirth})` : ""}
                 </button>
               </div>
+
+              {/* Tags belong to the record, so a Lịch tạm has none — even once cancelled. */}
+              {showTagRow && (
+                <div className="rc-tag-row">
+                  <PatientTagStrip branchId={item.branchId} tagIds={item.patientTagIds} />
+                  {canEditTags && (
+                    <PatientTagPicker
+                      patientId={item.patientId}
+                      branchId={item.branchId}
+                      tagIds={item.patientTagIds}
+                      buttonClassName="rc-tag-button"
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="rc-details">
                 <div className="rc-detail-row">

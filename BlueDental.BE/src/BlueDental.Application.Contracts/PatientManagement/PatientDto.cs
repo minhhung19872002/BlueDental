@@ -278,6 +278,16 @@ public class UpdatePatientGuardiansDto
     public bool GuardiansConsented { get; set; }
 }
 
+/// <summary>
+/// Thẻ hồ sơ, ticked from the record's picker or a Tiếp nhận card: the whole
+/// set, replaced without touching the rest of the hồ sơ.
+/// </summary>
+public class SetPatientTagsDto
+{
+    [Required]
+    public List<Guid> TagIds { get; set; } = new();
+}
+
 public class GetPatientListInput : PagedAndSortedResultRequestDto
 {
     // No BranchId here on purpose. The branch in view travels in the

@@ -19,6 +19,9 @@ public interface IPatientAppService : IApplicationService
     /// <summary>"Người giám hộ" on the Hồ sơ tab — replaces the group alone.</summary>
     Task<PatientDto> UpdateGuardiansAsync(Guid id, UpdatePatientGuardiansDto input);
 
+    /// <summary>Thẻ hồ sơ — replaces the record's tags alone.</summary>
+    Task<PatientDto> SetTagsAsync(Guid id, SetPatientTagsDto input);
+
     /// <summary>The code the "BE:Common:CreateRecord" dialog opens with.</summary>
     Task<PatientCodeEstimateDto> GetCodeEstimateAsync();
 

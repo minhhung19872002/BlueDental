@@ -32,11 +32,15 @@ export interface ReceptionItem {
   patientId: string;
   patientName: string;
   patientYearOfBirth?: number;
+  /** Thẻ hồ sơ on the patient's record; empty for a Lịch tạm. */
+  patientTagIds: string[];
   patientPhone: string;
   patientType: PatientType;
   doctorId: string;
   doctorName: string;
   adviseDoctorName?: string;
+  /** The visit's branch — also the patient's, so its Thẻ hồ sơ catalog. */
+  branchId: string;
   refType: RefType;
   status: ReceptionStatus;
   counterStatus?: AppointmentCounterType;
