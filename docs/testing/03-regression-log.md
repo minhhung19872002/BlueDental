@@ -11009,3 +11009,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Ngoại lệ quy tắc**: `AppointmentEditorModal` giờ có 11 prop, quá 1 so với mức ≤ 10 của container (§16.4). Giữ vậy để không tách popup dùng chung trong task này.
 - **Mã**: lúc làm đặt R-1029, nhưng R-1029 đã được phiên khác dùng (tin OA tự gửi) nên đổi thành R-1030.
 - **Commit**: `main` c5409e3c (code + spec) + 08fb5a75 (spec tự tạo nha sĩ, impact map, tài liệu feature), chủ dự án commit + push (deploy production). Mục log này và dòng registry chưa commit.
+
+## R-1031 (2026-10-26, mức 3: header dùng chung) Menu tài khoản: có máy bấm vào tên người dùng không mở
+
+- **Báo lỗi (chủ dự án, ảnh chụp ô "Tiếp nhận 1 (Tr…)" trên header)**: ở một số máy, bấm vào tên người dùng không mở popover. Chủ dự án chốt: "vẫn như hiện tại mà máy nào lỗi thì mới handle được k". Nghĩa là giữ hover mở menu như cũ, chỉ xử lý thêm trường hợp đang lỗi.
+- **Nguyên nhân**: `Dropdown` menu tài khoản trong `AppLayout.tsx` là Dropdown duy nhất trong `src` không khai báo `trigger`, nên chạy mặc định của AntD là **chỉ hover**. Không có đường mở bằng click, nên menu không mở được trong các trường hợp:
+  - **Màn cảm ứng / bút**: lần chạm 1 mở menu (pointerenter). Lần chạm 2 đóng menu (pointerleave chạy sau 0,1 giây), và cứ thế mở, đóng xen kẽ.
+  - **Menu đã đóng mà chuột vẫn nằm trên tên** (Esc, chọn mục, phím tắt…): bấm bao nhiêu cũng không mở, phải rê chuột ra rồi vào lại.
+  - **Ngay sau khi chọn một mục**: chặn mở lại 300 ms của QA #39 (R-903) bỏ luôn cả lần hover mở.
+- **Sửa (chỉ FE, `src/app/AppLayout.tsx`)**:
+  - `trigger={["hover", "click"]}`. Máy có chuột vẫn mở bằng hover như cũ.
+  - `onPointerDown` trên `.app-header-user` ghi lại thời điểm bấm. Trong 300 ms sau khi bấm, mọi yêu cầu **đóng** đều bỏ qua, gồm cả lần click thứ 2 (click của AntD là bật/tắt) và pointerleave mà lần chạm sinh ra. Như vậy bấm vào tên không bao giờ đóng menu: người dùng chuột đã mở sẵn bằng hover, bấm thêm vẫn giữ menu mở. Đóng menu vẫn như cũ: rê chuột ra, Esc, bấm ra ngoài, chọn mục.
+  - Chặn mở lại của QA #39 giữ nguyên, trừ khi người dùng đã bấm vào tên **sau** lần chọn mục (`pressedSincePick`).
+- **Kiểm tra lặp lại** (script Playwright, bản build production `vite preview`, so bản sửa với HEAD): **13/13 đạt** trên bản sửa.
+  - Chuột: hover mở; click khi đang mở vẫn mở; rê ra thì đóng; Esc đóng; click khi chuột vẫn trên tên thì mở; click ra ngoài thì đóng; rê nhanh + click thì mở.
+  - Cảm ứng: chạm 1–4 lần đều mở; chạm nền trang thì đóng; chạm tên lại thì mở.
+  - Trên HEAD trượt 3 ca: "click khi chuột vẫn trên tên", chạm lần 2 và chạm lần 4.
+- **Spec `e2e/header-navigation.spec.ts`** (ca "the account menu toggles between Vietnamese and English"):
+  - Trước sửa, ca này đỏ cả trên HEAD, vì 2 lỗi cũ của spec:
+    - (a) Spec chờ "Tiếng Việt" ở chế độ English, nhưng từ `2eec1e9e` (2026-09-23) nhãn đi qua `App:Vietnamese`, nên hiện "Vietnamese".
+    - (b) Spec hover mục "Ngôn ngữ" ngay sau click, khi menu còn đang chạy hiệu ứng `ant-slide-up`. Mục bị trượt khỏi con trỏ nên submenu đóng lại. Với click-mở, menu mở tức thì nên lỗi (b) xảy ra thường hơn trên bản sửa.
+  - Sửa spec: thêm helper `openAccountMenu`, chờ menu hết class `ant-slide-up` rồi mới hover; đổi nhãn thành "Vietnamese".
+  - Đây là lỗi thời điểm của test. Người dùng thật cần hơn 0,2 giây để rê từ tên xuống mục, lúc đó hiệu ứng đã xong.
+- **Kết quả e2e** (bản build production, BE local :5000, không chặn request):
+  - Ca đổi ngôn ngữ: bản sửa **6/6**, HEAD **3/3** (với spec đã sửa).
+  - Hồi quy mức 3 (header dùng chung), các spec dùng menu tài khoản: `auth`, `branch-switcher`, `header-navigation`, `popup-placement` (gồm ca chạm của QA #39) → **19/21**.
+  - 2 đỏ có từ trước, đỏ y hệt trên HEAD và không liên quan menu tài khoản: `header-navigation` "the ribbon is always on…" (`toHaveText`) và "below 1100px the groups give way to the drawer" (`toHaveCount`).
+- **BE**: không đổi. Không có dữ liệu, quyền hay chi nhánh liên quan.
+- **Commit**: chưa commit.

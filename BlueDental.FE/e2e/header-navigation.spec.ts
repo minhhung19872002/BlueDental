@@ -1,5 +1,15 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { login } from "./fixtures/auth";
+
+/* A click opens the account menu at once, still sliding into place: a hover
+   on an entry before the slide ends lands where the entry used to be, and its
+   submenu shuts again as the entry moves out from under the pointer. */
+async function openAccountMenu(page: Page) {
+  await page.locator(".app-header-user").click();
+  const menu = page.locator(".ant-dropdown:not(.ant-dropdown-menu-submenu-popup)");
+  await expect(menu).toBeVisible();
+  await expect(menu).not.toHaveClass(/ant-slide-up/);
+}
 
 /**
  * The v2 design has no rail: the menu is four groups along the header, with a
@@ -155,14 +165,15 @@ test.describe("Header navigation", () => {
 
     await expect(page.locator(".app-header-lang")).toHaveCount(0);
 
-    await page.locator(".app-header-user").click();
+    await openAccountMenu(page);
     await page.getByRole("menuitem", { name: "Ngôn ngữ" }).hover();
     await page.getByRole("menuitem", { name: "English", exact: true }).click();
     await expect(clinicGroup).toHaveText("Clinic");
 
-    await page.locator(".app-header-user").click();
+    await openAccountMenu(page);
     await page.getByRole("menuitem", { name: "Language" }).hover();
-    await page.getByRole("menuitem", { name: "Tiếng Việt", exact: true }).click();
+    // The entry's own name is localized too (App:Vietnamese), so in English it reads "Vietnamese".
+    await page.getByRole("menuitem", { name: "Vietnamese", exact: true }).click();
     await expect(clinicGroup).toHaveText("Phòng khám");
   });
 });

@@ -34,7 +34,7 @@ import { type NavEntry, type NavGroup } from "./nav";
 import { useRibbonGroup } from "./useRibbonGroup";
 import { useVisibleNav } from "./useVisibleNav";
 
-/** Longer than the account menu's hover-open delay (0.15s); see the menu below. */
+/** Longer than the account menu's hover delays (0.15s / 0.1s); see the menu below. */
 const USER_MENU_REOPEN_GUARD_MS = 300;
 
 function initialsOf(name: string | undefined): string {
@@ -51,6 +51,7 @@ export function AppLayout() {
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuPickedAt = useRef(0);
+  const userMenuPressedAt = useRef(0);
   const [currentLang, setLanguage] = useLanguage();
 
   const t = useT();
@@ -150,8 +151,13 @@ export function AppLayout() {
     setUserMenuOpen(false);
   };
   const handleUserMenuOpenChange = (next: boolean) => {
-    if (next && Date.now() - userMenuPickedAt.current < USER_MENU_REOPEN_GUARD_MS) return;
+    const pressedSincePick = userMenuPressedAt.current > userMenuPickedAt.current;
+    if (next && !pressedSincePick && Date.now() - userMenuPickedAt.current < USER_MENU_REOPEN_GUARD_MS) return;
+    if (!next && Date.now() - userMenuPressedAt.current < USER_MENU_REOPEN_GUARD_MS) return;
     setUserMenuOpen(next);
+  };
+  const handleUserMenuPress = () => {
+    userMenuPressedAt.current = Date.now();
   };
 
   const userMenuItems: MenuProps["items"] = [
@@ -403,8 +409,14 @@ export function AppLayout() {
               tap fires a synthetic mouseenter whose delayed open (0.15s) lands
               after the click has closed the menu, so it reopened over the page
               it had just navigated to; an open that soon after a pick is
-              dropped. */}
+              dropped.
+              A click opens it as well as hover: on hover alone, once it had
+              closed with the pointer still on the name (Esc, a second tap),
+              clicking did nothing until the pointer left and came back. A
+              press never closes it — a hover user already has it open, and
+              the hover-leave a tap fires 0.1s later must not undo the tap. */}
           <Dropdown
+            trigger={["hover", "click"]}
             open={userMenuOpen}
             onOpenChange={handleUserMenuOpenChange}
             menu={{
@@ -416,6 +428,7 @@ export function AppLayout() {
           >
             <div
               className="app-header-user"
+              onPointerDown={handleUserMenuPress}
               role="button"
               tabIndex={0}
               aria-label={t("App:UserAccount")}
