@@ -1,4 +1,4 @@
-import { useState } from "react";
+// TEMP-SKIPRECENT-OFF: import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
 import { t } from "@/lib/i18n";
@@ -41,7 +41,13 @@ export function SendScreen() {
   const choice = useSendTemplateChoice(params.channelParam, params.templateId);
   const picks = useIndividualPicks(params.lockedPatientId);
   const removal = useRecipientRemoval(`${params.source}|${params.careTab.key}|${params.period.fromDate}`);
-  const [skipRecent, setSkipRecent] = useState(false);
+  /*
+   * TEMP-SKIPRECENT-OFF (BA, 2026-10-26): the "Không gửi lại … trong 30 ngày"
+   * box is hidden and the 30-day guard is always off. To bring it back,
+   * restore this state and every TEMP-SKIPRECENT-OFF line under send/.
+   */
+  // const [skipRecent, setSkipRecent] = useState(false);
+  const skipRecent = false;
   const schedule = useSendSchedule();
   const recipients = useSendRecipients({
     channel: choice.channel,
@@ -117,8 +123,8 @@ export function SendScreen() {
             recipients={recipients}
             picks={picks}
             removal={removal}
-            skipRecent={skipRecent}
-            onSkipRecentChange={setSkipRecent}
+            // TEMP-SKIPRECENT-OFF: skipRecent={skipRecent}
+            // TEMP-SKIPRECENT-OFF: onSkipRecentChange={setSkipRecent}
           />
         </div>
         <aside className="snd-side" aria-label={t("CSKH:Send:Checks")}>
@@ -128,7 +134,7 @@ export function SendScreen() {
             connected={choice.connected}
             template={choice.template}
             stats={recipients.stats}
-            skipRecent={skipRecent}
+            // TEMP-SKIPRECENT-OFF: skipRecent={skipRecent}
           />
           <SendPreviewCard
             channel={choice.channel}

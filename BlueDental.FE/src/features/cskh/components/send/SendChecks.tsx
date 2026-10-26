@@ -10,7 +10,7 @@ interface SendChecksProps {
   connected: boolean;
   template: MessageTemplateDto | null;
   stats: RecipientStats;
-  skipRecent: boolean;
+  // TEMP-SKIPRECENT-OFF: skipRecent: boolean;
 }
 
 interface Check {
@@ -31,7 +31,7 @@ function recipientsDetail(stats: RecipientStats, contactName: string): string {
   return parts.length > 0 ? parts.join(" · ") : t("CSKH:Send:Check:AllReach");
 }
 
-function checksOf({ channelName, contactName, connected, template, stats, skipRecent }: SendChecksProps): Check[] {
+function checksOf({ channelName, contactName, connected, template, stats }: SendChecksProps): Check[] {
   const missing = stats.missingByVariable.map(([key, count]) => `${missingLabel(key)} (${count})`).join(", ");
   return [
     {
@@ -58,12 +58,13 @@ function checksOf({ channelName, contactName, connected, template, stats, skipRe
       title: t("CSKH:Send:Check:Variables"),
       detail: missing ? t("CSKH:Send:Check:VariablesMissing", missing) : t("CSKH:Send:Check:VariablesOk"),
     },
-    {
-      key: "dedupe",
-      ok: skipRecent,
-      title: t("CSKH:Send:Check:Dedupe"),
-      detail: skipRecent ? t("CSKH:Send:Check:DedupeOn") : t("CSKH:Send:Check:DedupeOff"),
-    },
+    // TEMP-SKIPRECENT-OFF: the row names a box that is hidden.
+    // {
+    //   key: "dedupe",
+    //   ok: skipRecent,
+    //   title: t("CSKH:Send:Check:Dedupe"),
+    //   detail: skipRecent ? t("CSKH:Send:Check:DedupeOn") : t("CSKH:Send:Check:DedupeOff"),
+    // },
   ];
 }
 

@@ -186,21 +186,17 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     expect(await znsSendsTo(unbooked.phone)).toEqual([]);
 
     // Picked again on a fresh send screen, the customer now shows the
-    // receipt. The 30-day guard starts off (owner, 2026-10-26), so they
-    // can be sent again until it is ticked.
+    // receipt. TEMP-SKIPRECENT-OFF (BA, 2026-10-26): the 30-day box is
+    // hidden and the guard is off, so they can be sent again.
     await openSend(page, `channel=zalo&templateId=${template.id}&to=individual`);
     await addCustomer(page, booked.name);
     await expect(customerRow(page, booked.name)).toContainText(/Đã nhận \d{2}\/\d{2}\/\d{4}/);
     await expect(stat(page, "received")).toHaveText("1 đã nhận mẫu này");
     await expect(page.getByLabel("Kiểm tra trước khi gửi").getByText("1 đã nhận mẫu này")).toBeVisible();
-    await expect(skipRecentBox(page)).not.toBeChecked();
-    await expect(page.getByText("Đang tắt: khách có thể nhận trùng")).toBeVisible();
+    await expect(skipRecentBox(page)).toHaveCount(0);
+    await expect(page.getByText("Đang tắt: khách có thể nhận trùng")).toHaveCount(0);
     await expect(cta(page)).toHaveText("Gửi 1 tin Zalo");
     await expect(cta(page)).toBeEnabled();
-
-    await skipRecentBox(page).check();
-    await expect(cta(page)).toHaveText("Không có khách để gửi");
-    await expect(cta(page)).toBeDisabled();
   });
 
   test("Danh sách CSKH: mở từ Nhắc lịch hẹn, Xóa / Hoàn tác, Hẹn giờ gửi rồi Huỷ hẹn — không tin nào đi", async ({ page }) => {
@@ -424,11 +420,9 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
       await addCustomer(page, patient.name);
       await expect(customerRow(page, patient.name)).toContainText(`Chờ gửi ${days(at).shown}`);
       await expect(stat(page, "received")).toHaveText("1 đã nhận mẫu này");
-      await skipRecentBox(page).check();
-      await expect(cta(page)).toHaveText("Không có khách để gửi");
-      await expect(cta(page)).toBeDisabled();
+      // TEMP-SKIPRECENT-OFF: the screen no longer holds them (box hidden, guard off).
 
-      // The server holds them too: a send now skips the customer the booked batch will reach.
+      // The server still honours the guard when asked: a send skips the customer the booked batch will reach.
       const now = await call<Batch>(page, SENDS, {
         ...asBranchOne,
         method: "POST",

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Checkbox } from "antd";
+// TEMP-SKIPRECENT-OFF: import { Checkbox } from "antd";
 import { t } from "@/lib/i18n";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { SegmentedTabs, type SegmentedTabItem } from "@/components/SegmentedTabs";
@@ -23,13 +23,13 @@ interface SendRecipientsStepProps {
   recipients: SendRecipients;
   picks: IndividualPicks;
   removal: RecipientRemoval;
-  skipRecent: boolean;
-  onSkipRecentChange: (on: boolean) => void;
+  // TEMP-SKIPRECENT-OFF: skipRecent: boolean;
+  // TEMP-SKIPRECENT-OFF: onSkipRecentChange: (on: boolean) => void;
 }
 
-/** Step 3 — Gửi tới: the source, the stats of the rows in play, the rows, the 30-day guard. */
+/** Step 3 — Gửi tới: the source, the stats of the rows in play, the rows (30-day guard hidden: TEMP-SKIPRECENT-OFF). */
 export function SendRecipientsStep(props: SendRecipientsStepProps) {
-  const { params, channel, contactName, recipients, picks, removal, skipRecent, onSkipRecentChange } = props;
+  const { params, channel, contactName, recipients, picks, removal } = props;
   const isList = params.source === "list";
   const [query, setQuery] = useState("");
   const [removing, setRemoving] = useState<MessageRecipient | null>(null);
@@ -73,9 +73,11 @@ export function SendRecipientsStep(props: SendRecipientsStepProps) {
         onRemove={isList ? setRemoving : null}
       />
       <div className="snd-to-foot">
+        {/* TEMP-SKIPRECENT-OFF:
         <Checkbox checked={skipRecent} onChange={(event) => onSkipRecentChange(event.target.checked)}>
           {t("CSKH:Send:SkipRecent")}
         </Checkbox>
+        */}
         {removal.count > 0 && (
           <button type="button" className="snd-undo" onClick={removal.undo}>
             {t("CSKH:Send:Undo", removal.count)}
