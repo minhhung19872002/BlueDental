@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import type { Control, FieldErrors, UseFormSetValue } from "react-hook-form";
 import type { CalendarFocus } from "../types/appointmentSeries";
-import type { AppointmentStatus } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
+import type { StoredStatus } from "./appointmentStatusOptions";
 import { AppointmentFormLeft } from "./AppointmentFormLeft";
 import { AppointmentFormCenter } from "./AppointmentFormCenter";
 import { AppointmentFormRight } from "./AppointmentFormRight";
@@ -20,7 +20,7 @@ interface Props {
   watchedNotes: string;
   isEdit?: boolean;
   /** The stored status of the appointment being edited; drives Trạng thái. */
-  currentStatus?: AppointmentStatus;
+  stored?: StoredStatus;
   /** Opened from a patient's record: the patient is fixed. */
   lockPatient?: boolean;
   onOpenNewPatient?: () => void;
@@ -46,7 +46,7 @@ export function AppointmentEditorForm({
   watchedDate,
   watchedNotes,
   isEdit,
-  currentStatus,
+  stored,
   lockPatient,
   onOpenNewPatient,
   series,
@@ -61,7 +61,7 @@ export function AppointmentEditorForm({
       setValue={setValue}
       notesValue={watchedNotes}
       isEdit={isEdit}
-      currentStatus={currentStatus}
+      stored={stored}
     />
   );
   const sessionList = series?.list ?? null;

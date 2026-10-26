@@ -11079,3 +11079,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Hồi quy** (bản build production `vite preview`, BE local :5000): toàn bộ `e2e/reception*.spec.ts` → **41 passed, 3 skipped** (các ca TEMP-PRIORITY-OFF đã skip sẵn trong `reception-doctor-priority`), 0 đỏ.
 - **BE**: không đổi.
 - **Commit**: chưa commit.
+
+## R-1034 (2026-10-26, mức 2: lịch hẹn + tiếp nhận) Bệnh nhân đã đến vẫn bị chuyển "Trễ hẹn"
+
+- **Báo lỗi (chủ dự án, prod)**: một thẻ trên Tiếp nhận hiện "Trễ hẹn" dù bệnh nhân đã bấm Đã đến lúc 11:12 cho lịch 11:15.
+- **Nguyên nhân** (đọc từ `bd_appointment_change_logs` trên prod, chỉ SELECT): Đã đến lúc 11:12 → bấm nhầm Huỷ vài giây sau → mở dialog sửa lịch, đổi Trạng thái từ Đã huỷ về "Đã hẹn" (6 → 2). `Restore()` luôn trả về `Confirmed` nhưng giữ `CheckedInAt`. Đến 11:15:30, `MissedAppointmentWorker` thấy lịch `Confirmed` đã qua giờ hẹn nên chuyển sang `NoShow`.
+- **Sửa (owner chốt phương án B)**:
+  - Domain `Appointment`:
+    - `Restore()` trả về `InProgress` nếu có `StartedAt`, `CheckedIn` nếu có `CheckedInAt`, còn lại `Confirmed`. Giữ giờ đến, xoá thông tin huỷ như cũ.
+    - `ChangeStatus` nhận đích thuộc nhóm "Đã đến" cho lịch đã huỷ/trễ có `CheckedInAt` (→ `Restore()`). Lịch chưa từng đến chọn đích này vẫn bị từ chối như trước.
+    - Lỗi mới `BlueDental:Appointment:0016` ("Bệnh nhân đã đến, không thể chuyển lịch hẹn sang Trễ hẹn."): `MarkNoShow` và `ChangeStatus(NoShow)` từ chối khi có `CheckedInAt`, bất kể đi đường nào (dialog, endpoint `/no-show`, worker).
+    - `IsMissedAt` thêm `CheckedInAt is null`.
+  - `MissedAppointmentMarker`: câu truy vấn bỏ qua lịch có `CheckedInAt`. Nếu không bỏ, `MarkNoShow` sẽ từ chối và mỗi 15 giây worker lại thử lại đúng dòng đó.
+  - `AppointmentAppService`: số "Trễ hẹn" trong `GetStatsAsync` và bộ lọc `IsLate` (cả hai nhánh) đều loại lịch có `CheckedInAt`.
+  - FE dialog sửa lịch (`appointmentStatusOptions.statusSelectOptions`):
+    - Lịch chưa đến: vẫn là Đã hẹn / Đã huỷ / Trễ hẹn.
+    - Lịch đã đến (`checkedInAt` có giá trị): Đã đến / Đã huỷ, không còn Trễ hẹn.
+    - Giá trị hiện tại luôn nằm trong danh sách, nên dữ liệu cũ đã lỡ thành Trễ hẹn vẫn mở được dialog.
+- **Ghi chú cho BA**: lịch được khôi phục giữ giờ đến cũ, nên đồng hồ chờ trên Tiếp nhận tính từ giờ đến ban đầu, không tính từ lúc khôi phục.
+- **Test BE**: `BlueDental.Domain.Tests --filter Appointment` → **112/112** (thêm 4 ca: khôi phục về Đã đến, khôi phục về Đang khám, chỉ lịch đã đến mới được chọn Đã đến, từ chối Trễ hẹn với lịch đã đến rồi huỷ).
+- **E2E mới** `reception-restore-arrived.spec.ts`, 4 ca. Stack thật, không chặn request, worker thật:
+  1. Đã đến → huỷ trên bảng → dialog chỉ có [Đã đến, Đã huỷ] → chọn Đã đến. Kết quả: status 3, `checkedInAt` giữ nguyên, `cancelledAt` null. Chờ qua giờ hẹn + 35 giây (2 lượt worker): vẫn 3. Trên bảng, trước và sau reload: không phải Trễ hẹn/Huỷ hẹn, giờ bước đầu = giờ đến cũ, có đồng hồ chờ. Mở lại dialog: đang ở Đã đến, vẫn không có Trễ hẹn.
+  2. Đã đến + bắt đầu khám + huỷ (API) → dialog chọn Đã đến → status 4, giữ `checkedInAt` và `startedAt`.
+  3. Server từ chối Trễ hẹn: PUT status 7 và POST `/no-show` khi đã đến đều trả `0016`, status vẫn 3. Sau khi huỷ, PUT status 7 vẫn trả `0016`, lịch vẫn Đã huỷ.
+  4. Chưa từng đến: huỷ → dialog [Đã hẹn, Đã huỷ, Trễ hẹn] → Đã hẹn → qua giờ hẹn worker vẫn chuyển Trễ hẹn (hành vi cũ giữ nguyên).
+  - Kết quả: **4/4**.
+- **Hồi quy** (bản build production `vite preview` :8134, BE build riêng :5134 trên DB dev, không chặn request): `appointment-history`, `appointment-missed-api`, `cskh-live-missed`, `patient-appointment`, `reception-live-late`, `reception-temp-cancel`, `reception` → **21/22**. Ca đỏ là `reception.spec:52` "…moves the counters": số "Chờ khám" lệch 1 khi chạy cả loạt trên DB dev dùng chung. Chạy lại riêng với `--repeat-each=2` thì **4/4** xanh, nên coi là chập chờn, không phải hồi quy.
+- **Dữ liệu prod**: đã gửi owner câu SELECT tìm lịch `status IN (1,2,7)` có `"CheckedInAt"`. Chưa UPDATE gì.
+- **Commit**: chưa commit.

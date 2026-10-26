@@ -27,8 +27,21 @@ export const STATUS_GROUP: Record<AppointmentStatus, AppointmentStatus> = {
   noShow: "noShow",
 };
 
-/** Offered whatever the appointment is now: booked, cancelled or late. */
-const ALWAYS_OFFERED: readonly AppointmentStatus[] = ["scheduled", "cancelled", "noShow"];
+/** Offered to a visit that never arrived: booked, cancelled or late. */
+const NOT_ARRIVED_OFFERED: readonly AppointmentStatus[] = ["scheduled", "cancelled", "noShow"];
+
+/**
+ * Offered to a visit with an arrival time, even one cancelled since: it can
+ * be cancelled or put back to Đã đến, never back on the book nor late (R-1034).
+ */
+const ARRIVED_OFFERED: readonly AppointmentStatus[] = ["inProgress", "cancelled"];
+
+/** The appointment as stored, as far as the Trạng thái select cares. */
+export interface StoredStatus {
+  status: AppointmentStatus;
+  /** The patient was checked in — the visit has an arrival time. */
+  arrived: boolean;
+}
 
 interface StatusOption {
   value: AppointmentStatus;
@@ -37,13 +50,15 @@ interface StatusOption {
 }
 
 /**
- * Đã hẹn, Đã huỷ and Trễ hẹn are always there, in workflow order, so a
- * cancelled or late appointment can be put back on the book from the same
- * select. "Đã đến" appears only as the current value of a visit that
- * arrived: reception records arrivals, the dialog never does.
+ * In workflow order. A visit that never arrived gets Đã hẹn, Đã huỷ and Trễ
+ * hẹn, so a cancelled or late one can be put back on the book from the same
+ * select. A visit that arrived gets Đã đến and Đã huỷ: reception records
+ * arrivals, the dialog only undoes a cancel. The current value is always
+ * there, so a legacy late visit with an arrival time still opens on it.
  */
-export function statusSelectOptions(current: AppointmentStatus): StatusOption[] {
-  const offered = new Set<AppointmentStatus>([...ALWAYS_OFFERED, STATUS_GROUP[current]]);
+export function statusSelectOptions(stored: StoredStatus): StatusOption[] {
+  const base = stored.arrived ? ARRIVED_OFFERED : NOT_ARRIVED_OFFERED;
+  const offered = new Set<AppointmentStatus>([...base, STATUS_GROUP[stored.status]]);
   return APPOINTMENT_STATUSES.filter((status) => offered.has(status)).map((value) => ({
     value,
     label: GROUP_LABEL[value],

@@ -132,7 +132,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var temporary = await AsyncExecuter.CountAsync(query.Where(a => a.IsTemporary));
         var overdue = await AsyncExecuter.CountAsync(query.Where(a =>
             (a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
-            && a.Slot.Start <= now));
+            && a.CheckedInAt == null && a.Slot.Start <= now));
 
         return new AppointmentStatsDto
         {
@@ -188,10 +188,10 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             query = input.IsLate.Value
                 ? query.Where(a => a.Status == AppointmentStatus.NoShow
                     || ((a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
-                        && a.Slot.Start <= now))
+                        && a.CheckedInAt == null && a.Slot.Start <= now))
                 : query.Where(a => a.Status != AppointmentStatus.NoShow
                     && !((a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
-                        && a.Slot.Start <= now));
+                        && a.CheckedInAt == null && a.Slot.Start <= now));
         }
 
         if (input.Date.HasValue)

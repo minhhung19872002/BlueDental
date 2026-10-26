@@ -335,7 +335,7 @@ export function AppointmentEditorModal({
           watchedDate={watchedDate}
           watchedNotes={watchedNotes}
           isEdit={isEdit}
-          currentStatus={existingAppt?.status}
+          stored={existingAppt && { status: existingAppt.status, arrived: !!existingAppt.checkedInAt }}
           lockPatient={lockPatient}
           onOpenNewPatient={handleOpenNewPatient}
           series={seriesSlots}

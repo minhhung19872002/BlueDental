@@ -265,14 +265,17 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Trễ hẹn by the clock: the booked start time has passed and the patient
-    /// has not arrived — the booking is still only Đã hẹn / Đã xác nhận.
+    /// has not arrived — the booking is still only Đã hẹn / Đã xác nhận and
+    /// carries no arrival time (R-1034).
     /// </summary>
     public bool IsMissedAt(DateTimeOffset now) =>
         Status is AppointmentStatus.Requested or AppointmentStatus.Confirmed
+        && CheckedInAt is null
         && Slot.Start <= now;
 
     public Appointment MarkNoShow()
     {
+        EnsureNotArrived();
         if (Status is not (AppointmentStatus.Confirmed or AppointmentStatus.Requested))
         {
             throw new BusinessException(
@@ -330,6 +333,9 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// Đã hẹn puts a cancelled or late appointment back on the book. Arrival
     /// is recorded by reception, so the dialog can neither set an arrival
     /// status nor undo one. Cancelling needs <paramref name="cancellationNote"/>.
+    /// A visit that arrived and was then cancelled cannot be marked late: it is
+    /// refused before anything changes. Đã đến (or Đã hẹn) restores it to the
+    /// arrival status it had (R-1034).
     /// </summary>
     public Appointment ChangeStatus(
         AppointmentStatus target,
@@ -337,12 +343,15 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         string? cancellationNote = null)
     {
         if (GroupOf(target) == GroupOf(Status)) return this;
+        if (target == AppointmentStatus.NoShow) EnsureNotArrived();
 
         return target switch
         {
             AppointmentStatus.Cancelled => Cancel(cancellationReason, cancellationNote),
             AppointmentStatus.NoShow => (Status == AppointmentStatus.Cancelled ? Restore() : this).MarkNoShow(),
             AppointmentStatus.Requested or AppointmentStatus.Confirmed => Restore(),
+            // Đã đến on a visit cancelled after arriving: the dialog's way back.
+            _ when GroupOf(target) == GroupOf(AppointmentStatus.CheckedIn) && CheckedInAt is not null => Restore(),
             _ => throw new BusinessException(
                 BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
                 $"Cannot move an appointment to {target} from the edit dialog."),
@@ -350,8 +359,11 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Puts a cancelled or late appointment back on the book as Confirmed and
-    /// forgets why it was cancelled. A visit that arrived is not undone here.
+    /// Puts a cancelled or late appointment back where it stood and forgets
+    /// why it was cancelled. One that never arrived goes back on the book as
+    /// Confirmed; one cancelled after arriving returns to Đã đến, or to Đang
+    /// khám if it had started, keeping its arrival time (R-1034) — otherwise
+    /// the missed-appointment worker would mark it late once the slot passed.
     /// </summary>
     public Appointment Restore()
     {
@@ -362,11 +374,23 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
                 $"Cannot restore an appointment in status {Status}.");
         }
 
-        Status = AppointmentStatus.Confirmed;
+        Status = StartedAt is not null ? AppointmentStatus.InProgress
+            : CheckedInAt is not null ? AppointmentStatus.CheckedIn
+            : AppointmentStatus.Confirmed;
         CancellationReason = null;
         CancellationNote = null;
         CancelledAt = null;
         return this;
+    }
+
+    private void EnsureNotArrived()
+    {
+        if (CheckedInAt is not null)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.ArrivedCannotBeLate,
+                "The patient already arrived; the appointment cannot be marked late.");
+        }
     }
 
     /// <summary>

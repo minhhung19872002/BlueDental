@@ -203,6 +203,7 @@
     "BlueDental:Appointment:0013": "A recurring booking can hold at most {Max} sessions.",
     "BlueDental:Appointment:0014": "The repeat settings are not valid.",
     "BlueDental:Appointment:0015": "This session is finished and can be neither edited nor deleted.",
+    "BlueDental:Appointment:0016": "The patient has already arrived; the appointment cannot be marked late.",
     "BlueDental:Treatment:0001": "Treatment plan not found.",
     "BlueDental:Treatment:0002": "That treatment plan transition is not allowed.",
     "BlueDental:Treatment:0003": "Prescription not found.",

@@ -35,7 +35,10 @@ public class MissedAppointmentMarker(
         var cutoff = now.ToUniversalTime();
         var query = await repository.GetQueryableAsync();
         var missed = await asyncExecuter.ToListAsync(query
+            // An arrival time means the patient came (R-1034): MarkNoShow would
+            // refuse it and the batch would retry the same row forever.
             .Where(a => (a.Status == AppointmentStatus.Requested || a.Status == AppointmentStatus.Confirmed)
+                && a.CheckedInAt == null
                 && a.Slot.Start <= cutoff)
             .OrderBy(a => a.Slot.Start)
             .Take(BatchSize));

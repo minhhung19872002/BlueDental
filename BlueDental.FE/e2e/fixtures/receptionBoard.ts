@@ -39,7 +39,7 @@ export async function call<T>(
   page: Page,
   branchId: string,
   url: string,
-  options: { method?: "GET" | "POST"; json?: unknown } = {},
+  options: { method?: "GET" | "POST" | "PUT"; json?: unknown } = {},
 ): Promise<ApiResult<T>> {
   return page.evaluate(
     async ({ url, options, branchId }) => {

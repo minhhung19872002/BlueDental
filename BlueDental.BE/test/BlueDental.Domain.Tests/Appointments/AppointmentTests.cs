@@ -344,6 +344,66 @@ public class AppointmentTests
     }
 
     [Fact]
+    public void ChangeStatus_Should_Restore_A_Visit_Cancelled_After_Arrival_To_Arrived()
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+        var arrivedAt = appointment.CheckedInAt;
+        appointment.Cancel(CancellationReason.Other, "mis-click");
+
+        appointment.ChangeStatus(AppointmentStatus.Confirmed, CancellationReason.PatientRequest);
+
+        Assert.Equal(AppointmentStatus.CheckedIn, appointment.Status);
+        Assert.Equal(arrivedAt, appointment.CheckedInAt);
+        Assert.Null(appointment.CancelledAt);
+        Assert.False(appointment.IsMissedAt(_slot.End.AddHours(1)));
+    }
+
+    [Fact]
+    public void ChangeStatus_To_Arrived_Should_Restore_Only_A_Visit_That_Arrived()
+    {
+        var arrived = NewAppointment();
+        arrived.CheckIn();
+        arrived.Cancel(CancellationReason.Other, "mis-click");
+        arrived.ChangeStatus(AppointmentStatus.InProgress, CancellationReason.PatientRequest);
+        Assert.Equal(AppointmentStatus.CheckedIn, arrived.Status);
+
+        var neverCame = NewAppointment();
+        neverCame.Cancel(CancellationReason.Other, "sick");
+        Assert.Throws<BusinessException>(() =>
+            neverCame.ChangeStatus(AppointmentStatus.InProgress, CancellationReason.PatientRequest));
+        Assert.Equal(AppointmentStatus.Cancelled, neverCame.Status);
+    }
+
+    [Fact]
+    public void Restore_Should_Put_A_Visit_Cancelled_In_The_Chair_Back_In_Progress()
+    {
+        var appointment = NewAppointment();
+        appointment.Start();
+        appointment.Cancel(CancellationReason.Other, "mis-click");
+
+        appointment.Restore();
+
+        Assert.Equal(AppointmentStatus.InProgress, appointment.Status);
+        Assert.NotNull(appointment.StartedAt);
+    }
+
+    [Fact]
+    public void ChangeStatus_Should_Refuse_To_Mark_Late_A_Visit_Cancelled_After_Arrival()
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+        appointment.Cancel(CancellationReason.Other, "mis-click");
+
+        var error = Assert.Throws<BusinessException>(() =>
+            appointment.ChangeStatus(AppointmentStatus.NoShow, CancellationReason.PatientRequest));
+
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.ArrivedCannotBeLate, error.Code);
+        Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
+        Assert.NotNull(appointment.CancelledAt);
+    }
+
+    [Fact]
     public void BookFollowUp_Should_Book_The_Next_Visit_And_Link_It()
     {
         var appointment = NewAppointment();

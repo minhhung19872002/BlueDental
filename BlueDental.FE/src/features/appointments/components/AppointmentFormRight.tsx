@@ -3,8 +3,8 @@ import { Input } from "antd";
 import { PlusOutlined, CloseOutlined, CheckOutlined } from "@ant-design/icons";
 import { Controller, type Control, type FieldErrors, type UseFormSetValue } from "react-hook-form";
 import { t } from "@/lib/i18n";
-import type { AppointmentStatus } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
+import type { StoredStatus } from "./appointmentStatusOptions";
 import { AppointmentStatusField } from "./AppointmentStatusField";
 
 interface NotesProps {
@@ -17,14 +17,14 @@ interface NotesProps {
 interface Props extends NotesProps {
   errors: FieldErrors<AppointmentEditorValues>;
   /** The stored status while editing; absent for a new booking. */
-  currentStatus?: AppointmentStatus;
+  stored?: StoredStatus;
 }
 
 /** The third column: Trạng thái when editing, then the Ghi chú card. */
-export function AppointmentFormRight({ currentStatus, errors, ...notes }: Props) {
+export function AppointmentFormRight({ stored, errors, ...notes }: Props) {
   return (
     <div>
-      {currentStatus && <AppointmentStatusField control={notes.control} errors={errors} currentStatus={currentStatus} />}
+      {stored && <AppointmentStatusField control={notes.control} errors={errors} stored={stored} />}
       <AppointmentNotesPanel {...notes} />
     </div>
   );

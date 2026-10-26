@@ -1,33 +1,32 @@
 import { Input, Select } from "antd";
 import { Controller, useWatch, type Control, type FieldErrors } from "react-hook-form";
 import { t } from "@/lib/i18n";
-import type { AppointmentStatus } from "../types/appointment";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
-import { STATUS_GROUP, statusSelectOptions } from "./appointmentStatusOptions";
+import { STATUS_GROUP, statusSelectOptions, type StoredStatus } from "./appointmentStatusOptions";
 
 interface Props {
   control: Control<AppointmentEditorValues>;
   errors: FieldErrors<AppointmentEditorValues>;
-  /** What the appointment is now; the select opens on it. */
-  currentStatus: AppointmentStatus;
+  /** What the appointment is now; the select opens on its status. */
+  stored: StoredStatus;
 }
 
 /**
  * Trạng thái — the edit dialog's own way of marking an appointment late or
- * cancelled, or of putting a late or cancelled one back on the book. Đã hẹn,
- * Đã huỷ and Trễ hẹn are always offered; Đã đến only shows as the current
- * value of a visit that already arrived.
+ * cancelled, or of putting a late or cancelled one back on the book. A visit
+ * that never arrived is offered Đã hẹn, Đã huỷ and Trễ hẹn; one that arrived
+ * is offered Đã đến and Đã huỷ only, so it can never turn Trễ hẹn (R-1034).
  *
  * Picking Đã huỷ asks for Lý do hủy (bug list #16); the CSKH Lịch hẹn hủy tab
  * lists it. A booking already cancelled shows its reason read-only.
  */
-export function AppointmentStatusField({ control, errors, currentStatus }: Props) {
-  const options = statusSelectOptions(currentStatus).map((option) => ({
+export function AppointmentStatusField({ control, errors, stored }: Props) {
+  const options = statusSelectOptions(stored).map((option) => ({
     value: option.value,
     label: t(option.label),
   }));
   const status = useWatch({ control, name: "status" });
-  const alreadyCancelled = STATUS_GROUP[currentStatus] === "cancelled";
+  const alreadyCancelled = STATUS_GROUP[stored.status] === "cancelled";
 
   return (
     <>

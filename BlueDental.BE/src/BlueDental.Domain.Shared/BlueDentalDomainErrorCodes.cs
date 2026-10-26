@@ -187,6 +187,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A finished session of a recurring booking can be neither edited nor deleted (BA).</summary>
         public const string SeriesSessionFinished = "BlueDental:Appointment:0015";
+
+        /// <summary>The patient already arrived (CheckedInAt is set), so the visit cannot be Trễ hẹn (R-1034).</summary>
+        public const string ArrivedCannotBeLate = "BlueDental:Appointment:0016";
     }
 
     public static class TreatmentManagement
