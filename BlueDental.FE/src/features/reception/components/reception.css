@@ -345,18 +345,24 @@
 }
 
 /* Thẻ hồ sơ under the name, indented to line up with it: two chips, "+N",
-   then the 🏷 button. Empty until the record carries a tag, bar the button. */
+   then the 🏷 button. Empty until the record carries a tag, bar the button.
+   The row is ~150px: kept on one line two chips get ~45px each ("Ni…"), so
+   the chips wrap and each may run the row's full width. */
 .rc-tag-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   padding-left: 30px;
 }
-/* The column is 180px: the chip's own tag icon would leave a name ~15px of
-   room, and the 🏷 button beside it already says what the chips are. */
+.rc-tag-row .pd-tag-strip {
+  display: contents;
+}
+/* The chip's own tag icon is dropped: the 🏷 button beside it already says
+   what the chips are. */
 .rc-tag-row .pd-tag-chip {
-  max-width: 120px;
+  max-width: 100%;
   padding: 2px 5px;
   font-size: 11px;
 }

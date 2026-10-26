@@ -11155,5 +11155,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   5. Tag của chi nhánh khác bị server bỏ.
   6. Role không có `patient.update`: thấy chip nhưng không có nút, PUT bị 403.
   - Kết quả: **6/6**.
-- **Hồi quy**: `patient.spec -g tag` → **7/7**. Bộ `e2e/reception*` đang chạy khi commit, kết quả bổ sung sau.
-- **Commit**: commit này.
+- **Hồi quy**: `patient.spec -g tag` → **7/7**. `e2e/reception*` → **50 pass / 3 skip / 1 đỏ**. Ca đỏ là `reception-live-late.spec:137` ("the server's push alone refreshes an open board"), một ca đã ghi nhận là chập chờn khi chạy cả loạt. Chạy riêng spec đó → **3/3**.
+- **Commit**: 15548c1a.
+- **Chỉnh sau commit (chip dễ đọc hơn, mức 1)**:
+  - Ảnh chụp thẻ có 3 tag tên dài cho thấy chip chỉ còn "Ni…" / "Khác…". Lý do: dòng tag rộng khoảng 150px mà phải chứa 2 chip, "+1" và nút 🏷, nên mỗi chip còn khoảng 45px.
+  - Đã sửa: `.rc-tag-row` cho xuống dòng (`flex-wrap`, strip `display: contents`), mỗi chip dài tối đa bằng cả dòng.
+  - Tag tên ngắn vẫn nằm trên một dòng. Tên dài thì mỗi chip một dòng, thẻ cao thêm khoảng 50px.
+  - Chụp lại thấy đọc được. Chạy lại `reception-patient-tags` → **6/6**.
