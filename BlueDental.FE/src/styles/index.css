@@ -320,6 +320,19 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* The rule above turns every style change into a transition, a popup's
+     position included: antd sets top/left and reads the box back at once, gets
+     the old off-screen spot, and parks the popup at -1000vh — the account menu
+     "flashed" and showed nothing (R-1032). Popup frames must move instantly. */
+  .ant-dropdown,
+  .ant-select-dropdown,
+  .ant-picker-dropdown,
+  .ant-cascader-dropdown,
+  .ant-popover,
+  .ant-tooltip {
+    transition: none !important;
+  }
 }
 
 input,
