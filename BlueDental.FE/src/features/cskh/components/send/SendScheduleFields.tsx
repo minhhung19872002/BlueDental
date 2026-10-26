@@ -1,4 +1,5 @@
-import { Checkbox, DatePicker, TimePicker } from "antd";
+import { Checkbox, DatePicker } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";

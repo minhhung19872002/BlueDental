@@ -1,4 +1,5 @@
-import { Button, Input, InputNumber, Select, TimePicker, DatePicker } from "antd";
+import { Button, Input, InputNumber, Select, DatePicker } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import { FloatingField } from "@/components/FloatingField";
 import { pagedSelectProps } from "@/components/pagedSelectProps";
 import type { usePatientPicker } from "@/hooks/usePatientOptions";

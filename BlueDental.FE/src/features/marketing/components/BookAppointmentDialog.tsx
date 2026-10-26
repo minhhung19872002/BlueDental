@@ -1,4 +1,5 @@
-import { Col, DatePicker, Form, Input, InputNumber, Row, Select, TimePicker } from "antd";
+import { Col, DatePicker, Form, Input, InputNumber, Row, Select } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import { CalendarOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { AppDialog } from "@/components/AppDialog";

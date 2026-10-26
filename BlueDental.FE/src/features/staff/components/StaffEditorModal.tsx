@@ -7,11 +7,11 @@ import {
   Select,
   Checkbox,
   Radio,
-  TimePicker,
   Row,
   Col,
   Button,
 } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import {
   PlusOutlined,
   DeleteOutlined,
