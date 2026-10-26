@@ -11059,3 +11059,23 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kết quả e2e** (bản build production, BE local :5000, không chặn request): `header-navigation`, `popup-placement`, `auth` → **16/18**. 2 đỏ có từ trước, đỏ y hệt trên bản không có sửa (giống R-1031): "the ribbon is always on…" và "below 1100px the groups give way to the drawer" (cần 18 mục drawer, có 17).
 - **BE**: không đổi.
 - **Commit**: `main` a6986de2 (sửa CSS), chủ dự án commit. Mục log này chưa commit.
+
+## R-1033 (2026-10-26, mức 2: tiếp nhận) Lịch tạm bị huỷ vẫn hiện như đang chờ, nút huỷ vẫn còn
+
+- **Yêu cầu BA (Huỳnh Văn Định)**, kèm ảnh bảng Tiếp nhận: "Cho flow lịch tạm cũng tương tự nha." và "Bấm hủy vẫn còn nha."
+  - Trong ảnh, hai thẻ thường đã huỷ có nền đỏ và thanh tiến trình kết thúc bằng ✕ đỏ "Huỷ hẹn" + giờ huỷ.
+  - Thẻ Lịch tạm đã huỷ: huy hiệu đã là "Huỷ hẹn" nhưng nền vẫn tím. Thanh vẫn là Đã đến → Đang khám → Hoàn tất, đồng hồ "Chờ quá lâu" vẫn chạy, và nút huỷ vẫn hiện.
+- **Nguyên nhân**: BE huỷ đúng (status `Cancelled`). Với lịch tạm, FE đặt `counterStatus = "Temporary"` (`receptionApi.mapAppointmentDto`); trạng thái thật nằm ở `visitStatus`. Ba chỗ quyết định "đã huỷ" lại xét `counterStatus === "Cancelled"`, nên lịch tạm không bao giờ được coi là đã huỷ:
+  - `ReceptionCard`: nền đỏ, ẩn nút huỷ, khoá chọn bác sĩ và kết quả.
+  - `ReceptionCardSteps`: bước ✕ "Huỷ hẹn".
+  - `useWaitState`: dừng đồng hồ chờ.
+- **Sửa (chỉ FE)**: thêm helper `isCancelledVisit(item)` trong `utils/receptionFlow.ts`, xét `visitStatus === "Cancelled"`. Cả ba chỗ trên dùng helper này. Với thẻ thường, `visitStatus` đã huỷ luôn trùng `counterStatus`, nên hành vi thẻ thường không đổi. Nhãn "Lịch tạm" vắt trên mép thẻ vẫn giữ. Bấm tên lịch tạm đã huỷ vẫn mở "Tạo hồ sơ" như trước (owner chốt).
+- **Không làm**: `ReceptionGrid.tsx` không được import ở đâu (code chết), nên không sửa.
+- **E2E mới** `reception-temp-cancel.spec.ts`, 2 ca. Lịch tạm tạo qua API; Đã đến và Huỷ (nhập lý do) bấm trên bảng, không chặn request. Kiểm tra trước và sau reload:
+  - Đã đến rồi huỷ: thanh = Đã đến → Huỷ hẹn với giờ lấy từ server, nhãn cuối màu đỏ.
+  - Huỷ khi chưa đến: thanh chỉ có một bước "Huỷ hẹn".
+  - Cả hai ca: nền `#fdeced`, không còn đồng hồ chờ, không còn nút "Hủy lịch", các bước và kết quả bị khoá, nhãn "Lịch tạm" vẫn còn.
+  - Trên bản build HEAD (trước sửa): **0/2**, đỏ đúng triệu chứng trong ảnh của BA (nền `rgb(238,240,255)` / trắng). Sau sửa: **2/2**.
+- **Hồi quy** (bản build production `vite preview`, BE local :5000): toàn bộ `e2e/reception*.spec.ts` → **41 passed, 3 skipped** (các ca TEMP-PRIORITY-OFF đã skip sẵn trong `reception-doctor-priority`), 0 đỏ.
+- **BE**: không đổi.
+- **Commit**: chưa commit.

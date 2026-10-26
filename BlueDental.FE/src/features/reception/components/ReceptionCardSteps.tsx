@@ -2,6 +2,7 @@ import React from "react";
 import { Check, X } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { ReceptionItem } from "../types/reception";
+import { isCancelledVisit } from "../utils/receptionFlow";
 import type { WaitLevel, WaitState } from "../utils/waitTime";
 import { WaitTimerChip } from "./WaitTimerChip";
 
@@ -76,7 +77,7 @@ function buildSteps(item: ReceptionItem, wait: WaitState): StepView[] {
     ...(wait.kind === "waited" && { note: t("Reception:WaitedMinutes", wait.minutes) }),
   };
 
-  if (item.counterStatus === "Cancelled") {
+  if (isCancelledVisit(item)) {
     const cancelled: StepView = {
       key: "cancelled", number: 1, label: t("Reception:StatusCancelled"), time: item.cancelTime,
       done: true, color: CANCEL_COLOR, labelColor: CANCEL_COLOR, icon: "cross",

@@ -23,6 +23,7 @@ import type {
   BookedOutcome,
 } from "../types/reception";
 import { useWaitState } from "../hooks/useWaitState";
+import { isCancelledVisit } from "../utils/receptionFlow";
 import type { WaitLevel } from "../utils/waitTime";
 import { ReceptionCardSteps } from "./ReceptionCardSteps";
 
@@ -152,7 +153,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const step3Done = !!item.step3Time;
 
   // Only a cancelled visit stops here: a Trễ hẹn patient who turns up after all is still received.
-  const isCancelled = item.counterStatus === "Cancelled";
+  const isCancelled = isCancelledVisit(item);
   // Bug list item 25: a booking is received on its own day only, so a 21/10
   // card seen on 07/10 cannot be checked in — nor sent to the chair or
   // finished, which check it in on the way. The server refuses it too.

@@ -3,6 +3,13 @@ import type { AppointmentOutcome, ReceptionItem } from "../types/reception";
 export type StepAction = "check-in" | "start" | "complete";
 export type NonNullOutcome = Exclude<AppointmentOutcome, null>;
 
+/**
+ * Whether the visit was cancelled. Reads `visitStatus`, not `counterStatus`:
+ * a cancelled "Lịch tạm" keeps "Temporary" as its counter status, yet its
+ * card must end like any other cancelled visit (BA, R-1033).
+ */
+export const isCancelledVisit = (item: ReceptionItem): boolean => item.visitStatus === "Cancelled";
+
 /** What one click on a card asks the server for. */
 export type ReceptionCommand =
   | { kind: "status"; action: StepAction; outcome?: NonNullOutcome }
