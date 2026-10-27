@@ -139,7 +139,10 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
   const codes = (await planRows.allInnerTexts()).map((code) => code.trim());
   const other = codes.find((code) => code !== slipCode);
   test.skip(!other, "the patient has no other slip to open the dialog from");
+  // The receipt icon lands on that slip's Thanh toán tab (R-1042); the dialog opens there.
   await page.getByRole("button", { name: `Phiếu thu ${other}` }).click();
+  await expect(page).toHaveURL(/planTab=payment-v2/);
+  await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
   const next = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
   await expect(next).toBeVisible();
   await next.locator(".pd-newpay-slipselect").click();

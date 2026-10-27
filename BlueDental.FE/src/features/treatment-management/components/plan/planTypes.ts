@@ -154,15 +154,30 @@ export function planRowClass(plan: TreatmentPlanSlipDto): string {
   return plan.status === PLAN_STATUS.Completed ? "tp-row--done" : "";
 }
 
+const NOT_STARTED_STATUSES: ReadonlySet<number> = new Set([
+  PLAN_STATUS.Draft,
+  PLAN_STATUS.PendingApproval,
+  PLAN_STATUS.Approved,
+]);
+
 /**
- * The reference's "Trạng thái - Tiến độ" column: an open slip whose lines have
- * not started yet still reads "Đã tạo"; it turns "Đang điều trị" with the
- * first stage. Local slips open straight into InProgress, so derive it here.
+ * Whether the slip still reads "Đã tạo": not started, or open with every line
+ * still "Đã tạo". Local slips open straight into InProgress and turn
+ * "Đang điều trị" with the first stage, so it is derived from the lines.
+ * Only such a slip may be deleted (owner 2026-10-27).
  */
+export function isPlanUntouched(plan: TreatmentPlanSlipDto): boolean {
+  if (NOT_STARTED_STATUSES.has(plan.status)) return true;
+  return (
+    plan.status === PLAN_STATUS.InProgress &&
+    plan.services.every((service) => service.status === SERVICE_LINE_STATUS.Created)
+  );
+}
+
+/** The reference's "Trạng thái - Tiến độ" column. */
 export function planPill(plan: TreatmentPlanSlipDto) {
   const pills = planPills();
-  const untouched = plan.services.every((service) => service.status === SERVICE_LINE_STATUS.Created);
-  if (plan.status === PLAN_STATUS.InProgress && untouched) return pills[PLAN_STATUS.Draft];
+  if (isPlanUntouched(plan)) return pills[PLAN_STATUS.Draft];
   return pills[plan.status] ?? pills[PLAN_STATUS.Draft];
 }
 
