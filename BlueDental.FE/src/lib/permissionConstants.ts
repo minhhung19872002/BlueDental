@@ -22,6 +22,7 @@ export function abilityPermission(subject: string, action: AbilityAction): strin
 export const LegacyPermissions = {
   Organizations: {
     View: `${PERMISSION_GROUP}.Organizations.View`,
+    Edit: `${PERMISSION_GROUP}.Organizations.Edit`,
   },
   BranchManager: {
     View: `${PERMISSION_GROUP}.BranchManager.View`,

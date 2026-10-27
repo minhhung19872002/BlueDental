@@ -17,10 +17,15 @@ interface Handlers {
   onComplete?: (row: InvoiceRequestDto) => void;
 }
 
+/** The customer filled these in themselves; a staff request names its author. */
+const CUSTOMER_SOURCE_LABEL: Partial<Record<InvoiceRequestDto["source"], string>> = {
+  [INVOICE_REQUEST_SOURCE.CustomerQr]: "Patient:InvoiceRequest:ByCustomerQr",
+  [INVOICE_REQUEST_SOURCE.SigningDevice]: "Patient:InvoiceRequest:ByCustomerIpad",
+};
+
 function RequestedCell({ row }: { row: InvoiceRequestDto }) {
-  const who = row.source === INVOICE_REQUEST_SOURCE.CustomerQr
-    ? t("Patient:InvoiceRequest:ByCustomerQr")
-    : row.requesterName ?? "—";
+  const customerLabel = CUSTOMER_SOURCE_LABEL[row.source];
+  const who = customerLabel ? t(customerLabel) : row.requesterName ?? "—";
   return (
     <div className="ir-cell">
       <span>{formatDateTime(row.requestedAt)}</span>

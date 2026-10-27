@@ -1,30 +1,34 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Spin } from "antd";
 import { EmptyState } from "@/components/EmptyState";
+import { ReceiptPaper, type ReceiptClinic } from "@/components/ReceiptPaper";
 import { StepTrack } from "@/components/StepTrack";
 import { extractApiError } from "@/lib/apiError";
 import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { openReceiptTab, showReceipt } from "@/lib/receiptTab";
-import { usePaymentReceipt, useReceiptPdf } from "../api/paymentReceiptApi";
+import { RECEIPT_STATUS, usePaymentReceipt, useReceiptPdf } from "../api/paymentReceiptApi";
+import type { ReceiptSigningStateDto } from "../api/receiptSigningApi";
 import { planPaymentPath } from "../components/paymentLedgerColumns";
 import { ReceiptHeader } from "../components/receipt/ReceiptHeader";
-import { ReceiptSheet, type ReceiptClinic } from "../components/receipt/ReceiptSheet";
+import { ReceiptIpadControls } from "../components/receipt/ReceiptIpadControls";
 import { ReceiptStatusPanel } from "../components/receipt/ReceiptStatusPanel";
-import { receiptSteps } from "../components/receipt/receiptSteps";
+import { countedSession, receiptSteps } from "../components/receipt/receiptSteps";
+import { useReceiptIpad } from "../hooks/useReceiptIpad";
 import "../components/receipt/receipt.css";
 
 /**
  * Tài chính → Phiếu thu (P2610): one receipt on its way from the counter to
  * the customer's signature — the step bar, the PHIẾU THU as written, and where
- * it stands. "Tạo phiếu thanh toán" lands here; the slip's Thanh toán tab
- * opens it from the receipt's number or 👁.
+ * it stands, with the iPad buttons while it waits. "Tạo phiếu thanh toán"
+ * lands here; the slip's Thanh toán tab opens it from the receipt's number or 👁.
  */
 export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { data: receipt, isLoading, error } = usePaymentReceipt(id);
   const pdf = useReceiptPdf();
+  const ipad = useReceiptIpad(id);
 
   if (isLoading) return <Spin className="rcpt-loading" />;
   if (error || !receipt) {
@@ -42,6 +46,8 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
     ? planPaymentPath(receipt.patientId, receipt.treatmentPlanId, receipt.clinicBranchId)
     : withBranch("/billing", receipt.clinicBranchId);
 
+  const session = ipad.state?.session ?? null;
+
   const handlePrint = () => {
     const tab = openReceiptTab();
     pdf.mutate(receipt.id, {
@@ -55,12 +61,41 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
     <div className="page-container rcpt-page">
       <ReceiptHeader receipt={receipt} backPath={slipPath} />
       <section className="rcpt-track-card">
-        <StepTrack items={receiptSteps(receipt)} label={t("Receipt:Step:Label")} />
+        <StepTrack items={receiptSteps(receipt, session)} label={t("Receipt:Step:Label")} />
       </section>
       <div className="rcpt-body">
-        <ReceiptSheet receipt={receipt} clinic={clinic} />
-        <ReceiptStatusPanel receipt={receipt} slipPath={slipPath} onPrint={handlePrint} printing={pdf.isPending} />
+        <ReceiptPaper receipt={receipt} clinic={clinic} signature={signatureOf(ipad.state)} />
+        <ReceiptStatusPanel
+          receipt={receipt}
+          slipPath={slipPath}
+          onPrint={handlePrint}
+          printing={pdf.isPending}
+          pendingTitle={pendingTitleOf(ipad.state)}
+        >
+          {receipt.status === RECEIPT_STATUS.Pending && ipad.state && (
+            <ReceiptIpadControls
+              state={ipad.state}
+              pendingAction={ipad.pendingAction}
+              confirmReplace={ipad.confirmReplace}
+              handlers={ipad}
+            />
+          )}
+        </ReceiptStatusPanel>
       </div>
     </div>
   );
+}
+
+/** The customer's drawing goes in the Người nộp tiền box once signed. */
+function signatureOf(state: ReceiptSigningStateDto | null) {
+  const session = countedSession(state?.session ?? null);
+  if (!session?.signatureDataUrl || !session.signedAt) return null;
+  return { dataUrl: session.signatureDataUrl, signedAt: session.signedAt };
+}
+
+/** The column's heading while the receipt waits, by what the customer has done. */
+function pendingTitleOf(state: ReceiptSigningStateDto | null): string | undefined {
+  const open = state?.session?.isOpen ? state.session : null;
+  if (!open) return undefined;
+  return open.signedAt ? t("Receipt:Panel:SignedTitle") : t("Receipt:Panel:AtIpadTitle");
 }

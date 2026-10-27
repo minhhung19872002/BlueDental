@@ -11321,3 +11321,46 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy: `reception-live-late` 3/3 **xanh** (chip vẫn cộng lại bằng Tất cả). Vitest reception 3/3 xanh.
   - `reception-restore-arrived` đỏ 4 ca. Cả 4 hỏng ở bước đặt lịch của fixture `bookVisitToday` ("every dentist was booked") vì DB riêng không có bác sĩ, trước khi chạm tới code đã sửa.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
+
+## R-1048 (2026-10-27, mức 3: phiếu thu + Cài đặt) P2610 phase 4 — khách kiểm tra và ký phiếu thu trên iPad
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời owner 2026-10-27. Phase 4/7 của F-81. Chi tiết: `docs/testing/features/receipt-ipad-signing.md`. (R-1047 đã dùng cho commit tab Đã đến.)
+- **Owner chốt**:
+  1. iPad là trang web riêng `/sign`, không đăng nhập nhân viên, không có đường dự phòng trên PC.
+  2. Ghép theo chi nhánh: Cài đặt → Kết nối iPad cho link + QR, mỗi iPad một mã thu hồi được. Mỗi chi nhánh một phiên đang mở.
+  3. iPad bận thì PC hiện "iPad đang chờ khách ký phiếu …": thu ngân chờ, hoặc hủy phiên đó rồi gửi phiếu mới.
+  4. Đầu trang iPad: logo + tên chi nhánh. Không Quầy, không "Báo sai thông tin".
+  5. Chưa làm panel kế toán; ✓ / `POST {id}/issue` tạm vẫn giữ.
+- **Sửa (BE)**:
+  - Aggregate `ReceiptSigningSession` (`bd_receipt_signing_sessions`, unique phiên mở theo chi nhánh) và `SigningDevice` (`bd_signing_devices`, chỉ lưu SHA-256 của mã), migration `20261027062435_ReceiptSigning`. `SigningCloseReason` Cancelled / Issued / ReceiptCancelled / Revised / Replaced.
+  - Chữ ký: `SignatureImage` chỉ nhận PNG data URL (0105), mã hoá AES-256-GCM bằng `ReceiptCipher` (khoá `ReceiptVault:Key`, thiếu khoá → 0107). Khoá nằm trong `appsettings.Development.json` (git-ignore) ở local, biến môi trường `ReceiptVault__Key` trên server.
+  - `ReceiptSigningDesk`: `SendIfFreeAsync` khi ghi phiếu; Sửa / Hủy / Xuất phiếu đóng phiên (Revised / ReceiptCancelled / Issued).
+  - PC: `receipt-signing/{paymentId}` (GET, `/send {replace}`, `/cancel`, `/resign`), quyền Payment Read / Update, lọc chi nhánh. Thiết bị: `signing-devices` (Organizations View / Edit), `/{id}/revoke`.
+  - iPad: `public/signing-station` + `sessions/{id}/check | sign | invoice-request`, header `X-Signing-Device-Token`. Mã sai / thu hồi → 403 `0111`, không bao giờ 401 (tránh mở màn đăng nhập). Ký trước khi tích → 0104; phiên đã đóng → 0103. Yêu cầu hoá đơn từ iPad có nguồn 3 `SigningDevice`.
+  - SignalR `ReceiptSigningChanged`: iPad qua hub `/signalr/receipt-signing` (`JoinDevice(token)`, nhóm theo chi nhánh), PC qua `/signalr/notifications` (chỉ gửi id).
+  - Mã lỗi mới `Billing:0102` → `0111`.
+- **Sửa (FE)**:
+  - Feature mới `signing-station`: `/sign/pair#<token>` lưu mã rồi về `/sign` (mã sau `#` không tới server); `/sign` có màn chờ, PHIẾU THU + 2 ô + "Xác nhận thông tin", bảng ký, "Cảm ơn quý khách đã ký", form Yêu cầu xuất hóa đơn (Doanh nghiệp / Cá nhân), "Đã xuất phiếu thu".
+  - Tờ phiếu thu chuyển thành `components/ReceiptPaper` (dùng chung PC + iPad), có chữ ký + "Ký lúc".
+  - Trang phiếu thu: `ReceiptIpadControls` (Gửi tới iPad / Gửi lại / Hủy phiên & sửa phiếu / Yêu cầu khách ký lại, thông báo iPad bận + "Hủy & gửi"); stepper có mốc giờ các bước iPad; cập nhật sống qua SignalR.
+  - Cài đặt: tab Kết nối iPad (`IpadPairingTab`), link + QR hiện một lần, danh sách Đang kết nối / Đã thu hồi.
+- **E2E**:
+  - Spec mới `receipt-ipad`, 6 ca nối tiếp, iPad là browser context thứ hai 1024×1366 có touch:
+    1. Ghép: link + QR, danh sách "Đang kết nối", tải lại vẫn ở `/sign`.
+    2. Tự gửi → kiểm tra → ký → PC thấy sống; GET riêng trả `data:image/png`; Ký lại; Xuất → iPad "Đã xuất phiếu thu" → màn chờ; PC đủ 6 bước.
+    3. iPad bận, giành phiên, Hủy phiên, Gửi tới iPad bằng tay.
+    4. Yêu cầu hoá đơn Cá nhân trên iPad, đọc lại thấy nguồn 3.
+    5. API trạm ký: không mã / mã giả → 0111; ký trước khi tích → 0104; ảnh không phải PNG → 0105; phiên đã hủy → 0103.
+    6. Chi nhánh 2 không xem được iPad của chi nhánh 1; Thu hồi → iPad "iPad chưa được kết nối".
+  - Dọn: `afterEach` hủy phiên của phiếu do ca tạo; `afterAll` thu hồi mọi thiết bị "iPad e2e …".
+- **Kết quả**:
+  - BE: Domain Billing 51/51 (12 ca mới `ReceiptSigningTests`), Application Billing 27/27, `ControllerConventionTests` 21/21.
+  - FE: `tsc -b` sạch, eslint sạch.
+  - E2E trên stack thật (API :5000, `vite preview` :8080, không chặn request):
+    - `receipt-ipad` 6/6 (chạy 3 lần, 2 lần đầu 5/5 trước khi thêm ca 5). Sau khi chạy: 0 thiết bị đang hoạt động, 0 phiên mở.
+    - Hồi quy tiền: `receipt-page`, `billing-ledger`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-qr`, `payment-receipt-pdf`, `payment-status`, `invoice-request-api`, `invoice-request-ui`: 28/28 xanh (các ca `openNewSlip` đỏ ở R-1045 lần này xanh).
+- **Chưa làm / lưu ý**:
+  - **Server cần `RECEIPT_VAULT_KEY` trong `.env` của VM** (`openssl rand -base64 32`, mỗi server một khoá). `docker-compose.prod.yml` truyền nó vào `ReceiptVault__Key` và dùng `:?`, nên thiếu biến thì compose dừng, deploy đỏ. Cách tạo: `docs/cicd-setup.md` mục 5. Mất khoá = mất mọi chữ ký đã lưu; khoá không đưa vào git.
+  - Chi nhánh có iPad đang ghép và rảnh thì mọi phiếu mới tự lên iPad: không chạy `receipt-ipad` song song với spec tiền khác.
+  - Giả định chưa có xác nhận: `docs/clone/unknowns.md` → P2610 phase 4.
+  - Vẫn **không deploy staging** cho tới hết phase 5.

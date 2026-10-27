@@ -34,6 +34,11 @@ services:
       Zalo__WebhookSecret: ${ZALO_WEBHOOK_SECRET:-}
       Zalo__BootstrapAccessToken: ${ZALO_BOOTSTRAP_ACCESS_TOKEN:-}
       Zalo__BootstrapRefreshToken: ${ZALO_BOOTSTRAP_REFRESH_TOKEN:-}
+      # AES-256 key for the iPad signatures on receipts (P2610). Required: the
+      # stack will not start without it. Generate once per server with
+      # `openssl rand -base64 32` and keep a copy off the VM — losing it loses
+      # every stored signature, and a new key cannot read the old ones.
+      ReceiptVault__Key: ${RECEIPT_VAULT_KEY:?RECEIPT_VAULT_KEY is required in .env (openssl rand -base64 32)}
     volumes:
       - dataprotection_keys:/data/keys
 

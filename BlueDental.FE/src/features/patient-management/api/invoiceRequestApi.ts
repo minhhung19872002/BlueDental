@@ -16,8 +16,8 @@ export const INVOICE_REQUEST_STATUS = {
 export type InvoiceRequestStatus =
   (typeof INVOICE_REQUEST_STATUS)[keyof typeof INVOICE_REQUEST_STATUS];
 
-/** Who filled the request in: the customer by QR, or staff. */
-export const INVOICE_REQUEST_SOURCE = { CustomerQr: 1, Staff: 2 } as const;
+/** Who filled the request in: the customer by QR or on the counter iPad, or staff. */
+export const INVOICE_REQUEST_SOURCE = { CustomerQr: 1, Staff: 2, SigningDevice: 3 } as const;
 
 export type InvoiceRequestSource =
   (typeof INVOICE_REQUEST_SOURCE)[keyof typeof INVOICE_REQUEST_SOURCE];

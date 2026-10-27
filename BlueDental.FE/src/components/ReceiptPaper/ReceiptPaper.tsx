@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
-import type { PaymentReceiptDto } from "../../api/paymentReceiptApi";
+import { formatDateTime, formatVND } from "@/utils/format";
+import "./receipt-paper.css";
 
 /** The clinic printed at the sheet's top: its logo and name. */
 export interface ReceiptClinic {
@@ -9,9 +9,34 @@ export interface ReceiptClinic {
   logoUrl: string;
 }
 
+/** What the PHIẾU THU says — the frozen content of PaymentReceiptContentDto. */
+export interface ReceiptPaperData {
+  code: string;
+  content: {
+    patientCode: string;
+    payerName: string;
+    planCode: string;
+    /** `YYYY-MM-DD`, the Ngày thanh toán picked on the dialog. */
+    paidOn: string;
+    amount: number;
+    amountInWords: string;
+    remaining: number;
+    remainingInWords: string;
+    creatorName: string;
+    lines: readonly { name: string; amount: number }[];
+  };
+}
+
+/** The customer's drawing from the iPad, with the moment of "Hoàn tất ký". */
+export interface ReceiptPaperSignature {
+  dataUrl: string;
+  signedAt: string;
+}
+
 interface Props {
-  receipt: PaymentReceiptDto;
+  receipt: ReceiptPaperData;
   clinic: ReceiptClinic;
+  signature?: ReceiptPaperSignature | null;
 }
 
 /** "2026-10-27" → its day, month and year, as the paper reads them. */
@@ -30,12 +55,25 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function PayerSign({ signature }: { signature?: ReceiptPaperSignature | null }) {
+  if (!signature) return <span className="rcpt-sign-box">{t("Receipt:Sheet:AwaitingCustomer")}</span>;
+  return (
+    <>
+      <span className="rcpt-sign-box rcpt-sign-box--signed">
+        <img className="rcpt-sign-image" src={signature.dataUrl} alt={t("Receipt:Sheet:SignatureAlt")} />
+      </span>
+      <span className="rcpt-sign-time">{t("Receipt:Sheet:SignedAt", formatDateTime(signature.signedAt))}</span>
+    </>
+  );
+}
+
 /**
- * The PHIẾU THU as the customer will read and sign it (P2610 mock), drawn from
+ * The PHIẾU THU as the customer reads and signs it (P2610 mock), drawn from
  * the content frozen when it was written — a later rename of the patient or a
- * service never rewrites it. No Nợ / Có accounts: the BA took them off.
+ * service never rewrites it. No Nợ / Có accounts: the BA took them off. The
+ * accountant's page and the customer's iPad show the same sheet.
  */
-export function ReceiptSheet({ receipt, clinic }: Props) {
+export function ReceiptPaper({ receipt, clinic, signature }: Props) {
   const { content } = receipt;
   const paidOn = partsOf(content.paidOn);
   return (
@@ -88,7 +126,7 @@ export function ReceiptSheet({ receipt, clinic }: Props) {
       <div className="rcpt-signs">
         <div className="rcpt-sign">
           <span className="rcpt-sign-role">{t("Receipt:Sheet:PayerSign")}</span>
-          <span className="rcpt-sign-box">{t("Receipt:Sheet:AwaitingCustomer")}</span>
+          <PayerSign signature={signature} />
         </div>
         <div className="rcpt-sign">
           <span className="rcpt-sign-role">{t("Receipt:Sheet:AccountantSign")}</span>

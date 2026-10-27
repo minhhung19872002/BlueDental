@@ -3145,3 +3145,21 @@ Giả định về Zalo chưa kiểm được với OA thật: webhook ZNS đã 
   - Echo `oa_send_template` để template ở `message.payload` hay `attachments[].payload` (code đọc cả hai).
   - API lịch sử chat trả thẻ với `message_id` / `type` nào. Ca hiếm "gửi xong mà lưu lỗi": Đồng bộ sẽ đọc thẻ thành một câu trả lời thường.
   - Cấu hình Webhook của app Zalo phải tích `follow` và `user_click_chatnow`; không tích thì thẻ chỉ đi khi khách nhắn tin đầu.
+## P2610 phase 4 — Ký phiếu thu trên iPad (F-81, R-1048, 2026-10-27, BA P2610)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/sign` (iPad), `/settings?tab=ipad` (Kết nối iPad), panel iPad trên `/billing/receipts/:id`
+Control: ghép iPad, màn PHIẾU THU trên iPad (2 ô xác nhận, Ký tên, Yêu cầu xuất hóa đơn), Gửi tới iPad / Gửi lại / Hủy phiên & sửa phiếu / Yêu cầu khách ký lại
+Reason: tính năng riêng của BlueDental theo `P2610.drawio`; bản gốc không có màn ký trên iPad. Xem `docs/testing/features/receipt-ipad-signing.md`.
+Action taken: NONE trên production. Chủ dự án đã chốt: trang web riêng `/sign`, ghép theo chi nhánh, một phiên mở mỗi chi nhánh, iPad bận thì thu ngân chờ hoặc hủy phiên rồi gửi, đầu trang chỉ logo + tên chi nhánh. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- Phiếu mới tự gửi lên iPad khi chi nhánh có iPad đang rảnh. iPad bận thì không tự thay phiếu đang chờ.
+- Một chi nhánh ghép được nhiều iPad. Mọi iPad của chi nhánh hiện cùng một phiếu; iPad nào ký trước thì tính.
+- Mã ghép nằm sau `#` trong đường dẫn, nên không đi tới server log. iPad lưu mã trong trình duyệt (localStorage); xoá dữ liệu trình duyệt thì phải ghép lại. Server chỉ giữ SHA-256 của mã.
+- Thu hồi iPad có hiệu lực ngay ở lần gọi kế tiếp; iPad hiện "iPad chưa được kết nối", không mở màn đăng nhập.
+- Chữ ký lưu dạng ảnh PNG, mã hoá AES-256-GCM bằng khoá `ReceiptVault:Key`. Mất khoá = mất chữ ký đã lưu. Chưa có xoay khoá.
+- Câu chữ hai ô xác nhận và dòng "Xác thực" trên màn iPad lấy theo ảnh mock, chưa có bản chữ chính thức.
+- Yêu cầu xuất hóa đơn trên iPad: Doanh nghiệp giống form của nhân viên; Cá nhân hỏi Họ và tên, Số điện thoại, Số CCCD, email (không bắt buộc). Danh sách trường Cá nhân là giả định.
+- Ký lại: xoá chữ ký cũ, quay về bước ký (không phải bước kiểm tra lại 2 ô).
+- Sửa phiếu / hủy phiếu / xuất phiếu thì đóng phiên. Chỉ khi xuất, iPad hiện "Đã xuất phiếu thu" 15 giây rồi về màn chờ.
+- Chưa có panel kế toán: xuất phiếu vẫn qua nút ✓ tạm (`POST patient-payments/{id}/issue`).

@@ -2018,6 +2018,28 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.PatientPaymentId).IsUnique();
         });
 
+        // iPad signing (P2610): one open session per branch, so every paired
+        // iPad of the branch shows the same receipt.
+        builder.Entity<ReceiptSigningSession>(entity =>
+        {
+            entity.ToTable("bd_receipt_signing_sessions");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.PaymentCode).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.CloseReason).HasConversion<short>();
+            entity.HasIndex(x => x.ClinicBranchId).IsUnique().HasFilter("\"ClosedAt\" IS NULL");
+            entity.HasIndex(x => new { x.PatientPaymentId, x.SentAt });
+        });
+
+        builder.Entity<SigningDevice>(entity =>
+        {
+            entity.ToTable("bd_signing_devices");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(SigningDevice.MaxNameLength).IsRequired();
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
         builder.Entity<EInvoiceProviderConfig>(entity =>
         {
             entity.ToTable("bd_einvoice_provider_configs");

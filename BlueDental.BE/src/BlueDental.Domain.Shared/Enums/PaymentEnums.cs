@@ -94,3 +94,25 @@ public enum PatientPaymentKind
     /// </summary>
     Prepaid = 3
 }
+
+/// <summary>
+/// Why an iPad signing session (P2610) ended. Only <see cref="Issued"/> is a
+/// success: the iPad then says "Phiếu thu đã được xuất".
+/// </summary>
+public enum SigningCloseReason
+{
+    /// <summary>Hủy phiên &amp; sửa phiếu — the cashier took the iPad back.</summary>
+    Cancelled = 1,
+
+    /// <summary>The receipt was exported.</summary>
+    Issued = 2,
+
+    /// <summary>The receipt itself was cancelled.</summary>
+    ReceiptCancelled = 3,
+
+    /// <summary>The receipt was edited, so what the customer saw is out of date.</summary>
+    Revised = 4,
+
+    /// <summary>Another receipt was sent to the iPad in its place.</summary>
+    Replaced = 5
+}

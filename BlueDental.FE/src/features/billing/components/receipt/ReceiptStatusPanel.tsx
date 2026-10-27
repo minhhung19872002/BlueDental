@@ -13,6 +13,10 @@ interface Props {
   slipPath: string;
   onPrint: () => void;
   printing: boolean;
+  /** While the receipt waits: where the iPad stands, replacing "Chờ gửi tới iPad". */
+  pendingTitle?: string;
+  /** While the receipt waits: the iPad buttons. */
+  children?: ReactNode;
 }
 
 interface PanelView {
@@ -24,11 +28,12 @@ const dash = (value: string | null) => value || "—";
 const when = (value: string | null) => (value ? formatDateTime(value) : "—");
 
 /** What the panel says, by status (P2610). */
-const PANEL_VIEWS: Record<ReceiptStatus, (receipt: PaymentReceiptDto, slipLink: ReactNode) => PanelView> = {
-  [RECEIPT_STATUS.Pending]: (_, slipLink) => ({
+const PANEL_VIEWS: Record<ReceiptStatus, (receipt: PaymentReceiptDto, slipLink: ReactNode, ipad: ReactNode) => PanelView> = {
+  [RECEIPT_STATUS.Pending]: (_, slipLink, ipad) => ({
     title: t("Receipt:Panel:PendingTitle"),
     body: (
       <>
+        {ipad}
         <p>{t("Receipt:Panel:PendingText")}</p>
         {slipLink}
       </>
@@ -66,20 +71,20 @@ const PANEL_VIEWS: Record<ReceiptStatus, (receipt: PaymentReceiptDto, slipLink: 
 
 /**
  * The column beside the sheet: where the receipt stands and what comes next.
- * Until the iPad page exists (phase 4) a written receipt waits here; it is
- * still corrected or cancelled on the slip. Every receipt but a cancelled one
- * can be printed.
+ * A written receipt waits here on the customer's iPad; it is still corrected
+ * or cancelled on the slip. Every receipt but a cancelled one can be printed.
  */
-export function ReceiptStatusPanel({ receipt, slipPath, onPrint, printing }: Props) {
+export function ReceiptStatusPanel({ receipt, slipPath, onPrint, printing, pendingTitle, children }: Props) {
   const slipLink = (
     <Link className="rcpt-panel-link" to={slipPath}>
       {t("Receipt:Panel:OpenSlip", receipt.content.planCode)}
     </Link>
   );
-  const view = PANEL_VIEWS[receipt.status](receipt, slipLink);
+  const view = PANEL_VIEWS[receipt.status](receipt, slipLink, children);
+  const title = receipt.status === RECEIPT_STATUS.Pending && pendingTitle ? pendingTitle : view.title;
   return (
     <aside className={`rcpt-panel rcpt-panel--${RECEIPT_STATUS_VIEWS[receipt.status].tone}`} aria-label={t("Common:Status")}>
-      <h3 className="rcpt-panel-title">{view.title}</h3>
+      <h3 className="rcpt-panel-title">{title}</h3>
       <div className="rcpt-panel-body">{view.body}</div>
       {receipt.status !== RECEIPT_STATUS.Cancelled && (
         <Button

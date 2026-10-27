@@ -1,0 +1,137 @@
+/* ── PHIẾU THU (P2610): a paper-white card read top to bottom. Shared by the
+   accountant's Phiếu thu page and the customer's iPad. ── */
+.rcpt-sheet {
+  max-width: 760px;
+  padding: 28px 32px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.rcpt-sheet-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rcpt-sheet-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.rcpt-sheet-clinic {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rcpt-sheet-title {
+  margin: 20px 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+}
+.rcpt-sheet-date,
+.rcpt-sheet-number {
+  margin: 0;
+  color: var(--bd-ink-3);
+  text-align: center;
+}
+.rcpt-sheet-date {
+  font-style: italic;
+}
+.rcpt-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+.rcpt-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+}
+.rcpt-row-label {
+  color: var(--bd-ink-4);
+}
+.rcpt-amount {
+  color: var(--bd-primary);
+  font-size: 16px;
+}
+.rcpt-words {
+  color: var(--bd-ink-3);
+}
+.rcpt-lines {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+.rcpt-lines th,
+.rcpt-lines td {
+  padding: 6px 8px;
+  border: 1px solid var(--bd-border);
+  text-align: left;
+}
+.rcpt-lines th {
+  background: var(--bd-bg-head);
+  font-weight: 600;
+}
+.rcpt-lines .rcpt-lines-money {
+  width: 160px;
+  text-align: right;
+}
+.rcpt-signs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 28px;
+}
+.rcpt-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.rcpt-sign-role {
+  font-weight: 600;
+}
+.rcpt-sign-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 88px;
+  border: 1px dashed var(--bd-border-2);
+  border-radius: var(--bd-radius-sm);
+  color: var(--bd-ink-4);
+  font-style: italic;
+}
+.rcpt-sign-name {
+  font-weight: 600;
+}
+.rcpt-sign-image {
+  max-width: 100%;
+  max-height: 84px;
+  object-fit: contain;
+}
+.rcpt-sign-box--signed {
+  border-style: solid;
+  border-color: var(--bd-border);
+  font-style: normal;
+}
+.rcpt-sign-time {
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .rcpt-sheet {
+    padding: 20px 16px;
+  }
+  .rcpt-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .rcpt-signs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -202,6 +202,8 @@ public class BlueDentalDbContext :
     public DbSet<EInvoiceProviderConfig> EInvoiceProviderConfigs { get; set; }
     public DbSet<InvoiceRequest> InvoiceRequests { get; set; }
     public DbSet<InvoiceRequestLink> InvoiceRequestLinks { get; set; }
+    public DbSet<ReceiptSigningSession> ReceiptSigningSessions { get; set; }
+    public DbSet<SigningDevice> SigningDevices { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

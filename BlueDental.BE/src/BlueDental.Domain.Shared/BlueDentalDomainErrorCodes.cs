@@ -378,6 +378,36 @@ public static class BlueDentalDomainErrorCodes
         /// the service would read as having paid back more than it took.
         /// </summary>
         public const string PaymentCancelBelowRefunded = "BlueDental:Billing:0101";
+
+        /// <summary>The branch's iPad shows another receipt; the message names it ({0}).</summary>
+        public const string SigningDeviceBusy = "BlueDental:Billing:0102";
+
+        /// <summary>The signing session ended (cancelled, replaced or exported) before this step.</summary>
+        public const string SigningSessionClosed = "BlueDental:Billing:0103";
+
+        /// <summary>Ký tên comes after both boxes of the review screen are ticked.</summary>
+        public const string SigningNotChecked = "BlueDental:Billing:0104";
+
+        /// <summary>The signature is not a PNG drawing, or is empty or too large.</summary>
+        public const string SignatureInvalid = "BlueDental:Billing:0105";
+
+        /// <summary>The branch has no iPad paired (Kết nối iPad in the clinic settings).</summary>
+        public const string SigningDeviceMissing = "BlueDental:Billing:0106";
+
+        /// <summary>The server has no ReceiptVault:Key, so nothing can be encrypted.</summary>
+        public const string ReceiptVaultKeyMissing = "BlueDental:Billing:0107";
+
+        /// <summary>Only a receipt still "Chưa thanh toán" goes to the iPad.</summary>
+        public const string ReceiptNotSendable = "BlueDental:Billing:0108";
+
+        /// <summary>A paired iPad needs a name to tell it apart.</summary>
+        public const string SigningDeviceNameRequired = "BlueDental:Billing:0109";
+
+        /// <summary>Yêu cầu khách ký lại needs a signature to redo.</summary>
+        public const string SigningNotSigned = "BlueDental:Billing:0110";
+
+        /// <summary>The iPad's link is unknown or was revoked: it must be paired again.</summary>
+        public const string SigningDeviceNotPaired = "BlueDental:Billing:0111";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

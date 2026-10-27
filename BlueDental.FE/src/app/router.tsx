@@ -219,6 +219,19 @@ const PublicInvoiceRequestPage = lazy(() =>
   })),
 );
 
+// The branch iPad that shows a PHIẾU THU for the customer to sign (P2610).
+const SigningStationPage = lazy(() =>
+  import("@/features/signing-station/pages/SigningStationPage").then((m) => ({
+    default: m.SigningStationPage,
+  })),
+);
+
+const SigningPairPage = lazy(() =>
+  import("@/features/signing-station/pages/SigningPairPage").then((m) => ({
+    default: m.SigningPairPage,
+  })),
+);
+
 const ClinicSettingsPage = lazy(() =>
   import("@/features/organizations/pages/ClinicSettingsPage").then((m) => ({
     default: m.ClinicSettingsPage,
@@ -304,6 +317,22 @@ const appRoutes: RouteObject[] = [
     element: (
       <S>
         <PublicInvoiceRequestPage />
+      </S>
+    ),
+  },
+  {
+    path: "/sign",
+    element: (
+      <S>
+        <SigningStationPage />
+      </S>
+    ),
+  },
+  {
+    path: "/sign/pair",
+    element: (
+      <S>
+        <SigningPairPage />
       </S>
     ),
   },
