@@ -11455,3 +11455,23 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Gộp với R-1050 (đã lên `main` cùng lúc): giữ cách chuẩn hoá chuỗi gõ của R-1050 (gộp khoảng trắng), điều kiện tên bệnh nhân là họ tên đầy đủ bỏ dấu (đã gồm cả họ riêng, tên riêng). Chạy lại sau khi gộp: xem dòng kế.
   - Sau khi gộp (build lại BE + FE): `search-unaccent-everywhere`, `reception-search-fullname` (R-1050), `patient-search-unaccent` và `reception.spec` — **8/8 xanh**.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152, bản chưa sửa :8153), host riêng :5120 / :5121, DB riêng `BlueDental_zalofix`.
+
+
+## R-1052 (2026-10-27, mức 2: bệnh án mẫu 2, 6, 7) Ô "MS:" điền sẵn mã biểu mẫu
+
+- **Yêu cầu (chủ dự án)**: "Bệnh án ngoại trú MS 16/BV-01, Phiếu đồng ý phẫu thuật MS 01/BV2, Phiếu phẫu thuật/thủ thuật MS PT-11 — binding mã số hồ sơ lên các phiếu tương ứng".
+- **Trước đó**: ô "MS:" ở góc phải 3 mẫu này là ô trống, người dùng tự gõ.
+- **Sửa (chỉ FE)**:
+  - `fieldValues.ts`: thêm `FORM_CODE_VALUES`, gắn mã theo id ô MS của từng mẫu:
+    - Bệnh án ngoại trú `custom.text.8b780086…` → 16/BV-01
+    - Giấy đồng ý thực hiện phẫu thuật/thủ thuật `custom.text.6d1c4222…` → 01/BV2
+    - Phiếu phẫu thuật/thủ thuật `custom.text.8d7eb5b7…` → PT-11
+  - `useSheetFieldValues` trộn bộ mã này vào giá trị tự động.
+  - Ô vẫn sửa được. Phiếu đã gõ và lưu MS riêng thì giữ giá trị đã lưu, vì giá trị đã lưu được ưu tiên hơn giá trị tự động. Mã này không bị ghi cứng vào phiếu khi lưu, giống các ô lấy từ hồ sơ.
+- **Chạy thật**: phiếu Giấy đồng ý của BD269023 hiện "MS: 01/BV2", nằm gọn trong ô (rộng 86px, không tràn).
+- **E2E** `patient-medical-record.spec` (stack thật, `--headed`):
+  - Ca mới "Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS" → **pass**.
+  - Hồi quy "every form draws the whole…", "what is written on a sheet survives a reload", "a blank that agrees with the record is not frozen…", "Enter moves to the blank below…" → **pass**.
+  - "picking the day prints it on the sheet…" **đỏ**, nhưng đỏ y hệt trên code gốc khi tạm cất thay đổi này (mong 15/08/2026, ra 03/09/2026). Lỗi có từ trước, liên quan bộ chọn ngày, chưa sửa.
+  - `tsc -b` và `oxlint` không báo lỗi.
+
