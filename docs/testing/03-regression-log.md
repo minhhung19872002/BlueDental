@@ -11506,3 +11506,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - **5/5 xanh**.
   - Chạy lại `patient-search-unaccent` và `search-unaccent-everywhere`: **5/5 xanh**.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
+
+
+## R-1054 (2026-10-27, mức 1: bệnh án mẫu 6) Giấy đồng ý phẫu thuật: nhãn hiệu nhỏ hơn, quốc hiệu to hơn
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "riêng mẫu bệnh án số 6, cụm tiêu đề bệnh viện font size nhỏ lại và quốc hiệu to ra xíu nữa". Bố cục từ R-1044 giữ nguyên.
+- **Sửa** (`templates/surgeryConsent.ts`, chỉ header):
+  - Cụm "SỞ Y TẾ … NHA KHOA ĐỨC HẠNH" từ 9pt xuống 8pt (10.7px), vẫn 4 dòng.
+  - "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM / Độc lập - Tự do - Hạnh phúc" từ 16px (cỡ chữ phiếu) lên 14pt (18.7px). Lần đầu tăng lên 13pt; owner xem xong bảo "to thêm xíu nữa" nên tăng tiếp. Quốc hiệu rộng 387px, vẫn 1 dòng; cả 2 dòng lệch tâm trang 0px.
+  - Tiêu đề phiếu lùi thêm 7px (200 → 207px).
+- **Ghi chú**: ảnh owner gửi có ô "MS:" trống. Trên dev, cùng phiếu này hiện "MS: 01/BV2" (R-1052). Khi lưu, phiếu chỉ ghi lại ô khác giá trị tự động, nên phiếu cũ không chặn mã điền sẵn. Nhiều khả năng bản owner xem chưa có commit b22c58aa.
+- **E2E** `patient-medical-record.spec` (dev :5173, `--headed`):
+  - "every form draws the whole…" → **pass**.
+  - "every form shares mẫu 5's … print rules": mẫu 6 qua đủ các bước (cỡ chữ, nhãn hiệu đậm, **in đủ 2 trang**). Ca này vẫn đỏ ở mẫu 7 "printed pages" (mong 1, ra 2), lỗi có từ trước (R-1044).
