@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
 /** Long enough to print or save from the tab; the URL is not needed after that. */
@@ -24,4 +25,13 @@ export function showReceipt(tab: Window | null, pdf: Blob): void {
   if (tab) tab.location.href = url;
   else if (!window.open(url, "_blank")) toast.error(t("Treatment:PaymentReceipt:PopupBlocked"));
   window.setTimeout(() => URL.revokeObjectURL(url), RECEIPT_URL_LIFETIME_MS);
+}
+
+/**
+ * Tài chính → Phiếu thu for one receipt (P2610) — where "Tạo phiếu thanh
+ * toán" lands and the slip's Thanh toán tab points. Spelled here because the
+ * features that link to it may not import billing.
+ */
+export function receiptPagePath(paymentId: string, branchId: string | null | undefined): string {
+  return withBranch(`/billing/receipts/${paymentId}`, branchId);
 }

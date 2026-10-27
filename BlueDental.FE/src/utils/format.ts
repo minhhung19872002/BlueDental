@@ -47,6 +47,14 @@ export function formatClock(value: string | Date | null | undefined): string {
     : `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+/** HH:mm:ss in local time — the receipt page's step times (P2610). */
+export function formatClockSeconds(value: string | Date | null | undefined): string {
+  if (!value) return "--:--:--";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "--:--:--";
+  return [date.getHours(), date.getMinutes(), date.getSeconds()].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat(getLocale(), {
     style: "currency",

@@ -3393,67 +3393,16 @@
 }
 
 /*
- * ① Chọn số phiếu → ② Chọn dịch vụ → ③ Thông tin thanh toán, on a grey band
- * that spans the dialog under its title (owner mock 2026-10-12). Each step
- * hugs its content and a short rule joins one step's label to the next dot.
+ * The receipt's seven steps (P2610, owner pick B): the dialog's own two, then
+ * the journey the receipt goes on once saved. The shared StepTrack sits on a
+ * grey band that spans the dialog under its title (owner mock 2026-10-12).
  */
 .pd-newpay-steps {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
   /* Out to the body's 20px padding, so the band reaches both edges. */
   margin: -20px -20px 20px;
   border-bottom: 1px solid var(--bd-border);
-  padding: 12px 20px;
+  padding: 12px 8px;
   background: var(--bd-bg-soft);
-  list-style: none;
-}
-.pd-newpay-step {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-  color: var(--bd-ink-4);
-  font-size: 13px;
-  font-weight: 500;
-}
-.pd-newpay-step + .pd-newpay-step::before {
-  content: "";
-  width: 44px;
-  height: 1px;
-  margin-right: 4px;
-  background: color-mix(in srgb, var(--bd-ink-4) 45%, transparent);
-}
-.pd-newpay-step-dot {
-  display: inline-flex;
-  flex: 0 0 22px;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border: 1.5px solid var(--bd-ink-4);
-  border-radius: 50%;
-  background: var(--bd-card);
-  font-size: 12px;
-  font-weight: 600;
-}
-.pd-newpay-step-label {
-  white-space: nowrap;
-}
-.pd-newpay-step--current,
-.pd-newpay-step--done {
-  color: var(--bd-ink);
-}
-.pd-newpay-step--current .pd-newpay-step-dot {
-  border-color: var(--bd-primary);
-  color: var(--bd-primary);
-}
-.pd-newpay-step--done .pd-newpay-step-dot {
-  border-color: var(--bd-primary);
-  background: var(--bd-primary);
-  color: var(--bd-card);
-  font-size: 11px;
 }
 
 /* "Số phiếu cần thanh toán": search box, SỐ PHIẾU / CÒN NỢ header, then rows. */

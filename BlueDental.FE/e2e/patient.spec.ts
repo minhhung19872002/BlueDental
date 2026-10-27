@@ -1,6 +1,13 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { RECEIPT_STATUS, saveAndSettle, settleReceipt, type Receipt } from "./fixtures/ledgerReceipt";
+import {
+  CREATE_RECEIPT,
+  expectReceiptPage,
+  RECEIPT_STATUS,
+  saveAndSettle,
+  settleReceipt,
+  type Receipt,
+} from "./fixtures/ledgerReceipt";
 import { openShiftCovering } from "./fixtures/workShift";
 
 /** --bd-primary, the clone's own brand — see src/styles/index.css. */
@@ -1798,7 +1805,7 @@ test.describe("Bệnh nhân", () => {
       .locator(".pd-newpay-lines > li")
       .filter({ has: page.locator("input:checked") });
     await ticked.locator("input[type=checkbox]").uncheck();
-    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await dialog.getByRole("button", { name: CREATE_RECEIPT }).click();
     await expect(dialog.locator(".pd-newpay-error")).toHaveText("Bạn cần chọn ít nhất 1 dịch vụ");
     await dialog.locator(".pd-newpay-lines > li input[type=checkbox]").first().check();
 
@@ -2095,7 +2102,7 @@ test.describe("Bệnh nhân", () => {
       (res) => res.url().includes("/api/v1/app/patient-payments") && res.request().method() === "POST",
     );
     await dialog.locator("input.pd-newpay-amount").fill(String(paying));
-    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await dialog.getByRole("button", { name: CREATE_RECEIPT }).click();
 
     // One request, naming every service — not one request per service.
     const response = await posted;
@@ -2109,6 +2116,7 @@ test.describe("Bệnh nhân", () => {
     // Written "Chưa thanh toán"; exported and ✓, it reaches the account (P2610).
     const written = (await response.json()) as Receipt;
     expect(written.status).toBe(RECEIPT_STATUS.Pending);
+    await expectReceiptPage(page, written);
     await settleReceipt(page, written);
 
     // The server spread it in the order the dialog named the lines, capped per
@@ -2159,7 +2167,7 @@ test.describe("Bệnh nhân", () => {
     ]);
 
     // Saving without one is refused; the reference will not post it either.
-    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await dialog.getByRole("button", { name: CREATE_RECEIPT }).click();
     await expect(dialog).toBeVisible();
 
     // With an account picked the payment goes through carrying it.
@@ -2174,7 +2182,7 @@ test.describe("Bệnh nhân", () => {
     const owed = await lineDue(dialog);
     expect(owed, "the chosen line should still owe something").toBeGreaterThan(0);
     await dialog.locator("input.pd-newpay-amount").fill(String(Math.min(10_000, owed)));
-    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await dialog.getByRole("button", { name: CREATE_RECEIPT }).click();
 
     const body = JSON.parse((await posted).postData() ?? "{}");
     // 5 = PaymentMethodKind.EWallet, the reference's "momo".

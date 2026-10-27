@@ -11,7 +11,7 @@ import { ledgerMethodLabels, type LedgerMethod, type PaymentLedgerItemDto } from
  * The plan's Thanh toán tab, where the receipt was written. Spelled out here
  * because billing may not import treatment-management's `planDetailPath`.
  */
-function planPaymentPath(patientId: string, planId: string, branchId: string): string {
+export function planPaymentPath(patientId: string, planId: string, branchId: string): string {
   const params = new URLSearchParams({ planTab: "payment-v2" });
   const branchCode = branchCodeOf(branchId);
   if (branchCode) params.set("branch", branchCode);

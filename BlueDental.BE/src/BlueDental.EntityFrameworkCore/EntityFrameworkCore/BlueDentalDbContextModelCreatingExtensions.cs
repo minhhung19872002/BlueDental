@@ -1246,6 +1246,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .HasForeignKey(x => x.PatientPaymentId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.OwnsOne(x => x.ReceiptSnapshot, snapshot =>
+            {
+                snapshot.ToJson();
+                snapshot.OwnsMany(x => x.Lines);
+                snapshot.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            });
             entity.HasIndex(x => new { x.PatientId, x.PaidAt });
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => new { x.ClinicBranchId, x.PaidAt });

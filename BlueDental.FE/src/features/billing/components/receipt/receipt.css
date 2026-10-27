@@ -1,0 +1,285 @@
+/* ── Tài chính → Phiếu thu (P2610) ───────────────────────────────────────────
+   The head, the six-step bar on its own card, then the PHIẾU THU sheet with
+   the status column beside it. Under 1100px the column drops below the sheet. */
+.rcpt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rcpt-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+/* Head: ← | crumbs over number + pill | created-at line. */
+.rcpt-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rcpt-back {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+}
+.rcpt-back:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.rcpt-head-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rcpt-crumbs {
+  display: flex;
+  gap: 6px;
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+.rcpt-head-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rcpt-head-code {
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.rcpt-head-meta {
+  color: var(--bd-ink-4);
+  font-size: 13px;
+  text-align: right;
+}
+
+/* Status pills: the colours of the slip's Thanh toán tab. */
+.rcpt-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.rcpt-pill--pending {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.rcpt-pill--issued {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+.rcpt-pill--done {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.rcpt-pill--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+.rcpt-track-card {
+  padding: 16px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+
+.rcpt-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── The sheet: a paper-white card read top to bottom ── */
+.rcpt-sheet {
+  max-width: 760px;
+  padding: 28px 32px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.rcpt-sheet-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rcpt-sheet-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.rcpt-sheet-clinic {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rcpt-sheet-title {
+  margin: 20px 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+}
+.rcpt-sheet-date,
+.rcpt-sheet-number {
+  margin: 0;
+  color: var(--bd-ink-3);
+  text-align: center;
+}
+.rcpt-sheet-date {
+  font-style: italic;
+}
+.rcpt-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+.rcpt-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+}
+.rcpt-row-label {
+  color: var(--bd-ink-4);
+}
+.rcpt-amount {
+  color: var(--bd-primary);
+  font-size: 16px;
+}
+.rcpt-words {
+  color: var(--bd-ink-3);
+}
+.rcpt-lines {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+.rcpt-lines th,
+.rcpt-lines td {
+  padding: 6px 8px;
+  border: 1px solid var(--bd-border);
+  text-align: left;
+}
+.rcpt-lines th {
+  background: var(--bd-bg-head);
+  font-weight: 600;
+}
+.rcpt-lines .rcpt-lines-money {
+  width: 160px;
+  text-align: right;
+}
+.rcpt-signs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 28px;
+}
+.rcpt-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.rcpt-sign-role {
+  font-weight: 600;
+}
+.rcpt-sign-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 88px;
+  border: 1px dashed var(--bd-border-2);
+  border-radius: var(--bd-radius-sm);
+  color: var(--bd-ink-4);
+  font-style: italic;
+}
+.rcpt-sign-name {
+  font-weight: 600;
+}
+
+/* ── The status column ── */
+.rcpt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--bd-border);
+  border-top: 3px solid var(--bd-orange);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.rcpt-panel--issued {
+  border-top-color: var(--bd-blue);
+}
+.rcpt-panel--done {
+  border-top-color: var(--bd-green);
+}
+.rcpt-panel--cancelled {
+  border-top-color: var(--bd-red);
+}
+.rcpt-panel-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.rcpt-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--bd-ink-3);
+  font-size: 13px;
+}
+.rcpt-panel-body p {
+  margin: 0;
+}
+.rcpt-panel-link {
+  color: var(--bd-link);
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .rcpt-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rcpt-sheet {
+    max-width: none;
+  }
+}
+@media (max-width: 640px) {
+  .rcpt-head {
+    flex-wrap: wrap;
+  }
+  .rcpt-head-meta {
+    flex-basis: 100%;
+    text-align: left;
+  }
+  .rcpt-sheet {
+    padding: 20px 16px;
+  }
+  .rcpt-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .rcpt-signs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

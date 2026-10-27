@@ -2,6 +2,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login } from "./fixtures/auth";
 import {
   call,
+  CREATE_RECEIPT,
+  expectReceiptPage,
   money,
   openNewSlip,
   PAYMENTS_API,
@@ -15,15 +17,14 @@ import {
  * its row open "Tạo phiếu thanh toán" — not the e-invoice dialog. The dialog
  * walks ① Chọn số phiếu → ② Chọn dịch vụ → ③ Thông tin thanh toán, lists only
  * the slips and services that still owe, totals the ticked ones, stores
- * "Xuất hóa đơn đỏ" as a flag (nothing is sent to EasyInvoice), and on Lưu
- * writes the receipt "Chưa thanh toán" (P2610, R-1043) and opens its PHIẾU THU
- * in a new tab. The money counts only once exported and ✓ "Đã thanh toán".
+ * "Xuất hóa đơn đỏ" as a flag (nothing is sent to EasyInvoice), and on
+ * "Tạo phiếu thanh toán" writes the receipt "Chưa thanh toán" (P2610, R-1043)
+ * and lands on its page, Tài chính → Phiếu thu (R-1045). The money counts only
+ * once exported and ✓ "Đã thanh toán".
  *
  * Real stack only: real login, a fresh slip through the real dialogs, the
  * receipt through the real API into PostgreSQL, read back with a separate GET.
  */
-
-const RECEIPT_PDF = "/api/v1/app/e-invoices/receipt-pdf";
 
 type StoredReceipt = Receipt & { redInvoiceRequested: boolean };
 
@@ -42,9 +43,8 @@ async function storedReceipt(page: Page, receipt: Receipt): Promise<StoredReceip
   return ((listed.body.items ?? []) as StoredReceipt[]).find((item) => item.id === receipt.id);
 }
 
-test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals, red-invoice flag, PHIẾU THU tab", async ({
+test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals, red-invoice flag, receipt page", async ({
   page,
-  context,
 }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -59,8 +59,19 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
   await expect(chip).toHaveText(/^DT\d+$/);
   const slipCode = (await chip.innerText()).trim();
   await expect(dialog.locator(".pd-newpay-slipselect")).toContainText(slipCode);
-  await expect(dialog.locator(".pd-newpay-step--done")).toHaveText(["Chọn số phiếu"]);
-  await expect(dialog.locator(".pd-newpay-step--current")).toContainText("Chọn dịch vụ");
+  // Seven steps (owner 2026-10-27): the dialog's two, then the receipt's journey.
+  const steps = dialog.locator(".step-track-item");
+  await expect(steps.locator(".step-track-label")).toHaveText([
+    "Chọn số phiếu",
+    "Chọn dịch vụ",
+    "Tạo phiếu thu",
+    "Khách kiểm tra",
+    "Khách đồng ý & ký",
+    "Kế toán kiểm tra",
+    "Xuất phiếu thu",
+  ]);
+  await expect(dialog.locator(".step-track-item--done .step-track-label")).toHaveText(["Chọn số phiếu"]);
+  await expect(dialog.locator(".step-track-item--current")).toContainText("Chọn dịch vụ");
 
   const cards = dialog.locator(".pd-newpay-lines > li");
   await expect(cards).toHaveCount(1);
@@ -88,47 +99,40 @@ test("In Hóa Đơn → Tạo phiếu thanh toán: slip, owing services, totals,
   // ── ② ticked: the card lights up, the totals follow, the amount fills ────
   await dialog.getByRole("checkbox", { name: "Chọn Tất Cả" }).check();
   await expect(card).toHaveClass(/pd-newpay-card--on/);
-  await expect(dialog.locator(".pd-newpay-step--done")).toHaveText(["Chọn số phiếu", "Chọn dịch vụ"]);
+  await expect(dialog.locator(".step-track-item--done .step-track-label")).toHaveText(["Chọn số phiếu", "Chọn dịch vụ"]);
+  await expect(dialog.locator(".step-track-item--current")).toContainText("Tạo phiếu thu");
   const debtToPay = dialog.locator(".pd-newpay-fact", { hasText: "Còn nợ cần thanh toán" });
   expect(money(await debtToPay.innerText())).toBe(due);
   await expect(dialog.getByText("Tự động bằng tổng còn nợ của các dịch vụ đã chọn")).toBeVisible();
   await expect.poll(async () => money(await dialog.locator(".pd-newpay-amount").inputValue())).toBe(due);
 
-  // ── ③ Xuất hóa đơn đỏ is only remembered; Lưu prints the PHIẾU THU ───────
+  // ── ③ Xuất hóa đơn đỏ is only remembered; the receipt opens on its page ──
   await dialog.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
-  // Lưu writes the receipt at once — no question — and opens the tab.
+  await expect(dialog.getByRole("button", { name: / Lưu$|^Lưu$/ })).toHaveCount(0);
+  // Written at once — no question — and no PDF any more: its page instead.
   const saved = page.waitForResponse(
     (res) => res.url().includes(PAYMENTS_API) && res.request().method() === "POST",
   );
-  const printed = page.waitForResponse(
-    (res) => res.url().endsWith(RECEIPT_PDF) && res.request().method() === "POST",
-  );
-  const tab = context.waitForEvent("page");
-  await dialog.getByRole("button", { name: "Lưu" }).click();
+  await dialog.getByRole("button", { name: CREATE_RECEIPT }).click();
   const response = await saved;
   expect(response.ok(), await response.text()).toBeTruthy();
   const receipt = (await response.json()) as StoredReceipt;
   expect(receipt.status).toBe(RECEIPT_STATUS.Pending);
   expect(receipt.redInvoiceRequested).toBe(true);
   expect(receipt.amount).toBe(due);
-  const pdf = await printed;
-  expect(pdf.status()).toBe(200);
-  expect(pdf.headers()["content-type"]).toContain("application/pdf");
-  // A browser with a PDF viewer shows the blob URL; headless Chromium (no
-  // viewer) hands the same navigation over as a download of that tab.
-  const receiptTab = await tab;
-  const landed = await Promise.race([
-    receiptTab.waitForEvent("download", { timeout: 20_000 }).then((download) => download.url()),
-    expect.poll(() => receiptTab.url(), { timeout: 20_000 }).toMatch(/^blob:/).then(() => receiptTab.url()),
-  ]);
-  expect(landed).toMatch(/^blob:/);
-  await receiptTab.close();
   await expect(dialog).toBeHidden();
+  await expectReceiptPage(page, receipt);
+  await expect(page.locator(".rcpt-pill")).toHaveText("Chưa thanh toán");
+  await expect(page.locator(".rcpt-sheet")).toContainText(`(${slipCode})`);
 
   // ── Persisted: a separate GET after a reload reads the same flag ─────────
   await page.reload();
+  await expectReceiptPage(page, receipt);
   await expect.poll(async () => (await storedReceipt(page, receipt))?.redInvoiceRequested).toBe(true);
   expect((await storedReceipt(page, receipt))?.status).toBe(RECEIPT_STATUS.Pending);
+  // Back to the slip it was written from.
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/treatment-plan/${receipt.treatmentPlanId}`));
   await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
   const row = page.locator(".ant-table-row", { hasText: receipt.code });
   await expect(row.locator(".tp-pill")).toHaveText("Chưa thanh toán");
@@ -171,13 +175,19 @@ function dayFromToday(offset: number): { iso: string; shown: string } {
   return { iso: `${day.getFullYear()}-${mm}-${dd}`, shown: `${dd}/${mm}/${day.getFullYear()}` };
 }
 
+/** The PHIẾU THU sheet reads the payment day, not the day it was written. */
+async function expectSheetDated(page: Page, day: { iso: string; shown: string }): Promise<void> {
+  const [year, month, date] = day.iso.split("-").map(Number);
+  await expect(page.locator(".rcpt-sheet-date")).toHaveText(`Ngày ${date} tháng ${month} năm ${year}`);
+  await expect(page.locator(".rcpt-sheet")).toContainText(`Thanh toán điều trị ngày ${day.shown}`);
+}
+
 /** The clinic's calendar day (UTC+7) of a stored instant. */
 const clinicDay = (instant: string) =>
   new Date(instant).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
-test("Ngày thanh toán: a past day is picked, saved, printed and listed; a later day is refused", async ({
+test("Ngày thanh toán: a past day is picked, saved, shown and listed; a later day is refused", async ({
   page,
-  context,
 }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -203,7 +213,7 @@ test("Ngày thanh toán: a past day is picked, saved, printed and listed; a late
   await expect(dateBox).toHaveValue(past.shown);
   await expect(dialog).toContainText(`Thanh toán điều trị ngày ${past.shown}`);
 
-  // ── Saved with that day; PHIẾU THU is dated with it too ──────────────────
+  // ── Saved with that day; the PHIẾU THU sheet is dated with it too ───────
   // Half the line, so it still owes for the server check at the end.
   await dialog.getByRole("checkbox", { name: "Chọn Tất Cả" }).check();
   const due = money(await dialog.locator(".pd-newpay-lines > li .pd-newpay-due").first().innerText());
@@ -211,19 +221,15 @@ test("Ngày thanh toán: a past day is picked, saved, printed and listed; a late
   const saved = page.waitForResponse(
     (res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST",
   );
-  const printed = page.waitForRequest(
-    (req) => req.url().endsWith(RECEIPT_PDF) && req.method() === "POST",
-  );
-  const tab = context.waitForEvent("page");
-  await dialog.getByRole("button", { name: "Lưu" }).click();
+  await dialog.getByRole("button", { name: CREATE_RECEIPT }).click();
   const response = await saved;
   expect(response.ok(), await response.text()).toBeTruthy();
   const receipt = (await response.json()) as StoredReceipt & { paidAt: string; creationTime: string };
   expect(clinicDay(receipt.paidAt)).toBe(past.iso);
   expect(clinicDay(receipt.creationTime)).toBe(today.iso);
-  expect((await printed).postDataJSON()).toMatchObject({ patientPaymentId: receipt.id, arisingDate: past.iso });
-  await (await tab).close();
   await expect(dialog).toBeHidden();
+  await expectReceiptPage(page, receipt);
+  await expectSheetDated(page, past);
 
   // ── ✓ later keeps the picked day: revenue is dated by it, not by ✓ ──────
   const settled = (await settleReceipt(page, receipt)) as Receipt & { paidAt: string };
@@ -231,6 +237,8 @@ test("Ngày thanh toán: a past day is picked, saved, printed and listed; a late
 
   // ── Persisted: after a reload, a separate GET and the Thanh toán tab ─────
   await page.reload();
+  await expectSheetDated(page, past);
+  await page.goBack();
   const stored = (await storedReceipt(page, receipt)) as (StoredReceipt & { paidAt: string }) | undefined;
   expect(stored && clinicDay(stored.paidAt)).toBe(past.iso);
   await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
@@ -240,13 +248,11 @@ test("Ngày thanh toán: a past day is picked, saved, printed and listed; a late
   // The day only, no clock time (owner 2026-10-14).
   await expect(row.locator("td").nth(1)).toHaveText(past.shown);
 
-  // "Xem phiếu" says the same: "Ngày thanh toán", the day only, no "Ngày tạo".
+  // "Xem phiếu" says the same: its page is dated by the picked day.
   await row.getByRole("button", { name: `Xem phiếu ${receipt.code}` }).click();
-  const detail = page.locator(".pdt-receipt.pdt-screen");
-  const dateFact = detail.locator(".pdt-receipt-fact", { has: page.locator("dt", { hasText: /^Ngày thanh toán$/ }) });
-  await expect(dateFact.locator("dd")).toHaveText(past.shown);
-  await expect(detail.locator("dt", { hasText: /^Ngày tạo$/ })).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  await expectReceiptPage(page, receipt);
+  await expectSheetDated(page, past);
+  await page.goBack();
 
   // ── The server refuses a later day whatever the picker allows ────────────
   const future = await call(page, PAYMENTS_API, {

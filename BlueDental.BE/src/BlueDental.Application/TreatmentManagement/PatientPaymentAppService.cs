@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
+using BlueDental.Catalogs;
 using BlueDental.EInvoicing;
 using BlueDental.Organizations;
+using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using BlueDental.Staff;
 using Microsoft.AspNetCore.Authorization;
@@ -308,6 +310,10 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
                 ? PatientPaymentStatus.Pending
                 : PatientPaymentStatus.Completed);
         payment.RequestRedInvoice(input.RedInvoiceRequested);
+        if (payment.Kind == PatientPaymentKind.Payment)
+        {
+            payment.FreezeReceipt(await TakeReceiptAsync(payment, CurrentUser.Id));
+        }
 
         await _repository.InsertAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
@@ -555,7 +561,152 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             lines,
             GuidGenerator.Create);
         payment.RequestRedInvoice(input.RedInvoiceRequested);
+        if (payment.Kind == PatientPaymentKind.Payment)
+        {
+            // Còn lại counts paid receipts only, as the cap above does.
+            using (DataFilter.Enable<ISettleable>())
+            {
+                payment.FreezeReceipt(await TakeReceiptAsync(payment, payment.CreatorId));
+            }
+        }
     }
+
+    /// <summary>
+    /// The receipt page ("Tài chính / Phiếu thu", P2610): every status, a
+    /// cancelled receipt too, so a link to it never dies. A receipt written
+    /// before the content was frozen is read from today's data instead.
+    /// Refunds and held money have no PHIẾU THU and are not found here.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
+    public async Task<PaymentReceiptDto> GetReceiptAsync(Guid id)
+    {
+        using var pending = DataFilter.Disable<ISettleable>();
+        using var cancelled = DataFilter.Disable<ISoftDelete>();
+        var payment = await GetWithLinesAsync(id);
+        // One soft-deleted with its slip is gone, not cancelled.
+        if (payment.Kind != PatientPaymentKind.Payment
+            || (payment.IsDeleted && payment.Status != PatientPaymentStatus.Cancelled))
+        {
+            throw new EntityNotFoundException(typeof(PatientPayment), id);
+        }
+        await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+        PaymentReceiptSnapshot content;
+        using (DataFilter.Enable<ISettleable>())
+        using (DataFilter.Enable<ISoftDelete>())
+        {
+            content = payment.ReceiptSnapshot ?? await TakeReceiptAsync(payment, payment.CreatorId);
+        }
+
+        var people = await FullNamesAsync([payment.IssuedById, payment.CancelledById, payment.StaffId]);
+        return new PaymentReceiptDto
+        {
+            Id = payment.Id,
+            Code = payment.Code,
+            PatientId = payment.PatientId,
+            ClinicBranchId = payment.ClinicBranchId,
+            TreatmentPlanId = payment.TreatmentPlanId,
+            Status = payment.Status,
+            CreationTime = payment.CreationTime,
+            IssuedAt = payment.IssuedAt,
+            IssuedByName = NameOf(people, payment.IssuedById),
+            ConfirmedByName = payment.IsCompleted ? NameOf(people, payment.StaffId) : null,
+            CancelledAt = payment.CancelledAt,
+            CancelledByName = NameOf(people, payment.CancelledById),
+            CancelReason = payment.CancelReason,
+            CancelReasonCode = payment.CancelReasonCode,
+            Content = new PaymentReceiptContentDto
+            {
+                PatientCode = content.PatientCode,
+                PayerName = content.PayerName,
+                PlanCode = content.PlanCode,
+                PaidOn = content.PaidOn,
+                Method = content.Method,
+                Amount = content.Amount,
+                AmountInWords = content.AmountInWords,
+                SlipTotal = content.SlipTotal,
+                PaidBefore = content.PaidBefore,
+                Remaining = content.Remaining,
+                RemainingInWords = content.RemainingInWords,
+                CreatorName = content.CreatorName,
+                Lines = content.Lines
+                    .Select(line => new PaymentReceiptContentLineDto { Name = line.Name, Amount = line.Amount })
+                    .ToList()
+            }
+        };
+    }
+
+    /// <summary>
+    /// What the PHIẾU THU says right now: the patient, the slip, each service
+    /// this receipt pays under its catalog name in slip order, and Số tiền còn
+    /// lại = the slip's payable total − what it has collected ("Đã thanh toán"
+    /// only, other receipts) − this receipt.
+    /// </summary>
+    private async Task<PaymentReceiptSnapshot> TakeReceiptAsync(PatientPayment payment, Guid? creatorId)
+    {
+        var planId = payment.TreatmentPlanId!.Value;
+        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services);
+        var plan = planQuery.Single(x => x.Id == planId);
+
+        var patient = await LazyServiceProvider.LazyGetRequiredService<IRepository<Patient, Guid>>()
+            .GetAsync(payment.PatientId);
+
+        var catalogIds = plan.Services.Select(s => s.ServiceId).Distinct().ToList();
+        var catalogNames = (await LazyServiceProvider.LazyGetRequiredService<IRepository<CatalogEntry, Guid>>()
+                .GetListAsync(c => catalogIds.Contains(c.Id)))
+            .ToDictionary(c => c.Id, c => c.Name);
+
+        var lines = plan.Services
+            .OrderBy(s => s.SortOrder)
+            .ThenByDescending(s => s.CreationTime)
+            .Select(s => (Line: s, Share: payment.AmountFor(s.Id)))
+            .Where(x => x.Share > 0m)
+            .Select(x => new PaymentReceiptSnapshotLine(
+                catalogNames.GetValueOrDefault(x.Line.ServiceId) ?? x.Line.Code, x.Share))
+            .ToList();
+
+        var paymentQuery = await _repository.GetQueryableAsync();
+        var paidBefore = paymentQuery
+            .Where(x => x.TreatmentPlanId == planId && x.Id != payment.Id)
+            .Select(x => new { x.Kind, x.Amount })
+            .ToList()
+            .Sum(x => x.Kind == PatientPaymentKind.Refund ? -x.Amount : x.Amount);
+
+        var names = await FullNamesAsync([creatorId]);
+        return PaymentReceiptSnapshot.Take(
+            patient.PatientCode,
+            patient.FullName,
+            plan.Code,
+            ClinicCalendar.DateOf(payment.PaidAt),
+            payment.Method,
+            payment.Amount,
+            plan.PayableAmount,
+            paidBefore,
+            NameOf(names, creatorId) ?? CurrentUser.UserName ?? string.Empty,
+            lines);
+    }
+
+    /// <summary>Staff as the printed sheets name them: họ + tên, else the login.</summary>
+    private async Task<Dictionary<Guid, string>> FullNamesAsync(IEnumerable<Guid?> userIds)
+    {
+        var ids = userIds.OfType<Guid>().Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var users = await _userRepository.GetListByIdsAsync(ids);
+        return users.ToDictionary(
+            u => u.Id,
+            u =>
+            {
+                var fullName = string.Join(" ", new[] { u.Surname, u.Name }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                return string.IsNullOrWhiteSpace(fullName) ? u.UserName : fullName;
+            });
+    }
+
+    private static string? NameOf(Dictionary<Guid, string> names, Guid? userId) =>
+        userId is { } id && names.TryGetValue(id, out var name) ? name : null;
 
     /// <summary>A bare GetAsync leaves the lines unloaded, and a revise would then orphan them.</summary>
     private async Task<PatientPayment> GetWithLinesAsync(Guid id)

@@ -1,7 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { useRenderPaymentReceipt } from "@/features/treatment-management/api/eInvoiceApi";
 import {
   PAYMENT_KIND,
   SPLIT_MODE,
@@ -10,7 +10,7 @@ import {
   type PatientPaymentDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { t } from "@/lib/i18n";
-import { openReceiptTab, showReceipt } from "@/lib/receiptTab";
+import { receiptPagePath } from "@/lib/receiptTab";
 import type { PaymentForm } from "./usePaymentForm";
 
 interface Options {
@@ -44,15 +44,16 @@ function paidAtOf(paidOn: string): string {
 
 /**
  * Lưu. A new receipt is written "Chưa thanh toán" and moves no money until it
- * is exported and confirmed (P2610), so it saves without asking first; its
- * PHIẾU THU opens in a new tab (owner 2026-10-12). A reopened one is corrected.
+ * is exported and confirmed (P2610), so it saves without asking first and
+ * lands on its own page, Tài chính → Phiếu thu, to go on to the customer. A
+ * reopened one is corrected in place.
  */
 export function useSavePayment(payment: PaymentForm, options: Options) {
   const { patientId, branchId, revision, needsAccount, onSaved, onClose } = options;
   const staffId = useAuthStore((state) => state.user?.id) ?? "";
+  const navigate = useNavigate();
   const record = useRecordPayment();
   const update = useUpdatePayment();
-  const receipt = useRenderPaymentReceipt();
 
   const figures = () => {
     const { form, chosen, shareOf, total } = payment;
@@ -85,7 +86,8 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
     toast.success(t("Treatment:Payment:UpdateSuccess"));
   };
 
-  const saveNew = async (planId: string, tab: Window | null) => {
+  /** Writes the receipt and answers its id. */
+  const saveNew = async (planId: string): Promise<string> => {
     const { note, accountId, paidOn } = payment.form;
     const created = await record.mutateAsync({
       ...figures(),
@@ -99,13 +101,7 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
       paymentAccountId: needsAccount ? accountId : undefined,
     });
     toast.success(t("Patient:Payment:CreateSuccess"));
-    // The receipt is saved; a PHIẾU THU that fails to render does not undo it.
-    // It is dated the day the money was taken, not the day it was entered.
-    receipt
-      .mutateAsync({ patientPaymentId: created.id, buyerName: null, arisingDate: paidOn, lines: [] })
-      .then((pdf) => showReceipt(tab, pdf))
-      // The failure itself is toasted by the global MutationCache.
-      .catch(() => tab?.close());
+    return created.id;
   };
 
   /** Lưu: checks the form, then writes or corrects the receipt. */
@@ -115,16 +111,19 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
       toast.error(t(problem));
       return;
     }
-    // Opened inside the click, before any await, or the browser blocks it.
-    const tab = revision || !payment.slip ? null : openReceiptTab();
     try {
-      if (revision) await saveRevision(revision);
-      else if (payment.slip) await saveNew(payment.slip.id, tab);
-      onSaved();
-      onClose();
+      if (revision) {
+        await saveRevision(revision);
+        onSaved();
+        onClose();
+      } else if (payment.slip) {
+        const createdId = await saveNew(payment.slip.id);
+        onSaved();
+        onClose();
+        navigate(receiptPagePath(createdId, branchId));
+      }
     } catch {
       // Toasted by the global MutationCache; the dialog stays open to correct.
-      tab?.close();
     }
   };
 

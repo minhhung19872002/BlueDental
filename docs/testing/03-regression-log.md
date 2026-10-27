@@ -11242,6 +11242,49 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chưa có đường UI tới "Đã xuất phiếu thu" (phase 4–5), nên **không deploy staging** cho tới hết phase 5.
   - Lưu vẫn tự mở PDF PHIẾU THU cho tới phase 3.
 
+## R-1045 (2026-10-27, mức 3: phiếu thu) P2610 phase 3 — nội dung phiếu thu chốt lúc ghi, trang Tài chính → Phiếu thu, stepper
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời owner 2026-10-27. Phase 3/7 của F-81.
+- **Owner chốt**:
+  1. Đầu trang phiếu thu: logo + tên phòng khám. Bỏ Nợ/Có TK, Quầy, dòng Zalo/SMS.
+  2. Dialog có stepper 7 bước (phương án "10. B"). Nút tạo đổi thành "Tạo phiếu thanh toán".
+  3. Không làm bước "báo sai thông tin" trên trang (mục 12). Ở quầy thì báo miệng rồi sửa luôn.
+- **Sửa (BE)**:
+  - Thêm `PaymentReceiptSnapshot` (owned JSON trên `PatientPayment.ReceiptSnapshot`), migration `20261027043515_PaymentReceiptSnapshot`. Nội dung gồm: mã BN, người nộp, số phiếu điều trị, ngày thanh toán, phương thức, số tiền + bằng chữ, tổng phiếu, đã thu trước đó, còn lại + bằng chữ, người lập, các dòng {tên dịch vụ, số tiền}.
+  - `PatientPayment.FreezeReceipt` chỉ nhận phiếu Payment còn Pending, và số tiền phải bằng số tiền phiếu. Sau khi xuất thì phiếu bị khoá (0096).
+  - `TakeReceiptAsync` chốt nội dung khi ghi, chốt lại khi Sửa. Còn lại = tổng phiếu − đã thu (chỉ Completed) − số tiền phiếu này.
+  - `GET patient-payments/{id}/receipt` trả trạng thái, các mốc thời gian và `content`. Có lọc chi nhánh: chi nhánh khác nhận 4xx. Phiếu ghi trước phase 3 chưa có snapshot thì đọc sống, không lưu.
+- **Sửa (FE)**:
+  - Trang `/billing/receipts/:id` (`ReceiptPage`, ghép ở `app/ReceiptRoute.tsx` vì billing không được import auth). Trang có:
+    - breadcrumb Tài chính;
+    - stepper 6 bước (`components/StepTrack`, dùng chung với dialog);
+    - tờ PHIẾU THU vẽ từ nội dung đã chốt;
+    - panel Trạng thái.
+  - Dialog Tạo phiếu thanh toán có `PaymentSteps` 7 bước. Lưu xong thì sang thẳng trang phiếu thu, bỏ việc tự mở tab PDF.
+  - Tab Thanh toán của phiếu điều trị: số phiếu là link, 👁 mở trang phiếu thu.
+- **E2E**:
+  - Spec mới `receipt-page`, 3 ca:
+    1. Bước và panel đi theo trạng thái Pending → Issued → Completed.
+    2. Đổi tên dịch vụ trong danh mục thì phiếu vẫn giữ tên cũ (đọc bằng API và trên trang).
+    3. Tài khoản chi nhánh 2 bị từ chối, cả API lẫn trang.
+  - `payment-from-slip` kiểm stepper 7 bước, trang phiếu thu sau Lưu, ngày trên tờ phiếu, 👁.
+  - `ledgerReceipt.saveReceipt` chờ trang phiếu thu rồi `goBack`. Nút tạo có tên truy cập "save Tạo phiếu thanh toán", nên bỏ `exact: true` ở mọi chỗ. `patient.spec` 2 ca đổi "Lưu" → `CREATE_RECEIPT`.
+- **Kết quả**:
+  - BE: Domain Billing 39/39, Application Billing 27/27.
+  - E2E trên stack thật (API :5000, `vite preview` :8080, không chặn request):
+    - `receipt-page` + `payment-from-slip` + `payment-status` + `treatment-plan-detail`: 23/23.
+    - 13 spec tiền khác: 45/53 xanh. `patient` (các ca thanh toán): 2/4.
+  - Các ca đỏ, **không** do thay đổi này:
+    - 7 ca (`invoice-request-api` ×2, `invoice-request-ui`, `payment-amount-cap`, `plan-service-delete` ×3) dừng ở `openNewSlip`: bấm `.tp-table .tp-code` bị `<th>` che. Nguyên nhân: bệnh nhân demo đã có 3 thẻ "Dịch vụ đang điều trị" do e2e để lại, khối thẻ cao lên, còn `.bd-cat-card` (`overflow: hidden; min-height: 0`) trong cột vừa chiều cao màn hình bị ép thân bảng còn ~0px ở 1280×720. Phase 3 không đụng `plan/` hay `TreatmentPlanPanel`. Đây là lỗi layout thật, đã báo owner.
+    - `patient:1827`: kỳ vọng 5 tiêu đề dialog cũ, trước mock 2026-10-12. HEAD đã có mục "Số phiếu cần thanh toán".
+    - `patient:1916`: `fetch` thô không gửi `X-Clinic-Branch-Id` (R-716).
+    - `qa-bugs-25-30:102`: TEMP-BUG25-OFF.
+- **Chưa làm / lưu ý**:
+  - 👁 trên sổ thu `/billing` vẫn mở dialog cũ.
+  - Chỉ bước Tạo và Xuất có mốc giờ. Các bước iPad chờ phase 4.
+  - Chưa có trường ConfirmedAt. Panel "Đã thanh toán" ghi tên người bấm ✓ (`StaffId`).
+  - Vẫn **không deploy staging** cho tới hết phase 5.
+
 ## R-1046 (2026-10-27, mức 2: Lịch hẹn — Lịch tạm) Nội dung đặt lịch trên Tạo / Chỉnh sửa lịch tạm
 
 - **Yêu cầu** (2026-10-27, ảnh chụp Tạo lịch hẹn khoanh ô "Nội dung đặt lịch" và ảnh chụp Lịch tạm): "Lịch tạm cho phần nội dung đặt lịch luôn nha". Chủ dự án chọn đặt ô này **dưới Chọn bác sĩ**, đúng chỗ của Tạo lịch hẹn.

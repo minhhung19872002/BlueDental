@@ -207,8 +207,21 @@ export async function openNewSlip(page: Page): Promise<NewSlip> {
 /** PatientPaymentStatus as the API writes it (P2610). */
 export const RECEIPT_STATUS = { Pending: 1, Completed: 2, Issued: 3, Cancelled: 4 } as const;
 
+/** The dialog button that writes a new receipt; "Lưu" only corrects a reopened one (P2610). */
+export const CREATE_RECEIPT = "Tạo phiếu thanh toán";
+
 /**
- * "Tạo Phiếu Thanh Toán" for half of the first line, then "Lưu": the
+ * Tài chính → Phiếu thu, where a new receipt lands (`/billing/receipts/:id`):
+ * headed with its number, its PHIẾU THU sheet beside the status column.
+ */
+export async function expectReceiptPage(page: Page, receipt: Pick<Receipt, "id" | "code">): Promise<void> {
+  await expect(page).toHaveURL(new RegExp(`/billing/receipts/${receipt.id}`));
+  await expect(page.locator(".rcpt-head-code")).toHaveText(`Phiếu thu ${receipt.code}`, { timeout: 20_000 });
+  await expect(page.locator(".rcpt-sheet-number")).toHaveText(`Số: ${receipt.code}`);
+}
+
+/**
+ * "Tạo Phiếu Thanh Toán" for half of the first line, then "Tạo phiếu thanh toán": the
  * "Chưa thanh toán" receipt. Run from the slip's Thanh toán tab.
  *
  * `redInvoice` ticks "Xuất hóa đơn đỏ" first: an exported or paid receipt
@@ -231,19 +244,24 @@ export async function collectOnFirstLine(page: Page, options: { redInvoice?: boo
 }
 
 /**
- * "Lưu" on a filled create dialog: the one POST, and the dialog closes on the
- * "Chưa thanh toán" receipt it returns — no question first, no money moved (P2610).
+ * "Tạo phiếu thanh toán" on a filled create dialog: the one POST, no question
+ * first, no money moved — a "Chưa thanh toán" receipt — and the app lands on
+ * its receipt page (P2610). Then Back, to where the dialog was opened, so the
+ * caller carries on there.
  */
 export async function saveReceipt(page: Page, createDialog: Locator): Promise<Receipt> {
   const saved = page.waitForResponse(
     (res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST",
   );
-  await createDialog.getByRole("button", { name: "Lưu" }).click();
+  const openedFrom = page.url();
+  await createDialog.getByRole("button", { name: CREATE_RECEIPT }).click();
   const response = await saved;
   expect(response.ok(), await response.text()).toBeTruthy();
-  await expect(createDialog).toBeHidden();
   const receipt = (await response.json()) as Receipt;
   expect(receipt.status).toBe(RECEIPT_STATUS.Pending);
+  await expectReceiptPage(page, receipt);
+  await page.goBack();
+  await expect(page).toHaveURL(openedFrom);
   return receipt;
 }
 

@@ -427,4 +427,67 @@ public class PatientPaymentTests
             lines: [(ServiceA, 100_000m)],
             status: status));
     }
+
+    private static PaymentReceiptSnapshot Snapshot(decimal amount, decimal slipTotal = 5_000_000m, decimal paidBefore = 1_000_000m) =>
+        PaymentReceiptSnapshot.Take(
+            "BN0001",
+            "Khách Thử",
+            "DT03",
+            new DateOnly(2026, 10, 27),
+            PaymentMethodKind.Cash,
+            amount,
+            slipTotal,
+            paidBefore,
+            "Thu Ngân",
+            [new PaymentReceiptSnapshotLine("Khám & tư vấn", amount)]);
+
+    [Fact]
+    public void The_Receipt_Content_Spells_Its_Amount_And_What_The_Slip_Still_Owes()
+    {
+        var snapshot = Snapshot(2_300_000m);
+
+        snapshot.AmountInWords.ShouldBe("Hai triệu ba trăm nghìn đồng");
+        snapshot.Remaining.ShouldBe(1_700_000m);
+        snapshot.RemainingInWords.ShouldBe("Một triệu bảy trăm nghìn đồng");
+        snapshot.Lines.Single().Name.ShouldBe("Khám & tư vấn");
+    }
+
+    [Fact]
+    public void What_The_Slip_Still_Owes_Never_Goes_Below_Zero()
+    {
+        Snapshot(2_000_000m, slipTotal: 2_500_000m, paidBefore: 1_000_000m).Remaining.ShouldBe(0m);
+    }
+
+    [Fact]
+    public void An_Unpaid_Receipt_Freezes_Its_Content_And_Refreezes_It_On_A_Revise()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+        payment.FreezeReceipt(Snapshot(2_000_000m));
+
+        Revise(payment);
+        payment.FreezeReceipt(Snapshot(1_000_000m));
+
+        payment.ReceiptSnapshot!.Amount.ShouldBe(1_000_000m);
+    }
+
+    [Fact]
+    public void Content_Disagreeing_With_The_Receipt_Total_Is_Refused()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<BusinessException>(() => payment.FreezeReceipt(Snapshot(1_999_000m)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation);
+    }
+
+    [Fact]
+    public void An_Exported_Receipt_Keeps_The_Content_The_Customer_Saw()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+        payment.FreezeReceipt(Snapshot(2_000_000m));
+        payment.Issue(DateTimeOffset.UtcNow, Guid.NewGuid());
+
+        Should.Throw<BusinessException>(() => payment.FreezeReceipt(Snapshot(2_000_000m)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+        payment.ReceiptSnapshot!.CreatorName.ShouldBe("Thu Ngân");
+    }
 }

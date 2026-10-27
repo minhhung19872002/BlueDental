@@ -10765,6 +10765,94 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.Billing.PatientPayment", b =>
+                {
+                    b.OwnsOne("BlueDental.Billing.PaymentReceiptSnapshot", "ReceiptSnapshot", b1 =>
+                        {
+                            b1.Property<Guid>("PatientPaymentId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("numeric");
+
+                            b1.Property<string>("AmountInWords")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("CreatorName")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<int>("Method")
+                                .HasColumnType("integer");
+
+                            b1.Property<decimal>("PaidBefore")
+                                .HasColumnType("numeric");
+
+                            b1.Property<DateOnly>("PaidOn")
+                                .HasColumnType("date");
+
+                            b1.Property<string>("PatientCode")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("PayerName")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("PlanCode")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<decimal>("Remaining")
+                                .HasColumnType("numeric");
+
+                            b1.Property<string>("RemainingInWords")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<decimal>("SlipTotal")
+                                .HasColumnType("numeric");
+
+                            b1.HasKey("PatientPaymentId");
+
+                            b1.ToTable("bd_patient_payments");
+
+                            b1.ToJson("ReceiptSnapshot");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PatientPaymentId");
+
+                            b1.OwnsMany("BlueDental.Billing.PaymentReceiptSnapshotLine", "Lines", b2 =>
+                                {
+                                    b2.Property<Guid>("PaymentReceiptSnapshotPatientPaymentId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("integer");
+
+                                    b2.Property<decimal>("Amount")
+                                        .HasColumnType("numeric");
+
+                                    b2.Property<string>("Name")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.HasKey("PaymentReceiptSnapshotPatientPaymentId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("bd_patient_payments");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("PaymentReceiptSnapshotPatientPaymentId");
+                                });
+
+                            b1.Navigation("Lines");
+                        });
+
+                    b.Navigation("ReceiptSnapshot");
+                });
+
             modelBuilder.Entity("BlueDental.Billing.PatientPaymentLine", b =>
                 {
                     b.HasOne("BlueDental.Billing.PatientPayment", null)

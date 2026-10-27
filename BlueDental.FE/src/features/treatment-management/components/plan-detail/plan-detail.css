@@ -1150,6 +1150,20 @@ a.pdt-crumb:hover {
 .tp-eye.pdt-line-delete:hover {
   color: var(--bd-red-dark);
 }
+/* The receipt code on the Thanh toán tab opens its Phiếu thu page. */
+.pdt-code-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bd-blue);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.pdt-code-link:hover {
+  text-decoration: underline;
+}
 /* ── E-invoice under a receipt's status: pill, number, refresh, PDF ── */
 .pdt-status-cell {
   display: inline-flex;

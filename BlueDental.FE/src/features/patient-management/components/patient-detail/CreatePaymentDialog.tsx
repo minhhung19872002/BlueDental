@@ -57,8 +57,9 @@ const ACCOUNT_KIND_BY_METHOD: Partial<Record<PaymentMethodKind, PaymentAccountKi
 
 /**
  * "Tạo phiếu thanh toán": ① the slip, ② its services that still owe money,
- * ③ how much and how. Laid out from the reference's own dialog (1024px, two
- * columns); the slip picker and steps follow the owner's mock (2026-10-12).
+ * then how much and how; the step bar runs on to the receipt's journey
+ * (P2610). Laid out from the reference's own dialog (1024px, two columns);
+ * the slip picker and steps follow the owner's mock (2026-10-12).
  * Every line the money is split across is recorded on one receipt naming it,
  * so the row's Còn nợ moves rather than only the slip's rollup.
  */
@@ -126,7 +127,8 @@ export function CreatePaymentDialog({
             disabled={submit.pending}
             onClick={submit.request}
           >
-            {t("Common:Save")}
+            {/* Lưu corrects a reopened receipt; a new one is written and opened on its page. */}
+            {t(revision ? "Common:Save" : "Patient:Payment:CreateSubmit")}
           </Button>
         </div>
       }

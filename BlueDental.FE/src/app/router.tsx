@@ -155,6 +155,12 @@ const BillingPage = lazy(() =>
   })),
 );
 
+const ReceiptPage = lazy(() =>
+  import("./ReceiptRoute").then((m) => ({
+    default: m.ReceiptRoute,
+  })),
+);
+
 const MaterialsPage = lazy(() =>
   import("@/features/materials/pages/MaterialsPage").then((m) => ({
     default: m.MaterialsPage,
@@ -468,6 +474,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="billing">
             <BillingPage />
+          </G>
+        ),
+      },
+      {
+        // One receipt on its way to the customer's signature (P2610).
+        path: "billing/receipts/:id",
+        element: (
+          <G k="billing">
+            <ReceiptPage />
           </G>
         ),
       },

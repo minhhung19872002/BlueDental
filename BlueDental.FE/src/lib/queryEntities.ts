@@ -10,6 +10,7 @@ import { staffOptionKeys } from "@/hooks/useStaffOptions";
 import type { appointmentHistoryKeys } from "@/features/appointments/api/appointmentHistoryQueries";
 import type { appointmentKeys } from "@/features/appointments/api/appointmentQueries";
 import type { paymentLedgerKeys } from "@/features/billing/api/paymentLedgerApi";
+import type { paymentReceiptKeys } from "@/features/billing/api/paymentReceiptApi";
 import type { careKeys } from "@/features/cskh/api/careApi";
 import type { laboMaterialKeys, laboSupplierKeys } from "@/features/labo/api/laboCatalogApi";
 import type { laboCatalogKeys } from "@/features/labo/api/laboCatalogListApi";
@@ -127,6 +128,8 @@ export const ENTITY_QUERY_ROOTS = {
     ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
     // Tài chính → Thanh toán lists every receipt of the branch.
     ["payment-ledger"] satisfies RootOf<typeof paymentLedgerKeys>,
+    // The receipt page: ✓ and Hủy move its status and step bar.
+    ["payment-receipts"] satisfies RootOf<typeof paymentReceiptKeys>,
     // "Tạo yêu cầu xuất HĐ" picks from the patient's receipts.
     INVOICE_REQUESTS,
   ],

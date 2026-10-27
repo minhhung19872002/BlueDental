@@ -483,6 +483,61 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
 }
 
 /// <summary>
+/// The receipt page ("Tài chính / Phiếu thu", P2610): where the receipt is in
+/// its journey, and the PHIẾU THU it shows — as frozen when it was written.
+/// </summary>
+public class PaymentReceiptDto
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public Guid PatientId { get; set; }
+    public Guid ClinicBranchId { get; set; }
+    public Guid? TreatmentPlanId { get; set; }
+    public PatientPaymentStatus Status { get; set; }
+
+    /// <summary>"Tạo phiếu thu" — when it was written.</summary>
+    public DateTimeOffset CreationTime { get; set; }
+
+    /// <summary>"Xuất phiếu thu".</summary>
+    public DateTimeOffset? IssuedAt { get; set; }
+    public string? IssuedByName { get; set; }
+
+    /// <summary>Who ✓ confirmed the money, once "Đã thanh toán".</summary>
+    public string? ConfirmedByName { get; set; }
+
+    public DateTimeOffset? CancelledAt { get; set; }
+    public string? CancelledByName { get; set; }
+    public string? CancelReason { get; set; }
+    public PaymentCancelReason? CancelReasonCode { get; set; }
+
+    public PaymentReceiptContentDto Content { get; set; } = new();
+}
+
+/// <summary>What the PHIẾU THU says. See the domain's PaymentReceiptSnapshot.</summary>
+public class PaymentReceiptContentDto
+{
+    public string PatientCode { get; set; } = string.Empty;
+    public string PayerName { get; set; } = string.Empty;
+    public string PlanCode { get; set; } = string.Empty;
+    public DateOnly PaidOn { get; set; }
+    public PaymentMethodKind Method { get; set; }
+    public decimal Amount { get; set; }
+    public string AmountInWords { get; set; } = string.Empty;
+    public decimal SlipTotal { get; set; }
+    public decimal PaidBefore { get; set; }
+    public decimal Remaining { get; set; }
+    public string RemainingInWords { get; set; } = string.Empty;
+    public string CreatorName { get; set; } = string.Empty;
+    public List<PaymentReceiptContentLineDto> Lines { get; set; } = new();
+}
+
+public class PaymentReceiptContentLineDto
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
+
+/// <summary>
 /// "Hủy phiếu" — a receipt is cancelled with a description (bug list item 28);
 /// an exported or paid one also with one of the four fixed reasons (P2610).
 /// </summary>
@@ -707,6 +762,7 @@ public interface IPatientPaymentAppService : IApplicationService
     Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input);
     Task<PatientPaymentDto> IssueAsync(Guid id);
     Task<PatientPaymentDto> ConfirmAsync(Guid id);
+    Task<PaymentReceiptDto> GetReceiptAsync(Guid id);
     Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(GetDebtHistoryInput input);
     Task CancelAsync(Guid id, CancelPatientPaymentDto input);
 }

@@ -4,6 +4,7 @@ import { addExtraService } from "./fixtures/extraService";
 import {
   confirmOnRow,
   createSlipViaApi,
+  expectReceiptPage,
   issueReceipt,
   saveAndSettle,
   saveReceipt,
@@ -357,7 +358,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     paidAmount = Math.max(1, Math.floor(due / 2));
 
     await dialog.locator(".pd-newpay-amount").fill(String(paidAmount));
-    // "Lưu" writes it "Chưa thanh toán" (P2610): listed, but no money moved yet.
+    // "Tạo phiếu thanh toán" writes it "Chưa thanh toán" (P2610): listed, but no money moved yet.
     const written = await saveReceipt(page, dialog);
 
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
@@ -380,27 +381,20 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(row.getByRole("button", { name: `Huỷ phiếu ${paymentCode}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Xác nhận thanh toán phiếu ${paymentCode}` })).toHaveCount(0);
 
+    // 👁 opens it on Tài chính → Phiếu thu (P2610): the PHIẾU THU sheet with
+    // its one line and the sum in words, every step done, and "In phiếu thu".
     await row.getByRole("button", { name: `Xem phiếu ${paymentCode}` }).click();
-    const receipt = page.getByRole("dialog", { name: "Chi tiết phiếu" });
-    await expect(receipt).toBeVisible();
-    await expect(receipt.locator(".pdt-receipt-facts").first()).toContainText(paymentCode);
-    await expect(receipt.getByText("Tổng thanh toán dịch vụ")).toBeVisible();
-    await expect(receipt.locator(".pdt-receipt-table tbody tr.ant-table-row")).toHaveCount(1);
-    // A receipt prints its PHIẾU THU PDF (F-71); the off-screen sheet stays for
-    // "In hóa đơn tổng" and refunds: letterhead, title, sum in words, signatures.
-    await expect(receipt.getByRole("button", { name: "In phiếu thu" })).toBeVisible();
-    const sheet = receipt.locator(".pdt-sheet");
-    await expect(sheet).toHaveCount(1);
-    await expect(sheet).toBeHidden();
-    await expect(sheet.locator(".pdt-sheet-title")).toHaveText("Biên lai thu tiền");
-    await expect(sheet.locator(".pdt-sheet-clinic strong")).not.toBeEmpty();
-    await expect(sheet).toContainText("Số tiền bằng chữ");
-    await expect(sheet).toContainText(/[A-ZĐ][a-zăâđêôơưáàảãạ].* đồng/);
-    await expect(sheet.locator(".pdt-sheet-signs > div")).toContainText([
-      "Người lập phiếu",
-      "Khách hàng",
-    ]);
-    await receipt.getByRole("button", { name: "Đóng", exact: true }).last().click();
+    await expectReceiptPage(page, written);
+    await expect(page.locator(".rcpt-pill")).toHaveText("Đã thanh toán");
+    await expect(page.locator(".rcpt-sheet-title")).toHaveText("PHIẾU THU");
+    await expect(page.locator(".rcpt-sheet-clinic")).not.toBeEmpty();
+    await expect(page.locator(".rcpt-lines tbody tr")).toHaveCount(1);
+    await expect(page.locator(".rcpt-sheet")).toContainText(/[A-ZĐ][a-zăâđêôơưáàảãạ].* đồng/);
+    await expect(page.locator(".rcpt-sign-role")).toHaveText(["Người nộp tiền", "Kế toán / Người lập phiếu"]);
+    await expect(page.locator(".rcpt-track-card .step-track-item--done")).toHaveCount(6);
+    await expect(page.getByRole("button", { name: "In phiếu thu" })).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/planTab=payment-v2/);
   });
 
   test("Hoàn tiền files a refund on a paid line and lists it", async ({ page }) => {

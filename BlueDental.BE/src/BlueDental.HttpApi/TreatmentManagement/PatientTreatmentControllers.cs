@@ -105,6 +105,9 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
     public Task<PatientPaymentDto> UpdateAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpGet("{id:guid}/receipt")]
+    public Task<PaymentReceiptDto> GetReceiptAsync(Guid id) => service.GetReceiptAsync(id);
+
     [HttpPost("{id:guid}/issue")]
     public Task<PatientPaymentDto> IssueAsync(Guid id) => service.IssueAsync(id);
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/DataTable";
@@ -11,6 +12,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { notifyError } from "@/lib/notify";
+import { receiptPagePath } from "@/lib/receiptTab";
 import { countedTotal } from "@/utils/countedTotal";
 import { usePatientAdvises } from "../../api/consultingQueries";
 import {
@@ -22,7 +24,6 @@ import {
 } from "../../api/eInvoiceApi";
 import {
   PAYMENT_KIND,
-  PAYMENT_STATUS,
   useCancelPayment,
   usePatientAccount,
   usePatientPayments,
@@ -36,7 +37,7 @@ import { PaymentCardList } from "./PaymentCardList";
 import { PaymentConfirmPrompt } from "./PaymentConfirmPrompt";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
 import { buildPaymentColumns, paymentCardRows, type PaymentRowActions } from "./paymentColumns";
-import { aggregateReceiptOf, receiptOf, type ReceiptView } from "./receiptView";
+import { aggregateReceiptOf, type ReceiptView } from "./receiptView";
 
 const NARROW_SCREEN = "(max-width: 640px)";
 const PAGE_CAP = 200;
@@ -55,6 +56,7 @@ interface Props {
  */
 export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   const { canCreate, canUpdate, canDelete } = useAbility("payment");
+  const navigate = useNavigate();
   const narrow = useMediaQuery(NARROW_SCREEN);
   const pagination = useTablePagination(20);
   const query = usePatientPayments({
@@ -111,15 +113,11 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   };
 
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
-  // A cancelled or still-pending receipt is listed, but no money on a printed receipt counts it.
-  const activeReceipts = useMemo(
-    () => receipts.filter((r) => !r.isDeleted && r.status === PAYMENT_STATUS.Completed),
-    [receipts],
-  );
   const pageRows = receipts.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
   const showTotal = countedTotal(t("Treatment:Payment:PaymentNoun"));
 
-  const handleView = (payment: PatientPaymentDto) => setReceipt(receiptOf(payment, plan, activeReceipts));
+  // The code and 👁 open the receipt on its own page, Tài chính → Phiếu thu (P2610).
+  const handleView = (payment: PatientPaymentDto) => navigate(receiptPagePath(payment.id, branchId));
   const handleAggregate = () => setReceipt(aggregateReceiptOf(plan, new Date()));
 
   /** Huỷ takes the movement back off the slip, so every rollup is recomputed. */
@@ -146,7 +144,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   };
   const columns = useMemo(
     () => buildPaymentColumns(plan, rowActions),
-    [plan, activeReceipts, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
+    [plan, branchId, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (

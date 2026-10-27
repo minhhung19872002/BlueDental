@@ -46,6 +46,15 @@ function StatusPill({ payment }: { payment: PatientPaymentDto }) {
   );
 }
 
+/** The receipt code opens it on Tài chính → Phiếu thu, as 👁 does (P2610). */
+function codeLink(payment: PatientPaymentDto, onView: (payment: PatientPaymentDto) => void) {
+  return (
+    <button type="button" className="pdt-code-link" onClick={() => onView(payment)}>
+      {payment.code}
+    </button>
+  );
+}
+
 function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPaymentDto) => void) {
   return (
     <button
@@ -186,7 +195,7 @@ export function buildPaymentColumns(
   const methods = paymentMethodLabels();
   return [
     // "THANHTOAN-01/DT01/2026" on one line.
-    { key: "code", title: t("Treatment:Payment:PaymentCode"), width: 208, render: (_, p) => p.code },
+    { key: "code", title: t("Treatment:Payment:PaymentCode"), width: 208, render: (_, p) => codeLink(p, actions.onView) },
     // "Ngày thanh toán" — the day the money was taken, which the cashier may
     // date back (owner 2026-10-14); it replaced "Ngày tạo" (creationTime). The
     // day only: a backdated receipt's clock time is just when it was entered.

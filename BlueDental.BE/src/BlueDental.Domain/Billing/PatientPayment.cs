@@ -108,6 +108,12 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     /// </summary>
     public bool IsImported { get; private set; }
 
+    /// <summary>
+    /// The PHIẾU THU content as written — see <see cref="PaymentReceiptSnapshot"/>.
+    /// Null on refunds, held money and receipts written before P2610 phase 3.
+    /// </summary>
+    public PaymentReceiptSnapshot? ReceiptSnapshot { get; private set; }
+
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
 
@@ -327,6 +333,33 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     public PatientPayment RequestRedInvoice(bool requested)
     {
         RedInvoiceRequested = requested;
+        return this;
+    }
+
+    /// <summary>
+    /// Writes down what the PHIẾU THU says. Only a payment has one, and only
+    /// while it is still "Chưa thanh toán": from the export on the receipt is
+    /// locked (Billing:0096).
+    /// </summary>
+    public PatientPayment FreezeReceipt(PaymentReceiptSnapshot snapshot)
+    {
+        Check.NotNull(snapshot, nameof(snapshot));
+        EnsurePending();
+        if (Kind != PatientPaymentKind.Payment)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition,
+                "Only a payment carries a PHIẾU THU.");
+        }
+
+        if (snapshot.Amount != Amount)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "The PHIẾU THU must state the receipt's own total.");
+        }
+
+        ReceiptSnapshot = snapshot;
         return this;
     }
 
