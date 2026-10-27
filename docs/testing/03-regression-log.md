@@ -11715,6 +11715,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy lại `patient-search-unaccent` và `search-unaccent-everywhere`: **5/5 xanh**.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
 
+
+## R-1054 (2026-10-27, mức 1: bệnh án mẫu 6) Giấy đồng ý phẫu thuật: nhãn hiệu nhỏ hơn, quốc hiệu to hơn
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "riêng mẫu bệnh án số 6, cụm tiêu đề bệnh viện font size nhỏ lại và quốc hiệu to ra xíu nữa". Bố cục từ R-1044 giữ nguyên.
+- **Sửa** (`templates/surgeryConsent.ts`, chỉ header):
+  - Cụm "SỞ Y TẾ … NHA KHOA ĐỨC HẠNH" từ 9pt xuống 8pt (10.7px), vẫn 4 dòng.
+  - "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM / Độc lập - Tự do - Hạnh phúc" từ 16px (cỡ chữ phiếu) lên 14pt (18.7px). Lần đầu tăng lên 13pt; owner xem xong bảo "to thêm xíu nữa" nên tăng tiếp. Quốc hiệu rộng 387px, vẫn 1 dòng; cả 2 dòng lệch tâm trang 0px.
+  - Tiêu đề phiếu lùi thêm 7px (200 → 207px).
+- **Ghi chú**: ảnh owner gửi có ô "MS:" trống. Trên dev, cùng phiếu này hiện "MS: 01/BV2" (R-1052). Khi lưu, phiếu chỉ ghi lại ô khác giá trị tự động, nên phiếu cũ không chặn mã điền sẵn. Nhiều khả năng bản owner xem chưa có commit b22c58aa.
+- **E2E** `patient-medical-record.spec` (dev :5173, `--headed`):
+  - "every form draws the whole…" → **pass**.
+  - "every form shares mẫu 5's … print rules": mẫu 6 qua đủ các bước (cỡ chữ, nhãn hiệu đậm, **in đủ 2 trang**). Ca này vẫn đỏ ở mẫu 7 "printed pages" (mong 1, ra 2), lỗi có từ trước (R-1044).
+
 ## R-1055 (2026-10-27, mức 2: Lịch hẹn / Lịch tạm / Tiếp nhận — dialog) Bỏ Ghi chú, chỉ giữ Nội dung đặt lịch
 
 - **Yêu cầu** (BA + lễ tân, ngày 27/10):
@@ -11736,3 +11749,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-notes.spec.ts`: Tạo tiếp nhận chỉ có 1 textarea, lưu `chiefComplaint`, `notes` rỗng, thẻ hiện Nội dung sau reload; thẻ ưu tiên Nội dung hơn Ghi chú, Hoàn tất giữ Ghi chú; lịch cũ chỉ có Ghi chú thì thẻ hiện Ghi chú. Fixture `bookVisitToday` thêm tham số `withContent`.
   - 3 spec trên: **13/13 xanh**.
   - Chạy lại `appointment-mini-cal-date`, `appointment-series-ui`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `reception`, `reception-temporary`, `reception-temp-cancel`, `reception-own-doctor`, `reception-doctor-list`, `reception-search-fullname`: **26/26 xanh**.
+
+## R-1056 (2026-10-27, mức 2: Chi tiết phiếu — form công đoạn) Ghi chú lịch hẹn + Chọn nhanh
+
+- **Yêu cầu** (BA, ngày 27/10): form Thêm công đoạn có thêm cột thứ 4 "Ghi chú lịch hẹn". Bên dưới ô nhập là nhãn "Chọn nhanh" và 6 chip +1/+2/+3 ngày, +1/+2/+3 tuần. Mỗi chip hiện ngày rơi vào, tính từ Ngày điều trị (vd "+1 tuần · 03/11"). Mỗi lần chỉ chọn được 1 chip. Giá trị lưu xong hiện ở cột Ghi chú của LỊCH SỬ ĐIỀU TRỊ.
+- **Chủ phòng khám chốt**:
+  1. "Chọn nhanh" chỉ là nhãn.
+  2. Chỉ là ghi chú, KHÔNG tạo lịch hẹn thật.
+  3. KHÔNG thêm vào dialog Tạo bảo hành / tái khám.
+- **Thay đổi** (không migration):
+  - BE: `CreateTreatmentStageDto.Remark` / `ContinueTreatmentStageDto.Remark` (`[StringLength(1000)]`). `CreateAsync` / `ContinueAsync` gọi `SetRemark` trên công đoạn mới, tức là ô Ghi chú của R-986.
+  - FE: `stage/StageAppointmentNote.tsx`, `stage/appointmentNote.ts`.
+    - Bấm chip thì thêm dòng "Hẹn tái khám: dd/mm/yyyy" vào dưới phần đã gõ. Bấm chip khác thì thay dòng đó, bấm lại chip đang chọn thì bỏ dòng.
+    - Chip đang chọn được suy ra từ chính nội dung ô. Đổi Ngày điều trị thì dời luôn dòng đã chọn theo ngày mới.
+    - Câu "Hẹn tái khám: …" là giả định của mình vì BA chưa ghi chữ cụ thể. Key i18n: `Patient:Stage:AppointmentNoteLine`.
+  - Áp dụng cho cả 3 tab Thêm công đoạn / Tiếp tục công đoạn / Tiếp tục bảo hành, vì cả 3 dùng chung `StageForm`.
+  - CSS: lưới 4 cột nằm ở modifier `.pd-stage-form--four`, vì `.pd-stage-form` còn được `StageFollowUpDialog` dùng. Từ 1280px trở xuống còn 2 cột, từ 1024px còn 1 cột.
+- **Ảnh hưởng spec cũ**: form giờ có 2 textarea, nên mọi spec công đoạn chuyển sang `form.locator("textarea").first()` cho ô Nội dung. Các file đã sửa: `patient`, `stage-treatment-date`, `treatment-stage-chain`, `treatment-plan`, `cskh-after-treatment`.
+  - `patient.spec.ts` "the stage form fills its columns": 3 cột → 4 cột. Nhãn "Nội dung điều trị" giờ tìm theo chữ, không lấy `.last()` nữa.
+- **Test**:
+  - BE `TreatmentStageRemarkContractTests`: **6/6 xanh**.
+  - E2E mới `stage-appointment-note.spec.ts`, **2/2 xanh**:
+    - Kiểm tra 5 tiêu đề cột, lưới 4 cột, dấu * của Nội dung điều trị, chữ trên 6 chip.
+    - Gõ chữ rồi bấm +1 tuần thì thêm dòng; +2 tuần thay dòng đó; bấm lại thì bỏ.
+    - Đổi Ngày điều trị về hôm nay−2 thì chip và dòng dời theo.
+    - Lưu: kiểm tra body POST và response, lịch sử hiện `.pd-stage-remarktext`, GET riêng và reload đều khớp.
+    - Đường Tiếp tục công đoạn: công đoạn mới có Ghi chú, công đoạn cũ vẫn `null`.
+  - Chạy lại các spec công đoạn: `stage-remark`, `stage-treatment-date`, `treatment-stage-chain`, `treatment-plan`, `cskh-after-treatment`, `patient`.
+    - Lần 1 đỏ hàng loạt ở bước đăng nhập. Nguyên nhân: phiên khác xoá `dist-r1054/index.html`. Đã build lại bản riêng ngoài checkout (`vite preview` :8094).
+    - Lần 2, có 4 test đỏ trong `patient.spec`, cả 4 ngoài phạm vi thay đổi này:
+      - Tiêu đề dialog thanh toán: spec cũ, dialog đã đổi trước đó.
+      - Màu nhãn Nội dung khi focus ở Đặt mới (labo).
+      - "Danh sách công đoạn … capped at five rows": dữ liệu demo hết dòng có ≥2 công đoạn.
+      - "the stage form fills its columns": dữ liệu demo không còn dòng "stageable" ở trạng thái phù hợp. Lần chạy riêng đỏ ngay bước mở dialog, trước khi tới phần form. Phần lưới 4 cột và dấu * đã được chứng minh trong `stage-appointment-note.spec.ts` bằng dữ liệu tự tạo.
+    - Kết quả cuối lần 2: **79 xanh / 9 đỏ**, cả 9 ngoài phạm vi. Ngoài 4 test trên:
+      - "the công đoạn form lists the pictures it is holding": cùng lỗi dữ liệu demo như "fills its columns" (không còn nút Thêm công đoạn).
+      - "the Tiếp nhận steps advance one at a time", "the appointment card reassigns its doctor": lịch hẹn / dữ liệu demo.
+      - `stage-remark` "without Công đoạn → Sửa …": đỏ ở fixture `createDentist` (ô Chi nhánh của dialog Nhân viên), trước khi tới phần Ghi chú.
+      - `treatment-plan` "the slip survives a reload": phiếu DT02 thành "Đang điều trị" vì worker song song của `patient.spec` thêm công đoạn lên bệnh nhân demo dùng chung. Chạy riêng `treatment-plan.spec` (1 worker): **9/9 xanh**.

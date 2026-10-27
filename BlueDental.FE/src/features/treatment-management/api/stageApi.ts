@@ -127,6 +127,8 @@ export interface CreateTreatmentStageInput {
   serviceItemIds?: string[];
   /** Ngày điều trị, "YYYY-MM-DD"; the server takes today when omitted. */
   treatmentDate?: string;
+  /** Ghi chú lịch hẹn — the new công đoạn's Ghi chú; our own, not the reference's. */
+  remark?: string;
 }
 
 /** What the reference's PUT /patient-stages/{id} carries. */
@@ -160,6 +162,8 @@ export interface ContinueTreatmentStageInput {
   alsoFrom: { stageId: string; toothCodes: number[] }[];
   /** Ngày điều trị of this visit, "YYYY-MM-DD"; today when omitted. */
   treatmentDate?: string;
+  /** Ghi chú lịch hẹn — the new công đoạn's Ghi chú. */
+  remark?: string;
 }
 
 export interface StageListInput {

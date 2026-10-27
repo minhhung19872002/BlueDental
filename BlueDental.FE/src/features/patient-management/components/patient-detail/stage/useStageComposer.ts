@@ -313,6 +313,7 @@ export function useStageComposer({
         note: draft.note.trim(),
         serviceItemIds: draft.steps,
         treatmentDate: draft.treatmentDate,
+        remark: draft.remark.trim() || undefined,
       });
       if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
       return;
@@ -334,6 +335,7 @@ export function useStageComposer({
           teeth: pickTeeth(item.teeth, draft.teeth),
           serviceItemIds: draft.steps,
           treatmentDate: draft.treatmentDate,
+          remark: draft.remark.trim() || undefined,
         });
 
     // Pictures chosen in the form belong to a công đoạn that did not exist
