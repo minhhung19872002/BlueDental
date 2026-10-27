@@ -11248,3 +11248,23 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Yêu cầu** (2026-10-27, ảnh chụp bảng tìm kiếm Ctrl+K): "Thêm năm sinh sau tên nha". Mẫu: `Huỳnh Văn Định (2002)`.
 - **Sửa**: `GlobalSearch` hiện `Tên (YYYY)` ở dòng tên của mỗi kết quả. Năm lấy từ `dateOfBirth` mà `GET /patients` đã trả sẵn, nên không sửa BE. Hồ sơ chưa có ngày sinh chỉ hiện tên.
 - **E2E** `patient-search-unaccent.spec.ts` ca 2: dòng tên của kết quả kết thúc bằng `Hà My (1990)`. Chạy trên bản build production của `main` (`vite preview` :8091, API :5000): 2/2 **xanh**.
+
+
+## R-1044 (2026-10-27, mức 1: bệnh án mẫu 6) Quốc hiệu xuống hàng riêng, căn giữa trang; nhãn hiệu phòng khám nhỏ lại
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "Chỉnh lại phần quốc hiệu cho ra giữa nhá. Phần thông tin phòng khám cho nhỏ lại hơn quốc hiệu" (nhỏ = font size). Sau đó: "Quốc hiệu nên cho căn giữa của trang".
+- **Lỗi cũ**:
+  - Header 3 cột 335px / auto / 150px. Cột giữa chỉ còn khoảng 195px nên "CỘNG HÒA XÃ HỘI CHỦ / NGHĨA VIỆT NAM" rớt dòng, và quốc hiệu lệch phải so với tâm trang.
+  - Nhãn hiệu 10pt (13.3px), chỉ nhỏ hơn quốc hiệu (16px, cỡ chữ của phiếu) một chút.
+- **Phương án đã thử rồi bỏ**: cùng một hàng, 3 cột 176 / auto / 176, nhãn hiệu ép 7pt và ngắt 5 dòng. Owner xem xong cho revert, chọn đưa quốc hiệu xuống hàng riêng. Lý do: muốn quốc hiệu đúng giữa trang mà vẫn cùng hàng thì mỗi bên chỉ còn khoảng 165px; nhãn hiệu 4 dòng phải còn khoảng 6.8px, ngắt 5 dòng thì khoảng 9.5px.
+- **Sửa** (`templates/surgeryConsent.ts`, chỉ phần header):
+  - Bảng header còn 2 cột: nhãn hiệu (335px) và MS (căn phải), giống mẫu 7 và mẫu 9. Id ô MS không đổi, nên giá trị MS đã lưu vẫn giữ.
+  - Nhãn hiệu 10pt → 9pt (12px), vẫn 4 dòng như cũ.
+  - Quốc hiệu và tiêu ngữ thành một đoạn riêng, căn giữa, nằm giữa bảng header và tiêu đề. Cỡ chữ 16px theo phiếu.
+- **Đo trên dev :5173** (vùng nội dung của trang rộng 703px):
+  - Tâm của cả 2 dòng quốc hiệu lệch tâm trang 0px; quốc hiệu 1 dòng (331px).
+  - Nhãn hiệu 12px, 4 dòng. MS 1 dòng ở góc phải trên.
+  - Tiêu đề xuống thêm 47px (153 → 200px).
+- **E2E** (`patient-medical-record.spec.ts`, stack thật, dev :5173, `--headed` vì máy không tải được chromium-headless-shell):
+  - "every form draws the whole of its printed original" → **pass** (mẫu 6 vẫn 49 ô, 26 checkbox, 2 trang).
+  - "every form shares mẫu 5's type, boxes, letterhead and print rules": mẫu 6 qua đủ các bước (cỡ chữ 16px, nhãn hiệu đậm, **in vẫn đủ 2 trang** dù header cao thêm). Ca này vẫn **đỏ ở mẫu 7** "Phiếu phẫu thuật/thủ thuật · printed pages" (mong 1, ra 2). Đỏ này **có từ trước**: stash thay đổi rồi chạy lại trên code gốc vẫn đỏ y hệt. Chưa sửa, cần xem riêng.
