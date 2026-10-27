@@ -11,6 +11,7 @@ import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
 import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 const STATUS_CHIPS = [
   { key: "scheduled", label: () => t("Appointment:Status:Scheduled2"), bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
@@ -185,6 +186,7 @@ export function CalendarControlPanel({
                     onChange={onDoctorChange}
                     placeholder={t("Appointment:Form:SelectDoctor")}
                     style={{ width: "100%" }}
+                    filterOption={foldFilterOption}
                     options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                     getPopupContainer={(trigger) => trigger.closest(".cal-panel") ?? document.body}
                   />

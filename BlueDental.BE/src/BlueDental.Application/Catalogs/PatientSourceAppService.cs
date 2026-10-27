@@ -24,7 +24,7 @@ public class PatientSourceAppService : ApplicationService, IPatientSourceAppServ
     {
         var query = await _repository.GetQueryableAsync();
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(x => x.Name.ToLower().Contains(term) || x.Code.ToLower().Contains(term));
+            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)) || x.Code.ToLower().Contains(term));
         if (input.IsActive.HasValue)
             query = query.Where(x => x.IsActive == input.IsActive.Value);
 

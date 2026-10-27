@@ -6,6 +6,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { BookInput, TicketDto } from "../api/ticketApi";
 
 interface FormValues {
@@ -94,7 +95,7 @@ export function BookAppointmentDialog({ ticket, pending, onSubmit, onClose }: Pr
               required={needsDentist}
               rules={needsDentist ? [{ required: true, message: t("BlueDental:MarketingTicket:0005") }] : []}
             >
-              <Select allowClear={!needsDentist} showSearch optionFilterProp="label" options={dentists} />
+              <Select allowClear={!needsDentist} showSearch filterOption={foldFilterOption} options={dentists} />
             </FloatingField>
           </Col>
           <Col span={24}>

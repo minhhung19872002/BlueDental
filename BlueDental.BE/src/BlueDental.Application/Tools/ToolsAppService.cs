@@ -33,7 +33,7 @@ public class ToolsAppService(
         var q = (await callConfigurationRepo.GetQueryableAsync())
             .Where(x => x.ClinicBranchId == branchId);
         foreach (var term in SearchTerms.From(input.Filter))
-            q = q.Where(x => x.Name.ToLower().Contains(term));
+            q = q.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)
@@ -255,7 +255,7 @@ public class ToolsAppService(
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            q = q.Where(x => x.Name.ToLower().Contains(term) || x.Content.ToLower().Contains(term));
+            q = q.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)) || DbText.Unaccent(x.Content.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = q.Count();
         var items = q.OrderByDescending(x => x.CreationTime)
@@ -338,7 +338,7 @@ public class ToolsAppService(
         var wholePhone = await LazyServiceProvider
             .LazyGetRequiredService<BlueDental.PatientManagement.PatientPhoneMasker>().ShouldMaskAsync();
         foreach (var term in SearchTerms.From(input.Filter))
-            q = q.Where(x => x.RecipientName.ToLower().Contains(term)
+            q = q.Where(x => DbText.Unaccent(x.RecipientName.ToLower()).Contains(DbText.Unaccent(term))
                 || (wholePhone ? x.RecipientPhone == term : x.RecipientPhone.ToLower().Contains(term)));
 
         var totalCount = q.Count();

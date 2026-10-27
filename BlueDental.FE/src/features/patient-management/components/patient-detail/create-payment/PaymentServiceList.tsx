@@ -4,6 +4,7 @@ import { FileSearchOutlined, FileTextOutlined, SearchOutlined } from "@ant-desig
 import type { TreatmentServiceDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
+import { matchesSearch } from "@/utils/foldForSearch";
 
 interface Props {
   /** The chosen slip's code; null until one is chosen. */
@@ -49,9 +50,7 @@ export function PaymentServiceList({ slipCode, lines, picked, onToggle, onToggle
   const [searching, setSearching] = useState(false);
   const [keyword, setKeyword] = useState("");
   const visible = useMemo(() => {
-    const needle = keyword.trim().toLocaleLowerCase("vi");
-    if (!needle) return lines;
-    return lines.filter((line) => (line.serviceName ?? line.code).toLocaleLowerCase("vi").includes(needle));
+    return lines.filter((line) => matchesSearch(line.serviceName ?? line.code, keyword));
   }, [keyword, lines]);
   const pickedCount = lines.filter((line) => picked.includes(line.id)).length;
 

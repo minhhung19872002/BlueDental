@@ -5,6 +5,7 @@ import {
   useAvailableVouchers,
   type VoucherDto,
 } from "@/features/voucher/api/voucherApi";
+import { matchesSearch } from "@/utils/foldForSearch";
 import {
   priceVouchers,
   voucherBase,
@@ -57,7 +58,7 @@ const OFFERED_SCOPES = new Set<VoucherDto["scopeTarget"]>(["treatment", "service
 function matchesQuery(voucher: VoucherDto, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (needle === "") return true;
-  return voucher.code.toLowerCase().includes(needle) || voucher.name.toLowerCase().includes(needle);
+  return voucher.code.toLowerCase().includes(needle) || matchesSearch(voucher.name, needle);
 }
 
 /**

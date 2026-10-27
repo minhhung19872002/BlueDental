@@ -3,6 +3,7 @@ import { DeleteOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { RequiredPlaceholder } from "@/components/RequiredPlaceholder";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { doseQuantity, lineFieldLabel, plainDose, RX_SESSIONS, sessionLabel } from "./dose";
 import type { MedicineOption, PrescriptionLine } from "./types";
 import { UsagePicker } from "./UsagePicker";
@@ -34,7 +35,7 @@ export function PrescriptionLineTable({ lines, medicines, onPatch, onRemove }: P
       render: (_, line) => (
         <Select
           showSearch
-          optionFilterProp="label"
+          filterOption={foldFilterOption}
           className="bd-rx-full"
           aria-label={t("Common:Rx:MedicineName")}
           placeholder={<RequiredPlaceholder text={t("Common:Rx:MedicineName")} />}

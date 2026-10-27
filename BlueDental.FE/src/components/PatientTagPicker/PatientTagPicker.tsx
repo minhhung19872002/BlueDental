@@ -6,6 +6,7 @@ import { SelectLoading } from "@/components/SelectLoading";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useSetPatientTags } from "@/hooks/useSetPatientTags";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 import { PatientTagChip } from "./PatientTagChip";
 import "./patient-tag-picker.css";
 
@@ -34,7 +35,7 @@ export function PatientTagPicker({ patientId, branchId, tagIds, buttonClassName 
   const visible = useMemo(
     () =>
       (tags.data ?? []).filter((tag) =>
-        tag.label.toLocaleLowerCase("vi").includes(filter.trim().toLocaleLowerCase("vi")),
+        matchesSearch(tag.label, filter),
       ),
     [filter, tags.data],
   );

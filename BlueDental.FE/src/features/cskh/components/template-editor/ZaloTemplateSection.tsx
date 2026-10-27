@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Select } from "antd";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { useZnsTemplate, useZnsTemplates, type MessageVariable } from "../../api/templateApi";
 import { prefillParamMap } from "../../znsParamDefaults";
 import { znsStatusLabel } from "../templates/templateLook";
@@ -62,7 +63,7 @@ export function ZaloTemplateSection(props: ZaloTemplateSectionProps) {
           id="tpe-zns"
           showSearch
           allowClear
-          optionFilterProp="label"
+          filterOption={foldFilterOption}
           loading={list.isLoading}
           disabled={readOnly || notConnected}
           value={externalTemplateId ?? undefined}

@@ -1,6 +1,7 @@
 import { Form, Select } from "antd";
 import { AppDialog } from "@/components/AppDialog";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { ORG_UNIT_KIND } from "../../api/orgChartApi";
 import { OrgMembersField } from "./OrgMembersField";
 import type { OrgChartIndex } from "./orgChartModel";
@@ -58,7 +59,7 @@ export function OrgAssignDialog({ open, unitId, index, saving, onSubmit, onClose
           rules={[{ required: true, message: t("OrgChart:Required:Unit") }]}
           hidden={Boolean(unitId)}
         >
-          <Select showSearch optionFilterProp="label" options={unitOptions} />
+          <Select showSearch filterOption={foldFilterOption} options={unitOptions} />
         </Form.Item>
         <Form.Item name="staffIds" label={t("OrgChart:Assign:People")}>
           <OrgMembersField

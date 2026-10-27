@@ -3,6 +3,7 @@ import { UserSwitchOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { StaffOption } from "../api/ticketSupportApi";
 
 interface Props {
@@ -48,7 +49,7 @@ export function TransferDialog({ open, matched, staffOptions, pending, onSubmit,
           extra={t("Ticket:TransferHint")}
           rules={[{ required: true, type: "array", min: 1, message: t("Ticket:TransferRequired") }]}
         >
-          <Select mode="multiple" allowClear showSearch optionFilterProp="label" options={staffOptions} />
+          <Select mode="multiple" allowClear showSearch filterOption={foldFilterOption} options={staffOptions} />
         </FloatingField>
       </Form>
     </AppDialog>

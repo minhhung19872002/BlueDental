@@ -13,6 +13,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { usePeriodRange } from "./usePeriodRange";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 /** The reference's own list, in its own order. */
 export const ACTION_LABELS: Record<WorkLogAction, string> = {
@@ -121,6 +122,7 @@ export function WorkLogReport({ division }: Props) {
                   setActions(value);
                   pagination.resetToFirstPage();
                 }}
+                filterOption={foldFilterOption}
                 options={ACTION_ORDER.map((key) => ({ value: key, label: t(ACTION_LABELS[key]) }))}
               />
             ) : null}

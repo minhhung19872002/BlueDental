@@ -11394,3 +11394,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - **Server cần `RECEIPT_VAULT_KEY` trong `.env` của cả hai VM** (prod hung@14.225.83.131, staging hung@14.225.83.93) trước khi deploy. Mất khoá = mất mọi chữ ký và file phiếu thu đã lưu.
   - Phase 5 xong → có thể deploy staging sau khi commit. Phase 6 (trang hủy) và 7 (Ký số thật) chưa làm.
   - Lỗi có sẵn, không do phase 5: seed demo của DbMigrator `SlotInThePast` đỏ tuỳ giờ chạy.
+
+## R-1051 (2026-10-27, mức 3: Tìm kiếm — toàn hệ thống) Mọi ô tìm kiếm cho gõ không dấu
+
+- **Yêu cầu** (chủ phòng khám, ngày 27/10): gõ "van dinh" ở ô tìm của Tiếp nhận không ra bệnh nhân "Văn Định". "Mấy cái tìm kiếm cho phép không dấu hết nha", "áp dụng tất cả luôn". Phạm vi đã chốt: mọi ô tìm, kể cả dropdown và Danh mục. R-1035 trước đây chỉ mở cho Ctrl+K và danh sách bệnh nhân; R-1050 cho ô tìm Tiếp nhận khớp cả họ tên đầy đủ nhưng vẫn phân biệt dấu.
+- **Đã sửa**:
+  - BE: khoảng 68 chỗ lọc trong 44 file AppService / truy vấn (Lịch hẹn, nhân viên, Danh mục, Labo, kho, CSKH, Marketing, Zalo, vận hành, chi nhánh, voucher, sơ đồ tổ chức, hồ sơ chẩn đoán / tư vấn...) đổi từ `ToLower().Contains(...)` sang `DbText.Unaccent(...)` ở cả hai vế. PostgreSQL bỏ dấu ngay trong câu truy vấn.
+  - BE: 4 chỗ lọc trong bộ nhớ (Lịch hẹn theo tên bác sĩ, danh sách nhân viên, phạt nhân viên, báo cáo vận hành) dùng hàm mới `SearchTerms.Fold`. Hàm này tách dấu (NFD), bỏ dấu, đổi đ thành d và chuyển về chữ thường.
+  - FE: hàm chung `matchesSearch` và `foldFilterOption` trong `utils/foldForSearch.ts`.
+  - FE: mọi Select / dropdown có ô gõ tìm dùng `filterOption={foldFilterOption}` (bác sĩ, chi nhánh, nhân viên, dịch vụ, vật tư...). Bộ lọc mặc định của AntD chỉ bỏ qua hoa thường, không bỏ dấu.
+  - FE: các bộ lọc tại trình duyệt (lịch Ngày / Tuần / Tháng, chấm công, lịch làm việc, phân quyền, báo cáo, thẻ hồ sơ, voucher, chẩn đoán đơn thuốc, sơ đồ tổ chức, kho...) dùng `matchesSearch`.
+  - "đ" và "Đ" khớp với "d". Gõ có dấu vẫn ra như trước.
+- **Giữ nguyên**:
+  - Mã (mã dịch vụ, mã voucher, mã phiếu), số điện thoại, email, tên đăng nhập và mã quyền vẫn so khớp nguyên chuỗi, chỉ bỏ qua hoa thường.
+  - Màn Danh mục `/taxonomy` không sửa FE (khóa theo mục 17). Chỉ phần lọc phía BE đổi.
+  - Kiểm tra trùng tên đơn vị trong sơ đồ tổ chức (`normalizeUnitName`) vẫn phân biệt dấu. Chỉ ô tìm đổi.
+- **Code**: `SearchTerms.cs` (`Fold`), 44 file AppService / truy vấn trong `BlueDental.Application`, `utils/foldForSearch.ts` cùng 56 file FE dùng hàm này. Không có migration (extension `unaccent` đã có từ R-1035).
+- **Test**:
+  - E2E mới `search-unaccent-everywhere.spec.ts` tạo bệnh nhân "Văn Định …" và bác sĩ "Định…" của lượt chạy, đặt lịch hôm nay qua API thật.
+    - API lịch hẹn: "van dinh", "VĂN ĐỊNH" và tên bác sĩ không dấu đều ra; "van dung" không ra.
+    - API nhân viên: tìm không dấu và chữ hoa đều ra.
+    - Ô tìm của Tiếp nhận ra đúng 1 thẻ.
+    - Dropdown bác sĩ trong Tạo tiếp nhận: "dinh…" và "ĐỊNH…" ra 1, "dung…" ra 0.
+    - **3/3 xanh**.
+  - Hồi quy Danh mục + `payment-qr` + `branch-*` (bản build production): 65 xanh, 25 đỏ, 1 bỏ qua.
+  - Hồi quy `reception*` + `patient-search-unaccent`: 40 xanh, 16 đỏ, 4 bỏ qua. `patient-search-unaccent` xanh.
+  - So với `main` chưa sửa (7b00a4a2): chạy đúng 41 ca đỏ trên bản chưa sửa thì 37 ca cũng đỏ y như vậy.
+    - Phần lớn do DB riêng không có seed chi nhánh 2, tài khoản quản lý và phòng khám demo (đăng nhập tài khoản chi nhánh 2 / bác sĩ bị trả về `/login`, "the demo clinic should have an open treatment slip").
+  - 4 ca chỉ đỏ ở bản sửa đều đã kiểm:
+    - `branch-isolation` (danh mục chi nhánh 1), `reception-restore-arrived` (vẫn thành Trễ hẹn) và `taxonomy-dialogs` (nội dung rich-text): chạy lại trên bản sửa đều **xanh**.
+    - `reception-revisit-counter` (lọc ngày trên Lịch hẹn): chạy lại cùng giờ thì bản chưa sửa cũng **đỏ** ở cùng bước. Lịch đặt lúc bây giờ + 70 phút nằm ngoài khung giờ hiển thị, phụ thuộc giờ chạy, không liên quan tìm kiếm.
+  - Gộp với R-1050 (đã lên `main` cùng lúc): giữ cách chuẩn hoá chuỗi gõ của R-1050 (gộp khoảng trắng), điều kiện tên bệnh nhân là họ tên đầy đủ bỏ dấu (đã gồm cả họ riêng, tên riêng). Chạy lại sau khi gộp: xem dòng kế.
+  - Sau khi gộp (build lại BE + FE): `search-unaccent-everywhere`, `reception-search-fullname` (R-1050), `patient-search-unaccent` và `reception.spec` — **8/8 xanh**.
+  - Trên `develop` (cherry-pick): dropdown bác sĩ của Tạo tiếp nhận vẫn nằm trong `ReceptionNewDrawer.tsx` (chưa tách `ReceptionNewFields`), nên sửa ở đó. Điều kiện tên bệnh nhân dùng họ tên đầy đủ bỏ dấu như trên `main`.
+  - Môi trường chạy: bản build production của `main` (`vite preview` :8152, bản chưa sửa :8153), host riêng :5120 / :5121, DB riêng `BlueDental_zalofix`.

@@ -15,6 +15,7 @@ import { DataTable } from "@/components/DataTable";
 import { useClinicBranches } from "@/features/organizations/api";
 import { t } from "@/lib/i18n";
 import { pagerTotal } from "@/utils/pagerTotal";
+import { matchesSearch } from "@/utils/foldForSearch";
 
 interface InvoiceConfigViewProps {
   canCreate: boolean;
@@ -45,9 +46,7 @@ export function InvoiceConfigView({ canCreate, canUpdate, canDelete }: InvoiceCo
     const needle = keyword.trim().toLowerCase();
     if (!needle) return data ?? [];
     return (data ?? []).filter((c) =>
-      [c.name, c.provider, branchName(c.clinicBranchId)].some((v) =>
-        v.toLowerCase().includes(needle),
-      ),
+      [c.name, c.provider, branchName(c.clinicBranchId)].some((v) => matchesSearch(v, needle)),
     );
   }, [data, keyword, branchName]);
 

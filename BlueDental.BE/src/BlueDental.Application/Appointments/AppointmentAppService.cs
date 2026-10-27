@@ -219,26 +219,28 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         {
             var filter = input.Filter.Trim().ToLower();
 
+            // The full name holds the family and the given name alone too, and
+            // unaccent() on both sides lets "van dinh" find "Huỳnh Văn Định" (R-1051).
             var patientQuery = await _patientRepository.GetQueryableAsync();
             var matchedPatients = await AsyncExecuter.ToListAsync(
                 patientQuery
-                    .Where(p => p.FirstName.ToLower().Contains(filter)
-                                || p.LastName.ToLower().Contains(filter))
+                    .Where(p => DbText.Unaccent((p.LastName + " " + p.FirstName).ToLower()).Contains(DbText.Unaccent(filter)))
                     .Select(p => p.Id));
 
+            var folded = SearchTerms.Fold(filter);
             var matchedStaff = (await _userRepository.GetListAsync())
                 .Where(u =>
-                    (u.Name != null && u.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                    SearchTerms.Fold($"{u.Surname} {u.Name}").Contains(folded)
                     || u.UserName.Contains(filter, StringComparison.OrdinalIgnoreCase))
                 .Select(u => u.Id)
                 .ToList();
 
             query = query.Where(a =>
-                (a.ChiefComplaint != null && a.ChiefComplaint.ToLower().Contains(filter))
-                || (a.Notes != null && a.Notes.ToLower().Contains(filter))
+                (a.ChiefComplaint != null && DbText.Unaccent(a.ChiefComplaint.ToLower()).Contains(DbText.Unaccent(filter)))
+                || (a.Notes != null && DbText.Unaccent(a.Notes.ToLower()).Contains(DbText.Unaccent(filter)))
                 || matchedPatients.Contains(a.PatientId)
                 || matchedStaff.Contains(a.DentistId)
-                || (a.IsTemporary && a.PatientName != null && a.PatientName.ToLower().Contains(filter)));
+                || (a.IsTemporary && a.PatientName != null && DbText.Unaccent(a.PatientName.ToLower()).Contains(DbText.Unaccent(filter))));
         }
 
         return query;

@@ -5,6 +5,7 @@ import { Spin } from "antd";
 import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 
 const WEEKDAY_KEYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"] as const;
 
@@ -99,9 +100,9 @@ export function MonthViewCalendar({
       if (!appt.startTime) continue;
       if (doctorIds && doctorIds.length > 0 && !doctorIds.includes(appt.doctorId)) continue;
       if (needle && !(
-        (appt as AppointmentDto).patientName?.toLowerCase().includes(needle) ||
-        (appt as AppointmentDto).reason?.toLowerCase().includes(needle) ||
-        (appt as AppointmentDto).doctorName?.toLowerCase().includes(needle)
+        matchesSearch((appt as AppointmentDto).patientName, needle) ||
+        matchesSearch((appt as AppointmentDto).reason, needle) ||
+        matchesSearch((appt as AppointmentDto).doctorName, needle)
       )) continue;
 
       const dayKey = dayjs(appt.startTime).format("YYYY-MM-DD");

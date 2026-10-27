@@ -11,6 +11,7 @@ import { RichCatalogDialog } from "@/features/taxonomy/components/RichCatalogDia
 import { useAbility } from "@/hooks/useAbility";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { DiagnosisOption } from "./DiagnosisDoctorFields";
 
 interface Props {
@@ -47,7 +48,7 @@ export function DiagnosisCatalogField({ options }: Props) {
       <FloatingField name="diagnosisId" label={t("Patient:Tab:Diagnosis")} required>
         <Select
           showSearch
-          optionFilterProp="label"
+          filterOption={foldFilterOption}
           prefix={<SearchOutlined />}
           options={shown}
           notFoundContent={t("Common:NoResults")}

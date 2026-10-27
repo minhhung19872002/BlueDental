@@ -38,7 +38,7 @@ public class DepartmentAppService : ApplicationService, IDepartmentAppService
         // the casing — the same rule the rest of the app searches by.
         foreach (var term in SearchTerms.From(input.Filter))
         {
-            queryable = queryable.Where(x => x.Name.ToLower().Contains(term));
+            queryable = queryable.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
         }
 
         var totalCount = queryable.Count();

@@ -145,7 +145,7 @@ public class PaymentLedgerAppService : BlueDentalAppService, IPaymentLedgerAppSe
             query = query.Where(x =>
                 x.Code.ToLower().Contains(term)
                 || patients.Any(p => p.Id == x.PatientId
-                    && ((p.LastName + " " + p.FirstName).ToLower().Contains(term)
+                    && (DbText.Unaccent((p.LastName + " " + p.FirstName).ToLower()).Contains(DbText.Unaccent(term))
                         || p.PatientCode.ToLower().Contains(term))));
         }
 

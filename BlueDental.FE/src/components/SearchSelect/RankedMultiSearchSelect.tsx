@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 // TEMP-PRIORITY-OFF (owner, 2026-10-17): the numbered "Thứ tự ưu tiên" list is hidden.
 // import { PriorityList } from "./PriorityList";
 import { usePortalDropdown } from "./usePortalDropdown";
@@ -41,8 +42,7 @@ export const RankedMultiSearchSelect: React.FC<RankedMultiSearchSelectProps> = (
   const dropdown = usePortalDropdown(() => setKeyword(""));
 
   const picked = useMemo(() => options.filter((o) => value.includes(o.value)), [options, value]);
-  const needle = keyword.trim().toLowerCase();
-  const filtered = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
+  const filtered = options.filter((o) => matchesSearch(o.label, keyword));
 
   const handleOpen = () => {
     if (dropdown.open) {

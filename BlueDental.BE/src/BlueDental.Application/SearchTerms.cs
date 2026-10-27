@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 
 namespace BlueDental;
 
@@ -33,5 +35,32 @@ public static class SearchTerms
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Distinct()
             .ToList();
+    }
+
+    /// <summary>
+    /// Case- and mark-blind form of a text, for the few searches matched in
+    /// memory rather than in the database (where <see cref="DbText.Unaccent"/>
+    /// does the job): "Văn Định" and "van dinh" fold to the same "van dinh",
+    /// whether the marks came precomposed or as combining characters (R-1051).
+    /// </summary>
+    public static string Fold(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder(text.Length);
+        foreach (var c in text.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            builder.Append(c is 'đ' or 'Đ' ? 'd' : c);
+        }
+
+        return builder.ToString().ToLowerInvariant();
     }
 }

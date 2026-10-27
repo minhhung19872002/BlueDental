@@ -312,7 +312,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         if (input.Status.HasValue)
             query = query.Where(o => o.Status == input.Status.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(o => o.OrderCode.ToLower().Contains(term) || o.LabProviderName.ToLower().Contains(term));
+            query = query.Where(o => o.OrderCode.ToLower().Contains(term) || DbText.Unaccent(o.LabProviderName.ToLower()).Contains(DbText.Unaccent(term)));
 
         // The window is named in whole days, so the upper bound covers all of
         // the day it names rather than stopping at its midnight.

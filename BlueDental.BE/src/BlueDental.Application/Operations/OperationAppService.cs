@@ -30,7 +30,7 @@ public class OperationAppService(
         if (!string.IsNullOrWhiteSpace(input.SubTab))
             query = query.Where(c => c.SubTab == input.SubTab);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(c => c.Name.ToLower().Contains(term));
+            query = query.Where(c => DbText.Unaccent(c.Name.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = query.Count();
         var items = query
@@ -118,7 +118,7 @@ public class OperationAppService(
         if (input.CategoryId.HasValue)
             query = query.Where(a => a.CategoryId == input.CategoryId.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(a => a.Title.ToLower().Contains(term));
+            query = query.Where(a => DbText.Unaccent(a.Title.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = query.Count();
         var items = query.OrderByDescending(a => a.LastModificationTime ?? a.CreationTime)

@@ -56,13 +56,14 @@ public class StaffPenaltyAppService(
         {
             // Names live on the identity user, not on the record, so the matching
             // people are found first and the record matched by id or description.
+            var folded = SearchTerms.Fold(term);
             var matchingStaff = (await userRepository.GetListAsync())
-                .Where(u => FullName(u).ToLowerInvariant().Contains(term)
+                .Where(u => SearchTerms.Fold(FullName(u)).Contains(folded)
                     || u.UserName.ToLowerInvariant().Contains(term))
                 .Select(u => u.Id)
                 .ToList();
             query = query.Where(x => matchingStaff.Contains(x.StaffId)
-                || (x.Description != null && x.Description.ToLower().Contains(term)));
+                || (x.Description != null && DbText.Unaccent(x.Description.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         var totalCount = await AsyncExecuter.CountAsync(query);

@@ -85,7 +85,7 @@ public class OperationsArticleAppService : ApplicationService, IOperationsArticl
         if (input.IsPublished.HasValue)
             query = query.Where(x => x.IsPublished == input.IsPublished.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(x => x.Title.ToLower().Contains(term));
+            query = query.Where(x => DbText.Unaccent(x.Title.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = query.Count();
         var items = query

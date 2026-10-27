@@ -62,9 +62,9 @@ public class PaymentAccountAppService : ApplicationService, IPaymentAccountAppSe
         foreach (var term in SearchTerms.From(input.Filter))
         {
             query = query.Where(x =>
-                x.HolderName.ToLower().Contains(term) ||
+                DbText.Unaccent(x.HolderName.ToLower()).Contains(DbText.Unaccent(term)) ||
                 (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(term)) ||
-                (x.BankName != null && x.BankName.ToLower().Contains(term)) ||
+                (x.BankName != null && DbText.Unaccent(x.BankName.ToLower()).Contains(DbText.Unaccent(term))) ||
                 (x.AccountNumber != null && x.AccountNumber.ToLower().Contains(term)));
         }
 

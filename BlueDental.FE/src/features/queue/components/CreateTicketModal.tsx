@@ -1,5 +1,6 @@
 import { Form, Input, Modal, Radio, Select } from "antd";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { QueueTicketPriority, type CreateQueueTicketInput, type ServiceCounter } from "../types";
 import { bareDentistName } from "../utils/dentistName";
 
@@ -64,7 +65,7 @@ export function CreateTicketModal({
         >
           <Select
             showSearch
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             placeholder={t("Queue:CreateModal:CounterSearch")}
             options={counters.map((counter) => ({
               value: counter.id,

@@ -13,6 +13,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   open: boolean;
@@ -292,7 +293,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
               <Select
                 showSearch
                 allowClear
-                optionFilterProp="label"
+                filterOption={foldFilterOption}
                 onChange={handleProvinceChange}
                 options={provinces.map((p) => ({ value: p.code, label: p.name }))}
               />
@@ -304,7 +305,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
                 showSearch
                 allowClear
                 disabled={!provinceCode}
-                optionFilterProp="label"
+                filterOption={foldFilterOption}
                 options={wards.map((w) => ({ value: w.code, label: w.name }))}
               />
             </FloatingField>

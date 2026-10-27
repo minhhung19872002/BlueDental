@@ -2,6 +2,7 @@ import { Button, InputNumber, Select } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { doseQuantity, lineFieldLabel, plainDose, RX_SESSIONS, sessionLabel } from "./dose";
 import type { MedicineOption, PrescriptionLine } from "./types";
 import { UsagePicker } from "./UsagePicker";
@@ -37,7 +38,7 @@ export function PrescriptionLineCard({ line, index, medicines, canDelete, onPatc
       <FloatingField label={t("Common:Rx:MedicineName")} required>
         <Select
           showSearch
-          optionFilterProp="label"
+          filterOption={foldFilterOption}
           className="bd-rx-full"
           aria-label={t("Common:Rx:MedicineName")}
           notFoundContent={t("Common:Rx:NotFound")}

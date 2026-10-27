@@ -60,9 +60,9 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
         {
             queryable = queryable.Where(x =>
                 x.AllocationCode.ToLower().Contains(term) ||
-                (x.PerformerName != null && x.PerformerName.ToLower().Contains(term)) ||
-                (x.Note != null && x.Note.ToLower().Contains(term)) ||
-                x.Items.Any(item => item.Name.ToLower().Contains(term)));
+                (x.PerformerName != null && DbText.Unaccent(x.PerformerName.ToLower()).Contains(DbText.Unaccent(term))) ||
+                (x.Note != null && DbText.Unaccent(x.Note.ToLower()).Contains(DbText.Unaccent(term))) ||
+                x.Items.Any(item => DbText.Unaccent(item.Name.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         var totalCount = queryable.Count();

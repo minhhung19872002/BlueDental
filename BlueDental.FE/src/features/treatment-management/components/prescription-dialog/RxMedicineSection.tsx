@@ -7,6 +7,7 @@ import {
 } from "@/components/prescription-lines";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   lines: PrescriptionLine[];
@@ -41,7 +42,7 @@ export function RxMedicineSection({
             <Select
               showSearch
               allowClear
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               className="rx-template-select"
               placeholder={t("Treatment:Prescription:SelectTemplate")}
               aria-label={t("Treatment:Prescription:SelectTemplate")}

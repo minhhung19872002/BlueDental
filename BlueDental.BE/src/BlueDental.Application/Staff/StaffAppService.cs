@@ -170,7 +170,7 @@ public class StaffAppService(
 
     private static bool MatchesTerm(Volo.Abp.Identity.IdentityUser user, string term)
     {
-        var needle = term.ToLowerInvariant();
+        var needle = SearchTerms.Fold(term);
         var fullName = string.Join(" ", new[] { user.Surname, user.Name }.Where(x => !x.IsNullOrWhiteSpace()));
 
         return Contains(user.UserName, needle)
@@ -181,7 +181,7 @@ public class StaffAppService(
             || Contains(user.PhoneNumber, needle);
 
         static bool Contains(string? value, string needle) =>
-            !value.IsNullOrWhiteSpace() && value!.ToLowerInvariant().Contains(needle);
+            !value.IsNullOrWhiteSpace() && SearchTerms.Fold(value).Contains(needle);
     }
 
     [Authorize(BlueDentalPermissions.Staff.View)]

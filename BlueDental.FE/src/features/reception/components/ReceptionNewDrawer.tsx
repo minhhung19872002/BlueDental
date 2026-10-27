@@ -15,6 +15,7 @@ import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { CreateReceptionInput, RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface ReceptionNewDrawerProps {
   open: boolean;
@@ -217,9 +218,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           >
             <Select
               showSearch
-              filterOption={(input, option) =>
-                (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
-              }
+              filterOption={foldFilterOption}
               options={doctors.map((d) => ({ value: d.id, label: d.name }))}
             />
           </FloatingField>

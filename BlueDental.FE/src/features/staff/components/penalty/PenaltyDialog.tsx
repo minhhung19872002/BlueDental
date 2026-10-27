@@ -3,6 +3,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import {
   PENALTY_ACTION,
   type BranchStaffOption,
@@ -87,7 +88,7 @@ export function PenaltyDialog({ open, penalty, staffOptions, violationTypes, sav
         preserve={false}
       >
         <Form.Item name="staffId" label={t("StaffPenalty:Field:Staff")} rules={[{ required: true, message: t("StaffPenalty:Required:Staff") }]}>
-          <Select showSearch optionFilterProp="label" options={staffOptions} />
+          <Select showSearch filterOption={foldFilterOption} options={staffOptions} />
         </Form.Item>
         <Form.Item name="violationDate" label={t("StaffPenalty:Field:Date")} rules={[{ required: true, message: t("StaffPenalty:Required:Date") }]}>
           <DatePicker format="DD/MM/YYYY" disabledDate={(day) => day.isAfter(dayjs(), "day")} />
@@ -96,7 +97,7 @@ export function PenaltyDialog({ open, penalty, staffOptions, violationTypes, sav
           <Select
             allowClear
             showSearch
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             options={violationTypes.map((type) => ({ value: type.id, label: type.name }))}
             onChange={handleTypeChange}
           />

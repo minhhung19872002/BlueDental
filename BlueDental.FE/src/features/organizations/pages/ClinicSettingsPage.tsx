@@ -57,6 +57,7 @@ import { useStaff } from "@/features/staff/api/staffQueries";
 import { invalidateEntities } from "@/lib/queryEntities";
 import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
 import { getLocale, t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import "../components/organizations.css";
 
 type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage" | "ipad";
@@ -276,7 +277,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
               showSearch
               allowClear
               placeholder={t("Organization:ProvincePlaceholderField")}
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               options={provinces.map((p) => ({ value: p.code, label: p.name }))}
               onChange={handleProvinceChange}
             />
@@ -286,7 +287,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
               showSearch
               allowClear
               placeholder={t("Organization:WardPlaceholderField")}
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               options={wards.map((w) => ({ value: w.code, label: w.name }))}
               disabled={!selectedProvinceId}
             />
@@ -502,7 +503,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
               showSearch
               allowClear
               placeholder={t("Organization:ProvincePlaceholderField")}
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               options={provinces.map((p) => ({ value: p.code, label: p.name }))}
               onChange={handleProvinceChange}
             />
@@ -512,7 +513,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
               showSearch
               allowClear
               placeholder={t("Organization:WardPlaceholderField")}
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               options={wards.map((w) => ({ value: w.code, label: w.name }))}
               disabled={!selectedProvinceId}
             />

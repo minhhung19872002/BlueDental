@@ -1,5 +1,6 @@
 import { AutoComplete, Form, Input, Select } from "antd";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { ORG_UNIT_KIND, type CreatableOrgUnitKind } from "../../api/orgChartApi";
 import { OrgMembersField } from "./OrgMembersField";
 import { OrgUnitKindCards } from "./OrgUnitKindCards";
@@ -51,7 +52,7 @@ export function OrgUnitFormFields({ index, selfUnitId, kind, typedName, headStaf
         <Input maxLength={32} />
       </Form.Item>
       <Form.Item name="headStaffId" label={t("OrgChart:Field:head")} rules={rules.head} className="org-form__wide">
-        <Select showSearch optionFilterProp="label" options={headOptions} placeholder={t("OrgChart:Placeholder:Head")} />
+        <Select showSearch filterOption={foldFilterOption} options={headOptions} placeholder={t("OrgChart:Placeholder:Head")} />
       </Form.Item>
       <Form.Item name="memberIds" label={t("OrgChart:Field:members")} className="org-form__wide">
         <OrgMembersField index={index} selfUnitId={selfUnitId} headStaffId={headStaffId} />

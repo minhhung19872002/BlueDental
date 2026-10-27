@@ -2,6 +2,7 @@ import { Col, Form, Input, Row, Select } from "antd";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { CreateTicketInput, TicketDto } from "../api/ticketApi";
 import type { StaffOption, TicketTagDto } from "../api/ticketSupportApi";
 import type { useSourceOptions } from "../hooks/useSourceOptions";
@@ -114,7 +115,7 @@ export function TicketDialog({ open, ticket, tags, sources, staffOptions, saving
           </Col>
           <Col xs={24} md={12}>
             <FloatingField name="tagIds" label={t("Ticket:Field:Tags")}>
-              <Select mode="multiple" allowClear optionFilterProp="title" options={tagOptions} />
+              <Select mode="multiple" allowClear filterOption={foldFilterOption} options={tagOptions} />
             </FloatingField>
           </Col>
           <Col xs={24} md={12}>
@@ -122,7 +123,7 @@ export function TicketDialog({ open, ticket, tags, sources, staffOptions, saving
               <Select
                 allowClear
                 showSearch
-                optionFilterProp="label"
+                filterOption={foldFilterOption}
                 options={sources.groupOptions}
                 onChange={() => form.setFieldValue("sourceEntryId", undefined)}
               />
@@ -130,13 +131,13 @@ export function TicketDialog({ open, ticket, tags, sources, staffOptions, saving
           </Col>
           <Col xs={24} md={12}>
             <FloatingField name="sourceEntryId" label={t("Ticket:Field:Channel")}>
-              <Select allowClear showSearch optionFilterProp="label" disabled={!groupId} options={sources.channelsOf(groupId)} />
+              <Select allowClear showSearch filterOption={foldFilterOption} disabled={!groupId} options={sources.channelsOf(groupId)} />
             </FloatingField>
           </Col>
           {!ticket && staffOptions && (
             <Col span={24}>
               <FloatingField name="assigneeId" label={t("Ticket:Field:Assignee")} extra={t("Ticket:AssigneeHint")} alwaysFloat>
-                <Select allowClear showSearch optionFilterProp="label" options={staffOptions} placeholder={t("Ticket:Pool")} />
+                <Select allowClear showSearch filterOption={foldFilterOption} options={staffOptions} placeholder={t("Ticket:Pool")} />
               </FloatingField>
             </Col>
           )}

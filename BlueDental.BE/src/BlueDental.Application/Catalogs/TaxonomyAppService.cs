@@ -60,9 +60,9 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         foreach (var term in SearchTerms.From(input.Filter))
         {
             query = query.Where(x =>
-                x.Name.ToLower().Contains(term) ||
-                (x.Alias != null && x.Alias.ToLower().Contains(term)) ||
-                (x.Description != null && x.Description.ToLower().Contains(term)));
+                DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)) ||
+                (x.Alias != null && DbText.Unaccent(x.Alias.ToLower()).Contains(DbText.Unaccent(term))) ||
+                (x.Description != null && DbText.Unaccent(x.Description.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         var totalCount = query.Count();

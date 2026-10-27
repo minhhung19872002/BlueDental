@@ -10,6 +10,7 @@ import { STATUS_GROUPS } from "../hooks/useStatusCounts";
 import { buildAxis, placeOnAxis, shownLength } from "../store/calendarAxis";
 import { useCalendarWindowStore } from "../store/calendarWindowStore";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 
 const SLOT_H_30 = 25;
 const SLOT_H_15 = 38;
@@ -87,9 +88,9 @@ export function WeekViewCalendar({
         return false;
       if (!needle) return true;
       return (
-        a.patientName?.toLowerCase().includes(needle) ||
-        a.reason?.toLowerCase().includes(needle) ||
-        a.doctorName?.toLowerCase().includes(needle)
+        matchesSearch(a.patientName, needle) ||
+        matchesSearch(a.reason, needle) ||
+        matchesSearch(a.doctorName, needle)
       );
     });
   }, [allBookings, doctorIds, statusFilter, keyword]);

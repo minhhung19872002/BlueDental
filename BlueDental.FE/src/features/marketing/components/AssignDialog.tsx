@@ -3,6 +3,7 @@ import { UserSwitchOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { StaffOption } from "../api/ticketSupportApi";
 
 interface Props {
@@ -58,7 +59,7 @@ export function AssignDialog(props: Props) {
         onFinish={handleFinish}
       >
         <FloatingField name="assigneeId" label={t("Ticket:Field:Assignee")} extra={t("Ticket:AssignPoolHint")} alwaysFloat>
-          <Select allowClear showSearch optionFilterProp="label" options={options} placeholder={t("Ticket:Pool")} />
+          <Select allowClear showSearch filterOption={foldFilterOption} options={options} placeholder={t("Ticket:Pool")} />
         </FloatingField>
       </Form>
     </AppDialog>

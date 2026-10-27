@@ -45,7 +45,7 @@ public class MessagingAppService : ApplicationService, IMessagingAppService
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
             var filter = input.Filter.Trim().ToLower();
-            query = query.Where(x => x.Name.ToLower().Contains(filter));
+            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(filter)));
         }
 
         var totalCount = await AsyncExecuter.CountAsync(query);
@@ -74,7 +74,7 @@ public class MessagingAppService : ApplicationService, IMessagingAppService
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
             var filter = input.Filter.Trim().ToLower();
-            query = query.Where(x => x.Name.ToLower().Contains(filter));
+            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(filter)));
         }
 
         var totalCount = await AsyncExecuter.CountAsync(query);

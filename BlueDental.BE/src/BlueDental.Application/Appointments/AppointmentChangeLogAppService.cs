@@ -103,14 +103,14 @@ public class AppointmentChangeLogAppService(
         {
             var actor = input.Actor.Trim().ToLower();
             query = query.Where(x =>
-                (x.ActorName != null && x.ActorName.ToLower().Contains(actor))
+                (x.ActorName != null && DbText.Unaccent(x.ActorName.ToLower()).Contains(DbText.Unaccent(actor)))
                 || (x.ActorUserName != null && x.ActorUserName.ToLower().Contains(actor)));
         }
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
             var keyword = input.Keyword.Trim().ToLower();
-            query = query.Where(x => x.ChangesJson.ToLower().Contains(keyword));
+            query = query.Where(x => DbText.Unaccent(x.ChangesJson.ToLower()).Contains(DbText.Unaccent(keyword)));
         }
 
         return query;

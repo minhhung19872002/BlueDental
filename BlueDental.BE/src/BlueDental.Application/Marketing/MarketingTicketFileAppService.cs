@@ -40,7 +40,7 @@ public class MarketingTicketFileAppService(
         var query = await repository.GetQueryableAsync();
         if (branchFilter.Count > 0) query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         var term = input.Filter?.Trim().ToLowerInvariant();
-        if (!string.IsNullOrEmpty(term)) query = query.Where(x => x.FileName.ToLower().Contains(term));
+        if (!string.IsNullOrEmpty(term)) query = query.Where(x => DbText.Unaccent(x.FileName.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = await AsyncExecuter.CountAsync(query);
         var page = await AsyncExecuter.ToListAsync(query

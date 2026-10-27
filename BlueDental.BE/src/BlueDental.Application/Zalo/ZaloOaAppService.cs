@@ -377,9 +377,9 @@ public class ZaloOaAppService : BlueDentalAppService, IZaloOaAppService
         foreach (var term in SearchTerms.From(input.Filter))
         {
             var digits = term.All(char.IsDigit);
-            q = q.Where(x => x.RecipientName.ToLower().Contains(term)
+            q = q.Where(x => DbText.Unaccent(x.RecipientName.ToLower()).Contains(DbText.Unaccent(term))
                 || (wholePhone ? x.RecipientPhone == term : x.RecipientPhone.ToLower().Contains(term))
-                || (!(wholePhone && digits) && x.Content.ToLower().Contains(term)));
+                || (!(wholePhone && digits) && DbText.Unaccent(x.Content.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         var totalCount = q.Count();

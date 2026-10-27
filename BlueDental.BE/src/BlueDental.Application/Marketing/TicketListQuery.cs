@@ -54,7 +54,7 @@ internal static class TicketListQuery
         if (!string.IsNullOrEmpty(term))
         {
             var digits = new string(term.Where(char.IsDigit).ToArray());
-            query = query.Where(x => x.FullName.ToLower().Contains(term)
+            query = query.Where(x => DbText.Unaccent(x.FullName.ToLower()).Contains(DbText.Unaccent(term))
                 || x.Code.ToLower().Contains(term)
                 || (digits.Length >= 3 && x.Phone.Contains(digits)));
         }

@@ -30,6 +30,7 @@ import { t } from "@/lib/i18n";
 import { formatMoney } from "./formatMoney";
 import { formatDate } from "@/utils/format";
 import { SelectLoading } from "@/components/SelectLoading";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 /**
  * Khối tài chính → Hoàn thành theo dịch vụ.
@@ -196,7 +197,7 @@ export function ServiceCompletionReport() {
             notFoundContent={dentists.isLoading ? <SelectLoading /> : undefined}
             placeholder={t("Operations:TreatingDentist")}
             aria-label={t("Operations:TreatingDentist")}
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             value={dentistId}
             onChange={(value) => {
               setDentistId(value ?? undefined);
@@ -213,7 +214,7 @@ export function ServiceCompletionReport() {
             notFoundContent={serviceGroups.isLoading ? <SelectLoading /> : undefined}
             placeholder={t("Operations:ServiceGroup")}
             aria-label={t("Operations:ServiceGroup")}
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             value={serviceGroupId}
             onChange={(value) => {
               setServiceGroupId(value ?? undefined);

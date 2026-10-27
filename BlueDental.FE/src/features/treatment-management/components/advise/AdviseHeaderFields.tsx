@@ -3,6 +3,7 @@ import { ChevronDown, Plus, Search, X } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
 import { formatToothValue, type ToothPickerValue } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { PatientDiagnosisDto } from "../../api/consultingApi";
 
 interface StaffChoice {
@@ -63,7 +64,7 @@ export function AdviseHeaderFields({
         >
           <Select
             showSearch
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             options={staff}
             {...SELECT_ICONS}
           />
@@ -84,7 +85,7 @@ export function AdviseHeaderFields({
       {secondOpen ? (
         <div className="am-consultant">
           <FloatingField name="secondStaffId" label={t("Treatment:Consulting:Advisor2")}>
-            <Select showSearch allowClear optionFilterProp="label" options={staff} {...SELECT_ICONS} />
+            <Select showSearch allowClear filterOption={foldFilterOption} options={staff} {...SELECT_ICONS} />
           </FloatingField>
           <Tooltip title={t("Treatment:Consulting:RemoveAdvisor2")}>
             <Button

@@ -3,6 +3,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { SelectLoading } from "@/components/SelectLoading";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   /** "Người tạo" on the work log, "Nhân viên" on the call history, … */
@@ -31,7 +32,7 @@ export function StaffFilter({ label, value, onChange }: Props) {
       suffixIcon={<SearchOutlined />}
       value={value}
       onChange={(next) => onChange(next ?? undefined)}
-      optionFilterProp="label"
+      filterOption={foldFilterOption}
       options={data ?? []}
       notFoundContent={isLoading ? <SelectLoading /> : t("Common:NoData")}
     />

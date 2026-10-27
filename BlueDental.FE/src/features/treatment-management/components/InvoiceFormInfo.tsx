@@ -8,6 +8,7 @@ import type { ElectronicInvoiceNumberingDto } from "../api/eInvoiceApi";
 import type { InvoicePaymentMethod } from "./invoiceTypes";
 import { invoicePaymentOptions } from "./invoiceConstants";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface InvoiceFormInfoProps {
   /** Mẫu số the branch has used; a pattern typed into the search is offered too. */
@@ -61,7 +62,7 @@ export function InvoiceFormInfo({
             options={templateOptions(numberings, search, templateId)}
             showSearch
             onSearch={setSearch}
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             prefix={<SearchOutlined aria-hidden="true" />}
           />
         </FloatingLabel>

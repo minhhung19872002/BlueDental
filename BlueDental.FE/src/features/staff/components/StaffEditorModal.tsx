@@ -26,6 +26,7 @@ import { StaffEmploymentFields } from "./StaffEmploymentFields";
 import { StaffPriorityField } from "./StaffPriorityField";
 import type { ContractType, StaffDto } from "../api/staffApi";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 export interface StaffFormValues {
   userName: string;
@@ -321,6 +322,7 @@ export function StaffEditorModal({
               <Select
                 mode="multiple"
                 placeholder={t("Staff:BranchPlaceholder")}
+                filterOption={foldFilterOption}
                 options={branchOptions}
               />
             </FloatingField>
@@ -418,7 +420,7 @@ export function StaffEditorModal({
                 showSearch
                 allowClear
                 placeholder={t("Staff:ProvincePlaceholder")}
-                optionFilterProp="label"
+                filterOption={foldFilterOption}
                 options={provinces.map((p) => ({ value: p.code, label: p.name }))}
                 onChange={handleProvinceChange}
               />
@@ -430,7 +432,7 @@ export function StaffEditorModal({
                 showSearch
                 allowClear
                 placeholder={t("Staff:WardPlaceholder")}
-                optionFilterProp="label"
+                filterOption={foldFilterOption}
                 options={wards.map((w) => ({ value: w.code, label: w.name }))}
                 disabled={!selectedProvinceId}
               />

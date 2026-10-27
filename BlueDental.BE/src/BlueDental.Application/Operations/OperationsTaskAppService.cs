@@ -181,7 +181,7 @@ public class OperationsTaskAppService : ApplicationService, IOperationsTaskAppSe
         if (input.AssigneeStaffId.HasValue)
             query = query.Where(x => x.AssigneeStaffId == input.AssigneeStaffId.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(x => x.Title.ToLower().Contains(term));
+            query = query.Where(x => DbText.Unaccent(x.Title.ToLower()).Contains(DbText.Unaccent(term)));
 
         var items = query.ToList();
 

@@ -58,7 +58,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
 
         foreach (var term in SearchTerms.From(input.Filter))
         {
-            query = query.Where(x => x.Name.ToLower().Contains(term));
+            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
         }
 
         var totalCount = query.Count();
