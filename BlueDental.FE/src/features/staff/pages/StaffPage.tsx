@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Button,
@@ -50,7 +51,9 @@ export function StaffPage() {
   const ability = useAbility("staff");
   const queryClient = useQueryClient();
   const pagination = useTablePagination(20);
-  const [keyword, setKeyword] = useState("");
+  const [searchParams] = useSearchParams();
+  const linkedName = searchParams.get("q") ?? "";
+  const [keyword, setKeyword] = useState(linkedName);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -59,6 +62,11 @@ export function StaffPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftKeyword, setDraftKeyword] = useState("");
   const [draftStatus, setDraftStatus] = useState<StatusFilter>("all");
+
+  // Ctrl+K "Nhân viên" opens this page with the name to look for (R-1053).
+  useEffect(() => {
+    if (linkedName) setKeyword(linkedName);
+  }, [linkedName]);
 
   const debouncedKeyword = useDebounce(keyword);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);

@@ -14,10 +14,11 @@ export const staffKeys = {
   detail: (id: string) => [...staffKeys.all, "detail", id] as const,
 };
 
-export function useStaffList(params: GetStaffListInput = {}) {
+export function useStaffList(params: GetStaffListInput = {}, enabled = true) {
   return useQuery({
     queryKey: staffKeys.list(params),
     queryFn: () => staffApi.list(params),
+    enabled,
   });
 }
 

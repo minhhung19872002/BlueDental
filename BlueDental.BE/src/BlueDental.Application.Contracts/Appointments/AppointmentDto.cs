@@ -216,6 +216,15 @@ public class RebookUndatedDto
 public class GetAppointmentListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
+
+    /// <summary>
+    /// Ctrl+K "Lịch hẹn — tìm theo tên hoặc SĐT khách hàng": the customer
+    /// only — patient name, code or phone, and the name and phone a Lịch tạm
+    /// was booked under. Unlike <see cref="Filter"/> it leaves the dentist,
+    /// Nội dung đặt lịch and notes out (R-1053).
+    /// </summary>
+    public string? PatientFilter { get; set; }
+
     public Guid? PatientId { get; set; }
     public Guid? DentistId { get; set; }
 

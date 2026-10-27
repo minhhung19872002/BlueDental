@@ -11682,3 +11682,35 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Phiếu **Đã thanh toán** vẫn hủy được (theo câu BA). Đang hỏi BA có chặn không.
   - Logo / tên phòng khám trên tờ phiếu ở màn hình đọc theo cài đặt hiện tại; file PDF đã xuất không đổi.
   - Phase 7 (Ký số thật) chưa làm.
+
+## R-1053 (2026-10-27, mức 3: Tìm kiếm Ctrl+K — header dùng chung) Ctrl+K tìm cả 4 nhóm
+
+- **Yêu cầu** (chủ phòng khám, ngày 27/10): "ở modal này hình như hiện tại mới tìm kiếm bệnh nhân à". Bảng gợi ý của Ctrl+K liệt kê 4 nhóm (Bệnh nhân, Lịch hẹn, CSKH, Nhân viên) nhưng trước đây chỉ tìm bệnh nhân. Chủ phòng khám chọn "cách 1": tìm cả 4 nhóm cùng lúc. Bấm một dòng Lịch hẹn thì mở tab Lịch hẹn của bệnh nhân.
+- **Đã sửa**:
+  - Gõ từ 2 ký tự, 4 nhóm được tìm song song theo thứ tự Bệnh nhân → Lịch hẹn → CSKH → Nhân viên. Mỗi nhóm có tiêu đề kèm tổng số và hiện tối đa 5 dòng. Nhóm không có kết quả thì ẩn; cả 4 nhóm trống thì hiện "Không tìm thấy kết quả cho …".
+  - ↑/↓ đi qua mọi dòng của cả 4 nhóm, Enter mở dòng đang chọn. Rê chuột cũng đổi dòng đang chọn.
+  - **Lịch hẹn**: chỉ khớp khách hàng (họ tên, mã, SĐT bệnh nhân, cùng tên và SĐT ghi trên Lịch tạm). Không khớp bác sĩ, Nội dung đặt lịch hay ghi chú. Chỉ lấy lịch từ hôm nay trở đi, gần nhất trước. Dòng mở `/patient/:id?tab=appointment`. Lịch tạm chưa gắn hồ sơ, hoặc tài khoản không có quyền xem bệnh nhân, thì mở `/calendar?date=` ngày hẹn.
+    - BE: tham số mới `PatientFilter` trên `GET /appointments`, tách khỏi `Filter` của Tiếp nhận.
+  - **CSKH**: dùng bộ lọc khách hàng sẵn có của `GET /care-records`. Dòng mở `/patient/:id?tab=care`. Câu gợi ý đổi thành "Tìm theo tên, mã KH hoặc SĐT khách hàng" cho đúng với cách lọc thật.
+  - **Nhân viên**: dòng mở `/staff?q=<họ tên>`, ô tìm của trang Nhân viên điền sẵn tên đó.
+    - BE: ô tìm Nhân viên trước đây chỉ ghép "Họ Tên", trong khi bảng hiển thị "Tên Họ" (`StaffDto.FullName`). Gõ đúng tên đang hiển thị thì không ra. Nay khớp cả hai thứ tự.
+  - **Quyền**: nhóm nào tài khoản không xem được thì không gọi API và không hiện.
+    - Bệnh nhân cần `patient.read`; Lịch hẹn cần `appointment.read`.
+    - CSKH cần `CustomerCare.View` và `patient.read` (dòng mở hồ sơ).
+    - Nhân viên cần `Staff.View` và `staff.read` (route `/staff`).
+  - Mọi nhóm đều bỏ dấu (R-1051) và chỉ tìm trong chi nhánh đang chọn. Tài khoản bị che SĐT vẫn phải gõ đủ số mới khớp.
+- **Giữ nguyên**: dòng Bệnh nhân như R-1035 / R-1043 ("Tên (năm sinh)", mở hồ sơ). Ô tìm của Tiếp nhận vẫn dùng `Filter` cũ.
+- **Code**:
+  - BE: `GetAppointmentListInput.PatientFilter`, `AppointmentAppService.WhereCustomerMatchesAsync`, `StaffAppService.MatchesTerm`.
+  - FE: `components/GlobalSearch.tsx` (container), `components/global-search/SearchResults.tsx` và `SearchHints.tsx`, `hooks/useGlobalSearch.ts`, `utils/globalSearchRows.ts`; tham số `enabled` cho `usePatientList`, `useAppointmentList`, `useStaffList`; `StaffPage` đọc `?q=`.
+  - i18n: badge LH / CS / NV, câu gợi ý CSKH. Không có migration.
+- **Test**:
+  - E2E mới `global-search-palette.spec.ts` tạo bệnh nhân "Trần Thị Thuỷ e2e…", lịch hẹn ngày mai, một việc CSKH và bác sĩ "Đoàn Khôi …" qua API thật.
+    - Gõ "thuy e2e…": ra đúng 1 dòng ở Bệnh nhân, Lịch hẹn, CSKH (đếm 1), không có nhóm Nhân viên. Nội dung đặt lịch "Khám định kỳ" không khớp `patientFilter`.
+    - ↓ rồi Enter: mở `/patient/:id?tab=appointment`, hộp tìm đóng.
+    - Bấm dòng CSKH: mở `?tab=care`.
+    - Gõ "doan khoi …": nhóm Nhân viên 1 dòng; bấm thì mở `/staff?q=`, ô tìm điền sẵn, bảng ra đúng 1 nhân viên.
+    - Tài khoản chỉ có `patient.read` + `appointment.read`: thấy Bệnh nhân + Lịch hẹn, không thấy CSKH / Nhân viên, và không có request tìm `care-records` / `staff` nào.
+    - **5/5 xanh**.
+  - Chạy lại `patient-search-unaccent` và `search-unaccent-everywhere`: **5/5 xanh**.
+  - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.

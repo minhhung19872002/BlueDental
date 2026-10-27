@@ -3197,3 +3197,16 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 - Xuất xong: phiên iPad đóng (iPad hiện "Đã xuất phiếu thu"), file mở ở tab mới, "In phiếu thu" từ đó in đúng file đã lưu.
 - Phiếu đã xuất rồi bị hủy vẫn giữ file (chưa có quy định xoá).
 - Phiếu xuất bằng đường tạm `/issue` của phase 2–4 (chỉ có trên máy dev, chưa lên staging) không có file; "In phiếu thu" của chúng vẫn dựng lại từ mẫu. Đường `/issue` đã bỏ.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Header — Global Search Modal (Ctrl+K)
+Control: the result list shown after typing 2+ characters
+Reason: Observing it means typing into the reference's search field. Results
+would also show real customers' names and phones, so the result format and
+where a hit leads were never observed.
+Action taken: NONE. BlueDental's own design (R-1053, owner 2026-10-27, "cách 1"):
+- One block per group (Bệnh nhân, Lịch hẹn, CSKH, Nhân viên), each with a count and at most 5 rows.
+- A Lịch hẹn row opens the patient's appointment tab.
+- The CSKH hint names only the customer, not "nội dung".
+See docs/clone/components.md § Global Search Modal.

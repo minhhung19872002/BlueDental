@@ -85,10 +85,11 @@ export function useFindGuardianCandidates() {
   );
 }
 
-export function usePatientList(params: PatientListQuery) {
+export function usePatientList(params: PatientListQuery, enabled = true) {
   return useQuery({
     queryKey: patientKeys.list(params),
     queryFn: () => patientApi.list(params),
+    enabled,
     // Keeping the previous page on screen is what lets the table dim under the
     // spinner instead of collapsing to an empty state on every keystroke.
     placeholderData: (previous) => previous,
