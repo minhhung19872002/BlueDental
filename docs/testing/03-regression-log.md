@@ -11193,3 +11193,9 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kết quả**: stack thật, BE :5000, bản build production `vite preview` :8160, không chặn request.
   - `payment-from-slip`, `payment-permission-buttons`, `plan-treating-scope`, `treatment-plan-delete`, `treatment-plan` → **36/36**.
   - Sau khi rút gọn text: chạy lại `treatment-plan-delete` → **4/4**.
+
+## R-1043 (2026-10-27, mức 1: Tìm kiếm Ctrl+K) Năm sinh sau tên bệnh nhân
+
+- **Yêu cầu** (2026-10-27, ảnh chụp bảng tìm kiếm Ctrl+K): "Thêm năm sinh sau tên nha". Mẫu: `Huỳnh Văn Định (2002)`.
+- **Sửa**: `GlobalSearch` hiện `Tên (YYYY)` ở dòng tên của mỗi kết quả. Năm lấy từ `dateOfBirth` mà `GET /patients` đã trả sẵn, nên không sửa BE. Hồ sơ chưa có ngày sinh chỉ hiện tên.
+- **E2E** `patient-search-unaccent.spec.ts` ca 2: dòng tên của kết quả kết thúc bằng `Hà My (1990)`. Chạy trên bản build production của `main` (`vite preview` :8091, API :5000): 2/2 **xanh**.
