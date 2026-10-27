@@ -85,18 +85,28 @@ const BOOKED_OUTCOMES: readonly NonNullOutcome[] = ["FollowUp", "Revisit"];
 
 const isBookedOutcome = (key: NonNullOutcome): key is BookedOutcome => BOOKED_OUTCOMES.includes(key);
 
-type OutcomeLock = (key: NonNullOutcome, saved: AppointmentOutcome, pending: BookedOutcome | null) => boolean;
+type OutcomeLock = (
+  key: NonNullOutcome,
+  saved: AppointmentOutcome,
+  pending: BookedOutcome | null,
+  started: boolean,
+) => boolean;
 
 /**
- * When an option cannot be clicked. A saved "Đã hẹn tiếp" or "Hẹn tái khám"
+ * When an option cannot be clicked. A saved "Đổi lịch hẹn" or "Hẹn tái khám"
  * locks every other option. While a picker is open only the other booked
- * option is locked, so a plain pick can still back out of it. "Kết thúc điều
- * trị" locks "Chuyển bác sĩ" and "Hẹn tái khám".
+ * option is locked, so a plain pick can still back out of it.
+ *
+ * P2710.drawio (owner 2026-10-27): "Đổi lịch hẹn" moves a visit whose work has
+ * not begun, so it is locked once the patient is in the chair ("Đang khám") or
+ * done ("Hoàn tất") — the server refuses it too. "Kết thúc điều trị" locks
+ * "Chuyển bác sĩ"; "Hẹn tái khám" stays open after it.
  */
 const OUTCOME_LOCKS: OutcomeLock[] = [
   (key, saved) => saved !== null && isBookedOutcome(saved) && key !== saved,
   (key, _saved, pending) => pending !== null && isBookedOutcome(key) && key !== pending,
-  (key, saved) => saved === "EndTreatment" && (key === "TransferDoctor" || key === "Revisit"),
+  (key, saved) => saved === "EndTreatment" && key === "TransferDoctor",
+  (key, _saved, _pending, started) => started && key === "FollowUp",
 ];
 
 function doctorOptionsFor(doctors: { id: string; name: string }[], item: ReceptionItem) {
@@ -155,6 +165,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
   const step1Done = !!item.step1Time;
   const step3Done = !!item.step3Time;
+  const inChair = !!item.step2Time || step3Done;
 
   // Only a cancelled visit stops here: a Trễ hẹn patient who turns up after all is still received.
   const isCancelled = isCancelledVisit(item);
@@ -305,7 +316,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 const isDisabled =
                   isCancelled ||
                   (awaitsItsDay && key !== "FollowUp") ||
-                  OUTCOME_LOCKS.some((lock) => lock(key, selectedOutcome, pendingBooking));
+                  OUTCOME_LOCKS.some((lock) => lock(key, selectedOutcome, pendingBooking, inChair));
                 const bookedAt = selectedOutcome === key ? item.followUpAt : undefined;
                 return (
                   <button

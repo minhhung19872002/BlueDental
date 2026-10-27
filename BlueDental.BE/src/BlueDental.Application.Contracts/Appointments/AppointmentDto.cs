@@ -250,6 +250,13 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     /// </summary>
     public bool? IsRevisit { get; set; }
 
+    /// <summary>
+    /// "Đổi lịch hẹn" on the reception board (P2710_01, owner 2026-10-27): visits
+    /// the patient has not begun, moved with "Đổi lịch hẹn" — dated or not — and
+    /// not cancelled. True keeps only those; false is ignored.
+    /// </summary>
+    public bool? IsRescheduled { get; set; }
+
     public DateOnly? Date { get; set; }
 
     /// <summary>Inclusive range, for the week and month grids.</summary>
@@ -286,4 +293,7 @@ public class AppointmentStatsDto
 
     /// <summary>Visits counted by <see cref="GetAppointmentListInput.IsRevisit"/>.</summary>
     public int Revisit { get; set; }
+
+    /// <summary>Visits counted by <see cref="GetAppointmentListInput.IsRescheduled"/>.</summary>
+    public int Rescheduled { get; set; }
 }

@@ -97,8 +97,10 @@ export interface ReceptionCounters {
   cancelledCount: number;
   lateCount: number;
   temporaryCount: number;
-  /** Đã hẹn lại — visits closed with Hẹn tái khám (R-1039). */
+  /** Đã hẹn tái khám — visits closed with Hẹn tái khám (R-1039, renamed by P2710_01). */
   revisitCount: number;
+  /** Đổi lịch hẹn — visits moved before the patient began (P2710_01). */
+  rescheduledCount: number;
 }
 
 export interface ReceptionMetrics {

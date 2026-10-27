@@ -13,11 +13,11 @@ import {
 } from "./fixtures/receptionBoard";
 
 /**
- * Feature: Tiếp nhận — progress bar ↔ outcome, and "Đã hẹn tiếp".
+ * Feature: Tiếp nhận — progress bar ↔ outcome, and "Đổi lịch hẹn".
  *
  * - "Đang khám" ticks "Chuyển bác sĩ", and "Chuyển bác sĩ" puts the visit in
  *   the chair; "Hoàn tất" ticks "Kết thúc điều trị", and the reverse.
- * - "Đã hẹn tiếp" opens a picker; the outcome is only saved together with a
+ * - "Đổi lịch hẹn" opens a picker; the outcome is only saved together with a
  *   real next appointment, whose date then shows under the option.
  *
  * Each test books its own visit for today through the real API, then finds
@@ -84,7 +84,7 @@ test.describe("Tiếp nhận — tiến trình và kết quả", () => {
   });
 });
 
-test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
+test.describe("Tiếp nhận — Đổi lịch hẹn", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
@@ -94,13 +94,13 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     const visit = await bookVisitToday(page, branchId, 90);
     const card = await cardOf(page, visit);
 
-    const followUp = outcome(card, /Đã hẹn tiếp/);
+    const followUp = outcome(card, /Đổi lịch hẹn/);
     await expect(followUp).toContainText("Cần chọn ngày giờ hẹn");
     await followUp.click();
 
     const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
     await expect(panel).toBeVisible();
-    const confirm = panel.getByRole("button", { name: "Xác nhận hẹn tiếp" });
+    const confirm = panel.getByRole("button", { name: "Xác nhận đổi lịch hẹn" });
     await expect(confirm).toBeDisabled();
 
     // Cancelling saves nothing.
@@ -143,46 +143,106 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
 
     await page.reload();
     const reloaded = await cardOf(page, visit);
-    await expect(outcome(reloaded, /Đã hẹn tiếp/)).toContainText(label);
-    await expect(outcome(reloaded, /Đã hẹn tiếp/)).toHaveAttribute("aria-pressed", "true");
+    await expect(outcome(reloaded, /Đổi lịch hẹn/)).toContainText(label);
+    await expect(outcome(reloaded, /Đổi lịch hẹn/)).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("the open picker swaps the tick with Kết thúc điều trị until it is booked", async ({ page }) => {
+  // P2710.drawio (owner 2026-10-27): once done, "Đổi lịch hẹn" and "Chuyển bác
+  // sĩ" are shut and only "Hẹn tái khám" books the next visit.
+  test("Kết thúc điều trị leaves Hẹn tái khám as the only booking, swapped in only once confirmed", async ({ page }) => {
     const branchId = await openBoard(page);
     const visit = await bookVisitToday(page, branchId, 120);
     const card = await cardOf(page, visit);
     const endTreatment = outcome(card, "Kết thúc điều trị");
-    const followUp = outcome(card, /Đã hẹn tiếp/);
+    const reschedule = outcome(card, /Đổi lịch hẹn/);
+    const transfer = outcome(card, "Chuyển bác sĩ");
     const revisit = outcome(card, "Hẹn tái khám");
     const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
 
     await endTreatment.click();
     await expect(endTreatment).toHaveAttribute("aria-pressed", "true");
-    // A finished treatment has nothing to revisit.
-    await expect(revisit).toBeDisabled();
+    await expect.poll(async () => (await getAppointment(page, branchId, visit.id)).status).toBe(STATUS.Completed);
+    await expect(reschedule).toBeDisabled();
+    await expect(transfer).toBeDisabled();
+    await expect(revisit).toBeEnabled();
 
-    // Opening the picker moves the tick; "Hẹn tái khám" stays locked.
-    await followUp.click();
-    await expect(followUp).toHaveAttribute("aria-pressed", "true");
+    // Opening the picker moves the tick; backing out brings the saved one back.
+    await revisit.click();
+    await expect(revisit).toHaveAttribute("aria-pressed", "true");
     await expect(endTreatment).toHaveAttribute("aria-pressed", "false");
-    await expect(revisit).toBeDisabled();
-
-    // Backing out brings the saved outcome back; nothing was written.
     await panel.getByRole("button", { name: "Hủy" }).click();
     await expect(panel).toBeHidden();
     await expect(endTreatment).toHaveAttribute("aria-pressed", "true");
-    await expect(followUp).toHaveAttribute("aria-pressed", "false");
-    await expect(revisit).toBeDisabled();
+    await expect(revisit).toHaveAttribute("aria-pressed", "false");
     expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.EndTreatment);
 
-    await followUp.click();
+    await revisit.click();
     await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
-    await panel.getByRole("button", { name: "Xác nhận hẹn tiếp" }).click();
+    await panel.getByRole("button", { name: "Xác nhận hẹn tái khám" }).click();
     await expect(panel).toBeHidden({ timeout: 10_000 });
-    await expect(followUp).toHaveAttribute("aria-pressed", "true");
-    await expect(endTreatment).toHaveAttribute("aria-pressed", "false");
-    await expect(revisit).toBeDisabled();
+    await expect(revisit).toHaveAttribute("aria-pressed", "true");
+    for (const other of [endTreatment, reschedule, transfer]) await expect(other).toBeDisabled();
+    const stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.outcome).toBe(OUTCOME.Revisit);
+    expect(stored.status).toBe(STATUS.Completed);
+    expect(stored.followUpAppointmentId).toBeTruthy();
+
+    // The server holds the line too: no "Đổi lịch hẹn" on a finished visit.
+    const refused = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/rebook-undated`, {
+      method: "POST",
+      json: { outcome: OUTCOME.FollowUp },
+    });
+    expect(refused.body.error?.code).toBe("BlueDental:Appointment:0017");
+    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.Revisit);
+  });
+
+  test("in the chair the card reads Chuyển bác sĩ, shuts Đổi lịch hẹn, and Hẹn tái khám finishes the visit", async ({
+    page,
+  }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 135);
+    const card = await cardOf(page, visit);
+    const reschedule = outcome(card, /Đổi lịch hẹn/);
+    const revisit = outcome(card, "Hẹn tái khám");
+    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+
+    // "Đổi lịch hẹn" without a date first: the chair replaces it all the same.
+    await reschedule.click();
+    await panel.getByRole("button", { name: "Hẹn lại - Chưa chốt ngày" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
     expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.FollowUp);
+
+    await card.getByRole("button", { name: /Đã đến/ }).click();
+    await expect(card.getByRole("button", { name: /Đang khám/ })).toBeEnabled();
+    await card.getByRole("button", { name: /Đang khám/ }).click();
+    await expect(outcome(card, "Chuyển bác sĩ")).toHaveAttribute("aria-pressed", "true");
+    await expect(reschedule).toBeDisabled();
+    await expect(revisit).toBeEnabled();
+    let stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.status).toBe(STATUS.InProgress);
+    expect(stored.outcome).toBe(OUTCOME.TransferDoctor);
+
+    const refused = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/rebook-undated`, {
+      method: "POST",
+      json: { outcome: OUTCOME.FollowUp },
+    });
+    expect(refused.body.error?.code).toBe("BlueDental:Appointment:0017");
+
+    // Hẹn tái khám without a date still finishes the visit, with its time.
+    await revisit.click();
+    await panel.getByRole("button", { name: "Hẹn lại - Chưa chốt ngày" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.outcome).toBe(OUTCOME.Revisit);
+    expect(stored.status).toBe(STATUS.Completed);
+    expect(stored.completedAt).toBeTruthy();
+
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    await expect(outcome(reloaded, "Hẹn tái khám")).toHaveAttribute("aria-pressed", "true");
+    for (const other of [outcome(reloaded, /Đổi lịch hẹn/), outcome(reloaded, "Kết thúc điều trị"), outcome(reloaded, "Chuyển bác sĩ")]) {
+      await expect(other).toBeDisabled();
+    }
   });
 
   test("Hẹn tái khám is saved only with a booked date and then locks the rest", async ({ page }) => {
@@ -190,7 +250,7 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     const visit = await bookVisitToday(page, branchId, 150);
     const card = await cardOf(page, visit);
     const revisit = outcome(card, "Hẹn tái khám");
-    const followUp = outcome(card, /Đã hẹn tiếp/);
+    const followUp = outcome(card, /Đổi lịch hẹn/);
     const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
 
     await expect(revisit).toContainText("Cần chọn ngày giờ hẹn");
@@ -230,8 +290,8 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     await expect(reloaded.locator(".rc-step")).toHaveCount(2);
     await expect(reloaded.locator(".rc-step-label").nth(1)).toHaveText("Đã hẹn lại");
     await expect(reloaded.locator(".rc-step-time").nth(1)).toHaveText(/^\d{2}:\d{2}$/);
-    await expect(outcome(reloaded, /Đã hẹn tiếp/)).toContainText("Cần chọn ngày giờ hẹn");
-    for (const other of [outcome(reloaded, /Đã hẹn tiếp/), outcome(reloaded, "Kết thúc điều trị"), outcome(reloaded, "Chuyển bác sĩ")]) {
+    await expect(outcome(reloaded, /Đổi lịch hẹn/)).toContainText("Cần chọn ngày giờ hẹn");
+    for (const other of [outcome(reloaded, /Đổi lịch hẹn/), outcome(reloaded, "Kết thúc điều trị"), outcome(reloaded, "Chuyển bác sĩ")]) {
       await expect(other).toBeDisabled();
     }
   });
@@ -310,7 +370,7 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
     }
 
     const card = await cardOf(page, visit);
-    await outcome(card, /Đã hẹn tiếp/).click();
+    await outcome(card, /Đổi lịch hẹn/).click();
     const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
     await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
 
@@ -331,7 +391,7 @@ test.describe("Tiếp nhận — Đã hẹn tiếp", () => {
 
     await busySlot.click();
     await expect(busySlot).toHaveAttribute("aria-pressed", "true");
-    const confirm = panel.getByRole("button", { name: "Xác nhận hẹn tiếp" });
+    const confirm = panel.getByRole("button", { name: "Xác nhận đổi lịch hẹn" });
     await confirm.click();
     const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
     await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 08:00–");

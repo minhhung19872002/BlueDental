@@ -11336,3 +11336,89 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy: `reception-live-late` 3/3 **xanh** (chip vẫn cộng lại bằng Tất cả). Vitest reception 3/3 xanh.
   - `reception-restore-arrived` đỏ 4 ca. Cả 4 hỏng ở bước đặt lịch của fixture `bookVisitToday` ("every dentist was booked") vì DB riêng không có bác sĩ, trước khi chạm tới code đã sửa.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
+
+
+## R-1048 (2026-10-27, mức 3: Tiếp nhận + domain Lịch hẹn) Kết quả lượt khám theo P2710.drawio: "Đổi lịch hẹn", đồng bộ thanh tiến trình ↔ radio
+
+- **Yêu cầu**: `docs/P2710.drawio` (owner, 2026-10-27), 3 ghi chú trên ảnh thẻ Tiếp nhận DH260044. Trước đó owner đã nói trong chat: "đã hẹn tiếp là hẹn nhưng chưa làm, hẹn tái khám là làm rồi … nếu đã làm xong thì chỉ được chọn hẹn tái khám".
+  1. Lúc "Đang khám", radio phải là "Chuyển bác sĩ", và "Đã hẹn tiếp" bị khóa.
+  2. Đổi tên "Đã hẹn tiếp" thành **"Đổi lịch hẹn"**. Hành vi không đổi: có ngày giờ thì tạo lịch, không chọn ngày thì chỉ cập nhật trạng thái.
+  3. Từ "Đang khám":
+     - Bấm "Hoàn tất" → tick "Kết thúc điều trị", khóa "Đổi lịch hẹn" và "Chuyển bác sĩ", **mở "Hẹn tái khám"**.
+     - Chọn "Kết thúc điều trị" → "Hoàn tất", khóa 2 lựa chọn trên.
+     - Chọn "Hẹn tái khám" rồi xác nhận ngày hoặc "chưa chốt ngày" → "Hoàn tất" (ghi giờ), khóa 3 lựa chọn còn lại.
+     - Không xác nhận thì giữ nguyên.
+- **Đã có từ trước, giữ nguyên**: "Hoàn tất" tick "Kết thúc điều trị"; "Hẹn tái khám" lúc đang khám làm lượt khám Hoàn tất, có hoặc không có ngày; Hủy picker thì không lưu gì; đã lưu "Đổi lịch hẹn" hoặc "Hẹn tái khám" thì khóa các lựa chọn khác.
+- **Đã sửa**:
+  - **Domain** `Appointment`:
+    - `Start()`: kết quả rỗng hoặc FollowUp → TransferDoctor. Áp dụng cho mọi đường bắt đầu lượt khám, không chỉ từ thẻ.
+    - `Complete()`: mọi kết quả trừ Revisit → EndTreatment.
+    - FollowUp ("Đổi lịch hẹn") bị từ chối khi lượt khám đang InProgress hoặc Completed. Áp cho `SetOutcome`, `BookFollowUp`, `MarkRebookUndated`. Mã lỗi mới `BlueDental:Appointment:0017` (`RescheduleAfterStart`), kiểm tra trước lỗi "đã có follow-up" để người dùng nhận đúng thông báo.
+  - **FE** `ReceptionCard`:
+    - "Đổi lịch hẹn" bị khóa khi đã qua bước "Đang khám".
+    - Khóa của "Kết thúc điều trị" giờ chỉ khóa "Chuyển bác sĩ"; trước đây khóa cả "Hẹn tái khám", từ commit a765ffa1.
+  - **FE** `receptionFlow.planStepClick`: "Đang khám" thay cả FollowUp bằng "Chuyển bác sĩ"; "Hoàn tất" giữ lại chỉ "Hẹn tái khám". Trước đây FollowUp sống sót qua "Hoàn tất", gây ra thẻ "Hoàn tất + Đã hẹn tiếp" mà owner chụp gửi.
+  - **i18n vi/en**: `Reception:OutcomeFollowUp` thành "Đổi lịch hẹn" / "Reschedule". `FollowUpHint`, `FollowUpConfirm` ("Xác nhận đổi lịch hẹn"), `FollowUpSuccess` và `Appointment:Series:MovedTo` ("Đã đổi lịch hẹn sang {0}") đổi theo. Tiêu đề picker "Chọn lịch hẹn tiếp theo" giữ nguyên.
+- **Lưu ý / chưa làm**:
+  - Một lượt khám đã có lịch "Đổi lịch hẹn" còn hiệu lực mà vẫn vào ghế: kết quả chuyển sang "Chuyển bác sĩ", nhưng lịch đã đặt vẫn nằm trên lịch (không tự huỷ). Khi đó muốn "Hẹn tái khám" thì phải huỷ lịch kia trước (lỗi 0003 "một follow-up"). Hỏi owner nếu cần tự huỷ.
+  - Dữ liệu cũ đã ở trạng thái "Hoàn tất + Đã hẹn tiếp" không bị sửa lại; thẻ hiện tick "Đổi lịch hẹn" và khóa các lựa chọn khác như trước.
+  - Đặt kết quả EndTreatment thẳng qua API `/outcome` (không qua thẻ) vẫn có thể để lượt khám ở "Đang khám". Giao diện luôn gọi `/complete`, nên không gặp qua UI.
+- **Test** (stack thật, dev :5173, BE :5000, DB dev; `--headed` vì máy không tải được chromium-headless-shell):
+  - Domain.Tests **1121/1121**. Thêm 6 ca:
+    - Từ chối FollowUp khi đang khám hoặc đã Hoàn tất, qua cả 3 đường.
+    - "Hẹn tái khám" vẫn nhận trên lượt khám đã Hoàn tất.
+    - `Start` ra TransferDoctor, `Complete` ra EndTreatment.
+  - Domain.Tests: sửa 2 ca cũ có book FollowUp trong lúc đang khám (`BookFollowUp_Should_Book_The_Next_Visit_And_Link_It`, `A_Visit_That_Took_Place_And_Booked_Its_Next_One_Is_Finished_Not_Moved`) sang luồng hợp lệ mới.
+  - E2E `reception-follow-up`:
+    - Viết lại ca "Kết thúc điều trị → Hẹn tái khám là lựa chọn hẹn duy nhất": mở picker đổi tick, Hủy trả lại, xác nhận thì lưu Revisit; server từ chối FollowUp với mã 0017.
+    - Thêm ca "đang khám": "Đổi lịch hẹn" chưa chốt ngày → "Đang khám" chuyển thành "Chuyển bác sĩ", "Đổi lịch hẹn" bị khóa; API trả 0017; "Hẹn tái khám" chưa chốt ngày → Hoàn tất có `completedAt`; reload vẫn đúng.
+  - E2E: đổi chữ trong `reception-rebook-undated`, `reception-revisit-counter`, `appointment-series-api`.
+  - 4 spec đó: **24/24 pass**.
+  - Hồi quy `e2e/reception*` + `cskh-after-treatment` + `appointment-day-timeline` (69 ca): **62 pass / 3 skip / 4 đỏ**, đều không liên quan tới kết quả lượt khám:
+    - `reception-restore-arrived` "cancelled in the chair": chạy riêng thì **pass**, tức là chập chờn.
+    - `reception-doctor-priority`: fixture báo `UserAlreadyInRole` (403), lỗi dữ liệu Identity.
+    - `reception-restore-arrived` "put back from the edit dialog": chờ worker 15 phút rồi hết thời gian.
+    - `reception-temporary` "takes the appointment over": không tìm thấy thẻ theo tên sau khi gắn hồ sơ.
+    - 3 ca cuối **chưa chạy đối chứng trên code gốc** (cần dựng lại BE cũ, khoảng 20 phút).
+  - Chụp thẻ thật: Đang khám → (●) Chuyển bác sĩ, Đổi lịch hẹn mờ. Hoàn tất → (●) Kết thúc điều trị, Đổi lịch hẹn và Chuyển bác sĩ mờ, Hẹn tái khám bấm được.
+
+
+## R-1049 (2026-10-27, mức 2: Tiếp nhận + API thống kê lịch hẹn) Chip lọc theo P2710_01: "Đã hẹn tái khám" và "Đổi lịch hẹn"
+
+- **Yêu cầu**: `docs/P2710_01.drawio` (owner, 2026-10-27), 2 khung đỏ trên dải chip của Tiếp nhận.
+  - Khung 1 đặt trên chip **"Đã hẹn"**: "Đổi text filter → Đã hẹn tái khám — lọc các lịch khám đã hoàn tất và có chọn hẹn tái khám".
+  - Khung 2 đặt trên chip **"Đã hẹn lại"**: "Đổi title → Đổi lịch hẹn — lọc các lịch khám chưa đến khám và đã đổi lịch hẹn sang ngày khác".
+  - Khung 1 nằm đúng trên chip "Đã hẹn", nhưng nội dung lại trùng với bộ lọc "Đã hẹn lại" đang có (R-1039). Đã hỏi lại, owner chốt **"Đúng như khung đỏ"**: bỏ chip "Đã hẹn".
+- **Dải chip mới** (vẫn 6 chip): **Đã hẹn tái khám** · Đã đến · Huỷ hẹn · Trễ hẹn · Lịch tạm · **Đổi lịch hẹn**.
+  - "Đã hẹn" không còn chip, nhưng vẫn được đếm trong tab "Tất cả".
+  - Nhãn bước "Đã hẹn lại" trên thanh tiến trình của thẻ giữ nguyên (`Reception:StepRevisit`). Chip dùng key riêng `Reception:ChipRevisit` / `Reception:ChipRescheduled`.
+  - Lịch hẹn (calendar) vẫn giữ chip "Đã hẹn lại", vì drawio chỉ nói tới Tiếp nhận.
+- **Bộ lọc**:
+  - "Đã hẹn tái khám" dùng lại `isRevisit` (R-1039): kết quả Hẹn tái khám, không bị huỷ. Lượt khám chọn Hẹn tái khám trước khi vào ghế (thanh dừng ở "Đã hẹn lại", chưa Hoàn tất) vẫn được tính như trước. Từ R-1048, chọn Hẹn tái khám lúc đang khám thì luôn Hoàn tất.
+  - "Đổi lịch hẹn" là bộ lọc mới `isRescheduled`: kết quả Đổi lịch hẹn, `StartedAt == null`, không bị huỷ. Tính cả "Hẹn lại - Chưa chốt ngày". Vào ghế thì kết quả chuyển sang "Chuyển bác sĩ" (R-1048), nên lượt đó tự rời khỏi chip.
+- **BE**: `GetAppointmentListInput.IsRescheduled`, `AppointmentStatsDto.Rescheduled`, biểu thức `IsRescheduled` trong `AppointmentAppService` (đếm trong DB như `IsRevisit`). i18n vi/en thêm 2 key chip.
+- **FE**: `ReceptionCounters.rescheduledCount`; `receptionApi` thêm query `isRescheduled` và số đếm `rescheduled`; `ReceptionStatusTabs` thêm kiểu `ChipKey`, không còn `scheduledCount`.
+- **E2E** (stack thật, dev :5173, BE :5000, `--headed`):
+  - `reception-revisit-counter` "counts and lists…" → **pass**. Đã thêm kiểm tra:
+    - Thứ tự 6 nhãn chip; "Đã hẹn" và "Đã hẹn lại" không còn.
+    - Chip "Đổi lịch hẹn" đếm +1 chỉ cho lượt Đổi lịch hẹn, không tính lượt tái khám hay lượt đã huỷ.
+    - Bấm chip thì gửi `isRescheduled=true` và chỉ hiện lượt đó.
+  - `reception-live-late` (3 ca) → **pass**. Phép cộng "Đã hẹn + Đã đến + Huỷ hẹn + Trễ hẹn = Tất cả" giờ lấy phần Đã hẹn từ `/stats`, vì chip đã bị bỏ.
+  - `reception-follow-up`, `reception-rebook-undated` → **pass**.
+  - `reception-revisit-counter` "Lịch hẹn: the same chip…" (trang Lịch hẹn, không đổi gì) **đỏ** ở bước cuối. Ca này đã pass sáng nay với cùng code. Nguyên nhân là dữ liệu e2e trong ngày quá nhiều: `bookVisitToday` dời lượt `followUp` tới 19:12–19:21 nên bước cuối không thấy block. Cần chạy lại trên DB sạch hoặc sáng hôm sau.
+  - `tsc -b` và `oxlint` không báo lỗi.
+
+
+## R-1050 (2026-10-27, mức 2: Tiếp nhận / Lịch hẹn — tìm kiếm + chip) Tìm theo họ tên đầy đủ; chip giãn theo nhãn
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**:
+  - "nguyễn hải yến" không ra kết quả, trong khi "yến" thì ra. "Search ở đây là search full text, chấp trim, không phân biệt hoa thường."
+  - Chip "Đã hẹn tái khám" (R-1049) bị tràn chữ: "chip nên bao width của content".
+- **Nguyên nhân tìm kiếm**: `AppointmentAppService.FilteredQueryAsync` so cụm từ khoá với **riêng** `FirstName` ("Yến") hoặc **riêng** `LastName` ("Nguyễn Hải"), nên cụm vắt qua cả hai trường không bao giờ khớp. Màn Bệnh nhân đã khớp trên họ tên đầy đủ từ R-1035; màn Tiếp nhận và Lịch hẹn (dùng chung API này) thì chưa.
+- **Sửa**:
+  - BE: từ khoá được trim, gộp các khoảng trắng liền nhau thành một, chuyển chữ thường bằng `ToLowerInvariant`. Thêm khớp cụm trên `LastName + " " + FirstName`; giữ cách khớp riêng họ hoặc tên như cũ. Không thêm bỏ dấu (owner không yêu cầu).
+  - FE `reception.css`: `.reception-stat-chip` bỏ `width: 74px`, đổi thành `min-width: 74px` và đệm ngang 8px. Chip ngắn vẫn 74px; "Đã hẹn tái khám" 106px, "Đổi lịch hẹn" 81px; nhãn nằm gọn trong chip (đo trên trang).
+- **Chạy thật**: "nguyễn hải yến", "  NGUYỄN   Hải YẾN  " và "yến" đều ra "Nguyễn Hải Yến (1968)" BD269022, qua API và qua ô tìm trên board.
+- **E2E mới** `reception-search-fullname.spec.ts` (stack thật): đọc họ và tên thật của bệnh nhân rồi tìm theo 7 kiểu (đúng, thường, HOA, khoảng trắng hai đầu, khoảng trắng giữa, chỉ tên, chỉ họ) → đều ra lượt khám đó. Thêm một ký tự sai thì không ra. Trên board, gõ HOA có khoảng trắng → các thẻ đều của bệnh nhân đó. → **pass**.
+- **Hồi quy**: `reception-follow-up`, `reception-rebook-undated`, `reception-revisit-counter` (trừ ca Lịch hẹn đã nêu ở R-1049), `reception-search-fullname` → **17/17**.
+

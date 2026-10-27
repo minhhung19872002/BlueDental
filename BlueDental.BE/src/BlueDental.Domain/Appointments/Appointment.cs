@@ -30,7 +30,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? CancelledAt { get; private set; }
     public AppointmentOutcome? Outcome { get; private set; }
 
-    /// <summary>The appointment booked through "Đã hẹn tiếp", if any.</summary>
+    /// <summary>The appointment booked through "Đổi lịch hẹn", if any.</summary>
     public Guid? FollowUpAppointmentId { get; private set; }
 
     public bool IsTemporary { get; private set; }
@@ -247,6 +247,10 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         EnsureStatus(AppointmentStatus.CheckedIn, nameof(Start));
         Status = AppointmentStatus.InProgress;
         StartedAt = DateTimeOffset.UtcNow;
+        // In the chair the outcome reads "Chuyển bác sĩ", whoever started the
+        // visit; "Đổi lịch hẹn" no longer applies (owner 2026-10-27, P2710.drawio).
+        if (Outcome is null or AppointmentOutcome.FollowUp)
+            Outcome = AppointmentOutcome.TransferDoctor;
         return this;
     }
 
@@ -261,6 +265,10 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         EnsureStatus(AppointmentStatus.InProgress, nameof(Complete));
         Status = AppointmentStatus.Completed;
         CompletedAt = DateTimeOffset.UtcNow;
+        // "Hoàn tất" reads "Kết thúc điều trị" unless the visit closed with a
+        // "Hẹn tái khám" (owner 2026-10-27, P2710.drawio).
+        if (Outcome is not AppointmentOutcome.Revisit)
+            Outcome = AppointmentOutcome.EndTreatment;
         // Hoàn tất with no note of its own keeps the Ghi chú written at
         // booking (R-1038); clearing it is the editor's job.
         if (notes is not null)
@@ -420,12 +428,29 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
                 $"Cannot set outcome on a cancelled appointment.");
         }
 
+        EnsureRescheduleBeforeChair(outcome);
         Outcome = outcome;
         return this;
     }
 
     /// <summary>
-    /// "Đã hẹn tiếp": the visit ends with the next appointment already on the
+    /// "Đổi lịch hẹn" (FollowUp) moves a visit whose work has not begun. Once the
+    /// patient is in the chair or done, the visit closes with "Hẹn tái khám"
+    /// instead (owner 2026-10-27, docs/P2710.drawio).
+    /// </summary>
+    private void EnsureRescheduleBeforeChair(AppointmentOutcome outcome)
+    {
+        if (outcome is AppointmentOutcome.FollowUp
+            && Status is AppointmentStatus.InProgress or AppointmentStatus.Completed)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.RescheduleAfterStart,
+                $"Appointment {Id} is already {Status}; it cannot be rescheduled.");
+        }
+    }
+
+    /// <summary>
+    /// "Đổi lịch hẹn": the visit ends with the next appointment already on the
     /// book. Books it for the same patient in the same branch — with this
     /// visit's dentist unless another is named — and links it here, so the
     /// outcome can never be set without a date behind it. Only one live
@@ -437,7 +462,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// when there is none or it has been deleted.
     /// </param>
     /// <param name="outcome">
-    /// "Đã hẹn tiếp" or "Hẹn tái khám" — both need a booked date behind them.
+    /// "Đổi lịch hẹn" or "Hẹn tái khám" — both need a booked date behind them.
     /// </param>
     public Appointment BookFollowUp(
         Guid followUpId,
@@ -454,6 +479,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
                 $"Outcome {outcome} is not booked with a next appointment.");
         }
 
+        EnsureRescheduleBeforeChair(outcome);
         var hasLiveFollowUp = currentFollowUp is { Status: not AppointmentStatus.Cancelled };
         if (Status is AppointmentStatus.Cancelled || IsTemporary || hasLiveFollowUp)
         {
@@ -479,7 +505,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// "Hẹn lại - Chưa chốt ngày" (owner, 2026-10-09): the patient will come
-    /// back but no date is fixed yet. Saves "Đã hẹn tiếp" / "Hẹn tái khám"
+    /// back but no date is fixed yet. Saves "Đổi lịch hẹn" / "Hẹn tái khám"
     /// without a booking — the card keeps "Cần chọn ngày giờ hẹn", so the date
     /// can still be booked from it later — and customer care calls the patient
     /// to fix one.
@@ -494,6 +520,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
                 $"Outcome {outcome} is not booked with a next appointment.");
         }
 
+        EnsureRescheduleBeforeChair(outcome);
         var hasLiveFollowUp = currentFollowUp is { Status: not AppointmentStatus.Cancelled };
         if (Status is AppointmentStatus.Cancelled || IsTemporary || hasLiveFollowUp)
         {
@@ -510,7 +537,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// "Hẹn tái khám" moves the bar one step, and that step is the last one
     /// ("Đã hẹn lại") with its time: a visit not yet in the chair stops at
-    /// step 2, one already in the chair finishes at step 3. "Đã hẹn tiếp"
+    /// step 2, one already in the chair finishes at step 3. "Đổi lịch hẹn"
     /// leaves the bar where it is.
     /// </summary>
     private void AdvanceForOutcome(AppointmentOutcome outcome)
@@ -596,7 +623,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// <summary>How this session of a series stands against what the series planned.</summary>
     /// <param name="followUp">
     /// The appointment <see cref="FollowUpAppointmentId"/> points at, or null.
-    /// A session the patient never came to whose "Đã hẹn tiếp" booked another
+    /// A session the patient never came to whose "Đổi lịch hẹn" booked another
     /// slot was moved there (owner, 2026-10-09): Đổi giờ on the planned day,
     /// Đã đổi lịch on another.
     /// </param>

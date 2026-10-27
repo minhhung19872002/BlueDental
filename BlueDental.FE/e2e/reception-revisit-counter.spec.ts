@@ -7,7 +7,7 @@ import { APPOINTMENTS, bookVisitToday, call, cardOf, dayOf, getAppointment, open
  *
  * - The chip counts the board's visits closed with "Hẹn tái khám" — the cards
  *   whose bar reads "Đã hẹn lại" — dated or not.
- * - "Đã hẹn tiếp" is not counted, nor a revisit cancelled afterwards (its card
+ * - "Đổi lịch hẹn" is not counted, nor a revisit cancelled afterwards (its card
  *   ends on Hủy hẹn).
  * - Clicking the chip lists those visits only.
  * - Lịch hẹn's own "Chuyển đổi" chip follows (owner, 2026-10-26).
@@ -23,11 +23,17 @@ const chipButton = (page: Page, label: string) =>
     .locator(".reception-stat-chip-btn")
     .filter({ has: page.locator(".reception-stat-chip-label").getByText(label, { exact: true }) });
 
-async function revisitStat(page: Page, branchId: string): Promise<number> {
+async function todayStats(page: Page, branchId: string): Promise<{ revisit: number; rescheduled: number }> {
   const today = dayOf(new Date());
-  const res = await call<{ revisit: number }>(page, branchId, `${APPOINTMENTS}/stats?fromDate=${today}&toDate=${today}`);
+  const res = await call<{ revisit: number; rescheduled: number }>(
+    page, branchId, `${APPOINTMENTS}/stats?fromDate=${today}&toDate=${today}`,
+  );
   expect(res.status).toBe(200);
-  return res.body.revisit;
+  return res.body;
+}
+
+async function revisitStat(page: Page, branchId: string): Promise<number> {
+  return (await todayStats(page, branchId)).revisit;
 }
 
 /** Searches the board and waits for the answer, keeping whichever chip is pressed. */
@@ -45,11 +51,18 @@ test.describe("Tiếp nhận — chip Đã hẹn lại", () => {
     await login(page);
   });
 
-  test("counts and lists the visits closed with Hẹn tái khám, not Đã hẹn tiếp nor a cancelled one", async ({ page }) => {
+  test("counts and lists the visits closed with Hẹn tái khám, not Đổi lịch hẹn nor a cancelled one", async ({ page }) => {
     const branchId = await openBoard(page);
-    await expect(chipButton(page, "Đã hẹn lại")).toHaveCount(1);
-    await expect(chipButton(page, "Chuyển đổi")).toHaveCount(0);
+    // P2710_01: "Đã hẹn tái khám" takes the place of "Đã hẹn", and the last
+    // chip ("Đã hẹn lại") becomes "Đổi lịch hẹn".
+    await expect(chipButton(page, "Đã hẹn tái khám")).toHaveCount(1);
+    await expect(chipButton(page, "Đổi lịch hẹn")).toHaveCount(1);
+    for (const gone of ["Đã hẹn", "Đã hẹn lại", "Chuyển đổi"]) await expect(chipButton(page, gone)).toHaveCount(0);
+    await expect(page.locator(".reception-stat-chip-label")).toHaveText([
+      "Đã hẹn tái khám", "Đã đến", "Huỷ hẹn", "Trễ hẹn", "Lịch tạm", "Đổi lịch hẹn",
+    ]);
 
+    const rescheduledBefore = (await todayStats(page, branchId)).rescheduled;
     const before = await revisitStat(page, branchId);
     const revisit = await bookVisitToday(page, branchId, 40, "e2e-henlai-chip");
     const followUp = await bookVisitToday(page, branchId, 50, "e2e-henlai-chip");
@@ -89,14 +102,14 @@ test.describe("Tiếp nhận — chip Đã hẹn lại", () => {
 
     // The chip reads the server's count, after a reload too.
     await page.reload();
-    await expect(chipButton(page, "Đã hẹn lại").locator(".reception-stat-chip-value")).toHaveText(String(after));
+    await expect(chipButton(page, "Đã hẹn tái khám").locator(".reception-stat-chip-value")).toHaveText(String(after));
 
     const listed = page.waitForResponse(
       (r) => r.url().includes(`${APPOINTMENTS}?`) && r.url().includes("isRevisit=true") && r.ok(),
     );
-    await chipButton(page, "Đã hẹn lại").click();
+    await chipButton(page, "Đã hẹn tái khám").click();
     await listed;
-    await expect(chipButton(page, "Đã hẹn lại")).toHaveAttribute("aria-pressed", "true");
+    await expect(chipButton(page, "Đã hẹn tái khám")).toHaveAttribute("aria-pressed", "true");
 
     const cards = page.locator(".rc-wrapper");
     expect((await search(page, revisit.searchKey)).url()).toContain("isRevisit=true");
@@ -110,10 +123,31 @@ test.describe("Tiếp nhận — chip Đã hẹn lại", () => {
     }
 
     // Released, the chip no longer filters: the follow-up is back on the board.
-    await chipButton(page, "Đã hẹn lại").click();
-    await expect(chipButton(page, "Đã hẹn lại")).toHaveAttribute("aria-pressed", "false");
+    await chipButton(page, "Đã hẹn tái khám").click();
+    await expect(chipButton(page, "Đã hẹn tái khám")).toHaveAttribute("aria-pressed", "false");
     await search(page, followUp.searchKey);
     await expect(cards).toHaveCount(1, { timeout: 15_000 });
+
+    // "Đổi lịch hẹn" counts and lists the one moved before it began — not the
+    // revisit, not the cancelled one (P2710_01).
+    const rescheduledAfter = (await todayStats(page, branchId)).rescheduled;
+    expect(rescheduledAfter - rescheduledBefore).toBe(1);
+    await expect(chipButton(page, "Đổi lịch hẹn").locator(".reception-stat-chip-value")).toHaveText(
+      String(rescheduledAfter),
+    );
+    const moved = page.waitForResponse(
+      (r) => r.url().includes(`${APPOINTMENTS}?`) && r.url().includes("isRescheduled=true") && r.ok(),
+    );
+    await chipButton(page, "Đổi lịch hẹn").click();
+    // The search box still holds the follow-up's key, so the chip's own request carries it.
+    expect((await moved).url()).toContain(`filter=${followUp.searchKey}`);
+    await expect(chipButton(page, "Đổi lịch hẹn")).toHaveAttribute("aria-pressed", "true");
+    await expect(cards).toHaveCount(1, { timeout: 15_000 });
+    await expect(cards.first()).toContainText(followUp.patientCode ?? followUp.patientName);
+    for (const outside of [revisit, cancelled]) {
+      await search(page, outside.searchKey);
+      await expect(cards).toHaveCount(0);
+    }
   });
 
   test("Lịch hẹn: the same chip counts and filters the day the same way", async ({ page }) => {
@@ -149,7 +183,7 @@ test.describe("Tiếp nhận — chip Đã hẹn lại", () => {
     const searchBox = page.locator(".cal-search-field input");
     await searchBox.fill(revisit.searchKey);
     await expect(blocks).toHaveCount(1);
-    // The timeline never draws a cancelled booking, so only Đã hẹn tiếp proves the filter.
+    // The timeline never draws a cancelled booking, so only Đổi lịch hẹn proves the filter.
     await searchBox.fill(followUp.searchKey);
     await expect(blocks).toHaveCount(0);
 

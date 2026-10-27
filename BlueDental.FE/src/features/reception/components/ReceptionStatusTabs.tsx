@@ -31,20 +31,27 @@ const TAB_CONFIGS: TabConfig[] = [
   { key: "Completed",      countKey: "completedCount" },
 ];
 
+/**
+ * The counters shown as chips. "Đã hẹn" is still counted (Tất cả adds it up)
+ * but has no chip: P2710_01 (owner 2026-10-27) puts "Đã hẹn tái khám" in its
+ * place and turns the last chip into "Đổi lịch hẹn".
+ */
+type ChipKey = Exclude<CounterKey, "scheduledCount">;
+
 interface StatChipConfig {
-  key: keyof ReceptionCounters;
+  key: ChipKey;
   bg: string;
   border: string;
   color: string;
 }
 
 const STAT_CHIP_CONFIGS: StatChipConfig[] = [
-  { key: "scheduledCount", bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
-  { key: "arrivedCount",   bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
-  { key: "cancelledCount", bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
-  { key: "lateCount",      bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
-  { key: "temporaryCount", bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
-  { key: "revisitCount",   bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "revisitCount",     bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
+  { key: "arrivedCount",     bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
+  { key: "cancelledCount",   bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
+  { key: "lateCount",        bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
+  { key: "temporaryCount",   bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
+  { key: "rescheduledCount", bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
 ];
 
 const TAB_LABELS: Record<ReceptionStatus, string> = {
@@ -83,13 +90,13 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
     [metrics],
   );
 
-  const chipLabel: Record<keyof ReceptionCounters, string> = {
-    scheduledCount: t("Reception:StatusScheduled"),
-    arrivedCount:   t("Reception:StatusArrived"),
-    cancelledCount: t("Reception:StatusCancelled"),
-    lateCount:      t("Reception:StatusLate"),
-    temporaryCount: t("Reception:StatusTemporary"),
-    revisitCount:   t("Reception:StepRevisit"),
+  const chipLabel: Record<ChipKey, string> = {
+    revisitCount:     t("Reception:ChipRevisit"),
+    arrivedCount:     t("Reception:StatusArrived"),
+    cancelledCount:   t("Reception:StatusCancelled"),
+    lateCount:        t("Reception:StatusLate"),
+    temporaryCount:   t("Reception:StatusTemporary"),
+    rescheduledCount: t("Reception:ChipRescheduled"),
   };
 
   return (

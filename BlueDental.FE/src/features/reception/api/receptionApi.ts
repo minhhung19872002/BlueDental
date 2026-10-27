@@ -45,13 +45,14 @@ interface CounterQuery {
   isLate?: boolean;
   isTemporary?: boolean;
   isRevisit?: boolean;
+  isRescheduled?: boolean;
 }
 
 /**
- * What each chip lists. Đã hẹn, Đã đến, Huỷ hẹn and Trễ hẹn split the board
+ * What each counter lists. Đã hẹn, Đã đến, Huỷ hẹn and Trễ hẹn split the board
  * between them, so they add up to Tất cả: a booking past its start time with
- * no arrival is Trễ hẹn, not Đã hẹn. Lịch tạm and Đã hẹn lại (closed with
- * Hẹn tái khám, R-1039) cut across them.
+ * no arrival is Trễ hẹn, not Đã hẹn. Lịch tạm, Đã hẹn tái khám (closed with
+ * Hẹn tái khám, R-1039) and Đổi lịch hẹn (P2710_01) cut across them.
  */
 const COUNTER_QUERIES: Record<keyof ReceptionCounters, CounterQuery> = {
   scheduledCount: { statuses: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed], isLate: false },
@@ -60,6 +61,7 @@ const COUNTER_QUERIES: Record<keyof ReceptionCounters, CounterQuery> = {
   lateCount: { isLate: true },
   temporaryCount: { isTemporary: true },
   revisitCount: { isRevisit: true },
+  rescheduledCount: { isRescheduled: true },
 };
 
 function mapStatusFromBe(beStatus: number): ReceptionStatus {
@@ -224,6 +226,7 @@ export const receptionApi = {
         isLate: counterQuery.isLate,
         isTemporary: counterQuery.isTemporary,
         isRevisit: counterQuery.isRevisit,
+        isRescheduled: counterQuery.isRescheduled,
         skipCount,
         maxResultCount,
         ...dateWindow(filter),
@@ -260,6 +263,7 @@ export const receptionApi = {
         lateCount: late,
         temporaryCount: stats.temporary ?? 0,
         revisitCount: stats.revisit ?? 0,
+        rescheduledCount: stats.rescheduled ?? 0,
       },
     };
   },
