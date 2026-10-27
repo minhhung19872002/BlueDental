@@ -8,6 +8,8 @@ import {
   useDentistOptionsToday,
 } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
+import { rebasePick } from "./appointmentNote";
+import { StageAppointmentNote } from "./StageAppointmentNote";
 import { StageDateField } from "./StageDateField";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageShots } from "./StageShots";
@@ -61,20 +63,25 @@ function usePreviews(files: File[]): string[] {
 /**
  * One công đoạn form — "Ngày - Nhân sự" (Ngày điều trị, which the doctor
  * picks; the creation date is kept server-side for tracking only — BA,
- * 2026-10-09), "Dịch vụ đã chọn" and "Nội dung điều
- * trị" side by side inside one blue-bordered card, as the reference draws it.
+ * 2026-10-09), "Dịch vụ đã chọn", "Nội dung điều trị" and our own "Ghi chú
+ * lịch hẹn" (BA, 2026-10-27) side by side inside one blue-bordered card.
  * Several of them stack when several cards are picked.
  */
 export function StageForm({ item, draft, errors, handlers, actions }: Props) {
   const previews = usePreviews(draft.pending);
 
   return (
-    <div className="pd-stage-form" data-item-id={item.id}>
+    <div className="pd-stage-form pd-stage-form--four" data-item-id={item.id}>
       <div>
         <StageDateField
           value={draft.treatmentDate}
           error={errors.treatmentDate}
-          onChange={(treatmentDate) => handlers.onChange({ treatmentDate })}
+          onChange={(treatmentDate) =>
+            handlers.onChange({
+              treatmentDate,
+              remark: rebasePick(draft.remark, draft.treatmentDate, treatmentDate),
+            })
+          }
         />
         <FloatingLabel label={t("Patient:Staff:Doctor")} required floated={Boolean(draft.staffId)}>
           <ServerSearchSelect
@@ -155,6 +162,14 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
           steps={item.line.serviceSteps ?? []}
           checked={draft.steps}
           onChange={handlers.onPickSteps}
+        />
+      </div>
+
+      <div>
+        <StageAppointmentNote
+          value={draft.remark}
+          treatmentDate={draft.treatmentDate}
+          onChange={(remark) => handlers.onChange({ remark })}
         />
         {actions && (
           <div className="pd-stage-formactions">

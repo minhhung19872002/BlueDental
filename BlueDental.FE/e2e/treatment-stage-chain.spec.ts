@@ -237,7 +237,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(dialog.locator(".pd-stage-form")).toHaveCount(1);
     await expect(cardA).toHaveAttribute("aria-pressed", "false");
     const noteB = `e2e một thẻ ${runId()} B`;
-    await formB.locator("textarea").fill(noteB);
+    await formB.locator("textarea").first().fill(noteB);
 
     // Every free tooth starts picked; the doctor drops 22 from this công đoạn.
     await cardA.click();
@@ -245,7 +245,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(await chipStates(formA)).toEqual(["11*", "21*", "22*"]);
     await chips(formA).filter({ hasText: "22" }).click();
     expect(await chipStates(formA)).toEqual(["11*", "21*", "22"]);
-    await formA.locator("textarea").fill(`e2e một thẻ ${runId()} A`);
+    await formA.locator("textarea").first().fill(`e2e một thẻ ${runId()} A`);
     // The slip's doctor is not ticked "Bác sĩ", so the form starts without one.
     await pickDoctor(page, formA);
 
@@ -269,7 +269,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // B kept what was typed into it while A was open.
     await cardB.click();
-    await expect(formB.locator("textarea")).toHaveValue(`- ${noteB}`);
+    await expect(formB.locator("textarea").first()).toHaveValue(`- ${noteB}`);
     await pickDoctor(page, formB);
     await dialog.getByRole("button", { name: "Lưu công đoạn" }).click();
     await expect.poll(() => posted.length).toBe(2);
@@ -331,7 +331,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await chips(form).filter({ hasText: "32" }).click();
     expect(await chipStates(form)).toEqual(["31*", "32"]);
 
-    await form.locator("textarea").fill(`e2e lần 2 ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e lần 2 ${runId()}`);
     const continued = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${firstStage}/continue`) && res.request().method() === "POST",
     );
@@ -367,7 +367,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(twice.text).toContain("BlueDental:Treatment:0041");
 
     await chips(form2).filter({ hasText: "31" }).click();
-    await form2.locator("textarea").fill(`e2e lần 3 ${runId()}`);
+    await form2.locator("textarea").first().fill(`e2e lần 3 ${runId()}`);
     const rest = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${firstStage}/continue`) && res.request().method() === "POST",
     );
@@ -427,7 +427,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await chips(form).filter({ hasText: "21" }).click();
     expect(await chipStates(form)).toEqual(["11*", "21", "22!"]);
     await dialog.screenshot({ path: "test-results/stage-merged-card.png" });
-    await form.locator("textarea").fill(`e2e gộp ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e gộp ${runId()}`);
 
     const continued: string[] = [];
     page.on("request", (request) => {
@@ -452,7 +452,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
     const both = again.locator(`.pd-stage-form[data-item-id="continue:${line.lineId}"]`);
     expect(await chipStates(both)).toEqual(["11*", "21*", "22!"]);
-    await both.locator("textarea").fill(`e2e cả hai ${runId()}`);
+    await both.locator("textarea").first().fill(`e2e cả hai ${runId()}`);
     continued.length = 0;
     const merged = page.waitForResponse(
       (res) => /\/treatment-stages\/[^/]+\/continue$/.test(res.url()) && res.request().method() === "POST",
@@ -594,7 +594,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const form = dialog.locator(`.pd-stage-form[data-item-id="continueWarranty:${line.lineId}"]`);
     // 22 is the line's but not this warranty's: listed, faded, inert.
     expect(await chipStates(form)).toEqual(["11*", "21*", "22!"]);
-    await form.locator("textarea").fill(`e2e tiếp tục bảo hành ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e tiếp tục bảo hành ${runId()}`);
     const continued = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${firstWarranty.id}/continue`) && res.request().method() === "POST",
     );

@@ -300,7 +300,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
       await doctor.click();
       await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
     }
-    await form.locator("textarea").fill(`e2e ngày điều trị ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e ngày điều trị ${runId()}`);
 
     const posted = page.waitForRequest(
       (request) => request.method() === "POST" && request.url().endsWith("/api/v1/app/treatment-stages"),
@@ -545,7 +545,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     await date.press("Control+a");
     await date.pressSequentially(typed(isoDay(1)).replaceAll("/", ""));
     await date.press("Enter");
-    await form.locator("textarea").click();
+    await form.locator("textarea").first().click();
     await expect(form.getByText("Không được chọn ngày sau hôm nay")).toBeVisible();
     await expect(date).toHaveValue(typed(isoDay(0)));
     await expect(dialog).toBeVisible();
@@ -566,7 +566,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
       await doctor.click();
       await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
     }
-    await form.locator("textarea").fill(`e2e trước ngày tạo phiếu ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e trước ngày tạo phiếu ${runId()}`);
     const posted = page.waitForResponse(
       (res) => res.request().method() === "POST" && res.url().endsWith("/api/v1/app/treatment-stages"),
     );

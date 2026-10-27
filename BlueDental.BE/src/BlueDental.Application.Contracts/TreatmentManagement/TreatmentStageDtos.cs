@@ -93,6 +93,13 @@ public class CreateTreatmentStageDto
     /// <summary>Ngày điều trị; today when omitted, and never after today.</summary>
     public DateOnly? TreatmentDate { get; set; }
 
+    /// <summary>
+    /// Ghi chú lịch hẹn — the form's last column, saved as the công đoạn's Ghi
+    /// chú (<see cref="TreatmentStageDto.Remark"/>). Optional, capped at 1000.
+    /// </summary>
+    [StringLength(1000)]
+    public string? Remark { get; set; }
+
     /// <summary>Set by "Tạo bảo hành"; an ordinary công đoạn leaves it false.</summary>
     public bool IsGuarantee { get; set; }
 
@@ -157,6 +164,10 @@ public class ContinueTreatmentStageDto
 
     /// <summary>Ngày điều trị of this visit; today when omitted, and never after today.</summary>
     public DateOnly? TreatmentDate { get; set; }
+
+    /// <summary>Ghi chú lịch hẹn — the new công đoạn's own Ghi chú; optional, capped at 1000.</summary>
+    [StringLength(1000)]
+    public string? Remark { get; set; }
 
     /// <summary>
     /// The teeth to carry on, among those the công đoạn still holds open.

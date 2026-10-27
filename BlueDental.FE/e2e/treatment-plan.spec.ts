@@ -438,7 +438,7 @@ test.describe("Kế hoạch điều trị", () => {
     // Something written: the same button asks, and answering "Tiếp tục chỉnh
     // sửa" hands the text back untouched.
     await openForm();
-    const note = form.locator("textarea");
+    const note = form.locator("textarea").first();
     await note.fill("Đã lấy cao răng hàm trên");
     await stage.getByRole("button", { name: "Hủy", exact: true }).click();
     await expect(ask).toBeVisible();

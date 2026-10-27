@@ -181,7 +181,7 @@ test.describe("CSKH › Sau điều trị từ Tiếp tục công đoạn", () =
     // Continue tooth 11 only; 21 stays open for the second visit below.
     const chip21 = form.locator(".pd-stage-teeth > div > button:not(.pd-stage-chartbtn)").filter({ hasText: "21" });
     if ((await chip21.getAttribute("class"))?.includes("active")) await chip21.click();
-    await form.locator("textarea").fill(`e2e cskh ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e cskh ${runId()}`);
     const continued = page.waitForResponse(
       (res) => /\/treatment-stages\/[^/]+\/continue$/.test(res.url()) && res.request().method() === "POST",
     );

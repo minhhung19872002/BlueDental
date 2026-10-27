@@ -12,6 +12,8 @@ export interface StageDraft {
   /** Bác sĩ hỗ trợ — the reference's `assistantStaffId`. */
   secondStaffId: string | undefined;
   note: string;
+  /** Ghi chú lịch hẹn — saved as the công đoạn's Ghi chú. */
+  remark: string;
   /**
    * Ngày điều trị, "YYYY-MM-DD" — today unless the doctor picks an earlier day;
    * never a later one (BA, 2026-10-09). Empty once the picker is cleared.
@@ -58,6 +60,7 @@ export function initialDraft(
 ): StageDraft {
   const base = {
     note: "",
+    remark: "",
     treatmentDate: todayIsoDate(),
     pending: [],
     steps: [],
@@ -127,7 +130,7 @@ export function keepEligibleStaff(
 
 /** Whether closing now would throw this form's work away — see the dialog. */
 export const isDraftDirty = (draft: StageDraft): boolean =>
-  draft.note.trim().length > 0 || draft.pending.length > 0;
+  draft.note.trim().length > 0 || draft.remark.trim().length > 0 || draft.pending.length > 0;
 
 /**
  * The reference's schema for every form it saves (`validateStageModalItems`):

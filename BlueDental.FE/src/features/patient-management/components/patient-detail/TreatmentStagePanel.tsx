@@ -36,7 +36,7 @@ const TAB_COPY: Record<StageTab, { label: string; empty: string; save: string }>
   },
 };
 
-/** "Ngày - Nhân sự" · "Dịch vụ đã chọn" · "Nội dung điều trị". */
+/** "Ngày - Nhân sự" · "Dịch vụ đã chọn" · "Nội dung điều trị" · "Ghi chú lịch hẹn". */
 function ColumnHead({ children }: { children: string }) {
   return <div className="pd-stage-colhead">{children}</div>;
 }
@@ -154,6 +154,7 @@ export function TreatmentStagePanel({
                 <ColumnHead>{t("Patient:Debt:DateStaff")}</ColumnHead>
                 <ColumnHead>{t("Patient:Plan:SelectedService")}</ColumnHead>
                 <ColumnHead>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
+                <ColumnHead>{t("Patient:Stage:AppointmentNote")}</ColumnHead>
               </div>
 
               {composer.chosen.length === 0 ? (
