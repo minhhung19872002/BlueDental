@@ -23,7 +23,7 @@ interface Stats {
   noShow?: number;
 }
 
-/** The Segmented tabs, in board order: Tất cả, Chờ khám, Đang khám, Hoàn thành. */
+/** The Segmented tabs, in board order: Tất cả, Đã đến, Đang khám, Hoàn thành. */
 const tab = (page: Page, index: number): Locator =>
   page.locator(".reception-filter-left .ant-segmented-item").nth(index);
 
@@ -83,9 +83,9 @@ test.describe("Tiếp nhận", () => {
       await page.reload();
       await statsLoaded;
       const all = tab(page, 0);
-      const waiting = tab(page, 1);
+      const arrived = tab(page, 1);
       const allBefore = await countOf(all);
-      const waitingBefore = await countOf(waiting);
+      const arrivedBefore = await countOf(arrived);
 
       await page.getByRole("button", { name: "Tạo tiếp nhận" }).click();
       const dialog = page.getByRole("dialog");
@@ -119,13 +119,13 @@ test.describe("Tiếp nhận", () => {
       await expect(dialog).toBeHidden();
       await expect(page.getByText("Tạo tiếp nhận thành công!")).toBeVisible();
 
-      // The visit is waiting, so both "Tất cả" and "Chờ khám" move by one.
+      // The visit is booked, not arrived: "Tất cả" moves by one, "Đã đến" does not (R-1047).
       await expect.poll(() => countOf(all)).toBe(allBefore + 1);
-      await expect.poll(() => countOf(waiting)).toBe(waitingBefore + 1);
+      await expect.poll(() => countOf(arrived)).toBe(arrivedBefore);
 
       await page.reload();
       await expect.poll(() => countOf(tab(page, 0))).toBe(allBefore + 1);
-      await expect.poll(() => countOf(tab(page, 1))).toBe(waitingBefore + 1);
+      await expect.poll(() => countOf(tab(page, 1))).toBe(arrivedBefore);
 
       // And the board shows its card, as stored, for the patient and doctor picked.
       const card = await cardOf(page, { ...visit, searchKey });
@@ -147,7 +147,8 @@ test.describe("Tiếp nhận", () => {
     const scheduled = (s.requested ?? 0) + (s.confirmed ?? 0);
     const arrived = (s.checkedIn ?? 0) + (s.inProgress ?? 0) + (s.completed ?? 0);
     await expect(tab(page, 0)).toHaveText(new RegExp(`\\(${scheduled + arrived + (s.cancelled ?? 0) + (s.noShow ?? 0)}\\)$`));
-    await expect(tab(page, 1)).toHaveText(new RegExp(`\\(${scheduled + (s.checkedIn ?? 0)}\\)$`));
+    // "Đã đến": arrived and not yet seen, so neither bookings nor visits under way (R-1047).
+    await expect(tab(page, 1)).toHaveText(new RegExp(`^Đã đến \\(${s.checkedIn ?? 0}\\)$`));
     await expect(tab(page, 2)).toHaveText(new RegExp(`\\(${s.inProgress ?? 0}\\)$`));
     await expect(tab(page, 3)).toHaveText(new RegExp(`\\(${s.completed ?? 0}\\)$`));
   });

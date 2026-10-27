@@ -1,5 +1,6 @@
 export type ReceptionStatus =
   | "All"
+  /** Tab "Đã đến": arrived, not yet seen (R-1047). */
   | "WaitingForExam"
   | "InProgress"
   | "Completed";

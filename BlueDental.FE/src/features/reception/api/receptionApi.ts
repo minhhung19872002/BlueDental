@@ -30,8 +30,12 @@ const SERVER_STATUS = {
   NoShow: 7,
 } as const;
 
+/**
+ * What each tab lists. The second tab is "Đã đến": arrived and not yet seen
+ * (owner 2026-10-27, R-1047) — a booking not yet arrived is no longer in it.
+ */
 const TAB_STATUSES: Record<Exclude<ReceptionStatus, "All">, number[]> = {
-  WaitingForExam: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed, SERVER_STATUS.CheckedIn],
+  WaitingForExam: [SERVER_STATUS.CheckedIn],
   InProgress: [SERVER_STATUS.InProgress],
   Completed: [SERVER_STATUS.Completed],
 };
@@ -243,7 +247,7 @@ export const receptionApi = {
 
     return {
       totalCount: scheduled + arrived + (stats.cancelled ?? 0) + late,
-      waitingCount: booked + (stats.checkedIn ?? 0),
+      waitingCount: stats.checkedIn ?? 0,
       inProgressCount: stats.inProgress ?? 0,
       completedCount: stats.completed ?? 0,
       counters: {
