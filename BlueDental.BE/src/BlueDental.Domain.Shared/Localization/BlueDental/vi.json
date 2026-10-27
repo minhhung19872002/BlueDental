@@ -585,7 +585,7 @@
     "Patient:InvoiceRequest:ReceiptCancelledReason": "Phiếu thu đã bị hủy: {0}",
     "Common:Print": "In",
     "Patient:InvoiceRequest:Tab:Requests": "Yêu cầu xuất HĐ",
-    "Patient:InvoiceRequest:Tab:Receipts": "Phiếu thu",
+    "Patient:InvoiceRequest:Tab:Receipts": "Hóa đơn đã tạo",
     "Patient:InvoiceRequest:Title": "Yêu cầu xuất hóa đơn",
     "Patient:InvoiceRequest:Subtitle": "Thông tin khách hàng gửi qua mã QR trên phiếu thu hoặc nhân viên nhập thay.",
     "Patient:InvoiceRequest:Create": "Tạo yêu cầu",

@@ -11162,3 +11162,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đã sửa: `.rc-tag-row` cho xuống dòng (`flex-wrap`, strip `display: contents`), mỗi chip dài tối đa bằng cả dòng.
   - Tag tên ngắn vẫn nằm trên một dòng. Tên dài thì mỗi chip một dòng, thẻ cao thêm khoảng 50px.
   - Chụp lại thấy đọc được. Chạy lại `reception-patient-tags` → **6/6**.
+
+## R-1041 (2026-10-27, mức 1: chỉ đổi nhãn) Tab Hóa đơn: segment "Phiếu thu" đổi thành "Hóa đơn đã tạo"
+
+- **Yêu cầu (owner, ảnh chụp hồ sơ → tab Hóa đơn)**: đổi tiêu đề segment thứ hai "Phiếu thu" → "Hóa đơn đã tạo".
+- **Sửa**: chỉ đổi giá trị localization BE `Patient:InvoiceRequest:Tab:Receipts` — vi "Hóa đơn đã tạo", en "Issued invoices". Key, `PatientRecordTabs.tsx` và bảng bên dưới không đổi.
+- **E2E**: `patient.spec.ts` (ca tab Hóa đơn) bấm theo tên mới.
+- Các nút "Phiếu thu <mã phiếu>" ở kế hoạch điều trị và combobox "Phiếu thu" trong dialog Yêu cầu xuất HĐ là chỗ khác, không đổi.

@@ -689,7 +689,7 @@
     "Patient:InvoiceRequest:ReceiptCancelledReason": "Receipt cancelled: {0}",
     "Common:Print": "Print",
     "Patient:InvoiceRequest:Tab:Requests": "Invoice requests",
-    "Patient:InvoiceRequest:Tab:Receipts": "Receipts",
+    "Patient:InvoiceRequest:Tab:Receipts": "Issued invoices",
     "Patient:InvoiceRequest:Title": "Invoice requests",
     "Patient:InvoiceRequest:Subtitle": "Details customers send through the QR on a receipt, or that staff enter for them.",
     "Patient:InvoiceRequest:Create": "New request",
