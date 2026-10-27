@@ -141,6 +141,10 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+/* The sheet fills its side of the screen, as on the accountant's page. */
+.sst-review-paper .rcpt-sheet {
+  max-width: none;
+}
 .sst-review-side {
   display: flex;
   flex: 0 0 360px;

@@ -121,9 +121,10 @@ test.describe.serial("Tài chính → Phiếu thu", () => {
     await expect(page.locator(".rcpt-pill")).toHaveText("Đã xuất phiếu thu");
     await expectStepsDone(page, 6, null);
     await expect(panel.locator(".rcpt-panel-title")).toHaveText("Đã xuất phiếu thu");
-    await expect(panel).toContainText("Bấm ✓");
+    // The mock's column: how it was signed and kept (receipt-exported.spec covers the buttons).
+    await expect(panel.locator(".rcpt-done-fact dd")).toHaveText([/^Không ký số – /, "Chưa ký số", /^PDF\/A/]);
 
-    // ── Paid: still six, the panel names who confirmed ──────────────────────
+    // ── Paid: still six; the same column under "Đã thanh toán", plus who confirmed ──
     // Already exported, so ✓ only.
     const confirmed = await call(page, `${PAYMENTS_API}/${written.id}/confirm`, { method: "PUT" });
     expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
@@ -132,7 +133,19 @@ test.describe.serial("Tài chính → Phiếu thu", () => {
     await expect(page.locator(".rcpt-pill")).toHaveText("Đã thanh toán");
     await expectStepsDone(page, 6, null);
     await expect(panel.locator(".rcpt-panel-title")).toHaveText("Đã thanh toán");
-    await expect(panel).toContainText("Xác nhận thanh toán:");
+    await expect(panel.locator(".rcpt-done-icon")).toBeVisible();
+    await expect(panel.locator(".rcpt-done-fact dt")).toHaveText([
+      "Hình thức ký",
+      "Ký số đơn vị",
+      "Lưu trữ",
+      "Xác nhận thanh toán",
+    ]);
+    await expect(panel.locator(".rcpt-done-fact dd").last()).not.toHaveText("—");
+    await expect(panel.locator(".rcpt-done-actions").getByRole("button")).toHaveText([
+      "In phiếu",
+      "Tải PDF",
+      "Tạo phiếu mới",
+    ]);
 
     // ← goes back to the slip's Thanh toán tab.
     await page.getByRole("link", { name: "Quay lại" }).click();

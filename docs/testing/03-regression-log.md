@@ -11428,3 +11428,25 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Sau khi gộp (build lại BE + FE): `search-unaccent-everywhere`, `reception-search-fullname` (R-1050), `patient-search-unaccent` và `reception.spec` — **8/8 xanh**.
   - Trên `develop` (cherry-pick): dropdown bác sĩ của Tạo tiếp nhận vẫn nằm trong `ReceptionNewDrawer.tsx` (chưa tách `ReceptionNewFields`), nên sửa ở đó. Điều kiện tên bệnh nhân dùng họ tên đầy đủ bỏ dấu như trên `main`.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152, bản chưa sửa :8153), host riêng :5120 / :5121, DB riêng `BlueDental_zalofix`.
+
+## R-1052 (2026-10-27, mức 2: phiếu thu) P2610 phase 6 — trang Hủy phiếu thu, panel đã xuất / đã thanh toán theo mock BA, skeleton tải trang
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) màn "Hủy phiếu thu" và "Đã xuất phiếu thu"; BA trả lời 27/10: "Ở step nào cũng có hủy hết", "Hủy thì mình update status", "Ko cho mở lại". Phase 6/7 của F-81. Chi tiết: `docs/testing/features/receipt-cancel.md`.
+- **Sửa (FE, BE không đổi)**:
+  - Trang mới `/billing/receipts/:id/cancel` (`ReceiptCancelPage` + `components/receipt/cancel/*`): thẻ "Phiếu thu gốc" bên trái, "Lý do hủy" bên phải (4 lý do cố định + Mô tả chi tiết, cả hai bắt buộc), gọi `POST patient-payments/{id}/cancel { reasonCode, reason }` có sẵn. Nút "Hủy phiếu thu" ở đầu trang phiếu thu (quyền `payment.delete`), hiện ở mọi bước trừ khi đã hủy (`isCancellable`). Bỏ dòng Hóa đơn của mock (chưa có dữ liệu).
+  - Bước đã ký: "Xuất phiếu thu" / "Ký số và xuất phiếu thu" nằm cùng hàng "Yêu cầu khách ký lại", "Hủy phiên & sửa phiếu" xuống dưới; không còn "Gửi lại" và "In phiếu thu".
+  - `ReceiptExportedPanel` dùng cho cả **Đã xuất phiếu thu** và **Đã thanh toán**: ✓ + tiêu đề + "Ghi nhận thanh toán lúc …", Hình thức ký / Ký số đơn vị / Lưu trữ (+ "Xác nhận thanh toán" khi đã thanh toán), nút In phiếu · Tải PDF · Tạo phiếu mới (mở "Tạo phiếu thanh toán" của phiếu điều trị một lần qua `?newPayment=1`). Panel chỉ cao bằng nội dung.
+  - Thanh bước: "Kế toán kiểm tra" mang giờ xuất (cùng một lần bấm với "Xuất phiếu thu"), không còn "—".
+  - Tải trang: `ReceiptPageSkeleton` thay Spin, chờ cả phiếu thu lẫn trạng thái iPad.
+  - Tờ phiếu (`ReceiptPaper`): đầu phiếu số phiếu bên phải, ô ký có tên người nộp / người lập dưới chữ ký.
+  - i18n vi/en: khoá trang hủy, `Receipt:Done:*`; bỏ `Receipt:Panel:ExportedBy` / `IssuedText` / `ConfirmedBy`.
+- **E2E (stack thật, bản build production `vite preview` :8080, API :5000, không chặn request)**:
+  - Mới `receipt-cancel` 2/2: hủy từ trang phiếu thu (thiếu lý do / mô tả bị chặn; hủy xong trạng thái Phiếu bị hủy, không còn nút hủy, tải lại vẫn vậy); chi nhánh 2 bị từ chối.
+  - Mới `receipt-exported` 1/1: panel đã xuất đúng mock, bước 5 = bước 6 cùng giờ, In phiếu mở `receipt-file` ở tab mới, Tải PDF tải file `THANHTOAN-…pdf` bắt đầu `%PDF-`, Tạo phiếu mới mở dialog một lần.
+  - `receipt-page` 3/3 (thêm phần Đã thanh toán: 4 dòng thông tin, 3 nút). Ca 1 đỏ khi chạy chung lô vì iPad "4234" đang ghép tự nhận phiếu mới (dữ liệu, có từ R-1048); chạy riêng xanh.
+  - `receipt-ipad` sửa theo hàng nút mới.
+  - `tsc -b` sạch, eslint sạch.
+- **Chưa làm / lưu ý**:
+  - Phiếu **Đã thanh toán** vẫn hủy được (theo câu BA). Đang hỏi BA có chặn không.
+  - Logo / tên phòng khám trên tờ phiếu ở màn hình đọc theo cài đặt hiện tại; file PDF đã xuất không đổi.
+  - Phase 7 (Ký số thật) chưa làm.

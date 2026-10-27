@@ -47,7 +47,8 @@ export function receiptSteps(receipt: PaymentReceiptDto, signing: ReceiptSigning
     session?.sentAt,
     session?.checkedAt,
     session?.signedAt,
-    null,
+    // The accountant checks and exports in one click, so both carry its time.
+    receipt.issuedAt,
     receipt.issuedAt,
   ];
   const exported = receipt.issuedAt !== null;

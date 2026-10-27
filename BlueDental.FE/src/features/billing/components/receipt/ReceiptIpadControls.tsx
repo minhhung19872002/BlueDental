@@ -31,11 +31,23 @@ export function ipadStatusText(state: ReceiptSigningStateDto): string {
   return t("Receipt:Ipad:NotSent");
 }
 
+/** The callout under the column's heading: where the customer is on the iPad. */
+export function ReceiptIpadStatus({ state }: { state: ReceiptSigningStateDto }) {
+  return (
+    <p className="rcpt-ipad-status">
+      <Tablet size={18} aria-hidden="true" />
+      <span>{ipadStatusText(state)}</span>
+    </p>
+  );
+}
+
 /**
- * The iPad part of the status column while the receipt waits (P2610):
- * Gửi tới iPad, or — once the iPad shows it — Gửi lại, Hủy phiên & sửa phiếu
- * and, after the customer signed, Yêu cầu khách ký lại. When the iPad shows
- * another receipt the cashier may wait, or end that session and send this one.
+ * The iPad buttons at the foot of the status column while the receipt waits
+ * (P2610): Gửi tới iPad, or — once the iPad shows it — Gửi lại and Hủy phiên &
+ * sửa phiếu; after the customer signed, Yêu cầu khách ký lại takes Gửi lại's
+ * place, Xuất phiếu thu sits beside it and Hủy phiên drops to the line below.
+ * When the iPad shows another receipt the cashier may wait, or end that
+ * session and send this one.
  */
 export function ReceiptIpadControls({ state, pendingAction, confirmReplace, handlers }: Props) {
   const open = state.session?.isOpen ? state.session : null;
@@ -43,13 +55,9 @@ export function ReceiptIpadControls({ state, pendingAction, confirmReplace, hand
   const loading = (action: IpadAction) => pendingAction === action;
 
   return (
-    <div className="rcpt-ipad">
-      <p className="rcpt-ipad-status">
-        <Tablet size={16} aria-hidden="true" />
-        <span>{ipadStatusText(state)}</span>
-      </p>
+    <>
       {state.hasDevice && (
-        <div className="rcpt-ipad-actions">
+        <>
           {!open && !state.busyWithCode && (
             <Button type="primary" icon={<Send size={16} aria-hidden="true" />} loading={loading("send")} disabled={busy} onClick={handlers.send}>
               {t("Receipt:Ipad:Send")}
@@ -62,20 +70,29 @@ export function ReceiptIpadControls({ state, pendingAction, confirmReplace, hand
           )}
           {open && (
             <>
-              <Button icon={<Send size={16} aria-hidden="true" />} loading={loading("send")} disabled={busy} onClick={handlers.send}>
-                {t("Receipt:Ipad:Resend")}
-              </Button>
+              {!open.signedAt && (
+                <Button icon={<Send size={16} aria-hidden="true" />} loading={loading("send")} disabled={busy} onClick={handlers.send}>
+                  {t("Receipt:Ipad:Resend")}
+                </Button>
+              )}
               {open.signedAt && (
                 <Button icon={<PenLine size={16} aria-hidden="true" />} loading={loading("resign")} disabled={busy} onClick={handlers.resign}>
                   {t("Receipt:Ipad:Resign")}
                 </Button>
               )}
-              <Button danger icon={<RotateCcw size={16} aria-hidden="true" />} loading={loading("cancel")} disabled={busy} onClick={handlers.cancel}>
+              <Button
+                danger
+                className={open.signedAt ? "rcpt-ipad-cancel-below" : undefined}
+                icon={<RotateCcw size={16} aria-hidden="true" />}
+                loading={loading("cancel")}
+                disabled={busy}
+                onClick={handlers.cancel}
+              >
                 {t("Receipt:Ipad:Cancel")}
               </Button>
             </>
           )}
-        </div>
+        </>
       )}
       <ConfirmDialog
         open={confirmReplace}
@@ -85,6 +102,6 @@ export function ReceiptIpadControls({ state, pendingAction, confirmReplace, hand
         onConfirm={handlers.replace}
         onClose={handlers.closeReplace}
       />
-    </div>
+    </>
   );
 }

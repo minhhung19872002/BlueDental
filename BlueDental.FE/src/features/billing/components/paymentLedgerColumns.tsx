@@ -5,14 +5,17 @@ import { ActionTooltip } from "@/components/ActionTooltip";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import { branchCodeOf } from "@/lib/clinicBranch";
+import { NEW_PAYMENT_PARAM } from "@/lib/receiptTab";
 import { ledgerMethodLabels, type LedgerMethod, type PaymentLedgerItemDto } from "../api/paymentLedgerApi";
 
 /**
  * The plan's Thanh toán tab, where the receipt was written. Spelled out here
  * because billing may not import treatment-management's `planDetailPath`.
+ * `newPayment` lands with "Tạo phiếu thanh toán" already open.
  */
-export function planPaymentPath(patientId: string, planId: string, branchId: string): string {
+export function planPaymentPath(patientId: string, planId: string, branchId: string, newPayment = false): string {
   const params = new URLSearchParams({ planTab: "payment-v2" });
+  if (newPayment) params.set(NEW_PAYMENT_PARAM, "1");
   const branchCode = branchCodeOf(branchId);
   if (branchCode) params.set("branch", branchCode);
   return `/patient/${patientId}/treatment-plan/${planId}?${params.toString()}`;

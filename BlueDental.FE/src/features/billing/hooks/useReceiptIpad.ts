@@ -18,7 +18,7 @@ export type IpadAction = "send" | "replace" | "cancel" | "resign";
  */
 export function useReceiptIpad(paymentId: string) {
   useReceiptSigningLive(paymentId);
-  const { data: state } = useReceiptSigning(paymentId);
+  const { data: state, isLoading } = useReceiptSigning(paymentId);
   const send = useSendReceiptToDevice(paymentId);
   const cancel = useCancelReceiptSigning(paymentId);
   const resign = useRequestReceiptResign(paymentId);
@@ -50,6 +50,8 @@ export function useReceiptIpad(paymentId: string) {
 
   return {
     state: state ?? null,
+    /** The first read is on its way: the page waits for it with the receipt. */
+    loading: isLoading,
     pendingAction,
     confirmReplace,
     openReplace: () => setConfirmReplace(true),

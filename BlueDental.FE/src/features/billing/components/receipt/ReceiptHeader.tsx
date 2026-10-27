@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Button } from "antd";
+import { ArrowLeft, Ban } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { formatClockSeconds, formatDate } from "@/utils/format";
 import type { PaymentReceiptDto } from "../../api/paymentReceiptApi";
@@ -10,14 +11,16 @@ interface Props {
   receipt: PaymentReceiptDto;
   /** The slip's Thanh toán tab, where the receipt was written. */
   backPath: string;
+  /** Hủy phiếu thu, offered on an exported or paid receipt to whoever may cancel. */
+  onCancel?: () => void;
 }
 
 /**
  * The page's head (P2610 mock): back to the slip, "Tài chính / Phiếu thu",
  * the receipt's number with its pill, and on the right when it was written,
- * for which slip and how it is paid.
+ * for which slip and how it is paid — then Hủy phiếu thu when it applies.
  */
-export function ReceiptHeader({ receipt, backPath }: Props) {
+export function ReceiptHeader({ receipt, backPath, onCancel }: Props) {
   const pill = RECEIPT_STATUS_VIEWS[receipt.status];
   const { content } = receipt;
   return (
@@ -45,6 +48,11 @@ export function ReceiptHeader({ receipt, backPath }: Props) {
           ledgerMethodLabels()[content.method],
         )}
       </div>
+      {onCancel && (
+        <Button danger icon={<Ban size={15} aria-hidden="true" />} onClick={onCancel}>
+          {t("Receipt:Cancel:Button")}
+        </Button>
+      )}
     </header>
   );
 }

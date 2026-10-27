@@ -35,3 +35,14 @@ export function showReceipt(tab: Window | null, pdf: Blob): void {
 export function receiptPagePath(paymentId: string, branchId: string | null | undefined): string {
   return withBranch(`/billing/receipts/${paymentId}`, branchId);
 }
+
+/**
+ * On the slip's Thanh toán tab, opens "Tạo phiếu thanh toán" on arrival —
+ * "Tạo phiếu mới" on an exported receipt's page (P2610 mock).
+ */
+export const NEW_PAYMENT_PARAM = "newPayment";
+
+/** Hủy phiếu thu: the cancel page of an exported or paid receipt (P2610 phase 6). */
+export function receiptCancelPath(paymentId: string, branchId: string | null | undefined): string {
+  return withBranch(`/billing/receipts/${paymentId}/cancel`, branchId);
+}

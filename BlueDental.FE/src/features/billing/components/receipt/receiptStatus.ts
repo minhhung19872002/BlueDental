@@ -17,8 +17,14 @@ export const RECEIPT_STATUS_VIEWS: Record<ReceiptStatus, { tone: string; label: 
   [RECEIPT_STATUS.Cancelled]: { tone: "cancelled", label: "Treatment:Payment:Cancelled" },
 };
 
-/** The cancel page's four fixed reasons (P2610). */
-const CANCEL_REASON_KEYS: Record<ReceiptCancelReason, string> = {
+/**
+ * Hủy phiếu thu at every step (BA 27/10): waiting, exported or paid. Only the
+ * status changes — the receipt is kept — and Đã hủy is never reopened.
+ */
+export const isCancellable = (status: ReceiptStatus) => status !== RECEIPT_STATUS.Cancelled;
+
+/** The cancel page's four fixed reasons (P2610), in the mock's order. */
+export const CANCEL_REASON_KEYS: Record<ReceiptCancelReason, string> = {
   [RECEIPT_CANCEL_REASON.WrongPayer]: "Receipt:CancelReason:WrongPayer",
   [RECEIPT_CANCEL_REASON.WrongAmountOrService]: "Receipt:CancelReason:WrongAmountOrService",
   [RECEIPT_CANCEL_REASON.Duplicate]: "Receipt:CancelReason:Duplicate",

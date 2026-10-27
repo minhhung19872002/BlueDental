@@ -1,6 +1,8 @@
 /* ── Tài chính → Phiếu thu (P2610) ───────────────────────────────────────────
    The head, the six-step bar on its own card, then the PHIẾU THU sheet with
-   the status column beside it. Under 1100px the column drops below the sheet. */
+   the status column beside it: the sheet takes the width, the column keeps
+   500px — Gửi lại, Hủy phiên and In phiếu thu on one row — and is only as
+   tall as what it says. Under 1100px it drops below the sheet. */
 .rcpt-page {
   display: flex;
   flex-direction: column;
@@ -10,6 +12,30 @@
   display: flex;
   justify-content: center;
   padding: 48px 0;
+}
+/* The page's own outline while it loads (ReceiptPageSkeleton). */
+.rcpt-page .rcpt-skel-back.ant-skeleton-element .ant-skeleton-button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+}
+.rcpt-head-main .ant-skeleton-element {
+  width: auto;
+}
+.rcpt-page .rcpt-skel-crumbs.ant-skeleton-element .ant-skeleton-input {
+  width: 120px;
+  min-width: 120px;
+  height: 14px;
+}
+.rcpt-page .rcpt-skel-title.ant-skeleton-element .ant-skeleton-input {
+  width: 320px;
+  min-width: 320px;
+  height: 22px;
+}
+.rcpt-page .rcpt-skel-step.ant-skeleton-element .ant-skeleton-input {
+  width: 90px;
+  min-width: 90px;
+  height: 14px;
 }
 
 /* Head: ← | crumbs over number + pill | created-at line. */
@@ -54,6 +80,7 @@
   gap: 8px;
 }
 .rcpt-head-code {
+  margin: 0;
   color: var(--bd-ink);
   font-size: 16px;
   font-weight: 700;
@@ -100,43 +127,38 @@
 
 .rcpt-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 500px;
   gap: 16px;
   align-items: start;
 }
+.rcpt-body .rcpt-sheet {
+  max-width: none;
+}
 
-/* ── The status column ── */
+/* ── The status column: heading, iPad callout, text, then one row of buttons
+   at the foot ── */
 .rcpt-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 22px 20px;
   border: 1px solid var(--bd-border);
-  border-top: 3px solid var(--bd-orange);
   border-radius: var(--bd-radius-card);
   background: var(--bd-card);
-}
-.rcpt-panel--issued {
-  border-top-color: var(--bd-blue);
-}
-.rcpt-panel--done {
-  border-top-color: var(--bd-green);
-}
-.rcpt-panel--cancelled {
-  border-top-color: var(--bd-red);
 }
 .rcpt-panel-title {
   margin: 0;
   color: var(--bd-ink);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
 }
 .rcpt-panel-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   color: var(--bd-ink-3);
   font-size: 13px;
+  line-height: 1.6;
 }
 .rcpt-panel-body p {
   margin: 0;
@@ -145,9 +167,144 @@
   color: var(--bd-link);
   font-weight: 600;
 }
+.rcpt-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd-border);
+}
+/* Signed: [Yêu cầu khách ký lại][Xuất phiếu thu ———] then Hủy phiên below (BA mock). */
+.rcpt-panel-primary {
+  flex: 1 1 auto;
+}
+.rcpt-ipad-cancel-below {
+  order: 1;
+}
+
+/* ── Đã xuất phiếu thu (BA mock): ✓ + heading + when, the facts, then the
+   buttons — only as tall as that, like the steps before (owner) ── */
+.rcpt-done-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rcpt-done-icon {
+  display: inline-flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.rcpt-done-sub {
+  margin: 2px 0 0;
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+.rcpt-done-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.rcpt-done-fact {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+}
+.rcpt-done-fact dt {
+  color: var(--bd-ink-4);
+}
+.rcpt-done-fact dd {
+  margin: 0;
+  color: var(--bd-ink);
+}
+/* ── Hủy phiếu thu (P2610 phase 6): Phiếu thu gốc | Lý do hủy, as tall as each other ── */
+.rcpt-cancel-body {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  min-height: 440px;
+}
+.rcpt-cancel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.rcpt-cancel-card-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.rcpt-cancel-facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.rcpt-cancel-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--bd-border);
+  font-size: 13px;
+}
+.rcpt-cancel-fact:last-child {
+  border-bottom: 0;
+}
+.rcpt-cancel-fact dt {
+  color: var(--bd-ink-4);
+}
+.rcpt-cancel-fact dd {
+  margin: 0;
+  color: var(--bd-ink);
+  text-align: right;
+}
+.rcpt-cancel-amount {
+  color: var(--bd-primary);
+}
+.rcpt-cancel-form .ant-form-item {
+  margin-bottom: 0;
+}
+.rcpt-cancel-reasons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.rcpt-cancel-reason {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+}
+.rcpt-cancel-reason.ant-radio-wrapper-checked {
+  border-color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+.rcpt-cancel-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd-border);
+}
 
 @media (max-width: 1100px) {
-  .rcpt-body {
+  .rcpt-body,
+  .rcpt-cancel-body {
     grid-template-columns: minmax(0, 1fr);
   }
   .rcpt-sheet {
@@ -164,39 +321,38 @@
   }
 }
 
-/* ── The iPad lines inside the waiting column ── */
-.rcpt-ipad {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--bd-border);
-}
+/* ── Where the iPad stands, as a callout under the heading ── */
 .rcpt-ipad-status {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
-  color: var(--bd-ink);
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
   font-weight: 600;
 }
 .rcpt-ipad-status svg {
   flex: 0 0 auto;
-  margin-top: 2px;
-  color: var(--bd-primary);
-}
-.rcpt-ipad-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-top: 1px;
 }
 
 /* ── Xuất phiếu thu, once the customer has signed (P2610 phase 5) ── */
 .rcpt-export {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--bd-border);
+  padding: 14px 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink-3);
+  font-size: 13px;
+}
+.rcpt-export p {
+  margin: 0;
 }
 .rcpt-export-title {
   color: var(--bd-ink);

@@ -161,6 +161,12 @@ const ReceiptPage = lazy(() =>
   })),
 );
 
+const ReceiptCancelPage = lazy(() =>
+  import("@/features/billing/pages/ReceiptCancelPage").then((m) => ({
+    default: m.ReceiptCancelPage,
+  })),
+);
+
 const MaterialsPage = lazy(() =>
   import("@/features/materials/pages/MaterialsPage").then((m) => ({
     default: m.MaterialsPage,
@@ -512,6 +518,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="billing">
             <ReceiptPage />
+          </G>
+        ),
+      },
+      {
+        // Hủy phiếu thu: why an exported receipt is cancelled (P2610 phase 6).
+        path: "billing/receipts/:id/cancel",
+        element: (
+          <G k="billing">
+            <ReceiptCancelPage />
           </G>
         ),
       },

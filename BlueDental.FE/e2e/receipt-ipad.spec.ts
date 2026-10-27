@@ -220,6 +220,9 @@ test.describe.serial("iPad ký phiếu thu", () => {
       await expect(page.locator(".rcpt-sheet .rcpt-sign-image")).toBeVisible();
       await expect(page.locator(".rcpt-sheet .rcpt-sign-time")).toHaveText(/^Ký lúc \d{2}\/\d{2}\/\d{4}/);
       await expectPcSteps(page, 4, "Kế toán kiểm tra");
+      // Signed, waiting on the export: no Gửi lại, no In phiếu thu (BA mock).
+      await expect(panel(page).getByRole("button", { name: "Gửi lại" })).toHaveCount(0);
+      await expect(panel(page).getByRole("button", { name: "In phiếu thu" })).toHaveCount(0);
 
       // A separate read: the signature was kept (stored encrypted, read back decrypted).
       const signed = await signingState(page, receipt);
@@ -239,8 +242,13 @@ test.describe.serial("iPad ký phiếu thu", () => {
       // ── "Kế toán kiểm tra & xuất": nothing picked for the accountant, Ký số not yet ──
       const exportPanel = panel(page).locator(".rcpt-export");
       await expect(exportPanel).toContainText("Kế toán kiểm tra & xuất phiếu thu");
-      const exportButton = exportPanel.getByRole("button", { name: "Xuất phiếu thu" });
+      // The button sits in the foot row beside Yêu cầu khách ký lại; Hủy phiên drops below (BA mock).
+      const exportButton = panel(page).locator(".rcpt-panel-actions").getByRole("button", { name: "Xuất phiếu thu" });
       await expect(exportButton).toBeDisabled();
+      const rowOf = async (name: string) =>
+        (await panel(page).getByRole("button", { name }).boundingBox())?.y ?? Number.NaN;
+      await expect.poll(async () => (await rowOf("Xuất phiếu thu")) - (await rowOf("Yêu cầu khách ký lại"))).toBe(0);
+      expect(await rowOf("Hủy phiên & sửa phiếu")).toBeGreaterThan(await rowOf("Xuất phiếu thu"));
       await expect(exportPanel).toContainText("Chọn hình thức ký trước khi xuất.");
       await expect(exportPanel.getByRole("radio", { name: /^Ký số/ })).toBeDisabled();
       await exportPanel.getByRole("radio", { name: "Không ký số" }).check();
@@ -261,10 +269,10 @@ test.describe.serial("iPad ký phiếu thu", () => {
       await expect(page.locator(".rcpt-track-card .step-track-item--done")).toHaveCount(6);
       await expect(page.locator(".rcpt-sheet .rcpt-sign-image")).toBeVisible();
 
-      // "In phiếu thu" now prints the file written at export, not a fresh render.
+      // "In phiếu" now prints the file written at export, not a fresh render.
       const reprinted = storedReceiptFile(page, receipt);
       const reprintTab = page.waitForEvent("popup");
-      await panel(page).getByRole("button", { name: "In phiếu thu" }).click();
+      await panel(page).getByRole("button", { name: "In phiếu", exact: true }).click();
       await expectPdf(await reprinted);
       await (await reprintTab).close();
     } finally {

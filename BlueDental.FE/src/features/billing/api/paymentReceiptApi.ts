@@ -125,6 +125,27 @@ export function useExportReceipt(paymentId: string) {
   });
 }
 
+/** Matches CancelPatientPaymentDto, as the cancel page sends it. */
+export interface CancelReceiptInput {
+  reasonCode: ReceiptCancelReason;
+  reason: string;
+}
+
+/**
+ * "Gửi yêu cầu hủy" (P2610 phase 6): an exported or paid receipt becomes
+ * Đã hủy and stays kept; the debt comes back, so a paid one raises Còn lại.
+ * The slip, the ledger and the reports all read that money, hence every
+ * query is refreshed, not only this receipt.
+ */
+export function useCancelReceipt(paymentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CancelReceiptInput) =>
+      api.post(`/v1/app/patient-payments/${paymentId}/cancel`, input).then(() => undefined),
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
 /**
  * The exported file itself, exactly as written at export: the server
  * refuses one whose SHA-256 no longer matches rather than hand it out.

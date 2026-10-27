@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/DataTable";
@@ -12,7 +12,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { notifyError } from "@/lib/notify";
-import { receiptPagePath } from "@/lib/receiptTab";
+import { NEW_PAYMENT_PARAM, receiptPagePath } from "@/lib/receiptTab";
 import { countedTotal } from "@/utils/countedTotal";
 import { usePatientAdvises } from "../../api/consultingQueries";
 import {
@@ -79,6 +79,22 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   const [confirming, setConfirming] = useState<PatientPaymentDto | null>(null);
   const [cancelling, setCancelling] = useState<PatientPaymentDto | null>(null);
   const cancel = useCancelPayment();
+
+  // "Tạo phiếu mới" on an exported receipt's page lands here with the dialog open, once.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wantsNewPayment = searchParams.get(NEW_PAYMENT_PARAM) === "1";
+  useEffect(() => {
+    if (!wantsNewPayment) return;
+    if (canCreate) setCreating(true);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(NEW_PAYMENT_PARAM);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [wantsNewPayment, canCreate, setSearchParams]);
 
   // ── E-invoice ───────────────────────────────────────────────────────────
   const canFinalize = useAbility("payment").can("finalize");
