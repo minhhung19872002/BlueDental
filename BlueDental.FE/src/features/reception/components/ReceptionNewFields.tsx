@@ -6,6 +6,7 @@ import type { usePatientPicker } from "@/hooks/usePatientOptions";
 import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Option {
   value: string;
@@ -71,9 +72,7 @@ export function ReceptionNewFields({
       >
         <Select
           showSearch
-          filterOption={(input, option) =>
-            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-          }
+          filterOption={foldFilterOption}
           options={doctorOptions}
         />
       </FloatingField>

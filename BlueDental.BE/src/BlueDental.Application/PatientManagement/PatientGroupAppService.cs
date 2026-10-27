@@ -46,10 +46,10 @@ public class PatientGroupAppService(
             var patients = await patientRepository.GetQueryableAsync();
             var matching = patients
                 .Where(p => p.BranchId == branchId
-                            && (p.PatientCode.ToLower().Contains(term) || p.FirstName.ToLower().Contains(term)
-                                || p.LastName.ToLower().Contains(term)))
+                            && (p.PatientCode.ToLower().Contains(term) || DbText.Unaccent(p.FirstName.ToLower()).Contains(DbText.Unaccent(term))
+                                || DbText.Unaccent(p.LastName.ToLower()).Contains(DbText.Unaccent(term))))
                 .Select(p => p.Id);
-            query = query.Where(g => g.Name.ToLower().Contains(term) || g.Members.Any(m => matching.Contains(m.PatientId)));
+            query = query.Where(g => DbText.Unaccent(g.Name.ToLower()).Contains(DbText.Unaccent(term)) || g.Members.Any(m => matching.Contains(m.PatientId)));
         }
 
         var total = await AsyncExecuter.CountAsync(query);

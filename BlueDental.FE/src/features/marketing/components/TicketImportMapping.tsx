@@ -1,6 +1,7 @@
 import { Col, Form, Row, Select, type FormInstance } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { TicketFileHeaders, TicketImportOptions } from "../api/ticketFileApi";
 import type { StaffOption, TicketTagDto } from "../api/ticketSupportApi";
 import type { useSourceOptions } from "../hooks/useSourceOptions";
@@ -76,7 +77,7 @@ export function TicketImportMapping({ form, headers, tags, sources, staffOptions
               required={"required" in field}
               rules={"required" in field ? [{ required: true, message: t(field.required) }] : undefined}
             >
-              <Select allowClear showSearch optionFilterProp="label" options={columnOptions} />
+              <Select allowClear showSearch filterOption={foldFilterOption} options={columnOptions} />
             </FloatingField>
           </Col>
         ))}
@@ -89,7 +90,7 @@ export function TicketImportMapping({ form, headers, tags, sources, staffOptions
             <Select
               allowClear
               showSearch
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               options={sources.groupOptions}
               onChange={() => form.setFieldValue("sourceEntryId", undefined)}
             />
@@ -97,18 +98,18 @@ export function TicketImportMapping({ form, headers, tags, sources, staffOptions
         </Col>
         <Col xs={24} md={12}>
           <FloatingField name="sourceEntryId" label={t("Ticket:Field:Channel")}>
-            <Select allowClear showSearch optionFilterProp="label" options={sources.channelsOf(groupId)} disabled={!groupId} />
+            <Select allowClear showSearch filterOption={foldFilterOption} options={sources.channelsOf(groupId)} disabled={!groupId} />
           </FloatingField>
         </Col>
         <Col span={24}>
           <FloatingField name="tagIds" label={t("Ticket:Field:Tags")}>
-            <Select mode="multiple" allowClear optionFilterProp="title" options={tagOptions} />
+            <Select mode="multiple" allowClear filterOption={foldFilterOption} options={tagOptions} />
           </FloatingField>
         </Col>
         {staffOptions && (
           <Col span={24}>
             <FloatingField name="assigneeIds" label={t("Ticket:File:Col:Assignees")} extra={t("Ticket:Import:AssigneesHint")}>
-              <Select mode="multiple" allowClear showSearch optionFilterProp="label" options={staffOptions} />
+              <Select mode="multiple" allowClear showSearch filterOption={foldFilterOption} options={staffOptions} />
             </FloatingField>
           </Col>
         )}

@@ -12,6 +12,7 @@ import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
 import { ShownHoursButton } from "./ShownHoursButton";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   keyword: string;
@@ -75,6 +76,7 @@ export function CalendarToolbarRow2({
               maxTagCount="responsive"
               value={doctorIds}
               onChange={onDoctorChange}
+              filterOption={foldFilterOption}
               options={doctors.map((d) => ({ value: d.id, label: d.name }))}
             />
           </FloatingLabel>

@@ -250,9 +250,9 @@ public class OperationsReportAppService(
 
     private static bool Matches(string? haystack, string[] terms)
         => terms.Length == 0
-           || terms.All(term => (haystack ?? string.Empty).ToLowerInvariant().Contains(term));
+           || terms.All(term => SearchTerms.Fold(haystack).Contains(term));
 
-    private static string[] TermsOf(string? filter) => SearchTerms.From(filter).ToArray();
+    private static string[] TermsOf(string? filter) => SearchTerms.From(filter).Select(SearchTerms.Fold).ToArray();
 
     // ── Báo cáo (work log) ──────────────────────────────────────────────────
 

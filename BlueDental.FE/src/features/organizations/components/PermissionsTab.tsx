@@ -31,6 +31,7 @@ import {
   useCreateIdentityRole,
   useDeleteIdentityRole,
 } from "@/features/identity/api";
+import { matchesSearch } from "@/utils/foldForSearch";
 import { UnsavedPermsDialog } from "./UnsavedPermsDialog";
 
 // ── helpers ──────────────────────────────────────────────────────────────
@@ -51,10 +52,10 @@ function countGranted(nodes: PermissionTreeNode[], granted: Set<string>): { tota
 }
 
 // Labels are localization keys ("BE:Perm:Appointments"): match what the user reads.
-function matchesSearch(node: PermissionTreeNode, q: string): boolean {
-  if (t(node.label).toLowerCase().includes(q)) return true;
-  if (node.id.toLowerCase().includes(q)) return true;
-  return (node.children ?? []).some((c) => matchesSearch(c, q));
+function nodeMatches(node: PermissionTreeNode, q: string): boolean {
+  if (matchesSearch(t(node.label), q)) return true;
+  if (node.id.toLowerCase().includes(q.toLowerCase())) return true;
+  return (node.children ?? []).some((c) => nodeMatches(c, q));
 }
 
 // ── PermissionGroupNode ──────────────────────────────────────────────────
@@ -126,7 +127,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
       {isOpen && node.children && (
         <div className="perm-group-children">
           {node.children
-            .filter((c) => searchQuery.length === 0 || matchesSearch(c, searchQuery))
+            .filter((c) => searchQuery.length === 0 || nodeMatches(c, searchQuery))
             .map((child) => (
               <PermissionGroupNode
                 key={child.id}
@@ -294,7 +295,7 @@ function RolePermissionEditor({
       <div className="perm-tree-scroll" key={expandKey}>
         <div className="perm-tree-grid">
           {(treeData ?? [])
-            .filter((node) => lowerQuery.length === 0 || matchesSearch(node, lowerQuery))
+            .filter((node) => lowerQuery.length === 0 || nodeMatches(node, lowerQuery))
             .map((node) => (
               <PermissionGroupNode
                 key={node.id}

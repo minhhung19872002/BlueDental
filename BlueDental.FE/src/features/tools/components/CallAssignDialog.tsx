@@ -14,6 +14,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { SelectLoading } from "@/components/SelectLoading";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   open: boolean;
@@ -133,7 +134,7 @@ export function CallAssignDialog({ open, assignment, onClose }: Props) {
         >
           <Select
             showSearch
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             loading={staffLoading}
             notFoundContent={staffLoading ? <SelectLoading /> : undefined}
             options={staff ?? []}

@@ -290,8 +290,8 @@ public class OrgChartAppService(
 
         foreach (var term in SearchTerms.From(input.Filter))
         {
-            query = query.Where(l => l.OrgUnitName.ToLower().Contains(term)
-                || (l.ActorName != null && l.ActorName.ToLower().Contains(term)));
+            query = query.Where(l => DbText.Unaccent(l.OrgUnitName.ToLower()).Contains(DbText.Unaccent(term))
+                || (l.ActorName != null && DbText.Unaccent(l.ActorName.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         var total = await AsyncExecuter.CountAsync(query);

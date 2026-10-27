@@ -7,6 +7,7 @@ import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
 import type { BranchManagerDto } from "../api/branchManagerApi";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 export interface BranchManagerFormValues {
   password: string;
@@ -246,6 +247,7 @@ export function BranchManagerEditorModal({
                 <Select
                   mode="multiple"
                   placeholder={t("Organization:SelectBranchPlaceholder")}
+                  filterOption={foldFilterOption}
                   options={branchOptions}
                 />
               </FloatingField>
@@ -300,7 +302,7 @@ export function BranchManagerEditorModal({
                   showSearch
                   allowClear
                   placeholder={t("Organization:ProvincePlaceholder")}
-                  optionFilterProp="label"
+                  filterOption={foldFilterOption}
                   options={provinces.map((p) => ({ value: p.code, label: p.name }))}
                   onChange={handleProvinceChange}
                 />
@@ -312,7 +314,7 @@ export function BranchManagerEditorModal({
                   showSearch
                   allowClear
                   placeholder={t("Organization:WardPlaceholder")}
-                  optionFilterProp="label"
+                  filterOption={foldFilterOption}
                   options={wards.map((w) => ({ value: w.code, label: w.name }))}
                   disabled={!selectedProvinceId}
                 />

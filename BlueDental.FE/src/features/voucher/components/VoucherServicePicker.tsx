@@ -14,6 +14,7 @@ import {
 } from "@/features/taxonomy/api/taxonomyApi";
 import type { VoucherFormValues } from "../types/voucherForm";
 import { SelectLoading } from "@/components/SelectLoading";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 const ENTRIES_QUERY: CatalogEntryQuery = {
   scope: "catalog",
@@ -117,9 +118,7 @@ export function VoucherServicePicker({ form }: Props) {
           notFoundContent={
             (mode === "group" ? groupsLoading : entriesLoading) ? <SelectLoading rowHeight={42} /> : undefined
           }
-          filterOption={(input, option) =>
-            option?.label.toLowerCase().includes(input.toLowerCase()) ?? false
-          }
+          filterOption={foldFilterOption}
           optionRender={(option) =>
             option.data.kind === "group" ? (
               <span className="voucher-opt-group">

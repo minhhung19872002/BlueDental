@@ -34,7 +34,7 @@ public class StaffViolationTypeAppService(
 
         foreach (var term in SearchTerms.From(input.Filter))
         {
-            query = query.Where(x => x.Name.ToLower().Contains(term));
+            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
         }
 
         var totalCount = await AsyncExecuter.CountAsync(query);

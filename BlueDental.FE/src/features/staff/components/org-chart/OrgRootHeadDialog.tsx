@@ -1,6 +1,7 @@
 import { Form, Select } from "antd";
 import { AppDialog } from "@/components/AppDialog";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { OrgChartIndex } from "./orgChartModel";
 import { staffPickerOptions } from "./orgStaffOptions";
 import { headConflictRule } from "./orgUnitForm";
@@ -48,7 +49,7 @@ export function OrgRootHeadDialog({ open, index, saving, onSubmit, onClose }: Pr
           <Select
             allowClear
             showSearch
-            optionFilterProp="label"
+            filterOption={foldFilterOption}
             placeholder={t("OrgChart:Placeholder:Head")}
             options={staffPickerOptions(index, { selfUnitId: rootId })}
           />

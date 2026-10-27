@@ -20,6 +20,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
+import { foldForSearch } from "@/utils/foldForSearch";
 
 /** One material on one voucher, which is the row this table shows. */
 interface AllocationLine {
@@ -122,11 +123,11 @@ export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = 
     // term. A voucher carries several materials, though, so its other lines
     // come back with it — this keeps the rows to the ones actually searched
     // for, rather than showing whatever else happened to travel alongside.
-    const terms = debounced.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const terms = foldForSearch(debounced).split(" ").filter(Boolean);
     if (!terms.length) return flattened;
 
     return flattened.filter((line) => {
-      const haystack = line.name.toLowerCase();
+      const haystack = foldForSearch(line.name);
       return terms.every((term) => haystack.includes(term));
     });
   }, [allocationsQuery.data, debounced, selectedId]);

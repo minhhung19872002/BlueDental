@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 import {
   ORG_UNIT_KIND,
   type OrgChartDto,
@@ -131,7 +132,7 @@ export function sizeOf(index: OrgChartIndex, unit: OrgUnitDto): OrgUnitSize {
 export function unitMatches(unit: OrgUnitDto, needle: string): boolean {
   if (!needle) return false;
   const haystack = [unit.name, unit.code, ...unit.members.map((m) => m.name)];
-  return haystack.some((text) => normalizeUnitName(text).includes(needle));
+  return haystack.some((text) => matchesSearch(text, needle));
 }
 
 export function headOf(unit: OrgUnitDto): OrgStaffDto | undefined {

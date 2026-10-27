@@ -94,7 +94,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         foreach (var term in SearchTerms.From(input.Filter))
         {
             query = query.Where(i =>
-                i.Name.ToLower().Contains(term) ||
+                DbText.Unaccent(i.Name.ToLower()).Contains(DbText.Unaccent(term)) ||
                 i.ItemCode.ToLower().Contains(term));
         }
 

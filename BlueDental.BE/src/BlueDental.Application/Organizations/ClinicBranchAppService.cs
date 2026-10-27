@@ -54,7 +54,7 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
 
         foreach (var term in SearchTerms.From(input.Filter))
             query = query.Where(b =>
-                b.Name.ToLower().Contains(term) || b.Code.ToLower().Contains(term));
+                DbText.Unaccent(b.Name.ToLower()).Contains(DbText.Unaccent(term)) || b.Code.ToLower().Contains(term));
 
         if (input.Status.HasValue)
         {

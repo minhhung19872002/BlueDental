@@ -83,7 +83,7 @@ public class GuardianCandidateAppService : BlueDentalAppService, IGuardianCandid
         foreach (var term in terms)
         {
             query = query.Where(p =>
-                (p.LastName + " " + p.FirstName).ToLower().Contains(term)
+                DbText.Unaccent((p.LastName + " " + p.FirstName).ToLower()).Contains(DbText.Unaccent(term))
                 || p.PatientCode.ToLower().Contains(term)
                 || (p.Contact.PhoneNumber != null
                     && (wholePhone ? p.Contact.PhoneNumber == term : p.Contact.PhoneNumber.Contains(term)))
@@ -134,7 +134,7 @@ public class GuardianCandidateAppService : BlueDentalAppService, IGuardianCandid
         foreach (var term in terms)
         {
             query = query.Where(x =>
-                x.Guardian.FullName.ToLower().Contains(term)
+                DbText.Unaccent(x.Guardian.FullName.ToLower()).Contains(DbText.Unaccent(term))
                 || (wholePhone ? x.Guardian.Phone == term : x.Guardian.Phone.Contains(term))
                 || x.Guardian.NationalId.ToLower().Contains(term));
         }

@@ -29,7 +29,7 @@ public class DiagnosticRecordAppService(
             query = query.Where(d => d.PatientId == input.PatientId.Value);
 
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(d => d.Code.ToLower().Contains(term) || (d.Diagnosis != null && d.Diagnosis.ToLower().Contains(term)));
+            query = query.Where(d => d.Code.ToLower().Contains(term) || (d.Diagnosis != null && DbText.Unaccent(d.Diagnosis.ToLower()).Contains(DbText.Unaccent(term))));
 
         var totalCount = query.Count();
         var items = query

@@ -6,6 +6,7 @@ import { useDentistStaffOptions } from "@/hooks/useStaffOptions";
 import type { ServiceCounter } from "../types";
 import { bareDentistName, dentistInitials } from "../utils/dentistName";
 import { SelectLoading } from "@/components/SelectLoading";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface DentistPickerFieldProps {
   /** The counter being edited; null on a new counter. */
@@ -77,7 +78,7 @@ function DentistControl({ counter, otherCounters, id, value, onChange }: Dentist
     <Select
       id={id}
       showSearch
-      optionFilterProp="label"
+      filterOption={foldFilterOption}
       loading={isLoading}
       notFoundContent={isLoading ? <SelectLoading /> : undefined}
       autoFocus={picking}

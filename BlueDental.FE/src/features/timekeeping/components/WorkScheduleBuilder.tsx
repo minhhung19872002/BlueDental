@@ -23,6 +23,7 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
+import { matchesSearch } from "@/utils/foldForSearch";
 
 const ChevronLeftIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,7 +82,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
     const items = staffPage?.items ?? [];
     const needle = keyword.trim().toLowerCase();
     const filtered = needle
-      ? items.filter((s) => (s.fullName || s.userName || "").toLowerCase().includes(needle))
+      ? items.filter((s) => matchesSearch(s.fullName || s.userName, needle))
       : items;
     return filtered.map((s) => ({
       id: s.id,

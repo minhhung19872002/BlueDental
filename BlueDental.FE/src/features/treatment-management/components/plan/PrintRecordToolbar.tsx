@@ -3,6 +3,7 @@ import { Minus, Plus } from "lucide-react";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import type { MedicalRecordForm } from "@/features/patient-management/api/medicalRecordApi";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { PREVIEW_ZOOM, PRINT_FORM_OPTIONS } from "./printRecordPreview";
 
 interface Props {
@@ -28,7 +29,7 @@ export function PrintRecordToolbar({ form, onFormChange, zoom, onZoomChange }: P
             label: t(option.label),
           }))}
           showSearch
-          optionFilterProp="label"
+          filterOption={foldFilterOption}
         />
       </FloatingLabel>
 

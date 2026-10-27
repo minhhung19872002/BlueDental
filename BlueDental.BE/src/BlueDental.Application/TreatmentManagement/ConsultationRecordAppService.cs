@@ -27,7 +27,7 @@ public class ConsultationRecordAppService(
             query = query.Where(c => c.PatientId == input.PatientId.Value);
 
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(c => c.ServiceName.ToLower().Contains(term));
+            query = query.Where(c => DbText.Unaccent(c.ServiceName.ToLower()).Contains(DbText.Unaccent(term)));
 
         var totalCount = query.Count();
         var items = query

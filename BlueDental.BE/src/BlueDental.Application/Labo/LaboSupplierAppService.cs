@@ -62,11 +62,11 @@ public class LaboSupplierAppService : ApplicationService, ILaboSupplierAppServic
         foreach (var term in SearchTerms.From(input.Filter))
         {
             query = query.Where(x =>
-                x.Name.ToLower().Contains(term) ||
+                DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)) ||
                 (x.Phone != null && x.Phone.ToLower().Contains(term)) ||
                 (x.Email != null && x.Email.ToLower().Contains(term)) ||
-                (x.ContactPerson != null && x.ContactPerson.ToLower().Contains(term)) ||
-                (x.Address != null && x.Address.ToLower().Contains(term)));
+                (x.ContactPerson != null && DbText.Unaccent(x.ContactPerson.ToLower()).Contains(DbText.Unaccent(term))) ||
+                (x.Address != null && DbText.Unaccent(x.Address.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         if (input.IsActive.HasValue)

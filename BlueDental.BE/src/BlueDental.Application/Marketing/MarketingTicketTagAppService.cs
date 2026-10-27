@@ -39,7 +39,7 @@ public class MarketingTicketTagAppService(
         var term = input.Filter?.Trim().ToLowerInvariant();
         if (!string.IsNullOrEmpty(term))
         {
-            query = query.Where(x => x.Name.ToLower().Contains(term));
+            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
         }
 
         var tags = await AsyncExecuter.ToListAsync(query.OrderBy(x => x.Name));

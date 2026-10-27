@@ -18,6 +18,7 @@ import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { AdviseQuotesState } from "../../hooks/useAdviseQuotes";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
 import {
@@ -435,7 +436,7 @@ export function PatientAdviseCard({
                 <Select
                   showSearch
                   allowClear
-                  optionFilterProp="label"
+                  filterOption={foldFilterOption}
                   placeholder={t("Patient:Stage:SelectDoctor")}
                   aria-label={t("Patient:Stage:SelectDoctor")}
                   status={dentistError ? "error" : undefined}

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Button, Select } from "antd";
 import { CloseOutlined, LockOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import type { OrgStaffDto } from "../../api/orgChartApi";
 import { OrgPersonRow } from "./OrgPersonRow";
 import type { OrgChartIndex } from "./orgChartModel";
@@ -86,7 +87,7 @@ export function OrgMembersField({ index, selfUnitId, headStaffId, excludeIds = [
         value={null}
         placeholder={t("OrgChart:Members:Add")}
         aria-label={t("OrgChart:Members:Add")}
-        optionFilterProp="label"
+        filterOption={foldFilterOption}
         options={options}
         onChange={handleAdd}
       />

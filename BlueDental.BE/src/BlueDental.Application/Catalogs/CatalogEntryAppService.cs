@@ -180,9 +180,9 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         foreach (var term in SearchTerms.From(input.Filter))
         {
             query = query.Where(x =>
-                x.Name.ToLower().Contains(term) ||
+                DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)) ||
                 (x.Code != null && x.Code.ToLower().Contains(term)) ||
-                (x.Description != null && x.Description.ToLower().Contains(term)));
+                (x.Description != null && DbText.Unaccent(x.Description.ToLower()).Contains(DbText.Unaccent(term))));
         }
 
         return query;

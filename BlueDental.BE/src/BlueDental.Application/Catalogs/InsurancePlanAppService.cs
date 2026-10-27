@@ -27,7 +27,7 @@ public class InsurancePlanAppService : ApplicationService, IInsurancePlanAppServ
 
         foreach (var term in SearchTerms.From(input.Filter))
             query = query.Where(p =>
-                p.Name.ToLower().Contains(term) ||
+                DbText.Unaccent(p.Name.ToLower()).Contains(DbText.Unaccent(term)) ||
                 p.Code.ToLower().Contains(term));
 
         if (input.IsActive.HasValue)

@@ -24,7 +24,7 @@ public class DentalProcedureAppService : ApplicationService, IDentalProcedureApp
     {
         var query = await _repository.GetQueryableAsync();
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(p => p.Name.ToLower().Contains(term) || p.Code.ToLower().Contains(term));
+            query = query.Where(p => DbText.Unaccent(p.Name.ToLower()).Contains(DbText.Unaccent(term)) || p.Code.ToLower().Contains(term));
         if (input.Category.HasValue) query = query.Where(p => p.Category == input.Category.Value);
         if (input.IsActive.HasValue) query = query.Where(p => p.IsActive == input.IsActive.Value);
 

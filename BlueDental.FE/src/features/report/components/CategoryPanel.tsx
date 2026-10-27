@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Button, Input, Space, Tooltip, type TableColumnsType } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 import { useClientPaging } from "../hooks/useClientPaging";
 import { ReportTableCard } from "./ReportTableCard";
 
@@ -89,7 +90,7 @@ export function CategoryPanel({ config, categories, loading, canCreate, onAdd, o
   const visible = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     if (!q) return categories;
-    return categories.filter((c) => c.name.toLowerCase().includes(q) || (c.colorCode ?? "").toLowerCase().includes(q));
+    return categories.filter((c) => matchesSearch(c.name, q) || (c.colorCode ?? "").toLowerCase().includes(q));
   }, [categories, keyword]);
   const paging = useClientPaging(visible);
 

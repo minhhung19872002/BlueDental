@@ -1,5 +1,6 @@
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import { matchesSearch } from "@/utils/foldForSearch";
 import type { RxDiagnosisRow } from "../types/prescription";
 
 /** "R36, R37" — the teeth of one picked diagnosis. */
@@ -37,7 +38,7 @@ export function matchesSlipFilter(row: RxDiagnosisRow, query: string): boolean {
   if (!needle) return true;
   return (
     row.planCode.toLocaleLowerCase().includes(needle) ||
-    row.diagnosisName.toLocaleLowerCase().includes(needle) ||
+    matchesSearch(row.diagnosisName, needle) ||
     row.toothCodes.some((code) => String(code).includes(needle))
   );
 }

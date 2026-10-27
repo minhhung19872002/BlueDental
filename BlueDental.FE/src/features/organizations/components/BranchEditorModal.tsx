@@ -14,6 +14,7 @@ import { BranchIpRangesField } from "./BranchIpRangesField";
 import { BranchUsageHoursField, USAGE_TIME_FORMAT } from "./BranchUsageHoursField";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface BranchFormValues {
   code: string;
@@ -219,9 +220,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
               allowClear
               placeholder={t("Organization:ProvincePlaceholder")}
               options={provinces.map((p) => ({ label: p.name, value: p.code }))}
-              filterOption={(input, option) =>
-                (option?.label as string).toLowerCase().includes(input.toLowerCase())
-              }
+              filterOption={foldFilterOption}
               onChange={() => form.setFieldValue("wardId", undefined)}
             />
           </Form.Item>
@@ -231,9 +230,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
               allowClear
               placeholder={t("Organization:WardPlaceholder")}
               options={wards.map((w) => ({ label: w.name, value: w.code }))}
-              filterOption={(input, option) =>
-                (option?.label as string).toLowerCase().includes(input.toLowerCase())
-              }
+              filterOption={foldFilterOption}
               disabled={!selectedProvinceId}
             />
           </Form.Item>

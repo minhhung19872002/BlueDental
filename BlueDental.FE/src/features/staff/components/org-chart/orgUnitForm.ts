@@ -1,5 +1,6 @@
 import type { Rule } from "antd/es/form";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 import {
   ORG_UNIT_KIND,
   type CreatableOrgUnitKind,
@@ -102,7 +103,7 @@ export function nameSuggestions(index: OrgChartIndex, typed: string, selfUnitId:
   const needle = normalizeUnitName(typed);
   if (!needle) return [];
   return others(index, selfUnitId)
-    .filter((u) => u.kind !== ORG_UNIT_KIND.Root && normalizeUnitName(u.name).includes(needle))
+    .filter((u) => u.kind !== ORG_UNIT_KIND.Root && matchesSearch(u.name, needle))
     .slice(0, 8)
     .map((u) => ({ value: u.name }));
 }

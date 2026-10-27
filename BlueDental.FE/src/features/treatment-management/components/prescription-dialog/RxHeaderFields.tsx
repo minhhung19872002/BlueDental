@@ -6,6 +6,7 @@ import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { useDentistOptions } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { treatmentTypeOptions } from "../../api/prescriptionApi";
 import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { PrescriptionPatientBlock } from "../PrescriptionPatientBlock";
@@ -39,7 +40,7 @@ export function RxHeaderFields({ patient }: { patient: PrescriptionPatientSummar
         </Form.Item>
         <div className="rx-head-pair">
           <FloatingField name="treatmentType" label={t("Treatment:Prescription:TypeTreatment")}>
-            <Select showSearch optionFilterProp="label" options={treatmentTypeOptions()} />
+            <Select showSearch filterOption={foldFilterOption} options={treatmentTypeOptions()} />
           </FloatingField>
           <Form.Item name="followUpDate">
             <DatePicker

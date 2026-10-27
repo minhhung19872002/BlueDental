@@ -1,5 +1,6 @@
 import type { AppointmentDto } from "../../types/appointment";
 import { STATUS_GROUPS, keptByChip } from "../../hooks/useStatusCounts";
+import { matchesSearch } from "@/utils/foldForSearch";
 
 /**
  * What the server sends as DentistId / PatientId on a "Lịch tạm" nobody has
@@ -38,9 +39,9 @@ export function filterBookings(bookings: AppointmentDto[], filter: BookingFilter
     if (!keptByChip(chipGroup, a)) return false;
     if (!needle) return true;
     return (
-      a.patientName?.toLowerCase().includes(needle) ||
-      a.reason?.toLowerCase().includes(needle) ||
-      a.doctorName?.toLowerCase().includes(needle)
+      matchesSearch(a.patientName, needle) ||
+      matchesSearch(a.reason, needle) ||
+      matchesSearch(a.doctorName, needle)
     );
   });
 }

@@ -6,6 +6,7 @@ import type { LaboCatalogItem } from "../api/laboCatalogListApi";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   open: boolean;
@@ -107,7 +108,7 @@ export function LaboMaterialDialog({
             >
               <Select
                 showSearch
-                optionFilterProp="label"
+                filterOption={foldFilterOption}
                 options={groups.map((group) => ({ value: group.id, label: group.name }))}
               />
             </FloatingField>

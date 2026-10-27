@@ -23,6 +23,7 @@ import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { exportToExcel } from "@/utils/exportExcel";
 import { formatDate, formatDateTime } from "@/utils/format";
+import { foldFilterOption } from "@/utils/foldForSearch";
 import { LaboOrderDialogHost } from "./LaboOrderDialogHost";
 import { buildLaboOrderColumns } from "./laboOrderColumns";
 import { LABO_MODAL_PARAM, LABO_ROW_PARAM, type LaboModalKey } from "./order-dialogs/laboModalKeys";
@@ -196,7 +197,7 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
               className="bd-labo-picker"
               showSearch
               allowClear
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               placeholder={t("Common:SelectDoctor")}
               aria-label={t("Common:SelectDoctor")}
               value={dentistId}

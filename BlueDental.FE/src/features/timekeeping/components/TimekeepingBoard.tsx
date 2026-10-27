@@ -20,6 +20,7 @@ import { useCurrentBranchId, useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "@/features/appointments/hooks/useCalendarState";
+import { matchesSearch } from "@/utils/foldForSearch";
 import "./timekeeping.css";
 
 function AttendanceGuideContent() {
@@ -140,8 +141,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
     }
 
     if (!keyword.trim()) return merged;
-    const needle = keyword.trim().toLowerCase();
-    return merged.filter((r) => (r.staffName ?? "").toLowerCase().includes(needle));
+    return merged.filter((r) => matchesSearch(r.staffName, keyword));
   }, [data, staffPage, keyword, branchId, branchFilter, workDate]);
 
   const staffCreationDates = useMemo(() => {

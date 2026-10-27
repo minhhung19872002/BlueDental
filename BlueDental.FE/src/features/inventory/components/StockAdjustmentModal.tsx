@@ -5,6 +5,7 @@ import { Modal, Button, Form, Select, Input, InputNumber } from "antd";
 import { useAdjustStock, useInventoryList } from "../api/index";
 import { t } from "@/lib/i18n";
 import { SelectLoading } from "@/components/SelectLoading";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 interface Props {
   open: boolean;
@@ -112,10 +113,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
                 loading={inventoryLoading}
                 notFoundContent={inventoryLoading ? <SelectLoading /> : undefined}
                 options={itemOptions}
-                optionFilterProp="label"
-                filterOption={(input, option) =>
-                  (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                }
+                filterOption={foldFilterOption}
               />
             </Form.Item>
           )}

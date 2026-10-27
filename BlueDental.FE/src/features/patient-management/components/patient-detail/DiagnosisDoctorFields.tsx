@@ -2,6 +2,7 @@ import { Button, Select, Tooltip } from "antd";
 import { CloseOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { foldFilterOption } from "@/utils/foldForSearch";
 
 export interface DiagnosisOption {
   value: string;
@@ -26,7 +27,7 @@ export function DiagnosisDoctorFields({ dentists, secondEnabled, onToggleSecond 
       <FloatingField name="staffId" label={t("Patient:Diagnosis:Doctor1")} required>
         <Select
           showSearch
-          optionFilterProp="label"
+          filterOption={foldFilterOption}
           prefix={<SearchOutlined />}
           options={dentists}
           notFoundContent={t("Common:NoResults")}
@@ -39,7 +40,7 @@ export function DiagnosisDoctorFields({ dentists, secondEnabled, onToggleSecond 
             <Select
               showSearch
               allowClear
-              optionFilterProp="label"
+              filterOption={foldFilterOption}
               prefix={<SearchOutlined />}
               options={dentists}
               notFoundContent={t("Common:NoResults")}

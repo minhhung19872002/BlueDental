@@ -524,7 +524,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         var text = filter.Trim().ToLower();
         var temporaryIds = appointments
             .Where(a => a.IsTemporary
-                && ((a.PatientName != null && a.PatientName.ToLower().Contains(text))
+                && ((a.PatientName != null && DbText.Unaccent(a.PatientName.ToLower()).Contains(DbText.Unaccent(text)))
                     || (a.PatientPhone != null && (wholePhone ? a.PatientPhone == text : a.PatientPhone.Contains(text)))))
             .Select(a => a.Id);
         return query.Where(r => matchedIds.Contains(r.PatientId)
@@ -536,7 +536,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     {
         var filter = rawFilter.Trim().ToLower();
         return p => p.PatientCode.ToLower().Contains(filter)
-            || (p.LastName + " " + p.FirstName).ToLower().Contains(filter)
+            || DbText.Unaccent((p.LastName + " " + p.FirstName).ToLower()).Contains(DbText.Unaccent(filter))
             || (wholePhone ? p.Contact.PhoneNumber == filter : p.Contact.PhoneNumber.Contains(filter));
     }
 

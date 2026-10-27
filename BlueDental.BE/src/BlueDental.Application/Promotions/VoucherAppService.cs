@@ -314,7 +314,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         }
 
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(x => x.Code.ToLower().Contains(term) || x.Name.ToLower().Contains(term));
+            query = query.Where(x => x.Code.ToLower().Contains(term) || DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
 
         return query;
     }

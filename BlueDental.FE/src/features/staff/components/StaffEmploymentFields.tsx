@@ -1,6 +1,7 @@
 import { AutoComplete, Col, DatePicker, Input, Row, Select } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import { matchesSearch } from "@/utils/foldForSearch";
 import { useStaffPositions } from "../api/staffQueries";
 import { CONTRACT_TYPES } from "../api/staffApi";
 
@@ -24,7 +25,7 @@ export function StaffEmploymentFields() {
           <FloatingField name="position" label={t("Staff:Position")}>
             <AutoComplete
               options={positions.map((value) => ({ value }))}
-              filterOption={(input, option) => (option?.value ?? "").toLowerCase().includes(input.toLowerCase())}
+              filterOption={(input, option) => matchesSearch(option?.value, input)}
             >
               <Input maxLength={100} />
             </AutoComplete>
