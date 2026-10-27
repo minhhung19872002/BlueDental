@@ -2216,6 +2216,7 @@ test.describe("Bệnh nhân", () => {
       "Ngày - Nhân sự",
       "Dịch vụ đã chọn",
       "Nội dung điều trị",
+      "Ghi chú lịch hẹn",
     ]);
     const historyBefore = await dialog.locator(".pd-stage-histrow").count();
 
@@ -2234,7 +2235,7 @@ test.describe("Bệnh nhân", () => {
     );
     // Two lines, typed as a user would: the box starts the first "- " and
     // Enter opens the second (R-983).
-    const textarea = form.locator("textarea");
+    const textarea = form.locator("textarea").first();
     await textarea.fill(note);
     await textarea.press("Enter");
     await page.keyboard.type("dòng hai");
@@ -2292,10 +2293,10 @@ test.describe("Bệnh nhân", () => {
     const form = dialog.locator(".pd-stage-form");
     await expect(form).toBeVisible();
 
-    // Three columns at 1600, and every control the full width of its own — the
-    // reference measures 366px for all of them at this viewport.
+    // Four columns at 1600 — the reference's three plus Ghi chú lịch hẹn
+    // (R-1056) — and every control the full width of its own column.
     const columns = await form.evaluate((el) => getComputedStyle(el).gridTemplateColumns);
-    expect(columns.split(" ")).toHaveLength(3);
+    expect(columns.split(" ")).toHaveLength(4);
 
     const widths = await form.evaluate((el) => {
       const column = el.children[0] as HTMLElement;
@@ -2312,7 +2313,7 @@ test.describe("Bệnh nhân", () => {
     // input inside the form card, not only on a saved row.
     await expect(form.getByRole("button", { name: "Tải Ảnh" })).toBeEnabled();
     // And the note is required, asterisk and all (c5b52d52).
-    const noteLabel = form.locator(".floating-field-label").last();
+    const noteLabel = form.locator(".floating-field-label", { hasText: "Nội dung điều trị" });
     await expect(noteLabel).toContainText("Nội dung điều trị");
     await expect(noteLabel.locator(".floating-field-required")).toHaveText("*");
   });
@@ -2326,7 +2327,7 @@ test.describe("Bệnh nhân", () => {
     if ((await rows.count()) === 0) {
       // Nothing to edit yet — add one so the spec always exercises the pencil.
       await dialog.locator(".pd-stage-picks button").first().click();
-      await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
+      await dialog.locator(".pd-stage-form textarea").first().fill(`e2e ${runId()}`);
       await dialog
         .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
         .click();
@@ -2449,7 +2450,7 @@ test.describe("Bệnh nhân", () => {
       .filter({ has: page.getByRole("button", { name: "Tạo Labo" }) });
     if ((await rows.count()) === 0) {
       await dialog.locator(".pd-stage-picks button").first().click();
-      await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
+      await dialog.locator(".pd-stage-form textarea").first().fill(`e2e ${runId()}`);
       await dialog
         .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
         .click();
@@ -2820,7 +2821,7 @@ test.describe("Bệnh nhân", () => {
     await expect(form.locator(".pd-stage-steplist .ant-checkbox-checked")).toHaveCount(0);
 
     await boxes.first().click();
-    await form.locator("textarea").fill(`e2e bước ${runId()}`);
+    await form.locator("textarea").first().fill(`e2e bước ${runId()}`);
 
     const created = page.waitForResponse(
       (res) =>
@@ -2924,7 +2925,7 @@ test.describe("Bệnh nhân", () => {
     const list = form.locator(".pd-stage-steplist");
     const boxes = list.locator(".ant-checkbox-wrapper");
     const ticked = list.locator(".ant-checkbox-checked");
-    const note = form.locator("textarea");
+    const note = form.locator("textarea").first();
     // The teeth row of the same form has a "Chọn tất cả" of its own.
     const bulk = form.locator(".pd-stage-listbulk");
     const selectAll = bulk.getByRole("checkbox", { name: "Chọn tất cả" });
@@ -3268,7 +3269,7 @@ test.describe("Bệnh nhân", () => {
 
     // Typing clears that field's message.
     const note = `e2e dưới ô ${runId()}`;
-    await form.locator("textarea").fill(note);
+    await form.locator("textarea").first().fill(note);
     await expect(message).toHaveCount(0);
 
     // A slip nobody signed (the slip specs make those) leaves Bác sĩ to the

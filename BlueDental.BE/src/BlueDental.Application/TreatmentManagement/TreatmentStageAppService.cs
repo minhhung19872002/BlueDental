@@ -186,6 +186,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.ServiceItemIds,
             warrantyRootStageId: warrantyRootStageId,
             treatmentDate: input.TreatmentDate);
+        stage.SetRemark(input.Remark);
 
         await _repository.InsertAsync(stage, autoSave: true);
 
@@ -244,6 +245,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.ToothCodes,
             others,
             input.TreatmentDate);
+        next.SetRemark(input.Remark);
 
         await _repository.UpdateAsync(stage);
         foreach (var (other, _) in others)

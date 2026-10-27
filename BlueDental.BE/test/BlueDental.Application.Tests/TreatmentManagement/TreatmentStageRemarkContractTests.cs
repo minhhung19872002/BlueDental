@@ -36,6 +36,20 @@ public class TreatmentStageRemarkContractTests
             .MaximumLength.ShouldBe(TreatmentStage.RemarkMaxLength);
     }
 
+    [Theory]
+    [InlineData(typeof(CreateTreatmentStageDto))]
+    [InlineData(typeof(ContinueTreatmentStageDto))]
+    public void The_new_stage_forms_should_carry_a_capped_appointment_note(Type form)
+    {
+        // Ghi chú lịch hẹn is typed on the Thêm / Tiếp tục công đoạn form and
+        // lands in the new công đoạn's Ghi chú (R-1056).
+        form.GetProperty("Remark")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<StringLengthAttribute>()
+            .ShouldNotBeNull()
+            .MaximumLength.ShouldBe(TreatmentStage.RemarkMaxLength);
+    }
+
     [Fact]
     public void UpdateRemarkAsync_should_be_gated_by_the_stage_update_ability()
     {

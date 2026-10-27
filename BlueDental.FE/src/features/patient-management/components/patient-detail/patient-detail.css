@@ -3769,7 +3769,7 @@
 }
 .pd-stage-colheads {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 .pd-stage-picks {
@@ -3842,6 +3842,11 @@
   border-radius: 12px;
   padding: 16px;
   background: #fff;
+}
+/* The công đoạn form adds Ghi chú lịch hẹn as a fourth column (R-1056); the
+   Tạo bảo hành / tái khám dialog keeps three. */
+.pd-stage-form--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .pd-stage-form > div > .floating-field + .floating-field,
 .pd-stage-form > div > .pd-stage-error + .floating-field {
@@ -4111,6 +4116,43 @@
   gap: 8px;
   margin-top: 16px;
 }
+/* "Chọn nhanh" under Ghi chú lịch hẹn (R-1056): pale chips, one lit at a time. */
+.pd-stage-quickpick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pd-stage-quickpick > span {
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-stage-quickpick > button {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+.pd-stage-quickpick > button:hover:not(:disabled) {
+  background: var(--bd-blue-pale-hover);
+}
+.pd-stage-quickpick > button.active {
+  background: var(--bd-primary);
+  color: #fff;
+}
+.pd-stage-quickpick > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 
 .pd-stage-history {
   margin-top: 16px;
@@ -4363,13 +4405,13 @@
     grid-template-columns: 280px minmax(0, 1fr);
   }
   /* The reference drops to two columns before it drops to one, with Nội dung
-     điều trị spanning the pair. */
+     điều trị spanning the pair; with Ghi chú lịch hẹn as a fourth (R-1056) the
+     công đoạn form fills a 2 × 2 grid instead. */
   .pd-stage-form,
   .pd-stage-colheads {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .pd-stage-form > div:last-child,
-  .pd-stage-colheads > div:last-child {
+  .pd-stage-form:not(.pd-stage-form--four) > div:last-child {
     grid-column: span 2;
   }
 }
@@ -4379,8 +4421,7 @@
   .pd-stage-colheads {
     grid-template-columns: 1fr;
   }
-  .pd-stage-form > div:last-child,
-  .pd-stage-colheads > div:last-child {
+  .pd-stage-form:not(.pd-stage-form--four) > div:last-child {
     grid-column: auto;
   }
 }
